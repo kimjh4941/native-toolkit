@@ -14,5 +14,3 @@ FOUNDATION_EXPORT double IosLibraryVersionNumber;
 FOUNDATION_EXPORT const unsigned char IosLibraryVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <IosLibrary/PublicHeader.h>
-
-
