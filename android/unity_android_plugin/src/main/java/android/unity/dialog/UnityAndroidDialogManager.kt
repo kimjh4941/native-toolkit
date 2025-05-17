@@ -1,11 +1,11 @@
 package android.unity.dialog
 
 import android.content.Context
-import android.library.dialog.NativeDialogFragment
+import android.library.dialog.AndroidDialogFragment
 import android.util.Log
 import androidx.fragment.app.FragmentActivity
 
-object NativeDialogManager {
+object UnityAndroidDialogManager {
     private const val TAG = "NativeDialogManager"
 
     private var callback: NativeDialogManagerCallback? = null
@@ -17,7 +17,7 @@ object NativeDialogManager {
     }
 
     @JvmStatic
-    fun getInstance(): NativeDialogManager {
+    fun getInstance(): UnityAndroidDialogManager {
         Log.d(TAG, "getInstance called")
         return this
     }
@@ -31,19 +31,19 @@ object NativeDialogManager {
         Log.d(TAG, "showDialog called")
         val activity = context as? FragmentActivity
         if (activity != null) {
-            val dialog = NativeDialogFragment.newInstance(title, message)
-            dialog.setNativeDialogListener(object : NativeDialogFragment.NativeDialogListener {
-                override fun onClickDialogNeutralButton(dialog: NativeDialogFragment) {
+            val dialog = AndroidDialogFragment.newInstance(title, message)
+            dialog.setNativeDialogListener(object : AndroidDialogFragment.NativeDialogListener {
+                override fun onClickDialogNeutralButton(dialog: AndroidDialogFragment) {
                     Log.d(TAG, "onClickDialogNeutralButton called")
                     callback?.onClickDialogNeutralButton("callback 1")
                 }
 
-                override fun onClickDialogNegativeButton(dialog: NativeDialogFragment) {
+                override fun onClickDialogNegativeButton(dialog: AndroidDialogFragment) {
                     Log.d(TAG, "onClickDialogNegativeButton called")
                     callback?.onClickDialogNegativeButton("callback 2")
                 }
 
-                override fun onClickDialogPositiveButton(dialog: NativeDialogFragment) {
+                override fun onClickDialogPositiveButton(dialog: AndroidDialogFragment) {
                     Log.d(TAG, "onClickDialogPositiveButton called")
                     callback?.onClickDialogPositiveButton("callback 3")
                 }

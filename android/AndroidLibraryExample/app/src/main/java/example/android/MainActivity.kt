@@ -1,6 +1,6 @@
 package example.android
 
-import android.library.dialog.NativeDialogFragment
+import android.library.dialog.AndroidDialogFragment
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -36,21 +36,21 @@ class MainActivity : AppCompatActivity() {
                     ) {
                         Button(onClick = {
                             Log.d(TAG, "onClick")
-                            val dialog = NativeDialogFragment.newInstance(
+                            val dialog = AndroidDialogFragment.newInstance(
                                 "タイトル",
                                 "宜しくお願い致します。"
                             ).apply {
                                 setNativeDialogListener(object :
-                                    NativeDialogFragment.NativeDialogListener {
-                                    override fun onClickDialogNeutralButton(dialog: NativeDialogFragment) {
+                                    AndroidDialogFragment.NativeDialogListener {
+                                    override fun onClickDialogNeutralButton(dialog: AndroidDialogFragment) {
                                         Log.d(TAG, "onClickDialogNeutralButton")
                                     }
 
-                                    override fun onClickDialogNegativeButton(dialog: NativeDialogFragment) {
+                                    override fun onClickDialogNegativeButton(dialog: AndroidDialogFragment) {
                                         Log.d(TAG, "onClickDialogNegativeButton")
                                     }
 
-                                    override fun onClickDialogPositiveButton(dialog: NativeDialogFragment) {
+                                    override fun onClickDialogPositiveButton(dialog: AndroidDialogFragment) {
                                         Log.d(TAG, "onClickDialogPositiveButton")
                                     }
                                 })

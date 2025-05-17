@@ -9,18 +9,18 @@ import androidx.fragment.app.Fragment
 
 /**
  * A simple [Fragment] subclass.
- * Use the [NativeDialogFragment.newInstance] factory method to
+ * Use the [AndroidDialogFragment.newInstance] factory method to
  * create an instance of this fragment.
  */
-class NativeDialogFragment : DialogFragment() {
+class AndroidDialogFragment : DialogFragment() {
     private var title: String? = null
     private var message: String? = null
     private var listener: NativeDialogListener? = null
 
     interface NativeDialogListener {
-        fun onClickDialogNeutralButton(dialog: NativeDialogFragment)
-        fun onClickDialogNegativeButton(dialog: NativeDialogFragment)
-        fun onClickDialogPositiveButton(dialog: NativeDialogFragment)
+        fun onClickDialogNeutralButton(dialog: AndroidDialogFragment)
+        fun onClickDialogNegativeButton(dialog: AndroidDialogFragment)
+        fun onClickDialogPositiveButton(dialog: AndroidDialogFragment)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,7 +83,7 @@ class NativeDialogFragment : DialogFragment() {
          */
         @JvmStatic
         fun newInstance(title: String, message: String) =
-            NativeDialogFragment().apply {
+            AndroidDialogFragment().apply {
                 Log.d(TAG, "newInstance")
                 arguments = Bundle().apply {
                     putString(ARG_TITLE, title)
