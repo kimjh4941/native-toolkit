@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E95A892D2DB4C5E20094FBD4 /* MacLibrary.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E95A892B2DB4C59D0094FBD4 /* MacLibrary.framework */; };
+		E95A892E2DB4C5E20094FBD4 /* MacLibrary.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E95A892B2DB4C59D0094FBD4 /* MacLibrary.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		E96203192DB4C1C90042C975 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -23,7 +28,22 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		E95A892F2DB4C5E20094FBD4 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				E95A892E2DB4C5E20094FBD4 /* MacLibrary.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		E95A892B2DB4C59D0094FBD4 /* MacLibrary.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = MacLibrary.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E96203072DB4C1C80042C975 /* MacLibraryExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacLibraryExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E96203182DB4C1C90042C975 /* MacLibraryExampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MacLibraryExampleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E96203222DB4C1C90042C975 /* MacLibraryExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MacLibraryExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -52,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E95A892D2DB4C5E20094FBD4 /* MacLibrary.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,12 +93,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		E95A892A2DB4C59D0094FBD4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				E95A892B2DB4C59D0094FBD4 /* MacLibrary.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		E96202FE2DB4C1C80042C975 = {
 			isa = PBXGroup;
 			children = (
 				E96203092DB4C1C80042C975 /* MacLibraryExample */,
 				E962031B2DB4C1C90042C975 /* MacLibraryExampleTests */,
 				E96203252DB4C1C90042C975 /* MacLibraryExampleUITests */,
+				E95A892A2DB4C59D0094FBD4 /* Frameworks */,
 				E96203082DB4C1C80042C975 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -102,6 +132,7 @@
 				E96203032DB4C1C80042C975 /* Sources */,
 				E96203042DB4C1C80042C975 /* Frameworks */,
 				E96203052DB4C1C80042C975 /* Resources */,
+				E95A892F2DB4C5E20094FBD4 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);

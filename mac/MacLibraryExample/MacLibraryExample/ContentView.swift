@@ -6,14 +6,18 @@
 //
 
 import SwiftUI
+import MacLibrary
 
 struct ContentView: View {
+    
+    private let TAG = "ContentView"
+    
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Button("Show Dialog", action: {
+                MacDialogManager.shared.showDialog(title: "Hello", message: "This is an alert!", handler: { result in
+                    Log.d(TAG, "result: \(result)")})
+            })
         }
         .padding()
     }
