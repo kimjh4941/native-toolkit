@@ -40,8 +40,8 @@ class MainActivity : AppCompatActivity() {
                                 "タイトル",
                                 "宜しくお願い致します。"
                             ).apply {
-                                setNativeDialogListener(object :
-                                    AndroidDialogFragment.NativeDialogListener {
+                                setAndroidDialogListener(object :
+                                    AndroidDialogFragment.AndroidDialogListener {
                                     override fun onClickDialogNeutralButton(dialog: AndroidDialogFragment) {
                                         Log.d(TAG, "onClickDialogNeutralButton")
                                     }

@@ -6,11 +6,11 @@ import android.util.Log
 import androidx.fragment.app.FragmentActivity
 
 object UnityAndroidDialogManager {
-    private const val TAG = "NativeDialogManager"
+    private const val TAG = "UnityAndroidDialogManager"
 
-    private var callback: NativeDialogManagerCallback? = null
+    private var callback: AndroidDialogManagerCallback? = null
 
-    interface NativeDialogManagerCallback {
+    interface AndroidDialogManagerCallback {
         fun onClickDialogNeutralButton(message: String)
         fun onClickDialogNegativeButton(message: String)
         fun onClickDialogPositiveButton(message: String)
@@ -22,7 +22,7 @@ object UnityAndroidDialogManager {
         return this
     }
 
-    fun registerCallback(callback: NativeDialogManagerCallback) {
+    fun registerCallback(callback: AndroidDialogManagerCallback) {
         Log.d(TAG, "registerCallback called")
         this.callback = callback
     }
@@ -32,7 +32,7 @@ object UnityAndroidDialogManager {
         val activity = context as? FragmentActivity
         if (activity != null) {
             val dialog = AndroidDialogFragment.newInstance(title, message)
-            dialog.setNativeDialogListener(object : AndroidDialogFragment.NativeDialogListener {
+            dialog.setAndroidDialogListener(object : AndroidDialogFragment.AndroidDialogListener {
                 override fun onClickDialogNeutralButton(dialog: AndroidDialogFragment) {
                     Log.d(TAG, "onClickDialogNeutralButton called")
                     callback?.onClickDialogNeutralButton("callback 1")
@@ -48,7 +48,7 @@ object UnityAndroidDialogManager {
                     callback?.onClickDialogPositiveButton("callback 3")
                 }
             })
-            dialog.show(activity.supportFragmentManager, "NativeDialogFragment")
+            dialog.show(activity.supportFragmentManager, "AndroidDialogFragment")
         } else {
             Log.e(TAG, "Failed to cast context to FragmentActivity")
         }

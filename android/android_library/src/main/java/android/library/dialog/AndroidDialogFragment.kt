@@ -15,9 +15,9 @@ import androidx.fragment.app.Fragment
 class AndroidDialogFragment : DialogFragment() {
     private var title: String? = null
     private var message: String? = null
-    private var listener: NativeDialogListener? = null
+    private var listener: AndroidDialogListener? = null
 
-    interface NativeDialogListener {
+    interface AndroidDialogListener {
         fun onClickDialogNeutralButton(dialog: AndroidDialogFragment)
         fun onClickDialogNegativeButton(dialog: AndroidDialogFragment)
         fun onClickDialogPositiveButton(dialog: AndroidDialogFragment)
@@ -55,8 +55,8 @@ class AndroidDialogFragment : DialogFragment() {
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 
-    fun setNativeDialogListener(listener: NativeDialogListener) {
-        Log.d(TAG, "setNativeDialogListener")
+    fun setAndroidDialogListener(listener: AndroidDialogListener) {
+        Log.d(TAG, "setAndroidDialogListener")
         this.listener = listener
     }
 
@@ -69,7 +69,7 @@ class AndroidDialogFragment : DialogFragment() {
 //    }
 
     companion object {
-        private const val TAG = "NativeDialogFragment"
+        private const val TAG = "AndroidDialogFragment"
         private const val ARG_TITLE = "title"
         private const val ARG_MESSAGE = "message"
 
