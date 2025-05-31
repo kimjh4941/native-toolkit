@@ -1,0 +1,10 @@
+﻿// UnityWindowsPlugin.idl : UnityWindowsPlugin.dll のタイプ ライブラリ ソース
+// このファイルは、タイプ ライブラリ ([!output SAFE_IDL_NAME].tlb) を作成するために、
+// タイプ ライブラリ (UnityWindowsPlugin.tlb)。
+
+[ uuid(cfd499f0-8943-4de7-8dc7-027253572062), version(1.0) ]
+library UnityWindowsPlugin
+{
+	importlib("stdole32.tlb");
+	importlib("stdole2.tlb");
+};

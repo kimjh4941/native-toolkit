@@ -1,0 +1,10 @@
+﻿// WindowsLibrary.idl : WindowsLibrary.dll のタイプ ライブラリ ソース
+// このファイルは、タイプ ライブラリ ([!output SAFE_IDL_NAME].tlb) を作成するために、
+// タイプ ライブラリ (WindowsLibrary.tlb)。
+
+[ uuid(4de616bc-18d3-4763-8754-06f05a9d0833), version(1.0) ]
+library WindowsLibrary
+{
+	importlib("stdole32.tlb");
+	importlib("stdole2.tlb");
+};

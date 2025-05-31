@@ -1,0 +1,10 @@
+﻿; UnityWindowsPlugin.def : DLL のモジュール パラメーターを宣言します。
+
+LIBRARY
+
+EXPORTS
+    ; 明示的なエクスポートはここへ記述できます
+	DllCanUnloadNow     PRIVATE
+	DllGetClassObject   PRIVATE
+	DllRegisterServer   PRIVATE
+	DllUnregisterServer PRIVATE
