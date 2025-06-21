@@ -14,6 +14,10 @@ namespace winrt::WindowsLibraryExample::implementation
 
         int32_t MyProperty();
         void MyProperty(int32_t value);
+
+        // ‚±‚±‚É’Ç‰Á
+        void ShowDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
+
     };
 }
 

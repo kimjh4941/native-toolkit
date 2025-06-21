@@ -13,6 +13,15 @@
 // conflict with Storyboard::GetCurrentTime
 #undef GetCurrentTime
 
+#if __has_include(<winrt/Microsoft.UI.Xaml.h>)
+#include <winrt/Microsoft.UI.Xaml.h>
+#endif
+#if __has_include(<winrt/Microsoft.UI.Xaml.Controls.h>)
+#include <winrt/Microsoft.UI.Xaml.Controls.h>
+#endif
+#if __has_include(<winrt/Microsoft.UI.Xaml.Controls.Primitives.h>)
+#include <winrt/Microsoft.UI.Xaml.Controls.Primitives.h>
+#endif
 #if __has_include(<winrt/Microsoft.UI.Xaml.Markup.h>)
 #include <winrt/Microsoft.UI.Xaml.Markup.h>
 #endif
@@ -36,6 +45,15 @@ namespace winrt::WindowsLibraryExample::implementation
         virtual ::winrt::Microsoft::UI::Xaml::Markup::IComponentConnector GetBindingConnector(int32_t connectionId, IInspectable const& target);
         void UnloadObject(::winrt::Microsoft::UI::Xaml::DependencyObject const& dependencyObject);
         void DisconnectUnloadedObject(int32_t connectionId);
+
+        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowDialogButton()
+        {
+            return _ShowDialogButton;
+        }
+        void ShowDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
+        {
+            _ShowDialogButton = value;
+        }
         
     protected:
         bool _contentLoaded{false};
@@ -43,6 +61,7 @@ namespace winrt::WindowsLibraryExample::implementation
     private:
         struct MainWindow_obj1_Bindings;
 
+        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowDialogButton{nullptr};
     };
 }
 

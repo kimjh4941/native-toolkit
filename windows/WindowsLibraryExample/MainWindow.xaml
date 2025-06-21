@@ -10,6 +10,13 @@
     Title="WindowsLibraryExample">
 
     <Grid>
-
+        <Button
+            x:Name="ShowDialogButton"
+            Content="ダイアログ表示"
+            Width="120"
+            Height="40"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Click="ShowDialogButton_Click"/>
     </Grid>
 </Window>

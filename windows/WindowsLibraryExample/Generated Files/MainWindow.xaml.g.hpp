@@ -35,9 +35,25 @@ namespace winrt::WindowsLibraryExample::implementation
         }
     }
 
-    template <typename D, typename... I>
-    void MainWindowT<D, I...>::Connect(int32_t, IInspectable const&)
+    template <typename D, typename ... I>
+    void MainWindowT<D, I...>::Connect(int32_t connectionId, IInspectable const& target)
     {
+        switch (connectionId)
+        {
+        case 2:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
+                this->ShowDialogButton(targetElement);
+                auto weakThis = ::winrt::make_weak<class_type>(*this);
+                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
+                    if (auto t = weakThis.get())
+                    {
+                        ::winrt::get_self<D>(t)->ShowDialogButton_Click(p0, p1);
+                    }
+                });
+            }
+            break;
+        }
         _contentLoaded = true;
     }
 
