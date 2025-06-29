@@ -46,13 +46,58 @@ namespace winrt::WindowsLibraryExample::implementation
         void UnloadObject(::winrt::Microsoft::UI::Xaml::DependencyObject const& dependencyObject);
         void DisconnectUnloadedObject(int32_t connectionId);
 
-        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowDialogButton()
+        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowAlertDialogButton()
         {
-            return _ShowDialogButton;
+            return _ShowAlertDialogButton;
         }
-        void ShowDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
+        void ShowAlertDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
         {
-            _ShowDialogButton = value;
+            _ShowAlertDialogButton = value;
+        }
+
+        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowFileDialogButton()
+        {
+            return _ShowFileDialogButton;
+        }
+        void ShowFileDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
+        {
+            _ShowFileDialogButton = value;
+        }
+
+        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowMultiFileDialogButton()
+        {
+            return _ShowMultiFileDialogButton;
+        }
+        void ShowMultiFileDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
+        {
+            _ShowMultiFileDialogButton = value;
+        }
+
+        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowSaveFileDialogButton()
+        {
+            return _ShowSaveFileDialogButton;
+        }
+        void ShowSaveFileDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
+        {
+            _ShowSaveFileDialogButton = value;
+        }
+
+        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowFolderDialogButton()
+        {
+            return _ShowFolderDialogButton;
+        }
+        void ShowFolderDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
+        {
+            _ShowFolderDialogButton = value;
+        }
+
+        ::winrt::Microsoft::UI::Xaml::Controls::Button ShowMultiFolderDialogButton()
+        {
+            return _ShowMultiFolderDialogButton;
+        }
+        void ShowMultiFolderDialogButton(::winrt::Microsoft::UI::Xaml::Controls::Button value)
+        {
+            _ShowMultiFolderDialogButton = value;
         }
         
     protected:
@@ -61,7 +106,12 @@ namespace winrt::WindowsLibraryExample::implementation
     private:
         struct MainWindow_obj1_Bindings;
 
-        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowDialogButton{nullptr};
+        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowAlertDialogButton{nullptr};
+        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowFileDialogButton{nullptr};
+        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowMultiFileDialogButton{nullptr};
+        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowSaveFileDialogButton{nullptr};
+        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowFolderDialogButton{nullptr};
+        ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowMultiFolderDialogButton{nullptr};
     };
 }
 

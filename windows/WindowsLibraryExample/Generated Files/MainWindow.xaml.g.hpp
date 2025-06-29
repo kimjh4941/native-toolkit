@@ -43,12 +43,77 @@ namespace winrt::WindowsLibraryExample::implementation
         case 2:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
-                this->ShowDialogButton(targetElement);
+                this->ShowAlertDialogButton(targetElement);
                 auto weakThis = ::winrt::make_weak<class_type>(*this);
                 targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
                     if (auto t = weakThis.get())
                     {
-                        ::winrt::get_self<D>(t)->ShowDialogButton_Click(p0, p1);
+                        ::winrt::get_self<D>(t)->ShowAlertDialogButton_Click(p0, p1);
+                    }
+                });
+            }
+            break;
+        case 3:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
+                this->ShowFileDialogButton(targetElement);
+                auto weakThis = ::winrt::make_weak<class_type>(*this);
+                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
+                    if (auto t = weakThis.get())
+                    {
+                        ::winrt::get_self<D>(t)->ShowFileDialogButton_Click(p0, p1);
+                    }
+                });
+            }
+            break;
+        case 4:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
+                this->ShowMultiFileDialogButton(targetElement);
+                auto weakThis = ::winrt::make_weak<class_type>(*this);
+                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
+                    if (auto t = weakThis.get())
+                    {
+                        ::winrt::get_self<D>(t)->ShowMultiFileDialogButton_Click(p0, p1);
+                    }
+                });
+            }
+            break;
+        case 5:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
+                this->ShowSaveFileDialogButton(targetElement);
+                auto weakThis = ::winrt::make_weak<class_type>(*this);
+                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
+                    if (auto t = weakThis.get())
+                    {
+                        ::winrt::get_self<D>(t)->ShowSaveFileDialogButton_Click(p0, p1);
+                    }
+                });
+            }
+            break;
+        case 6:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
+                this->ShowFolderDialogButton(targetElement);
+                auto weakThis = ::winrt::make_weak<class_type>(*this);
+                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
+                    if (auto t = weakThis.get())
+                    {
+                        ::winrt::get_self<D>(t)->ShowFolderDialogButton_Click(p0, p1);
+                    }
+                });
+            }
+            break;
+        case 7:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
+                this->ShowMultiFolderDialogButton(targetElement);
+                auto weakThis = ::winrt::make_weak<class_type>(*this);
+                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
+                    if (auto t = weakThis.get())
+                    {
+                        ::winrt::get_self<D>(t)->ShowMultiFolderDialogButton_Click(p0, p1);
                     }
                 });
             }

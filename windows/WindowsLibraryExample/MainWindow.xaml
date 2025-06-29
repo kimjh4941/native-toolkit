@@ -10,13 +10,55 @@
     Title="WindowsLibraryExample">
 
     <Grid>
-        <Button
-            x:Name="ShowDialogButton"
-            Content="ダイアログ表示"
-            Width="120"
-            Height="40"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Click="ShowDialogButton_Click"/>
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Orientation="Vertical" Spacing="16">
+            <Button
+                x:Name="ShowAlertDialogButton"
+                Content="ShowAlertDialog"
+                Width="180"
+                Height="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Click="ShowAlertDialogButton_Click"/>
+            <Button
+                x:Name="ShowFileDialogButton"
+                Content="ShowFileDialog"
+                Width="180"
+                Height="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Click="ShowFileDialogButton_Click"/>
+            <Button
+                x:Name="ShowMultiFileDialogButton"
+                Content="ShowMultiFileDialog"
+                Width="180"
+                Height="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Click="ShowMultiFileDialogButton_Click"/>
+            <Button
+                x:Name="ShowSaveFileDialogButton"
+                Content="ShowSaveFileDialog"
+                Width="180"
+                Height="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Click="ShowSaveFileDialogButton_Click"/>
+            <Button
+                x:Name="ShowFolderDialogButton"
+                Content="ShowFolderDialog"
+                Width="180"
+                Height="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Click="ShowFolderDialogButton_Click"/>
+            <Button
+                x:Name="ShowMultiFolderDialogButton"
+                Content="ShowMultiFolderDialog"
+                Width="180"
+                Height="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Click="ShowMultiFolderDialogButton_Click"/>
+        </StackPanel>
     </Grid>
 </Window>
