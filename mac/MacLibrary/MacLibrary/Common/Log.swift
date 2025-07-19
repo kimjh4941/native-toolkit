@@ -9,18 +9,26 @@ import Foundation
 @objcMembers
 public class Log: NSObject {
     public static func d(_ tag: String, _ message: String) {
-        print("[DEBUG] \(tag): \(message)")
+        let logMessage = "[DEBUG] \(tag): \(message)"
+        print(logMessage)
+        NSLog("NSLog - %@", logMessage)
     }
-
+    
     public static func i(_ tag: String, _ message: String) {
-        print("[INFO] \(tag): \(message)")
+        let logMessage = "[INFO] \(tag): \(message)"
+        print(logMessage)
+        NSLog("NSLog - %@", logMessage)
     }
-
+    
     public static func w(_ tag: String, _ message: String) {
-        print("[WARNING] \(tag): \(message)")
+        let logMessage = "[WARNING] \(tag): \(message)"
+        print(logMessage)
+        NSLog("NSLog - %@", logMessage)
     }
-
+    
     public static func e(_ tag: String, _ message: String) {
-        print("[ERROR] \(tag): \(message)")
+        let logMessage = "[ERROR] \(tag): \(message)"
+        print(logMessage)
+        NSLog("NSLog - %@", logMessage)
     }
 }
