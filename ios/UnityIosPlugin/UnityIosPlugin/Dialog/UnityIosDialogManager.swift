@@ -24,7 +24,7 @@ public class UnityIosDialogManager: NSObject {
         title: String,
         message: String,
         buttonText: String = "OK",
-        handler: ((String, Bool, String?) -> Void)?
+        handler: ((String?, Bool, String?) -> Void)?
     ) {
         Log.d(TAG, "showDialog called with title: \(title), message: \(message), buttonText: \(buttonText)")
         IosDialogManager.shared.showAlert(
@@ -33,7 +33,7 @@ public class UnityIosDialogManager: NSObject {
             buttonText: buttonText
         ) { result, isSuccess, errorMessage in
             Log.d(self.TAG, "OK button pressed")
-            handler?(result ?? buttonText, isSuccess, errorMessage)
+            handler?(result, isSuccess, errorMessage)
         }
     }
     
@@ -43,7 +43,7 @@ public class UnityIosDialogManager: NSObject {
         message: String,
         confirmButtonText: String = "OK",
         cancelButtonText: String = "Cancel",
-        handler: ((String, Bool, String?) -> Void)?
+        handler: ((String?, Bool, String?) -> Void)?
     ) {
         Log.d(TAG, "showConfirmDialog called")
         IosDialogManager.shared.showConfirmDialog(
@@ -53,11 +53,11 @@ public class UnityIosDialogManager: NSObject {
             cancelTitle: cancelButtonText,
             onConfirm: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Confirm button pressed")
-                handler?(result ?? confirmButtonText, isSuccess, errorMessage)
+                handler?(result, isSuccess, errorMessage)
             },
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Cancel button pressed")
-                handler?(result ?? cancelButtonText, isSuccess, errorMessage)
+                handler?(result, isSuccess, errorMessage)
             }
         )
     }
@@ -68,7 +68,7 @@ public class UnityIosDialogManager: NSObject {
         message: String,
         destructiveButtonText: String = "Delete",
         cancelButtonText: String = "Cancel",
-        handler: ((String, Bool, String?) -> Void)?
+        handler: ((String?, Bool, String?) -> Void)?
     ) {
         Log.d(TAG, "showDestructiveDialog called")
         IosDialogManager.shared.showDestructiveDialog(
@@ -78,11 +78,11 @@ public class UnityIosDialogManager: NSObject {
             cancelTitle: cancelButtonText,
             onDestructive: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Destructive button pressed")
-                handler?(result ?? destructiveButtonText, isSuccess, errorMessage)
+                handler?(result, isSuccess, errorMessage)
             },
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Cancel button pressed")
-                handler?(result ?? cancelButtonText, isSuccess, errorMessage)
+                handler?(result, isSuccess, errorMessage)
             }
         )
     }
@@ -93,7 +93,7 @@ public class UnityIosDialogManager: NSObject {
         message: String?,
         options: [String],
         cancelButtonText: String = "Cancel",
-        handler: ((String, Bool, String?) -> Void)?
+        handler: ((String?, Bool, String?) -> Void)?
     ) {
         Log.d(TAG, "showActionSheet called with options: \(options)")
 
@@ -123,11 +123,11 @@ public class UnityIosDialogManager: NSObject {
                 sourceView: rootViewController.view
             ) { result, isSuccess, errorMessage in
                 if !isSuccess {
-                    handler?("", false, errorMessage)
+                    handler?(nil, false, errorMessage)
                 }
             }
         } else {
-            handler?("", false, "Failed to get root view controller")
+            handler?(nil, false, "Failed to get root view controller")
         }
     }
 
@@ -139,7 +139,7 @@ public class UnityIosDialogManager: NSObject {
         confirmButtonText: String = "OK",
         cancelButtonText: String = "Cancel",
         enableConfirmWhenEmpty: Bool = true,
-        handler: ((String, String?, Bool, String?) -> Void)?
+        handler: ((String?, String?, Bool, String?) -> Void)?
     ) {
         Log.d(TAG, "showTextInputDialog called")
         IosDialogManager.shared.showTextInputDialog(
@@ -151,11 +151,11 @@ public class UnityIosDialogManager: NSObject {
             enableConfirmWhenEmpty: enableConfirmWhenEmpty,
             onConfirm: { result, inputText, isSuccess, errorMessage in
                 Log.d(self.TAG, "Text input confirmed")
-                handler?(result ?? confirmButtonText, inputText, isSuccess, errorMessage)
+                handler?(result, inputText, isSuccess, errorMessage)
             },
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Text input cancelled")
-                handler?(result ?? cancelButtonText, nil, isSuccess, errorMessage)
+                handler?(result, nil, isSuccess, errorMessage)
             }
         )
     }
@@ -169,7 +169,7 @@ public class UnityIosDialogManager: NSObject {
         loginButtonText: String = "Login",
         cancelButtonText: String = "Cancel",
         enableLoginWhenEmpty: Bool = true,
-        handler: ((String, String?, String?, Bool, String?) -> Void)?
+        handler: ((String?, String?, String?, Bool, String?) -> Void)?
     ) {
         Log.d(TAG, "showLoginDialog called")
         IosDialogManager.shared.showLoginDialog(
@@ -182,11 +182,11 @@ public class UnityIosDialogManager: NSObject {
             enableLoginWhenEmpty: enableLoginWhenEmpty,
             onLogin: { result, username, password, isSuccess, errorMessage in
                 Log.d(self.TAG, "Login attempted")
-                handler?(result ?? loginButtonText, username, password, isSuccess, errorMessage)
+                handler?(result, username, password, isSuccess, errorMessage)
             },
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Login cancelled")
-                handler?(result ?? cancelButtonText, nil, nil, isSuccess, errorMessage)
+                handler?(result, nil, nil, isSuccess, errorMessage)
             }
         )
     }

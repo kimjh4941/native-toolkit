@@ -18,27 +18,27 @@ object UnityAndroidDialogManager {
     private var loginDialogListener: LoginDialogListener? = null
 
     interface DialogListener {
-        fun onDialog(buttonText: String, isSuccessful: Boolean, errorMessage: String)
+        fun onDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface ConfirmDialogListener {
-        fun onConfirmDialog(buttonText: String, isSuccessful: Boolean, errorMessage: String)
+        fun onConfirmDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface SingleChoiceItemDialogListener {
-        fun onSingleChoiceItemDialog(buttonText: String, checkedItem: Int, isSuccessful: Boolean, errorMessage: String)
+        fun onSingleChoiceItemDialog(buttonText: String?, checkedItem: Int, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface MultiChoiceItemDialogListener {
-        fun onMultiChoiceItemDialog(buttonText: String, checkedItems: BooleanArray, isSuccessful: Boolean, errorMessage: String)
+        fun onMultiChoiceItemDialog(buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface TextInputDialogListener {
-        fun onTextInputDialog(buttonText: String, inputText: String, isSuccessful: Boolean, errorMessage: String)
+        fun onTextInputDialog(buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface LoginDialogListener {
-        fun onLoginDialog(buttonText: String, username: String, password: String, isSuccessful: Boolean, errorMessage: String)
+        fun onLoginDialog(buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     @JvmStatic
@@ -88,7 +88,7 @@ object UnityAndroidDialogManager {
             try {
                 AndroidDialogFragment.newInstance(title, message, buttonText, cancelableOnTouchOutside, cancelable).apply {
                     setDialogListener(object : AndroidDialogFragment.DialogListener {
-                        override fun onDialog(dialog: AndroidDialogFragment, buttonText: String, isSuccessful: Boolean, errorMessage: String) {
+                        override fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {
                             Log.d(TAG, "onDialog called")
                             dialogListener?.onDialog(buttonText, isSuccessful, errorMessage)
                         }
@@ -96,12 +96,12 @@ object UnityAndroidDialogManager {
                     show(activity.supportFragmentManager, "AndroidDialogFragment")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to show dialog: ${e.message}")
-                dialogListener?.onDialog(buttonText, false, "Failed to show dialog: ${e.message}")
+                Log.e(TAG, "Failed to showDialog: ${e.message}")
+                dialogListener?.onDialog(null, false, "Failed to showDialog: ${e.message}")
             }
         } else {
             Log.e(TAG, "Failed to cast context to FragmentActivity")
-            dialogListener?.onDialog(buttonText, false, "Failed to cast context to FragmentActivity")
+            dialogListener?.onDialog(null, false, "Failed to cast context to FragmentActivity")
         }
     }
 
@@ -123,7 +123,7 @@ object UnityAndroidDialogManager {
             try {
                 AndroidDialogFragment.newInstance(title, message, negativeButtonText, positiveButtonText, cancelableOnTouchOutside, cancelable).apply {
                     setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {
-                        override fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String, isSuccessful: Boolean, errorMessage: String) {
+                        override fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {
                             Log.d(TAG, "onConfirmDialog called")
                             confirmDialogListener?.onConfirmDialog(buttonText, isSuccessful, errorMessage)
                         }
@@ -131,12 +131,12 @@ object UnityAndroidDialogManager {
                     show(activity.supportFragmentManager, "AndroidDialogFragment")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to show confirm dialog: ${e.message}")
-                confirmDialogListener?.onConfirmDialog("", false, "Failed to show confirm dialog: ${e.message}")
+                Log.e(TAG, "Failed to showConfirmDialog: ${e.message}")
+                confirmDialogListener?.onConfirmDialog(null, false, "Failed to showConfirmDialog: ${e.message}")
             }
         } else {
             Log.e(TAG, "Failed to cast context to FragmentActivity")
-            confirmDialogListener?.onConfirmDialog("", false, "Failed to cast context to FragmentActivity")
+            confirmDialogListener?.onConfirmDialog(null, false, "Failed to cast context to FragmentActivity")
         }
     }
 
@@ -159,20 +159,20 @@ object UnityAndroidDialogManager {
             try {
                 AndroidDialogFragment.newInstance(title, singleChoiceItems, checkedItem, negativeButtonText, positiveButtonText, cancelableOnTouchOutside, cancelable).apply {
                     setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
-                        override fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String, checkedItem: Int, isSuccessful: Boolean, errorMessage: String) {
+                        override fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?) {
                             Log.d(TAG, "onSingleChoiceItemDialog called")
-                            singleChoiceItemDialogListener?.onSingleChoiceItemDialog(buttonText, checkedItem, isSuccessful, errorMessage)
+                            singleChoiceItemDialogListener?.onSingleChoiceItemDialog(buttonText, checkedItem ?: -1, isSuccessful, errorMessage)
                         }
                     })
                     show(activity.supportFragmentManager, "AndroidDialogFragment")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to show single choice dialog: ${e.message}")
-                singleChoiceItemDialogListener?.onSingleChoiceItemDialog("", checkedItem, false, "Failed to show single choice dialog: ${e.message}")
+                Log.e(TAG, "Failed to showSingleChoiceItemDialog: ${e.message}")
+                singleChoiceItemDialogListener?.onSingleChoiceItemDialog(null, -1, false, "Failed to showSingleChoiceItemDialog: ${e.message}")
             }
         } else {
             Log.e(TAG, "Failed to cast context to FragmentActivity")
-            singleChoiceItemDialogListener?.onSingleChoiceItemDialog("", checkedItem, false, "Failed to cast context to FragmentActivity")
+            singleChoiceItemDialogListener?.onSingleChoiceItemDialog(null, -1, false, "Failed to cast context to FragmentActivity")
         }
     }
 
@@ -195,7 +195,7 @@ object UnityAndroidDialogManager {
             try {
                 AndroidDialogFragment.newInstance(title, multiChoiceItems, checkedItems, negativeButtonText, positiveButtonText, cancelableOnTouchOutside, cancelable).apply {
                     setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {
-                        override fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String, checkedItems: BooleanArray, isSuccessful: Boolean, errorMessage: String) {
+                        override fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?) {
                             Log.d(TAG, "onMultiChoiceItemDialog called")
                             multiChoiceItemDialogListener?.onMultiChoiceItemDialog(buttonText, checkedItems, isSuccessful, errorMessage)
                         }
@@ -203,12 +203,12 @@ object UnityAndroidDialogManager {
                     show(activity.supportFragmentManager, "AndroidDialogFragment")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to show multi choice dialog: ${e.message}")
-                multiChoiceItemDialogListener?.onMultiChoiceItemDialog("", checkedItems, false, "Failed to show multi choice dialog: ${e.message}")
+                Log.e(TAG, "Failed to showMultiChoiceItemDialog: ${e.message}")
+                multiChoiceItemDialogListener?.onMultiChoiceItemDialog(null, null, false, "Failed to showMultiChoiceItemDialog: ${e.message}")
             }
         } else {
             Log.e(TAG, "Failed to cast context to FragmentActivity")
-            multiChoiceItemDialogListener?.onMultiChoiceItemDialog("", checkedItems, false, "Failed to cast context to FragmentActivity")
+            multiChoiceItemDialogListener?.onMultiChoiceItemDialog(null, null, false, "Failed to cast context to FragmentActivity")
         }
     }
 
@@ -232,7 +232,7 @@ object UnityAndroidDialogManager {
             try {
                 AndroidDialogFragment.newInstance(title, message, hint, negativeButtonText, positiveButtonText, enablePositiveButtonWhenEmpty, cancelableOnTouchOutside, cancelable).apply {
                     setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {
-                        override fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String, inputText: String, isSuccessful: Boolean, errorMessage: String) {
+                        override fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?) {
                             Log.d(TAG, "onTextInputDialog called")
                             textInputDialogListener?.onTextInputDialog(buttonText, inputText, isSuccessful, errorMessage)
                         }
@@ -240,12 +240,12 @@ object UnityAndroidDialogManager {
                     show(activity.supportFragmentManager, "AndroidDialogFragment")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to show text input dialog: ${e.message}")
-                textInputDialogListener?.onTextInputDialog("", "", false, "Failed to show text input dialog: ${e.message}")
+                Log.e(TAG, "Failed to showTextInputDialog: ${e.message}")
+                textInputDialogListener?.onTextInputDialog(null, null, false, "Failed to showTextInputDialog: ${e.message}")
             }
         } else {
             Log.e(TAG, "Failed to cast context to FragmentActivity")
-            textInputDialogListener?.onTextInputDialog("", "", false, "Failed to cast context to FragmentActivity")
+            textInputDialogListener?.onTextInputDialog(null, null, false, "Failed to cast context to FragmentActivity")
         }
     }
 
@@ -270,7 +270,7 @@ object UnityAndroidDialogManager {
             try {
                 AndroidDialogFragment.newInstance(title, message, usernameHint, passwordHint, negativeButtonText, positiveButtonText, enablePositiveButtonWhenEmpty, cancelableOnTouchOutside, cancelable).apply {
                     setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
-                        override fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String, username: String, password: String, isSuccessful: Boolean, errorMessage: String) {
+                        override fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?) {
                             Log.d(TAG, "onLoginDialog called")
                             loginDialogListener?.onLoginDialog(buttonText, username, password, isSuccessful, errorMessage)
                         }
@@ -278,12 +278,12 @@ object UnityAndroidDialogManager {
                     show(activity.supportFragmentManager, "AndroidDialogFragment")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to show login dialog: ${e.message}")
-                loginDialogListener?.onLoginDialog("", "", "", false, "Failed to show login dialog: ${e.message}")
+                Log.e(TAG, "Failed to showLoginDialog: ${e.message}")
+                loginDialogListener?.onLoginDialog(null, null, null, false, "Failed to showLoginDialog: ${e.message}")
             }
         } else {
             Log.e(TAG, "Failed to cast context to FragmentActivity")
-            loginDialogListener?.onLoginDialog("", "", "", false, "Failed to cast context to FragmentActivity")
+            loginDialogListener?.onLoginDialog(null, null, null, false, "Failed to cast context to FragmentActivity")
         }
     }
 }

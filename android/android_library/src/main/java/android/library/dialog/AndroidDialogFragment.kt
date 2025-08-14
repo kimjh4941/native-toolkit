@@ -66,27 +66,27 @@ class AndroidDialogFragment : DialogFragment() {
     private var dialogType: DialogType = DialogType.SIMPLE
 
     interface DialogListener {
-        fun onDialog(dialog: AndroidDialogFragment, buttonText: String, isSuccessful: Boolean, errorMessage: String)
+        fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface ConfirmDialogListener {
-        fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String, isSuccessful: Boolean, errorMessage: String)
+        fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface SingleChoiceItemDialogListener {
-        fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String, checkedItem: Int, isSuccessful: Boolean, errorMessage: String)
+        fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface MultiChoiceItemDialogListener {
-        fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String, checkedItems: BooleanArray, isSuccessful: Boolean, errorMessage: String)
+        fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface TextInputDialogListener {
-        fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String, inputText: String, isSuccessful: Boolean, errorMessage: String)
+        fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface LoginDialogListener {
-        fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String, username: String, password: String, isSuccessful: Boolean, errorMessage: String)
+        fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -145,18 +145,18 @@ class AndroidDialogFragment : DialogFragment() {
                     DialogType.SIMPLE -> {
                         setPositiveButton(buttonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
-                            dialogListener?.onDialog(this@AndroidDialogFragment, buttonText ?: "OK", true, "")
+                            dialogListener?.onDialog(this@AndroidDialogFragment, buttonText ?: "OK", true, null)
                         }
                     }
 
                     DialogType.CONFIRM -> {
                         setNegativeButton(negativeButtonText) { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
-                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, negativeButtonText!!, true, "")
+                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, negativeButtonText!!, true, null)
                         }
                         setPositiveButton(positiveButtonText) { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
-                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, positiveButtonText!!, true, "")
+                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, positiveButtonText!!, true, null)
                         }
                     }
 
@@ -167,11 +167,11 @@ class AndroidDialogFragment : DialogFragment() {
                         }
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
-                            singleChoiceItemListener?.onSingleChoiceItemDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", checkedItem, true, "")
+                            singleChoiceItemListener?.onSingleChoiceItemDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, true, null)
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
-                            singleChoiceItemListener?.onSingleChoiceItemDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", checkedItem, true, "")
+                            singleChoiceItemListener?.onSingleChoiceItemDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", checkedItem, true, null)
                         }
                     }
 
@@ -182,11 +182,11 @@ class AndroidDialogFragment : DialogFragment() {
                         }
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
-                            multiChoiceItemListener?.onMultiChoiceItemDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", checkedItems!!, true, "")
+                            multiChoiceItemListener?.onMultiChoiceItemDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, true, null)
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
-                            multiChoiceItemListener?.onMultiChoiceItemDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", checkedItems!!, true, "")
+                            multiChoiceItemListener?.onMultiChoiceItemDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", checkedItems!!, true, null)
                         }
                     }
 
@@ -198,12 +198,12 @@ class AndroidDialogFragment : DialogFragment() {
                         editText.hint = hint
                         setView(editText)
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
-                            textInputListener?.onTextInputDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", "", true, "")
+                            textInputListener?.onTextInputDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, true, null)
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             val inputText = editText.text.toString()
-                            textInputListener?.onTextInputDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", inputText, true, "")
+                            textInputListener?.onTextInputDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", inputText, true, null)
                         }
                     }
 
@@ -232,13 +232,13 @@ class AndroidDialogFragment : DialogFragment() {
 
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
-                            loginListener?.onLoginDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", "", "", true, "")
+                            loginListener?.onLoginDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, null, true, null)
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             val username = usernameEditText.text.toString()
                             val password = passwordEditText.text.toString()
-                            loginListener?.onLoginDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", username, password, true, "")
+                            loginListener?.onLoginDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", username, password, true, null)
                         }
                     }
                 }

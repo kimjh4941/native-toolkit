@@ -21,10 +21,10 @@ void showDialog(const char* title,
     [[UnityIosDialogManager shared] showDialogWithTitle:nsTitle
                                                 message:nsMessage
                                            buttonText:nsButtonText
-                                                handler:^(NSString* buttonPressed, BOOL isSuccess, NSString* errorMessage) {
-        [Log d:TAG :[NSString stringWithFormat:@"showDialogWithTitle buttonPressed: %@, isSuccess: %d, errorMessage: %@", buttonPressed, isSuccess, errorMessage]];
-        const char* buttonResult = buttonPressed ? buttonPressed.UTF8String : "";
-        const char* errorStr = errorMessage ? errorMessage.UTF8String : "";
+                                                handler:^(NSString* buttonText, BOOL isSuccess, NSString* errorMessage) {
+        [Log d:TAG :[NSString stringWithFormat:@"showDialogWithTitle buttonText: %@, isSuccess: %d, errorMessage: %@", buttonText, isSuccess, errorMessage]];
+        const char* buttonResult = buttonText ? buttonText.UTF8String : nil;
+        const char* errorStr = errorMessage ? errorMessage.UTF8String : nil;
         callback(buttonResult, isSuccess, errorStr);
     }];
 }
@@ -45,10 +45,10 @@ void showConfirmDialog(const char* title,
                                                        message:nsMessage
                                              confirmButtonText:nsConfirmText
                                               cancelButtonText:nsCancelText
-                                                       handler:^(NSString* buttonPressed, BOOL isSuccess, NSString* errorMessage) {
-        [Log d:TAG :[NSString stringWithFormat:@"showConfirmDialogWithTitle buttonPressed: %@, isSuccess: %d, errorMessage: %@", buttonPressed, isSuccess, errorMessage]];
-        const char* buttonResult = buttonPressed ? buttonPressed.UTF8String : "";
-        const char* errorStr = errorMessage ? errorMessage.UTF8String : "";
+                                                       handler:^(NSString* buttonText, BOOL isSuccess, NSString* errorMessage) {
+        [Log d:TAG :[NSString stringWithFormat:@"showConfirmDialogWithTitle buttonText: %@, isSuccess: %d, errorMessage: %@", buttonText, isSuccess, errorMessage]];
+        const char* buttonResult = buttonText ? buttonText.UTF8String : nil;
+        const char* errorStr = errorMessage ? errorMessage.UTF8String : nil;
         callback(buttonResult, isSuccess, errorStr);
     }];
 }
@@ -69,10 +69,10 @@ void showDestructiveDialog(const char* title,
                                                            message:nsMessage
                                              destructiveButtonText:nsDestructiveText
                                                   cancelButtonText:nsCancelText
-                                                           handler:^(NSString* buttonPressed, BOOL isSuccess, NSString* errorMessage) {
-        [Log d:TAG :[NSString stringWithFormat:@"showDestructiveDialogWithTitle buttonPressed: %@, isSuccess: %d, errorMessage: %@", buttonPressed, isSuccess, errorMessage]];
-        const char* buttonResult = buttonPressed ? buttonPressed.UTF8String : "";
-        const char* errorStr = errorMessage ? errorMessage.UTF8String : "";
+                                                           handler:^(NSString* buttonText, BOOL isSuccess, NSString* errorMessage) {
+        [Log d:TAG :[NSString stringWithFormat:@"showDestructiveDialogWithTitle buttonText: %@, isSuccess: %d, errorMessage: %@", buttonText, isSuccess, errorMessage]];
+        const char* buttonResult = buttonText ? buttonText.UTF8String : nil;
+        const char* errorStr = errorMessage ? errorMessage.UTF8String : nil;
         callback(buttonResult, isSuccess, errorStr);
     }];
 }
@@ -98,10 +98,10 @@ void showActionSheet(const char* title,
                                                      message:nsMessage
                                                      options:nsOptions
                                             cancelButtonText:nsCancelText
-                                                     handler:^(NSString* buttonPressed, BOOL isSuccess, NSString* errorMessage) {
-        [Log d:TAG :[NSString stringWithFormat:@"showActionSheetWithTitle buttonPressed: %@, isSuccess: %d, errorMessage: %@", buttonPressed, isSuccess, errorMessage]];
-        const char* buttonResult = buttonPressed ? buttonPressed.UTF8String : "";
-        const char* errorStr = errorMessage ? errorMessage.UTF8String : "";
+                                                     handler:^(NSString* buttonText, BOOL isSuccess, NSString* errorMessage) {
+        [Log d:TAG :[NSString stringWithFormat:@"showActionSheetWithTitle buttonText: %@, isSuccess: %d, errorMessage: %@", buttonText, isSuccess, errorMessage]];
+        const char* buttonResult = buttonText ? buttonText.UTF8String : nil;
+        const char* errorStr = errorMessage ? errorMessage.UTF8String : nil;
         callback(buttonResult, isSuccess, errorStr);
     }];
 }
@@ -127,11 +127,11 @@ void showTextInputDialog(const char* title,
                                                confirmButtonText:nsConfirmText
                                                 cancelButtonText:nsCancelText
                                           enableConfirmWhenEmpty:enableConfirmWhenEmpty
-                                                         handler:^(NSString* buttonPressed, NSString* inputText, BOOL isSuccess, NSString* errorMessage) {
-        [Log d:TAG :[NSString stringWithFormat:@"showTextInputDialogWithTitle buttonPressed: %@, inputText: %@, isSuccess: %d, errorMessage: %@", buttonPressed, inputText, isSuccess, errorMessage]];
-        const char* buttonResult = buttonPressed ? buttonPressed.UTF8String : "";
-        const char* textResult = inputText ? inputText.UTF8String : "";
-        const char* errorStr = errorMessage ? errorMessage.UTF8String : "";
+                                                         handler:^(NSString* buttonText, NSString* inputText, BOOL isSuccess, NSString* errorMessage) {
+        [Log d:TAG :[NSString stringWithFormat:@"showTextInputDialogWithTitle buttonText: %@, inputText: %@, isSuccess: %d, errorMessage: %@", buttonText, inputText, isSuccess, errorMessage]];
+        const char* buttonResult = buttonText ? buttonText.UTF8String : nil;
+        const char* textResult = inputText ? inputText.UTF8String : nil;
+        const char* errorStr = errorMessage ? errorMessage.UTF8String : nil;
         callback(buttonResult, textResult, isSuccess, errorStr);
     }];
 }
@@ -160,12 +160,12 @@ void showLoginDialog(const char* title,
                                              loginButtonText:nsLoginText
                                             cancelButtonText:nsCancelText
                                         enableLoginWhenEmpty:enableLoginWhenEmpty
-                                                     handler:^(NSString* buttonPressed, NSString* username, NSString* password, BOOL isSuccess, NSString* errorMessage) {
-        [Log d:TAG :[NSString stringWithFormat:@"showLoginDialogWithTitle buttonPressed: %@, username: %@, password: %@, isSuccess: %d, errorMessage: %@", buttonPressed, username, password, isSuccess, errorMessage]];
-        const char* buttonResult = buttonPressed ? buttonPressed.UTF8String : "";
-        const char* usernameResult = username ? username.UTF8String : "";
-        const char* passwordResult = password ? password.UTF8String : "";
-        const char* errorStr = errorMessage ? errorMessage.UTF8String : "";
+                                                     handler:^(NSString* buttonText, NSString* username, NSString* password, BOOL isSuccess, NSString* errorMessage) {
+        [Log d:TAG :[NSString stringWithFormat:@"showLoginDialogWithTitle buttonText: %@, username: %@, password: %@, isSuccess: %d, errorMessage: %@", buttonText, username, password, isSuccess, errorMessage]];
+        const char* buttonResult = buttonText ? buttonText.UTF8String : nil;
+        const char* usernameResult = username ? username.UTF8String : nil;
+        const char* passwordResult = password ? password.UTF8String : nil;
+        const char* errorStr = errorMessage ? errorMessage.UTF8String : nil;
         callback(buttonResult, usernameResult, passwordResult, isSuccess, errorStr);
     }];
 }

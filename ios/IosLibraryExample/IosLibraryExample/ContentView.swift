@@ -1,20 +1,16 @@
-//
-//  ContentView.swift
-//  IosLibraryExample
-//
-//  Created by Kim Jong Hyun on 2025/04/12.
-//
-
 import SwiftUI
 import IosLibrary
 
 struct ContentView: View {
-    @State private var resultText = "結果がここに表示されます"
+    
+    private let TAG = "ContentView"
+    
+    @State private var resultText = "Result will be displayed here"
     
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Text("IosDialogManager テスト")
+                Text("IosDialogManager Test")
                     .font(.title)
                     .fontWeight(.bold)
                     .padding()
@@ -27,8 +23,9 @@ struct ContentView: View {
                 
                 // ShowAlert
                 Button(action: {
-                    IosDialogManager.shared.showAlert(title: "基本アラート", message: "これは基本的なアラートダイアログです", buttonText: "確認") { result, isSuccess, errorMessage in
-                        updateResult(isSuccess: isSuccess, result: "showAlert - result: " + (result ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                    IosDialogManager.shared.showAlert(title: "Basic Alert", message: "This is a basic alert dialog", buttonText: "Confirm") { result, isSuccess, errorMessage in
+                        Log.d(TAG, "showAlert - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                        updateResult(isSuccess: isSuccess, result: "showAlert - result: " + (result ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                     }
                 }) {
                     Text("ShowAlert")
@@ -38,15 +35,17 @@ struct ContentView: View {
                 // ShowConfirmDialog
                 Button(action: {
                     IosDialogManager.shared.showConfirmDialog(
-                        title: "確認",
-                        message: "この操作を実行しますか？",
-                        confirmTitle: "実行",
-                        cancelTitle: "キャンセル",
+                        title: "Confirm",
+                        message: "Do you want to proceed with this action?",
+                        confirmTitle: "Proceed",
+                        cancelTitle: "Cancel",
                         onConfirm: { result, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showConfirmDialog - result: " + (result ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showConfirmDialog - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showConfirmDialog - result: " + (result ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { result, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showConfirmDialog - result: " + (result ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showConfirmDialog - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showConfirmDialog - result: " + (result ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
                 }) {
@@ -57,15 +56,17 @@ struct ContentView: View {
                 // ShowDestructiveDialog
                 Button(action: {
                     IosDialogManager.shared.showDestructiveDialog(
-                        title: "警告",
-                        message: "この操作は取り消せません。本当に削除しますか？",
-                        destructiveTitle: "削除",
-                        cancelTitle: "キャンセル",
+                        title: "Warning",
+                        message: "This action cannot be undone. Are you sure you want to delete?",
+                        destructiveTitle: "Delete",
+                        cancelTitle: "Cancel",
                         onDestructive: { result, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showDestructiveDialog - result: " + (result ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showDestructiveDialog - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showDestructiveDialog - result: " + (result ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { result, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showDestructiveDialog - result: " + (result ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showDestructiveDialog - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showDestructiveDialog - result: " + (result ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
                 }) {
@@ -76,27 +77,32 @@ struct ContentView: View {
                 // ShowActionSheet
                 Button(action: {
                     let actions = [
-                        UIAlertAction(title: "オプション1", style: .default) { _ in
-                            updateResult(isSuccess: true, result: "showActionSheet - result: オプション1, isSuccess: true, errorMessage: nil")
+                        UIAlertAction(title: "Option 1", style: .default) { _ in
+                            Log.d(TAG, "showActionSheet - Option 1 selected")
+                            updateResult(isSuccess: true, result: "showActionSheet - result: Option 1, isSuccess: true, errorMessage: nil")
                         },
-                        UIAlertAction(title: "オプション2", style: .default) { _ in
-                            updateResult(isSuccess: true, result: "showActionSheet - result: オプション2, isSuccess: true, errorMessage: nil")
+                        UIAlertAction(title: "Option 2", style: .default) { _ in
+                            Log.d(TAG, "showActionSheet - Option 2 selected")
+                            updateResult(isSuccess: true, result: "showActionSheet - result: Option 2, isSuccess: true, errorMessage: nil")
                         },
-                        UIAlertAction(title: "削除", style: .destructive) { _ in
-                            updateResult(isSuccess: true, result: "showActionSheet - result: 削除, isSuccess: true, errorMessage: nil")
+                        UIAlertAction(title: "Delete", style: .destructive) { _ in
+                            Log.d(TAG, "showActionSheet - Delete selected")
+                            updateResult(isSuccess: true, result: "showActionSheet - result: Delete, isSuccess: true, errorMessage: nil")
                         },
-                        UIAlertAction(title: "キャンセル", style: .cancel) { _ in
-                            updateResult(isSuccess: true, result: "showActionSheet - result: キャンセル, isSuccess: true, errorMessage: nil")
+                        UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                            Log.d(TAG, "showActionSheet - Cancel selected")
+                            updateResult(isSuccess: true, result: "showActionSheet - result: Cancel, isSuccess: true, errorMessage: nil")
                         }
                     ]
                     
                     if let rootVC = IosDialogManager.shared.getRootViewController() {
                         IosDialogManager.shared.showActionSheet(
-                            title: "選択してください",
-                            message: "オプションを選択してください",
+                            title: "Please select",
+                            message: "Please choose an option",
                             actions: actions,
                             sourceView: rootVC.view
                         ) { result, isSuccess, errorMessage in
+                            Log.d(TAG, "showActionSheet - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
                             if !isSuccess {
                                 updateResult(isSuccess: isSuccess, result: "showActionSheet - Error: \(errorMessage ?? "Unknown error")")
                             }
@@ -110,17 +116,19 @@ struct ContentView: View {
                 // ShowTextInputDialog
                 Button(action: {
                     IosDialogManager.shared.showTextInputDialog(
-                        title: "テキスト入力",
-                        message: "名前を入力してください",
-                        placeholder: "テキストを入力してください",
+                        title: "Text Input",
+                        message: "Please enter your name",
+                        placeholder: "Enter text",
                         confirmTitle: "OK",
-                        cancelTitle: "キャンセル",
+                        cancelTitle: "Cancel",
                         enableConfirmWhenEmpty: false,
                         onConfirm: { result, inputText, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showTextInputDialog - result: " + (result ?? "") + ", inputText: " + (inputText ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showTextInputDialog - result: \(result ?? "nil"), inputText: \(inputText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showTextInputDialog - result: " + (result ?? "nil") + ", inputText: " + (inputText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { result, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showTextInputDialog - result: " + (result ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showTextInputDialog - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showTextInputDialog - result: " + (result ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
                 }) {
@@ -131,18 +139,20 @@ struct ContentView: View {
                 // ShowLoginDialog
                 Button(action: {
                     IosDialogManager.shared.showLoginDialog(
-                        title: "ログイン",
-                        message: "認証情報を入力してください",
-                        usernamePlaceholder: "ユーザー名",
-                        passwordPlaceholder: "パスワード",
-                        loginTitle: "ログイン",
-                        cancelTitle: "キャンセル",
+                        title: "Login",
+                        message: "Please enter your credentials",
+                        usernamePlaceholder: "Username",
+                        passwordPlaceholder: "Password",
+                        loginTitle: "Login",
+                        cancelTitle: "Cancel",
                         enableLoginWhenEmpty: false,
                         onLogin: { result, username, password, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showLoginDialog - result: " + (result ?? "") + ", username: " + (username ?? "") + ", password: " + (password ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showLoginDialog - result: \(result  ?? "nil"), username: \(username ?? "nil"), password: \(password ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showLoginDialog - result: " + (result ?? "nil") + ", username: " + (username ?? "nil") + ", password: " + (password ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { result, isSuccess, errorMessage in
-                            updateResult(isSuccess: isSuccess, result: "showLoginDialog - result: " + (result ?? "") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? ""))
+                            Log.d(TAG, "showLoginDialog - result: \(result ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            updateResult(isSuccess: isSuccess, result: "showLoginDialog - result: " + (result ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
                 }) {
@@ -159,9 +169,9 @@ struct ContentView: View {
     private func updateResult(isSuccess: Bool, result: String? ) {
         DispatchQueue.main.async {
             if isSuccess {
-                resultText = "✅ \n結果: \(result ?? "nil")"
+                resultText = "✅ \nResult: \(result ?? "nil")"
             } else {
-                resultText = "❌ \n結果: \(result ?? "nil")"
+                resultText = "❌ \nResult: \(result ?? "nil")"
             }
         }
     }

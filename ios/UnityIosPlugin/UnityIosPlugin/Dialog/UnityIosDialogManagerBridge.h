@@ -14,28 +14,28 @@ extern "C" {
 #endif
 
 // コールバック型定義
-typedef void (*DialogCallback)(const char* buttonPressed,
+typedef void (*DialogCallback)(const char* buttonText,
                                bool isSuccess,
                                const char* errorMessage);
 
-typedef void (*ConfirmDialogCallback)(const char* buttonPressed,
+typedef void (*ConfirmDialogCallback)(const char* buttonText,
                                       bool isSuccess,
                                       const char* errorMessage);
 
-typedef void (*DestructiveDialogCallback)(const char* buttonPressed,
+typedef void (*DestructiveDialogCallback)(const char* buttonText,
                                           bool isSuccess,
                                           const char* errorMessage);
 
-typedef void (*ActionSheetCallback)(const char* buttonPressed,
+typedef void (*ActionSheetCallback)(const char* buttonText,
                                     bool isSuccess,
                                     const char* errorMessage);
 
-typedef void (*TextInputDialogCallback)(const char* buttonPressed,
+typedef void (*TextInputDialogCallback)(const char* buttonText,
                                         const char* inputText,
                                         bool isSuccess,
                                         const char* errorMessage);
 
-typedef void (*LoginDialogCallback)(const char* buttonPressed,
+typedef void (*LoginDialogCallback)(const char* buttonText,
                                     const char* username,
                                     const char* password,
                                     bool isSuccess,
