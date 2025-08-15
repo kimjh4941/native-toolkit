@@ -29,13 +29,13 @@ void showDialog(const char* title,
             NSString* buttonTitle = result[@"buttonTitle"];
             NSInteger buttonIndex = [result[@"buttonIndex"] integerValue];
             BOOL suppressionButtonState = [result[@"suppressionButtonState"] boolValue];
-            
-            [Log d:TAG :[NSString stringWithFormat:@"showDialog success: buttonTitle=%@, buttonIndex=%ld", buttonTitle, buttonIndex]];
-            callback(buttonTitle.UTF8String, (int)buttonIndex, suppressionButtonState, YES, "");
+            [Log d:TAG :[NSString stringWithFormat:@"showDialog buttonTitle: %@, buttonIndex: %d, suppressionButtonState: %d", buttonTitle, (int)buttonIndex, (int)suppressionButtonState]];
+            [Log d:TAG :@"showDialog completed successfully"];
+            callback(buttonTitle.UTF8String, (int)buttonIndex, suppressionButtonState, YES, NULL);
         } else {
             NSString* errorMessage = error.localizedDescription ?: @"Unknown error";
             [Log e:TAG :[NSString stringWithFormat:@"showDialog error occurred: %@", errorMessage]];
-            callback("", -1, NO, NO, errorMessage.UTF8String);
+            callback(NULL, -1, NO, NO, errorMessage.UTF8String);
         }
     }];
 }
@@ -75,6 +75,7 @@ void showFileDialog(const char* title,
             NSString* directoryURL = result[@"directoryURL"];
             BOOL isCancelled = [result[@"isCancelled"] boolValue];
             BOOL isSuccess = [result[@"isSuccess"] boolValue];
+            [Log d:TAG :[NSString stringWithFormat:@"showFileDialog filePaths: %@, fileCount: %@, directoryURL: %@, isCancelled: %d, isSuccess: %d", filePaths, fileCount, directoryURL, (int)isCancelled, (int)isSuccess]];
             
             // Convert NSArray to C array
             const char** cFilePaths = (const char**)malloc(filePaths.count * sizeof(char*));
@@ -82,14 +83,18 @@ void showFileDialog(const char* title,
                 cFilePaths[i] = [filePaths[i] UTF8String];
             }
             
-            [Log d:TAG :[NSString stringWithFormat:@"showFileDialog success: fileCount=%@", fileCount]];
-            callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, "");
-            
+            if (isCancelled) {
+                [Log d:TAG :@"showFileDialog was cancelled"];
+                callback(NULL, -1, NULL, isCancelled, isSuccess, NULL);
+            } else {
+                [Log d:TAG :@"showFileDialog completed successfully"];
+                callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, NULL);
+            }
             free(cFilePaths);
         } else {
             NSString* errorMessage = error.localizedDescription ?: @"Unknown error";
             [Log e:TAG :[NSString stringWithFormat:@"showFileDialog error occurred: %@", errorMessage]];
-            callback(NULL, 0, "", NO, NO, errorMessage.UTF8String);
+            callback(NULL, -1, NULL, NO, NO, errorMessage.UTF8String);
         }
     }];
 }
@@ -129,6 +134,7 @@ void showMultiFileDialog(const char* title,
             NSString* directoryURL = result[@"directoryURL"];
             BOOL isCancelled = [result[@"isCancelled"] boolValue];
             BOOL isSuccess = [result[@"isSuccess"] boolValue];
+            [Log d:TAG :[NSString stringWithFormat:@"showMultiFileDialog filePaths: %@, fileCount: %@, directoryURL: %@, isCancelled: %d, isSuccess: %d", filePaths, fileCount, directoryURL, (int)isCancelled, (int)isSuccess]];
             
             // Convert NSArray to C array
             const char** cFilePaths = (const char**)malloc(filePaths.count * sizeof(char*));
@@ -136,14 +142,18 @@ void showMultiFileDialog(const char* title,
                 cFilePaths[i] = [filePaths[i] UTF8String];
             }
             
-            [Log d:TAG :[NSString stringWithFormat:@"showMultiFileDialog success: fileCount=%@", fileCount]];
-            callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, "");
-            
+            if (isCancelled) {
+                [Log d:TAG :@"showMultiFileDialog was cancelled"];
+                callback(NULL, -1, NULL, isCancelled, isSuccess, NULL);
+            } else {
+                [Log d:TAG :@"showMultiFileDialog completed successfully"];
+                callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, NULL);
+            }
             free(cFilePaths);
         } else {
             NSString* errorMessage = error.localizedDescription ?: @"Unknown error";
             [Log e:TAG :[NSString stringWithFormat:@"showMultiFileDialog error occurred: %@", errorMessage]];
-            callback(NULL, 0, "", NO, NO, errorMessage.UTF8String);
+            callback(NULL, -1, NULL, NO, NO, errorMessage.UTF8String);
         }
     }];
 }
@@ -173,6 +183,7 @@ void showFolderDialog(const char* title,
             NSString* directoryURL = result[@"directoryURL"];
             BOOL isCancelled = [result[@"isCancelled"] boolValue];
             BOOL isSuccess = [result[@"isSuccess"] boolValue];
+            [Log d:TAG :[NSString stringWithFormat:@"showFolderDialog filePaths: %@, fileCount: %@, directoryURL: %@, isCancelled: %d, isSuccess: %d", filePaths, fileCount, directoryURL, (int)isCancelled, (int)isSuccess]];
             
             // Convert NSArray to C array
             const char** cFilePaths = (const char**)malloc(filePaths.count * sizeof(char*));
@@ -180,14 +191,18 @@ void showFolderDialog(const char* title,
                 cFilePaths[i] = [filePaths[i] UTF8String];
             }
             
-            [Log d:TAG :[NSString stringWithFormat:@"showFolderDialog success: fileCount=%@", fileCount]];
-            callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, "");
-            
+            if (isCancelled) {
+                [Log d:TAG :@"showFolderDialog was cancelled"];
+                callback(NULL, -1, NULL, isCancelled, isSuccess, NULL);
+            } else {
+                [Log d:TAG :@"showFolderDialog completed successfully"];
+                callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, NULL);
+            }
             free(cFilePaths);
         } else {
             NSString* errorMessage = error.localizedDescription ?: @"Unknown error";
             [Log e:TAG :[NSString stringWithFormat:@"showFolderDialog error occurred: %@", errorMessage]];
-            callback(NULL, 0, "", NO, NO, errorMessage.UTF8String);
+            callback(NULL, -1, NULL, NO, NO, errorMessage.UTF8String);
         }
     }];
 }
@@ -217,6 +232,7 @@ void showMultiFolderDialog(const char* title,
             NSString* directoryURL = result[@"directoryURL"];
             BOOL isCancelled = [result[@"isCancelled"] boolValue];
             BOOL isSuccess = [result[@"isSuccess"] boolValue];
+            [Log d:TAG :[NSString stringWithFormat:@"showMultiFolderDialog filePaths: %@, fileCount: %@, directoryURL: %@, isCancelled: %d, isSuccess: %d", filePaths, fileCount, directoryURL, (int)isCancelled, (int)isSuccess]];
             
             // Convert NSArray to C array
             const char** cFilePaths = (const char**)malloc(filePaths.count * sizeof(char*));
@@ -224,14 +240,18 @@ void showMultiFolderDialog(const char* title,
                 cFilePaths[i] = [filePaths[i] UTF8String];
             }
             
-            [Log d:TAG :[NSString stringWithFormat:@"showMultiFolderDialog success: fileCount=%@", fileCount]];
-            callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, "");
-            
+            if (isCancelled) {
+                [Log d:TAG :@"showMultiFolderDialog was cancelled"];
+                callback(NULL, -1, NULL, isCancelled, isSuccess, NULL);
+            } else {
+                [Log d:TAG :@"showMultiFolderDialog completed successfully"];
+                callback(cFilePaths, (int)filePaths.count, directoryURL.UTF8String, isCancelled, isSuccess, NULL);
+            }
             free(cFilePaths);
         } else {
             NSString* errorMessage = error.localizedDescription ?: @"Unknown error";
             [Log e:TAG :[NSString stringWithFormat:@"showMultiFolderDialog error occurred: %@", errorMessage]];
-            callback(NULL, 0, "", NO, NO, errorMessage.UTF8String);
+            callback(NULL, -1, NULL, NO, NO, errorMessage.UTF8String);
         }
     }];
 }
@@ -274,13 +294,19 @@ void showSaveFileDialog(const char* title,
             NSString* directoryURL = result[@"directoryURL"];
             BOOL isCancelled = [result[@"isCancelled"] boolValue];
             BOOL isSuccess = [result[@"isSuccess"] boolValue];
+            [Log d:TAG :[NSString stringWithFormat:@"showSaveFileDialog filePath: %@, fileCount: %@, directoryURL: %@, isCancelled: %d, isSuccess: %d", filePath, fileCount, directoryURL, (int)isCancelled, (int)isSuccess]];
             
-            [Log d:TAG :[NSString stringWithFormat:@"showSaveFileDialog success: fileCount=%@", fileCount]];
-            callback(filePath.UTF8String, [fileCount intValue], directoryURL.UTF8String, isCancelled, isSuccess, "");
+            if (isCancelled) {
+                [Log d:TAG :@"showSaveFileDialog was cancelled"];
+                callback(NULL, -1, NULL, isCancelled, isSuccess, NULL);
+            } else {
+                [Log d:TAG :@"showSaveFileDialog completed successfully"];
+                callback(filePath.UTF8String, [fileCount intValue], directoryURL.UTF8String, isCancelled, isSuccess, NULL);
+            }
         } else {
             NSString* errorMessage = error.localizedDescription ?: @"Unknown error";
             [Log e:TAG :[NSString stringWithFormat:@"showSaveFileDialog error occurred: %@", errorMessage]];
-            callback(NULL, 0, "", NO, NO, errorMessage.UTF8String);
+            callback(NULL, -1, NULL, NO, NO, errorMessage.UTF8String);
         }
     }];
 }

@@ -260,8 +260,8 @@ public class MacDialogManager: NSObject {
     }
     
     public func showFileDialog(
-        title: String = "ファイルを選択",
-        message: String = "ファイルを選択してください",
+        title: String = "Select File",
+        message: String = "Please select a file",
         allowedContentTypes: [String] = [],
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
@@ -285,8 +285,8 @@ public class MacDialogManager: NSObject {
     }
     
     public func showMultiFileDialog(
-        title: String = "ファイルを選択",
-        message: String = "ファイルを選択してください（複数選択可能）",
+        title: String = "Select Files",
+        message: String = "Please select files (multiple selection allowed)",
         allowedContentTypes: [String] = [],
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
@@ -310,8 +310,8 @@ public class MacDialogManager: NSObject {
     }
     
     public func showFolderDialog(
-        title: String = "フォルダを選択",
-        message: String = "フォルダを選択してください",
+        title: String = "Select Folder",
+        message: String = "Please select a folder",
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
     ) {
@@ -333,8 +333,8 @@ public class MacDialogManager: NSObject {
     }
 
     public func showMultiFolderDialog(
-        title: String = "フォルダを選択",
-        message: String = "フォルダを選択してください（複数選択可能）",
+        title: String = "Select Folders",
+        message: String = "Please select folders (multiple selection allowed)",
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
     ) {
@@ -356,8 +356,8 @@ public class MacDialogManager: NSObject {
     }
     
     public func showSaveFileDialog(
-        title: String = "ファイルを保存",
-        message: String = "ファイルを保存してください",
+        title: String = "Save File",
+        message: String = "Please save the file",
         nameFieldStringValue: String = "",
         allowedContentTypes: [String] = [],
         directoryURL: URL? = nil,

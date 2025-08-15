@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 typedef void (*DialogCallback)(const char* buttonTitle,
-                                      int buttonIndex,
-                                      bool suppressionState,
-                                      bool isSuccess,
-                                      const char* errorMessage);
+                               int buttonIndex,
+                               bool suppressionState,
+                               bool isSuccess,
+                               const char* errorMessage);
 
 typedef void (*FileDialogCallback)(const char** filePaths,
                                    int fileCount,
@@ -26,21 +26,21 @@ typedef void (*FileDialogCallback)(const char** filePaths,
                                    const char* errorMessage);
 
 typedef void (*MultiFileDialogCallback)(const char** filePaths,
-                                   int fileCount,
-                                   const char* directoryURL,
-                                   bool isCancelled,
-                                   bool isSuccess,
-                                   const char* errorMessage);
+                                        int fileCount,
+                                        const char* directoryURL,
+                                        bool isCancelled,
+                                        bool isSuccess,
+                                        const char* errorMessage);
 
-typedef void (*FolderDialogCallback)(const char** filePaths,
-                                     int fileCount,
+typedef void (*FolderDialogCallback)(const char** folderPaths,
+                                     int folderCount,
                                      const char* directoryURL,
                                      bool isCancelled,
                                      bool isSuccess,
                                      const char* errorMessage);
 
-typedef void (*MultiFolderDialogCallback)(const char** filePaths,
-                                          int fileCount,
+typedef void (*MultiFolderDialogCallback)(const char** folderPaths,
+                                          int folderCount,
                                           const char* directoryURL,
                                           bool isCancelled,
                                           bool isSuccess,
@@ -61,14 +61,14 @@ void showDialog(const char* title,
 
 void showFileDialog(const char* title,
                     const char* message,
-                    const char** allowedContentTypes,  // 許可されるファイル拡張子の配列
+                    const char** allowedContentTypes,  // 許可されるファイル拡張子の配列（nullptrも可）
                     int contentTypesCount,             // 配列の要素数
                     const char* directoryPath,         // 初期ディレクトリパス（nullptrも可）
                     FileDialogCallback callback);
 
 void showMultiFileDialog(const char* title,
                          const char* message,
-                         const char** allowedContentTypes,  // 許可されるファイル拡張子の配列
+                         const char** allowedContentTypes,  // 許可されるファイル拡張子の配列（nullptrも可）
                          int contentTypesCount,             // 配列の要素数
                          const char* directoryPath,         // 初期ディレクトリパス（nullptrも可）
                          MultiFileDialogCallback callback);
@@ -85,8 +85,8 @@ void showMultiFolderDialog(const char* title,
 
 void showSaveFileDialog(const char* title,
                         const char* message,
-                        const char* nameFieldStringValue,  // デフォルトファイル名
-                        const char** allowedContentTypes,  // 許可されるファイル拡張子の配列
+                        const char* nameFieldStringValue,  // デフォルトファイル名（nullptrも可）
+                        const char** allowedContentTypes,  // 許可されるファイル拡張子の配列（nullptrも可）
                         int contentTypesCount,             // 配列の要素数
                         const char* directoryPath,         // 初期ディレクトリパス（nullptrも可）
                         SaveFileDialogCallback callback);
