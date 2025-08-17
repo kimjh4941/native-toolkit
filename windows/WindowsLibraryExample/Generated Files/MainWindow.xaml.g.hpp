@@ -42,6 +42,12 @@ namespace winrt::WindowsLibraryExample::implementation
         {
         case 2:
             {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::TextBlock>();
+                this->TitleTextBlock(targetElement);
+            }
+            break;
+        case 3:
+            {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowAlertDialogButton(targetElement);
                 auto weakThis = ::winrt::make_weak<class_type>(*this);
@@ -53,7 +59,7 @@ namespace winrt::WindowsLibraryExample::implementation
                 });
             }
             break;
-        case 3:
+        case 4:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowFileDialogButton(targetElement);
@@ -66,7 +72,7 @@ namespace winrt::WindowsLibraryExample::implementation
                 });
             }
             break;
-        case 4:
+        case 5:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowMultiFileDialogButton(targetElement);
@@ -79,7 +85,7 @@ namespace winrt::WindowsLibraryExample::implementation
                 });
             }
             break;
-        case 5:
+        case 6:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowSaveFileDialogButton(targetElement);
@@ -92,7 +98,7 @@ namespace winrt::WindowsLibraryExample::implementation
                 });
             }
             break;
-        case 6:
+        case 7:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowFolderDialogButton(targetElement);
@@ -105,7 +111,7 @@ namespace winrt::WindowsLibraryExample::implementation
                 });
             }
             break;
-        case 7:
+        case 8:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowMultiFolderDialogButton(targetElement);
@@ -116,6 +122,12 @@ namespace winrt::WindowsLibraryExample::implementation
                         ::winrt::get_self<D>(t)->ShowMultiFolderDialogButton_Click(p0, p1);
                     }
                 });
+            }
+            break;
+        case 9:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::TextBlock>();
+                this->ResultTextBlock(targetElement);
             }
             break;
         }

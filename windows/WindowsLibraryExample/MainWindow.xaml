@@ -9,56 +9,66 @@
     mc:Ignorable="d"
     Title="WindowsLibraryExample">
 
-    <Grid>
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Orientation="Vertical" Spacing="16">
-            <Button
-                x:Name="ShowAlertDialogButton"
-                Content="ShowAlertDialog"
-                Width="180"
-                Height="40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Click="ShowAlertDialogButton_Click"/>
-            <Button
-                x:Name="ShowFileDialogButton"
-                Content="ShowFileDialog"
-                Width="180"
-                Height="40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Click="ShowFileDialogButton_Click"/>
-            <Button
-                x:Name="ShowMultiFileDialogButton"
-                Content="ShowMultiFileDialog"
-                Width="180"
-                Height="40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Click="ShowMultiFileDialogButton_Click"/>
-            <Button
-                x:Name="ShowSaveFileDialogButton"
-                Content="ShowSaveFileDialog"
-                Width="180"
-                Height="40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Click="ShowSaveFileDialogButton_Click"/>
-            <Button
-                x:Name="ShowFolderDialogButton"
-                Content="ShowFolderDialog"
-                Width="180"
-                Height="40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Click="ShowFolderDialogButton_Click"/>
-            <Button
-                x:Name="ShowMultiFolderDialogButton"
-                Content="ShowMultiFolderDialog"
-                Width="180"
-                Height="40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Click="ShowMultiFolderDialogButton_Click"/>
-        </StackPanel>
-    </Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+            <StackPanel 
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Orientation="Vertical"
+            Width="600"
+            Padding="30"
+            Spacing="30">
+                <TextBlock
+                 x:Name="TitleTextBlock"
+                 Height="50"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Center"
+                 Text="WindowsDialogManager Example"
+                 FontSize="30"
+                 TextAlignment="Center"
+                 TextWrapping="Wrap"/>
+                <Border Background="LightGray" CornerRadius="8" Margin="10">
+                    <TextBlock
+                    x:Name="ResultTextBlock"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    Padding="10"
+                    Text="Result will be displayed here"
+                    TextAlignment="Center"
+                    FontSize="24"
+                    TextWrapping="Wrap"/>
+                </Border>
+                <Button
+                    x:Name="ShowAlertDialogButton"
+                    Content="ShowAlertDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="ShowAlertDialogButton_Click"/>
+                <Button
+                    x:Name="ShowFileDialogButton"
+                    Content="ShowFileDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="ShowFileDialogButton_Click"/>
+                <Button
+                    x:Name="ShowMultiFileDialogButton"
+                    Content="ShowMultiFileDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="ShowMultiFileDialogButton_Click"/>
+                <Button
+                    x:Name="ShowSaveFileDialogButton"
+                    Content="ShowSaveFileDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="ShowSaveFileDialogButton_Click"/>
+                <Button
+                    x:Name="ShowFolderDialogButton"
+                    Content="ShowFolderDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="ShowFolderDialogButton_Click"/>
+                <Button
+                    x:Name="ShowMultiFolderDialogButton"
+                    Content="ShowMultiFolderDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="ShowMultiFolderDialogButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
 </Window>

@@ -1,4 +1,4 @@
-#include "pch.h"
+Ôªø#include "pch.h"
 #include "MainWindow.xaml.h"
 #if __has_include("MainWindow.g.cpp")
 #include "MainWindow.g.cpp"
@@ -7,7 +7,6 @@
 #include "common.h"
 #include "WindowsDialogManager.h"
 
-
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;
 
@@ -15,7 +14,7 @@ using namespace Microsoft::UI::Xaml;
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
 //extern "C" __declspec(dllimport)
-//int ShowDialog(const wchar_t*); // DLLä÷êîÇÃÉCÉìÉ|Å[Ég
+//int ShowDialog(const wchar_t*); // DLL function import
 
 static const wchar_t* TAG = L"MainWindow";
 
@@ -31,105 +30,165 @@ namespace winrt::WindowsLibraryExample::implementation
         throw hresult_not_implemented();
     }
 
-    // Ç±Ç±Ç…ÉCÉxÉìÉgÉnÉìÉhÉâÇí«â¡
+    // Add event handlers here
     void MainWindow::ShowAlertDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"ShowAlertDialogButton_Click");
-
         DWORD errorCode = 0;
-        showAlertDialog(L"É^ÉCÉgÉã", L"ÉeÉXÉgÇ≈Ç∑ÅB", MB_OKCANCEL, MB_ICONINFORMATION, MB_DEFBUTTON2, MB_APPLMODAL, &errorCode);
-        // ÉGÉâÅ[ÉRÅ[ÉhÇÉçÉOÇ…ï\é¶
-        if (errorCode != 0) {
-            DFLog(TAG, L"showAlertDialog ÉGÉâÅ[ÉRÅ[Éh: %lu", errorCode);
+        int result = showAlertDialog(L"Title", L"This is a test.", MB_OKCANCEL, MB_ICONINFORMATION, MB_DEFBUTTON2, MB_APPLMODAL, &errorCode);
+
+        std::wstring resultText;
+        if (errorCode == 0) {
+            DFLog(TAG, L"showAlertDialog Result: %d", result);
+            resultText = L"‚úÖ\nShowAlertDialog Result: " + std::to_wstring(result);
         }
-        else {
-            DLog(TAG, L"showAlertDialog ê≥èÌèIóπ");
+        else
+        {
+            DFLog(TAG, L"showAlertDialog Error Code: %lu", errorCode);
+            resultText = L"‚ùå\nShowAlertDialog Error Code: " + std::to_wstring(errorCode);
         }
+        SetResultText(resultText);
     }
 
     void MainWindow::ShowFileDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"ShowFileDialogButton_Click");
-        // ÉVÉìÉOÉãÉtÉ@ÉCÉãëIë
         wchar_t filePath[260] = { 0 };
-        const wchar_t* filter = L"ÉeÉLÉXÉgÉtÉ@ÉCÉã\0*.txt\0Ç∑Ç◊ÇƒÇÃÉtÉ@ÉCÉã\0*.*\0";
+        const wchar_t* filter = L"Text Files\0*.txt\0All Files\0*.*\0";
         DWORD errorCode = 0;
-        showFileDialog(filePath, 260, filter, &errorCode);
-        // ÉGÉâÅ[ÉRÅ[ÉhÇÉçÉOÇ…ï\é¶
-        if (errorCode != 0) {
-            DFLog(TAG, L"showFileDialog ÉGÉâÅ[ÉRÅ[Éh: %lu", errorCode);
+        BOOL result = showFileDialog(filePath, 260, filter, &errorCode);
+
+        std::wstring resultText;
+        if (errorCode == 0) {
+            DFLog(TAG, L"showFileDialog Result: %d", result);
+            resultText = L"‚úÖ\nShowFileDialog Result: " + std::to_wstring(result) + L", filePath: " + std::wstring(filePath);
+        }
+        else if (errorCode == -1) {
+            resultText = L"ShowFileDialog was canceled.";
+            DLog(TAG, resultText.c_str());
         }
         else {
-            DLog(TAG, L"showFileDialog ê≥èÌèIóπ");
+            DFLog(TAG, L"showFileDialog Error Code: %lu", errorCode);
+            resultText = L"‚ùå\nShowFileDialog Error Code: " + std::to_wstring(errorCode);
         }
+        SetResultText(resultText);
     }
 
     void MainWindow::ShowMultiFileDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"ShowMultiFileDialogButton_Click");
-        // è\ï™Ç»ÉoÉbÉtÉ@Çópà”Åiï°êîÉtÉ@ÉCÉãëIëéûÇÕëÂÇ´ÇﬂÇ…Åj
         wchar_t multiBuffer[4096] = { 0 };
-        const wchar_t* filter = L"ÉeÉLÉXÉgÉtÉ@ÉCÉã\0*.txt\0Ç∑Ç◊ÇƒÇÃÉtÉ@ÉCÉã\0*.*\0";
+        const wchar_t* filter = L"Text Files\0*.txt\0All Files\0*.*\0";
         DWORD errorCode = 0;
-        showMultiFileDialog(multiBuffer, 4096, filter, &errorCode);
-        // ÉGÉâÅ[ÉRÅ[ÉhÇÉçÉOÇ…ï\é¶
-        if (errorCode != 0) {
-            DFLog(TAG, L"showMultiFileDialog ÉGÉâÅ[ÉRÅ[Éh: %lu", errorCode);
+        int result = showMultiFileDialog(multiBuffer, 4096, filter, &errorCode);
+
+        std::wstring resultText;
+        if (errorCode == 0) {
+            DFLog(TAG, L"showMultiFileDialog Result: %d", result);
+            resultText = L"‚úÖ\nShowMultiFileDialog Result: " + std::to_wstring(result) + L"\n";
+            wchar_t* p = multiBuffer;
+            int idx = 0;
+            while (*p) {
+                resultText += L"multiBuffer[" + std::to_wstring(idx) + L"]: " + std::wstring(p) + L"\n";
+                p += wcslen(p) + 1;
+                ++idx;
+            }
+            DFLog(TAG, L"resultText: %ls", resultText.c_str());
+        }
+        else if (errorCode == -1) {
+            resultText = L"ShowMultiFileDialog was canceled.";
+            DLog(TAG, resultText.c_str());
         }
         else {
-            DLog(TAG, L"showMultiFileDialog ê≥èÌèIóπ");
+            DFLog(TAG, L"showMultiFileDialog Error Code: %lu", errorCode);
+            resultText = L"‚ùå\nShowMultiFileDialog Error Code: " + std::to_wstring(errorCode);
         }
+        SetResultText(resultText);
     }
 
     void MainWindow::ShowSaveFileDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"ShowSaveFileDialogButton_Click");
         wchar_t savePath[260] = { 0 };
-        // ÉtÉBÉãÉ^ÇÕWin32 APIå`éÆÅi\0ãÊêÿÇËÅAç≈å„ÇÕ\0\0Åj
-        const wchar_t* filter = L"ÉeÉLÉXÉgÉtÉ@ÉCÉã\0*.txt\0Ç∑Ç◊ÇƒÇÃÉtÉ@ÉCÉã\0*.*\0";
+        const wchar_t* filter = L"Text Files\0*.txt\0All Files\0*.*\0";
         const wchar_t* def_ext = L"txt";
         DWORD errorCode = 0;
-        showSaveFileDialog(savePath, 260, filter, def_ext, &errorCode);
-        // ÉGÉâÅ[ÉRÅ[ÉhÇÉçÉOÇ…ï\é¶
-        if (errorCode != 0) {
-            DFLog(TAG, L"showSaveFileDialog ÉGÉâÅ[ÉRÅ[Éh: %lu", errorCode);
+        BOOL result = showSaveFileDialog(savePath, 260, filter, def_ext, &errorCode);
+
+        std::wstring resultText;
+        if (errorCode == 0) {
+            DFLog(TAG, L"showSaveFileDialog Result: %d", result);
+            resultText = L"‚úÖ\nShowSaveFileDialog Result: " + std::to_wstring(result) + L", savePath: " + std::wstring(savePath);
+        }
+        else if (errorCode == -1) {
+            resultText = L"ShowSaveFileDialog was canceled.";
+            DLog(TAG, resultText.c_str());
         }
         else {
-            DLog(TAG, L"showSaveFileDialog ê≥èÌèIóπ");
+            DFLog(TAG, L"showSaveFileDialog Error Code: %lu", errorCode);
+            resultText = L"‚ùå\nShowSaveFileDialog Error Code: " + std::to_wstring(errorCode);
         }
+        SetResultText(resultText);
     }
 
     void MainWindow::ShowFolderDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"ShowFolderDialogButton_Click");
-        // ÉtÉHÉãÉ_ëIë
         wchar_t folderPath[260] = { 0 };
-        const wchar_t* title = L"ÉtÉHÉãÉ_ÇÃëIë";
+        const wchar_t* title = L"Select Folder";
         DWORD errorCode = 0;
-        showFolderDialog(folderPath, 260, title, &errorCode);
-        // ÉGÉâÅ[ÉRÅ[ÉhÇÉçÉOÇ…ï\é¶
-        if (errorCode != 0) {
-            DFLog(TAG, L"showFolderDialog ÉGÉâÅ[ÉRÅ[Éh: %lu", errorCode);
+        BOOL result = showFolderDialog(folderPath, 260, title, &errorCode);
+
+        std::wstring resultText;
+        if (errorCode == 0) {
+            DFLog(TAG, L"showFolderDialog Result: %d", result);
+            resultText = L"‚úÖ\nShowFolderDialog Result: " + std::to_wstring(result) + L", folderPath: " + std::wstring(folderPath);
+        }
+        else if (errorCode == -1) {
+            resultText = L"ShowFolderDialog was canceled.";
+            DLog(TAG, resultText.c_str());
         }
         else {
-            DLog(TAG, L"showFolderDialog ê≥èÌèIóπ");
+            DFLog(TAG, L"showFolderDialog Error Code: %lu", errorCode);
+            resultText = L"‚ùå\nShowFolderDialog Error Code: " + std::to_wstring(errorCode);
         }
+        SetResultText(resultText);
     }
 
     void MainWindow::ShowMultiFolderDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"ShowMultiFolderDialogButton_Click");
-        // ï°êîÉtÉHÉãÉ_ëIëópÉoÉbÉtÉ@Åiè\ï™Ç»ÉTÉCÉYÇämï€Åj
         wchar_t multiFolderBuffer[4096] = { 0 };
-        const wchar_t* title = L"ÉtÉHÉãÉ_ÇÃëIë";
+        const wchar_t* title = L"Select Folder";
         DWORD errorCode = 0;
-        showMultiFolderDialog(multiFolderBuffer, 4096, title, &errorCode);
-        // ÉGÉâÅ[ÉRÅ[ÉhÇÉçÉOÇ…ï\é¶
-        if (errorCode != 0) {
-            DFLog(TAG, L"showMultiFolderDialog ÉGÉâÅ[ÉRÅ[Éh: %lu", errorCode);
+        int result = showMultiFolderDialog(multiFolderBuffer, 4096, title, &errorCode);
+
+        std::wstring resultText;
+        if (errorCode == 0) {
+            DFLog(TAG, L"showMultiFolderDialog Result: %d", result);
+            resultText = L"‚úÖ\nShowMultiFolderDialog Result: " + std::to_wstring(result) + L"\n";
+            wchar_t* p = multiFolderBuffer;
+            int idx = 0;
+            while (*p) {
+                resultText += L"multiFolderBuffer[" + std::to_wstring(idx) + L"]: " + std::wstring(p) + L"\n";
+                p += wcslen(p) + 1;
+                ++idx;
+            }
+            DFLLog(TAG, 4096, L"resultText: %ls", resultText.c_str());
+        }
+        else if (errorCode == -1) {
+            resultText = L"ShowMultiFolderDialog was canceled.";
+            DLog(TAG, resultText.c_str());
         }
         else {
-            DLog(TAG, L"showMultiFolderDialog ê≥èÌèIóπ");
+            DFLog(TAG, L"showMultiFolderDialog Error Code: %lu", errorCode);
+            resultText = L"‚ùå\nShowMultiFolderDialog Error Code: " + std::to_wstring(errorCode);
         }
+        SetResultText(resultText);
+    }
+
+    void MainWindow::SetResultText(const std::wstring& text)
+    {
+        ResultTextBlock().Text(winrt::hstring(text));
     }
 }

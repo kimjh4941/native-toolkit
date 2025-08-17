@@ -27,6 +27,8 @@ namespace winrt::WindowsLibraryExample::implementation
         void ShowFolderDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
 
         void ShowMultiFolderDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
+
+        void SetResultText(const std::wstring& text);
     };
 }
 

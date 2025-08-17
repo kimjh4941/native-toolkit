@@ -46,6 +46,15 @@ namespace winrt::WindowsLibraryExample::implementation
         void UnloadObject(::winrt::Microsoft::UI::Xaml::DependencyObject const& dependencyObject);
         void DisconnectUnloadedObject(int32_t connectionId);
 
+        ::winrt::Microsoft::UI::Xaml::Controls::TextBlock TitleTextBlock()
+        {
+            return _TitleTextBlock;
+        }
+        void TitleTextBlock(::winrt::Microsoft::UI::Xaml::Controls::TextBlock value)
+        {
+            _TitleTextBlock = value;
+        }
+
         ::winrt::Microsoft::UI::Xaml::Controls::Button ShowAlertDialogButton()
         {
             return _ShowAlertDialogButton;
@@ -99,6 +108,15 @@ namespace winrt::WindowsLibraryExample::implementation
         {
             _ShowMultiFolderDialogButton = value;
         }
+
+        ::winrt::Microsoft::UI::Xaml::Controls::TextBlock ResultTextBlock()
+        {
+            return _ResultTextBlock;
+        }
+        void ResultTextBlock(::winrt::Microsoft::UI::Xaml::Controls::TextBlock value)
+        {
+            _ResultTextBlock = value;
+        }
         
     protected:
         bool _contentLoaded{false};
@@ -106,12 +124,14 @@ namespace winrt::WindowsLibraryExample::implementation
     private:
         struct MainWindow_obj1_Bindings;
 
+        ::winrt::Microsoft::UI::Xaml::Controls::TextBlock _TitleTextBlock{nullptr};
         ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowAlertDialogButton{nullptr};
         ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowFileDialogButton{nullptr};
         ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowMultiFileDialogButton{nullptr};
         ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowSaveFileDialogButton{nullptr};
         ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowFolderDialogButton{nullptr};
         ::winrt::Microsoft::UI::Xaml::Controls::Button _ShowMultiFolderDialogButton{nullptr};
+        ::winrt::Microsoft::UI::Xaml::Controls::TextBlock _ResultTextBlock{nullptr};
     };
 }
 
