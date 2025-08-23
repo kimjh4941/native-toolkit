@@ -16,7 +16,7 @@ struct ContentView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Text("MacDialogManager Test")
+                Text("MacDialogManager Example")
                     .font(.title)
                     .fontWeight(.bold)
                     .padding()

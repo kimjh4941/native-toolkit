@@ -439,7 +439,7 @@ public class MacDialogManager: NSObject {
                 fileCount: 0,
                 directoryURL: "",
                 isCancelled: true,
-                isSuccess: false
+                isSuccess: true
             )
             
             Log.d(TAG, "Save dialog cancelled")
@@ -573,7 +573,7 @@ public class MacDialogManager: NSObject {
                 fileCount: 0,
                 directoryURL: "",
                 isCancelled: true,
-                isSuccess: false
+                isSuccess: true
             )
 
             Log.d(TAG, "Open dialog cancelled")

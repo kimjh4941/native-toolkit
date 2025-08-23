@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = "Android Library Test"
+        title = "Android Library Example"
         enableEdgeToEdge()
         setContent {
             AndroidTheme {
