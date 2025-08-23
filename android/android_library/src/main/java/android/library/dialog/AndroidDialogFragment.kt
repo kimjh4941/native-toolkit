@@ -6,18 +6,29 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.Fragment
 import kotlin.toString
 
 /**
- * ダイアログタイプを表すenum
+ * Internal enumeration describing the dialog variant rendered by [AndroidDialogFragment].
+ * Each value maps to a factory overload of `newInstance`.
  */
 private enum class DialogType(val value: Int) {
+    /** Simple dialog with a single OK button. */
     SIMPLE(0),
+
+    /** Confirm dialog with Yes / No buttons. */
     CONFIRM(1),
+
+    /** Single choice list dialog (radio list) with OK/Cancel. */
     SINGLE_CHOICE(2),
+
+    /** Multi choice list dialog (checkbox list) with OK/Cancel. */
     MULTI_CHOICE(3),
+
+    /** Text input dialog with a single line EditText. */
     TEXT_INPUT(4),
+
+    /** Login dialog with username and password fields. */
     LOGIN(5);
 
     companion object {
@@ -26,9 +37,63 @@ private enum class DialogType(val value: Int) {
 }
 
 /**
- * A simple [Fragment] subclass.
- * Use the [AndroidDialogFragment.newInstance] factory method to
- * create an instance of this fragment.
+ * Versatile dialog fragment supporting multiple patterns:
+ * 1. Simple (single OK button)
+ * 2. Confirm (Yes / No)
+ * 3. Single choice list (radio list + OK/Cancel)
+ * 4. Multi choice list (checkbox list + OK/Cancel)
+ * 5. Text input (single line EditText)
+ * 6. Login (username + password form)
+ *
+ * The specific mode is chosen through the static `newInstance` factory you call.
+ * After creation you must set the corresponding listener (e.g. [setDialogListener], [setConfirmDialogListener], etc.) before showing.
+ *
+ * Basic simple example:
+ * ```kotlin
+ * AndroidDialogFragment.newInstance(
+ *     title = "Notice",
+ *     message = "Operation completed"
+ * ).apply {
+ *     setDialogListener(object : AndroidDialogFragment.DialogListener {
+ *         override fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {
+ *             // Handle OK tap
+ *         }
+ *     })
+ * }.show(supportFragmentManager, "AndroidDialogFragment")
+ * ```
+ * Single choice example:
+ * ```kotlin
+ * AndroidDialogFragment.newInstance(
+ *     title = "Choose Color",
+ *     singleChoiceItems = arrayOf("Red","Green","Blue"),
+ *     checkedItem = 0
+ * ).apply {
+ *     setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
+ *         override fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?) {
+ *             if (buttonText == "OK" && checkedItem != null) {
+ *                 // use selected index
+ *             }
+ *         }
+ *     })
+ * }.show(supportFragmentManager, "AndroidDialogFragment")
+ * ```
+ * Login example:
+ * ```kotlin
+ * AndroidDialogFragment.newInstance(
+ *     title = "Sign In",
+ *     message = "Enter credentials",
+ *     usernameHint = "Username",
+ *     passwordHint = "Password"
+ * ).apply {
+ *     setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
+ *         override fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?) {
+ *             if (buttonText == "OK") {
+ *                 // authenticate
+ *             }
+ *         }
+ *     })
+ * }.show(supportFragmentManager, "AndroidDialogFragment")
+ * ```
  */
 class AndroidDialogFragment : DialogFragment() {
     private var title: String? = null
@@ -66,26 +131,32 @@ class AndroidDialogFragment : DialogFragment() {
     private var dialogType: DialogType = DialogType.SIMPLE
 
     interface DialogListener {
+        /** Callback for Simple dialog positive button tap (or cancel event). */
         fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface ConfirmDialogListener {
+        /** Callback for Confirm dialog button taps (positive or negative). */
         fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface SingleChoiceItemDialogListener {
+        /** Callback for Single choice dialog. [checkedItem] is provided only when OK pressed. */
         fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface MultiChoiceItemDialogListener {
+        /** Callback for Multi choice dialog. [checkedItems] is provided only when OK pressed. */
         fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface TextInputDialogListener {
+        /** Callback for Text input dialog. [inputText] is supplied when OK pressed. */
         fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
     interface LoginDialogListener {
+        /** Callback for Login dialog. [username] & [password] supplied when OK pressed. */
         fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
@@ -192,7 +263,7 @@ class AndroidDialogFragment : DialogFragment() {
 
                     DialogType.TEXT_INPUT -> {
                         val editText = android.widget.EditText(context)
-                        textInputEditTextId = android.view.View.generateViewId() // IDを生成して保存
+                        textInputEditTextId = android.view.View.generateViewId() // Generate and save ID
                         editText.id = textInputEditTextId
                         editText.isSingleLine = true
                         editText.hint = hint
@@ -212,7 +283,7 @@ class AndroidDialogFragment : DialogFragment() {
                         layout.orientation = android.widget.LinearLayout.VERTICAL
 
                         val usernameEditText = android.widget.EditText(context)
-                        usernameEditTextId = android.view.View.generateViewId() // IDを生成して保存
+                        usernameEditTextId = android.view.View.generateViewId() // Generate and save ID
                         usernameEditText.id = usernameEditTextId
                         usernameEditText.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
                         usernameEditText.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
@@ -221,7 +292,7 @@ class AndroidDialogFragment : DialogFragment() {
                         layout.addView(usernameEditText)
 
                         val passwordEditText = android.widget.EditText(context)
-                        passwordEditTextId = android.view.View.generateViewId() // IDを生成して保存
+                        passwordEditTextId = android.view.View.generateViewId() // Generate and save ID
                         passwordEditText.id = passwordEditTextId
                         passwordEditText.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
                         passwordEditText.isSingleLine = true
@@ -245,7 +316,7 @@ class AndroidDialogFragment : DialogFragment() {
             }
 
             val dialog = builder.create()
-            // enablePositiveButtonWhenEmptyの制御
+            // Control positive button enabled state for input/login dialogs
             if (dialogType == DialogType.TEXT_INPUT || dialogType == DialogType.LOGIN) {
                 dialog.setOnShowListener {
                     val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -253,7 +324,7 @@ class AndroidDialogFragment : DialogFragment() {
 
                     when (dialogType) {
                         DialogType.TEXT_INPUT -> {
-                            // 保存したIDでEditTextを取得
+                            // Retrieve EditText via stored generated ID
                             val editText = dialog.findViewById<android.widget.EditText>(textInputEditTextId)
                             editText?.addTextChangedListener(object : android.text.TextWatcher {
                                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -267,7 +338,7 @@ class AndroidDialogFragment : DialogFragment() {
                         }
 
                         DialogType.LOGIN -> {
-                            // 保存したIDでEditTextを取得
+                            // Retrieve both EditTexts via stored generated IDs
                             val usernameEditText = dialog.findViewById<android.widget.EditText>(usernameEditTextId)
                             val passwordEditText = dialog.findViewById<android.widget.EditText>(passwordEditTextId)
 
@@ -323,31 +394,37 @@ class AndroidDialogFragment : DialogFragment() {
         }
     }
 
+    /** Assign listener for Simple dialog variant. */
     fun setDialogListener(listener: DialogListener) {
         Log.d(TAG, "setDialogListener")
         this.dialogListener = listener
     }
 
+    /** Assign listener for Confirm dialog variant. */
     fun setConfirmDialogListener(listener: ConfirmDialogListener) {
         Log.d(TAG, "setConfirmDialogListener")
         this.confirmListener = listener
     }
 
+    /** Assign listener for Single choice dialog variant. */
     fun setSingleChoiceItemDialogListener(listener: SingleChoiceItemDialogListener) {
         Log.d(TAG, "setSingleChoiceItemDialogListener")
         this.singleChoiceItemListener = listener
     }
 
+    /** Assign listener for Multi choice dialog variant. */
     fun setMultiChoiceItemDialogListener(listener: MultiChoiceItemDialogListener) {
         Log.d(TAG, "setMultiChoiceItemDialogListener")
         this.multiChoiceItemListener = listener
     }
 
+    /** Assign listener for Text input dialog variant. */
     fun setTextInputDialogListener(listener: TextInputDialogListener) {
         Log.d(TAG, "setTextInputDialogListener")
         this.textInputListener = listener
     }
 
+    /** Assign listener for Login dialog variant. */
     fun setLoginDialogListener(listener: LoginDialogListener) {
         Log.d(TAG, "setLoginDialogListener")
         this.loginListener = listener
@@ -373,7 +450,15 @@ class AndroidDialogFragment : DialogFragment() {
         private const val ARG_CANCELABLE_ON_TOUCH_OUTSIDE = "cancelable_on_touch_outside"
         private const val ARG_CANCELABLE = "cancelable"
 
-        // シンプルダイアログ
+        /**
+         * Create a Simple dialog with a single positive button.
+         * @param title Dialog title.
+         * @param message Body message.
+         * @param buttonText Text for the positive button (default: OK).
+         * @param cancelableOnTouchOutside If true tapping outside dismisses.
+         * @param cancelable If true back press / outside allowed.
+         */
+        /** Create a Simple dialog (single positive button). */
         fun newInstance(title: String,
                         message: String,
                         buttonText: String = "OK",
@@ -391,7 +476,15 @@ class AndroidDialogFragment : DialogFragment() {
                 }
             }
 
-        // 確認ダイアログ
+        /**
+         * Create a Confirm dialog with negative / positive buttons.
+         * Typical usage:
+         * ```kotlin
+         * AndroidDialogFragment.newInstance("Delete File", "Are you sure?",
+         *     negativeButtonText = "No", positiveButtonText = "Yes")
+         * ```
+         */
+        /** Create a Confirm dialog (negative & positive buttons). */
         fun newInstance(title: String,
                         message: String,
                         negativeButtonText: String = "No",
@@ -411,7 +504,12 @@ class AndroidDialogFragment : DialogFragment() {
                 }
             }
 
-        // 単一選択ダイアログ
+        /**
+         * Create a Single choice list dialog (radio).
+         * @param singleChoiceItems Items to display.
+         * @param checkedItem Initially selected index.
+         */
+        /** Create a Single choice (radio list) dialog. */
         fun newInstance(title: String,
                         singleChoiceItems: Array<String>,
                         checkedItem: Int = 0,
@@ -433,7 +531,12 @@ class AndroidDialogFragment : DialogFragment() {
                 }
             }
 
-        // 複数選択ダイアログ
+        /**
+         * Create a Multi choice list dialog (checkboxes).
+         * @param multiChoiceItems Items to display.
+         * @param checkedItems Boolean array initial states (length must match items).
+         */
+        /** Create a Multi choice (checkbox list) dialog. */
         fun newInstance(title: String,
                         multiChoiceItems: Array<String>,
                         checkedItems: BooleanArray,
@@ -455,7 +558,12 @@ class AndroidDialogFragment : DialogFragment() {
                 }
             }
 
-        // テキスト入力ダイアログ
+        /**
+         * Create a Text input dialog.
+         * @param hint Hint text for the EditText.
+         * @param enablePositiveButtonWhenEmpty If false OK disabled until non-empty.
+         */
+        /** Create a Text input dialog. */
         fun newInstance(title: String,
                         message: String,
                         hint: String,
@@ -479,7 +587,13 @@ class AndroidDialogFragment : DialogFragment() {
                 }
             }
 
-        // ログインダイアログ
+        /**
+         * Create a Login dialog containing username & password fields.
+         * @param usernameHint Hint for username field.
+         * @param passwordHint Hint for password field.
+         * @param enablePositiveButtonWhenEmpty If false OK disabled until both fields non-empty.
+         */
+        /** Create a Login dialog (username & password). */
         fun newInstance(title: String,
                         message: String,
                         usernameHint: String,

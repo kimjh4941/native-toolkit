@@ -12,6 +12,7 @@ activityCompose = "1.8.0"
 composeBom = "2024.09.00"
 appcompat = "1.7.0"
 material = "1.12.0"
+dokka = "2.0.0"
 
 [libraries]
 androidx-appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompatVersion" }
@@ -38,4 +39,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

@@ -6,6 +6,41 @@ import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import kotlin.Boolean
 
+/**
+ * Unified dialog bridge for Unity.
+ *
+ * Provides six dialog variants (Simple / Confirm / SingleChoice / MultiChoice / TextInput / Login)
+ * backed by AndroidDialogFragment. Each variant has its own listener interface (setXxxListener).
+ *
+ * Features:
+ * - Outside tap / back press cancellation control (cancelableOnTouchOutside / cancelable)
+ * - TextInput / Login positive button gating (disabled while empty unless enablePositiveButtonWhenEmpty=true)
+ * - Internal failures (non FragmentActivity / exception) reported with isSuccessful=false and errorMessage
+ *
+ * Unity C# wrapper (AndroidDialogManager.cs):
+ * - Receives these Java callbacks and re-maps them to C# events
+ * - SingleChoice: checkedItem=-1 normalized to null
+ * - MultiChoice: cancel may deliver null checkedItems (distinguishable)
+ * - TextInput / Login: inputs null on cancel
+ *
+ * Mapping (Java -> C#):
+ * | Variant      | show* Method                   | Listener Method                | C# Event                     |
+ * |--------------|--------------------------------|--------------------------------|------------------------------|
+ * | Simple       | showDialog                     | onDialog                       | DialogResult                 |
+ * | Confirm      | showConfirmDialog              | onConfirmDialog                | ConfirmDialogResult          |
+ * | SingleChoice | showSingleChoiceItemDialog     | onSingleChoiceItemDialog       | SingleChoiceItemDialogResult |
+ * | MultiChoice  | showMultiChoiceItemDialog      | onMultiChoiceItemDialog        | MultiChoiceItemDialogResult  |
+ * | TextInput    | showTextInputDialog            | onTextInputDialog              | TextInputDialogResult        |
+ * | Login        | showLoginDialog                | onLoginDialog                  | LoginDialogResult            |
+ *
+ * isSuccessful:
+ * - true: user-driven completion (OK / Cancel) successfully routed through the fragment
+ * - false: internal error before / during dialog creation
+ *
+ * Notes:
+ * - Cancel (back / outside) still treated as success (user action) with a Cancel-style buttonText
+ * - If a listener is not registered its result is discarded silently
+ */
 object UnityAndroidDialogManager {
 
     private const val TAG = "UnityAndroidDialogManager"
@@ -17,60 +52,131 @@ object UnityAndroidDialogManager {
     private var textInputDialogListener: TextInputDialogListener? = null
     private var loginDialogListener: LoginDialogListener? = null
 
+    /**
+     * Listener for simple dialog variant.
+     *
+     * @param buttonText Pressed button label ("OK" / "Cancel") or null on internal error
+     * @param isSuccessful False only for internal errors (cancel still true)
+     * @param errorMessage Non-null only when isSuccessful=false
+     */
     interface DialogListener {
         fun onDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
+    /**
+     * Listener for confirm dialog (two buttons).
+     *
+     * @param buttonText "Yes" / "No" / "Cancel" (depending on user path) or null on internal error
+     * @param isSuccessful False only for internal errors
+     * @param errorMessage Present only when failed
+     */
     interface ConfirmDialogListener {
         fun onConfirmDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
+    /**
+     * Listener for single choice (radio list) dialog.
+     *
+     * @param buttonText "OK" / "Cancel" or null on internal error
+     * @param checkedItem Selected index (>=0 on OK). On cancel last known index or -1. C# wrapper converts -1 to null.
+     * @param isSuccessful False only for internal errors
+     * @param errorMessage Present only when failed
+     *
+     * Cancel path: buttonText is Cancel label; checkedItem may be last index or -1.
+     */
     interface SingleChoiceItemDialogListener {
         fun onSingleChoiceItemDialog(buttonText: String?, checkedItem: Int, isSuccessful: Boolean, errorMessage: String?)
     }
 
+    /**
+     * Listener for multi choice (checkbox list) dialog.
+     *
+     * @param buttonText Pressed button label
+     * @param checkedItems Current states (non-null on OK). May be null on cancel or internal error.
+     * @param isSuccessful False only for internal errors
+     * @param errorMessage Present only when failed
+     */
     interface MultiChoiceItemDialogListener {
         fun onMultiChoiceItemDialog(buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?)
     }
 
+    /**
+     * Listener for single-line text input dialog.
+     *
+     * @param buttonText Pressed button label
+     * @param inputText Entered text on OK (may be empty if gating disabled). Null on cancel or error.
+     * @param isSuccessful False only for internal errors
+     * @param errorMessage Present only when failed
+     *
+     * Positive button enable rule:
+     * - enablePositiveButtonWhenEmpty=false disables OK while text is empty
+     */
     interface TextInputDialogListener {
         fun onTextInputDialog(buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
+    /**
+     * Listener for login dialog (username + password).
+     *
+     * @param buttonText Pressed button label
+     * @param username Username on OK, null on cancel/error
+     * @param password Password on OK, null on cancel/error
+     * @param isSuccessful False only for internal errors
+     * @param errorMessage Present only when failed
+     *
+     * When enablePositiveButtonWhenEmpty=false, OK disabled while either field empty.
+     */
     interface LoginDialogListener {
         fun onLoginDialog(buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?)
     }
 
+    /** Obtain singleton for JNI convenience. */
     @JvmStatic
     fun getInstance(): UnityAndroidDialogManager {
         Log.d(TAG, "getInstance called")
         return this
     }
 
+    /** Register listener for simple dialog variant. */
     fun setDialogListener(listener: DialogListener) {
         this.dialogListener = listener
     }
 
+    /** Register listener for confirm dialog variant. */
     fun setConfirmDialogListener(listener: ConfirmDialogListener) {
         this.confirmDialogListener = listener
     }
 
+    /** Register listener for single-choice dialog variant. */
     fun setSingleChoiceItemDialogListener(listener: SingleChoiceItemDialogListener) {
         this.singleChoiceItemDialogListener = listener
     }
 
+    /** Register listener for multi-choice dialog variant. */
     fun setMultiChoiceItemDialogListener(listener: MultiChoiceItemDialogListener) {
         this.multiChoiceItemDialogListener = listener
     }
 
+    /** Register listener for text input dialog variant. */
     fun setTextInputDialogListener(listener: TextInputDialogListener) {
         this.textInputDialogListener = listener
     }
 
+    /** Register listener for login dialog variant. */
     fun setLoginDialogListener(listener: LoginDialogListener) {
         this.loginDialogListener = listener
     }
 
+    /**
+     * Show a simple dialog.
+     *
+     * @param title Dialog title
+     * @param message Body text
+     * @param buttonText Positive button label (default "OK")
+     * @param cancelableOnTouchOutside Dismiss on outside touch
+     * @param cancelable Dismiss on back press
+     * Internal error path: listener invoked with isSuccessful=false and errorMessage.
+     */
     fun showDialog(context: Context,
                    title: String,
                    message: String,
@@ -105,6 +211,12 @@ object UnityAndroidDialogManager {
         }
     }
 
+    /**
+     * Show a confirm (two-button) dialog.
+     * Notes:
+     * - negativeButtonText / positiveButtonText specify labels
+     * - Cancel via outside/back may return a Cancel label (implementation dependent)
+     */
     fun showConfirmDialog(context: Context,
                           title: String,
                           message: String,
@@ -140,6 +252,11 @@ object UnityAndroidDialogManager {
         }
     }
 
+    /**
+     * Show a single choice list dialog.
+     * - checkedItem: initial selection index
+     * - Cancel: last index or -1
+     */
     fun showSingleChoiceItemDialog(context: Context,
                                    title: String,
                                    singleChoiceItems: Array<String>,
@@ -176,6 +293,11 @@ object UnityAndroidDialogManager {
         }
     }
 
+    /**
+     * Show a multi choice list dialog.
+     * - checkedItems: initial states (caller should pass a copy if mutability matters)
+     * - Cancel: may yield null checkedItems
+     */
     fun showMultiChoiceItemDialog(context: Context,
                                   title: String,
                                   multiChoiceItems: Array<String>,
@@ -212,6 +334,11 @@ object UnityAndroidDialogManager {
         }
     }
 
+    /**
+     * Show a text input dialog.
+     * - enablePositiveButtonWhenEmpty=false disables OK while empty
+     * - Cancel: inputText=null
+     */
     fun showTextInputDialog(context: Context,
                             title: String,
                             message: String,
@@ -249,6 +376,11 @@ object UnityAndroidDialogManager {
         }
     }
 
+    /**
+     * Show a login dialog (username + password).
+     * - enablePositiveButtonWhenEmpty=false disables OK while either field empty
+     * - Cancel: username/password null
+     */
     fun showLoginDialog(context: Context,
                         title: String,
                         message: String,

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.dokka)
 }
 
 android {
@@ -29,6 +30,26 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+}
+
+tasks.dokkaHtml.configure {
+    outputDirectory.set(layout.buildDirectory.dir("dokka/html"))
+    dokkaSourceSets {
+        // Suppress all source sets by default
+        configureEach {
+            suppress.set(true)
+        }
+        // Only document the main source set & include MODULE.md
+        named("main") {
+            suppress.set(false)
+            includes.setFrom("MODULE.md")   // Prevent duplication: do not add in configureEach
+            jdkVersion.set(11)
+            skipDeprecated.set(false)
+            // If necessary:
+            // reportUndocumented.set(true)
+            // failOnWarning.set(true)
+        }
     }
 }
 
