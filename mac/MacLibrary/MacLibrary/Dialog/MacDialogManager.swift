@@ -7,11 +7,17 @@
 import AppKit
 import UniformTypeIdentifiers
 
+/// Errors that can occur while configuring or presenting dialogs.
+///
+/// - Important: All errors are surfaced via the `Result` returned in completion handlers.
+/// Use the `localizedDescription` for a developer‑friendly message. Do **not** show
+/// these raw messages directly to end users unless you provide localization.
 public enum DialogError: Error {
     case noButtons
     case invalidConfiguration
     case executionFailed(String)
     
+    /// Human readable description for debugging.
     public var localizedDescription: String {
         switch self {
         case .noButtons:
@@ -24,9 +30,16 @@ public enum DialogError: Error {
     }
 }
 
+/// Describes a single alert button.
+///
+/// Use this to configure the button title, whether it should be treated as the default
+/// (Return / Enter key) and optionally supply a custom key equivalent.
 public struct DialogButton {
+    /// Visible title text.
     public let title: String
+    /// Indicates that this button should act as the default (Return key binding if no custom key).
     public let isDefault: Bool
+    /// Custom key equivalent (single character). If `nil` and `isDefault == true`, Return is used.
     public let keyEquivalent: String?
     
     public init(title: String, isDefault: Bool = false, keyEquivalent: String? = nil) {
@@ -36,13 +49,24 @@ public struct DialogButton {
     }
 }
 
+/// Options to configure an `NSAlert` dialog.
+///
+/// Provide an array of `DialogButton` to define button ordering. The first button
+/// added becomes index `0` in the `DialogResult`.
 public struct DialogOptions {
+    /// The visual style of the alert (`informational`, `warning`, `critical`).
     public var alertStyle: NSAlert.Style
+    /// Buttons displayed in the alert (in the provided order).
     public var buttons: [DialogButton]
+    /// Whether the help button is shown.
     public var showsHelp: Bool
+    /// Whether a suppression checkbox ("Do not show again") is shown.
     public var showsSuppressionButton: Bool
+    /// Custom title for the suppression checkbox.
     public var suppressionButtonTitle: String?
+    /// Optional icon (overrides the default app icon).
     public var icon: NSImage?
+    /// Optional accessory view embedded below the message text.
     public var accessoryView: NSView?
     
     public init(
@@ -64,10 +88,18 @@ public struct DialogOptions {
     }
 }
 
+/// Result returned after a dialog (alert) is dismissed.
+///
+/// The `buttonIndex` maps to your original `DialogOptions.buttons` ordering.
+/// If a suppression checkbox was displayed, `suppressionButtonState` reflects its final state.
 public struct DialogResult {
+    /// Index of the pressed button (0-based).
     public let buttonIndex: Int
+    /// Title of the pressed button (convenience mirror of `buttons[index].title`).
     public let buttonTitle: String
+    /// Whether the suppression checkbox is in the ON state.
     public let suppressionButtonState: Bool
+    /// Indicates logical success (currently always `true` for a completed alert dismissal).
     public let isSuccess: Bool
     
     public init(
@@ -83,22 +115,40 @@ public struct DialogResult {
     }
 }
 
+/// Configuration options for an open panel (file / folder picker).
+///
+/// Combine flags to allow files, directories, single or multiple selection.
+/// Specify `allowedContentTypes` with filename extensions to restrict visible items.
 public struct OpenDialogOptions {
+    /// Allow picking regular files.
     public var canChooseFiles: Bool
+    /// Allow picking directories.
     public var canChooseDirectories: Bool
+    /// Allow selecting more than one item.
     public var allowsMultipleSelection: Bool
+    /// Show hidden files (dotfiles) in the panel.
     public var showsHiddenFiles: Bool
+    /// Allow user to create new directories from the panel.
     public var canCreateDirectories: Bool
+    /// Allow selection of hidden extensions.
     public var canSelectHiddenExtension: Bool
+    /// Treat package bundles (e.g. .app) as directories.
     public var treatsFilePackagesAsDirectories: Bool
+    /// Allow other file types outside the allowed list.
     public var allowsOtherFileTypes: Bool
+    /// Initial directory.
     public var directoryURL: URL?
+    /// Pre-filled value in the name field (when relevant).
     public var nameFieldStringValue: String
+    /// The confirmation button label (e.g. "Choose").
     public var prompt: String
+    /// Whether aliases are resolved automatically.
     public var resolvesAliases: Bool
+    /// Whether to hide the file extension in the name field.
     public var isExtensionHidden: Bool
+    /// List of filename extensions (no leading dot) used to build UTTypes for filtering.
     public var allowedContentTypes: [String]
-
+    
     public init(
         canChooseFiles: Bool = true,
         canChooseDirectories: Bool = false,
@@ -132,13 +182,19 @@ public struct OpenDialogOptions {
     }
 }
 
+/// Result from an open dialog (files and/or folders).
 public struct OpenDialogResult {
+    /// Absolute paths of selected items.
     public let filePaths: [String]
+    /// Number of selected items.
     public let fileCount: Int
+    /// Final directory presented by the panel (may differ from initial directory if user navigated).
     public let directoryURL: String
+    /// Indicates user cancelled the panel.
     public let isCancelled: Bool
+    /// Indicates logical success (panel closed normally).
     public let isSuccess: Bool
-
+    
     public init(
         filePaths: [String],
         fileCount: Int,
@@ -154,13 +210,22 @@ public struct OpenDialogResult {
     }
 }
 
+/// Result returned from a save panel.
+///
+/// A save dialog always returns at most one path. The `fileCount` is kept for symmetry
+/// with `OpenDialogResult` (usually 1 when not cancelled, 0 when cancelled).
 public struct SaveDialogResult {
+    /// Absolute path chosen by the user (empty if cancelled).
     public let filePath: String
+    /// File count (1 for success, 0 if cancelled).
     public let fileCount: Int
+    /// Directory containing the saved item (empty if cancelled).
     public let directoryURL: String
+    /// `true` if the user cancelled the panel.
     public let isCancelled: Bool
+    /// Logical success (panel concluded; does not imply file creation was performed on disk).
     public let isSuccess: Bool
-
+    
     public init(
         filePath: String,
         fileCount: Int = 1,
@@ -176,17 +241,29 @@ public struct SaveDialogResult {
     }
 }
 
+/// Central manager providing convenience APIs to present alerts, open panels and save panels.
+///
+/// - Thread Safety: All UI presentation is automatically marshalled onto the main thread.
+/// - Usage: Call the relevant `show*` method with a completion closure to receive a typed `Result`.
 public class MacDialogManager: NSObject {
 
     private let TAG = "MacDialogManager"
-
+    
+    /// Shared singleton instance.
     public static let shared = MacDialogManager()
-
+    
     private override init() {
         Log.d(TAG, "init")
         super.init()
     }
 
+    /// Presents an `NSAlert` using the provided options.
+    ///
+    /// - Parameters:
+    ///   - title: Main alert title.
+    ///   - message: Informative text displayed under the title.
+    ///   - options: Configuration for style, buttons and visuals.
+    ///   - completion: Completion handler returning a `DialogResult` or `DialogError`.
     public func showDialog(
         title: String,
         message: String,
@@ -226,6 +303,13 @@ public class MacDialogManager: NSObject {
         }
     }
     
+    /// Presents an open panel (`NSOpenPanel`) with the supplied configuration.
+    ///
+    /// - Parameters:
+    ///   - title: Window title.
+    ///   - message: Helper text inside the panel.
+    ///   - options: `OpenDialogOptions` controlling selection behavior.
+    ///   - completion: Returns `OpenDialogResult` or `DialogError`.
     public func showOpenDialog(
         title: String,
         message: String,
@@ -259,6 +343,7 @@ public class MacDialogManager: NSObject {
         }
     }
     
+    /// Convenience wrapper for a single file selection panel.
     public func showFileDialog(
         title: String = "Select File",
         message: String = "Please select a file",
@@ -284,6 +369,7 @@ public class MacDialogManager: NSObject {
         )
     }
     
+    /// Convenience wrapper for a multi file selection panel.
     public func showMultiFileDialog(
         title: String = "Select Files",
         message: String = "Please select files (multiple selection allowed)",
@@ -309,6 +395,7 @@ public class MacDialogManager: NSObject {
         )
     }
     
+    /// Convenience wrapper for a single folder selection panel.
     public func showFolderDialog(
         title: String = "Select Folder",
         message: String = "Please select a folder",
@@ -332,6 +419,7 @@ public class MacDialogManager: NSObject {
         )
     }
 
+    /// Convenience wrapper for a multi folder selection panel.
     public func showMultiFolderDialog(
         title: String = "Select Folders",
         message: String = "Please select folders (multiple selection allowed)",
@@ -355,6 +443,15 @@ public class MacDialogManager: NSObject {
         )
     }
     
+    /// Presents a save panel (`NSSavePanel`).
+    ///
+    /// - Parameters:
+    ///   - title: Window title of the save panel.
+    ///   - message: Descriptive message shown inside the panel.
+    ///   - nameFieldStringValue: Default file name (user may change).
+    ///   - allowedContentTypes: Filename extensions used to build UTType filters.
+    ///   - directoryURL: Initial directory (optional).
+    ///   - completion: Returns `SaveDialogResult` or `DialogError`.
     public func showSaveFileDialog(
         title: String = "Save File",
         message: String = "Please save the file",

@@ -8,6 +8,26 @@
 
 static NSString *const TAG = @"UnityMacDialogManagerBridge";
 
+/// Presents an alert (NSAlert) via Unity bridge.
+///
+/// - Parameters:
+///   - title: C string (UTF-8) alert title.
+///   - message: C string (UTF-8) informative message.
+///   - buttonsJson: JSON describing buttons. Expected format:
+///     ```json
+///     {"buttons":[{"title":"OK","isDefault":true},{"title":"Cancel"}]}
+///     ```
+///   - optionsJson: JSON for alert options. Recognized keys:
+///     - `alertStyle`: informational | warning | critical
+///     - `showsSuppressionButton`: bool
+///     - `suppressionButtonTitle`: string
+///   - callback: Receives (buttonTitle, buttonIndex, suppressionState, isSuccess, errorMessage)
+///     * `buttonTitle`: NULL on error
+///     * `buttonIndex`: -1 on error
+///     * `suppressionState`: state of suppression checkbox (if shown)
+///     * `isSuccess`: YES if dialog completed (even if user cancelled), NO on error
+///     * `errorMessage`: UTF-8 C string (owned by callee) or NULL
+/// - Thread Safety: May be called from any thread; UI dispatch handled internally.
 void showDialog(const char* title,
                 const char* message,
                 const char* buttonsJson,
@@ -40,6 +60,22 @@ void showDialog(const char* title,
     }];
 }
 
+/// Presents a single file selection open panel.
+///
+/// - Parameters:
+///   - title: Panel window title (UTF-8 C string).
+///   - message: Panel message text.
+///   - allowedContentTypes: Array of UTF-8 extensions (e.g. "txt", "png").
+///   - contentTypesCount: Count of `allowedContentTypes` entries.
+///   - directoryPath: Optional initial directory path (UTF-8) or NULL.
+///   - callback: Receives (filePaths, fileCount, directoryURL, isCancelled, isSuccess, errorMessage)
+///     * `filePaths`: NULL if cancelled or error.
+///     * `fileCount`: -1 if error, 0 if cancelled, >=1 on success.
+///     * `directoryURL`: Directory string (empty on error without selection).
+///     * `isCancelled`: YES if user cancelled panel.
+///     * `isSuccess`: YES if panel executed (even if cancelled), NO on error.
+///     * `errorMessage`: UTF-8 error message or NULL.
+/// - Memory: Caller must not free the `filePaths` pointers; they reference autoreleased NSStrings valid during the callback scope only.
 void showFileDialog(const char* title,
                     const char* message,
                     const char** allowedContentTypes,
@@ -99,6 +135,9 @@ void showFileDialog(const char* title,
     }];
 }
 
+/// Presents a multi file selection open panel.
+///
+/// Same semantics as `showFileDialog` but allows multiple selection (possibly zero on cancellation).
 void showMultiFileDialog(const char* title,
                          const char* message,
                          const char** allowedContentTypes,
@@ -158,6 +197,7 @@ void showMultiFileDialog(const char* title,
     }];
 }
 
+/// Presents a single folder selection panel (directories only).
 void showFolderDialog(const char* title,
                       const char* message,
                       const char* directoryPath,
@@ -207,6 +247,7 @@ void showFolderDialog(const char* title,
     }];
 }
 
+/// Presents a multi folder selection panel (directories only, multiple selection).
 void showMultiFolderDialog(const char* title,
                            const char* message,
                            const char* directoryPath,
@@ -256,6 +297,16 @@ void showMultiFolderDialog(const char* title,
     }];
 }
 
+/// Presents a save panel (NSSavePanel) for choosing a single destination file path.
+///
+/// - Parameters:
+///   - title: Save panel title.
+///   - message: Explanatory message inside panel.
+///   - nameFieldStringValue: Default suggested filename.
+///   - allowedContentTypes: Array of filename extensions (no dot) for UTType filtering.
+///   - contentTypesCount: Count of the preceding array.
+///   - directoryPath: Optional starting directory path or NULL.
+///   - callback: Receives either chosen file info or error/cancellation indicators.
 void showSaveFileDialog(const char* title,
                         const char* message,
                         const char* nameFieldStringValue,
@@ -295,7 +346,6 @@ void showSaveFileDialog(const char* title,
             BOOL isCancelled = [result[@"isCancelled"] boolValue];
             BOOL isSuccess = [result[@"isSuccess"] boolValue];
             [Log d:TAG :[NSString stringWithFormat:@"showSaveFileDialog filePath: %@, fileCount: %@, directoryURL: %@, isCancelled: %d, isSuccess: %d", filePath, fileCount, directoryURL, (int)isCancelled, (int)isSuccess]];
-            
             if (isCancelled) {
                 [Log d:TAG :@"showSaveFileDialog was cancelled"];
                 callback(NULL, -1, NULL, isCancelled, isSuccess, NULL);
