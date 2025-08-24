@@ -1,15 +1,53 @@
 //
 //  IosDialogManager.swift
-//  
+//
 //
 //  Created by Kim Jong Hyun on 2025/04/12.
 //
 import UIKit
 
+/// # IosDialogManager
+///
+/// Central utility for presenting `UIAlertController` based dialogs (alerts, action sheets,
+/// text input, login style) in a thread‑safe, convenience oriented way.
+///
+/// ## Overview
+/// * Provides a singleton (`shared`) for simple global access.
+/// * Wraps creation & presentation of `UIAlertController` ensuring presentation happens on the main thread.
+/// * Supplies higher level helpers (alert / confirm / destructive / action sheet / text & login input).
+/// * Normalizes completion / callback signatures so each result conveys:
+///   * **result**: Selected button title (or `nil` if not applicable / failed before presentation)
+///   * **isSuccess**: Presentation + user interaction completed (`true`) or a precondition failed (`false`).
+///   * **errorMessage**: Human readable diagnostic when `isSuccess == false` (else `nil`).
+///
+/// ## Thread Safety
+/// All public APIs marshal to the main queue before interacting with UIKit. Call them from any thread.
+///
+/// ## Popover / iPad Support
+/// For action sheets or alerts with style `.actionSheet`, popover anchors (`sourceView` / `sourceRect` / `barButtonItem`) are applied when available — falling back to centering inside the root view if none supplied.
+///
+/// ## Root View Controller Resolution
+/// The manager searches the first foreground active `UIWindowScene`, then finds the key window and walks the `presentedViewController` chain.
+/// If this process fails, the completion handler is invoked with `isSuccess = false`.
+///
+/// ## Input Validation Helpers
+/// `showTextInputDialog` & `showLoginDialog` optionally disable the primary action button until required fields are filled (via `enableConfirmWhenEmpty` / `enableLoginWhenEmpty`).
+///
+/// ## Memory
+/// Callbacks are not retained after dialog dismissal. Avoid capturing large objects strongly in closures.
+///
+/// ## Example
+/// ```swift
+/// IosDialogManager.shared.showAlert(title: "Notice", message: "Operation finished") { result, success, error in
+///     guard success else { print(error ?? "Unknown"); return }
+///     print("User tapped: \(result ?? "?")")
+/// }
+/// ```
 public class IosDialogManager: NSObject {
     
     private let TAG = "IosDialogManager"
     
+    /// Shared singleton instance.
     public static let shared = IosDialogManager()
     
     private override init() {
@@ -17,6 +55,25 @@ public class IosDialogManager: NSObject {
         super.init()
     }
     
+    /// Presents a generic alert / action sheet with optional text fields and custom actions.
+    ///
+    /// - Parameters:
+    ///   - title: Dialog title (optional).
+    ///   - message: Dialog message (optional).
+    ///   - preferredStyle: `.alert` or `.actionSheet`.
+    ///   - actions: Custom `UIAlertAction`s. If empty, a default OK action is added.
+    ///   - textFields: Array of configuration closures (applied only when `preferredStyle == .alert`).
+    ///   - sourceView: Anchor view for iPad popover (action sheets / alerts in sheet style).
+    ///   - sourceRect: Specific rect within `sourceView` (defaults to its bounds if nil).
+    ///   - barButtonItem: Alternative popover anchor (takes precedence if provided).
+    ///   - permittedArrowDirections: Popover arrow directions (iPad).
+    ///   - animated: Whether the presentation is animated.
+    ///   - completion: `(resultButtonTitle, isSuccess, errorMessage)`.
+    ///     * `resultButtonTitle` is only non‑nil in the case of implicit default OK action being tapped (custom actions should manage their own handlers).
+    ///     * `isSuccess=false` indicates a pre‑presentation failure (e.g. no root VC).
+    ///
+    /// - Note: Custom `UIAlertAction` handlers run independently of `completion`. Use either approach—do not rely on `completion` to know which custom action was chosen.
+    /// - Warning: Ensure you supply a `sourceView` / `barButtonItem` for action sheets on iPad to avoid runtime popover crashes.
     public func showDialog(
         title: String? = nil,
         message: String? = nil,
@@ -83,6 +140,11 @@ public class IosDialogManager: NSObject {
         }
     }
     
+    /// Resolves the top-most presented `UIViewController` suitable for presenting a dialog.
+    ///
+    /// Iterates through foreground active scenes → key window → presented chain.
+    /// Returns `nil` if no active scene or key window is found.
+    /// - Returns: The top view controller or `nil`.
     public func getRootViewController() -> UIViewController? {
         guard let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
@@ -100,6 +162,13 @@ public class IosDialogManager: NSObject {
     }
     
     // Convenience methods for common dialog types
+    
+    /// Shows a simple single button alert (OK style).
+    /// - Parameters:
+    ///   - title: Alert title.
+    ///   - message: Alert message.
+    ///   - buttonText: Button label (default "OK").
+    ///   - completion: Receives `(buttonText, true, nil)` on tap, or `(nil, false, error)` on failure.
     public func showAlert(
         title: String?,
         message: String?,
@@ -116,6 +185,14 @@ public class IosDialogManager: NSObject {
         }
     }
     
+    /// Shows a confirm / cancel dialog.
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Dialog message.
+    ///   - confirmTitle: Confirm button title (default "OK").
+    ///   - cancelTitle: Cancel button title (default "Cancel").
+    ///   - onConfirm: Called when confirm tapped with `(confirmTitle, true, nil)` or `(nil, false, error)` on failure.
+    ///   - onCancel: Called when cancel tapped with `(cancelTitle, true, nil)` or `(nil, false, error)` on failure.
     public func showConfirmDialog(
         title: String?,
         message: String?,
@@ -137,6 +214,15 @@ public class IosDialogManager: NSObject {
         }
     }
     
+    /// Shows a destructive confirmation dialog (e.g., Delete action) plus cancel.
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Dialog message.
+    ///   - destructiveTitle: Destructive button title (default "Delete").
+    ///   - cancelTitle: Cancel button title.
+    ///   - onDestructive: Callback for destructive tap.
+    ///   - onCancel: Callback for cancel tap.
+    /// - Note: Destructive button uses `.destructive` style (red on iOS).
     public func showDestructiveDialog(
         title: String?,
         message: String?,
@@ -158,6 +244,15 @@ public class IosDialogManager: NSObject {
         }
     }
     
+    /// Presents an action sheet with custom actions.
+    /// - Parameters:
+    ///   - title: Optional title.
+    ///   - message: Optional message.
+    ///   - actions: Array of preconfigured `UIAlertAction`s (should include a cancel action for iPhone UI consistency).
+    ///   - sourceView: Mandatory for iPad to anchor the popover.
+    ///   - sourceRect: Optional rect inside `sourceView`.
+    ///   - animated: Animate presentation flag.
+    ///   - completion: Called after presentation (NOT per action selection) or with failure.
     public func showActionSheet(
         title: String? = nil,
         message: String? = nil,
@@ -179,6 +274,17 @@ public class IosDialogManager: NSObject {
         )
     }
     
+    /// Shows a single text input dialog with optional validation (disabling confirm while empty).
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Dialog message.
+    ///   - placeholder: Placeholder text for the single text field.
+    ///   - confirmTitle: Confirm button label.
+    ///   - cancelTitle: Cancel button label.
+    ///   - enableConfirmWhenEmpty: If `false`, confirm button disabled until user enters non‑empty text.
+    ///   - onConfirm: `(buttonTitle, inputText, true, nil)` or `(nil, nil, false, error)`.
+    ///   - onCancel: `(cancelTitle, true, nil)` or `(nil, false, error)`.
+    /// - Note: Text change observation uses `UITextField.textDidChangeNotification` and is only installed if validation is needed.
     public func showTextInputDialog(
         title: String?,
         message: String?,
@@ -203,13 +309,11 @@ public class IosDialogManager: NSObject {
                 onConfirm?(confirmTitle, inputText, true, nil)
             }
             
-            // 初期状態での確認ボタンの有効/無効を設定
             confirmAction.isEnabled = enableConfirmWhenEmpty
             
             alert.addTextField { textField in
                 textField.placeholder = placeholder
                 
-                // テキスト変更を監視してボタンの有効/無効を切り替え
                 if !enableConfirmWhenEmpty {
                     NotificationCenter.default.addObserver(
                         forName: UITextField.textDidChangeNotification,
@@ -232,6 +336,18 @@ public class IosDialogManager: NSObject {
         }
     }
 
+    /// Shows a login style dialog with username & password fields and optional validation.
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Dialog message.
+    ///   - usernamePlaceholder: Placeholder for username field.
+    ///   - passwordPlaceholder: Placeholder for password field.
+    ///   - loginTitle: Login (primary) button title.
+    ///   - cancelTitle: Cancel button title.
+    ///   - enableLoginWhenEmpty: If `false`, login button disabled until both fields are non‑empty.
+    ///   - onLogin: `(loginTitle, username, password, true, nil)` or `(nil, nil, nil, false, error)`.
+    ///   - onCancel: `(cancelTitle, true, nil)` or `(nil, false, error)`.
+    /// - Warning: Avoid logging raw passwords in production builds.
     public func showLoginDialog(
         title: String?,
         message: String?,
@@ -258,10 +374,8 @@ public class IosDialogManager: NSObject {
                 onLogin?(loginTitle, username, password, true, nil)
             }
             
-            // 初期状態でのログインボタンの有効/無効を設定
             loginAction.isEnabled = enableLoginWhenEmpty
             
-            // Add username text field
             alert.addTextField { textField in
                 textField.placeholder = usernamePlaceholder
                 textField.textContentType = .username
@@ -279,7 +393,6 @@ public class IosDialogManager: NSObject {
                 }
             }
             
-            // Add password text field
             alert.addTextField { textField in
                 textField.placeholder = passwordPlaceholder
                 textField.isSecureTextEntry = true

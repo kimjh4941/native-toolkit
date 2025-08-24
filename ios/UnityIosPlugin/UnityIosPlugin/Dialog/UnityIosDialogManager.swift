@@ -1,17 +1,48 @@
 //
-//  IosDialogManager.swift
-//  
+//  UnityIosDialogManager.swift
 //
 //  Created by Kim Jong Hyun on 2025/04/12.
 //
 import UIKit
 import IosLibrary
 
+/// # UnityIosDialogManager
+///
+/// Swift façade exposing high‑level dialog APIs (alert / confirm / destructive / action sheet /
+/// single text input / login) to Unity via Objective‑C bridge (`UnityIosDialogManagerBridge`).
+/// Internally delegates to ``IosLibrary/IosDialogManager`` while normalizing callback signatures
+/// for C# interop.
+///
+/// ## Overview
+/// * Provides a singleton: ``shared``.
+/// * Wraps and forwards calls to `IosDialogManager` helpers.
+/// * Ensures all UI work occurs on the main thread (delegated manager already marshals).
+/// * Returns unified callback tuples where `errorMessage` is only set when a *pre‑presentation* failure occurs
+///   (e.g. no root view controller) — user cancellation is considered a successful interaction.
+///
+/// ## Callback Semantics
+/// Each public method supplies a closure whose final two components are `(isSuccess, errorMessage)`.
+/// * `isSuccess == false` => Dialog could not be presented (no root VC, other setup failure).
+/// * User choices (including *Cancel*) produce `isSuccess == true` with `errorMessage == nil`.
+/// * `result` (and any input fields) may be `nil` when failure occurs **before** presentation.
+///
+/// ## Threading
+/// Safe to invoke from any thread; calls ultimately present on main queue.
+///
+/// ## Memory / Retain Cycles
+/// Callbacks are not strongly retained past presentation flow; avoid strongly capturing Unity objects.
+///
+/// ## Example (C# P/Invoke pattern)
+/// ```csharp
+/// // P/Invoke signature example
+/// [DllImport("__Internal")] static extern void showDialog(string title, string message, string ok, DialogCallback cb);
+/// ```
 @objcMembers
 public class UnityIosDialogManager: NSObject {
     
     private let TAG = "UnityIosDialogManager"
     
+    /// Shared singleton instance used by the Objective‑C bridge.
     public static let shared = UnityIosDialogManager()
     
     private override init() {
@@ -19,7 +50,14 @@ public class UnityIosDialogManager: NSObject {
         super.init()
     }
     
-    // 基本的なアラートダイアログ - IosDialogManager.showAlert()を使用
+    /// Shows a simple single‑button alert.
+    /// - Parameters:
+    ///   - title: Alert title (non‑optional for Unity convenience).
+    ///   - message: Alert message.
+    ///   - buttonText: Label for the acknowledgment button (default: "OK").
+    ///   - handler: `(buttonTitle, isSuccess, errorMessage)`.
+    ///     * `buttonTitle` echoes `buttonText` on success; `nil` on failure.
+    ///     * `isSuccess=false` only when presentation failed.
     public func showDialog(
         title: String,
         message: String,
@@ -37,7 +75,14 @@ public class UnityIosDialogManager: NSObject {
         }
     }
     
-    // 確認ダイアログ - IosDialogManager.showConfirmDialog()を使用
+    /// Shows a confirmation dialog with confirm & cancel actions.
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Dialog message.
+    ///   - confirmButtonText: Confirm action title (default: "OK").
+    ///   - cancelButtonText: Cancel action title (default: "Cancel").
+    ///   - handler: Unified callback for either button; `buttonTitle` reflects pressed button.
+    /// - Note: Distinguish user choice via the `buttonTitle` value.
     public func showConfirmDialog(
         title: String,
         message: String,
@@ -62,7 +107,14 @@ public class UnityIosDialogManager: NSObject {
         )
     }
 
-    // 破壊的な操作の確認ダイアログ - IosDialogManager.showDestructiveDialog()を使用
+    /// Shows a destructive confirmation dialog (e.g. irreversible deletion) plus cancel.
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Dialog message describing the impact.
+    ///   - destructiveButtonText: Destructive action label (default: "Delete").
+    ///   - cancelButtonText: Cancel action label.
+    ///   - handler: Callback returning the pressed button label or failure info.
+    /// - Warning: Use meaningful destructive labels (e.g. "Delete", "Remove") to ensure clarity in Unity UI flows.
     public func showDestructiveDialog(
         title: String,
         message: String,
@@ -87,7 +139,14 @@ public class UnityIosDialogManager: NSObject {
         )
     }
 
-    // 複数選択肢のアクションシート - IosDialogManager.showActionSheet()を使用
+    /// Presents an action sheet with a dynamic list of options plus a cancel action.
+    /// - Parameters:
+    ///   - title: Optional sheet title.
+    ///   - message: Optional sheet message.
+    ///   - options: List of selectable non‑destructive option titles.
+    ///   - cancelButtonText: Cancel title (default: "Cancel").
+    ///   - handler: `(selectedOptionOrCancel, true, nil)` or `(nil, false, error)` if presentation failed.
+    /// - Note: For iPad, underlying manager anchors the popover using the root view; customize if a specific anchor is required.
     public func showActionSheet(
         title: String?,
         message: String?,
@@ -107,14 +166,12 @@ public class UnityIosDialogManager: NSObject {
             actions.append(action)
         }
 
-        // キャンセルアクションを追加
         let cancelAction = UIAlertAction(title: cancelButtonText, style: .cancel) { _ in
             Log.d(self.TAG, "Cancel button pressed")
             handler?(cancelButtonText, true, nil)
         }
         actions.append(cancelAction)
 
-        // IosDialogManagerのshowActionSheetを使用（ソースビューの取得）
         if let rootViewController = IosDialogManager.shared.getRootViewController() {
             IosDialogManager.shared.showActionSheet(
                 title: title,
@@ -131,7 +188,16 @@ public class UnityIosDialogManager: NSObject {
         }
     }
 
-    // テキスト入力ダイアログ - IosDialogManager.showTextInputDialog()を使用
+    /// Shows a single text input dialog.
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Optional message.
+    ///   - placeholder: Placeholder for the input field.
+    ///   - confirmButtonText: Confirm button label.
+    ///   - cancelButtonText: Cancel button label.
+    ///   - enableConfirmWhenEmpty: If `false`, confirm is disabled until user enters non‑empty text.
+    ///   - handler: `(buttonTitle, inputText, isSuccess, errorMessage)`.
+    ///     * `inputText` is only non‑nil when confirm pressed & success.
     public func showTextInputDialog(
         title: String,
         message: String?,
@@ -160,7 +226,17 @@ public class UnityIosDialogManager: NSObject {
         )
     }
 
-    // ログインダイアログ（ユーザー名とパスワード入力） - IosDialogManager.showLoginDialog()を使用
+    /// Shows a login dialog (username + password).
+    /// - Parameters:
+    ///   - title: Dialog title.
+    ///   - message: Optional message.
+    ///   - usernamePlaceholder: Username field placeholder.
+    ///   - passwordPlaceholder: Password field placeholder.
+    ///   - loginButtonText: Login (primary) button title.
+    ///   - cancelButtonText: Cancel button title.
+    ///   - enableLoginWhenEmpty: If `false`, login disabled until both fields non‑empty.
+    ///   - handler: `(buttonTitle, username, password, isSuccess, errorMessage)`; username / password only present on login success.
+    /// - Warning: Do not persist plaintext passwords in logs or analytics.
     public func showLoginDialog(
         title: String,
         message: String?,

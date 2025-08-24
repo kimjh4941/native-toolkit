@@ -8,7 +8,17 @@
 
 static NSString *const TAG = @"UnityIosDialogManagerBridge";
 
-// 基本的なアラートダイアログ
+/// Presents a single-button alert dialog.
+///
+/// - Parameters:
+///   - title: UTF-8 C string for the alert title (required).
+///   - message: UTF-8 C string for the alert message (required).
+///   - buttonText: UTF-8 C string for the acknowledgment button label.
+///   - callback: Invoked with `(buttonTitleOrNULL, isSuccess, errorMessageOrNULL)`.
+///
+/// - Discussion:
+///   `isSuccess` is `false` only if presentation prerequisites failed (e.g. missing root VC). User interaction
+///   (tapping the button) is considered success. `buttonTitleOrNULL` will be NULL on failure.
 void showDialog(const char* title,
                 const char* message,
                 const char* buttonText,
@@ -29,7 +39,16 @@ void showDialog(const char* title,
     }];
 }
 
-// 確認ダイアログ
+/// Presents a confirmation dialog with confirm & cancel buttons.
+///
+/// - Parameters:
+///   - title: Dialog title.
+///   - message: Dialog body text.
+///   - confirmButtonText: Label for the confirm action.
+///   - cancelButtonText: Label for the cancel action.
+///   - callback: Receives the pressed button title (confirm / cancel) or NULL on failure.
+///
+/// - Note: User cancellation yields `isSuccess = true` and `errorMessage = NULL`.
 void showConfirmDialog(const char* title,
                        const char* message,
                        const char* confirmButtonText,
@@ -53,7 +72,15 @@ void showConfirmDialog(const char* title,
     }];
 }
 
-// 破壊的な操作の確認ダイアログ
+/// Presents a destructive confirmation dialog (e.g. delete) plus cancel.
+///
+/// - Parameters:
+///   - title: Dialog title.
+///   - message: Description / warning text.
+///   - destructiveButtonText: Destructive action label.
+///   - cancelButtonText: Cancel action label.
+///   - callback: Reports which button was pressed or NULL on failure.
+/// - Warning: Use descriptive destructive labels for clarity.
 void showDestructiveDialog(const char* title,
                            const char* message,
                            const char* destructiveButtonText,
@@ -77,7 +104,17 @@ void showDestructiveDialog(const char* title,
     }];
 }
 
-// アクションシート
+/// Presents an action sheet with multiple options plus a cancel action.
+///
+/// - Parameters:
+///   - title: Optional sheet title (NULL -> omitted).
+///   - message: Optional sheet message.
+///   - options: Array of UTF-8 option strings (length `optionCount`).
+///   - optionCount: Number of entries in `options`.
+///   - cancelButtonText: Cancel action label (optional; if NULL an internally provided label may be used).
+///   - callback: Returns chosen option or cancel label; NULL on failure.
+///
+/// - Note: Each non-cancel option maps directly to a button; order preserved.
 void showActionSheet(const char* title,
                      const char* message,
                      const char* options[],
@@ -106,7 +143,17 @@ void showActionSheet(const char* title,
     }];
 }
 
-// テキスト入力ダイアログ
+/// Presents a single text input dialog (one text field) with optional validation controlling
+/// confirm button enablement.
+///
+/// - Parameters:
+///   - title: Dialog title.
+///   - message: Optional message.
+///   - placeholder: Optional placeholder for the text field.
+///   - confirmButtonText: Confirm action label.
+///   - cancelButtonText: Cancel action label.
+///   - enableConfirmWhenEmpty: When `false`, confirm disabled until text field non-empty.
+///   - callback: `(buttonTitle, inputText, isSuccess, errorMessage)`; `inputText` NULL on cancel/failure.
 void showTextInputDialog(const char* title,
                          const char* message,
                          const char* placeholder,
@@ -136,7 +183,19 @@ void showTextInputDialog(const char* title,
     }];
 }
 
-// ログインダイアログ
+/// Presents a login dialog collecting username and password with optional validation controlling
+/// login button enablement.
+///
+/// - Parameters:
+///   - title: Dialog title.
+///   - message: Optional message.
+///   - usernamePlaceholder: Placeholder text for username field.
+///   - passwordPlaceholder: Placeholder text for password field.
+///   - loginButtonText: Login action label.
+///   - cancelButtonText: Cancel action label.
+///   - enableLoginWhenEmpty: When `false`, login disabled until both fields non-empty.
+///   - callback: `(buttonTitle, username, password, isSuccess, errorMessage)`; username/password NULL on cancel/failure.
+/// - Warning: Password is transient; do NOT log or store plaintext in production.
 void showLoginDialog(const char* title,
                      const char* message,
                      const char* usernamePlaceholder,
