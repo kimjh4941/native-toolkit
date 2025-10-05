@@ -1,3 +1,10 @@
+/**
+ * @file WindowsDialogManager.cpp
+ * @brief Windows Dialog Manager implementation
+ * @details
+ *  Implements various dialogs (alert, file open/save, folder selection)
+ *  using Win32 Common Dialogs and IFileOpenDialog (COM).
+ */
 #include "pch.h"
 #include "afxdialogex.h"
 #include <windows.h>
@@ -10,21 +17,37 @@
 
 static const wchar_t* TAG = L"WindowsDialogManager";
 
-// Dialog class implementation
+/**
+ * @class WindowsDialogManager
+ * @brief Singleton class that shows Windows dialogs.
+ * @details
+ *  Internally used by public exported functions (showXxxDialog).
+ *  Copy/assignment is disabled.
+ */
 class WindowsDialogManager
 {
 public:
-    // Get singleton instance
+    /** @brief Get singleton instance. */
     static WindowsDialogManager& Instance()
     {
         static WindowsDialogManager instance;
         return instance;
     }
 
-    // Disable copy and move
-    WindowsDialogManager(const WindowsDialogManager&) = delete;
-    WindowsDialogManager& operator=(const WindowsDialogManager&) = delete;
+    WindowsDialogManager(const WindowsDialogManager&) = delete;      ///< Non-copyable
+    WindowsDialogManager& operator=(const WindowsDialogManager&) = delete; ///< Non-assignable
 
+    /**
+     * @brief Show an alert (message box).
+     * @param title Dialog title.
+     * @param message Dialog body text.
+     * @param buttons Button flags.
+     * @param icon Icon flags.
+     * @param defbutton Default button.
+     * @param options Additional options.
+     * @param pError Optional out error code. 0 on success, GetLastError() on failure.
+     * @return Button ID clicked by the user. 0 on failure.
+     */
     int ShowAlertDialog(
         const wchar_t* title,
         const wchar_t* message,
@@ -53,6 +76,14 @@ public:
         return result;
     }
 
+    /**
+     * @brief Show a single file open dialog.
+     * @param buffer Output buffer for the selected file path.
+     * @param buffer_size Size of buffer in wchar_t units.
+     * @param filter Win32 filter string.
+     * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
+     * @return TRUE on success or cancel, FALSE on failure.
+     */
     BOOL ShowFileDialog(
         wchar_t* buffer,
         DWORD buffer_size,
@@ -94,6 +125,14 @@ public:
         return result;
     }
 
+    /**
+     * @brief Show a multi-select file open dialog.
+     * @param buffer Output buffer for the selection.
+     * @param buffer_size Size of buffer in wchar_t units.
+     * @param filter Win32 filter string.
+     * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
+     * @return Number of selected items. 0=canceled, -1=error, otherwise >=1.
+     */
     int ShowMultiFileDialog(
         wchar_t* buffer,
         DWORD buffer_size,
@@ -151,6 +190,15 @@ public:
         return count;
     }
 
+    /**
+     * @brief Show a save file dialog.
+     * @param buffer Output buffer for the destination file path.
+     * @param buffer_size Size of buffer in wchar_t units.
+     * @param filter Win32 filter string.
+     * @param def_ext Default extension.
+     * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
+     * @return TRUE on success or cancel, FALSE on failure.
+     */
     BOOL ShowSaveFileDialog(
         wchar_t* buffer,
         DWORD buffer_size,
@@ -200,6 +248,14 @@ public:
         return result;
     }
 
+    /**
+     * @brief Show a single folder selection dialog.
+     * @param buffer Output buffer for the selected folder path.
+     * @param buffer_size Size of buffer in wchar_t units.
+     * @param title Dialog title.
+     * @param pError Out error code. 0=success, -1=canceled, otherwise HRESULT.
+     * @return TRUE on success or cancel, FALSE on failure.
+     */
     BOOL ShowFolderDialog(
         wchar_t* buffer,
         DWORD buffer_size,
@@ -288,6 +344,14 @@ public:
         }
     }
 
+    /**
+     * @brief Show a multi-select folder dialog.
+     * @param buffer Output buffer for selected folder paths (\0-separated, ends with \0\0).
+     * @param buffer_size Size of buffer in wchar_t units.
+     * @param title Dialog title.
+     * @param pError Out error code. 0=success, -1=canceled, otherwise HRESULT.
+     * @return Number of selected folders. 0=canceled, -1=error, otherwise >=1.
+     */
     int ShowMultiFolderDialog(
         wchar_t* buffer,
         DWORD buffer_size,
@@ -402,9 +466,13 @@ private:
 
     }
 
-    CDialogEx m_dialogEx;
+    CDialogEx m_dialogEx; ///< MFC dialog instance (template IDD_DIALOG)
 };
 
+/**
+ * @brief Public API: Show alert dialog.
+ * @copydetails WindowsDialogManager::ShowAlertDialog
+ */
 int showAlertDialog(
     const wchar_t* title,
     const wchar_t* message,
@@ -441,6 +509,10 @@ int showAlertDialog(
     return result;
 }
 
+/**
+ * @brief Public API: Show single file open dialog.
+ * @copydetails WindowsDialogManager::ShowFileDialog
+ */
 BOOL showFileDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -463,6 +535,10 @@ BOOL showFileDialog(
     return result;
 }
 
+/**
+ * @brief Public API: Show multi-select file open dialog.
+ * @copydetails WindowsDialogManager::ShowMultiFileDialog
+ */
 int showMultiFileDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -508,6 +584,10 @@ int showMultiFileDialog(
     return count;
 }
 
+/**
+ * @brief Public API: Show save file dialog.
+ * @copydetails WindowsDialogManager::ShowSaveFileDialog
+ */
 BOOL showSaveFileDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -530,6 +610,10 @@ BOOL showSaveFileDialog(
     return result;
 }
 
+/**
+ * @brief Public API: Show single folder selection dialog.
+ * @copydetails WindowsDialogManager::ShowFolderDialog
+ */
 BOOL showFolderDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -551,6 +635,10 @@ BOOL showFolderDialog(
     return result;
 }
 
+/**
+ * @brief Public API: Show multi-select folder dialog.
+ * @copydetails WindowsDialogManager::ShowMultiFolderDialog
+ */
 int showMultiFolderDialog(
     wchar_t* buffer,
     DWORD buffer_size,
