@@ -14,7 +14,7 @@ import UniformTypeIdentifiers
 /// these raw messages directly to end users unless you provide localization.
 public enum DialogError: Error {
     case noButtons
-    case invalidConfiguration
+    case invalidConfiguration(String)
     case executionFailed(String)
     
     /// Human readable description for debugging.
@@ -22,8 +22,8 @@ public enum DialogError: Error {
         switch self {
         case .noButtons:
             return "No buttons specified for dialog"
-        case .invalidConfiguration:
-            return "Invalid dialog configuration"
+        case .invalidConfiguration(let message):
+            return "Invalid dialog configuration: \(message)"
         case .executionFailed(let message):
             return "Dialog execution failed: \(message)"
         }
@@ -46,6 +46,10 @@ public struct DialogButton {
         self.title = title
         self.isDefault = isDefault
         self.keyEquivalent = keyEquivalent
+    }
+    
+    var description: String {
+        return "DialogButton(title: \(title), isDefault: \(isDefault), keyEquivalent: \(String(describing: keyEquivalent)))"
     }
 }
 
@@ -86,6 +90,10 @@ public struct DialogOptions {
         self.icon = icon
         self.accessoryView = accessoryView
     }
+    
+    var description: String {
+        return "DialogOptions(alertStyle: \(alertStyle), buttons: \(buttons), showsHelp: \(showsHelp), showsSuppressionButton: \(showsSuppressionButton), suppressionButtonTitle: \(String(describing: suppressionButtonTitle)), icon: \(String(describing: icon)), accessoryView: \(String(describing: accessoryView)))"
+    }
 }
 
 /// Result returned after a dialog (alert) is dismissed.
@@ -99,6 +107,8 @@ public struct DialogResult {
     public let buttonTitle: String
     /// Whether the suppression checkbox is in the ON state.
     public let suppressionButtonState: Bool
+    /// `true` if the help button was pressed.
+    public let helpButtonPressed: Bool
     /// Indicates logical success (currently always `true` for a completed alert dismissal).
     public let isSuccess: Bool
     
@@ -106,12 +116,18 @@ public struct DialogResult {
         buttonIndex: Int,
         buttonTitle: String,
         suppressionButtonState: Bool = false,
+        helpButtonPressed: Bool = false,
         isSuccess: Bool = true
     ) {
         self.buttonIndex = buttonIndex
         self.buttonTitle = buttonTitle
         self.suppressionButtonState = suppressionButtonState
+        self.helpButtonPressed = helpButtonPressed
         self.isSuccess = isSuccess
+    }
+    
+    var description: String {
+        return "DialogResult(buttonIndex: \(buttonIndex), buttonTitle: \(buttonTitle), suppressionButtonState: \(suppressionButtonState), helpButtonPressed: \(helpButtonPressed), isSuccess: \(isSuccess))"
     }
 }
 
@@ -180,6 +196,10 @@ public struct OpenDialogOptions {
         self.isExtensionHidden = isExtensionHidden
         self.allowedContentTypes = allowedContentTypes
     }
+    
+    var description: String {
+        return "OpenDialogOptions(canChooseFiles: \(canChooseFiles), canChooseDirectories: \(canChooseDirectories), allowsMultipleSelection: \(allowsMultipleSelection), showsHiddenFiles: \(showsHiddenFiles), canCreateDirectories: \(canCreateDirectories), canSelectHiddenExtension: \(canSelectHiddenExtension), treatsFilePackagesAsDirectories: \(treatsFilePackagesAsDirectories), allowsOtherFileTypes: \(allowsOtherFileTypes), directoryURL: \(String(describing: directoryURL)), nameFieldStringValue: \(nameFieldStringValue), prompt: \(prompt), resolvesAliases: \(resolvesAliases), isExtensionHidden: \(isExtensionHidden), allowedContentTypes: \(allowedContentTypes))"
+    }
 }
 
 /// Result from an open dialog (files and/or folders).
@@ -207,6 +227,10 @@ public struct OpenDialogResult {
         self.directoryURL = directoryURL
         self.isCancelled = isCancelled
         self.isSuccess = isSuccess
+    }
+    
+    var description: String {
+        return "OpenDialogResult(filePaths: \(filePaths), fileCount: \(fileCount), directoryURL: \(directoryURL), isCancelled: \(isCancelled), isSuccess: \(isSuccess))"
     }
 }
 
@@ -239,6 +263,10 @@ public struct SaveDialogResult {
         self.isCancelled = isCancelled
         self.isSuccess = isSuccess
     }
+    
+    var description: String {
+        return "SaveDialogResult(filePath: \(filePath), fileCount: \(fileCount), directoryURL: \(directoryURL), isCancelled: \(isCancelled), isSuccess: \(isSuccess))"
+    }
 }
 
 /// Central manager providing convenience APIs to present alerts, open panels and save panels.
@@ -246,11 +274,13 @@ public struct SaveDialogResult {
 /// - Thread Safety: All UI presentation is automatically marshalled onto the main thread.
 /// - Usage: Call the relevant `show*` method with a completion closure to receive a typed `Result`.
 public class MacDialogManager: NSObject {
-
+    /// Internal tag for logging.
     private let TAG = "MacDialogManager"
     
     /// Shared singleton instance.
     public static let shared = MacDialogManager()
+        
+    private var helpButtonHandler: ((Result<DialogResult, DialogError>) -> Void)?
     
     private override init() {
         Log.d(TAG, "init")
@@ -266,12 +296,12 @@ public class MacDialogManager: NSObject {
     ///   - completion: Completion handler returning a `DialogResult` or `DialogError`.
     public func showDialog(
         title: String,
-        message: String,
+        message: String? = nil,
         options: DialogOptions = DialogOptions(),
         completion: @escaping (Result<DialogResult, DialogError>) -> Void
     ) {
-        Log.d(TAG, "showDialog called with title: \(title), message: \(message)")
-
+        Log.d(TAG, "showDialog called with title: \(title), message: \(String(describing: message)), options: \(options), completion: \(String(describing: completion))")
+        
         guard !options.buttons.isEmpty else {
             Log.e(TAG, "No buttons provided")
             completion(.failure(.noButtons))
@@ -280,7 +310,7 @@ public class MacDialogManager: NSObject {
         
         guard !title.isEmpty else {
             Log.e(TAG, "Empty title provided")
-            completion(.failure(.invalidConfiguration))
+            completion(.failure(.invalidConfiguration("title cannot be empty")))
             return
         }
         
@@ -291,6 +321,7 @@ public class MacDialogManager: NSObject {
             }
             
             do {
+                helpButtonHandler = completion
                 let result = try self.executeDialog(title: title, message: message, options: options)
                 completion(.success(result))
             } catch let error as DialogError {
@@ -312,15 +343,15 @@ public class MacDialogManager: NSObject {
     ///   - completion: Returns `OpenDialogResult` or `DialogError`.
     public func showOpenDialog(
         title: String,
-        message: String,
+        message: String? = nil,
         options: OpenDialogOptions = OpenDialogOptions(),
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
     ) {
-        Log.d(TAG, "showOpenDialog called with title: \(title), message: \(message)")
-
+        Log.d(TAG, "showOpenDialog called with title: \(title), message: \(String(describing: message)), options: \(options), completion: \(String(describing: completion))")
+        
         guard !title.isEmpty else {
             Log.e(TAG, "Empty title provided")
-            completion(.failure(.invalidConfiguration))
+            completion(.failure(.invalidConfiguration("title cannot be empty")))
             return
         }
 
@@ -346,13 +377,13 @@ public class MacDialogManager: NSObject {
     /// Convenience wrapper for a single file selection panel.
     public func showFileDialog(
         title: String = "Select File",
-        message: String = "Please select a file",
+        message: String? = nil,
         allowedContentTypes: [String] = [],
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
     ) {
-        Log.d(TAG, "showFileDialog called with title: \(title)")
-
+        Log.d(TAG, "showFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        
         let options = OpenDialogOptions(
             canChooseFiles: true,
             canChooseDirectories: false,
@@ -372,12 +403,12 @@ public class MacDialogManager: NSObject {
     /// Convenience wrapper for a multi file selection panel.
     public func showMultiFileDialog(
         title: String = "Select Files",
-        message: String = "Please select files (multiple selection allowed)",
+        message: String? = nil,
         allowedContentTypes: [String] = [],
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
     ) {
-        Log.d(TAG, "showMultiFileDialog called with title: \(title)")
+        Log.d(TAG, "showMultiFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         let options = OpenDialogOptions(
             canChooseFiles: true,
@@ -398,12 +429,12 @@ public class MacDialogManager: NSObject {
     /// Convenience wrapper for a single folder selection panel.
     public func showFolderDialog(
         title: String = "Select Folder",
-        message: String = "Please select a folder",
+        message: String? = nil,
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
     ) {
-        Log.d(TAG, "showFolderDialog called with title: \(title)")
-
+        Log.d(TAG, "showFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        
         let options = OpenDialogOptions(
             canChooseFiles: false,
             canChooseDirectories: true,
@@ -422,11 +453,11 @@ public class MacDialogManager: NSObject {
     /// Convenience wrapper for a multi folder selection panel.
     public func showMultiFolderDialog(
         title: String = "Select Folders",
-        message: String = "Please select folders (multiple selection allowed)",
+        message: String? = nil,
         directoryURL: URL? = nil,
         completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
     ) {
-        Log.d(TAG, "showMultiFolderDialog called with title: \(title)")
+        Log.d(TAG, "showMultiFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         let options = OpenDialogOptions(
             canChooseFiles: false,
@@ -454,13 +485,13 @@ public class MacDialogManager: NSObject {
     ///   - completion: Returns `SaveDialogResult` or `DialogError`.
     public func showSaveFileDialog(
         title: String = "Save File",
-        message: String = "Please save the file",
+        message: String? = nil,
         nameFieldStringValue: String = "",
         allowedContentTypes: [String] = [],
         directoryURL: URL? = nil,
         completion: @escaping (Result<SaveDialogResult, DialogError>) -> Void
     ) {
-        Log.d(TAG, "showSaveFileDialog called with title: \(title)")
+        Log.d(TAG, "showSaveFileDialog called with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(nameFieldStringValue), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
@@ -489,15 +520,18 @@ public class MacDialogManager: NSObject {
     
     private func executeSaveDialog(
         title: String,
-        message: String,
+        message: String? = nil,
         nameFieldStringValue: String,
         allowedContentTypes: [String],
-        directoryURL: URL?
+        directoryURL: URL? = nil
     ) throws -> SaveDialogResult {
+        Log.d(TAG, "executeSaveDialog with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(nameFieldStringValue), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL))")
         let savePanel = NSSavePanel()
         
         savePanel.title = title
-        savePanel.message = message
+        if let message = message {
+            savePanel.message = message
+        }
         savePanel.nameFieldStringValue = nameFieldStringValue
         savePanel.canCreateDirectories = true
         savePanel.isExtensionHidden = false
@@ -546,16 +580,25 @@ public class MacDialogManager: NSObject {
     
     private func executeDialog(
         title: String,
-        message: String,
+        message: String? = nil,
         options: DialogOptions
     ) throws -> DialogResult {
+        Log.d(TAG, "executeDialog with title: \(title), message: \(String(describing: message)), options: \(options)")
         let alert = NSAlert()
         
         alert.messageText = title
-        alert.informativeText = message
+        if let message = message {
+            alert.informativeText = message
+        }
         alert.alertStyle = options.alertStyle
         alert.showsHelp = options.showsHelp
         alert.showsSuppressionButton = options.showsSuppressionButton
+        
+        if options.showsHelp {
+            alert.delegate = self
+        } else {
+            alert.delegate = nil
+        }
         
         if let suppressionTitle = options.suppressionButtonTitle {
             alert.suppressionButton?.title = suppressionTitle
@@ -570,13 +613,15 @@ public class MacDialogManager: NSObject {
         }
         
         for button in options.buttons {
+            Log.d(TAG, "Adding button: \(button.title), isDefault: \(button.isDefault), keyEquivalent: \(button.keyEquivalent ?? "nil")")
             let alertButton = alert.addButton(withTitle: button.title)
             
             if button.isDefault {
-                alertButton.keyEquivalent = button.keyEquivalent ?? "\r"
+                alertButton.keyEquivalent = "\r"
             } else if let keyEquivalent = button.keyEquivalent {
                 alertButton.keyEquivalent = keyEquivalent
             }
+            Log.d(TAG, "Button added with keyEquivalent: \(alertButton.keyEquivalent)")
         }
         
         let response = alert.runModal()
@@ -593,10 +638,10 @@ public class MacDialogManager: NSObject {
             buttonIndex: buttonIndex,
             buttonTitle: buttonTitle,
             suppressionButtonState: suppressionButtonState,
+            helpButtonPressed: false,
             isSuccess: true
         )
-        
-        Log.d(TAG, "Button pressed: \(buttonTitle) (index: \(buttonIndex))")
+        Log.d(TAG, "Dialog completed: \(result)")
         return result
     }
     
@@ -617,13 +662,16 @@ public class MacDialogManager: NSObject {
     
     private func executeOpenDialog(
         title: String,
-        message: String,
+        message: String? = nil,
         options: OpenDialogOptions
     ) throws -> OpenDialogResult {
+        Log.d(TAG, "executeOpenDialog with title: \(title), message: \(String(describing: message)), options: \(options)")
         let openPanel = NSOpenPanel()
 
         openPanel.title = title
-        openPanel.message = message
+        if let message = message {
+            openPanel.message = message
+        }
         openPanel.canChooseFiles = options.canChooseFiles
         openPanel.canChooseDirectories = options.canChooseDirectories
         openPanel.allowsMultipleSelection = options.allowsMultipleSelection
@@ -676,5 +724,23 @@ public class MacDialogManager: NSObject {
             Log.d(TAG, "Open dialog cancelled")
             return result
         }
+    }
+}
+
+extension MacDialogManager: NSAlertDelegate {
+    public func alertShowHelp(_ alert: NSAlert) -> Bool {
+        Log.d(TAG, "Help button pressed")
+        helpButtonHandler?(
+            .success(
+                DialogResult(
+                    buttonIndex: -1,
+                    buttonTitle: "",
+                    suppressionButtonState: alert.suppressionButton?.state == .on,
+                    helpButtonPressed: true,
+                    isSuccess: true
+                )
+            )
+        )
+        return true
     }
 }

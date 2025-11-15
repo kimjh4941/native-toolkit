@@ -18,11 +18,13 @@ extern "C" {
 /// - buttonTitle: UTF-8 C string for the selected button title (NULL on error).
 /// - buttonIndex: 0-based index of the pressed button, or -1 on error.
 /// - suppressionState: `true` if suppression checkbox was ON.
+/// - helpButtonPressed: `true` if help button pressed (if shown).
 /// - isSuccess: `true` if dialog executed (user chose a button). `false` for runtime errors.
 /// - errorMessage: UTF-8 C string describing the error (NULL or empty if none). Lifetime: valid only during the call.
 typedef void (*DialogCallback)(const char* buttonTitle,
                                int buttonIndex,
                                bool suppressionState,
+                               bool helpButtonPressed,
                                bool isSuccess,
                                const char* errorMessage);
 

@@ -21,10 +21,11 @@ static NSString *const TAG = @"UnityMacDialogManagerBridge";
 ///     - `alertStyle`: informational | warning | critical
 ///     - `showsSuppressionButton`: bool
 ///     - `suppressionButtonTitle`: string
-///   - callback: Receives (buttonTitle, buttonIndex, suppressionState, isSuccess, errorMessage)
+///   - callback: Receives (buttonTitle, buttonIndex, suppressionState, helpButtonPressed,  isSuccess, errorMessage)
 ///     * `buttonTitle`: NULL on error
 ///     * `buttonIndex`: -1 on error
 ///     * `suppressionState`: state of suppression checkbox (if shown)
+///     * `helpButtonPressed`: YES if help button was pressed
 ///     * `isSuccess`: YES if dialog completed (even if user cancelled), NO on error
 ///     * `errorMessage`: UTF-8 C string (owned by callee) or NULL
 /// - Thread Safety: May be called from any thread; UI dispatch handled internally.
@@ -49,13 +50,19 @@ void showDialog(const char* title,
             NSString* buttonTitle = result[@"buttonTitle"];
             NSInteger buttonIndex = [result[@"buttonIndex"] integerValue];
             BOOL suppressionButtonState = [result[@"suppressionButtonState"] boolValue];
-            [Log d:TAG :[NSString stringWithFormat:@"showDialog buttonTitle: %@, buttonIndex: %d, suppressionButtonState: %d", buttonTitle, (int)buttonIndex, (int)suppressionButtonState]];
+            BOOL helpButtonPressed = [result[@"helpButtonPressed"] boolValue];
+            [Log d:TAG :[NSString stringWithFormat:@"showDialog buttonTitle: %@, buttonIndex: %d, suppressionButtonState: %d, helpButtonPressed: %d", buttonTitle, (int)buttonIndex, (int)suppressionButtonState, (int)helpButtonPressed]];
             [Log d:TAG :@"showDialog completed successfully"];
-            callback(buttonTitle.UTF8String, (int)buttonIndex, suppressionButtonState, YES, NULL);
+            if (helpButtonPressed) {
+                [Log d:TAG :@"showDialog help button was pressed"];
+                callback(NULL, -1, suppressionButtonState, YES, YES, NULL);
+            } else {
+                callback(buttonTitle.UTF8String, (int)buttonIndex, suppressionButtonState, NO, YES, NULL);
+            }
         } else {
             NSString* errorMessage = error.localizedDescription ?: @"Unknown error";
             [Log e:TAG :[NSString stringWithFormat:@"showDialog error occurred: %@", errorMessage]];
-            callback(NULL, -1, NO, NO, errorMessage.UTF8String);
+            callback(NULL, -1, NO, NO, NO, errorMessage.UTF8String);
         }
     }];
 }
@@ -82,7 +89,8 @@ void showFileDialog(const char* title,
                     int contentTypesCount,
                     const char* directoryPath,
                     FileDialogCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"showFileDialog called with title: %s, message: %s", title, message]];
+    [Log d:TAG :[NSString stringWithFormat:@"showFileDialog called with title: %s, message: %s, contentTypesCount: %d, directoryPath: %s, callback: %p",
+                 title ?: "(null)", message ?: "(null)", contentTypesCount, directoryPath ?: "(null)", callback]];
     
     NSString* nsTitle = [NSString stringWithUTF8String:title];
     NSString* nsMessage = [NSString stringWithUTF8String:message];
@@ -144,7 +152,8 @@ void showMultiFileDialog(const char* title,
                          int contentTypesCount,
                          const char* directoryPath,
                          MultiFileDialogCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"showMultiFileDialog called with title: %s, message: %s", title, message]];
+    [Log d:TAG :[NSString stringWithFormat:@"showMultiFileDialog called with title: %s, message: %s, contentTypesCount: %d, directoryPath: %s, callback: %p",
+                 title ?: "(null)", message ?: "(null)", contentTypesCount, directoryPath ?: "(null)", callback]];
     
     NSString* nsTitle = [NSString stringWithUTF8String:title];
     NSString* nsMessage = [NSString stringWithUTF8String:message];
@@ -202,7 +211,8 @@ void showFolderDialog(const char* title,
                       const char* message,
                       const char* directoryPath,
                       FolderDialogCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"showFolderDialog called with title: %s, message: %s", title, message]];
+    [Log d:TAG :[NSString stringWithFormat:@"showFolderDialog called with title: %s, message: %s, directoryPath: %s, callback: %p",
+                 title ?: "(null)", message ?: "(null)", directoryPath ?: "(null)", callback]];
     
     NSString* nsTitle = [NSString stringWithUTF8String:title];
     NSString* nsMessage = [NSString stringWithUTF8String:message];
@@ -252,7 +262,8 @@ void showMultiFolderDialog(const char* title,
                            const char* message,
                            const char* directoryPath,
                            MultiFolderDialogCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"showMultiFolderDialog called with title: %s, message: %s", title, message]];
+    [Log d:TAG :[NSString stringWithFormat:@"showMultiFolderDialog called with title: %s, message: %s, directoryPath: %s, callback: %p",
+                 title ?: "(null)", message ?: "(null)", directoryPath ?: "(null)", callback]];
     
     NSString* nsTitle = [NSString stringWithUTF8String:title];
     NSString* nsMessage = [NSString stringWithUTF8String:message];
@@ -314,7 +325,8 @@ void showSaveFileDialog(const char* title,
                         int contentTypesCount,
                         const char* directoryPath,
                         SaveFileDialogCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"showSaveFileDialog called with title: %s, message: %s, nameFieldStringValue: %s", title, message, nameFieldStringValue]];
+    [Log d:TAG :[NSString stringWithFormat:@"showSaveFileDialog called with title: %s, message: %s, nameFieldStringValue: %s, contentTypesCount: %d, directoryPath: %s, callback: %p",
+                 title ?: "(null)", message ?: "(null)", nameFieldStringValue ?: "(null)", contentTypesCount, directoryPath ?: "(null)", callback]];
     
     NSString* nsTitle = [NSString stringWithUTF8String:title];
     NSString* nsMessage = [NSString stringWithUTF8String:message];

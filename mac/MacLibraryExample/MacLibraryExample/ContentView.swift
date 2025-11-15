@@ -28,10 +28,37 @@ struct ContentView: View {
                     .multilineTextAlignment(.center)
                 
                 Button(action: {
+                    let options = DialogOptions(
+                        alertStyle: .informational,
+                        buttons: [
+                            DialogButton(title: "OK", isDefault: true),
+                            DialogButton(title: "Cancel", keyEquivalent: "\u{1b}"),
+                            DialogButton(title: "Delete", keyEquivalent: "d")
+                        ],
+                        showsHelp: true,
+                        showsSuppressionButton: true,
+                        suppressionButtonTitle: "Don't show this again",
+                        icon: {
+                            switch IconConfiguration(
+                                type: .systemImage,
+                                value: "cautionName",
+                                renderingMode: .palette,
+                                colors: ["white", "systemblue", "systemblue"],
+                                size: 100,
+                                weight: "ultralight",
+                                scale: "large").createImage() {
+                            case .success(let image):
+                                return image
+                            case .failure(_):
+                                return nil
+                            }
+                        }()
+                    )
+                    
                     MacDialogManager.shared.showDialog(
                         title: "Hello",
                         message: "This is an alert!",
-                        options: DialogOptions()
+                        options: options
                     ) { result in
                         switch result {
                         case .success(let dialogResult):
@@ -158,12 +185,10 @@ struct ContentView: View {
     }
     
     private func updateResult(isSuccess: Bool, result: String?) {
-        DispatchQueue.main.async {
-            if isSuccess {
-                resultText = "✅ \nResult: \(result ?? "nil")"
-            } else {
-                resultText = "❌ \nResult: \(result ?? "nil")"
-            }
+        if isSuccess {
+            resultText = "✅ \nResult: \(result ?? "nil")"
+        } else {
+            resultText = "❌ \nResult: \(result ?? "nil")"
         }
     }
 }
