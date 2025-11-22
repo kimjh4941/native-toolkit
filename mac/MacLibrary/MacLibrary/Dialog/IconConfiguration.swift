@@ -6,11 +6,14 @@
 //
 import AppKit
 
+/// Describes how to build an `NSImage` (icon) from JSON-friendly values such as SF Symbols,
+/// disk paths, or legacy AppKit template names. Use `createImage()` to convert this metadata
+/// into a fully configured image.
 public struct IconConfiguration {
     
     private let TAG = "IconConfiguration"
     
-    /// アイコンのタイプ
+    /// Supported icon source categories.
     public enum IconType: String {
         case systemSymbol = "systemsymbol"
         case filePath = "filepath"
@@ -19,20 +22,27 @@ public struct IconConfiguration {
         case systemImage = "systemimage"
     }
     
-    /// レンダリングスタイル
+    /// Rendering style applied to SF Symbols.
     public enum RenderingMode: String {
-        case monochrome      // 単色
-        case hierarchical    // 階層
-        case palette         // パレット
-        case multicolor      // マルチカラー
+        case monochrome
+        case hierarchical
+        case palette
+        case multicolor
     }
     
+    /// How the icon should be generated (SF Symbol, file path, etc.).
     public var type: IconType
+    /// The raw value associated with the type (symbol name, filesystem path, asset name).
     public var value: String?
+    /// Rendering mode applied when `type == .systemSymbol`.
     public var renderingMode: RenderingMode?
+    /// Palette or hierarchical colors expressed as system names or HEX strings.
     public var colors: [String]
+    /// Optional SF Symbol point size override.
     public var size: CGFloat?
+    /// Optional SF Symbol weight string (e.g. "bold").
     public var weight: String?
+    /// Optional SF Symbol scale string (e.g. "large").
     public var scale: String?
     
     public init(
@@ -60,9 +70,11 @@ public struct IconConfiguration {
 
 extension IconConfiguration {
     
+    /// Builds an `IconConfiguration` from a JSON dictionary emitted by Unity/Objective-C.
+    /// Missing or invalid fields return `nil` to signal parsing failure.
+    /// - Parameter json: Dictionary containing `type`, optional `value`, and style metadata.
     public static func from(json: [String: Any]) -> IconConfiguration? {
         Log.d("IconConfiguration", "from json: \(json)")
-        // type の取得
         guard let typeString = json["type"] as? String,
               let type = IconType(rawValue: typeString.lowercased()) else {
             return nil
@@ -106,7 +118,8 @@ extension IconConfiguration {
         )
     }
     
-    /// IconConfiguration から NSImage を生成
+    /// Creates an `NSImage` according to the configuration.
+    /// - Returns: `.success(image)` when generation succeeds, otherwise `.failure(DialogError)`.
     public func createImage() -> Result<NSImage, DialogError> {
         Log.d(TAG, "createImage")
         switch type {
@@ -169,11 +182,14 @@ extension IconConfiguration {
         }
     }
     
+    /// Applies size, weight, scale, and rendering options to an SF Symbol image.
+    /// - Parameter image: Base image produced from `NSImage(systemSymbolName:)`.
+    /// - Returns: A configured image with template rendering disabled.
     private func applyConfiguration(to image: NSImage) -> NSImage {
         Log.d(TAG, "applyConfiguration")
         var config = NSImage.SymbolConfiguration()
         
-        // size と weight を適用
+        // Apply size and weight overrides if provided.
         if let size = size, let weightValue = parseWeight() {
             config = config.applying(.init(pointSize: size, weight: weightValue))
             Log.d("IconConfiguration", "Applying size: \(size), weight: \(weightValue)")
@@ -185,14 +201,14 @@ extension IconConfiguration {
             Log.d("IconConfiguration", "Applying size: 16(default), weight: \(weightValue)")
         }
         
-        // scale を適用
+        // Apply the preferred scale if configured.
         if let scaleValue = parseScale() {
             config = config.applying(.init(scale: scaleValue))
             Log.d("IconConfiguration", "Applying scale: \(scaleValue)")
         }
         
         let parsedColors = parseColors()
-        // rendering mode と colors を適用
+        // Apply rendering mode and palette colors as needed.
         if let renderingMode = renderingMode {
             switch renderingMode {
             case .monochrome:
@@ -220,6 +236,8 @@ extension IconConfiguration {
         return image.withSymbolConfiguration(config) ?? image
     }
     
+    /// Converts the configured `colors` strings into `NSColor` instances.
+    /// Supports system colors and HEX strings (e.g. `#FF0000`).
     private func parseColors() -> [NSColor] {
         return colors.compactMap { colorString in
             switch colorString.lowercased() {
@@ -280,6 +298,7 @@ extension IconConfiguration {
         }
     }
     
+    /// Maps the `weight` string onto `NSFont.Weight` values.
     private func parseWeight() -> NSFont.Weight? {
         guard let weight = weight else { return nil }
         
@@ -317,6 +336,7 @@ extension IconConfiguration {
         }
     }
     
+    /// Maps the `scale` string onto `NSImage.SymbolScale` values.
     private func parseScale() -> NSImage.SymbolScale? {
         guard let scale = scale else { return nil }
         
@@ -336,6 +356,7 @@ extension IconConfiguration {
         }
     }
     
+    /// Returns the AppKit system image name that corresponds to the provided JSON identifier.
     private func systemImageName(for value: String) -> String? {
         switch value.lowercased() {
         // Basic System Images (macOS 10.5+)
@@ -490,6 +511,8 @@ extension IconConfiguration {
 // MARK: - NSColor HEX Support
 
 extension NSColor {
+    /// Initializes an `NSColor` from a six-digit HEX string (e.g. `#RRGGBB`).
+    /// Returns `nil` when the string is not a valid hex value.
     convenience init?(hexString: String) {
         var hex = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
         hex = hex.replacingOccurrences(of: "#", with: "")

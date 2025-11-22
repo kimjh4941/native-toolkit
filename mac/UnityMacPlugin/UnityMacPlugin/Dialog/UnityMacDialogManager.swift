@@ -37,6 +37,43 @@ public class UnityMacDialogManager: NSObject {
         super.init()
     }
     
+    /// Presents an `NSAlert` configured via JSON button/option payloads and bridges the result
+    /// back to Objective-C/Unity as `(NSDictionary?, NSError?)`.
+    ///
+    /// Expected JSON payloads:
+    /// ```json
+    /// // buttonsJson
+    /// {
+    ///   "buttons": [
+    ///     { "title": "OK", "isDefault": true, "keyEquivalent": "\r" },
+    ///     { "title": "Cancel", "keyEquivalent": "\u001b" }
+    ///   ]
+    /// }
+    ///
+    /// // optionsJson (all fields optional)
+    /// {
+    ///   "alertStyle": "informational|warning|critical",
+    ///   "showsHelp": true,
+    ///   "showsSuppressionButton": true,
+    ///   "suppressionButtonTitle": "Do not show again",
+    ///   "icon": {
+    ///     "type": "systemSymbol|filePath|namedImage|appIcon|systemImage",
+    ///     "value": "exclamationmark.octagon.fill",
+    ///     "style": "monochrome|hierarchical|palette|multicolor",
+    ///     "colors": ["white", "systemRed"],
+    ///     "size": 64,
+    ///     "weight": "ultraLight|thin|light|regular|medium|semibold|bold|heavy|black",
+    ///     "scale": "small|medium|large"
+    ///   }
+    /// }
+    /// ```
+    /// - Parameters:
+    ///   - title: Dialog title text.
+    ///   - message: Optional informative message.
+    ///   - buttonsJson: JSON describing the button array (see example above).
+    ///   - optionsJson: JSON configuring alert style, suppression button, and optional icon.
+    ///   - completion: Called on completion with `NSDictionary` containing `buttonTitle`,
+    ///     `buttonIndex`, `suppressionButtonState`, `helpButtonPressed`, or an `NSError`.
     public func showDialog(
         title: String,
         message: String? = nil,
@@ -44,42 +81,7 @@ public class UnityMacDialogManager: NSObject {
         optionsJson: String,
         completion: @escaping (NSDictionary?, NSError?) -> Void
     ) {
-        /// Presents an alert dialog defined by JSON.
-        ///
-        /// The `buttonsJson` parameter expects a JSON object of the form:
-        /// ```json
-        /// {
-        ///   "buttons": [
-        ///     { "title": "OK", "isDefault": true, "keyEquivalent": "\r" },
-        ///     { "title": "Cancel" }
-        ///   ]
-        /// }
-        /// ```
-        /// `optionsJson` may include (all optional):
-        /// ```json
-        /// {
-        ///   "alertStyle": "informational|warning|critical",
-        ///   "showsHelp": true,
-        ///   "showsSuppressionButton": true,
-        ///   "suppressionButtonTitle": "Do not show again",
-        ///   "icon": {
-        ///     "type": "systemSymbol|filePath|namedImage|appIcon|systemImage",
-        ///     "value": "exclamationmark.octagon.fill",
-        ///     "style": "monochrome|hierarchical|palette|multicolor",
-        ///     "colors": ["white", "systemRed", "systemRed"],
-        ///     "size": 64,
-        ///     "weight": "ultraLight|thin|light|regular|medium|semibold|bold|heavy|black",
-        ///     "scale": "small|medium|large"
-        ///   }
-        /// }
-        /// ```
-        /// - Parameters:
-        ///   - title: Alert title text.
-        ///   - message: Informative message body.
-        ///   - buttonsJson: JSON describing button array (see format above).
-        ///   - optionsJson: JSON configuring style / suppression options.
-        ///   - completion: Called with result dictionary or error.
-        Log.d(TAG, "showDialog called with title: \(title), message: \(String(describing: message)), buttonsJson: \(buttonsJson), optionsJson: \(optionsJson), completion: \(String(describing: completion))")
+        Log.d(TAG, "showDialog called with title: \(title), message: \(String(describing: message)), buttonsJson: \(buttonsJson), optionsJson: \(optionsJson), completion: \(String(describing: completion)))")
         // Parse buttonsJson
         var buttons: [DialogButton] = []
         if let buttonsData = buttonsJson.data(using: .utf8),
@@ -163,6 +165,13 @@ public class UnityMacDialogManager: NSObject {
         }
     }
     
+    /// Presents a single-selection open panel restricted to files.
+    /// - Parameters:
+    ///   - title: Panel window title displayed in the sheet.
+    ///   - message: Optional informative text shown beneath the title.
+    ///   - allowedContentTypes: Filename extensions (without dot) to filter; empty means no filtering.
+    ///   - directoryURL: Initial directory from which browsing starts.
+    ///   - completion: Invoked with the file selection dictionary or an NSError.
     public func showFileDialog(
         title: String,
         message: String? = nil,
@@ -170,14 +179,6 @@ public class UnityMacDialogManager: NSObject {
         directoryURL: URL? = nil,
         completion: @escaping (NSDictionary?, NSError?) -> Void
     ) {
-        /// Presents a single‑selection open panel restricted to files.
-        ///
-        /// - Parameters:
-        ///   - title: Panel window title.
-        ///   - message: Descriptive message shown inside the panel.
-        ///   - allowedContentTypes: Filename extensions (without dot) to filter; empty means no filtering.
-        ///   - directoryURL: Initial directory (optional).
-        ///   - completion: Result dictionary (see class docs) or error.
         Log.d(TAG, "showFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showFileDialog(
@@ -203,6 +204,13 @@ public class UnityMacDialogManager: NSObject {
         }
     }
     
+    /// Presents a multi-selection open panel restricted to files.
+    /// - Parameters:
+    ///   - title: Panel window title displayed in the sheet.
+    ///   - message: Optional informative text shown beneath the title.
+    ///   - allowedContentTypes: Filename extensions allowed for selection.
+    ///   - directoryURL: Initial directory from which browsing starts.
+    ///   - completion: Invoked with the selection dictionary or error.
     public func showMultiFileDialog(
         title: String,
         message: String? = nil,
@@ -210,8 +218,6 @@ public class UnityMacDialogManager: NSObject {
         directoryURL: URL? = nil,
         completion: @escaping (NSDictionary?, NSError?) -> Void
     ) {
-        /// Presents a multi‑selection open panel restricted to files.
-        /// Differs from `showFileDialog` only in allowing multiple selection.
         Log.d(TAG, "showMultiFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showMultiFileDialog(
@@ -237,13 +243,18 @@ public class UnityMacDialogManager: NSObject {
         }
     }
     
+    /// Presents a single-selection folder picker (no files allowed).
+    /// - Parameters:
+    ///   - title: Panel window title displayed in the sheet.
+    ///   - message: Optional descriptive text shown inside the panel.
+    ///   - directoryURL: Initial directory to display.
+    ///   - completion: Invoked with the folder selection dictionary or error.
     public func showFolderDialog(
         title: String,
         message: String? = nil,
         directoryURL: URL? = nil,
         completion: @escaping (NSDictionary?, NSError?) -> Void
     ) {
-        /// Presents a single‑selection folder picker (no file selection).
         Log.d(TAG, "showFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showFolderDialog(
@@ -268,13 +279,18 @@ public class UnityMacDialogManager: NSObject {
         }
     }
     
+    /// Presents a multi-selection folder picker.
+    /// - Parameters:
+    ///   - title: Panel window title displayed in the sheet.
+    ///   - message: Optional descriptive text shown inside the panel.
+    ///   - directoryURL: Initial directory to display.
+    ///   - completion: Invoked with the folder selection dictionary or error.
     public func showMultiFolderDialog(
         title: String,
         message: String? = nil,
         directoryURL: URL? = nil,
         completion: @escaping (NSDictionary?, NSError?) -> Void
     ) {
-        /// Presents a multi‑selection folder picker.
         Log.d(TAG, "showMultiFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showMultiFolderDialog(
@@ -299,6 +315,15 @@ public class UnityMacDialogManager: NSObject {
         }
     }
     
+    /// Presents an `NSSavePanel` and reports the saved path back to Unity.
+    /// - Parameters:
+    ///   - title: Save panel window title.
+    ///   - message: Optional descriptive text shown in the panel.
+    ///   - nameFieldStringValue: Default filename pre-filled in the save panel.
+    ///   - allowedContentTypes: Allowed extensions (empty = unrestricted).
+    ///   - directoryURL: Optional starting directory.
+    ///   - completion: Dictionary with `filePath`, `fileCount`, `directoryURL`, `isCancelled`,
+    ///     `isSuccess`, or an error.
     public func showSaveFileDialog(
         title: String,
         message: String? = nil,
@@ -307,15 +332,6 @@ public class UnityMacDialogManager: NSObject {
         directoryURL: URL? = nil,
         completion: @escaping (NSDictionary?, NSError?) -> Void
     ) {
-        /// Presents an `NSSavePanel`.
-        ///
-        /// - Parameters:
-        ///   - title: Save panel window title.
-        ///   - message: Message text displayed in the panel.
-        ///   - nameFieldStringValue: Default proposed filename.
-        ///   - allowedContentTypes: Filename extensions allowed (empty = unrestricted).
-        ///   - directoryURL: Initial directory (optional).
-        ///   - completion: Dictionary containing `filePath` etc., or error.
         Log.d(TAG, "showSaveFileDialog called with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(nameFieldStringValue), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showSaveFileDialog(

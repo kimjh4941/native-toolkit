@@ -30,10 +30,13 @@ public enum DialogError: Error {
     }
 }
 
-/// Describes a single alert button.
+/// Represents a single alert action button that can optionally be the default action
+/// or expose a custom key equivalent.
 ///
-/// Use this to configure the button title, whether it should be treated as the default
-/// (Return / Enter key) and optionally supply a custom key equivalent.
+/// - Parameters:
+///   - title: Visible text shown on the button.
+///   - isDefault: Marks the button as the default action (Return key) when `true`.
+///   - keyEquivalent: Optional single-character shortcut. Defaults to Return for default buttons.
 public struct DialogButton {
     /// Visible title text.
     public let title: String
@@ -53,10 +56,10 @@ public struct DialogButton {
     }
 }
 
-/// Options to configure an `NSAlert` dialog.
+/// Container describing how an `NSAlert` should be rendered, including button ordering,
+/// optional suppression checkbox, and an icon/accessory view.
 ///
-/// Provide an array of `DialogButton` to define button ordering. The first button
-/// added becomes index `0` in the `DialogResult`.
+/// - Important: The order of `buttons` determines `DialogResult.buttonIndex`.
 public struct DialogOptions {
     /// The visual style of the alert (`informational`, `warning`, `critical`).
     public var alertStyle: NSAlert.Style
@@ -98,8 +101,9 @@ public struct DialogOptions {
 
 /// Result returned after a dialog (alert) is dismissed.
 ///
-/// The `buttonIndex` maps to your original `DialogOptions.buttons` ordering.
-/// If a suppression checkbox was displayed, `suppressionButtonState` reflects its final state.
+/// The `buttonIndex` maps directly to `DialogOptions.buttons`. When the help button is
+/// tapped, `helpButtonPressed` is flagged while the dialog remains visible until the
+/// user selects a regular button.
 public struct DialogResult {
     /// Index of the pressed button (0-based).
     public let buttonIndex: Int
@@ -134,7 +138,7 @@ public struct DialogResult {
 /// Configuration options for an open panel (file / folder picker).
 ///
 /// Combine flags to allow files, directories, single or multiple selection.
-/// Specify `allowedContentTypes` with filename extensions to restrict visible items.
+/// `allowedContentTypes` should contain filename extensions (no leading dot).
 public struct OpenDialogOptions {
     /// Allow picking regular files.
     public var canChooseFiles: Bool
@@ -203,6 +207,8 @@ public struct OpenDialogOptions {
 }
 
 /// Result from an open dialog (files and/or folders).
+///
+/// - Note: When the user cancels the panel, `filePaths` is empty and `isCancelled == true`.
 public struct OpenDialogResult {
     /// Absolute paths of selected items.
     public let filePaths: [String]
@@ -236,8 +242,8 @@ public struct OpenDialogResult {
 
 /// Result returned from a save panel.
 ///
-/// A save dialog always returns at most one path. The `fileCount` is kept for symmetry
-/// with `OpenDialogResult` (usually 1 when not cancelled, 0 when cancelled).
+/// A save dialog always returns at most one path. `fileCount` is provided for API
+/// symmetry with `OpenDialogResult`.
 public struct SaveDialogResult {
     /// Absolute path chosen by the user (empty if cancelled).
     public let filePath: String
@@ -292,7 +298,7 @@ public class MacDialogManager: NSObject {
     /// - Parameters:
     ///   - title: Main alert title.
     ///   - message: Informative text displayed under the title.
-    ///   - options: Configuration for style, buttons and visuals.
+    ///   - options: Configuration controlling style, buttons, checkbox, and icon.
     ///   - completion: Completion handler returning a `DialogResult` or `DialogError`.
     public func showDialog(
         title: String,
@@ -337,10 +343,10 @@ public class MacDialogManager: NSObject {
     /// Presents an open panel (`NSOpenPanel`) with the supplied configuration.
     ///
     /// - Parameters:
-    ///   - title: Window title.
-    ///   - message: Helper text inside the panel.
-    ///   - options: `OpenDialogOptions` controlling selection behavior.
-    ///   - completion: Returns `OpenDialogResult` or `DialogError`.
+    ///   - title: Window title shown in the sheet/dialog.
+    ///   - message: Helper text displayed beneath the title.
+    ///   - options: `OpenDialogOptions` controlling selection behavior and filtering.
+    ///   - completion: Returns `OpenDialogResult` or `DialogError` via `Result`.
     public func showOpenDialog(
         title: String,
         message: String? = nil,
@@ -375,6 +381,8 @@ public class MacDialogManager: NSObject {
     }
     
     /// Convenience wrapper for a single file selection panel.
+    ///
+    /// - Parameters mirror `showOpenDialog` but force single file selection.
     public func showFileDialog(
         title: String = "Select File",
         message: String? = nil,
@@ -401,6 +409,8 @@ public class MacDialogManager: NSObject {
     }
     
     /// Convenience wrapper for a multi file selection panel.
+    ///
+    /// - Parameters mirror `showOpenDialog` but allow multiple files.
     public func showMultiFileDialog(
         title: String = "Select Files",
         message: String? = nil,
@@ -427,6 +437,8 @@ public class MacDialogManager: NSObject {
     }
     
     /// Convenience wrapper for a single folder selection panel.
+    ///
+    /// - Parameters mirror `showOpenDialog` but allow only one directory.
     public func showFolderDialog(
         title: String = "Select Folder",
         message: String? = nil,
@@ -451,6 +463,8 @@ public class MacDialogManager: NSObject {
     }
 
     /// Convenience wrapper for a multi folder selection panel.
+    ///
+    /// - Parameters mirror `showOpenDialog` but allow multiple directories.
     public func showMultiFolderDialog(
         title: String = "Select Folders",
         message: String? = nil,
