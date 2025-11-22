@@ -566,7 +566,7 @@ class AndroidDialogFragment : DialogFragment() {
         /** Create a Text input dialog. */
         fun newInstance(title: String,
                         message: String,
-                        hint: String,
+                        hint: String = "",
                         negativeButtonText: String = "Cancel",
                         positiveButtonText: String = "OK",
                         enablePositiveButtonWhenEmpty: Boolean = false,
@@ -596,10 +596,10 @@ class AndroidDialogFragment : DialogFragment() {
         /** Create a Login dialog (username & password). */
         fun newInstance(title: String,
                         message: String,
-                        usernameHint: String,
-                        passwordHint: String,
+                        usernameHint: String = "Username",
+                        passwordHint: String = "Password",
                         negativeButtonText: String = "Cancel",
-                        positiveButtonText: String = "OK",
+                        positiveButtonText: String = "Login",
                         enablePositiveButtonWhenEmpty: Boolean = false,
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) =
