@@ -183,7 +183,7 @@ object UnityAndroidDialogManager {
                    buttonText: String = "OK",
                    cancelableOnTouchOutside: Boolean = true,
                    cancelable: Boolean = true) {
-        Log.d(TAG, "showDialog called")
+        Log.d(TAG, "showDialog called with context: $context, title: $title, message: $message, buttonText: $buttonText, cancelableOnTouchOutside: $cancelableOnTouchOutside, cancelable: $cancelable")
 
         if (dialogListener == null) {
             Log.w(TAG, "DialogListener is not set")
@@ -195,7 +195,7 @@ object UnityAndroidDialogManager {
                 AndroidDialogFragment.newInstance(title, message, buttonText, cancelableOnTouchOutside, cancelable).apply {
                     setDialogListener(object : AndroidDialogFragment.DialogListener {
                         override fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {
-                            Log.d(TAG, "onDialog called")
+                            Log.d(TAG, "onDialog called with dialog: $dialog, buttonText: $buttonText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
                             dialogListener?.onDialog(buttonText, isSuccessful, errorMessage)
                         }
                     })
@@ -224,7 +224,7 @@ object UnityAndroidDialogManager {
                           positiveButtonText: String = "Yes",
                           cancelableOnTouchOutside: Boolean = true,
                           cancelable: Boolean = true) {
-        Log.d(TAG, "showConfirmDialog called")
+        Log.d(TAG, "showConfirmDialog called with context: $context, title: $title, message: $message, negativeButtonText: $negativeButtonText, positiveButtonText: $positiveButtonText, cancelableOnTouchOutside: $cancelableOnTouchOutside, cancelable: $cancelable")
 
         if (confirmDialogListener == null) {
             Log.w(TAG, "ConfirmDialogListener is not set")
@@ -236,7 +236,7 @@ object UnityAndroidDialogManager {
                 AndroidDialogFragment.newInstance(title, message, negativeButtonText, positiveButtonText, cancelableOnTouchOutside, cancelable).apply {
                     setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {
                         override fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {
-                            Log.d(TAG, "onConfirmDialog called")
+                            Log.d(TAG, "onConfirmDialog called with dialog: $dialog, buttonText: $buttonText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
                             confirmDialogListener?.onConfirmDialog(buttonText, isSuccessful, errorMessage)
                         }
                     })
@@ -265,7 +265,7 @@ object UnityAndroidDialogManager {
                                    positiveButtonText: String = "OK",
                                    cancelableOnTouchOutside: Boolean = true,
                                    cancelable: Boolean = true) {
-        Log.d(TAG, "showSingleChoiceItemDialog called")
+        Log.d(TAG, "showSingleChoiceItemDialog called with context: $context, title: $title, singleChoiceItems: ${singleChoiceItems.joinToString()}, checkedItem: $checkedItem, negativeButtonText: $negativeButtonText, positiveButtonText: $positiveButtonText, cancelableOnTouchOutside: $cancelableOnTouchOutside, cancelable: $cancelable")
 
         if (singleChoiceItemDialogListener == null) {
             Log.w(TAG, "SingleChoiceItemDialogListener is not set")
@@ -277,7 +277,7 @@ object UnityAndroidDialogManager {
                 AndroidDialogFragment.newInstance(title, singleChoiceItems, checkedItem, negativeButtonText, positiveButtonText, cancelableOnTouchOutside, cancelable).apply {
                     setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
                         override fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?) {
-                            Log.d(TAG, "onSingleChoiceItemDialog called")
+                            Log.d(TAG, "onSingleChoiceItemDialog called with dialog: $dialog, buttonText: $buttonText, checkedItem: $checkedItem, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
                             singleChoiceItemDialogListener?.onSingleChoiceItemDialog(buttonText, checkedItem ?: -1, isSuccessful, errorMessage)
                         }
                     })
@@ -306,7 +306,7 @@ object UnityAndroidDialogManager {
                                   positiveButtonText: String = "OK",
                                   cancelableOnTouchOutside: Boolean = true,
                                   cancelable: Boolean = true) {
-        Log.d(TAG, "showMultiChoiceItemDialog called")
+        Log.d(TAG, "showMultiChoiceItemDialog called with context: $context, title: $title, multiChoiceItems: ${multiChoiceItems.joinToString()}, checkedItems: ${checkedItems.joinToString()}, negativeButtonText: $negativeButtonText, positiveButtonText: $positiveButtonText, cancelableOnTouchOutside: $cancelableOnTouchOutside, cancelable: $cancelable")
 
         if (multiChoiceItemDialogListener == null) {
             Log.w(TAG, "MultiChoiceItemDialogListener is not set")
@@ -318,7 +318,7 @@ object UnityAndroidDialogManager {
                 AndroidDialogFragment.newInstance(title, multiChoiceItems, checkedItems, negativeButtonText, positiveButtonText, cancelableOnTouchOutside, cancelable).apply {
                     setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {
                         override fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?) {
-                            Log.d(TAG, "onMultiChoiceItemDialog called")
+                            Log.d(TAG, "onMultiChoiceItemDialog called with dialog: $dialog, buttonText: $buttonText, checkedItems: ${checkedItems?.joinToString()}, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
                             multiChoiceItemDialogListener?.onMultiChoiceItemDialog(buttonText, checkedItems, isSuccessful, errorMessage)
                         }
                     })
@@ -348,7 +348,7 @@ object UnityAndroidDialogManager {
                             enablePositiveButtonWhenEmpty: Boolean = false,
                             cancelableOnTouchOutside: Boolean = true,
                             cancelable: Boolean = true) {
-        Log.d(TAG, "showTextInputDialog called")
+        Log.d(TAG, "showTextInputDialog called with context: $context, title: $title, message: $message, hint: $hint, negativeButtonText: $negativeButtonText, positiveButtonText: $positiveButtonText, enablePositiveButtonWhenEmpty: $enablePositiveButtonWhenEmpty, cancelableOnTouchOutside: $cancelableOnTouchOutside, cancelable: $cancelable")
 
         if (textInputDialogListener == null) {
             Log.w(TAG, "TextInputDialogListener is not set")
@@ -360,7 +360,7 @@ object UnityAndroidDialogManager {
                 AndroidDialogFragment.newInstance(title, message, hint, negativeButtonText, positiveButtonText, enablePositiveButtonWhenEmpty, cancelableOnTouchOutside, cancelable).apply {
                     setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {
                         override fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?) {
-                            Log.d(TAG, "onTextInputDialog called")
+                            Log.d(TAG, "onTextInputDialog called with dialog: $dialog, buttonText: $buttonText, inputText: $inputText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
                             textInputDialogListener?.onTextInputDialog(buttonText, inputText, isSuccessful, errorMessage)
                         }
                     })
@@ -391,7 +391,7 @@ object UnityAndroidDialogManager {
                         enablePositiveButtonWhenEmpty: Boolean = false,
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) {
-        Log.d(TAG, "showLoginDialog called")
+        Log.d(TAG, "showLoginDialog called with context: $context, title: $title, message: $message, usernameHint: $usernameHint, passwordHint: $passwordHint, negativeButtonText: $negativeButtonText, positiveButtonText: $positiveButtonText, enablePositiveButtonWhenEmpty: $enablePositiveButtonWhenEmpty, cancelableOnTouchOutside: $cancelableOnTouchOutside, cancelable: $cancelable")
 
         if (loginDialogListener == null) {
             Log.w(TAG, "LoginDialogListener is not set")
@@ -403,7 +403,7 @@ object UnityAndroidDialogManager {
                 AndroidDialogFragment.newInstance(title, message, usernameHint, passwordHint, negativeButtonText, positiveButtonText, enablePositiveButtonWhenEmpty, cancelableOnTouchOutside, cancelable).apply {
                     setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
                         override fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?) {
-                            Log.d(TAG, "onLoginDialog called")
+                            Log.d(TAG, "onLoginDialog called with dialog: $dialog, buttonText: $buttonText, username: $username, password: $password, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
                             loginDialogListener?.onLoginDialog(buttonText, username, password, isSuccessful, errorMessage)
                         }
                     })

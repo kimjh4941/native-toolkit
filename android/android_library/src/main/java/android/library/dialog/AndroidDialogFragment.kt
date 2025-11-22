@@ -221,13 +221,13 @@ class AndroidDialogFragment : DialogFragment() {
                     }
 
                     DialogType.CONFIRM -> {
-                        setNegativeButton(negativeButtonText) { dialog, id ->
+                        setNegativeButton(negativeButtonText ?: "No") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
-                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, negativeButtonText!!, true, null)
+                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, negativeButtonText ?: "No", true, null)
                         }
-                        setPositiveButton(positiveButtonText) { dialog, id ->
+                        setPositiveButton(positiveButtonText ?: "Yes") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
-                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, positiveButtonText!!, true, null)
+                            confirmListener?.onConfirmDialog(this@AndroidDialogFragment, positiveButtonText ?: "Yes", true, null)
                         }
                     }
 
@@ -461,7 +461,7 @@ class AndroidDialogFragment : DialogFragment() {
         /** Create a Simple dialog (single positive button). */
         fun newInstance(title: String,
                         message: String,
-                        buttonText: String = "OK",
+                        buttonText: String? = "OK",
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) =
             AndroidDialogFragment().apply {
@@ -487,8 +487,8 @@ class AndroidDialogFragment : DialogFragment() {
         /** Create a Confirm dialog (negative & positive buttons). */
         fun newInstance(title: String,
                         message: String,
-                        negativeButtonText: String = "No",
-                        positiveButtonText: String = "Yes",
+                        negativeButtonText: String? = "No",
+                        positiveButtonText: String? = "Yes",
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) =
             AndroidDialogFragment().apply {
@@ -513,8 +513,8 @@ class AndroidDialogFragment : DialogFragment() {
         fun newInstance(title: String,
                         singleChoiceItems: Array<String>,
                         checkedItem: Int = 0,
-                        negativeButtonText: String = "Cancel",
-                        positiveButtonText: String = "OK",
+                        negativeButtonText: String? = "Cancel",
+                        positiveButtonText: String? = "OK",
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) =
             AndroidDialogFragment().apply {
@@ -540,8 +540,8 @@ class AndroidDialogFragment : DialogFragment() {
         fun newInstance(title: String,
                         multiChoiceItems: Array<String>,
                         checkedItems: BooleanArray,
-                        negativeButtonText: String = "Cancel",
-                        positiveButtonText: String = "OK",
+                        negativeButtonText: String? = "Cancel",
+                        positiveButtonText: String? = "OK",
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) =
             AndroidDialogFragment().apply {
@@ -566,9 +566,9 @@ class AndroidDialogFragment : DialogFragment() {
         /** Create a Text input dialog. */
         fun newInstance(title: String,
                         message: String,
-                        hint: String = "",
-                        negativeButtonText: String = "Cancel",
-                        positiveButtonText: String = "OK",
+                        hint: String? = "",
+                        negativeButtonText: String? = "Cancel",
+                        positiveButtonText: String? = "OK",
                         enablePositiveButtonWhenEmpty: Boolean = false,
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) =
@@ -596,10 +596,10 @@ class AndroidDialogFragment : DialogFragment() {
         /** Create a Login dialog (username & password). */
         fun newInstance(title: String,
                         message: String,
-                        usernameHint: String = "Username",
-                        passwordHint: String = "Password",
-                        negativeButtonText: String = "Cancel",
-                        positiveButtonText: String = "Login",
+                        usernameHint: String? = "Username",
+                        passwordHint: String? = "Password",
+                        negativeButtonText: String? = "Cancel",
+                        positiveButtonText: String? = "Login",
                         enablePositiveButtonWhenEmpty: Boolean = false,
                         cancelableOnTouchOutside: Boolean = true,
                         cancelable: Boolean = true) =
