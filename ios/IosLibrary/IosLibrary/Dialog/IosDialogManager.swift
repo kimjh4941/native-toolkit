@@ -87,8 +87,7 @@ public class IosDialogManager: NSObject {
         animated: Bool = true,
         completion: ((String?, Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), style: \(preferredStyle), actions: \(actions.map { $0.title ?? "nil" })")
-        
+        Log.d(TAG, "showDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), preferredStyle: \(preferredStyle), actions count: \(actions.count), textFields count: \(textFields?.count ?? 0), sourceView: \(sourceView?.description ?? "nil"), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), barButtonItem: \(barButtonItem?.description ?? "nil"), permittedArrowDirections: \(permittedArrowDirections), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
                 Log.e(self.TAG, "Failed to get root view controller")
@@ -170,11 +169,12 @@ public class IosDialogManager: NSObject {
     ///   - buttonText: Button label (default "OK").
     ///   - completion: Receives `(buttonText, true, nil)` on tap, or `(nil, false, error)` on failure.
     public func showAlert(
-        title: String?,
-        message: String?,
-        buttonText: String = "OK",
+        title: String? = nil,
+        message: String? = nil,
+        buttonText: String? = "OK",
         completion: ((String?, Bool, String?) -> Void)? = nil
     ) {
+        Log.d(TAG, "showAlert called with title: \(title ?? "nil"), message: \(message ?? "nil"), buttonText: \(buttonText ?? "nil"), completion: \(completion != nil ? "provided" : "nil")")
         let okAction = UIAlertAction(title: buttonText, style: .default) { _ in
             completion?(buttonText, true, nil)
         }
@@ -194,13 +194,14 @@ public class IosDialogManager: NSObject {
     ///   - onConfirm: Called when confirm tapped with `(confirmTitle, true, nil)` or `(nil, false, error)` on failure.
     ///   - onCancel: Called when cancel tapped with `(cancelTitle, true, nil)` or `(nil, false, error)` on failure.
     public func showConfirmDialog(
-        title: String?,
-        message: String?,
-        confirmTitle: String = "OK",
-        cancelTitle: String = "Cancel",
+        title: String? = nil,
+        message: String? = nil,
+        confirmTitle: String? = "OK",
+        cancelTitle: String? = "Cancel",
         onConfirm: ((String?, Bool, String?) -> Void)? = nil,
         onCancel: ((String?, Bool, String?) -> Void)? = nil
     ) {
+        Log.d(TAG, "showConfirmDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
         let confirmAction = UIAlertAction(title: confirmTitle, style: .default) { _ in
             onConfirm?(confirmTitle, true, nil)
         }
@@ -224,13 +225,14 @@ public class IosDialogManager: NSObject {
     ///   - onCancel: Callback for cancel tap.
     /// - Note: Destructive button uses `.destructive` style (red on iOS).
     public func showDestructiveDialog(
-        title: String?,
-        message: String?,
-        destructiveTitle: String = "Delete",
-        cancelTitle: String = "Cancel",
+        title: String? = nil,
+        message: String? = nil,
+        destructiveTitle: String? = "Delete",
+        cancelTitle: String? = "Cancel",
         onDestructive: ((String?, Bool, String?) -> Void)? = nil,
         onCancel: ((String?, Bool, String?) -> Void)? = nil
     ) {
+        Log.d(TAG, "showDestructiveDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), destructiveTitle: \(destructiveTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onDestructive: \(onDestructive != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
         let destructiveAction = UIAlertAction(title: destructiveTitle, style: .destructive) { _ in
             onDestructive?(destructiveTitle, true, nil)
         }
@@ -262,6 +264,7 @@ public class IosDialogManager: NSObject {
         animated: Bool = true,
         completion: ((String?, Bool, String?) -> Void)? = nil
     ) {
+        Log.d(TAG, "showActionSheet called with title: \(title ?? "nil"), message: \(message ?? "nil"), actions count: \(actions.count), sourceView: \(sourceView.description), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
         showDialog(
             title: title,
             message: message,
@@ -286,15 +289,16 @@ public class IosDialogManager: NSObject {
     ///   - onCancel: `(cancelTitle, true, nil)` or `(nil, false, error)`.
     /// - Note: Text change observation uses `UITextField.textDidChangeNotification` and is only installed if validation is needed.
     public func showTextInputDialog(
-        title: String?,
-        message: String?,
+        title: String? = nil,
+        message: String? = nil,
         placeholder: String? = nil,
-        confirmTitle: String = "OK",
-        cancelTitle: String = "Cancel",
+        confirmTitle: String? = "OK",
+        cancelTitle: String? = "Cancel",
         enableConfirmWhenEmpty: Bool = true,
         onConfirm: ((String?, String?, Bool, String?) -> Void)? = nil,
         onCancel: ((String?, Bool, String?) -> Void)? = nil
     ) {
+        Log.d(TAG, "showTextInputDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), placeholder: \(placeholder ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableConfirmWhenEmpty: \(enableConfirmWhenEmpty), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
                 Log.e(self.TAG, "Failed to get root view controller")
@@ -349,16 +353,17 @@ public class IosDialogManager: NSObject {
     ///   - onCancel: `(cancelTitle, true, nil)` or `(nil, false, error)`.
     /// - Warning: Avoid logging raw passwords in production builds.
     public func showLoginDialog(
-        title: String?,
-        message: String?,
-        usernamePlaceholder: String = "Username",
-        passwordPlaceholder: String = "Password",
-        loginTitle: String = "Login",
-        cancelTitle: String = "Cancel",
+        title: String? = nil,
+        message: String? = nil,
+        usernamePlaceholder: String? = "Username",
+        passwordPlaceholder: String? = "Password",
+        loginTitle: String? = "Login",
+        cancelTitle: String? = "Cancel",
         enableLoginWhenEmpty: Bool = true,
         onLogin: ((String?, String?, String?, Bool, String?) -> Void)? = nil,
         onCancel: ((String?, Bool, String?) -> Void)? = nil
     ) {
+        Log.d(TAG, "showLoginDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), usernamePlaceholder: \(usernamePlaceholder ?? "nil"), passwordPlaceholder: \(passwordPlaceholder ?? "nil"), loginTitle: \(loginTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableLoginWhenEmpty: \(enableLoginWhenEmpty), onLogin: \(onLogin != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
                 Log.e(self.TAG, "Failed to get root view controller")

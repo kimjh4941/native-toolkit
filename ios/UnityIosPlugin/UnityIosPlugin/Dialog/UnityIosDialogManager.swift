@@ -64,7 +64,7 @@ public class UnityIosDialogManager: NSObject {
         buttonText: String = "OK",
         handler: ((String?, Bool, String?) -> Void)?
     ) {
-        Log.d(TAG, "showDialog called with title: \(title), message: \(message), buttonText: \(buttonText)")
+        Log.d(TAG, "showDialog called with title: \(title), message: \(message), buttonText: \(buttonText), handler: \(handler != nil ? "provided" : "nil")")
         IosDialogManager.shared.showAlert(
             title: title,
             message: message,
@@ -90,7 +90,7 @@ public class UnityIosDialogManager: NSObject {
         cancelButtonText: String = "Cancel",
         handler: ((String?, Bool, String?) -> Void)?
     ) {
-        Log.d(TAG, "showConfirmDialog called")
+        Log.d(TAG, "showConfirmDialog called with title: \(title), message: \(message), confirmButtonText: \(confirmButtonText), cancelButtonText: \(cancelButtonText), handler: \(handler != nil ? "provided" : "nil")")
         IosDialogManager.shared.showConfirmDialog(
             title: title,
             message: message,
@@ -122,7 +122,7 @@ public class UnityIosDialogManager: NSObject {
         cancelButtonText: String = "Cancel",
         handler: ((String?, Bool, String?) -> Void)?
     ) {
-        Log.d(TAG, "showDestructiveDialog called")
+        Log.d(TAG, "showDestructiveDialog called with title: \(title), message: \(message), destructiveButtonText: \(destructiveButtonText), cancelButtonText: \(cancelButtonText), handler: \(handler != nil ? "provided" : "nil")")
         IosDialogManager.shared.showDestructiveDialog(
             title: title,
             message: message,
@@ -148,13 +148,13 @@ public class UnityIosDialogManager: NSObject {
     ///   - handler: `(selectedOptionOrCancel, true, nil)` or `(nil, false, error)` if presentation failed.
     /// - Note: For iPad, underlying manager anchors the popover using the root view; customize if a specific anchor is required.
     public func showActionSheet(
-        title: String?,
-        message: String?,
+        title: String,
+        message: String,
         options: [String],
         cancelButtonText: String = "Cancel",
         handler: ((String?, Bool, String?) -> Void)?
     ) {
-        Log.d(TAG, "showActionSheet called with options: \(options)")
+        Log.d(TAG, "showActionSheet called with title: \(title), message: \(message), options: \(options), cancelButtonText: \(cancelButtonText), handler: \(handler != nil ? "provided" : "nil")")
 
         var actions: [UIAlertAction] = []
 
@@ -200,14 +200,14 @@ public class UnityIosDialogManager: NSObject {
     ///     * `inputText` is only non‑nil when confirm pressed & success.
     public func showTextInputDialog(
         title: String,
-        message: String?,
-        placeholder: String?,
+        message: String,
+        placeholder: String = "",
         confirmButtonText: String = "OK",
         cancelButtonText: String = "Cancel",
-        enableConfirmWhenEmpty: Bool = true,
+        enableConfirmWhenEmpty: Bool = false,
         handler: ((String?, String?, Bool, String?) -> Void)?
     ) {
-        Log.d(TAG, "showTextInputDialog called")
+        Log.d(TAG, "showTextInputDialog called with title: \(title), message: \(message), placeholder: \(placeholder), confirmButtonText: \(confirmButtonText), cancelButtonText: \(cancelButtonText), enableConfirmWhenEmpty: \(enableConfirmWhenEmpty), handler: \(handler != nil ? "provided" : "nil")")
         IosDialogManager.shared.showTextInputDialog(
             title: title,
             message: message,
@@ -239,15 +239,15 @@ public class UnityIosDialogManager: NSObject {
     /// - Warning: Do not persist plaintext passwords in logs or analytics.
     public func showLoginDialog(
         title: String,
-        message: String?,
+        message: String,
         usernamePlaceholder: String = "Username",
         passwordPlaceholder: String = "Password",
         loginButtonText: String = "Login",
         cancelButtonText: String = "Cancel",
-        enableLoginWhenEmpty: Bool = true,
+        enableLoginWhenEmpty: Bool = false,
         handler: ((String?, String?, String?, Bool, String?) -> Void)?
     ) {
-        Log.d(TAG, "showLoginDialog called")
+        Log.d(TAG, "showLoginDialog called with title: \(title), message: \(message), usernamePlaceholder: \(usernamePlaceholder), passwordPlaceholder: \(passwordPlaceholder), loginButtonText: \(loginButtonText), cancelButtonText: \(cancelButtonText), enableLoginWhenEmpty: \(enableLoginWhenEmpty), handler: \(handler != nil ? "provided" : "nil")")
         IosDialogManager.shared.showLoginDialog(
             title: title,
             message: message,
