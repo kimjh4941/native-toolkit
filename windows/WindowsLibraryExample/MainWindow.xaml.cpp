@@ -54,7 +54,7 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"ShowFileDialogButton_Click");
         wchar_t filePath[260] = { 0 };
-        const wchar_t* filter = L"Text Files\0*.txt\0All Files\0*.*\0";
+        const wchar_t* filter = L"All Files\0*.*\0";
         DWORD errorCode = 0;
         BOOL result = showFileDialog(filePath, 260, filter, &errorCode);
 
@@ -78,7 +78,7 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"ShowMultiFileDialogButton_Click");
         wchar_t multiBuffer[4096] = { 0 };
-        const wchar_t* filter = L"Text Files\0*.txt\0All Files\0*.*\0";
+        const wchar_t* filter = L"All Files\0*.*\0";
         DWORD errorCode = 0;
         int result = showMultiFileDialog(multiBuffer, 4096, filter, &errorCode);
 
@@ -110,7 +110,7 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"ShowSaveFileDialogButton_Click");
         wchar_t savePath[260] = { 0 };
-        const wchar_t* filter = L"Text Files\0*.txt\0All Files\0*.*\0";
+        const wchar_t* filter = L"All Files\0*.*\0";
         const wchar_t* def_ext = L"txt";
         DWORD errorCode = 0;
         BOOL result = showSaveFileDialog(savePath, 260, filter, def_ext, &errorCode);

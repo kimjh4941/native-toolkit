@@ -1,0 +1,65 @@
+\doxysection{Windows\+Dialog\+Manager.\+h}
+\hypertarget{_windows_dialog_manager_8h_source}{}\label{_windows_dialog_manager_8h_source}\mbox{\hyperlink{_windows_dialog_manager_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#ifdef\ WINDOWSLIBRARY\_EXPORTS}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#define\ WINDOWSDIALOGMANAGER\_API\ \_\_declspec(dllexport)}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#define\ WINDOWSDIALOGMANAGER\_API\ \_\_declspec(dllimport)}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00030\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSDIALOGMANAGER\_API}
+\DoxyCodeLine{00031\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{_windows_dialog_manager_8h_a196f63e92886a7d34125f7cfab0dfb1e}{showAlertDialog}}(}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ title,}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ message,}
+\DoxyCodeLine{00034\ \ \ \ \ UINT\ buttons,}
+\DoxyCodeLine{00035\ \ \ \ \ UINT\ icon,}
+\DoxyCodeLine{00036\ \ \ \ \ UINT\ defbutton,}
+\DoxyCodeLine{00037\ \ \ \ \ UINT\ options,}
+\DoxyCodeLine{00038\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00039\ );}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00053\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSDIALOGMANAGER\_API}
+\DoxyCodeLine{00054\ BOOL\ \mbox{\hyperlink{_windows_dialog_manager_8h_a22555c14304efe2d53bb2951415fd1ac}{showFileDialog}}(}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keywordtype}{wchar\_t}*\ buffer,}
+\DoxyCodeLine{00056\ \ \ \ \ DWORD\ buffer\_size,}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ filter,}
+\DoxyCodeLine{00058\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00059\ );}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00074\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSDIALOGMANAGER\_API}
+\DoxyCodeLine{00075\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{_windows_dialog_manager_8h_a704c869667d741b0d62f56e83ae3ed81}{showMultiFileDialog}}(}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keywordtype}{wchar\_t}*\ buffer,}
+\DoxyCodeLine{00077\ \ \ \ \ DWORD\ buffer\_size,}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ filter,}
+\DoxyCodeLine{00079\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00080\ );}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00094\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSDIALOGMANAGER\_API}
+\DoxyCodeLine{00095\ BOOL\ \mbox{\hyperlink{_windows_dialog_manager_8h_a09de79701f1a44d318194ee5a032ff87}{showSaveFileDialog}}(}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordtype}{wchar\_t}*\ buffer,}
+\DoxyCodeLine{00097\ \ \ \ \ DWORD\ buffer\_size,}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ filter,}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ def\_ext,}
+\DoxyCodeLine{00100\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00101\ );}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00114\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSDIALOGMANAGER\_API}
+\DoxyCodeLine{00115\ BOOL\ \mbox{\hyperlink{_windows_dialog_manager_8h_a721790db9d1a6402d4844a8a347f996a}{showFolderDialog}}(}
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keywordtype}{wchar\_t}*\ buffer,}
+\DoxyCodeLine{00117\ \ \ \ \ DWORD\ buffer\_size,}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ title,}
+\DoxyCodeLine{00119\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00120\ );}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00133\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSDIALOGMANAGER\_API}
+\DoxyCodeLine{00134\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{_windows_dialog_manager_8h_a7e1963b329ca194fddc938a8700a9145}{showMultiFolderDialog}}(}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordtype}{wchar\_t}*\ buffer,}
+\DoxyCodeLine{00136\ \ \ \ \ DWORD\ buffer\_size,}
+\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ title,}
+\DoxyCodeLine{00138\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00139\ );}
+
+\end{DoxyCode}

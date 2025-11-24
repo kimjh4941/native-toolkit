@@ -58,6 +58,8 @@ public:
         DWORD* pError = nullptr  // Optional
     )
     {
+        DFLog(TAG, L"ShowAlertDialog title: %ls, message: %ls, buttons: %d, icon: %d, defbutton: %d, options: %d, pError: %p", title, message, buttons, icon, defbutton, options, pError);
+        
         UINT type = buttons | icon | defbutton | options;
         int result = MessageBoxW(nullptr, message, title, type);
 
@@ -91,6 +93,8 @@ public:
         DWORD* pError = nullptr  // Optional
     )
     {
+        DFLog(TAG, L"ShowFileDialog buffer_size: %lu, filter: %ls, pError: %p", buffer_size, filter ? filter : L"null", pError);
+
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
         OPENFILENAMEW ofn = { 0 };
         ofn.lStructSize = sizeof(ofn);
@@ -140,6 +144,8 @@ public:
         DWORD* pError = nullptr  // Optional
     )
     {
+        DFLog(TAG, L"ShowMultiFileDialog buffer_size: %lu, filter: %ls, pError: %p", buffer_size, filter ? filter : L"null", pError);
+
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
         OPENFILENAMEW ofn = { 0 };
         ofn.lStructSize = sizeof(ofn);
@@ -207,6 +213,8 @@ public:
         DWORD* pError = nullptr  // Optional
     )
     {
+        DFLog(TAG, L"ShowSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError);
+
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
         OPENFILENAMEW ofn = { 0 };
         ofn.lStructSize = sizeof(ofn);
@@ -263,6 +271,8 @@ public:
         DWORD * pError = nullptr  // Optional
     )
     {
+        DFLog(TAG, L"ShowFolderDialog buffer_size: %lu, title: %ls, pError: %p", buffer_size, title ? title : L"null", pError);
+
         // COM initialization (not needed if already initialized by caller)
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         bool needUninit = SUCCEEDED(hr);
@@ -359,6 +369,8 @@ public:
         DWORD* pError = nullptr  // Optional
     )
     {
+        DFLog(TAG, L"ShowMultiFolderDialog buffer_size: %lu, title: %ls, pError: %p", buffer_size, title ? title : L"null", pError);
+
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
 
         // COM initialization (not needed if already initialized by caller)
@@ -483,7 +495,7 @@ int showAlertDialog(
     DWORD* pError
 )
 {
-    DFLog(TAG, L"showAlertDialog title: %ls, message: %ls, buttons: %d, icon: %d, defbutton: %d, options: %d", title, message, buttons, icon, defbutton, options);
+    DFLog(TAG, L"showAlertDialog title: %ls, message: %ls, buttons: %d, icon: %d, defbutton: %d, options: %d, pError: %p", title, message, buttons, icon, defbutton, options, pError);
     DFLog(TAG, L"showAlertDialog IDD_DIALOG: %d", IDD_DIALOG);
 
     int result = WindowsDialogManager::Instance().ShowAlertDialog(title, message, buttons, icon, defbutton, options, pError);
@@ -520,7 +532,7 @@ BOOL showFileDialog(
     DWORD* pError
 )
 {
-    DLog(TAG, L"showFileDialog");
+    DFLog(TAG, L"showFileDialog buffer_size: %lu, filter: %ls, pError: %p", buffer_size, filter ? filter : L"null", pError);
 
     BOOL result = WindowsDialogManager::Instance().ShowFileDialog(buffer, buffer_size, filter, pError);
     if (result)
@@ -546,7 +558,7 @@ int showMultiFileDialog(
     DWORD* pError
 )
 {
-    DLog(TAG, L"showMultiFileDialog");
+    DFLog(TAG, L"showMultiFileDialog buffer_size: %lu, filter: %ls, pError: %p", buffer_size, filter ? filter : L"null", pError);
 
     int count = WindowsDialogManager::Instance().ShowMultiFileDialog(buffer, buffer_size, filter, pError);
     DFLog(TAG, L"count(folder name + file count): %d", count);
@@ -596,7 +608,8 @@ BOOL showSaveFileDialog(
     DWORD* pError
 )
 {
-    DLog(TAG, L"showSaveFileDialog");
+    DFLog(TAG, L"showSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError);
+
     BOOL result = WindowsDialogManager::Instance().ShowSaveFileDialog(buffer, buffer_size, filter, def_ext, pError);
     if (result)
     {
@@ -620,7 +633,7 @@ BOOL showFolderDialog(
     const wchar_t* title,
     DWORD* pError
 ) {
-    DLog(TAG, L"showFolderDialog");
+    DFLog(TAG, L"showFolderDialog buffer_size: %lu, title: %ls, pError: %p", buffer_size, title ? title : L"null", pError);
 
     BOOL result = WindowsDialogManager::Instance().ShowFolderDialog(buffer, buffer_size, title, pError);
     if (result)
@@ -646,7 +659,7 @@ int showMultiFolderDialog(
     DWORD* pError
 )
 {
-    DLog(TAG, L"showMultiFolderDialog");
+    DFLog(TAG, L"showMultiFolderDialog buffer_size: %lu, title: %ls, pError: %p", buffer_size, title ? title : L"null", pError);
 
     int count = WindowsDialogManager::Instance().ShowMultiFolderDialog(buffer, buffer_size, title, pError);
     DFLog(TAG, L"count(folder count): %d", count);

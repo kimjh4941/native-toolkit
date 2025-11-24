@@ -1,0 +1,32 @@
+\doxysection{common.\+h}
+\hypertarget{common_8h_source}{}\label{common_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#ifdef\ WINDOWSLIBRARY\_EXPORTS}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#define\ COMMON\_API\ \_\_declspec(dllexport)}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#define\ COMMON\_API\ \_\_declspec(dllimport)}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ COMMON\_API}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ グローバルデバッグログ関数}}
+\DoxyCodeLine{00013\ \textcolor{keywordtype}{void}\ DLog(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ message);}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ COMMON\_API}
+\DoxyCodeLine{00016\ \textcolor{keywordtype}{void}\ DFLog(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ format,\ ...);}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ COMMON\_API}
+\DoxyCodeLine{00019\ \textcolor{keywordtype}{void}\ DFLLog(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keywordtype}{size\_t}\ bufferSize,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ format,\ ...);}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ COMMON\_API}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ ソ}ルチバイト文字列（const\ char*）をワイド文字列（std::wstring）に変換}}
+\DoxyCodeLine{00023\ std::wstring\ ToWString(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ mbstr);}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ COMMON\_API}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ 2つのwchar\_t*を結合し、動的に確保したwchar\_t*を返す（呼び出し側でdelete[]が必要）}}
+\DoxyCodeLine{00027\ \textcolor{keywordtype}{wchar\_t}*\ ConcatWStrings(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ s1,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ s2);}
+
+\end{DoxyCode}
