@@ -79,7 +79,7 @@ public class UnityMacDialogManager: NSObject {
         message: String? = nil,
         buttonsJson: String,
         optionsJson: String,
-        completion: @escaping (NSDictionary?, NSError?) -> Void
+        completion: ((NSDictionary?, NSError?) -> Void)? = nil
     ) {
         Log.d(TAG, "showDialog called with title: \(title), message: \(String(describing: message)), buttonsJson: \(buttonsJson), optionsJson: \(optionsJson), completion: \(String(describing: completion)))")
         // Parse buttonsJson
@@ -135,7 +135,7 @@ public class UnityMacDialogManager: NSObject {
                         options.icon = image
                     case .failure(let error):
                         let nsError = NSError(domain: "DialogError", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                        completion(nil, nsError)
+                        completion?(nil, nsError)
                         Log.e(TAG, "Failed to create icon image skipping dialog: \(error.localizedDescription)")
                         return
                     }
@@ -156,11 +156,11 @@ public class UnityMacDialogManager: NSObject {
                     "suppressionButtonState": dialogResult.suppressionButtonState,
                     "helpButtonPressed": dialogResult.helpButtonPressed
                 ]
-                completion(resultDict, nil)
+                completion?(resultDict, nil)
             case .failure(let error):
                 // Convert DialogError to NSError
                 let nsError = NSError(domain: "DialogError", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                completion(nil, nsError)
+                completion?(nil, nsError)
             }
         }
     }
@@ -175,11 +175,11 @@ public class UnityMacDialogManager: NSObject {
     public func showFileDialog(
         title: String,
         message: String? = nil,
-        allowedContentTypes: [String],
+        allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (NSDictionary?, NSError?) -> Void
+        completion: ((NSDictionary?, NSError?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        Log.d(TAG, "showFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showFileDialog(
             title: title,
@@ -196,10 +196,10 @@ public class UnityMacDialogManager: NSObject {
                     "isCancelled": openResult.isCancelled,
                     "isSuccess": openResult.isSuccess
                 ]
-                completion(resultDict, nil)
+                completion?(resultDict, nil)
             case .failure(let error):
                 let nsError = NSError(domain: "DialogError", code: 1, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                completion(nil, nsError)
+                completion?(nil, nsError)
             }
         }
     }
@@ -214,11 +214,11 @@ public class UnityMacDialogManager: NSObject {
     public func showMultiFileDialog(
         title: String,
         message: String? = nil,
-        allowedContentTypes: [String],
+        allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (NSDictionary?, NSError?) -> Void
+        completion: ((NSDictionary?, NSError?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showMultiFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        Log.d(TAG, "showMultiFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showMultiFileDialog(
             title: title,
@@ -235,10 +235,10 @@ public class UnityMacDialogManager: NSObject {
                     "isCancelled": openResult.isCancelled,
                     "isSuccess": openResult.isSuccess
                 ]
-                completion(resultDict, nil)
+                completion?(resultDict, nil)
             case .failure(let error):
                 let nsError = NSError(domain: "DialogError", code: 1, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                completion(nil, nsError)
+                completion?(nil, nsError)
             }
         }
     }
@@ -253,7 +253,7 @@ public class UnityMacDialogManager: NSObject {
         title: String,
         message: String? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (NSDictionary?, NSError?) -> Void
+        completion: ((NSDictionary?, NSError?) -> Void)? = nil
     ) {
         Log.d(TAG, "showFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
@@ -271,10 +271,10 @@ public class UnityMacDialogManager: NSObject {
                     "isCancelled": openResult.isCancelled,
                     "isSuccess": openResult.isSuccess
                 ]
-                completion(resultDict, nil)
+                completion?(resultDict, nil)
             case .failure(let error):
                 let nsError = NSError(domain: "DialogError", code: 2, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                completion(nil, nsError)
+                completion?(nil, nsError)
             }
         }
     }
@@ -289,7 +289,7 @@ public class UnityMacDialogManager: NSObject {
         title: String,
         message: String? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (NSDictionary?, NSError?) -> Void
+        completion: ((NSDictionary?, NSError?) -> Void)? = nil
     ) {
         Log.d(TAG, "showMultiFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
@@ -307,10 +307,10 @@ public class UnityMacDialogManager: NSObject {
                     "isCancelled": openResult.isCancelled,
                     "isSuccess": openResult.isSuccess
                 ]
-                completion(resultDict, nil)
+                completion?(resultDict, nil)
             case .failure(let error):
                 let nsError = NSError(domain: "DialogError", code: 2, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                completion(nil, nsError)
+                completion?(nil, nsError)
             }
         }
     }
@@ -327,12 +327,12 @@ public class UnityMacDialogManager: NSObject {
     public func showSaveFileDialog(
         title: String,
         message: String? = nil,
-        nameFieldStringValue: String,
-        allowedContentTypes: [String],
+        nameFieldStringValue: String? = nil,
+        allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (NSDictionary?, NSError?) -> Void
+        completion: ((NSDictionary?, NSError?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showSaveFileDialog called with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(nameFieldStringValue), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        Log.d(TAG, "showSaveFileDialog called with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(String(describing: nameFieldStringValue)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         MacDialogManager.shared.showSaveFileDialog(
             title: title,
@@ -350,10 +350,10 @@ public class UnityMacDialogManager: NSObject {
                     "isCancelled": saveResult.isCancelled,
                     "isSuccess": saveResult.isSuccess
                 ]
-                completion(resultDict, nil)
+                completion?(resultDict, nil)
             case .failure(let error):
                 let nsError = NSError(domain: "DialogError", code: 3, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                completion(nil, nsError)
+                completion?(nil, nsError)
             }
         }
     }

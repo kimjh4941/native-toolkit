@@ -159,7 +159,7 @@ public struct OpenDialogOptions {
     /// Initial directory.
     public var directoryURL: URL?
     /// Pre-filled value in the name field (when relevant).
-    public var nameFieldStringValue: String
+    public var nameFieldStringValue: String?
     /// The confirmation button label (e.g. "Choose").
     public var prompt: String
     /// Whether aliases are resolved automatically.
@@ -167,7 +167,7 @@ public struct OpenDialogOptions {
     /// Whether to hide the file extension in the name field.
     public var isExtensionHidden: Bool
     /// List of filename extensions (no leading dot) used to build UTTypes for filtering.
-    public var allowedContentTypes: [String]
+    public var allowedContentTypes: [String]?
     
     public init(
         canChooseFiles: Bool = true,
@@ -179,11 +179,11 @@ public struct OpenDialogOptions {
         treatsFilePackagesAsDirectories: Bool = false,
         allowsOtherFileTypes: Bool = false,
         directoryURL: URL? = nil,
-        nameFieldStringValue: String = "",
+        nameFieldStringValue: String? = nil,
         prompt: String = "Choose",
         resolvesAliases: Bool = true,
         isExtensionHidden: Bool = false,
-        allowedContentTypes: [String] = []
+        allowedContentTypes: [String]? = nil
     ) {
         self.canChooseFiles = canChooseFiles
         self.canChooseDirectories = canChooseDirectories
@@ -202,7 +202,7 @@ public struct OpenDialogOptions {
     }
     
     var description: String {
-        return "OpenDialogOptions(canChooseFiles: \(canChooseFiles), canChooseDirectories: \(canChooseDirectories), allowsMultipleSelection: \(allowsMultipleSelection), showsHiddenFiles: \(showsHiddenFiles), canCreateDirectories: \(canCreateDirectories), canSelectHiddenExtension: \(canSelectHiddenExtension), treatsFilePackagesAsDirectories: \(treatsFilePackagesAsDirectories), allowsOtherFileTypes: \(allowsOtherFileTypes), directoryURL: \(String(describing: directoryURL)), nameFieldStringValue: \(nameFieldStringValue), prompt: \(prompt), resolvesAliases: \(resolvesAliases), isExtensionHidden: \(isExtensionHidden), allowedContentTypes: \(allowedContentTypes))"
+        return "OpenDialogOptions(canChooseFiles: \(canChooseFiles), canChooseDirectories: \(canChooseDirectories), allowsMultipleSelection: \(allowsMultipleSelection), showsHiddenFiles: \(showsHiddenFiles), canCreateDirectories: \(canCreateDirectories), canSelectHiddenExtension: \(canSelectHiddenExtension), treatsFilePackagesAsDirectories: \(treatsFilePackagesAsDirectories), allowsOtherFileTypes: \(allowsOtherFileTypes), directoryURL: \(String(describing: directoryURL)), nameFieldStringValue: \(String(describing: nameFieldStringValue)), prompt: \(prompt), resolvesAliases: \(resolvesAliases), isExtensionHidden: \(isExtensionHidden), allowedContentTypes: \(String(describing: allowedContentTypes)))"
     }
 }
 
@@ -304,38 +304,38 @@ public class MacDialogManager: NSObject {
         title: String,
         message: String? = nil,
         options: DialogOptions = DialogOptions(),
-        completion: @escaping (Result<DialogResult, DialogError>) -> Void
+        completion: ((Result<DialogResult, DialogError>) -> Void)? = nil
     ) {
         Log.d(TAG, "showDialog called with title: \(title), message: \(String(describing: message)), options: \(options), completion: \(String(describing: completion))")
         
         guard !options.buttons.isEmpty else {
             Log.e(TAG, "No buttons provided")
-            completion(.failure(.noButtons))
+            completion?(.failure(.noButtons))
             return
         }
         
         guard !title.isEmpty else {
             Log.e(TAG, "Empty title provided")
-            completion(.failure(.invalidConfiguration("title cannot be empty")))
+            completion?(.failure(.invalidConfiguration("title cannot be empty")))
             return
         }
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
-                completion(.failure(.executionFailed("MacDialogManager instance deallocated")))
+                completion?(.failure(.executionFailed("MacDialogManager instance deallocated")))
                 return
             }
             
             do {
                 helpButtonHandler = completion
                 let result = try self.executeDialog(title: title, message: message, options: options)
-                completion(.success(result))
+                completion?(.success(result))
             } catch let error as DialogError {
                 Log.e(self.TAG, "Dialog execution failed: \(error.localizedDescription)")
-                completion(.failure(error))
+                completion?(.failure(error))
             } catch {
                 Log.e(self.TAG, "Unexpected error: \(error)")
-                completion(.failure(.executionFailed(error.localizedDescription)))
+                completion?(.failure(.executionFailed(error.localizedDescription)))
             }
         }
     }
@@ -351,31 +351,31 @@ public class MacDialogManager: NSObject {
         title: String,
         message: String? = nil,
         options: OpenDialogOptions = OpenDialogOptions(),
-        completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
+        completion: ((Result<OpenDialogResult, DialogError>) -> Void)? = nil
     ) {
         Log.d(TAG, "showOpenDialog called with title: \(title), message: \(String(describing: message)), options: \(options), completion: \(String(describing: completion))")
         
         guard !title.isEmpty else {
             Log.e(TAG, "Empty title provided")
-            completion(.failure(.invalidConfiguration("title cannot be empty")))
+            completion?(.failure(.invalidConfiguration("title cannot be empty")))
             return
         }
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
-                completion(.failure(.executionFailed("MacDialogManager instance deallocated")))
+                completion?(.failure(.executionFailed("MacDialogManager instance deallocated")))
                 return
             }
 
             do {
                 let result = try self.executeOpenDialog(title: title, message: message, options: options)
-                completion(.success(result))
+                completion?(.success(result))
             } catch let error as DialogError {
                 Log.e(self.TAG, "Open dialog execution failed: \(error.localizedDescription)")
-                completion(.failure(error))
+                completion?(.failure(error))
             } catch {
                 Log.e(self.TAG, "Unexpected error: \(error)")
-                completion(.failure(.executionFailed(error.localizedDescription)))
+                completion?(.failure(.executionFailed(error.localizedDescription)))
             }
         }
     }
@@ -386,11 +386,11 @@ public class MacDialogManager: NSObject {
     public func showFileDialog(
         title: String = "Select File",
         message: String? = nil,
-        allowedContentTypes: [String] = [],
+        allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
+        completion: ((Result<OpenDialogResult, DialogError>) -> Void)? = nil
     ) {
-        Log.d(TAG, "showFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        Log.d(TAG, "showFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         let options = OpenDialogOptions(
             canChooseFiles: true,
@@ -414,11 +414,11 @@ public class MacDialogManager: NSObject {
     public func showMultiFileDialog(
         title: String = "Select Files",
         message: String? = nil,
-        allowedContentTypes: [String] = [],
+        allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
+        completion: ((Result<OpenDialogResult, DialogError>) -> Void)? = nil
     ) {
-        Log.d(TAG, "showMultiFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        Log.d(TAG, "showMultiFileDialog called with title: \(title), message: \(String(describing: message)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         let options = OpenDialogOptions(
             canChooseFiles: true,
@@ -443,7 +443,7 @@ public class MacDialogManager: NSObject {
         title: String = "Select Folder",
         message: String? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
+        completion: ((Result<OpenDialogResult, DialogError>) -> Void)? = nil
     ) {
         Log.d(TAG, "showFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
@@ -469,7 +469,7 @@ public class MacDialogManager: NSObject {
         title: String = "Select Folders",
         message: String? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (Result<OpenDialogResult, DialogError>) -> Void
+        completion: ((Result<OpenDialogResult, DialogError>) -> Void)? = nil
     ) {
         Log.d(TAG, "showMultiFolderDialog called with title: \(title), message: \(String(describing: message)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
@@ -500,16 +500,16 @@ public class MacDialogManager: NSObject {
     public func showSaveFileDialog(
         title: String = "Save File",
         message: String? = nil,
-        nameFieldStringValue: String = "",
-        allowedContentTypes: [String] = [],
+        nameFieldStringValue: String? = nil,
+        allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
-        completion: @escaping (Result<SaveDialogResult, DialogError>) -> Void
+        completion: ((Result<SaveDialogResult, DialogError>) -> Void)? = nil
     ) {
-        Log.d(TAG, "showSaveFileDialog called with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(nameFieldStringValue), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
+        Log.d(TAG, "showSaveFileDialog called with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(String(describing: nameFieldStringValue)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL)), completion: \(String(describing: completion))")
         
         DispatchQueue.main.async { [weak self] in
             guard let self = self else {
-                completion(.failure(.executionFailed("MacDialogManager instance deallocated")))
+                completion?(.failure(.executionFailed("MacDialogManager instance deallocated")))
                 return
             }
             
@@ -521,13 +521,13 @@ public class MacDialogManager: NSObject {
                     allowedContentTypes: allowedContentTypes,
                     directoryURL: directoryURL
                 )
-                completion(.success(result))
+                completion?(.success(result))
             } catch let error as DialogError {
                 Log.e(self.TAG, "Save dialog execution failed: \(error.localizedDescription)")
-                completion(.failure(error))
+                completion?(.failure(error))
             } catch {
                 Log.e(self.TAG, "Unexpected error: \(error)")
-                completion(.failure(.executionFailed(error.localizedDescription)))
+                completion?(.failure(.executionFailed(error.localizedDescription)))
             }
         }
     }
@@ -535,22 +535,24 @@ public class MacDialogManager: NSObject {
     private func executeSaveDialog(
         title: String,
         message: String? = nil,
-        nameFieldStringValue: String,
-        allowedContentTypes: [String],
+        nameFieldStringValue: String? = nil,
+        allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil
     ) throws -> SaveDialogResult {
-        Log.d(TAG, "executeSaveDialog with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(nameFieldStringValue), allowedContentTypes: \(allowedContentTypes), directoryURL: \(String(describing: directoryURL))")
+        Log.d(TAG, "executeSaveDialog with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(String(describing: nameFieldStringValue)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL))")
         let savePanel = NSSavePanel()
         
         savePanel.title = title
         if let message = message {
             savePanel.message = message
         }
-        savePanel.nameFieldStringValue = nameFieldStringValue
+        if let nameFieldStringValue = nameFieldStringValue {
+            savePanel.nameFieldStringValue = nameFieldStringValue
+        }
         savePanel.canCreateDirectories = true
         savePanel.isExtensionHidden = false
         
-        if !allowedContentTypes.isEmpty {
+        if let allowedContentTypes = allowedContentTypes, !allowedContentTypes.isEmpty {
             let utTypes = allowedContentTypes.compactMap { UTType(filenameExtension: $0) }
             if !utTypes.isEmpty {
                 savePanel.allowedContentTypes = utTypes
@@ -694,13 +696,15 @@ public class MacDialogManager: NSObject {
         openPanel.canSelectHiddenExtension = options.canSelectHiddenExtension
         openPanel.treatsFilePackagesAsDirectories = options.treatsFilePackagesAsDirectories
         openPanel.allowsOtherFileTypes = options.allowsOtherFileTypes
-        openPanel.nameFieldStringValue = options.nameFieldStringValue
+        if let nameFieldStringValue = options.nameFieldStringValue {
+            openPanel.nameFieldStringValue = nameFieldStringValue
+        }
         openPanel.prompt = options.prompt
         openPanel.resolvesAliases = options.resolvesAliases
         openPanel.isExtensionHidden = options.isExtensionHidden
         
-        if !options.allowedContentTypes.isEmpty {
-            let utTypes = options.allowedContentTypes.compactMap { UTType(filenameExtension: $0) }
+        if let allowedContentTypes = options.allowedContentTypes, !allowedContentTypes.isEmpty {
+            let utTypes = allowedContentTypes.compactMap { UTType(filenameExtension: $0) }
             if !utTypes.isEmpty {
                 openPanel.allowedContentTypes = utTypes
             }
