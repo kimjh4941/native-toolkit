@@ -4,13 +4,14 @@ plugins {
     alias(libs.plugins.dokka)
 }
 
+version = "1.0.0"
+
 android {
     namespace = "android.plugin"
     compileSdk = 35
 
     defaultConfig {
-        minSdk = 29
-
+        minSdk = 31
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
     }
