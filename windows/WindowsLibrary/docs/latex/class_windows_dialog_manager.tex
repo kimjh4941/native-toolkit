@@ -1,0 +1,243 @@
+\doxysection{Windows\+Dialog\+Manager Class Reference}
+\hypertarget{class_windows_dialog_manager}{}\label{class_windows_dialog_manager}\index{WindowsDialogManager@{WindowsDialogManager}}
+
+
+Singleton class that shows Windows dialogs.  
+
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_windows_dialog_manager_a5350bd65380b674c07b24e28d424a023}\label{class_windows_dialog_manager_a5350bd65380b674c07b24e28d424a023} 
+{\bfseries Windows\+Dialog\+Manager} (const \mbox{\hyperlink{class_windows_dialog_manager}{Windows\+Dialog\+Manager}} \&)=delete
+\begin{DoxyCompactList}\small\item\em Non-\/copyable. \end{DoxyCompactList}\item 
+\Hypertarget{class_windows_dialog_manager_ad8287cb0382c3f55f9994668ecce2024}\label{class_windows_dialog_manager_ad8287cb0382c3f55f9994668ecce2024} 
+\mbox{\hyperlink{class_windows_dialog_manager}{Windows\+Dialog\+Manager}} \& {\bfseries operator=} (const \mbox{\hyperlink{class_windows_dialog_manager}{Windows\+Dialog\+Manager}} \&)=delete
+\begin{DoxyCompactList}\small\item\em Non-\/assignable. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{class_windows_dialog_manager_a0e3ce49e46533379f400e75801f7377a}{Show\+Alert\+Dialog}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}title, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}message, UINT buttons, UINT icon, UINT defbutton, UINT options, DWORD \texorpdfstring{$\ast$}{*}p\+Error=nullptr)
+\begin{DoxyCompactList}\small\item\em Show an alert (message box). \end{DoxyCompactList}\item 
+BOOL \mbox{\hyperlink{class_windows_dialog_manager_a1ae99d69cc23e255ce8881eb58921bab}{Show\+File\+Dialog}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}filter, DWORD \texorpdfstring{$\ast$}{*}p\+Error=nullptr)
+\begin{DoxyCompactList}\small\item\em Show a single file open dialog. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{class_windows_dialog_manager_a4b59de48bd365b7be2b68660899f0baa}{Show\+Multi\+File\+Dialog}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}filter, DWORD \texorpdfstring{$\ast$}{*}p\+Error=nullptr)
+\begin{DoxyCompactList}\small\item\em Show a multi-\/select file open dialog. \end{DoxyCompactList}\item 
+BOOL \mbox{\hyperlink{class_windows_dialog_manager_a2e6cf1b93d363807a08ded9fb40495cb}{Show\+Save\+File\+Dialog}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}filter, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}def\+\_\+ext=nullptr, DWORD \texorpdfstring{$\ast$}{*}p\+Error=nullptr)
+\begin{DoxyCompactList}\small\item\em Show a save file dialog. \end{DoxyCompactList}\item 
+BOOL \mbox{\hyperlink{class_windows_dialog_manager_a460633d191363211b6fa5b4d10e6c2f9}{Show\+Folder\+Dialog}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}title=L"{}\+Select Folder"{}, DWORD \texorpdfstring{$\ast$}{*}p\+Error=nullptr)
+\begin{DoxyCompactList}\small\item\em Show a single folder selection dialog. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{class_windows_dialog_manager_a630b259f21cd836ab27d9f5b36ed1816}{Show\+Multi\+Folder\+Dialog}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}title=L"{}\+Select Folder"{}, DWORD \texorpdfstring{$\ast$}{*}p\+Error=nullptr)
+\begin{DoxyCompactList}\small\item\em Show a multi-\/select folder dialog. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_windows_dialog_manager_ab66f172ff3aafc0fb3ce9a075d753a4f}\label{class_windows_dialog_manager_ab66f172ff3aafc0fb3ce9a075d753a4f} 
+static \mbox{\hyperlink{class_windows_dialog_manager}{Windows\+Dialog\+Manager}} \& {\bfseries Instance} ()
+\begin{DoxyCompactList}\small\item\em Get singleton instance. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Singleton class that shows Windows dialogs. 
+
+Internally used by public exported functions (show\+Xxx\+Dialog). Copy/assignment is disabled. 
+
+\label{doc-func-members}
+\Hypertarget{class_windows_dialog_manager_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_windows_dialog_manager_a0e3ce49e46533379f400e75801f7377a}\index{WindowsDialogManager@{WindowsDialogManager}!ShowAlertDialog@{ShowAlertDialog}}
+\index{ShowAlertDialog@{ShowAlertDialog}!WindowsDialogManager@{WindowsDialogManager}}
+\doxysubsubsection{\texorpdfstring{ShowAlertDialog()}{ShowAlertDialog()}}
+{\footnotesize\ttfamily \label{class_windows_dialog_manager_a0e3ce49e46533379f400e75801f7377a} 
+int Windows\+Dialog\+Manager\+::\+Show\+Alert\+Dialog (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{title}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{message}{, }\item[{UINT}]{buttons}{, }\item[{UINT}]{icon}{, }\item[{UINT}]{defbutton}{, }\item[{UINT}]{options}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{ = {\ttfamily nullptr}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Show an alert (message box). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em title} & Dialog title. \\
+\hline
+{\em message} & Dialog body text. \\
+\hline
+{\em buttons} & Button flags. \\
+\hline
+{\em icon} & Icon flags. \\
+\hline
+{\em defbutton} & Default button. \\
+\hline
+{\em options} & Additional options. \\
+\hline
+{\em p\+Error} & Optional out error code. 0 on success, Get\+Last\+Error() on failure. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Button ID clicked by the user. 0 on failure. 
+\end{DoxyReturn}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=325pt]{class_windows_dialog_manager_a0e3ce49e46533379f400e75801f7377a_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_windows_dialog_manager_a1ae99d69cc23e255ce8881eb58921bab}\index{WindowsDialogManager@{WindowsDialogManager}!ShowFileDialog@{ShowFileDialog}}
+\index{ShowFileDialog@{ShowFileDialog}!WindowsDialogManager@{WindowsDialogManager}}
+\doxysubsubsection{\texorpdfstring{ShowFileDialog()}{ShowFileDialog()}}
+{\footnotesize\ttfamily \label{class_windows_dialog_manager_a1ae99d69cc23e255ce8881eb58921bab} 
+BOOL Windows\+Dialog\+Manager\+::\+Show\+File\+Dialog (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{DWORD}]{buffer\+\_\+size}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{filter}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{ = {\ttfamily nullptr}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Show a single file open dialog. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em buffer} & Output buffer for the selected file path. \\
+\hline
+{\em buffer\+\_\+size} & Size of buffer in wchar\+\_\+t units. \\
+\hline
+{\em filter} & Win32 filter string. \\
+\hline
+{\em p\+Error} & Out error code. 0=success, -\/1=canceled, otherwise Comm\+Dlg\+Extended\+Error. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+TRUE on success or cancel, FALSE on failure. 
+\end{DoxyReturn}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=321pt]{class_windows_dialog_manager_a1ae99d69cc23e255ce8881eb58921bab_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_windows_dialog_manager_a460633d191363211b6fa5b4d10e6c2f9}\index{WindowsDialogManager@{WindowsDialogManager}!ShowFolderDialog@{ShowFolderDialog}}
+\index{ShowFolderDialog@{ShowFolderDialog}!WindowsDialogManager@{WindowsDialogManager}}
+\doxysubsubsection{\texorpdfstring{ShowFolderDialog()}{ShowFolderDialog()}}
+{\footnotesize\ttfamily \label{class_windows_dialog_manager_a460633d191363211b6fa5b4d10e6c2f9} 
+BOOL Windows\+Dialog\+Manager\+::\+Show\+Folder\+Dialog (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{DWORD}]{buffer\+\_\+size}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{title}{ = {\ttfamily L"{}Select~Folder"{}}, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{ = {\ttfamily nullptr}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Show a single folder selection dialog. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em buffer} & Output buffer for the selected folder path. \\
+\hline
+{\em buffer\+\_\+size} & Size of buffer in wchar\+\_\+t units. \\
+\hline
+{\em title} & Dialog title. \\
+\hline
+{\em p\+Error} & Out error code. 0=success, -\/1=canceled, otherwise HRESULT. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+TRUE on success or cancel, FALSE on failure. 
+\end{DoxyReturn}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=332pt]{class_windows_dialog_manager_a460633d191363211b6fa5b4d10e6c2f9_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_windows_dialog_manager_a4b59de48bd365b7be2b68660899f0baa}\index{WindowsDialogManager@{WindowsDialogManager}!ShowMultiFileDialog@{ShowMultiFileDialog}}
+\index{ShowMultiFileDialog@{ShowMultiFileDialog}!WindowsDialogManager@{WindowsDialogManager}}
+\doxysubsubsection{\texorpdfstring{ShowMultiFileDialog()}{ShowMultiFileDialog()}}
+{\footnotesize\ttfamily \label{class_windows_dialog_manager_a4b59de48bd365b7be2b68660899f0baa} 
+int Windows\+Dialog\+Manager\+::\+Show\+Multi\+File\+Dialog (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{DWORD}]{buffer\+\_\+size}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{filter}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{ = {\ttfamily nullptr}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Show a multi-\/select file open dialog. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em buffer} & Output buffer for the selection. \\
+\hline
+{\em buffer\+\_\+size} & Size of buffer in wchar\+\_\+t units. \\
+\hline
+{\em filter} & Win32 filter string. \\
+\hline
+{\em p\+Error} & Out error code. 0=success, -\/1=canceled, otherwise Comm\+Dlg\+Extended\+Error. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Number of selected items. 0=canceled, -\/1=error, otherwise \texorpdfstring{$>$}{>}=1. 
+\end{DoxyReturn}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=342pt]{class_windows_dialog_manager_a4b59de48bd365b7be2b68660899f0baa_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_windows_dialog_manager_a630b259f21cd836ab27d9f5b36ed1816}\index{WindowsDialogManager@{WindowsDialogManager}!ShowMultiFolderDialog@{ShowMultiFolderDialog}}
+\index{ShowMultiFolderDialog@{ShowMultiFolderDialog}!WindowsDialogManager@{WindowsDialogManager}}
+\doxysubsubsection{\texorpdfstring{ShowMultiFolderDialog()}{ShowMultiFolderDialog()}}
+{\footnotesize\ttfamily \label{class_windows_dialog_manager_a630b259f21cd836ab27d9f5b36ed1816} 
+int Windows\+Dialog\+Manager\+::\+Show\+Multi\+Folder\+Dialog (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{DWORD}]{buffer\+\_\+size}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{title}{ = {\ttfamily L"{}Select~Folder"{}}, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{ = {\ttfamily nullptr}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Show a multi-\/select folder dialog. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em buffer} & Output buffer for selected folder paths (\textbackslash{}0-\/separated, ends with \textbackslash{}0\textbackslash{}0). \\
+\hline
+{\em buffer\+\_\+size} & Size of buffer in wchar\+\_\+t units. \\
+\hline
+{\em title} & Dialog title. \\
+\hline
+{\em p\+Error} & Out error code. 0=success, -\/1=canceled, otherwise HRESULT. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Number of selected folders. 0=canceled, -\/1=error, otherwise \texorpdfstring{$>$}{>}=1. 
+\end{DoxyReturn}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{class_windows_dialog_manager_a630b259f21cd836ab27d9f5b36ed1816_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_windows_dialog_manager_a2e6cf1b93d363807a08ded9fb40495cb}\index{WindowsDialogManager@{WindowsDialogManager}!ShowSaveFileDialog@{ShowSaveFileDialog}}
+\index{ShowSaveFileDialog@{ShowSaveFileDialog}!WindowsDialogManager@{WindowsDialogManager}}
+\doxysubsubsection{\texorpdfstring{ShowSaveFileDialog()}{ShowSaveFileDialog()}}
+{\footnotesize\ttfamily \label{class_windows_dialog_manager_a2e6cf1b93d363807a08ded9fb40495cb} 
+BOOL Windows\+Dialog\+Manager\+::\+Show\+Save\+File\+Dialog (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{DWORD}]{buffer\+\_\+size}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{filter}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{def\+\_\+ext}{ = {\ttfamily nullptr}, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{ = {\ttfamily nullptr}}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Show a save file dialog. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em buffer} & Output buffer for the destination file path. \\
+\hline
+{\em buffer\+\_\+size} & Size of buffer in wchar\+\_\+t units. \\
+\hline
+{\em filter} & Win32 filter string. \\
+\hline
+{\em def\+\_\+ext} & Default extension. \\
+\hline
+{\em p\+Error} & Out error code. 0=success, -\/1=canceled, otherwise Comm\+Dlg\+Extended\+Error. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+TRUE on success or cancel, FALSE on failure. 
+\end{DoxyReturn}
+Here is the caller graph for this function\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=343pt]{class_windows_dialog_manager_a2e6cf1b93d363807a08ded9fb40495cb_icgraph}
+\end{center}
+\end{figure}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_windows_dialog_manager_8cpp}{Windows\+Dialog\+Manager.\+cpp}}\end{DoxyCompactItemize}

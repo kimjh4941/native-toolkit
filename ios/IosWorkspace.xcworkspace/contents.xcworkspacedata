@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:IosLibraryExample/IosLibraryExample.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:IosLibrary/IosLibrary.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:UnityIosPlugin/UnityIosPlugin.xcodeproj">
+   </FileRef>
+</Workspace>

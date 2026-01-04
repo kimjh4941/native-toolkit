@@ -1,0 +1,41 @@
+\doxysection{framework.\+h}
+\hypertarget{framework_8h_source}{}\label{framework_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#ifndef\ VC\_EXTRALEAN}}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#define\ VC\_EXTRALEAN\ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ Windows\ ヘッダーから使用されていない部分を除外します。}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}targetver.h"{}}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#define\ \_ATL\_CSTRING\_EXPLICIT\_CONSTRUCTORS\ \ \ \ \ \ }\textcolor{comment}{//\ 一部の\ CString\ コンストラクターは明示的です。}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <afxwin.h>}\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ のコアおよび標準コンポーネント}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <afxext.h>}\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ の拡張部分}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#ifndef\ \_AFX\_NO\_OLE\_SUPPORT}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <afxole.h>}\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ OLE\ クラス}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <afxodlgs.h>}\ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ OLE\ ダイアログ\ クラス}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <afxdisp.h>}\ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ オートメーション\ クラス}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ \_AFX\_NO\_OLE\_SUPPORT}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#ifndef\ \_AFX\_NO\_DB\_SUPPORT}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <afxdb.h>}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ ODBC\ データベース\ クラス}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ \_AFX\_NO\_DB\_SUPPORT}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#ifndef\ \_AFX\_NO\_DAO\_SUPPORT}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <afxdao.h>}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ DAO\ データベース\ クラス}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ \_AFX\_NO\_DAO\_SUPPORT}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#ifndef\ \_AFX\_NO\_OLE\_SUPPORT}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <afxdtctl.h>}\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ の\ Internet\ Explorer\ 4\ コモン\ コントロール\ サポート}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#ifndef\ \_AFX\_NO\_AFXCMN\_SUPPORT}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <afxcmn.h>}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ の\ Windows\ コモン\ コントロール\ サポート}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ \_AFX\_NO\_AFXCMN\_SUPPORT}}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <afxsock.h>}\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ のソケット拡張機能}}
+\DoxyCodeLine{00036\ }
+
+\end{DoxyCode}
