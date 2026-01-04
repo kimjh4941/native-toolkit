@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		E95AC4B22DAA5BD4007D4C61 /* IosLibrary.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E95AC4B02DAA5BC0007D4C61 /* IosLibrary.framework */; };
-		E95AC4B32DAA5BD4007D4C61 /* IosLibrary.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E95AC4B02DAA5BC0007D4C61 /* IosLibrary.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E9DD760F2DAA08A80069C660 /* UnityIosPlugin.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9DD76042DAA08A80069C660 /* UnityIosPlugin.framework */; };
 /* End PBXBuildFile section */
 
@@ -21,20 +20,6 @@
 			remoteInfo = UnityIosPlugin;
 		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		E95AC4B42DAA5BD4007D4C61 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				E95AC4B32DAA5BD4007D4C61 /* IosLibrary.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		E95AC4B02DAA5BC0007D4C61 /* IosLibrary.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = IosLibrary.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,7 +121,6 @@
 				E9DD76002DAA08A80069C660 /* Sources */,
 				E9DD76012DAA08A80069C660 /* Frameworks */,
 				E9DD76022DAA08A80069C660 /* Resources */,
-				E95AC4B42DAA5BD4007D4C61 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
