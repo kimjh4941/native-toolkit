@@ -68,9 +68,9 @@ public class IosDialogManager: NSObject {
     ///   - barButtonItem: Alternative popover anchor (takes precedence if provided).
     ///   - permittedArrowDirections: Popover arrow directions (iPad).
     ///   - animated: Whether the presentation is animated.
-    ///   - completion: `(resultButtonTitle, isSuccess, errorMessage)`.
-    ///     * `resultButtonTitle` is only non‑nil in the case of implicit default OK action being tapped (custom actions should manage their own handlers).
+    ///   - completion: `(isSuccess, errorMessage)`.
     ///     * `isSuccess=false` indicates a pre‑presentation failure (e.g. no root VC).
+    ///     * `errorMessage` provides human readable diagnostic when `isSuccess == false`.
     ///
     /// - Note: Custom `UIAlertAction` handlers run independently of `completion`. Use either approach—do not rely on `completion` to know which custom action was chosen.
     /// - Warning: Ensure you supply a `sourceView` / `barButtonItem` for action sheets on iPad to avoid runtime popover crashes.
@@ -85,13 +85,13 @@ public class IosDialogManager: NSObject {
         barButtonItem: UIBarButtonItem? = nil,
         permittedArrowDirections: UIPopoverArrowDirection = .any,
         animated: Bool = true,
-        completion: ((String?, Bool, String?) -> Void)? = nil
+        completion: ((Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), preferredStyle: \(preferredStyle), actions count: \(actions.count), textFields count: \(textFields?.count ?? 0), sourceView: \(sourceView?.description ?? "nil"), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), barButtonItem: \(barButtonItem?.description ?? "nil"), permittedArrowDirections: \(permittedArrowDirections), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
                 Log.e(self.TAG, "Failed to get root view controller")
-                completion?(nil, false, "Failed to get root view controller")
+                completion?(false, "Failed to get root view controller")
                 return
             }
             
@@ -134,7 +134,7 @@ public class IosDialogManager: NSObject {
             
             // Present the alert
             rootViewController.present(alert, animated: animated) {
-                completion?(nil, true, nil)
+                completion?(true, nil)
             }
         }
     }
@@ -167,22 +167,23 @@ public class IosDialogManager: NSObject {
     ///   - title: Alert title.
     ///   - message: Alert message.
     ///   - buttonText: Button label (default "OK").
-    ///   - completion: Receives `(buttonText, true, nil)` on tap, or `(nil, false, error)` on failure.
+    ///   - onButton: Called when button tapped with `(buttonText, true, nil)` or `(nil, false, error)` on failure.
+    ///   -   - completion: Called after presentation with `(isSuccess, errorMessage)`.
     public func showAlert(
         title: String? = nil,
         message: String? = nil,
         buttonText: String? = "OK",
-        completion: ((String?, Bool, String?) -> Void)? = nil
+        onButton: ((String?, Bool, String?) -> Void)? = nil,
+        completion: ((Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showAlert called with title: \(title ?? "nil"), message: \(message ?? "nil"), buttonText: \(buttonText ?? "nil"), completion: \(completion != nil ? "provided" : "nil")")
+        Log.d(TAG, "showAlert called with title: \(title ?? "nil"), message: \(message ?? "nil"), buttonText: \(buttonText ?? "nil"), onButton: \(onButton != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
         let okAction = UIAlertAction(title: buttonText, style: .default) { _ in
-            completion?(buttonText, true, nil)
+            onButton?(buttonText, true, nil)
         }
-        showDialog(title: title, message: message, actions: [okAction]) { result, isSuccess, errorMessage in
-            if !isSuccess {
-                completion?(nil, false, errorMessage)
-            }
-        }
+        showDialog(title: title,
+                   message: message,
+                   actions: [okAction],
+                   completion: completion)
     }
     
     /// Shows a confirm / cancel dialog.
@@ -193,26 +194,27 @@ public class IosDialogManager: NSObject {
     ///   - cancelTitle: Cancel button title (default "Cancel").
     ///   - onConfirm: Called when confirm tapped with `(confirmTitle, true, nil)` or `(nil, false, error)` on failure.
     ///   - onCancel: Called when cancel tapped with `(cancelTitle, true, nil)` or `(nil, false, error)` on failure.
+    ///   - completion: Called after presentation with `(isSuccess, errorMessage)`.
     public func showConfirmDialog(
         title: String? = nil,
         message: String? = nil,
         confirmTitle: String? = "OK",
         cancelTitle: String? = "Cancel",
         onConfirm: ((String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil
+        onCancel: ((String?, Bool, String?) -> Void)? = nil,
+        completion: ((Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showConfirmDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
+        Log.d(TAG, "showConfirmDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
         let confirmAction = UIAlertAction(title: confirmTitle, style: .default) { _ in
             onConfirm?(confirmTitle, true, nil)
         }
         let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
             onCancel?(cancelTitle, true, nil)
         }
-        showDialog(title: title, message: message, actions: [confirmAction, cancelAction]) { result, isSuccess, errorMessage in
-            if !isSuccess {
-                onConfirm?(nil, false, errorMessage)
-            }
-        }
+        showDialog(title: title,
+                   message: message,
+                   actions: [confirmAction, cancelAction],
+                   completion: completion)
     }
     
     /// Shows a destructive confirmation dialog (e.g., Delete action) plus cancel.
@@ -223,6 +225,7 @@ public class IosDialogManager: NSObject {
     ///   - cancelTitle: Cancel button title.
     ///   - onDestructive: Callback for destructive tap.
     ///   - onCancel: Callback for cancel tap.
+    ///   - completion: Called after presentation with `(isSuccess, errorMessage)`.
     /// - Note: Destructive button uses `.destructive` style (red on iOS).
     public func showDestructiveDialog(
         title: String? = nil,
@@ -230,7 +233,8 @@ public class IosDialogManager: NSObject {
         destructiveTitle: String? = "Delete",
         cancelTitle: String? = "Cancel",
         onDestructive: ((String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil
+        onCancel: ((String?, Bool, String?) -> Void)? = nil,
+        completion: ((Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showDestructiveDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), destructiveTitle: \(destructiveTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onDestructive: \(onDestructive != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
         let destructiveAction = UIAlertAction(title: destructiveTitle, style: .destructive) { _ in
@@ -239,42 +243,59 @@ public class IosDialogManager: NSObject {
         let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
             onCancel?(cancelTitle, true, nil)
         }
-        showDialog(title: title, message: message, actions: [destructiveAction, cancelAction]) { result, isSuccess, errorMessage in
-            if !isSuccess {
-                onDestructive?(nil, false, errorMessage)
-            }
-        }
+        showDialog(title: title,
+                   message: message,
+                   actions: [destructiveAction, cancelAction],
+                   completion: completion)
     }
     
     /// Presents an action sheet with custom actions.
     /// - Parameters:
     ///   - title: Optional title.
     ///   - message: Optional message.
-    ///   - actions: Array of preconfigured `UIAlertAction`s (should include a cancel action for iPhone UI consistency).
+    ///   - options: Array of option titles.
+    ///   - cancelTitle: Cancel button title (default "Cancel").
     ///   - sourceView: Mandatory for iPad to anchor the popover.
     ///   - sourceRect: Optional rect inside `sourceView`.
     ///   - animated: Animate presentation flag.
-    ///   - completion: Called after presentation (NOT per action selection) or with failure.
+    ///   - onAction: `(selectedOption, isSuccess, errorMessage)`.
+    ///   - completion: Called after presentation with `(isSuccess, errorMessage)`.
     public func showActionSheet(
         title: String? = nil,
         message: String? = nil,
-        actions: [UIAlertAction],
+        options: [String],
+        cancelTitle: String = "Cancel",
         sourceView: UIView,
         sourceRect: CGRect? = nil,
         animated: Bool = true,
-        completion: ((String?, Bool, String?) -> Void)? = nil
+        onAction: ((String?, Bool, String?) -> Void)? = nil,
+        completion: ((Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showActionSheet called with title: \(title ?? "nil"), message: \(message ?? "nil"), actions count: \(actions.count), sourceView: \(sourceView.description), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
-        showDialog(
-            title: title,
-            message: message,
-            preferredStyle: .actionSheet,
-            actions: actions,
-            sourceView: sourceView,
-            sourceRect: sourceRect,
-            animated: animated,
-            completion: completion
-        )
+        Log.d(TAG, "showActionSheet called with title: \(title ?? "nil"), message: \(message ?? "nil"), options: \(options), cancelTitle: \(cancelTitle), sourceView: \(sourceView.description), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
+        
+        var actions: [UIAlertAction] = []
+        for option in options {
+            let action = UIAlertAction(title: option, style: .default) { _ in
+                Log.d(self.TAG, "Option selected: \(option)")
+                onAction?(option, true, nil)
+            }
+            actions.append(action)
+        }
+        
+        let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
+            Log.d(self.TAG, "Cancel button pressed")
+            onAction?(cancelTitle, true, nil)
+        }
+        actions.append(cancelAction)
+        
+        showDialog(title: title,
+                   message: message,
+                   preferredStyle: .actionSheet,
+                   actions: actions,
+                   sourceView: sourceView,
+                   sourceRect: sourceRect,
+                   animated: animated,
+                   completion: completion)
     }
     
     /// Shows a single text input dialog with optional validation (disabling confirm while empty).
@@ -287,6 +308,7 @@ public class IosDialogManager: NSObject {
     ///   - enableConfirmWhenEmpty: If `false`, confirm button disabled until user enters non‑empty text.
     ///   - onConfirm: `(buttonTitle, inputText, true, nil)` or `(nil, nil, false, error)`.
     ///   - onCancel: `(cancelTitle, true, nil)` or `(nil, false, error)`.
+    ///   - completion: Called after presentation with `(isSuccess, errorMessage)`.
     /// - Note: Text change observation uses `UITextField.textDidChangeNotification` and is only installed if validation is needed.
     public func showTextInputDialog(
         title: String? = nil,
@@ -296,13 +318,14 @@ public class IosDialogManager: NSObject {
         cancelTitle: String? = "Cancel",
         enableConfirmWhenEmpty: Bool = true,
         onConfirm: ((String?, String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil
+        onCancel: ((String?, Bool, String?) -> Void)? = nil,
+        completion: ((Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showTextInputDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), placeholder: \(placeholder ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableConfirmWhenEmpty: \(enableConfirmWhenEmpty), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
+        Log.d(TAG, "showTextInputDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), placeholder: \(placeholder ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableConfirmWhenEmpty: \(enableConfirmWhenEmpty), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
                 Log.e(self.TAG, "Failed to get root view controller")
-                onConfirm?(nil, nil, false, "Failed to get root view controller")
+                completion?(false, "Failed to get root view controller")
                 return
             }
             
@@ -336,7 +359,9 @@ public class IosDialogManager: NSObject {
             alert.addAction(confirmAction)
             alert.addAction(cancelAction)
             
-            rootViewController.present(alert, animated: true)
+            rootViewController.present(alert, animated: true) {
+                completion?(true, nil)
+            }
         }
     }
 
@@ -351,6 +376,7 @@ public class IosDialogManager: NSObject {
     ///   - enableLoginWhenEmpty: If `false`, login button disabled until both fields are non‑empty.
     ///   - onLogin: `(loginTitle, username, password, true, nil)` or `(nil, nil, nil, false, error)`.
     ///   - onCancel: `(cancelTitle, true, nil)` or `(nil, false, error)`.
+    ///   - completion: Called after presentation with `(isSuccess, errorMessage)`.
     /// - Warning: Avoid logging raw passwords in production builds.
     public func showLoginDialog(
         title: String? = nil,
@@ -361,9 +387,10 @@ public class IosDialogManager: NSObject {
         cancelTitle: String? = "Cancel",
         enableLoginWhenEmpty: Bool = true,
         onLogin: ((String?, String?, String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil
+        onCancel: ((String?, Bool, String?) -> Void)? = nil,
+        completion: ((Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showLoginDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), usernamePlaceholder: \(usernamePlaceholder ?? "nil"), passwordPlaceholder: \(passwordPlaceholder ?? "nil"), loginTitle: \(loginTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableLoginWhenEmpty: \(enableLoginWhenEmpty), onLogin: \(onLogin != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
+        Log.d(TAG, "showLoginDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), usernamePlaceholder: \(usernamePlaceholder ?? "nil"), passwordPlaceholder: \(passwordPlaceholder ?? "nil"), loginTitle: \(loginTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableLoginWhenEmpty: \(enableLoginWhenEmpty), onLogin: \(onLogin != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
                 Log.e(self.TAG, "Failed to get root view controller")
@@ -423,7 +450,9 @@ public class IosDialogManager: NSObject {
             alert.addAction(loginAction)
             alert.addAction(cancelAction)
             
-            rootViewController.present(alert, animated: true)
+            rootViewController.present(alert, animated: true) {
+                completion?(true, nil)
+            }
         }
     }
 }

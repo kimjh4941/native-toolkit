@@ -172,8 +172,6 @@ Output:
 - `ios/Docs/IosLibrary`
 - `ios/Docs/UnityIosPlugin`
 
-> Note: `ios/generate_docc.sh` may contain machine-specific absolute paths. If so, adjust it to use repository-relative paths.
-
 ---
 
 ### macOS
@@ -194,8 +192,6 @@ Output:
 
 - `mac/Docs/MacLibrary`
 - `mac/Docs/UnityMacPlugin`
-
-> Note: `mac/generate_docc.sh` may contain machine-specific absolute paths. If so, adjust it to use repository-relative paths.
 
 ---
 
@@ -222,6 +218,22 @@ Output (as configured):
 - `windows/WindowsLibrary/docs`
 
 ---
+
+## Versioned documentation (docs/latest, docs/<version>)
+
+To publish documentation by version under `docs/<version>/` and keep `docs/latest/` updated:
+
+```bash
+./scripts/publish_docs.sh 1.1.0
+```
+
+If you already generated the docs and only want to copy/update:
+
+```bash
+./scripts/publish_docs.sh 1.1.0 --skip-build
+```
+
+Static hosting entry point (e.g., GitHub Pages): `docs/index.html`.
 
 ## Unity integration (minimal pointers)
 

@@ -68,11 +68,18 @@ public class UnityIosDialogManager: NSObject {
         IosDialogManager.shared.showAlert(
             title: title,
             message: message,
-            buttonText: buttonText
-        ) { result, isSuccess, errorMessage in
-            Log.d(self.TAG, "OK button pressed")
-            handler?(result, isSuccess, errorMessage)
-        }
+            buttonText: buttonText,
+            onButton: { result, isSuccess, errorMessage in
+                Log.d(self.TAG, "Alert button pressed")
+                handler?(result, isSuccess, errorMessage)
+            },
+            completion: { isSuccess, errorMessage in
+                if !isSuccess {
+                    Log.d(self.TAG, "Alert presentation failed")
+                    handler?(nil, false, errorMessage)
+                }
+            }
+        )
     }
     
     /// Shows a confirmation dialog with confirm & cancel actions.
@@ -103,6 +110,12 @@ public class UnityIosDialogManager: NSObject {
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Cancel button pressed")
                 handler?(result, isSuccess, errorMessage)
+            },
+            completion: { isSuccess, errorMessage in
+                if !isSuccess {
+                    Log.d(self.TAG, "Confirm dialog presentation failed")
+                    handler?(nil, false, errorMessage)
+                }
             }
         )
     }
@@ -135,6 +148,12 @@ public class UnityIosDialogManager: NSObject {
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Cancel button pressed")
                 handler?(result, isSuccess, errorMessage)
+            },
+            completion: { isSuccess, errorMessage in
+                if !isSuccess {
+                    Log.d(self.TAG, "Destructive dialog presentation failed")
+                    handler?(nil, false, errorMessage)
+                }
             }
         )
     }
@@ -155,34 +174,24 @@ public class UnityIosDialogManager: NSObject {
         handler: ((String?, Bool, String?) -> Void)?
     ) {
         Log.d(TAG, "showActionSheet called with title: \(title), message: \(message), options: \(options), cancelButtonText: \(cancelButtonText), handler: \(handler != nil ? "provided" : "nil")")
-
-        var actions: [UIAlertAction] = []
-
-        for option in options {
-            let action = UIAlertAction(title: option, style: .default) { _ in
-                Log.d(self.TAG, "Option selected: \(option)")
-                handler?(option, true, nil)
-            }
-            actions.append(action)
-        }
-
-        let cancelAction = UIAlertAction(title: cancelButtonText, style: .cancel) { _ in
-            Log.d(self.TAG, "Cancel button pressed")
-            handler?(cancelButtonText, true, nil)
-        }
-        actions.append(cancelAction)
-
         if let rootViewController = IosDialogManager.shared.getRootViewController() {
             IosDialogManager.shared.showActionSheet(
                 title: title,
                 message: message,
-                actions: actions,
-                sourceView: rootViewController.view
-            ) { result, isSuccess, errorMessage in
-                if !isSuccess {
-                    handler?(nil, false, errorMessage)
+                options: options,
+                cancelTitle: cancelButtonText,
+                sourceView: rootViewController.view,
+                onAction: { result, isSuccess, errorMessage in
+                    Log.d(self.TAG, "Action sheet option selected")
+                    handler?(result, isSuccess, errorMessage)
+                },
+                completion: { isSuccess, errorMessage in
+                    if !isSuccess {
+                        Log.d(self.TAG, "Action sheet presentation failed")
+                        handler?(nil, false, errorMessage)
+                    }
                 }
-            }
+            )
         } else {
             handler?(nil, false, "Failed to get root view controller")
         }
@@ -222,6 +231,12 @@ public class UnityIosDialogManager: NSObject {
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Text input cancelled")
                 handler?(result, nil, isSuccess, errorMessage)
+            },
+            completion: { isSuccess, errorMessage in
+                if !isSuccess {
+                    Log.d(self.TAG, "Text input dialog presentation failed")
+                    handler?(nil, nil, false, errorMessage)
+                }
             }
         )
     }
@@ -263,6 +278,12 @@ public class UnityIosDialogManager: NSObject {
             onCancel: { result, isSuccess, errorMessage in
                 Log.d(self.TAG, "Login cancelled")
                 handler?(result, nil, nil, isSuccess, errorMessage)
+            },
+            completion: { isSuccess, errorMessage in
+                if !isSuccess {
+                    Log.d(self.TAG, "Login dialog presentation failed")
+                    handler?(nil, nil, nil, false, errorMessage)
+                }
             }
         )
     }

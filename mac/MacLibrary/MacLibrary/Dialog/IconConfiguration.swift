@@ -30,6 +30,24 @@ public struct IconConfiguration {
         case multicolor
     }
     
+    public enum Weight: String {
+        case ultralight
+        case thin
+        case light
+        case regular
+        case medium
+        case semibold
+        case bold
+        case heavy
+        case black
+    }
+    
+    public enum Scale: String {
+        case small
+        case medium
+        case large
+    }
+    
     /// How the icon should be generated (SF Symbol, file path, etc.).
     public var type: IconType
     /// The raw value associated with the type (symbol name, filesystem path, asset name).
@@ -41,9 +59,9 @@ public struct IconConfiguration {
     /// Optional SF Symbol point size override.
     public var size: CGFloat?
     /// Optional SF Symbol weight string (e.g. "bold").
-    public var weight: String?
+    public var weight: Weight?
     /// Optional SF Symbol scale string (e.g. "large").
-    public var scale: String?
+    public var scale: Scale?
     
     public init(
         type: IconType = .systemSymbol,
@@ -51,8 +69,8 @@ public struct IconConfiguration {
         renderingMode: RenderingMode? = nil,
         colors: [String] = [],
         size: CGFloat? = nil,
-        weight: String? = nil,
-        scale: String? = nil
+        weight: Weight? = nil,
+        scale: Scale? = nil
     ) {
         self.type = type
         self.value = value
@@ -100,13 +118,23 @@ extension IconConfiguration {
         } else {
             size = nil
         }
-
+        
         // weight
-        let weight = json["weight"] as? String
-
+        let weight: Weight?
+        if let weightString = json["weight"] as? String {
+            weight = Weight(rawValue: weightString.lowercased())
+        } else {
+            weight = nil
+        }
+        
         // scale
-        let scale = json["scale"] as? String
-
+        let scale: Scale?
+        if let scaleString = json["scale"] as? String {
+            scale = Scale(rawValue: scaleString.lowercased())
+        } else {
+            scale = nil
+        }
+        
         return IconConfiguration(
             type: type,
             value: value,
@@ -116,6 +144,54 @@ extension IconConfiguration {
             weight: weight,
             scale: scale
         )
+    }
+    
+    /// Validates the icon configuration for correctness.
+    /// - Returns: `.success(())` when valid, otherwise `.failure(DialogError)`.
+    public func validateIconConfiguration() -> Result<Void, DialogError> {
+        switch type {
+        case .systemSymbol:
+            guard let value, !value.isEmpty else {
+                Log.e(TAG, "IconConfiguration of type systemSymbol requires a non-empty value.")
+                return .failure(.invalidConfiguration("IconConfiguration of type SystemSymbol requires a non-empty value."))
+            }
+            guard renderingMode != nil else {
+                Log.e(TAG, "IconConfiguration of type systemSymbol requires a rendering mode.")
+                return .failure(.invalidConfiguration("IconConfiguration of type SystemSymbol requires a rendering mode."))
+            }
+            if renderingMode == .palette {
+                let count = colors.count
+                guard count >= 1 else {
+                    Log.e(TAG, "IconConfiguration of type systemSymbol with palette mode requires at least one color.")
+                    return .failure(.invalidConfiguration("IconConfiguration of type SystemSymbol with Palette mode requires at least one color."))
+                }
+                guard count <= 3 else {
+                    Log.e(TAG, "IconConfiguration of type systemSymbol with palette mode requires at most three colors.")
+                    return .failure(.invalidConfiguration("IconConfiguration of type SystemSymbol with Palette mode requires at most three colors."))
+                }
+            }
+            return .success(())
+        case .filePath:
+            guard let value, !value.isEmpty else {
+                Log.e(TAG, "IconConfiguration of type filePath requires a non-empty value.")
+                return .failure(.invalidConfiguration("IconConfiguration of type FilePath requires a non-empty value."))
+            }
+            return .success(())
+        case .namedImage:
+            guard let value, !value.isEmpty else {
+                Log.e(TAG, "IconConfiguration of type namedImage requires a non-empty value.")
+                return .failure(.invalidConfiguration("IconConfiguration of type NamedImage requires a non-empty value."))
+            }
+            return .success(())
+        case .appIcon:
+            return .success(())
+        case .systemImage:
+            guard let value, !value.isEmpty else {
+                Log.e(TAG, "IconConfiguration of type systemImage requires a non-empty value.")
+                return .failure(.invalidConfiguration("IconConfiguration of type SystemImage requires a non-empty value."))
+            }
+            return .success(())
+        }
     }
     
     /// Creates an `NSImage` according to the configuration.
@@ -302,7 +378,7 @@ extension IconConfiguration {
     private func parseWeight() -> NSFont.Weight? {
         guard let weight = weight else { return nil }
         
-        switch weight.lowercased() {
+        switch weight.rawValue {
         case "ultralight":
             Log.d("IconConfiguration", "Parsed weight: ultralight")
             return .ultraLight
@@ -340,7 +416,7 @@ extension IconConfiguration {
     private func parseScale() -> NSImage.SymbolScale? {
         guard let scale = scale else { return nil }
         
-        switch scale.lowercased() {
+        switch scale.rawValue {
         case "small":
             Log.d("IconConfiguration", "Parsed scale: small")
             return .small

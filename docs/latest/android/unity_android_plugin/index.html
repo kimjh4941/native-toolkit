@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>unity_android_plugin</title>
+    <link href="images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="scripts/sourceset_dependencies.js" async="async"></script>
+<link href="styles/style.css" rel="Stylesheet">
+<link href="styles/main.css" rel="Stylesheet">
+<link href="styles/prism.css" rel="Stylesheet">
+<link href="styles/logo-styles.css" rel="Stylesheet">
+<link href="styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="ui-kit/ui-kit.min.js" defer="defer"></script>
+<script type="text/javascript" src="scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+            <a class="library-name--link" href="index.html">
+                    unity_android_plugin
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active=""
+                        data-filter=":unity_android_plugin:dokkaHtml/main">androidJvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":unity_android_plugin:dokkaHtml/main"
+                                       data-filter=":unity_android_plugin:dokkaHtml/main"/>
+                                <span class="checkbox--icon"></span>
+                                androidJvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                        data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    unity_android_plugin
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" id="content" pageIds="unity_android_plugin::////PointingToDeclaration//341128501">
+  <div class="breadcrumbs"></div>
+  <div class="cover ">
+    <h1 class="cover"><span>unity_</span><wbr></wbr><span>android_</span><wbr></wbr><span>plugin</span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><p class="paragraph">Unity-facing wrapper exposing a JNI-friendly singleton (<code class="lang-kotlin">UnityAndroidDialogManager</code>) to show versatile native dialogs implemented by <code class="lang-kotlin">android.library.dialog.AndroidDialogFragment</code>.</p><h2 class="">Features</h2><ul><li><p class="paragraph">Display multiple dialog patterns via <code class="lang-kotlin">AndroidDialogFragment</code> from Unity</p></li><li><p class="paragraph">Singleton access: <code class="lang-kotlin">UnityAndroidDialogManager.getInstance()</code></p></li><li><p class="paragraph">Per-variant listener registration (Java side)</p></li><ul><li><p class="paragraph"><code class="lang-kotlin">setDialogListener(...)</code>, <code class="lang-kotlin">setConfirmDialogListener(...)</code>, <code class="lang-kotlin">setSingleChoiceItemDialogListener(...)</code>, <code class="lang-kotlin">setMultiChoiceItemDialogListener(...)</code>, <code class="lang-kotlin">setTextInputDialogListener(...)</code>, <code class="lang-kotlin">setLoginDialogListener(...)</code></p></li></ul><li><p class="paragraph">Dialog methods (Java): <code class="lang-kotlin">showDialog</code>, <code class="lang-kotlin">showConfirmDialog</code>, <code class="lang-kotlin">showSingleChoiceItemDialog</code>, <code class="lang-kotlin">showMultiChoiceItemDialog</code>, <code class="lang-kotlin">showTextInputDialog</code>, <code class="lang-kotlin">showLoginDialog</code></p></li><li><p class="paragraph">Control: outside-touch / back-press cancellation flags, positive button gating for TextInput / Login</p></li><li><p class="paragraph">Result propagation: dedicated Java listener per variant → mapped to C# events</p></li><li><p class="paragraph">Unity C# high-level wrapper <code class="lang-kotlin">AndroidDialogManager</code>:</p></li><ul><li><p class="paragraph">Singleton (DontDestroyOnLoad)</p></li><li><p class="paragraph">Initializes Java singleton + registers all listeners in Awake</p></li><li><p class="paragraph">Dispatches Java callbacks onto Unity main thread via <code class="lang-kotlin">UnityMainThreadDispatcher</code></p></li><li><p class="paragraph">Public methods: <code class="lang-kotlin">ShowDialog</code>, <code class="lang-kotlin">ShowConfirmDialog</code>, <code class="lang-kotlin">ShowSingleChoiceItemDialog</code>, <code class="lang-kotlin">ShowMultiChoiceItemDialog</code>, <code class="lang-kotlin">ShowTextInputDialog</code>, <code class="lang-kotlin">ShowLoginDialog</code></p></li><li><p class="paragraph">Public events: <code class="lang-kotlin">DialogResult</code>, <code class="lang-kotlin">ConfirmDialogResult</code>, <code class="lang-kotlin">SingleChoiceItemDialogResult</code>, <code class="lang-kotlin">MultiChoiceItemDialogResult</code>, <code class="lang-kotlin">TextInputDialogResult</code>, <code class="lang-kotlin">LoginDialogResult</code></p></li></ul></ul><h2 class="">Callback Interfaces</h2><p class="paragraph">Exact interfaces (Kotlin side) provided by <code class="lang-kotlin">UnityAndroidDialogManager</code>:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">interface DialogListener {<br>    fun onDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface ConfirmDialogListener {<br>    fun onConfirmDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface SingleChoiceItemDialogListener {<br>    fun onSingleChoiceItemDialog(buttonText: String?, checkedItem: Int, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface MultiChoiceItemDialogListener {<br>    fun onMultiChoiceItemDialog(buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface TextInputDialogListener {<br>    fun onTextInputDialog(buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface LoginDialogListener {<br>    fun onLoginDialog(buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?)<br>}</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Notes:</p><ul><li><p class="paragraph"><code class="lang-kotlin">buttonText</code> typically &quot;OK&quot;, &quot;Cancel&quot;, &quot;Yes&quot;, &quot;No&quot;</p></li><li><p class="paragraph">Cancel (outside / back) routes through the fragment and invokes the same listener</p></li><li><p class="paragraph">Single-choice cancel: <code class="lang-kotlin">checkedItem = -1</code> (normalized to null in C#)</p></li><li><p class="paragraph">Multi-choice cancel: <code class="lang-kotlin">checkedItems</code> may be null</p></li><li><p class="paragraph">C# wrapper maps these to events; internal errors trigger events with <code class="lang-kotlin">isSuccessful = false</code> and an error message</p></li></ul><h2 class="">Usage (Kotlin, in-app or for reference)</h2><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">UnityAndroidDialogManager.setDialogListener(object : UnityAndroidDialogManager.DialogListener {<br>    override fun onDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {}<br>})<br>UnityAndroidDialogManager.setConfirmDialogListener(object : UnityAndroidDialogManager.ConfirmDialogListener {<br>    override fun onConfirmDialog(buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {}<br>})<br>UnityAndroidDialogManager.setSingleChoiceItemDialogListener(object : UnityAndroidDialogManager.SingleChoiceItemDialogListener {<br>    override fun onSingleChoiceItemDialog(buttonText: String?, checkedItem: Int, isSuccessful: Boolean, errorMessage: String?) {}<br>})<br>UnityAndroidDialogManager.setMultiChoiceItemDialogListener(object : UnityAndroidDialogManager.MultiChoiceItemDialogListener {<br>    override fun onMultiChoiceItemDialog(buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?) {}<br>})<br>UnityAndroidDialogManager.setTextInputDialogListener(object : UnityAndroidDialogManager.TextInputDialogListener {<br>    override fun onTextInputDialog(buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?) {}<br>})<br>UnityAndroidDialogManager.setLoginDialogListener(object : UnityAndroidDialogManager.LoginDialogListener {<br>    override fun onLoginDialog(buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?) {}<br>})<br><br>UnityAndroidDialogManager.showDialog(this, &quot;Notice&quot;, &quot;Operation completed&quot;)<br>UnityAndroidDialogManager.showConfirmDialog(this, &quot;Delete&quot;, &quot;Are you sure?&quot;)<br>UnityAndroidDialogManager.showSingleChoiceItemDialog(this, &quot;Color&quot;, arrayOf(&quot;Red&quot;,&quot;Green&quot;,&quot;Blue&quot;), 1)<br>UnityAndroidDialogManager.showMultiChoiceItemDialog(this, &quot;Tags&quot;, arrayOf(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;), booleanArrayOf(false,true,false))<br>UnityAndroidDialogManager.showTextInputDialog(this, &quot;Input&quot;, &quot;Enter name&quot;, &quot;Name&quot;, enablePositiveButtonWhenEmpty = false)<br>UnityAndroidDialogManager.showLoginDialog(this, &quot;Sign In&quot;, &quot;Credentials&quot;, &quot;User&quot;, &quot;Password&quot;, enablePositiveButtonWhenEmpty = false)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h2 class="">Unity C# Wrapper (Recommended High-level API)</h2><p class="paragraph">The C# <code class="lang-kotlin">AndroidDialogManager</code> hides JNI details and exposes events.</p><p class="paragraph">Event signatures (C#):</p><div class="sample-container"><pre><code class="block lang-csharp" theme="idea">public event Action&lt;string?, bool, string?&gt; DialogResult;<br>public event Action&lt;string?, bool, string?&gt; ConfirmDialogResult;<br>public event Action&lt;string?, int?, bool, string?&gt; SingleChoiceItemDialogResult;<br>public event Action&lt;string?, bool[]?, bool, string?&gt; MultiChoiceItemDialogResult;<br>public event Action&lt;string?, string?, bool, string?&gt; TextInputDialogResult;<br>public event Action&lt;string?, string?, string?, bool, string?&gt; LoginDialogResult;</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Example:</p><div class="sample-container"><pre><code class="block lang-csharp" theme="idea">var mgr = AndroidDialogManager.Instance;<br><br>mgr.DialogResult += (btn, ok, err) =&gt; Debug.Log($&quot;Simple =&gt; {btn}, ok={ok}, err={err}&quot;);<br>mgr.TextInputDialogResult += (btn, text, ok, err) =&gt; {<br>    if (btn == &quot;OK&quot; &amp;&amp; ok) Debug.Log($&quot;Input: {text}&quot;);<br>};<br><br>mgr.ShowDialog(&quot;Notice&quot;, &quot;Completed&quot;);<br>mgr.ShowConfirmDialog(&quot;Delete&quot;, &quot;Are you sure?&quot;);<br>mgr.ShowSingleChoiceItemDialog(&quot;Color&quot;, new []{&quot;Red&quot;,&quot;Green&quot;,&quot;Blue&quot;}, 1);<br>mgr.ShowMultiChoiceItemDialog(&quot;Tags&quot;, new []{&quot;A&quot;,&quot;B&quot;,&quot;C&quot;}, new []{false,true,false});<br>mgr.ShowTextInputDialog(&quot;Input&quot;, &quot;Enter name&quot;, &quot;Name&quot;, enablePositiveButtonWhenEmpty:false);<br>mgr.ShowLoginDialog(&quot;Sign In&quot;, &quot;Credentials&quot;, &quot;Username&quot;, &quot;Password&quot;);</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h2 class="">Direct JNI Bridge (Optional / Low-level)</h2><p class="paragraph">(Previous sample) Implement <code class="lang-kotlin">AndroidJavaProxy</code> directly and register <code class="lang-kotlin">setXxxListener</code> to build a custom dispatch layer. Use this only when the high-level C# wrapper is not suitable.</p><div class="sample-container"><pre><code class="block lang-csharp" theme="idea">public class DialogBridge : AndroidJavaProxy {<br>    AndroidJavaObject mgr;<br>    AndroidJavaObject activity;<br><br>    public DialogBridge()<br>      : base(&quot;android.unity.dialog.UnityAndroidDialogManager$DialogListener&quot;) {} // One proxy per listener type if needed<br><br>    void Init() {<br>        var unityPlayer = new AndroidJavaClass(&quot;com.unity3d.player.UnityPlayer&quot;);<br>        activity = unityPlayer.GetStatic&lt;AndroidJavaObject&gt;(&quot;currentActivity&quot;);<br>        var cls = new AndroidJavaClass(&quot;android.unity.dialog.UnityAndroidDialogManager&quot;);<br>        mgr = cls.CallStatic&lt;AndroidJavaObject&gt;(&quot;getInstance&quot;);<br><br>        // Register listeners (create additional proxy subclasses or dynamic proxies for each interface)<br>        mgr.Call(&quot;setDialogListener&quot;, this);<br>        // mgr.Call(&quot;setConfirmDialogListener&quot;, new ConfirmProxy(...));<br>        // etc.<br>    }<br><br>    // ---- Listener methods (match the DialogListener interface) ----<br>    public void onDialog(string buttonText, bool isSuccessful, string errorMessage) {<br>        UnityEngine.Debug.Log($&quot;Simple dialog: {buttonText} success={isSuccessful} err={errorMessage}&quot;);<br>    }<br><br>    // Example invocation methods<br>    public void ShowAll() {<br>        mgr.Call(&quot;showDialog&quot;, activity, &quot;Notice&quot;, &quot;Completed&quot;, &quot;OK&quot;, true, true);<br>        mgr.Call(&quot;showConfirmDialog&quot;, activity, &quot;Delete&quot;, &quot;Are you sure?&quot;, &quot;No&quot;, &quot;Yes&quot;, true, true);<br>        mgr.Call(&quot;showSingleChoiceItemDialog&quot;, activity, &quot;Color&quot;,<br>            new string[]{&quot;Red&quot;,&quot;Green&quot;,&quot;Blue&quot;}, 0, &quot;Cancel&quot;, &quot;OK&quot;, true, true);<br>        mgr.Call(&quot;showMultiChoiceItemDialog&quot;, activity, &quot;Tags&quot;,<br>            new string[]{&quot;A&quot;,&quot;B&quot;,&quot;C&quot;}, new bool[]{false,true,false}, &quot;Cancel&quot;, &quot;OK&quot;, true, true);<br>        mgr.Call(&quot;showTextInputDialog&quot;, activity, &quot;Input&quot;, &quot;Enter name&quot;, &quot;Name&quot;, &quot;Cancel&quot;, &quot;OK&quot;, false, true, true);<br>        mgr.Call(&quot;showLoginDialog&quot;, activity, &quot;Sign In&quot;, &quot;Credentials&quot;, &quot;User&quot;, &quot;Password&quot;,<br>            &quot;Cancel&quot;, &quot;OK&quot;, false, true, true);<br>    }<br>}</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">(For other listener interfaces create corresponding AndroidJavaProxy subclasses implementing the required method names.)</p><h2 class="">Threading</h2><p class="paragraph">All dialog construction and showing must occur on the Android UI thread. Additional wrapper guarantees:</p><ul><li><p class="paragraph"><code class="lang-kotlin">AndroidDialogManager</code> forces <code class="lang-kotlin">UnityMainThreadDispatcher</code> initialization in Awake</p></li><li><p class="paragraph">Java → C# callbacks are re-dispatched to the Unity main thread via an internal <code class="lang-kotlin">PostToMainThread</code></p></li><li><p class="paragraph">Callers of <code class="lang-kotlin">Show*</code> methods do not need manual <code class="lang-kotlin">runOnUiThread</code></p></li></ul><h2 class="">Mapping Overview</h2><table><thead><tr><th>Variant</th><th>Java Method</th><th>C# Wrapper Method</th><th>C# Event</th><th>Payload (success OK path)</th></tr></thead><tbody><tr><td>Simple</td><td>showDialog</td><td>ShowDialog</td><td>DialogResult</td><td>(buttonText)</td></tr><tr><td>Confirm</td><td>showConfirmDialog</td><td>ShowConfirmDialog</td><td>ConfirmDialogResult</td><td>(buttonText)</td></tr><tr><td>SingleChoice</td><td>showSingleChoiceItemDialog</td><td>ShowSingleChoiceItemDialog</td><td>SingleChoiceItemDialogResult</td><td>(buttonText, checkedItem)</td></tr><tr><td>MultiChoice</td><td>showMultiChoiceItemDialog</td><td>ShowMultiChoiceItemDialog</td><td>MultiChoiceItemDialogResult</td><td>(buttonText, bool[] states)</td></tr><tr><td>TextInput</td><td>showTextInputDialog</td><td>ShowTextInputDialog</td><td>TextInputDialogResult</td><td>(buttonText, inputText)</td></tr><tr><td>Login</td><td>showLoginDialog</td><td>ShowLoginDialog</td><td>LoginDialogResult</td><td>(buttonText, username, password)</td></tr></tbody></table><h2 class="">Error Handling</h2><ul><li><p class="paragraph">If the hosting context is not a <code class="lang-kotlin">FragmentActivity</code> the Java manager logs and invokes the listener with <code class="lang-kotlin">isSuccessful = false</code></p></li><li><p class="paragraph">Exceptions while constructing/showing are caught; listener receives <code class="lang-kotlin">isSuccessful = false</code> and an error message</p></li><li><p class="paragraph">C# wrapper: if <code class="lang-kotlin">pluginInstance</code> is null or a JNI call throws, the corresponding event fires immediately with <code class="lang-kotlin">isSuccessful = false</code> and <code class="lang-kotlin">errorMessage = &quot;Internal error: &lt;message&gt;&quot;</code></p></li></ul><h2 class="">Cancellation Behavior</h2><ul><li><p class="paragraph">Back press or (if enabled) outside tap triggers fragment <code class="lang-kotlin">onCancel</code>, forwarding a &quot;Cancel&quot; style callback</p></li><li><p class="paragraph">Single-choice: <code class="lang-kotlin">-1</code> index mapped to null in C#</p></li><li><p class="paragraph">Multi-choice: cancel may supply null array (distinguishable from a real selection)</p></li><li><p class="paragraph">Text / Login dialogs provide empty or null input on cancel</p></li></ul><h2 class="">Dokka</h2><p class="paragraph">Generate API docs:</p><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">./gradlew :unity_android_plugin:clean :unity_android_plugin:dokkaHtml</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Output directory: <code class="lang-kotlin">unity_android_plugin/build/dokka/html</code>.</p></div></div>
+  </div>
+  <h2 class="">Packages</h2>
+  <div class="table"><a data-name="698279906%2FPackages%2F341128501" anchor-label="android.unity.dialog" id="698279906%2FPackages%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="unity_android_plugin/android.unity.dialog/index.html">android.unity.dialog</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="698279906%2FPackages%2F341128501"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2026 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "example.android"
+    namespace = "com.jonghyunkim.android.nativetoolkit.example"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "example.android"
+        applicationId = "com.jonghyunkim.android.nativetoolkit.example"
         minSdk = 31
         targetSdk = 35
         versionCode = 1

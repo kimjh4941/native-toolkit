@@ -28,44 +28,44 @@ struct ContentView: View {
                     .multilineTextAlignment(.center)
                 
                 Button(action: {
+                    let title = "Hello from macOS"
+                    let message = "This is a native macOS dialog!"
+                    
+                    let buttons = [
+                        DialogButton(title: "OK", isDefault: true),
+                        DialogButton(title: "Cancel", keyEquivalent: "\u{1b}"),
+                        DialogButton(title: "Delete", keyEquivalent: "d")
+                    ]
+                    
                     let options = DialogOptions(
                         alertStyle: .informational,
-                        buttons: [
-                            DialogButton(title: "OK", isDefault: true),
-                            DialogButton(title: "Cancel", keyEquivalent: "\u{1b}"),
-                            DialogButton(title: "Delete", keyEquivalent: "d")
-                        ],
+                        buttons: buttons,
                         showsHelp: true,
                         showsSuppressionButton: true,
                         suppressionButtonTitle: "Don't show this again",
-                        icon: {
-                            switch IconConfiguration(
-                                type: .systemImage,
-                                value: "cautionName",
-                                renderingMode: .palette,
-                                colors: ["white", "systemblue", "systemblue"],
-                                size: 100,
-                                weight: "ultralight",
-                                scale: "large").createImage() {
-                            case .success(let image):
-                                return image
-                            case .failure(_):
-                                return nil
-                            }
-                        }()
+                        icon: IconConfiguration(
+                            type: .systemSymbol,
+                            value: "info.square.fill",
+                            renderingMode: .palette,
+                            colors: ["white", "systemblue", "systemblue"],
+                            size: 64,
+                            weight: .regular,
+                            scale: .medium
+                        ),
+                        accessoryView: nil
                     )
                     
                     MacDialogManager.shared.showDialog(
-                        title: "Hello",
-                        message: "This is an alert!",
+                        title: title,
+                        message: message,
                         options: options
                     ) { result in
                         switch result {
                         case .success(let dialogResult):
-                            Log.d(TAG, "ShowDialog success: \(dialogResult)")
+                            Log.d(TAG, "[ShowDialog] success: \(dialogResult)")
                             updateResult(isSuccess: true, result: "ShowDialog - result: \(dialogResult)")
                         case .failure(let error):
-                            Log.e(TAG, "ShowDialog error: \(error)")
+                            Log.e(TAG, "[ShowDialog] error: \(error)")
                             updateResult(isSuccess: false, result: "ShowDialog - error: \(error.localizedDescription)")
                         }
                     }
@@ -76,17 +76,17 @@ struct ContentView: View {
                 
                 Button(action: {
                     MacDialogManager.shared.showFileDialog(
-                        title: "Select File",
-                        message: "Please select a single file",
-                        allowedContentTypes: ["txt", "pdf", "png", "jpg"],
+                        title: "Select a file",
+                        message: "Please select a file to open.",
+                        allowedContentTypes: ["txt", "png"],
                         directoryURL: nil
                     ) { result in
                         switch result {
                         case .success(let openResult):
-                            Log.d(TAG, "ShowFileDialog success: \(openResult)")
+                            Log.d(TAG, "[ShowFileDialog] success: \(openResult)")
                             updateResult(isSuccess: true, result: "ShowFileDialog - result: \(openResult)")
                         case .failure(let error):
-                            Log.e(TAG, "ShowFileDialog error: \(error)")
+                            Log.e(TAG, "[ShowFileDialog] error: \(error)")
                             updateResult(isSuccess: false, result: "ShowFileDialog - error: \(error.localizedDescription)")
                         }
                     }
@@ -97,17 +97,17 @@ struct ContentView: View {
                 
                 Button(action: {
                     MacDialogManager.shared.showMultiFileDialog(
-                        title: "Select Files",
-                        message: "Please select multiple files",
-                        allowedContentTypes: ["txt", "pdf", "png", "jpg"],
+                        title: "Select files",
+                        message: "Please select files to open.",
+                        allowedContentTypes: ["txt", "png"],
                         directoryURL: nil
                     ) { result in
                         switch result {
                         case .success(let openResult):
-                            Log.d(TAG, "ShowMultiFileDialog success: \(openResult)")
+                            Log.d(TAG, "[ShowMultiFileDialog] success: \(openResult)")
                             updateResult(isSuccess: true, result: "ShowMultiFileDialog - result: \(openResult)")
                         case .failure(let error):
-                            Log.e(TAG, "ShowMultiFileDialog error: \(error)")
+                            Log.e(TAG, "[ShowMultiFileDialog] error: \(error)")
                             updateResult(isSuccess: false, result: "ShowMultiFileDialog - error: \(error.localizedDescription)")
                         }
                     }
@@ -118,16 +118,16 @@ struct ContentView: View {
                 
                 Button(action: {
                     MacDialogManager.shared.showFolderDialog(
-                        title: "Select Folder",
-                        message: "Please select a single folder",
+                        title: "Select a folder",
+                        message: "Please select a folder to open.",
                         directoryURL: nil
                     ) { result in
                         switch result {
                         case .success(let openResult):
-                            Log.d(TAG, "ShowFolderDialog success: \(openResult)")
+                            Log.d(TAG, "[ShowFolderDialog] success: \(openResult)")
                             updateResult(isSuccess: true, result: "ShowFolderDialog - result: \(openResult)")
                         case .failure(let error):
-                            Log.e(TAG, "ShowFolderDialog error: \(error)")
+                            Log.e(TAG, "[ShowFolderDialog] error: \(error)")
                             updateResult(isSuccess: false, result: "ShowFolderDialog - error: \(error.localizedDescription)")
                         }
                     }
@@ -138,16 +138,16 @@ struct ContentView: View {
                 
                 Button(action: {
                     MacDialogManager.shared.showMultiFolderDialog(
-                        title: "Select Folders",
-                        message: "Please select multiple folders",
+                        title: "Select folders",
+                        message: "Please select folders to open.",
                         directoryURL: nil
                     ) { result in
                         switch result {
                         case .success(let openResult):
-                            Log.d(TAG, "ShowMultiFolderDialog success: \(openResult)")
+                            Log.d(TAG, "[ShowMultiFolderDialog] success: \(openResult)")
                             updateResult(isSuccess: true, result: "ShowMultiFolderDialog - result: \(openResult)")
                         case .failure(let error):
-                            Log.e(TAG, "ShowMultiFolderDialog error: \(error)")
+                            Log.e(TAG, "[ShowMultiFolderDialog] error: \(error)")
                             updateResult(isSuccess: false, result: "ShowMultiFolderDialog - error: \(error.localizedDescription)")
                         }
                     }
@@ -159,17 +159,17 @@ struct ContentView: View {
                 Button(action: {
                     MacDialogManager.shared.showSaveFileDialog(
                         title: "Save File",
-                        message: "Please save the file",
-                        nameFieldStringValue: "sample.txt",
-                        allowedContentTypes: ["txt", "pdf", "png", "jpg"],
+                        message: "Choose a destination",
+                        nameFieldStringValue: "default",
+                        allowedContentTypes: ["txt"],
                         directoryURL: nil
                     ) { result in
                         switch result {
                         case .success(let saveResult):
-                            Log.d(TAG, "ShowSaveFileDialog success: \(saveResult)")
+                            Log.d(TAG, "[ShowSaveFileDialog] success: \(saveResult)")
                             updateResult(isSuccess: true, result: "ShowSaveFileDialog - result: \(saveResult)")
                         case .failure(let error):
-                            Log.e(TAG, "ShowSaveFileDialog error: \(error)")
+                            Log.e(TAG, "[ShowSaveFileDialog] error: \(error)")
                             updateResult(isSuccess: false, result: "ShowSaveFileDialog - error: \(error.localizedDescription)")
                         }
                     }
