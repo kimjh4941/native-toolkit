@@ -1,5 +1,0 @@
-<map id="WindowsDialogManager::ShowAlertDialog" name="WindowsDialogManager::ShowAlertDialog">
-<area shape="rect" id="Node000001" title="Show an alert (message box)." alt="" coords="170,5,332,48"/>
-<area shape="rect" id="Node000002" href="$_windows_dialog_manager_8cpp.html#a9ea40e789c2bfa9617cbf53a54acbdfa" title="Public API: Show alert dialog." alt="" coords="5,13,122,40"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="154,29,122,29,122,24,154,24"/>
-</map>
