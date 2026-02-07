@@ -119,6 +119,11 @@
 - Windows サンプル
   - Visual Studio 2022 をインストールしてください。
     - <a href="https://visualstudio.microsoft.com/ja/vs/" target="_blank" rel="noopener noreferrer">参考サイト</a>
+  - Visual Studio 2022 を起動します。
+  - 「プロジェクトやソリューションを開く(P)」 を選択します。
+  - 「native-toolkit\windows\WindowsLibraryExample\WindowsLibraryExample.sln」を選択して「開く」ボタンをクリックします。
+  - 「デバッグ(D)」→「デバッグ開始(S)」 を選択して、サンプルアプリをインストールします。
+    <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
 
 - Mac サンプル
   - Xcode をインストールしてください。
@@ -128,6 +133,22 @@
   - 「native-toolkit/mac/MacWorkspace.xcworkspace」を選択して「Open」ボタンをクリックします。
   - 「Run」ボタンをクリックして、サンプルアプリをインストールします。
     <img src="images/mac/Example_MacDialogManager.png" alt="Example_MacDialogManager" width="800" />
+
+## ライブラリ組み込み方法
+
+### Windows（NuGet ローカルパッケージ）
+
+1. NativeToolkit.1.0.0.nupkg を C:\packages にコピーします。
+2. Visual Studio 2022 を起動し、ツール → オプション → NuGet パッケージ マネージャー → パッケージ ソース を開きます。
+3. 右上の + を押し、次の内容を入力します。  
+   - 名前: LocalPackages  
+   - ソース: C:\packages  
+   入力後、更新 を押して保存します。
+4. 対象のソリューションを開きます。
+5. ソリューション エクスプローラーでプロジェクトを右クリックし、NuGet パッケージの管理 を選択します。
+6. 右上の パッケージ ソース を LocalPackages に切り替えます。
+7. 検索欄で NativeToolkit を検索し、インストール をクリックします。
+8. ライセンス確認が表示された場合は承諾し、インストール完了です。
 
 # API 使用方法
 
@@ -673,6 +694,170 @@ IosDialogManager.shared.showLoginDialog(
 ```
 
 <img src="images/ios/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
+
+## WindowsDialogManager
+
+### ShowDialog - 基本ダイアログ
+
+- ダイアログを表示します。
+
+```cpp
+// エラーコードを受け取る変数を宣言します。0 は成功、0 以外はエラーが発生しています。
+DWORD errorCode = 0;
+// result: 押下したボタンの識別子を取得します。エラーの場合、0 を返します。
+int result = showAlertDialog(
+    // タイトルを設定します。
+    L"Native Windows Dialog", 
+    // メッセージを設定します。
+    L"This is a native Windows dialog!",
+    // ボタンの種類を設定します。ここでは OK と キャンセル ボタンを表示します。
+    MB_OKCANCEL,
+    // アイコンを設定します。ここでは情報アイコンを表示します。
+    MB_ICONINFORMATION,
+    // デフォルトボタンを設定します。ここでは2番目のボタンをデフォルトにします。
+    MB_DEFBUTTON2,
+    // オプションを設定します。ここではアプリケーションモーダルを指定します。
+    MB_APPLMODAL,
+    // エラーコードを受け取る変数の参照を渡します。
+    &errorCode
+);
+```
+
+<img src="images/windows/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
+
+### ShowFileDialog - ファイル選択ダイアログ
+
+- ダイアログを表示します。
+
+```cpp
+// ファイルパスを格納するバッファを宣言します。
+wchar_t filePath[1024] = { 0 };
+// フィルタを設定します。各フィルタはヌル文字 (\0) で区切り、最後に二重のヌル文字で終了します。
+const wchar_t* filter = L"All Files\0*.*\0";
+// エラーコードを受け取る変数を宣言します。0 は成功、-1 はキャンセル、その他は CommDlgExtendedError を返します。
+DWORD errorCode = 0;
+// result: 成功した場合、TRUE を返します。キャンセルされた場合も TRUE を返します。失敗した場合、FALSE を返します。
+BOOL result = showFileDialog(
+    // ファイルパスを格納するバッファを渡します。
+    filePath,
+    // バッファサイズを渡します。
+    1024,
+    // フィルタを渡します。
+    filter,
+    // エラーコードを受け取る変数の参照を渡します。
+    &errorCode
+);
+```
+
+<img src="images/windows/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
+
+### ShowMultiFileDialog - 複数ファイル選択ダイアログ
+
+- ダイアログを表示します。
+
+```cpp
+// ファイルパスを格納するバッファを宣言します。
+wchar_t multiBuffer[4096] = { 0 };
+// フィルタを設定します。各フィルタはヌル文字 (\0) で区切り、最後に二重のヌル文字で終了します。
+const wchar_t* filter = L"All Files\0*.*\0";
+// エラーコードを受け取る変数を宣言します。0 は成功、-1 はキャンセル、その他は CommDlgExtendedError を返します。
+DWORD errorCode = 0;
+// result: 選択されたアイテム数を取得します。0 はキャンセル、-1 はエラー、その他は 1 以上の数値を返します。
+int result = showMultiFileDialog(
+    // ファイルパスを格納するバッファを渡します。
+    multiBuffer,
+    // バッファサイズを渡します。
+    4096,
+    // フィルタを渡します。
+    filter,
+    // エラーコードを受け取る変数の参照を渡します。
+    &errorCode
+);
+```
+
+<img src="images/windows/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
+
+### ShowFolderDialog - フォルダ選択ダイアログ
+
+- ダイアログを表示します。
+
+```cpp
+// フォルダパスを格納するバッファを宣言します。
+wchar_t folderPath[1024] = { 0 };
+// タイトルを設定します。
+const wchar_t* title = L"Select Folder";
+// エラーコードを受け取る変数を宣言します。0 は成功、-1 はキャンセル、その他は HRESULT を返します。
+DWORD errorCode = 0;
+// result: 成功した場合、TRUE を返します。キャンセルされた場合も TRUE を返します。失敗した場合、FALSE を返します。
+BOOL result = showFolderDialog(
+    // フォルダパスを格納するバッファを渡します。
+    folderPath,
+    // バッファサイズを渡します。
+    1024,
+    // タイトルを渡します。
+    title,
+    // エラーコードを受け取る変数の参照を渡します。
+    &errorCode
+);
+```
+
+<img src="images/windows/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
+
+### ShowMultiFolderDialog - 複数フォルダ選択ダイアログ
+
+- ダイアログを表示します。
+
+```cpp
+// フォルダパスを格納するバッファを宣言します。
+wchar_t multiFolderBuffer[4096] = { 0 };
+// タイトルを設定します。
+const wchar_t* title = L"Select Folders";
+// エラーコードを受け取る変数を宣言します。0 は成功、-1 はキャンセル、その他は HRESULT を返します。
+DWORD errorCode = 0;
+// result: 選択されたアイテム数を取得します。0 はキャンセル、-1 はエラー、その他は 1 以上の数値を返します。
+int result = showMultiFolderDialog(
+    // フォルダパスを格納するバッファを渡します。
+    multiFolderBuffer,
+    // バッファサイズを渡します。
+    4096,
+    // タイトルを渡します。
+    title,
+    // エラーコードを受け取る変数の参照を渡します。
+    &errorCode
+);
+```
+
+<img src="images/windows/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
+
+### ShowSaveFileDialog - ファイル保存ダイアログ
+
+- ダイアログを表示します。
+
+```cpp
+// ファイルパスを格納するバッファを宣言します。
+wchar_t savePath[1024] = { 0 };
+// フィルタを設定します。各フィルタはヌル文字 (\0) で区切り、最後に二重のヌル文字で終了します。
+const wchar_t* filter = L"All Files\0*.*\0";
+// デフォルトの拡張子を設定します。
+const wchar_t* def_ext = L"txt";
+// エラーコードを受け取る変数を宣言します。0 は成功、-1 はキャンセル、その他は CommDlgExtendedError を返します。
+DWORD errorCode = 0;
+// result: 成功した場合、TRUE を返します。キャンセルされた場合も TRUE を返します。失敗した場合、FALSE を返します。
+BOOL result = showSaveFileDialog(
+    // ファイルパスを格納するバッファを渡します。
+    savePath,
+    // バッファサイズを渡します。
+    1024,
+    // フィルタを渡します。
+    filter,
+    // デフォルトの拡張子を渡します。
+    def_ext,
+    // エラーコードを受け取る変数の参照を渡します。
+    &errorCode
+);
+```
+
+<img src="images/windows/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
 
 ## MacDialogManager
 

@@ -197,66 +197,6 @@ public:
     }
 
     /**
-     * @brief Show a save file dialog.
-     * @param buffer Output buffer for the destination file path.
-     * @param buffer_size Size of buffer in wchar_t units.
-     * @param filter Win32 filter string.
-     * @param def_ext Default extension.
-     * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
-     * @return TRUE on success or cancel, FALSE on failure.
-     */
-    BOOL ShowSaveFileDialog(
-        wchar_t* buffer,
-        DWORD buffer_size,
-        const wchar_t* filter,
-        const wchar_t* def_ext = nullptr,
-        DWORD* pError = nullptr  // Optional
-    )
-    {
-        DFLog(TAG, L"ShowSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError);
-
-        ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
-        OPENFILENAMEW ofn = { 0 };
-        ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = nullptr;
-        ofn.lpstrFile = buffer;
-        ofn.nMaxFile = buffer_size;
-        ofn.lpstrFilter = filter ? filter : L"All Files\0*.*\0";
-        ofn.nFilterIndex = 1;
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
-        ofn.lpstrDefExt = def_ext;
-
-        BOOL result = GetSaveFileNameW(&ofn);
-        if (!result) {
-            DWORD err = CommDlgExtendedError();
-            if (err != 0) {
-                // If an error occurred
-                if (pError) {
-                    *pError = err;
-                }
-                DFLog(TAG, L"ShowSaveFileDialog: GetSaveFileNameW failed. CommDlgExtendedError: 0x%08lx", err);
-            }
-            else
-            {
-                // If the user canceled
-                if (pError) {
-                    *pError = -1;
-                }
-                DLog(TAG, L"Save file selection was canceled.");
-                result = TRUE; // Return TRUE on cancel
-            }
-            buffer[0] = L'\0';
-        }
-        else {
-            // On success
-            if (pError) {
-                *pError = 0;
-            }
-        }
-        return result;
-    }
-
-    /**
      * @brief Show a single folder selection dialog.
      * @param buffer Output buffer for the selected folder path.
      * @param buffer_size Size of buffer in wchar_t units.
@@ -470,6 +410,66 @@ public:
         }
     }
 
+    /**
+     * @brief Show a save file dialog.
+     * @param buffer Output buffer for the destination file path.
+     * @param buffer_size Size of buffer in wchar_t units.
+     * @param filter Win32 filter string.
+     * @param def_ext Default extension.
+     * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
+     * @return TRUE on success or cancel, FALSE on failure.
+     */
+    BOOL ShowSaveFileDialog(
+        wchar_t* buffer,
+        DWORD buffer_size,
+        const wchar_t* filter,
+        const wchar_t* def_ext = nullptr,
+        DWORD* pError = nullptr  // Optional
+    )
+    {
+        DFLog(TAG, L"ShowSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError);
+
+        ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
+        OPENFILENAMEW ofn = { 0 };
+        ofn.lStructSize = sizeof(ofn);
+        ofn.hwndOwner = nullptr;
+        ofn.lpstrFile = buffer;
+        ofn.nMaxFile = buffer_size;
+        ofn.lpstrFilter = filter ? filter : L"All Files\0*.*\0";
+        ofn.nFilterIndex = 1;
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+        ofn.lpstrDefExt = def_ext;
+
+        BOOL result = GetSaveFileNameW(&ofn);
+        if (!result) {
+            DWORD err = CommDlgExtendedError();
+            if (err != 0) {
+                // If an error occurred
+                if (pError) {
+                    *pError = err;
+                }
+                DFLog(TAG, L"ShowSaveFileDialog: GetSaveFileNameW failed. CommDlgExtendedError: 0x%08lx", err);
+            }
+            else
+            {
+                // If the user canceled
+                if (pError) {
+                    *pError = -1;
+                }
+                DLog(TAG, L"Save file selection was canceled.");
+                result = TRUE; // Return TRUE on cancel
+            }
+            buffer[0] = L'\0';
+        }
+        else {
+            // On success
+            if (pError) {
+                *pError = 0;
+            }
+        }
+        return result;
+    }
+
 private:
     // Constructor is private
     WindowsDialogManager(CWnd* pParent = nullptr)
@@ -597,33 +597,6 @@ int showMultiFileDialog(
 }
 
 /**
- * @brief Public API: Show save file dialog.
- * @copydetails WindowsDialogManager::ShowSaveFileDialog
- */
-BOOL showSaveFileDialog(
-    wchar_t* buffer,
-    DWORD buffer_size,
-    const wchar_t* filter,
-    const wchar_t* def_ext,
-    DWORD* pError
-)
-{
-    DFLog(TAG, L"showSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError);
-
-    BOOL result = WindowsDialogManager::Instance().ShowSaveFileDialog(buffer, buffer_size, filter, def_ext, pError);
-    if (result)
-    {
-        DFLog(TAG, L"Save file: %ls", buffer);
-    }
-    else
-    {
-        DLog(TAG, L"Error occurred during save file selection.");
-    }
-    DFLog(TAG, L"ShowSaveFileDialog returned %d", result);
-    return result;
-}
-
-/**
  * @brief Public API: Show single folder selection dialog.
  * @copydetails WindowsDialogManager::ShowFolderDialog
  */
@@ -685,4 +658,31 @@ int showMultiFolderDialog(
         }
     }
     return count;
+}
+
+/**
+ * @brief Public API: Show save file dialog.
+ * @copydetails WindowsDialogManager::ShowSaveFileDialog
+ */
+BOOL showSaveFileDialog(
+    wchar_t* buffer,
+    DWORD buffer_size,
+    const wchar_t* filter,
+    const wchar_t* def_ext,
+    DWORD* pError
+)
+{
+    DFLog(TAG, L"showSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError);
+
+    BOOL result = WindowsDialogManager::Instance().ShowSaveFileDialog(buffer, buffer_size, filter, def_ext, pError);
+    if (result)
+    {
+        DFLog(TAG, L"Save file: %ls", buffer);
+    }
+    else
+    {
+        DLog(TAG, L"Error occurred during save file selection.");
+    }
+    DFLog(TAG, L"ShowSaveFileDialog returned %d", result);
+    return result;
 }

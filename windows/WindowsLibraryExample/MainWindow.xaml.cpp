@@ -20,6 +20,12 @@ static const wchar_t* TAG = L"MainWindow";
 
 namespace winrt::WindowsLibraryExample::implementation
 {
+    MainWindow::MainWindow()
+    {
+        InitializeComponent();
+        Title(L"Native Toolkit Example");
+    }
+
     int32_t MainWindow::MyProperty()
     {
         throw hresult_not_implemented();
@@ -33,9 +39,17 @@ namespace winrt::WindowsLibraryExample::implementation
     // Add event handlers here
     void MainWindow::ShowAlertDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
-        DLog(TAG, L"ShowAlertDialogButton_Click");
+        DLog(TAG, L"[ShowAlertDialogButton_Click]");
         DWORD errorCode = 0;
-        int result = showAlertDialog(L"Title", L"This is a test.", MB_OKCANCEL, MB_ICONINFORMATION, MB_DEFBUTTON2, MB_APPLMODAL, &errorCode);
+        int result = showAlertDialog(
+            L"Native Windows Dialog", 
+            L"This is a native Windows dialog!",
+            MB_OKCANCEL,
+            MB_ICONINFORMATION,
+            MB_DEFBUTTON2,
+            MB_APPLMODAL,
+            &errorCode
+        );
 
         std::wstring resultText;
         if (errorCode == 0) {
@@ -52,11 +66,16 @@ namespace winrt::WindowsLibraryExample::implementation
 
     void MainWindow::ShowFileDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
-        DLog(TAG, L"ShowFileDialogButton_Click");
-        wchar_t filePath[260] = { 0 };
+        DLog(TAG, L"[ShowFileDialogButton_Click]");
+        wchar_t filePath[1024] = { 0 };
         const wchar_t* filter = L"All Files\0*.*\0";
         DWORD errorCode = 0;
-        BOOL result = showFileDialog(filePath, 260, filter, &errorCode);
+        BOOL result = showFileDialog(
+            filePath,
+            1024,
+            filter,
+            &errorCode
+        );
 
         std::wstring resultText;
         if (errorCode == 0) {
@@ -76,11 +95,16 @@ namespace winrt::WindowsLibraryExample::implementation
 
     void MainWindow::ShowMultiFileDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
-        DLog(TAG, L"ShowMultiFileDialogButton_Click");
+        DLog(TAG, L"[ShowMultiFileDialogButton_Click]");
         wchar_t multiBuffer[4096] = { 0 };
         const wchar_t* filter = L"All Files\0*.*\0";
         DWORD errorCode = 0;
-        int result = showMultiFileDialog(multiBuffer, 4096, filter, &errorCode);
+        int result = showMultiFileDialog(
+            multiBuffer,
+            4096,
+            filter,
+            &errorCode
+        );
 
         std::wstring resultText;
         if (errorCode == 0) {
@@ -106,38 +130,18 @@ namespace winrt::WindowsLibraryExample::implementation
         SetResultText(resultText);
     }
 
-    void MainWindow::ShowSaveFileDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
-    {
-        DLog(TAG, L"ShowSaveFileDialogButton_Click");
-        wchar_t savePath[260] = { 0 };
-        const wchar_t* filter = L"All Files\0*.*\0";
-        const wchar_t* def_ext = L"txt";
-        DWORD errorCode = 0;
-        BOOL result = showSaveFileDialog(savePath, 260, filter, def_ext, &errorCode);
-
-        std::wstring resultText;
-        if (errorCode == 0) {
-            DFLog(TAG, L"showSaveFileDialog Result: %d", result);
-            resultText = L"✅\nShowSaveFileDialog Result: " + std::to_wstring(result) + L", savePath: " + std::wstring(savePath);
-        }
-        else if (errorCode == -1) {
-            resultText = L"ShowSaveFileDialog was canceled.";
-            DLog(TAG, resultText.c_str());
-        }
-        else {
-            DFLog(TAG, L"showSaveFileDialog Error Code: %lu", errorCode);
-            resultText = L"❌\nShowSaveFileDialog Error Code: " + std::to_wstring(errorCode);
-        }
-        SetResultText(resultText);
-    }
-
     void MainWindow::ShowFolderDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
-        DLog(TAG, L"ShowFolderDialogButton_Click");
-        wchar_t folderPath[260] = { 0 };
+        DLog(TAG, L"[ShowFolderDialogButton_Click]");
+        wchar_t folderPath[1024] = { 0 };
         const wchar_t* title = L"Select Folder";
         DWORD errorCode = 0;
-        BOOL result = showFolderDialog(folderPath, 260, title, &errorCode);
+        BOOL result = showFolderDialog(
+            folderPath,
+            1024,
+            title,
+            &errorCode
+        );
 
         std::wstring resultText;
         if (errorCode == 0) {
@@ -157,11 +161,16 @@ namespace winrt::WindowsLibraryExample::implementation
 
     void MainWindow::ShowMultiFolderDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
-        DLog(TAG, L"ShowMultiFolderDialogButton_Click");
+        DLog(TAG, L"[ShowMultiFolderDialogButton_Click]");
         wchar_t multiFolderBuffer[4096] = { 0 };
-        const wchar_t* title = L"Select Folder";
+        const wchar_t* title = L"Select Folders";
         DWORD errorCode = 0;
-        int result = showMultiFolderDialog(multiFolderBuffer, 4096, title, &errorCode);
+        int result = showMultiFolderDialog(
+            multiFolderBuffer,
+            4096,
+            title,
+            &errorCode
+        );
 
         std::wstring resultText;
         if (errorCode == 0) {
@@ -183,6 +192,37 @@ namespace winrt::WindowsLibraryExample::implementation
         else {
             DFLog(TAG, L"showMultiFolderDialog Error Code: %lu", errorCode);
             resultText = L"❌\nShowMultiFolderDialog Error Code: " + std::to_wstring(errorCode);
+        }
+        SetResultText(resultText);
+    }
+
+    void MainWindow::ShowSaveFileDialogButton_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        DLog(TAG, L"[ShowSaveFileDialogButton_Click]");
+        wchar_t savePath[1024] = { 0 };
+        const wchar_t* filter = L"All Files\0*.*\0";
+        const wchar_t* def_ext = L"txt";
+        DWORD errorCode = 0;
+        BOOL result = showSaveFileDialog(
+            savePath,
+            1024,
+            filter,
+            def_ext,
+            &errorCode
+        );
+
+        std::wstring resultText;
+        if (errorCode == 0) {
+            DFLog(TAG, L"showSaveFileDialog Result: %d", result);
+            resultText = L"✅\nShowSaveFileDialog Result: " + std::to_wstring(result) + L", savePath: " + std::wstring(savePath);
+        }
+        else if (errorCode == -1) {
+            resultText = L"ShowSaveFileDialog was canceled.";
+            DLog(TAG, resultText.c_str());
+        }
+        else {
+            DFLog(TAG, L"showSaveFileDialog Error Code: %lu", errorCode);
+            resultText = L"❌\nShowSaveFileDialog Error Code: " + std::to_wstring(errorCode);
         }
         SetResultText(resultText);
     }

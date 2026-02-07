@@ -1,0 +1,35 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- NuGet package root -->
+  <PropertyGroup>
+    <WindowsLibraryPackageRoot>$(MSBuildThisFileDirectory)..\..\..</WindowsLibraryPackageRoot>
+    <WindowsLibraryIncludeDir>$(WindowsLibraryPackageRoot)\build\native\include</WindowsLibraryIncludeDir>
+
+    <!-- Platform mapping: win-x64 / win-x86 -->
+    <WindowsLibraryRid Condition="'$(Platform)'=='x64'">win-x64</WindowsLibraryRid>
+    <WindowsLibraryRid Condition="'$(Platform)'=='Win32'">win-x86</WindowsLibraryRid>
+
+    <WindowsLibraryNativeDir>$(WindowsLibraryPackageRoot)\runtimes\$(WindowsLibraryRid)\native</WindowsLibraryNativeDir>
+    <WindowsLibraryDll>$(WindowsLibraryNativeDir)\NativeToolkit.dll</WindowsLibraryDll>
+    <WindowsLibraryLib>$(WindowsLibraryNativeDir)\NativeToolkit.lib</WindowsLibraryLib>
+  </PropertyGroup>
+
+  <!-- Auto-add include/lib (MSVC) -->
+  <ItemDefinitionGroup Condition="'$(PlatformToolset)' != ''">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(WindowsLibraryIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+
+    <Link>
+      <AdditionalDependencies>NativeToolkit.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(WindowsLibraryNativeDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Copy DLL to $(OutDir) -->
+  <Target Name="WindowsLibrary_CopyDllToOutput" AfterTargets="Build"
+          Condition="Exists('$(WindowsLibraryDll)') And '$(OutDir)' != ''">
+    <Copy SourceFiles="$(WindowsLibraryDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>
