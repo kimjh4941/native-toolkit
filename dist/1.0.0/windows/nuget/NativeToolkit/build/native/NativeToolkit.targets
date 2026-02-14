@@ -2,7 +2,7 @@
 
   <!-- NuGet package root -->
   <PropertyGroup>
-    <WindowsLibraryPackageRoot>$(MSBuildThisFileDirectory)..\..\..</WindowsLibraryPackageRoot>
+    <WindowsLibraryPackageRoot>$(MSBuildThisFileDirectory)..\..</WindowsLibraryPackageRoot>
     <WindowsLibraryIncludeDir>$(WindowsLibraryPackageRoot)\build\native\include</WindowsLibraryIncludeDir>
 
     <!-- Platform mapping: win-x64 / win-x86 -->
@@ -17,19 +17,32 @@
   <!-- Auto-add include/lib (MSVC) -->
   <ItemDefinitionGroup Condition="'$(PlatformToolset)' != ''">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(WindowsLibraryIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(WindowsLibraryIncludeDir)</AdditionalIncludeDirectories>
     </ClCompile>
 
     <Link>
       <AdditionalDependencies>NativeToolkit.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(WindowsLibraryNativeDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(WindowsLibraryNativeDir)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
+  
+  <!-- Copy DLL to TargetDir (fallback to OutDir or AppX when it exists) -->
+  <PropertyGroup>
+    <WindowsLibraryAppxDir>$(OutDir)AppX\</WindowsLibraryAppxDir>
 
-  <!-- Copy DLL to $(OutDir) -->
+    <!-- Default to TargetPath/TargetDir/OutDir -->
+    <WindowsLibraryOutputDir Condition="'$(TargetPath)' == '' And '$(TargetDir)' == '' And '$(OutDir)' != ''">$(OutDir)</WindowsLibraryOutputDir>
+    <WindowsLibraryOutputDir Condition="'$(TargetPath)' == '' And '$(TargetDir)' != ''">$(TargetDir)</WindowsLibraryOutputDir>
+    <WindowsLibraryOutputDir Condition="'$(TargetPath)' != ''">$([System.IO.Path]::GetDirectoryName('$(TargetPath)'))\</WindowsLibraryOutputDir>
+
+    <!-- Prefer AppX only when it exists -->
+    <WindowsLibraryOutputDir Condition="Exists('$(WindowsLibraryAppxDir)')">$(WindowsLibraryAppxDir)</WindowsLibraryOutputDir>
+  </PropertyGroup>
+
   <Target Name="WindowsLibrary_CopyDllToOutput" AfterTargets="Build"
-          Condition="Exists('$(WindowsLibraryDll)') And '$(OutDir)' != ''">
-    <Copy SourceFiles="$(WindowsLibraryDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+          Condition="Exists('$(WindowsLibraryDll)') And '$(WindowsLibraryOutputDir)' != ''">
+    <MakeDir Directories="$(WindowsLibraryOutputDir)" Condition="!Exists('$(WindowsLibraryOutputDir)')" />
+    <Copy SourceFiles="$(WindowsLibraryDll)" DestinationFolder="$(WindowsLibraryOutputDir)" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

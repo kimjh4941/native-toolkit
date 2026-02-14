@@ -11,6 +11,7 @@
 
   <files>
     <!-- MSBuild hooks (auto: include/lib + dll copy) -->
+    <file src="build\native\NativeToolkit.props" target="build\native\NativeToolkit.props" />
     <file src="build\native\NativeToolkit.targets" target="build\native\NativeToolkit.targets" />
 
     <!-- Public headers -->

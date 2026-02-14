@@ -138,15 +138,17 @@
 
 ### Windows（NuGet ローカルパッケージ）
 
-1. NativeToolkit.1.0.0.nupkg を C:\packages にコピーします。
+#### 対応プラットフォーム: Windows x64
+
+1. 「NativeToolkit.1.0.0.nupkg」を 「C:\packages」にコピーします。
 2. Visual Studio 2022 を起動し、ツール → オプション → NuGet パッケージ マネージャー → パッケージ ソース を開きます。
 3. 右上の + を押し、次の内容を入力します。  
    - 名前: LocalPackages  
    - ソース: C:\packages  
-   入力後、更新 を押して保存します。
+   入力後、「更新」ボタンを押して保存します。
 4. 対象のソリューションを開きます。
-5. ソリューション エクスプローラーでプロジェクトを右クリックし、NuGet パッケージの管理 を選択します。
-6. 右上の パッケージ ソース を LocalPackages に切り替えます。
+5. ソリューション エクスプローラーでプロジェクトを右クリックし、「NuGet パッケージの管理」を選択します。
+6. 右上の 「パッケージ ソース」を LocalPackages に切り替えます。
 7. 検索欄で NativeToolkit を検索し、インストール をクリックします。
 8. ライセンス確認が表示された場合は承諾し、インストール完了です。
 
@@ -702,6 +704,9 @@ IosDialogManager.shared.showLoginDialog(
 - ダイアログを表示します。
 
 ```cpp
+#include <common.h>
+#include <WindowsDialogManager.h>
+
 // エラーコードを受け取る変数を宣言します。0 は成功、0 以外はエラーが発生しています。
 DWORD errorCode = 0;
 // result: 押下したボタンの識別子を取得します。エラーの場合、0 を返します。
@@ -730,6 +735,9 @@ int result = showAlertDialog(
 - ダイアログを表示します。
 
 ```cpp
+#include <common.h>
+#include <WindowsDialogManager.h>
+
 // ファイルパスを格納するバッファを宣言します。
 wchar_t filePath[1024] = { 0 };
 // フィルタを設定します。各フィルタはヌル文字 (\0) で区切り、最後に二重のヌル文字で終了します。
@@ -756,6 +764,9 @@ BOOL result = showFileDialog(
 - ダイアログを表示します。
 
 ```cpp
+#include <common.h>
+#include <WindowsDialogManager.h>
+
 // ファイルパスを格納するバッファを宣言します。
 wchar_t multiBuffer[4096] = { 0 };
 // フィルタを設定します。各フィルタはヌル文字 (\0) で区切り、最後に二重のヌル文字で終了します。
@@ -782,6 +793,9 @@ int result = showMultiFileDialog(
 - ダイアログを表示します。
 
 ```cpp
+#include <common.h>
+#include <WindowsDialogManager.h>
+
 // フォルダパスを格納するバッファを宣言します。
 wchar_t folderPath[1024] = { 0 };
 // タイトルを設定します。
@@ -808,6 +822,9 @@ BOOL result = showFolderDialog(
 - ダイアログを表示します。
 
 ```cpp
+#include <common.h>
+#include <WindowsDialogManager.h>
+
 // フォルダパスを格納するバッファを宣言します。
 wchar_t multiFolderBuffer[4096] = { 0 };
 // タイトルを設定します。
@@ -834,6 +851,9 @@ int result = showMultiFolderDialog(
 - ダイアログを表示します。
 
 ```cpp
+#include <common.h>
+#include <WindowsDialogManager.h>
+
 // ファイルパスを格納するバッファを宣言します。
 wchar_t savePath[1024] = { 0 };
 // フィルタを設定します。各フィルタはヌル文字 (\0) で区切り、最後に二重のヌル文字で終了します。
