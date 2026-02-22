@@ -19,13 +19,24 @@ Other languages:
 ## Quick start
 
 1. If you use prebuilt artifacts, pick files from `dist/<version>/`.
-2. For integration steps, read `manual/<version>/index.md`.
+2. For integration steps, read `docs/<version>/manual/index.md`.
 3. For API references, use `docs/<version>/` (or `docs/latest/`).
 
 Example (`1.0.0`):
 
-- Manual: `manual/1.0.0/index.md`
+- Manual: `docs/1.0.0/manual/index.md`
 - Published docs: `docs/1.0.0/manual/`
+
+## Detailed Documentation
+
+- Latest (English): [docs/latest/manual/index.md](docs/latest/manual/index.md)
+- Latest (Korean): [docs/latest/manual/index.ko.md](docs/latest/manual/index.ko.md)
+- Latest (Japanese): [docs/latest/manual/index.ja.md](docs/latest/manual/index.ja.md)
+
+## Version
+
+- Current release: 1.0.0
+- Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
 ---
 

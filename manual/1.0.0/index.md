@@ -113,7 +113,9 @@ Markdown files in this directory are published as versioned documents under `doc
   - Select `native-toolkit/android/AndroidLibraryExample` and click "Open".
   - Connect an Android device.
   - Click "Run" to install the sample app.
-    <img src="images/android/Example_AndroidDialogFragment.png" alt="Example_AndroidDialogFragment" width="400" />
+    <p align="center">
+        <img src="images/android/Example_AndroidDialogFragment.png" alt="Example_AndroidDialogFragment" width="400" />
+    </p>
 
 - iOS sample
   - Install Xcode.
@@ -122,7 +124,9 @@ Markdown files in this directory are published as versioned documents under `doc
   - Select "Open Existing Project...".
   - Select `native-toolkit/ios/IosWorkspace.xcworkspace` and click "Open".
   - Click "Run" to install the sample app.
-    <img src="images/ios/Example_IosDialogManager.png" alt="Example_IosDialogManager" width="400" />
+    <p align="center">
+        <img src="images/ios/Example_IosDialogManager.png" alt="Example_IosDialogManager" width="400" />
+    </p>
 
 - Windows sample
   - Install Visual Studio 2022.
@@ -131,7 +135,9 @@ Markdown files in this directory are published as versioned documents under `doc
   - Select "Open a project or solution".
   - Select `native-toolkit\windows\WindowsLibraryExample\WindowsLibraryExample.sln` and click "Open".
   - Select "Debug" → "Start Debugging" to install the sample app.
-    <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
+    <p align="center">
+        <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
+    </p>
 
 - Mac sample
   - Install Xcode.
@@ -140,7 +146,9 @@ Markdown files in this directory are published as versioned documents under `doc
   - Select "Open Existing Project...".
   - Select `native-toolkit/mac/MacWorkspace.xcworkspace` and click "Open".
   - Click "Run" to install the sample app.
-    <img src="images/mac/Example_MacDialogManager.png" alt="Example_MacDialogManager" width="800" />
+    <p align="center">
+        <img src="images/mac/Example_MacDialogManager.png" alt="Example_MacDialogManager" width="800" />
+    </p>
 
 ## Library integration
 
@@ -278,7 +286,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowDialog.png" alt="Example_AndroidDialogFragment_ShowDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowDialog.png" alt="Example_AndroidDialogFragment_ShowDialog" width="400" />
+</p>
 
 ### Confirmation dialog
 
@@ -328,7 +338,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowConfirmDialog.png" alt="Example_AndroidDialogFragment_ShowConfirmDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowConfirmDialog.png" alt="Example_AndroidDialogFragment_ShowConfirmDialog" width="400" />
+</p>
 
 ### Single-choice dialog
 
@@ -383,7 +395,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowSingleChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowSingleChoiceItemDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowSingleChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowSingleChoiceItemDialog" width="400" />
+</p>
 
 ### Multi-choice dialog
 
@@ -438,7 +452,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowMultiChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowMultiChoiceItemDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowMultiChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowMultiChoiceItemDialog" width="400" />
+</p>
 
 ### Text input dialog
 
@@ -496,7 +512,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowTextInputDialog.png" alt="Example_AndroidDialogFragment_ShowTextInputDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowTextInputDialog.png" alt="Example_AndroidDialogFragment_ShowTextInputDialog" width="400" />
+</p>
 
 ### Login dialog
 
@@ -557,7 +575,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
+</p>
 
 ## iOSDialogManager
 
@@ -587,7 +607,9 @@ IosDialogManager.shared.showAlert(
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
+</p>
 
 ### ShowConfirmDialog - Confirmation dialog
 
@@ -623,7 +645,9 @@ IosDialogManager.shared.showConfirmDialog(
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
+</p>
 
 ### ShowDestructiveDialog - Destructive dialog
 
@@ -659,7 +683,9 @@ IosDialogManager.shared.showDestructiveDialog(
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
+</p>
 
 ### ShowActionSheet - Action sheet
 
@@ -696,7 +722,9 @@ if let rootVC = IosDialogManager.shared.getRootViewController() {
 }
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
+</p>
 
 ### ShowTextInputDialog - Text input dialog
 
@@ -738,7 +766,9 @@ IosDialogManager.shared.showTextInputDialog(
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
+</p>
 
 ### ShowLoginDialog - Login dialog
 
@@ -782,7 +812,9 @@ IosDialogManager.shared.showLoginDialog(
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
+</p>
 
 ## WindowsDialogManager
 
@@ -815,7 +847,9 @@ int result = showAlertDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
+</p>
 
 ### ShowFileDialog - File picker dialog
 
@@ -844,7 +878,9 @@ BOOL result = showFileDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
+</p>
 
 ### ShowMultiFileDialog - Multi-file picker dialog
 
@@ -873,7 +909,9 @@ int result = showMultiFileDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
+</p>
 
 ### ShowFolderDialog - Folder picker dialog
 
@@ -902,7 +940,9 @@ BOOL result = showFolderDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
+</p>
 
 ### ShowMultiFolderDialog - Multi-folder picker dialog
 
@@ -931,7 +971,9 @@ int result = showMultiFolderDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
+</p>
 
 ### ShowSaveFileDialog - Save file dialog
 
@@ -964,7 +1006,9 @@ BOOL result = showSaveFileDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
+</p>
 
 ## MacDialogManager
 
@@ -1092,7 +1136,9 @@ MacDialogManager.shared.showDialog(
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowDialog.png" alt="Example_MacDialogManager_ShowDialog" width="400" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowDialog.png" alt="Example_MacDialogManager_ShowDialog" width="400" />
+</p>
 
 ### ShowFileDialog - File picker dialog
 
@@ -1126,7 +1172,9 @@ MacDialogManager.shared.showFileDialog(
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowFileDialog.png" alt="Example_MacDialogManager_ShowFileDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowFileDialog.png" alt="Example_MacDialogManager_ShowFileDialog" width="1000" />
+</p>
 
 ### ShowMultiFileDialog - Multi-file picker dialog
 
@@ -1160,7 +1208,9 @@ MacDialogManager.shared.showMultiFileDialog(
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowMultiFileDialog.png" alt="Example_MacDialogManager_ShowMultiFileDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowMultiFileDialog.png" alt="Example_MacDialogManager_ShowMultiFileDialog" width="1000" />
+</p>
 
 ### ShowFolderDialog - Folder picker dialog
 
@@ -1191,7 +1241,9 @@ MacDialogManager.shared.showFolderDialog(
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowFolderDialog.png" alt="Example_MacDialogManager_ShowFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowFolderDialog.png" alt="Example_MacDialogManager_ShowFolderDialog" width="1000" />
+</p>
 
 ### ShowMultiFolderDialog - Multi-folder picker dialog
 
@@ -1223,7 +1275,9 @@ MacDialogManager.shared.showMultiFolderDialog(
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowMultiFolderDialog.png" alt="Example_MacDialogManager_ShowMultiFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowMultiFolderDialog.png" alt="Example_MacDialogManager_ShowMultiFolderDialog" width="1000" />
+</p>
 
 ### ShowSaveFileDialog - Save file dialog
 
@@ -1259,4 +1313,6 @@ MacDialogManager.shared.showSaveFileDialog(
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowSaveFileDialog.png" alt="Example_MacDialogManager_ShowSaveFileDialog" width="600" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowSaveFileDialog.png" alt="Example_MacDialogManager_ShowSaveFileDialog" width="600" />
+</p>

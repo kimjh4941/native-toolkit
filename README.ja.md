@@ -19,13 +19,24 @@
 ## はじめに（最短）
 
 1. 配布物を使う場合は、`dist/<version>/` から対象 OS の成果物を取得。
-2. 組み込み手順は `manual/<version>/index.ja.md` を参照。
+2. 組み込み手順は `docs/<version>/manual/index.ja.md` を参照。
 3. API 仕様は `docs/<version>/`（または `docs/latest/`）の各プラットフォーム資料を参照。
 
 例（`1.0.0`）:
 
-- マニュアル: `manual/1.0.0/index.ja.md`
+- マニュアル: `docs/1.0.0/manual/index.ja.md`
 - 公開ドキュメント: `docs/1.0.0/manual/`
+
+## 詳細ドキュメント
+
+- 最新版（日本語）: [docs/latest/manual/index.ja.md](docs/latest/manual/index.ja.md)
+- 最新版（English）: [docs/latest/manual/index.md](docs/latest/manual/index.md)
+- 最新版（한국어）: [docs/latest/manual/index.ko.md](docs/latest/manual/index.ko.md)
+
+## バージョン
+
+- 現在のリリース: 1.0.0
+- 最新公開ドキュメントのバージョン: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
 ---
 

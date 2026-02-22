@@ -19,13 +19,24 @@
 ## 빠른 시작
 
 1. 사전 빌드 산출물을 사용할 경우 `dist/<version>/` 에서 OS별 파일을 가져옵니다.
-2. 연동 절차는 `manual/<version>/index.ko.md` 를 확인합니다.
+2. 연동 절차는 `docs/<version>/manual/index.ko.md` 를 확인합니다.
 3. API 참조는 `docs/<version>/` 또는 `docs/latest/` 를 사용합니다.
 
 예시 (`1.0.0`):
 
-- 매뉴얼: `manual/1.0.0/index.ko.md`
+- 매뉴얼: `docs/1.0.0/manual/index.ko.md`
 - 배포 문서: `docs/1.0.0/manual/`
+
+## 상세 문서
+
+- 최신(한국어): [docs/latest/manual/index.ko.md](docs/latest/manual/index.ko.md)
+- 최신(English): [docs/latest/manual/index.md](docs/latest/manual/index.md)
+- 최신(日本語): [docs/latest/manual/index.ja.md](docs/latest/manual/index.ja.md)
+
+## 버전
+
+- 현재 릴리스: 1.0.0
+- 최신 공개 문서 버전: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
 ---
 
