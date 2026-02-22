@@ -113,7 +113,9 @@
   - `native-toolkit/android/AndroidLibraryExample`를 선택하고 "Open" 버튼을 클릭합니다.
   - Android 기기를 연결합니다.
   - "Run" 버튼을 클릭해 샘플 앱을 설치합니다.
-    <img src="images/android/Example_AndroidDialogFragment.png" alt="Example_AndroidDialogFragment" width="400" />
+    <p align="center">
+        <img src="images/android/Example_AndroidDialogFragment.png" alt="Example_AndroidDialogFragment" width="400" />
+    </p>
 
 - iOS 샘플
   - Xcode를 설치합니다.
@@ -122,7 +124,9 @@
   - "Open Existing Project..."를 선택합니다.
   - `native-toolkit/ios/IosWorkspace.xcworkspace`를 선택하고 "Open" 버튼을 클릭합니다.
   - "Run" 버튼을 클릭해 샘플 앱을 설치합니다.
-    <img src="images/ios/Example_IosDialogManager.png" alt="Example_IosDialogManager" width="400" />
+    <p align="center">
+        <img src="images/ios/Example_IosDialogManager.png" alt="Example_IosDialogManager" width="400" />
+    </p>
 
 - Windows 샘플
   - Visual Studio 2022를 설치합니다.
@@ -131,7 +135,9 @@
   - "Open a project or solution"을 선택합니다.
   - `native-toolkit\windows\WindowsLibraryExample\WindowsLibraryExample.sln`을 선택하고 "Open" 버튼을 클릭합니다.
   - "Debug" → "Start Debugging"을 선택해 샘플 앱을 설치합니다.
-    <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
+    <p align="center">
+        <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
+    </p>
 
 - Mac 샘플
   - Xcode를 설치합니다.
@@ -140,7 +146,9 @@
   - "Open Existing Project..."를 선택합니다.
   - `native-toolkit/mac/MacWorkspace.xcworkspace`를 선택하고 "Open" 버튼을 클릭합니다.
   - "Run" 버튼을 클릭해 샘플 앱을 설치합니다.
-    <img src="images/mac/Example_MacDialogManager.png" alt="Example_MacDialogManager" width="800" />
+    <p align="center">
+        <img src="images/mac/Example_MacDialogManager.png" alt="Example_MacDialogManager" width="800" />
+    </p>
 
 ## 라이브러리 통합 방법
 
@@ -260,10 +268,10 @@ AndroidDialogFragment.newInstance(
 ).apply {
     // 다이얼로그 결과를 수신할 리스너를 설정합니다.
     setDialogListener(object : AndroidDialogFragment.DialogListener {
-        // 다이얼로그 인스턴스 (dialog)
-        // 눌린 버튼 텍스트(buttonText)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccessful)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 null을 반환합니다.
+        // dialog: 다이얼로그 인스턴스
+        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
+        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
         override fun onDialog(
             dialog: AndroidDialogFragment,
             buttonText: String?,
@@ -278,7 +286,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowDialog.png" alt="Example_AndroidDialogFragment_ShowDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowDialog.png" alt="Example_AndroidDialogFragment_ShowDialog" width="400" />
+</p>
 
 ### 확인 다이얼로그
 
@@ -310,10 +320,10 @@ AndroidDialogFragment.newInstance(
 ).apply {
     // 확인 다이얼로그 결과를 수신할 리스너를 설정합니다.
     setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {
-        // 다이얼로그 인스턴스 (dialog)
-        // 눌린 버튼 텍스트(buttonText)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccessful)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 null을 반환합니다.
+        // dialog: 다이얼로그 인스턴스
+        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
+        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
         override fun onConfirmDialog(
             dialog: AndroidDialogFragment,
             buttonText: String?,
@@ -328,7 +338,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowConfirmDialog.png" alt="Example_AndroidDialogFragment_ShowConfirmDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowConfirmDialog.png" alt="Example_AndroidDialogFragment_ShowConfirmDialog" width="400" />
+</p>
 
 ### 단일 선택 다이얼로그
 
@@ -363,11 +375,11 @@ AndroidDialogFragment.newInstance(
 ).apply {
     // 단일 선택 다이얼로그 결과를 수신할 리스너를 설정합니다.
     setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
-        // 다이얼로그 인스턴스 (dialog)
-        // 눌린 버튼 텍스트(buttonText)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 선택된 항목 인덱스(checkedItem)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccessful)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 null을 반환합니다.
+        // dialog: 다이얼로그 인스턴스
+        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
+        // checkedItem: 선택된 항목 인덱스를 가져옵니다. 오류 시 null을 반환합니다.
+        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
         override fun onSingleChoiceItemDialog(
             dialog: AndroidDialogFragment,
             buttonText: String?,
@@ -383,7 +395,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowSingleChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowSingleChoiceItemDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowSingleChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowSingleChoiceItemDialog" width="400" />
+</p>
 
 ### 다중 선택 다이얼로그
 
@@ -418,11 +432,11 @@ AndroidDialogFragment.newInstance(
 ).apply {
     // 다중 선택 다이얼로그 결과를 수신할 리스너를 설정합니다.
     setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {
-        // 다이얼로그 인스턴스 (dialog)
-        // 눌린 버튼 텍스트(buttonText)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 선택 항목 체크 상태(checkedItems)를 가져옵니다. 선택은 true, 미선택은 false이며 오류 시 null을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccessful)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 null을 반환합니다.
+        // dialog: 다이얼로그 인스턴스
+        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
+        // checkedItems: 선택 항목 체크 상태를 가져옵니다. 선택은 true, 미선택은 false이며 오류 시 null을 반환합니다.
+        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
         override fun onMultiChoiceItemDialog(
             dialog: AndroidDialogFragment,
             buttonText: String?,
@@ -438,7 +452,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowMultiChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowMultiChoiceItemDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowMultiChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowMultiChoiceItemDialog" width="400" />
+</p>
 
 ### 입력 다이얼로그
 
@@ -476,11 +492,11 @@ AndroidDialogFragment.newInstance(
 ).apply {
     // 입력 다이얼로그 결과를 수신할 리스너를 설정합니다.
     setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {
-        // 다이얼로그 인스턴스 (dialog)
-        // 눌린 버튼 텍스트(buttonText)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 입력 텍스트(inputText)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccessful)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 null을 반환합니다.
+        // dialog: 다이얼로그 인스턴스
+        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
+        // inputText: 입력 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
+        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
         override fun onTextInputDialog(
             dialog: AndroidDialogFragment,
             buttonText: String?,
@@ -496,7 +512,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowTextInputDialog.png" alt="Example_AndroidDialogFragment_ShowTextInputDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowTextInputDialog.png" alt="Example_AndroidDialogFragment_ShowTextInputDialog" width="400" />
+</p>
 
 ### 로그인 다이얼로그
 
@@ -537,12 +555,12 @@ AndroidDialogFragment.newInstance(
 ).apply {
     // 로그인 다이얼로그 결과를 수신할 리스너를 설정합니다.
     setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
-        // 다이얼로그 인스턴스 (dialog)
-        // 눌린 버튼 텍스트(buttonText)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 입력 사용자명(username)을 가져옵니다. 오류 시 null을 반환합니다.
-        // 입력 비밀번호(password)를 가져옵니다. 오류 시 null을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccessful)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 null을 반환합니다.
+        // dialog: 다이얼로그 인스턴스
+        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
+        // username: 입력한 사용자명을 가져옵니다. 오류 시 null을 반환합니다.
+        // password: 입력한 비밀번호를 가져옵니다. 오류 시 null을 반환합니다.
+        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
         override fun onLoginDialog(
             dialog: AndroidDialogFragment,
             buttonText: String?,
@@ -557,7 +575,9 @@ AndroidDialogFragment.newInstance(
 }
 ```
 
-<img src="images/android/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
+<p align="center">
+    <img src="images/android/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
+</p>
 
 ## iOSDialogManager
 
@@ -575,19 +595,21 @@ IosDialogManager.shared.showAlert(
     buttonText: "OK",
     // 버튼 탭 이벤트를 설정합니다.
     onButton: { buttonText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(buttonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 다이얼로그 완료 이벤트를 설정합니다.
     completion: { isSuccess, errorMessage in
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     }
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
+</p>
 
 ### ShowConfirmDialog - 확인 다이얼로그
 
@@ -605,25 +627,27 @@ IosDialogManager.shared.showConfirmDialog(
     cancelTitle: "No",
     // 확인 버튼 탭 이벤트를 설정합니다.
     onConfirm: { confirmButtonText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(confirmButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // confirmButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 취소 버튼 탭 이벤트를 설정합니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(cancelButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 다이얼로그 완료 이벤트를 설정합니다.
     completion: { isSuccess, errorMessage in
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     }
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
+</p>
 
 ### ShowDestructiveDialog - 파괴적 다이얼로그
 
@@ -641,25 +665,27 @@ IosDialogManager.shared.showDestructiveDialog(
     cancelTitle: "Cancel",
     // 파괴적 작업 버튼 탭 이벤트를 설정합니다.
     onDestructive: { destructiveButtonText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(destructiveButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // destructiveButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 취소 버튼 탭 이벤트를 설정합니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(cancelButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 다이얼로그 완료 이벤트를 설정합니다.
     completion: { isSuccess, errorMessage in
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     }
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
+</p>
 
 ### ShowActionSheet - 액션 시트
 
@@ -684,19 +710,21 @@ if let rootVC = IosDialogManager.shared.getRootViewController() {
         animated: true,
         // 액션 버튼 탭 이벤트를 설정합니다.
         onAction: { action, isSuccess, errorMessage in
-            // 선택된 항목(action)을 가져옵니다. 오류 시 nil을 반환합니다.
-            // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-            // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+            // action: 선택된 항목을 가져옵니다. 오류 시 nil을 반환합니다.
+            // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+            // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
         },
         completion: { isSuccess, errorMessage in
-            // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-            // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+            // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+            // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
         }
     )
 }
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
+</p>
 
 ### ShowTextInputDialog - 입력 다이얼로그
 
@@ -718,27 +746,29 @@ IosDialogManager.shared.showTextInputDialog(
     enableConfirmWhenEmpty: false,
     // 확인 버튼 탭 이벤트를 설정합니다.
     onConfirm: { confirmButtonText, inputText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(confirmButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 입력 텍스트(inputText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // confirmButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // inputText: 입력 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 취소 버튼 탭 이벤트를 설정합니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(cancelButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 입력 텍스트(inputText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // inputText: 입력 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 다이얼로그 완료 이벤트를 설정합니다.
     completion: { isSuccess, errorMessage in
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     }
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
+</p>
 
 ### ShowLoginDialog - 로그인 다이얼로그
 
@@ -762,27 +792,29 @@ IosDialogManager.shared.showLoginDialog(
     enableLoginWhenEmpty: false,
     // 로그인 버튼 탭 이벤트를 설정합니다.
     onLogin: { loginButtonText, username, password, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(loginButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 입력 사용자명(username)을 가져옵니다. 오류 시 nil을 반환합니다.
-        // 입력 비밀번호(password)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // loginButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // username: 입력한 사용자명을 가져옵니다. 오류 시 nil을 반환합니다.
+        // password: 입력한 비밀번호를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 취소 버튼 탭 이벤트를 설정합니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // 눌린 버튼 텍스트(cancelButtonText)를 가져옵니다. 오류 시 nil을 반환합니다.
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     },
     // 다이얼로그 완료 이벤트를 설정합니다.
     completion: { isSuccess, errorMessage in
-        // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
-        // 오류 내용(errorMessage)을 가져옵니다. 성공 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
+        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
     }
 )
 ```
 
-<img src="images/ios/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
+<p align="center">
+    <img src="images/ios/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
+</p>
 
 ## WindowsDialogManager
 
@@ -815,7 +847,9 @@ int result = showAlertDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
+</p>
 
 ### ShowFileDialog - 파일 선택 다이얼로그
 
@@ -844,7 +878,9 @@ BOOL result = showFileDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
+</p>
 
 ### ShowMultiFileDialog - 다중 파일 선택 다이얼로그
 
@@ -873,7 +909,9 @@ int result = showMultiFileDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
+</p>
 
 ### ShowFolderDialog - 폴더 선택 다이얼로그
 
@@ -902,7 +940,9 @@ BOOL result = showFolderDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
+</p>
 
 ### ShowMultiFolderDialog - 다중 폴더 선택 다이얼로그
 
@@ -931,7 +971,9 @@ int result = showMultiFolderDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
+</p>
 
 ### ShowSaveFileDialog - 파일 저장 다이얼로그
 
@@ -964,7 +1006,9 @@ BOOL result = showSaveFileDialog(
 );
 ```
 
-<img src="images/windows/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
+<p align="center">
+    <img src="images/windows/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
+</p>
 
 ## MacDialogManager
 
@@ -979,9 +1023,9 @@ let title = "Hello from macOS"
 let message = "This is a native macOS dialog!"
 // 버튼을 설정합니다. 최소 1개의 버튼이 필요합니다.
 let buttons = [
-    // 버튼 제목(title)을 설정합니다. 필수 항목입니다.
-    // 기본 버튼으로 설정하려면 isDefault를 true로 지정합니다. 기본값은 false이며, 다이얼로그당 기본 버튼은 1개만 허용됩니다.
-    // keyEquivalent로 버튼 단축키를 설정합니다. 기본값은 null이며, isDefault가 true이면 Enter 키가 자동 할당됩니다.
+    // title: 버튼 제목을 설정합니다. 필수 항목입니다.
+    // isDefault: 기본 버튼으로 설정하려면 true로 지정합니다. 기본값은 false이며, 다이얼로그당 기본 버튼은 1개만 허용됩니다.
+    // keyEquivalent: 버튼 단축키를 설정합니다. 기본값은 null이며, isDefault가 true이면 Enter 키가 자동 할당됩니다.
     DialogButton(title: "OK", isDefault: true),
     DialogButton(title: "Cancel", keyEquivalent: "\u{1b}"),
     DialogButton(title: "Delete", keyEquivalent: "d")
@@ -1076,23 +1120,25 @@ MacDialogManager.shared.showDialog(
     options: options
     // 다이얼로그 결과 수신 이벤트를 설정합니다.
 ) { result in
-    // 다이얼로그 결과(result)를 가져옵니다.
+    // result: 다이얼로그 결과를 가져옵니다.
     switch result {
-    // 눌린 버튼 인덱스(buttonIndex)를 가져옵니다.
-    // 눌린 버튼 제목(buttonTitle)을 가져옵니다.
-    // suppression 체크박스 상태(suppressionButtonState)를 가져옵니다.
-    // 도움말 버튼 클릭 여부(helpButtonPressed)를 가져옵니다.
-    // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
+    // buttonIndex: 눌린 버튼 인덱스를 가져옵니다.
+    // buttonTitle: 눌린 버튼 제목을 가져옵니다.
+    // suppressionButtonState: suppression 체크박스 상태를 가져옵니다.
+    // helpButtonPressed: 도움말 버튼 클릭 여부를 가져옵니다.
+    // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
     case .success(let dialogResult):
         Log.d(TAG, "[ShowDialog] success: \(dialogResult)")
-    // 오류 내용(error)을 가져옵니다.
+    // error: 오류 내용을 가져옵니다.
     case .failure(let error):
         Log.e(TAG, "[ShowDialog] error: \(error)")
     }
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowDialog.png" alt="Example_MacDialogManager_ShowDialog" width="400" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowDialog.png" alt="Example_MacDialogManager_ShowDialog" width="400" />
+</p>
 
 ### ShowFileDialog - 파일 선택 다이얼로그
 
@@ -1110,23 +1156,25 @@ MacDialogManager.shared.showFileDialog(
     directoryURL: nil
     // 파일 선택 다이얼로그 결과 수신 이벤트를 설정합니다.
 ) { result in
-    // 파일 선택 결과(result)를 가져옵니다.
+    // result: 파일 선택 결과를 가져옵니다.
     switch result {
-    // 선택된 파일 경로 배열(filePaths)을 가져옵니다. 취소 시 []를 반환합니다.
-    // 반환된 파일 수(fileCount)를 가져옵니다. 취소 시 0입니다.
-    // 선택이 수행된 디렉터리 URL(directoryURL)을 가져옵니다. 취소 시 ""를 반환합니다.
-    // 다이얼로그 취소 여부(isCancelled)를 가져옵니다.
-    // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
+    // filePaths: 선택된 파일 경로 배열을 가져옵니다. 취소 시 []를 반환합니다.
+    // fileCount: 반환된 파일 수를 가져옵니다. 취소 시 0입니다.
+    // directoryURL: 선택이 수행된 디렉터리 URL을 가져옵니다. 취소 시 ""를 반환합니다.
+    // isCancelled: 다이얼로그 취소 여부를 가져옵니다.
+    // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
     case .success(let openResult):
         Log.d(TAG, "[ShowFileDialog] success: \(openResult)")
-    // 오류 내용(error)을 가져옵니다.
+    // error: 오류 내용을 가져옵니다.
     case .failure(let error):
         Log.e(TAG, "[ShowFileDialog] error: \(error)")
     }
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowFileDialog.png" alt="Example_MacDialogManager_ShowFileDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowFileDialog.png" alt="Example_MacDialogManager_ShowFileDialog" width="1000" />
+</p>
 
 ### ShowMultiFileDialog - 다중 파일 선택 다이얼로그
 
@@ -1144,23 +1192,25 @@ MacDialogManager.shared.showMultiFileDialog(
     directoryURL: nil
     // 다중 파일 선택 다이얼로그 결과 수신 이벤트를 설정합니다.
 ) { result in
-    // 다중 파일 선택 결과(result)를 가져옵니다.
+    // result: 다중 파일 선택 결과를 가져옵니다.
     switch result {
-    // 선택된 파일 경로 배열(filePaths)을 가져옵니다. 취소 시 []를 반환합니다.
-    // 반환된 파일 수(fileCount)를 가져옵니다. 취소 시 0입니다.
-    // 선택이 수행된 디렉터리 URL(directoryURL)을 가져옵니다. 취소 시 ""를 반환합니다.
-    // 다이얼로그 취소 여부(isCancelled)를 가져옵니다.
-    // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
+    // filePaths: 선택된 파일 경로 배열을 가져옵니다. 취소 시 []를 반환합니다.
+    // fileCount: 반환된 파일 수를 가져옵니다. 취소 시 0입니다.
+    // directoryURL: 선택이 수행된 디렉터리 URL을 가져옵니다. 취소 시 ""를 반환합니다.
+    // isCancelled: 다이얼로그 취소 여부를 가져옵니다.
+    // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
     case .success(let openResult):
         Log.d(TAG, "[ShowMultiFileDialog] success: \(openResult)")
-    // 오류 내용(error)을 가져옵니다.
+    // error: 오류 내용을 가져옵니다.
     case .failure(let error):
         Log.e(TAG, "[ShowMultiFileDialog] error: \(error)")
     }
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowMultiFileDialog.png" alt="Example_MacDialogManager_ShowMultiFileDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowMultiFileDialog.png" alt="Example_MacDialogManager_ShowMultiFileDialog" width="1000" />
+</p>
 
 ### ShowFolderDialog - 폴더 선택 다이얼로그
 
@@ -1176,13 +1226,13 @@ MacDialogManager.shared.showFolderDialog(
     directoryURL: nil
     // 폴더 선택 다이얼로그 결과 수신 이벤트를 설정합니다.
 ) { result in
-    // 폴더 선택 결과(result)를 가져옵니다.
+    // result: 폴더 선택 결과를 가져옵니다.
     switch result {
-    // 선택된 폴더 경로 배열(filePaths)을 가져옵니다. 취소 시 []를 반환합니다.
-    // 반환된 폴더 수(fileCount)를 가져옵니다. 취소 시 0입니다.
-    // 선택이 수행된 디렉터리 URL(directoryURL)을 가져옵니다. 취소 시 ""를 반환합니다.
-    // 다이얼로그 취소 여부(isCancelled)를 가져옵니다.
-    // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
+    // filePaths: 선택된 폴더 경로 배열을 가져옵니다. 취소 시 []를 반환합니다.
+    // fileCount: 반환된 폴더 수를 가져옵니다. 취소 시 0입니다.
+    // directoryURL: 선택이 수행된 디렉터리 URL을 가져옵니다. 취소 시 ""를 반환합니다.
+    // isCancelled: 다이얼로그 취소 여부를 가져옵니다.
+    // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
     case .success(let openResult):
         Log.d(TAG, "[ShowFolderDialog] success: \(openResult)")
     case .failure(let error):
@@ -1191,7 +1241,9 @@ MacDialogManager.shared.showFolderDialog(
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowFolderDialog.png" alt="Example_MacDialogManager_ShowFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowFolderDialog.png" alt="Example_MacDialogManager_ShowFolderDialog" width="1000" />
+</p>
 
 ### ShowMultiFolderDialog - 다중 폴더 선택 다이얼로그
 
@@ -1207,23 +1259,25 @@ MacDialogManager.shared.showMultiFolderDialog(
     directoryURL: nil
     // 다중 폴더 선택 다이얼로그 결과 수신 이벤트를 설정합니다.
 ) { result in
-    // 다중 폴더 선택 결과(result)를 가져옵니다.
+    // result: 다중 폴더 선택 결과를 가져옵니다.
     switch result {
-    // 선택된 폴더 경로 배열(filePaths)을 가져옵니다. 취소 시 []를 반환합니다.
-    // 반환된 폴더 수(fileCount)를 가져옵니다. 취소 시 0입니다.
-    // 선택이 수행된 디렉터리 URL(directoryURL)을 가져옵니다. 취소 시 ""를 반환합니다.
-    // 다이얼로그 취소 여부(isCancelled)를 가져옵니다.
-    // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
+    // filePaths: 선택된 폴더 경로 배열을 가져옵니다. 취소 시 []를 반환합니다.
+    // fileCount: 반환된 폴더 수를 가져옵니다. 취소 시 0입니다.
+    // directoryURL: 선택이 수행된 디렉터리 URL을 가져옵니다. 취소 시 ""를 반환합니다.
+    // isCancelled: 다이얼로그 취소 여부를 가져옵니다.
+    // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
     case .success(let openResult):
         Log.d(TAG, "[ShowMultiFolderDialog] success: \(openResult)")
-    // 오류 내용(error)을 가져옵니다.
+    // error: 오류 내용을 가져옵니다.
     case .failure(let error):
         Log.e(TAG, "[ShowMultiFolderDialog] error: \(error)")
     }
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowMultiFolderDialog.png" alt="Example_MacDialogManager_ShowMultiFolderDialog" width="1000" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowMultiFolderDialog.png" alt="Example_MacDialogManager_ShowMultiFolderDialog" width="1000" />
+</p>
 
 ### ShowSaveFileDialog - 파일 저장 다이얼로그
 
@@ -1243,20 +1297,22 @@ MacDialogManager.shared.showSaveFileDialog(
     directoryURL: nil
     // 파일 저장 다이얼로그 결과 수신 이벤트를 설정합니다.
 ) { result in
-    // 파일 저장 결과(result)를 가져옵니다.
+    // result: 파일 저장 결과를 가져옵니다.
     switch result {
-    // 저장된 파일 경로(filePath)를 가져옵니다. 취소 시 ""를 반환합니다.
-    // 반환된 경로 수(fileCount)를 가져옵니다. 성공 시 1, 취소 시 0입니다.
-    // 저장이 수행된 디렉터리 URL(directoryURL)을 가져옵니다. 취소 시 ""를 반환합니다.
-    // 다이얼로그 취소 여부(isCancelled)를 가져옵니다.
-    // 다이얼로그 표시 성공 플래그(isSuccess)입니다. 성공 시 true를 반환합니다.
+    // filePath: 저장된 파일 경로를 가져옵니다. 취소 시 ""를 반환합니다.
+    // fileCount: 반환된 경로 수를 가져옵니다. 성공 시 1, 취소 시 0입니다.
+    // directoryURL: 저장이 수행된 디렉터리 URL을 가져옵니다. 취소 시 ""를 반환합니다.
+    // isCancelled: 다이얼로그 취소 여부를 가져옵니다.
+    // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
     case .success(let saveResult):
         Log.d(TAG, "[ShowSaveFileDialog] success: \(saveResult)")
-    // 오류 내용(error)을 가져옵니다.
+    // error: 오류 내용을 가져옵니다.
     case .failure(let error):
         Log.e(TAG, "[ShowSaveFileDialog] error: \(error)")
     }
 }
 ```
 
-<img src="images/mac/Example_MacDialogManager_ShowSaveFileDialog.png" alt="Example_MacDialogManager_ShowSaveFileDialog" width="600" />
+<p align="center">
+    <img src="images/mac/Example_MacDialogManager_ShowSaveFileDialog.png" alt="Example_MacDialogManager_ShowSaveFileDialog" width="600" />
+</p>
