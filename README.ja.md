@@ -1,13 +1,51 @@
 # native-toolkit
 
-Unity などのアプリから利用できる「ネイティブのダイアログ／ファイル選択」系ユーティリティを、各プラットフォーム別にまとめたツールキットです。
+ネイティブアプリから利用できる、クロスプラットフォームのダイアログ／ファイル選択ツールキットです。
 
-- Android: `DialogFragment` ベースの汎用ダイアログ + Unity 向け JNI ブリッジ
-- iOS: `UIAlertController` ベースのダイアログ + Unity 向け C ABI ブリッジ
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` ベースのダイアログ/ファイルパネル + Unity 向け C ブリッジ
-- Windows: Win32 共通ダイアログの C 形式 API（例: MessageBox / GetOpenFileName 等）
+- Android: `DialogFragment` ベースのネイティブ API
+- iOS: `UIAlertController` ベースのネイティブ API
+- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` ベースのネイティブ API
+- Windows: Win32 共通ダイアログの C 形式 API
 
-> 目的: ゲーム/ツール側（特に Unity）から、各 OS の標準 UI を統一した“呼び方”で使えるようにする。
+> 目的: ネイティブアプリから、各 OS の標準 UI をほぼ同じ呼び方で利用できるようにする。
+
+他言語 README:
+
+- English: [README.md](README.md)
+- Korean: [README.ko.md](README.ko.md)
+
+---
+
+## はじめに（最短）
+
+1. 配布物を使う場合は、`dist/<version>/` から対象 OS の成果物を取得。
+2. 組み込み手順は `manual/<version>/index.ja.md` を参照。
+3. API 仕様は `docs/<version>/`（または `docs/latest/`）の各プラットフォーム資料を参照。
+
+例（`1.0.0`）:
+
+- マニュアル: `manual/1.0.0/index.ja.md`
+- 公開ドキュメント: `docs/1.0.0/manual/`
+
+---
+
+## 対応 OS（1.0.0）
+
+- Android 12 以降
+- iOS 18 以降
+- Windows 11 以降
+- macOS 15 以降
+
+---
+
+## 配布物（1.0.0）
+
+- Android: `dist/1.0.0/android/native-toolkit-1.0.0.aar`
+- iOS: `dist/1.0.0/ios/NativeToolkit-1.0.0.xcframework`
+- macOS:
+  - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
+  - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
+- Windows: `dist/1.0.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
 
 ---
 
@@ -16,229 +54,169 @@ Unity などのアプリから利用できる「ネイティブのダイアロ�
 ### Android
 
 - `android/android_library`
-
-  - 中核: 多パターンの `AndroidDialogFragment`（6 種類のダイアログを `newInstance(...)` オーバーロードで生成）
+  - 中核: `AndroidDialogFragment`
   - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login
-  - Doc: Dokka（`MODULE.md` を includes して API 概要も生成）
+  - Doc: Dokka
 
 - `android/unity_android_plugin`
-  - Unity 向け: `UnityAndroidDialogManager`（Java/Kotlin 側） + C# ラッパ `AndroidDialogManager`
-  - Java の結果を Unity メインスレッドへディスパッチする設計（`UnityMainThreadDispatcher` 前提）
-  - Doc: Dokka（`MODULE.md` 収録）
+  - 補助モジュール: C ABI / JNI ブリッジ層
+  - Doc: Dokka
 
 ### iOS
 
 - `ios/IosLibrary`
-
-  - 中核: `IosDialogManager`（`UIAlertController` パターンを統一したコールバック形式で提供）
+  - 中核: `IosDialogManager`
   - 対応: Alert / Confirm / Destructive / ActionSheet / TextInput / Login
-  - Doc: DocC（`.docc`）
+  - Doc: DocC
 
 - `ios/UnityIosPlugin`
-  - Unity 向け: Swift ファサード `UnityIosDialogManager` + Objective-C/C ブリッジ（C ABI）
-  - Unity 側は `DllImport("__Internal")` の P/Invoke で呼び出す想定
-  - Doc: DocC（`.docc`）
+  - 補助モジュール: Swift + Objective-C/C ブリッジ（C ABI）
+  - Doc: DocC
 
 ### macOS
 
 - `mac/MacLibrary`
-
-  - 中核: `MacDialogManager`（`NSAlert`/`NSOpenPanel`/`NSSavePanel` を `Result` で統一）
+  - 中核: `MacDialogManager`
   - 対応: Alert / File / MultiFile / Folder / MultiFolder / Save
-  - Doc: DocC（`.docc`）
+  - Doc: DocC
 
 - `mac/UnityMacPlugin`
-  - Unity 向け: Swift + ObjC/C ブリッジ + C# ラッパ（JSON を介した Alert 設定など）
-  - Doc: DocC（`.docc`）
+  - 補助モジュール: Swift + ObjC/C ブリッジ
+  - Doc: DocC
 
 ### Windows
 
 - `windows/WindowsLibrary`
-
-  - C 形式エクスポート API（例: `showAlertDialog`, `showFileDialog`, `showFolderDialog` など）
+  - C 形式 API（例: `showAlertDialog`, `showFileDialog`, `showFolderDialog`）
   - ヘッダ: `windows/WindowsLibrary/WindowsDialogManager.h`
-  - Doc: Doxygen（`windows/WindowsLibrary/Doxyfile`）
+  - Doc: Doxygen
 
 - `windows/UnityWindowsPlugin`
-  - Unity 向けプラグイン用のソリューション/プロジェクトが同梱
-  - 現時点の `UnityWindowsDialogManager` は最小スタブのため、WindowsLibrary の機能を Unity へ橋渡しする実装はこれから追加する想定
+  - 補助モジュール: プラグイン連携用プロジェクト（現状は最小スタブ）
 
 ---
 
 ## リポジトリ構成
 
-```
+```text
 android/
-	android_library/            # Android コアダイアログ
-	unity_android_plugin/        # Unity 向け Android ブリッジ
-	AndroidLibraryExample/       # サンプルアプリ/ビルド用ラッパ
+  android_library/
+  unity_android_plugin/
+  AndroidLibraryExample/
 
 ios/
-	IosLibrary/                  # iOS コアダイアログ
-	UnityIosPlugin/              # Unity 向け iOS ブリッジ
-	IosLibraryExample/           # サンプル
-	generate_docc.sh             # DocC 生成
+  IosLibrary/
+  UnityIosPlugin/
+  IosLibraryExample/
+  generate_docc.sh
 
 mac/
-	MacLibrary/                  # macOS コアダイアログ/ファイルパネル
-	UnityMacPlugin/              # Unity 向け macOS ブリッジ
-	MacLibraryExample/           # サンプル
-	generate_docc.sh             # DocC 生成
+  MacLibrary/
+  UnityMacPlugin/
+  MacLibraryExample/
+  generate_docc.sh
 
 windows/
-	WindowsLibrary/              # Windows コア（Win32 共通ダイアログ）
-	UnityWindowsPlugin/          # Unity 向け（現状は最小スタブ）
-	WindowsLibraryExample/       # サンプル
+  WindowsLibrary/
+  UnityWindowsPlugin/
+  WindowsLibraryExample/
+
+manual/
+  <version>/
+
+docs/
+  <version>/
+  latest/
 ```
 
 ---
 
 ## 必要環境
 
-- Android
-
-  - JDK 11
-  - Android SDK / Android Studio
-  - Gradle Wrapper（同梱）
-
-- iOS / macOS
-
-  - Xcode（DocC 生成に `xcrun docc` を使用）
-
-- Windows
-  - Visual Studio 2022（C++）
-  - （Doc 生成する場合）Doxygen
+- Android: JDK 11 / Android SDK / Android Studio
+- iOS / macOS: Xcode
+- Windows: Visual Studio 2022（C++）、必要に応じて Doxygen
 
 ---
 
-## ビルド & ドキュメント生成
-
-### Android
-
-Android のビルドは `android/AndroidLibraryExample` がワークスペース役（2 つのモジュールを include）になっています。
+## ビルド（配布物作成）
 
 ```bash
-cd android/AndroidLibraryExample
+# Android AAR
+./scripts/build_android_library_aar.sh --build-type release --output dist/1.0.0/android/native-toolkit-1.0.0.aar
 
-# 例: Android コアライブラリ
-./gradlew :android_library:assembleRelease
+# iOS XCFramework
+./scripts/build_ios_library_xcframework.sh --configuration release --output dist/1.0.0/ios/NativeToolkit-1.0.0.xcframework
 
-# 例: Unity 向け Android ブリッジ（android_library に依存）
-./gradlew :unity_android_plugin:assembleRelease
+# macOS XCFramework (Xcode 16 / 26)
+./scripts/build_xcode16_library_xcframework.sh --configuration release --output dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework
+./scripts/build_xcode26_library_xcframework.sh --configuration release --output dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework
+
+# Windows DLL / NuGet
+./scripts/create_native_toolkit_dll.bat
 ```
-
-#### Android API ドキュメント（Dokka）
-
-```bash
-cd android/AndroidLibraryExample
-
-./gradlew :android_library:dokkaHtml
-./gradlew :unity_android_plugin:dokkaHtml
-```
-
-出力先:
-
-- `android/android_library/build/dokka/html`
-- `android/unity_android_plugin/build/dokka/html`
-
-#### Android 仕様メモ
-
-- `android/android_library/build.gradle.kts`
-  - `compileSdk = 35`, `minSdk = 31`, JVM target 11
 
 ---
 
-### iOS
+## API ドキュメント生成
 
-#### Xcode で開く
+- Android (Dokka)
 
-- ワークスペース: `ios/IosWorkspace.xcworkspace`
-- スキーム: `IosLibrary`, `UnityIosPlugin`
+```bash
+cd android/AndroidLibraryExample
+./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
+```
 
-#### iOS API ドキュメント（DocC）
+- iOS (DocC)
 
 ```bash
 cd ios
 ./generate_docc.sh
 ```
 
-出力先:
-
-- `ios/Docs/IosLibrary`
-- `ios/Docs/UnityIosPlugin`
-
-> 注: `ios/generate_docc.sh` は環境によってパスが固定になっている場合があります。必要に応じてリポジトリルート相対に調整してください。
-
----
-
-### macOS
-
-#### Xcode で開く
-
-- ワークスペース: `mac/MacWorkspace.xcworkspace`
-- スキーム: `MacLibrary`, `UnityMacPlugin`
-
-#### macOS API ドキュメント（DocC）
+- macOS (DocC)
 
 ```bash
 cd mac
 ./generate_docc.sh
 ```
 
-出力先:
-
-- `mac/Docs/MacLibrary`
-- `mac/Docs/UnityMacPlugin`
-
-> 注: `mac/generate_docc.sh` は環境によってパスが固定になっている場合があります。必要に応じてリポジトリルート相対に調整してください。
-
----
-
-### Windows
-
-#### Visual Studio でビルド
-
-- `windows/WindowsLibrary/WindowsLibrary.sln`
-- `windows/WindowsLibraryExample/WindowsLibraryExample.sln`
-
-ビルド構成は `Debug/Release` と `x86/x64` を想定しています。
-
-#### Windows API ドキュメント（Doxygen）
-
-`windows/WindowsLibrary/Doxyfile` により生成します。
+- Windows (Doxygen)
 
 ```bash
 cd windows/WindowsLibrary
 doxygen Doxyfile
 ```
 
-出力先（設定値）:
+---
 
-- `windows/WindowsLibrary/docs`
+## ドキュメント公開（version / latest）
+
+`docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
+
+```bash
+./scripts/publish_docs.sh 1.0.0
+```
+
+既存の生成物をコピーだけする場合:
+
+```bash
+./scripts/publish_docs.sh 1.0.0 --skip-build
+```
+
+manual のコピー元は `manual/<version>/` です。
 
 ---
 
-## Unity 連携メモ（最小）
+## Native 連携の参照先
 
-プラットフォーム別の Unity 連携は「Unity 向けモジュール」を起点に確認してください。
-
-- Android: `android/unity_android_plugin/MODULE.md`
-
-  - Java/Kotlin 側の `UnityAndroidDialogManager` と C# の `AndroidDialogManager` を前提
-
-- iOS: `ios/UnityIosPlugin/UnityIosPlugin/UnityIosPlugin.docc/UnityIosPlugin.md`
-
-  - C ABI のブリッジ関数を `DllImport("__Internal")` で呼ぶ想定
-
-- macOS: `mac/UnityMacPlugin/UnityMacPlugin/UnityMacPlugin.docc/UnityMacPlugin.md`
-
-  - JSON スキーマ（alert の buttons/options）や各ダイアログの戻り値キーが整理済み
-
+- Android: `android/android_library/MODULE.md`
+- iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
+- macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
 - Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
-  - Unity 向けの橋渡しは `windows/UnityWindowsPlugin` に追加していく想定（現状スタブ）
 
 ---
 
 ## ライセンス
 
-Apache License 2.0（詳細は `LICENSE` を参照）。
+Apache License 2.0（詳細は `LICENSE`）。
