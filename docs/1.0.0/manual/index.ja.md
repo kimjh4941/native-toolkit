@@ -30,7 +30,7 @@
 - Windows: `docs/<version>/windows/`
 - macOS: `docs/<version>/mac/`
 
-# 配布物の場所（dist/<version>/）
+# 配布物の場所（`dist/<version>/`）
 
 - Android: `dist/<version>/android/native-toolkit-<version>.aar`
 - iOS: `dist/<version>/ios/NativeToolkit-<version>.xcframework`

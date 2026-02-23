@@ -14,8 +14,6 @@ Other languages:
 - Korean: [README.ko.md](README.ko.md)
 - Japanese: [README.ja.md](README.ja.md)
 
----
-
 ## Quick start
 
 1. If you use prebuilt artifacts, pick files from `dist/<version>/`.
@@ -38,16 +36,12 @@ Example (`1.0.0`):
 - Current release: 1.0.0
 - Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
----
-
 ## Supported OS (1.0.0)
 
 - Android 12+
 - iOS 18+
 - Windows 11+
 - macOS 15+
-
----
 
 ## Distributables (1.0.0)
 
@@ -57,8 +51,6 @@ Example (`1.0.0`):
   - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
   - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
 - Windows: `dist/1.0.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
-
----
 
 ## Modules (overview)
 
@@ -105,8 +97,6 @@ Example (`1.0.0`):
 - `windows/UnityWindowsPlugin`
   - Optional integration project is included (currently minimal stub)
 
----
-
 ## Repository layout
 
 ```text
@@ -140,15 +130,11 @@ docs/
   latest/
 ```
 
----
-
 ## Requirements
 
 - Android: JDK 11 / Android SDK / Android Studio
 - iOS / macOS: Xcode
 - Windows: Visual Studio 2022 (C++), Doxygen when generating docs
-
----
 
 ## Build (distributables)
 
@@ -167,8 +153,6 @@ docs/
 ./scripts/create_native_toolkit_dll.bat
 ```
 
----
-
 ## API docs generation
 
 ### Android
@@ -178,16 +162,12 @@ cd android/AndroidLibraryExample
 ./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
 ```
 
----
-
 ### iOS (DocC)
 
 ```bash
 cd ios
 ./generate_docc.sh
 ```
-
----
 
 ### macOS (DocC)
 
@@ -196,16 +176,12 @@ cd mac
 ./generate_docc.sh
 ```
 
----
-
 ### Windows (Doxygen)
 
 ```bash
 cd windows/WindowsLibrary
 doxygen Doxyfile
 ```
-
----
 
 ## Docs publish (version / latest)
 
@@ -223,8 +199,6 @@ Copy only (skip generation):
 
 Manual source path is `manual/<version>/`.
 
----
-
 ## Native integration references
 
 For native integration, start from the core library docs per platform.
@@ -234,7 +208,12 @@ For native integration, start from the core library docs per platform.
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
 - Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
 
----
+## Unity Native Toolkit (Unity 6)
+
+- A toolkit that provides native platform features for Unity 6 and later.
+- The package includes native plugins and sample scenes for Android / iOS / Windows / macOS, and dialog operations can be handled through singleton APIs per platform.
+- From an Editor window, you can add native libraries and Gradle / Xcode settings to streamline post-build project setup as a workflow.
+- Repository: [unity-native-plugin](https://github.com/kimjh4941/unity-native-plugin)
 
 ## License
 

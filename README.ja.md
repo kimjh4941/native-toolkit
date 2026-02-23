@@ -14,8 +14,6 @@
 - English: [README.md](README.md)
 - Korean: [README.ko.md](README.ko.md)
 
----
-
 ## はじめに（最短）
 
 1. 配布物を使う場合は、`dist/<version>/` から対象 OS の成果物を取得。
@@ -38,16 +36,12 @@
 - 現在のリリース: 1.0.0
 - 最新公開ドキュメントのバージョン: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
----
-
 ## 対応 OS（1.0.0）
 
 - Android 12 以降
 - iOS 18 以降
 - Windows 11 以降
 - macOS 15 以降
-
----
 
 ## 配布物（1.0.0）
 
@@ -57,8 +51,6 @@
   - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
   - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
 - Windows: `dist/1.0.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
-
----
 
 ## 収録モジュール（概要）
 
@@ -105,8 +97,6 @@
 - `windows/UnityWindowsPlugin`
   - 補助モジュール: プラグイン連携用プロジェクト（現状は最小スタブ）
 
----
-
 ## リポジトリ構成
 
 ```text
@@ -140,15 +130,11 @@ docs/
   latest/
 ```
 
----
-
 ## 必要環境
 
 - Android: JDK 11 / Android SDK / Android Studio
 - iOS / macOS: Xcode
 - Windows: Visual Studio 2022（C++）、必要に応じて Doxygen
-
----
 
 ## ビルド（配布物作成）
 
@@ -166,8 +152,6 @@ docs/
 # Windows DLL / NuGet
 ./scripts/create_native_toolkit_dll.bat
 ```
-
----
 
 ## API ドキュメント生成
 
@@ -199,8 +183,6 @@ cd windows/WindowsLibrary
 doxygen Doxyfile
 ```
 
----
-
 ## ドキュメント公開（version / latest）
 
 `docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
@@ -217,8 +199,6 @@ doxygen Doxyfile
 
 manual のコピー元は `manual/<version>/` です。
 
----
-
 ## Native 連携の参照先
 
 - Android: `android/android_library/MODULE.md`
@@ -226,7 +206,12 @@ manual のコピー元は `manual/<version>/` です。
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
 - Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
 
----
+## Unity Native Toolkit (Unity 6)
+
+- Unity 6 以降でネイティブ機能を提供するツールキットです。
+- パッケージには Android / iOS / Windows / macOS 向けのネイティブプラグインとサンプルシーンが含まれ、各プラットフォームのダイアログ操作をシングルトン API で扱えます。
+- Editor 用ウィンドウからネイティブライブラリや Gradle / Xcode 設定を追加でき、ビルド後のプロジェクト整備をワークフロー化できます。
+- Repository: [unity-native-plugin](https://github.com/kimjh4941/unity-native-plugin)
 
 ## ライセンス
 
