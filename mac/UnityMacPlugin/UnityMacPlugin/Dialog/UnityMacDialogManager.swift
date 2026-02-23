@@ -98,7 +98,7 @@ public class UnityMacDialogManager: NSObject {
         }
         
         // Parse optionsJson
-        var options = DialogOptions()
+        var options = DialogOptions(alertStyle: .informational, buttons: buttons)
         if let optionsData = optionsJson.data(using: .utf8),
            let optionsDict = try? JSONSerialization.jsonObject(with: optionsData) as? [String: Any] {
             
@@ -130,15 +130,7 @@ public class UnityMacDialogManager: NSObject {
             if let iconDict = optionsDict["icon"] as? [String: Any] {
                 if let iconConfig = IconConfiguration.from(json: iconDict) {
                     Log.d(TAG, "Parsed icon configuration: \(iconConfig)")
-                    switch iconConfig.createImage() {
-                    case .success(let image):
-                        options.icon = image
-                    case .failure(let error):
-                        let nsError = NSError(domain: "DialogError", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription])
-                        completion?(nil, nsError)
-                        Log.e(TAG, "Failed to create icon image skipping dialog: \(error.localizedDescription)")
-                        return
-                    }
+                    options.icon = iconConfig
                 }
             }
         }

@@ -54,11 +54,6 @@
                     Style="{StaticResource DialogButtonStyle}"
                     Click="ShowMultiFileDialogButton_Click"/>
                 <Button
-                    x:Name="ShowSaveFileDialogButton"
-                    Content="ShowSaveFileDialog"
-                    Style="{StaticResource DialogButtonStyle}"
-                    Click="ShowSaveFileDialogButton_Click"/>
-                <Button
                     x:Name="ShowFolderDialogButton"
                     Content="ShowFolderDialog"
                     Style="{StaticResource DialogButtonStyle}"
@@ -68,6 +63,11 @@
                     Content="ShowMultiFolderDialog"
                     Style="{StaticResource DialogButtonStyle}"
                     Click="ShowMultiFolderDialogButton_Click"/>
+                <Button
+                    x:Name="ShowSaveFileDialogButton"
+                    Content="ShowSaveFileDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                    Click="ShowSaveFileDialogButton_Click"/>
             </StackPanel>
         </Grid>
     </ScrollViewer>

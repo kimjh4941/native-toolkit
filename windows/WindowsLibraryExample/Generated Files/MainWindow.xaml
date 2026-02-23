@@ -54,20 +54,20 @@
                     Style="{StaticResource DialogButtonStyle}"
                                                            />
                 <Button x:ConnectionId='6'
-                    x:Name="ShowSaveFileDialogButton"
-                    Content="ShowSaveFileDialog"
-                    Style="{StaticResource DialogButtonStyle}"
-                                                          />
-                <Button x:ConnectionId='7'
                     x:Name="ShowFolderDialogButton"
                     Content="ShowFolderDialog"
                     Style="{StaticResource DialogButtonStyle}"
                                                         />
-                <Button x:ConnectionId='8'
+                <Button x:ConnectionId='7'
                     x:Name="ShowMultiFolderDialogButton"
                     Content="ShowMultiFolderDialog"
                     Style="{StaticResource DialogButtonStyle}"
                                                              />
+                <Button x:ConnectionId='8'
+                    x:Name="ShowSaveFileDialogButton"
+                    Content="ShowSaveFileDialog"
+                    Style="{StaticResource DialogButtonStyle}"
+                                                          />
             </StackPanel>
         </Grid>
     </ScrollViewer>

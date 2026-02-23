@@ -72,17 +72,17 @@ public struct DialogOptions {
     /// Custom title for the suppression checkbox.
     public var suppressionButtonTitle: String?
     /// Optional icon (overrides the default app icon).
-    public var icon: NSImage?
+    public var icon: IconConfiguration?
     /// Optional accessory view embedded below the message text.
     public var accessoryView: NSView?
     
     public init(
-        alertStyle: NSAlert.Style = .informational,
-        buttons: [DialogButton] = [DialogButton(title: "OK", isDefault: true)],
+        alertStyle: NSAlert.Style,
+        buttons: [DialogButton],
         showsHelp: Bool = false,
         showsSuppressionButton: Bool = false,
         suppressionButtonTitle: String? = nil,
-        icon: NSImage? = nil,
+        icon: IconConfiguration? = nil,
         accessoryView: NSView? = nil
     ) {
         self.alertStyle = alertStyle
@@ -119,9 +119,9 @@ public struct DialogResult {
     public init(
         buttonIndex: Int,
         buttonTitle: String,
-        suppressionButtonState: Bool = false,
-        helpButtonPressed: Bool = false,
-        isSuccess: Bool = true
+        suppressionButtonState: Bool,
+        helpButtonPressed: Bool,
+        isSuccess: Bool
     ) {
         self.buttonIndex = buttonIndex
         self.buttonTitle = buttonTitle
@@ -225,8 +225,8 @@ public struct OpenDialogResult {
         filePaths: [String],
         fileCount: Int,
         directoryURL: String,
-        isCancelled: Bool = false,
-        isSuccess: Bool = true
+        isCancelled: Bool,
+        isSuccess: Bool
     ) {
         self.filePaths = filePaths
         self.fileCount = fileCount
@@ -258,10 +258,10 @@ public struct SaveDialogResult {
     
     public init(
         filePath: String,
-        fileCount: Int = 1,
+        fileCount: Int,
         directoryURL: String,
-        isCancelled: Bool = false,
-        isSuccess: Bool = true
+        isCancelled: Bool,
+        isSuccess: Bool
     ) {
         self.filePath = filePath
         self.fileCount = fileCount
@@ -303,20 +303,17 @@ public class MacDialogManager: NSObject {
     public func showDialog(
         title: String,
         message: String? = nil,
-        options: DialogOptions = DialogOptions(),
+        options: DialogOptions,
         completion: ((Result<DialogResult, DialogError>) -> Void)? = nil
     ) {
         Log.d(TAG, "showDialog called with title: \(title), message: \(String(describing: message)), options: \(options), completion: \(String(describing: completion))")
-        
-        guard !options.buttons.isEmpty else {
-            Log.e(TAG, "No buttons provided")
-            completion?(.failure(.noButtons))
+        guard !title.isEmpty else {
+            Log.e(TAG, "Empty title provided")
+            completion?(.failure(.invalidConfiguration("Title cannot be null or empty.")))
             return
         }
         
-        guard !title.isEmpty else {
-            Log.e(TAG, "Empty title provided")
-            completion?(.failure(.invalidConfiguration("title cannot be empty")))
+        guard validateDialogOptions(options: options, completion: completion) else {
             return
         }
         
@@ -384,7 +381,7 @@ public class MacDialogManager: NSObject {
     ///
     /// - Parameters mirror `showOpenDialog` but force single file selection.
     public func showFileDialog(
-        title: String = "Select File",
+        title: String,
         message: String? = nil,
         allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
@@ -412,7 +409,7 @@ public class MacDialogManager: NSObject {
     ///
     /// - Parameters mirror `showOpenDialog` but allow multiple files.
     public func showMultiFileDialog(
-        title: String = "Select Files",
+        title: String,
         message: String? = nil,
         allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil,
@@ -539,28 +536,37 @@ public class MacDialogManager: NSObject {
         allowedContentTypes: [String]? = nil,
         directoryURL: URL? = nil
     ) throws -> SaveDialogResult {
-        Log.d(TAG, "executeSaveDialog with title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(String(describing: nameFieldStringValue)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL))")
+        Log.d(TAG, "[executeSaveDialog] title: \(title), message: \(String(describing: message)), nameFieldStringValue: \(String(describing: nameFieldStringValue)), allowedContentTypes: \(String(describing: allowedContentTypes)), directoryURL: \(String(describing: directoryURL))")
         let savePanel = NSSavePanel()
         
         savePanel.title = title
+        Log.d(TAG, "[executeSaveDialog] Configured save panel with title: \(String(describing: savePanel.title))")
         if let message = message {
             savePanel.message = message
+            Log.d(TAG, "[executeSaveDialog] Configured save panel with message: \(String(describing: savePanel.message))")
         }
         if let nameFieldStringValue = nameFieldStringValue {
             savePanel.nameFieldStringValue = nameFieldStringValue
+            Log.d(TAG, "[executeSaveDialog] Configured save panel with nameFieldStringValue: \(String(describing: savePanel.nameFieldStringValue))")
         }
         savePanel.canCreateDirectories = true
+        Log.d(TAG, "[executeSaveDialog] Configured save panel canCreateDirectories: \(String(describing: savePanel.canCreateDirectories))")
         savePanel.isExtensionHidden = false
+        Log.d(TAG, "[executeSaveDialog] Configured save panel isExtensionHidden: \(String(describing: savePanel.isExtensionHidden))")
         
         if let allowedContentTypes = allowedContentTypes, !allowedContentTypes.isEmpty {
             let utTypes = allowedContentTypes.compactMap { UTType(filenameExtension: $0) }
             if !utTypes.isEmpty {
                 savePanel.allowedContentTypes = utTypes
+                Log.d(TAG, "[executeSaveDialog] Configured save panel allowedContentTypes: \(String(describing: savePanel.allowedContentTypes))")
             }
         }
+        savePanel.allowsOtherFileTypes = true;
+        Log.d(TAG, "[executeSaveDialog] Configured save panel allowsOtherFileTypes: \(String(describing: savePanel.allowsOtherFileTypes))")
         
         if let directoryURL = directoryURL {
             savePanel.directoryURL = directoryURL
+            Log.d(TAG, "[executeSaveDialog] Configured save panel directoryURL: \(String(describing: savePanel.directoryURL))")
         }
         
         let response = savePanel.runModal()
@@ -599,33 +605,50 @@ public class MacDialogManager: NSObject {
         message: String? = nil,
         options: DialogOptions
     ) throws -> DialogResult {
-        Log.d(TAG, "executeDialog with title: \(title), message: \(String(describing: message)), options: \(options)")
+        Log.d(TAG, "[executeDialog] title: \(title), message: \(String(describing: message)), options: \(options)")
         let alert = NSAlert()
         
         alert.messageText = title
+        Log.d(TAG, "[executeDialog] Configured alert with title: \(String(describing: alert.messageText))")
         if let message = message {
             alert.informativeText = message
+            Log.d(TAG, "[executeDialog] Configured alert with message: \(String(describing: alert.informativeText))")
         }
         alert.alertStyle = options.alertStyle
+        Log.d(TAG, "[executeDialog] Configured alert with style: \(String(describing: alert.alertStyle))")
         alert.showsHelp = options.showsHelp
+        Log.d(TAG, "[executeDialog] Configured alert showsHelp: \(String(describing: alert.showsHelp))")
         alert.showsSuppressionButton = options.showsSuppressionButton
+        Log.d(TAG, "[executeDialog] Configured alert showsSuppressionButton: \(String(describing: alert.showsSuppressionButton))")
         
         if options.showsHelp {
             alert.delegate = self
+            Log.d(TAG, "[executeDialog] Set alert delegate for help button handling")
         } else {
             alert.delegate = nil
+            Log.d(TAG, "[executeDialog] No help button; alert delegate set to nil")
         }
         
         if let suppressionTitle = options.suppressionButtonTitle {
             alert.suppressionButton?.title = suppressionTitle
+            Log.d(TAG, "[executeDialog] Configured alert suppression button title: \(String(describing: alert.suppressionButton?.title))")
         }
         
         if let icon = options.icon {
-            alert.icon = icon
+            alert.icon = {
+                switch icon.createImage() {
+                case .success(let image):
+                    return image
+                case .failure(_):
+                    return nil
+                }
+            }()
+            Log.d(TAG, "[executeDialog] Configured alert icon: \(String(describing: alert.icon))")
         }
         
         if let accessoryView = options.accessoryView {
             alert.accessoryView = accessoryView
+            Log.d(TAG, "[executeDialog] Configured alert accessory view: \(String(describing: alert.accessoryView))")
         }
         
         for button in options.buttons {
@@ -681,37 +704,53 @@ public class MacDialogManager: NSObject {
         message: String? = nil,
         options: OpenDialogOptions
     ) throws -> OpenDialogResult {
-        Log.d(TAG, "executeOpenDialog with title: \(title), message: \(String(describing: message)), options: \(options)")
+        Log.d(TAG, "[executeOpenDialog] title: \(title), message: \(String(describing: message)), options: \(options)")
         let openPanel = NSOpenPanel()
 
         openPanel.title = title
+        Log.d(TAG, "[executeOpenDialog] Configured open panel with title: \(String(describing: openPanel.title))")
         if let message = message {
             openPanel.message = message
+            Log.d(TAG, "[executeOpenDialog] Configured open panel with message: \(String(describing: openPanel.message))")
         }
         openPanel.canChooseFiles = options.canChooseFiles
+        Log.d(TAG, "[executeOpenDialog] Configured open panel canChooseFiles: \(openPanel.canChooseFiles)")
         openPanel.canChooseDirectories = options.canChooseDirectories
+        Log.d(TAG, "[executeOpenDialog] Configured open panel canChooseDirectories: \(openPanel.canChooseDirectories)")
         openPanel.allowsMultipleSelection = options.allowsMultipleSelection
+        Log.d(TAG, "[executeOpenDialog] Configured open panel allowsMultipleSelection: \(openPanel.allowsMultipleSelection)")
         openPanel.showsHiddenFiles = options.showsHiddenFiles
+        Log.d(TAG, "[executeOpenDialog] Configured open panel showsHiddenFiles: \(openPanel.showsHiddenFiles)")
         openPanel.canCreateDirectories = options.canCreateDirectories
+        Log.d(TAG, "[executeOpenDialog] Configured open panel canCreateDirectories: \(openPanel.canCreateDirectories)")
         openPanel.canSelectHiddenExtension = options.canSelectHiddenExtension
+        Log.d(TAG, "[executeOpenDialog] Configured open panel canSelectHiddenExtension: \(openPanel.canSelectHiddenExtension)")
         openPanel.treatsFilePackagesAsDirectories = options.treatsFilePackagesAsDirectories
+        Log.d(TAG, "[executeOpenDialog] Configured open panel treatsFilePackagesAsDirectories: \(openPanel.treatsFilePackagesAsDirectories)")
         openPanel.allowsOtherFileTypes = options.allowsOtherFileTypes
+        Log.d(TAG, "[executeOpenDialog] Configured open panel allowsOtherFileTypes: \(openPanel.allowsOtherFileTypes)")
         if let nameFieldStringValue = options.nameFieldStringValue {
             openPanel.nameFieldStringValue = nameFieldStringValue
+            Log.d(TAG, "[executeOpenDialog] Configured open panel nameFieldStringValue: \(openPanel.nameFieldStringValue)")
         }
         openPanel.prompt = options.prompt
+        Log.d(TAG, "[executeOpenDialog] Configured open panel prompt: \(String(describing: openPanel.prompt))")
         openPanel.resolvesAliases = options.resolvesAliases
+        Log.d(TAG, "[executeOpenDialog] Configured open panel resolvesAliases: \(openPanel.resolvesAliases)")
         openPanel.isExtensionHidden = options.isExtensionHidden
+        Log.d(TAG, "[executeOpenDialog] Configured open panel isExtensionHidden: \(openPanel.isExtensionHidden)")
         
         if let allowedContentTypes = options.allowedContentTypes, !allowedContentTypes.isEmpty {
             let utTypes = allowedContentTypes.compactMap { UTType(filenameExtension: $0) }
             if !utTypes.isEmpty {
                 openPanel.allowedContentTypes = utTypes
+                Log.d(TAG, "[executeOpenDialog] Configured open panel allowedContentTypes: \(String(describing: openPanel.allowedContentTypes))")
             }
         }
         
         if let directoryURL = options.directoryURL {
             openPanel.directoryURL = directoryURL
+            Log.d(TAG, "[executeOpenDialog] Configured open panel directoryURL: \(String(describing: openPanel.directoryURL))")
         }
 
         let response = openPanel.runModal()
@@ -742,6 +781,39 @@ public class MacDialogManager: NSObject {
             Log.d(TAG, "Open dialog cancelled")
             return result
         }
+    }
+
+    /// Validates `DialogOptions` before showing a dialog. Returns `false` and completes with an error on failure.
+    private func validateDialogOptions(
+        options: DialogOptions,
+        completion: ((Result<DialogResult, DialogError>) -> Void)? = nil
+    ) -> Bool {
+        guard !options.buttons.isEmpty else {
+            Log.e(TAG, "No buttons provided for the dialog.")
+            completion?(.failure(.noButtons))
+            return false
+        }
+        
+        // Ensure only one default button is specified
+        let defaultButtonCount = options.buttons.filter { $0.isDefault }.count
+        guard defaultButtonCount <= 1 else {
+            Log.e(TAG, "Multiple default buttons provided for the dialog.")
+            completion?(.failure(.invalidConfiguration("Multiple default buttons provided for the dialog.")))
+            return false
+        }
+        
+        // Validate icon configuration (if provided)
+        if let iconConfig = options.icon {
+            switch iconConfig.validateIconConfiguration() {
+            case .success:
+                break
+            case .failure(let error):
+                Log.e(TAG, error.localizedDescription)
+                completion?(.failure(error))
+                return false
+            }
+        }
+        return true
     }
 }
 

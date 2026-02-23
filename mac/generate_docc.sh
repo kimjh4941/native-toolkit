@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /Users/jonghyunkim/Desktop/native-toolkit/mac
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+cd "$SCRIPT_DIR"
 
 # Define variables for MacLibrary
 MACLIBRARY_BUILD_PATH="Build/MacLibrary"

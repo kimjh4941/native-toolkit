@@ -88,19 +88,6 @@ namespace winrt::WindowsLibraryExample::implementation
         case 6:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
-                this->ShowSaveFileDialogButton(targetElement);
-                auto weakThis = ::winrt::make_weak<class_type>(*this);
-                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
-                    if (auto t = weakThis.get())
-                    {
-                        ::winrt::get_self<D>(t)->ShowSaveFileDialogButton_Click(p0, p1);
-                    }
-                });
-            }
-            break;
-        case 7:
-            {
-                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowFolderDialogButton(targetElement);
                 auto weakThis = ::winrt::make_weak<class_type>(*this);
                 targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
@@ -111,7 +98,7 @@ namespace winrt::WindowsLibraryExample::implementation
                 });
             }
             break;
-        case 8:
+        case 7:
             {
                 auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
                 this->ShowMultiFolderDialogButton(targetElement);
@@ -120,6 +107,19 @@ namespace winrt::WindowsLibraryExample::implementation
                     if (auto t = weakThis.get())
                     {
                         ::winrt::get_self<D>(t)->ShowMultiFolderDialogButton_Click(p0, p1);
+                    }
+                });
+            }
+            break;
+        case 8:
+            {
+                auto targetElement = target.as<::winrt::Microsoft::UI::Xaml::Controls::Button>();
+                this->ShowSaveFileDialogButton(targetElement);
+                auto weakThis = ::winrt::make_weak<class_type>(*this);
+                targetElement.Click([weakThis](::winrt::Windows::Foundation::IInspectable const& p0, ::winrt::Microsoft::UI::Xaml::RoutedEventArgs const& p1){
+                    if (auto t = weakThis.get())
+                    {
+                        ::winrt::get_self<D>(t)->ShowSaveFileDialogButton_Click(p0, p1);
                     }
                 });
             }

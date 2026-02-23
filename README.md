@@ -1,248 +1,219 @@
 # native-toolkit
 
-A cross-platform toolkit that bundles native dialog and file picker utilities for use from apps (especially Unity).
+A cross-platform toolkit that bundles native dialog and file picker utilities for native apps.
 
-- Android: `DialogFragment`-based dialogs + Unity JNI bridge
-- iOS: `UIAlertController`-based dialogs + Unity C ABI bridge
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` dialogs + Unity C bridge
+- Android: `DialogFragment`-based native API
+- iOS: `UIAlertController`-based native API
+- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel`-based native API
 - Windows: Win32 common dialogs exposed as C-style APIs
 
-> Goal: make it easy for a game/tool (especially Unity) to present each OS's standard UI with a consistent calling pattern.
+> Goal: make it easy for native apps to present each OS's standard UI with a consistent calling pattern.
 
 Other languages:
 
 - Korean: [README.ko.md](README.ko.md)
 - Japanese: [README.ja.md](README.ja.md)
 
----
+## Quick start
 
-## Modules (high level)
+1. If you use prebuilt artifacts, pick files from `dist/<version>/`.
+2. For integration steps, read `docs/<version>/manual/index.md`.
+3. For API references, use `docs/<version>/` (or `docs/latest/`).
+
+Example (`1.0.0`):
+
+- Manual: `docs/1.0.0/manual/index.md`
+- Published docs: `docs/1.0.0/manual/`
+
+## Detailed Documentation
+
+- Latest (English): [docs/latest/manual/index.md](docs/latest/manual/index.md)
+- Latest (Korean): [docs/latest/manual/index.ko.md](docs/latest/manual/index.ko.md)
+- Latest (Japanese): [docs/latest/manual/index.ja.md](docs/latest/manual/index.ja.md)
+
+## Version
+
+- Current release: 1.0.0
+- Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
+
+## Supported OS (1.0.0)
+
+- Android 12+
+- iOS 18+
+- Windows 11+
+- macOS 15+
+
+## Distributables (1.0.0)
+
+- Android: `dist/1.0.0/android/native-toolkit-1.0.0.aar`
+- iOS: `dist/1.0.0/ios/NativeToolkit-1.0.0.xcframework`
+- macOS:
+  - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
+  - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
+- Windows: `dist/1.0.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
+
+## Modules (overview)
 
 ### Android
 
 - `android/android_library`
-
-  - Core: multi-variant `AndroidDialogFragment` (6 dialog types via `newInstance(...)` overloads)
+  - Core: `AndroidDialogFragment`
   - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login
-  - Docs: Dokka (includes `MODULE.md`)
+  - Docs: Dokka
 
 - `android/unity_android_plugin`
-  - Unity-facing: `UnityAndroidDialogManager` (Java/Kotlin) + C# wrapper `AndroidDialogManager`
-  - Dispatches results onto Unity main thread (`UnityMainThreadDispatcher` expected)
-  - Docs: Dokka (includes `MODULE.md`)
+  - Optional integration module: C ABI / JNI bridge layer
+  - Docs: Dokka
 
 ### iOS
 
 - `ios/IosLibrary`
-
-  - Core: `IosDialogManager` (wraps `UIAlertController` patterns behind a unified callback model)
+  - Core: `IosDialogManager`
   - Variants: Alert / Confirm / Destructive / ActionSheet / TextInput / Login
   - Docs: DocC (`.docc`)
 
 - `ios/UnityIosPlugin`
-  - Unity-facing: Swift facade `UnityIosDialogManager` + Objective-C/C bridge (stable C ABI)
-  - Unity calls via P/Invoke: `DllImport("__Internal")`
+  - Optional integration module: Swift facade + Objective-C/C bridge (C ABI)
   - Docs: DocC (`.docc`)
 
 ### macOS
 
 - `mac/MacLibrary`
-
-  - Core: `MacDialogManager` (unifies `NSAlert` / `NSOpenPanel` / `NSSavePanel` using `Result`)
+  - Core: `MacDialogManager`
   - Variants: Alert / File / MultiFile / Folder / MultiFolder / Save
   - Docs: DocC (`.docc`)
 
 - `mac/UnityMacPlugin`
-  - Unity-facing: Swift + ObjC/C bridge + C# wrapper (e.g., JSON-based alert configuration)
+  - Optional integration module: Swift + ObjC/C bridge
   - Docs: DocC (`.docc`)
 
 ### Windows
 
 - `windows/WindowsLibrary`
-
-  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`, ...)
+  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`)
   - Header: `windows/WindowsLibrary/WindowsDialogManager.h`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/UnityWindowsPlugin`
-  - Unity plugin solution/project is included
-  - `UnityWindowsDialogManager` is currently a minimal stub; bridging WindowsLibrary to Unity is expected to be added later
-
----
+  - Optional integration project is included (currently minimal stub)
 
 ## Repository layout
 
-```
+```text
 android/
-  android_library/             # Android core dialogs
-  unity_android_plugin/         # Unity-facing Android bridge
-  AndroidLibraryExample/        # sample app / build wrapper
+  android_library/
+  unity_android_plugin/
+  AndroidLibraryExample/
 
 ios/
-  IosLibrary/                   # iOS core dialogs
-  UnityIosPlugin/               # Unity-facing iOS bridge
-  IosLibraryExample/            # sample
-  generate_docc.sh              # DocC generation
+  IosLibrary/
+  UnityIosPlugin/
+  IosLibraryExample/
+  generate_docc.sh
 
 mac/
-  MacLibrary/                   # macOS core dialogs / file panels
-  UnityMacPlugin/               # Unity-facing macOS bridge
-  MacLibraryExample/            # sample
-  generate_docc.sh              # DocC generation
+  MacLibrary/
+  UnityMacPlugin/
+  MacLibraryExample/
+  generate_docc.sh
 
 windows/
-  WindowsLibrary/               # Windows core (Win32 common dialogs)
-  UnityWindowsPlugin/           # Unity-facing (currently minimal stub)
-  WindowsLibraryExample/        # sample
-```
+  WindowsLibrary/
+  UnityWindowsPlugin/
+  WindowsLibraryExample/
 
----
+manual/
+  <version>/
+
+docs/
+  <version>/
+  latest/
+```
 
 ## Requirements
 
-- Android
+- Android: JDK 11 / Android SDK / Android Studio
+- iOS / macOS: Xcode
+- Windows: Visual Studio 2022 (C++), Doxygen when generating docs
 
-  - JDK 11
-  - Android SDK / Android Studio
-  - Gradle Wrapper (included)
+## Build (distributables)
 
-- iOS / macOS
+```bash
+# Android AAR
+./scripts/build_android_library_aar.sh --build-type release --output dist/1.0.0/android/native-toolkit-1.0.0.aar
 
-  - Xcode (DocC uses `xcrun docc`)
+# iOS XCFramework
+./scripts/build_ios_library_xcframework.sh --configuration release --output dist/1.0.0/ios/NativeToolkit-1.0.0.xcframework
 
-- Windows
-  - Visual Studio 2022 (C++)
-  - Doxygen (for generating docs)
+# macOS XCFramework (Xcode 16 / 26)
+./scripts/build_xcode16_library_xcframework.sh --configuration release --output dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework
+./scripts/build_xcode26_library_xcframework.sh --configuration release --output dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework
 
----
+# Windows DLL / NuGet
+./scripts/create_native_toolkit_dll.bat
+```
 
-## Build & docs
+## API docs generation
 
 ### Android
 
-Android builds are driven from `android/AndroidLibraryExample`, which includes the two modules.
-
 ```bash
 cd android/AndroidLibraryExample
-
-# Example: Android core library
-./gradlew :android_library:assembleRelease
-
-# Example: Unity-facing Android bridge (depends on android_library)
-./gradlew :unity_android_plugin:assembleRelease
+./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
 ```
 
-#### Android API docs (Dokka)
-
-```bash
-cd android/AndroidLibraryExample
-
-./gradlew :android_library:dokkaHtml
-./gradlew :unity_android_plugin:dokkaHtml
-```
-
-Output:
-
-- `android/android_library/build/dokka/html`
-- `android/unity_android_plugin/build/dokka/html`
-
-#### Android notes
-
-- `android/android_library/build.gradle.kts`
-  - `compileSdk = 35`, `minSdk = 31`, JVM target 11
-
----
-
-### iOS
-
-#### Open in Xcode
-
-- Workspace: `ios/IosWorkspace.xcworkspace`
-- Schemes: `IosLibrary`, `UnityIosPlugin`
-
-#### iOS API docs (DocC)
+### iOS (DocC)
 
 ```bash
 cd ios
 ./generate_docc.sh
 ```
 
-Output:
-
-- `ios/Docs/IosLibrary`
-- `ios/Docs/UnityIosPlugin`
-
-> Note: `ios/generate_docc.sh` may contain machine-specific absolute paths. If so, adjust it to use repository-relative paths.
-
----
-
-### macOS
-
-#### Open in Xcode
-
-- Workspace: `mac/MacWorkspace.xcworkspace`
-- Schemes: `MacLibrary`, `UnityMacPlugin`
-
-#### macOS API docs (DocC)
+### macOS (DocC)
 
 ```bash
 cd mac
 ./generate_docc.sh
 ```
 
-Output:
-
-- `mac/Docs/MacLibrary`
-- `mac/Docs/UnityMacPlugin`
-
-> Note: `mac/generate_docc.sh` may contain machine-specific absolute paths. If so, adjust it to use repository-relative paths.
-
----
-
-### Windows
-
-#### Build in Visual Studio
-
-- `windows/WindowsLibrary/WindowsLibrary.sln`
-- `windows/WindowsLibraryExample/WindowsLibraryExample.sln`
-
-Build configurations assume `Debug/Release` and `x86/x64`.
-
-#### Windows API docs (Doxygen)
-
-Generate using `windows/WindowsLibrary/Doxyfile`.
+### Windows (Doxygen)
 
 ```bash
 cd windows/WindowsLibrary
 doxygen Doxyfile
 ```
 
-Output (as configured):
+## Docs publish (version / latest)
 
-- `windows/WindowsLibrary/docs`
+Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
----
+```bash
+./scripts/publish_docs.sh 1.0.0
+```
 
-## Unity integration (minimal pointers)
+Copy only (skip generation):
 
-For Unity integration, start from the Unity-facing module docs per platform.
+```bash
+./scripts/publish_docs.sh 1.0.0 --skip-build
+```
 
-- Android: `android/unity_android_plugin/MODULE.md`
+Manual source path is `manual/<version>/`.
 
-  - Assumes `UnityAndroidDialogManager` (Java/Kotlin) + `AndroidDialogManager` (C#)
+## Native integration references
 
-- iOS: `ios/UnityIosPlugin/UnityIosPlugin/UnityIosPlugin.docc/UnityIosPlugin.md`
+For native integration, start from the core library docs per platform.
 
-  - Calls C ABI bridge functions via `DllImport("__Internal")`
-
-- macOS: `mac/UnityMacPlugin/UnityMacPlugin/UnityMacPlugin.docc/UnityMacPlugin.md`
-
-  - Documents JSON schema (alert buttons/options) and result dictionary keys
-
+- Android: `android/android_library/MODULE.md`
+- iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
+- macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
 - Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
-  - Unity bridge is expected to be implemented in `windows/UnityWindowsPlugin` (currently stub)
 
----
+## Unity Native Toolkit (Unity 6)
+
+- A toolkit that provides native platform features for Unity 6 and later.
+- The package includes native plugins and sample scenes for Android / iOS / Windows / macOS, and dialog operations can be handled through singleton APIs per platform.
+- From an Editor window, you can add native libraries and Gradle / Xcode settings to streamline post-build project setup as a workflow.
+- Repository: [unity-native-plugin](https://github.com/kimjh4941/unity-native-plugin)
 
 ## License
 
