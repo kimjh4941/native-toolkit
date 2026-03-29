@@ -204,6 +204,9 @@ class NotificationRepositoryImpl(context: Context) :
             content.timestampMillis?.let(::setWhen)
             content.soundUri?.let { setSound(it.toUri()) }
             content.category?.let(::setCategory)
+            if (content.category == NotificationCompat.CATEGORY_CALL) {
+                setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            }
             content.color?.let(::setColor)
             content.number?.let(::setNumber)
             content.ticker?.let(::setTicker)

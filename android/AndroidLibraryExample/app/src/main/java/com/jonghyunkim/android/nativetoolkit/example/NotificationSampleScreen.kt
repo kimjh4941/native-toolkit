@@ -1,12 +1,13 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
 import android.library.notification.application.model.AndroidPendingIntentRequest
+import android.library.notification.application.usecase.CancelNotificationUseCase
+import android.library.notification.application.usecase.CancelScheduledNotificationUseCase
 import android.library.notification.application.usecase.CreateNotificationChannelUseCase
 import android.library.notification.application.usecase.ScheduleNotificationUseCase
 import android.library.notification.application.usecase.ShowNotificationUseCase
@@ -20,11 +21,20 @@ import android.library.notification.domain.model.NotificationStyle
 import android.library.notification.presentation.permission.NotificationPermissionHelper
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,8 +44,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
@@ -54,7 +68,9 @@ fun NotificationSampleScreen(
     val repository = remember(activity) { NotificationRepositoryImpl(activity) }
     val createChannelUseCase = remember(repository) { CreateNotificationChannelUseCase(repository) }
     val showNotificationUseCase = remember(repository) { ShowNotificationUseCase(repository) }
+    val cancelNotificationUseCase = remember(repository) { CancelNotificationUseCase(repository) }
     val scheduleNotificationUseCase = remember(repository) { ScheduleNotificationUseCase(repository) }
+    val cancelScheduledNotificationUseCase = remember(repository) { CancelScheduledNotificationUseCase(repository) }
 
     var statusText by remember {
         mutableStateOf("通知サンプルを確認できます。まずは権限状態を確認してください。")
@@ -373,342 +389,557 @@ fun NotificationSampleScreen(
         }
     }
 
-    LazyColumn(
+    fun deleteNotificationSample(command: AndroidNotificationCommand, label: String) {
+        runCatching {
+            cancelNotificationUseCase(command.content.id, command.content.tag)
+        }.onSuccess {
+            statusText = "🗑️ $label 通知を削除しました。"
+        }.onFailure { throwable ->
+            Log.e(TAG, "[deleteNotificationSample] failed to delete notification label=$label", throwable)
+            statusText = "❌ 通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+        }
+    }
+
+    fun deleteScheduledNotificationSample(command: AndroidNotificationCommand, label: String) {
+        runCatching {
+            cancelScheduledNotificationUseCase(command.content.id, command.content.tag)
+            cancelNotificationUseCase(command.content.id, command.content.tag)
+        }.onSuccess {
+            statusText = "🗑️ $label を削除しました。予約済み通知と表示中通知をクリアしました。"
+        }.onFailure { throwable ->
+            Log.e(TAG, "[deleteScheduledNotificationSample] failed to delete scheduled notification label=$label", throwable)
+            statusText = "❌ 予約通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+        }
+    }
+
+    val listState = rememberLazyListState()
+
+    Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item {
-            Button(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "← Back to Main")
-            }
+        Button(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "← Back to Main")
         }
-        item {
-            Text(
-                text = "Notification Test",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                lineHeight = 36.sp,
+
+        Text(
+            text = "Notification Example",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            lineHeight = 36.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        )
+
+        Text(
+            text = statusText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            LazyColumn(
+                state = listState,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            )
-        }
-        item {
-            Text(
-                text = statusText,
+                    .fillMaxSize()
+                    .padding(end = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top)
+            ) {
+                item {
+                    Button(
+                        onClick = {
+                            statusText = buildString {
+                                appendLine("permissionGranted=${permissionHelper.hasPermission()}")
+                                appendLine("notificationsEnabled=${permissionHelper.areNotificationsEnabled()}")
+                                append("shouldShowRationale=${permissionHelper.shouldShowPermissionRationale()}")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Check Notification Permission")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            permissionHelper.requestPermission { granted ->
+                                statusText = if (granted) {
+                                    "✅ 通知権限が許可されました。"
+                                } else {
+                                    "❌ 通知権限が未許可です。設定画面から有効化してください。"
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Request Notification Permission")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            val opened = permissionHelper.openNotificationSettings()
+                            statusText = if (opened) {
+                                "ℹ️ 通知設定またはアプリ詳細設定を開きました。"
+                            } else {
+                                "❌ 設定画面を開けませんでした。この端末では該当設定画面が利用できない可能性があります。"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Open Notification Settings")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            val opened = permissionHelper.openAppDetailsSettings()
+                            statusText = if (opened) {
+                                "ℹ️ アプリ詳細設定を開きました。"
+                            } else {
+                                "❌ アプリ詳細設定を開けませんでした。"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Open App Details Settings")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            val opened = permissionHelper.openExactAlarmSettings()
+                            statusText = if (opened) {
+                                "ℹ️ Exact alarm 設定またはアプリ詳細設定を開きました。"
+                            } else {
+                                "❌ Exact alarm 設定を開けませんでした。"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Open Exact Alarm Settings")
+                    }
+                }
+                item {
+                    Text(
+                        text = "Style",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildDefaultStyleCommand(),
+                                successMessage = "✅ Default style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Default Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildDefaultStyleCommand(),
+                                label = "Default Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete Default Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildBigTextStyleCommand(),
+                                successMessage = "✅ BigText style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show BigText Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildBigTextStyleCommand(),
+                                label = "BigText Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete BigText Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildInboxStyleCommand(),
+                                successMessage = "✅ Inbox style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Inbox Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildInboxStyleCommand(),
+                                label = "Inbox Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete Inbox Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildBigPictureStyleCommand(),
+                                successMessage = "✅ BigPicture style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show BigPicture Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildBigPictureStyleCommand(),
+                                label = "BigPicture Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete BigPicture Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildMessagingStyleCommand(),
+                                successMessage = "✅ Messaging style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Messaging Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildMessagingStyleCommand(),
+                                label = "Messaging Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete Messaging Style")
+                    }
+                }
+                item {
+                    Text(
+                        text = "Extended Style",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildMediaStyleCommand(),
+                                successMessage = "✅ Media style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Media Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildMediaStyleCommand(),
+                                label = "Media Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete Media Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildDecoratedCustomViewStyleCommand(),
+                                successMessage = "✅ DecoratedCustomView style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show DecoratedCustomView Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildDecoratedCustomViewStyleCommand(),
+                                label = "DecoratedCustomView Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete DecoratedCustomView Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildDecoratedMediaCustomViewStyleCommand(),
+                                successMessage = "✅ DecoratedMediaCustomView style 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show DecoratedMediaCustomView Style")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildDecoratedMediaCustomViewStyleCommand(),
+                                label = "DecoratedMediaCustomView Style"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete DecoratedMediaCustomView Style")
+                    }
+                }
+                item {
+                    Text(
+                        text = "Call Style (Foreground Service)",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            startCallSampleForegroundService(
+                                sampleType = CallStyleSampleType.INCOMING,
+                                label = "Incoming Call"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Incoming Call")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            startCallSampleForegroundService(
+                                sampleType = CallStyleSampleType.ONGOING,
+                                label = "Ongoing Call"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Ongoing Call")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            startCallSampleForegroundService(
+                                sampleType = CallStyleSampleType.SCREENING,
+                                label = "Screening Call"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Screening Call")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = { stopCallSampleForegroundService() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Stop Call Foreground Service")
+                    }
+                }
+                item {
+                    Text(
+                        text = "Schedule",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            createChannel()
+                            if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+                                statusText = "❌ 予約通知を設定できません。権限または通知設定を確認してください。"
+                            } else {
+                                val triggerAt = System.currentTimeMillis() + 15_000L
+                                scheduleNotificationUseCase(
+                                    buildScheduledCommand(),
+                                    NotificationSchedule(triggerAtMillis = triggerAt)
+                                )
+                                statusText = "✅ 15秒後の予約通知を設定しました。"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Schedule Notification (15 sec)")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteScheduledNotificationSample(
+                                command = buildScheduledCommand(),
+                                label = "Schedule Notification"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete Schedule Notification")
+                    }
+                }
+            }
+
+            AlwaysVisibleLazyColumnScrollbar(
+                listState = listState,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(vertical = 8.dp)
+                    .offset(x = 12.dp)
             )
-        }
-        item {
-            Button(
-                onClick = {
-                    statusText = buildString {
-                        appendLine("permissionGranted=${permissionHelper.hasPermission()}")
-                        appendLine("notificationsEnabled=${permissionHelper.areNotificationsEnabled()}")
-                        append("shouldShowRationale=${permissionHelper.shouldShowPermissionRationale()}")
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Check Notification Permission")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    permissionHelper.requestPermission { granted ->
-                        statusText = if (granted) {
-                            "✅ 通知権限が許可されました。"
-                        } else {
-                            "❌ 通知権限が未許可です。設定画面から有効化してください。"
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Request Notification Permission")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    val opened = permissionHelper.openNotificationSettings()
-                    statusText = if (opened) {
-                        "ℹ️ 通知設定またはアプリ詳細設定を開きました。"
-                    } else {
-                        "❌ 設定画面を開けませんでした。この端末では該当設定画面が利用できない可能性があります。"
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Open Notification Settings")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    val opened = permissionHelper.openAppDetailsSettings()
-                    statusText = if (opened) {
-                        "ℹ️ アプリ詳細設定を開きました。"
-                    } else {
-                        "❌ アプリ詳細設定を開けませんでした。"
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Open App Details Settings")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    val opened = permissionHelper.openExactAlarmSettings()
-                    statusText = if (opened) {
-                        "ℹ️ Exact alarm 設定またはアプリ詳細設定を開きました。"
-                    } else {
-                        "❌ Exact alarm 設定を開けませんでした。"
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Open Exact Alarm Settings")
-            }
-        }
-        item {
-            Button(
-                onClick = { createChannel() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Create Notification Channel")
-            }
-        }
-        item {
-            Button(
-                onClick = { createChannel(callSampleChannel) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Create Call Notification Channel")
-            }
-        }
-        item {
-            Text(
-                text = "Style Samples",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp)
-            )
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildDefaultStyleCommand(),
-                        successMessage = "✅ Default style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show Default Style Sample")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildBigTextStyleCommand(),
-                        successMessage = "✅ BigText style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show BigText Style Sample")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildInboxStyleCommand(),
-                        successMessage = "✅ Inbox style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show Inbox Style Sample")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildBigPictureStyleCommand(),
-                        successMessage = "✅ BigPicture style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show BigPicture Style Sample")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildMessagingStyleCommand(),
-                        successMessage = "✅ Messaging style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show Messaging Style Sample")
-            }
-        }
-        item {
-            Text(
-                text = "Extended Style Samples",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp)
-            )
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildMediaStyleCommand(),
-                        successMessage = "✅ Media style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show Media Style Sample")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildDecoratedCustomViewStyleCommand(),
-                        successMessage = "✅ DecoratedCustomView style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show DecoratedCustomView Style Sample")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    showNotificationSample(
-                        command = buildDecoratedMediaCustomViewStyleCommand(),
-                        successMessage = "✅ DecoratedMediaCustomView style 通知を表示しました。"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Show DecoratedMediaCustomView Style Sample")
-            }
-        }
-        item {
-            Text(
-                text = "CallStyle Foreground Service Samples",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp)
-            )
-        }
-        item {
-            Button(
-                onClick = {
-                    startCallSampleForegroundService(
-                        sampleType = CallStyleSampleType.INCOMING,
-                        label = "Incoming"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Start Incoming Call Foreground Service")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    startCallSampleForegroundService(
-                        sampleType = CallStyleSampleType.ONGOING,
-                        label = "Ongoing"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Start Ongoing Call Foreground Service")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    startCallSampleForegroundService(
-                        sampleType = CallStyleSampleType.SCREENING,
-                        label = "Screening"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Start Screening Call Foreground Service")
-            }
-        }
-        item {
-            Button(
-                onClick = { stopCallSampleForegroundService() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Stop Call Foreground Service")
-            }
-        }
-        item {
-            Text(
-                text = "Schedule Sample",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 4.dp)
-            )
-        }
-        item {
-            Button(
-                onClick = {
-                    createChannel()
-                    if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
-                        statusText = "❌ 予約通知を設定できません。権限または通知設定を確認してください。"
-                    } else {
-                        val triggerAt = System.currentTimeMillis() + 15_000L
-                        scheduleNotificationUseCase(
-                            buildScheduledCommand(),
-                            NotificationSchedule(triggerAtMillis = triggerAt)
-                        )
-                        statusText = "✅ 15秒後の予約通知を設定しました。"
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Schedule Notification (15 sec)")
-            }
         }
     }
+}
+
+private data class ScrollbarMetrics(
+    val canScroll: Boolean,
+    val thumbHeightPx: Float,
+    val offsetPx: Float
+)
+
+@Composable
+private fun AlwaysVisibleLazyColumnScrollbar(
+    listState: LazyListState,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val minThumbHeightPx = with(density) { 36.dp.toPx() }
+    val metrics = calculateScrollbarMetrics(
+        listState = listState,
+        minThumbHeightPx = minThumbHeightPx
+    )
+
+    if (!metrics.canScroll) return
+
+    Box(
+        modifier = modifier
+            .offset { IntOffset(0, metrics.offsetPx.toInt()) }
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.Black.copy(alpha = 0.45f))
+            .width(4.dp)
+            .height(with(density) { metrics.thumbHeightPx.toDp() })
+    )
+}
+
+private fun calculateScrollbarMetrics(
+    listState: LazyListState,
+    minThumbHeightPx: Float
+): ScrollbarMetrics {
+    val layoutInfo = listState.layoutInfo
+    val visibleItems = layoutInfo.visibleItemsInfo
+    if (visibleItems.isEmpty()) {
+        return ScrollbarMetrics(false, minThumbHeightPx, 0f)
+    }
+
+    val viewportHeightPx = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).toFloat()
+    if (viewportHeightPx <= 0f) {
+        return ScrollbarMetrics(false, minThumbHeightPx, 0f)
+    }
+
+    val averageItemSizePx = visibleItems.map { it.size }.average().toFloat().coerceAtLeast(1f)
+    val totalItemsCount = layoutInfo.totalItemsCount.coerceAtLeast(1)
+    val estimatedContentHeightPx = averageItemSizePx * totalItemsCount
+    if (estimatedContentHeightPx <= viewportHeightPx) {
+        return ScrollbarMetrics(false, viewportHeightPx, 0f)
+    }
+
+    val estimatedScrollOffsetPx =
+        (listState.firstVisibleItemIndex * averageItemSizePx) + listState.firstVisibleItemScrollOffset
+    val maxScrollOffsetPx = (estimatedContentHeightPx - viewportHeightPx).coerceAtLeast(1f)
+    val thumbHeightPx =
+        (viewportHeightPx * (viewportHeightPx / estimatedContentHeightPx))
+            .coerceAtLeast(minThumbHeightPx)
+            .coerceAtMost(viewportHeightPx)
+    val availableTrackHeightPx = (viewportHeightPx - thumbHeightPx).coerceAtLeast(0f)
+    val offsetRatio = (estimatedScrollOffsetPx / maxScrollOffsetPx).coerceIn(0f, 1f)
+
+    return ScrollbarMetrics(
+        canScroll = true,
+        thumbHeightPx = thumbHeightPx,
+        offsetPx = availableTrackHeightPx * offsetRatio
+    )
 }

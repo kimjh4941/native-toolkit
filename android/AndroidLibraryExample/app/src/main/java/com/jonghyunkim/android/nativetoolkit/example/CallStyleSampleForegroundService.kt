@@ -3,6 +3,7 @@ package com.jonghyunkim.android.nativetoolkit.example
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.util.Log
 import android.library.notification.application.usecase.StartForegroundNotificationUseCase
@@ -25,6 +26,7 @@ class CallStyleSampleForegroundService : Service() {
 
     private var isForegroundStarted: Boolean = false
     private var currentSampleType: CallStyleSampleType = CallStyleSampleType.INCOMING
+    private val callForegroundServiceType: Int = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -55,15 +57,26 @@ class CallStyleSampleForegroundService : Service() {
         currentSampleType = sampleType
 
         runCatching {
-            if (isForegroundStarted) {
-                updateForegroundNotificationUseCase(this, command)
-            } else {
-                startForegroundNotificationUseCase(this, command)
-                isForegroundStarted = true
-            }
+            startOrUpdateForeground(command, foregroundServiceType = callForegroundServiceType)
+        }.recoverCatching { throwable ->
+            Log.w(TAG, "[showSample] retry without specialUse foregroundServiceType for sampleType=$sampleType", throwable)
+            startOrUpdateForeground(command, foregroundServiceType = null)
+        }.onSuccess {
+            isForegroundStarted = true
         }.onFailure { throwable ->
             Log.e(TAG, "[showSample] failed for sampleType=$sampleType", throwable)
             stopCallSample()
+        }
+    }
+
+    private fun startOrUpdateForeground(
+        command: android.library.notification.application.model.AndroidNotificationCommand,
+        foregroundServiceType: Int?
+    ) {
+        if (isForegroundStarted) {
+            updateForegroundNotificationUseCase(this, command, foregroundServiceType)
+        } else {
+            startForegroundNotificationUseCase(this, command, foregroundServiceType)
         }
     }
 
@@ -114,4 +127,3 @@ class CallStyleSampleForegroundService : Service() {
         }
     }
 }
-

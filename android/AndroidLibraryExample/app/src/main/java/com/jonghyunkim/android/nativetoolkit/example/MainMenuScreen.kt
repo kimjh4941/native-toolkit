@@ -46,14 +46,14 @@ fun MainMenuScreen(
         }
         item {
             MainMenuListItem(
-                title = "AndroidDialogFragment Test",
-                description = "既存のダイアログサンプルを確認します。",
+                title = "Dialog Example",
+                description = "ダイアログサンプルを確認します。",
                 onClick = onSelectDialogTest
             )
         }
         item {
             MainMenuListItem(
-                title = "Notification Test",
+                title = "Notification Example",
                 description = "通知権限・表示・予約通知のサンプルを確認します。",
                 onClick = onSelectNotificationTest
             )

@@ -2,7 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
+    <!--
+        このサンプルは実際の通話アプリではないため、CallStyle の確認用途として
+        FOREGROUND_SERVICE_SPECIAL_USE を使っています。
+
+        将来、本物の通話アプリとして phoneCall type の FGS を使う場合は、例えば以下を検討します。
+        <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+
+        Android 14/15 系では上記に加えて、MANAGE_OWN_CALLS または default dialer role など、
+        実通話アプリとしての条件を満たしていないと phoneCall type FGS は拒否されます。
+    -->
 
     <application
         android:allowBackup="true"
@@ -23,10 +35,20 @@
             </intent-filter>
         </activity>
 
+        <!--
+            現状の service はサンプル用途のため specialUse を使っています。
+            将来 phoneCall に切り替える場合は、android:foregroundServiceType="phoneCall" へ変更し、
+            さらに実通話アプリとしての条件（MANAGE_OWN_CALLS / default dialer role など）を満たす必要があります。
+        -->
         <service
             android:name=".CallStyleSampleForegroundService"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="call_style_notification_sample" />
+        </service>
     </application>
 
 </manifest>

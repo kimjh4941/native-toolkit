@@ -51,7 +51,7 @@ fun AndroidDialogFragmentTestScreen(
         }
         item {
             Text(
-                text = "AndroidDialogFragment Test",
+                text = "Dialog Example",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,

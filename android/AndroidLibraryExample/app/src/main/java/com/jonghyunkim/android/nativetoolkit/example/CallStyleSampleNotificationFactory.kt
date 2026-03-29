@@ -26,7 +26,7 @@ internal enum class CallStyleSampleType {
 internal object CallStyleSampleNotificationFactory {
 
     private const val CALL_NOTIFICATION_ID = 1200
-    private const val CALL_CHANNEL_ID = "native_toolkit_call_sample"
+    private const val CALL_CHANNEL_ID = "native_toolkit_call_sample_v2"
 
     fun createCommand(context: Context, sampleType: CallStyleSampleType): AndroidNotificationCommand {
         return when (sampleType) {
@@ -216,4 +216,3 @@ internal object CallStyleSampleNotificationFactory {
         )
     }
 }
-
