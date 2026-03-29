@@ -10,6 +10,7 @@ import android.library.notification.data.repository.toDomain
 import android.library.notification.data.repository.toPayload
 import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
+import android.library.notification.domain.model.NotificationProgress
 import android.library.notification.domain.model.NotificationSchedule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -34,7 +35,12 @@ class NotificationPayloadMappersTest {
                 smallIconResId = 123,
                 largeIconResId = 456,
                 groupKey = "group.updates",
-                isGroupSummary = true
+                isGroupSummary = true,
+                progress = NotificationProgress(
+                    max = 100,
+                    current = 45,
+                    indeterminate = false
+                )
             ),
             platformOptions = AndroidNotificationPlatformOptions(
                 contentIntent = AndroidPendingIntentRequest(
@@ -52,6 +58,9 @@ class NotificationPayloadMappersTest {
         assertEquals(command.content.channel.id, restored.content.channel.id)
         assertEquals(command.content.groupKey, restored.content.groupKey)
         assertEquals(command.content.isGroupSummary, restored.content.isGroupSummary)
+        assertEquals(command.content.progress?.max, restored.content.progress?.max)
+        assertEquals(command.content.progress?.current, restored.content.progress?.current)
+        assertEquals(command.content.progress?.indeterminate, restored.content.progress?.indeterminate)
         assertSame(intent, restored.platformOptions.contentIntent?.intent)
     }
 
@@ -74,4 +83,3 @@ class NotificationPayloadMappersTest {
         assertEquals(schedule.alarmType, restored.alarmType)
     }
 }
-

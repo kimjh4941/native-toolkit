@@ -58,6 +58,7 @@ The module includes support for:
 - `AndroidNotificationCommand`
 - `NotificationContent`
 - `NotificationChannel`
+- `NotificationProgress`
 - `NotificationSchedule`
 - `ShowNotificationUseCase`
 - `CreateNotificationChannelUseCase`
@@ -93,6 +94,30 @@ ShowNotificationUseCase(repository)(
             style = NotificationStyle.BigText(
                 bigText = "Native Toolkit notification system is ready and supports rich styles.",
                 summaryText = "Ready"
+            )
+        )
+    )
+)
+```
+
+### Progress example
+```kotlin
+ShowNotificationUseCase(repository)(
+    AndroidNotificationCommand(
+        content = NotificationContent(
+            id = 1100,
+            title = "Native Toolkit Download",
+            message = "Downloading sample asset... 45%",
+            channel = NotificationChannel(
+                id = "updates",
+                name = "Updates"
+            ),
+            ongoing = true,
+            autoCancel = false,
+            progress = NotificationProgress(
+                max = 100,
+                current = 45,
+                indeterminate = false
             )
         )
     )
@@ -227,7 +252,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {
         override fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "Yes") { /* proceed */ }
+            if (buttonText == "Yes") {
+                println("proceed with delete flow")
+            }
         }
     })
 }.show(supportFragmentManager, "ConfirmDialog")
@@ -242,7 +269,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
         override fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK" && checkedItem != null) { /* use index */ }
+            if (buttonText == "OK" && checkedItem != null) {
+                println("selected index=$checkedItem")
+            }
         }
     })
 }.show(supportFragmentManager, "SingleChoiceDialog")
@@ -257,7 +286,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {
         override fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK" && checkedItems != null) { /* use states */ }
+            if (buttonText == "OK" && checkedItems != null) {
+                println("selected count=${checkedItems.count { it }}")
+            }
         }
     })
 }.show(supportFragmentManager, "MultiChoiceDialog")
@@ -273,7 +304,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {
         override fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK" && !inputText.isNullOrEmpty()) { /* use text */ }
+            if (buttonText == "OK" && !inputText.isNullOrEmpty()) {
+                println("input=$inputText")
+            }
         }
     })
 }.show(supportFragmentManager, "TextInputDialog")
@@ -289,7 +322,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
         override fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK") { /* authenticate */ }
+            if (buttonText == "OK") {
+                println("authenticate user=$username")
+            }
         }
     })
 }.show(supportFragmentManager, "LoginDialog")

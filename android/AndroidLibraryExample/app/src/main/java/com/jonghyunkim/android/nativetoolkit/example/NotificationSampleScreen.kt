@@ -16,6 +16,7 @@ import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
 import android.library.notification.domain.model.NotificationCustomViewStyleData
 import android.library.notification.domain.model.NotificationMessage
+import android.library.notification.domain.model.NotificationProgress
 import android.library.notification.domain.model.NotificationSchedule
 import android.library.notification.domain.model.NotificationStyle
 import android.library.notification.presentation.call.CallStyleForegroundService
@@ -148,6 +149,7 @@ fun NotificationSampleScreen(
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         ongoing: Boolean = false,
         autoCancel: Boolean = true,
+        progress: NotificationProgress? = null,
         platformOptions: AndroidNotificationPlatformOptions = AndroidNotificationPlatformOptions()
     ): AndroidNotificationCommand {
         val resolvedPlatformOptions = if (platformOptions.contentIntent == null) {
@@ -171,6 +173,7 @@ fun NotificationSampleScreen(
                 priority = priority,
                 ongoing = ongoing,
                 autoCancel = autoCancel,
+                progress = progress,
                 style = style
             ),
             platformOptions = resolvedPlatformOptions
@@ -355,6 +358,46 @@ fun NotificationSampleScreen(
                 bigContentTitle = "Scheduled BigText"
             ),
             subText = "Scheduled"
+        )
+    }
+
+    fun buildProgressCommand(progressValue: Int, max: Int = 100): AndroidNotificationCommand {
+        val safeProgress = progressValue.coerceIn(0, max)
+        val isComplete = safeProgress >= max
+        return buildStyleCommand(
+            id = 1009,
+            title = "Native Toolkit Download",
+            message = if (isComplete) {
+                "Download completed"
+            } else {
+                "Downloading sample asset... $safeProgress%"
+            },
+            style = NotificationStyle.Default,
+            subText = "Progress",
+            ongoing = !isComplete,
+            autoCancel = isComplete,
+            progress = NotificationProgress(
+                max = max,
+                current = safeProgress,
+                indeterminate = false
+            )
+        )
+    }
+
+    fun buildIndeterminateProgressCommand(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = 1009,
+            title = "Native Toolkit Sync",
+            message = "Syncing sample data...",
+            style = NotificationStyle.Default,
+            subText = "Progress / Indeterminate",
+            ongoing = true,
+            autoCancel = false,
+            progress = NotificationProgress(
+                max = 0,
+                current = 0,
+                indeterminate = true
+            )
         )
     }
 
@@ -783,6 +826,82 @@ fun NotificationSampleScreen(
                         Text(text = "Delete DecoratedMediaCustomView Style")
                     }
                 }
+                item {
+                    Text(
+                        text = "Progress",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildProgressCommand(progressValue = 10),
+                                successMessage = "✅ Progress 通知を 10% で表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Progress 10%")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildProgressCommand(progressValue = 50),
+                                successMessage = "✅ Progress 通知を 50% に更新しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Progress 50%")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildProgressCommand(progressValue = 100),
+                                successMessage = "✅ Progress 通知を 100% に更新しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Progress 100%")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildIndeterminateProgressCommand(),
+                                successMessage = "✅ Indeterminate Progress 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Indeterminate Progress")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildProgressCommand(progressValue = 0),
+                                label = "Progress"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete Progress")
+                    }
+                }
+
                 item {
                     Text(
                         text = "Call Style (Foreground Service)",
