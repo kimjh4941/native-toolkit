@@ -30,10 +30,12 @@ The notification module follows a clean layered structure:
   - Android-specific implementations and payload mapping
 - `android.library.notification.presentation.permission`
   - UI permission helper for Android 13+
+- `android.library.notification.presentation.call`
+  - CallStyle foreground-service helpers and notification builders
 
 ### Legacy status
 
-Legacy notification files have been physically removed. The notification module now exposes only the new `domain.model`, `application.*`, `presentation.permission`, and `data.repository.NotificationRepositoryImpl` APIs.
+Legacy notification files have been physically removed. The notification module now exposes only the new `domain.model`, `application.*`, `presentation.permission`, `presentation.call`, and `data.repository.NotificationRepositoryImpl` APIs.
 
 ## Notification Toolkit
 
@@ -44,6 +46,7 @@ The module includes support for:
 - Group notifications and group summary notifications
 - Action buttons and content / delete / full-screen intents
 - Styles: default, big text, inbox, big picture, messaging
+- CallStyle foreground-service flows for incoming / ongoing / screening notifications
 - Progress notifications
 - Foreground notification start / update / stop
 - Scheduled notifications via `AlarmManager`
@@ -61,6 +64,9 @@ The module includes support for:
 - `ScheduleNotificationUseCase`
 - `StartForegroundNotificationUseCase`
 - `android.library.notification.presentation.permission.NotificationPermissionHelper`
+- `android.library.notification.presentation.call.CallStyleType`
+- `android.library.notification.presentation.call.CallStyleNotificationFactory`
+- `android.library.notification.presentation.call.CallStyleForegroundService`
 
 ### Notification quick example
 ```kotlin

@@ -18,6 +18,9 @@ import android.library.notification.domain.model.NotificationCustomViewStyleData
 import android.library.notification.domain.model.NotificationMessage
 import android.library.notification.domain.model.NotificationSchedule
 import android.library.notification.domain.model.NotificationStyle
+import android.library.notification.presentation.call.CallStyleForegroundService
+import android.library.notification.presentation.call.CallStyleNotificationFactory
+import android.library.notification.presentation.call.CallStyleType
 import android.library.notification.presentation.permission.NotificationPermissionHelper
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -56,6 +59,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
 const val TAG = "NotificationSampleScreen"
+private const val ACTION_OPEN_NOTIFICATION_SAMPLE = "native.toolkit.notification.open"
 
 @Composable
 fun NotificationSampleScreen(
@@ -83,7 +87,7 @@ fun NotificationSampleScreen(
             description = "Notification sample channel"
         )
     }
-    val callSampleChannel = remember { CallStyleSampleNotificationFactory.createChannel() }
+    val callSampleChannel = remember { CallStyleNotificationFactory.createChannel() }
 
     fun createChannel(channel: NotificationChannel = sampleChannel) {
         Log.d(TAG, "[createChannel] channelId=${channel.id}")
@@ -99,6 +103,15 @@ fun NotificationSampleScreen(
             },
             requestCode = requestCode,
             flags = PendingIntent.FLAG_UPDATE_CURRENT
+        )
+    }
+
+    fun buildDefaultOpenAppPlatformOptions(requestCode: Int): AndroidNotificationPlatformOptions {
+        return AndroidNotificationPlatformOptions(
+            contentIntent = buildActivityPendingIntentRequest(
+                requestCode = requestCode,
+                action = ACTION_OPEN_NOTIFICATION_SAMPLE
+            )
         )
     }
 
@@ -137,6 +150,14 @@ fun NotificationSampleScreen(
         autoCancel: Boolean = true,
         platformOptions: AndroidNotificationPlatformOptions = AndroidNotificationPlatformOptions()
     ): AndroidNotificationCommand {
+        val resolvedPlatformOptions = if (platformOptions.contentIntent == null) {
+            platformOptions.copy(
+                contentIntent = buildDefaultOpenAppPlatformOptions(requestCode = id).contentIntent
+            )
+        } else {
+            platformOptions
+        }
+
         return AndroidNotificationCommand(
             content = NotificationContent(
                 id = id,
@@ -152,7 +173,7 @@ fun NotificationSampleScreen(
                 autoCancel = autoCancel,
                 style = style
             ),
-            platformOptions = platformOptions
+            platformOptions = resolvedPlatformOptions
         )
     }
 
@@ -337,17 +358,17 @@ fun NotificationSampleScreen(
         )
     }
 
-    fun startCallSampleForegroundService(sampleType: CallStyleSampleType, label: String) {
+    fun startCallForegroundService(type: CallStyleType, label: String) {
         createChannel(callSampleChannel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
             statusText = "❌ 通話通知を表示できません。権限または通知設定を確認してください。"
             return
         }
 
-        val intent = when (sampleType) {
-            CallStyleSampleType.INCOMING -> CallStyleSampleForegroundService.createIncomingStartIntent(activity)
-            CallStyleSampleType.ONGOING -> CallStyleSampleForegroundService.createOngoingStartIntent(activity)
-            CallStyleSampleType.SCREENING -> CallStyleSampleForegroundService.createScreeningStartIntent(activity)
+        val intent = when (type) {
+            CallStyleType.INCOMING -> CallStyleForegroundService.createIncomingStartIntent(activity)
+            CallStyleType.ONGOING -> CallStyleForegroundService.createOngoingStartIntent(activity)
+            CallStyleType.SCREENING -> CallStyleForegroundService.createScreeningStartIntent(activity)
         }
 
         runCatching {
@@ -355,18 +376,18 @@ fun NotificationSampleScreen(
         }.onSuccess {
             statusText = "✅ $label の foreground service CallStyle サンプルを開始しました。"
         }.onFailure { throwable ->
-            Log.e(TAG, "[startCallSampleForegroundService] failed sampleType=$sampleType", throwable)
+            Log.e(TAG, "[startCallForegroundService] failed type=$type", throwable)
             statusText = "❌ 通話 foreground service の開始に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
-    fun stopCallSampleForegroundService() {
+    fun stopCallForegroundService() {
         runCatching {
-            activity.startService(CallStyleSampleForegroundService.createStopIntent(activity))
+            activity.startService(CallStyleForegroundService.createStopIntent(activity))
         }.onSuccess {
             statusText = "ℹ️ 通話 foreground service サンプルの停止を要求しました。"
         }.onFailure { throwable ->
-            Log.e(TAG, "[stopCallSampleForegroundService] failed", throwable)
+            Log.e(TAG, "[stopCallForegroundService] failed", throwable)
             statusText = "❌ 通話 foreground service を停止できませんでした: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
@@ -775,8 +796,8 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            startCallSampleForegroundService(
-                                sampleType = CallStyleSampleType.INCOMING,
+                            startCallForegroundService(
+                                type = CallStyleType.INCOMING,
                                 label = "Incoming Call"
                             )
                         },
@@ -788,8 +809,8 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            startCallSampleForegroundService(
-                                sampleType = CallStyleSampleType.ONGOING,
+                            startCallForegroundService(
+                                type = CallStyleType.ONGOING,
                                 label = "Ongoing Call"
                             )
                         },
@@ -801,8 +822,8 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            startCallSampleForegroundService(
-                                sampleType = CallStyleSampleType.SCREENING,
+                            startCallForegroundService(
+                                type = CallStyleType.SCREENING,
                                 label = "Screening Call"
                             )
                         },
@@ -813,7 +834,7 @@ fun NotificationSampleScreen(
                 }
                 item {
                     Button(
-                        onClick = { stopCallSampleForegroundService() },
+                        onClick = { stopCallForegroundService() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Stop Call Foreground Service")

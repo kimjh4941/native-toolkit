@@ -13,14 +13,19 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.ImageDecoder
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.widget.RemoteViews
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import androidx.media.app.NotificationCompat as MediaNotificationCompat
 import android.library.notification.application.model.AndroidNotificationAction
@@ -539,7 +544,25 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     private fun loadBitmapFromResource(resId: Int): Bitmap? {
-        return runCatching { BitmapFactory.decodeResource(appContext.resources, resId) }.getOrNull()
+        return runCatching {
+            AppCompatResources.getDrawable(appContext, resId)?.toBitmapSafely()
+                ?: BitmapFactory.decodeResource(appContext.resources, resId)
+        }.getOrNull()
+    }
+
+    private fun Drawable.toBitmapSafely(): Bitmap? {
+        val bitmapDrawable = this as? BitmapDrawable
+        if (bitmapDrawable?.bitmap != null) {
+            return bitmapDrawable.bitmap
+        }
+
+        val width = intrinsicWidth.takeIf { it > 0 } ?: 1
+        val height = intrinsicHeight.takeIf { it > 0 } ?: 1
+        val bitmap = createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        setBounds(0, 0, canvas.width, canvas.height)
+        draw(canvas)
+        return bitmap
     }
 
     private fun loadBitmapFromUri(uriString: String): Bitmap? {
