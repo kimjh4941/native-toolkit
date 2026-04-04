@@ -1,6 +1,7 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.app.PendingIntent
+import android.app.NotificationManager
 import android.content.Intent
 import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
@@ -23,6 +24,7 @@ import android.library.notification.presentation.call.CallStyleForegroundService
 import android.library.notification.presentation.call.CallStyleNotificationFactory
 import android.library.notification.presentation.call.CallStyleType
 import android.library.notification.presentation.permission.NotificationPermissionHelper
+import android.library.notification.presentation.progress.ProgressForegroundNotifications
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
@@ -89,6 +91,14 @@ fun NotificationSampleScreen(
         )
     }
     val callSampleChannel = remember { CallStyleNotificationFactory.createChannel() }
+    val progressForegroundSampleChannel = remember {
+        NotificationChannel(
+            id = "native_toolkit_progress_fgs",
+            name = "Native Toolkit Progress FGS",
+            importance = NotificationManager.IMPORTANCE_LOW,
+            description = "Foreground service progress sample channel"
+        )
+    }
 
     fun createChannel(channel: NotificationChannel = sampleChannel) {
         Log.d(TAG, "[createChannel] channelId=${channel.id}")
@@ -399,6 +409,97 @@ fun NotificationSampleScreen(
                 indeterminate = true
             )
         )
+    }
+
+    fun buildProgressForegroundCommand(progressValue: Int, max: Int = 100): AndroidNotificationCommand {
+        val safeProgress = progressValue.coerceIn(0, max)
+        return buildStyleCommand(
+            id = 1011,
+            title = "Native Toolkit Background Sync",
+            message = "Running background sync... $safeProgress%",
+            style = NotificationStyle.Default,
+            channel = progressForegroundSampleChannel,
+            subText = "FGS Progress / dataSync",
+            ongoing = true,
+            autoCancel = false,
+            progress = NotificationProgress(
+                max = max,
+                current = safeProgress,
+                indeterminate = false
+            )
+        )
+    }
+
+    fun buildProgressForegroundCompleteCommand(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = 1011,
+            title = "Native Toolkit Background Sync",
+            message = "Background sync completed",
+            style = NotificationStyle.BigText(
+                bigText = "The background sync finished successfully. This notification was downgraded from a foreground service to a normal notification.",
+                summaryText = "FGS Completed",
+                bigContentTitle = "Background Sync Completed"
+            ),
+            channel = progressForegroundSampleChannel,
+            subText = "FGS Progress / Completed",
+            ongoing = false,
+            autoCancel = true,
+            progress = NotificationProgress(
+                max = 100,
+                current = 100,
+                indeterminate = false
+            )
+        )
+    }
+
+    fun startProgressForegroundService() {
+        createChannel(progressForegroundSampleChannel)
+        if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+            statusText = "❌ Progress foreground service を表示できません。権限または通知設定を確認してください。"
+            return
+        }
+
+        runCatching {
+            ProgressForegroundNotifications.start(activity, buildProgressForegroundCommand(progressValue = 10))
+        }.onSuccess {
+            statusText = "✅ dataSync Progress foreground service を開始しました。10% の通知を表示しています。"
+        }.onFailure { throwable ->
+            Log.e(TAG, "[startProgressForegroundService] failed", throwable)
+            statusText = "❌ Progress foreground service の開始に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+        }
+    }
+
+    fun updateProgressForegroundService(progressValue: Int) {
+        runCatching {
+            ProgressForegroundNotifications.update(activity, buildProgressForegroundCommand(progressValue = progressValue))
+        }.onSuccess {
+            statusText = "✅ dataSync Progress foreground service を ${progressValue.coerceIn(0, 100)}% に更新しました。"
+        }.onFailure { throwable ->
+            Log.e(TAG, "[updateProgressForegroundService] failed progressValue=$progressValue", throwable)
+            statusText = "❌ Progress foreground service の更新に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+        }
+    }
+
+    fun completeProgressForegroundService() {
+        runCatching {
+            ProgressForegroundNotifications.complete(activity, buildProgressForegroundCompleteCommand())
+        }.onSuccess {
+            statusText = "✅ Progress foreground service を完了しました。通常通知へ降格しています。"
+        }.onFailure { throwable ->
+            Log.e(TAG, "[completeProgressForegroundService] failed", throwable)
+            statusText = "❌ Progress foreground service の完了処理に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+        }
+    }
+
+    fun stopProgressForegroundService() {
+        runCatching {
+            ProgressForegroundNotifications.stop(activity)
+        }.onSuccess {
+            statusText = "ℹ️ Progress foreground service の停止を要求しました。"
+        }.onFailure { throwable ->
+            Log.e(TAG, "[stopProgressForegroundService] failed", throwable)
+            statusText = "❌ Progress foreground service を停止できませんでした: ${throwable.message ?: throwable::class.java.simpleName}"
+        }
     }
 
     fun startCallForegroundService(type: CallStyleType, label: String) {
@@ -899,6 +1000,57 @@ fun NotificationSampleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Delete Progress")
+                    }
+                }
+
+                item {
+                    Text(
+                        text = "Progress (Foreground Service / dataSync)",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = { startProgressForegroundService() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Start Progress FGS 10%")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = { updateProgressForegroundService(progressValue = 50) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Update Progress FGS 50%")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = { updateProgressForegroundService(progressValue = 90) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Update Progress FGS 90%")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = { completeProgressForegroundService() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Complete Progress FGS")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = { stopProgressForegroundService() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Stop Progress FGS")
                     }
                 }
 

@@ -32,6 +32,8 @@ The notification module follows a clean layered structure:
   - UI permission helper for Android 13+
 - `android.library.notification.presentation.call`
   - CallStyle foreground-service helpers and notification builders
+- `android.library.notification.presentation.progress`
+  - Optional `dataSync` foreground-service helpers for long-running progress notifications
 
 ### Legacy status
 
@@ -48,6 +50,7 @@ The module includes support for:
 - Styles: default, big text, inbox, big picture, messaging
 - CallStyle foreground-service flows for incoming / ongoing / screening notifications
 - Progress notifications
+- Optional `dataSync` foreground-service progress flows for start / update / complete / stop
 - Foreground notification start / update / stop
 - Scheduled notifications via `AlarmManager`
 - Re-scheduling persisted notifications after reboot / package replace
@@ -68,6 +71,9 @@ The module includes support for:
 - `android.library.notification.presentation.call.CallStyleType`
 - `android.library.notification.presentation.call.CallStyleNotificationFactory`
 - `android.library.notification.presentation.call.CallStyleForegroundService`
+- `android.library.notification.presentation.progress.ProgressForegroundNotifications`
+- `android.library.notification.presentation.progress.ProgressForegroundServiceIntents`
+- `android.library.notification.presentation.progress.ProgressForegroundService`
 
 ### Notification quick example
 ```kotlin
@@ -123,6 +129,55 @@ ShowNotificationUseCase(repository)(
     )
 )
 ```
+
+### Optional dataSync foreground-service progress example
+```kotlin
+val progressCommand = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 2100,
+        title = "Native Toolkit Background Sync",
+        message = "Syncing assets... 25%",
+        channel = NotificationChannel(
+            id = "progress_fgs",
+            name = "Progress FGS"
+        ),
+        ongoing = true,
+        autoCancel = false,
+        progress = NotificationProgress(
+            max = 100,
+            current = 25,
+            indeterminate = false
+        )
+    )
+)
+
+ProgressForegroundNotifications.start(context, progressCommand)
+ProgressForegroundNotifications.update(
+    context,
+    progressCommand.copy(
+        content = progressCommand.content.copy(
+            message = "Syncing assets... 75%",
+            progress = NotificationProgress(max = 100, current = 75, indeterminate = false)
+        )
+    )
+)
+ProgressForegroundNotifications.complete(
+    context,
+    progressCommand.copy(
+        content = progressCommand.content.copy(
+            message = "Background sync completed",
+            ongoing = false,
+            autoCancel = true,
+            progress = NotificationProgress(max = 100, current = 100, indeterminate = false)
+        )
+    )
+)
+```
+
+Notes:
+- This API is optional. Use normal progress notifications first unless the work truly must continue in the background.
+- The progress FGS uses `foregroundServiceType="dataSync"`.
+- `complete(...)` is designed to detach the foreground service and replace the same notification id with a normal notification.
 
 ### Scheduling example
 ```kotlin
