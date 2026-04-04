@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.dokka)
 }
 
+
 version = "1.0.0"
 
 android {
@@ -61,6 +62,7 @@ dependencies {
     implementation(libs.material)
     implementation(project(":android_library"))
     testImplementation(libs.junit)
+    testImplementation(libs.orgjson)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
