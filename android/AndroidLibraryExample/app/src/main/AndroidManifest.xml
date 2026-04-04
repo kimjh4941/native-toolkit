@@ -19,6 +19,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".NotificationFullScreenSampleActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.Android" />
+
+        <receiver
+            android:name=".NotificationDeleteReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

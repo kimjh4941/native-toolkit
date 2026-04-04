@@ -7,6 +7,7 @@ import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
 import android.library.notification.application.model.AndroidPendingIntentRequest
+import android.library.notification.application.model.AndroidPendingIntentType
 import android.library.notification.application.usecase.CancelNotificationUseCase
 import android.library.notification.application.usecase.CancelScheduledNotificationUseCase
 import android.library.notification.application.usecase.CreateNotificationChannelUseCase
@@ -63,6 +64,9 @@ import androidx.core.content.ContextCompat
 
 const val TAG = "NotificationSampleScreen"
 private const val ACTION_OPEN_NOTIFICATION_SAMPLE = "native.toolkit.notification.open"
+private const val ACTION_OPEN_GROUPING_SAMPLE = "native.toolkit.notification.grouping.open"
+private const val ACTION_OPEN_FULL_SCREEN_SAMPLE = "native.toolkit.notification.fullscreen.open"
+private const val GROUP_SAMPLE_KEY = "native.toolkit.grouping.sample"
 
 @Composable
 fun NotificationSampleScreen(
@@ -99,20 +103,61 @@ fun NotificationSampleScreen(
             description = "Foreground service progress sample channel"
         )
     }
+    val interactionGroupingSampleChannel = remember {
+        NotificationChannel(
+            id = "native_toolkit_interaction_grouping",
+            name = "Native Toolkit Interaction & Grouping",
+            description = "Interaction and grouping notification sample channel"
+        )
+    }
+    val fullScreenSampleChannel = remember {
+        NotificationChannel(
+            id = "native_toolkit_fullscreen_sample",
+            name = "Native Toolkit FullScreen Sample",
+            importance = NotificationManager.IMPORTANCE_HIGH,
+            description = "Reference fullScreenIntent notification sample channel"
+        )
+    }
+
+    fun ensureChannel(channel: NotificationChannel) {
+        Log.d(TAG, "[ensureChannel] channelId=${channel.id}")
+        createChannelUseCase(channel)
+    }
 
     fun createChannel(channel: NotificationChannel = sampleChannel) {
         Log.d(TAG, "[createChannel] channelId=${channel.id}")
-        createChannelUseCase(channel)
+        ensureChannel(channel)
         statusText = "✅ チャンネルを作成しました: ${channel.id}"
     }
 
-    fun buildActivityPendingIntentRequest(requestCode: Int, action: String): AndroidPendingIntentRequest {
+    fun buildActivityPendingIntentRequest(
+        targetActivityClass: Class<*>,
+        requestCode: Int,
+        action: String
+    ): AndroidPendingIntentRequest {
         return AndroidPendingIntentRequest(
-            intent = Intent(activity, MainActivity::class.java).apply {
+            intent = Intent(activity, targetActivityClass).apply {
                 this.action = action
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             requestCode = requestCode,
+            flags = PendingIntent.FLAG_UPDATE_CURRENT
+        )
+    }
+
+    fun buildActivityPendingIntentRequest(requestCode: Int, action: String): AndroidPendingIntentRequest {
+        return buildActivityPendingIntentRequest(
+            targetActivityClass = MainActivity::class.java,
+            requestCode = requestCode,
+            action = action
+        )
+    }
+
+    fun buildBroadcastPendingIntentRequest(intent: Intent, requestCode: Int): AndroidPendingIntentRequest {
+        return AndroidPendingIntentRequest(
+            intent = intent,
+            requestCode = requestCode,
+            type = AndroidPendingIntentType.BROADCAST,
             flags = PendingIntent.FLAG_UPDATE_CURRENT
         )
     }
@@ -160,6 +205,10 @@ fun NotificationSampleScreen(
         ongoing: Boolean = false,
         autoCancel: Boolean = true,
         progress: NotificationProgress? = null,
+        groupKey: String? = null,
+        isGroupSummary: Boolean = false,
+        groupAlertBehavior: Int = 0,
+        sortKey: String? = null,
         platformOptions: AndroidNotificationPlatformOptions = AndroidNotificationPlatformOptions()
     ): AndroidNotificationCommand {
         val resolvedPlatformOptions = if (platformOptions.contentIntent == null) {
@@ -184,6 +233,10 @@ fun NotificationSampleScreen(
                 ongoing = ongoing,
                 autoCancel = autoCancel,
                 progress = progress,
+                groupKey = groupKey,
+                isGroupSummary = isGroupSummary,
+                groupAlertBehavior = groupAlertBehavior,
+                sortKey = sortKey,
                 style = style
             ),
             platformOptions = resolvedPlatformOptions
@@ -452,6 +505,131 @@ fun NotificationSampleScreen(
         )
     }
 
+    fun buildGroupChild1Command(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = 1101,
+            title = "Native Toolkit Group",
+            message = "Group child notification #1",
+            style = NotificationStyle.BigText(
+                bigText = "This is the first child notification in the Native Toolkit grouping sample.",
+                summaryText = "Child 1",
+                bigContentTitle = "Grouping / Child 1"
+            ),
+            channel = interactionGroupingSampleChannel,
+            subText = "Grouping / Child 1",
+            groupKey = GROUP_SAMPLE_KEY,
+            groupAlertBehavior = NotificationCompat.GROUP_ALERT_SUMMARY,
+            sortKey = "01",
+            platformOptions = AndroidNotificationPlatformOptions(
+                contentIntent = buildActivityPendingIntentRequest(5101, ACTION_OPEN_GROUPING_SAMPLE)
+            )
+        )
+    }
+
+    fun buildGroupChild2Command(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = 1102,
+            title = "Native Toolkit Group",
+            message = "Group child notification #2",
+            style = NotificationStyle.BigText(
+                bigText = "This is the second child notification in the Native Toolkit grouping sample.",
+                summaryText = "Child 2",
+                bigContentTitle = "Grouping / Child 2"
+            ),
+            channel = interactionGroupingSampleChannel,
+            subText = "Grouping / Child 2",
+            groupKey = GROUP_SAMPLE_KEY,
+            groupAlertBehavior = NotificationCompat.GROUP_ALERT_SUMMARY,
+            sortKey = "02",
+            platformOptions = AndroidNotificationPlatformOptions(
+                contentIntent = buildActivityPendingIntentRequest(5102, ACTION_OPEN_GROUPING_SAMPLE)
+            )
+        )
+    }
+
+    fun buildGroupSummaryCommand(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = 1100,
+            title = "Native Toolkit Group Summary",
+            message = "2 notifications grouped together",
+            style = NotificationStyle.Inbox(
+                lines = listOf(
+                    "Group child notification #1",
+                    "Group child notification #2"
+                ),
+                summaryText = "2 grouped notifications",
+                bigContentTitle = "Grouping / Summary"
+            ),
+            channel = interactionGroupingSampleChannel,
+            subText = "Grouping / Summary",
+            groupKey = GROUP_SAMPLE_KEY,
+            isGroupSummary = true,
+            groupAlertBehavior = NotificationCompat.GROUP_ALERT_SUMMARY,
+            sortKey = "00",
+            platformOptions = AndroidNotificationPlatformOptions(
+                contentIntent = buildActivityPendingIntentRequest(5100, ACTION_OPEN_GROUPING_SAMPLE)
+            )
+        )
+    }
+
+    fun buildGroupAlertBehaviorCommands(): List<AndroidNotificationCommand> {
+        return listOf(
+            buildGroupChild1Command(),
+            buildGroupChild2Command(),
+            buildGroupSummaryCommand()
+        )
+    }
+
+    fun buildDeleteIntentSampleCommand(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = 1110,
+            title = "Native Toolkit Interaction",
+            message = "Swipe away this notification to trigger deleteIntent.",
+            style = NotificationStyle.BigText(
+                bigText = "Dismiss this notification from the shade. The app will receive a BroadcastReceiver callback through deleteIntent.",
+                summaryText = "deleteIntent",
+                bigContentTitle = "Interaction / deleteIntent"
+            ),
+            channel = interactionGroupingSampleChannel,
+            subText = "Interaction / deleteIntent",
+            platformOptions = AndroidNotificationPlatformOptions(
+                contentIntent = buildActivityPendingIntentRequest(5110, ACTION_OPEN_GROUPING_SAMPLE),
+                deleteIntent = buildBroadcastPendingIntentRequest(
+                    intent = NotificationDeleteReceiver.createIntent(
+                        context = activity,
+                        sampleLabel = "DeleteIntent Sample"
+                    ),
+                    requestCode = 5111
+                )
+            )
+        )
+    }
+
+    fun buildFullScreenIntentSampleCommand(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = 1111,
+            title = "Native Toolkit Alarm Sample",
+            message = "Reference fullScreenIntent notification sample",
+            style = NotificationStyle.BigText(
+                bigText = "This is a reference sample for fullScreenIntent. Depending on the device state and Android policy, it may launch immediately or appear as a high-priority heads-up notification.",
+                summaryText = "fullScreenIntent",
+                bigContentTitle = "Interaction / fullScreenIntent"
+            ),
+            channel = fullScreenSampleChannel,
+            subText = "Interaction / fullScreenIntent",
+            category = NotificationCompat.CATEGORY_ALARM,
+            priority = NotificationCompat.PRIORITY_HIGH,
+            platformOptions = AndroidNotificationPlatformOptions(
+                contentIntent = buildActivityPendingIntentRequest(5120, ACTION_OPEN_GROUPING_SAMPLE),
+                fullScreenIntent = buildActivityPendingIntentRequest(
+                    targetActivityClass = NotificationFullScreenSampleActivity::class.java,
+                    requestCode = 5121,
+                    action = ACTION_OPEN_FULL_SCREEN_SAMPLE
+                )
+            )
+        )
+    }
+
     fun startProgressForegroundService() {
         createChannel(progressForegroundSampleChannel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
@@ -538,7 +716,7 @@ fun NotificationSampleScreen(
 
     fun showNotificationSample(command: AndroidNotificationCommand, successMessage: String) {
         val channel = command.content.channel
-        createChannel(channel)
+        ensureChannel(channel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
             statusText = "❌ 通知を表示できません。権限または通知設定を確認してください。"
             return
@@ -551,6 +729,25 @@ fun NotificationSampleScreen(
         }.onFailure { throwable ->
             Log.e(TAG, "[showNotificationSample] failed to show notification", throwable)
             statusText = "❌ 通知表示に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+        }
+    }
+
+    fun showNotificationSamples(commands: List<AndroidNotificationCommand>, successMessage: String) {
+        if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+            statusText = "❌ 通知を表示できません。権限または通知設定を確認してください。"
+            return
+        }
+
+        runCatching {
+            commands.forEach { command ->
+                ensureChannel(command.content.channel)
+                showNotificationUseCase(command)
+            }
+        }.onSuccess {
+            statusText = successMessage
+        }.onFailure { throwable ->
+            Log.e(TAG, "[showNotificationSamples] failed to show grouped notifications", throwable)
+            statusText = "❌ 複数通知の表示に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
@@ -925,6 +1122,94 @@ fun NotificationSampleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Delete DecoratedMediaCustomView Style")
+                    }
+                }
+                item {
+                    Text(
+                        text = "Notification Interaction & Grouping",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildGroupChild1Command(),
+                                successMessage = "✅ Group Child 1 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Group Child 1")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildGroupChild2Command(),
+                                successMessage = "✅ Group Child 2 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Group Child 2")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildGroupSummaryCommand(),
+                                successMessage = "✅ Group Summary 通知を表示しました。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Group Summary")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSamples(
+                                commands = buildGroupAlertBehaviorCommands(),
+                                successMessage = "✅ Group Alert Behavior サンプルを表示しました。summary only alert を確認してください。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Group Alert Behavior")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildDeleteIntentSampleCommand(),
+                                successMessage = "✅ DeleteIntent サンプルを表示しました。通知をスワイプして receiver を確認してください。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show DeleteIntent Sample")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildFullScreenIntentSampleCommand(),
+                                successMessage = "✅ FullScreenIntent 参考サンプルを表示しました。端末状態によって heads-up または full screen で表示されます。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show FullScreenIntent Sample")
                     }
                 }
                 item {
