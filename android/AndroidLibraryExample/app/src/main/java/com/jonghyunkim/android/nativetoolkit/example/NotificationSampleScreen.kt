@@ -824,10 +824,12 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
+                            val exactAlarmAllowed = permissionHelper.canScheduleExactAlarms()
                             statusText = buildString {
                                 appendLine("permissionGranted=${permissionHelper.hasPermission()}")
                                 appendLine("notificationsEnabled=${permissionHelper.areNotificationsEnabled()}")
-                                append("shouldShowRationale=${permissionHelper.shouldShowPermissionRationale()}")
+                                appendLine("shouldShowRationale=${permissionHelper.shouldShowPermissionRationale()}")
+                                append("exactAlarmAllowed=$exactAlarmAllowed")
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -842,7 +844,7 @@ fun NotificationSampleScreen(
                                 statusText = if (granted) {
                                     "✅ 通知権限が許可されました。"
                                 } else {
-                                    "❌ 通知権限が未許可です。設定画面から有効化してください。"
+                                    "❌ 通知権限が許可されていません。上の「Open Notification Settings」ボタンから設定画面を開いて有効にしてください。"
                                 }
                             }
                         },
@@ -1412,6 +1414,8 @@ fun NotificationSampleScreen(
                             createChannel()
                             if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
                                 statusText = "❌ 予約通知を設定できません。権限または通知設定を確認してください。"
+                            } else if (!permissionHelper.canScheduleExactAlarms()) {
+                                statusText = "❌ 正確なアラームが許可されていません。上の「Open Exact Alarm Settings」ボタンから設定画面を開いて有効にしてください。"
                             } else {
                                 val triggerAt = System.currentTimeMillis() + 15_000L
                                 scheduleNotificationUseCase(

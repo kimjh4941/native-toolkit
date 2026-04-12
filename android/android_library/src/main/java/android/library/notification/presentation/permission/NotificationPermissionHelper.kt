@@ -1,6 +1,7 @@
 package android.library.notification.presentation.permission
 
 import android.Manifest
+import android.app.AlarmManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -35,6 +36,10 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
 
     fun areNotificationsEnabled(): Boolean {
         return NotificationManagerCompat.from(activity).areNotificationsEnabled()
+    }
+
+    fun canScheduleExactAlarms(): Boolean {
+        return activity.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
     }
 
     @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.TIRAMISU)

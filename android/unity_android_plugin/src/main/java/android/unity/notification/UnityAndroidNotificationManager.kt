@@ -48,10 +48,41 @@ object UnityAndroidNotificationManager {
 
     private const val TAG = "UnityAndroidNotificationMgr"
 
+    const val OPERATION_OPEN_NOTIFICATION_SETTINGS = "openNotificationSettings"
+    const val OPERATION_OPEN_APP_DETAILS_SETTINGS = "openAppDetailsSettings"
+    const val OPERATION_OPEN_EXACT_ALARM_SETTINGS = "openExactAlarmSettings"
+    const val OPERATION_CREATE_CHANNEL = "createChannel"
+    const val OPERATION_DELETE_CHANNEL = "deleteChannel"
+    const val OPERATION_SHOW_NOTIFICATION = "showNotification"
+    const val OPERATION_UPDATE_NOTIFICATION = "updateNotification"
+    const val OPERATION_CANCEL_NOTIFICATION = "cancelNotification"
+    const val OPERATION_CANCEL_ALL_NOTIFICATIONS = "cancelAllNotifications"
+    const val OPERATION_SCHEDULE_NOTIFICATION = "scheduleNotification"
+    const val OPERATION_CANCEL_SCHEDULED_NOTIFICATION = "cancelScheduledNotification"
+    const val OPERATION_CANCEL_ALL_SCHEDULED_NOTIFICATIONS = "cancelAllScheduledNotifications"
+    const val OPERATION_START_PROGRESS_FOREGROUND_SERVICE = "startProgressForegroundService"
+    const val OPERATION_UPDATE_PROGRESS_FOREGROUND_SERVICE = "updateProgressForegroundService"
+    const val OPERATION_COMPLETE_PROGRESS_FOREGROUND_SERVICE = "completeProgressForegroundService"
+    const val OPERATION_STOP_PROGRESS_FOREGROUND_SERVICE = "stopProgressForegroundService"
+
+    private var notificationOperationListener: NotificationOperationListener? = null
+
+    interface NotificationOperationListener {
+        fun onNotificationOperation(operation: String, isSuccessful: Boolean, errorMessage: String?)
+    }
+
     @JvmStatic
     fun getInstance(): UnityAndroidNotificationManager {
         Log.d(TAG, "getInstance called")
         return this
+    }
+
+    fun setNotificationOperationListener(listener: NotificationOperationListener) {
+        notificationOperationListener = listener
+    }
+
+    fun clearNotificationOperationListener() {
+        notificationOperationListener = null
     }
 
     fun hasPermission(context: Context): Boolean {
@@ -62,75 +93,72 @@ object UnityAndroidNotificationManager {
         return NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
-    fun openNotificationSettings(context: Context): Boolean {
-        val opened = startActivitySafely(
-            context,
-            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+    fun openNotificationSettings(context: Context) {
+        openSettingsWithFallback(
+            operation = OPERATION_OPEN_NOTIFICATION_SETTINGS,
+            context = context,
+            primaryIntent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                 putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                 data = packageUri(context)
-            }
+            },
+            fallbackIntent = appDetailsSettingsIntent(context),
+            primaryLabel = "app notification settings"
         )
-        return opened || openAppDetailsSettings(context)
     }
 
-    fun openAppDetailsSettings(context: Context): Boolean {
-        return startActivitySafely(
-            context,
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+    fun openAppDetailsSettings(context: Context) {
+        executeOperation(OPERATION_OPEN_APP_DETAILS_SETTINGS) {
+            startActivity(context, appDetailsSettingsIntent(context))
+        }
+    }
+
+    fun openExactAlarmSettings(context: Context) {
+        openSettingsWithFallback(
+            operation = OPERATION_OPEN_EXACT_ALARM_SETTINGS,
+            context = context,
+            primaryIntent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
                 data = packageUri(context)
-            }
+            },
+            fallbackIntent = appDetailsSettingsIntent(context),
+            primaryLabel = "exact alarm settings"
         )
     }
 
-    fun openExactAlarmSettings(context: Context): Boolean {
-        val opened = startActivitySafely(
-            context,
-            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                data = packageUri(context)
-            }
-        )
-        return opened || openAppDetailsSettings(context)
-    }
-
-    fun createChannel(context: Context, channelJson: String): Boolean {
-        return runOperation("createChannel") {
+    fun createChannel(context: Context, channelJson: String) {
+        executeOperation(OPERATION_CREATE_CHANNEL) {
             val channel = UnityNotificationJsonParser.parseChannel(channelJson)
             CreateNotificationChannelUseCase(NotificationRepositoryImpl(context))(channel.toDomainChannel())
-            true
         }
     }
 
     fun deleteChannel(context: Context, channelId: String) {
-        runOperation("deleteChannel") {
+        executeOperation(OPERATION_DELETE_CHANNEL) {
             DeleteNotificationChannelUseCase(NotificationRepositoryImpl(context))(channelId)
-            true
         }
     }
 
-    fun showNotification(context: Context, notificationJson: String): Boolean {
-        return runShowOrUpdate(context, notificationJson, isUpdate = false)
+    fun showNotification(context: Context, notificationJson: String) {
+        runShowOrUpdate(context, notificationJson, isUpdate = false)
     }
 
-    fun updateNotification(context: Context, notificationJson: String): Boolean {
-        return runShowOrUpdate(context, notificationJson, isUpdate = true)
+    fun updateNotification(context: Context, notificationJson: String) {
+        runShowOrUpdate(context, notificationJson, isUpdate = true)
     }
 
     fun cancelNotification(context: Context, id: Int, tag: String? = null) {
-        runOperation("cancelNotification") {
+        executeOperation(OPERATION_CANCEL_NOTIFICATION) {
             CancelNotificationUseCase(NotificationRepositoryImpl(context))(id, tag)
-            true
         }
     }
 
     fun cancelAllNotifications(context: Context) {
-        runOperation("cancelAllNotifications") {
+        executeOperation(OPERATION_CANCEL_ALL_NOTIFICATIONS) {
             CancelAllNotificationsUseCase(NotificationRepositoryImpl(context))()
-            true
         }
     }
 
-    fun scheduleNotification(context: Context, scheduleJson: String): Boolean {
-        return runOperation("scheduleNotification") {
+    fun scheduleNotification(context: Context, scheduleJson: String) {
+        executeOperation(OPERATION_SCHEDULE_NOTIFICATION) {
             val scheduleSpec = UnityNotificationJsonParser.parseScheduledNotification(scheduleJson)
             val command = scheduleSpec.notification.toCommand(context)
             ScheduleNotificationUseCase(NotificationRepositoryImpl(context))(
@@ -147,35 +175,32 @@ object UnityAndroidNotificationManager {
     }
 
     fun cancelScheduledNotification(context: Context, id: Int, tag: String? = null) {
-        runOperation("cancelScheduledNotification") {
+        executeOperation(OPERATION_CANCEL_SCHEDULED_NOTIFICATION) {
             CancelScheduledNotificationUseCase(NotificationRepositoryImpl(context))(id, tag)
-            true
         }
     }
 
     fun cancelAllScheduledNotifications(context: Context) {
-        runOperation("cancelAllScheduledNotifications") {
+        executeOperation(OPERATION_CANCEL_ALL_SCHEDULED_NOTIFICATIONS) {
             CancelAllScheduledNotificationsUseCase(NotificationRepositoryImpl(context))()
-            true
         }
     }
 
-    fun startProgressForegroundService(context: Context, notificationJson: String): Boolean {
-        return runProgressOperation(context, notificationJson, ProgressOperation.START)
+    fun startProgressForegroundService(context: Context, notificationJson: String) {
+        runProgressOperation(context, notificationJson, ProgressOperation.START)
     }
 
-    fun updateProgressForegroundService(context: Context, notificationJson: String): Boolean {
-        return runProgressOperation(context, notificationJson, ProgressOperation.UPDATE)
+    fun updateProgressForegroundService(context: Context, notificationJson: String) {
+        runProgressOperation(context, notificationJson, ProgressOperation.UPDATE)
     }
 
-    fun completeProgressForegroundService(context: Context, notificationJson: String): Boolean {
-        return runProgressOperation(context, notificationJson, ProgressOperation.COMPLETE)
+    fun completeProgressForegroundService(context: Context, notificationJson: String) {
+        runProgressOperation(context, notificationJson, ProgressOperation.COMPLETE)
     }
 
     fun stopProgressForegroundService(context: Context) {
-        runOperation("stopProgressForegroundService") {
+        executeOperation(OPERATION_STOP_PROGRESS_FOREGROUND_SERVICE) {
             ProgressForegroundNotifications.stop(context)
-            true
         }
     }
 
@@ -183,8 +208,8 @@ object UnityAndroidNotificationManager {
         context: Context,
         notificationJson: String,
         isUpdate: Boolean
-    ): Boolean {
-        return runOperation(if (isUpdate) "updateNotification" else "showNotification") {
+    ) {
+        executeOperation(if (isUpdate) OPERATION_UPDATE_NOTIFICATION else OPERATION_SHOW_NOTIFICATION) {
             val command = UnityNotificationJsonParser.parseNotification(notificationJson).toCommand(context)
             val repository = NotificationRepositoryImpl(context)
             if (isUpdate) {
@@ -192,7 +217,6 @@ object UnityAndroidNotificationManager {
             } else {
                 ShowNotificationUseCase(repository)(command)
             }
-            true
         }
     }
 
@@ -200,8 +224,8 @@ object UnityAndroidNotificationManager {
         context: Context,
         notificationJson: String,
         operation: ProgressOperation
-    ): Boolean {
-        return runOperation("${operation.logName}ProgressForegroundService") {
+    ) {
+        executeOperation(operation.operationName) {
             val notificationSpec = UnityNotificationJsonParser.parseNotification(notificationJson)
             require(notificationSpec.progress != null) { "progress is required for Progress FGS operations." }
 
@@ -216,32 +240,118 @@ object UnityAndroidNotificationManager {
                 ProgressOperation.UPDATE -> ProgressForegroundNotifications.update(context, command)
                 ProgressOperation.COMPLETE -> ProgressForegroundNotifications.complete(context, command)
             }
-            true
         }
     }
 
-    private fun runOperation(name: String, block: () -> Boolean): Boolean {
-        return runCatching(block)
-            .onFailure { throwable -> Log.e(TAG, "[$name] failed", throwable) }
-            .getOrDefault(false)
+    private fun executeOperation(name: String, block: () -> Unit) {
+        try {
+            block()
+            notifyOperationResult(name, true, null)
+        } catch (exception: IllegalArgumentException) {
+            notifyOperationFailure(
+                name = name,
+                throwable = exception,
+                errorMessage = "Invalid argument for $name: ${exception.message ?: "Please verify the input parameters."}"
+            )
+        } catch (exception: ActivityNotFoundException) {
+            notifyOperationFailure(
+                name = name,
+                throwable = exception,
+                errorMessage = "No Activity found to handle $name. Please check device settings support."
+            )
+        } catch (exception: SecurityException) {
+            notifyOperationFailure(
+                name = name,
+                throwable = exception,
+                errorMessage = "Security restriction while executing $name: ${exception.message ?: "Permission or device policy denied this operation."}"
+            )
+        } catch (exception: Exception) {
+            notifyOperationFailure(
+                name = name,
+                throwable = exception,
+                errorMessage = "Failed to $name: ${exception.message ?: exception.javaClass.simpleName}"
+            )
+        }
     }
 
-    private fun startActivitySafely(context: Context, intent: Intent): Boolean {
-        return try {
-            if (context !is android.app.Activity) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    private fun notifyOperationFailure(name: String, throwable: Exception, errorMessage: String) {
+        Log.e(TAG, "[$name] failed: $errorMessage", throwable)
+        notifyOperationResult(name, false, errorMessage)
+    }
+
+    private fun notifyOperationResult(operation: String, isSuccessful: Boolean, errorMessage: String?) {
+        val listener = notificationOperationListener
+        if (listener == null) {
+            Log.w(
+                TAG,
+                "NotificationOperationListener is not set. operation=$operation, isSuccessful=$isSuccessful, errorMessage=$errorMessage"
+            )
+            return
+        }
+
+        listener.onNotificationOperation(operation, isSuccessful, errorMessage)
+    }
+
+    private fun openSettingsWithFallback(
+        operation: String,
+        context: Context,
+        primaryIntent: Intent,
+        fallbackIntent: Intent,
+        primaryLabel: String
+    ) {
+        executeOperation(operation) {
+            try {
+                startActivity(context, primaryIntent)
+            } catch (exception: ActivityNotFoundException) {
+                Log.w(TAG, "[$operation] $primaryLabel is unavailable. Falling back to app details settings.", exception)
+                startFallbackActivity(operation, context, fallbackIntent, primaryLabel)
+            } catch (exception: SecurityException) {
+                Log.w(TAG, "[$operation] $primaryLabel is restricted. Falling back to app details settings.", exception)
+                startFallbackActivity(operation, context, fallbackIntent, primaryLabel)
             }
-            context.startActivity(intent)
-            true
-        } catch (_: ActivityNotFoundException) {
-            false
-        } catch (_: SecurityException) {
-            false
         }
+    }
+
+    private fun startFallbackActivity(
+        operation: String,
+        context: Context,
+        fallbackIntent: Intent,
+        primaryLabel: String
+    ) {
+        try {
+            startActivity(context, fallbackIntent)
+        } catch (_: ActivityNotFoundException) {
+            throw ActivityNotFoundException(
+                "Unable to open $primaryLabel or app details settings for $operation."
+            )
+        } catch (_: SecurityException) {
+            throw SecurityException(
+                "Unable to open $primaryLabel or app details settings for $operation due to security restrictions."
+            )
+        }
+    }
+
+    private fun startActivity(context: Context, intent: Intent) {
+        if (context !is android.app.Activity) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
     }
 
     private fun packageUri(context: Context): Uri {
-        return Uri.fromParts("package", context.packageName, null)
+        val packageUri: Uri? = Uri.fromParts("package", context.packageName, null)
+        if (packageUri != null) {
+            return packageUri
+        }
+
+        Log.w(TAG, "[packageUri] Uri.fromParts returned null. Falling back to Uri.EMPTY.")
+        return Uri.EMPTY
+    }
+
+    private fun appDetailsSettingsIntent(context: Context): Intent {
+        return Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = packageUri(context)
+        }
     }
 
     private fun UnityNotificationChannelSpec.toDomainChannel(): NotificationChannel {
@@ -458,10 +568,17 @@ object UnityAndroidNotificationManager {
 
             val cacheKey = "$normalizedType:$name"
             val resolved = resourceIdCache.getOrPut(cacheKey) {
-                runCatching {
+                try {
                     val rClass = Class.forName("${context.packageName}.R$$normalizedType")
                     rClass.getField(name).getInt(null)
-                }.getOrDefault(MISSING_RESOURCE_ID)
+                } catch (exception: Exception) {
+                    Log.w(
+                        TAG,
+                        "[resolveByRClass] Failed to resolve resource type=$normalizedType name=$name",
+                        exception
+                    )
+                    MISSING_RESOURCE_ID
+                }
             }
             return resolved.takeIf { it != MISSING_RESOURCE_ID }
         }
@@ -472,10 +589,10 @@ object UnityAndroidNotificationManager {
         }
     }
 
-    private enum class ProgressOperation(val logName: String) {
-        START("start"),
-        UPDATE("update"),
-        COMPLETE("complete")
+    private enum class ProgressOperation(val operationName: String) {
+        START(OPERATION_START_PROGRESS_FOREGROUND_SERVICE),
+        UPDATE(OPERATION_UPDATE_PROGRESS_FOREGROUND_SERVICE),
+        COMPLETE(OPERATION_COMPLETE_PROGRESS_FOREGROUND_SERVICE)
     }
 }
 

@@ -30,6 +30,11 @@ The module reuses `android_library` implementations and provides Unity-oriented 
 
 The initial Unity notification bridge intentionally focuses on the most practical release surface:
 
+- Result propagation
+  - `setNotificationOperationListener(...)`
+  - `clearNotificationOperationListener()`
+  - all operation methods report completion through `onNotificationOperation(operation, isSuccessful, errorMessage)`
+
 - Basic notifications
   - `showNotification(context, notificationJson)`
   - `updateNotification(context, notificationJson)`
@@ -62,6 +67,25 @@ Not included in v1 Unity bridge:
 - media / decorated custom styles
 
 These remain available in `android_library`, but are intentionally excluded from the first Unity-facing API to keep the bridge stable and easy to integrate.
+
+### Notification operation callback contract
+
+```kotlin
+interface NotificationOperationListener {
+    fun onNotificationOperation(operation: String, isSuccessful: Boolean, errorMessage: String?)
+}
+```
+
+- `operation`: one of the exported operation names such as `showNotification`, `scheduleNotification`, `openNotificationSettings`
+- `isSuccessful=true`: the requested operation completed successfully
+- `isSuccessful=false`: the operation failed before completion
+- `errorMessage`: non-null only on failure
+
+The bridge classifies common failures explicitly:
+- `IllegalArgumentException`: invalid JSON or invalid method input
+- `ActivityNotFoundException`: no matching settings screen / activity available
+- `SecurityException`: permission or device policy restriction
+- any other `Exception`: generic operation failure
 
 ## Notification JSON Contract
 
@@ -179,10 +203,21 @@ Examples:
 ## Unity C# usage sketch for notifications
 
 ```csharp
+public sealed class NotificationOperationProxy : AndroidJavaProxy {
+    public NotificationOperationProxy()
+        : base("android.unity.notification.UnityAndroidNotificationManager$NotificationOperationListener") {}
+
+    void onNotificationOperation(string operation, bool isSuccessful, string errorMessage) {
+        UnityEngine.Debug.Log($"Notification op={operation} success={isSuccessful} err={errorMessage}");
+    }
+}
+
 var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
 var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
 var cls = new AndroidJavaClass("android.unity.notification.UnityAndroidNotificationManager");
 var mgr = cls.CallStatic<AndroidJavaObject>("getInstance");
+
+mgr.Call("setNotificationOperationListener", new NotificationOperationProxy());
 
 string notificationJson = @"{
   \"id\": 1001,
@@ -191,7 +226,7 @@ string notificationJson = @"{
   \"channel\": { \"id\": \"general\", \"name\": \"General\" }
 }";
 
-bool shown = mgr.Call<bool>("showNotification", activity, notificationJson);
+mgr.Call("showNotification", activity, notificationJson);
 ```
 
 ## Notification integration notes
@@ -200,6 +235,7 @@ bool shown = mgr.Call<bool>("showNotification", activity, notificationJson);
   - Example: `{"name":"ic_launcher","type":"mipmap"}`
 - If `smallIcon` is omitted, the bridge falls back to the application icon, then to `android.R.drawable.ic_dialog_info`.
 - `launchAppOnTap=true` adds a default content intent that launches the host app.
+- Operation methods are fire-and-notify. Use `NotificationOperationListener` to receive success/failure instead of relying on a Boolean return value.
 - The bridge does not request `POST_NOTIFICATIONS` at runtime in v1; Unity should handle permission UX at the app level and can use `hasPermission(...)` / settings helpers.
 - Scheduled notifications and progress FGS rely on the merged manifest entries already provided by `android_library`.
 
