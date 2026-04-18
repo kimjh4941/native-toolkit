@@ -4,20 +4,12 @@ import android.app.NotificationManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
 import android.library.notification.application.model.AndroidPendingIntentRequest
 import android.library.notification.application.model.AndroidPendingIntentType
-import android.library.notification.application.usecase.CancelAllNotificationsUseCase
-import android.library.notification.application.usecase.CancelAllScheduledNotificationsUseCase
-import android.library.notification.application.usecase.CancelNotificationUseCase
-import android.library.notification.application.usecase.CancelScheduledNotificationUseCase
-import android.library.notification.application.usecase.CreateNotificationChannelUseCase
-import android.library.notification.application.usecase.DeleteNotificationChannelUseCase
-import android.library.notification.application.usecase.ScheduleNotificationUseCase
-import android.library.notification.application.usecase.ShowNotificationUseCase
-import android.library.notification.application.usecase.UpdateNotificationUseCase
-import android.library.notification.data.repository.NotificationRepositoryImpl
+import android.library.notification.data.repository.NotificationUseCases
 import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
 import android.library.notification.domain.model.NotificationMessage
@@ -66,6 +58,7 @@ object UnityAndroidNotificationManager {
     const val OPERATION_STOP_PROGRESS_FOREGROUND_SERVICE = "stopProgressForegroundService"
 
     private var notificationOperationListener: NotificationOperationListener? = null
+    private var notificationActionListener: NotificationActionReceiver.NotificationActionListener? = null
 
     interface NotificationOperationListener {
         fun onNotificationOperation(operation: String, isSuccessful: Boolean, errorMessage: String?)
@@ -85,8 +78,18 @@ object UnityAndroidNotificationManager {
         notificationOperationListener = null
     }
 
+    fun setNotificationActionListener(listener: NotificationActionReceiver.NotificationActionListener) {
+        notificationActionListener = listener
+        NotificationActionReceiver.actionListener = listener
+    }
+
+    fun clearNotificationActionListener() {
+        notificationActionListener = null
+        NotificationActionReceiver.actionListener = null
+    }
+
     fun hasPermission(context: Context): Boolean {
-        return NotificationRepositoryImpl(context).hasPermission()
+        return NotificationUseCases(context).hasPermission()
     }
 
     fun areNotificationsEnabled(context: Context): Boolean {
@@ -127,13 +130,13 @@ object UnityAndroidNotificationManager {
     fun createChannel(context: Context, channelJson: String) {
         executeOperation(OPERATION_CREATE_CHANNEL) {
             val channel = UnityNotificationJsonParser.parseChannel(channelJson)
-            CreateNotificationChannelUseCase(NotificationRepositoryImpl(context))(channel.toDomainChannel())
+            NotificationUseCases(context).createChannel(channel.toDomainChannel()).getOrThrow()
         }
     }
 
     fun deleteChannel(context: Context, channelId: String) {
         executeOperation(OPERATION_DELETE_CHANNEL) {
-            DeleteNotificationChannelUseCase(NotificationRepositoryImpl(context))(channelId)
+            NotificationUseCases(context).deleteChannel(channelId).getOrThrow()
         }
     }
 
@@ -147,13 +150,13 @@ object UnityAndroidNotificationManager {
 
     fun cancelNotification(context: Context, id: Int, tag: String? = null) {
         executeOperation(OPERATION_CANCEL_NOTIFICATION) {
-            CancelNotificationUseCase(NotificationRepositoryImpl(context))(id, tag)
+            NotificationUseCases(context).cancel(id, tag).getOrThrow()
         }
     }
 
     fun cancelAllNotifications(context: Context) {
         executeOperation(OPERATION_CANCEL_ALL_NOTIFICATIONS) {
-            CancelAllNotificationsUseCase(NotificationRepositoryImpl(context))()
+            NotificationUseCases(context).cancelAll().getOrThrow()
         }
     }
 
@@ -161,7 +164,7 @@ object UnityAndroidNotificationManager {
         executeOperation(OPERATION_SCHEDULE_NOTIFICATION) {
             val scheduleSpec = UnityNotificationJsonParser.parseScheduledNotification(scheduleJson)
             val command = scheduleSpec.notification.toCommand(context)
-            ScheduleNotificationUseCase(NotificationRepositoryImpl(context))(
+            NotificationUseCases(context).schedule(
                 command = command,
                 schedule = NotificationSchedule(
                     triggerAtMillis = scheduleSpec.triggerAtMillis,
@@ -170,19 +173,19 @@ object UnityAndroidNotificationManager {
                     persistAcrossBoot = scheduleSpec.persistAcrossBoot,
                     alarmType = scheduleSpec.alarmType
                 )
-            )
+            ).getOrThrow()
         }
     }
 
     fun cancelScheduledNotification(context: Context, id: Int, tag: String? = null) {
         executeOperation(OPERATION_CANCEL_SCHEDULED_NOTIFICATION) {
-            CancelScheduledNotificationUseCase(NotificationRepositoryImpl(context))(id, tag)
+            NotificationUseCases(context).cancelScheduled(id, tag).getOrThrow()
         }
     }
 
     fun cancelAllScheduledNotifications(context: Context) {
         executeOperation(OPERATION_CANCEL_ALL_SCHEDULED_NOTIFICATIONS) {
-            CancelAllScheduledNotificationsUseCase(NotificationRepositoryImpl(context))()
+            NotificationUseCases(context).cancelAllScheduled().getOrThrow()
         }
     }
 
@@ -211,11 +214,11 @@ object UnityAndroidNotificationManager {
     ) {
         executeOperation(if (isUpdate) OPERATION_UPDATE_NOTIFICATION else OPERATION_SHOW_NOTIFICATION) {
             val command = UnityNotificationJsonParser.parseNotification(notificationJson).toCommand(context)
-            val repository = NotificationRepositoryImpl(context)
+            val useCases = NotificationUseCases(context)
             if (isUpdate) {
-                UpdateNotificationUseCase(repository)(command)
+                useCases.update(command).getOrThrow()
             } else {
-                ShowNotificationUseCase(repository)(command)
+                useCases.show(command).getOrThrow()
             }
         }
     }
@@ -408,7 +411,9 @@ object UnityAndroidNotificationManager {
                 style = style.toDomainStyle(resolver)
             ),
             platformOptions = AndroidNotificationPlatformOptions(
-                contentIntent = buildContentIntent(context)
+                contentIntent = buildContentIntent(context),
+                fullScreenIntent = if (fullScreenIntent) buildFullScreenIntent(context) else null,
+                actions = actions.mapIndexed { index, action -> action.toAndroidAction(context, id, index) }
             )
         )
     }
@@ -434,6 +439,51 @@ object UnityAndroidNotificationManager {
             intent = intent,
             requestCode = id,
             type = AndroidPendingIntentType.ACTIVITY
+        )
+    }
+
+    private fun UnityNotificationSpec.buildFullScreenIntent(context: Context): AndroidPendingIntentRequest? {
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            ?: return null
+
+        return AndroidPendingIntentRequest(
+            intent = intent,
+            requestCode = id + Int.MAX_VALUE / 2,
+            type = AndroidPendingIntentType.ACTIVITY,
+            mutable = true
+        )
+    }
+
+    private fun UnityNotificationActionSpec.toAndroidAction(
+        context: Context,
+        notificationId: Int,
+        index: Int
+    ): AndroidNotificationAction {
+        val resolver = ContextResourceResolver(context)
+        val requestCode = notificationId * 100 + index
+
+        val intent = Intent(context, NotificationActionReceiver::class.java).apply {
+            putExtra(NotificationActionReceiver.EXTRA_ACTION_ID, actionId)
+            putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+            putExtra(NotificationActionReceiver.EXTRA_LAUNCH_APP, launchApp)
+        }
+        val pendingIntent = AndroidPendingIntentRequest(
+            intent = intent,
+            requestCode = requestCode,
+            type = AndroidPendingIntentType.BROADCAST
+        )
+
+        return AndroidNotificationAction(
+            title = title,
+            pendingIntent = pendingIntent,
+            iconResId = resolver.resolve(icon) ?: 0,
+            allowGeneratedReplies = allowGeneratedReplies,
+            semanticAction = semanticAction,
+            contextual = contextual,
+            showsUserInterface = showsUserInterface
         )
     }
 

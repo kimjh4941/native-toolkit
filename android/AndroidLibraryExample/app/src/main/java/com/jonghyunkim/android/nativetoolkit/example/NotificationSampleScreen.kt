@@ -8,12 +8,7 @@ import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
 import android.library.notification.application.model.AndroidPendingIntentRequest
 import android.library.notification.application.model.AndroidPendingIntentType
-import android.library.notification.application.usecase.CancelNotificationUseCase
-import android.library.notification.application.usecase.CancelScheduledNotificationUseCase
-import android.library.notification.application.usecase.CreateNotificationChannelUseCase
-import android.library.notification.application.usecase.ScheduleNotificationUseCase
-import android.library.notification.application.usecase.ShowNotificationUseCase
-import android.library.notification.data.repository.NotificationRepositoryImpl
+import android.library.notification.data.repository.NotificationUseCases
 import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
 import android.library.notification.domain.model.NotificationCustomViewStyleData
@@ -76,12 +71,7 @@ fun NotificationSampleScreen(
     onBack: () -> Unit
 ) {
     Log.d(TAG, "[NotificationSampleScreen] modifier: $modifier, activity: $activity, permissionHelper: $permissionHelper, onBack: $onBack")
-    val repository = remember(activity) { NotificationRepositoryImpl(activity) }
-    val createChannelUseCase = remember(repository) { CreateNotificationChannelUseCase(repository) }
-    val showNotificationUseCase = remember(repository) { ShowNotificationUseCase(repository) }
-    val cancelNotificationUseCase = remember(repository) { CancelNotificationUseCase(repository) }
-    val scheduleNotificationUseCase = remember(repository) { ScheduleNotificationUseCase(repository) }
-    val cancelScheduledNotificationUseCase = remember(repository) { CancelScheduledNotificationUseCase(repository) }
+    val useCases = remember(activity) { NotificationUseCases(activity) }
 
     var statusText by remember {
         mutableStateOf("通知サンプルを確認できます。まずは権限状態を確認してください。")
@@ -121,7 +111,8 @@ fun NotificationSampleScreen(
 
     fun ensureChannel(channel: NotificationChannel) {
         Log.d(TAG, "[ensureChannel] channelId=${channel.id}")
-        createChannelUseCase(channel)
+        useCases.createChannel(channel)
+            .onFailure { Log.w(TAG, "[ensureChannel] failed: channelId=${channel.id}", it) }
     }
 
     fun createChannel(channel: NotificationChannel = sampleChannel) {
@@ -722,14 +713,12 @@ fun NotificationSampleScreen(
             return
         }
 
-        runCatching {
-            showNotificationUseCase(command)
-        }.onSuccess {
-            statusText = successMessage
-        }.onFailure { throwable ->
-            Log.e(TAG, "[showNotificationSample] failed to show notification", throwable)
-            statusText = "❌ 通知表示に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
-        }
+        useCases.show(command)
+            .onSuccess { statusText = successMessage }
+            .onFailure { throwable ->
+                Log.e(TAG, "[showNotificationSample] failed to show notification", throwable)
+                statusText = "❌ 通知表示に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            }
     }
 
     fun showNotificationSamples(commands: List<AndroidNotificationCommand>, successMessage: String) {
@@ -741,7 +730,7 @@ fun NotificationSampleScreen(
         runCatching {
             commands.forEach { command ->
                 ensureChannel(command.content.channel)
-                showNotificationUseCase(command)
+                useCases.show(command).getOrThrow()
             }
         }.onSuccess {
             statusText = successMessage
@@ -752,26 +741,22 @@ fun NotificationSampleScreen(
     }
 
     fun deleteNotificationSample(command: AndroidNotificationCommand, label: String) {
-        runCatching {
-            cancelNotificationUseCase(command.content.id, command.content.tag)
-        }.onSuccess {
-            statusText = "🗑️ $label 通知を削除しました。"
-        }.onFailure { throwable ->
-            Log.e(TAG, "[deleteNotificationSample] failed to delete notification label=$label", throwable)
-            statusText = "❌ 通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
-        }
+        useCases.cancel(command.content.id, command.content.tag)
+            .onSuccess { statusText = "🗑️ $label 通知を削除しました。" }
+            .onFailure { throwable ->
+                Log.e(TAG, "[deleteNotificationSample] failed to delete notification label=$label", throwable)
+                statusText = "❌ 通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            }
     }
 
     fun deleteScheduledNotificationSample(command: AndroidNotificationCommand, label: String) {
-        runCatching {
-            cancelScheduledNotificationUseCase(command.content.id, command.content.tag)
-            cancelNotificationUseCase(command.content.id, command.content.tag)
-        }.onSuccess {
-            statusText = "🗑️ $label を削除しました。予約済み通知と表示中通知をクリアしました。"
-        }.onFailure { throwable ->
-            Log.e(TAG, "[deleteScheduledNotificationSample] failed to delete scheduled notification label=$label", throwable)
-            statusText = "❌ 予約通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
-        }
+        useCases.cancelScheduled(command.content.id, command.content.tag)
+            .mapCatching { useCases.cancel(command.content.id, command.content.tag).getOrThrow() }
+            .onSuccess { statusText = "🗑️ $label を削除しました。予約済み通知と表示中通知をクリアしました。" }
+            .onFailure { throwable ->
+                Log.e(TAG, "[deleteScheduledNotificationSample] failed to delete scheduled notification label=$label", throwable)
+                statusText = "❌ 予約通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            }
     }
 
     val listState = rememberLazyListState()
@@ -1418,11 +1403,15 @@ fun NotificationSampleScreen(
                                 statusText = "❌ 正確なアラームが許可されていません。上の「Open Exact Alarm Settings」ボタンから設定画面を開いて有効にしてください。"
                             } else {
                                 val triggerAt = System.currentTimeMillis() + 15_000L
-                                scheduleNotificationUseCase(
+                                useCases.schedule(
                                     buildScheduledCommand(),
                                     NotificationSchedule(triggerAtMillis = triggerAt)
-                                )
-                                statusText = "✅ 15秒後の予約通知を設定しました。"
+                                ).onSuccess {
+                                    statusText = "✅ 15秒後の予約通知を設定しました。"
+                                }.onFailure { throwable ->
+                                    Log.e(TAG, "[schedule] failed", throwable)
+                                    statusText = "❌ 予約通知の設定に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth()

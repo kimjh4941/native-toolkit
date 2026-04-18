@@ -5,26 +5,21 @@ import android.library.notification.application.port.NotificationCommandReposito
 import android.library.notification.domain.model.NotificationSchedule
 
 class ScheduleNotificationUseCase(private val repository: NotificationCommandRepository) {
-    operator fun invoke(command: AndroidNotificationCommand, schedule: NotificationSchedule): Boolean {
-        return repository.schedule(command, schedule)
-    }
+    operator fun invoke(command: AndroidNotificationCommand, schedule: NotificationSchedule): Result<Unit> =
+        runCatching { repository.schedule(command, schedule) }
 }
 
 class CancelScheduledNotificationUseCase(private val repository: NotificationCommandRepository) {
-    operator fun invoke(id: Int, tag: String? = null) {
-        repository.cancelScheduled(id, tag)
-    }
+    operator fun invoke(id: Int, tag: String? = null): Result<Unit> =
+        runCatching { repository.cancelScheduled(id, tag) }
 }
 
 class CancelAllScheduledNotificationsUseCase(private val repository: NotificationCommandRepository) {
-    operator fun invoke() {
-        repository.cancelAllScheduled()
-    }
+    operator fun invoke(): Result<Unit> =
+        runCatching { repository.cancelAllScheduled() }
 }
 
 class RestoreScheduledNotificationsUseCase(private val repository: NotificationCommandRepository) {
-    operator fun invoke() {
-        repository.restoreScheduled()
-    }
+    operator fun invoke(): Result<Unit> =
+        runCatching { repository.restoreScheduled() }
 }
-

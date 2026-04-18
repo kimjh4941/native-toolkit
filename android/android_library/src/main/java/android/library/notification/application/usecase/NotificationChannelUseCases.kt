@@ -4,20 +4,16 @@ import android.library.notification.application.port.NotificationCommandReposito
 import android.library.notification.domain.model.NotificationChannel
 
 class CreateNotificationChannelUseCase(private val repository: NotificationCommandRepository) {
-    operator fun invoke(channel: NotificationChannel) {
-        repository.createChannel(channel)
-    }
+    operator fun invoke(channel: NotificationChannel): Result<Unit> =
+        runCatching { repository.createChannel(channel) }
 }
 
 class CreateNotificationChannelsUseCase(private val repository: NotificationCommandRepository) {
-    operator fun invoke(channels: List<NotificationChannel>) {
-        repository.createChannels(channels)
-    }
+    operator fun invoke(channels: List<NotificationChannel>): Result<Unit> =
+        runCatching { repository.createChannels(channels) }
 }
 
 class DeleteNotificationChannelUseCase(private val repository: NotificationCommandRepository) {
-    operator fun invoke(channelId: String) {
-        repository.deleteChannel(channelId)
-    }
+    operator fun invoke(channelId: String): Result<Unit> =
+        runCatching { repository.deleteChannel(channelId) }
 }
-

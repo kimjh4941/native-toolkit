@@ -78,8 +78,32 @@ internal object UnityNotificationJsonParser {
             style = json.optJSONObject("style")?.let { parseStyleObject(it, nowProvider) }
                 ?: UnityNotificationStyleSpec(),
             launchAppOnTap = json.optBoolean("launchAppOnTap", true),
-            launchAction = json.optStringOrNull("launchAction")
+            launchAction = json.optStringOrNull("launchAction"),
+            actions = json.optJSONArray("actions")?.toActionSpecs().orEmpty(),
+            fullScreenIntent = json.optBoolean("fullScreenIntent", false)
         )
+    }
+
+    private fun JSONArray.toActionSpecs(): List<UnityNotificationActionSpec> {
+        return buildList(length()) {
+            for (index in 0 until length()) {
+                val obj = optJSONObject(index) ?: continue
+                val title = obj.optStringOrNull("title") ?: continue
+                val actionId = obj.optStringOrNull("actionId") ?: continue
+                add(
+                    UnityNotificationActionSpec(
+                        title = title,
+                        actionId = actionId,
+                        icon = obj.optResourceRef("icon"),
+                        launchApp = obj.optBoolean("launchApp", false),
+                        allowGeneratedReplies = obj.optBoolean("allowGeneratedReplies", false),
+                        semanticAction = obj.optInt("semanticAction", 0),
+                        contextual = obj.optBoolean("contextual", false),
+                        showsUserInterface = obj.optBoolean("showsUserInterface", true)
+                    )
+                )
+            }
+        }
     }
 
     private fun parseChannelObject(json: JSONObject): UnityNotificationChannelSpec {

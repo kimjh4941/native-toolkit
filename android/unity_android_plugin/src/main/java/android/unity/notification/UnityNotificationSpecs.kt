@@ -33,6 +33,17 @@ internal data class UnityNotificationMessageSpec(
     val senderName: String? = null
 )
 
+internal data class UnityNotificationActionSpec(
+    val title: String,
+    val actionId: String,
+    val icon: UnityNotificationResourceRef? = null,
+    val launchApp: Boolean = false,
+    val allowGeneratedReplies: Boolean = false,
+    val semanticAction: Int = 0,
+    val contextual: Boolean = false,
+    val showsUserInterface: Boolean = true
+)
+
 internal data class UnityNotificationStyleSpec(
     val type: String = TYPE_DEFAULT,
     val bigText: String? = null,
@@ -89,7 +100,9 @@ internal data class UnityNotificationSpec(
     val progress: UnityNotificationProgressSpec? = null,
     val style: UnityNotificationStyleSpec = UnityNotificationStyleSpec(),
     val launchAppOnTap: Boolean = true,
-    val launchAction: String? = null
+    val launchAction: String? = null,
+    val actions: List<UnityNotificationActionSpec> = emptyList(),
+    val fullScreenIntent: Boolean = false
 )
 
 internal data class UnityScheduledNotificationSpec(
