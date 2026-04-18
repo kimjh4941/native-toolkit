@@ -80,7 +80,8 @@ internal object UnityNotificationJsonParser {
             launchAppOnTap = json.optBoolean("launchAppOnTap", true),
             launchAction = json.optStringOrNull("launchAction"),
             actions = json.optJSONArray("actions")?.toActionSpecs().orEmpty(),
-            fullScreenIntent = json.optBoolean("fullScreenIntent", false)
+            fullScreenIntent = json.optBoolean("fullScreenIntent", false),
+            data = json.optJSONObject("data")?.toStringMap()
         )
     }
 
@@ -217,6 +218,13 @@ internal object UnityNotificationJsonParser {
             for (index in 0 until array.length()) {
                 array.optString(index).takeIf { it.isNotBlank() }?.let(::add)
             }
+        }
+    }
+
+    private fun JSONObject.toStringMap(): Map<String, String>? {
+        if (length() == 0) return null
+        return buildMap {
+            keys().forEach { key -> put(key, optString(key)) }
         }
     }
 

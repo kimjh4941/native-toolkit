@@ -102,7 +102,8 @@ internal data class UnityNotificationSpec(
     val launchAppOnTap: Boolean = true,
     val launchAction: String? = null,
     val actions: List<UnityNotificationActionSpec> = emptyList(),
-    val fullScreenIntent: Boolean = false
+    val fullScreenIntent: Boolean = false,
+    val data: Map<String, String>? = null
 )
 
 internal data class UnityScheduledNotificationSpec(

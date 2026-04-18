@@ -19,10 +19,13 @@ import android.library.notification.domain.model.NotificationStyle
 import android.library.notification.presentation.progress.ProgressForegroundNotifications
 import android.net.Uri
 import android.provider.Settings
+import android.app.AlarmManager
+import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import java.util.concurrent.ConcurrentHashMap
+import org.json.JSONObject
 
 /**
  * Unity-facing notification bridge for native-toolkit.
@@ -94,6 +97,14 @@ object UnityAndroidNotificationManager {
 
     fun areNotificationsEnabled(context: Context): Boolean {
         return NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    fun canScheduleExactAlarms(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
+        } else {
+            true
+        }
     }
 
     fun openNotificationSettings(context: Context) {
@@ -412,33 +423,46 @@ object UnityAndroidNotificationManager {
             ),
             platformOptions = AndroidNotificationPlatformOptions(
                 contentIntent = buildContentIntent(context),
+                deleteIntent = buildDeleteIntent(context),
                 fullScreenIntent = if (fullScreenIntent) buildFullScreenIntent(context) else null,
-                actions = actions.mapIndexed { index, action -> action.toAndroidAction(context, id, index) }
+                actions = actions.mapIndexed { index, action -> action.toAndroidAction(context, id, index, data) }
             )
         )
     }
 
-    private fun UnityNotificationSpec.buildContentIntent(context: Context): AndroidPendingIntentRequest? {
-        if (!launchAppOnTap) {
-            return null
+    private fun UnityNotificationSpec.buildContentIntent(context: Context): AndroidPendingIntentRequest {
+        val intent = Intent(context, NotificationActionReceiver::class.java).apply {
+            putExtra(NotificationActionReceiver.EXTRA_ACTION_ID, NotificationActionReceiver.ACTION_BODY_TAP)
+            putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, id)
+            putExtra(NotificationActionReceiver.EXTRA_LAUNCH_APP, launchAppOnTap)
+            this@buildContentIntent.data?.let { map ->
+                val jsonObj = JSONObject()
+                map.forEach { (k, v) -> jsonObj.put(k, v) }
+                putExtra(NotificationActionReceiver.EXTRA_DATA, jsonObj.toString())
+            }
         }
-
-        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?.apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                launchAction?.let { action = it }
-            }
-            ?: Intent(Intent.ACTION_MAIN).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-                `package` = context.packageName
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                launchAction?.let { action = it }
-            }
-
         return AndroidPendingIntentRequest(
             intent = intent,
             requestCode = id,
-            type = AndroidPendingIntentType.ACTIVITY
+            type = AndroidPendingIntentType.BROADCAST
+        )
+    }
+
+    private fun UnityNotificationSpec.buildDeleteIntent(context: Context): AndroidPendingIntentRequest {
+        val intent = Intent(context, NotificationActionReceiver::class.java).apply {
+            putExtra(NotificationActionReceiver.EXTRA_ACTION_ID, NotificationActionReceiver.ACTION_NOTIFICATION_DISMISSED)
+            putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, id)
+            putExtra(NotificationActionReceiver.EXTRA_LAUNCH_APP, false)
+            this@buildDeleteIntent.data?.let { map ->
+                val jsonObj = JSONObject()
+                map.forEach { (k, v) -> jsonObj.put(k, v) }
+                putExtra(NotificationActionReceiver.EXTRA_DATA, jsonObj.toString())
+            }
+        }
+        return AndroidPendingIntentRequest(
+            intent = intent,
+            requestCode = id + Int.MAX_VALUE / 4,
+            type = AndroidPendingIntentType.BROADCAST
         )
     }
 
@@ -460,7 +484,8 @@ object UnityAndroidNotificationManager {
     private fun UnityNotificationActionSpec.toAndroidAction(
         context: Context,
         notificationId: Int,
-        index: Int
+        index: Int,
+        notificationData: Map<String, String>? = null
     ): AndroidNotificationAction {
         val resolver = ContextResourceResolver(context)
         val requestCode = notificationId * 100 + index
@@ -469,6 +494,11 @@ object UnityAndroidNotificationManager {
             putExtra(NotificationActionReceiver.EXTRA_ACTION_ID, actionId)
             putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, notificationId)
             putExtra(NotificationActionReceiver.EXTRA_LAUNCH_APP, launchApp)
+            notificationData?.let { map ->
+                val jsonObj = JSONObject()
+                map.forEach { (k, v) -> jsonObj.put(k, v) }
+                putExtra(NotificationActionReceiver.EXTRA_DATA, jsonObj.toString())
+            }
         }
         val pendingIntent = AndroidPendingIntentRequest(
             intent = intent,
