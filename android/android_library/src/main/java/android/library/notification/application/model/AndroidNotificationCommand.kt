@@ -41,13 +41,34 @@ data class AndroidNotificationCallPlatformOptions(
 ) : Parcelable
 
 @Parcelize
+sealed class RemoteViewAction : Parcelable {
+    @Parcelize
+    data class SetText(val viewId: Int, val text: String) : RemoteViewAction()
+
+    @Parcelize
+    data class SetImage(val viewId: Int, val resId: Int) : RemoteViewAction()
+
+    @Parcelize
+    data class SetClickIntent(
+        val viewId: Int,
+        val pendingIntent: AndroidPendingIntentRequest
+    ) : RemoteViewAction()
+}
+
+@Parcelize
+data class AndroidNotificationCustomViewPlatformOptions(
+    val viewActions: List<RemoteViewAction> = emptyList()
+) : Parcelable
+
+@Parcelize
 data class AndroidNotificationPlatformOptions(
     val largeIconBitmap: Bitmap? = null,
     val contentIntent: AndroidPendingIntentRequest? = null,
     val deleteIntent: AndroidPendingIntentRequest? = null,
     val fullScreenIntent: AndroidPendingIntentRequest? = null,
     val actions: List<AndroidNotificationAction> = emptyList(),
-    val callStyleOptions: AndroidNotificationCallPlatformOptions? = null
+    val callStyleOptions: AndroidNotificationCallPlatformOptions? = null,
+    val customViewOptions: AndroidNotificationCustomViewPlatformOptions? = null
 ) : Parcelable
 
 data class AndroidNotificationCommand(

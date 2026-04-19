@@ -54,13 +54,7 @@ sealed class NotificationStyle {
 
 data class NotificationCustomViewStyleData(
     val layoutResId: Int,
-    val bigLayoutResId: Int? = null,
-    val titleViewId: Int? = null,
-    val titleText: String? = null,
-    val messageViewId: Int? = null,
-    val messageText: String? = null,
-    val iconViewId: Int? = null,
-    val iconResId: Int? = null
+    val bigLayoutResId: Int? = null
 )
 
 enum class NotificationCallType {

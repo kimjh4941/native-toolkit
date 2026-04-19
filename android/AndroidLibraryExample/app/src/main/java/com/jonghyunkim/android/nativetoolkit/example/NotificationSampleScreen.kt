@@ -8,9 +8,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
+import android.library.notification.application.model.AndroidNotificationCustomViewPlatformOptions
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
 import android.library.notification.application.model.AndroidPendingIntentRequest
 import android.library.notification.application.model.AndroidPendingIntentType
+import android.library.notification.application.model.RemoteViewAction
 import android.library.notification.data.repository.NotificationUseCases
 import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
@@ -428,18 +430,31 @@ fun NotificationSampleScreen(
             style = NotificationStyle.DecoratedCustomView(
                 customView = NotificationCustomViewStyleData(
                     layoutResId = R.layout.notification_custom_style_sample,
-                    bigLayoutResId = R.layout.notification_custom_style_sample_expanded,
-                    titleViewId = R.id.notification_title,
-                    titleText = "Native Toolkit",
-                    messageViewId = R.id.notification_message,
-                    messageText = "Decorated custom view sample",
-                    iconViewId = R.id.notification_icon,
-                    iconResId = R.mipmap.ic_launcher_round
+                    bigLayoutResId = R.layout.notification_custom_style_sample_expanded
                 )
             ),
             subText = "DecoratedCustomView",
             platformOptions = AndroidNotificationPlatformOptions(
-                contentIntent = buildActivityPendingIntentRequest(2100, "native.toolkit.custom.open")
+                contentIntent = buildActivityPendingIntentRequest(2100, "native.toolkit.custom.open"),
+                customViewOptions = AndroidNotificationCustomViewPlatformOptions(
+                    viewActions = listOf(
+                        RemoteViewAction.SetText(R.id.notification_title, "Native Toolkit"),
+                        RemoteViewAction.SetText(R.id.notification_message, "Decorated custom view sample"),
+                        RemoteViewAction.SetImage(R.id.notification_icon, R.mipmap.ic_launcher_round),
+                        RemoteViewAction.SetClickIntent(
+                            viewId = R.id.notification_btn_dismiss,
+                            pendingIntent = buildBroadcastPendingIntentRequest(
+                                intent = NotificationActionReceiver.createIntent(
+                                    context = activity,
+                                    actionId = "custom_view_dismiss",
+                                    actionLabel = "Dismiss",
+                                    notificationId = 1007
+                                ),
+                                requestCode = 2101
+                            )
+                        )
+                    )
+                )
             )
         )
     }
@@ -452,13 +467,7 @@ fun NotificationSampleScreen(
             style = NotificationStyle.DecoratedMediaCustomView(
                 customView = NotificationCustomViewStyleData(
                     layoutResId = R.layout.notification_media_custom_style_sample,
-                    bigLayoutResId = R.layout.notification_media_custom_style_sample_expanded,
-                    titleViewId = R.id.notification_title,
-                    titleText = "Native Toolkit Player",
-                    messageViewId = R.id.notification_message,
-                    messageText = "Decorated media custom view sample",
-                    iconViewId = R.id.notification_icon,
-                    iconResId = R.mipmap.ic_launcher_round
+                    bigLayoutResId = R.layout.notification_media_custom_style_sample_expanded
                 ),
                 compactActionIndices = listOf(0, 1, 2)
             ),
@@ -470,7 +479,14 @@ fun NotificationSampleScreen(
             autoCancel = false,
             platformOptions = AndroidNotificationPlatformOptions(
                 contentIntent = buildActivityPendingIntentRequest(2200, "native.toolkit.decorated.media.open"),
-                actions = buildMediaActions(2210)
+                actions = buildMediaActions(2210),
+                customViewOptions = AndroidNotificationCustomViewPlatformOptions(
+                    viewActions = listOf(
+                        RemoteViewAction.SetText(R.id.notification_title, "Native Toolkit Player"),
+                        RemoteViewAction.SetText(R.id.notification_message, "Decorated media custom view sample"),
+                        RemoteViewAction.SetImage(R.id.notification_icon, R.mipmap.ic_launcher_round)
+                    )
+                )
             )
         )
     }

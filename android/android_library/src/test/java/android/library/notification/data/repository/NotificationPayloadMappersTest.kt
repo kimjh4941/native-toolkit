@@ -37,13 +37,7 @@ class NotificationPayloadMappersTest {
     fun decoratedAndCallStyles_roundTripThroughPayload() {
         val customView = NotificationCustomViewStyleData(
             layoutResId = 100,
-            bigLayoutResId = 101,
-            titleViewId = 102,
-            titleText = "Title",
-            messageViewId = 103,
-            messageText = "Message",
-            iconViewId = 104,
-            iconResId = 105
+            bigLayoutResId = 101
         )
         val pendingIntent = AndroidPendingIntentRequest(
             intent = Intent("native.toolkit.test"),

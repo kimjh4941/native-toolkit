@@ -44,5 +44,23 @@
         android:text="Expanded custom notification sample"
         android:textColor="#9CA3AF"
         android:textSize="12sp" />
+
+    <LinearLayout
+        android:id="@+id/notification_btn_dismiss"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="#374151"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dismiss"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+    </LinearLayout>
 </LinearLayout>
 

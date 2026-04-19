@@ -33,6 +33,7 @@ import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
 import android.library.notification.application.model.AndroidPendingIntentRequest
 import android.library.notification.application.model.AndroidPendingIntentType
+import android.library.notification.application.model.RemoteViewAction
 import android.library.notification.application.port.AndroidNotificationRuntimeRepository
 import android.library.notification.application.port.NotificationCommandRepository
 import android.library.notification.domain.model.ActiveNotification
@@ -453,16 +454,18 @@ class NotificationRepositoryImpl(context: Context) :
                 )
             }
             is NotificationStyle.DecoratedCustomView -> {
-                setCustomContentView(buildRemoteViews(style.customView))
+                val actions = platform.customViewOptions?.viewActions.orEmpty()
+                setCustomContentView(buildRemoteViews(style.customView, viewActions = actions))
                 style.customView.bigLayoutResId?.let { layoutResId ->
-                    setCustomBigContentView(buildRemoteViews(style.customView, layoutResId))
+                    setCustomBigContentView(buildRemoteViews(style.customView, layoutResId, actions))
                 }
                 setStyle(NotificationCompat.DecoratedCustomViewStyle())
             }
             is NotificationStyle.DecoratedMediaCustomView -> {
-                setCustomContentView(buildRemoteViews(style.customView))
+                val actions = platform.customViewOptions?.viewActions.orEmpty()
+                setCustomContentView(buildRemoteViews(style.customView, viewActions = actions))
                 style.customView.bigLayoutResId?.let { layoutResId ->
-                    setCustomBigContentView(buildRemoteViews(style.customView, layoutResId))
+                    setCustomBigContentView(buildRemoteViews(style.customView, layoutResId, actions))
                 }
                 setStyle(
                     MediaNotificationCompat.DecoratedMediaCustomViewStyle().also { mediaStyle ->
@@ -482,17 +485,16 @@ class NotificationRepositoryImpl(context: Context) :
 
     private fun buildRemoteViews(
         styleData: NotificationCustomViewStyleData,
-        layoutResId: Int = styleData.layoutResId
+        layoutResId: Int = styleData.layoutResId,
+        viewActions: List<RemoteViewAction> = emptyList()
     ): RemoteViews {
         return RemoteViews(appContext.packageName, layoutResId).apply {
-            if (styleData.titleViewId != null && styleData.titleText != null) {
-                setTextViewText(styleData.titleViewId, styleData.titleText)
-            }
-            if (styleData.messageViewId != null && styleData.messageText != null) {
-                setTextViewText(styleData.messageViewId, styleData.messageText)
-            }
-            if (styleData.iconViewId != null && styleData.iconResId != null) {
-                setImageViewResource(styleData.iconViewId, styleData.iconResId)
+            viewActions.forEach { action ->
+                when (action) {
+                    is RemoteViewAction.SetText -> setTextViewText(action.viewId, action.text)
+                    is RemoteViewAction.SetImage -> setImageViewResource(action.viewId, action.resId)
+                    is RemoteViewAction.SetClickIntent -> setOnClickPendingIntent(action.viewId, createPendingIntent(action.pendingIntent))
+                }
             }
         }
     }

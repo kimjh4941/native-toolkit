@@ -39,13 +39,7 @@ internal data class NotificationMessagePayload(
 @Parcelize
 internal data class NotificationCustomViewStyleDataPayload(
     val layoutResId: Int,
-    val bigLayoutResId: Int?,
-    val titleViewId: Int?,
-    val titleText: String?,
-    val messageViewId: Int?,
-    val messageText: String?,
-    val iconViewId: Int?,
-    val iconResId: Int?
+    val bigLayoutResId: Int?
 ) : Parcelable
 
 @Parcelize

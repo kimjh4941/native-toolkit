@@ -221,26 +221,14 @@ private fun NotificationStylePayload.toDomain(): NotificationStyle {
 private fun NotificationCustomViewStyleData.toPayload(): NotificationCustomViewStyleDataPayload {
     return NotificationCustomViewStyleDataPayload(
         layoutResId = layoutResId,
-        bigLayoutResId = bigLayoutResId,
-        titleViewId = titleViewId,
-        titleText = titleText,
-        messageViewId = messageViewId,
-        messageText = messageText,
-        iconViewId = iconViewId,
-        iconResId = iconResId
+        bigLayoutResId = bigLayoutResId
     )
 }
 
 private fun NotificationCustomViewStyleDataPayload.toDomain(): NotificationCustomViewStyleData {
     return NotificationCustomViewStyleData(
         layoutResId = layoutResId,
-        bigLayoutResId = bigLayoutResId,
-        titleViewId = titleViewId,
-        titleText = titleText,
-        messageViewId = messageViewId,
-        messageText = messageText,
-        iconViewId = iconViewId,
-        iconResId = iconResId
+        bigLayoutResId = bigLayoutResId
     )
 }
 
