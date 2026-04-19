@@ -849,11 +849,23 @@ fun NotificationSampleScreen(
     fun deleteScheduledNotificationSample(command: AndroidNotificationCommand, label: String) {
         useCases.cancelScheduled(command.content.id, command.content.tag)
             .mapCatching { useCases.cancel(command.content.id, command.content.tag).getOrThrow() }
-            .onSuccess { statusText = "🗑️ $label を削除しました。予約済み通知と表示中通知をクリアしました。" }
+            .onSuccess {
+                val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
+                statusText = "🗑️ $label を削除しました。予約済み通知と表示中通知をクリアしました。(isScheduled=$scheduled)"
+            }
             .onFailure { throwable ->
                 Log.e(TAG, "[deleteScheduledNotificationSample] failed to delete scheduled notification label=$label", throwable)
                 statusText = "❌ 予約通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
             }
+    }
+
+    fun checkScheduledNotificationStatus(command: AndroidNotificationCommand) {
+        val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
+        statusText = if (scheduled) {
+            "ℹ️ Schedule Notification は現在予約済みです。(isScheduled=true)"
+        } else {
+            "ℹ️ Schedule Notification は現在未予約です。(isScheduled=false)"
+        }
     }
 
     val listState = rememberLazyListState()
@@ -1530,7 +1542,9 @@ fun NotificationSampleScreen(
                                     buildScheduledCommand(),
                                     NotificationSchedule(triggerAtMillis = triggerAt)
                                 ).onSuccess {
-                                    statusText = "✅ 15秒後の予約通知を高優先度で設定しました。"
+                                    val command = buildScheduledCommand()
+                                    val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
+                                    statusText = "✅ 15秒後の予約通知を高優先度で設定しました。(isScheduled=$scheduled)"
                                 }.onFailure { throwable ->
                                     Log.e(TAG, "[schedule] failed", throwable)
                                     statusText = "❌ 予約通知の設定に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
@@ -1540,6 +1554,16 @@ fun NotificationSampleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Schedule Notification (15 sec)")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            checkScheduledNotificationStatus(buildScheduledCommand())
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Check Schedule isScheduled")
                     }
                 }
                 item {
