@@ -6,9 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
+import android.library.notification.application.model.AndroidNotificationCustomViewPlatformOptions
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
 import android.library.notification.application.model.AndroidPendingIntentRequest
 import android.library.notification.application.model.AndroidPendingIntentType
+import android.library.notification.application.model.RemoteViewAction
+import android.library.notification.domain.model.NotificationCustomViewStyleData
 import android.library.notification.data.repository.NotificationUseCases
 import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
@@ -441,7 +444,8 @@ object UnityAndroidNotificationManager {
                 contentIntent = buildContentIntent(context),
                 deleteIntent = buildDeleteIntent(context),
                 fullScreenIntent = if (fullScreenIntent) buildFullScreenIntent(context) else null,
-                actions = actions.mapIndexed { index, action -> action.toAndroidAction(context, id, index, data) }
+                actions = actions.mapIndexed { index, action -> action.toAndroidAction(context, id, index, data) },
+                customViewOptions = style.buildCustomViewOptions(context, id, data)
             )
         )
     }
@@ -592,8 +596,63 @@ object UnityAndroidNotificationManager {
                 )
             }
 
+            UnityNotificationStyleSpec.TYPE_DECORATED_CUSTOM_VIEW -> {
+                val layoutId = customViewLayoutName?.let {
+                    resolver.resolve(UnityNotificationResourceRef(it, "layout"))
+                }
+                if (layoutId == null) NotificationStyle.Default
+                else NotificationStyle.DecoratedCustomView(
+                    customView = NotificationCustomViewStyleData(
+                        layoutResId = layoutId,
+                        bigLayoutResId = bigCustomViewLayoutName?.let {
+                            resolver.resolve(UnityNotificationResourceRef(it, "layout"))
+                        }
+                    )
+                )
+            }
+
             else -> NotificationStyle.Default
         }
+    }
+
+    private fun UnityNotificationStyleSpec.buildCustomViewOptions(
+        context: Context,
+        notificationId: Int,
+        notificationData: Map<String, String>?
+    ): AndroidNotificationCustomViewPlatformOptions? {
+        if (type != UnityNotificationStyleSpec.TYPE_DECORATED_CUSTOM_VIEW) return null
+        if (viewActions.isEmpty()) return null
+        val resolver = ContextResourceResolver(context)
+        val remoteViewActions = viewActions.mapIndexedNotNull { index, viewAction ->
+            when (viewAction.type) {
+                UnityNotificationViewActionSpec.TYPE_SET_CLICK_INTENT -> {
+                    val viewId = resolver.resolve(UnityNotificationResourceRef(viewAction.viewId, "id"))
+                        ?: return@mapIndexedNotNull null
+                    val actionId = viewAction.actionId ?: return@mapIndexedNotNull null
+                    val intent = Intent(context, NotificationActionReceiver::class.java).apply {
+                        putExtra(NotificationActionReceiver.EXTRA_ACTION_ID, actionId)
+                        putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+                        putExtra(NotificationActionReceiver.EXTRA_LAUNCH_APP, false)
+                        notificationData?.let { map ->
+                            val jsonObj = JSONObject()
+                            map.forEach { (k, v) -> jsonObj.put(k, v) }
+                            putExtra(NotificationActionReceiver.EXTRA_DATA, jsonObj.toString())
+                        }
+                    }
+                    RemoteViewAction.SetClickIntent(
+                        viewId = viewId,
+                        pendingIntent = AndroidPendingIntentRequest(
+                            intent = intent,
+                            requestCode = notificationId * 100 + 50 + index,
+                            type = AndroidPendingIntentType.BROADCAST
+                        )
+                    )
+                }
+                else -> null
+            }
+        }
+        if (remoteViewActions.isEmpty()) return null
+        return AndroidNotificationCustomViewPlatformOptions(viewActions = remoteViewActions)
     }
 
     private fun UnityNotificationSpec.asProgressForegroundNotification(): UnityNotificationSpec {
@@ -664,24 +723,18 @@ object UnityAndroidNotificationManager {
 
             val cacheKey = "$normalizedType:$name"
             val resolved = resourceIdCache.getOrPut(cacheKey) {
-                try {
-                    val rClass = Class.forName("${context.packageName}.R$$normalizedType")
-                    rClass.getField(name).getInt(null)
-                } catch (exception: Exception) {
-                    Log.w(
-                        TAG,
-                        "[resolveByRClass] Failed to resolve resource type=$normalizedType name=$name",
-                        exception
-                    )
-                    MISSING_RESOURCE_ID
-                }
+                // Use getIdentifier() to search the compiled resource table directly.
+                // This works regardless of whether AGP uses transitive or non-transitive R classes,
+                // which is important for resources defined in unityLibrary (e.g. res/layout/).
+                val id = context.resources.getIdentifier(name, normalizedType, context.packageName)
+                if (id != 0) id else MISSING_RESOURCE_ID
             }
             return resolved.takeIf { it != MISSING_RESOURCE_ID }
         }
 
         private companion object {
             const val MISSING_RESOURCE_ID = 0
-            val SUPPORTED_RESOURCE_TYPES = setOf("drawable", "mipmap")
+            val SUPPORTED_RESOURCE_TYPES = setOf("drawable", "mipmap", "layout", "id")
         }
     }
 

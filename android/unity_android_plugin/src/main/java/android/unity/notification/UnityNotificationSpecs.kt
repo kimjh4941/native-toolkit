@@ -44,6 +44,16 @@ internal data class UnityNotificationActionSpec(
     val showsUserInterface: Boolean = true
 )
 
+internal data class UnityNotificationViewActionSpec(
+    val type: String,
+    val viewId: String,
+    val actionId: String? = null
+) {
+    companion object {
+        const val TYPE_SET_CLICK_INTENT = "setClickIntent"
+    }
+}
+
 internal data class UnityNotificationStyleSpec(
     val type: String = TYPE_DEFAULT,
     val bigText: String? = null,
@@ -57,7 +67,10 @@ internal data class UnityNotificationStyleSpec(
     val userDisplayName: String? = null,
     val conversationTitle: String? = null,
     val isGroupConversation: Boolean? = null,
-    val messages: List<UnityNotificationMessageSpec> = emptyList()
+    val messages: List<UnityNotificationMessageSpec> = emptyList(),
+    val customViewLayoutName: String? = null,
+    val bigCustomViewLayoutName: String? = null,
+    val viewActions: List<UnityNotificationViewActionSpec> = emptyList()
 ) {
     companion object {
         const val TYPE_DEFAULT = "default"
@@ -65,6 +78,7 @@ internal data class UnityNotificationStyleSpec(
         const val TYPE_INBOX = "inbox"
         const val TYPE_BIG_PICTURE = "bigPicture"
         const val TYPE_MESSAGING = "messaging"
+        const val TYPE_DECORATED_CUSTOM_VIEW = "decoratedCustomView"
     }
 }
 

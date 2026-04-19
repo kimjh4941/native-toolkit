@@ -183,7 +183,33 @@ internal object UnityNotificationJsonParser {
                 )
             }
 
+            UnityNotificationStyleSpec.TYPE_DECORATED_CUSTOM_VIEW -> {
+                UnityNotificationStyleSpec(
+                    type = type,
+                    customViewLayoutName = json.optString("customViewLayout").takeIf { it.isNotEmpty() },
+                    bigCustomViewLayoutName = json.optString("bigCustomViewLayout").takeIf { it.isNotEmpty() },
+                    viewActions = json.optJSONArray("viewActions")?.toViewActionSpecs().orEmpty()
+                )
+            }
+
             else -> UnityNotificationStyleSpec(type = UnityNotificationStyleSpec.TYPE_DEFAULT)
+        }
+    }
+
+    private fun JSONArray.toViewActionSpecs(): List<UnityNotificationViewActionSpec> {
+        return buildList(length()) {
+            for (index in 0 until length()) {
+                val obj = optJSONObject(index) ?: continue
+                val type = obj.optStringOrNull("type") ?: continue
+                val viewId = obj.optStringOrNull("viewId") ?: continue
+                add(
+                    UnityNotificationViewActionSpec(
+                        type = type,
+                        viewId = viewId,
+                        actionId = obj.optStringOrNull("actionId")
+                    )
+                )
+            }
         }
     }
 
