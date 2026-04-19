@@ -30,6 +30,10 @@
         <receiver
             android:name=".NotificationDeleteReceiver"
             android:exported="false" />
+
+        <receiver
+            android:name=".NotificationActionReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

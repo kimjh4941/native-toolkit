@@ -2,7 +2,11 @@ package com.jonghyunkim.android.nativetoolkit.example
 
 import android.app.PendingIntent
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
@@ -40,6 +44,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +67,7 @@ private const val ACTION_OPEN_NOTIFICATION_SAMPLE = "native.toolkit.notification
 private const val ACTION_OPEN_GROUPING_SAMPLE = "native.toolkit.notification.grouping.open"
 private const val ACTION_OPEN_FULL_SCREEN_SAMPLE = "native.toolkit.notification.fullscreen.open"
 private const val GROUP_SAMPLE_KEY = "native.toolkit.grouping.sample"
+private const val ACTION_SAMPLE_NOTIFICATION_ID = 1112
 
 @Composable
 fun NotificationSampleScreen(
@@ -75,6 +81,36 @@ fun NotificationSampleScreen(
 
     var statusText by remember {
         mutableStateOf("通知サンプルを確認できます。まずは権限状態を確認してください。")
+    }
+
+    DisposableEffect(activity) {
+        NotificationActionReceiver.isSampleScreenActive = true
+
+        val actionButtonReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action != NotificationActionReceiver.ACTION_NOTIFICATION_BUTTON_INTERNAL) {
+                    return
+                }
+
+                val actionId = intent.getStringExtra(NotificationActionReceiver.EXTRA_ACTION_ID).orEmpty()
+                val actionLabel = intent.getStringExtra(NotificationActionReceiver.EXTRA_ACTION_LABEL).orEmpty()
+                val notificationId = intent.getIntExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, -1)
+                statusText = "✅ Action button押下: $actionLabel (id=$actionId, notificationId=$notificationId)"
+            }
+        }
+
+        val filter = IntentFilter(NotificationActionReceiver.ACTION_NOTIFICATION_BUTTON_INTERNAL)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            activity.registerReceiver(actionButtonReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            activity.registerReceiver(actionButtonReceiver, filter)
+        }
+
+        onDispose {
+            NotificationActionReceiver.isSampleScreenActive = false
+            runCatching { activity.unregisterReceiver(actionButtonReceiver) }
+        }
     }
 
     val sampleChannel = remember {
@@ -178,6 +214,37 @@ fun NotificationSampleScreen(
                 title = "Next",
                 pendingIntent = buildActivityPendingIntentRequest(baseRequestCode + 2, "native.toolkit.media.next"),
                 iconResId = android.R.drawable.ic_media_next
+            )
+        )
+    }
+
+    fun buildAcceptDeclineActions(baseRequestCode: Int): List<AndroidNotificationAction> {
+        return listOf(
+            AndroidNotificationAction(
+                title = "Accept",
+                pendingIntent = buildBroadcastPendingIntentRequest(
+                    intent = NotificationActionReceiver.createIntent(
+                        context = activity,
+                        actionId = "accept",
+                        actionLabel = "Accept",
+                        notificationId = ACTION_SAMPLE_NOTIFICATION_ID
+                    ),
+                    requestCode = baseRequestCode
+                ),
+                iconResId = android.R.drawable.ic_menu_call
+            ),
+            AndroidNotificationAction(
+                title = "Decline",
+                pendingIntent = buildBroadcastPendingIntentRequest(
+                    intent = NotificationActionReceiver.createIntent(
+                        context = activity,
+                        actionId = "decline",
+                        actionLabel = "Decline",
+                        notificationId = ACTION_SAMPLE_NOTIFICATION_ID
+                    ),
+                    requestCode = baseRequestCode + 1
+                ),
+                iconResId = android.R.drawable.ic_menu_close_clear_cancel
             )
         )
     }
@@ -617,6 +684,26 @@ fun NotificationSampleScreen(
                     requestCode = 5121,
                     action = ACTION_OPEN_FULL_SCREEN_SAMPLE
                 )
+            )
+        )
+    }
+
+    fun buildActionButtonsSampleCommand(): AndroidNotificationCommand {
+        return buildStyleCommand(
+            id = ACTION_SAMPLE_NOTIFICATION_ID,
+            title = "Native Toolkit Action Sample",
+            message = "Use Accept / Decline action buttons",
+            style = NotificationStyle.BigText(
+                bigText = "Action button sample for notification interactions. Tap Accept or Decline and verify the status text update while this screen is visible.",
+                summaryText = "action buttons",
+                bigContentTitle = "Interaction / Action Buttons"
+            ),
+            channel = interactionGroupingSampleChannel,
+            subText = "Interaction / Action Buttons",
+            autoCancel = false,
+            platformOptions = AndroidNotificationPlatformOptions(
+                contentIntent = buildActivityPendingIntentRequest(5130, ACTION_OPEN_GROUPING_SAMPLE),
+                actions = buildAcceptDeclineActions(baseRequestCode = 5131)
             )
         )
     }
@@ -1197,6 +1284,32 @@ fun NotificationSampleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Show FullScreenIntent Sample")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
+                                command = buildActionButtonsSampleCommand(),
+                                successMessage = "✅ Action buttonサンプル通知を表示しました。Accept / Decline を押して statusText を確認してください。"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Show Action Buttons Sample")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            deleteNotificationSample(
+                                command = buildActionButtonsSampleCommand(),
+                                label = "Action Buttons Sample"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Delete Action Buttons Sample")
                     }
                 }
                 item {
