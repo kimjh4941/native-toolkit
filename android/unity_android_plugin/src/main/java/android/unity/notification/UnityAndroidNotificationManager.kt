@@ -20,6 +20,7 @@ import android.library.notification.presentation.progress.ProgressForegroundNoti
 import android.net.Uri
 import android.provider.Settings
 import android.app.AlarmManager
+import android.library.notification.NotificationShownSupport
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -62,6 +63,7 @@ object UnityAndroidNotificationManager {
 
     private var notificationOperationListener: NotificationOperationListener? = null
     private var notificationActionListener: NotificationActionReceiver.NotificationActionListener? = null
+    private var notificationShownListener: NotificationShownSupport.NotificationShownListener? = null
 
     interface NotificationOperationListener {
         fun onNotificationOperation(operation: String, isSuccessful: Boolean, errorMessage: String?)
@@ -91,12 +93,26 @@ object UnityAndroidNotificationManager {
         NotificationActionReceiver.actionListener = null
     }
 
+    fun setNotificationShownListener(listener: NotificationShownSupport.NotificationShownListener) {
+        notificationShownListener = listener
+        NotificationShownSupport.shownListener = listener
+    }
+
+    fun clearNotificationShownListener() {
+        notificationShownListener = null
+        NotificationShownSupport.shownListener = null
+    }
+
     fun hasPermission(context: Context): Boolean {
         return NotificationUseCases(context).hasPermission()
     }
 
     fun areNotificationsEnabled(context: Context): Boolean {
         return NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
+    fun isNotificationScheduled(context: Context, id: Int, tag: String? = null): Boolean {
+        return NotificationUseCases(context).isScheduled(context, id, tag)
     }
 
     fun canScheduleExactAlarms(context: Context): Boolean {

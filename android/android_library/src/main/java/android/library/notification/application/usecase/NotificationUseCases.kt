@@ -1,6 +1,8 @@
 package android.library.notification.application.usecase
 
+import android.content.Context
 import android.library.notification.application.port.NotificationCommandRepository
+import android.library.notification.data.repository.NotificationSchedulerSupport
 
 class NotificationUseCases(repository: NotificationCommandRepository) {
 
@@ -21,4 +23,10 @@ class NotificationUseCases(repository: NotificationCommandRepository) {
     val hasPermission = HasNotificationPermissionUseCase(repository)
     val areNotificationsEnabled = AreNotificationsEnabledUseCase(repository)
     val getActive = GetActiveNotificationsUseCase(repository)
+
+    fun isScheduled(context: Context, id: Int, tag: String? = null): Boolean {
+        return NotificationSchedulerSupport.loadAll(context).any { entry ->
+            entry.command.content.id == id && entry.command.content.tag == tag
+        }
+    }
 }
