@@ -6,7 +6,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.library.notification.application.model.AndroidNotificationAction
 import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.model.AndroidNotificationPlatformOptions
@@ -100,12 +99,12 @@ fun NotificationSampleScreen(
         }
 
         val filter = IntentFilter(NotificationActionReceiver.ACTION_NOTIFICATION_BUTTON_INTERNAL)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            activity.registerReceiver(actionButtonReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            @Suppress("DEPRECATION")
-            activity.registerReceiver(actionButtonReceiver, filter)
-        }
+        ContextCompat.registerReceiver(
+            activity,
+            actionButtonReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         onDispose {
             NotificationActionReceiver.isSampleScreenActive = false
@@ -142,6 +141,14 @@ fun NotificationSampleScreen(
             name = "Native Toolkit FullScreen Sample",
             importance = NotificationManager.IMPORTANCE_HIGH,
             description = "Reference fullScreenIntent notification sample channel"
+        )
+    }
+    val scheduleSampleChannel = remember {
+        NotificationChannel(
+            id = "native_toolkit_schedule_high",
+            name = "Native Toolkit Schedule High Priority",
+            importance = NotificationManager.IMPORTANCE_HIGH,
+            description = "High-priority scheduled notification sample channel"
         )
     }
 
@@ -478,7 +485,10 @@ fun NotificationSampleScreen(
                 summaryText = "Scheduled",
                 bigContentTitle = "Scheduled BigText"
             ),
-            subText = "Scheduled"
+            channel = scheduleSampleChannel,
+            subText = "Scheduled",
+            category = NotificationCompat.CATEGORY_ALARM,
+            priority = NotificationCompat.PRIORITY_HIGH
         )
     }
 
@@ -1509,7 +1519,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            createChannel()
+                            createChannel(scheduleSampleChannel)
                             if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
                                 statusText = "❌ 予約通知を設定できません。権限または通知設定を確認してください。"
                             } else if (!permissionHelper.canScheduleExactAlarms()) {
@@ -1520,7 +1530,7 @@ fun NotificationSampleScreen(
                                     buildScheduledCommand(),
                                     NotificationSchedule(triggerAtMillis = triggerAt)
                                 ).onSuccess {
-                                    statusText = "✅ 15秒後の予約通知を設定しました。"
+                                    statusText = "✅ 15秒後の予約通知を高優先度で設定しました。"
                                 }.onFailure { throwable ->
                                     Log.e(TAG, "[schedule] failed", throwable)
                                     statusText = "❌ 予約通知の設定に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
