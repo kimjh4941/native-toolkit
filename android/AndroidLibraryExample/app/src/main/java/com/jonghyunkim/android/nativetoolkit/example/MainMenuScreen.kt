@@ -47,14 +47,14 @@ fun MainMenuScreen(
         item {
             MainMenuListItem(
                 title = "Dialog Example",
-                description = "ダイアログサンプルを確認します。",
+                description = "Explore dialog samples.",
                 onClick = onSelectDialogTest
             )
         }
         item {
             MainMenuListItem(
                 title = "Notification Example",
-                description = "通知権限・表示・予約通知のサンプルを確認します。",
+                description = "Explore notification permission, display, and scheduling samples.",
                 onClick = onSelectNotificationTest
             )
         }

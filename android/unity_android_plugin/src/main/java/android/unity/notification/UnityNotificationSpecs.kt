@@ -1,10 +1,19 @@
 package android.unity.notification
 
+/**
+ * Resource reference by name.
+ *
+ * @property name Resource name.
+ * @property type Optional resource type (for example, "drawable"). Auto-resolved when null.
+ */
 internal data class UnityNotificationResourceRef(
     val name: String,
     val type: String? = null
 )
 
+/**
+ * DTO for notification channel settings passed from Unity.
+ */
 internal data class UnityNotificationChannelSpec(
     val id: String,
     val name: String,
@@ -21,18 +30,34 @@ internal data class UnityNotificationChannelSpec(
     val groupName: String? = null
 )
 
+/**
+ * DTO for progress configuration passed from Unity.
+ *
+ * @property indeterminate If true, max and current are ignored.
+ */
 internal data class UnityNotificationProgressSpec(
     val max: Int,
     val current: Int,
     val indeterminate: Boolean = false
 )
 
+/**
+ * DTO for a single message entry in Messaging style notifications.
+ *
+ * @property senderName Sender name, or null for local user messages.
+ */
 internal data class UnityNotificationMessageSpec(
     val text: String,
     val timestampMillis: Long,
     val senderName: String? = null
 )
 
+/**
+ * DTO for a notification action button.
+ *
+ * @property actionId Action identifier delivered to [NotificationActionReceiver] on tap.
+ * @property launchApp Whether to bring the app to foreground on tap.
+ */
 internal data class UnityNotificationActionSpec(
     val title: String,
     val actionId: String,
@@ -44,6 +69,13 @@ internal data class UnityNotificationActionSpec(
     val showsUserInterface: Boolean = true
 )
 
+/**
+ * DTO for RemoteViews actions in custom-view notifications.
+ *
+ * @property type Action type such as [TYPE_SET_CLICK_INTENT].
+ * @property viewId Resource name of the target view.
+ * @property actionId Action identifier delivered on click.
+ */
 internal data class UnityNotificationViewActionSpec(
     val type: String,
     val viewId: String,
@@ -54,6 +86,13 @@ internal data class UnityNotificationViewActionSpec(
     }
 }
 
+/**
+ * DTO for notification style configuration passed from Unity.
+ *
+ * Selects a style by [type] and fills fields relevant to that style.
+ * Supported styles: [TYPE_DEFAULT], [TYPE_BIG_TEXT], [TYPE_INBOX], [TYPE_BIG_PICTURE],
+ * [TYPE_MESSAGING], and [TYPE_DECORATED_CUSTOM_VIEW].
+ */
 internal data class UnityNotificationStyleSpec(
     val type: String = TYPE_DEFAULT,
     val bigText: String? = null,
@@ -82,6 +121,15 @@ internal data class UnityNotificationStyleSpec(
     }
 }
 
+/**
+ * DTO for full notification content passed from Unity.
+ *
+ * @property launchAppOnTap Whether to launch the app when the notification body is tapped.
+ * @property launchAction Custom action string delivered on tap.
+ * @property actions List of action buttons.
+ * @property fullScreenIntent Whether to issue a full-screen intent.
+ * @property data Optional custom key-value payload attached to the notification.
+ */
 internal data class UnityNotificationSpec(
     val id: Int,
     val title: String,
@@ -120,6 +168,15 @@ internal data class UnityNotificationSpec(
     val data: Map<String, String>? = null
 )
 
+/**
+ * DTO for scheduled notifications passed from Unity.
+ *
+ * @property triggerAtMillis Trigger time in epoch milliseconds.
+ * @property exact Whether to use an exact alarm.
+ * @property allowWhileIdle Whether the alarm can fire during Doze mode.
+ * @property persistAcrossBoot Whether to restore scheduling after device reboot.
+ * @property alarmType Alarm type constant from AlarmManager.
+ */
 internal data class UnityScheduledNotificationSpec(
     val notification: UnityNotificationSpec,
     val triggerAtMillis: Long,

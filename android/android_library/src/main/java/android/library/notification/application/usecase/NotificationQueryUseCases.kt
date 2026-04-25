@@ -4,6 +4,9 @@ import android.library.notification.application.port.NotificationCommandReposito
 import android.library.notification.domain.model.ActiveNotification
 import android.util.Log
 
+/**
+ * Use case for retrieving currently active notifications.
+ */
 class GetActiveNotificationsUseCase(private val repository: NotificationCommandRepository) {
     operator fun invoke(): List<ActiveNotification> {
         Log.d(TAG, "[invoke]")
@@ -12,6 +15,9 @@ class GetActiveNotificationsUseCase(private val repository: NotificationCommandR
     companion object { private const val TAG = "GetActiveNotificationsUseCase" }
 }
 
+/**
+ * Use case for checking notification permission state.
+ */
 class HasNotificationPermissionUseCase(private val repository: NotificationCommandRepository) {
     operator fun invoke(): Boolean {
         Log.d(TAG, "[invoke]")
@@ -20,6 +26,9 @@ class HasNotificationPermissionUseCase(private val repository: NotificationComma
     companion object { private const val TAG = "HasNotificationPermissionUseCase" }
 }
 
+/**
+ * Use case for checking whether app notifications are enabled.
+ */
 class AreNotificationsEnabledUseCase(private val repository: NotificationCommandRepository) {
     operator fun invoke(): Boolean {
         Log.d(TAG, "[invoke]")

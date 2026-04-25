@@ -81,7 +81,7 @@ fun NotificationSampleScreen(
     val useCases = remember(activity) { NotificationUseCases(activity) }
 
     var statusText by remember {
-        mutableStateOf("通知サンプルを確認できます。まずは権限状態を確認してください。")
+        mutableStateOf("Explore notification samples. Start by checking the current permission state.")
     }
 
     DisposableEffect(activity) {
@@ -96,7 +96,7 @@ fun NotificationSampleScreen(
                 val actionId = intent.getStringExtra(NotificationActionReceiver.EXTRA_ACTION_ID).orEmpty()
                 val actionLabel = intent.getStringExtra(NotificationActionReceiver.EXTRA_ACTION_LABEL).orEmpty()
                 val notificationId = intent.getIntExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, -1)
-                statusText = "✅ Action button押下: $actionLabel (id=$actionId, notificationId=$notificationId)"
+                statusText = "✅ Action button pressed: $actionLabel (id=$actionId, notificationId=$notificationId)"
             }
         }
 
@@ -163,7 +163,7 @@ fun NotificationSampleScreen(
     fun createChannel(channel: NotificationChannel = sampleChannel) {
         Log.d(TAG, "[createChannel] channelId=${channel.id}")
         ensureChannel(channel)
-        statusText = "✅ チャンネルを作成しました: ${channel.id}"
+        statusText = "✅ Channel created: ${channel.id}"
     }
 
     fun buildActivityPendingIntentRequest(
@@ -765,17 +765,17 @@ fun NotificationSampleScreen(
         Log.d(TAG, "[startProgressForegroundService]")
         createChannel(progressForegroundSampleChannel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
-            statusText = "❌ Progress foreground service を表示できません。権限または通知設定を確認してください。"
+            statusText = "❌ Unable to show the progress foreground service. Check permissions or notification settings."
             return
         }
 
         runCatching {
             ProgressForegroundNotifications.start(activity, buildProgressForegroundCommand(progressValue = 10))
         }.onSuccess {
-            statusText = "✅ dataSync Progress foreground service を開始しました。10% の通知を表示しています。"
+            statusText = "✅ Started dataSync progress foreground service. A 10% notification is now shown."
         }.onFailure { throwable ->
             Log.e(TAG, "[startProgressForegroundService] failed", throwable)
-            statusText = "❌ Progress foreground service の開始に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            statusText = "❌ Failed to start progress foreground service: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
@@ -784,10 +784,10 @@ fun NotificationSampleScreen(
         runCatching {
             ProgressForegroundNotifications.update(activity, buildProgressForegroundCommand(progressValue = progressValue))
         }.onSuccess {
-            statusText = "✅ dataSync Progress foreground service を ${progressValue.coerceIn(0, 100)}% に更新しました。"
+            statusText = "✅ Updated dataSync progress foreground service to ${progressValue.coerceIn(0, 100)}%."
         }.onFailure { throwable ->
             Log.e(TAG, "[updateProgressForegroundService] failed progressValue=$progressValue", throwable)
-            statusText = "❌ Progress foreground service の更新に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            statusText = "❌ Failed to update progress foreground service: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
@@ -796,10 +796,10 @@ fun NotificationSampleScreen(
         runCatching {
             ProgressForegroundNotifications.complete(activity, buildProgressForegroundCompleteCommand())
         }.onSuccess {
-            statusText = "✅ Progress foreground service を完了しました。通常通知へ降格しています。"
+            statusText = "✅ Completed progress foreground service. It has been downgraded to a regular notification."
         }.onFailure { throwable ->
             Log.e(TAG, "[completeProgressForegroundService] failed", throwable)
-            statusText = "❌ Progress foreground service の完了処理に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            statusText = "❌ Failed to complete progress foreground service: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
@@ -808,10 +808,10 @@ fun NotificationSampleScreen(
         runCatching {
             ProgressForegroundNotifications.stop(activity)
         }.onSuccess {
-            statusText = "ℹ️ Progress foreground service の停止を要求しました。"
+            statusText = "ℹ️ Requested progress foreground service stop."
         }.onFailure { throwable ->
             Log.e(TAG, "[stopProgressForegroundService] failed", throwable)
-            statusText = "❌ Progress foreground service を停止できませんでした: ${throwable.message ?: throwable::class.java.simpleName}"
+            statusText = "❌ Failed to stop progress foreground service: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
@@ -819,7 +819,7 @@ fun NotificationSampleScreen(
         Log.d(TAG, "[startCallForegroundService] type: $type, label: $label")
         createChannel(callSampleChannel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
-            statusText = "❌ 通話通知を表示できません。権限または通知設定を確認してください。"
+            statusText = "❌ Unable to show call notifications. Check permissions or notification settings."
             return
         }
 
@@ -832,10 +832,10 @@ fun NotificationSampleScreen(
         runCatching {
             ContextCompat.startForegroundService(activity, intent)
         }.onSuccess {
-            statusText = "✅ $label の foreground service CallStyle サンプルを開始しました。"
+            statusText = "✅ Started foreground service CallStyle sample for $label."
         }.onFailure { throwable ->
             Log.e(TAG, "[startCallForegroundService] failed type=$type", throwable)
-            statusText = "❌ 通話 foreground service の開始に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            statusText = "❌ Failed to start call foreground service: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
@@ -844,10 +844,10 @@ fun NotificationSampleScreen(
         runCatching {
             activity.startService(CallStyleForegroundService.createStopIntent(activity))
         }.onSuccess {
-            statusText = "ℹ️ 通話 foreground service サンプルの停止を要求しました。"
+            statusText = "ℹ️ Requested call foreground service sample stop."
         }.onFailure { throwable ->
             Log.e(TAG, "[stopCallForegroundService] failed", throwable)
-            statusText = "❌ 通話 foreground service を停止できませんでした: ${throwable.message ?: throwable::class.java.simpleName}"
+            statusText = "❌ Failed to stop call foreground service: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
@@ -856,7 +856,7 @@ fun NotificationSampleScreen(
         val channel = command.content.channel
         ensureChannel(channel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
-            statusText = "❌ 通知を表示できません。権限または通知設定を確認してください。"
+            statusText = "❌ Unable to show notifications. Check permissions or notification settings."
             return
         }
 
@@ -864,14 +864,14 @@ fun NotificationSampleScreen(
             .onSuccess { statusText = successMessage }
             .onFailure { throwable ->
                 Log.e(TAG, "[showNotificationSample] failed to show notification", throwable)
-                statusText = "❌ 通知表示に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+                statusText = "❌ Failed to show notification: ${throwable.message ?: throwable::class.java.simpleName}"
             }
     }
 
     fun showNotificationSamples(commands: List<AndroidNotificationCommand>, successMessage: String) {
         Log.d(TAG, "[showNotificationSamples] count: ${commands.size}, successMessage: $successMessage")
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
-            statusText = "❌ 通知を表示できません。権限または通知設定を確認してください。"
+            statusText = "❌ Unable to show notifications. Check permissions or notification settings."
             return
         }
 
@@ -884,17 +884,17 @@ fun NotificationSampleScreen(
             statusText = successMessage
         }.onFailure { throwable ->
             Log.e(TAG, "[showNotificationSamples] failed to show grouped notifications", throwable)
-            statusText = "❌ 複数通知の表示に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+            statusText = "❌ Failed to show multiple notifications: ${throwable.message ?: throwable::class.java.simpleName}"
         }
     }
 
     fun deleteNotificationSample(command: AndroidNotificationCommand, label: String) {
         Log.d(TAG, "[deleteNotificationSample] id: ${command.content.id}, label: $label")
         useCases.cancel(command.content.id, command.content.tag)
-            .onSuccess { statusText = "🗑️ $label 通知を削除しました。" }
+            .onSuccess { statusText = "🗑️ Deleted $label notification." }
             .onFailure { throwable ->
                 Log.e(TAG, "[deleteNotificationSample] failed to delete notification label=$label", throwable)
-                statusText = "❌ 通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+                statusText = "❌ Failed to delete notification: ${throwable.message ?: throwable::class.java.simpleName}"
             }
     }
 
@@ -904,11 +904,11 @@ fun NotificationSampleScreen(
             .mapCatching { useCases.cancel(command.content.id, command.content.tag).getOrThrow() }
             .onSuccess {
                 val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
-                statusText = "🗑️ $label を削除しました。予約済み通知と表示中通知をクリアしました。(isScheduled=$scheduled)"
+                statusText = "🗑️ Deleted $label. Cleared both scheduled and active notifications. (isScheduled=$scheduled)"
             }
             .onFailure { throwable ->
                 Log.e(TAG, "[deleteScheduledNotificationSample] failed to delete scheduled notification label=$label", throwable)
-                statusText = "❌ 予約通知削除に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+                statusText = "❌ Failed to delete scheduled notification: ${throwable.message ?: throwable::class.java.simpleName}"
             }
     }
 
@@ -916,9 +916,9 @@ fun NotificationSampleScreen(
         Log.d(TAG, "[checkScheduledNotificationStatus] id: ${command.content.id}")
         val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
         statusText = if (scheduled) {
-            "ℹ️ Schedule Notification は現在予約済みです。(isScheduled=true)"
+            "ℹ️ Schedule Notification is currently scheduled. (isScheduled=true)"
         } else {
-            "ℹ️ Schedule Notification は現在未予約です。(isScheduled=false)"
+            "ℹ️ Schedule Notification is currently not scheduled. (isScheduled=false)"
         }
     }
 
@@ -990,9 +990,9 @@ fun NotificationSampleScreen(
                         onClick = {
                             permissionHelper.requestPermission { granted ->
                                 statusText = if (granted) {
-                                    "✅ 通知権限が許可されました。"
+                                    "✅ Notification permission granted."
                                 } else {
-                                    "❌ 通知権限が許可されていません。上の「Open Notification Settings」ボタンから設定画面を開いて有効にしてください。"
+                                    "❌ Notification permission is not granted. Use 'Open Notification Settings' above to enable it."
                                 }
                             }
                         },
@@ -1006,9 +1006,9 @@ fun NotificationSampleScreen(
                         onClick = {
                             val opened = permissionHelper.openNotificationSettings()
                             statusText = if (opened) {
-                                "ℹ️ 通知設定またはアプリ詳細設定を開きました。"
+                                "ℹ️ Opened notification settings or app details settings."
                             } else {
-                                "❌ 設定画面を開けませんでした。この端末では該当設定画面が利用できない可能性があります。"
+                                "❌ Failed to open settings screen. This device may not support the target settings screen."
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1021,9 +1021,9 @@ fun NotificationSampleScreen(
                         onClick = {
                             val opened = permissionHelper.openAppDetailsSettings()
                             statusText = if (opened) {
-                                "ℹ️ アプリ詳細設定を開きました。"
+                                "ℹ️ Opened app details settings."
                             } else {
-                                "❌ アプリ詳細設定を開けませんでした。"
+                                "❌ Failed to open app details settings."
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1036,9 +1036,9 @@ fun NotificationSampleScreen(
                         onClick = {
                             val opened = permissionHelper.openExactAlarmSettings()
                             statusText = if (opened) {
-                                "ℹ️ Exact alarm 設定またはアプリ詳細設定を開きました。"
+                                "ℹ️ Opened exact alarm settings or app details settings."
                             } else {
-                                "❌ Exact alarm 設定を開けませんでした。"
+                                "❌ Failed to open exact alarm settings."
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1061,7 +1061,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildDefaultStyleCommand(),
-                                successMessage = "✅ Default style 通知を表示しました。"
+                                successMessage = "✅ Displayed Default style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1087,7 +1087,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildBigTextStyleCommand(),
-                                successMessage = "✅ BigText style 通知を表示しました。"
+                                successMessage = "✅ Displayed BigText style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1113,7 +1113,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildInboxStyleCommand(),
-                                successMessage = "✅ Inbox style 通知を表示しました。"
+                                successMessage = "✅ Displayed Inbox style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1139,7 +1139,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildBigPictureStyleCommand(),
-                                successMessage = "✅ BigPicture style 通知を表示しました。"
+                                successMessage = "✅ Displayed BigPicture style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1165,7 +1165,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildMessagingStyleCommand(),
-                                successMessage = "✅ Messaging style 通知を表示しました。"
+                                successMessage = "✅ Displayed Messaging style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1201,7 +1201,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildMediaStyleCommand(),
-                                successMessage = "✅ Media style 通知を表示しました。"
+                                successMessage = "✅ Displayed Media style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1227,7 +1227,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildDecoratedCustomViewStyleCommand(),
-                                successMessage = "✅ DecoratedCustomView style 通知を表示しました。"
+                                successMessage = "✅ Displayed DecoratedCustomView style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1253,7 +1253,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildDecoratedMediaCustomViewStyleCommand(),
-                                successMessage = "✅ DecoratedMediaCustomView style 通知を表示しました。"
+                                successMessage = "✅ Displayed DecoratedMediaCustomView style notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1289,7 +1289,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildGroupChild1Command(),
-                                successMessage = "✅ Group Child 1 通知を表示しました。"
+                                successMessage = "✅ Displayed Group Child 1 notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1302,7 +1302,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildGroupChild2Command(),
-                                successMessage = "✅ Group Child 2 通知を表示しました。"
+                                successMessage = "✅ Displayed Group Child 2 notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1315,7 +1315,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildGroupSummaryCommand(),
-                                successMessage = "✅ Group Summary 通知を表示しました。"
+                                successMessage = "✅ Displayed Group Summary notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1328,7 +1328,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSamples(
                                 commands = buildGroupAlertBehaviorCommands(),
-                                successMessage = "✅ Group Alert Behavior サンプルを表示しました。summary only alert を確認してください。"
+                                successMessage = "✅ Displayed Group Alert Behavior sample. Verify summary-only alert behavior."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1341,7 +1341,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildDeleteIntentSampleCommand(),
-                                successMessage = "✅ DeleteIntent サンプルを表示しました。通知をスワイプして receiver を確認してください。"
+                                successMessage = "✅ Displayed DeleteIntent sample. Swipe the notification and verify the receiver callback."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1354,7 +1354,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildFullScreenIntentSampleCommand(),
-                                successMessage = "✅ FullScreenIntent 参考サンプルを表示しました。端末状態によって heads-up または full screen で表示されます。"
+                                successMessage = "✅ Displayed FullScreenIntent reference sample. Depending on device state, it appears as heads-up or full-screen."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1367,7 +1367,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildActionButtonsSampleCommand(),
-                                successMessage = "✅ Action buttonサンプル通知を表示しました。Accept / Decline を押して statusText を確認してください。"
+                                successMessage = "✅ Displayed action button sample notification. Press Accept / Decline and check the status text."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1403,7 +1403,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildProgressCommand(progressValue = 10),
-                                successMessage = "✅ Progress 通知を 10% で表示しました。"
+                                successMessage = "✅ Displayed progress notification at 10%."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1416,7 +1416,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildProgressCommand(progressValue = 50),
-                                successMessage = "✅ Progress 通知を 50% に更新しました。"
+                                successMessage = "✅ Updated progress notification to 50%."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1429,7 +1429,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildProgressCommand(progressValue = 100),
-                                successMessage = "✅ Progress 通知を 100% に更新しました。"
+                                successMessage = "✅ Updated progress notification to 100%."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1442,7 +1442,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             showNotificationSample(
                                 command = buildIndeterminateProgressCommand(),
-                                successMessage = "✅ Indeterminate Progress 通知を表示しました。"
+                                successMessage = "✅ Displayed indeterminate progress notification."
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -1587,9 +1587,9 @@ fun NotificationSampleScreen(
                         onClick = {
                             createChannel(scheduleSampleChannel)
                             if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
-                                statusText = "❌ 予約通知を設定できません。権限または通知設定を確認してください。"
+                                statusText = "❌ Unable to schedule notifications. Check permissions or notification settings."
                             } else if (!permissionHelper.canScheduleExactAlarms()) {
-                                statusText = "❌ 正確なアラームが許可されていません。上の「Open Exact Alarm Settings」ボタンから設定画面を開いて有効にしてください。"
+                                statusText = "❌ Exact alarms are not allowed. Use 'Open Exact Alarm Settings' above to enable them."
                             } else {
                                 val triggerAt = System.currentTimeMillis() + 15_000L
                                 useCases.schedule(
@@ -1598,10 +1598,10 @@ fun NotificationSampleScreen(
                                 ).onSuccess {
                                     val command = buildScheduledCommand()
                                     val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
-                                    statusText = "✅ 15秒後の予約通知を高優先度で設定しました。(isScheduled=$scheduled)"
+                                    statusText = "✅ Scheduled a high-priority notification for 15 seconds later. (isScheduled=$scheduled)"
                                 }.onFailure { throwable ->
                                     Log.e(TAG, "[schedule] failed", throwable)
-                                    statusText = "❌ 予約通知の設定に失敗しました: ${throwable.message ?: throwable::class.java.simpleName}"
+                                    statusText = "❌ Failed to schedule notification: ${throwable.message ?: throwable::class.java.simpleName}"
                                 }
                             }
                         },

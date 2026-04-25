@@ -68,65 +68,109 @@ object UnityAndroidNotificationManager {
     private var notificationActionListener: NotificationActionReceiver.NotificationActionListener? = null
     private var notificationShownListener: NotificationShownSupport.NotificationShownListener? = null
 
+    /**
+     * Listener for notification operation results.
+     */
     interface NotificationOperationListener {
         fun onNotificationOperation(operation: String, isSuccessful: Boolean, errorMessage: String?)
     }
 
+    /**
+     * Returns the singleton instance. Used for Unity JNI bridge calls.
+     */
     @JvmStatic
     fun getInstance(): UnityAndroidNotificationManager {
         Log.d(TAG, "getInstance called")
         return this
     }
 
+    /**
+     * Registers a notification operation result listener.
+     */
     fun setNotificationOperationListener(listener: NotificationOperationListener) {
         Log.d(TAG, "[setNotificationOperationListener] listener: $listener")
         notificationOperationListener = listener
     }
 
+    /**
+     * Clears the notification operation result listener.
+     */
     fun clearNotificationOperationListener() {
         Log.d(TAG, "[clearNotificationOperationListener]")
         notificationOperationListener = null
     }
 
+    /**
+     * Registers a notification action listener for button taps and dismiss events.
+     */
     fun setNotificationActionListener(listener: NotificationActionReceiver.NotificationActionListener) {
         Log.d(TAG, "[setNotificationActionListener] listener: $listener")
         notificationActionListener = listener
         NotificationActionReceiver.actionListener = listener
     }
 
+    /**
+     * Clears the notification action listener.
+     */
     fun clearNotificationActionListener() {
         Log.d(TAG, "[clearNotificationActionListener]")
         notificationActionListener = null
         NotificationActionReceiver.actionListener = null
     }
 
+    /**
+     * Registers a notification shown listener.
+     */
     fun setNotificationShownListener(listener: NotificationShownSupport.NotificationShownListener) {
         Log.d(TAG, "[setNotificationShownListener] listener: $listener")
         notificationShownListener = listener
         NotificationShownSupport.shownListener = listener
     }
 
+    /**
+     * Clears the notification shown listener.
+     */
     fun clearNotificationShownListener() {
         Log.d(TAG, "[clearNotificationShownListener]")
         notificationShownListener = null
         NotificationShownSupport.shownListener = null
     }
 
+    /**
+     * Checks whether notification permission is granted.
+     *
+     * @return True if granted. Always true on Android 12 and below.
+     */
     fun hasPermission(context: Context): Boolean {
         Log.d(TAG, "[hasPermission]")
         return NotificationUseCases(context).hasPermission()
     }
 
+    /**
+     * Checks whether app notifications are enabled.
+     *
+     * @return True if enabled.
+     */
     fun areNotificationsEnabled(context: Context): Boolean {
         Log.d(TAG, "[areNotificationsEnabled]")
         return NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
+    /**
+     * Checks whether the specified notification ID is scheduled.
+     *
+     * @return True if scheduled.
+     */
     fun isNotificationScheduled(context: Context, id: Int, tag: String? = null): Boolean {
         Log.d(TAG, "[isNotificationScheduled] id: $id, tag: $tag")
         return NotificationUseCases(context).isScheduled(context, id, tag)
     }
 
+    /**
+     * Checks whether exact alarms can be scheduled.
+     *
+     * @return True if allowed. Always true on Android 11 and below.
+     */
     fun canScheduleExactAlarms(context: Context): Boolean {
         Log.d(TAG, "[canScheduleExactAlarms]")
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -136,6 +180,7 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /** Opens notification settings. */
     fun openNotificationSettings(context: Context) {
         Log.d(TAG, "[openNotificationSettings]")
         openSettingsWithFallback(
@@ -150,6 +195,7 @@ object UnityAndroidNotificationManager {
         )
     }
 
+    /** Opens app details settings. */
     fun openAppDetailsSettings(context: Context) {
         Log.d(TAG, "[openAppDetailsSettings]")
         executeOperation(OPERATION_OPEN_APP_DETAILS_SETTINGS) {
@@ -157,6 +203,7 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /** Opens exact alarm settings. */
     fun openExactAlarmSettings(context: Context) {
         Log.d(TAG, "[openExactAlarmSettings]")
         openSettingsWithFallback(
@@ -170,6 +217,11 @@ object UnityAndroidNotificationManager {
         )
     }
 
+    /**
+     * Creates a notification channel.
+     *
+     * @param channelJson JSON string containing channel settings.
+     */
     fun createChannel(context: Context, channelJson: String) {
         Log.d(TAG, "[createChannel] channelJson: $channelJson")
         executeOperation(OPERATION_CREATE_CHANNEL) {
@@ -178,6 +230,11 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /**
+     * Deletes a notification channel.
+     *
+     * @param channelId Channel ID to delete.
+     */
     fun deleteChannel(context: Context, channelId: String) {
         Log.d(TAG, "[deleteChannel] channelId: $channelId")
         executeOperation(OPERATION_DELETE_CHANNEL) {
@@ -185,16 +242,27 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /**
+     * Shows a notification.
+     *
+     * @param notificationJson JSON string containing notification content.
+     */
     fun showNotification(context: Context, notificationJson: String) {
         Log.d(TAG, "[showNotification] notificationJson: $notificationJson")
         runShowOrUpdate(context, notificationJson, isUpdate = false)
     }
 
+    /**
+     * Updates a notification.
+     *
+     * @param notificationJson JSON string containing updated notification content.
+     */
     fun updateNotification(context: Context, notificationJson: String) {
         Log.d(TAG, "[updateNotification] notificationJson: $notificationJson")
         runShowOrUpdate(context, notificationJson, isUpdate = true)
     }
 
+    /** Cancels a specific notification. */
     fun cancelNotification(context: Context, id: Int, tag: String? = null) {
         Log.d(TAG, "[cancelNotification] id: $id, tag: $tag")
         executeOperation(OPERATION_CANCEL_NOTIFICATION) {
@@ -202,6 +270,7 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /** Cancels all notifications. */
     fun cancelAllNotifications(context: Context) {
         Log.d(TAG, "[cancelAllNotifications]")
         executeOperation(OPERATION_CANCEL_ALL_NOTIFICATIONS) {
@@ -209,6 +278,11 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /**
+     * Schedules a notification.
+     *
+     * @param scheduleJson JSON string containing required notification and schedule objects.
+     */
     fun scheduleNotification(context: Context, scheduleJson: String) {
         Log.d(TAG, "[scheduleNotification] scheduleJson: $scheduleJson")
         executeOperation(OPERATION_SCHEDULE_NOTIFICATION) {
@@ -227,6 +301,7 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /** Cancels a specific scheduled notification. */
     fun cancelScheduledNotification(context: Context, id: Int, tag: String? = null) {
         Log.d(TAG, "[cancelScheduledNotification] id: $id, tag: $tag")
         executeOperation(OPERATION_CANCEL_SCHEDULED_NOTIFICATION) {
@@ -234,6 +309,7 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /** Cancels all scheduled notifications. */
     fun cancelAllScheduledNotifications(context: Context) {
         Log.d(TAG, "[cancelAllScheduledNotifications]")
         executeOperation(OPERATION_CANCEL_ALL_SCHEDULED_NOTIFICATIONS) {
@@ -241,21 +317,37 @@ object UnityAndroidNotificationManager {
         }
     }
 
+    /**
+     * Starts progress foreground service handling.
+     *
+     * @param notificationJson JSON string that includes a progress field.
+     */
     fun startProgressForegroundService(context: Context, notificationJson: String) {
         Log.d(TAG, "[startProgressForegroundService] notificationJson: $notificationJson")
         runProgressOperation(context, notificationJson, ProgressOperation.START)
     }
 
+    /**
+     * Updates progress foreground notification.
+     *
+     * @param notificationJson JSON string containing updated data.
+     */
     fun updateProgressForegroundService(context: Context, notificationJson: String) {
         Log.d(TAG, "[updateProgressForegroundService] notificationJson: $notificationJson")
         runProgressOperation(context, notificationJson, ProgressOperation.UPDATE)
     }
 
+    /**
+     * Completes progress flow, stops foreground mode, and shows completion notification.
+     *
+     * @param notificationJson JSON string for completion notification content.
+     */
     fun completeProgressForegroundService(context: Context, notificationJson: String) {
         Log.d(TAG, "[completeProgressForegroundService] notificationJson: $notificationJson")
         runProgressOperation(context, notificationJson, ProgressOperation.COMPLETE)
     }
 
+    /** Stops progress foreground service handling. */
     fun stopProgressForegroundService(context: Context) {
         Log.d(TAG, "[stopProgressForegroundService]")
         executeOperation(OPERATION_STOP_PROGRESS_FOREGROUND_SERVICE) {

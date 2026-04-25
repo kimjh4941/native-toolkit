@@ -4,6 +4,14 @@ import android.content.Context
 import android.library.notification.application.port.NotificationCommandRepository
 import android.library.notification.data.repository.NotificationSchedulerSupport
 
+/**
+ * Use-case suite for notification features.
+ *
+ * Exposes all notification use cases such as show, update, cancel,
+ * scheduling, and channel management.
+ *
+ * @param repository [NotificationCommandRepository] used to execute notification operations.
+ */
 class NotificationUseCases(repository: NotificationCommandRepository) {
 
     val show = ShowNotificationUseCase(repository)
@@ -24,6 +32,11 @@ class NotificationUseCases(repository: NotificationCommandRepository) {
     val areNotificationsEnabled = AreNotificationsEnabledUseCase(repository)
     val getActive = GetActiveNotificationsUseCase(repository)
 
+    /**
+     * Checks whether the specified notification ID is scheduled.
+     *
+     * @return True if scheduled.
+     */
     fun isScheduled(context: Context, id: Int, tag: String? = null): Boolean {
         return NotificationSchedulerSupport.loadAll(context).any { entry ->
             entry.command.content.id == id && entry.command.content.tag == tag

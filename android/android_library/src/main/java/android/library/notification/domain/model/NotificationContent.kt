@@ -1,5 +1,17 @@
 package android.library.notification.domain.model
 
+/**
+ * Notification content definition.
+ *
+ * @property id Notification ID.
+ * @property title Notification title.
+ * @property message Notification message.
+ * @property channel Notification channel settings.
+ * @property priority Priority constant from [androidx.core.app.NotificationCompat].
+ * @property visibility Lock-screen visibility constant from [android.app.Notification].
+ * @property style Notification style.
+ * @property progress Progress bar settings, or null to hide progress.
+ */
 data class NotificationContent(
     val id: Int,
     val title: String,

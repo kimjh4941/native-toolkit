@@ -1,5 +1,15 @@
 package android.library.notification.domain.model
 
+/**
+ * Notification channel settings.
+ *
+ * @property id Channel ID.
+ * @property name Display name for the channel.
+ * @property importance Importance constant from [android.app.NotificationManager].
+ * @property lockscreenVisibility Visibility constant from [android.app.Notification].
+ * @property groupId Channel group ID, or null if not grouped.
+ * @property groupName Channel group name, or null if not grouped.
+ */
 data class NotificationChannel(
     val id: String = "default_channel",
     val name: String = "Default Channel",

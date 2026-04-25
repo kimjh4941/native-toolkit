@@ -11,6 +11,11 @@ import android.library.notification.data.repository.NotificationRepositoryImpl
 import android.os.IBinder
 import android.util.Log
 
+/**
+ * Service that displays and updates progress notifications in foreground mode.
+ *
+ * Handles start, update, complete, and stop phases from intents sent by [ProgressForegroundNotifications].
+ */
 class ProgressForegroundService : Service() {
 
     private val repository by lazy { NotificationRepositoryImpl(this) }

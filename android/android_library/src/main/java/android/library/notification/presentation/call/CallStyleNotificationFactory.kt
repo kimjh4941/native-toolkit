@@ -17,6 +17,9 @@ import android.library.notification.domain.model.NotificationStyle
 import android.util.Log
 import androidx.core.app.NotificationCompat
 
+/**
+ * Factory that builds CallStyle notification commands and channels.
+ */
 object CallStyleNotificationFactory {
 
     private const val TAG = "CallStyleNotificationFactory"
@@ -25,6 +28,12 @@ object CallStyleNotificationFactory {
     private const val CALL_STYLE_SERVICE_CLASS_NAME =
         "android.library.notification.presentation.call.CallStyleForegroundService"
 
+    /**
+     * Creates a CallStyle notification command for the given type.
+     *
+     * @param type Call type.
+     * @return Created [AndroidNotificationCommand].
+     */
     fun createCommand(context: Context, type: CallStyleType): AndroidNotificationCommand {
         Log.d(TAG, "[createCommand] type: $type")
         return when (type) {
@@ -34,6 +43,11 @@ object CallStyleNotificationFactory {
         }
     }
 
+    /**
+     * Creates the notification channel used by CallStyle notifications.
+     *
+     * @return [NotificationChannel].
+     */
     fun createChannel(): NotificationChannel {
         Log.d(TAG, "[createChannel]")
         return NotificationChannel(

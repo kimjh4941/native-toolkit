@@ -13,6 +13,11 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 
+/**
+ * Service that presents CallStyle notifications in foreground mode.
+ *
+ * Handles intents for incoming, answer, decline, and end-call transitions.
+ */
 class CallStyleForegroundService : Service() {
 
     private val repository by lazy { NotificationRepositoryImpl(this) }

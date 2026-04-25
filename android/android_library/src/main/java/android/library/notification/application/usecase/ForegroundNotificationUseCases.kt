@@ -6,6 +6,9 @@ import android.library.notification.application.model.AndroidNotificationCommand
 import android.library.notification.application.port.AndroidNotificationRuntimeRepository
 import android.util.Log
 
+/**
+ * Use case for building a notification object.
+ */
 class BuildNotificationUseCase(private val repository: AndroidNotificationRuntimeRepository) {
     operator fun invoke(command: AndroidNotificationCommand): Notification {
         Log.d(TAG, "[invoke] command: $command")
@@ -14,6 +17,9 @@ class BuildNotificationUseCase(private val repository: AndroidNotificationRuntim
     companion object { private const val TAG = "BuildNotificationUseCase" }
 }
 
+/**
+ * Use case for starting foreground mode and showing a notification.
+ */
 class StartForegroundNotificationUseCase(private val repository: AndroidNotificationRuntimeRepository) {
     operator fun invoke(
         service: Service,
@@ -26,6 +32,9 @@ class StartForegroundNotificationUseCase(private val repository: AndroidNotifica
     companion object { private const val TAG = "StartForegroundNotificationUseCase" }
 }
 
+/**
+ * Use case for updating a foreground notification.
+ */
 class UpdateForegroundNotificationUseCase(private val repository: AndroidNotificationRuntimeRepository) {
     operator fun invoke(
         service: Service,
@@ -38,6 +47,9 @@ class UpdateForegroundNotificationUseCase(private val repository: AndroidNotific
     companion object { private const val TAG = "UpdateForegroundNotificationUseCase" }
 }
 
+/**
+ * Use case for stopping foreground mode.
+ */
 class StopForegroundNotificationUseCase(private val repository: AndroidNotificationRuntimeRepository) {
     operator fun invoke(service: Service, removeNotification: Boolean = true) {
         Log.d(TAG, "[invoke] removeNotification: $removeNotification")
