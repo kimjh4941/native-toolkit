@@ -1,0 +1,5 @@
+<map id="WindowsDialogManager::ShowFileDialog" name="WindowsDialogManager::ShowFileDialog">
+<area shape="rect" id="Node000001" title="Show a single file open dialog." alt="" coords="164,5,326,48"/>
+<area shape="rect" id="Node000002" href="$_windows_dialog_manager_8cpp.html#ae0a81cb4dec0d8674ebf40249a54895b" title="Public API: Show single file open dialog." alt="" coords="5,13,116,40"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,29,116,29,116,24,148,24"/>
+</map>
