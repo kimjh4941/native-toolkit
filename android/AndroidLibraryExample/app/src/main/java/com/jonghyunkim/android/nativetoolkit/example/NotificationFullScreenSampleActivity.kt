@@ -1,6 +1,7 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +23,7 @@ import com.jonghyunkim.android.nativetoolkit.example.ui.theme.AndroidTheme
 class NotificationFullScreenSampleActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "[onCreate] savedInstanceState: $savedInstanceState")
         super.onCreate(savedInstanceState)
         setShowWhenLocked(true)
         setTurnScreenOn(true)
@@ -34,6 +36,10 @@ class NotificationFullScreenSampleActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "NotificationFullScreenSampleActivity"
     }
 }
 

@@ -14,16 +14,19 @@ import android.library.notification.domain.model.NotificationCallType
 import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
 import android.library.notification.domain.model.NotificationStyle
+import android.util.Log
 import androidx.core.app.NotificationCompat
 
 object CallStyleNotificationFactory {
 
+    private const val TAG = "CallStyleNotificationFactory"
     private const val CALL_NOTIFICATION_ID = 1200
     private const val CALL_CHANNEL_ID = "native_toolkit_call_v3"
     private const val CALL_STYLE_SERVICE_CLASS_NAME =
         "android.library.notification.presentation.call.CallStyleForegroundService"
 
     fun createCommand(context: Context, type: CallStyleType): AndroidNotificationCommand {
+        Log.d(TAG, "[createCommand] type: $type")
         return when (type) {
             CallStyleType.INCOMING -> createIncomingCommand(context)
             CallStyleType.ONGOING -> createOngoingCommand(context)
@@ -32,6 +35,7 @@ object CallStyleNotificationFactory {
     }
 
     fun createChannel(): NotificationChannel {
+        Log.d(TAG, "[createChannel]")
         return NotificationChannel(
             id = CALL_CHANNEL_ID,
             name = "Native Toolkit Call",

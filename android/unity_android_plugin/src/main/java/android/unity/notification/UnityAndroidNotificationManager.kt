@@ -45,7 +45,7 @@ import org.json.JSONObject
  */
 object UnityAndroidNotificationManager {
 
-    private const val TAG = "UnityAndroidNotificationMgr"
+    private const val TAG = "UnityAndroidNotificationManager"
 
     const val OPERATION_OPEN_NOTIFICATION_SETTINGS = "openNotificationSettings"
     const val OPERATION_OPEN_APP_DETAILS_SETTINGS = "openAppDetailsSettings"
@@ -79,46 +79,56 @@ object UnityAndroidNotificationManager {
     }
 
     fun setNotificationOperationListener(listener: NotificationOperationListener) {
+        Log.d(TAG, "[setNotificationOperationListener] listener: $listener")
         notificationOperationListener = listener
     }
 
     fun clearNotificationOperationListener() {
+        Log.d(TAG, "[clearNotificationOperationListener]")
         notificationOperationListener = null
     }
 
     fun setNotificationActionListener(listener: NotificationActionReceiver.NotificationActionListener) {
+        Log.d(TAG, "[setNotificationActionListener] listener: $listener")
         notificationActionListener = listener
         NotificationActionReceiver.actionListener = listener
     }
 
     fun clearNotificationActionListener() {
+        Log.d(TAG, "[clearNotificationActionListener]")
         notificationActionListener = null
         NotificationActionReceiver.actionListener = null
     }
 
     fun setNotificationShownListener(listener: NotificationShownSupport.NotificationShownListener) {
+        Log.d(TAG, "[setNotificationShownListener] listener: $listener")
         notificationShownListener = listener
         NotificationShownSupport.shownListener = listener
     }
 
     fun clearNotificationShownListener() {
+        Log.d(TAG, "[clearNotificationShownListener]")
         notificationShownListener = null
         NotificationShownSupport.shownListener = null
     }
 
     fun hasPermission(context: Context): Boolean {
+        Log.d(TAG, "[hasPermission]")
         return NotificationUseCases(context).hasPermission()
     }
 
     fun areNotificationsEnabled(context: Context): Boolean {
+        Log.d(TAG, "[areNotificationsEnabled]")
         return NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
     fun isNotificationScheduled(context: Context, id: Int, tag: String? = null): Boolean {
+        Log.d(TAG, "[isNotificationScheduled] id: $id, tag: $tag")
         return NotificationUseCases(context).isScheduled(context, id, tag)
     }
 
     fun canScheduleExactAlarms(context: Context): Boolean {
+        Log.d(TAG, "[canScheduleExactAlarms]")
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
         } else {
@@ -127,6 +137,7 @@ object UnityAndroidNotificationManager {
     }
 
     fun openNotificationSettings(context: Context) {
+        Log.d(TAG, "[openNotificationSettings]")
         openSettingsWithFallback(
             operation = OPERATION_OPEN_NOTIFICATION_SETTINGS,
             context = context,
@@ -140,12 +151,14 @@ object UnityAndroidNotificationManager {
     }
 
     fun openAppDetailsSettings(context: Context) {
+        Log.d(TAG, "[openAppDetailsSettings]")
         executeOperation(OPERATION_OPEN_APP_DETAILS_SETTINGS) {
             startActivity(context, appDetailsSettingsIntent(context))
         }
     }
 
     fun openExactAlarmSettings(context: Context) {
+        Log.d(TAG, "[openExactAlarmSettings]")
         openSettingsWithFallback(
             operation = OPERATION_OPEN_EXACT_ALARM_SETTINGS,
             context = context,
@@ -158,6 +171,7 @@ object UnityAndroidNotificationManager {
     }
 
     fun createChannel(context: Context, channelJson: String) {
+        Log.d(TAG, "[createChannel] channelJson: $channelJson")
         executeOperation(OPERATION_CREATE_CHANNEL) {
             val channel = UnityNotificationJsonParser.parseChannel(channelJson)
             NotificationUseCases(context).createChannel(channel.toDomainChannel()).getOrThrow()
@@ -165,32 +179,38 @@ object UnityAndroidNotificationManager {
     }
 
     fun deleteChannel(context: Context, channelId: String) {
+        Log.d(TAG, "[deleteChannel] channelId: $channelId")
         executeOperation(OPERATION_DELETE_CHANNEL) {
             NotificationUseCases(context).deleteChannel(channelId).getOrThrow()
         }
     }
 
     fun showNotification(context: Context, notificationJson: String) {
+        Log.d(TAG, "[showNotification] notificationJson: $notificationJson")
         runShowOrUpdate(context, notificationJson, isUpdate = false)
     }
 
     fun updateNotification(context: Context, notificationJson: String) {
+        Log.d(TAG, "[updateNotification] notificationJson: $notificationJson")
         runShowOrUpdate(context, notificationJson, isUpdate = true)
     }
 
     fun cancelNotification(context: Context, id: Int, tag: String? = null) {
+        Log.d(TAG, "[cancelNotification] id: $id, tag: $tag")
         executeOperation(OPERATION_CANCEL_NOTIFICATION) {
             NotificationUseCases(context).cancel(id, tag).getOrThrow()
         }
     }
 
     fun cancelAllNotifications(context: Context) {
+        Log.d(TAG, "[cancelAllNotifications]")
         executeOperation(OPERATION_CANCEL_ALL_NOTIFICATIONS) {
             NotificationUseCases(context).cancelAll().getOrThrow()
         }
     }
 
     fun scheduleNotification(context: Context, scheduleJson: String) {
+        Log.d(TAG, "[scheduleNotification] scheduleJson: $scheduleJson")
         executeOperation(OPERATION_SCHEDULE_NOTIFICATION) {
             val scheduleSpec = UnityNotificationJsonParser.parseScheduledNotification(scheduleJson)
             val command = scheduleSpec.notification.toCommand(context)
@@ -208,30 +228,36 @@ object UnityAndroidNotificationManager {
     }
 
     fun cancelScheduledNotification(context: Context, id: Int, tag: String? = null) {
+        Log.d(TAG, "[cancelScheduledNotification] id: $id, tag: $tag")
         executeOperation(OPERATION_CANCEL_SCHEDULED_NOTIFICATION) {
             NotificationUseCases(context).cancelScheduled(id, tag).getOrThrow()
         }
     }
 
     fun cancelAllScheduledNotifications(context: Context) {
+        Log.d(TAG, "[cancelAllScheduledNotifications]")
         executeOperation(OPERATION_CANCEL_ALL_SCHEDULED_NOTIFICATIONS) {
             NotificationUseCases(context).cancelAllScheduled().getOrThrow()
         }
     }
 
     fun startProgressForegroundService(context: Context, notificationJson: String) {
+        Log.d(TAG, "[startProgressForegroundService] notificationJson: $notificationJson")
         runProgressOperation(context, notificationJson, ProgressOperation.START)
     }
 
     fun updateProgressForegroundService(context: Context, notificationJson: String) {
+        Log.d(TAG, "[updateProgressForegroundService] notificationJson: $notificationJson")
         runProgressOperation(context, notificationJson, ProgressOperation.UPDATE)
     }
 
     fun completeProgressForegroundService(context: Context, notificationJson: String) {
+        Log.d(TAG, "[completeProgressForegroundService] notificationJson: $notificationJson")
         runProgressOperation(context, notificationJson, ProgressOperation.COMPLETE)
     }
 
     fun stopProgressForegroundService(context: Context) {
+        Log.d(TAG, "[stopProgressForegroundService]")
         executeOperation(OPERATION_STOP_PROGRESS_FOREGROUND_SERVICE) {
             ProgressForegroundNotifications.stop(context)
         }

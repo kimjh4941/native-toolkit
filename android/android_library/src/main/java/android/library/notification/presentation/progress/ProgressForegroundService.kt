@@ -28,7 +28,10 @@ class ProgressForegroundService : Service() {
     private var isForegroundStarted: Boolean = false
     private val progressForegroundServiceType: Int = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 
-    override fun onBind(intent: android.content.Intent?): IBinder? = null
+    override fun onBind(intent: android.content.Intent?): IBinder? {
+        Log.d(TAG, "[onBind] intent: $intent")
+        return null
+    }
 
     override fun onStartCommand(intent: android.content.Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action ?: ProgressForegroundServiceIntents.ACTION_STOP
@@ -63,11 +66,13 @@ class ProgressForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        Log.d(TAG, "[onDestroy]")
         isForegroundStarted = false
         super.onDestroy()
     }
 
     private fun showProgress(command: AndroidNotificationCommand) {
+        Log.d(TAG, "[showProgress] id: ${command.content.id}")
         runCatching {
             if (isForegroundStarted) {
                 updateForegroundNotificationUseCase(this, command, progressForegroundServiceType)
@@ -82,6 +87,7 @@ class ProgressForegroundService : Service() {
     }
 
     private fun completeProgress(command: AndroidNotificationCommand) {
+        Log.d(TAG, "[completeProgress] id: ${command.content.id}")
         runCatching {
             if (isForegroundStarted) {
                 stopForegroundNotificationUseCase(this, removeNotification = false)
@@ -109,7 +115,7 @@ class ProgressForegroundService : Service() {
     }
 
     companion object {
-        private const val TAG = "ProgressFgsService"
+        private const val TAG = "ProgressForegroundService"
     }
 }
 

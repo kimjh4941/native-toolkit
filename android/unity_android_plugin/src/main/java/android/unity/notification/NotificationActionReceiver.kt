@@ -3,10 +3,12 @@ package android.unity.notification
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 
 class NotificationActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
+        Log.d(TAG, "[onReceive] intent: $intent")
         val actionId = intent?.getStringExtra(EXTRA_ACTION_ID) ?: return
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
         val launchApp = intent.getBooleanExtra(EXTRA_LAUNCH_APP, false)
@@ -29,6 +31,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
 
     companion object {
+        private const val TAG = "NotificationActionReceiver"
         const val EXTRA_ACTION_ID = "android.unity.notification.extra.ACTION_ID"
         const val EXTRA_NOTIFICATION_ID = "android.unity.notification.extra.NOTIFICATION_ID"
         const val EXTRA_LAUNCH_APP = "android.unity.notification.extra.LAUNCH_APP"

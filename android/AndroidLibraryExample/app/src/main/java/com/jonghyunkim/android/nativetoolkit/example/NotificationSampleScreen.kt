@@ -171,6 +171,7 @@ fun NotificationSampleScreen(
         requestCode: Int,
         action: String
     ): AndroidPendingIntentRequest {
+        Log.d(TAG, "[buildActivityPendingIntentRequest] requestCode: $requestCode, action: $action")
         return AndroidPendingIntentRequest(
             intent = Intent(activity, targetActivityClass).apply {
                 this.action = action
@@ -182,6 +183,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildActivityPendingIntentRequest(requestCode: Int, action: String): AndroidPendingIntentRequest {
+        Log.d(TAG, "[buildActivityPendingIntentRequest] requestCode: $requestCode, action: $action")
         return buildActivityPendingIntentRequest(
             targetActivityClass = MainActivity::class.java,
             requestCode = requestCode,
@@ -190,6 +192,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildBroadcastPendingIntentRequest(intent: Intent, requestCode: Int): AndroidPendingIntentRequest {
+        Log.d(TAG, "[buildBroadcastPendingIntentRequest] requestCode: $requestCode")
         return AndroidPendingIntentRequest(
             intent = intent,
             requestCode = requestCode,
@@ -199,6 +202,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildDefaultOpenAppPlatformOptions(requestCode: Int): AndroidNotificationPlatformOptions {
+        Log.d(TAG, "[buildDefaultOpenAppPlatformOptions] requestCode: $requestCode")
         return AndroidNotificationPlatformOptions(
             contentIntent = buildActivityPendingIntentRequest(
                 requestCode = requestCode,
@@ -208,6 +212,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildMediaActions(baseRequestCode: Int): List<AndroidNotificationAction> {
+        Log.d(TAG, "[buildMediaActions] baseRequestCode: $baseRequestCode")
         return listOf(
             AndroidNotificationAction(
                 title = "Previous",
@@ -228,6 +233,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildAcceptDeclineActions(baseRequestCode: Int): List<AndroidNotificationAction> {
+        Log.d(TAG, "[buildAcceptDeclineActions] baseRequestCode: $baseRequestCode")
         return listOf(
             AndroidNotificationAction(
                 title = "Accept",
@@ -278,6 +284,7 @@ fun NotificationSampleScreen(
         sortKey: String? = null,
         platformOptions: AndroidNotificationPlatformOptions = AndroidNotificationPlatformOptions()
     ): AndroidNotificationCommand {
+        Log.d(TAG, "[buildStyleCommand] id: $id, title: $title, style: $style")
         val resolvedPlatformOptions = if (platformOptions.contentIntent == null) {
             platformOptions.copy(
                 contentIntent = buildDefaultOpenAppPlatformOptions(requestCode = id).contentIntent
@@ -311,6 +318,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildDefaultStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildDefaultStyleCommand]")
         return buildStyleCommand(
             id = 1001,
             title = "Native Toolkit",
@@ -321,6 +329,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildBigTextStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildBigTextStyleCommand]")
         return buildStyleCommand(
             id = 1002,
             title = "Native Toolkit",
@@ -335,6 +344,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildInboxStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildInboxStyleCommand]")
         return buildStyleCommand(
             id = 1003,
             title = "Native Toolkit",
@@ -355,6 +365,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildBigPictureStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildBigPictureStyleCommand]")
         return buildStyleCommand(
             id = 1004,
             title = "Native Toolkit",
@@ -371,6 +382,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildMessagingStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildMessagingStyleCommand]")
         val now = System.currentTimeMillis()
         return buildStyleCommand(
             id = 1005,
@@ -404,6 +416,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildMediaStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildMediaStyleCommand]")
         return buildStyleCommand(
             id = 1006,
             title = "Native Toolkit Player",
@@ -423,6 +436,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildDecoratedCustomViewStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildDecoratedCustomViewStyleCommand]")
         return buildStyleCommand(
             id = 1007,
             title = "Native Toolkit",
@@ -460,6 +474,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildDecoratedMediaCustomViewStyleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildDecoratedMediaCustomViewStyleCommand]")
         return buildStyleCommand(
             id = 1008,
             title = "Native Toolkit Player",
@@ -492,6 +507,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildScheduledCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildScheduledCommand]")
         return buildStyleCommand(
             id = 1010,
             title = "Native Toolkit",
@@ -509,6 +525,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildProgressCommand(progressValue: Int, max: Int = 100): AndroidNotificationCommand {
+        Log.d(TAG, "[buildProgressCommand] progressValue: $progressValue, max: $max")
         val safeProgress = progressValue.coerceIn(0, max)
         val isComplete = safeProgress >= max
         return buildStyleCommand(
@@ -532,6 +549,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildIndeterminateProgressCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildIndeterminateProgressCommand]")
         return buildStyleCommand(
             id = 1009,
             title = "Native Toolkit Sync",
@@ -549,6 +567,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildProgressForegroundCommand(progressValue: Int, max: Int = 100): AndroidNotificationCommand {
+        Log.d(TAG, "[buildProgressForegroundCommand] progressValue: $progressValue, max: $max")
         val safeProgress = progressValue.coerceIn(0, max)
         return buildStyleCommand(
             id = 1011,
@@ -568,6 +587,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildProgressForegroundCompleteCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildProgressForegroundCompleteCommand]")
         return buildStyleCommand(
             id = 1011,
             title = "Native Toolkit Background Sync",
@@ -590,6 +610,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildGroupChild1Command(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildGroupChild1Command]")
         return buildStyleCommand(
             id = 1101,
             title = "Native Toolkit Group",
@@ -611,6 +632,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildGroupChild2Command(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildGroupChild2Command]")
         return buildStyleCommand(
             id = 1102,
             title = "Native Toolkit Group",
@@ -632,6 +654,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildGroupSummaryCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildGroupSummaryCommand]")
         return buildStyleCommand(
             id = 1100,
             title = "Native Toolkit Group Summary",
@@ -657,6 +680,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildGroupAlertBehaviorCommands(): List<AndroidNotificationCommand> {
+        Log.d(TAG, "[buildGroupAlertBehaviorCommands]")
         return listOf(
             buildGroupChild1Command(),
             buildGroupChild2Command(),
@@ -665,6 +689,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildDeleteIntentSampleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildDeleteIntentSampleCommand]")
         return buildStyleCommand(
             id = 1110,
             title = "Native Toolkit Interaction",
@@ -690,6 +715,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildFullScreenIntentSampleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildFullScreenIntentSampleCommand]")
         return buildStyleCommand(
             id = 1111,
             title = "Native Toolkit Alarm Sample",
@@ -715,6 +741,7 @@ fun NotificationSampleScreen(
     }
 
     fun buildActionButtonsSampleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildActionButtonsSampleCommand]")
         return buildStyleCommand(
             id = ACTION_SAMPLE_NOTIFICATION_ID,
             title = "Native Toolkit Action Sample",
@@ -735,6 +762,7 @@ fun NotificationSampleScreen(
     }
 
     fun startProgressForegroundService() {
+        Log.d(TAG, "[startProgressForegroundService]")
         createChannel(progressForegroundSampleChannel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
             statusText = "❌ Progress foreground service を表示できません。権限または通知設定を確認してください。"
@@ -752,6 +780,7 @@ fun NotificationSampleScreen(
     }
 
     fun updateProgressForegroundService(progressValue: Int) {
+        Log.d(TAG, "[updateProgressForegroundService] progressValue: $progressValue")
         runCatching {
             ProgressForegroundNotifications.update(activity, buildProgressForegroundCommand(progressValue = progressValue))
         }.onSuccess {
@@ -763,6 +792,7 @@ fun NotificationSampleScreen(
     }
 
     fun completeProgressForegroundService() {
+        Log.d(TAG, "[completeProgressForegroundService]")
         runCatching {
             ProgressForegroundNotifications.complete(activity, buildProgressForegroundCompleteCommand())
         }.onSuccess {
@@ -774,6 +804,7 @@ fun NotificationSampleScreen(
     }
 
     fun stopProgressForegroundService() {
+        Log.d(TAG, "[stopProgressForegroundService]")
         runCatching {
             ProgressForegroundNotifications.stop(activity)
         }.onSuccess {
@@ -785,6 +816,7 @@ fun NotificationSampleScreen(
     }
 
     fun startCallForegroundService(type: CallStyleType, label: String) {
+        Log.d(TAG, "[startCallForegroundService] type: $type, label: $label")
         createChannel(callSampleChannel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
             statusText = "❌ 通話通知を表示できません。権限または通知設定を確認してください。"
@@ -808,6 +840,7 @@ fun NotificationSampleScreen(
     }
 
     fun stopCallForegroundService() {
+        Log.d(TAG, "[stopCallForegroundService]")
         runCatching {
             activity.startService(CallStyleForegroundService.createStopIntent(activity))
         }.onSuccess {
@@ -819,6 +852,7 @@ fun NotificationSampleScreen(
     }
 
     fun showNotificationSample(command: AndroidNotificationCommand, successMessage: String) {
+        Log.d(TAG, "[showNotificationSample] id: ${command.content.id}, successMessage: $successMessage")
         val channel = command.content.channel
         ensureChannel(channel)
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
@@ -835,6 +869,7 @@ fun NotificationSampleScreen(
     }
 
     fun showNotificationSamples(commands: List<AndroidNotificationCommand>, successMessage: String) {
+        Log.d(TAG, "[showNotificationSamples] count: ${commands.size}, successMessage: $successMessage")
         if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
             statusText = "❌ 通知を表示できません。権限または通知設定を確認してください。"
             return
@@ -854,6 +889,7 @@ fun NotificationSampleScreen(
     }
 
     fun deleteNotificationSample(command: AndroidNotificationCommand, label: String) {
+        Log.d(TAG, "[deleteNotificationSample] id: ${command.content.id}, label: $label")
         useCases.cancel(command.content.id, command.content.tag)
             .onSuccess { statusText = "🗑️ $label 通知を削除しました。" }
             .onFailure { throwable ->
@@ -863,6 +899,7 @@ fun NotificationSampleScreen(
     }
 
     fun deleteScheduledNotificationSample(command: AndroidNotificationCommand, label: String) {
+        Log.d(TAG, "[deleteScheduledNotificationSample] id: ${command.content.id}, label: $label")
         useCases.cancelScheduled(command.content.id, command.content.tag)
             .mapCatching { useCases.cancel(command.content.id, command.content.tag).getOrThrow() }
             .onSuccess {
@@ -876,6 +913,7 @@ fun NotificationSampleScreen(
     }
 
     fun checkScheduledNotificationStatus(command: AndroidNotificationCommand) {
+        Log.d(TAG, "[checkScheduledNotificationStatus] id: ${command.content.id}")
         val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
         statusText = if (scheduled) {
             "ℹ️ Schedule Notification は現在予約済みです。(isScheduled=true)"

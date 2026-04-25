@@ -1,11 +1,15 @@
 package android.unity.notification
 
+import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 
 internal object UnityNotificationJsonParser {
 
+    private const val TAG = "UnityNotificationJsonParser"
+
     fun parseChannel(json: String): UnityNotificationChannelSpec {
+        Log.d(TAG, "[parseChannel] json: $json")
         return parseChannelObject(JSONObject(json))
     }
 
@@ -13,6 +17,7 @@ internal object UnityNotificationJsonParser {
         json: String,
         nowProvider: () -> Long = System::currentTimeMillis
     ): UnityNotificationSpec {
+        Log.d(TAG, "[parseNotification] json: $json")
         return parseNotificationObject(JSONObject(json), nowProvider)
     }
 
@@ -20,6 +25,7 @@ internal object UnityNotificationJsonParser {
         json: String,
         nowProvider: () -> Long = System::currentTimeMillis
     ): UnityScheduledNotificationSpec {
+        Log.d(TAG, "[parseScheduledNotification] json: $json")
         val root = JSONObject(json)
         val notificationObject = root.optJSONObject("notification")
             ?: throw IllegalArgumentException("notification is required.")

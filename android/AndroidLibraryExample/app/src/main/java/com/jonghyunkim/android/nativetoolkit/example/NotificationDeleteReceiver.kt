@@ -9,6 +9,7 @@ import android.widget.Toast
 class NotificationDeleteReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
+        Log.d(TAG, "[onReceive] context: $context, intent: $intent")
         if (intent?.action != ACTION_NOTIFICATION_DELETED) {
             return
         }
@@ -19,11 +20,12 @@ class NotificationDeleteReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        private const val TAG = "NotificationDeleteRcvr"
+        private const val TAG = "NotificationDeleteReceiver"
         const val ACTION_NOTIFICATION_DELETED = "native.toolkit.notification.DELETE"
         private const val EXTRA_SAMPLE_LABEL = "native.toolkit.notification.extra.SAMPLE_LABEL"
 
         fun createIntent(context: Context, sampleLabel: String): Intent {
+            Log.d(TAG, "[createIntent] sampleLabel: $sampleLabel")
             return Intent(context, NotificationDeleteReceiver::class.java).apply {
                 action = ACTION_NOTIFICATION_DELETED
                 putExtra(EXTRA_SAMPLE_LABEL, sampleLabel)

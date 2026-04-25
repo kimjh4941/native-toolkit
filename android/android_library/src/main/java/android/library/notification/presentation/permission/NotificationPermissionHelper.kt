@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.ChecksSdkIntAtLeast
@@ -24,6 +25,7 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
     }
 
     fun hasPermission(): Boolean {
+        Log.d(TAG, "[hasPermission]")
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 activity,
@@ -35,10 +37,12 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
     }
 
     fun areNotificationsEnabled(): Boolean {
+        Log.d(TAG, "[areNotificationsEnabled]")
         return NotificationManagerCompat.from(activity).areNotificationsEnabled()
     }
 
     fun canScheduleExactAlarms(): Boolean {
+        Log.d(TAG, "[canScheduleExactAlarms]")
         return activity.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
     }
 
@@ -48,11 +52,13 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
     }
 
     fun shouldShowPermissionRationale(): Boolean {
+        Log.d(TAG, "[shouldShowPermissionRationale]")
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             activity.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     fun requestPermission(callback: (Boolean) -> Unit) {
+        Log.d(TAG, "[requestPermission]")
         if (!canRequestPermission() || hasPermission()) {
             callback(true)
             return
@@ -63,6 +69,7 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
     }
 
     fun openNotificationSettings(): Boolean {
+        Log.d(TAG, "[openNotificationSettings]")
         val openedNotificationSettings = startSafely(
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                 putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName)
@@ -74,6 +81,7 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
     }
 
     fun openAppDetailsSettings(): Boolean {
+        Log.d(TAG, "[openAppDetailsSettings]")
         return startSafely(
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = packageUri()
@@ -82,6 +90,7 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
     }
 
     fun openExactAlarmSettings(): Boolean {
+        Log.d(TAG, "[openExactAlarmSettings]")
         val openedExactAlarmSettings = startSafely(
             Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
                 data = packageUri()
@@ -89,6 +98,10 @@ class NotificationPermissionHelper(private val activity: ComponentActivity) {
         )
 
         return openedExactAlarmSettings || openAppDetailsSettings()
+    }
+
+    companion object {
+        private const val TAG = "NotificationPermissionHelper"
     }
 
     private fun startSafely(intent: Intent): Boolean {

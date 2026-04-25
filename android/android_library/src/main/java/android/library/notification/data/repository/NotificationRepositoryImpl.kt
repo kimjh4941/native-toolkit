@@ -42,6 +42,7 @@ import android.library.notification.domain.model.NotificationCustomViewStyleData
 import android.library.notification.domain.model.NotificationChannel as DomainNotificationChannel
 import android.library.notification.domain.model.NotificationSchedule
 import android.library.notification.domain.model.NotificationStyle
+import android.util.Log
 
 class NotificationRepositoryImpl(context: Context) :
     NotificationCommandRepository,
@@ -53,6 +54,7 @@ class NotificationRepositoryImpl(context: Context) :
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     override fun hasPermission(): Boolean {
+        Log.d(TAG, "[hasPermission]")
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 appContext,
@@ -64,18 +66,22 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     override fun areNotificationsEnabled(): Boolean {
+        Log.d(TAG, "[areNotificationsEnabled]")
         return NotificationManagerCompat.from(appContext).areNotificationsEnabled()
     }
 
     override fun send(command: AndroidNotificationCommand) {
+        Log.d(TAG, "[send] command: $command")
         notify(command)
     }
 
     override fun update(command: AndroidNotificationCommand) {
+        Log.d(TAG, "[update] command: $command")
         notify(command)
     }
 
     override fun cancel(id: Int, tag: String?) {
+        Log.d(TAG, "[cancel] id: $id, tag: $tag")
         if (tag.isNullOrBlank()) {
             notificationManager.cancel(id)
         } else {
@@ -84,10 +90,12 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     override fun cancelAll() {
+        Log.d(TAG, "[cancelAll]")
         notificationManager.cancelAll()
     }
 
     override fun createChannel(channel: DomainNotificationChannel) {
+        Log.d(TAG, "[createChannel] channel: $channel")
         channel.groupId?.takeIf { it.isNotBlank() }?.let { groupId ->
             val groupName = channel.groupName ?: groupId
             notificationManager.createNotificationChannelGroup(
@@ -114,14 +122,17 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     override fun createChannels(channels: List<DomainNotificationChannel>) {
+        Log.d(TAG, "[createChannels] channels: $channels")
         channels.forEach(::createChannel)
     }
 
     override fun deleteChannel(channelId: String) {
+        Log.d(TAG, "[deleteChannel] channelId: $channelId")
         notificationManager.deleteNotificationChannel(channelId)
     }
 
     override fun schedule(command: AndroidNotificationCommand, schedule: NotificationSchedule): Boolean {
+        Log.d(TAG, "[schedule] command: $command, schedule: $schedule")
         if (schedule.triggerAtMillis <= System.currentTimeMillis()) {
             send(command)
             NotificationSchedulerSupport.remove(appContext, command.content.id, command.content.tag)
@@ -143,11 +154,13 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     override fun cancelScheduled(id: Int, tag: String?) {
+        Log.d(TAG, "[cancelScheduled] id: $id, tag: $tag")
         alarmManager.cancel(createSchedulePendingIntent(id = id, tag = tag))
         NotificationSchedulerSupport.remove(appContext, id, tag)
     }
 
     override fun cancelAllScheduled() {
+        Log.d(TAG, "[cancelAllScheduled]")
         NotificationSchedulerSupport.loadAll(appContext).forEach { entry ->
             alarmManager.cancel(createSchedulePendingIntent(entry.command))
         }
@@ -155,6 +168,7 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     override fun restoreScheduled() {
+        Log.d(TAG, "[restoreScheduled]")
         val now = System.currentTimeMillis()
         NotificationSchedulerSupport.loadAll(appContext).forEach { entry ->
             if (entry.schedule.triggerAtMillis <= now) {
@@ -167,6 +181,7 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     override fun getActive(): List<ActiveNotification> {
+        Log.d(TAG, "[getActive]")
         return notificationManager.activeNotifications.map { statusBarNotification ->
             val notification = statusBarNotification.notification
             ActiveNotification(
@@ -182,6 +197,7 @@ class NotificationRepositoryImpl(context: Context) :
     }
 
     override fun build(command: AndroidNotificationCommand): Notification {
+        Log.d(TAG, "[build] command: $command")
         val content = command.content
         val platform = command.platformOptions
         createChannel(content.channel)
@@ -235,6 +251,7 @@ class NotificationRepositoryImpl(context: Context) :
         command: AndroidNotificationCommand,
         foregroundServiceType: Int?
     ) {
+        Log.d(TAG, "[startForeground] id: ${command.content.id}, foregroundServiceType: $foregroundServiceType")
         val notification = build(command)
         if (foregroundServiceType != null) {
             service.startForeground(command.content.id, notification, foregroundServiceType)
@@ -248,16 +265,19 @@ class NotificationRepositoryImpl(context: Context) :
         command: AndroidNotificationCommand,
         foregroundServiceType: Int?
     ) {
+        Log.d(TAG, "[updateForeground] id: ${command.content.id}, foregroundServiceType: $foregroundServiceType")
         startForeground(service, command, foregroundServiceType)
     }
 
     override fun stopForeground(service: Service, removeNotification: Boolean) {
+        Log.d(TAG, "[stopForeground] removeNotification: $removeNotification")
         service.stopForeground(
             if (removeNotification) Service.STOP_FOREGROUND_REMOVE else Service.STOP_FOREGROUND_DETACH
         )
     }
 
     private fun notify(command: AndroidNotificationCommand) {
+        Log.d(TAG, "[notify] id: ${command.content.id}")
         if (!areNotificationsEnabled() || !hasPermission()) {
             return
         }
@@ -302,6 +322,7 @@ class NotificationRepositoryImpl(context: Context) :
         schedule: NotificationSchedule,
         pendingIntent: PendingIntent
     ) {
+        Log.d(TAG, "[scheduleAlarm] schedule: $schedule")
         val exactAllowed = alarmManager.canScheduleExactAlarms()
         when {
             schedule.exact && schedule.allowWhileIdle && exactAllowed -> {
@@ -488,6 +509,7 @@ class NotificationRepositoryImpl(context: Context) :
         layoutResId: Int = styleData.layoutResId,
         viewActions: List<RemoteViewAction> = emptyList()
     ): RemoteViews {
+        Log.d(TAG, "[buildRemoteViews] layoutResId: $layoutResId, viewActions.size: ${viewActions.size}")
         return RemoteViews(appContext.packageName, layoutResId).apply {
             viewActions.forEach { action ->
                 when (action) {
@@ -594,5 +616,9 @@ class NotificationRepositoryImpl(context: Context) :
             NotificationCompat.VISIBILITY_SECRET -> visibility
             else -> NotificationCompat.VISIBILITY_PUBLIC
         }
+    }
+
+    companion object {
+        private const val TAG = "NotificationRepositoryImpl"
     }
 }

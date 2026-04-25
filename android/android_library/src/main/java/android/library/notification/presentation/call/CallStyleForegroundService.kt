@@ -34,7 +34,10 @@ class CallStyleForegroundService : Service() {
         null
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder? {
+        Log.d(TAG, "[onBind] intent: $intent")
+        return null
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action ?: ACTION_STOP_CALL
@@ -54,11 +57,13 @@ class CallStyleForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        Log.d(TAG, "[onDestroy]")
         isForegroundStarted = false
         super.onDestroy()
     }
 
     private fun showCall(type: CallStyleType) {
+        Log.d(TAG, "[showCall] type: $type")
         val command = CallStyleNotificationFactory.createCommand(this, type)
         currentType = type
 
@@ -79,6 +84,7 @@ class CallStyleForegroundService : Service() {
         command: AndroidNotificationCommand,
         foregroundServiceType: Int?
     ) {
+        Log.d(TAG, "[startOrUpdateForeground] id: ${command.content.id}, foregroundServiceType: $foregroundServiceType")
         if (isForegroundStarted) {
             updateForegroundNotificationUseCase(this, command, foregroundServiceType)
         } else {
@@ -98,7 +104,7 @@ class CallStyleForegroundService : Service() {
     }
 
     companion object {
-        private const val TAG = "CallStyleFgsService"
+        private const val TAG = "CallStyleForegroundService"
 
         const val ACTION_START_INCOMING_CALL = "native.toolkit.call.START_INCOMING"
         const val ACTION_START_ONGOING_CALL = "native.toolkit.call.START_ONGOING"
