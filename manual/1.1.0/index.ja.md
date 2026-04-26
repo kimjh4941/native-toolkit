@@ -114,7 +114,7 @@
   - Android 端末を接続します。
   - 「Run」ボタンをクリックして、サンプルアプリをインストールします。
     <p align="center">
-        <img src="images/android/Example_AndroidDialogFragment.png" alt="Example_AndroidDialogFragment" width="400" />
+        <img src="images/android/Example_Top.png" alt="Example_Top" width="400" />
     </p>
 
 - iOS サンプル

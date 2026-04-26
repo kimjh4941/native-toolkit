@@ -179,6 +179,10 @@ Set the `style` property on `NotificationContent`.
 style = NotificationStyle.Default
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Default.png" alt="Example_Default" width="400" />
+</p>
+
 #### BigText
 
 Displays long text when the notification is expanded.
@@ -190,6 +194,10 @@ style = NotificationStyle.BigText(
     bigContentTitle = "Expanded title"
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_BigText.png" alt="Example_BigText" width="400" />
+</p>
 
 #### Inbox
 
@@ -203,6 +211,10 @@ style = NotificationStyle.Inbox(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Inbox.png" alt="Example_Inbox" width="400" />
+</p>
+
 #### BigPicture
 
 Displays an image when the notification is expanded.
@@ -214,6 +226,10 @@ style = NotificationStyle.BigPicture(
     bigContentTitle = "Expanded title"
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_BigPicture.png" alt="Example_BigPicture" width="400" />
+</p>
 
 #### Messaging
 
@@ -238,6 +254,10 @@ style = NotificationStyle.Messaging(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Messaging.png" alt="Example_Messaging" width="400" />
+</p>
+
 #### Media
 
 Displays in media player format. Specify the indices of action buttons to show in compact view.
@@ -247,6 +267,10 @@ style = NotificationStyle.Media(
     compactActionIndices = listOf(0, 1, 2)  // up to 3
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_Media.png" alt="Example_Media" width="400" />
+</p>
 
 Set action buttons via `AndroidNotificationPlatformOptions.actions` (see [Platform Options](#platform-options)).
 
@@ -352,6 +376,10 @@ val command = AndroidNotificationCommand(
 useCases.show(command)
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_DecoratedCustomView.png" alt="Example_DecoratedCustomView" width="400" />
+</p>
+
 > **Note:** Due to `RemoteViews` constraints, use `LinearLayout` + `TextView` instead of `Button` for clickable elements. Click events are set via `setOnClickPendingIntent`.
 
 #### DecoratedMediaCustomView
@@ -366,6 +394,10 @@ style = NotificationStyle.DecoratedMediaCustomView(
     compactActionIndices = listOf(0, 1, 2)
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_DecoratedMediaCustomView.png" alt="Example_DecoratedMediaCustomView" width="400" />
+</p>
 
 Usage of `customViewOptions` is the same as `DecoratedCustomView`.
 
@@ -423,6 +455,10 @@ useCases.show(child2)
 useCases.show(summary)
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Group.png" alt="Example_Group" width="400" />
+</p>
+
 > **Tip:** Setting `groupAlertBehavior = GROUP_ALERT_SUMMARY` makes only the summary play sound and vibration; child notifications are silent.
 
 ---
@@ -470,6 +506,10 @@ platformOptions = AndroidNotificationPlatformOptions(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_ActionButtons.png" alt="Example_ActionButtons" width="400" />
+</p>
+
 #### DeleteIntent (Dismiss Event)
 
 Fired when the user swipes the notification away.
@@ -510,6 +550,10 @@ platformOptions = AndroidNotificationPlatformOptions(
     )
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_FullScreenIntent.png" alt="Example_FullScreenIntent" width="400" />
+</p>
 
 > **Note:** Depending on device state and Android policy, the notification may appear as a heads-up notification instead of full-screen.
 
@@ -554,6 +598,10 @@ val complete = NotificationContent(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Progress.png" alt="Example_Progress" width="400" />
+</p>
+
 ---
 
 ### Foreground Service Notifications
@@ -577,6 +625,10 @@ ProgressForegroundNotifications.complete(context, completionCommand)
 // Force stop (also removes the notification)
 ProgressForegroundNotifications.stop(context)
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_ProgressForeground.png" alt="Example_ProgressForeground" width="400" />
+</p>
 
 Declare the service in `AndroidManifest.xml`.
 
@@ -611,6 +663,10 @@ ContextCompat.startForegroundService(
 context.startService(CallStyleForegroundService.createStopIntent(context))
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_CallStyle.png" alt="Example_CallStyle" width="400" />
+</p>
+
 Declare the service in `AndroidManifest.xml`.
 
 ```xml
@@ -644,6 +700,10 @@ useCases.schedule(command, schedule)
     .onSuccess { /* scheduled */ }
     .onFailure { /* handle error */ }
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_Scheduled.png" alt="Example_Scheduled" width="400" />
+</p>
 
 #### Cancel Scheduled Notifications
 

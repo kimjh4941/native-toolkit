@@ -179,6 +179,10 @@ activeList.forEach { it.id; it.title }
 style = NotificationStyle.Default
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Default.png" alt="Example_Default" width="400" />
+</p>
+
 #### BigText
 
 展開すると長いテキストを表示します。
@@ -190,6 +194,10 @@ style = NotificationStyle.BigText(
     bigContentTitle = "展開時のタイトル"
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_BigText.png" alt="Example_BigText" width="400" />
+</p>
 
 #### Inbox
 
@@ -203,6 +211,10 @@ style = NotificationStyle.Inbox(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Inbox.png" alt="Example_Inbox" width="400" />
+</p>
+
 #### BigPicture
 
 展開すると画像を表示します。
@@ -214,6 +226,10 @@ style = NotificationStyle.BigPicture(
     bigContentTitle = "展開時のタイトル"
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_BigPicture.png" alt="Example_BigPicture" width="400" />
+</p>
 
 #### Messaging
 
@@ -238,6 +254,10 @@ style = NotificationStyle.Messaging(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Messaging.png" alt="Example_Messaging" width="400" />
+</p>
+
 #### Media
 
 メディアプレイヤー形式で表示します。コンパクト表示時に見せるアクションボタンのインデックスを指定します。
@@ -247,6 +267,10 @@ style = NotificationStyle.Media(
     compactActionIndices = listOf(0, 1, 2)  // 最大3つ
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_Media.png" alt="Example_Media" width="400" />
+</p>
 
 アクションボタンは `AndroidNotificationPlatformOptions.actions` に設定します（[プラットフォームオプション](#プラットフォームオプション) 参照）。
 
@@ -352,6 +376,10 @@ val command = AndroidNotificationCommand(
 useCases.show(command)
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_DecoratedCustomView.png" alt="Example_DecoratedCustomView" width="400" />
+</p>
+
 > **注意:** `RemoteViews` の制約上、ボタンには `Button` クラスではなく `LinearLayout` + `TextView` を使用してください。クリックイベントは `setOnClickPendingIntent` で設定されます。
 
 #### DecoratedMediaCustomView
@@ -366,6 +394,10 @@ style = NotificationStyle.DecoratedMediaCustomView(
     compactActionIndices = listOf(0, 1, 2)
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_DecoratedMediaCustomView.png" alt="Example_DecoratedMediaCustomView" width="400" />
+</p>
 
 `customViewOptions` の使い方は `DecoratedCustomView` と同じです。
 
@@ -423,6 +455,10 @@ useCases.show(child2)
 useCases.show(summary)
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Group.png" alt="Example_Group" width="400" />
+</p>
+
 > **ポイント:** `groupAlertBehavior = GROUP_ALERT_SUMMARY` に設定すると、サマリーのみが音・バイブを鳴らし、子通知はサイレントになります。
 
 ---
@@ -470,6 +506,10 @@ platformOptions = AndroidNotificationPlatformOptions(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_ActionButtons.png" alt="Example_ActionButtons" width="400" />
+</p>
+
 #### DeleteIntent（削除イベント）
 
 通知をスワイプで削除したときのコールバックです。
@@ -510,6 +550,10 @@ platformOptions = AndroidNotificationPlatformOptions(
     )
 )
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_FullScreenIntent.png" alt="Example_FullScreenIntent" width="400" />
+</p>
 
 > **注意:** 端末の状態・Android ポリシーによっては、フルスクリーンではなく heads-up 通知として表示される場合があります。
 
@@ -554,6 +598,10 @@ val complete = NotificationContent(
 )
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_Progress.png" alt="Example_Progress" width="400" />
+</p>
+
 ---
 
 ### フォアグラウンドサービス通知
@@ -577,6 +625,10 @@ ProgressForegroundNotifications.complete(context, completionCommand)
 // 強制停止（通知も削除）
 ProgressForegroundNotifications.stop(context)
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_ProgressForeground.png" alt="Example_ProgressForeground" width="400" />
+</p>
 
 `AndroidManifest.xml` にサービスを宣言します。
 
@@ -611,6 +663,10 @@ ContextCompat.startForegroundService(
 context.startService(CallStyleForegroundService.createStopIntent(context))
 ```
 
+<p align="center">
+    <img src="images/android/notification/Example_CallStyle.png" alt="Example_CallStyle" width="400" />
+</p>
+
 `AndroidManifest.xml` にサービスを宣言します。
 
 ```xml
@@ -644,6 +700,10 @@ useCases.schedule(command, schedule)
     .onSuccess { /* スケジュール完了 */ }
     .onFailure { /* エラー処理 */ }
 ```
+
+<p align="center">
+    <img src="images/android/notification/Example_Scheduled.png" alt="Example_Scheduled" width="400" />
+</p>
 
 #### スケジュールのキャンセル
 
