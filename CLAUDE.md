@@ -12,6 +12,12 @@
 Log.d(TAG, "[methodName] param1: $param1, param2: $param2")
 ```
 
+エラーは `Log.e` を使ってログ出力する。
+
+```kotlin
+Log.e(TAG, "[methodName] param1: $param1, param2: $param2")
+```
+
 **対象:**
 
 - `override fun`

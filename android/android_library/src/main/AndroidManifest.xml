@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Android 13以降で必要 -->
+    <!-- Required on Android 13 and above -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -10,14 +10,14 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <!--
-        この CallStyle 実装は実際の通話アプリではないため、確認用途として
-        FOREGROUND_SERVICE_SPECIAL_USE を使っています。
+        This CallStyle implementation is not a real calling app, so FOREGROUND_SERVICE_SPECIAL_USE
+        is used here for demonstration purposes.
 
-        将来、本物の通話アプリとして phoneCall type の FGS を使う場合は、例えば以下を検討します。
+        If you later switch to a real calling app using phoneCall-type FGS, consider adding:
         <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
 
-        Android 14/15 系では上記に加えて、MANAGE_OWN_CALLS または default dialer role など、
-        実通話アプリとしての条件を満たしていないと phoneCall type FGS は拒否されます。
+        On Android 14/15, the phoneCall-type FGS will be rejected unless the app also satisfies
+        real calling app requirements such as MANAGE_OWN_CALLS or the default dialer role.
     -->
 
     <application>
@@ -38,9 +38,9 @@
         </receiver>
 
         <!--
-            現状の service はサンプル用途のため specialUse を使っています。
-            将来 phoneCall に切り替える場合は、android:foregroundServiceType="phoneCall" へ変更し、
-            さらに実通話アプリとしての条件（MANAGE_OWN_CALLS / default dialer role など）を満たす必要があります。
+            This service uses specialUse for sample purposes.
+            To switch to phoneCall in the future, change android:foregroundServiceType="phoneCall"
+            and ensure the app meets real calling app requirements (MANAGE_OWN_CALLS / default dialer role, etc.).
         -->
         <service
             android:name=".notification.presentation.call.CallStyleForegroundService"
@@ -53,8 +53,9 @@
         </service>
 
         <!--
-            Progress foreground service はバックグラウンドで継続する dataSync 系処理向けの任意APIです。
-            ライブラリ利用アプリは、長時間のダウンロード・同期など本当に継続通知が必要な場合のみ使う想定です。
+            The progress foreground service is an optional API for long-running dataSync-type background tasks.
+            Apps using this library should only use it when a persistent notification is truly needed,
+            such as for extended downloads or sync operations.
         -->
         <service
             android:name=".notification.presentation.progress.ProgressForegroundService"
