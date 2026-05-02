@@ -5,7 +5,20 @@ plugins {
     alias(libs.plugins.dokka)
 }
 
-version = "1.0.0"
+val cliLibraryVersion = gradle.startParameter.projectProperties["libraryVersion"]
+val propertyLibraryVersion = providers.gradleProperty("libraryVersion").orNull
+val libraryVersion = cliLibraryVersion ?: propertyLibraryVersion
+
+if (libraryVersion.isNullOrBlank()) {
+    logger.error("[android_library] Missing required Gradle property: libraryVersion. Pass -PlibraryVersion=<version>.")
+    throw GradleException("Missing required Gradle property: libraryVersion")
+}
+version = libraryVersion!!
+if (cliLibraryVersion != null) {
+    logger.lifecycle("[android_library] libraryVersion=$libraryVersion (source=cli -P)")
+} else {
+    logger.lifecycle("[android_library] libraryVersion=$libraryVersion (source=gradle.properties)")
+}
 
 android {
     namespace = "android.library"

@@ -244,7 +244,7 @@ generate_android() {
   fi
 
   echo "[build] Android Dokka"
-  (cd "$android_root" && ./gradlew :android_library:clean :android_library:dokkaHtml :unity_android_plugin:clean :unity_android_plugin:dokkaHtml)
+  (cd "$android_root" && ./gradlew -PlibraryVersion="${VERSION}" :android_library:clean :android_library:dokkaHtml :unity_android_plugin:clean :unity_android_plugin:dokkaHtml)
 }
 
 generate_ios() {
