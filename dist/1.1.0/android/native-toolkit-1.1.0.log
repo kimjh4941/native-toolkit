@@ -1,0 +1,56 @@
+
+> Configure project :android_library
+warning: Dokka Gradle plugin V1 is deprecated
+    
+    Dokka Gradle plugin V1 is deprecated, and will be removed in Dokka version 2.1.0
+    Please migrate to Dokka Gradle plugin V2. This will require updating your project.
+    To learn about migrating read the migration guide https://kotl.in/dokka-gradle-migration
+    
+    To start migrating to Dokka Gradle plugin V2 add
+        org.jetbrains.dokka.experimental.gradle.pluginMode=V2EnabledWithHelpers
+    into your project's `gradle.properties` file.
+    
+    We would appreciate your feedback!
+     - Please report any feedback or problems https://kotl.in/dokka-issues
+     - Chat with the community visit #dokka in https://kotlinlang.slack.com/ (To sign up visit https://kotl.in/slack)
+    
+[android_library] libraryVersion=1.1.0 (source=cli -P)
+
+> Task :android_library:preBuild UP-TO-DATE
+> Task :android_library:preReleaseBuild UP-TO-DATE
+> Task :android_library:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :android_library:mergeReleaseNativeLibs NO-SOURCE
+> Task :android_library:stripReleaseDebugSymbols NO-SOURCE
+> Task :android_library:copyReleaseJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :android_library:generateReleaseResValues UP-TO-DATE
+> Task :android_library:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :android_library:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :android_library:generateReleaseResources UP-TO-DATE
+> Task :android_library:packageReleaseResources UP-TO-DATE
+> Task :android_library:parseReleaseLocalResources UP-TO-DATE
+> Task :android_library:generateReleaseRFile UP-TO-DATE
+> Task :android_library:compileReleaseKotlin UP-TO-DATE
+> Task :android_library:extractReleaseAnnotations UP-TO-DATE
+> Task :android_library:mergeReleaseShaders UP-TO-DATE
+> Task :android_library:compileReleaseShaders NO-SOURCE
+> Task :android_library:generateReleaseAssets UP-TO-DATE
+> Task :android_library:mergeReleaseAssets UP-TO-DATE
+> Task :android_library:javaPreCompileRelease UP-TO-DATE
+> Task :android_library:compileReleaseJavaWithJavac NO-SOURCE
+> Task :android_library:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :android_library:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :android_library:prepareLintJarForPublish UP-TO-DATE
+> Task :android_library:prepareReleaseArtProfile UP-TO-DATE
+> Task :android_library:processReleaseManifest UP-TO-DATE
+> Task :android_library:processReleaseJavaRes UP-TO-DATE
+> Task :android_library:mergeReleaseJavaResource UP-TO-DATE
+> Task :android_library:syncReleaseLibJars UP-TO-DATE
+> Task :android_library:writeReleaseAarMetadata UP-TO-DATE
+> Task :android_library:bundleReleaseAar UP-TO-DATE
+> Task :android_library:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :android_library:mergeReleaseResources UP-TO-DATE
+> Task :android_library:verifyReleaseResources UP-TO-DATE
+> Task :android_library:assembleRelease UP-TO-DATE
+
+BUILD SUCCESSFUL in 1s
+26 actionable tasks: 26 up-to-date
