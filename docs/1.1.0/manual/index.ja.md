@@ -32,7 +32,7 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android: `dist/<version>/android/native-toolkit-<version>.aar`
+- Android: `dist/<version>/android/android-native-toolkit-<version>.aar`
 - iOS: `dist/<version>/ios/NativeToolkit-<version>.xcframework`
 - Windows: `dist/<version>/windows/nuget/NativeToolkit/NativeToolkit.<version>.nupkg`
 - macOS:
@@ -162,7 +162,7 @@
 
 #### 対応プラットフォーム: Android（AAR / ABI 非依存）
 
-1. `native-toolkit-1.1.0.aar` を `app/libs` に配置します。
+1. `android-native-toolkit-1.1.0.aar` を `app/libs` に配置します。
 2. `settings.gradle.kts` に AAR を参照するためのリポジトリ設定を追加します。
 3. `app/build.gradle.kts` に AAR を参照するための依存関係を追加します。
 4. Gradle 同期を実行します。
@@ -193,7 +193,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // AAR を参照するための依存関係を追加します。こちらを追加してください。
-  implementation(files("libs/native-toolkit-1.1.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.1.0.aar"))
 }
 ```
 
@@ -201,11 +201,11 @@ dependencies {
 
 #### 対応プラットフォーム: iOS（実機: arm64 / Simulator: arm64, x86_64）
 
-1. `NativeToolkit-1.1.0.xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
+1. `NativeToolkit-1.0.0.xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
 2. Xcode 26.2 で対象プロジェクトを開き、**Project Navigator** でアプリのターゲットを選択します。
 3. **General** タブを開き、**Frameworks, Libraries, and Embedded Content** の **+** を押します。
-4. **Add Other...** → **Add Files...** を選択し、`Frameworks/NativeToolkit-1.1.0.xcframework` を追加します。
-5. 追加後、`NativeToolkit-1.1.0.xcframework` の Embed 設定を **Embed & Sign** に変更します。
+4. **Add Other...** → **Add Files...** を選択し、`Frameworks/NativeToolkit-1.0.0.xcframework` を追加します。
+5. 追加後、`NativeToolkit-1.0.0.xcframework` の Embed 設定を **Embed & Sign** に変更します。
 6. 同じターゲットの **Build Settings** を開き、`Framework Search Paths` に `$(PROJECT_DIR)/Frameworks` を追加します。（通常は non-recursive）
 7. **Signing & Capabilities** で Team が正しく設定されていることを確認します。
 8. **Product** → **Clean Build Folder** を実行してから、**Run** でビルド・起動します。
@@ -215,7 +215,7 @@ dependencies {
 
 #### 対応プラットフォーム: Windows x64（win-x64）
 
-1. `NativeToolkit.1.1.0.nupkg` を `C:\packages` にコピーします。
+1. `NativeToolkit.1.0.0.nupkg` を `C:\packages` にコピーします。
 2. Visual Studio 2022 を起動し、**ツール** → **オプション** → **NuGet パッケージ マネージャー** → **パッケージ ソース** を開きます。
 3. 右上の **+** を押し、次の内容を入力します。
    - 名前: LocalPackages
@@ -231,11 +231,11 @@ dependencies {
 
 #### 対応プラットフォーム: macOS arm64, x86_64
 
-1. `NativeToolkit-1.1.0-xcode[version].xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
+1. `NativeToolkit-1.0.0-xcode[version].xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
 2. Xcode 26.2 で対象プロジェクトを開き、Project Navigator でアプリのターゲットを選択します。
 3. **General** タブを開き、**Frameworks, Libraries, and Embedded Content** の `+` を押します。
-4. 「Add Other...」→「Add Files...」を選択し、`Frameworks/NativeToolkit-1.1.0-xcode[version].xcframework` を追加します。
-5. 追加後、`NativeToolkit-1.1.0-xcode[version].xcframework` の Embed 設定を **Embed & Sign** に変更します。
+4. 「Add Other...」→「Add Files...」を選択し、`Frameworks/NativeToolkit-1.0.0-xcode[version].xcframework` を追加します。
+5. 追加後、`NativeToolkit-1.0.0-xcode[version].xcframework` の Embed 設定を **Embed & Sign** に変更します。
 6. 同じターゲットの **Build Settings** を開き、`Framework Search Paths` に `$(PROJECT_DIR)/Frameworks` を追加します。（通常は non-recursive）
 7. **Signing & Capabilities** で Team が正しく設定されていることを確認します。
 8. **Product** → **Clean Build Folder** を実行してから、**Run** でビルド・起動します。
