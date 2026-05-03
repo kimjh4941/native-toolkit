@@ -4,16 +4,19 @@ set -euo pipefail
 # Publish versioned documentation and refresh docs/latest from the highest version.
 #
 # Usage:
-#   ./scripts/publish_docs.sh <version> [--skip-build]
+#   ./scripts/publish_docs.sh <version> [--skip-build] [--os <targets>]
 #
 # Examples:
 #   ./scripts/publish_docs.sh 1.0.0
 #   ./scripts/publish_docs.sh 1.0.0 --skip-build
+#   ./scripts/publish_docs.sh 1.0.0 --os android
+#   ./scripts/publish_docs.sh 1.0.0 --os ios,mac
+#   ./scripts/publish_docs.sh 1.0.0 --os all
 
 usage() {
   cat <<'USAGE'
 Usage:
-  ./scripts/publish_docs.sh <version> [--skip-build]
+  ./scripts/publish_docs.sh <version> [--skip-build] [--os <targets>]
 
 Creates/updates:
   docs/<version>/...
@@ -28,6 +31,17 @@ By default, this script tries to generate docs first:
 
 If you already generated docs manually, pass --skip-build to only copy/refresh.
 
+Optional OS-scoped build:
+  --os <targets>   Build only selected targets before copy.
+                   Accepted: android, ios, mac, windows, all
+                   Comma-separated values are supported (e.g. ios,mac)
+                   This option affects build step only; copy step still stages all existing outputs.
+
+Examples:
+  ./scripts/publish_docs.sh 1.0.0 --os android
+  ./scripts/publish_docs.sh 1.0.0 --os ios,mac
+  ./scripts/publish_docs.sh 1.0.0 --os all
+
 Manual source is expected at:
   manual/<version>/
 USAGE
@@ -40,6 +54,11 @@ fi
 
 VERSION=${1:-}
 SKIP_BUILD=false
+BUILD_ANDROID=true
+BUILD_IOS=true
+BUILD_MAC=true
+BUILD_WINDOWS=true
+OS_FILTER_SET=false
 
 if [[ -z "$VERSION" ]]; then
   echo "Error: <version> is required." >&2
@@ -47,13 +66,76 @@ if [[ -z "$VERSION" ]]; then
   exit 1
 fi
 
-if [[ ${2:-} == "--skip-build" ]]; then
-  SKIP_BUILD=true
-elif [[ -n ${2:-} ]]; then
-  echo "Error: unknown argument: ${2}" >&2
-  usage
-  exit 1
-fi
+shift
+
+set_selected_os() {
+  local token=$1
+  case "$token" in
+    android)
+      BUILD_ANDROID=true
+      ;;
+    ios)
+      BUILD_IOS=true
+      ;;
+    mac|macos)
+      BUILD_MAC=true
+      ;;
+    windows|win)
+      BUILD_WINDOWS=true
+      ;;
+    all)
+      BUILD_ANDROID=true
+      BUILD_IOS=true
+      BUILD_MAC=true
+      BUILD_WINDOWS=true
+      ;;
+    *)
+      echo "Error: unknown OS target: $token" >&2
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-build)
+      SKIP_BUILD=true
+      shift
+      ;;
+    --os)
+      if [[ -z ${2:-} ]]; then
+        echo "Error: --os requires a value." >&2
+        usage
+        exit 1
+      fi
+
+      if [[ "$OS_FILTER_SET" == "false" ]]; then
+        BUILD_ANDROID=false
+        BUILD_IOS=false
+        BUILD_MAC=false
+        BUILD_WINDOWS=false
+        OS_FILTER_SET=true
+      fi
+
+      IFS=',' read -r -a os_items <<< "${2}"
+      for os_item in "${os_items[@]}"; do
+        local_token=$(printf '%s' "$os_item" | tr '[:upper:]' '[:lower:]' | xargs)
+        if [[ -z "$local_token" ]]; then
+          continue
+        fi
+        set_selected_os "$local_token"
+      done
+
+      shift 2
+      ;;
+    *)
+      echo "Error: unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
@@ -128,12 +210,41 @@ resolve_highest_docs_version() {
 
 generate_android() {
   local android_root="${ROOT_DIR}/android/AndroidLibraryExample"
+  local preferred_java_home="/Applications/Android Studio Panda 1 .app/Contents/jbr/Contents/Home"
+  local preferred_java_home_alt="/Applications/Android Studio Panda 1.app/Contents/jbr/Contents/Home"
   if [[ ! -x "${android_root}/gradlew" ]]; then
     echo "[skip] Android gradlew not found: ${android_root}/gradlew" >&2
     return 0
   fi
+
+  if [[ -d "$preferred_java_home" ]]; then
+    export JAVA_HOME="$preferred_java_home"
+    echo "[info] Using preferred JAVA_HOME: ${JAVA_HOME}"
+  elif [[ -d "$preferred_java_home_alt" ]]; then
+    export JAVA_HOME="$preferred_java_home_alt"
+    echo "[info] Using preferred JAVA_HOME: ${JAVA_HOME}"
+  fi
+
+  if [[ -n "${JAVA_HOME:-}" && ! -d "${JAVA_HOME}" ]]; then
+    echo "[warn] Invalid JAVA_HOME: ${JAVA_HOME}" >&2
+    if [[ "$(uname -s)" == "Darwin" ]] && [[ -x "/usr/libexec/java_home" ]]; then
+      local resolved_java_home
+      resolved_java_home="$(/usr/libexec/java_home 2>/dev/null || true)"
+      if [[ -n "$resolved_java_home" && -d "$resolved_java_home" ]]; then
+        export JAVA_HOME="$resolved_java_home"
+        echo "[info] Resolved JAVA_HOME to: ${JAVA_HOME}"
+      else
+        unset JAVA_HOME
+        echo "[warn] Could not resolve JAVA_HOME automatically; falling back to PATH java" >&2
+      fi
+    else
+      unset JAVA_HOME
+      echo "[warn] JAVA_HOME unset; falling back to PATH java" >&2
+    fi
+  fi
+
   echo "[build] Android Dokka"
-  (cd "$android_root" && ./gradlew :android_library:clean :android_library:dokkaHtml :unity_android_plugin:clean :unity_android_plugin:dokkaHtml)
+  (cd "$android_root" && ./gradlew -PlibraryVersion="${VERSION}" :android_library:clean :android_library:dokkaHtml :unity_android_plugin:clean :unity_android_plugin:dokkaHtml)
 }
 
 generate_ios() {
@@ -174,10 +285,29 @@ echo "Publishing docs for version: ${VERSION}"
 mkdir -p "$DOCS_ROOT"
 
 if [[ "$SKIP_BUILD" == "false" ]]; then
-  generate_android
-  generate_ios
-  generate_mac
-  generate_windows
+  if [[ "$BUILD_ANDROID" == "true" ]]; then
+    generate_android
+  else
+    echo "[skip] Android build disabled by --os filter"
+  fi
+
+  if [[ "$BUILD_IOS" == "true" ]]; then
+    generate_ios
+  else
+    echo "[skip] iOS build disabled by --os filter"
+  fi
+
+  if [[ "$BUILD_MAC" == "true" ]]; then
+    generate_mac
+  else
+    echo "[skip] macOS build disabled by --os filter"
+  fi
+
+  if [[ "$BUILD_WINDOWS" == "true" ]]; then
+    generate_windows
+  else
+    echo "[skip] Windows build disabled by --os filter"
+  fi
 else
   echo "[info] --skip-build set; copying existing outputs only"
 fi

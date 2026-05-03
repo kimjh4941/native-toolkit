@@ -1,13 +1,13 @@
 # native-toolkit
 
-ネイティブアプリから利用できる、クロスプラットフォームのダイアログ／ファイル選択ツールキットです。
+ネイティブアプリから利用できる、クロスプラットフォームのネイティブ機能ツールキットです。
 
-- Android: `DialogFragment` ベースのネイティブ API
+- Android: `DialogFragment` + 通知ベースのネイティブ API
 - iOS: `UIAlertController` ベースのネイティブ API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` ベースのネイティブ API
 - Windows: Win32 共通ダイアログの C 形式 API
 
-> 目的: ネイティブアプリから、各 OS の標準 UI をほぼ同じ呼び方で利用できるようにする。
+> 目的: ネイティブアプリから、各 OS の標準機能を一貫した呼び方で利用できるようにする。
 
 他言語 README:
 
@@ -20,10 +20,10 @@
 2. 組み込み手順は `docs/<version>/manual/index.ja.md` を参照。
 3. API 仕様は `docs/<version>/`（または `docs/latest/`）の各プラットフォーム資料を参照。
 
-例（`1.0.0`）:
+例（`1.1.0`）:
 
-- マニュアル: `docs/1.0.0/manual/index.ja.md`
-- 公開ドキュメント: `docs/1.0.0/manual/`
+- マニュアル: `docs/1.1.0/manual/index.ja.md`
+- 公開ドキュメント: `docs/1.1.0/manual/`
 
 ## 詳細ドキュメント
 
@@ -33,32 +33,32 @@
 
 ## バージョン
 
-- 現在のリリース: 1.0.0
+- 現在のリリース: 1.1.0
 - 最新公開ドキュメントのバージョン: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 対応 OS（1.0.0）
+## 対応 OS（1.1.0）
 
 - Android 12 以降
 - iOS 18 以降
 - Windows 11 以降
 - macOS 15 以降
 
-## 配布物（1.0.0）
+## 配布物（1.1.0）
 
-- Android: `dist/1.0.0/android/native-toolkit-1.0.0.aar`
-- iOS: `dist/1.0.0/ios/NativeToolkit-1.0.0.xcframework`
+- Android: `dist/1.1.0/android/android-native-toolkit-1.1.0.aar`
+- iOS: `dist/1.1.0/ios/NativeToolkit-1.0.0.xcframework`
 - macOS:
-  - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
-  - `dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
-- Windows: `dist/1.0.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
+  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
+  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
+- Windows: `dist/1.1.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
 
 ## 収録モジュール（概要）
 
 ### Android
 
 - `android/android_library`
-  - 中核: `AndroidDialogFragment`
-  - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login
+  - 中核: `AndroidDialogFragment` / Android 通知 API
+  - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification
   - Doc: Dokka
 
 - `android/unity_android_plugin`
@@ -139,15 +139,15 @@ docs/
 ## ビルド（配布物作成）
 
 ```bash
-# Android AAR
-./scripts/build_android_library_aar.sh --build-type release --output dist/1.0.0/android/native-toolkit-1.0.0.aar
+# Android AAR（全モジュール）
+./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
 
-# iOS XCFramework
-./scripts/build_ios_library_xcframework.sh --configuration release --output dist/1.0.0/ios/NativeToolkit-1.0.0.xcframework
+# iOS XCFramework（全モジュール）
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
 
-# macOS XCFramework (Xcode 16 / 26)
-./scripts/build_xcode16_library_xcframework.sh --configuration release --output dist/1.0.0/mac/NativeToolkit-1.0.0-xcode16.xcframework
-./scripts/build_xcode26_library_xcframework.sh --configuration release --output dist/1.0.0/mac/NativeToolkit-1.0.0-xcode26.xcframework
+# macOS XCFramework（Xcode 16 / 26、全モジュール）
+./scripts/build_xcode16_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0
+./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
 
 # Windows DLL / NuGet
 ./scripts/create_native_toolkit_dll.bat
@@ -188,13 +188,13 @@ doxygen Doxyfile
 `docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
 
 ```bash
-./scripts/publish_docs.sh 1.0.0
+./scripts/publish_docs.sh 1.1.0
 ```
 
 既存の生成物をコピーだけする場合:
 
 ```bash
-./scripts/publish_docs.sh 1.0.0 --skip-build
+./scripts/publish_docs.sh 1.1.0 --skip-build
 ```
 
 manual のコピー元は `manual/<version>/` です。
@@ -209,7 +209,7 @@ manual のコピー元は `manual/<version>/` です。
 ## Unity Native Toolkit (Unity 6)
 
 - Unity 6 以降でネイティブ機能を提供するツールキットです。
-- パッケージには Android / iOS / Windows / macOS 向けのネイティブプラグインとサンプルシーンが含まれ、各プラットフォームのダイアログ操作をシングルトン API で扱えます。
+- パッケージには Android / iOS / Windows / macOS 向けのネイティブプラグインとサンプルシーンが含まれ、各プラットフォームのネイティブ機能をシングルトン API で扱えます。
 - Editor 用ウィンドウからネイティブライブラリや Gradle / Xcode 設定を追加でき、ビルド後のプロジェクト整備をワークフロー化できます。
 - Repository: [unity-native-plugin](https://github.com/kimjh4941/unity-native-plugin)
 

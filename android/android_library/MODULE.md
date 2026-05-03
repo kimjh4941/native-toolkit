@@ -1,5 +1,217 @@
 # Module android_library
 
+Core Android UI / system helper module providing both a versatile `AndroidDialogFragment` and a comprehensive notification toolkit used directly or through higher-level Unity bridge modules.
+
+## Notification Architecture
+
+The notification module follows a clean layered structure:
+
+- `android.library.notification.domain.model`
+  - Pure notification models split by responsibility:
+    - `NotificationChannel.kt`
+    - `NotificationProgress.kt`
+    - `NotificationMessage.kt`
+    - `NotificationStyle.kt`
+    - `NotificationContent.kt`
+    - `NotificationSchedule.kt`
+    - `ActiveNotification.kt`
+- `android.library.notification.application.model`
+  - Android-facing command types such as `AndroidNotificationCommand`
+- `android.library.notification.application.port`
+  - `NotificationCommandRepository.kt`
+  - `AndroidNotificationRuntimeRepository.kt`
+- `android.library.notification.application.usecase`
+  - `NotificationDispatchUseCases.kt`
+  - `NotificationChannelUseCases.kt`
+  - `NotificationScheduleUseCases.kt`
+  - `NotificationQueryUseCases.kt`
+  - `ForegroundNotificationUseCases.kt`
+- `android.library.notification.data.repository`
+  - Android-specific implementations and payload mapping
+- `android.library.notification.presentation.permission`
+  - UI permission helper for Android 13+
+- `android.library.notification.presentation.call`
+  - CallStyle foreground-service helpers and notification builders
+- `android.library.notification.presentation.progress`
+  - Optional `dataSync` foreground-service helpers for long-running progress notifications
+
+### Legacy status
+
+Legacy notification files have been physically removed. The notification module now exposes only the new `domain.model`, `application.*`, `presentation.permission`, `presentation.call`, and `data.repository.NotificationRepositoryImpl` APIs.
+
+## Notification Toolkit
+
+The module includes support for:
+- Android 13+ notification permission check / request helper
+- Notification channel create / batch create / delete
+- Immediate notification send / update / cancel / cancel all
+- Group notifications and group summary notifications
+- Action buttons and content / delete / full-screen intents
+- Styles: default, big text, inbox, big picture, messaging
+- CallStyle foreground-service flows for incoming / ongoing / screening notifications
+- Progress notifications
+- Optional `dataSync` foreground-service progress flows for start / update / complete / stop
+- Foreground notification start / update / stop
+- Scheduled notifications via `AlarmManager`
+- Re-scheduling persisted notifications after reboot / package replace
+- Active notification inspection
+
+### Main entry points
+- `NotificationRepositoryImpl`
+- `AndroidNotificationCommand`
+- `NotificationContent`
+- `NotificationChannel`
+- `NotificationProgress`
+- `NotificationSchedule`
+- `ShowNotificationUseCase`
+- `CreateNotificationChannelUseCase`
+- `ScheduleNotificationUseCase`
+- `StartForegroundNotificationUseCase`
+- `android.library.notification.presentation.permission.NotificationPermissionHelper`
+- `android.library.notification.presentation.call.CallStyleType`
+- `android.library.notification.presentation.call.CallStyleNotificationFactory`
+- `android.library.notification.presentation.call.CallStyleForegroundService`
+- `android.library.notification.presentation.progress.ProgressForegroundNotifications`
+- `android.library.notification.presentation.progress.ProgressForegroundServiceIntents`
+- `android.library.notification.presentation.progress.ProgressForegroundService`
+
+### Notification quick example
+```kotlin
+val repository = NotificationRepositoryImpl(context)
+
+CreateNotificationChannelUseCase(repository)(
+    NotificationChannel(
+        id = "updates",
+        name = "Updates",
+        description = "General update notifications"
+    )
+)
+
+ShowNotificationUseCase(repository)(
+    AndroidNotificationCommand(
+        content = NotificationContent(
+            id = 1001,
+            title = "Native Toolkit",
+            message = "Notification system is ready.",
+            channel = NotificationChannel(
+                id = "updates",
+                name = "Updates"
+            ),
+            style = NotificationStyle.BigText(
+                bigText = "Native Toolkit notification system is ready and supports rich styles.",
+                summaryText = "Ready"
+            )
+        )
+    )
+)
+```
+
+### Progress example
+```kotlin
+ShowNotificationUseCase(repository)(
+    AndroidNotificationCommand(
+        content = NotificationContent(
+            id = 1100,
+            title = "Native Toolkit Download",
+            message = "Downloading sample asset... 45%",
+            channel = NotificationChannel(
+                id = "updates",
+                name = "Updates"
+            ),
+            ongoing = true,
+            autoCancel = false,
+            progress = NotificationProgress(
+                max = 100,
+                current = 45,
+                indeterminate = false
+            )
+        )
+    )
+)
+```
+
+### Optional dataSync foreground-service progress example
+```kotlin
+val progressCommand = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 2100,
+        title = "Native Toolkit Background Sync",
+        message = "Syncing assets... 25%",
+        channel = NotificationChannel(
+            id = "progress_fgs",
+            name = "Progress FGS"
+        ),
+        ongoing = true,
+        autoCancel = false,
+        progress = NotificationProgress(
+            max = 100,
+            current = 25,
+            indeterminate = false
+        )
+    )
+)
+
+ProgressForegroundNotifications.start(context, progressCommand)
+ProgressForegroundNotifications.update(
+    context,
+    progressCommand.copy(
+        content = progressCommand.content.copy(
+            message = "Syncing assets... 75%",
+            progress = NotificationProgress(max = 100, current = 75, indeterminate = false)
+        )
+    )
+)
+ProgressForegroundNotifications.complete(
+    context,
+    progressCommand.copy(
+        content = progressCommand.content.copy(
+            message = "Background sync completed",
+            ongoing = false,
+            autoCancel = true,
+            progress = NotificationProgress(max = 100, current = 100, indeterminate = false)
+        )
+    )
+)
+```
+
+Notes:
+- This API is optional. Use normal progress notifications first unless the work truly must continue in the background.
+- The progress FGS uses `foregroundServiceType="dataSync"`.
+- `complete(...)` is designed to detach the foreground service and replace the same notification id with a normal notification.
+
+### Scheduling example
+```kotlin
+ScheduleNotificationUseCase(repository)(
+    command = AndroidNotificationCommand(
+        content = NotificationContent(
+            id = 2001,
+            title = "Scheduled",
+            message = "This was scheduled in advance.",
+            channel = NotificationChannel(
+                id = "updates",
+                name = "Updates"
+            )
+        )
+    ),
+    schedule = NotificationSchedule(
+        triggerAtMillis = System.currentTimeMillis() + 60_000L,
+        exact = true,
+        allowWhileIdle = true,
+        persistAcrossBoot = true
+    )
+)
+```
+
+### Manifest integration notes
+- `POST_NOTIFICATIONS` is declared for Android 13+
+- `RECEIVE_BOOT_COMPLETED` is declared for restoring persisted schedules
+- `SCHEDULE_EXACT_ALARM` is declared for exact scheduling support
+- Internal broadcast receivers are declared for scheduled delivery and reboot restore
+
+---
+
+## Dialog Toolkit
+
 Core versatile dialog implementation providing a multi-pattern `AndroidDialogFragment`, used directly or through higher‑level Unity bridge modules.
 
 ## Overview
@@ -95,7 +307,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {
         override fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "Yes") { /* proceed */ }
+            if (buttonText == "Yes") {
+                println("proceed with delete flow")
+            }
         }
     })
 }.show(supportFragmentManager, "ConfirmDialog")
@@ -110,7 +324,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
         override fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK" && checkedItem != null) { /* use index */ }
+            if (buttonText == "OK" && checkedItem != null) {
+                println("selected index=$checkedItem")
+            }
         }
     })
 }.show(supportFragmentManager, "SingleChoiceDialog")
@@ -125,7 +341,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {
         override fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK" && checkedItems != null) { /* use states */ }
+            if (buttonText == "OK" && checkedItems != null) {
+                println("selected count=${checkedItems.count { it }}")
+            }
         }
     })
 }.show(supportFragmentManager, "MultiChoiceDialog")
@@ -141,7 +359,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {
         override fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK" && !inputText.isNullOrEmpty()) { /* use text */ }
+            if (buttonText == "OK" && !inputText.isNullOrEmpty()) {
+                println("input=$inputText")
+            }
         }
     })
 }.show(supportFragmentManager, "TextInputDialog")
@@ -157,7 +377,9 @@ AndroidDialogFragment.newInstance(
 ).apply {
     setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
         override fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?) {
-            if (buttonText == "OK") { /* authenticate */ }
+            if (buttonText == "OK") {
+                println("authenticate user=$username")
+            }
         }
     })
 }.show(supportFragmentManager, "LoginDialog")

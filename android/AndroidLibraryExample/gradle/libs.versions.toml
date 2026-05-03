@@ -13,6 +13,8 @@ composeBom = "2024.09.00"
 appcompat = "1.7.0"
 material = "1.12.0"
 dokka = "2.0.0"
+androidxMedia = "1.7.0"
+orgJson = "20251224"
 
 [libraries]
 androidx-appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompatVersion" }
@@ -32,7 +34,9 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-media = { group = "androidx.media", name = "media", version.ref = "androidxMedia" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+orgjson = { group = "org.json", name = "json", version.ref = "orgJson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
