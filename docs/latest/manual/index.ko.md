@@ -32,7 +32,7 @@
 
 # 배포 산출물 위치 (`dist/<version>/`)
 
-- Android: `dist/<version>/android/native-toolkit-<version>.aar`
+- Android: `dist/<version>/android/android-native-toolkit-<version>.aar`
 - iOS: `dist/<version>/ios/NativeToolkit-<version>.xcframework`
 - Windows: `dist/<version>/windows/nuget/NativeToolkit/NativeToolkit.<version>.nupkg`
 - macOS:
@@ -162,7 +162,7 @@
 
 #### 지원 플랫폼: Android（AAR / ABI 독립）
 
-1. `native-toolkit-1.1.0.aar`를 `app/libs`에 배치합니다.
+1. `android-native-toolkit-1.1.0.aar`를 `app/libs`에 배치합니다.
 2. `settings.gradle.kts`에 AAR 참조를 위한 저장소 설정을 추가합니다.
 3. `app/build.gradle.kts`에 AAR 참조를 위한 의존성을 추가합니다.
 4. Gradle 동기화를 실행합니다.
@@ -193,7 +193,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // AAR 참조를 위해 아래 의존성을 추가합니다.
-  implementation(files("libs/native-toolkit-1.1.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.1.0.aar"))
 }
 ```
 
@@ -201,11 +201,11 @@ dependencies {
 
 #### 지원 플랫폼: iOS（실기기: arm64 / Simulator: arm64, x86_64）
 
-1. `NativeToolkit-1.1.0.xcframework`를 Xcode 프로젝트 하위 `Frameworks` 폴더(없으면 생성)에 복사합니다.
+1. `NativeToolkit-1.0.0.xcframework`를 Xcode 프로젝트 하위 `Frameworks` 폴더(없으면 생성)에 복사합니다.
 2. Xcode 26.2에서 프로젝트를 열고 **Project Navigator**에서 앱 타깃을 선택합니다.
 3. **General** 탭에서 **Frameworks, Libraries, and Embedded Content**의 **+**를 클릭합니다.
-4. **Add Other...** → **Add Files...**를 선택하고 `Frameworks/NativeToolkit-1.1.0.xcframework`를 추가합니다.
-5. `NativeToolkit-1.1.0.xcframework`의 Embed 설정을 **Embed & Sign**으로 지정합니다.
+4. **Add Other...** → **Add Files...**를 선택하고 `Frameworks/NativeToolkit-1.0.0.xcframework`를 추가합니다.
+5. `NativeToolkit-1.0.0.xcframework`의 Embed 설정을 **Embed & Sign**으로 지정합니다.
 6. 같은 타깃의 **Build Settings**에서 `Framework Search Paths`에 `$(PROJECT_DIR)/Frameworks`를 추가합니다. (일반적으로 non-recursive)
 7. **Signing & Capabilities**에서 Team 설정이 올바른지 확인합니다.
 8. **Product** → **Clean Build Folder**를 실행한 뒤 **Run**으로 빌드/실행합니다.
@@ -215,7 +215,7 @@ dependencies {
 
 #### 지원 플랫폼: Windows x64（win-x64）
 
-1. `NativeToolkit.1.1.0.nupkg`를 `C:\packages`에 복사합니다.
+1. `NativeToolkit.1.0.0.nupkg`를 `C:\packages`에 복사합니다.
 2. Visual Studio 2022에서 **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**를 엽니다.
 3. **+**를 눌러 다음을 입력합니다.
    - Name: LocalPackages
@@ -231,11 +231,11 @@ dependencies {
 
 #### 지원 플랫폼: macOS arm64, x86_64
 
-1. `NativeToolkit-1.1.0-xcode[version].xcframework`를 Xcode 프로젝트 하위 `Frameworks` 폴더(없으면 생성)에 복사합니다.
+1. `NativeToolkit-1.0.0-xcode[version].xcframework`를 Xcode 프로젝트 하위 `Frameworks` 폴더(없으면 생성)에 복사합니다.
 2. Xcode 26.2에서 프로젝트를 열고 Project Navigator에서 앱 타깃을 선택합니다.
 3. **General** 탭에서 **Frameworks, Libraries, and Embedded Content**의 `+`를 클릭합니다.
-4. "Add Other..." → "Add Files..."를 선택하고 `Frameworks/NativeToolkit-1.1.0-xcode[version].xcframework`를 추가합니다.
-5. `NativeToolkit-1.1.0-xcode[version].xcframework`의 Embed 설정을 **Embed & Sign**으로 지정합니다.
+4. "Add Other..." → "Add Files..."를 선택하고 `Frameworks/NativeToolkit-1.0.0-xcode[version].xcframework`를 추가합니다.
+5. `NativeToolkit-1.0.0-xcode[version].xcframework`의 Embed 설정을 **Embed & Sign**으로 지정합니다.
 6. 같은 타깃의 **Build Settings**에서 `Framework Search Paths`에 `$(PROJECT_DIR)/Frameworks`를 추가합니다. (일반적으로 non-recursive)
 7. **Signing & Capabilities**에서 Team 설정이 올바른지 확인합니다.
 8. **Product** → **Clean Build Folder**를 실행한 뒤 **Run**으로 빌드/실행합니다.
