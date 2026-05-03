@@ -45,12 +45,12 @@ Example (`1.1.0`):
 
 ## Distributables (1.1.0)
 
-- Android: `dist/1.1.0/android/native-toolkit-1.1.0.aar`
-- iOS: `dist/1.1.0/ios/NativeToolkit-1.1.0.xcframework`
+- Android: `dist/1.1.0/android/android-native-toolkit-1.1.0.aar`
+- iOS: `dist/1.1.0/ios/NativeToolkit-1.0.0.xcframework`
 - macOS:
-  - `dist/1.1.0/mac/NativeToolkit-1.1.0-xcode16.xcframework`
-  - `dist/1.1.0/mac/NativeToolkit-1.1.0-xcode26.xcframework`
-- Windows: `dist/1.1.0/windows/nuget/NativeToolkit/NativeToolkit.1.1.0.nupkg`
+  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
+  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
+- Windows: `dist/1.1.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
 
 ## Modules (overview)
 
@@ -139,15 +139,15 @@ docs/
 ## Build (distributables)
 
 ```bash
-# Android AAR
-./scripts/build_android_library_aar.sh --build-type release --output dist/1.1.0/android/native-toolkit-1.1.0.aar
+# Android AAR (all modules)
+./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
 
-# iOS XCFramework
-./scripts/build_ios_library_xcframework.sh --configuration release --output dist/1.1.0/ios/NativeToolkit-1.1.0.xcframework
+# iOS XCFramework (all modules)
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
 
-# macOS XCFramework (Xcode 16 / 26)
-./scripts/build_xcode16_library_xcframework.sh --configuration release --output dist/1.1.0/mac/NativeToolkit-1.1.0-xcode16.xcframework
-./scripts/build_xcode26_library_xcframework.sh --configuration release --output dist/1.1.0/mac/NativeToolkit-1.1.0-xcode26.xcframework
+# macOS XCFramework (Xcode 16 / 26, all modules)
+./scripts/build_xcode16_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0
+./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
 
 # Windows DLL / NuGet
 ./scripts/create_native_toolkit_dll.bat
