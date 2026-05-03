@@ -361,7 +361,11 @@ for MODULE in "${BUILD_MODULES[@]}"; do
     MODULE_OUTPUT_PATH="${OUTPUT_PATH}"
   else
     OUTPUT_PREFIX="$(resolve_xcframework_output_name "${MODULE}")"
-    MODULE_OUTPUT_PATH="dist/${LIBRARY_VERSION}/mac/${OUTPUT_PREFIX}-${LIBRARY_VERSION}.xcframework"
+    if [[ "${CONFIGURATION}" == "debug" ]]; then
+      MODULE_OUTPUT_PATH="dist/${LIBRARY_VERSION}/mac/${OUTPUT_PREFIX}-${LIBRARY_VERSION}-debug.xcframework"
+    else
+      MODULE_OUTPUT_PATH="dist/${LIBRARY_VERSION}/mac/${OUTPUT_PREFIX}-${LIBRARY_VERSION}.xcframework"
+    fi
   fi
 
   if [[ "${MODULE_OUTPUT_PATH}" = /* ]]; then

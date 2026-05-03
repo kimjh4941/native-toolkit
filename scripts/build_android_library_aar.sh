@@ -206,7 +206,11 @@ for module in "${MODULES[@]}"; do
     fi
   else
     output_prefix="$(module_output_prefix "${module}")"
-    MODULE_TARGETS+=("${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}.aar")
+    if [[ "${BUILD_TYPE}" == "debug" ]]; then
+      MODULE_TARGETS+=("${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}-debug.aar")
+    else
+      MODULE_TARGETS+=("${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}.aar")
+    fi
   fi
 done
 
