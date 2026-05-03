@@ -1,10 +1,19 @@
 # Module unity_android_plugin
 
-Unity-facing wrapper exposing a JNI-friendly singleton (`UnityAndroidDialogManager`) to show versatile native dialogs implemented by `android.library.dialog.AndroidDialogFragment`.
+Unity-facing wrapper exposing JNI-friendly singletons for:
+- dialogs via `UnityAndroidDialogManager`
+- notifications via `UnityAndroidNotificationManager`
+
+The module reuses `android_library` implementations and provides Unity-oriented entry points that are easier to call from C# / JNI.
 
 ## Features
 - Display multiple dialog patterns via `AndroidDialogFragment` from Unity
+- Display / update / cancel native Android notifications from Unity
+- Schedule notifications through `AlarmManager`
+- Start / update / complete / stop progress foreground-service notifications
+- Query notification permission state and open app notification settings
 - Singleton access: `UnityAndroidDialogManager.getInstance()`
+- Singleton access: `UnityAndroidNotificationManager.getInstance()`
 - Per-variant listener registration (Java side)
   - `setDialogListener(...)`, `setConfirmDialogListener(...)`, `setSingleChoiceItemDialogListener(...)`, `setMultiChoiceItemDialogListener(...)`, `setTextInputDialogListener(...)`, `setLoginDialogListener(...)`
 - Dialog methods (Java): `showDialog`, `showConfirmDialog`, `showSingleChoiceItemDialog`, `showMultiChoiceItemDialog`, `showTextInputDialog`, `showLoginDialog`
@@ -16,6 +25,219 @@ Unity-facing wrapper exposing a JNI-friendly singleton (`UnityAndroidDialogManag
   - Dispatches Java callbacks onto Unity main thread via `UnityMainThreadDispatcher`
   - Public methods: `ShowDialog`, `ShowConfirmDialog`, `ShowSingleChoiceItemDialog`, `ShowMultiChoiceItemDialog`, `ShowTextInputDialog`, `ShowLoginDialog`
   - Public events: `DialogResult`, `ConfirmDialogResult`, `SingleChoiceItemDialogResult`, `MultiChoiceItemDialogResult`, `TextInputDialogResult`, `LoginDialogResult`
+
+## Notification Bridge (Initial Release Scope)
+
+The initial Unity notification bridge intentionally focuses on the most practical release surface:
+
+- Result propagation
+  - `setNotificationOperationListener(...)`
+  - `clearNotificationOperationListener()`
+  - all operation methods report completion through `onNotificationOperation(operation, isSuccessful, errorMessage)`
+
+- Basic notifications
+  - `showNotification(context, notificationJson)`
+  - `updateNotification(context, notificationJson)`
+  - `cancelNotification(context, id, tag)`
+  - `cancelAllNotifications(context)`
+- Channels
+  - `createChannel(context, channelJson)`
+  - `deleteChannel(context, channelId)`
+- Schedule notifications
+  - `scheduleNotification(context, scheduleJson)`
+  - `cancelScheduledNotification(context, id, tag)`
+  - `cancelAllScheduledNotifications(context)`
+- Progress foreground service
+  - `startProgressForegroundService(context, notificationJson)`
+  - `updateProgressForegroundService(context, notificationJson)`
+  - `completeProgressForegroundService(context, notificationJson)`
+  - `stopProgressForegroundService(context)`
+- Settings / capability helpers
+  - `hasPermission(context)`
+  - `areNotificationsEnabled(context)`
+  - `openNotificationSettings(context)`
+  - `openAppDetailsSettings(context)`
+  - `openExactAlarmSettings(context)`
+
+Not included in v1 Unity bridge:
+- CallStyle
+- inline reply / `RemoteInput`
+- custom `RemoteViews`
+- `fullScreenIntent`
+- media / decorated custom styles
+
+These remain available in `android_library`, but are intentionally excluded from the first Unity-facing API to keep the bridge stable and easy to integrate.
+
+### Notification operation callback contract
+
+```kotlin
+interface NotificationOperationListener {
+    fun onNotificationOperation(operation: String, isSuccessful: Boolean, errorMessage: String?)
+}
+```
+
+- `operation`: one of the exported operation names such as `showNotification`, `scheduleNotification`, `openNotificationSettings`
+- `isSuccessful=true`: the requested operation completed successfully
+- `isSuccessful=false`: the operation failed before completion
+- `errorMessage`: non-null only on failure
+
+The bridge classifies common failures explicitly:
+- `IllegalArgumentException`: invalid JSON or invalid method input
+- `ActivityNotFoundException`: no matching settings screen / activity available
+- `SecurityException`: permission or device policy restriction
+- any other `Exception`: generic operation failure
+
+## Notification JSON Contract
+
+### Basic notification JSON
+```json
+{
+  "id": 1001,
+  "title": "Native Toolkit",
+  "message": "Hello from Unity",
+  "tag": "demo",
+  "launchAppOnTap": true,
+  "launchAction": "native.toolkit.unity.OPEN_MAIN",
+  "channel": {
+    "id": "general",
+    "name": "General",
+    "description": "General notifications",
+    "importance": 3
+  },
+  "smallIcon": {
+    "name": "ic_launcher",
+    "type": "mipmap"
+  },
+  "style": {
+    "type": "bigText",
+    "bigText": "Expanded message from Unity.",
+    "summaryText": "Summary"
+  }
+}
+```
+
+### Supported style JSON types
+- `default`
+- `bigText`
+- `inbox`
+- `bigPicture`
+- `messaging`
+
+Examples:
+
+```json
+{
+  "type": "inbox",
+  "lines": ["Line 1", "Line 2", "Line 3"],
+  "summaryText": "+3 items"
+}
+```
+
+```json
+{
+  "type": "bigPicture",
+  "picture": {
+    "name": "sample_big_picture",
+    "type": "drawable"
+  },
+  "bigContentTitle": "Picture",
+  "summaryText": "Preview"
+}
+```
+
+```json
+{
+  "type": "messaging",
+  "userDisplayName": "Me",
+  "conversationTitle": "Team Chat",
+  "isGroupConversation": true,
+  "messages": [
+    { "text": "Hi", "senderName": "Alice", "timestampMillis": 1710000000000 },
+    { "text": "Hello", "senderName": "Bob", "timestampMillis": 1710000005000 }
+  ]
+}
+```
+
+### Scheduled notification JSON
+```json
+{
+  "notification": {
+    "id": 2001,
+    "title": "Scheduled",
+    "message": "This was scheduled from Unity",
+    "channel": {
+      "id": "general",
+      "name": "General"
+    }
+  },
+  "schedule": {
+    "triggerAtMillis": 1893456000000,
+    "exact": true,
+    "allowWhileIdle": true,
+    "persistAcrossBoot": true,
+    "alarmType": 0
+  }
+}
+```
+
+### Progress FGS JSON
+```json
+{
+  "id": 3001,
+  "title": "Background Sync",
+  "message": "Syncing... 25%",
+  "channel": {
+    "id": "progress_fgs",
+    "name": "Progress"
+  },
+  "progress": {
+    "max": 100,
+    "current": 25,
+    "indeterminate": false
+  }
+}
+```
+
+`completeProgressForegroundService(...)` automatically normalizes the notification into a completion-style state (`ongoing=false`, `autoCancel=true`, `progress.current=max`).
+
+## Unity C# usage sketch for notifications
+
+```csharp
+public sealed class NotificationOperationProxy : AndroidJavaProxy {
+    public NotificationOperationProxy()
+        : base("android.unity.notification.UnityAndroidNotificationManager$NotificationOperationListener") {}
+
+    void onNotificationOperation(string operation, bool isSuccessful, string errorMessage) {
+        UnityEngine.Debug.Log($"Notification op={operation} success={isSuccessful} err={errorMessage}");
+    }
+}
+
+var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+var cls = new AndroidJavaClass("android.unity.notification.UnityAndroidNotificationManager");
+var mgr = cls.CallStatic<AndroidJavaObject>("getInstance");
+
+mgr.Call("setNotificationOperationListener", new NotificationOperationProxy());
+
+string notificationJson = @"{
+  \"id\": 1001,
+  \"title\": \"Native Toolkit\",
+  \"message\": \"Hello from Unity\",
+  \"channel\": { \"id\": \"general\", \"name\": \"General\" }
+}";
+
+mgr.Call("showNotification", activity, notificationJson);
+```
+
+## Notification integration notes
+
+- Resource references in JSON use resource names, not generated `R` ids.
+  - Example: `{"name":"ic_launcher","type":"mipmap"}`
+- If `smallIcon` is omitted, the bridge falls back to the application icon, then to `android.R.drawable.ic_dialog_info`.
+- `launchAppOnTap=true` adds a default content intent that launches the host app.
+- Operation methods are fire-and-notify. Use `NotificationOperationListener` to receive success/failure instead of relying on a Boolean return value.
+- The bridge does not request `POST_NOTIFICATIONS` at runtime in v1; Unity should handle permission UX at the app level and can use `hasPermission(...)` / settings helpers.
+- Scheduled notifications and progress FGS rely on the merged manifest entries already provided by `android_library`.
 
 ## Callback Interfaces
 Exact interfaces (Kotlin side) provided by `UnityAndroidDialogManager`:

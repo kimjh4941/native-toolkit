@@ -1,0 +1,760 @@
+# 알림 기능
+
+언어:
+
+- 日本語: [notification.ja.md](notification.ja.md)
+- English: [notification.md](notification.md)
+- 한국어（이 페이지）
+
+← [매뉴얼 상단으로 돌아가기](index.ko.md)
+
+---
+
+## 목차
+
+- [Android](#android)
+  - [설정](#설정)
+  - [권한](#권한)
+  - [채널 관리](#채널-관리)
+  - [기본 알림 조작](#기본-알림-조작)
+  - [알림 스타일](#알림-스타일)
+  - [플랫폼 옵션](#플랫폼-옵션)
+  - [커스텀 뷰 스타일](#커스텀-뷰-스타일)
+  - [그룹 알림](#그룹-알림)
+  - [인터랙션](#인터랙션)
+  - [진행 상황 알림](#진행-상황-알림)
+  - [포어그라운드 서비스 알림](#포어그라운드-서비스-알림)
+  - [예약 알림](#예약-알림)
+- [iOS](#ios)
+- [Windows](#windows)
+- [macOS](#macos)
+
+---
+
+## Android
+
+### 설정
+
+#### AndroidManifest.xml
+
+사용하는 기능에 따라 권한을 추가합니다.
+
+```xml
+<!-- Android 13 이상에서 알림을 전송하기 위해 필요 -->
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+<!-- 예약 알림（정확한 알람）을 사용하는 경우 -->
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+<!-- 포어그라운드 서비스를 사용하는 경우 -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+```
+
+#### NotificationUseCases 초기화
+
+```kotlin
+import android.library.notification.data.repository.NotificationUseCases
+
+val useCases = NotificationUseCases(context)
+```
+
+---
+
+### 권한
+
+```kotlin
+import android.library.notification.presentation.permission.NotificationPermissionHelper
+
+val permissionHelper = NotificationPermissionHelper(activity)
+
+// 알림 권한이 허용되어 있는지（Android 13 이상）
+val hasPermission: Boolean = permissionHelper.hasPermission()
+
+// 앱 알림이 활성화되어 있는지
+val enabled: Boolean = permissionHelper.areNotificationsEnabled()
+
+// 정확한 알람 예약이 허용되어 있는지
+val canSchedule: Boolean = permissionHelper.canScheduleExactAlarms()
+
+// 알림 권한 요청
+permissionHelper.requestPermission { granted ->
+    if (granted) { /* 허용됨 */ }
+}
+
+// 설정 화면 열기
+permissionHelper.openNotificationSettings()
+permissionHelper.openExactAlarmSettings()
+```
+
+---
+
+### 채널 관리
+
+알림을 전송하기 전에 채널을 생성해야 합니다.
+
+```kotlin
+import android.library.notification.domain.model.NotificationChannel
+
+val channel = NotificationChannel(
+    id = "my_channel",
+    name = "My Channel",
+    description = "Sample notification channel"
+)
+
+// 생성
+useCases.createChannel(channel)
+    .onSuccess { /* 완료 */ }
+    .onFailure { /* 오류 처리 */ }
+
+// 여러 채널을 한 번에 생성
+useCases.createChannels(listOf(channel1, channel2))
+
+// 삭제
+useCases.deleteChannel("my_channel")
+```
+
+---
+
+### 기본 알림 조작
+
+#### 표시
+
+```kotlin
+import android.library.notification.application.model.AndroidNotificationCommand
+import android.library.notification.domain.model.NotificationContent
+
+val command = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 1001,
+        title = "제목",
+        message = "본문",
+        channel = channel
+    )
+)
+
+useCases.show(command)
+    .onSuccess { /* 표시 완료 */ }
+    .onFailure { /* 오류 처리 */ }
+```
+
+#### 업데이트
+
+같은 `id` / `tag`를 지정하면 표시 중인 알림을 덮어써서 업데이트합니다.
+
+```kotlin
+useCases.update(updatedCommand)
+```
+
+#### 취소
+
+```kotlin
+// 특정 알림 취소
+useCases.cancel(id = 1001)
+useCases.cancel(id = 1001, tag = "my_tag")
+
+// 모두 취소
+useCases.cancelAll()
+```
+
+#### 활성 알림 가져오기
+
+현재 표시 중인 알림 목록을 가져옵니다（Android 6.0 이상）.
+
+```kotlin
+val activeList: List<ActiveNotification> = useCases.getActive()
+activeList.forEach { it.id; it.title }
+```
+
+---
+
+### 알림 스타일
+
+`NotificationContent`의 `style` 프로퍼티에 지정합니다.
+
+#### Default（기본）
+
+```kotlin
+style = NotificationStyle.Default
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_Default.png" alt="Example_Default" width="400" />
+</p>
+
+#### BigText
+
+알림을 펼치면 긴 텍스트를 표시합니다.
+
+```kotlin
+style = NotificationStyle.BigText(
+    bigText = "알림을 펼쳤을 때 표시되는 긴 본문 텍스트",
+    summaryText = "요약",
+    bigContentTitle = "펼쳤을 때의 제목"
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_BigText.png" alt="Example_BigText" width="400" />
+</p>
+
+#### Inbox
+
+알림을 펼치면 여러 줄을 목록 형식으로 표시합니다.
+
+```kotlin
+style = NotificationStyle.Inbox(
+    lines = listOf("• 항목 1", "• 항목 2", "• 항목 3"),
+    summaryText = "3건",
+    bigContentTitle = "펼쳤을 때의 제목"
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_Inbox.png" alt="Example_Inbox" width="400" />
+</p>
+
+#### BigPicture
+
+알림을 펼치면 이미지를 표시합니다.
+
+```kotlin
+style = NotificationStyle.BigPicture(
+    pictureResId = R.drawable.my_image,  // 또는 URI로 지정: pictureUriString
+    summaryText = "이미지 설명",
+    bigContentTitle = "펼쳤을 때의 제목"
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_BigPicture.png" alt="Example_BigPicture" width="400" />
+</p>
+
+#### Messaging
+
+채팅 기록 형식으로 표시합니다.
+
+```kotlin
+import android.library.notification.domain.model.NotificationMessage
+
+val now = System.currentTimeMillis()
+
+style = NotificationStyle.Messaging(
+    userDisplayName = "나",
+    conversationTitle = "그룹명",
+    isGroupConversation = true,
+    messages = listOf(
+        NotificationMessage(
+            text = "메시지 본문",
+            timestampMillis = now - 60_000L,
+            senderName = "Alice"          // null = 내 메시지
+        )
+    )
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_Messaging.png" alt="Example_Messaging" width="400" />
+</p>
+
+#### Media
+
+미디어 플레이어 형식으로 표시합니다. 컴팩트 표시 시 보여줄 액션 버튼의 인덱스를 지정합니다.
+
+```kotlin
+style = NotificationStyle.Media(
+    compactActionIndices = listOf(0, 1, 2)  // 최대 3개
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_Media.png" alt="Example_Media" width="400" />
+</p>
+
+액션 버튼은 `AndroidNotificationPlatformOptions.actions`에 설정합니다（[플랫폼 옵션](#플랫폼-옵션) 참조）.
+
+---
+
+### 플랫폼 옵션
+
+`AndroidNotificationPlatformOptions`로 Android 고유의 동작을 설정합니다.
+
+```kotlin
+import android.library.notification.application.model.AndroidNotificationPlatformOptions
+import android.library.notification.application.model.AndroidPendingIntentRequest
+import android.library.notification.application.model.AndroidNotificationAction
+
+val command = AndroidNotificationCommand(
+    content = NotificationContent( /* ... */ ),
+    platformOptions = AndroidNotificationPlatformOptions(
+        // 알림 탭 시 실행할 Intent
+        contentIntent = AndroidPendingIntentRequest(
+            intent = Intent(context, MainActivity::class.java),
+            requestCode = 1000
+        ),
+        // 알림을 삭제（스와이프）했을 때의 Intent
+        deleteIntent = AndroidPendingIntentRequest(
+            intent = Intent(context, MyReceiver::class.java),
+            requestCode = 1001,
+            type = AndroidPendingIntentType.BROADCAST
+        ),
+        // 전체 화면 표시용 Intent（기기 잠금 중 등）
+        fullScreenIntent = AndroidPendingIntentRequest(
+            intent = Intent(context, FullScreenActivity::class.java),
+            requestCode = 1002,
+            type = AndroidPendingIntentType.ACTIVITY
+        ),
+        // 액션 버튼
+        actions = listOf(
+            AndroidNotificationAction(
+                title = "승인",
+                pendingIntent = AndroidPendingIntentRequest(
+                    intent = Intent(context, ActionReceiver::class.java).apply {
+                        action = "ACTION_ACCEPT"
+                    },
+                    requestCode = 2000,
+                    type = AndroidPendingIntentType.BROADCAST
+                ),
+                iconResId = android.R.drawable.ic_menu_call
+            )
+        )
+    )
+)
+```
+
+---
+
+### 커스텀 뷰 스타일
+
+자체 레이아웃으로 알림을 표시합니다. `RemoteViewAction`을 사용하여 뷰의 내용과 클릭 이벤트를 설정합니다.
+
+#### DecoratedCustomView
+
+```kotlin
+import android.library.notification.application.model.AndroidNotificationCustomViewPlatformOptions
+import android.library.notification.application.model.RemoteViewAction
+import android.library.notification.domain.model.NotificationCustomViewStyleData
+
+val command = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 1007,
+        title = "제목",
+        message = "본문",
+        channel = channel,
+        style = NotificationStyle.DecoratedCustomView(
+            customView = NotificationCustomViewStyleData(
+                layoutResId = R.layout.notification_custom,       // 일반 표시
+                bigLayoutResId = R.layout.notification_custom_big // 펼침 표시（생략 가능）
+            )
+        )
+    ),
+    platformOptions = AndroidNotificationPlatformOptions(
+        customViewOptions = AndroidNotificationCustomViewPlatformOptions(
+            viewActions = listOf(
+                // 텍스트 설정
+                RemoteViewAction.SetText(R.id.notification_title, "커스텀 제목"),
+                RemoteViewAction.SetText(R.id.notification_message, "커스텀 본문"),
+                // 이미지 설정
+                RemoteViewAction.SetImage(R.id.notification_icon, R.mipmap.ic_launcher),
+                // 버튼에 클릭 이벤트 설정
+                RemoteViewAction.SetClickIntent(
+                    viewId = R.id.notification_btn_dismiss,
+                    pendingIntent = AndroidPendingIntentRequest(
+                        intent = Intent(context, ActionReceiver::class.java).apply {
+                            action = "ACTION_DISMISS"
+                        },
+                        requestCode = 2100,
+                        type = AndroidPendingIntentType.BROADCAST
+                    )
+                )
+            )
+        )
+    )
+)
+
+useCases.show(command)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_DecoratedCustomView.png" alt="Example_DecoratedCustomView" width="400" />
+</p>
+
+> **주의:** `RemoteViews`의 제약으로 인해 버튼에는 `Button` 클래스 대신 `LinearLayout` + `TextView`를 사용하세요. 클릭 이벤트는 `setOnClickPendingIntent`로 설정됩니다.
+
+#### DecoratedMediaCustomView
+
+Media 스타일과 조합하여 커스텀 뷰를 표시합니다.
+
+```kotlin
+style = NotificationStyle.DecoratedMediaCustomView(
+    customView = NotificationCustomViewStyleData(
+        layoutResId = R.layout.notification_media_custom
+    ),
+    compactActionIndices = listOf(0, 1, 2)
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_DecoratedMediaCustomView.png" alt="Example_DecoratedMediaCustomView" width="400" />
+</p>
+
+`customViewOptions` 사용법은 `DecoratedCustomView`와 동일합니다.
+
+---
+
+### 그룹 알림
+
+여러 알림을 그룹으로 묶어 표시합니다.
+
+```kotlin
+val GROUP_KEY = "my_group_key"
+
+// 자식 알림 1
+val child1 = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 1101,
+        title = "알림 1",
+        message = "그룹 자식 알림 #1",
+        channel = channel,
+        groupKey = GROUP_KEY,
+        groupAlertBehavior = NotificationCompat.GROUP_ALERT_SUMMARY,
+        sortKey = "01"
+    )
+)
+
+// 자식 알림 2
+val child2 = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 1102,
+        title = "알림 2",
+        message = "그룹 자식 알림 #2",
+        channel = channel,
+        groupKey = GROUP_KEY,
+        groupAlertBehavior = NotificationCompat.GROUP_ALERT_SUMMARY,
+        sortKey = "02"
+    )
+)
+
+// 요약 알림（그룹 헤더）
+val summary = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 1100,
+        title = "그룹 요약",
+        message = "알림 2건",
+        channel = channel,
+        groupKey = GROUP_KEY,
+        isGroupSummary = true,
+        groupAlertBehavior = NotificationCompat.GROUP_ALERT_SUMMARY,
+        sortKey = "00"
+    )
+)
+
+useCases.show(child1)
+useCases.show(child2)
+useCases.show(summary)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_Group.png" alt="Example_Group" width="400" />
+</p>
+
+> **포인트:** `groupAlertBehavior = GROUP_ALERT_SUMMARY`로 설정하면 요약 알림만 소리와 진동이 울리고 자식 알림은 무음이 됩니다.
+
+---
+
+### 인터랙션
+
+#### 액션 버튼（BroadcastReceiver）
+
+알림에 버튼을 추가하고 탭을 BroadcastReceiver로 수신합니다.
+
+```kotlin
+class NotificationActionReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        val actionId = intent?.getStringExtra("extra_action_id") ?: return
+        // 액션 처리
+    }
+}
+```
+
+```kotlin
+// 액션 버튼이 있는 알림
+platformOptions = AndroidNotificationPlatformOptions(
+    actions = listOf(
+        AndroidNotificationAction(
+            title = "승인",
+            pendingIntent = AndroidPendingIntentRequest(
+                intent = Intent(context, NotificationActionReceiver::class.java).apply {
+                    putExtra("extra_action_id", "accept")
+                },
+                requestCode = 5000,
+                type = AndroidPendingIntentType.BROADCAST
+            )
+        ),
+        AndroidNotificationAction(
+            title = "거절",
+            pendingIntent = AndroidPendingIntentRequest(
+                intent = Intent(context, NotificationActionReceiver::class.java).apply {
+                    putExtra("extra_action_id", "decline")
+                },
+                requestCode = 5001,
+                type = AndroidPendingIntentType.BROADCAST
+            )
+        )
+    )
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_ActionButtons.png" alt="Example_ActionButtons" width="400" />
+</p>
+
+#### DeleteIntent（삭제 이벤트）
+
+알림을 스와이프로 삭제했을 때의 콜백입니다.
+
+```kotlin
+platformOptions = AndroidNotificationPlatformOptions(
+    deleteIntent = AndroidPendingIntentRequest(
+        intent = Intent(context, NotificationDeleteReceiver::class.java).apply {
+            action = "ACTION_NOTIFICATION_DELETED"
+        },
+        requestCode = 5100,
+        type = AndroidPendingIntentType.BROADCAST
+    )
+)
+```
+
+#### FullScreenIntent（전체 화면）
+
+기기 잠금 중이나 화면 꺼짐 시 전체 화면으로 실행됩니다（알람·수신 알림 등）.
+
+```kotlin
+// 높은 우선순위 채널과 category 설정이 필요
+val content = NotificationContent(
+    id = 1111,
+    title = "알람",
+    message = "기상 시각입니다",
+    channel = highPriorityChannel,
+    category = NotificationCompat.CATEGORY_ALARM,
+    priority = NotificationCompat.PRIORITY_HIGH
+)
+
+platformOptions = AndroidNotificationPlatformOptions(
+    fullScreenIntent = AndroidPendingIntentRequest(
+        intent = Intent(context, AlarmActivity::class.java),
+        requestCode = 5200,
+        type = AndroidPendingIntentType.ACTIVITY,
+        mutable = true
+    )
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_FullScreenIntent.png" alt="Example_FullScreenIntent" width="400" />
+</p>
+
+> **주의:** 기기 상태 및 Android 정책에 따라 전체 화면 대신 heads-up 알림으로 표시될 수 있습니다.
+
+---
+
+### 진행 상황 알림
+
+다운로드나 처리 진행 상황을 프로그레스 바로 표시합니다.
+
+```kotlin
+import android.library.notification.domain.model.NotificationProgress
+
+// 확정 프로그레스 바
+val command = AndroidNotificationCommand(
+    content = NotificationContent(
+        id = 1009,
+        title = "다운로드 중",
+        message = "50% 완료",
+        channel = channel,
+        ongoing = true,
+        autoCancel = false,
+        progress = NotificationProgress(
+            max = 100,
+            current = 50,
+            indeterminate = false
+        )
+    )
+)
+
+useCases.show(command)
+
+// 불확정 프로그레스 바
+val indeterminate = NotificationProgress(max = 0, current = 0, indeterminate = true)
+
+// 완료 시（바를 숨기고 일반 알림으로 되돌리기）
+val complete = NotificationContent(
+    id = 1009,
+    ongoing = false,
+    autoCancel = true,
+    progress = NotificationProgress(max = 100, current = 100, indeterminate = false),
+    /* ... */
+)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_Progress.png" alt="Example_Progress" width="400" />
+</p>
+
+---
+
+### 포어그라운드 서비스 알림
+
+#### Progress FGS（장시간 백그라운드 처리）
+
+`ProgressForegroundNotifications`를 사용하여 포어그라운드 서비스와 연동된 진행 상황 알림을 표시합니다.
+
+```kotlin
+import android.library.notification.presentation.progress.ProgressForegroundNotifications
+
+// 포어그라운드 서비스 시작（알림 표시도 겸함）
+ProgressForegroundNotifications.start(context, progressCommand)
+
+// 진행 상황 업데이트
+ProgressForegroundNotifications.update(context, updatedProgressCommand)
+
+// 완료（서비스를 중지하고 일반 알림으로 강등）
+ProgressForegroundNotifications.complete(context, completionCommand)
+
+// 강제 중지（알림도 삭제）
+ProgressForegroundNotifications.stop(context)
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_ProgressForeground.png" alt="Example_ProgressForeground" width="400" />
+</p>
+
+`AndroidManifest.xml`에 서비스를 선언합니다.
+
+```xml
+<service
+    android:name="android.library.notification.presentation.progress.ProgressForegroundService"
+    android:foregroundServiceType="dataSync"
+    android:exported="false" />
+```
+
+#### Call Style FGS（통화 스타일）
+
+착신·통화 중·스크리닝의 CallStyle 알림을 포어그라운드 서비스로 표시합니다.
+
+```kotlin
+import android.library.notification.presentation.call.CallStyleForegroundService
+import androidx.core.content.ContextCompat
+
+// 착신 알림 시작
+ContextCompat.startForegroundService(
+    context,
+    CallStyleForegroundService.createIncomingStartIntent(context)
+)
+
+// 통화 중 알림으로 전환
+ContextCompat.startForegroundService(
+    context,
+    CallStyleForegroundService.createOngoingStartIntent(context)
+)
+
+// 중지
+context.startService(CallStyleForegroundService.createStopIntent(context))
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_CallStyle.png" alt="Example_CallStyle" width="400" />
+</p>
+
+`AndroidManifest.xml`에 서비스를 선언합니다.
+
+```xml
+<service
+    android:name="android.library.notification.presentation.call.CallStyleForegroundService"
+    android:foregroundServiceType="specialUse"
+    android:exported="false">
+    <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="call" />
+</service>
+```
+
+---
+
+### 예약 알림
+
+지정한 시각에 알림을 자동으로 표시합니다.
+
+```kotlin
+import android.library.notification.domain.model.NotificationSchedule
+
+val schedule = NotificationSchedule(
+    triggerAtMillis = System.currentTimeMillis() + 15_000L, // 15초 후
+    exact = true,           // 정확한 알람（SCHEDULE_EXACT_ALARM 필요）
+    allowWhileIdle = true,  // Doze 모드 중에도 실행
+    persistAcrossBoot = true // 기기 재부팅 후에도 복원
+)
+
+useCases.schedule(command, schedule)
+    .onSuccess { /* 예약 완료 */ }
+    .onFailure { /* 오류 처리 */ }
+```
+
+<p align="center">
+    <img src="images/android/notification/Example_Scheduled.png" alt="Example_Scheduled" width="400" />
+</p>
+
+#### 예약 취소
+
+```kotlin
+useCases.cancelScheduled(id = 1010)
+useCases.cancelAllScheduled()
+```
+
+#### 기기 재부팅 후 복원
+
+`RECEIVE_BOOT_COMPLETED`를 사용하여 재부팅 후 스케줄을 복원합니다.
+
+```kotlin
+// BroadcastReceiver의 onReceive 내에서 호출
+useCases.restoreScheduled()
+```
+
+`AndroidManifest.xml`에 Receiver를 선언합니다.
+
+```xml
+<receiver
+    android:name="android.library.notification.data.repository.ScheduledNotificationBootReceiver"
+    android:exported="false">
+    <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+    </intent-filter>
+</receiver>
+```
+
+#### 예약 여부 확인
+
+```kotlin
+val isScheduled: Boolean = useCases.isScheduled(context, id = 1010)
+```
+
+---
+
+## iOS
+
+（준비 중）
+
+---
+
+## Windows
+
+（준비 중）
+
+---
+
+## macOS
+
+（준비 중）

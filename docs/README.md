@@ -3,7 +3,7 @@
 This repository publishes documentation by version.
 
 - Latest: `latest/`
-- Versions: `<version>/` (e.g., `1.0.0/`, `1.1.0/`)
+- Versions: `<version>/` (e.g., `1.1.0/`)
 
 The file `latest/VERSION.txt` contains the version currently published as `latest/`.
 
@@ -14,13 +14,22 @@ The file `latest/VERSION.txt` contains the version currently published as `lates
 From repository root:
 
 ```bash
-./scripts/publish_docs.sh 1.1.0
+./scripts/publish_docs.sh <version> [--skip-build] [--os <targets>]
 ```
 
-If you already generated docs and only want to copy/update:
+Examples:
 
 ```bash
+# Full build + publish
+./scripts/publish_docs.sh 1.1.0
+
+# Copy only (skip generation)
 ./scripts/publish_docs.sh 1.1.0 --skip-build
+
+# Build and publish a specific platform only
+./scripts/publish_docs.sh 1.1.0 --os android
+./scripts/publish_docs.sh 1.1.0 --os ios,mac
+./scripts/publish_docs.sh 1.1.0 --os all
 ```
 
 ## Build behavior
@@ -33,6 +42,8 @@ By default, `publish_docs.sh` generates docs first when possible:
 - Windows: Doxygen (if `doxygen` is installed)
 
 With `--skip-build`, the script only copies existing outputs and refreshes `latest/`.
+
+The `--os` option restricts the build step to the specified targets (comma-separated: `android`, `ios`, `mac`, `windows`, `all`). The copy step still stages all existing outputs regardless of this option.
 
 ## Output layout
 

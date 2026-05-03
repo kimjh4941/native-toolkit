@@ -1,4 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required on Android 13 and above -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
+    <!--
+        This CallStyle implementation is not a real calling app, so FOREGROUND_SERVICE_SPECIAL_USE
+        is used here for demonstration purposes.
+
+        If you later switch to a real calling app using phoneCall-type FGS, consider adding:
+        <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+
+        On Android 14/15, the phoneCall-type FGS will be rejected unless the app also satisfies
+        real calling app requirements such as MANAGE_OWN_CALLS or the default dialer role.
+    -->
+
+    <application>
+        <receiver
+            android:name=".notification.data.repository.ScheduledNotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".notification.data.repository.ScheduledNotificationBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+            This service uses specialUse for sample purposes.
+            To switch to phoneCall in the future, change android:foregroundServiceType="phoneCall"
+            and ensure the app meets real calling app requirements (MANAGE_OWN_CALLS / default dialer role, etc.).
+        -->
+        <service
+            android:name=".notification.presentation.call.CallStyleForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="call_style_notification" />
+        </service>
+
+        <!--
+            The progress foreground service is an optional API for long-running dataSync-type background tasks.
+            Apps using this library should only use it when a persistent notification is truly needed,
+            such as for extended downloads or sync operations.
+        -->
+        <service
+            android:name=".notification.presentation.progress.ProgressForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
 </manifest>

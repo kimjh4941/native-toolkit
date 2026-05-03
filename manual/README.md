@@ -16,7 +16,22 @@ manual/
 Publish command:
 
 ```bash
-./scripts/publish_docs.sh <version>
+./scripts/publish_docs.sh <version> [--skip-build] [--os <targets>]
+```
+
+Examples:
+
+```bash
+# Full build + publish
+./scripts/publish_docs.sh 1.1.0
+
+# Copy only (skip generation)
+./scripts/publish_docs.sh 1.1.0 --skip-build
+
+# Build and publish a specific platform only
+./scripts/publish_docs.sh 1.1.0 --os android
+./scripts/publish_docs.sh 1.1.0 --os ios,mac
+./scripts/publish_docs.sh 1.1.0 --os all
 ```
 
 How it is copied:
