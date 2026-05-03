@@ -32,7 +32,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/<version>/android/native-toolkit-<version>.aar`
+- Android: `dist/<version>/android/android-native-toolkit-<version>.aar`
 - iOS: `dist/<version>/ios/NativeToolkit-<version>.xcframework`
 - Windows: `dist/<version>/windows/nuget/NativeToolkit/NativeToolkit.<version>.nupkg`
 - macOS:
@@ -162,7 +162,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 #### Supported platform: Android (AAR / ABI-independent)
 
-1. Place `native-toolkit-1.1.0.aar` in `app/libs`.
+1. Place `android-native-toolkit-1.1.0.aar` in `app/libs`.
 2. Add repository settings in `settings.gradle.kts` to resolve the AAR.
 3. Add dependency settings in `app/build.gradle.kts` to reference the AAR.
 4. Run Gradle sync.
@@ -193,7 +193,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // Add this dependency to reference the AAR.
-  implementation(files("libs/native-toolkit-1.1.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.1.0.aar"))
 }
 ```
 
@@ -201,11 +201,11 @@ dependencies {
 
 #### Supported platform: iOS (Device: arm64 / Simulator: arm64, x86_64)
 
-1. Copy `NativeToolkit-1.1.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
+1. Copy `NativeToolkit-1.0.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
 2. Open the target project in Xcode 26.2 and select your app target in **Project Navigator**.
 3. Open the **General** tab and click **+** in **Frameworks, Libraries, and Embedded Content**.
-4. Select **Add Other...** → **Add Files...** and add `Frameworks/NativeToolkit-1.1.0.xcframework`.
-5. Set the embed option of `NativeToolkit-1.1.0.xcframework` to **Embed & Sign**.
+4. Select **Add Other...** → **Add Files...** and add `Frameworks/NativeToolkit-1.0.0.xcframework`.
+5. Set the embed option of `NativeToolkit-1.0.0.xcframework` to **Embed & Sign**.
 6. Open **Build Settings** of the same target and add `$(PROJECT_DIR)/Frameworks` to `Framework Search Paths`. (Usually non-recursive)
 7. Verify that Team is correctly configured in **Signing & Capabilities**.
 8. Run **Product** → **Clean Build Folder**, then build and run with **Run**.
@@ -215,7 +215,7 @@ dependencies {
 
 #### Supported platform: Windows x64 (win-x64)
 
-1. Copy `NativeToolkit.1.1.0.nupkg` to `C:\packages`.
+1. Copy `NativeToolkit.1.0.0.nupkg` to `C:\packages`.
 2. Launch Visual Studio 2022 and open **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**.
 3. Click **+** and enter:
    - Name: LocalPackages
@@ -231,11 +231,11 @@ dependencies {
 
 #### Supported platform: macOS arm64, x86_64
 
-1. Copy `NativeToolkit-1.1.0-xcode[version].xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
+1. Copy `NativeToolkit-1.0.0-xcode[version].xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
 2. Open the target project in Xcode 26.2 and select your app target in Project Navigator.
 3. Open the **General** tab and click `+` in **Frameworks, Libraries, and Embedded Content**.
-4. Select "Add Other..." → "Add Files..." and add `Frameworks/NativeToolkit-1.1.0-xcode[version].xcframework`.
-5. Set the embed option of `NativeToolkit-1.1.0-xcode[version].xcframework` to **Embed & Sign**.
+4. Select "Add Other..." → "Add Files..." and add `Frameworks/NativeToolkit-1.0.0-xcode[version].xcframework`.
+5. Set the embed option of `NativeToolkit-1.0.0-xcode[version].xcframework` to **Embed & Sign**.
 6. Open **Build Settings** of the same target and add `$(PROJECT_DIR)/Frameworks` to `Framework Search Paths`. (Usually non-recursive)
 7. Verify that Team is correctly configured in **Signing & Capabilities**.
 8. Run **Product** → **Clean Build Folder**, then build and run with **Run**.
