@@ -1,0 +1,33 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
+// swift-module-flags: -target x86_64-apple-ios18.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name UnityIosPlugin
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2.4
+import IosLibrary
+import Swift
+import UIKit
+@_exported import UnityIosPlugin
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers @objcMembers public class UnityIosDialogManager : ObjectiveC.NSObject {
+  @objc public static let shared: UnityIosPlugin.UnityIosDialogManager
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public func showDialog(title: Swift.String, message: Swift.String, buttonText: Swift.String = "OK", handler: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public func showConfirmDialog(title: Swift.String, message: Swift.String, confirmButtonText: Swift.String = "OK", cancelButtonText: Swift.String = "Cancel", handler: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public func showDestructiveDialog(title: Swift.String, message: Swift.String, destructiveButtonText: Swift.String = "Delete", cancelButtonText: Swift.String = "Cancel", handler: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public func showActionSheet(title: Swift.String, message: Swift.String, options: [Swift.String], cancelButtonText: Swift.String = "Cancel", handler: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public func showTextInputDialog(title: Swift.String, message: Swift.String, placeholder: Swift.String = "", confirmButtonText: Swift.String = "OK", cancelButtonText: Swift.String = "Cancel", enableConfirmWhenEmpty: Swift.Bool = false, handler: ((Swift.String?, Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)?)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  @objc public func showLoginDialog(title: Swift.String, message: Swift.String, usernamePlaceholder: Swift.String = "Username", passwordPlaceholder: Swift.String = "Password", loginButtonText: Swift.String = "Login", cancelButtonText: Swift.String = "Cancel", enableLoginWhenEmpty: Swift.Bool = false, handler: ((Swift.String?, Swift.String?, Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)?)
+  #endif
+  @objc deinit
+}

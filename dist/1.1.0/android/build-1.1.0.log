@@ -1,0 +1,96 @@
+
+> Configure project :android_library
+warning: Dokka Gradle plugin V1 is deprecated
+    
+    Dokka Gradle plugin V1 is deprecated, and will be removed in Dokka version 2.1.0
+    Please migrate to Dokka Gradle plugin V2. This will require updating your project.
+    To learn about migrating read the migration guide https://kotl.in/dokka-gradle-migration
+    
+    To start migrating to Dokka Gradle plugin V2 add
+        org.jetbrains.dokka.experimental.gradle.pluginMode=V2EnabledWithHelpers
+    into your project's `gradle.properties` file.
+    
+    We would appreciate your feedback!
+     - Please report any feedback or problems https://kotl.in/dokka-issues
+     - Chat with the community visit #dokka in https://kotlinlang.slack.com/ (To sign up visit https://kotl.in/slack)
+    
+[android_library] libraryVersion=1.1.0 (source=cli -P)
+
+> Configure project :unity_android_plugin
+[unity_android_plugin] libraryVersion=1.1.0 (source=cli -P)
+
+> Task :android_library:preBuild UP-TO-DATE
+> Task :android_library:preReleaseBuild UP-TO-DATE
+> Task :android_library:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :android_library:mergeReleaseNativeLibs NO-SOURCE
+> Task :android_library:stripReleaseDebugSymbols NO-SOURCE
+> Task :android_library:copyReleaseJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :android_library:generateReleaseResValues UP-TO-DATE
+> Task :android_library:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :android_library:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :android_library:generateReleaseResources UP-TO-DATE
+> Task :android_library:packageReleaseResources UP-TO-DATE
+> Task :android_library:parseReleaseLocalResources UP-TO-DATE
+> Task :android_library:generateReleaseRFile UP-TO-DATE
+> Task :android_library:compileReleaseKotlin UP-TO-DATE
+> Task :android_library:extractReleaseAnnotations UP-TO-DATE
+> Task :android_library:mergeReleaseShaders UP-TO-DATE
+> Task :android_library:compileReleaseShaders NO-SOURCE
+> Task :android_library:generateReleaseAssets UP-TO-DATE
+> Task :android_library:mergeReleaseAssets UP-TO-DATE
+> Task :android_library:javaPreCompileRelease UP-TO-DATE
+> Task :android_library:compileReleaseJavaWithJavac NO-SOURCE
+> Task :android_library:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :android_library:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :android_library:prepareLintJarForPublish UP-TO-DATE
+> Task :android_library:prepareReleaseArtProfile UP-TO-DATE
+> Task :android_library:processReleaseManifest UP-TO-DATE
+> Task :android_library:processReleaseJavaRes UP-TO-DATE
+> Task :android_library:mergeReleaseJavaResource UP-TO-DATE
+> Task :android_library:syncReleaseLibJars UP-TO-DATE
+> Task :android_library:writeReleaseAarMetadata UP-TO-DATE
+> Task :android_library:bundleReleaseAar UP-TO-DATE
+> Task :android_library:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :android_library:mergeReleaseResources UP-TO-DATE
+> Task :android_library:verifyReleaseResources UP-TO-DATE
+> Task :android_library:assembleRelease UP-TO-DATE
+> Task :unity_android_plugin:preBuild UP-TO-DATE
+> Task :unity_android_plugin:preReleaseBuild UP-TO-DATE
+> Task :unity_android_plugin:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :unity_android_plugin:mergeReleaseNativeLibs NO-SOURCE
+> Task :unity_android_plugin:stripReleaseDebugSymbols NO-SOURCE
+> Task :unity_android_plugin:copyReleaseJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :unity_android_plugin:generateReleaseResValues UP-TO-DATE
+> Task :unity_android_plugin:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :android_library:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :unity_android_plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :unity_android_plugin:generateReleaseResources UP-TO-DATE
+> Task :unity_android_plugin:packageReleaseResources UP-TO-DATE
+> Task :unity_android_plugin:parseReleaseLocalResources UP-TO-DATE
+> Task :unity_android_plugin:generateReleaseRFile UP-TO-DATE
+> Task :unity_android_plugin:compileReleaseKotlin UP-TO-DATE
+> Task :unity_android_plugin:extractReleaseAnnotations UP-TO-DATE
+> Task :unity_android_plugin:mergeReleaseShaders UP-TO-DATE
+> Task :unity_android_plugin:compileReleaseShaders NO-SOURCE
+> Task :unity_android_plugin:generateReleaseAssets UP-TO-DATE
+> Task :unity_android_plugin:mergeReleaseAssets UP-TO-DATE
+> Task :unity_android_plugin:javaPreCompileRelease UP-TO-DATE
+> Task :unity_android_plugin:compileReleaseJavaWithJavac NO-SOURCE
+> Task :unity_android_plugin:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :unity_android_plugin:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :unity_android_plugin:prepareLintJarForPublish UP-TO-DATE
+> Task :unity_android_plugin:prepareReleaseArtProfile UP-TO-DATE
+> Task :unity_android_plugin:processReleaseManifest UP-TO-DATE
+> Task :unity_android_plugin:processReleaseJavaRes UP-TO-DATE
+> Task :unity_android_plugin:mergeReleaseJavaResource UP-TO-DATE
+> Task :unity_android_plugin:syncReleaseLibJars UP-TO-DATE
+> Task :unity_android_plugin:writeReleaseAarMetadata UP-TO-DATE
+> Task :unity_android_plugin:bundleReleaseAar UP-TO-DATE
+> Task :android_library:compileReleaseLibraryResources UP-TO-DATE
+> Task :unity_android_plugin:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :unity_android_plugin:mergeReleaseResources UP-TO-DATE
+> Task :unity_android_plugin:verifyReleaseResources UP-TO-DATE
+> Task :unity_android_plugin:assembleRelease UP-TO-DATE
+
+BUILD SUCCESSFUL in 1s
+54 actionable tasks: 54 up-to-date
