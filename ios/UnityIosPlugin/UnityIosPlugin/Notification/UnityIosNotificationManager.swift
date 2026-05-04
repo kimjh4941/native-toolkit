@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import UserNotifications
 import IosLibrary
 
 /// # UnityIosNotificationManager
@@ -118,9 +117,16 @@ public class UnityIosNotificationManager: NSObject {
     /// Returns all pending notification requests as a JSON string.
     public func getScheduledNotifications(completion: @escaping (String) -> Void) {
         Log.d(TAG, "[getScheduledNotifications]")
-        IosNotificationManager.shared.getScheduled { requests in
-            let array: [[String: Any]] = requests.map { request in
-                ["identifier": request.identifier, "title": request.content.title]
+        IosNotificationManager.shared.getScheduled { notifications in
+            let array: [[String: Any]] = notifications.map { n in
+                var dict: [String: Any] = [
+                    "identifier": n.identifier,
+                    "title": n.title,
+                    "categoryIdentifier": n.categoryIdentifier
+                ]
+                if let subtitle = n.subtitle { dict["subtitle"] = subtitle }
+                if let body = n.body { dict["body"] = body }
+                return dict
             }
             let json = (try? JSONSerialization.data(withJSONObject: array))
                 .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
@@ -166,7 +172,7 @@ public class UnityIosNotificationManager: NSObject {
             case .notDetermined: statusStr = "notDetermined"
             case .provisional: statusStr = "provisional"
             case .ephemeral: statusStr = "ephemeral"
-            @unknown default: statusStr = "unknown"
+            case .unknown: statusStr = "unknown"
             }
             completion(statusStr)
         }

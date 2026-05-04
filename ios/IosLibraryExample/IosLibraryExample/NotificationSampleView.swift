@@ -1,5 +1,4 @@
 import SwiftUI
-import UserNotifications
 import IosLibrary
 
 struct NotificationSampleView: View {
@@ -440,7 +439,7 @@ private struct FullWidthPressableButtonStyle: ButtonStyle {
     }
 }
 
-private extension UNAuthorizationStatus {
+private extension NotificationAuthorizationStatus {
     var label: String {
         switch self {
         case .notDetermined:
@@ -453,7 +452,7 @@ private extension UNAuthorizationStatus {
             return "provisional"
         case .ephemeral:
             return "ephemeral"
-        @unknown default:
+        case .unknown:
             return "unknown"
         }
     }

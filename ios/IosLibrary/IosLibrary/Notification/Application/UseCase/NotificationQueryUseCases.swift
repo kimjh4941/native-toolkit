@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import UserNotifications
 
 /// Returns all notifications currently visible in Notification Center.
 public struct GetDeliveredNotificationsUseCase {
@@ -42,7 +41,7 @@ public struct GetAuthorizationStatusUseCase {
         self.repository = repository
     }
 
-    public func execute() async -> UNAuthorizationStatus {
+    public func execute() async -> NotificationAuthorizationStatus {
         await repository.authorizationStatus()
     }
 }

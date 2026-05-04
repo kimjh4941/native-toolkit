@@ -4,7 +4,6 @@
 //
 
 import Testing
-import UserNotifications
 @testable import IosLibrary
 
 struct NotificationPermissionHelperTests {

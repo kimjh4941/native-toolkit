@@ -10,8 +10,8 @@ import UserNotifications
 final class MockNotificationRepository: NotificationRepository {
 
     var shouldFail = false
-    var stubbedAuthorizationStatus: UNAuthorizationStatus = .authorized
-    var stubbedScheduled: [UNNotificationRequest] = []
+    var stubbedAuthorizationStatus: NotificationAuthorizationStatus = .authorized
+    var stubbedScheduled: [ScheduledNotification] = []
     var stubbedDelivered: [ActiveNotification] = []
 
     private(set) var showCallCount = 0
@@ -77,7 +77,7 @@ final class MockNotificationRepository: NotificationRepository {
         cancelAllScheduledCallCount += 1
     }
 
-    func getScheduled() async -> [UNNotificationRequest] {
+    func getScheduled() async -> [ScheduledNotification] {
         stubbedScheduled
     }
 
@@ -85,7 +85,7 @@ final class MockNotificationRepository: NotificationRepository {
         stubbedDelivered
     }
 
-    func authorizationStatus() async -> UNAuthorizationStatus {
+    func authorizationStatus() async -> NotificationAuthorizationStatus {
         stubbedAuthorizationStatus
     }
 

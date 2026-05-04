@@ -82,12 +82,12 @@ public final class NotificationRepositoryImpl: NotificationRepository {
 
     public func cancel(identifier: String) async {
         Log.d(TAG, "[cancel] identifier: \(identifier)")
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        removePendingRequests(withIdentifiers: [identifier])
     }
 
     public func cancelAll() async {
         Log.d(TAG, "[cancelAll]")
-        center.removeAllPendingNotificationRequests()
+        removeAllPendingRequests()
     }
 
     public func removeDelivered(identifier: String) async {
@@ -102,17 +102,28 @@ public final class NotificationRepositoryImpl: NotificationRepository {
 
     public func cancelScheduled(identifier: String) async {
         Log.d(TAG, "[cancelScheduled] identifier: \(identifier)")
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        removePendingRequests(withIdentifiers: [identifier])
     }
 
     public func cancelAllScheduled() async {
         Log.d(TAG, "[cancelAllScheduled]")
-        center.removeAllPendingNotificationRequests()
+        removeAllPendingRequests()
     }
 
-    public func getScheduled() async -> [UNNotificationRequest] {
+    public func getScheduled() async -> [ScheduledNotification] {
         Log.d(TAG, "[getScheduled]")
-        return await center.pendingNotificationRequests()
+        let requests = await center.pendingNotificationRequests()
+        return requests.map { request in
+            let content = request.content
+            return ScheduledNotification(
+                identifier: request.identifier,
+                title: content.title,
+                subtitle: content.subtitle.isEmpty ? nil : content.subtitle,
+                body: content.body.isEmpty ? nil : content.body,
+                categoryIdentifier: content.categoryIdentifier,
+                userInfo: content.userInfo
+            )
+        }
     }
 
     public func getDelivered() async -> [ActiveNotification] {
@@ -132,10 +143,23 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         }
     }
 
-    public func authorizationStatus() async -> UNAuthorizationStatus {
+    public func authorizationStatus() async -> NotificationAuthorizationStatus {
         Log.d(TAG, "[authorizationStatus]")
         let settings = await center.notificationSettings()
-        return settings.authorizationStatus
+        switch settings.authorizationStatus {
+        case .notDetermined:
+            return .notDetermined
+        case .denied:
+            return .denied
+        case .authorized:
+            return .authorized
+        case .provisional:
+            return .provisional
+        case .ephemeral:
+            return .ephemeral
+        @unknown default:
+            return .unknown
+        }
     }
 
     public func openNotificationSettings() {
@@ -190,6 +214,14 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         unContent.userInfo = content.userInfo
         unContent.attachments = try content.attachments.map { try makeUNAttachment(from: $0) }
         return unContent
+    }
+
+    private func removePendingRequests(withIdentifiers identifiers: [String]) {
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    private func removeAllPendingRequests() {
+        center.removeAllPendingNotificationRequests()
     }
 
     private func makeUNSound(from sound: NotificationSound) -> UNNotificationSound {

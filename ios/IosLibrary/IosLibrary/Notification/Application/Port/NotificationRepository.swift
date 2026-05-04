@@ -65,13 +65,13 @@ public protocol NotificationRepository {
     func cancelAllScheduled() async
 
     /// Returns all pending notification requests (scheduled, not yet delivered).
-    func getScheduled() async -> [UNNotificationRequest]
+    func getScheduled() async -> [ScheduledNotification]
 
     /// Returns all notifications currently visible in Notification Center.
     func getDelivered() async -> [ActiveNotification]
 
     /// Returns the current notification authorization status.
-    func authorizationStatus() async -> UNAuthorizationStatus
+    func authorizationStatus() async -> NotificationAuthorizationStatus
 
     /// Opens the app's notification settings page in the Settings app.
     func openNotificationSettings()

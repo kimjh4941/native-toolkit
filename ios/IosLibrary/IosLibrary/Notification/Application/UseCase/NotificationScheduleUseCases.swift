@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import UserNotifications
 
 /// Schedules a notification for future delivery.
 public struct ScheduleNotificationUseCase {
@@ -53,7 +52,7 @@ public struct GetScheduledNotificationsUseCase {
         self.repository = repository
     }
 
-    public func execute() async -> [UNNotificationRequest] {
+    public func execute() async -> [ScheduledNotification] {
         await repository.getScheduled()
     }
 }

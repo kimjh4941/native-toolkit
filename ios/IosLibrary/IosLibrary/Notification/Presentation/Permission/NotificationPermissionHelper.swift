@@ -37,7 +37,7 @@ public final class NotificationPermissionHelper {
     }
 
     /// Returns the current notification authorization status.
-    public func authorizationStatus() async -> UNAuthorizationStatus {
+    public func authorizationStatus() async -> NotificationAuthorizationStatus {
         Log.d(TAG, "[authorizationStatus]")
         return await repository.authorizationStatus()
     }

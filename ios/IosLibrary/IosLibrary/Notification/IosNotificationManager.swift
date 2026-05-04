@@ -107,6 +107,29 @@ public final class IosNotificationManager: NSObject {
         super.init()
     }
 
+    /// Internal initializer for tests to inject a repository and helper.
+    init(repository: NotificationRepository, permissionHelper: NotificationPermissionHelper) {
+        Log.d(TAG, "[init:test]")
+        self.repository = repository
+        self.showUseCase = ShowNotificationUseCase(repository: repository)
+        self.updateUseCase = UpdateNotificationUseCase(repository: repository)
+        self.cancelUseCase = CancelNotificationUseCase(repository: repository)
+        self.cancelAllUseCase = CancelAllNotificationsUseCase(repository: repository)
+        self.removeDeliveredUseCase = RemoveDeliveredNotificationUseCase(repository: repository)
+        self.removeAllDeliveredUseCase = RemoveAllDeliveredNotificationsUseCase(repository: repository)
+        self.scheduleUseCase = ScheduleNotificationUseCase(repository: repository)
+        self.cancelScheduledUseCase = CancelScheduledNotificationUseCase(repository: repository)
+        self.cancelAllScheduledUseCase = CancelAllScheduledNotificationsUseCase(repository: repository)
+        self.getScheduledUseCase = GetScheduledNotificationsUseCase(repository: repository)
+        self.getDeliveredUseCase = GetDeliveredNotificationsUseCase(repository: repository)
+        self.hasPermissionUseCase = HasNotificationPermissionUseCase(repository: repository)
+        self.getAuthStatusUseCase = GetAuthorizationStatusUseCase(repository: repository)
+        self.registerCategoryUseCase = RegisterNotificationCategoryUseCase(repository: repository)
+        self.removeCategoryUseCase = RemoveNotificationCategoryUseCase(repository: repository)
+        self.permissionHelper = permissionHelper
+        super.init()
+    }
+
     /// Registers this manager as the `UNUserNotificationCenterDelegate`.
     /// Call once at app launch.
     public static func setup() {
@@ -209,7 +232,7 @@ public final class IosNotificationManager: NSObject {
     }
 
     /// Returns all pending (not yet delivered) notification requests.
-    public func getScheduled(completion: @escaping ([UNNotificationRequest]) -> Void) {
+    public func getScheduled(completion: @escaping ([ScheduledNotification]) -> Void) {
         Log.d(TAG, "[getScheduled]")
         Task {
             let result = await getScheduledUseCase.execute()
@@ -236,7 +259,7 @@ public final class IosNotificationManager: NSObject {
     }
 
     /// Returns the current notification authorization status.
-    public func authorizationStatus(completion: @escaping (UNAuthorizationStatus) -> Void) {
+    public func authorizationStatus(completion: @escaping (NotificationAuthorizationStatus) -> Void) {
         Log.d(TAG, "[authorizationStatus]")
         Task {
             let result = await getAuthStatusUseCase.execute()
