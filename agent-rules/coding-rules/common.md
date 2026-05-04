@@ -76,9 +76,14 @@ final class MockNotificationRepository: NotificationRepository {
 | iOS 18+ / macOS 15+ | Swift Testing (`@Test` / `#expect`) | XCTest は使わない      |
 | Android             | JUnit 4 / 5 + MockK                 | プロジェクト設定に従う |
 
----
+### テストの確認タイミング
 
-## エラーモデル
+- コードを修正・追加した後は、**必ず既存のテストコードを確認する**
+  - 修正内容によって既存テストが壊れていないか確認する
+  - 新機能・新フィールドに対してテストが不足していれば追加する
+- テスト確認後、対象スキームのテストを実行してすべて passed であることを確認する
+
+---
 
 - エラー型は Domain 層に定義する
 - Repository 実装がシステムエラーをドメインエラーに変換する

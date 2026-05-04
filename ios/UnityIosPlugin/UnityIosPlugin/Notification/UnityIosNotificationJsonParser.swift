@@ -27,6 +27,8 @@ final class UnityIosNotificationJsonParser {
     /// - `relevanceScore` (Double 0.0-1.0, optional)
     /// - `filterCriteria` (String, optional)
     /// - `userInfo` (Object, optional)
+    /// - `attachments` (Array of objects, optional)
+    ///   - `identifier` (String, required), `fileURL` (String: file:// URL, required)
     func parseContent(from json: String) -> NotificationContent? {
         Log.d(TAG, "[parseContent] json: \(json)")
         guard let data = json.data(using: .utf8),
@@ -59,6 +61,14 @@ final class UnityIosNotificationJsonParser {
             interruptionLevel = nil
         }
         let userInfo = dict["userInfo"] as? [String: Any] ?? [:]
+        let attachmentsRaw = dict["attachments"] as? [[String: Any]] ?? []
+        let attachments: [NotificationAttachment] = attachmentsRaw.compactMap { raw in
+            guard let identifier = raw["identifier"] as? String,
+                  let urlStr = raw["fileURL"] as? String,
+                  let url = URL(string: urlStr)
+            else { return nil }
+            return NotificationAttachment(identifier: identifier, fileURL: url)
+        }
         return NotificationContent(
             id: id,
             title: title,
@@ -72,7 +82,8 @@ final class UnityIosNotificationJsonParser {
             targetContentIdentifier: dict["targetContentIdentifier"] as? String,
             relevanceScore: dict["relevanceScore"] as? Double,
             filterCriteria: dict["filterCriteria"] as? String,
-            userInfo: userInfo
+            userInfo: userInfo,
+            attachments: attachments
         )
     }
 

@@ -206,4 +206,32 @@ public class UnityIosNotificationManager: NSObject {
         Log.d(TAG, "[removeCategory] identifier: \(identifier)")
         IosNotificationManager.shared.removeCategory(identifier: identifier)
     }
+
+    /// Returns whether the app currently has notification authorization.
+    public func hasPermission(completion: @escaping (Bool) -> Void) {
+        Log.d(TAG, "[hasPermission]")
+        IosNotificationManager.shared.hasPermission(completion: completion)
+    }
+
+    /// Registers a persistent handler for notification action taps.
+    /// The handler receives the notification identifier, action identifier, and userInfo as a JSON string.
+    public func setActionReceivedHandler(_ handler: @escaping (String, String, String) -> Void) {
+        Log.d(TAG, "[setActionReceivedHandler]")
+        IosNotificationManager.shared.onActionReceived = { notifId, actionId, userInfo in
+            let json = (try? JSONSerialization.data(withJSONObject: userInfo))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+            handler(notifId, actionId, json)
+        }
+    }
+
+    /// Registers a persistent handler for text input notification action submissions.
+    /// The handler receives the notification identifier, action identifier, user text, and userInfo as a JSON string.
+    public func setTextInputActionReceivedHandler(_ handler: @escaping (String, String, String, String) -> Void) {
+        Log.d(TAG, "[setTextInputActionReceivedHandler]")
+        IosNotificationManager.shared.onTextInputActionReceived = { notifId, actionId, userText, userInfo in
+            let json = (try? JSONSerialization.data(withJSONObject: userInfo))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+            handler(notifId, actionId, userText, json)
+        }
+    }
 }

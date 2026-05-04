@@ -169,3 +169,42 @@ void removeNotificationCategory(const char* identifier) {
     NSString* nsIdentifier = [NSString stringWithUTF8String:identifier];
     [[UnityIosNotificationManager shared] removeCategoryWithIdentifier:nsIdentifier];
 }
+
+static NotificationBoolCallback s_hasPermissionCallback = NULL;
+
+void hasNotificationPermission(NotificationBoolCallback callback) {
+    [Log d:TAG :[NSString stringWithFormat:@"[hasNotificationPermission]"]];
+    s_hasPermissionCallback = callback;
+    [[UnityIosNotificationManager shared] hasPermissionWithCompletion:^(BOOL value) {
+        [Log d:TAG :[NSString stringWithFormat:@"[hasNotificationPermission] value: %d", value]];
+        if (s_hasPermissionCallback) {
+            s_hasPermissionCallback(value);
+        }
+    }];
+}
+
+static NotificationActionCallback s_actionReceivedCallback = NULL;
+
+void setNotificationActionReceivedCallback(NotificationActionCallback callback) {
+    [Log d:TAG :[NSString stringWithFormat:@"[setNotificationActionReceivedCallback]"]];
+    s_actionReceivedCallback = callback;
+    [[UnityIosNotificationManager shared] setActionReceivedHandler:^(NSString* notifId, NSString* actionId, NSString* userInfoJson) {
+        [Log d:TAG :[NSString stringWithFormat:@"[onActionReceived] notifId: %@, actionId: %@", notifId, actionId]];
+        if (s_actionReceivedCallback) {
+            s_actionReceivedCallback(notifId.UTF8String, actionId.UTF8String, userInfoJson.UTF8String);
+        }
+    }];
+}
+
+static NotificationTextInputActionCallback s_textInputActionReceivedCallback = NULL;
+
+void setNotificationTextInputActionReceivedCallback(NotificationTextInputActionCallback callback) {
+    [Log d:TAG :[NSString stringWithFormat:@"[setNotificationTextInputActionReceivedCallback]"]];
+    s_textInputActionReceivedCallback = callback;
+    [[UnityIosNotificationManager shared] setTextInputActionReceivedHandler:^(NSString* notifId, NSString* actionId, NSString* userText, NSString* userInfoJson) {
+        [Log d:TAG :[NSString stringWithFormat:@"[onTextInputActionReceived] notifId: %@, actionId: %@, userText: %@", notifId, actionId, userText]];
+        if (s_textInputActionReceivedCallback) {
+            s_textInputActionReceivedCallback(notifId.UTF8String, actionId.UTF8String, userText.UTF8String, userInfoJson.UTF8String);
+        }
+    }];
+}

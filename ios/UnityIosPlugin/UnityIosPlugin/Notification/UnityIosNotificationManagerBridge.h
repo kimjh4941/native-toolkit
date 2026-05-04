@@ -33,6 +33,25 @@ typedef void (*NotificationJsonCallback)(const char* json);
 /// - Parameter status: One of: "authorized", "denied", "notDetermined", "provisional", "ephemeral", "unknown".
 typedef void (*NotificationStatusCallback)(const char* status);
 
+/// Callback that returns a boolean value.
+/// - Parameter value: The boolean result.
+typedef void (*NotificationBoolCallback)(bool value);
+
+/// Persistent callback invoked when a notification action button is tapped.
+/// - Parameters:
+///   - notificationId: The identifier of the notification.
+///   - actionId: The identifier of the tapped action.
+///   - userInfoJson: JSON object string containing custom notification data.
+typedef void (*NotificationActionCallback)(const char* notificationId, const char* actionId, const char* userInfoJson);
+
+/// Persistent callback invoked when a text input notification action is submitted.
+/// - Parameters:
+///   - notificationId: The identifier of the notification.
+///   - actionId: The identifier of the tapped action.
+///   - userText: The text entered by the user.
+///   - userInfoJson: JSON object string containing custom notification data.
+typedef void (*NotificationTextInputActionCallback)(const char* notificationId, const char* actionId, const char* userText, const char* userInfoJson);
+
 /// Registers IosNotificationManager as UNUserNotificationCenterDelegate. Call once at app launch.
 void notificationSetup(void);
 
@@ -96,6 +115,17 @@ void registerNotificationCategory(const char* categoryJson, NotificationCallback
 /// Removes a registered notification category.
 /// - Parameter identifier: The identifier of the category to remove.
 void removeNotificationCategory(const char* identifier);
+
+/// Returns whether the app currently has notification permission.
+void hasNotificationPermission(NotificationBoolCallback callback);
+
+/// Registers a persistent callback invoked when a notification action button is tapped.
+/// Pass NULL to unregister. The callback is called on the main thread.
+void setNotificationActionReceivedCallback(NotificationActionCallback callback);
+
+/// Registers a persistent callback invoked when a text input notification action is submitted.
+/// Pass NULL to unregister. The callback is called on the main thread.
+void setNotificationTextInputActionReceivedCallback(NotificationTextInputActionCallback callback);
 
 #ifdef __cplusplus
 }

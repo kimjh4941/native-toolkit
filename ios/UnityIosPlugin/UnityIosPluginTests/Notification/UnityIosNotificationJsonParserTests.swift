@@ -354,4 +354,61 @@ struct UnityIosNotificationJsonParserTests {
         let json = #"{"identifier":"cat1"}"#
         #expect(parser.parseCategory(from: json)?.options.isEmpty == true)
     }
+
+    // MARK: - parseContent: attachments
+
+    @Test func parseContentWithAttachments() {
+        let json = #"""
+        {
+            "id": "n1",
+            "title": "T",
+            "attachments": [
+                {"identifier": "img-1", "fileURL": "file:///tmp/image.png"},
+                {"identifier": "img-2", "fileURL": "file:///tmp/image2.jpg"}
+            ]
+        }
+        """#
+        let result = parser.parseContent(from: json)
+        #expect(result?.attachments.count == 2)
+        #expect(result?.attachments[0].identifier == "img-1")
+        #expect(result?.attachments[0].fileURL == URL(string: "file:///tmp/image.png"))
+        #expect(result?.attachments[1].identifier == "img-2")
+    }
+
+    @Test func parseContentAttachmentMissingIdentifierIsSkipped() {
+        let json = #"""
+        {
+            "id": "n1",
+            "title": "T",
+            "attachments": [
+                {"fileURL": "file:///tmp/image.png"},
+                {"identifier": "img-2", "fileURL": "file:///tmp/image2.jpg"}
+            ]
+        }
+        """#
+        let result = parser.parseContent(from: json)
+        #expect(result?.attachments.count == 1)
+        #expect(result?.attachments[0].identifier == "img-2")
+    }
+
+    @Test func parseContentAttachmentMissingFileURLIsSkipped() {
+        let json = #"""
+        {
+            "id": "n1",
+            "title": "T",
+            "attachments": [
+                {"identifier": "img-1"},
+                {"identifier": "img-2", "fileURL": "file:///tmp/image2.jpg"}
+            ]
+        }
+        """#
+        let result = parser.parseContent(from: json)
+        #expect(result?.attachments.count == 1)
+        #expect(result?.attachments[0].identifier == "img-2")
+    }
+
+    @Test func parseContentNoAttachmentsIsEmpty() {
+        let json = #"{"id":"n1","title":"T"}"#
+        #expect(parser.parseContent(from: json)?.attachments.isEmpty == true)
+    }
 }
