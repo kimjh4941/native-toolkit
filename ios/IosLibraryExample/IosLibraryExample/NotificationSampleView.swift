@@ -115,6 +115,30 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+
+                        Button("ShowLocation(Tokyo Station, onEntry)") {
+                            requirePermission {
+                                let content = makeContent(id: notificationId, title: "Location Notification", body: "You arrived at Tokyo Station")
+                                IosNotificationManager.shared.show(
+                                    content: content,
+                                    trigger: .location(
+                                        identifier: "tokyo-station",
+                                        latitude: 35.6812,
+                                        longitude: 139.7671,
+                                        radius: 100,
+                                        notifyOnEntry: true,
+                                        notifyOnExit: false
+                                    )
+                                ) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: isSuccess
+                                            ? "[showLocation] Registered. Notification will fire when entering Tokyo Station (radius: 100m)."
+                                            : "[showLocation] error: \(errorMessage ?? "nil")"
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     sectionView(title: "Update / Cancel / Remove") {
@@ -200,6 +224,31 @@ struct NotificationSampleView: View {
                                     self.updateResult(
                                         isSuccess: isSuccess,
                                         result: "[scheduleCalendar] id: \(self.scheduledId), error: \(errorMessage ?? "nil")"
+                                    )
+                                }
+                            }
+                        }
+
+                        Button("ScheduleLocation(Tokyo Station, onEntry)") {
+                            requirePermission {
+                                let content = makeContent(id: scheduledId, title: "Scheduled Location", body: "You arrived at Tokyo Station")
+                                IosNotificationManager.shared.schedule(
+                                    content: content,
+                                    trigger: .location(
+                                        identifier: "tokyo-station",
+                                        latitude: 35.6812,
+                                        longitude: 139.7671,
+                                        radius: 100,
+                                        notifyOnEntry: true,
+                                        notifyOnExit: false
+                                    ),
+                                    identifier: scheduledId
+                                ) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: isSuccess
+                                            ? "[scheduleLocation] Registered. Notification will fire when entering Tokyo Station (radius: 100m)."
+                                            : "[scheduleLocation] error: \(errorMessage ?? "nil")"
                                     )
                                 }
                             }

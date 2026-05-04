@@ -93,6 +93,10 @@ void setNotificationBadgeCount(int count, NotificationCallback callback);
 /// Registers a notification category from a JSON string.
 void registerNotificationCategory(const char* categoryJson, NotificationCallback callback);
 
+/// Removes a registered notification category.
+/// - Parameter identifier: The identifier of the category to remove.
+void removeNotificationCategory(const char* identifier);
+
 #ifdef __cplusplus
 }
 #endif

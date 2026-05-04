@@ -194,4 +194,10 @@ public class UnityIosNotificationManager: NSObject {
         IosNotificationManager.shared.registerCategory(category)
         completion?(true, nil)
     }
+
+    /// Removes a registered notification category.
+    public func removeCategory(identifier: String) {
+        Log.d(TAG, "[removeCategory] identifier: \(identifier)")
+        IosNotificationManager.shared.removeCategory(identifier: identifier)
+    }
 }

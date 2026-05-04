@@ -163,3 +163,9 @@ void registerNotificationCategory(const char* categoryJson, NotificationCallback
         }
     }];
 }
+
+void removeNotificationCategory(const char* identifier) {
+    [Log d:TAG :[NSString stringWithFormat:@"[removeNotificationCategory] identifier: %s", identifier]];
+    NSString* nsIdentifier = [NSString stringWithUTF8String:identifier];
+    [[UnityIosNotificationManager shared] removeCategoryWithIdentifier:nsIdentifier];
+}
