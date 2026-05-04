@@ -31,10 +31,17 @@ struct NotificationSampleView: View {
                     sectionView(title: "Permission") {
                         Button("RequestPermission") {
                             IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[requestPermission] error: \(errorMessage ?? "nil")"
-                                )
+                                if isSuccess {
+                                    self.updateResult(
+                                        isSuccess: true,
+                                        result: "[requestPermission] granted"
+                                    )
+                                } else {
+                                    self.updateResult(
+                                        isSuccess: false,
+                                        result: "[requestPermission] denied. Permission dialog will not appear again. Please enable notifications in Settings."
+                                    )
+                                }
                             }
                         }
 
@@ -67,59 +74,67 @@ struct NotificationSampleView: View {
 
                     sectionView(title: "Show") {
                         Button("ShowImmediate") {
-                            let content = makeContent(id: notificationId, title: "Immediate Notification", body: "Displayed now")
-                            IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[showImmediate] error: \(errorMessage ?? "nil")"
-                                )
+                            requirePermission {
+                                let content = makeContent(id: notificationId, title: "Immediate Notification", body: "Displayed now")
+                                IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[showImmediate] error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
 
                         Button("ShowTimeInterval(5s)") {
-                            let content = makeContent(id: notificationId, title: "5s Notification", body: "Will be shown after 5 seconds")
-                            IosNotificationManager.shared.show(
-                                content: content,
-                                trigger: .timeInterval(5.0, repeats: false)
-                            ) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[showTimeInterval] error: \(errorMessage ?? "nil")"
-                                )
+                            requirePermission {
+                                let content = makeContent(id: notificationId, title: "5s Notification", body: "Will be shown after 5 seconds")
+                                IosNotificationManager.shared.show(
+                                    content: content,
+                                    trigger: .timeInterval(5.0, repeats: false)
+                                ) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[showTimeInterval] error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
 
                         Button("ShowCalendar(+1m)") {
-                            let content = makeContent(id: notificationId, title: "Calendar Notification", body: "Will be shown in one minute")
-                            let components = calendarComponents(afterMinutes: 1)
-                            IosNotificationManager.shared.show(
-                                content: content,
-                                trigger: .calendar(components, repeats: false)
-                            ) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[showCalendar] error: \(errorMessage ?? "nil")"
-                                )
+                            requirePermission {
+                                let content = makeContent(id: notificationId, title: "Calendar Notification", body: "Will be shown in one minute")
+                                let components = calendarComponents(afterMinutes: 1)
+                                IosNotificationManager.shared.show(
+                                    content: content,
+                                    trigger: .calendar(components, repeats: false)
+                                ) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[showCalendar] error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
                     }
 
                     sectionView(title: "Update / Cancel / Remove") {
                         Button("UpdateById") {
-                            let content = makeContent(
-                                id: notificationId,
-                                title: "Updated Notification",
-                                body: "This content was updated"
-                            )
-                            IosNotificationManager.shared.update(
-                                identifier: notificationId,
-                                content: content,
-                                trigger: nil
-                            ) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[update] id: \(self.notificationId), error: \(errorMessage ?? "nil")"
+                            requirePermission {
+                                let content = makeContent(
+                                    id: notificationId,
+                                    title: "Updated Notification",
+                                    body: "This content was updated"
                                 )
+                                IosNotificationManager.shared.update(
+                                    identifier: notificationId,
+                                    content: content,
+                                    trigger: nil
+                                ) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[update] id: \(self.notificationId), error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
 
@@ -158,31 +173,35 @@ struct NotificationSampleView: View {
 
                     sectionView(title: "Schedule") {
                         Button("ScheduleTimeInterval(10s)") {
-                            let content = makeContent(id: scheduledId, title: "Scheduled Notification", body: "Scheduled in 10 seconds")
-                            IosNotificationManager.shared.schedule(
-                                content: content,
-                                trigger: .timeInterval(10.0, repeats: false),
-                                identifier: scheduledId
-                            ) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[scheduleTimeInterval] id: \(self.scheduledId), error: \(errorMessage ?? "nil")"
-                                )
+                            requirePermission {
+                                let content = makeContent(id: scheduledId, title: "Scheduled Notification", body: "Scheduled in 10 seconds")
+                                IosNotificationManager.shared.schedule(
+                                    content: content,
+                                    trigger: .timeInterval(10.0, repeats: false),
+                                    identifier: scheduledId
+                                ) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[scheduleTimeInterval] id: \(self.scheduledId), error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
 
                         Button("ScheduleCalendar(+1m)") {
-                            let content = makeContent(id: scheduledId, title: "Scheduled Calendar", body: "Scheduled by calendar")
-                            let components = calendarComponents(afterMinutes: 1)
-                            IosNotificationManager.shared.schedule(
-                                content: content,
-                                trigger: .calendar(components, repeats: false),
-                                identifier: scheduledId
-                            ) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[scheduleCalendar] id: \(self.scheduledId), error: \(errorMessage ?? "nil")"
-                                )
+                            requirePermission {
+                                let content = makeContent(id: scheduledId, title: "Scheduled Calendar", body: "Scheduled by calendar")
+                                let components = calendarComponents(afterMinutes: 1)
+                                IosNotificationManager.shared.schedule(
+                                    content: content,
+                                    trigger: .calendar(components, repeats: false),
+                                    identifier: scheduledId
+                                ) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[scheduleCalendar] id: \(self.scheduledId), error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
 
@@ -227,20 +246,24 @@ struct NotificationSampleView: View {
 
                     sectionView(title: "Badge") {
                         Button("SetBadgeCount(1)") {
-                            IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[setBadgeCount] 1, error: \(errorMessage ?? "nil")"
-                                )
+                            requirePermission {
+                                IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[setBadgeCount] 1, error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
 
                         Button("SetBadgeCount(0)") {
-                            IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
-                                self.updateResult(
-                                    isSuccess: isSuccess,
-                                    result: "[setBadgeCount] 0, error: \(errorMessage ?? "nil")"
-                                )
+                            requirePermission {
+                                IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[setBadgeCount] 0, error: \(errorMessage ?? "nil")"
+                                    )
+                                }
                             }
                         }
                     }
@@ -274,7 +297,7 @@ struct NotificationSampleView: View {
                             IosNotificationManager.shared.registerCategory(category)
                             self.updateResult(
                                 isSuccess: true,
-                                result: "[registerCategory] id: \(categoryId)"
+                                result: "[registerCategory] Registered. Send a notification and long-press to see the actions (Open, Delete, Reply)."
                             )
                         }
 
@@ -319,6 +342,19 @@ struct NotificationSampleView: View {
     private func calendarComponents(afterMinutes minutes: Int) -> DateComponents {
         let nextDate = Calendar.current.date(byAdding: .minute, value: minutes, to: Date()) ?? Date()
         return Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: nextDate)
+    }
+
+    private func requirePermission(_ action: @escaping () -> Void) {
+        IosNotificationManager.shared.hasPermission { hasPermission in
+            if hasPermission {
+                action()
+            } else {
+                self.updateResult(
+                    isSuccess: false,
+                    result: "Notification permission is not granted. Please request permission first."
+                )
+            }
+        }
     }
 
     private func updateResult(isSuccess: Bool, result: String?) {

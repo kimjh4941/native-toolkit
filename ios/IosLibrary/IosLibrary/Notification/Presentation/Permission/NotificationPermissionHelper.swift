@@ -23,11 +23,11 @@ public final class NotificationPermissionHelper {
 
     /// Requests authorization to display notifications.
     ///
-    /// - Parameter options: The authorization options to request (default: alert, sound, badge).
+    /// - Parameter options: The authorization options to request (default: alert, sound, badge, app notification settings).
     /// - Returns: `true` if the user granted permission.
     /// - Throws: `NotificationError.permissionDenied` if permission was denied,
     ///           or `NotificationError.unknown` for other failures.
-    public func requestPermission(options: UNAuthorizationOptions = [.alert, .sound, .badge]) async throws -> Bool {
+    public func requestPermission(options: UNAuthorizationOptions = [.alert, .sound, .badge, .providesAppNotificationSettings]) async throws -> Bool {
         Log.d(TAG, "[requestPermission] options: \(options)")
         let granted = try await repository.requestPermission(options: options)
         if !granted {

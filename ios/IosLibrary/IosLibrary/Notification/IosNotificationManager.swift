@@ -76,7 +76,7 @@ public final class IosNotificationManager: NSObject {
     private let permissionHelper: NotificationPermissionHelper
 
     /// Presentation options for foreground notifications.
-    public var foregroundPresentationOptions: UNNotificationPresentationOptions = [.banner, .sound, .badge]
+    public var foregroundPresentationOptions: UNNotificationPresentationOptions = [.banner, .list, .sound, .badge]
 
     /// Called when a notification action button is tapped.
     public var onActionReceived: NotificationActionHandler?
