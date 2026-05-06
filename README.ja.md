@@ -20,10 +20,10 @@
 2. 組み込み手順は `docs/<version>/manual/index.ja.md` を参照。
 3. API 仕様は `docs/<version>/`（または `docs/latest/`）の各プラットフォーム資料を参照。
 
-例（`1.1.0`）:
+例（`1.2.0`）:
 
-- マニュアル: `docs/1.1.0/manual/index.ja.md`
-- 公開ドキュメント: `docs/1.1.0/manual/`
+- マニュアル: `docs/1.2.0/manual/index.ja.md`
+- 公開ドキュメント: `docs/1.2.0/manual/`
 
 ## 詳細ドキュメント
 
@@ -33,26 +33,26 @@
 
 ## バージョン
 
-- 現在のリリース: 1.1.0
+- 現在のリリース: 1.2.0
 - 最新公開ドキュメントのバージョン: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 対応 OS（1.1.0）
+## 対応 OS（1.2.0）
 
 - Android 12 以降
 - iOS 18 以降
 - Windows 11 以降
 - macOS 15 以降
 
-## 配布物（1.1.0）
+## 配布物（1.2.0）
 
-- Android: `dist/1.1.0/android/android-native-toolkit-1.1.0.aar`
+- Android: `dist/1.2.0/android/android-native-toolkit-1.1.0.aar`
 - iOS:
-  - `dist/1.1.0/ios/ios-native-toolkit-1.1.0.xcframework`
-  - `dist/1.1.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.2.0/ios/ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.2.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
 - macOS:
-  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
-  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
-- Windows: `dist/1.1.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
+  - `dist/1.2.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
+  - `dist/1.2.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
+- Windows: `dist/1.2.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
 
 ## 収録モジュール（概要）
 
@@ -142,14 +142,14 @@ docs/
 
 ```bash
 # Android AAR（全モジュール）
-./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
+./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.2.0
 
 # iOS XCFramework（全モジュール）
-./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.2.0
 
 # macOS XCFramework（Xcode 16 / 26、全モジュール）
-./scripts/build_xcode16_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0
-./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
+./scripts/build_xcode16_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.2.0
+./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.2.0 --minimum-macos 15.0
 
 # Windows DLL / NuGet
 ./scripts/create_native_toolkit_dll.bat
@@ -190,13 +190,13 @@ doxygen Doxyfile
 `docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
 
 ```bash
-./scripts/publish_docs.sh 1.1.0
+./scripts/publish_docs.sh 1.2.0
 ```
 
 既存の生成物をコピーだけする場合:
 
 ```bash
-./scripts/publish_docs.sh 1.1.0 --skip-build
+./scripts/publish_docs.sh 1.2.0 --skip-build
 ```
 
 manual のコピー元は `manual/<version>/` です。

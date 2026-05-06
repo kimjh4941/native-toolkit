@@ -33,7 +33,7 @@ Markdown files in this directory are published as versioned documents under `doc
 # Artifact locations (`dist/<version>/`)
 
 - Android: `dist/<version>/android/android-native-toolkit-<version>.aar`
-- iOS: `dist/<version>/ios/NativeToolkit-<version>.xcframework`
+- iOS: `dist/<version>/ios/ios-native-toolkit-<version>.xcframework`
 - Windows: `dist/<version>/windows/nuget/NativeToolkit/NativeToolkit.<version>.nupkg`
 - macOS:
   - `dist/<version>/mac/NativeToolkit-<version>-xcode16.xcframework`
@@ -46,7 +46,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.1.0
+## 1.2.0
 
 # Supported OS versions
 
@@ -80,6 +80,13 @@ Markdown files in this directory are published as versioned documents under `doc
   - Action sheet
   - Text input dialog
   - Login dialog
+- Notification features
+  - Permission
+  - Show / update / cancel notifications
+  - Scheduled notifications
+  - Notifications with attachment
+  - Badge
+  - Categories and actions
 
 ## Windows
 
@@ -105,7 +112,6 @@ Markdown files in this directory are published as versioned documents under `doc
 
 - Share
 - Clipboard integration
-- Notifications (iOS)
 - Notifications (Windows)
 - Notifications (macOS)
 
@@ -201,11 +207,11 @@ dependencies {
 
 #### Supported platform: iOS (Device: arm64 / Simulator: arm64, x86_64)
 
-1. Copy `NativeToolkit-1.0.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
+1. Copy `ios-native-toolkit-1.1.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
 2. Open the target project in Xcode 26.2 and select your app target in **Project Navigator**.
 3. Open the **General** tab and click **+** in **Frameworks, Libraries, and Embedded Content**.
-4. Select **Add Other...** → **Add Files...** and add `Frameworks/NativeToolkit-1.0.0.xcframework`.
-5. Set the embed option of `NativeToolkit-1.0.0.xcframework` to **Embed & Sign**.
+4. Select **Add Other...** → **Add Files...** and add `Frameworks/ios-native-toolkit-1.1.0.xcframework`.
+5. Set the embed option of `ios-native-toolkit-1.1.0.xcframework` to **Embed & Sign**.
 6. Open **Build Settings** of the same target and add `$(PROJECT_DIR)/Frameworks` to `Framework Search Paths`. (Usually non-recursive)
 7. Verify that Team is correctly configured in **Signing & Capabilities**.
 8. Run **Product** → **Clean Build Folder**, then build and run with **Run**.

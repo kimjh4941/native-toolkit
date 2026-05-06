@@ -20,10 +20,10 @@
 2. 연동 절차는 `docs/<version>/manual/index.ko.md` 를 확인합니다.
 3. API 참조는 `docs/<version>/` 또는 `docs/latest/` 를 사용합니다.
 
-예시 (`1.1.0`):
+예시 (`1.2.0`):
 
-- 매뉴얼: `docs/1.1.0/manual/index.ko.md`
-- 배포 문서: `docs/1.1.0/manual/`
+- 매뉴얼: `docs/1.2.0/manual/index.ko.md`
+- 배포 문서: `docs/1.2.0/manual/`
 
 ## 상세 문서
 
@@ -33,26 +33,26 @@
 
 ## 버전
 
-- 현재 릴리스: 1.1.0
+- 현재 릴리스: 1.2.0
 - 최신 공개 문서 버전: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 지원 OS (1.1.0)
+## 지원 OS (1.2.0)
 
 - Android 12 이상
 - iOS 18 이상
 - Windows 11 이상
 - macOS 15 이상
 
-## 배포 산출물 (1.1.0)
+## 배포 산출물 (1.2.0)
 
-- Android: `dist/1.1.0/android/android-native-toolkit-1.1.0.aar`
+- Android: `dist/1.2.0/android/android-native-toolkit-1.1.0.aar`
 - iOS:
-  - `dist/1.1.0/ios/ios-native-toolkit-1.1.0.xcframework`
-  - `dist/1.1.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.2.0/ios/ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.2.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
 - macOS:
-  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
-  - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
-- Windows: `dist/1.1.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
+  - `dist/1.2.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
+  - `dist/1.2.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`
+- Windows: `dist/1.2.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
 
 ## 포함 모듈(개요)
 
@@ -142,14 +142,14 @@ docs/
 
 ```bash
 # Android AAR (전체 모듈)
-./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
+./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.2.0
 
 # iOS XCFramework (전체 모듈)
-./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.2.0
 
 # macOS XCFramework (Xcode 16 / 26, 전체 모듈)
-./scripts/build_xcode16_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0
-./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
+./scripts/build_xcode16_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.2.0
+./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.2.0 --minimum-macos 15.0
 
 # Windows DLL / NuGet
 ./scripts/create_native_toolkit_dll.bat
@@ -190,13 +190,13 @@ doxygen Doxyfile
 `docs/<version>/` 를 생성하고, `docs/latest/` 는 `docs/` 내 가장 높은 버전으로 갱신됩니다.
 
 ```bash
-./scripts/publish_docs.sh 1.1.0
+./scripts/publish_docs.sh 1.2.0
 ```
 
 생성 없이 복사만 할 경우:
 
 ```bash
-./scripts/publish_docs.sh 1.1.0 --skip-build
+./scripts/publish_docs.sh 1.2.0 --skip-build
 ```
 
 manual 복사 원본은 `manual/<version>/` 입니다.

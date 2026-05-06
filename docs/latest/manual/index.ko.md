@@ -33,7 +33,7 @@
 # 배포 산출물 위치 (`dist/<version>/`)
 
 - Android: `dist/<version>/android/android-native-toolkit-<version>.aar`
-- iOS: `dist/<version>/ios/NativeToolkit-<version>.xcframework`
+- iOS: `dist/<version>/ios/ios-native-toolkit-<version>.xcframework`
 - Windows: `dist/<version>/windows/nuget/NativeToolkit/NativeToolkit.<version>.nupkg`
 - macOS:
   - `dist/<version>/mac/NativeToolkit-<version>-xcode16.xcframework`
@@ -46,7 +46,7 @@
 
 # 버전
 
-## 1.1.0
+## 1.2.0
 
 # 지원 OS 버전
 
@@ -80,6 +80,13 @@
   - 액션 시트
   - 입력 다이얼로그
   - 로그인 다이얼로그
+- 알림 기능
+  - 권한
+  - 알림 표시 / 업데이트 / 취소
+  - 예약 알림
+  - 첨부 파일 포함 알림
+  - 배지
+  - 카테고리 및 액션
 
 ## Windows
 
@@ -105,7 +112,6 @@
 
 - 공유 기능
 - 클립보드 연동
-- 알림(iOS)
 - 알림(Windows)
 - 알림(macOS)
 
@@ -201,11 +207,11 @@ dependencies {
 
 #### 지원 플랫폼: iOS（실기기: arm64 / Simulator: arm64, x86_64）
 
-1. `NativeToolkit-1.0.0.xcframework`를 Xcode 프로젝트 하위 `Frameworks` 폴더(없으면 생성)에 복사합니다.
+1. `ios-native-toolkit-1.1.0.xcframework`를 Xcode 프로젝트 하위 `Frameworks` 폴더(없으면 생성)에 복사합니다.
 2. Xcode 26.2에서 프로젝트를 열고 **Project Navigator**에서 앱 타깃을 선택합니다.
 3. **General** 탭에서 **Frameworks, Libraries, and Embedded Content**의 **+**를 클릭합니다.
-4. **Add Other...** → **Add Files...**를 선택하고 `Frameworks/NativeToolkit-1.0.0.xcframework`를 추가합니다.
-5. `NativeToolkit-1.0.0.xcframework`의 Embed 설정을 **Embed & Sign**으로 지정합니다.
+4. **Add Other...** → **Add Files...**를 선택하고 `Frameworks/ios-native-toolkit-1.1.0.xcframework`를 추가합니다.
+5. `ios-native-toolkit-1.1.0.xcframework`의 Embed 설정을 **Embed & Sign**으로 지정합니다.
 6. 같은 타깃의 **Build Settings**에서 `Framework Search Paths`에 `$(PROJECT_DIR)/Frameworks`를 추가합니다. (일반적으로 non-recursive)
 7. **Signing & Capabilities**에서 Team 설정이 올바른지 확인합니다.
 8. **Product** → **Clean Build Folder**를 실행한 뒤 **Run**으로 빌드/실행합니다.
