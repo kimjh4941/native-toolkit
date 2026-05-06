@@ -84,6 +84,22 @@ struct NotificationSampleView: View {
                             }
                         }
 
+                        Button("ShowImmediateWithAttachment(AppIcon)") {
+                            requirePermission {
+                                let content = makeContentWithAppIconAttachment(
+                                    id: notificationId,
+                                    title: "Immediate Notification with Attachment",
+                                    body: "Displayed with app icon attachment"
+                                )
+                                IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+                                    self.updateResult(
+                                        isSuccess: isSuccess,
+                                        result: "[showImmediateWithAttachment] error: \(errorMessage ?? "nil")"
+                                    )
+                                }
+                            }
+                        }
+
                         Button("ShowTimeInterval(5s)") {
                             requirePermission {
                                 let content = makeContent(id: notificationId, title: "5s Notification", body: "Will be shown after 5 seconds")
@@ -384,6 +400,32 @@ struct NotificationSampleView: View {
             body: body,
             categoryIdentifier: categoryId,
             userInfo: ["source": "IosLibraryExample", "id": id]
+        )
+    }
+
+    private func makeContentWithAppIconAttachment(id: String, title: String, body: String) -> NotificationContent {
+        let base = makeContent(id: id, title: title, body: body)
+
+        guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else {
+            return base
+        }
+
+        let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
+        return NotificationContent(
+            id: base.id,
+            title: base.title,
+            subtitle: base.subtitle,
+            body: base.body,
+            badge: base.badge,
+            sound: base.sound,
+            categoryIdentifier: base.categoryIdentifier,
+            interruptionLevel: base.interruptionLevel,
+            threadIdentifier: base.threadIdentifier,
+            targetContentIdentifier: base.targetContentIdentifier,
+            relevanceScore: base.relevanceScore,
+            filterCriteria: base.filterCriteria,
+            userInfo: base.userInfo,
+            attachments: [attachment]
         )
     }
 
