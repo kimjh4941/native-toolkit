@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>android_library</title>
+    <link href="images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="scripts/sourceset_dependencies.js" async="async"></script>
+<link href="styles/style.css" rel="Stylesheet">
+<link href="styles/main.css" rel="Stylesheet">
+<link href="styles/prism.css" rel="Stylesheet">
+<link href="styles/logo-styles.css" rel="Stylesheet">
+<link href="styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="ui-kit/ui-kit.min.js" defer="defer"></script>
+<script type="text/javascript" src="scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+            <a class="library-name--link" href="index.html">
+                    android_library
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.1.0        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active=""
+                        data-filter=":android_library:dokkaHtml/main">androidJvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":android_library:dokkaHtml/main"
+                                       data-filter=":android_library:dokkaHtml/main"/>
+                                <span class="checkbox--icon"></span>
+                                androidJvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                        data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    android_library
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" id="content" pageIds="android_library::////PointingToDeclaration//-761267287">
+  <div class="breadcrumbs"></div>
+  <div class="cover ">
+    <h1 class="cover"><span>android_</span><wbr></wbr><span>library</span></h1>
+    <div class="platform-hinted UnderCoverText" data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><p class="paragraph">Core Android UI / system helper module providing both a versatile <code class="lang-kotlin">AndroidDialogFragment</code> and a comprehensive notification toolkit used directly or through higher-level Unity bridge modules.</p><h2 class="">Notification Architecture</h2><p class="paragraph">The notification module follows a clean layered structure:</p><ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.domain.model</code></p></li><ul><li><p class="paragraph">Pure notification models split by responsibility:</p></li><ul><li><p class="paragraph"><code class="lang-kotlin">NotificationChannel.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationProgress.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationMessage.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationStyle.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationContent.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationSchedule.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">ActiveNotification.kt</code></p></li></ul></ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.application.model</code></p></li><ul><li><p class="paragraph">Android-facing command types such as <code class="lang-kotlin">AndroidNotificationCommand</code></p></li></ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.application.port</code></p></li><ul><li><p class="paragraph"><code class="lang-kotlin">NotificationCommandRepository.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">AndroidNotificationRuntimeRepository.kt</code></p></li></ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.application.usecase</code></p></li><ul><li><p class="paragraph"><code class="lang-kotlin">NotificationDispatchUseCases.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationChannelUseCases.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationScheduleUseCases.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationQueryUseCases.kt</code></p></li><li><p class="paragraph"><code class="lang-kotlin">ForegroundNotificationUseCases.kt</code></p></li></ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.data.repository</code></p></li><ul><li><p class="paragraph">Android-specific implementations and payload mapping</p></li></ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.permission</code></p></li><ul><li><p class="paragraph">UI permission helper for Android 13+</p></li></ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.call</code></p></li><ul><li><p class="paragraph">CallStyle foreground-service helpers and notification builders</p></li></ul><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.progress</code></p></li><ul><li><p class="paragraph">Optional <code class="lang-kotlin">dataSync</code> foreground-service helpers for long-running progress notifications</p></li></ul></ul><h3 class="">Legacy status</h3><p class="paragraph">Legacy notification files have been physically removed. The notification module now exposes only the new <code class="lang-kotlin">domain.model</code>, <code class="lang-kotlin">application.*</code>, <code class="lang-kotlin">presentation.permission</code>, <code class="lang-kotlin">presentation.call</code>, and <code class="lang-kotlin">data.repository.NotificationRepositoryImpl</code> APIs.</p><h2 class="">Notification Toolkit</h2><p class="paragraph">The module includes support for:</p><ul><li><p class="paragraph">Android 13+ notification permission check / request helper</p></li><li><p class="paragraph">Notification channel create / batch create / delete</p></li><li><p class="paragraph">Immediate notification send / update / cancel / cancel all</p></li><li><p class="paragraph">Group notifications and group summary notifications</p></li><li><p class="paragraph">Action buttons and content / delete / full-screen intents</p></li><li><p class="paragraph">Styles: default, big text, inbox, big picture, messaging</p></li><li><p class="paragraph">CallStyle foreground-service flows for incoming / ongoing / screening notifications</p></li><li><p class="paragraph">Progress notifications</p></li><li><p class="paragraph">Optional <code class="lang-kotlin">dataSync</code> foreground-service progress flows for start / update / complete / stop</p></li><li><p class="paragraph">Foreground notification start / update / stop</p></li><li><p class="paragraph">Scheduled notifications via <code class="lang-kotlin">AlarmManager</code></p></li><li><p class="paragraph">Re-scheduling persisted notifications after reboot / package replace</p></li><li><p class="paragraph">Active notification inspection</p></li></ul><h3 class="">Main entry points</h3><ul><li><p class="paragraph"><code class="lang-kotlin">NotificationRepositoryImpl</code></p></li><li><p class="paragraph"><code class="lang-kotlin">AndroidNotificationCommand</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationContent</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationChannel</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationProgress</code></p></li><li><p class="paragraph"><code class="lang-kotlin">NotificationSchedule</code></p></li><li><p class="paragraph"><code class="lang-kotlin">ShowNotificationUseCase</code></p></li><li><p class="paragraph"><code class="lang-kotlin">CreateNotificationChannelUseCase</code></p></li><li><p class="paragraph"><code class="lang-kotlin">ScheduleNotificationUseCase</code></p></li><li><p class="paragraph"><code class="lang-kotlin">StartForegroundNotificationUseCase</code></p></li><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.permission.NotificationPermissionHelper</code></p></li><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.call.CallStyleType</code></p></li><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.call.CallStyleNotificationFactory</code></p></li><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.call.CallStyleForegroundService</code></p></li><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.progress.ProgressForegroundNotifications</code></p></li><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.progress.ProgressForegroundServiceIntents</code></p></li><li><p class="paragraph"><code class="lang-kotlin">android.library.notification.presentation.progress.ProgressForegroundService</code></p></li></ul><h3 class="">Notification quick example</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val repository = NotificationRepositoryImpl(context)<br><br>CreateNotificationChannelUseCase(repository)(<br>    NotificationChannel(<br>        id = &quot;updates&quot;,<br>        name = &quot;Updates&quot;,<br>        description = &quot;General update notifications&quot;<br>    )<br>)<br><br>ShowNotificationUseCase(repository)(<br>    AndroidNotificationCommand(<br>        content = NotificationContent(<br>            id = 1001,<br>            title = &quot;Native Toolkit&quot;,<br>            message = &quot;Notification system is ready.&quot;,<br>            channel = NotificationChannel(<br>                id = &quot;updates&quot;,<br>                name = &quot;Updates&quot;<br>            ),<br>            style = NotificationStyle.BigText(<br>                bigText = &quot;Native Toolkit notification system is ready and supports rich styles.&quot;,<br>                summaryText = &quot;Ready&quot;<br>            )<br>        )<br>    )<br>)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Progress example</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">ShowNotificationUseCase(repository)(<br>    AndroidNotificationCommand(<br>        content = NotificationContent(<br>            id = 1100,<br>            title = &quot;Native Toolkit Download&quot;,<br>            message = &quot;Downloading sample asset... 45%&quot;,<br>            channel = NotificationChannel(<br>                id = &quot;updates&quot;,<br>                name = &quot;Updates&quot;<br>            ),<br>            ongoing = true,<br>            autoCancel = false,<br>            progress = NotificationProgress(<br>                max = 100,<br>                current = 45,<br>                indeterminate = false<br>            )<br>        )<br>    )<br>)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Optional dataSync foreground-service progress example</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">val progressCommand = AndroidNotificationCommand(<br>    content = NotificationContent(<br>        id = 2100,<br>        title = &quot;Native Toolkit Background Sync&quot;,<br>        message = &quot;Syncing assets... 25%&quot;,<br>        channel = NotificationChannel(<br>            id = &quot;progress_fgs&quot;,<br>            name = &quot;Progress FGS&quot;<br>        ),<br>        ongoing = true,<br>        autoCancel = false,<br>        progress = NotificationProgress(<br>            max = 100,<br>            current = 25,<br>            indeterminate = false<br>        )<br>    )<br>)<br><br>ProgressForegroundNotifications.start(context, progressCommand)<br>ProgressForegroundNotifications.update(<br>    context,<br>    progressCommand.copy(<br>        content = progressCommand.content.copy(<br>            message = &quot;Syncing assets... 75%&quot;,<br>            progress = NotificationProgress(max = 100, current = 75, indeterminate = false)<br>        )<br>    )<br>)<br>ProgressForegroundNotifications.complete(<br>    context,<br>    progressCommand.copy(<br>        content = progressCommand.content.copy(<br>            message = &quot;Background sync completed&quot;,<br>            ongoing = false,<br>            autoCancel = true,<br>            progress = NotificationProgress(max = 100, current = 100, indeterminate = false)<br>        )<br>    )<br>)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Notes:</p><ul><li><p class="paragraph">This API is optional. Use normal progress notifications first unless the work truly must continue in the background.</p></li><li><p class="paragraph">The progress FGS uses <code class="lang-kotlin">foregroundServiceType=&quot;dataSync&quot;</code>.</p></li><li><p class="paragraph"><code class="lang-kotlin">complete(...)</code> is designed to detach the foreground service and replace the same notification id with a normal notification.</p></li></ul><h3 class="">Scheduling example</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">ScheduleNotificationUseCase(repository)(<br>    command = AndroidNotificationCommand(<br>        content = NotificationContent(<br>            id = 2001,<br>            title = &quot;Scheduled&quot;,<br>            message = &quot;This was scheduled in advance.&quot;,<br>            channel = NotificationChannel(<br>                id = &quot;updates&quot;,<br>                name = &quot;Updates&quot;<br>            )<br>        )<br>    ),<br>    schedule = NotificationSchedule(<br>        triggerAtMillis = System.currentTimeMillis() + 60_000L,<br>        exact = true,<br>        allowWhileIdle = true,<br>        persistAcrossBoot = true<br>    )<br>)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Manifest integration notes</h3><ul><li><p class="paragraph"><code class="lang-kotlin">POST_NOTIFICATIONS</code> is declared for Android 13+</p></li><li><p class="paragraph"><code class="lang-kotlin">RECEIVE_BOOT_COMPLETED</code> is declared for restoring persisted schedules</p></li><li><p class="paragraph"><code class="lang-kotlin">SCHEDULE_EXACT_ALARM</code> is declared for exact scheduling support</p></li><li><p class="paragraph">Internal broadcast receivers are declared for scheduled delivery and reboot restore</p></li></ul><h2 class="">Dialog Toolkit</h2><p class="paragraph">Core versatile dialog implementation providing a multi-pattern <code class="lang-kotlin">AndroidDialogFragment</code>, used directly or through higher‑level Unity bridge modules.</p><h2 class="">Overview</h2><p class="paragraph"><code class="lang-kotlin">AndroidDialogFragment</code> is a single class that can render six dialog variants via multiple <code class="lang-kotlin">newInstance</code> factory overloads. After creation you attach the appropriate listener interface for the desired variant.</p><h2 class="">Supported Variants</h2><ol><li><p class="paragraph">Simple: single OK button</p></li><li><p class="paragraph">Confirm: Negative / Positive (e.g. No / Yes)</p></li><li><p class="paragraph">Single Choice: radio list + OK / Cancel</p></li><li><p class="paragraph">Multi Choice: checkbox list + OK / Cancel</p></li><li><p class="paragraph">Text Input: single line input (optional empty gating)</p></li><li><p class="paragraph">Login: username + password fields (optional empty gating on both)</p></li></ol><h2 class="">Key Features</h2><ul><li><p class="paragraph">Dedicated factory overload for each variant: <code class="lang-kotlin">newInstance(...)</code></p></li><li><p class="paragraph">Unified AlertDialog-based implementation for list / input / confirmation patterns</p></li><li><p class="paragraph">Dynamic positive button enable/disable for TextInput / Login (when <code class="lang-kotlin">enablePositiveButtonWhenEmpty = false</code>)</p></li><li><p class="paragraph">Control outside-tap and back-press cancellation (<code class="lang-kotlin">cancelableOnTouchOutside</code>, <code class="lang-kotlin">cancelable</code>)</p></li><li><p class="paragraph">Separate listener interfaces (callback skipped if not set):</p></li><ul><li><p class="paragraph"><code class="lang-kotlin">DialogListener</code> (Simple)</p></li><li><p class="paragraph"><code class="lang-kotlin">ConfirmDialogListener</code></p></li><li><p class="paragraph"><code class="lang-kotlin">SingleChoiceItemDialogListener</code></p></li><li><p class="paragraph"><code class="lang-kotlin">MultiChoiceItemDialogListener</code></p></li><li><p class="paragraph"><code class="lang-kotlin">TextInputDialogListener</code></p></li><li><p class="paragraph"><code class="lang-kotlin">LoginDialogListener</code></p></li></ul><li><p class="paragraph">Cancellation still invokes the corresponding listener with a &quot;Cancel&quot; style buttonText and empty / default payload</p></li><li><p class="paragraph">All construction parameters persisted in a Bundle to survive configuration changes (e.g. rotation)</p></li></ul><h2 class="">Factory Summary</h2><p class="paragraph">(All are overloads of <code class="lang-kotlin">AndroidDialogFragment.newInstance(...)</code>)</p><ul><li><p class="paragraph">Simple<br> <code class="lang-kotlin">(title, message, buttonText = &quot;OK&quot;, cancelableOnTouchOutside = true, cancelable = true)</code></p></li><li><p class="paragraph">Confirm<br> <code class="lang-kotlin">(title, message, negativeButtonText = &quot;No&quot;, positiveButtonText = &quot;Yes&quot;, cancelableOnTouchOutside = true, cancelable = true)</code></p></li><li><p class="paragraph">Single Choice<br> <code class="lang-kotlin">(title, singleChoiceItems: Array&lt;String&gt;, checkedItem = 0, negativeButtonText = &quot;Cancel&quot;, positiveButtonText = &quot;OK&quot;, cancelableOnTouchOutside = true, cancelable = true)</code></p></li><li><p class="paragraph">Multi Choice<br> <code class="lang-kotlin">(title, multiChoiceItems: Array&lt;String&gt;, checkedItems: BooleanArray, negativeButtonText = &quot;Cancel&quot;, positiveButtonText = &quot;OK&quot;, cancelableOnTouchOutside = true, cancelable = true)</code></p></li><li><p class="paragraph">Text Input<br> <code class="lang-kotlin">(title, message, hint, negativeButtonText = &quot;Cancel&quot;, positiveButtonText = &quot;OK&quot;, enablePositiveButtonWhenEmpty = false, cancelableOnTouchOutside = true, cancelable = true)</code></p></li><li><p class="paragraph">Login<br> <code class="lang-kotlin">(title, message, usernameHint, passwordHint, negativeButtonText = &quot;Cancel&quot;, positiveButtonText = &quot;OK&quot;, enablePositiveButtonWhenEmpty = false, cancelableOnTouchOutside = true, cancelable = true)</code></p></li></ul><h2 class="">Listener Interfaces</h2><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">interface DialogListener {<br>    fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface ConfirmDialogListener {<br>    fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface SingleChoiceItemDialogListener {<br>    fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface MultiChoiceItemDialogListener {<br>    fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface TextInputDialogListener {<br>    fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?)<br>}<br>interface LoginDialogListener {<br>    fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?)<br>}</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Notes:</p><ul><li><p class="paragraph">Selection / input payloads are only populated when the positive button is pressed; on cancel they may be null / empty.</p></li><li><p class="paragraph"><code class="lang-kotlin">isSuccessful</code> is reserved for internal error reporting (current implementation usually returns <code class="lang-kotlin">true</code> on normal paths).</p></li></ul><h2 class="">Usage Examples</h2><h3 class="">Simple</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">AndroidDialogFragment.newInstance(<br>    title = &quot;Notice&quot;,<br>    message = &quot;Operation completed&quot;<br>).apply {<br>    setDialogListener(object : AndroidDialogFragment.DialogListener {<br>        override fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {<br>            // OK or Cancel<br>        }<br>    })<br>}.show(supportFragmentManager, &quot;SimpleDialog&quot;)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Confirm</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">AndroidDialogFragment.newInstance(<br>    title = &quot;Delete&quot;,<br>    message = &quot;Are you sure?&quot;,<br>    negativeButtonText = &quot;No&quot;,<br>    positiveButtonText = &quot;Yes&quot;<br>).apply {<br>    setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {<br>        override fun onConfirmDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?) {<br>            if (buttonText == &quot;Yes&quot;) {<br>                println(&quot;proceed with delete flow&quot;)<br>            }<br>        }<br>    })<br>}.show(supportFragmentManager, &quot;ConfirmDialog&quot;)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Single Choice</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">AndroidDialogFragment.newInstance(<br>    title = &quot;Color&quot;,<br>    singleChoiceItems = arrayOf(&quot;Red&quot;,&quot;Green&quot;,&quot;Blue&quot;),<br>    checkedItem = 0<br>).apply {<br>    setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {<br>        override fun onSingleChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItem: Int?, isSuccessful: Boolean, errorMessage: String?) {<br>            if (buttonText == &quot;OK&quot; &amp;&amp; checkedItem != null) {<br>                println(&quot;selected index=$checkedItem&quot;)<br>            }<br>        }<br>    })<br>}.show(supportFragmentManager, &quot;SingleChoiceDialog&quot;)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Multi Choice</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">AndroidDialogFragment.newInstance(<br>    title = &quot;Tags&quot;,<br>    multiChoiceItems = arrayOf(&quot;A&quot;,&quot;B&quot;,&quot;C&quot;),<br>    checkedItems = booleanArrayOf(false, true, false)<br>).apply {<br>    setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {<br>        override fun onMultiChoiceItemDialog(dialog: AndroidDialogFragment, buttonText: String?, checkedItems: BooleanArray?, isSuccessful: Boolean, errorMessage: String?) {<br>            if (buttonText == &quot;OK&quot; &amp;&amp; checkedItems != null) {<br>                println(&quot;selected count=${checkedItems.count { it }}&quot;)<br>            }<br>        }<br>    })<br>}.show(supportFragmentManager, &quot;MultiChoiceDialog&quot;)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Text Input</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">AndroidDialogFragment.newInstance(<br>    title = &quot;Input&quot;,<br>    message = &quot;Enter name&quot;,<br>    hint = &quot;Name&quot;,<br>    enablePositiveButtonWhenEmpty = false<br>).apply {<br>    setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {<br>        override fun onTextInputDialog(dialog: AndroidDialogFragment, buttonText: String?, inputText: String?, isSuccessful: Boolean, errorMessage: String?) {<br>            if (buttonText == &quot;OK&quot; &amp;&amp; !inputText.isNullOrEmpty()) {<br>                println(&quot;input=$inputText&quot;)<br>            }<br>        }<br>    })<br>}.show(supportFragmentManager, &quot;TextInputDialog&quot;)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h3 class="">Login</h3><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">AndroidDialogFragment.newInstance(<br>    title = &quot;Sign In&quot;,<br>    message = &quot;Enter credentials&quot;,<br>    usernameHint = &quot;Username&quot;,<br>    passwordHint = &quot;Password&quot;<br>).apply {<br>    setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {<br>        override fun onLoginDialog(dialog: AndroidDialogFragment, buttonText: String?, username: String?, password: String?, isSuccessful: Boolean, errorMessage: String?) {<br>            if (buttonText == &quot;OK&quot;) {<br>                println(&quot;authenticate user=$username&quot;)<br>            }<br>        }<br>    })<br>}.show(supportFragmentManager, &quot;LoginDialog&quot;)</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><h2 class="">Cancellation Behavior</h2><ul><li><p class="paragraph">Back press or (if allowed) outside tap triggers <code class="lang-kotlin">onCancel</code>, which then invokes the corresponding listener with a &quot;Cancel&quot; style buttonText.</p></li><li><p class="paragraph">Single / Multi choice dialogs pass the last tracked selection state (index or boolean array) even on cancel.</p></li></ul><h2 class="">Threading</h2><p class="paragraph">Must be invoked on the Android main (UI) thread. The <code class="lang-kotlin">show</code> call on the FragmentManager should not be dispatched from a background thread.</p><h2 class="">Error Handling</h2><p class="paragraph">Currently throws when fundamental preconditions fail (e.g. Activity is null). Future enhancements could convert such failures into callbacks with <code class="lang-kotlin">isSuccessful = false</code>.</p><h2 class="">Integration Notes</h2><ul><li><p class="paragraph">A JNI / Unity bridge can map each listener to managed callbacks, dispatching by variant.</p></li><li><p class="paragraph">Positive button enablement for TextInput / Login is driven by <code class="lang-kotlin">enablePositiveButtonWhenEmpty</code> plus a TextWatcher updating state in real time.</p></li></ul><h2 class="">Dokka</h2><div class="sample-container"><pre><code class="block lang-kotlin" theme="idea">./gradlew :android_library:clean :android_library:dokkaHtml</code></pre><span class="top-right-position"><span class="copy-icon"></span><div class="copy-popup-wrapper popup-to-left"><span class="copy-popup-icon"></span><span>Content copied to clipboard</span></div></span></div><p class="paragraph">Output: <code class="lang-kotlin">android_library/build/dokka/html</code></p></div></div>
+  </div>
+  <h2 class="">Packages</h2>
+  <div class="table"><a data-name="1767882652%2FPackages%2F-761267287" anchor-label="android.library.dialog" id="1767882652%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.dialog/index.html">android.library.dialog</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1767882652%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-2056628225%2FPackages%2F-761267287" anchor-label="android.library.notification" id="-2056628225%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification/index.html">android.library.notification</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2056628225%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1205681380%2FPackages%2F-761267287" anchor-label="android.library.notification.application.model" id="-1205681380%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.application.model/index.html">android.library.notification.application.model</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1205681380%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="995660722%2FPackages%2F-761267287" anchor-label="android.library.notification.application.port" id="995660722%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.application.port/index.html">android.library.notification.application.port</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="995660722%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1405257578%2FPackages%2F-761267287" anchor-label="android.library.notification.application.usecase" id="1405257578%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.application.usecase/index.html">android.library.notification.application.usecase</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1405257578%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-925732833%2FPackages%2F-761267287" anchor-label="android.library.notification.data.repository" id="-925732833%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.data.repository/index.html">android.library.notification.data.repository</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-925732833%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-555178158%2FPackages%2F-761267287" anchor-label="android.library.notification.domain.model" id="-555178158%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.domain.model/index.html">android.library.notification.domain.model</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-555178158%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-555854845%2FPackages%2F-761267287" anchor-label="android.library.notification.presentation.call" id="-555854845%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.presentation.call/index.html">android.library.notification.presentation.call</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-555854845%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="1517045236%2FPackages%2F-761267287" anchor-label="android.library.notification.presentation.permission" id="1517045236%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.presentation.permission/index.html">android.library.notification.presentation.permission</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1517045236%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+<a data-name="-1979085422%2FPackages%2F-761267287" anchor-label="android.library.notification.presentation.progress" id="-1979085422%2FPackages%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+    <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+      <div>
+        <div class="main-subrow ">
+          <div class=""><span class="inline-flex">
+              <div><a href="android_library/android.library.notification.presentation.progress/index.html">android.library.notification.presentation.progress</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1979085422%2FPackages%2F-761267287"></span>
+                <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+              </span></span></div>
+          <div class="pull-right">
+            <div class="platform-tags no-gutters">
+              <div class="platform-tag jvm-like">androidJvm</div>
+            </div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2026 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
