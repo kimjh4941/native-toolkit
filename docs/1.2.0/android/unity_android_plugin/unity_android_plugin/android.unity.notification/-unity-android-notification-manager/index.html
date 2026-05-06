@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>UnityAndroidNotificationManager</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+            <a class="library-name--link" href="../../../index.html">
+                    unity_android_plugin
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.1.0        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active=""
+                        data-filter=":unity_android_plugin:dokkaHtml/main">androidJvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":unity_android_plugin:dokkaHtml/main"
+                                       data-filter=":unity_android_plugin:dokkaHtml/main"/>
+                                <span class="checkbox--icon"></span>
+                                androidJvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                        data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    unity_android_plugin
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="unity_android_plugin::android.unity.notification/UnityAndroidNotificationManager///PointingToDeclaration//341128501">
+  <div class="breadcrumbs"><a href="../../../index.html">unity_android_plugin</a><span class="delimiter">/</span><a href="../index.html">android.unity.notification</a><span class="delimiter">/</span><span class="current">UnityAndroidNotificationManager</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Unity</span><wbr></wbr><span>Android</span><wbr></wbr><span>Notification</span><wbr></wbr><span><span>Manager</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">UnityAndroidNotificationManager</a></div><p class="paragraph">Unity-facing notification bridge for native-toolkit.</p><p class="paragraph">Initial release scope:</p><ul><li><p class="paragraph">Basic notifications (show / update / cancel)</p></li><li><p class="paragraph">Schedule notifications</p></li><li><p class="paragraph">Progress foreground service notifications</p></li><li><p class="paragraph">Permission / settings query helpers</p></li></ul><p class="paragraph">Complex Android-only notification features such as CallStyle, RemoteViews custom styles, inline reply, and fullScreenIntent are intentionally left to later Unity integration stages.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="1365061075%2FClasslikes%2F341128501" anchor-label="NotificationOperationListener" id="1365061075%2FClasslikes%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-notification-operation-listener/index.html"><span>Notification</span><wbr></wbr><span>Operation</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1365061075%2FClasslikes%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-notification-operation-listener/index.html">NotificationOperationListener</a></div><div class="brief "><p class="paragraph">Listener for notification operation results.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-1043623443%2FProperties%2F341128501" anchor-label="OPERATION_CANCEL_ALL_NOTIFICATIONS" id="-1043623443%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-a-l-l_-n-o-t-i-f-i-c-a-t-i-o-n-s.html"><span>OPERATION_</span><wbr></wbr><span>CANCEL_</span><wbr></wbr><span>ALL_</span><wbr></wbr><span><span>NOTIFICATIONS</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1043623443%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-a-l-l_-n-o-t-i-f-i-c-a-t-i-o-n-s.html">OPERATION_CANCEL_ALL_NOTIFICATIONS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1524295713%2FProperties%2F341128501" anchor-label="OPERATION_CANCEL_ALL_SCHEDULED_NOTIFICATIONS" id="-1524295713%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-a-l-l_-s-c-h-e-d-u-l-e-d_-n-o-t-i-f-i-c-a-t-i-o-n-s.html"><span>OPERATION_</span><wbr></wbr><span>CANCEL_</span><wbr></wbr><span>ALL_</span><wbr></wbr><span>SCHEDULED_</span><wbr></wbr><span><span>NOTIFICATIONS</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1524295713%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-a-l-l_-s-c-h-e-d-u-l-e-d_-n-o-t-i-f-i-c-a-t-i-o-n-s.html">OPERATION_CANCEL_ALL_SCHEDULED_NOTIFICATIONS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1663883128%2FProperties%2F341128501" anchor-label="OPERATION_CANCEL_NOTIFICATION" id="1663883128%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-n-o-t-i-f-i-c-a-t-i-o-n.html"><span>OPERATION_</span><wbr></wbr><span>CANCEL_</span><wbr></wbr><span><span>NOTIFICATION</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1663883128%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-n-o-t-i-f-i-c-a-t-i-o-n.html">OPERATION_CANCEL_NOTIFICATION</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1294314042%2FProperties%2F341128501" anchor-label="OPERATION_CANCEL_SCHEDULED_NOTIFICATION" id="-1294314042%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-s-c-h-e-d-u-l-e-d_-n-o-t-i-f-i-c-a-t-i-o-n.html"><span>OPERATION_</span><wbr></wbr><span>CANCEL_</span><wbr></wbr><span>SCHEDULED_</span><wbr></wbr><span><span>NOTIFICATION</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1294314042%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-s-c-h-e-d-u-l-e-d_-n-o-t-i-f-i-c-a-t-i-o-n.html">OPERATION_CANCEL_SCHEDULED_NOTIFICATION</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="909795725%2FProperties%2F341128501" anchor-label="OPERATION_COMPLETE_PROGRESS_FOREGROUND_SERVICE" id="909795725%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-c-o-m-p-l-e-t-e_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html"><span>OPERATION_</span><wbr></wbr><span>COMPLETE_</span><wbr></wbr><span>PROGRESS_</span><wbr></wbr><span>FOREGROUND_</span><wbr></wbr><span>SERVICE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="909795725%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-c-o-m-p-l-e-t-e_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html">OPERATION_COMPLETE_PROGRESS_FOREGROUND_SERVICE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="538053618%2FProperties%2F341128501" anchor-label="OPERATION_CREATE_CHANNEL" id="538053618%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-c-r-e-a-t-e_-c-h-a-n-n-e-l.html"><span>OPERATION_</span><wbr></wbr><span>CREATE_</span><wbr></wbr><span>CHANNEL</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="538053618%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-c-r-e-a-t-e_-c-h-a-n-n-e-l.html">OPERATION_CREATE_CHANNEL</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1383381283%2FProperties%2F341128501" anchor-label="OPERATION_DELETE_CHANNEL" id="1383381283%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-d-e-l-e-t-e_-c-h-a-n-n-e-l.html"><span>OPERATION_</span><wbr></wbr><span>DELETE_</span><wbr></wbr><span>CHANNEL</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1383381283%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-d-e-l-e-t-e_-c-h-a-n-n-e-l.html">OPERATION_DELETE_CHANNEL</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="761990197%2FProperties%2F341128501" anchor-label="OPERATION_OPEN_APP_DETAILS_SETTINGS" id="761990197%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-o-p-e-n_-a-p-p_-d-e-t-a-i-l-s_-s-e-t-t-i-n-g-s.html"><span>OPERATION_</span><wbr></wbr><span>OPEN_</span><wbr></wbr><span>APP_</span><wbr></wbr><span>DETAILS_</span><wbr></wbr><span>SETTINGS</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="761990197%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-o-p-e-n_-a-p-p_-d-e-t-a-i-l-s_-s-e-t-t-i-n-g-s.html">OPERATION_OPEN_APP_DETAILS_SETTINGS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="186242018%2FProperties%2F341128501" anchor-label="OPERATION_OPEN_EXACT_ALARM_SETTINGS" id="186242018%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-o-p-e-n_-e-x-a-c-t_-a-l-a-r-m_-s-e-t-t-i-n-g-s.html"><span>OPERATION_</span><wbr></wbr><span>OPEN_</span><wbr></wbr><span>EXACT_</span><wbr></wbr><span>ALARM_</span><wbr></wbr><span>SETTINGS</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="186242018%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-o-p-e-n_-e-x-a-c-t_-a-l-a-r-m_-s-e-t-t-i-n-g-s.html">OPERATION_OPEN_EXACT_ALARM_SETTINGS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1953011344%2FProperties%2F341128501" anchor-label="OPERATION_OPEN_NOTIFICATION_SETTINGS" id="1953011344%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-o-p-e-n_-n-o-t-i-f-i-c-a-t-i-o-n_-s-e-t-t-i-n-g-s.html"><span>OPERATION_</span><wbr></wbr><span>OPEN_</span><wbr></wbr><span>NOTIFICATION_</span><wbr></wbr><span>SETTINGS</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1953011344%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-o-p-e-n_-n-o-t-i-f-i-c-a-t-i-o-n_-s-e-t-t-i-n-g-s.html">OPERATION_OPEN_NOTIFICATION_SETTINGS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1875989269%2FProperties%2F341128501" anchor-label="OPERATION_SCHEDULE_NOTIFICATION" id="1875989269%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-c-h-e-d-u-l-e_-n-o-t-i-f-i-c-a-t-i-o-n.html"><span>OPERATION_</span><wbr></wbr><span>SCHEDULE_</span><wbr></wbr><span><span>NOTIFICATION</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1875989269%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-c-h-e-d-u-l-e_-n-o-t-i-f-i-c-a-t-i-o-n.html">OPERATION_SCHEDULE_NOTIFICATION</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-587553669%2FProperties%2F341128501" anchor-label="OPERATION_SHOW_NOTIFICATION" id="-587553669%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-h-o-w_-n-o-t-i-f-i-c-a-t-i-o-n.html"><span>OPERATION_</span><wbr></wbr><span>SHOW_</span><wbr></wbr><span><span>NOTIFICATION</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-587553669%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-h-o-w_-n-o-t-i-f-i-c-a-t-i-o-n.html">OPERATION_SHOW_NOTIFICATION</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="352021530%2FProperties%2F341128501" anchor-label="OPERATION_START_PROGRESS_FOREGROUND_SERVICE" id="352021530%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-t-a-r-t_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html"><span>OPERATION_</span><wbr></wbr><span>START_</span><wbr></wbr><span>PROGRESS_</span><wbr></wbr><span>FOREGROUND_</span><wbr></wbr><span>SERVICE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="352021530%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-t-a-r-t_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html">OPERATION_START_PROGRESS_FOREGROUND_SERVICE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1432321820%2FProperties%2F341128501" anchor-label="OPERATION_STOP_PROGRESS_FOREGROUND_SERVICE" id="-1432321820%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-t-o-p_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html"><span>OPERATION_</span><wbr></wbr><span>STOP_</span><wbr></wbr><span>PROGRESS_</span><wbr></wbr><span>FOREGROUND_</span><wbr></wbr><span>SERVICE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1432321820%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-t-o-p_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html">OPERATION_STOP_PROGRESS_FOREGROUND_SERVICE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1087918457%2FProperties%2F341128501" anchor-label="OPERATION_UPDATE_NOTIFICATION" id="-1087918457%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-u-p-d-a-t-e_-n-o-t-i-f-i-c-a-t-i-o-n.html"><span>OPERATION_</span><wbr></wbr><span>UPDATE_</span><wbr></wbr><span><span>NOTIFICATION</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1087918457%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-u-p-d-a-t-e_-n-o-t-i-f-i-c-a-t-i-o-n.html">OPERATION_UPDATE_NOTIFICATION</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1988702525%2FProperties%2F341128501" anchor-label="OPERATION_UPDATE_PROGRESS_FOREGROUND_SERVICE" id="1988702525%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-u-p-d-a-t-e_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html"><span>OPERATION_</span><wbr></wbr><span>UPDATE_</span><wbr></wbr><span>PROGRESS_</span><wbr></wbr><span>FOREGROUND_</span><wbr></wbr><span>SERVICE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1988702525%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-u-p-d-a-t-e_-p-r-o-g-r-e-s-s_-f-o-r-e-g-r-o-u-n-d_-s-e-r-v-i-c-e.html">OPERATION_UPDATE_PROGRESS_FOREGROUND_SERVICE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="1368061092%2FFunctions%2F341128501" anchor-label="areNotificationsEnabled" id="1368061092%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="are-notifications-enabled.html"><span>are</span><wbr></wbr><span>Notifications</span><wbr></wbr><span><span>Enabled</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1368061092%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="are-notifications-enabled.html"><span class="token function">areNotificationsEnabled</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Checks whether app notifications are enabled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-214497122%2FFunctions%2F341128501" anchor-label="cancelAllNotifications" id="-214497122%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cancel-all-notifications.html"><span>cancel</span><wbr></wbr><span>All</span><wbr></wbr><span><span>Notifications</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-214497122%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="cancel-all-notifications.html"><span class="token function">cancelAllNotifications</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Cancels all notifications.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1530585383%2FFunctions%2F341128501" anchor-label="cancelAllScheduledNotifications" id="-1530585383%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cancel-all-scheduled-notifications.html"><span>cancel</span><wbr></wbr><span>All</span><wbr></wbr><span>Scheduled</span><wbr></wbr><span><span>Notifications</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1530585383%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="cancel-all-scheduled-notifications.html"><span class="token function">cancelAllScheduledNotifications</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Cancels all scheduled notifications.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1532706717%2FFunctions%2F341128501" anchor-label="cancelNotification" id="-1532706717%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cancel-notification.html"><span>cancel</span><wbr></wbr><span><span>Notification</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1532706717%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="cancel-notification.html"><span class="token function">cancelNotification</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">id<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">tag<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Cancels a specific notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1927200182%2FFunctions%2F341128501" anchor-label="cancelScheduledNotification" id="1927200182%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cancel-scheduled-notification.html"><span>cancel</span><wbr></wbr><span>Scheduled</span><wbr></wbr><span><span>Notification</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1927200182%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="cancel-scheduled-notification.html"><span class="token function">cancelScheduledNotification</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">id<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">tag<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Cancels a specific scheduled notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="295722583%2FFunctions%2F341128501" anchor-label="canScheduleExactAlarms" id="295722583%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="can-schedule-exact-alarms.html"><span>can</span><wbr></wbr><span>Schedule</span><wbr></wbr><span>Exact</span><wbr></wbr><span><span>Alarms</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="295722583%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="can-schedule-exact-alarms.html"><span class="token function">canScheduleExactAlarms</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Checks whether exact alarms can be scheduled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1044896114%2FFunctions%2F341128501" anchor-label="clearNotificationActionListener" id="-1044896114%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="clear-notification-action-listener.html"><span>clear</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Action</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1044896114%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="clear-notification-action-listener.html"><span class="token function">clearNotificationActionListener</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Clears the notification action listener.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1940244071%2FFunctions%2F341128501" anchor-label="clearNotificationOperationListener" id="1940244071%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="clear-notification-operation-listener.html"><span>clear</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Operation</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1940244071%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="clear-notification-operation-listener.html"><span class="token function">clearNotificationOperationListener</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Clears the notification operation result listener.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1441054333%2FFunctions%2F341128501" anchor-label="clearNotificationShownListener" id="1441054333%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="clear-notification-shown-listener.html"><span>clear</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Shown</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1441054333%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="clear-notification-shown-listener.html"><span class="token function">clearNotificationShownListener</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Clears the notification shown listener.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-229578136%2FFunctions%2F341128501" anchor-label="completeProgressForegroundService" id="-229578136%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="complete-progress-foreground-service.html"><span>complete</span><wbr></wbr><span>Progress</span><wbr></wbr><span>Foreground</span><wbr></wbr><span><span>Service</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-229578136%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="complete-progress-foreground-service.html"><span class="token function">completeProgressForegroundService</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">notificationJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Completes progress flow, stops foreground mode, and shows completion notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="142177283%2FFunctions%2F341128501" anchor-label="createChannel" id="142177283%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="create-channel.html"><span>create</span><wbr></wbr><span><span>Channel</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="142177283%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="create-channel.html"><span class="token function">createChannel</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">channelJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Creates a notification channel.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1592335540%2FFunctions%2F341128501" anchor-label="deleteChannel" id="1592335540%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="delete-channel.html"><span>delete</span><wbr></wbr><span><span>Channel</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1592335540%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="delete-channel.html"><span class="token function">deleteChannel</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">channelId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Deletes a notification channel.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-87018715%2FFunctions%2F341128501" anchor-label="getInstance" id="-87018715%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-instance.html"><span>get</span><wbr></wbr><span><span>Instance</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-87018715%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-static/index.html"><span class="token annotation builtin">JvmStatic</span></a></div></div><span class="token keyword">fun </span><a href="get-instance.html"><span class="token function">getInstance</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">UnityAndroidNotificationManager</a></div><div class="brief "><p class="paragraph">Returns the singleton instance. Used for Unity JNI bridge calls.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="957337408%2FFunctions%2F341128501" anchor-label="hasPermission" id="957337408%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-permission.html"><span>has</span><wbr></wbr><span><span>Permission</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="957337408%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="has-permission.html"><span class="token function">hasPermission</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Checks whether notification permission is granted.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1202577616%2FFunctions%2F341128501" anchor-label="isNotificationScheduled" id="1202577616%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="is-notification-scheduled.html"><span>is</span><wbr></wbr><span>Notification</span><wbr></wbr><span><span>Scheduled</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1202577616%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="is-notification-scheduled.html"><span class="token function">isNotificationScheduled</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">id<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">tag<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Checks whether the specified notification ID is scheduled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1937240245%2FFunctions%2F341128501" anchor-label="openAppDetailsSettings" id="-1937240245%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="open-app-details-settings.html"><span>open</span><wbr></wbr><span>App</span><wbr></wbr><span>Details</span><wbr></wbr><span><span>Settings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1937240245%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="open-app-details-settings.html"><span class="token function">openAppDetailsSettings</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Opens app details settings.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1824454140%2FFunctions%2F341128501" anchor-label="openExactAlarmSettings" id="1824454140%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="open-exact-alarm-settings.html"><span>open</span><wbr></wbr><span>Exact</span><wbr></wbr><span>Alarm</span><wbr></wbr><span><span>Settings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1824454140%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="open-exact-alarm-settings.html"><span class="token function">openExactAlarmSettings</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Opens exact alarm settings.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1735541227%2FFunctions%2F341128501" anchor-label="openNotificationSettings" id="-1735541227%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="open-notification-settings.html"><span>open</span><wbr></wbr><span>Notification</span><wbr></wbr><span><span>Settings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1735541227%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="open-notification-settings.html"><span class="token function">openNotificationSettings</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Opens notification settings.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-357734460%2FFunctions%2F341128501" anchor-label="scheduleNotification" id="-357734460%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="schedule-notification.html"><span>schedule</span><wbr></wbr><span><span>Notification</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-357734460%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="schedule-notification.html"><span class="token function">scheduleNotification</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">scheduleJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Schedules a notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-893397583%2FFunctions%2F341128501" anchor-label="setNotificationActionListener" id="-893397583%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-notification-action-listener.html"><span>set</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Action</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-893397583%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-notification-action-listener.html"><span class="token function">setNotificationActionListener</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">listener<span class="token operator">: </span><a href="../-notification-action-receiver/-notification-action-listener/index.html">NotificationActionReceiver.NotificationActionListener</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Registers a notification action listener for button taps and dismiss events.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="618564509%2FFunctions%2F341128501" anchor-label="setNotificationOperationListener" id="618564509%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-notification-operation-listener.html"><span>set</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Operation</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="618564509%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-notification-operation-listener.html"><span class="token function">setNotificationOperationListener</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">listener<span class="token operator">: </span><a href="-notification-operation-listener/index.html">UnityAndroidNotificationManager.NotificationOperationListener</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Registers a notification operation result listener.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1790554218%2FFunctions%2F341128501" anchor-label="setNotificationShownListener" id="1790554218%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-notification-shown-listener.html"><span>set</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Shown</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1790554218%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-notification-shown-listener.html"><span class="token function">setNotificationShownListener</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">listener<span class="token operator">: </span><span data-unresolved-link="android.library.notification/NotificationShownSupport.NotificationShownListener///PointingToDeclaration/">NotificationShownSupport.NotificationShownListener</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Registers a notification shown listener.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-680420822%2FFunctions%2F341128501" anchor-label="showNotification" id="-680420822%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="show-notification.html"><span>show</span><wbr></wbr><span><span>Notification</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-680420822%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="show-notification.html"><span class="token function">showNotification</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">notificationJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Shows a notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1028305445%2FFunctions%2F341128501" anchor-label="startProgressForegroundService" id="1028305445%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="start-progress-foreground-service.html"><span>start</span><wbr></wbr><span>Progress</span><wbr></wbr><span>Foreground</span><wbr></wbr><span><span>Service</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1028305445%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="start-progress-foreground-service.html"><span class="token function">startProgressForegroundService</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">notificationJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Starts progress foreground service handling.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-502887270%2FFunctions%2F341128501" anchor-label="stopProgressForegroundService" id="-502887270%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="stop-progress-foreground-service.html"><span>stop</span><wbr></wbr><span>Progress</span><wbr></wbr><span>Foreground</span><wbr></wbr><span><span>Service</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-502887270%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="stop-progress-foreground-service.html"><span class="token function">stopProgressForegroundService</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Stops progress foreground service handling.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="443105334%2FFunctions%2F341128501" anchor-label="updateNotification" id="443105334%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="update-notification.html"><span>update</span><wbr></wbr><span><span>Notification</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="443105334%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="update-notification.html"><span class="token function">updateNotification</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">notificationJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Updates a notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2066989080%2FFunctions%2F341128501" anchor-label="updateProgressForegroundService" id="2066989080%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="update-progress-foreground-service.html"><span>update</span><wbr></wbr><span>Progress</span><wbr></wbr><span>Foreground</span><wbr></wbr><span><span>Service</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2066989080%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="update-progress-foreground-service.html"><span class="token function">updateProgressForegroundService</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">notificationJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Updates progress foreground notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2026 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
