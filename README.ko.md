@@ -46,7 +46,9 @@
 ## 배포 산출물 (1.1.0)
 
 - Android: `dist/1.1.0/android/android-native-toolkit-1.1.0.aar`
-- iOS: `dist/1.1.0/ios/NativeToolkit-1.0.0.xcframework`
+- iOS:
+  - `dist/1.1.0/ios/ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.1.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
 - macOS:
   - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode16.xcframework`
   - `dist/1.1.0/mac/NativeToolkit-1.0.0-xcode26.xcframework`

@@ -26,6 +26,31 @@
   - [フォアグラウンドサービス通知](#フォアグラウンドサービス通知)
   - [スケジュール通知](#スケジュール通知)
 - [iOS](#ios)
+  - [IosNotificationManager](#iosnotificationmanager)
+  - [セットアップ](#セットアップ-1)
+  - [パーミッション](#パーミッション-1)
+    - [通知権限をリクエストする](#通知権限をリクエストする)
+    - [権限の確認](#権限の確認)
+    - [認証ステータスの取得](#認証ステータスの取得)
+    - [通知設定を開く](#通知設定を開く)
+  - [通知の表示](#通知の表示-1)
+    - [即時表示](#即時表示)
+    - [添付ファイル付き即時表示](#添付ファイル付き即時表示)
+    - [時間間隔トリガー](#時間間隔トリガー)
+    - [カレンダートリガー](#カレンダートリガー)
+    - [位置情報トリガー](#位置情報トリガー)
+  - [添付ファイル](#添付ファイル)
+  - [通知の更新](#通知の更新)
+  - [通知のキャンセル / 削除](#通知のキャンセル--削除)
+  - [スケジュール通知](#スケジュール通知-1)
+    - [スケジュールのキャンセル](#スケジュールのキャンセル)
+  - [クエリ](#クエリ)
+  - [バッジ](#バッジ)
+  - [カテゴリとアクション](#カテゴリとアクション)
+    - [カテゴリの登録](#カテゴリの登録)
+    - [カテゴリを通知に紐づける](#カテゴリを通知に紐づける)
+    - [カテゴリの削除](#カテゴリの削除)
+    - [アクション受信コールバック](#アクション受信コールバック)
 - [Windows](#windows)
 - [macOS](#macos)
 
@@ -745,7 +770,348 @@ val isScheduled: Boolean = useCases.isScheduled(context, id = 1010)
 
 ## iOS
 
-（準備中）
+### IosNotificationManager
+
+`IosNotificationManager` は iOS ローカル通知のすべての操作を提供するシングルトンクラスです。
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
+</p>
+
+### セットアップ
+
+アプリ起動時（例: `AppDelegate.application(_:didFinishLaunchingWithOptions:)`）に `setup()` を一度だけ呼び出します。
+
+```swift
+import IosLibrary
+
+IosNotificationManager.setup()
+```
+
+### パーミッション
+
+#### 通知権限をリクエストする
+
+```swift
+IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
+    if isSuccess {
+        // 許可された
+    } else {
+        // 拒否された。設定アプリから手動で有効化が必要
+    }
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RequestPermission.png" alt="Example_IosNotificationManager_RequestPermission" width="400" />
+</p>
+
+#### 権限の確認
+
+```swift
+IosNotificationManager.shared.hasPermission { hasPermission in
+    print(hasPermission) // true / false
+}
+```
+
+#### 認証ステータスの取得
+
+```swift
+IosNotificationManager.shared.authorizationStatus { status in
+    // .notDetermined / .denied / .authorized / .provisional / .ephemeral / .unknown
+    print(status)
+}
+```
+
+#### 通知設定を開く
+
+```swift
+IosNotificationManager.shared.openNotificationSettings()
+```
+
+### 通知の表示
+
+`NotificationContent` を作成して `show()` を呼び出します。
+
+#### 即時表示
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Immediate Notification",
+    body: "Displayed now",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediate.png" alt="Example_IosNotificationManager_ShowImmediate" width="400" />
+</p>
+
+#### 添付ファイル付き即時表示
+
+Bundle に含めた画像ファイルを添付として通知を表示します。
+通知を長押し（展開表示）するとサムネイルが表示されます。
+
+```swift
+guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
+
+let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Immediate Notification with Attachment",
+    body: "Displayed with app icon attachment",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"],
+    attachments: [attachment]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediateWithAttachment.png" alt="Example_IosNotificationManager_ShowImmediateWithAttachment" width="400" />
+</p>
+
+#### 時間間隔トリガー
+
+```swift
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .timeInterval(5.0, repeats: false)
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### カレンダートリガー
+
+```swift
+var components = DateComponents()
+components.hour = 9
+components.minute = 0
+
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .calendar(components, repeats: true)
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### 位置情報トリガー
+
+位置情報通知は CoreLocation を使用します。`Info.plist` に位置情報の利用説明文を追加してください。
+
+```swift
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .location(
+        identifier: "tokyo-station",
+        latitude: 35.6812,
+        longitude: 139.7671,
+        radius: 100,
+        notifyOnEntry: true,
+        notifyOnExit: false
+    )
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### 添付ファイル
+
+`NotificationAttachment` を使って通知に画像・音声・動画を添付できます。
+通知を長押し（展開表示）するとサムネイルが表示されます。
+
+```swift
+guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
+
+let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "画像付き通知",
+    body: "展開して画像を確認してください",
+    attachments: [attachment]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### 通知の更新
+
+保留中の通知の内容やトリガーを更新します。
+
+```swift
+let updatedContent = NotificationContent(
+    id: "sample-notification",
+    title: "更新されたタイトル",
+    body: "内容が変わりました"
+)
+
+IosNotificationManager.shared.update(
+    identifier: "sample-notification",
+    content: updatedContent,
+    trigger: nil
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### 通知のキャンセル / 削除
+
+```swift
+// 特定の保留中通知をキャンセル
+IosNotificationManager.shared.cancel(identifier: "sample-notification")
+
+// 保留中通知をすべてキャンセル
+IosNotificationManager.shared.cancelAll()
+
+// 配信済み通知を通知センターから削除
+IosNotificationManager.shared.removeDelivered(identifier: "sample-notification")
+
+// 配信済み通知をすべて削除
+IosNotificationManager.shared.removeAllDelivered()
+```
+
+### スケジュール通知
+
+特定の ID で将来の通知をスケジュールします。
+
+```swift
+let content = NotificationContent(
+    id: "scheduled-notification",
+    title: "スケジュール通知",
+    body: "10 秒後に表示されます"
+)
+
+IosNotificationManager.shared.schedule(
+    content: content,
+    trigger: .timeInterval(10.0, repeats: false),
+    identifier: "scheduled-notification"
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### スケジュールのキャンセル
+
+```swift
+// 特定のスケジュールをキャンセル
+IosNotificationManager.shared.cancelScheduled(identifier: "scheduled-notification")
+
+// すべてのスケジュールをキャンセル
+IosNotificationManager.shared.cancelAllScheduled()
+```
+
+### クエリ
+
+```swift
+// 保留中（未配信）の通知リストを取得
+IosNotificationManager.shared.getScheduled { requests in
+    requests.forEach { print($0.identifier) }
+}
+
+// 配信済み通知リストを取得
+IosNotificationManager.shared.getDelivered { notifications in
+    notifications.forEach { print($0.identifier) }
+}
+```
+
+### バッジ
+
+```swift
+// バッジ数を設定（0 でクリア）
+IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+
+IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### カテゴリとアクション
+
+通知にアクションボタンやテキスト入力を追加します。
+
+#### カテゴリの登録
+
+```swift
+let category = NotificationCategory(
+    identifier: "sample-category",
+    actions: [
+        NotificationAction(
+            identifier: "open",
+            title: "開く",
+            options: [.foreground]
+        ),
+        NotificationAction(
+            identifier: "delete",
+            title: "削除",
+            options: [.destructive]
+        )
+    ],
+    textInputActions: [
+        TextInputNotificationAction(
+            identifier: "reply",
+            title: "返信",
+            buttonTitle: "送信",
+            textInputPlaceholder: "メッセージを入力"
+        )
+    ],
+    options: [.customDismissAction, .allowAnnouncement]
+)
+
+IosNotificationManager.shared.registerCategory(category)
+```
+
+#### カテゴリを通知に紐づける
+
+`NotificationContent` の `categoryIdentifier` にカテゴリ ID を指定します。
+通知を長押しするとアクションボタンが表示されます。
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "アクション付き通知",
+    body: "長押ししてアクションを確認",
+    categoryIdentifier: "sample-category"
+)
+```
+
+#### カテゴリの削除
+
+```swift
+IosNotificationManager.shared.removeCategory(identifier: "sample-category")
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
+</p>
+
+#### アクション受信コールバック
+
+```swift
+// アクションボタンのタップを受け取る
+IosNotificationManager.shared.onActionReceived = { notificationId, actionId, userInfo in
+    print("notification: \(notificationId), action: \(actionId)")
+}
+
+// テキスト入力アクションの送信を受け取る
+IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, userInfo in
+    print("notification: \(notificationId), action: \(actionId), text: \(userText)")
+}
+```
 
 ---
 

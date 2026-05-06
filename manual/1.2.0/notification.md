@@ -26,6 +26,31 @@ Language:
   - [Foreground Service Notifications](#foreground-service-notifications)
   - [Scheduled Notifications](#scheduled-notifications)
 - [iOS](#ios)
+  - [IosNotificationManager](#iosnotificationmanager)
+  - [Setup](#setup-1)
+  - [Permission](#permission-1)
+    - [Request Notification Permission](#request-notification-permission)
+    - [Check Permission](#check-permission)
+    - [Get Authorization Status](#get-authorization-status)
+    - [Open Notification Settings](#open-notification-settings)
+  - [Show Notification](#show-notification)
+    - [Immediate](#immediate)
+    - [Immediate with Attachment](#immediate-with-attachment)
+    - [Time Interval Trigger](#time-interval-trigger)
+    - [Calendar Trigger](#calendar-trigger)
+    - [Location Trigger](#location-trigger)
+  - [Attachment](#attachment)
+  - [Update Notification](#update-notification)
+  - [Cancel / Remove Notification](#cancel--remove-notification)
+  - [Scheduled Notifications](#scheduled-notifications-1)
+    - [Cancel Scheduled](#cancel-scheduled)
+  - [Query](#query)
+  - [Badge](#badge)
+  - [Categories and Actions](#categories-and-actions)
+    - [Register Category](#register-category)
+    - [Attach Category to Notification](#attach-category-to-notification)
+    - [Remove Category](#remove-category)
+    - [Action Received Callbacks](#action-received-callbacks)
 - [Windows](#windows)
 - [macOS](#macos)
 
@@ -745,7 +770,348 @@ val isScheduled: Boolean = useCases.isScheduled(context, id = 1010)
 
 ## iOS
 
-(Coming soon)
+### IosNotificationManager
+
+`IosNotificationManager` is a singleton class that provides all local notification operations on iOS.
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
+</p>
+
+### Setup
+
+Call `setup()` once at app launch (e.g. in `AppDelegate.application(_:didFinishLaunchingWithOptions:)`).
+
+```swift
+import IosLibrary
+
+IosNotificationManager.setup()
+```
+
+### Permission
+
+#### Request Notification Permission
+
+```swift
+IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
+    if isSuccess {
+        // Granted
+    } else {
+        // Denied. User must enable manually in Settings.
+    }
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RequestPermission.png" alt="Example_IosNotificationManager_RequestPermission" width="400" />
+</p>
+
+#### Check Permission
+
+```swift
+IosNotificationManager.shared.hasPermission { hasPermission in
+    print(hasPermission) // true / false
+}
+```
+
+#### Get Authorization Status
+
+```swift
+IosNotificationManager.shared.authorizationStatus { status in
+    // .notDetermined / .denied / .authorized / .provisional / .ephemeral / .unknown
+    print(status)
+}
+```
+
+#### Open Notification Settings
+
+```swift
+IosNotificationManager.shared.openNotificationSettings()
+```
+
+### Show Notification
+
+Create a `NotificationContent` and call `show()`.
+
+#### Immediate
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Immediate Notification",
+    body: "Displayed now",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediate.png" alt="Example_IosNotificationManager_ShowImmediate" width="400" />
+</p>
+
+#### Immediate with Attachment
+
+Show a notification with an image file bundled in the app.
+Expand the notification (long-press) to see the attachment thumbnail.
+
+```swift
+guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
+
+let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Immediate Notification with Attachment",
+    body: "Displayed with app icon attachment",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"],
+    attachments: [attachment]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediateWithAttachment.png" alt="Example_IosNotificationManager_ShowImmediateWithAttachment" width="400" />
+</p>
+
+#### Time Interval Trigger
+
+```swift
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .timeInterval(5.0, repeats: false)
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### Calendar Trigger
+
+```swift
+var components = DateComponents()
+components.hour = 9
+components.minute = 0
+
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .calendar(components, repeats: true)
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### Location Trigger
+
+Location notifications use CoreLocation. Add a location usage description to `Info.plist`.
+
+```swift
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .location(
+        identifier: "tokyo-station",
+        latitude: 35.6812,
+        longitude: 139.7671,
+        radius: 100,
+        notifyOnEntry: true,
+        notifyOnExit: false
+    )
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### Attachment
+
+Use `NotificationAttachment` to attach images, audio, or video to a notification.
+The attachment thumbnail is shown when the notification is expanded (long-press).
+
+```swift
+guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
+
+let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Notification with Image",
+    body: "Expand to see the image",
+    attachments: [attachment]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### Update Notification
+
+Update the content or trigger of a pending notification.
+
+```swift
+let updatedContent = NotificationContent(
+    id: "sample-notification",
+    title: "Updated Title",
+    body: "Content has changed"
+)
+
+IosNotificationManager.shared.update(
+    identifier: "sample-notification",
+    content: updatedContent,
+    trigger: nil
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### Cancel / Remove Notification
+
+```swift
+// Cancel a specific pending notification
+IosNotificationManager.shared.cancel(identifier: "sample-notification")
+
+// Cancel all pending notifications
+IosNotificationManager.shared.cancelAll()
+
+// Remove a specific delivered notification from Notification Center
+IosNotificationManager.shared.removeDelivered(identifier: "sample-notification")
+
+// Remove all delivered notifications from Notification Center
+IosNotificationManager.shared.removeAllDelivered()
+```
+
+### Scheduled Notifications
+
+Schedule a notification for future delivery with a specific identifier.
+
+```swift
+let content = NotificationContent(
+    id: "scheduled-notification",
+    title: "Scheduled Notification",
+    body: "Displayed after 10 seconds"
+)
+
+IosNotificationManager.shared.schedule(
+    content: content,
+    trigger: .timeInterval(10.0, repeats: false),
+    identifier: "scheduled-notification"
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### Cancel Scheduled
+
+```swift
+// Cancel a specific scheduled notification
+IosNotificationManager.shared.cancelScheduled(identifier: "scheduled-notification")
+
+// Cancel all scheduled notifications
+IosNotificationManager.shared.cancelAllScheduled()
+```
+
+### Query
+
+```swift
+// Get all pending (not yet delivered) notification requests
+IosNotificationManager.shared.getScheduled { requests in
+    requests.forEach { print($0.identifier) }
+}
+
+// Get all notifications visible in Notification Center
+IosNotificationManager.shared.getDelivered { notifications in
+    notifications.forEach { print($0.identifier) }
+}
+```
+
+### Badge
+
+```swift
+// Set badge count (use 0 to clear)
+IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+
+IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### Category and Actions
+
+Add action buttons or text input to notifications.
+
+#### Register Category
+
+```swift
+let category = NotificationCategory(
+    identifier: "sample-category",
+    actions: [
+        NotificationAction(
+            identifier: "open",
+            title: "Open",
+            options: [.foreground]
+        ),
+        NotificationAction(
+            identifier: "delete",
+            title: "Delete",
+            options: [.destructive]
+        )
+    ],
+    textInputActions: [
+        TextInputNotificationAction(
+            identifier: "reply",
+            title: "Reply",
+            buttonTitle: "Send",
+            textInputPlaceholder: "Type a message"
+        )
+    ],
+    options: [.customDismissAction, .allowAnnouncement]
+)
+
+IosNotificationManager.shared.registerCategory(category)
+```
+
+#### Attach Category to Notification
+
+Set the `categoryIdentifier` in `NotificationContent`.
+Long-press the notification to see the action buttons.
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Notification with Actions",
+    body: "Long-press to see actions",
+    categoryIdentifier: "sample-category"
+)
+```
+
+#### Remove Category
+
+```swift
+IosNotificationManager.shared.removeCategory(identifier: "sample-category")
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
+</p>
+
+#### Action Received Callbacks
+
+```swift
+// Receive action button taps
+IosNotificationManager.shared.onActionReceived = { notificationId, actionId, userInfo in
+    print("notification: \(notificationId), action: \(actionId)")
+}
+
+// Receive text input action submissions
+IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, userInfo in
+    print("notification: \(notificationId), action: \(actionId), text: \(userText)")
+}
+```
 
 ---
 

@@ -26,6 +26,31 @@
   - [포어그라운드 서비스 알림](#포어그라운드-서비스-알림)
   - [예약 알림](#예약-알림)
 - [iOS](#ios)
+  - [IosNotificationManager](#iosnotificationmanager)
+  - [설정](#설정-1)
+  - [권한](#권한-1)
+    - [알림 권한 요청](#알림-권한-요청)
+    - [권한 확인](#권한-확인)
+    - [인증 상태 가져오기](#인증-상태-가져오기)
+    - [알림 설정 열기](#알림-설정-열기)
+  - [알림 표시](#알림-표시)
+    - [즉시 표시](#즉시-표시)
+    - [첨부 파일 포함 즉시 표시](#첨부-파일-포함-즉시-표시)
+    - [시간 간격 트리거](#시간-간격-트리거)
+    - [캘린더 트리거](#캘린더-트리거)
+    - [위치 정보 트리거](#위치-정보-트리거)
+  - [첨부 파일](#첨부-파일)
+  - [알림 업데이트](#알림-업데이트)
+  - [알림 취소 / 삭제](#알림-취소--삭제)
+  - [예약 알림](#예약-알림-1)
+    - [예약 취소](#예약-취소)
+  - [조회](#조회)
+  - [배지](#배지)
+  - [카테고리와 액션](#카테고리와-액션)
+    - [카테고리 등록](#카테고리-등록)
+    - [카테고리를 알림에 연결](#카테고리를-알림에-연결)
+    - [카테고리 삭제](#카테고리-삭제)
+    - [액션 수신 콜백](#액션-수신-콜백)
 - [Windows](#windows)
 - [macOS](#macos)
 
@@ -745,7 +770,348 @@ val isScheduled: Boolean = useCases.isScheduled(context, id = 1010)
 
 ## iOS
 
-（준비 중）
+### IosNotificationManager
+
+`IosNotificationManager`는 iOS 로컬 알림의 모든 작업을 제공하는 싱글톤 클래스입니다.
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
+</p>
+
+### 설정
+
+앱 실행 시（예: `AppDelegate.application(_:didFinishLaunchingWithOptions:)`）에 `setup()`을 한 번 호출합니다.
+
+```swift
+import IosLibrary
+
+IosNotificationManager.setup()
+```
+
+### 권한
+
+#### 알림 권한 요청
+
+```swift
+IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
+    if isSuccess {
+        // 허용됨
+    } else {
+        // 거부됨. 설정에서 수동으로 활성화 필요
+    }
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RequestPermission.png" alt="Example_IosNotificationManager_RequestPermission" width="400" />
+</p>
+
+#### 권한 확인
+
+```swift
+IosNotificationManager.shared.hasPermission { hasPermission in
+    print(hasPermission) // true / false
+}
+```
+
+#### 인증 상태 가져오기
+
+```swift
+IosNotificationManager.shared.authorizationStatus { status in
+    // .notDetermined / .denied / .authorized / .provisional / .ephemeral / .unknown
+    print(status)
+}
+```
+
+#### 알림 설정 열기
+
+```swift
+IosNotificationManager.shared.openNotificationSettings()
+```
+
+### 알림 표시
+
+`NotificationContent`를 생성하고 `show()`를 호출합니다.
+
+#### 즉시 표시
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Immediate Notification",
+    body: "Displayed now",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediate.png" alt="Example_IosNotificationManager_ShowImmediate" width="400" />
+</p>
+
+#### 첨부 파일 포함 즉시 표시
+
+앱에 포함된 이미지 파일을 첨부하여 알림을 표시합니다.
+알림을 길게 누르면（확장 표시） 썸네일이 표시됩니다.
+
+```swift
+guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
+
+let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Immediate Notification with Attachment",
+    body: "Displayed with app icon attachment",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"],
+    attachments: [attachment]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediateWithAttachment.png" alt="Example_IosNotificationManager_ShowImmediateWithAttachment" width="400" />
+</p>
+
+#### 시간 간격 트리거
+
+```swift
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .timeInterval(5.0, repeats: false)
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### 캘린더 트리거
+
+```swift
+var components = DateComponents()
+components.hour = 9
+components.minute = 0
+
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .calendar(components, repeats: true)
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### 위치 정보 트리거
+
+위치 정보 알림은 CoreLocation을 사용합니다. `Info.plist`에 위치 정보 사용 설명을 추가하세요.
+
+```swift
+IosNotificationManager.shared.show(
+    content: content,
+    trigger: .location(
+        identifier: "tokyo-station",
+        latitude: 35.6812,
+        longitude: 139.7671,
+        radius: 100,
+        notifyOnEntry: true,
+        notifyOnExit: false
+    )
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### 첨부 파일
+
+`NotificationAttachment`를 사용하여 알림에 이미지, 오디오, 동영상을 첨부할 수 있습니다.
+알림을 길게 누르면（확장 표시） 썸네일이 표시됩니다.
+
+```swift
+guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
+
+let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "이미지가 있는 알림",
+    body: "확장하여 이미지를 확인하세요",
+    attachments: [attachment]
+)
+
+IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### 알림 업데이트
+
+보류 중인 알림의 내용이나 트리거를 업데이트합니다.
+
+```swift
+let updatedContent = NotificationContent(
+    id: "sample-notification",
+    title: "업데이트된 제목",
+    body: "내용이 변경되었습니다"
+)
+
+IosNotificationManager.shared.update(
+    identifier: "sample-notification",
+    content: updatedContent,
+    trigger: nil
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### 알림 취소 / 삭제
+
+```swift
+// 특정 보류 중인 알림 취소
+IosNotificationManager.shared.cancel(identifier: "sample-notification")
+
+// 보류 중인 알림 모두 취소
+IosNotificationManager.shared.cancelAll()
+
+// 알림 센터에서 특정 배달된 알림 삭제
+IosNotificationManager.shared.removeDelivered(identifier: "sample-notification")
+
+// 알림 센터에서 배달된 알림 모두 삭제
+IosNotificationManager.shared.removeAllDelivered()
+```
+
+### 예약 알림
+
+특정 ID로 미래 알림을 예약합니다.
+
+```swift
+let content = NotificationContent(
+    id: "scheduled-notification",
+    title: "예약 알림",
+    body: "10초 후에 표시됩니다"
+)
+
+IosNotificationManager.shared.schedule(
+    content: content,
+    trigger: .timeInterval(10.0, repeats: false),
+    identifier: "scheduled-notification"
+) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+#### 예약 취소
+
+```swift
+// 특정 예약 알림 취소
+IosNotificationManager.shared.cancelScheduled(identifier: "scheduled-notification")
+
+// 모든 예약 알림 취소
+IosNotificationManager.shared.cancelAllScheduled()
+```
+
+### 조회
+
+```swift
+// 보류 중인（미배달） 알림 목록 가져오기
+IosNotificationManager.shared.getScheduled { requests in
+    requests.forEach { print($0.identifier) }
+}
+
+// 배달된 알림 목록 가져오기
+IosNotificationManager.shared.getDelivered { notifications in
+    notifications.forEach { print($0.identifier) }
+}
+```
+
+### 배지
+
+```swift
+// 배지 수 설정（0으로 초기화）
+IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+
+IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
+    print(isSuccess, errorMessage ?? "")
+}
+```
+
+### 카테고리와 액션
+
+알림에 액션 버튼이나 텍스트 입력을 추가합니다.
+
+#### 카테고리 등록
+
+```swift
+let category = NotificationCategory(
+    identifier: "sample-category",
+    actions: [
+        NotificationAction(
+            identifier: "open",
+            title: "열기",
+            options: [.foreground]
+        ),
+        NotificationAction(
+            identifier: "delete",
+            title: "삭제",
+            options: [.destructive]
+        )
+    ],
+    textInputActions: [
+        TextInputNotificationAction(
+            identifier: "reply",
+            title: "답장",
+            buttonTitle: "보내기",
+            textInputPlaceholder: "메시지를 입력하세요"
+        )
+    ],
+    options: [.customDismissAction, .allowAnnouncement]
+)
+
+IosNotificationManager.shared.registerCategory(category)
+```
+
+#### 카테고리를 알림에 연결
+
+`NotificationContent`의 `categoryIdentifier`에 카테고리 ID를 지정합니다.
+알림을 길게 누르면 액션 버튼이 표시됩니다.
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "액션이 있는 알림",
+    body: "길게 눌러 액션을 확인하세요",
+    categoryIdentifier: "sample-category"
+)
+```
+
+#### 카테고리 삭제
+
+```swift
+IosNotificationManager.shared.removeCategory(identifier: "sample-category")
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
+</p>
+
+#### 액션 수신 콜백
+
+```swift
+// 액션 버튼 탭을 수신
+IosNotificationManager.shared.onActionReceived = { notificationId, actionId, userInfo in
+    print("notification: \(notificationId), action: \(actionId)")
+}
+
+// 텍스트 입력 액션 제출을 수신
+IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, userInfo in
+    print("notification: \(notificationId), action: \(actionId), text: \(userText)")
+}
+```
 
 ---
 

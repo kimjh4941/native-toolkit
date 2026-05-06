@@ -398,7 +398,7 @@ IosDialogManager.shared.showAlert(
 ```
 
 <p align="center">
-    <img src="images/ios/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
 </p>
 
 #### ShowConfirmDialog - Confirmation dialog
@@ -436,7 +436,7 @@ IosDialogManager.shared.showConfirmDialog(
 ```
 
 <p align="center">
-    <img src="images/ios/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
 </p>
 
 #### ShowDestructiveDialog - Destructive dialog
@@ -474,7 +474,7 @@ IosDialogManager.shared.showDestructiveDialog(
 ```
 
 <p align="center">
-    <img src="images/ios/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
 </p>
 
 #### ShowActionSheet - Action sheet
@@ -513,7 +513,7 @@ if let rootVC = IosDialogManager.shared.getRootViewController() {
 ```
 
 <p align="center">
-    <img src="images/ios/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
 </p>
 
 #### ShowTextInputDialog - Text input dialog
@@ -557,7 +557,7 @@ IosDialogManager.shared.showTextInputDialog(
 ```
 
 <p align="center">
-    <img src="images/ios/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
 </p>
 
 #### ShowLoginDialog - Login dialog
@@ -603,7 +603,7 @@ IosDialogManager.shared.showLoginDialog(
 ```
 
 <p align="center">
-    <img src="images/ios/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
 </p>
 
 ---
