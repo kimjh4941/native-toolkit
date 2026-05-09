@@ -6,190 +6,61 @@
 //
 
 import SwiftUI
-import MacLibrary
 
 struct ContentView: View {
-    
-    private let TAG = "ContentView"
-    @State private var resultText = "Result will be displayed here"
-    
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("MacDialogManager Example")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .padding()
-                
-                Text(resultText)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-                    .multilineTextAlignment(.center)
-                
-                Button(action: {
-                    let title = "Hello from macOS"
-                    let message = "This is a native macOS dialog!"
-                    
-                    let buttons = [
-                        DialogButton(title: "OK", isDefault: true),
-                        DialogButton(title: "Cancel", keyEquivalent: "\u{1b}"),
-                        DialogButton(title: "Delete", keyEquivalent: "d")
-                    ]
-                    
-                    let options = DialogOptions(
-                        alertStyle: .informational,
-                        buttons: buttons,
-                        showsHelp: true,
-                        showsSuppressionButton: true,
-                        suppressionButtonTitle: "Don't show this again",
-                        icon: IconConfiguration(
-                            type: .systemSymbol,
-                            value: "info.square.fill",
-                            renderingMode: .palette,
-                            colors: ["white", "systemblue", "systemblue"],
-                            size: 64,
-                            weight: .regular,
-                            scale: .medium
-                        ),
-                        accessoryView: nil
-                    )
-                    
-                    MacDialogManager.shared.showDialog(
-                        title: title,
-                        message: message,
-                        options: options
-                    ) { result in
-                        switch result {
-                        case .success(let dialogResult):
-                            Log.d(TAG, "[ShowDialog] success: \(dialogResult)")
-                            updateResult(isSuccess: true, result: "ShowDialog - result: \(dialogResult)")
-                        case .failure(let error):
-                            Log.e(TAG, "[ShowDialog] error: \(error)")
-                            updateResult(isSuccess: false, result: "ShowDialog - error: \(error.localizedDescription)")
-                        }
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("Native Toolkit macOS Example")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .padding(.top, 8)
+
+                    NavigationLink {
+                        DialogSampleView()
+                    } label: {
+                        menuCard(
+                            title: "Dialog Example",
+                            subtitle: "Show native macOS dialogs"
+                        )
                     }
-                }) {
-                    Text("ShowDialog")
-                        .buttonStyle()
-                }
-                
-                Button(action: {
-                    MacDialogManager.shared.showFileDialog(
-                        title: "Select a file",
-                        message: "Please select a file to open.",
-                        allowedContentTypes: ["txt", "png"],
-                        directoryURL: nil
-                    ) { result in
-                        switch result {
-                        case .success(let openResult):
-                            Log.d(TAG, "[ShowFileDialog] success: \(openResult)")
-                            updateResult(isSuccess: true, result: "ShowFileDialog - result: \(openResult)")
-                        case .failure(let error):
-                            Log.e(TAG, "[ShowFileDialog] error: \(error)")
-                            updateResult(isSuccess: false, result: "ShowFileDialog - error: \(error.localizedDescription)")
-                        }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        NotificationSampleView()
+                    } label: {
+                        menuCard(
+                            title: "Notification Example",
+                            subtitle: "Test local notification features"
+                        )
                     }
-                }) {
-                    Text("ShowFileDialog")
-                        .buttonStyle()
+                    .buttonStyle(.plain)
+
+                    Spacer(minLength: 0)
                 }
-                
-                Button(action: {
-                    MacDialogManager.shared.showMultiFileDialog(
-                        title: "Select files",
-                        message: "Please select files to open.",
-                        allowedContentTypes: ["txt", "png"],
-                        directoryURL: nil
-                    ) { result in
-                        switch result {
-                        case .success(let openResult):
-                            Log.d(TAG, "[ShowMultiFileDialog] success: \(openResult)")
-                            updateResult(isSuccess: true, result: "ShowMultiFileDialog - result: \(openResult)")
-                        case .failure(let error):
-                            Log.e(TAG, "[ShowMultiFileDialog] error: \(error)")
-                            updateResult(isSuccess: false, result: "ShowMultiFileDialog - error: \(error.localizedDescription)")
-                        }
-                    }
-                }) {
-                    Text("ShowMultiFileDialog")
-                        .buttonStyle()
-                }
-                
-                Button(action: {
-                    MacDialogManager.shared.showFolderDialog(
-                        title: "Select a folder",
-                        message: "Please select a folder to open.",
-                        directoryURL: nil
-                    ) { result in
-                        switch result {
-                        case .success(let openResult):
-                            Log.d(TAG, "[ShowFolderDialog] success: \(openResult)")
-                            updateResult(isSuccess: true, result: "ShowFolderDialog - result: \(openResult)")
-                        case .failure(let error):
-                            Log.e(TAG, "[ShowFolderDialog] error: \(error)")
-                            updateResult(isSuccess: false, result: "ShowFolderDialog - error: \(error.localizedDescription)")
-                        }
-                    }
-                }) {
-                    Text("ShowFolderDialog")
-                        .buttonStyle()
-                }
-                
-                Button(action: {
-                    MacDialogManager.shared.showMultiFolderDialog(
-                        title: "Select folders",
-                        message: "Please select folders to open.",
-                        directoryURL: nil
-                    ) { result in
-                        switch result {
-                        case .success(let openResult):
-                            Log.d(TAG, "[ShowMultiFolderDialog] success: \(openResult)")
-                            updateResult(isSuccess: true, result: "ShowMultiFolderDialog - result: \(openResult)")
-                        case .failure(let error):
-                            Log.e(TAG, "[ShowMultiFolderDialog] error: \(error)")
-                            updateResult(isSuccess: false, result: "ShowMultiFolderDialog - error: \(error.localizedDescription)")
-                        }
-                    }
-                }) {
-                    Text("ShowMultiFolderDialog")
-                        .buttonStyle()
-                }
-                
-                Button(action: {
-                    MacDialogManager.shared.showSaveFileDialog(
-                        title: "Save File",
-                        message: "Choose a destination",
-                        nameFieldStringValue: "default",
-                        allowedContentTypes: ["txt"],
-                        directoryURL: nil
-                    ) { result in
-                        switch result {
-                        case .success(let saveResult):
-                            Log.d(TAG, "[ShowSaveFileDialog] success: \(saveResult)")
-                            updateResult(isSuccess: true, result: "ShowSaveFileDialog - result: \(saveResult)")
-                        case .failure(let error):
-                            Log.e(TAG, "[ShowSaveFileDialog] error: \(error)")
-                            updateResult(isSuccess: false, result: "ShowSaveFileDialog - error: \(error.localizedDescription)")
-                        }
-                    }
-                }) {
-                    Text("ShowSaveFileDialog")
-                        .buttonStyle(backgroundColor: .green)
-                }
-                
-                Spacer()
+                .padding()
             }
-            .padding()
+            .navigationTitle("Main Menu")
         }
     }
-    
-    private func updateResult(isSuccess: Bool, result: String?) {
-        if isSuccess {
-            resultText = "✅ \nResult: \(result ?? "nil")"
-        } else {
-            resultText = "❌ \nResult: \(result ?? "nil")"
+
+    @ViewBuilder
+    private func menuCard(title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(12)
     }
 }
 

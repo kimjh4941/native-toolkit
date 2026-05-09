@@ -341,7 +341,7 @@ extension MacNotificationManager: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         Log.d(TAG, "willPresent called for id: \(notification.request.identifier)")
-        completionHandler([.banner, .sound, .badge])
+        completionHandler([.list, .banner, .sound, .badge])
     }
 
     /// Handles the user's response to a delivered notification (action taps, text input).
