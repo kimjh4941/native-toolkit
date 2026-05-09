@@ -15,4 +15,6 @@ FOUNDATION_EXPORT const unsigned char MacLibraryVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <MacLibrary/PublicHeader.h>
 
+// Notification Bridge (C-visible Obj-C headers are not needed here; Swift types are exposed via the generated -Swift.h)
+
 

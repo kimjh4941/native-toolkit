@@ -338,8 +338,6 @@ public enum BridgeError: Error {
   - 依存: T5
 - T7 Test 実装（1.5日）
   - 依存: T2-T6
-- T8 Docs/manual 更新（0.5日）
-  - 依存: T4-T6
 
 ## リスクと緩和策
 
