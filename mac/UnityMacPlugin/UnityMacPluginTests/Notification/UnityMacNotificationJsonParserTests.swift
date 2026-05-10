@@ -15,7 +15,7 @@ struct UnityMacNotificationJsonParserTests {
     // MARK: - parseContent: success
 
     @Test func parseContentSuccessWithAllFields() {
-       let json = "{\"id\":\"notif-1\",\"title\":\"Hello\",\"body\":\"World\",\"subtitle\":\"Sub\",\"badge\":3}"
+        let json = "{\"id\":\"notif-1\",\"title\":\"Hello\",\"body\":\"World\",\"subtitle\":\"Sub\",\"categoryIdentifier\":\"cat-1\",\"badge\":3}"
         let result = parser.parseContent(json)
         guard case .success(let content) = result else {
             Issue.record("Expected success")
@@ -25,7 +25,18 @@ struct UnityMacNotificationJsonParserTests {
         #expect(content.title == "Hello")
         #expect(content.body == "World")
         #expect(content.subtitle == "Sub")
+        #expect(content.categoryIdentifier == "cat-1")
         #expect(content.badge == 3)
+    }
+
+    @Test func parseContentCategoryIdentifierIsNilWhenAbsent() {
+        let json = "{\"id\":\"n1\",\"title\":\"T\"}"
+        let result = parser.parseContent(json)
+        if case .success(let content) = result {
+            #expect(content.categoryIdentifier == nil)
+        } else {
+            Issue.record("Expected success")
+        }
     }
 
     @Test func parseContentSuccessWithMinimalFields() {

@@ -185,6 +185,18 @@ public class UnityMacNotificationManager: NSObject {
         MacNotificationManager.shared.cancelAllScheduled()
     }
 
+    /// Cancels the pending notification with the given identifier (alias for cancelScheduled).
+    public func cancelNotification(identifier: String) {
+        Log.d(TAG, "cancelNotification called with identifier: \(identifier)")
+        MacNotificationManager.shared.cancelScheduled(identifier: identifier)
+    }
+
+    /// Cancels all pending notifications (alias for cancelAllScheduled).
+    public func cancelAllNotifications() {
+        Log.d(TAG, "cancelAllNotifications called")
+        MacNotificationManager.shared.cancelAllScheduled()
+    }
+
     /// Returns all scheduled notifications as a UTF-8 JSON array string.
     ///
     /// - Parameter completion: Called on the main queue with `(json, errorCode, errorMessage)`.
@@ -279,20 +291,37 @@ public class UnityMacNotificationManager: NSObject {
         }
     }
 
+    // MARK: - Permission Check
+
+    /// Returns whether the app currently has notification authorization.
+    ///
+    /// - Parameter completion: Called on the main queue with `true` if authorized or provisional.
+    public func hasPermission(completion: @escaping (Bool) -> Void) {
+        Log.d(TAG, "hasPermission called")
+        MacNotificationManager.shared.getAuthorizationStatus { result in
+            switch result {
+            case .success(let status):
+                completion(status == .authorized || status == .provisional)
+            case .failure:
+                completion(false)
+            }
+        }
+    }
+
     // MARK: - Action Handlers
 
     /// Sets the handler invoked when the user taps a notification action button.
     ///
-    /// - Parameter handler: Receives `(notificationId, actionId)` on the main queue.
-    public func setActionReceivedHandler(_ handler: @escaping (String, String) -> Void) {
+    /// - Parameter handler: Receives `(notificationId, actionId, userInfoJson)` on the main queue.
+    public func setActionReceivedHandler(_ handler: @escaping (String, String, String) -> Void) {
         Log.d(TAG, "setActionReceivedHandler called")
         MacNotificationManager.shared.setActionReceivedHandler(handler)
     }
 
     /// Sets the handler invoked when the user submits text in a text-input action.
     ///
-    /// - Parameter handler: Receives `(notificationId, actionId, userText)` on the main queue.
-    public func setTextInputActionReceivedHandler(_ handler: @escaping (String, String, String) -> Void) {
+    /// - Parameter handler: Receives `(notificationId, actionId, userText, userInfoJson)` on the main queue.
+    public func setTextInputActionReceivedHandler(_ handler: @escaping (String, String, String, String) -> Void) {
         Log.d(TAG, "setTextInputActionReceivedHandler called")
         MacNotificationManager.shared.setTextInputActionReceivedHandler(handler)
     }

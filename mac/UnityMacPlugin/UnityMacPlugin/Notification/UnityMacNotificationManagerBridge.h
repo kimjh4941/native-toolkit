@@ -40,15 +40,25 @@ typedef void (*NotificationJsonCallback)(const char* json,
                                          const char* errorMessage);
 
 /*!
+ * @typedef NotificationBoolCallback
+ * @abstract Callback that returns a boolean value.
+ *
+ * @param value The boolean result.
+ */
+typedef void (*NotificationBoolCallback)(bool value);
+
+/*!
  * @typedef NotificationActionCallback
  * @abstract Callback invoked when the user taps a notification action button.
  *
  * @param notificationId UTF-8 identifier of the originating notification.
  * @param actionId UTF-8 identifier of the tapped action.
- *        Both pointers are valid only during the callback invocation — copy immediately.
+ * @param userInfoJson UTF-8 JSON object string containing custom notification data.
+ *        All pointers are valid only during the callback invocation — copy immediately.
  */
 typedef void (*NotificationActionCallback)(const char* notificationId,
-                                           const char* actionId);
+                                           const char* actionId,
+                                           const char* userInfoJson);
 
 /*!
  * @typedef NotificationTextInputActionCallback
@@ -57,11 +67,13 @@ typedef void (*NotificationActionCallback)(const char* notificationId,
  * @param notificationId UTF-8 identifier of the originating notification.
  * @param actionId UTF-8 identifier of the text-input action.
  * @param userText UTF-8 text entered by the user.
+ * @param userInfoJson UTF-8 JSON object string containing custom notification data.
  *        All pointers are valid only during the callback invocation — copy immediately.
  */
 typedef void (*NotificationTextInputActionCallback)(const char* notificationId,
                                                     const char* actionId,
-                                                    const char* userText);
+                                                    const char* userText,
+                                                    const char* userInfoJson);
 
 /*!
  * @function NotificationSetup
@@ -227,6 +239,28 @@ void NotificationSetTextInputActionReceivedCallback(NotificationTextInputActionC
  * @param callback Receives (isSuccess, errorCode, errorMessage).
  */
 void NotificationSetBadgeCount(int count, NotificationSimpleCallback callback);
+
+/*!
+ * @function NotificationHasPermission
+ * @abstract Returns whether the app currently has notification authorization.
+ *
+ * @param callback Receives (value). True if authorized or provisional.
+ */
+void NotificationHasPermission(NotificationBoolCallback callback);
+
+/*!
+ * @function NotificationCancel
+ * @abstract Cancels the pending notification with the given identifier.
+ *
+ * @param identifier UTF-8 notification identifier.
+ */
+void NotificationCancel(const char* identifier);
+
+/*!
+ * @function NotificationCancelAll
+ * @abstract Cancels all pending notifications.
+ */
+void NotificationCancelAll(void);
 
 #ifdef __cplusplus
 }

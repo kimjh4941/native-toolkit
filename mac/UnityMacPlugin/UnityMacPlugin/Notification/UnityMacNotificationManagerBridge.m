@@ -202,9 +202,9 @@ void NotificationSetActionReceivedCallback(NotificationActionCallback callback) 
         [Log e:TAG :@"NotificationSetActionReceivedCallback: callback is NULL"];
         return;
     }
-    [[UnityMacNotificationManager shared] setActionReceivedHandler:^(NSString* notificationId, NSString* actionId) {
+    [[UnityMacNotificationManager shared] setActionReceivedHandler:^(NSString* notificationId, NSString* actionId, NSString* userInfoJson) {
         [Log d:TAG :[NSString stringWithFormat:@"action received notificationId: %@ actionId: %@", notificationId, actionId]];
-        callback(notificationId.UTF8String, actionId.UTF8String);
+        callback(notificationId.UTF8String, actionId.UTF8String, userInfoJson.UTF8String);
     }];
 }
 
@@ -214,10 +214,38 @@ void NotificationSetTextInputActionReceivedCallback(NotificationTextInputActionC
         [Log e:TAG :@"NotificationSetTextInputActionReceivedCallback: callback is NULL"];
         return;
     }
-    [[UnityMacNotificationManager shared] setTextInputActionReceivedHandler:^(NSString* notificationId, NSString* actionId, NSString* userText) {
+    [[UnityMacNotificationManager shared] setTextInputActionReceivedHandler:^(NSString* notificationId, NSString* actionId, NSString* userText, NSString* userInfoJson) {
         [Log d:TAG :[NSString stringWithFormat:@"text input action received notificationId: %@ actionId: %@ userText: %@", notificationId, actionId, userText]];
-        callback(notificationId.UTF8String, actionId.UTF8String, userText.UTF8String);
+        callback(notificationId.UTF8String, actionId.UTF8String, userText.UTF8String, userInfoJson.UTF8String);
     }];
+}
+
+// MARK: - Has Permission
+
+static NotificationBoolCallback s_hasPermissionCallback = NULL;
+
+void NotificationHasPermission(NotificationBoolCallback callback) {
+    [Log d:TAG :@"NotificationHasPermission called"];
+    s_hasPermissionCallback = callback;
+    [[UnityMacNotificationManager shared] hasPermissionWithCompletion:^(BOOL value) {
+        [Log d:TAG :[NSString stringWithFormat:@"NotificationHasPermission result: value=%d", value]];
+        if (s_hasPermissionCallback) {
+            s_hasPermissionCallback(value);
+        }
+    }];
+}
+
+// MARK: - Cancel
+
+void NotificationCancel(const char* identifier) {
+    [Log d:TAG :[NSString stringWithFormat:@"NotificationCancel called with identifier: %s", identifier ?: "(null)"]];
+    NSString* nsIdentifier = identifier ? [NSString stringWithUTF8String:identifier] : @"";
+    [[UnityMacNotificationManager shared] cancelNotificationWithIdentifier:nsIdentifier];
+}
+
+void NotificationCancelAll(void) {
+    [Log d:TAG :@"NotificationCancelAll called"];
+    [[UnityMacNotificationManager shared] cancelAllNotifications];
 }
 
 // MARK: - Badge

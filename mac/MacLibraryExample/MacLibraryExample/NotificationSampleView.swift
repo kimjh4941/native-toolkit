@@ -290,13 +290,13 @@ struct NotificationSampleView: View {
         .navigationTitle("Notification Example")
         .onAppear {
             Log.d(TAG, "[onAppear] called")
-            MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId in
-                Log.d(TAG, "[ActionHandler] notificationId: \(notificationId), actionId: \(actionId)")
-                updateResult(isSuccess: true, result: "[actionReceived] notificationId=\(notificationId), actionId=\(actionId)")
+            MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
+                Log.d(TAG, "[ActionHandler] notificationId: \(notificationId), actionId: \(actionId), userInfoJson: \(userInfoJson)")
+                updateResult(isSuccess: true, result: "[actionReceived] notificationId=\(notificationId), actionId=\(actionId), userInfoJson=\(userInfoJson)")
             }
-            MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText in
-                Log.d(TAG, "[TextInputActionHandler] notificationId: \(notificationId), actionId: \(actionId), userText: \(userText)")
-                updateResult(isSuccess: true, result: "[textActionReceived] notificationId=\(notificationId), actionId=\(actionId), text=\(userText)")
+            MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
+                Log.d(TAG, "[TextInputActionHandler] notificationId: \(notificationId), actionId: \(actionId), userText: \(userText), userInfoJson: \(userInfoJson)")
+                updateResult(isSuccess: true, result: "[textActionReceived] notificationId=\(notificationId), actionId=\(actionId), text=\(userText), userInfoJson=\(userInfoJson)")
             }
         }
     }

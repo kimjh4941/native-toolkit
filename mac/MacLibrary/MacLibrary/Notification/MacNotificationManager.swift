@@ -48,12 +48,12 @@ public final class MacNotificationManager: NSObject {
     private let badgeUseCases: NotificationBadgeUseCases
 
     /// Called when a notification action is received (button tap).
-    /// Signature: `(notificationId: String, actionId: String)`
-    public var onActionReceived: ((String, String) -> Void)?
+    /// Signature: `(notificationId: String, actionId: String, userInfoJson: String)`
+    public var onActionReceived: ((String, String, String) -> Void)?
 
     /// Called when a text-input notification action is received.
-    /// Signature: `(notificationId: String, actionId: String, userText: String)`
-    public var onTextInputActionReceived: ((String, String, String) -> Void)?
+    /// Signature: `(notificationId: String, actionId: String, userText: String, userInfoJson: String)`
+    public var onTextInputActionReceived: ((String, String, String, String) -> Void)?
 
     private static let minimumOS = "macOS 15.0"
 
@@ -297,16 +297,16 @@ public final class MacNotificationManager: NSObject {
 
     /// Sets the handler called when the user taps a notification action button.
     ///
-    /// - Parameter handler: Receives `(notificationId, actionId)` on the main queue.
-    public func setActionReceivedHandler(_ handler: @escaping (String, String) -> Void) {
+    /// - Parameter handler: Receives `(notificationId, actionId, userInfoJson)` on the main queue.
+    public func setActionReceivedHandler(_ handler: @escaping (String, String, String) -> Void) {
         Log.d(TAG, "setActionReceivedHandler called")
         onActionReceived = handler
     }
 
     /// Sets the handler called when the user submits text in a text-input action.
     ///
-    /// - Parameter handler: Receives `(notificationId, actionId, userText)` on the main queue.
-    public func setTextInputActionReceivedHandler(_ handler: @escaping (String, String, String) -> Void) {
+    /// - Parameter handler: Receives `(notificationId, actionId, userText, userInfoJson)` on the main queue.
+    public func setTextInputActionReceivedHandler(_ handler: @escaping (String, String, String, String) -> Void) {
         Log.d(TAG, "setTextInputActionReceivedHandler called")
         onTextInputActionReceived = handler
     }
@@ -354,14 +354,17 @@ extension MacNotificationManager: UNUserNotificationCenterDelegate {
         defer { completionHandler() }
         let notificationId = response.notification.request.identifier
         let actionId = response.actionIdentifier
+        let rawUserInfo = response.notification.request.content.userInfo
+        let userInfoJson = (try? JSONSerialization.data(withJSONObject: rawUserInfo))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         if let textResponse = response as? UNTextInputNotificationResponse {
             let userText = textResponse.userText
             DispatchQueue.main.async { [weak self] in
-                self?.onTextInputActionReceived?(notificationId, actionId, userText)
+                self?.onTextInputActionReceived?(notificationId, actionId, userText, userInfoJson)
             }
         } else {
             DispatchQueue.main.async { [weak self] in
-                self?.onActionReceived?(notificationId, actionId)
+                self?.onActionReceived?(notificationId, actionId, userInfoJson)
             }
         }
     }

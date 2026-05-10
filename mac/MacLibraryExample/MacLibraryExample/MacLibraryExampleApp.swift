@@ -16,11 +16,11 @@ struct MacLibraryExampleApp: App {
     init() {
         Log.d(TAG, "init")
         MacNotificationManager.shared.setup()
-        MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId in
-            Log.d("MacLibraryExampleApp", "[ActionReceived] notificationId: \(notificationId), actionId: \(actionId)")
+        MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
+            Log.d("MacLibraryExampleApp", "[ActionReceived] notificationId: \(notificationId), actionId: \(actionId), userInfoJson: \(userInfoJson)")
         }
-        MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText in
-            Log.d("MacLibraryExampleApp", "[TextActionReceived] notificationId: \(notificationId), actionId: \(actionId), userText: \(userText)")
+        MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
+            Log.d("MacLibraryExampleApp", "[TextActionReceived] notificationId: \(notificationId), actionId: \(actionId), userText: \(userText), userInfoJson: \(userInfoJson)")
         }
     }
 

@@ -30,6 +30,7 @@ public final class UnityMacNotificationJsonParser {
     ///   "title": "Hello",
     ///   "body": "World",
     ///   "subtitle": "Sub",
+    ///   "categoryIdentifier": "cat-001",
     ///   "badge": 1,
     ///   "userInfo": { "key": "value" }
     /// }
@@ -48,6 +49,7 @@ public final class UnityMacNotificationJsonParser {
         }
         let body = dict["body"] as? String
         let subtitle = dict["subtitle"] as? String
+        let categoryIdentifier = dict["categoryIdentifier"] as? String
         let badge = dict["badge"] as? Int
         let userInfo = dict["userInfo"] as? [String: String]
         return .success(NotificationContent(
@@ -55,6 +57,7 @@ public final class UnityMacNotificationJsonParser {
             title: title,
             body: body,
             subtitle: subtitle,
+            categoryIdentifier: categoryIdentifier,
             userInfo: userInfo,
             badge: badge
         ))
