@@ -18,6 +18,8 @@ public struct NotificationContent {
     public let body: String?
     /// Optional subtitle displayed below the title.
     public let subtitle: String?
+    /// Optional identifier of the registered `NotificationCategory` to associate with this notification.
+    public let categoryIdentifier: String?
     /// Optional data string passed through to action handlers.
     public let userInfo: [String: String]?
     /// Optional badge count override. `nil` means no change.
@@ -28,6 +30,7 @@ public struct NotificationContent {
         title: String,
         body: String? = nil,
         subtitle: String? = nil,
+        categoryIdentifier: String? = nil,
         userInfo: [String: String]? = nil,
         badge: Int? = nil
     ) {
@@ -35,6 +38,7 @@ public struct NotificationContent {
         self.title = title
         self.body = body
         self.subtitle = subtitle
+        self.categoryIdentifier = categoryIdentifier
         self.userInfo = userInfo
         self.badge = badge
     }

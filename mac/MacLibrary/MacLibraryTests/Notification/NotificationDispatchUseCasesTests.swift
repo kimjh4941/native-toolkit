@@ -79,14 +79,26 @@ struct NotificationDispatchUseCasesTests {
 
     // MARK: - update: success
 
-    @Test func updateSuccessCallsRemoveAndAdd() {
+    @Test func updateSuccessCallsAdd() {
         let repo = MockNotificationRepository()
-        repo.stubScheduled = [ScheduledNotification(identifier: "test-id", title: "Existing", body: nil, trigger: nil)]
         let useCase = makeUseCase(repo: repo)
         var result: Result<Void, NotificationDomainError>?
         useCase.update(identifier: "test-id", content: validContent(), trigger: .immediate) { result = $0 }
-        #expect(repo.getScheduledCallCount == 1)
         #expect(repo.addCallCount == 1)
         if case .success = result! {} else { Issue.record("Expected success") }
+    }
+
+    // MARK: - update: invalid content
+
+    @Test func updateFailsOnInvalidContent() {
+        let repo = MockNotificationRepository()
+        let useCase = makeUseCase(repo: repo)
+        let bad = NotificationContent(id: "id", title: "")
+        var errorCode: Int?
+        useCase.update(identifier: "id", content: bad, trigger: .immediate) { r in
+            if case .failure(let e) = r { errorCode = e.errorCode }
+        }
+        #expect(errorCode == 1101)
+        #expect(repo.addCallCount == 0)
     }
 }

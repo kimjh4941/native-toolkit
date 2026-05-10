@@ -179,6 +179,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
             unContent.title = content.title
             if let body = content.body { unContent.body = body }
             if let subtitle = content.subtitle { unContent.subtitle = subtitle }
+            if let categoryIdentifier = content.categoryIdentifier { unContent.categoryIdentifier = categoryIdentifier }
             if let badge = content.badge { unContent.badge = NSNumber(value: badge) }
             if let userInfo = content.userInfo { unContent.userInfo = userInfo }
             let request = UNNotificationRequest(

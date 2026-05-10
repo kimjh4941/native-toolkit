@@ -82,25 +82,11 @@ public final class NotificationDispatchUseCases {
         completion: @escaping (Result<Void, NotificationDomainError>) -> Void
     ) {
         Log.d(TAG, "update called with identifier: \(identifier), content.id: \(content.id), trigger: \(trigger)")
-        repository.getScheduled { [weak self] result in
-            guard let self else { return }
-            switch result {
-            case .failure(let e):
-                Log.e(self.TAG, "update query failed: \(e.errorMessage)")
-                completion(.failure(e))
-            case .success(let scheduled):
-                guard scheduled.contains(where: { $0.identifier == identifier }) else {
-                    Log.e(self.TAG, "update notificationNotFound: \(identifier)")
-                    completion(.failure(.notificationNotFound(identifier: identifier)))
-                    return
-                }
-                if let error = self.validateContent(content) {
-                    Log.e(self.TAG, "update validation failed: \(error.errorMessage)")
-                    completion(.failure(error))
-                    return
-                }
-                self.repository.add(content: content, trigger: trigger, completion: completion)
-            }
+        if let error = validateContent(content) {
+            Log.e(TAG, "update validation failed: \(error.errorMessage)")
+            completion(.failure(error))
+            return
         }
+        repository.add(content: content, trigger: trigger, completion: completion)
     }
 }
