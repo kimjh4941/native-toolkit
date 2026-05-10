@@ -1,0 +1,7 @@
+---
+name: review-implementation
+description: "実装コードを設計書・実装結果ファイルと照らし合わせてレビューする。develop との差分を対象にする。使用例: /review-implementation, /review-implementation pr=123"
+applyTo: "**"
+---
+
+`agent-rules/workflows/review-implementation/workflow.md` を読み込み、その手順に従って実行してください。
