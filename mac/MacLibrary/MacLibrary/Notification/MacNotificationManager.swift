@@ -40,12 +40,12 @@ public final class MacNotificationManager: NSObject {
     /// Shared singleton instance.
     public static let shared = MacNotificationManager()
 
-    private let repository: NotificationRepository
     private let permissionHelper: NotificationPermissionHelper
     private let dispatchUseCases: NotificationDispatchUseCases
     private let scheduleUseCases: NotificationScheduleUseCases
     private let queryUseCases: NotificationQueryUseCases
     private let categoryUseCases: NotificationCategoryUseCases
+    private let badgeUseCases: NotificationBadgeUseCases
 
     /// Called when a notification action is received (button tap).
     /// Signature: `(notificationId: String, actionId: String)`
@@ -62,24 +62,24 @@ public final class MacNotificationManager: NSObject {
     private override init() {
         Log.d("MacNotificationManager", "init")
         let repo = NotificationRepositoryImpl()
-        self.repository = repo
         self.permissionHelper = NotificationPermissionHelper(repository: repo)
         self.dispatchUseCases = NotificationDispatchUseCases(repository: repo)
         self.scheduleUseCases = NotificationScheduleUseCases(repository: repo)
         self.queryUseCases = NotificationQueryUseCases(repository: repo)
         self.categoryUseCases = NotificationCategoryUseCases(repository: repo)
+        self.badgeUseCases = NotificationBadgeUseCases(repository: repo)
         super.init()
     }
 
     /// Initializer for dependency injection (testing).
     internal init(repository: NotificationRepository) {
         Log.d("MacNotificationManager", "init(repository:)")
-        self.repository = repository
         self.permissionHelper = NotificationPermissionHelper(repository: repository)
         self.dispatchUseCases = NotificationDispatchUseCases(repository: repository)
         self.scheduleUseCases = NotificationScheduleUseCases(repository: repository)
         self.queryUseCases = NotificationQueryUseCases(repository: repository)
         self.categoryUseCases = NotificationCategoryUseCases(repository: repository)
+        self.badgeUseCases = NotificationBadgeUseCases(repository: repository)
         super.init()
     }
 
@@ -118,7 +118,7 @@ public final class MacNotificationManager: NSObject {
         options: UNAuthorizationOptions = [.alert, .sound, .badge],
         completion: @escaping (Result<Bool, NotificationDomainError>) -> Void
     ) {
-        Log.d(TAG, "requestPermission called")
+        Log.d(TAG, "requestPermission called with options: \(options.rawValue)")
         guard guardOS(completion) else { return }
         permissionHelper.requestPermission(options: options, completion: completion)
     }
@@ -158,7 +158,7 @@ public final class MacNotificationManager: NSObject {
         trigger: NotificationTrigger = .immediate,
         completion: @escaping (Result<Void, NotificationDomainError>) -> Void
     ) {
-        Log.d(TAG, "show called with id: \(content.id)")
+        Log.d(TAG, "show called with id: \(content.id), trigger: \(trigger)")
         guard guardOS(completion) else { return }
         dispatchUseCases.show(content: content, trigger: trigger) { result in
             DispatchQueue.main.async { completion(result) }
@@ -178,7 +178,7 @@ public final class MacNotificationManager: NSObject {
         trigger: NotificationTrigger = .immediate,
         completion: @escaping (Result<Void, NotificationDomainError>) -> Void
     ) {
-        Log.d(TAG, "update called with identifier: \(identifier)")
+        Log.d(TAG, "update called with identifier: \(identifier), content.id: \(content.id), trigger: \(trigger)")
         guard guardOS(completion) else { return }
         dispatchUseCases.update(identifier: identifier, content: content, trigger: trigger) { result in
             DispatchQueue.main.async { completion(result) }
@@ -198,7 +198,7 @@ public final class MacNotificationManager: NSObject {
         trigger: NotificationTrigger,
         completion: @escaping (Result<Void, NotificationDomainError>) -> Void
     ) {
-        Log.d(TAG, "schedule called with id: \(content.id)")
+        Log.d(TAG, "schedule called with id: \(content.id), trigger: \(trigger)")
         guard guardOS(completion) else { return }
         scheduleUseCases.schedule(content: content, trigger: trigger) { result in
             DispatchQueue.main.async { completion(result) }
@@ -324,7 +324,7 @@ public final class MacNotificationManager: NSObject {
     ) {
         Log.d(TAG, "setBadgeCount called with count: \(count)")
         guard guardOS(completion) else { return }
-        repository.setBadgeCount(count) { result in
+        badgeUseCases.setBadgeCount(count) { result in
             DispatchQueue.main.async { completion(result) }
         }
     }

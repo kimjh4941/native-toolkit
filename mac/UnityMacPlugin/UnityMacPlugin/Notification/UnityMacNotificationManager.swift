@@ -98,7 +98,7 @@ public class UnityMacNotificationManager: NSObject {
         triggerJson: String,
         completion: @escaping (Bool, Int, String?) -> Void
     ) {
-        Log.d(TAG, "show called")
+        Log.d(TAG, "show called with contentJson: \(contentJson), triggerJson: \(triggerJson)")
         let contentResult = parser.parseContent(contentJson)
         let triggerResult = parser.parseTrigger(triggerJson)
         switch (contentResult, triggerResult) {
@@ -158,7 +158,7 @@ public class UnityMacNotificationManager: NSObject {
         triggerJson: String,
         completion: @escaping (Bool, Int, String?) -> Void
     ) {
-        Log.d(TAG, "schedule called")
+        Log.d(TAG, "schedule called with contentJson: \(contentJson), triggerJson: \(triggerJson)")
         let contentResult = parser.parseContent(contentJson)
         let triggerResult = parser.parseTrigger(triggerJson)
         switch (contentResult, triggerResult) {

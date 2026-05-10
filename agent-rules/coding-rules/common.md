@@ -34,6 +34,46 @@ Domain → Application → Data
 - Manager は UseCase 経由で Data 層にアクセスし、直接 Repository を呼ばない
 - プラットフォーム固有の型（例: iOS の `UIKit` / `UserNotifications`、Android の `android.*`）を Domain / Application 層に持ち込まない
 
+### Port（Repository protocol）の型制約
+
+Port（Application 層の Repository protocol）はドメイン型のみを使用する。
+
+**禁止:**
+- プラットフォーム固有の型をメソッドの引数・戻り値に使用すること
+  - 例: `UNNotificationRequest`, `UNNotification`, `UNNotificationSettings`, `UNNotificationCategory` など
+
+**許容（例外）:**
+- プラットフォームが提供する薄いビットマスク型で、ドメイン的な対応物を作るコストが見合わない場合
+  - 例: `UNAuthorizationOptions`（Port の note として理由を明記すること）
+
+**Data 層の責務:**
+- すべてのプラットフォーム型 ↔ ドメイン型の変換は RepositoryImpl に集約する
+- UseCase・QueryUseCase はドメイン型のみを扱う
+
+```swift
+// 良い例: Port はドメイン型のみ
+func getScheduled(completion: (Result<[ScheduledNotification], NotificationDomainError>) -> Void)
+
+// 悪い例: Port にプラットフォーム型が漏れる
+func getPendingRequests(completion: (Result<[UNNotificationRequest], NotificationDomainError>) -> Void)
+```
+
+### Manager → UseCase → Repository の呼び出し経路
+
+Manager は **必ず UseCase 経由で** Data 層にアクセスする。UseCase が存在しない操作を Manager から Repository に直接呼び出すことは禁止。
+
+**理由:** Manager が Repository を直接呼ぶと、入力検証・エラー変換・ビジネスロジックがテスト不能なまま Manager 内に混在する。
+
+**対処:** 対応する UseCase を作成してから Manager に組み込む。
+
+```swift
+// 良い例: UseCase を経由する
+badgeUseCases.setBadgeCount(count) { result in ... }
+
+// 悪い例: Repository を直接呼ぶ
+repository.setBadgeCount(count) { result in ... }
+```
+
 ### Delegate・Callback の所有権
 
 - システム Delegate / Listener（例: iOS の `UNUserNotificationCenterDelegate`）は Manager 層の 1 クラスのみが所有する

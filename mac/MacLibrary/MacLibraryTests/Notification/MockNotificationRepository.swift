@@ -14,25 +14,27 @@ final class MockNotificationRepository: NotificationRepository {
 
     var shouldFail = false
     var stubError: NotificationDomainError = .unknown(underlying: NSError(domain: "test", code: -1))
-    var stubSettings: UNNotificationSettings? = nil
-    var stubPendingRequests: [UNNotificationRequest] = []
-    var stubDeliveredNotifications: [UNNotification] = []
+    var stubAuthorizationStatus: NotificationAuthorizationStatus = .authorized
+    var stubScheduled: [ScheduledNotification] = []
+    var stubDelivered: [ActiveNotification] = []
 
     // MARK: - Call Counts
 
     var requestAuthorizationCallCount = 0
     var getAuthorizationStatusCallCount = 0
     var addCallCount = 0
+    var lastAddContent: NotificationContent?
+    var lastAddTrigger: NotificationTrigger?
     var removePendingCallCount = 0
     var removePendingIdentifiers: [String] = []
     var removeAllPendingCallCount = 0
     var removeDeliveredCallCount = 0
     var removeDeliveredIdentifiers: [String] = []
     var removeAllDeliveredCallCount = 0
-    var getPendingRequestsCallCount = 0
-    var getDeliveredNotificationsCallCount = 0
-    var setNotificationCategoriesCallCount = 0
-    var lastSetCategories: Set<UNNotificationCategory> = []
+    var getScheduledCallCount = 0
+    var getDeliveredCallCount = 0
+    var setCategoriesCallCount = 0
+    var lastSetCategories: [NotificationCategory] = []
     var setBadgeCountCallCount = 0
     var lastBadgeCount: Int = 0
 
@@ -43,36 +45,25 @@ final class MockNotificationRepository: NotificationRepository {
         completion: @escaping (Result<Bool, NotificationDomainError>) -> Void
     ) {
         requestAuthorizationCallCount += 1
-        if shouldFail {
-            completion(.failure(stubError))
-        } else {
-            completion(.success(true))
-        }
+        completion(shouldFail ? .failure(stubError) : .success(true))
     }
 
     func getAuthorizationStatus(
-        completion: @escaping (Result<UNNotificationSettings, NotificationDomainError>) -> Void
+        completion: @escaping (Result<NotificationAuthorizationStatus, NotificationDomainError>) -> Void
     ) {
         getAuthorizationStatusCallCount += 1
-        if shouldFail {
-            completion(.failure(stubError))
-        } else if let settings = stubSettings {
-            completion(.success(settings))
-        } else {
-            completion(.failure(.queryFailed(underlying: NSError(domain: "test", code: -1))))
-        }
+        completion(shouldFail ? .failure(stubError) : .success(stubAuthorizationStatus))
     }
 
     func add(
-        request: UNNotificationRequest,
+        content: NotificationContent,
+        trigger: NotificationTrigger,
         completion: @escaping (Result<Void, NotificationDomainError>) -> Void
     ) {
         addCallCount += 1
-        if shouldFail {
-            completion(.failure(stubError))
-        } else {
-            completion(.success(()))
-        }
+        lastAddContent = content
+        lastAddTrigger = trigger
+        completion(shouldFail ? .failure(stubError) : .success(()))
     }
 
     func removePending(identifiers: [String]) {
@@ -93,30 +84,22 @@ final class MockNotificationRepository: NotificationRepository {
         removeAllDeliveredCallCount += 1
     }
 
-    func getPendingRequests(
-        completion: @escaping (Result<[UNNotificationRequest], NotificationDomainError>) -> Void
+    func getScheduled(
+        completion: @escaping (Result<[ScheduledNotification], NotificationDomainError>) -> Void
     ) {
-        getPendingRequestsCallCount += 1
-        if shouldFail {
-            completion(.failure(stubError))
-        } else {
-            completion(.success(stubPendingRequests))
-        }
+        getScheduledCallCount += 1
+        completion(shouldFail ? .failure(stubError) : .success(stubScheduled))
     }
 
-    func getDeliveredNotifications(
-        completion: @escaping (Result<[UNNotification], NotificationDomainError>) -> Void
+    func getDelivered(
+        completion: @escaping (Result<[ActiveNotification], NotificationDomainError>) -> Void
     ) {
-        getDeliveredNotificationsCallCount += 1
-        if shouldFail {
-            completion(.failure(stubError))
-        } else {
-            completion(.success(stubDeliveredNotifications))
-        }
+        getDeliveredCallCount += 1
+        completion(shouldFail ? .failure(stubError) : .success(stubDelivered))
     }
 
-    func setNotificationCategories(_ categories: Set<UNNotificationCategory>) {
-        setNotificationCategoriesCallCount += 1
+    func setCategories(_ categories: [NotificationCategory]) {
+        setCategoriesCallCount += 1
         lastSetCategories = categories
     }
 
@@ -126,10 +109,6 @@ final class MockNotificationRepository: NotificationRepository {
     ) {
         setBadgeCountCallCount += 1
         lastBadgeCount = count
-        if shouldFail {
-            completion(.failure(stubError))
-        } else {
-            completion(.success(()))
-        }
+        completion(shouldFail ? .failure(stubError) : .success(()))
     }
 }

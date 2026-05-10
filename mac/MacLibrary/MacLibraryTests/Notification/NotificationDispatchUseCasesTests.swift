@@ -5,7 +5,6 @@
 //  Created by Kim Jong Hyun on 2026/05/09.
 //
 import Testing
-import UserNotifications
 @testable import MacLibrary
 
 struct NotificationDispatchUseCasesTests {
@@ -82,15 +81,11 @@ struct NotificationDispatchUseCasesTests {
 
     @Test func updateSuccessCallsRemoveAndAdd() {
         let repo = MockNotificationRepository()
-        // Stub a pending request so update finds the existing notification
-        let existingContent = UNMutableNotificationContent()
-        existingContent.title = "Existing"
-        let existingRequest = UNNotificationRequest(identifier: "test-id", content: existingContent, trigger: nil)
-        repo.stubPendingRequests = [existingRequest]
+        repo.stubScheduled = [ScheduledNotification(identifier: "test-id", title: "Existing", body: nil, trigger: nil)]
         let useCase = makeUseCase(repo: repo)
         var result: Result<Void, NotificationDomainError>?
         useCase.update(identifier: "test-id", content: validContent(), trigger: .immediate) { result = $0 }
-        #expect(repo.getPendingRequestsCallCount == 1)
+        #expect(repo.getScheduledCallCount == 1)
         #expect(repo.addCallCount == 1)
         if case .success = result! {} else { Issue.record("Expected success") }
     }

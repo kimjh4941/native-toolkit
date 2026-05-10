@@ -31,7 +31,7 @@ public final class NotificationPermissionHelper {
         options: UNAuthorizationOptions = [.alert, .sound, .badge],
         completion: @escaping (Result<Bool, NotificationDomainError>) -> Void
     ) {
-        Log.d(TAG, "requestPermission called")
+        Log.d(TAG, "requestPermission called with options: \(options.rawValue)")
         repository.requestAuthorization(options: options) { result in
             DispatchQueue.main.async {
                 completion(result)
@@ -41,20 +41,14 @@ public final class NotificationPermissionHelper {
 
     /// Returns the current authorization status.
     ///
-    /// - Parameter completion: Called on the main queue with the mapped status.
+    /// - Parameter completion: Called on the main queue with the domain status value.
     public func getAuthorizationStatus(
         completion: @escaping (Result<NotificationAuthorizationStatus, NotificationDomainError>) -> Void
     ) {
         Log.d(TAG, "getAuthorizationStatus called")
         repository.getAuthorizationStatus { result in
             DispatchQueue.main.async {
-                switch result {
-                case .failure(let e):
-                    completion(.failure(e))
-                case .success(let settings):
-                    let status = NotificationPermissionHelper.map(settings.authorizationStatus)
-                    completion(.success(status))
-                }
+                completion(result)
             }
         }
     }
@@ -90,19 +84,6 @@ public final class NotificationPermissionHelper {
                 )
                 completion(.failure(.openSettingsFailed(underlying: error)))
             }
-        }
-    }
-
-    // MARK: - Private
-
-    private static func map(_ status: UNAuthorizationStatus) -> NotificationAuthorizationStatus {
-        switch status {
-        case .notDetermined:  return .notDetermined
-        case .denied:         return .denied
-        case .authorized:     return .authorized
-        case .provisional:    return .provisional
-        case .ephemeral:      return .authorized
-        @unknown default:     return .unsupported
         }
     }
 }

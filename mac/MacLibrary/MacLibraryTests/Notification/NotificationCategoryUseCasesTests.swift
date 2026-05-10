@@ -25,7 +25,7 @@ struct NotificationCategoryUseCasesTests {
         let useCase = makeUseCase(repo: repo)
         var result: Result<Void, NotificationDomainError>?
         useCase.registerCategory(validCategory()) { result = $0 }
-        #expect(repo.setNotificationCategoriesCallCount == 1)
+        #expect(repo.setCategoriesCallCount == 1)
         #expect(repo.lastSetCategories.count == 1)
         if case .success = result! {} else { Issue.record("Expected success") }
     }
@@ -41,7 +41,7 @@ struct NotificationCategoryUseCasesTests {
             if case .failure(let e) = r { errorCode = e.errorCode }
         }
         #expect(errorCode == 1103)
-        #expect(repo.setNotificationCategoriesCallCount == 0)
+        #expect(repo.setCategoriesCallCount == 0)
     }
 
     // MARK: - removeCategory: success
@@ -55,7 +55,7 @@ struct NotificationCategoryUseCasesTests {
         // Now remove
         var result: Result<Void, NotificationDomainError>?
         useCase.removeCategory(identifier: "cat-2") { result = $0 }
-        #expect(repo.setNotificationCategoriesCallCount == 2)
+        #expect(repo.setCategoriesCallCount == 2)
         #expect(repo.lastSetCategories.isEmpty)
         if case .success = result! {} else { Issue.record("Expected success") }
     }

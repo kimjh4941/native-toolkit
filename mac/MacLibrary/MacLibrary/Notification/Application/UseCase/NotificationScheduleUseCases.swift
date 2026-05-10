@@ -4,7 +4,6 @@
 //
 //  Created by Kim Jong Hyun on 2026/05/09.
 //
-import UserNotifications
 
 /// Use cases for managing pending (scheduled) notifications.
 public final class NotificationScheduleUseCases {
@@ -33,19 +32,17 @@ public final class NotificationScheduleUseCases {
         return nil
     }
 
-    private func makeTrigger(
-        from trigger: NotificationTrigger
-    ) -> Result<UNNotificationTrigger, NotificationDomainError> {
+    private func validateTriggerForSchedule(_ trigger: NotificationTrigger) -> NotificationDomainError? {
         switch trigger {
         case .immediate:
-            return .failure(.invalidTrigger(reason: "schedule requires a non-immediate trigger"))
-        case .timeInterval(let seconds, let repeats):
-            guard seconds >= 1 else {
-                return .failure(.invalidTrigger(reason: "timeInterval must be >= 1 second"))
+            return .invalidTrigger(reason: "schedule requires a non-immediate trigger")
+        case .timeInterval(let seconds, _):
+            if seconds < 1 {
+                return .invalidTrigger(reason: "timeInterval must be >= 1 second")
             }
-            return .success(UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: repeats))
-        case .calendar(let components, let repeats):
-            return .success(UNCalendarNotificationTrigger(dateMatching: components, repeats: repeats))
+            return nil
+        case .calendar:
+            return nil
         }
     }
 
@@ -62,30 +59,18 @@ public final class NotificationScheduleUseCases {
         trigger: NotificationTrigger,
         completion: @escaping (Result<Void, NotificationDomainError>) -> Void
     ) {
-        Log.d(TAG, "schedule called with id: \(content.id)")
+        Log.d(TAG, "schedule called with id: \(content.id), trigger: \(trigger)")
         if let error = validateContent(content) {
             Log.e(TAG, "schedule validation failed: \(error.errorMessage)")
             completion(.failure(error))
             return
         }
-        switch makeTrigger(from: trigger) {
-        case .failure(let e):
-            Log.e(TAG, "schedule trigger invalid: \(e.errorMessage)")
-            completion(.failure(e))
-        case .success(let unTrigger):
-            let unContent = UNMutableNotificationContent()
-            unContent.title = content.title
-            if let body = content.body { unContent.body = body }
-            if let subtitle = content.subtitle { unContent.subtitle = subtitle }
-            if let badge = content.badge { unContent.badge = NSNumber(value: badge) }
-            if let userInfo = content.userInfo { unContent.userInfo = userInfo }
-            let request = UNNotificationRequest(
-                identifier: content.id,
-                content: unContent,
-                trigger: unTrigger
-            )
-            repository.add(request: request, completion: completion)
+        if let error = validateTriggerForSchedule(trigger) {
+            Log.e(TAG, "schedule trigger invalid: \(error.errorMessage)")
+            completion(.failure(error))
+            return
         }
+        repository.add(content: content, trigger: trigger, completion: completion)
     }
 
     /// Cancels the pending notification with the given identifier.
@@ -109,21 +94,6 @@ public final class NotificationScheduleUseCases {
         completion: @escaping (Result<[ScheduledNotification], NotificationDomainError>) -> Void
     ) {
         Log.d(TAG, "getScheduled called")
-        repository.getPendingRequests { result in
-            switch result {
-            case .failure(let e):
-                completion(.failure(e))
-            case .success(let requests):
-                let scheduled = requests.map {
-                    ScheduledNotification(
-                        identifier: $0.identifier,
-                        title: $0.content.title,
-                        body: $0.content.body.isEmpty ? nil : $0.content.body,
-                        trigger: $0.trigger
-                    )
-                }
-                completion(.success(scheduled))
-            }
-        }
+        repository.getScheduled(completion: completion)
     }
 }

@@ -4,14 +4,13 @@
 //
 //  Created by Kim Jong Hyun on 2026/05/09.
 //
-import UserNotifications
 
 /// Use cases for registering and removing notification categories and actions.
 public final class NotificationCategoryUseCases {
 
     private let TAG = "NotificationCategoryUseCases"
     private let repository: NotificationRepository
-    private var registeredCategories: Set<UNNotificationCategory> = []
+    private var registeredCategories: [NotificationCategory] = []
 
     public init(repository: NotificationRepository) {
         Log.d(TAG, "init")
@@ -36,32 +35,9 @@ public final class NotificationCategoryUseCases {
             completion(.failure(error))
             return
         }
-        let actions: [UNNotificationAction] = category.actions.map { action in
-            if action.isTextInput {
-                return UNTextInputNotificationAction(
-                    identifier: action.id,
-                    title: action.title,
-                    options: action.isForeground ? [.foreground] : [],
-                    textInputButtonTitle: action.title,
-                    textInputPlaceholder: action.textInputPlaceholder ?? ""
-                )
-            } else {
-                return UNNotificationAction(
-                    identifier: action.id,
-                    title: action.title,
-                    options: action.isForeground ? [.foreground] : []
-                )
-            }
-        }
-        let unCategory = UNNotificationCategory(
-            identifier: category.id,
-            actions: actions,
-            intentIdentifiers: [],
-            options: []
-        )
-        registeredCategories = Set(registeredCategories.filter { $0.identifier != category.id })
-        registeredCategories.insert(unCategory)
-        repository.setNotificationCategories(registeredCategories)
+        registeredCategories = registeredCategories.filter { $0.id != category.id }
+        registeredCategories.append(category)
+        repository.setCategories(registeredCategories)
         completion(.success(()))
     }
 
@@ -81,8 +57,8 @@ public final class NotificationCategoryUseCases {
             completion(.failure(error))
             return
         }
-        registeredCategories = Set(registeredCategories.filter { $0.identifier != identifier })
-        repository.setNotificationCategories(registeredCategories)
+        registeredCategories = registeredCategories.filter { $0.id != identifier }
+        repository.setCategories(registeredCategories)
         completion(.success(()))
     }
 }

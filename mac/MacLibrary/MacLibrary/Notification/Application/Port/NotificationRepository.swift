@@ -10,6 +10,9 @@ import UserNotifications
 ///
 /// Implementations must be thread-safe. All completion handlers are called on
 /// an unspecified queue; callers are responsible for main-queue dispatch if needed.
+///
+/// - Note: `UNAuthorizationOptions` is retained here as it is a thin bitmask with no
+///   domain-level equivalent, and is also part of the Manager's public API.
 public protocol NotificationRepository {
     // MARK: - Permission
 
@@ -19,16 +22,17 @@ public protocol NotificationRepository {
         completion: @escaping (Result<Bool, NotificationDomainError>) -> Void
     )
 
-    /// Returns the current notification authorization settings.
+    /// Returns the current notification authorization status as a domain value.
     func getAuthorizationStatus(
-        completion: @escaping (Result<UNNotificationSettings, NotificationDomainError>) -> Void
+        completion: @escaping (Result<NotificationAuthorizationStatus, NotificationDomainError>) -> Void
     )
 
     // MARK: - Add / Remove
 
-    /// Adds a notification request.
+    /// Adds a notification with the given domain content and trigger.
     func add(
-        request: UNNotificationRequest,
+        content: NotificationContent,
+        trigger: NotificationTrigger,
         completion: @escaping (Result<Void, NotificationDomainError>) -> Void
     )
 
@@ -46,20 +50,20 @@ public protocol NotificationRepository {
 
     // MARK: - Query
 
-    /// Returns all pending notification requests.
-    func getPendingRequests(
-        completion: @escaping (Result<[UNNotificationRequest], NotificationDomainError>) -> Void
+    /// Returns all pending (scheduled) notifications as domain values.
+    func getScheduled(
+        completion: @escaping (Result<[ScheduledNotification], NotificationDomainError>) -> Void
     )
 
-    /// Returns all delivered notifications.
-    func getDeliveredNotifications(
-        completion: @escaping (Result<[UNNotification], NotificationDomainError>) -> Void
+    /// Returns all delivered notifications as domain values.
+    func getDelivered(
+        completion: @escaping (Result<[ActiveNotification], NotificationDomainError>) -> Void
     )
 
     // MARK: - Category
 
-    /// Registers the given set of notification categories.
-    func setNotificationCategories(_ categories: Set<UNNotificationCategory>)
+    /// Registers the given notification categories, replacing the current set.
+    func setCategories(_ categories: [NotificationCategory])
 
     // MARK: - Badge
 
