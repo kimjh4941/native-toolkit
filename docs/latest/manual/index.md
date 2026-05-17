@@ -140,7 +140,7 @@ Markdown files in this directory are published as versioned documents under `doc
   - Select `native-toolkit/ios/IosWorkspace.xcworkspace` and click "Open".
   - Click "Run" to install the sample app.
     <p align="center">
-        <img src="images/ios/Example_IosDialogManager.png" alt="Example_IosDialogManager" width="400" />
+        <img src="images/ios/Example_Top.png" alt="Example_Top" width="400" />
     </p>
 
 - Windows sample
@@ -162,7 +162,7 @@ Markdown files in this directory are published as versioned documents under `doc
   - Select `native-toolkit/mac/MacWorkspace.xcworkspace` and click "Open".
   - Click "Run" to install the sample app.
     <p align="center">
-        <img src="images/mac/Example_MacDialogManager.png" alt="Example_MacDialogManager" width="800" />
+        <img src="images/mac/Example_Top.png" alt="Example_Top" width="800" />
     </p>
 
 ## Library integration

@@ -140,7 +140,7 @@
   - `native-toolkit/ios/IosWorkspace.xcworkspace`를 선택하고 "Open" 버튼을 클릭합니다.
   - "Run" 버튼을 클릭해 샘플 앱을 설치합니다.
     <p align="center">
-        <img src="images/ios/Example_IosDialogManager.png" alt="Example_IosDialogManager" width="400" />
+        <img src="images/ios/Example_Top.png" alt="Example_Top" width="400" />
     </p>
 
 - Windows 샘플
@@ -162,7 +162,7 @@
   - `native-toolkit/mac/MacWorkspace.xcworkspace`를 선택하고 "Open" 버튼을 클릭합니다.
   - "Run" 버튼을 클릭해 샘플 앱을 설치합니다.
     <p align="center">
-        <img src="images/mac/Example_MacDialogManager.png" alt="Example_MacDialogManager" width="800" />
+        <img src="images/mac/Example_Top.png" alt="Example_Top" width="800" />
     </p>
 
 ## 라이브러리 통합 방법
