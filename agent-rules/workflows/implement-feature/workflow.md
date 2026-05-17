@@ -47,6 +47,14 @@
 
 8. ビルド・テストを実行する（必須）
    - 対象OSモジュールのビルドを実行する
+   - **Android / iOS / macOS の場合は、通常ビルドに加え専用ビルドスクリプトを必ず実行してエラーがないことを確認する**
+     - Android: `./scripts/build_android_library_aar.sh -b release -m <module> -v <version> -o /tmp/<module>-verify.aar`
+       - 成功確認: `[done] Created /tmp/<module>-verify.aar`
+     - iOS: `./scripts/build_ios_library_xcframework.sh -c release -m <module> -v <version> -o /tmp/<module>-verify.xcframework`
+       - 成功確認: `** ARCHIVE SUCCEEDED **` と `[done] ... Created ...xcframework`
+     - macOS: `./scripts/build_xcode26_library_xcframework.sh -c release -m <module> -v <version> -o /tmp/<module>-verify.xcframework --minimum-macos 15.0`
+       - 成功確認: `** ARCHIVE SUCCEEDED **` と `[done] ... Created ...xcframework`
+     - 失敗した場合はビルドログの `error:` 行を特定し、原因を修正してから再実行する
    - 追加・更新したテストを実行し、失敗時は原因を修正する
    - 実機依存で自動化できない項目は「手動確認が必要」と明記する
 

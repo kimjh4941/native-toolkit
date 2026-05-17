@@ -23,7 +23,7 @@ void NotificationRequestPermission(NotificationSimpleCallback callback) {
         [Log e:TAG :@"NotificationRequestPermission: callback is NULL"];
         return;
     }
-    [[UnityMacNotificationManager shared] requestPermissionWithCompletion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+    [[UnityMacNotificationManager shared] requestPermissionWithCompletion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationRequestPermission result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
@@ -47,7 +47,7 @@ void NotificationOpenSettings(NotificationSimpleCallback callback) {
         [Log e:TAG :@"NotificationOpenSettings: callback is NULL"];
         return;
     }
-    [[UnityMacNotificationManager shared] openNotificationSettingsWithCompletion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+    [[UnityMacNotificationManager shared] openNotificationSettingsWithCompletion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationOpenSettings result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
@@ -67,7 +67,7 @@ void NotificationShow(const char* contentJson,
     NSString* nsTriggerJson = triggerJson ? [NSString stringWithUTF8String:triggerJson] : @"{}";
     [[UnityMacNotificationManager shared] showWithContentJson:nsContentJson
                                                   triggerJson:nsTriggerJson
-                                                   completion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+                                                   completion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationShow result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
@@ -88,7 +88,7 @@ void NotificationUpdate(const char* identifier,
     [[UnityMacNotificationManager shared] updateWithIdentifier:nsIdentifier
                                                    contentJson:nsContentJson
                                                    triggerJson:nsTriggerJson
-                                                    completion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+                                                    completion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationUpdate result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
@@ -108,7 +108,7 @@ void NotificationSchedule(const char* contentJson,
     NSString* nsTriggerJson = triggerJson ? [NSString stringWithUTF8String:triggerJson] : @"{}";
     [[UnityMacNotificationManager shared] scheduleWithContentJson:nsContentJson
                                                       triggerJson:nsTriggerJson
-                                                       completion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+                                                       completion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationSchedule result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
@@ -173,7 +173,7 @@ void NotificationRegisterCategory(const char* categoryJson,
     }
     NSString* nsCategoryJson = categoryJson ? [NSString stringWithUTF8String:categoryJson] : @"";
     [[UnityMacNotificationManager shared] registerCategoryWithCategoryJson:nsCategoryJson
-                                                                completion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+                                                                completion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationRegisterCategory result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
@@ -188,7 +188,7 @@ void NotificationRemoveCategory(const char* identifier,
     }
     NSString* nsIdentifier = identifier ? [NSString stringWithUTF8String:identifier] : @"";
     [[UnityMacNotificationManager shared] removeCategoryWithIdentifier:nsIdentifier
-                                                            completion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+                                                            completion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationRemoveCategory result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
@@ -256,7 +256,7 @@ void NotificationSetBadgeCount(int count, NotificationSimpleCallback callback) {
         [Log e:TAG :@"NotificationSetBadgeCount: callback is NULL"];
         return;
     }
-    [[UnityMacNotificationManager shared] setBadgeCount:count completion:^(bool isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
+    [[UnityMacNotificationManager shared] setBadgeCount:count completion:^(BOOL isSuccess, NSInteger errorCode, NSString* _Nullable errorMessage) {
         [Log d:TAG :[NSString stringWithFormat:@"NotificationSetBadgeCount result: isSuccess=%d errorCode=%ld", isSuccess, (long)errorCode]];
         callback(isSuccess, (int)errorCode, errorMessage.UTF8String);
     }];
