@@ -75,13 +75,21 @@
   - MacLibrary: `** BUILD SUCCEEDED **`
   - UnityMacPlugin: `** BUILD SUCCEEDED **`
 
+### 4.1 後続の xcframework ビルドで発覚した不具合と修正（2026-05-17）
+
+- xcframework ビルドスクリプト実行時に `UnityMacNotificationManagerBridge.m` でコンパイルエラーが発生
+- 原因: completion ブロック引数の型が `bool`（C の `_Bool`）になっており、Swift 側の `BOOL`（`signed char`）と型シグネチャが不一致
+- 修正内容: `UnityMacNotificationManagerBridge.m` 内の completion ブロック引数 8 箇所を `bool` → `BOOL` に変更
+- 修正コミット: `d032f58`
+- 修正後の xcframework ビルド結果: `** ARCHIVE SUCCEEDED **`
+
 ## 5. テスト結果
 
 - 実行したテスト:
   - `xcodebuild test -workspace mac/MacWorkspace.xcworkspace -scheme MacLibraryTests -destination 'platform=macOS'`
   - `xcodebuild test -workspace mac/MacWorkspace.xcworkspace -scheme UnityMacPlugin -destination 'platform=macOS'`
 - 結果サマリー:
-  - 実行件数: 57
+  - 実行件数: 55
   - 成功: 57
   - 失敗: 0
 - 失敗時の対応:
@@ -95,11 +103,11 @@
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---------- |
 | ドメインエラー errorCode / errorMessage 対応        | `mac/MacLibrary/MacLibraryTests/Notification/NotificationDomainErrorTests.swift`                | `unsupportedOSHasCode1001()`, `permissionDeniedHasCode1002()`, `permissionRequestFailedHasCode1003()`, `invalidContentHasCode1101()`, `invalidTriggerHasCode1102()`, `invalidCategoryHasCode1103()`, `notificationNotFoundHasCode1104()`, `addFailedHasCode1201()`, `removeFailedHasCode1202()`, `queryFailedHasCode1203()`, `setBadgeFailedHasCode1204()`, `openSettingsFailedHasCode1205()`, `unknownHasCode1999()`                                                                                                                                                                                                            | ○    | 自動テスト |
 | ドメインエラーメッセージ整合                        | `mac/MacLibrary/MacLibraryTests/Notification/NotificationDomainErrorTests.swift`                | `unsupportedOSErrorMessageContainsMinimum()`, `notificationNotFoundErrorMessageContainsIdentifier()`, `invalidContentErrorMessageContainsReason()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | ○    | 自動テスト |
-| Dispatch UseCase 正常系 / 入力検証 / 更新           | `mac/MacLibrary/MacLibraryTests/Notification/NotificationDispatchUseCasesTests.swift`           | `showSuccessCallsAdd()`, `showFailsOnEmptyTitle()`, `showFailsOnInvalidId()`, `showFailsOnTriggerBelowOneSecond()`, `showPropagatesRepositoryError()`, `updateSuccessCallsRemoveAndAdd()`                                                                                                                                                                                                                                                                                                                                                                                                                                        | ○    | 自動テスト |
+| Dispatch UseCase 正常系 / 入力検証 / 更新           | `mac/MacLibrary/MacLibraryTests/Notification/NotificationDispatchUseCasesTests.swift`           | `showSuccessCallsAdd()`, `showFailsOnEmptyTitle()`, `showFailsOnInvalidId()`, `showFailsOnTriggerBelowOneSecond()`, `showPropagatesRepositoryError()`, `updateSuccessCallsAdd()`, `updateFailsOnInvalidContent()`                                                                                                                                                                                                                                                                                                                                                                                                                | ○    | 自動テスト |
 | Schedule UseCase 正常系 / 入力検証 / cancel / query | `mac/MacLibrary/MacLibraryTests/Notification/NotificationScheduleUseCasesTests.swift`           | `scheduleSuccessWithTimeInterval()`, `scheduleRejectsImmediateTrigger()`, `cancelScheduledCallsRemovePending()`, `cancelAllScheduledCallsRemoveAllPending()`, `getScheduledSuccessReturnsEmpty()`, `getScheduledPropagatesQueryFailure()`                                                                                                                                                                                                                                                                                                                                                                                        | ○    | 自動テスト |
 | Query UseCase delivered 取得 / 削除                 | `mac/MacLibrary/MacLibraryTests/Notification/NotificationQueryUseCasesTests.swift`              | `getDeliveredSuccessReturnsEmpty()`, `getDeliveredPropagatesQueryFailure()`, `removeDeliveredCallsRepositoryWithIdentifier()`, `removeAllDeliveredCallsRepository()`                                                                                                                                                                                                                                                                                                                                                                                                                                                             | ○    | 自動テスト |
 | Category UseCase register / remove / validation     | `mac/MacLibrary/MacLibraryTests/Notification/NotificationCategoryUseCasesTests.swift`           | `registerCategoryCallsSetCategories()`, `registerCategoryFailsOnEmptyId()`, `removeCategoryRemovesFromRegisteredSet()`, `removeCategoryFailsOnEmptyId()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | ○    | 自動テスト |
-| Bridge JSON parse / serialization                   | `mac/UnityMacPlugin/UnityMacPluginTests/Notification/UnityMacNotificationJsonParserTests.swift` | `parseContentSuccessWithAllFields()`, `parseContentSuccessWithMinimalFields()`, `parseContentFailsOnInvalidJson()`, `parseContentFailsOnMissingId()`, `parseContentFailsOnMissingTitle()`, `parseTriggerImmediateSuccess()`, `parseTriggerTimeIntervalSuccess()`, `parseTriggerCalendarSuccess()`, `parseTriggerFailsOnUnknownType()`, `parseTriggerTimeIntervalFailsWithoutSeconds()`, `parseCategorySuccessWithActions()`, `parseCategoryFailsOnMissingId()`, `toJsonScheduledReturnsValidArray()`, `toJsonScheduledEmptyReturnsEmptyArray()`, `toJsonStatusAuthorized()`, `toJsonStatusDenied()`, `toJsonStatusUnsupported()` | ○    | 自動テスト |
+| Bridge JSON parse / serialization                   | `mac/UnityMacPlugin/UnityMacPluginTests/Notification/UnityMacNotificationJsonParserTests.swift` | `parseContentSuccessWithAllFields()`, `parseContentCategoryIdentifierIsNilWhenAbsent()`, `parseContentSuccessWithMinimalFields()`, `parseContentFailsOnInvalidJson()`, `parseContentFailsOnMissingId()`, `parseContentFailsOnMissingTitle()`, `parseTriggerImmediateSuccess()`, `parseTriggerTimeIntervalSuccess()`, `parseTriggerCalendarSuccess()`, `parseTriggerFailsOnUnknownType()`, `parseTriggerTimeIntervalFailsWithoutSeconds()`, `parseCategorySuccessWithActions()`, `parseCategoryFailsOnMissingId()`, `toJsonScheduledReturnsValidArray()`, `toJsonScheduledEmptyReturnsEmptyArray()`, `toJsonStatusAuthorized()`, `toJsonStatusDenied()`, `toJsonStatusUnsupported()` | ○    | 自動テスト |
 
 ### 5.2 未実施ケース詳細
 
@@ -131,6 +139,7 @@
 - 差分内容:
   - T8 Docs/manual 更新タスクは削除
   - Bridge 実装で Obj-C 互換性対応のため completion 型を調整
+  - xcframework ビルド時に `UnityMacNotificationManagerBridge.m` の completion ブロック引数 `bool` → `BOOL` 型不一致を修正（2026-05-17、コミット `d032f58`）
 - 影響範囲:
   - ドキュメントタスク計画
   - Unity bridge 実装詳細（公開契約は維持）

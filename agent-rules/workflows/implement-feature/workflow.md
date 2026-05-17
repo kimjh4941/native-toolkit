@@ -55,6 +55,9 @@
      - macOS: `./scripts/build_xcode26_library_xcframework.sh -c release -m <module> -v <version> -o /tmp/<module>-verify.xcframework --minimum-macos 15.0`
        - 成功確認: `** ARCHIVE SUCCEEDED **` と `[done] ... Created ...xcframework`
      - 失敗した場合はビルドログの `error:` 行を特定し、原因を修正してから再実行する
+   - **`dist/<toolkit-version>/` に配置するファイルのファイル名は、そのOSライブラリの実際のバージョンと一致させる**
+     - OS ごとにライブラリバージョンは異なってよい（例: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar`）
+     - ビルドスクリプトの `-v <version>` には OS ライブラリの実際のバージョンを指定する
    - 追加・更新したテストを実行し、失敗時は原因を修正する
    - 実機依存で自動化できない項目は「手動確認が必要」と明記する
 

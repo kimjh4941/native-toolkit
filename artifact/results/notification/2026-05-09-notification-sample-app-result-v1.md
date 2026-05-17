@@ -119,6 +119,14 @@
 - 実行確認
   - IDE/実機での対話操作は未実施
 
+### 7.1 後続の xcframework ビルドで発覚した不具合と修正（2026-05-17）
+
+- xcframework ビルドスクリプト実行時に `UnityMacNotificationManagerBridge.m` でコンパイルエラーが発生
+- 原因: completion ブロック引数の型が `bool`（C の `_Bool`）になっており、Swift 側の `BOOL`（`signed char`）と型シグネチャが不一致
+- 修正内容: `UnityMacNotificationManagerBridge.m` 内の completion ブロック引数 8 箇所を `bool` → `BOOL` に変更
+- 修正コミット: `d032f58`
+- 修正後の xcframework ビルド結果: `** ARCHIVE SUCCEEDED **`
+
 ## 8. 手動確認観点 / 未実施項目（理由付き）
 
 | 区分       | 観点         | 操作                                 | 期待結果                                                    | 実施   | 備考                       |
