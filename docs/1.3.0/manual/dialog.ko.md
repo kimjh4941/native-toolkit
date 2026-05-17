@@ -73,7 +73,7 @@ AndroidDialogFragment.newInstance(
 ```
 
 <p align="center">
-    <img src="images/android/Example_AndroidDialogFragment_ShowDialog.png" alt="Example_AndroidDialogFragment_ShowDialog" width="400" />
+    <img src="images/android/dialog/Example_AndroidDialogFragment_ShowDialog.png" alt="Example_AndroidDialogFragment_ShowDialog" width="400" />
 </p>
 
 #### 확인 다이얼로그
@@ -125,7 +125,7 @@ AndroidDialogFragment.newInstance(
 ```
 
 <p align="center">
-    <img src="images/android/Example_AndroidDialogFragment_ShowConfirmDialog.png" alt="Example_AndroidDialogFragment_ShowConfirmDialog" width="400" />
+    <img src="images/android/dialog/Example_AndroidDialogFragment_ShowConfirmDialog.png" alt="Example_AndroidDialogFragment_ShowConfirmDialog" width="400" />
 </p>
 
 #### 단일 선택 다이얼로그
@@ -182,7 +182,7 @@ AndroidDialogFragment.newInstance(
 ```
 
 <p align="center">
-    <img src="images/android/Example_AndroidDialogFragment_ShowSingleChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowSingleChoiceItemDialog" width="400" />
+    <img src="images/android/dialog/Example_AndroidDialogFragment_ShowSingleChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowSingleChoiceItemDialog" width="400" />
 </p>
 
 #### 다중 선택 다이얼로그
@@ -239,7 +239,7 @@ AndroidDialogFragment.newInstance(
 ```
 
 <p align="center">
-    <img src="images/android/Example_AndroidDialogFragment_ShowMultiChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowMultiChoiceItemDialog" width="400" />
+    <img src="images/android/dialog/Example_AndroidDialogFragment_ShowMultiChoiceItemDialog.png" alt="Example_AndroidDialogFragment_ShowMultiChoiceItemDialog" width="400" />
 </p>
 
 #### 입력 다이얼로그
@@ -299,7 +299,7 @@ AndroidDialogFragment.newInstance(
 ```
 
 <p align="center">
-    <img src="images/android/Example_AndroidDialogFragment_ShowTextInputDialog.png" alt="Example_AndroidDialogFragment_ShowTextInputDialog" width="400" />
+    <img src="images/android/dialog/Example_AndroidDialogFragment_ShowTextInputDialog.png" alt="Example_AndroidDialogFragment_ShowTextInputDialog" width="400" />
 </p>
 
 #### 로그인 다이얼로그
@@ -362,7 +362,7 @@ AndroidDialogFragment.newInstance(
 ```
 
 <p align="center">
-    <img src="images/android/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
+    <img src="images/android/dialog/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
 </p>
 
 ---
@@ -935,7 +935,7 @@ MacDialogManager.shared.showDialog(
 ```
 
 <p align="center">
-    <img src="images/mac/Example_MacDialogManager_ShowDialog.png" alt="Example_MacDialogManager_ShowDialog" width="400" />
+    <img src="images/mac/dialog/Example_MacDialogManager_ShowDialog.png" alt="Example_MacDialogManager_ShowDialog" width="400" />
 </p>
 
 #### ShowFileDialog - 파일 선택 다이얼로그
@@ -971,7 +971,7 @@ MacDialogManager.shared.showFileDialog(
 ```
 
 <p align="center">
-    <img src="images/mac/Example_MacDialogManager_ShowFileDialog.png" alt="Example_MacDialogManager_ShowFileDialog" width="1000" />
+    <img src="images/mac/dialog/Example_MacDialogManager_ShowFileDialog.png" alt="Example_MacDialogManager_ShowFileDialog" width="1000" />
 </p>
 
 #### ShowMultiFileDialog - 다중 파일 선택 다이얼로그
@@ -1007,7 +1007,7 @@ MacDialogManager.shared.showMultiFileDialog(
 ```
 
 <p align="center">
-    <img src="images/mac/Example_MacDialogManager_ShowMultiFileDialog.png" alt="Example_MacDialogManager_ShowMultiFileDialog" width="1000" />
+    <img src="images/mac/dialog/Example_MacDialogManager_ShowMultiFileDialog.png" alt="Example_MacDialogManager_ShowMultiFileDialog" width="1000" />
 </p>
 
 #### ShowFolderDialog - 폴더 선택 다이얼로그
@@ -1040,7 +1040,7 @@ MacDialogManager.shared.showFolderDialog(
 ```
 
 <p align="center">
-    <img src="images/mac/Example_MacDialogManager_ShowFolderDialog.png" alt="Example_MacDialogManager_ShowFolderDialog" width="1000" />
+    <img src="images/mac/dialog/Example_MacDialogManager_ShowFolderDialog.png" alt="Example_MacDialogManager_ShowFolderDialog" width="1000" />
 </p>
 
 #### ShowMultiFolderDialog - 다중 폴더 선택 다이얼로그
@@ -1074,7 +1074,7 @@ MacDialogManager.shared.showMultiFolderDialog(
 ```
 
 <p align="center">
-    <img src="images/mac/Example_MacDialogManager_ShowMultiFolderDialog.png" alt="Example_MacDialogManager_ShowMultiFolderDialog" width="1000" />
+    <img src="images/mac/dialog/Example_MacDialogManager_ShowMultiFolderDialog.png" alt="Example_MacDialogManager_ShowMultiFolderDialog" width="1000" />
 </p>
 
 #### ShowSaveFileDialog - 파일 저장 다이얼로그
@@ -1112,5 +1112,5 @@ MacDialogManager.shared.showSaveFileDialog(
 ```
 
 <p align="center">
-    <img src="images/mac/Example_MacDialogManager_ShowSaveFileDialog.png" alt="Example_MacDialogManager_ShowSaveFileDialog" width="600" />
+    <img src="images/mac/dialog/Example_MacDialogManager_ShowSaveFileDialog.png" alt="Example_MacDialogManager_ShowSaveFileDialog" width="600" />
 </p>

@@ -240,11 +240,11 @@ dependencies {
 
 #### 対応プラットフォーム: macOS arm64, x86_64
 
-1. `NativeToolkit-1.0.0-xcode[version].xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
+1. `mac-native-toolkit-1.1.0.xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
 2. Xcode 26.2 で対象プロジェクトを開き、Project Navigator でアプリのターゲットを選択します。
 3. **General** タブを開き、**Frameworks, Libraries, and Embedded Content** の `+` を押します。
-4. 「Add Other...」→「Add Files...」を選択し、`Frameworks/NativeToolkit-1.0.0-xcode[version].xcframework` を追加します。
-5. 追加後、`NativeToolkit-1.0.0-xcode[version].xcframework` の Embed 設定を **Embed & Sign** に変更します。
+4. 「Add Other...」→「Add Files...」を選択し、`Frameworks/mac-native-toolkit-1.1.0.xcframework` を追加します。
+5. 追加後、`mac-native-toolkit-1.1.0.xcframework` の Embed 設定を **Embed & Sign** に変更します。
 6. 同じターゲットの **Build Settings** を開き、`Framework Search Paths` に `$(PROJECT_DIR)/Frameworks` を追加します。（通常は non-recursive）
 7. **Signing & Capabilities** で Team が正しく設定されていることを確認します。
 8. **Product** → **Clean Build Folder** を実行してから、**Run** でビルド・起動します。

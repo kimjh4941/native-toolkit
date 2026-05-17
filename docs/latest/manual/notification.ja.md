@@ -57,23 +57,31 @@
   - [セットアップ](#セットアップ-2)
   - [パーミッション](#パーミッション-2)
     - [権限のリクエスト](#権限のリクエスト)
+    - [パーミッション確認](#パーミッション確認)
     - [認証ステータスの取得](#認証ステータスの取得)
     - [通知設定を開く](#通知設定を開く)
-  - [通知の表示](#通知の表示-1)
+  - [通知の表示](#通知の表示-2)
     - [即時表示](#即時表示)
     - [時間間隔トリガー](#時間間隔トリガー)
     - [カレンダートリガー](#カレンダートリガー)
-  - [通知の更新](#通知の更新)
+  - [更新 / キャンセル / 削除](#更新--キャンセル--削除)
+    - [IDで更新](#idで更新)
+    - [IDでキャンセル](#idでキャンセル)
+    - [すべてキャンセル](#すべてキャンセル)
+    - [配信済み通知の削除](#配信済み通知の削除)
+    - [配信済み通知をすべて削除](#配信済み通知をすべて削除)
   - [スケジュール](#スケジュール)
-    - [将来の通知をスケジュール](#将来の通知をスケジュール)
-    - [スケジュール済みの取り消し](#スケジュール済みの取り消し)
-    - [スケジュール済みの取得](#スケジュール済みの取得)
-  - [配信済み通知](#配信済み通知)
-  - [カテゴリとアクション](#カテゴリとアクション-1)
+    - [時間間隔でスケジュール](#時間間隔でスケジュール)
+    - [カレンダーでスケジュール](#カレンダーでスケジュール)
+    - [IDでキャンセル（スケジュール）](#idでキャンセルスケジュール)
+    - [すべてキャンセル（スケジュール）](#すべてキャンセルスケジュール)
+  - [クエリ](#クエリ)
+    - [スケジュール済みを取得](#スケジュール済みを取得)
+    - [配信済みを取得](#配信済みを取得)
+  - [バッジ](#バッジ-1)
+  - [カテゴリ](#カテゴリ)
     - [カテゴリの登録](#カテゴリの登録-1)
     - [カテゴリの削除](#カテゴリの削除-1)
-    - [アクション受信コールバック](#アクション受信コールバック-1)
-  - [バッジ](#バッジ-1)
   - [エラーコード](#エラーコード)
 
 ---
@@ -1153,20 +1161,25 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 **スレッド安全性:** 公開 API はどのスレッドからでも呼び出せます。すべての completion コールバックは **メインキュー** で実行されます。
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager.png" alt="Example_MacNotificationManager" width="800" />
+</p>
+
 ### セットアップ
 
-アプリ起動時（例: `applicationDidFinishLaunching`）に一度だけ `setup()` を呼び出します。
+アプリ起動時（例: `applicationDidFinishLaunching`）に一度だけ `setup()` を呼び出します。アクション受信コールバックはここで登録します。
 
 ```swift
 import MacLibrary
 
 MacNotificationManager.shared.setup()
 
-// アクションコールバックの設定（任意）
+// アクションボタンのタップを受信
 MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
     print("アクション受信: \(notificationId), \(actionId)")
 }
 
+// テキスト入力アクションの送信を受信
 MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
     print("テキスト入力受信: \(userText)")
 }
@@ -1180,19 +1193,46 @@ MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId
 MacNotificationManager.shared.requestPermission { result in
     // メインキューで実行
     switch result {
-    case .success(let granted):
-        print("許可: \(granted)")
+    case .success:
+        print("通知権限が許可されました")
+    case .failure(let error):
+        if error.errorCode == 1002 || error.errorCode == 1003 {
+            // 拒否済み - 設定アプリから手動で有効化が必要
+            print("権限が拒否されています。設定から通知を有効にしてください。")
+        } else {
+            print("エラー \(error.errorCode): \(error.errorMessage)")
+        }
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RequestPermission.png" alt="Example_MacNotificationManager_RequestPermission" width="800" />
+</p>
+
+#### パーミッション確認
+
+許可済みかどうかを真偽値で確認します。
+
+```swift
+MacNotificationManager.shared.getAuthorizationStatus { result in
+    switch result {
+    case .success(let status):
+        let hasPermission = status == .authorized || status == .provisional
+        print("通知許可: \(hasPermission)")
     case .failure(let error):
         print("エラー \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-![権限リクエストダイアログ](images/mac/notification/Example_MacNotificationManager_RequestPermission.png)
-
-> 注意: スクリーンショットは手動で追加が必要です。
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_HasPermission.png" alt="Example_MacNotificationManager_HasPermission" width="800" />
+</p>
 
 #### 認証ステータスの取得
+
+詳細なステータス値を取得します。
 
 ```swift
 MacNotificationManager.shared.getAuthorizationStatus { result in
@@ -1206,6 +1246,10 @@ MacNotificationManager.shared.getAuthorizationStatus { result in
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_AuthorizationStatus.png" alt="Example_MacNotificationManager_AuthorizationStatus" width="800" />
+</p>
+
 #### 通知設定を開く
 
 ```swift
@@ -1215,6 +1259,10 @@ MacNotificationManager.shared.openNotificationSettings { result in
     }
 }
 ```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_OpenNotificationSettings.png" alt="Example_MacNotificationManager_OpenNotificationSettings" width="800" />
+</p>
 
 ### 通知の表示
 
@@ -1231,10 +1279,13 @@ MacNotificationManager.shared.openNotificationSettings { result in
 import MacLibrary
 
 let content = NotificationContent(
-    id: "hello-notification",
-    title: "こんにちは",
-    body: "即時通知のサンプルです。",
-    categoryIdentifier: "sample-category"
+    id: "mac-sample-notification",
+    title: "Immediate Notification",
+    body: "Displayed now",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 
 MacNotificationManager.shared.show(content: content) { result in
@@ -1248,9 +1299,9 @@ MacNotificationManager.shared.show(content: content) { result in
 }
 ```
 
-![即時通知](images/mac/notification/Example_MacNotificationManager_ShowImmediate.png)
-
-> 注意: スクリーンショットは手動で追加が必要です。
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowImmediate.png" alt="Example_MacNotificationManager_ShowImmediate" width="800" />
+</p>
 
 #### 時間間隔トリガー
 
@@ -1268,41 +1319,55 @@ MacNotificationManager.shared.show(
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowTimeInterval.png" alt="Example_MacNotificationManager_ShowTimeInterval" width="800" />
+</p>
+
 #### カレンダートリガー
 
 ```swift
-var components = DateComponents()
-components.hour = 9
-components.minute = 0
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextDate)
+components.second = 0
 
 MacNotificationManager.shared.show(
     content: content,
-    trigger: .calendar(dateComponents: components, repeats: true)
+    trigger: .calendar(dateComponents: components, repeats: false)
 ) { result in
     switch result {
     case .success:
-        print("毎日 09:00 にスケジュール済み")
+        print("1分後にスケジュール済み")
     case .failure(let error):
         print("エラー \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-### 通知の更新
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowCalendar.png" alt="Example_MacNotificationManager_ShowCalendar" width="800" />
+</p>
+
+### 更新 / キャンセル / 削除
+
+#### IDで更新
 
 保留中の通知を新しい内容に置き換えます。
 
 ```swift
 let updatedContent = NotificationContent(
-    id: "hello-notification",
-    title: "更新されたタイトル",
-    body: "内容が更新されました。"
+    id: "mac-sample-notification",
+    title: "Updated Notification",
+    body: "This content was updated",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 
 MacNotificationManager.shared.update(
-    identifier: "hello-notification",
+    identifier: "mac-sample-notification",
     content: updatedContent,
-    trigger: .timeInterval(seconds: 5, repeats: false)
+    trigger: .immediate
 ) { result in
     switch result {
     case .success:
@@ -1314,22 +1379,64 @@ MacNotificationManager.shared.update(
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_UpdateById.png" alt="Example_MacNotificationManager_UpdateById" width="800" />
+</p>
+
+#### IDでキャンセル
+
+```swift
+MacNotificationManager.shared.cancelScheduled(identifier: "mac-sample-notification")
+```
+
+#### すべてキャンセル
+
+```swift
+MacNotificationManager.shared.cancelAllScheduled()
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_CancelAll.png" alt="Example_MacNotificationManager_CancelAll" width="800" />
+</p>
+
+#### 配信済み通知の削除
+
+通知センターから特定の通知を削除します。
+
+```swift
+MacNotificationManager.shared.removeDelivered(identifier: "mac-sample-notification")
+```
+
+#### 配信済み通知をすべて削除
+
+```swift
+MacNotificationManager.shared.removeAllDelivered()
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RemoveAllDelivered.png" alt="Example_MacNotificationManager_RemoveAllDelivered" width="800" />
+</p>
+
 ### スケジュール
 
 `schedule()` を使って将来の通知を登録します。トリガーは `.immediate` 以外を指定してください。
 
-#### 将来の通知をスケジュール
+#### 時間間隔でスケジュール
 
 ```swift
 let content = NotificationContent(
-    id: "scheduled-notification",
-    title: "スケジュール通知",
-    body: "30秒後に配信されます。"
+    id: "mac-sample-scheduled",
+    title: "Scheduled Notification",
+    body: "Scheduled in 10 seconds",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-scheduled"],
+    badge: nil
 )
 
 MacNotificationManager.shared.schedule(
     content: content,
-    trigger: .timeInterval(seconds: 30, repeats: false)
+    trigger: .timeInterval(seconds: 10, repeats: false)
 ) { result in
     switch result {
     case .success:
@@ -1340,79 +1447,137 @@ MacNotificationManager.shared.schedule(
 }
 ```
 
-#### スケジュール済みの取り消し
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleTimeInterval.png" alt="Example_MacNotificationManager_ScheduleTimeInterval" width="800" />
+</p>
+
+#### カレンダーでスケジュール
 
 ```swift
-// 特定の保留中通知を取り消す
-MacNotificationManager.shared.cancelScheduled(identifier: "scheduled-notification")
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextDate)
+components.second = 0
 
-// すべての保留中通知を取り消す
+MacNotificationManager.shared.schedule(
+    content: content,
+    trigger: .calendar(dateComponents: components, repeats: false)
+) { result in
+    switch result {
+    case .success:
+        print("カレンダースケジュール済み")
+    case .failure(let error):
+        print("エラー \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleCalendar.png" alt="Example_MacNotificationManager_ScheduleCalendar" width="800" />
+</p>
+
+#### IDでキャンセル（スケジュール）
+
+```swift
+MacNotificationManager.shared.cancelScheduled(identifier: "mac-sample-scheduled")
+```
+
+#### すべてキャンセル（スケジュール）
+
+```swift
 MacNotificationManager.shared.cancelAllScheduled()
 ```
 
-#### スケジュール済みの取得
+### クエリ
+
+#### スケジュール済みを取得
 
 ```swift
 MacNotificationManager.shared.getScheduled { result in
     switch result {
-    case .success(let notifications):
-        notifications.forEach { print($0.identifier, $0.title) }
+    case .success(let items):
+        let ids = items.map { $0.identifier }.joined(separator: ", ")
+        print("スケジュール済み: \(items.count) 件, ids=[\(ids)]")
     case .failure(let error):
         print("エラー \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-### 配信済み通知
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_GetScheduled.png" alt="Example_MacNotificationManager_GetScheduled" width="800" />
+</p>
+
+#### 配信済みを取得
 
 ```swift
-// 配信済み通知をすべて取得
 MacNotificationManager.shared.getDelivered { result in
     switch result {
-    case .success(let notifications):
-        notifications.forEach { print($0.identifier, $0.date) }
+    case .success(let items):
+        let ids = items.map { $0.identifier }.joined(separator: ", ")
+        print("配信済み: \(items.count) 件, ids=[\(ids)]")
     case .failure(let error):
         print("エラー \(error.errorCode): \(error.errorMessage)")
     }
 }
-
-// 特定の配信済み通知を削除
-MacNotificationManager.shared.removeDelivered(identifier: "hello-notification")
-
-// 配信済み通知をすべて削除
-MacNotificationManager.shared.removeAllDelivered()
 ```
 
-### カテゴリとアクション
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_GetDelivered.png" alt="Example_MacNotificationManager_GetDelivered" width="800" />
+</p>
+
+### バッジ
+
+#### バッジカウントを設定（1）
+
+```swift
+MacNotificationManager.shared.setBadgeCount(1) { result in
+    switch result {
+    case .success:
+        print("バッジを 1 に設定しました")
+    case .failure(let error):
+        print("エラー \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount1.png" alt="Example_MacNotificationManager_SetBadgeCount1" width="800" />
+</p>
+
+#### バッジをクリア（0）
+
+```swift
+MacNotificationManager.shared.setBadgeCount(0) { result in
+    switch result {
+    case .success:
+        print("バッジをクリアしました")
+    case .failure(let error):
+        print("エラー \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount0.png" alt="Example_MacNotificationManager_SetBadgeCount0" width="800" />
+</p>
+
+### カテゴリ
 
 #### カテゴリの登録
 
 ```swift
 let category = NotificationCategory(
-    id: "sample-category",
+    id: "mac-sample-category",
     actions: [
-        NotificationAction(
-            id: "open",
-            title: "開く",
-            isForeground: true
-        ),
-        NotificationAction(
-            id: "delete",
-            title: "削除",
-            isForeground: false
-        ),
-        NotificationAction(
-            id: "reply",
-            title: "返信",
-            isTextInput: true,
-            textInputPlaceholder: "メッセージを入力"
-        )
+        NotificationAction(id: "open", title: "Open", isForeground: true),
+        NotificationAction(id: "reply", title: "Reply", isTextInput: true, textInputPlaceholder: "Type message")
     ]
 )
 
 MacNotificationManager.shared.registerCategory(category) { result in
     switch result {
     case .success:
+        // 通知を送信して右クリックするとアクション（Open, Reply）が表示される
         print("カテゴリを登録しました")
     case .failure(let error):
         print("エラー \(error.errorCode): \(error.errorMessage)")
@@ -1424,68 +1589,33 @@ MacNotificationManager.shared.registerCategory(category) { result in
 
 ```swift
 let content = NotificationContent(
-    id: "action-notification",
+    id: "mac-sample-notification",
     title: "アクション付き通知",
-    body: "長押しするとアクションが表示されます",
-    categoryIdentifier: "sample-category"
+    body: "右クリックするとアクションが表示されます",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 ```
 
-![カテゴリアクション](images/mac/notification/Example_MacNotificationManager_Category.png)
-
-> 注意: スクリーンショットは手動で追加が必要です。
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RegisterCategory.png" alt="Example_MacNotificationManager_RegisterCategory" width="800" />
+</p>
 
 #### カテゴリの削除
 
 ```swift
-MacNotificationManager.shared.removeCategory(identifier: "sample-category") { result in
+MacNotificationManager.shared.removeCategory(identifier: "mac-sample-category") { result in
     if case .failure(let error) = result {
         print("エラー \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-#### アクション受信コールバック
-
-```swift
-// アクションボタンのタップを受信
-MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
-    print("通知: \(notificationId), アクション: \(actionId)")
-}
-
-// テキスト入力アクションの送信を受信
-MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
-    print("通知: \(notificationId), アクション: \(actionId), テキスト: \(userText)")
-}
-```
-
-### バッジ
-
-```swift
-// バッジカウントを設定
-MacNotificationManager.shared.setBadgeCount(1) { result in
-    switch result {
-    case .success:
-        print("バッジを 1 に設定しました")
-    case .failure(let error):
-        print("エラー \(error.errorCode): \(error.errorMessage)")
-    }
-}
-
-// バッジをクリア
-MacNotificationManager.shared.setBadgeCount(0) { result in
-    switch result {
-    case .success:
-        print("バッジをクリアしました")
-    case .failure(let error):
-        print("エラー \(error.errorCode): \(error.errorMessage)")
-    }
-}
-```
-
-![バッジ](images/mac/notification/Example_MacNotificationManager_Badge.png)
-
-> 注意: スクリーンショットは手動で追加が必要です。
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RemoveCategory.png" alt="Example_MacNotificationManager_RemoveCategory" width="800" />
+</p>
 
 ### エラーコード
 
