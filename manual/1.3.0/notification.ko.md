@@ -57,23 +57,31 @@
   - [설정](#설정-2)
   - [권한](#권한-2)
     - [권한 요청](#권한-요청)
-    - [인증 상태 확인](#인증-상태-확인)
-    - [알림 설정 열기](#알림-설정-열기)
-  - [알림 표시](#알림-표시-1)
-    - [즉시 표시](#즉시-표시)
-    - [시간 간격 트리거](#시간-간격-트리거)
-    - [캘린더 트리거](#캘린더-트리거)
-  - [알림 업데이트](#알림-업데이트)
+    - [권한 확인](#권한-확인-1)
+    - [인증 상태 가져오기](#인증-상태-가져오기-1)
+    - [알림 설정 열기](#알림-설정-열기-1)
+  - [알림 표시](#알림-표시-2)
+    - [즉시 표시](#즉시-표시-1)
+    - [시간 간격 트리거](#시간-간격-트리거-1)
+    - [캘린더 트리거](#캘린더-트리거-1)
+  - [업데이트 / 취소 / 삭제](#업데이트--취소--삭제)
+    - [ID로 업데이트](#id로-업데이트)
+    - [ID로 취소](#id로-취소)
+    - [전체 취소](#전체-취소)
+    - [전달된 알림 삭제](#전달된-알림-삭제)
+    - [전달된 알림 전체 삭제](#전달된-알림-전체-삭제)
   - [예약](#예약)
-    - [미래 알림 예약](#미래-알림-예약)
-    - [예약 취소](#예약-취소)
+    - [시간 간격으로 예약](#시간-간격으로-예약)
+    - [캘린더로 예약](#캘린더로-예약)
+    - [ID로 예약 취소](#id로-예약-취소)
+    - [전체 예약 취소](#전체-예약-취소)
+  - [조회](#조회-1)
     - [예약된 알림 조회](#예약된-알림-조회)
-  - [전달된 알림](#전달된-알림)
-  - [카테고리 및 액션](#카테고리-및-액션-1)
+    - [전달된 알림 조회](#전달된-알림-조회)
+  - [배지](#배지-1)
+  - [카테고리](#카테고리)
     - [카테고리 등록](#카테고리-등록-1)
     - [카테고리 삭제](#카테고리-삭제-1)
-    - [액션 수신 콜백](#액션-수신-콜백-1)
-  - [배지](#배지-1)
   - [에러 코드](#에러-코드)
 
 ---
@@ -1153,20 +1161,25 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 **스레드 안전성:** 공개 API는 어느 스레드에서든 호출할 수 있습니다. 모든 completion 콜백은 **메인 큐**에서 실행됩니다.
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager.png" alt="Example_MacNotificationManager" width="800" />
+</p>
+
 ### 설정
 
-앱 실행 시(예: `applicationDidFinishLaunching`) 한 번만 `setup()`을 호출합니다.
+앱 실행 시(예: `applicationDidFinishLaunching`) 한 번만 `setup()`을 호출합니다. 액션 수신 콜백은 여기서 등록합니다.
 
 ```swift
 import MacLibrary
 
 MacNotificationManager.shared.setup()
 
-// 액션 콜백 설정 (선택 사항)
+// 액션 버튼 탭 수신
 MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
     print("액션 수신: \(notificationId), \(actionId)")
 }
 
+// 텍스트 입력 액션 제출 수신
 MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
     print("텍스트 입력 수신: \(userText)")
 }
@@ -1180,19 +1193,46 @@ MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId
 MacNotificationManager.shared.requestPermission { result in
     // 메인 큐에서 실행
     switch result {
-    case .success(let granted):
-        print("허가됨: \(granted)")
+    case .success:
+        print("알림 권한이 허가되었습니다")
+    case .failure(let error):
+        if error.errorCode == 1002 || error.errorCode == 1003 {
+            // 거부됨 — 설정 앱에서 수동으로 알림을 활성화해야 합니다
+            print("권한이 거부되었습니다. 설정에서 알림을 활성화해 주세요.")
+        } else {
+            print("에러 \(error.errorCode): \(error.errorMessage)")
+        }
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RequestPermission.png" alt="Example_MacNotificationManager_RequestPermission" width="800" />
+</p>
+
+#### 권한 확인
+
+알림이 허가되어 있는지 불리언으로 확인합니다.
+
+```swift
+MacNotificationManager.shared.getAuthorizationStatus { result in
+    switch result {
+    case .success(let status):
+        let hasPermission = status == .authorized || status == .provisional
+        print("권한 여부: \(hasPermission)")
     case .failure(let error):
         print("에러 \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-![권한 요청 다이얼로그](images/mac/notification/Example_MacNotificationManager_RequestPermission.png)
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_HasPermission.png" alt="Example_MacNotificationManager_HasPermission" width="800" />
+</p>
 
-> 참고: 스크린샷은 직접 추가가 필요합니다.
+#### 인증 상태 가져오기
 
-#### 인증 상태 확인
+상세한 인증 상태 값을 가져옵니다.
 
 ```swift
 MacNotificationManager.shared.getAuthorizationStatus { result in
@@ -1206,6 +1246,10 @@ MacNotificationManager.shared.getAuthorizationStatus { result in
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_AuthorizationStatus.png" alt="Example_MacNotificationManager_AuthorizationStatus" width="800" />
+</p>
+
 #### 알림 설정 열기
 
 ```swift
@@ -1215,6 +1259,10 @@ MacNotificationManager.shared.openNotificationSettings { result in
     }
 }
 ```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_OpenNotificationSettings.png" alt="Example_MacNotificationManager_OpenNotificationSettings" width="800" />
+</p>
 
 ### 알림 표시
 
@@ -1231,10 +1279,13 @@ MacNotificationManager.shared.openNotificationSettings { result in
 import MacLibrary
 
 let content = NotificationContent(
-    id: "hello-notification",
-    title: "안녕하세요",
-    body: "즉시 알림 예시입니다.",
-    categoryIdentifier: "sample-category"
+    id: "mac-sample-notification",
+    title: "Immediate Notification",
+    body: "Displayed now",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 
 MacNotificationManager.shared.show(content: content) { result in
@@ -1248,9 +1299,9 @@ MacNotificationManager.shared.show(content: content) { result in
 }
 ```
 
-![즉시 알림](images/mac/notification/Example_MacNotificationManager_ShowImmediate.png)
-
-> 참고: 스크린샷은 직접 추가가 필요합니다.
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowImmediate.png" alt="Example_MacNotificationManager_ShowImmediate" width="800" />
+</p>
 
 #### 시간 간격 트리거
 
@@ -1268,41 +1319,55 @@ MacNotificationManager.shared.show(
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowTimeInterval.png" alt="Example_MacNotificationManager_ShowTimeInterval" width="800" />
+</p>
+
 #### 캘린더 트리거
 
 ```swift
-var components = DateComponents()
-components.hour = 9
-components.minute = 0
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextDate)
+components.second = 0
 
 MacNotificationManager.shared.show(
     content: content,
-    trigger: .calendar(dateComponents: components, repeats: true)
+    trigger: .calendar(dateComponents: components, repeats: false)
 ) { result in
     switch result {
     case .success:
-        print("매일 09:00로 예약됨")
+        print("1분 후로 예약됨")
     case .failure(let error):
         print("에러 \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-### 알림 업데이트
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowCalendar.png" alt="Example_MacNotificationManager_ShowCalendar" width="800" />
+</p>
+
+### 업데이트 / 취소 / 삭제
+
+#### ID로 업데이트
 
 보류 중인 알림을 새 내용으로 교체합니다.
 
 ```swift
 let updatedContent = NotificationContent(
-    id: "hello-notification",
-    title: "업데이트된 제목",
-    body: "내용이 업데이트되었습니다."
+    id: "mac-sample-notification",
+    title: "Updated Notification",
+    body: "This content was updated",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 
 MacNotificationManager.shared.update(
-    identifier: "hello-notification",
+    identifier: "mac-sample-notification",
     content: updatedContent,
-    trigger: .timeInterval(seconds: 5, repeats: false)
+    trigger: .immediate
 ) { result in
     switch result {
     case .success:
@@ -1314,22 +1379,64 @@ MacNotificationManager.shared.update(
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_UpdateById.png" alt="Example_MacNotificationManager_UpdateById" width="800" />
+</p>
+
+#### ID로 취소
+
+```swift
+MacNotificationManager.shared.cancelScheduled(identifier: "mac-sample-notification")
+```
+
+#### 전체 취소
+
+```swift
+MacNotificationManager.shared.cancelAllScheduled()
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_CancelAll.png" alt="Example_MacNotificationManager_CancelAll" width="800" />
+</p>
+
+#### 전달된 알림 삭제
+
+알림 센터에서 특정 알림을 삭제합니다.
+
+```swift
+MacNotificationManager.shared.removeDelivered(identifier: "mac-sample-notification")
+```
+
+#### 전달된 알림 전체 삭제
+
+```swift
+MacNotificationManager.shared.removeAllDelivered()
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RemoveAllDelivered.png" alt="Example_MacNotificationManager_RemoveAllDelivered" width="800" />
+</p>
+
 ### 예약
 
 `schedule()`을 사용하여 미래 알림을 등록합니다. 트리거는 `.immediate` 이외를 지정해야 합니다.
 
-#### 미래 알림 예약
+#### 시간 간격으로 예약
 
 ```swift
 let content = NotificationContent(
-    id: "scheduled-notification",
-    title: "예약 알림",
-    body: "30초 후에 전달됩니다."
+    id: "mac-sample-scheduled",
+    title: "Scheduled Notification",
+    body: "Scheduled in 10 seconds",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-scheduled"],
+    badge: nil
 )
 
 MacNotificationManager.shared.schedule(
     content: content,
-    trigger: .timeInterval(seconds: 30, repeats: false)
+    trigger: .timeInterval(seconds: 10, repeats: false)
 ) { result in
     switch result {
     case .success:
@@ -1340,79 +1447,137 @@ MacNotificationManager.shared.schedule(
 }
 ```
 
-#### 예약 취소
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleTimeInterval.png" alt="Example_MacNotificationManager_ScheduleTimeInterval" width="800" />
+</p>
+
+#### 캘린더로 예약
 
 ```swift
-// 특정 보류 중 알림 취소
-MacNotificationManager.shared.cancelScheduled(identifier: "scheduled-notification")
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextDate)
+components.second = 0
 
-// 모든 보류 중 알림 취소
+MacNotificationManager.shared.schedule(
+    content: content,
+    trigger: .calendar(dateComponents: components, repeats: false)
+) { result in
+    switch result {
+    case .success:
+        print("캘린더 예약됨")
+    case .failure(let error):
+        print("에러 \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleCalendar.png" alt="Example_MacNotificationManager_ScheduleCalendar" width="800" />
+</p>
+
+#### ID로 예약 취소
+
+```swift
+MacNotificationManager.shared.cancelScheduled(identifier: "mac-sample-scheduled")
+```
+
+#### 전체 예약 취소
+
+```swift
 MacNotificationManager.shared.cancelAllScheduled()
 ```
+
+### 조회
 
 #### 예약된 알림 조회
 
 ```swift
 MacNotificationManager.shared.getScheduled { result in
     switch result {
-    case .success(let notifications):
-        notifications.forEach { print($0.identifier, $0.title) }
+    case .success(let items):
+        let ids = items.map { $0.identifier }.joined(separator: ", ")
+        print("예약됨: \(items.count)건, ids=[\(ids)]")
     case .failure(let error):
         print("에러 \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-### 전달된 알림
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_GetScheduled.png" alt="Example_MacNotificationManager_GetScheduled" width="800" />
+</p>
+
+#### 전달된 알림 조회
 
 ```swift
-// 전달된 알림 모두 조회
 MacNotificationManager.shared.getDelivered { result in
     switch result {
-    case .success(let notifications):
-        notifications.forEach { print($0.identifier, $0.date) }
+    case .success(let items):
+        let ids = items.map { $0.identifier }.joined(separator: ", ")
+        print("전달됨: \(items.count)건, ids=[\(ids)]")
     case .failure(let error):
         print("에러 \(error.errorCode): \(error.errorMessage)")
     }
 }
-
-// 특정 전달된 알림 삭제
-MacNotificationManager.shared.removeDelivered(identifier: "hello-notification")
-
-// 전달된 알림 모두 삭제
-MacNotificationManager.shared.removeAllDelivered()
 ```
 
-### 카테고리 및 액션
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_GetDelivered.png" alt="Example_MacNotificationManager_GetDelivered" width="800" />
+</p>
+
+### 배지
+
+#### 배지 카운트 설정 (1)
+
+```swift
+MacNotificationManager.shared.setBadgeCount(1) { result in
+    switch result {
+    case .success:
+        print("배지를 1로 설정했습니다")
+    case .failure(let error):
+        print("에러 \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount1.png" alt="Example_MacNotificationManager_SetBadgeCount1" width="800" />
+</p>
+
+#### 배지 초기화 (0)
+
+```swift
+MacNotificationManager.shared.setBadgeCount(0) { result in
+    switch result {
+    case .success:
+        print("배지를 초기화했습니다")
+    case .failure(let error):
+        print("에러 \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount0.png" alt="Example_MacNotificationManager_SetBadgeCount0" width="800" />
+</p>
+
+### 카테고리
 
 #### 카테고리 등록
 
 ```swift
 let category = NotificationCategory(
-    id: "sample-category",
+    id: "mac-sample-category",
     actions: [
-        NotificationAction(
-            id: "open",
-            title: "열기",
-            isForeground: true
-        ),
-        NotificationAction(
-            id: "delete",
-            title: "삭제",
-            isForeground: false
-        ),
-        NotificationAction(
-            id: "reply",
-            title: "답장",
-            isTextInput: true,
-            textInputPlaceholder: "메시지를 입력하세요"
-        )
+        NotificationAction(id: "open", title: "Open", isForeground: true),
+        NotificationAction(id: "reply", title: "Reply", isTextInput: true, textInputPlaceholder: "Type message")
     ]
 )
 
 MacNotificationManager.shared.registerCategory(category) { result in
     switch result {
     case .success:
+        // 알림을 전송하고 우클릭하면 액션(Open, Reply)이 표시됩니다
         print("카테고리를 등록했습니다")
     case .failure(let error):
         print("에러 \(error.errorCode): \(error.errorMessage)")
@@ -1424,68 +1589,33 @@ MacNotificationManager.shared.registerCategory(category) { result in
 
 ```swift
 let content = NotificationContent(
-    id: "action-notification",
+    id: "mac-sample-notification",
     title: "액션이 있는 알림",
-    body: "길게 눌러 액션을 확인하세요",
-    categoryIdentifier: "sample-category"
+    body: "우클릭하면 액션이 표시됩니다",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 ```
 
-![카테고리 액션](images/mac/notification/Example_MacNotificationManager_Category.png)
-
-> 참고: 스크린샷은 직접 추가가 필요합니다.
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RegisterCategory.png" alt="Example_MacNotificationManager_RegisterCategory" width="800" />
+</p>
 
 #### 카테고리 삭제
 
 ```swift
-MacNotificationManager.shared.removeCategory(identifier: "sample-category") { result in
+MacNotificationManager.shared.removeCategory(identifier: "mac-sample-category") { result in
     if case .failure(let error) = result {
         print("에러 \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-#### 액션 수신 콜백
-
-```swift
-// 액션 버튼 탭 수신
-MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
-    print("알림: \(notificationId), 액션: \(actionId)")
-}
-
-// 텍스트 입력 액션 제출 수신
-MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
-    print("알림: \(notificationId), 액션: \(actionId), 텍스트: \(userText)")
-}
-```
-
-### 배지
-
-```swift
-// 배지 카운트 설정
-MacNotificationManager.shared.setBadgeCount(1) { result in
-    switch result {
-    case .success:
-        print("배지를 1로 설정했습니다")
-    case .failure(let error):
-        print("에러 \(error.errorCode): \(error.errorMessage)")
-    }
-}
-
-// 배지 초기화
-MacNotificationManager.shared.setBadgeCount(0) { result in
-    switch result {
-    case .success:
-        print("배지를 초기화했습니다")
-    case .failure(let error):
-        print("에러 \(error.errorCode): \(error.errorMessage)")
-    }
-}
-```
-
-![배지](images/mac/notification/Example_MacNotificationManager_Badge.png)
-
-> 참고: 스크린샷은 직접 추가가 필요합니다.
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RemoveCategory.png" alt="Example_MacNotificationManager_RemoveCategory" width="800" />
+</p>
 
 ### 에러 코드
 

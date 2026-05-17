@@ -57,23 +57,31 @@ Language:
   - [Setup](#setup-2)
   - [Permission](#permission-2)
     - [Request Permission](#request-permission)
+    - [Check Permission](#check-permission-1)
     - [Get Authorization Status](#get-authorization-status-1)
     - [Open Notification Settings](#open-notification-settings-1)
-  - [Show Notification](#show-notification-1)
+  - [Show Notification](#show-notification-2)
     - [Immediate](#immediate-1)
     - [Time Interval Trigger](#time-interval-trigger-1)
     - [Calendar Trigger](#calendar-trigger-1)
-  - [Update Notification](#update-notification-1)
+  - [Update / Cancel / Remove](#update--cancel--remove)
+    - [Update by ID](#update-by-id)
+    - [Cancel by ID](#cancel-by-id)
+    - [Cancel All](#cancel-all)
+    - [Remove Delivered by ID](#remove-delivered-by-id)
+    - [Remove All Delivered](#remove-all-delivered)
   - [Schedule](#schedule)
-    - [Schedule Future Notification](#schedule-future-notification)
-    - [Cancel Scheduled](#cancel-scheduled-1)
+    - [Schedule with Time Interval](#schedule-with-time-interval)
+    - [Schedule with Calendar](#schedule-with-calendar)
+    - [Cancel Scheduled by ID](#cancel-scheduled-by-id)
+    - [Cancel All Scheduled](#cancel-all-scheduled)
+  - [Query](#query-1)
     - [Get Scheduled](#get-scheduled)
-  - [Delivered Notifications](#delivered-notifications)
-  - [Categories and Actions](#categories-and-actions-1)
+    - [Get Delivered](#get-delivered)
+  - [Badge](#badge-1)
+  - [Category](#category)
     - [Register Category](#register-category-1)
     - [Remove Category](#remove-category-1)
-    - [Action Received Callbacks](#action-received-callbacks-1)
-  - [Badge](#badge-1)
   - [Error Codes](#error-codes)
 
 ---
@@ -1153,20 +1161,25 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 **Thread safety:** Public APIs can be called from any thread. All completion callbacks are dispatched to the **main queue**.
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager.png" alt="Example_MacNotificationManager" width="800" />
+</p>
+
 ### Setup
 
-Call `setup()` once at app launch (e.g. in `applicationDidFinishLaunching`).
+Call `setup()` once at app launch (e.g. in `applicationDidFinishLaunching`). Register action callbacks here.
 
 ```swift
 import MacLibrary
 
 MacNotificationManager.shared.setup()
 
-// Set up action callbacks (optional)
+// Receive action button taps
 MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
     print("Action received: \(notificationId), \(actionId)")
 }
 
+// Receive text input action submissions
 MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
     print("Text input received: \(userText)")
 }
@@ -1180,19 +1193,46 @@ MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId
 MacNotificationManager.shared.requestPermission { result in
     // runs on main queue
     switch result {
-    case .success(let granted):
-        print("Granted: \(granted)")
+    case .success:
+        print("Notification permission granted")
+    case .failure(let error):
+        if error.errorCode == 1002 || error.errorCode == 1003 {
+            // denied — user must enable notifications manually in Settings
+            print("Permission denied. Please enable notifications in Settings.")
+        } else {
+            print("Error \(error.errorCode): \(error.errorMessage)")
+        }
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RequestPermission.png" alt="Example_MacNotificationManager_RequestPermission" width="800" />
+</p>
+
+#### Check Permission
+
+Returns a boolean indicating whether notifications are allowed.
+
+```swift
+MacNotificationManager.shared.getAuthorizationStatus { result in
+    switch result {
+    case .success(let status):
+        let hasPermission = status == .authorized || status == .provisional
+        print("Has permission: \(hasPermission)")
     case .failure(let error):
         print("Error \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-![Request Permission Dialog](images/mac/notification/Example_MacNotificationManager_RequestPermission.png)
-
-> Note: Screenshots must be added manually.
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_HasPermission.png" alt="Example_MacNotificationManager_HasPermission" width="800" />
+</p>
 
 #### Get Authorization Status
+
+Returns the detailed authorization status.
 
 ```swift
 MacNotificationManager.shared.getAuthorizationStatus { result in
@@ -1206,6 +1246,10 @@ MacNotificationManager.shared.getAuthorizationStatus { result in
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_AuthorizationStatus.png" alt="Example_MacNotificationManager_AuthorizationStatus" width="800" />
+</p>
+
 #### Open Notification Settings
 
 ```swift
@@ -1215,6 +1259,10 @@ MacNotificationManager.shared.openNotificationSettings { result in
     }
 }
 ```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_OpenNotificationSettings.png" alt="Example_MacNotificationManager_OpenNotificationSettings" width="800" />
+</p>
 
 ### Show Notification
 
@@ -1231,10 +1279,13 @@ Create a `NotificationContent` and call `show()`.
 import MacLibrary
 
 let content = NotificationContent(
-    id: "hello-notification",
-    title: "Hello",
-    body: "This is an immediate notification.",
-    categoryIdentifier: "sample-category"
+    id: "mac-sample-notification",
+    title: "Immediate Notification",
+    body: "Displayed now",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 
 MacNotificationManager.shared.show(content: content) { result in
@@ -1248,9 +1299,9 @@ MacNotificationManager.shared.show(content: content) { result in
 }
 ```
 
-![Immediate Notification](images/mac/notification/Example_MacNotificationManager_ShowImmediate.png)
-
-> Note: Screenshots must be added manually.
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowImmediate.png" alt="Example_MacNotificationManager_ShowImmediate" width="800" />
+</p>
 
 #### Time Interval Trigger
 
@@ -1268,41 +1319,55 @@ MacNotificationManager.shared.show(
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowTimeInterval.png" alt="Example_MacNotificationManager_ShowTimeInterval" width="800" />
+</p>
+
 #### Calendar Trigger
 
 ```swift
-var components = DateComponents()
-components.hour = 9
-components.minute = 0
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextDate)
+components.second = 0
 
 MacNotificationManager.shared.show(
     content: content,
-    trigger: .calendar(dateComponents: components, repeats: true)
+    trigger: .calendar(dateComponents: components, repeats: false)
 ) { result in
     switch result {
     case .success:
-        print("Scheduled daily at 09:00")
+        print("Scheduled for 1 minute later")
     case .failure(let error):
         print("Error \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-### Update Notification
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ShowCalendar.png" alt="Example_MacNotificationManager_ShowCalendar" width="800" />
+</p>
+
+### Update / Cancel / Remove
+
+#### Update by ID
 
 Replaces a pending notification with new content.
 
 ```swift
 let updatedContent = NotificationContent(
-    id: "hello-notification",
-    title: "Updated Title",
-    body: "The content has been updated."
+    id: "mac-sample-notification",
+    title: "Updated Notification",
+    body: "This content was updated",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 
 MacNotificationManager.shared.update(
-    identifier: "hello-notification",
+    identifier: "mac-sample-notification",
     content: updatedContent,
-    trigger: .timeInterval(seconds: 5, repeats: false)
+    trigger: .immediate
 ) { result in
     switch result {
     case .success:
@@ -1314,22 +1379,64 @@ MacNotificationManager.shared.update(
 }
 ```
 
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_UpdateById.png" alt="Example_MacNotificationManager_UpdateById" width="800" />
+</p>
+
+#### Cancel by ID
+
+```swift
+MacNotificationManager.shared.cancelScheduled(identifier: "mac-sample-notification")
+```
+
+#### Cancel All
+
+```swift
+MacNotificationManager.shared.cancelAllScheduled()
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_CancelAll.png" alt="Example_MacNotificationManager_CancelAll" width="800" />
+</p>
+
+#### Remove Delivered by ID
+
+Removes a specific notification from Notification Center.
+
+```swift
+MacNotificationManager.shared.removeDelivered(identifier: "mac-sample-notification")
+```
+
+#### Remove All Delivered
+
+```swift
+MacNotificationManager.shared.removeAllDelivered()
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RemoveAllDelivered.png" alt="Example_MacNotificationManager_RemoveAllDelivered" width="800" />
+</p>
+
 ### Schedule
 
 Use `schedule()` to register a future notification. The trigger must not be `.immediate`.
 
-#### Schedule Future Notification
+#### Schedule with Time Interval
 
 ```swift
 let content = NotificationContent(
-    id: "scheduled-notification",
+    id: "mac-sample-scheduled",
     title: "Scheduled Notification",
-    body: "Delivered after 30 seconds."
+    body: "Scheduled in 10 seconds",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-scheduled"],
+    badge: nil
 )
 
 MacNotificationManager.shared.schedule(
     content: content,
-    trigger: .timeInterval(seconds: 30, repeats: false)
+    trigger: .timeInterval(seconds: 10, repeats: false)
 ) { result in
     switch result {
     case .success:
@@ -1340,79 +1447,137 @@ MacNotificationManager.shared.schedule(
 }
 ```
 
-#### Cancel Scheduled
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleTimeInterval.png" alt="Example_MacNotificationManager_ScheduleTimeInterval" width="800" />
+</p>
+
+#### Schedule with Calendar
 
 ```swift
-// Cancel a specific pending notification
-MacNotificationManager.shared.cancelScheduled(identifier: "scheduled-notification")
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+var components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nextDate)
+components.second = 0
 
-// Cancel all pending notifications
+MacNotificationManager.shared.schedule(
+    content: content,
+    trigger: .calendar(dateComponents: components, repeats: false)
+) { result in
+    switch result {
+    case .success:
+        print("Calendar scheduled")
+    case .failure(let error):
+        print("Error \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleCalendar.png" alt="Example_MacNotificationManager_ScheduleCalendar" width="800" />
+</p>
+
+#### Cancel Scheduled by ID
+
+```swift
+MacNotificationManager.shared.cancelScheduled(identifier: "mac-sample-scheduled")
+```
+
+#### Cancel All Scheduled
+
+```swift
 MacNotificationManager.shared.cancelAllScheduled()
 ```
+
+### Query
 
 #### Get Scheduled
 
 ```swift
 MacNotificationManager.shared.getScheduled { result in
     switch result {
-    case .success(let notifications):
-        notifications.forEach { print($0.identifier, $0.title) }
+    case .success(let items):
+        let ids = items.map { $0.identifier }.joined(separator: ", ")
+        print("Scheduled: \(items.count) item(s), ids=[\(ids)]")
     case .failure(let error):
         print("Error \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-### Delivered Notifications
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_GetScheduled.png" alt="Example_MacNotificationManager_GetScheduled" width="800" />
+</p>
+
+#### Get Delivered
 
 ```swift
-// Get all delivered notifications
 MacNotificationManager.shared.getDelivered { result in
     switch result {
-    case .success(let notifications):
-        notifications.forEach { print($0.identifier, $0.date) }
+    case .success(let items):
+        let ids = items.map { $0.identifier }.joined(separator: ", ")
+        print("Delivered: \(items.count) item(s), ids=[\(ids)]")
     case .failure(let error):
         print("Error \(error.errorCode): \(error.errorMessage)")
     }
 }
-
-// Remove a specific delivered notification
-MacNotificationManager.shared.removeDelivered(identifier: "hello-notification")
-
-// Remove all delivered notifications
-MacNotificationManager.shared.removeAllDelivered()
 ```
 
-### Categories and Actions
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_GetDelivered.png" alt="Example_MacNotificationManager_GetDelivered" width="800" />
+</p>
+
+### Badge
+
+#### Set Badge Count (1)
+
+```swift
+MacNotificationManager.shared.setBadgeCount(1) { result in
+    switch result {
+    case .success:
+        print("Badge set to 1")
+    case .failure(let error):
+        print("Error \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount1.png" alt="Example_MacNotificationManager_SetBadgeCount1" width="800" />
+</p>
+
+#### Clear Badge (0)
+
+```swift
+MacNotificationManager.shared.setBadgeCount(0) { result in
+    switch result {
+    case .success:
+        print("Badge cleared")
+    case .failure(let error):
+        print("Error \(error.errorCode): \(error.errorMessage)")
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount0.png" alt="Example_MacNotificationManager_SetBadgeCount0" width="800" />
+</p>
+
+### Category
 
 #### Register Category
 
 ```swift
 let category = NotificationCategory(
-    id: "sample-category",
+    id: "mac-sample-category",
     actions: [
-        NotificationAction(
-            id: "open",
-            title: "Open",
-            isForeground: true
-        ),
-        NotificationAction(
-            id: "delete",
-            title: "Delete",
-            isForeground: false
-        ),
-        NotificationAction(
-            id: "reply",
-            title: "Reply",
-            isTextInput: true,
-            textInputPlaceholder: "Type a message"
-        )
+        NotificationAction(id: "open", title: "Open", isForeground: true),
+        NotificationAction(id: "reply", title: "Reply", isTextInput: true, textInputPlaceholder: "Type message")
     ]
 )
 
 MacNotificationManager.shared.registerCategory(category) { result in
     switch result {
     case .success:
+        // Send a notification and right-click to see the actions (Open, Reply)
         print("Category registered")
     case .failure(let error):
         print("Error \(error.errorCode): \(error.errorMessage)")
@@ -1424,68 +1589,33 @@ Attach the category to a notification by setting `categoryIdentifier` in `Notifi
 
 ```swift
 let content = NotificationContent(
-    id: "action-notification",
+    id: "mac-sample-notification",
     title: "Notification with Actions",
-    body: "Long-press to see actions",
-    categoryIdentifier: "sample-category"
+    body: "Right-click to see actions",
+    subtitle: "MacLibraryExample",
+    categoryIdentifier: "mac-sample-category",
+    userInfo: ["source": "MacLibraryExample", "id": "mac-sample-notification"],
+    badge: nil
 )
 ```
 
-![Category Actions](images/mac/notification/Example_MacNotificationManager_Category.png)
-
-> Note: Screenshots must be added manually.
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RegisterCategory.png" alt="Example_MacNotificationManager_RegisterCategory" width="800" />
+</p>
 
 #### Remove Category
 
 ```swift
-MacNotificationManager.shared.removeCategory(identifier: "sample-category") { result in
+MacNotificationManager.shared.removeCategory(identifier: "mac-sample-category") { result in
     if case .failure(let error) = result {
         print("Error \(error.errorCode): \(error.errorMessage)")
     }
 }
 ```
 
-#### Action Received Callbacks
-
-```swift
-// Receive action button taps
-MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
-    print("notification: \(notificationId), action: \(actionId)")
-}
-
-// Receive text input action submissions
-MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
-    print("notification: \(notificationId), action: \(actionId), text: \(userText)")
-}
-```
-
-### Badge
-
-```swift
-// Set badge count
-MacNotificationManager.shared.setBadgeCount(1) { result in
-    switch result {
-    case .success:
-        print("Badge set to 1")
-    case .failure(let error):
-        print("Error \(error.errorCode): \(error.errorMessage)")
-    }
-}
-
-// Clear badge
-MacNotificationManager.shared.setBadgeCount(0) { result in
-    switch result {
-    case .success:
-        print("Badge cleared")
-    case .failure(let error):
-        print("Error \(error.errorCode): \(error.errorMessage)")
-    }
-}
-```
-
-![Badge](images/mac/notification/Example_MacNotificationManager_Badge.png)
-
-> Note: Screenshots must be added manually.
+<p align="center">
+    <img src="images/mac/notification/Example_MacNotificationManager_RemoveCategory.png" alt="Example_MacNotificationManager_RemoveCategory" width="800" />
+</p>
 
 ### Error Codes
 
