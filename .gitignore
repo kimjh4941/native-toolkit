@@ -1,2 +1,3 @@
 # Claude Code
-.claude/
+.claude/*
+!.claude/skills/

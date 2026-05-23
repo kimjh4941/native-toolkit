@@ -1,0 +1,10 @@
+<map id="showMultiFolderDialog" name="showMultiFolderDialog">
+<area shape="rect" id="Node000001" title="Public API: Show multi&#45;select folder dialog." alt="" coords="5,71,159,97"/>
+<area shape="rect" id="Node000002" href="$class_windows_dialog_manager.html#ab66f172ff3aafc0fb3ce9a075d753a4f" title="Get singleton instance." alt="" coords="207,29,370,72"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,69,191,64,192,69,160,74"/>
+<area shape="rect" id="Node000004" href="$class_windows_dialog_manager.html#a630b259f21cd836ab27d9f5b36ed1816" title="Show a multi&#45;select folder dialog." alt="" coords="207,96,370,139"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="160,94,192,99,191,104,159,99"/>
+<area shape="rect" id="Node000003" href="$class_windows_dialog_manager.html#a5350bd65380b674c07b24e28d424a023" title="Non&#45;copyable." alt="" coords="418,29,588,72"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="370,48,402,48,402,53,370,53"/>
+<area shape="poly" id="edge3_Node000003_Node000003" title=" " alt="" coords="462,29,461,19,467,10,482,5,503,3,526,5,540,11,538,16,525,10,503,8,483,10,471,15,466,21,467,28"/>
+</map>

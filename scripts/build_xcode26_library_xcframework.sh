@@ -13,7 +13,8 @@ set -euo pipefail
 #   ./scripts/build_xcode26_library_xcframework.sh --module MacLibrary --module UnityMacPlugin --library-version 1.1.0
 #   ./scripts/build_xcode26_library_xcframework.sh --configuration release --output dist/1.1.0/mac/mac-native-toolkit-1.1.0.xcframework
 #   ./scripts/build_xcode26_library_xcframework.sh -c debug -v 1.1.0 -o /tmp/NativeToolkit-debug.xcframework --minimum-macos 15.0
-#   ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
+#   ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -v 1.1.0 -o dist/1.3.0/mac/mac-native-toolkit-1.1.0.xcframework --minimum-macos 15.0
+#   ./scripts/build_xcode26_library_xcframework.sh -c release -m UnityMacPlugin -v 1.1.0 -o dist/1.3.0/mac/unity-mac-native-toolkit-1.1.0.xcframework --minimum-macos 15.0
 
 # Resolve script/workspace root paths.
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && /bin/pwd -P)"
