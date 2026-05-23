@@ -60,6 +60,7 @@ Language:
     - [Check Permission](#check-permission-1)
     - [Get Authorization Status](#get-authorization-status-1)
     - [Open Notification Settings](#open-notification-settings-1)
+    - [Reset Notification Permission (macOS 26.3)](#reset-notification-permission-macos-263)
   - [Show Notification](#show-notification-2)
     - [Immediate](#immediate-1)
     - [Time Interval Trigger](#time-interval-trigger-1)
@@ -1263,6 +1264,16 @@ MacNotificationManager.shared.openNotificationSettings { result in
 <p align="center">
     <img src="images/mac/notification/Example_MacNotificationManager_OpenNotificationSettings.png" alt="Example_MacNotificationManager_OpenNotificationSettings" width="800" />
 </p>
+
+#### Reset Notification Permission (macOS 26.3)
+
+Use this procedure during development to reset a previously denied permission.
+
+1. Open **System Settings** → **Notifications**
+2. **Right-click** the target app in the app list
+3. Select **"Reset Notifications..."**
+4. Press **"Reset Notifications"** in the confirmation dialog
+5. The permission dialog will appear again on the next app launch
 
 ### Show Notification
 

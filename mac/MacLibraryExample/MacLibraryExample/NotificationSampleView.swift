@@ -267,7 +267,7 @@ struct NotificationSampleView: View {
                             MacNotificationManager.shared.registerCategory(category) { result in
                                 switch result {
                                 case .success:
-                                    updateResult(isSuccess: true, result: "[registerCategory] Registered. Send a notification and right-click to see the actions (Open, Reply).")
+                                    updateResult(isSuccess: true, result: "[registerCategory] Registered. Send a notification and hover over the notification banner and click Options (▼) to see Open / Reply.")
                                 case .failure(let error):
                                     updateResult(error: error, prefix: "[registerCategory]")
                                 }

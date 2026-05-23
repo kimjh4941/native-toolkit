@@ -60,6 +60,7 @@
     - [パーミッション確認](#パーミッション確認)
     - [認証ステータスの取得](#認証ステータスの取得)
     - [通知設定を開く](#通知設定を開く)
+    - [通知権限のリセット（macOS 26.3）](#通知権限のリセットmacos-263)
   - [通知の表示](#通知の表示-2)
     - [即時表示](#即時表示)
     - [時間間隔トリガー](#時間間隔トリガー)
@@ -1226,10 +1227,6 @@ MacNotificationManager.shared.getAuthorizationStatus { result in
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_HasPermission.png" alt="Example_MacNotificationManager_HasPermission" width="800" />
-</p>
-
 #### 認証ステータスの取得
 
 詳細なステータス値を取得します。
@@ -1246,10 +1243,6 @@ MacNotificationManager.shared.getAuthorizationStatus { result in
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_AuthorizationStatus.png" alt="Example_MacNotificationManager_AuthorizationStatus" width="800" />
-</p>
-
 #### 通知設定を開く
 
 ```swift
@@ -1260,15 +1253,22 @@ MacNotificationManager.shared.openNotificationSettings { result in
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_OpenNotificationSettings.png" alt="Example_MacNotificationManager_OpenNotificationSettings" width="800" />
-</p>
+#### 通知権限のリセット（macOS 26.3）
+
+一度拒否した権限を開発中にリセットする手順です。
+
+1. **システム設定** → **通知** を開く
+2. アプリ一覧から対象アプリを**右クリック**
+3. **「通知をリセット...」** を選択
+4. 確認ダイアログで **「通知をリセット」** ボタンを押す
+5. 次回アプリ起動時に権限ダイアログが再表示される
 
 ### 通知の表示
 
 `NotificationContent` を作成して `show()` を呼び出します。
 
 **`NotificationContent` の制約:**
+
 - `id`: 1〜128 文字（`[A-Za-z0-9\-_]`）
 - `title`: 1〜128 文字
 - `body`: 0〜1024 文字（省略可）
@@ -1319,10 +1319,6 @@ MacNotificationManager.shared.show(
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_ShowTimeInterval.png" alt="Example_MacNotificationManager_ShowTimeInterval" width="800" />
-</p>
-
 #### カレンダートリガー
 
 ```swift
@@ -1342,10 +1338,6 @@ MacNotificationManager.shared.show(
     }
 }
 ```
-
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_ShowCalendar.png" alt="Example_MacNotificationManager_ShowCalendar" width="800" />
-</p>
 
 ### 更新 / キャンセル / 削除
 
@@ -1395,10 +1387,6 @@ MacNotificationManager.shared.cancelScheduled(identifier: "mac-sample-notificati
 MacNotificationManager.shared.cancelAllScheduled()
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_CancelAll.png" alt="Example_MacNotificationManager_CancelAll" width="800" />
-</p>
-
 #### 配信済み通知の削除
 
 通知センターから特定の通知を削除します。
@@ -1412,10 +1400,6 @@ MacNotificationManager.shared.removeDelivered(identifier: "mac-sample-notificati
 ```swift
 MacNotificationManager.shared.removeAllDelivered()
 ```
-
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_RemoveAllDelivered.png" alt="Example_MacNotificationManager_RemoveAllDelivered" width="800" />
-</p>
 
 ### スケジュール
 
@@ -1447,10 +1431,6 @@ MacNotificationManager.shared.schedule(
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleTimeInterval.png" alt="Example_MacNotificationManager_ScheduleTimeInterval" width="800" />
-</p>
-
 #### カレンダーでスケジュール
 
 ```swift
@@ -1470,10 +1450,6 @@ MacNotificationManager.shared.schedule(
     }
 }
 ```
-
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_ScheduleCalendar.png" alt="Example_MacNotificationManager_ScheduleCalendar" width="800" />
-</p>
 
 #### IDでキャンセル（スケジュール）
 
@@ -1503,10 +1479,6 @@ MacNotificationManager.shared.getScheduled { result in
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_GetScheduled.png" alt="Example_MacNotificationManager_GetScheduled" width="800" />
-</p>
-
 #### 配信済みを取得
 
 ```swift
@@ -1520,10 +1492,6 @@ MacNotificationManager.shared.getDelivered { result in
     }
 }
 ```
-
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_GetDelivered.png" alt="Example_MacNotificationManager_GetDelivered" width="800" />
-</p>
 
 ### バッジ
 
@@ -1540,10 +1508,6 @@ MacNotificationManager.shared.setBadgeCount(1) { result in
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount1.png" alt="Example_MacNotificationManager_SetBadgeCount1" width="800" />
-</p>
-
 #### バッジをクリア（0）
 
 ```swift
@@ -1556,10 +1520,6 @@ MacNotificationManager.shared.setBadgeCount(0) { result in
     }
 }
 ```
-
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_SetBadgeCount0.png" alt="Example_MacNotificationManager_SetBadgeCount0" width="800" />
-</p>
 
 ### カテゴリ
 
@@ -1613,24 +1573,20 @@ MacNotificationManager.shared.removeCategory(identifier: "mac-sample-category") 
 }
 ```
 
-<p align="center">
-    <img src="images/mac/notification/Example_MacNotificationManager_RemoveCategory.png" alt="Example_MacNotificationManager_RemoveCategory" width="800" />
-</p>
-
 ### エラーコード
 
-| コード | ケース | 説明 |
-|---|---|---|
-| 1001 | `unsupportedOS` | macOS 15 以上が必要 |
-| 1002 | `permissionDenied` | ユーザーが通知権限を拒否 |
-| 1003 | `permissionRequestFailed` | 権限リクエストに失敗 |
-| 1101 | `invalidContent` | id、title、または body が無効 |
-| 1102 | `invalidTrigger` | トリガーが無効（例: timeInterval が 1 秒未満） |
-| 1103 | `invalidCategory` | カテゴリが無効 |
-| 1104 | `notificationNotFound` | 指定した識別子の保留中通知が見つからない |
-| 1201 | `addFailed` | 通知リクエストの追加に失敗 |
-| 1202 | `removeFailed` | 通知の削除に失敗 |
-| 1203 | `queryFailed` | 通知の取得に失敗 |
-| 1204 | `setBadgeFailed` | バッジカウントの設定に失敗 |
-| 1205 | `openSettingsFailed` | 通知設定を開くのに失敗 |
-| 1999 | `unknown` | 不明なエラー |
+| コード | ケース                    | 説明                                           |
+| ------ | ------------------------- | ---------------------------------------------- |
+| 1001   | `unsupportedOS`           | macOS 15 以上が必要                            |
+| 1002   | `permissionDenied`        | ユーザーが通知権限を拒否                       |
+| 1003   | `permissionRequestFailed` | 権限リクエストに失敗                           |
+| 1101   | `invalidContent`          | id、title、または body が無効                  |
+| 1102   | `invalidTrigger`          | トリガーが無効（例: timeInterval が 1 秒未満） |
+| 1103   | `invalidCategory`         | カテゴリが無効                                 |
+| 1104   | `notificationNotFound`    | 指定した識別子の保留中通知が見つからない       |
+| 1201   | `addFailed`               | 通知リクエストの追加に失敗                     |
+| 1202   | `removeFailed`            | 通知の削除に失敗                               |
+| 1203   | `queryFailed`             | 通知の取得に失敗                               |
+| 1204   | `setBadgeFailed`          | バッジカウントの設定に失敗                     |
+| 1205   | `openSettingsFailed`      | 通知設定を開くのに失敗                         |
+| 1999   | `unknown`                 | 不明なエラー                                   |

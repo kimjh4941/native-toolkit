@@ -7,12 +7,12 @@ set -euo pipefail
 #   ./scripts/publish_docs.sh <version> [--skip-build] [--os <targets>]
 #
 # Examples:
-#   ./scripts/publish_docs.sh 1.2.0
-#   ./scripts/publish_docs.sh 1.2.0 --skip-build
-#   ./scripts/publish_docs.sh 1.2.0 --os android
-#   ./scripts/publish_docs.sh 1.2.0 --os ios
-#   ./scripts/publish_docs.sh 1.2.0 --os mac
-#   ./scripts/publish_docs.sh 1.2.0 --os all
+#   ./scripts/publish_docs.sh 1.3.0
+#   ./scripts/publish_docs.sh 1.3.0 --skip-build
+#   ./scripts/publish_docs.sh 1.3.0 --os android
+#   ./scripts/publish_docs.sh 1.3.0 --os ios
+#   ./scripts/publish_docs.sh 1.3.0 --os mac
+#   ./scripts/publish_docs.sh 1.3.0 --os all
 
 usage() {
   cat <<'USAGE'

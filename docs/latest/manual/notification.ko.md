@@ -60,6 +60,7 @@
     - [권한 확인](#권한-확인-1)
     - [인증 상태 가져오기](#인증-상태-가져오기-1)
     - [알림 설정 열기](#알림-설정-열기-1)
+    - [알림 권한 초기화 (macOS 26.3)](#알림-권한-초기화-macos-263)
   - [알림 표시](#알림-표시-2)
     - [즉시 표시](#즉시-표시-1)
     - [시간 간격 트리거](#시간-간격-트리거-1)
@@ -1263,6 +1264,16 @@ MacNotificationManager.shared.openNotificationSettings { result in
 <p align="center">
     <img src="images/mac/notification/Example_MacNotificationManager_OpenNotificationSettings.png" alt="Example_MacNotificationManager_OpenNotificationSettings" width="800" />
 </p>
+
+#### 알림 권한 초기화 (macOS 26.3)
+
+개발 중 한 번 거부한 권한을 초기화하는 절차입니다.
+
+1. **시스템 설정** → **알림** 열기
+2. 앱 목록에서 대상 앱을 **우클릭**
+3. **"알림 재설정..."** 선택
+4. 확인 다이얼로그에서 **"알림 재설정"** 버튼 누르기
+5. 다음 앱 실행 시 권한 다이얼로그가 다시 표시됨
 
 ### 알림 표시
 
