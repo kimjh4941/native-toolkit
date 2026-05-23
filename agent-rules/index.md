@@ -20,6 +20,7 @@ Agent-specific wrappers in `.github/skills/` reference these files.
 - Design sample app (サンプルアプリ計画作成): ./workflows/design-sample-app/workflow.md
 - Implement sample app (サンプルアプリ実装): ./workflows/implement-sample-app/workflow.md
 - Write manual (マニュアル作成): ./workflows/write-manual/workflow.md
+- Release (リリース): ./workflows/release/workflow.md
 - Review and refine (企画書・設計書レビュー): ./workflows/review-and-refine/workflow.md
 - Commit message (コミットメッセージ生成): ./workflows/commit-msg/workflow.md
 
