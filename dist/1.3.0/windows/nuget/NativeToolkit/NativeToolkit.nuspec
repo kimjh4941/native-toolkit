@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>NativeToolkit</id>
+    <version>1.0.0</version>
+    <authors>JongHyun Kim</authors>
+    <description>Native Windows dialog helper library (Win32 common dialogs) for Win32/WinUI.</description>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <dependencies />
+  </metadata>
+
+  <files>
+    <!-- MSBuild hooks (auto: include/lib + dll copy) -->
+    <file src="build\native\NativeToolkit.props" target="build\native\NativeToolkit.props" />
+    <file src="build\native\NativeToolkit.targets" target="build\native\NativeToolkit.targets" />
+
+    <!-- Public headers -->
+    <file src="include\**\*.*" target="build\native\include" />
+
+    <!-- Binaries (x64) -->
+    <file src="runtimes\win-x64\native\NativeToolkit.dll" target="runtimes\win-x64\native\NativeToolkit.dll" />
+    <file src="runtimes\win-x64\native\NativeToolkit.lib" target="runtimes\win-x64\native\NativeToolkit.lib" />
+
+    <!-- Binaries (x86) -->
+    <!--
+    <file src="runtimes\win-x86\native\NativeToolkit.dll" target="runtimes\win-x86\native\NativeToolkit.dll" />
+    <file src="runtimes\win-x86\native\NativeToolkit.lib" target="runtimes\win-x86\native\NativeToolkit.lib" />
+    -->
+  </files>
+</package>

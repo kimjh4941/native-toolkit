@@ -1,4 +1,4 @@
-# ``MacLibrary``
+# `MacLibrary`
 
 A lightweight utility library providing unified macOS dialog presentation (alerts, open/save panels) and structured logging helpers.
 
@@ -24,9 +24,11 @@ All UI presentation is marshalled onto the main thread internally; your call sit
 5. **Clarity** – DocC & inline documentation for every public symbol.
 
 ### Threading
+
 All public APIs are safe to call from any thread. UI work is executed on the main queue.
 
 ### Errors
+
 `DialogError` enumerates configuration and runtime issues. A failure short‑circuits the completion with `.failure(error)`.
 
 ## Quick Start
@@ -80,39 +82,60 @@ MacDialogManager.shared.showSaveFileDialog(
 ## Topics
 
 ### Manager
-- ``MacDialogManager``
+
+- `MacDialogManager`
 
 ### Alerts
-- ``DialogButton``
-- ``DialogOptions``
-- ``DialogResult``
-- ``DialogError``
-- ``MacDialogManager/showDialog(title:message:options:completion:)``
+
+- `DialogButton`
+- `DialogOptions`
+- `DialogResult`
+- `DialogError`
+- `MacDialogManager/showDialog(title:message:options:completion:)`
 
 ### Open Panels (Files & Folders)
-- ``OpenDialogOptions``
-- ``OpenDialogResult``
-- ``MacDialogManager/showOpenDialog(title:message:options:completion:)``
-- ``MacDialogManager/showFileDialog(title:message:allowedContentTypes:directoryURL:completion:)``
-- ``MacDialogManager/showMultiFileDialog(title:message:allowedContentTypes:directoryURL:completion:)``
-- ``MacDialogManager/showFolderDialog(title:message:directoryURL:completion:)``
-- ``MacDialogManager/showMultiFolderDialog(title:message:directoryURL:completion:)``
+
+- `OpenDialogOptions`
+- `OpenDialogResult`
+- `MacDialogManager/showOpenDialog(title:message:options:completion:)`
+- `MacDialogManager/showFileDialog(title:message:allowedContentTypes:directoryURL:completion:)`
+- `MacDialogManager/showMultiFileDialog(title:message:allowedContentTypes:directoryURL:completion:)`
+- `MacDialogManager/showFolderDialog(title:message:directoryURL:completion:)`
+- `MacDialogManager/showMultiFolderDialog(title:message:directoryURL:completion:)`
 
 ### Save Panel
-- ``SaveDialogResult``
-- ``MacDialogManager/showSaveFileDialog(title:message:nameFieldStringValue:allowedContentTypes:directoryURL:completion:)``
+
+- `SaveDialogResult`
+- `MacDialogManager/showSaveFileDialog(title:message:nameFieldStringValue:allowedContentTypes:directoryURL:completion:)`
 
 ### Logging
-- ``Log``
+
+- `Log`
 
 ### Design Notes
-- Button indices are zero‑based and map directly to order supplied in ``DialogOptions/buttons``.
+
+- Button indices are zero‑based and map directly to order supplied in `DialogOptions/buttons`.
 - `suppressionButtonState` is `true` only if a suppression checkbox was shown **and** checked.
 - A cancelled open or save panel returns `isCancelled == true` while still reporting `isSuccess == true` (logical success, user choice).
 - Save panel returns at most one path; `fileCount` kept for structural symmetry.
 
 ### Privacy & Security
-Do not log sensitive data via ``Log``. All messages use `.public` privacy.
+
+Do not log sensitive data via `Log`. All messages use `.public` privacy.
 
 ### Extensibility
+
 Add custom UI (e.g. accessory views) by extending `DialogOptions` / wrapping new functionality in `MacDialogManager` or a dedicated manager facade.
+
+### Notification
+
+- `MacNotificationManager`
+- `NotificationContent`
+- `NotificationTrigger`
+- `NotificationCategory`
+- `NotificationAction`
+- `NotificationAuthorizationStatus`
+- `ActiveNotification`
+- `ScheduledNotification`
+- `NotificationDomainError`
+- `BridgeError`

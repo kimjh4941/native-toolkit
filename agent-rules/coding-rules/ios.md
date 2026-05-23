@@ -55,6 +55,30 @@ void sample(const char* value) {
 
 ---
 
+## Objective-C / Swift ブリッジの型
+
+Swift の API を Objective-C から呼び出す際、completion ブロックの引数型を必ず Swift 側の型と合わせる。
+
+| Swift 側の型 | ObjC ブロック引数で使う型 |
+|---|---|
+| `Bool` | `BOOL`（`bool` は不可） |
+| `Int` | `NSInteger` |
+| `String?` | `NSString * _Nullable` |
+
+**NG 例（コンパイルエラーになる）:**
+```objective-c
+[manager doSomethingWithCompletion:^(bool isSuccess, NSInteger errorCode, NSString* errorMessage) {
+```
+
+**OK 例:**
+```objective-c
+[manager doSomethingWithCompletion:^(BOOL isSuccess, NSInteger errorCode, NSString* errorMessage) {
+```
+
+`bool`（C の `_Bool`）と `BOOL`（`signed char`）はブロックシグネチャ上で別型扱いされ、コンパイルエラーになる。
+
+---
+
 ## コメント（DocC / HeaderDoc）
 
 ### Swift
