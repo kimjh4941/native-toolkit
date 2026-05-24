@@ -16,7 +16,8 @@ import androidx.compose.ui.Modifier
 private enum class MainScreen {
     MAIN_MENU,
     ANDROID_DIALOG_TEST,
-    NOTIFICATION_TEST
+    NOTIFICATION_TEST,
+    SHARE_TEST
 }
 
 @Composable
@@ -37,7 +38,8 @@ fun AppRouter(
                 MainMenuScreen(
                     modifier = Modifier.padding(innerPadding),
                     onSelectDialogTest = { currentScreen = MainScreen.ANDROID_DIALOG_TEST },
-                    onSelectNotificationTest = { currentScreen = MainScreen.NOTIFICATION_TEST }
+                    onSelectNotificationTest = { currentScreen = MainScreen.NOTIFICATION_TEST },
+                    onSelectShareTest = { currentScreen = MainScreen.SHARE_TEST }
                 )
             }
 
@@ -59,6 +61,14 @@ fun AppRouter(
                     modifier = Modifier.padding(innerPadding),
                     activity = activity,
                     permissionHelper = permissionHelper,
+                    onBack = { currentScreen = MainScreen.MAIN_MENU }
+                )
+            }
+
+            MainScreen.SHARE_TEST -> {
+                ShareSampleScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    activity = activity,
                     onBack = { currentScreen = MainScreen.MAIN_MENU }
                 )
             }
