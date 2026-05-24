@@ -79,7 +79,7 @@
 
 - ステップ10の確認を提示した直後に、今回の実装結果をファイルへ保存する
 - 保存先は `artifact/results/<feature>/` とし、必要に応じてディレクトリを作成する
-- ファイル名は `YYYY-MM-DD-<feature>-implementation-result-vN.md` を基本とする
+- ファイル名は `YYYY-MM-DD-<feature>-implementation-feature-result-vN.md` を基本とする
 - 同名が存在する場合は `vN` をインクリメントし、既存ファイルを上書きしない
 - 記載内容は `agent-rules/workflows/implement-feature/IMPLEMENT_RESULT_TEMPLATE.md` に従う
 - 最低限、以下を必ず含める:
