@@ -216,6 +216,15 @@ public:
         // COM initialization (not needed if already initialized by caller)
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         bool needUninit = SUCCEEDED(hr);
+        if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
+        {
+            buffer[0] = L'\0';
+            if (pError) {
+                *pError = hr;
+            }
+            DFLog(TAG, L"ShowFolderDialog: CoInitializeEx failed. hr=0x%08lx", hr);
+            return FALSE;
+        }
 
         IFileOpenDialog* pFileOpen = nullptr;
         hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFileOpen));
@@ -316,6 +325,15 @@ public:
         // COM initialization (not needed if already initialized by caller)
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         bool needUninit = SUCCEEDED(hr);
+        if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
+        {
+            buffer[0] = L'\0';
+            if (pError) {
+                *pError = hr;
+            }
+            DFLog(TAG, L"ShowMultiFolderDialog: CoInitializeEx failed. hr=0x%08lx", hr);
+            return -1;
+        }
 
         IFileOpenDialog* pFileOpen = nullptr;
         hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pFileOpen));

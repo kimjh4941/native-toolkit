@@ -8,3 +8,16 @@ EXPORTS
 	DllGetClassObject   PRIVATE
 	DllRegisterServer   PRIVATE
 	DllUnregisterServer PRIVATE
+	; Notification Manager Bridge
+	initNotificationManager
+	uninitNotificationManager
+	showNotification
+	scheduleNotification
+	cancelScheduledNotification
+	updateNotificationProgress
+	setBadge
+	removeNotificationById
+	removeNotificationsByTag
+	removeAllNotifications
+	getAllNotifications
+	getNotificationSetting

@@ -17,7 +17,7 @@
    - ダイアログで「レビュー対象のファイルを指定してください」と促す
    - 入力がない場合は以下の候補を提示:
      - `artifact/plans/<feature>/` 配下の `*-research*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
-     - `artifact/designs/<feature>/` 配下の `*-implementation*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
+     - `artifact/designs/<feature>/` 配下の `*-design*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
      - `artifact/designs/<feature>/` 配下の `*-sample-app*.md` を探索し、同一ドキュメントの改訂版がある場合は最も大きいバージョンのみ
    - バージョンサフィックスがないファイルは `v1` とみなし、`vN` が存在する場合は `vN` を優先する
    - ユーザーが選択したファイルパスを確定する
@@ -34,7 +34,7 @@
      - サンプルコードの実行可能性と適切性
      - リスク分析の網羅性
      - Definition of Done の明確性
-   - **設計書（`*-implementation.md`）の場合:**
+   - **設計書（`*-design.md`）の場合:**
      - 企画書との整合性
      - Clean Architecture 準拠性
      - 既存実装との差分分析の正確性
@@ -90,8 +90,8 @@
    - 保存先: `artifact/reviews/<feature>/YYYY-MM-DD-<os>-<feature>-<document-type>-review.md`
      - `<os>`: 対象 OS（例: `android` / `ios` / `macos` / `windows`）
      - `<feature>`: 対象ファイルのパスから自動抽出（例: `android-notification`）
-     - `<document-type>`: ファイル種別に応じて `research` / `implementation` / `sample-app`
-     - 例: `artifact/reviews/android-notification/2026-05-16-android-notification-research-review.md`
+     - `<document-type>`: ファイル種別に応じて `research` / `design` / `sample-app`
+     - 例: `artifact/reviews/notification/2026-05-16-android-notification-research-review.md`
    - ファイル形式（Markdown）:
 
      ```

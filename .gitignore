@@ -4,3 +4,20 @@
 
 # VSCode
 .vscode/
+
+# Visual Studio / MSBuild build artifacts
+.vs/
+[Xx]64/
+[Xx]86/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.tlog
+*.log
+
+# NuGet packages.config restore output
+packages/
+
+# C++/WinRT generated projection headers
+Generated Files/
+**/WindowsL.*/
