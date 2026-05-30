@@ -1,5 +1,12 @@
 引数: $ARGUMENTS
 
+## 対応 OS バージョン
+
+- Android 12 以降
+- iOS 18 以降
+- Windows 11 以降
+- macOS 15 以降
+
 以下の手順を実行してください。
 
 1. `$ARGUMENTS` を解析する（最小限）
@@ -76,7 +83,7 @@
 9. 設計書を保存する
    - 作成した設計結果を Markdown ファイルとして保存する
    - 保存先は `artifact/designs/<feature>/` 配下とする
-   - ファイル名は `YYYY-MM-DD-<os>-<feature>-implementation.md` 形式を推奨する
+   - ファイル名は `YYYY-MM-DD-<os>-<feature>-design.md` 形式を推奨する
    - 保存後に保存先パスを明示する
    - 保存後、当該 Markdown ファイルを現在の VS Code で新しいタブとして開いて表示する
 

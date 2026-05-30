@@ -1,5 +1,12 @@
 引数: $ARGUMENTS
 
+## 対応 OS バージョン
+
+- Android 12 以降
+- iOS 18 以降
+- Windows 11 以降
+- macOS 15 以降
+
 以下の手順を実行してください。
 
 1. `$ARGUMENTS` を解析する（最小限）
