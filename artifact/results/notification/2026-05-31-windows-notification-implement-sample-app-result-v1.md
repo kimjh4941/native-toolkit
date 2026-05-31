@@ -89,7 +89,8 @@
 | `GetAllNotifications`（id/tag/group・4096境界） / `RemoveById` / `RemoveByTag` / `RemoveAll` | 実機未確認 | 要 VS 実行 |
 | `GetSetting`（`-1` 異常含む） | 実機未確認 | 要 VS 実行 |
 | 起動時に `RPC_E_CHANGED_MODE` が出ず正常起動 | 実機未確認 | ライブラリ側修正済みの回帰確認 |
-| **【要検証 / high】アプリ未起動時のアクティベーション経由コールバック**（T-21） | 未実施 | `Package.appxmanifest` の toast activation（`ToastActivatorCLSID`）拡張が必要か要検証。本実装は未追加。アプリ起動中のフォアグラウンドコールバックのみ対象 |
+| **toast activation の COM サーバー登録**（T-21・初期化） | 対応済み・実機確認済み | `Package.appxmanifest` に `windows.comServer`（ExeServer + Class Id）+ `windows.toastNotificationActivation`（ToastActivatorCLSID=`5F6A1B27-7C0B-4E1B-9070-6F1966502BAF`）を追加。これがないと packaged パスの `AppNotificationManager::Register()` が `No COM servers are registered for this app`（0x80004005）で失敗する。追加後、実機で `[Init] NotificationSetting=0`・`GetSetting=0`・`ShowBasic` の Show パイプライン完走を確認 |
+| アプリ未起動時のアクティベーション経由コールバック（T-21・未起動起動） | 実機未確認 | 上記 COM 登録で起動経路は整備済み。未起動状態からの通知クリック→アクティベーション起動→コールバックの実機確認は残課題 |
 | 最小 Windows 11 と実 `MinVersion`(10.0.17763.0) | 未対応 | 引き上げ要否は要判断（本実装では未変更） |
 
 - `INVALID_PAYLOAD(3)` / `INVALID_PARAMETER(7)` / `HRESULT_FAILURE(5)` / `BADGE_FAILED(6)` の異常系は WindowsLibrary 単体テストでカバー済み（サンプルの手動確認対象外）。
