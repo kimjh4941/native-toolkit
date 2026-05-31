@@ -253,6 +253,12 @@ namespace winrt::WindowsLibraryExample::implementation
         if (!EnsureInitialized()) return;
         DWORD err = 0;
         updateNotificationProgress(L"progress-sample", L"", 0.6, L"60%", L"Downloading", m_progressSeq++, &err);
+        // PROGRESS_NOT_FOUND: no progress notification is currently shown.
+        if (err == NOTIFICATION_ERROR_PROGRESS_NOT_FOUND)
+        {
+            SetResultText(L"❌ [UpdateProgress] No progress notification. Tap ShowWithProgress first.");
+            return;
+        }
         ShowResult(L"UpdateProgress", err);
     }
 

@@ -35,7 +35,6 @@
                 <Button Content="ShowWithButtons" HorizontalAlignment="Stretch" Click="ShowWithButtons_Click"/>
                 <Button Content="ShowWithImage" HorizontalAlignment="Stretch" Click="ShowWithImage_Click"/>
                 <Button Content="ShowWithInput (TextBox + ComboBox)" HorizontalAlignment="Stretch" Click="ShowWithInput_Click"/>
-                <Button Content="ShowWithProgress" HorizontalAlignment="Stretch" Click="ShowWithProgress_Click"/>
                 <Button Content="ShowWithExpiration (10s)" HorizontalAlignment="Stretch" Click="ShowWithExpiration_Click"/>
                 <Button Content="ShowWithAudio (reminder)" HorizontalAlignment="Stretch" Click="ShowWithAudio_Click"/>
 
@@ -44,6 +43,7 @@
                 <Button Content="CancelScheduled" HorizontalAlignment="Stretch" Click="CancelScheduled_Click"/>
 
                 <TextBlock Text="Progress" FontSize="18" FontWeight="SemiBold"/>
+                <Button Content="ShowWithProgress" HorizontalAlignment="Stretch" Click="ShowWithProgress_Click"/>
                 <Button Content="UpdateProgress (0.6)" HorizontalAlignment="Stretch" Click="UpdateProgress_Click"/>
 
                 <TextBlock Text="Badge" FontSize="18" FontWeight="SemiBold"/>

@@ -53,7 +53,7 @@ namespace winrt::WindowsLibraryExample::implementation
         void SetResultText(std::wstring const& text);
 
         bool m_initialized{ false };
-        uint32_t m_progressSeq{ 1 };
+        uint32_t m_progressSeq{ 2 }; // initial Show uses sequence 1; updates must be higher
         uint32_t m_lastNotificationId{ 0 };
         bool m_hasLastId{ false };
     };

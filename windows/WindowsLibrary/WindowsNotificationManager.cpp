@@ -2,6 +2,8 @@
 #include "WindowsNotificationManagerInternal.h"
 #include "common.h"
 
+#include <future>
+
 using namespace winrt;
 using namespace winrt::Microsoft::Windows::AppNotifications;
 using namespace winrt::Microsoft::Windows::AppNotifications::Builder;
@@ -16,6 +18,20 @@ using winrt::Windows::Foundation::IAsyncOperation;
 using namespace winrt::Windows::Foundation::Collections;
 
 static const wchar_t* TAG = L"WindowsNotificationManager";
+
+namespace
+{
+    // Run a WinRT async operation to completion without blocking on the calling
+    // apartment. cppwinrt's IAsyncXxx::get() asserts (!is_sta_thread) when waited
+    // on from an STA thread (the WinUI UI thread), so the work is dispatched to a
+    // background (non-STA) thread where blocking is allowed. The lambda captures
+    // by reference are valid because the outer get() blocks until it completes.
+    template <typename TFunc>
+    auto RunSyncOffSta(TFunc&& func) -> decltype(func())
+    {
+        return std::async(std::launch::async, std::forward<TFunc>(func)).get();
+    }
+}
 
 // =============================================================================
 // Singleton
@@ -240,6 +256,21 @@ void WindowsNotificationManager::Show(const wchar_t* jsonPayload, DWORD* pError)
 
         if (json.HasKey(L"expiresOnReboot") && json.GetNamedBoolean(L"expiresOnReboot"))
             notification.ExpiresOnReboot(true);
+
+        // Supply the initial values for the data-bound progress bar (see
+        // ApplyProgress). Sequence number 1 is the baseline; later UpdateAsync
+        // calls must use a higher sequence number to take effect.
+        if (json.HasKey(L"progress"))
+        {
+            auto progressObj = json.GetNamedObject(L"progress");
+            AppNotificationProgressData data{ 1 };
+            data.Value(progressObj.HasKey(L"value") ? progressObj.GetNamedNumber(L"value") : 0.0);
+            if (progressObj.HasKey(L"valueStr"))
+                data.ValueStringOverride(progressObj.GetNamedString(L"valueStr"));
+            if (progressObj.HasKey(L"status"))
+                data.Status(progressObj.GetNamedString(L"status"));
+            notification.Progress(data);
+        }
 
         AppNotificationManager::Default().Show(notification);
     }
@@ -536,14 +567,18 @@ void WindowsNotificationManager::ApplyProgress(
 
     AppNotificationProgressBar progressBar;
 
+    // Title is static. The dynamic fields are data-bound so that UpdateAsync
+    // can change them on the already-displayed toast; a progress bar built with
+    // literal values cannot be updated. The initial values for the bound fields
+    // are supplied via AppNotification.Progress() at Show time (see Show()).
     if (progressObj.HasKey(L"title"))
         progressBar.Title(progressObj.GetNamedString(L"title"));
-    if (progressObj.HasKey(L"value"))
-        progressBar.Value(progressObj.GetNamedNumber(L"value"));
+
+    progressBar.BindValue();
     if (progressObj.HasKey(L"valueStr"))
-        progressBar.ValueStringOverride(progressObj.GetNamedString(L"valueStr"));
+        progressBar.BindValueStringOverride();
     if (progressObj.HasKey(L"status"))
-        progressBar.Status(progressObj.GetNamedString(L"status"));
+        progressBar.BindStatus();
 
     builder.AddProgressBar(progressBar);
 }
@@ -676,12 +711,12 @@ void WindowsNotificationManager::UpdateProgress(
         hstring tagStr  { tag   ? tag   : L"" };
         hstring groupStr{ group ? group : L"" };
 
-        winrt::Windows::Foundation::IAsyncOperation<AppNotificationProgressResult> op =
-            groupStr.empty()
-            ? AppNotificationManager::Default().UpdateAsync(data, tagStr)
-            : AppNotificationManager::Default().UpdateAsync(data, tagStr, groupStr);
-
-        auto result = op.get();
+        auto result = RunSyncOffSta([&]
+        {
+            return groupStr.empty()
+                ? AppNotificationManager::Default().UpdateAsync(data, tagStr).get()
+                : AppNotificationManager::Default().UpdateAsync(data, tagStr, groupStr).get();
+        });
         if (result != AppNotificationProgressResult::Succeeded)
         {
             DFLog(TAG, L"[UpdateProgress] notification not found. tag=%ls", tag ? tag : L"null");
@@ -757,7 +792,7 @@ void WindowsNotificationManager::RemoveById(uint32_t id, DWORD* pError)
 
     try
     {
-        AppNotificationManager::Default().RemoveByIdAsync(id).get();
+        RunSyncOffSta([&] { AppNotificationManager::Default().RemoveByIdAsync(id).get(); });
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -780,10 +815,13 @@ void WindowsNotificationManager::RemoveByTag(
         hstring tagStr  { tag   ? tag   : L"" };
         hstring groupStr{ group ? group : L"" };
 
-        if (groupStr.empty())
-            AppNotificationManager::Default().RemoveByTagAsync(tagStr).get();
-        else
-            AppNotificationManager::Default().RemoveByTagAndGroupAsync(tagStr, groupStr).get();
+        RunSyncOffSta([&]
+        {
+            if (groupStr.empty())
+                AppNotificationManager::Default().RemoveByTagAsync(tagStr).get();
+            else
+                AppNotificationManager::Default().RemoveByTagAndGroupAsync(tagStr, groupStr).get();
+        });
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -800,7 +838,7 @@ void WindowsNotificationManager::RemoveAll(DWORD* pError)
 
     try
     {
-        AppNotificationManager::Default().RemoveAllAsync().get();
+        RunSyncOffSta([&] { AppNotificationManager::Default().RemoveAllAsync().get(); });
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -818,7 +856,7 @@ void WindowsNotificationManager::GetAll(
 
     try
     {
-        auto notifications = AppNotificationManager::Default().GetAllAsync().get();
+        auto notifications = RunSyncOffSta([&] { return AppNotificationManager::Default().GetAllAsync().get(); });
 
         JsonArray arr;
         for (auto const& n : notifications)
