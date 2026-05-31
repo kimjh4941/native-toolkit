@@ -23,10 +23,10 @@
 3. インタラクティブ入力で参照ファイルを確定する（必須）
    - ダイアログで「レビュー対象機能のサンプルアプリ計画ファイルを指定してください」と促す
    - 計画ファイルの入力がない場合は次を候補として提示する
-     - `artifact/designs/<feature>/` 配下の `*-sample-app*.md`
+     - `artifact/designs/<feature>/` 配下の `*-sample-app-design*.md`
    - ダイアログで「レビュー対象機能の実装結果ファイルを指定してください」と促す
    - 実装結果ファイルの入力がない場合は次を候補として提示する
-     - `artifact/results/<feature>/` 配下の `*-sample-app*-result*.md`
+     - `artifact/results/<feature>/` 配下の `*-sample-app-result*.md`
    - ダイアログで「対象OSを選択してください」と促す（ラジオボタン: Android / iOS / macOS / Windows）
 
 4. プロジェクトルールを読み込む（必須）

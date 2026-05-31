@@ -10,21 +10,6 @@ namespace winrt::WindowsLibraryExample::implementation
 
         int32_t MyProperty();
         void MyProperty(int32_t value);
-
-        // ‚±‚±‚É’Ç‰Á
-        void ShowAlertDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
-
-        void ShowFileDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
-
-        void ShowMultiFileDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
-
-        void ShowFolderDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
-
-        void ShowMultiFolderDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
-
-        void ShowSaveFileDialogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e);
-
-        void SetResultText(const std::wstring& text);
     };
 }
 

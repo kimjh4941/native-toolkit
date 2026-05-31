@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindowsLibraryExample.MainMenuPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:WindowsLibraryExample"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Orientation="Vertical"
+            Width="600"
+            Padding="30"
+            Spacing="20">
+            <TextBlock
+                Text="Native Toolkit Windows Example"
+                FontSize="30"
+                FontWeight="Bold"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+                Margin="0,8,0,16"/>
+
+            <Button x:Name="DialogCard" HorizontalAlignment="Stretch" Padding="20" Click="DialogCard_Click">
+                <StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Left">
+                    <TextBlock Text="Dialog Example" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Text="Show native Windows dialogs" Opacity="0.7"/>
+                </StackPanel>
+            </Button>
+
+            <Button x:Name="NotificationCard" HorizontalAlignment="Stretch" Padding="20" Click="NotificationCard_Click">
+                <StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Left">
+                    <TextBlock Text="Notification Example" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Text="Test Windows App SDK toast notification features" Opacity="0.7"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
