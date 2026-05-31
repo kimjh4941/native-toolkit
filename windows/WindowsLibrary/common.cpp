@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "common.h"
-#include <memory> 
+#include <memory>
 
 void DLog(const wchar_t* tag, const wchar_t* message)
 {
@@ -9,19 +9,30 @@ void DLog(const wchar_t* tag, const wchar_t* message)
     OutputDebugStringW(out.c_str());
 }
 
-// フォーマット付きデバッグログ出力関数（デフォルトバッファサイズ版）
+// Formatted debug log output (default, auto-sized buffer).
 void DFLog(const wchar_t* tag, const wchar_t* format, ...)
 {
     va_list args;
+    // Compute the required length so long messages (e.g. full JSON payloads)
+    // are not truncated. vswprintf_s asserts ("Buffer too small") on overflow,
+    // so the buffer must be sized to fit the formatted output.
     va_start(args, format);
+    int needed = _vscwprintf(format, args);
+    va_end(args);
+    if (needed < 0)
+    {
+        DLog(tag, format);
+        return;
+    }
 
-    std::unique_ptr<wchar_t[]> buf(new wchar_t[256]);
-    vswprintf_s(buf.get(), 256, format, args);
+    std::unique_ptr<wchar_t[]> buf(new wchar_t[needed + 1]);
+    va_start(args, format);
+    vswprintf_s(buf.get(), needed + 1, format, args);
     va_end(args);
     DLog(tag, buf.get());
 }
 
-// フォーマット付きデバッグログ出力関数（バッファサイズ指定版）
+// Formatted debug log output (caller-specified buffer size).
 void DFLLog(const wchar_t* tag, size_t bufferSize, const wchar_t* format, ...)
 {
     std::unique_ptr<wchar_t[]> buf(new wchar_t[bufferSize]);
@@ -32,18 +43,18 @@ void DFLLog(const wchar_t* tag, size_t bufferSize, const wchar_t* format, ...)
     DLog(tag, buf.get());
 }
 
-// マルチバイト文字列（const char*）をワイド文字列（std::wstring）に変換
+// Convert a multi-byte string (const char*) to a wide string (std::wstring).
 std::wstring ToWString(const char* mbstr)
 {
     if (!mbstr) return L"";
     int len = MultiByteToWideChar(CP_ACP, 0, mbstr, -1, nullptr, 0);
     if (len <= 1) return L"";
-    std::wstring wstr(len - 1, L'\0'); // -1は終端分
+    std::wstring wstr(len - 1, L'\0'); // -1 excludes the null terminator
     MultiByteToWideChar(CP_ACP, 0, mbstr, -1, &wstr[0], len);
     return wstr;
 }
 
-// 2つのwchar_t*を結合し、動的に確保したwchar_t*を返す（呼び出し側でdelete[]が必要）
+// Concatenate two wchar_t* into a heap-allocated wchar_t* (caller must delete[]).
 wchar_t* ConcatWStrings(const wchar_t* s1, const wchar_t* s2)
 {
     if (!s1) s1 = L"";
