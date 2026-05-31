@@ -86,6 +86,13 @@ namespace winrt::WindowsLibraryExample::implementation
 
     void NotificationPage::ShowResult(std::wstring const& method, unsigned long err)
     {
+        // DISABLED: notifications are turned off for this app. Guide the user to
+        // the settings page (Open Notification Settings button) to re-enable them.
+        if (err == NOTIFICATION_ERROR_DISABLED)
+        {
+            SetResultText(L"❌ [" + method + L"] Notifications are disabled. Tap \"Open Notification Settings\" to enable.");
+            return;
+        }
         std::wstring text = (err == 0 ? L"✅ " : L"❌ ") + std::wstring(L"[") + method + L"] errorCode=" + std::to_wstring(err);
         SetResultText(text);
     }
@@ -139,6 +146,17 @@ namespace winrt::WindowsLibraryExample::implementation
         default: label = L"Unknown(" + std::to_wstring(setting) + L")"; break;
         }
         SetResultText(L"✅ [GetSetting] " + label);
+    }
+
+    void NotificationPage::OpenSettings_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        DLog(TAG, L"[OpenSettings_Click]");
+        DWORD err = 0;
+        openNotificationSettings(&err);
+        if (err == 0)
+            SetResultText(L"✅ [OpenSettings] Opened notification settings. Enable notifications, then retry.");
+        else
+            ShowResult(L"OpenSettings", err);
     }
 
     // ---- Show ----
@@ -336,7 +354,7 @@ namespace winrt::WindowsLibraryExample::implementation
         if (!EnsureInitialized()) return;
         if (!m_hasLastId)
         {
-            SetResultText(L"❌ No id. Tap GetAllNotifications first to capture an id.");
+            SetResultText(L"❌ [RemoveById] No captured id. Tap GetAllNotifications first.");
             return;
         }
         DWORD err = 0;

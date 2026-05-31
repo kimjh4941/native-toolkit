@@ -29,6 +29,7 @@
                 <Button Content="InitializeManager" HorizontalAlignment="Stretch" Click="InitializeManager_Click"/>
                 <Button Content="Uninitialize" HorizontalAlignment="Stretch" Click="Uninitialize_Click"/>
                 <Button Content="GetSetting" HorizontalAlignment="Stretch" Click="GetSetting_Click"/>
+                <Button Content="Open Notification Settings" HorizontalAlignment="Stretch" Click="OpenSettings_Click"/>
 
                 <TextBlock Text="Show" FontSize="18" FontWeight="SemiBold"/>
                 <Button Content="ShowBasic" HorizontalAlignment="Stretch" Click="ShowBasic_Click"/>

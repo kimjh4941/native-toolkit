@@ -169,3 +169,13 @@ void getAllNotifications(
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
 int getNotificationSetting();
+
+/**
+ * @brief Opens the Windows notifications settings page.
+ * @details Useful when getNotificationSetting() reports notifications are
+ *          disabled (1-4): the user can re-enable them for this app from the
+ *          settings page. Launches the ms-settings:notifications URI.
+ * @param pError Out pointer for error code. 0 on success, 5 on WinRT failure.
+ */
+extern "C" WINDOWSNOTIFICATIONMANAGER_API
+void openNotificationSettings(DWORD* pError);

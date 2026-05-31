@@ -77,6 +77,17 @@ void WindowsNotificationManager::Init(
     if (pError) *pError = NOTIFICATION_SUCCESS;
     m_callback = callback;
 
+    // AppNotificationManager registration is process-wide and Register() must be
+    // called only once. Re-entering the sample page and tapping InitializeManager
+    // again would otherwise subscribe a second handler and call Register() twice,
+    // which throws 0x80070490. Treat a repeat Init as a no-op (callback refreshed
+    // above). Uninit() resets m_initialized so a later Init() can re-register.
+    if (m_initialized)
+    {
+        DLog(TAG, L"[Init] already initialized; skipping re-registration");
+        return;
+    }
+
     // Ensure COM/WinRT is initialized on the CALLING thread (not at DLL load). Tolerate
     // RPC_E_CHANGED_MODE: if the host already established an apartment on this thread, keep it
     // — the AppNotificationManager APIs work in either STA or MTA.
@@ -898,6 +909,39 @@ int WindowsNotificationManager::GetSetting()
 }
 
 // =============================================================================
+// OpenSettings
+// =============================================================================
+
+void WindowsNotificationManager::OpenSettings(DWORD* pError)
+{
+    DLog(TAG, L"[OpenSettings]");
+
+    if (pError) *pError = NOTIFICATION_SUCCESS;
+
+    try
+    {
+        // ms-settings:notifications opens the system notifications settings page,
+        // where the user can re-enable notifications for this app. LaunchUriAsync
+        // is waited on a background thread to stay STA-safe (see RunSyncOffSta).
+        Uri uri{ L"ms-settings:notifications" };
+        bool launched = RunSyncOffSta([&]
+        {
+            return winrt::Windows::System::Launcher::LaunchUriAsync(uri).get();
+        });
+        if (!launched)
+        {
+            DLog(TAG, L"[OpenSettings] LaunchUriAsync returned false");
+            if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+        }
+    }
+    catch (winrt::hresult_error const& ex)
+    {
+        DFLog(TAG, L"[OpenSettings] WinRT exception. hr=0x%08lx", ex.code().value);
+        if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+    }
+}
+
+// =============================================================================
 // C Bridge API
 // =============================================================================
 
@@ -992,4 +1036,10 @@ int getNotificationSetting()
 {
     DLog(TAG, L"[getNotificationSetting]");
     return WindowsNotificationManager::GetInstance().GetSetting();
+}
+
+void openNotificationSettings(DWORD* pError)
+{
+    DLog(TAG, L"[openNotificationSettings]");
+    WindowsNotificationManager::GetInstance().OpenSettings(pError);
 }

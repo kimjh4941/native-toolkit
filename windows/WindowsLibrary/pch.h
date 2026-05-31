@@ -22,6 +22,9 @@
 // JSON parsing / building
 #include <winrt/Windows.Data.Json.h>
 
+// Launcher — open the system notification settings page
+#include <winrt/Windows.System.h>
+
 // C++ standard
 #include <string>
 #include <chrono>

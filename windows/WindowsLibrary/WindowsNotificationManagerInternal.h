@@ -30,6 +30,7 @@ public:
     void RemoveAll(DWORD* pError);
     void GetAll(wchar_t* outJson, uint32_t bufferSize, DWORD* pError);
     int  GetSetting();
+    void OpenSettings(DWORD* pError);
 
 private:
     friend class WindowsNotificationManagerTest::NotificationManagerTest;
