@@ -69,6 +69,9 @@
      - OS ごとにライブラリバージョンは異なってよい（例: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar`）
      - ビルドスクリプトの `-v <version>` には OS ライブラリの実際のバージョンを指定する
    - 追加・更新したテストを実行し、失敗時は原因を修正する
+     - Android: `./gradlew :<module>:testReleaseUnitTest`（または対象テストタスク）
+     - iOS / macOS: `xcodebuild test -scheme <scheme> -destination <destination>`
+     - Windows: MSBuild でテストプロジェクトをビルド後、`vstest.console.exe <TestProject>\x64\Debug\<TestProject>.dll`（CppUnitTest）を実行し、全ケース passed を確認する
    - 実機依存で自動化できない項目は「手動確認が必要」と明記する
 
 9. 実装結果を検証する（必須）

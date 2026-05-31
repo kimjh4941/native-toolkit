@@ -145,3 +145,17 @@ DFLog(TAG, L"[ShowDialog] failed. hr=0x%08lx", hr);
 - ログ関数: `DLog`, `DFLog`, `DFLLog`
 - 文字列変換: `ToWString`
 - 文字列連結: `ConcatWStrings`
+
+---
+
+## 実装の落とし穴（WinUI 3 / MSIX / 通知）
+
+ビルドが通っても実行時に初めて顕在化する Windows 固有の罠。実装・レビュー時に必ず確認する。
+
+- **文字コード**: 非 ASCII（絵文字・日本語）を含む `.cpp`/`.h` は、UTF-8 BOM 付与または `/utf-8` コンパイルオプションを使う。無いと CP932 解釈で実行時に文字化けし、`warning C4819` が出る。絵文字は `\uXXXX` / `\UXXXXXXXX` のユニバーサル文字名でも安全に書ける。
+- **WinRT 非同期と STA**: UI スレッド（WinUI は STA）で `IAsyncXxx::get()` をブロッキング待機しない。cppwinrt が `!is_sta_thread()` で assert する。バックグラウンド（非 STA）スレッドで待機する（例: `std::async` でラップ）。Bridge の同期インターフェース（`DWORD* pError`）は維持できる。
+- **パッケージ済み通知のアクティベーション登録**: `AppNotificationManager::Register()` を使うパッケージ済み（MSIX）アプリは、`Package.appxmanifest` に `windows.comServer`（ExeServer + Class Id）と `windows.toastNotificationActivation`（`ToastActivatorCLSID`）の登録が必須。無いと初期化が `No COM servers are registered for this app`（0x80004005）で失敗する。
+- **プロセス単位登録の冪等性**: `Register()` はプロセスで一度だけ。Manager の `Init` は既初期化時に再購読・再 `Register()` しないようガードする（二重 `Register()` は `0x80070490`「Must register event handlers before calling Register()」になる）。`Uninit` で状態を戻して再 `Init` できる形にする。
+- **進捗バーの更新**: `UpdateAsync` で進捗を更新するには、表示時の進捗バーを**データバインド**（`BindValue`/`BindStatus` 等）にし、初期値を `AppNotification.Progress(AppNotificationProgressData)` で与える。リテラル値で組んだ進捗バーは更新できない（API は成功を返すが見た目が変わらない）。更新の sequence number は表示時より大きくする。
+- **フォーマットログのバッファ**: `DFLog` 等は出力長に足りるバッファを確保する（`vswprintf_s` は溢れで `"Buffer too small"` assert）。長い JSON ペイロード等は `_vscwprintf` で必要長を算出して動的確保するか `DFLLog` を使う。
+- **ビルド ≠ 表示確認**: トースト表示・コールバック・スケジュール・バッジは MSIX 実機実行（Visual Studio から配置→F5）でのみ確認できる。CLI ビルド成功だけで機能完了と判断しない。`Package.appxmanifest` を変更したらクリーン配置する。アプリ実行中は成果物がロックされ再リンクが `LNK1201` 等で失敗するため、再ビルド前に停止する。
