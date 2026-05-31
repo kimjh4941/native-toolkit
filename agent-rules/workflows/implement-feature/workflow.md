@@ -54,14 +54,17 @@
 
 8. ビルド・テストを実行する（必須）
    - 対象OSモジュールのビルドを実行する
-   - **Android / iOS / macOS の場合は、通常ビルドに加え専用ビルドスクリプトを必ず実行してエラーがないことを確認する**
+   - **Android / iOS / macOS / Windows の場合は、通常ビルドに加え成果物生成スクリプト（`scripts/`）を必ず実行し、成果物が問題なく生成できることを確認する**
      - Android: `./scripts/build_android_library_aar.sh -b release -m <module> -v <version> -o /tmp/<module>-verify.aar`
        - 成功確認: `[done] Created /tmp/<module>-verify.aar`
      - iOS: `./scripts/build_ios_library_xcframework.sh -c release -m <module> -v <version> -o /tmp/<module>-verify.xcframework`
        - 成功確認: `** ARCHIVE SUCCEEDED **` と `[done] ... Created ...xcframework`
      - macOS: `./scripts/build_xcode26_library_xcframework.sh -c release -m <module> -v <version> -o /tmp/<module>-verify.xcframework --minimum-macos 15.0`
        - 成功確認: `** ARCHIVE SUCCEEDED **` と `[done] ... Created ...xcframework`
-     - 失敗した場合はビルドログの `error:` 行を特定し、原因を修正してから再実行する
+     - Windows: `scripts\create_native_toolkit_dll.bat Release x64 "%TEMP%\nativetoolkit-verify"`
+       - 成功確認: `[OK] Built: "...\NativeToolkit.dll" and "...\NativeToolkit.lib"`（終了コード 0）
+       - 生成物: `NativeToolkit.dll` と `NativeToolkit.lib`（`.def` の export が解決できること）
+     - 失敗した場合はビルドログの `error:` / `[ERROR]` 行を特定し、原因を修正してから再実行する
    - **`dist/<toolkit-version>/` に配置するファイルのファイル名は、そのOSライブラリの実際のバージョンと一致させる**
      - OS ごとにライブラリバージョンは異なってよい（例: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar`）
      - ビルドスクリプトの `-v <version>` には OS ライブラリの実際のバージョンを指定する

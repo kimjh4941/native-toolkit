@@ -18,7 +18,7 @@
    - 入力がない場合は以下の候補を提示:
      - `artifact/plans/<feature>/` 配下の `*-research*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
      - `artifact/designs/<feature>/` 配下の `*-design*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
-     - `artifact/designs/<feature>/` 配下の `*-sample-app*.md` を探索し、同一ドキュメントの改訂版がある場合は最も大きいバージョンのみ
+     - `artifact/designs/<feature>/` 配下の `*-sample-app-design*.md` を探索し、同一ドキュメントの改訂版がある場合は最も大きいバージョンのみ
    - バージョンサフィックスがないファイルは `v1` とみなし、`vN` が存在する場合は `vN` を優先する
    - ユーザーが選択したファイルパスを確定する
 
@@ -43,7 +43,7 @@
      - リスク緩和策の実現可能性
      - ドメインエラーの全ケース一覧が定義されているか（対象機能に対応する Error 型）
      - 各エラーの返却メッセージ/エラーコード対応表があるか、公開API返却仕様と整合しているか
-   - **サンプルアプリ計画書（`*-sample-app*.md`）の場合:**
+   - **サンプルアプリ計画書（`*-sample-app-design*.md`）の場合:**
      - 設計書・実装結果との整合性（公開API・エラー契約の反映）
      - 画面要件の網羅性（機能一覧・操作導線・エラー表示）
      - 変更ファイル一覧の正確性（新規作成 / 既存変更 / 非変更の分類）
@@ -90,7 +90,7 @@
    - 保存先: `artifact/reviews/<feature>/YYYY-MM-DD-<os>-<feature>-<document-type>-review.md`
      - `<os>`: 対象 OS（例: `android` / `ios` / `macos` / `windows`）
      - `<feature>`: 対象ファイルのパスから自動抽出（例: `android-notification`）
-     - `<document-type>`: ファイル種別に応じて `research` / `design` / `sample-app`
+     - `<document-type>`: ファイル種別に応じて `research` / `design` / `sample-app-design`
      - 例: `artifact/reviews/notification/2026-05-16-android-notification-research-review.md`
    - ファイル形式（Markdown）:
 
