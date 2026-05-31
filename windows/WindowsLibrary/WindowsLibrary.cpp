@@ -40,15 +40,13 @@ BOOL CWindowsLibraryApp::InitInstance()
 {
 	CWinApp::InitInstance();
 
-	// The host process may already have initialized COM on this thread as STA
-	// (for example, a WinUI app main thread). In that case, requesting MTA here
-	// returns RPC_E_CHANGED_MODE. That is not fatal for this DLL; it simply means
-	// we must keep using the host-established apartment.
-	const HRESULT hr = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-	if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
-	{
-		return FALSE;
-	}
+	// Do NOT initialize COM / a WinRT apartment here. For a regular MFC DLL, InitInstance()
+	// runs at DLL load (DllMain context) on the host's main thread. Forcing an apartment here
+	// (e.g. CoInitializeEx as MTA) would pin the host's main thread before the host sets its
+	// own apartment — a WinUI host that subsequently calls init_apartment(single_threaded)
+	// then throws an unhandled RPC_E_CHANGED_MODE and crashes. COM is instead initialized on
+	// the caller's thread when the notification feature is actually used (see
+	// WindowsNotificationManager::Init). DialogManager initializes COM in its own functions.
 
 	if (!AfxSocketInit())
 	{

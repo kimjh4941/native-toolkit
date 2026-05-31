@@ -110,20 +110,20 @@
     The AppSDK NuGet build integration is intentionally NOT imported here: this test only
     consumes the generated headers and the OS/SDK winrt headers, and pulling the aggregate
     AppSDK package injects auto-initializer sources that clash with MFC (IUnknown ambiguity).
+    Windows App SDK 1.7 ships all winmds in a single lib\uap10.0 folder.
   -->
   <Target Name="GenerateWindowsAppSDKProjection"
           BeforeTargets="ClCompile"
           Condition="'$(Platform)'=='x64'"
-          Inputs="$(MSBuildProjectFullPath);..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.Foundation.2.0.21\metadata\Microsoft.Windows.AppNotifications.winmd"
+          Inputs="$(MSBuildProjectFullPath);..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0\Microsoft.Windows.AppNotifications.winmd"
           Outputs="$(GeneratedFilesDir)winrt\Microsoft.Windows.AppNotifications.h">
     <PropertyGroup>
       <_SdkCppWinRT>$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\cppwinrt.exe</_SdkCppWinRT>
-      <_AppSdkMeta>$(MSBuildProjectDirectory)\..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.Foundation.2.0.21\metadata</_AppSdkMeta>
-      <_AppSdkUIMeta>$(MSBuildProjectDirectory)\..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.InteractiveExperiences.2.0.13\metadata\10.0.18362.0</_AppSdkUIMeta>
+      <_AppSdkLib>$(MSBuildProjectDirectory)\..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0</_AppSdkLib>
     </PropertyGroup>
     <MakeDir Directories="$(GeneratedFilesDir)" />
     <Message Importance="high" Text="Generating Windows App SDK C++/WinRT projection into $(GeneratedFilesDir)" />
-    <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkMeta)&quot; -ref &quot;$(_AppSdkUIMeta)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
+    <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.Builder.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppLifecycle.winmd&quot; -ref &quot;$(_AppSdkLib)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
   </Target>
   <ImportGroup Label="ExtensionTargets" />
 </Project>

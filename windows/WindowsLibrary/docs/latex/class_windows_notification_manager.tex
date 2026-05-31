@@ -1,0 +1,59 @@
+\doxysection{Windows\+Notification\+Manager Class Reference}
+\hypertarget{class_windows_notification_manager}{}\label{class_windows_notification_manager}\index{WindowsNotificationManager@{WindowsNotificationManager}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_windows_notification_manager_a8ae87fffaf9bb77820c4e329c03912c7}\label{class_windows_notification_manager_a8ae87fffaf9bb77820c4e329c03912c7} 
+void {\bfseries Init} (\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}} callback, BOOL is\+Packaged, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}clsid, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}launch\+Uri, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_a68acc269cfd9883b4793789fe9516607}\label{class_windows_notification_manager_a68acc269cfd9883b4793789fe9516607} 
+void {\bfseries Uninit} ()
+\item 
+\Hypertarget{class_windows_notification_manager_a2e5011572fcbfc58178f4768f8338e9e}\label{class_windows_notification_manager_a2e5011572fcbfc58178f4768f8338e9e} 
+void {\bfseries Show} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}json\+Payload, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_af7ada2de2961c8fa7d10fca04ca84edd}\label{class_windows_notification_manager_af7ada2de2961c8fa7d10fca04ca84edd} 
+void {\bfseries Schedule} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}json\+Payload, int64\+\_\+t scheduled\+Time\+Ms, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_a875f04218b05bce778b9c442f0dc4fad}\label{class_windows_notification_manager_a875f04218b05bce778b9c442f0dc4fad} 
+void {\bfseries Cancel\+Scheduled} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_a24236daa43a916119dc74d7dfa2a954d}\label{class_windows_notification_manager_a24236daa43a916119dc74d7dfa2a954d} 
+void {\bfseries Update\+Progress} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, double value, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}value\+Str, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}status, uint32\+\_\+t seq, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_a9f7a62b5bf7ab633f81f03be73cea8d6}\label{class_windows_notification_manager_a9f7a62b5bf7ab633f81f03be73cea8d6} 
+void {\bfseries Set\+Badge} (int value, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_a3bf2235c59f4dcac960792ae5c9faaa1}\label{class_windows_notification_manager_a3bf2235c59f4dcac960792ae5c9faaa1} 
+void {\bfseries Remove\+By\+Id} (uint32\+\_\+t id, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_a0e56750f28ae5978f8d1a09899c7631f}\label{class_windows_notification_manager_a0e56750f28ae5978f8d1a09899c7631f} 
+void {\bfseries Remove\+By\+Tag} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_af4ade24f6eab7bdc9c714cb9e39df27f}\label{class_windows_notification_manager_af4ade24f6eab7bdc9c714cb9e39df27f} 
+void {\bfseries Remove\+All} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_ab3726541f867aa50a0a2d3175dcbf949}\label{class_windows_notification_manager_ab3726541f867aa50a0a2d3175dcbf949} 
+void {\bfseries Get\+All} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}out\+Json, uint32\+\_\+t buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_windows_notification_manager_a5c921d7ab806f720b7f3c9381b839625}\label{class_windows_notification_manager_a5c921d7ab806f720b7f3c9381b839625} 
+int {\bfseries Get\+Setting} ()
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_windows_notification_manager_a317c214f5b8b65f7ca079bcd3975534e}\label{class_windows_notification_manager_a317c214f5b8b65f7ca079bcd3975534e} 
+static \mbox{\hyperlink{class_windows_notification_manager}{Windows\+Notification\+Manager}} \& {\bfseries Get\+Instance} ()
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_windows_notification_manager_afa00755e00daed14307bb71a8c19dcfe}\label{class_windows_notification_manager_afa00755e00daed14307bb71a8c19dcfe} 
+class {\bfseries Windows\+Notification\+Manager\+Test\+::\+Notification\+Manager\+Test}
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Notification\+Manager\+Internal.\+h\item 
+Windows\+Notification\+Manager.\+cpp\end{DoxyCompactItemize}

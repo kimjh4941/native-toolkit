@@ -61,6 +61,17 @@ void WindowsNotificationManager::Init(
     if (pError) *pError = NOTIFICATION_SUCCESS;
     m_callback = callback;
 
+    // Ensure COM/WinRT is initialized on the CALLING thread (not at DLL load). Tolerate
+    // RPC_E_CHANGED_MODE: if the host already established an apartment on this thread, keep it
+    // — the AppNotificationManager APIs work in either STA or MTA.
+    const HRESULT hrCom = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    if (FAILED(hrCom) && hrCom != RPC_E_CHANGED_MODE)
+    {
+        DFLog(TAG, L"[Init] CoInitializeEx failed. hr=0x%08lx", hrCom);
+        if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+        return;
+    }
+
     try
     {
         auto& mgr = AppNotificationManager::Default();

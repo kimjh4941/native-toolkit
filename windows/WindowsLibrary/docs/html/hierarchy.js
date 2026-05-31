@@ -4,5 +4,6 @@ var hierarchy =
     [ "CWinApp", null, [
       [ "CWindowsLibraryApp", "class_c_windows_library_app.html", null ]
     ] ],
-    [ "WindowsDialogManager", "class_windows_dialog_manager.html", null ]
+    [ "WindowsDialogManager", "class_windows_dialog_manager.html", null ],
+    [ "WindowsNotificationManager", "class_windows_notification_manager.html", null ]
 ];

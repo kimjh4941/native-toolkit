@@ -1,0 +1,316 @@
+\doxysection{Windows\+Notification\+Manager.\+h File Reference}
+\hypertarget{_windows_notification_manager_8h}{}\label{_windows_notification_manager_8h}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+
+
+Public C Bridge API for Windows Notification Manager.  
+
+
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=232pt]{_windows_notification_manager_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_notification_manager_8h_aa93a123e91163dbc3f730d4520732096}\label{_windows_notification_manager_8h_aa93a123e91163dbc3f730d4520732096} 
+\#define {\bfseries WINDOWSNOTIFICATIONMANAGER\+\_\+\+API}~\+\_\+\+\_\+declspec(dllimport)
+\item 
+\Hypertarget{_windows_notification_manager_8h_ae24b8f1a111f29ab9904a6229b9b8948}\label{_windows_notification_manager_8h_ae24b8f1a111f29ab9904a6229b9b8948} 
+\#define {\bfseries NOTIFICATION\+\_\+\+SUCCESS}~0
+\item 
+\Hypertarget{_windows_notification_manager_8h_a891b77e4f24535d4617f065ce4d2bbbe}\label{_windows_notification_manager_8h_a891b77e4f24535d4617f065ce4d2bbbe} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED}~1
+\item 
+\Hypertarget{_windows_notification_manager_8h_a0aaf96bd22211a9c299d633f91e36c78}\label{_windows_notification_manager_8h_a0aaf96bd22211a9c299d633f91e36c78} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+DISABLED}~2
+\item 
+\Hypertarget{_windows_notification_manager_8h_a0d996991f3fa64843bf4048bfe9bc6ac}\label{_windows_notification_manager_8h_a0d996991f3fa64843bf4048bfe9bc6ac} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PAYLOAD}~3
+\item 
+\Hypertarget{_windows_notification_manager_8h_a32d3c1ef08ef1994b9b6b1e268cc6084}\label{_windows_notification_manager_8h_a32d3c1ef08ef1994b9b6b1e268cc6084} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+PROGRESS\+\_\+\+NOT\+\_\+\+FOUND}~4
+\item 
+\Hypertarget{_windows_notification_manager_8h_a2e84fff0bcbcb6b6fc976595a4e13677}\label{_windows_notification_manager_8h_a2e84fff0bcbcb6b6fc976595a4e13677} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+HRESULT\+\_\+\+FAILURE}~5
+\item 
+\Hypertarget{_windows_notification_manager_8h_a0b6751a18045fc0b798bc24ebb3f5eab}\label{_windows_notification_manager_8h_a0b6751a18045fc0b798bc24ebb3f5eab} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+BADGE\+\_\+\+FAILED}~6
+\item 
+\Hypertarget{_windows_notification_manager_8h_a9da67b32566a5e6c8321b0e8234b2a62}\label{_windows_notification_manager_8h_a9da67b32566a5e6c8321b0e8234b2a62} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER}~7
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef void(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}}) (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}args\+Json)
+\begin{DoxyCompactList}\small\item\em Callback invoked when a notification is clicked or activated. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a7352f985ed8e856a7c21b46858bbb4e1}{init\+Notification\+Manager}} (\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}} callback, BOOL is\+Packaged, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}toast\+Activator\+CLSID, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}launch\+Uri, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Initializes the notification manager and registers for notification callbacks. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_notification_manager_8h_a0299e7b082ad3274175cba88621463a3}\label{_windows_notification_manager_8h_a0299e7b082ad3274175cba88621463a3} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void {\bfseries uninit\+Notification\+Manager} ()
+\begin{DoxyCompactList}\small\item\em Uninitializes the notification manager and unregisters callbacks. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_af185cd415410d7f077e01c753306ce07}{show\+Notification}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}json\+Payload, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Displays a Toast notification described by a JSON payload. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a4ed6b095897c2c84cee6525aa351c637}{schedule\+Notification}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}json\+Payload, int64\+\_\+t scheduled\+Time\+Unix\+Ms, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Schedules a Toast notification for delivery at a specified time. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a4ea719affb154500643b698f711ba690}{cancel\+Scheduled\+Notification}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Cancels a previously scheduled notification matching the given tag and group. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a488f97232d9251f59d47945e7213cf40}{update\+Notification\+Progress}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, double value, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}value\+Str, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}status, uint32\+\_\+t sequence\+Number, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Updates the progress data of an existing progress-\/bar notification. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a63407175785fc3f2d4c0309af245ab03}{set\+Badge}} (int value, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Sets the badge on the taskbar icon. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a560d0f9070727b3657532920007538e1}{remove\+Notification\+By\+Id}} (uint32\+\_\+t notification\+Id, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Removes a notification from Notification Center by its ID. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a3231f9ff1ea50ea24713a900933b5e26}{remove\+Notifications\+By\+Tag}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Removes all notifications matching the given tag and optional group. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a30e79d02929cc97ba1d943f192a093ff}{remove\+All\+Notifications}} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Removes all notifications from Notification Center. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a9ceb94d7d307716abd1c494e1142072c}{get\+All\+Notifications}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}out\+Json, uint32\+\_\+t buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Retrieves all current notifications as a JSON array. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API int \mbox{\hyperlink{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb}{get\+Notification\+Setting}} ()
+\begin{DoxyCompactList}\small\item\em Returns the current App\+Notification\+Setting value. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Public C Bridge API for Windows Notification Manager. 
+
+Provides Toast notification display, scheduling, badge updates, and notification management via Windows App SDK (App\+Notification\+Manager). Minimum OS\+: Windows 11. 
+
+\label{doc-typedef-members}
+\Hypertarget{_windows_notification_manager_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!NotificationInvokedCallback@{NotificationInvokedCallback}}
+\index{NotificationInvokedCallback@{NotificationInvokedCallback}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{NotificationInvokedCallback}{NotificationInvokedCallback}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315} 
+typedef void(\texorpdfstring{$\ast$}{*} Notification\+Invoked\+Callback) (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}args\+Json)}
+
+
+
+Callback invoked when a notification is clicked or activated. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em args\+Json} & JSON string containing action arguments and user input. \\
+\hline
+\end{DoxyParams}
+
+
+\label{doc-func-members}
+\Hypertarget{_windows_notification_manager_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_windows_notification_manager_8h_a4ea719affb154500643b698f711ba690}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!cancelScheduledNotification@{cancelScheduledNotification}}
+\index{cancelScheduledNotification@{cancelScheduledNotification}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{cancelScheduledNotification()}{cancelScheduledNotification()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a4ea719affb154500643b698f711ba690} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void cancel\+Scheduled\+Notification (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{tag}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{group}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Cancels a previously scheduled notification matching the given tag and group. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em tag} & Tag of the notification to cancel. \\
+\hline
+{\em group} & Group of the notification to cancel. \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a9ceb94d7d307716abd1c494e1142072c}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!getAllNotifications@{getAllNotifications}}
+\index{getAllNotifications@{getAllNotifications}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{getAllNotifications()}{getAllNotifications()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a9ceb94d7d307716abd1c494e1142072c} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void get\+All\+Notifications (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+Json}{, }\item[{uint32\+\_\+t}]{buffer\+Size}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Retrieves all current notifications as a JSON array. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em out\+Json} & Output buffer for the JSON array\+: \mbox{[}\{"{}id"{}\+:N,"{}tag"{}\+:"{}..."{},"{}group"{}\+:"{}..."{}\},...\mbox{]}. \\
+\hline
+{\em buffer\+Size} & Number of wchar\+\_\+t elements in out\+Json (including null terminator). \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!getNotificationSetting@{getNotificationSetting}}
+\index{getNotificationSetting@{getNotificationSetting}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{getNotificationSetting()}{getNotificationSetting()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API int get\+Notification\+Setting (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Returns the current App\+Notification\+Setting value. 
+
+\begin{DoxyReturn}{Returns}
+0=Enabled, 1=Disabled\+For\+Application, 2=Disabled\+For\+User, 3=Disabled\+By\+Group\+Policy, 4=Disabled\+By\+Manifest, -\/1=error. 
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This return value is independent of the NOTIFICATION\+\_\+\+ERROR\+\_\+\texorpdfstring{$\ast$}{*} code space. 
+\end{DoxyNote}
+\Hypertarget{_windows_notification_manager_8h_a7352f985ed8e856a7c21b46858bbb4e1}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!initNotificationManager@{initNotificationManager}}
+\index{initNotificationManager@{initNotificationManager}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{initNotificationManager()}{initNotificationManager()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a7352f985ed8e856a7c21b46858bbb4e1} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void init\+Notification\+Manager (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}}}]{callback}{, }\item[{BOOL}]{is\+Packaged}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{toast\+Activator\+CLSID}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{launch\+Uri}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Initializes the notification manager and registers for notification callbacks. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em callback} & Callback function invoked on notification activation. \\
+\hline
+{\em is\+Packaged} & TRUE for packaged (MSIX) apps; FALSE for unpackaged Win32 apps. \\
+\hline
+{\em toast\+Activator\+CLSID} & CLSID string for COM activation (unpackaged only; ignored if is\+Packaged). \\
+\hline
+{\em launch\+Uri} & Launch URI for COM activation (unpackaged only). \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/7 on failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a30e79d02929cc97ba1d943f192a093ff}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!removeAllNotifications@{removeAllNotifications}}
+\index{removeAllNotifications@{removeAllNotifications}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{removeAllNotifications()}{removeAllNotifications()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a30e79d02929cc97ba1d943f192a093ff} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void remove\+All\+Notifications (\begin{DoxyParamCaption}\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Removes all notifications from Notification Center. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a560d0f9070727b3657532920007538e1}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!removeNotificationById@{removeNotificationById}}
+\index{removeNotificationById@{removeNotificationById}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{removeNotificationById()}{removeNotificationById()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a560d0f9070727b3657532920007538e1} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void remove\+Notification\+By\+Id (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{notification\+Id}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Removes a notification from Notification Center by its ID. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em notification\+Id} & Numeric ID of the notification. \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a3231f9ff1ea50ea24713a900933b5e26}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!removeNotificationsByTag@{removeNotificationsByTag}}
+\index{removeNotificationsByTag@{removeNotificationsByTag}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{removeNotificationsByTag()}{removeNotificationsByTag()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a3231f9ff1ea50ea24713a900933b5e26} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void remove\+Notifications\+By\+Tag (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{tag}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{group}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Removes all notifications matching the given tag and optional group. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em tag} & Tag of the notifications to remove. \\
+\hline
+{\em group} & Group filter; pass empty string to match all groups for the tag. \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a4ed6b095897c2c84cee6525aa351c637}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!scheduleNotification@{scheduleNotification}}
+\index{scheduleNotification@{scheduleNotification}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{scheduleNotification()}{scheduleNotification()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a4ed6b095897c2c84cee6525aa351c637} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void schedule\+Notification (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{json\+Payload}{, }\item[{int64\+\_\+t}]{scheduled\+Time\+Unix\+Ms}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Schedules a Toast notification for delivery at a specified time. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em json\+Payload} & JSON string describing the notification. \\
+\hline
+{\em scheduled\+Time\+Unix\+Ms} & Delivery time in milliseconds since Unix epoch (UTC). \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/7 on failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a63407175785fc3f2d4c0309af245ab03}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!setBadge@{setBadge}}
+\index{setBadge@{setBadge}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{setBadge()}{setBadge()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a63407175785fc3f2d4c0309af245ab03} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void set\+Badge (\begin{DoxyParamCaption}\item[{int}]{value}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Sets the badge on the taskbar icon. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em value} & \texorpdfstring{$>$}{>}0\+: numeric badge; 0\+: clear; -\/1=alert; -\/2=activity; -\/3=new\+Message; -\/4=available; -\/5=busy; -\/6=away; \texorpdfstring{$<$}{<}-\/6\+: invalid (NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER). \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 6/7 on failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_af185cd415410d7f077e01c753306ce07}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!showNotification@{showNotification}}
+\index{showNotification@{showNotification}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{showNotification()}{showNotification()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_af185cd415410d7f077e01c753306ce07} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void show\+Notification (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{json\+Payload}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Displays a Toast notification described by a JSON payload. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em json\+Payload} & JSON string. See design doc for full schema. \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/7 on failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_a488f97232d9251f59d47945e7213cf40}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!updateNotificationProgress@{updateNotificationProgress}}
+\index{updateNotificationProgress@{updateNotificationProgress}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{updateNotificationProgress()}{updateNotificationProgress()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a488f97232d9251f59d47945e7213cf40} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void update\+Notification\+Progress (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{tag}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{group}{, }\item[{double}]{value}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{value\+Str}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{status}{, }\item[{uint32\+\_\+t}]{sequence\+Number}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Updates the progress data of an existing progress-\/bar notification. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em tag} & Notification tag. \\
+\hline
+{\em group} & Notification group (pass empty string if not used). \\
+\hline
+{\em value} & Progress value in \mbox{[}0.\+0, 1.\+0\mbox{]}. \\
+\hline
+{\em value\+Str} & Display string override for the progress value. \\
+\hline
+{\em status} & Status label string. \\
+\hline
+{\em sequence\+Number} & Sequence number; must be greater than the previous value. \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 1/4/5 on failure. \\
+\hline
+\end{DoxyParams}
