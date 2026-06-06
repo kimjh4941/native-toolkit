@@ -26,37 +26,37 @@
             <StackPanel Width="600" HorizontalAlignment="Center" Padding="30,8,30,30" Spacing="16">
 
                 <TextBlock Text="Init / Setting" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="InitializeManager" HorizontalAlignment="Stretch" Click="InitializeManager_Click"/>
-                <Button Content="Uninitialize" HorizontalAlignment="Stretch" Click="Uninitialize_Click"/>
-                <Button Content="GetSetting" HorizontalAlignment="Stretch" Click="GetSetting_Click"/>
-                <Button Content="Open Notification Settings" HorizontalAlignment="Stretch" Click="OpenSettings_Click"/>
+                <Button Content="InitializeManager" Style="{StaticResource NotificationButtonStyle}" Click="InitializeManager_Click"/>
+                <Button Content="Uninitialize" Style="{StaticResource NotificationButtonStyle}" Click="Uninitialize_Click"/>
+                <Button Content="GetSetting" Style="{StaticResource NotificationButtonStyle}" Click="GetSetting_Click"/>
+                <Button Content="Open Notification Settings" Style="{StaticResource NotificationButtonStyle}" Click="OpenSettings_Click"/>
 
                 <TextBlock Text="Show" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="ShowBasic" HorizontalAlignment="Stretch" Click="ShowBasic_Click"/>
-                <Button Content="ShowWithButtons" HorizontalAlignment="Stretch" Click="ShowWithButtons_Click"/>
-                <Button Content="ShowWithImage" HorizontalAlignment="Stretch" Click="ShowWithImage_Click"/>
-                <Button Content="ShowWithInput (TextBox + ComboBox)" HorizontalAlignment="Stretch" Click="ShowWithInput_Click"/>
-                <Button Content="ShowWithExpiration (10s)" HorizontalAlignment="Stretch" Click="ShowWithExpiration_Click"/>
-                <Button Content="ShowWithAudio (reminder)" HorizontalAlignment="Stretch" Click="ShowWithAudio_Click"/>
+                <Button Content="ShowBasic" Style="{StaticResource NotificationButtonStyle}" Click="ShowBasic_Click"/>
+                <Button Content="ShowWithButtons" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithButtons_Click"/>
+                <Button Content="ShowWithImage" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithImage_Click"/>
+                <Button Content="ShowWithInput (TextBox + ComboBox)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithInput_Click"/>
+                <Button Content="ShowWithExpiration (10s)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithExpiration_Click"/>
+                <Button Content="ShowWithAudio (reminder)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithAudio_Click"/>
 
                 <TextBlock Text="Schedule" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="Schedule (+1m)" HorizontalAlignment="Stretch" Click="Schedule_Click"/>
-                <Button Content="CancelScheduled" HorizontalAlignment="Stretch" Click="CancelScheduled_Click"/>
+                <Button Content="Schedule (+1m)" Style="{StaticResource NotificationButtonStyle}" Click="Schedule_Click"/>
+                <Button Content="CancelScheduled" Style="{StaticResource NotificationButtonStyle}" Click="CancelScheduled_Click"/>
 
                 <TextBlock Text="Progress" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="ShowWithProgress" HorizontalAlignment="Stretch" Click="ShowWithProgress_Click"/>
-                <Button Content="UpdateProgress (0.6)" HorizontalAlignment="Stretch" Click="UpdateProgress_Click"/>
+                <Button Content="ShowWithProgress" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithProgress_Click"/>
+                <Button Content="UpdateProgress (0.6)" Style="{StaticResource NotificationButtonStyle}" Click="UpdateProgress_Click"/>
 
                 <TextBlock Text="Badge" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="SetBadge (5)" HorizontalAlignment="Stretch" Click="SetBadge_Click"/>
-                <Button Content="SetBadgeGlyph (alert)" HorizontalAlignment="Stretch" Click="SetBadgeGlyph_Click"/>
-                <Button Content="ClearBadge" HorizontalAlignment="Stretch" Click="ClearBadge_Click"/>
+                <Button Content="SetBadge (5)" Style="{StaticResource NotificationButtonStyle}" Click="SetBadge_Click"/>
+                <Button Content="SetBadgeGlyph (alert)" Style="{StaticResource NotificationButtonStyle}" Click="SetBadgeGlyph_Click"/>
+                <Button Content="ClearBadge" Style="{StaticResource NotificationButtonStyle}" Click="ClearBadge_Click"/>
 
                 <TextBlock Text="Remove / Query" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="GetAllNotifications" HorizontalAlignment="Stretch" Click="GetAllNotifications_Click"/>
-                <Button Content="RemoveById (last id)" HorizontalAlignment="Stretch" Click="RemoveById_Click"/>
-                <Button Content="RemoveByTag (sample)" HorizontalAlignment="Stretch" Click="RemoveByTag_Click"/>
-                <Button Content="RemoveAll" HorizontalAlignment="Stretch" Click="RemoveAll_Click"/>
+                <Button Content="GetAllNotifications" Style="{StaticResource NotificationButtonStyle}" Click="GetAllNotifications_Click"/>
+                <Button Content="RemoveById (last id)" Style="{StaticResource NotificationButtonStyle}" Click="RemoveById_Click"/>
+                <Button Content="RemoveByTag (sample)" Style="{StaticResource NotificationButtonStyle}" Click="RemoveByTag_Click"/>
+                <Button Content="RemoveAll" Style="{StaticResource NotificationButtonStyle}" Click="RemoveAll_Click"/>
 
             </StackPanel>
         </ScrollViewer>

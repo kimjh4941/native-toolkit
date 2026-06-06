@@ -345,6 +345,11 @@ namespace winrt::WindowsLibraryExample::implementation
             DLog(TAG, L"[GetAllNotifications] JSON parse failed");
         }
 
+        if (count == 0)
+        {
+            SetResultText(L"ℹ️ [GetAllNotifications] No active notifications. Tap a Show button first.");
+            return;
+        }
         SetResultText(L"✅ [GetAllNotifications] count=" + std::to_wstring(count) + L", ids=[" + ids + L"]");
     }
 
@@ -358,8 +363,16 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
         DWORD err = 0;
-        removeNotificationById(m_lastNotificationId, &err);
-        ShowResult(L"RemoveById(" + std::to_wstring(m_lastNotificationId) + L")", err);
+        uint32_t removedId = m_lastNotificationId;
+        removeNotificationById(removedId, &err);
+        if (err == 0)
+        {
+            // The captured id is now consumed; require a fresh GetAllNotifications
+            // before the next RemoveById so it does not target a stale id.
+            m_hasLastId = false;
+            m_lastNotificationId = 0;
+        }
+        ShowResult(L"RemoveById(" + std::to_wstring(removedId) + L")", err);
     }
 
     void NotificationPage::RemoveByTag_Click(IInspectable const&, RoutedEventArgs const&)
