@@ -151,7 +151,7 @@ docs/
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
 
 # Windows DLL / NuGet
-./scripts/create_native_toolkit_dll.bat
+./scripts/build_windows_library_dll.ps1 -c release -m WindowsLibrary -v 1.3.0 -Package
 ```
 
 ## API 문서 생성

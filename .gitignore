@@ -15,6 +15,12 @@
 *.tlog
 *.log
 
+# Windows build script staging (scripts/build_windows_library_dll.ps1)
+windows/Build/
+
+# Bundled nuget.exe (local tooling; not committed)
+scripts/nuget/nuget.exe
+
 # NuGet packages.config restore output
 packages/
 
