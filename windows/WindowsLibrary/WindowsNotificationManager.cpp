@@ -3,6 +3,8 @@
 #include "common.h"
 
 #include <future>
+#include <algorithm>
+#include <cwctype>
 
 using namespace winrt;
 using namespace winrt::Microsoft::Windows::AppNotifications;
@@ -30,6 +32,42 @@ namespace
     auto RunSyncOffSta(TFunc&& func) -> decltype(func())
     {
         return std::async(std::launch::async, std::forward<TFunc>(func)).get();
+    }
+
+    // AppNotificationManager::Register uses iconUri.RawUri() directly as a filesystem path
+    // (Windows.Foundation.Uri preserves the raw input string). A "file:///C:/x.png" URI is
+    // therefore rejected by std::filesystem with ERROR_INVALID_NAME (0x8007007B). Normalize a
+    // file:// URI to a plain Windows path (percent-decode + '/'→'\'); pass a plain path through.
+    std::wstring NormalizeIconPath(const wchar_t* iconUri)
+    {
+        std::wstring s{ iconUri ? iconUri : L"" };
+        constexpr std::wstring_view kScheme = L"file:///";
+        if (s.size() >= kScheme.size() && _wcsnicmp(s.c_str(), kScheme.data(), kScheme.size()) == 0)
+        {
+            s.erase(0, kScheme.size());
+
+            auto hexVal = [](wchar_t c) -> int {
+                if (c >= L'0' && c <= L'9') return c - L'0';
+                return towlower(c) - L'a' + 10;
+            };
+            std::wstring decoded;
+            decoded.reserve(s.size());
+            for (size_t i = 0; i < s.size(); ++i)
+            {
+                if (s[i] == L'%' && i + 2 < s.size() && iswxdigit(s[i + 1]) && iswxdigit(s[i + 2]))
+                {
+                    decoded.push_back(static_cast<wchar_t>(hexVal(s[i + 1]) * 16 + hexVal(s[i + 2])));
+                    i += 2;
+                }
+                else
+                {
+                    decoded.push_back(s[i]);
+                }
+            }
+            std::replace(decoded.begin(), decoded.end(), L'/', L'\\');
+            return decoded;
+        }
+        return s;
     }
 }
 
@@ -65,14 +103,14 @@ bool WindowsNotificationManager::CheckInitialized(const wchar_t* caller, DWORD* 
 void WindowsNotificationManager::Init(
     NotificationInvokedCallback callback,
     BOOL isPackaged,
-    const wchar_t* clsid,
-    const wchar_t* launchUri,
+    const wchar_t* displayName,
+    const wchar_t* iconUri,
     DWORD* pError)
 {
-    DFLog(TAG, L"[Init] isPackaged=%d, clsid=%ls, launchUri=%ls",
+    DFLog(TAG, L"[Init] isPackaged=%d, displayName=%ls, iconUri=%ls",
           isPackaged,
-          clsid     ? clsid     : L"null",
-          launchUri ? launchUri : L"null");
+          displayName ? displayName : L"null",
+          iconUri     ? iconUri     : L"null");
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
     m_callback = callback;
@@ -116,16 +154,21 @@ void WindowsNotificationManager::Init(
         }
         else
         {
-            if (!clsid || !launchUri)
+            if (!displayName || !*displayName || !iconUri || !*iconUri)
             {
-                DLog(TAG, L"[Init] clsid or launchUri is null for unpackaged app");
+                DLog(TAG, L"[Init] displayName and iconUri are required for unpackaged app");
                 if (pError) *pError = NOTIFICATION_ERROR_INVALID_PARAMETER;
                 return;
             }
-            // NOTE: unpackaged registration requires COM server entry in registry.
-            // Register(clsid, Uri) handles this internally — verify in Task 4.
-            Uri uri{ launchUri };
-            mgr.Register(clsid, uri);
+            // Unpackaged registration: the Windows App SDK creates the COM activator and a
+            // Start Menu shortcut from the display name and icon. The 2-arg AppNotificationManager
+            // overload is Register(displayName, iconUri) — there is no caller-supplied CLSID.
+            // Both are REQUIRED: Register() rejects a null/empty iconUri with E_INVALIDARG.
+            // Register uses iconUri.RawUri() as a filesystem path, so a file:// URI must be
+            // normalized to a plain Windows path (a "file:///..." RawUri is rejected by
+            // std::filesystem with ERROR_INVALID_NAME). Accepts a plain path or a file:// URI.
+            std::wstring iconPath = NormalizeIconPath(iconUri);
+            mgr.Register(hstring{ displayName }, Uri{ iconPath });
         }
 
         auto setting = mgr.Setting();
@@ -944,17 +987,21 @@ void WindowsNotificationManager::OpenSettings(DWORD* pError)
 // =============================================================================
 // C Bridge API
 // =============================================================================
+//
+// NOTE: InitWinAppSdk / initWinAppSdk (WinAppSDK bootstrap + deployment for
+// unpackaged apps) live in WindowsAppSdkBootstrap.cpp so the unit test, which
+// compiles this file, does not depend on Microsoft.WindowsAppRuntime.Bootstrap.dll.
 
 void initNotificationManager(
     NotificationInvokedCallback callback,
     BOOL isPackaged,
-    const wchar_t* toastActivatorCLSID,
-    const wchar_t* launchUri,
+    const wchar_t* displayName,
+    const wchar_t* iconUri,
     DWORD* pError)
 {
     DFLog(TAG, L"[initNotificationManager] isPackaged=%d", isPackaged);
     WindowsNotificationManager::GetInstance().Init(
-        callback, isPackaged, toastActivatorCLSID, launchUri, pError);
+        callback, isPackaged, displayName, iconUri, pError);
 }
 
 void uninitNotificationManager()

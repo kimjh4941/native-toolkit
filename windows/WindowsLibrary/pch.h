@@ -25,6 +25,12 @@
 // Launcher — open the system notification settings page
 #include <winrt/Windows.System.h>
 
+// NOTE: WinAppSDK Bootstrap/Deployment headers (MddBootstrap.h,
+// winrt/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h) are intentionally
+// NOT included here. They are used only by WindowsAppSdkBootstrap.cpp so the unit
+// test (which compiles WindowsNotificationManager.cpp) does not take a hard
+// dependency on Microsoft.WindowsAppRuntime.Bootstrap.dll.
+
 // C++ standard
 #include <string>
 #include <chrono>

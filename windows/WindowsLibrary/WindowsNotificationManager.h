@@ -31,19 +31,34 @@
 typedef void (*NotificationInvokedCallback)(const wchar_t* argsJson);
 
 /**
+ * @brief Initializes the Windows App SDK runtime for unpackaged apps.
+ * @details Must be called once before initNotificationManager on unpackaged builds.
+ *          Calls MddBootstrapInitialize to load the Framework package, then
+ *          DeploymentManager::Initialize to install Main/Singleton packages if absent.
+ * @param majorMinorVersion WinAppSDK major/minor version packed as 0xMMMMmmmm (e.g. 0x00010007 for 1.7).
+ * @param pError            Out pointer for error code. 0 on success, 5 (HRESULT_FAILURE) on failure.
+ */
+extern "C" WINDOWSNOTIFICATIONMANAGER_API
+void initWinAppSdk(uint32_t majorMinorVersion, DWORD* pError);
+
+/**
  * @brief Initializes the notification manager and registers for notification callbacks.
- * @param callback            Callback function invoked on notification activation.
- * @param isPackaged          TRUE for packaged (MSIX) apps; FALSE for unpackaged Win32 apps.
- * @param toastActivatorCLSID CLSID string for COM activation (unpackaged only; ignored if isPackaged).
- * @param launchUri           Launch URI for COM activation (unpackaged only).
- * @param pError              Out pointer for error code. 0 on success, 1-7 on failure.
+ * @param callback    Callback function invoked on notification activation.
+ * @param isPackaged  TRUE for packaged (MSIX) apps; FALSE for unpackaged Win32 apps.
+ * @param displayName Display name shown for the app in notifications (unpackaged: required; ignored if isPackaged).
+ * @param iconUri     Icon path for the app (unpackaged: REQUIRED; ignored if isPackaged). Accepts a plain
+ *                    Windows path ("C:\\path\\app.png") or a file URI ("file:///C:/path/app.png") — a
+ *                    file URI is normalized to a plain path internally. The file must exist and be a
+ *                    supported image type (.png/.jpg/.ico). Null/empty -> NOTIFICATION_ERROR_INVALID_PARAMETER.
+ * @param pError      Out pointer for error code. 0 on success, 1-7 on failure.
+ * @note Call initWinAppSdk before this function for unpackaged apps.
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
 void initNotificationManager(
     NotificationInvokedCallback callback,
     BOOL isPackaged,
-    const wchar_t* toastActivatorCLSID,
-    const wchar_t* launchUri,
+    const wchar_t* displayName,
+    const wchar_t* iconUri,
     DWORD* pError
 );
 

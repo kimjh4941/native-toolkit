@@ -15,8 +15,9 @@ class WindowsNotificationManager
 public:
     static WindowsNotificationManager& GetInstance();
 
+    void InitWinAppSdk(uint32_t majorMinorVersion, DWORD* pError);
     void Init(NotificationInvokedCallback callback, BOOL isPackaged,
-              const wchar_t* clsid, const wchar_t* launchUri, DWORD* pError);
+              const wchar_t* displayName, const wchar_t* iconUri, DWORD* pError);
     void Uninit();
     void Show(const wchar_t* jsonPayload, DWORD* pError);
     void Schedule(const wchar_t* jsonPayload, int64_t scheduledTimeMs, DWORD* pError);

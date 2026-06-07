@@ -228,9 +228,6 @@
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"C:\Program Files\doxygen\bin\doxygen.exe" "$(ProjectDir)Doxyfile"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="common.cpp" />
@@ -243,6 +240,7 @@
     <ClCompile Include="WindowsDialogManager.cpp" />
     <ClCompile Include="WindowsLibrary.cpp" />
     <ClCompile Include="WindowsNotificationManager.cpp" />
+    <ClCompile Include="WindowsAppSdkBootstrap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -280,7 +278,7 @@
     The package's own RAR-based projection is disabled above because it does not run in this
     MFC/packages.config project (ResolveAssemblyReferences yields no winmd references).
   -->
-  <Target Name="GenerateWindowsAppSDKProjection" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64'" Inputs="$(MSBuildProjectFullPath);packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0\Microsoft.Windows.AppNotifications.winmd" Outputs="$(GeneratedFilesDir)winrt\Microsoft.Windows.AppNotifications.h">
+  <Target Name="GenerateWindowsAppSDKProjection" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64'" Inputs="$(MSBuildProjectFullPath);packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0\Microsoft.Windows.AppNotifications.winmd" Outputs="$(GeneratedFilesDir)winrt\Microsoft.Windows.AppNotifications.h;$(GeneratedFilesDir)winrt\Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h">
     <PropertyGroup>
       <_SdkCppWinRT>$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\cppwinrt.exe</_SdkCppWinRT>
       <!-- Windows App SDK 1.7 ships all winmds (Microsoft.Windows.* and Microsoft.UI.*) in a single lib\uap10.0 folder. -->
@@ -288,7 +286,7 @@
     </PropertyGroup>
     <MakeDir Directories="$(GeneratedFilesDir)" />
     <Message Importance="high" Text="Generating Windows App SDK C++/WinRT projection into $(GeneratedFilesDir)" />
-    <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.Builder.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppLifecycle.winmd&quot; -ref &quot;$(_AppSdkLib)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
+    <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.Builder.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppLifecycle.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.ApplicationModel.WindowsAppRuntime.winmd&quot; -ref &quot;$(_AppSdkLib)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
   </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
