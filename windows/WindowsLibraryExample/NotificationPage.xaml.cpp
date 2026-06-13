@@ -93,6 +93,21 @@ namespace winrt::WindowsLibraryExample::implementation
             SetResultText(L"❌ [" + method + L"] Notifications are disabled. Tap \"Open Notification Settings\" to enable.");
             return;
         }
+        if (err == NOTIFICATION_ERROR_NOT_SUPPORTED)
+        {
+            if (method.find(L"RemoveById") == 0)
+            {
+                SetResultText(L"❌ [" + method + L"] Not supported for unpackaged apps. Use RemoveByTag or RemoveAll instead.");
+                return;
+            }
+            if (method == L"GetAllNotifications")
+            {
+                SetResultText(L"❌ [GetAllNotifications] Not supported for unpackaged apps. Use tag-based removal instead.");
+                return;
+            }
+            SetResultText(L"❌ [" + method + L"] This operation is not supported for the current app type.");
+            return;
+        }
         std::wstring text = (err == 0 ? L"✅ " : L"❌ ") + std::wstring(L"[") + method + L"] errorCode=" + std::to_wstring(err);
         SetResultText(text);
     }

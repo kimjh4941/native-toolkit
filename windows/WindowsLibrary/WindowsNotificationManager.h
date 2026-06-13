@@ -23,6 +23,7 @@
 #define NOTIFICATION_ERROR_HRESULT_FAILURE      5
 #define NOTIFICATION_ERROR_BADGE_FAILED         6
 #define NOTIFICATION_ERROR_INVALID_PARAMETER    7
+#define NOTIFICATION_ERROR_NOT_SUPPORTED        8  // Feature not supported for this app type (e.g. unpackaged RemoveById/GetAll)
 
 /**
  * @brief Callback invoked when a notification is clicked or activated.
@@ -33,8 +34,9 @@ typedef void (*NotificationInvokedCallback)(const wchar_t* argsJson);
 /**
  * @brief Initializes the Windows App SDK runtime for unpackaged apps.
  * @details Must be called once before initNotificationManager on unpackaged builds.
- *          Calls MddBootstrapInitialize to load the Framework package, then
- *          DeploymentManager::Initialize to install Main/Singleton packages if absent.
+ *          Calls MddBootstrapInitialize to load the Framework package. Unpackaged
+ *          apps rely on a system-installed Windows App Runtime and do not invoke
+ *          DeploymentManager::Initialize here.
  * @param majorMinorVersion WinAppSDK major/minor version packed as 0xMMMMmmmm (e.g. 0x00010007 for 1.7).
  * @param pError            Out pointer for error code. 0 on success, 5 (HRESULT_FAILURE) on failure.
  */
@@ -50,7 +52,7 @@ void initWinAppSdk(uint32_t majorMinorVersion, DWORD* pError);
  *                    Windows path ("C:\\path\\app.png") or a file URI ("file:///C:/path/app.png") — a
  *                    file URI is normalized to a plain path internally. The file must exist and be a
  *                    supported image type (.png/.jpg/.ico). Null/empty -> NOTIFICATION_ERROR_INVALID_PARAMETER.
- * @param pError      Out pointer for error code. 0 on success, 1-7 on failure.
+ * @param pError      Out pointer for error code. 0 on success, 1-8 on failure.
  * @note Call initWinAppSdk before this function for unpackaged apps.
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
@@ -71,7 +73,7 @@ void uninitNotificationManager();
 /**
  * @brief Displays a Toast notification described by a JSON payload.
  * @param jsonPayload JSON string. See design doc for full schema.
- * @param pError      Out pointer for error code. 0 on success, 1-7 on failure.
+ * @param pError      Out pointer for error code. 0 on success, 1-8 on failure.
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
 void showNotification(
@@ -83,7 +85,7 @@ void showNotification(
  * @brief Schedules a Toast notification for delivery at a specified time.
  * @param jsonPayload         JSON string describing the notification.
  * @param scheduledTimeUnixMs Delivery time in milliseconds since Unix epoch (UTC).
- * @param pError              Out pointer for error code. 0 on success, 1-7 on failure.
+ * @param pError              Out pointer for error code. 0 on success, 1-8 on failure.
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
 void scheduleNotification(
@@ -138,7 +140,8 @@ void setBadge(int value, DWORD* pError);
 /**
  * @brief Removes a notification from Notification Center by its ID.
  * @param notificationId Numeric ID of the notification.
- * @param pError         Out pointer for error code. 0 on success, 5 on WinRT failure.
+ * @param pError         Out pointer for error code. 0 on success, 5 on WinRT failure,
+ *                       8 (NOT_SUPPORTED) for unpackaged apps (classic API has no numeric ID).
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
 void removeNotificationById(uint32_t notificationId, DWORD* pError);
@@ -167,7 +170,8 @@ void removeAllNotifications(DWORD* pError);
  * @brief Retrieves all current notifications as a JSON array.
  * @param outJson    Output buffer for the JSON array: [{"id":N,"tag":"...","group":"..."},...].
  * @param bufferSize Number of wchar_t elements in outJson (including null terminator).
- * @param pError     Out pointer for error code. 0 on success, 5 on WinRT failure.
+ * @param pError     Out pointer for error code. 0 on success, 5 on WinRT failure,
+ *                   8 (NOT_SUPPORTED) for unpackaged apps (classic API has no numeric ID enumeration).
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
 void getAllNotifications(

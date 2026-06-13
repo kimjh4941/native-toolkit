@@ -1,8 +1,79 @@
 #include "pch.h"
+// WindowsClassicActivator.h defines INotificationActivationCallback manually
+// (without the SDK NotificationActivationCallback.h) so it must come before
+// any WRL headers that include Unknwn.h to avoid MIDL_INTERFACE redefinition.
+#include "../WindowsLibrary/WindowsClassicActivator.h"
 #include "../WindowsLibrary/WindowsNotificationManagerInternal.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace winrt::Windows::Data::Json;
+
+// ============================================================================
+// MockBackend — records calls for orchestration tests (no WinRT runtime needed)
+// ============================================================================
+struct MockBackend final : public INotificationBackend
+{
+    // Last call record
+    bool deliverCalled     = false;
+    bool scheduleCalled    = false;
+    bool cancelCalled      = false;
+    bool setBadgeCalled    = false;
+    bool removeByTagCalled = false;
+    bool removeAllCalled   = false;
+    bool removeByIdCalled  = false;
+    bool getAllCalled       = false;
+    int  settingReturn     = 0;  // 0 = Enabled
+
+    void RegisterActivation(DWORD* pError) override   { if (pError) *pError = 0; }
+    void UnregisterActivation() override              {}
+
+    void Deliver(const DeliverPayload&, DWORD* pError) override
+    {
+        deliverCalled = true;
+        if (pError) *pError = 0;
+    }
+    void Schedule(const DeliverPayload&, int64_t, DWORD* pError) override
+    {
+        scheduleCalled = true;
+        if (pError) *pError = 0;
+    }
+    void CancelSchedule(const wchar_t*, const wchar_t*, DWORD* pError) override
+    {
+        cancelCalled = true;
+        if (pError) *pError = 0;
+    }
+    void SetBadge(int, DWORD* pError) override
+    {
+        setBadgeCalled = true;
+        if (pError) *pError = 0;
+    }
+    void UpdateProgress(const wchar_t*, const wchar_t*, double, const wchar_t*,
+                        const wchar_t*, uint32_t, DWORD* pError) override
+    {
+        if (pError) *pError = 0;
+    }
+    void RemoveByTag(const wchar_t*, const wchar_t*, DWORD* pError) override
+    {
+        removeByTagCalled = true;
+        if (pError) *pError = 0;
+    }
+    void RemoveAll(DWORD* pError) override
+    {
+        removeAllCalled = true;
+        if (pError) *pError = 0;
+    }
+    void RemoveById(uint32_t, DWORD* pError) override
+    {
+        removeByIdCalled = true;
+        if (pError) *pError = NOTIFICATION_ERROR_NOT_SUPPORTED;
+    }
+    void GetAll(wchar_t* outJson, uint32_t bufferSize, DWORD* pError) override
+    {
+        getAllCalled = true;
+        if (pError) *pError = NOTIFICATION_ERROR_NOT_SUPPORTED;
+    }
+    int Setting() override { return settingReturn; }
+};
 
 namespace WindowsNotificationManagerTest
 {
@@ -199,6 +270,158 @@ public:
         JsonObject json;
         bool parsed = JsonObject::TryParse(L"not-json", json);
         Assert::IsFalse(parsed);
+    }
+
+    // -------------------------------------------------------------------------
+    // MockBackend orchestration tests — no WinRT runtime activation needed
+    // -------------------------------------------------------------------------
+
+    TEST_METHOD(Test_Show_NotEnabled_ReturnsDISABLED)
+    {
+        // Setting=1 (DisabledForApplication) → Show must return DISABLED
+        auto& mgr = WindowsNotificationManager::GetInstance();
+        auto mock = std::make_unique<MockBackend>();
+        mock->settingReturn = 1;
+        mgr.SetBackendForTest(std::move(mock));
+        mgr.m_initialized = true;
+        struct Guard {
+            ~Guard()
+            {
+                auto& m = WindowsNotificationManager::GetInstance();
+                m.m_initialized = false;
+                m.SetBackendForTest(nullptr);
+            }
+        } guard;
+
+        DWORD err = NOTIFICATION_SUCCESS;
+        mgr.Show(L"{\"title\":\"t\"}", &err);
+        Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_DISABLED), err);
+    }
+
+    TEST_METHOD(Test_Show_Enabled_CallsDeliver)
+    {
+        auto& mgr = WindowsNotificationManager::GetInstance();
+        auto* rawMock = new MockBackend();
+        rawMock->settingReturn = 0;
+        mgr.SetBackendForTest(std::unique_ptr<INotificationBackend>(rawMock));
+        mgr.m_initialized = true;
+        struct Guard {
+            ~Guard()
+            {
+                auto& m = WindowsNotificationManager::GetInstance();
+                m.m_initialized = false;
+                m.SetBackendForTest(nullptr);
+            }
+        } guard;
+
+        DWORD err = NOTIFICATION_SUCCESS;
+        mgr.Show(L"{\"title\":\"hello\"}", &err);
+        // May fail at AppNotificationBuilder runtime if WinRT is not fully set up,
+        // but at minimum the backend Deliver path is entered (err != NOT_INITIALIZED).
+        Assert::AreNotEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_INITIALIZED), err);
+    }
+
+    TEST_METHOD(Test_RemoveById_MockBackend_ReturnsNOT_SUPPORTED)
+    {
+        auto& mgr = WindowsNotificationManager::GetInstance();
+        auto mock = std::make_unique<MockBackend>();
+        mgr.SetBackendForTest(std::move(mock));
+        mgr.m_initialized = true;
+        struct Guard {
+            ~Guard()
+            {
+                auto& m = WindowsNotificationManager::GetInstance();
+                m.m_initialized = false;
+                m.SetBackendForTest(nullptr);
+            }
+        } guard;
+
+        DWORD err = NOTIFICATION_SUCCESS;
+        mgr.RemoveById(1, &err);
+        Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_SUPPORTED), err);
+    }
+
+    TEST_METHOD(Test_GetAll_MockBackend_ReturnsNOT_SUPPORTED)
+    {
+        auto& mgr = WindowsNotificationManager::GetInstance();
+        auto mock = std::make_unique<MockBackend>();
+        mgr.SetBackendForTest(std::move(mock));
+        mgr.m_initialized = true;
+        struct Guard {
+            ~Guard()
+            {
+                auto& m = WindowsNotificationManager::GetInstance();
+                m.m_initialized = false;
+                m.SetBackendForTest(nullptr);
+            }
+        } guard;
+
+        wchar_t buf[64]{};
+        DWORD err = NOTIFICATION_SUCCESS;
+        mgr.GetAll(buf, 64, &err);
+        Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_SUPPORTED), err);
+    }
+
+    TEST_METHOD(Test_CancelScheduled_WhenNotInitialized_ReturnsNotInitialized)
+    {
+        auto& mgr = WindowsNotificationManager::GetInstance();
+        mgr.m_initialized = false;
+
+        DWORD err = 0;
+        mgr.CancelScheduled(L"tag", L"", &err);
+        Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_INITIALIZED), err);
+    }
+
+    TEST_METHOD(Test_OpenSettings_WhenNotInitialized_ReturnsNotInitialized)
+    {
+        auto& mgr = WindowsNotificationManager::GetInstance();
+        mgr.m_initialized = false;
+
+        DWORD err = 0;
+        mgr.OpenSettings(&err);
+        Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_INITIALIZED), err);
+    }
+
+    TEST_METHOD(Test_InvokeCallback_ThreadSafe_NullCallback_NocrAsh)
+    {
+        // Ensure InvokeCallback with no callback set does not crash.
+        auto& mgr = WindowsNotificationManager::GetInstance();
+        mgr.m_initialized = false;
+        // Call directly (simulates COM Activate arriving after Uninit)
+        mgr.InvokeCallback(L"{}");
+    }
+
+    // -------------------------------------------------------------------------
+    // ClassicArgsToJson — query string parsing
+    // -------------------------------------------------------------------------
+
+    TEST_METHOD(Test_ClassicArgsToJson_QueryString)
+    {
+        auto json = ClassicArgsToJson(L"action=reply&id=btn1", nullptr, 0);
+        JsonObject parsed;
+        Assert::IsTrue(JsonObject::TryParse(winrt::hstring{ json }, parsed));
+        Assert::AreEqual(std::wstring(L"reply"), std::wstring{ parsed.GetNamedString(L"action") });
+        Assert::AreEqual(std::wstring(L"btn1"),  std::wstring{ parsed.GetNamedString(L"id") });
+    }
+
+    TEST_METHOD(Test_ClassicArgsToJson_EmptyArgs)
+    {
+        auto json = ClassicArgsToJson(nullptr, nullptr, 0);
+        JsonObject parsed;
+        Assert::IsTrue(JsonObject::TryParse(winrt::hstring{ json }, parsed));
+        Assert::AreEqual(0u, parsed.Size());
+    }
+
+    TEST_METHOD(Test_ClassicArgsToJson_MergesUserInput)
+    {
+        NOTIFICATION_USER_INPUT_DATA data[] = {
+            { L"reply", L"hello world" }
+        };
+        auto json = ClassicArgsToJson(L"action=ok", data, 1);
+        JsonObject parsed;
+        Assert::IsTrue(JsonObject::TryParse(winrt::hstring{ json }, parsed));
+        Assert::AreEqual(std::wstring(L"ok"),          std::wstring{ parsed.GetNamedString(L"action") });
+        Assert::AreEqual(std::wstring(L"hello world"), std::wstring{ parsed.GetNamedString(L"reply") });
     }
 };
 

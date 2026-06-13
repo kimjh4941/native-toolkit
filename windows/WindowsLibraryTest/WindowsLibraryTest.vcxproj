@@ -99,6 +99,9 @@
     <ClCompile Include="..\WindowsLibrary\WindowsNotificationManager.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\WindowsClassicActivator.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

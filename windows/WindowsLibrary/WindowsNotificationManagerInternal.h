@@ -6,7 +6,12 @@
 //           winrt/Windows.UI.Notifications.h, winrt/Windows.Data.Json.h
 
 #include "WindowsNotificationManager.h"
+#include "WindowsNotificationBackend.h"
+#include <memory>
+#include <mutex>
 #include <string>
+
+class PackagedBackend;  // defined in WindowsNotificationManager.cpp
 
 namespace WindowsNotificationManagerTest { class NotificationManagerTest; }
 
@@ -33,7 +38,15 @@ public:
     int  GetSetting();
     void OpenSettings(DWORD* pError);
 
+    // Thread-safe callback relay. Called by both PackagedBackend (NotificationInvoked
+    // event) and UnpackagedBackend (INotificationActivationCallback::Activate).
+    void InvokeCallback(const std::wstring& argsJson);
+
+    // Test seam: replace the backend with a mock for WinRT-free unit tests.
+    void SetBackendForTest(std::unique_ptr<INotificationBackend> backend);
+
 private:
+    friend class PackagedBackend;
     friend class WindowsNotificationManagerTest::NotificationManagerTest;
 
     WindowsNotificationManager() = default;
@@ -46,12 +59,15 @@ private:
         winrt::Microsoft::Windows::AppNotifications::AppNotificationManager const&,
         winrt::Microsoft::Windows::AppNotifications::AppNotificationActivatedEventArgs const& args);
 
-    // Pure JSON validation of payload constraints (no WinRT activation required).
-    // Returns false and sets *pError on the first constraint violation.
     bool ValidatePayload(const winrt::Windows::Data::Json::JsonObject& json, DWORD* pError);
 
     winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder
         BuildFromJson(const winrt::Windows::Data::Json::JsonObject& json, DWORD* pError);
+
+    // Build a neutral DeliverPayload from parsed JSON.
+    // Calls BuildFromJson, captures XML + expiration/progress metadata.
+    // Returns empty payload and sets *pError on failure.
+    DeliverPayload BuildPayload(const winrt::Windows::Data::Json::JsonObject& json, DWORD* pError);
 
     void ApplyButtons(
         winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder& builder,
@@ -73,7 +89,9 @@ private:
         const winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::hstring>& args,
         const winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::hstring>& userInput);
 
-    NotificationInvokedCallback m_callback = nullptr;
-    bool m_initialized = false;
-    winrt::event_token m_invokedToken{};
+    std::unique_ptr<INotificationBackend> m_backend;
+    NotificationInvokedCallback           m_callback  = nullptr;
+    std::mutex                            m_callbackMutex;
+    bool                                  m_launchActivationConsumed = false;
+    bool                                  m_initialized = false;
 };

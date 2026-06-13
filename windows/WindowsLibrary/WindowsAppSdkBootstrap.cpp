@@ -5,8 +5,6 @@
 // WindowsNotificationManager.cpp, does not take a hard dependency on
 // Microsoft.WindowsAppRuntime.Bootstrap.dll.
 #include <MddBootstrap.h>
-#include <winrt/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h>
-
 #include "WindowsNotificationManagerInternal.h"
 #include "common.h"
 
@@ -35,40 +33,10 @@ void WindowsNotificationManager::InitWinAppSdk(uint32_t majorMinorVersion, DWORD
     }
     DLog(TAG, L"[InitWinAppSdk] Bootstrap initialized");
 
-    // Step 2: Best-effort provisioning of the Main/Singleton packages (which register the
-    // notification COM activator). DeploymentManager requires package identity, so it only
-    // works for PACKAGED apps. For unpackaged apps it throws APPMODEL_ERROR_NO_PACKAGE
-    // (0x80073D54); there the Main/Singleton packages must be provided by the
-    // system-installed WindowsAppRuntime (e.g. WindowsAppRuntimeInstall.exe). Treat
-    // no-package-identity as non-fatal: the bootstrap above is the essential step.
-    static constexpr int32_t APPMODEL_ERROR_NO_PACKAGE_HR = static_cast<int32_t>(0x80073D54);
-    try
-    {
-        using namespace winrt::Microsoft::Windows::ApplicationModel::WindowsAppRuntime;
-        auto result = DeploymentManager::Initialize();
-        if (result.Status() != DeploymentStatus::Ok)
-        {
-            DFLog(TAG, L"[InitWinAppSdk] DeploymentManager::Initialize failed. status=%d",
-                  static_cast<int>(result.Status()));
-            if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
-            return;
-        }
-        DLog(TAG, L"[InitWinAppSdk] DeploymentManager initialized");
-    }
-    catch (winrt::hresult_error const& ex)
-    {
-        if (ex.code() == APPMODEL_ERROR_NO_PACKAGE_HR)
-        {
-            // Unpackaged app: DeploymentManager is not applicable. Rely on the
-            // system-installed WindowsAppRuntime for the Main/Singleton packages.
-            DLog(TAG, L"[InitWinAppSdk] unpackaged: skipping DeploymentManager; using installed WindowsAppRuntime");
-        }
-        else
-        {
-            DFLog(TAG, L"[InitWinAppSdk] DeploymentManager exception. hr=0x%08lx", ex.code().value);
-            if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
-        }
-    }
+    // Step 2: Unpackaged apps rely on the system-installed Windows App Runtime.
+    // DeploymentManager requires package identity, so the bootstrapper above is the
+    // only runtime action performed here.
+    DLog(TAG, L"[InitWinAppSdk] DeploymentManager skipped for unpackaged bootstrap");
 }
 
 // =============================================================================

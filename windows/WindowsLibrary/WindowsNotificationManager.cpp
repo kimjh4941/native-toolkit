@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "WindowsNotificationManagerInternal.h"
+#include "WindowsClassicActivator.h"
 #include "common.h"
 
 #include <future>
@@ -26,18 +27,15 @@ namespace
     // Run a WinRT async operation to completion without blocking on the calling
     // apartment. cppwinrt's IAsyncXxx::get() asserts (!is_sta_thread) when waited
     // on from an STA thread (the WinUI UI thread), so the work is dispatched to a
-    // background (non-STA) thread where blocking is allowed. The lambda captures
-    // by reference are valid because the outer get() blocks until it completes.
+    // background (non-STA) thread where blocking is allowed.
     template <typename TFunc>
     auto RunSyncOffSta(TFunc&& func) -> decltype(func())
     {
         return std::async(std::launch::async, std::forward<TFunc>(func)).get();
     }
 
-    // AppNotificationManager::Register uses iconUri.RawUri() directly as a filesystem path
-    // (Windows.Foundation.Uri preserves the raw input string). A "file:///C:/x.png" URI is
-    // therefore rejected by std::filesystem with ERROR_INVALID_NAME (0x8007007B). Normalize a
-    // file:// URI to a plain Windows path (percent-decode + '/'→'\'); pass a plain path through.
+    // Normalize a file:// URI to a plain Windows path (percent-decode + '/'→'\').
+    // Plain paths are returned unchanged.
     std::wstring NormalizeIconPath(const wchar_t* iconUri)
     {
         std::wstring s{ iconUri ? iconUri : L"" };
@@ -72,6 +70,217 @@ namespace
 }
 
 // =============================================================================
+// PackagedBackend — Windows App SDK (new API) backend
+// Defined in this TU so it can access Manager internals directly.
+// =============================================================================
+
+class PackagedBackend final : public INotificationBackend
+{
+public:
+    void RegisterActivation(DWORD* pError) override
+    {
+        DLog(TAG, L"[PackagedBackend::RegisterActivation]");
+        auto& mgr = AppNotificationManager::Default();
+        m_invokedToken = mgr.NotificationInvoked(
+            [](AppNotificationManager const& sender,
+               AppNotificationActivatedEventArgs const& args)
+            {
+                WindowsNotificationManager::GetInstance().OnNotificationInvoked(sender, args);
+            });
+        mgr.Register();
+        if (pError) *pError = NOTIFICATION_SUCCESS;
+    }
+
+    void UnregisterActivation() override
+    {
+        DLog(TAG, L"[PackagedBackend::UnregisterActivation]");
+        try
+        {
+            auto& mgr = AppNotificationManager::Default();
+            mgr.NotificationInvoked(m_invokedToken);
+            mgr.Unregister();
+        }
+        catch (winrt::hresult_error const& ex)
+        {
+            DFLog(TAG, L"[PackagedBackend::UnregisterActivation] exception. hr=0x%08lx",
+                  ex.code().value);
+        }
+        m_invokedToken = {};
+    }
+
+    void Deliver(const DeliverPayload& payload, DWORD* pError) override
+    {
+        DLog(TAG, L"[PackagedBackend::Deliver]");
+        AppNotification notification{ hstring{ payload.xmlPayload } };
+        if (!payload.tag.empty())   notification.Tag(hstring{ payload.tag });
+        if (!payload.group.empty()) notification.Group(hstring{ payload.group });
+
+        if (payload.hasExpiration)
+            notification.Expiration(winrt::clock::now() +
+                                    std::chrono::seconds(payload.expirationSec));
+        if (payload.expiresOnReboot)
+            notification.ExpiresOnReboot(true);
+
+        if (payload.hasProgress)
+        {
+            AppNotificationProgressData data{ 1 };
+            data.Value(payload.progressValue);
+            if (!payload.progressValueStr.empty())
+                data.ValueStringOverride(hstring{ payload.progressValueStr });
+            if (!payload.progressStatus.empty())
+                data.Status(hstring{ payload.progressStatus });
+            notification.Progress(data);
+        }
+
+        AppNotificationManager::Default().Show(notification);
+    }
+
+    void Schedule(const DeliverPayload& payload, int64_t scheduledTimeMs, DWORD* pError) override
+    {
+        DFLog(TAG, L"[PackagedBackend::Schedule] scheduledTimeMs=%lld", scheduledTimeMs);
+        auto tp = std::chrono::system_clock::time_point{
+            std::chrono::milliseconds(scheduledTimeMs)
+        };
+        auto scheduledTime = winrt::clock::from_sys(tp);
+
+        XmlDocument doc;
+        doc.LoadXml(hstring{ payload.xmlPayload });
+
+        ScheduledToastNotification scheduled{ doc, scheduledTime };
+        if (!payload.tag.empty())   scheduled.Tag(hstring{ payload.tag });
+        if (!payload.group.empty()) scheduled.Group(hstring{ payload.group });
+
+        // WinAppSDK has no schedule API; use classic ToastNotificationManager
+        // (no AUMID — packaged apps use the parameterless notifier).
+        ToastNotificationManager::CreateToastNotifier().AddToSchedule(scheduled);
+    }
+
+    void CancelSchedule(const wchar_t* tag, const wchar_t* group, DWORD* pError) override
+    {
+        auto notifier  = ToastNotificationManager::CreateToastNotifier();
+        auto scheduled = notifier.GetScheduledToastNotifications();
+
+        hstring tagStr  { tag   ? tag   : L"" };
+        hstring groupStr{ group ? group : L"" };
+
+        for (auto const& item : scheduled)
+        {
+            bool tagMatch   = tagStr.empty()   || item.Tag()   == tagStr;
+            bool groupMatch = groupStr.empty() || item.Group() == groupStr;
+            if (tagMatch && groupMatch)
+                notifier.RemoveFromSchedule(item);
+        }
+    }
+
+    void SetBadge(int value, DWORD* pError) override
+    {
+        DFLog(TAG, L"[PackagedBackend::SetBadge] value=%d", value);
+        auto updater = BadgeUpdateManager::CreateBadgeUpdaterForApplication();
+        if (value == 0) { updater.Clear(); return; }
+
+        std::wstring xml;
+        if (value > 0)
+        {
+            xml = L"<badge value=\"" + std::to_wstring(value) + L"\"/>";
+        }
+        else
+        {
+            static const wchar_t* glyphs[] =
+                { L"", L"alert", L"activity", L"newMessage", L"available", L"busy", L"away" };
+            xml = std::wstring(L"<badge value=\"") + glyphs[-value] + L"\"/>";
+        }
+        XmlDocument doc;
+        doc.LoadXml(xml);
+        updater.Update(BadgeNotification{ doc });
+    }
+
+    void UpdateProgress(const wchar_t* tag, const wchar_t* group,
+                        double value, const wchar_t* valueStr,
+                        const wchar_t* status, uint32_t seq, DWORD* pError) override
+    {
+        AppNotificationProgressData data{ seq };
+        data.Value(value);
+        if (valueStr) data.ValueStringOverride(hstring{ valueStr });
+        if (status)   data.Status(hstring{ status });
+
+        hstring tagStr  { tag   ? tag   : L"" };
+        hstring groupStr{ group ? group : L"" };
+
+        auto result = RunSyncOffSta([&]
+        {
+            return groupStr.empty()
+                ? AppNotificationManager::Default().UpdateAsync(data, tagStr).get()
+                : AppNotificationManager::Default().UpdateAsync(data, tagStr, groupStr).get();
+        });
+        if (result != AppNotificationProgressResult::Succeeded)
+        {
+            if (pError) *pError = NOTIFICATION_ERROR_PROGRESS_NOT_FOUND;
+        }
+    }
+
+    void RemoveByTag(const wchar_t* tag, const wchar_t* group, DWORD* pError) override
+    {
+        hstring tagStr  { tag   ? tag   : L"" };
+        hstring groupStr{ group ? group : L"" };
+        RunSyncOffSta([&]
+        {
+            if (groupStr.empty())
+                AppNotificationManager::Default().RemoveByTagAsync(tagStr).get();
+            else
+                AppNotificationManager::Default().RemoveByTagAndGroupAsync(tagStr, groupStr).get();
+        });
+    }
+
+    void RemoveAll(DWORD* pError) override
+    {
+        RunSyncOffSta([&] { AppNotificationManager::Default().RemoveAllAsync().get(); });
+    }
+
+    void RemoveById(uint32_t id, DWORD* pError) override
+    {
+        RunSyncOffSta([&] { AppNotificationManager::Default().RemoveByIdAsync(id).get(); });
+    }
+
+    void GetAll(wchar_t* outJson, uint32_t bufferSize, DWORD* pError) override
+    {
+        auto notifications = RunSyncOffSta([&]
+        {
+            return AppNotificationManager::Default().GetAllAsync().get();
+        });
+
+        JsonArray arr;
+        for (auto const& n : notifications)
+        {
+            JsonObject obj;
+            obj.Insert(L"id",    JsonValue::CreateNumberValue(static_cast<double>(n.Id())));
+            obj.Insert(L"tag",   JsonValue::CreateStringValue(n.Tag()));
+            obj.Insert(L"group", JsonValue::CreateStringValue(n.Group()));
+            arr.Append(obj);
+        }
+
+        auto str = arr.Stringify();
+        wcsncpy_s(outJson, bufferSize, str.c_str(), _TRUNCATE);
+    }
+
+    int Setting() override
+    {
+        auto s = AppNotificationManager::Default().Setting();
+        switch (s)
+        {
+        case AppNotificationSetting::Enabled:                return 0;
+        case AppNotificationSetting::DisabledForApplication: return 1;
+        case AppNotificationSetting::DisabledForUser:        return 2;
+        case AppNotificationSetting::DisabledByGroupPolicy:  return 3;
+        case AppNotificationSetting::DisabledByManifest:     return 4;
+        default:                                             return -1;
+        }
+    }
+
+private:
+    winrt::event_token m_invokedToken{};
+};
+
+// =============================================================================
 // Singleton
 // =============================================================================
 
@@ -96,6 +305,21 @@ bool WindowsNotificationManager::CheckInitialized(const wchar_t* caller, DWORD* 
     return true;
 }
 
+void WindowsNotificationManager::InvokeCallback(const std::wstring& argsJson)
+{
+    NotificationInvokedCallback cb;
+    {
+        std::lock_guard<std::mutex> lk(m_callbackMutex);
+        cb = m_callback;
+    }
+    if (cb) cb(argsJson.c_str());
+}
+
+void WindowsNotificationManager::SetBackendForTest(std::unique_ptr<INotificationBackend> backend)
+{
+    m_backend = std::move(backend);
+}
+
 // =============================================================================
 // Init / Uninit
 // =============================================================================
@@ -113,22 +337,19 @@ void WindowsNotificationManager::Init(
           iconUri     ? iconUri     : L"null");
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
-    m_callback = callback;
 
-    // AppNotificationManager registration is process-wide and Register() must be
-    // called only once. Re-entering the sample page and tapping InitializeManager
-    // again would otherwise subscribe a second handler and call Register() twice,
-    // which throws 0x80070490. Treat a repeat Init as a no-op (callback refreshed
-    // above). Uninit() resets m_initialized so a later Init() can re-register.
+    // Refresh callback even on re-entry
+    {
+        std::lock_guard<std::mutex> lk(m_callbackMutex);
+        m_callback = callback;
+    }
+
     if (m_initialized)
     {
         DLog(TAG, L"[Init] already initialized; skipping re-registration");
         return;
     }
 
-    // Ensure COM/WinRT is initialized on the CALLING thread (not at DLL load). Tolerate
-    // RPC_E_CHANGED_MODE: if the host already established an apartment on this thread, keep it
-    // — the AppNotificationManager APIs work in either STA or MTA.
     const HRESULT hrCom = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     if (FAILED(hrCom) && hrCom != RPC_E_CHANGED_MODE)
     {
@@ -139,18 +360,10 @@ void WindowsNotificationManager::Init(
 
     try
     {
-        auto& mgr = AppNotificationManager::Default();
-
-        m_invokedToken = mgr.NotificationInvoked(
-            [this](AppNotificationManager const& sender,
-                   AppNotificationActivatedEventArgs const& args)
-            {
-                OnNotificationInvoked(sender, args);
-            });
-
+        // Backend creation — the ONLY place where packaged/unpackaged branches.
         if (isPackaged)
         {
-            mgr.Register();
+            m_backend = std::make_unique<PackagedBackend>();
         }
         else
         {
@@ -160,19 +373,32 @@ void WindowsNotificationManager::Init(
                 if (pError) *pError = NOTIFICATION_ERROR_INVALID_PARAMETER;
                 return;
             }
-            // Unpackaged registration: the Windows App SDK creates the COM activator and a
-            // Start Menu shortcut from the display name and icon. The 2-arg AppNotificationManager
-            // overload is Register(displayName, iconUri) — there is no caller-supplied CLSID.
-            // Both are REQUIRED: Register() rejects a null/empty iconUri with E_INVALIDARG.
-            // Register uses iconUri.RawUri() as a filesystem path, so a file:// URI must be
-            // normalized to a plain Windows path (a "file:///..." RawUri is rejected by
-            // std::filesystem with ERROR_INVALID_NAME). Accepts a plain path or a file:// URI.
             std::wstring iconPath = NormalizeIconPath(iconUri);
-            mgr.Register(hstring{ displayName }, Uri{ iconPath });
+            m_backend = std::make_unique<UnpackagedBackend>(
+                std::wstring{ displayName }, std::move(iconPath));
         }
 
-        auto setting = mgr.Setting();
-        DFLog(TAG, L"[Init] NotificationSetting=%d", static_cast<int>(setting));
+        m_backend->RegisterActivation(pError);
+        if (pError && *pError != NOTIFICATION_SUCCESS)
+        {
+            m_backend.reset();
+            return;
+        }
+
+        if (!isPackaged && !m_launchActivationConsumed)
+        {
+            std::wstring launchArgsJson;
+            if (TryGetLaunchActivationJson(&launchArgsJson))
+            {
+                DFLog(TAG, L"[Init] consuming launch activation fallback. argsJson=%ls",
+                      launchArgsJson.c_str());
+                m_launchActivationConsumed = true;
+                InvokeCallback(launchArgsJson);
+            }
+        }
+
+        int setting = m_backend->Setting();
+        DFLog(TAG, L"[Init] NotificationSetting=%d", setting);
 
         // Warn if running as administrator — Show() may silently fail
         HANDLE token = nullptr;
@@ -193,6 +419,7 @@ void WindowsNotificationManager::Init(
     catch (winrt::hresult_error const& ex)
     {
         DFLog(TAG, L"[Init] WinRT exception. hr=0x%08lx", ex.code().value);
+        m_backend.reset();
         if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
     }
 }
@@ -203,24 +430,23 @@ void WindowsNotificationManager::Uninit()
 
     if (!m_initialized) return;
 
-    try
+    // Revoke activation first, then null the callback.
+    // After revoke, no new Activate() calls will arrive, so the race window is closed.
+    if (m_backend)
+        m_backend->UnregisterActivation();
+
     {
-        auto& mgr = AppNotificationManager::Default();
-        mgr.NotificationInvoked(m_invokedToken);
-        mgr.Unregister();
-    }
-    catch (winrt::hresult_error const& ex)
-    {
-        DFLog(TAG, L"[Uninit] WinRT exception. hr=0x%08lx", ex.code().value);
+        std::lock_guard<std::mutex> lk(m_callbackMutex);
+        m_callback = nullptr;
     }
 
-    m_callback    = nullptr;
+    m_backend.reset();
+    m_launchActivationConsumed = false;
     m_initialized = false;
-    m_invokedToken = {};
 }
 
 // =============================================================================
-// OnNotificationInvoked / ArgsToJson
+// OnNotificationInvoked / ArgsToJson (PackagedBackend callback path)
 // =============================================================================
 
 void WindowsNotificationManager::OnNotificationInvoked(
@@ -228,15 +454,12 @@ void WindowsNotificationManager::OnNotificationInvoked(
     AppNotificationActivatedEventArgs const& args)
 {
     DLog(TAG, L"[OnNotificationInvoked]");
-
-    if (!m_callback) return;
-
     try
     {
         auto arguments = args.Arguments();
         auto userInput  = args.UserInput();
         std::wstring json = ArgsToJson(arguments, userInput);
-        m_callback(json.c_str());
+        InvokeCallback(json);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -250,12 +473,9 @@ std::wstring WindowsNotificationManager::ArgsToJson(
 {
     DLog(TAG, L"[ArgsToJson]");
 
-    // Use WinRT JSON API — JsonValue::CreateStringValue auto-escapes special chars
     JsonObject root;
-
     for (auto const& kv : args)
         root.Insert(kv.Key(), JsonValue::CreateStringValue(kv.Value()));
-
     for (auto const& kv : userInput)
         root.Insert(kv.Key(), JsonValue::CreateStringValue(kv.Value()));
 
@@ -263,87 +483,13 @@ std::wstring WindowsNotificationManager::ArgsToJson(
 }
 
 // =============================================================================
-// Show
-// =============================================================================
-
-void WindowsNotificationManager::Show(const wchar_t* jsonPayload, DWORD* pError)
-{
-    DFLog(TAG, L"[Show] jsonPayload=%ls", jsonPayload ? jsonPayload : L"null");
-
-    if (pError) *pError = NOTIFICATION_SUCCESS;
-    if (!CheckInitialized(L"Show", pError)) return;
-
-    try
-    {
-        auto setting = AppNotificationManager::Default().Setting();
-        if (setting != AppNotificationSetting::Enabled)
-        {
-            DFLog(TAG, L"[Show] notification disabled. setting=%d", static_cast<int>(setting));
-            if (pError) *pError = NOTIFICATION_ERROR_DISABLED;
-            return;
-        }
-
-        JsonObject json;
-        if (!JsonObject::TryParse(hstring{ jsonPayload }, json))
-        {
-            DLog(TAG, L"[Show] invalid JSON payload");
-            if (pError) *pError = NOTIFICATION_ERROR_INVALID_PAYLOAD;
-            return;
-        }
-
-        DWORD buildError = NOTIFICATION_SUCCESS;
-        auto builder = BuildFromJson(json, &buildError);
-        if (buildError != NOTIFICATION_SUCCESS)
-        {
-            if (pError) *pError = buildError;
-            return;
-        }
-
-        auto notification = builder.BuildNotification();
-
-        // Expiration / ExpiresOnReboot are set on the AppNotification, not the builder.
-        if (json.HasKey(L"expiration"))
-        {
-            auto sec = static_cast<int64_t>(json.GetNamedNumber(L"expiration"));
-            notification.Expiration(winrt::clock::now() + std::chrono::seconds(sec));
-        }
-
-        if (json.HasKey(L"expiresOnReboot") && json.GetNamedBoolean(L"expiresOnReboot"))
-            notification.ExpiresOnReboot(true);
-
-        // Supply the initial values for the data-bound progress bar (see
-        // ApplyProgress). Sequence number 1 is the baseline; later UpdateAsync
-        // calls must use a higher sequence number to take effect.
-        if (json.HasKey(L"progress"))
-        {
-            auto progressObj = json.GetNamedObject(L"progress");
-            AppNotificationProgressData data{ 1 };
-            data.Value(progressObj.HasKey(L"value") ? progressObj.GetNamedNumber(L"value") : 0.0);
-            if (progressObj.HasKey(L"valueStr"))
-                data.ValueStringOverride(progressObj.GetNamedString(L"valueStr"));
-            if (progressObj.HasKey(L"status"))
-                data.Status(progressObj.GetNamedString(L"status"));
-            notification.Progress(data);
-        }
-
-        AppNotificationManager::Default().Show(notification);
-    }
-    catch (winrt::hresult_error const& ex)
-    {
-        DFLog(TAG, L"[Show] WinRT exception. hr=0x%08lx", ex.code().value);
-        if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
-    }
-}
-
-// =============================================================================
-// BuildFromJson + sub-builders
+// BuildFromJson + BuildPayload + sub-builders
 // =============================================================================
 
 bool WindowsNotificationManager::ValidatePayload(const JsonObject& json, DWORD* pError)
 {
     DLog(TAG, L"[ValidatePayload]");
 
-    // audio.loop requires duration=long
     bool isDurationLong = json.HasKey(L"duration") && json.GetNamedString(L"duration") == L"long";
     if (json.HasKey(L"audio"))
     {
@@ -386,8 +532,6 @@ AppNotificationBuilder WindowsNotificationManager::BuildFromJson(
 {
     DLog(TAG, L"[BuildFromJson]");
 
-    // Validate all constraints up-front from JSON only (no WinRT activation) so that
-    // invalid payloads fail fast — and remain unit-testable without the AppSDK runtime.
     if (!ValidatePayload(json, pError))
         return nullptr;
 
@@ -395,13 +539,10 @@ AppNotificationBuilder WindowsNotificationManager::BuildFromJson(
 
     if (json.HasKey(L"title"))
         builder.AddText(json.GetNamedString(L"title"));
-
     if (json.HasKey(L"body"))
         builder.AddText(json.GetNamedString(L"body"));
-
     if (json.HasKey(L"tag"))
         builder.SetTag(json.GetNamedString(L"tag"));
-
     if (json.HasKey(L"group"))
         builder.SetGroup(json.GetNamedString(L"group"));
 
@@ -418,20 +559,18 @@ AppNotificationBuilder WindowsNotificationManager::BuildFromJson(
     if (isDurationLong)
         builder.SetDuration(AppNotificationDuration::Long);
 
-    // Constraints already verified by ValidatePayload above.
     if (json.HasKey(L"buttons"))
     {
         ApplyButtons(builder, json.GetNamedArray(L"buttons"), pError);
         if (pError && *pError != NOTIFICATION_SUCCESS) return builder;
     }
 
-    // TextBoxes — AppNotificationBuilder exposes AddTextBox overloads (no separate class)
     if (json.HasKey(L"textBoxes"))
     {
         for (auto const& item : json.GetNamedArray(L"textBoxes"))
         {
             auto box = item.GetObject();
-            auto id = box.GetNamedString(L"id");
+            auto id  = box.GetNamedString(L"id");
             if (box.HasKey(L"placeholder") || box.HasKey(L"title"))
             {
                 hstring placeholder = box.HasKey(L"placeholder") ? box.GetNamedString(L"placeholder") : hstring{};
@@ -445,7 +584,6 @@ AppNotificationBuilder WindowsNotificationManager::BuildFromJson(
         }
     }
 
-    // ComboBoxes
     if (json.HasKey(L"comboBoxes"))
     {
         ApplyComboBoxes(builder, json.GetNamedArray(L"comboBoxes"), pError);
@@ -476,6 +614,49 @@ AppNotificationBuilder WindowsNotificationManager::BuildFromJson(
     return builder;
 }
 
+DeliverPayload WindowsNotificationManager::BuildPayload(const JsonObject& json, DWORD* pError)
+{
+    DeliverPayload payload;
+
+    DWORD buildErr = NOTIFICATION_SUCCESS;
+    auto builder = BuildFromJson(json, &buildErr);
+    if (buildErr != NOTIFICATION_SUCCESS)
+    {
+        if (pError) *pError = buildErr;
+        return payload;
+    }
+
+    auto notification = builder.BuildNotification();
+    payload.xmlPayload = std::wstring{ notification.Payload() };
+
+    if (json.HasKey(L"tag"))
+        payload.tag = std::wstring{ json.GetNamedString(L"tag") };
+    if (json.HasKey(L"group"))
+        payload.group = std::wstring{ json.GetNamedString(L"group") };
+
+    if (json.HasKey(L"expiration"))
+    {
+        payload.hasExpiration = true;
+        payload.expirationSec = static_cast<int64_t>(json.GetNamedNumber(L"expiration"));
+    }
+    if (json.HasKey(L"expiresOnReboot") && json.GetNamedBoolean(L"expiresOnReboot"))
+        payload.expiresOnReboot = true;
+
+    if (json.HasKey(L"progress"))
+    {
+        payload.hasProgress = true;
+        auto progressObj = json.GetNamedObject(L"progress");
+        payload.progressValue = progressObj.HasKey(L"value")
+            ? progressObj.GetNamedNumber(L"value") : 0.0;
+        if (progressObj.HasKey(L"valueStr"))
+            payload.progressValueStr = std::wstring{ progressObj.GetNamedString(L"valueStr") };
+        if (progressObj.HasKey(L"status"))
+            payload.progressStatus = std::wstring{ progressObj.GetNamedString(L"status") };
+    }
+
+    return payload;
+}
+
 void WindowsNotificationManager::ApplyButtons(
     AppNotificationBuilder& builder,
     const JsonArray& buttons,
@@ -492,7 +673,7 @@ void WindowsNotificationManager::ApplyButtons(
 
         if (hasArgs && hasUri)
         {
-            DFLog(TAG, L"[BuildFromJson] validation failed. reason=button has both args and invokeUri");
+            DFLog(TAG, L"[ApplyButtons] validation failed. reason=button has both args and invokeUri");
             if (pError) *pError = NOTIFICATION_ERROR_INVALID_PARAMETER;
             return;
         }
@@ -589,7 +770,7 @@ void WindowsNotificationManager::ApplyAudio(
     {
         if (!audioObj.HasKey(L"uri"))
         {
-            DFLog(TAG, L"[BuildFromJson] validation failed. reason=audio.type=uri requires uri field");
+            DFLog(TAG, L"[ApplyAudio] validation failed. reason=audio.type=uri requires uri field");
             if (pError) *pError = NOTIFICATION_ERROR_INVALID_PARAMETER;
             return;
         }
@@ -597,13 +778,10 @@ void WindowsNotificationManager::ApplyAudio(
         return;
     }
 
-    // event / default
     AppNotificationSoundEvent soundEvent = AppNotificationSoundEvent::Default;
     if (audioObj.HasKey(L"event"))
     {
         auto ev = audioObj.GetNamedString(L"event");
-        // The modern AppSDK sound-event enum has no dedicated looping entries;
-        // looping is controlled separately via AppNotificationAudioLooping.
         if      (ev == L"reminder")    soundEvent = AppNotificationSoundEvent::Reminder;
         else if (ev == L"alarm")       soundEvent = AppNotificationSoundEvent::Alarm;
         else if (ev == L"loopingAlarm")soundEvent = AppNotificationSoundEvent::Alarm;
@@ -621,10 +799,6 @@ void WindowsNotificationManager::ApplyProgress(
 
     AppNotificationProgressBar progressBar;
 
-    // Title is static. The dynamic fields are data-bound so that UpdateAsync
-    // can change them on the already-displayed toast; a progress bar built with
-    // literal values cannot be updated. The initial values for the bound fields
-    // are supplied via AppNotification.Progress() at Show time (see Show()).
     if (progressObj.HasKey(L"title"))
         progressBar.Title(progressObj.GetNamedString(L"title"));
 
@@ -635,6 +809,52 @@ void WindowsNotificationManager::ApplyProgress(
         progressBar.BindStatus();
 
     builder.AddProgressBar(progressBar);
+}
+
+// =============================================================================
+// Show
+// =============================================================================
+
+void WindowsNotificationManager::Show(const wchar_t* jsonPayload, DWORD* pError)
+{
+    DFLog(TAG, L"[Show] jsonPayload=%ls", jsonPayload ? jsonPayload : L"null");
+
+    if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"Show", pError)) return;
+
+    try
+    {
+        int setting = m_backend->Setting();
+        if (setting != 0)
+        {
+            DFLog(TAG, L"[Show] notification disabled. setting=%d", setting);
+            if (pError) *pError = NOTIFICATION_ERROR_DISABLED;
+            return;
+        }
+
+        JsonObject json;
+        if (!JsonObject::TryParse(hstring{ jsonPayload }, json))
+        {
+            DLog(TAG, L"[Show] invalid JSON payload");
+            if (pError) *pError = NOTIFICATION_ERROR_INVALID_PAYLOAD;
+            return;
+        }
+
+        DWORD buildErr = NOTIFICATION_SUCCESS;
+        DeliverPayload payload = BuildPayload(json, &buildErr);
+        if (buildErr != NOTIFICATION_SUCCESS)
+        {
+            if (pError) *pError = buildErr;
+            return;
+        }
+
+        m_backend->Deliver(payload, pError);
+    }
+    catch (winrt::hresult_error const& ex)
+    {
+        DFLog(TAG, L"[Show] WinRT exception. hr=0x%08lx", ex.code().value);
+        if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+    }
 }
 
 // =============================================================================
@@ -653,10 +873,10 @@ void WindowsNotificationManager::Schedule(
 
     try
     {
-        auto setting = AppNotificationManager::Default().Setting();
-        if (setting != AppNotificationSetting::Enabled)
+        int setting = m_backend->Setting();
+        if (setting != 0)
         {
-            DFLog(TAG, L"[Schedule] notification disabled. setting=%d", static_cast<int>(setting));
+            DFLog(TAG, L"[Schedule] notification disabled. setting=%d", setting);
             if (pError) *pError = NOTIFICATION_ERROR_DISABLED;
             return;
         }
@@ -669,31 +889,25 @@ void WindowsNotificationManager::Schedule(
             return;
         }
 
-        DWORD buildError = NOTIFICATION_SUCCESS;
-        auto builder = BuildFromJson(json, &buildError);
-        if (buildError != NOTIFICATION_SUCCESS)
+        DWORD buildErr = NOTIFICATION_SUCCESS;
+        DeliverPayload payload = BuildPayload(json, &buildErr);
+        if (buildErr != NOTIFICATION_SUCCESS)
         {
-            if (pError) *pError = buildError;
+            if (pError) *pError = buildErr;
             return;
         }
 
-        auto tp = std::chrono::system_clock::time_point{
-            std::chrono::milliseconds(scheduledTimeMs)
-        };
-        auto scheduledTime = winrt::clock::from_sys(tp);
+        // Warn if scheduled time is far in the future (OS delivery window)
+        {
+            auto tp = std::chrono::system_clock::time_point{
+                std::chrono::milliseconds(scheduledTimeMs)
+            };
+            auto scheduledTime = winrt::clock::from_sys(tp);
+            if ((scheduledTime - winrt::clock::now()) > std::chrono::minutes(5))
+                DLog(TAG, L"[Schedule] WARNING: scheduled time exceeds 5-minute delivery window. OS may drop the notification.");
+        }
 
-        // OS delivery window is 5 minutes — warn if exceeded
-        if ((scheduledTime - winrt::clock::now()) > std::chrono::minutes(5))
-            DLog(TAG, L"[Schedule] WARNING: scheduled time exceeds 5-minute delivery window. OS may drop the notification.");
-
-        auto notification = builder.BuildNotification();
-        // AppNotification.Payload() returns an hstring containing the toast XML;
-        // load it into an XmlDocument for the legacy ScheduledToastNotification API.
-        XmlDocument doc;
-        doc.LoadXml(notification.Payload());
-
-        ScheduledToastNotification scheduled{ doc, scheduledTime };
-        ToastNotificationManager::CreateToastNotifier().AddToSchedule(scheduled);
+        m_backend->Schedule(payload, scheduledTimeMs, pError);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -712,22 +926,11 @@ void WindowsNotificationManager::CancelScheduled(
           group ? group : L"null");
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"CancelScheduled", pError)) return;
 
     try
     {
-        auto notifier = ToastNotificationManager::CreateToastNotifier();
-        auto scheduled = notifier.GetScheduledToastNotifications();
-
-        hstring tagStr  { tag   ? tag   : L"" };
-        hstring groupStr{ group ? group : L"" };
-
-        for (auto const& item : scheduled)
-        {
-            bool tagMatch   = tagStr.empty()   || item.Tag()   == tagStr;
-            bool groupMatch = groupStr.empty() || item.Group() == groupStr;
-            if (tagMatch && groupMatch)
-                notifier.RemoveFromSchedule(item);
-        }
+        m_backend->CancelSchedule(tag, group, pError);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -757,25 +960,7 @@ void WindowsNotificationManager::UpdateProgress(
 
     try
     {
-        AppNotificationProgressData data{ seq };
-        data.Value(value);
-        if (valueStr) data.ValueStringOverride(hstring{ valueStr });
-        if (status)   data.Status(hstring{ status });
-
-        hstring tagStr  { tag   ? tag   : L"" };
-        hstring groupStr{ group ? group : L"" };
-
-        auto result = RunSyncOffSta([&]
-        {
-            return groupStr.empty()
-                ? AppNotificationManager::Default().UpdateAsync(data, tagStr).get()
-                : AppNotificationManager::Default().UpdateAsync(data, tagStr, groupStr).get();
-        });
-        if (result != AppNotificationProgressResult::Succeeded)
-        {
-            DFLog(TAG, L"[UpdateProgress] notification not found. tag=%ls", tag ? tag : L"null");
-            if (pError) *pError = NOTIFICATION_ERROR_PROGRESS_NOT_FOUND;
-        }
+        m_backend->UpdateProgress(tag, group, value, valueStr, status, seq, pError);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -801,35 +986,15 @@ void WindowsNotificationManager::SetBadge(int value, DWORD* pError)
         return;
     }
 
+    if (!CheckInitialized(L"SetBadge", pError)) return;
+
     try
     {
-        auto updater = BadgeUpdateManager::CreateBadgeUpdaterForApplication();
-
-        if (value == 0)
-        {
-            updater.Clear();
-            return;
-        }
-
-        std::wstring xml;
-        if (value > 0)
-        {
-            xml = L"<badge value=\"" + std::to_wstring(value) + L"\"/>";
-        }
-        else
-        {
-            static const wchar_t* glyphs[] =
-                { L"", L"alert", L"activity", L"newMessage", L"available", L"busy", L"away" };
-            xml = std::wstring(L"<badge value=\"") + glyphs[-value] + L"\"/>";
-        }
-
-        XmlDocument doc;
-        doc.LoadXml(xml);
-        updater.Update(BadgeNotification{ doc });
+        m_backend->SetBadge(value, pError);
     }
     catch (winrt::hresult_error const& ex)
     {
-        DFLog(TAG, L"[SetBadge] badge update failed. value=%d, hr=0x%08lx", value, ex.code().value);
+        DFLog(TAG, L"[SetBadge] WinRT exception. value=%d, hr=0x%08lx", value, ex.code().value);
         if (pError) *pError = NOTIFICATION_ERROR_BADGE_FAILED;
     }
 }
@@ -843,10 +1008,11 @@ void WindowsNotificationManager::RemoveById(uint32_t id, DWORD* pError)
     DFLog(TAG, L"[RemoveById] id=%u", id);
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"RemoveById", pError)) return;
 
     try
     {
-        RunSyncOffSta([&] { AppNotificationManager::Default().RemoveByIdAsync(id).get(); });
+        m_backend->RemoveById(id, pError);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -863,19 +1029,11 @@ void WindowsNotificationManager::RemoveByTag(
           group ? group : L"null");
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"RemoveByTag", pError)) return;
 
     try
     {
-        hstring tagStr  { tag   ? tag   : L"" };
-        hstring groupStr{ group ? group : L"" };
-
-        RunSyncOffSta([&]
-        {
-            if (groupStr.empty())
-                AppNotificationManager::Default().RemoveByTagAsync(tagStr).get();
-            else
-                AppNotificationManager::Default().RemoveByTagAndGroupAsync(tagStr, groupStr).get();
-        });
+        m_backend->RemoveByTag(tag, group, pError);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -889,10 +1047,11 @@ void WindowsNotificationManager::RemoveAll(DWORD* pError)
     DLog(TAG, L"[RemoveAll]");
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"RemoveAll", pError)) return;
 
     try
     {
-        RunSyncOffSta([&] { AppNotificationManager::Default().RemoveAllAsync().get(); });
+        m_backend->RemoveAll(pError);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -907,23 +1066,11 @@ void WindowsNotificationManager::GetAll(
     DFLog(TAG, L"[GetAll] bufferSize=%u", bufferSize);
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"GetAll", pError)) return;
 
     try
     {
-        auto notifications = RunSyncOffSta([&] { return AppNotificationManager::Default().GetAllAsync().get(); });
-
-        JsonArray arr;
-        for (auto const& n : notifications)
-        {
-            JsonObject obj;
-            obj.Insert(L"id",    JsonValue::CreateNumberValue(static_cast<double>(n.Id())));
-            obj.Insert(L"tag",   JsonValue::CreateStringValue(n.Tag()));
-            obj.Insert(L"group", JsonValue::CreateStringValue(n.Group()));
-            arr.Append(obj);
-        }
-
-        auto str = arr.Stringify();
-        wcsncpy_s(outJson, bufferSize, str.c_str(), _TRUNCATE);
+        m_backend->GetAll(outJson, bufferSize, pError);
     }
     catch (winrt::hresult_error const& ex)
     {
@@ -940,13 +1087,13 @@ int WindowsNotificationManager::GetSetting()
 {
     DLog(TAG, L"[GetSetting]");
 
+    if (!m_initialized || !m_backend) return -1;
     try
     {
-        return static_cast<int>(AppNotificationManager::Default().Setting());
+        return m_backend->Setting();
     }
-    catch (winrt::hresult_error const& ex)
+    catch (...)
     {
-        DFLog(TAG, L"[GetSetting] WinRT exception. hr=0x%08lx", ex.code().value);
         return -1;
     }
 }
@@ -960,12 +1107,10 @@ void WindowsNotificationManager::OpenSettings(DWORD* pError)
     DLog(TAG, L"[OpenSettings]");
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"OpenSettings", pError)) return;
 
     try
     {
-        // ms-settings:notifications opens the system notifications settings page,
-        // where the user can re-enable notifications for this app. LaunchUriAsync
-        // is waited on a background thread to stay STA-safe (see RunSyncOffSta).
         Uri uri{ L"ms-settings:notifications" };
         bool launched = RunSyncOffSta([&]
         {
@@ -988,9 +1133,8 @@ void WindowsNotificationManager::OpenSettings(DWORD* pError)
 // C Bridge API
 // =============================================================================
 //
-// NOTE: InitWinAppSdk / initWinAppSdk (WinAppSDK bootstrap + deployment for
-// unpackaged apps) live in WindowsAppSdkBootstrap.cpp so the unit test, which
-// compiles this file, does not depend on Microsoft.WindowsAppRuntime.Bootstrap.dll.
+// NOTE: InitWinAppSdk / initWinAppSdk live in WindowsAppSdkBootstrap.cpp so
+// the unit test (which compiles this file) does not depend on Bootstrap.dll.
 
 void initNotificationManager(
     NotificationInvokedCallback callback,
