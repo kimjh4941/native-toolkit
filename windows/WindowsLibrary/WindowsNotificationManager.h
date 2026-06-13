@@ -132,7 +132,8 @@ void updateNotificationProgress(
  * @brief Sets the badge on the taskbar icon.
  * @param value  >0: numeric badge; 0: clear; -1=alert; -2=activity; -3=newMessage;
  *               -4=available; -5=busy; -6=away; <-6: invalid (NOTIFICATION_ERROR_INVALID_PARAMETER).
- * @param pError Out pointer for error code. 0 on success, 6/7 on failure.
+ * @param pError Out pointer for error code. 0 on success, 6/7 on failure,
+ *               8 (NOT_SUPPORTED) for unpackaged apps (live-tile registration requires MSIX identity).
  */
 extern "C" WINDOWSNOTIFICATIONMANAGER_API
 void setBadge(int value, DWORD* pError);

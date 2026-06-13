@@ -486,7 +486,7 @@ void UnpackagedBackend::Deliver(const DeliverPayload& payload, DWORD* pError)
             nd.Values().Insert(L"progressValue",
                                hstring{ std::to_wstring(payload.progressValue) });
             if (!payload.progressValueStr.empty())
-                nd.Values().Insert(L"progressValueString", hstring{ payload.progressValueStr });
+                nd.Values().Insert(L"progressValueStringOverride", hstring{ payload.progressValueStr });
             if (!payload.progressStatus.empty())
                 nd.Values().Insert(L"progressStatus", hstring{ payload.progressStatus });
             nd.SequenceNumber(1);
@@ -566,38 +566,10 @@ void UnpackagedBackend::CancelSchedule(const wchar_t* tag, const wchar_t* group,
 
 void UnpackagedBackend::SetBadge(int value, DWORD* pError)
 {
-    DFLog(TAG, L"[SetBadge] value=%d", value);
-    try
-    {
-        auto updater = BadgeUpdateManager::CreateBadgeUpdaterForApplication(hstring{ m_aumid });
-
-        if (value == 0)
-        {
-            updater.Clear();
-            return;
-        }
-
-        std::wstring xml;
-        if (value > 0)
-        {
-            xml = L"<badge value=\"" + std::to_wstring(value) + L"\"/>";
-        }
-        else
-        {
-            static const wchar_t* glyphs[] =
-                { L"", L"alert", L"activity", L"newMessage", L"available", L"busy", L"away" };
-            xml = std::wstring(L"<badge value=\"") + glyphs[-value] + L"\"/>";
-        }
-
-        XmlDocument doc;
-        doc.LoadXml(xml);
-        updater.Update(BadgeNotification{ doc });
-    }
-    catch (winrt::hresult_error const& ex)
-    {
-        DFLog(TAG, L"[SetBadge] WinRT exception. value=%d, hr=0x%08lx", value, ex.code().value);
-        if (pError) *pError = NOTIFICATION_ERROR_BADGE_FAILED;
-    }
+    // BadgeUpdateManager requires a live-tile (package tile) registration which
+    // unpackaged apps cannot create without MSIX identity. Return NOT_SUPPORTED.
+    DFLog(TAG, L"[SetBadge] value=%d — NOT_SUPPORTED for unpackaged", value);
+    if (pError) *pError = NOTIFICATION_ERROR_NOT_SUPPORTED;
 }
 
 // ============================================================================
@@ -614,7 +586,7 @@ void UnpackagedBackend::UpdateProgress(const wchar_t* tag, const wchar_t* group,
     {
         NotificationData nd;
         nd.Values().Insert(L"progressValue", hstring{ std::to_wstring(value) });
-        if (valueStr) nd.Values().Insert(L"progressValueString", hstring{ valueStr });
+        if (valueStr) nd.Values().Insert(L"progressValueStringOverride", hstring{ valueStr });
         if (status)   nd.Values().Insert(L"progressStatus",      hstring{ status  });
         nd.SequenceNumber(seq);
 
@@ -713,6 +685,15 @@ int UnpackagedBackend::Setting()
         case NotificationSetting::DisabledByManifest:     return 4;
         default:                                          return -1;
         }
+    }
+    catch (winrt::hresult_error const& ex)
+    {
+        // 0x80070490 = ERROR_NOT_FOUND: no settings entry for this AUMID yet.
+        // The notification system creates the entry on first delivery, so absence
+        // means the user has never disabled this app — treat as Enabled.
+        if (static_cast<uint32_t>(ex.code()) == 0x80070490u) return 0;
+        DFLog(TAG, L"[Setting] WinRT exception. hr=0x%08lx", ex.code().value);
+        return -1;
     }
     catch (...) { return -1; }
 }
