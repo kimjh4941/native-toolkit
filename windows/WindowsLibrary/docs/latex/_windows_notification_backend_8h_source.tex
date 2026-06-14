@@ -1,0 +1,63 @@
+\doxysection{Windows\+Notification\+Backend.\+h}
+\hypertarget{_windows_notification_backend_8h_source}{}\label{_windows_notification_backend_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <Windows.h>}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ DeliverPayload\ —\ neutral\ carrier\ for\ a\ built\ notification.}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Populated\ by\ WindowsNotificationManager::BuildPayload()\ (JSON\ fully\ parsed}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ and\ builder\ output\ captured).\ Both\ PackagedBackend\ and\ UnpackagedBackend}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ receive\ this\ struct;\ they\ never\ see\ raw\ JSON\ or\ classic\ WinRT\ concrete\ types}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ (ToastNotifier\ /\ BadgeUpdater)\ through\ the\ INotificationBackend\ interface.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00014\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_deliver_payload}{DeliverPayload}}}
+\DoxyCodeLine{00015\ \{}
+\DoxyCodeLine{00016\ \ \ \ \ std::wstring\ xmlPayload;}
+\DoxyCodeLine{00017\ \ \ \ \ std::wstring\ tag;}
+\DoxyCodeLine{00018\ \ \ \ \ std::wstring\ group;}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ hasExpiration\ \ \ \ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00021\ \ \ \ \ int64\_t\ expirationSec\ \ \ \ =\ 0;}
+\DoxyCodeLine{00022\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ expiresOnReboot\ \ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ hasProgress\ \ \ \ \ \ \ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{keywordtype}{double}\ \ \ \ \ \ \ progressValue\ \ \ \ \ =\ 0.0;}
+\DoxyCodeLine{00026\ \ \ \ \ std::wstring\ progressValueStr;}
+\DoxyCodeLine{00027\ \ \ \ \ std::wstring\ progressStatus;}
+\DoxyCodeLine{00028\ \};}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ INotificationBackend\ —\ terminal\ API-\/dependent\ operations\ only.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ All\ common\ orchestration\ (JSON\ parsing,\ BuildFromJson,\ validation,\ error}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ conversion)\ lives\ in\ WindowsNotificationManager.\ Backends\ receive\ completed}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ payloads\ and\ perform\ the\ API-\/specific\ delivery\ call.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ json\ /\ ToastNotifier\ /\ BadgeUpdater\ are\ NOT\ exposed\ through\ this\ interface.}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00039\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_i_notification_backend}{INotificationBackend}}}
+\DoxyCodeLine{00040\ \{}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{struct_i_notification_backend}{\string~INotificationBackend}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ RegisterActivation(DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ UnregisterActivation()\ =\ 0;}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ Deliver(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_deliver_payload}{DeliverPayload}}\&\ payload,\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ Schedule(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_deliver_payload}{DeliverPayload}}\&\ payload,\ int64\_t\ scheduledTimeMs,\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ CancelSchedule(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00049\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ SetBadge(\textcolor{keywordtype}{int}\ value,\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ UpdateProgress(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ value,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ valueStr,}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ status,\ uint32\_t\ seq,\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ RemoveByTag(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ RemoveAll(DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ RemoveById(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ GetAll(\textcolor{keywordtype}{wchar\_t}*\ outJson,\ uint32\_t\ bufferSize,\ DWORD*\ pError)\ =\ 0;}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{int}\ \ Setting()\ =\ 0;}
+\DoxyCodeLine{00058\ \};}
+
+\end{DoxyCode}

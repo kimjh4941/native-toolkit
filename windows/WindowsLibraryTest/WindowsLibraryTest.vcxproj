@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{B1C2D3E4-F5A6-7890-BCDE-F12345678901}</ProjectGuid>
+    <RootNamespace>WindowsLibraryTest</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <!-- The code under test (WindowsNotificationManager.cpp) includes the WindowsLibrary
+         pch.h which pulls MFC framework.h, so the test must be MFC-enabled too. -->
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <!-- Defined by the CppWinRT package in the main project; define it here since this
+         test does not import the AppSDK/CppWinRT NuGet build integration. -->
+    <GeneratedFilesDir Condition="'$(GeneratedFilesDir)'==''">$(IntDir)Generated Files\</GeneratedFilesDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WINDOWS;_DEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
+      <!-- winrt/base.h + manually generated Microsoft.Windows.* projection headers -->
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalLibraryDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <!-- C++/WinRT runtime entry points (RoGetActivationFactory etc.) -->
+      <AdditionalDependencies>windowsapp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WINDOWS;NDEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalLibraryDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <!-- C++/WinRT runtime entry points (RoGetActivationFactory etc.) -->
+      <AdditionalDependencies>windowsapp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="NotificationManagerTest.cpp" />
+    <!-- Production code under test, compiled directly into the test (internal class methods
+         are not exported from the DLL). These include the WindowsLibrary pch.h directly. -->
+    <ClCompile Include="..\WindowsLibrary\common.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\WindowsNotificationManager.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\WindowsClassicActivator.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!--
+    Generate the Windows App SDK C++/WinRT projection headers (winrt/Microsoft.Windows.*.h)
+    with the Windows SDK cppwinrt.exe, matching the SDK's prebuilt winrt/base.h version.
+    The AppSDK NuGet build integration is intentionally NOT imported here: this test only
+    consumes the generated headers and the OS/SDK winrt headers, and pulling the aggregate
+    AppSDK package injects auto-initializer sources that clash with MFC (IUnknown ambiguity).
+    Windows App SDK 1.7 ships all winmds in a single lib\uap10.0 folder.
+  -->
+  <Target Name="GenerateWindowsAppSDKProjection"
+          BeforeTargets="ClCompile"
+          Condition="'$(Platform)'=='x64'"
+          Inputs="$(MSBuildProjectFullPath);..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0\Microsoft.Windows.AppNotifications.winmd"
+          Outputs="$(GeneratedFilesDir)winrt\Microsoft.Windows.AppNotifications.h">
+    <PropertyGroup>
+      <_SdkCppWinRT>$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\cppwinrt.exe</_SdkCppWinRT>
+      <_AppSdkLib>$(MSBuildProjectDirectory)\..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0</_AppSdkLib>
+    </PropertyGroup>
+    <MakeDir Directories="$(GeneratedFilesDir)" />
+    <Message Importance="high" Text="Generating Windows App SDK C++/WinRT projection into $(GeneratedFilesDir)" />
+    <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.Builder.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppLifecycle.winmd&quot; -ref &quot;$(_AppSdkLib)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
+  </Target>
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

@@ -1,18 +1,43 @@
 \doxysection{pch.\+h}
 \hypertarget{pch_8h_source}{}\label{pch_8h_source}
 \begin{DoxyCode}{0}
-\DoxyCodeLine{00001\ \textcolor{comment}{//\ pch.h:\ プリコンパイル済みヘッダー\ ファイルです。}}
-\DoxyCodeLine{00002\ \textcolor{comment}{//\ 次のファイルは、その後のビルドのビルド\ パフォーマンスを向上させるため\ 1\ 回だけコンパイルされます。}}
-\DoxyCodeLine{00003\ \textcolor{comment}{//\ コード補完や多くのコード参照機能などの\ IntelliSense\ パフォーマンスにも影響します。}}
-\DoxyCodeLine{00004\ \textcolor{comment}{//\ ただし、ここに一覧表示されているファイルは、ビルド間でいずれかが更新されると、すべてが再コンパイルされます。}}
-\DoxyCodeLine{00005\ \textcolor{comment}{//\ 頻繁に更新するファイルをここに追加しないでください。追加すると、パフォーマンス上の利点がなくなります。}}
-\DoxyCodeLine{00006\ }
-\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#ifndef\ PCH\_H}}
-\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#define\ PCH\_H}}
-\DoxyCodeLine{00009\ }
-\DoxyCodeLine{00010\ \textcolor{comment}{//\ プリコンパイルするヘッダーをここに追加します}}
-\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ "{}framework.h"{}}}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ PCH\_H}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ PCH\_H}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ "{}framework.h"{}}\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ MFC\ (afxwin.h,\ afxext.h\ etc.)\ must\ come\ first}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ WinRT\ base\ —\ must\ follow\ MFC\ headers}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ <winrt/base.h>}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Windows.Foundation\ —\ required\ for\ IAsyncOperation::get()\ /\ Uri}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <winrt/Windows.Foundation.h>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <winrt/Windows.Foundation.Collections.h>}}
 \DoxyCodeLine{00012\ }
-\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//PCH\_H}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ Windows\ App\ SDK\ —\ Notification}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <winrt/Microsoft.Windows.AppNotifications.h>}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <winrt/Microsoft.Windows.AppNotifications.Builder.h>}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <winrt/Microsoft.Windows.AppLifecycle.h>}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Windows.UI.Notifications\ —\ Schedule\ /\ Badge}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <winrt/Windows.UI.Notifications.h>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <winrt/Windows.Data.Xml.Dom.h>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ JSON\ parsing\ /\ building}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <winrt/Windows.Data.Json.h>}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ Launcher\ —\ open\ the\ system\ notification\ settings\ page}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <winrt/Windows.System.h>}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ NOTE:\ WinAppSDK\ Bootstrap/Deployment\ headers\ (MddBootstrap.h,}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ winrt/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h)\ are\ intentionally}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ NOT\ included\ here.\ They\ are\ used\ only\ by\ WindowsAppSdkBootstrap.cpp\ so\ the\ unit}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ test\ (which\ compiles\ WindowsNotificationManager.cpp)\ does\ not\ take\ a\ hard}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ dependency\ on\ Microsoft.WindowsAppRuntime.Bootstrap.dll.}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ C++\ standard}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <chrono>}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ PCH\_H}}
 
 \end{DoxyCode}

@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['windowsdialogmanager_0',['WindowsDialogManager',['../class_windows_dialog_manager.html',1,'WindowsDialogManager'],['../class_windows_dialog_manager.html#a5350bd65380b674c07b24e28d424a023',1,'WindowsDialogManager::WindowsDialogManager()']]],
-  ['windowsdialogmanager_2ecpp_1',['WindowsDialogManager.cpp',['../_windows_dialog_manager_8cpp.html',1,'']]],
-  ['windowsdialogmanager_2eh_2',['WindowsDialogManager.h',['../_windows_dialog_manager_8h.html',1,'']]]
+  ['notification_5fuser_5finput_5fdata_0',['NOTIFICATION_USER_INPUT_DATA',['../struct_n_o_t_i_f_i_c_a_t_i_o_n___u_s_e_r___i_n_p_u_t___d_a_t_a.html',1,'']]],
+  ['notificationactivationcallback_1',['NotificationActivationCallback',['../class_notification_activation_callback.html',1,'']]],
+  ['notificationactivationcallbackfactory_2',['NotificationActivationCallbackFactory',['../class_notification_activation_callback_factory.html',1,'']]],
+  ['notificationinvokedcallback_3',['NotificationInvokedCallback',['../_windows_notification_manager_8h.html#abc20e8c43c097314c579508e13666315',1,'WindowsNotificationManager.h']]]
 ];

@@ -1,0 +1,87 @@
+\doxysection{Windows\+Classic\+Activator.\+h}
+\hypertarget{_windows_classic_activator_8h_source}{}\label{_windows_classic_activator_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Windows.h\ must\ be\ included\ before\ this\ header\ (via\ pch.h).}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Classic\ shell\ headers\ are\ isolated\ in\ WindowsClassicActivator.cpp.}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ "{}WindowsNotificationBackend.h"{}}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Define\ NOTIFICATION\_USER\_INPUT\_DATA\ and\ INotificationActivationCallback\ manually}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ so\ that\ <NotificationActivationCallback.h>\ (which\ only\ forward-\/declares\ the\ struct}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ in\ newer\ SDKs\ and\ can\ conflict\ with\ WinRT\ headers)\ does\ not\ need\ to\ be\ included}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ in\ translation\ units\ that\ also\ include\ WinRT\ headers.}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_n_o_t_i_f_i_c_a_t_i_o_n___u_s_e_r___i_n_p_u_t___d_a_t_a}{NOTIFICATION\_USER\_INPUT\_DATA}}}
+\DoxyCodeLine{00015\ \{}
+\DoxyCodeLine{00016\ \ \ \ \ LPCWSTR\ Key;}
+\DoxyCodeLine{00017\ \ \ \ \ LPCWSTR\ Value;}
+\DoxyCodeLine{00018\ \};}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ INotificationActivationCallback\ —\ classic\ COM\ activation\ callback\ interface.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ IID:\ \{53E31837-\/6600-\/4A81-\/9395-\/75CFFE746F94\}}}
+\DoxyCodeLine{00022\ MIDL\_INTERFACE(\textcolor{stringliteral}{"{}53E31837-\/6600-\/4A81-\/9395-\/75CFFE746F94"{}})}
+\DoxyCodeLine{00023\ INotificationActivationCallback\ :\ public\ IUnknown}
+\DoxyCodeLine{00024\ \{}
+\DoxyCodeLine{00025\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00026\ \ \ \ \ \textcolor{keyword}{virtual}\ HRESULT\ STDMETHODCALLTYPE\ Activate(}
+\DoxyCodeLine{00027\ \ \ \ \ \ \ \ \ LPCWSTR\ appUserModelId,}
+\DoxyCodeLine{00028\ \ \ \ \ \ \ \ \ LPCWSTR\ invokedArgs,}
+\DoxyCodeLine{00029\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_n_o_t_i_f_i_c_a_t_i_o_n___u_s_e_r___i_n_p_u_t___d_a_t_a}{NOTIFICATION\_USER\_INPUT\_DATA}}*\ data,}
+\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ ULONG\ dataCount)\ =\ 0;}
+\DoxyCodeLine{00031\ \};}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ UnpackagedBackend\ —\ INotificationBackend\ implementation\ for\ unpackaged\ apps.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ Uses\ the\ classic\ Windows.UI.Notifications\ API\ throughout.\ Owns:}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ -\/\ classic\ COM\ activator\ (INotificationActivationCallback\ +\ IClassFactory)}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \ -\/\ Start\ Menu\ shortcut\ creation\ (IShellLinkW\ +\ IPropertyStore)}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ \ -\/\ Registry\ entries\ (LocalServer32,\ AppUserModelId)}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \ -\/\ CLSID\ derived\ deterministically\ from\ the\ AUMID\ (no\ fixed\ value)}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00042\ \textcolor{keyword}{class\ }UnpackagedBackend\ final\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{struct_i_notification_backend}{INotificationBackend}}}
+\DoxyCodeLine{00043\ \{}
+\DoxyCodeLine{00044\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00045\ \ \ \ \ UnpackagedBackend(std::wstring\ aumid,\ std::wstring\ iconPath);}
+\DoxyCodeLine{00046\ \ \ \ \ \string~UnpackagedBackend()\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordtype}{void}\ RegisterActivation(DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00049\ \ \ \ \ \textcolor{keywordtype}{void}\ UnregisterActivation()\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \ \ \textcolor{keywordtype}{void}\ Deliver(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_deliver_payload}{DeliverPayload}}\&\ payload,\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00052\ \ \ \ \ \textcolor{keywordtype}{void}\ Schedule(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_deliver_payload}{DeliverPayload}}\&\ payload,\ int64\_t\ scheduledTimeMs,\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keywordtype}{void}\ CancelSchedule(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keywordtype}{void}\ SetBadge(\textcolor{keywordtype}{int}\ value,\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keywordtype}{void}\ UpdateProgress(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ value,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ valueStr,}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ status,\ uint32\_t\ seq,\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keywordtype}{void}\ RemoveByTag(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordtype}{void}\ RemoveAll(DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{void}\ RemoveById(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordtype}{void}\ GetAll(\textcolor{keywordtype}{wchar\_t}*\ outJson,\ uint32\_t\ bufferSize,\ DWORD*\ pError)\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keywordtype}{int}\ \ Setting()\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00065\ \ \ \ \ std::wstring\ m\_aumid;}
+\DoxyCodeLine{00066\ \ \ \ \ std::wstring\ m\_iconPath;}
+\DoxyCodeLine{00067\ \ \ \ \ GUID\ \ \ \ \ \ \ \ \ m\_activatorClsid;}
+\DoxyCodeLine{00068\ \ \ \ \ DWORD\ \ \ \ \ \ \ \ m\_comRegToken\ =\ 0;}
+\DoxyCodeLine{00069\ \};}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ ClassicArgsToJson\ —\ converts\ classic\ activation\ arguments\ to\ argsJson.}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ invokedArgs:\ "{}\&"{}-\/delimited\ query\ string\ from\ the\ toast's\ arguments\ attribute.}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ data/count:\ \ NOTIFICATION\_USER\_INPUT\_DATA\ array\ (text\ /\ combo\ user\ input).}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ ============================================================================}}
+\DoxyCodeLine{00077\ std::wstring\ ClassicArgsToJson(}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ invokedArgs,}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_n_o_t_i_f_i_c_a_t_i_o_n___u_s_e_r___i_n_p_u_t___d_a_t_a}{NOTIFICATION\_USER\_INPUT\_DATA}}*\ data,}
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ count);}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{keywordtype}{bool}\ TryGetLaunchActivationJson(std::wstring*\ argsJson);}
+
+\end{DoxyCode}

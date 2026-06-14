@@ -1,0 +1,8 @@
+namespace WindowsLibraryExample
+{
+    [default_interface]
+    runtimeclass NotificationPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        NotificationPage();
+    }
+}
