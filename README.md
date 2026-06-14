@@ -1,4 +1,4 @@
-# native-toolkit
+﻿# native-toolkit
 
 A cross-platform toolkit that bundles native platform features for native apps.
 
@@ -189,13 +189,13 @@ doxygen Doxyfile
 Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
 ```bash
-./scripts/publish_docs.sh 1.3.0
+./scripts/publish_docs.sh 1.4.0
 ```
 
 Copy only (skip generation):
 
 ```bash
-./scripts/publish_docs.sh 1.3.0 --skip-build
+./scripts/publish_docs.sh 1.4.0 --skip-build
 ```
 
 Manual source path is `manual/<version>/`.

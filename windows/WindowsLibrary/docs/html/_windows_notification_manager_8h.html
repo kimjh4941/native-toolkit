@@ -128,6 +128,8 @@ Macros</h2></td></tr>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>NOTIFICATION_ERROR_BADGE_FAILED</b>&#160;&#160;&#160;6</td></tr>
 <tr class="memitem:a9da67b32566a5e6c8321b0e8234b2a62" id="r_a9da67b32566a5e6c8321b0e8234b2a62"><td class="memItemLeft" align="right" valign="top"><a id="a9da67b32566a5e6c8321b0e8234b2a62" name="a9da67b32566a5e6c8321b0e8234b2a62"></a>
 #define&#160;</td><td class="memItemRight" valign="bottom"><b>NOTIFICATION_ERROR_INVALID_PARAMETER</b>&#160;&#160;&#160;7</td></tr>
+<tr class="memitem:aa5cacc8a0038ac9248ffd5f216b8a34e" id="r_aa5cacc8a0038ac9248ffd5f216b8a34e"><td class="memItemLeft" align="right" valign="top"><a id="aa5cacc8a0038ac9248ffd5f216b8a34e" name="aa5cacc8a0038ac9248ffd5f216b8a34e"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>NOTIFICATION_ERROR_NOT_SUPPORTED</b>&#160;&#160;&#160;8</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-typedef-members" class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -136,8 +138,10 @@ Typedefs</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a7352f985ed8e856a7c21b46858bbb4e1" id="r_a7352f985ed8e856a7c21b46858bbb4e1"><td class="memItemLeft" align="right" valign="top">WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7352f985ed8e856a7c21b46858bbb4e1">initNotificationManager</a> (<a class="el" href="#abc20e8c43c097314c579508e13666315">NotificationInvokedCallback</a> callback, BOOL isPackaged, const wchar_t *toastActivatorCLSID, const wchar_t *launchUri, DWORD *pError)</td></tr>
-<tr class="memdesc:a7352f985ed8e856a7c21b46858bbb4e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes the notification manager and registers for notification callbacks.  <br /></td></tr>
+<tr class="memitem:a453cb6cb34f3c27279e29c1756be5446" id="r_a453cb6cb34f3c27279e29c1756be5446"><td class="memItemLeft" align="right" valign="top">WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a453cb6cb34f3c27279e29c1756be5446">initWinAppSdk</a> (uint32_t majorMinorVersion, DWORD *pError)</td></tr>
+<tr class="memdesc:a453cb6cb34f3c27279e29c1756be5446"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes the Windows App SDK runtime for unpackaged apps.  <br /></td></tr>
+<tr class="memitem:afdcee652892661d3010ff537b81c918c" id="r_afdcee652892661d3010ff537b81c918c"><td class="memItemLeft" align="right" valign="top">WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afdcee652892661d3010ff537b81c918c">initNotificationManager</a> (<a class="el" href="#abc20e8c43c097314c579508e13666315">NotificationInvokedCallback</a> callback, BOOL isPackaged, const wchar_t *displayName, const wchar_t *iconUri, DWORD *pError)</td></tr>
+<tr class="memdesc:afdcee652892661d3010ff537b81c918c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes the notification manager and registers for notification callbacks.  <br /></td></tr>
 <tr class="memitem:a0299e7b082ad3274175cba88621463a3" id="r_a0299e7b082ad3274175cba88621463a3"><td class="memItemLeft" align="right" valign="top"><a id="a0299e7b082ad3274175cba88621463a3" name="a0299e7b082ad3274175cba88621463a3"></a>
 WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="bottom"><b>uninitNotificationManager</b> ()</td></tr>
 <tr class="memdesc:a0299e7b082ad3274175cba88621463a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Uninitializes the notification manager and unregisters callbacks. <br /></td></tr>
@@ -161,6 +165,8 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
 <tr class="memdesc:a9ceb94d7d307716abd1c494e1142072c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves all current notifications as a JSON array.  <br /></td></tr>
 <tr class="memitem:a26c5e330ede5cb4bc7338f3074a10cfb" id="r_a26c5e330ede5cb4bc7338f3074a10cfb"><td class="memItemLeft" align="right" valign="top">WINDOWSNOTIFICATIONMANAGER_API int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a26c5e330ede5cb4bc7338f3074a10cfb">getNotificationSetting</a> ()</td></tr>
 <tr class="memdesc:a26c5e330ede5cb4bc7338f3074a10cfb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the current AppNotificationSetting value.  <br /></td></tr>
+<tr class="memitem:aa5d6fd7b7890e47a050fd66c57b58444" id="r_aa5d6fd7b7890e47a050fd66c57b58444"><td class="memItemLeft" align="right" valign="top">WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa5d6fd7b7890e47a050fd66c57b58444">openNotificationSettings</a> (DWORD *pError)</td></tr>
+<tr class="memdesc:aa5d6fd7b7890e47a050fd66c57b58444"><td class="mdescLeft">&#160;</td><td class="mdescRight">Opens the Windows notifications settings page.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Public C Bridge API for Windows Notification Manager. </p>
@@ -254,7 +260,7 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
   <table class="params">
     <tr><td class="paramname">outJson</td><td>Output buffer for the JSON array: [{"id":N,"tag":"...","group":"..."},...]. </td></tr>
     <tr><td class="paramname">bufferSize</td><td>Number of wchar_t elements in outJson (including null terminator). </td></tr>
-    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 5 on WinRT failure. </td></tr>
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 5 on WinRT failure, 8 (NOT_SUPPORTED) for unpackaged apps (classic API has no numeric ID enumeration). </td></tr>
   </table>
   </dd>
 </dl>
@@ -282,8 +288,8 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
 
 </div>
 </div>
-<a id="a7352f985ed8e856a7c21b46858bbb4e1" name="a7352f985ed8e856a7c21b46858bbb4e1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7352f985ed8e856a7c21b46858bbb4e1">&#9670;&#160;</a></span>initNotificationManager()</h2>
+<a id="afdcee652892661d3010ff537b81c918c" name="afdcee652892661d3010ff537b81c918c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afdcee652892661d3010ff537b81c918c">&#9670;&#160;</a></span>initNotificationManager()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -301,12 +307,12 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const wchar_t *</td>          <td class="paramname"><span class="paramname"><em>toastActivatorCLSID</em></span>, </td>
+          <td class="paramtype">const wchar_t *</td>          <td class="paramname"><span class="paramname"><em>displayName</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const wchar_t *</td>          <td class="paramname"><span class="paramname"><em>launchUri</em></span>, </td>
+          <td class="paramtype">const wchar_t *</td>          <td class="paramname"><span class="paramname"><em>iconUri</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -321,9 +327,65 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
   <table class="params">
     <tr><td class="paramname">callback</td><td>Callback function invoked on notification activation. </td></tr>
     <tr><td class="paramname">isPackaged</td><td>TRUE for packaged (MSIX) apps; FALSE for unpackaged Win32 apps. </td></tr>
-    <tr><td class="paramname">toastActivatorCLSID</td><td>CLSID string for COM activation (unpackaged only; ignored if isPackaged). </td></tr>
-    <tr><td class="paramname">launchUri</td><td>Launch URI for COM activation (unpackaged only). </td></tr>
-    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 1-7 on failure. </td></tr>
+    <tr><td class="paramname">displayName</td><td>Display name shown for the app in notifications (unpackaged: required; ignored if isPackaged). </td></tr>
+    <tr><td class="paramname">iconUri</td><td>Icon path for the app (unpackaged: REQUIRED; ignored if isPackaged). Accepts a plain Windows path ("C:\\path\\app.png") or a file URI ("file:///C:/path/app.png") — a file URI is normalized to a plain path internally. The file must exist and be a supported image type (.png/.jpg/.ico). Null/empty -&gt; NOTIFICATION_ERROR_INVALID_PARAMETER. </td></tr>
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 1-8 on failure. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section note"><dt>Note</dt><dd>Call initWinAppSdk before this function for unpackaged apps. </dd></dl>
+
+</div>
+</div>
+<a id="a453cb6cb34f3c27279e29c1756be5446" name="a453cb6cb34f3c27279e29c1756be5446"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a453cb6cb34f3c27279e29c1756be5446">&#9670;&#160;</a></span>initWinAppSdk()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">WINDOWSNOTIFICATIONMANAGER_API void initWinAppSdk </td>
+          <td>(</td>
+          <td class="paramtype">uint32_t</td>          <td class="paramname"><span class="paramname"><em>majorMinorVersion</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">DWORD *</td>          <td class="paramname"><span class="paramname"><em>pError</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Initializes the Windows App SDK runtime for unpackaged apps. </p>
+<p>Must be called once before initNotificationManager on unpackaged builds. Calls MddBootstrapInitialize to load the Framework package. Unpackaged apps rely on a system-installed Windows App Runtime and do not invoke DeploymentManager::Initialize here. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">majorMinorVersion</td><td>WinAppSDK major/minor version packed as 0xMMMMmmmm (e.g. 0x00010007 for 1.7). </td></tr>
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 5 (HRESULT_FAILURE) on failure. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aa5d6fd7b7890e47a050fd66c57b58444" name="aa5d6fd7b7890e47a050fd66c57b58444"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5d6fd7b7890e47a050fd66c57b58444">&#9670;&#160;</a></span>openNotificationSettings()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">WINDOWSNOTIFICATIONMANAGER_API void openNotificationSettings </td>
+          <td>(</td>
+          <td class="paramtype">DWORD *</td>          <td class="paramname"><span class="paramname"><em>pError</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Opens the Windows notifications settings page. </p>
+<p>Useful when <a class="el" href="#a26c5e330ede5cb4bc7338f3074a10cfb" title="Returns the current AppNotificationSetting value.">getNotificationSetting()</a> reports notifications are disabled (1-4): the user can re-enable them for this app from the settings page. Launches the ms-settings:notifications URI. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 5 on WinRT failure. </td></tr>
   </table>
   </dd>
 </dl>
@@ -378,7 +440,7 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">notificationId</td><td>Numeric ID of the notification. </td></tr>
-    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 5 on WinRT failure. </td></tr>
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 5 on WinRT failure, 8 (NOT_SUPPORTED) for unpackaged apps (classic API has no numeric ID). </td></tr>
   </table>
   </dd>
 </dl>
@@ -450,7 +512,7 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
   <table class="params">
     <tr><td class="paramname">jsonPayload</td><td>JSON string describing the notification. </td></tr>
     <tr><td class="paramname">scheduledTimeUnixMs</td><td>Delivery time in milliseconds since Unix epoch (UTC). </td></tr>
-    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 1-7 on failure. </td></tr>
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 1-8 on failure. </td></tr>
   </table>
   </dd>
 </dl>
@@ -480,7 +542,7 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">value</td><td>&gt;0: numeric badge; 0: clear; -1=alert; -2=activity; -3=newMessage; -4=available; -5=busy; -6=away; &lt;-6: invalid (NOTIFICATION_ERROR_INVALID_PARAMETER). </td></tr>
-    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 6/7 on failure. </td></tr>
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 6/7 on failure, 8 (NOT_SUPPORTED) for unpackaged apps (live-tile registration requires MSIX identity). </td></tr>
   </table>
   </dd>
 </dl>
@@ -510,7 +572,7 @@ WINDOWSNOTIFICATIONMANAGER_API void&#160;</td><td class="memItemRight" valign="b
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">jsonPayload</td><td>JSON string. See design doc for full schema. </td></tr>
-    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 1-7 on failure. </td></tr>
+    <tr><td class="paramname">pError</td><td>Out pointer for error code. 0 on success, 1-8 on failure. </td></tr>
   </table>
   </dd>
 </dl>

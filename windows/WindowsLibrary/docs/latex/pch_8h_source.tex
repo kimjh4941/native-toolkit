@@ -25,10 +25,19 @@
 \DoxyCodeLine{00022\ \textcolor{comment}{//\ JSON\ parsing\ /\ building}}
 \DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <winrt/Windows.Data.Json.h>}}
 \DoxyCodeLine{00024\ }
-\DoxyCodeLine{00025\ \textcolor{comment}{//\ C++\ standard}}
-\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <string>}}
-\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <chrono>}}
-\DoxyCodeLine{00028\ }
-\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ PCH\_H}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ Launcher\ —\ open\ the\ system\ notification\ settings\ page}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <winrt/Windows.System.h>}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ NOTE:\ WinAppSDK\ Bootstrap/Deployment\ headers\ (MddBootstrap.h,}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ winrt/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h)\ are\ intentionally}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ NOT\ included\ here.\ They\ are\ used\ only\ by\ WindowsAppSdkBootstrap.cpp\ so\ the\ unit}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ test\ (which\ compiles\ WindowsNotificationManager.cpp)\ does\ not\ take\ a\ hard}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ dependency\ on\ Microsoft.WindowsAppRuntime.Bootstrap.dll.}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ C++\ standard}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <chrono>}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ PCH\_H}}
 
 \end{DoxyCode}

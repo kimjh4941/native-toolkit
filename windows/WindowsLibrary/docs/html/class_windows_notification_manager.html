@@ -95,8 +95,10 @@ $(function(){initNavTree('class_windows_notification_manager.html','','class_win
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a8ae87fffaf9bb77820c4e329c03912c7" id="r_a8ae87fffaf9bb77820c4e329c03912c7"><td class="memItemLeft" align="right" valign="top"><a id="a8ae87fffaf9bb77820c4e329c03912c7" name="a8ae87fffaf9bb77820c4e329c03912c7"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>Init</b> (<a class="el" href="_windows_notification_manager_8h.html#abc20e8c43c097314c579508e13666315">NotificationInvokedCallback</a> callback, BOOL isPackaged, const wchar_t *clsid, const wchar_t *launchUri, DWORD *pError)</td></tr>
+<tr class="memitem:a267ebd75cf781c5dc38e7095920e783b" id="r_a267ebd75cf781c5dc38e7095920e783b"><td class="memItemLeft" align="right" valign="top"><a id="a267ebd75cf781c5dc38e7095920e783b" name="a267ebd75cf781c5dc38e7095920e783b"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>InitWinAppSdk</b> (uint32_t majorMinorVersion, DWORD *pError)</td></tr>
+<tr class="memitem:ac3be217405535920baf61ea40f84a3bd" id="r_ac3be217405535920baf61ea40f84a3bd"><td class="memItemLeft" align="right" valign="top"><a id="ac3be217405535920baf61ea40f84a3bd" name="ac3be217405535920baf61ea40f84a3bd"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>Init</b> (<a class="el" href="_windows_notification_manager_8h.html#abc20e8c43c097314c579508e13666315">NotificationInvokedCallback</a> callback, BOOL isPackaged, const wchar_t *displayName, const wchar_t *iconUri, DWORD *pError)</td></tr>
 <tr class="memitem:a68acc269cfd9883b4793789fe9516607" id="r_a68acc269cfd9883b4793789fe9516607"><td class="memItemLeft" align="right" valign="top"><a id="a68acc269cfd9883b4793789fe9516607" name="a68acc269cfd9883b4793789fe9516607"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>Uninit</b> ()</td></tr>
 <tr class="memitem:a2e5011572fcbfc58178f4768f8338e9e" id="r_a2e5011572fcbfc58178f4768f8338e9e"><td class="memItemLeft" align="right" valign="top"><a id="a2e5011572fcbfc58178f4768f8338e9e" name="a2e5011572fcbfc58178f4768f8338e9e"></a>
@@ -119,6 +121,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>RemoveAll</b> (DWORD 
 void&#160;</td><td class="memItemRight" valign="bottom"><b>GetAll</b> (wchar_t *outJson, uint32_t bufferSize, DWORD *pError)</td></tr>
 <tr class="memitem:a5c921d7ab806f720b7f3c9381b839625" id="r_a5c921d7ab806f720b7f3c9381b839625"><td class="memItemLeft" align="right" valign="top"><a id="a5c921d7ab806f720b7f3c9381b839625" name="a5c921d7ab806f720b7f3c9381b839625"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>GetSetting</b> ()</td></tr>
+<tr class="memitem:abbdb574b308f8c2a435441800f045c7e" id="r_abbdb574b308f8c2a435441800f045c7e"><td class="memItemLeft" align="right" valign="top"><a id="abbdb574b308f8c2a435441800f045c7e" name="abbdb574b308f8c2a435441800f045c7e"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>OpenSettings</b> (DWORD *pError)</td></tr>
+<tr class="memitem:ad4b78edf4784c100a4d0f92562c59bd4" id="r_ad4b78edf4784c100a4d0f92562c59bd4"><td class="memItemLeft" align="right" valign="top"><a id="ad4b78edf4784c100a4d0f92562c59bd4" name="ad4b78edf4784c100a4d0f92562c59bd4"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>InvokeCallback</b> (const std::wstring &amp;argsJson)</td></tr>
+<tr class="memitem:a36b697a45a8e485608ad4a7aee6a3b38" id="r_a36b697a45a8e485608ad4a7aee6a3b38"><td class="memItemLeft" align="right" valign="top"><a id="a36b697a45a8e485608ad4a7aee6a3b38" name="a36b697a45a8e485608ad4a7aee6a3b38"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>SetBackendForTest</b> (std::unique_ptr&lt; <a class="el" href="struct_i_notification_backend.html">INotificationBackend</a> &gt; backend)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -127,11 +135,14 @@ static <a class="el" href="class_windows_notification_manager.html">WindowsNotif
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-friends" class="groupheader"><a id="friends" name="friends"></a>
 Friends</h2></td></tr>
+<tr class="memitem:afba78a004d6daaedb0e32a9b5c8580fb" id="r_afba78a004d6daaedb0e32a9b5c8580fb"><td class="memItemLeft" align="right" valign="top"><a id="afba78a004d6daaedb0e32a9b5c8580fb" name="afba78a004d6daaedb0e32a9b5c8580fb"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>PackagedBackend</b></td></tr>
 <tr class="memitem:afa00755e00daed14307bb71a8c19dcfe" id="r_afa00755e00daed14307bb71a8c19dcfe"><td class="memItemLeft" align="right" valign="top"><a id="afa00755e00daed14307bb71a8c19dcfe" name="afa00755e00daed14307bb71a8c19dcfe"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>WindowsNotificationManagerTest::NotificationManagerTest</b></td></tr>
 </table>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li><a class="el" href="_windows_notification_manager_internal_8h_source.html">WindowsNotificationManagerInternal.h</a></li>
+<li><b>WindowsAppSdkBootstrap.cpp</b></li>
 <li><b>WindowsNotificationManager.cpp</b></li>
 </ul>
 </div><!-- contents -->

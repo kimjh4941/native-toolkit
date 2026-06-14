@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['uninitnotificationmanager_0',['uninitNotificationManager',['../_windows_notification_manager_8h.html#a0299e7b082ad3274175cba88621463a3',1,'WindowsNotificationManager.cpp']]],
-  ['updatenotificationprogress_1',['updateNotificationProgress',['../_windows_notification_manager_8h.html#a488f97232d9251f59d47945e7213cf40',1,'WindowsNotificationManager.cpp']]]
+  ['removeallnotifications_0',['removeAllNotifications',['../_windows_notification_manager_8h.html#a30e79d02929cc97ba1d943f192a093ff',1,'WindowsNotificationManager.cpp']]],
+  ['removenotificationbyid_1',['removeNotificationById',['../_windows_notification_manager_8h.html#a560d0f9070727b3657532920007538e1',1,'WindowsNotificationManager.cpp']]],
+  ['removenotificationsbytag_2',['removeNotificationsByTag',['../_windows_notification_manager_8h.html#a3231f9ff1ea50ea24713a900933b5e26',1,'WindowsNotificationManager.cpp']]]
 ];

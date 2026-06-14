@@ -5,8 +5,7 @@
 Public C Bridge API for Windows Notification Manager.  
 
 
-This graph shows which files directly or indirectly include this file\+:
-\nopagebreak
+This graph shows which files directly or indirectly include this file\+:\nopagebreak
 \begin{figure}[H]
 \begin{center}
 \leavevmode
@@ -42,6 +41,9 @@ This graph shows which files directly or indirectly include this file\+:
 \item 
 \Hypertarget{_windows_notification_manager_8h_a9da67b32566a5e6c8321b0e8234b2a62}\label{_windows_notification_manager_8h_a9da67b32566a5e6c8321b0e8234b2a62} 
 \#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER}~7
+\item 
+\Hypertarget{_windows_notification_manager_8h_aa5cacc8a0038ac9248ffd5f216b8a34e}\label{_windows_notification_manager_8h_aa5cacc8a0038ac9248ffd5f216b8a34e} 
+\#define {\bfseries NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED}~8
 \end{DoxyCompactItemize}
 \doxysubsubsection*{Typedefs}
 \begin{DoxyCompactItemize}
@@ -51,7 +53,9 @@ typedef void(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_windows_notification_m
 \doxysubsubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
-WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a7352f985ed8e856a7c21b46858bbb4e1}{init\+Notification\+Manager}} (\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}} callback, BOOL is\+Packaged, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}toast\+Activator\+CLSID, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}launch\+Uri, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a453cb6cb34f3c27279e29c1756be5446}{init\+Win\+App\+Sdk}} (uint32\+\_\+t major\+Minor\+Version, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Initializes the Windows App SDK runtime for unpackaged apps. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_afdcee652892661d3010ff537b81c918c}{init\+Notification\+Manager}} (\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}} callback, BOOL is\+Packaged, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}display\+Name, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}icon\+Uri, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
 \begin{DoxyCompactList}\small\item\em Initializes the notification manager and registers for notification callbacks. \end{DoxyCompactList}\item 
 \Hypertarget{_windows_notification_manager_8h_a0299e7b082ad3274175cba88621463a3}\label{_windows_notification_manager_8h_a0299e7b082ad3274175cba88621463a3} 
 WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void {\bfseries uninit\+Notification\+Manager} ()
@@ -75,7 +79,9 @@ WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notificatio
 WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_a9ceb94d7d307716abd1c494e1142072c}{get\+All\+Notifications}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}out\+Json, uint32\+\_\+t buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
 \begin{DoxyCompactList}\small\item\em Retrieves all current notifications as a JSON array. \end{DoxyCompactList}\item 
 WINDOWSNOTIFICATIONMANAGER\+\_\+\+API int \mbox{\hyperlink{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb}{get\+Notification\+Setting}} ()
-\begin{DoxyCompactList}\small\item\em Returns the current App\+Notification\+Setting value. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Returns the current App\+Notification\+Setting value. \end{DoxyCompactList}\item 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_notification_manager_8h_aa5d6fd7b7890e47a050fd66c57b58444}{open\+Notification\+Settings}} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Opens the Windows notifications settings page. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -141,7 +147,7 @@ Retrieves all current notifications as a JSON array.
 \hline
 {\em buffer\+Size} & Number of wchar\+\_\+t elements in out\+Json (including null terminator). \\
 \hline
-{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure, 8 (NOT\+\_\+\+SUPPORTED) for unpackaged apps (classic API has no numeric ID enumeration). \\
 \hline
 \end{DoxyParams}
 \Hypertarget{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!getNotificationSetting@{getNotificationSetting}}
@@ -160,11 +166,11 @@ Returns the current App\+Notification\+Setting value.
 \begin{DoxyNote}{Note}
 This return value is independent of the NOTIFICATION\+\_\+\+ERROR\+\_\+\texorpdfstring{$\ast$}{*} code space. 
 \end{DoxyNote}
-\Hypertarget{_windows_notification_manager_8h_a7352f985ed8e856a7c21b46858bbb4e1}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!initNotificationManager@{initNotificationManager}}
+\Hypertarget{_windows_notification_manager_8h_afdcee652892661d3010ff537b81c918c}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!initNotificationManager@{initNotificationManager}}
 \index{initNotificationManager@{initNotificationManager}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
 \doxysubsubsection{\texorpdfstring{initNotificationManager()}{initNotificationManager()}}
-{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a7352f985ed8e856a7c21b46858bbb4e1} 
-WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void init\+Notification\+Manager (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}}}]{callback}{, }\item[{BOOL}]{is\+Packaged}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{toast\+Activator\+CLSID}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{launch\+Uri}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_afdcee652892661d3010ff537b81c918c} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void init\+Notification\+Manager (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{Notification\+Invoked\+Callback}}}]{callback}{, }\item[{BOOL}]{is\+Packaged}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{display\+Name}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{icon\+Uri}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
 
 
 
@@ -176,11 +182,46 @@ Initializes the notification manager and registers for notification callbacks.
 \hline
 {\em is\+Packaged} & TRUE for packaged (MSIX) apps; FALSE for unpackaged Win32 apps. \\
 \hline
-{\em toast\+Activator\+CLSID} & CLSID string for COM activation (unpackaged only; ignored if is\+Packaged). \\
+{\em display\+Name} & Display name shown for the app in notifications (unpackaged\+: required; ignored if is\+Packaged). \\
 \hline
-{\em launch\+Uri} & Launch URI for COM activation (unpackaged only). \\
+{\em icon\+Uri} & Icon path for the app (unpackaged\+: REQUIRED; ignored if is\+Packaged). Accepts a plain Windows path ("{}\+C\+:\textbackslash{}\textbackslash{}path\textbackslash{}\textbackslash{}app.\+png"{}) or a file URI ("{}file\+:///\+C\+:/path/app.\+png"{}) — a file URI is normalized to a plain path internally. The file must exist and be a supported image type (.png/.jpg/.ico). Null/empty -\/\texorpdfstring{$>$}{>} NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER. \\
 \hline
-{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/7 on failure. \\
+{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/8 on failure. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Call init\+Win\+App\+Sdk before this function for unpackaged apps. 
+\end{DoxyNote}
+\Hypertarget{_windows_notification_manager_8h_a453cb6cb34f3c27279e29c1756be5446}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!initWinAppSdk@{initWinAppSdk}}
+\index{initWinAppSdk@{initWinAppSdk}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{initWinAppSdk()}{initWinAppSdk()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_a453cb6cb34f3c27279e29c1756be5446} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void init\+Win\+App\+Sdk (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{major\+Minor\+Version}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Initializes the Windows App SDK runtime for unpackaged apps. 
+
+Must be called once before init\+Notification\+Manager on unpackaged builds. Calls Mdd\+Bootstrap\+Initialize to load the Framework package. Unpackaged apps rely on a system-\/installed Windows App Runtime and do not invoke Deployment\+Manager\+::\+Initialize here. 
+\begin{DoxyParams}{Parameters}
+{\em major\+Minor\+Version} & Win\+App\+SDK major/minor version packed as 0x\+MMMMmmmm (e.\+g. 0x00010007 for 1.\+7). \\
+\hline
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 (HRESULT\+\_\+\+FAILURE) on failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_notification_manager_8h_aa5d6fd7b7890e47a050fd66c57b58444}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!openNotificationSettings@{openNotificationSettings}}
+\index{openNotificationSettings@{openNotificationSettings}!WindowsNotificationManager.h@{WindowsNotificationManager.h}}
+\doxysubsubsection{\texorpdfstring{openNotificationSettings()}{openNotificationSettings()}}
+{\footnotesize\ttfamily \label{_windows_notification_manager_8h_aa5d6fd7b7890e47a050fd66c57b58444} 
+WINDOWSNOTIFICATIONMANAGER\+\_\+\+API void open\+Notification\+Settings (\begin{DoxyParamCaption}\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Opens the Windows notifications settings page. 
+
+Useful when \doxylink{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb}{get\+Notification\+Setting()} reports notifications are disabled (1-\/4)\+: the user can re-\/enable them for this app from the settings page. Launches the ms-\/settings\+:notifications URI. 
+\begin{DoxyParams}{Parameters}
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
 \hline
 \end{DoxyParams}
 \Hypertarget{_windows_notification_manager_8h_a30e79d02929cc97ba1d943f192a093ff}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!removeAllNotifications@{removeAllNotifications}}
@@ -212,7 +253,7 @@ Removes a notification from Notification Center by its ID.
 \begin{DoxyParams}{Parameters}
 {\em notification\+Id} & Numeric ID of the notification. \\
 \hline
-{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure. \\
+{\em p\+Error} & Out pointer for error code. 0 on success, 5 on Win\+RT failure, 8 (NOT\+\_\+\+SUPPORTED) for unpackaged apps (classic API has no numeric ID). \\
 \hline
 \end{DoxyParams}
 \Hypertarget{_windows_notification_manager_8h_a3231f9ff1ea50ea24713a900933b5e26}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!removeNotificationsByTag@{removeNotificationsByTag}}
@@ -250,7 +291,7 @@ Schedules a Toast notification for delivery at a specified time.
 \hline
 {\em scheduled\+Time\+Unix\+Ms} & Delivery time in milliseconds since Unix epoch (UTC). \\
 \hline
-{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/7 on failure. \\
+{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/8 on failure. \\
 \hline
 \end{DoxyParams}
 \Hypertarget{_windows_notification_manager_8h_a63407175785fc3f2d4c0309af245ab03}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!setBadge@{setBadge}}
@@ -267,7 +308,7 @@ Sets the badge on the taskbar icon.
 \begin{DoxyParams}{Parameters}
 {\em value} & \texorpdfstring{$>$}{>}0\+: numeric badge; 0\+: clear; -\/1=alert; -\/2=activity; -\/3=new\+Message; -\/4=available; -\/5=busy; -\/6=away; \texorpdfstring{$<$}{<}-\/6\+: invalid (NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER). \\
 \hline
-{\em p\+Error} & Out pointer for error code. 0 on success, 6/7 on failure. \\
+{\em p\+Error} & Out pointer for error code. 0 on success, 6/7 on failure, 8 (NOT\+\_\+\+SUPPORTED) for unpackaged apps (live-\/tile registration requires MSIX identity). \\
 \hline
 \end{DoxyParams}
 \Hypertarget{_windows_notification_manager_8h_af185cd415410d7f077e01c753306ce07}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!showNotification@{showNotification}}
@@ -284,7 +325,7 @@ Displays a Toast notification described by a JSON payload.
 \begin{DoxyParams}{Parameters}
 {\em json\+Payload} & JSON string. See design doc for full schema. \\
 \hline
-{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/7 on failure. \\
+{\em p\+Error} & Out pointer for error code. 0 on success, 1-\/8 on failure. \\
 \hline
 \end{DoxyParams}
 \Hypertarget{_windows_notification_manager_8h_a488f97232d9251f59d47945e7213cf40}\index{WindowsNotificationManager.h@{WindowsNotificationManager.h}!updateNotificationProgress@{updateNotificationProgress}}

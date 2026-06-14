@@ -1,4 +1,4 @@
-# native-toolkit
+﻿# native-toolkit
 
 ネイティブアプリから利用できる、クロスプラットフォームのネイティブ機能ツールキットです。
 
@@ -189,13 +189,13 @@ doxygen Doxyfile
 `docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
 
 ```bash
-./scripts/publish_docs.sh 1.3.0
+./scripts/publish_docs.sh 1.4.0
 ```
 
 既存の生成物をコピーだけする場合:
 
 ```bash
-./scripts/publish_docs.sh 1.3.0 --skip-build
+./scripts/publish_docs.sh 1.4.0 --skip-build
 ```
 
 manual のコピー元は `manual/<version>/` です。

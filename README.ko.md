@@ -1,4 +1,4 @@
-# native-toolkit
+﻿# native-toolkit
 
 네이티브 앱에서 사용할 수 있는 네이티브 플랫폼 기능을 플랫폼별로 모아둔 툴킷입니다.
 
@@ -189,13 +189,13 @@ doxygen Doxyfile
 `docs/<version>/` 를 생성하고, `docs/latest/` 는 `docs/` 내 가장 높은 버전으로 갱신됩니다.
 
 ```bash
-./scripts/publish_docs.sh 1.3.0
+./scripts/publish_docs.sh 1.4.0
 ```
 
 생성 없이 복사만 할 경우:
 
 ```bash
-./scripts/publish_docs.sh 1.3.0 --skip-build
+./scripts/publish_docs.sh 1.4.0 --skip-build
 ```
 
 manual 복사 원본은 `manual/<version>/` 입니다.

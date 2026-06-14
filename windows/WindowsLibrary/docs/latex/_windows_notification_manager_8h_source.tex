@@ -19,76 +19,83 @@
 \DoxyCodeLine{00023\ \textcolor{preprocessor}{\#define\ NOTIFICATION\_ERROR\_HRESULT\_FAILURE\ \ \ \ \ \ 5}}
 \DoxyCodeLine{00024\ \textcolor{preprocessor}{\#define\ NOTIFICATION\_ERROR\_BADGE\_FAILED\ \ \ \ \ \ \ \ \ 6}}
 \DoxyCodeLine{00025\ \textcolor{preprocessor}{\#define\ NOTIFICATION\_ERROR\_INVALID\_PARAMETER\ \ \ \ 7}}
-\DoxyCodeLine{00026\ }
-\DoxyCodeLine{00031\ \textcolor{keyword}{typedef}\ void\ (*\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{NotificationInvokedCallback}})(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ argsJson);}
-\DoxyCodeLine{00032\ }
-\DoxyCodeLine{00041\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00042\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a7352f985ed8e856a7c21b46858bbb4e1}{initNotificationManager}}(}
-\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{NotificationInvokedCallback}}\ callback,}
-\DoxyCodeLine{00044\ \ \ \ \ BOOL\ isPackaged,}
-\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ toastActivatorCLSID,}
-\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ launchUri,}
-\DoxyCodeLine{00047\ \ \ \ \ DWORD*\ pError}
-\DoxyCodeLine{00048\ );}
-\DoxyCodeLine{00049\ }
-\DoxyCodeLine{00053\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00054\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a0299e7b082ad3274175cba88621463a3}{uninitNotificationManager}}();}
-\DoxyCodeLine{00055\ }
-\DoxyCodeLine{00061\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00062\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_af185cd415410d7f077e01c753306ce07}{showNotification}}(}
-\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ jsonPayload,}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#define\ NOTIFICATION\_ERROR\_NOT\_SUPPORTED\ \ \ \ \ \ \ \ 8\ \ }\textcolor{comment}{//\ Feature\ not\ supported\ for\ this\ app\ type\ (e.g.\ unpackaged\ RemoveById/GetAll)}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00032\ \textcolor{keyword}{typedef}\ void\ (*\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{NotificationInvokedCallback}})(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ argsJson);}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00044\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a453cb6cb34f3c27279e29c1756be5446}{initWinAppSdk}}(uint32\_t\ majorMinorVersion,\ DWORD*\ pError);}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00058\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00059\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_afdcee652892661d3010ff537b81c918c}{initNotificationManager}}(}
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{NotificationInvokedCallback}}\ callback,}
+\DoxyCodeLine{00061\ \ \ \ \ BOOL\ isPackaged,}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ displayName,}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ iconUri,}
 \DoxyCodeLine{00064\ \ \ \ \ DWORD*\ pError}
 \DoxyCodeLine{00065\ );}
 \DoxyCodeLine{00066\ }
-\DoxyCodeLine{00073\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00074\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a4ed6b095897c2c84cee6525aa351c637}{scheduleNotification}}(}
-\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ jsonPayload,}
-\DoxyCodeLine{00076\ \ \ \ \ int64\_t\ scheduledTimeUnixMs,}
-\DoxyCodeLine{00077\ \ \ \ \ DWORD*\ pError}
-\DoxyCodeLine{00078\ );}
-\DoxyCodeLine{00079\ }
-\DoxyCodeLine{00086\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00087\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a4ea719affb154500643b698f711ba690}{cancelScheduledNotification}}(}
-\DoxyCodeLine{00088\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,}
-\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
-\DoxyCodeLine{00090\ \ \ \ \ DWORD*\ pError}
-\DoxyCodeLine{00091\ );}
-\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00070\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00071\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a0299e7b082ad3274175cba88621463a3}{uninitNotificationManager}}();}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00078\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00079\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_af185cd415410d7f077e01c753306ce07}{showNotification}}(}
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ jsonPayload,}
+\DoxyCodeLine{00081\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00082\ );}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00090\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00091\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a4ed6b095897c2c84cee6525aa351c637}{scheduleNotification}}(}
+\DoxyCodeLine{00092\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ jsonPayload,}
+\DoxyCodeLine{00093\ \ \ \ \ int64\_t\ scheduledTimeUnixMs,}
+\DoxyCodeLine{00094\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00095\ );}
+\DoxyCodeLine{00096\ }
 \DoxyCodeLine{00103\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00104\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a488f97232d9251f59d47945e7213cf40}{updateNotificationProgress}}(}
+\DoxyCodeLine{00104\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a4ea719affb154500643b698f711ba690}{cancelScheduledNotification}}(}
 \DoxyCodeLine{00105\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,}
 \DoxyCodeLine{00106\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
-\DoxyCodeLine{00107\ \ \ \ \ \textcolor{keywordtype}{double}\ value,}
-\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ valueStr,}
-\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ status,}
-\DoxyCodeLine{00110\ \ \ \ \ uint32\_t\ sequenceNumber,}
-\DoxyCodeLine{00111\ \ \ \ \ DWORD*\ pError}
-\DoxyCodeLine{00112\ );}
-\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00107\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00108\ );}
+\DoxyCodeLine{00109\ }
 \DoxyCodeLine{00120\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00121\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a63407175785fc3f2d4c0309af245ab03}{setBadge}}(\textcolor{keywordtype}{int}\ value,\ DWORD*\ pError);}
-\DoxyCodeLine{00122\ }
-\DoxyCodeLine{00128\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00129\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a560d0f9070727b3657532920007538e1}{removeNotificationById}}(uint32\_t\ notificationId,\ DWORD*\ pError);}
+\DoxyCodeLine{00121\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a488f97232d9251f59d47945e7213cf40}{updateNotificationProgress}}(}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keywordtype}{double}\ value,}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ valueStr,}
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ status,}
+\DoxyCodeLine{00127\ \ \ \ \ uint32\_t\ sequenceNumber,}
+\DoxyCodeLine{00128\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00129\ );}
 \DoxyCodeLine{00130\ }
-\DoxyCodeLine{00137\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00138\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a3231f9ff1ea50ea24713a900933b5e26}{removeNotificationsByTag}}(}
-\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,}
-\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
-\DoxyCodeLine{00141\ \ \ \ \ DWORD*\ pError}
-\DoxyCodeLine{00142\ );}
-\DoxyCodeLine{00143\ }
-\DoxyCodeLine{00148\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00149\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a30e79d02929cc97ba1d943f192a093ff}{removeAllNotifications}}(DWORD*\ pError);}
-\DoxyCodeLine{00150\ }
-\DoxyCodeLine{00157\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00158\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a9ceb94d7d307716abd1c494e1142072c}{getAllNotifications}}(}
-\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordtype}{wchar\_t}*\ outJson,}
-\DoxyCodeLine{00160\ \ \ \ \ uint32\_t\ bufferSize,}
-\DoxyCodeLine{00161\ \ \ \ \ DWORD*\ pError}
-\DoxyCodeLine{00162\ );}
-\DoxyCodeLine{00163\ }
-\DoxyCodeLine{00170\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
-\DoxyCodeLine{00171\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb}{getNotificationSetting}}();}
+\DoxyCodeLine{00138\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00139\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a63407175785fc3f2d4c0309af245ab03}{setBadge}}(\textcolor{keywordtype}{int}\ value,\ DWORD*\ pError);}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00147\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00148\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a560d0f9070727b3657532920007538e1}{removeNotificationById}}(uint32\_t\ notificationId,\ DWORD*\ pError);}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00156\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00157\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a3231f9ff1ea50ea24713a900933b5e26}{removeNotificationsByTag}}(}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
+\DoxyCodeLine{00160\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00161\ );}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00167\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00168\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a30e79d02929cc97ba1d943f192a093ff}{removeAllNotifications}}(DWORD*\ pError);}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00177\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00178\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_a9ceb94d7d307716abd1c494e1142072c}{getAllNotifications}}(}
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{keywordtype}{wchar\_t}*\ outJson,}
+\DoxyCodeLine{00180\ \ \ \ \ uint32\_t\ bufferSize,}
+\DoxyCodeLine{00181\ \ \ \ \ DWORD*\ pError}
+\DoxyCodeLine{00182\ );}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00190\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00191\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{_windows_notification_manager_8h_a26c5e330ede5cb4bc7338f3074a10cfb}{getNotificationSetting}}();}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00200\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSNOTIFICATIONMANAGER\_API}
+\DoxyCodeLine{00201\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_notification_manager_8h_aa5d6fd7b7890e47a050fd66c57b58444}{openNotificationSettings}}(DWORD*\ pError);}
 
 \end{DoxyCode}
