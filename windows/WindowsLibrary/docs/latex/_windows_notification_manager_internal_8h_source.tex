@@ -1,0 +1,102 @@
+\doxysection{Windows\+Notification\+Manager\+Internal.\+h}
+\hypertarget{_windows_notification_manager_internal_8h_source}{}\label{_windows_notification_manager_internal_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ WinRT\ headers\ must\ be\ included\ before\ this\ file\ (via\ pch.h\ or\ test\ pch.h).}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Requires:\ winrt/base.h,\ winrt/Microsoft.Windows.AppNotifications.h,}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ winrt/Microsoft.Windows.AppNotifications.Builder.h,}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ winrt/Windows.UI.Notifications.h,\ winrt/Windows.Data.Json.h}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_notification_manager_8h}{WindowsNotificationManager.h}}"{}}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ "{}WindowsNotificationBackend.h"{}}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <mutex>}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_packaged_backend}{PackagedBackend}};\ \ \textcolor{comment}{//\ defined\ in\ WindowsNotificationManager.cpp}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{namespace\ }WindowsNotificationManagerTest\ \{\ \textcolor{keyword}{class\ }NotificationManagerTest;\ \}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{keyword}{class\ }WindowsNotificationManager}
+\DoxyCodeLine{00019\ \{}
+\DoxyCodeLine{00020\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00021\ \ \ \ \ \textcolor{keyword}{static}\ WindowsNotificationManager\&\ GetInstance();}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{void}\ InitWinAppSdk(uint32\_t\ majorMinorVersion,\ DWORD*\ pError);}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{void}\ Init(\mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{NotificationInvokedCallback}}\ callback,\ BOOL\ isPackaged,}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ displayName,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ iconUri,\ DWORD*\ pError);}
+\DoxyCodeLine{00026\ \ \ \ \ \textcolor{keywordtype}{void}\ Uninit();}
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{keywordtype}{void}\ Show(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ jsonPayload,\ DWORD*\ pError);}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keywordtype}{void}\ Schedule(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ jsonPayload,\ int64\_t\ scheduledTimeMs,\ DWORD*\ pError);}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keywordtype}{void}\ CancelScheduled(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,\ DWORD*\ pError);}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keywordtype}{void}\ UpdateProgress(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,}
+\DoxyCodeLine{00031\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ value,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ valueStr,}
+\DoxyCodeLine{00032\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ status,\ uint32\_t\ seq,\ DWORD*\ pError);}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordtype}{void}\ SetBadge(\textcolor{keywordtype}{int}\ value,\ DWORD*\ pError);}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keywordtype}{void}\ RemoveById(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD*\ pError);}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{keywordtype}{void}\ RemoveByTag(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ group,\ DWORD*\ pError);}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keywordtype}{void}\ RemoveAll(DWORD*\ pError);}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordtype}{void}\ GetAll(\textcolor{keywordtype}{wchar\_t}*\ outJson,\ uint32\_t\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keywordtype}{int}\ \ GetSetting();}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordtype}{void}\ OpenSettings(DWORD*\ pError);}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{comment}{//\ Thread-\/safe\ callback\ relay.\ Called\ by\ both\ PackagedBackend\ (NotificationInvoked}}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{comment}{//\ event)\ and\ UnpackagedBackend\ (INotificationActivationCallback::Activate).}}
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{keywordtype}{void}\ InvokeCallback(\textcolor{keyword}{const}\ std::wstring\&\ argsJson);}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{comment}{//\ Test\ seam:\ replace\ the\ backend\ with\ a\ mock\ for\ WinRT-\/free\ unit\ tests.}}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordtype}{void}\ SetBackendForTest(std::unique\_ptr<INotificationBackend>\ backend);}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00049\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }PackagedBackend;}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }WindowsNotificationManagerTest::NotificationManagerTest;}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \ \ \ \ WindowsNotificationManager()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00053\ \ \ \ \ WindowsNotificationManager(\textcolor{keyword}{const}\ WindowsNotificationManager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00054\ \ \ \ \ WindowsNotificationManager\&\ operator=(\textcolor{keyword}{const}\ WindowsNotificationManager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{keywordtype}{bool}\ CheckInitialized(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ caller,\ DWORD*\ pError)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keywordtype}{void}\ OnNotificationInvoked(}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::AppNotificationManager\ \textcolor{keyword}{const}\&,}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::AppNotificationActivatedEventArgs\ \textcolor{keyword}{const}\&\ args);}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keywordtype}{bool}\ ValidatePayload(\textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonObject\&\ json,\ DWORD*\ pError);}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ BuildFromJson(\textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonObject\&\ json,\ DWORD*\ pError);}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{comment}{//\ Build\ a\ neutral\ DeliverPayload\ from\ parsed\ JSON.}}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{comment}{//\ Calls\ BuildFromJson,\ captures\ XML\ +\ expiration/progress\ metadata.}}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{comment}{//\ Returns\ empty\ payload\ and\ sets\ *pError\ on\ failure.}}
+\DoxyCodeLine{00070\ \ \ \ \ \mbox{\hyperlink{struct_deliver_payload}{DeliverPayload}}\ BuildPayload(\textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonObject\&\ json,\ DWORD*\ pError);}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordtype}{void}\ ApplyButtons(}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder\&\ builder,}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonArray\&\ buttons,\ DWORD*\ pError);}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keywordtype}{void}\ ApplyComboBoxes(}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder\&\ builder,}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonArray\&\ combos,\ DWORD*\ pError);}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keywordtype}{void}\ ApplyImages(}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder\&\ builder,}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonObject\&\ json);}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keywordtype}{void}\ ApplyAudio(}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder\&\ builder,}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonObject\&\ audioObj,\ DWORD*\ pError);}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordtype}{void}\ ApplyProgress(}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder\&\ builder,}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ winrt::Windows::Data::Json::JsonObject\&\ progressObj);}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \ \ \ \ std::wstring\ ArgsToJson(}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ winrt::Windows::Foundation::Collections::IMap<winrt::hstring,\ winrt::hstring>\&\ args,}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ winrt::Windows::Foundation::Collections::IMap<winrt::hstring,\ winrt::hstring>\&\ userInput);}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \ \ std::unique\_ptr<INotificationBackend>\ m\_backend;}
+\DoxyCodeLine{00093\ \ \ \ \ \mbox{\hyperlink{_windows_notification_manager_8h_abc20e8c43c097314c579508e13666315}{NotificationInvokedCallback}}\ \ \ \ \ \ \ \ \ \ \ m\_callback\ \ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00094\ \ \ \ \ std::mutex\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_callbackMutex;}
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_launchActivationConsumed\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_initialized\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00097\ \};}
+
+\end{DoxyCode}

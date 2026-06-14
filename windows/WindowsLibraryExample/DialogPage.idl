@@ -1,0 +1,8 @@
+namespace WindowsLibraryExample
+{
+    [default_interface]
+    runtimeclass DialogPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        DialogPage();
+    }
+}

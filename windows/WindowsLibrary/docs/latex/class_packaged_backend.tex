@@ -1,0 +1,179 @@
+\doxysection{Packaged\+Backend Class Reference}
+\hypertarget{class_packaged_backend}{}\label{class_packaged_backend}\index{PackagedBackend@{PackagedBackend}}
+
+
+Inheritance diagram for Packaged\+Backend\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=187pt]{class_packaged_backend__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Packaged\+Backend\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=187pt]{class_packaged_backend__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{class_packaged_backend_a303b0af622037f3f62881f8079fccc35}{Register\+Activation}} (DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_a033c11ab957239894de5476fa61c0165}{Unregister\+Activation}} () override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_a1bf2cfe42081dca6271d30f0dff3f18d}{Deliver}} (const \mbox{\hyperlink{struct_deliver_payload}{Deliver\+Payload}} \&payload, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_abb39e5eb5e89d35ad8eb09b3d2e6aed4}{Schedule}} (const \mbox{\hyperlink{struct_deliver_payload}{Deliver\+Payload}} \&payload, int64\+\_\+t scheduled\+Time\+Ms, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_a7154d619be73285315e7f0c172064084}{Cancel\+Schedule}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_a699424929d4976c3427d120a3477afb4}{Set\+Badge}} (int value, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_a21a2d169de7fce785182781c6ebdd67a}{Update\+Progress}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, double value, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}value\+Str, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}status, uint32\+\_\+t seq, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_abd8a7eb51e3b4a0ff13b3be6508928cd}{Remove\+By\+Tag}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}tag, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}group, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_a84e5f1071cdf6526793b4dd76488b199}{Remove\+All}} (DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_ac9dedbe6be5e30058f0165d05239fb25}{Remove\+By\+Id}} (uint32\+\_\+t id, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+void \mbox{\hyperlink{class_packaged_backend_ad04c51226bf9083bb0f88d3a8e2c92db}{Get\+All}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}out\+Json, uint32\+\_\+t buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error) override
+\item 
+int \mbox{\hyperlink{class_packaged_backend_a95900e8418cb27ba8efb53e5ec7259f8}{Setting}} () override
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{class_packaged_backend_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_packaged_backend_a7154d619be73285315e7f0c172064084}\index{PackagedBackend@{PackagedBackend}!CancelSchedule@{CancelSchedule}}
+\index{CancelSchedule@{CancelSchedule}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{CancelSchedule()}{CancelSchedule()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a7154d619be73285315e7f0c172064084} 
+void Packaged\+Backend\+::\+Cancel\+Schedule (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{tag}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{group}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_a1bf2cfe42081dca6271d30f0dff3f18d}\index{PackagedBackend@{PackagedBackend}!Deliver@{Deliver}}
+\index{Deliver@{Deliver}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{Deliver()}{Deliver()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a1bf2cfe42081dca6271d30f0dff3f18d} 
+void Packaged\+Backend\+::\+Deliver (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_deliver_payload}{Deliver\+Payload}} \&}]{payload}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_ad04c51226bf9083bb0f88d3a8e2c92db}\index{PackagedBackend@{PackagedBackend}!GetAll@{GetAll}}
+\index{GetAll@{GetAll}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{GetAll()}{GetAll()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_ad04c51226bf9083bb0f88d3a8e2c92db} 
+void Packaged\+Backend\+::\+Get\+All (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+Json}{, }\item[{uint32\+\_\+t}]{buffer\+Size}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_a303b0af622037f3f62881f8079fccc35}\index{PackagedBackend@{PackagedBackend}!RegisterActivation@{RegisterActivation}}
+\index{RegisterActivation@{RegisterActivation}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{RegisterActivation()}{RegisterActivation()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a303b0af622037f3f62881f8079fccc35} 
+void Packaged\+Backend\+::\+Register\+Activation (\begin{DoxyParamCaption}\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_a84e5f1071cdf6526793b4dd76488b199}\index{PackagedBackend@{PackagedBackend}!RemoveAll@{RemoveAll}}
+\index{RemoveAll@{RemoveAll}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{RemoveAll()}{RemoveAll()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a84e5f1071cdf6526793b4dd76488b199} 
+void Packaged\+Backend\+::\+Remove\+All (\begin{DoxyParamCaption}\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_ac9dedbe6be5e30058f0165d05239fb25}\index{PackagedBackend@{PackagedBackend}!RemoveById@{RemoveById}}
+\index{RemoveById@{RemoveById}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{RemoveById()}{RemoveById()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_ac9dedbe6be5e30058f0165d05239fb25} 
+void Packaged\+Backend\+::\+Remove\+By\+Id (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{id}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_abd8a7eb51e3b4a0ff13b3be6508928cd}\index{PackagedBackend@{PackagedBackend}!RemoveByTag@{RemoveByTag}}
+\index{RemoveByTag@{RemoveByTag}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{RemoveByTag()}{RemoveByTag()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_abd8a7eb51e3b4a0ff13b3be6508928cd} 
+void Packaged\+Backend\+::\+Remove\+By\+Tag (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{tag}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{group}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_abb39e5eb5e89d35ad8eb09b3d2e6aed4}\index{PackagedBackend@{PackagedBackend}!Schedule@{Schedule}}
+\index{Schedule@{Schedule}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{Schedule()}{Schedule()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_abb39e5eb5e89d35ad8eb09b3d2e6aed4} 
+void Packaged\+Backend\+::\+Schedule (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_deliver_payload}{Deliver\+Payload}} \&}]{payload}{, }\item[{int64\+\_\+t}]{scheduled\+Time\+Ms}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_a699424929d4976c3427d120a3477afb4}\index{PackagedBackend@{PackagedBackend}!SetBadge@{SetBadge}}
+\index{SetBadge@{SetBadge}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{SetBadge()}{SetBadge()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a699424929d4976c3427d120a3477afb4} 
+void Packaged\+Backend\+::\+Set\+Badge (\begin{DoxyParamCaption}\item[{int}]{value}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_a95900e8418cb27ba8efb53e5ec7259f8}\index{PackagedBackend@{PackagedBackend}!Setting@{Setting}}
+\index{Setting@{Setting}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{Setting()}{Setting()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a95900e8418cb27ba8efb53e5ec7259f8} 
+int Packaged\+Backend\+::\+Setting (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_a033c11ab957239894de5476fa61c0165}\index{PackagedBackend@{PackagedBackend}!UnregisterActivation@{UnregisterActivation}}
+\index{UnregisterActivation@{UnregisterActivation}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{UnregisterActivation()}{UnregisterActivation()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a033c11ab957239894de5476fa61c0165} 
+void Packaged\+Backend\+::\+Unregister\+Activation (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+\Hypertarget{class_packaged_backend_a21a2d169de7fce785182781c6ebdd67a}\index{PackagedBackend@{PackagedBackend}!UpdateProgress@{UpdateProgress}}
+\index{UpdateProgress@{UpdateProgress}!PackagedBackend@{PackagedBackend}}
+\doxysubsubsection{\texorpdfstring{UpdateProgress()}{UpdateProgress()}}
+{\footnotesize\ttfamily \label{class_packaged_backend_a21a2d169de7fce785182781c6ebdd67a} 
+void Packaged\+Backend\+::\+Update\+Progress (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{tag}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{group}{, }\item[{double}]{value}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{value\+Str}{, }\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{status}{, }\item[{uint32\+\_\+t}]{seq}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{struct_i_notification_backend}{INotification\+Backend}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Notification\+Manager.\+cpp\end{DoxyCompactItemize}

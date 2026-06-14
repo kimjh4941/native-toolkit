@@ -1,0 +1,475 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
+// swift-module-flags: -target arm64-apple-macos15.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name MacLibrary
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2.4
+import AppKit
+import Foundation
+@_exported import MacLibrary
+import Swift
+import UniformTypeIdentifiers
+import UserNotifications
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+import os.log
+import os
+@objc @_inheritsConvenienceInitializers @objcMembers public class Log : ObjectiveC.NSObject {
+  @objc public static func d(_ tag: Swift.String, _ message: Swift.String)
+  @objc public static func i(_ tag: Swift.String, _ message: Swift.String)
+  @objc public static func w(_ tag: Swift.String, _ message: Swift.String)
+  @objc public static func e(_ tag: Swift.String, _ message: Swift.String)
+  @objc override dynamic public init()
+  @objc deinit
+}
+public struct IconConfiguration {
+  public enum IconType : Swift.String {
+    case systemSymbol
+    case filePath
+    case namedImage
+    case appIcon
+    case systemImage
+    #if compiler(>=5.3) && $NonescapableTypes
+    public init?(rawValue: Swift.String)
+    #endif
+    public typealias RawValue = Swift.String
+    public var rawValue: Swift.String {
+      get
+    }
+  }
+  public enum RenderingMode : Swift.String {
+    case monochrome
+    case hierarchical
+    case palette
+    case multicolor
+    #if compiler(>=5.3) && $NonescapableTypes
+    public init?(rawValue: Swift.String)
+    #endif
+    public typealias RawValue = Swift.String
+    public var rawValue: Swift.String {
+      get
+    }
+  }
+  public enum Weight : Swift.String {
+    case ultralight
+    case thin
+    case light
+    case regular
+    case medium
+    case semibold
+    case bold
+    case heavy
+    case black
+    #if compiler(>=5.3) && $NonescapableTypes
+    public init?(rawValue: Swift.String)
+    #endif
+    public typealias RawValue = Swift.String
+    public var rawValue: Swift.String {
+      get
+    }
+  }
+  public enum Scale : Swift.String {
+    case small
+    case medium
+    case large
+    #if compiler(>=5.3) && $NonescapableTypes
+    public init?(rawValue: Swift.String)
+    #endif
+    public typealias RawValue = Swift.String
+    public var rawValue: Swift.String {
+      get
+    }
+  }
+  public var type: MacLibrary.IconConfiguration.IconType
+  public var value: Swift.String?
+  public var renderingMode: MacLibrary.IconConfiguration.RenderingMode?
+  public var colors: [Swift.String]
+  public var size: CoreFoundation.CGFloat?
+  public var weight: MacLibrary.IconConfiguration.Weight?
+  public var scale: MacLibrary.IconConfiguration.Scale?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(type: MacLibrary.IconConfiguration.IconType = .systemSymbol, value: Swift.String? = nil, renderingMode: MacLibrary.IconConfiguration.RenderingMode? = nil, colors: [Swift.String] = [], size: CoreFoundation.CGFloat? = nil, weight: MacLibrary.IconConfiguration.Weight? = nil, scale: MacLibrary.IconConfiguration.Scale? = nil)
+  #endif
+  public var description: Swift.String {
+    get
+  }
+}
+extension MacLibrary.IconConfiguration {
+  #if compiler(>=5.3) && $NonescapableTypes
+  public static func from(json: [Swift.String : Any]) -> MacLibrary.IconConfiguration?
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func validateIconConfiguration() -> Swift.Result<Swift.Void, MacLibrary.DialogError>
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func createImage() -> Swift.Result<AppKit.NSImage, MacLibrary.DialogError>
+  #endif
+}
+public enum DialogError : Swift.Error {
+  case noButtons
+  case invalidConfiguration(Swift.String)
+  case executionFailed(Swift.String)
+  public var localizedDescription: Swift.String {
+    get
+  }
+}
+public struct DialogButton {
+  public let title: Swift.String
+  public let isDefault: Swift.Bool
+  public let keyEquivalent: Swift.String?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(title: Swift.String, isDefault: Swift.Bool = false, keyEquivalent: Swift.String? = nil)
+  #endif
+}
+public struct DialogOptions {
+  public var alertStyle: AppKit.NSAlert.Style
+  public var buttons: [MacLibrary.DialogButton]
+  public var showsHelp: Swift.Bool
+  public var showsSuppressionButton: Swift.Bool
+  public var suppressionButtonTitle: Swift.String?
+  public var icon: MacLibrary.IconConfiguration?
+  public var accessoryView: AppKit.NSView?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(alertStyle: AppKit.NSAlert.Style, buttons: [MacLibrary.DialogButton], showsHelp: Swift.Bool = false, showsSuppressionButton: Swift.Bool = false, suppressionButtonTitle: Swift.String? = nil, icon: MacLibrary.IconConfiguration? = nil, accessoryView: AppKit.NSView? = nil)
+  #endif
+}
+public struct DialogResult {
+  public let buttonIndex: Swift.Int
+  public let buttonTitle: Swift.String
+  public let suppressionButtonState: Swift.Bool
+  public let helpButtonPressed: Swift.Bool
+  public let isSuccess: Swift.Bool
+  public init(buttonIndex: Swift.Int, buttonTitle: Swift.String, suppressionButtonState: Swift.Bool, helpButtonPressed: Swift.Bool, isSuccess: Swift.Bool)
+}
+public struct OpenDialogOptions {
+  public var canChooseFiles: Swift.Bool
+  public var canChooseDirectories: Swift.Bool
+  public var allowsMultipleSelection: Swift.Bool
+  public var showsHiddenFiles: Swift.Bool
+  public var canCreateDirectories: Swift.Bool
+  public var canSelectHiddenExtension: Swift.Bool
+  public var treatsFilePackagesAsDirectories: Swift.Bool
+  public var allowsOtherFileTypes: Swift.Bool
+  public var directoryURL: Foundation.URL?
+  public var nameFieldStringValue: Swift.String?
+  public var prompt: Swift.String
+  public var resolvesAliases: Swift.Bool
+  public var isExtensionHidden: Swift.Bool
+  public var allowedContentTypes: [Swift.String]?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(canChooseFiles: Swift.Bool = true, canChooseDirectories: Swift.Bool = false, allowsMultipleSelection: Swift.Bool = false, showsHiddenFiles: Swift.Bool = false, canCreateDirectories: Swift.Bool = false, canSelectHiddenExtension: Swift.Bool = false, treatsFilePackagesAsDirectories: Swift.Bool = false, allowsOtherFileTypes: Swift.Bool = false, directoryURL: Foundation.URL? = nil, nameFieldStringValue: Swift.String? = nil, prompt: Swift.String = "Choose", resolvesAliases: Swift.Bool = true, isExtensionHidden: Swift.Bool = false, allowedContentTypes: [Swift.String]? = nil)
+  #endif
+}
+public struct OpenDialogResult {
+  public let filePaths: [Swift.String]
+  public let fileCount: Swift.Int
+  public let directoryURL: Swift.String
+  public let isCancelled: Swift.Bool
+  public let isSuccess: Swift.Bool
+  public init(filePaths: [Swift.String], fileCount: Swift.Int, directoryURL: Swift.String, isCancelled: Swift.Bool, isSuccess: Swift.Bool)
+}
+public struct SaveDialogResult {
+  public let filePath: Swift.String
+  public let fileCount: Swift.Int
+  public let directoryURL: Swift.String
+  public let isCancelled: Swift.Bool
+  public let isSuccess: Swift.Bool
+  public init(filePath: Swift.String, fileCount: Swift.Int, directoryURL: Swift.String, isCancelled: Swift.Bool, isSuccess: Swift.Bool)
+}
+@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers public class MacDialogManager : ObjectiveC.NSObject {
+  public static let shared: MacLibrary.MacDialogManager
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func showDialog(title: Swift.String, message: Swift.String? = nil, options: MacLibrary.DialogOptions, completion: ((Swift.Result<MacLibrary.DialogResult, MacLibrary.DialogError>) -> Swift.Void)? = nil)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func showOpenDialog(title: Swift.String, message: Swift.String? = nil, options: MacLibrary.OpenDialogOptions = OpenDialogOptions(), completion: ((Swift.Result<MacLibrary.OpenDialogResult, MacLibrary.DialogError>) -> Swift.Void)? = nil)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func showFileDialog(title: Swift.String, message: Swift.String? = nil, allowedContentTypes: [Swift.String]? = nil, directoryURL: Foundation.URL? = nil, completion: ((Swift.Result<MacLibrary.OpenDialogResult, MacLibrary.DialogError>) -> Swift.Void)? = nil)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func showMultiFileDialog(title: Swift.String, message: Swift.String? = nil, allowedContentTypes: [Swift.String]? = nil, directoryURL: Foundation.URL? = nil, completion: ((Swift.Result<MacLibrary.OpenDialogResult, MacLibrary.DialogError>) -> Swift.Void)? = nil)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func showFolderDialog(title: Swift.String = "Select Folder", message: Swift.String? = nil, directoryURL: Foundation.URL? = nil, completion: ((Swift.Result<MacLibrary.OpenDialogResult, MacLibrary.DialogError>) -> Swift.Void)? = nil)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func showMultiFolderDialog(title: Swift.String = "Select Folders", message: Swift.String? = nil, directoryURL: Foundation.URL? = nil, completion: ((Swift.Result<MacLibrary.OpenDialogResult, MacLibrary.DialogError>) -> Swift.Void)? = nil)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  public func showSaveFileDialog(title: Swift.String = "Save File", message: Swift.String? = nil, nameFieldStringValue: Swift.String? = nil, allowedContentTypes: [Swift.String]? = nil, directoryURL: Foundation.URL? = nil, completion: ((Swift.Result<MacLibrary.SaveDialogResult, MacLibrary.DialogError>) -> Swift.Void)? = nil)
+  #endif
+  @objc deinit
+}
+extension MacLibrary.MacDialogManager : AppKit.NSAlertDelegate {
+  @_Concurrency.MainActor @preconcurrency @objc dynamic public func alertShowHelp(_ alert: AppKit.NSAlert) -> Swift.Bool
+}
+public protocol NotificationRepository {
+  #if compiler(>=5.3) && $NonescapableTypes
+  func requestAuthorization(options: UserNotifications.UNAuthorizationOptions, completion: @escaping (Swift.Result<Swift.Bool, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  func getAuthorizationStatus(completion: @escaping (Swift.Result<MacLibrary.NotificationAuthorizationStatus, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  func add(content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  func removePending(identifiers: [Swift.String])
+  func removeAllPending()
+  func removeDelivered(identifiers: [Swift.String])
+  func removeAllDelivered()
+  #if compiler(>=5.3) && $NonescapableTypes
+  func getScheduled(completion: @escaping (Swift.Result<[MacLibrary.ScheduledNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  func getDelivered(completion: @escaping (Swift.Result<[MacLibrary.ActiveNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  func setCategories(_ categories: [MacLibrary.NotificationCategory])
+  #if compiler(>=5.3) && $NonescapableTypes
+  func setBadgeCount(_ count: Swift.Int, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+}
+final public class NotificationBadgeUseCases {
+  public init(repository: any MacLibrary.NotificationRepository)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setBadgeCount(_ count: Swift.Int, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  @objc deinit
+}
+final public class NotificationCategoryUseCases {
+  public init(repository: any MacLibrary.NotificationRepository)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func registerCategory(_ category: MacLibrary.NotificationCategory, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func removeCategory(identifier: Swift.String, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  @objc deinit
+}
+final public class NotificationDispatchUseCases {
+  public init(repository: any MacLibrary.NotificationRepository)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func show(content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func update(identifier: Swift.String, content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  @objc deinit
+}
+final public class NotificationQueryUseCases {
+  public init(repository: any MacLibrary.NotificationRepository)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getDelivered(completion: @escaping (Swift.Result<[MacLibrary.ActiveNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  final public func removeDelivered(identifier: Swift.String)
+  final public func removeAllDelivered()
+  @objc deinit
+}
+final public class NotificationScheduleUseCases {
+  public init(repository: any MacLibrary.NotificationRepository)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func schedule(content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  final public func cancelScheduled(identifier: Swift.String)
+  final public func cancelAllScheduled()
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getScheduled(completion: @escaping (Swift.Result<[MacLibrary.ScheduledNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  @objc deinit
+}
+final public class NotificationRepositoryImpl : MacLibrary.NotificationRepository {
+  public init(center: UserNotifications.UNUserNotificationCenter = .current())
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func requestAuthorization(options: UserNotifications.UNAuthorizationOptions, completion: @escaping (Swift.Result<Swift.Bool, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getAuthorizationStatus(completion: @escaping (Swift.Result<MacLibrary.NotificationAuthorizationStatus, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func add(content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  final public func removePending(identifiers: [Swift.String])
+  final public func removeAllPending()
+  final public func removeDelivered(identifiers: [Swift.String])
+  final public func removeAllDelivered()
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getScheduled(completion: @escaping (Swift.Result<[MacLibrary.ScheduledNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getDelivered(completion: @escaping (Swift.Result<[MacLibrary.ActiveNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  final public func setCategories(_ categories: [MacLibrary.NotificationCategory])
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setBadgeCount(_ count: Swift.Int, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  @objc deinit
+}
+public enum BridgeError : Swift.Error {
+  case parseFailed(reason: Swift.String)
+  case contractViolation(reason: Swift.String)
+  public var errorCode: Swift.Int {
+    get
+  }
+  public var errorMessage: Swift.String {
+    get
+  }
+}
+public enum NotificationDomainError : Swift.Error {
+  case unsupportedOS(minimum: Swift.String)
+  case permissionDenied
+  case permissionRequestFailed(underlying: any Swift.Error)
+  case invalidContent(reason: Swift.String)
+  case invalidTrigger(reason: Swift.String)
+  case invalidCategory(reason: Swift.String)
+  case notificationNotFound(identifier: Swift.String)
+  case addFailed(underlying: any Swift.Error)
+  case removeFailed(underlying: any Swift.Error)
+  case queryFailed(underlying: any Swift.Error)
+  case setBadgeFailed(underlying: any Swift.Error)
+  case openSettingsFailed(underlying: any Swift.Error)
+  case unknown(underlying: any Swift.Error)
+  public var errorCode: Swift.Int {
+    get
+  }
+  public var errorMessage: Swift.String {
+    get
+  }
+}
+public struct ActiveNotification {
+  public let identifier: Swift.String
+  public let title: Swift.String
+  public let body: Swift.String?
+  public let date: Foundation.Date
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(identifier: Swift.String, title: Swift.String, body: Swift.String?, date: Foundation.Date)
+  #endif
+}
+public enum NotificationAuthorizationStatus {
+  case notDetermined
+  case denied
+  case authorized
+  case provisional
+  case unsupported
+  public static func == (a: MacLibrary.NotificationAuthorizationStatus, b: MacLibrary.NotificationAuthorizationStatus) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct NotificationAction {
+  public let id: Swift.String
+  public let title: Swift.String
+  public let isForeground: Swift.Bool
+  public let isTextInput: Swift.Bool
+  public let textInputPlaceholder: Swift.String?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(id: Swift.String, title: Swift.String, isForeground: Swift.Bool = false, isTextInput: Swift.Bool = false, textInputPlaceholder: Swift.String? = nil)
+  #endif
+}
+public struct NotificationCategory {
+  public let id: Swift.String
+  public let actions: [MacLibrary.NotificationAction]
+  public init(id: Swift.String, actions: [MacLibrary.NotificationAction])
+}
+public struct NotificationContent {
+  public let id: Swift.String
+  public let title: Swift.String
+  public let body: Swift.String?
+  public let subtitle: Swift.String?
+  public let categoryIdentifier: Swift.String?
+  public let userInfo: [Swift.String : Swift.String]?
+  public let badge: Swift.Int?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(id: Swift.String, title: Swift.String, body: Swift.String? = nil, subtitle: Swift.String? = nil, categoryIdentifier: Swift.String? = nil, userInfo: [Swift.String : Swift.String]? = nil, badge: Swift.Int? = nil)
+  #endif
+}
+public enum NotificationTrigger {
+  case immediate
+  case timeInterval(seconds: Foundation.TimeInterval, repeats: Swift.Bool)
+  case calendar(dateComponents: Foundation.DateComponents, repeats: Swift.Bool)
+}
+public struct ScheduledNotification {
+  public let identifier: Swift.String
+  public let title: Swift.String
+  public let body: Swift.String?
+  public let trigger: MacLibrary.NotificationTrigger?
+  #if compiler(>=5.3) && $NonescapableTypes
+  public init(identifier: Swift.String, title: Swift.String, body: Swift.String?, trigger: MacLibrary.NotificationTrigger?)
+  #endif
+}
+final public class NotificationPermissionHelper {
+  public init(repository: any MacLibrary.NotificationRepository)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func requestPermission(options: UserNotifications.UNAuthorizationOptions = [.alert, .sound, .badge], completion: @escaping (Swift.Result<Swift.Bool, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getAuthorizationStatus(completion: @escaping (Swift.Result<MacLibrary.NotificationAuthorizationStatus, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func openNotificationSettings(completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  @objc deinit
+}
+@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class MacNotificationManager : ObjectiveC.NSObject {
+  public static let shared: MacLibrary.MacNotificationManager
+  final public var onActionReceived: ((Swift.String, Swift.String, Swift.String) -> Swift.Void)?
+  final public var onTextInputActionReceived: ((Swift.String, Swift.String, Swift.String, Swift.String) -> Swift.Void)?
+  final public func setup()
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func requestPermission(options: UserNotifications.UNAuthorizationOptions = [.alert, .sound, .badge], completion: @escaping (Swift.Result<Swift.Bool, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getAuthorizationStatus(completion: @escaping (Swift.Result<MacLibrary.NotificationAuthorizationStatus, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func openNotificationSettings(completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func show(content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger = .immediate, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func update(identifier: Swift.String, content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger = .immediate, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func schedule(content: MacLibrary.NotificationContent, trigger: MacLibrary.NotificationTrigger, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  final public func cancelScheduled(identifier: Swift.String)
+  final public func cancelAllScheduled()
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getScheduled(completion: @escaping (Swift.Result<[MacLibrary.ScheduledNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func getDelivered(completion: @escaping (Swift.Result<[MacLibrary.ActiveNotification], MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  final public func removeDelivered(identifier: Swift.String)
+  final public func removeAllDelivered()
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func registerCategory(_ category: MacLibrary.NotificationCategory, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func removeCategory(identifier: Swift.String, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  final public func setActionReceivedHandler(_ handler: @escaping (Swift.String, Swift.String, Swift.String) -> Swift.Void)
+  final public func setTextInputActionReceivedHandler(_ handler: @escaping (Swift.String, Swift.String, Swift.String, Swift.String) -> Swift.Void)
+  #if compiler(>=5.3) && $NonescapableTypes
+  final public func setBadgeCount(_ count: Swift.Int, completion: @escaping (Swift.Result<Swift.Void, MacLibrary.NotificationDomainError>) -> Swift.Void)
+  #endif
+  @objc deinit
+}
+extension MacLibrary.MacNotificationManager : UserNotifications.UNUserNotificationCenterDelegate {
+  @objc final public func userNotificationCenter(_ center: UserNotifications.UNUserNotificationCenter, willPresent notification: UserNotifications.UNNotification, withCompletionHandler completionHandler: @escaping (UserNotifications.UNNotificationPresentationOptions) -> Swift.Void)
+  @objc final public func userNotificationCenter(_ center: UserNotifications.UNUserNotificationCenter, didReceive response: UserNotifications.UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Swift.Void)
+}
+extension MacLibrary.IconConfiguration.IconType : Swift.Equatable {}
+extension MacLibrary.IconConfiguration.IconType : Swift.Hashable {}
+extension MacLibrary.IconConfiguration.IconType : Swift.RawRepresentable {}
+extension MacLibrary.IconConfiguration.RenderingMode : Swift.Equatable {}
+extension MacLibrary.IconConfiguration.RenderingMode : Swift.Hashable {}
+extension MacLibrary.IconConfiguration.RenderingMode : Swift.RawRepresentable {}
+extension MacLibrary.IconConfiguration.Weight : Swift.Equatable {}
+extension MacLibrary.IconConfiguration.Weight : Swift.Hashable {}
+extension MacLibrary.IconConfiguration.Weight : Swift.RawRepresentable {}
+extension MacLibrary.IconConfiguration.Scale : Swift.Equatable {}
+extension MacLibrary.IconConfiguration.Scale : Swift.Hashable {}
+extension MacLibrary.IconConfiguration.Scale : Swift.RawRepresentable {}
+extension MacLibrary.NotificationAuthorizationStatus : Swift.Equatable {}
+extension MacLibrary.NotificationAuthorizationStatus : Swift.Hashable {}

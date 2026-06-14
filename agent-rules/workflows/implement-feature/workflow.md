@@ -1,5 +1,12 @@
 引数: $ARGUMENTS
 
+## 対応 OS バージョン
+
+- Android 12 以降
+- iOS 18 以降
+- Windows 11 以降
+- macOS 15 以降
+
 以下の手順を実行してください。
 
 1. `$ARGUMENTS` を解析する（最小限）
@@ -8,7 +15,7 @@
 
 2. インタラクティブ入力でパラメータを確定する（必須）
    - ダイアログで「実装対象の設計書ファイルを指定してください」と促す
-   - 入力がない場合は `artifact/designs/<feature>/` 配下の `*-implementation*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみを候補として提示する
+   - 入力がない場合は `artifact/designs/<feature>/` 配下の `*-design*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみを候補として提示する
    - バージョンサフィックスがないファイルは `v1` とみなし、`vN` が存在する場合は `vN` を優先する
    - ダイアログで「対象OSを選択してください」と促す（ラジオボタン: Android / iOS / macOS / Windows）
 
@@ -47,18 +54,24 @@
 
 8. ビルド・テストを実行する（必須）
    - 対象OSモジュールのビルドを実行する
-   - **Android / iOS / macOS の場合は、通常ビルドに加え専用ビルドスクリプトを必ず実行してエラーがないことを確認する**
+   - **Android / iOS / macOS / Windows の場合は、通常ビルドに加え成果物生成スクリプト（`scripts/`）を必ず実行し、成果物が問題なく生成できることを確認する**
      - Android: `./scripts/build_android_library_aar.sh -b release -m <module> -v <version> -o /tmp/<module>-verify.aar`
        - 成功確認: `[done] Created /tmp/<module>-verify.aar`
      - iOS: `./scripts/build_ios_library_xcframework.sh -c release -m <module> -v <version> -o /tmp/<module>-verify.xcframework`
        - 成功確認: `** ARCHIVE SUCCEEDED **` と `[done] ... Created ...xcframework`
      - macOS: `./scripts/build_xcode26_library_xcframework.sh -c release -m <module> -v <version> -o /tmp/<module>-verify.xcframework --minimum-macos 15.0`
        - 成功確認: `** ARCHIVE SUCCEEDED **` と `[done] ... Created ...xcframework`
-     - 失敗した場合はビルドログの `error:` 行を特定し、原因を修正してから再実行する
+     - Windows: `powershell -File scripts\build_windows_library_dll.ps1 -c release -m WindowsLibrary -v <version> -o "$env:TEMP\windows-native-toolkit-verify.dll"`
+       - 成功確認: `[done] [WindowsLibrary] Created ...windows-native-toolkit-verify.dll and ...windows-native-toolkit-verify.lib`（終了コード 0）
+       - 生成物: 配布名の `.dll` と `.lib`（`.def` の export が解決できること）。NuGet パッケージまで検証する場合は `-Package` を付ける（`dist/<version>/windows/nuget/NativeToolkit/NativeToolkit.<version>.nupkg` を生成、`nuget` が PATH 必須）
+     - 失敗した場合はビルドログの `error:` / `[ERROR]` 行を特定し、原因を修正してから再実行する
    - **`dist/<toolkit-version>/` に配置するファイルのファイル名は、そのOSライブラリの実際のバージョンと一致させる**
      - OS ごとにライブラリバージョンは異なってよい（例: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar`）
      - ビルドスクリプトの `-v <version>` には OS ライブラリの実際のバージョンを指定する
    - 追加・更新したテストを実行し、失敗時は原因を修正する
+     - Android: `./gradlew :<module>:testReleaseUnitTest`（または対象テストタスク）
+     - iOS / macOS: `xcodebuild test -scheme <scheme> -destination <destination>`
+     - Windows: MSBuild でテストプロジェクトをビルド後、`vstest.console.exe <TestProject>\x64\Debug\<TestProject>.dll`（CppUnitTest）を実行し、全ケース passed を確認する
    - 実機依存で自動化できない項目は「手動確認が必要」と明記する
 
 9. 実装結果を検証する（必須）
@@ -71,7 +84,7 @@
 - 実装はそのまま実施し、実装完了後にのみ本確認を行う（実装前の事前確認はしない）
 - ユーザーに次を確認する: 「この実装結果を採用して、次工程へ進めますか？」
 - 選択肢:
-  - 実行する: この実装結果を採用して次工程へ進む
+  - 実行する: この実装結果を採用して review-implementation-feature の工程へ進む
   - 修正する: 指摘内容を反映して再実装
   - キャンセル: ここまでの修正差分は保持したまま、終了
 
@@ -79,7 +92,7 @@
 
 - ステップ10の確認を提示した直後に、今回の実装結果をファイルへ保存する
 - 保存先は `artifact/results/<feature>/` とし、必要に応じてディレクトリを作成する
-- ファイル名は `YYYY-MM-DD-<feature>-implementation-result-vN.md` を基本とする
+- ファイル名は `YYYY-MM-DD-<os>-<feature>-implementation-feature-result-vN.md` を基本とする
 - 同名が存在する場合は `vN` をインクリメントし、既存ファイルを上書きしない
 - 記載内容は `agent-rules/workflows/implement-feature/IMPLEMENT_RESULT_TEMPLATE.md` に従う
 - 最低限、以下を必ず含める:

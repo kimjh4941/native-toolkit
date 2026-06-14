@@ -1,13 +1,14 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="ソース ファイル">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="Notification">
+      <UniqueIdentifier>{A1B2C3D4-E5F6-4A7B-8C9D-1E2F3A4B5C6D}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ヘッダー ファイル">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    <Filter Include="Dialog">
+      <UniqueIdentifier>{B2C3D4E5-F6A7-4B8C-9D0E-2F3A4B5C6D7E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Bootstrap">
+      <UniqueIdentifier>{C3D4E5F6-A7B8-4C9D-0E1F-3A4B5C6D7E8F}</UniqueIdentifier>
     </Filter>
     <Filter Include="リソース ファイル">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
@@ -15,48 +16,50 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="WindowsLibrary.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
+    <ClCompile Include="WindowsLibrary.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="common.cpp" />
     <ClCompile Include="WindowsDialogManager.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Dialog</Filter>
     </ClCompile>
-    <ClCompile Include="common.cpp">
-      <Filter>ソース ファイル</Filter>
+    <ClCompile Include="WindowsNotificationManager.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClassicActivator.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsAppSdkBootstrap.cpp">
+      <Filter>Bootstrap</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="WindowsLibrary.def">
-      <Filter>ソース ファイル</Filter>
-    </None>
+    <None Include="WindowsLibrary.def" />
     <None Include="res\WindowsLibrary.rc2">
       <Filter>リソース ファイル</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsLibrary.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="WindowsLibrary.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="common.h" />
     <ClInclude Include="WindowsDialogManager.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Dialog</Filter>
     </ClInclude>
-    <ClInclude Include="common.h">
-      <Filter>ヘッダー ファイル</Filter>
+    <ClInclude Include="WindowsNotificationManager.h">
+      <Filter>Notification</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsNotificationManagerInternal.h">
+      <Filter>Notification</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsNotificationBackend.h">
+      <Filter>Notification</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClassicActivator.h">
+      <Filter>Notification</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -65,8 +68,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Midl Include="WindowsLibrary.idl">
-      <Filter>ソース ファイル</Filter>
-    </Midl>
+    <Midl Include="WindowsLibrary.idl" />
   </ItemGroup>
 </Project>

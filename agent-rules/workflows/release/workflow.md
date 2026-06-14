@@ -95,7 +95,19 @@
 （ステップ6 で main へマージした、またはユーザーが手動マージ後に続行を選択した場合のみ実行）
 
 1. `git checkout main && git pull origin main` を実行する
+<<<<<<< HEAD
 2. `git tag v<version>` を実行する
 3. `git push origin v<version>` を実行する
 4. `gh release create v<version> --title "v<version>" --notes "<ステップ4のリリースノート>"` を実行する
+=======
+<<<<<<< HEAD
+2. `git tag <version>` を実行する
+3. `git push origin <version>` を実行する
+4. `gh release create <version> --title "<version>" --notes "<ステップ4のリリースノート>"` を実行する
+=======
+2. `git tag v<version>` を実行する
+3. `git push origin v<version>` を実行する
+4. `gh release create v<version> --title "v<version>" --notes "<ステップ4のリリースノート>"` を実行する
+>>>>>>> origin/main
+>>>>>>> develop
 5. Release URL を表示して終了する

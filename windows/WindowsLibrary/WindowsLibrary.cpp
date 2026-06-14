@@ -4,35 +4,11 @@
 #include "pch.h"
 #include "framework.h"
 #include "WindowsLibrary.h"
+#include <objbase.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
-//
-//TODO: この DLL が MFC DLL に対して動的にリンクされる場合、
-//		MFC 内で呼び出されるこの DLL からエクスポートされたどの関数も
-//		関数の最初に追加される AFX_MANAGE_STATE マクロを
-//		持たなければなりません。
-//
-//		例:
-//
-//		extern "C" BOOL PASCAL EXPORT ExportedFunction()
-//		{
-//			AFX_MANAGE_STATE(AfxGetStaticModuleState());
-//			// 通常関数の本体はこの位置にあります
-//		}
-//
-//		このマクロが各関数に含まれていること、MFC 内の
-//		どの呼び出しより優先することは非常に重要です。
-//		it は、次の範囲内で最初のステートメントとして表示されるべきです
-//		らないことを意味します、コンストラクターが MFC
-//		DLL 内への呼び出しを行う可能性があるので、オブ
-//		ジェクト変数の宣言よりも前でなければなりません。
-//
-//		詳細については MFC テクニカル ノート 33 および
-//		58 を参照してください。
-//
 
 // CWindowsLibraryApp
 
@@ -64,6 +40,14 @@ BOOL CWindowsLibraryApp::InitInstance()
 {
 	CWinApp::InitInstance();
 
+	// Do NOT initialize COM / a WinRT apartment here. For a regular MFC DLL, InitInstance()
+	// runs at DLL load (DllMain context) on the host's main thread. Forcing an apartment here
+	// (e.g. CoInitializeEx as MTA) would pin the host's main thread before the host sets its
+	// own apartment — a WinUI host that subsequently calls init_apartment(single_threaded)
+	// then throws an unhandled RPC_E_CHANGED_MODE and crashes. COM is instead initialized on
+	// the caller's thread when the notification feature is actually used (see
+	// WindowsNotificationManager::Init). DialogManager initializes COM in its own functions.
+
 	if (!AfxSocketInit())
 	{
 		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
@@ -85,7 +69,6 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 	return AfxDllGetClassObject(rclsid, riid, ppv);
 }
 
-
 // DllCanUnloadNow - COM が DLL をアンロードできるようにします。
 
 STDAPI DllCanUnloadNow(void)
@@ -93,7 +76,6 @@ STDAPI DllCanUnloadNow(void)
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 	return AfxDllCanUnloadNow();
 }
-
 
 // DllRegisterServer - エントリをシステム レジストリに追加します。
 
