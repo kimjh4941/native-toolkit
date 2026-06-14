@@ -1,4 +1,4 @@
-# ダイアログ機能
+﻿# ダイアログ機能
 
 言語:
 
@@ -642,7 +642,7 @@ int result = showAlertDialog(
 ```
 
 <p align="center">
-    <img src="images/windows/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
+    <img src="images/windows/dialog/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
 </p>
 
 #### ShowFileDialog - ファイル選択ダイアログ
@@ -673,7 +673,7 @@ BOOL result = showFileDialog(
 ```
 
 <p align="center">
-    <img src="images/windows/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
+    <img src="images/windows/dialog/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
 </p>
 
 #### ShowMultiFileDialog - 複数ファイル選択ダイアログ
@@ -704,7 +704,7 @@ int result = showMultiFileDialog(
 ```
 
 <p align="center">
-    <img src="images/windows/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
+    <img src="images/windows/dialog/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
 </p>
 
 #### ShowFolderDialog - フォルダ選択ダイアログ
@@ -735,7 +735,7 @@ BOOL result = showFolderDialog(
 ```
 
 <p align="center">
-    <img src="images/windows/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
+    <img src="images/windows/dialog/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
 </p>
 
 #### ShowMultiFolderDialog - 複数フォルダ選択ダイアログ
@@ -766,7 +766,7 @@ int result = showMultiFolderDialog(
 ```
 
 <p align="center">
-    <img src="images/windows/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
+    <img src="images/windows/dialog/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
 </p>
 
 #### ShowSaveFileDialog - ファイル保存ダイアログ
@@ -801,7 +801,7 @@ BOOL result = showSaveFileDialog(
 ```
 
 <p align="center">
-    <img src="images/windows/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
+    <img src="images/windows/dialog/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
 </p>
 
 ---

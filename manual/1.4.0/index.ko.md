@@ -1,4 +1,4 @@
-# native-toolkit 매뉴얼
+﻿# native-toolkit 매뉴얼
 
 언어:
 
@@ -32,10 +32,10 @@
 
 # 배포 산출물 위치 (`dist/<version>/`)
 
-- Android: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar`
-- iOS: `dist/1.3.0/ios/ios-native-toolkit-1.1.0.xcframework`
-- Windows: `dist/1.3.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
-- macOS: `dist/1.3.0/mac/mac-native-toolkit-1.1.0.xcframework`
+- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- iOS: `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
+- Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@
 
 # 버전
 
-## 1.3.0
+## 1.4.0
 
 # 지원 OS 버전
 
@@ -95,6 +95,12 @@
   - 폴더 선택 다이얼로그
   - 다중 폴더 선택 다이얼로그
   - 파일 저장 다이얼로그
+- 알림 기능
+  - 알림 표시 / 업데이트 / 취소
+  - 예약 알림
+  - 진행 알림
+  - 배지 (패키지 앱)
+  - 액션 버튼 및 텍스트 입력
 
 ## Mac
 
@@ -116,7 +122,6 @@
 
 - 공유 기능
 - 클립보드 연동
-- 알림(Windows)
 
 ## 샘플
 
@@ -151,7 +156,7 @@
   - `native-toolkit\windows\WindowsLibraryExample\WindowsLibraryExample.sln`을 선택하고 "Open" 버튼을 클릭합니다.
   - "Debug" → "Start Debugging"을 선택해 샘플 앱을 설치합니다.
     <p align="center">
-        <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
+        <img src="images/windows/Example_Top.png" alt="Example_Top" width="800" />
     </p>
 
 - Mac 샘플
@@ -224,7 +229,7 @@ dependencies {
 
 #### 지원 플랫폼: Windows x64（win-x64）
 
-1. `NativeToolkit.1.0.0.nupkg`를 `C:\packages`에 복사합니다.
+1. `windows-native-toolkit-1.1.0.nupkg`를 `C:\packages`에 복사합니다.
 2. Visual Studio 2022에서 **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**를 엽니다.
 3. **+**를 눌러 다음을 입력합니다.
    - Name: LocalPackages

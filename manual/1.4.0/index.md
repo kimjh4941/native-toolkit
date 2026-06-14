@@ -1,4 +1,4 @@
-# native-toolkit Manual
+﻿# native-toolkit Manual
 
 Language:
 
@@ -32,10 +32,10 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar`
-- iOS: `dist/1.3.0/ios/ios-native-toolkit-1.1.0.xcframework`
-- Windows: `dist/1.3.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
-- macOS: `dist/1.3.0/mac/mac-native-toolkit-1.1.0.xcframework`
+- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- iOS: `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
+- Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.3.0
+## 1.4.0
 
 # Supported OS versions
 
@@ -95,6 +95,12 @@ Markdown files in this directory are published as versioned documents under `doc
   - Folder picker dialog
   - Multi-folder picker dialog
   - Save file dialog
+- Notification features
+  - Show / update / cancel notifications
+  - Scheduled notifications
+  - Progress notifications
+  - Badge (packaged apps)
+  - Action buttons and text input
 
 ## Mac
 
@@ -116,7 +122,6 @@ Markdown files in this directory are published as versioned documents under `doc
 
 - Share
 - Clipboard integration
-- Notifications (Windows)
 
 ## Samples
 
@@ -151,7 +156,7 @@ Markdown files in this directory are published as versioned documents under `doc
   - Select `native-toolkit\windows\WindowsLibraryExample\WindowsLibraryExample.sln` and click "Open".
   - Select "Debug" → "Start Debugging" to install the sample app.
     <p align="center">
-        <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
+        <img src="images/windows/Example_Top.png" alt="Example_Top" width="800" />
     </p>
 
 - Mac sample
@@ -224,7 +229,7 @@ dependencies {
 
 #### Supported platform: Windows x64 (win-x64)
 
-1. Copy `NativeToolkit.1.0.0.nupkg` to `C:\packages`.
+1. Copy `windows-native-toolkit-1.1.0.nupkg` to `C:\packages`.
 2. Launch Visual Studio 2022 and open **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**.
 3. Click **+** and enter:
    - Name: LocalPackages

@@ -1,4 +1,4 @@
-# 알림 기능
+﻿# 알림 기능
 
 언어:
 
@@ -52,6 +52,32 @@
     - [카테고리 삭제](#카테고리-삭제)
     - [액션 수신 콜백](#액션-수신-콜백)
 - [Windows](#windows)
+  - [WindowsNotificationManager](#windowsnotificationmanager)
+  - [설정](#설정-2)
+    - [Package.appxmanifest (패키지 앱)](#packageappxmanifest-패키지-앱)
+    - [초기화](#초기화)
+  - [초기화 / 설정](#초기화--설정)
+    - [알림 설정 가져오기](#알림-설정-가져오기)
+    - [알림 설정 열기](#알림-설정-열기)
+  - [알림 표시](#알림-표시-3)
+    - [기본](#기본)
+    - [버튼 포함](#버튼-포함)
+    - [이미지 포함](#이미지-포함)
+    - [입력 포함](#입력-포함)
+    - [진행 표시줄 포함](#진행-표시줄-포함)
+    - [만료 시간 포함](#만료-시간-포함)
+    - [오디오 포함](#오디오-포함)
+  - [알림 예약](#알림-예약)
+    - [예약 취소](#예약-취소)
+  - [진행 업데이트](#진행-업데이트)
+  - [배지](#배지-2)
+  - [삭제 / 조회](#삭제--조회)
+    - [전체 알림 가져오기](#전체-알림-가져오기)
+    - [ID로 삭제](#id로-삭제)
+    - [태그로 삭제](#태그로-삭제)
+    - [전체 삭제](#전체-삭제)
+  - [콜백](#콜백)
+  - [오류 코드](#오류-코드-1)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [설정](#설정-2)
@@ -1148,7 +1174,377 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 ## Windows
 
-（준비 중）
+### WindowsNotificationManager
+
+`WindowsNotificationManager`는 Windows Toast 알림을 위한 C 브리지 API(`extern "C"`)입니다.
+**패키지** (MSIX) 및 **비패키지** (일반 Win32) 앱을 모두 지원하며, Windows 11 이상이 필요합니다.
+
+라이브러리는 `windows-native-toolkit-1.1.0.nupkg`로 배포됩니다.
+
+---
+
+### 설정
+
+#### Package.appxmanifest (패키지 앱)
+
+`<Application>` 요소 내에 다음 확장 기능을 추가하여 Toast 활성화를 사용 설정합니다:
+
+```xml
+<Extensions>
+  <com:Extension Category="windows.comServer">
+    <com:ComServer>
+      <com:ExeServer Executable="YourApp.exe"
+                     DisplayName="Native Toolkit Notification Activator"
+                     Arguments="----AppNotificationActivated:">
+        <com:Class Id="5F6A1B27-7C0B-4E1B-9070-6F1966502BAF"
+                   DisplayName="Toast Activator"/>
+      </com:ExeServer>
+    </com:ComServer>
+  </com:Extension>
+  <desktop:Extension Category="windows.toastNotificationActivation">
+    <desktop:ToastNotificationActivation
+        ToastActivatorCLSID="5F6A1B27-7C0B-4E1B-9070-6F1966502BAF"/>
+  </desktop:Extension>
+</Extensions>
+```
+
+CLSID는 자신의 매니페스트에 등록된 값으로 교체하세요. 샘플 앱은 `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF`를 사용합니다.
+
+#### 초기화
+
+**패키지 앱 (MSIX):**
+
+```cpp
+#include "WindowsNotificationManager.h"
+
+void OnNotificationInvokedThunk(const wchar_t* argsJson)
+{
+    // 알림 본문 또는 액션 버튼이 클릭되면 호출됩니다.
+    // UI 요소를 조작하는 경우 UI 스레드로 디스패치하세요.
+}
+
+DWORD err = 0;
+initNotificationManager(&OnNotificationInvokedThunk, TRUE, nullptr, nullptr, &err);
+// err == 0: 성공. err == 2: OS 설정에서 이 앱의 알림이 비활성화됨.
+```
+
+**비패키지 앱 (일반 Win32 / Unity):**
+
+```cpp
+DWORD err = 0;
+
+// Step 1: Windows App SDK 런타임 부트스트랩 (시작 시 한 번)
+initWinAppSdk(0x00010007, &err); // 0x00010007 = WinAppSDK 1.7
+
+// Step 2: 표시 이름과 아이콘 경로를 지정하여 초기화
+initNotificationManager(
+    &OnNotificationInvokedThunk,
+    FALSE,                          // isPackaged = FALSE
+    L"MyApp",                       // 알림 센터에 표시될 앱 이름
+    L"C:\\path\\to\\app-icon.png", // 아이콘 경로 (필수, 파일이 존재해야 함)
+    &err
+);
+```
+
+**종료 처리:**
+
+```cpp
+uninitNotificationManager();
+```
+
+---
+
+### 초기화 / 설정
+
+#### 알림 설정 가져오기
+
+```cpp
+int setting = getNotificationSetting();
+// 0: 활성화됨 (Enabled)
+// 1: 앱에서 비활성화 (DisabledForApplication)
+// 2: 사용자가 비활성화 (DisabledForUser)
+// 3: 그룹 정책으로 비활성화 (DisabledByGroupPolicy)
+// 4: 매니페스트로 비활성화 (DisabledByManifest)
+// -1: 오류 (WinRT 예외)
+```
+
+#### 알림 설정 열기
+
+`getNotificationSetting()`이 1〜4를 반환한 경우, OS 알림 설정 페이지를 열어 사용자에게 재활성화를 안내합니다.
+
+```cpp
+DWORD err = 0;
+openNotificationSettings(&err);
+```
+
+---
+
+### 알림 표시
+
+#### 기본
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload = LR"({"title":"안녕하세요","body":"기본 토스트","tag":"sample"})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowBasic.png" alt="Example_WindowsNotificationManager_ShowBasic" width="800" />
+</p>
+
+#### 버튼 포함
+
+클릭된 버튼의 `args`가 콜백의 `argsJson`에 포함됩니다.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"액션 포함","body":"버튼이 있는 토스트","tag":"sample",)"
+    LR"("buttons":[{"label":"열기","args":{"action":"open"}},{"label":"닫기","args":{"action":"dismiss"}}]})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithButtons.png" alt="Example_WindowsNotificationManager_ShowWithButtons" width="800" />
+</p>
+
+#### 이미지 포함
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"이미지 포함","body":"히어로 이미지가 있는 토스트","tag":"sample",)"
+    LR"("heroImage":"ms-appx:///Assets/StoreLogo.png"})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithImage.png" alt="Example_WindowsNotificationManager_ShowWithImage" width="800" />
+</p>
+
+#### 입력 포함
+
+텍스트 박스와 콤보 박스의 입력값이 콜백의 `argsJson`에 포함됩니다.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"답장","body":"메시지를 입력하고 옵션을 선택하세요","tag":"sample",)"
+    LR"("textBoxes":[{"id":"reply","placeholder":"메시지를 입력하세요"}],)"
+    LR"("comboBoxes":[{"id":"opt","title":"상태","defaultSelection":"busy",)"
+    LR"("items":[{"id":"free","label":"여유"},{"id":"busy","label":"바쁨"}]}],)"
+    LR"("buttons":[{"label":"보내기","args":{"action":"send"}}]})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithInput.png" alt="Example_WindowsNotificationManager_ShowWithInput" width="800" />
+</p>
+
+#### 진행 표시줄 포함
+
+같은 `tag`를 `updateNotificationProgress`에 전달하여 나중에 진행률을 업데이트할 수 있습니다.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"다운로드 중","body":"진행 중","tag":"progress-sample",)"
+    LR"("progress":{"title":"Toolkit.zip","value":0.3,"valueStr":"30%","status":"Downloading"}})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithProgress.png" alt="Example_WindowsNotificationManager_ShowWithProgress" width="800" />
+</p>
+
+#### 만료 시간 포함
+
+`expiration`초 후 알림 센터에서 자동으로 제거됩니다.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"만료 예정","body":"10초 후에 사라집니다","tag":"sample","expiration":10})";
+showNotification(payload, &err);
+```
+
+#### 오디오 포함
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"리마인더","body":"리마인더 사운드가 있는 토스트","tag":"sample",)"
+    LR"("audio":{"type":"event","event":"reminder"}})";
+showNotification(payload, &err);
+```
+
+---
+
+### 알림 예약
+
+배달 시각을 Unix 타임스탬프(밀리초)로 지정합니다.
+
+```cpp
+#include <chrono>
+
+DWORD err = 0;
+auto now = std::chrono::system_clock::now();
+auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    (now + std::chrono::seconds(60)).time_since_epoch()).count();
+
+const wchar_t* payload =
+    LR"({"title":"예약 알림","body":"약 1분 후에 도착합니다","tag":"scheduled"})";
+scheduleNotification(payload, static_cast<int64_t>(ms), &err);
+```
+
+> **참고:** 앱이 실행되지 않은 상태에서 예약 시각이 지난 알림은 OS에 의해 삭제될 수 있습니다.
+
+#### 예약 취소
+
+```cpp
+DWORD err = 0;
+cancelScheduledNotification(L"scheduled", L"", &err);
+```
+
+---
+
+### 진행 업데이트
+
+기존 진행 알림을 업데이트합니다. 먼저 `progress` 필드가 포함된 `showNotification`을 호출해야 합니다.
+알림 센터에 대상 알림이 없으면 `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND (4)`를 반환합니다.
+
+```cpp
+DWORD err = 0;
+static uint32_t seq = 1;
+updateNotificationProgress(
+    L"progress-sample",  // tag (showNotification과 동일한 값)
+    L"",                 // group
+    0.6,                 // 진행값 (0.0 ~ 1.0)
+    L"60%",             // 표시 문자열 오버라이드
+    L"Downloading",      // 상태 레이블
+    seq++,               // 시퀀스 번호 (호출할 때마다 증가)
+    &err
+);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_UpdateProgress.png" alt="Example_WindowsNotificationManager_UpdateProgress" width="800" />
+</p>
+
+---
+
+### 배지
+
+작업 표시줄 아이콘에 배지를 설정합니다. 패키지 (MSIX) 앱이 필요합니다.
+비패키지 앱에서는 `NOTIFICATION_ERROR_NOT_SUPPORTED (8)`를 반환합니다.
+
+```cpp
+DWORD err = 0;
+
+setBadge(5,  &err);   // 숫자 배지
+setBadge(-1, &err);   // 글리프: alert
+setBadge(0,  &err);   // 배지 지우기
+```
+
+**글리프 값:** `-1`=alert、`-2`=activity、`-3`=newMessage、`-4`=available、`-5`=busy、`-6`=away
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_Badge.png" alt="Example_WindowsNotificationManager_Badge" width="800" />
+</p>
+
+---
+
+### 삭제 / 조회
+
+#### 전체 알림 가져오기
+
+알림 센터에 있는 알림의 JSON 배열을 반환합니다. 각 요소에는 `id`·`tag`·`group`이 포함됩니다.
+비패키지 앱에서는 `NOTIFICATION_ERROR_NOT_SUPPORTED (8)`를 반환합니다.
+
+```cpp
+DWORD err = 0;
+wchar_t buf[4096] = {};
+getAllNotifications(buf, 4096, &err);
+// buf: [{"id":1,"tag":"sample","group":""},...]
+```
+
+#### ID로 삭제
+
+`getAllNotifications`에서 얻은 숫자 ID를 지정하여 삭제합니다.
+비패키지 앱에서는 `NOTIFICATION_ERROR_NOT_SUPPORTED (8)`를 반환합니다.
+
+```cpp
+DWORD err = 0;
+removeNotificationById(notificationId, &err);
+```
+
+#### 태그로 삭제
+
+```cpp
+DWORD err = 0;
+removeNotificationsByTag(L"sample", L"", &err);
+```
+
+#### 전체 삭제
+
+```cpp
+DWORD err = 0;
+removeAllNotifications(&err);
+```
+
+---
+
+### 콜백
+
+`NotificationInvokedCallback`은 사용자가 알림 본문 또는 액션 버튼을 클릭할 때 호출됩니다.
+`argsJson`에는 액션 인수와 사용자 입력(텍스트 박스 / 콤보 박스 값)이 JSON 문자열로 포함됩니다.
+
+샘플 앱은 정적 전달 허브를 사용하여 활성 UI 페이지로 안전하게 라우팅합니다:
+
+```cpp
+namespace
+{
+    std::function<void(winrt::hstring)> g_notificationHandler;
+
+    void OnNotificationInvokedThunk(const wchar_t* argsJson)
+    {
+        if (g_notificationHandler)
+            g_notificationHandler(winrt::hstring{ argsJson ? argsJson : L"" });
+    }
+}
+
+// OnNavigatedTo — 핸들러 등록
+auto weakText = winrt::make_weak(ResultTextBlock());
+auto dq = DispatcherQueue();
+g_notificationHandler = [weakText, dq](winrt::hstring args)
+{
+    dq.TryEnqueue([weakText, args]()
+    {
+        if (auto text = weakText.get())
+            text.Text(L"\U0001F514 Notification invoked:\n" + args);
+    });
+};
+
+// OnNavigatedFrom — 핸들러 해제
+g_notificationHandler = nullptr;
+```
+
+---
+
+### 오류 코드
+
+| 코드 | 이름 | 설명 |
+|---|---|---|
+| 0 | `NOTIFICATION_SUCCESS` | 성공 |
+| 1 | `NOTIFICATION_ERROR_NOT_INITIALIZED` | `initNotificationManager`가 호출되지 않음 |
+| 2 | `NOTIFICATION_ERROR_DISABLED` | OS 설정에서 앱 알림이 비활성화됨 |
+| 3 | `NOTIFICATION_ERROR_INVALID_PAYLOAD` | JSON 페이로드 형식이 잘못됨 |
+| 4 | `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND` | 알림 센터에 대상 진행 알림이 없음 |
+| 5 | `NOTIFICATION_ERROR_HRESULT_FAILURE` | WinRT / COM 내부 오류 |
+| 6 | `NOTIFICATION_ERROR_BADGE_FAILED` | 배지 업데이트 실패 |
+| 7 | `NOTIFICATION_ERROR_INVALID_PARAMETER` | 잘못된 파라미터 값 |
+| 8 | `NOTIFICATION_ERROR_NOT_SUPPORTED` | 이 앱 유형에서 지원되지 않는 기능 (비패키지 앱의 `removeNotificationById` / `getAllNotifications` / `setBadge` 등) |
 
 ---
 

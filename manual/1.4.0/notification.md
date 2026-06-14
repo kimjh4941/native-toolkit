@@ -1,4 +1,4 @@
-# Notification Feature
+﻿# Notification Feature
 
 Language:
 
@@ -52,6 +52,32 @@ Language:
     - [Remove Category](#remove-category)
     - [Action Received Callbacks](#action-received-callbacks)
 - [Windows](#windows)
+  - [WindowsNotificationManager](#windowsnotificationmanager)
+  - [Setup](#setup-2)
+    - [Package.appxmanifest (Packaged apps)](#packageappxmanifest-packaged-apps)
+    - [Initialize](#initialize)
+  - [Init / Setting](#init--setting)
+    - [Get Notification Setting](#get-notification-setting)
+    - [Open Notification Settings](#open-notification-settings-2)
+  - [Show Notification](#show-notification-3)
+    - [Basic](#basic)
+    - [With Buttons](#with-buttons)
+    - [With Image](#with-image)
+    - [With Input](#with-input)
+    - [With Progress](#with-progress)
+    - [With Expiration](#with-expiration)
+    - [With Audio](#with-audio)
+  - [Schedule Notification](#schedule-notification)
+    - [Cancel Scheduled](#cancel-scheduled)
+  - [Update Progress](#update-progress)
+  - [Badge](#badge-2)
+  - [Remove / Query](#remove--query)
+    - [Get All Notifications](#get-all-notifications)
+    - [Remove by ID](#remove-by-id)
+    - [Remove by Tag](#remove-by-tag)
+    - [Remove All](#remove-all)
+  - [Callback](#callback)
+  - [Error Codes](#error-codes-1)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [Setup](#setup-2)
@@ -1148,7 +1174,377 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 ## Windows
 
-(Coming soon)
+### WindowsNotificationManager
+
+`WindowsNotificationManager` provides a C bridge API (`extern "C"`) for Windows Toast notifications.
+It supports both **packaged** (MSIX) and **unpackaged** (plain Win32) apps, and requires Windows 11 or later.
+
+The library is distributed as `windows-native-toolkit-1.1.0.nupkg`.
+
+---
+
+### Setup
+
+#### Package.appxmanifest (Packaged apps)
+
+Add the following extensions inside the `<Application>` element to enable toast activation:
+
+```xml
+<Extensions>
+  <com:Extension Category="windows.comServer">
+    <com:ComServer>
+      <com:ExeServer Executable="YourApp.exe"
+                     DisplayName="Native Toolkit Notification Activator"
+                     Arguments="----AppNotificationActivated:">
+        <com:Class Id="5F6A1B27-7C0B-4E1B-9070-6F1966502BAF"
+                   DisplayName="Toast Activator"/>
+      </com:ExeServer>
+    </com:ComServer>
+  </com:Extension>
+  <desktop:Extension Category="windows.toastNotificationActivation">
+    <desktop:ToastNotificationActivation
+        ToastActivatorCLSID="5F6A1B27-7C0B-4E1B-9070-6F1966502BAF"/>
+  </desktop:Extension>
+</Extensions>
+```
+
+Replace the CLSID with the one registered in your own manifest. The sample app uses `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF`.
+
+#### Initialize
+
+**Packaged app (MSIX):**
+
+```cpp
+#include "WindowsNotificationManager.h"
+
+void OnNotificationInvokedThunk(const wchar_t* argsJson)
+{
+    // Called when a notification or action button is clicked.
+    // Dispatch to the UI thread before touching UI elements.
+}
+
+DWORD err = 0;
+initNotificationManager(&OnNotificationInvokedThunk, TRUE, nullptr, nullptr, &err);
+// err == 0: success. err == 2: notifications are disabled for this app.
+```
+
+**Unpackaged app (plain Win32 / Unity):**
+
+```cpp
+DWORD err = 0;
+
+// Step 1: Bootstrap the Windows App SDK runtime (once at startup)
+initWinAppSdk(0x00010007, &err); // 0x00010007 = WinAppSDK 1.7
+
+// Step 2: Initialize with display name and icon path
+initNotificationManager(
+    &OnNotificationInvokedThunk,
+    FALSE,                          // isPackaged = FALSE
+    L"MyApp",                       // display name shown in Notification Center
+    L"C:\\path\\to\\app-icon.png", // icon path (required, must exist)
+    &err
+);
+```
+
+**Uninitialize:**
+
+```cpp
+uninitNotificationManager();
+```
+
+---
+
+### Init / Setting
+
+#### Get Notification Setting
+
+```cpp
+int setting = getNotificationSetting();
+// 0: Enabled
+// 1: DisabledForApplication
+// 2: DisabledForUser
+// 3: DisabledByGroupPolicy
+// 4: DisabledByManifest
+// -1: Error (WinRT exception)
+```
+
+#### Open Notification Settings
+
+Opens the Windows system Notifications Settings page. Use this when `getNotificationSetting()` returns 1–4 to guide the user to re-enable notifications.
+
+```cpp
+DWORD err = 0;
+openNotificationSettings(&err);
+```
+
+---
+
+### Show Notification
+
+#### Basic
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload = LR"({"title":"Hello","body":"Basic toast","tag":"sample"})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowBasic.png" alt="Example_WindowsNotificationManager_ShowBasic" width="800" />
+</p>
+
+#### With Buttons
+
+Action button clicks are delivered via `NotificationInvokedCallback` with the button's `args` as JSON.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"Actionable","body":"Toast with buttons","tag":"sample",)"
+    LR"("buttons":[{"label":"Open","args":{"action":"open"}},{"label":"Dismiss","args":{"action":"dismiss"}}]})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithButtons.png" alt="Example_WindowsNotificationManager_ShowWithButtons" width="800" />
+</p>
+
+#### With Image
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"With Image","body":"Toast with hero image","tag":"sample",)"
+    LR"("heroImage":"ms-appx:///Assets/StoreLogo.png"})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithImage.png" alt="Example_WindowsNotificationManager_ShowWithImage" width="800" />
+</p>
+
+#### With Input
+
+Text box and combo box values are included in the callback's `argsJson`.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"Reply","body":"Type a reply and pick an option","tag":"sample",)"
+    LR"("textBoxes":[{"id":"reply","placeholder":"Type a message"}],)"
+    LR"("comboBoxes":[{"id":"opt","title":"Status","defaultSelection":"busy",)"
+    LR"("items":[{"id":"free","label":"Free"},{"id":"busy","label":"Busy"}]}],)"
+    LR"("buttons":[{"label":"Send","args":{"action":"send"}}]})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithInput.png" alt="Example_WindowsNotificationManager_ShowWithInput" width="800" />
+</p>
+
+#### With Progress
+
+Displays a progress bar. Use the same `tag` with `updateNotificationProgress` to update it later.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"Downloading","body":"In progress","tag":"progress-sample",)"
+    LR"("progress":{"title":"Toolkit.zip","value":0.3,"valueStr":"30%","status":"Downloading"}})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithProgress.png" alt="Example_WindowsNotificationManager_ShowWithProgress" width="800" />
+</p>
+
+#### With Expiration
+
+The notification is automatically removed from Notification Center after `expiration` seconds.
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"Expires","body":"This toast expires in 10 seconds","tag":"sample","expiration":10})";
+showNotification(payload, &err);
+```
+
+#### With Audio
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"Reminder","body":"Toast with reminder sound","tag":"sample",)"
+    LR"("audio":{"type":"event","event":"reminder"}})";
+showNotification(payload, &err);
+```
+
+---
+
+### Schedule Notification
+
+Pass the target time as a Unix timestamp in milliseconds.
+
+```cpp
+#include <chrono>
+
+DWORD err = 0;
+auto now = std::chrono::system_clock::now();
+auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    (now + std::chrono::seconds(60)).time_since_epoch()).count();
+
+const wchar_t* payload =
+    LR"({"title":"Scheduled","body":"Fires in ~1 minute","tag":"scheduled"})";
+scheduleNotification(payload, static_cast<int64_t>(ms), &err);
+```
+
+> **Note:** Notifications scheduled more than 5 minutes in the past may be discarded by the OS if the app was not running at delivery time.
+
+#### Cancel Scheduled
+
+```cpp
+DWORD err = 0;
+cancelScheduledNotification(L"scheduled", L"", &err);
+```
+
+---
+
+### Update Progress
+
+Updates the progress bar of an existing notification. Call `showNotification` with a `progress` payload first.
+Returns `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND (4)` if no matching notification is in Notification Center.
+
+```cpp
+DWORD err = 0;
+static uint32_t seq = 1;
+updateNotificationProgress(
+    L"progress-sample",  // tag (must match showNotification)
+    L"",                 // group
+    0.6,                 // progress value (0.0 – 1.0)
+    L"60%",             // display string override
+    L"Downloading",      // status label
+    seq++,               // sequence number (must increase each call)
+    &err
+);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_UpdateProgress.png" alt="Example_WindowsNotificationManager_UpdateProgress" width="800" />
+</p>
+
+---
+
+### Badge
+
+Sets the badge on the taskbar icon. Requires a packaged (MSIX) app.
+Returns `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` for unpackaged apps.
+
+```cpp
+DWORD err = 0;
+
+setBadge(5,  &err);   // numeric badge
+setBadge(-1, &err);   // glyph: alert
+setBadge(0,  &err);   // clear badge
+```
+
+**Glyph values:** `-1`=alert, `-2`=activity, `-3`=newMessage, `-4`=available, `-5`=busy, `-6`=away
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_Badge.png" alt="Example_WindowsNotificationManager_Badge" width="800" />
+</p>
+
+---
+
+### Remove / Query
+
+#### Get All Notifications
+
+Returns a JSON array of active notifications in Notification Center. Each element contains `id`, `tag`, and `group`.
+Returns `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` for unpackaged apps.
+
+```cpp
+DWORD err = 0;
+wchar_t buf[4096] = {};
+getAllNotifications(buf, 4096, &err);
+// buf: [{"id":1,"tag":"sample","group":""},...]
+```
+
+#### Remove by ID
+
+Removes a specific notification by its numeric ID (obtained from `getAllNotifications`).
+Returns `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` for unpackaged apps.
+
+```cpp
+DWORD err = 0;
+removeNotificationById(notificationId, &err);
+```
+
+#### Remove by Tag
+
+```cpp
+DWORD err = 0;
+removeNotificationsByTag(L"sample", L"", &err);
+```
+
+#### Remove All
+
+```cpp
+DWORD err = 0;
+removeAllNotifications(&err);
+```
+
+---
+
+### Callback
+
+`NotificationInvokedCallback` is invoked when the user clicks the notification body or an action button.
+`argsJson` contains the action arguments and any user input (text box / combo box values) as a JSON string.
+
+The sample app uses a static forwarding hub to route the callback to the active UI page safely:
+
+```cpp
+namespace
+{
+    std::function<void(winrt::hstring)> g_notificationHandler;
+
+    void OnNotificationInvokedThunk(const wchar_t* argsJson)
+    {
+        if (g_notificationHandler)
+            g_notificationHandler(winrt::hstring{ argsJson ? argsJson : L"" });
+    }
+}
+
+// In OnNavigatedTo — register handler
+auto weakText = winrt::make_weak(ResultTextBlock());
+auto dq = DispatcherQueue();
+g_notificationHandler = [weakText, dq](winrt::hstring args)
+{
+    dq.TryEnqueue([weakText, args]()
+    {
+        if (auto text = weakText.get())
+            text.Text(L"\U0001F514 Notification invoked:\n" + args);
+    });
+};
+
+// In OnNavigatedFrom — unregister
+g_notificationHandler = nullptr;
+```
+
+---
+
+### Error Codes
+
+| Code | Name | Description |
+|---|---|---|
+| 0 | `NOTIFICATION_SUCCESS` | Success |
+| 1 | `NOTIFICATION_ERROR_NOT_INITIALIZED` | `initNotificationManager` has not been called |
+| 2 | `NOTIFICATION_ERROR_DISABLED` | Notifications are disabled for this app in OS settings |
+| 3 | `NOTIFICATION_ERROR_INVALID_PAYLOAD` | Malformed JSON payload |
+| 4 | `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND` | No matching progress notification in Notification Center |
+| 5 | `NOTIFICATION_ERROR_HRESULT_FAILURE` | WinRT / COM internal error |
+| 6 | `NOTIFICATION_ERROR_BADGE_FAILED` | Badge update failed |
+| 7 | `NOTIFICATION_ERROR_INVALID_PARAMETER` | Invalid parameter value |
+| 8 | `NOTIFICATION_ERROR_NOT_SUPPORTED` | Feature not available for this app type (e.g. `removeNotificationById` / `getAllNotifications` / `setBadge` for unpackaged apps) |
 
 ---
 

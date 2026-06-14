@@ -1,4 +1,4 @@
-# native-toolkit マニュアル
+﻿# native-toolkit マニュアル
 
 言語:
 
@@ -32,10 +32,10 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar`
-- iOS: `dist/1.3.0/ios/ios-native-toolkit-1.1.0.xcframework`
-- Windows: `dist/1.3.0/windows/nuget/NativeToolkit/NativeToolkit.1.0.0.nupkg`
-- macOS: `dist/1.3.0/mac/mac-native-toolkit-1.1.0.xcframework`
+- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- iOS: `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
+- Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@
 
 # バージョン
 
-## 1.3.0
+## 1.4.0
 
 # 対応 OS バージョン
 
@@ -95,6 +95,12 @@
   - フォルダ選択ダイアログ
   - 複数フォルダ選択ダイアログ
   - ファイル保存ダイアログ
+- 通知機能
+  - 通知の表示 / 更新 / 取り消し
+  - スケジュール通知
+  - 進捗通知
+  - バッジ（パッケージ済みアプリ）
+  - アクションボタンとテキスト入力
 
 ## Mac
 
@@ -116,7 +122,6 @@
 
 - シェア機能
 - クリップボード連携
-- 通知（Windows）
 
 ## サンプル
 
@@ -151,7 +156,7 @@
   - 「native-toolkit\windows\WindowsLibraryExample\WindowsLibraryExample.sln」を選択して「開く」ボタンをクリックします。
   - 「デバッグ(D)」→「デバッグ開始(S)」 を選択して、サンプルアプリをインストールします。
     <p align="center">
-        <img src="images/windows/Example_WindowsDialogManager.png" alt="Example_WindowsDialogManager" width="800" />
+        <img src="images/windows/Example_Top.png" alt="Example_Top" width="800" />
     </p>
 
 - Mac サンプル
@@ -224,7 +229,7 @@ dependencies {
 
 #### 対応プラットフォーム: Windows x64（win-x64）
 
-1. `NativeToolkit.1.0.0.nupkg` を `C:\packages` にコピーします。
+1. `windows-native-toolkit-1.1.0.nupkg` を `C:\packages` にコピーします。
 2. Visual Studio 2022 を起動し、**ツール** → **オプション** → **NuGet パッケージ マネージャー** → **パッケージ ソース** を開きます。
 3. 右上の **+** を押し、次の内容を入力します。
    - 名前: LocalPackages

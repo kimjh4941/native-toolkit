@@ -1,4 +1,4 @@
-# 通知機能
+﻿# 通知機能
 
 言語:
 
@@ -52,6 +52,32 @@
     - [カテゴリの削除](#カテゴリの削除)
     - [アクション受信コールバック](#アクション受信コールバック)
 - [Windows](#windows)
+  - [WindowsNotificationManager](#windowsnotificationmanager)
+  - [セットアップ](#セットアップ-2)
+    - [Package.appxmanifest（パッケージ済みアプリ）](#packageappxmanifestパッケージ済みアプリ)
+    - [初期化](#初期化)
+  - [初期化 / 設定](#初期化--設定)
+    - [通知設定の取得](#通知設定の取得)
+    - [通知設定を開く](#通知設定を開く)
+  - [通知の表示](#通知の表示-3)
+    - [基本](#基本)
+    - [ボタン付き](#ボタン付き)
+    - [画像付き](#画像付き)
+    - [入力付き](#入力付き)
+    - [進捗バー付き](#進捗バー付き)
+    - [有効期限付き](#有効期限付き)
+    - [サウンド付き](#サウンド付き)
+  - [スケジュール通知](#スケジュール通知-2)
+    - [スケジュールのキャンセル](#スケジュールのキャンセル-2)
+  - [進捗の更新](#進捗の更新)
+  - [バッジ](#バッジ-2)
+  - [削除 / クエリ](#削除--クエリ)
+    - [全通知の取得](#全通知の取得)
+    - [ID 指定削除](#id-指定削除)
+    - [タグ指定削除](#タグ指定削除)
+    - [全削除](#全削除)
+  - [コールバック](#コールバック)
+  - [エラーコード](#エラーコード-1)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [セットアップ](#セットアップ-2)
@@ -1148,7 +1174,377 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 ## Windows
 
-（準備中）
+### WindowsNotificationManager
+
+`WindowsNotificationManager` は Windows Toast 通知向けの C ブリッジ API（`extern "C"`）です。
+**パッケージ済み**（MSIX）と**非パッケージ**（プレーン Win32）の両方のアプリをサポートし、Windows 11 以降が必要です。
+
+ライブラリは `windows-native-toolkit-1.1.0.nupkg` として配布されます。
+
+---
+
+### セットアップ
+
+#### Package.appxmanifest（パッケージ済みアプリ）
+
+`<Application>` 要素内に以下の拡張機能を追加してトースト起動を有効にします：
+
+```xml
+<Extensions>
+  <com:Extension Category="windows.comServer">
+    <com:ComServer>
+      <com:ExeServer Executable="YourApp.exe"
+                     DisplayName="Native Toolkit Notification Activator"
+                     Arguments="----AppNotificationActivated:">
+        <com:Class Id="5F6A1B27-7C0B-4E1B-9070-6F1966502BAF"
+                   DisplayName="Toast Activator"/>
+      </com:ExeServer>
+    </com:ComServer>
+  </com:Extension>
+  <desktop:Extension Category="windows.toastNotificationActivation">
+    <desktop:ToastNotificationActivation
+        ToastActivatorCLSID="5F6A1B27-7C0B-4E1B-9070-6F1966502BAF"/>
+  </desktop:Extension>
+</Extensions>
+```
+
+CLSID はご自身のマニフェストに登録したものに置き換えてください。サンプルアプリは `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF` を使用しています。
+
+#### 初期化
+
+**パッケージ済みアプリ（MSIX）：**
+
+```cpp
+#include "WindowsNotificationManager.h"
+
+void OnNotificationInvokedThunk(const wchar_t* argsJson)
+{
+    // 通知本体またはアクションボタンがクリックされたときに呼ばれます。
+    // UI 要素を操作する場合は UI スレッドへディスパッチしてください。
+}
+
+DWORD err = 0;
+initNotificationManager(&OnNotificationInvokedThunk, TRUE, nullptr, nullptr, &err);
+// err == 0: 成功。err == 2: このアプリの通知が OS 設定で無効になっています。
+```
+
+**非パッケージアプリ（プレーン Win32 / Unity）：**
+
+```cpp
+DWORD err = 0;
+
+// Step 1: Windows App SDK ランタイムのブートストラップ（起動時に一度）
+initWinAppSdk(0x00010007, &err); // 0x00010007 = WinAppSDK 1.7
+
+// Step 2: 表示名とアイコンパスを指定して初期化
+initNotificationManager(
+    &OnNotificationInvokedThunk,
+    FALSE,                          // isPackaged = FALSE
+    L"MyApp",                       // 通知センターに表示される表示名
+    L"C:\\path\\to\\app-icon.png", // アイコンパス（必須、ファイルが存在すること）
+    &err
+);
+```
+
+**終了処理：**
+
+```cpp
+uninitNotificationManager();
+```
+
+---
+
+### 初期化 / 設定
+
+#### 通知設定の取得
+
+```cpp
+int setting = getNotificationSetting();
+// 0: 有効（Enabled）
+// 1: アプリで無効（DisabledForApplication）
+// 2: ユーザーで無効（DisabledForUser）
+// 3: グループポリシーで無効（DisabledByGroupPolicy）
+// 4: マニフェストで無効（DisabledByManifest）
+// -1: エラー（WinRT 例外）
+```
+
+#### 通知設定を開く
+
+`getNotificationSetting()` が 1〜4 を返した場合、OS の通知設定ページを開いてユーザーに再有効化を促します。
+
+```cpp
+DWORD err = 0;
+openNotificationSettings(&err);
+```
+
+---
+
+### 通知の表示
+
+#### 基本
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload = LR"({"title":"こんにちは","body":"基本トースト","tag":"sample"})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowBasic.png" alt="Example_WindowsNotificationManager_ShowBasic" width="800" />
+</p>
+
+#### ボタン付き
+
+クリックされたボタンの `args` がコールバックの `argsJson` に含まれます。
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"アクション付き","body":"ボタン付きトースト","tag":"sample",)"
+    LR"("buttons":[{"label":"開く","args":{"action":"open"}},{"label":"閉じる","args":{"action":"dismiss"}}]})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithButtons.png" alt="Example_WindowsNotificationManager_ShowWithButtons" width="800" />
+</p>
+
+#### 画像付き
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"画像付き","body":"ヒーロー画像付きトースト","tag":"sample",)"
+    LR"("heroImage":"ms-appx:///Assets/StoreLogo.png"})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithImage.png" alt="Example_WindowsNotificationManager_ShowWithImage" width="800" />
+</p>
+
+#### 入力付き
+
+テキストボックスとコンボボックスの入力値がコールバックの `argsJson` に含まれます。
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"返信","body":"メッセージを入力してオプションを選択","tag":"sample",)"
+    LR"("textBoxes":[{"id":"reply","placeholder":"メッセージを入力"}],)"
+    LR"("comboBoxes":[{"id":"opt","title":"ステータス","defaultSelection":"busy",)"
+    LR"("items":[{"id":"free","label":"空き"},{"id":"busy","label":"取込中"}]}],)"
+    LR"("buttons":[{"label":"送信","args":{"action":"send"}}]})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithInput.png" alt="Example_WindowsNotificationManager_ShowWithInput" width="800" />
+</p>
+
+#### 進捗バー付き
+
+同じ `tag` を `updateNotificationProgress` に渡して後から進捗を更新できます。
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"ダウンロード中","body":"処理中","tag":"progress-sample",)"
+    LR"("progress":{"title":"Toolkit.zip","value":0.3,"valueStr":"30%","status":"Downloading"}})";
+showNotification(payload, &err);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithProgress.png" alt="Example_WindowsNotificationManager_ShowWithProgress" width="800" />
+</p>
+
+#### 有効期限付き
+
+`expiration` 秒後に通知センターから自動的に削除されます。
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"期限付き","body":"10秒後に消えます","tag":"sample","expiration":10})";
+showNotification(payload, &err);
+```
+
+#### サウンド付き
+
+```cpp
+DWORD err = 0;
+const wchar_t* payload =
+    LR"({"title":"リマインダー","body":"リマインダーサウンド付きトースト","tag":"sample",)"
+    LR"("audio":{"type":"event","event":"reminder"}})";
+showNotification(payload, &err);
+```
+
+---
+
+### スケジュール通知
+
+配信時刻を Unix タイムスタンプ（ミリ秒）で指定します。
+
+```cpp
+#include <chrono>
+
+DWORD err = 0;
+auto now = std::chrono::system_clock::now();
+auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    (now + std::chrono::seconds(60)).time_since_epoch()).count();
+
+const wchar_t* payload =
+    LR"({"title":"スケジュール通知","body":"約1分後に届きます","tag":"scheduled"})";
+scheduleNotification(payload, static_cast<int64_t>(ms), &err);
+```
+
+> **注意:** アプリが未起動の状態でスケジュール時刻を過ぎた通知は、OS によって破棄される場合があります。
+
+#### スケジュールのキャンセル
+
+```cpp
+DWORD err = 0;
+cancelScheduledNotification(L"scheduled", L"", &err);
+```
+
+---
+
+### 進捗の更新
+
+既存の進捗通知を更新します。事前に `progress` フィールド付きの `showNotification` が必要です。
+通知センターに対象通知が存在しない場合は `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND (4)` を返します。
+
+```cpp
+DWORD err = 0;
+static uint32_t seq = 1;
+updateNotificationProgress(
+    L"progress-sample",  // tag（showNotification と同じ値）
+    L"",                 // group
+    0.6,                 // 進捗値（0.0〜1.0）
+    L"60%",             // 表示文字列オーバーライド
+    L"Downloading",      // ステータスラベル
+    seq++,               // シーケンス番号（呼び出しごとに増加させる）
+    &err
+);
+```
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_UpdateProgress.png" alt="Example_WindowsNotificationManager_UpdateProgress" width="800" />
+</p>
+
+---
+
+### バッジ
+
+タスクバーアイコンにバッジを設定します。パッケージ済み（MSIX）アプリが必要です。
+非パッケージアプリでは `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` を返します。
+
+```cpp
+DWORD err = 0;
+
+setBadge(5,  &err);   // 数値バッジ
+setBadge(-1, &err);   // グリフ: alert
+setBadge(0,  &err);   // バッジをクリア
+```
+
+**グリフ値:** `-1`=alert、`-2`=activity、`-3`=newMessage、`-4`=available、`-5`=busy、`-6`=away
+
+<p align="center">
+    <img src="images/windows/notification/Example_WindowsNotificationManager_Badge.png" alt="Example_WindowsNotificationManager_Badge" width="800" />
+</p>
+
+---
+
+### 削除 / クエリ
+
+#### 全通知の取得
+
+通知センターにある通知の JSON 配列を返します。各要素は `id`・`tag`・`group` を含みます。
+非パッケージアプリでは `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` を返します。
+
+```cpp
+DWORD err = 0;
+wchar_t buf[4096] = {};
+getAllNotifications(buf, 4096, &err);
+// buf: [{"id":1,"tag":"sample","group":""},...]
+```
+
+#### ID 指定削除
+
+`getAllNotifications` で取得した数値 ID を指定して削除します。
+非パッケージアプリでは `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` を返します。
+
+```cpp
+DWORD err = 0;
+removeNotificationById(notificationId, &err);
+```
+
+#### タグ指定削除
+
+```cpp
+DWORD err = 0;
+removeNotificationsByTag(L"sample", L"", &err);
+```
+
+#### 全削除
+
+```cpp
+DWORD err = 0;
+removeAllNotifications(&err);
+```
+
+---
+
+### コールバック
+
+`NotificationInvokedCallback` は通知本体またはアクションボタンがクリックされたときに呼ばれます。
+`argsJson` にはアクション引数とユーザー入力（テキストボックス・コンボボックス）が JSON 文字列として含まれます。
+
+サンプルアプリでは静的転送ハブを使ってアクティブな UI ページへ安全にルーティングしています：
+
+```cpp
+namespace
+{
+    std::function<void(winrt::hstring)> g_notificationHandler;
+
+    void OnNotificationInvokedThunk(const wchar_t* argsJson)
+    {
+        if (g_notificationHandler)
+            g_notificationHandler(winrt::hstring{ argsJson ? argsJson : L"" });
+    }
+}
+
+// OnNavigatedTo — ハンドラ登録
+auto weakText = winrt::make_weak(ResultTextBlock());
+auto dq = DispatcherQueue();
+g_notificationHandler = [weakText, dq](winrt::hstring args)
+{
+    dq.TryEnqueue([weakText, args]()
+    {
+        if (auto text = weakText.get())
+            text.Text(L"\U0001F514 Notification invoked:\n" + args);
+    });
+};
+
+// OnNavigatedFrom — ハンドラ解除
+g_notificationHandler = nullptr;
+```
+
+---
+
+### エラーコード
+
+| コード | 名前 | 説明 |
+|---|---|---|
+| 0 | `NOTIFICATION_SUCCESS` | 成功 |
+| 1 | `NOTIFICATION_ERROR_NOT_INITIALIZED` | `initNotificationManager` が未呼び出し |
+| 2 | `NOTIFICATION_ERROR_DISABLED` | OS 設定でアプリの通知が無効 |
+| 3 | `NOTIFICATION_ERROR_INVALID_PAYLOAD` | JSON ペイロードの形式が不正 |
+| 4 | `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND` | 通知センターに対象の進捗通知が存在しない |
+| 5 | `NOTIFICATION_ERROR_HRESULT_FAILURE` | WinRT / COM 内部エラー |
+| 6 | `NOTIFICATION_ERROR_BADGE_FAILED` | バッジ更新の失敗 |
+| 7 | `NOTIFICATION_ERROR_INVALID_PARAMETER` | パラメータ値が不正 |
+| 8 | `NOTIFICATION_ERROR_NOT_SUPPORTED` | このアプリ種別では未対応の機能（非パッケージアプリでの `removeNotificationById` / `getAllNotifications` / `setBadge` など） |
 
 ---
 
