@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Implementation"
+  short_description: "Review implementation changes against design files"
+  default_prompt: "Use $review-implementation to review the implementation against the design artifacts."

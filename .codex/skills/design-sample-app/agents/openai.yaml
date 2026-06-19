@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Sample App"
+  short_description: "Create a detailed sample app implementation plan"
+  default_prompt: "Use $design-sample-app to design a sample app for the implemented feature."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Feature Implementation"
+  short_description: "Review feature code against its design artifacts"
+  default_prompt: "Use $review-implementation-feature to review the feature implementation against its design."

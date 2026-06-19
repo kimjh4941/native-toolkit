@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Document"
+  short_description: "Review and refine feature or design documents"
+  default_prompt: "Use $review-document to review and improve the current planning document."
