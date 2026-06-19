@@ -1,5 +1,12 @@
 引数: $ARGUMENTS
 
+## 対応 OS バージョン
+
+- Android 12 以降
+- iOS 18 以降
+- Windows 11 以降
+- macOS 15 以降
+
 以下の手順を実行してください。
 
 1. `$ARGUMENTS` を解析する（最小限）
@@ -111,8 +118,8 @@
    - LGTM / 要修正（軽微） / 要修正（重大） のいずれかで示す
 
 8. レビュー結果ファイルを保存する（必須）
-   - 保存先: `artifact/results/<feature>/`
-   - ファイル名: `YYYY-MM-DD-<feature>-review-result-vN.md`
+   - 保存先: `artifact/reviews/<feature>/`
+   - ファイル名: `YYYY-MM-DD-<os>-<feature>-implementation-feature-review-vN.md`
    - 同名が存在する場合は `vN` をインクリメントし、既存ファイルを上書きしない
    - 最低限、次を含める:
      - レビュー対象（ブランチ名 / PR番号 / diff）

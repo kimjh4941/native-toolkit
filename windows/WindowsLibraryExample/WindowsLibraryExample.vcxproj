@@ -81,7 +81,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj /utf-8</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -117,10 +117,22 @@
     <ClInclude Include="MainWindow.xaml.h">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="MainMenuPage.xaml.h">
+      <DependentUpon>MainMenuPage.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="DialogPage.xaml.h">
+      <DependentUpon>DialogPage.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="NotificationPage.xaml.h">
+      <DependentUpon>NotificationPage.xaml</DependentUpon>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
     <Page Include="MainWindow.xaml" />
+    <Page Include="MainMenuPage.xaml" />
+    <Page Include="DialogPage.xaml" />
+    <Page Include="NotificationPage.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -132,12 +144,33 @@
     <ClCompile Include="MainWindow.xaml.cpp">
       <DependentUpon>MainWindow.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="MainMenuPage.xaml.cpp">
+      <DependentUpon>MainMenuPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="DialogPage.xaml.cpp">
+      <DependentUpon>DialogPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="NotificationPage.xaml.cpp">
+      <DependentUpon>NotificationPage.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="MainWindow.idl">
       <SubType>Code</SubType>
       <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="MainMenuPage.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>MainMenuPage.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="DialogPage.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>DialogPage.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="NotificationPage.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>NotificationPage.xaml</DependentUpon>
     </Midl>
   </ItemGroup>
   <ItemGroup>

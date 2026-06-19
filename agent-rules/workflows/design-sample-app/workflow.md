@@ -1,5 +1,12 @@
 引数: $ARGUMENTS
 
+## 対応 OS バージョン
+
+- Android 12 以降
+- iOS 18 以降
+- Windows 11 以降
+- macOS 15 以降
+
 以下の手順を実行してください。
 
 1. `$ARGUMENTS` を解析する（最小限）
@@ -9,10 +16,10 @@
 2. インタラクティブ入力で対象を確定する（必須）
    - ダイアログで「対象機能の設計書ファイルを指定してください」と促す
    - 設計書ファイルの入力がない場合は次を候補として提示する
-     - `artifact/designs/<feature>/` 配下の `*-implementation*.md`
+     - `artifact/designs/<feature>/` 配下の `*-design*.md`
    - ダイアログで「対象機能の実装結果ファイルを指定してください」と促す
    - 実装結果ファイルの入力がない場合は次を候補として提示する
-     - `artifact/results/<feature>/` 配下の `*-implementation-result*.md`
+     - `artifact/results/<feature>/` 配下の `*-implementation-feature-result*.md`
    - ダイアログで「対象OSを選択してください」と促す（ラジオボタン: Android / iOS / macOS / Windows）
    - ダイアログで「対象サンプルアプリ（例: IosLibraryExample）を指定してください」と促す
 
@@ -28,6 +35,12 @@
    - 実装前に次の既存サンプルコードを必ず確認する:
      - `android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/android/nativetoolkit/example/`
      - `ios/IosLibraryExample/IosLibraryExample/`
+     - `mac/MacLibraryExample/MacLibraryExample/`
+     - `windows/WindowsLibraryExample/`
+   - **UI 構成は、対象OSと対になる OS のサンプルを主参照とする（相互参照ペア）:**
+     - Android ⇔ iOS（モバイル）
+     - Windows ⇔ macOS（デスクトップ）
+   - 主参照ペアの画面構成・導線（メインメニュー -> サンプル画面）・カテゴリ別ボタン群・結果表示パターンを踏襲しつつ、対象OS自身の既存サンプル（あれば）の UI 規約・命名を優先する。
    - 次の観点で深掘りし、差分方針を先に確定する:
      - 画面構成（どの画面/コンポーネントで機能を見せるか）
      - 状態管理（入力値・実行中・結果表示の管理方法）
@@ -39,7 +52,7 @@
      - 変更するファイルと変更理由
 
 5. 共通実装パターンを固定する（必須）
-   - AndroidLibraryExample / IosLibraryExample で共通して維持するパターンを優先する:
+   - 対象OSと対になる OS（Android ⇔ iOS / Windows ⇔ macOS）のサンプルで共通して維持するパターンを優先する:
      - メインメニュー -> サンプル画面の導線（Main Menu から機能別画面へ遷移）
      - サンプル画面先頭にタイトルと結果表示領域を置く
      - 操作は機能カテゴリ単位でボタン群を整理する（Permission / Show / Update / Schedule / Query など）
@@ -56,6 +69,13 @@
      - sectionView での機能グルーピングと一貫したボタンスタイル
      - `requirePermission` と `updateResult` の共通化
      - App 起動時セットアップ（`IosNotificationManager.setup()` と action handler 登録）
+   - macOS 固有で確認するポイント（Windows の主参照）:
+     - `NavigationStack` + メニューカード（`menuCard`）でのメインメニュー -> サンプル画面遷移
+     - `sectionView` 相当の機能カテゴリ別グルーピングと `updateResult`（✅/❌）の共通化
+   - Windows 固有で確認するポイント（macOS の主参照）:
+     - WinUI 3 / C++/WinRT。`Frame` + `Page` でのメインメニュー（メニューカード）-> サンプル画面遷移と Back 導線
+     - `ResultTextBlock` + `SetResultText`（✅/❌）の踏襲、`DLog`/`DFLog`（`common.h`）でのログ統一
+     - C Bridge（`extern "C"`）関数の直接呼び出しと、コールバックの `DispatcherQueue` による UI スレッド反映
 
 6. 実装制約を固定する（必須）
    - `agent-rules/coding-rules/common.md` を読み込み、共通方針を適用する
@@ -65,6 +85,7 @@
 7. 実装計画をファイルに作成する（必須）
 
    ステップ2〜6の調査結果をもとに、以下の内容を含む実装計画ファイルを作成する。
+
    - **画面要件**
      - 機能一覧
      - 操作導線（入力 → 実行 → 結果表示）
@@ -82,7 +103,7 @@
    - **手動確認観点**
 
    保存先: `artifact/designs/<feature>/`
-   ファイル名: `YYYY-MM-DD-<os>-<feature>-sample-app-vN.md`
+   ファイル名: `YYYY-MM-DD-<os>-<feature>-sample-app-design-vN.md`
    同名が存在する場合は `vN` をインクリメントし、既存ファイルを上書きしない。
    保存後、当該ファイルを現在の VS Code で新しいタブとして開いて表示する。
 
@@ -90,7 +111,7 @@
 
    ユーザーに次を確認する: 「この実装計画で進めますか？」
    - 選択肢:
-     - 承認する: 計画を確定し終了 → implement-sample-app スキルへ引き継ぐ
+     - 承認する: 計画を確定、次のレビュー workflow（review-document）へ進む
      - 修正する: 指摘内容を反映して計画ファイルを更新 → ステップ7へ戻る
      - キャンセル: 計画ファイルは保持したまま終了
 

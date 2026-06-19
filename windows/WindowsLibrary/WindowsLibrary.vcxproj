@@ -1,5 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props')" />
+  <Import Project="packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.props" Condition="Exists('packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.props')" />
+  <Import Project="packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.props" Condition="Exists('packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -74,6 +77,26 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <!--
+    Windows App SDK 2.x ships no pre-generated C++/WinRT headers and the package's
+    RAR-based reference projection does not run in this MFC/packages.config project.
+    We disable the package auto-projection and generate the Microsoft.Windows.* headers
+    manually with the Windows SDK cppwinrt.exe (see GenerateWindowsAppSDKProjection below),
+    matching the SDK's prebuilt winrt/base.h version (2.0.250303.1).
+  -->
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <CppWinRTEnablePlatformProjection>false</CppWinRTEnablePlatformProjection>
+    <CppWinRTEnableReferenceProjection>false</CppWinRTEnableReferenceProjection>
+    <!-- Keep the existing classic COM/MFC .idl compilation; the CppWinRT package's
+         ModernIDL mode redefines IUnknown/_FLAGGED_WORD_BLOB against WindowsLibrary.idl. -->
+    <CppWinRTModernIDL>false</CppWinRTModernIDL>
+    <CppWinRTUsePrefixedNamespace>false</CppWinRTUsePrefixedNamespace>
+    <!-- WindowsLibrary.idl is a classic COM type library (.tlb), not a WinRT component.
+         Without this, the presence of an .idl makes CppWinRT advertise a WindowsLibrary.winmd
+         to consuming C++/WinRT projects (e.g. WindowsLibraryExample), whose MIDL then fails
+         to import the non-existent winmd. -->
+    <CppWinRTGenerateWindowsMetadata>false</CppWinRTGenerateWindowsMetadata>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)\$(Platform)\$(Configuration)\WindowsLibraryExample\AppX\</OutDir>
@@ -97,11 +120,14 @@
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
-      <RegisterOutput>true</RegisterOutput>
+      <RegisterOutput>false</RegisterOutput>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -121,11 +147,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
-      <RegisterOutput>true</RegisterOutput>
+      <RegisterOutput>false</RegisterOutput>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -148,13 +176,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
-      <RegisterOutput>true</RegisterOutput>
+      <RegisterOutput>false</RegisterOutput>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -177,13 +207,16 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
-      <RegisterOutput>true</RegisterOutput>
+      <RegisterOutput>false</RegisterOutput>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -195,9 +228,6 @@
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"C:\Program Files\doxygen\bin\doxygen.exe" "$(ProjectDir)Doxyfile"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="common.cpp" />
@@ -209,8 +239,12 @@
     </ClCompile>
     <ClCompile Include="WindowsDialogManager.cpp" />
     <ClCompile Include="WindowsLibrary.cpp" />
+    <ClCompile Include="WindowsNotificationManager.cpp" />
+    <ClCompile Include="WindowsClassicActivator.cpp" />
+    <ClCompile Include="WindowsAppSdkBootstrap.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="res\WindowsLibrary.rc2" />
     <None Include="WindowsLibrary.def" />
   </ItemGroup>
@@ -222,6 +256,10 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WindowsDialogManager.h" />
     <ClInclude Include="WindowsLibrary.h" />
+    <ClInclude Include="WindowsNotificationManager.h" />
+    <ClInclude Include="WindowsNotificationBackend.h" />
+    <ClInclude Include="WindowsNotificationManagerInternal.h" />
+    <ClInclude Include="WindowsClassicActivator.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WindowsLibrary.rc" />
@@ -231,5 +269,38 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\Microsoft.Web.WebView2.1.0.2903.40\build\native\Microsoft.Web.WebView2.targets" Condition="Exists('packages\Microsoft.Web.WebView2.1.0.2903.40\build\native\Microsoft.Web.WebView2.targets')" />
+    <Import Project="packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.targets" Condition="Exists('packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.targets')" />
+    <Import Project="packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.targets" Condition="Exists('packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.targets')" />
+    <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
   </ImportGroup>
+  <!--
+    Generate the Windows App SDK C++/WinRT projection headers (winrt/Microsoft.Windows.*.h)
+    from the AppSDK metadata winmds using the Windows SDK cppwinrt.exe. This matches the
+    version of the SDK's prebuilt winrt/base.h so the static_assert version guard passes.
+    The package's own RAR-based projection is disabled above because it does not run in this
+    MFC/packages.config project (ResolveAssemblyReferences yields no winmd references).
+  -->
+  <Target Name="GenerateWindowsAppSDKProjection" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64'" Inputs="$(MSBuildProjectFullPath);packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0\Microsoft.Windows.AppNotifications.winmd" Outputs="$(GeneratedFilesDir)winrt\Microsoft.Windows.AppNotifications.h;$(GeneratedFilesDir)winrt\Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h">
+    <PropertyGroup>
+      <_SdkCppWinRT>$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\cppwinrt.exe</_SdkCppWinRT>
+      <!-- Windows App SDK 1.7 ships all winmds (Microsoft.Windows.* and Microsoft.UI.*) in a single lib\uap10.0 folder. -->
+      <_AppSdkLib>$(MSBuildProjectDirectory)\packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0</_AppSdkLib>
+    </PropertyGroup>
+    <MakeDir Directories="$(GeneratedFilesDir)" />
+    <Message Importance="high" Text="Generating Windows App SDK C++/WinRT projection into $(GeneratedFilesDir)" />
+    <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.Builder.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppLifecycle.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.ApplicationModel.WindowsAppRuntime.winmd&quot; -ref &quot;$(_AppSdkLib)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
+  </Target>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet packages that are missing on this computer. Use NuGet Package Restore to download them. For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Microsoft.Web.WebView2.1.0.2903.40\build\native\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Web.WebView2.1.0.2903.40\build\native\Microsoft.Web.WebView2.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.SDK.BuildTools.10.0.22621.756\build\Microsoft.Windows.SDK.BuildTools.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.WindowsAppSDK.1.7.250513003\build\native\Microsoft.WindowsAppSDK.targets'))" />
+    <Error Condition="!Exists('packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.CppWinRT.2.0.250303.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+  </Target>
 </Project>

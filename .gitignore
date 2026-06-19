@@ -1,3 +1,29 @@
 # Claude Code
 .claude/*
 !.claude/skills/
+
+# VSCode
+.vscode/
+
+# Visual Studio / MSBuild build artifacts
+.vs/
+[Xx]64/
+[Xx]86/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.tlog
+*.log
+
+# Windows build script staging (scripts/build_windows_library_dll.ps1)
+windows/Build/
+
+# Bundled nuget.exe (local tooling; not committed)
+scripts/nuget/nuget.exe
+
+# NuGet packages.config restore output
+packages/
+
+# C++/WinRT generated projection headers
+Generated Files/
+**/WindowsL.*/

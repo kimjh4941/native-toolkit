@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindowsLibraryExample.DialogPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:WindowsLibraryExample"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Orientation="Vertical"
+            Width="600"
+            Padding="30"
+            Spacing="20">
+            <Button
+                x:Name="BackButton"
+                Content="&#x2190; Back"
+                HorizontalAlignment="Left"
+                Click="BackButton_Click"/>
+            <TextBlock
+                Text="WindowsDialogManager Example"
+                FontSize="30"
+                TextAlignment="Center"
+                TextWrapping="Wrap"/>
+            <Border Background="LightGray" CornerRadius="8">
+                <TextBlock
+                    x:Name="ResultTextBlock"
+                    Padding="10"
+                    Text="Result will be displayed here"
+                    TextAlignment="Center"
+                    FontSize="20"
+                    TextWrapping="Wrap"/>
+            </Border>
+            <Button Content="ShowAlertDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowAlertDialogButton_Click"/>
+            <Button Content="ShowFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowFileDialogButton_Click"/>
+            <Button Content="ShowMultiFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowMultiFileDialogButton_Click"/>
+            <Button Content="ShowFolderDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowFolderDialogButton_Click"/>
+            <Button Content="ShowMultiFolderDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowMultiFolderDialogButton_Click"/>
+            <Button Content="ShowSaveFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowSaveFileDialogButton_Click"/>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
