@@ -156,7 +156,7 @@ fun ShareSampleScreen(
                         onClick = {
                             try {
                                 shareUseCases.shareText(
-                                    ShareContent(text = "https://example.com", mimeType = "text/plain"),
+                                    ShareContent(text = "https://developer.android.com/", mimeType = "text/plain"),
                                     chooserActionsJson = "[]"
                                 )
                                 statusText = "✅ shareText (URL) called"
