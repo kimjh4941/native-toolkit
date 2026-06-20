@@ -18,4 +18,5 @@ class ShareUseCases(repository: ShareRepository) {
     val registerDirectShareTarget = RegisterDirectShareTargetUseCase(repository)
     val removeDirectShareTargets = RemoveDirectShareTargetsUseCase(repository)
     val shareWithCallback = ShareWithCallbackUseCase(repository)
+    val cancelPendingCallback = CancelPendingShareCallbackUseCase(repository)
 }

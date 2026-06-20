@@ -43,6 +43,22 @@ class UnityShareJsonParserTest {
     }
 
     @Test
+    fun parseShareText_previewTitleAndThumbnailPath_parsedCorrectly() {
+        val json = """{"text":"Hi","previewTitle":"My Title","previewThumbnailPath":"/sdcard/thumb.jpg"}"""
+        val spec = UnityShareJsonParser.parseShareText(json)
+        assertEquals("My Title", spec.previewTitle)
+        assertEquals("/sdcard/thumb.jpg", spec.previewThumbnailPath)
+    }
+
+    @Test
+    fun parseShareText_previewFieldsOmitted_returnsNull() {
+        val json = """{"text":"Hi"}"""
+        val spec = UnityShareJsonParser.parseShareText(json)
+        assertNull(spec.previewTitle)
+        assertNull(spec.previewThumbnailPath)
+    }
+
+    @Test
     fun parseShareText_chooserActionsArray_parsedCorrectly() {
         val json = """{"text":"Hi","chooserActions":[{"label":"Copy","iconBase64":"abc","intentAction":"android.intent.action.COPY"}]}"""
         val spec = UnityShareJsonParser.parseShareText(json)

@@ -3,38 +3,52 @@ package android.library.share.data.repository
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.ActivityNotFoundException
-import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.BitmapFactory
-import android.library.share.application.port.ShareRepository
+import android.library.share.application.port.RichPreviewShareRepository
 import android.library.share.domain.error.ShareDomainError
 import android.library.share.domain.model.DirectShareTarget
 import android.library.share.domain.model.ShareContent
+import android.library.share.domain.model.SharePreviewOptions
+import android.net.Uri
 import android.os.Build
 import android.service.chooser.ChooserAction
-import android.service.chooser.ChooserResult
 import android.util.Base64
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
-import androidx.core.graphics.drawable.IconCompat
 import org.json.JSONArray
 import java.io.File
 
-class ShareRepositoryImpl(private val context: Context) : ShareRepository {
+class ShareRepositoryImpl(private val context: Context) : RichPreviewShareRepository {
+
+    internal var shortcutPublisher: DirectShareShortcutPublisher = AndroidDirectShareShortcutPublisher
+
+    private val coordinator = ShareCallbackCoordinator.get(context)
 
     override fun shareText(content: ShareContent, chooserActionsJson: String) {
         Log.d(TAG, "[shareText] content: $content, chooserActionsJson: $chooserActionsJson")
+        shareText(content, chooserActionsJson, SharePreviewOptions())
+    }
+
+    override fun shareText(
+        content: ShareContent,
+        chooserActionsJson: String,
+        preview: SharePreviewOptions
+    ) {
+        Log.d(TAG, "[shareText] content: $content, chooserActionsJson: $chooserActionsJson, preview: $preview")
+        val previewUri = resolveOptionalPreviewUri(preview.thumbnailPath)
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = content.mimeType
             putExtra(Intent.EXTRA_TEXT, content.text)
             content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+            preview.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
+            previewUri?.let {
+                data = it
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
         }
         val chooserIntent = Intent.createChooser(shareIntent, content.title)
         addChooserActionsIfSupported(chooserIntent, chooserActionsJson)
@@ -95,29 +109,15 @@ class ShareRepositoryImpl(private val context: Context) : ShareRepository {
     }
 
     override fun registerDirectShareTarget(target: DirectShareTarget, iconBytes: ByteArray) {
-        Log.d(TAG, "[registerDirectShareTarget] target: $target")
-        val maxCount = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
-        val currentCount = ShortcutManagerCompat.getDynamicShortcuts(context).size
-        if (currentCount >= maxCount) {
-            throw ShareDomainError.DirectShareRegistrationFailed("quota_exceeded")
+        Log.d(TAG, "[registerDirectShareTarget] target: $target, iconBytes.size: ${iconBytes.size}")
+        val result = try {
+            shortcutPublisher.push(context, target, iconBytes)
+        } catch (error: ShareDomainError.InvalidBase64Icon) {
+            throw error
+        } catch (error: RuntimeException) {
+            val reason = error.message?.takeIf { it.isNotBlank() } ?: error.javaClass.simpleName
+            throw ShareDomainError.DirectShareRegistrationFailed(reason)
         }
-
-        val bitmap = BitmapFactory.decodeByteArray(iconBytes, 0, iconBytes.size)
-            ?: throw ShareDomainError.InvalidBase64Icon(target.id)
-        val icon = IconCompat.createWithBitmap(bitmap)
-
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?: Intent(Intent.ACTION_DEFAULT)
-
-        val shortcut = ShortcutInfoCompat.Builder(context, target.id)
-            .setShortLabel(target.label)
-            .setIcon(icon)
-            .setCategories(setOf(target.category))
-            .setIntent(launchIntent)
-            .setLongLived(true)
-            .build()
-
-        val result = ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
         if (!result) {
             throw ShareDomainError.DirectShareRegistrationFailed("push_failed")
         }
@@ -128,46 +128,68 @@ class ShareRepositoryImpl(private val context: Context) : ShareRepository {
         ShortcutManagerCompat.removeLongLivedShortcuts(context, ids)
     }
 
-    override fun shareWithCallback(content: ShareContent, onResult: (String?) -> Unit) {
-        Log.d(TAG, "[shareWithCallback] content: $content")
-        val callbackAction = "${context.packageName}.SHARE_CALLBACK"
-
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context?, intent: Intent?) {
-                Log.d(TAG, "[onReceive] intent: $intent")
-                ctx?.unregisterReceiver(this)
-                val packageName = extractSelectedPackage(intent)
-                onResult(packageName)
-            }
-        }
-
-        val filter = IntentFilter(callbackAction)
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-
-        val callbackIntent = Intent(callbackAction).setPackage(context.packageName)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            SHARE_CALLBACK_REQUEST_CODE,
-            callbackIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        )
-
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = content.mimeType
-            putExtra(Intent.EXTRA_TEXT, content.text)
-            content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
-        }
-
-        val chooserIntent = Intent.createChooser(shareIntent, content.title, pendingIntent.intentSender)
-        startActivity(chooserIntent)
+    override fun shareWithCallback(
+        content: ShareContent,
+        onResult: (String?) -> Unit
+    ) {
+        Log.d(TAG, "[shareWithCallback] content: $content, onResult: $onResult")
+        shareWithCallback(content, SharePreviewOptions(), onResult) {}
     }
 
-    private fun fileToContentUri(filePath: String): android.net.Uri {
+    override fun shareWithCallback(
+        content: ShareContent,
+        preview: SharePreviewOptions,
+        onResult: (String?) -> Unit,
+        onFinished: () -> Unit
+    ) {
+        Log.d(TAG, "[shareWithCallback] content: $content, preview: $preview, onResult: $onResult, onFinished: $onFinished")
+        val callbackAction = "${context.packageName}.SHARE_CALLBACK"
+        val token = coordinator.register(callbackAction, onResult, onFinished)
+        try {
+            val previewUri = resolveOptionalPreviewUri(preview.thumbnailPath)
+            val callbackIntent = Intent(callbackAction).setPackage(context.packageName)
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                SHARE_CALLBACK_REQUEST_CODE,
+                callbackIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = content.mimeType
+                putExtra(Intent.EXTRA_TEXT, content.text)
+                content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+                preview.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
+                previewUri?.let {
+                    data = it
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            }
+            val chooserIntent = Intent.createChooser(shareIntent, content.title, pendingIntent.intentSender)
+            startActivity(chooserIntent)
+        } catch (e: Throwable) {
+            coordinator.cancel(token)
+            throw e
+        }
+    }
+
+    override fun cancelPendingCallback() {
+        Log.d(TAG, "[cancelPendingCallback]")
+        coordinator.cancel()
+    }
+
+    /** Converts an optional preview thumbnail path to a content URI; returns null (with a warning) if not convertible. */
+    private fun resolveOptionalPreviewUri(path: String?): Uri? {
+        if (path.isNullOrBlank()) return null
+        return try {
+            fileToContentUri(path)
+        } catch (e: ShareDomainError.FileNotFound) {
+            Log.w(TAG, "[resolveOptionalPreviewUri] thumbnail not found: $path"); null
+        } catch (e: ShareDomainError.IllegalFileAccess) {
+            Log.w(TAG, "[resolveOptionalPreviewUri] thumbnail not shareable: $path"); null
+        }
+    }
+
+    private fun fileToContentUri(filePath: String): Uri {
         val file = File(filePath)
         if (!file.exists()) throw ShareDomainError.FileNotFound(filePath)
         return try {
@@ -229,22 +251,6 @@ class ShareRepositoryImpl(private val context: Context) : ShareRepository {
             actions.add(ChooserAction.Builder(icon, label, actionIntent).build())
         }
         return actions
-    }
-
-    private fun extractSelectedPackage(intent: Intent?): String? {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            extractSelectedPackageApi34(intent)
-        } else {
-            @Suppress("DEPRECATION")
-            intent?.getParcelableExtra<ComponentName>(Intent.EXTRA_CHOSEN_COMPONENT)?.packageName
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun extractSelectedPackageApi34(intent: Intent?): String? {
-        val extras = intent?.extras ?: return null
-        val result = extras.getParcelable("android.intent.extra.CHOOSER_RESULT", ChooserResult::class.java)
-        return result?.selectedComponent?.packageName
     }
 
     private companion object {

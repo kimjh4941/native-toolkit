@@ -6,6 +6,7 @@ import android.library.share.data.repository.ShareUseCases
 import android.library.share.domain.error.ShareDomainError
 import android.library.share.domain.model.DirectShareTarget
 import android.library.share.domain.model.ShareContent
+import android.library.share.domain.model.SharePreviewOptions
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,7 +58,7 @@ private const val SHARE_TAG = "ShareSampleScreen"
  * text, URL, image, multiple images, file, multiple files, Direct Share Target, and share with callback.
  *
  * @param modifier Modifier applied to the root layout.
- * @param activity Host activity used as context for ShareUseCases and runOnUiThread.
+ * @param activity Host activity used as the context for [ShareUseCases].
  * @param onBack Called when the user taps the back button.
  */
 @Composable
@@ -70,6 +72,10 @@ fun ShareSampleScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val shareUseCases = remember(activity) { ShareUseCases(activity) }
+
+    DisposableEffect(shareUseCases) {
+        onDispose { shareUseCases.cancelPendingCallback() }
+    }
 
     var statusText by remember { mutableStateOf("Result will be displayed here") }
     val listState = rememberLazyListState()
@@ -169,6 +175,55 @@ fun ShareSampleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Share URL")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            statusText = "ℹ️ Preparing preview thumbnail..."
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val bmp = BitmapFactory.decodeResource(
+                                        context.resources,
+                                        android.R.mipmap.sym_def_app_icon
+                                    ) ?: run {
+                                        withContext(Dispatchers.Main) { statusText = "❌ Bitmap decode failed" }
+                                        return@launch
+                                    }
+                                    val file = File(context.cacheDir, "share_preview.png")
+                                    file.outputStream().use {
+                                        bmp.compress(Bitmap.CompressFormat.PNG, 100, it)
+                                    }
+                                    withContext(Dispatchers.Main) {
+                                        try {
+                                            shareUseCases.shareText(
+                                                ShareContent(
+                                                    text = "https://developer.android.com/",
+                                                    mimeType = "text/plain"
+                                                ),
+                                                chooserActionsJson = "[]",
+                                                SharePreviewOptions(
+                                                    title = "Introducing content previews",
+                                                    thumbnailPath = file.absolutePath
+                                                )
+                                            )
+                                            statusText = "✅ shareText (rich preview) called"
+                                        } catch (e: ShareDomainError) {
+                                            statusText = "❌ ${e.message}"
+                                        } catch (e: Exception) {
+                                            statusText = "❌ Unexpected: ${e.message}"
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        statusText = "❌ File preparation failed: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Share Text with Rich Preview")
                     }
                 }
 
@@ -456,10 +511,11 @@ fun ShareSampleScreen(
                                 shareUseCases.shareWithCallback(
                                     ShareContent(text = "Hello with callback from native-toolkit")
                                 ) { pkg ->
+                                    // onResult fires only on selection; pkg == null means selected but the package was unavailable.
                                     statusText = if (pkg != null) {
                                         "✅ Selected: $pkg"
                                     } else {
-                                        "ℹ️ Cancelled"
+                                        "ℹ️ Shared (package unavailable)"
                                     }
                                 }
                                 statusText = "ℹ️ Sharesheet opened, waiting for result..."

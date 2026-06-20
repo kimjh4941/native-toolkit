@@ -1,5 +1,6 @@
 package android.library.share.application
 
+import android.library.share.application.usecase.CancelPendingShareCallbackUseCase
 import android.library.share.application.usecase.RegisterDirectShareTargetUseCase
 import android.library.share.application.usecase.RemoveDirectShareTargetsUseCase
 import android.library.share.application.usecase.ShareFileUseCase
@@ -8,9 +9,11 @@ import android.library.share.application.usecase.ShareMultipleFilesUseCase
 import android.library.share.application.usecase.ShareMultipleImagesUseCase
 import android.library.share.application.usecase.ShareTextUseCase
 import android.library.share.application.usecase.ShareWithCallbackUseCase
+import android.library.share.application.port.RichPreviewShareRepository
 import android.library.share.domain.error.ShareDomainError
 import android.library.share.domain.model.DirectShareTarget
 import android.library.share.domain.model.ShareContent
+import android.library.share.domain.model.SharePreviewOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -45,6 +48,16 @@ class ShareUseCasesTest {
             ShareTextUseCase(repo)(ShareContent(text = "Hi", mimeType = ""))
         }.exceptionOrNull()
         assertTrue(exception is ShareDomainError.InvalidMimeType)
+    }
+
+    @Test
+    fun shareText_withPreviewThumbnailPath_passedToRepository() {
+        val repo = FakeShareRepository()
+        val content = ShareContent(text = "Hello")
+        val preview = SharePreviewOptions(title = "My Title", thumbnailPath = "/path/thumb.jpg")
+        ShareTextUseCase(repo)(content, "[]", preview)
+        assertEquals(content, repo.lastSharedTextContent)
+        assertEquals(preview, repo.lastSharedTextPreview)
     }
 
     // --- ShareImageUseCase ---
@@ -169,7 +182,7 @@ class ShareUseCasesTest {
     }
 
     @Test
-    fun shareWithCallback_cancelledByUser_callsOnResultWithNull() {
+    fun shareWithCallback_selectedPackageUnavailable_callsOnResultWithNull() {
         val repo = FakeShareRepository(callbackPackage = null)
         val content = ShareContent(text = "Hello")
         var received: String? = "initial"
@@ -186,12 +199,31 @@ class ShareUseCasesTest {
         assertTrue(exception is ShareDomainError.EmptyContent)
     }
 
+    @Test
+    fun shareWithCallback_withPreviewThumbnailPath_passedToRepository() {
+        val repo = FakeShareRepository(callbackPackage = "com.example.app")
+        val content = ShareContent(text = "Hello")
+        val preview = SharePreviewOptions(thumbnailPath = "/path/thumb.jpg")
+        ShareWithCallbackUseCase(repo)(content, preview, {})
+        assertEquals(preview, repo.lastCallbackPreview)
+    }
+
+    // --- CancelPendingShareCallbackUseCase ---
+
+    @Test
+    fun cancelPendingCallback_delegatesToRepository() {
+        val repo = FakeShareRepository()
+        CancelPendingShareCallbackUseCase(repo)()
+        assertTrue(repo.cancelPendingCallbackCalled)
+    }
+
     // --- Fake Repository ---
 
     private class FakeShareRepository(
         private val callbackPackage: String? = "com.example.app"
-    ) : android.library.share.application.port.ShareRepository {
+    ) : RichPreviewShareRepository {
         var lastSharedTextContent: ShareContent? = null
+        var lastSharedTextPreview: SharePreviewOptions? = null
         var lastSharedImagePath: String? = null
         var lastSharedImageMimeType: String? = null
         var lastSharedImagePaths: List<String>? = null
@@ -199,9 +231,15 @@ class ShareUseCasesTest {
         var lastSharedFilePaths: List<String>? = null
         var lastRegisteredTarget: DirectShareTarget? = null
         var lastRemovedIds: List<String>? = null
+        var lastCallbackPreview: SharePreviewOptions? = null
+        var cancelPendingCallbackCalled = false
 
         override fun shareText(content: ShareContent, chooserActionsJson: String) {
             lastSharedTextContent = content
+        }
+        override fun shareText(content: ShareContent, chooserActionsJson: String, preview: SharePreviewOptions) {
+            lastSharedTextContent = content
+            lastSharedTextPreview = preview
         }
         override fun shareImage(filePath: String, mimeType: String) {
             lastSharedImagePath = filePath
@@ -217,5 +255,16 @@ class ShareUseCasesTest {
         override fun shareWithCallback(content: ShareContent, onResult: (String?) -> Unit) {
             onResult(callbackPackage)
         }
+        override fun shareWithCallback(
+            content: ShareContent,
+            preview: SharePreviewOptions,
+            onResult: (String?) -> Unit,
+            onFinished: () -> Unit
+        ) {
+            lastCallbackPreview = preview
+            onResult(callbackPackage)
+            onFinished()
+        }
+        override fun cancelPendingCallback() { cancelPendingCallbackCalled = true }
     }
 }

@@ -66,11 +66,12 @@ interface ShareRepository {
     /**
      * Shares text content and reports the selected app package name via callback.
      *
-     * onResult is called exactly once after the Sharesheet is dismissed:
-     * with the selected package name on success, or null if the user cancelled.
+     * [onResult] is called when the user selects an app from the Sharesheet, with the selected
+     * package name, or null if the package name could not be retrieved. Cancel, Copy, and Edit
+     * actions do not trigger [onResult].
      *
      * @param content Text content to share.
-     * @param onResult Called once with the selected package name, or null on cancel.
+     * @param onResult Called with the selected package name, or null if unavailable.
      */
     fun shareWithCallback(content: ShareContent, onResult: (String?) -> Unit)
 }

@@ -132,6 +132,32 @@ class UnityAndroidShareManagerTest {
         assertFalse(listener.isSuccessful ?: true)
     }
 
+    // --- callback lifecycle ---
+
+    @Test
+    fun shareWithCallback_launchFailure_clearsPendingContext() {
+        val listener = CapturingListener()
+        UnityAndroidShareManager.setShareOperationListener(listener)
+
+        UnityAndroidShareManager.shareWithCallback(
+            context = FakeContext(),
+            shareJson = """{"text":"Hello"}"""
+        )
+
+        assertNull(pendingCallbackContext())
+        assertFalse(listener.isSuccessful ?: true)
+    }
+
+    @Test
+    fun cancelPendingShareCallback_clearsPendingContext() {
+        val context = FakeContext()
+        setPendingCallbackContext(context)
+
+        UnityAndroidShareManager.cancelPendingShareCallback(context)
+
+        assertNull(pendingCallbackContext())
+    }
+
     // --- listener not set ---
 
     @Test
@@ -168,5 +194,17 @@ class UnityAndroidShareManagerTest {
         override fun getPackageName(): String = "com.example.share.test"
         override fun getApplicationContext(): android.content.Context = this
         override fun startActivity(intent: Intent) { /* no-op for local JVM tests */ }
+    }
+
+    private fun pendingCallbackContext(): android.content.Context? {
+        val field = UnityAndroidShareManager::class.java.getDeclaredField("pendingCallbackContext")
+        field.isAccessible = true
+        return field.get(UnityAndroidShareManager) as android.content.Context?
+    }
+
+    private fun setPendingCallbackContext(context: android.content.Context) {
+        val field = UnityAndroidShareManager::class.java.getDeclaredField("pendingCallbackContext")
+        field.isAccessible = true
+        field.set(UnityAndroidShareManager, context)
     }
 }

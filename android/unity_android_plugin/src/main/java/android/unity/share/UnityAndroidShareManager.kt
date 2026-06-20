@@ -6,6 +6,9 @@ import android.library.share.data.repository.ShareUseCases
 import android.library.share.domain.error.ShareDomainError
 import android.library.share.domain.model.DirectShareTarget
 import android.library.share.domain.model.ShareContent
+import android.library.share.domain.model.SharePreviewOptions
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.util.Log
 
@@ -27,8 +30,13 @@ object UnityAndroidShareManager {
     const val OPERATION_REGISTER_DIRECT_SHARE_TARGET = "registerDirectShareTarget"
     const val OPERATION_REMOVE_DIRECT_SHARE_TARGETS = "removeDirectShareTargets"
     const val OPERATION_SHARE_WITH_CALLBACK = "shareWithCallback"
+    const val OPERATION_CANCEL_PENDING_SHARE_CALLBACK = "cancelPendingShareCallback"
 
     private var shareOperationListener: ShareOperationListener? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    // Holds applicationContext while a shareWithCallback is pending, enabling clearShareOperationListener to cancel it.
+    private var pendingCallbackContext: Context? = null
 
     /**
      * Listener for share operation results.
@@ -38,10 +46,10 @@ object UnityAndroidShareManager {
         fun onShareOperation(operation: String, isSuccessful: Boolean, errorMessage: String?)
 
         /**
-         * Called after shareWithCallback when the user selects an app or cancels.
+         * Called after shareWithCallback when the user selects an app.
          *
          * @param operation Always [OPERATION_SHARE_WITH_CALLBACK].
-         * @param selectedPackageName Package name of the selected app, or null on cancel.
+         * @param selectedPackageName Package name of the selected app, or null if unavailable.
          */
         fun onShareResult(operation: String, selectedPackageName: String?)
     }
@@ -66,11 +74,15 @@ object UnityAndroidShareManager {
     }
 
     /**
-     * Clears the share operation result listener.
+     * Clears the share operation result listener and cancels any pending share-callback receiver.
      */
     fun clearShareOperationListener() {
         Log.d(TAG, "[clearShareOperationListener]")
-        shareOperationListener = null
+        runOnMain {
+            pendingCallbackContext?.let { ShareUseCases(it).cancelPendingCallback() }
+            pendingCallbackContext = null
+            shareOperationListener = null
+        }
     }
 
     /**
@@ -78,11 +90,11 @@ object UnityAndroidShareManager {
      *
      * @param context Android context.
      * @param shareJson JSON: { "text": "...", "title": "...", "subject": "...", "mimeType": "text/plain",
-     *   "chooserActions": [{ "label": "...", "iconBase64": "...", "intentAction": "..." }] }
+     *   "chooserActions": [...], "previewTitle": "...", "previewThumbnailPath": "..." }
      */
     fun shareText(context: Context, shareJson: String) {
-        Log.d(TAG, "[shareText] shareJson: $shareJson")
-        executeOperation(OPERATION_SHARE_TEXT) {
+        Log.d(TAG, "[shareText] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_SHARE_TEXT) {
             val spec = UnityShareJsonParser.parseShareText(shareJson)
             val content = ShareContent(
                 text = spec.text,
@@ -91,7 +103,8 @@ object UnityAndroidShareManager {
                 mimeType = spec.mimeType
             )
             val chooserActionsJson = buildChooserActionsJson(spec.chooserActions)
-            ShareUseCases(context).shareText(content, chooserActionsJson)
+            val preview = SharePreviewOptions(spec.previewTitle, spec.previewThumbnailPath)
+            ShareUseCases(context).shareText(content, chooserActionsJson, preview)
         }
     }
 
@@ -102,8 +115,8 @@ object UnityAndroidShareManager {
      * @param shareJson JSON: { "filePath": "...", "mimeType": "image/jpeg" }
      */
     fun shareImage(context: Context, shareJson: String) {
-        Log.d(TAG, "[shareImage] shareJson: $shareJson")
-        executeOperation(OPERATION_SHARE_IMAGE) {
+        Log.d(TAG, "[shareImage] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_SHARE_IMAGE) {
             val spec = UnityShareJsonParser.parseShareImage(shareJson)
             ShareUseCases(context).shareImage(spec.filePath, spec.mimeType)
         }
@@ -116,8 +129,8 @@ object UnityAndroidShareManager {
      * @param shareJson JSON: { "filePaths": ["...", "..."], "mimeType": "image/&#42;" }
      */
     fun shareImages(context: Context, shareJson: String) {
-        Log.d(TAG, "[shareImages] shareJson: $shareJson")
-        executeOperation(OPERATION_SHARE_IMAGES) {
+        Log.d(TAG, "[shareImages] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_SHARE_IMAGES) {
             val spec = UnityShareJsonParser.parseShareImages(shareJson)
             ShareUseCases(context).shareImages(spec.filePaths)
         }
@@ -130,8 +143,8 @@ object UnityAndroidShareManager {
      * @param shareJson JSON: { "filePath": "..." }
      */
     fun shareFile(context: Context, shareJson: String) {
-        Log.d(TAG, "[shareFile] shareJson: $shareJson")
-        executeOperation(OPERATION_SHARE_FILE) {
+        Log.d(TAG, "[shareFile] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_SHARE_FILE) {
             val spec = UnityShareJsonParser.parseShareFile(shareJson)
             ShareUseCases(context).shareFile(spec.filePath!!)
         }
@@ -144,8 +157,8 @@ object UnityAndroidShareManager {
      * @param shareJson JSON: { "filePaths": ["...", "..."] }
      */
     fun shareFiles(context: Context, shareJson: String) {
-        Log.d(TAG, "[shareFiles] shareJson: $shareJson")
-        executeOperation(OPERATION_SHARE_FILES) {
+        Log.d(TAG, "[shareFiles] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_SHARE_FILES) {
             val spec = UnityShareJsonParser.parseShareFiles(shareJson)
             ShareUseCases(context).shareFiles(spec.filePaths)
         }
@@ -158,8 +171,8 @@ object UnityAndroidShareManager {
      * @param shareJson JSON: { "id": "...", "label": "...", "iconBase64": "...", "category": "..." }
      */
     fun registerDirectShareTarget(context: Context, shareJson: String) {
-        Log.d(TAG, "[registerDirectShareTarget] shareJson: $shareJson")
-        executeOperation(OPERATION_REGISTER_DIRECT_SHARE_TARGET) {
+        Log.d(TAG, "[registerDirectShareTarget] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_REGISTER_DIRECT_SHARE_TARGET) {
             val spec = UnityShareJsonParser.parseRegisterDirectShareTarget(shareJson)
             val iconBytes = try {
                 Base64.decode(spec.iconBase64, Base64.DEFAULT)
@@ -182,8 +195,8 @@ object UnityAndroidShareManager {
      * @param shareJson JSON: { "ids": ["...", "..."] }
      */
     fun removeDirectShareTargets(context: Context, shareJson: String) {
-        Log.d(TAG, "[removeDirectShareTargets] shareJson: $shareJson")
-        executeOperation(OPERATION_REMOVE_DIRECT_SHARE_TARGETS) {
+        Log.d(TAG, "[removeDirectShareTargets] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_REMOVE_DIRECT_SHARE_TARGETS) {
             val spec = UnityShareJsonParser.parseRemoveDirectShareTargets(shareJson)
             ShareUseCases(context).removeDirectShareTargets(spec.ids)
         }
@@ -193,11 +206,11 @@ object UnityAndroidShareManager {
      * Shares text content and reports the selected app via [ShareOperationListener.onShareResult].
      *
      * @param context Android context.
-     * @param shareJson JSON: { "text": "...", "title": "..." }
+     * @param shareJson JSON: { "text": "...", "title": "...", "previewTitle": "...", "previewThumbnailPath": "..." }
      */
     fun shareWithCallback(context: Context, shareJson: String) {
-        Log.d(TAG, "[shareWithCallback] shareJson: $shareJson")
-        executeOperation(OPERATION_SHARE_WITH_CALLBACK) {
+        Log.d(TAG, "[shareWithCallback] context: $context, shareJson: $shareJson")
+        executeOperationOnMain(OPERATION_SHARE_WITH_CALLBACK) {
             val spec = UnityShareJsonParser.parseShareText(shareJson)
             val content = ShareContent(
                 text = spec.text,
@@ -205,15 +218,46 @@ object UnityAndroidShareManager {
                 subject = spec.subject,
                 mimeType = spec.mimeType
             )
-            ShareUseCases(context).shareWithCallback(content) { selectedPackageName ->
-                val listener = shareOperationListener
-                if (listener != null) {
-                    listener.onShareResult(OPERATION_SHARE_WITH_CALLBACK, selectedPackageName)
-                } else {
-                    Log.w(TAG, "[shareWithCallback] onShareResult: listener is null, packageName=$selectedPackageName")
-                }
+            val preview = SharePreviewOptions(spec.previewTitle, spec.previewThumbnailPath)
+            pendingCallbackContext = context.applicationContext
+            try {
+                ShareUseCases(context).shareWithCallback(
+                    content = content,
+                    preview = preview,
+                    onResult = { selectedPackageName ->
+                        val listener = shareOperationListener
+                        if (listener != null) {
+                            listener.onShareResult(OPERATION_SHARE_WITH_CALLBACK, selectedPackageName)
+                        } else {
+                            Log.w(TAG, "[shareWithCallback] onShareResult: listener is null, packageName=$selectedPackageName")
+                        }
+                    },
+                    onFinished = { pendingCallbackContext = null }
+                )
+            } catch (error: Throwable) {
+                pendingCallbackContext = null
+                throw error
             }
         }
+    }
+
+    /**
+     * Cancels the pending share-callback BroadcastReceiver.
+     *
+     * @param context Android context.
+     */
+    fun cancelPendingShareCallback(context: Context) {
+        Log.d(TAG, "[cancelPendingShareCallback] context: $context")
+        executeOperationOnMain(OPERATION_CANCEL_PENDING_SHARE_CALLBACK) {
+            ShareUseCases(context).cancelPendingCallback()
+            pendingCallbackContext = null
+        }
+    }
+
+    private fun executeOperationOnMain(name: String, block: () -> Unit) {
+        Log.d(TAG, "[executeOperationOnMain] name: $name")
+        val task = Runnable { executeOperation(name, block) }
+        if (Looper.myLooper() == Looper.getMainLooper()) task.run() else mainHandler.post(task)
     }
 
     private fun executeOperation(name: String, block: () -> Unit) {
@@ -251,12 +295,11 @@ object UnityAndroidShareManager {
                 errorMessage = "Invalid MIME type: ${exception.mimeType}"
             )
         } catch (exception: ShareDomainError.DirectShareRegistrationFailed) {
-            val message = if (exception.reason == "quota_exceeded") {
-                "Failed to register Direct Share target: quota exceeded."
-            } else {
-                "Failed to register Direct Share target: ${exception.reason}"
-            }
-            notifyOperationFailure(name = name, throwable = exception, errorMessage = message)
+            notifyOperationFailure(
+                name = name,
+                throwable = exception,
+                errorMessage = "Failed to register Direct Share target: ${exception.reason}"
+            )
         } catch (exception: ShareDomainError.EmptyIdList) {
             notifyOperationFailure(
                 name = name,
@@ -311,6 +354,10 @@ object UnityAndroidShareManager {
             return
         }
         listener.onShareOperation(operation, isSuccessful, errorMessage)
+    }
+
+    private fun runOnMain(block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) block() else mainHandler.post(block)
     }
 
     private fun buildChooserActionsJson(actions: List<UnityChooserActionSpec>): String {

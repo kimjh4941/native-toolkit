@@ -19,7 +19,9 @@ internal object UnityShareJsonParser {
             title = obj.optString("title").takeIf { it.isNotBlank() },
             subject = obj.optString("subject").takeIf { it.isNotBlank() },
             mimeType = obj.optString("mimeType").ifBlank { "text/plain" },
-            chooserActions = chooserActions
+            chooserActions = chooserActions,
+            previewTitle = obj.optString("previewTitle").takeIf { it.isNotBlank() },
+            previewThumbnailPath = obj.optString("previewThumbnailPath").takeIf { it.isNotBlank() }
         )
     }
 

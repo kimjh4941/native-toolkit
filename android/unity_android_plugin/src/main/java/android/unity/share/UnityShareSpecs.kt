@@ -21,13 +21,17 @@ internal data class UnityChooserActionSpec(
  * @property subject Optional email subject.
  * @property mimeType MIME type. Defaults to "text/plain".
  * @property chooserActions Custom action buttons for API 34+ Sharesheet.
+ * @property previewTitle Optional rich-preview title shown at the top of the Sharesheet (API 29+).
+ * @property previewThumbnailPath Absolute file path for the rich-preview thumbnail (API 29+).
  */
 internal data class UnityShareTextSpec(
     val text: String,
     val title: String? = null,
     val subject: String? = null,
     val mimeType: String = "text/plain",
-    val chooserActions: List<UnityChooserActionSpec> = emptyList()
+    val chooserActions: List<UnityChooserActionSpec> = emptyList(),
+    val previewTitle: String? = null,
+    val previewThumbnailPath: String? = null
 )
 
 /**
