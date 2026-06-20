@@ -71,7 +71,7 @@ fun ShareSampleScreen(
     val scope = rememberCoroutineScope()
     val shareUseCases = remember(activity) { ShareUseCases(activity) }
 
-    var statusText by remember { mutableStateOf("待機中") }
+    var statusText by remember { mutableStateOf("Result will be displayed here") }
     val listState = rememberLazyListState()
 
     Column(
@@ -456,12 +456,10 @@ fun ShareSampleScreen(
                                 shareUseCases.shareWithCallback(
                                     ShareContent(text = "Hello with callback from native-toolkit")
                                 ) { pkg ->
-                                    activity.runOnUiThread {
-                                        statusText = if (pkg != null) {
-                                            "✅ Selected: $pkg"
-                                        } else {
-                                            "ℹ️ Cancelled"
-                                        }
+                                    statusText = if (pkg != null) {
+                                        "✅ Selected: $pkg"
+                                    } else {
+                                        "ℹ️ Cancelled"
                                     }
                                 }
                                 statusText = "ℹ️ Sharesheet opened, waiting for result..."
