@@ -1,4 +1,0 @@
-interface:
-  display_name: "Design Implementation"
-  short_description: "Turn a feature plan into an implementation design"
-  default_prompt: "Use $design-implementation to create an implementation-ready design document."
