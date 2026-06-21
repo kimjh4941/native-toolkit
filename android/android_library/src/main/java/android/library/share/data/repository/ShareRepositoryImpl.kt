@@ -23,6 +23,8 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import org.json.JSONArray
 import java.io.File
 
+internal const val SHARE_FILE_PROVIDER_AUTHORITY_SUFFIX = ".native_toolkit.share.fileprovider"
+
 class ShareRepositoryImpl(private val context: Context) : RichPreviewShareRepository {
 
     internal var shortcutPublisher: DirectShareShortcutPublisher = AndroidDirectShareShortcutPublisher
@@ -196,7 +198,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         val file = File(filePath)
         if (!file.exists()) throw ShareDomainError.FileNotFound(filePath)
         return try {
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            FileProvider.getUriForFile(context, "${context.packageName}$SHARE_FILE_PROVIDER_AUTHORITY_SUFFIX", file)
         } catch (e: IllegalArgumentException) {
             throw ShareDomainError.IllegalFileAccess(filePath)
         }
@@ -257,7 +259,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
     }
 
     private companion object {
-        private const val TAG = "ShareRepositoryImpl"
+        private const val TAG = "android.library.share.data.repository.ShareRepositoryImpl"
         private const val SHARE_CALLBACK_REQUEST_CODE = 0
     }
 }
