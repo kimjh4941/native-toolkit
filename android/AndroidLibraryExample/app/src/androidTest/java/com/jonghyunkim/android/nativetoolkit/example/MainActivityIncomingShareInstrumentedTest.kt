@@ -31,6 +31,8 @@ class MainActivityIncomingShareInstrumentedTest {
                 activity.clearReceivedShare()
                 assertNull(activity.receivedShare)
                 assertEquals(Intent.ACTION_MAIN, activity.intent.action)
+                // Restore the launch intent only so ActivityScenario can identify and close the Activity.
+                activity.intent = shareIntent
             }
         }
     }
