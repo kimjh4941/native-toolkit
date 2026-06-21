@@ -7,8 +7,11 @@ import android.library.share.domain.error.ShareDomainError
 import android.library.share.domain.model.DirectShareTarget
 import android.library.share.domain.model.ShareContent
 import android.library.share.domain.model.SharePreviewOptions
+import android.util.Base64
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import org.json.JSONArray
+import org.json.JSONObject
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -224,6 +227,87 @@ fun ShareSampleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Share Text with Rich Preview")
+                    }
+                }
+
+                item {
+                    Button(
+                        onClick = {
+                            Log.d(SHARE_TAG, "[onClick] Share Text with Custom Action")
+                            statusText = "ℹ️ Preparing custom action icon..."
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val bmp = BitmapFactory.decodeResource(
+                                        context.resources,
+                                        android.R.drawable.ic_menu_edit
+                                    ) ?: run {
+                                        withContext(Dispatchers.Main) { statusText = "❌ Bitmap decode failed" }
+                                        return@launch
+                                    }
+                                    val iconBase64 = ByteArrayOutputStream().use { baos ->
+                                        bmp.compress(Bitmap.CompressFormat.PNG, 100, baos)
+                                        Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+                                    }
+                                    val chooserActionsJson = JSONArray().put(
+                                        JSONObject().apply {
+                                            put("label", "Custom")
+                                            put("iconBase64", iconBase64)
+                                            put("intentAction", ShareChooserActionReceiver.ACTION_CUSTOM_CHOOSER)
+                                        }
+                                    ).toString()
+                                    Log.d(SHARE_TAG, "[onClick] chooserActionsJson length: ${chooserActionsJson.length}")
+                                    withContext(Dispatchers.Main) {
+                                        try {
+                                            shareUseCases.shareText(
+                                                ShareContent(
+                                                    text = "Shared with a custom chooser action",
+                                                    mimeType = "text/plain"
+                                                ),
+                                                chooserActionsJson = chooserActionsJson
+                                            )
+                                            statusText = "✅ shareText (custom action) called"
+                                        } catch (e: ShareDomainError) {
+                                            statusText = "❌ ${e.message}"
+                                        } catch (e: Exception) {
+                                            statusText = "❌ Unexpected: ${e.message}"
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        statusText = "❌ File preparation failed: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Share Text with Custom Action")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            Log.d(SHARE_TAG, "[onClick] Share with Subject & Title")
+                            try {
+                                shareUseCases.shareText(
+                                    ShareContent(
+                                        text = "Body text shared from native-toolkit",
+                                        title = "Choose an app",
+                                        subject = "Sample subject line",
+                                        mimeType = "text/plain"
+                                    ),
+                                    chooserActionsJson = "[]"
+                                )
+                                statusText = "✅ shareText (subject & title) called"
+                            } catch (e: ShareDomainError) {
+                                statusText = "❌ ${e.message}"
+                            } catch (e: Exception) {
+                                statusText = "❌ Unexpected: ${e.message}"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Share with Subject & Title")
                     }
                 }
 
@@ -528,6 +612,80 @@ fun ShareSampleScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Share with Callback")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            Log.d(SHARE_TAG, "[onClick] Share with Callback + Rich Preview")
+                            statusText = "ℹ️ Preparing callback preview thumbnail..."
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val bmp = BitmapFactory.decodeResource(
+                                        context.resources,
+                                        android.R.mipmap.sym_def_app_icon
+                                    ) ?: run {
+                                        withContext(Dispatchers.Main) { statusText = "❌ Bitmap decode failed" }
+                                        return@launch
+                                    }
+                                    val file = File(context.cacheDir, "callback_preview.png")
+                                    file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                                    withContext(Dispatchers.Main) {
+                                        try {
+                                            shareUseCases.shareWithCallback(
+                                                ShareContent(
+                                                    text = "https://developer.android.com/",
+                                                    mimeType = "text/plain"
+                                                ),
+                                                SharePreviewOptions(
+                                                    title = "Callback with rich preview",
+                                                    thumbnailPath = file.absolutePath
+                                                ),
+                                                onResult = { pkg ->
+                                                    Log.d(SHARE_TAG, "[onResult] pkg: $pkg")
+                                                    statusText = if (pkg != null) {
+                                                        "✅ Selected: $pkg"
+                                                    } else {
+                                                        "ℹ️ Shared (package unavailable)"
+                                                    }
+                                                },
+                                                onFinished = {
+                                                    Log.d(SHARE_TAG, "[onFinished] callback + preview")
+                                                }
+                                            )
+                                            statusText = "ℹ️ Sharesheet (callback + preview) opened..."
+                                        } catch (e: ShareDomainError) {
+                                            statusText = "❌ ${e.message}"
+                                        } catch (e: Exception) {
+                                            statusText = "❌ Unexpected: ${e.message}"
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        statusText = "❌ File preparation failed: ${e.message}"
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Share with Callback + Rich Preview")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            Log.d(SHARE_TAG, "[onClick] Cancel Pending Callback")
+                            try {
+                                shareUseCases.cancelPendingCallback()
+                                statusText = "✅ cancelPendingCallback called"
+                            } catch (e: Exception) {
+                                statusText = "❌ Unexpected: ${e.message}"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Cancel Pending Callback")
                     }
                 }
             }
