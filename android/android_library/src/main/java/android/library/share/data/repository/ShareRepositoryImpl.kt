@@ -3,6 +3,7 @@ package android.library.share.data.repository
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -46,7 +47,8 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
             content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
             preview.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
             previewUri?.let {
-                data = it
+                // Sharesheet reads the thumbnail from clipData, not from data.
+                clipData = ClipData.newUri(context.contentResolver, null, it)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
         }
@@ -160,7 +162,8 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
                 content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
                 preview.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
                 previewUri?.let {
-                    data = it
+                    // Sharesheet reads the thumbnail from clipData, not from data.
+                    clipData = ClipData.newUri(context.contentResolver, null, it)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
             }
