@@ -1,4 +1,4 @@
 interface:
-  display_name: "Review Sample App Implementation"
+  display_name: "Review Implementation Sample App"
   short_description: "Review sample app code against its plan"
   default_prompt: "Use $review-implementation-sample-app to review the sample app implementation against its plan."
