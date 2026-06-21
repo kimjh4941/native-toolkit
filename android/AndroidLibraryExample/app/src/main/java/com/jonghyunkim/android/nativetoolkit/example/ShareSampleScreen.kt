@@ -537,7 +537,11 @@ fun ShareSampleScreen(
                                     withContext(Dispatchers.Main) {
                                         try {
                                             shareUseCases.registerDirectShareTarget(
-                                                DirectShareTarget(id = "sample_1", label = "Sample User"),
+                                                DirectShareTarget(
+                                                    id = "sample_1",
+                                                    label = "Sample User",
+                                                    category = "android.shortcut.conversation"
+                                                ),
                                                 iconBytes
                                             )
                                             statusText = "✅ registerDirectShareTarget called"
