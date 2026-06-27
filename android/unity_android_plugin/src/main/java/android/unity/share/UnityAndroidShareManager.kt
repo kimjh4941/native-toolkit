@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Base64
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 
 /**
  * Unity-facing share bridge for native-toolkit.
@@ -20,7 +21,7 @@ import android.util.Log
  */
 object UnityAndroidShareManager {
 
-    private const val TAG = "UnityAndroidShareManager"
+    private const val TAG = "android.unity.share.UnityAndroidShareManager"
 
     const val OPERATION_SHARE_TEXT = "shareText"
     const val OPERATION_SHARE_IMAGE = "shareImage"
@@ -37,6 +38,30 @@ object UnityAndroidShareManager {
 
     // Holds applicationContext while a shareWithCallback is pending, enabling clearShareOperationListener to cancel it.
     private var pendingCallbackContext: Context? = null
+
+    private var shareChooserActionListener: ShareChooserActionListener? = null
+    private var chooserActionRegistry: ShareChooserActionReceiverRegistry? = null
+    private var chooserActionToken: Long = 0L
+
+    // Test seam: swap in a fake registry without a device.
+    @VisibleForTesting
+    internal var chooserActionRegistryFactory: (Context) -> ShareChooserActionReceiverRegistry =
+        { ctx -> AndroidShareChooserActionReceiverRegistry(ctx.applicationContext) }
+
+    /**
+     * Listener for custom chooser action taps reported back to Unity.
+     *
+     * Callbacks are delivered on the main thread.
+     * Exceptions thrown by the implementation are caught and logged; they do not propagate.
+     */
+    interface ShareChooserActionListener {
+        /**
+         * Called when the user taps a custom chooser action in the Sharesheet.
+         *
+         * @param actionId The intentAction string of the tapped action.
+         */
+        fun onChooserAction(actionId: String)
+    }
 
     /**
      * Listener for share operation results.
@@ -86,6 +111,29 @@ object UnityAndroidShareManager {
     }
 
     /**
+     * Registers the listener for custom chooser action taps.
+     * The callback is delivered on the main thread.
+     *
+     * @param listener Listener to register.
+     */
+    fun setShareChooserActionListener(listener: ShareChooserActionListener) {
+        Log.d(TAG, "[setShareChooserActionListener] listener: $listener")
+        runOnMain { shareChooserActionListener = listener }
+    }
+
+    /**
+     * Clears the chooser action listener and unregisters the current dynamic receiver.
+     */
+    fun clearShareChooserActionListener() {
+        Log.d(TAG, "[clearShareChooserActionListener]")
+        runOnMain {
+            chooserActionRegistry?.unregister(chooserActionToken)
+            chooserActionToken = 0L
+            shareChooserActionListener = null
+        }
+    }
+
+    /**
      * Shares text or URL content via the Android Sharesheet.
      *
      * @param context Android context.
@@ -104,7 +152,19 @@ object UnityAndroidShareManager {
             )
             val chooserActionsJson = buildChooserActionsJson(spec.chooserActions)
             val preview = SharePreviewOptions(spec.previewTitle, spec.previewThumbnailPath)
-            ShareUseCases(context).shareText(content, chooserActionsJson, preview)
+            val actionIds = ShareChooserActionInputs.normalizeActionIds(spec.chooserActions)
+            val registry = chooserActionRegistry
+                ?: chooserActionRegistryFactory(context).also { chooserActionRegistry = it }
+            val token = registry.register(actionIds) { actionId -> dispatchChooserAction(actionId) }
+            chooserActionToken = token
+            try {
+                ShareUseCases(context).shareText(content, chooserActionsJson, preview)
+            } catch (error: Throwable) {
+                // Share launch failed: drop this registration only (generation-guarded).
+                registry.unregister(token)
+                if (chooserActionToken == token) chooserActionToken = 0L
+                throw error
+            }
         }
     }
 
@@ -358,6 +418,21 @@ object UnityAndroidShareManager {
 
     private fun runOnMain(block: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) block() else mainHandler.post(block)
+    }
+
+    private fun dispatchChooserAction(actionId: String) {
+        Log.d(TAG, "[dispatchChooserAction] actionId: $actionId")
+        val listener = shareChooserActionListener
+        if (listener == null) {
+            Log.w(TAG, "[dispatchChooserAction] listener is null, actionId=$actionId")
+            return
+        }
+        try {
+            listener.onChooserAction(actionId)
+        } catch (e: Exception) {
+            // Never let a Unity-side exception escape the BroadcastReceiver thread.
+            Log.e(TAG, "[dispatchChooserAction] listener threw for actionId=$actionId", e)
+        }
     }
 
     private fun buildChooserActionsJson(actions: List<UnityChooserActionSpec>): String {

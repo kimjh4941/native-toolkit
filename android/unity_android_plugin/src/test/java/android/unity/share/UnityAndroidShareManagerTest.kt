@@ -1,5 +1,6 @@
 package android.unity.share
 
+import android.content.ActivityNotFoundException
 import android.content.ContextWrapper
 import android.content.Intent
 import org.junit.After
@@ -14,6 +15,10 @@ class UnityAndroidShareManagerTest {
     @After
     fun tearDown() {
         UnityAndroidShareManager.clearShareOperationListener()
+        UnityAndroidShareManager.clearShareChooserActionListener()
+        resetChooserActionRegistry()
+        UnityAndroidShareManager.chooserActionRegistryFactory =
+            { ctx -> AndroidShareChooserActionReceiverRegistry(ctx.applicationContext) }
     }
 
     // --- shareText ---
@@ -170,6 +175,164 @@ class UnityAndroidShareManagerTest {
         )
     }
 
+    // --- chooser action listener ---
+
+    @Test
+    fun shareText_withChooserActions_registersWithNormalizedActionIds() {
+        val registry = FakeRegistry()
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"A","iconBase64":"x","intentAction":"com.example.A"},{"label":"B","iconBase64":"x","intentAction":"com.example.B"}]}"""
+        )
+
+        assertEquals(listOf("com.example.A", "com.example.B"), registry.lastRegisteredActionIds)
+    }
+
+    @Test
+    fun shareText_withNoChooserActions_registersEmptyActionIds() {
+        val registry = FakeRegistry()
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello"}"""
+        )
+
+        assertEquals(emptyList<String>(), registry.lastRegisteredActionIds)
+    }
+
+    @Test
+    fun shareText_launchFailure_unregistersCurrentToken() {
+        val registry = FakeRegistry(tokenToReturn = 42L)
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        // LaunchFailingFakeContext.startActivity throws ActivityNotFoundException → cleanup path triggered.
+        UnityAndroidShareManager.shareText(
+            context = LaunchFailingFakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"A","iconBase64":"x","intentAction":"com.example.A"}]}"""
+        )
+
+        assertEquals(42L, registry.lastUnregisteredToken)
+    }
+
+    @Test
+    fun dispatchChooserAction_forwardsToListener() {
+        val registry = FakeRegistry(tokenToReturn = 1L)
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        var receivedActionId: String? = null
+        UnityAndroidShareManager.setShareChooserActionListener(object : UnityAndroidShareManager.ShareChooserActionListener {
+            override fun onChooserAction(actionId: String) { receivedActionId = actionId }
+        })
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"A","iconBase64":"x","intentAction":"com.example.ACTION"}]}"""
+        )
+
+        // Simulate tap via the onAction lambda captured by registry.
+        registry.simulateTap("com.example.ACTION")
+
+        assertEquals("com.example.ACTION", receivedActionId)
+    }
+
+    @Test
+    fun dispatchChooserAction_listenerNotSet_doesNotThrow() {
+        val registry = FakeRegistry(tokenToReturn = 1L)
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        UnityAndroidShareManager.clearShareChooserActionListener()
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"A","iconBase64":"x","intentAction":"com.example.A"}]}"""
+        )
+
+        registry.simulateTap("com.example.A")
+        // No exception = pass.
+    }
+
+    @Test
+    fun dispatchChooserAction_listenerThrows_doesNotPropagateException() {
+        val registry = FakeRegistry(tokenToReturn = 1L)
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        UnityAndroidShareManager.setShareChooserActionListener(object : UnityAndroidShareManager.ShareChooserActionListener {
+            override fun onChooserAction(actionId: String) { throw RuntimeException("Unity crash") }
+        })
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"A","iconBase64":"x","intentAction":"com.example.A"}]}"""
+        )
+
+        // Should not throw.
+        registry.simulateTap("com.example.A")
+    }
+
+    @Test
+    fun clearShareChooserActionListener_unregistersCurrentToken() {
+        val registry = FakeRegistry()
+        // Inject registry and token directly to test clearShareChooserActionListener in isolation,
+        // avoiding the shareText flow which may throw in a JVM stub environment.
+        setChooserActionRegistryForTest(registry)
+        setChooserActionTokenForTest(7L)
+
+        // clearShareChooserActionListener uses runOnMain. In the JVM stub environment,
+        // Looper.myLooper() == Looper.getMainLooper() (both resolve to the same stub instance),
+        // so the block runs synchronously — the assertion below is safe.
+        UnityAndroidShareManager.clearShareChooserActionListener()
+
+        assertEquals(7L, registry.lastUnregisteredToken)
+    }
+
+    @Test
+    fun shareText_withNoChooserActions_replacesExistingRegistration() {
+        val registry = FakeRegistry(tokenToReturn = 1L)
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        // First share with actions.
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"A","iconBase64":"x","intentAction":"com.example.A"}]}"""
+        )
+
+        // Second share without chooserActions: registry.register([]) must be called so the real
+        // AndroidShareChooserActionReceiverRegistry unregisters the previous receiver.
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello"}"""
+        )
+
+        assertEquals(emptyList<String>(), registry.lastRegisteredActionIds)
+    }
+
+    @Test
+    fun consecutiveShareText_replacesRegistration() {
+        val registry = FakeRegistry(tokenToReturn = 1L)
+        UnityAndroidShareManager.chooserActionRegistryFactory = { registry }
+        UnityAndroidShareManager.setShareOperationListener(CapturingListener())
+
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"A","iconBase64":"x","intentAction":"com.example.A"}]}"""
+        )
+
+        // Second share: register is called again with new action.
+        UnityAndroidShareManager.shareText(
+            context = FakeContext(),
+            shareJson = """{"text":"hello","chooserActions":[{"label":"B","iconBase64":"x","intentAction":"com.example.B"}]}"""
+        )
+
+        assertEquals(listOf("com.example.B"), registry.lastRegisteredActionIds)
+    }
+
     // --- Helpers ---
 
     private class CapturingListener : UnityAndroidShareManager.ShareOperationListener {
@@ -194,6 +357,52 @@ class UnityAndroidShareManagerTest {
         override fun getPackageName(): String = "com.example.share.test"
         override fun getApplicationContext(): android.content.Context = this
         override fun startActivity(intent: Intent) { /* no-op for local JVM tests */ }
+    }
+
+    private class LaunchFailingFakeContext : FakeContext() {
+        override fun startActivity(intent: Intent) {
+            throw ActivityNotFoundException("simulated launch failure")
+        }
+    }
+
+    private class FakeRegistry(
+        private val tokenToReturn: Long = 1L
+    ) : ShareChooserActionReceiverRegistry {
+        var lastRegisteredActionIds: List<String> = emptyList()
+        var lastUnregisteredToken: Long? = null
+        private var capturedOnAction: ((String) -> Unit)? = null
+
+        override fun register(actionIds: List<String>, onAction: (String) -> Unit): Long {
+            lastRegisteredActionIds = actionIds
+            capturedOnAction = onAction
+            return tokenToReturn
+        }
+
+        override fun unregister(token: Long) {
+            lastUnregisteredToken = token
+        }
+
+        fun simulateTap(actionId: String) {
+            capturedOnAction?.invoke(actionId)
+        }
+    }
+
+    private fun resetChooserActionRegistry() {
+        val field = UnityAndroidShareManager::class.java.getDeclaredField("chooserActionRegistry")
+        field.isAccessible = true
+        field.set(UnityAndroidShareManager, null)
+    }
+
+    private fun setChooserActionRegistryForTest(registry: ShareChooserActionReceiverRegistry) {
+        val field = UnityAndroidShareManager::class.java.getDeclaredField("chooserActionRegistry")
+        field.isAccessible = true
+        field.set(UnityAndroidShareManager, registry)
+    }
+
+    private fun setChooserActionTokenForTest(token: Long) {
+        val field = UnityAndroidShareManager::class.java.getDeclaredField("chooserActionToken")
+        field.isAccessible = true
+        field.set(UnityAndroidShareManager, token)
     }
 
     private fun pendingCallbackContext(): android.content.Context? {

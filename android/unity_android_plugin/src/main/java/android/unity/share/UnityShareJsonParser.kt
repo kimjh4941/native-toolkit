@@ -91,10 +91,11 @@ internal object UnityShareJsonParser {
             val obj = array.getJSONObject(i)
             val label = obj.optString("label").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val iconBase64 = obj.optString("iconBase64").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val intentAction = obj.optString("intentAction").takeIf { it.isNotBlank() } ?: return@mapNotNull null
             UnityChooserActionSpec(
                 label = label,
                 iconBase64 = iconBase64,
-                intentAction = obj.optString("intentAction").ifBlank { "android.intent.action.SEND" }
+                intentAction = intentAction
             )
         }
     }
