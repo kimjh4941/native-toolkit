@@ -65,6 +65,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = mimeType
             putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newUri(context.contentResolver, null, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(Intent.createChooser(intent, null))
@@ -77,9 +78,12 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
             .map { ShareMimeTypeHelper.getMimeType(File(it)) }
             .distinct()
             .let { if (it.size == 1) it.first() else "image/*" }
+        val clip = ClipData.newUri(context.contentResolver, null, uris.first())
+            .also { clip -> uris.drop(1).forEach { uri -> clip.addItem(ClipData.Item(uri)) } }
         val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
             type = mimeType
             putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            clipData = clip
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(Intent.createChooser(intent, null))
@@ -92,6 +96,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = mimeType
             putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newUri(context.contentResolver, null, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(Intent.createChooser(intent, null))
@@ -104,9 +109,12 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
             .map { ShareMimeTypeHelper.getMimeType(File(it)) }
             .distinct()
             .let { if (it.size == 1) it.first() else "*/*" }
+        val clip = ClipData.newUri(context.contentResolver, null, uris.first())
+            .also { clip -> uris.drop(1).forEach { uri -> clip.addItem(ClipData.Item(uri)) } }
         val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
             type = mimeType
             putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            clipData = clip
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(Intent.createChooser(intent, null))

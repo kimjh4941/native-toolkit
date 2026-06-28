@@ -32,7 +32,7 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- Android: `dist/1.5.0/android/android-native-toolkit-1.2.0.aar`
 - iOS: `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
 - Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
 - macOS: `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
@@ -44,7 +44,7 @@
 
 # バージョン
 
-## 1.4.0
+## 1.5.0
 
 # 対応 OS バージョン
 
@@ -68,6 +68,15 @@
   - 通知の表示 / 更新 / 取り消し
   - 通知チャンネル管理
   - スケジュール通知
+- シェア機能
+  - テキスト / URL シェア
+  - 画像シェア
+  - ファイルシェア
+  - リッチプレビュー
+  - カスタム Chooser Action（Android 14 以降）
+  - Direct Share Target
+  - コールバック付きシェア
+  - 共有コンテンツの受信
 
 ## iOS
 
@@ -120,7 +129,6 @@
 
 ## 追加予定機能
 
-- シェア機能
 - クリップボード連携
 
 ## サンプル
@@ -259,3 +267,4 @@ dependencies {
 
 - [ダイアログ機能](dialog.ja.md)
 - [通知機能](notification.ja.md)
+- [シェア機能](share.ja.md)

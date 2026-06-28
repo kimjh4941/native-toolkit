@@ -32,7 +32,7 @@
 
 # 배포 산출물 위치 (`dist/<version>/`)
 
-- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- Android: `dist/1.5.0/android/android-native-toolkit-1.2.0.aar`
 - iOS: `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
 - Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
 - macOS: `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
@@ -44,7 +44,7 @@
 
 # 버전
 
-## 1.4.0
+## 1.5.0
 
 # 지원 OS 버전
 
@@ -68,6 +68,15 @@
   - 알림 표시 / 업데이트 / 취소
   - 알림 채널 관리
   - 예약 알림
+- 공유 기능
+  - 텍스트 / URL 공유
+  - 이미지 공유
+  - 파일 공유
+  - 리치 프리뷰
+  - 커스텀 Chooser Action (Android 14+)
+  - Direct Share Target
+  - 콜백 포함 공유
+  - 수신 공유 콘텐츠 처리
 
 ## iOS
 
@@ -120,7 +129,6 @@
 
 ## 추가 예정 기능
 
-- 공유 기능
 - 클립보드 연동
 
 ## 샘플
@@ -259,3 +267,4 @@ dependencies {
 
 - [다이얼로그 기능](dialog.ko.md)
 - [알림 기능](notification.ko.md)
+- [공유 기능](share.ko.md)

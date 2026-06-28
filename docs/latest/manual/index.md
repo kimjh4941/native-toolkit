@@ -32,7 +32,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- Android: `dist/1.5.0/android/android-native-toolkit-1.2.0.aar`
 - iOS: `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
 - Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
 - macOS: `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
@@ -44,7 +44,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.4.0
+## 1.5.0
 
 # Supported OS versions
 
@@ -68,6 +68,15 @@ Markdown files in this directory are published as versioned documents under `doc
   - Show / update / cancel notifications
   - Manage notification channels
   - Schedule notifications
+- Share features
+  - Text / URL share
+  - Image share
+  - File share
+  - Rich preview
+  - Custom Chooser Actions (Android 14+)
+  - Direct Share Target
+  - Share with callback
+  - Receive incoming shares
 
 ## iOS
 
@@ -120,7 +129,6 @@ Markdown files in this directory are published as versioned documents under `doc
 
 ## Planned features
 
-- Share
 - Clipboard integration
 
 ## Samples
@@ -259,3 +267,4 @@ dependencies {
 
 - [Dialog](dialog.md)
 - [Notification](notification.md)
+- [Share](share.md)

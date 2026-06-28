@@ -20,10 +20,10 @@
 2. 연동 절차는 `docs/<version>/manual/index.ko.md` 를 확인합니다.
 3. API 참조는 `docs/<version>/` 또는 `docs/latest/` 를 사용합니다.
 
-예시 (`1.4.0`):
+예시 (`1.5.0`):
 
-- 매뉴얼: `docs/1.4.0/manual/index.ko.md`
-- 배포 문서: `docs/1.4.0/manual/`
+- 매뉴얼: `docs/1.5.0/manual/index.ko.md`
+- 배포 문서: `docs/1.5.0/manual/`
 
 ## 상세 문서
 
@@ -33,19 +33,19 @@
 
 ## 버전
 
-- 현재 릴리스: 1.4.0
+- 현재 릴리스: 1.5.0
 - 최신 공개 문서 버전: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 지원 OS (1.4.0)
+## 지원 OS (1.5.0)
 
 - Android 12 이상
 - iOS 18 이상
 - Windows 11 이상
 - macOS 15 이상
 
-## 배포 산출물 (1.4.0)
+## 배포 산출물 (1.5.0)
 
-- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- Android: `dist/1.5.0/android/android-native-toolkit-1.2.0.aar`
 - iOS:
   - `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
   - `dist/1.4.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
@@ -189,13 +189,13 @@ doxygen Doxyfile
 `docs/<version>/` 를 생성하고, `docs/latest/` 는 `docs/` 내 가장 높은 버전으로 갱신됩니다.
 
 ```bash
-./scripts/publish_docs.sh 1.4.0
+./scripts/publish_docs.sh 1.5.0
 ```
 
 생성 없이 복사만 할 경우:
 
 ```bash
-./scripts/publish_docs.sh 1.4.0 --skip-build
+./scripts/publish_docs.sh 1.5.0 --skip-build
 ```
 
 manual 복사 원본은 `manual/<version>/` 입니다.

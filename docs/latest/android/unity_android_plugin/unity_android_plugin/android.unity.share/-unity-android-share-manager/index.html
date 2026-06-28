@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>UnityAndroidShareManager</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+            <a class="library-name--link" href="../../../index.html">
+                    unity_android_plugin
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.5.0        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active=""
+                        data-filter=":unity_android_plugin:dokkaHtml/main">androidJvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":unity_android_plugin:dokkaHtml/main"
+                                       data-filter=":unity_android_plugin:dokkaHtml/main"/>
+                                <span class="checkbox--icon"></span>
+                                androidJvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                        data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    unity_android_plugin
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="unity_android_plugin::android.unity.share/UnityAndroidShareManager///PointingToDeclaration//341128501">
+  <div class="breadcrumbs"><a href="../../../index.html">unity_android_plugin</a><span class="delimiter">/</span><a href="../index.html">android.unity.share</a><span class="delimiter">/</span><span class="current">UnityAndroidShareManager</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Unity</span><wbr></wbr><span>Android</span><wbr></wbr><span>Share</span><wbr></wbr><span><span>Manager</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="index.html">UnityAndroidShareManager</a></div><p class="paragraph">Unity-facing share bridge for native-toolkit.</p><p class="paragraph">Exposes share operations to Unity via JNI / AndroidJavaObject. All operations report results through <a href="-share-operation-listener/index.html">ShareOperationListener</a>.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="1201171597%2FClasslikes%2F341128501" anchor-label="ShareChooserActionListener" id="1201171597%2FClasslikes%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-chooser-action-listener/index.html"><span>Share</span><wbr></wbr><span>Chooser</span><wbr></wbr><span>Action</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1201171597%2FClasslikes%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-share-chooser-action-listener/index.html">ShareChooserActionListener</a></div><div class="brief "><p class="paragraph">Listener for custom chooser action taps reported back to Unity.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="143714743%2FClasslikes%2F341128501" anchor-label="ShareOperationListener" id="143714743%2FClasslikes%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-operation-listener/index.html"><span>Share</span><wbr></wbr><span>Operation</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="143714743%2FClasslikes%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-share-operation-listener/index.html">ShareOperationListener</a></div><div class="brief "><p class="paragraph">Listener for share operation results.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="-1745723134%2FProperties%2F341128501" anchor-label="OPERATION_CANCEL_PENDING_SHARE_CALLBACK" id="-1745723134%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-p-e-n-d-i-n-g_-s-h-a-r-e_-c-a-l-l-b-a-c-k.html"><span>OPERATION_</span><wbr></wbr><span>CANCEL_</span><wbr></wbr><span>PENDING_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>CALLBACK</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1745723134%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-c-a-n-c-e-l_-p-e-n-d-i-n-g_-s-h-a-r-e_-c-a-l-l-b-a-c-k.html">OPERATION_CANCEL_PENDING_SHARE_CALLBACK</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1953190715%2FProperties%2F341128501" anchor-label="OPERATION_REGISTER_DIRECT_SHARE_TARGET" id="1953190715%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-r-e-g-i-s-t-e-r_-d-i-r-e-c-t_-s-h-a-r-e_-t-a-r-g-e-t.html"><span>OPERATION_</span><wbr></wbr><span>REGISTER_</span><wbr></wbr><span>DIRECT_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>TARGET</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1953190715%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-r-e-g-i-s-t-e-r_-d-i-r-e-c-t_-s-h-a-r-e_-t-a-r-g-e-t.html">OPERATION_REGISTER_DIRECT_SHARE_TARGET</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1391700755%2FProperties%2F341128501" anchor-label="OPERATION_REMOVE_DIRECT_SHARE_TARGETS" id="-1391700755%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-r-e-m-o-v-e_-d-i-r-e-c-t_-s-h-a-r-e_-t-a-r-g-e-t-s.html"><span>OPERATION_</span><wbr></wbr><span>REMOVE_</span><wbr></wbr><span>DIRECT_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>TARGETS</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1391700755%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-r-e-m-o-v-e_-d-i-r-e-c-t_-s-h-a-r-e_-t-a-r-g-e-t-s.html">OPERATION_REMOVE_DIRECT_SHARE_TARGETS</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-824357462%2FProperties%2F341128501" anchor-label="OPERATION_SHARE_FILE" id="-824357462%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-f-i-l-e.html"><span>OPERATION_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>FILE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-824357462%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-f-i-l-e.html">OPERATION_SHARE_FILE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="788343421%2FProperties%2F341128501" anchor-label="OPERATION_SHARE_FILES" id="788343421%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-f-i-l-e-s.html"><span>OPERATION_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>FILES</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="788343421%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-f-i-l-e-s.html">OPERATION_SHARE_FILES</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-704183271%2FProperties%2F341128501" anchor-label="OPERATION_SHARE_IMAGE" id="-704183271%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-i-m-a-g-e.html"><span>OPERATION_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>IMAGE</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-704183271%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-i-m-a-g-e.html">OPERATION_SHARE_IMAGE</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="218776046%2FProperties%2F341128501" anchor-label="OPERATION_SHARE_IMAGES" id="218776046%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-i-m-a-g-e-s.html"><span>OPERATION_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>IMAGES</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="218776046%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-i-m-a-g-e-s.html">OPERATION_SHARE_IMAGES</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="427841305%2FProperties%2F341128501" anchor-label="OPERATION_SHARE_TEXT" id="427841305%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-t-e-x-t.html"><span>OPERATION_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>TEXT</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="427841305%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-t-e-x-t.html">OPERATION_SHARE_TEXT</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1400153066%2FProperties%2F341128501" anchor-label="OPERATION_SHARE_WITH_CALLBACK" id="-1400153066%2FProperties%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-w-i-t-h_-c-a-l-l-b-a-c-k.html"><span>OPERATION_</span><wbr></wbr><span>SHARE_</span><wbr></wbr><span>WITH_</span><wbr></wbr><span>CALLBACK</span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1400153066%2FProperties%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">const </span><span class="token keyword">val </span><a href="-o-p-e-r-a-t-i-o-n_-s-h-a-r-e_-w-i-t-h_-c-a-l-l-b-a-c-k.html">OPERATION_SHARE_WITH_CALLBACK</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="375609776%2FFunctions%2F341128501" anchor-label="cancelPendingShareCallback" id="375609776%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="cancel-pending-share-callback.html"><span>cancel</span><wbr></wbr><span>Pending</span><wbr></wbr><span>Share</span><wbr></wbr><span><span>Callback</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="375609776%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="cancel-pending-share-callback.html"><span class="token function">cancelPendingShareCallback</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Cancels the pending share-callback BroadcastReceiver.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1296485481%2FFunctions%2F341128501" anchor-label="clearShareChooserActionListener" id="1296485481%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="clear-share-chooser-action-listener.html"><span>clear</span><wbr></wbr><span>Share</span><wbr></wbr><span>Chooser</span><wbr></wbr><span>Action</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1296485481%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="clear-share-chooser-action-listener.html"><span class="token function">clearShareChooserActionListener</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Clears the chooser action listener and unregisters the current dynamic receiver.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-540741229%2FFunctions%2F341128501" anchor-label="clearShareOperationListener" id="-540741229%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="clear-share-operation-listener.html"><span>clear</span><wbr></wbr><span>Share</span><wbr></wbr><span>Operation</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-540741229%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="clear-share-operation-listener.html"><span class="token function">clearShareOperationListener</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Clears the share operation result listener and cancels any pending share-callback receiver.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="339253137%2FFunctions%2F341128501" anchor-label="getInstance" id="339253137%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-instance.html"><span>get</span><wbr></wbr><span><span>Instance</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="339253137%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.jvm/-jvm-static/index.html"><span class="token annotation builtin">JvmStatic</span></a></div></div><span class="token keyword">fun </span><a href="get-instance.html"><span class="token function">getInstance</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">UnityAndroidShareManager</a></div><div class="brief "><p class="paragraph">Returns the singleton instance for Unity JNI bridge calls.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-215149132%2FFunctions%2F341128501" anchor-label="registerDirectShareTarget" id="-215149132%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="register-direct-share-target.html"><span>register</span><wbr></wbr><span>Direct</span><wbr></wbr><span>Share</span><wbr></wbr><span><span>Target</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-215149132%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="register-direct-share-target.html"><span class="token function">registerDirectShareTarget</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Registers a Direct Share shortcut target.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="587377758%2FFunctions%2F341128501" anchor-label="removeDirectShareTargets" id="587377758%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="remove-direct-share-targets.html"><span>remove</span><wbr></wbr><span>Direct</span><wbr></wbr><span>Share</span><wbr></wbr><span><span>Targets</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="587377758%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="remove-direct-share-targets.html"><span class="token function">removeDirectShareTargets</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Removes Direct Share shortcut targets.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2005098135%2FFunctions%2F341128501" anchor-label="setShareChooserActionListener" id="-2005098135%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-share-chooser-action-listener.html"><span>set</span><wbr></wbr><span>Share</span><wbr></wbr><span>Chooser</span><wbr></wbr><span>Action</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2005098135%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-share-chooser-action-listener.html"><span class="token function">setShareChooserActionListener</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">listener<span class="token operator">: </span><a href="-share-chooser-action-listener/index.html">UnityAndroidShareManager.ShareChooserActionListener</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Registers the listener for custom chooser action taps. The callback is delivered on the main thread.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1803783127%2FFunctions%2F341128501" anchor-label="setShareOperationListener" id="-1803783127%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="set-share-operation-listener.html"><span>set</span><wbr></wbr><span>Share</span><wbr></wbr><span>Operation</span><wbr></wbr><span><span>Listener</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1803783127%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="set-share-operation-listener.html"><span class="token function">setShareOperationListener</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">listener<span class="token operator">: </span><a href="-share-operation-listener/index.html">UnityAndroidShareManager.ShareOperationListener</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Registers a share operation result listener.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="862383403%2FFunctions%2F341128501" anchor-label="shareFile" id="862383403%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="share-file.html"><span>share</span><wbr></wbr><span><span>File</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="862383403%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="share-file.html"><span class="token function">shareFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Shares a single file via the Android Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1035735002%2FFunctions%2F341128501" anchor-label="shareFiles" id="-1035735002%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="share-files.html"><span>share</span><wbr></wbr><span><span>Files</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1035735002%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="share-files.html"><span class="token function">shareFiles</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Shares multiple files via the Android Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1375021066%2FFunctions%2F341128501" anchor-label="shareImage" id="1375021066%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="share-image.html"><span>share</span><wbr></wbr><span><span>Image</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1375021066%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="share-image.html"><span class="token function">shareImage</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Shares a single image via the Android Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1971130663%2FFunctions%2F341128501" anchor-label="shareImages" id="1971130663%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="share-images.html"><span>share</span><wbr></wbr><span><span>Images</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1971130663%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="share-images.html"><span class="token function">shareImages</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Shares multiple images via the Android Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-50893540%2FFunctions%2F341128501" anchor-label="shareText" id="-50893540%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="share-text.html"><span>share</span><wbr></wbr><span><span>Text</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-50893540%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="share-text.html"><span class="token function">shareText</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Shares text or URL content via the Android Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1152798362%2FFunctions%2F341128501" anchor-label="shareWithCallback" id="1152798362%2FFunctions%2F341128501" data-filterable-set=":unity_android_plugin:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":unity_android_plugin:dokkaHtml/main" data-filterable-set=":unity_android_plugin:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="share-with-callback.html"><span>share</span><wbr></wbr><span>With</span><wbr></wbr><span><span>Callback</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1152798362%2FFunctions%2F341128501"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":unity_android_plugin:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="share-with-callback.html"><span class="token function">shareWithCallback</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">context<span class="token operator">: </span><a href="https://developer.android.com/reference/kotlin/android/content/Context.html">Context</a><span class="token punctuation">, </span></span><span class="parameter ">shareJson<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Shares text content and reports the selected app via <a href="-share-operation-listener/on-share-result.html">ShareOperationListener.onShareResult</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2026 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

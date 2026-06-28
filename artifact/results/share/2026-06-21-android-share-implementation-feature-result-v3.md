@@ -84,8 +84,8 @@
 - 実行したテスト:
   - `./gradlew :unity_android_plugin:testReleaseUnitTest`（`android/AndroidLibraryExample/` ディレクトリ内）
 - 結果サマリー:
-  - 実行件数: 57
-  - 成功: 57
+  - 実行件数: 59（medium 対応で 2 件追加: `normalizeActionIds_defaultSendActionIsExcluded`, `normalizeActionIds_onlySendActionReturnsEmpty`, `shareText_withNoChooserActions_replacesExistingRegistration`）
+  - 成功: 59
   - 失敗: 0
 - 失敗時の対応:
   - 当初 7 失敗 → `ShareChooserActionReceiverTest` の JVM stub 問題: `FakeIntent` サブクラスで `getAction()` をオーバーライドして解決
@@ -106,7 +106,8 @@
 | 例外伝播 | ShareChooserActionReceiverTest.kt | onReceive_onActionThrows_propagatesToCaller | ○ | Manager が封じ込める設計であることを確認 |
 | 非空除外 | ShareChooserActionInputsTest.kt | normalizeActionIds_blankActionsAreExcluded | ○ | |
 | 重複除去 | ShareChooserActionInputsTest.kt | normalizeActionIds_duplicatesAreRemoved | ○ | |
-| default SEND 警告 | ShareChooserActionInputsTest.kt | normalizeActionIds_defaultSendActionIsRetainedWithWarning | ○ | |
+| default SEND 除外 | ShareChooserActionInputsTest.kt | normalizeActionIds_defaultSendActionIsExcluded | ○ | SEND は登録・表示から除外（medium 修正で変更） |
+| default SEND のみ空 | ShareChooserActionInputsTest.kt | normalizeActionIds_onlySendActionReturnsEmpty | ○ | medium 修正で追加 |
 | 空リスト | ShareChooserActionInputsTest.kt | normalizeActionIds_emptyListReturnsEmpty | ○ | |
 | register 正規化 | UnityAndroidShareManagerTest.kt | shareText_withChooserActions_registersWithNormalizedActionIds | ○ | |
 | actions なし | UnityAndroidShareManagerTest.kt | shareText_withNoChooserActions_registersEmptyActionIds | ○ | |
@@ -116,6 +117,7 @@
 | listener 例外封じ込め | UnityAndroidShareManagerTest.kt | dispatchChooserAction_listenerThrows_doesNotPropagateException | ○ | |
 | clear 解除 | UnityAndroidShareManagerTest.kt | clearShareChooserActionListener_unregistersCurrentToken | ○ | リフレクション直接注入 |
 | 連続 share 置換 | UnityAndroidShareManagerTest.kt | consecutiveShareText_replacesRegistration | ○ | |
+| empty chooserActions 旧登録解除 | UnityAndroidShareManagerTest.kt | shareText_withNoChooserActions_replacesExistingRegistration | ○ | medium 修正で追加 |
 | 実登録・broadcast 受信 | ShareChooserActionInstrumentedTest.kt | 全 8 ケース | △ | API 34+ 実機未確認 |
 
 ### 5.2 未実施ケース詳細
