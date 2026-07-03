@@ -184,7 +184,7 @@
 
 #### 対応プラットフォーム: Android（AAR / ABI 非依存）
 
-1. `android-native-toolkit-1.1.0.aar` を `app/libs` に配置します。
+1. `android-native-toolkit-1.2.0.aar` を `app/libs` に配置します。
 2. `settings.gradle.kts` に AAR を参照するためのリポジトリ設定を追加します。
 3. `app/build.gradle.kts` に AAR を参照するための依存関係を追加します。
 4. Gradle 同期を実行します。
@@ -215,7 +215,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // AAR を参照するための依存関係を追加します。こちらを追加してください。
-  implementation(files("libs/android-native-toolkit-1.1.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.2.0.aar"))
 }
 ```
 

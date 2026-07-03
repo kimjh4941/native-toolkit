@@ -184,7 +184,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 #### Supported platform: Android (AAR / ABI-independent)
 
-1. Place `android-native-toolkit-1.1.0.aar` in `app/libs`.
+1. Place `android-native-toolkit-1.2.0.aar` in `app/libs`.
 2. Add repository settings in `settings.gradle.kts` to resolve the AAR.
 3. Add dependency settings in `app/build.gradle.kts` to reference the AAR.
 4. Run Gradle sync.
@@ -215,7 +215,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // Add this dependency to reference the AAR.
-  implementation(files("libs/android-native-toolkit-1.1.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.2.0.aar"))
 }
 ```
 

@@ -184,7 +184,7 @@
 
 #### 지원 플랫폼: Android（AAR / ABI 독립）
 
-1. `android-native-toolkit-1.1.0.aar`를 `app/libs`에 배치합니다.
+1. `android-native-toolkit-1.2.0.aar`를 `app/libs`에 배치합니다.
 2. `settings.gradle.kts`에 AAR 참조를 위한 저장소 설정을 추가합니다.
 3. `app/build.gradle.kts`에 AAR 참조를 위한 의존성을 추가합니다.
 4. Gradle 동기화를 실행합니다.
@@ -215,7 +215,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // AAR 참조를 위해 아래 의존성을 추가합니다.
-  implementation(files("libs/android-native-toolkit-1.1.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.2.0.aar"))
 }
 ```
 
