@@ -2,7 +2,7 @@
 
 네이티브 앱에서 사용할 수 있는 네이티브 플랫폼 기능을 플랫폼별로 모아둔 툴킷입니다.
 
-- Android: `DialogFragment` + 알림 기반 네이티브 API
+- Android: `DialogFragment` + 알림 + 공유 기반 네이티브 API
 - iOS: `UIAlertController` 기반 네이티브 API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` 기반 네이티브 API
 - Windows: Win32 공통 다이얼로그 및 토스트 알림의 C 형태 API
@@ -59,8 +59,8 @@
 ### Android
 
 - `android/android_library`
-  - 핵심: `AndroidDialogFragment` / Android 알림 API
-  - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification
+  - 핵심: `AndroidDialogFragment` / Android 알림 API / `ShareUseCases`
+  - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
   - 문서: Dokka
 
 - `android/unity_android_plugin`

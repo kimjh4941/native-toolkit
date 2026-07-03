@@ -2,7 +2,7 @@
 
 ネイティブアプリから利用できる、クロスプラットフォームのネイティブ機能ツールキットです。
 
-- Android: `DialogFragment` + 通知ベースのネイティブ API
+- Android: `DialogFragment` + 通知 + シェアベースのネイティブ API
 - iOS: `UIAlertController` ベースのネイティブ API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` ベースのネイティブ API
 - Windows: Win32 共通ダイアログおよびトースト通知の C 形式 API
@@ -59,8 +59,8 @@
 ### Android
 
 - `android/android_library`
-  - 中核: `AndroidDialogFragment` / Android 通知 API
-  - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification
+  - 中核: `AndroidDialogFragment` / Android 通知 API / `ShareUseCases`
+  - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
   - Doc: Dokka
 
 - `android/unity_android_plugin`

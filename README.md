@@ -2,7 +2,7 @@
 
 A cross-platform toolkit that bundles native platform features for native apps.
 
-- Android: `DialogFragment` + notification-based native API
+- Android: `DialogFragment` + notification + share-based native API
 - iOS: `UIAlertController`-based native API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel`-based native API
 - Windows: Win32 common dialogs and toast notifications exposed as C-style APIs
@@ -59,8 +59,8 @@ Example (`1.5.0`):
 ### Android
 
 - `android/android_library`
-  - Core: `AndroidDialogFragment` / Android notification APIs
-  - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification
+  - Core: `AndroidDialogFragment` / Android notification APIs / `ShareUseCases`
+  - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
   - Docs: Dokka
 
 - `android/unity_android_plugin`
