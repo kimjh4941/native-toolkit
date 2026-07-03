@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Feature"
+  short_description: "Research platform APIs and write a feature plan"
+  default_prompt: "Use $research-feature to research the requested platform feature and create a plan."

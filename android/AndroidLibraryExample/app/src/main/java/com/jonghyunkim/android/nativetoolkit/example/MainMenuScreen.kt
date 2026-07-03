@@ -23,7 +23,8 @@ import com.jonghyunkim.android.nativetoolkit.example.ui.theme.AndroidTheme
 fun MainMenuScreen(
     modifier: Modifier = Modifier,
     onSelectDialogTest: () -> Unit,
-    onSelectNotificationTest: () -> Unit
+    onSelectNotificationTest: () -> Unit,
+    onSelectShareTest: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier
@@ -58,6 +59,13 @@ fun MainMenuScreen(
                 onClick = onSelectNotificationTest
             )
         }
+        item {
+            MainMenuListItem(
+                title = "Share Example",
+                description = "Explore text, image, file, and direct share samples.",
+                onClick = onSelectShareTest
+            )
+        }
     }
 }
 
@@ -90,7 +98,8 @@ private fun MainMenuPreview() {
     AndroidTheme {
         MainMenuScreen(
             onSelectDialogTest = {},
-            onSelectNotificationTest = {}
+            onSelectNotificationTest = {},
+            onSelectShareTest = {}
         )
     }
 }

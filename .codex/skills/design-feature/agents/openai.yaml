@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Feature"
+  short_description: "Create an implementation-ready feature design"
+  default_prompt: "Use $design-feature to create an implementation design from the feature plan."

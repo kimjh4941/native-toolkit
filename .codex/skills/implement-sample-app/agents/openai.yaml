@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Sample App"
+  short_description: "Build and verify a feature sample application"
+  default_prompt: "Use $implement-sample-app to build a sample app that demonstrates the feature."

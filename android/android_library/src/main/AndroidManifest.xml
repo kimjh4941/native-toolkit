@@ -21,6 +21,16 @@
     -->
 
     <application>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.native_toolkit.share.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/native_toolkit_share_file_paths" />
+        </provider>
+
         <receiver
             android:name=".notification.data.repository.ScheduledNotificationReceiver"
             android:enabled="true"

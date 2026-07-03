@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keep class androidx.core.content.FileProvider { *; }
+-keep class androidx.core.app.ShareCompat$IntentBuilder { *; }
+-keep class androidx.core.content.pm.ShortcutInfoCompat { *; }
+-keep class androidx.core.graphics.drawable.IconCompat { *; }

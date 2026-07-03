@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Feature"
+  short_description: "Implement, test, and verify a designed feature"
+  default_prompt: "Use $implement-feature to implement and verify the feature from its design."
