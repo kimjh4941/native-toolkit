@@ -47,12 +47,12 @@
 
 - Android: `dist/1.5.0/android/android-native-toolkit-1.2.0.aar`
 - iOS:
-  - `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
-  - `dist/1.4.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.5.0/ios/ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.5.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
 - macOS:
-  - `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
-  - `dist/1.4.0/mac/unity-mac-native-toolkit-1.1.0.xcframework`
-- Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
+  - `dist/1.5.0/mac/mac-native-toolkit-1.1.0.xcframework`
+  - `dist/1.5.0/mac/unity-mac-native-toolkit-1.1.0.xcframework`
+- Windows: `dist/1.5.0/windows/windows-native-toolkit-1.1.0.nupkg`
 
 ## 포함 모듈(개요)
 

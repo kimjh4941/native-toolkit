@@ -33,9 +33,9 @@ Markdown files in this directory are published as versioned documents under `doc
 # Artifact locations (`dist/<version>/`)
 
 - Android: `dist/1.5.0/android/android-native-toolkit-1.2.0.aar`
-- iOS: `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
-- Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
+- iOS: `dist/1.5.0/ios/ios-native-toolkit-1.1.0.xcframework`
+- Windows: `dist/1.5.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.5.0/mac/mac-native-toolkit-1.1.0.xcframework`
 
 # Native Toolkit
 
