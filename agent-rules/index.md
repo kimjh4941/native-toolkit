@@ -15,12 +15,13 @@ Canonical workflow definitions shared across all agents (Copilot, Claude, Codex)
 Agent-specific wrappers in `.github/skills/` reference these files.
 
 - Research a feature (企画書作成): ./workflows/research-feature/workflow.md
-- Design implementation (実装設計書作成): ./workflows/design-implementation/workflow.md
 - Implement feature (実装・テスト・確認): ./workflows/implement-feature/workflow.md
 - Design sample app (サンプルアプリ計画作成): ./workflows/design-sample-app/workflow.md
 - Implement sample app (サンプルアプリ実装): ./workflows/implement-sample-app/workflow.md
 - Write manual (マニュアル作成): ./workflows/write-manual/workflow.md
 - Release (リリース): ./workflows/release/workflow.md
+- Review implementation feature (機能実装レビュー): ./workflows/review-implementation-feature/workflow.md
+- Review implementation sample app (サンプルアプリ実装レビュー): ./workflows/review-implementation-sample-app/workflow.md
 - Review and refine (企画書・設計書レビュー): ./workflows/review-and-refine/workflow.md
 - Commit message (コミットメッセージ生成): ./workflows/commit-msg/workflow.md
 

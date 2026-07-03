@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>android.library.share.application.usecase</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+    <nav class="navigation theme-dark" id="navigation-wrapper">
+            <a class="library-name--link" href="../../index.html">
+                    android_library
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.5.0        </div>
+        <div class="navigation-controls">
+        <div class="filter-section filter-section_loading" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active=""
+                        data-filter=":android_library:dokkaHtml/main">androidJvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox">
+                    <div class="dropdown--header"><span>Platform filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close platform filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":android_library:dokkaHtml/main"
+                                       data-filter=":android_library:dokkaHtml/main"/>
+                                <span class="checkbox--icon"></span>
+                                androidJvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </div>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                    <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                        data-role="dropdown-listbox">
+                        <div class="dropdown--header">
+                            <span>
+                                    android_library
+                            </span>
+                            <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                                <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                            </button>
+                        </div>
+                        <div class="sidebar--inner" id="sideMenu"></div>
+                    </ul>
+                    <div class="dropdown--overlay"></div>
+                </div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="package" id="content" pageIds="android_library::android.library.share.application.usecase////PointingToDeclaration//-761267287">
+  <div class="breadcrumbs"><a href="../../index.html">android_library</a><span class="delimiter">/</span><span class="current">android.library.share.application.usecase</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="-1460410088%2FClasslikes%2F-761267287" anchor-label="CancelPendingShareCallbackUseCase" id="-1460410088%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cancel-pending-share-callback-use-case/index.html"><span>Cancel</span><wbr></wbr><span>Pending</span><wbr></wbr><span>Share</span><wbr></wbr><span>Callback</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1460410088%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-cancel-pending-share-callback-use-case/index.html">CancelPendingShareCallbackUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for cancelling the pending share-callback BroadcastReceiver.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="128809607%2FClasslikes%2F-761267287" anchor-label="RegisterDirectShareTargetUseCase" id="128809607%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-register-direct-share-target-use-case/index.html"><span>Register</span><wbr></wbr><span>Direct</span><wbr></wbr><span>Share</span><wbr></wbr><span>Target</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="128809607%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-register-direct-share-target-use-case/index.html">RegisterDirectShareTargetUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for registering a Direct Share shortcut target.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="695739041%2FClasslikes%2F-761267287" anchor-label="RemoveDirectShareTargetsUseCase" id="695739041%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-remove-direct-share-targets-use-case/index.html"><span>Remove</span><wbr></wbr><span>Direct</span><wbr></wbr><span>Share</span><wbr></wbr><span>Targets</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="695739041%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-remove-direct-share-targets-use-case/index.html">RemoveDirectShareTargetsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for removing Direct Share shortcut targets by ID.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="274725950%2FClasslikes%2F-761267287" anchor-label="ShareFileUseCase" id="274725950%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-file-use-case/index.html"><span>Share</span><wbr></wbr><span>File</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="274725950%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-share-file-use-case/index.html">ShareFileUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for sharing a single file via the Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2007532877%2FClasslikes%2F-761267287" anchor-label="ShareImageUseCase" id="2007532877%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-image-use-case/index.html"><span>Share</span><wbr></wbr><span>Image</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2007532877%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-share-image-use-case/index.html">ShareImageUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for sharing a single image via the Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1072366137%2FClasslikes%2F-761267287" anchor-label="ShareMultipleFilesUseCase" id="1072366137%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-multiple-files-use-case/index.html"><span>Share</span><wbr></wbr><span>Multiple</span><wbr></wbr><span>Files</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1072366137%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-share-multiple-files-use-case/index.html">ShareMultipleFilesUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for sharing multiple files via the Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-365208214%2FClasslikes%2F-761267287" anchor-label="ShareMultipleImagesUseCase" id="-365208214%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-multiple-images-use-case/index.html"><span>Share</span><wbr></wbr><span>Multiple</span><wbr></wbr><span>Images</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-365208214%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-share-multiple-images-use-case/index.html">ShareMultipleImagesUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for sharing multiple images via the Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="227756015%2FClasslikes%2F-761267287" anchor-label="ShareTextUseCase" id="227756015%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-text-use-case/index.html"><span>Share</span><wbr></wbr><span>Text</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="227756015%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-share-text-use-case/index.html">ShareTextUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for sharing text or URL content via the Sharesheet.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1820661043%2FClasslikes%2F-761267287" anchor-label="ShareUseCases" id="-1820661043%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-use-cases/index.html"><span>Share</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Cases</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1820661043%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-share-use-cases/index.html">ShareUseCases</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use-case suite for share operations.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-730779155%2FClasslikes%2F-761267287" anchor-label="ShareWithCallbackUseCase" id="-730779155%2FClasslikes%2F-761267287" data-filterable-set=":android_library:dokkaHtml/main"></a>
+          <div class="table-row" data-filterable-current=":android_library:dokkaHtml/main" data-filterable-set=":android_library:dokkaHtml/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-share-with-callback-use-case/index.html"><span>Share</span><wbr></wbr><span>With</span><wbr></wbr><span>Callback</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-730779155%2FClasslikes%2F-761267287"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library:dokkaHtml/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-share-with-callback-use-case/index.html">ShareWithCallbackUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../android.library.share.application.port/-share-repository/index.html">ShareRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for sharing text content and receiving the selected app package name via callback.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+        <span>© 2026 Copyright</span>
+        <span class="pull-right">
+            <span>Generated by </span>
+            <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                <span>dokka</span>
+            </a>
+        </span>
+    </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

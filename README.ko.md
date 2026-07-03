@@ -2,7 +2,7 @@
 
 네이티브 앱에서 사용할 수 있는 네이티브 플랫폼 기능을 플랫폼별로 모아둔 툴킷입니다.
 
-- Android: `DialogFragment` + 알림 기반 네이티브 API
+- Android: `DialogFragment` + 알림 + 공유 기반 네이티브 API
 - iOS: `UIAlertController` 기반 네이티브 API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` 기반 네이티브 API
 - Windows: Win32 공통 다이얼로그 및 토스트 알림의 C 형태 API
@@ -20,10 +20,10 @@
 2. 연동 절차는 `docs/<version>/manual/index.ko.md` 를 확인합니다.
 3. API 참조는 `docs/<version>/` 또는 `docs/latest/` 를 사용합니다.
 
-예시 (`1.4.0`):
+예시 (`1.5.0`):
 
-- 매뉴얼: `docs/1.4.0/manual/index.ko.md`
-- 배포 문서: `docs/1.4.0/manual/`
+- 매뉴얼: `docs/1.5.0/manual/index.ko.md`
+- 배포 문서: `docs/1.5.0/manual/`
 
 ## 상세 문서
 
@@ -33,34 +33,34 @@
 
 ## 버전
 
-- 현재 릴리스: 1.4.0
+- 현재 릴리스: 1.5.0
 - 최신 공개 문서 버전: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 지원 OS (1.4.0)
+## 지원 OS (1.5.0)
 
 - Android 12 이상
 - iOS 18 이상
 - Windows 11 이상
 - macOS 15 이상
 
-## 배포 산출물 (1.4.0)
+## 배포 산출물 (1.5.0)
 
-- Android: `dist/1.4.0/android/android-native-toolkit-1.1.0.aar`
+- Android: `dist/1.5.0/android/android-native-toolkit-1.2.0.aar`
 - iOS:
-  - `dist/1.4.0/ios/ios-native-toolkit-1.1.0.xcframework`
-  - `dist/1.4.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.5.0/ios/ios-native-toolkit-1.1.0.xcframework`
+  - `dist/1.5.0/ios/unity-ios-native-toolkit-1.1.0.xcframework`
 - macOS:
-  - `dist/1.4.0/mac/mac-native-toolkit-1.1.0.xcframework`
-  - `dist/1.4.0/mac/unity-mac-native-toolkit-1.1.0.xcframework`
-- Windows: `dist/1.4.0/windows/windows-native-toolkit-1.1.0.nupkg`
+  - `dist/1.5.0/mac/mac-native-toolkit-1.1.0.xcframework`
+  - `dist/1.5.0/mac/unity-mac-native-toolkit-1.1.0.xcframework`
+- Windows: `dist/1.5.0/windows/windows-native-toolkit-1.1.0.nupkg`
 
 ## 포함 모듈(개요)
 
 ### Android
 
 - `android/android_library`
-  - 핵심: `AndroidDialogFragment` / Android 알림 API
-  - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification
+  - 핵심: `AndroidDialogFragment` / Android 알림 API / `ShareUseCases`
+  - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
   - 문서: Dokka
 
 - `android/unity_android_plugin`
@@ -189,13 +189,13 @@ doxygen Doxyfile
 `docs/<version>/` 를 생성하고, `docs/latest/` 는 `docs/` 내 가장 높은 버전으로 갱신됩니다.
 
 ```bash
-./scripts/publish_docs.sh 1.4.0
+./scripts/publish_docs.sh 1.5.0
 ```
 
 생성 없이 복사만 할 경우:
 
 ```bash
-./scripts/publish_docs.sh 1.4.0 --skip-build
+./scripts/publish_docs.sh 1.5.0 --skip-build
 ```
 
 manual 복사 원본은 `manual/<version>/` 입니다.

@@ -53,7 +53,7 @@ class ApplicationNotificationUseCasesTest {
 
         val result = ScheduleNotificationUseCase(repository)(command, schedule)
 
-        assertTrue(result)
+        assertTrue(result.isSuccess)
         assertSame(command, repository.lastScheduledCommand)
         assertEquals(schedule, repository.lastSchedule)
     }

@@ -11,6 +11,7 @@
 [Xx]86/
 [Dd]ebug/
 [Rr]elease/
+!.codex/skills/release/
 *.user
 *.tlog
 *.log

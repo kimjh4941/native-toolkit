@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release"
+  short_description: "Run release checks, merge, and publish a release"
+  default_prompt: "Use $release to prepare and publish the next project release."

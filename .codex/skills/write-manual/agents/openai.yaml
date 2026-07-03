@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Manual"
+  short_description: "Create a manual from designs and implementation results"
+  default_prompt: "Use $write-manual to create the project manual from the implementation artifacts."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Message"
+  short_description: "Generate, confirm, commit, and push changes"
+  default_prompt: "Use $commit-msg to generate a commit message for the current changes."
