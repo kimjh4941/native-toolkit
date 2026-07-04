@@ -70,6 +70,19 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+
+                        Button("ShareMultipleImages") {
+                            Task {
+                                guard let imagePaths = prepareSampleImagePaths(count: 2) else {
+                                    updateResult(isSuccess: false, result: "[shareMultipleImages] Sample image preparation failed")
+                                    return
+                                }
+                                await runShare(
+                                    label: "shareMultipleImages",
+                                    content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+                                )
+                            }
+                        }
                     }
 
                     sectionView(title: "File") {
@@ -82,6 +95,19 @@ struct ShareSampleView: View {
                                 await runShare(
                                     label: "shareFile",
                                     content: ShareContent(items: [.file(path: fileURL.path)])
+                                )
+                            }
+                        }
+
+                        Button("ShareMultipleFiles") {
+                            Task {
+                                guard let fileURLs = prepareSampleFileURLs(count: 2) else {
+                                    updateResult(isSuccess: false, result: "[shareMultipleFiles] Sample file preparation failed")
+                                    return
+                                }
+                                await runShare(
+                                    label: "shareMultipleFiles",
+                                    content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
                                 )
                             }
                         }
@@ -209,6 +235,28 @@ struct ShareSampleView: View {
         Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png")?.path
     }
 
+    /// Copies the bundled sample image to `count` distinct temporary files, so multiple
+    /// `.imageFile` items can be shared at once (there is only one bundled image asset).
+    private func prepareSampleImagePaths(count: Int) -> [String]? {
+        guard let sourceURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else {
+            return nil
+        }
+        var paths: [String] = []
+        for index in 0..<count {
+            let destURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("share-sample-image-\(index).png")
+            do {
+                try? FileManager.default.removeItem(at: destURL)
+                try FileManager.default.copyItem(at: sourceURL, to: destURL)
+                paths.append(destURL.path)
+            } catch {
+                Log.e(TAG, "[prepareSampleImagePaths] failed: \(error)")
+                return nil
+            }
+        }
+        return paths
+    }
+
     private func prepareSampleFileURL() -> URL? {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
         do {
@@ -218,6 +266,24 @@ struct ShareSampleView: View {
             Log.e(TAG, "[prepareSampleFileURL] failed: \(error)")
             return nil
         }
+    }
+
+    /// Generates `count` distinct temporary text files, so multiple `.file` items can be
+    /// shared at once.
+    private func prepareSampleFileURLs(count: Int) -> [URL]? {
+        var urls: [URL] = []
+        for index in 0..<count {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("share-sample-file-\(index).txt")
+            do {
+                try "Shared from IosLibraryExample (\(index)).".write(to: url, atomically: true, encoding: .utf8)
+                urls.append(url)
+            } catch {
+                Log.e(TAG, "[prepareSampleFileURLs] failed: \(error)")
+                return nil
+            }
+        }
+        return urls
     }
 
     // MARK: - Result display
