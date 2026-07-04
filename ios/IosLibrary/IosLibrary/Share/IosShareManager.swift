@@ -52,6 +52,8 @@ public final class IosShareManager: NSObject {
     ///
     /// - Note: `completion` is always invoked on the main thread (main actor), regardless of
     ///   the calling thread, matching the Unity Bridge's documented threading contract.
+    /// - Note: Intended for the Unity Bridge (C callback interop). Swift callers should prefer
+    ///   ``share(content:)-(ShareContent)`` (`async throws`) for typed error handling.
     /// - Parameters:
     ///   - content: The content to share.
     ///   - completion: `(isSuccess, completed, activityType, errorMessage)`.
@@ -73,5 +75,21 @@ public final class IosShareManager: NSObject {
                 completion?(false, false, nil, error.localizedDescription)
             }
         }
+    }
+
+    /// Presents the share sheet for the given content.
+    ///
+    /// - Note: Preferred entry point for native Swift callers (e.g. SwiftUI views). Surfaces
+    ///   typed `ShareError` on failure instead of a string message. The Unity Bridge uses the
+    ///   callback-based ``share(content:completion:)`` overload instead, since C interop has no
+    ///   equivalent to `throws`/`async`.
+    /// - Parameter content: The content to share.
+    /// - Returns: The interaction result. `result.completed == false` means the user cancelled
+    ///   (not an error).
+    /// - Throws: `ShareError` on failure before or during presentation.
+    @discardableResult
+    public func share(content: ShareContent) async throws -> ShareResult {
+        Log.d(TAG, "[share] items: \(content.items.count)")
+        return try await shareUseCase.execute(content: content)
     }
 }

@@ -25,117 +25,141 @@ struct ShareSampleView: View {
                 VStack(spacing: 16) {
                     sectionView(title: "Text") {
                         Button("ShareText") {
-                            runShare(
-                                label: "shareText",
-                                content: ShareContent(items: [.text("Shared from IosLibraryExample")])
-                            )
+                            Task {
+                                await runShare(
+                                    label: "shareText",
+                                    content: ShareContent(items: [.text("Shared from IosLibraryExample")])
+                                )
+                            }
                         }
                     }
 
                     sectionView(title: "URL") {
                         Button("ShareURL") {
-                            runShare(
-                                label: "shareURL",
-                                content: ShareContent(items: [.url("https://www.apple.com")])
-                            )
+                            Task {
+                                await runShare(
+                                    label: "shareURL",
+                                    content: ShareContent(items: [.url("https://www.apple.com")])
+                                )
+                            }
                         }
 
                         Button("ShareURLWithPreview") {
-                            runShare(
-                                label: "shareURLWithPreview",
-                                content: ShareContent(
-                                    items: [.url("https://www.apple.com")],
-                                    previewTitle: "Apple"
+                            Task {
+                                await runShare(
+                                    label: "shareURLWithPreview",
+                                    content: ShareContent(
+                                        items: [.url("https://www.apple.com")],
+                                        previewTitle: "Apple"
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
 
                     sectionView(title: "Image") {
                         Button("ShareImage") {
-                            guard let imagePath = bundledImagePath() else {
-                                updateResult(isSuccess: false, result: "[shareImage] Sample image not found in bundle")
-                                return
+                            Task {
+                                guard let imagePath = bundledImagePath() else {
+                                    updateResult(isSuccess: false, result: "[shareImage] Sample image not found in bundle")
+                                    return
+                                }
+                                await runShare(
+                                    label: "shareImage",
+                                    content: ShareContent(items: [.imageFile(path: imagePath)])
+                                )
                             }
-                            runShare(
-                                label: "shareImage",
-                                content: ShareContent(items: [.imageFile(path: imagePath)])
-                            )
                         }
                     }
 
                     sectionView(title: "File") {
                         Button("ShareFile") {
-                            guard let fileURL = prepareSampleFileURL() else {
-                                updateResult(isSuccess: false, result: "[shareFile] Sample file preparation failed")
-                                return
+                            Task {
+                                guard let fileURL = prepareSampleFileURL() else {
+                                    updateResult(isSuccess: false, result: "[shareFile] Sample file preparation failed")
+                                    return
+                                }
+                                await runShare(
+                                    label: "shareFile",
+                                    content: ShareContent(items: [.file(path: fileURL.path)])
+                                )
                             }
-                            runShare(
-                                label: "shareFile",
-                                content: ShareContent(items: [.file(path: fileURL.path)])
-                            )
                         }
                     }
 
                     sectionView(title: "Combination") {
                         Button("ShareMultiple") {
-                            runShare(
-                                label: "shareMultiple",
-                                content: ShareContent(items: [
-                                    .text("Check this out"),
-                                    .url("https://www.apple.com")
-                                ])
-                            )
+                            Task {
+                                await runShare(
+                                    label: "shareMultiple",
+                                    content: ShareContent(items: [
+                                        .text("Check this out"),
+                                        .url("https://www.apple.com")
+                                    ])
+                                )
+                            }
                         }
 
                         Button("ShareWithSubject") {
-                            runShare(
-                                label: "shareWithSubject",
-                                content: ShareContent(
-                                    items: [.text("Body text")],
-                                    subject: "Sample Subject"
+                            Task {
+                                await runShare(
+                                    label: "shareWithSubject",
+                                    content: ShareContent(
+                                        items: [.text("Body text")],
+                                        subject: "Sample Subject"
+                                    )
                                 )
-                            )
+                            }
                         }
 
                         Button("ShareExcludingActivities") {
-                            runShare(
-                                label: "shareExcludingActivities",
-                                content: ShareContent(
-                                    items: [.url("https://www.apple.com")],
-                                    excludedActivityTypes: [
-                                        "com.apple.UIKit.activity.CopyToPasteboard",
-                                        "com.apple.UIKit.activity.PostToFacebook"
-                                    ]
+                            Task {
+                                await runShare(
+                                    label: "shareExcludingActivities",
+                                    content: ShareContent(
+                                        items: [.url("https://www.apple.com")],
+                                        excludedActivityTypes: [
+                                            "com.apple.UIKit.activity.CopyToPasteboard",
+                                            "com.apple.UIKit.activity.PostToFacebook"
+                                        ]
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
 
                     sectionView(title: "Error") {
                         Button("ShareEmpty") {
-                            runShare(label: "shareEmpty", content: ShareContent(items: []))
+                            Task {
+                                await runShare(label: "shareEmpty", content: ShareContent(items: []))
+                            }
                         }
 
                         Button("ShareInvalidURL") {
-                            runShare(
-                                label: "shareInvalidURL",
-                                content: ShareContent(items: [.url("not a valid url")])
-                            )
+                            Task {
+                                await runShare(
+                                    label: "shareInvalidURL",
+                                    content: ShareContent(items: [.url("not a valid url")])
+                                )
+                            }
                         }
 
                         Button("ShareMissingFile") {
-                            runShare(
-                                label: "shareMissingFile",
-                                content: ShareContent(items: [.file(path: "/nonexistent/share-missing.txt")])
-                            )
+                            Task {
+                                await runShare(
+                                    label: "shareMissingFile",
+                                    content: ShareContent(items: [.file(path: "/nonexistent/share-missing.txt")])
+                                )
+                            }
                         }
 
                         Button("ShareMissingImage") {
-                            runShare(
-                                label: "shareMissingImage",
-                                content: ShareContent(items: [.imageFile(path: "/nonexistent/share-missing.png")])
-                            )
+                            Task {
+                                await runShare(
+                                    label: "shareMissingImage",
+                                    content: ShareContent(items: [.imageFile(path: "/nonexistent/share-missing.png")])
+                                )
+                            }
                         }
                     }
                 }
@@ -161,22 +185,21 @@ struct ShareSampleView: View {
 
     // MARK: - Share execution
 
-    private func runShare(label: String, content: ShareContent) {
+    private func runShare(label: String, content: ShareContent) async {
         Log.d(TAG, "[runShare] label: \(label), items: \(content.items.count)")
-        IosShareManager.shared.share(content: content) { isSuccess, completed, activityType, errorMessage in
+        do {
+            let result = try await IosShareManager.shared.share(content: content)
             Log.d(
                 TAG,
-                "[runShare][completion] label: \(label), isSuccess: \(isSuccess), completed: \(completed), activityType: \(activityType ?? "nil"), errorMessage: \(errorMessage ?? "nil")"
+                "[runShare][result] label: \(label), completed: \(result.completed), activityType: \(result.activityType ?? "nil")"
             )
-            let detail: String
-            if isSuccess {
-                detail = completed
-                    ? "[\(label)] completed=true, activityType=\(activityType ?? "nil")"
-                    : "[\(label)] completed=false (cancelled)"
-            } else {
-                detail = "[\(label)] errorMessage=\(errorMessage ?? "nil")"
-            }
-            updateResult(isSuccess: isSuccess, result: detail)
+            let detail = result.completed
+                ? "[\(label)] completed=true, activityType=\(result.activityType ?? "nil")"
+                : "[\(label)] completed=false (cancelled)"
+            updateResult(isSuccess: true, result: detail)
+        } catch {
+            Log.e(TAG, "[runShare][error] label: \(label), error: \(error)")
+            updateResult(isSuccess: false, result: "[\(label)] errorMessage=\(error.localizedDescription)")
         }
     }
 

@@ -66,4 +66,28 @@ struct IosShareManagerTests {
         #expect(outcome.3 != nil)
         #expect(outcome.4 == true, "completion must be invoked on the main thread")
     }
+
+    // MARK: - async throws overload
+
+    @Test func asyncShareReturnsResultOnSuccess() async throws {
+        let repo = MockShareRepository()
+        repo.stubbedResult = ShareResult(completed: true, activityType: "com.apple.UIKit.activity.Mail")
+        let manager = IosShareManager(repository: repo)
+
+        let result = try await manager.share(content: makeContent())
+
+        #expect(result.completed == true)
+        #expect(result.activityType == "com.apple.UIKit.activity.Mail")
+    }
+
+    @Test func asyncShareThrowsOnFailure() async {
+        let repo = MockShareRepository()
+        repo.shouldFail = true
+        repo.errorToThrow = .noRootViewController
+        let manager = IosShareManager(repository: repo)
+
+        await #expect(throws: ShareError.self) {
+            try await manager.share(content: makeContent())
+        }
+    }
 }
