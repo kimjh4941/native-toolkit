@@ -49,6 +49,9 @@ public final class IosShareManager: NSObject {
     }
 
     /// Presents the share sheet for the given content.
+    ///
+    /// - Note: `completion` is always invoked on the main thread (main actor), regardless of
+    ///   the calling thread, matching the Unity Bridge's documented threading contract.
     /// - Parameters:
     ///   - content: The content to share.
     ///   - completion: `(isSuccess, completed, activityType, errorMessage)`.
@@ -61,7 +64,7 @@ public final class IosShareManager: NSObject {
         completion: ((Bool, Bool, String?, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "[share] items: \(content.items.count)")
-        Task {
+        Task { @MainActor in
             do {
                 let result = try await shareUseCase.execute(content: content)
                 completion?(true, result.completed, result.activityType, nil)

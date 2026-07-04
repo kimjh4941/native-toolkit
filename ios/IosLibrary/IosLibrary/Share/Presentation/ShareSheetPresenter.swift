@@ -75,11 +75,16 @@ final class ShareSheetPresenter: ShareSheetPresenting {
             }
 
             activityViewController.completionWithItemsHandler = { activityType, completed, _, error in
-                if let error {
-                    resumeOnce(.failure(ShareError.presentationFailed(error)))
-                } else {
-                    resumeOnce(.success(ShareResult(completed: completed,
-                                                    activityType: activityType?.rawValue)))
+                // completionWithItemsHandler is an escaping closure whose calling thread is not
+                // part of this function's @MainActor isolation from the type checker's
+                // perspective, so re-isolate explicitly before touching `hasResumed`/`continuation`.
+                Task { @MainActor in
+                    if let error {
+                        resumeOnce(.failure(ShareError.presentationFailed(error)))
+                    } else {
+                        resumeOnce(.success(ShareResult(completed: completed,
+                                                        activityType: activityType?.rawValue)))
+                    }
                 }
             }
 

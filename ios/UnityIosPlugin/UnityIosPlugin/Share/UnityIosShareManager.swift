@@ -35,6 +35,9 @@ public class UnityIosShareManager: NSObject {
     }
 
     /// Presents the share sheet from a JSON content string.
+    ///
+    /// - Note: `handler` is always invoked on the main thread, on every code path
+    ///   (including invalid JSON), matching the Bridge header's threading contract.
     /// - Parameters:
     ///   - contentJson: JSON string for `ShareContent` (see `UnityIosShareJsonParser`).
     ///   - handler: `(isSuccess, completed, activityType, errorMessage)`.
@@ -45,7 +48,9 @@ public class UnityIosShareManager: NSObject {
         Log.d(TAG, "[share] contentJson: \(contentJson)")
         guard let content = parser.parseContent(from: contentJson) else {
             Log.e(TAG, "[share] failed to parse content JSON")
-            handler?(false, false, nil, "Invalid share content JSON.")
+            Task { @MainActor in
+                handler?(false, false, nil, "Invalid share content JSON.")
+            }
             return
         }
         IosShareManager.shared.share(content: content, completion: handler)
