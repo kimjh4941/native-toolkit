@@ -94,6 +94,11 @@ Markdown files in this directory are published as versioned documents under `doc
   - Notifications with attachment
   - Badge
   - Categories and actions
+- Share features
+  - Text / URL share
+  - Rich preview
+  - Image / file share (single and multiple)
+  - Combined content (subject, exclude activity types)
 
 ## Windows
 

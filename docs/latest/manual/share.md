@@ -34,6 +34,24 @@ Language:
     - [Cancel Pending Callback](#cancel-pending-callback)
   - [Receiving Incoming Shares](#receiving-incoming-shares)
   - [Error Handling](#error-handling)
+- [iOS](#ios)
+  - [IosShareManager](#iossharemanager)
+  - [Setup](#setup-1)
+  - [Text Share](#text-share-1)
+    - [Share Text](#share-text-1)
+    - [Share URL](#share-url-1)
+    - [Share URL with Preview](#share-url-with-preview)
+  - [Image Share](#image-share-1)
+    - [Share Image](#share-image)
+    - [Share Multiple Images](#share-multiple-images)
+  - [File Share](#file-share-1)
+    - [Share File](#share-file)
+    - [Share Multiple Files](#share-multiple-files)
+  - [Combined Content](#combined-content)
+    - [Share Multiple Items](#share-multiple-items)
+    - [Share with Subject](#share-with-subject)
+    - [Exclude Activity Types](#exclude-activity-types)
+  - [Error Handling](#error-handling-1)
 
 ---
 
@@ -466,5 +484,305 @@ try {
     // Text was blank
 } catch (e: ShareDomainError) {
     // Other domain error
+}
+```
+
+---
+
+## iOS
+
+- Library: `ios-native-toolkit-1.2.0.xcframework`
+- Minimum Deployment Target: iOS 18
+- Scope: sending only (presenting the system share sheet via `UIActivityViewController`). Receiving incoming shares (Share Extension) is not included.
+
+### IosShareManager
+
+`IosShareManager` is a singleton class that presents the system share sheet on iOS.
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager.png" alt="Example_IosShareManager" width="400" />
+</p>
+
+### Setup
+
+1. Add `ios-native-toolkit-1.2.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
+2. Import the library where you present the share sheet:
+
+```swift
+import IosLibrary
+```
+
+No additional initialization is required.
+
+`IosShareManager.share` offers two calling styles:
+
+- `async throws` (preferred for native Swift callers): returns a typed `ShareResult` and throws `ShareError` on failure.
+- Callback (used by the Unity Bridge, also available in Swift): `(isSuccess, completed, activityType, errorMessage)`.
+
+```swift
+// async throws (recommended for Swift callers)
+Task {
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        // result.completed == false means the user cancelled (not an error)
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
+}
+
+// callback (equivalent)
+IosShareManager.shared.share(
+    content: ShareContent(items: [.text("Hello")])
+) { isSuccess, completed, activityType, errorMessage in
+    print(isSuccess, completed, activityType ?? "nil", errorMessage ?? "nil")
+}
+```
+
+The examples below use the `async throws` style. Because SwiftUI `Button` actions are synchronous, each call is wrapped in `Task { ... }`.
+
+### Text Share
+
+#### Share Text
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.text("Shared from IosLibraryExample")])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareText.png" alt="Example_IosShareManager_ShareText" width="400" />
+</p>
+
+#### Share URL
+
+A URL is passed as a raw string. It is validated in the library: only `http`, `https`, and `file` schemes with a valid host are accepted (otherwise `ShareError.invalidURL` is thrown).
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.url("https://www.apple.com")])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareURL.png" alt="Example_IosShareManager_ShareURL" width="400" />
+</p>
+
+#### Share URL with Preview
+
+Set `previewTitle` to show a rich link preview in the share sheet header immediately, without waiting for a network fetch.
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(
+            items: [.url("https://www.apple.com")],
+            previewTitle: "Apple"
+        )
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareURLWithPreview.png" alt="Example_IosShareManager_ShareURLWithPreview" width="400" />
+</p>
+
+### Image Share
+
+#### Share Image
+
+Pass the local file path of an image with `.imageFile(path:)`. The library loads it as a `UIImage` (throws `ShareError.imageLoadFailed` if it cannot be read).
+
+```swift
+guard let imagePath = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png")?.path else {
+    return
+}
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.imageFile(path: imagePath)])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareImage.png" alt="Example_IosShareManager_ShareImage" width="400" />
+</p>
+
+#### Share Multiple Images
+
+`ShareContent.items` accepts multiple entries, so several images can be shared at once.
+
+```swift
+let imagePaths: [String] = /* local image file paths */
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareMultipleImages.png" alt="Example_IosShareManager_ShareMultipleImages" width="400" />
+</p>
+
+### File Share
+
+#### Share File
+
+Pass the local file path with `.file(path:)`. The library checks that the file exists (throws `ShareError.fileNotFound` otherwise).
+
+```swift
+let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
+try "Shared from IosLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.file(path: fileURL.path)])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareFile.png" alt="Example_IosShareManager_ShareFile" width="400" />
+</p>
+
+#### Share Multiple Files
+
+```swift
+let fileURLs: [URL] = /* local file URLs */
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareMultipleFiles.png" alt="Example_IosShareManager_ShareMultipleFiles" width="400" />
+</p>
+
+### Combined Content
+
+#### Share Multiple Items
+
+Mix different item types (text, URL, image, file) in a single share.
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [
+            .text("Check this out"),
+            .url("https://www.apple.com")
+        ])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareMultiple.png" alt="Example_IosShareManager_ShareMultiple" width="400" />
+</p>
+
+#### Share with Subject
+
+`subject` is used by activities that support it (for example, the subject line in Mail).
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(
+            items: [.text("Body text")],
+            subject: "Sample Subject"
+        )
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareWithSubject.png" alt="Example_IosShareManager_ShareWithSubject" width="400" />
+</p>
+
+#### Exclude Activity Types
+
+Pass raw activity type identifiers in `excludedActivityTypes` to hide them from the share sheet.
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(
+            items: [.url("https://www.apple.com")],
+            excludedActivityTypes: [
+                "com.apple.UIKit.activity.CopyToPasteboard",
+                "com.apple.UIKit.activity.PostToFacebook"
+            ]
+        )
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareExcludingActivities.png" alt="Example_IosShareManager_ShareExcludingActivities" width="400" />
+</p>
+
+### Error Handling
+
+The `async throws` API throws `ShareError` on failure. User cancellation is not an error: it is reported as `ShareResult.completed == false`.
+
+| Error | Cause | Error message |
+|---|---|---|
+| `noValidItems` | `items` is empty | `"No shareable items were provided."` |
+| `invalidURL(String)` | URL string is not a valid `http`/`https`/`file` URL | `"Invalid URL: <value>."` |
+| `imageLoadFailed(path:)` | Image at the path could not be loaded | `"Failed to load image at path: <path>."` |
+| `fileNotFound(path:)` | File at the path does not exist | `"File not found at path: <path>."` |
+| `noRootViewController` | No root view controller available to present | `"No root view controller available to present the share sheet."` |
+| `presentationFailed(Error)` | Presentation failed or the system reported an error | `"Failed to present the share sheet: <detail>."` |
+| `unknown(Error)` | An unexpected error occurred | `"An unknown error occurred: <detail>."` |
+
+```swift
+Task {
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        if result.completed {
+            // Shared successfully via result.activityType
+        } else {
+            // User cancelled
+        }
+    } catch let error as ShareError {
+        // Typed error (e.g. .noValidItems, .invalidURL, .fileNotFound)
+        print(error.localizedDescription)
+    } catch {
+        // Other error
+    }
+}
+```
+
+When using the callback API, failures are delivered as `isSuccess == false` with a non-nil `errorMessage`:
+
+```swift
+IosShareManager.shared.share(
+    content: ShareContent(items: [])
+) { isSuccess, completed, activityType, errorMessage in
+    // isSuccess == false, errorMessage == "No shareable items were provided."
 }
 ```

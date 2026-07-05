@@ -34,6 +34,24 @@ Language:
     - [保留中のコールバックをキャンセル](#保留中のコールバックをキャンセル)
   - [受信した共有コンテンツの処理](#受信した共有コンテンツの処理)
   - [エラー処理](#エラー処理)
+- [iOS](#ios)
+  - [IosShareManager](#iossharemanager)
+  - [セットアップ](#セットアップ-1)
+  - [テキスト共有](#テキスト共有-1)
+    - [テキストを共有](#テキストを共有-1)
+    - [URL を共有](#url-を共有-1)
+    - [プレビュー付き URL 共有](#プレビュー付き-url-共有)
+  - [画像共有](#画像共有-1)
+    - [画像を共有](#画像を共有)
+    - [複数画像を共有](#複数画像を共有)
+  - [ファイル共有](#ファイル共有-1)
+    - [ファイルを共有](#ファイルを共有)
+    - [複数ファイルを共有](#複数ファイルを共有)
+  - [組み合わせコンテンツ](#組み合わせコンテンツ)
+    - [複数アイテムを共有](#複数アイテムを共有)
+    - [件名付き共有](#件名付き共有)
+    - [アクティビティタイプの除外](#アクティビティタイプの除外)
+  - [エラー処理](#エラー処理-1)
 
 ---
 
@@ -466,5 +484,305 @@ try {
     // テキストが空白
 } catch (e: ShareDomainError) {
     // その他のドメインエラー
+}
+```
+
+---
+
+## iOS
+
+- ライブラリ: `ios-native-toolkit-1.2.0.xcframework`
+- 最小デプロイメントターゲット: iOS 18
+- 対応範囲: 送信のみ（`UIActivityViewController` によるシステム共有シートの表示）。受信（Share Extension）は対象外です。
+
+### IosShareManager
+
+`IosShareManager` は、iOS でシステム共有シートを表示するシングルトンクラスです。
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager.png" alt="Example_IosShareManager" width="400" />
+</p>
+
+### セットアップ
+
+1. `ios-native-toolkit-1.2.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
+2. 共有シートを表示するファイルでライブラリをインポートします。
+
+```swift
+import IosLibrary
+```
+
+追加の初期化は不要です。
+
+`IosShareManager.share` には 2 つの呼び出し方式があります。
+
+- `async throws`（ネイティブ Swift 呼び出し元に推奨）: 型付きの `ShareResult` を返し、失敗時は `ShareError` を throw します。
+- コールバック（Unity Bridge が使用。Swift でも利用可）: `(isSuccess, completed, activityType, errorMessage)`。
+
+```swift
+// async throws（Swift 呼び出し元に推奨）
+Task {
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        // result.completed == false はユーザーがキャンセルしたことを示します（エラーではありません）
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
+}
+
+// コールバック（同等）
+IosShareManager.shared.share(
+    content: ShareContent(items: [.text("Hello")])
+) { isSuccess, completed, activityType, errorMessage in
+    print(isSuccess, completed, activityType ?? "nil", errorMessage ?? "nil")
+}
+```
+
+以降の例では `async throws` 方式を使用します。SwiftUI の `Button` アクションは同期クロージャのため、各呼び出しは `Task { ... }` で囲みます。
+
+### テキスト共有
+
+#### テキストを共有
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.text("Shared from IosLibraryExample")])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareText.png" alt="Example_IosShareManager_ShareText" width="400" />
+</p>
+
+#### URL を共有
+
+URL は文字列として渡します。ライブラリ側で検証され、`http` / `https` / `file` スキームかつ有効なホストを持つ URL のみ受け付けます（それ以外は `ShareError.invalidURL` が throw されます）。
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.url("https://www.apple.com")])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareURL.png" alt="Example_IosShareManager_ShareURL" width="400" />
+</p>
+
+#### プレビュー付き URL 共有
+
+`previewTitle` を指定すると、ネットワーク取得を待たずに共有シートのヘッダにリッチリンクプレビューを即時表示できます。
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(
+            items: [.url("https://www.apple.com")],
+            previewTitle: "Apple"
+        )
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareURLWithPreview.png" alt="Example_IosShareManager_ShareURLWithPreview" width="400" />
+</p>
+
+### 画像共有
+
+#### 画像を共有
+
+`.imageFile(path:)` にローカル画像のファイルパスを渡します。ライブラリは `UIImage` として読み込みます（読み込めない場合は `ShareError.imageLoadFailed` を throw します）。
+
+```swift
+guard let imagePath = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png")?.path else {
+    return
+}
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.imageFile(path: imagePath)])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareImage.png" alt="Example_IosShareManager_ShareImage" width="400" />
+</p>
+
+#### 複数画像を共有
+
+`ShareContent.items` は複数の要素を受け付けるため、複数の画像を一度に共有できます。
+
+```swift
+let imagePaths: [String] = /* ローカル画像のファイルパス */
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareMultipleImages.png" alt="Example_IosShareManager_ShareMultipleImages" width="400" />
+</p>
+
+### ファイル共有
+
+#### ファイルを共有
+
+`.file(path:)` にローカルファイルのパスを渡します。ライブラリはファイルの存在を確認します（存在しない場合は `ShareError.fileNotFound` を throw します）。
+
+```swift
+let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
+try "Shared from IosLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [.file(path: fileURL.path)])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareFile.png" alt="Example_IosShareManager_ShareFile" width="400" />
+</p>
+
+#### 複数ファイルを共有
+
+```swift
+let fileURLs: [URL] = /* ローカルファイルの URL */
+
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareMultipleFiles.png" alt="Example_IosShareManager_ShareMultipleFiles" width="400" />
+</p>
+
+### 組み合わせコンテンツ
+
+#### 複数アイテムを共有
+
+テキスト・URL・画像・ファイルなど、異なる種類のアイテムを 1 回の共有に混在させられます。
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(items: [
+            .text("Check this out"),
+            .url("https://www.apple.com")
+        ])
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareMultiple.png" alt="Example_IosShareManager_ShareMultiple" width="400" />
+</p>
+
+#### 件名付き共有
+
+`subject` は、それに対応するアクティビティ（例: Mail の件名欄）で使用されます。
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(
+            items: [.text("Body text")],
+            subject: "Sample Subject"
+        )
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareWithSubject.png" alt="Example_IosShareManager_ShareWithSubject" width="400" />
+</p>
+
+#### アクティビティタイプの除外
+
+`excludedActivityTypes` に生のアクティビティタイプ識別子を渡すと、共有シートから非表示にできます。
+
+```swift
+Task {
+    let result = try await IosShareManager.shared.share(
+        content: ShareContent(
+            items: [.url("https://www.apple.com")],
+            excludedActivityTypes: [
+                "com.apple.UIKit.activity.CopyToPasteboard",
+                "com.apple.UIKit.activity.PostToFacebook"
+            ]
+        )
+    )
+    print(result.completed, result.activityType ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareExcludingActivities.png" alt="Example_IosShareManager_ShareExcludingActivities" width="400" />
+</p>
+
+### エラー処理
+
+`async throws` API は失敗時に `ShareError` を throw します。ユーザーのキャンセルはエラーではなく、`ShareResult.completed == false` として通知されます。
+
+| エラー | 原因 | エラーメッセージ |
+|---|---|---|
+| `noValidItems` | `items` が空 | `"No shareable items were provided."` |
+| `invalidURL(String)` | URL 文字列が有効な `http`/`https`/`file` URL でない | `"Invalid URL: <value>."` |
+| `imageLoadFailed(path:)` | 指定パスの画像を読み込めない | `"Failed to load image at path: <path>."` |
+| `fileNotFound(path:)` | 指定パスのファイルが存在しない | `"File not found at path: <path>."` |
+| `noRootViewController` | 表示に使うルートビューコントローラがない | `"No root view controller available to present the share sheet."` |
+| `presentationFailed(Error)` | 表示に失敗、またはシステムがエラーを報告 | `"Failed to present the share sheet: <detail>."` |
+| `unknown(Error)` | 予期しないエラー | `"An unknown error occurred: <detail>."` |
+
+```swift
+Task {
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        if result.completed {
+            // result.activityType 経由で共有成功
+        } else {
+            // ユーザーがキャンセル
+        }
+    } catch let error as ShareError {
+        // 型付きエラー（例: .noValidItems, .invalidURL, .fileNotFound）
+        print(error.localizedDescription)
+    } catch {
+        // その他のエラー
+    }
+}
+```
+
+コールバック API を使う場合、失敗は `isSuccess == false` と非 nil の `errorMessage` で通知されます。
+
+```swift
+IosShareManager.shared.share(
+    content: ShareContent(items: [])
+) { isSuccess, completed, activityType, errorMessage in
+    // isSuccess == false, errorMessage == "No shareable items were provided."
 }
 ```
