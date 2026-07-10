@@ -74,6 +74,28 @@ badgeUseCases.setBadgeCount(count) { result in ... }
 repository.setBadgeCount(count) { result in ... }
 ```
 
+### Manager の公開 API 方式（callback 版 + ネイティブ版の併設）
+
+Manager は UseCase を呼び出す際、用途に応じて 2 種類の公開 API を用意してよい。
+
+- **callback 版**: `(isSuccess/completed, ..., errorMessage: String?) -> Void` の形。Unity Bridge が C 相互運用（関数ポインタ・delegate）でしか呼べないため必須。既存の Notification / Dialog Manager もこの形式。
+- **ネイティブ版**: プラットフォームの例外機構（Swift の `async throws`、Kotlin の `suspend fun` + 例外、C# の `async Task<T>` + 例外など）を使う形。Bridge を介さないネイティブ呼び出し元（サンプルアプリ、他のネイティブコードからの利用）向け。
+
+**方針:**
+- callback 版は Bridge 向けとして必ず維持する（既存 API を壊さない）。
+- ネイティブ版は callback 版と共存させ、UseCase の呼び出しをそのまま公開する薄いラッパーとする（Manager 内でロジックを重複させない）。
+- ネイティブ版はエラーを型付き（Domain Error）のまま伝播させ、callback 版のような文字列化（`errorMessage: String?`）を強制しない。
+- サンプルアプリなど純粋ネイティブの呼び出し元は、ネイティブ版を優先して使う。
+
+```swift
+// Bridge 向け（既存維持）
+public func share(content: ShareContent, completion: ((Bool, Bool, String?, String?) -> Void)? = nil)
+
+// ネイティブ呼び出し元向け（UseCase をそのまま公開する薄いラッパー）
+@discardableResult
+public func share(content: ShareContent) async throws -> ShareResult
+```
+
 ### Delegate・Callback の所有権
 
 - システム Delegate / Listener（例: iOS の `UNUserNotificationCenterDelegate`）は Manager 層の 1 クラスのみが所有する

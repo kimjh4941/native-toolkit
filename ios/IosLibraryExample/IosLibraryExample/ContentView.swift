@@ -31,6 +31,16 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink {
+                        ShareSampleView()
+                    } label: {
+                        menuCard(
+                            title: "Share Example",
+                            subtitle: "Test system share sheet features"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     Spacer(minLength: 0)
                 }
                 .padding()
