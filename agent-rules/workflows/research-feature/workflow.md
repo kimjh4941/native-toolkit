@@ -80,7 +80,6 @@
    - 保存先は `artifact/plans/<feature>/` 配下とする
    - ファイル名は `YYYY-MM-DD-<os>-<feature>-research.md` 形式を推奨する
    - 保存後に保存先パスを明示する
-   - 保存後、当該 Markdown ファイルを現在の VS Code で新しいタブとして開いて表示する
 
 10. 実行確認を行う
 
