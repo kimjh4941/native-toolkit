@@ -79,6 +79,17 @@ Swift の API を Objective-C から呼び出す際、completion ブロックの
 
 ---
 
+## Manager の公開 API（callback 版 + async throws 版）
+
+方針は `common.md`「Manager の公開 API 方式」を参照。macOS では次の形で実装する。
+
+- callback 版（Bridge 向け）: 既存どおり `(Bool, ..., String?) -> Void` 形式を維持する
+- ネイティブ版（Swift 呼び出し元向け）: `async throws` で UseCase をそのまま公開する薄いラッパーを追加する（`@discardableResult` を付け、戻り値を無視できるようにする）
+- 新規 Manager を作る場合は、両方式を最初から用意する（後から追加ではなく設計時点で決める）
+- サンプルアプリ（`MacLibraryExample`）は `async throws` 版を使う（`Button` の action は同期クロージャのため `Task { await ... }` で橋渡しする）
+
+---
+
 ## コメント（DocC / HeaderDoc）
 
 ### Swift
