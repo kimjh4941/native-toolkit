@@ -52,6 +52,24 @@ Language:
     - [제목(Subject) 포함 공유](#제목subject-포함-공유)
     - [액티비티 타입 제외](#액티비티-타입-제외)
   - [에러 처리](#에러-처리-1)
+- [macOS](#macos)
+  - [MacShareManager](#macsharemanager)
+  - [설정](#설정-2)
+  - [피커 - 기본](#피커---기본)
+    - [텍스트 공유](#텍스트-공유-4)
+    - [URL 공유](#url-공유-2)
+    - [이미지 공유](#이미지-공유-3)
+    - [파일 공유](#파일-공유-3)
+  - [피커 - 여러 항목](#피커---여러-항목)
+    - [여러 이미지 공유](#여러-이미지-공유-2)
+    - [여러 파일 공유](#여러-파일-공유-2)
+    - [텍스트와 URL 공유](#텍스트와-url-공유)
+  - [피커 - 필터](#피커---필터)
+    - [특정 서비스 제외하고 공유](#특정-서비스-제외하고-공유)
+  - [개별 서비스 직접 실행](#개별-서비스-직접-실행)
+    - [Mail 직접 실행으로 공유](#mail-직접-실행으로-공유)
+    - [서비스 실행 가능 여부 확인](#서비스-실행-가능-여부-확인)
+  - [에러 처리](#에러-처리-2)
 
 ---
 
@@ -783,6 +801,309 @@ Task {
 IosShareManager.shared.share(
     content: ShareContent(items: [])
 ) { isSuccess, completed, activityType, errorMessage in
+    // isSuccess == false, errorMessage == "No shareable items were provided."
+}
+```
+
+---
+
+## macOS
+
+- 라이브러리: `mac-native-toolkit-1.2.0.xcframework`
+- 최소 배포 타깃: macOS 15
+- 지원 범위: 전송 전용. 피커(`NSSharingServicePicker`)와 개별 서비스 직접 실행(`NSSharingService`)을 제공합니다. 수신은 포함되지 않습니다.
+- macOS에는 두 가지 공유 방식이 있습니다. 사용자가 공유 대상을 선택하는 **피커**(`NSSharingServicePicker`)와, 피커를 표시하지 않고 지정한 서비스를 바로 실행하는 **개별 서비스 직접 실행**(`NSSharingService`. 예: `recipients`/`subject`를 설정한 상태로 Mail 실행)입니다.
+
+### MacShareManager
+
+`MacShareManager`는 macOS에서 시스템 공유 피커 표시와 개별 서비스 직접 실행을 제공하는 싱글턴 클래스입니다.
+
+**중요:** 피커 표시는 버튼 클릭 등 사용자 조작에 의해 트리거되는 처리 안에서만 호출하세요. `NSSharingServicePicker.show(...)`는 `mouseDown` 이벤트 컨텍스트에서의 호출을 요구하지만, 피커 호출 경로는 내부적으로 `Task { @MainActor in ... }`를 거치기 때문에 이 컨텍스트가 유지된다는 것이 사양상 엄격히 보장되지는 않습니다. 본 툴킷에 포함된 샘플 앱에서는 실제 클릭으로 트리거했을 때 피커가 정상적으로 표시되고 해석(표시/취소/완료)됨을 확인했습니다. 개별 서비스 직접 실행(`shareViaService` / `share(content:serviceName:completion:)`)은 `mouseDown` 컨텍스트에 의존하지 않으므로, 신뢰성이 중요한 경우 더 견고한 방법입니다.
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager.png" alt="Example_MacShareManager" width="800" />
+</p>
+
+### 설정
+
+1. `mac-native-toolkit-1.2.0.xcframework`를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그하고 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정).
+2. 공유 피커나 서비스를 실행하는 파일에서 라이브러리를 임포트합니다.
+
+```swift
+import MacLibrary
+```
+
+추가 초기화는 필요하지 않습니다.
+
+`MacShareManager`는 각 작업에 대해 두 가지 호출 방식을 제공합니다.
+
+- `async throws`(네이티브 Swift 호출자에 권장): 타입이 지정된 `ShareResult`를 반환하고, 실패 시 `ShareError`를 throw합니다.
+- 콜백(Unity Bridge가 사용, Swift에서도 사용 가능): `(isSuccess, completed, serviceName, errorMessage)`.
+
+```swift
+// async throws (Swift 호출자에 권장)
+Task {
+    do {
+        let result = try await MacShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        // result.completed == false는 사용자가 취소했음을 의미합니다(에러 아님)
+        print(result.completed, result.serviceName ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
+}
+
+// 콜백 (동일한 동작)
+MacShareManager.shared.share(
+    content: ShareContent(items: [.text("Hello")])
+) { isSuccess, completed, serviceName, errorMessage in
+    print(isSuccess, completed, serviceName ?? "nil", errorMessage ?? "nil")
+}
+```
+
+아래 예제는 `async throws` 방식을 사용합니다. SwiftUI `Button`의 action은 동기 처리이므로 각 호출을 `Task { ... }`로 감쌉니다.
+
+### 피커 - 기본
+
+#### 텍스트 공유
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.text("Shared from MacLibraryExample")])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareText.png" alt="Example_MacShareManager_ShareText" width="800" />
+</p>
+
+#### URL 공유
+
+URL은 문자열로 전달합니다. 라이브러리 내부에서 검증되며, `http` / `https` / `file` 스킴이면서 호스트가 유효한 경우만 허용됩니다(그 외에는 `ShareError.invalidURL`이 throw됩니다).
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.url("https://www.apple.com")])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareURL.png" alt="Example_MacShareManager_ShareURL" width="800" />
+</p>
+
+#### 이미지 공유
+
+`.imageFile(path:)`에 이미지의 로컬 파일 경로를 전달합니다. 라이브러리는 이를 `NSImage`로 로드합니다(읽을 수 없으면 `ShareError.imageLoadFailed`가 throw됩니다).
+
+```swift
+guard let image = NSImage(named: "test-image") else { return }
+guard let tiffData = image.tiffRepresentation,
+      let bitmap = NSBitmapImageRep(data: tiffData),
+      let pngData = bitmap.representation(using: .png, properties: [:])
+else { return }
+
+let imageURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample-image.png")
+try pngData.write(to: imageURL)
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.imageFile(path: imageURL.path)])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareImage.png" alt="Example_MacShareManager_ShareImage" width="800" />
+</p>
+
+#### 파일 공유
+
+`.file(path:)`에 파일의 로컬 경로를 전달합니다. 라이브러리는 파일 존재 여부를 확인합니다(존재하지 않으면 `ShareError.fileNotFound`가 throw됩니다).
+
+```swift
+let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
+try "Shared from MacLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.file(path: fileURL.path)])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareFile.png" alt="Example_MacShareManager_ShareFile" width="800" />
+</p>
+
+### 피커 - 여러 항목
+
+#### 여러 이미지 공유
+
+`ShareContent.items`는 여러 항목을 받을 수 있으므로 한 번에 여러 이미지를 공유할 수 있습니다(샘플 이미지는 하나만 번들되어 있어 여러 임시 파일로 복사해서 사용합니다).
+
+```swift
+let imagePaths: [String] = /* 로컬 이미지 파일 경로 배열 */
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareMultipleImages.png" alt="Example_MacShareManager_ShareMultipleImages" width="800" />
+</p>
+
+#### 여러 파일 공유
+
+```swift
+let fileURLs: [URL] = /* 로컬 파일 URL 배열 */
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareMultipleFiles.png" alt="Example_MacShareManager_ShareMultipleFiles" width="800" />
+</p>
+
+#### 텍스트와 URL 공유
+
+텍스트, URL, 이미지, 파일 등 서로 다른 종류의 항목을 한 번의 공유에 섞어서 지정할 수 있습니다.
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [
+            .text("Check this out"),
+            .url("https://www.apple.com")
+        ])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareTextAndURL.png" alt="Example_MacShareManager_ShareTextAndURL" width="800" />
+</p>
+
+### 피커 - 필터
+
+#### 특정 서비스 제외하고 공유
+
+`excludedServiceTitles`에 서비스의 표시 이름을 전달하면 피커에서 해당 서비스를 숨깁니다. 이는 **best-effort** 방식입니다. `NSSharingService`는 호출자에게 안정적인 raw identifier를 제공하지 않으므로, 비교는 로컬라이즈될 수 있는 표시 이름(`title`)을 기준으로 이루어지며 환경에 따라 일치하지 않을 수 있습니다. 확실한 제어가 필요하다면 개별 서비스 직접 실행(`shareViaService`)을 사용하세요.
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(
+            items: [.url("https://www.apple.com")],
+            excludedServiceTitles: ["Add to Reading List"]
+        )
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareExcludingServices.png" alt="Example_MacShareManager_ShareExcludingServices" width="800" />
+</p>
+
+### 개별 서비스 직접 실행
+
+#### Mail 직접 실행으로 공유
+
+피커를 표시하지 않고 지정한 서비스 하나를 바로 실행합니다. `serviceName`에는 raw `NSSharingService.Name` 값(예: `"com.apple.share.Mail.compose"`)을 전달합니다. `recipients`와 `subject`는 서비스 실행 전에 적용됩니다. 피커 방식에서는 적용되지 않습니다.
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.shareViaService(
+        content: ShareContent(
+            items: [.text("Body text")],
+            recipients: ["test@example.com"],
+            subject: "Sample Subject"
+        ),
+        serviceName: "com.apple.share.Mail.compose"
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareViaMail.png" alt="Example_MacShareManager_ShareViaMail" width="800" />
+</p>
+
+#### 서비스 실행 가능 여부 확인
+
+지정한 서비스가 전달한 콘텐츠를 공유할 수 있는지 조회합니다. 예를 들어 버튼을 탭하기 전에 활성/비활성 상태를 전환할 때 사용합니다.
+
+```swift
+Task {
+    let canPerform = try await MacShareManager.shared.canPerform(
+        content: ShareContent(items: [.text("Body text")]),
+        serviceName: "com.apple.share.Mail.compose"
+    )
+    print(canPerform)
+}
+```
+
+### 에러 처리
+
+`async throws` API는 실패 시 `ShareError`를 throw합니다. 사용자의 취소는 에러가 아니며 `ShareResult.completed == false`로 전달됩니다.
+
+| 에러 | 원인 | 에러 메시지 |
+|---|---|---|
+| `noValidItems` | `items`가 비어 있음 | `"No shareable items were provided."` |
+| `invalidURL(String)` | URL 문자열이 유효한 `http`/`https`/`file` URL이 아님 | `"Invalid URL: <value>."` |
+| `imageLoadFailed(path:)` | 지정한 경로의 이미지를 로드할 수 없음 | `"Failed to load image at path: <path>."` |
+| `fileNotFound(path:)` | 지정한 경로의 파일이 존재하지 않음 | `"File not found at path: <path>."` |
+| `noAnchorView` | 피커를 표시할 기준이 되는 key window를 가져올 수 없음 | `"No key window available to anchor the sharing picker."` |
+| `serviceUnavailable(name:)` | 지정한 서비스 이름을 알 수 없거나 콘텐츠를 공유할 수 없음 | `"Sharing service unavailable: <name>."` |
+| `alreadyInProgress` | 다른 공유 작업이 이미 진행 중 | `"A share operation is already in progress."` |
+| `presentationFailed(Error)` | 표시에 실패했거나 시스템이 에러를 보고함 | `"Failed to share: <detail>."` |
+| `unknown(Error)` | 예기치 않은 에러 발생 | `"An unknown share error occurred: <detail>."` |
+
+```swift
+Task {
+    do {
+        let result = try await MacShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        if result.completed {
+            // result.serviceName으로 공유 성공
+        } else {
+            // 사용자가 취소
+        }
+    } catch let error as ShareError {
+        // 타입이 지정된 에러. errorCode / errorMessage 포함 (예: .noValidItems, .invalidURL, .fileNotFound)
+        print(error.errorCode, error.errorMessage)
+    } catch {
+        // 기타 에러
+    }
+}
+```
+
+콜백 API를 사용하는 경우, 실패는 `isSuccess == false` 와 nil이 아닌 `errorMessage` 로 전달됩니다.
+
+```swift
+MacShareManager.shared.share(
+    content: ShareContent(items: [])
+) { isSuccess, completed, serviceName, errorMessage in
     // isSuccess == false, errorMessage == "No shareable items were provided."
 }
 ```

@@ -52,6 +52,24 @@ Language:
     - [Share with Subject](#share-with-subject)
     - [Exclude Activity Types](#exclude-activity-types)
   - [Error Handling](#error-handling-1)
+- [macOS](#macos)
+  - [MacShareManager](#macsharemanager)
+  - [Setup](#setup-2)
+  - [Picker - Basic](#picker---basic)
+    - [Share Text](#share-text-2)
+    - [Share URL](#share-url-2)
+    - [Share Image](#share-image-1)
+    - [Share File](#share-file-1)
+  - [Picker - Multiple](#picker---multiple)
+    - [Share Multiple Images](#share-multiple-images-1)
+    - [Share Multiple Files](#share-multiple-files-1)
+    - [Share Text and URL](#share-text-and-url)
+  - [Picker - Filter](#picker---filter)
+    - [Share Excluding Services](#share-excluding-services)
+  - [Direct Service](#direct-service)
+    - [Share via Mail](#share-via-mail)
+    - [Check if a Service Can Perform](#check-if-a-service-can-perform)
+  - [Error Handling](#error-handling-2)
 
 ---
 
@@ -783,6 +801,309 @@ When using the callback API, failures are delivered as `isSuccess == false` with
 IosShareManager.shared.share(
     content: ShareContent(items: [])
 ) { isSuccess, completed, activityType, errorMessage in
+    // isSuccess == false, errorMessage == "No shareable items were provided."
+}
+```
+
+---
+
+## macOS
+
+- Library: `mac-native-toolkit-1.2.0.xcframework`
+- Minimum Deployment Target: macOS 15
+- Scope: sending only, via `NSSharingServicePicker` (picker) and `NSSharingService` (direct service execution). Receiving incoming shares is not included.
+- macOS offers two ways to share: a **picker** that lets the user choose a service (`NSSharingServicePicker`), and **direct service execution** that runs a single named service without showing the picker (`NSSharingService`, for example launching Mail with prefilled `recipients`/`subject`).
+
+### MacShareManager
+
+`MacShareManager` is a singleton class that presents the system sharing service picker and performs individual sharing services on macOS.
+
+**Important:** Present the picker only in response to a user-initiated action (for example, a button click). `NSSharingServicePicker.show(...)` requires a `mouseDown` event context, and the picker call path hops through `Task { @MainActor in ... }` internally, which does not formally guarantee that context is preserved. In the sample app included with this toolkit, the picker was confirmed to appear correctly and resolve (appear / cancel / complete) when triggered by a real click. Direct service execution (`shareViaService`, `share(content:serviceName:completion:)`) does not depend on `mouseDown` context and is the more robust path when reliability matters.
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager.png" alt="Example_MacShareManager" width="800" />
+</p>
+
+### Setup
+
+1. Add `mac-native-toolkit-1.2.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
+2. Import the library where you present the share picker or run a service:
+
+```swift
+import MacLibrary
+```
+
+No additional initialization is required.
+
+`MacShareManager` offers two calling styles for each operation:
+
+- `async throws` (preferred for native Swift callers): returns a typed `ShareResult` and throws `ShareError` on failure.
+- Callback (used by the Unity Bridge, also available in Swift): `(isSuccess, completed, serviceName, errorMessage)`.
+
+```swift
+// async throws (recommended for Swift callers)
+Task {
+    do {
+        let result = try await MacShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        // result.completed == false means the user cancelled (not an error)
+        print(result.completed, result.serviceName ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
+}
+
+// callback (equivalent)
+MacShareManager.shared.share(
+    content: ShareContent(items: [.text("Hello")])
+) { isSuccess, completed, serviceName, errorMessage in
+    print(isSuccess, completed, serviceName ?? "nil", errorMessage ?? "nil")
+}
+```
+
+The examples below use the `async throws` style. Because SwiftUI `Button` actions are synchronous, each call is wrapped in `Task { ... }`.
+
+### Picker - Basic
+
+#### Share Text
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.text("Shared from MacLibraryExample")])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareText.png" alt="Example_MacShareManager_ShareText" width="800" />
+</p>
+
+#### Share URL
+
+A URL is passed as a raw string. It is validated in the library: only `http`, `https`, and `file` schemes with a valid host are accepted (otherwise `ShareError.invalidURL` is thrown).
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.url("https://www.apple.com")])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareURL.png" alt="Example_MacShareManager_ShareURL" width="800" />
+</p>
+
+#### Share Image
+
+Pass the local file path of an image with `.imageFile(path:)`. The library loads it as an `NSImage` (throws `ShareError.imageLoadFailed` if it cannot be read).
+
+```swift
+guard let image = NSImage(named: "test-image") else { return }
+guard let tiffData = image.tiffRepresentation,
+      let bitmap = NSBitmapImageRep(data: tiffData),
+      let pngData = bitmap.representation(using: .png, properties: [:])
+else { return }
+
+let imageURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample-image.png")
+try pngData.write(to: imageURL)
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.imageFile(path: imageURL.path)])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareImage.png" alt="Example_MacShareManager_ShareImage" width="800" />
+</p>
+
+#### Share File
+
+Pass the local file path with `.file(path:)`. The library checks that the file exists (throws `ShareError.fileNotFound` otherwise).
+
+```swift
+let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
+try "Shared from MacLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.file(path: fileURL.path)])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareFile.png" alt="Example_MacShareManager_ShareFile" width="800" />
+</p>
+
+### Picker - Multiple
+
+#### Share Multiple Images
+
+`ShareContent.items` accepts multiple entries, so several images can be shared at once (there is only one bundled sample image, so it is copied to distinct temporary files).
+
+```swift
+let imagePaths: [String] = /* local image file paths */
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareMultipleImages.png" alt="Example_MacShareManager_ShareMultipleImages" width="800" />
+</p>
+
+#### Share Multiple Files
+
+```swift
+let fileURLs: [URL] = /* local file URLs */
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareMultipleFiles.png" alt="Example_MacShareManager_ShareMultipleFiles" width="800" />
+</p>
+
+#### Share Text and URL
+
+Mix different item types (text, URL, image, file) in a single share.
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [
+            .text("Check this out"),
+            .url("https://www.apple.com")
+        ])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareTextAndURL.png" alt="Example_MacShareManager_ShareTextAndURL" width="800" />
+</p>
+
+### Picker - Filter
+
+#### Share Excluding Services
+
+Pass service display titles in `excludedServiceTitles` to hide them from the picker. This is **best-effort**: `NSSharingService` does not expose a stable raw identifier to the caller, so the match is against the service's display `title`, which can be localized and may not match in every environment. Where reliable control is required, use direct service execution (`shareViaService`) instead.
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(
+            items: [.url("https://www.apple.com")],
+            excludedServiceTitles: ["Add to Reading List"]
+        )
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareExcludingServices.png" alt="Example_MacShareManager_ShareExcludingServices" width="800" />
+</p>
+
+### Direct Service
+
+#### Share via Mail
+
+Run a single named service directly, bypassing the picker. `serviceName` is a raw `NSSharingService.Name` value (for example `"com.apple.share.Mail.compose"`). `recipients` and `subject` are applied to the service before it runs; they have no effect in picker mode.
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.shareViaService(
+        content: ShareContent(
+            items: [.text("Body text")],
+            recipients: ["test@example.com"],
+            subject: "Sample Subject"
+        ),
+        serviceName: "com.apple.share.Mail.compose"
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareViaMail.png" alt="Example_MacShareManager_ShareViaMail" width="800" />
+</p>
+
+#### Check if a Service Can Perform
+
+Query whether a named service can share the given content, for example to enable/disable a button before the user taps it.
+
+```swift
+Task {
+    let canPerform = try await MacShareManager.shared.canPerform(
+        content: ShareContent(items: [.text("Body text")]),
+        serviceName: "com.apple.share.Mail.compose"
+    )
+    print(canPerform)
+}
+```
+
+### Error Handling
+
+The `async throws` API throws `ShareError` on failure. User cancellation is not an error: it is reported as `ShareResult.completed == false`.
+
+| Error | Cause | Error message |
+|---|---|---|
+| `noValidItems` | `items` is empty | `"No shareable items were provided."` |
+| `invalidURL(String)` | URL string is not a valid `http`/`https`/`file` URL | `"Invalid URL: <value>."` |
+| `imageLoadFailed(path:)` | Image at the path could not be loaded | `"Failed to load image at path: <path>."` |
+| `fileNotFound(path:)` | File at the path does not exist | `"File not found at path: <path>."` |
+| `noAnchorView` | No key window was available to anchor the picker | `"No key window available to anchor the sharing picker."` |
+| `serviceUnavailable(name:)` | The named service is unknown or cannot share the content | `"Sharing service unavailable: <name>."` |
+| `alreadyInProgress` | Another share operation is already in progress | `"A share operation is already in progress."` |
+| `presentationFailed(Error)` | Presentation failed or the system reported an error | `"Failed to share: <detail>."` |
+| `unknown(Error)` | An unexpected error occurred | `"An unknown share error occurred: <detail>."` |
+
+```swift
+Task {
+    do {
+        let result = try await MacShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        if result.completed {
+            // Shared successfully via result.serviceName
+        } else {
+            // User cancelled
+        }
+    } catch let error as ShareError {
+        // Typed error with errorCode / errorMessage (e.g. .noValidItems, .invalidURL, .fileNotFound)
+        print(error.errorCode, error.errorMessage)
+    } catch {
+        // Other error
+    }
+}
+```
+
+When using the callback API, failures are delivered as `isSuccess == false` with a non-nil `errorMessage`:
+
+```swift
+MacShareManager.shared.share(
+    content: ShareContent(items: [])
+) { isSuccess, completed, serviceName, errorMessage in
     // isSuccess == false, errorMessage == "No shareable items were provided."
 }
 ```

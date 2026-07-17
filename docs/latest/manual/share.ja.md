@@ -52,6 +52,24 @@ Language:
     - [件名付き共有](#件名付き共有)
     - [アクティビティタイプの除外](#アクティビティタイプの除外)
   - [エラー処理](#エラー処理-1)
+- [macOS](#macos)
+  - [MacShareManager](#macsharemanager)
+  - [セットアップ](#セットアップ-2)
+  - [ピッカー - 基本](#ピッカー---基本)
+    - [テキストを共有](#テキストを共有-2)
+    - [URL を共有](#url-を共有-2)
+    - [画像を共有](#画像を共有-1)
+    - [ファイルを共有](#ファイルを共有-1)
+  - [ピッカー - 複数アイテム](#ピッカー---複数アイテム)
+    - [複数画像を共有](#複数画像を共有-1)
+    - [複数ファイルを共有](#複数ファイルを共有-1)
+    - [テキストと URL を共有](#テキストと-url-を共有)
+  - [ピッカー - フィルタ](#ピッカー---フィルタ)
+    - [特定サービスを除外して共有](#特定サービスを除外して共有)
+  - [個別サービスの直接実行](#個別サービスの直接実行)
+    - [Mail を直接実行して共有](#mail-を直接実行して共有)
+    - [サービスが実行可能か確認](#サービスが実行可能か確認)
+  - [エラー処理](#エラー処理-2)
 
 ---
 
@@ -783,6 +801,309 @@ Task {
 IosShareManager.shared.share(
     content: ShareContent(items: [])
 ) { isSuccess, completed, activityType, errorMessage in
+    // isSuccess == false, errorMessage == "No shareable items were provided."
+}
+```
+
+---
+
+## macOS
+
+- ライブラリ: `mac-native-toolkit-1.2.0.xcframework`
+- 最小デプロイメントターゲット: macOS 15
+- 対応範囲: 送信のみ。ピッカー（`NSSharingServicePicker`）と個別サービスの直接実行（`NSSharingService`）を提供します。受信は対象外です。
+- macOS には共有方法が 2 つあります。ユーザーが共有先を選ぶ **ピッカー**（`NSSharingServicePicker`）と、ピッカーを表示せず特定のサービスを直接実行する **個別サービスの直接実行**（`NSSharingService`。例: `recipients`/`subject` を設定した状態で Mail を起動）です。
+
+### MacShareManager
+
+`MacShareManager` は、macOS でシステム共有ピッカーの表示と個別サービスの直接実行を行うシングルトンクラスです。
+
+**重要:** ピッカーの表示は、ボタン押下などユーザー操作に起因する処理の中でのみ行ってください。`NSSharingServicePicker.show(...)` は `mouseDown` イベントの文脈での呼び出しを要求しますが、ピッカーの呼び出し経路は内部で `Task { @MainActor in ... }` を経由するため、この文脈が保持されることは仕様上厳密には保証されていません。本ツールキット付属のサンプルアプリでは、実際のクリックで起動した場合にピッカーが正しく表示・解決（表示・キャンセル・完了）することを確認済みです。個別サービスの直接実行（`shareViaService` / `share(content:serviceName:completion:)`）は `mouseDown` の文脈に依存しないため、確実性が求められる場面ではこちらの方が堅牢です。
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager.png" alt="Example_MacShareManager" width="800" />
+</p>
+
+### セットアップ
+
+1. `mac-native-toolkit-1.2.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
+2. 共有ピッカーやサービスを実行するファイルでライブラリをインポートします。
+
+```swift
+import MacLibrary
+```
+
+追加の初期化は不要です。
+
+`MacShareManager` は、各操作に対して 2 つの呼び出し方式を提供します。
+
+- `async throws`（ネイティブ Swift 呼び出し元に推奨）: 型付きの `ShareResult` を返し、失敗時は `ShareError` を throw します。
+- コールバック（Unity Bridge が使用。Swift でも利用可）: `(isSuccess, completed, serviceName, errorMessage)`。
+
+```swift
+// async throws（Swift 呼び出し元に推奨）
+Task {
+    do {
+        let result = try await MacShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        // result.completed == false はユーザーがキャンセルしたことを示します（エラーではありません）
+        print(result.completed, result.serviceName ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
+}
+
+// コールバック（同等の処理）
+MacShareManager.shared.share(
+    content: ShareContent(items: [.text("Hello")])
+) { isSuccess, completed, serviceName, errorMessage in
+    print(isSuccess, completed, serviceName ?? "nil", errorMessage ?? "nil")
+}
+```
+
+以降のサンプルは `async throws` 方式を使用します。SwiftUI の `Button` の action は同期処理のため、各呼び出しを `Task { ... }` でラップしています。
+
+### ピッカー - 基本
+
+#### テキストを共有
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.text("Shared from MacLibraryExample")])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareText.png" alt="Example_MacShareManager_ShareText" width="800" />
+</p>
+
+#### URL を共有
+
+URL は文字列として渡します。ライブラリ内で検証され、`http` / `https` / `file` スキームでホストが有効なもののみが許可されます（それ以外は `ShareError.invalidURL` が throw されます）。
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.url("https://www.apple.com")])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareURL.png" alt="Example_MacShareManager_ShareURL" width="800" />
+</p>
+
+#### 画像を共有
+
+`.imageFile(path:)` に画像のローカルファイルパスを渡します。ライブラリは `NSImage` として読み込みます（読み込めない場合は `ShareError.imageLoadFailed` が throw されます）。
+
+```swift
+guard let image = NSImage(named: "test-image") else { return }
+guard let tiffData = image.tiffRepresentation,
+      let bitmap = NSBitmapImageRep(data: tiffData),
+      let pngData = bitmap.representation(using: .png, properties: [:])
+else { return }
+
+let imageURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample-image.png")
+try pngData.write(to: imageURL)
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.imageFile(path: imageURL.path)])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareImage.png" alt="Example_MacShareManager_ShareImage" width="800" />
+</p>
+
+#### ファイルを共有
+
+`.file(path:)` にファイルのローカルパスを渡します。ライブラリはファイルの存在を確認します（存在しない場合は `ShareError.fileNotFound` が throw されます）。
+
+```swift
+let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
+try "Shared from MacLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [.file(path: fileURL.path)])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareFile.png" alt="Example_MacShareManager_ShareFile" width="800" />
+</p>
+
+### ピッカー - 複数アイテム
+
+#### 複数画像を共有
+
+`ShareContent.items` は複数のエントリを受け付けるため、一度に複数の画像を共有できます（サンプル画像は 1 枚のみバンドルされているため、複数の一時ファイルへコピーして使用します）。
+
+```swift
+let imagePaths: [String] = /* ローカル画像ファイルパスの配列 */
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareMultipleImages.png" alt="Example_MacShareManager_ShareMultipleImages" width="800" />
+</p>
+
+#### 複数ファイルを共有
+
+```swift
+let fileURLs: [URL] = /* ローカルファイルの URL 配列 */
+
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareMultipleFiles.png" alt="Example_MacShareManager_ShareMultipleFiles" width="800" />
+</p>
+
+#### テキストと URL を共有
+
+テキスト・URL・画像・ファイルなど異なる種類のアイテムを 1 回の共有にまとめて指定できます。
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(items: [
+            .text("Check this out"),
+            .url("https://www.apple.com")
+        ])
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareTextAndURL.png" alt="Example_MacShareManager_ShareTextAndURL" width="800" />
+</p>
+
+### ピッカー - フィルタ
+
+#### 特定サービスを除外して共有
+
+`excludedServiceTitles` にサービスの表示名を渡すと、ピッカーからそのサービスを非表示にします。これは **ベストエフォート** です。`NSSharingService` は呼び出し元に安定した raw identifier を公開しないため、比較はローカライズされ得る表示名（`title`）に対して行われ、環境によっては一致しない場合があります。確実な制御が必要な場合は、個別サービスの直接実行（`shareViaService`）を使用してください。
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.share(
+        content: ShareContent(
+            items: [.url("https://www.apple.com")],
+            excludedServiceTitles: ["Add to Reading List"]
+        )
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareExcludingServices.png" alt="Example_MacShareManager_ShareExcludingServices" width="800" />
+</p>
+
+### 個別サービスの直接実行
+
+#### Mail を直接実行して共有
+
+ピッカーを表示せず、指定した 1 つのサービスを直接実行します。`serviceName` には raw な `NSSharingService.Name` の値（例: `"com.apple.share.Mail.compose"`）を渡します。`recipients` と `subject` はサービス実行前に設定されます。ピッカー方式では効果がありません。
+
+```swift
+Task {
+    let result = try await MacShareManager.shared.shareViaService(
+        content: ShareContent(
+            items: [.text("Body text")],
+            recipients: ["test@example.com"],
+            subject: "Sample Subject"
+        ),
+        serviceName: "com.apple.share.Mail.compose"
+    )
+    print(result.completed, result.serviceName ?? "nil")
+}
+```
+
+<p align="center">
+    <img src="images/mac/share/Example_MacShareManager_ShareViaMail.png" alt="Example_MacShareManager_ShareViaMail" width="800" />
+</p>
+
+#### サービスが実行可能か確認
+
+指定したサービスが渡したコンテンツを共有できるかを照会します。例えば、ボタンをタップする前に有効/無効を切り替える際に使用します。
+
+```swift
+Task {
+    let canPerform = try await MacShareManager.shared.canPerform(
+        content: ShareContent(items: [.text("Body text")]),
+        serviceName: "com.apple.share.Mail.compose"
+    )
+    print(canPerform)
+}
+```
+
+### エラー処理
+
+`async throws` API は失敗時に `ShareError` を throw します。ユーザーによるキャンセルはエラーではなく、`ShareResult.completed == false` として通知されます。
+
+| エラー | 原因 | エラーメッセージ |
+|---|---|---|
+| `noValidItems` | `items` が空 | `"No shareable items were provided."` |
+| `invalidURL(String)` | URL 文字列が有効な `http`/`https`/`file` URL でない | `"Invalid URL: <value>."` |
+| `imageLoadFailed(path:)` | 指定パスの画像を読み込めなかった | `"Failed to load image at path: <path>."` |
+| `fileNotFound(path:)` | 指定パスのファイルが存在しない | `"File not found at path: <path>."` |
+| `noAnchorView` | ピッカーの表示基準となる key window が取得できなかった | `"No key window available to anchor the sharing picker."` |
+| `serviceUnavailable(name:)` | 指定したサービス名が不明、またはコンテンツを共有できない | `"Sharing service unavailable: <name>."` |
+| `alreadyInProgress` | 別の共有処理が既に進行中 | `"A share operation is already in progress."` |
+| `presentationFailed(Error)` | 表示に失敗した、またはシステムがエラーを報告した | `"Failed to share: <detail>."` |
+| `unknown(Error)` | 予期しないエラーが発生した | `"An unknown share error occurred: <detail>."` |
+
+```swift
+Task {
+    do {
+        let result = try await MacShareManager.shared.share(
+            content: ShareContent(items: [.text("Hello")])
+        )
+        if result.completed {
+            // result.serviceName で共有成功
+        } else {
+            // ユーザーがキャンセル
+        }
+    } catch let error as ShareError {
+        // 型付きエラー。errorCode / errorMessage を持つ（例: .noValidItems, .invalidURL, .fileNotFound）
+        print(error.errorCode, error.errorMessage)
+    } catch {
+        // その他のエラー
+    }
+}
+```
+
+コールバック API を使う場合、失敗は `isSuccess == false` と非 nil の `errorMessage` で通知されます。
+
+```swift
+MacShareManager.shared.share(
+    content: ShareContent(items: [])
+) { isSuccess, completed, serviceName, errorMessage in
     // isSuccess == false, errorMessage == "No shareable items were provided."
 }
 ```
