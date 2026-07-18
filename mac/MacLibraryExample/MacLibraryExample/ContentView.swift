@@ -38,6 +38,16 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink {
+                        ShareSampleView()
+                    } label: {
+                        menuCard(
+                            title: "Share Example",
+                            subtitle: "Share content via the system sharing picker"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     Spacer(minLength: 0)
                 }
                 .padding()
