@@ -118,3 +118,25 @@ fun deleteChannel(channelId: String): Result<Unit>
 - `@param` は全パラメータを省略せず記載する
 - `@return` は戻り値が非自明な場合のみ記載
 - `@throws` は checked exception 相当の場合に記載
+
+---
+
+## Coroutine（suspend fun の要否）
+
+方針は `common.md`「Manager の公開 API 方式」を参照。iOS の `async throws` / macOS の `async throws` に対応する Kotlin 側の判断基準を以下に定める。
+
+**`suspend fun` にすべきもの:**
+
+- Manager 層のネイティブ版公開 API（`common.md` の「callback 版 + ネイティブ版の併設」でいうネイティブ版）。UseCase をそのまま公開する薄いラッパーとして `suspend fun` + 例外送出にする
+- 呼び出し元で中断・再開が必要な、実質的に非同期な処理（ネットワーク I/O、長時間かかるディスク I/O など）
+
+**`suspend fun` にしなくてよいもの:**
+
+- `ClipboardManager` / `NotificationManagerCompat` 等、システムサービスへの同期 API 呼び出しのみで完結する UseCase・Repository（例: clipboard の `ClipboardUseCases` は全メソッド非 suspend。設計判断の理由は `artifact/designs/clipboard/*-design.md` を参照）
+- 単発の軽量なファイル書き込み・読み込みなど、呼び出し元で `launch(Dispatchers.IO) { ... }` に包めば足りる処理（下記サンプルアプリの扱いを参照）
+
+**サンプルアプリ（`AndroidLibraryExample`）での非同期処理:**
+
+- `@Composable` の `Button` の `onClick` は同期ラムダのため、非同期処理が必要な場合は `rememberCoroutineScope()` で得た `scope` を使い `scope.launch(Dispatchers.IO) { ... }` で橋渡しする（iOS の `Task { await ... }` に相当）
+- 呼び出し先の関数自体を `suspend fun` にする必要はない。既存の `ShareSampleScreen.kt` の慣例に倣い、`launch(Dispatchers.IO) { ... }` のブロック内で通常の同期関数を呼び、UI 状態の更新は `withContext(Dispatchers.Main) { ... }` に包む
+- ディスク I/O（ファイル書き込み等）を `onClick` 内で同期実行しない（メインスレッドブロッキングになるため）。既存パターン（`ShareSampleScreen.kt` の `writeText` 呼び出し等）を確認し、同じ形で `Dispatchers.IO` に逃がす

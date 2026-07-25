@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 private const val CLIPBOARD_TAG = "com.jonghyunkim.android.nativetoolkit.example.ClipboardSampleScreen"
@@ -62,6 +66,7 @@ fun ClipboardSampleScreen(
     Log.d(CLIPBOARD_TAG, "[ClipboardSampleScreen] onBack: $onBack")
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val clipboardUseCases = remember(context) { ClipboardUseCases(context) }
     val monitor = remember { ClipboardChangeMonitor() }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
@@ -187,14 +192,25 @@ fun ClipboardSampleScreen(
                 Button(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy URI")
-                        try {
-                            val uri = prepareSampleUri(context)
-                            clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri))
-                            statusText = "✅ copyUri called: $uri"
-                        } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
-                        } catch (e: Exception) {
-                            statusText = "❌ Unexpected: ${e.message}"
+                        statusText = "ℹ️ Preparing sample file..."
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val uri = prepareSampleUri(context)
+                                withContext(Dispatchers.Main) {
+                                    try {
+                                        clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri))
+                                        statusText = "✅ copyUri called: $uri"
+                                    } catch (e: ClipboardDomainError) {
+                                        statusText = clipboardErrorMessage(e)
+                                    } catch (e: Exception) {
+                                        statusText = "❌ Unexpected: ${e.message}"
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    statusText = "❌ File preparation failed: ${e.message}"
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth()
