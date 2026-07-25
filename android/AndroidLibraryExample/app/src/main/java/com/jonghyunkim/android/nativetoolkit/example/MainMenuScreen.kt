@@ -19,12 +19,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jonghyunkim.android.nativetoolkit.example.ui.theme.AndroidTheme
 
+/**
+ * Main menu screen listing the sample feature categories.
+ *
+ * @param modifier Modifier applied to the root layout.
+ * @param onSelectDialogTest Called when the user selects the Dialog example.
+ * @param onSelectNotificationTest Called when the user selects the Notification example.
+ * @param onSelectShareTest Called when the user selects the Share example.
+ * @param onSelectClipboardTest Called when the user selects the Clipboard example.
+ */
 @Composable
 fun MainMenuScreen(
     modifier: Modifier = Modifier,
     onSelectDialogTest: () -> Unit,
     onSelectNotificationTest: () -> Unit,
-    onSelectShareTest: () -> Unit
+    onSelectShareTest: () -> Unit,
+    onSelectClipboardTest: () -> Unit
 ) {
     LazyColumn(
         modifier = modifier
@@ -66,6 +76,13 @@ fun MainMenuScreen(
                 onClick = onSelectShareTest
             )
         }
+        item {
+            MainMenuListItem(
+                title = "Clipboard Example",
+                description = "Explore copy, read, clear, and change observation samples.",
+                onClick = onSelectClipboardTest
+            )
+        }
     }
 }
 
@@ -99,7 +116,8 @@ private fun MainMenuPreview() {
         MainMenuScreen(
             onSelectDialogTest = {},
             onSelectNotificationTest = {},
-            onSelectShareTest = {}
+            onSelectShareTest = {},
+            onSelectClipboardTest = {}
         )
     }
 }
