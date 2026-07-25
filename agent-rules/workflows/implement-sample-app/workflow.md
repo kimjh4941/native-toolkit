@@ -24,6 +24,10 @@
    - 入力バリデーションとエラー表示を追加する
    - 実行結果（成功/失敗）を再現可能な形で表示する
    - 既存API互換性を維持し、破壊的変更は明示承認なしで行わない
+   - **依存方向を守る（必須）**: ネイティブサンプルアプリはネイティブライブラリのみに依存させる（`agent-rules/coding-rules/common.md`「サンプルアプリの依存方向」）
+     - Unity プラグインへの依存追加（例: `implementation(project(":unity_android_plugin"))`）や Unity 向けクラスの import を行わない
+     - ライブラリ経由で呼べない API があってもプラットフォーム API の直接呼び出しで代替しない（ライブラリの検証にならない）
+     - 該当箇所を見つけたら実装を止め、機能側の設計不備としてユーザーへ報告する
 
 4. 検証コード/手順を追加する（必須）
    - 対象OSに公式UIテストフレームワークがある場合（macOS/iOS: XCTest/XCUITest、Android: Espresso/UIAutomator、Windows: WinAppDriver 等）、計画ファイルの手動確認観点のうち自動化可能なものは自動UIテストとして実装する

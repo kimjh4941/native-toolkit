@@ -1,5 +1,24 @@
 # Android コーディングルール
 
+## モジュール配置（必須）
+
+共通ルール `./common.md` の「層とモジュールの対応」「サンプルアプリの依存方向」を Android に適用した具体マッピング。
+
+| モジュール | 置くもの | 置いてはいけないもの |
+|---|---|---|
+| `android/android_library` | Domain / Application / Data / Presentation / **Manager**。system Delegate・Listener の所有クラス | Unity 固有の JSON 変換・Unity 向け listener |
+| `android/unity_android_plugin` | **Unity Bridge のみ**（`Unity*Manager`、JSON parser、Unity 向け spec） | system Delegate・Listener の所有。ネイティブ利用者に必要な機能 |
+| `android/AndroidLibraryExample` | ネイティブサンプル。`implementation(project(":android_library"))` のみ | `unity_android_plugin` への依存、`android.unity.*` の import |
+
+**`Unity*Manager` は Unity Bridge 層であって Manager 層ではない。**
+`android_library` には現状 `manager/` パッケージが無いが、それは「Manager 層のものを `unity_android_plugin` に置いてよい」という意味ではない。system Listener など、ネイティブ利用者にも必要なクラスは `android_library` の `presentation/` などに配置する。
+
+**具体例:** Clipboard の変更監視 `ClipboardChangeMonitor`（`ClipboardManager.OnPrimaryClipChangedListener` を所有）は `android/android_library/src/main/java/android/library/clipboard/presentation/` に置き、`UnityAndroidClipboardManager` はそこへ委譲するだけにする。
+
+**実装前チェック:** 追加するクラスを `unity_android_plugin` に置こうとしたら、「`AndroidLibraryExample` からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
+
+---
+
 ## ログ（Log.d）
 
 全メソッドの先頭1行目に、全パラメータを含む `Log.d` を必ず入れる。

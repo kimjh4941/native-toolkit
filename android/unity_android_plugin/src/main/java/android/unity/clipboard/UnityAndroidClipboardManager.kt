@@ -5,6 +5,7 @@ import android.library.clipboard.data.repository.ClipboardUseCases
 import android.library.clipboard.domain.error.ClipboardDomainError
 import android.library.clipboard.domain.model.ClipContent
 import android.library.clipboard.domain.model.ClipReadResult
+import android.library.clipboard.presentation.ClipboardChangeMonitor
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -18,8 +19,11 @@ import org.json.JSONObject
  *
  * copy/clear operations report results through [ClipboardOperationListener]. read/hasClip/
  * getDescription are synchronous and return their result as a JSON string directly (no listener
- * round trip), since clipboard reads are inherently synchronous and foreground-bound. Clipboard
- * change observation is delegated to [ClipboardChangeMonitor], which owns the system listener.
+ * round trip), since clipboard reads are inherently synchronous and foreground-bound.
+ *
+ * Clipboard change observation is delegated to [ClipboardChangeMonitor], which lives in the native
+ * library and owns the system listener. This bridge holds no system listener of its own, so native
+ * callers can observe clipboard changes without depending on the Unity plugin.
  */
 object UnityAndroidClipboardManager {
 

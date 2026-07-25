@@ -1,4 +1,4 @@
-package android.unity.clipboard
+package android.library.clipboard.presentation
 
 import android.content.ClipboardManager
 import android.content.Context
@@ -9,13 +9,19 @@ import androidx.core.content.ContextCompat
  * Owns the system [ClipboardManager.OnPrimaryClipChangedListener] registration for clipboard
  * change observation.
  *
- * This class is the single owner of the system listener (common.md: system Delegate/Listener is
- * owned by exactly one Manager-layer class). RepositoryImpl / Data layer does not hold a listener.
+ * This class is the single owner of the system listener (common.md: a system Delegate/Listener is
+ * owned by exactly one class, never by RepositoryImpl and never by a Unity-Bridge-only class).
+ * It lives in the native library so that native consumers — the native sample app, other native
+ * callers — can observe clipboard changes without depending on the Unity plugin. The Unity bridge
+ * (`UnityAndroidClipboardManager`) delegates to this class rather than owning its own listener.
+ *
+ * The Data layer (`ClipboardRepositoryImpl`) intentionally holds no listener; it covers only the
+ * synchronous copy/read/metadata/clear operations.
  *
  * Note: Android 10+ (API 29+) restricts clipboard reads to the foreground app or the default IME,
  * so observation is only reliable while the app is in the foreground.
  */
-internal class ClipboardChangeMonitor {
+class ClipboardChangeMonitor {
 
     private var clipboardManager: ClipboardManager? = null
     private var systemListener: ClipboardManager.OnPrimaryClipChangedListener? = null
@@ -25,7 +31,8 @@ internal class ClipboardChangeMonitor {
      * (no duplicate system listener registration).
      *
      * @param context Android context.
-     * @param onChange Called on the calling thread when the clipboard content changes.
+     * @param onChange Called on the system listener's callback thread when the clipboard changes.
+     *   Callers that update UI state must marshal to the main thread themselves.
      */
     fun start(context: Context, onChange: () -> Unit) {
         Log.d(TAG, "[start] context: $context")
@@ -63,5 +70,7 @@ internal class ClipboardChangeMonitor {
      */
     fun isObserving(): Boolean = systemListener != null
 
-    private companion object { private const val TAG = "android.unity.clipboard.ClipboardChangeMonitor" }
+    private companion object {
+        private const val TAG = "android.library.clipboard.presentation.ClipboardChangeMonitor"
+    }
 }

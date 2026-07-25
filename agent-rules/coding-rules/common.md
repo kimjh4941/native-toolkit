@@ -27,6 +27,25 @@ Domain → Application → Data
 - **Manager**: Delegate 所有、UseCase 集約、Bridge 向け公開 API
 - **Unity Bridge**: ネイティブ API と Unity C# の境界。プラットフォームごとに実装する
 
+### 層とモジュールの対応（必須）
+
+**Manager 層までは必ずネイティブライブラリ側のモジュールに置く。Unity プラグイン側のモジュールに置いてよいのは Unity Bridge 層だけ。**
+
+| 層 | 配置モジュール | 例 |
+|---|---|---|
+| Domain / Application / Data / Presentation / **Manager** | **ネイティブライブラリ** | `android/android_library`, `ios/IosLibrary`, `mac/MacLibrary`, `windows/WindowsLibrary` |
+| Unity Bridge | Unity プラグイン | `android/unity_android_plugin`, `ios/UnityIosPlugin` |
+
+**「Manager 層」と `Unity*Manager` クラスを混同しないこと。**
+`UnityAndroidShareManager` / `UnityIosShareManager` などは名前に Manager を含むが **Unity Bridge 層**であり、Manager 層ではない。Manager 層の実体はネイティブライブラリ側の `IosShareManager` / `IosNotificationManager` のようなクラスを指す。
+
+ネイティブライブラリ側に Manager 層の受け皿が無い場合（例: Android の `android_library`）、Unity プラグインへ流すのではなく、**ネイティブライブラリ内に配置先を作る**（`presentation/` などプラットフォーム API 依存が許される層）。
+
+判定の自己チェック:
+
+- そのクラスは Unity を使わないネイティブ呼び出し元（native サンプルアプリ、他のネイティブコード）から利用する必要があるか？
+- 「はい」なら Unity プラグインに置いてはならない。
+
 ### 依存のルール
 
 - 上位層が下位層に依存する（逆は禁止）
@@ -98,10 +117,17 @@ public func share(content: ShareContent) async throws -> ShareResult
 
 ### Delegate・Callback の所有権
 
-- システム Delegate / Listener（例: iOS の `UNUserNotificationCenterDelegate`）は Manager 層の 1 クラスのみが所有する
+- システム Delegate / Listener（例: iOS の `UNUserNotificationCenterDelegate`、Android の `ClipboardManager.OnPrimaryClipChangedListener`）は Manager 層の 1 クラスのみが所有する
 - RepositoryImpl に Delegate を実装しない（SRP 違反）
-- Unity Bridge 専用クラスにも Delegate を実装しない（iOS-native など別用途での利用ができなくなるため）
+- **Unity Bridge 専用クラスにも Delegate を実装しない。所有クラスは必ずネイティブライブラリ側のモジュールに置く**（Unity プラグインに置くと native サンプルアプリなど別用途から利用できなくなるため）
+- Unity Bridge は自分で Delegate を登録せず、ネイティブライブラリ側の所有クラスへ委譲する
 - Manager クラスが初期化メソッドで Delegate 登録を行う
+
+**過去に発生した違反例（再発防止）:**
+
+Android の Clipboard 変更監視で、system listener を所有する `ClipboardChangeMonitor` を `unity_android_plugin`（Unity Bridge 専用モジュール）に配置した。その結果、native サンプルアプリから監視機能を一切利用できず、サンプル側が Unity プラグインへ依存する設計になりかけた。`android_library` の `presentation/` へ移動し、Unity Bridge は委譲のみ行う形に修正した。
+
+Delegate / Listener の配置を決めるときは、**「Unity を使わない呼び出し元がこの機能を使えるか」を必ず確認する。**
 
 ---
 
@@ -191,6 +217,27 @@ typedef void (*NativeStatusCallback)(const char* status);
 - macOS / Windows でも Bridge 層は薄く保つ（Manager 呼び出し専用）
 - OS 標準の相互運用方式（例: C API、P/Invoke、プラグイン境界）を用いる
 - 例外・エラーは DomainError 相当へ正規化してから Bridge の戻り値形式へ変換する
+
+---
+
+## サンプルアプリの依存方向
+
+ネイティブサンプルアプリ（`AndroidLibraryExample` / `IosLibraryExample` / `MacLibraryExample` / `WindowsLibraryExample`）は、**ネイティブライブラリのみに依存する。Unity プラグインへ依存してはならない。**
+
+| サンプルアプリ | 依存してよい | 依存禁止 |
+|---|---|---|
+| `android/AndroidLibraryExample` | `android_library` | `unity_android_plugin` |
+| `ios/IosLibraryExample` | `IosLibrary` | `UnityIosPlugin` |
+| `mac/MacLibraryExample` | `MacLibrary` | Unity プラグイン |
+| `windows/WindowsLibraryExample` | `WindowsLibrary` | Unity プラグイン |
+
+**理由:** サンプルアプリはネイティブライブラリの利用例であり、その動作確認範囲がライブラリ利用者の利用可能範囲と一致していなければならない。Unity プラグイン経由でしか確認できない機能があるということは、ネイティブ利用者にその機能が提供できていないことを意味する。
+
+**サンプルアプリから利用できない機能を見つけた場合の対処:**
+
+1. サンプル側で Unity プラグインに依存させて回避しない
+2. サンプル側でプラットフォーム API を直接叩いて代替しない（ライブラリの検証にならない）
+3. **ネイティブライブラリ側に配置し直す**（「層とモジュールの対応」参照）。これは機能側の設計不備であり、機能設計書へ差し戻して修正する
 
 ---
 

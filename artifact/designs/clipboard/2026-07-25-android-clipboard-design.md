@@ -1,7 +1,7 @@
 # Android クリップボード機能 実装設計書
 
 - 作成日: 2026-07-25
-- 改訂日: 2026-07-25（v2: Intent を Out of scope 化・system Listener を Manager 層へ集約 / v3: 空 read を null 正常系に統一・監視テストを Monitor 側へ分離・compileSdk 35 明記 / v4: ReadNotAllowed の判定条件を SecurityException 限定に明文化）
+- 改訂日: 2026-07-25（v2: Intent を Out of scope 化・system Listener を Manager 層へ集約 / v3: 空 read を null 正常系に統一・監視テストを Monitor 側へ分離・compileSdk 35 明記 / v4: ReadNotAllowed の判定条件を SecurityException 限定に明文化 / v5: ClipboardChangeMonitor を android_library の presentation 層へ移動し、native からの監視利用を可能に）
 - 対象OS: Android（Android 12 / API 31 以降）
 - 対象機能: クリップボード（Clipboard: コピー / ペースト / 監視）
 - 使用言語: Kotlin
@@ -18,7 +18,7 @@
 
 ## 設計目的
 
-企画書で全網羅した Android クリップボード API を、既存 native-toolkit の Clean Architecture（`android_library` = Domain/Application/Data、`unity_android_plugin` = Manager/Bridge）に厳密準拠する形で組み込み、実装着手可能な粒度まで分解する。既存の `share` / `notification` モジュールの構成・命名・エラー変換方式を踏襲する。
+企画書で全網羅した Android クリップボード API を、既存 native-toolkit の Clean Architecture（`android_library` = Domain/Application/Data/Presentation、`unity_android_plugin` = Unity Bridge）に厳密準拠する形で組み込み、実装着手可能な粒度まで分解する。既存の `share` / `notification` モジュールの構成・命名・エラー変換方式を踏襲する。
 
 ---
 
@@ -56,7 +56,7 @@
 | Port はドメイン型のみ | ○ | `ClipboardRepository` の引数・戻り値はドメイン型（`ClipContent` / `ClipReadResult` 等）のみ。`ClipData` / `Uri` は Data 層に閉じる |
 | Manager は UseCase 経由 | ○ | `UnityAndroidClipboardManager` は `ClipboardUseCases` 経由で Data にアクセス。Repository 直呼び禁止 |
 | UseCase は 1 操作 1 クラス + `invoke` | ○ | `CopyPlainTextUseCase` 等、各操作を分離 |
-| Delegate/Listener は Manager 層が所有 | ○ | 変更監視の system `OnPrimaryClipChangedListener` は Manager 層の `ClipboardChangeMonitor` が 1 クラスで所有・登録・解除。RepositoryImpl は Listener を持たない |
+| Delegate/Listener は Manager 層が所有 | ○ | 変更監視の system `OnPrimaryClipChangedListener` は `ClipboardChangeMonitor` が 1 クラスで所有・登録・解除。RepositoryImpl は Listener を持たない。【v5】common.md「Unity Bridge 専用クラスにも Delegate を実装しない（native など別用途での利用ができなくなるため）」に従い、本クラスは **`android_library` の presentation 層**に配置し、Unity Bridge は委譲のみ行う |
 | TDD（UseCase 単位、Mock は Port 実装） | ○ | `MockClipboardRepository` を Port 実装として DI |
 | エラー変換（System → DomainError → Bridge 文字列） | ○ | RepositoryImpl で `ClipboardDomainError` に変換、Manager で `errorMessage` 化 |
 | callback 版 + ネイティブ版の併設 | ○ | Manager に Listener 版（Bridge）を用意。UseCase は例外送出のネイティブ版として利用可能 |
@@ -106,18 +106,19 @@ android/android_library/src/main/java/android/library/clipboard/
 │       ├── GetClipDescriptionUseCase.kt
 │       ├── ClearClipboardUseCase.kt
 │       └── ClipboardUseCases.kt        # suite
-└── data/repository/
-    ├── ClipboardRepositoryImpl.kt
-    ├── ClipboardMappers.kt             # ClipData ↔ ドメイン型 変換
-    └── ClipboardUseCases.kt            # factory
+├── data/repository/
+│   ├── ClipboardRepositoryImpl.kt
+│   ├── ClipboardMappers.kt             # ClipData ↔ ドメイン型 変換
+│   └── ClipboardUseCases.kt            # factory
+└── presentation/
+    └── ClipboardChangeMonitor.kt       # 【v5】OnPrimaryClipChangedListener 所有（native 公開）
 ```
 
-unity_android_plugin（Manager + Bridge）:
+unity_android_plugin（Unity Bridge）:
 
 ```
 android/unity_android_plugin/src/main/java/android/unity/clipboard/
-├── UnityAndroidClipboardManager.kt
-├── ClipboardChangeMonitor.kt          # OnPrimaryClipChangedListener 所有（Manager 層）
+├── UnityAndroidClipboardManager.kt    # 監視は ClipboardChangeMonitor へ委譲（listener を持たない）
 ├── UnityClipboardJsonParser.kt
 └── UnityClipboardSpecs.kt
 ```
@@ -125,16 +126,18 @@ android/unity_android_plugin/src/main/java/android/unity/clipboard/
 テスト:
 
 ```
-# コア（android_library）: Domain / UseCase / Repository / Mapper のみ
+# コア（android_library）
 android/android_library/src/test/java/android/library/clipboard/
-├── application/ClipboardUseCasesTest.kt
-├── data/ClipboardRepositoryImplTest.kt
-└── data/ClipboardMappersTest.kt
+└── application/ClipboardUseCasesTest.kt
 
-# Unity plugin（unity_android_plugin）: Parser / Manager / Monitor（既存 share テスト配置に倣う）
+android/android_library/src/androidTest/java/android/library/clipboard/
+├── data/ClipboardRepositoryImplTest.kt
+└── presentation/ClipboardChangeMonitorTest.kt   # 【v5】unity plugin から移動
+
+# Unity plugin（unity_android_plugin）: Parser / Manager
 android/unity_android_plugin/src/test/java/android/unity/clipboard/
 ├── UnityClipboardJsonParserTest.kt
-└── ClipboardChangeMonitorTest.kt
+└── UnityAndroidClipboardManagerTest.kt
 ```
 
 ---
@@ -145,10 +148,9 @@ android/unity_android_plugin/src/test/java/android/unity/clipboard/
 Unity C#
   │ JSON in / Listener out（copy 系）, JSON return（read/has/description 系）
   ▼
-UnityAndroidClipboardManager (object)          … Bridge/Manager
+UnityAndroidClipboardManager (object)          … Unity Bridge
   │ copy/read/clear は UseCase 呼び出し（Repository 直呼び禁止）
-  ├─ ClipboardChangeMonitor（system OnPrimaryClipChangedListener 所有）… Manager 層
-  │        │ onChange → main スレッドで Unity ClipboardChangeListener へ転送
+  │ 監視は ClipboardChangeMonitor へ委譲（自身は system listener を持たない）
   ▼
 ClipboardUseCases                              … Application
   │
@@ -158,7 +160,13 @@ ClipboardRepository (port, ドメイン型のみ)      … Application
 ClipboardRepositoryImpl                        … Data（copy/read/hasClip/getDescription/clear のみ）
   ├─ ClipboardManager(system) アクセス
   └─ ClipboardMappers（ClipData ↔ domain）
+
+ClipboardChangeMonitor                         … Presentation（android_library）
+  └─ system OnPrimaryClipChangedListener を単独所有
+     native サンプル / 他 native 呼び出し元 / Unity Bridge の共通利用先
 ```
+
+【v5】監視クラスの配置根拠: common.md は「システム Delegate / Listener は 1 クラスのみが所有」「Unity Bridge 専用クラスにも Delegate を実装しない（native など別用途での利用ができなくなるため）」と定める。v4 までは `unity_android_plugin`（Unity Bridge 専用モジュール）に置いていたため、native サンプルなど非 Unity の呼び出し元から監視機能を利用できなかった。iOS が `IosLibrary/.../IosShareManager.swift`（native）と `UnityIosPlugin/.../UnityIosShareManager.swift`（Bridge）の 2 層に分けている前例に合わせ、`android_library` の presentation 層へ移動する。
 
 - **copy/clear 系**: 副作用のみ。結果は `ClipboardOperationListener.onClipboardOperation(op, ok, err)` で通知（share 準拠）。
 - **read/has/description 系**: 同期読み取り。Manager の JNI 関数が JSON 文字列を戻り値で返す【設計判断】（クリップボード読み取りは同期・前面前提のため、Listener 往復より戻り値が自然）。
@@ -255,11 +263,13 @@ data class ClipDescriptionInfo(
 
 ### 7. クリップボード変更監視
 
-- 変更対象: `ClipboardChangeMonitor`（Manager 層）, `UnityAndroidClipboardManager`
+- 変更対象: `ClipboardChangeMonitor`（**android_library / presentation 層**）, `UnityAndroidClipboardManager`（委譲のみ）
 - API: `addPrimaryClipChangedListener` / `removePrimaryClipChangedListener`
-- 【設計判断・レビュー反映】system `OnPrimaryClipChangedListener` の所有・登録・解除は **Manager 層**（`unity_android_plugin` 配下の `ClipboardChangeMonitor`）が 1 クラスで担う。common.md「システム Listener は Manager 層の 1 クラスが所有、RepositoryImpl に Delegate を実装しない」に準拠
+- 【v5】system `OnPrimaryClipChangedListener` の所有・登録・解除は `android/android_library/src/main/java/android/library/clipboard/presentation/ClipboardChangeMonitor.kt` が 1 クラスで担う（public）。native サンプルを含む非 Unity の呼び出し元からも直接利用できる
+- 公開シグネチャ: `start(context: Context, onChange: () -> Unit)` / `stop()` / `isObserving(): Boolean`
 - RepositoryImpl / Data 層は copy / read / hasClip / getDescription / clear のみを担い、Listener を保持しない（監視は UseCase / Port を経由しない）
-- `ClipboardChangeMonitor` は system `ClipboardManager`（context 由来）に listener を 1 つだけ登録し、二重登録を防止。Manager が Unity 向け `ClipboardChangeListener` へ main スレッドで転送
+- 二重登録は `start` 内で no-op として吸収。`onChange` は system listener のコールバックスレッドで呼ばれるため、UI 更新する呼び出し元がメインスレッドへの marshal を行う（KDoc に明記）
+- `UnityAndroidClipboardManager` は自身の system listener を持たず、`ClipboardChangeMonitor` に委譲したうえで Unity 向け `ClipboardChangeListener` へ転送する
 - 【企画書由来リスク】Android 10+ のバックグラウンド読み取り制限のため、監視は前面時のみ有効。KDoc に明記
 - リーク防止: `stopObserving` / `clearClipboardChangeListener` で `removePrimaryClipChangedListener` を確実に実行
 
@@ -290,7 +300,7 @@ interface ClipboardRepository {
 }
 ```
 
-- 【レビュー反映】変更監視（`OnPrimaryClipChangedListener` の登録/解除）は Port に含めない。system Listener の所有は Manager 層（`ClipboardChangeMonitor`）に集約し、Data 層は同期的な read/write/metadata/clear のみを担う（common.md 準拠）。
+- 【レビュー反映 / v5】変更監視（`OnPrimaryClipChangedListener` の登録/解除）は Port に含めない。system Listener の所有は `android_library` presentation 層の `ClipboardChangeMonitor` に集約し、Data 層は同期的な read/write/metadata/clear のみを担う（common.md 準拠）。
 
 ### Application（`ClipboardUseCases` suite）
 
@@ -341,7 +351,7 @@ class CopyMultipleTextUseCase(private val repository: ClipboardRepository) {
 | `clearClipboardChangeListener()` | なし | listener 解除・監視停止 | 解除 |
 
 - Intent copy/paste は本機能セットから除外（Out of scope）。Bridge にも公開しない。
-- `startObserving` / `stopObserving` / change listener 系は Manager 層の `ClipboardChangeMonitor` が処理し、UseCase / Port を経由しない。
+- `startObserving` / `stopObserving` / change listener 系は `android_library` presentation 層の `ClipboardChangeMonitor` が処理し、UseCase / Port を経由しない。Bridge は委譲のみ。
 
 ---
 
@@ -461,7 +471,7 @@ RepositoryImpl（Data 層、listener を持たない）:
 | T7 | `UnityClipboardSpecs` + `UnityClipboardJsonParser` + テスト | 0.5d | T1 | JSON→spec 変換、不正 JSON 異常系 | 欠落キーの既定値 |
 | T8 | `UnityAndroidClipboardManager`（copy/clear：Listener 版） | 1.0d | T2,T7 | copy/clear 実装、DomainError→errorMessage 変換、main スレッド実行 | Bridge 薄型、UseCase 経由 |
 | T9 | Manager（read/has/description：同期 JSON 戻り値） | 0.5d | T8 | JSON 戻り値仕様どおり、空は `"null"` | 戻り値契約の一貫性 |
-| T10 | `ClipboardChangeMonitor`（Manager 層、system listener 所有）+ Manager 監視 API + テスト | 1.0d | T8 | 単一 listener 保持・二重登録 no-op・start/stop・ChangeListener 転送・clear で解除 | Listener 所有権が Manager、リーク防止、main スレッド |
+| T10 | `ClipboardChangeMonitor`（android_library / presentation、system listener 所有）+ Bridge 監視 API（委譲）+ テスト | 1.0d | T8 | 単一 listener 保持・二重登録 no-op・start/stop・ChangeListener 転送・clear で解除 | Listener 所有が native 側 1 クラス、Bridge 非依存で native から利用可、リーク防止 |
 | T11 | 全体ビルド・既存テスト回帰・Lint/Dokka 確認 | 0.5d | T6,T9,T10 | 既存テスト緑、KDoc/Log.d 準拠 | 破壊的変更なし |
 | S1 | サンプルアプリ（design-sample-app で実施） | - | T11 | クリップボード全サブ機能を UI から確認可能 | 具体パスは design-sample-app で定義 |
 
@@ -475,10 +485,10 @@ RepositoryImpl（Data 層、listener を持たない）:
 | リスク | 緩和策 |
 |---|---|
 | Android 10+ バックグラウンド読み取りで `read()` が null/SecurityException | `SecurityException` のみ `ReadNotAllowed` に正規化。null は空・制限を区別せず空の正常系（`"null"`）に倒す。KDoc とサンプルで前面前提を明示 |
-| 変更監視のリーク | Manager 層 `ClipboardChangeMonitor` で単一 listener 管理、`clearClipboardChangeListener` で確実に解除。Monitor テストで検証 |
+| 変更監視のリーク | `ClipboardChangeMonitor` で単一 listener 管理、`stop()` / `clearClipboardChangeListener` で確実に解除。Monitor の instrumented テストで検証 |
 | 機微フラグの runtime 差 | 現行 compileSdk 35 のため `EXTRA_IS_SENSITIVE` 定数を直接参照。runtime API 33+ のみ効果（それ未満は無害な no-op）。生キー分岐は不要 |
 | Intent を Domain に持ち込む懸念 | Intent copy/paste を Out of scope に確定。Domain/Application/Port から完全除外 |
-| system Listener の所有層 | `OnPrimaryClipChangedListener` を Manager 層 `ClipboardChangeMonitor` に集約（common.md 準拠）。RepositoryImpl は Listener を持たない |
+| system Listener の所有層 | 【v5】`OnPrimaryClipChangedListener` を `android_library` presentation 層の `ClipboardChangeMonitor` に集約。common.md「Unity Bridge 専用クラスにも Delegate を実装しない」に準拠し、native 呼び出し元からも利用可能。RepositoryImpl は Listener を持たない |
 | 同期戻り値方式と既存 Listener 方式の不統一 | read 系のみ同期戻り値とする理由を Manager KDoc に明記。copy/clear は Listener 統一 |
 | `getConfidenceScore` の `IllegalStateException`（要検証） | Bridge 非公開。ネイティブで扱う場合は `classificationStatus` ガード必須 |
 
@@ -496,7 +506,7 @@ RepositoryImpl（Data 層、listener を持たない）:
 - [ ] UseCase 単体テスト・Mapper テスト（android_library）、Parser/Monitor テスト（unity_android_plugin）が全 passed
 - [ ] RepositoryImpl の instrumented テストが API 31/33 で passed（API 32/34 は手動確認）
 - [ ] android.md 準拠（全メソッド Log.d、public KDoc）
-- [ ] common.md 準拠（Port ドメイン型のみ、Manager は UseCase 経由、system Listener は Manager 所有）
+- [ ] common.md 準拠（Port ドメイン型のみ、Bridge は UseCase 経由、system Listener は native 側 1 クラス所有で Unity Bridge 専用クラスに置かない）
 - [ ] Intent copy/paste が Domain/Application/Port に含まれない（Out of scope 徹底）
 - [ ] 既存テスト回帰なし、Lint/Dokka 通過
 
