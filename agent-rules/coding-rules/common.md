@@ -93,26 +93,35 @@ badgeUseCases.setBadgeCount(count) { result in ... }
 repository.setBadgeCount(count) { result in ... }
 ```
 
-### Manager の公開 API 方式（callback 版 + ネイティブ版の併設）
+### Manager の公開 API 方式
 
-Manager は UseCase を呼び出す際、用途に応じて 2 種類の公開 API を用意してよい。
+Manager の公開 API は、**システム API / UseCase の同期性 × スレッドアフィニティ**で決める。同期的に完結する処理を、API 形式を揃える目的だけで非同期化しない。
 
-- **callback 版**: `(isSuccess/completed, ..., errorMessage: String?) -> Void` の形。Unity Bridge が C 相互運用（関数ポインタ・delegate）でしか呼べないため必須。既存の Notification / Dialog Manager もこの形式。
-- **ネイティブ版**: プラットフォームの例外機構（Swift の `async throws`、Kotlin の `suspend fun` + 例外、C# の `async Task<T>` + 例外など）を使う形。Bridge を介さないネイティブ呼び出し元（サンプルアプリ、他のネイティブコードからの利用）向け。
+| 処理の性質 | スレッドアフィニティ要件なし | UI / Main thread 要件あり |
+|---|---|---|
+| 同期 | 同期 API | 呼び出し元を UI に限定するなら同期 API。任意スレッド対応なら UI へ配送し、callback 等で完了通知 |
+| 非同期 | プラットフォーム標準の非同期 API。ただし C ABI Bridge のようにプラットフォーム標準の非同期戻り値を直接表現しない境界では、スレッドアフィニティ要件がない場合に限り、ワーカースレッドで待機して同期形式にしてよい（待機方法・タイムアウトは `windows.md` を参照） | UI で開始し、UI をブロックせずプラットフォーム標準の非同期 API で待機 |
+
+- **callback 版**: `(isSuccess/completed, ..., errorMessage: String?) -> Void` の形。Unity Bridge で非同期完了または UI スレッドへの配送完了を通知する場合に使う。
+- **ネイティブ版**: Bridge を介さないネイティブ呼び出し元向け。同期処理は通常の関数と型付きエラー、非同期処理は Swift の `async throws`、Kotlin の `suspend fun` + 例外など、処理の性質に合う形式で公開する。
 
 **方針:**
-- callback 版は Bridge 向けとして必ず維持する（既存 API を壊さない）。
-- ネイティブ版は callback 版と共存させ、UseCase の呼び出しをそのまま公開する薄いラッパーとする（Manager 内でロジックを重複させない）。
+- 既存の callback API は互換性のため維持する（既存 API を壊さない）。
+- 新規 Bridge API は、同期処理かつ呼び出しスレッド制約がない場合は同期形式でよい。スレッドアフィニティ要件がある非同期処理、または任意スレッドから UI へ配送する処理は callback 形式にする。スレッドアフィニティ要件がない非同期処理は上表の例外に従い、ワーカースレッドで待機して同期形式にしてもよい。
+- ネイティブ版は UseCase の同期 / 非同期を維持して公開する薄いラッパーとし、Manager 内でロジックを重複させない。
 - ネイティブ版はエラーを型付き（Domain Error）のまま伝播させ、callback 版のような文字列化（`errorMessage: String?`）を強制しない。
 - サンプルアプリなど純粋ネイティブの呼び出し元は、ネイティブ版を優先して使う。
 
 ```swift
-// Bridge 向け（既存維持）
+// Bridge 向け（非同期完了または UI 配送が必要）
 public func share(content: ShareContent, completion: ((Bool, Bool, String?, String?) -> Void)? = nil)
 
-// ネイティブ呼び出し元向け（UseCase をそのまま公開する薄いラッパー）
+// ネイティブ呼び出し元向け（非同期 UseCase をそのまま公開）
 @discardableResult
 public func share(content: ShareContent) async throws -> ShareResult
+
+// ネイティブ呼び出し元向け（同期 UseCase をそのまま公開）
+public func readText() throws -> String
 ```
 
 ### Delegate・Callback の所有権

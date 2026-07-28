@@ -148,12 +148,63 @@ DFLog(TAG, L"[ShowDialog] failed. hr=0x%08lx", hr);
 
 ---
 
+## 同期 / 非同期の方針
+
+方針は `common.md`「Manager の公開 API 方式」を参照。iOS / macOS の `async throws`、Android の `suspend fun` に対応する VC++ 側の判断基準を以下に定める。
+
+### 原則: システム API に準拠する
+
+**システム API が同期なら同期、非同期なら非同期に準拠する。** 同期的に完結する処理を、性能上の理由なく非同期でラップしない（他 OS のルールと同じ）。ただし、同期 API に UI スレッド / フォアグラウンド要件があり、Bridge を任意スレッドから呼び出せる契約にする場合は、UI スレッドへの配送境界が必要になる。この配送をコールバック方式にすることは、同期処理そのものの不要な非同期化とは区別する。
+
+- 同期のまま扱うもの: Win32 API（`OpenClipboard` / `SetClipboardData` / `GetClipboardData` / `EmptyClipboard` 等）、ローカルのファイル I/O、純ロジック（バリデーション・JSON マッピング・構造検証）
+- 非同期として扱うもの: WinRT の `IAsyncAction` / `IAsyncOperation<T>` を返す API
+
+### 公開 API 方式は同期性とスレッドアフィニティで決める
+
+WinRT の非同期 API は ABI 上は必ず非同期だが、**公開 API まで非同期にするかは対象 API のスレッドアフィニティ要件で決まる**。同期 API でも UI スレッド / フォアグラウンド要件がある場合は、公開 API が UI スレッド限定か任意スレッド対応かを先に決める。実装前に公式ドキュメントで要件を確認する。
+
+| システム API の性質 | 内部実装 | 公開 API |
+|---|---|---|
+| 同期・呼び出しスレッドのアフィニティ要件なし（Win32 等） | 同期 | **同期** |
+| 同期・UI スレッド / フォアグラウンド要件あり | UI スレッド上で同期 | UI スレッド限定なら **同期**。任意スレッド対応なら `PostMessage` で UI へ配送し **コールバックで完了通知** |
+| 非同期・スレッドアフィニティ要件なし | 非同期 | **同期を維持する（既定）**。非 STA ワーカースレッドで待機すれば `DWORD* pError` の同期 Bridge のままにできる |
+| 非同期・UI スレッド / フォアグラウンド要件あり | 非同期 | **非同期（コールバック）にする**。UI スレッドで開始が必須、かつ UI スレッドをブロックできないため |
+
+後半 2 行の例: `Windows.ApplicationModel.DataTransfer.Clipboard` は公式 Remarks に「呼び出し元アプリが UI スレッドでフォーカスを持つ時のみアクセス可能」と明記されている。`SetContent` / `ClearHistory` のような同期 API は UI スレッド上で同期実行し、`GetHistoryItemsAsync` のような非同期 API は UI スレッドで開始して非同期に待つ。いずれも、Bridge を任意スレッド対応にする場合は UI スレッドへ配送する必要があり、「バックグラウンドスレッドで待機する」だけでは要件を満たせない。
+
+表の 1 行目は API 呼び出し自体のスレッドアフィニティを示す。Win32 Clipboard は同期 API だが、書き込みでは有効な owner `HWND` を使う（`OpenClipboard(NULL)` 後の `EmptyClipboard` は所有者を `NULL` にするため、以降の `SetClipboardData` が失敗する）。また、遅延レンダリングの `WM_RENDERFORMAT` / `WM_RENDERALLFORMATS` と変更監視の `WM_CLIPBOARDUPDATE` は対象 `HWND` を所有するスレッドへ届くため、そのスレッドでメッセージポンプを継続して回す。
+
+### 待機の実装ルール
+
+- **UI スレッド（STA）で `IAsyncXxx::get()` を呼ばない。** cppwinrt が `!is_sta_thread()` で assert する
+- 非 STA ワーカーで待つ場合は `get()`（無期限ブロック）ではなく **`wait_for(タイムアウト)`** を使う。`get()` と `wait_for()` は排他で、WinRT の非同期オブジェクトは**待機者を 1 つしか許容しない**。タイムアウトした（`AsyncStatus::Started`）オブジェクトは再待機せず破棄する
+- UI スレッド要件がある API は **UI スレッドで開始し `co_await` で待つ**（UI スレッドを塞がない）。C++/WinRT は `IAsyncXxx` を `co_await` した場合に呼び出し元のアパートメントへ復帰することを保証する。コルーチンを使うため **`/std:c++20`** が必要
+- **アパートメントは自前で作成したワーカースレッドでのみ** `winrt::init_apartment()` / `winrt::uninit_apartment()` を対で呼ぶ。`DllMain` / `CWinApp::InitInstance` では初期化しない（ホストが後から `init_apartment(single_threaded)` を呼ぶと `RPC_E_CHANGED_MODE` でクラッシュする。`WindowsLibrary.cpp` の既存コメント参照）
+- WinRT 例外は Bridge 境界で捕捉して Domain エラーへ正規化する。**`co_await` 後に発生した例外は同期の try/catch では捕捉できない**ため、例外は発生し得る非同期処理と同じコルーチン内で捕捉する。`E_OUTOFMEMORY` は `std::bad_alloc` として送出されるため別途捕捉する
+
+### UI 配送または非同期 Bridge を採る場合の契約
+
+同期 Bridge を維持できない場合（任意スレッド対応の同期 UI-affine API、または UI スレッド要件がある非同期 API）は、次を公開 API の契約として定義する。
+
+- **受付（pending 登録 + UI スレッドへの投入）の成立を境界とする。** 受付前の失敗は Bridge の同期戻り値のみで通知しコールバックを呼ばない（0 回）。受付成立後の全終端状態（成功・失敗・キャンセル・`Uninit` による失効）はコールバックをちょうど 1 回呼ぶ
+- 非 UI スレッドからの呼び出しは所有ウィンドウへ `PostMessage` で配送する（`SendMessage` は呼び出し元をブロックしデッドロックし得るため使わない）
+- コールバックは C ABI 境界なので例外を投げてはならない。呼び出し側も `try/catch` で囲む
+- `Uninit` は pending をドレインしてからコールバックを破棄する
+
+### サンプルアプリ（VC++ / MFC）での非同期処理
+
+- ボタンハンドラ等の UI スレッドで待機処理を書かない（メッセージポンプが止まる）
+- 結果を UI へ反映する場合は `PostMessage` で UI スレッドへ戻す（Android の `scope.launch(Dispatchers.IO)` + `withContext(Main)`、iOS の `Task { await ... }` + `DispatchQueue.main.async` に相当）
+- Bridge が同期 API なら、サンプル側でワーカースレッドに逃がす
+
+---
+
 ## 実装の落とし穴（WinUI 3 / MSIX / 通知）
 
 ビルドが通っても実行時に初めて顕在化する Windows 固有の罠。実装・レビュー時に必ず確認する。
 
 - **文字コード**: 非 ASCII（絵文字・日本語）を含む `.cpp`/`.h` は、UTF-8 BOM 付与または `/utf-8` コンパイルオプションを使う。無いと CP932 解釈で実行時に文字化けし、`warning C4819` が出る。絵文字は `\uXXXX` / `\UXXXXXXXX` のユニバーサル文字名でも安全に書ける。
-- **WinRT 非同期と STA**: UI スレッド（WinUI は STA）で `IAsyncXxx::get()` をブロッキング待機しない。cppwinrt が `!is_sta_thread()` で assert する。バックグラウンド（非 STA）スレッドで待機する（例: `std::async` でラップ）。Bridge の同期インターフェース（`DWORD* pError`）は維持できる。
+- **WinRT、STA、UI 配送**: UI スレッド（WinUI は STA）で `IAsyncXxx::get()` をブロッキング待機しない。cppwinrt が `!is_sta_thread()` で assert する。ただし「非 STA スレッドで待つ」だけで済むのはスレッドアフィニティ要件のない API に限る。`Clipboard` のように UI スレッド + フォアグラウンドを要求する API では、非同期 API の公開 Bridge を非同期にする。同期 API は UI 上で同期実行するが、Bridge を任意スレッド対応にする場合は `PostMessage` + コールバックで UI へ配送する。判断基準は「同期 / 非同期の方針」を参照。
 - **パッケージ済み通知のアクティベーション登録**: `AppNotificationManager::Register()` を使うパッケージ済み（MSIX）アプリは、`Package.appxmanifest` に `windows.comServer`（ExeServer + Class Id）と `windows.toastNotificationActivation`（`ToastActivatorCLSID`）の登録が必須。無いと初期化が `No COM servers are registered for this app`（0x80004005）で失敗する。
 - **プロセス単位登録の冪等性**: `Register()` はプロセスで一度だけ。Manager の `Init` は既初期化時に再購読・再 `Register()` しないようガードする（二重 `Register()` は `0x80070490`「Must register event handlers before calling Register()」になる）。`Uninit` で状態を戻して再 `Init` できる形にする。
 - **進捗バーの更新**: `UpdateAsync` で進捗を更新するには、表示時の進捗バーを**データバインド**（`BindValue`/`BindStatus` 等）にし、初期値を `AppNotification.Progress(AppNotificationProgressData)` で与える。リテラル値で組んだ進捗バーは更新できない（API は成功を返すが見た目が変わらない）。更新の sequence number は表示時より大きくする。

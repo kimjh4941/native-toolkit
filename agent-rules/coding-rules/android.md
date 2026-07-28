@@ -127,13 +127,16 @@ fun deleteChannel(channelId: String): Result<Unit>
 
 **`suspend fun` にすべきもの:**
 
-- Manager 層のネイティブ版公開 API（`common.md` の「callback 版 + ネイティブ版の併設」でいうネイティブ版）。UseCase をそのまま公開する薄いラッパーとして `suspend fun` + 例外送出にする
+- システム API / UseCase が実際に非同期で、呼び出し元のスレッドをブロックせず完了を待つもの。Manager のネイティブ版も UseCase の非同期性を維持した薄いラッパーとして `suspend fun` + 例外送出にする
 - 呼び出し元で中断・再開が必要な、実質的に非同期な処理（ネットワーク I/O、長時間かかるディスク I/O など）
+- Main thread 要件がある同期 API を任意の Coroutine context から呼べる契約にするもの。`withContext(Dispatchers.Main.immediate)` で配送するため `suspend fun` にする
 
 **`suspend fun` にしなくてよいもの:**
 
 - `ClipboardManager` / `NotificationManagerCompat` 等、システムサービスへの同期 API 呼び出しのみで完結する UseCase・Repository（例: clipboard の `ClipboardUseCases` は全メソッド非 suspend。設計判断の理由は `artifact/designs/clipboard/*-design.md` を参照）
 - 単発の軽量なファイル書き込み・読み込みなど、呼び出し元で `launch(Dispatchers.IO) { ... }` に包めば足りる処理（下記サンプルアプリの扱いを参照）
+
+同期 API に Main thread 要件がある場合、公開 API を Main thread 限定にするなら `@MainThread` を付けた通常関数のままにする。任意の Coroutine context に対応する場合だけ `suspend fun` + `withContext(Dispatchers.Main.immediate)` とし、単なる形式統一のためには非同期化しない。
 
 **サンプルアプリ（`AndroidLibraryExample`）での非同期処理:**
 
