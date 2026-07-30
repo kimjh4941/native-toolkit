@@ -32,6 +32,13 @@ Windows / WinRT API
 
 UseCase / Repository を**最初から作らない**。後述のトリガーが出た箇所にのみ層を足す。
 
+### Bridge の配置
+
+- Windows の `extern "C"` C Bridge は **`windows/WindowsLibrary` に実装し、`WindowsLibrary.dll` からエクスポートする**。
+- Unity C# は `WindowsLibrary.dll` の C API を直接 P/Invoke する。中継用の別 DLL やラッパープロジェクトを追加しない。
+- `windows/UnityWindowsPlugin` は現在使用していないため、新機能の Bridge、Manager、Delegate、依存関係を追加しない。既存ファイル、project、solution 登録は削除・変更せず、そのまま残す。
+- `windows/WindowsLibraryExample` の新機能実装は `WindowsLibrary` のみを利用する。既存の project / solution 構成は変更しない。
+
 ### 層の VC++ 対応
 
 | common.md の層 | VC++ での実現 |
@@ -179,6 +186,7 @@ WinRT の非同期 API は ABI 上は必ず非同期だが、**公開 API まで
 - **UI スレッド（STA）で `IAsyncXxx::get()` を呼ばない。** cppwinrt が `!is_sta_thread()` で assert する
 - 非 STA ワーカーで待つ場合は `get()`（無期限ブロック）ではなく **`wait_for(タイムアウト)`** を使う。`get()` と `wait_for()` は排他で、WinRT の非同期オブジェクトは**待機者を 1 つしか許容しない**。タイムアウトした（`AsyncStatus::Started`）オブジェクトは再待機せず破棄する
 - UI スレッド要件がある API は **UI スレッドで開始し `co_await` で待つ**（UI スレッドを塞がない）。C++/WinRT は `IAsyncXxx` を `co_await` した場合に呼び出し元のアパートメントへ復帰することを保証する。コルーチンを使うため **`/std:c++20`** が必要
+- 既存プロジェクトが C++17 の場合、`co_await` を使う `.cpp` にだけファイル単位で `/std:c++20` を設定し、公開ヘッダー・Win32 コア・既存機能は C++17 互換を維持する。プロジェクト全体の C++20 移行は機能追加と同時に行わず、影響範囲と回帰テストを確認できる別タスクとして段階的に実施する
 - **アパートメントは自前で作成したワーカースレッドでのみ** `winrt::init_apartment()` / `winrt::uninit_apartment()` を対で呼ぶ。`DllMain` / `CWinApp::InitInstance` では初期化しない（ホストが後から `init_apartment(single_threaded)` を呼ぶと `RPC_E_CHANGED_MODE` でクラッシュする。`WindowsLibrary.cpp` の既存コメント参照）
 - WinRT 例外は Bridge 境界で捕捉して Domain エラーへ正規化する。**`co_await` 後に発生した例外は同期の try/catch では捕捉できない**ため、例外は発生し得る非同期処理と同じコルーチン内で捕捉する。`E_OUTOFMEMORY` は `std::bad_alloc` として送出されるため別途捕捉する
 

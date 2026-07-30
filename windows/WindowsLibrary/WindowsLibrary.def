@@ -21,3 +21,31 @@ EXPORTS
 	removeAllNotifications
 	getAllNotifications
 	getNotificationSetting
+	; Clipboard Manager Bridge
+	initClipboardManager
+	setClipboardHistoryCallbacks
+	uninitClipboardManager
+	canDestroyClipboardManager
+	copyPlainText
+	pastePlainText
+	copyHtml
+	pasteHtml
+	copyFiles
+	pasteFiles
+	copyImage
+	pasteImage
+	copyCustomFormat
+	pasteCustomFormat
+	copyMultipleFormats
+	hasClipboardFormat
+	getClipboardFormats
+	getPreferredClipboardFormat
+	clearClipboard
+	reserveDeferredFormats
+	recoverDeferredState
+	getClipboardHistory
+	restoreHistoryItem
+	deleteHistoryItem
+	clearUnpinnedHistory
+	getClipboardHistoryAvailability
+	cancelClipboardRequest

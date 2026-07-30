@@ -93,11 +93,13 @@ Example (`1.7.0`):
 
 - `windows/WindowsLibrary`
   - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`)
+  - Unity C# calls `WindowsLibrary.dll` directly through P/Invoke
   - Header: `windows/WindowsLibrary/WindowsDialogManager.h`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/UnityWindowsPlugin`
-  - Optional integration project is included (currently minimal stub)
+  - Legacy minimal stub; it is not used by current integrations
+  - New Windows features and Unity bridge APIs belong in `WindowsLibrary`, not this project
 
 ## Repository layout
 
@@ -121,7 +123,7 @@ mac/
 
 windows/
   WindowsLibrary/
-  UnityWindowsPlugin/
+  UnityWindowsPlugin/       # Legacy unused stub
   WindowsLibraryExample/
 
 manual/
