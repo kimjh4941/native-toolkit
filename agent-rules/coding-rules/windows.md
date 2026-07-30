@@ -39,6 +39,13 @@ UseCase / Repository を**最初から作らない**。後述のトリガーが�
 - `windows/UnityWindowsPlugin` は現在使用していないため、新機能の Bridge、Manager、Delegate、依存関係を追加しない。既存ファイル、project、solution 登録は削除・変更せず、そのまま残す。
 - `windows/WindowsLibraryExample` の新機能実装は `WindowsLibrary` のみを利用する。既存の project / solution 構成は変更しない。
 
+### Solution Explorer 上のファイル整理
+
+- `windows/WindowsLibrary` に新機能のファイルを追加したら、`WindowsLibrary.vcxproj.filters` に既存の `Notification` / `Dialog` / `Bootstrap` と同様の **Filter** を機能名で追加し、`.vcxproj` に登録した全ての `ClCompile` / `ClInclude` に対応する `<Filter>` を設定する。
+- Filter の `UniqueIdentifier` は既存エントリと重複しない GUID を新規生成する。
+- `.vcxproj` の Include 一覧と `.vcxproj.filters` の Filter 割り当ては 1 対 1 で一致させる（漏れ・余剰がないか diff で確認する）。
+- `WindowsLibraryTest` はファイル数が少なくフォルダ分けしていないため、`.vcxproj.filters` は追加しない（既存方針を踏襲）。
+
 ### 層の VC++ 対応
 
 | common.md の層 | VC++ での実現 |

@@ -10,6 +10,9 @@
     <Filter Include="Bootstrap">
       <UniqueIdentifier>{C3D4E5F6-A7B8-4C9D-0E1F-3A4B5C6D7E8F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Clipboard">
+      <UniqueIdentifier>{D4E5F6A7-B8C9-4D0E-1F2A-4B5C6D7E8F90}</UniqueIdentifier>
+    </Filter>
     <Filter Include="リソース ファイル">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
@@ -30,6 +33,30 @@
     </ClCompile>
     <ClCompile Include="WindowsAppSdkBootstrap.cpp">
       <Filter>Bootstrap</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardFormats.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardCore.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardDeferredProvider.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardLifecycle.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardHistoryCoordinator.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardWindow.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardManager.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsClipboardHistoryWinRt.cpp">
+      <Filter>Clipboard</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -60,6 +87,36 @@
     </ClInclude>
     <ClInclude Include="WindowsClassicActivator.h">
       <Filter>Notification</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardManager.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardManagerInternal.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardCore.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardDeferredProvider.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardFormats.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardLifecycle.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardHistoryBackend.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardHistoryCoordinator.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardHistoryWinRt.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsClipboardWindow.h">
+      <Filter>Clipboard</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
