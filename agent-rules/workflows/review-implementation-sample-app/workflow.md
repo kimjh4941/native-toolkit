@@ -68,6 +68,7 @@
    **プロジェクトルール準拠**
    - `agent-rules/coding-rules/common.md` への適合
    - 対象 OS の個別ルール（`agent-rules/coding-rules/<os>.md`）への適合
+   - **サンプルアプリの依存方向**（`common.md`「サンプルアプリの依存方向」）: ネイティブサンプルがネイティブライブラリのみに依存しているか。Unity プラグインへの依存追加（ビルド設定・import）や、ライブラリを迂回したプラットフォーム API の直接呼び出しがないか。該当があれば機能側の配置不備を疑い、重大な指摘として扱う
    - Log.d がすべての対象メソッドの先頭に入っているか（android.md ルール）
    - public composable / 関数に KDoc が付いているか（android.md ルール）
    - TAG 定義が規約どおりか（クラスのフルネーム）。top-level composable は `companion object` を持てないため `private const val TAG` を package-level で定義するパターンを許容する。同一パッケージに同名の public `const val TAG` が存在する場合は画面名を含む一意の名前（例: `SHARE_TAG`）を使用することを許容する
@@ -112,6 +113,7 @@
    ### プロジェクトルール適合チェック
    - common.md 準拠: ○ / △ / ×
    - <os>.md 準拠: ○ / △ / ×
+   - サンプルアプリの依存方向（Unity プラグイン非依存）: ○ / △ / ×
    - Log.d 網羅性: ○ / △ / ×
    - KDoc 網羅性: ○ / △ / ×
 

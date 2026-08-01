@@ -2,9 +2,9 @@
 
 A cross-platform toolkit that bundles native platform features for native apps.
 
-- Android: `DialogFragment` + notification + share-based native API
-- iOS: `UIAlertController`-based native API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel`-based native API
+- Android: `DialogFragment` + notification + share + clipboard-based native API
+- iOS: `UIAlertController` + notification + share-based native API
+- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + notification + share-based native API
 - Windows: Win32 common dialogs and toast notifications exposed as C-style APIs
 
 > Goal: make it easy for native apps to use each OS's standard features with a consistent calling pattern.
@@ -20,10 +20,10 @@ Other languages:
 2. For integration steps, read `docs/<version>/manual/index.md`.
 3. For API references, use `docs/<version>/` (or `docs/latest/`).
 
-Example (`1.7.0`):
+Example (`1.8.0`):
 
-- Manual: `docs/1.7.0/manual/index.md`
-- Published docs: `docs/1.7.0/manual/`
+- Manual: `docs/1.8.0/manual/index.md`
+- Published docs: `docs/1.8.0/manual/`
 
 ## Detailed Documentation
 
@@ -33,34 +33,34 @@ Example (`1.7.0`):
 
 ## Version
 
-- Current release: 1.7.0
+- Current release: 1.8.0
 - Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## Supported OS (1.7.0)
+## Supported OS (1.8.0)
 
 - Android 12+
 - iOS 18+
 - Windows 11+
 - macOS 15+
 
-## Distributables (1.7.0)
+## Distributables (1.8.0)
 
-- Android: `dist/1.7.0/android/android-native-toolkit-1.2.0.aar`
+- Android: `dist/1.8.0/android/android-native-toolkit-1.3.0.aar`
 - iOS:
-  - `dist/1.7.0/ios/ios-native-toolkit-1.2.0.xcframework`
-  - `dist/1.7.0/ios/unity-ios-native-toolkit-1.2.0.xcframework`
+  - `dist/1.8.0/ios/ios-native-toolkit-1.2.0.xcframework`
+  - `dist/1.8.0/ios/unity-ios-native-toolkit-1.2.0.xcframework`
 - macOS:
-  - `dist/1.7.0/mac/mac-native-toolkit-1.2.0.xcframework`
-  - `dist/1.7.0/mac/unity-mac-native-toolkit-1.2.0.xcframework`
-- Windows: `dist/1.7.0/windows/windows-native-toolkit-1.1.0.nupkg`
+  - `dist/1.8.0/mac/mac-native-toolkit-1.2.0.xcframework`
+  - `dist/1.8.0/mac/unity-mac-native-toolkit-1.2.0.xcframework`
+- Windows: `dist/1.8.0/windows/windows-native-toolkit-1.1.0.nupkg`
 
 ## Modules (overview)
 
 ### Android
 
 - `android/android_library`
-  - Core: `AndroidDialogFragment` / Android notification APIs / `ShareUseCases`
-  - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
+  - Core: `AndroidDialogFragment` / Android notification APIs / `ShareUseCases` / `ClipboardUseCases`
+  - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - Docs: Dokka
 
 - `android/unity_android_plugin`
@@ -70,8 +70,8 @@ Example (`1.7.0`):
 ### iOS
 
 - `ios/IosLibrary`
-  - Core: `IosDialogManager`
-  - Variants: Alert / Confirm / Destructive / ActionSheet / TextInput / Login
+  - Core: `IosDialogManager` / `IosNotificationManager` / `IosShareManager`
+  - Variants: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share
   - Docs: DocC (`.docc`)
 
 - `ios/UnityIosPlugin`
@@ -81,8 +81,8 @@ Example (`1.7.0`):
 ### macOS
 
 - `mac/MacLibrary`
-  - Core: `MacDialogManager`
-  - Variants: Alert / File / MultiFile / Folder / MultiFolder / Save
+  - Core: `MacDialogManager` / `MacNotificationManager` / `MacShareManager`
+  - Variants: Alert / File / MultiFile / Folder / MultiFolder / Save / Notification / Share
   - Docs: DocC (`.docc`)
 
 - `mac/UnityMacPlugin`
@@ -92,8 +92,8 @@ Example (`1.7.0`):
 ### Windows
 
 - `windows/WindowsLibrary`
-  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`)
-  - Header: `windows/WindowsLibrary/WindowsDialogManager.h`
+  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`)
+  - Headers: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/UnityWindowsPlugin`
@@ -189,13 +189,13 @@ doxygen Doxyfile
 Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
 ```bash
-./scripts/publish_docs.sh 1.7.0
+./scripts/publish_docs.sh 1.8.0
 ```
 
 Copy only (skip generation):
 
 ```bash
-./scripts/publish_docs.sh 1.7.0 --skip-build
+./scripts/publish_docs.sh 1.8.0 --skip-build
 ```
 
 Manual source path is `manual/<version>/`.
@@ -207,7 +207,7 @@ For native integration, start from the core library docs per platform.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
+- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 
