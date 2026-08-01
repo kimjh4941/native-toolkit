@@ -20,10 +20,10 @@ Other languages:
 2. For integration steps, read `docs/<version>/manual/index.md`.
 3. For API references, use `docs/<version>/` (or `docs/latest/`).
 
-Example (`1.7.0`):
+Example (`1.8.0`):
 
-- Manual: `docs/1.7.0/manual/index.md`
-- Published docs: `docs/1.7.0/manual/`
+- Manual: `docs/1.8.0/manual/index.md`
+- Published docs: `docs/1.8.0/manual/`
 
 ## Detailed Documentation
 
@@ -33,26 +33,26 @@ Example (`1.7.0`):
 
 ## Version
 
-- Current release: 1.7.0
+- Current release: 1.8.0
 - Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## Supported OS (1.7.0)
+## Supported OS (1.8.0)
 
 - Android 12+
 - iOS 18+
 - Windows 11+
 - macOS 15+
 
-## Distributables (1.7.0)
+## Distributables (1.8.0)
 
-- Android: `dist/1.7.0/android/android-native-toolkit-1.2.0.aar`
+- Android: `dist/1.8.0/android/android-native-toolkit-1.3.0.aar`
 - iOS:
-  - `dist/1.7.0/ios/ios-native-toolkit-1.2.0.xcframework`
-  - `dist/1.7.0/ios/unity-ios-native-toolkit-1.2.0.xcframework`
+  - `dist/1.8.0/ios/ios-native-toolkit-1.2.0.xcframework`
+  - `dist/1.8.0/ios/unity-ios-native-toolkit-1.2.0.xcframework`
 - macOS:
-  - `dist/1.7.0/mac/mac-native-toolkit-1.2.0.xcframework`
-  - `dist/1.7.0/mac/unity-mac-native-toolkit-1.2.0.xcframework`
-- Windows: `dist/1.7.0/windows/windows-native-toolkit-1.1.0.nupkg`
+  - `dist/1.8.0/mac/mac-native-toolkit-1.2.0.xcframework`
+  - `dist/1.8.0/mac/unity-mac-native-toolkit-1.2.0.xcframework`
+- Windows: `dist/1.8.0/windows/windows-native-toolkit-1.1.0.nupkg`
 
 ## Modules (overview)
 
@@ -189,13 +189,13 @@ doxygen Doxyfile
 Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
 ```bash
-./scripts/publish_docs.sh 1.7.0
+./scripts/publish_docs.sh 1.8.0
 ```
 
 Copy only (skip generation):
 
 ```bash
-./scripts/publish_docs.sh 1.7.0 --skip-build
+./scripts/publish_docs.sh 1.8.0 --skip-build
 ```
 
 Manual source path is `manual/<version>/`.

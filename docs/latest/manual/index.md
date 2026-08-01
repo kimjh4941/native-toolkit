@@ -32,10 +32,10 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/1.7.0/android/android-native-toolkit-1.2.0.aar`
-- iOS: `dist/1.7.0/ios/ios-native-toolkit-1.2.0.xcframework`
-- Windows: `dist/1.7.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.7.0/mac/mac-native-toolkit-1.2.0.xcframework`
+- Android: `dist/1.8.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.8.0/ios/ios-native-toolkit-1.2.0.xcframework`
+- Windows: `dist/1.8.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.8.0/mac/mac-native-toolkit-1.2.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.7.0
+## 1.8.0
 
 # Supported OS versions
 
@@ -77,6 +77,12 @@ Markdown files in this directory are published as versioned documents under `doc
   - Direct Share Target
   - Share with callback
   - Receive incoming shares
+- Clipboard features
+  - Copy (plain text, HTML, URI, multiple text)
+  - Sensitive content copy (preview suppression, Android 13+)
+  - Read / has clip / metadata inspection
+  - Clear
+  - Clipboard change observation
 
 ## iOS
 
@@ -139,7 +145,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 ## Planned features
 
-- Clipboard integration
+- Clipboard integration for iOS / macOS / Windows (Android is available; see [Feature list](#feature-list) above)
 
 ## Samples
 
@@ -194,7 +200,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 #### Supported platform: Android (AAR / ABI-independent)
 
-1. Place `android-native-toolkit-1.2.0.aar` in `app/libs`.
+1. Place `android-native-toolkit-1.3.0.aar` in `app/libs`.
 2. Add repository settings in `settings.gradle.kts` to resolve the AAR.
 3. Add dependency settings in `app/build.gradle.kts` to reference the AAR.
 4. Run Gradle sync.
@@ -225,7 +231,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // Add this dependency to reference the AAR.
-  implementation(files("libs/android-native-toolkit-1.2.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.3.0.aar"))
 }
 ```
 
@@ -278,3 +284,4 @@ dependencies {
 - [Dialog](dialog.md)
 - [Notification](notification.md)
 - [Share](share.md)
+- [Clipboard](clipboard.md)

@@ -32,10 +32,10 @@
 
 # 배포 산출물 위치 (`dist/<version>/`)
 
-- Android: `dist/1.7.0/android/android-native-toolkit-1.2.0.aar`
-- iOS: `dist/1.7.0/ios/ios-native-toolkit-1.2.0.xcframework`
-- Windows: `dist/1.7.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.7.0/mac/mac-native-toolkit-1.2.0.xcframework`
+- Android: `dist/1.8.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.8.0/ios/ios-native-toolkit-1.2.0.xcframework`
+- Windows: `dist/1.8.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.8.0/mac/mac-native-toolkit-1.2.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@
 
 # 버전
 
-## 1.7.0
+## 1.8.0
 
 # 지원 OS 버전
 
@@ -77,6 +77,12 @@
   - Direct Share Target
   - 콜백 포함 공유
   - 수신 공유 콘텐츠 처리
+- 클립보드 기능
+  - 복사 (일반 텍스트, HTML, URI, 여러 텍스트)
+  - 민감 정보 복사 (미리보기 억제, Android 13+)
+  - 읽기 / 데이터 존재 확인 / 메타데이터 확인
+  - 지우기
+  - 클립보드 변경 감시
 
 ## iOS
 
@@ -139,7 +145,7 @@
 
 ## 추가 예정 기능
 
-- 클립보드 연동
+- iOS / macOS / Windows용 클립보드 연동 (Android는 지원됨. 위 "기능 목록" 참고)
 
 ## 샘플
 
@@ -194,7 +200,7 @@
 
 #### 지원 플랫폼: Android（AAR / ABI 독립）
 
-1. `android-native-toolkit-1.2.0.aar`를 `app/libs`에 배치합니다.
+1. `android-native-toolkit-1.3.0.aar`를 `app/libs`에 배치합니다.
 2. `settings.gradle.kts`에 AAR 참조를 위한 저장소 설정을 추가합니다.
 3. `app/build.gradle.kts`에 AAR 참조를 위한 의존성을 추가합니다.
 4. Gradle 동기화를 실행합니다.
@@ -225,7 +231,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // AAR 참조를 위해 아래 의존성을 추가합니다.
-  implementation(files("libs/android-native-toolkit-1.2.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.3.0.aar"))
 }
 ```
 
@@ -278,3 +284,4 @@ dependencies {
 - [다이얼로그 기능](dialog.ko.md)
 - [알림 기능](notification.ko.md)
 - [공유 기능](share.ko.md)
+- [클립보드 기능](clipboard.ko.md)

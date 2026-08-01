@@ -32,10 +32,10 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android: `dist/1.7.0/android/android-native-toolkit-1.2.0.aar`
-- iOS: `dist/1.7.0/ios/ios-native-toolkit-1.2.0.xcframework`
-- Windows: `dist/1.7.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.7.0/mac/mac-native-toolkit-1.2.0.xcframework`
+- Android: `dist/1.8.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.8.0/ios/ios-native-toolkit-1.2.0.xcframework`
+- Windows: `dist/1.8.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.8.0/mac/mac-native-toolkit-1.2.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@
 
 # バージョン
 
-## 1.7.0
+## 1.8.0
 
 # 対応 OS バージョン
 
@@ -77,6 +77,12 @@
   - Direct Share Target
   - コールバック付きシェア
   - 共有コンテンツの受信
+- クリップボード機能
+  - コピー（プレーンテキスト・HTML・URI・複数テキスト）
+  - 機微情報コピー（プレビュー抑止、Android 13 以降）
+  - 読み取り / データ有無確認 / メタデータ確認
+  - クリア
+  - クリップボード変更監視
 
 ## iOS
 
@@ -139,7 +145,7 @@
 
 ## 追加予定機能
 
-- クリップボード連携
+- iOS / macOS / Windows 向けクリップボード連携（Android は対応済み。上記「機能一覧」参照）
 
 ## サンプル
 
@@ -194,7 +200,7 @@
 
 #### 対応プラットフォーム: Android（AAR / ABI 非依存）
 
-1. `android-native-toolkit-1.2.0.aar` を `app/libs` に配置します。
+1. `android-native-toolkit-1.3.0.aar` を `app/libs` に配置します。
 2. `settings.gradle.kts` に AAR を参照するためのリポジトリ設定を追加します。
 3. `app/build.gradle.kts` に AAR を参照するための依存関係を追加します。
 4. Gradle 同期を実行します。
@@ -225,7 +231,7 @@ dependencyResolutionManagement {
 
 dependencies {
     // AAR を参照するための依存関係を追加します。こちらを追加してください。
-  implementation(files("libs/android-native-toolkit-1.2.0.aar"))
+  implementation(files("libs/android-native-toolkit-1.3.0.aar"))
 }
 ```
 
@@ -278,3 +284,4 @@ dependencies {
 - [ダイアログ機能](dialog.ja.md)
 - [通知機能](notification.ja.md)
 - [シェア機能](share.ja.md)
+- [クリップボード機能](clipboard.ja.md)
