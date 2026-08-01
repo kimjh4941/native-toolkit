@@ -88,6 +88,14 @@ Swift の API を Objective-C から呼び出す際、completion ブロックの
 - 新規 Manager を作る場合は、両方式を最初から用意する（後から追加ではなく設計時点で決める）
 - サンプルアプリ（`MacLibraryExample`）は `async throws` 版を使う（`Button` の action は同期クロージャのため `Task { await ... }` で橋渡しする）
 
+### `async` の要否（重い処理か軽い処理か）
+
+Manager の公開 API（ネイティブ版）は上記のとおり必ず `async throws` にするが、その内部で呼ぶ private helper まで一律 `async` にする必要はない。
+
+- **`async` にすべきもの**: システム API 呼び出しが実際に非同期・待機を伴うもの
+- **`async` にしなくてよいもの**: `FileManager` を使ったローカルの一時ファイル書き込み・読み込みなど、同期的に完結する軽量処理。`ShareSampleView.swift` のファイル準備 helper 群は plain な同期関数のままで、呼び出し元の `Task { }` ブロック内から同期呼び出しされている（これが確立された慣例）
+- UI 状態の更新は `DispatchQueue.main.async { ... }` でメインスレッドに戻す
+
 ---
 
 ## コメント（DocC / HeaderDoc）

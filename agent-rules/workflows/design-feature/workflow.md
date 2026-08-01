@@ -34,6 +34,10 @@
    - `agent-rules/coding-rules/common.md` を読み込み、共通実装方針を設計制約として固定する
    - 対象OSの個別ルールファイル（例: `agent-rules/coding-rules/android.md`, `agent-rules/coding-rules/ios.md`, `agent-rules/coding-rules/mac.md`, `agent-rules/coding-rules/windows.md`）を読み込み、設計制約として固定する
    - Clean Architecture の層・依存方向・Delegate 所有ルールを設計に反映する
+   - **各クラスの配置モジュールを決める（必須）**: `common.md`「層とモジュールの対応」に従い、Manager 層までは必ずネイティブライブラリ側に置く。Unity プラグインに置いてよいのは Unity Bridge 層のみ
+     - system Delegate / Listener の所有クラスを Unity プラグインに置いてはならない
+     - 判定基準: 「Unity を使わない呼び出し元（ネイティブサンプルアプリ等）がこの機能を使う必要があるか」。必要ならネイティブライブラリ側へ置く
+     - `Unity*Manager` は名前に Manager を含むが Unity Bridge 層であり、Manager 層ではない
    - TDD 方針、エラー変換方針、Unity Bridge 方針を設計に反映する
    - 対象 OS の既存モジュール構成を確認する
    - 追加・変更が必要なファイル群を洗い出す

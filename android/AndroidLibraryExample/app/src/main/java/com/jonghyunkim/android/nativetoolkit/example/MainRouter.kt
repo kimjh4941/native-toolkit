@@ -21,7 +21,8 @@ private enum class MainScreen {
     ANDROID_DIALOG_TEST,
     NOTIFICATION_TEST,
     SHARE_TEST,
-    RECEIVED_SHARE
+    RECEIVED_SHARE,
+    CLIPBOARD_TEST
 }
 
 /**
@@ -60,7 +61,8 @@ fun AppRouter(
                     modifier = Modifier.padding(innerPadding),
                     onSelectDialogTest = { currentScreen = MainScreen.ANDROID_DIALOG_TEST },
                     onSelectNotificationTest = { currentScreen = MainScreen.NOTIFICATION_TEST },
-                    onSelectShareTest = { currentScreen = MainScreen.SHARE_TEST }
+                    onSelectShareTest = { currentScreen = MainScreen.SHARE_TEST },
+                    onSelectClipboardTest = { currentScreen = MainScreen.CLIPBOARD_TEST }
                 )
             }
 
@@ -102,6 +104,13 @@ fun AppRouter(
                         activity.clearReceivedShare()
                         currentScreen = MainScreen.MAIN_MENU
                     }
+                )
+            }
+
+            MainScreen.CLIPBOARD_TEST -> {
+                ClipboardSampleScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    onBack = { currentScreen = MainScreen.MAIN_MENU }
                 )
             }
         }
