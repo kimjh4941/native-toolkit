@@ -40,14 +40,14 @@ Language:
 - ライブラリ: `android-native-toolkit-1.3.0.aar`
 - 最小 SDK: Android 12 (API 31)
 - 機微情報プレビュー抑止: Android 13 (API 33) 以上
-- 対応範囲: コピー・読み取り・メタデータ確認・クリア・クリップボード変更監視を `android_library`（ネイティブ）経由で提供する。いずれの操作も Unity Bridge への依存は不要。
+- 対応範囲: コピー・読み取り・メタデータ確認・クリア・クリップボード変更監視を `android_library`（ネイティブ）経由で提供します。いずれの操作も Unity Bridge への依存は不要です。
 
 ### セットアップ
 
 #### Android ネイティブ（AAR）
 
-1. `android-native-toolkit-1.3.0.aar` を `app/libs` に配置する。
-2. `app/build.gradle.kts` に依存関係を追加する:
+1. `android-native-toolkit-1.3.0.aar` を `app/libs` に配置します。
+2. `app/build.gradle.kts` に依存関係を追加します:
 
 ```kotlin
 dependencies {
@@ -55,13 +55,13 @@ dependencies {
 }
 ```
 
-クリップボード操作に追加のマニフェスト設定は不要。`content://` URI をコピーする場合（[URI をコピー](#uri-をコピー)参照）は、共有したいファイルの URI を解決できる `FileProvider` が別途必要。AAR 自体は汎用目的の `FileProvider` を宣言していない。
+クリップボード操作に追加のマニフェスト設定は不要です。`content://` URI をコピーする場合（[URI をコピー](#uri-をコピー)参照）は、共有したいファイルの URI を解決できる `FileProvider` が別途必要です。AAR 自体は汎用目的の `FileProvider` を宣言していません。
 
 ---
 
 ### コピー
 
-`ClipboardUseCases` は `Context` を受け取るファクトリ関数で取得する:
+`ClipboardUseCases` は `Context` を受け取るファクトリ関数で取得します:
 
 ```kotlin
 val clipboardUseCases = ClipboardUseCases(context)
@@ -85,7 +85,7 @@ try {
 
 #### プレーンテキストをコピー（空文字）
 
-空文字は許容され、例外は発生しない。
+空文字は許容され、例外は発生しません。
 
 ```kotlin
 clipboardUseCases.copyPlainText(ClipContent.PlainText(text = ""))
@@ -109,7 +109,7 @@ clipboardUseCases.copyHtmlText(
 
 #### URI をコピー
 
-`content://`（または `file://`）URI をコピーする。`content` / `file` スキームのみが許容され、それ以外のスキームは `ClipboardDomainError.InvalidUri` を送出する。
+`content://`（または `file://`）URI をコピーします。`content` / `file` スキームのみが許容され、それ以外のスキームは `ClipboardDomainError.InvalidUri` を送出します。
 
 ```kotlin
 val file = File(context.cacheDir, "clipboard_sample.txt")
@@ -129,7 +129,7 @@ clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri.toString()))
 
 #### 複数テキストをコピー
 
-同一形式の複数プレーンテキストアイテム（1つの `ClipData` に複数アイテムを格納）。
+同一形式の複数プレーンテキストアイテムです（1つの `ClipData` に複数アイテムを格納します）。
 
 ```kotlin
 clipboardUseCases.copyMultipleText(
@@ -145,10 +145,10 @@ clipboardUseCases.copyMultipleText(
 
 ### コピー - 機微情報
 
-`isSensitive = true` を指定すると、コピーした内容が機微情報（パスワード・ワンタイムコードなど）であることをシステムに示唆できる。
+`isSensitive = true` を指定すると、コピーした内容が機微情報（パスワード・ワンタイムコードなど）であることをシステムに示唆できます。
 
-- Android 13 (API 33) 以上では、システム標準のコピー確認 UI が内容のプレビュー表示を抑止する。
-- Android 12L (API 32) 以下ではシステム確認 UI 自体が存在しないため、コピー後に自前でフィードバック（`Toast` など）を表示する。
+- Android 13 (API 33) 以上では、システム標準のコピー確認 UI が内容のプレビュー表示を抑止します。
+- Android 12L (API 32) 以下ではシステム確認 UI 自体が存在しないため、コピー後に自前でフィードバック（`Toast` など）を表示してください。
 
 #### 機微情報テキストをコピー
 
@@ -172,7 +172,7 @@ if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
 
 #### クリップボードを読み取る
 
-空のクリップボードは**正常系**であり、エラーではない。`read()` は `null` を返す。
+空のクリップボードは**正常系**であり、エラーではありません。`read()` は `null` を返します。
 
 ```kotlin
 val result = clipboardUseCases.read()
@@ -199,7 +199,7 @@ val hasClip: Boolean = clipboardUseCases.hasClip()
 
 #### メタデータを取得
 
-本体データに触れずメタデータのみ取得する（Android 12+ の「クリップボードから貼り付けました」アクセス通知を回避できる）。こちらもクリップボードが空の場合は `null`（正常系）。
+本体データに触れずメタデータのみ取得します（Android 12+ の「クリップボードから貼り付けました」アクセス通知を回避できます）。こちらもクリップボードが空の場合は `null`（正常系）を返します。
 
 ```kotlin
 val info = clipboardUseCases.getDescription()
@@ -232,9 +232,9 @@ clipboardUseCases.clear()
 
 ### 変更監視
 
-`ClipboardChangeMonitor` はシステムのクリップボード変更リスナーを所有するクラスで、`android_library`（Unity Bridge ではなくネイティブ側）に配置されているため、ネイティブコードから直接利用できる。
+`ClipboardChangeMonitor` はシステムのクリップボード変更リスナーを所有するクラスで、`android_library`（Unity Bridge ではなくネイティブ側）に配置されているため、ネイティブコードから直接利用できます。
 
-監視はアプリが前面にある間のみ確実に動作する（Android 10+ はバックグラウンドでのクリップボード読み取りを制限するため）。
+監視はアプリが前面にある間のみ確実に動作します（Android 10+ はバックグラウンドでのクリップボード読み取りを制限するためです）。
 
 ```kotlin
 val monitor = ClipboardChangeMonitor()
@@ -242,7 +242,7 @@ val monitor = ClipboardChangeMonitor()
 
 #### 監視を開始
 
-`onChange` はシステムリスナーのコールバックスレッドで呼び出される。UI 状態を更新する場合は自分でメインスレッドへ橋渡しする。
+`onChange` はシステムリスナーのコールバックスレッドで呼び出されます。UI 状態を更新する場合は自分でメインスレッドへ橋渡ししてください。
 
 ```kotlin
 monitor.start(context) {
@@ -255,7 +255,7 @@ monitor.start(context) {
 val isObserving: Boolean = monitor.isObserving()
 ```
 
-監視中に `start` を再度呼んでも no-op（system listener の二重登録は発生しない）。
+監視中に `start` を再度呼んでも no-op です（system listener の二重登録は発生しません）。
 
 #### 監視を停止
 
@@ -263,7 +263,7 @@ val isObserving: Boolean = monitor.isObserving()
 monitor.stop()
 ```
 
-監視中の画面・コンポーネントが破棄されるタイミングで `stop()` を呼び、system listener のリークを防ぐ:
+監視中の画面・コンポーネントが破棄されるタイミングで `stop()` を呼び、system listener のリークを防いでください:
 
 ```kotlin
 DisposableEffect(monitor) {
@@ -275,7 +275,7 @@ DisposableEffect(monitor) {
 
 ### エラー処理
 
-`ClipboardUseCases` は `ClipboardDomainError` のサブタイプを送出する。
+`ClipboardUseCases` は `ClipboardDomainError` のサブタイプを送出します。
 
 | エラー | 原因 | エラーメッセージ |
 |---|---|---|
@@ -285,7 +285,7 @@ DisposableEffect(monitor) {
 | `ClipboardUnavailable` | システムの `ClipboardManager` を取得できない | `"Clipboard service is unavailable."` |
 | `ReadNotAllowed` | `read()` がシステムに拒否された（`SecurityException`）。アプリが前面にない可能性が高い | `"Clipboard read is not allowed. The app must be in the foreground."` |
 
-空のクリップボードはこれらのエラーに**含まれない**: `read()` / `getDescription()` は正常系として `null` を返す。
+空のクリップボードはこれらのエラーに**含まれません**: `read()` / `getDescription()` は正常系として `null` を返します。
 
 ```kotlin
 try {
