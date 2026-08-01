@@ -2,9 +2,9 @@
 
 ネイティブアプリから利用できる、クロスプラットフォームのネイティブ機能ツールキットです。
 
-- Android: `DialogFragment` + 通知 + シェアベースのネイティブ API
-- iOS: `UIAlertController` ベースのネイティブ API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` ベースのネイティブ API
+- Android: `DialogFragment` + 通知 + シェア + クリップボードベースのネイティブ API
+- iOS: `UIAlertController` + 通知 + シェアベースのネイティブ API
+- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + 通知 + シェアベースのネイティブ API
 - Windows: Win32 共通ダイアログおよびトースト通知の C 形式 API
 
 > 目的: ネイティブアプリから、各 OS の標準機能を一貫した呼び方で利用できるようにする。
@@ -59,8 +59,8 @@
 ### Android
 
 - `android/android_library`
-  - 中核: `AndroidDialogFragment` / Android 通知 API / `ShareUseCases`
-  - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
+  - 中核: `AndroidDialogFragment` / Android 通知 API / `ShareUseCases` / `ClipboardUseCases`
+  - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - Doc: Dokka
 
 - `android/unity_android_plugin`
@@ -70,8 +70,8 @@
 ### iOS
 
 - `ios/IosLibrary`
-  - 中核: `IosDialogManager`
-  - 対応: Alert / Confirm / Destructive / ActionSheet / TextInput / Login
+  - 中核: `IosDialogManager` / `IosNotificationManager` / `IosShareManager`
+  - 対応: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share
   - Doc: DocC
 
 - `ios/UnityIosPlugin`
@@ -81,8 +81,8 @@
 ### macOS
 
 - `mac/MacLibrary`
-  - 中核: `MacDialogManager`
-  - 対応: Alert / File / MultiFile / Folder / MultiFolder / Save
+  - 中核: `MacDialogManager` / `MacNotificationManager` / `MacShareManager`
+  - 対応: Alert / File / MultiFile / Folder / MultiFolder / Save / Notification / Share
   - Doc: DocC
 
 - `mac/UnityMacPlugin`
@@ -92,8 +92,8 @@
 ### Windows
 
 - `windows/WindowsLibrary`
-  - C 形式 API（例: `showAlertDialog`, `showFileDialog`, `showFolderDialog`）
-  - ヘッダ: `windows/WindowsLibrary/WindowsDialogManager.h`
+  - C 形式 API（例: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`）
+  - ヘッダ: `windows/WindowsLibrary/WindowsDialogManager.h`、`windows/WindowsLibrary/WindowsNotificationManager.h`
   - Doc: Doxygen
 
 - `windows/UnityWindowsPlugin`
@@ -205,7 +205,7 @@ manual のコピー元は `manual/<version>/` です。
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
+- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 

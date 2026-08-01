@@ -2,9 +2,9 @@
 
 A cross-platform toolkit that bundles native platform features for native apps.
 
-- Android: `DialogFragment` + notification + share-based native API
-- iOS: `UIAlertController`-based native API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel`-based native API
+- Android: `DialogFragment` + notification + share + clipboard-based native API
+- iOS: `UIAlertController` + notification + share-based native API
+- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + notification + share-based native API
 - Windows: Win32 common dialogs and toast notifications exposed as C-style APIs
 
 > Goal: make it easy for native apps to use each OS's standard features with a consistent calling pattern.
@@ -59,8 +59,8 @@ Example (`1.8.0`):
 ### Android
 
 - `android/android_library`
-  - Core: `AndroidDialogFragment` / Android notification APIs / `ShareUseCases`
-  - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
+  - Core: `AndroidDialogFragment` / Android notification APIs / `ShareUseCases` / `ClipboardUseCases`
+  - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - Docs: Dokka
 
 - `android/unity_android_plugin`
@@ -70,8 +70,8 @@ Example (`1.8.0`):
 ### iOS
 
 - `ios/IosLibrary`
-  - Core: `IosDialogManager`
-  - Variants: Alert / Confirm / Destructive / ActionSheet / TextInput / Login
+  - Core: `IosDialogManager` / `IosNotificationManager` / `IosShareManager`
+  - Variants: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share
   - Docs: DocC (`.docc`)
 
 - `ios/UnityIosPlugin`
@@ -81,8 +81,8 @@ Example (`1.8.0`):
 ### macOS
 
 - `mac/MacLibrary`
-  - Core: `MacDialogManager`
-  - Variants: Alert / File / MultiFile / Folder / MultiFolder / Save
+  - Core: `MacDialogManager` / `MacNotificationManager` / `MacShareManager`
+  - Variants: Alert / File / MultiFile / Folder / MultiFolder / Save / Notification / Share
   - Docs: DocC (`.docc`)
 
 - `mac/UnityMacPlugin`
@@ -92,8 +92,8 @@ Example (`1.8.0`):
 ### Windows
 
 - `windows/WindowsLibrary`
-  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`)
-  - Header: `windows/WindowsLibrary/WindowsDialogManager.h`
+  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`)
+  - Headers: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/UnityWindowsPlugin`
@@ -207,7 +207,7 @@ For native integration, start from the core library docs per platform.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
+- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 

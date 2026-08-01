@@ -2,9 +2,9 @@
 
 네이티브 앱에서 사용할 수 있는 네이티브 플랫폼 기능을 플랫폼별로 모아둔 툴킷입니다.
 
-- Android: `DialogFragment` + 알림 + 공유 기반 네이티브 API
-- iOS: `UIAlertController` 기반 네이티브 API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` 기반 네이티브 API
+- Android: `DialogFragment` + 알림 + 공유 + 클립보드 기반 네이티브 API
+- iOS: `UIAlertController` + 알림 + 공유 기반 네이티브 API
+- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + 알림 + 공유 기반 네이티브 API
 - Windows: Win32 공통 다이얼로그 및 토스트 알림의 C 형태 API
 
 > 목표: 네이티브 앱에서 각 OS의 표준 기능을 공통된 호출 방식으로 사용할 수 있게 한다.
@@ -59,8 +59,8 @@
 ### Android
 
 - `android/android_library`
-  - 핵심: `AndroidDialogFragment` / Android 알림 API / `ShareUseCases`
-  - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share
+  - 핵심: `AndroidDialogFragment` / Android 알림 API / `ShareUseCases` / `ClipboardUseCases`
+  - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - 문서: Dokka
 
 - `android/unity_android_plugin`
@@ -70,8 +70,8 @@
 ### iOS
 
 - `ios/IosLibrary`
-  - 핵심: `IosDialogManager`
-  - 지원: Alert / Confirm / Destructive / ActionSheet / TextInput / Login
+  - 핵심: `IosDialogManager` / `IosNotificationManager` / `IosShareManager`
+  - 지원: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share
   - 문서: DocC (`.docc`)
 
 - `ios/UnityIosPlugin`
@@ -81,8 +81,8 @@
 ### macOS
 
 - `mac/MacLibrary`
-  - 핵심: `MacDialogManager`
-  - 지원: Alert / File / MultiFile / Folder / MultiFolder / Save
+  - 핵심: `MacDialogManager` / `MacNotificationManager` / `MacShareManager`
+  - 지원: Alert / File / MultiFile / Folder / MultiFolder / Save / Notification / Share
   - 문서: DocC (`.docc`)
 
 - `mac/UnityMacPlugin`
@@ -92,8 +92,8 @@
 ### Windows
 
 - `windows/WindowsLibrary`
-  - C 형태 API (예: `showAlertDialog`, `showFileDialog`, `showFolderDialog`)
-  - 헤더: `windows/WindowsLibrary/WindowsDialogManager.h`
+  - C 형태 API (예: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`)
+  - 헤더: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
   - 문서: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/UnityWindowsPlugin`
@@ -207,7 +207,7 @@ manual 복사 원본은 `manual/<version>/` 입니다.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`
+- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 
