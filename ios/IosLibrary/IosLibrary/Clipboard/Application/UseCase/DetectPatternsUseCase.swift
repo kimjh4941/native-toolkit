@@ -25,7 +25,7 @@ public struct DetectPatternsUseCase {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope
     ) async throws -> Set<ClipboardDetectionPattern> {
-        Log.d(TAG, "[execute] scope: \(scope), patternCount: \(patterns.count)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription), patternCount: \(patterns.count)")
         guard !patterns.isEmpty else { throw ClipboardError.emptyDetectionPatterns }
         let repository = self.repository
         return try await ClipboardAsyncRaceCoordinator.run(

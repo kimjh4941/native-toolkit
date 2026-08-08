@@ -41,7 +41,7 @@ public final class ClipboardPasteControlContainerView: UIView {
         }
 
         let receiverView = ClipboardPasteReceiverView(acceptedTypes: acceptedTypes)
-        var configuration = UIPasteControl.Configuration()
+        let configuration = UIPasteControl.Configuration()
         configuration.displayMode = displayMode
         let pasteControl = UIPasteControl(configuration: configuration)
         pasteControl.target = receiverView

@@ -16,7 +16,7 @@ public struct CreatePasteboardUseCase {
     }
 
     public func execute(_ request: PasteboardCreationRequest) throws -> PasteboardScope {
-        Log.d(TAG, "[execute] request: \(request)")
+        Log.d(TAG, "[execute] request: \(request.redactedDescription)")
         if case .named(let name) = request {
             guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw ClipboardError.invalidPasteboardName(name)

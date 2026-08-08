@@ -287,10 +287,16 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
             return
         }
         Task { @MainActor in
-            IosClipboardManager.shared.startObserving(scope: scope) { [parser] event in
-                changeHandler?(parser.serializeChangeEvent(event))
+            do {
+                try IosClipboardManager.shared.startObserving(scope: scope) { [parser] event in
+                    changeHandler?(parser.serializeChangeEvent(event))
+                }
+                startHandler?(true, nil, nil)
+            } catch let error as ClipboardError {
+                startHandler?(false, error.errorCode, error.errorDescription)
+            } catch {
+                startHandler?(false, ClipboardError.unknownErrorCode, ClipboardError.unknownMessage)
             }
-            startHandler?(true, nil, nil)
         }
     }
 

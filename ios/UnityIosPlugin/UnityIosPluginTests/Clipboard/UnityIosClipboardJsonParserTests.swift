@@ -26,6 +26,52 @@ struct UnityIosClipboardJsonParserTests {
         #expect(parser.parseScope(["scope": ["kind": "bogus"]]) == nil)
     }
 
+    @Test(arguments: [
+        "{\"scope\": null}",
+        "{\"scope\": \"general\"}",
+        "{\"scope\": []}",
+        "{\"scope\": 1}"
+    ])
+    func malformedScopeIsRejectedRatherThanTreatedAsGeneral(_ json: String) {
+        // A broken request meant for a named pasteboard must never silently act on `general`.
+        let dict = parser.parseObject(from: json)!
+        #expect(parser.parseScope(dict) == nil)
+    }
+
+    @Test(arguments: ["{\"options\": null}", "{\"options\": \"localOnly\"}", "{\"options\": []}"])
+    func malformedOptionsIsRejectedRatherThanTreatedAsAbsent(_ json: String) {
+        let dict = parser.parseObject(from: json)!
+        #expect(parser.parseOptions(dict) == nil)
+    }
+
+    @Test(arguments: [
+        "{\"options\": {}}",
+        "{\"options\": {\"expirationDate\": \"2026-08-08T00:00:00Z\"}}"
+    ])
+    func omittedLocalOnlyFallsBackToTheDocumentedDefault(_ json: String) {
+        // Schema default: `localOnly` is `true`. Omitting it must not make the request invalid.
+        let dict = parser.parseObject(from: json)!
+        let parsed = parser.parseOptions(dict)
+        #expect(parsed != nil)
+        #expect(parsed??.localOnly == true)
+    }
+
+    @Test(arguments: ["2026-08-08T00:00:00Z", "2026-08-08T00:00:00.000Z"])
+    func expirationDateAcceptsISO8601WithAndWithoutFractionalSeconds(_ value: String) {
+        let dict = parser.parseObject(from: "{\"options\": {\"expirationDate\": \"\(value)\"}}")!
+        #expect(parser.parseOptions(dict)??.expirationDate != nil)
+    }
+
+    @Test func malformedExpirationDateIsRejected() {
+        let dict = parser.parseObject(from: "{\"options\": {\"expirationDate\": \"not-a-date\"}}")!
+        #expect(parser.parseOptions(dict) == nil)
+    }
+
+    @Test func presentButNonBoolLocalOnlyIsRejected() {
+        let dict = parser.parseObject(from: "{\"options\": {\"localOnly\": \"true\"}}")!
+        #expect(parser.parseOptions(dict) == nil)
+    }
+
     @Test func nullRequestJsonIsRejected() {
         #expect(parser.parseObject(from: nil) == nil)
     }

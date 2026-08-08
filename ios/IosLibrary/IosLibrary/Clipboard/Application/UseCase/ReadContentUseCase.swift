@@ -16,7 +16,7 @@ public struct ReadContentUseCase {
     }
 
     public func execute(scope: PasteboardScope) throws -> ClipboardReadResult {
-        Log.d(TAG, "[execute] scope: \(scope)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
         return try repository.read(scope: scope)
     }
 }

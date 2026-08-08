@@ -18,3 +18,26 @@ enum ClipboardLog {
         "domain=\(detail.domain), code=\(detail.code)"
     }
 }
+
+extension PasteboardScope {
+    /// Log-safe description. Reveals only the scope kind (and the name's length for named/unique
+    /// scopes) — never the pasteboard name itself, which may identify an App Group or otherwise
+    /// leak caller-chosen identifiers into logs.
+    var redactedDescription: String {
+        switch self {
+        case .general: return "general"
+        case .named(let name): return "named(nameLength:\(name.utf8.count))"
+        case .unique(let name): return "unique(nameLength:\(name.utf8.count))"
+        }
+    }
+}
+
+extension PasteboardCreationRequest {
+    /// Log-safe description. See `PasteboardScope.redactedDescription`.
+    var redactedDescription: String {
+        switch self {
+        case .named(let name): return "named(nameLength:\(name.utf8.count))"
+        case .unique: return "unique"
+        }
+    }
+}

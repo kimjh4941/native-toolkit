@@ -16,7 +16,7 @@ public struct ClearClipboardUseCase {
     }
 
     public func execute(scope: PasteboardScope) throws {
-        Log.d(TAG, "[execute] scope: \(scope)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
         try repository.clear(scope: scope)
     }
 }

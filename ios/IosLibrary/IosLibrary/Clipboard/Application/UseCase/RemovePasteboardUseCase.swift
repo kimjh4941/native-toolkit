@@ -17,7 +17,7 @@ public struct RemovePasteboardUseCase {
     }
 
     public func execute(_ scope: PasteboardScope) throws {
-        Log.d(TAG, "[execute] scope: \(scope)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
         guard scope != .general else {
             throw ClipboardError.cannotRemoveGeneralPasteboard
         }

@@ -19,31 +19,35 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     private let imageCoder: ClipboardImageCoder
     private let detectionMapper: ClipboardDetectionMapper
     private let fileManager: FileManager
+    private let limits: ClipboardLimits
 
-    nonisolated init(
-        resolver: PasteboardResolver = PasteboardResolver(),
-        imageCoder: ClipboardImageCoder = ClipboardImageCoder(),
+    init(
+        resolver: PasteboardResolver? = nil,
+        imageCoder: ClipboardImageCoder? = nil,
         detectionMapper: ClipboardDetectionMapper = ClipboardDetectionMapper(),
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        limits: ClipboardLimits = .default,
+        timeouts: ClipboardTimeouts = .default
     ) {
-        self.resolver = resolver
-        self.imageCoder = imageCoder
+        self.resolver = resolver ?? PasteboardResolver()
+        self.imageCoder = imageCoder ?? ClipboardImageCoder(limits: limits, timeouts: timeouts)
         self.detectionMapper = detectionMapper
         self.fileManager = fileManager
+        self.limits = limits
     }
 
     func createPasteboard(_ request: PasteboardCreationRequest) throws -> PasteboardScope {
-        Log.d(TAG, "[createPasteboard] request: \(request)")
+        Log.d(TAG, "[createPasteboard] request: \(request.redactedDescription)")
         return try resolver.createPasteboard(request)
     }
 
     func removePasteboard(_ scope: PasteboardScope) throws {
-        Log.d(TAG, "[removePasteboard] scope: \(scope)")
+        Log.d(TAG, "[removePasteboard] scope: \(scope.redactedDescription)")
         try resolver.removePasteboard(scope)
     }
 
     func copy(_ content: ClipboardContent, options: ClipboardCopyOptions, scope: PasteboardScope) async throws {
-        Log.d(TAG, "[copy] scope: \(scope), localOnly: \(options.localOnly)")
+        Log.d(TAG, "[copy] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
         let items = try await makeItems(from: content)
         try checkCancellation()
         let pasteboard = try resolver.resolve(scope)
@@ -55,7 +59,7 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     }
 
     func append(_ content: ClipboardContent, scope: PasteboardScope) async throws {
-        Log.d(TAG, "[append] scope: \(scope)")
+        Log.d(TAG, "[append] scope: \(scope.redactedDescription)")
         let items = try await makeItems(from: content)
         try checkCancellation()
         let pasteboard = try resolver.resolve(scope)
@@ -63,20 +67,20 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     }
 
     func read(scope: PasteboardScope) throws -> ClipboardReadResult {
-        Log.d(TAG, "[read] scope: \(scope)")
+        Log.d(TAG, "[read] scope: \(scope.redactedDescription)")
         let pasteboard = try resolver.resolve(scope)
         let items = pasteboard.items
         return ClipboardReadResult(items: items.map(ClipboardMappers.toItemData), numberOfItems: items.count)
     }
 
     func readData(utType: String, scope: PasteboardScope) throws -> Data? {
-        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope)")
+        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope.redactedDescription)")
         let pasteboard = try resolver.resolve(scope)
         return pasteboard.data(forPasteboardType: utType)
     }
 
     func snapshot(matchingTypes: [String]?, scope: PasteboardScope) throws -> ClipboardSnapshot {
-        Log.d(TAG, "[snapshot] scope: \(scope)")
+        Log.d(TAG, "[snapshot] scope: \(scope.redactedDescription)")
         let pasteboard = try resolver.resolve(scope)
         var matchingIndexes: [Int]?
         if let matchingTypes, !matchingTypes.isEmpty {
@@ -95,13 +99,13 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     }
 
     func clear(scope: PasteboardScope) throws {
-        Log.d(TAG, "[clear] scope: \(scope)")
+        Log.d(TAG, "[clear] scope: \(scope.redactedDescription)")
         let pasteboard = try resolver.resolve(scope)
         pasteboard.items = []
     }
 
     func changeCount(scope: PasteboardScope) throws -> Int {
-        Log.d(TAG, "[changeCount] scope: \(scope)")
+        Log.d(TAG, "[changeCount] scope: \(scope.redactedDescription)")
         let pasteboard = try resolver.resolve(scope)
         return pasteboard.changeCount
     }
@@ -110,7 +114,7 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope
     ) async throws -> Set<ClipboardDetectionPattern> {
-        Log.d(TAG, "[detectPatterns] scope: \(scope), count: \(patterns.count)")
+        Log.d(TAG, "[detectPatterns] scope: \(scope.redactedDescription), count: \(patterns.count)")
         let pasteboard = try resolver.resolve(scope)
         let keyPaths = detectionMapper.keyPaths(for: patterns)
         do {
@@ -125,7 +129,7 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope
     ) async throws -> ClipboardDetectedValues {
-        Log.d(TAG, "[detectValues] scope: \(scope), count: \(patterns.count)")
+        Log.d(TAG, "[detectValues] scope: \(scope.redactedDescription), count: \(patterns.count)")
         let pasteboard = try resolver.resolve(scope)
         let keyPaths = detectionMapper.keyPaths(for: patterns)
         do {
@@ -141,6 +145,15 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
         case .imageFile(let path):
             guard fileManager.fileExists(atPath: path) else {
                 throw ClipboardError.fileNotFound(path: path)
+            }
+            // Check the on-disk size before decoding: the limit is a security boundary, so an
+            // oversized (or unverifiable) file must be rejected before it is loaded into memory.
+            let fileSize = try? URL(fileURLWithPath: path).resourceValues(forKeys: [.fileSizeKey]).fileSize
+            guard let fileSize else {
+                throw ClipboardError.imageLoadFailed(path: path)
+            }
+            guard fileSize <= limits.maxCopyByteCount else {
+                throw ClipboardError.contentTooLarge(byteCount: fileSize, limit: limits.maxCopyByteCount)
             }
             let encoded = try await imageCoder.loadAndEncodeImageFile(atPath: path)
             return try ClipboardMappers.makeItems(from: content, encodedImage: encoded)

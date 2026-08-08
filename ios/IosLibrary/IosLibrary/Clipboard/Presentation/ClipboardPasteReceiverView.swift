@@ -25,8 +25,11 @@ public final class ClipboardPasteReceiverView: UIView {
     /// list was empty).
     public var onPasteFailure: ((ClipboardError) -> Void)?
 
-    init(acceptedTypes: [String], loader: PasteItemProviderLoader = PasteItemProviderLoader()) {
-        self.loader = loader
+    private let acceptedTypes: [String]
+
+    init(acceptedTypes: [String], loader: PasteItemProviderLoader? = nil) {
+        self.acceptedTypes = acceptedTypes
+        self.loader = loader ?? PasteItemProviderLoader()
         super.init(frame: .zero)
         self.pasteConfiguration = UIPasteConfiguration(acceptableTypeIdentifiers: acceptedTypes)
     }
@@ -47,8 +50,11 @@ public final class ClipboardPasteReceiverView: UIView {
 
     public override func paste(itemProviders: [NSItemProvider]) {
         Log.d(TAG, "[paste] providerCount: \(itemProviders.count)")
-        loader.load(providers: itemProviders) { [weak self] result in
+        loader.load(providers: itemProviders, acceptedTypes: acceptedTypes) { [weak self] result in
             guard let self else { return }
+            // U-90: cancellation is caller-initiated (a new paste, or this view being torn down),
+            // so the internal `.cancelled` result must never surface as a UI callback.
+            guard !result.isCancelled else { return }
             if !result.items.isEmpty {
                 self.onPaste?(result.items)
                 if !result.failures.isEmpty {
@@ -65,6 +71,7 @@ public final class ClipboardPasteReceiverView: UIView {
     /// Cancels any in-flight paste load without invoking `onPaste` / `onPartialFailure` /
     /// `onPasteFailure` (cancellation is caller-initiated and must not surface as a UI callback).
     func cancelPendingLoad() {
+        Log.d(TAG, "[cancelPendingLoad]")
         loader.cancelAll()
     }
 }

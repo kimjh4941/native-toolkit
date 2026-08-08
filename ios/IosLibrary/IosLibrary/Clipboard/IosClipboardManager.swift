@@ -54,14 +54,23 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     private var removedToken: NSObjectProtocol?
     private var observingScope: PasteboardScope?
     private var onEvent: ((ClipboardChangeEvent) -> Void)?
+    /// Incremented on every start/stop so a notification block queued for an older subscription
+    /// can be identified and dropped (see `startObserving`).
+    private var observingGeneration: UInt64 = 0
 
     private override init() {
         Log.d(TAG, "[init]")
-        let repository = ClipboardRepositoryImpl()
-        let loader = ClipboardItemLoaderImpl()
-        let typeValidator = ClipboardTypeIdentifierValidator()
-        self.useCases = ClipboardUseCases(repository: repository, loader: loader, typeValidator: typeValidator)
+        self.useCases = Self.makeUseCases(timeouts: .default, limits: .default)
         super.init()
+    }
+
+    /// Creates an instance with custom timeouts and size limits.
+    ///
+    /// Use this when the defaults (`ClipboardTimeouts.default` / `ClipboardLimits.default`) do not
+    /// suit your workload — for example to shorten timeouts in tests, or to tighten the accepted
+    /// payload size. Prefer ``shared`` for ordinary use.
+    public convenience init(timeouts: ClipboardTimeouts, limits: ClipboardLimits) {
+        self.init(useCases: Self.makeUseCases(timeouts: timeouts, limits: limits))
     }
 
     /// Internal initializer for tests to inject use cases built from mock repositories/loaders.
@@ -69,6 +78,19 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         Log.d(TAG, "[init:test]")
         self.useCases = useCases
         super.init()
+    }
+
+    private static func makeUseCases(timeouts: ClipboardTimeouts, limits: ClipboardLimits) -> ClipboardUseCases {
+        let repository = ClipboardRepositoryImpl(limits: limits, timeouts: timeouts)
+        let loader = ClipboardItemLoaderImpl(limits: limits, timeouts: timeouts)
+        let typeValidator = ClipboardTypeIdentifierValidator()
+        return ClipboardUseCases(
+            repository: repository,
+            loader: loader,
+            typeValidator: typeValidator,
+            contentValidator: ClipboardContentValidator(limits: limits),
+            timeouts: timeouts
+        )
     }
 
     isolated deinit {
@@ -84,17 +106,16 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: ((Bool, String?, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[copy] scope: \(scope), localOnly: \(options.localOnly)")
+        Log.d(TAG, "[copy] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
         runVoid({ try await self.useCases.copyContent.execute(content, options: options, scope: scope) }, completion: completion)
     }
 
-    @discardableResult
     public func copy(
         _ content: ClipboardContent,
         options: ClipboardCopyOptions = .default,
         scope: PasteboardScope = .general
     ) async throws -> Void {
-        Log.d(TAG, "[copy] scope: \(scope), localOnly: \(options.localOnly)")
+        Log.d(TAG, "[copy] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
         try await useCases.copyContent.execute(content, options: options, scope: scope)
     }
 
@@ -105,13 +126,12 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: ((Bool, String?, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[append] scope: \(scope)")
+        Log.d(TAG, "[append] scope: \(scope.redactedDescription)")
         runVoid({ try await self.useCases.appendContent.execute(content, scope: scope) }, completion: completion)
     }
 
-    @discardableResult
     public func append(_ content: ClipboardContent, scope: PasteboardScope = .general) async throws -> Void {
-        Log.d(TAG, "[append] scope: \(scope)")
+        Log.d(TAG, "[append] scope: \(scope.redactedDescription)")
         try await useCases.appendContent.execute(content, scope: scope)
     }
 
@@ -121,12 +141,12 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardReadResult?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[read] scope: \(scope)")
+        Log.d(TAG, "[read] scope: \(scope.redactedDescription)")
         runValue({ try self.useCases.readContent.execute(scope: scope) }, completion: completion)
     }
 
     public func read(scope: PasteboardScope = .general) async throws -> ClipboardReadResult {
-        Log.d(TAG, "[read] scope: \(scope)")
+        Log.d(TAG, "[read] scope: \(scope.redactedDescription)")
         return try useCases.readContent.execute(scope: scope)
     }
 
@@ -137,7 +157,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, Data?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope)")
+        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope.redactedDescription)")
         Task { @MainActor in
             do {
                 let data = try self.useCases.readData.execute(utType: utType, scope: scope)
@@ -151,7 +171,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     }
 
     public func readData(utType: String, scope: PasteboardScope = .general) async throws -> Data? {
-        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope)")
+        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope.redactedDescription)")
         return try useCases.readData.execute(utType: utType, scope: scope)
     }
 
@@ -162,24 +182,24 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardSnapshot?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[snapshot] scope: \(scope)")
+        Log.d(TAG, "[snapshot] scope: \(scope.redactedDescription)")
         runValue({ try self.useCases.getSnapshot.execute(matchingTypes: matchingTypes, scope: scope) }, completion: completion)
     }
 
     public func snapshot(matchingTypes: [String]? = nil, scope: PasteboardScope = .general) async throws -> ClipboardSnapshot {
-        Log.d(TAG, "[snapshot] scope: \(scope)")
+        Log.d(TAG, "[snapshot] scope: \(scope.redactedDescription)")
         return try useCases.getSnapshot.execute(matchingTypes: matchingTypes, scope: scope)
     }
 
     // MARK: - P-6 clear
 
     public func clear(scope: PasteboardScope = .general, completion: ((Bool, String?, String?) -> Void)? = nil) {
-        Log.d(TAG, "[clear] scope: \(scope)")
+        Log.d(TAG, "[clear] scope: \(scope.redactedDescription)")
         runVoid({ try self.useCases.clearClipboard.execute(scope: scope) }, completion: completion)
     }
 
     public func clear(scope: PasteboardScope = .general) async throws -> Void {
-        Log.d(TAG, "[clear] scope: \(scope)")
+        Log.d(TAG, "[clear] scope: \(scope.redactedDescription)")
         try useCases.clearClipboard.execute(scope: scope)
     }
 
@@ -189,24 +209,24 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         _ request: PasteboardCreationRequest,
         completion: @escaping (Bool, PasteboardScope?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[createPasteboard] request: \(request)")
+        Log.d(TAG, "[createPasteboard] request: \(request.redactedDescription)")
         runValue({ try self.useCases.createPasteboard.execute(request) }, completion: completion)
     }
 
     public func createPasteboard(_ request: PasteboardCreationRequest) async throws -> PasteboardScope {
-        Log.d(TAG, "[createPasteboard] request: \(request)")
+        Log.d(TAG, "[createPasteboard] request: \(request.redactedDescription)")
         return try useCases.createPasteboard.execute(request)
     }
 
     // MARK: - P-8 removePasteboard
 
     public func removePasteboard(_ scope: PasteboardScope, completion: ((Bool, String?, String?) -> Void)? = nil) {
-        Log.d(TAG, "[removePasteboard] scope: \(scope)")
+        Log.d(TAG, "[removePasteboard] scope: \(scope.redactedDescription)")
         runVoid({ try self.useCases.removePasteboard.execute(scope) }, completion: completion)
     }
 
     public func removePasteboard(_ scope: PasteboardScope) async throws -> Void {
-        Log.d(TAG, "[removePasteboard] scope: \(scope)")
+        Log.d(TAG, "[removePasteboard] scope: \(scope.redactedDescription)")
         try useCases.removePasteboard.execute(scope)
     }
 
@@ -217,7 +237,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, Set<ClipboardDetectionPattern>?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[detectPatterns] scope: \(scope), count: \(patterns.count)")
+        Log.d(TAG, "[detectPatterns] scope: \(scope.redactedDescription), count: \(patterns.count)")
         runValue({ try await self.useCases.detectPatterns.execute(patterns, scope: scope) }, completion: completion)
     }
 
@@ -225,7 +245,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope = .general
     ) async throws -> Set<ClipboardDetectionPattern> {
-        Log.d(TAG, "[detectPatterns] scope: \(scope), count: \(patterns.count)")
+        Log.d(TAG, "[detectPatterns] scope: \(scope.redactedDescription), count: \(patterns.count)")
         return try await useCases.detectPatterns.execute(patterns, scope: scope)
     }
 
@@ -236,7 +256,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardDetectedValues?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[detectValues] scope: \(scope), count: \(patterns.count)")
+        Log.d(TAG, "[detectValues] scope: \(scope.redactedDescription), count: \(patterns.count)")
         runValue({ try await self.useCases.detectValues.execute(patterns, scope: scope) }, completion: completion)
     }
 
@@ -244,7 +264,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope = .general
     ) async throws -> ClipboardDetectedValues {
-        Log.d(TAG, "[detectValues] scope: \(scope), count: \(patterns.count)")
+        Log.d(TAG, "[detectValues] scope: \(scope.redactedDescription), count: \(patterns.count)")
         return try await useCases.detectValues.execute(patterns, scope: scope)
     }
 
@@ -256,7 +276,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardLoadedItem?, String?, String?) -> Void
     ) -> any ClipboardLoadToken {
-        Log.d(TAG, "[loadItem] scope: \(scope)")
+        Log.d(TAG, "[loadItem] scope: \(scope.redactedDescription)")
         return useCases.loadItem.execute(request, scope: scope) { result in
             switch result {
             case .success(let item):
@@ -268,7 +288,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     }
 
     public func loadItem(_ request: ClipboardLoadRequest, scope: PasteboardScope = .general) async throws -> ClipboardLoadedItem {
-        Log.d(TAG, "[loadItem] scope: \(scope)")
+        Log.d(TAG, "[loadItem] scope: \(scope.redactedDescription)")
         let box = ClipboardCancellationBox()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -294,31 +314,51 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     /// Starts observing clipboard changes for `scope`. A second call (for the same or a
     /// different scope) first stops the previous observation, so there is never more than one
     /// active subscription.
-    public func startObserving(scope: PasteboardScope = .general, onEvent: @escaping (ClipboardChangeEvent) -> Void) {
-        Log.d(TAG, "[startObserving] scope: \(scope)")
+    ///
+    /// - Throws: `ClipboardError.pasteboardUnavailable` if `scope` cannot be resolved (e.g. a
+    ///   named pasteboard whose creating app has quit). Observation is not started in that case.
+    public func startObserving(
+        scope: PasteboardScope = .general,
+        onEvent: @escaping (ClipboardChangeEvent) -> Void
+    ) throws {
+        Log.d(TAG, "[startObserving] scope: \(scope.redactedDescription)")
         stopObservingInternal()
         guard let pasteboard = Self.resolvePasteboardForObserving(scope) else {
             Log.e(TAG, "[startObserving] pasteboard unavailable")
-            return
+            throw ClipboardError.pasteboardUnavailable(name: Self.scopeName(of: scope))
         }
         useCases.checkForegroundChange.resync(scope: scope)
+
+        // Generation gate: a notification block already queued for a previous subscription must
+        // never deliver into the new subscriber, even when both use the same scope.
+        observingGeneration &+= 1
+        let generation = observingGeneration
         observingScope = scope
         self.onEvent = onEvent
 
         changedToken = NotificationCenter.default.addObserver(
             forName: UIPasteboard.changedNotification, object: pasteboard, queue: .main
         ) { [weak self] note in
-            guard let self, self.observingScope == scope else { return }
-            self.useCases.checkForegroundChange.markReported(scope: scope)
-            let added = note.userInfo?[UIPasteboard.changedTypesAddedUserInfoKey] as? [String] ?? []
-            let removed = note.userInfo?[UIPasteboard.changedTypesRemovedUserInfoKey] as? [String] ?? []
-            self.onEvent?(ClipboardChangeEvent(kind: .changed(typesAdded: added, typesRemoved: removed), scope: scope))
+            // Registered with `queue: .main`, so this always runs on the main thread; asserting
+            // main-actor isolation here (rather than hopping via `Task`) keeps event delivery
+            // synchronous and preserves ordering.
+            MainActor.assumeIsolated {
+                guard let self, self.observingGeneration == generation else { return }
+                self.useCases.checkForegroundChange.markReported(scope: scope)
+                let added = note.userInfo?[UIPasteboard.changedTypesAddedUserInfoKey] as? [String] ?? []
+                let removed = note.userInfo?[UIPasteboard.changedTypesRemovedUserInfoKey] as? [String] ?? []
+                self.onEvent?(
+                    ClipboardChangeEvent(kind: .changed(typesAdded: added, typesRemoved: removed), scope: scope)
+                )
+            }
         }
         removedToken = NotificationCenter.default.addObserver(
             forName: UIPasteboard.removedNotification, object: pasteboard, queue: .main
         ) { [weak self] _ in
-            guard let self, self.observingScope == scope else { return }
-            self.onEvent?(ClipboardChangeEvent(kind: .removed, scope: scope))
+            MainActor.assumeIsolated {
+                guard let self, self.observingGeneration == generation else { return }
+                self.onEvent?(ClipboardChangeEvent(kind: .removed, scope: scope))
+            }
         }
     }
 
@@ -334,6 +374,8 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         removedToken = nil
         observingScope = nil
         onEvent = nil
+        // Invalidate any notification block already queued for the subscription being stopped.
+        observingGeneration &+= 1
     }
 
     private static func resolvePasteboardForObserving(_ scope: PasteboardScope) -> UIPasteboard? {
@@ -345,10 +387,17 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         }
     }
 
+    private static func scopeName(of scope: PasteboardScope) -> String {
+        switch scope {
+        case .general: return "general"
+        case .named(let name), .unique(let name): return name
+        }
+    }
+
     // MARK: - P-15 checkForegroundChange (synchronous control)
 
     public func checkForegroundChange(scope: PasteboardScope = .general) -> Bool {
-        Log.d(TAG, "[checkForegroundChange] scope: \(scope)")
+        Log.d(TAG, "[checkForegroundChange] scope: \(scope.redactedDescription)")
         return useCases.checkForegroundChange.execute(scope: scope)
     }
 

@@ -10,24 +10,29 @@ import UniformTypeIdentifiers
 /// Converts between `UIPasteboard` item dictionaries and Domain read-side types.
 enum ClipboardMappers {
     /// Converts a single pasteboard item dictionary into `ClipboardItemData`.
+    ///
+    /// Representations are selected by uniform type identifier, never by dictionary iteration
+    /// order: an item carrying both plain text and HTML always reports the *plain text* in `text`,
+    /// and `urlString` always comes from a URL-conforming representation.
     static func toItemData(_ item: [String: Any]) -> ClipboardItemData {
         let typeIdentifiers = Array(item.keys)
-        var text: String?
-        var urlString: String?
-        var imageUTType: String?
 
-        for (key, value) in item {
-            if let type = UTType(key), type.conforms(to: .image) {
-                imageUTType = imageUTType ?? key
-                continue
-            }
-            if text == nil, let stringValue = value as? String {
-                text = stringValue
-            }
-            if urlString == nil, let urlValue = value as? URL {
-                urlString = urlValue.absoluteString
-            }
+        let text = firstValue(in: item, conformingTo: .plainText, as: String.self)
+            ?? firstValue(in: item, conformingTo: .text, as: String.self)
+
+        let urlString: String?
+        if let url = firstValue(in: item, conformingTo: .url, as: URL.self) {
+            urlString = url.absoluteString
+        } else if let urlText = firstValue(in: item, conformingTo: .url, as: String.self) {
+            urlString = urlText
+        } else {
+            urlString = nil
         }
+
+        let imageUTType = typeIdentifiers
+            .filter { UTType($0)?.conforms(to: .image) == true }
+            .sorted()
+            .first
 
         return ClipboardItemData(
             typeIdentifiers: typeIdentifiers,
@@ -35,6 +40,19 @@ enum ClipboardMappers {
             urlString: urlString,
             imageDataUTType: imageUTType
         )
+    }
+
+    /// Returns the value of the first representation (in stable identifier order) whose UTI
+    /// conforms to `type` and whose value is of type `V`.
+    private static func firstValue<V>(
+        in item: [String: Any],
+        conformingTo type: UTType,
+        as valueType: V.Type
+    ) -> V? {
+        for key in item.keys.sorted() where UTType(key)?.conforms(to: type) == true {
+            if let value = item[key] as? V { return value }
+        }
+        return nil
     }
 
     /// Builds the item dictionaries `setItems(_:options:)` / `addItems(_:)` expect.

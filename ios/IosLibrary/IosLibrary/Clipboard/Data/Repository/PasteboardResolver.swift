@@ -19,7 +19,7 @@ final class PasteboardResolver {
     /// Resolves an existing pasteboard. Throws `.pasteboardUnavailable` for a named/unique scope
     /// that cannot be resolved (e.g. its creating app has quit).
     func resolve(_ scope: PasteboardScope) throws -> UIPasteboard {
-        Log.d(TAG, "[resolve] scope: \(scope)")
+        Log.d(TAG, "[resolve] scope: \(scope.redactedDescription)")
         switch scope {
         case .general:
             return .general
@@ -33,7 +33,7 @@ final class PasteboardResolver {
 
     /// Creates (or resolves an existing) named pasteboard, or a fresh unique-named pasteboard.
     func createPasteboard(_ request: PasteboardCreationRequest) throws -> PasteboardScope {
-        Log.d(TAG, "[createPasteboard] request: \(request)")
+        Log.d(TAG, "[createPasteboard] request: \(request.redactedDescription)")
         switch request {
         case .named(let name):
             guard UIPasteboard(name: UIPasteboard.Name(name), create: true) != nil else {
@@ -49,7 +49,7 @@ final class PasteboardResolver {
     /// Invalidates a named/unique pasteboard. Rejects `.general` (callers must not reach here
     /// with `.general`; see `RemovePasteboardUseCase`).
     func removePasteboard(_ scope: PasteboardScope) throws {
-        Log.d(TAG, "[removePasteboard] scope: \(scope)")
+        Log.d(TAG, "[removePasteboard] scope: \(scope.redactedDescription)")
         switch scope {
         case .general:
             throw ClipboardError.cannotRemoveGeneralPasteboard

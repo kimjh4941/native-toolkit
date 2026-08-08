@@ -28,7 +28,7 @@ public struct CopyContentUseCase {
         options: ClipboardCopyOptions,
         scope: PasteboardScope
     ) async throws {
-        Log.d(TAG, "[execute] scope: \(scope), localOnly: \(options.localOnly)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
         try contentValidator.validate(content)
         try contentValidator.validateExpirationDate(options.expirationDate)
         try validateTypeIdentifiers(of: content)

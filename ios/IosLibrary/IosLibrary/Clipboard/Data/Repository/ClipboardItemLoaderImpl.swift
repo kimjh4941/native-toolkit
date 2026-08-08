@@ -11,21 +11,15 @@ import UniformTypeIdentifiers
 ///
 /// Implements the exactly-once delivery contract: every request is registered in `requests` at
 /// issuance time (before a provider is even searched for), so `cancelAll()` / a token's
-/// `cancel()` catch it even on the immediate-failure path. Completion is delivered through the
-/// single `finish(id:outcome:tempFileURL:)` gate, which resolves the race between success,
-/// provider error, cancellation, and timeout — whichever reaches the gate first wins; anything
-/// that arrives afterward (including a produced temp file) is discarded.
-///
-/// Marked `@unchecked Sendable` because instances are captured by `Task { @MainActor in ... }`
-/// closures spawned from `NSItemProvider` completion handlers running on unspecified threads;
-/// all mutable state is exclusively read/written on the main actor via `finish`/`cancelAll`/
-/// `cancel(id:)`, so this is safe by construction.
+/// `cancel()` catch it even on the immediate-failure path. The actual provider load — including
+/// its timeout, size limits, and temporary-file cleanup — is delegated to
+/// `ClipboardProviderLoadExecutor`, which is shared with the `UIPasteControl` path so both behave
+/// identically.
 @MainActor
-final class ClipboardItemLoaderImpl: ClipboardItemLoader, @unchecked Sendable {
+final class ClipboardItemLoaderImpl: ClipboardItemLoader {
     private final class Request {
         let completion: (Result<ClipboardLoadedItem, ClipboardError>) -> Void
-        var progress: Progress?
-        var timeoutTask: Task<Void, Never>?
+        var handle: ClipboardProviderLoadHandle?
         init(completion: @escaping (Result<ClipboardLoadedItem, ClipboardError>) -> Void) {
             self.completion = completion
         }
@@ -33,25 +27,22 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader, @unchecked Sendable {
 
     private let TAG = "ClipboardItemLoaderImpl"
     private let resolver: PasteboardResolver
-    private let fileStore: ClipboardTemporaryFileStore
-    private let imageCoder: ClipboardImageCoder
-    private let limits: ClipboardLimits
-    private let timeouts: ClipboardTimeouts
+    private let executor: ClipboardProviderLoadExecutor
     private var nextID = 0
     private var requests: [Int: Request] = [:]
 
-    nonisolated init(
-        resolver: PasteboardResolver = PasteboardResolver(),
-        fileStore: ClipboardTemporaryFileStore = ClipboardTemporaryFileStore(),
-        imageCoder: ClipboardImageCoder = ClipboardImageCoder(),
+    init(
+        resolver: PasteboardResolver? = nil,
+        executor: ClipboardProviderLoadExecutor? = nil,
+        fileStore: ClipboardTemporaryFileStore? = nil,
+        imageCoder: ClipboardImageCoder? = nil,
         limits: ClipboardLimits = .default,
         timeouts: ClipboardTimeouts = .default
     ) {
-        self.resolver = resolver
-        self.fileStore = fileStore
-        self.imageCoder = imageCoder
-        self.limits = limits
-        self.timeouts = timeouts
+        self.resolver = resolver ?? PasteboardResolver()
+        self.executor = executor ?? ClipboardProviderLoadExecutor(
+            fileStore: fileStore, imageCoder: imageCoder, limits: limits, timeouts: timeouts
+        )
     }
 
     @discardableResult
@@ -60,30 +51,32 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader, @unchecked Sendable {
         scope: PasteboardScope,
         completion: @escaping (Result<ClipboardLoadedItem, ClipboardError>) -> Void
     ) -> any ClipboardLoadToken {
-        Log.d(TAG, "[load] scope: \(scope)")
+        Log.d(TAG, "[load] scope: \(scope.redactedDescription)")
         let id = nextID
         nextID += 1
-        requests[id] = Request(completion: completion)
+        let state = Request(completion: completion)
+        requests[id] = state
         let token = ClipboardLoadTokenImpl(loader: self, id: id)
 
         let pasteboard: UIPasteboard
         do {
             pasteboard = try resolver.resolve(scope)
         } catch let error as ClipboardError {
-            scheduleFinish(id: id, outcome: .failure(error), tempFileURL: nil)
+            scheduleImmediateFailure(id: id, error: error)
             return token
         } catch {
-            scheduleFinish(id: id, outcome: .failure(.unknown(ClipboardFailureDetail(systemError: error))), tempFileURL: nil)
+            scheduleImmediateFailure(id: id, error: .unknown(ClipboardFailureDetail(systemError: error)))
             return token
         }
 
         guard let provider = Self.firstMatchingProvider(request, in: pasteboard.itemProviders) else {
-            scheduleFinish(id: id, outcome: .failure(.noMatchingItem), tempFileURL: nil)
+            scheduleImmediateFailure(id: id, error: .noMatchingItem)
             return token
         }
 
-        startTimeout(id: id)
-        startLoad(id: id, request: request, provider: provider)
+        state.handle = executor.start(request, from: provider) { [weak self] result in
+            self?.finish(id: id, outcome: result)
+        }
         return token
     }
 
@@ -91,19 +84,15 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader, @unchecked Sendable {
         Log.d(TAG, "[cancelAll]")
         let pending = requests
         requests.removeAll()
-        for (_, requestState) in pending {
-            requestState.timeoutTask?.cancel()
-            requestState.progress?.cancel()
-            requestState.completion(.failure(.cancelled))
+        for (_, state) in pending {
+            deliverCancellation(state)
         }
     }
 
     func cancel(id: Int) {
         Log.d(TAG, "[cancel] id: \(id)")
-        guard let requestState = requests.removeValue(forKey: id) else { return }
-        requestState.timeoutTask?.cancel()
-        requestState.progress?.cancel()
-        requestState.completion(.failure(.cancelled))
+        guard let state = requests.removeValue(forKey: id) else { return }
+        deliverCancellation(state)
     }
 
     isolated deinit {
@@ -111,6 +100,18 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader, @unchecked Sendable {
     }
 
     // MARK: - Private
+
+    private func deliverCancellation(_ state: Request) {
+        if let handle = state.handle {
+            // The executor's gate turns this into exactly one `.cancelled` delivery, which routes
+            // back through `finish(id:outcome:)` — but the id is already removed, so deliver here.
+            handle.cancel()
+            state.completion(.failure(.cancelled))
+        } else {
+            // No provider load was ever started (immediate-failure or not-yet-started path).
+            state.completion(.failure(.cancelled))
+        }
+    }
 
     private static func firstMatchingProvider(
         _ request: ClipboardLoadRequest,
@@ -128,169 +129,24 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader, @unchecked Sendable {
         }
     }
 
-    private func startTimeout(id: Int) {
-        let seconds = max(timeouts.providerLoad, 0)
-        let task = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            guard !Task.isCancelled else { return }
-            self?.finish(id: id, outcome: .failure(.timedOut(operation: .providerLoad)), tempFileURL: nil)
-        }
-        requests[id]?.timeoutTask = task
-    }
-
-    private func startLoad(id: Int, request: ClipboardLoadRequest, provider: NSItemProvider) {
-        switch request {
-        case .text:
-            let progress = provider.loadObject(ofClass: NSString.self) { [weak self] object, error in
-                guard let self else { return }
-                if let error {
-                    self.scheduleFinish(
-                        id: id, outcome: .failure(.providerLoadFailed(ClipboardFailureDetail(systemError: error))),
-                        tempFileURL: nil
-                    )
-                } else if let text = object as? NSString {
-                    self.scheduleFinish(id: id, outcome: .success(.text(text as String)), tempFileURL: nil)
-                } else {
-                    self.scheduleFinish(id: id, outcome: .failure(.unexpectedType), tempFileURL: nil)
-                }
-            }
-            requests[id]?.progress = progress
-
-        case .url:
-            let progress = provider.loadObject(ofClass: NSURL.self) { [weak self] object, error in
-                guard let self else { return }
-                if let error {
-                    self.scheduleFinish(
-                        id: id, outcome: .failure(.providerLoadFailed(ClipboardFailureDetail(systemError: error))),
-                        tempFileURL: nil
-                    )
-                } else if let url = object as? NSURL {
-                    self.scheduleFinish(id: id, outcome: .success(.url(url.absoluteString ?? "")), tempFileURL: nil)
-                } else {
-                    self.scheduleFinish(id: id, outcome: .failure(.unexpectedType), tempFileURL: nil)
-                }
-            }
-            requests[id]?.progress = progress
-
-        case .image:
-            let limits = self.limits
-            let imageCoder = self.imageCoder
-            let progress = provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { [weak self] data, error in
-                guard let self else { return }
-                if let error {
-                    self.scheduleFinish(
-                        id: id, outcome: .failure(.providerLoadFailed(ClipboardFailureDetail(systemError: error))),
-                        tempFileURL: nil
-                    )
-                    return
-                }
-                guard let data else {
-                    self.scheduleFinish(id: id, outcome: .failure(.unexpectedType), tempFileURL: nil)
-                    return
-                }
-                guard data.count <= limits.maxLoadByteCount else {
-                    self.scheduleFinish(
-                        id: id,
-                        outcome: .failure(.contentTooLarge(byteCount: data.count, limit: limits.maxLoadByteCount)),
-                        tempFileURL: nil
-                    )
-                    return
-                }
-                Task {
-                    do {
-                        let png = try await imageCoder.encodePastedImage(data)
-                        self.scheduleFinish(id: id, outcome: .success(.imageData(png, utType: "public.png")), tempFileURL: nil)
-                    } catch let error as ClipboardError {
-                        self.scheduleFinish(id: id, outcome: .failure(error), tempFileURL: nil)
-                    } catch {
-                        self.scheduleFinish(
-                            id: id, outcome: .failure(.unknown(ClipboardFailureDetail(systemError: error))), tempFileURL: nil
-                        )
-                    }
-                }
-            }
-            requests[id]?.progress = progress
-
-        case .file(let utType):
-            let suggestedName = provider.suggestedName
-            let limits = self.limits
-            let fileStore = self.fileStore
-            let progress = provider.loadFileRepresentation(forTypeIdentifier: utType) { [weak self] url, error in
-                guard let self else { return }
-                if let error {
-                    self.scheduleFinish(
-                        id: id, outcome: .failure(.providerLoadFailed(ClipboardFailureDetail(systemError: error))),
-                        tempFileURL: nil
-                    )
-                    return
-                }
-                guard let url else {
-                    self.scheduleFinish(id: id, outcome: .failure(.unexpectedType), tempFileURL: nil)
-                    return
-                }
-                // The URL is only valid inside this callback; copy it synchronously here.
-                let didStartAccess = url.startAccessingSecurityScopedResource()
-                defer { if didStartAccess { url.stopAccessingSecurityScopedResource() } }
-
-                if let preSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
-                   preSize > limits.maxLoadByteCount {
-                    self.scheduleFinish(
-                        id: id,
-                        outcome: .failure(.contentTooLarge(byteCount: preSize, limit: limits.maxLoadByteCount)),
-                        tempFileURL: nil
-                    )
-                    return
-                }
-
-                do {
-                    let destination = try fileStore.store(sourceURL: url, suggestedName: suggestedName)
-                    if let postSize = try? destination.resourceValues(forKeys: [.fileSizeKey]).fileSize,
-                       postSize > limits.maxLoadByteCount {
-                        fileStore.discard(destination)
-                        self.scheduleFinish(
-                            id: id,
-                            outcome: .failure(.contentTooLarge(byteCount: postSize, limit: limits.maxLoadByteCount)),
-                            tempFileURL: nil
-                        )
-                        return
-                    }
-                    self.scheduleFinish(id: id, outcome: .success(.file(destination)), tempFileURL: destination)
-                } catch let error as ClipboardError {
-                    self.scheduleFinish(id: id, outcome: .failure(error), tempFileURL: nil)
-                } catch {
-                    self.scheduleFinish(
-                        id: id, outcome: .failure(.unknown(ClipboardFailureDetail(systemError: error))), tempFileURL: nil
-                    )
-                }
-            }
-            requests[id]?.progress = progress
-        }
-    }
-
-    /// Callable from any thread; hops to the main actor to resolve the single delivery gate.
-    nonisolated private func scheduleFinish(id: Int, outcome: Result<ClipboardLoadedItem, ClipboardError>, tempFileURL: URL?) {
-        Task { @MainActor in
-            self.finish(id: id, outcome: outcome, tempFileURL: tempFileURL)
+    /// Delivers an immediate failure without executing it synchronously, so that a `cancelAll()`
+    /// issued right after `load` still wins the race and reports `.cancelled` exactly once.
+    private func scheduleImmediateFailure(id: Int, error: ClipboardError) {
+        Task { @MainActor [weak self] in
+            self?.finish(id: id, outcome: .failure(error))
         }
     }
 
     /// The single gate resolving success / error / cancellation / timeout exactly once.
-    private func finish(id: Int, outcome: Result<ClipboardLoadedItem, ClipboardError>, tempFileURL: URL?) {
-        guard let requestState = requests.removeValue(forKey: id) else {
-            if let tempFileURL { fileStore.discard(tempFileURL) }
-            return
-        }
-        requestState.timeoutTask?.cancel()
-        if case .failure = outcome, let tempFileURL {
-            fileStore.discard(tempFileURL)
-        }
-        requestState.completion(outcome)
+    private func finish(id: Int, outcome: Result<ClipboardLoadedItem, ClipboardError>) {
+        guard let state = requests.removeValue(forKey: id) else { return }
+        state.completion(outcome)
     }
 }
 
 /// Cancellation handle returned by `ClipboardItemLoaderImpl.load`.
 @MainActor
-final class ClipboardLoadTokenImpl: ClipboardLoadToken, @unchecked Sendable {
+final class ClipboardLoadTokenImpl: ClipboardLoadToken {
     private weak var loader: ClipboardItemLoaderImpl?
     private let id: Int
 

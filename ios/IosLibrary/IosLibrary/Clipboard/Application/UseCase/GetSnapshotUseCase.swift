@@ -17,7 +17,7 @@ public struct GetSnapshotUseCase {
     }
 
     public func execute(matchingTypes: [String]?, scope: PasteboardScope) throws -> ClipboardSnapshot {
-        Log.d(TAG, "[execute] scope: \(scope), matchingTypesCount: \(matchingTypes?.count ?? 0)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription), matchingTypesCount: \(matchingTypes?.count ?? 0)")
         return try repository.snapshot(matchingTypes: matchingTypes, scope: scope)
     }
 }

@@ -28,7 +28,7 @@ public struct AppendContentUseCase {
     }
 
     public func execute(_ content: ClipboardContent, scope: PasteboardScope) async throws {
-        Log.d(TAG, "[execute] scope: \(scope)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
         try contentValidator.validate(content)
         try validateTypeIdentifiers(of: content)
         try await repository.append(content, scope: scope)

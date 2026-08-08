@@ -17,13 +17,21 @@ final class UnityIosClipboardJsonParser {
     // MARK: - Request parsing
 
     func parseObject(from json: String?) -> [String: Any]? {
+        Log.d(TAG, "[parseObject] json: \(ClipboardRedaction.json(json ?? ""))")
         guard let json, let data = json.data(using: .utf8) else { return nil }
         return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
 
-    /// Parses a `scope` object. Absent/omitted `scope` resolves to `.general`.
+    /// Parses a `scope` object.
+    ///
+    /// Only an **omitted** `scope` key resolves to `.general`. A present-but-malformed `scope`
+    /// (null, a string, an array, …) is rejected, so a broken request intended for a named
+    /// pasteboard can never silently act on the general pasteboard.
     func parseScope(_ dict: [String: Any]?) -> PasteboardScope? {
-        guard let scopeDict = dict?["scope"] as? [String: Any] else { return .general }
+        Log.d(TAG, "[parseScope] hasScopeKey: \(dict?["scope"] != nil)")
+        guard let dict else { return .general }
+        guard let rawScope = dict["scope"] else { return .general }
+        guard let scopeDict = rawScope as? [String: Any] else { return nil }
         guard let kind = scopeDict["kind"] as? String else { return nil }
         switch kind {
         case "general":
@@ -40,6 +48,7 @@ final class UnityIosClipboardJsonParser {
     }
 
     func parseCreationRequest(_ dict: [String: Any]) -> PasteboardCreationRequest? {
+        Log.d(TAG, "[parseCreationRequest] hasRequestKey: \(dict["request"] != nil)")
         guard let requestDict = dict["request"] as? [String: Any], let kind = requestDict["kind"] as? String else {
             return nil
         }
@@ -55,6 +64,7 @@ final class UnityIosClipboardJsonParser {
     }
 
     func parseContent(_ dict: [String: Any]) -> ClipboardContent? {
+        Log.d(TAG, "[parseContent] hasContentKey: \(dict["content"] != nil)")
         guard let contentDict = dict["content"] as? [String: Any], let kind = contentDict["kind"] as? String else {
             return nil
         }
@@ -116,16 +126,26 @@ final class UnityIosClipboardJsonParser {
         }
     }
 
-    /// Returns `nil` (a hard parse failure) only if `options` is present but malformed;
-    /// absent `options` yields the safe default.
+    /// Returns `nil` (a hard parse failure) if `options` is present but malformed — including a
+    /// present-but-non-object value. Only an omitted `options` key yields the safe default.
     func parseOptions(_ dict: [String: Any]) -> ClipboardCopyOptions?? {
-        guard let optionsDict = dict["options"] as? [String: Any] else { return .some(nil) }
-        guard let localOnly = optionsDict["localOnly"] as? Bool else { return nil }
+        Log.d(TAG, "[parseOptions] hasOptionsKey: \(dict["options"] != nil)")
+        guard let rawOptions = dict["options"] else { return .some(nil) }
+        guard let optionsDict = rawOptions as? [String: Any] else { return nil }
+        // `localOnly` defaults to `true` (the privacy-preserving choice) when the key is omitted;
+        // only a present-but-non-bool value is a hard parse failure.
+        let localOnly: Bool
+        if let rawLocalOnly = optionsDict["localOnly"] {
+            guard let value = rawLocalOnly as? Bool else { return nil }
+            localOnly = value
+        } else {
+            localOnly = true
+        }
         var expirationDate: Date?
         if let raw = optionsDict["expirationDate"] {
             if raw is NSNull { expirationDate = nil }
             else if let dateString = raw as? String {
-                guard let parsed = Self.iso8601Formatter.date(from: dateString) else { return nil }
+                guard let parsed = Self.parseISO8601(dateString) else { return nil }
                 expirationDate = parsed
             } else {
                 return nil
@@ -137,10 +157,12 @@ final class UnityIosClipboardJsonParser {
     /// `true` if the request explicitly included an `options` key (used to reject
     /// `clipboardAppend` requests that attempt to pass options).
     func containsOptionsKey(_ dict: [String: Any]) -> Bool {
-        dict["options"] != nil
+        Log.d(TAG, "[containsOptionsKey] hasOptionsKey: \(dict["options"] != nil)")
+        return dict["options"] != nil
     }
 
     func parseMatchingTypes(_ dict: [String: Any]) -> [String]?? {
+        Log.d(TAG, "[parseMatchingTypes] hasMatchingTypesKey: \(dict["matchingTypes"] != nil)")
         guard let raw = dict["matchingTypes"] else { return .some(nil) }
         if raw is NSNull { return .some(nil) }
         guard let types = raw as? [String] else { return nil }
@@ -148,10 +170,12 @@ final class UnityIosClipboardJsonParser {
     }
 
     func parseUTType(_ dict: [String: Any]) -> String? {
-        dict["utType"] as? String
+        Log.d(TAG, "[parseUTType] hasUTTypeKey: \(dict["utType"] != nil)")
+        return dict["utType"] as? String
     }
 
     func parsePatterns(_ dict: [String: Any]) -> Set<ClipboardDetectionPattern>? {
+        Log.d(TAG, "[parsePatterns] hasPatternsKey: \(dict["patterns"] != nil)")
         guard let raw = dict["patterns"] as? [String] else { return nil }
         var result: Set<ClipboardDetectionPattern> = []
         for value in raw {
@@ -162,6 +186,7 @@ final class UnityIosClipboardJsonParser {
     }
 
     func parseLoadRequest(_ dict: [String: Any]) -> ClipboardLoadRequest? {
+        Log.d(TAG, "[parseLoadRequest] hasRequestKey: \(dict["request"] != nil)")
         guard let requestDict = dict["request"] as? [String: Any], let kind = requestDict["kind"] as? String else {
             return nil
         }
@@ -180,10 +205,12 @@ final class UnityIosClipboardJsonParser {
     // MARK: - Response serialization
 
     func serializeSuccess(_ data: Any?) -> String {
-        serialize(["ok": true, "data": data ?? NSNull()])
+        Log.d(TAG, "[serializeSuccess] hasData: \(data != nil)")
+        return serialize(["ok": true, "data": data ?? NSNull()])
     }
 
     func serializeError(code: String, message: String, detail: ClipboardFailureDetail? = nil) -> String {
+        Log.d(TAG, "[serializeError] code: \(code), hasDetail: \(detail != nil)")
         var error: [String: Any] = ["code": code, "message": message]
         if let detail {
             error["details"] = ["domain": detail.domain, "code": detail.code]
@@ -192,7 +219,8 @@ final class UnityIosClipboardJsonParser {
     }
 
     func serializeReadResult(_ result: ClipboardReadResult) -> Any {
-        [
+        Log.d(TAG, "[serializeReadResult] numberOfItems: \(result.numberOfItems)")
+        return [
             "numberOfItems": result.numberOfItems,
             "items": result.items.map { item in
                 [
@@ -206,11 +234,13 @@ final class UnityIosClipboardJsonParser {
     }
 
     func serializeReadData(utType: String, data: Data?) -> Any {
+        Log.d(TAG, "[serializeReadData] utType: \(utType), byteCount: \(data?.count ?? 0)")
         guard let data else { return NSNull() }
         return ["utType": utType, "base64": data.base64EncodedString(), "byteCount": data.count]
     }
 
     func serializeSnapshot(_ snapshot: ClipboardSnapshot) -> Any {
+        Log.d(TAG, "[serializeSnapshot] numberOfItems: \(snapshot.numberOfItems)")
         var dict: [String: Any] = [
             "hasStrings": snapshot.hasStrings,
             "hasURLs": snapshot.hasURLs,
@@ -225,6 +255,7 @@ final class UnityIosClipboardJsonParser {
     }
 
     func serializeScope(_ scope: PasteboardScope) -> Any {
+        Log.d(TAG, "[serializeScope]")
         switch scope {
         case .general:
             return ["kind": "general"]
@@ -232,14 +263,18 @@ final class UnityIosClipboardJsonParser {
             return ["kind": "named", "name": name]
         case .unique(let name):
             return ["kind": "unique", "name": name]
+        @unknown default:
+            return ["kind": "general"]
         }
     }
 
     func serializePatterns(_ patterns: Set<ClipboardDetectionPattern>) -> Any {
-        ["patterns": patterns.map(\.rawValue)]
+        Log.d(TAG, "[serializePatterns] count: \(patterns.count)")
+        return ["patterns": patterns.map(\.rawValue)]
     }
 
     func serializeDetectedValues(_ values: ClipboardDetectedValues) -> Any {
+        Log.d(TAG, "[serializeDetectedValues] patternCount: \(values.detectedPatterns.count)")
         let postalAddresses: [[String: Any]] = values.postalAddresses.map { address in
             let entry: [String: Any] = [
                 "street": address.street as Any? ?? NSNull(),
@@ -289,6 +324,7 @@ final class UnityIosClipboardJsonParser {
     }
 
     func serializeLoadedItem(_ item: ClipboardLoadedItem) -> Any {
+        Log.d(TAG, "[serializeLoadedItem]")
         switch item {
         case .text(let value):
             return ["kind": "text", "text": value]
@@ -298,10 +334,13 @@ final class UnityIosClipboardJsonParser {
             return ["kind": "imageData", "base64": data.base64EncodedString(), "utType": utType]
         case .file(let url):
             return ["kind": "file", "path": url.path]
+        @unknown default:
+            return ["kind": "unknown"]
         }
     }
 
     func serializeChangeEvent(_ event: ClipboardChangeEvent) -> String {
+        Log.d(TAG, "[serializeChangeEvent]")
         var dict: [String: Any] = ["scope": serializeScope(event.scope)]
         switch event.kind {
         case .changed(let typesAdded, let typesRemoved):
@@ -312,6 +351,8 @@ final class UnityIosClipboardJsonParser {
             dict["kind"] = "changedDetectedOnForeground"
         case .removed:
             dict["kind"] = "removed"
+        @unknown default:
+            dict["kind"] = "unknown"
         }
         return serialize(dict)
     }
@@ -330,9 +371,23 @@ final class UnityIosClipboardJsonParser {
         return string
     }
 
+    /// Used for **serialization**, so emitted timestamps always carry fractional seconds.
     private static let iso8601Formatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }()
+
+    private static let iso8601FormatterWithoutFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    /// Accepts an ISO 8601 internet date-time with or without fractional seconds. The schema only
+    /// requires "ISO 8601", so `2026-08-08T00:00:00Z` must not be rejected as an invalid request
+    /// just because it omits the fractional part.
+    private static func parseISO8601(_ value: String) -> Date? {
+        iso8601Formatter.date(from: value) ?? iso8601FormatterWithoutFractionalSeconds.date(from: value)
+    }
 }

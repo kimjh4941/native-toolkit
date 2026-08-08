@@ -87,6 +87,7 @@ Swift の API を Objective-C から呼び出す際、completion ブロックの
 - ネイティブ版（Swift 呼び出し元向け）: `async throws` で UseCase をそのまま公開する薄いラッパーを追加する（`@discardableResult` を付け、戻り値を無視できるようにする）
 - 新規 Manager を作る場合は、両方式を最初から用意する（後から追加ではなく設計時点で決める）
 - サンプルアプリ（`IosLibraryExample`）は `async throws` 版を使う（`Button` の action は同期クロージャのため `Task { await ... }` で橋渡しする）
+- **例外**: 待機や結果の非同期到着を伴わず即時完了する control 操作（監視の開始・停止、キャンセル、真偽値の即時判定など）および factory 操作（UI コンポーネントの生成など）は、callback 版 / `async throws` 版を設けず同期形式のまま公開してよい。詳細と適用条件は `common.md`「システム API に合わせた同期・非同期設計」の「例外（同期 control / factory API）」を参照する。上記「必ず `async throws` にする」はこの例外に該当しない操作に適用する
 
 ### `async` の要否（重い処理か軽い処理か）
 

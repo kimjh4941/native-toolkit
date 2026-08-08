@@ -29,16 +29,24 @@ public struct ClipboardTypeIdentifierValidator: ClipboardTypeIdentifierValidatin
     }
 
     /// A syntactically valid reverse-DNS identifier: at least two dot-separated segments, each
-    /// non-empty, starting with a letter or digit, and containing only letters, digits, `-`, `_`.
+    /// non-empty, starting with an **ASCII** letter or digit, and containing only ASCII letters,
+    /// digits, `-`, and `_`.
+    ///
+    /// ASCII is required deliberately: `Character.isLetter`/`isNumber` accept the full Unicode
+    /// letter/number categories, which would let visually-confusable non-ASCII identifiers pass.
     static func isValidCustomIdentifier(_ identifier: String) -> Bool {
         let segments = identifier.split(separator: ".", omittingEmptySubsequences: false)
         guard segments.count >= 2 else { return false }
         for segment in segments {
-            guard let first = segment.first, first.isLetter || first.isNumber else { return false }
-            guard segment.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }) else {
+            guard let first = segment.first, isASCIIAlphanumeric(first) else { return false }
+            guard segment.allSatisfy({ isASCIIAlphanumeric($0) || $0 == "-" || $0 == "_" }) else {
                 return false
             }
         }
         return true
+    }
+
+    private static func isASCIIAlphanumeric(_ character: Character) -> Bool {
+        character.isASCII && (character.isLetter || character.isNumber)
     }
 }

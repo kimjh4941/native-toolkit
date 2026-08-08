@@ -26,7 +26,7 @@ public enum PasteControlFactory {
         }
 
         let receiver = ClipboardPasteReceiverView(acceptedTypes: acceptedTypes)
-        var configuration = UIPasteControl.Configuration()
+        let configuration = UIPasteControl.Configuration()
         configuration.displayMode = displayMode
         let control = UIPasteControl(configuration: configuration)
         control.target = receiver

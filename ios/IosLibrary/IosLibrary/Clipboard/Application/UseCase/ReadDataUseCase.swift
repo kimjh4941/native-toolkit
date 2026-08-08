@@ -18,7 +18,7 @@ public struct ReadDataUseCase {
     }
 
     public func execute(utType: String, scope: PasteboardScope) throws -> Data? {
-        Log.d(TAG, "[execute] utType: \(utType), scope: \(scope)")
+        Log.d(TAG, "[execute] utType: \(utType), scope: \(scope.redactedDescription)")
         try typeValidator.validateGeneric(utType)
         return try repository.readData(utType: utType, scope: scope)
     }

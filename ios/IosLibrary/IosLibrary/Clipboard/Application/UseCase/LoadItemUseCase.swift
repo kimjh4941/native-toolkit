@@ -21,7 +21,7 @@ public struct LoadItemUseCase {
         scope: PasteboardScope,
         completion: @escaping (Result<ClipboardLoadedItem, ClipboardError>) -> Void
     ) -> any ClipboardLoadToken {
-        Log.d(TAG, "[execute] scope: \(scope)")
+        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
         return loader.load(request, scope: scope, completion: completion)
     }
 }
