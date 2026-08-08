@@ -339,14 +339,16 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         changedToken = NotificationCenter.default.addObserver(
             forName: UIPasteboard.changedNotification, object: pasteboard, queue: .main
         ) { [weak self] note in
+            // `Notification` is not `Sendable`, so its payload is extracted *before* the
+            // main-actor boundary; only the resulting `[String]` values cross it.
+            let added = note.userInfo?[UIPasteboard.changedTypesAddedUserInfoKey] as? [String] ?? []
+            let removed = note.userInfo?[UIPasteboard.changedTypesRemovedUserInfoKey] as? [String] ?? []
             // Registered with `queue: .main`, so this always runs on the main thread; asserting
             // main-actor isolation here (rather than hopping via `Task`) keeps event delivery
             // synchronous and preserves ordering.
             MainActor.assumeIsolated {
                 guard let self, self.observingGeneration == generation else { return }
                 self.useCases.checkForegroundChange.markReported(scope: scope)
-                let added = note.userInfo?[UIPasteboard.changedTypesAddedUserInfoKey] as? [String] ?? []
-                let removed = note.userInfo?[UIPasteboard.changedTypesRemovedUserInfoKey] as? [String] ?? []
                 self.onEvent?(
                     ClipboardChangeEvent(kind: .changed(typesAdded: added, typesRemoved: removed), scope: scope)
                 )

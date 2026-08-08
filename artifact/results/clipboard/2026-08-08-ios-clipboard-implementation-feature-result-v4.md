@@ -1,5 +1,17 @@
 # 実装結果レポート v4（実装レビュー v3 反映）
 
+> **Errata（2026-08-08）**
+> 本レポートの **strict 診断評価は誤りであり、v5 で訂正済み**。
+> 「Clipboard 由来は 0 件」（§4 / §6 / §7.1）は成立しない。正しくは 19 件。
+>
+> なお「新規追加した `isolated deinit` は strict build で新たな診断を発生させていない」という
+> **個別主張自体は現在も成立する**（Swift 5 strict の再計測でも `isolated deinit` 起因の診断はない）。
+> ただし当時の計測方法では、これを **Clipboard 全体が 0 件である根拠にはできなかった**。
+> 撤回対象は「Clipboard 全体 0 件」の評価であり、`isolated deinit` の評価ではない。
+>
+> 訂正: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
+> 監査性のため本文は当時のまま保持している。
+
 ## 基本情報
 
 - 日付: 2026-08-08

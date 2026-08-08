@@ -37,7 +37,7 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-1 copy
 
-    public func copy(requestJson: String?, handler: ((Bool, String?, String?) -> Void)?) {
+    public func copy(requestJson: String?, handler: (@Sendable (Bool, String?, String?) -> Void)?) {
         Log.d(TAG, "[copy] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let requestJson, let dict = parser.parseObject(from: requestJson),
               let scope = parser.parseScope(dict),
@@ -62,7 +62,7 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-2 append
 
-    public func append(requestJson: String?, handler: ((Bool, String?, String?) -> Void)?) {
+    public func append(requestJson: String?, handler: (@Sendable (Bool, String?, String?) -> Void)?) {
         Log.d(TAG, "[append] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let requestJson, let dict = parser.parseObject(from: requestJson),
               let scope = parser.parseScope(dict),
@@ -73,7 +73,7 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
         }
         guard !parser.containsOptionsKey(dict) else {
             let error = ClipboardError.invalidRequest("append does not accept options")
-            handler?(false, error.errorCode, error.errorDescription)
+            deliverOnMain(handler, isSuccess: false, errorCode: error.errorCode, errorMessage: error.errorDescription)
             return
         }
         Task { @MainActor in
@@ -90,10 +90,10 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-3 read
 
-    public func read(requestJson: String?, handler: ((String) -> Void)?) {
+    public func read(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[read] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict) else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -108,12 +108,12 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-4 readData
 
-    public func readData(requestJson: String?, handler: ((String) -> Void)?) {
+    public func readData(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[readData] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict),
               let utType = parser.parseUTType(dict)
         else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -128,12 +128,12 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-5 getSnapshot
 
-    public func getSnapshot(requestJson: String?, handler: ((String) -> Void)?) {
+    public func getSnapshot(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[getSnapshot] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict),
               let maybeMatchingTypes = parser.parseMatchingTypes(dict)
         else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -148,7 +148,7 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-6 clear
 
-    public func clear(requestJson: String?, handler: ((Bool, String?, String?) -> Void)?) {
+    public func clear(requestJson: String?, handler: (@Sendable (Bool, String?, String?) -> Void)?) {
         Log.d(TAG, "[clear] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict) else {
             deliverInvalidRequest(handler: handler)
@@ -168,10 +168,10 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-7 createPasteboard
 
-    public func createPasteboard(requestJson: String?, handler: ((String) -> Void)?) {
+    public func createPasteboard(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[createPasteboard] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let request = parser.parseCreationRequest(dict) else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -186,7 +186,7 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-8 removePasteboard
 
-    public func removePasteboard(requestJson: String?, handler: ((Bool, String?, String?) -> Void)?) {
+    public func removePasteboard(requestJson: String?, handler: (@Sendable (Bool, String?, String?) -> Void)?) {
         Log.d(TAG, "[removePasteboard] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict) else {
             deliverInvalidRequest(handler: handler)
@@ -206,12 +206,12 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-9 detectPatterns
 
-    public func detectPatterns(requestJson: String?, handler: ((String) -> Void)?) {
+    public func detectPatterns(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[detectPatterns] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict),
               let patterns = parser.parsePatterns(dict)
         else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -226,12 +226,12 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-10 detectValues
 
-    public func detectValues(requestJson: String?, handler: ((String) -> Void)?) {
+    public func detectValues(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[detectValues] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict),
               let patterns = parser.parsePatterns(dict)
         else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -246,12 +246,12 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-11 loadItem
 
-    public func loadItem(requestJson: String?, handler: ((String) -> Void)?) {
+    public func loadItem(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[loadItem] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict),
               let loadRequest = parser.parseLoadRequest(dict)
         else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -266,7 +266,7 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-12 cancelLoads
 
-    public func cancelLoads(handler: ((Bool, String?, String?) -> Void)?) {
+    public func cancelLoads(handler: (@Sendable (Bool, String?, String?) -> Void)?) {
         Log.d(TAG, "[cancelLoads]")
         Task { @MainActor in
             IosClipboardManager.shared.cancelAllLoads()
@@ -278,8 +278,8 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     public func startObserving(
         requestJson: String?,
-        changeHandler: ((String) -> Void)?,
-        startHandler: ((Bool, String?, String?) -> Void)?
+        changeHandler: (@Sendable (String) -> Void)?,
+        startHandler: (@Sendable (Bool, String?, String?) -> Void)?
     ) {
         Log.d(TAG, "[startObserving] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict) else {
@@ -300,7 +300,7 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
         }
     }
 
-    public func stopObserving(handler: ((Bool, String?, String?) -> Void)?) {
+    public func stopObserving(handler: (@Sendable (Bool, String?, String?) -> Void)?) {
         Log.d(TAG, "[stopObserving]")
         Task { @MainActor in
             IosClipboardManager.shared.stopObserving()
@@ -310,10 +310,10 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - P-15 checkForegroundChange
 
-    public func checkForegroundChange(requestJson: String?, handler: ((String) -> Void)?) {
+    public func checkForegroundChange(requestJson: String?, handler: (@Sendable (String) -> Void)?) {
         Log.d(TAG, "[checkForegroundChange] requestJson: \(ClipboardRedaction.json(requestJson ?? ""))")
         guard let dict = parser.parseObject(from: requestJson), let scope = parser.parseScope(dict) else {
-            handler?(invalidRequestJSON())
+            deliverOnMain(handler, json: invalidRequestJSON())
             return
         }
         Task { @MainActor in
@@ -324,11 +324,11 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
 
     // MARK: - Private
 
-    private func handler(_ handler: ((String) -> Void)?, success data: Any) {
+    private func handler(_ handler: (@Sendable (String) -> Void)?, success data: Any) {
         handler?(parser.serializeSuccess(data))
     }
 
-    private func handler(_ handler: ((String) -> Void)?, failure error: Error) {
+    private func handler(_ handler: (@Sendable (String) -> Void)?, failure error: Error) {
         if let clipboardError = error as? ClipboardError {
             Log.e(TAG, "[handler] errorCode: \(clipboardError.errorCode)")
             handler?(parser.serializeError(
@@ -342,9 +342,34 @@ public class UnityIosClipboardManager: NSObject, @unchecked Sendable {
         }
     }
 
-    private func deliverInvalidRequest(handler: ((Bool, String?, String?) -> Void)?) {
+    /// Delivers an operation callback from the main actor.
+    ///
+    /// Unity may call any endpoint from any thread. Early failures (parse/validation) return
+    /// before the main-actor hop, so invoking the handler inline would hand it back on the
+    /// **caller's** thread and break the documented "callbacks are always invoked on the main
+    /// thread" contract. Every callback therefore goes through this helper or an enclosing
+    /// `Task { @MainActor in }`.
+    ///
+    /// Note that `@Sendable` on the handler makes it *safe to transfer* between isolation
+    /// domains — it does not by itself pin execution to the main actor. That is this helper's job.
+    private func deliverOnMain(
+        _ handler: (@Sendable (Bool, String?, String?) -> Void)?,
+        isSuccess: Bool,
+        errorCode: String?,
+        errorMessage: String?
+    ) {
+        Task { @MainActor in handler?(isSuccess, errorCode, errorMessage) }
+    }
+
+    /// Delivers a JSON callback from the main actor. See ``deliverOnMain(_:isSuccess:errorCode:errorMessage:)``.
+    /// The payload is serialized by the caller so only a `String` crosses the isolation boundary.
+    private func deliverOnMain(_ handler: (@Sendable (String) -> Void)?, json: String) {
+        Task { @MainActor in handler?(json) }
+    }
+
+    private func deliverInvalidRequest(handler: (@Sendable (Bool, String?, String?) -> Void)?) {
         let error = ClipboardError.invalidRequest("malformed request")
-        handler?(false, error.errorCode, error.errorDescription)
+        deliverOnMain(handler, isSuccess: false, errorCode: error.errorCode, errorMessage: error.errorDescription)
     }
 
     private func invalidRequestJSON() -> String {

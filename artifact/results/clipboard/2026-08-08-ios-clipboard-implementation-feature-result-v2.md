@@ -1,5 +1,12 @@
 # 実装結果レポート v2（実装レビュー v1 反映）
 
+> **Errata（2026-08-08）**
+> 本レポートの **strict 診断評価は誤りであり、v5 で訂正済み**。
+> 「Clipboard 配下の strict error / warning は 0 件」（§1.1 H-07 / §4）は成立しない。正しくは 19 件。
+> また §1.3 の「`MainActor.assumeIsolated` は strict concurrency を同等に満たす」も未検証の主張だった。
+> 訂正: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
+> 監査性のため本文は当時のまま保持している。
+
 ## 基本情報
 
 - 日付: 2026-08-08

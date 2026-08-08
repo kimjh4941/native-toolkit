@@ -1,5 +1,21 @@
 # iOS Clipboard 実装レビュー v4
 
+> **Errata（2026-08-08）**
+> 本レビューの **strict 診断に関する評価は、実装結果レポート v5 により撤回・再評価が必要**。
+> 具体的には次の記述が成立しない。
+> - 「Clipboard path を発生元とする strict error は確認されなかった」（検証結果）
+> - 「今回の修正差分に新たな High / Medium / Low のコード不具合は確認されなかった」（レビュー概要）
+> - **総合評価の「今回のコード差分は LGTM」**
+>
+> 原因は計測方法にある。Swift 6 言語モードは型検査段階の既存 error で停止するため、
+> フロー解析段階の `sending` 系診断に到達せず、`UnityIosPlugin` は自身のソースが未コンパイルだった。
+> Swift 5 + `SWIFT_STRICT_CONCURRENCY=complete` で再計測すると Clipboard 由来 19 件が検出される。
+>
+> うち 3 件は v5 で修正済み。残る 16 件（Bridge callback の `sending 'handler'`）は
+> **NTKIT-14 受け入れ前に解消が必要**。
+> 詳細: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
+> 監査性のため本文は当時のまま保持している。再レビュー（v5）は別途実施が必要。
+
 ## レビュー対象
 
 - 日付: 2026-08-08

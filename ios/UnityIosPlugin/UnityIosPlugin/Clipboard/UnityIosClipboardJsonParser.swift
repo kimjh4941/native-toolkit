@@ -286,8 +286,8 @@ final class UnityIosClipboardJsonParser {
             return entry
         }
         let calendarEvents: [[String: Any]] = values.calendarEvents.map { event in
-            let startDate: Any = event.startDate.map(Self.iso8601Formatter.string(from:)) ?? NSNull()
-            let endDate: Any = event.endDate.map(Self.iso8601Formatter.string(from:)) ?? NSNull()
+            let startDate: Any = event.startDate.map { Self.iso8601Style.format($0) } ?? NSNull()
+            let endDate: Any = event.endDate.map { Self.iso8601Style.format($0) } ?? NSNull()
             let entry: [String: Any] = [
                 "startDate": startDate,
                 "endDate": endDate,
@@ -372,22 +372,18 @@ final class UnityIosClipboardJsonParser {
     }
 
     /// Used for **serialization**, so emitted timestamps always carry fractional seconds.
-    private static let iso8601Formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
+    ///
+    /// `Date.ISO8601FormatStyle` is a `Sendable` value type. `ISO8601DateFormatter` is a reference
+    /// type with mutable state, so sharing one from a `nonisolated` Manager that Unity may call on
+    /// any thread is not concurrency-safe.
+    private static let iso8601Style = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
 
-    private static let iso8601FormatterWithoutFractionalSeconds: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
+    private static let iso8601StyleWithoutFractionalSeconds = Date.ISO8601FormatStyle()
 
     /// Accepts an ISO 8601 internet date-time with or without fractional seconds. The schema only
     /// requires "ISO 8601", so `2026-08-08T00:00:00Z` must not be rejected as an invalid request
     /// just because it omits the fractional part.
     private static func parseISO8601(_ value: String) -> Date? {
-        iso8601Formatter.date(from: value) ?? iso8601FormatterWithoutFractionalSeconds.date(from: value)
+        (try? iso8601Style.parse(value)) ?? (try? iso8601StyleWithoutFractionalSeconds.parse(value))
     }
 }

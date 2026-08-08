@@ -67,6 +67,42 @@ struct UnityIosClipboardJsonParserTests {
         #expect(parser.parseOptions(dict) == nil)
     }
 
+    @Test func calendarEventDatesSerializeAsRoundTrippableISO8601() throws {
+        // The formatter replacement changed the *output* path too, not just parsing: pin the
+        // emitted shape (fractional seconds, UTC) and prove it survives a round trip.
+        let start = Date(timeIntervalSince1970: 1_775_000_000)
+        let values = ClipboardDetectedValues(
+            detectedPatterns: [],
+            probableWebURL: nil, probableWebSearch: nil, number: nil,
+            links: [], emailAddresses: [], phoneNumbers: [], postalAddresses: [],
+            calendarEvents: [
+                ClipboardCalendarEvent(
+                    startDate: start, endDate: nil,
+                    startTimeZoneIdentifier: "UTC", endTimeZoneIdentifier: nil, isAllDay: false
+                )
+            ],
+            flightNumbers: [], moneyAmounts: [], shipmentTrackingNumbers: []
+        )
+
+        let json = parser.serializeSuccess(parser.serializeDetectedValues(values))
+        let root = try #require(
+            try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any]
+        )
+        let data = try #require(root["data"] as? [String: Any])
+        let events = try #require(data["calendarEvents"] as? [[String: Any]])
+        let event = try #require(events.first)
+
+        let startString = try #require(event["startDate"] as? String)
+        #expect(startString.hasSuffix("Z"))
+        #expect(startString.contains("."))
+        // A nil date must serialize as JSON null, not as an empty string or a missing key.
+        #expect(event["endDate"] is NSNull)
+
+        // The emitted value must be accepted back by our own parser.
+        let reparsed = parser.parseObject(from: "{\"options\": {\"expirationDate\": \"\(startString)\"}}")!
+        #expect(parser.parseOptions(reparsed)??.expirationDate == start)
+    }
+
     @Test func presentButNonBoolLocalOnlyIsRejected() {
         let dict = parser.parseObject(from: "{\"options\": {\"localOnly\": \"true\"}}")!
         #expect(parser.parseOptions(dict) == nil)
