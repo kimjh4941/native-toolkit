@@ -598,6 +598,38 @@ final class ClipboardUITests: XCTestCase {
         )
     }
 
+    // MARK: U-21
+
+    /// The two isolated fixtures that `Copy Detection Fixture` cannot reach.
+    ///
+    /// Only "the button copies and detection succeeds" is asserted — that part is deterministic.
+    /// Whether iOS actually reports `number` / `probableWebSearch` for a clipboard holding nothing
+    /// but a number or a phrase is the open question these fixtures exist to answer, so it is
+    /// measured and reported rather than asserted.
+    @MainActor
+    func testU21_isolatedFixturesForWholeContentPatterns() throws {
+        openClipboardScreen()
+        resetActiveScope()
+
+        tapAndWait("copyNumberFixture", marker: "copyNumberFixture", contains: "copied")
+        tapAndWait("detectPatterns", marker: "detectPatterns", contains: "count=", timeout: 30)
+        let numberLabel = app.staticTexts[ClipboardID.result].label
+        let numberDetected = Self.detectedPatterns(in: numberLabel).contains("number")
+
+        tapAndWait("copySearchFixture", marker: "copySearchFixture", contains: "copied")
+        tapAndWait("detectPatterns", marker: "detectPatterns", contains: "count=", timeout: 30)
+        let searchLabel = app.staticTexts[ClipboardID.result].label
+        let searchDetected = Self.detectedPatterns(in: searchLabel).contains("probableWebSearch")
+
+        if numberDetected && searchDetected { return }
+        throw XCTSkip(
+            "whole-content detection patterns were not all reported even from isolated fixtures — "
+                + "number: \(numberDetected), probableWebSearch: \(searchDetected). "
+                + "\"42\" gave \"\(numberLabel)\"; \"swift concurrency\" gave \"\(searchLabel)\". "
+                + "Detection depends on OS version and locale (design §5.7); record and hand to T-13."
+        )
+    }
+
     // MARK: - Navigation helpers
 
     @MainActor
@@ -855,6 +887,20 @@ final class ClipboardUITests: XCTestCase {
                 line: line
             )
         }
+    }
+
+    /// Parses `patterns=[a, b, c]` into its elements.
+    ///
+    /// Membership is checked against the parsed list rather than by substring, so a pattern whose
+    /// name merely contains another's (`number` inside a hypothetical `numberish`) cannot produce
+    /// a false positive in the one test whose whole purpose is to answer whether a pattern fired.
+    static func detectedPatterns(in label: String) -> [String] {
+        guard let open = label.range(of: "patterns=["),
+              let close = label[open.upperBound...].firstIndex(of: "]") else { return [] }
+        return label[open.upperBound..<close]
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
     }
 
     /// Extracts the integer that follows `key` plus `separator` in a result or status label.

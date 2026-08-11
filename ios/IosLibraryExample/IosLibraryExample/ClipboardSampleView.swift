@@ -37,6 +37,8 @@ enum ClipboardSampleIdentifiers {
         static let copyMultipleText = "copyMultipleText"
         static let copyMultiRepresentation = "copyMultiRepresentation"
         static let copyDetectionFixture = "copyDetectionFixture"
+        static let copyNumberFixture = "copyNumberFixture"
+        static let copySearchFixture = "copySearchFixture"
         // Copy options
         static let copyLocalOnlyTrue = "copyLocalOnlyTrue"
         static let copyLocalOnlyFalse = "copyLocalOnlyFalse"
@@ -125,6 +127,16 @@ struct ClipboardSampleView: View {
     Meeting on March 3, 2027 at 10:00 AM. Flight AA100. Total 1,234.56 USD.
     Tracking 1Z999AA10123456784. Search: swift concurrency. Number 42.
     """
+
+    /// Isolated fixtures for the detection patterns that `detectionFixture` cannot reach.
+    ///
+    /// A manual run detected 9 of the 11 patterns from `detectionFixture`; `number` and
+    /// `probableWebSearch` did not appear. The likely reason is that those classify the clipboard
+    /// **as a whole** rather than extracting occurrences from it, and a four-line paragraph is
+    /// neither a number nor a search phrase — a single combined fixture cannot exercise both
+    /// families at once. These two fixtures isolate them so the question can be decided.
+    static let numberFixture = "42"
+    static let searchFixture = "swift concurrency"
 
     // MARK: - State
 
@@ -398,6 +410,15 @@ struct ClipboardSampleView: View {
                 let scope = activeScope
                 run(Action.read) {
                     let result = try await IosClipboardManager.shared.read(scope: scope)
+                    // `resolved` plus the item count separates the three states a named scope can
+                    // be in — unavailable / resolvable but empty / resolvable with content — which
+                    // a screen-less measurement (T-13's long-duration run) has no other way to
+                    // tell apart. Counts only; item values are never logged.
+                    Log.d(
+                        TAG,
+                        "[read] scope kind: \(Self.scopeKind(scope)), resolved: true, "
+                            + "numberOfItems: \(result.numberOfItems)"
+                    )
                     return Self.describe(result)
                 }
             }
@@ -412,6 +433,11 @@ struct ClipboardSampleView: View {
                 let scope = activeScope
                 run(Action.snapshot) {
                     let snapshot = try await IosClipboardManager.shared.snapshot(scope: scope)
+                    Log.d(
+                        TAG,
+                        "[snapshot] numberOfItems: \(snapshot.numberOfItems), "
+                            + "typeIdentifiers: [\(snapshot.typeIdentifiers.joined(separator: ", "))]"
+                    )
                     return Self.describe(snapshot)
                 }
             }
@@ -457,6 +483,16 @@ struct ClipboardSampleView: View {
 
     private var detectSection: some View {
         sectionView(title: "Detect", identifier: "detect") {
+            // The isolated fixtures live next to the Detect buttons because they are only
+            // meaningful immediately before a detection call. `Copy Detection Fixture` stays in
+            // the Copy section, where the plan's marker table places it.
+            actionButton("Copy Number Fixture (42 only)", marker: Action.copyNumberFixture) {
+                copy(Action.copyNumberFixture, kind: "plainText(numberFixture)", .plainText(Self.numberFixture))
+            }
+            actionButton("Copy Search Fixture (phrase only)", marker: Action.copySearchFixture) {
+                copy(Action.copySearchFixture, kind: "plainText(searchFixture)", .plainText(Self.searchFixture))
+            }
+
             actionButton("Detect Patterns (all 11)", marker: Action.detectPatterns) {
                 let scope = activeScope
                 run(Action.detectPatterns) {
@@ -465,6 +501,10 @@ struct ClipboardSampleView: View {
                         scope: scope
                     )
                     let names = patterns.map(\.rawValue).sorted().joined(separator: ", ")
+                    // Pattern names are type-level metadata, never the detected values, and are
+                    // already on screen. Logging them lets the manual check (§8.1 #13) record which
+                    // patterns the OS actually found without transcribing 11 names by hand.
+                    Log.d(TAG, "[detectPatterns] count: \(patterns.count), detected: [\(names)]")
                     return "count=\(patterns.count), patterns=[\(names)]"
                 }
             }
@@ -475,6 +515,10 @@ struct ClipboardSampleView: View {
                         Set(ClipboardDetectionPattern.allCases),
                         scope: scope
                     )
+                    // Pattern names and counts only. The detected values themselves (addresses,
+                    // phone numbers, links) are never logged and never shown.
+                    let names = values.detectedPatterns.map(\.rawValue).sorted().joined(separator: ", ")
+                    Log.d(TAG, "[detectValues] count: \(values.detectedPatterns.count), detected: [\(names)]")
                     return Self.describe(values)
                 }
             }
@@ -800,6 +844,9 @@ struct ClipboardSampleView: View {
                 let payload = try await operation()
                 updateResult(marker: marker, kind: .success, payload: payload)
             } catch {
+                // The error code is logged (never the message, which is fixed text anyway) so a
+                // failure can be classified from the console alone.
+                Log.e(TAG, "[run] marker: \(marker), errorCode: \(Self.errorCode(of: error))")
                 updateResult(marker: marker, kind: .failure, payload: Self.failureText(error))
             }
         }
@@ -824,6 +871,10 @@ struct ClipboardSampleView: View {
     /// written to the log instead, where it can carry detail without reaching the screen.
     static let localFailureText =
         "errorCode=\(ClipboardError.unknownErrorCode), errorMessage=\(ClipboardError.unknownMessage)"
+
+    private static func errorCode(of error: Error) -> String {
+        (error as? ClipboardError)?.errorCode ?? ClipboardError.unknownErrorCode
+    }
 
     private static func failureText(_ error: Error) -> String {
         guard let clipboardError = error as? ClipboardError else {
@@ -868,10 +919,13 @@ struct ClipboardSampleView: View {
         return "numberOfItems=\(result.numberOfItems), items=[\(items.joined(separator: ", "))]"
     }
 
+    /// Type identifiers are listed by name, not just counted: telling whether a paste source
+    /// advertises an accepted type (8.1 #20) is impossible from a count alone. Identifiers are
+    /// type information, never content — design §4.6 allows showing and logging them.
     private static func describe(_ snapshot: ClipboardSnapshot) -> String {
         "hasStrings=\(snapshot.hasStrings), hasURLs=\(snapshot.hasURLs), hasImages=\(snapshot.hasImages), "
             + "hasColors=\(snapshot.hasColors), numberOfItems=\(snapshot.numberOfItems), "
-            + "typeIdentifiers=\(snapshot.typeIdentifiers.count)"
+            + "typeIdentifiers=\(snapshot.typeIdentifiers.count) [\(snapshot.typeIdentifiers.joined(separator: ", "))]"
     }
 
     private static func describe(_ values: ClipboardDetectedValues) -> String {
@@ -954,18 +1008,37 @@ struct ClipboardPasteControlView: UIViewRepresentable {
 }
 
 private struct FullWidthPressableButtonStyle: ButtonStyle {
+
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .padding(.horizontal, 12)
-            .background(configuration.isPressed ? Color.blue.opacity(0.65) : Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+        // `Configuration` carries `isPressed` but not the enabled state, and a `ButtonStyle` is not
+        // itself a `View`, so the environment is read from a nested view instead. Without this a
+        // `.disabled` button keeps its enabled appearance and the screen gives no hint that Scope
+        // controls are locked during observation (design §4.4 / §8.1 #16).
+        StyleBody(configuration: configuration)
+    }
+
+    private struct StyleBody: View {
+        @Environment(\.isEnabled) private var isEnabled
+        let configuration: Configuration
+
+        var body: some View {
+            configuration.label
+                .font(.body.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .padding(.horizontal, 12)
+                .background(background)
+                .foregroundColor(isEnabled ? .white : Color.white.opacity(0.75))
+                .cornerRadius(10)
+                .opacity(configuration.isPressed ? 0.85 : 1.0)
+                .scaleEffect(configuration.isPressed && isEnabled ? 0.98 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+        }
+
+        private var background: Color {
+            guard isEnabled else { return Color.gray.opacity(0.45) }
+            return configuration.isPressed ? Color.blue.opacity(0.65) : Color.blue
+        }
     }
 }
 

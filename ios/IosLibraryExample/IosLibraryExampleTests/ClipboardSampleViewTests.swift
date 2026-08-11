@@ -69,6 +69,20 @@ struct ClipboardSampleViewTests {
         #expect(ClipboardSampleView.fileFixturePayload.count == 64)
     }
 
+    @Test("The isolated fixtures contain nothing but their own pattern")
+    func isolatedDetectionFixturesAreSingleValued() {
+        // `number` / `probableWebSearch` appear to classify the whole clipboard, so these fixtures
+        // must not carry anything else that could be extracted instead.
+        #expect(ClipboardSampleView.numberFixture == "42")
+        #expect(ClipboardSampleView.searchFixture == "swift concurrency")
+
+        for fixture in [ClipboardSampleView.numberFixture, ClipboardSampleView.searchFixture] {
+            #expect(!fixture.contains("http"))
+            #expect(!fixture.contains("@"))
+            #expect(!fixture.contains("\n"))
+        }
+    }
+
     @Test("The detection fixture carries the inputs for all 11 patterns")
     func detectionFixtureCoversEveryPattern() {
         let fixture = ClipboardSampleView.detectionFixture
@@ -99,11 +113,11 @@ struct ClipboardSampleViewTests {
         #expect(ClipboardSampleIdentifiers.pasteSummary == "clipboard.pasteSummary")
     }
 
-    @Test("All 50 result markers and 2 control markers are distinct")
+    @Test("All 52 result markers and 2 control markers are distinct")
     func markersAreDistinct() {
         let resultMarkers = Self.allResultMarkers
-        #expect(resultMarkers.count == 50)
-        #expect(Set(resultMarkers).count == 50)
+        #expect(resultMarkers.count == 52)
+        #expect(Set(resultMarkers).count == 52)
 
         let controlMarkers = [
             ClipboardSampleIdentifiers.ControlAction.cancelLoads,
@@ -118,7 +132,7 @@ struct ClipboardSampleViewTests {
             A.useGeneral, A.createNamed, A.useFixedNamed, A.createUnique, A.removeActive, A.probeRemoved,
             A.copyPlainText, A.copyPlainTextEmpty, A.copyHtml, A.copyURL, A.copyImageFile, A.copyImageData,
             A.copyColor, A.copyCustomData, A.copyFileFixture, A.copyMultipleText, A.copyMultiRepresentation,
-            A.copyDetectionFixture,
+            A.copyDetectionFixture, A.copyNumberFixture, A.copySearchFixture,
             A.copyLocalOnlyTrue, A.copyLocalOnlyFalse, A.copyBBaseline, A.copyExpiring,
             A.appendPlainText, A.appendURL, A.appendUniversalMarker,
             A.read, A.readData, A.snapshot, A.snapshotMatching,
