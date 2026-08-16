@@ -273,6 +273,16 @@ struct ClipboardSampleView: View {
             // Nothing has been removed yet, so the probe has no target. Disabling it keeps the
             // screen from producing a failure that no `ClipboardError` stands behind.
             .disabled(lastRemovedScope == nil)
+
+            Text("""
+            Named / unique pasteboards are not a persistent store, but their contents are not \
+            guaranteed to be discarded when this app quits — one has been observed to survive a \
+            force-quit and relaunch on iOS 18.7.2. Remove sensitive data explicitly rather than \
+            relying on termination.
+            """)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .disabled(isObserving)
     }
@@ -381,6 +391,16 @@ struct ClipboardSampleView: View {
                     options: ClipboardCopyOptions(localOnly: true, expirationDate: Date().addingTimeInterval(30))
                 )
             }
+
+            Text("""
+            The first three write the same kind of content under different ClipboardCopyOptions. \
+            Their bodies differ in length (14 and 31 characters) so that a Read can tell them \
+            apart without displaying their values. Whether localOnly actually suppresses transfer \
+            to nearby devices is not something this screen can show.
+            """)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -397,7 +417,10 @@ struct ClipboardSampleView: View {
                 append(Action.appendUniversalMarker, kind: "plainText(len=\(marker.count))", .plainText(marker))
             }
 
-            Text("append cannot carry ClipboardCopyOptions; inheritance of privacy options is not guaranteed (M-16).")
+            Text("""
+            append cannot carry ClipboardCopyOptions, and privacy options set by a prior copy are \
+            not guaranteed to apply to the appended item. Use copy for sensitive data.
+            """)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -586,8 +609,8 @@ struct ClipboardSampleView: View {
 
             Text("""
             The paste button always targets the system general pasteboard, independently of the \
-            active scope. It is not created until it is explicitly mounted, so T-00 case 4 can keep \
-            Check Foreground Change as the first clipboard-aware operation.
+            active scope. It is not created until it is explicitly mounted, so a privacy \
+            measurement can keep Check Foreground Change as the first clipboard-aware operation.
             """)
                 .font(.caption)
                 .foregroundColor(.secondary)
