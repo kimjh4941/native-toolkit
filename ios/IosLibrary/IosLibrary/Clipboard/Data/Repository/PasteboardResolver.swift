@@ -7,9 +7,9 @@ import UIKit
 
 /// Resolves a `PasteboardScope` / `PasteboardCreationRequest` to a `UIPasteboard` instance.
 ///
-/// Named and unique pasteboards are non-persistent: they exist only while the app that created
-/// them is running. `App Group` entitlements are required for cross-app access, but do not make
-/// the pasteboard persistent — see `PasteboardScope`.
+/// Named and unique pasteboards are not a persistent store, but are not guaranteed to be
+/// reclaimed when the creating process exits either — see `PasteboardScope`. `App Group`
+/// entitlements are required for cross-app access.
 @MainActor
 final class PasteboardResolver {
     private let TAG = "PasteboardResolver"
@@ -17,7 +17,7 @@ final class PasteboardResolver {
     nonisolated init() {}
 
     /// Resolves an existing pasteboard. Throws `.pasteboardUnavailable` for a named/unique scope
-    /// that cannot be resolved (e.g. its creating app has quit).
+    /// that cannot be resolved (e.g. it was removed, or the system reclaimed it).
     func resolve(_ scope: PasteboardScope) throws -> UIPasteboard {
         Log.d(TAG, "[resolve] scope: \(scope.redactedDescription)")
         switch scope {

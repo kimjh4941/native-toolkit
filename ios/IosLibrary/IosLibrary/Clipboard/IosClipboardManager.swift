@@ -33,9 +33,14 @@ import UIKit
 /// `errorCode == "CLIPBOARD_CANCELLED"` as a normal, ignorable outcome.
 ///
 /// ## Named pasteboard lifetime
-/// Named/unique pasteboards are **not persistent**: they exist only while the app that created
-/// them is running. They are suitable only for transferring data while both sides are alive —
-/// never for persistent sharing (use an App Group shared container for that instead).
+/// Named/unique pasteboards are **not a persistent store**, but their contents are **not
+/// guaranteed to be discarded when the creating process exits** either. Measured on iOS 18.7.2:
+/// after force-quitting the app and relaunching it, a named pasteboard written before the quit
+/// was still readable. The system does not specify when such a pasteboard is reclaimed.
+///
+/// Use these scopes only to hand data between live apps, and **delete sensitive data explicitly
+/// with `removePasteboard(_:)`** — never rely on app termination to discard it. For sharing that
+/// must outlive the creating app by design, use an App Group shared container instead.
 ///
 /// ## append vs copy
 /// `append` cannot carry `ClipboardCopyOptions`, and does **not** guarantee that privacy options

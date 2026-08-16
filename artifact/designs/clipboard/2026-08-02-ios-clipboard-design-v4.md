@@ -8,6 +8,29 @@
 - 使用言語: Swift（Bridge の一部は Objective-C）
 - 対象モジュール: `ios/IosLibrary`（Domain 〜 Manager）、`ios/UnityIosPlugin`（Unity Bridge のみ）
 
+> **正誤（2026-08-15 追記）: 名前付きペーストボードの「非永続」記述は実測と一致しない**
+>
+> 本書は名前付き / ユニークペーストボードを「非永続（作成アプリの実行中のみ存在）」として
+> 扱っているが、**iPhone XS / iOS 18.7.2 での実測ではこの前提が成立しなかった**。
+> preflight で不存在を確認したうえで作成し、アプリを強制終了して再起動した後も、
+> 終了前に書き込んだ内容を読み取れた（15 分後の時点でも中身ごと残存）。
+>
+> ライブラリ側の `removePasteboard` は正常に動作しており（Simulator / 実機とも即座に
+> `CLIPBOARD_UNAVAILABLE`）、明示削除の経路に問題はない。OS がプロセス終了時に回収しない、
+> という OS 側の挙動である。
+>
+> **影響する記述**
+> - 24 行「主要リスク」の「名前付きペーストボードの非永続」
+> - 1675 行の DoD「名前付きペーストボードが非永続であることを明記した」← **この指示に従うと誤った文書になる**
+>
+> **公開 DocC は訂正済み**（`IosClipboardManager` / `PasteboardScope` / `PasteboardResolver` /
+> `IosLibrary.docc/IosLibrary.md`）。「終了時に破棄されるとは限らない。機微データは
+> `removePasteboard` で明示削除せよ」という形へ変更した。
+>
+> **回収されるのか、回収が遅いだけなのかは未確定。** 上限付き観測では区別できないため、
+> T-13 の long-duration measurement へ残す。詳細は
+> `artifact/results/clipboard/2026-08-15-ios-clipboard-implement-sample-app-result-v3.md` 4 章。
+
 ---
 
 ## 対象企画書

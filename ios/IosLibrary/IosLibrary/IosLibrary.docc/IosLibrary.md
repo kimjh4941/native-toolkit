@@ -140,11 +140,18 @@ permission prompt and/or an iOS 14+ access notification, at the system's discret
 document it as avoiding the iOS 14+ access notification as well — verify on-device for your target
 OS versions before relying on either being silent.
 
-### Named / unique pasteboards are not persistent
-A pasteboard created via `createPasteboard(.named(_:))` or `.unique` exists **only while the
-creating app is running** — it is not a persistent store. Use it only to hand data from one live
-app to another (e.g. via an App Group). For anything that must survive the creating app quitting,
-use an App Group shared container instead; that is outside this library's scope.
+### Named / unique pasteboards are not a persistent store
+A pasteboard created via `createPasteboard(.named(_:))` or `.unique` is not meant to persist, but
+its contents are **not guaranteed to be discarded when the creating app quits** either. Measured
+on iOS 18.7.2: after force-quitting the app and relaunching it, a named pasteboard written before
+the quit was still readable. The system does not specify when such a pasteboard is reclaimed.
+
+Use these scopes only to hand data between live apps, and **delete sensitive data explicitly with
+`removePasteboard(_:)`** — do not rely on app termination to discard it. Note that a force-quit
+does not run `deinit`, so no cleanup the library could perform on teardown would help here.
+
+For sharing that must outlive the creating app by design, use an App Group shared container
+instead; that is outside this library's scope.
 
 ### append does not carry privacy options
 `append` cannot accept `ClipboardCopyOptions`, and does not guarantee that a prior `copy`'s

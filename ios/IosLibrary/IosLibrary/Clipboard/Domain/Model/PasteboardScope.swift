@@ -7,11 +7,12 @@ import Foundation
 
 /// A reference to an existing pasteboard.
 ///
-/// - Note: Named and unique pasteboards are non-persistent: they exist only while the app that
-///   created them is running. They are suitable only for transferring data while both sides are
-///   alive, never for persistent sharing (use an App Group shared container for that).
+/// - Note: Named and unique pasteboards are not a persistent store, but their contents are not
+///   guaranteed to be discarded when the creating process exits either — a named pasteboard has
+///   been observed to survive a force-quit and relaunch. Delete sensitive data explicitly with
+///   `removePasteboard(_:)`; see ``IosClipboardManager`` for the measurement.
 public enum PasteboardScope: Equatable, Hashable, Sendable {
-    /// The systemwide general pasteboard. The only persistent pasteboard.
+    /// The systemwide general pasteboard, shared with every app and persisted across launches.
     case general
     /// A named pasteboard shared with apps of the same Team ID (e.g. an App Group identifier).
     case named(String)
