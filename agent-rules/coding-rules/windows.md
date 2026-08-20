@@ -228,9 +228,11 @@ WinRT の非同期 API は ABI 上は必ず非同期だが、**公開 API まで
 |---|---|
 | ライブラリ | `FlaUI.UIA3`（`FlaUI.Core` は推移的依存のため明示不要） |
 | テスト基盤 | MSTest のテスト SDK / アダプター |
-| ターゲット | `net10.0-windows`（.NET 9 は 2026-11-10 サポート終了、.NET 10 は 2028-11 まで LTS） |
+| ターゲット | `net10.0-windows`（下記のとおり必須。`-windows` を落とすと FlaUI が壊れる） |
 | 実行 | `dotnet test` |
 | 常駐サーバ | 不要 |
+
+**`net10.0-windows` は推奨ではなく必須**。FlaUI 5.0.0 は `.NET` 向けアセットを `net6.0-windows7.0` / `net8.0-windows7.0` にしか持たないため、TFM を `net10.0`（`-windows` なし）にすると対象外になり、`net48`（.NET Framework 版）へフォールバックして `NU1701` が出る。サポート期限（.NET 9 は 2026-11-10 終了、.NET 10 は 2028-11 まで LTS）とは別の、動作上の要件である。
 
 **選定理由**: UI Automation は COM API で言語非依存だが、C++ にはテスト用途で定着した高水準ラッパーがほぼない。C# 側はエコシステムが厚く、生の UIA（`Interop.UIAutomationClient`）から FlaUI まで抽象度を後から選び直せる。FlaUI と生の UIA の差は**能力ではなく、要素検索・待機・再試行・Control Pattern 操作・COM 解放・MSIX 起動といった配管を自作するかどうか**である。
 
@@ -285,6 +287,7 @@ WinRT の非同期 API は ABI 上は必ず非同期だが、**公開 API まで
 
 - 固定時間の `Sleep` ではなく、要素・結果表示を**タイムアウト付きで待つ**
 - UI テストは**直列実行**する（クリップボードのようなマシン共有リソースを奪い合うため）。運用ルールとして書くだけでなく、**テスト基盤側でも強制する**
+  - `dotnet new mstest` は `MSTestSettings.cs` に `[assembly: Parallelize(Scope = ExecutionScope.MethodLevel)]` を生成する。**テンプレート任せにすると並列実行が既定で有効になる**ので、必ず置き換える
 
 ```csharp
 // Properties/AssemblyInfo.cs
@@ -305,6 +308,23 @@ WinRT の非同期 API は ABI 上は必ず非同期だが、**公開 API まで
 ```
 dotnet --list-sdks
 ```
+
+### MSIX の配置（UI テストの前段）
+
+**MSBuild にサンプルアプリを配置する手段は無い。** `WindowsLibraryExample.vcxproj` には `Deploy` / `PrepareForDeploy` / `_CopyFilesToAppxLayout` / `BuildAppxUploadPackageForUap` のいずれも存在しない（`_GenerateAppxPackageRecipe` のみ存在）。
+
+**ビルドしても AppX レイアウトは更新されない。** ビルドが更新するのは出力ルートの成果物・`AppxManifest.xml`・`*.build.appxrecipe` までで、`$(OutDir)AppX\` へのコピーは行われない。古いレイアウトが残ったまま「ビルドは成功したのに配置内容が古い」状態になるので、レイアウト内のタイムスタンプで確認する。
+
+配置手段は次の 2 つ。
+
+| 手段 | 内容 |
+|---|---|
+| Visual Studio の「配置」 | 確実。プロジェクト右クリック → 配置。構成は x64 を選ぶ（ARM64 / Win32 構成は include パスが未設定で機能しない） |
+| `*.build.appxrecipe` を使ったスクリプト | ビルドが生成する recipe が `LayoutDir` と全ペイロードを `Include`（コピー元の絶対パス）+ `PackagePath`（レイアウト内の配置先）で列挙している。これを読んでコピーし `Add-AppxPackage -Register` すれば VS の配置と同じ処理を再現できる。推測でファイルを選ぶ必要はない |
+
+配置が必要になるのは**サンプルアプリを変更したときだけ**で、テストコードだけの変更なら不要。
+
+インストール場所を変えたくない場合は、**現在登録されている構成と同じ構成を配置する**。構成を変える（Release → Debug など）とインストール場所が変わり、マニフェストが宣言する COM ExeServer の実行ファイルパスも変わるため、通知アクティベーションの登録に影響し得る。
 
 ---
 
