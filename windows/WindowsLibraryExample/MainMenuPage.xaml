@@ -24,21 +24,21 @@
                 TextWrapping="Wrap"
                 Margin="0,8,0,16"/>
 
-            <Button x:Name="DialogCard" HorizontalAlignment="Stretch" Padding="20" Click="DialogCard_Click">
+            <Button x:Name="DialogCard" AutomationProperties.AutomationId="DialogCard" HorizontalAlignment="Stretch" Padding="20" Click="DialogCard_Click">
                 <StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Left">
                     <TextBlock Text="Dialog Example" FontSize="20" FontWeight="SemiBold"/>
                     <TextBlock Text="Show native Windows dialogs" Opacity="0.7"/>
                 </StackPanel>
             </Button>
 
-            <Button x:Name="NotificationCard" HorizontalAlignment="Stretch" Padding="20" Click="NotificationCard_Click">
+            <Button x:Name="NotificationCard" AutomationProperties.AutomationId="NotificationCard" HorizontalAlignment="Stretch" Padding="20" Click="NotificationCard_Click">
                 <StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Left">
                     <TextBlock Text="Notification Example" FontSize="20" FontWeight="SemiBold"/>
                     <TextBlock Text="Test Windows App SDK toast notification features" Opacity="0.7"/>
                 </StackPanel>
             </Button>
 
-            <Button x:Name="ClipboardCard" HorizontalAlignment="Stretch" Padding="20" Click="ClipboardCard_Click">
+            <Button x:Name="ClipboardCard" AutomationProperties.AutomationId="ClipboardCard" HorizontalAlignment="Stretch" Padding="20" Click="ClipboardCard_Click">
                 <StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Left">
                     <TextBlock Text="Clipboard Example" FontSize="20" FontWeight="SemiBold"/>
                     <TextBlock Text="Test Win32 clipboard and WinRT history features" Opacity="0.7"/>

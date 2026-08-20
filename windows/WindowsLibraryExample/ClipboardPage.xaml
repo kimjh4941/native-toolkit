@@ -15,14 +15,14 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Width="600" HorizontalAlignment="Center" Padding="30,20,30,8" Spacing="12">
-            <Button x:Name="BackButton" Content="&#x2190; Back" HorizontalAlignment="Left" Click="BackButton_Click"/>
+            <Button x:Name="BackButton" AutomationProperties.AutomationId="BackButton" Content="&#x2190; Back" HorizontalAlignment="Left" Click="BackButton_Click"/>
             <TextBlock Text="WindowsClipboardManager Example" FontSize="28" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap"/>
             <Border Background="LightGray" CornerRadius="8">
-                <TextBlock x:Name="ResultTextBlock" Padding="10" Text="Result will be displayed here" TextWrapping="Wrap" FontSize="16"/>
+                <TextBlock x:Name="ResultTextBlock" AutomationProperties.AutomationId="ResultTextBlock" Padding="10" Text="Result will be displayed here" TextWrapping="Wrap" FontSize="16"/>
             </Border>
             <Border Background="#F0F0F0" BorderBrush="LightGray" BorderThickness="1" CornerRadius="8">
-                <ScrollViewer x:Name="LogScrollViewer" Height="160" VerticalScrollBarVisibility="Auto" Padding="10">
-                    <TextBlock x:Name="LogTextBlock" Text="Log will be displayed here" TextWrapping="Wrap" FontSize="12" FontFamily="Consolas"/>
+                <ScrollViewer x:Name="LogScrollViewer" AutomationProperties.AutomationId="LogScrollViewer" Height="160" VerticalScrollBarVisibility="Auto" Padding="10">
+                    <TextBlock x:Name="LogTextBlock" AutomationProperties.AutomationId="LogTextBlock" Text="Log will be displayed here" TextWrapping="Wrap" FontSize="12" FontFamily="Consolas"/>
                 </ScrollViewer>
             </Border>
         </StackPanel>
@@ -31,70 +31,70 @@
             <StackPanel Width="600" HorizontalAlignment="Center" Padding="30,8,30,30" Spacing="16">
 
                 <TextBlock Text="Init / Lifecycle" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="InitializeManager" Style="{StaticResource NotificationButtonStyle}" Click="InitializeManager_Click"/>
-                <Button Content="SetHistoryCallbacks" Style="{StaticResource NotificationButtonStyle}" Click="SetHistoryCallbacks_Click"/>
-                <Button Content="Uninitialize" Style="{StaticResource NotificationButtonStyle}" Click="Uninitialize_Click"/>
-                <Button Content="CanDestroy" Style="{StaticResource NotificationButtonStyle}" Click="CanDestroy_Click"/>
+                <Button AutomationProperties.AutomationId="InitializeManager" Content="InitializeManager" Style="{StaticResource NotificationButtonStyle}" Click="InitializeManager_Click"/>
+                <Button AutomationProperties.AutomationId="SetHistoryCallbacks" Content="SetHistoryCallbacks" Style="{StaticResource NotificationButtonStyle}" Click="SetHistoryCallbacks_Click"/>
+                <Button AutomationProperties.AutomationId="Uninitialize" Content="Uninitialize" Style="{StaticResource NotificationButtonStyle}" Click="Uninitialize_Click"/>
+                <Button AutomationProperties.AutomationId="CanDestroy" Content="CanDestroy" Style="{StaticResource NotificationButtonStyle}" Click="CanDestroy_Click"/>
 
                 <TextBlock Text="Copy" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="CopyPlainText" Style="{StaticResource NotificationButtonStyle}" Click="CopyPlainText_Click"/>
-                <Button Content="CopyPlainText (empty)" Style="{StaticResource NotificationButtonStyle}" Click="CopyPlainTextEmpty_Click"/>
-                <Button Content="CopyHtml" Style="{StaticResource NotificationButtonStyle}" Click="CopyHtml_Click"/>
-                <Button Content="CopyFiles" Style="{StaticResource NotificationButtonStyle}" Click="CopyFiles_Click"/>
-                <Button Content="CopyImage" Style="{StaticResource NotificationButtonStyle}" Click="CopyImage_Click"/>
-                <Button Content="CopyCustomFormat" Style="{StaticResource NotificationButtonStyle}" Click="CopyCustomFormat_Click"/>
-                <Button Content="CopyMultipleFormats" Style="{StaticResource NotificationButtonStyle}" Click="CopyMultipleFormats_Click"/>
-                <Button Content="CopyMultipleFormats (with image)" Style="{StaticResource NotificationButtonStyle}" Click="CopyMultipleFormatsWithImage_Click"/>
+                <Button AutomationProperties.AutomationId="CopyPlainText" Content="CopyPlainText" Style="{StaticResource NotificationButtonStyle}" Click="CopyPlainText_Click"/>
+                <Button AutomationProperties.AutomationId="CopyPlainTextEmpty" Content="CopyPlainText (empty)" Style="{StaticResource NotificationButtonStyle}" Click="CopyPlainTextEmpty_Click"/>
+                <Button AutomationProperties.AutomationId="CopyHtml" Content="CopyHtml" Style="{StaticResource NotificationButtonStyle}" Click="CopyHtml_Click"/>
+                <Button AutomationProperties.AutomationId="CopyFiles" Content="CopyFiles" Style="{StaticResource NotificationButtonStyle}" Click="CopyFiles_Click"/>
+                <Button AutomationProperties.AutomationId="CopyImage" Content="CopyImage" Style="{StaticResource NotificationButtonStyle}" Click="CopyImage_Click"/>
+                <Button AutomationProperties.AutomationId="CopyCustomFormat" Content="CopyCustomFormat" Style="{StaticResource NotificationButtonStyle}" Click="CopyCustomFormat_Click"/>
+                <Button AutomationProperties.AutomationId="CopyMultipleFormats" Content="CopyMultipleFormats" Style="{StaticResource NotificationButtonStyle}" Click="CopyMultipleFormats_Click"/>
+                <Button AutomationProperties.AutomationId="CopyMultipleFormatsWithImage" Content="CopyMultipleFormats (with image)" Style="{StaticResource NotificationButtonStyle}" Click="CopyMultipleFormatsWithImage_Click"/>
 
                 <TextBlock Text="Write Options" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="CopyPlainText (SENSITIVE)" Style="{StaticResource NotificationButtonStyle}" Click="CopySensitive_Click"/>
-                <Button Content="CopyPlainText (EXCLUDE_HISTORY)" Style="{StaticResource NotificationButtonStyle}" Click="CopyExcludeHistory_Click"/>
-                <Button Content="CopyPlainText (EXCLUDE_ROAMING)" Style="{StaticResource NotificationButtonStyle}" Click="CopyExcludeRoaming_Click"/>
-                <Button Content="Cleanup Temp Files" Style="{StaticResource NotificationButtonStyle}" Click="CleanupTempFiles_Click"/>
+                <Button AutomationProperties.AutomationId="CopySensitive" Content="CopyPlainText (SENSITIVE)" Style="{StaticResource NotificationButtonStyle}" Click="CopySensitive_Click"/>
+                <Button AutomationProperties.AutomationId="CopyExcludeHistory" Content="CopyPlainText (EXCLUDE_HISTORY)" Style="{StaticResource NotificationButtonStyle}" Click="CopyExcludeHistory_Click"/>
+                <Button AutomationProperties.AutomationId="CopyExcludeRoaming" Content="CopyPlainText (EXCLUDE_ROAMING)" Style="{StaticResource NotificationButtonStyle}" Click="CopyExcludeRoaming_Click"/>
+                <Button AutomationProperties.AutomationId="CleanupTempFiles" Content="Cleanup Temp Files" Style="{StaticResource NotificationButtonStyle}" Click="CleanupTempFiles_Click"/>
 
                 <TextBlock Text="Paste" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="PastePlainText" Style="{StaticResource NotificationButtonStyle}" Click="PastePlainText_Click"/>
-                <Button Content="PasteHtml" Style="{StaticResource NotificationButtonStyle}" Click="PasteHtml_Click"/>
-                <Button Content="PasteFiles" Style="{StaticResource NotificationButtonStyle}" Click="PasteFiles_Click"/>
-                <Button Content="PasteImage" Style="{StaticResource NotificationButtonStyle}" Click="PasteImage_Click"/>
-                <Button Content="PasteCustomFormat" Style="{StaticResource NotificationButtonStyle}" Click="PasteCustomFormat_Click"/>
+                <Button AutomationProperties.AutomationId="PastePlainText" Content="PastePlainText" Style="{StaticResource NotificationButtonStyle}" Click="PastePlainText_Click"/>
+                <Button AutomationProperties.AutomationId="PasteHtml" Content="PasteHtml" Style="{StaticResource NotificationButtonStyle}" Click="PasteHtml_Click"/>
+                <Button AutomationProperties.AutomationId="PasteFiles" Content="PasteFiles" Style="{StaticResource NotificationButtonStyle}" Click="PasteFiles_Click"/>
+                <Button AutomationProperties.AutomationId="PasteImage" Content="PasteImage" Style="{StaticResource NotificationButtonStyle}" Click="PasteImage_Click"/>
+                <Button AutomationProperties.AutomationId="PasteCustomFormat" Content="PasteCustomFormat" Style="{StaticResource NotificationButtonStyle}" Click="PasteCustomFormat_Click"/>
 
                 <TextBlock Text="Inspect / Clear" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="HasFormat (CF_UNICODETEXT)" Style="{StaticResource NotificationButtonStyle}" Click="HasFormat_Click"/>
-                <Button Content="GetClipboardFormats" Style="{StaticResource NotificationButtonStyle}" Click="GetClipboardFormats_Click"/>
-                <Button Content="GetPreferredFormat" Style="{StaticResource NotificationButtonStyle}" Click="GetPreferredFormat_Click"/>
-                <Button Content="ClearClipboard" Style="{StaticResource NotificationButtonStyle}" Click="ClearClipboard_Click"/>
+                <Button AutomationProperties.AutomationId="HasFormat" Content="HasFormat (CF_UNICODETEXT)" Style="{StaticResource NotificationButtonStyle}" Click="HasFormat_Click"/>
+                <Button AutomationProperties.AutomationId="GetClipboardFormats" Content="GetClipboardFormats" Style="{StaticResource NotificationButtonStyle}" Click="GetClipboardFormats_Click"/>
+                <Button AutomationProperties.AutomationId="GetPreferredFormat" Content="GetPreferredFormat" Style="{StaticResource NotificationButtonStyle}" Click="GetPreferredFormat_Click"/>
+                <Button AutomationProperties.AutomationId="ClearClipboard" Content="ClearClipboard" Style="{StaticResource NotificationButtonStyle}" Click="ClearClipboard_Click"/>
 
                 <TextBlock Text="Deferred Rendering" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="ReserveDeferredFormats" Style="{StaticResource NotificationButtonStyle}" Click="ReserveDeferredFormats_Click"/>
-                <Button Content="RecoverDeferredState" Style="{StaticResource NotificationButtonStyle}" Click="RecoverDeferredState_Click"/>
+                <Button AutomationProperties.AutomationId="ReserveDeferredFormats" Content="ReserveDeferredFormats" Style="{StaticResource NotificationButtonStyle}" Click="ReserveDeferredFormats_Click"/>
+                <Button AutomationProperties.AutomationId="RecoverDeferredState" Content="RecoverDeferredState" Style="{StaticResource NotificationButtonStyle}" Click="RecoverDeferredState_Click"/>
 
                 <TextBlock Text="History" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="GetHistoryAvailability" Style="{StaticResource NotificationButtonStyle}" Click="GetHistoryAvailability_Click"/>
-                <Button Content="GetClipboardHistory" Style="{StaticResource NotificationButtonStyle}" Click="GetClipboardHistory_Click"/>
-                <Button Content="RestoreHistoryItem (last id)" Style="{StaticResource NotificationButtonStyle}" Click="RestoreHistoryItem_Click"/>
-                <Button Content="DeleteHistoryItem (last id)" Style="{StaticResource NotificationButtonStyle}" Click="DeleteHistoryItem_Click"/>
-                <Button Content="ClearUnpinnedHistory" Style="{StaticResource NotificationButtonStyle}" Click="ClearUnpinnedHistory_Click"/>
-                <Button Content="CancelLastRequest" Style="{StaticResource NotificationButtonStyle}" Click="CancelLastRequest_Click"/>
-                <Button Content="Request + Immediate Uninitialize" Style="{StaticResource NotificationButtonStyle}" Click="RequestAndImmediateUninitialize_Click"/>
+                <Button AutomationProperties.AutomationId="GetHistoryAvailability" Content="GetHistoryAvailability" Style="{StaticResource NotificationButtonStyle}" Click="GetHistoryAvailability_Click"/>
+                <Button AutomationProperties.AutomationId="GetClipboardHistory" Content="GetClipboardHistory" Style="{StaticResource NotificationButtonStyle}" Click="GetClipboardHistory_Click"/>
+                <Button AutomationProperties.AutomationId="RestoreHistoryItem" Content="RestoreHistoryItem (last id)" Style="{StaticResource NotificationButtonStyle}" Click="RestoreHistoryItem_Click"/>
+                <Button AutomationProperties.AutomationId="DeleteHistoryItem" Content="DeleteHistoryItem (last id)" Style="{StaticResource NotificationButtonStyle}" Click="DeleteHistoryItem_Click"/>
+                <Button AutomationProperties.AutomationId="ClearUnpinnedHistory" Content="ClearUnpinnedHistory" Style="{StaticResource NotificationButtonStyle}" Click="ClearUnpinnedHistory_Click"/>
+                <Button AutomationProperties.AutomationId="CancelLastRequest" Content="CancelLastRequest" Style="{StaticResource NotificationButtonStyle}" Click="CancelLastRequest_Click"/>
+                <Button AutomationProperties.AutomationId="RequestAndImmediateUninitialize" Content="Request + Immediate Uninitialize" Style="{StaticResource NotificationButtonStyle}" Click="RequestAndImmediateUninitialize_Click"/>
 
                 <TextBlock Text="Threading" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="ReserveDeferred (worker thread)" Style="{StaticResource NotificationButtonStyle}" Click="ReserveDeferredOnWorker_Click"/>
-                <Button Content="Uninitialize (worker thread)" Style="{StaticResource NotificationButtonStyle}" Click="UninitializeOnWorker_Click"/>
-                <Button Content="Delayed Worker Check (5s)" Style="{StaticResource NotificationButtonStyle}" Click="DelayedWorkerCheck_Click"/>
+                <Button AutomationProperties.AutomationId="ReserveDeferredOnWorker" Content="ReserveDeferred (worker thread)" Style="{StaticResource NotificationButtonStyle}" Click="ReserveDeferredOnWorker_Click"/>
+                <Button AutomationProperties.AutomationId="UninitializeOnWorker" Content="Uninitialize (worker thread)" Style="{StaticResource NotificationButtonStyle}" Click="UninitializeOnWorker_Click"/>
+                <Button AutomationProperties.AutomationId="DelayedWorkerCheck" Content="Delayed Worker Check (5s)" Style="{StaticResource NotificationButtonStyle}" Click="DelayedWorkerCheck_Click"/>
 
                 <TextBlock Text="Error cases" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="CopyPlainText (null)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyPlainTextNull_Click"/>
-                <Button Content="PastePlainText (after Clear)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteAfterClear_Click"/>
-                <Button Content="PasteHtml (text only)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteHtmlTextOnly_Click"/>
-                <Button Content="PasteImage (size query only)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteImageSizeQuery_Click"/>
-                <Button Content="CopyMultipleFormats (CF_BITMAP)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiCfBitmap_Click"/>
-                <Button Content="CopyMultipleFormats (duplicate format)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiDuplicate_Click"/>
-                <Button Content="CopyMultipleFormats (CF_DIB + text)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiTypeMismatch_Click"/>
-                <Button Content="CopyFiles (empty array)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyFilesEmpty_Click"/>
-                <Button Content="CopyPlainText (after Uninitialize)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyAfterUninitialize_Click"/>
-                <Button Content="Force Initialize while shutting down" Style="{StaticResource NotificationButtonStyle}" Click="ErrForceInitialize_Click"/>
-                <Button Content="CancelClipboardRequest (unknown id)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCancelUnknownId_Click"/>
+                <Button AutomationProperties.AutomationId="ErrCopyPlainTextNull" Content="CopyPlainText (null)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyPlainTextNull_Click"/>
+                <Button AutomationProperties.AutomationId="ErrPasteAfterClear" Content="PastePlainText (after Clear)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteAfterClear_Click"/>
+                <Button AutomationProperties.AutomationId="ErrPasteHtmlTextOnly" Content="PasteHtml (text only)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteHtmlTextOnly_Click"/>
+                <Button AutomationProperties.AutomationId="ErrPasteImageSizeQuery" Content="PasteImage (size query only)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteImageSizeQuery_Click"/>
+                <Button AutomationProperties.AutomationId="ErrMultiCfBitmap" Content="CopyMultipleFormats (CF_BITMAP)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiCfBitmap_Click"/>
+                <Button AutomationProperties.AutomationId="ErrMultiDuplicate" Content="CopyMultipleFormats (duplicate format)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiDuplicate_Click"/>
+                <Button AutomationProperties.AutomationId="ErrMultiTypeMismatch" Content="CopyMultipleFormats (CF_DIB + text)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiTypeMismatch_Click"/>
+                <Button AutomationProperties.AutomationId="ErrCopyFilesEmpty" Content="CopyFiles (empty array)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyFilesEmpty_Click"/>
+                <Button AutomationProperties.AutomationId="ErrCopyAfterUninitialize" Content="CopyPlainText (after Uninitialize)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyAfterUninitialize_Click"/>
+                <Button AutomationProperties.AutomationId="ErrForceInitialize" Content="Force Initialize while shutting down" Style="{StaticResource NotificationButtonStyle}" Click="ErrForceInitialize_Click"/>
+                <Button AutomationProperties.AutomationId="ErrCancelUnknownId" Content="CancelClipboardRequest (unknown id)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCancelUnknownId_Click"/>
 
             </StackPanel>
         </ScrollViewer>

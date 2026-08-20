@@ -28,3 +28,7 @@ packages/
 # C++/WinRT generated projection headers
 Generated Files/
 **/WindowsL.*/
+
+# C# UI test project build output
+/windows/WindowsLibraryExampleUITest/bin/
+/windows/WindowsLibraryExampleUITest/obj/
