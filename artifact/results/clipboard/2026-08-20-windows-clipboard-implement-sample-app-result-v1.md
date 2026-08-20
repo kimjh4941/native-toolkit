@@ -18,7 +18,7 @@
 |---|---|
 | ビルド確認済み | ○ Debug x64 リビルド成功、エラー 0、新規ファイル由来の警告 0 |
 | 実機動作確認済み | **× 未実施**（理由は第 6 章） |
-| 自動UIテスト | **× 未実施**（workflow ステップ4 からの逸脱。理由と承認経緯は第 5 章）。別タスクで着手する。採用フレームワークは FlaUI + C# MSTest に決定済み（§5.4） |
+| 自動UIテスト | △ **Phase 1 のみ実施済み**（12 passed）。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、Phase 1 の結果は §5.8 |
 
 ビルド成功は機能動作の確認ではない。v5 §8 の手動確認 54 項目はいずれも未実施である。
 
@@ -299,6 +299,41 @@ C を選ぶ理由は「UIA が C# 向けだから」ではない。UIA は COM A
 | 1 | 8.5 Error cases 10 確認項目 | AutomationId 付与、Adapter 層、MSIX 起動検証を含む。価値とコストの比が最も良い |
 | 2 | 8.4 Lifecycle / Thread / Busy 16 確認項目 | 順序依存シナリオ。Phase 1 の基盤を再利用 |
 | 3 | 8.1 / 8.2 / 8.3 | 自動化せず手動維持 |
+
+### 5.8 Phase 1 実施結果
+
+`windows/WindowsLibraryExampleUITest` を追加し、Phase 1 を完了した。
+
+| 項目 | 結果 |
+|---|---|
+| テスト件数 | 12（SmokeTests 2 + Error cases 10） |
+| 結果 | 12 passed / 0 failed（実行時間 38 秒） |
+| 対象 | v5 §8.5 の 10 確認項目すべて |
+
+テスト実行の前提として、Visual Studio から Release / x64 で配置した。インストール場所は従来と同じ `x64\Release\WindowsLibraryExample\AppX` のままで、COM ExeServer のパスは変わっていない。
+
+各テストは自分のアプリインスタンスを起動する。manager 状態がプロセス寿命で保持されるため、`CopyPlainText (after Uninitialize)` のように状態を変えるケースがあり、インスタンスを共有すると実行順序に依存するため。
+
+#### 5.8.1 v5 §8.5 の記載漏れ（自動化により判明）
+
+`PasteImage (size query only)` の期待値を `BUFFER_TOO_SMALL`(7) としていたが、**前提条件が書かれていなかった**。
+
+`pasteImage` はバッファサイズを計算する前に `IsClipboardFormatAvailable(CF_DIB)` を確認する。したがってクリップボードに画像が無い状態では `FORMAT_UNAVAILABLE`(5) が返り、二相バッファ契約に到達しない。
+
+- 正しい手順: **先に CopyImage を実行してから** PasteImage (size query only) を押す
+- 前提を満たさない場合の実際の値: `FORMAT_UNAVAILABLE`(5)、`required size=0`
+
+テスト側では `CopyImage` を先に実行する形で対応済み。v5 §8.5 の該当行は、設計を改訂する際にこの前提を追記する必要がある。
+
+これはレビュー v1 の M1（Clear 直後は `EMPTY` ではなく `FORMAT_UNAVAILABLE`）と同種の見落としであり、**手動確認の記述だけでは気付かず、自動テスト化して初めて表面化した**。
+
+#### 5.8.2 残作業
+
+| Phase | 状態 |
+|---|---|
+| 1 | 完了 |
+| 2（8.4 Lifecycle / Thread / Busy 16 確認項目） | 未着手 |
+| 3（8.1 / 8.2 / 8.3 の 28 手動確認項目） | 自動化せず手動維持 |
 
 ---
 
