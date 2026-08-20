@@ -23,6 +23,18 @@ public sealed class ClipboardPage
 
     public string ResultText => _session.WaitForElement(ResultId).Text;
 
+    public string LogText => _session.WaitForElement(LogId).Text;
+
+    /// <summary>Returns to the main menu. The page is recreated on re-entry.</summary>
+    public MainMenuPage GoBack()
+    {
+        Press("BackButton");
+
+        var menu = new MainMenuPage(_session);
+        menu.WaitUntilShown();
+        return menu;
+    }
+
     /// <summary>Presses InitializeManager and waits for it to report success.</summary>
     public ClipboardPage Initialize()
     {

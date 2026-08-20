@@ -9,6 +9,9 @@ public sealed class MainMenuPage
 
     public MainMenuPage(IUiSession session) => _session = session;
 
+    /// <summary>Waits until the menu is on screen (used after a Back press).</summary>
+    public void WaitUntilShown() => _session.WaitForElement("ClipboardCard");
+
     public ClipboardPage OpenClipboardSample()
     {
         _session.WaitForElement("ClipboardCard").Invoke();
