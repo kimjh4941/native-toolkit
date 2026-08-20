@@ -7,6 +7,8 @@
 - VC++ 実装（`windows/WindowsLibrary/` 配下）
 - Bridge 層 C API（`.h` / `.cpp`）
 
+ただし「UI 自動テスト（サンプルアプリ）」の節だけは、C# で書く UI テストプロジェクトにも適用する。それ以外の節（アーキテクチャ、ログ、コメント、文字列・API 取り扱い、同期 / 非同期）は VC++ 実装と Bridge C API のみが対象で、UI テストプロジェクトには適用しない。
+
 ---
 
 ## アーキテクチャ（VC++ 版 Clean Architecture）
@@ -211,6 +213,98 @@ WinRT の非同期 API は ABI 上は必ず非同期だが、**公開 API まで
 - ボタンハンドラ等の UI スレッドで待機処理を書かない（メッセージポンプが止まる）
 - 結果を UI へ反映する場合は `PostMessage` で UI スレッドへ戻す（Android の `scope.launch(Dispatchers.IO)` + `withContext(Main)`、iOS の `Task { await ... }` + `DispatchQueue.main.async` に相当）
 - Bridge が同期 API なら、サンプル側でワーカースレッドに逃がす
+
+---
+
+## UI 自動テスト（サンプルアプリ）
+
+`windows/WindowsLibraryExample` の E2E 確認に使う。`WindowsLibraryTest`（Bridge を直接リンクする単体テスト）とは目的も構成も別物として扱う。
+
+### フレームワーク
+
+**FlaUI + C# MSTest を使う。**
+
+| 項目 | 方針 |
+|---|---|
+| ライブラリ | `FlaUI.UIA3`（`FlaUI.Core` は推移的依存のため明示不要） |
+| テスト基盤 | MSTest のテスト SDK / アダプター |
+| ターゲット | `net10.0-windows`（.NET 9 は 2026-11-10 サポート終了、.NET 10 は 2028-11 まで LTS） |
+| 実行 | `dotnet test` |
+| 常駐サーバ | 不要 |
+
+**選定理由**: UI Automation は COM API で言語非依存だが、C++ にはテスト用途で定着した高水準ラッパーがほぼない。C# 側はエコシステムが厚く、生の UIA（`Interop.UIAutomationClient`）から FlaUI まで抽象度を後から選び直せる。FlaUI と生の UIA の差は**能力ではなく、要素検索・待機・再試行・Control Pattern 操作・COM 解放・MSIX 起動といった配管を自作するかどうか**である。
+
+**採用しない選択肢**
+
+| 選択肢 | 判断 |
+|---|---|
+| Appium + Windows Driver | Microsoft が WinUI 3 の UI テスト手段として現在案内している公式経路だが、実処理は長期間更新されていない WinAppDriver に依存し、Appium 側も Microsoft 提供部分が 2022 年以降未保守と警告している。将来 WebDriver 互換性や共通 CI 基盤が必要になった時点で再評価する |
+| WinAppDriver 直接 | 上と同じ本体を直接使うだけで、新規採用の合理性がほぼない |
+| 生の UI Automation API を直接利用（C++ / C# いずれも可） | 「C# 禁止」が明確な場合のみ。C++ を選ぶ場合は配管の自作が事実上必須になる |
+
+### C# の適用範囲
+
+**C# は UI テストプロジェクト内に限定する。製品コードへ持ち込まない。**
+
+本ファイルの他の節（アーキテクチャ、ログ、コメント、文字列・API 取り扱い、同期 / 非同期）は VC++ 実装と Bridge C API に対する規約であり、UI テストプロジェクトには適用しない。
+
+### プロジェクト配置
+
+- UI テストプロジェクトは**独立した `.sln` を持つか、`.sln` を持たず `dotnet test` で実行する**。既存の `.sln` へ追加しない
+  - 理由: C# プロジェクトは既定が `Any CPU` のため、既存 `.sln` の `x64` / `ARM64` / `x86` 構成マトリクスへのマッピングを手で維持することになる。UI テストは x64 のみで足りる
+- 既存プロジェクトへの `ProjectReference` を持たない
+- `.gitignore` には**新規プロジェクトのパスに限定して**追記する。既存リポジトリへの影響を最小化するため、グローバルな `bin/` / `obj/` は使わない
+
+```gitignore
+/windows/<UITestProject>/bin/
+/windows/<UITestProject>/obj/
+```
+
+### 依存の性質
+
+**製品プロジェクトへのビルド依存は持たず、配置済みアプリに対する実行時依存だけを持つ。**
+
+| 種別 | 依存先 |
+|---|---|
+| ビルド時 | MSTest のテスト SDK / アダプター、`FlaUI.UIA3` |
+| 実行時 | 配置済み MSIX、AUMID、対話セッション、起動中のアプリ |
+| 手順上 | 対象アプリのビルドと配置の完了 |
+
+`ProjectReference` を持たないため既存 C++ プロジェクトのビルドグラフは変わらないが、「依存が無い」わけではない。
+
+**通常の MSBuild ビルドだけでは MSIX の登録までは保証されない。** `dotnet test` の前段として配置コマンドまたは Visual Studio の Deploy が必要になる。テスト起動時にも AUMID の存在を確認し、未配置なら原因が分かるエラーで停止させる。
+
+### テストコードの構造
+
+- テストコードは**独自 Adapter を介して FlaUI へアクセスする**。将来 生の UIA へ変更する場合も、テストシナリオとページオブジェクトへの影響を抑える
+- 操作対象は表示文字列ではなく **`AutomationProperties.AutomationId`** で特定する
+- サンプルアプリ側には、**操作要素だけでなく検証対象の表示要素にも** `AutomationId` を付与する。結果表示に `AutomationId` が無いと、検証が表示文字列や `x:Name` への依存になる
+- `x:Name` だけでは明示的な `AutomationId` にならない点に注意する
+
+### 実行条件
+
+- 固定時間の `Sleep` ではなく、要素・結果表示を**タイムアウト付きで待つ**
+- UI テストは**直列実行**する（クリップボードのようなマシン共有リソースを奪い合うため）。運用ルールとして書くだけでなく、**テスト基盤側でも強制する**
+
+```csharp
+// Properties/AssemblyInfo.cs
+[assembly: DoNotParallelize]
+```
+
+  各テストクラスへ `[DoNotParallelize]` を付ける形でもよい。
+
+- 単体テストと UI テストは**別系統で実行する**
+- **ロック画面や非対話セッションでは実行しない**（UI Automation は対話的デスクトップセッションを要求する）
+- 元に戻せない操作（クリップボード履歴の消去など）を伴うテストは、通常の自動テストから分離する
+- MSIX パッケージ済みアプリが対象の場合、**起動方法（AUMID = `<PackageFamilyName>!<ApplicationId>`）を最初に小規模検証**してから本実装に入る
+
+### 着手前の前提確認
+
+- **.NET 10 SDK を導入してからプロジェクトを作成する。** 未導入のまま実装を開始しない
+
+```
+dotnet --list-sdks
+```
 
 ---
 
