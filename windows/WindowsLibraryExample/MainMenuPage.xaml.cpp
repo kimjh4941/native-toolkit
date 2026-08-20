@@ -43,4 +43,10 @@ namespace winrt::WindowsLibraryExample::implementation
         DLog(TAG, L"[NotificationCard_Click]");
         NavigateTo(L"WindowsLibraryExample.NotificationPage");
     }
+
+    void MainMenuPage::ClipboardCard_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        DLog(TAG, L"[ClipboardCard_Click]");
+        NavigateTo(L"WindowsLibraryExample.ClipboardPage");
+    }
 }

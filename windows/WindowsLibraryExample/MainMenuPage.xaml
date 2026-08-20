@@ -37,6 +37,13 @@
                     <TextBlock Text="Test Windows App SDK toast notification features" Opacity="0.7"/>
                 </StackPanel>
             </Button>
+
+            <Button x:Name="ClipboardCard" HorizontalAlignment="Stretch" Padding="20" Click="ClipboardCard_Click">
+                <StackPanel Orientation="Vertical" Spacing="4" HorizontalAlignment="Left">
+                    <TextBlock Text="Clipboard Example" FontSize="20" FontWeight="SemiBold"/>
+                    <TextBlock Text="Test Win32 clipboard and WinRT history features" Opacity="0.7"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
     </ScrollViewer>
 </Page>
