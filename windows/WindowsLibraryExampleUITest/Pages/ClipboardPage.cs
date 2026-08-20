@@ -14,6 +14,7 @@ namespace WindowsLibraryExampleUITest.Pages;
 public sealed class ClipboardPage
 {
     private const string ResultId = "ResultTextBlock";
+    private const string LogId = "LogTextBlock";
     private static readonly TimeSpan ResultTimeout = TimeSpan.FromSeconds(15);
 
     private readonly IUiSession _session;
@@ -26,7 +27,7 @@ public sealed class ClipboardPage
     public ClipboardPage Initialize()
     {
         Press("InitializeManager");
-        WaitForResult("InitializeManager", expectedErrorCode: 0);
+        WaitFor(ResultMarker("InitializeManager", 0));
         return this;
     }
 
@@ -34,7 +35,7 @@ public sealed class ClipboardPage
     public ClipboardPage Uninitialize()
     {
         Press("Uninitialize");
-        WaitForResult("Uninitialize", expectedErrorCode: 0);
+        WaitFor(ResultMarker("Uninitialize", 0));
         return this;
     }
 
@@ -45,14 +46,32 @@ public sealed class ClipboardPage
     /// and error code. Returns the full result text so a failure can show it.
     /// </summary>
     public string PressAndExpect(string automationId, string method, int expectedErrorCode)
+        => PressAndWaitFor(automationId, ResultMarker(method, expectedErrorCode));
+
+    /// <summary>
+    /// Presses a button and waits until the result line contains the fragment.
+    /// Used where the outcome is not reported in the "errorCode=N" shape, such as
+    /// the guards that refuse to call the bridge at all.
+    /// </summary>
+    public string PressAndWaitFor(string automationId, string fragment)
     {
         Press(automationId);
-        return WaitForResult(method, expectedErrorCode);
+        return WaitFor(fragment);
     }
 
-    private string WaitForResult(string method, int expectedErrorCode)
-    {
-        var marker = $"[{method}] errorCode={expectedErrorCode}";
-        return _session.WaitForText(ResultId, text => text.Contains(marker, StringComparison.Ordinal), ResultTimeout);
-    }
+    public string WaitFor(string fragment)
+        => _session.WaitForText(ResultId, text => text.Contains(fragment, StringComparison.Ordinal), ResultTimeout);
+
+    /// <summary>
+    /// Waits for a fragment in the log area.
+    /// </summary>
+    /// <remarks>
+    /// The result line only holds the latest outcome and is overwritten as soon as
+    /// a pending callback completes, so anything that has to survive a sequence of
+    /// events must be read from the log, which is append-only.
+    /// </remarks>
+    public string WaitForLog(string fragment)
+        => _session.WaitForText(LogId, text => text.Contains(fragment, StringComparison.Ordinal), ResultTimeout);
+
+    public static string ResultMarker(string method, int errorCode) => $"[{method}] errorCode={errorCode}";
 }
