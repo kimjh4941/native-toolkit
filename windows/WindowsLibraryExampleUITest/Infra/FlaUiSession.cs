@@ -13,6 +13,7 @@ namespace WindowsLibraryExampleUITest.Infra;
 public sealed class FlaUiSession : IUiSession
 {
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan ExitTimeout = TimeSpan.FromSeconds(10);
 
     private readonly Application _application;
     private readonly UIA3Automation _automation;
@@ -99,19 +100,59 @@ public sealed class FlaUiSession : IUiSession
         return last;
     }
 
+    /// <summary>Closes the app and waits for the process to actually exit.</summary>
+    /// <remarks>
+    /// For a packaged app Close() asks the main window to close and returns
+    /// without waiting, so the next Launch could reactivate the still-running
+    /// instance and inherit its state. Tests rely on a fresh process each time.
+    /// </remarks>
     public void Dispose()
     {
         try
         {
             _application.Close();
+            WaitForExit();
         }
-        catch
+        catch (Exception ex)
         {
-            // The app may already be gone; closing is best effort.
+            // Surfaced rather than swallowed: a lingering instance makes the next
+            // test start from unexpected state.
+            Console.WriteLine($"UI test cleanup: closing the app failed. {ex.Message}");
+        }
+        finally
+        {
+            _automation.Dispose();
+            _application.Dispose();
+        }
+    }
+
+    private void WaitForExit()
+    {
+        var deadline = DateTime.UtcNow + ExitTimeout;
+        while (!_application.HasExited && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(100);
         }
 
-        _automation.Dispose();
-        _application.Dispose();
+        if (_application.HasExited)
+        {
+            return;
+        }
+
+        _application.Kill();
+
+        deadline = DateTime.UtcNow + ExitTimeout;
+        while (!_application.HasExited && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(100);
+        }
+
+        if (!_application.HasExited)
+        {
+            throw new InvalidOperationException(
+                "The sample app did not exit after Kill(). A lingering instance would " +
+                "make the next test start from unexpected state.");
+        }
     }
 
     private sealed class FlaUiElement : IUiElement

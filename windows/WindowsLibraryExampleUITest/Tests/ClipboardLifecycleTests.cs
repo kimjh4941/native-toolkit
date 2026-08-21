@@ -30,7 +30,7 @@ public sealed class ClipboardLifecycleTests
     [TestInitialize]
     public void Setup()
     {
-        _session = FlaUiSession.Launch();
+        _session = UiSessionFactory.Launch();
         _page = new MainMenuPage(_session).OpenClipboardSample();
     }
 
@@ -74,6 +74,11 @@ public sealed class ClipboardLifecycleTests
     public void Initialize_CalledTwice_SucceedsBothTimes()
     {
         Page.Initialize();
+
+        // Move the result line off the initialize marker first. Without this the
+        // wait below would be satisfied by the first call's result and would pass
+        // even if the second press never reached the bridge.
+        Page.PressAndExpect("CopyPlainText", "CopyPlainText", 0);
 
         // The bridge is called again on purpose: initialization is idempotent from
         // the owner thread and must not be short-circuited by the sample.

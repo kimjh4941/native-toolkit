@@ -21,7 +21,7 @@ public sealed class SmokeTests
     [TestMethod]
     public void App_LaunchesAndShowsTheMainMenu()
     {
-        using var session = FlaUiSession.Launch();
+        using var session = UiSessionFactory.Launch();
 
         // The Clipboard card is the entry point for every clipboard test.
         var found = session.TryWaitForElement("ClipboardCard", TimeSpan.FromSeconds(10), out var card);

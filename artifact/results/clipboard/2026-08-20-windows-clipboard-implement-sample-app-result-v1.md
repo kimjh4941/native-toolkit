@@ -18,7 +18,7 @@
 |---|---|
 | ビルド確認済み | ○ Debug x64 リビルド成功、エラー 0、新規ファイル由来の警告 0 |
 | 実機動作確認済み | **× 未実施**（理由は第 6 章） |
-| 自動UIテスト | ○ **Phase 1 / 2 実施済み**（28 passed）。自動化可能と判断した確認項目はすべてカバーした。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、実施結果は §5.8 |
+| 自動UIテスト | ○ **Phase 1 / 2 実施済み、レビュー v1 対応済み**（33 passed、連続実行で再現）。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、実施結果は §5.8、レビュー対応は §5.9 |
 
 ビルド成功は機能動作の確認ではない。v5 §8 の手動確認 54 項目はいずれも未実施である。
 
@@ -26,32 +26,65 @@
 
 ## 1. 変更ファイル
 
-### 1.1 新規作成
+本章はレビュー時点（2026-08-21）の最終状態。サンプル実装本体に加え、別タスクとして着手した UI 自動テスト（§5.8）の追加分も含む。
+
+### 1.1 サンプル実装（新規）
 
 - `windows/WindowsLibraryExample/ClipboardPage.xaml`
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.h`
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp`
 - `windows/WindowsLibraryExample/ClipboardPage.idl`
+
+### 1.2 サンプル実装（既存変更）
+
+- `windows/WindowsLibraryExample/MainMenuPage.xaml`（Clipboard メニューカード、後に `AutomationId` 3 要素）
+- `windows/WindowsLibraryExample/MainMenuPage.xaml.h`（`ClipboardCard_Click` 宣言）
+- `windows/WindowsLibraryExample/MainMenuPage.xaml.cpp`（`ClipboardCard_Click` 実装）
+- `windows/WindowsLibraryExample/WindowsLibraryExample.vcxproj`（`ClInclude` / `Page` / `ClCompile` / `Midl` へ 4 エントリ）
+
+### 1.3 UI 自動テスト対応でサンプル側に追加した変更
+
+- `windows/WindowsLibraryExample/ClipboardPage.xaml`（`AutomationProperties.AutomationId` 52 要素）
+- `windows/WindowsLibraryExample/ClipboardPage.xaml.h`（`CompleteWorkerOperation` の可視性）
+- `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp`（コールバック配送のページ世代分離）
+
+### 1.4 UI 自動テストプロジェクト（新規 12 ファイル）
+
+```
+windows/WindowsLibraryExampleUITest/
+├─ WindowsLibraryExampleUITest.csproj
+├─ Properties/AssemblyInfo.cs
+├─ Infra/  AppIdentity.cs / IUiSession.cs / UiElement.cs / FlaUiSession.cs / UiSessionFactory.cs
+├─ Pages/  MainMenuPage.cs / ClipboardPage.cs
+└─ Tests/  SmokeTests.cs / ClipboardErrorCaseTests.cs / ClipboardLifecycleTests.cs / ClipboardBusyAndNavigationTests.cs
+```
+
+### 1.5 リポジトリ設定・ルール
+
+- `.gitignore`（UI テストプロジェクトの `bin/` `obj/` をパス限定で追加）
+- `agent-rules/coding-rules/common.md`（UI 自動テストの横断方針）
+- `agent-rules/coding-rules/windows.md`（Windows 固有の UI 自動テスト方針、MSIX 配置制約、観測方法）
+
+### 1.6 成果物
+
 - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
 
-### 1.2 既存変更
-
-- `windows/WindowsLibraryExample/MainMenuPage.xaml`（Clipboard メニューカード追加、7 行）
-- `windows/WindowsLibraryExample/MainMenuPage.xaml.h`（`ClipboardCard_Click` 宣言、1 行）
-- `windows/WindowsLibraryExample/MainMenuPage.xaml.cpp`（`ClipboardCard_Click` 実装、6 行）
-- `windows/WindowsLibraryExample/WindowsLibraryExample.vcxproj`（`ClInclude` / `Page` / `ClCompile` / `Midl` へ 4 エントリ、11 行）
-
-### 1.3 非変更（計画どおり手を付けていない）
+### 1.7 非変更
 
 - `windows/WindowsLibrary` 配下すべて
 - `windows/UnityWindowsPlugin`
 - `windows/WindowsLibraryExample/App.xaml` / `App.xaml.cpp` / `MainWindow.xaml*`
 - `windows/WindowsLibraryExample/Package.appxmanifest`
 - `windows/WindowsLibraryExample/WindowsLibraryExample.vcxproj.filters`
-- `windows/WindowsLibraryExample/WindowsLibraryExample.sln`
-- `windows/WindowsLibraryExample/pch.h`（`ThreadPool` は `ClipboardPage.xaml.cpp` 側で個別 include）
+- `windows/WindowsLibraryExample/WindowsLibraryExample.sln`（および他 2 つの既存 `.sln`）
+- `windows/WindowsLibraryExample/pch.h`
 
-`git diff --stat` は既存 4 ファイル 25 行追加のみ。v5 §11 の「新規 4 ファイルと既存 4 ファイルだけを変更する」を満たしている。
+### 1.8 v5 完了条件との差
+
+v5 §11 は「新規 4 ファイルと既存 4 ファイルだけを変更する」と定めており、**サンプル実装単体ではこれを満たしていた**（当時 `git diff --stat` は既存 4 ファイル 25 行追加のみ）。
+
+その後の UI 自動テスト対応（§5.4 以降）で、計画の想定を超える変更が入っている。いずれもユーザー承認のうえで別タスクとして実施したもので、内訳は 1.3 / 1.4 / 1.5 のとおり。既存 `.sln` と C++ プロジェクトのビルドグラフは変更していない。
+
 
 ---
 
@@ -203,7 +236,7 @@ v5 §8 の手動確認 54 項目のうち、アプリ内で完結し UI 自動�
 
 | 節 | 行数 | 自動化可否 | 備考 |
 |---|---|---|---|
-| 8.4 Lifecycle / Thread / Busy | 16 | 可能 | 状態遷移・busy・drain はアプリ内で完結 |
+| 8.4 Lifecycle / Thread / Busy | 17 | 可能 | 状態遷移・busy・drain はアプリ内で完結 |
 | 8.5 Error cases | 10 | 可能 | 期待 errorCode が確定しており照合可能 |
 | 8.1 Interoperability | 10 | 不可 | メモ帳 / Word / エクスプローラー / ペイントの内部UI検証 |
 | 8.2 Monitoring / Deferred | 8 | 7 行が不可 | 外部アプリでの貼り付けが provider 発火の前提 |
@@ -299,7 +332,7 @@ C を選ぶ理由は「UIA が C# 向けだから」ではない。UIA は COM A
 | Phase | 対象 | 内容 |
 |---|---|---|
 | 1 | 8.5 Error cases 10 確認項目 | AutomationId 付与、Adapter 層、MSIX 起動検証を含む。価値とコストの比が最も良い |
-| 2 | 8.4 Lifecycle / Thread / Busy 16 確認項目 | 順序依存シナリオ。Phase 1 の基盤を再利用 |
+| 2 | 8.4 Lifecycle / Thread / Busy 17 確認項目 | 順序依存シナリオ。Phase 1 の基盤を再利用 |
 | 3 | 8.1 / 8.2 / 8.3 | 自動化せず手動維持 |
 
 ### 5.8 実施結果
@@ -345,13 +378,63 @@ C を選ぶ理由は「UIA が C# 向けだから」ではない。UIA は COM A
 
 これらは `agent-rules/coding-rules/windows.md` の「テストコードの構造」へ反映済み。
 
-#### 5.8.3 残作業
+### 5.9 レビュー v1 対応
+
+`artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v1.md`（総合評価: 要修正（重大））への対応。
+
+#### 5.9.1 指摘と対応
+
+| 指摘 | 検証結果 | 対応 |
+|---|---|---|
+| H1 UIテストが再実行で失敗 | **再現（3/3 失敗）** | テスト側の欠陥。予約はプロセス寿命で生きているため、再入場後も provider のレンダリングログが載るのが正しい動作。「ログが空」ではなく「離脱前のトークン `[Reserve] OK` が残っていない」を検証する形へ変更 |
+| H1 sink の世代分離 | 妥当 | `g_pageGeneration` を導入。`OnNavigatedFrom` で加算し、離脱前に queue された配送を破棄する |
+| M1 二重 Init の偽陽性 | 妥当 | 1 回目の結果が結果行に残ったまま同じ marker を待っていた。2 回目の前に `CopyPlainText` を挟んで結果行を別 marker へ移す |
+| M2 自動化範囲の集計誤り | **v5 §8.4 は 17 行、result は 16 と記載** | 17 へ訂正。未検証観点にテストを追加（5.9.2） |
+| M3 Store app 終了を待たない | 妥当 | `Close()` 後に `HasExited` を上限付きで待機し、残存時は `Kill()`。失敗は握り潰さず記録する |
+| M4 AUMID 照会の timeout が機能しない | 妥当 | 非同期読み取り + `WaitForExit(timeout)` + exit code / stderr 検査。timeout 時はプロセスを終了して明示的な配置エラーにする。PowerShell 側も `Select-Object -First 1` で単一値にする |
+| M5 変更ファイル一覧の不一致 | 妥当 | §1 を現状へ全面書き換え（UI テストプロジェクト 12 ファイルとルール変更を含む） |
+| L1 `CompleteWorkerOperation` が public | 妥当 | private へ戻した。member function 内の lambda からアクセスできるため公開の必然性がない |
+| L2 テストが FlaUI を直接参照 | 妥当 | `UiSessionFactory.Launch()` を追加し、テストから `FlaUiSession` 参照を排除 |
+
+#### 5.9.2 追加したテスト
+
+M2 が挙げた未検証観点に対応する 5 件を追加した。
+
+| テスト | 観点 |
+|---|---|
+| `Uninitialize_RunsTempCleanupAndLogsTheOutcome` | 8.4-8 cleanup 完了ログ |
+| `Reinitialize_AfterFullTeardown_WorksAgain` | 8.4-9 再 Initialize -> Copy |
+| `SelfCopy_DoesNotRaiseAChangeNotification` | 8.2-2 self copy の通知抑止 |
+| `ReservedFormats_AreEnumeratedWhileStillDeferred` | 8.2-6 Reserve -> enumerate |
+| `ReservedFormat_IsReportedAsAvailable` | 8.2-6 の補強 |
+
+8.4-13（request 発行後にページ離脱）は、受付ログを待って完了が in-flight であることを確認したうえで、再入場後に前ページの記録が復元されないことを検証する形へ強化した。ただし**配送の瞬間はアプリ外から観測できない**ため、どちらのタイミングでも成立する契約を検証している。この限界はテストのコメントにも記載した。
+
+#### 5.9.3 対応後の結果
+
+| 項目 | 結果 |
+|---|---|
+| テスト件数 | 33（SmokeTests 2 + Error cases 10 + Lifecycle 8 + Busy / 再入場 / shutdown 10 + Monitoring 3） |
+| 結果 | **33 passed / 0 failed**。連続 3 回の実行で再現 |
+| 実行時間 | 約 1 分 30 秒〜1 分 50 秒 |
+
+実行時間が Phase 2 完了時点の 54 秒から伸びたのは、M3 のプロセス終了待ちを追加したため（1 テストあたり約 1.5 秒）。テスト間の分離を優先した結果である。
+
+#### 5.9.4 アプリ側の変更と再配置
+
+L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したため、Visual Studio から Release / x64 で再配置している。インストール場所は従来と同じで、COM ExeServer のパスは変わっていない。
+
+### 5.10 残作業
 
 | Phase | 状態 |
 |---|---|
-| 1 | 完了 |
-| 2 | 完了 |
-| 3（8.1 / 8.2 / 8.3 の 28 手動確認項目） | 自動化せず手動維持 |
+| 1（8.5 Error cases） | 完了 |
+| 2（8.4 Lifecycle / Thread / Busy） | 完了 |
+| レビュー v1 対応 | 完了 |
+| 8.2 のアプリ内完結分 | 完了（self copy 抑止、Reserve -> enumerate） |
+| 8.1 / 8.3 と 8.2 の外部アプリ依存分 | 自動化せず手動維持 |
+
+自動化の対象外として残るのは、他アプリ内部の UI 検証、Win+V のシェル UI、Windows 設定、別デバイス連携を伴う観点。
 
 ---
 

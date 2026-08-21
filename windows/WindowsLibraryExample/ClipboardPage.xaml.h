@@ -126,12 +126,11 @@ namespace winrt::WindowsLibraryExample::implementation
             NoStateGuard,
         };
 
-        // Result display / logging for a finished worker operation. Public on the
-        // implementation class only; never projected through the IDL.
-    public:
+        // Result display / logging for a finished worker operation. Private: the
+        // completion lambda is built inside a member function and therefore has
+        // access, so there is no reason to widen it.
         void CompleteWorkerOperation(std::wstring const& method, WorkerResult const& result);
 
-    private:
         bool CheckPrecondition(WorkerPrecondition value);
         // True when no worker operation holds the clipboard. CanDestroy passes
         // allowUnderBusy so the lifecycle race can still be observed.

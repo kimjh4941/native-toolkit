@@ -26,7 +26,7 @@ public sealed class ClipboardErrorCaseTests
     [TestInitialize]
     public void Setup()
     {
-        _session = FlaUiSession.Launch();
+        _session = UiSessionFactory.Launch();
         _page = new MainMenuPage(_session).OpenClipboardSample().Initialize();
     }
 

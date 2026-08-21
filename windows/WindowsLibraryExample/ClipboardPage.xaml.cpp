@@ -64,6 +64,12 @@ namespace
     std::function<void(std::wstring)> g_logSink;
     std::function<void(uint32_t, DWORD, winrt::hstring)> g_requestSink;
 
+    // Bumped every time the page is left. Work queued for a page that has since
+    // been navigated away from is dropped instead of being delivered to whichever
+    // page happens to be showing when it runs. Without this a callback belonging
+    // to the previous page would surface in the next one.
+    std::atomic<uint64_t> g_pageGeneration{ 0 };
+
     // Deferred payloads are finalized at reservation time. The toolkit requires
     // the fill size to match the queried size exactly, so the provider must not
     // rebuild the data on the second phase.
@@ -80,8 +86,13 @@ namespace
         {
             return;
         }
-        dispatcher.TryEnqueue([line = std::move(line)]()
+        const uint64_t generation = g_pageGeneration.load();
+        dispatcher.TryEnqueue([line = std::move(line), generation]()
         {
+            if (generation != g_pageGeneration.load())
+            {
+                return;
+            }
             if (g_logSink)
             {
                 g_logSink(line);
@@ -126,8 +137,13 @@ namespace
         {
             return;
         }
-        dispatcher.TryEnqueue([requestId, error, payload]()
+        const uint64_t generation = g_pageGeneration.load();
+        dispatcher.TryEnqueue([requestId, error, payload, generation]()
         {
+            if (generation != g_pageGeneration.load())
+            {
+                return;
+            }
             if (g_requestSink)
             {
                 g_requestSink(requestId, error, payload);
@@ -528,6 +544,8 @@ namespace winrt::WindowsLibraryExample::implementation
     void ClipboardPage::OnNavigatedFrom(winrt::Microsoft::UI::Xaml::Navigation::NavigationEventArgs const&)
     {
         DLog(TAG, L"[OnNavigatedFrom] clear clipboard handlers");
+        // Invalidate anything already queued for this page instance.
+        g_pageGeneration.fetch_add(1);
         // Callbacks delivered while the page is away are dropped and are not
         // replayed on re-entry. The manager itself keeps running.
         g_logSink = nullptr;

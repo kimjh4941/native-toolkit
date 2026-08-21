@@ -16,7 +16,7 @@ public sealed class ClipboardBusyAndNavigationTests
     private const string StateReady = "manager state: Ready";
     private const string StateShuttingDown = "manager state: Shutting down";
     private const string StateUninitialized = "manager state: Uninitialized";
-    private const string EmptyLogPlaceholder = "Log will be displayed here";
+    private const string ReserveToken = "[Reserve] OK";
 
     private IUiSession? _session;
     private ClipboardPage? _page;
@@ -24,7 +24,7 @@ public sealed class ClipboardBusyAndNavigationTests
     [TestInitialize]
     public void Setup()
     {
-        _session = FlaUiSession.Launch();
+        _session = UiSessionFactory.Launch();
         _page = new MainMenuPage(_session).OpenClipboardSample();
     }
 
@@ -104,13 +104,19 @@ public sealed class ClipboardBusyAndNavigationTests
         // guaranteed to hold content before leaving the page. Not every operation
         // logs: a plain copy only updates the result line.
         Page.PressAndExpect("ReserveDeferredFormats", "ReserveDeferredFormats", 0);
-        Page.WaitForLog("[Reserve] OK");
+        Page.WaitForLog(ReserveToken);
 
         _page = Page.GoBack().OpenClipboardSample();
 
         // The manager outlives the page, but the log is a page member.
         StringAssert.Contains(Page.ResultText, StateReady);
-        StringAssert.Contains(Page.LogText, EmptyLogPlaceholder);
+
+        // Assert on the token written before leaving, not on the log being empty.
+        // The reservation stays active for the lifetime of the process, so render
+        // requests keep arriving and are legitimately logged by the new page.
+        Assert.IsFalse(
+            Page.LogText.Contains(ReserveToken, StringComparison.Ordinal),
+            "The previous page log survived re-entry.");
 
         // Still usable without initializing again.
         Page.PressAndExpect("CopyPlainText", "CopyPlainText", 0);
@@ -121,11 +127,23 @@ public sealed class ClipboardBusyAndNavigationTests
     {
         Page.Initialize().Press("GetClipboardHistory");
 
+        // Confirm the request was accepted before leaving, so there really is a
+        // completion in flight.
+        Page.WaitForLog("[Request] accepted id=");
+
         _page = Page.GoBack().OpenClipboardSample();
 
         // The captured history id belonged to the previous page instance and is
         // deliberately not restored, so the follow-up action has to be re-run.
         Page.PressAndWaitFor("RestoreHistoryItem", "No captured id. Press GetClipboardHistory first.");
+
+        // The previous page's request bookkeeping is gone too. Note that the exact
+        // moment the completion is delivered is not observable from outside the
+        // app, so this asserts the contract that survives either timing: nothing
+        // from the previous page instance is restored.
+        Assert.IsFalse(
+            Page.LogText.Contains("[Request] accepted id=", StringComparison.Ordinal),
+            "The previous page request log survived re-entry.");
     }
 
     // ---- Completing a pending shutdown ---------------------------------
@@ -150,6 +168,38 @@ public sealed class ClipboardBusyAndNavigationTests
 
         StringAssert.Contains(result, "temp cleanup pending");
         StringAssert.Contains(result, StateUninitialized);
+    }
+
+    [TestMethod]
+    public void Uninitialize_RunsTempCleanupAndLogsTheOutcome()
+    {
+        Page.Initialize();
+
+        // CopyFiles writes the temp files that the cleanup then removes.
+        Page.PressAndExpect("CopyFiles", "CopyFiles", 0);
+        Page.Uninitialize();
+
+        // Cleanup runs as a separate worker, so its outcome reaches the log
+        // rather than replacing the uninitialize result.
+        var log = Page.WaitForLog("[Cleanup] temp cleanup");
+        StringAssert.Contains(log, "[Cleanup] temp cleanup succeeded");
+    }
+
+    [TestMethod]
+    public void Reinitialize_AfterFullTeardown_WorksAgain()
+    {
+        Page.Initialize();
+        Page.PressAndExpect("CopyFiles", "CopyFiles", 0);
+        Page.Uninitialize();
+
+        // Wait for the cleanup worker: while it holds the busy flag the UI-direct
+        // initialize would be refused.
+        Page.WaitForLog("[Cleanup] temp cleanup");
+
+        Page.PressAndExpect("InitializeManager", "InitializeManager", 0);
+        var result = Page.PressAndExpect("CopyPlainText", "CopyPlainText", 0);
+
+        StringAssert.Contains(result, StateReady);
     }
 
     private void EnterShuttingDown()
