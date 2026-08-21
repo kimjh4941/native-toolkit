@@ -18,7 +18,7 @@
 |---|---|
 | ビルド確認済み | ○ Debug x64 リビルド成功、エラー 0、新規ファイル由来の警告 0 |
 | 実機動作確認済み | **× 未実施**（理由は第 6 章） |
-| 自動UIテスト | ○ **Phase 1 / 2 実施済み、レビュー v1 対応済み**（33 passed、連続実行で再現）。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、実施結果は §5.8、レビュー対応は §5.9 |
+| 自動UIテスト | ○ **Phase 1 / 2 実施済み、レビュー v1 / v2 対応済み**（33 passed、再配置後の連続実行で再現、残存プロセスなし）。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、実施結果は §5.8、レビュー対応は §5.9 / §5.11 |
 
 ビルド成功は機能動作の確認ではない。v5 §8 の手動確認 54 項目はいずれも未実施である。
 
@@ -48,15 +48,28 @@
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.h`（`CompleteWorkerOperation` の可視性）
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp`（コールバック配送のページ世代分離）
 
-### 1.4 UI 自動テストプロジェクト（新規 12 ファイル）
+### 1.4 UI 自動テストプロジェクト（新規 14 ファイル）
 
 ```
 windows/WindowsLibraryExampleUITest/
 ├─ WindowsLibraryExampleUITest.csproj
-├─ Properties/AssemblyInfo.cs
-├─ Infra/  AppIdentity.cs / IUiSession.cs / UiElement.cs / FlaUiSession.cs / UiSessionFactory.cs
-├─ Pages/  MainMenuPage.cs / ClipboardPage.cs
-└─ Tests/  SmokeTests.cs / ClipboardErrorCaseTests.cs / ClipboardLifecycleTests.cs / ClipboardBusyAndNavigationTests.cs
+├─ Properties/
+│   └─ AssemblyInfo.cs
+├─ Infra/
+│   ├─ AppIdentity.cs
+│   ├─ IUiSession.cs
+│   ├─ UiElement.cs
+│   ├─ FlaUiSession.cs
+│   └─ UiSessionFactory.cs
+├─ Pages/
+│   ├─ MainMenuPage.cs
+│   └─ ClipboardPage.cs
+└─ Tests/
+    ├─ SmokeTests.cs
+    ├─ ClipboardErrorCaseTests.cs
+    ├─ ClipboardLifecycleTests.cs
+    ├─ ClipboardBusyAndNavigationTests.cs
+    └─ ClipboardMonitoringTests.cs
 ```
 
 ### 1.5 リポジトリ設定・ルール
@@ -424,13 +437,55 @@ M2 が挙げた未検証観点に対応する 5 件を追加した。
 
 L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したため、Visual Studio から Release / x64 で再配置している。インストール場所は従来と同じで、COM ExeServer のパスは変わっていない。
 
-### 5.10 残作業
+### 5.11 レビュー v2 対応
+
+`artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v2.md`（総合評価: 要修正（重大））への対応。
+
+#### 5.11.1 指摘と対応
+
+| 指摘 | 検証結果 | 対応 |
+|---|---|---|
+| H1 世代分離が離脱後の callback を除外できない | **妥当。§5.9 の対応は不完全だった** | ページ instance ごとの一意 id へ変更し、request の所有ページを受付時に記録する方式にした（5.11.2） |
+| M1 終了不能をログ出力だけで処理 | 妥当 | `WaitForExit()` の例外を catch せず伝播させ、テスト失敗にする。`Close()` の失敗のみ best effort。main window 取得に失敗した経路でも `Kill()` するようにした |
+| M2 負条件が瞬時検査 | 妥当 | `IUiSession.StaysFalse` / `ClipboardPage.LogStaysWithout` を追加し、3 秒間ポーリングして禁止文字列が一度でも現れたら失敗させる。該当 3 箇所を置換 |
+| M3 UI テストファイル数の不一致 | **妥当。12 と記載、実際は 14** | 14 へ訂正し、Tests 5 ファイルを含む全ファイルを列挙（§1.4） |
+
+#### 5.11.2 H1 の修正内容
+
+§5.9 で導入した `g_pageGeneration` は `OnNavigatedFrom` でのみ加算していた。このため離脱後に到着した callback は**加算後の値**を取得し、再入場した新ページ（generation は変わらない）と一致して配送されていた。到着タイミング次第で契約が破れる実装だった。
+
+タイミングに依存しない形へ変更した。
+
+| 対象 | 配送先の決め方 |
+|---|---|
+| request completion | **発行したページ**。受付時に `g_requestOwners[requestId] = m_pageId` を記録し、完了時に所有ページが現役の場合だけ配送する |
+| ライブイベント（変更監視・履歴イベント・provider ログ） | **発生時に表示中のページ**。古い完了ではなく現在進行のイベントなので、この扱いが正しい |
+
+`m_pageId` は `OnNavigatedTo` のたびに採番するため、Back から即座に再入場しても前の instance とは別の id になる。
+
+#### 5.11.3 対応後の結果
+
+| 項目 | 結果 |
+|---|---|
+| C++ Release / x64 ビルド | 成功、エラー 0 |
+| テスト | **33 passed / 0 failed**。再配置後に連続 2 回で再現 |
+| 実行時間 | 約 1 分 18 秒 |
+| 終了後の残存プロセス | なし |
+
+#### 5.11.4 実施しなかった提案
+
+レビューは「completion を遅延・制御できるテスト境界を設け、受付 -> Back -> 再入場 -> 旧 completion の順序を決定的に作る」ことを提案している。これはサンプルアプリにテスト専用の遅延フックを追加することになるため、実施していない。
+
+現状は 5.11.2 の所有ページ方式により**構造として競合が発生しない**が、そのことをテストで証明できてはいない。負条件テストは 3 秒の観測期間で「旧ページのログが届かない」ことを確認するに留まる。テスト専用フックを追加するかは別途判断が必要。
+
+### 5.12 残作業
 
 | Phase | 状態 |
 |---|---|
 | 1（8.5 Error cases） | 完了 |
 | 2（8.4 Lifecycle / Thread / Busy） | 完了 |
 | レビュー v1 対応 | 完了 |
+| レビュー v2 対応 | 完了 |
 | 8.2 のアプリ内完結分 | 完了（self copy 抑止、Reserve -> enumerate） |
 | 8.1 / 8.3 と 8.2 の外部アプリ依存分 | 自動化せず手動維持 |
 

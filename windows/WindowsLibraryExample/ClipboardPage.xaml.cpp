@@ -64,11 +64,20 @@ namespace
     std::function<void(std::wstring)> g_logSink;
     std::function<void(uint32_t, DWORD, winrt::hstring)> g_requestSink;
 
-    // Bumped every time the page is left. Work queued for a page that has since
-    // been navigated away from is dropped instead of being delivered to whichever
-    // page happens to be showing when it runs. Without this a callback belonging
-    // to the previous page would surface in the next one.
-    std::atomic<uint64_t> g_pageGeneration{ 0 };
+    // Identifies the page instance that is currently on screen. Every navigation
+    // to the page takes a fresh id, so work can name the page it belongs to and be
+    // dropped when that page is gone. Zero means no page is showing.
+    //
+    // Tagging at post time is not enough on its own: a request completing after
+    // the page was left would pick up whatever id is current, which is the id the
+    // re-entered page runs under. Request completions therefore carry the id of
+    // the page that issued them (see g_requestOwners).
+    std::atomic<uint64_t> g_nextPageId{ 1 };
+    std::atomic<uint64_t> g_activePageId{ 0 };
+
+    // requestId -> id of the page that issued it. Only touched on the owner UI
+    // thread (accept and completion both run there), so it needs no lock.
+    std::map<uint32_t, uint64_t> g_requestOwners;
 
     // Deferred payloads are finalized at reservation time. The toolkit requires
     // the fill size to match the queried size exactly, so the provider must not
@@ -86,10 +95,15 @@ namespace
         {
             return;
         }
-        const uint64_t generation = g_pageGeneration.load();
-        dispatcher.TryEnqueue([line = std::move(line), generation]()
+        // A live event belongs to the page that is showing when it happens.
+        const uint64_t pageId = g_activePageId.load();
+        if (pageId == 0)
         {
-            if (generation != g_pageGeneration.load())
+            return;
+        }
+        dispatcher.TryEnqueue([line = std::move(line), pageId]()
+        {
+            if (pageId != g_activePageId.load())
             {
                 return;
             }
@@ -137,10 +151,20 @@ namespace
         {
             return;
         }
-        const uint64_t generation = g_pageGeneration.load();
-        dispatcher.TryEnqueue([requestId, error, payload, generation]()
+        // Deliver only to the page that issued the request. Looking up the owner
+        // here, rather than tagging with whatever page is current, is what keeps a
+        // completion that arrives after the page was left out of the next page.
+        uint64_t owner = 0;
+        const auto entry = g_requestOwners.find(requestId);
+        if (entry != g_requestOwners.end())
         {
-            if (generation != g_pageGeneration.load())
+            owner = entry->second;
+            g_requestOwners.erase(entry);
+        }
+
+        dispatcher.TryEnqueue([requestId, error, payload, owner]()
+        {
+            if (owner == 0 || owner != g_activePageId.load())
             {
                 return;
             }
@@ -520,6 +544,11 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[OnNavigatedTo] register clipboard handlers");
 
+        // A fresh id per navigation: work tagged for the previous instance is
+        // dropped even if the user comes straight back.
+        m_pageId = g_nextPageId.fetch_add(1);
+        g_activePageId.store(m_pageId);
+
         g_dispatcher = DispatcherQueue();
 
         auto weakPage = get_weak();
@@ -544,8 +573,8 @@ namespace winrt::WindowsLibraryExample::implementation
     void ClipboardPage::OnNavigatedFrom(winrt::Microsoft::UI::Xaml::Navigation::NavigationEventArgs const&)
     {
         DLog(TAG, L"[OnNavigatedFrom] clear clipboard handlers");
-        // Invalidate anything already queued for this page instance.
-        g_pageGeneration.fetch_add(1);
+        // No page is showing: anything still queued is dropped when it runs.
+        g_activePageId.store(0);
         // Callbacks delivered while the page is away are dropped and are not
         // replayed on re-entry. The manager itself keeps running.
         g_logSink = nullptr;
@@ -853,6 +882,7 @@ namespace winrt::WindowsLibraryExample::implementation
 
         m_pendingRequests[requestId] = method;
         m_lastRequestId = requestId;
+        g_requestOwners[requestId] = m_pageId;
         RefreshStateText(L"✅ [" + method + L"] accepted requestId=" +
                          std::to_wstring(requestId) + L" (waiting for the callback)");
         AppendLog(L"[Request] accepted id=" + std::to_wstring(requestId) + L" " + method);
@@ -1634,6 +1664,7 @@ namespace winrt::WindowsLibraryExample::implementation
         {
             m_pendingRequests[id] = L"GetClipboardHistory (immediate uninit)";
             m_lastRequestId = id;
+            g_requestOwners[id] = m_pageId;
         }
 
         DWORD uninitError = CLIPBOARD_ERROR_NONE;

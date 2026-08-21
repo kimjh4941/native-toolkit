@@ -154,6 +154,9 @@ namespace winrt::WindowsLibraryExample::implementation
         void OnRequestCompleted(uint32_t requestId, DWORD error, winrt::hstring const& json);
         void RegisterHistoryRequest(uint32_t requestId, std::wstring const& method, DWORD acceptError);
 
+        // Identity of this page instance, assigned on every navigation to it.
+        // Callbacks name this so a completion cannot leak into a later instance.
+        uint64_t                         m_pageId{ 0 };
         std::map<uint32_t, std::wstring> m_pendingRequests;
         uint32_t                         m_lastRequestId{ 0 };
         std::wstring                     m_lastHistoryItemId;

@@ -16,6 +16,7 @@ public sealed class ClipboardPage
     private const string ResultId = "ResultTextBlock";
     private const string LogId = "LogTextBlock";
     private static readonly TimeSpan ResultTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan NegativeObservationWindow = TimeSpan.FromSeconds(3);
 
     private readonly IUiSession _session;
 
@@ -84,6 +85,19 @@ public sealed class ClipboardPage
     /// </remarks>
     public string WaitForLog(string fragment)
         => _session.WaitForText(LogId, text => text.Contains(fragment, StringComparison.Ordinal), ResultTimeout);
+
+    /// <summary>
+    /// True when the fragment never appears in the log during the window.
+    /// </summary>
+    /// <remarks>
+    /// Used for the contracts expressed as an absence, where reading the log once
+    /// would pass simply because the unwanted entry had not arrived yet.
+    /// </remarks>
+    public bool LogStaysWithout(string fragment, TimeSpan? window = null)
+        => _session.StaysFalse(
+            LogId,
+            text => text.Contains(fragment, StringComparison.Ordinal),
+            window ?? NegativeObservationWindow);
 
     public static string ResultMarker(string method, int errorCode) => $"[{method}] errorCode={errorCode}";
 }

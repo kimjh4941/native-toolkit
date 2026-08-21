@@ -17,6 +17,16 @@ public interface IUiSession : IDisposable
     bool TryWaitForElement(string automationId, TimeSpan? timeout, out IUiElement? element);
 
     /// <summary>
+    /// Watches the element for <paramref name="window"/> and reports whether the
+    /// predicate stayed false the whole time.
+    /// </summary>
+    /// <remarks>
+    /// Needed for "this must never appear" checks. Reading once straight after an
+    /// action would pass simply because the unwanted value had not arrived yet.
+    /// </remarks>
+    bool StaysFalse(string automationId, Func<string, bool> predicate, TimeSpan window);
+
+    /// <summary>
     /// Waits until the element's text satisfies <paramref name="predicate"/>.
     /// Returns the last observed text so a failure message can show it.
     /// </summary>

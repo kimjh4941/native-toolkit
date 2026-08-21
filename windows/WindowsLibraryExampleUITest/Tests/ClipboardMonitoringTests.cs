@@ -41,8 +41,10 @@ public sealed class ClipboardMonitoringTests
         // completed, so a notification for it would already have been logged.
         Page.PressAndExpect("CopyPlainText", "CopyPlainText", 0);
 
-        Assert.IsFalse(
-            Page.LogText.Contains(MonitorLine, StringComparison.Ordinal),
+        // Observed over a window: the notification would arrive shortly after the
+        // write, so a single read straight after the copy could pass by luck.
+        Assert.IsTrue(
+            Page.LogStaysWithout(MonitorLine),
             "A self-write raised a change notification, which would loop back into the app.");
     }
 

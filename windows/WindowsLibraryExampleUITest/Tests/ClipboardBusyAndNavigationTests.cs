@@ -114,8 +114,8 @@ public sealed class ClipboardBusyAndNavigationTests
         // Assert on the token written before leaving, not on the log being empty.
         // The reservation stays active for the lifetime of the process, so render
         // requests keep arriving and are legitimately logged by the new page.
-        Assert.IsFalse(
-            Page.LogText.Contains(ReserveToken, StringComparison.Ordinal),
+        Assert.IsTrue(
+            Page.LogStaysWithout(ReserveToken),
             "The previous page log survived re-entry.");
 
         // Still usable without initializing again.
@@ -141,9 +141,12 @@ public sealed class ClipboardBusyAndNavigationTests
         // moment the completion is delivered is not observable from outside the
         // app, so this asserts the contract that survives either timing: nothing
         // from the previous page instance is restored.
-        Assert.IsFalse(
-            Page.LogText.Contains("[Request] accepted id=", StringComparison.Ordinal),
-            "The previous page request log survived re-entry.");
+        // Watched over a window rather than read once: the completion for the
+        // previous page is in flight, and the point of the contract is that it
+        // never reaches this page no matter when it lands.
+        Assert.IsTrue(
+            Page.LogStaysWithout("[Request] "),
+            "A log entry from the previous page request reached the new page.");
     }
 
     // ---- Completing a pending shutdown ---------------------------------
