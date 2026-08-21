@@ -18,7 +18,7 @@
 |---|---|
 | ビルド確認済み | ○ Debug x64 リビルド成功、エラー 0、新規ファイル由来の警告 0 |
 | 実機動作確認済み | **× 未実施**（理由は第 6 章） |
-| 自動UIテスト | ○ **Phase 1 / 2 実施済み、レビュー v1 / v2 対応済み**（33 passed、再配置後の連続実行で再現、残存プロセスなし）。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、実施結果は §5.8、レビュー対応は §5.9 / §5.11 |
+| 自動UIテスト | ○ **Phase 1 / 2 実施済み、レビュー v1 / v2 / v3 対応済み**（33 passed、連続実行で再現、残存プロセスなし）。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、実施結果は §5.8、レビュー対応は §5.9 / §5.11 / §5.13 |
 
 ビルド成功は機能動作の確認ではない。v5 §8 の手動確認 54 項目はいずれも未実施である。
 
@@ -142,7 +142,7 @@ Bridge の Clipboard 27 関数すべてをサンプルから呼び出す。`Wind
 | `Ready` + worker in-flight の `CanDestroy` は結果をそのまま表示 | `CanDestroy_Click` |
 | 3 状態管理と遷移条件（worker Uninit は状態を動かさない） | `g_managerState`、`UninitializeOnWorker_Click` |
 | 遅延 payload は予約時に確定 | `ReserveDeferredFormats_Click` で `g_deferredPayloads` を構築 |
-| ページ離脱中の callback は破棄し復元しない | `OnNavigatedFrom` で hub を null、`OnRequestCompleted` の unknown id 分岐 |
+| ページ離脱中の callback は破棄し復元しない | 配送先をページ instance に紐づける。request completion は受付時の `g_requestOwners[requestId] = m_pageId` を完了時に `g_activePageId` と照合し、発行したページが現役のときだけ配送する。ライブイベント（変更監視・履歴イベント・provider ログ）は発生時に表示中のページへ配送する。初期実装は `OnNavigatedFrom` での hub クリアと unknown id 分岐だけだったが、到着タイミングに依存するためレビュー v2 の指摘を受けて現方式へ変更した（§5.11.2） |
 | Uninit `TRUE` 後の cleanup は主結果を上書きしない | `WorkerResult::logOnly` |
 
 ---
@@ -478,7 +478,21 @@ L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したた�
 
 現状は 5.11.2 の所有ページ方式により**構造として競合が発生しない**が、そのことをテストで証明できてはいない。負条件テストは 3 秒の観測期間で「旧ページのログが届かない」ことを確認するに留まる。テスト専用フックを追加するかは別途判断が必要。
 
-### 5.12 残作業
+### 5.13 レビュー v3 対応
+
+`artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v3.md`（総合評価: 要修正（軽微））への対応。v2 の重大指摘 H1 は解消と評価された。
+
+| 指摘 | 対応 |
+|---|---|
+| M1 main window 取得失敗時に `Kill()` 後の終了を待たない | 終了処理を `EnsureExited` へ共通化し、teardown と起動失敗経路の両方で「待機 -> Kill -> 再待機 -> 残存なら例外」を通す。起動失敗と後始末失敗が重なった場合は `AggregateException` で両方報告する |
+| M2 §2.4 が旧 callback 方式のまま | 現行方式（`g_requestOwners` と `g_activePageId` の照合、ライブイベントは表示中のページへ配送）へ更新し、初期実装から変更した経緯も併記した |
+| L1 `StaysFalse` に `Dispose` 用コメント | コメントを本来の member へ移した |
+
+テスト専用の遅延フックはレビューで不要と判定されたため追加していない。
+
+アプリ側の変更はなく、再配置は不要。対応後も **33 passed / 0 failed** を連続 2 回で確認した。
+
+### 5.14 残作業
 
 | Phase | 状態 |
 |---|---|
@@ -486,6 +500,7 @@ L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したた�
 | 2（8.4 Lifecycle / Thread / Busy） | 完了 |
 | レビュー v1 対応 | 完了 |
 | レビュー v2 対応 | 完了 |
+| レビュー v3 対応 | 完了 |
 | 8.2 のアプリ内完結分 | 完了（self copy 抑止、Reserve -> enumerate） |
 | 8.1 / 8.3 と 8.2 の外部アプリ依存分 | 自動化せず手動維持 |
 

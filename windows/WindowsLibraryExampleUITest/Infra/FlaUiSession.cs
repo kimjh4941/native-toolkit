@@ -46,13 +46,36 @@ public sealed class FlaUiSession : IUiSession
 
             return new FlaUiSession(application, automation, window);
         }
-        catch
+        catch (Exception startupFailure)
         {
             // The app may already be running even though the window never appeared,
-            // so terminate it instead of leaking an instance into the next test.
-            TryTerminate(application);
+            // so make sure it is gone rather than leaking it into the next test.
+            Exception? cleanupFailure = null;
+            if (application is not null)
+            {
+                try
+                {
+                    EnsureExited(application);
+                }
+                catch (Exception ex)
+                {
+                    cleanupFailure = ex;
+                }
+            }
+
             automation?.Dispose();
             application?.Dispose();
+
+            if (cleanupFailure is not null)
+            {
+                // Report both: the startup failure explains the test, the cleanup
+                // failure warns that later tests are no longer isolated.
+                throw new AggregateException(
+                    "The app failed to start and could not be terminated afterwards.",
+                    startupFailure,
+                    cleanupFailure);
+            }
+
             throw;
         }
     }
@@ -104,11 +127,13 @@ public sealed class FlaUiSession : IUiSession
         return last;
     }
 
-    /// <summary>Closes the app and waits for the process to actually exit.</summary>
+    /// <summary>
+    /// Watches the element for <paramref name="window"/> and reports whether the
+    /// predicate stayed false the whole time.
+    /// </summary>
     /// <remarks>
-    /// For a packaged app Close() asks the main window to close and returns
-    /// without waiting, so the next Launch could reactivate the still-running
-    /// instance and inherit its state. Tests rely on a fresh process each time.
+    /// Reading once straight after an action would pass simply because the
+    /// unwanted value had not arrived yet, so this keeps polling for the window.
     /// </remarks>
     public bool StaysFalse(string automationId, Func<string, bool> predicate, TimeSpan window)
     {
@@ -128,6 +153,12 @@ public sealed class FlaUiSession : IUiSession
         return true;
     }
 
+    /// <summary>Closes the app and waits for the process to actually exit.</summary>
+    /// <remarks>
+    /// For a packaged app Close() asks the main window to close and returns
+    /// without waiting, so the next Launch could reactivate the still-running
+    /// instance and inherit its state. Tests rely on a fresh process each time.
+    /// </remarks>
     public void Dispose()
     {
         try
@@ -145,7 +176,7 @@ public sealed class FlaUiSession : IUiSession
 
             // Deliberately not caught: a surviving instance would be reused by the
             // next test, so this has to fail the run rather than be logged away.
-            WaitForExit();
+            EnsureExited(_application);
         }
         finally
         {
@@ -154,53 +185,37 @@ public sealed class FlaUiSession : IUiSession
         }
     }
 
-    private static void TryTerminate(Application? application)
+    /// <summary>
+    /// Waits for the app to exit, killing it if it does not, and throws when it
+    /// survives both. Shared by teardown and by the failed-startup path so a
+    /// lingering instance can never be inherited by the next test.
+    /// </summary>
+    private static void EnsureExited(Application application)
     {
-        if (application is null)
+        if (WaitWhileRunning(application))
         {
             return;
         }
 
-        try
-        {
-            if (!application.HasExited)
-            {
-                application.Kill();
-            }
-        }
-        catch
-        {
-            // Nothing further to try here; the caller is already failing.
-        }
-    }
+        application.Kill();
 
-    private void WaitForExit()
-    {
-        var deadline = DateTime.UtcNow + ExitTimeout;
-        while (!_application.HasExited && DateTime.UtcNow < deadline)
-        {
-            Thread.Sleep(100);
-        }
-
-        if (_application.HasExited)
-        {
-            return;
-        }
-
-        _application.Kill();
-
-        deadline = DateTime.UtcNow + ExitTimeout;
-        while (!_application.HasExited && DateTime.UtcNow < deadline)
-        {
-            Thread.Sleep(100);
-        }
-
-        if (!_application.HasExited)
+        if (!WaitWhileRunning(application))
         {
             throw new InvalidOperationException(
                 "The sample app did not exit after Kill(). A lingering instance would " +
                 "make the next test start from unexpected state.");
         }
+    }
+
+    private static bool WaitWhileRunning(Application application)
+    {
+        var deadline = DateTime.UtcNow + ExitTimeout;
+        while (!application.HasExited && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(PollInterval);
+        }
+
+        return application.HasExited;
     }
 
     private sealed class FlaUiElement : IUiElement
