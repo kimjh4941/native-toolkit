@@ -363,8 +363,15 @@ final class UnityIosClipboardJsonParser {
         ["value": value.value, "label": value.label as Any? ?? NSNull()]
     }
 
+    /// Serializes a response payload.
+    ///
+    /// `.withoutEscapingSlashes` keeps '/' unescaped. Without it, `JSONSerialization` emits `\/`,
+    /// and since '/' is part of the base64 alphabet, every image or data payload arrives escaped on
+    /// the Unity side. That still decodes there, but only after copying the token into a separate
+    /// buffer to strip the backslashes - roughly 170 MB of extra managed memory for a payload at
+    /// the 64 MiB limit, which defeats the zero-copy decode path the bridge is designed around.
     private func serialize(_ object: Any) -> String {
-        guard let data = try? JSONSerialization.data(withJSONObject: object),
+        guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.withoutEscapingSlashes]),
               let string = String(data: data, encoding: .utf8) else {
             return "{\"ok\":false,\"error\":{\"code\":\"CLIPBOARD_UNKNOWN\",\"message\":\"An unknown error occurred.\"}}"
         }
