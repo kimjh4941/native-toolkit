@@ -75,7 +75,7 @@ Language:
 
 ## Android
 
-- ライブラリ: `android-native-toolkit-1.2.0.aar`
+- ライブラリ: `android-native-toolkit-1.3.0.aar`
 - 最小 SDK: Android 12 (API 31)
 - カスタムチューザーアクション: Android 14 (API 34) 以上
 
@@ -83,12 +83,12 @@ Language:
 
 #### Android ネイティブ（AAR）
 
-1. `android-native-toolkit-1.2.0.aar` を `app/libs` に配置する。
+1. `android-native-toolkit-1.3.0.aar` を `app/libs` に配置する。
 2. `app/build.gradle.kts` に依存関係を追加する:
 
 ```kotlin
 dependencies {
-    implementation(files("libs/android-native-toolkit-1.2.0.aar"))
+    implementation(files("libs/android-native-toolkit-1.3.0.aar"))
 }
 ```
 
@@ -509,7 +509,7 @@ try {
 
 ## iOS
 
-- ライブラリ: `ios-native-toolkit-1.2.0.xcframework`
+- ライブラリ: `ios-native-toolkit-1.3.0.xcframework`
 - 最小デプロイメントターゲット: iOS 18
 - 対応範囲: 送信のみ（`UIActivityViewController` によるシステム共有シートの表示）。受信（Share Extension）は対象外です。
 
@@ -523,7 +523,7 @@ try {
 
 ### セットアップ
 
-1. `ios-native-toolkit-1.2.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
+1. `ios-native-toolkit-1.3.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
 2. 共有シートを表示するファイルでライブラリをインポートします。
 
 ```swift

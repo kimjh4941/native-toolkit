@@ -32,10 +32,10 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android: `dist/1.8.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.8.0/ios/ios-native-toolkit-1.2.0.xcframework`
-- Windows: `dist/1.8.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.8.0/mac/mac-native-toolkit-1.2.0.xcframework`
+- Android: `dist/1.9.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.9.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows: `dist/1.9.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.9.0/mac/mac-native-toolkit-1.2.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@
 
 # バージョン
 
-## 1.8.0
+## 1.9.0
 
 # 対応 OS バージョン
 
@@ -105,6 +105,16 @@
   - リッチプレビュー
   - 画像 / ファイル共有（単一・複数）
   - 組み合わせコンテンツ（件名、アクティビティタイプの除外）
+- クリップボード機能
+  - コピー（プレーンテキスト、HTML、URL、画像ファイル / データ、色、カスタムデータ、複数テキスト、複数表現）
+  - コピーオプション（localOnly、有効期限）
+  - 追記
+  - 読み取り / データ読み取り / メタデータのスナップショット
+  - 名前付き・ユニークペーストボードのライフサイクル
+  - 非同期ロード（テキスト / URL / 画像 / ファイル）
+  - パターン検出（11 種類）
+  - クリップボード変更監視
+  - システムペーストボタン（UIPasteControl）
 
 ## Windows
 
@@ -145,7 +155,7 @@
 
 ## 追加予定機能
 
-- iOS / macOS / Windows 向けクリップボード連携（Android は対応済み。上記「機能一覧」参照）
+- macOS / Windows 向けクリップボード連携（Android / iOS は対応済み。上記「機能一覧」参照）
 
 ## サンプル
 
@@ -239,11 +249,11 @@ dependencies {
 
 #### 対応プラットフォーム: iOS（実機: arm64 / Simulator: arm64, x86_64）
 
-1. `ios-native-toolkit-1.2.0.xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
+1. `ios-native-toolkit-1.3.0.xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
 2. Xcode 26.2 で対象プロジェクトを開き、**Project Navigator** でアプリのターゲットを選択します。
 3. **General** タブを開き、**Frameworks, Libraries, and Embedded Content** の **+** を押します。
-4. **Add Other...** → **Add Files...** を選択し、`Frameworks/ios-native-toolkit-1.2.0.xcframework` を追加します。
-5. 追加後、`ios-native-toolkit-1.2.0.xcframework` の Embed 設定を **Embed & Sign** に変更します。
+4. **Add Other...** → **Add Files...** を選択し、`Frameworks/ios-native-toolkit-1.3.0.xcframework` を追加します。
+5. 追加後、`ios-native-toolkit-1.3.0.xcframework` の Embed 設定を **Embed & Sign** に変更します。
 6. 同じターゲットの **Build Settings** を開き、`Framework Search Paths` に `$(PROJECT_DIR)/Frameworks` を追加します。（通常は non-recursive）
 7. **Signing & Capabilities** で Team が正しく設定されていることを確認します。
 8. **Product** → **Clean Build Folder** を実行してから、**Run** でビルド・起動します。

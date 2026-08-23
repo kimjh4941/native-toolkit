@@ -32,10 +32,10 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/1.8.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.8.0/ios/ios-native-toolkit-1.2.0.xcframework`
-- Windows: `dist/1.8.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.8.0/mac/mac-native-toolkit-1.2.0.xcframework`
+- Android: `dist/1.9.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.9.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows: `dist/1.9.0/windows/windows-native-toolkit-1.1.0.nupkg`
+- macOS: `dist/1.9.0/mac/mac-native-toolkit-1.2.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.8.0
+## 1.9.0
 
 # Supported OS versions
 
@@ -105,6 +105,16 @@ Markdown files in this directory are published as versioned documents under `doc
   - Rich preview
   - Image / file share (single and multiple)
   - Combined content (subject, exclude activity types)
+- Clipboard features
+  - Copy (plain text, HTML, URL, image file / data, color, custom data, multiple text, multiple representations)
+  - Copy options (localOnly, expiration date)
+  - Append
+  - Read / data read / metadata snapshot
+  - Named and unique pasteboard lifecycle
+  - Asynchronous item loading (text / URL / image / file)
+  - Pattern detection (11 patterns)
+  - Clipboard change observation
+  - System paste button (UIPasteControl)
 
 ## Windows
 
@@ -145,7 +155,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 ## Planned features
 
-- Clipboard integration for iOS / macOS / Windows (Android is available; see [Feature list](#feature-list) above)
+- Clipboard integration for macOS / Windows (Android and iOS are available; see [Feature list](#feature-list) above)
 
 ## Samples
 
@@ -239,11 +249,11 @@ dependencies {
 
 #### Supported platform: iOS (Device: arm64 / Simulator: arm64, x86_64)
 
-1. Copy `ios-native-toolkit-1.2.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
+1. Copy `ios-native-toolkit-1.3.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
 2. Open the target project in Xcode 26.2 and select your app target in **Project Navigator**.
 3. Open the **General** tab and click **+** in **Frameworks, Libraries, and Embedded Content**.
-4. Select **Add Other...** → **Add Files...** and add `Frameworks/ios-native-toolkit-1.2.0.xcframework`.
-5. Set the embed option of `ios-native-toolkit-1.2.0.xcframework` to **Embed & Sign**.
+4. Select **Add Other...** → **Add Files...** and add `Frameworks/ios-native-toolkit-1.3.0.xcframework`.
+5. Set the embed option of `ios-native-toolkit-1.3.0.xcframework` to **Embed & Sign**.
 6. Open **Build Settings** of the same target and add `$(PROJECT_DIR)/Frameworks` to `Framework Search Paths`. (Usually non-recursive)
 7. Verify that Team is correctly configured in **Signing & Capabilities**.
 8. Run **Product** → **Clean Build Folder**, then build and run with **Run**.

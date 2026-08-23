@@ -75,7 +75,7 @@ Language:
 
 ## Android
 
-- Library: `android-native-toolkit-1.2.0.aar`
+- Library: `android-native-toolkit-1.3.0.aar`
 - Minimum SDK: Android 12 (API 31)
 - Custom Chooser Actions: Android 14 (API 34)+
 
@@ -83,12 +83,12 @@ Language:
 
 #### Android native (AAR)
 
-1. Place `android-native-toolkit-1.2.0.aar` in `app/libs`.
+1. Place `android-native-toolkit-1.3.0.aar` in `app/libs`.
 2. Add dependency in `app/build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation(files("libs/android-native-toolkit-1.2.0.aar"))
+    implementation(files("libs/android-native-toolkit-1.3.0.aar"))
 }
 ```
 
@@ -509,7 +509,7 @@ try {
 
 ## iOS
 
-- Library: `ios-native-toolkit-1.2.0.xcframework`
+- Library: `ios-native-toolkit-1.3.0.xcframework`
 - Minimum Deployment Target: iOS 18
 - Scope: sending only (presenting the system share sheet via `UIActivityViewController`). Receiving incoming shares (Share Extension) is not included.
 
@@ -523,7 +523,7 @@ try {
 
 ### Setup
 
-1. Add `ios-native-toolkit-1.2.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
+1. Add `ios-native-toolkit-1.3.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
 2. Import the library where you present the share sheet:
 
 ```swift

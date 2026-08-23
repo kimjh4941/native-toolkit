@@ -75,7 +75,7 @@ Language:
 
 ## Android
 
-- 라이브러리: `android-native-toolkit-1.2.0.aar`
+- 라이브러리: `android-native-toolkit-1.3.0.aar`
 - 최소 SDK: Android 12 (API 31)
 - 커스텀 Chooser Action: Android 14 (API 34) 이상
 
@@ -83,12 +83,12 @@ Language:
 
 #### Android 네이티브 (AAR)
 
-1. `android-native-toolkit-1.2.0.aar`를 `app/libs`에 배치한다.
+1. `android-native-toolkit-1.3.0.aar`를 `app/libs`에 배치한다.
 2. `app/build.gradle.kts`에 의존성을 추가한다:
 
 ```kotlin
 dependencies {
-    implementation(files("libs/android-native-toolkit-1.2.0.aar"))
+    implementation(files("libs/android-native-toolkit-1.3.0.aar"))
 }
 ```
 
@@ -509,7 +509,7 @@ try {
 
 ## iOS
 
-- 라이브러리: `ios-native-toolkit-1.2.0.xcframework`
+- 라이브러리: `ios-native-toolkit-1.3.0.xcframework`
 - 최소 배포 타깃: iOS 18
 - 지원 범위: 전송 전용(`UIActivityViewController` 기반 시스템 공유 시트 표시). 수신(Share Extension)은 포함되지 않습니다.
 
@@ -523,7 +523,7 @@ try {
 
 ### 설정
 
-1. `ios-native-toolkit-1.2.0.xcframework` 를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그한 뒤 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정).
+1. `ios-native-toolkit-1.3.0.xcframework` 를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그한 뒤 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정).
 2. 공유 시트를 표시하는 파일에서 라이브러리를 임포트합니다.
 
 ```swift
