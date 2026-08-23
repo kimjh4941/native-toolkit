@@ -30,8 +30,13 @@
 | dist | `dist/<version>/` が存在し、android / ios / mac / windows の各アーティファクトが揃っていること |
 | manual | `manual/<version>/` に `*.md`, `*.ja.md`, `*.ko.md` の各マニュアルが存在すること |
 | docs | `docs/<version>/` が存在すること |
+| manual 整合 | `./scripts/verify_manual.sh <version>` が停止項目 0 件で終了すること（画像リンク切れ・アンカー切れ・成果物名の不一致を検出する。警告項目は ❌ にしない） |
 
 ❌ が1件でもある場合はユーザーに「チェックに未通過の項目があります。続行しますか？」を確認する。
+
+**manual 整合が ❌ の場合は、続行前に内訳を提示する。**
+`./scripts/verify_manual.sh <前バージョン>` も実行して差分を取り、今回のリリースで作り込んだものか、前バージョンから引き継いだものかを区別して示す。
+詳細は `agent-rules/workflows/verify-manual/workflow.md` を参照する。
 - 続行する: 次へ
 - キャンセル: 終了
 
