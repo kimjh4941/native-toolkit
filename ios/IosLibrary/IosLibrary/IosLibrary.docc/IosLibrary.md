@@ -99,5 +99,90 @@ Follow semantic versioning. Backwards compatible additions (new methods / parame
 - ``IosDialogManager/showTextInputDialog(title:message:placeholder:confirmTitle:cancelTitle:enableConfirmWhenEmpty:onConfirm:onCancel:)``
 - ``IosDialogManager/showLoginDialog(title:message:usernamePlaceholder:passwordPlaceholder:loginTitle:cancelTitle:enableLoginWhenEmpty:onLogin:onCancel:)``
 
+## Clipboard
+
+`IosLibrary` also provides ``IosClipboardManager``, a `UIPasteboard`-backed API for copy/append,
+synchronous read, metadata snapshots, named/unique pasteboard lifecycle, asynchronous
+`NSItemProvider` loading, pattern detection, change observation, and a ready-to-place
+`UIPasteControl` button.
+
+### Quick Start
+```swift
+import IosLibrary
+
+// Copy
+try await IosClipboardManager.shared.copy(.plainText("Hello"))
+
+// Read (may trigger an iOS 16+ permission prompt / iOS 14+ access notification; see below)
+let result = try await IosClipboardManager.shared.read()
+
+// Check without reading the body (does not trigger a prompt/notification)
+let snapshot = try await IosClipboardManager.shared.snapshot()
+if snapshot.hasStrings { /* show a paste affordance */ }
+
+// A ready-to-place paste button; add the returned view to your hierarchy as-is
+let pasteView = try IosClipboardManager.shared.makePasteControl(
+    acceptedTypes: [UTType.plainText.identifier],
+    onPaste: { items in print(items) }
+)
+```
+
+### Threading
+`IosClipboardManager` is `@MainActor`-isolated. Call it from the main actor; from a non-main
+context use `await MainActor.run { ... }`. The Unity Bridge façade (`UnityIosClipboardManager`) is
+the one entry point designed for arbitrary-thread calls — it hops to the main actor internally.
+
+### Privacy: prompts and notifications
+`read` / `readData` / `loadItem` pull data from the pasteboard and may trigger an iOS 16+
+permission prompt and/or an iOS 14+ access notification, at the system's discretion. Prefer
+`snapshot` for pre-checks: it is built exclusively from APIs Apple documents as avoiding both.
+`UIPasteControl` (via `makePasteControl`) avoids the iOS 16+ permission prompt, but Apple does not
+document it as avoiding the iOS 14+ access notification as well — verify on-device for your target
+OS versions before relying on either being silent.
+
+### Named / unique pasteboards are not a persistent store
+A pasteboard created via `createPasteboard(.named(_:))` or `.unique` is not meant to persist, but
+its contents are **not guaranteed to be discarded when the creating app quits** either. Measured
+on iOS 18.7.2: after force-quitting the app and relaunching it, a named pasteboard written before
+the quit was still readable. The system does not specify when such a pasteboard is reclaimed.
+
+Use these scopes only to hand data between live apps, and **delete sensitive data explicitly with
+`removePasteboard(_:)`** — do not rely on app termination to discard it. Note that a force-quit
+does not run `deinit`, so no cleanup the library could perform on teardown would help here.
+
+For sharing that must outlive the creating app by design, use an App Group shared container
+instead; that is outside this library's scope.
+
+### append does not carry privacy options
+`append` cannot accept `ClipboardCopyOptions`, and does not guarantee that a prior `copy`'s
+`localOnly` / `expirationDate` apply to the appended item. Always use `copy(_:options:)` for
+sensitive data.
+
+### Loaded files and cleanup
+`loadItem(.file)` and `ClipboardPasteControlContainerView`'s `onPaste` may deliver a `.file(URL)`
+whose parent temporary directory is owned by the **caller** once delivered — delete it when done.
+Undelivered files (failure, cancellation, timeout) are cleaned up internally.
+
+### Cancellation
+A cancelled `loadItem` reports `isSuccess == false` with `errorCode == "CLIPBOARD_CANCELLED"` in
+the callback form, or throws `ClipboardError.cancelled` in the `async throws` form; callers may
+treat this as a normal, ignorable outcome. Cancelling a pending paste on
+`ClipboardPasteControlContainerView` (a new paste, or the view being torn down) does **not**
+invoke `onPaste` / `onPartialFailure` / `onPasteFailure` — cancellation is caller-initiated and is
+never surfaced as a paste result.
+
+### Pattern detection has no cancellation token
+`detectPatterns` / `detectValues` wrap `UIPasteboard`'s `async` detection APIs, which have no
+native cancellation support. A Task cancellation or internal timeout returns control to the caller
+immediately, but the underlying system call may continue running in the background; its eventual
+result is discarded.
+
+### Placing the paste button
+Use `IosClipboardManager.makePasteControl(...)` (preferred) or
+`ClipboardPasteControlContainerView` directly: add the single returned view to your hierarchy —
+its internal receiver joins the responder chain automatically. `PasteControlFactory.makeComponents`
+is available for advanced cases where the button and its receiver must be placed independently; in
+that case **you** are responsible for retaining and placing the receiver.
+
 ## See Also
 - Unity bridge module: *UnityIosPlugin* (symbol wrappers for C#)

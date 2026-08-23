@@ -13,8 +13,8 @@ set -euo pipefail
 #   ./scripts/build_ios_library_xcframework.sh --module IosLibrary --module UnityIosPlugin --library-version 1.2.0
 #   ./scripts/build_ios_library_xcframework.sh --configuration release --output dist/1.6.0/ios/ios-native-toolkit-1.2.0.xcframework
 #   ./scripts/build_ios_library_xcframework.sh -c debug -v 1.2.0 -o /tmp/NativeToolkit-debug.xcframework
-#   ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -v 1.2.0 -o dist/1.6.0/ios/ios-native-toolkit-1.2.0.xcframework
-#   ./scripts/build_ios_library_xcframework.sh -c release -m UnityIosPlugin -v 1.2.0 -o dist/1.6.0/ios/unity-ios-native-toolkit-1.2.0.xcframework
+#   ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -v 1.3.0 -o dist/1.9.0/ios/ios-native-toolkit-1.3.0.xcframework
+#   ./scripts/build_ios_library_xcframework.sh -c release -m UnityIosPlugin -v 1.3.0 -o dist/1.9.0/ios/unity-ios-native-toolkit-1.3.0.xcframework
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"

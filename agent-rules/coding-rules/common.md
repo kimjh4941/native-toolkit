@@ -21,6 +21,7 @@ Domain → Application → Data
 ```
 
 - **Domain**: 純粋モデル・エラー型（プラットフォーム依存なし、標準ライブラリのみ）
+  - 例外: プラットフォーム UI（`UIKit` / `AppKit` 等）や system service object・delegate・platform API object に依存しない、`Sendable` な値型（`Data` / `Date` / `URL` / `UUID` / `TimeInterval` 等の Swift `Foundation` 値型、Kotlin/Java・C++ の対応する標準値型）は Domain で許容する。任意の system `Error`（`NSError` 等）は正規化せず Domain へ保持してはならない。新たにこの種の型を Domain の公開 API へ追加する場合は、値型・`Sendable`・UI 非依存であることを設計レビューで確認する
 - **Application**: UseCase と Port（Repository protocol）。UseCase は 1 操作 1 クラスで `callAsFunction` / `invoke` を持つ
 - **Data**: Repository 実装。Domain モデル → プラットフォーム型の変換を担う
 - **Presentation**: Permission helper / UI 連携（プラットフォーム API 依存はここまで）
@@ -114,6 +115,30 @@ public func share(content: ShareContent, completion: ((Bool, Bool, String?, Stri
 @discardableResult
 public func share(content: ShareContent) async throws -> ShareResult
 ```
+
+### システム API に合わせた同期・非同期設計
+
+Repository / UseCase / private helper の実行方式は、内部で呼び出すシステム API の実行方式に合わせる。
+
+- 同期システム API は同期関数として扱い、不必要に `async` / callback で包まない
+- callback / future / promise / `async` 形式のシステム API は、完了待ちを表現できる非同期関数として扱う
+- listener / notification / stream 型 API は、開始・停止は同期操作、イベント配信は非同期イベントとして区別する
+- 非同期 API では、完了スレッドまたは actor、exactly-once、キャンセル手段、タイムアウト、リソース所有権を明記する
+- 重い同期処理を background executor へ移す場合は、「システム API は同期だが、呼び出し側には非同期処理として公開する」という設計判断と理由を明記する
+- 将来の拡張だけを理由に、Repository / UseCase / private helper を一律 `async` にしない
+
+Manager の公開 API 方式は、この内部実行方式とは分けて考える。各 OS ルールが callback 版とネイティブ非同期版の併設を要求する場合、同期 UseCase に対しても Manager は薄い `async` ラッパーを提供してよい。Manager の公開規約を理由に、下位層まで不必要に非同期化してはならない。
+
+**例外（同期 control / factory API）**: 待機や結果の非同期到着を伴わず、呼び出しと同時に完結する control 操作（監視の開始・停止・キャンセル、真偽値の即時判定など）や factory 操作（UI コンポーネントの生成など）は、callback 版・ネイティブ非同期版を設けず同期形式のまま公開してよい。この例外は「即時完了する」操作に限り、待機・結果の非同期到着を伴う操作には適用しない（その場合は callback + ネイティブ非同期版の併設が必須）。
+
+research / design では、全サブ機能について次を表で追跡する。
+
+| 段階 | 必須内容 |
+|---|---|
+| Research | システム API、同期 / callback / async / stream の分類、完了方式、完了スレッド、キャンセル手段 |
+| Design | System API → Repository → UseCase → Manager callback → Manager native → Bridge の各実行方式、actor / thread、変換理由 |
+
+実装・レビューでは、この表とコードのシグネチャ、actor isolation、キャンセル・完了契約が一致していることを確認する。
 
 ### Delegate・Callback の所有権
 
