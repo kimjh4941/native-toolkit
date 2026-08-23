@@ -6,12 +6,14 @@
 .vscode/
 
 # Visual Studio / MSBuild build artifacts
+# Debug/, Release/, x64/ and x86/ are NOT listed here on purpose. Without a path
+# they match any directory of that name anywhere in the tree, which silently hid
+# agent-rules/workflows/release/ and .codex/skills/release/ from git. Every real
+# build output is already covered by the .gitignore inside its own project:
+#   android/**/.gitignore        /build
+#   ios/.gitignore, mac/.gitignore  /Build
+#   windows/*/.gitignore         the standard Visual Studio block
 .vs/
-[Xx]64/
-[Xx]86/
-[Dd]ebug/
-[Rr]elease/
-!.codex/skills/release/
 *.user
 *.tlog
 *.log
