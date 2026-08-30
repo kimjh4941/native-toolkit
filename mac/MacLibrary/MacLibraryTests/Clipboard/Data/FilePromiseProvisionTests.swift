@@ -260,6 +260,28 @@ struct FilePromiseProvisionTests {
         #expect(!FileManager.default.fileExists(atPath: staged.path(percentEncoded: false)))
     }
 
+    @Test("M-1: a release removes the per-handle directory, not just the copy inside it")
+    func releaseRemovesStagingRoot() async throws {
+        let (coordinator, _) = makeCoordinator()
+        let handle = coordinator.reserveFilePromiseHandle()
+        let root = coordinator.stagingRoot(for: handle)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let staged = root.appending(path: "note.txt")
+        try Data("staged".utf8).write(to: staged)
+
+        _ = coordinator.registerFilePromise(
+            FilePromiseRequest(fileTypeIdentifier: "public.plain-text", fileName: "note.txt",
+                               source: .snapshot(URL(filePath: "/tmp/original.txt"))),
+            reserved: handle, stagingURL: staged)
+
+        coordinator.releaseFilePromise(handle)
+        try await Task.sleep(for: .milliseconds(200))
+
+        // An empty directory per promise would otherwise survive until the next launch's sweep.
+        #expect(!FileManager.default.fileExists(atPath: staged.path(percentEncoded: false)))
+        #expect(!FileManager.default.fileExists(atPath: root.path(percentEncoded: false)))
+    }
+
     // MARK: - IT-40 startup sweep
 
     @Test("IT-40: the sweep removes leftovers but spares live promises")

@@ -169,15 +169,17 @@ struct ClipboardSystemCoordinatorTests {
     func snapshotReleaseDiscardsStaging() async throws {
         let (coordinator, snapshotter) = makeCoordinator()
         let handle = coordinator.reserveFilePromiseHandle()
-        let staging = coordinator.stagingRoot(for: handle).appending(path: "note.txt")
-        _ = coordinator.registerFilePromise(request(), reserved: handle, stagingURL: staging)
+        let root = coordinator.stagingRoot(for: handle)
+        _ = coordinator.registerFilePromise(request(), reserved: handle,
+                                            stagingURL: root.appending(path: "note.txt"))
 
         coordinator.releaseFilePromise(handle)
 
         // The deletion is dispatched off the main actor, so give it a moment to land.
         try await Task.sleep(for: .milliseconds(50))
         #expect(snapshotter.discardCallCount == 1)
-        #expect(snapshotter.discardedURLs == [staging])
+        // The root, not the file inside it: otherwise an empty directory survives per promise.
+        #expect(snapshotter.discardedURLs == [root])
     }
 
     // MARK: - Stale monitoring

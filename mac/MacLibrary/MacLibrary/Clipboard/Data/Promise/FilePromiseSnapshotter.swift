@@ -74,6 +74,10 @@ public final class FilePromiseSnapshotter: FilePromiseSnapshotting {
     }
 
     /// Deletes a completed staging copy. Idempotent; a missing path is success.
+    ///
+    /// - Parameter stagingURL: The **root** handed out by ``snapshot(from:into:)``'s
+    ///   `stagingRoot`, not the copied file inside it. Deleting only the child would leave an
+    ///   empty per-handle directory behind for every promise ever registered.
     public func discard(stagingURL: URL) async {
         Log.d(TAG, "[discard] \(ClipboardLog.url(stagingURL))")
         let makeFileManager = self.makeFileManager

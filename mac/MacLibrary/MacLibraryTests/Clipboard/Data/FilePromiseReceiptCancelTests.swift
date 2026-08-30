@@ -43,8 +43,7 @@ struct FilePromiseReceiptCancelTests {
                                          snapshotter: snapshotter,
                                          typeValidator: MockClipboardTypeIdentifierValidating())
         let manager = MacClipboardManager(coordinator: coordinator,
-                                          useCases: useCases,
-                                          repository: repository)
+                                          useCases: useCases)
         return (manager, repository, coordinator)
     }
 

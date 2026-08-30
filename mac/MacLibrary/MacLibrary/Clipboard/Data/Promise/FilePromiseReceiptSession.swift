@@ -56,11 +56,15 @@ final class FilePromiseReceiptSession {
     /// Files received so far. Diagnostics and tests.
     var receivedURLs: [URL] { urls }
 
-    /// Starts both timers. Called once the system side has accepted the request.
+    /// Starts the overall deadline. Called once the system side has accepted the request.
+    ///
+    /// The quiet timer deliberately does **not** start here. `quietInterval` measures silence
+    /// *since the last arrival*, so starting it at subscription time would turn it into a
+    /// deadline for the first file and discard everything from a provider that takes longer
+    /// than it to produce one. Until something arrives, only the overall deadline applies.
     func start(promisedTypeCount: Int) {
         Log.d(TAG, "[start] handle: \(handle.id), promisedTypeCount: \(promisedTypeCount)")
         // Logged only. Using it as a termination condition is exactly what H-3 forbids.
-        restartQuietTimer()
         // Read out first: using `policy` inside the closure would capture `self` strongly and
         // keep the session alive past its owner.
         let overallTimeout = policy.overallTimeout

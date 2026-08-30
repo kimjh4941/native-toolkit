@@ -113,14 +113,23 @@ struct UnityMacClipboardJsonParserTests {
 
     @Test("absent options fall back to the safer default")
     func optionsDefault() {
-        #expect(parser.parseOptions(nil).localOnly)
-        #expect(parser.parseOptions("{}").localOnly)
-        #expect(parser.parseOptions("garbage").localOnly)
+        #expect(parser.parseOptions(nil)?.localOnly == true)
+        #expect(parser.parseOptions("")?.localOnly == true)
+        #expect(parser.parseOptions("{}")?.localOnly == true)
     }
 
     @Test("options are honoured when present")
     func optionsHonoured() {
-        #expect(!parser.parseOptions(#"{"localOnly":false}"#).localOnly)
+        #expect(parser.parseOptions(#"{"localOnly":false}"#)?.localOnly == false)
+    }
+
+    @Test("M-3: malformed options are rejected rather than silently defaulted")
+    func rejectsMalformedOptions() {
+        // Defaulting here would turn a requested `localOnly: false` into `true`, which is the
+        // opposite of what the caller asked for, and hide their bug as a success.
+        #expect(parser.parseOptions("garbage") == nil)
+        #expect(parser.parseOptions("{") == nil)
+        #expect(parser.parseOptions("[1,2]") == nil)
     }
 
     // MARK: - MatchingTypesJson
@@ -342,6 +351,6 @@ struct UnityMacClipboardJsonParserTests {
     func unknownFieldsAreIgnored() {
         // Unity and Swift can ship at different versions without breaking each other (R6-M8).
         #expect(parser.parseScope(#"{"kind":"general","futureField":123}"#) == .general)
-        #expect(parser.parseOptions(#"{"localOnly":false,"futureField":"x"}"#).localOnly == false)
+        #expect(parser.parseOptions(#"{"localOnly":false,"futureField":"x"}"#)?.localOnly == false)
     }
 }

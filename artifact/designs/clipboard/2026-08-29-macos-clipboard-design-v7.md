@@ -16,7 +16,7 @@
 
 - **公開 OP**: OP-01〜OP-20 の **20 件**
 - **Bridge endpoint**: **19 件**（OP-19 `makePasteButton` は `NSView` を返すため非公開）
-- **UseCase**: **17 本**（+ `ClipboardContentValidator` / `ClipboardChangeTracker` / `ClipboardUseCases` 集約 = ファイル 20 本）
+- **UseCase**: **18 本**（+ `ClipboardContentValidator` / `ClipboardChangeTracker` / `ClipboardUseCases` 集約 = ファイル 21 本）。18 本目は `GetChangeCountUseCase`（公開 OP ではなく、変更監視と stale 判定が Repository へ直接触れないための内部 UseCase。R-M2）
 - **callback 必須の Bridge endpoint**: **3 件**（`clipboardProvideFilePromise` / `clipboardReceiveFilePromises` / `clipboardCreatePasteboard`）。残り 16 件は NULL 許容
 - **JSON shape**（§8.4.4）: 入力専用 **6**、入出力共用 **4**、出力専用 **8**、イベント **2** = 実体 **20 型**（R5-L11 で排他的に再定義）
 - 対象企画書: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v3.md`
@@ -431,6 +431,7 @@ mac/MacLibrary/MacLibrary/Clipboard/
 │       ├── DetectMetadataUseCase.swift
 │       ├── GetAccessBehaviorUseCase.swift
 │       ├── CheckForegroundChangeUseCase.swift
+│       ├── GetChangeCountUseCase.swift             内部限定（R-M2）
 │       ├── ProvideFilePromiseUseCase.swift
 │       ├── ReleaseFilePromiseUseCase.swift          （H-6）
 │       ├── ReceiveFilePromisesUseCase.swift         （H-6）
@@ -464,7 +465,7 @@ mac/MacLibrary/MacLibraryTests/Clipboard/
 │   ├── MockClipboardTypeIdentifierValidating.swift
 │   └── MockClock.swift
 ├── Domain/ClipboardErrorTests.swift
-├── Application/ (UseCase ごとに 1 ファイル、19 本)
+├── Application/ (UseCase ごとに 1 ファイル、20 本)
 ├── Data/
 │   ├── ClipboardTypeIdentifierValidatorTests.swift
 │   ├── ClipboardMappersTests.swift
@@ -546,6 +547,8 @@ v2 では図と本文にだけ現れていた 2 型を、配置・可視性・�
 coordinator は 5 秒 tick で「activate 済みの handle の `ownership.changeCount` が現在値と一致するか」を判定する必要があるが、**coordinator は Repository を保持しない**（循環回避）。かといって coordinator が直接 `NSPasteboard` を読むと、Manager → UseCase → Repository の規約と「変換は Repository に集約」に反する。
 
 **Manager が UseCase 経由の closure を注入する**形に確定する。
+
+**`GetChangeCountUseCase` を実在させる（R-M2。実装レビューで発見）**。v7 初版の実装は Manager から `repository.changeCount(scope:)` を直接呼んでおり、`common.md`「Manager は必ず UseCase 経由で Data 層にアクセスする」に違反していた。変更監視の `readChangeCount` と coordinator の `staleQuery` はいずれもこの UseCase を経由する。
 
 ```swift
 // ClipboardSystemCoordinator に追加（R6-H3）
@@ -870,6 +873,8 @@ public struct ClipboardDetectedMetadata: Sendable, Equatable {
 
 **`detectMetadata` の実挙動（T-09 実測。macOS 26.3）**: プレーンテキストのみの item に対しては **メタデータ空ではなく `NSCocoaErrorDomain` 67587 `Pasteboard content detection failed` を throw する**。`public.file-url` の item では成功し `contentType` を返す。ヘッダの用例もファイル参照である。**67587 の発生条件は文書化されていないため、`detectionFailed` として素通しし、「該当なし」へ読み替えることはしない**（読み替えると本物の失敗を握り潰す）。DocC に「テキストのみのペーストボードでは失敗し得る」と明記する（RK-25）。
 
+**秘匿は Bridge の C 層にも適用する（R-H3。実装レビューで発見）**: `contentJson` は 全 representation の Base64 を含み、`scopeJson` は呼び出し側が決めた名前を含む。ObjC 層でこれらを `%s` で記録するとクリップボードの中身がそのままログへ複写される。C 層にも長さ／短縮ハッシュのヘルパーを置き、Swift 側の `ClipboardLog` と同じ方針を適用する。
+
 **通知の扱い（RK-03）**: `detectValues` は一致時に通知が発生し拒否時に throw する。DocC に明記し、ユーザー操作起点での呼び出しを要求する。`detectPatterns` / `detectMetadata` は「通知しない」とヘッダにあるが、契約としては保証しない。
 
 **キャンセル**: `CancellationError` を `ClipboardError.cancelled` に変換する。実際に届くかは企画書 V-5 が未消化。
@@ -919,6 +924,14 @@ public func makePasteButton(
 - **結果は `providerIndex` の昇順に正規化して返す**（並行ロードの完了順ではない。R2-M10）
 - **一時ファイルは使わない**（`loadFileRepresentation` を使わず `loadDataRepresentation` のみ）。これにより一時 URL の寿命問題を回避する
 
+**exactly-once は「押下ごと」である（R-H4。実装レビューで発見）**
+
+loader はボタンが画面にある限り生存するため、**exactly-once を loader 単位のフラグで持ってはならない**。2 回目以降の押下が無反応になる。押下ごとに世代を進め、世代単位で配送済みを判定する。実行中の押下は新しい押下に supersede され、古い世代の結果は破棄する。
+
+**deadline は provider の完了を待ってはならない（R-H1。実装レビューで発見）**
+
+`withTaskGroup` はスコープ離脱前に全 child task の完了を待つため、**callback を返さない provider が 1 件あるだけで `onPaste` が永久に返らない**。provider task は非構造化とし、結果は到着順に収集する。deadline 到達時は未完了分を `pasteLoadTimedOut` として確定し、**未完了 task を待たずに**配送する。あわせて `loadDataRepresentation` が返す `Progress` を保持して `onCancel` で `cancel()` し、continuation は gate で exactly-once に resume する。**`Progress` を保持する箱はキャンセル済みかどうかも覚える必要がある**（R-M4。再レビューで発見）。provider は**ロード開始後**に `Progress` を返すため、箱が空のうちにキャンセルが来ると、後から入る `Progress` を誰も cancel しない。呼び出し側は戻るので気づかないまま、provider だけが読み続ける。**`Task.sleep` ベースの fake はキャンセルに応答してしまうため、この経路を再現できない。resume もキャンセル応答もしない Source でテストする。**さらに **fake Source を注入するテストは adapter / `Progress` / gate の本番境界を通らない**（R-M5。再レビューで発見）。実 `NSItemProvider` を使う adapter 単体テストを別に置く。
+
 **View の寿命と登録解除（R2-M10）**
 
 ```
@@ -943,9 +956,13 @@ PasteButtonFactory.makePasteButton()
 AppKit 型は `PasteButtonFactory.ItemProviderSource` が境界で吸収し、loader 側はテストからも
 実 provider なしで駆動できる。
 
-**timeout の実装（T-14）**: provider ごとではなく `withTaskGroup` に sleep タスクを 1 本足して
-競争させる。契約が「全体で 1 つの期限」であるため。期限が勝った時点で未完了の index を
-`pasteLoadTimedOut` として積むので、**全 index が items か failures のどちらかに必ず 1 回だけ現れる**。
+**timeout の実装（T-14。R-H1 で改訂）**: provider ごとではなく**全体で 1 つの期限**とする。
+期限が勝った時点で未完了の index を `pasteLoadTimedOut` として積むので、**全 index が items か
+failures のどちらかに必ず 1 回だけ現れる**。
+
+**`withTaskGroup` は使わない**。スコープ離脱前に全 child task の完了を待つため、callback を返さない
+provider が 1 件あるだけで期限が機能しなくなる（v7 初版の実装がこれで、実装レビューで発見された）。
+provider task は非構造化とし、deadline は独立した task が担う。
 
 **Bridge 非公開**: `NSView` を返すため C ABI に載らない。
 
@@ -1253,6 +1270,7 @@ public struct FilePromiseReceiptPolicy: Sendable, Equatable {
 ```
 
 - reader が呼ばれるたび `received` / `failed` を発行し、静穏タイマを再起動する
+- **静穏タイマは購読開始時には起動しない**（R-H2。実装レビューで発見）。`quietInterval` は「最後の到達からの無音時間」であり、開始時に起動すると**最初の 1 件に対する締切**に化ける。既定 2 秒では、最初のファイル生成に 2 秒を要する正常な provider から全結果を失う。**最初の `received` / `failed` で初めて起動する**。それまでは overall timer のみが動く
 - `quietInterval` 経過、または `overallTimeout` 到達、または `cancel()` で `finished` を **exactly-once** で発行する
 - 終端後に遅れて到達した reader コールバックは**破棄**する（late callback 抑止。世代トークンで判定）
 - `fileTypes.count` は**参考値としてログにのみ出す**。終了判定には使わない
@@ -1465,7 +1483,7 @@ v7 は **`reserveReceiptHandle()` で immutable な handle を先に発行**す�
 **native 版の実行方式（R2-H1）**
 
 - **OP-01〜OP-11 は `async throws`**。mac.md「Manager の公開 API（ネイティブ版）は上記のとおり必ず `async throws` にする」に従う。**Repository / UseCase は同期のまま**で、Manager だけが薄い `async` ラッパーになる（common.md「Manager の公開規約を理由に、下位層まで不必要に非同期化してはならない」）
-- **`@discardableResult` は戻り値のある OP-01〜OP-07 / OP-09〜OP-11 のみ**に付ける。**OP-08 `removePasteboard` は `Void` を返すため付けない**。付けると `'@discardableResult' declared on a function returning 'Void' is unnecessary` の警告が出て、warning zero の DoD と両立しない（コンパイラで再現確認済み。R3-M6）
+- **`@discardableResult` は戻り値のある OP-01〜OP-07 / OP-09〜OP-11 のみ**に付ける。**OP-16 / OP-18 は戻り値があっても付けない**（R-L3。実装レビューで発見）。返す handle を捨てると promise の登録と staging、あるいは receipt session が解放不能になる。捨てたときに警告が出るほうが正しい。**OP-08 `removePasteboard` は `Void` を返すため付けない**。付けると `'@discardableResult' declared on a function returning 'Void' is unnecessary` の警告が出て、warning zero の DoD と両立しない（コンパイラで再現確認済み。R3-M6）
 - **OP-12〜OP-15 / OP-17 / OP-20 は同期**。真偽値の即時判定・監視の開始停止・ハンドル解放・キャンセルであり、common.md の「即時完了する control 操作」例外に該当する
 - **OP-19 は同期**。同 例外の「factory 操作」に該当する（OP-16 は §7.12 の正規契約により `async throws`）
 - **OP-16 は `async throws`**（R4-H3）。`.snapshot` の再帰コピーは待機を伴う I/O であり「即時完了する factory」に該当しないため、callback 版と native async 版を併設する
@@ -1895,6 +1913,8 @@ void clipboardCancelReceiveFilePromises(const char* handleJson,
 
 **日付フォーマット**: ISO 8601（UTC、`yyyy-MM-dd'T'HH:mm:ss'Z'`）。locale 非依存。
 
+**不正 JSON と省略の区別（R-M3。実装レビューで発見）**: 「すべて optional」は**フィールドの省略**を許す契約であって、**不正 JSON の許容ではない**。引数が NULL または空文字なら既定値、**非空で decode 不能なら 1301** を返す。既定値へ丸めると、`localOnly: false` の要求が黙って `true` になる。
+
 **未知フィールドの方針（R6-M8）**: decode 時は**無視する**（エラーにしない）。encode 時は**出力しない**。これにより Unity 側と Swift 側のバージョン差で壊れない。
 
 **条件付き必須フィールド（R6-M8）**
@@ -1943,13 +1963,14 @@ Bridge は C ABI にクロージャを載せられないため、`FilePromiseReq
 3. coordinator が `sourcePath` を staging へコピーする。`public.directory` に conform する場合はディレクトリごと再帰コピー
 4. 合成される `write` クロージャは staging 上のコピーを書き出す。**登録後に元ファイルが削除・変更されても履行は成功する**
 5. コピー失敗（存在しない、権限なし、容量不足）は **部分コピーを削除して throw** し、**登録しない**（`filePromiseWriteFailed` を開始 callback で返す）
-6. **staging URL は登録 state の `stagingURL` に保持される**。明示 `releaseFilePromise` / stale 解放 / pasteboard write 失敗の rollback は**すべて同じ解放経路**を通るため、削除は **exactly-once**（§7.12 の遷移表）
-7. **`ClipboardPromise/` の残骸削除は process-wide に 1 回だけ行う**（R4-L10）。`ClipboardSystemCoordinator` は複数生成され得るため、各 init で無条件に削除すると同一プロセス内の別インスタンスが保持する active session を壊す。
+6. **解放時は staging の `<handleId>/` ディレクトリごと削除する**（R-M1。実装レビューで発見）。コピー先ファイルだけを削除すると、登録した promise の数だけ空ディレクトリが残り、次回起動の掃除まで回収されない。`discard` には root を渡す
+7. **staging URL は登録 state の `stagingURL` に保持される**。明示 `releaseFilePromise` / stale 解放 / pasteboard write 失敗の rollback は**すべて同じ解放経路**を通るため、削除は **exactly-once**（§7.12 の遷移表）
+8. **`ClipboardPromise/` の残骸削除は process-wide に 1 回だけ行う**（R4-L10）。`ClipboardSystemCoordinator` は複数生成され得るため、各 init で無条件に削除すると同一プロセス内の別インスタンスが保持する active session を壊す。
    - `static let stagingCleanupOnce: Void = { ... }()` により process-wide once で実行する
    - **削除対象から active handle のディレクトリを除外する**（実行時点で登録済みの `<handleId>` を除く）
    - 削除に失敗したディレクトリはログに残し、**次回起動で再試行**する（起動を失敗させない）
-8. **App Sandbox（RK-12）**: `sourcePath` がサンドボックス外の場合、コピー自体が失敗する。ユーザーが選択したファイルは security-scoped bookmark が必要になるが、**v1 では対応しない**。DocC と Bridge ヘッダに「`sourcePath` はアプリがアクセス権を持つパスであること」と明記する
-9. **ログ禁止**: `sourcePath` の完全パスは `Log.d` に出さない（§4.2 の秘匿方針。ファイル名のみ、または長さのみ）
+9. **App Sandbox（RK-12）**: `sourcePath` がサンドボックス外の場合、コピー自体が失敗する。ユーザーが選択したファイルは security-scoped bookmark が必要になるが、**v1 では対応しない**。DocC と Bridge ヘッダに「`sourcePath` はアプリがアクセス権を持つパスであること」と明記する
+10. **ログ禁止**: `sourcePath` の完全パスは `Log.d` に出さない（§4.2 の秘匿方針。ファイル名のみ、または長さのみ）
 
 ネイティブ版で `FilePromiseSource.writer` を渡した場合はスナップショットを行わない。呼び出し側がクロージャ内で自由に生成できるため。**この差分を DocC に明記する。**
 
@@ -2207,6 +2228,9 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | **IT-48** | **stale tick が `attachStaleQuery` 未設定なら no-op。設定後は activate 済み handle のみ判定する** | **R6-H3** |
 | **IT-49** | **stale query が throw した場合（scope 消失）も解放される** | R6-H3 |
 | **IT-50** | **`public.rtf` の write 後、read が plain text の派生表現を含む** | **RK-24** |
+| **IT-51** | **最初の到達が `quietInterval` より遅くても打ち切られない。到達後に静穏で終端する** | **R-H2** |
+| **IT-52** | **1 件も到達しない場合は `.quiescence` ではなく `.overallTimeout` で終端する** | **R-H2** |
+| **IT-53** | **解放で staging の `<handleId>/` ディレクトリ自体が消える** | **R-M1** |
 
 ### 12.3 Presentation テスト
 
@@ -2220,6 +2244,13 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | **PT-06** | **結果が `providerIndex` の昇順（入力順）に正規化される** | **R2-M10** |
 | **PT-07** | **全件失敗で `isCompleteFailure == true`、`isPartial == false`** | R2-M10 |
 | **PT-08** | **`ClipboardPasteContainerView.deinit` から `cancelPaste` が呼ばれる。二重呼び出しでクラッシュしない** | R2-M10 |
+| **PT-09** | **2 回目の押下が自身の結果を配送する**（exactly-once は押下単位） | **R-H4** |
+| **PT-10** | **実行中の押下が新しい押下に supersede され、古い世代の結果が配送されない** | **R-H4** |
+| **PT-11** | **cancel 後の押下は配送されない**（View 消失は恒久） | **R-H4** |
+| **PT-12** | **resume もキャンセル応答もしない provider があっても deadline で確定し配送される** | **R-H1** |
+| **PT-13** | **全 provider が無応答でも `isCompleteFailure` で配送される** | **R-H1** |
+| **PT-14** | **実 `NSItemProvider` 経由で adapter がロードする**（fake 注入では通らない本番境界） | **R-M5** |
+| **PT-15** | **`Progress` の install 前後どちらでキャンセルされても `Progress.cancel()` が呼ばれる** | **R-M4** |
 
 ### 12.4 Bridge テスト
 
@@ -2249,6 +2280,8 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | **BT-21** | **Objective-C 側を無変更でビルドでき、`.m` の block が C 関数ポインタ以外をキャプチャしていない** | **MIGRATION.md §6** |
 | **BT-22** | **background thread から呼び出した場合も、JSON パース失敗・引数 NULL の早期リターン経路を含めて callback が main thread で exactly-once** | **MIGRATION.md §6** |
 | **BT-23** | **`nil` callback で trap しない。監視の start / stop 境界で handler が交差しない** | **MIGRATION.md §6** |
+| **BT-24** | **`optionsJson` が nil / 空 / 正常 / 不正 の 4 通りで区別される。不正は 1301** | **R-M3** |
+| **BT-25** | **C 層のログに `contentJson` / `scopeJson` の平文が出ない**（長さと短縮ハッシュのみ） | **R-H3** |
 
 ### 12.5 並行性テスト
 
@@ -2305,14 +2338,14 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | T-10 | `ClipboardChangeMonitor` + Tracker + アクティブ連動 | 1.0日 | T-08 | IT-09〜IT-11、CT-02、CT-07 通過 | **M-5 の start 順序**。配置が MacLibrary/Presentation |
 | T-11a | **`FilePromiseLifecycleState`**（lock-owning、`CommitReleaseOutcome`、`activate`、generation claim） | 1.0日 | **T-02** | **単体**: CT-08、CT-10、CT-12 通過（state box 単体）。**統合**（T-11c で確認）: IT-41、CT-11 | **R4-H2 / R5-H1 / R5-H3: `@MainActor` state を触っていないこと。`.released` で必ず辞書除去** |
 | T-11b | **`FilePromiseSnapshotter`**（専用 serial queue、cancellation、`discard`、late completion cleanup） | 1.0日 | **T-02** | **単体**: snapshot / discard / cancellation の単体テスト通過。**統合**（T-11c で確認）: IT-34、IT-39、IT-45 | **R4-H3 / R5-M6 / R6-H2: MainActor をブロックしない。`discard` で完成 staging を破棄できる** |
-| T-11c | File Promise 提供側の統合（delegate / registry / **`ProvideFilePromiseUseCase` の正規 transaction** / stale tick） | 1.5日 | **T-08** | IT-12〜IT-14、**IT-21〜IT-24、IT-31〜IT-33、IT-40、IT-42、IT-44**、CT-03、CT-06 通過 | **R5-H2: §7.12 の正規 transaction と一致。`request.source` を switch する delegate 契約**。**RK-21: coordinator が provider+delegate を強参照。completion は要求ごとに 1 回。全体で 1 回に絞るガードを置かない**。**R2-M5: release は完全冪等・非 throwing。R2-M12: register→write→rollback** |
-| T-12a | **File Promise 受領側の受信と正常終端**（静穏タイムアウト + `overallTimeout` + late callback 破棄） | 1.5日 | T-11c | IT-15〜IT-18 通過 | **H-3: `fileTypes.count` を終了判定に使っていないこと。`finished` が exactly-once。終端後の late callback 破棄** |
+| T-11c | File Promise 提供側の統合（delegate / registry / **`ProvideFilePromiseUseCase` の正規 transaction** / stale tick） | 1.5日 | **T-08** | IT-12〜IT-14、**IT-21〜IT-24、IT-31〜IT-33、IT-40、IT-42、IT-44、IT-53**、CT-03、CT-06 通過 | **R5-H2: §7.12 の正規 transaction と一致。`request.source` を switch する delegate 契約**。**RK-21: coordinator が provider+delegate を強参照。completion は要求ごとに 1 回。全体で 1 回に絞るガードを置かない**。**R2-M5: release は完全冪等・非 throwing。R2-M12: register→write→rollback** |
+| T-12a | **File Promise 受領側の受信と正常終端**（静穏タイムアウト + `overallTimeout` + late callback 破棄） | 1.5日 | T-11c | IT-15〜IT-18、**IT-51 / IT-52** 通過 | **H-3: `fileTypes.count` を終了判定に使っていないこと。`finished` が exactly-once。終端後の late callback 破棄** |
 | T-12b | **受領側の cancel と silent rollback**（OP-20 + `CancelReceiveFilePromisesUseCase` + 開始失敗ロールバック） | 0.5日 | T-12a | IT-19、**IT-25〜IT-27、IT-30、IT-36〜IT-38、IT-43** 通過 | **R2-H2: 公開 cancel。R2-M6: §7.12.3 の truth table どおり throw しないこと**。**R5-H4: 開始失敗はイベントを配送しない** |
-| T-13 | OP-18 の native async（**`throws -> FilePromiseEventSubscription`** + 集約 async + `ReceiptCompletionGate`） | 1.0日 | T-12b | IT-27、IT-30、**IT-35**、**CT-13〜CT-16** 通過 | **H-4: common.md の併設要求**。**R3-H1: factory が `throws`、要素型は非 throwing、`onTermination` は資源解放専用で配送しない**。**R2-M6: 集約版の通常終端は throw せず partial receipt を返す。Task キャンセル時のみ `CancellationError`** |
-| T-14 | `ClipboardPasteLoader` + `PasteButtonFactory` + `ClipboardPasteContainerView` | 1.5日 | T-08 | PT-01〜**PT-08** 通過 | **H-8: 部分失敗・timeout・exactly-once・cancel**。**R2-M10: 入力順正規化、`isPartial` の定義、container の `deinit` から cancel** |
+| T-13 | OP-18 の native async（**`throws -> FilePromiseEventSubscription`** + 集約 async + `ReceiptCompletionGate`） | 1.0日 | T-12b | IT-27、IT-30、**IT-35**、**CT-13〜CT-17** 通過 | **H-4: common.md の併設要求**。**R3-H1: factory が `throws`、要素型は非 throwing、`onTermination` は資源解放専用で配送しない**。**R2-M6: 集約版の通常終端は throw せず partial receipt を返す。Task キャンセル時のみ `CancellationError`** |
+| T-14 | `ClipboardPasteLoader` + `PasteButtonFactory` + `ClipboardPasteContainerView` | 1.5日 | T-08 | PT-01〜**PT-15** 通過 | **H-8: 部分失敗・timeout・exactly-once・cancel**。**R2-M10: 入力順正規化、`isPartial` の定義、container の `deinit` から cancel** |
 | T-15 | `LazyDataProvider`（内部限定） | 0.5日 | T-07 | 大容量 copy が遅延提供を通る | RK-17。所有は coordinator |
-| T-16a | Unity Bridge Swift facade + `UnityMacClipboardJsonParser`（**実体 20 JSON 型**の入出力） | 1.5日 | T-08〜T-14 | BT-06、BT-07、BT-11 通過 | **H-7: nonisolated facade + 任意スレッド可**。**R2-M11: staging は Manager 側。`sourcePath` をログに出さない**。**案 C: 全 handler 型に `@Sendable`（§8.4.6）。BT-20〜BT-23 通過** |
-| T-16b | Unity Bridge C 層（`.h` / `.m`、**19 endpoint**、callback 契約） | 1.0日 | T-16a | BT-01〜BT-05、BT-08〜BT-10、BT-12〜BT-19 通過 | **R2-H3: prototype が §8.4.3 と一致。operation は exactly-once、event は N 回**。**R3-M4 / R4-M6 / R5-M8: operation callback 必須 3 件、event callback 必須 2 件**。**R5-H5: OP-16 に `scopeJson`**。ObjC 型規約（`BOOL` / `NSInteger`） |
+| T-16a | Unity Bridge Swift facade + `UnityMacClipboardJsonParser`（**実体 20 JSON 型**の入出力） | 1.5日 | T-08〜T-14 | BT-06、BT-07、BT-11、**BT-24** 通過 | **H-7: nonisolated facade + 任意スレッド可**。**R2-M11: staging は Manager 側。`sourcePath` をログに出さない**。**案 C: 全 handler 型に `@Sendable`（§8.4.6）。BT-20〜BT-23 通過** |
+| T-16b | Unity Bridge C 層（`.h` / `.m`、**19 endpoint**、callback 契約） | 1.0日 | T-16a | BT-01〜BT-05、BT-08〜BT-10、BT-12〜BT-19、**BT-25** 通過 | **R2-H3: prototype が §8.4.3 と一致。operation は exactly-once、event は N 回**。**R3-M4 / R4-M6 / R5-M8: operation callback 必須 3 件、event callback 必須 2 件**。**R5-H5: OP-16 に `scopeJson`**。ObjC 型規約（`BOOL` / `NSInteger`） |
 | T-16c | 既存 `BridgeError.swift` の DocC 修正（R2-M14）+ Bridge 契約の HeaderDoc 整備 | 0.5日 | T-16b | DocC / HeaderDoc が NULL callback 契約と矛盾しない | **enum ケース・code・message を変更しないこと** |
 | T-17 | DocC 整備 | 0.5日 | **T-16c** | `public` に英語 DocC | 「通知なし」を保証しない（RK-01/02/22）、append の契約差（RK-23）、名前付きの残存（RK-06）、`localOnly` 未検証（V-8）、`finished` が推定であること（H-3）、`PasteButton` の非自動 validate（RK-16） |
 | T-18 | サンプルアプリ対応 | - | T-17 | **`design-sample-app` で設計。完了条件は「全公開 OP が `MacLibraryExample` から Unity 非依存で実行できること」および「MT-05 用の最小 drag harness を含むこと」** | common.md のサンプル依存方向 |
@@ -2446,22 +2479,22 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 
 ### 実装完了条件（次工程で満たす）
 
-- [ ] **本機能の差分が strict concurrency 診断を増やしていない**（CT-01 の条件で計測し、`Clipboard/` 配下 0 件）。`MIGRATION.md` §3.3「機能タスクの DoD は差分のみを判定する」に従う。**プロジェクトを Swift 6 言語モードへ切り替えることは本タスクの完了条件ではない**
-- [ ] **Unity Bridge の Swift facade の handler が案 C（`@Sendable` 付与）で書かれている**（`MIGRATION.md` §6。iOS Clipboard 適用済みの決定事項）
-- [ ] **実装のシグネチャ・actor isolation・キャンセル・timeout・exactly-once 契約が §9 の対応表と一致している**
-- [ ] **`@discardableResult` が戻り値のある OP-01〜OP-07 / OP-09〜OP-11 のみに付いている（OP-08 には付いていない）**（R3-M6 / R4-M7）
-- [ ] **OP-16 が `async throws` で、`.snapshot` のコピーが MainActor 外で実行される**（R4-H3）
-- [ ] **`FilePromiseLifecycleState` が nonisolated な lock-owning クラスであり、`@MainActor` の state を直接触っていない**（R4-H2）
+- [x] **本機能の差分が strict concurrency 診断を増やしていない**（CT-01 の条件で計測し、`Clipboard/` 配下 0 件）。`MIGRATION.md` §3.3「機能タスクの DoD は差分のみを判定する」に従う。**プロジェクトを Swift 6 言語モードへ切り替えることは本タスクの完了条件ではない**
+- [x] **Unity Bridge の Swift facade の handler が案 C（`@Sendable` 付与）で書かれている**（`MIGRATION.md` §6。iOS Clipboard 適用済みの決定事項）
+- [x] **実装のシグネチャ・actor isolation・キャンセル・timeout・exactly-once 契約が §9 の対応表と一致している**
+- [x] **`@discardableResult` が戻り値のある OP-01〜OP-07 / OP-09〜OP-11 のみに付いている（OP-08 には付いていない）**（R3-M6 / R4-M7）
+- [x] **OP-16 が `async throws` で、`.snapshot` のコピーが MainActor 外で実行される**（R4-H3）
+- [x] **`FilePromiseLifecycleState` が nonisolated な lock-owning クラスであり、`@MainActor` の state を直接触っていない**（R4-H2）
 - [x] 12.1 の単体テストが全通過する
-- [ ] 12.2 の統合テスト IT-01〜IT-20 が全通過する
-- [ ] 12.3 の Presentation テスト PT-01〜PT-08 が全通過する
-- [ ] 12.2 の統合テスト IT-21〜IT-50 が全通過する
-- [x] 12.4 の Bridge テスト BT-01〜BT-19 が全通過する
-- [ ] 12.5 の並行性テスト CT-01〜CT-16 が全通過する
+- [x] 12.2 の統合テスト IT-01〜IT-20 が全通過する
+- [x] 12.3 の Presentation テスト PT-01〜PT-15 が全通過する
+- [x] 12.2 の統合テスト IT-21〜IT-53 が全通過する
+- [x] 12.4 の Bridge テスト BT-01〜BT-25 が全通過する
+- [x] 12.5 の並行性テスト CT-01〜CT-17 が全通過する
 - [x] `public` シンボルすべてに英語の DocC が付いている
 - [x] **RK-24 を DocC に明記した（read は write の上位集合になり得る）**
 - [x] 全メソッド先頭に `Log.d` があり、内容が §4.2 の方針で秘匿されている
-- [ ] **Unity Bridge に Delegate 実装が存在せず、system delegate の強参照が `ClipboardSystemCoordinator` のみである**
+- [x] **Unity Bridge に Delegate 実装が存在せず、system delegate の強参照が `ClipboardSystemCoordinator` のみである**
 - [ ] `MacLibraryExample` が `MacLibrary` のみに依存して全公開 OP を実行できる
 - [ ] MT-01〜MT-07 を macOS 15.x で実施した（MT-08 は実機 Mac + iPhone、MT-09 は判定保留）
 

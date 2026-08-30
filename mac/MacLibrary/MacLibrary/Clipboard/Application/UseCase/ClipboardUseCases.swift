@@ -52,6 +52,8 @@ public struct ClipboardUseCases {
 
     /// OP-15. One-shot change check for returning to the foreground.
     public let checkForegroundChange: CheckForegroundChangeUseCase
+    /// Internal. Current change count, for the monitor and the stale check.
+    public let changeCount: GetChangeCountUseCase
     /// Shared with the polling monitor so both see the same last observed change count.
     public let changeTracker: ClipboardChangeTracker
 
@@ -98,6 +100,7 @@ public struct ClipboardUseCases {
         self.changeTracker = tracker
         self.checkForegroundChange = CheckForegroundChangeUseCase(repository: repository,
                                                                   tracker: tracker)
+        self.changeCount = GetChangeCountUseCase(repository: repository)
 
         self.provideFilePromise = ProvideFilePromiseUseCase(repository: repository,
                                                             registry: registry,

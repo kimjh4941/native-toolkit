@@ -62,7 +62,8 @@ public struct ProvideFilePromiseUseCase {
                 // so the completed staging would otherwise be orphaned (R5-M6).
                 try Task.checkCancellation()
             } catch {
-                await snapshotter.discard(stagingURL: staged)
+                // The root, so the per-handle directory does not survive the rollback.
+                await snapshotter.discard(stagingURL: root)
                 throw error
             }
             stagingURL = staged

@@ -180,15 +180,194 @@ struct UnityMacClipboardBridgeTests {
         #expect(others.isEmpty, "non-const char parameters: \(others)")
     }
 
+    // MARK: - BT-24 malformed options reach the callback
+
+    @Test("BT-24: a malformed optionsJson reaches the caller as 1301")
+    func malformedOptionsReportsParseFailed() async throws {
+        // The parser returning nil is only half the contract; what the caller sees is the
+        // callback. Checking the parser alone would not catch a façade that swallowed it.
+        let received = CallbackRecorder()
+        UnityMacClipboardManager.shared.copy(
+            contentJson: #"{"items":[{"representations":{"public.utf8-plain-text":"aGk="}}]}"#,
+            optionsJson: "garbage",
+            scopeJson: #"{"kind":"general"}"#
+        ) { isSuccess, _, errorCode, _ in
+            received.record(isSuccess: isSuccess, errorCode: errorCode)
+        }
+        try await Task.sleep(for: .milliseconds(200))
+
+        #expect(received.isSuccess == false)
+        #expect(received.errorCode == 1301)
+    }
+
+    @Test("BT-24: absent options are accepted rather than reported as malformed")
+    func absentOptionsAreAccepted() async throws {
+        let received = CallbackRecorder()
+        UnityMacClipboardManager.shared.copy(
+            contentJson: #"{"items":[{"representations":{"public.utf8-plain-text":"aGk="}}]}"#,
+            optionsJson: nil,
+            scopeJson: #"{"kind":"named","name":"com.nativetoolkit.tests.bt24"}"#
+        ) { isSuccess, _, errorCode, _ in
+            received.record(isSuccess: isSuccess, errorCode: errorCode)
+        }
+        try await Task.sleep(for: .milliseconds(300))
+
+        // Absent is not malformed: it means "use the defaults".
+        #expect(received.errorCode != 1301)
+    }
+
+    // MARK: - BT-25 the C layer must not log payloads
+
+    /// Helper an argument must go through, derived from its name.
+    ///
+    /// Scope arguments become a hash so a named pasteboard cannot be identified; everything
+    /// else becomes a length. Derived rather than listed, because a hand written list is only
+    /// as complete as whoever last edited it — the previous version of this audit omitted
+    /// `optionsJson` and therefore could not see it being logged verbatim.
+    private func helper(for argument: String) -> String {
+        argument.lowercased().contains("scope") ? "NTScope" : "NTLen"
+    }
+
+    /// Every `const char*` parameter of an endpoint, taken from its signature.
+    ///
+    /// The audit's subject is the signature itself, so an argument added later is covered
+    /// without anyone remembering to register it here.
+    private func payloadArguments(in signature: String) -> [String] {
+        signature.matches(of: /const char\*\s+(\w+)/).map { String($0.output.1) }
+    }
+
+    /// Each endpoint's name, signature and body.
+    ///
+    /// Splitting on the next definition is enough: the file has one function per endpoint and
+    /// nothing between them.
+    private func endpointBodies() -> [(name: String, signature: String, body: String)] {
+        var result: [(String, String, String)] = []
+        for part in implementation.components(separatedBy: "\nvoid clipboard").dropFirst() {
+            let source = "void clipboard" + part
+            guard let nameMatch = source.firstMatch(of: /void (clipboard\w+)\(/),
+                  let signatureEnd = source.firstIndex(of: ")"),
+                  let bodyStart = source.firstIndex(of: "{") else { continue }
+            result.append((String(nameMatch.output.1),
+                           String(source[..<signatureEnd]),
+                           String(source[bodyStart...])))
+        }
+        return result
+    }
+
+    /// The value part of every `Log` call in a function body.
+    ///
+    /// Every `[Log d:...]` and `[Log e:...]` is covered, not only the `stringWithFormat:`
+    /// ones. Restricting the audit to formatted calls left a way through: a direct
+    /// `[Log e:TAG :@"..."]` could carry a payload and never be looked at. The audit must not
+    /// be narrower than the ways the code can log.
+    ///
+    /// Within each call the leading string literal is dropped, because it names each value
+    /// (`"scopeJson: %@"`) and searching it for an identifier would flag every label.
+    private func logCalls(in body: String) -> [String] {
+        var results: [String] = []
+        for part in body.components(separatedBy: "[Log ").dropFirst() {
+            let call = String(part.prefix(while: { $0 != ";" }))
+            // Everything after the first string literal, which is the format or the message.
+            if let literalEnd = call.range(of: "\",") {
+                results.append(String(call[literalEnd.upperBound...]))
+            } else if let literalStart = call.range(of: ":@\"") {
+                // A direct message with no arguments. Anything interpolated into it would
+                // appear here.
+                results.append(String(call[literalStart.upperBound...]))
+            } else {
+                // An unrecognised shape is handed over whole rather than skipped.
+                results.append(call)
+            }
+        }
+        return results
+    }
+
+    @Test("BT-25: no payload argument reaches a log line unredacted")
+    func noPayloadReachesLogRaw() {
+        // Per argument, taken from the signature, so the audit cannot be narrower than the
+        // code it audits.
+        var offenders: [String] = []
+        for endpoint in endpointBodies() {
+            for logCall in logCalls(in: endpoint.body) {
+                for argument in payloadArguments(in: endpoint.signature) {
+                    // Remove the legitimate helper call, then look for the identifier again.
+                    // Independent of how a raw value is spelled: `?:`, a bare pointer or a
+                    // strlen all survive this strip and are caught.
+                    let stripped = logCall
+                        .replacingOccurrences(of: "\(helper(for: argument))(\(argument))", with: "")
+                    if stripped.contains(argument) {
+                        offenders.append("\(endpoint.name): raw \(argument)")
+                    }
+                }
+            }
+        }
+        #expect(offenders.isEmpty, "\(offenders.prefix(6))")
+    }
+
+    @Test("BT-25: an argument that is logged goes through its helper")
+    func loggedArgumentsUseTheirHelper() {
+        var offenders: [String] = []
+        for endpoint in endpointBodies() {
+            for logCall in logCalls(in: endpoint.body) {
+                for argument in payloadArguments(in: endpoint.signature)
+                where logCall.contains(argument) {
+                    let call = "\(helper(for: argument))(\(argument))"
+                    if !logCall.contains(call) {
+                        offenders.append("\(endpoint.name): \(argument) not via \(call)")
+                    }
+                }
+            }
+        }
+        #expect(offenders.isEmpty, "\(offenders.prefix(6))")
+    }
+
+    @Test("BT-25: the redaction helpers exist")
+    func redactionHelpersExist() {
+        #expect(implementation.contains("static NSString *NTLen("))
+        #expect(implementation.contains("static NSString *NTScope("))
+    }
+
+    @Test("BT-25: the audit sees every endpoint and every declared argument")
+    func auditCoversEveryEndpoint() {
+        // A subject set that quietly matched nothing would make the checks above pass by doing
+        // nothing. Earlier versions of this audit did exactly that, twice.
+        let bodies = endpointBodies()
+        #expect(bodies.count == 19)
+
+        // Every const char* parameter across the whole bridge, from the signatures.
+        let declared = bodies.reduce(0) { $0 + payloadArguments(in: $1.signature).count }
+        #expect(declared == 28, "the bridge declares \(declared) string parameters")
+
+        // Every Log call in the file is reachable by the audit, whatever its shape.
+        let logCallCount = bodies.reduce(0) { $0 + logCalls(in: $1.body).count }
+        let rawLogOccurrences = implementation.components(separatedBy: "[Log ").count - 1
+        #expect(logCallCount == rawLogOccurrences,
+                "the audit sees \(logCallCount) of \(rawLogOccurrences) Log calls")
+
+        // And every declared argument that is actually logged was examined.
+        var examined = 0
+        for endpoint in bodies {
+            for logCall in logCalls(in: endpoint.body) {
+                for argument in payloadArguments(in: endpoint.signature)
+                where logCall.contains(argument) {
+                    examined += 1
+                }
+            }
+        }
+        #expect(examined >= 20, "only \(examined) argument log sites were examined")
+    }
+
     // MARK: - Privacy
 
     @Test("R2-M11: the file promise path is never logged in full")
     func sourcePathIsNotLogged() {
-        // The request JSON holds an absolute user path. Only its length is logged.
+        // The request JSON holds an absolute user path, so only its length is logged. The
+        // general rule is enforced by the BT-25 audit; this keeps the specific case named,
+        // because it is the one the design calls out.
         let body = implementation.components(separatedBy: "void clipboardProvideFilePromise(")
         #expect(body.count == 2)
         let logged = body[1].prefix(while: { $0 != "}" })
-        #expect(logged.contains("requestJson length"))
+        #expect(logged.contains("NTLen(requestJson)"))
         #expect(!logged.contains("requestJson ?: "))
     }
 
@@ -197,4 +376,22 @@ struct UnityMacClipboardBridgeTests {
     private func endpointNames(in source: String) throws -> Set<String> {
         Set(source.matches(of: /void (clipboard\w+)\(/).map { String($0.output.1) })
     }
+}
+
+
+/// Collects a bridge callback from whichever thread delivers it.
+private final class CallbackRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedSuccess: Bool?
+    private var storedCode: Int?
+
+    func record(isSuccess: Bool, errorCode: Int) {
+        lock.withLock {
+            storedSuccess = isSuccess
+            storedCode = errorCode
+        }
+    }
+
+    var isSuccess: Bool? { lock.withLock { storedSuccess } }
+    var errorCode: Int? { lock.withLock { storedCode } }
 }

@@ -262,6 +262,205 @@ struct ClipboardPasteLoaderTests {
         #expect(recorder.callCount == 1)
     }
 
+    // MARK: - H-4 repeated presses
+
+    @Test("H-4: a second press delivers its own result")
+    func secondPressDelivers() async throws {
+        let recorder = Recorder()
+        let loader = try makeLoader(recorder: recorder)
+
+        loader.load(from: [FakeSource(available: [text: Data("first".utf8)])])
+        try await wait()
+        loader.load(from: [FakeSource(available: [text: Data("second".utf8)])])
+        try await wait()
+
+        // The button stays on screen, so the loader outlives one press. Exactly-once is per
+        // press, not per loader.
+        #expect(recorder.callCount == 2)
+        #expect(recorder.results.last?.items.first?.data.representations[text] == Data("second".utf8))
+    }
+
+    @Test("H-4: a new press supersedes one still running")
+    func newPressSupersedesRunning() async throws {
+        let recorder = Recorder()
+        let loader = try makeLoader(timeout: 5, recorder: recorder)
+
+        loader.load(from: [FakeSource(available: [text: Data("slow".utf8)],
+                                      delay: .milliseconds(300))])
+        try await Task.sleep(for: .milliseconds(50))
+        loader.load(from: [FakeSource(available: [text: Data("fast".utf8)])])
+        try await Task.sleep(for: .milliseconds(600))
+
+        // The superseded press must not deliver: its result is for a payload the user has
+        // already replaced.
+        #expect(recorder.callCount == 1)
+        #expect(recorder.results.first?.items.first?.data.representations[text] == Data("fast".utf8))
+    }
+
+    @Test("H-4: cancelling still suppresses a later press")
+    func cancelSuppressesSubsequentPresses() async throws {
+        let recorder = Recorder()
+        let loader = try makeLoader(recorder: recorder)
+
+        loader.cancel()
+        loader.load(from: [FakeSource(available: [text: Data("a".utf8)])])
+        try await wait()
+
+        // cancel means the owning view is gone, so nothing may be delivered afterwards.
+        #expect(recorder.callCount == 0)
+    }
+
+    // MARK: - H-1 unresponsive providers
+
+    /// Never resumes, and ignores cancellation. Stands in for a provider whose callback never
+    /// arrives, which a `Task.sleep` based fake cannot represent because sleeping *is*
+    /// cancellable.
+    private struct HangingSource: ClipboardPasteLoader.Source {
+        let available: [String: Data]
+
+        func conforms(to identifier: String) async -> Bool { available[identifier] != nil }
+
+        func loadData(for identifier: String) async throws -> Data {
+            await withCheckedContinuation { (_: CheckedContinuation<Void, Never>) in
+                // Deliberately dropped: no resume, no cancellation handler.
+            }
+            return Data()
+        }
+    }
+
+    @Test("H-1: a provider that never calls back still hits the deadline", .timeLimit(.minutes(1)))
+    func hangingProviderStillTimesOut() async throws {
+        let recorder = Recorder()
+        let loader = try makeLoader(timeout: 0.2, recorder: recorder)
+
+        loader.load(from: [
+            FakeSource(available: [text: Data("ok".utf8)]),
+            HangingSource(available: [text: Data("never".utf8)]),
+        ])
+        try await Task.sleep(for: .milliseconds(800))
+
+        // Waiting for the group to drain would hang here forever.
+        #expect(recorder.callCount == 1)
+        let result = try #require(recorder.results.first)
+        #expect(result.items.count == 1)
+        #expect(result.failures.first?.error == .pasteLoadTimedOut(seconds: 0))
+    }
+
+    @Test("H-1: every provider hanging still produces a result", .timeLimit(.minutes(1)))
+    func allHangingStillTimesOut() async throws {
+        let recorder = Recorder()
+        let loader = try makeLoader(timeout: 0.2, recorder: recorder)
+
+        loader.load(from: [
+            HangingSource(available: [text: Data("a".utf8)]),
+            HangingSource(available: [text: Data("b".utf8)]),
+        ])
+        try await Task.sleep(for: .milliseconds(800))
+
+        #expect(recorder.callCount == 1)
+        #expect(recorder.results.first?.isCompleteFailure == true)
+    }
+
+    // MARK: - M-4 / M-5 the production adapter boundary
+
+    /// Exercises `ItemProviderSource` against a real `NSItemProvider`.
+    ///
+    /// PT-12 and PT-13 inject a fake source, so they never run the adapter, the progress box
+    /// or the gate that H-1 also changed. That is the same shape of gap the first review
+    /// found: a test that agrees with the implementation's assumptions instead of checking
+    /// them.
+    @Suite("Item provider adapter")
+    @MainActor
+    struct ItemProviderSourceTests {
+
+        private let text = "public.utf8-plain-text"
+
+        @Test("the adapter loads through a real NSItemProvider")
+        func loadsThroughRealProvider() async throws {
+            let provider = NSItemProvider()
+            provider.registerDataRepresentation(forTypeIdentifier: text, visibility: .all) { completion in
+                completion(Data("real".utf8), nil)
+                return nil
+            }
+            let source = PasteButtonFactory.ItemProviderSource(provider: provider)
+
+            #expect(await source.conforms(to: text))
+            #expect(try await source.loadData(for: text) == Data("real".utf8))
+        }
+
+        @Test("M-4: cancelling before the Progress exists still cancels the provider work",
+              .timeLimit(.minutes(1)))
+        func cancelBeforeProgressInstalled() async throws {
+            // The provider hands back its Progress only after the load has started, so a task
+            // cancelled at the wrong moment can leave a Progress nobody ever cancels. The
+            // caller returns either way, which is exactly why this needs its own test.
+            let observed = ProgressObserver()
+            let provider = NSItemProvider()
+            provider.registerDataRepresentation(forTypeIdentifier: text, visibility: .all) { _ in
+                let progress = Progress(totalUnitCount: 1)
+                observed.value = progress
+                // Never completes: only cancellation can end this.
+                return progress
+            }
+            let source = PasteButtonFactory.ItemProviderSource(provider: provider)
+
+            let task = Task { try await source.loadData(for: self.text) }
+            // Cancel while the load is starting, so the race is the one described above.
+            task.cancel()
+            _ = try? await task.value
+            try await Task.sleep(for: .milliseconds(300))
+
+            let progress = try #require(observed.value, "the provider should have started")
+            #expect(progress.isCancelled, "a Progress installed after cancellation must still be cancelled")
+        }
+
+        @Test("M-4: cancelling after the Progress exists cancels it", .timeLimit(.minutes(1)))
+        func cancelAfterProgressInstalled() async throws {
+            let observed = ProgressObserver()
+            let provider = NSItemProvider()
+            provider.registerDataRepresentation(forTypeIdentifier: text, visibility: .all) { _ in
+                let progress = Progress(totalUnitCount: 1)
+                observed.value = progress
+                return progress
+            }
+            let source = PasteButtonFactory.ItemProviderSource(provider: provider)
+
+            let task = Task { try await source.loadData(for: self.text) }
+            try await Task.sleep(for: .milliseconds(200))
+            task.cancel()
+            _ = try? await task.value
+            try await Task.sleep(for: .milliseconds(200))
+
+            let progress = try #require(observed.value)
+            #expect(progress.isCancelled)
+        }
+
+        @Test("a cancelled load reports cancellation rather than hanging", .timeLimit(.minutes(1)))
+        func cancelledLoadThrows() async throws {
+            let provider = NSItemProvider()
+            provider.registerDataRepresentation(forTypeIdentifier: text, visibility: .all) { _ in
+                Progress(totalUnitCount: 1)
+            }
+            let source = PasteButtonFactory.ItemProviderSource(provider: provider)
+
+            let task = Task { try await source.loadData(for: self.text) }
+            try await Task.sleep(for: .milliseconds(100))
+            task.cancel()
+
+            await #expect(throws: (any Error).self) { _ = try await task.value }
+        }
+    }
+
+    /// Captures the `Progress` a provider creates, from whichever thread creates it.
+    private final class ProgressObserver: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: Progress?
+        var value: Progress? {
+            get { lock.withLock { stored } }
+            set { lock.withLock { stored = newValue } }
+        }
+    }
+
     // MARK: - Validation
 
     @Test("an empty accepted type list is rejected")

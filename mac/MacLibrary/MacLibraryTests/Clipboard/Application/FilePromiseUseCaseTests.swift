@@ -176,6 +176,9 @@ struct FilePromiseUseCaseTests {
 
         await #expect(throws: CancellationError.self) { try await task.value }
         #expect(context.2.discardCallCount == 1)
+        // The per-handle root, not the copied file inside it: discarding only the child would
+        // leave an empty directory behind for every cancelled promise (R-M1).
+        #expect(context.2.discardedURLs == [context.1.stubbedStagingRoot])
         #expect(context.1.registerFilePromiseCallCount == 0)
     }
 

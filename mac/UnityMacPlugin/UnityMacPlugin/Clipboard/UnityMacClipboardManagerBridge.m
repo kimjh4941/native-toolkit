@@ -14,9 +14,32 @@ static NSString * _Nullable NTStr(const char* value) {
     return value ? [NSString stringWithUTF8String:value] : nil;
 }
 
+/// Describes a JSON payload by length only.
+///
+/// Clipboard JSON carries the payload itself, base64 encoded. Logging it verbatim would copy
+/// passwords, tokens and documents into whatever collects debug logs, which section 4.2 of the
+/// design forbids. The Swift layer redacts through `ClipboardLog`; this is its counterpart for
+/// the C layer.
+static NSString *NTLen(const char* value) {
+    return value ? [NSString stringWithFormat:@"len:%lu", (unsigned long)strlen(value)]
+                 : @"(null)";
+}
+
+/// Describes a scope without revealing a named pasteboard.
+///
+/// A pasteboard name is chosen by the caller and can identify a workflow or a document, so
+/// only `general` is logged verbatim; anything else becomes a short hash that is still enough
+/// to correlate log lines.
+static NSString *NTScope(const char* value) {
+    if (!value) { return @"(null)"; }
+    NSString *json = [NSString stringWithUTF8String:value];
+    if ([json rangeOfString:@"\"general\""].location != NSNotFound) { return @"scope(general)"; }
+    return [NSString stringWithFormat:@"scope(%08x)", (unsigned int)json.hash];
+}
+
 void clipboardCopy(const char* contentJson, const char* optionsJson, const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardCopy contentJson: %s, optionsJson: %s, scopeJson: %s, callback: %p",
-                 contentJson ?: "(null)", optionsJson ?: "(null)", scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardCopy contentJson: %@, optionsJson: %@, scopeJson: %@, callback: %p",
+                 NTLen(contentJson), NTLen(optionsJson), NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] copyWithContentJson:NTStr(contentJson)
                                              optionsJson:NTStr(optionsJson)
                                              scopeJson:NTStr(scopeJson)
@@ -30,8 +53,8 @@ void clipboardCopy(const char* contentJson, const char* optionsJson, const char*
 }
 
 void clipboardAppend(const char* contentJson, const char* ownershipJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardAppend contentJson: %s, ownershipJson: %s, callback: %p",
-                 contentJson ?: "(null)", ownershipJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardAppend contentJson: %@, ownershipJson: %@, callback: %p",
+                 NTLen(contentJson), NTLen(ownershipJson), callback]];
     [[UnityMacClipboardManager shared] appendWithContentJson:NTStr(contentJson)
                                              ownershipJson:NTStr(ownershipJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
@@ -44,8 +67,8 @@ void clipboardAppend(const char* contentJson, const char* ownershipJson, Clipboa
 }
 
 void clipboardRead(const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardRead scopeJson: %s, callback: %p",
-                 scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardRead scopeJson: %@, callback: %p",
+                 NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] readWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
@@ -57,8 +80,8 @@ void clipboardRead(const char* scopeJson, ClipboardJsonCallback callback) {
 }
 
 void clipboardReadData(const char* utType, const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardReadData utType: %s, scopeJson: %s, callback: %p",
-                 utType ?: "(null)", scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardReadData utType: %@, scopeJson: %@, callback: %p",
+                 NTLen(utType), NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] readDataWithUtType:NTStr(utType)
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
@@ -71,8 +94,8 @@ void clipboardReadData(const char* utType, const char* scopeJson, ClipboardJsonC
 }
 
 void clipboardSnapshot(const char* matchingTypesJson, const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardSnapshot matchingTypesJson: %s, scopeJson: %s, callback: %p",
-                 matchingTypesJson ?: "(null)", scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardSnapshot matchingTypesJson: %@, scopeJson: %@, callback: %p",
+                 NTLen(matchingTypesJson), NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] snapshotMatchingTypesJson:NTStr(matchingTypesJson)
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
@@ -85,8 +108,8 @@ void clipboardSnapshot(const char* matchingTypesJson, const char* scopeJson, Cli
 }
 
 void clipboardClear(const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardClear scopeJson: %s, callback: %p",
-                 scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardClear scopeJson: %@, callback: %p",
+                 NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] clearWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
@@ -98,8 +121,8 @@ void clipboardClear(const char* scopeJson, ClipboardJsonCallback callback) {
 }
 
 void clipboardCreatePasteboard(const char* requestJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardCreatePasteboard requestJson: %s, callback: %p",
-                 requestJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardCreatePasteboard requestJson: %@, callback: %p",
+                 NTLen(requestJson), callback]];
     if (!callback) {
         [Log e:TAG :@"clipboardCreatePasteboard: callback is required; nothing was created."];
         return;
@@ -115,8 +138,8 @@ void clipboardCreatePasteboard(const char* requestJson, ClipboardJsonCallback ca
 }
 
 void clipboardDetectPatterns(const char* patternsJson, const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardDetectPatterns patternsJson: %s, scopeJson: %s, callback: %p",
-                 patternsJson ?: "(null)", scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardDetectPatterns patternsJson: %@, scopeJson: %@, callback: %p",
+                 NTLen(patternsJson), NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] detectPatternsWithPatternsJson:NTStr(patternsJson)
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
@@ -129,8 +152,8 @@ void clipboardDetectPatterns(const char* patternsJson, const char* scopeJson, Cl
 }
 
 void clipboardDetectValues(const char* patternsJson, const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardDetectValues patternsJson: %s, scopeJson: %s, callback: %p",
-                 patternsJson ?: "(null)", scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardDetectValues patternsJson: %@, scopeJson: %@, callback: %p",
+                 NTLen(patternsJson), NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] detectValuesWithPatternsJson:NTStr(patternsJson)
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
@@ -143,8 +166,8 @@ void clipboardDetectValues(const char* patternsJson, const char* scopeJson, Clip
 }
 
 void clipboardDetectMetadata(const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardDetectMetadata scopeJson: %s, callback: %p",
-                 scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardDetectMetadata scopeJson: %@, callback: %p",
+                 NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] detectMetadataWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
@@ -156,8 +179,8 @@ void clipboardDetectMetadata(const char* scopeJson, ClipboardJsonCallback callba
 }
 
 void clipboardAccessBehavior(const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardAccessBehavior scopeJson: %s, callback: %p",
-                 scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardAccessBehavior scopeJson: %@, callback: %p",
+                 NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] accessBehaviorWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
@@ -169,8 +192,8 @@ void clipboardAccessBehavior(const char* scopeJson, ClipboardJsonCallback callba
 }
 
 void clipboardCheckForegroundChange(const char* scopeJson, ClipboardJsonCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardCheckForegroundChange scopeJson: %s, callback: %p",
-                 scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardCheckForegroundChange scopeJson: %@, callback: %p",
+                 NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] checkForegroundChangeWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
@@ -182,8 +205,8 @@ void clipboardCheckForegroundChange(const char* scopeJson, ClipboardJsonCallback
 }
 
 void clipboardRemovePasteboard(const char* scopeJson, ClipboardCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardRemovePasteboard scopeJson: %s, callback: %p",
-                 scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardRemovePasteboard scopeJson: %@, callback: %p",
+                 NTScope(scopeJson), callback]];
     [[UnityMacClipboardManager shared] removePasteboardWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSInteger errorCode, NSString* errorMessage) {
         if (callback) {
@@ -193,8 +216,8 @@ void clipboardRemovePasteboard(const char* scopeJson, ClipboardCallback callback
 }
 
 void clipboardReleaseFilePromise(const char* handleJson, ClipboardCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardReleaseFilePromise handleJson: %s, callback: %p",
-                 handleJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardReleaseFilePromise handleJson: %@, callback: %p",
+                 NTLen(handleJson), callback]];
     [[UnityMacClipboardManager shared] releaseFilePromiseWithHandleJson:NTStr(handleJson)
                                              handler:^(BOOL isSuccess, NSInteger errorCode, NSString* errorMessage) {
         if (callback) {
@@ -204,8 +227,8 @@ void clipboardReleaseFilePromise(const char* handleJson, ClipboardCallback callb
 }
 
 void clipboardCancelReceiveFilePromises(const char* handleJson, ClipboardCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardCancelReceiveFilePromises handleJson: %s, callback: %p",
-                 handleJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardCancelReceiveFilePromises handleJson: %@, callback: %p",
+                 NTLen(handleJson), callback]];
     [[UnityMacClipboardManager shared] cancelReceiveFilePromisesWithHandleJson:NTStr(handleJson)
                                              handler:^(BOOL isSuccess, NSInteger errorCode, NSString* errorMessage) {
         if (callback) {
@@ -218,8 +241,8 @@ void clipboardStartObserving(const char* scopeJson,
                              double intervalSeconds,
                              ClipboardCallback callback,
                              ClipboardChangeCallback onChange) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardStartObserving scopeJson: %s, interval: %f, callback: %p, onChange: %p",
-                 scopeJson ?: "(null)", intervalSeconds, callback, onChange]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardStartObserving scopeJson: %@, interval: %f, callback: %p, onChange: %p",
+                 NTScope(scopeJson), intervalSeconds, callback, onChange]];
     // The event callback is turned into a block here rather than in Swift, so the Swift side
     // never sees a C function pointer.
     [[UnityMacClipboardManager shared] startObservingWithScopeJson:NTStr(scopeJson)
@@ -247,8 +270,8 @@ void clipboardProvideFilePromise(const char* requestJson,
                                  const char* scopeJson,
                                  ClipboardJsonCallback callback) {
     // The request holds a full file path, which is never logged (section 4.2).
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardProvideFilePromise requestJson length: %lu, scopeJson: %s, callback: %p",
-                 (unsigned long)(requestJson ? strlen(requestJson) : 0), scopeJson ?: "(null)", callback]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardProvideFilePromise requestJson: %@, scopeJson: %@, callback: %p",
+                 NTLen(requestJson), NTScope(scopeJson), callback]];
     if (!callback) {
         [Log e:TAG :@"clipboardProvideFilePromise: callback is required; nothing was registered."];
         return;
@@ -267,8 +290,8 @@ void clipboardReceiveFilePromises(const char* destinationPath,
                                   const char* policyJson,
                                   ClipboardJsonCallback callback,
                                   ClipboardReceiptCallback onEvent) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardReceiveFilePromises scopeJson: %s, policyJson: %s, callback: %p, onEvent: %p",
-                 scopeJson ?: "(null)", policyJson ?: "(null)", callback, onEvent]];
+    [Log d:TAG :[NSString stringWithFormat:@"clipboardReceiveFilePromises destinationPath: %@, scopeJson: %@, policyJson: %@, callback: %p, onEvent: %p",
+                 NTLen(destinationPath), NTScope(scopeJson), NTLen(policyJson), callback, onEvent]];
     if (!callback) {
         [Log e:TAG :@"clipboardReceiveFilePromises: callback is required; nothing was started."];
         return;

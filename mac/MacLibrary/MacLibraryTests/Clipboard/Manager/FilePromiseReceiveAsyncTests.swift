@@ -23,8 +23,7 @@ struct FilePromiseReceiveAsyncTests {
                                          registry: coordinator,
                                          snapshotter: snapshotter,
                                          typeValidator: MockClipboardTypeIdentifierValidating())
-        return (MacClipboardManager(coordinator: coordinator, useCases: useCases,
-                                    repository: repository), repository, coordinator)
+        return (MacClipboardManager(coordinator: coordinator, useCases: useCases), repository, coordinator)
     }
 
     private func destination() -> URL {
@@ -230,6 +229,199 @@ struct FilePromiseReceiveAsyncTests {
                                                          terminatedBy: .quiescence))))
 
         #expect(count == 1)
+    }
+
+    // MARK: - CT-17 cancellation at each point of the start sequence
+
+    /// A repository whose `startReceivingFilePromises` calls a hook, so cancellation can be
+    /// injected at a known point of the start sequence.
+    ///
+    /// The hook runs **inside** the start, synchronously, which is what makes the "during
+    /// registration" moment reachable: the session is registered and the start has not
+    /// returned. A blocking barrier cannot be used here — the start runs on the main actor, so
+    /// blocking it would deadlock the very test meant to release it.
+    @MainActor
+    private final class GatedRepository: ClipboardRepository {
+        private let base = MockClipboardRepository()
+        /// Runs inside the start, before it returns.
+        var onStart: (@MainActor (FilePromiseReceiptHandle) -> Void)?
+        private(set) var startCallCount = 0
+        private(set) var startedHandles: [FilePromiseReceiptHandle] = []
+
+        func startReceivingFilePromises(handle: FilePromiseReceiptHandle,
+                                        destinationDirectory: URL,
+                                        scope: PasteboardScope) throws {
+            startCallCount += 1
+            startedHandles.append(handle)
+            onStart?(handle)
+        }
+
+        func createPasteboard(_ request: PasteboardCreationRequest) throws -> PasteboardScope {
+            try base.createPasteboard(request)
+        }
+        func removePasteboard(_ scope: PasteboardScope) throws { try base.removePasteboard(scope) }
+        func write(_ content: ClipboardContent, options: ClipboardCopyOptions,
+                   scope: PasteboardScope) throws -> PasteboardOwnership {
+            try base.write(content, options: options, scope: scope)
+        }
+        func writePromised(handle: PasteboardPromiseHandle, types: [String],
+                           options: ClipboardCopyOptions,
+                           scope: PasteboardScope) throws -> PasteboardOwnership {
+            try base.writePromised(handle: handle, types: types, options: options, scope: scope)
+        }
+        func append(_ content: ClipboardContent,
+                    ownership: PasteboardOwnership) throws -> PasteboardOwnership {
+            try base.append(content, ownership: ownership)
+        }
+        func read(scope: PasteboardScope) throws -> ClipboardReadResult { try base.read(scope: scope) }
+        func readData(utType: String, scope: PasteboardScope) throws -> Data? {
+            try base.readData(utType: utType, scope: scope)
+        }
+        func snapshot(matchingTypes: [String]?, scope: PasteboardScope) throws -> ClipboardSnapshot {
+            try base.snapshot(matchingTypes: matchingTypes, scope: scope)
+        }
+        func clear(scope: PasteboardScope) throws -> Int { try base.clear(scope: scope) }
+        func changeCount(scope: PasteboardScope) throws -> Int { try base.changeCount(scope: scope) }
+        func detectPatterns(_ patterns: Set<ClipboardDetectionPattern>,
+                            scope: PasteboardScope) async throws -> Set<ClipboardDetectionPattern> {
+            try await base.detectPatterns(patterns, scope: scope)
+        }
+        func detectValues(_ patterns: Set<ClipboardDetectionPattern>,
+                          scope: PasteboardScope) async throws -> ClipboardDetectedValues {
+            try await base.detectValues(patterns, scope: scope)
+        }
+        func detectMetadata(scope: PasteboardScope) async throws -> ClipboardDetectedMetadata {
+            try await base.detectMetadata(scope: scope)
+        }
+        func accessBehavior(scope: PasteboardScope) throws -> ClipboardAccessBehavior {
+            try base.accessBehavior(scope: scope)
+        }
+        func writeFilePromise(handle: FilePromiseHandle,
+                              scope: PasteboardScope) throws -> PasteboardOwnership {
+            try base.writeFilePromise(handle: handle, scope: scope)
+        }
+    }
+
+    private func makeGatedManager() -> (MacClipboardManager, GatedRepository,
+                                        ClipboardSystemCoordinator) {
+        let repository = GatedRepository()
+        let snapshotter = MockFilePromiseSnapshotter()
+        let coordinator = ClipboardSystemCoordinator(
+            snapshotter: snapshotter,
+            stagingBase: URL(filePath: NSTemporaryDirectory()).appending(path: UUID().uuidString))
+        let useCases = ClipboardUseCases(repository: repository,
+                                         registry: coordinator,
+                                         snapshotter: snapshotter,
+                                         typeValidator: MockClipboardTypeIdentifierValidating())
+        return (MacClipboardManager(coordinator: coordinator, useCases: useCases),
+                repository, coordinator)
+    }
+
+    @Test("CT-17: cancelling just after the handle is reserved leaves no session")
+    func cancelJustAfterReservation() async throws {
+        let (manager, repository, coordinator) = makeGatedManager()
+        let directory = destination()
+
+        // Cancelled before the task body runs, so the handle has been reserved by the time
+        // onCancel fires but the start has not been reached.
+        let task = Task { @MainActor in
+            try await manager.receiveFilePromises(destinationDirectory: directory)
+        }
+        task.cancel()
+
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(coordinator.registeredReceiptCount == 0)
+    }
+
+    @Test("CT-17: cancelling while the start is in flight leaves no session", .timeLimit(.minutes(1)))
+    func cancelDuringRegistration() async throws {
+        let (manager, repository, coordinator) = makeGatedManager()
+        let directory = destination()
+
+        var task: Task<FilePromiseReceipt, any Error>?
+        // Fires inside the start: the session is registered and the call has not returned,
+        // which is the window R6-H4 was about. No sleeping is involved.
+        repository.onStart = { _ in task?.cancel() }
+
+        task = Task { @MainActor in
+            try await manager.receiveFilePromises(destinationDirectory: directory)
+        }
+        _ = try? await task?.value
+        try await Task.sleep(for: .milliseconds(200))
+
+        #expect(repository.startCallCount == 1)
+        #expect(coordinator.registeredReceiptCount == 0)
+        let started = try #require(repository.startedHandles.first)
+        #expect(coordinator.receiptSession(for: started) == nil)
+    }
+
+    @Test("CT-17: cancelling just after the start returns leaves no session", .timeLimit(.minutes(1)))
+    func cancelJustAfterRegistration() async throws {
+        let (manager, repository, coordinator) = makeGatedManager()
+        let directory = destination()
+
+        let task = Task { @MainActor in
+            try await manager.receiveFilePromises(destinationDirectory: directory)
+        }
+        // Yield until the start has returned, rather than sleeping for long enough to hope.
+        try await waitUntil { repository.startCallCount == 1 }
+        #expect(coordinator.registeredReceiptCount == 1)
+        let started = try #require(repository.startedHandles.first)
+
+        task.cancel()
+        _ = try? await task.value
+        try await Task.sleep(for: .milliseconds(200))
+
+        #expect(coordinator.registeredReceiptCount == 0)
+        #expect(coordinator.receiptSession(for: started) == nil)
+    }
+
+    @Test("CT-17: every cancellation point acts on the reserved handle", .timeLimit(.minutes(1)))
+    func cancellationUsesTheReservedHandle() async throws {
+        // The same assertion at each of the three points: the handle the start was given is
+        // the one torn down. A handle assigned later would leave that session behind (R6-H4).
+        enum Point: String, CaseIterable {
+            case beforeStart, duringStart, afterStart
+        }
+
+        for point in Point.allCases {
+            let (manager, repository, coordinator) = makeGatedManager()
+            let directory = destination()
+            var task: Task<FilePromiseReceipt, any Error>?
+            if point == .duringStart {
+                repository.onStart = { _ in task?.cancel() }
+            }
+
+            task = Task { @MainActor in
+                try await manager.receiveFilePromises(destinationDirectory: directory)
+            }
+            switch point {
+            case .beforeStart:
+                task?.cancel()
+            case .duringStart:
+                break
+            case .afterStart:
+                try await waitUntil { repository.startCallCount == 1 }
+                task?.cancel()
+            }
+            _ = try? await task?.value
+            try await Task.sleep(for: .milliseconds(200))
+
+            #expect(coordinator.registeredReceiptCount == 0, "\(point.rawValue)")
+            if let started = repository.startedHandles.first {
+                #expect(coordinator.receiptSession(for: started) == nil, "\(point.rawValue)")
+            }
+        }
+    }
+
+    /// Yields until `condition` holds, so a test can wait for a step instead of a duration.
+    private func waitUntil(_ condition: @MainActor () -> Bool) async throws {
+        for _ in 0..<1_000 {
+            if condition() { return }
+            await Task.yield()
+        }
+        Issue.record("condition never became true")
     }
 
     @Test("a task cancelled before it starts still reports cancellation")

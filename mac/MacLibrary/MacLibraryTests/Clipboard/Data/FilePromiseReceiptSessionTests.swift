@@ -95,17 +95,52 @@ struct FilePromiseReceiptSessionTests {
         #expect(recorder.terminal?.terminatedBy == .quiescence)
     }
 
-    @Test("a session where nothing arrives still terminates")
+    @Test("a session where nothing arrives still terminates, by the overall timeout")
     func emptySessionTerminates() async throws {
-        let (session, recorder, _) = makeSession(try policy())
+        let (session, recorder, _) = makeSession(try policy(quiet: 0.1, overall: 0.4))
         session.start(promisedTypeCount: 5)
 
-        try await Task.sleep(for: .milliseconds(200))
+        try await Task.sleep(for: .milliseconds(700))
 
         // Five types were advertised and nothing arrived. A count based design would wait
-        // forever here.
+        // forever here. The quiet interval must not end it either: nothing has gone quiet
+        // because nothing ever started.
         #expect(recorder.finishedCount == 1)
+        #expect(recorder.terminal?.terminatedBy == .overallTimeout)
         #expect(recorder.terminal?.urls.isEmpty == true)
+    }
+
+    @Test("H-2: a provider slower than the quiet interval is not cut off before it starts")
+    func slowFirstArrivalIsNotCutOff() async throws {
+        // The quiet interval measures silence *since the last arrival*. Starting the timer at
+        // subscription time instead makes it a deadline for the first file, which discards
+        // everything from a provider that takes a moment to produce it.
+        let (session, recorder, _) = makeSession(try policy(quiet: 0.15, overall: 3))
+        session.start(promisedTypeCount: 1)
+
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(recorder.finishedCount == 0, "the session must still be open")
+
+        session.recordReceived(URL(filePath: "/tmp/late.txt"), generation: session.generation)
+        try await Task.sleep(for: .milliseconds(400))
+
+        #expect(recorder.terminal?.terminatedBy == .quiescence)
+        #expect(recorder.terminal?.urls == [URL(filePath: "/tmp/late.txt")])
+    }
+
+    @Test("H-2: a failure also starts the quiet interval")
+    func firstFailureStartsQuietInterval() async throws {
+        let (session, recorder, _) = makeSession(try policy(quiet: 0.15, overall: 3))
+        session.start(promisedTypeCount: 1)
+
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(recorder.finishedCount == 0)
+
+        session.recordFailure(.filePromiseReceiveFailed("boom"), generation: session.generation)
+        try await Task.sleep(for: .milliseconds(400))
+
+        #expect(recorder.terminal?.terminatedBy == .quiescence)
+        #expect(recorder.terminal?.failures.count == 1)
     }
 
     // MARK: - IT-17
@@ -114,14 +149,17 @@ struct FilePromiseReceiptSessionTests {
     func lateCallbackIsDiscarded() async throws {
         let (session, recorder, _) = makeSession(try policy())
         session.start(promisedTypeCount: 1)
+        // One arrival, so the quiet interval has something to measure silence from.
+        session.recordReceived(URL(filePath: "/tmp/first.txt"), generation: session.generation)
         try await Task.sleep(for: .milliseconds(200))
         #expect(recorder.finishedCount == 1)
+        let deliveredBefore = recorder.events.count
 
         session.recordReceived(URL(filePath: "/tmp/late.txt"), generation: session.generation)
 
         // The reader keeps running on its own queue after the session ends. Accepting this
         // would emit an event after the terminal one.
-        #expect(recorder.events.count == 1)
+        #expect(recorder.events.count == deliveredBefore)
         #expect(recorder.finishedCount == 1)
     }
 

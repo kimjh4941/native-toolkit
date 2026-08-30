@@ -88,14 +88,17 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
                      optionsJson: String?,
                      scopeJson: String?,
                      handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[copy] content length: \(contentJson?.count ?? 0), scope: \(scopeJson ?? "nil")")
+        Log.d(TAG, "[copy] content length: \(contentJson?.count ?? 0), scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let content = parser.parseContent(contentJson) else {
             return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
         }
         guard let scope = parser.parseScope(scopeJson) else {
             return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
         }
-        let options = parser.parseOptions(optionsJson)
+        // A malformed options payload is a caller bug, not a request for the defaults.
+        guard let options = parser.parseOptions(optionsJson) else {
+            return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
+        }
         let parser = self.parser
         run(handler, encode: { parser.encodeOwnership($0) }) { completion in
             MacClipboardManager.shared.copy(content, options: options, scope: scope,
@@ -123,7 +126,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
 
     public func read(scopeJson: String?,
                      handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[read] scope: \(scopeJson ?? "nil")")
+        Log.d(TAG, "[read] scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let scope = parser.parseScope(scopeJson) else { return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument.")) }
         let parser = self.parser
         run(handler, encode: { parser.encodeReadResult($0) }) { completion in
@@ -158,7 +161,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
     public func snapshot(matchingTypesJson: String?,
                          scopeJson: String?,
                          handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[snapshot] matchingTypes: \(matchingTypesJson ?? "nil")")
+        Log.d(TAG, "[snapshot] matchingTypes: \(ClipboardLog.json(matchingTypesJson))")
         guard let scope = parser.parseScope(scopeJson) else { return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument.")) }
         guard let matchingTypes = parser.parseMatchingTypes(matchingTypesJson) else {
             return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
@@ -174,7 +177,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
 
     public func clear(scopeJson: String?,
                       handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[clear] scope: \(scopeJson ?? "nil")")
+        Log.d(TAG, "[clear] scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let scope = parser.parseScope(scopeJson) else { return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument.")) }
         let parser = self.parser
         run(handler, encode: { parser.encodeChangeCount($0) }) { completion in
@@ -186,7 +189,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
 
     public func createPasteboard(requestJson: String?,
                                  handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[createPasteboard] request: \(requestJson ?? "nil")")
+        Log.d(TAG, "[createPasteboard] request: \(ClipboardLog.json(requestJson))")
         // A caller that cannot receive the scope cannot release the pasteboard it just made,
         // so the handler is required here (R3-M4 / R4-M6).
         guard let handler else {
@@ -206,7 +209,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
 
     public func removePasteboard(scopeJson: String?,
                                  handler: (@Sendable (Bool, Int, String?) -> Void)?) {
-        Log.d(TAG, "[removePasteboard] scope: \(scopeJson ?? "nil")")
+        Log.d(TAG, "[removePasteboard] scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let scope = parser.parseScope(scopeJson) else {
             return failVoid(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
         }
@@ -220,7 +223,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
     public func detectPatterns(patternsJson: String?,
                                scopeJson: String?,
                                handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[detectPatterns] patterns: \(patternsJson ?? "nil")")
+        Log.d(TAG, "[detectPatterns] patterns: \(ClipboardLog.json(patternsJson))")
         guard let patterns = parser.parsePatterns(patternsJson),
               let scope = parser.parseScope(scopeJson) else {
             return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
@@ -236,7 +239,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
     public func detectValues(patternsJson: String?,
                              scopeJson: String?,
                              handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[detectValues] patterns: \(patternsJson ?? "nil")")
+        Log.d(TAG, "[detectValues] patterns: \(ClipboardLog.json(patternsJson))")
         guard let patterns = parser.parsePatterns(patternsJson),
               let scope = parser.parseScope(scopeJson) else {
             return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
@@ -251,7 +254,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
 
     public func detectMetadata(scopeJson: String?,
                                handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[detectMetadata] scope: \(scopeJson ?? "nil")")
+        Log.d(TAG, "[detectMetadata] scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let scope = parser.parseScope(scopeJson) else { return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument.")) }
         let parser = self.parser
         run(handler, encode: { parser.encodeDetectedMetadata($0) }) { completion in
@@ -263,7 +266,7 @@ public final class UnityMacClipboardManager: NSObject, @unchecked Sendable {
 
     public func accessBehavior(scopeJson: String?,
                                handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[accessBehavior] scope: \(scopeJson ?? "nil")")
+        Log.d(TAG, "[accessBehavior] scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let scope = parser.parseScope(scopeJson) else { return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument.")) }
         let parser = self.parser
         // Synchronous natively, but the bridge reports through a callback: an arbitrary-thread
@@ -294,7 +297,7 @@ extension UnityMacClipboardManager {
                                intervalSeconds: Double,
                                onChange: (@Sendable (String) -> Void)?,
                                handler: (@Sendable (Bool, Int, String?) -> Void)?) {
-        Log.d(TAG, "[startObserving] scope: \(scopeJson ?? "nil"), interval: \(intervalSeconds)")
+        Log.d(TAG, "[startObserving] scope: \(ClipboardLog.scopeJson(scopeJson)), interval: \(intervalSeconds)")
         guard let onChange else {
             return failVoid(handler, .contractViolation(
                 reason: "onChange is required; observation would produce no observable result."))
@@ -334,7 +337,7 @@ extension UnityMacClipboardManager {
 
     public func checkForegroundChange(scopeJson: String?,
                                       handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
-        Log.d(TAG, "[checkForegroundChange] scope: \(scopeJson ?? "nil")")
+        Log.d(TAG, "[checkForegroundChange] scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let scope = parser.parseScope(scopeJson) else {
             return fail(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
         }
@@ -364,7 +367,7 @@ extension UnityMacClipboardManager {
                                    handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
         // The full source path is never logged (section 4.2).
         Log.d(TAG, "[provideFilePromise] request length: \(requestJson?.count ?? 0), "
-              + "scope: \(scopeJson ?? "nil")")
+              + "scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let handler else {
             Log.e(TAG, "[provideFilePromise] handler is required")
             return
@@ -384,7 +387,7 @@ extension UnityMacClipboardManager {
 
     public func releaseFilePromise(handleJson: String?,
                                    handler: (@Sendable (Bool, Int, String?) -> Void)?) {
-        Log.d(TAG, "[releaseFilePromise] handle: \(handleJson ?? "nil")")
+        Log.d(TAG, "[releaseFilePromise] handle: \(ClipboardLog.json(handleJson))")
         guard let id = parser.parseHandleId(handleJson) else {
             return failVoid(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
         }
@@ -406,7 +409,7 @@ extension UnityMacClipboardManager {
                                     onEvent: (@Sendable (Bool, String) -> Void)?,
                                     handler: (@Sendable (Bool, String?, Int, String?) -> Void)?) {
         Log.d(TAG, "[receiveFilePromises] destination: \(ClipboardLog.path(destinationPath)), "
-              + "scope: \(scopeJson ?? "nil")")
+              + "scope: \(ClipboardLog.scopeJson(scopeJson))")
         guard let handler else {
             Log.e(TAG, "[receiveFilePromises] handler is required")
             return
@@ -451,7 +454,7 @@ extension UnityMacClipboardManager {
 
     public func cancelReceiveFilePromises(handleJson: String?,
                                           handler: (@Sendable (Bool, Int, String?) -> Void)?) {
-        Log.d(TAG, "[cancelReceiveFilePromises] handle: \(handleJson ?? "nil")")
+        Log.d(TAG, "[cancelReceiveFilePromises] handle: \(ClipboardLog.json(handleJson))")
         guard let id = parser.parseHandleId(handleJson) else {
             return failVoid(handler, .parseFailed(reason: "Invalid clipboard JSON argument."))
         }

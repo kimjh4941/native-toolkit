@@ -291,7 +291,7 @@ struct UnityMacClipboardJsonParser: Sendable {
     }
 
     func parseScope(_ json: String?) -> PasteboardScope? {
-        Log.d(TAG, "[parseScope] json: \(json ?? "nil")")
+        Log.d(TAG, "[parseScope] \(ClipboardLog.scopeJson(json))")
         guard let shape = decode(ClipboardJson.ScopeJson.self, from: json) else { return nil }
         switch shape.kind {
         case "general":
@@ -326,23 +326,29 @@ struct UnityMacClipboardJsonParser: Sendable {
         return ClipboardContent(items: items)
     }
 
-    func parseOptions(_ json: String?) -> ClipboardCopyOptions {
-        Log.d(TAG, "[parseOptions] json: \(json ?? "nil")")
-        // Absent or malformed options fall back to the safer default rather than failing: the
-        // field is entirely optional in the contract.
-        guard let shape = decode(ClipboardJson.OptionsJson.self, from: json) else { return .default }
+    /// - Returns: `nil` only when a non-empty string was supplied but could not be decoded,
+    ///   which the caller reports as 1301. An absent payload yields the defaults.
+    ///
+    /// Absent options mean "use the defaults"; malformed options mean the caller has a bug.
+    /// Treating the second as the first would silently turn a requested `localOnly: false`
+    /// into `true`, which is the opposite of what was asked for.
+    func parseOptions(_ json: String?) -> ClipboardCopyOptions? {
+        Log.d(TAG, "[parseOptions] \(ClipboardLog.json(json))")
+        // Absent means "use the defaults". Only a supplied-but-undecodable payload is nil.
+        guard let json, !json.isEmpty else { return .default }
+        guard let shape = decode(ClipboardJson.OptionsJson.self, from: json) else { return nil }
         return ClipboardCopyOptions(localOnly: shape.localOnly ?? true)
     }
 
     func parseOwnership(_ json: String?) -> PasteboardOwnership? {
-        Log.d(TAG, "[parseOwnership] json: \(json ?? "nil")")
+        Log.d(TAG, "[parseOwnership] \(ClipboardLog.json(json))")
         guard let shape = decode(ClipboardJson.OwnershipJson.self, from: json),
               let scope = parseScope(encodeScopeShape(shape.scope)) else { return nil }
         return PasteboardOwnership(scope: scope, changeCount: shape.changeCount)
     }
 
     func parseCreateRequest(_ json: String?) -> PasteboardCreationRequest? {
-        Log.d(TAG, "[parseCreateRequest] json: \(json ?? "nil")")
+        Log.d(TAG, "[parseCreateRequest] \(ClipboardLog.json(json))")
         guard let shape = decode(ClipboardJson.CreateRequestJson.self, from: json) else { return nil }
         switch shape.kind {
         case "named":
@@ -357,14 +363,14 @@ struct UnityMacClipboardJsonParser: Sendable {
 
     /// `nil` json means "no filter", which is different from an empty array.
     func parseMatchingTypes(_ json: String?) -> [String]?? {
-        Log.d(TAG, "[parseMatchingTypes] json: \(json ?? "nil")")
+        Log.d(TAG, "[parseMatchingTypes] \(ClipboardLog.json(json))")
         guard let json, !json.isEmpty else { return .some(nil) }
         guard let types = decode(ClipboardJson.MatchingTypesJson.self, from: json) else { return nil }
         return .some(types)
     }
 
     func parsePatterns(_ json: String?) -> Set<ClipboardDetectionPattern>? {
-        Log.d(TAG, "[parsePatterns] json: \(json ?? "nil")")
+        Log.d(TAG, "[parsePatterns] \(ClipboardLog.json(json))")
         guard let raw = decode(ClipboardJson.PatternsJson.self, from: json) else { return nil }
         var patterns: Set<ClipboardDetectionPattern> = []
         for value in raw {
@@ -384,8 +390,10 @@ struct UnityMacClipboardJsonParser: Sendable {
                                   source: .snapshot(URL(filePath: shape.sourcePath)))
     }
 
+    /// - Returns: `nil` when a non-empty string could not be decoded, or decoded to a policy
+    ///   that breaks its own ordering rule.
     func parsePolicy(_ json: String?) -> FilePromiseReceiptPolicy? {
-        Log.d(TAG, "[parsePolicy] json: \(json ?? "nil")")
+        Log.d(TAG, "[parsePolicy] \(ClipboardLog.json(json))")
         guard let json, !json.isEmpty else { return .default }
         guard let shape = decode(ClipboardJson.PolicyJson.self, from: json) else { return nil }
         let quiet = shape.quietIntervalSeconds ?? FilePromiseReceiptPolicy.default.quietInterval
@@ -394,7 +402,7 @@ struct UnityMacClipboardJsonParser: Sendable {
     }
 
     func parseHandleId(_ json: String?) -> UUID? {
-        Log.d(TAG, "[parseHandleId] json: \(json ?? "nil")")
+        Log.d(TAG, "[parseHandleId] \(ClipboardLog.json(json))")
         guard let shape = decode(ClipboardJson.HandleJson.self, from: json) else { return nil }
         return UUID(uuidString: shape.id)
     }

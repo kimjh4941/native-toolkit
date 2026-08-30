@@ -229,10 +229,14 @@ final class ClipboardSystemCoordinator {
         case .released(let stagingURL):
             filePromises[handle] = nil
             filePromiseObjects[handle] = nil
-            if let stagingURL {
+            if stagingURL != nil {
+                // The whole per-handle directory goes, not just the file copied into it.
+                // Removing only the child would leave an empty directory per promise, cleaned
+                // up no earlier than the next launch's sweep.
+                let root = stagingRoot(for: handle)
                 let snapshotter = snapshotter
                 // Deleting a directory tree is blocking I/O and must not run on the main actor.
-                Task.detached { await snapshotter.discard(stagingURL: stagingURL) }
+                Task.detached { await snapshotter.discard(stagingURL: root) }
             }
         case .reservationInvalid:
             // A write started between the claim and this re-check, so the promise is in use

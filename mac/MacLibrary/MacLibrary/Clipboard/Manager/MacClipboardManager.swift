@@ -99,27 +99,25 @@ public final class MacClipboardManager {
                                          snapshotter: snapshotter,
                                          typeValidator: ClipboardTypeIdentifierValidator(),
                                          limits: limits)
-        self.init(coordinator: coordinator, useCases: useCases, repository: repository)
+        self.init(coordinator: coordinator, useCases: useCases)
     }
 
     /// Injecting initializer, used by tests and by the convenience initializer above.
-    ///
-    /// - Parameter repository: Only used to answer the stale query. The manager never calls it
-    ///   directly for an operation; those all go through a use case.
     init(coordinator: ClipboardSystemCoordinator,
-         useCases: ClipboardUseCases,
-         repository: any ClipboardRepository) {
+         useCases: ClipboardUseCases) {
         Log.d("MacClipboardManager", "[init]")
         self.coordinator = coordinator
         self.useCases = useCases
         // Shares the aggregate's tracker, so a change already seen by the one-shot foreground
         // check is not reported again by the poller.
+        // Through the use case, never the repository: `common.md` forbids a manager reaching
+        // the data layer directly, because logic added on that path is unreachable by tests.
         self.monitor = ClipboardChangeMonitor(
-            readChangeCount: { [repository] scope in try repository.changeCount(scope: scope) },
+            readChangeCount: { [useCases] scope in try useCases.changeCount(scope: scope) },
             tracker: useCases.changeTracker)
         // 5. Closing the cycle. Until this runs the stale check does nothing at all.
-        coordinator.attachStaleQuery { [repository] scope in
-            try repository.changeCount(scope: scope)
+        coordinator.attachStaleQuery { [useCases] scope in
+            try useCases.changeCount(scope: scope)
         }
         // Staging left behind by a crashed run is nobody else's job to remove. Runs once per
         // process and never touches a directory belonging to a live promise (R4-L10).
@@ -537,7 +535,8 @@ public final class MacClipboardManager {
     /// - Returns: A handle to release with ``releaseFilePromise(_:)`` once the promise is no
     ///   longer offered. Promises whose pasteboard is taken over by another app are released
     ///   automatically.
-    @discardableResult
+    /// - Note: Deliberately not `@discardableResult`. Dropping the handle leaks the
+    ///   registration and its staging directory, because nothing else can release them.
     public func provideFilePromise(_ request: FilePromiseRequest,
                                    scope: PasteboardScope = .general) async throws -> FilePromiseHandle {
         Log.d(TAG, "[provideFilePromise] fileType: \(request.fileTypeIdentifier), "
@@ -583,7 +582,8 @@ public final class MacClipboardManager {
     /// - Important: The terminal event is a **heuristic**. The system does not report how many
     ///   files are coming, so the session ends after `policy.quietInterval` without a new
     ///   arrival, or at `policy.overallTimeout` at the latest (H-3).
-    @discardableResult
+    /// - Note: Deliberately not `@discardableResult`. Dropping the handle leaves a session
+    ///   that can never be cancelled.
     public func receiveFilePromises(destinationDirectory: URL,
                                     scope: PasteboardScope = .general,
                                     policy: FilePromiseReceiptPolicy = .default,

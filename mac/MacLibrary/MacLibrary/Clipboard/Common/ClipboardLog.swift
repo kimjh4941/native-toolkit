@@ -65,6 +65,26 @@ public enum ClipboardLog {
         "types(\(value.joined(separator: ",")))"
     }
 
+    /// Describes a JSON payload by length only.
+    ///
+    /// Bridge JSON carries the clipboard payload itself, base64 encoded, so logging it
+    /// verbatim would copy passwords, tokens and documents into whatever collects logs.
+    public static func json(_ value: String?) -> String {
+        guard let value else { return "json(nil)" }
+        return "json(len:\(value.count))"
+    }
+
+    /// Describes a scope JSON string without revealing a named pasteboard.
+    ///
+    /// A pasteboard name is chosen by the caller and can identify a workflow or a document, so
+    /// only `general` is logged verbatim. Anything else becomes a short hash, which is still
+    /// enough to correlate log lines.
+    public static func scopeJson(_ value: String?) -> String {
+        guard let value else { return "scope(nil)" }
+        if value.contains("\"general\"") { return "scope(general)" }
+        return "scope(\(shortHash(value)))"
+    }
+
     private static func shortHash(_ value: String) -> String {
         var hasher = Hasher()
         hasher.combine(value)
