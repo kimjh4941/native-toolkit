@@ -71,7 +71,12 @@ public final class MacClipboardManager {
     ///
     /// Half a second is fast enough to feel immediate for a paste affordance without
     /// waking the process constantly.
-    public static let defaultObservationInterval: TimeInterval = 0.5
+    ///
+    /// Declared `nonisolated` because it is the default argument of
+    /// ``startObserving(scope:interval:onEvent:)``: a default argument is evaluated in the
+    /// caller's context, which is not the main actor. Without this the reference is a
+    /// warning under Swift 5 and an error under the Swift 6 language mode.
+    nonisolated public static let defaultObservationInterval: TimeInterval = 0.5
 
     private let coordinator: ClipboardSystemCoordinator
     private let useCases: ClipboardUseCases

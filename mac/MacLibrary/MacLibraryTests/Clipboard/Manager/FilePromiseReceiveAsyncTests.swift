@@ -94,10 +94,11 @@ struct FilePromiseReceiveAsyncTests {
             // ended, so a terminal yielded from there could never reach anyone (R3-H1).
             for await event in subscription.events.prefix(0) { collected.append(event) }
         }
-        try await Task.sleep(for: .milliseconds(150))
+        try await waitUntil("the dropped subscription is torn down") {
+            coordinator.registeredReceiptCount == 0
+        }
 
         #expect(collected.isEmpty)
-        #expect(coordinator.registeredReceiptCount == 0)
         // The session is gone, so a later cancel on the same handle finds nothing to end.
         let abandoned = try #require(handle)
         manager.cancelReceiveFilePromises(abandoned)
@@ -178,16 +179,29 @@ struct FilePromiseReceiveAsyncTests {
         try await Task.sleep(for: .milliseconds(50))
         task.cancel()
         _ = try? await task.value
-        try await Task.sleep(for: .milliseconds(100))
-
         // onCancel is nonisolated, so the cleanup has to hop to the main actor to run at all.
-        #expect(coordinator.registeredReceiptCount == 0)
+        try await waitUntil("the cancelled session is torn down") {
+            coordinator.registeredReceiptCount == 0
+        }
+    }
+
+    /// Collects what the gate delivered.
+    ///
+    /// `ReceiptCompletionGate.attach` takes an `@escaping @Sendable` closure, so capturing a
+    /// local `var` is a data race the compiler rejects under the Swift 6 language mode even
+    /// though these tests are single-threaded.
+    private final class OutcomeLog: @unchecked Sendable {
+        private let lock = NSLock()
+        private var entries: [String] = []
+        func append(_ entry: String) { lock.withLock { entries.append(entry) } }
+        var all: [String] { lock.withLock { entries } }
+        var count: Int { lock.withLock { entries.count } }
     }
 
     @Test("CT-13 and CT-16: the gate lets exactly one ending through")
     func gateAllowsOneOutcome() {
         let gate = ReceiptCompletionGate()
-        var delivered: [String] = []
+        let delivered = OutcomeLog()
         gate.attach { outcome in
             switch outcome {
             case .finished: delivered.append("finished")
@@ -199,7 +213,7 @@ struct FilePromiseReceiveAsyncTests {
                                                         terminatedBy: .quiescence))))
         #expect(!gate.claim(.failed(CancellationError())))
 
-        #expect(delivered == ["finished"])
+        #expect(delivered.all == ["finished"])
         #expect(gate.claimed)
     }
 
@@ -210,25 +224,25 @@ struct FilePromiseReceiveAsyncTests {
         let gate = ReceiptCompletionGate()
         #expect(gate.claim(.failed(CancellationError())))
 
-        var delivered: [String] = []
+        let delivered = OutcomeLog()
         gate.attach { outcome in
             if case .failed = outcome { delivered.append("failed") }
         }
 
-        #expect(delivered == ["failed"])
+        #expect(delivered.all == ["failed"])
     }
 
     @Test("CT-16: a losing terminal does not resume a second time")
     func losingTerminalIsDropped() {
         let gate = ReceiptCompletionGate()
-        var count = 0
-        gate.attach { _ in count += 1 }
+        let delivered = OutcomeLog()
+        gate.attach { _ in delivered.append("outcome") }
 
         #expect(gate.claim(.failed(CancellationError())))
         #expect(!gate.claim(.finished(FilePromiseReceipt(urls: [], failures: [],
                                                          terminatedBy: .quiescence))))
 
-        #expect(count == 1)
+        #expect(delivered.count == 1)
     }
 
     // MARK: - CT-17 cancellation at each point of the start sequence
@@ -317,10 +331,19 @@ struct FilePromiseReceiveAsyncTests {
                 repository, coordinator)
     }
 
-    @Test("CT-17: cancelling just after the handle is reserved leaves no session")
+    @Test("CT-17: cancelling just after the handle is reserved tears down that same handle",
+          .timeLimit(.minutes(1)))
     func cancelJustAfterReservation() async throws {
         let (manager, repository, coordinator) = makeGatedManager()
         let directory = destination()
+
+        var registeredHandleAtStart: FilePromiseReceiptHandle?
+        repository.onStart = { _ in
+            // registerReceipt runs before the repository start, so the coordinator is holding
+            // the reserved handle here. Reading it from the coordinator rather than from the
+            // start argument is what makes the next assertion an identity check.
+            registeredHandleAtStart = coordinator.firstReceiptHandleForTests
+        }
 
         // Cancelled before the task body runs, so the handle has been reserved by the time
         // onCancel fires but the start has not been reached.
@@ -330,8 +353,13 @@ struct FilePromiseReceiveAsyncTests {
         task.cancel()
 
         await #expect(throws: CancellationError.self) { _ = try await task.value }
-        try await Task.sleep(for: .milliseconds(150))
-        #expect(coordinator.registeredReceiptCount == 0)
+        try await waitUntil("the receipt session is torn down") {
+            coordinator.registeredReceiptCount == 0
+        }
+
+        let started = try #require(repository.startedHandles.first)
+        #expect(registeredHandleAtStart == started)
+        #expect(coordinator.receiptSession(for: started) == nil)
     }
 
     @Test("CT-17: cancelling while the start is in flight leaves no session", .timeLimit(.minutes(1)))
@@ -348,10 +376,11 @@ struct FilePromiseReceiveAsyncTests {
             try await manager.receiveFilePromises(destinationDirectory: directory)
         }
         _ = try? await task?.value
-        try await Task.sleep(for: .milliseconds(200))
+        try await waitUntil("the receipt session is torn down") {
+            coordinator.registeredReceiptCount == 0
+        }
 
         #expect(repository.startCallCount == 1)
-        #expect(coordinator.registeredReceiptCount == 0)
         let started = try #require(repository.startedHandles.first)
         #expect(coordinator.receiptSession(for: started) == nil)
     }
@@ -364,23 +393,27 @@ struct FilePromiseReceiveAsyncTests {
         let task = Task { @MainActor in
             try await manager.receiveFilePromises(destinationDirectory: directory)
         }
-        // Yield until the start has returned, rather than sleeping for long enough to hope.
-        try await waitUntil { repository.startCallCount == 1 }
+        // Wait on the state, rather than sleeping for long enough to hope.
+        try await waitUntil("the start returns") { repository.startCallCount == 1 }
         #expect(coordinator.registeredReceiptCount == 1)
         let started = try #require(repository.startedHandles.first)
 
         task.cancel()
         _ = try? await task.value
-        try await Task.sleep(for: .milliseconds(200))
+        try await waitUntil("the receipt session is torn down") {
+            coordinator.registeredReceiptCount == 0
+        }
 
-        #expect(coordinator.registeredReceiptCount == 0)
         #expect(coordinator.receiptSession(for: started) == nil)
     }
 
     @Test("CT-17: every cancellation point acts on the reserved handle", .timeLimit(.minutes(1)))
     func cancellationUsesTheReservedHandle() async throws {
-        // The same assertion at each of the three points: the handle the start was given is
-        // the one torn down. A handle assigned later would leave that session behind (R6-H4).
+        // The same assertion at each of the three points, and it is unconditional at all
+        // three: the handle the coordinator reserved is the handle the start was given, and
+        // that handle is the one torn down. A handle assigned later would leave that session
+        // behind (R6-H4). An earlier revision guarded the equality with `if let`, so a build
+        // where the start never ran would have passed while proving nothing (R7-M8).
         enum Point: String, CaseIterable {
             case beforeStart, duringStart, afterStart
         }
@@ -389,8 +422,10 @@ struct FilePromiseReceiveAsyncTests {
             let (manager, repository, coordinator) = makeGatedManager()
             let directory = destination()
             var task: Task<FilePromiseReceipt, any Error>?
-            if point == .duringStart {
-                repository.onStart = { _ in task?.cancel() }
+            var reservedHandle: FilePromiseReceiptHandle?
+            repository.onStart = { _ in
+                reservedHandle = coordinator.firstReceiptHandleForTests
+                if point == .duringStart { task?.cancel() }
             }
 
             task = Task { @MainActor in
@@ -402,26 +437,39 @@ struct FilePromiseReceiveAsyncTests {
             case .duringStart:
                 break
             case .afterStart:
-                try await waitUntil { repository.startCallCount == 1 }
+                try await waitUntil("the start returns") { repository.startCallCount == 1 }
                 task?.cancel()
             }
             _ = try? await task?.value
-            try await Task.sleep(for: .milliseconds(200))
-
-            #expect(coordinator.registeredReceiptCount == 0, "\(point.rawValue)")
-            if let started = repository.startedHandles.first {
-                #expect(coordinator.receiptSession(for: started) == nil, "\(point.rawValue)")
+            try await waitUntil("the receipt session is torn down at \(point.rawValue)") {
+                coordinator.registeredReceiptCount == 0
             }
+
+            let started = try #require(repository.startedHandles.first, "\(point.rawValue)")
+            #expect(reservedHandle == started, "\(point.rawValue)")
+            #expect(coordinator.receiptSession(for: started) == nil, "\(point.rawValue)")
         }
     }
 
-    /// Yields until `condition` holds, so a test can wait for a step instead of a duration.
-    private func waitUntil(_ condition: @MainActor () -> Bool) async throws {
-        for _ in 0..<1_000 {
+    /// Waits until `condition` holds, so a test can wait for a step instead of a duration.
+    ///
+    /// Yields first, which is enough for work already queued on the main actor, and only then
+    /// falls back to short sleeps for anything genuinely timed. Running out of time is
+    /// reported as a failure rather than as a silent pass.
+    private func waitUntil(_ description: String,
+                           _ condition: @MainActor () -> Bool) async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        var spins = 0
+        while ContinuousClock.now < deadline {
             if condition() { return }
-            await Task.yield()
+            spins += 1
+            if spins <= 200 {
+                await Task.yield()
+            } else {
+                try await Task.sleep(for: .milliseconds(1))
+            }
         }
-        Issue.record("condition never became true")
+        Issue.record("\(description) never happened within 5 s")
     }
 
     @Test("a task cancelled before it starts still reports cancellation")

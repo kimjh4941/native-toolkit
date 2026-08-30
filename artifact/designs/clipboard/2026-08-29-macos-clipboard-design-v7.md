@@ -2544,4 +2544,3 @@ python3 scripts/check_design_consistency.py artifact/designs/clipboard/<設計�
 検査は OK / **SKIP** / FAIL の 3 状態を返す。対象がその文書に存在しない検査は SKIP を返し、**OK は返さない**。他機能の設計書へ広げたときに「検査していないのに緑」で誤った確信を配らないため。旧表現リスト（検査 9）は機能ごとに持ち、未登録の機能は SKIP になる。
 
 ---
-

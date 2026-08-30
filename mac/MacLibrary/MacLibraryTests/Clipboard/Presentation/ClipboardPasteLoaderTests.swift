@@ -473,7 +473,6 @@ struct ClipboardPasteLoaderTests {
 
     @Test("a malformed accepted type is rejected")
     func rejectsMalformedAcceptedType() throws {
-        let recorder = Recorder()
         let validator = MockClipboardTypeIdentifierValidating()
         validator.invalidIdentifiers = ["bad"]
         #expect(throws: ClipboardError.invalidTypeIdentifier("bad")) {
