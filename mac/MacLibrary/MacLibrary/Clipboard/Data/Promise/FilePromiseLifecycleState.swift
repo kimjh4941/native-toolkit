@@ -138,6 +138,18 @@ final class FilePromiseLifecycleState: @unchecked Sendable {
         ownership = value
     }
 
+    /// Staging directory to copy from while fulfilling a promise.
+    ///
+    /// Returns `nil` once released, so a write that raced past ``beginWrite()`` cannot read a
+    /// directory that is being deleted. Writer backed promises always return `nil`; they have
+    /// no staging and never take this path.
+    func stagingURLForFulfilment() -> URL? {
+        Log.d(TAG, "[stagingURLForFulfilment]")
+        lock.lock()
+        defer { lock.unlock() }
+        return isReleased ? nil : stagingURL
+    }
+
     /// Ownership to compare against, or `nil` while the promise is still provisional.
     func activatedOwnership() -> PasteboardOwnership? {
         Log.d(TAG, "[activatedOwnership]")

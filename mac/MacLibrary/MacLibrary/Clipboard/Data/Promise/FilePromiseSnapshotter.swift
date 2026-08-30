@@ -32,6 +32,7 @@ public final class FilePromiseSnapshotter: FilePromiseSnapshotting {
         self.queue = DispatchQueue(label: "com.nativetoolkit.clipboard.snapshot")
     }
 
+    /// Copies `source` into `stagingRoot` off the main actor, deleting a partial copy on failure or cancellation.
     public func snapshot(from source: URL, into stagingRoot: URL) async throws -> URL {
         Log.d(TAG, "[snapshot] from: \(ClipboardLog.url(source)), "
               + "into: \(ClipboardLog.url(stagingRoot))")
@@ -72,6 +73,7 @@ public final class FilePromiseSnapshotter: FilePromiseSnapshotting {
         return destination
     }
 
+    /// Deletes a completed staging copy. Idempotent; a missing path is success.
     public func discard(stagingURL: URL) async {
         Log.d(TAG, "[discard] \(ClipboardLog.url(stagingURL))")
         let makeFileManager = self.makeFileManager

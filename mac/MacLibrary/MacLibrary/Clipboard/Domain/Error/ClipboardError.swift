@@ -161,5 +161,6 @@ public enum ClipboardError: Error, Equatable {
 }
 
 extension ClipboardError: LocalizedError {
+    /// `LocalizedError` conformance; returns ``errorMessage``.
     public var errorDescription: String? { errorMessage }
 }

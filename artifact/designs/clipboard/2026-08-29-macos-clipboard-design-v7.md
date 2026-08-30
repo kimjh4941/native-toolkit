@@ -535,6 +535,7 @@ v2 では図と本文にだけ現れていた 2 型を、配置・可視性・�
 
 | 型 | 配置 | 可視性 | 契約 |
 |---|---|---|---|
+| **`FilePromiseReceiptSink`**（T-12a 追加） | `Clipboard/Data/Promise/FilePromiseReceiptSession.swift` | `internal protocol`（`@MainActor`） | reader の結果を session へ転送する非保持の継ぎ目。Repository は `receivePromisedFiles` を呼ぶが session を所有しないため、`PromiseObjectLookup`（オブジェクト解決）とは別に**配送用の口**が要る。`receiptGeneration(for:)` / `deliverReceiptOutcome(_:generation:outcome:)` / `receiptDidStart(_:promisedTypeCount:)` |
 | `PromiseObjectLookup` | `Clipboard/Data/Promise/PromiseObjectLookup.swift` | `internal protocol`（`@MainActor`） | ハンドル → AppKit オブジェクトの**非保持 lookup**。`func lazyProvider(for: PasteboardPromiseHandle) -> NSPasteboardItemDataProvider?` / `func filePromiseProvider(for: FilePromiseHandle) -> NSFilePromiseProvider?`。**戻り値を保持してはならない**（`setDataProvider` / `writeObjects` の呼び出し中のみ使用）。強参照は coordinator のみが持つ |
 | `ClipboardPasteHandle` | `Clipboard/Domain/Model/ClipboardPasteHandle.swift` | `public struct`（`id: UUID`） | PasteButton の loader 登録を識別する。View container の `deinit` から `coordinator.cancelPaste(_:)` を呼ぶために使う |
 
@@ -565,6 +566,10 @@ func attachStaleQuery(_ query: @escaping @MainActor (PasteboardScope) throws -> 
 ```
 
 手順 5 が最後にあるため循環しない。`attachStaleQuery` されるまで tick は**何もしない**（未設定なら skip）。
+
+**tick の実装（T-07 実測）**: `Timer` ではなく `Task` の繰り返しループを使う。`@MainActor` クラスの `deinit` は nonisolated であり、Swift 6 では非 Sendable な `Timer` に触れられない（`cannot access property with a non-Sendable type 'Timer?' from nonisolated deinit`）。`Task` は `Sendable` なので `deinit` から cancel できる。ループは `weak self` を捕捉し、coordinator が解放されたら自ら終了する。
+
+**この診断は `swiftc -typecheck` では出ず、whole-module の strict build でのみ現れた。**CT-01 の計測条件（`MIGRATION.md` §4.3）を守る理由の実例。
 
 **tick の経路**
 
@@ -694,6 +699,8 @@ public protocol ClipboardPromiseRegistry {
 - Repository は `writePromised(handle:types:options:scope:)` を呼び、Data 層の `PromiseObjectLookup` でハンドル → provider を解決して `setDataProvider` する
 - `pasteboardFinishedWithDataProvider(_:)`（L-03）到達時に coordinator が解放する
 - 公開 API には出さない。`copy` が hard limit 未満かつ warn 超過のときに内部で選択する
+- **選択は単一アイテムに限る**（T-15 追加）。`setDataProvider` は pasteboard item 単位のため、複数アイテムは登録も rollback もアイテム数だけ必要になる。効果が測定されていないので複数アイテムは直接書き込みにフォールバックする
+- 判定は `ClipboardContentValidator.shouldUseLazyProvision(_:)` に置く。サイズ方針を持つ唯一の型であり、`limits` を外へ出さずに済む
 - **登録 → 書き込み → commit / catch で release の transaction とする**（R2-M12）。`writePromised` が throw または `false` を返した場合、`releaseLazyProvider(handle)` で登録を巻き戻す
 
 **要検証**: システム側が provider を保持するかは企画書 V-3 が未消化。coordinator の強参照で安全側に倒す。
@@ -714,6 +721,7 @@ public struct ClipboardReadResult: Sendable, Equatable {
 - `read`: `pasteboardItems` を走査し、各 item の `types` ごとに `data(forType:)` を集める。`nil` なら `pasteboardUnavailable`
 - `readData(utType:)`: `data(forType:)` の結果をそのまま返す。**該当なしは `nil`（エラーにしない）**（M-1）
 - `string(forType:)` は使わない（RK-15）
+- **read は write の上位集合になり得る**（T-04 実測。macOS 26.3。RK-24）。ペーストボードは変換できる型を自動で派生させる。`public.rtf` を 1 件書くと、読み出しでは `public.rtf` に加えて `public.utf8-plain-text` と `public.utf16-external-plain-text` が現れる。`public.png` / `public.file-url` / アプリ独自型では派生しなかった。**`read(write(x)) == x` を前提にしてはならない**。DocC に明記する
 
 ### 7.7 Q. スナップショット（M-8）
 
@@ -730,6 +738,7 @@ public struct ClipboardSnapshot: Sendable, Equatable {
 - `matchingTypes == nil`: フィルタなし。`matchingItemIndexes` は全 index
 - `matchingTypes == []`: `emptyTypeFilter` を投げる
 - 判定は **UTI conformance**（`UTType.conforms(to:)`）で行い、完全一致に限定しない
+- ただし**識別子が完全一致する場合は `UTType` を介さず一致とする**（T-03 実測）。アプリ独自の未宣言 UTI は `UTType` が `nil` を返すため、この短絡がないと**自分自身を名指しするフィルタにもマッチしない**
 - **データ本体は読まない**。ただし「通知が出ない」ことは保証しない（RK-01 / RK-22）。DocC に明記
 
 ### 7.8 X. クリア
@@ -855,6 +864,12 @@ public struct ClipboardDetectedMetadata: Sendable, Equatable {
 
 `DDMatch*` は Data 層の `ClipboardDetectionMapper` でのみ扱い、Domain には出さない。
 
+**検出 API の隔離（T-09 実測）**: `detectedPatterns` / `detectedValues` / `detectedMetadata` は **`nonisolated async`** であり、引数の `NSPasteboard` も key path の `Set` も非 Sendable である。`@MainActor` の Repository から直接呼ぶと `sending 'pasteboard' risks causing data races` が **6 件**出る。`@unchecked Sendable` で握り潰さず、**mapper 側に `nonisolated` の入口を置き、`PasteboardScope`（Sendable）だけを受け取って解決から実行まで同一隔離ドメインで完結させる**。これにより境界越え自体が消える。`PasteboardResolver.resolve` も `nonisolated` にする（actor 状態に触れないため安全）。
+
+**この 6 件も `swiftc -typecheck` では出ず、whole-module の strict build でのみ現れた。**
+
+**`detectMetadata` の実挙動（T-09 実測。macOS 26.3）**: プレーンテキストのみの item に対しては **メタデータ空ではなく `NSCocoaErrorDomain` 67587 `Pasteboard content detection failed` を throw する**。`public.file-url` の item では成功し `contentType` を返す。ヘッダの用例もファイル参照である。**67587 の発生条件は文書化されていないため、`detectionFailed` として素通しし、「該当なし」へ読み替えることはしない**（読み替えると本物の失敗を握り潰す）。DocC に「テキストのみのペーストボードでは失敗し得る」と明記する（RK-25）。
+
 **通知の扱い（RK-03）**: `detectValues` は一致時に通知が発生し拒否時に throw する。DocC に明記し、ユーザー操作起点での呼び出しを要求する。`detectPatterns` / `detectMetadata` は「通知しない」とヘッダにあるが、契約としては保証しない。
 
 **キャンセル**: `CancellationError` を `ClipboardError.cancelled` に変換する。実際に届くかは企画書 V-5 が未消化。
@@ -922,6 +937,16 @@ PasteButtonFactory.makePasteButton()
 
 **制約（RK-16）**: macOS の `PasteButton` は自動 validate / invalidate を行わない。DocC に明記。
 
+**`ClipboardPasteLoader.Source`（T-14 追加）**: loader は `NSItemProvider` を直接扱わず、
+`conforms(to:)` / `loadData(for:)` の 2 メソッドだけを持つ内部 protocol に対して書く。
+`NSItemProvider` は非 Sendable であり、並行ロードを行う loader 本体へ持ち込むと境界越えになる。
+AppKit 型は `PasteButtonFactory.ItemProviderSource` が境界で吸収し、loader 側はテストからも
+実 provider なしで駆動できる。
+
+**timeout の実装（T-14）**: provider ごとではなく `withTaskGroup` に sleep タスクを 1 本足して
+競争させる。契約が「全体で 1 つの期限」であるため。期限が勝った時点で未完了の index を
+`pasteLoadTimedOut` として積むので、**全 index が items か failures のどちらかに必ず 1 回だけ現れる**。
+
 **Bridge 非公開**: `NSView` を返すため C ABI に載らない。
 
 ### 7.12 F. ファイル約束（H-1 / H-3 / M-4 / M-9）
@@ -952,7 +977,7 @@ public struct FilePromiseHandle: Sendable, Equatable, Hashable {
 - 空文字 → `invalidFileName`
 - `/` を含む → `invalidFileName`
 - `.` / `..` → `invalidFileName`
-- 255 バイト超 → `invalidFileName`
+- 255 バイト超 → `invalidFileName`（**文字数ではなく UTF-8 バイト数**。`NAME_MAX` に合わせる。T-06b）
 
 **fileTypeIdentifier の検証**: `UTType` に解決でき、`public.data` または `public.directory` に conform すること。満たさなければ `filePromiseTypeInvalid`。
 
@@ -1231,6 +1256,7 @@ public struct FilePromiseReceiptPolicy: Sendable, Equatable {
 - `quietInterval` 経過、または `overallTimeout` 到達、または `cancel()` で `finished` を **exactly-once** で発行する
 - 終端後に遅れて到達した reader コールバックは**破棄**する（late callback 抑止。世代トークンで判定）
 - `fileTypes.count` は**参考値としてログにのみ出す**。終了判定には使わない
+- **`quietInterval < overallTimeout` は §6.8 で強制される**（T-12a 実測）。したがって `overallTimeout` 終端は「静穏に入らないまま全体期限に達した場合」にのみ発生する。**quiet を overall より長くして overallTimeout を試すことはできない**
 
 **この終了モデルはヒューリスティックである。** SDK が総数を保証しない以上、保証可能な終端は存在しない。DocC に「`finished` の到達は静穏タイムアウトに基づく推定であり、極端に遅い provider では `overallTimeout` まで待つ」と明記する。既定値の妥当性は要検証（DV-05）。
 
@@ -1377,6 +1403,20 @@ final class ReceiptCompletionGate: @unchecked Sendable {
                 3. registry.finalizeReceipt(handle)            // R6-M6
 ```
 
+**`ReceiveFilePromisesUseCase.start(handle:...)`（T-13 追加）**
+
+集約 async は cancellation handler を設置する前に handle を確定させる必要があるため、
+UseCase に「予約済み handle で開始する」入口を設ける。callback 版の
+`callAsFunction` は内部で `reserveReceiptHandle()` してから同じ `start` を呼ぶので、
+**開始 transaction（register → start → 失敗時 rollback）は 1 本のまま**である。
+
+**`ReceiptCompletionGate` は「attach 前の claim」を保持する（T-13 実測）**
+
+`withTaskCancellationHandler` は **タスクが既にキャンセル済みなら onCancel を即座に実行する**。
+これは `withCheckedThrowingContinuation` が continuation を作る前に起こり得るため、
+gate が単なる真偽フラグだと **cancel が握り潰されて呼び出しが永久にハングする**。
+gate は claim 済みの outcome を保持し、`attach` 時に即座に配送する状態機械とする。
+
 **handle publication race の解消（R6-H4）**
 
 v6 は receipt を開始してから handle を得る構造だったため、`onCancel` が handle 代入前に走ると cancel が空振りし、後から開始した session が残留し得た。また mutable な handle を concurrent closure で捕捉すると Swift 6 の Sendable 警告も招く。
@@ -1522,13 +1562,39 @@ public protocol ClipboardRepository {
 ```swift
 @MainActor
 public protocol ClipboardTypeIdentifierValidating {
-    /// 文字列が uniform type identifier として解決できるとき `true`。
+    /// 文字列が pasteboard の type identifier として使えるとき `true`。
     func isValid(_ identifier: String) -> Bool
+    /// 識別子が File Promise の型として使えるとき `true`（T-06b 追加）。
+    func isValidFileType(_ identifier: String) -> Bool
 }
 ```
 
+`isValidFileType` は §10 の `filePromiseTypeInvalid` を **Application 層で判定する**ために必要
+（T-06b で判明）。判定には `public.data` / `public.directory` への conformance が要るが、
+`UTType` は Data 層の型であり Application からは見えない。Port が `String -> Bool` で受けることで、
+`ProvideFilePromiseUseCase` が platform 型を知らずに検証できる。
+
 `NSPasteboardItem` は不正な UTI に対して黙って `false` を返すため、書き込み前に検証し
-`ClipboardError.invalidTypeIdentifier(_:)` として報告する。4 種目の Port `FilePromiseSnapshotting`
+`ClipboardError.invalidTypeIdentifier(_:)` として報告する。
+
+**判定基準は `UTType(identifier) != nil` ではない**（T-03 実測。macOS 26.3）。`UTType` はシステムが
+宣言を知っている識別子しか解決しないが、pasteboard は well-formed なら未宣言でも受け付ける。
+`com.mycompany.myformat` は `UTType` が `nil` を返す一方、`setData` は受理し実ペーストボードを
+往復する。`UTType` で検証すると**アプリ独自フォーマットを不当に拒否する**。
+
+実装は `setData` が課している規則そのものを実装する。
+
+| 規則 | 例 |
+|---|---|
+| `.` 区切りで **2 セグメント以上** | `abc` は不可、`a.b` は可 |
+| 各セグメントが非空 | `com.a..b` / `.com.a` / `com.a.` は不可 |
+| 各セグメントは ASCII 英数字と `-`。**先頭と末尾は英数字** | `a.b--c` は可、`a.b-` / `a-.b` は不可 |
+| 大文字・数字・先頭数字は可 | `com.a.B` / `1com.a` は可 |
+| 長さ制限なし | 2004 文字まで受理を確認 |
+
+`+` `_` 空白 `/` `:` `#` `%` `*` `@` タブ 改行 非 ASCII はいずれも拒否される。
+この規則は `ClipboardTypeIdentifierValidatorTests` が全ケースを固定しており、将来の macOS で
+規則が変われば**本番ではなくテストが落ちる**。4 種目の Port `FilePromiseSnapshotting`
 は §7.12 で定義する（スナップショットのコピーを MainActor から外すため `Sendable`）。
 
 **Port の戻り値・引数はすべて Domain 値型**（`UUID` ベースのハンドル、`URL` / `Data` / `Date` は common.md が許容する `Foundation` 値型）。Presentation 型・AppKit 型は現れない。
@@ -1911,6 +1977,12 @@ main actor に固定しない。** §8.4.1 の「callback スレッドは常に�
 すべての経路を `Task { @MainActor in }` に通すことで保証する。
 **JSON パース失敗・引数 NULL などの早期リターン経路も例外にしない。**
 
+**parser の並行安全性（T-16a 実測）**: facade は任意スレッドから呼ばれるため、
+`JSONEncoder` / `JSONDecoder` / `ISO8601DateFormatter` を**インスタンスで共有してはならない**。
+coder は呼び出しごとに生成し、日付は `Date.ISO8601FormatStyle`（Sendable な値型）を使う。
+これは iOS Clipboard が既に採った修正と同一（`MIGRATION.md` §4.2）。
+`UnityMacClipboardJsonParser` は `struct` + `Sendable` とし、facade 自身も可変状態を持たない。
+
 **検証の担保範囲**
 
 | 呼び出し側 | 担保手段 |
@@ -2051,6 +2123,9 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 
 | 対象 | 正常系 | 異常系 | 境界値 |
 |---|---|---|---|
+| `ClipboardTypeIdentifierValidator` | well-formed な UTI と未宣言のカスタム UTI を通す | 単一セグメント / 空セグメント / 不正文字 / 非 ASCII を拒否 | `a.b` / `a.b--c` / `a.b-` / 2004 文字 |
+| `ClipboardMappers` | 全 representation の write / read 往復 | 不正 UTI で `invalidTypeIdentifier` | 0 item / representation 0 件 / 複数 item |
+| `PasteboardResolver` | general / named / unique を解決。unique 名を scope に返す | 空名で `invalidPasteboardName` | 標準名 5 種が `isStandard` |
 | `ClipboardContentValidator` | 有効 content を通す | `emptyContent` / `emptyRepresentations` / `invalidTypeIdentifier` / `contentTooLarge` | warn ちょうど / hard ちょうど / hard+1 / 合計上限 |
 | `CopyContentUseCase` | ownership を返す | Repository の throw を素通し | 1 件 / 多数 |
 | `AppendContentUseCase` | 所有権一致で成功 | `ownershipLost` / `appendRejected` | changeCount 一致 / +1 |
@@ -2131,6 +2206,7 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | **IT-47** | **stream の `onTermination` が `terminateReceiptWithoutDelivery` を呼び、配送を試みない** | **R6-M5** |
 | **IT-48** | **stale tick が `attachStaleQuery` 未設定なら no-op。設定後は activate 済み handle のみ判定する** | **R6-H3** |
 | **IT-49** | **stale query が throw した場合（scope 消失）も解放される** | R6-H3 |
+| **IT-50** | **`public.rtf` の write 後、read が plain text の派生表現を含む** | **RK-24** |
 
 ### 12.3 Presentation テスト
 
@@ -2221,8 +2297,8 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | T-03 | `PasteboardResolver` / `ClipboardMappers` / `ClipboardTypeIdentifierValidator` | 1.0日 | T-02 | Data 層単体テスト通過 | RK-14 / RK-18 |
 | T-04 | `ClipboardRepositoryImpl` の C / R / Q / X | 1.5日 | T-03 | IT-01〜IT-05、IT-07、IT-08 通過 | **§6.4 の所有権単一経路（RK-05）**、§6.3（RK-23）、RK-15 |
 | T-05 | `ClipboardRepositoryImpl` の P + 標準ペーストボード保護 | 0.5日 | T-03 | IT-06 通過 | **RK-07 のガードが構造的** |
-| T-06a | **UseCase 17 本**（`CopyContentUseCase` 〜 `CancelReceiveFilePromisesUseCase`）+ 単体テスト | 1.5日 | T-04, T-05 | §12.1 の UseCase 分が全通過 | 不要な `async` がないこと。**`CancelReceiveFilePromisesUseCase` を含むこと（R3-M5）** |
-| T-06b | `ClipboardContentValidator` / `ClipboardChangeTracker` / 集約 `ClipboardUseCases`（ファイル 3 本）+ 単体テスト | 0.5日 | T-06a | 12.1 全通過 | **§6.8 の入力検証が Validator に集約されていること（R2-M9）**。集約が Repository を直接呼んでいないこと |
+| T-06a | **Port Mock 4 種**（T-02 から繰り越し）+ `ClipboardContentValidator` / `ClipboardChangeTracker` + **同期 UseCase 8 本**（C / R / Q / X / P 群）+ 単体テスト | 1.5日 | T-04, T-05 | §12.1 の該当分が全通過 | **§6.8 の入力検証が Validator に集約されていること（R2-M9）**。不要な `async` がないこと |
+| T-06b | **残り UseCase 9 本**（検出 4 / `CheckForegroundChange` / File Promise 4。**`CancelReceiveFilePromisesUseCase` を含む**）+ 集約 `ClipboardUseCases` + 単体テスト | 0.5日 | T-06a | 12.1 全通過 | **`CancelReceiveFilePromisesUseCase` を含むこと（R3-M5）**。集約が Repository を直接呼んでいないこと |
 | T-07 | **`ClipboardSystemCoordinator`（全 delegate の唯一の所有者、`attachStaleQuery`）** | 1.0日 | **T-06b, T-11a, T-11b** | 登録・解放・冪等性のテスト通過。**stale query 未設定時に tick が no-op** | **H-5: Repository / Presentation が delegate を所有していないこと** |
 | T-08 | `MacClipboardManager` 骨格（DI 順序、`attachStaleQuery` 接続、callback + native、`Log.d`） | 1.0日 | T-07 | **T-06b までに実装済みの OP が呼べ、callback が MainActor**（File Promise / PasteButton / Bridge は後続タスクで追加） | **OP-01〜OP-11 と OP-16 が `async throws`。`@discardableResult` は OP-01〜07 / OP-09〜11 のみで OP-08 には付けない（R3-M6 / R4-M7）。OP-12〜OP-15 / OP-17 / OP-19 / OP-20 が同期**。CT-04 |
 | T-09 | 検出 API + `ClipboardDetectionMapper`（**DDMatch\* 全フィールド + `matchedString`**）+ バージョン分岐 | 1.5日 | T-08 | IT-20、Mapper テスト通過 | **M-7 の非可逆変換がないこと。`matchedString` が全 8 entity にあること（R2-M8）**。**15.4 未満に Q 群フォールバックを置かないこと（RK-01）** |
@@ -2273,6 +2349,8 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | RK-21 | coordinator が provider+delegate を強参照。状態機械で解放（T-11） | 解放漏れは冪等 release と stale 検出で緩和 |
 | RK-22 | どの経路も「通知なし」を保証しない | **MT-09 は判定保留** |
 | RK-23 | 所有権トークンで明示エラー化（§6.3） | iOS と同名で契約が異なる。DocC で明示 |
+| **RK-25**（T-09 で新規発見） | **`detectMetadata` はテキストのみの item で throw する**（§7.10）。`detectionFailed` として素通しし、DocC に明記する | **67587 の発生条件が不明。「該当なし」と「本物の失敗」を区別できない** |
+| **RK-24**（T-04 で新規発見） | **read は write の上位集合になり得る**（§7.6）。`public.rtf` から plain text が派生する。DocC に「書いた表現集合と読める表現集合は一致しない」と明記し、往復一致を前提にしない | **どの型が派生するかは OS 依存で列挙できない。`ClipboardRepositoryImplTests` が現在の挙動を固定する** |
 
 ### 14.1 要検証事項
 
@@ -2374,14 +2452,15 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 - [ ] **`@discardableResult` が戻り値のある OP-01〜OP-07 / OP-09〜OP-11 のみに付いている（OP-08 には付いていない）**（R3-M6 / R4-M7）
 - [ ] **OP-16 が `async throws` で、`.snapshot` のコピーが MainActor 外で実行される**（R4-H3）
 - [ ] **`FilePromiseLifecycleState` が nonisolated な lock-owning クラスであり、`@MainActor` の state を直接触っていない**（R4-H2）
-- [ ] 12.1 の単体テストが全通過する
+- [x] 12.1 の単体テストが全通過する
 - [ ] 12.2 の統合テスト IT-01〜IT-20 が全通過する
 - [ ] 12.3 の Presentation テスト PT-01〜PT-08 が全通過する
-- [ ] 12.2 の統合テスト IT-21〜IT-45 が全通過する
-- [ ] 12.4 の Bridge テスト BT-01〜BT-19 が全通過する
+- [ ] 12.2 の統合テスト IT-21〜IT-50 が全通過する
+- [x] 12.4 の Bridge テスト BT-01〜BT-19 が全通過する
 - [ ] 12.5 の並行性テスト CT-01〜CT-16 が全通過する
-- [ ] `public` シンボルすべてに英語の DocC が付いている
-- [ ] 全メソッド先頭に `Log.d` があり、内容が §4.2 の方針で秘匿されている
+- [x] `public` シンボルすべてに英語の DocC が付いている
+- [x] **RK-24 を DocC に明記した（read は write の上位集合になり得る）**
+- [x] 全メソッド先頭に `Log.d` があり、内容が §4.2 の方針で秘匿されている
 - [ ] **Unity Bridge に Delegate 実装が存在せず、system delegate の強参照が `ClipboardSystemCoordinator` のみである**
 - [ ] `MacLibraryExample` が `MacLibrary` のみに依存して全公開 OP を実行できる
 - [ ] MT-01〜MT-07 を macOS 15.x で実施した（MT-08 は実機 Mac + iPhone、MT-09 は判定保留）

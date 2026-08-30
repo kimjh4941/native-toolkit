@@ -13,6 +13,7 @@ public struct ClipboardItemData: Sendable, Equatable {
     /// Uniform type identifier to raw bytes.
     public let representations: [String: Data]
 
+    /// Creates a value from its parts.
     public init(representations: [String: Data]) {
         self.representations = representations
     }
@@ -25,8 +26,10 @@ public struct ClipboardItemData: Sendable, Equatable {
 
 /// An ordered list of pasteboard items.
 public struct ClipboardContent: Sendable, Equatable {
+    /// Pasteboard items, in order.
     public let items: [ClipboardItemData]
 
+    /// Creates a value from its parts.
     public init(items: [ClipboardItemData]) {
         self.items = items
     }
@@ -45,6 +48,7 @@ public struct ClipboardCopyOptions: Sendable, Equatable {
     ///   Its practical effect has not been verified on real hardware yet.
     public let localOnly: Bool
 
+    /// Creates a value from its parts.
     public init(localOnly: Bool) {
         self.localOnly = localOnly
     }
@@ -55,9 +59,12 @@ public struct ClipboardCopyOptions: Sendable, Equatable {
 
 /// Everything read back from a pasteboard.
 public struct ClipboardReadResult: Sendable, Equatable {
+    /// Pasteboard items, in order.
     public let items: [ClipboardItemData]
+    /// Change count observed when the value was produced.
     public let changeCount: Int
 
+    /// Creates a value from its parts.
     public init(items: [ClipboardItemData], changeCount: Int) {
         self.items = items
         self.changeCount = changeCount
@@ -69,12 +76,14 @@ public struct ClipboardReadResult: Sendable, Equatable {
 /// - Important: Avoiding a payload read does **not** guarantee the system will refrain from
 ///   notifying the user. Treat this as an optimisation, not a privacy contract.
 public struct ClipboardSnapshot: Sendable, Equatable {
+    /// Change count observed when the value was produced.
     public let changeCount: Int
     /// Uniform type identifiers of every item, in pasteboard order.
     public let itemTypes: [[String]]
     /// Indexes of the items that matched the requested filter, or every index when unfiltered.
     public let matchingItemIndexes: [Int]
 
+    /// Creates a value from its parts.
     public init(changeCount: Int, itemTypes: [[String]], matchingItemIndexes: [Int]) {
         self.changeCount = changeCount
         self.itemTypes = itemTypes
@@ -86,9 +95,12 @@ public struct ClipboardSnapshot: Sendable, Equatable {
 ///
 /// - Note: macOS has no changed / removed distinction, so the event carries neither.
 public struct ClipboardChangeEvent: Sendable, Equatable {
+    /// Pasteboard the event came from.
     public let scope: PasteboardScope
+    /// Change count observed when the value was produced.
     public let changeCount: Int
 
+    /// Creates a value from its parts.
     public init(scope: PasteboardScope, changeCount: Int) {
         self.scope = scope
         self.changeCount = changeCount

@@ -28,10 +28,33 @@ public struct FilePromiseRequest: Sendable {
     /// Where the bytes come from.
     public let source: FilePromiseSource
 
+    /// Creates a value from its parts.
     public init(fileTypeIdentifier: String, fileName: String, source: FilePromiseSource) {
         self.fileTypeIdentifier = fileTypeIdentifier
         self.fileName = fileName
         self.source = source
+    }
+}
+
+/// A stream of receive events plus the handle that identifies the session.
+///
+/// The handle has to be published alongside the stream: without it the caller cannot cancel
+/// the very session it is consuming (R4-H1).
+public struct FilePromiseEventSubscription: Sendable {
+    /// Handle for ``MacClipboardManager/cancelReceiveFilePromises(_:)``.
+    public let handle: FilePromiseReceiptHandle
+    /// Events, ending with ``FilePromiseReceiptEvent/finished(_:)``.
+    ///
+    /// Non-throwing on purpose. A failure to start is reported by the factory that produced
+    /// this value; once the stream exists, per-file failures arrive as
+    /// ``FilePromiseReceiptEvent/failed(_:)`` events rather than as errors (R3-H1).
+    public let events: AsyncStream<FilePromiseReceiptEvent>
+
+    /// Creates a value from its parts.
+    public init(handle: FilePromiseReceiptHandle,
+                events: AsyncStream<FilePromiseReceiptEvent>) {
+        self.handle = handle
+        self.events = events
     }
 }
 
@@ -57,10 +80,14 @@ public struct FilePromiseReceipt: Sendable, Equatable {
         case cancelled
     }
 
+    /// Files that arrived before the session ended.
     public let urls: [URL]
+    /// Files that could not be received. Other files still arrived.
     public let failures: [ClipboardError]
+    /// Why the session ended.
     public let terminatedBy: Termination
 
+    /// Creates a value from its parts.
     public init(urls: [URL], failures: [ClipboardError], terminatedBy: Termination) {
         self.urls = urls
         self.failures = failures

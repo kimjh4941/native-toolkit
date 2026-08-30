@@ -45,6 +45,7 @@ public struct PasteboardOwnership: Sendable, Equatable {
     /// Change count reported when ownership was taken.
     public let changeCount: Int
 
+    /// Creates a value from its parts.
     public init(scope: PasteboardScope, changeCount: Int) {
         self.scope = scope
         self.changeCount = changeCount
