@@ -25,7 +25,7 @@ public struct CreatePasteboardUseCase {
     /// - Returns: The scope naming the pasteboard. For a unique request the name is chosen by
     ///   the system, so the returned scope is the only way to address it later.
     public func callAsFunction(_ request: PasteboardCreationRequest) throws -> PasteboardScope {
-        Log.d(TAG, "[callAsFunction] request: \(request)")
+        Log.d(TAG, "[callAsFunction] request: \(ClipboardLog.request(request))")
         return try repository.createPasteboard(request)
     }
 }

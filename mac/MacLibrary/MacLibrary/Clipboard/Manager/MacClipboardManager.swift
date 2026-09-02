@@ -349,7 +349,7 @@ public final class MacClipboardManager {
     ///   on a named one (RK-06).
     @discardableResult
     public func createPasteboard(_ request: PasteboardCreationRequest) async throws -> PasteboardScope {
-        Log.d(TAG, "[createPasteboard] request: \(request)")
+        Log.d(TAG, "[createPasteboard] request: \(ClipboardLog.request(request))")
         return try useCases.createPasteboard(request)
     }
 
@@ -361,7 +361,7 @@ public final class MacClipboardManager {
     /// `nil` performs the operation without reporting the result.
     public func createPasteboard(_ request: PasteboardCreationRequest,
                                  completion: ClipboardCallbackResult<PasteboardScope>?) {
-        Log.d(TAG, "[createPasteboard:completion] request: \(request)")
+        Log.d(TAG, "[createPasteboard:completion] request: \(ClipboardLog.request(request))")
         complete(completion) { try useCases.createPasteboard(request) }
     }
 

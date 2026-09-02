@@ -48,7 +48,7 @@ extension ClipboardRepositoryImpl: ClipboardRepository {
     // MARK: Pasteboard lifetime (T-05)
 
     func createPasteboard(_ request: PasteboardCreationRequest) throws -> PasteboardScope {
-        Log.d(TAG, "[createPasteboard] request: \(request)")
+        Log.d(TAG, "[createPasteboard] request: \(ClipboardLog.request(request))")
         let (_, scope) = try PasteboardResolver.create(request)
         return scope
     }

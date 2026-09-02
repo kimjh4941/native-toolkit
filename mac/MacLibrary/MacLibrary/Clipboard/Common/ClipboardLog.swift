@@ -85,6 +85,21 @@ public enum ClipboardLog {
         return "scope(\(shortHash(value)))"
     }
 
+    /// Describes a creation request. A requested name is reduced to the same short hash a
+    /// resolved scope uses, so the two can be correlated without either leaking the name.
+    ///
+    /// Interpolating the request itself printed `named("secret")` verbatim at five call sites
+    /// (R-S2-H1). `Log` publishes at `privacy: .public`, so the name reached whatever collects
+    /// the logs.
+    public static func request(_ value: PasteboardCreationRequest) -> String {
+        switch value {
+        case .named(let name):
+            return "request(named:\(shortHash(name)))"
+        case .unique:
+            return "request(unique)"
+        }
+    }
+
     private static func shortHash(_ value: String) -> String {
         var hasher = Hasher()
         hasher.combine(value)

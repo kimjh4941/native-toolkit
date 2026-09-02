@@ -56,7 +56,7 @@ enum PasteboardResolver {
     ///
     /// - Throws: ``ClipboardError/invalidPasteboardName(_:)`` for an empty name.
     static func create(_ request: PasteboardCreationRequest) throws -> (NSPasteboard, PasteboardScope) {
-        Log.d(TAG, "[create] request: \(request)")
+        Log.d(TAG, "[create] request: \(ClipboardLog.request(request))")
         switch request {
         case .named(let name):
             guard !name.isEmpty else {

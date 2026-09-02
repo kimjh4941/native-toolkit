@@ -358,6 +358,15 @@ def check_live_symbols(text, path, rep):
     task table or the DoD. Matching on wording cannot: the rows that outlived the File Promise
     removal spoke of `inFlightCount` and `overallTimeout`, never of "file promise".
     """
+    # A plan describes code that does not exist yet, so "does this symbol exist" has no meaning
+    # for one; the check applies to a design of code that has been written. The exemption is
+    # narrow on purpose: a blanket skip for every sample-app plan would also silence the check
+    # for plans whose code *has* been written, which is how an exclusion becomes an excuse
+    # (R-S3-M7). A plan opts in by saying so in its own front matter.
+    if "PLANNED_SYMBOLS_EXEMPT" in text:
+        rep.skip("named symbols exist in the implementation",
+                 "the document declares PLANNED_SYMBOLS_EXEMPT: it names code not yet written")
+        return
     key = next((k for k in SOURCE_ROOTS if k in str(path).lower()), None)
     if key is None:
         rep.skip("named symbols exist in the implementation", "no source root for this document")
