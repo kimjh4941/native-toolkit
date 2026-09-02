@@ -41,7 +41,7 @@ struct ClipboardLogAuditTests {
 
     private static let allowed: Set<String> = ["TAG"]
 
-    private static let sources: [(name: String, lines: [String])] = {
+    private static let sources: [(name: String, root: String, lines: [String])] = {
         var url = URL(filePath: #filePath)
         while url.pathComponents.count > 1, url.lastPathComponent != "mac" {
             url.deleteLastPathComponent()
@@ -51,13 +51,14 @@ struct ClipboardLogAuditTests {
         // (R-S3-M6).
         let roots = [url.appending(path: "MacLibrary/MacLibrary/Clipboard"),
                      url.appending(path: "UnityMacPlugin/UnityMacPlugin/Clipboard")]
-        var result: [(String, [String])] = []
+        var result: [(String, String, [String])] = []
         for root in roots {
+            let label = root.pathComponents.suffix(3).joined(separator: "/")
             guard let enumerator = FileManager.default.enumerator(
                 at: root, includingPropertiesForKeys: nil) else { continue }
             for case let url as URL in enumerator where url.pathExtension == "swift" {
                 guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
-                result.append((url.lastPathComponent, text.components(separatedBy: "\n")))
+                result.append((url.lastPathComponent, label, text.components(separatedBy: "\n")))
             }
         }
         return result
@@ -99,7 +100,7 @@ struct ClipboardLogAuditTests {
     /// and the leak became invisible to the very check meant to catch it (R-S3-H2).
     private func interpolations() -> [(file: String, line: Int, expression: String)] {
         var found: [(String, Int, String)] = []
-        for (name, lines) in Self.sources {
+        for (name, _, lines) in Self.sources {
             var inCall = false
             var depth = 0
             for (offset, line) in lines.enumerated() {
@@ -167,10 +168,20 @@ struct ClipboardLogAuditTests {
     func auditHasSubjects() {
         // A pass that examined nothing would be worthless. This suite exists because the
         // bridge's own audit passed for three rounds while looking at almost nothing.
-        // Measured 41 files and 142 expressions. The floor is ~80% of that, so losing a
-        // source root or a whole file is noticed; 20 / 40 would not have been (R-S3-L7).
-        #expect(Self.sources.count >= 33, "found \(Self.sources.count) source files")
-        #expect(interpolations().count >= 110,
+        // Each root must contribute. A floor cannot express this: dropping the plugin root
+        // leaves 41 files and 149 expressions, which cleared the previous 33 / 110 floor and
+        // would have hidden the very gap that root was added to close (R-S4-M3).
+        let roots = Set(Self.sources.map(\.root))
+        #expect(roots.count == 2, "audited roots: \(roots.sorted())")
+        for root in roots {
+            let files = Self.sources.filter { $0.root == root }
+            #expect(!files.isEmpty, "\(root) contributed no file")
+        }
+
+        // Measured 43 files and 186 expressions across both roots. The floor sits just under
+        // that so a file or a batch of calls going missing is noticed too.
+        #expect(Self.sources.count >= 42, "found \(Self.sources.count) source files")
+        #expect(interpolations().count >= 170,
                 "found \(interpolations().count) logged expressions")
     }
 

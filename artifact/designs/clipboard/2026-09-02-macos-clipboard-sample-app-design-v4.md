@@ -36,11 +36,20 @@
 | 中 3: ST-05 の走査対象・コメント除外・パス解決が未定義 | **§7.1 に明記** |
 | 中 6: 監査の走査根が `MacLibrary/Clipboard` のみで、プラグインの Swift が全監査の外 | **ライブラリ側を修正**。両ツリーを走査。実際に 6 件検出し、いずれも機微でないことを確認して規則を整えた |
 | 中 7: 機械照合を黙って緩めていた（FAIL 2 → 0 は除外によるもの） | **除外を明示的な opt-in に変更**。文書が `PLANNED_SYMBOLS_EXEMPT` と宣言した場合のみ SKIP。本書は宣言する |
-| 低 1〜8 | **§7.4 と各節に反映**（v3 は「§7.4 に注記」と書きながら 1 行も書いていなかった） |
+| 中 2: `partialPasteContent` に導線がなく成立も未検証 | §6.2 に導線、§10 に要検証 2 を追加 |
+| 中 4: §7.4 / §9 / §3.1 が §7.1 と食い違う | 3 節とも訂正。§3.1 は「説明であって検査ではない」と明記 |
+| 中 5: MS-02 を裏づける検査が消えた | **ST-07 を新設**し、`runExpectingError` の 3 分岐を検査 |
+| 中 8: 低が 1 件も反映されていない | 本表の下 3 行のとおり反映 |
+| 低 1 / 低 3 / 低 4 / 低 10 | §5.4 の MS-06、§0 の §1.4、§4.3 の前提修正、§1.2 の脚注 |
+| 低 5 / 低 6 / 低 7 | **ライブラリ側の監査を修正**（死に条件 13 件を削除、`break` → `continue`、床を実測から取り直し） |
+| 低 8 / 低 9 | §1.2 に `runSync`、§4.1 に共有 scheme、§7.3 に `-resultBundlePath` |
+
+**v3 レビューの低は 10 件**（v3 の §0 は「低 3 件」、v4 初版は「低 1〜8」と書いた。**4 版連続で
+件数を取り違えている**）。低 2 は §5.5 の位置で、本版では並べ替え済み。
 
 **v3 の §0 の誤り**
 
-- 「低 3 件 → §7.4 に注記」と書いたが、低は **8 件**あり、§7.4 に注記は **1 行もなかった**
+- 「低 3 件 → §7.4 に注記」と書いたが、低は **10 件**あり、§7.4 に注記は **1 行もなかった**
 - 「一部」7 件は、指摘の前半だけを引用して解消と記載していた
 - 件数を v1 レビューの 13 件と取り違えていた（v2 レビューは 19 件）
 
@@ -411,8 +420,6 @@ struct PasteButtonHost: NSViewRepresentable {
 
 ---
 
-## 6. 実装詳細
-
 ### 5.5 `MacClipboardManager` のインスタンス方針
 
 **サンプルは `MacClipboardManager.shared` のみを使う。**
@@ -430,6 +437,8 @@ struct PasteButtonHost: NSViewRepresentable {
 
 MS-05 はこの前提のもとで確認する。
 
+## 6. 実装詳細
+
 ### 6.1 セクション別の操作
 
 `await run(label:)` は「`Task` で包み、`ClipboardError` を `errorCode` / `errorMessage` に、
@@ -443,7 +452,8 @@ MS-05 はこの前提のもとで確認する。
 | `CreateNamedPasteboard` | OP-07 `.named("nt-sample")` → 返る scope を Active に |
 | `CreateUniquePasteboard` | OP-07 `.unique` → 同上 |
 | `RemoveCurrentPasteboard` | OP-08 → 成功時は Active を `general` へ |
-| `RemoveGeneral` | OP-08 `.general` → **1508 を期待** |
+| `RemoveGeneral` | OP-08 `.general` → **1508 を期待**（標準名なのでメッセージを表示してよい） |
+| `CreateEmptyNamedPasteboard` | OP-07 `.named("")` → **1505 を期待**。**errorMessage ではなくコードと固定文が出る**ことを MS-07 で目視する（§3.3） |
 
 #### 2. Copy / 3. Copy Options / 4. Append / 9. Clear
 
@@ -452,6 +462,8 @@ MS-05 はこの前提のもとで確認する。
 | `CopyText` / `CopyURL` / `CopyImage` | OP-01。UTI と `Data` の辞書はフィクスチャが組む |
 | `CopyMultipleItems` / `CopyMultipleRepresentations` | OP-01 |
 | `CopyEmpty` | OP-01 `items: []` → **1501 を期待** |
+| `CopyEmptyRepresentations` | OP-01 に representations が空の item → **1502 を期待** |
+| `CopyPartialPasteContent` | OP-01 で `partialPasteContent` を書く。Paste Control の部分失敗（1521）を作るための準備（§6.2） |
 | Toggle `localOnly` + `CopyWithCurrentOptions` | OP-01 に `ClipboardCopyOptions(localOnly:)` |
 | `CopyThenAppend` | OP-01 → 返る ownership で OP-02 |
 | `AppendWithStaleOwnership` | OP-01 → 別内容で OP-01 → 最初の ownership で OP-02 → **1511 を期待** |
@@ -731,7 +743,7 @@ MT-05 は機能設計 v9 で削除された。
 | MS-04 | named / unique を作成 → 操作 → 削除まで通る |
 | MS-05 | Observe を開始したまま画面を離れると停止する |
 | MS-06 | Paste Control の View 破棄で進行中の load がキャンセルされる |
-| MS-07 | 画面表示とログのどちらにも、値・完全パス・query・pasteboard 名が出ない（§3.4） |
+| MS-07 | 画面表示とログのどちらにも、値・完全パス・query・**利用者が付けた** pasteboard 名が出ない（§3.4）。**`CreateEmptyNamedPasteboard`（1505）で、渡した名前が画面に出ないことを確認する。`RemoveGeneral`（1508）は標準名なので出てよい** |
 | MS-08 | サンプルが `UnityMacPlugin` を import していない |
 
 ---
