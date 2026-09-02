@@ -297,6 +297,69 @@ final class ClipboardSampleViewUITests: XCTestCase {
         tap(app, "RemoveCurrentPasteboard")
     }
 
+    // MARK: - MS-04
+
+    @MainActor
+    func testANamedPasteboardGoesFromCreationThroughUseToRemoval() throws {
+        let app = openClipboardExample()
+
+        tap(app, "CreateNamedPasteboard")
+        XCTAssertTrue(activeScope(app).contains("named"), "creating did not move the scope")
+
+        tap(app, "CopyText")
+        let read = tap(app, "Read")
+        XCTAssertTrue(read.contains("items=1"), "the named pasteboard did not hold the copy: \(read)")
+        let snapshot = tap(app, "Snapshot")
+        XCTAssertTrue(snapshot.contains("items=1"), "the snapshot did not see the item: \(snapshot)")
+        // `clear` reports the pasteboard's new change count, not a number of items. Writing
+        // this test is what turned up that the sample called it "removed" (R-SA25).
+        let cleared = tap(app, "Clear")
+        XCTAssertTrue(cleared.contains("changeCount="),
+                      "clear did not report a change count: \(cleared)")
+        let emptied = tap(app, "Read")
+        XCTAssertTrue(emptied.contains("items=0"), "the pasteboard was not emptied: \(emptied)")
+
+        tap(app, "RemoveCurrentPasteboard")
+        XCTAssertTrue(activeScope(app).contains("general"),
+                      "removing did not return the scope to general")
+    }
+
+    @MainActor
+    func testAUniquePasteboardGoesFromCreationThroughUseToRemoval() throws {
+        let app = openClipboardExample()
+
+        tap(app, "CreateUniquePasteboard")
+        XCTAssertTrue(activeScope(app).contains("unique"), "creating did not move the scope")
+
+        tap(app, "CopyText")
+        let read = tap(app, "Read")
+        XCTAssertTrue(read.contains("items=1"), "the unique pasteboard did not hold the copy: \(read)")
+
+        tap(app, "RemoveCurrentPasteboard")
+        XCTAssertTrue(activeScope(app).contains("general"),
+                      "removing did not return the scope to general")
+    }
+
+    // MARK: - MT-03
+
+    @MainActor
+    func testAppendFollowsTheOwnershipTheCopyReturned() throws {
+        let app = openClipboardExample()
+
+        // Append takes no scope: it follows the ownership the preceding copy handed back.
+        let appended = tap(app, "CopyThenAppend")
+        XCTAssertTrue(appended.contains("changeCount="),
+                      "the append did not report a change count: \(appended)")
+        XCTAssertTrue(appended.contains("✅"), "the append failed: \(appended)")
+
+        // A second copy invalidates the first copy's ownership, and appending with it must
+        // fail with 1511. MS-01 only asks that the button reports something, so nothing was
+        // checking which code it reported.
+        let stale = tap(app, "AppendWithStaleOwnership")
+        XCTAssertTrue(stale.contains("1511"),
+                      "appending with stale ownership did not report 1511: \(stale)")
+    }
+
     // MARK: - MS-05
 
     @MainActor

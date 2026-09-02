@@ -322,6 +322,10 @@ public final class MacClipboardManager {
     // MARK: - OP-06 clear
 
     /// Empties the pasteboard.
+    ///
+    /// - Parameter scope: Which pasteboard to empty.
+    /// - Returns: The pasteboard's new change count, which is what `clearContents()` reports.
+    ///   It is **not** a count of the items that were removed.
     @discardableResult
     public func clear(scope: PasteboardScope = .general) async throws -> Int {
         Log.d(TAG, "[clear] scope: \(ClipboardLog.scope(scope))")

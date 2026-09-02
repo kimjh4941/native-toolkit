@@ -123,16 +123,50 @@
 | 対象 | 宣言数 | 展開後 | 失敗 |
 |---|---|---|---|
 | `MacLibraryExampleTests` | 20 | 21 | 0 |
-| `ClipboardSampleViewUITests` | 8 | 8 | 0 |
+| `ClipboardSampleViewUITests` | 11 | 11 | 0 |
 | `ClipboardSampleWaitRuleTests` | 6 | 6 | 0 |
 | `MacLibrary` | 307 | 351 | 0 |
 | `UnityMacPlugin` | 75 | 76 | 0 |
 | `scripts/tests` | 7 | 7 | 0 |
 
-- clipboard 分の合計 **34 宣言 / 35 展開 / 失敗 0**。件数は xcresult から取得。
+- clipboard 分の合計 **37 宣言 / 38 展開 / 失敗 0**。件数は xcresult から取得。
 - `clean test` で **Clipboard 由来の警告 0 件**。
 - `git diff develop --check`: 0 件。
 - `check_design_consistency.py`: 計画 v5・機能設計 v9 とも全項目 OK。
+
+## 6.1 追加分（自動化の取りこぼし）
+
+**「自動化できるものは網羅した」という認識が誤っていた。** MS-04 と MT-03 は他アプリも別端末も
+要らずアプリ内で完結するのに、計画の手動欄に置いたままだった。**5 ラウンドのレビューはどれも
+これを指摘していない。** レビューは「書いた検査が正しいか」を見たが、「手動欄に置いた前提が
+正しいか」は誰も疑わなかった。
+
+| 追加 | 内容 |
+|---|---|
+| MS-04 | named / unique を 作成 → copy → read → snapshot → clear → remove まで通す 2 件 |
+| MT-03 | `CopyThenAppend` の成功と、`AppendWithStaleOwnership` が **1511** を返すこと |
+
+変異でも確認した。
+
+| 壊した内容 | 結果 |
+|---|---|
+| `AppendWithStaleOwnership` が有効な ownership を使う | **落ちた**（`did not report 1511`） |
+| `RemoveCurrentPasteboard` が scope を general に戻さない | **落ちた** |
+
+### MT-03 を書いて見つかった `clear` の表示の誤り
+
+`clear` が返すのは `NSPasteboard.clearContents()` の値、すなわち**新しい changeCount** であって、
+消した item 数ではない。
+
+| | 記述 | 判定 |
+|---|---|---|
+| 機能設計 v9 | 「`clearContents()` を呼び、新しい `changeCount` を返す」 | **正しい** |
+| サンプル計画 v5 | 「消した item 数を表示」 | **誤り。訂正した** |
+| サンプル実装 | `removed=42` | **誤り。`changeCount=` に訂正した** |
+| ライブラリの DocC | `/// Empties the pasteboard.` のみ | **戻り値の説明が無かった。追加した** |
+
+**DocC に戻り値が書かれていなかったことが、この取り違えを支えていた。** 機能設計だけが正しく
+書いており、公開 API を読んだ人には確かめる手段がなかった。
 
 ## 7. 残作業
 
@@ -141,7 +175,7 @@
 | MT-01〜MT-04 / MT-06 / MT-07 | **未実施**（手動確認） |
 | MT-08 | **未実施**（端末 2 台） |
 | MT-09 | 判定保留 |
-| MS-04 / MS-06 | **未実施** |
+| MS-06 | **未実施**。進行中の load を誘発できないため自動化できない |
 | L-02（解放中の中間状態）、C-07、C-08 | **未対応**。理由は §4 と result v5 §3 |
 | 平文 `detectMetadata` が 1515 を返す件 | **要検証** |
 | `PasteButton` が `supportedContentTypes` に一致しない provider を渡すか | **要検証** |

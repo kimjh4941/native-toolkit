@@ -25,6 +25,9 @@
 > | §4.1 / §4.2 | UI テスト 2 ファイルと `check_design_consistency.py` を一覧に追加 | 作成・変更した実体が一覧に無かった（レビュー v3 L-01） |
 > | §7.1 / §7.4 | ST-08 / ST-09 / ST-10 を一覧と合格条件に追加 | 実装にあるのに計画の合格条件の対象外だった（レビュー v4 L-04） |
 > | §8.1 MT-08 | `CopyWithCurrentOptions` を名指し | 通常 Copy が既定値固定になったため、ボタン名が無いと検証が成立しない（同 L-05） |
+> | §5「9. Clear」 | 「消した item 数」→「新しい changeCount」 | **OP-06 が返すのは changeCount であり、item 数ではない。** 機能設計は正しく書いていたが、計画と実装が取り違えていた（MS-04 を自動化して判明） |
+> | §8.2 MS-04 / §8.1 MT-03 | 自動化済みとする | 他アプリも別端末も要らず自動化できるのに手動欄に置いていた |
+> | §8.1 の表 | 「状態」列を「自動化」「手動である理由」に置換 | **「実施可」は理由ではない。** 理由を書かせないと、自動化できる項目が手動のまま残る（workflow 側にも規則を追加） |
 
 > T-18 の完了条件（設計書 §13）:
 > **「全公開 OP が `MacLibraryExample` から Unity 非依存で実行できること」**
@@ -496,7 +499,7 @@ Picker の選択値は `activeScope` から**導出**する（別の `@State` �
 | Toggle `localOnly` + `CopyWithCurrentOptions` | OP-01 に `ClipboardCopyOptions(localOnly:)` |
 | `CopyThenAppend` | OP-01 → 返る ownership で OP-02 |
 | `AppendWithStaleOwnership` | OP-01 → 別内容で OP-01 → 最初の ownership で OP-02 → **1511 を期待** |
-| `Clear` | OP-06。消した item 数を表示 |
+| `Clear` | OP-06。**新しい changeCount を表示**（`clearContents()` が返すのはこれで、消した item 数ではない）。機能設計 §6.4 と一致させる |
 
 #### 5. Read / Inspect
 
@@ -775,16 +778,19 @@ python3 -m unittest discover -s scripts/tests
 
 ### 8.1 機能設計の MT との対応
 
-| MT | 手順 | 状態 |
-|---|---|---|
-| MT-01 | 他アプリでコピー → `Read` | 実施可 |
-| MT-02 | `CopyText` → 他アプリで貼り付け | 実施可 |
-| MT-03 | `CopyThenAppend` と `AppendWithStaleOwnership` | 実施可 |
-| MT-04 | `StartObserving` → 他アプリでコピー → 非アクティブ → 復帰 | 実施可 |
-| MT-06 | Paste Control から貼り付け。部分失敗表示 | 実施可 |
-| MT-07 | 15.4.1 と 15.2 の両方で Detect 各種 | 実施可（2 環境必要） |
-| MT-08 | **`CopyWithCurrentOptions`** で `localOnly` を切り替えて実機 Mac + iPhone。通常の Copy は既定値固定なので、そちらでは切り替わらない | 実施可（実機 2 台必要） |
-| MT-09 | 各操作時のプライバシーアラート | 観察のみ。判定保留（RK-22） |
+**手動に置く項目には、自動化できない理由を書く**（`design-sample-app` workflow の 4 分類）。
+理由が書けない項目は自動化する。
+
+| MT | 手順 | 自動化 | 手動である理由 |
+|---|---|---|---|
+| MT-01 | 他アプリでコピー → `Read` | 不可 | 他アプリの内部が必要 |
+| MT-02 | `CopyText` → 他アプリで貼り付け | 不可 | 他アプリの内部が必要 |
+| MT-03 | `CopyThenAppend` と `AppendWithStaleOwnership` | **済** | - |
+| MT-04 | `StartObserving` → 他アプリでコピー → 非アクティブ → 復帰 | 不可 | 他アプリの内部が必要 |
+| MT-06 | Paste Control から貼り付け。部分失敗表示 | 不可 | 状態を誘発できない（部分失敗を起こす provider を用意できるかが要検証） |
+| MT-07 | 15.4.1 と 15.2 の両方で Detect 各種 | 不可 | 環境が複数必要（OS 2 版） |
+| MT-08 | **`CopyWithCurrentOptions`** で `localOnly` を切り替えて実機 Mac + iPhone。通常の Copy は既定値固定なので、そちらでは切り替わらない | 不可 | 環境が複数必要（実機 2 台） |
+| MT-09 | 各操作時のプライバシーアラート | 不可 | 観察のみで判定しない（RK-22） |
 
 MT-05 は機能設計 v9 で削除された。
 
@@ -795,9 +801,9 @@ MT-05 は機能設計 v9 で削除された。
 | MS-01 | 10 セクションすべてのボタンが押下可能で、Result が必ず更新される。**対象ボタンはサンプルのソースから導出する**（手書きの一覧は、抜けたボタンを検査対象外にできる） |
 | MS-02 | `(expect error)` が設計どおりの errorCode を返し、**成功してしまった場合に失敗と表示される** |
 | MS-03 | Active scope の切り替えが**`scope` 引数を持つ操作**に反映される（Paste Control は general 固定） |
-| MS-04 | named / unique を作成 → 操作 → 削除まで通る |
+| MS-04 | named / unique を作成 → 操作 → 削除まで通る（**自動化済み**） |
 | MS-05 | Observe を開始したまま画面を離れると停止する |
-| MS-06 | Paste Control の View 破棄で進行中の load がキャンセルされる |
+| MS-06 | Paste Control の View 破棄で進行中の load がキャンセルされる（**自動化不可: 状態を誘発できない**。進行中の load を作るには遅い provider が要る） |
 | MS-07 | 画面表示とログのどちらにも、値・完全パス・query・**利用者が付けた** pasteboard 名が出ない（§3.4）。**`CreateNamedPasteboard` で実際に渡した名前（`nt-sample`）が画面に出ないことを確認する。** 名前は実装のソースから読む。`CreateEmptyNamedPasteboard`（1505）でも同じ名前が出ないことを併せて確認する。`RemoveGeneral`（1508）は標準名なので出て**よい**（出ることを要求はしない） |
 
 > **v4 の MS-07 は成立していなかった。** 検査対象を `CreateEmptyNamedPasteboard` だけにして

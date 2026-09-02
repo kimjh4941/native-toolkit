@@ -522,7 +522,10 @@ struct ClipboardSampleView: View {
                 let scope = inputs.scope
                 Task {
                     await run(label: "clear") {
-                        "removed=\(try await MacClipboardManager.shared.clear(scope: scope))"
+                        // The value is the pasteboard's new change count, not a number of
+                        // items: `clearContents()` reports the former. Calling it "removed"
+                        // said something the operation never returns (R-SA25).
+                        "changeCount=\(try await MacClipboardManager.shared.clear(scope: scope))"
                     }
                 }
             }
