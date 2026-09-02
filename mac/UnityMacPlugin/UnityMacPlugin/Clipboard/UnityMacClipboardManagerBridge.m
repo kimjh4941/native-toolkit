@@ -215,28 +215,6 @@ void clipboardRemovePasteboard(const char* scopeJson, ClipboardCallback callback
     }];
 }
 
-void clipboardReleaseFilePromise(const char* handleJson, ClipboardCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardReleaseFilePromise handleJson: %@, callback: %p",
-                 NTLen(handleJson), callback]];
-    [[UnityMacClipboardManager shared] releaseFilePromiseWithHandleJson:NTStr(handleJson)
-                                             handler:^(BOOL isSuccess, NSInteger errorCode, NSString* errorMessage) {
-        if (callback) {
-            callback(isSuccess, errorCode, errorMessage.UTF8String);
-        }
-    }];
-}
-
-void clipboardCancelReceiveFilePromises(const char* handleJson, ClipboardCallback callback) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardCancelReceiveFilePromises handleJson: %@, callback: %p",
-                 NTLen(handleJson), callback]];
-    [[UnityMacClipboardManager shared] cancelReceiveFilePromisesWithHandleJson:NTStr(handleJson)
-                                             handler:^(BOOL isSuccess, NSInteger errorCode, NSString* errorMessage) {
-        if (callback) {
-            callback(isSuccess, errorCode, errorMessage.UTF8String);
-        }
-    }];
-}
-
 void clipboardStartObserving(const char* scopeJson,
                              double intervalSeconds,
                              ClipboardCallback callback,
@@ -266,45 +244,3 @@ void clipboardStopObserving(ClipboardCallback callback) {
     }];
 }
 
-void clipboardProvideFilePromise(const char* requestJson,
-                                 const char* scopeJson,
-                                 ClipboardJsonCallback callback) {
-    // The request holds a full file path, which is never logged (section 4.2).
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardProvideFilePromise requestJson: %@, scopeJson: %@, callback: %p",
-                 NTLen(requestJson), NTScope(scopeJson), callback]];
-    if (!callback) {
-        [Log e:TAG :@"clipboardProvideFilePromise: callback is required; nothing was registered."];
-        return;
-    }
-    [[UnityMacClipboardManager shared] provideFilePromiseWithRequestJson:NTStr(requestJson)
-                                                              scopeJson:NTStr(scopeJson)
-                                                                handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
-        if (callback) {
-            callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
-        }
-    }];
-}
-
-void clipboardReceiveFilePromises(const char* destinationPath,
-                                  const char* scopeJson,
-                                  const char* policyJson,
-                                  ClipboardJsonCallback callback,
-                                  ClipboardReceiptCallback onEvent) {
-    [Log d:TAG :[NSString stringWithFormat:@"clipboardReceiveFilePromises destinationPath: %@, scopeJson: %@, policyJson: %@, callback: %p, onEvent: %p",
-                 NTLen(destinationPath), NTScope(scopeJson), NTLen(policyJson), callback, onEvent]];
-    if (!callback) {
-        [Log e:TAG :@"clipboardReceiveFilePromises: callback is required; nothing was started."];
-        return;
-    }
-    [[UnityMacClipboardManager shared] receiveFilePromisesWithDestinationPath:NTStr(destinationPath)
-                                                                   scopeJson:NTStr(scopeJson)
-                                                                  policyJson:NTStr(policyJson)
-                                                                     onEvent:onEvent ? ^(BOOL isFinished, NSString* eventJson) {
-        onEvent(isFinished, eventJson.UTF8String);
-    } : nil
-                                                                     handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
-        if (callback) {
-            callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
-        }
-    }];
-}

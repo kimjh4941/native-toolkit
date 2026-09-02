@@ -37,6 +37,15 @@ RETIRED_TERMS = {
         "noMatchingItem",
         "observationAlreadyActive",
         "cancelReceipt(handle)",
+        # Removed in design v9 with the File Promise operations (OP-16..18 / OP-20).
+        "provideFilePromise",
+        "receiveFilePromises",
+        "cancelReceiveFilePromises",
+        "FilePromiseSnapshotting",
+        "FilePromiseReceiptPolicy",
+        "ClipboardReceiptCallback",
+        "clipboardProvideFilePromise",
+        "clipboardReceiveFilePromises",
     ],
 }
 # Lines that explain a removal are allowed to name the retired term.
@@ -228,8 +237,15 @@ def check_retired(text, path, rep):
                  f"no retired-term list for this document (known: {sorted(RETIRED_TERMS)})")
         return
     hits = []
+    # The "## 0.x での変更点" blocks are a change log. They describe what past revisions did,
+    # so naming something a later revision removed is correct there, not drift.
+    in_history = False
     for lineno, line in enumerate(text.splitlines(), 1):
-        if any(k in line for k in RETIRED_EXEMPT):
+        if re.match(r"^## 0(\.\d+)?\. ", line):
+            in_history = True
+        elif re.match(r"^## [1-9]", line):
+            in_history = False
+        if in_history or any(k in line for k in RETIRED_EXEMPT):
             continue
         hits += [(lineno, t) for t in RETIRED_TERMS[key] if t in line]
     rep.check(not hits, "retired wording removed", f"hits={hits[:6]}")

@@ -123,12 +123,6 @@ struct ClipboardDocumentationTests {
         #expect(managerDoc.contains("`localOnly` is unverified"))
     }
 
-    @Test("H-3: the receive terminal event is documented as an estimate")
-    func documentsReceiveHeuristic() {
-        #expect(managerDoc.contains("end is an estimate"))
-        #expect(managerDoc.contains("does not report how many files"))
-    }
-
     @Test("RK-16: the paste button's lack of validation is stated")
     func documentsPasteButtonValidation() {
         #expect(managerDoc.contains("does not validate itself"))
@@ -160,8 +154,7 @@ enum ClipboardErrorSamples {
         .cannotReleaseStandardPasteboard(name: "x"), .writeRejected, .appendRejected,
         .ownershipLost(expected: 1, actual: 2), .emptyTypeFilter,
         .detectionUnavailable(minimumOS: "15.4"), .detectionDenied, .detectionFailed("x"),
-        .filePromiseTypeInvalid("x"), .invalidFileName("x"), .filePromiseWriteFailed("x"),
-        .filePromiseReceiveFailed("x"), .destinationNotWritable("x"), .pasteLoadFailed("x"),
+        .pasteLoadFailed("x"),
         .pasteLoadTimedOut(seconds: 1), .invalidConfiguration("x"), .cancelled, .unknown("x"),
     ]
 }

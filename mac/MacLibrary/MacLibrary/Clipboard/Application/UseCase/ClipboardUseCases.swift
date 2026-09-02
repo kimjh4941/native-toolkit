@@ -52,29 +52,17 @@ public struct ClipboardUseCases {
 
     /// OP-15. One-shot change check for returning to the foreground.
     public let checkForegroundChange: CheckForegroundChangeUseCase
-    /// Internal. Current change count, for the monitor and the stale check.
+    /// Internal. Current change count, for the change monitor.
     public let changeCount: GetChangeCountUseCase
     /// Shared with the polling monitor so both see the same last observed change count.
     public let changeTracker: ClipboardChangeTracker
 
-    // MARK: File promises
-
-    /// OP-16. Promises a file without producing its bytes yet.
-    public let provideFilePromise: ProvideFilePromiseUseCase
-    /// OP-17. Releases a file promise registration.
-    public let releaseFilePromise: ReleaseFilePromiseUseCase
-    /// OP-18. Starts receiving files another app has promised.
-    public let receiveFilePromises: ReceiveFilePromisesUseCase
-    /// OP-20. Ends a receive session early.
-    public let cancelReceiveFilePromises: CancelReceiveFilePromisesUseCase
-
-    /// Builds every use case from the four ports.
+    /// Builds every use case from the three ports.
     ///
     /// - Parameter limits: Size thresholds for the content validator. Injectable so tests can
     ///   use small values without allocating large payloads.
     public init(repository: any ClipboardRepository,
                 registry: any ClipboardPromiseRegistry,
-                snapshotter: any FilePromiseSnapshotting,
                 typeValidator: any ClipboardTypeIdentifierValidating,
                 limits: ClipboardLimits = .default) {
         Log.d("ClipboardUseCases", "[init] limits: \(limits.maxTotalBytes)")
@@ -101,14 +89,5 @@ public struct ClipboardUseCases {
         self.checkForegroundChange = CheckForegroundChangeUseCase(repository: repository,
                                                                   tracker: tracker)
         self.changeCount = GetChangeCountUseCase(repository: repository)
-
-        self.provideFilePromise = ProvideFilePromiseUseCase(repository: repository,
-                                                            registry: registry,
-                                                            snapshotter: snapshotter,
-                                                            typeValidator: typeValidator)
-        self.releaseFilePromise = ReleaseFilePromiseUseCase(registry: registry)
-        self.receiveFilePromises = ReceiveFilePromisesUseCase(repository: repository,
-                                                              registry: registry)
-        self.cancelReceiveFilePromises = CancelReceiveFilePromisesUseCase(registry: registry)
     }
 }

@@ -18,6 +18,6 @@ public protocol ClipboardTypeIdentifierValidating {
     ///
     /// A promised file must resolve to a type conforming to `public.data` or
     /// `public.directory`. The check belongs to the port because the application layer decides
-    /// ``ClipboardError/filePromiseTypeInvalid(_:)``, and it must do so without seeing `UTType`.
+    /// ``ClipboardError/invalidTypeIdentifier(_:)``, and it must do so without seeing `UTType`.
     func isValidFileType(_ identifier: String) -> Bool
 }

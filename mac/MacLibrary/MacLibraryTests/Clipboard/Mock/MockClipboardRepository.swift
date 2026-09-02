@@ -29,7 +29,6 @@ final class MockClipboardRepository: ClipboardRepository {
     private(set) var snapshotCallCount = 0
     private(set) var clearCallCount = 0
     private(set) var changeCountCallCount = 0
-    private(set) var writeFilePromiseCallCount = 0
 
     private(set) var lastRequest: PasteboardCreationRequest?
     private(set) var lastRemovedScope: PasteboardScope?
@@ -39,7 +38,6 @@ final class MockClipboardRepository: ClipboardRepository {
     private(set) var lastOwnership: PasteboardOwnership?
     private(set) var lastUTType: String?
     private(set) var lastMatchingTypes: [String]??
-    private(set) var lastFilePromiseHandle: FilePromiseHandle?
 
     // MARK: Stubs
 
@@ -157,20 +155,5 @@ final class MockClipboardRepository: ClipboardRepository {
     func accessBehavior(scope: PasteboardScope) throws -> ClipboardAccessBehavior {
         try failIfNeeded()
         return .unavailable
-    }
-
-    func writeFilePromise(handle: FilePromiseHandle,
-                          scope: PasteboardScope) throws -> PasteboardOwnership {
-        writeFilePromiseCallCount += 1
-        lastFilePromiseHandle = handle
-        lastScope = scope
-        try failIfNeeded()
-        return stubbedOwnership
-    }
-
-    func startReceivingFilePromises(handle: FilePromiseReceiptHandle,
-                                    destinationDirectory: URL,
-                                    scope: PasteboardScope) throws {
-        try failIfNeeded()
     }
 }

@@ -16,22 +16,6 @@ public struct PasteboardPromiseHandle: Sendable, Equatable, Hashable {
     public init(id: UUID = UUID()) { self.id = id }
 }
 
-/// Opaque identifier for a registered file promise provider.
-public struct FilePromiseHandle: Sendable, Equatable, Hashable {
-    /// Opaque identity. Callers should treat it as a token, not a value.
-    public let id: UUID
-    /// Creates a handle. A fresh identity is generated unless one is supplied.
-    public init(id: UUID = UUID()) { self.id = id }
-}
-
-/// Opaque identifier for a file promise receive session.
-public struct FilePromiseReceiptHandle: Sendable, Equatable, Hashable {
-    /// Opaque identity. Callers should treat it as a token, not a value.
-    public let id: UUID
-    /// Creates a handle. A fresh identity is generated unless one is supplied.
-    public init(id: UUID = UUID()) { self.id = id }
-}
-
 /// Opaque identifier for a paste button's item loader.
 ///
 /// The container view holds this and cancels the loader from `deinit`.

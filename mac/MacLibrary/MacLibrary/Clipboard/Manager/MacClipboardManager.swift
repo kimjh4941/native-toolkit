@@ -49,9 +49,6 @@ public typealias ClipboardVoidCallback =
 /// - **`localOnly` is unverified.** ``ClipboardCopyOptions/localOnly`` expresses the intent
 ///   through `NSPasteboard.ContentsOptions`, but its effect on Universal Clipboard has not
 ///   been confirmed on real hardware.
-/// - **A receive session's end is an estimate.** The system does not report how many files
-///   are coming, so ``receiveFilePromises(destinationDirectory:scope:policy:)`` ends after a
-///   quiet interval or at an overall deadline. A slow provider can be cut short.
 /// - **The paste button does not validate itself.** ``makePasteButton(acceptedTypes:timeout:onPaste:)``
 ///   stays enabled whether or not the pasteboard holds an accepted type, unlike its iOS
 ///   counterpart.
@@ -84,24 +81,18 @@ public final class MacClipboardManager {
 
     /// Builds the default object graph.
     ///
-    /// The order matters and is fixed here rather than left to callers. The coordinator has to
-    /// exist before the repository that resolves handles through it, and the change count
-    /// query can only be attached once the use cases that answer it exist. That last step
-    /// closes what would otherwise be a construction cycle (R6-H3).
+    /// The order matters and is fixed here rather than left to callers: the coordinator has to
+    /// exist before the repository that resolves handles through it.
     public convenience init(limits: ClipboardLimits = .default) {
-        // 1. The snapshotter owns its serial queue and depends on nothing.
-        let snapshotter = FilePromiseSnapshotter()
-        // 2. The coordinator holds the snapshotter; its stale query is still unset.
-        let coordinator = ClipboardSystemCoordinator(snapshotter: snapshotter)
-        // 3. The repository converts domain values to pasteboard calls and resolves handles
+        // 1. The coordinator owns every registered system object.
+        let coordinator = ClipboardSystemCoordinator()
+        // 2. The repository converts domain values to pasteboard calls and resolves handles
         //    through the coordinator without owning anything.
         let repository = ClipboardRepositoryImpl(validator: ClipboardTypeIdentifierValidator(),
-                                                 lookup: coordinator,
-                                                 receiptSink: coordinator)
-        // 4. The use cases take the repository and the coordinator as the registry port.
+                                                 lookup: coordinator)
+        // 3. The use cases take the repository and the coordinator as the registry port.
         let useCases = ClipboardUseCases(repository: repository,
                                          registry: coordinator,
-                                         snapshotter: snapshotter,
                                          typeValidator: ClipboardTypeIdentifierValidator(),
                                          limits: limits)
         self.init(coordinator: coordinator, useCases: useCases)
@@ -120,13 +111,6 @@ public final class MacClipboardManager {
         self.monitor = ClipboardChangeMonitor(
             readChangeCount: { [useCases] scope in try useCases.changeCount(scope: scope) },
             tracker: useCases.changeTracker)
-        // 5. Closing the cycle. Until this runs the stale check does nothing at all.
-        coordinator.attachStaleQuery { [useCases] scope in
-            try useCases.changeCount(scope: scope)
-        }
-        // Staging left behind by a crashed run is nobody else's job to remove. Runs once per
-        // process and never touches a directory belonging to a live promise (R4-L10).
-        coordinator.sweepOrphanedStagingDirectories()
     }
 
     // MARK: - Error conversion
@@ -530,189 +514,6 @@ public final class MacClipboardManager {
         return try useCases.checkForegroundChange(scope: scope)
     }
 
-    // MARK: - OP-16 provideFilePromise
-
-    /// Promises a file to other apps without producing its bytes yet.
-    ///
-    /// `async` rather than synchronous because a ``FilePromiseSource/snapshot(_:)`` request is
-    /// copied into app owned staging first, and that copy has no size bound (R4-H3).
-    ///
-    /// - Returns: A handle to release with ``releaseFilePromise(_:)`` once the promise is no
-    ///   longer offered. Promises whose pasteboard is taken over by another app are released
-    ///   automatically.
-    /// - Note: Deliberately not `@discardableResult`. Dropping the handle leaks the
-    ///   registration and its staging directory, because nothing else can release them.
-    public func provideFilePromise(_ request: FilePromiseRequest,
-                                   scope: PasteboardScope = .general) async throws -> FilePromiseHandle {
-        Log.d(TAG, "[provideFilePromise] fileType: \(request.fileTypeIdentifier), "
-              + "fileName: \(ClipboardLog.path(request.fileName)), scope: \(ClipboardLog.scope(scope))")
-        return try await useCases.provideFilePromise(request, scope: scope)
-    }
-
-    /// Callback form of ``provideFilePromise(_:scope:)``, for the Unity bridge.
-    ///
-    /// The C ABI cannot carry Swift error handling, so the result arrives as
-    /// `(isSuccess, value, errorCode, errorMessage)` instead. `completion` runs
-    /// **exactly once** on the main actor, including on an early failure. Passing
-    /// `nil` performs the operation without reporting the result.
-    public func provideFilePromise(_ request: FilePromiseRequest,
-                                   scope: PasteboardScope = .general,
-                                   completion: ClipboardCallbackResult<FilePromiseHandle>?) {
-        Log.d(TAG, "[provideFilePromise:completion] fileType: \(request.fileTypeIdentifier), "
-              + "fileName: \(ClipboardLog.path(request.fileName)), scope: \(ClipboardLog.scope(scope))")
-        Task { @MainActor in
-            await complete(completion) { try await useCases.provideFilePromise(request, scope: scope) }
-        }
-    }
-
-    // MARK: - OP-17 releaseFilePromise
-
-    /// Releases a file promise registration. Idempotent and non throwing.
-    public func releaseFilePromise(_ handle: FilePromiseHandle) {
-        Log.d(TAG, "[releaseFilePromise] handle: \(handle.id)")
-        useCases.releaseFilePromise(handle)
-    }
-
-    // MARK: - OP-18 receiveFilePromises
-
-    /// Starts receiving files another app has promised.
-    ///
-    /// Synchronous because starting is an immediate control operation: the files arrive later,
-    /// through `onEvent`.
-    ///
-    /// - Parameter onEvent: Called once per file, then exactly once with
-    ///   ``FilePromiseReceiptEvent/finished(_:)``. If this method throws, `onEvent` is never
-    ///   called at all (R5-H4).
-    /// - Returns: A handle for ``cancelReceiveFilePromises(_:)``.
-    /// - Important: The terminal event is a **heuristic**. The system does not report how many
-    ///   files are coming, so the session ends after `policy.quietInterval` without a new
-    ///   arrival, or at `policy.overallTimeout` at the latest (H-3).
-    /// - Note: Deliberately not `@discardableResult`. Dropping the handle leaves a session
-    ///   that can never be cancelled.
-    public func receiveFilePromises(destinationDirectory: URL,
-                                    scope: PasteboardScope = .general,
-                                    policy: FilePromiseReceiptPolicy = .default,
-                                    onEvent: @escaping @MainActor (FilePromiseReceiptEvent) -> Void)
-    throws -> FilePromiseReceiptHandle {
-        Log.d(TAG, "[receiveFilePromises] destination: \(ClipboardLog.url(destinationDirectory)), "
-              + "scope: \(ClipboardLog.scope(scope)), quiet: \(policy.quietInterval)")
-        return try useCases.receiveFilePromises(destinationDirectory: destinationDirectory,
-                                                scope: scope, policy: policy, onEvent: onEvent)
-    }
-
-    /// Callback form of ``receiveFilePromises(destinationDirectory:scope:policy:)``, for the Unity bridge.
-    ///
-    /// The C ABI cannot carry Swift error handling, so the result arrives as
-    /// `(isSuccess, value, errorCode, errorMessage)` instead. `completion` runs
-    /// **exactly once** on the main actor, including on an early failure. Passing
-    /// `nil` performs the operation without reporting the result.
-    public func receiveFilePromises(destinationDirectory: URL,
-                                    scope: PasteboardScope = .general,
-                                    policy: FilePromiseReceiptPolicy = .default,
-                                    onEvent: @escaping @MainActor (FilePromiseReceiptEvent) -> Void,
-                                    completion: ClipboardCallbackResult<FilePromiseReceiptHandle>?) {
-        Log.d(TAG, "[receiveFilePromises:completion] "
-              + "destination: \(ClipboardLog.url(destinationDirectory)), "
-              + "scope: \(ClipboardLog.scope(scope))")
-        complete(completion) {
-            try useCases.receiveFilePromises(destinationDirectory: destinationDirectory,
-                                             scope: scope, policy: policy, onEvent: onEvent)
-        }
-    }
-
-    // MARK: - OP-18 native async forms
-
-    /// Receives promised files as an async sequence.
-    ///
-    /// - Returns: The handle and the stream together. The handle is needed to cancel the very
-    ///   session being consumed (R4-H1).
-    /// - Throws: Only if the session cannot be started. Once this returns, the stream itself
-    ///   never throws: per-file failures arrive as ``FilePromiseReceiptEvent/failed(_:)`` and
-    ///   the session always ends with ``FilePromiseReceiptEvent/finished(_:)`` (R3-H1).
-    public func receiveFilePromiseEvents(destinationDirectory: URL,
-                                         scope: PasteboardScope = .general,
-                                         policy: FilePromiseReceiptPolicy = .default)
-    throws -> FilePromiseEventSubscription {
-        Log.d(TAG, "[receiveFilePromiseEvents] "
-              + "destination: \(ClipboardLog.url(destinationDirectory)), "
-              + "scope: \(ClipboardLog.scope(scope))")
-        let (stream, continuation) = AsyncStream.makeStream(of: FilePromiseReceiptEvent.self)
-        // Start first. A failure must not produce a stream at all, which is why the factory
-        // throws instead of yielding an error element (R3-H1).
-        let handle = try useCases.receiveFilePromises(
-            destinationDirectory: destinationDirectory,
-            scope: scope,
-            policy: policy,
-            onEvent: { event in
-                continuation.yield(event)
-                if case .finished = event { continuation.finish() }
-            })
-        continuation.onTermination = { [weak self] _ in
-            // Resource release only. onTermination runs *after* the stream has ended, so a
-            // terminal event yielded from here would never reach the consumer (R3-H1). The
-            // delivering cancel is deliberately not reused (R6-M5).
-            Task { @MainActor [weak self] in
-                self?.coordinator.terminateReceiptWithoutDelivery(handle)
-            }
-        }
-        return FilePromiseEventSubscription(handle: handle, events: stream)
-    }
-
-    /// Receives promised files and returns the whole session's result.
-    ///
-    /// - Returns: The receipt, including the files that arrived before a timeout or an
-    ///   explicit cancel. Neither ending throws: losing a partial result would be worse than
-    ///   reporting it (R2-M6).
-    /// - Throws: `CancellationError` if the calling task is cancelled, or a
-    ///   ``ClipboardError`` if the session cannot be started.
-    public func receiveFilePromises(destinationDirectory: URL,
-                                    scope: PasteboardScope = .general,
-                                    policy: FilePromiseReceiptPolicy = .default) async throws
-    -> FilePromiseReceipt {
-        Log.d(TAG, "[receiveFilePromises:async] "
-              + "destination: \(ClipboardLog.url(destinationDirectory)), "
-              + "scope: \(ClipboardLog.scope(scope))")
-        // The handle is issued before the cancellation handler is installed, so onCancel can
-        // never run while the handle is still undecided (R6-H4).
-        let handle = coordinator.reserveReceiptHandle()
-        let gate = ReceiptCompletionGate()
-
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                gate.attach { outcome in
-                    switch outcome {
-                    case .finished(let receipt): continuation.resume(returning: receipt)
-                    case .failed(let error): continuation.resume(throwing: error)
-                    }
-                }
-                do {
-                    _ = try useCases.receiveFilePromises.start(
-                        handle: handle,
-                        destinationDirectory: destinationDirectory,
-                        scope: scope,
-                        policy: policy,
-                        onEvent: { [weak self] event in
-                            guard case .finished(let receipt) = event else { return }
-                            // Whoever claims first wins. A terminal that loses to cancellation
-                            // is dropped rather than resuming a second time (R5-M7).
-                            guard gate.claim(.finished(receipt)) else { return }
-                            self?.coordinator.finalizeReceipt(handle)
-                        })
-                } catch {
-                    gate.claim(.failed(error))
-                }
-            }
-        } onCancel: {
-            // Synchronous and nonisolated, so the gate cannot be a main actor flag and the
-            // cleanup has to hop (R4-M4 / CT-14). A cancelled task reports the standard
-            // CancellationError, not a ClipboardError (R5-M10).
-            guard gate.claim(.failed(CancellationError())) else { return }
-            Task { @MainActor [weak self] in
-                self?.coordinator.terminateReceiptWithoutDelivery(handle)
-            }
-        }
-    }
-
     // MARK: - OP-19 makePasteButton
 
     /// Builds a system paste button that loads the pasteboard into domain values.
@@ -745,15 +546,4 @@ public final class MacClipboardManager {
             onPaste: onPaste)
     }
 
-    // MARK: - OP-20 cancelReceiveFilePromises
-
-    /// Ends a receive session early. Idempotent and non throwing.
-    ///
-    /// A session still subscribed receives a final
-    /// ``FilePromiseReceiptEvent/finished(_:)`` with
-    /// ``FilePromiseReceipt/Termination/cancelled`` and keeps the files already received.
-    public func cancelReceiveFilePromises(_ handle: FilePromiseReceiptHandle) {
-        Log.d(TAG, "[cancelReceiveFilePromises] handle: \(handle.id)")
-        useCases.cancelReceiveFilePromises(handle)
-    }
 }

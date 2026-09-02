@@ -19,33 +19,17 @@ final class ClipboardRepositoryImpl {
     /// Resolves handles to the AppKit objects the coordinator owns. Held weakly so the
     /// repository never extends the lifetime of a system object it does not own (H-5).
     private weak var lookup: (any PromiseObjectLookup)?
-    /// Reports reader outcomes to the session that owns them. Weak for the same reason.
-    private weak var receiptSink: (any FilePromiseReceiptSink)?
-
-    /// Queue the file promise receiver delivers reader callbacks on.
-    ///
-    /// Serial, so files are reported in the order the system produces them and the quiet timer
-    /// is restarted one arrival at a time.
-    private let receiveQueue: OperationQueue = {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 1
-        queue.name = "com.nativetoolkit.clipboard.receive"
-        return queue
-    }()
 
     init(validator: ClipboardTypeIdentifierValidator,
-         lookup: (any PromiseObjectLookup)? = nil,
-         receiptSink: (any FilePromiseReceiptSink)? = nil) {
+         lookup: (any PromiseObjectLookup)? = nil) {
         self.validator = validator
         self.lookup = lookup
-        self.receiptSink = receiptSink
     }
 
     /// Supplies the coordinator after construction, for graphs where it is built last.
     func attachCoordinator(_ coordinator: ClipboardSystemCoordinator) {
         Log.d(TAG, "[attachCoordinator]")
         self.lookup = coordinator
-        self.receiptSink = coordinator
     }
 
     // MARK: - Ownership
@@ -299,72 +283,5 @@ extension ClipboardRepositoryImpl: ClipboardRepository {
             return .detectionDenied
         }
         return .detectionFailed(nsError.localizedDescription)
-    }
-
-    // MARK: File promises (T-11c / T-12a)
-
-    func writeFilePromise(handle: FilePromiseHandle,
-                          scope: PasteboardScope) throws -> PasteboardOwnership {
-        Log.d(TAG, "[writeFilePromise] handle: \(handle.id), scope: \(ClipboardLog.scope(scope))")
-        // The provider is resolved, never owned. Every system object belongs to the
-        // coordinator (H-5).
-        guard let provider = lookup?.filePromiseProvider(for: handle) else {
-            throw ClipboardError.filePromiseWriteFailed("promise is not registered")
-        }
-        let pasteboard = try PasteboardResolver.resolve(scope)
-        // A promise replaces the pasteboard contents, so ownership is taken the same way a
-        // copy takes it (§6.4).
-        let changeCount = takeOwnership(pasteboard, localOnly: true)
-        guard pasteboard.writeObjects([provider]) else {
-            throw ClipboardError.writeRejected
-        }
-        return PasteboardOwnership(scope: scope, changeCount: changeCount)
-    }
-
-    func startReceivingFilePromises(handle: FilePromiseReceiptHandle,
-                                    destinationDirectory: URL,
-                                    scope: PasteboardScope) throws {
-        Log.d(TAG, "[startReceivingFilePromises] handle: \(handle.id), "
-              + "destination: \(ClipboardLog.url(destinationDirectory)), scope: \(ClipboardLog.scope(scope))")
-        var isDirectory: ObjCBool = false
-        let exists = FileManager.default.fileExists(
-            atPath: destinationDirectory.path(percentEncoded: false), isDirectory: &isDirectory)
-        guard exists, isDirectory.boolValue else {
-            throw ClipboardError.destinationNotWritable(destinationDirectory.lastPathComponent)
-        }
-        guard FileManager.default.isWritableFile(
-            atPath: destinationDirectory.path(percentEncoded: false)) else {
-            throw ClipboardError.destinationNotWritable(destinationDirectory.lastPathComponent)
-        }
-        let pasteboard = try PasteboardResolver.resolve(scope)
-        let receivers = pasteboard.readObjects(forClasses: [NSFilePromiseReceiver.self],
-                                               options: nil) as? [NSFilePromiseReceiver] ?? []
-        guard !receivers.isEmpty else {
-            throw ClipboardError.filePromiseReceiveFailed("the pasteboard carries no file promise")
-        }
-        guard let sink = receiptSink, let generation = sink.receiptGeneration(for: handle) else {
-            throw ClipboardError.filePromiseReceiveFailed("the receive session is not registered")
-        }
-        // Reported for diagnostics only. Using it to decide when the transfer is complete is
-        // exactly what the receiver header warns against (H-3).
-        let promisedTypeCount = receivers.reduce(0) { $0 + $1.fileTypes.count }
-        for receiver in receivers {
-            receiver.receivePromisedFiles(atDestination: destinationDirectory,
-                                          options: [:],
-                                          operationQueue: receiveQueue) { url, error in
-                // The reader runs on receiveQueue, so the hop back is explicit. The generation
-                // is captured now so a late callback can be recognised as late.
-                Task { @MainActor [weak sink] in
-                    let outcome: Result<URL, ClipboardError>
-                    if let error {
-                        outcome = .failure(.filePromiseReceiveFailed(String(describing: error)))
-                    } else {
-                        outcome = .success(url)
-                    }
-                    sink?.deliverReceiptOutcome(handle, generation: generation, outcome: outcome)
-                }
-            }
-        }
-        sink.receiptDidStart(handle, promisedTypeCount: promisedTypeCount)
     }
 }

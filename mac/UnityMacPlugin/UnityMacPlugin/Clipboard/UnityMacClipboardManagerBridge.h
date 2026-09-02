@@ -13,11 +13,10 @@
 //  - A NULL operation callback is NOT an error. The work runs and nothing is reported back,
 //    so a caller that does not need the result can simply pass NULL. Two exceptions, both
 //    about a result the caller cannot do without:
-//      * clipboardCreatePasteboard, clipboardProvideFilePromise and
-//        clipboardReceiveFilePromises do nothing at all when their callback is NULL, because
-//        the handle they return is the only way to release what they create.
-//      * clipboardStartObserving and clipboardReceiveFilePromises report 1302 when their
-//        EVENT callback is NULL, because the subscription would produce no observable result.
+//      * clipboardCreatePasteboard does nothing at all when its callback is NULL, because
+//        the handle it returns is the only way to release what it creates.
+//      * clipboardStartObserving reports 1302 when its EVENT callback is NULL, because the
+//        subscription would produce no observable result.
 //  - `errorCode` is 0 on success. 1301 (bad JSON) and 1302 (missing argument) are bridge
 //    level failures; 1501-1599 come from the clipboard itself.
 //  - Do not retain raw pointer values past the callback; copy to managed strings immediately.
@@ -58,11 +57,6 @@ typedef void (*ClipboardJsonCallback)(BOOL isSuccess,
 /// Event callback for clipboard observation. Invoked N times while subscribed; there is no
 /// terminal event.
 typedef void (*ClipboardChangeCallback)(const char* eventJson);
-
-/// Event callback for receiving promised files.
-/// - Parameters:
-///   - isFinished: YES for the terminal event, which arrives exactly once.
-typedef void (*ClipboardReceiptCallback)(BOOL isFinished, const char* eventJson);
 
 #pragma mark - Copy and append
 
@@ -169,50 +163,6 @@ void clipboardStopObserving(ClipboardCallback callback);
 /// Whether the pasteboard changed since this app last looked. Returns BoolJson.
 /// The first call for a scope reports YES.
 void clipboardCheckForegroundChange(const char* scopeJson, ClipboardJsonCallback callback);
-
-#pragma mark - File promises
-
-/// Promises a file to other apps without producing its bytes yet. Returns HandleJson.
-///
-/// - Parameters:
-///   - requestJson: fileTypeIdentifier, fileName and sourcePath. The file is copied into app
-///     owned staging at registration, so the promise still succeeds if the original is later
-///     moved. `sourcePath` must be a path this app can read; a sandboxed app has no access to
-///     arbitrary user paths.
-///   - scopeJson: Required. Decides which pasteboard the promise is advertised on (R5-H5).
-///   - callback: Required. Without the handle the promise and its staging directory can never
-///     be released (R3-M4). Passing NULL registers nothing.
-void clipboardProvideFilePromise(const char* requestJson,
-                                 const char* scopeJson,
-                                 ClipboardJsonCallback callback);
-
-/// Releases a file promise. Fully idempotent: an unknown or already released handle still
-/// reports success.
-void clipboardReleaseFilePromise(const char* handleJson, ClipboardCallback callback);
-
-/// Starts receiving files another app has promised. Returns HandleJson.
-///
-/// - Parameters:
-///   - policyJson: Optional. Defaults to a 2 second quiet interval and a 60 second overall
-///     timeout. The quiet interval must be shorter than the overall timeout.
-///   - callback: Required, exactly once. Without the handle the session can never be
-///     cancelled (R3-M4).
-///   - onEvent: Required. Intermediate events N times, then the terminal event once with
-///     isFinished YES. Passing NULL reports 1302 and starts nothing (R5-M8).
-/// - Important: The terminal event is a heuristic. The system does not report how many files
-///   are coming, so the session ends after the quiet interval without a new arrival, or at
-///   the overall timeout at the latest. A timeout is a normal ending: the files that did
-///   arrive are still reported.
-void clipboardReceiveFilePromises(const char* destinationPath,
-                                  const char* scopeJson,
-                                  const char* policyJson,
-                                  ClipboardJsonCallback callback,
-                                  ClipboardReceiptCallback onEvent);
-
-/// Ends a receive session early. Fully idempotent: an unknown or already finished handle
-/// still reports success. A session still subscribed receives a terminal event with
-/// terminatedBy "cancelled" and keeps the files it already received.
-void clipboardCancelReceiveFilePromises(const char* handleJson, ClipboardCallback callback);
 
 #ifdef __cplusplus
 }

@@ -15,9 +15,7 @@ import Foundation
 /// `BridgeError` (1301 / 1302) instead and are never represented here.
 ///
 /// - Note: Cancellation is deliberately narrow. `ClipboardError/cancelled` covers only the
-///   detection APIs. Explicitly cancelling a file promise receipt is a normal termination
-///   carried by `FilePromiseReceipt`, and cancelling the aggregate `async` receive throws
-///   the standard `CancellationError`.
+///   detection APIs.
 public enum ClipboardError: Error, Equatable {
     /// No items were supplied to a copy or append.
     case emptyContent
@@ -50,16 +48,6 @@ public enum ClipboardError: Error, Equatable {
     case detectionDenied
     /// Detection failed for a reason other than denial.
     case detectionFailed(String)
-    /// The promised file type does not conform to `public.data` or `public.directory`.
-    case filePromiseTypeInvalid(String)
-    /// The promised file name is empty, contains a path separator, or is otherwise unusable.
-    case invalidFileName(String)
-    /// Writing a promised file failed, including staging snapshot failures.
-    case filePromiseWriteFailed(String)
-    /// Receiving one promised file failed.
-    case filePromiseReceiveFailed(String)
-    /// The receive destination does not exist, is not a directory, or is not writable.
-    case destinationNotWritable(String)
     /// Loading one pasted item provider failed.
     case pasteLoadFailed(String)
     /// Loading pasted items exceeded the timeout.
@@ -89,11 +77,6 @@ public enum ClipboardError: Error, Equatable {
         case .detectionUnavailable:            return 1513
         case .detectionDenied:                 return 1514
         case .detectionFailed:                 return 1515
-        case .filePromiseTypeInvalid:          return 1516
-        case .invalidFileName:                 return 1517
-        case .filePromiseWriteFailed:          return 1518
-        case .filePromiseReceiveFailed:        return 1519
-        case .destinationNotWritable:          return 1520
         case .pasteLoadFailed:                 return 1521
         case .pasteLoadTimedOut:               return 1522
         case .invalidConfiguration:            return 1523
@@ -136,16 +119,6 @@ public enum ClipboardError: Error, Equatable {
             return "The user denied access to the pasteboard contents."
         case .detectionFailed(let reason):
             return "Pasteboard detection failed: \(reason)."
-        case .filePromiseTypeInvalid(let value):
-            return "File promise type must conform to public.data or public.directory: \(value)."
-        case .invalidFileName(let value):
-            return "Invalid promised file name: \(value)."
-        case .filePromiseWriteFailed(let reason):
-            return "Failed to write the promised file: \(reason)."
-        case .filePromiseReceiveFailed(let reason):
-            return "Failed to receive a promised file: \(reason)."
-        case .destinationNotWritable(let path):
-            return "The destination directory is not writable: \(path)."
         case .pasteLoadFailed(let reason):
             return "Failed to load pasted item: \(reason)."
         case .pasteLoadTimedOut(let seconds):

@@ -177,7 +177,7 @@ struct UnityMacClipboardJsonParserTests {
         #expect(parser.parseHandleId(#"{"id":"not-a-uuid"}"#) == nil)
     }
 
-    // MARK: - CreateRequestJson / FilePromiseRequestJson / PolicyJson
+    // MARK: - CreateRequestJson
 
     @Test("create requests parse both kinds")
     func parsesCreateRequest() {
@@ -185,42 +185,6 @@ struct UnityMacClipboardJsonParserTests {
         #expect(parser.parseCreateRequest(#"{"kind":"named","name":"a"}"#) == .named("a"))
         #expect(parser.parseCreateRequest(#"{"kind":"named"}"#) == nil)
         #expect(parser.parseCreateRequest(#"{"kind":"general"}"#) == nil)
-    }
-
-    @Test("a file promise request always becomes a snapshot source")
-    func filePromiseIsAlwaysSnapshot() throws {
-        let request = try #require(parser.parseFilePromiseRequest(
-            #"{"fileTypeIdentifier":"public.plain-text","fileName":"a.txt","sourcePath":"/tmp/a.txt"}"#))
-        // A closure cannot cross the C ABI, so the bridge path has only one shape.
-        guard case .snapshot(let url) = request.source else {
-            Issue.record("expected a snapshot source")
-            return
-        }
-        #expect(url.path(percentEncoded: false) == "/tmp/a.txt")
-        #expect(request.fileName == "a.txt")
-    }
-
-    @Test("a file promise request without a source path is rejected")
-    func filePromiseRequiresSourcePath() {
-        #expect(parser.parseFilePromiseRequest(
-            #"{"fileTypeIdentifier":"public.plain-text","fileName":"a.txt","sourcePath":""}"#) == nil)
-        #expect(parser.parseFilePromiseRequest(
-            #"{"fileTypeIdentifier":"public.plain-text","fileName":"a.txt"}"#) == nil)
-    }
-
-    @Test("policy fields are individually optional")
-    func policyDefaults() throws {
-        #expect(parser.parsePolicy(nil) == .default)
-        #expect(parser.parsePolicy("{}") == .default)
-        let custom = try #require(parser.parsePolicy(#"{"quietIntervalSeconds":1.0}"#))
-        #expect(custom.quietInterval == 1.0)
-        #expect(custom.overallTimeout == FilePromiseReceiptPolicy.default.overallTimeout)
-    }
-
-    @Test("a policy that breaks its own ordering rule is rejected")
-    func policyOrderingRejected() {
-        #expect(parser.parsePolicy(
-            #"{"quietIntervalSeconds":90.0,"overallTimeoutSeconds":10.0}"#) == nil)
     }
 
     // MARK: - Output shapes
@@ -306,43 +270,6 @@ struct UnityMacClipboardJsonParserTests {
             ClipboardChangeEvent(scope: .named("a"), changeCount: 9)))
         #expect(shape["changeCount"] as? Int == 9)
         #expect((shape["scope"] as? [String: Any])?["kind"] as? String == "named")
-    }
-
-    @Test("BT-06: each receipt event kind carries only its own fields")
-    func receiptEventShapes() throws {
-        let received = try object(parser.encodeReceiptEvent(
-            .received(URL(filePath: "/tmp/a.txt"))))
-        #expect(received["kind"] as? String == "received")
-        #expect(received["url"] as? String != nil)
-        // Fields belonging to another kind are omitted, not null: the schema defines each kind
-        // by the fields it carries.
-        #expect(received["errorCode"] == nil)
-
-        let failed = try object(parser.encodeReceiptEvent(
-            .failed(.filePromiseReceiveFailed("boom"))))
-        #expect(failed["kind"] as? String == "failed")
-        #expect(failed["errorCode"] as? Int == 1519)
-        #expect(failed["url"] == nil)
-
-        let finished = try object(parser.encodeReceiptEvent(.finished(
-            FilePromiseReceipt(urls: [URL(filePath: "/tmp/a.txt")],
-                               failures: [.filePromiseReceiveFailed("boom")],
-                               terminatedBy: .overallTimeout))))
-        #expect(finished["kind"] as? String == "finished")
-        #expect(finished["terminatedBy"] as? String == "overallTimeout")
-        #expect((finished["urls"] as? [String])?.count == 1)
-        #expect((finished["failures"] as? [[String: Any]])?.first?["errorCode"] as? Int == 1519)
-    }
-
-    @Test("every termination reason has a distinct name")
-    func terminationNames() throws {
-        var names: [String] = []
-        for reason in [FilePromiseReceipt.Termination.quiescence, .overallTimeout, .cancelled] {
-            let shape = try object(parser.encodeReceiptEvent(.finished(
-                FilePromiseReceipt(urls: [], failures: [], terminatedBy: reason))))
-            names.append(try #require(shape["terminatedBy"] as? String))
-        }
-        #expect(names == ["quiescence", "overallTimeout", "cancelled"])
     }
 
     // MARK: - Version tolerance

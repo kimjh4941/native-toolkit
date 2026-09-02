@@ -39,19 +39,6 @@ enum ClipboardJson {
     /// `null` disables filtering; an empty array is rejected downstream with 1512.
     typealias MatchingTypesJson = [String]
 
-    struct FilePromiseRequestJson: Codable {
-        let fileTypeIdentifier: String
-        let fileName: String
-        /// The bridge cannot carry a closure across the C ABI, so a path is always turned into
-        /// a snapshot source (section 8.4.5).
-        let sourcePath: String
-    }
-
-    struct PolicyJson: Codable {
-        let quietIntervalSeconds: Double?
-        let overallTimeoutSeconds: Double?
-    }
-
     // MARK: - Shared input and output (4)
 
     struct ScopeJson: Codable {
@@ -244,20 +231,6 @@ enum ClipboardJson {
         let changeCount: Int
     }
 
-    /// Fields belonging to another kind are **omitted**, not written as null: the schema
-    /// defines each kind by the fields it carries, so a null would blur that boundary.
-    struct ReceiptEventJson: Codable {
-        struct Failure: Codable { let errorCode: Int; let errorMessage: String }
-        /// `"received"`, `"failed"` or `"finished"`.
-        let kind: String
-        let url: String?
-        let errorCode: Int?
-        let errorMessage: String?
-        /// Only on `"finished"`: `"quiescence"`, `"overallTimeout"` or `"cancelled"`.
-        let terminatedBy: String?
-        let urls: [String]?
-        let failures: [Failure]?
-    }
 }
 
 /// Converts between the JSON shapes and domain values.
@@ -380,26 +353,6 @@ struct UnityMacClipboardJsonParser: Sendable {
         return patterns
     }
 
-    func parseFilePromiseRequest(_ json: String?) -> FilePromiseRequest? {
-        Log.d(TAG, "[parseFilePromiseRequest] length: \(json?.count ?? 0)")
-        guard let shape = decode(ClipboardJson.FilePromiseRequestJson.self, from: json),
-              !shape.sourcePath.isEmpty else { return nil }
-        // Always a snapshot source: a closure cannot cross the C ABI (section 8.4.5).
-        return FilePromiseRequest(fileTypeIdentifier: shape.fileTypeIdentifier,
-                                  fileName: shape.fileName,
-                                  source: .snapshot(URL(filePath: shape.sourcePath)))
-    }
-
-    /// - Returns: `nil` when a non-empty string could not be decoded, or decoded to a policy
-    ///   that breaks its own ordering rule.
-    func parsePolicy(_ json: String?) -> FilePromiseReceiptPolicy? {
-        Log.d(TAG, "[parsePolicy] \(ClipboardLog.json(json))")
-        guard let json, !json.isEmpty else { return .default }
-        guard let shape = decode(ClipboardJson.PolicyJson.self, from: json) else { return nil }
-        let quiet = shape.quietIntervalSeconds ?? FilePromiseReceiptPolicy.default.quietInterval
-        let overall = shape.overallTimeoutSeconds ?? FilePromiseReceiptPolicy.default.overallTimeout
-        return try? FilePromiseReceiptPolicy(quietInterval: quiet, overallTimeout: overall)
-    }
 
     func parseHandleId(_ json: String?) -> UUID? {
         Log.d(TAG, "[parseHandleId] \(ClipboardLog.json(json))")
@@ -538,36 +491,5 @@ struct UnityMacClipboardJsonParser: Sendable {
         Log.d(TAG, "[encodeChangeEvent] changeCount: \(event.changeCount)")
         return encode(ClipboardJson.ChangeEventJson(scope: scopeShape(event.scope),
                                                     changeCount: event.changeCount))
-    }
-
-    func encodeReceiptEvent(_ event: FilePromiseReceiptEvent) -> String? {
-        Log.d(TAG, "[encodeReceiptEvent]")
-        switch event {
-        case .received(let url):
-            return encode(ClipboardJson.ReceiptEventJson(
-                kind: "received", url: url.absoluteString, errorCode: nil, errorMessage: nil,
-                terminatedBy: nil, urls: nil, failures: nil))
-        case .failed(let error):
-            return encode(ClipboardJson.ReceiptEventJson(
-                kind: "failed", url: nil, errorCode: error.errorCode,
-                errorMessage: error.errorMessage, terminatedBy: nil, urls: nil, failures: nil))
-        case .finished(let receipt):
-            let terminatedBy: String
-            switch receipt.terminatedBy {
-            case .quiescence: terminatedBy = "quiescence"
-            case .overallTimeout: terminatedBy = "overallTimeout"
-            case .cancelled: terminatedBy = "cancelled"
-            @unknown default: terminatedBy = "cancelled"
-            }
-            return encode(ClipboardJson.ReceiptEventJson(
-                kind: "finished", url: nil, errorCode: nil, errorMessage: nil,
-                terminatedBy: terminatedBy,
-                urls: receipt.urls.map(\.absoluteString),
-                failures: receipt.failures.map {
-                    .init(errorCode: $0.errorCode, errorMessage: $0.errorMessage)
-                }))
-        @unknown default:
-            return nil
-        }
     }
 }

@@ -17,13 +17,9 @@ struct MacClipboardManagerTests {
                                    MockClipboardPromiseRegistry, ClipboardSystemCoordinator) {
         let repository = MockClipboardRepository()
         let registry = MockClipboardPromiseRegistry()
-        let snapshotter = MockFilePromiseSnapshotter()
-        let coordinator = ClipboardSystemCoordinator(
-            snapshotter: snapshotter,
-            stagingBase: URL(filePath: "/tmp/ClipboardManagerTests/\(UUID().uuidString)"))
+        let coordinator = ClipboardSystemCoordinator()
         let useCases = ClipboardUseCases(repository: repository,
                                          registry: registry,
-                                         snapshotter: snapshotter,
                                          typeValidator: MockClipboardTypeIdentifierValidating())
         let manager = MacClipboardManager(coordinator: coordinator,
                                           useCases: useCases)
@@ -35,31 +31,6 @@ struct MacClipboardManagerTests {
     }
 
     // MARK: - Dependency injection order
-
-    @Test("construction attaches the stale query, closing the dependency cycle")
-    func initAttachesStaleQuery() {
-        let (_, _, _, coordinator) = makeManager()
-        // The coordinator cannot hold the repository, so the query arrives last. Until it does
-        // the stale check is inert (R6-H3).
-        #expect(coordinator.isStaleTimerRunning)
-    }
-
-    @Test("the attached query reaches the repository")
-    func staleQueryReachesRepository() {
-        let (_, repository, _, coordinator) = makeManager()
-        let before = repository.changeCountCallCount
-
-        let handle = coordinator.reserveFilePromiseHandle()
-        _ = coordinator.registerFilePromise(
-            FilePromiseRequest(fileTypeIdentifier: "public.plain-text", fileName: "n.txt",
-                               source: .writer { _ in }),
-            reserved: handle, stagingURL: nil)
-        coordinator.activateFilePromise(handle,
-                                        ownership: PasteboardOwnership(scope: .general, changeCount: 0))
-        coordinator.checkForStalePromises()
-
-        #expect(repository.changeCountCallCount == before + 1)
-    }
 
     @Test("the default object graph builds without a cycle")
     func defaultGraphBuilds() {
@@ -226,20 +197,5 @@ struct MacClipboardManagerTests {
         repository.stubbedChangeCount = 3
         #expect(try manager.checkForegroundChange())
         #expect(!(try manager.checkForegroundChange()))
-    }
-
-    @Test("releasing and cancelling are idempotent and never throw")
-    func idempotentControls() {
-        let (manager, _, registry, _) = makeManager()
-        let promise = FilePromiseHandle()
-        let receipt = FilePromiseReceiptHandle()
-
-        manager.releaseFilePromise(promise)
-        manager.releaseFilePromise(promise)
-        manager.cancelReceiveFilePromises(receipt)
-        manager.cancelReceiveFilePromises(receipt)
-
-        #expect(registry.releaseFilePromiseCallCount == 2)
-        #expect(registry.cancelReceiptCallCount == 2)
     }
 }

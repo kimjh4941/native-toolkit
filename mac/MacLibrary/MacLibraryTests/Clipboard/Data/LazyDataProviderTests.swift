@@ -15,9 +15,7 @@ struct LazyDataProviderTests {
     private let text = "public.utf8-plain-text"
 
     private func makeCoordinator() -> ClipboardSystemCoordinator {
-        ClipboardSystemCoordinator(
-            snapshotter: MockFilePromiseSnapshotter(),
-            stagingBase: URL(filePath: NSTemporaryDirectory()).appending(path: UUID().uuidString))
+        ClipboardSystemCoordinator()
     }
 
     private func makeValidator(warn: Int, max: Int, total: Int) throws -> ClipboardContentValidator {

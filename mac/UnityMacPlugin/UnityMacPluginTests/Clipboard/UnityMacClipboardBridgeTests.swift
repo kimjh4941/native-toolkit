@@ -37,10 +37,10 @@ struct UnityMacClipboardBridgeTests {
 
     // MARK: - BT-17 inventory
 
-    @Test("BT-17: the header declares exactly nineteen endpoints")
-    func nineteenEndpoints() throws {
+    @Test("BT-17: the header declares exactly fifteen endpoints")
+    func fifteenEndpoints() throws {
         let prototypes = header.split(separator: "\n").filter { $0.hasPrefix("void clipboard") }
-        #expect(prototypes.count == 19)
+        #expect(prototypes.count == 15)
     }
 
     @Test("BT-17: every declared endpoint is defined")
@@ -48,7 +48,7 @@ struct UnityMacClipboardBridgeTests {
         let declared = try endpointNames(in: header)
         let defined = try endpointNames(in: implementation)
         #expect(declared == defined)
-        #expect(declared.count == 19)
+        #expect(declared.count == 15)
     }
 
     @Test("BT-17: every endpoint reaches the Swift façade")
@@ -56,25 +56,24 @@ struct UnityMacClipboardBridgeTests {
         // A prototype with no façade call would compile and silently do nothing.
         let facadeMethods = Set(
             facade.matches(of: /public func (\w+)/).map { String($0.output.1) })
-        #expect(facadeMethods.count == 19)
+        #expect(facadeMethods.count == 15)
     }
 
-    @Test("BT-17: four callback typedefs are declared")
+    @Test("BT-17: three callback typedefs are declared")
     func callbackTypedefs() {
         for name in ["ClipboardCallback", "ClipboardJsonCallback",
-                     "ClipboardChangeCallback", "ClipboardReceiptCallback"] {
+                     "ClipboardChangeCallback"] {
             #expect(header.contains("typedef void (*\(name))"), "\(name)")
         }
     }
 
     // MARK: - Required callbacks
 
-    @Test("R3-M4 and R4-M6: the three resource creating endpoints refuse a NULL callback")
+    @Test("R3-M4 and R4-M6: the resource creating endpoint refuses a NULL callback")
     func requiredOperationCallbacks() {
-        // Each of these hands back a handle the caller needs in order to release something.
-        // Without the guard the resource would be created and immediately unreachable.
-        for name in ["clipboardCreatePasteboard", "clipboardProvideFilePromise",
-                     "clipboardReceiveFilePromises"] {
+        // It hands back a handle the caller needs in order to release something. Without the
+        // guard the resource would be created and immediately unreachable.
+        for name in ["clipboardCreatePasteboard"] {
             let body = implementation.components(separatedBy: "void \(name)(")
             #expect(body.count == 2, "\(name)")
             let guarded = body[1].prefix(while: { $0 != "}" })
@@ -82,19 +81,18 @@ struct UnityMacClipboardBridgeTests {
         }
     }
 
-    @Test("R5-M8: the two event callbacks are documented as required")
+    @Test("R5-M8: the event callback is documented as required")
     func requiredEventCallbacks() {
         // Enforced in the façade, which reports 1302; the header states the contract.
         #expect(facade.contains("onChange is required"))
-        #expect(facade.contains("onEvent is required"))
     }
 
     @Test("endpoints that create nothing tolerate a NULL callback")
     func optionalCallbacksAreOptional() {
-        // The remaining sixteen must not refuse a NULL callback: a caller that does not need
+        // The remaining fourteen must not refuse a NULL callback: a caller that does not need
         // the result should still be able to perform the operation.
         let guardCount = implementation.components(separatedBy: "if (!callback)").count - 1
-        #expect(guardCount == 3)
+        #expect(guardCount == 1)
     }
 
     // MARK: - Plan C
@@ -138,15 +136,14 @@ struct UnityMacClipboardBridgeTests {
         // The contract used to be contradicted by BridgeError's own documentation, which
         // listed "nil callback" as a contract violation. Both sides now say the same thing.
         #expect(header.contains("A NULL operation callback is NOT an error"))
-        #expect(header.contains("report 1302 when their"))
+        #expect(header.contains("reports 1302 when its"))
     }
 
     @Test("R2-M14: the header names exactly the endpoints that require a callback")
     func headerNamesRequiredCallbackEndpoints() {
         // The prose and the guards in the .m must agree, or the header documents a contract
         // the code does not implement.
-        let documented = ["clipboardCreatePasteboard", "clipboardProvideFilePromise",
-                          "clipboardReceiveFilePromises"]
+        let documented = ["clipboardCreatePasteboard"]
         let notes = header.components(separatedBy: "#pragma mark").first ?? ""
         for name in documented {
             #expect(notes.contains(name), "\(name)")
@@ -332,11 +329,11 @@ struct UnityMacClipboardBridgeTests {
         // A subject set that quietly matched nothing would make the checks above pass by doing
         // nothing. Earlier versions of this audit did exactly that, twice.
         let bodies = endpointBodies()
-        #expect(bodies.count == 19)
+        #expect(bodies.count == 15)
 
         // Every const char* parameter across the whole bridge, from the signatures.
         let declared = bodies.reduce(0) { $0 + payloadArguments(in: $1.signature).count }
-        #expect(declared == 28, "the bridge declares \(declared) string parameters")
+        #expect(declared == 21, "the bridge declares \(declared) string parameters")
 
         // Every Log call in the file is reachable by the audit, whatever its shape.
         let logCallCount = bodies.reduce(0) { $0 + logCalls(in: $1.body).count }
@@ -358,18 +355,6 @@ struct UnityMacClipboardBridgeTests {
     }
 
     // MARK: - Privacy
-
-    @Test("R2-M11: the file promise path is never logged in full")
-    func sourcePathIsNotLogged() {
-        // The request JSON holds an absolute user path, so only its length is logged. The
-        // general rule is enforced by the BT-25 audit; this keeps the specific case named,
-        // because it is the one the design calls out.
-        let body = implementation.components(separatedBy: "void clipboardProvideFilePromise(")
-        #expect(body.count == 2)
-        let logged = body[1].prefix(while: { $0 != "}" })
-        #expect(logged.contains("NTLen(requestJson)"))
-        #expect(!logged.contains("requestJson ?: "))
-    }
 
     // MARK: - Helpers
 

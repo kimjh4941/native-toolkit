@@ -86,16 +86,4 @@ public protocol ClipboardRepository {
     /// Current access behaviour, or ``ClipboardAccessBehavior/unavailable`` below macOS 15.4.
     func accessBehavior(scope: PasteboardScope) throws -> ClipboardAccessBehavior
 
-    // MARK: File promises
-
-    /// Writes a registered file promise provider onto a pasteboard.
-    ///
-    /// - Returns: Ownership to hand to the registry so stale detection has a baseline.
-    func writeFilePromise(handle: FilePromiseHandle,
-                          scope: PasteboardScope) throws -> PasteboardOwnership
-
-    /// Starts receiving promised files for a registered receipt session.
-    func startReceivingFilePromises(handle: FilePromiseReceiptHandle,
-                                    destinationDirectory: URL,
-                                    scope: PasteboardScope) throws
 }

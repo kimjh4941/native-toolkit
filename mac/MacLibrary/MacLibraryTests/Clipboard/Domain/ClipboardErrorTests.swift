@@ -27,11 +27,6 @@ struct ClipboardErrorTests {
         .detectionUnavailable(minimumOS: "15.4"),
         .detectionDenied,
         .detectionFailed("boom"),
-        .filePromiseTypeInvalid("public.folder"),
-        .invalidFileName(".."),
-        .filePromiseWriteFailed("disk full"),
-        .filePromiseReceiveFailed("reader failed"),
-        .destinationNotWritable("/nope"),
         .pasteLoadFailed("provider failed"),
         .pasteLoadTimedOut(seconds: 15),
         .invalidConfiguration("negative"),
@@ -41,7 +36,7 @@ struct ClipboardErrorTests {
 
     @Test("every case is covered by the table")
     func caseCount() {
-        #expect(Self.allCases.count == 25)
+        #expect(Self.allCases.count == 20)
     }
 
     @Test("error codes are unique")

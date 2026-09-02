@@ -322,17 +322,4 @@ struct ClipboardRepositoryImplTests {
         }
     }
 
-    // MARK: - Not yet implemented
-
-    @Test("operations still to be built report which task delivers them")
-    func unimplementedOperationsAreExplicit() throws {
-        // These conform to the port so that any signature drift is a compile error now, rather
-        // than a surprise when the owning task starts.
-        let repository = makeRepository()
-        #expect(throws: ClipboardError.self) {
-            try repository.startReceivingFilePromises(handle: FilePromiseReceiptHandle(),
-                                                      destinationDirectory: URL(filePath: "/tmp"),
-                                                      scope: .general)
-        }
-    }
 }

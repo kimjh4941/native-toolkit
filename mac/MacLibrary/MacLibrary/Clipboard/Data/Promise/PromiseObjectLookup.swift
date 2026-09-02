@@ -4,18 +4,13 @@
 //
 
 import AppKit
-import Foundation
 
-/// Read-only view from a handle to the AppKit object registered for it.
+/// Read-only view of the system objects the coordinator owns.
 ///
-/// The repository has to put a file promise provider on a pasteboard, but it must not own one:
-/// every system object belongs to the coordinator (H-5). This protocol is the narrow seam
-/// between them. Nothing here retains anything; a `nil` answer simply means the registration
-/// is gone.
+/// The repository has to hand AppKit the very provider instance the coordinator is holding,
+/// but it must not own it: one manager layer class keeps every strong reference (H-5).
 @MainActor
 protocol PromiseObjectLookup: AnyObject {
-    /// Lazy data provider for a handle, or `nil` when it is not registered.
+    /// The registered lazy data provider for a handle, or `nil` once it has been released.
     func lazyProvider(for handle: PasteboardPromiseHandle) -> (any NSPasteboardItemDataProvider)?
-    /// File promise provider for a handle, or `nil` when it is not registered.
-    func filePromiseProvider(for handle: FilePromiseHandle) -> NSFilePromiseProvider?
 }

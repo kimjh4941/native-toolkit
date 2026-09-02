@@ -496,9 +496,7 @@ struct ClipboardPasteLoaderTests {
 struct PasteButtonLifetimeTests {
 
     private func makeCoordinator() -> ClipboardSystemCoordinator {
-        ClipboardSystemCoordinator(
-            snapshotter: MockFilePromiseSnapshotter(),
-            stagingBase: URL(filePath: NSTemporaryDirectory()).appending(path: UUID().uuidString))
+        ClipboardSystemCoordinator()
     }
 
     @Test("PT-08: releasing the container view cancels the paste")
