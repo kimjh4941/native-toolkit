@@ -363,7 +363,20 @@ def check_live_symbols(text, path, rep):
     # narrow on purpose: a blanket skip for every sample-app plan would also silence the check
     # for plans whose code *has* been written, which is how an exclusion becomes an excuse
     # (R-S3-M7). A plan opts in by saying so in its own front matter.
-    if "PLANNED_SYMBOLS_EXEMPT" in text:
+    # Only the front matter can declare it, and "front matter" has to be a range, not a
+    # shape. Matching the token anywhere let a document opt out by *mentioning* it (a change
+    # log row was enough); matching the bullet shape anywhere still let an appendix or a code
+    # example opt the whole document out (R-SA16, review v3 M-05). The front matter is what
+    # precedes the second top-level heading -- the title and the info section.
+    # A document with fewer than two sections has no front matter to speak of, and treating
+    # the whole text as front matter put the hole straight back: a one-section document could
+    # declare the exemption anywhere, appendix included (review v4 M-06). No front matter
+    # means no exemption.
+    headings = [m.start() for m in re.finditer(r"^## ", text, re.M)]
+    front_matter = text[: headings[1]] if len(headings) > 1 else ""
+    # A fenced block shows what a declaration looks like; it does not make one.
+    front_matter = re.sub(r"^```.*?^```", "", front_matter, flags=re.M | re.S)
+    if re.search(r"^- \*\*`PLANNED_SYMBOLS_EXEMPT`\*\*", front_matter, re.M):
         rep.skip("named symbols exist in the implementation",
                  "the document declares PLANNED_SYMBOLS_EXEMPT: it names code not yet written")
         return
