@@ -67,7 +67,7 @@ public protocol ClipboardRepository {
     /// Clears the pasteboard and returns the new change count.
     func clear(scope: PasteboardScope) throws -> Int
 
-    /// Current change count, used for observation and stale detection.
+    /// Current change count, used for observation.
     func changeCount(scope: PasteboardScope) throws -> Int
 
     // MARK: Detection

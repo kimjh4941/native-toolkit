@@ -8,15 +8,15 @@ import MacLibrary
 
 /// JSON shapes exchanged with Unity across the C bridge.
 ///
-/// There are twenty concrete types: six input only, four shared between input and output,
-/// eight output only, and two events. The split is exclusive, so a type never appears in two
-/// groups and the count can be checked mechanically (BT-11 / BT-17).
+/// There are seventeen concrete types: four input only, three shared between input and
+/// output, nine output only, and one event. The split is exclusive, so a type never appears
+/// in two groups and the count can be checked mechanically (BT-11 / BT-17).
 ///
 /// Two rules keep Unity and Swift from breaking each other across versions: unknown fields are
 /// ignored when decoding, and never emitted when encoding.
 enum ClipboardJson {
 
-    // MARK: - Input only (6)
+    // MARK: - Input only (4)
 
     struct ContentJson: Codable {
         struct Item: Codable {
@@ -39,7 +39,7 @@ enum ClipboardJson {
     /// `null` disables filtering; an empty array is rejected downstream with 1512.
     typealias MatchingTypesJson = [String]
 
-    // MARK: - Shared input and output (4)
+    // MARK: - Shared input and output (3)
 
     struct ScopeJson: Codable {
         /// `"general"`, `"named"` or `"unique"`.
@@ -53,14 +53,10 @@ enum ClipboardJson {
         let changeCount: Int
     }
 
-    struct HandleJson: Codable {
-        let id: String
-    }
-
     /// Same shape for the detection request and its result.
     typealias PatternsJson = [String]
 
-    // MARK: - Output only (8)
+    // MARK: - Output only (9)
 
     struct ReadResultJson: Codable {
         let changeCount: Int
@@ -224,7 +220,7 @@ enum ClipboardJson {
         let scope: ScopeJson
     }
 
-    // MARK: - Events (2)
+    // MARK: - Events (1)
 
     struct ChangeEventJson: Codable {
         let scope: ScopeJson
@@ -353,13 +349,6 @@ struct UnityMacClipboardJsonParser: Sendable {
         return patterns
     }
 
-
-    func parseHandleId(_ json: String?) -> UUID? {
-        Log.d(TAG, "[parseHandleId] \(ClipboardLog.json(json))")
-        guard let shape = decode(ClipboardJson.HandleJson.self, from: json) else { return nil }
-        return UUID(uuidString: shape.id)
-    }
-
     // MARK: - Encoding
 
     private func encode<T: Encodable>(_ value: T) -> String? {
@@ -429,11 +418,6 @@ struct UnityMacClipboardJsonParser: Sendable {
         Log.d(TAG, "[encodePatterns] count: \(patterns.count)")
         // Sorted so the same match always produces the same string.
         return encode(patterns.map(\.rawValue).sorted())
-    }
-
-    func encodeHandle(_ id: UUID) -> String? {
-        Log.d(TAG, "[encodeHandle] id: \(id)")
-        return encode(ClipboardJson.HandleJson(id: id.uuidString))
     }
 
     func encodeAccessBehavior(_ behavior: ClipboardAccessBehavior) -> String? {

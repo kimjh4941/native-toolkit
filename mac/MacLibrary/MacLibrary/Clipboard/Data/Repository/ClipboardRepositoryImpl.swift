@@ -26,12 +26,6 @@ final class ClipboardRepositoryImpl {
         self.lookup = lookup
     }
 
-    /// Supplies the coordinator after construction, for graphs where it is built last.
-    func attachCoordinator(_ coordinator: ClipboardSystemCoordinator) {
-        Log.d(TAG, "[attachCoordinator]")
-        self.lookup = coordinator
-    }
-
     // MARK: - Ownership
 
     /// The only way this type takes ownership of a pasteboard.

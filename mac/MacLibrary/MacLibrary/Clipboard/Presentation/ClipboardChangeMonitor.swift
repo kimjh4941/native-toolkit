@@ -27,7 +27,13 @@ final class ClipboardChangeMonitor {
     private var generation: UInt64 = 0
 
     private var pollTask: Task<Void, Never>?
-    private var activeObservers: [any NSObjectProtocol] = []
+    /// Notification tokens, held where a nonisolated `deinit` can still reach them.
+    ///
+    /// `deinit` on a main actor isolated class is nonisolated, so it cannot touch a
+    /// non-`Sendable` stored array. Leaving the tokens unremoved meant every monitor that was
+    /// dropped without `stop()` left two observers behind for the life of the process
+    /// (R11-M7).
+    private let activeObservers = ObserverTokens()
     private var scope: PasteboardScope?
     private var interval: TimeInterval = 0
     private var onEvent: (@MainActor (ClipboardChangeEvent) -> Void)?
@@ -40,9 +46,10 @@ final class ClipboardChangeMonitor {
     }
 
     deinit {
-        // Task is Sendable, so it can be cancelled from a nonisolated deinit; the notification
-        // observers are removed by the center when it is torn down with the process.
+        // Both are reachable from a nonisolated deinit: Task is Sendable, and the token box
+        // guards its own state.
         pollTask?.cancel()
+        activeObservers.removeAll()
     }
 
     /// Whether polling is currently scheduled. Diagnostics and tests.
@@ -86,10 +93,7 @@ final class ClipboardChangeMonitor {
         Log.d(TAG, "[stop] observing: \(pollTask != nil)")
         pollTask?.cancel()
         pollTask = nil
-        for observer in activeObservers {
-            NotificationCenter.default.removeObserver(observer)
-        }
-        activeObservers = []
+        activeObservers.removeAll()
         // Bumping here too means a tick already scheduled cannot deliver after stop.
         generation &+= 1
         scope = nil
@@ -135,12 +139,12 @@ final class ClipboardChangeMonitor {
     private func observeApplicationActivation() {
         Log.d(TAG, "[observeApplicationActivation]")
         let center = NotificationCenter.default
-        activeObservers.append(center.addObserver(
+        activeObservers.add(center.addObserver(
             forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.suspendPolling() }
         })
-        activeObservers.append(center.addObserver(
+        activeObservers.add(center.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.resumePolling() }
@@ -160,4 +164,30 @@ final class ClipboardChangeMonitor {
         tick(generation: generation)
         schedulePolling()
     }
+}
+
+/// Holds `NotificationCenter` tokens so a nonisolated `deinit` can remove them.
+///
+/// The tokens are opaque and `removeObserver` is safe from any thread, so the only thing
+/// needed is a `Sendable` place to keep them.
+private final class ObserverTokens: @unchecked Sendable {
+    private let lock = NSLock()
+    private var tokens: [any NSObjectProtocol] = []
+
+    func add(_ token: any NSObjectProtocol) {
+        lock.withLock { tokens.append(token) }
+    }
+
+    /// Removes every token and forgets them. Idempotent.
+    func removeAll() {
+        let taken: [any NSObjectProtocol] = lock.withLock {
+            defer { tokens = [] }
+            return tokens
+        }
+        for token in taken {
+            NotificationCenter.default.removeObserver(token)
+        }
+    }
+
+    var count: Int { lock.withLock { tokens.count } }
 }

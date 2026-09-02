@@ -144,6 +144,7 @@ enum ClipboardDetectionMapper {
     nonisolated static func detectPatterns(scope: PasteboardScope,
                                            patterns: Set<ClipboardDetectionPattern>) async throws
     -> Set<ClipboardDetectionPattern> {
+        Log.d(TAG, "[detectPatterns] scope: \(ClipboardLog.scope(scope)), patterns: \(patterns.count)")
         let pasteboard = try PasteboardResolver.resolve(scope)
         let detected = try await pasteboard.detectedPatterns(for: keyPaths(for: patterns))
         return self.patterns(from: detected)
@@ -153,6 +154,7 @@ enum ClipboardDetectionMapper {
     nonisolated static func detectValues(scope: PasteboardScope,
                                          patterns: Set<ClipboardDetectionPattern>) async throws
     -> ClipboardDetectedValues {
+        Log.d(TAG, "[detectValues] scope: \(ClipboardLog.scope(scope)), patterns: \(patterns.count)")
         let pasteboard = try PasteboardResolver.resolve(scope)
         let detected = try await pasteboard.detectedValues(for: keyPaths(for: patterns))
         return values(from: detected)
@@ -162,6 +164,7 @@ enum ClipboardDetectionMapper {
     nonisolated static func detectMetadata(scope: PasteboardScope,
                                            types: Set<ClipboardMetadataType>) async throws
     -> ClipboardDetectedMetadata {
+        Log.d(TAG, "[detectMetadata] scope: \(ClipboardLog.scope(scope)), types: \(types.count)")
         let pasteboard = try PasteboardResolver.resolve(scope)
         let detected = try await pasteboard.detectedMetadata(for: metadataKeyPaths(for: types))
         return metadata(from: detected)

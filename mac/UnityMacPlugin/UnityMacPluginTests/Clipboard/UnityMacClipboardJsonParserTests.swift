@@ -21,25 +21,55 @@ struct UnityMacClipboardJsonParserTests {
 
     // MARK: - BT-11 shape inventory
 
-    @Test("BT-11: the schema has exactly twenty concrete types")
-    func twentyConcreteTypes() {
-        // Six input only, four shared, eight output only, two events. The split is exclusive,
-        // so a type never appears twice and the count is meaningful (R5-L11).
-        let inputOnly = ["ContentJson", "OptionsJson", "CreateRequestJson", "MatchingTypesJson",
-                         "FilePromiseRequestJson", "PolicyJson"]
-        let shared = ["ScopeJson", "OwnershipJson", "HandleJson", "PatternsJson"]
-        let outputOnly = ["ReadResultJson", "ReadDataJson", "SnapshotJson", "ChangeCountJson",
-                          "BoolJson", "DetectedValuesJson", "DetectedMetadataJson",
-                          "AccessBehaviorJson"]
-        let events = ["ChangeEventJson", "ReceiptEventJson"]
+    @Test("BT-11: the schema has exactly seventeen concrete types, read from the source")
+    func seventeenConcreteTypes() throws {
+        // Read from `ClipboardJson` itself. An earlier revision compared hand-written string
+        // lists, which counted names rather than types: it kept passing after the File Promise
+        // shapes were deleted, because the strings were still in the test (R8-H2).
+        let groups = try declaredShapes()
 
-        #expect(inputOnly.count == 6)
-        #expect(shared.count == 4)
-        #expect(outputOnly.count == 8)
-        #expect(events.count == 2)
-        let all = inputOnly + shared + outputOnly + events
-        #expect(all.count == 20)
-        #expect(Set(all).count == 20, "the four groups must be exclusive")
+        #expect(groups["Input only"]?.count == 4)
+        #expect(groups["Shared input and output"]?.count == 3)
+        #expect(groups["Output only"]?.count == 9)
+        #expect(groups["Events"]?.count == 1)
+
+        let all = groups.values.flatMap { $0 }
+        #expect(all.count == 17, "found \(all.count) shapes: \(all.sorted())")
+        #expect(Set(all).count == all.count, "the four groups must be exclusive")
+
+        // Deleted with the File Promise operations in design v9.
+        for gone in ["FilePromiseRequestJson", "PolicyJson", "ReceiptEventJson", "HandleJson"] {
+            #expect(!all.contains(gone), "\(gone) is still declared")
+        }
+    }
+
+    /// Group name to the shapes declared under its `// MARK: - <group> (n)` heading.
+    ///
+    /// The heading also carries the count, so a shape added without updating its heading is a
+    /// mismatch the assertions above catch.
+    private func declaredShapes() throws -> [String: [String]] {
+        var url = URL(filePath: #filePath)
+        while url.pathComponents.count > 1, url.lastPathComponent != "mac" {
+            url.deleteLastPathComponent()
+        }
+        let source = try String(
+            contentsOf: url.appending(path: "UnityMacPlugin/UnityMacPlugin/Clipboard/UnityMacClipboardJsonParser.swift"),
+            encoding: .utf8)
+        // Only the ClipboardJson enum declares shapes; stop at its closing brace.
+        let body = try #require(source.components(separatedBy: "enum ClipboardJson {").last)
+            .components(separatedBy: "\n}\n").first ?? ""
+
+        var groups: [String: [String]] = [:]
+        var current: String?
+        for line in body.split(separator: "\n", omittingEmptySubsequences: false) {
+            if let match = line.firstMatch(of: /\/\/ MARK: - (Input only|Shared input and output|Output only|Events) \(\d+\)/) {
+                current = String(match.output.1)
+                groups[current!] = []
+            } else if let match = line.firstMatch(of: /(?:struct|typealias) (\w+Json)\b/), let key = current {
+                groups[key]?.append(String(match.output.1))
+            }
+        }
+        return groups
     }
 
     // MARK: - ScopeJson
@@ -156,25 +186,13 @@ struct UnityMacClipboardJsonParserTests {
         #expect(parser.parsePatterns(#"["notAPattern"]"#) == nil)
     }
 
-    // MARK: - OwnershipJson / HandleJson
+    // MARK: - OwnershipJson
 
     @Test("BT-06: ownership round trips")
     func ownershipRoundTrips() throws {
         let ownership = PasteboardOwnership(scope: .named("a"), changeCount: 12)
         let encoded = try #require(parser.encodeOwnership(ownership))
         #expect(parser.parseOwnership(encoded) == ownership)
-    }
-
-    @Test("BT-06: a handle round trips")
-    func handleRoundTrips() throws {
-        let id = UUID()
-        let encoded = try #require(parser.encodeHandle(id))
-        #expect(parser.parseHandleId(encoded) == id)
-    }
-
-    @Test("a malformed handle id is rejected")
-    func rejectsMalformedHandle() {
-        #expect(parser.parseHandleId(#"{"id":"not-a-uuid"}"#) == nil)
     }
 
     // MARK: - CreateRequestJson

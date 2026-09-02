@@ -143,29 +143,4 @@ struct ClipboardTypeIdentifierValidatorTests {
     func emptyFilterMatchesNothing() {
         #expect(!validator.conforms("public.png", toAnyOf: []))
     }
-
-    @Test("file promise types must be data or directory", arguments: [
-        "public.png", "public.data", "public.directory", "public.folder", "com.adobe.pdf",
-    ])
-    func acceptsFileTypes(identifier: String) {
-        #expect(validator.isValidFileType(identifier))
-    }
-
-    @Test("non file types are rejected as promise types", arguments: [
-        // public.item and public.content sit above public.data in the hierarchy and describe
-        // things that need not be byte streams, so they cannot name a promised file.
-        "public.item", "public.content", "not a uti", "",
-        // An undeclared custom type has no UTType, so its file nature cannot be established.
-        "com.mycompany.myformat",
-    ])
-    func rejectsNonFileTypes(identifier: String) {
-        #expect(!validator.isValidFileType(identifier))
-    }
-
-    @Test("public.url is a file promise type")
-    func urlIsAFileType() {
-        // Measured: public.url conforms to public.data, so the design rule admits it. Recorded
-        // because it reads as a non-file type at a glance.
-        #expect(validator.isValidFileType("public.url"))
-    }
 }

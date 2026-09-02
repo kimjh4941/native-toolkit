@@ -26,10 +26,12 @@ enum PasteButtonFactory {
         let provider: NSItemProvider
 
         func conforms(to identifier: String) async -> Bool {
-            provider.hasItemConformingToTypeIdentifier(identifier)
+            Log.d("ItemProviderSource", "[conforms] identifier: \(identifier)")
+            return provider.hasItemConformingToTypeIdentifier(identifier)
         }
 
         func loadData(for identifier: String) async throws -> Data {
+            Log.d("ItemProviderSource", "[loadData] identifier: \(identifier)")
             // The returned Progress is kept and cancelled, and the continuation is resumed
             // exactly once through a gate. Without this a provider that never calls back would
             // leave the task alive for the life of the process, and cancelling the load would
@@ -60,8 +62,13 @@ enum PasteButtonFactory {
     ///
     /// - Returns: The container view. Releasing it cancels any load in progress.
     /// - Throws: ``ClipboardError/invalidTypeIdentifier(_:)`` for an empty or malformed
-    ///   accepted type, and ``ClipboardError/invalidConfiguration(_:)`` for a timeout outside
-    ///   `0 < timeout <= 300`.
+    ///   accepted type, **or for one the system has no declaration for**, and
+    ///   ``ClipboardError/invalidConfiguration(_:)`` for a timeout outside `0 < timeout <= 300`.
+    /// - Important: This accepts a **narrower** set of identifiers than ``copy(_:options:scope:)``.
+    ///   A pasteboard takes any well formed identifier, including one only this app declares,
+    ///   but `PasteButton` is built from `UTType` values and the system resolves those only for
+    ///   types it knows. An identifier without a `UTType` is rejected here rather than dropped:
+    ///   silently dropping it returned a button that accepted nothing (R11-H2).
     static func makePasteButton(acceptedTypes: [String],
                                 timeout: TimeInterval,
                                 validator: any ClipboardTypeIdentifierValidating,
@@ -75,8 +82,17 @@ enum PasteButtonFactory {
                                               timeout: timeout,
                                               validator: validator,
                                               onPaste: onPaste)
+        // Resolved before the loader is registered. Throwing after registration would leave a
+        // loader nothing can release.
+        var contentTypes: [UTType] = []
+        for identifier in acceptedTypes {
+            guard let type = UTType(identifier) else {
+                Log.e(TAG, "[makePasteButton] no UTType declaration for an accepted type")
+                throw ClipboardError.invalidTypeIdentifier(identifier)
+            }
+            contentTypes.append(type)
+        }
         let handle = register(loader)
-        let contentTypes = acceptedTypes.compactMap { UTType($0) }
         let button = PasteButton(supportedContentTypes: contentTypes) { providers in
             loader.load(from: providers.map { ItemProviderSource(provider: $0) })
         }

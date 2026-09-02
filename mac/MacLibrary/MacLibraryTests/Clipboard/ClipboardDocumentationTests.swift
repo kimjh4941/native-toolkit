@@ -16,21 +16,28 @@ import Foundation
 @Suite("Clipboard documentation")
 struct ClipboardDocumentationTests {
 
-    private static let sourceRoot: URL = {
+    /// Both clipboard source trees.
+    ///
+    /// An earlier revision walked only `MacLibrary/Clipboard`, so the Unity facade's public
+    /// API went undocumented while the DoD item stayed ticked (R11-M4).
+    private static let sourceRoots: [URL] = {
         var url = URL(filePath: #filePath)
-        while url.pathComponents.count > 1, url.lastPathComponent != "MacLibrary" {
+        while url.pathComponents.count > 1, url.lastPathComponent != "mac" {
             url.deleteLastPathComponent()
         }
-        return url.appending(path: "MacLibrary/Clipboard")
+        return [url.appending(path: "MacLibrary/MacLibrary/Clipboard"),
+                url.appending(path: "UnityMacPlugin/UnityMacPlugin/Clipboard")]
     }()
 
     private static let sources: [(name: String, lines: [String])] = {
-        guard let enumerator = FileManager.default.enumerator(
-            at: sourceRoot, includingPropertiesForKeys: nil) else { return [] }
         var result: [(String, [String])] = []
-        for case let url as URL in enumerator where url.pathExtension == "swift" {
-            guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
-            result.append((url.lastPathComponent, text.components(separatedBy: "\n")))
+        for root in sourceRoots {
+            guard let enumerator = FileManager.default.enumerator(
+                at: root, includingPropertiesForKeys: nil) else { continue }
+            for case let url as URL in enumerator where url.pathExtension == "swift" {
+                guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+                result.append((url.lastPathComponent, text.components(separatedBy: "\n")))
+            }
         }
         return result
     }()

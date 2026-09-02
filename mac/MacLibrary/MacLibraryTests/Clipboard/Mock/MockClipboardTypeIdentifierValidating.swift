@@ -17,19 +17,10 @@ final class MockClipboardTypeIdentifierValidating: ClipboardTypeIdentifierValida
     private(set) var isValidCallCount = 0
     private(set) var checkedIdentifiers: [String] = []
 
-    var invalidFileTypeIdentifiers: Set<String> = []
-    private(set) var isValidFileTypeCallCount = 0
-
     func isValid(_ identifier: String) -> Bool {
         isValidCallCount += 1
         checkedIdentifiers.append(identifier)
         return !invalidIdentifiers.contains(identifier)
     }
 
-    func isValidFileType(_ identifier: String) -> Bool {
-        isValidFileTypeCallCount += 1
-        checkedIdentifiers.append(identifier)
-        return !invalidFileTypeIdentifiers.contains(identifier)
-            && !invalidIdentifiers.contains(identifier)
-    }
 }

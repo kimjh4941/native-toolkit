@@ -20,9 +20,11 @@ public typealias ClipboardVoidCallback =
 
 /// Clipboard entry point for macOS.
 ///
-/// Every operation has a native `async throws` form. Operations that can fail asynchronously
-/// also have a callback form for the Unity bridge, which cannot cross the C ABI with Swift
-/// error handling. Immediate control operations are synchronous in both forms.
+/// Reading and writing are `async throws`, and each also has a callback form for the Unity
+/// bridge, which cannot cross the C ABI with Swift error handling. Operations that complete
+/// immediately are synchronous and have no callback form: ``accessBehavior(scope:)``,
+/// ``startObserving(scope:interval:onEvent:)``, ``stopObserving()``,
+/// ``checkForegroundChange(scope:)`` and ``makePasteButton(acceptedTypes:timeout:onPaste:)``.
 ///
 /// - Important: The whole type is main actor isolated because `NSPasteboard` is not
 ///   `Sendable`. Callbacks are therefore always delivered on the main actor.
@@ -76,6 +78,9 @@ public final class MacClipboardManager {
     nonisolated public static let defaultObservationInterval: TimeInterval = 0.5
 
     private let coordinator: ClipboardSystemCoordinator
+    /// Injected rather than constructed here. `common.md` keeps the manager layer off the data
+    /// layer's concrete types, and a hard coded one cannot be replaced by a test (R11-M5).
+    private let typeValidator: any ClipboardTypeIdentifierValidating
     private let useCases: ClipboardUseCases
     private let monitor: ClipboardChangeMonitor
 
@@ -91,19 +96,22 @@ public final class MacClipboardManager {
         let repository = ClipboardRepositoryImpl(validator: ClipboardTypeIdentifierValidator(),
                                                  lookup: coordinator)
         // 3. The use cases take the repository and the coordinator as the registry port.
+        let typeValidator = ClipboardTypeIdentifierValidator()
         let useCases = ClipboardUseCases(repository: repository,
                                          registry: coordinator,
-                                         typeValidator: ClipboardTypeIdentifierValidator(),
+                                         typeValidator: typeValidator,
                                          limits: limits)
-        self.init(coordinator: coordinator, useCases: useCases)
+        self.init(coordinator: coordinator, useCases: useCases, typeValidator: typeValidator)
     }
 
     /// Injecting initializer, used by tests and by the convenience initializer above.
     init(coordinator: ClipboardSystemCoordinator,
-         useCases: ClipboardUseCases) {
+         useCases: ClipboardUseCases,
+         typeValidator: any ClipboardTypeIdentifierValidating) {
         Log.d("MacClipboardManager", "[init]")
         self.coordinator = coordinator
         self.useCases = useCases
+        self.typeValidator = typeValidator
         // Shares the aggregate's tracker, so a change already seen by the one-shot foreground
         // check is not reported again by the poller.
         // Through the use case, never the repository: `common.md` forbids a manager reaching
@@ -540,7 +548,7 @@ public final class MacClipboardManager {
         return try PasteButtonFactory.makePasteButton(
             acceptedTypes: acceptedTypes,
             timeout: timeout,
-            validator: ClipboardTypeIdentifierValidator(),
+            validator: typeValidator,
             register: { [coordinator] loader in coordinator.registerPasteLoader(loader) },
             cancel: { [coordinator] handle in coordinator.cancelPaste(handle) },
             onPaste: onPaste)

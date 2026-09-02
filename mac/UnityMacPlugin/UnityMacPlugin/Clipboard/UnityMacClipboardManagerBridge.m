@@ -243,4 +243,3 @@ void clipboardStopObserving(ClipboardCallback callback) {
         }
     }];
 }
-

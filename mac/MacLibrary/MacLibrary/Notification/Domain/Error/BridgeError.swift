@@ -18,10 +18,9 @@
 ///
 /// Two narrow exceptions exist, and both are about a result the caller cannot do without:
 ///
-/// - An endpoint that creates a resource whose handle is the only way to release it —
-///   a unique pasteboard, a file promise registration, a receive session — does nothing at
-///   all when its callback is NULL, because the resource would otherwise be created and
-///   immediately unreachable.
+/// - An endpoint that creates a resource whose result is the only way to release it —
+///   a unique pasteboard — does nothing at all when its callback is NULL, because the
+///   resource would otherwise be created and immediately unreachable.
 /// - An endpoint whose entire purpose is to deliver events reports ``contractViolation(reason:)``
 ///   when its **event** callback is NULL, since the subscription would produce no observable
 ///   result.

@@ -53,6 +53,36 @@ RETIRED_EXEMPT = ("削除", "存在しない", "定義しない", "当時", "旧
 
 ID_PREFIXES = ("IT", "BT", "CT", "PT", "OP", "RK", "DV")
 
+# Where a feature's implementation lives. The design is checked against the code rather than
+# against a list of words a reviewer happened to notice: a deny-list only ever knows about the
+# drift that has already been found once.
+SOURCE_ROOTS = {
+    "clipboard": ["mac/MacLibrary", "mac/UnityMacPlugin", "mac/MacLibraryExample"],
+}
+# A test that asserts a type is *gone* has to name it, and it does so in a string literal:
+#     for gone in ["HandleJson", "ReceiptEventJson"] { #expect(!all.contains(gone)) }
+# Those literals put every deleted shape back into the corpus, so the check passed for exactly
+# the drift it exists to catch (R11-H1). String literals are therefore dropped from test
+# sources, while the code around them still counts: a test that uses a live type refers to it
+# as code, not as text.
+TEST_DIR = re.compile(r"(^|/)\w*Tests?/")
+STRING_LITERAL = re.compile(r'"(?:[^"\\\n]|\\.)*"')
+# Prose in a comment is not an implementation. "isolation domains (…)" read as a symbol.
+COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.S)
+
+# Sections that legitimately name things the code does not contain: the change log, the
+# out-of-scope table, and any measurement record of why something was not built.
+HISTORY_HEADING = re.compile(r"^## 0(\.\d+)?\. ")
+EXEMPT_SECTIONS = re.compile(r"^#{2,4} (2\.1|2\.2|7\.12)[ .]")
+# Lines that state something is absent are describing the absence, not relying on it.
+ABSENCE_MARKERS = ("対象外", "定義しない", "持たない", "使わない", "採用しない", "残っていない",
+                   "削除", "存在しない", "当時", "旧", "v1 では不要", "レガシー",
+                   "実装しない", "永久に返らない")
+# Platform and build vocabulary. A design names the APIs it evaluated, including the ones it
+# turned down, so an AppKit or Foundation symbol missing from the sources proves nothing about
+# drift. Only project symbols are worth checking.
+FOREIGN_SYMBOL = re.compile(r"^(NS|UT|CF|CG|AV|OS|DD)[A-Z]|^[A-Z0-9_]{6,}$|^with[A-Z]")
+
 # design-feature/workflow.md step 7: "1タスクを 0.5日〜1.5日程度の粒度に分割する".
 # The bound belongs to the workflow rule, not to whichever document is being
 # checked — an earlier revision relaxed it to 2.0 to fit the document at hand,
@@ -151,6 +181,45 @@ def check_ports(text, rep):
               f"no 'protocol X' block for {missing}")
 
 
+# A design document and the enum it describes must agree case by case. Checking only that
+# codes are unique and banded misses a uniform shift: an edit that moved every row by five
+# left both invariants intact while renaming every error a caller depends on.
+ERROR_SOURCES = {
+    "clipboard": "mac/MacLibrary/MacLibrary/Clipboard/Domain/Error/ClipboardError.swift",
+}
+
+
+def check_error_mapping(text, path, rep):
+    key = next((k for k in ERROR_SOURCES if k in str(path).lower()), None)
+    source = Path(ERROR_SOURCES[key]) if key else None
+    if source is None or not source.exists():
+        rep.skip("error codes match the implementation",
+                 "no implementation file mapped for this document")
+        return
+    actual = {m.group(1): int(m.group(2)) for m in
+              re.finditer(r"case \.(\w+):\s*return (\d{4})", source.read_text())}
+    if not actual:
+        rep.skip("error codes match the implementation", f"no 'case .x: return NNNN' in {source}")
+        return
+    declared = {m.group(2): int(m.group(1))
+                for m in re.finditer(r"^\|\s*(\d{4})\s*\|\s*`(\w+)`\s*\|", text, re.M)}
+    documented = {k: v for k, v in declared.items() if k in actual}
+    if not documented:
+        rep.skip("error codes match the implementation", "no documented case matches the enum")
+        return
+    wrong = sorted((k, v, actual[k]) for k, v in documented.items() if v != actual[k])
+    rep.check(not wrong, "error codes match the implementation",
+              f"documented != implemented for {wrong[:5]}")
+    missing = sorted(set(actual) - set(documented))
+    rep.check(not missing, "every implemented error case is documented", f"missing={missing}")
+    # The other direction. Drift shows up here first: a row survives an edit that removed the
+    # case it describes, and every check that only walks implementation -> design misses it
+    # (R12-H4).
+    invented = sorted(set(declared) - set(actual))
+    rep.check(not invented, "every documented error case exists in the implementation",
+              f"not implemented={invented}")
+
+
 def check_error_codes(text, rep):
     codes = re.findall(r"^\|\s*(1\d{3})\s*\|", text, re.M)
     if not codes:
@@ -159,11 +228,20 @@ def check_error_codes(text, rep):
         return
     dupes = sorted({c for c in codes if codes.count(c) > 1})
     rep.check(not dupes, "error codes unique", f"duplicates={dupes}")
-    bands = {}
-    for code in codes:
-        bands.setdefault(code[:2], set()).add(code)
-    rep.check(len(bands) == len({frozenset(v) for v in bands.values()}),
-              "error code bands disjoint", f"bands={ {k: len(v) for k, v in bands.items()} }")
+    # Bridge failures are 13xx and clipboard domain failures are 15xx. The check that matters
+    # is that a code stays in the band its owner declares: an earlier version compared band
+    # membership to itself, which no input could ever fail (R11-M6).
+    misplaced = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        m = re.match(r"^\|\s*(1\d{3})\s*\|\s*`([\w.]+)`", line)
+        if not m:
+            continue
+        code, name = int(m.group(1)), m.group(2)
+        band = 1300 if name.startswith("BridgeError.") else 1500
+        if not band <= code < band + 100:
+            misplaced.append((lineno, name, code))
+    rep.check(not misplaced, "error codes stay in their owner's band",
+              f"misplaced={misplaced[:5]}")
 
 
 def check_tasks(text, rep):
@@ -251,6 +329,170 @@ def check_retired(text, path, rep):
     rep.check(not hits, "retired wording removed", f"hits={hits[:6]}")
 
 
+def live_lines(text):
+    """Yields (lineno, line) for the sections that state the current contract.
+
+    The change log records what past revisions did, the out-of-scope table names platform APIs
+    the design deliberately does not use, and a measurement record explains why something was
+    not built. All three legitimately mention things the code does not contain.
+    """
+    in_history = in_exempt = False
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if HISTORY_HEADING.match(line):
+            in_history = True
+        elif re.match(r"^## [1-9]", line):
+            in_history = False
+        if EXEMPT_SECTIONS.match(line):
+            in_exempt = True
+        elif re.match(r"^#{2,4} \d", line) and not EXEMPT_SECTIONS.match(line):
+            in_exempt = False
+        if in_history or in_exempt:
+            continue
+        yield lineno, line
+
+
+def check_live_symbols(text, path, rep):
+    """Every identifier the current contract names must exist in the implementation.
+
+    This is what catches a removed feature whose description survives in the test design, the
+    task table or the DoD. Matching on wording cannot: the rows that outlived the File Promise
+    removal spoke of `inFlightCount` and `overallTimeout`, never of "file promise".
+    """
+    key = next((k for k in SOURCE_ROOTS if k in str(path).lower()), None)
+    if key is None:
+        rep.skip("named symbols exist in the implementation", "no source root for this document")
+        return
+    roots = [Path(r) for r in SOURCE_ROOTS[key]]
+    if not all(r.exists() for r in roots):
+        rep.skip("named symbols exist in the implementation", f"missing source root in {roots}")
+        return
+    corpus = []
+    for root in roots:
+        for suffix in ("*.swift", "*.h", "*.m"):
+            for f in root.rglob(suffix):
+                if "/Build/" in str(f):
+                    continue
+                body = f.read_text(encoding="utf-8", errors="ignore")
+                if TEST_DIR.search(str(f)):
+                    body = STRING_LITERAL.sub('""', body)
+                corpus.append(COMMENT.sub("", body))
+    # Whole identifiers, not raw text. `ident in corpus` was a substring test, so any prefix of
+    # a real symbol passed: `ScopeResult` rode in on `ScopeResultJson` (R12-H4).
+    symbols = set(re.findall(r"\b\w+\b", "\n".join(corpus)))
+    if not symbols:
+        rep.skip("named symbols exist in the implementation", "no sources read")
+        return
+
+    hits = []
+    for lineno, line in live_lines(text):
+        if any(marker in line for marker in ABSENCE_MARKERS):
+            continue
+        for ident in re.findall(r"`(\w{6,})`", line):
+            if FOREIGN_SYMBOL.match(ident) or ident in symbols:
+                continue
+            hits.append((lineno, ident))
+    rep.check(not hits, "named symbols exist in the implementation", f"hits={hits[:8]}")
+
+
+def check_live_ids(text, rep):
+    """Every test or operation ID the current contract names must exist in its table.
+
+    Ranges are the blind spot this closes. `IT-21〜IT-53` reads as a single token, so a symbol
+    or wording scan never sees the 30 IDs it silently requires — including the ones a later
+    revision deleted.
+    """
+    # A row's first cell can define more than one ID: "| RK-01 / RK-02 |", "| F-01〜F-07 |".
+    defined = {prefix: set() for prefix in ID_PREFIXES}
+    for row in re.findall(r"^\|([^|]*)\|", text, re.M):
+        for prefix in ID_PREFIXES:
+            for a, b in re.findall(rf"{prefix}-(\d+)〜(?:{prefix}-)?(\d+)", row):
+                defined[prefix] |= set(range(int(a), int(b) + 1))
+            defined[prefix] |= {int(n) for n in
+                                re.findall(rf"(?<![\w-]){prefix}-(\d+)(?![\d〜])", row)}
+    if not any(defined.values()):
+        rep.skip("referenced IDs exist in their tables", "no ID rows found")
+        return
+
+    referenced = {}
+    for lineno, line in live_lines(text):
+        if any(marker in line for marker in ABSENCE_MARKERS):
+            continue
+        # A row defines its own ID; only references elsewhere on the line are claims.
+        row = re.match(r"^\|\s*\*{0,2}([A-Z]{2})-(\d+)\*{0,2}\s*\|", line)
+        body = line[row.end():] if row else line
+        for prefix in ID_PREFIXES:
+            if not defined[prefix]:
+                continue
+            for a, b in re.findall(rf"{prefix}-(\d+)〜(?:{prefix}-)?(\d+)", body):
+                for n in range(int(a), int(b) + 1):
+                    referenced.setdefault((prefix, n), lineno)
+            for n in re.findall(rf"(?<![\w-]){prefix}-(\d+)(?![\d〜])", body):
+                referenced.setdefault((prefix, int(n)), lineno)
+
+    missing = sorted((f"{p}-{n:02d}", ln) for (p, n), ln in referenced.items()
+                     if n not in defined[p])
+    rep.check(not missing, "referenced IDs exist in their tables", f"missing={missing[:8]}")
+
+
+def check_live_code_blocks(text, rep):
+    """Type names inside the schema samples must match the inventory above them.
+
+    The samples are fenced code, so the identifier scan skips them: a shape deleted from the
+    table can survive as a worked example that Unity authors would copy.
+    """
+    # Only the inventory table counts. Taking every backticked name would include the notes
+    # that say a shape was deleted, which is how a stale sample stayed "in the inventory".
+    rows = re.findall(r"^\|\s*(?:入力専用|入出力共用|出力専用|イベント)\s*\|([^|]*)\|", text, re.M)
+    inventory = {n for row in rows for n in re.findall(r"`?\*{0,2}(\w+Json)\*{0,2}`?", row)}
+    if not inventory:
+        rep.skip("schema samples match the inventory", "no JSON inventory table found")
+        return
+    sampled, in_fence = {}, False
+    for lineno, line in live_lines(text):
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence:
+            continue
+        for name in re.findall(r"//\s*(\w+Json)\b", line):
+            sampled.setdefault(name, lineno)
+    orphan = sorted((n, ln) for n, ln in sampled.items() if n not in inventory)
+    rep.check(not orphan, "schema samples match the inventory", f"not in the inventory: {orphan[:6]}")
+
+
+def check_live_counts(text, rep):
+    """Counts quoted in the current contract must match the document's own declarations.
+
+    The declarations at the top are already checked against the sections that define them, so
+    tying prose figures to the same numbers keeps a superseded count from surviving in a test
+    table or a task row.
+    """
+    canonical = {}
+    m = re.search(r"\*\*Bridge endpoint\*\*: \*\*(\d+) 件\*\*", text)
+    if m:
+        canonical["endpoint"] = int(m.group(1))
+    m = re.search(r"実体 \*\*(\d+) 型\*\*", text)
+    if m:
+        canonical["json"] = int(m.group(1))
+    if not canonical:
+        rep.skip("quoted counts match the declarations", "no declaration to compare against")
+        return
+
+    hits = []
+    for lineno, line in live_lines(text):
+        if any(marker in line for marker in ABSENCE_MARKERS):
+            continue
+        if "endpoint" in canonical:
+            for n in re.findall(r"全 \*{0,2}(\d+) endpoint", line):
+                if int(n) != canonical["endpoint"]:
+                    hits.append((lineno, f"{n} endpoint", canonical["endpoint"]))
+        if "json" in canonical:
+            for n in re.findall(r"実体 \*{0,2}(\d+) (?:JSON )?型", line):
+                if int(n) != canonical["json"]:
+                    hits.append((lineno, f"実体 {n} 型", canonical["json"]))
+    rep.check(not hits, "quoted counts match the declarations", f"hits={hits[:6]}")
+
+
 def check_heading_order(text, rep):
     for label, pattern, key in (
         ("top-level", r"^## (\d+)\.", lambda m: (int(m),)),
@@ -272,10 +514,15 @@ def run(path):
     check_bridge(text, rep)
     check_ports(text, rep)
     check_error_codes(text, rep)
+    check_error_mapping(text, path, rep)
     check_tasks(text, rep)
     check_id_order(text, rep)
     check_tables(text, rep)
     check_retired(text, path, rep)
+    check_live_symbols(text, path, rep)
+    check_live_counts(text, rep)
+    check_live_ids(text, rep)
+    check_live_code_blocks(text, rep)
     check_heading_order(text, rep)
     return rep.dump()
 

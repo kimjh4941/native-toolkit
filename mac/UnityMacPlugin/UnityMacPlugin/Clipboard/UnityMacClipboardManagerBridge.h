@@ -14,7 +14,7 @@
 //    so a caller that does not need the result can simply pass NULL. Two exceptions, both
 //    about a result the caller cannot do without:
 //      * clipboardCreatePasteboard does nothing at all when its callback is NULL, because
-//        the handle it returns is the only way to release what it creates.
+//        the scope it returns is the only way to release what it creates.
 //      * clipboardStartObserving reports 1302 when its EVENT callback is NULL, because the
 //        subscription would produce no observable result.
 //  - `errorCode` is 0 on success. 1301 (bad JSON) and 1302 (missing argument) are bridge
@@ -102,7 +102,7 @@ void clipboardSnapshot(const char* matchingTypesJson,
 /// Empties the pasteboard. Returns ChangeCountJson.
 void clipboardClear(const char* scopeJson, ClipboardJsonCallback callback);
 
-/// Creates or fetches a pasteboard. Returns ScopeJson.
+/// Creates or fetches a pasteboard. Returns ScopeResultJson (`{"scope": {...}}`).
 ///
 /// - Important: `callback` is required. A unique pasteboard's name is chosen by the system,
 ///   so a caller that cannot receive the scope can never release it (R4-M6). Passing NULL

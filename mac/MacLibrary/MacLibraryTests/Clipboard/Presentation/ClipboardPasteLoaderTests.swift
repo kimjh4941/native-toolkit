@@ -517,6 +517,42 @@ struct PasteButtonLifetimeTests {
         #expect(cancelled == [handle])
     }
 
+    @Test("PT-16: an accepted type the system cannot resolve is rejected, not dropped")
+    func undeclaredAcceptedTypeThrows() {
+        // The pasteboard takes any well formed identifier, but PasteButton is built from
+        // UTType values. An earlier revision ran `compactMap { UTType($0) }` and returned a
+        // button that accepted nothing at all (R11-H2).
+        let coordinator = makeCoordinator()
+
+        #expect(throws: ClipboardError.invalidTypeIdentifier("com.mycompany.myformat")) {
+            _ = try PasteButtonFactory.makePasteButton(
+                acceptedTypes: ["public.utf8-plain-text", "com.mycompany.myformat"],
+                timeout: 5,
+                validator: MockClipboardTypeIdentifierValidating(),
+                register: { coordinator.registerPasteLoader($0) },
+                cancel: { coordinator.cancelPaste($0) },
+                onPaste: { _ in })
+        }
+        // The throw happens before registration, so nothing is left for the caller to release.
+        #expect(coordinator.registeredPasteLoaderCount == 0)
+    }
+
+    @Test("PT-16: system declared types build a button and register one loader")
+    func declaredAcceptedTypesSucceed() throws {
+        let coordinator = makeCoordinator()
+
+        let view = try PasteButtonFactory.makePasteButton(
+            acceptedTypes: ["public.utf8-plain-text", "public.png"],
+            timeout: 5,
+            validator: MockClipboardTypeIdentifierValidating(),
+            register: { coordinator.registerPasteLoader($0) },
+            cancel: { coordinator.cancelPaste($0) },
+            onPaste: { _ in })
+
+        #expect(view is ClipboardPasteContainerView)
+        #expect(coordinator.registeredPasteLoaderCount == 1)
+    }
+
     @Test("PT-08: cancelling a paste twice does not crash")
     func cancelPasteIsIdempotent() throws {
         let coordinator = makeCoordinator()

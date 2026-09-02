@@ -67,6 +67,136 @@ struct UnityMacClipboardBridgeTests {
         }
     }
 
+    // MARK: - Argument classification
+
+    @Test("BT-26: a missing required argument reports 1302, a malformed one reports 1301")
+    func argumentErrorsAreClassified() async throws {
+        // §8.4.1 separates the two. Reporting both as 1301 told Unity its JSON was bad when it
+        // had sent none at all (R11-H3).
+        let manager = UnityMacClipboardManager.shared
+
+        func code(_ call: (@escaping @Sendable (Bool, String?, Int, String?) -> Void) -> Void) async -> Int {
+            await withCheckedContinuation { continuation in
+                nonisolated(unsafe) var resumed = false
+                call { _, _, errorCode, _ in
+                    guard !resumed else { return }
+                    resumed = true
+                    continuation.resume(returning: errorCode)
+                }
+            }
+        }
+
+        #expect(await code { manager.read(scopeJson: nil, handler: $0) } == 1302)
+        #expect(await code { manager.read(scopeJson: "", handler: $0) } == 1302)
+        #expect(await code { manager.read(scopeJson: "{bad", handler: $0) } == 1301)
+        #expect(await code { manager.snapshot(matchingTypesJson: nil, scopeJson: nil, handler: $0) } == 1302)
+        #expect(await code { manager.copy(contentJson: nil, optionsJson: nil, scopeJson: nil, handler: $0) } == 1302)
+        #expect(await code { manager.copy(contentJson: "{bad", optionsJson: nil, scopeJson: nil, handler: $0) } == 1301)
+    }
+
+    // MARK: - Thread affinity and delivery
+
+    /// Collects callback invocations with the thread each arrived on.
+    private final class Delivery: @unchecked Sendable {
+        private let lock = NSLock()
+        private var arrivals: [Bool] = []
+
+        func record() { lock.withLock { arrivals.append(Thread.isMainThread) } }
+        var count: Int { lock.withLock { arrivals.count } }
+        var allOnMain: Bool { lock.withLock { arrivals.allSatisfy { $0 } } }
+    }
+
+    /// Runs `body` on a background queue and waits for the delivery to settle.
+    private func offMain(expecting expected: Int,
+                         _ body: @escaping @Sendable (Delivery) -> Void) async -> Delivery {
+        let delivery = Delivery()
+        DispatchQueue.global(qos: .userInitiated).async { body(delivery) }
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ContinuousClock.now < deadline, delivery.count < expected {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        // A little longer, so a second delivery would be observed rather than raced past.
+        try? await Task.sleep(for: .milliseconds(50))
+        return delivery
+    }
+
+    @Test("BT-05: a call made off the main thread still reports on the main thread",
+          .timeLimit(.minutes(1)))
+    func callbacksArriveOnMain() async {
+        let manager = UnityMacClipboardManager.shared
+
+        let read = await offMain(expecting: 1) { delivery in
+            manager.read(scopeJson: #"{"kind":"general"}"#) { _, _, _, _ in delivery.record() }
+        }
+        #expect(read.count == 1)
+        #expect(read.allOnMain, "the read callback did not arrive on the main thread")
+
+        let behavior = await offMain(expecting: 1) { delivery in
+            manager.accessBehavior(scopeJson: #"{"kind":"general"}"#) { _, _, _, _ in delivery.record() }
+        }
+        #expect(behavior.count == 1)
+        #expect(behavior.allOnMain)
+    }
+
+    @Test("BT-22: the early return paths also report once, on the main thread",
+          .timeLimit(.minutes(1)))
+    func earlyReturnsKeepTheContract() async {
+        // Parse failure and a missing argument return before the manager is reached. Those
+        // paths are the ones most likely to answer synchronously on the caller's thread.
+        let manager = UnityMacClipboardManager.shared
+
+        let malformed = await offMain(expecting: 1) { delivery in
+            manager.read(scopeJson: "{bad") { _, _, _, _ in delivery.record() }
+        }
+        #expect(malformed.count == 1, "a parse failure reported \(malformed.count) times")
+        #expect(malformed.allOnMain)
+
+        let missing = await offMain(expecting: 1) { delivery in
+            manager.read(scopeJson: nil) { _, _, _, _ in delivery.record() }
+        }
+        #expect(missing.count == 1, "a missing argument reported \(missing.count) times")
+        #expect(missing.allOnMain)
+
+        let missingEvent = await offMain(expecting: 1) { delivery in
+            manager.startObserving(scopeJson: #"{"kind":"general"}"#, intervalSeconds: 0.5,
+                                   onChange: nil) { _, _, _ in delivery.record() }
+        }
+        #expect(missingEvent.count == 1)
+        #expect(missingEvent.allOnMain)
+    }
+
+    @Test("BT-23: a nil callback does not trap, and start/stop does not cross handlers",
+          .timeLimit(.minutes(1)))
+    func nilCallbacksAndObservationBoundary() async throws {
+        let manager = UnityMacClipboardManager.shared
+
+        // Nothing here reports a result; the operations must still run without trapping.
+        manager.read(scopeJson: #"{"kind":"general"}"#, handler: nil)
+        manager.clear(scopeJson: #"{"kind":"general"}"#, handler: nil)
+        manager.stopObserving(handler: nil)
+        manager.checkForegroundChange(scopeJson: nil, handler: nil)
+        try await Task.sleep(for: .milliseconds(100))
+
+        // Start and stop repeatedly. Each start reports exactly once and no handler from an
+        // earlier round arrives after its own stop.
+        for _ in 0..<3 {
+            let started = await offMain(expecting: 1) { delivery in
+                manager.startObserving(scopeJson: #"{"kind":"general"}"#, intervalSeconds: 0.5,
+                                       onChange: { _ in }) { _, _, _ in delivery.record() }
+            }
+            #expect(started.count == 1, "a start reported \(started.count) times")
+            #expect(started.allOnMain)
+
+            let stopped = await offMain(expecting: 1) { delivery in
+                manager.stopObserving { _, _, _ in delivery.record() }
+            }
+            #expect(stopped.count == 1)
+            #expect(stopped.allOnMain)
+        }
+
+        manager.stopObserving(handler: nil)
+    }
+
     // MARK: - Required callbacks
 
     @Test("R3-M4 and R4-M6: the resource creating endpoint refuses a NULL callback")
@@ -117,13 +247,23 @@ struct UnityMacClipboardBridgeTests {
         // Plan C's Objective-C side cannot be checked by the compiler, so the capture audit is
         // the guarantee. A block that captured a local object would make the @Sendable claim
         // on the Swift side false.
+        // Each block body is examined on its own. An earlier revision asserted only that the
+        // *file* mentioned a callback name, which was true for every iteration whatever the
+        // block contained (R11-L5).
         let callbackNames = ["callback", "onChange", "onEvent"]
-        for line in implementation.split(separator: "\n") where line.contains("^(") {
-            // Every block body in this file forwards to a C function pointer parameter and
-            // touches nothing else.
-            #expect(callbackNames.contains { implementation.contains("\($0)(") })
-            _ = line
+        var audited = 0
+        for body in blockBodies(in: implementation) {
+            audited += 1
+            let code = withoutComments(body)
+            let identifiers = code.matches(of: /\b([a-zA-Z_]\w*)\s*\(/).map { String($0.output.1) }
+            let called = identifiers.filter { !objcKeywords.contains($0) }
+            #expect(!called.isEmpty, "a block that calls nothing: \(body.prefix(60))")
+            #expect(called.allSatisfy { callbackNames.contains($0) },
+                    "a block calls something other than its C callback: \(called)")
+            #expect(!code.contains("self"), "a block captures self: \(code.prefix(60))")
         }
+        #expect(audited >= 15, "only \(audited) block bodies were audited")
+
         // No block captures self, a stored property, or a local NSObject.
         #expect(!implementation.contains("[self "))
         #expect(!implementation.contains("__block "))
@@ -354,15 +494,52 @@ struct UnityMacClipboardBridgeTests {
         #expect(examined >= 20, "only \(examined) argument log sites were examined")
     }
 
-    // MARK: - Privacy
-
     // MARK: - Helpers
+
+    /// The block body with comments removed.
+    ///
+    /// Prose mentions parentheses too: "isolation domains (…)" read as a call to `domains`.
+    private func withoutComments(_ body: String) -> String {
+        body.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { line -> String in
+                guard let slashes = line.range(of: "//") else { return String(line) }
+                return String(line[line.startIndex..<slashes.lowerBound])
+            }
+            .joined(separator: "\n")
+    }
+
+    /// Objective-C block bodies, from `^(` to the matching closing brace.
+    private func blockBodies(in source: String) -> [String] {
+        var bodies: [String] = []
+        var index = source.startIndex
+        while let start = source.range(of: "^(", range: index..<source.endIndex) {
+            guard let open = source.range(of: "{", range: start.upperBound..<source.endIndex) else { break }
+            var depth = 0
+            var cursor = open.lowerBound
+            var end: String.Index?
+            while cursor < source.endIndex {
+                if source[cursor] == "{" { depth += 1 }
+                if source[cursor] == "}" {
+                    depth -= 1
+                    if depth == 0 { end = cursor; break }
+                }
+                cursor = source.index(after: cursor)
+            }
+            guard let end else { break }
+            bodies.append(String(source[open.upperBound..<end]))
+            index = source.index(after: end)
+        }
+        return bodies
+    }
+
+    /// Control flow keywords, which are not calls.
+    private var objcKeywords: Set<String> { ["if", "for", "while", "switch", "return", "sizeof"] }
+
 
     private func endpointNames(in source: String) throws -> Set<String> {
         Set(source.matches(of: /void (clipboard\w+)\(/).map { String($0.output.1) })
     }
 }
-
 
 /// Collects a bridge callback from whichever thread delivers it.
 private final class CallbackRecorder: @unchecked Sendable {

@@ -18,11 +18,13 @@ struct MacClipboardManagerTests {
         let repository = MockClipboardRepository()
         let registry = MockClipboardPromiseRegistry()
         let coordinator = ClipboardSystemCoordinator()
+        let typeValidator = MockClipboardTypeIdentifierValidating()
         let useCases = ClipboardUseCases(repository: repository,
                                          registry: registry,
-                                         typeValidator: MockClipboardTypeIdentifierValidating())
+                                         typeValidator: typeValidator)
         let manager = MacClipboardManager(coordinator: coordinator,
-                                          useCases: useCases)
+                                          useCases: useCases,
+                                          typeValidator: typeValidator)
         return (manager, repository, registry, coordinator)
     }
 

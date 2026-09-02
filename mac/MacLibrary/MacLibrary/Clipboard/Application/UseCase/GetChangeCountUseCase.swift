@@ -7,12 +7,9 @@ import Foundation
 
 /// Reads a pasteboard's current change count.
 ///
-/// Not a public operation of its own: it exists because two internal callers need the value
-/// and neither may reach the repository directly. `common.md` forbids Manager to Repository
-/// calls precisely so that a path like this cannot grow logic that no test can reach.
-///
-/// Used by the change monitor and by the coordinator's stale check, which compares it against
-/// the change count recorded when a file promise was written.
+/// Not a public operation of its own: it exists because the change monitor needs the value
+/// and may not reach the repository directly. `common.md` forbids Manager to Repository calls
+/// precisely so that a path like this cannot grow logic that no test can reach.
 @MainActor
 public struct GetChangeCountUseCase {
 

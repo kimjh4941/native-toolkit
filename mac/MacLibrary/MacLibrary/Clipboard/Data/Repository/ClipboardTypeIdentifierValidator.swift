@@ -69,16 +69,6 @@ final class ClipboardTypeIdentifierValidator: ClipboardTypeIdentifierValidating 
         Log.d(TAG, "[conforms] identifier: \(identifier), others: \(ClipboardLog.types(others))")
         return others.contains { conforms(identifier, to: $0) }
     }
-
-    /// Whether the identifier is usable as a file promise type.
-    ///
-    /// A promised file has to resolve to a type that conforms to `public.data` or
-    /// `public.directory`; anything else cannot be written to disk by the promise machinery.
-    func isValidFileType(_ identifier: String) -> Bool {
-        Log.d(TAG, "[isValidFileType] identifier: \(identifier)")
-        guard let type = UTType(identifier) else { return false }
-        return type.conforms(to: .data) || type.conforms(to: .directory)
-    }
 }
 
 private extension Character {
