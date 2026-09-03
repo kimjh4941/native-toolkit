@@ -519,6 +519,11 @@ public final class MacClipboardManager {
 
     /// Whether the pasteboard changed since this app last looked.
     ///
+    /// "Last looked" is shared with ``startObserving(scope:interval:onEvent:)``: both move the
+    /// same mark, so one change is never reported twice. **While observation is running this
+    /// returns `false` almost always**, because the poll has already seen the change and
+    /// reported it through `onEvent`. Use this instead of observation, not alongside it.
+    ///
     /// - Returns: `true` on the first call for a scope, because the caller has not seen that
     ///   pasteboard before.
     public func checkForegroundChange(scope: PasteboardScope = .general) throws -> Bool {

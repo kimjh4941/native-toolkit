@@ -177,7 +177,7 @@
 | MT-09 | 判定保留 |
 | MS-06 | **未実施**。進行中の load を誘発できないため自動化できない |
 | L-02（解放中の中間状態）、C-07、C-08 | **未対応**。理由は §4 と result v5 §3 |
-| 平文 `detectMetadata` が 1515 を返す件 | **要検証** |
-| `PasteButton` が `supportedContentTypes` に一致しない provider を渡すか | **要検証** |
+| 平文 `detectMetadata` が 1515 を返す件 | **解決**（2026-09-03 の手動確認。1515 で期待どおり） |
+| `PasteButton` が `supportedContentTypes` に一致しない provider を渡すか | **解決**（渡さない。**1521 は到達不能**と判明し、計画 §6.6 を訂正） |
 | BT-01 / BT-08 / BT-12 / CT-05 | **未実装**（機能設計 §12.4） |
 | `MacLibraryExampleUITestsLaunchTests/testLaunch` | 環境事象で失敗。テンプレート由来で範囲外 |

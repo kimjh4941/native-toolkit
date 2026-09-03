@@ -140,7 +140,12 @@ enum ClipboardSampleFixtures {
         ])])
     }
 
-    /// An item the paste button accepts next to one it does not, for MT-06.
+    /// An item the paste button accepts next to one it does not.
+    ///
+    /// Pasting this yields `items=1`: the system hands the button only what matches its
+    /// `supportedContentTypes`, so the unaccepted item never reaches the loader. It was meant
+    /// to produce a partial failure (1521); measurement on 2026-09-03 showed that cannot be
+    /// made to happen from here (sample plan section 6.6).
     static func partialPasteContent() -> ClipboardContent {
         ClipboardContent(items: [
             ClipboardItemData(representations: [plainTextType: data(plainText)]),

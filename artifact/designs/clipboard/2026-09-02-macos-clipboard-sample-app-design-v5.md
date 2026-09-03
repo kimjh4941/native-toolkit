@@ -27,6 +27,9 @@
 > | §8.1 MT-08 | `CopyWithCurrentOptions` を名指し | 通常 Copy が既定値固定になったため、ボタン名が無いと検証が成立しない（同 L-05） |
 > | §5「9. Clear」 | 「消した item 数」→「新しい changeCount」 | **OP-06 が返すのは changeCount であり、item 数ではない。** 機能設計は正しく書いていたが、計画と実装が取り違えていた（MS-04 を自動化して判明） |
 > | §8.2 MS-04 / §8.1 MT-03 | 自動化済みとする | 他アプリも別端末も要らず自動化できるのに手動欄に置いていた |
+> | §5「4. Append」/ §8.1 MT-03 | `AppendWithLastOwnership` を追加 | **MT-03 の「他者所有時は明示エラー」に導線が無かった。** 自アプリで無効化する経路しか用意しておらず、機能設計が求める観点の半分が確認できなかった |
+> | §6.6 / §5「2. Copy」/ §8.1 MT-06 | 1521 を「到達手段なし」へ移し、`CopyPartialPasteContent` の目的を書き直した | **手動確認で到達不能と判明**（システムが `supportedContentTypes` で絞る）。10 / 8 に分類し直した |
+> | §8.2 MS-06 | 「自動化不可」→「確認手段なし」 | 人がやっても同じで、手動確認の対象にできない。1522 / 1524 と同じ分類にする |
 > | §8.1 の表 | 「状態」列を「自動化」「手動である理由」に置換 | **「実施可」は理由ではない。** 理由を書かせないと、自動化できる項目が手動のまま残る（workflow 側にも規則を追加） |
 
 > T-18 の完了条件（設計書 §13）:
@@ -495,10 +498,11 @@ Picker の選択値は `activeScope` から**導出**する（別の `@State` �
 | `CopyMultipleItems` / `CopyMultipleRepresentations` | OP-01 |
 | `CopyEmpty` | OP-01 `items: []` → **1501 を期待** |
 | `CopyEmptyRepresentations` | OP-01 に representations が空の item → **1502 を期待** |
-| `CopyPartialPasteContent` | OP-01 で `partialPasteContent` を書く。Paste Control の部分失敗（1521）を作るための準備（§6.2） |
+| `CopyPartialPasteContent` | OP-01 で `partialPasteContent` を書く。**システムが受け入れない型の item を落とすことを見せる**（貼り付けると `items=1` になる）。当初は 1521 を作る準備としたが到達不能だった（§6.6） |
 | Toggle `localOnly` + `CopyWithCurrentOptions` | OP-01 に `ClipboardCopyOptions(localOnly:)` |
 | `CopyThenAppend` | OP-01 → 返る ownership で OP-02 |
-| `AppendWithStaleOwnership` | OP-01 → 別内容で OP-01 → 最初の ownership で OP-02 → **1511 を期待** |
+| `AppendWithLastOwnership` | 直前の copy が返した ownership で OP-02。**成否を宣言せず、起きたことを表示する。** 他アプリがペーストボードを奪った後に押すと 1511 になる（MT-03 の「他者所有時」の導線） |
+| `AppendWithStaleOwnership` | OP-01 → 別内容で OP-01 → 最初の ownership で OP-02 → **1511 を期待**（自アプリが無効化した場合） |
 | `Clear` | OP-06。**新しい changeCount を表示**（`clearContents()` が返すのはこれで、消した item 数ではない）。機能設計 §6.4 と一致させる |
 
 #### 5. Read / Inspect
@@ -611,7 +615,7 @@ MS-05 の要求を満たしていなかった。
 
 | 分類 | コード | 到達方法 |
 |---|---|---|
-| **専用ボタンで到達**（11） | 1501 | `copy(items: [])` |
+| **専用ボタンで到達**（10） | 1501 | `copy(items: [])` |
 | | 1502 | `copy` に representations 空の item |
 | | 1503 | `detectPatterns([])` |
 | | 1504 | 不正 UTI での `copy` / `makePasteButton` |
@@ -620,10 +624,16 @@ MS-05 の要求を満たしていなかった。
 | | 1511 | 古い ownership での `append` |
 | | 1512 | `snapshot(matchingTypes: [])` |
 | | 1515 | 平文への `detectMetadata` |
-| | 1521 | **`partialPasteContent` を貼り付け**（§6.2） |
 | | 1523 | `startObserving(interval: 0)` |
 | **環境依存**（2） | 1513 / 1514 | macOS 15.4 未満 / ユーザーが拒否。到達したら記録 |
-| **到達手段なし**（7） | 1506 / 1507 / 1509 / 1510 / 1522 / 1524 / 1599 | サンプルからは作れない |
+| **到達手段なし**（8） | 1506 / 1507 / 1509 / 1510 / **1521** / 1522 / 1524 / 1599 | サンプルからは作れない |
+
+> **1521 は 2026-09-03 の手動確認で到達不能と判明した。** `partialPasteContent`（受け入れる型の
+> item と受け入れない型の item を 1 つずつ）を貼り付けても、結果は
+> `items=1, failures=0, partial=false` である。**システムの `PasteButton` は
+> `supportedContentTypes` に一致しない item を渡してこない**ため、load が失敗する状況を
+> サンプルからは作れない。v5 までは「専用ボタンで到達」に分類していたが誤りだった。
+> ライブラリ側は `ClipboardPasteLoaderTests` が mock で 1521 を担保している。
 
 **「全 20 ケースを画面から出す」ことは目標にしない。** 1506 は数百 MB の確保が要り、
 1509 / 1510 は pasteboard が書き込みを拒否する状況を作れず、1522 は timeout を待つ間
@@ -785,9 +795,9 @@ python3 -m unittest discover -s scripts/tests
 |---|---|---|---|
 | MT-01 | 他アプリでコピー → `Read` | 不可 | 他アプリの内部が必要 |
 | MT-02 | `CopyText` → 他アプリで貼り付け | 不可 | 他アプリの内部が必要 |
-| MT-03 | `CopyThenAppend` と `AppendWithStaleOwnership` | **済** | - |
+| MT-03 | 自所有: `CopyThenAppend`、自アプリによる無効化: `AppendWithStaleOwnership`（**自動化済**）。**他者所有: `CopyText` → 他アプリで ⌘C → `AppendWithLastOwnership` で 1511**（手動） | 一部 | 他アプリの内部が必要（他者所有の半分だけ） |
 | MT-04 | `StartObserving` → 他アプリでコピー → 非アクティブ → 復帰 | 不可 | 他アプリの内部が必要 |
-| MT-06 | Paste Control から貼り付け。部分失敗表示 | 不可 | 状態を誘発できない（部分失敗を起こす provider を用意できるかが要検証） |
+| MT-06 | Paste Control から貼り付け。**受け入れる型は読め、受け入れない型は落ちる**（部分失敗は起こせない。§6.6） | 不可 | 他アプリの内部が必要（Finder / 他アプリのコピーを貼る） |
 | MT-07 | 15.4.1 と 15.2 の両方で Detect 各種 | 不可 | 環境が複数必要（OS 2 版） |
 | MT-08 | **`CopyWithCurrentOptions`** で `localOnly` を切り替えて実機 Mac + iPhone。通常の Copy は既定値固定なので、そちらでは切り替わらない | 不可 | 環境が複数必要（実機 2 台） |
 | MT-09 | 各操作時のプライバシーアラート | 不可 | 観察のみで判定しない（RK-22） |
@@ -803,7 +813,7 @@ MT-05 は機能設計 v9 で削除された。
 | MS-03 | Active scope の切り替えが**`scope` 引数を持つ操作**に反映される（Paste Control は general 固定） |
 | MS-04 | named / unique を作成 → 操作 → 削除まで通る（**自動化済み**） |
 | MS-05 | Observe を開始したまま画面を離れると停止する |
-| MS-06 | Paste Control の View 破棄で進行中の load がキャンセルされる（**自動化不可: 状態を誘発できない**。進行中の load を作るには遅い provider が要る） |
+| MS-06 | Paste Control の View 破棄で進行中の load がキャンセルされる。**確認手段なし**（自動・手動とも）。ローカルのペーストボードからの load は即座に完了し、進行中に画面を離れられない。遅延データプロバイダを持つ item が要るが、`ClipboardContent` は UTI と `Data` の辞書なのでサンプルからは作れない。**1522 / 1524 が §6.6 で「到達手段なし」なのと同じ理由**。手動確認の対象から外す |
 | MS-07 | 画面表示とログのどちらにも、値・完全パス・query・**利用者が付けた** pasteboard 名が出ない（§3.4）。**`CreateNamedPasteboard` で実際に渡した名前（`nt-sample`）が画面に出ないことを確認する。** 名前は実装のソースから読む。`CreateEmptyNamedPasteboard`（1505）でも同じ名前が出ないことを併せて確認する。`RemoveGeneral`（1508）は標準名なので出て**よい**（出ることを要求はしない） |
 
 > **v4 の MS-07 は成立していなかった。** 検査対象を `CreateEmptyNamedPasteboard` だけにして

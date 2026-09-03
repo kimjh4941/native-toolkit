@@ -28,6 +28,8 @@ struct ClipboardSampleView: View {
     /// Counts the results the screen has shown, so a test can tell a new one from a repeat.
     @State private var resultSequence = 0
     @State private var localOnly = true
+    /// The ownership the last copy returned, for `AppendWithLastOwnership`.
+    @State private var lastOwnership: PasteboardOwnership?
     @State private var isObserving = false
     @State private var reachedCodes: Set<Int> = []
     @State private var pasteButton: NSView?
@@ -255,6 +257,7 @@ struct ClipboardSampleView: View {
                     await run(label: "copyWithCurrentOptions") {
                         let ownership = try await MacClipboardManager.shared.copy(
                             ClipboardSampleFixtures.text(), options: options, scope: scope)
+                        lastOwnership = ownership
                         return "localOnly=\(options.localOnly), changeCount=\(ownership.changeCount)"
                     }
                 }
@@ -278,6 +281,26 @@ struct ClipboardSampleView: View {
                             ClipboardSampleFixtures.text(), scope: scope)
                         let appended = try await MacClipboardManager.shared.append(
                             ClipboardSampleFixtures.text("appended"), ownership: ownership)
+                        return "changeCount=\(appended.changeCount)"
+                    }
+                }
+            }
+            sampleButton("AppendWithLastOwnership") { inputs in
+                // MT-03 asks that append fails plainly when another app has taken the
+                // pasteboard since the copy. Only a person can produce that: copy here, copy
+                // in another app, then press this. Nothing in the sample can invalidate the
+                // ownership from outside, so this reports whatever happens rather than
+                // declaring an expected failure (R-SA26).
+                Task {
+                    guard let ownership = inputs.lastOwnership else {
+                        updateResult(.otherFailure(label: "appendWithLastOwnership",
+                                                   description: "copy something first"))
+                        return
+                    }
+                    await run(label: "appendWithLastOwnership") {
+                        let appended = try await MacClipboardManager.shared.append(
+                            ClipboardSampleFixtures.text("late"), ownership: ownership)
+                        lastOwnership = appended
                         return "changeCount=\(appended.changeCount)"
                     }
                 }
@@ -571,6 +594,7 @@ struct ClipboardSampleView: View {
                       scope: PasteboardScope) async {
         await run(label: label) {
             let ownership = try await MacClipboardManager.shared.copy(content, scope: scope)
+            lastOwnership = ownership
             return "changeCount=\(ownership.changeCount)"
         }
     }
@@ -781,7 +805,8 @@ struct ClipboardSampleView: View {
                               action: @escaping (SampleInputs) -> Void) -> some View {
         Button(name) {
             action(SampleInputs(scope: activeScope,
-                                options: ClipboardCopyOptions(localOnly: localOnly)))
+                                options: ClipboardCopyOptions(localOnly: localOnly),
+                                lastOwnership: lastOwnership))
         }
         .accessibilityIdentifier("clipboard.button.\(name)")
     }
@@ -812,6 +837,7 @@ struct ClipboardSampleView: View {
 struct SampleInputs {
     let scope: PasteboardScope
     let options: ClipboardCopyOptions
+    let lastOwnership: PasteboardOwnership?
 }
 
 private struct ClipboardSampleButtonStyle: ButtonStyle {
