@@ -115,6 +115,21 @@ struct SynchronousUseCaseTests {
         }
     }
 
+    @Test("append reports a refused write unchanged")
+    func appendPropagatesAppendRejected() throws {
+        // The sibling of ownershipLost: ownership still matches, but `writeObjects` refuses.
+        // Only this one had no test outside the error value's own, so 1510 was the single
+        // error the product can return that nothing had ever driven (R-SA28).
+        let (repository, validator) = try makeContext()
+        repository.shouldFail = .appendRejected
+        let useCase = AppendContentUseCase(repository: repository, validator: validator)
+
+        #expect(throws: ClipboardError.appendRejected) {
+            _ = try useCase(self.sample(),
+                            ownership: PasteboardOwnership(scope: .general, changeCount: 1))
+        }
+    }
+
     // MARK: - OP-03 read
 
     @Test("read returns the repository result")

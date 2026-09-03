@@ -616,10 +616,35 @@ open ~/Library/Developer/Xcode/DerivedData/MacWorkspace-*/Build/Products/Debug/M
 
 ---
 
-## 付記: 未実行のまま残す検出エラー 2 件
+## 付記: 一度も実行されていないエラー分岐
 
-検出まわりに、**どの環境でも一度も実行されていない分岐が 2 つ**ある。優先度が低いと判断し、
-本リリースでは記録のみとする。
+**エラーコード 20 件を、実行された経路があるかで洗った。** 結果は 3 件。うち 1 件は本日
+テストを追加して解消し、2 件は環境が必要なため記録のみとする。
+
+| コード | 状態 | 理由 |
+|---|---|---|
+| **1510** `appendRejected` | **解消（本日）** | mock 経由の伝播テストを追加。兄弟の 1509 / 1511 と同水準 |
+| **1513** `detectionUnavailable` | 記録のみ | 15.4 未満の環境が要る |
+| **1514** `detectionDenied` | 記録のみ | 拒否の導線が不明 |
+
+他の 17 件は、値検査以外のテストが 1 件以上ある。
+
+### 1510: 兄弟の片方だけテストが無かった
+
+`appendRejected` は「所有権は一致しているのに `writeObjects` が false を返す」ときに出る
+（`ClipboardRepositoryImpl.swift:101`）。対になる 1509 `writeRejected` と 1511 `ownershipLost` は
+mock 経由の伝播テストがあったが、**1510 だけ `ClipboardErrorTests`（値の検査）と
+`ClipboardDocumentationTests`（DocC の記載）にしか現れていなかった。**
+
+`SynchronousUseCaseTests` に `appendPropagatesAppendRejected` を追加した。
+`AppendContentUseCase` がエラーを握りつぶす変異（`(try? ...) ?? ownership`）で、
+兄弟の `appendPropagatesOwnershipLost` と**同時に落ちる**ことを確認済み。
+
+**実 AppKit の `guard pasteboard.writeObjects(items)` 自体は依然として通らない**（mock は
+Repository を差し替えるため）。ただしこれは 1509 も同じであり、**既存の水準に揃えたという意味**
+である。
+
+### 検出エラー 2 件（環境が必要）
 
 | コード | 発生条件 | 分岐の中身 | 未実行の重さ |
 |---|---|---|---|
