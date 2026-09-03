@@ -342,8 +342,15 @@ struct ClipboardSampleView: View {
                 Task {
                     await run(label: "read") {
                         let result = try await MacClipboardManager.shared.read(scope: scope)
-                        let types = result.items.map { $0.representations.keys.sorted().joined(separator: "|") }
-                        return "items=\(result.items.count), bytes=\(result.items.reduce(0) { $0 + $1.totalBytes }), types=[\(types.joined(separator: " / "))]"
+                        // Per item, not just a total. Two devices telling their fixtures apart
+                        // need each item's own text length: a sum across items and across the
+                        // flavors AppKit adds cannot say which item is which (R-SA27).
+                        let described = result.items.enumerated().map { index, item in
+                            "\(index):\(Self.describe(item))"
+                        }
+                        return "items=\(result.items.count), "
+                            + "bytes=\(result.items.reduce(0) { $0 + $1.totalBytes }), "
+                            + "[\(described.joined(separator: " / "))]"
                     }
                 }
             }
@@ -768,6 +775,16 @@ struct ClipboardSampleView: View {
         updateResult(verdict.isSuccess
                      ? .success(label: label, detail: verdict.detail)
                      : .otherFailure(label: label, description: verdict.detail))
+    }
+
+    /// One item as its index, its text length and the types it carries.
+    ///
+    /// The text length is the size of the plain text representation alone, which is what
+    /// identifies a fixture across devices. The value itself is never shown (section 3.4).
+    private static func describe(_ item: ClipboardItemData) -> String {
+        let plainText = item.representations[ClipboardSampleFixtures.plainTextType]
+        let text = plainText.map { "text=\($0.count)B" } ?? "text=none"
+        return "\(text) \(item.representations.keys.sorted().joined(separator: "|"))"
     }
 
     // MARK: - Display

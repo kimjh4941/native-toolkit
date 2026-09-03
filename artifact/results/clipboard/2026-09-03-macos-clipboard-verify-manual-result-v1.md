@@ -672,3 +672,58 @@ Unity 側は「拒否された」を検出できず、通常の失敗として�
 2. 拒否状態で `DetectPatterns` を押し、**1514 が返ることを確認**する
 3. 1515 が返った場合、`detectionError(from:)` の判別条件を実測した `NSError` に合わせる
 4. 1513 は 15.4 未満の環境（VM で可）で 1 回押せば済む
+
+---
+
+## 付記: iOS M-06 / M-16（Mac を端末 B として実施）
+
+実施日: 2026-09-03 / 端末 A: iPhone XS（iOS 18.7.2、NTKIT-14 サンプル） / 端末 B: 本 Mac（macOS 26.3）
+
+**これは NTKIT-14（iOS）の観点である。** Mac は端末 B として使った。iOS 側の設計
+`2026-08-09-ios-clipboard-sample-app-design-v6.md` §6.3 の手順に従う。
+**iOS 側の §6.5 trial 結果表への記録は別途必要。**
+
+### 端末 B の判別方法を用意した
+
+iOS 設計 §6.3 は端末 B に **`index / hasText / textLength`** の表示を要求している。
+本 Mac のサンプルは `items=N, bytes=N` しか出しておらず、**`bytes` は全 item・全 representation の
+合計**なので fixture を判別できなかった（AppKit が `utf16-external` を足すため文字数とも一致しない）。
+
+`Read` を **item ごとの平文バイト数**を出す形に変更した。
+
+```
+[read] items=1, bytes=93, [0:text=30B public.utf16-external-plain-text|public.utf8-plain-text]
+```
+
+| 長さ | 何か |
+|---:|---|
+| 14 | trial body（`LOCALONLY-BODY`、端末 A） |
+| 24 | append marker（端末 A） |
+| **30** | 端末 B の baseline（`Copied from MacLibraryExample.`。iOS 設計の 31 文字 sentinel に相当） |
+
+### 結果
+
+| 観測 | 値 |
+|---|---|
+| 手順 3（正の対照、`localOnly = false`） | **`text=14B` が端末 B に到達。試行は有効** |
+| 手順 8（`bodyBeforeAppend`） | **30B のみ** |
+| 手順 10（`bodyAfterAppend` / `appendAfterAppend`） | **30B のみ** |
+| bit | **`000`** |
+
+### 帰結
+
+> **append は、元の item が持つ local-only の状態を引き継ぐ。pasteboard 全体を再公開しない。**
+
+**D-8 を維持し、R-13 の追加 API は不要。** 企画段階で開いていた設計判断が 1 つ閉じた。
+
+### 事前 signature 確認（手順 6）について
+
+手順 6（端末 B に 14B / 24B の item が事前に無いこと）は明示的に記録していない。
+**ただし `000` という判定に限っては、この確認は効かない。** 事前に 14B が残っていた場合、
+⑧⑩で 14B が**見える**方向に働くため、汚染は `1xx` を生むのであって `000` を偽造できない。
+**手順 6 が効くのは `1xx` が出たとき**である。
+
+### M-06
+
+手順 3 で `localOnly = false` の内容が端末 B へ到達した。**M-06（Universal Clipboard）は成立。**
+iOS 設計 §8.2 のとおり、M-16 の正の対照を共用して判定した。
