@@ -45,7 +45,10 @@ public struct ClipboardCopyOptions: Sendable, Equatable {
     /// When `true` the contents are not offered to other devices via Universal Clipboard.
     ///
     /// - Note: The suppression intent is expressed with `NSPasteboard.ContentsOptions`.
-    ///   Its practical effect has not been verified on real hardware yet.
+    ///   Measured on 2026-09-03: with `false` the contents reached a paired iPhone in about a
+    ///   second; with `true` they did not arrive and the other device kept its own clipboard.
+    ///   That is one pairing -- macOS 26.3 and iOS 18.7.2 over Handoff -- so read it as
+    ///   evidence of suppression there, not as a guarantee for every device and OS.
     public let localOnly: Bool
 
     /// Creates a value from its parts.

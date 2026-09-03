@@ -322,6 +322,66 @@ MT-09 は判定保留の観察項目である。**本日の環境（macOS 26.3�
 
 ---
 
+## MT-08: `localOnly` の Universal Clipboard 抑止
+
+実施日: 2026-09-03
+
+### 試行条件
+
+| | |
+|---|---|
+| 端末 A | MacBook Air (arm64)、macOS 26.3 / 25D125 |
+| 端末 B | **iPhone XS、iOS 18.7.2** |
+| 接続 | 同一 Apple ID、Handoff 有効、Wi-Fi / Bluetooth 有効、近接 |
+| 端末 B の読み取り | メモ App への貼り付け |
+
+### 手順と結果
+
+| # | 端末 | 操作 | 結果 |
+|---|---|---|---|
+| ① | A | `localOnly` OFF → `CopyWithCurrentOptions` | - |
+| ① | B | 貼り付け | **約 1 秒で到達**（正の対照成立） |
+| ② | B | `iphone-baseline-0903` をコピー | 端末 B の内容を Mac 由来でないものにする |
+| ③ | A | `localOnly` ON → `CopyWithCurrentOptions` | Mac 側には入る |
+| ③ | B | 約 1 秒待って貼り付け | **基準のまま。Mac の内容は届かない** |
+
+**MT-08 クリア。`localOnly` が Universal Clipboard を抑止している。**
+
+### ② が必要だった理由（実測で裏づけた）
+
+**サンプルは `localOnly` の on / off で同じ文字列を書く**（`Copied from MacLibraryExample.`）。
+そのため「端末 B にその文字列がある」だけでは、対照で届いたのか試行で届いたのかを区別
+できない。**端末 B 側に別の基準を置く**ことで初めて判定できる。iOS 側の設計 §6.3 が
+`Copy B Baseline` を要求しているのと同じ理由である。
+
+**転送された内容は、次に何かがコピーされるまで受け取り側に残る。** ①を単独で再実行し、
+**10 分後（:49 → :59）も端末 B が `Copied from MacLibraryExample.` を保持している**ことを
+確認した。
+
+**この保持時間が ② の必要性そのものである。** ②を省いて①→③と進めると、③で見えるのは
+①の残りであり、それを「③で届いた」と誤読する。**その場合の結論は「`localOnly` が効いて
+いない」という誤った失敗判定になる。** 手順から ② を落とすと、正しい実装を不合格にする。
+
+### DocC の但し書きを更新した
+
+`ClipboardCopyOptions.localOnly` は **`Its practical effect has not been verified on real
+hardware yet.`** と書いていた（企画書 V-8 / V-9 が未消化のため）。**本日の実測で解消**し、
+測定条件つきの記述に置き換えた。
+
+**「保証する」とは書いていない。** 1 組の実測を全環境の保証に広げないため、機種・OS・所要
+時間を添えて「この組み合わせでの証拠」として記述した。
+
+### この測定の限界
+
+当初の否定側の観測窓は約 1 秒だった。正の対照が約 1 秒で届いたので、iOS 設計 §6.3 の
+「正の対照に要した時間以上を待機下限にする」規則は満たしている。ただし
+**`localOnly: true` が「抑止」ではなく「大幅な遅延」だった場合、1 秒の窓では区別できない。**
+
+**数分後に端末 B を再確認したところ、基準（`iphone-baseline-0903`）のままだった。**
+観測窓が数分に広がったので、**遅延ではなく抑止**と判定できる。
+
+---
+
 ## 総括
 
 ### 実施状況
@@ -335,7 +395,7 @@ MT-09 は判定保留の観察項目である。**本日の環境（macOS 26.3�
 | B | MT-06 Paste Control / 要検証 2 件 | **完了**（要検証は 2 件とも解決） |
 | C | MT-07 検出 | **実施不可**（15.4.1 と 15.2 が必要。実施端末は 26.3） |
 | D | MS-07 のログ側 / MT-09 | **完了** |
-| - | MT-08 `localOnly` | 未実施（実機 Mac + iPhone。iOS の M-06 / M-16 と同時実施予定） |
+| - | MT-08 `localOnly` | **完了**（iPhone XS / iOS 18.7.2） |
 | - | MS-06 | **確認手段なし**（計画 v5 §8.2 に理由を記載） |
 
 ### 実装の欠陥: 0 件
@@ -367,6 +427,139 @@ MT-09 は判定保留の観察項目である。**本日の環境（macOS 26.3�
 | 項目 | 理由 |
 |---|---|
 | MT-07 | **実施不可**。15.4.1 と 15.2 の両方が必要で、実施端末は 26.3 |
-| MT-08 | 未実施。実機 Mac + iPhone。iOS の M-06 / M-16 と同時実施予定 |
+| MT-08 | **完了**。ただし否定側の観測窓は約 1 秒（上記の限界） |
 | MS-06 | 確認手段なし |
 | MT-01〜MT-06 の 15.x での再確認 | **本日は 26.3 で実施した。** MT 表が想定する 15.x での確認は別途必要 |
+
+---
+
+## 付録: 手動確認の手順（訂正済み・再実行用）
+
+**本日の実施で 3 箇所の誤りが見つかったため、訂正した版をここに残す。** macOS 15.x での再確認は
+この手順で行う。
+
+### 前提
+
+```
+cd mac
+xcodebuild build -workspace MacWorkspace.xcworkspace -scheme MacLibraryExample -destination 'platform=macOS'
+open ~/Library/Developer/Xcode/DerivedData/MacWorkspace-*/Build/Products/Debug/MacLibraryExample.app
+```
+
+- Active scope は **`general`** から始める（他 scope だと他アプリのコピーは見えない）
+- 相手役: TextEdit（平文とリッチテキスト）、Preview（画像）、Finder（ファイル）
+- ログを見る手順（D）では **`/usr/bin/log stream`** を先に開始する。zsh の `log` ビルトインを
+  避けるため絶対パスで呼ぶ
+
+### A-1: MT-02 — コピー → 他アプリで貼り付け
+
+| # | 操作 | 期待 |
+|---|---|---|
+| 1 | `CopyText` → TextEdit で ⌘V | `Copied from MacLibraryExample.` |
+| 2 | `CopyURL` → ⌘V | `https://www.apple.com` |
+| 3 | `CopyImage` → Preview「ファイル > クリップボードから新規作成」 | 画像が開く |
+| 4 | `CopyMultipleItems` → ⌘V | **`first` と `second` の両方**（受け取る側が全 item を使う） |
+| 5 | `CopyMultipleRepresentations` → リッチテキストで ⌘V | `Copied from MacLibraryExample.` |
+
+> **訂正 1**: 4 の期待値を「先頭のみ」から「両方」へ。`NSTextView` は全 item を読む。
+
+### A-2: MT-01 — 他アプリでコピー → `Read`
+
+| 入力 | ボタン | 期待 |
+|---|---|---|
+| 平文 | `Read` / `Snapshot` / `SnapshotFiltered` | 読める |
+| 平文 | `AccessBehavior` | 値を記録（本日は `alwaysAllow`） |
+| リッチテキスト | `Read` | `public.rtf` / `public.utf8-plain-text` ほか。**意図より多い**のが正常 |
+| 画像 | `ReadDataPlainText` | **`no such type (success)`**（エラーではない） |
+| ファイル | `Read` | **完全パスが画面に出ないこと**。`bytes` は全 representation の合計 |
+
+### A-3: MT-03 — append の所有権
+
+| # | 経路 | 操作 | 期待 |
+|---|---|---|---|
+| ① | **対照** | `CopyText` → 直後に `AppendWithLastOwnership` | **成功** |
+| ② | 他者所有 | `CopyText` → 他アプリで ⌘C → `AppendWithLastOwnership` | **1511** |
+| ③ | 自所有 | `CopyThenAppend` | 成功 |
+| ④ | 自アプリが無効化 | `AppendWithStaleOwnership`（ボタン 1 つで完結） | `expected 1511 as designed` |
+
+> ① を先に置く。②の 1511 が外部のコピーに由来すると言うための対照である。
+
+### A-4: MT-04 — 監視
+
+| # | 操作 | 期待 |
+|---|---|---|
+| ① | `StartObserving` → 他アプリで ⌘C ×2 | 0.5 秒以内に `[observed]` |
+| ② | 非アクティブにして ⌘C ×3 | ログに `[suspendPolling]` |
+| ③ | サンプルに戻る | `[resumePolling]` → **イベントは 1 回だけ**、changeCount は 3 進む |
+| ④ | **先に `StopObserving`** → 他アプリで ⌘C → `CheckForegroundChange` ×2 | `true` → `false` |
+| ⑤ | 停止したまま ⌘C | 結果が変わらない |
+
+> **訂正 2**: ④ の前に `StopObserving` を置く。監視と `checkForegroundChange` は基準を共有する
+> ため、監視中は `false` になる（それが正しい）。
+
+### B: MT-06 — Paste Control
+
+| # | 操作 | 期待 |
+|---|---|---|
+| 1 | `CopyText` → Paste ボタン | `items=1, failures=0, partial=false` |
+| 2 | `CopyImage` → Paste | 同上 |
+| 3 | `CopyPartialPasteContent` → Paste | **`items=1`**（受け入れない item は落ちる） |
+| 4 | Finder のファイル → Paste | **`items=1`**（平文表現＝パスが読まれる） |
+| 5 | `MakePasteButtonInvalidType` / `UndeclaredType` | 1504 |
+| 6 | `DetectPatterns` / `DetectValues` / `DetectMetadata` | 期待どおり / 1515 |
+
+> **訂正 3**: 3 の期待を「部分失敗（1521）」から「`items=1`」へ。1521 は到達不能（§6.6）。
+
+### D: MS-07 のログ側 / MT-09
+
+1. `/usr/bin/log stream --predicate 'subsystem == "com.unity.native.toolkit"' --level debug --style compact > log.txt` を開始
+2. `CreateNamedPasteboard` / `CreateEmptyNamedPasteboard` / `RemoveCurrentPasteboard` /
+   `CopyText` / `CopyURL` / `DetectValues` / ファイルを ⌘C して `Read` / `ReadDataPlainText`
+3. ストリームを止め、**サンプルのソースから導出した値**で grep（手で並べない）
+4. 操作がログに乗っていることを併せて確認する（**空回りしていないことの確認**）
+5. 同時にプライバシー表示の有無を観察（MT-09、合否なし）
+
+### MT-08: `localOnly`
+
+前提: 同一 Apple ID、Handoff 有効、Wi-Fi / Bluetooth 有効、近接。両端末の機種・OS・ビルドを記録。
+
+| # | 端末 | 操作 | 期待 |
+|---|---|---|---|
+| ① | A | `localOnly` OFF → `CopyWithCurrentOptions` → B で貼り付け | **届く**（所要時間を記録） |
+| ② | B | 端末 B 側で別の文字列をコピー | 基準を置く |
+| ③ | A | `localOnly` ON → `CopyWithCurrentOptions` | Mac 側には入る |
+| ③ | B | ①の所要時間以上待って貼り付け | **基準のまま** |
+| ④ | B | **5 分以上空けて再確認** | 基準のまま（遅延ではなく抑止） |
+
+> ② が要る。**サンプルは on / off で同じ文字列を書く**ので、端末 B に別の基準を置かないと
+> 対照と試行を区別できない。①が失敗した試行は無効（判定しない）。
+>
+> **②を省くと、正しい実装を不合格にする。** 転送された内容は次のコピーまで受け取り側に
+> 残る（**10 分間の保持を実測**）。①→③と進めると、③で見えるのは①の残りであり、それを
+> 「③で届いた」＝「`localOnly` が効いていない」と誤読する。
+
+**④ の間に守ること**（破ると試行が無効になる）
+
+| | 理由 |
+|---|---|
+| 端末 B で何もコピーしない | 基準が消え、「基準のまま」と言えなくなる |
+| 端末 A で何もコピーしない | 新しい内容が載ると、届いたのがどちらか分からない |
+| 端末 A をスリープさせない、アプリを終了しない | 転送は送り手が提供する。**寝ていて届かなかっただけ**なら抑止の証拠にならない |
+
+貼り付け（読み取り）は何度行ってもよい。クリップボードは変わらない。
+
+**5 分の根拠**: 正の対照が約 1 秒だった。300 倍の窓で届かなければ「遅延」では説明できない。
+③ だけでは「1 秒以内には届かない」しか言えず、**抑止と遅延を区別できない**。
+
+| ④ の結果 | 判定 |
+|---|---|
+| 基準のまま | **抑止。MT-08 確定** |
+| 端末 A の内容 | **遅延だった。③ の判定を取り消し、DocC の記述も戻す** |
+| 別の何か | 途中でコピーが入っている。**試行無効**、①からやり直し |
+
+### 実施できない項目
+
+| 項目 | 理由 |
+|---|---|
+| MT-07 | macOS 15.4.1 と 15.2 の 2 環境が必要 |
+| MS-06 | 確認手段なし（遅い provider を作れない） |
