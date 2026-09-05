@@ -140,6 +140,11 @@ void initClipboardManager(ClipboardChangedCallback onChanged, DWORD* pError);
  *       onHistoryChanged fires only when a NEW ITEM is added; deletions and
  *       ClearHistory are not guaranteed to raise it. Re-query after your own
  *       delete/clear calls.
+ *       onHistoryEnabledChanged and onRoamingEnabledChanged are NOT reliable and must
+ *       not be used to drive behaviour: the underlying WinRT events were observed to
+ *       fire at most once per process, and never at all when the registration is made
+ *       while clipboard history is disabled. Call getClipboardHistoryAvailability
+ *       whenever the current setting matters. onHistoryChanged is unaffected.
  */
 extern "C" WINDOWSCLIPBOARDMANAGER_API
 void setClipboardHistoryCallbacks(ClipboardHistoryChangedCallback onHistoryChanged,
@@ -161,6 +166,11 @@ void setClipboardHistoryCallbacks(ClipboardHistoryChangedCallback onHistoryChang
  *       cancellations are queued rather than fired inline. Keep the message pump
  *       running between retries; do not spin while blocking the UI thread.
  *       The toolkit never calls uninit_apartment: the apartment belongs to the host.
+ *       HOST CONTRACT - call this before the process exits. Formats reserved with
+ *       reserveDeferredFormats are materialized by WM_RENDERALLFORMATS, which the
+ *       system sends only while the owner window is being destroyed, and that window
+ *       is destroyed only from here. A process that simply exits never receives the
+ *       message and every reserved format is dropped from the clipboard.
  */
 extern "C" WINDOWSCLIPBOARDMANAGER_API
 BOOL uninitClipboardManager(DWORD* pError);
@@ -270,6 +280,12 @@ void clearClipboard(DWORD* pError);
  * @note UI-thread-limited synchronous API. Non-owner threads get CLIPBOARD_ERROR_WRONG_THREAD.
  *       On partial failure the reservation is rolled back (best-effort; see
  *       CLIPBOARD_ERROR_PARTIAL_STATE).
+ *       A reservation lives only while this process owns the clipboard and the owner
+ *       window still exists, so the host must call uninitClipboardManager before
+ *       exiting; otherwise the reserved formats are lost rather than rendered.
+ *       When Windows clipboard history is enabled, the history service renders every
+ *       reserved format as soon as it is reserved, so the provider runs before any
+ *       external paste. Do not treat "provider not called yet" as an invariant.
  */
 extern "C" WINDOWSCLIPBOARDMANAGER_API
 void reserveDeferredFormats(const wchar_t* formatNamesJson, ClipboardRenderCallback provider,
