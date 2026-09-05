@@ -692,6 +692,22 @@ wide string用と byte用を分ける。
 - packaged動作を確認する
 - unpackaged history APIは本 sample の未確認項目として残す
 
+### 8.7 単体操作（2026-09-05 追加）
+
+§8.1〜§8.6 はシナリオの一覧であってボタンの一覧ではないため、シナリオに登場しない操作が確認から漏れる。実際に 49 ボタンのうち 9 個が自動テスト・手動確認のいずれでも一度も操作されていなかった。以下はその補完。
+
+| 手順 | 期待 |
+|---|---|
+| CopyPlainTextEmpty -> GetClipboardFormats -> PastePlainText | 空文字列は有効なペイロード。errorCode=0、CF_UNICODETEXT が載る |
+| CopyHtml -> PasteHtml | CF_HTML のヘッダーとラッパーを除いたフラグメントのみを返す |
+| CopyCustomFormat -> PasteCustomFormat | 書き込みと同じバイト数・内容で往復する |
+| CopyMultipleFormats -> ClearClipboard -> GetClipboardFormats -> PastePlainText | 形式一覧が空、貼り付けは FORMAT_UNAVAILABLE(5) |
+| RecoverDeferredState（予約あり/なしの両方） | errorCode=0。正常な予約を破壊しない |
+| CopyFiles -> CleanupTempFiles を2回 | 1回目 removed 2、2回目 removed 0 で errorCode=0 |
+| CopyMultipleFormatsWithImage -> Notepad / ペイント / Word | 3形式を1回で配置し、各アプリが対応形式を選ぶ |
+| CopyExcludeHistory -> Win+V | Win+V に出ない。Ctrl+V では貼り付けられる |
+| CopyExcludeRoaming -> another device | §8.3 と同じ2台目デバイス前提 |
+
 ---
 
 ## 9. 要検証事項
