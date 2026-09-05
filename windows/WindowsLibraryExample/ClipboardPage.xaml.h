@@ -162,6 +162,11 @@ namespace winrt::WindowsLibraryExample::implementation
         std::wstring                     m_lastHistoryItemId;
         std::deque<std::wstring>         m_logLines;
     };
+
+    // Shuts the clipboard manager down while the owner window is still alive, so the
+    // system can deliver WM_RENDERALLFORMATS and any reserved deferred format is
+    // materialized before the process exits. Called from MainWindow on Closed.
+    void ShutdownClipboardManagerForAppExit();
 }
 
 namespace winrt::WindowsLibraryExample::factory_implementation

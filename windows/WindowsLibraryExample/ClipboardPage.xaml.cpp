@@ -1910,4 +1910,29 @@ namespace winrt::WindowsLibraryExample::implementation
                    std::wstring(L"returned ") + (queued ? L"TRUE" : L"FALSE") +
                        L", expected FALSE + INVALID_PARAMETER(1)");
     }
+
+    // -----------------------------------------------------------------------
+    // Application shutdown
+    // -----------------------------------------------------------------------
+
+    void ShutdownClipboardManagerForAppExit()
+    {
+        DLog(TAG, L"[ShutdownClipboardManagerForAppExit]");
+        if (g_managerState.load() == ManagerState::Uninitialized)
+        {
+            return;
+        }
+
+        // Uninit is what destroys the owner window, and destroying it is the only
+        // point at which the system sends WM_RENDERALLFORMATS. Without this call the
+        // process simply exits and every format reserved for delayed rendering is
+        // dropped from the clipboard instead of being materialized.
+        DWORD err = CLIPBOARD_ERROR_NONE;
+        const BOOL done = uninitClipboardManager(&err);
+
+        // Single attempt by design. A FALSE return means a request is still draining
+        // and the documented recovery is to pump messages and retry, but the window is
+        // already closing and cannot pump. Retrying here would block application exit.
+        g_managerState.store(done ? ManagerState::Uninitialized : ManagerState::ShuttingDown);
+    }
 }
