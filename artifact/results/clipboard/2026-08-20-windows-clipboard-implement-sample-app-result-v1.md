@@ -17,10 +17,10 @@
 | 区分 | 状態 |
 |---|---|
 | ビルド確認済み | ○ Debug x64 リビルド成功、エラー 0、新規ファイル由来の警告 0 |
-| 実機動作確認済み | **× 未実施**。UI テストが 26 観点を自動化したため、残る手動確認は 26 項目（外部アプリ / Win+V / Windows 設定 / 別デバイス / 遅延レンダリング）。理由と手順は第 6 章 |
+| 実機動作確認済み | ○ **完了（2026-09-05）**。UIテストが 29 観点を自動化し、残る 26 項目（外部アプリ / Win+V / Windows 設定 / 別デバイス / 遅延レンダリング）を手動確認。OK 24 / NG 1 / 未実施 1。結果と発見事項 F1〜F3 は第 6 章 |
 | 自動UIテスト | ○ **Phase 1 / 2 実施済み、レビュー v1〜v4 完了（LGTM）**（33 passed、連続実行で再現、残存プロセスなし）。本サンプル実装とは別タスクとして着手した。当初は workflow ステップ4 からの逸脱として未実施（経緯は §5.1 / §5.2）、フレームワーク選定は §5.4、実施結果は §5.8、レビュー対応は §5.9 / §5.11 / §5.13、完了確認は §5.15 |
 
-ビルド成功は機能動作の確認ではない。v5 §8 の手動確認 54 項目はいずれも未実施である。
+v5 §8 の手動確認は全 55 項目。うち 29 項目を自動UIテストで、26 項目を手動で確認した。未実施は別デバイスを要する 1 項目のみ（第 6.4 節）。手動確認で見つかった不具合 1 件は修正・再確認済み（F2）、1 件は Windows 側の制約として API 契約に明記した（F3）。
 
 ---
 
@@ -241,21 +241,22 @@ workflow ステップ4 は「既存のUIテストターゲットが無くても�
 
 上記を提示し、「UIテストプロジェクトを追加せず、逸脱として記録する」を選択。Windows のUI自動テストは本リポジトリで初導入となるため、本サンプル実装とは分離し、独立したタスクとして扱う。
 
-なお 8.1 / 8.2 / 8.3 の 28 手動確認項目を自動化しない判断は workflow に沿ったものであり、逸脱ではない。逸脱に該当するのは自動化可能な 26 確認項目を実装していない点のみ。
+なお 8.1 / 8.2 / 8.3 の外部アプリ依存 26 確認項目を自動化しない判断は workflow に沿ったものであり、逸脱ではない。逸脱に該当するのは自動化可能な 29 確認項目を実装していない点のみ。
 
 ### 5.3 自動化可能だった範囲
 
-v5 §8 の手動確認 54 項目のうち、アプリ内で完結し UI 自動化の価値がある 26 確認項目。
+v5 §8 の手動確認 55 項目のうち、アプリ内で完結し UI 自動化の価値がある 29 確認項目。
 
-| 節 | 行数 | 自動化可否 | 備考 |
+| 節 | 項目数 | 自動化 | 備考 |
 |---|---|---|---|
-| 8.4 Lifecycle / Thread / Busy | 17 | 可能 | 状態遷移・busy・drain はアプリ内で完結 |
-| 8.5 Error cases | 10 | 可能 | 期待 errorCode が確定しており照合可能 |
-| 8.1 Interoperability | 10 | 不可 | メモ帳 / Word / エクスプローラー / ペイントの内部UI検証 |
-| 8.2 Monitoring / Deferred | 8 | 7 行が不可 | 外部アプリでの貼り付けが provider 発火の前提 |
-| 8.3 History | 10 | 不可 | Win+V シェルUI、Windows 設定、別デバイスが必要 |
+| 8.4 Lifecycle / Thread / Busy | 17 | 17 | 状態遷移・busy・drain はアプリ内で完結 |
+| 8.5 Error cases | 10 | 10 | 期待 errorCode が確定しており照合可能 |
+| 8.2 Monitoring / Deferred | 8 | 2 | self copy 抑止と Reserve -> enumerate のみアプリ内で完結。他 6 項目は外部アプリでの貼り付けが provider 発火の前提 |
+| 8.1 Interoperability | 10 | 0 | メモ帳 / Word / エクスプローラー / ペイントの内部UI検証 |
+| 8.3 History | 10 | 0 | Win+V シェルUI、Windows 設定、別デバイスが必要 |
+| **合計** | **55** | **29** | 残り 26 項目は手動 |
 
-8.1 / 8.2 / 8.3 の 28 手動確認項目は workflow 自身が「自動化できない項目（他アプリ内部のUI検証等）」として挙げている類型に該当する。
+自動化しなかった 26 確認項目（8.1 の 10、8.2 の 6、8.3 の 10）は、workflow 自身が「自動化できない項目（他アプリ内部のUI検証等）」として挙げている類型に該当する。これらは第 6 章で手動確認を実施した。
 
 v5 で追加した 2 ボタンが自動化の前提を作っている。
 
@@ -528,46 +529,136 @@ L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したた�
 | レビュー v3 対応 | 完了 |
 | コードレビュー（v4 LGTM） | 完了 |
 | 8.2 のアプリ内完結分 | 完了（self copy 抑止、Reserve -> enumerate） |
-| 8.1 / 8.3 と 8.2 の外部アプリ依存分 | 自動化せず手動維持 |
+| 8.1 / 8.3 と 8.2 の外部アプリ依存分 | 自動化せず手動維持。第 6 章で 26 項目の手動確認を実施済み |
 
 自動化の対象外として残るのは、他アプリ内部の UI 検証、Win+V のシェル UI、Windows 設定、別デバイス連携を伴う観点。
 
 ---
 
-## 6. 実機確認（workflow ステップ6）: 未実施
+## 6. 実機確認（workflow ステップ6）: 完了
 
-### 6.1 未実施の理由
+実施日: 2026-09-05
+実施環境: Windows 11 Home 10.0.26200 / Release・x64 配置 / .NET 10 SDK 10.0.400
 
-`WindowsLibraryExample` は MSIX パッケージ済みの WinUI 3 アプリであり、workflow は「Visual Studio から対象アプリを配置(Deploy)して F5 実行する」ことを求めている。これは対話的な Visual Studio セッションを必要とし、本セッションからは実行できない。
+### 6.1 対象と結果
 
-さらに v5 §8 の手動確認は、48 個のボタン操作に加えてメモ帳・Word・エクスプローラー・ペイント・Win+V・Windows 設定・別デバイスでの目視確認を伴う。自動UIテストを追加しない判断（第 5 章）と併せ、これらは人手での実施が必要である。
+第 5 章で自動UIテスト 33 件を作成したため、本章の対象は**自動化できなかった 26 確認項目**である。内訳は §8.1 全 10 項目、§8.2 の外部アプリ依存 6 項目、§8.3 全 10 項目。
 
-MSIX パッケージの登録（`Add-AppxPackage -Register`）による起動確認も検討したが、ユーザー環境へアプリパッケージを登録する変更になるため、指示なく実施していない。
+| 節 | OK | NG | 未実施 | 計 |
+|---|---|---|---|---|
+| 8.1 Interoperability | 10 | 0 | 0 | 10 |
+| 8.2 Monitoring / Deferred | 6 | 0 | 0 | 6 |
+| 8.3 History | 8 | 1 | 1 | 10 |
+| **合計** | **24** | **1** | **1** | **26** |
 
-### 6.2 未確認の手動確認観点
+8.2 は当初 1 件が NG だったが、本章で修正し再確認して OK となった（発見事項 F2）。
 
-v5 §8 の全 54 確認項目が未実施。内訳は第 5.3 節の表のとおり。
+### 6.2 確認項目別の結果
 
-### 6.3 実機確認の実施手順
+#### 8.1 Interoperability（10/10 OK）
 
-1. Visual Studio 2022 で `windows/WindowsLibraryExample/WindowsLibraryExample.sln` を開く
-2. `WindowsLibraryExample` をスタートアップ プロジェクトにする
-3. 構成 `Debug` / `x64` で「配置」を実行する
-4. F5 で実行し、メインメニューの「Clipboard Example」から画面へ入る
-5. v5 §8.1 から §8.6 の順に確認し、各行の「操作 -> 実際の結果」を記録する
-6. NG が出た観点は原因を特定して実装へ戻る
-
-### 6.4 実機で最初に確認すべき項目
-
-v5 §9 の要検証事項のうち、失敗すると以降の全確認が進まないもの。
-
-| No | 項目 | 失敗時の扱い |
+| # | 項目 | 結果 |
 |---|---|---|
-| 9.1 | InitializeManager が `WRONG_APARTMENT`(18) にならないか | サンプル側で回避せず、機能側の判定条件として報告する |
-| 9.7 | worker から Win32 clipboard API を呼べるか | 失敗する場合はサンプルの実行スレッド方針を再検討する |
-| 9.2 | `dispatchHwnd` がタスクバー / Alt+Tab に出ないか | 出る場合は機能側へ報告する |
+| 1 | CopyPlainText -> Notepad | OK。末尾改行なしを PastePlainText の往復でも確認 |
+| 2 | CopyHtml -> Word | OK。"Hello" のみ太字 |
+| 3 | CopyHtml -> Notepad | OK。タグなしのフォールバックテキスト |
+| 4 | CopyFiles <-> Explorer | OK。往復2件のパスが一致 |
+| 5 | CopyImage <-> Paint | OK。RGB(0,120,215) の 8x8。往復は width=1887 height=820 bitCount=32 |
+| 6 | CopyMultipleFormats -> Word / Notepad | OK。1回のコピーから各アプリが対応形式を選択 |
+| 7 | text + HTML -> GetPreferredFormat | OK。CF_UNICODETEXT |
+| 8 | files only -> GetPreferredFormat | OK。CF_HDROP |
+| 9 | image only -> GetPreferredFormat | OK。CF_DIB |
+| 10 | custom only -> GetPreferredFormat | OK。(no candidate format) |
 
----
+項目 5 で報告されたバイト数（6193152）はピクセル実データ（6189400）より約 3.7KB 大きいが、`GlobalSize` が確保ブロックを 4KB 境界へ切り上げる Win32 の既知挙動であり異常ではない。
+
+#### 8.2 Monitoring / Deferred（6/6 OK）
+
+| # | 項目 | 結果 |
+|---|---|---|
+| 11 | Init -> external copy | OK。コピー回数だけ `[Monitor]` が増加 |
+| 12 | Uninit TRUE -> external copy | OK。`uninit returned TRUE` 後は通知なし |
+| 13 | Reserve -> external paste | OK。履歴オフで検証。予約時は未発火、貼付時に CF_UNICODETEXT のみ発火 |
+| 14 | Reserve -> Word paste | OK。HTML Format(201/201) と CF_UNICODETEXT(52/52) で size と fill が一致 |
+| 15 | Reserve -> app exit -> paste | **修正後 OK**（発見事項 F2） |
+| 16 | Reserve -> external copy | OK。`[Provider]` は発火せず、貼付結果も外部内容 |
+
+#### 8.3 History（8 OK / 1 NG / 1 未実施）
+
+| # | 項目 | 結果 |
+|---|---|---|
+| 17 | Availability | OK。設定の on/off に追従 |
+| 18 | disabled -> GetHistory | OK。errorCode=10 (HISTORY_DISABLED) |
+| 19 | GetHistory callback | OK。newest first、timestamp は文字列 |
+| 20 | Restore callback待機 -> Paste | OK。復元内容が貼り付けられる |
+| 21 | Delete callback待機 -> GetHistory | OK。count=10 -> 9、対象項目が消失 |
+| 22 | Clear callback待機 -> GetHistory | OK。count=3 -> 1、ピン留め項目のみ残存 |
+| 23 | Set callbacks -> copy / setting change | **NG**（発見事項 F3）。履歴追加は正常、設定変更イベントが不安定 |
+| 24 | SENSITIVE -> Win+V | OK。Ctrl+V では貼付可能、Win+V 一覧には非表示 |
+| 25 | EXCLUDE_ROAMING -> another device | **未実施**。2台目デバイスと同期有効が必要な環境制約 |
+| 26 | GetHistory -> Cancel | OK。同一 id の completed が常に1行のみ |
+
+### 6.3 発見事項
+
+#### F1: 履歴有効時は予約直後に provider が発火する（実装は正常）
+
+`Reserve Deferred Formats` を押した直後、外部貼り付け前に予約全形式の `[Provider] phase=size` / `phase=fill` が発火した。
+
+切り分けの結果、アプリ側（ClipboardPage.xaml.cpp）もライブラリ側（WindowsClipboardManager.cpp）も予約時にレンダリングを行っておらず、クリップボード履歴を無効にすると発火しなくなることを確認した。**呼び出し元は Windows のクリップボード履歴サービス**であり、履歴に内容を保存するため即座に全形式を要求する。実装の不具合ではない。
+
+対応: 設計書 v5 §8.2 に前提条件として追記。`reserveDeferredFormats` のヘッダーコメントにも明記した。
+
+#### F2: アプリ終了時に遅延レンダリング内容が失われる（修正済み）
+
+予約したままアプリを正常終了するとクリップボードが空になり、設計書 v5 §8.2「Reserve -> app exit -> paste」を満たさなかった。VS デバッガー経由か切り分けるため AUMID から直接起動して再実行したが同じ結果で、デバッガーは無関係と確認した。
+
+原因はサンプルアプリ側にあった。ライブラリは `WM_RENDERALLFORMATS` を実装済み（WindowsClipboardWindow.cpp:28-30、WindowsClipboardCore.cpp:687）だが、このメッセージは所有ウィンドウの `DestroyWindow` 時にのみ送られ、その `DestroyWindow` は `uninitClipboardManager` 経路からしか到達しない。サンプルアプリには終了フックが存在せず、プロセスがそのまま終了していた。
+
+修正: `MainWindow` に `Closed` ハンドラーを追加し、新設した `ShutdownClipboardManagerForAppExit()` を呼ぶ。同関数は初期化済みのときのみ `uninitClipboardManager` を1回呼ぶ。`FALSE` 時の正規の回復手段はメッセージポンプを回しての再試行だが、閉じ中のウィンドウでは回せずアプリ終了をブロックするため、あえて再試行しない。
+
+再確認: Reserve -> × で終了 -> メモ帳へ貼付で内容が保持されることを実機確認。UIテスト 33 件も再実行し回帰なし。
+
+#### F3: 履歴の設定変更イベントが信頼できない（仕様上の制約）
+
+`setClipboardHistoryCallbacks` 登録後の観測結果は次のとおり。
+
+| セッション | 購読時の履歴状態 | 設定変更イベント |
+|---|---|---|
+| A | オン | 最初のオフで1回だけ発火。以後は何度切り替えても発火せず |
+| B（再起動後） | オフ | 一度も発火せず |
+
+セッション B の状態で外部コピーを行うと `[History] a new item was added to the history` は正常に発火した。**購読基盤とコールバック配送は機能しており**、問題は `Clipboard.HistoryEnabledChanged` イベントソース側にある。ライブラリの `RaiseEvent`（WindowsClipboardHistoryWinRt.cpp:95-113）にイベントを消費する処理はなく、`alive` は `StopWatch()` でのみ false になる。
+
+深刻度は限定的。主要な通知である履歴追加は影響を受けない。
+
+対応: 実装では解消できないため API 契約として明文化した。利用側は `onHistoryEnabledChanged` / `onRoamingEnabledChanged` に依存せず、設定の現在値が必要な時点で `getClipboardHistoryAvailability` を呼ぶ（項目 17 で信頼性を確認済み）。`onRoamingEnabledChanged` は同一経路のため同じ制約を持つ可能性が高いが未検証。
+
+#### O1: スクリーンショット撮影がクリップボードを上書きする（手順への注意）
+
+確認中に説明のつかない `[Monitor]` が観測されたが、原因はスクリーンショット撮影によるクリップボードへの画像書き込みだった。外部変更として正しく検知されており不具合ではない。コピーと貼り付けの間に撮影すると内容が失われ、履歴の件数も変動するため、設計書 §8 に注意として追記した。
+
+#### O2: Restore 直後に `[Monitor]` が発火する（実装は正常）
+
+復元を実行するのは Windows の履歴サービスでありライブラリの書き込み経路ではないため、外部変更として扱われるのが妥当。設計書 §8.3 に追記した。
+
+### 6.4 未実施項目
+
+項目 25（EXCLUDE_ROAMING -> another device）のみ。同一 Microsoft アカウントでサインインした2台目の Windows デバイスと、両デバイスでの「デバイス間で同期」有効が必要である。項目 17 の時点で `roamingEnabled: false` であり、前提を満たせないためユーザー判断で対象外とした。
+
+確認できていない項目を OK として扱うことはしていない。
+
+### 6.5 修正に伴う変更
+
+| ファイル | 変更 |
+|---|---|
+| `windows/WindowsLibraryExample/ClipboardPage.xaml.h` | `ShutdownClipboardManagerForAppExit()` を宣言 |
+| `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp` | 同関数を実装 |
+| `windows/WindowsLibraryExample/MainWindow.xaml.cpp` | `Closed` ハンドラーを登録 |
+| `windows/WindowsLibrary/WindowsClipboardManager.h` | F1・F2・F3 の API 契約を追記 |
+
+コミット: `df206b1d` (fix)、`f1dfda0f` (docs)
+
+`WindowsLibraryExample` の Release/x64 クリーンリビルドは成功。なおソリューション全体のクリーンビルドは `UnityWindowsPlugin` の COM 登録ステップが管理者権限を要求して MSB8011 で失敗するが、本作業と無関係の既存事象である。
 
 ## 7. 依存方向チェック
 

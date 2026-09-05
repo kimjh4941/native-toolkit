@@ -586,6 +586,11 @@ wide string用と byte用を分ける。
 
 ## 8. 手動確認
 
+**実施上の注意（2026-09-05 実施時の知見）**
+
+- コピーと貼り付けの間にスクリーンショットを撮らないこと。撮影ツールはクリップボードへ画像を書き込むため、確認対象の内容が失われ、履歴の件数も変動する。結果は画面ではなく文字で記録する
+- 遅延レンダリングの発火タイミングを見る観点（8.2）は、クリップボード履歴を**オフ**にして実施する。有効なままだと履歴サービスが介入して観察できない（下記参照）
+
 ### 8.1 Interoperability
 
 | 手順 | 期待 |
@@ -616,6 +621,11 @@ wide string用と byte用を分ける。
 | Reserve -> app exit -> paste | `WM_RENDERALLFORMATS` により内容保持 |
 | Reserve -> external copy | reservation破棄 |
 
+**前提条件（2026-09-05 実施時に判明）**
+
+- `Reserve -> external paste`: **クリップボード履歴が有効な場合、貼り付けを待たずに予約直後へ全形式の provider が発火する。** 履歴サービスが内容を保存するために即座にレンダリングを要求するためで、実装の不具合ではない。「貼り付けまで provider は呼ばれない」を確認したい場合は履歴をオフにして実施する
+- `Reserve -> app exit -> paste`: 利用側が終了前に `uninitClipboardManager` を呼ぶことが前提。呼ばない場合は所有ウィンドウが `DestroyWindow` されず `WM_RENDERALLFORMATS` が配送されないため内容は失われる。サンプルアプリは `MainWindow` の `Closed` で呼ぶ。タスクマネージャー等での強制終了では成立しないので、必ず正常終了で確認する。デバッガー接続の有無は結果に影響しない
+
 ### 8.3 History
 
 | 手順 | 期待 |
@@ -630,6 +640,12 @@ wide string用と byte用を分ける。
 | SENSITIVE -> Win+V | 表示されない |
 | EXCLUDE_ROAMING -> another device | syncされない |
 | GetHistory -> Cancel | CANCELEDまたは先行成功のどちらか1回 |
+
+**前提条件（2026-09-05 実施時に判明）**
+
+- `Set callbacks -> copy / setting change`: **設定変更イベントは信頼できない。** `onHistoryEnabledChanged` はプロセスあたり高々1回しか発火せず、履歴が無効な状態で登録した場合は一度も発火しない。`onRoamingEnabledChanged` も同一経路のため同じ制約を持つ可能性が高い。`onHistoryChanged`（履歴追加）は影響を受けず正常に動作する。設定の現在値が必要な場合は `getClipboardHistoryAvailability` を使う
+- `Restore callback待機 -> Paste`: 復元の直後に `[Monitor] clipboard content changed` が発火する。復元を実行するのは Windows の履歴サービスでありライブラリの書き込み経路ではないため、外部変更として扱われるのが妥当
+- `EXCLUDE_ROAMING -> another device`: 同一 Microsoft アカウントの2台目デバイスと、両デバイスでの「デバイス間で同期」有効が前提。前提を満たせない環境では実施不可として記録する
 
 ### 8.4 Lifecycle / Thread / Busy
 
