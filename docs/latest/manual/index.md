@@ -152,10 +152,20 @@ Markdown files in this directory are published as versioned documents under `doc
   - Exclude services from the picker
   - Direct service execution (recipients, subject)
   - Check whether a service can perform
+- Clipboard features
+  - Copy (text, URL, image, multiple items, multiple representations)
+  - Copy options (localOnly, on by default)
+  - Append
+  - Read / data read / snapshot with a type filter
+  - Named and unique pasteboard lifecycle
+  - Detection (patterns, values, metadata; macOS 15.4+)
+  - Clipboard change observation
+  - System paste button (PasteButton)
+  - Clear
 
 ## Planned features
 
-- Clipboard integration for macOS / Windows (Android and iOS are available; see [Feature list](#feature-list) above)
+- Clipboard integration for Windows (Android, iOS and macOS are available; see [Feature list](#feature-list) above)
 
 ## Samples
 
