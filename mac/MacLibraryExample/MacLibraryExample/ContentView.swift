@@ -48,6 +48,16 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink {
+                        ClipboardSampleView()
+                    } label: {
+                        menuCard(
+                            title: "Clipboard Example",
+                            subtitle: "Copy, read, detect, observe and paste"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
                     Spacer(minLength: 0)
                 }
                 .padding()

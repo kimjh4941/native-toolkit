@@ -30,3 +30,7 @@ packages/
 # C++/WinRT generated projection headers
 Generated Files/
 **/WindowsL.*/
+
+# Python bytecode from scripts/
+__pycache__/
+*.pyc

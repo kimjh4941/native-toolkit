@@ -1,6 +1,6 @@
 # ツールチェーン移行管理
 
-最終更新: 2026-08-08
+最終更新: 2026-08-30
 
 各プラットフォームの言語モード・ツールチェーン移行を管理するインデックス。
 個別の企画書・設計書・実装結果は各トピックのフォルダに置く。
@@ -142,7 +142,7 @@ feature branch 上で生成してはならない。
 > 以下は `artifact/baselines/` 生成前の観測値である。schema・スクリプト確定後に再計測し、
 > 生成ファイルへ置き換えたうえで本節は削除する。
 
-**A. Swift 5 + strict complete / whole-module / clean build（`UnityIosPlugin` scheme）**
+**A. Swift 5 + strict complete / whole-module / clean build（`UnityIosPlugin` scheme・iOS）**
 
 ビルドは **成功**（exit 0 / error 0）。unique warning **129 件**。
 
@@ -208,7 +208,35 @@ Swift 5 + strict complete / whole-module / clean build（UnityIosPlugin scheme�
 **Clipboard 由来の診断は 0 件になった。** 残る 110 件はすべて既存 Dialog / Notification / Share
 由来であり、移行タスク本体の対象である。
 
-**B. Swift 6 language mode / whole-module（参考）**
+**B. Swift 5 + strict complete / whole-module / clean build（`UnityMacPlugin` scheme・macOS）**
+
+取得日 2026-08-30。ビルドは **成功**（exit 0 / error 0）。unique warning **173 件**。
+
+| 領域 | 件数 |
+|---|---|
+| MacLibrary / Dialog | 100 |
+| MacLibrary / Notification | 52 |
+| MacLibrary / Share | 13 |
+| UnityMacPlugin / Share | 5 |
+| UnityMacPlugin / Notification | 2 |
+| UnityMacPlugin / Dialog | 1 |
+| **MacLibrary / Clipboard** | **0** |
+
+**positive control**: 「0 件」が「未コンパイル」ではないことを確認するため、ログ中の
+コンパイル対象を数え、**Clipboard の新規 15 ファイルすべてがこのビルドでコンパイルされている**
+ことを確かめた（1 章の誤り #3 後半に該当しないことの確認）。
+
+**この 0 件は完成後の Clipboard が 0 件であることを意味しない。** macOS Clipboard（NTKIT-15）で
+実装済みなのは T-01 / T-02 / T-11a / T-11b の 15 ファイルのみで、**Unity Bridge（T-16a / T-16b）は
+未実装**である。iOS では Bridge の `sending 'handler'` が 16 件発生した（A）。macOS も同じ構造を
+取るため、案 C（6 章）を適用せずに Bridge を書けば同数の診断が新規に発生する。macOS 設計 v7 は
+§8.4.6 として案 C を規定済み。
+
+**この観測値は baseline ではない。** `feature/NTKIT-15` の dirty worktree 上で取得した確認目的の
+計測であり、4.1 の「baseline を生成してよいコミット」を満たさない。`artifact/baselines/` へは
+保存していない。UnityMacPlugin に Clipboard が存在しないため、iOS の A とは対象範囲が異なる。
+
+**C. Swift 6 language mode / whole-module（参考）**
 
 | ターゲット | error | 備考 |
 |---|---|---|
@@ -225,14 +253,19 @@ Swift 5 + strict complete / whole-module / clean build（UnityIosPlugin scheme�
 | 比較 | Swift 5 + strict | Swift 6 mode |
 |---|---|---|
 | iOS（`IosLibrary` scheme） | — | 13 |
-| iOS（`UnityIosPlugin` scheme・下流含む） | 129 | 計測不能（依存先が先に失敗） |
-| macOS（`MacLibrary` scheme） | 未計測 | 8 |
+| iOS（`UnityIosPlugin` scheme・下流含む） | 129 → 110（案 C 適用後） | 計測不能（依存先が先に失敗） |
+| macOS（`MacLibrary` scheme） | — | 8 |
+| macOS（`UnityMacPlugin` scheme・下流含む） | **173**（B） | 未計測 |
 
 iOS の 129 と「iOS 13 + macOS 8 = 21」を直接引き算してはならない。対象 scheme も
-プラットフォームも異なる。macOS の Swift 5 readiness を取得して初めて Apple 全体同士の
-比較が成立する（4.2 D の未計測項目）。
+プラットフォームも異なる。
 
-**C. current-warnings（現行設定 clean build）**
+**下流 scheme 同士（iOS 110 / macOS 173）は構造としては比較可能だが、内訳は等価ではない。**
+iOS 側には Clipboard の Unity Bridge が含まれ（案 C 適用済みで 0 件）、macOS 側にはまだ存在しない。
+また `MacLibrary` 単体の Swift 5 readiness は未取得であり、`MacLibrary` / `UnityMacPlugin` の
+切り分けは B の領域別表で読む。
+
+**D. current-warnings（現行設定 clean build）**
 
 | ターゲット | 件数 | 内容 |
 |---|---|---|
@@ -241,9 +274,8 @@ iOS の 129 と「iOS 13 + macOS 8 = 21」を直接引き算してはならな�
 | MacLibrary | 0 | - |
 | UnityMacPlugin | 1 | `UnityMacNotificationJsonParser.swift:198` 同上 |
 
-**D. 未計測**
+**E. 未計測**
 
-- macOS の `swift5-concurrency-readiness`
 - IosLibraryExample / MacLibraryExample / 各 Test target（全系統）
 - Android / Windows（全系統）
 
@@ -519,7 +551,7 @@ public func copy(requestJson: String?, handler: (@Sendable (Bool, String?, Strin
 - `nil` callback を渡しても trap しないこと
 - 監視の start / stop 境界で handler が交差しないこと
 
-Clipboard へ適用済み（4.2）。**Notification / Dialog / Share への一括適用は移行タスク本体で行う。**
+**iOS Clipboard へ適用済み**（4.2 A）。**macOS Clipboard は設計 v7 §8.4.6 として規定済み**（実装は T-16a。新規コードなので後追い修正にしない）。**Notification / Dialog / Share への一括適用は移行タスク本体で行う。**
 
 ---
 
@@ -555,7 +587,7 @@ current-health inventory は移行先決定を待たずに取得してよい。
 | 3 | **Clipboard 局所 3 件の修正**（`Notification` 境界 / `ISO8601DateFormatter`） | **完了**（4.2） |
 | 4 | **実装結果レポート v5 / v6 の作成と v2 / v3 / v4 への Errata 追記** | **完了** |
 | 5 | **実装レビュー v4 への Errata 追記**（コード LGTM 判定の撤回・再評価） | **完了** |
-| 6 | Bridge callback actor-boundary の先行設計（6 章）→ Clipboard へ適用 | **完了**（案 C・Clipboard 診断 0 件） |
+| 6 | Bridge callback actor-boundary の先行設計（6 章）→ Clipboard へ適用 | **完了**（案 C・iOS Clipboard 診断 0 件。macOS は設計 v7 §8.4.6 に反映済み） |
 | 7 | baseline schema（JSON / manifest）と `check_baseline.sh` を作成 | 未 |
 | 8 | `swift5-concurrency-readiness` を**クリーンな `develop`** で全 target 取得・固定 | 未 |
 | 9 | `swift6-language-mode` を取得 | 未 |
