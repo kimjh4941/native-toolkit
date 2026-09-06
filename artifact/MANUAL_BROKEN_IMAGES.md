@@ -4,7 +4,8 @@
 - 分類: 横断課題（Clipboard 固有ではない）
 - 発見経緯: `/write-manual` で 1.9.0 を作成した際の画像検査、および `/verify-manual` 新設時の検査で判明
 - 検査手段: `./scripts/verify_manual.sh 1.9.0`
-- 対応方針: **1.9.0 のリリースには含めない。別途対応。**
+- 対応方針: **1.9.0 / 1.10.0 のリリースには含めない。別途対応。**
+- 最終確認: 2026-09-06（1.10.0 で再検査。内訳は下記「1.10.0 での再確認」）
 
 # 1. 画像リンク切れ（30 件）
 
@@ -182,6 +183,47 @@ en では Windows が `#error-codes`、macOS が `#error-codes-1` である。
 当初 6 件検出したが、うち `index.md -> #feature-list` は**検査側のバグ**だった。
 見出しの収集を `##`〜`######` に限定しており、`# Feature list`（H1）を見落としていた。
 GitHub は H1 にもアンカーを生成するため、`scripts/verify_manual.sh` を修正済み。
+
+---
+
+# 1.10.0 での再確認（2026-09-06）
+
+macOS Clipboard（NTKIT-15）のマニュアルを追加した後、`/verify-manual` を 1.10.0 に対して
+実行した。**指摘の内容は 1.9.0 と 1 行も違わない。**
+
+```bash
+./scripts/verify_manual.sh 1.10.0   # FAIL 2 (画像30/アンカー5), WARN 3
+./scripts/verify_manual.sh 1.9.0    # FAIL 2 (画像30/アンカー5), WARN 3
+# バージョン番号を正規化して diff → 差分なし
+```
+
+つまり **1.10.0 で追加した macOS Clipboard 由来の指摘は 0 件**であり、上記 35 件は
+すべて notification / index からの引き継ぎである。1.10.0 のリリースを止める理由にならない。
+
+## Clipboard 側が 0 件であることの確認
+
+検査2 は「マニュアルがサンプルにない値を書いた」方向しか見ない。**逆方向（マニュアルが
+引数を書き落とした場合）は検出できない**ため、macOS セクションについては手で突き合わせた。
+
+| 観点 | 結果 |
+|---|---|
+| `MacClipboardManager.shared.*` のメソッド | マニュアル・サンプルで過不足なし |
+| 引数ラベルの組み合わせ | 一致（`copy` の `options:` + `scope:` を含む） |
+| コールバック例の引数 | `ClipboardCallbackResult` の 4 引数と一致 |
+| サンプルの読み込み | `ClipboardSampleView.swift` と `ClipboardSampleSupport.swift` の両方を走査 |
+
+なお検査2 が `dialog.md [Android]` について出す `no sample screen found` は、
+Android の dialog サンプルが `DialogSampleScreen.kt` という名前で存在しないためで、
+Clipboard とは無関係である。
+
+## この記録の修正案がまだ有効か
+
+**有効。** 上の「対応案」に書いた編集箇所（アンカー 6 箇所、画像 3 案）は 1.10.0 でも
+同じ行・同じ内容で成立する。検査コマンドのバージョンだけ読み替えること。
+
+```bash
+./scripts/verify_manual.sh 1.10.0
+```
 
 ---
 
