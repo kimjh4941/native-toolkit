@@ -88,6 +88,45 @@ Language:
     - [ペーストコントロールを作成](#ペーストコントロールを作成)
   - [クリア](#クリア-1)
   - [エラー処理](#エラー処理-1)
+- [macOS](#macos)
+  - [MacClipboardManager](#macclipboardmanager)
+    - [2 つの呼び出し形式](#2-つの呼び出し形式)
+    - [コンテンツは型識別子とバイト列の辞書です](#コンテンツは型識別子とバイト列の辞書です)
+    - [名前付きペーストボードの作成](#名前付きペーストボードの作成)
+    - [ユニークペーストボードの作成](#ユニークペーストボードの作成)
+    - [現在のペーストボードの削除](#現在のペーストボードの削除)
+    - [general の削除（エラー 1508）](#general-の削除エラー-1508)
+    - [空の名前でのペーストボード作成（エラー 1505）](#空の名前でのペーストボード作成エラー-1505)
+    - [テキストのコピー](#テキストのコピー)
+    - [URL のコピー](#url-のコピー)
+    - [画像のコピー](#画像のコピー)
+    - [複数 item のコピー](#複数-item-のコピー)
+    - [複数 representation のコピー](#複数-representation-のコピー)
+    - [空のコピー（エラー 1501）](#空のコピーエラー-1501)
+    - [representation が空の item のコピー（エラー 1502）](#representation-が空の-item-のコピーエラー-1502)
+    - [localOnly の既定値は true です](#localonly-の既定値は-true-です)
+    - [コピーしてから追記する](#コピーしてから追記する)
+    - [append は追記先のプライバシー設定を引き継ぎます](#append-は追記先のプライバシー設定を引き継ぎます)
+    - [所有権を失った状態での追記（エラー 1511）](#所有権を失った状態での追記エラー-1511)
+  - [読み取り / 検査](#読み取り--検査)
+    - [Read](#read)
+    - [特定の型の読み取り](#特定の型の読み取り)
+    - [Snapshot](#snapshot)
+    - [型フィルタ付きの Snapshot](#型フィルタ付きの-snapshot)
+    - [空フィルタでの Snapshot（エラー 1512）](#空フィルタでの-snapshotエラー-1512)
+    - [Access Behavior](#access-behavior)
+    - [パターンの検出](#パターンの検出)
+    - [値の検出](#値の検出)
+    - [メタデータの検出](#メタデータの検出)
+    - [パターンを指定しない検出（エラー 1503）](#パターンを指定しない検出エラー-1503)
+  - [監視](#監視)
+    - [監視の開始](#監視の開始)
+    - [不正な間隔（エラー 1523）](#不正な間隔エラー-1523)
+    - [監視の停止](#監視の停止)
+    - [前面復帰時の変更確認](#前面復帰時の変更確認)
+    - [不正な型識別子（エラー 1504）](#不正な型識別子エラー-1504)
+    - [1514 について](#1514-について)
+    - [通常の利用では発生しないエラーコード](#通常の利用では発生しないエラーコード)
 
 ---
 
@@ -1211,3 +1250,645 @@ Task {
     }
 }
 ```
+
+---
+
+## macOS
+
+- ライブラリ: `mac-native-toolkit-1.3.0.xcframework`
+- 最小デプロイメントターゲット: macOS 15
+- 対応範囲: コピー / 追記、読み取りとスナップショット、名前付き・ユニークペーストボードのライフサイクル、パターン検出（macOS 15.4 以降）、変更監視、そして配置するだけで使える `PasteButton` を提供します。
+
+### MacClipboardManager
+
+`MacClipboardManager` は、`NSPasteboard` をラップするシングルトンクラスです。
+
+### セットアップ
+
+1. `mac-native-toolkit-1.3.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
+2. クリップボードを使用するファイルでライブラリをインポートします。
+
+```swift
+import MacLibrary
+```
+
+追加の初期化や entitlement は不要です。
+
+#### スレッド
+
+すべての操作はメインアクター上で `NSPasteboard` に到達します。非同期メソッドは `async throws` なので、`Task` から呼び出してください。即座に完了する 4 つの操作は同期メソッドです: `accessBehavior(scope:)`、`startObserving(scope:interval:onEvent:)`、`stopObserving()`、`checkForegroundChange(scope:)`、および `makePasteButton` ファクトリです。
+
+#### 2 つの呼び出し形式
+
+各非同期操作には 2 つの形式があります。`async throws` 形式は Swift の呼び出し側向けです。`completion:` 形式は Unity ブリッジ向けで、C ABI をまたいで Swift のエラー処理を運べないため、`(isSuccess, value, errorCode, errorMessage)` として結果を返します。
+
+```swift
+// Swift
+let ownership = try await MacClipboardManager.shared.copy(content)
+
+// コールバック
+MacClipboardManager.shared.copy(content) { isSuccess, ownership, errorCode, errorMessage in
+    // メインアクター上でちょうど 1 回だけ実行されます
+}
+```
+
+#### コンテンツは型識別子とバイト列の辞書です
+
+`ClipboardContent` は item の順序付きリストを持ち、各 item は uniform type identifier からバイト列への辞書を持ちます。`.plainText` のような便宜的な case はありません。**書いたものがそのままペーストボードに載ります。**
+
+```swift
+let content = ClipboardContent(items: [
+    ClipboardItemData(representations: [
+        "public.utf8-plain-text": Data("Copied from MacLibraryExample.".utf8)
+    ])
+])
+```
+
+#### 既定値
+
+| パラメータ | 既定値 | 意味 |
+|---|---|---|
+| `scope` | `.general` | システムのペーストボード |
+| `options` | `.default` | `localOnly: true` |
+| `interval`（監視） | `0.5` 秒 | ポーリング間隔。0 より大きく 60 秒以下 |
+| `timeout`（ペーストボタン） | `15` 秒 | 貼り付けた item をロードする期限 |
+
+### スコープ
+
+スコープは `.general`、`.named(String)`、`.unique(String)` のいずれかです。general ペーストボードは常に存在します。名前付き・ユニークペーストボードは作成が必要で、**アプリを終了しても解放されません**。`removePasteboard(_:)` で解放してください。
+
+#### 名前付きペーストボードの作成
+
+`createPasteboard` はペーストボードを作成しますが、**同じ名前が既にある場合はそれを取得します**。そのため同じ名前で 2 回呼んでも、内容を保ったまま同じペーストボードが返ります。
+
+```swift
+Task {
+    let scope = try await MacClipboardManager.shared.createPasteboard(.named("nt-sample"))
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateNamedPasteboard.png" alt="Example_MacClipboardManager_CreateNamedPasteboard" width="400" />
+</p>
+
+#### ユニークペーストボードの作成
+
+ユニークペーストボードには毎回新しいシステム名が割り当てられます。2 つ目を作成すると 1 つ目を指す名前が失われるため、新しく作る前に前のものを解放してください。
+
+```swift
+Task {
+    let scope = try await MacClipboardManager.shared.createPasteboard(.unique)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateUniquePasteboard.png" alt="Example_MacClipboardManager_CreateUniquePasteboard" width="400" />
+</p>
+
+#### 現在のペーストボードの削除
+
+```swift
+Task {
+    try await MacClipboardManager.shared.removePasteboard(scope)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_RemoveCurrentPasteboard.png" alt="Example_MacClipboardManager_RemoveCurrentPasteboard" width="400" />
+</p>
+
+#### general の削除（エラー 1508）
+
+標準ペーストボードは解放できません。
+
+```swift
+Task {
+    do {
+        try await MacClipboardManager.shared.removePasteboard(.general)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1508
+    }
+}
+```
+
+#### 空の名前でのペーストボード作成（エラー 1505）
+
+空の名前は拒否されます。
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.createPasteboard(.named(""))
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1505
+    }
+}
+```
+
+### コピー
+
+`copy` はペーストボードの所有権を取得して内容を置き換え、後で `append` が必要とする `PasteboardOwnership` を返します。
+
+#### テキストのコピー
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.utf8-plain-text": Data("Copied from MacLibraryExample.".utf8)
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyText.png" alt="Example_MacClipboardManager_CopyText" width="400" />
+</p>
+
+#### URL のコピー
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.url": Data("https://www.apple.com".utf8)
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyURL.png" alt="Example_MacClipboardManager_CopyURL" width="400" />
+</p>
+
+#### 画像のコピー
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: ["public.png": pngData])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyImage.png" alt="Example_MacClipboardManager_CopyImage" width="400" />
+</p>
+
+#### 複数 item のコピー
+
+すべての item がペーストボードに載ります。**そのうちどれを使うかは、受け取る側のアプリが決めます。** 例えば TextEdit はすべてを貼り付けます。
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: ["public.utf8-plain-text": Data("first".utf8)]),
+            ClipboardItemData(representations: ["public.utf8-plain-text": Data("second".utf8)]),
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleItems.png" alt="Example_MacClipboardManager_CopyMultipleItems" width="400" />
+</p>
+
+#### 複数 representation のコピー
+
+1 つの item が同じ内容を 2 つの形式で持ちます。片方を読めないアプリでも、もう片方を見つけられます。
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.utf8-plain-text": Data(text.utf8),
+                "public.rtf": Data(rtf.utf8),
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleRepresentations.png" alt="Example_MacClipboardManager_CopyMultipleRepresentations" width="400" />
+</p>
+
+#### 空のコピー（エラー 1501）
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(ClipboardContent(items: []), scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1501
+    }
+}
+```
+
+#### representation が空の item のコピー（エラー 1502）
+
+representation を持たない item は拒否されます。
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(
+            ClipboardContent(items: [ClipboardItemData(representations: [:])]),
+            scope: scope
+        )
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1502
+    }
+}
+```
+
+### コピーオプション
+
+`ClipboardCopyOptions(localOnly:)` は、内容を Universal Clipboard で他のデバイスへ提供するかどうかを決めます。
+
+#### localOnly の既定値は true です
+
+**明示的に指定しない限り、コピーした内容は他のデバイスへ共有されません。** `ClipboardCopyOptions.default` は `localOnly: true` であり、options を渡さない `copy` はこれを使用します。内容を他のデバイスへ渡したい場合は、`localOnly: false` を明示的に指定してください。
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(
+        content,
+        options: ClipboardCopyOptions(localOnly: false),   // 他のデバイスへ共有する
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyWithCurrentOptions.png" alt="Example_MacClipboardManager_CopyWithCurrentOptions" width="400" />
+</p>
+
+2026-09-03 に macOS 26.3 と iOS 18.7.2 の間で Handoff 経由で計測しました。`localOnly: false` では約 1 秒で相手のデバイスに到達し、`localOnly: true` では到達せず、相手のデバイスは自身のクリップボードを保持し続けました。これは 1 組のデバイスでの計測であるため、すべてのデバイスと OS での保証ではなく、その組み合わせでの根拠として扱ってください。
+
+### 追記
+
+`append` は **ownership が指すペーストボード**に item を追加します。`append` 自体は scope を取りません。ownership が scope を運びます。
+
+#### コピーしてから追記する
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(content, scope: scope)
+    let appended = try await MacClipboardManager.shared.append(more, ownership: ownership)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyThenAppend.png" alt="Example_MacClipboardManager_CopyThenAppend" width="400" />
+</p>
+
+#### append は追記先のプライバシー設定を引き継ぎます
+
+`localOnly: true` でコピーした内容に追記しても、ペーストボードが再公開されることはありません。元の内容も追記した item も、他のデバイスには届きません。上記と同じデバイスの組み合わせで 2026-09-03 に計測しました。
+
+#### 所有権を失った状態での追記（エラー 1511）
+
+他のアプリを含め、何かがペーストボードに書き込んだ時点で所有権は失われます。`append` は先に changeCount を照合し、書き込まずに throw します。
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.append(late, ownership: stale)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1511
+    }
+}
+```
+
+自分のアプリが所有権を奪った場合も、他のアプリが奪った場合も、エラーは同じです。ライブラリは「所有権がもう成立しない」ことを報告するのであって、誰が奪ったかは報告しません。
+
+### 読み取り / 検査
+
+#### Read
+
+`read` はすべての item を、その全 representation とともに返します。
+
+```swift
+Task {
+    let result = try await MacClipboardManager.shared.read(scope: scope)
+    for (index, item) in result.items.enumerated() {
+        print(index, item.totalBytes, item.representations.keys.sorted())
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Read.png" alt="Example_MacClipboardManager_Read" width="400" />
+</p>
+
+返ってくる内容について、コードを書く前に知っておくべきことが 2 つあります。
+
+**item は、書いた側が指定した数より多くの representation を持ちます。** AppKit が独自にテキスト形式を追加するためです。TextEdit からリッチテキストをコピーすると、`public.rtf`、`public.utf8-plain-text`、`public.utf16-external-plain-text` が同時に載ります。必要な型を照合してください。型の集合を完全一致で比較しないでください。
+
+**`totalBytes` は全 item・全 representation の合計であり、コピーした対象の大きさではありません。** Finder でテキストファイルを 1 つコピーすると約 850 KB になりました。ペーストボードがファイルのアイコンを `com.apple.icns` として一緒に運ぶためです。
+
+#### 特定の型の読み取り
+
+`readData` は 1 つの型のバイト列を返し、その型が無い場合は `nil` を返します。**型が無いことは通常の結果であり、エラーではありません。**
+
+```swift
+Task {
+    let data = try await MacClipboardManager.shared.readData(
+        utType: "public.utf8-plain-text",
+        scope: scope
+    )
+    print(data?.count ?? -1)   // 平文が無い場合は nil
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_ReadDataPlainText.png" alt="Example_MacClipboardManager_ReadDataPlainText" width="400" />
+</p>
+
+Finder でコピーしたファイルは `public.utf8-plain-text` を持っており、そのバイト列は一般にファイルの完全パスです。読み取った内容は、利用者が渡すつもりでなかった情報を含みうるものとして扱ってください。
+
+#### Snapshot
+
+`snapshot` は内容を読まずに、型と changeCount を報告します。
+
+```swift
+Task {
+    let snapshot = try await MacClipboardManager.shared.snapshot(scope: scope)
+    print(snapshot.itemTypes.count, snapshot.changeCount)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Snapshot.png" alt="Example_MacClipboardManager_Snapshot" width="400" />
+</p>
+
+#### 型フィルタ付きの Snapshot
+
+```swift
+Task {
+    let snapshot = try await MacClipboardManager.shared.snapshot(
+        matchingTypes: ["public.utf8-plain-text"],
+        scope: scope
+    )
+    print(snapshot.matchingItemIndexes)
+}
+```
+
+#### 空フィルタでの Snapshot（エラー 1512）
+
+空のフィルタは何にも一致しません。それは呼び出し側から見ると「ペーストボードが空」と区別がつかないため、拒否されます。
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.snapshot(matchingTypes: [], scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1512
+    }
+}
+```
+
+#### Access Behavior
+
+同期メソッドです。システムがこのペーストボードのプログラムからの読み取りをどう扱うかを報告します。
+
+```swift
+let behavior = try MacClipboardManager.shared.accessBehavior(scope: scope)
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_AccessBehavior.png" alt="Example_MacClipboardManager_AccessBehavior" width="400" />
+</p>
+
+### 検出
+
+検出には **macOS 15.4 以降**が必要です。それ未満では、内容を読まずに `detectionUnavailable`（1513）を throw します。
+
+#### パターンの検出
+
+内容を読まずに、どのパターンが一致するかを報告します。
+
+```swift
+Task {
+    let found = try await MacClipboardManager.shared.detectPatterns(
+        [.probableWebURL, .links, .emailAddresses],
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectPatterns.png" alt="Example_MacClipboardManager_DetectPatterns" width="400" />
+</p>
+
+#### 値の検出
+
+一致した値を返します。**この操作は内容を読み取ります**ので、利用者の操作を起点に呼び出してください。
+
+```swift
+Task {
+    let values = try await MacClipboardManager.shared.detectValues(
+        [.probableWebURL, .links, .emailAddresses],
+        scope: scope
+    )
+    print(values.links.count, values.emailAddresses.count)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectValues.png" alt="Example_MacClipboardManager_DetectValues" width="400" />
+</p>
+
+#### メタデータの検出
+
+```swift
+Task {
+    let metadata = try await MacClipboardManager.shared.detectMetadata(scope: scope)
+}
+```
+
+#### パターンを指定しない検出（エラー 1503）
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.detectPatterns([], scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1503
+    }
+}
+```
+
+### 監視
+
+#### 監視の開始
+
+同期メソッドです。`onEvent` は、ペーストボードが変化するたびにメインアクター上で実行されます。
+
+```swift
+try MacClipboardManager.shared.startObserving(scope: scope) { event in
+    print(event.changeCount)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_StartObserving.png" alt="Example_MacClipboardManager_StartObserving" width="400" />
+</p>
+
+アプリが非アクティブの間、監視は停止し、復帰時に照合します。**バックグラウンドの間に 3 回変化があっても、届くイベントは 1 回です。** ペーストボードは過去に保持していた内容の履歴を持たないためです。
+
+#### 不正な間隔（エラー 1523）
+
+間隔は 0 より大きく、60 秒以下である必要があります。
+
+```swift
+do {
+    try MacClipboardManager.shared.startObserving(scope: scope, interval: 0) { _ in }
+} catch let error as ClipboardError {
+    print(error.errorCode)   // 1523
+}
+```
+
+#### 監視の停止
+
+冪等で、throw しません。画面が破棄されるときに呼び出してください。マネージャは共有されているため、呼ばないとポーリングが続きます。
+
+```swift
+MacClipboardManager.shared.stopObserving()
+```
+
+#### 前面復帰時の変更確認
+
+同期メソッドです。このアプリが最後に見た時点からペーストボードが変化したかを報告し、そのスコープでの初回呼び出しでは `true` を返します。
+
+```swift
+let changed = try MacClipboardManager.shared.checkForegroundChange(scope: scope)
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CheckForegroundChange.png" alt="Example_MacClipboardManager_CheckForegroundChange" width="400" />
+</p>
+
+**監視と併用せず、監視の代わりに使用してください。** 両者は同じ基準を共有するため、監視が動作している間は、この呼び出しはほぼ常に `false` を返します。ポーリングが既に変化を検出し、`onEvent` で報告済みだからです。
+
+### ペーストコントロール
+
+`makePasteButton` は、システムのペーストボタンを `NSView` として返します。同期メソッドです。ビューの生成は即座に完了するファクトリ操作であり、押下時に始まるロードは `onPaste` で報告されます。
+
+```swift
+let button = try MacClipboardManager.shared.makePasteButton(
+    acceptedTypes: ["public.utf8-plain-text", "public.png"],
+    timeout: 5
+) { result in
+    print(result.items.count, result.failures.count, result.isPartial)
+}
+```
+
+SwiftUI では `NSViewRepresentable` でホストし、**生成は 1 回だけ**にしてください。呼び出すたびにローダーが登録されます。
+
+```swift
+struct PasteButtonHost: NSViewRepresentable {
+    let view: NSView
+    func makeNSView(context: Context) -> NSView { view }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_PasteControl.png" alt="Example_MacClipboardManager_PasteControl" width="400" />
+</p>
+
+システムのコントロールの挙動から、次の 3 点が導かれます。
+
+**このボタンは general スコープ専用です。** 他の呼び出しがどのスコープを使っていても、システムのペーストボードから貼り付けます。
+
+**システムは `acceptedTypes` に一致するものだけをローダーに渡します。** 受け入れていない型の item は届きません。受け入れる item と受け入れない item を 1 つずつ持つペーストボードを貼り付けても、結果は item 1 件であり、部分失敗にはなりません。
+
+**ボタンは常に押せる状態です。** 受け入れる型がペーストボードに無くても無効化されません。
+
+#### 不正な型識別子（エラー 1504）
+
+システムが解決できない型識別子は、押下時ではなくボタンの生成時に拒否されます。
+
+```swift
+do {
+    _ = try MacClipboardManager.shared.makePasteButton(acceptedTypes: ["not a uti"]) { _ in }
+} catch let error as ClipboardError {
+    print(error.errorCode)   // 1504
+}
+```
+
+### クリア
+
+`clear` はペーストボードを空にし、**ペーストボードの新しい changeCount** を返します。これは `clearContents()` が返す値であり、削除した item の数ではありません。
+
+```swift
+Task {
+    let changeCount = try await MacClipboardManager.shared.clear(scope: scope)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Clear.png" alt="Example_MacClipboardManager_Clear" width="400" />
+</p>
+
+### エラー処理
+
+すべての操作は `ClipboardError` を throw します。このエラーは `errorCode` と `errorMessage` を持ちます。
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(content, scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode, error.errorMessage)
+    }
+}
+```
+
+| コード | ケース | 発生条件 |
+|---|---|---|
+| 1501 | `emptyContent` | item が 0 件の `copy` / `append` |
+| 1502 | `emptyRepresentations` | representation を持たない item |
+| 1503 | `emptyDetectionPatterns` | パターン集合が空の検出 |
+| 1504 | `invalidTypeIdentifier` | システムが解決できない型識別子 |
+| 1505 | `invalidPasteboardName` | 空、または不正なペーストボード名 |
+| 1506 | `contentTooLarge` | 内容がサイズ上限を超えた |
+| 1507 | `pasteboardUnavailable` | 名前付きペーストボードを解決できない |
+| 1508 | `cannotReleaseStandardPasteboard` | 標準ペーストボードへの `removePasteboard` |
+| 1509 | `writeRejected` | ペーストボードが書き込みを拒否した |
+| 1510 | `appendRejected` | 所有権は成立しているが、ペーストボードが追記を拒否した |
+| 1511 | `ownershipLost` | コピー以降に他の何かがペーストボードに書き込んだ |
+| 1512 | `emptyTypeFilter` | フィルタが空の `snapshot` |
+| 1513 | `detectionUnavailable` | macOS 15.4 未満での検出 |
+| 1514 | `detectionDenied` | 検出中に利用者がアクセスを拒否した（後述） |
+| 1515 | `detectionFailed` | それ以外の理由で検出が失敗した |
+| 1521 | `pasteLoadFailed` | 貼り付け後に item をロードできなかった |
+| 1522 | `pasteLoadTimedOut` | 貼り付けのロードが期限を超えた |
+| 1523 | `invalidConfiguration` | 監視間隔が 0〜60 秒の範囲外 |
+| 1524 | `cancelled` | 操作がキャンセルされた |
+| 1599 | `unknown` | それ以外 |
+
+#### 1514 について
+
+1514 は、検出中に利用者がペーストボードの内容へのアクセスを拒否したことを表します。**ただし macOS でこの経路が発生することは未確認です。** 検証時に検出のプロンプトは一度も表示されておらず、拒否は 1515 として届く可能性があります。
+
+**1514 だけで分岐しないでください。** 拒否と通常の検出失敗を同じ扱いにし、どちらも「内容を検出できなかった」として処理してください。この扱いであれば、どちらに転んでも正しく動作します。
+
+#### 通常の利用では発生しないエラーコード
+
+1506、1507、1509、1510、1521、1522、1524 は、API が報告しうるものの、アプリケーションから意図的に発生させることが難しい条件を表します。受け取ったコードを調べられるように一覧に載せているだけであり、それぞれに分岐を書く必要はありません。

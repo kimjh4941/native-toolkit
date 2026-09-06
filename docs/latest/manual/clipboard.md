@@ -88,6 +88,51 @@ Language:
     - [Make Paste Control](#make-paste-control)
   - [Clear](#clear-1)
   - [Error Handling](#error-handling-1)
+- [macOS](#macos)
+  - [MacClipboardManager](#macclipboardmanager)
+  - [Setup](#setup-2)
+  - [Scope](#scope-1)
+    - [Create Named Pasteboard](#create-named-pasteboard-1)
+    - [Create Unique Pasteboard](#create-unique-pasteboard-1)
+    - [Remove Current Pasteboard](#remove-current-pasteboard)
+    - [Remove General (error 1508)](#remove-general-error-1508)
+    - [Create Empty Named Pasteboard (error 1505)](#create-empty-named-pasteboard-error-1505)
+  - [Copy](#copy-2)
+    - [Copy Text](#copy-text)
+    - [Copy URL](#copy-url-1)
+    - [Copy Image](#copy-image)
+    - [Copy Multiple Items](#copy-multiple-items)
+    - [Copy Multiple Representations](#copy-multiple-representations)
+    - [Copy Empty (error 1501)](#copy-empty-error-1501)
+    - [Copy Empty Representations (error 1502)](#copy-empty-representations-error-1502)
+  - [Copy Options](#copy-options-1)
+    - [localOnly defaults to true](#localonly-defaults-to-true)
+  - [Append](#append-1)
+    - [Copy Then Append](#copy-then-append)
+    - [Append keeps the privacy of what it appends to](#append-keeps-the-privacy-of-what-it-appends-to)
+    - [Append with lost ownership (error 1511)](#append-with-lost-ownership-error-1511)
+  - [Read / Inspect](#read--inspect-2)
+    - [Read](#read)
+    - [Read Data for one type](#read-data-for-one-type)
+    - [Snapshot](#snapshot)
+    - [Snapshot with a type filter](#snapshot-with-a-type-filter)
+    - [Snapshot with an empty filter (error 1512)](#snapshot-with-an-empty-filter-error-1512)
+    - [Access Behavior](#access-behavior)
+  - [Detect](#detect-1)
+    - [Detect Patterns](#detect-patterns-1)
+    - [Detect Values](#detect-values-1)
+    - [Detect Metadata](#detect-metadata)
+    - [Detect with no patterns (error 1503)](#detect-with-no-patterns-error-1503)
+  - [Observe](#observe-2)
+    - [Start Observing](#start-observing-1)
+    - [Invalid interval (error 1523)](#invalid-interval-error-1523)
+    - [Stop Observing](#stop-observing-2)
+    - [Check Foreground Change](#check-foreground-change-1)
+  - [Paste Control](#paste-control-1)
+    - [Invalid type identifier (error 1504)](#invalid-type-identifier-error-1504)
+  - [Clear](#clear-2)
+  - [Error Handling](#error-handling-2)
+    - [About 1514](#about-1514)
 
 ---
 
@@ -1211,3 +1256,645 @@ Task {
     }
 }
 ```
+
+---
+
+## macOS
+
+- Library: `mac-native-toolkit-1.3.0.xcframework`
+- Minimum Deployment Target: macOS 15
+- Scope: copy / append, read and snapshot, named and unique pasteboard lifecycle, pattern detection (macOS 15.4 and later), change observation, and a ready-to-place `PasteButton`.
+
+### MacClipboardManager
+
+`MacClipboardManager` is a singleton class that wraps `NSPasteboard`.
+
+### Setup
+
+1. Add `mac-native-toolkit-1.3.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
+2. Import the library where you use the clipboard:
+
+```swift
+import MacLibrary
+```
+
+No additional initialization and no entitlement are required.
+
+#### Threading
+
+Every operation reaches `NSPasteboard` on the main actor. The asynchronous methods are `async throws`; call them from a `Task`. Four operations complete immediately and are synchronous instead: `accessBehavior(scope:)`, `startObserving(scope:interval:onEvent:)`, `stopObserving()`, `checkForegroundChange(scope:)`, and the `makePasteButton` factory.
+
+#### Two calling styles
+
+Each asynchronous operation has two forms. The `async throws` form is for Swift callers. The `completion:` form exists for the Unity bridge, which cannot carry Swift error handling across the C ABI, and reports `(isSuccess, value, errorCode, errorMessage)` instead.
+
+```swift
+// Swift
+let ownership = try await MacClipboardManager.shared.copy(content)
+
+// Callback
+MacClipboardManager.shared.copy(content) { isSuccess, ownership, errorCode, errorMessage in
+    // runs exactly once, on the main actor
+}
+```
+
+#### Content is a dictionary of type identifiers and bytes
+
+`ClipboardContent` holds an ordered list of items, and each item holds a dictionary from a uniform type identifier to its bytes. There is no `.plainText` convenience case: what you write is what the pasteboard carries.
+
+```swift
+let content = ClipboardContent(items: [
+    ClipboardItemData(representations: [
+        "public.utf8-plain-text": Data("Copied from MacLibraryExample.".utf8)
+    ])
+])
+```
+
+#### Defaults
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `scope` | `.general` | The system pasteboard |
+| `options` | `.default` | `localOnly: true` |
+| `interval` (observation) | `0.5` seconds | Poll interval, must be greater than 0 and at most 60 |
+| `timeout` (paste button) | `15` seconds | Deadline for loading the pasted items |
+
+### Scope
+
+A scope is `.general`, `.named(String)`, or `.unique(String)`. The general pasteboard always exists. A named or unique pasteboard has to be created, and it is **not released when your app quits**: release it with `removePasteboard(_:)`.
+
+#### Create Named Pasteboard
+
+`createPasteboard` creates the pasteboard **or fetches it if the name already exists**, so asking twice for the same name returns the same pasteboard with its contents intact.
+
+```swift
+Task {
+    let scope = try await MacClipboardManager.shared.createPasteboard(.named("nt-sample"))
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateNamedPasteboard.png" alt="Example_MacClipboardManager_CreateNamedPasteboard" width="400" />
+</p>
+
+#### Create Unique Pasteboard
+
+A unique pasteboard is given a fresh system name every time. Creating a second one leaves the first with no name you can address, so release the previous one before creating another.
+
+```swift
+Task {
+    let scope = try await MacClipboardManager.shared.createPasteboard(.unique)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateUniquePasteboard.png" alt="Example_MacClipboardManager_CreateUniquePasteboard" width="400" />
+</p>
+
+#### Remove Current Pasteboard
+
+```swift
+Task {
+    try await MacClipboardManager.shared.removePasteboard(scope)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_RemoveCurrentPasteboard.png" alt="Example_MacClipboardManager_RemoveCurrentPasteboard" width="400" />
+</p>
+
+#### Remove General (error 1508)
+
+The standard pasteboards cannot be released.
+
+```swift
+Task {
+    do {
+        try await MacClipboardManager.shared.removePasteboard(.general)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1508
+    }
+}
+```
+
+#### Create Empty Named Pasteboard (error 1505)
+
+An empty name is rejected.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.createPasteboard(.named(""))
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1505
+    }
+}
+```
+
+### Copy
+
+`copy` takes ownership of the pasteboard, replaces its contents, and returns a `PasteboardOwnership` that `append` needs later.
+
+#### Copy Text
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.utf8-plain-text": Data("Copied from MacLibraryExample.".utf8)
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyText.png" alt="Example_MacClipboardManager_CopyText" width="400" />
+</p>
+
+#### Copy URL
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.url": Data("https://www.apple.com".utf8)
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyURL.png" alt="Example_MacClipboardManager_CopyURL" width="400" />
+</p>
+
+#### Copy Image
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: ["public.png": pngData])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyImage.png" alt="Example_MacClipboardManager_CopyImage" width="400" />
+</p>
+
+#### Copy Multiple Items
+
+Every item reaches the pasteboard. **Which of them a receiving app uses is that app's decision**: TextEdit, for one, pastes all of them.
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: ["public.utf8-plain-text": Data("first".utf8)]),
+            ClipboardItemData(representations: ["public.utf8-plain-text": Data("second".utf8)]),
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleItems.png" alt="Example_MacClipboardManager_CopyMultipleItems" width="400" />
+</p>
+
+#### Copy Multiple Representations
+
+One item carrying the same content twice, so an app that cannot read one format finds the other.
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.utf8-plain-text": Data(text.utf8),
+                "public.rtf": Data(rtf.utf8),
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleRepresentations.png" alt="Example_MacClipboardManager_CopyMultipleRepresentations" width="400" />
+</p>
+
+#### Copy Empty (error 1501)
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(ClipboardContent(items: []), scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1501
+    }
+}
+```
+
+#### Copy Empty Representations (error 1502)
+
+An item with no representations is rejected.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(
+            ClipboardContent(items: [ClipboardItemData(representations: [:])]),
+            scope: scope
+        )
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1502
+    }
+}
+```
+
+### Copy Options
+
+`ClipboardCopyOptions(localOnly:)` decides whether the contents are offered to your other devices through Universal Clipboard.
+
+#### localOnly defaults to true
+
+**Nothing you copy is shared with another device unless you ask for it.** `ClipboardCopyOptions.default` is `localOnly: true`, and `copy` uses it when you pass no options. To let the contents travel, pass `localOnly: false` explicitly.
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(
+        content,
+        options: ClipboardCopyOptions(localOnly: false),   // share with other devices
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyWithCurrentOptions.png" alt="Example_MacClipboardManager_CopyWithCurrentOptions" width="400" />
+</p>
+
+Measured on 2026-09-03 between macOS 26.3 and iOS 18.7.2 over Handoff: with `localOnly: false` the contents reached the paired device in about a second; with `localOnly: true` they did not arrive, and the other device kept its own clipboard. That is one device pairing, so treat it as evidence for that pairing rather than a guarantee for every device and OS.
+
+### Append
+
+`append` adds items **to the pasteboard the ownership names**. It takes no scope of its own: the ownership carries it.
+
+#### Copy Then Append
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(content, scope: scope)
+    let appended = try await MacClipboardManager.shared.append(more, ownership: ownership)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyThenAppend.png" alt="Example_MacClipboardManager_CopyThenAppend" width="400" />
+</p>
+
+#### Append keeps the privacy of what it appends to
+
+Appending to a `localOnly: true` copy does not republish the pasteboard: neither the original contents nor the appended item reach another device. Measured on 2026-09-03 with the same pairing as above.
+
+#### Append with lost ownership (error 1511)
+
+Ownership is lost as soon as anything else writes to the pasteboard, including another application. `append` compares the change count first and throws without writing.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.append(late, ownership: stale)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1511
+    }
+}
+```
+
+The error is the same whether your own app or another application took the pasteboard: the library reports that the ownership no longer holds, not who took it.
+
+### Read / Inspect
+
+#### Read
+
+`read` returns every item with all of its representations.
+
+```swift
+Task {
+    let result = try await MacClipboardManager.shared.read(scope: scope)
+    for (index, item) in result.items.enumerated() {
+        print(index, item.totalBytes, item.representations.keys.sorted())
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Read.png" alt="Example_MacClipboardManager_Read" width="400" />
+</p>
+
+Two things about what comes back are worth knowing before you write code against it.
+
+**An item carries more representations than the writer asked for.** AppKit adds text flavors of its own: copying rich text from TextEdit yields `public.rtf`, `public.utf8-plain-text` and `public.utf16-external-plain-text` together. Match the type you need; do not compare the set of types for equality.
+
+**`totalBytes` is the sum of every representation of every item, not the size of what was copied.** Copying a single text file in Finder measured about 850 KB, because the pasteboard also carries the file's icon as `com.apple.icns`.
+
+#### Read Data for one type
+
+`readData` returns the bytes of a single type, or `nil` when the pasteboard has no such type. **A missing type is an ordinary result, not an error.**
+
+```swift
+Task {
+    let data = try await MacClipboardManager.shared.readData(
+        utType: "public.utf8-plain-text",
+        scope: scope
+    )
+    print(data?.count ?? -1)   // nil when there is no plain text
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_ReadDataPlainText.png" alt="Example_MacClipboardManager_ReadDataPlainText" width="400" />
+</p>
+
+A file copied in Finder does carry `public.utf8-plain-text`, and those bytes are generally the file's full path. Treat what you read as content the user may not have meant to hand over.
+
+#### Snapshot
+
+`snapshot` reports the types and the change count without reading the contents.
+
+```swift
+Task {
+    let snapshot = try await MacClipboardManager.shared.snapshot(scope: scope)
+    print(snapshot.itemTypes.count, snapshot.changeCount)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Snapshot.png" alt="Example_MacClipboardManager_Snapshot" width="400" />
+</p>
+
+#### Snapshot with a type filter
+
+```swift
+Task {
+    let snapshot = try await MacClipboardManager.shared.snapshot(
+        matchingTypes: ["public.utf8-plain-text"],
+        scope: scope
+    )
+    print(snapshot.matchingItemIndexes)
+}
+```
+
+#### Snapshot with an empty filter (error 1512)
+
+An empty filter would match nothing, which reads the same as an empty pasteboard at the call site, so it is rejected instead.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.snapshot(matchingTypes: [], scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1512
+    }
+}
+```
+
+#### Access Behavior
+
+Synchronous. Reports how the system treats programmatic reads of this pasteboard.
+
+```swift
+let behavior = try MacClipboardManager.shared.accessBehavior(scope: scope)
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_AccessBehavior.png" alt="Example_MacClipboardManager_AccessBehavior" width="400" />
+</p>
+
+### Detect
+
+Detection requires **macOS 15.4 or later**. Below that the operations throw `detectionUnavailable` (1513) without reading anything.
+
+#### Detect Patterns
+
+Reports which patterns match, without reading the contents.
+
+```swift
+Task {
+    let found = try await MacClipboardManager.shared.detectPatterns(
+        [.probableWebURL, .links, .emailAddresses],
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectPatterns.png" alt="Example_MacClipboardManager_DetectPatterns" width="400" />
+</p>
+
+#### Detect Values
+
+Returns the matched values. **This one reads the contents**, so call it from a user-initiated action.
+
+```swift
+Task {
+    let values = try await MacClipboardManager.shared.detectValues(
+        [.probableWebURL, .links, .emailAddresses],
+        scope: scope
+    )
+    print(values.links.count, values.emailAddresses.count)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectValues.png" alt="Example_MacClipboardManager_DetectValues" width="400" />
+</p>
+
+#### Detect Metadata
+
+```swift
+Task {
+    let metadata = try await MacClipboardManager.shared.detectMetadata(scope: scope)
+}
+```
+
+#### Detect with no patterns (error 1503)
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.detectPatterns([], scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1503
+    }
+}
+```
+
+### Observe
+
+#### Start Observing
+
+Synchronous. `onEvent` runs on the main actor each time the pasteboard changes.
+
+```swift
+try MacClipboardManager.shared.startObserving(scope: scope) { event in
+    print(event.changeCount)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_StartObserving.png" alt="Example_MacClipboardManager_StartObserving" width="400" />
+</p>
+
+Observation pauses while your app is inactive and reconciles when it returns: **three changes made while you were in the background arrive as one event**, because a pasteboard keeps no history of what it held.
+
+#### Invalid interval (error 1523)
+
+The interval must be greater than 0 and at most 60 seconds.
+
+```swift
+do {
+    try MacClipboardManager.shared.startObserving(scope: scope, interval: 0) { _ in }
+} catch let error as ClipboardError {
+    print(error.errorCode)   // 1523
+}
+```
+
+#### Stop Observing
+
+Idempotent and non-throwing. Call it when the screen goes away; the manager is shared and would otherwise keep polling.
+
+```swift
+MacClipboardManager.shared.stopObserving()
+```
+
+#### Check Foreground Change
+
+Synchronous. Reports whether the pasteboard changed since this app last looked, and returns `true` on the first call for a scope.
+
+```swift
+let changed = try MacClipboardManager.shared.checkForegroundChange(scope: scope)
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CheckForegroundChange.png" alt="Example_MacClipboardManager_CheckForegroundChange" width="400" />
+</p>
+
+**Use this instead of observation, not alongside it.** Both move the same mark, so while observation is running this returns `false` almost always: the poll has already seen the change and reported it through `onEvent`.
+
+### Paste Control
+
+`makePasteButton` returns a system paste button as an `NSView`. It is synchronous: building a view is an immediate factory operation, and the load it starts when pressed reports through `onPaste`.
+
+```swift
+let button = try MacClipboardManager.shared.makePasteButton(
+    acceptedTypes: ["public.utf8-plain-text", "public.png"],
+    timeout: 5
+) { result in
+    print(result.items.count, result.failures.count, result.isPartial)
+}
+```
+
+Host it in SwiftUI with an `NSViewRepresentable`, and build it **once**: each call registers a loader.
+
+```swift
+struct PasteButtonHost: NSViewRepresentable {
+    let view: NSView
+    func makeNSView(context: Context) -> NSView { view }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_PasteControl.png" alt="Example_MacClipboardManager_PasteControl" width="400" />
+</p>
+
+Three things follow from how the system control behaves.
+
+**The button is general scope only.** It pastes from the system pasteboard whatever scope your other calls use.
+
+**The system hands the loader only what matches `acceptedTypes`.** An item whose type you did not accept never reaches you: pasting a pasteboard that holds one accepted item and one unaccepted item yields one item, not a partial failure.
+
+**The button stays enabled** whether or not the pasteboard holds a type you accept.
+
+#### Invalid type identifier (error 1504)
+
+A type identifier the system cannot resolve is rejected when the button is built, not when it is pressed.
+
+```swift
+do {
+    _ = try MacClipboardManager.shared.makePasteButton(acceptedTypes: ["not a uti"]) { _ in }
+} catch let error as ClipboardError {
+    print(error.errorCode)   // 1504
+}
+```
+
+### Clear
+
+`clear` empties the pasteboard and returns **the pasteboard's new change count**, which is what `clearContents()` reports. It is not a count of the items that were removed.
+
+```swift
+Task {
+    let changeCount = try await MacClipboardManager.shared.clear(scope: scope)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Clear.png" alt="Example_MacClipboardManager_Clear" width="400" />
+</p>
+
+### Error Handling
+
+Every operation throws `ClipboardError`, which carries an `errorCode` and an `errorMessage`.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(content, scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode, error.errorMessage)
+    }
+}
+```
+
+| Code | Case | When |
+|---|---|---|
+| 1501 | `emptyContent` | `copy` or `append` with no items |
+| 1502 | `emptyRepresentations` | An item with no representations |
+| 1503 | `emptyDetectionPatterns` | Detection with an empty pattern set |
+| 1504 | `invalidTypeIdentifier` | A type identifier the system cannot resolve |
+| 1505 | `invalidPasteboardName` | An empty or malformed pasteboard name |
+| 1506 | `contentTooLarge` | The content exceeds the size limit |
+| 1507 | `pasteboardUnavailable` | The named pasteboard could not be resolved |
+| 1508 | `cannotReleaseStandardPasteboard` | `removePasteboard` on a standard pasteboard |
+| 1509 | `writeRejected` | The pasteboard refused the write |
+| 1510 | `appendRejected` | The pasteboard refused the append while ownership still held |
+| 1511 | `ownershipLost` | Something else wrote to the pasteboard since the copy |
+| 1512 | `emptyTypeFilter` | `snapshot` with an empty filter |
+| 1513 | `detectionUnavailable` | Detection below macOS 15.4 |
+| 1514 | `detectionDenied` | The user denied access during detection (see below) |
+| 1515 | `detectionFailed` | Detection failed for any other reason |
+| 1521 | `pasteLoadFailed` | An item could not be loaded after a paste |
+| 1522 | `pasteLoadTimedOut` | The paste load passed its deadline |
+| 1523 | `invalidConfiguration` | An observation interval outside 0 to 60 seconds |
+| 1524 | `cancelled` | The operation was cancelled |
+| 1599 | `unknown` | Anything else |
+
+#### About 1514
+
+1514 means the user denied access to the pasteboard contents during detection. **Whether this path occurs on macOS has not been confirmed**: no detection prompt appeared in testing, and a refusal may instead arrive as 1515.
+
+**Do not branch on 1514 alone.** Treat a refusal and an ordinary detection failure the same way, as "the contents could not be detected". That handling is correct either way.
+
+#### Error codes you will not see from ordinary use
+
+1506, 1507, 1509, 1510, 1521, 1522 and 1524 describe conditions the API can report but that an application cannot easily produce on purpose. They are listed so that a code you receive can be looked up, not because you need a branch for each.

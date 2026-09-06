@@ -88,6 +88,56 @@ Language:
     - [붙여넣기 컨트롤 생성](#붙여넣기-컨트롤-생성)
   - [지우기](#지우기-1)
   - [에러 처리](#에러-처리-1)
+- [macOS](#macos)
+  - [MacClipboardManager](#macclipboardmanager)
+  - [설정](#설정-2)
+    - [스레드](#스레드-1)
+    - [두 가지 호출 방식](#두-가지-호출-방식-1)
+    - [콘텐츠는 타입 식별자와 바이트의 딕셔너리입니다](#콘텐츠는-타입-식별자와-바이트의-딕셔너리입니다)
+    - [기본값](#기본값-1)
+  - [스코프](#스코프-1)
+    - [이름 있는 페이스트보드 생성](#이름-있는-페이스트보드-생성-1)
+    - [고유 페이스트보드 생성](#고유-페이스트보드-생성-1)
+    - [현재 페이스트보드 삭제](#현재-페이스트보드-삭제)
+    - [general 삭제(에러 1508)](#general-삭제에러-1508)
+    - [빈 이름으로 페이스트보드 생성(에러 1505)](#빈-이름으로-페이스트보드-생성에러-1505)
+  - [복사](#복사-2)
+    - [텍스트 복사](#텍스트-복사)
+    - [URL 복사](#url-복사-1)
+    - [이미지 복사](#이미지-복사)
+    - [여러 item 복사](#여러-item-복사)
+    - [여러 representation 복사](#여러-representation-복사)
+    - [빈 복사(에러 1501)](#빈-복사에러-1501)
+    - [representation 이 빈 item 복사(에러 1502)](#representation-이-빈-item-복사에러-1502)
+  - [복사 옵션](#복사-옵션-1)
+    - [localOnly 의 기본값은 true 입니다](#localonly-의-기본값은-true-입니다)
+  - [추가](#추가-1)
+    - [복사한 뒤 추가](#복사한-뒤-추가)
+    - [append 는 추가 대상의 프라이버시 설정을 이어받습니다](#append-는-추가-대상의-프라이버시-설정을-이어받습니다)
+    - [소유권을 잃은 상태에서의 추가(에러 1511)](#소유권을-잃은-상태에서의-추가에러-1511)
+  - [읽기 / 검사](#읽기--검사)
+    - [Read](#read)
+    - [특정 타입 읽기](#특정-타입-읽기)
+    - [Snapshot](#snapshot)
+    - [타입 필터가 있는 Snapshot](#타입-필터가-있는-snapshot)
+    - [빈 필터로 Snapshot(에러 1512)](#빈-필터로-snapshot에러-1512)
+    - [Access Behavior](#access-behavior)
+  - [감지](#감지-1)
+    - [패턴 감지](#패턴-감지-1)
+    - [값 감지](#값-감지-1)
+    - [메타데이터 감지](#메타데이터-감지)
+    - [패턴을 지정하지 않은 감지(에러 1503)](#패턴을-지정하지-않은-감지에러-1503)
+  - [감시](#감시)
+    - [감시 시작](#감시-시작-2)
+    - [잘못된 간격(에러 1523)](#잘못된-간격에러-1523)
+    - [감시 중지](#감시-중지-2)
+    - [포그라운드 복귀 시 변경 확인](#포그라운드-복귀-시-변경-확인-1)
+  - [붙여넣기 컨트롤](#붙여넣기-컨트롤-1)
+    - [잘못된 타입 식별자(에러 1504)](#잘못된-타입-식별자에러-1504)
+  - [지우기](#지우기-2)
+  - [에러 처리](#에러-처리-2)
+    - [1514 에 대하여](#1514-에-대하여)
+    - [일반적인 사용에서는 발생하지 않는 에러 코드](#일반적인-사용에서는-발생하지-않는-에러-코드)
 
 ---
 
@@ -1211,3 +1261,645 @@ Task {
     }
 }
 ```
+
+---
+
+## macOS
+
+- 라이브러리: `mac-native-toolkit-1.3.0.xcframework`
+- 최소 배포 타깃: macOS 15
+- 지원 범위: 복사 / 추가, 읽기와 스냅샷, 이름 있는 페이스트보드와 고유 페이스트보드의 수명 주기, 패턴 감지(macOS 15.4 이상), 변경 감시, 그리고 배치만 하면 바로 동작하는 `PasteButton` 을 제공합니다.
+
+### MacClipboardManager
+
+`MacClipboardManager` 는 `NSPasteboard` 를 감싸는 싱글턴 클래스입니다.
+
+### 설정
+
+1. `mac-native-toolkit-1.3.0.xcframework` 를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그한 뒤 타깃의 Frameworks, Libraries, and Embedded Content 에서 "Embed & Sign" 으로 설정합니다).
+2. 클립보드를 사용하는 파일에서 라이브러리를 임포트합니다.
+
+```swift
+import MacLibrary
+```
+
+추가 초기화나 entitlement 는 필요하지 않습니다.
+
+#### 스레드
+
+모든 작업은 메인 액터에서 `NSPasteboard` 에 도달합니다. 비동기 메서드는 `async throws` 이므로 `Task` 에서 호출해 주십시오. 즉시 완료되는 네 가지 작업은 동기 메서드입니다: `accessBehavior(scope:)`, `startObserving(scope:interval:onEvent:)`, `stopObserving()`, `checkForegroundChange(scope:)`, 그리고 `makePasteButton` 팩토리입니다.
+
+#### 두 가지 호출 방식
+
+각 비동기 작업에는 두 가지 형태가 있습니다. `async throws` 형태는 Swift 호출자를 위한 것입니다. `completion:` 형태는 Unity 브리지를 위한 것으로, C ABI 를 넘어 Swift 의 에러 처리를 전달할 수 없기 때문에 `(isSuccess, value, errorCode, errorMessage)` 로 결과를 알립니다.
+
+```swift
+// Swift
+let ownership = try await MacClipboardManager.shared.copy(content)
+
+// 콜백
+MacClipboardManager.shared.copy(content) { isSuccess, ownership, errorCode, errorMessage in
+    // 메인 액터에서 정확히 한 번만 실행됩니다
+}
+```
+
+#### 콘텐츠는 타입 식별자와 바이트의 딕셔너리입니다
+
+`ClipboardContent` 는 순서가 있는 item 목록을 가지며, 각 item 은 uniform type identifier 에서 바이트로 가는 딕셔너리를 가집니다. `.plainText` 같은 편의 case 는 없습니다. **작성한 그대로 페이스트보드에 실립니다.**
+
+```swift
+let content = ClipboardContent(items: [
+    ClipboardItemData(representations: [
+        "public.utf8-plain-text": Data("Copied from MacLibraryExample.".utf8)
+    ])
+])
+```
+
+#### 기본값
+
+| 파라미터 | 기본값 | 의미 |
+|---|---|---|
+| `scope` | `.general` | 시스템 페이스트보드 |
+| `options` | `.default` | `localOnly: true` |
+| `interval`(감시) | `0.5` 초 | 폴링 간격. 0 보다 크고 60 초 이하 |
+| `timeout`(붙여넣기 버튼) | `15` 초 | 붙여넣은 item 을 로드하는 기한 |
+
+### 스코프
+
+스코프는 `.general`, `.named(String)`, `.unique(String)` 중 하나입니다. general 페이스트보드는 항상 존재합니다. 이름 있는 페이스트보드와 고유 페이스트보드는 생성해야 하며, **앱을 종료해도 해제되지 않습니다.** `removePasteboard(_:)` 로 해제해 주십시오.
+
+#### 이름 있는 페이스트보드 생성
+
+`createPasteboard` 는 페이스트보드를 생성하지만, **같은 이름이 이미 있으면 그것을 가져옵니다.** 따라서 같은 이름으로 두 번 호출해도 내용을 유지한 채 같은 페이스트보드가 반환됩니다.
+
+```swift
+Task {
+    let scope = try await MacClipboardManager.shared.createPasteboard(.named("nt-sample"))
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateNamedPasteboard.png" alt="Example_MacClipboardManager_CreateNamedPasteboard" width="400" />
+</p>
+
+#### 고유 페이스트보드 생성
+
+고유 페이스트보드에는 매번 새로운 시스템 이름이 부여됩니다. 두 번째를 생성하면 첫 번째를 가리킬 이름이 사라지므로, 새로 만들기 전에 이전 것을 해제해 주십시오.
+
+```swift
+Task {
+    let scope = try await MacClipboardManager.shared.createPasteboard(.unique)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateUniquePasteboard.png" alt="Example_MacClipboardManager_CreateUniquePasteboard" width="400" />
+</p>
+
+#### 현재 페이스트보드 삭제
+
+```swift
+Task {
+    try await MacClipboardManager.shared.removePasteboard(scope)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_RemoveCurrentPasteboard.png" alt="Example_MacClipboardManager_RemoveCurrentPasteboard" width="400" />
+</p>
+
+#### general 삭제(에러 1508)
+
+표준 페이스트보드는 해제할 수 없습니다.
+
+```swift
+Task {
+    do {
+        try await MacClipboardManager.shared.removePasteboard(.general)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1508
+    }
+}
+```
+
+#### 빈 이름으로 페이스트보드 생성(에러 1505)
+
+빈 이름은 거부됩니다.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.createPasteboard(.named(""))
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1505
+    }
+}
+```
+
+### 복사
+
+`copy` 는 페이스트보드의 소유권을 얻어 내용을 교체하고, 이후 `append` 가 필요로 하는 `PasteboardOwnership` 을 반환합니다.
+
+#### 텍스트 복사
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.utf8-plain-text": Data("Copied from MacLibraryExample.".utf8)
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyText.png" alt="Example_MacClipboardManager_CopyText" width="400" />
+</p>
+
+#### URL 복사
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.url": Data("https://www.apple.com".utf8)
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyURL.png" alt="Example_MacClipboardManager_CopyURL" width="400" />
+</p>
+
+#### 이미지 복사
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: ["public.png": pngData])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyImage.png" alt="Example_MacClipboardManager_CopyImage" width="400" />
+</p>
+
+#### 여러 item 복사
+
+모든 item 이 페이스트보드에 실립니다. **그중 무엇을 사용할지는 받는 쪽 앱이 결정합니다.** 예를 들어 TextEdit 은 전부 붙여넣습니다.
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: ["public.utf8-plain-text": Data("first".utf8)]),
+            ClipboardItemData(representations: ["public.utf8-plain-text": Data("second".utf8)]),
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleItems.png" alt="Example_MacClipboardManager_CopyMultipleItems" width="400" />
+</p>
+
+#### 여러 representation 복사
+
+하나의 item 이 같은 내용을 두 가지 형식으로 가집니다. 한쪽을 읽지 못하는 앱도 다른 쪽을 찾을 수 있습니다.
+
+```swift
+Task {
+    _ = try await MacClipboardManager.shared.copy(
+        ClipboardContent(items: [
+            ClipboardItemData(representations: [
+                "public.utf8-plain-text": Data(text.utf8),
+                "public.rtf": Data(rtf.utf8),
+            ])
+        ]),
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleRepresentations.png" alt="Example_MacClipboardManager_CopyMultipleRepresentations" width="400" />
+</p>
+
+#### 빈 복사(에러 1501)
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(ClipboardContent(items: []), scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1501
+    }
+}
+```
+
+#### representation 이 빈 item 복사(에러 1502)
+
+representation 이 없는 item 은 거부됩니다.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(
+            ClipboardContent(items: [ClipboardItemData(representations: [:])]),
+            scope: scope
+        )
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1502
+    }
+}
+```
+
+### 복사 옵션
+
+`ClipboardCopyOptions(localOnly:)` 는 내용을 Universal Clipboard 를 통해 다른 기기에 제공할지를 결정합니다.
+
+#### localOnly 의 기본값은 true 입니다
+
+**명시적으로 지정하지 않는 한, 복사한 내용은 다른 기기로 공유되지 않습니다.** `ClipboardCopyOptions.default` 는 `localOnly: true` 이며, options 를 전달하지 않는 `copy` 는 이 값을 사용합니다. 내용을 다른 기기로 보내려면 `localOnly: false` 를 명시적으로 지정해 주십시오.
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(
+        content,
+        options: ClipboardCopyOptions(localOnly: false),   // 다른 기기와 공유합니다
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyWithCurrentOptions.png" alt="Example_MacClipboardManager_CopyWithCurrentOptions" width="400" />
+</p>
+
+2026-09-03 에 macOS 26.3 과 iOS 18.7.2 사이에서 Handoff 를 통해 측정했습니다. `localOnly: false` 에서는 약 1 초 만에 상대 기기에 도달했고, `localOnly: true` 에서는 도달하지 않았으며 상대 기기는 자신의 클립보드를 그대로 유지했습니다. 이는 한 조합의 기기에서 측정한 결과이므로, 모든 기기와 OS 에 대한 보장이 아니라 해당 조합에서의 근거로 다뤄 주십시오.
+
+### 추가
+
+`append` 는 **ownership 이 가리키는 페이스트보드**에 item 을 추가합니다. `append` 자체는 scope 를 받지 않습니다. ownership 이 scope 를 전달합니다.
+
+#### 복사한 뒤 추가
+
+```swift
+Task {
+    let ownership = try await MacClipboardManager.shared.copy(content, scope: scope)
+    let appended = try await MacClipboardManager.shared.append(more, ownership: ownership)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyThenAppend.png" alt="Example_MacClipboardManager_CopyThenAppend" width="400" />
+</p>
+
+#### append 는 추가 대상의 프라이버시 설정을 이어받습니다
+
+`localOnly: true` 로 복사한 내용에 추가해도 페이스트보드가 다시 공개되지 않습니다. 원래 내용도 추가한 item 도 다른 기기에 도달하지 않습니다. 위와 같은 기기 조합으로 2026-09-03 에 측정했습니다.
+
+#### 소유권을 잃은 상태에서의 추가(에러 1511)
+
+다른 앱을 포함해 무언가가 페이스트보드에 쓰는 순간 소유권은 사라집니다. `append` 는 먼저 changeCount 를 대조하고, 쓰지 않은 채 throw 합니다.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.append(late, ownership: stale)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1511
+    }
+}
+```
+
+자신의 앱이 소유권을 가져간 경우에도, 다른 앱이 가져간 경우에도 에러는 같습니다. 라이브러리는 "소유권이 더 이상 성립하지 않는다" 는 사실을 알릴 뿐, 누가 가져갔는지는 알리지 않습니다.
+
+### 읽기 / 검사
+
+#### Read
+
+`read` 는 모든 item 을 그 전체 representation 과 함께 반환합니다.
+
+```swift
+Task {
+    let result = try await MacClipboardManager.shared.read(scope: scope)
+    for (index, item) in result.items.enumerated() {
+        print(index, item.totalBytes, item.representations.keys.sorted())
+    }
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Read.png" alt="Example_MacClipboardManager_Read" width="400" />
+</p>
+
+반환되는 내용에 대해, 코드를 작성하기 전에 알아 두어야 할 것이 두 가지 있습니다.
+
+**item 은 작성한 쪽이 지정한 것보다 많은 representation 을 가집니다.** AppKit 이 자체적으로 텍스트 형식을 추가하기 때문입니다. TextEdit 에서 서식 있는 텍스트를 복사하면 `public.rtf`, `public.utf8-plain-text`, `public.utf16-external-plain-text` 가 함께 실립니다. 필요한 타입을 대조해 주십시오. 타입 집합을 완전 일치로 비교하지 말아 주십시오.
+
+**`totalBytes` 는 모든 item, 모든 representation 의 합계이며 복사한 대상의 크기가 아닙니다.** Finder 에서 텍스트 파일 하나를 복사하니 약 850 KB 였습니다. 페이스트보드가 파일 아이콘을 `com.apple.icns` 로 함께 전달하기 때문입니다.
+
+#### 특정 타입 읽기
+
+`readData` 는 한 타입의 바이트를 반환하고, 해당 타입이 없으면 `nil` 을 반환합니다. **타입이 없는 것은 일반적인 결과이며 에러가 아닙니다.**
+
+```swift
+Task {
+    let data = try await MacClipboardManager.shared.readData(
+        utType: "public.utf8-plain-text",
+        scope: scope
+    )
+    print(data?.count ?? -1)   // 일반 텍스트가 없으면 nil
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_ReadDataPlainText.png" alt="Example_MacClipboardManager_ReadDataPlainText" width="400" />
+</p>
+
+Finder 에서 복사한 파일은 `public.utf8-plain-text` 를 가지며, 그 바이트는 일반적으로 파일의 전체 경로입니다. 읽어 들인 내용은 사용자가 전달할 의도가 없었을 수 있는 정보를 포함한다고 보고 다뤄 주십시오.
+
+#### Snapshot
+
+`snapshot` 은 내용을 읽지 않고 타입과 changeCount 를 알립니다.
+
+```swift
+Task {
+    let snapshot = try await MacClipboardManager.shared.snapshot(scope: scope)
+    print(snapshot.itemTypes.count, snapshot.changeCount)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Snapshot.png" alt="Example_MacClipboardManager_Snapshot" width="400" />
+</p>
+
+#### 타입 필터가 있는 Snapshot
+
+```swift
+Task {
+    let snapshot = try await MacClipboardManager.shared.snapshot(
+        matchingTypes: ["public.utf8-plain-text"],
+        scope: scope
+    )
+    print(snapshot.matchingItemIndexes)
+}
+```
+
+#### 빈 필터로 Snapshot(에러 1512)
+
+빈 필터는 아무것도 일치시키지 않습니다. 그것은 호출하는 쪽에서 보면 "페이스트보드가 비어 있다" 와 구분되지 않으므로 거부됩니다.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.snapshot(matchingTypes: [], scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1512
+    }
+}
+```
+
+#### Access Behavior
+
+동기 메서드입니다. 시스템이 이 페이스트보드에 대한 프로그램적 읽기를 어떻게 다루는지 알립니다.
+
+```swift
+let behavior = try MacClipboardManager.shared.accessBehavior(scope: scope)
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_AccessBehavior.png" alt="Example_MacClipboardManager_AccessBehavior" width="400" />
+</p>
+
+### 감지
+
+감지에는 **macOS 15.4 이상**이 필요합니다. 그 미만에서는 내용을 읽지 않고 `detectionUnavailable`(1513) 을 throw 합니다.
+
+#### 패턴 감지
+
+내용을 읽지 않고 어떤 패턴이 일치하는지 알립니다.
+
+```swift
+Task {
+    let found = try await MacClipboardManager.shared.detectPatterns(
+        [.probableWebURL, .links, .emailAddresses],
+        scope: scope
+    )
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectPatterns.png" alt="Example_MacClipboardManager_DetectPatterns" width="400" />
+</p>
+
+#### 값 감지
+
+일치한 값을 반환합니다. **이 작업은 내용을 읽으므로**, 사용자 조작을 기점으로 호출해 주십시오.
+
+```swift
+Task {
+    let values = try await MacClipboardManager.shared.detectValues(
+        [.probableWebURL, .links, .emailAddresses],
+        scope: scope
+    )
+    print(values.links.count, values.emailAddresses.count)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectValues.png" alt="Example_MacClipboardManager_DetectValues" width="400" />
+</p>
+
+#### 메타데이터 감지
+
+```swift
+Task {
+    let metadata = try await MacClipboardManager.shared.detectMetadata(scope: scope)
+}
+```
+
+#### 패턴을 지정하지 않은 감지(에러 1503)
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.detectPatterns([], scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode)   // 1503
+    }
+}
+```
+
+### 감시
+
+#### 감시 시작
+
+동기 메서드입니다. `onEvent` 는 페이스트보드가 변경될 때마다 메인 액터에서 실행됩니다.
+
+```swift
+try MacClipboardManager.shared.startObserving(scope: scope) { event in
+    print(event.changeCount)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_StartObserving.png" alt="Example_MacClipboardManager_StartObserving" width="400" />
+</p>
+
+앱이 비활성 상태인 동안 감시는 멈추고, 복귀할 때 대조합니다. **백그라운드에 있는 동안 세 번 변경되어도 도달하는 이벤트는 한 번입니다.** 페이스트보드는 과거에 담고 있던 내용의 이력을 갖지 않기 때문입니다.
+
+#### 잘못된 간격(에러 1523)
+
+간격은 0 보다 크고 60 초 이하여야 합니다.
+
+```swift
+do {
+    try MacClipboardManager.shared.startObserving(scope: scope, interval: 0) { _ in }
+} catch let error as ClipboardError {
+    print(error.errorCode)   // 1523
+}
+```
+
+#### 감시 중지
+
+멱등하며 throw 하지 않습니다. 화면이 사라질 때 호출해 주십시오. 매니저는 공유되므로, 호출하지 않으면 폴링이 계속됩니다.
+
+```swift
+MacClipboardManager.shared.stopObserving()
+```
+
+#### 포그라운드 복귀 시 변경 확인
+
+동기 메서드입니다. 이 앱이 마지막으로 확인한 시점 이후 페이스트보드가 변경되었는지 알리며, 해당 스코프의 첫 호출에서는 `true` 를 반환합니다.
+
+```swift
+let changed = try MacClipboardManager.shared.checkForegroundChange(scope: scope)
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_CheckForegroundChange.png" alt="Example_MacClipboardManager_CheckForegroundChange" width="400" />
+</p>
+
+**감시와 함께 쓰지 말고, 감시 대신 사용해 주십시오.** 두 기능은 같은 기준을 공유하므로, 감시가 동작하는 동안 이 호출은 거의 항상 `false` 를 반환합니다. 폴링이 이미 변경을 확인하고 `onEvent` 로 알렸기 때문입니다.
+
+### 붙여넣기 컨트롤
+
+`makePasteButton` 은 시스템 붙여넣기 버튼을 `NSView` 로 반환합니다. 동기 메서드입니다. 뷰 생성은 즉시 완료되는 팩토리 작업이며, 눌렀을 때 시작되는 로드는 `onPaste` 로 알립니다.
+
+```swift
+let button = try MacClipboardManager.shared.makePasteButton(
+    acceptedTypes: ["public.utf8-plain-text", "public.png"],
+    timeout: 5
+) { result in
+    print(result.items.count, result.failures.count, result.isPartial)
+}
+```
+
+SwiftUI 에서는 `NSViewRepresentable` 로 호스팅하고, **생성은 한 번만** 해 주십시오. 호출할 때마다 로더가 등록됩니다.
+
+```swift
+struct PasteButtonHost: NSViewRepresentable {
+    let view: NSView
+    func makeNSView(context: Context) -> NSView { view }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_PasteControl.png" alt="Example_MacClipboardManager_PasteControl" width="400" />
+</p>
+
+시스템 컨트롤의 동작에서 다음 세 가지가 따라 나옵니다.
+
+**이 버튼은 general 스코프 전용입니다.** 다른 호출이 어떤 스코프를 쓰든 시스템 페이스트보드에서 붙여넣습니다.
+
+**시스템은 `acceptedTypes` 에 일치하는 것만 로더에 전달합니다.** 받아들이지 않은 타입의 item 은 도달하지 않습니다. 받아들이는 item 과 받아들이지 않는 item 을 하나씩 담은 페이스트보드를 붙여넣어도 결과는 item 한 건이며, 부분 실패가 되지 않습니다.
+
+**버튼은 항상 누를 수 있는 상태입니다.** 받아들이는 타입이 페이스트보드에 없어도 비활성화되지 않습니다.
+
+#### 잘못된 타입 식별자(에러 1504)
+
+시스템이 해석할 수 없는 타입 식별자는 누를 때가 아니라 버튼을 만들 때 거부됩니다.
+
+```swift
+do {
+    _ = try MacClipboardManager.shared.makePasteButton(acceptedTypes: ["not a uti"]) { _ in }
+} catch let error as ClipboardError {
+    print(error.errorCode)   // 1504
+}
+```
+
+### 지우기
+
+`clear` 는 페이스트보드를 비우고 **페이스트보드의 새로운 changeCount** 를 반환합니다. 이는 `clearContents()` 가 반환하는 값이며, 삭제한 item 의 개수가 아닙니다.
+
+```swift
+Task {
+    let changeCount = try await MacClipboardManager.shared.clear(scope: scope)
+}
+```
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Clear.png" alt="Example_MacClipboardManager_Clear" width="400" />
+</p>
+
+### 에러 처리
+
+모든 작업은 `ClipboardError` 를 throw 합니다. 이 에러는 `errorCode` 와 `errorMessage` 를 가집니다.
+
+```swift
+Task {
+    do {
+        _ = try await MacClipboardManager.shared.copy(content, scope: scope)
+    } catch let error as ClipboardError {
+        print(error.errorCode, error.errorMessage)
+    }
+}
+```
+
+| 코드 | 케이스 | 발생 조건 |
+|---|---|---|
+| 1501 | `emptyContent` | item 이 0 건인 `copy` / `append` |
+| 1502 | `emptyRepresentations` | representation 이 없는 item |
+| 1503 | `emptyDetectionPatterns` | 패턴 집합이 빈 감지 |
+| 1504 | `invalidTypeIdentifier` | 시스템이 해석할 수 없는 타입 식별자 |
+| 1505 | `invalidPasteboardName` | 비어 있거나 잘못된 페이스트보드 이름 |
+| 1506 | `contentTooLarge` | 내용이 크기 상한을 넘음 |
+| 1507 | `pasteboardUnavailable` | 이름 있는 페이스트보드를 해석할 수 없음 |
+| 1508 | `cannotReleaseStandardPasteboard` | 표준 페이스트보드에 대한 `removePasteboard` |
+| 1509 | `writeRejected` | 페이스트보드가 쓰기를 거부함 |
+| 1510 | `appendRejected` | 소유권은 유효하지만 페이스트보드가 추가를 거부함 |
+| 1511 | `ownershipLost` | 복사 이후 다른 무언가가 페이스트보드에 씀 |
+| 1512 | `emptyTypeFilter` | 필터가 빈 `snapshot` |
+| 1513 | `detectionUnavailable` | macOS 15.4 미만에서의 감지 |
+| 1514 | `detectionDenied` | 감지 중 사용자가 접근을 거부함(아래 참조) |
+| 1515 | `detectionFailed` | 그 밖의 이유로 감지가 실패함 |
+| 1521 | `pasteLoadFailed` | 붙여넣기 후 item 을 로드하지 못함 |
+| 1522 | `pasteLoadTimedOut` | 붙여넣기 로드가 기한을 넘김 |
+| 1523 | `invalidConfiguration` | 감시 간격이 0~60 초 범위 밖 |
+| 1524 | `cancelled` | 작업이 취소됨 |
+| 1599 | `unknown` | 그 밖의 경우 |
+
+#### 1514 에 대하여
+
+1514 는 감지 중 사용자가 페이스트보드 내용에 대한 접근을 거부했음을 나타냅니다. **다만 macOS 에서 이 경로가 발생하는지는 확인되지 않았습니다.** 검증 과정에서 감지 프롬프트는 한 번도 표시되지 않았으며, 거부가 1515 로 도달할 가능성이 있습니다.
+
+**1514 만으로 분기하지 말아 주십시오.** 거부와 일반적인 감지 실패를 같은 방식으로 다루어, 둘 다 "내용을 감지할 수 없었다" 로 처리해 주십시오. 이렇게 하면 어느 쪽이든 올바르게 동작합니다.
+
+#### 일반적인 사용에서는 발생하지 않는 에러 코드
+
+1506, 1507, 1509, 1510, 1521, 1522, 1524 는 API 가 알릴 수 있지만 애플리케이션에서 의도적으로 만들어 내기 어려운 조건을 나타냅니다. 받은 코드를 찾아볼 수 있도록 목록에 실었을 뿐이며, 각각에 대해 분기를 작성할 필요는 없습니다.
