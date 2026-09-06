@@ -809,7 +809,7 @@ IosShareManager.shared.share(
 
 ## macOS
 
-- Library: `mac-native-toolkit-1.2.0.xcframework`
+- Library: `mac-native-toolkit-1.3.0.xcframework`
 - Minimum Deployment Target: macOS 15
 - Scope: sending only, via `NSSharingServicePicker` (picker) and `NSSharingService` (direct service execution). Receiving incoming shares is not included.
 - macOS offers two ways to share: a **picker** that lets the user choose a service (`NSSharingServicePicker`), and **direct service execution** that runs a single named service without showing the picker (`NSSharingService`, for example launching Mail with prefilled `recipients`/`subject`).
@@ -826,7 +826,7 @@ IosShareManager.shared.share(
 
 ### Setup
 
-1. Add `mac-native-toolkit-1.2.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
+1. Add `mac-native-toolkit-1.3.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
 2. Import the library where you present the share picker or run a service:
 
 ```swift

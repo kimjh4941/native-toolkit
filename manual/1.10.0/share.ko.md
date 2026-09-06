@@ -809,7 +809,7 @@ IosShareManager.shared.share(
 
 ## macOS
 
-- 라이브러리: `mac-native-toolkit-1.2.0.xcframework`
+- 라이브러리: `mac-native-toolkit-1.3.0.xcframework`
 - 최소 배포 타깃: macOS 15
 - 지원 범위: 전송 전용. 피커(`NSSharingServicePicker`)와 개별 서비스 직접 실행(`NSSharingService`)을 제공합니다. 수신은 포함되지 않습니다.
 - macOS에는 두 가지 공유 방식이 있습니다. 사용자가 공유 대상을 선택하는 **피커**(`NSSharingServicePicker`)와, 피커를 표시하지 않고 지정한 서비스를 바로 실행하는 **개별 서비스 직접 실행**(`NSSharingService`. 예: `recipients`/`subject`를 설정한 상태로 Mail 실행)입니다.
@@ -826,7 +826,7 @@ IosShareManager.shared.share(
 
 ### 설정
 
-1. `mac-native-toolkit-1.2.0.xcframework`를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그하고 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정).
+1. `mac-native-toolkit-1.3.0.xcframework`를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그하고 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정).
 2. 공유 피커나 서비스를 실행하는 파일에서 라이브러리를 임포트합니다.
 
 ```swift

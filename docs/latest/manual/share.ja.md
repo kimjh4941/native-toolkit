@@ -809,7 +809,7 @@ IosShareManager.shared.share(
 
 ## macOS
 
-- ライブラリ: `mac-native-toolkit-1.2.0.xcframework`
+- ライブラリ: `mac-native-toolkit-1.3.0.xcframework`
 - 最小デプロイメントターゲット: macOS 15
 - 対応範囲: 送信のみ。ピッカー（`NSSharingServicePicker`）と個別サービスの直接実行（`NSSharingService`）を提供します。受信は対象外です。
 - macOS には共有方法が 2 つあります。ユーザーが共有先を選ぶ **ピッカー**（`NSSharingServicePicker`）と、ピッカーを表示せず特定のサービスを直接実行する **個別サービスの直接実行**（`NSSharingService`。例: `recipients`/`subject` を設定した状態で Mail を起動）です。
@@ -826,7 +826,7 @@ IosShareManager.shared.share(
 
 ### セットアップ
 
-1. `mac-native-toolkit-1.2.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
+1. `mac-native-toolkit-1.3.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
 2. 共有ピッカーやサービスを実行するファイルでライブラリをインポートします。
 
 ```swift

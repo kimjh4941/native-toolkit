@@ -1263,6 +1263,12 @@ Task {
 
 `MacClipboardManager` は、`NSPasteboard` をラップするシングルトンクラスです。
 
+本節のスクリーンショットは `MacLibraryExample` のものです。同アプリの Clipboard 画面は、以下の節と同じ順序で操作をまとめています。
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Overview.png" alt="Example_MacClipboardManager_Overview" width="400" />
+</p>
+
 ### セットアップ
 
 1. `mac-native-toolkit-1.3.0.xcframework` を Xcode プロジェクトに追加します（プロジェクトにドラッグし、ターゲットの Frameworks, Libraries, and Embedded Content で "Embed & Sign" に設定します）。
@@ -1327,10 +1333,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateNamedPasteboard.png" alt="Example_MacClipboardManager_CreateNamedPasteboard" width="400" />
-</p>
-
 #### ユニークペーストボードの作成
 
 ユニークペーストボードには毎回新しいシステム名が割り当てられます。2 つ目を作成すると 1 つ目を指す名前が失われるため、新しく作る前に前のものを解放してください。
@@ -1341,10 +1343,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateUniquePasteboard.png" alt="Example_MacClipboardManager_CreateUniquePasteboard" width="400" />
-</p>
-
 #### 現在のペーストボードの削除
 
 ```swift
@@ -1352,10 +1350,6 @@ Task {
     try await MacClipboardManager.shared.removePasteboard(scope)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_RemoveCurrentPasteboard.png" alt="Example_MacClipboardManager_RemoveCurrentPasteboard" width="400" />
-</p>
 
 #### general の削除（エラー 1508）
 
@@ -1404,10 +1398,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyText.png" alt="Example_MacClipboardManager_CopyText" width="400" />
-</p>
-
 #### URL のコピー
 
 ```swift
@@ -1423,10 +1413,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyURL.png" alt="Example_MacClipboardManager_CopyURL" width="400" />
-</p>
-
 #### 画像のコピー
 
 ```swift
@@ -1439,10 +1425,6 @@ Task {
     )
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyImage.png" alt="Example_MacClipboardManager_CopyImage" width="400" />
-</p>
 
 #### 複数 item のコピー
 
@@ -1459,10 +1441,6 @@ Task {
     )
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleItems.png" alt="Example_MacClipboardManager_CopyMultipleItems" width="400" />
-</p>
 
 #### 複数 representation のコピー
 
@@ -1481,10 +1459,6 @@ Task {
     )
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleRepresentations.png" alt="Example_MacClipboardManager_CopyMultipleRepresentations" width="400" />
-</p>
 
 #### 空のコピー（エラー 1501）
 
@@ -1533,10 +1507,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyWithCurrentOptions.png" alt="Example_MacClipboardManager_CopyWithCurrentOptions" width="400" />
-</p>
-
 2026-09-03 に macOS 26.3 と iOS 18.7.2 の間で Handoff 経由で計測しました。`localOnly: false` では約 1 秒で相手のデバイスに到達し、`localOnly: true` では到達せず、相手のデバイスは自身のクリップボードを保持し続けました。これは 1 組のデバイスでの計測であるため、すべてのデバイスと OS での保証ではなく、その組み合わせでの根拠として扱ってください。
 
 ### 追記
@@ -1551,10 +1521,6 @@ Task {
     let appended = try await MacClipboardManager.shared.append(more, ownership: ownership)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyThenAppend.png" alt="Example_MacClipboardManager_CopyThenAppend" width="400" />
-</p>
 
 #### append は追記先のプライバシー設定を引き継ぎます
 
@@ -1591,10 +1557,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_Read.png" alt="Example_MacClipboardManager_Read" width="400" />
-</p>
-
 返ってくる内容について、コードを書く前に知っておくべきことが 2 つあります。
 
 **item は、書いた側が指定した数より多くの representation を持ちます。** AppKit が独自にテキスト形式を追加するためです。TextEdit からリッチテキストをコピーすると、`public.rtf`、`public.utf8-plain-text`、`public.utf16-external-plain-text` が同時に載ります。必要な型を照合してください。型の集合を完全一致で比較しないでください。
@@ -1615,10 +1577,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_ReadDataPlainText.png" alt="Example_MacClipboardManager_ReadDataPlainText" width="400" />
-</p>
-
 Finder でコピーしたファイルは `public.utf8-plain-text` を持っており、そのバイト列は一般にファイルの完全パスです。読み取った内容は、利用者が渡すつもりでなかった情報を含みうるものとして扱ってください。
 
 #### Snapshot
@@ -1631,10 +1589,6 @@ Task {
     print(snapshot.itemTypes.count, snapshot.changeCount)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_Snapshot.png" alt="Example_MacClipboardManager_Snapshot" width="400" />
-</p>
 
 #### 型フィルタ付きの Snapshot
 
@@ -1670,10 +1624,6 @@ Task {
 let behavior = try MacClipboardManager.shared.accessBehavior(scope: scope)
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_AccessBehavior.png" alt="Example_MacClipboardManager_AccessBehavior" width="400" />
-</p>
-
 ### 検出
 
 検出には **macOS 15.4 以降**が必要です。それ未満では、内容を読まずに `detectionUnavailable`（1513）を throw します。
@@ -1691,10 +1641,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectPatterns.png" alt="Example_MacClipboardManager_DetectPatterns" width="400" />
-</p>
-
 #### 値の検出
 
 一致した値を返します。**この操作は内容を読み取ります**ので、利用者の操作を起点に呼び出してください。
@@ -1708,10 +1654,6 @@ Task {
     print(values.links.count, values.emailAddresses.count)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectValues.png" alt="Example_MacClipboardManager_DetectValues" width="400" />
-</p>
 
 #### メタデータの検出
 
@@ -1745,10 +1687,6 @@ try MacClipboardManager.shared.startObserving(scope: scope) { event in
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_StartObserving.png" alt="Example_MacClipboardManager_StartObserving" width="400" />
-</p>
-
 アプリが非アクティブの間、監視は停止し、復帰時に照合します。**バックグラウンドの間に 3 回変化があっても、届くイベントは 1 回です。** ペーストボードは過去に保持していた内容の履歴を持たないためです。
 
 #### 不正な間隔（エラー 1523）
@@ -1778,10 +1716,6 @@ MacClipboardManager.shared.stopObserving()
 ```swift
 let changed = try MacClipboardManager.shared.checkForegroundChange(scope: scope)
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CheckForegroundChange.png" alt="Example_MacClipboardManager_CheckForegroundChange" width="400" />
-</p>
 
 **監視と併用せず、監視の代わりに使用してください。** 両者は同じ基準を共有するため、監視が動作している間は、この呼び出しはほぼ常に `false` を返します。ポーリングが既に変化を検出し、`onEvent` で報告済みだからです。
 
@@ -1841,10 +1775,6 @@ Task {
     let changeCount = try await MacClipboardManager.shared.clear(scope: scope)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_Clear.png" alt="Example_MacClipboardManager_Clear" width="400" />
-</p>
 
 ### エラー処理
 

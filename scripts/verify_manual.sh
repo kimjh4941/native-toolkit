@@ -88,9 +88,20 @@ IGNORE_FILE = Path("agent-rules/workflows/verify-manual/SAMPLE_CONFORMANCE_IGNOR
 
 # Where each platform section's sample app screen lives. `{feature}` is the
 # capitalized feature name taken from the manual's filename.
+#
+# A screen may keep its fixtures in a companion file, and a literal the manual
+# quotes can live there rather than in the view. Scanning only the view reported
+# `public.url` and `public.rtf` as absent when both are declared next door
+# (R-SA29): the subject is the sample screen, not one file of it.
 SAMPLE_SOURCES = {
-    "iOS": ["ios/IosLibraryExample/IosLibraryExample/{feature}SampleView.swift"],
-    "macOS": ["mac/MacLibraryExample/MacLibraryExample/{feature}SampleView.swift"],
+    "iOS": [
+        "ios/IosLibraryExample/IosLibraryExample/{feature}SampleView.swift",
+        "ios/IosLibraryExample/IosLibraryExample/{feature}SampleSupport.swift",
+    ],
+    "macOS": [
+        "mac/MacLibraryExample/MacLibraryExample/{feature}SampleView.swift",
+        "mac/MacLibraryExample/MacLibraryExample/{feature}SampleSupport.swift",
+    ],
     "Android": [
         "android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/"
         "android/nativetoolkit/example/{feature}SampleScreen.kt"
@@ -226,12 +237,17 @@ def check_sample_conformance():
         for platform, body in platform_sections(page.read_text()):
             candidates = [Path(t.format(feature=feature.capitalize()))
                           for t in SAMPLE_SOURCES.get(platform, [])]
-            source = next((c for c in candidates if c.is_file()), None)
-            if source is None:
+            sources = [c for c in candidates if c.is_file()]
+            if not sources:
                 notes.append(f"{page.name} [{platform}] no sample screen found "
                              f"({', '.join(str(c) for c in candidates) or 'no mapping'})")
                 continue
-            sample = source.read_text()
+            # Every file of the screen, not the first that exists: taking only
+            # the first made a literal declared in the companion file look absent
+            # (R-SA29).
+            sample = "\n".join(c.read_text() for c in sources)
+            source = sources[0] if len(sources) == 1 else Path(
+                " / ".join(c.name for c in sources))
             where = f"{page.name} [{platform}]"
             for lang, block in code_blocks(body):
                 if lang not in FENCE_LANGUAGES.get(platform, set()):

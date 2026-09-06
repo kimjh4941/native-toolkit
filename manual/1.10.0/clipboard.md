@@ -1269,6 +1269,12 @@ Task {
 
 `MacClipboardManager` is a singleton class that wraps `NSPasteboard`.
 
+The screenshots in this section come from `MacLibraryExample`, whose Clipboard screen groups the operations in the same order as the sections below.
+
+<p align="center">
+    <img src="images/mac/clipboard/Example_MacClipboardManager_Overview.png" alt="Example_MacClipboardManager_Overview" width="400" />
+</p>
+
 ### Setup
 
 1. Add `mac-native-toolkit-1.3.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
@@ -1333,10 +1339,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateNamedPasteboard.png" alt="Example_MacClipboardManager_CreateNamedPasteboard" width="400" />
-</p>
-
 #### Create Unique Pasteboard
 
 A unique pasteboard is given a fresh system name every time. Creating a second one leaves the first with no name you can address, so release the previous one before creating another.
@@ -1347,10 +1349,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CreateUniquePasteboard.png" alt="Example_MacClipboardManager_CreateUniquePasteboard" width="400" />
-</p>
-
 #### Remove Current Pasteboard
 
 ```swift
@@ -1358,10 +1356,6 @@ Task {
     try await MacClipboardManager.shared.removePasteboard(scope)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_RemoveCurrentPasteboard.png" alt="Example_MacClipboardManager_RemoveCurrentPasteboard" width="400" />
-</p>
 
 #### Remove General (error 1508)
 
@@ -1410,10 +1404,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyText.png" alt="Example_MacClipboardManager_CopyText" width="400" />
-</p>
-
 #### Copy URL
 
 ```swift
@@ -1429,10 +1419,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyURL.png" alt="Example_MacClipboardManager_CopyURL" width="400" />
-</p>
-
 #### Copy Image
 
 ```swift
@@ -1445,10 +1431,6 @@ Task {
     )
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyImage.png" alt="Example_MacClipboardManager_CopyImage" width="400" />
-</p>
 
 #### Copy Multiple Items
 
@@ -1465,10 +1447,6 @@ Task {
     )
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleItems.png" alt="Example_MacClipboardManager_CopyMultipleItems" width="400" />
-</p>
 
 #### Copy Multiple Representations
 
@@ -1487,10 +1465,6 @@ Task {
     )
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyMultipleRepresentations.png" alt="Example_MacClipboardManager_CopyMultipleRepresentations" width="400" />
-</p>
 
 #### Copy Empty (error 1501)
 
@@ -1539,10 +1513,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyWithCurrentOptions.png" alt="Example_MacClipboardManager_CopyWithCurrentOptions" width="400" />
-</p>
-
 Measured on 2026-09-03 between macOS 26.3 and iOS 18.7.2 over Handoff: with `localOnly: false` the contents reached the paired device in about a second; with `localOnly: true` they did not arrive, and the other device kept its own clipboard. That is one device pairing, so treat it as evidence for that pairing rather than a guarantee for every device and OS.
 
 ### Append
@@ -1557,10 +1527,6 @@ Task {
     let appended = try await MacClipboardManager.shared.append(more, ownership: ownership)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CopyThenAppend.png" alt="Example_MacClipboardManager_CopyThenAppend" width="400" />
-</p>
 
 #### Append keeps the privacy of what it appends to
 
@@ -1597,10 +1563,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_Read.png" alt="Example_MacClipboardManager_Read" width="400" />
-</p>
-
 Two things about what comes back are worth knowing before you write code against it.
 
 **An item carries more representations than the writer asked for.** AppKit adds text flavors of its own: copying rich text from TextEdit yields `public.rtf`, `public.utf8-plain-text` and `public.utf16-external-plain-text` together. Match the type you need; do not compare the set of types for equality.
@@ -1621,10 +1583,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_ReadDataPlainText.png" alt="Example_MacClipboardManager_ReadDataPlainText" width="400" />
-</p>
-
 A file copied in Finder does carry `public.utf8-plain-text`, and those bytes are generally the file's full path. Treat what you read as content the user may not have meant to hand over.
 
 #### Snapshot
@@ -1637,10 +1595,6 @@ Task {
     print(snapshot.itemTypes.count, snapshot.changeCount)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_Snapshot.png" alt="Example_MacClipboardManager_Snapshot" width="400" />
-</p>
 
 #### Snapshot with a type filter
 
@@ -1676,10 +1630,6 @@ Synchronous. Reports how the system treats programmatic reads of this pasteboard
 let behavior = try MacClipboardManager.shared.accessBehavior(scope: scope)
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_AccessBehavior.png" alt="Example_MacClipboardManager_AccessBehavior" width="400" />
-</p>
-
 ### Detect
 
 Detection requires **macOS 15.4 or later**. Below that the operations throw `detectionUnavailable` (1513) without reading anything.
@@ -1697,10 +1647,6 @@ Task {
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectPatterns.png" alt="Example_MacClipboardManager_DetectPatterns" width="400" />
-</p>
-
 #### Detect Values
 
 Returns the matched values. **This one reads the contents**, so call it from a user-initiated action.
@@ -1714,10 +1660,6 @@ Task {
     print(values.links.count, values.emailAddresses.count)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_DetectValues.png" alt="Example_MacClipboardManager_DetectValues" width="400" />
-</p>
 
 #### Detect Metadata
 
@@ -1751,10 +1693,6 @@ try MacClipboardManager.shared.startObserving(scope: scope) { event in
 }
 ```
 
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_StartObserving.png" alt="Example_MacClipboardManager_StartObserving" width="400" />
-</p>
-
 Observation pauses while your app is inactive and reconciles when it returns: **three changes made while you were in the background arrive as one event**, because a pasteboard keeps no history of what it held.
 
 #### Invalid interval (error 1523)
@@ -1784,10 +1722,6 @@ Synchronous. Reports whether the pasteboard changed since this app last looked, 
 ```swift
 let changed = try MacClipboardManager.shared.checkForegroundChange(scope: scope)
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_CheckForegroundChange.png" alt="Example_MacClipboardManager_CheckForegroundChange" width="400" />
-</p>
 
 **Use this instead of observation, not alongside it.** Both move the same mark, so while observation is running this returns `false` almost always: the poll has already seen the change and reported it through `onEvent`.
 
@@ -1847,10 +1781,6 @@ Task {
     let changeCount = try await MacClipboardManager.shared.clear(scope: scope)
 }
 ```
-
-<p align="center">
-    <img src="images/mac/clipboard/Example_MacClipboardManager_Clear.png" alt="Example_MacClipboardManager_Clear" width="400" />
-</p>
 
 ### Error Handling
 
