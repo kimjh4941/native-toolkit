@@ -88,9 +88,20 @@ IGNORE_FILE = Path("agent-rules/workflows/verify-manual/SAMPLE_CONFORMANCE_IGNOR
 
 # Where each platform section's sample app screen lives. `{feature}` is the
 # capitalized feature name taken from the manual's filename.
+#
+# A screen may keep its fixtures in a companion file, and a literal the manual
+# quotes can live there rather than in the view. Scanning only the view reported
+# `public.url` and `public.rtf` as absent when both are declared next door
+# (R-SA29): the subject is the sample screen, not one file of it.
 SAMPLE_SOURCES = {
-    "iOS": ["ios/IosLibraryExample/IosLibraryExample/{feature}SampleView.swift"],
-    "macOS": ["mac/MacLibraryExample/MacLibraryExample/{feature}SampleView.swift"],
+    "iOS": [
+        "ios/IosLibraryExample/IosLibraryExample/{feature}SampleView.swift",
+        "ios/IosLibraryExample/IosLibraryExample/{feature}SampleSupport.swift",
+    ],
+    "macOS": [
+        "mac/MacLibraryExample/MacLibraryExample/{feature}SampleView.swift",
+        "mac/MacLibraryExample/MacLibraryExample/{feature}SampleSupport.swift",
+    ],
     "Android": [
         "android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/"
         "android/nativetoolkit/example/{feature}SampleScreen.kt"
@@ -226,12 +237,17 @@ def check_sample_conformance():
         for platform, body in platform_sections(page.read_text()):
             candidates = [Path(t.format(feature=feature.capitalize()))
                           for t in SAMPLE_SOURCES.get(platform, [])]
-            source = next((c for c in candidates if c.is_file()), None)
-            if source is None:
+            sources = [c for c in candidates if c.is_file()]
+            if not sources:
                 notes.append(f"{page.name} [{platform}] no sample screen found "
                              f"({', '.join(str(c) for c in candidates) or 'no mapping'})")
                 continue
-            sample = source.read_text()
+            # Every file of the screen, not the first that exists: taking only
+            # the first made a literal declared in the companion file look absent
+            # (R-SA29).
+            sample = "\n".join(c.read_text() for c in sources)
+            source = sources[0] if len(sources) == 1 else Path(
+                " / ".join(c.name for c in sources))
             where = f"{page.name} [{platform}]"
             for lang, block in code_blocks(body):
                 if lang not in FENCE_LANGUAGES.get(platform, set()):
@@ -361,6 +377,87 @@ def check_language_parity():
     return findings
 
 
+# --- 7. index feature list (BLOCKING) ----------------------------------------
+
+def check_index_feature_list():
+    """Every platform a feature page documents must be listed in the index.
+
+    Both sides are derived independently: the pages side from the `## <OS>`
+    headings inside each feature page, the index side from the top-level bullets
+    under the matching `## <OS>` section of the feature list. Counts are compared
+    rather than names, so the check works the same in all three languages.
+
+    This is what let macOS clipboard ship linked-but-unlisted: the link was in
+    the table of contents, the feature list had android and ios but not mac, and
+    nothing looked at the two together (NTKIT-15).
+    """
+    findings = []
+    indexes = {"en": "index.md", "ja": "index.ja.md", "ko": "index.ko.md"}
+
+    documented = {}   # lang -> platform -> [feature]
+    for feature, paths in feature_files().items():
+        for path in paths:
+            parts = path.name.split(".")
+            lang = "en" if len(parts) == 2 else parts[1]
+            text = path.read_text()
+            for line, in_code in strip_code_blocks(text):
+                if in_code or not line.startswith("## "):
+                    continue
+                platform = PLATFORM_ALIASES.get(line[3:].strip().lower())
+                if platform:
+                    documented.setdefault(lang, {}).setdefault(
+                        platform, []).append(feature)
+
+    for lang, name in indexes.items():
+        index = MANUAL / name
+        pages = documented.get(lang, {})
+        if not index.is_file():
+            if pages:
+                findings.append(f"{name}: missing, but {len(pages)} platforms are "
+                                f"documented by feature pages")
+            continue
+
+        # Top-level bullets of each platform section of the feature list.
+        listed, section, seen = {}, None, {}
+        for line, in_code in strip_code_blocks(index.read_text()):
+            if in_code:
+                continue
+            if line.startswith("## "):
+                section = PLATFORM_ALIASES.get(line[3:].strip().lower())
+                if section:
+                    seen[section] = seen.get(section, 0) + 1
+                    listed.setdefault(section, 0)
+                continue
+            if line.startswith("#"):
+                section = None
+                continue
+            if section and line.startswith("- "):
+                listed[section] += 1
+
+        # A parse that finds nothing would pass every comparison below.
+        if len(listed) < 2:
+            findings.append(f"{name}: found {len(listed)} platform sections in the "
+                            f"feature list; expected one per platform")
+            continue
+        for platform, count in sorted(seen.items()):
+            if count > 1:
+                findings.append(f"{name}: '{platform}' appears as a heading "
+                                f"{count} times; cannot tell which is the feature list")
+
+        for platform in sorted(set(listed) | set(pages)):
+            features = sorted(set(pages.get(platform, [])))
+            if platform not in listed:
+                findings.append(f"{name}: no '{platform}' section, but "
+                                f"{', '.join(features)} document it")
+                continue
+            if len(features) != listed[platform]:
+                findings.append(
+                    f"{name}: '{platform}' lists {listed[platform]} features but "
+                    f"{len(features)} pages document it ({', '.join(features) or 'none'})")
+    return findings
+
+
+
 # --- runner -------------------------------------------------------------------
 
 CHECKS = [
@@ -370,6 +467,7 @@ CHECKS = [
     ("artifact filenames", "BLOCKING", lambda: (check_artifacts(), [])),
     ("prose style (ja/ko)", "warning", lambda: (check_prose_style(), [])),
     ("language parity", "warning", lambda: (check_language_parity(), [])),
+    ("index feature list", "BLOCKING", lambda: (check_index_feature_list(), [])),
 ]
 
 print(f"Verifying manual/{VERSION}\n")

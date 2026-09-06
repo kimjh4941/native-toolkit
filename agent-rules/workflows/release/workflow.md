@@ -14,10 +14,19 @@
 
 1. **リリースバージョン** — ステップ1 で取得済みの場合はスキップ
    - 例: `1.3.0`
+   - ステップ1 で取得済みの場合、このステップで確認することは何もないので、ダイアログを出さずに
+     ステップ3 へ進む
 
-2. **マージ方式** — デフォルト: squash
-   - `squash`: コミットをまとめてマージ
-   - `merge commit`: コミット履歴をそのままマージ
+**マージ方式は選択させない。** ステップ5・ステップ6 とも `--merge`（merge commit）で固定であり、
+squash は使用しない。
+
+- 理由: `/commit-msg` で 1 コミットずつ理由を書き込む運用のため、squash するとその記述が
+  develop と main の履歴から失われる
+- 1.8.0 以前は feature→develop を squash で運用していた。`git log <前タグ>..<タグ>` の件数が
+  バージョン間で揃わないのはこのため（1.7.0..1.8.0 は 2 件で、うち NTKIT-12 の作業は
+  `feature: feature/NTKIT-12 (#20)` の 1 件に潰れている。1.8.0..1.9.0 は 17 件）
+- 偽コンフリクトを防いでいるのはステップ6 の `--merge` だけである（ステップ6 参照）。
+  ステップ5 を merge commit にすることは履歴の粒度の話であり、コンフリクトとは関係しない
 
 ## ステップ3: リリース前チェックリスト
 
@@ -79,7 +88,8 @@
 1. `gh pr create --base develop --title "feature: <現在のブランチ名>" --body "<ステップ4のリリースノート>"` を実行する
 2. PR URL を表示する
 3. 「PR をマージしますか？」を確認する:
-   - マージする: `gh pr merge <PR番号> --<squash|merge> --delete-branch` を実行する
+   - マージする: `gh pr merge <PR番号> --merge --delete-branch` を実行する
+     （`--squash` は使用しない。ステップ2 参照）
    - あとで手動でマージする: PR URL を表示して終了
 
 ## ステップ6: develop → main PR を作成する
@@ -89,7 +99,10 @@
 - **マージ方式は必ず `--merge`（merge commit）を使用する。squash は使用しない**
   - 理由: develop→main を squash すると、main 側のコミットが develop の履歴と親子関係を持たなくなる
     - 次回リリース時に `git merge-base develop main` が実際より古いコミットまで遡ってしまい、develop 側で既に取り込み済みの変更が「両側で別々に変更された」と誤認されて偽コンフリクトが発生する
-    - feature→develop 側（ステップ5）は squash のままで問題ない（トピックブランチ整理が目的で、develop 自身の履歴の連続性には影響しないため）
+    - `--merge` ならマージコミットの第 2 親が develop の先端になるため、`git merge-base` が正しい位置を指す
+  - **偽コンフリクトを防いでいるのはこのステップだけである。** ステップ5 も merge commit だが、
+    それは履歴の粒度のためであって、コンフリクト対策ではない
+- `--delete-branch` は付けない（`develop` は残す必要がある）
 
 1. `git fetch origin && git checkout develop && git pull origin develop` を実行する
 2. `gh pr create --base main --title "Release v<version>" --body "<ステップ4のリリースノート>"` を実行する
