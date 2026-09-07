@@ -1,2 +1,7 @@
 /Build
 /Docs
+# Xcode per-user UI state (open tabs, breakpoints, window layout). It is written on
+# every editor interaction and belongs to one machine, so it is noise in every diff.
+# Unlike Debug/ or Release/, "xcuserdata" is an Xcode-reserved name, so matching it
+# at any depth is safe: it only ever appears inside .xcworkspace / .xcodeproj.
+xcuserdata/

@@ -14,8 +14,8 @@ set -euo pipefail
 #   ./scripts/build_android_library_aar.sh --build-type release --output dist/1.1.0/android/android-native-toolkit-1.1.0.aar
 #   ./scripts/build_android_library_aar.sh --build-type release --library-version 1.1.0 --log-file dist/1.1.0/android/build-1.1.0.log
 #   ./scripts/build_android_library_aar.sh -b debug -m android_library -v 1.1.0 -o /tmp/NativeToolkit-debug.aar
-#   ./scripts/build_android_library_aar.sh -b release -m android_library -v 1.2.0 -o dist/1.5.0/android/android-native-toolkit-1.2.0.aar
-#   ./scripts/build_android_library_aar.sh -b release -m unity_android_plugin -v 1.2.0 -o dist/1.5.0/android/unity-android-native-toolkit-1.2.0.aar
+#   ./scripts/build_android_library_aar.sh -b release -m android_library -v 1.3.0 -o dist/1.8.0/android/android-native-toolkit-1.3.0.aar
+#   ./scripts/build_android_library_aar.sh -b release -m unity_android_plugin -v 1.3.0 -o dist/1.8.0/android/unity-android-native-toolkit-1.3.0.aar
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"

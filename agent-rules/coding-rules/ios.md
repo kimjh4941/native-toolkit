@@ -79,22 +79,23 @@ Swift の API を Objective-C から呼び出す際、completion ブロックの
 
 ---
 
-## Manager の公開 API（同期性と Main Actor 制約）
+## Manager の公開 API（callback 版 + async throws 版）
 
 方針は `common.md`「Manager の公開 API 方式」を参照。iOS では次の形で実装する。
 
-- callback 版（Bridge 向け）: 既存 API は `(Bool, ..., String?) -> Void` 形式を維持する。新規 API は、非同期完了または任意スレッドから Main Actor への配送完了を通知する場合に callback 形式にする
-- ネイティブ版（Swift 呼び出し元向け）: 同期 UseCase は `throws`、非同期 UseCase は `async throws` で、その同期性を維持した薄いラッパーにする。戻り値を意図的に無視できる API に限り `@discardableResult` を付ける
-- UIKit など Main Actor 要件がある API は `@MainActor` で分離する。同期 API を Main Actor 限定で公開する場合は `@MainActor` + 同期関数、任意スレッドからの呼び出しに対応する場合は Main Actor へ非同期配送して完了を通知する
-- サンプルアプリ（`IosLibraryExample`）は処理に合うネイティブ版を使う。同期 API は直接呼び、`async throws` API は同期 action から `Task { try await ... }` で橋渡しする
+- callback 版（Bridge 向け）: 既存どおり `(Bool, ..., String?) -> Void` 形式を維持する
+- ネイティブ版（Swift 呼び出し元向け）: `async throws` で UseCase をそのまま公開する薄いラッパーを追加する（`@discardableResult` を付け、戻り値を無視できるようにする）
+- 新規 Manager を作る場合は、両方式を最初から用意する（後から追加ではなく設計時点で決める）
+- サンプルアプリ（`IosLibraryExample`）は `async throws` 版を使う（`Button` の action は同期クロージャのため `Task { await ... }` で橋渡しする）
+- **例外**: 待機や結果の非同期到着を伴わず即時完了する control 操作（監視の開始・停止、キャンセル、真偽値の即時判定など）および factory 操作（UI コンポーネントの生成など）は、callback 版 / `async throws` 版を設けず同期形式のまま公開してよい。詳細と適用条件は `common.md`「システム API に合わせた同期・非同期設計」の「例外（同期 control / factory API）」を参照する。上記「必ず `async throws` にする」はこの例外に該当しない操作に適用する
 
 ### `async` の要否（重い処理か軽い処理か）
 
-Manager の公開 API と内部 helper は、システム API / UseCase の同期性を維持する。Main Actor への配送が必要な場合は、その配送境界も考慮して公開形式を決める。
+Manager の公開 API（ネイティブ版）は上記のとおり必ず `async throws` にするが、その内部で呼ぶ private helper まで一律 `async` にする必要はない。
 
 - **`async` にすべきもの**: システム API 呼び出しが実際に非同期・待機を伴うもの（`UIActivityViewController` の完了待ち等）
 - **`async` にしなくてよいもの**: `FileManager` を使ったローカルの一時ファイル書き込み・読み込みなど、同期的に完結する軽量処理。`ShareSampleView.swift` の `prepareSampleFileURL()` / `prepareSampleImagePaths(count:)` 等は plain な同期関数のままで、呼び出し元の `Task { }` ブロック内から同期呼び出しされている（これが確立された慣例）
-- UI 状態の更新は `@MainActor` または `await MainActor.run { ... }` で Main Actor に戻す。既存コードが `DispatchQueue.main.async { ... }` を使っている場合は、その契約を維持する
+- UI 状態の更新は `DispatchQueue.main.async { ... }` でメインスレッドに戻す（`updateResult(isSuccess:result:)` のパターンを参照）
 
 ---
 

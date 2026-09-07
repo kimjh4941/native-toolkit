@@ -41,6 +41,17 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
 
+                    NavigationLink {
+                        ClipboardSampleView()
+                    } label: {
+                        menuCard(
+                            title: "Clipboard Example",
+                            subtitle: "Test clipboard copy, paste and observation features"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("menu.clipboard")
+
                     Spacer(minLength: 0)
                 }
                 .padding()

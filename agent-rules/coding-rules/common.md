@@ -21,6 +21,7 @@ Domain → Application → Data
 ```
 
 - **Domain**: 純粋モデル・エラー型（プラットフォーム依存なし、標準ライブラリのみ）
+  - 例外: プラットフォーム UI（`UIKit` / `AppKit` 等）や system service object・delegate・platform API object に依存しない、`Sendable` な値型（`Data` / `Date` / `URL` / `UUID` / `TimeInterval` 等の Swift `Foundation` 値型、Kotlin/Java・C++ の対応する標準値型）は Domain で許容する。任意の system `Error`（`NSError` 等）は正規化せず Domain へ保持してはならない。新たにこの種の型を Domain の公開 API へ追加する場合は、値型・`Sendable`・UI 非依存であることを設計レビューで確認する
 - **Application**: UseCase と Port（Repository protocol）。UseCase は 1 操作 1 クラスで `callAsFunction` / `invoke` を持つ
 - **Data**: Repository 実装。Domain モデル → プラットフォーム型の変換を担う
 - **Presentation**: Permission helper / UI 連携（プラットフォーム API 依存はここまで）
@@ -124,6 +125,30 @@ public func share(content: ShareContent) async throws -> ShareResult
 public func readText() throws -> String
 ```
 
+### システム API に合わせた同期・非同期設計
+
+Repository / UseCase / private helper の実行方式は、内部で呼び出すシステム API の実行方式に合わせる。
+
+- 同期システム API は同期関数として扱い、不必要に `async` / callback で包まない
+- callback / future / promise / `async` 形式のシステム API は、完了待ちを表現できる非同期関数として扱う
+- listener / notification / stream 型 API は、開始・停止は同期操作、イベント配信は非同期イベントとして区別する
+- 非同期 API では、完了スレッドまたは actor、exactly-once、キャンセル手段、タイムアウト、リソース所有権を明記する
+- 重い同期処理を background executor へ移す場合は、「システム API は同期だが、呼び出し側には非同期処理として公開する」という設計判断と理由を明記する
+- 将来の拡張だけを理由に、Repository / UseCase / private helper を一律 `async` にしない
+
+Manager の公開 API 方式は、この内部実行方式とは分けて考える。各 OS ルールが callback 版とネイティブ非同期版の併設を要求する場合、同期 UseCase に対しても Manager は薄い `async` ラッパーを提供してよい。Manager の公開規約を理由に、下位層まで不必要に非同期化してはならない。
+
+**例外（同期 control / factory API）**: 待機や結果の非同期到着を伴わず、呼び出しと同時に完結する control 操作（監視の開始・停止・キャンセル、真偽値の即時判定など）や factory 操作（UI コンポーネントの生成など）は、callback 版・ネイティブ非同期版を設けず同期形式のまま公開してよい。この例外は「即時完了する」操作に限り、待機・結果の非同期到着を伴う操作には適用しない（その場合は callback + ネイティブ非同期版の併設が必須）。
+
+research / design では、全サブ機能について次を表で追跡する。
+
+| 段階 | 必須内容 |
+|---|---|
+| Research | システム API、同期 / callback / async / stream の分類、完了方式、完了スレッド、キャンセル手段 |
+| Design | System API → Repository → UseCase → Manager callback → Manager native → Bridge の各実行方式、actor / thread、変換理由 |
+
+実装・レビューでは、この表とコードのシグネチャ、actor isolation、キャンセル・完了契約が一致していることを確認する。
+
 ### Delegate・Callback の所有権
 
 - システム Delegate / Listener（例: iOS の `UNUserNotificationCenterDelegate`、Android の `ClipboardManager.OnPrimaryClipChangedListener`）は Manager 層の 1 クラスのみが所有する
@@ -195,6 +220,29 @@ iOS / macOS / Android は製品コードと同じ言語の一次サポート UI 
 - OS のシェル UI・システム設定
 - 権限ダイアログの初回同意
 - 実機依存の外部サービス連携・別デバイス連携
+
+### 検査の書き方（必須）
+
+**「実装が壊れているのに検査が通る」形を作らないこと。** レビューで最も繰り返し出る指摘であり、
+macOS clipboard（NTKIT-15）では 4 ラウンド連続で出た。原因はいずれも**検査が自分で対象を
+決めていた**ことである。次の 4 つを守る。
+
+| 規則 | 破ったときに起きること |
+|---|---|
+| **実装の集合を主題にする検査は、両辺をソースから導出する。** 「全 OP が呼ばれている」「全ボタンが報告する」のような検査に適用する。**純粋関数に個別の入出力を与える単体テストは対象外**。そこでは期待値を手で書くのが正しい | 実装を変えると検査も一緒に変えることになり、ずれが検出できない |
+| **空回り防止は、主題そのものの単位で持つ。** 「全体で N 件以上」ではなく「対象のファイル群で N 件以上」 | 無関係な対象が床を満たし、主題を全部消しても通る |
+| **2 つの集合を対応づける（`zip` する）検査は、定義側・ヘルパー側を明示的に除き、件数の一致を検査する。** 「N 件以上」で済ませない | ずれた対応のまま静かに無意味になる（ずれた先はたいてい空で通る） |
+| **部分一致には錨を打つ。** 識別子は境界ごと、ラベルは区切り文字ごと照合する | 名前に包含関係がある対（`snapshot` ⊂ `snapshotFiltered`）が互いに成立してしまう |
+
+| **走査で書いた検査は、主題を推移的に閉じる。** 主題を返す computed property やヘルパーは主題そのものとして扱う。閉じられないなら、**走査ではなく構造で不可能にする**（値を 1 か所で捕捉して渡す、生成を 1 関数に集約する） | 間接参照を 1 つ足すだけで検査が黙る。**「何を探すか」だけ直して「どこを探すか」を直さないと、同じ形が別の検査で再発する** |
+
+**そして、検査を足したら壊して確認する。** 通ることの確認では足りない。**壊す対象は実装とは
+限らない。** 判定規則そのものが対象なら、規則を純関数に切り出して直接壊す。「実装を壊す形で
+mutant を作れない」は、変異検査を省く理由にならない。
+
+**変異は「前回の指摘の再導入」だけにしない。** 指摘された形を戻すだけでは、指摘されていない
+形の穴は見つからない。**契約は保ったまま実装の形だけを変える**変異（間接参照を 1 つ挟む、
+名前を変える、順序を入れ替える）を作る。
 
 ### テストの確認タイミング
 
