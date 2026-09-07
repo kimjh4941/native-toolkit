@@ -31,10 +31,6 @@ packages/
 Generated Files/
 **/WindowsL.*/
 
-# C# UI test project build output
-/windows/WindowsLibraryExampleUITest/bin/
-/windows/WindowsLibraryExampleUITest/obj/
-
 # Python bytecode from scripts/
 __pycache__/
 *.pyc
