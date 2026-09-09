@@ -344,7 +344,7 @@ typedef void (*NativeStatusCallback)(const char* status);
 
 理由の記載がない入力欄は `review-document` の指摘対象とする。
 
-**機械検査:** `python3 scripts/check_sample_app_inputs.py` が 4 サンプルを検査する。この欠陥は 1 画面を読んでも異常が見えず、他の画面と並べて初めて分かるため、レビューの目視では検出できない。例外を通す場合は、該当ファイルに次のコメントを置いて計画書を指し示す。
+**機械検査:** `python3 scripts/check_sample_app_inputs.py` が 4 サンプルを検査する（Windows では `python3` が Microsoft Store のエイリアスに解決され、コードを実行せず終了することがある。その場合は `python` を使う）。この欠陥は 1 画面を読んでも異常が見えず、他の画面と並べて初めて分かるため、レビューの目視では検出できない。例外を通す場合は、該当ファイルに次のコメントを置いて計画書を指し示す。
 
 ```
 sample-app-input-approved: artifact/designs/<feature>/<計画書ファイル名>

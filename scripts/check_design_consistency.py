@@ -197,7 +197,7 @@ def check_error_mapping(text, path, rep):
                  "no implementation file mapped for this document")
         return
     actual = {m.group(1): int(m.group(2)) for m in
-              re.finditer(r"case \.(\w+):\s*return (\d{4})", source.read_text())}
+              re.finditer(r"case \.(\w+):\s*return (\d{4})", source.read_text(encoding="utf-8"))}
     if not actual:
         rep.skip("error codes match the implementation", f"no 'case .x: return NNNN' in {source}")
         return
