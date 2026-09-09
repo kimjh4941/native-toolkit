@@ -56,9 +56,23 @@ ID_PREFIXES = ("IT", "BT", "CT", "PT", "OP", "RK", "DV")
 # Where a feature's implementation lives. The design is checked against the code rather than
 # against a list of words a reviewer happened to notice: a deny-list only ever knows about the
 # drift that has already been found once.
+# Keyed by "<platform>-<feature>", matched against the document path. A feature exists
+# on several platforms and each has its own sources, so a key naming the feature alone
+# sent every clipboard document at the macOS tree: a Windows design was checked against
+# mac/ and its symbols were reported missing although they exist in windows/.
 SOURCE_ROOTS = {
-    "clipboard": ["mac/MacLibrary", "mac/UnityMacPlugin", "mac/MacLibraryExample"],
+    "windows-clipboard": ["windows/WindowsLibrary", "windows/WindowsLibraryTest",
+                          "windows/WindowsLibraryExample", "windows/UnityWindowsPlugin"],
+    "android-clipboard": ["android/android_library", "android/unity_android_plugin",
+                          "android/AndroidLibraryExample"],
+    "ios-clipboard": ["ios/IosLibrary", "ios/UnityIosPlugin", "ios/IosLibraryExample"],
+    "macos-clipboard": ["mac/MacLibrary", "mac/UnityMacPlugin", "mac/MacLibraryExample"],
 }
+
+# Build output and vendored dependencies carry thousands of identifiers that would dilute
+# the corpus until nothing is ever reported missing.
+EXCLUDED_DIRS = {"Build", "build", "DerivedData", "packages", "node_modules",
+                 "x64", "x86", ".vs", ".gradle", "obj", "bin", "Generated Files"}
 # A test that asserts a type is *gone* has to name it, and it does so in a string literal:
 #     for gone in ["HandleJson", "ReceiptEventJson"] { #expect(!all.contains(gone)) }
 # Those literals put every deleted shape back into the corpus, so the check passed for exactly
@@ -390,9 +404,11 @@ def check_live_symbols(text, path, rep):
         return
     corpus = []
     for root in roots:
-        for suffix in ("*.swift", "*.h", "*.m"):
+        for suffix in ("*.swift", "*.h", "*.m", "*.cpp", "*.kt"):
             for f in root.rglob(suffix):
-                if "/Build/" in str(f):
+                # Compared on path parts, not on a "/Build/" substring: Windows paths use
+                # backslashes, so the substring form excluded nothing there.
+                if EXCLUDED_DIRS.intersection(f.parts):
                     continue
                 body = f.read_text(encoding="utf-8", errors="ignore")
                 if TEST_DIR.search(str(f)):

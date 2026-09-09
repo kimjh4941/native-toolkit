@@ -16,8 +16,9 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "scripts" / "check_design_consistency.py"
 
-# Named so the checker recognises a clipboard document; it keys its source roots off the name.
-DOCUMENT = "clipboard-exemption-case.md"
+# Named so the checker recognises a macOS clipboard document: source roots are keyed by
+# "<platform>-<feature>" and matched against the path, so the platform has to be in the name.
+DOCUMENT = "macos-clipboard-exemption-case.md"
 
 TITLE = "# macOS Clipboard test document\n\n"
 INFO = "## 基本情報\n\n- 機能名: clipboard\n- 対象OS: macOS 15 以降\n"
@@ -76,6 +77,39 @@ class ExemptionBoundary(unittest.TestCase):
         output = run(TITLE + INFO + BODY)
         self.assertIn("named symbols exist in the implementation", output)
         self.assertIn("somethingThatDoesNotExistAnywhere", output)
+
+
+class SourceRootRouting(unittest.TestCase):
+    """A feature lives on several platforms, and each document must reach its own sources.
+
+    Keying the roots on the feature alone sent every clipboard document at mac/, so a
+    Windows design was checked against Swift files and its symbols reported missing.
+    """
+
+    BODY = TITLE + INFO + "\n## 1. 本文\n\n`initClipboardManager` を名指す。\n"
+
+    def check(self, filename):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / filename
+            path.write_text(self.BODY, encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(CHECKER), str(path)],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+            line = next(l for l in result.stdout.split("\n") if "named symbols" in l)
+            return line
+
+    def test_windows_document_reaches_the_windows_sources(self):
+        # initClipboardManager is declared in windows/WindowsLibrary only.
+        self.assertIn("OK", self.check("2026-07-31-windows-clipboard-design.md"))
+
+    def test_macos_document_does_not_reach_the_windows_sources(self):
+        # The same symbol must not be found when the document is a macOS one.
+        self.assertIn("FAIL", self.check("2026-08-29-macos-clipboard-design.md"))
+
+    def test_document_without_a_platform_skips_rather_than_passing(self):
+        line = self.check("clipboard-design.md")
+        self.assertIn("SKIP", line)
 
 
 if __name__ == "__main__":
