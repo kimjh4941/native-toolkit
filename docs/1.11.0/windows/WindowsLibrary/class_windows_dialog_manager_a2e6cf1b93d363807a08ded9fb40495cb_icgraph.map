@@ -1,0 +1,5 @@
+<map id="WindowsDialogManager::ShowSaveFileDialog" name="WindowsDialogManager::ShowSaveFileDialog">
+<area shape="rect" id="Node000001" title="Show a save file dialog." alt="" coords="194,5,356,48"/>
+<area shape="rect" id="Node000002" href="$_windows_dialog_manager_8cpp.html#a38b8c95fa3ae06c0d6d0182b68c1adc7" title="Public API: Show save file dialog." alt="" coords="5,13,146,40"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="178,29,146,29,146,24,178,24"/>
+</map>

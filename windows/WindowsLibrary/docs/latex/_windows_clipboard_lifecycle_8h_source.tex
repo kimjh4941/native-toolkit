@@ -1,0 +1,61 @@
+\doxysection{Windows\+Clipboard\+Lifecycle.\+h}
+\hypertarget{_windows_clipboard_lifecycle_8h_source}{}\label{_windows_clipboard_lifecycle_8h_source}\mbox{\hyperlink{_windows_clipboard_lifecycle_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ <mutex>}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <optional>}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_clipboard_lifecycle}{ClipboardLifecycle}}}
+\DoxyCodeLine{00017\ \{}
+\DoxyCodeLine{00018\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00019\ \ \ \ \ \textcolor{keyword}{class\ }Lease}
+\DoxyCodeLine{00020\ \ \ \ \ \{}
+\DoxyCodeLine{00021\ \ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00022\ \ \ \ \ \ \ \ \ Lease()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00023\ \ \ \ \ \ \ \ \ \string~Lease()\ \{\ Release();\ \}}
+\DoxyCodeLine{00024\ \ \ \ \ \ \ \ \ Lease(Lease\&\&\ other)\ noexcept\ :\ owner\_(other.owner\_)\ \{\ other.owner\_\ =\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ Lease\&\ operator=(Lease\&\&\ other)\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00026\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00027\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{this}\ !=\ \&other)\ \{\ Release();\ owner\_\ =\ other.owner\_;\ other.owner\_\ =\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00028\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00029\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ Lease(\textcolor{keyword}{const}\ Lease\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00031\ \ \ \ \ \ \ \ \ Lease\&\ operator=(\textcolor{keyword}{const}\ Lease\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }ClipboardLifecycle;}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \textcolor{keyword}{explicit}\ Lease(ClipboardLifecycle*\ owner)\ :\ owner\_(owner)\ \{\}}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}\ Release();}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ ClipboardLifecycle*\ owner\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00038\ \ \ \ \ \};}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{comment}{//\ Fails\ (returns\ nullopt)\ once\ Close\ has\ been\ called.\ Covers\ request}}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{comment}{//\ coroutines,\ history\ event\ callbacks\ and\ any-\/thread\ synchronous\ calls.}}
+\DoxyCodeLine{00042\ \ \ \ \ std::optional<Lease>\ TryEnter();}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{comment}{//\ Closes\ the\ gate\ and\ reserves\ \`{}drainCount`\ units\ of\ additional\ closing}}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{comment}{//\ work\ (queued\ drain\ callbacks\ not\ yet\ delivered)\ in\ one\ atomic\ step.}}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{comment}{//\ Safe\ to\ call\ more\ than\ once;\ each\ call\ adds\ to\ the\ reservation.}}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordtype}{void}\ CloseAndReserveDrainWork(\textcolor{keywordtype}{size\_t}\ drainCount);}
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{keywordtype}{void}\ ReleaseDrainWork();\ \textcolor{comment}{//\ once\ per\ delivered\ drain\ callback}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{comment}{//\ Reopens\ the\ gate\ after\ a\ fully-\/completed\ shutdown,\ so\ the\ manager\ can}}
+\DoxyCodeLine{00051\ \ \ \ \ \textcolor{comment}{//\ be\ initialized\ again\ from\ the\ same\ process.}}
+\DoxyCodeLine{00052\ \ \ \ \ \textcolor{keywordtype}{void}\ Reopen();}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keywordtype}{bool}\ IsClosed()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keywordtype}{bool}\ CanDestroy()\ \textcolor{keyword}{const};\ \textcolor{comment}{//\ closed\_\ \&\&\ inFlight\_\ ==\ 0\ \&\&\ drainWork\_\ ==\ 0}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_clipboard_lifecycle_1_1_lease}{Lease}};}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordtype}{void}\ ReleaseLease();}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keyword}{mutable}\ std::mutex\ mutex\_;}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ closed\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keywordtype}{int}\ \ \ \ inFlight\_\ =\ 0;}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ drainWork\_\ =\ 0;}
+\DoxyCodeLine{00065\ \};}
+
+\end{DoxyCode}

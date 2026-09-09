@@ -1,0 +1,20 @@
+<map id="WindowsClipboardHistoryWinRt.h" name="WindowsClipboardHistoryWinRt.h">
+<area shape="rect" id="Node000001" title="WinRT (Windows.ApplicationModel.DataTransfer.Clipboard) implementation of IClipboardHistoryBackend." alt="" coords="341,5,561,32"/>
+<area shape="rect" id="Node000002" href="$_windows_clipboard_history_backend_8h.html" title="Port for clipboard history access (Domain types only; no winrt:: types)." alt="" coords="256,80,491,107"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="439,34,400,71,396,67,436,31"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="549,155,617,181"/>
+<area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="464,31,564,141,560,145,460,34"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,155,89,181"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="317,110,104,157,103,151,315,105"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="113,155,173,181"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="334,110,189,155,187,150,333,105"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="198,155,275,181"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="351,110,275,149,273,145,349,105"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="411,105,535,147,533,152,409,110"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="299,155,366,181"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="369,109,349,143,345,140,364,106"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="390,155,443,181"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="383,106,404,140,399,143,379,109"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="468,155,525,181"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="396,105,463,144,460,149,394,110"/>
+</map>

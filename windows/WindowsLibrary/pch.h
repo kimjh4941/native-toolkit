@@ -25,6 +25,11 @@
 // Launcher — open the system notification settings page
 #include <winrt/Windows.System.h>
 
+// Clipboard (history). Only WindowsClipboardHistoryWinRt.cpp actually co_awaits
+// Clipboard::GetHistoryItemsAsync(); the type is still safe to see from C++17
+// translation units (no coroutine syntax here).
+#include <winrt/Windows.ApplicationModel.DataTransfer.h>
+
 // NOTE: WinAppSDK Bootstrap/Deployment headers (MddBootstrap.h,
 // winrt/Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h) are intentionally
 // NOT included here. They are used only by WindowsAppSdkBootstrap.cpp so the unit

@@ -72,7 +72,30 @@ if [[ ! -d "manual/$VERSION" ]]; then
   exit 2
 fi
 
-VERSION="$VERSION" STRICT="$STRICT" QUIET="$QUIET" python3 - <<'PYTHON'
+# Pick an interpreter that actually runs. On Windows "python3" often resolves to
+# the Microsoft Store alias, which prints a line and exits 49 without running the
+# code, so the whole verification would pass silently having checked nothing.
+pick_python() {
+  local candidate
+  for candidate in python3 python py; do
+    if command -v "$candidate" >/dev/null 2>&1 &&
+       "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)' >/dev/null 2>&1; then
+      printf '%s
+' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! PYTHON=$(pick_python); then
+  echo "error: no working python 3.8+ found (tried python3, python, py)" >&2
+  exit 2
+fi
+
+# PYTHONUTF8=1 because the manual is UTF-8 while Windows still defaults to the
+# ANSI code page, which makes every read_text() below fail on a Japanese host.
+VERSION="$VERSION" STRICT="$STRICT" QUIET="$QUIET" PYTHONUTF8=1 "$PYTHON" - <<'PYTHON'
 import os
 import re
 import sys

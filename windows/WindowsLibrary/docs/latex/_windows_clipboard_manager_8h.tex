@@ -1,0 +1,449 @@
+\doxysection{Windows\+Clipboard\+Manager.\+h File Reference}
+\hypertarget{_windows_clipboard_manager_8h}{}\label{_windows_clipboard_manager_8h}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+
+
+Public C Bridge API for the Windows Clipboard Manager.  
+
+
+{\ttfamily \#include $<$windows.\+h$>$}\newline
+{\ttfamily \#include $<$cstdint$>$}\newline
+Include dependency graph for Windows\+Clipboard\+Manager.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=224pt]{_windows_clipboard_manager_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_windows_clipboard_manager_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_ac5d5601ce66fb800ea34ee91178f2739}\label{_windows_clipboard_manager_8h_ac5d5601ce66fb800ea34ee91178f2739} 
+\#define {\bfseries WINDOWSCLIPBOARDMANAGER\+\_\+\+API}~\+\_\+\+\_\+declspec(dllimport)
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_adbeb2d6524d6b8162c1304202ecd697b}\label{_windows_clipboard_manager_8h_adbeb2d6524d6b8162c1304202ecd697b} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+NONE}~0
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a563ad1316275a638236d75d373076880}\label{_windows_clipboard_manager_8h_a563ad1316275a638236d75d373076880} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER}~1
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_aa2444b0822fb3e50fa23050747fc8f6e}\label{_windows_clipboard_manager_8h_aa2444b0822fb3e50fa23050747fc8f6e} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED}~2
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_ac4a4bdf54b79a5a056c0cc11baa54028}\label{_windows_clipboard_manager_8h_ac4a4bdf54b79a5a056c0cc11baa54028} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY}~3
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_aa301765ce5dfa96af616bb3179f25a1d}\label{_windows_clipboard_manager_8h_aa301765ce5dfa96af616bb3179f25a1d} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+EMPTY}~4
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a87634356452003dcc616cb4aa2306c44}\label{_windows_clipboard_manager_8h_a87634356452003dcc616cb4aa2306c44} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+FORMAT\+\_\+\+UNAVAILABLE}~5
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a33a0c0dfed1e93571b82455fb91eaefb}\label{_windows_clipboard_manager_8h_a33a0c0dfed1e93571b82455fb91eaefb} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+DATA}~6
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_af71140fdab2d4e44b4c079642de49230}\label{_windows_clipboard_manager_8h_af71140fdab2d4e44b4c079642de49230} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUFFER\+\_\+\+TOO\+\_\+\+SMALL}~7
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_ac8a5558c0cdf933cb02bac6162988c0c}\label{_windows_clipboard_manager_8h_ac8a5558c0cdf933cb02bac6162988c0c} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+OUT\+\_\+\+OF\+\_\+\+MEMORY}~8
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a827c90ce64c9d936fd03ec5424a43726}\label{_windows_clipboard_manager_8h_a827c90ce64c9d936fd03ec5424a43726} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+ACCESS\+\_\+\+DENIED}~9
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a0b02d87b29a3477aaac0cb301ba86b8d}\label{_windows_clipboard_manager_8h_a0b02d87b29a3477aaac0cb301ba86b8d} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+HISTORY\+\_\+\+DISABLED}~10
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a2751480f0329a840bee47384efe68951}\label{_windows_clipboard_manager_8h_a2751480f0329a840bee47384efe68951} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+ITEM\+\_\+\+DELETED}~11
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a21cb710011a2daa00545bb7dfb308660}\label{_windows_clipboard_manager_8h_a21cb710011a2daa00545bb7dfb308660} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+MONITOR\+\_\+\+REGISTER\+\_\+\+FAILED}~12
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a23fbb180c06ab1e572bff135561af79f}\label{_windows_clipboard_manager_8h_a23fbb180c06ab1e572bff135561af79f} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+PARTIAL\+\_\+\+STATE}~13
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a6bc057e5224c26515adc9fa1ccc21111}\label{_windows_clipboard_manager_8h_a6bc057e5224c26515adc9fa1ccc21111} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD}~14
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a2bf576faceb19e7dafa4b675e79191e1}\label{_windows_clipboard_manager_8h_a2bf576faceb19e7dafa4b675e79191e1} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED}~15
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a429f1ae3436bcdf608803ef9f42633d3}\label{_windows_clipboard_manager_8h_a429f1ae3436bcdf608803ef9f42633d3} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED}~16
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_adb7370e1cd50e423379262f24c525b83}\label{_windows_clipboard_manager_8h_adb7370e1cd50e423379262f24c525b83} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+FOREGROUND}~17
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_af6191cc142b6ac4d8761aed8d995d1aa}\label{_windows_clipboard_manager_8h_af6191cc142b6ac4d8761aed8d995d1aa} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+APARTMENT}~18
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a23175ba234244863c47a2ceb1afec927}\label{_windows_clipboard_manager_8h_a23175ba234244863c47a2ceb1afec927} 
+\#define {\bfseries CLIPBOARD\+\_\+\+ERROR\+\_\+\+UNKNOWN}~19
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a1ae2f82b5a932ad1d1e4dea7d4e118e4}\label{_windows_clipboard_manager_8h_a1ae2f82b5a932ad1d1e4dea7d4e118e4} 
+\#define {\bfseries CLIPBOARD\+\_\+\+WRITE\+\_\+\+OPTION\+\_\+\+NONE}~0x00000000u
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a83dff2112a655a2c4aa0decf70e92e11}\label{_windows_clipboard_manager_8h_a83dff2112a655a2c4aa0decf70e92e11} 
+\#define {\bfseries CLIPBOARD\+\_\+\+WRITE\+\_\+\+OPTION\+\_\+\+EXCLUDE\+\_\+\+HISTORY}~0x00000001u
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_a4f5014c42012a80ecce28c8e80c8b092}\label{_windows_clipboard_manager_8h_a4f5014c42012a80ecce28c8e80c8b092} 
+\#define {\bfseries CLIPBOARD\+\_\+\+WRITE\+\_\+\+OPTION\+\_\+\+EXCLUDE\+\_\+\+ROAMING}~0x00000002u
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_afc7ebcefb0f7b729da28bf6ec2ae7d3b}\label{_windows_clipboard_manager_8h_afc7ebcefb0f7b729da28bf6ec2ae7d3b} 
+\#define {\bfseries CLIPBOARD\+\_\+\+WRITE\+\_\+\+OPTION\+\_\+\+SENSITIVE}~0x00000003u
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}\label{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665} 
+typedef void(\texorpdfstring{$\ast$}{*} {\bfseries Clipboard\+Changed\+Callback}) (void)
+\begin{DoxyCompactList}\small\item\em Invoked on the owner UI thread when the clipboard contents change. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}\label{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2} 
+typedef void(\texorpdfstring{$\ast$}{*} {\bfseries Clipboard\+History\+Changed\+Callback}) (void)
+\begin{DoxyCompactList}\small\item\em Invoked on the owner UI thread when a NEW ITEM is added to the clipboard history. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}\label{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77} 
+typedef void(\texorpdfstring{$\ast$}{*} {\bfseries Clipboard\+Flag\+Changed\+Callback}) (BOOL enabled)
+\begin{DoxyCompactList}\small\item\em Invoked on the owner UI thread when the history/roaming OS setting is toggled. \end{DoxyCompactList}\item 
+typedef void(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}}) (uint32\+\_\+t request\+Id, DWORD error, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}json)
+\begin{DoxyCompactList}\small\item\em Terminal completion callback for an accepted request. \end{DoxyCompactList}\item 
+typedef DWORD(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}{Clipboard\+Render\+Callback}}) (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, void \texorpdfstring{$\ast$}{*}context, BYTE \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Required\+Size)
+\begin{DoxyCompactList}\small\item\em Produces the payload for a deferred clipboard format on demand. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_clipboard_manager_8h_a3d12e6528fb6bfba93b45f17195f4310}{init\+Clipboard\+Manager}} (\mbox{\hyperlink{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}{Clipboard\+Changed\+Callback}} on\+Changed, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Initializes the clipboard manager. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_clipboard_manager_8h_af13d23a723f43b3a9d1ccd7ada8a627f}{set\+Clipboard\+History\+Callbacks}} (\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{Clipboard\+History\+Changed\+Callback}} on\+History\+Changed, \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}} on\+History\+Enabled\+Changed, \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}} on\+Roaming\+Enabled\+Changed, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Registers (or clears) history event callbacks and starts/stops watching. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API BOOL \mbox{\hyperlink{_windows_clipboard_manager_8h_a9e722678558b9781e01cb45daa902a8c}{uninit\+Clipboard\+Manager}} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Shuts the manager down. Expects to be called more than once. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API BOOL \mbox{\hyperlink{_windows_clipboard_manager_8h_a934e337342950df13ea1ae7d6618cbbd}{can\+Destroy\+Clipboard\+Manager}} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Non-\/blocking query of whether shutdown can complete. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_clipboard_manager_8h_a231e562baa9a39735892c366c80c1bd9}{copy\+Plain\+Text}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}text, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Copies plain text to the clipboard. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD \mbox{\hyperlink{_windows_clipboard_manager_8h_a6838a6aa9794aed1d6d00c5cdd3cdc4f}{paste\+Plain\+Text}} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Reads plain text from the clipboard. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_aa61d024d897249e80564a81e27b07670}\label{_windows_clipboard_manager_8h_aa61d024d897249e80564a81e27b07670} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void {\bfseries copy\+Html} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}html\+Fragment, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}plain\+Text, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Copies an HTML fragment (with a plain-\/text fallback) to the clipboard. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_aa9c244a534768cfeee09c3f83bf11009}\label{_windows_clipboard_manager_8h_aa9c244a534768cfeee09c3f83bf11009} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD {\bfseries paste\+Html} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Reads the HTML fragment (UTF-\/16, decoded from CF\+\_\+\+HTML\textquotesingle{}s UTF-\/8 payload) from the clipboard. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a9da7374753ed183e714fc0563ecd729d}\label{_windows_clipboard_manager_8h_a9da7374753ed183e714fc0563ecd729d} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void {\bfseries copy\+Files} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}paths\+Json, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Copies a list of file paths (JSON array of strings) to the clipboard as CF\+\_\+\+HDROP. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a819210a6fcce3cc8d447d827f92ba6b5}\label{_windows_clipboard_manager_8h_a819210a6fcce3cc8d447d827f92ba6b5} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD {\bfseries paste\+Files} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Reads a CF\+\_\+\+HDROP file list from the clipboard as a JSON array of strings. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a5072576c6da71343c436351b88b1ed6e}\label{_windows_clipboard_manager_8h_a5072576c6da71343c436351b88b1ed6e} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void {\bfseries copy\+Image} (const BYTE \texorpdfstring{$\ast$}{*}dib, DWORD dib\+Size, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Copies a device-\/independent bitmap (CF\+\_\+\+DIB) to the clipboard. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD \mbox{\hyperlink{_windows_clipboard_manager_8h_a4f5a1e04fb892dd02f9b39f5db91a220}{paste\+Image}} (BYTE \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Reads a device-\/independent bitmap (CF\+\_\+\+DIB) from the clipboard. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a6221bda4e0f1d67e70e95fc65b7f0dfb}\label{_windows_clipboard_manager_8h_a6221bda4e0f1d67e70e95fc65b7f0dfb} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void {\bfseries copy\+Custom\+Format} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, const BYTE \texorpdfstring{$\ast$}{*}data, DWORD size, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Copies raw bytes to the clipboard under a registered custom format name. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a11fa379658e4e0206fa5e973647481c2}\label{_windows_clipboard_manager_8h_a11fa379658e4e0206fa5e973647481c2} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD {\bfseries paste\+Custom\+Format} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, BYTE \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Reads raw bytes from the clipboard under a registered custom format name. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_clipboard_manager_8h_a869c30d4946daf20b54c23ccf1869535}{copy\+Multiple\+Formats}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}items\+Json, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Places several formats on the clipboard in one operation (F-\/06). \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_aae68cc1edc728c2150a684ed16301bb5}\label{_windows_clipboard_manager_8h_aae68cc1edc728c2150a684ed16301bb5} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API BOOL {\bfseries has\+Clipboard\+Format} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Returns whether the clipboard currently holds the given format (name or CF\+\_\+\texorpdfstring{$\ast$}{*} constant name). \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_ab978d3e5e9ceeb564b8aa8b54c3ba6f5}\label{_windows_clipboard_manager_8h_ab978d3e5e9ceeb564b8aa8b54c3ba6f5} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD {\bfseries get\+Clipboard\+Formats} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Returns the currently available clipboard formats as a JSON array of format names. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_afbf01822ffe7139590f089075121752d}\label{_windows_clipboard_manager_8h_afbf01822ffe7139590f089075121752d} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD {\bfseries get\+Preferred\+Clipboard\+Format} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Returns the name of the most descriptive available format the caller understands. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_aef53b12c09e5a5c3586dee54723f5235}\label{_windows_clipboard_manager_8h_aef53b12c09e5a5c3586dee54723f5235} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void {\bfseries clear\+Clipboard} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Empties the clipboard. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void \mbox{\hyperlink{_windows_clipboard_manager_8h_aab35ed73394fc6108085b5f624640530}{reserve\+Deferred\+Formats}} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Names\+Json, \mbox{\hyperlink{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}{Clipboard\+Render\+Callback}} provider, void \texorpdfstring{$\ast$}{*}context, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Reserves one or more formats for delayed rendering (F-\/10). \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a514025400825e4e8f865d486b31b6927}\label{_windows_clipboard_manager_8h_a514025400825e4e8f865d486b31b6927} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void {\bfseries recover\+Deferred\+State} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Retries recovery from a CLIPBOARD\+\_\+\+ERROR\+\_\+\+PARTIAL\+\_\+\+STATE left by a failed rollback. UI-\/thread-\/limited. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API uint32\+\_\+t \mbox{\hyperlink{_windows_clipboard_manager_8h_a7cc2a98b1c05ca5cc76a2d41ab3f0200}{get\+Clipboard\+History}} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Requests the clipboard history list. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a07fe9997b18b8b72fcf3cc6bb9af1f2d}\label{_windows_clipboard_manager_8h_a07fe9997b18b8b72fcf3cc6bb9af1f2d} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API uint32\+\_\+t {\bfseries restore\+History\+Item} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}item\+Id, \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Restores a clipboard history item as the current clipboard content. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a2b484a5d8f94fa174bb7ab0e234c9ea1}\label{_windows_clipboard_manager_8h_a2b484a5d8f94fa174bb7ab0e234c9ea1} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API uint32\+\_\+t {\bfseries delete\+History\+Item} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}item\+Id, \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Deletes one clipboard history item. \end{DoxyCompactList}\item 
+\Hypertarget{_windows_clipboard_manager_8h_a2f74b83053e0d83110bc7425c29b1bb4}\label{_windows_clipboard_manager_8h_a2f74b83053e0d83110bc7425c29b1bb4} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API uint32\+\_\+t {\bfseries clear\+Unpinned\+History} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Clears the clipboard history. Pinned items are not removed (OS behavior). \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API uint32\+\_\+t \mbox{\hyperlink{_windows_clipboard_manager_8h_a22352ba8722a0fe96ed0c21ab63cea34}{get\+Clipboard\+History\+Availability}} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Queries clipboard history/roaming availability. \end{DoxyCompactList}\item 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API BOOL \mbox{\hyperlink{_windows_clipboard_manager_8h_aefd6d10f2a1ecbddfe69fc50e02794e9}{cancel\+Clipboard\+Request}} (uint32\+\_\+t request\+Id, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\begin{DoxyCompactList}\small\item\em Requests cancellation of a pending request. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Public C Bridge API for the Windows Clipboard Manager. 
+
+Provides clipboard copy/paste (text, HTML, files, images, custom formats), content inspection, change monitoring, deferred rendering, and clipboard history access via Win\+RT Windows.\+Application\+Model.\+Data\+Transfer.\+Clipboard. Minimum OS\+: Windows 11.
+
+See artifact/designs/clipboard/2026-\/07-\/28-\/windows-\/clipboard-\/design-\/v2.\+md for the full concurrency and lifecycle contract summarized in the notes below. 
+
+\label{doc-typedef-members}
+\Hypertarget{_windows_clipboard_manager_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!ClipboardRenderCallback@{ClipboardRenderCallback}}
+\index{ClipboardRenderCallback@{ClipboardRenderCallback}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{ClipboardRenderCallback}{ClipboardRenderCallback}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de} 
+typedef DWORD(\texorpdfstring{$\ast$}{*} Clipboard\+Render\+Callback) (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, void \texorpdfstring{$\ast$}{*}context, BYTE \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+\_\+size, DWORD \texorpdfstring{$\ast$}{*}p\+Required\+Size)}
+
+
+
+Produces the payload for a deferred clipboard format on demand. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em format\+Name} & Registered or standard format name being requested. \\
+\hline
+{\em context} & Opaque pointer supplied at reservation time. \\
+\hline
+{\em buffer} & Destination buffer, or nullptr to query the required size. \\
+\hline
+{\em buffer\+\_\+size} & Size of buffer in bytes (0 when querying). \\
+\hline
+{\em p\+Required\+Size} & Out\+: required size in bytes. Must be set in both phases. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NONE on success, CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUFFER\+\_\+\+TOO\+\_\+\+SMALL when buffer is null or too small (with \texorpdfstring{$\ast$}{*}p\+Required\+Size set), otherwise an error. 
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+Invoked on the owner UI thread, inside WM\+\_\+\+RENDERFORMAT handling. Must not call any clipboard API, must not block, and must not throw. 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!ClipboardRequestCallback@{ClipboardRequestCallback}}
+\index{ClipboardRequestCallback@{ClipboardRequestCallback}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{ClipboardRequestCallback}{ClipboardRequestCallback}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d} 
+typedef void(\texorpdfstring{$\ast$}{*} Clipboard\+Request\+Callback) (uint32\+\_\+t request\+Id, DWORD error, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}json)}
+
+
+
+Terminal completion callback for an accepted request. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em request\+Id} & The id returned by the originating call. \\
+\hline
+{\em error} & CLIPBOARD\+\_\+\+ERROR\+\_\+\texorpdfstring{$\ast$}{*} value. \\
+\hline
+{\em json} & Result payload, or nullptr on failure or when the operation has no payload. VALID ONLY DURING THIS CALLBACK -\/ the caller must copy it before returning. The buffer is freed by the toolkit afterwards. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Runs on the owner UI thread, exactly once per accepted request. After a request is accepted (nonzero request id), the function pointer must remain valid through its single terminal callback. P/\+Invoke callers must keep the delegate strongly rooted for that period. An acceptance failure (id 0) does not retain the callback. 
+\end{DoxyNote}
+
+
+\label{doc-func-members}
+\Hypertarget{_windows_clipboard_manager_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_windows_clipboard_manager_8h_aefd6d10f2a1ecbddfe69fc50e02794e9}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!cancelClipboardRequest@{cancelClipboardRequest}}
+\index{cancelClipboardRequest@{cancelClipboardRequest}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{cancelClipboardRequest()}{cancelClipboardRequest()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_aefd6d10f2a1ecbddfe69fc50e02794e9} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API BOOL cancel\+Clipboard\+Request (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{request\+Id}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Requests cancellation of a pending request. 
+
+\begin{DoxyReturn}{Returns}
+TRUE when the cancellation was queued to the owner UI thread. FALSE when the id is unknown, already completed, or the post failed (see p\+Error). A FALSE return does NOT suppress a completion that is already on its way. 
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+Callable from any thread. The callback still fires exactly once, on the owner UI thread, with CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED when cancellation wins. 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_a934e337342950df13ea1ae7d6618cbbd}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!canDestroyClipboardManager@{canDestroyClipboardManager}}
+\index{canDestroyClipboardManager@{canDestroyClipboardManager}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{canDestroyClipboardManager()}{canDestroyClipboardManager()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a934e337342950df13ea1ae7d6618cbbd} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API BOOL can\+Destroy\+Clipboard\+Manager (\begin{DoxyParamCaption}\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Non-\/blocking query of whether shutdown can complete. 
+
+\begin{DoxyReturn}{Returns}
+TRUE when no listener, event token, queued drain callback, request coroutine or in-\/flight synchronous call remains. This is a state query only\+: it does NOT promise that the next uninit succeeds, because that call can still fail on partial-\/state recovery or an OS API error. Judge the final result by the uninit return value. 
+\end{DoxyReturn}
+\Hypertarget{_windows_clipboard_manager_8h_a869c30d4946daf20b54c23ccf1869535}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!copyMultipleFormats@{copyMultipleFormats}}
+\index{copyMultipleFormats@{copyMultipleFormats}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{copyMultipleFormats()}{copyMultipleFormats()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a869c30d4946daf20b54c23ccf1869535} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void copy\+Multiple\+Formats (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{items\+Json}{, }\item[{DWORD}]{options}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Places several formats on the clipboard in one operation (F-\/06). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em items\+Json} & JSON array, richest format first. Each item has exactly one payload key\+: "{}text"{} (text-\/shaped formats only), "{}html"{} (builds a full CF\+\_\+\+HTML payload; text-\/shaped formats only), or "{}base64"{} (raw bytes, any format; structurally validated when the format is a known binary one such as CF\+\_\+\+DIB/\+CF\+\_\+\+DIBV5/\+CF\+\_\+\+HDROP), e.\+g. \mbox{[}\{"{}format"{}\+:"{}\+CF\+\_\+\+UNICODETEXT"{},"{}text"{}\+:"{}..."{}\},\{"{}format"{}\+:"{}\+HTML Format"{},"{}html"{}\+:"{}..."{}\}, \{"{}format"{}\+:"{}\+CF\+\_\+\+DIB"{},"{}base64"{}\+:"{}..."{}\}\mbox{]} Duplicate {\ttfamily format} entries and a payload kind that doesn\textquotesingle{}t match the target format (e.\+g. "{}text"{} under CF\+\_\+\+HDROP) are rejected with CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER before anything is placed. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+best-\/effort rollback\+: on partial failure the clipboard is emptied again. If that rollback also fails, \texorpdfstring{$\ast$}{*}p\+Error is CLIPBOARD\+\_\+\+ERROR\+\_\+\+PARTIAL\+\_\+\+STATE and some formats may remain on the clipboard. 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_a231e562baa9a39735892c366c80c1bd9}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!copyPlainText@{copyPlainText}}
+\index{copyPlainText@{copyPlainText}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{copyPlainText()}{copyPlainText()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a231e562baa9a39735892c366c80c1bd9} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void copy\+Plain\+Text (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{text}{, }\item[{DWORD}]{options}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Copies plain text to the clipboard. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em options} & CLIPBOARD\+\_\+\+WRITE\+\_\+\+OPTION\+\_\+\texorpdfstring{$\ast$}{*} flags. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_windows_clipboard_manager_8h_a7cc2a98b1c05ca5cc76a2d41ab3f0200}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!getClipboardHistory@{getClipboardHistory}}
+\index{getClipboardHistory@{getClipboardHistory}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{getClipboardHistory()}{getClipboardHistory()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a7cc2a98b1c05ca5cc76a2d41ab3f0200} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API uint32\+\_\+t get\+Clipboard\+History (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}}}]{cb}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Requests the clipboard history list. 
+
+\begin{DoxyReturn}{Returns}
+Nonzero request id on acceptance (0 on rejection; callback not invoked). 
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+On success, cb receives a JSON array. {\ttfamily timestamp} is a decimal string (100ns FILETIME-\/scale ticks since 1601) rather than a JSON number, because a JSON number\textquotesingle{}s double precision cannot represent the full int64 range without loss\+: \mbox{[}\{"{}id"{}\+:"{}..."{},"{}text"{}\+:"{}..."{}\texorpdfstring{$\vert$}{|}null,"{}content\+Types"{}\+:\mbox{[}"{}\+Text"{},"{}\+Bitmap"{}\mbox{]},"{}timestamp"{}\+:"{}$<$int64$>$"{}\}\mbox{]} 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_a22352ba8722a0fe96ed0c21ab63cea34}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!getClipboardHistoryAvailability@{getClipboardHistoryAvailability}}
+\index{getClipboardHistoryAvailability@{getClipboardHistoryAvailability}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{getClipboardHistoryAvailability()}{getClipboardHistoryAvailability()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a22352ba8722a0fe96ed0c21ab63cea34} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API uint32\+\_\+t get\+Clipboard\+History\+Availability (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}}}]{cb}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Queries clipboard history/roaming availability. 
+
+\begin{DoxyNote}{Note}
+On success, cb receives\+: \{"{}history\+Enabled"{}\+:true,"{}roaming\+Enabled"{}\+:false\} 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_a3d12e6528fb6bfba93b45f17195f4310}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!initClipboardManager@{initClipboardManager}}
+\index{initClipboardManager@{initClipboardManager}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{initClipboardManager()}{initClipboardManager()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a3d12e6528fb6bfba93b45f17195f4310} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void init\+Clipboard\+Manager (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}{Clipboard\+Changed\+Callback}}}]{on\+Changed}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Initializes the clipboard manager. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em on\+Changed} & Invoked when the clipboard contents change (nullable). \\
+\hline
+{\em p\+Error} & Out error code. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+PRECONDITIONS for the calling thread, which is adopted as the owner UI thread\+: 1) It must run a message pump for the lifetime of the manager. This cannot be verified at runtime, so it is a caller contract, not a checked error. 2) It must already be initialized as an STA (Co\+Initialize\+Ex with COINIT\+\_\+\+APARTMENTTHREADED, or winrt\+::init\+\_\+apartment(single\+\_\+threaded)). This IS checked\+: an uninitialized or MTA thread returns CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+APARTMENT and the manager is not initialized. The toolkit never initializes or uninitializes the apartment\+: it belongs to the host. Calling init again from a different thread returns CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD. Calling it again from the same thread is idempotent success. The function pointer must stay valid until uninit\+Clipboard\+Manager returns TRUE. 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_a4f5a1e04fb892dd02f9b39f5db91a220}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!pasteImage@{pasteImage}}
+\index{pasteImage@{pasteImage}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{pasteImage()}{pasteImage()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a4f5a1e04fb892dd02f9b39f5db91a220} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD paste\+Image (\begin{DoxyParamCaption}\item[{BYTE \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{DWORD}]{buffer\+\_\+size}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Reads a device-\/independent bitmap (CF\+\_\+\+DIB) from the clipboard. 
+
+\begin{DoxyReturn}{Returns}
+Required buffer size in bytes. If buffer is null or too small, returns the required size and sets \texorpdfstring{$\ast$}{*}p\+Error to CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUFFER\+\_\+\+TOO\+\_\+\+SMALL. 
+\end{DoxyReturn}
+\Hypertarget{_windows_clipboard_manager_8h_a6838a6aa9794aed1d6d00c5cdd3cdc4f}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!pastePlainText@{pastePlainText}}
+\index{pastePlainText@{pastePlainText}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{pastePlainText()}{pastePlainText()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a6838a6aa9794aed1d6d00c5cdd3cdc4f} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API DWORD paste\+Plain\+Text (\begin{DoxyParamCaption}\item[{wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{DWORD}]{buffer\+\_\+size}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Reads plain text from the clipboard. 
+
+\begin{DoxyReturn}{Returns}
+Required buffer size in wchar\+\_\+t (including terminator). If buffer is null or buffer\+\_\+size is too small, returns the required size and sets \texorpdfstring{$\ast$}{*}p\+Error to CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUFFER\+\_\+\+TOO\+\_\+\+SMALL. 
+\end{DoxyReturn}
+\Hypertarget{_windows_clipboard_manager_8h_aab35ed73394fc6108085b5f624640530}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!reserveDeferredFormats@{reserveDeferredFormats}}
+\index{reserveDeferredFormats@{reserveDeferredFormats}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{reserveDeferredFormats()}{reserveDeferredFormats()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_aab35ed73394fc6108085b5f624640530} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void reserve\+Deferred\+Formats (\begin{DoxyParamCaption}\item[{const wchar\+\_\+t \texorpdfstring{$\ast$}{*}}]{format\+Names\+Json}{, }\item[{\mbox{\hyperlink{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}{Clipboard\+Render\+Callback}}}]{provider}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{context}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Reserves one or more formats for delayed rendering (F-\/10). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em format\+Names\+Json} & JSON array of format names to reserve. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+UI-\/thread-\/limited synchronous API. Non-\/owner threads get CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD. On partial failure the reservation is rolled back (best-\/effort; see CLIPBOARD\+\_\+\+ERROR\+\_\+\+PARTIAL\+\_\+\+STATE). A reservation lives only while this process owns the clipboard and the owner window still exists, so the host must call uninit\+Clipboard\+Manager before exiting; otherwise the reserved formats are lost rather than rendered. When Windows clipboard history is enabled, the history service renders every reserved format as soon as it is reserved, so the provider runs before any external paste. Do not treat "{}provider not called yet"{} as an invariant. 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_af13d23a723f43b3a9d1ccd7ada8a627f}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!setClipboardHistoryCallbacks@{setClipboardHistoryCallbacks}}
+\index{setClipboardHistoryCallbacks@{setClipboardHistoryCallbacks}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{setClipboardHistoryCallbacks()}{setClipboardHistoryCallbacks()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_af13d23a723f43b3a9d1ccd7ada8a627f} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API void set\+Clipboard\+History\+Callbacks (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{Clipboard\+History\+Changed\+Callback}}}]{on\+History\+Changed}{, }\item[{\mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}}}]{on\+History\+Enabled\+Changed}{, }\item[{\mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}}}]{on\+Roaming\+Enabled\+Changed}{, }\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Registers (or clears) history event callbacks and starts/stops watching. 
+
+\begin{DoxyNote}{Note}
+Synchronous, and MUST be called from the owner UI thread; otherwise CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD. Not callable from inside a callback. Passing all three as nullptr stops watching and clears the registration. Replacing an existing registration only swaps an internal snapshot and therefore cannot fail. Partial failure -\/ and the "{}previous registration is       kept"{} rule -\/ applies only to the FIRST registration, where the underlying event tokens are acquired. If a previous stop failed to revoke every token, re-\/registration is refused until a later call succeeds in stopping. The function pointers must stay valid until they are replaced or until uninit\+Clipboard\+Manager returns TRUE. on\+History\+Changed fires only when a NEW ITEM is added; deletions and Clear\+History are not guaranteed to raise it. Re-\/query after your own delete/clear calls. on\+History\+Enabled\+Changed and on\+Roaming\+Enabled\+Changed are NOT reliable and must not be used to drive behaviour\+: the underlying Win\+RT events were observed to fire at most once per process, and never at all when the registration is made while clipboard history is disabled. Call get\+Clipboard\+History\+Availability whenever the current setting matters. on\+History\+Changed is unaffected. 
+\end{DoxyNote}
+\Hypertarget{_windows_clipboard_manager_8h_a9e722678558b9781e01cb45daa902a8c}\index{WindowsClipboardManager.h@{WindowsClipboardManager.h}!uninitClipboardManager@{uninitClipboardManager}}
+\index{uninitClipboardManager@{uninitClipboardManager}!WindowsClipboardManager.h@{WindowsClipboardManager.h}}
+\doxysubsubsection{\texorpdfstring{uninitClipboardManager()}{uninitClipboardManager()}}
+{\footnotesize\ttfamily \label{_windows_clipboard_manager_8h_a9e722678558b9781e01cb45daa902a8c} 
+WINDOWSCLIPBOARDMANAGER\+\_\+\+API BOOL uninit\+Clipboard\+Manager (\begin{DoxyParamCaption}\item[{DWORD \texorpdfstring{$\ast$}{*}}]{p\+Error}{}\end{DoxyParamCaption})}
+
+
+
+Shuts the manager down. Expects to be called more than once. 
+
+\begin{DoxyReturn}{Returns}
+TRUE when shutdown completed and all resources were released. FALSE when any of the following is still outstanding -\/ call again after pumping messages\+:
+\begin{DoxyItemize}
+\item a clipboard listener or history event token could not be revoked
+\item queued cancellation completions have not been delivered yet
+\item a request coroutine is still running (even after cancellation)
+\item an any-\/thread synchronous API call is still in flight 
+\end{DoxyItemize}
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+MUST be called from the owner UI thread, and never from inside a callback. The first call always returns FALSE when any request is pending, because cancellations are queued rather than fired inline. Keep the message pump running between retries; do not spin while blocking the UI thread. The toolkit never calls uninit\+\_\+apartment\+: the apartment belongs to the host. HOST CONTRACT -\/ call this before the process exits. Formats reserved with reserve\+Deferred\+Formats are materialized by WM\+\_\+\+RENDERALLFORMATS, which the system sends only while the owner window is being destroyed, and that window is destroyed only from here. A process that simply exits never receives the message and every reserved format is dropped from the clipboard. 
+\end{DoxyNote}

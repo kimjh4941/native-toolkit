@@ -1,0 +1,17 @@
+\doxysection{Windows\+Clipboard\+Window.\+h}
+\hypertarget{_windows_clipboard_window_8h_source}{}\label{_windows_clipboard_window_8h_source}\mbox{\hyperlink{_windows_clipboard_window_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ <windows.h>}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{keyword}{namespace\ }WindowsClipboardWindow}
+\DoxyCodeLine{00016\ \{}
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{comment}{//\ Must\ be\ called\ on\ the\ thread\ that\ will\ pump\ messages\ for\ the\ lifetime}}
+\DoxyCodeLine{00018\ \ \ \ \ \textcolor{comment}{//\ of\ the\ manager\ (that\ thread\ becomes\ the\ owner\ UI\ thread).}}
+\DoxyCodeLine{00019\ \ \ \ \ HWND\ Create();}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keywordtype}{void}\ Destroy(HWND\ hwnd);}
+\DoxyCodeLine{00021\ \}}
+
+\end{DoxyCode}

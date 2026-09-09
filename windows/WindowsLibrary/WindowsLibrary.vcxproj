@@ -145,7 +145,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
@@ -174,7 +174,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
@@ -205,7 +205,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
@@ -242,6 +242,21 @@
     <ClCompile Include="WindowsNotificationManager.cpp" />
     <ClCompile Include="WindowsClassicActivator.cpp" />
     <ClCompile Include="WindowsAppSdkBootstrap.cpp" />
+    <ClCompile Include="WindowsClipboardFormats.cpp" />
+    <ClCompile Include="WindowsClipboardCore.cpp" />
+    <ClCompile Include="WindowsClipboardDeferredProvider.cpp" />
+    <ClCompile Include="WindowsClipboardLifecycle.cpp" />
+    <ClCompile Include="WindowsClipboardHistoryCoordinator.cpp" />
+    <ClCompile Include="WindowsClipboardWindow.cpp" />
+    <ClCompile Include="WindowsClipboardManager.cpp" />
+    <!-- Requires C++20 (co_await); the rest of WindowsLibrary stays on the project
+         default (stdcpp17) so this is a per-file override, not a project-wide change. -->
+    <ClCompile Include="WindowsClipboardHistoryWinRt.cpp">
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <!-- The shared PCH was compiled under the project's default (C++17); a
+           file compiled at a different /std: cannot consume it (C2855). -->
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -260,6 +275,16 @@
     <ClInclude Include="WindowsNotificationBackend.h" />
     <ClInclude Include="WindowsNotificationManagerInternal.h" />
     <ClInclude Include="WindowsClassicActivator.h" />
+    <ClInclude Include="WindowsClipboardManager.h" />
+    <ClInclude Include="WindowsClipboardManagerInternal.h" />
+    <ClInclude Include="WindowsClipboardCore.h" />
+    <ClInclude Include="WindowsClipboardDeferredProvider.h" />
+    <ClInclude Include="WindowsClipboardFormats.h" />
+    <ClInclude Include="WindowsClipboardLifecycle.h" />
+    <ClInclude Include="WindowsClipboardHistoryBackend.h" />
+    <ClInclude Include="WindowsClipboardHistoryCoordinator.h" />
+    <ClInclude Include="WindowsClipboardHistoryWinRt.h" />
+    <ClInclude Include="WindowsClipboardWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WindowsLibrary.rc" />

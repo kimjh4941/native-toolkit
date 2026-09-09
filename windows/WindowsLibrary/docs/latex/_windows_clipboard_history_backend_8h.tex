@@ -1,0 +1,59 @@
+\doxysection{Windows\+Clipboard\+History\+Backend.\+h File Reference}
+\hypertarget{_windows_clipboard_history_backend_8h}{}\label{_windows_clipboard_history_backend_8h}\index{WindowsClipboardHistoryBackend.h@{WindowsClipboardHistoryBackend.h}}
+
+
+Port for clipboard history access (Domain types only; no winrt\+:\+: types).  
+
+
+{\ttfamily \#include $<$windows.\+h$>$}\newline
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include $<$functional$>$}\newline
+{\ttfamily \#include $<$memory$>$}\newline
+{\ttfamily \#include $<$optional$>$}\newline
+{\ttfamily \#include $<$string$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+Include dependency graph for Windows\+Clipboard\+History\+Backend.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_windows_clipboard_history_backend_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_windows_clipboard_history_backend_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_clipboard_history_entry}{Clipboard\+History\+Entry}}
+\item 
+struct \mbox{\hyperlink{struct_clipboard_history_availability}{Clipboard\+History\+Availability}}
+\item 
+struct \mbox{\hyperlink{struct_clipboard_history_events}{Clipboard\+History\+Events}}
+\item 
+class \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_history_backend_8h_ac27d9fbd8ebb1824f2324339c0c340b5}\label{_windows_clipboard_history_backend_8h_ac27d9fbd8ebb1824f2324339c0c340b5} 
+using {\bfseries History\+Items\+Callback} = std\+::function$<$void(DWORD error, std\+::vector$<$\mbox{\hyperlink{struct_clipboard_history_entry}{Clipboard\+History\+Entry}}$>$)$>$
+\item 
+\Hypertarget{_windows_clipboard_history_backend_8h_a5c9e858a9e71ac31e52384bea6cda39f}\label{_windows_clipboard_history_backend_8h_a5c9e858a9e71ac31e52384bea6cda39f} 
+using {\bfseries History\+Status\+Callback} = std\+::function$<$void(DWORD error)$>$
+\item 
+\Hypertarget{_windows_clipboard_history_backend_8h_ad70841d0cfec9b179134341d392aa177}\label{_windows_clipboard_history_backend_8h_ad70841d0cfec9b179134341d392aa177} 
+using {\bfseries History\+Availability\+Callback} = std\+::function$<$void(DWORD error, \mbox{\hyperlink{struct_clipboard_history_availability}{Clipboard\+History\+Availability}})$>$
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Port for clipboard history access (Domain types only; no winrt\+:\+: types). 
+
+Request methods are asynchronous (completion callback) even where the underlying Win\+RT API is synchronous (Get\+Availability\+Async), because the Port must let a mock control completion timing for pending/cancel/drain tests. Event-\/value queries are synchronous and owner-\/\+UI-\/thread-\/only. 

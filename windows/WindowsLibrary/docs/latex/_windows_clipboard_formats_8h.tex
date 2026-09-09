@@ -1,0 +1,84 @@
+\doxysection{Windows\+Clipboard\+Formats.\+h File Reference}
+\hypertarget{_windows_clipboard_formats_8h}{}\label{_windows_clipboard_formats_8h}\index{WindowsClipboardFormats.h@{WindowsClipboardFormats.h}}
+
+
+Pure-\/logic helpers for clipboard payload construction and validation.  
+
+
+{\ttfamily \#include $<$windows.\+h$>$}\newline
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include $<$string$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+Include dependency graph for Windows\+Clipboard\+Formats.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=326pt]{_windows_clipboard_formats_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_clipboard_formats_1_1_cf_html_offsets}{Clipboard\+Formats\+::\+Cf\+Html\+Offsets}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_formats_8h_a8fd1e2625ae19e5e407d9718e947d050}\label{_windows_clipboard_formats_8h_a8fd1e2625ae19e5e407d9718e947d050} 
+enum class {\bfseries Multi\+Format\+Payload\+Kind} \{ {\bfseries Text}
+, {\bfseries Html}
+, {\bfseries Base64}
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a096c88b000a867cb26f4989327aa9c3c}\label{_windows_clipboard_formats_8cpp_a096c88b000a867cb26f4989327aa9c3c} 
+bool {\bfseries Clipboard\+Formats\+::\+Checked\+Add} (size\+\_\+t a, size\+\_\+t b, size\+\_\+t \&out)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a96efc888990e1d89a8e36b66d318d8f0}\label{_windows_clipboard_formats_8cpp_a96efc888990e1d89a8e36b66d318d8f0} 
+bool {\bfseries Clipboard\+Formats\+::\+Checked\+Mul} (size\+\_\+t a, size\+\_\+t b, size\+\_\+t \&out)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_ac00a5b3c4cf0c8cdb72f9aaf94943dc9}\label{_windows_clipboard_formats_8cpp_ac00a5b3c4cf0c8cdb72f9aaf94943dc9} 
+bool {\bfseries Clipboard\+Formats\+::\+Checked\+To\+Int} (size\+\_\+t v, int \&out)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a4217a196da8447ae2dad478c328edab7}\label{_windows_clipboard_formats_8cpp_a4217a196da8447ae2dad478c328edab7} 
+bool {\bfseries Clipboard\+Formats\+::\+Checked\+To\+UInt} (size\+\_\+t v, UINT \&out)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a0cd3b6da49182422b8d372b5f80a8172}\label{_windows_clipboard_formats_8cpp_a0cd3b6da49182422b8d372b5f80a8172} 
+std\+::string {\bfseries Clipboard\+Formats\+::\+Build\+Cf\+Html} (const std\+::string \&utf8\+Fragment)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a34695dad0ba09c6bd3f9db69938db81d}\label{_windows_clipboard_formats_8cpp_a34695dad0ba09c6bd3f9db69938db81d} 
+bool {\bfseries Clipboard\+Formats\+::\+Parse\+Cf\+Html\+Header} (const std\+::string \&payload, \mbox{\hyperlink{struct_clipboard_formats_1_1_cf_html_offsets}{Cf\+Html\+Offsets}} \&out)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a0eb4112b3fe1a0d025f5a758b51db639}\label{_windows_clipboard_formats_8cpp_a0eb4112b3fe1a0d025f5a758b51db639} 
+bool {\bfseries Clipboard\+Formats\+::\+Build\+Drop\+Files} (const std\+::vector$<$ std\+::wstring $>$ \&paths, std\+::vector$<$ BYTE $>$ \&out)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a2b2c9e7fd6b66f5fc83f0d1bb3629a85}\label{_windows_clipboard_formats_8cpp_a2b2c9e7fd6b66f5fc83f0d1bb3629a85} 
+bool {\bfseries Clipboard\+Formats\+::\+Validate\+Drop\+Files} (const BYTE \texorpdfstring{$\ast$}{*}data, size\+\_\+t total\+Bytes)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_ae7ae6dd09c68afeda4e1e5d1294ecd16}\label{_windows_clipboard_formats_8cpp_ae7ae6dd09c68afeda4e1e5d1294ecd16} 
+bool {\bfseries Clipboard\+Formats\+::\+Validate\+Dib} (const BYTE \texorpdfstring{$\ast$}{*}data, size\+\_\+t total\+Bytes)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a4ee8515af914a825624e26363b5a0c20}\label{_windows_clipboard_formats_8cpp_a4ee8515af914a825624e26363b5a0c20} 
+bool {\bfseries Clipboard\+Formats\+::\+Is\+Multi\+Format\+Payload\+Allowed} (const std\+::wstring \&format\+Name, UINT format, Multi\+Format\+Payload\+Kind payload\+Kind)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_ae8d98e8390f3604e2cd9171b105545b4}\label{_windows_clipboard_formats_8cpp_ae8d98e8390f3604e2cd9171b105545b4} 
+bool {\bfseries Clipboard\+Formats\+::\+Validate\+Unicode\+Text\+Block} (const BYTE \texorpdfstring{$\ast$}{*}data, size\+\_\+t total\+Bytes, size\+\_\+t \&out\+Chars)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a5217d53712ce259566aa2848b456a61b}\label{_windows_clipboard_formats_8cpp_a5217d53712ce259566aa2848b456a61b} 
+std\+::string {\bfseries Clipboard\+Formats\+::\+Wide\+To\+Utf8} (const std\+::wstring \&s)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_a67e605cc8053dc7a93e3c9a29b160dc1}\label{_windows_clipboard_formats_8cpp_a67e605cc8053dc7a93e3c9a29b160dc1} 
+std\+::wstring {\bfseries Clipboard\+Formats\+::\+Utf8\+To\+Wide} (const std\+::string \&s)
+\item 
+\Hypertarget{_windows_clipboard_formats_8cpp_aec2de1053ab436c0f9fd3d4945dafbdd}\label{_windows_clipboard_formats_8cpp_aec2de1053ab436c0f9fd3d4945dafbdd} 
+bool {\bfseries Clipboard\+Formats\+::\+Base64\+Decode} (const std\+::string \&in, std\+::vector$<$ BYTE $>$ \&out)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Pure-\/logic helpers for clipboard payload construction and validation. 
+
+No Win\+RT or live clipboard dependency\+: safe to unit test directly. Every function treats its input as untrusted (either about to be written to the clipboard, or read back from it) and never throws. 

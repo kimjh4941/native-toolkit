@@ -1,0 +1,35 @@
+\doxysection{Deferred\+Clipboard Class Reference}
+\hypertarget{class_deferred_clipboard}{}\label{class_deferred_clipboard}\index{DeferredClipboard@{DeferredClipboard}}
+\doxysubsubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_deferred_clipboard_a75cad6b6bace0488551971e711176a0a}\label{class_deferred_clipboard_a75cad6b6bace0488551971e711176a0a} 
+using {\bfseries Renderer} = std\+::function$<$\mbox{\hyperlink{class_global_mem}{Global\+Mem}}()$>$
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_deferred_clipboard_a2ced771cdec04da719084dcabb2c543a}\label{class_deferred_clipboard_a2ced771cdec04da719084dcabb2c543a} 
+DWORD {\bfseries Reserve} (HWND owner, std\+::map$<$ UINT, Renderer $>$ renderers, bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{class_deferred_clipboard_a9e88389b694b48a83da7ac0147f47f22}\label{class_deferred_clipboard_a9e88389b694b48a83da7ac0147f47f22} 
+DWORD {\bfseries Recover\+From\+Partial\+State} (bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{class_deferred_clipboard_a99d3768ac92ec683ed5d5f7ae790a99b}\label{class_deferred_clipboard_a99d3768ac92ec683ed5d5f7ae790a99b} 
+bool {\bfseries Is\+Partial} () const
+\item 
+\Hypertarget{class_deferred_clipboard_ab04e99fa560e241e8a7de2092d640039}\label{class_deferred_clipboard_ab04e99fa560e241e8a7de2092d640039} 
+void {\bfseries On\+Render\+Format} (UINT format)
+\item 
+\Hypertarget{class_deferred_clipboard_a8c0707b946628399b47801c8ad36df0f}\label{class_deferred_clipboard_a8c0707b946628399b47801c8ad36df0f} 
+void {\bfseries On\+Render\+All\+Formats} (HWND hwnd)
+\item 
+\Hypertarget{class_deferred_clipboard_aee0b91e71873698e24e4ab185c7dc36f}\label{class_deferred_clipboard_aee0b91e71873698e24e4ab185c7dc36f} 
+void {\bfseries On\+Destroy\+Clipboard} ()
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_windows_clipboard_core_8h}{Windows\+Clipboard\+Core.\+h}}\item 
+Windows\+Clipboard\+Core.\+cpp\end{DoxyCompactItemize}

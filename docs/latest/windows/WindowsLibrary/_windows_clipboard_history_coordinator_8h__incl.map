@@ -1,0 +1,35 @@
+<map id="WindowsClipboardHistoryCoordinator.h" name="WindowsClipboardHistoryCoordinator.h">
+<area shape="rect" id="Node000001" title="Application&#45;layer request state machine for clipboard history (F&#45;12)." alt="" coords="485,5,736,32"/>
+<area shape="rect" id="Node000002" href="$_windows_clipboard_history_backend_8h.html" title="Port for clipboard history access (Domain types only; no winrt:: types)." alt="" coords="221,80,456,107"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="564,35,401,78,400,73,562,30"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="432,155,500,181"/>
+<area shape="poly" id="edge17_Node000001_Node000006" title=" " alt="" coords="600,34,491,145,487,142,596,31"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="524,155,582,181"/>
+<area shape="poly" id="edge19_Node000001_Node000009" title=" " alt="" coords="602,34,587,55,573,81,564,111,558,140,553,139,558,110,568,79,582,53,598,31"/>
+<area shape="rect" id="Node000010" href="$_windows_clipboard_lifecycle_8h.html" title="Unified in&#45;flight/closing state shared by request coroutines, history event callbacks and any&#45;thread ..." alt="" coords="582,80,775,107"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="624,31,658,67,654,70,620,34"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="750,155,807,181"/>
+<area shape="poly" id="edge18_Node000001_Node000011" title=" " alt="" coords="716,30,757,48,775,62,790,79,797,93,798,110,792,141,787,140,793,110,792,95,785,81,771,66,754,53,713,35"/>
+<area shape="rect" id="Node000012" href="$_windows_clipboard_manager_8h.html" title="Public C Bridge API for the Windows Clipboard Manager." alt="" coords="5,80,197,107"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="521,35,206,80,205,75,521,30"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="851,80,911,107"/>
+<area shape="poly" id="edge15_Node000001_Node000013" title=" " alt="" coords="658,30,837,77,835,83,657,35"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="935,80,982,107"/>
+<area shape="poly" id="edge16_Node000001_Node000014" title=" " alt="" coords="694,30,799,49,921,77,920,82,798,54,693,35"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="146,155,229,181"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="313,110,229,150,227,145,311,105"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="62,155,122,181"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="296,110,138,156,136,151,295,105"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="253,155,330,181"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="332,109,310,143,306,140,328,106"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="362,105,432,144,429,149,359,110"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="625,155,692,181"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="395,105,611,153,609,158,394,110"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="354,155,408,181"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="348,106,368,140,364,143,343,109"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="377,105,511,150,509,155,375,110"/>
+<area shape="poly" id="edge11_Node000010_Node000007" title=" " alt="" coords="677,108,668,141,663,139,672,106"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="697,105,750,143,747,147,694,109"/>
+<area shape="poly" id="edge13_Node000012_Node000003" title=" " alt="" coords="118,105,163,143,160,147,114,109"/>
+<area shape="poly" id="edge14_Node000012_Node000004" title=" " alt="" coords="102,108,98,140,93,139,97,107"/>
+</map>

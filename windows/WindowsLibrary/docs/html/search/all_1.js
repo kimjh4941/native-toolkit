@@ -1,5 +1,30 @@
 var searchData=
 [
-  ['cancelschedulednotification_0',['cancelScheduledNotification',['../_windows_notification_manager_8h.html#a4ea719affb154500643b698f711ba690',1,'WindowsNotificationManager.cpp']]],
-  ['cwindowslibraryapp_1',['CWindowsLibraryApp',['../class_c_windows_library_app.html',1,'']]]
+  ['cancelclipboardrequest_0',['cancelClipboardRequest',['../_windows_clipboard_manager_8h.html#aefd6d10f2a1ecbddfe69fc50e02794e9',1,'WindowsClipboardManager.cpp']]],
+  ['cancelschedulednotification_1',['cancelScheduledNotification',['../_windows_notification_manager_8h.html#a4ea719affb154500643b698f711ba690',1,'WindowsNotificationManager.cpp']]],
+  ['candestroyclipboardmanager_2',['canDestroyClipboardManager',['../_windows_clipboard_manager_8h.html#a934e337342950df13ea1ae7d6618cbbd',1,'WindowsClipboardManager.cpp']]],
+  ['cfhtmloffsets_3',['CfHtmlOffsets',['../struct_clipboard_formats_1_1_cf_html_offsets.html',1,'ClipboardFormats']]],
+  ['clearclipboard_4',['clearClipboard',['../_windows_clipboard_manager_8h.html#aef53b12c09e5a5c3586dee54723f5235',1,'WindowsClipboardManager.cpp']]],
+  ['clearunpinnedhistory_5',['clearUnpinnedHistory',['../_windows_clipboard_manager_8h.html#a2f74b83053e0d83110bc7425c29b1bb4',1,'WindowsClipboardManager.cpp']]],
+  ['clipboardchangedcallback_6',['ClipboardChangedCallback',['../_windows_clipboard_manager_8h.html#aabb5a679a0ebd1da24b7e6b436dcb665',1,'WindowsClipboardManager.h']]],
+  ['clipboardflagchangedcallback_7',['ClipboardFlagChangedCallback',['../_windows_clipboard_manager_8h.html#ad079d1a97e420b6f6c35c0c2b961fb77',1,'WindowsClipboardManager.h']]],
+  ['clipboardhistoryavailability_8',['ClipboardHistoryAvailability',['../struct_clipboard_history_availability.html',1,'']]],
+  ['clipboardhistorychangedcallback_9',['ClipboardHistoryChangedCallback',['../_windows_clipboard_manager_8h.html#ad37f2941ee9c9c0f7cd0768aed52b6a2',1,'WindowsClipboardManager.h']]],
+  ['clipboardhistorycoordinator_10',['ClipboardHistoryCoordinator',['../class_clipboard_history_coordinator.html',1,'']]],
+  ['clipboardhistoryentry_11',['ClipboardHistoryEntry',['../struct_clipboard_history_entry.html',1,'']]],
+  ['clipboardhistoryevents_12',['ClipboardHistoryEvents',['../struct_clipboard_history_events.html',1,'']]],
+  ['clipboardhistorywinrt_13',['ClipboardHistoryWinRt',['../class_clipboard_history_win_rt.html',1,'']]],
+  ['clipboardlifecycle_14',['ClipboardLifecycle',['../class_clipboard_lifecycle.html',1,'']]],
+  ['clipboardmanager_15',['ClipboardManager',['../class_clipboard_manager.html',1,'']]],
+  ['clipboardrendercallback_16',['ClipboardRenderCallback',['../_windows_clipboard_manager_8h.html#acf6736df9b3cf59bca76dc9c1ee252de',1,'WindowsClipboardManager.h']]],
+  ['clipboardrequestcallback_17',['ClipboardRequestCallback',['../_windows_clipboard_manager_8h.html#a15c9dfc1613f29bb5ea4afad8e6b0d7d',1,'WindowsClipboardManager.h']]],
+  ['clipboardscope_18',['ClipboardScope',['../class_clipboard_scope.html',1,'']]],
+  ['clipboardwatcher_19',['ClipboardWatcher',['../class_clipboard_watcher.html',1,'']]],
+  ['copycustomformat_20',['copyCustomFormat',['../_windows_clipboard_manager_8h.html#a6221bda4e0f1d67e70e95fc65b7f0dfb',1,'WindowsClipboardManager.cpp']]],
+  ['copyfiles_21',['copyFiles',['../_windows_clipboard_manager_8h.html#a9da7374753ed183e714fc0563ecd729d',1,'WindowsClipboardManager.cpp']]],
+  ['copyhtml_22',['copyHtml',['../_windows_clipboard_manager_8h.html#aa61d024d897249e80564a81e27b07670',1,'WindowsClipboardManager.cpp']]],
+  ['copyimage_23',['copyImage',['../_windows_clipboard_manager_8h.html#a5072576c6da71343c436351b88b1ed6e',1,'WindowsClipboardManager.cpp']]],
+  ['copymultipleformats_24',['copyMultipleFormats',['../_windows_clipboard_manager_8h.html#a869c30d4946daf20b54c23ccf1869535',1,'WindowsClipboardManager.cpp']]],
+  ['copyplaintext_25',['copyPlainText',['../_windows_clipboard_manager_8h.html#a231e562baa9a39735892c366c80c1bd9',1,'WindowsClipboardManager.cpp']]],
+  ['cwindowslibraryapp_26',['CWindowsLibraryApp',['../class_c_windows_library_app.html',1,'']]]
 ];

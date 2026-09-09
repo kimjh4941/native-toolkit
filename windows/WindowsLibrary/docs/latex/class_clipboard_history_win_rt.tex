@@ -1,0 +1,167 @@
+\doxysection{Clipboard\+History\+Win\+Rt Class Reference}
+\hypertarget{class_clipboard_history_win_rt}{}\label{class_clipboard_history_win_rt}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+
+
+Inheritance diagram for Clipboard\+History\+Win\+Rt\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=210pt]{class_clipboard_history_win_rt__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Clipboard\+History\+Win\+Rt\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=210pt]{class_clipboard_history_win_rt__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{class_clipboard_history_win_rt_a25dec492fe49da1c62ab68ddc8fc9a44}{Get\+Availability\+Async}} (History\+Availability\+Callback done) override
+\item 
+void \mbox{\hyperlink{class_clipboard_history_win_rt_ac2113b69c46fc8ef4dd78090ffa61265}{Get\+Items\+Async}} (History\+Items\+Callback done) override
+\item 
+void \mbox{\hyperlink{class_clipboard_history_win_rt_a8f65a7d04be2e6c010b8bb7b4ad93b2e}{Set\+Item\+As\+Content\+Async}} (const std\+::wstring \&id, History\+Status\+Callback done) override
+\item 
+void \mbox{\hyperlink{class_clipboard_history_win_rt_ac6d3a5265e20f578fe23a168336be2a5}{Delete\+Item\+Async}} (const std\+::wstring \&id, History\+Status\+Callback done) override
+\item 
+void \mbox{\hyperlink{class_clipboard_history_win_rt_a12be8985302f7223480324722d840a9c}{Clear\+Unpinned\+Async}} (History\+Status\+Callback done) override
+\item 
+DWORD \mbox{\hyperlink{class_clipboard_history_win_rt_a6e9510b50fe61ff565c65b4b6e5575d6}{Query\+History\+Enabled}} (bool \&enabled) override
+\item 
+DWORD \mbox{\hyperlink{class_clipboard_history_win_rt_a73ab6603f56b2e2ff123b2ef2f7bfb69}{Query\+Roaming\+Enabled}} (bool \&enabled) override
+\item 
+DWORD \mbox{\hyperlink{class_clipboard_history_win_rt_a9b6bd19d620612d1f6058f7c0ddd1055}{Start\+Watch}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{struct_clipboard_history_events}{Clipboard\+History\+Events}} $>$ events) override
+\item 
+void \mbox{\hyperlink{class_clipboard_history_win_rt_a8c6a0a0d35f9756281588ba8a6c1d0a7}{Replace\+Events}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{struct_clipboard_history_events}{Clipboard\+History\+Events}} $>$ events) override
+\item 
+bool \mbox{\hyperlink{class_clipboard_history_win_rt_a477e3e42bd480fefea6bc89ee827101b}{Stop\+Watch}} () override
+\item 
+bool \mbox{\hyperlink{class_clipboard_history_win_rt_a75423b0a88ebd149d549c3680b28fed9}{Can\+Destroy}} () const override
+\end{DoxyCompactItemize}
+
+
+\label{doc-func-members}
+\Hypertarget{class_clipboard_history_win_rt_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_clipboard_history_win_rt_a75423b0a88ebd149d549c3680b28fed9}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!CanDestroy@{CanDestroy}}
+\index{CanDestroy@{CanDestroy}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{CanDestroy()}{CanDestroy()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a75423b0a88ebd149d549c3680b28fed9} 
+bool Clipboard\+History\+Win\+Rt\+::\+Can\+Destroy (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a12be8985302f7223480324722d840a9c}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!ClearUnpinnedAsync@{ClearUnpinnedAsync}}
+\index{ClearUnpinnedAsync@{ClearUnpinnedAsync}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{ClearUnpinnedAsync()}{ClearUnpinnedAsync()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a12be8985302f7223480324722d840a9c} 
+void Clipboard\+History\+Win\+Rt\+::\+Clear\+Unpinned\+Async (\begin{DoxyParamCaption}\item[{History\+Status\+Callback}]{done}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_ac6d3a5265e20f578fe23a168336be2a5}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!DeleteItemAsync@{DeleteItemAsync}}
+\index{DeleteItemAsync@{DeleteItemAsync}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{DeleteItemAsync()}{DeleteItemAsync()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_ac6d3a5265e20f578fe23a168336be2a5} 
+void Clipboard\+History\+Win\+Rt\+::\+Delete\+Item\+Async (\begin{DoxyParamCaption}\item[{const std\+::wstring \&}]{id}{, }\item[{History\+Status\+Callback}]{done}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a25dec492fe49da1c62ab68ddc8fc9a44}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!GetAvailabilityAsync@{GetAvailabilityAsync}}
+\index{GetAvailabilityAsync@{GetAvailabilityAsync}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{GetAvailabilityAsync()}{GetAvailabilityAsync()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a25dec492fe49da1c62ab68ddc8fc9a44} 
+void Clipboard\+History\+Win\+Rt\+::\+Get\+Availability\+Async (\begin{DoxyParamCaption}\item[{History\+Availability\+Callback}]{done}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_ac2113b69c46fc8ef4dd78090ffa61265}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!GetItemsAsync@{GetItemsAsync}}
+\index{GetItemsAsync@{GetItemsAsync}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{GetItemsAsync()}{GetItemsAsync()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_ac2113b69c46fc8ef4dd78090ffa61265} 
+void Clipboard\+History\+Win\+Rt\+::\+Get\+Items\+Async (\begin{DoxyParamCaption}\item[{History\+Items\+Callback}]{done}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a6e9510b50fe61ff565c65b4b6e5575d6}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!QueryHistoryEnabled@{QueryHistoryEnabled}}
+\index{QueryHistoryEnabled@{QueryHistoryEnabled}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{QueryHistoryEnabled()}{QueryHistoryEnabled()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a6e9510b50fe61ff565c65b4b6e5575d6} 
+DWORD Clipboard\+History\+Win\+Rt\+::\+Query\+History\+Enabled (\begin{DoxyParamCaption}\item[{bool \&}]{enabled}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a73ab6603f56b2e2ff123b2ef2f7bfb69}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!QueryRoamingEnabled@{QueryRoamingEnabled}}
+\index{QueryRoamingEnabled@{QueryRoamingEnabled}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{QueryRoamingEnabled()}{QueryRoamingEnabled()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a73ab6603f56b2e2ff123b2ef2f7bfb69} 
+DWORD Clipboard\+History\+Win\+Rt\+::\+Query\+Roaming\+Enabled (\begin{DoxyParamCaption}\item[{bool \&}]{enabled}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a8c6a0a0d35f9756281588ba8a6c1d0a7}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!ReplaceEvents@{ReplaceEvents}}
+\index{ReplaceEvents@{ReplaceEvents}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{ReplaceEvents()}{ReplaceEvents()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a8c6a0a0d35f9756281588ba8a6c1d0a7} 
+void Clipboard\+History\+Win\+Rt\+::\+Replace\+Events (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{struct_clipboard_history_events}{Clipboard\+History\+Events}} $>$}]{events}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a8f65a7d04be2e6c010b8bb7b4ad93b2e}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!SetItemAsContentAsync@{SetItemAsContentAsync}}
+\index{SetItemAsContentAsync@{SetItemAsContentAsync}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{SetItemAsContentAsync()}{SetItemAsContentAsync()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a8f65a7d04be2e6c010b8bb7b4ad93b2e} 
+void Clipboard\+History\+Win\+Rt\+::\+Set\+Item\+As\+Content\+Async (\begin{DoxyParamCaption}\item[{const std\+::wstring \&}]{id}{, }\item[{History\+Status\+Callback}]{done}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a9b6bd19d620612d1f6058f7c0ddd1055}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!StartWatch@{StartWatch}}
+\index{StartWatch@{StartWatch}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{StartWatch()}{StartWatch()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a9b6bd19d620612d1f6058f7c0ddd1055} 
+DWORD Clipboard\+History\+Win\+Rt\+::\+Start\+Watch (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{struct_clipboard_history_events}{Clipboard\+History\+Events}} $>$}]{events}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+\Hypertarget{class_clipboard_history_win_rt_a477e3e42bd480fefea6bc89ee827101b}\index{ClipboardHistoryWinRt@{ClipboardHistoryWinRt}!StopWatch@{StopWatch}}
+\index{StopWatch@{StopWatch}!ClipboardHistoryWinRt@{ClipboardHistoryWinRt}}
+\doxysubsubsection{\texorpdfstring{StopWatch()}{StopWatch()}}
+{\footnotesize\ttfamily \label{class_clipboard_history_win_rt_a477e3e42bd480fefea6bc89ee827101b} 
+bool Clipboard\+History\+Win\+Rt\+::\+Stop\+Watch (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Clipboard\+History\+Win\+Rt.\+cpp\end{DoxyCompactItemize}

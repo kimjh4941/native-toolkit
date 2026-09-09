@@ -1,0 +1,163 @@
+\doxysection{Windows\+Clipboard\+Manager.\+h}
+\hypertarget{_windows_clipboard_manager_8h_source}{}\label{_windows_clipboard_manager_8h_source}\mbox{\hyperlink{_windows_clipboard_manager_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <windows.h>}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifdef\ WINDOWSLIBRARY\_EXPORTS}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ WINDOWSCLIPBOARDMANAGER\_API\ \_\_declspec(dllexport)}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#define\ WINDOWSCLIPBOARDMANAGER\_API\ \_\_declspec(dllimport)}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ Error\ codes\ (0\ =\ success,\ non-\/success\ values\ 1-\/19)}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_NONE\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 0}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_INVALID\_PARAMETER\ \ \ \ \ \ \ \ 1}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_NOT\_INITIALIZED\ \ \ \ \ \ \ \ \ \ 2}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_BUSY\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 3}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_EMPTY\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 4}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_FORMAT\_UNAVAILABLE\ \ \ \ \ \ \ 5}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_INVALID\_DATA\ \ \ \ \ \ \ \ \ \ \ \ \ 6}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_BUFFER\_TOO\_SMALL\ \ \ \ \ \ \ \ \ 7}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_OUT\_OF\_MEMORY\ \ \ \ \ \ \ \ \ \ \ \ 8}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_ACCESS\_DENIED\ \ \ \ \ \ \ \ \ \ \ \ 9}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_HISTORY\_DISABLED\ \ \ \ \ \ \ \ \ 10}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_ITEM\_DELETED\ \ \ \ \ \ \ \ \ \ \ \ \ 11}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_MONITOR\_REGISTER\_FAILED\ \ 12}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_PARTIAL\_STATE\ \ \ \ \ \ \ \ \ \ \ \ 13}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_WRONG\_THREAD\ \ \ \ \ \ \ \ \ \ \ \ \ 14}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_CANCELED\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 15}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_NOT\_SUPPORTED\ \ \ \ \ \ \ \ \ \ \ \ 16}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_NOT\_FOREGROUND\ \ \ \ \ \ \ \ \ \ \ 17}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_WRONG\_APARTMENT\ \ \ \ \ \ \ \ \ \ 18}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_ERROR\_UNKNOWN\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 19}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ Write\ options\ shared\ by\ every\ copy\ API\ (bit\ flags).}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_WRITE\_OPTION\_NONE\ \ \ \ \ \ \ \ \ \ \ \ \ \ 0x00000000u}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_WRITE\_OPTION\_EXCLUDE\_HISTORY\ \ \ 0x00000001u\ \ }\textcolor{comment}{//\ CanIncludeInClipboardHistory\ =\ 0}}
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_WRITE\_OPTION\_EXCLUDE\_ROAMING\ \ \ 0x00000002u\ \ }\textcolor{comment}{//\ CanUploadToCloudClipboard\ =\ 0}}
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#define\ CLIPBOARD\_WRITE\_OPTION\_SENSITIVE\ \ \ \ \ \ \ \ \ 0x00000003u\ \ }\textcolor{comment}{//\ both\ of\ the\ above}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ Callback\ types}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00062\ \textcolor{keyword}{typedef}\ void\ (*\mbox{\hyperlink{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}{ClipboardChangedCallback}})(void);}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00065\ \textcolor{keyword}{typedef}\ void\ (*\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{ClipboardHistoryChangedCallback}})(void);}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00068\ \textcolor{keyword}{typedef}\ void\ (*\mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}})(BOOL\ enabled);}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00084\ \textcolor{keyword}{typedef}\ void\ (*\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}})(uint32\_t\ requestId,\ DWORD\ error,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ json);}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00098\ \textcolor{keyword}{typedef}\ DWORD\ (*\mbox{\hyperlink{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}{ClipboardRenderCallback}})(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatName,}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ context,}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ BYTE*\ buffer,}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DWORD\ buffer\_size,}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DWORD*\ pRequiredSize);}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ Initialization\ /\ shutdown}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00125\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00126\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a3d12e6528fb6bfba93b45f17195f4310}{initClipboardManager}}(\mbox{\hyperlink{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}{ClipboardChangedCallback}}\ onChanged,\ DWORD*\ pError);}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00149\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00150\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_af13d23a723f43b3a9d1ccd7ada8a627f}{setClipboardHistoryCallbacks}}(\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{ClipboardHistoryChangedCallback}}\ onHistoryChanged,}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ onHistoryEnabledChanged,}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ onRoamingEnabledChanged,}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DWORD*\ pError);}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00175\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00176\ BOOL\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a9e722678558b9781e01cb45daa902a8c}{uninitClipboardManager}}(DWORD*\ pError);}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00186\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00187\ BOOL\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a934e337342950df13ea1ae7d6618cbbd}{canDestroyClipboardManager}}(DWORD*\ pError);}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00190\ \textcolor{comment}{//\ Synchronous\ API\ -\/\ Win32\ core\ (F-\/01\ ..\ F-\/08,\ F-\/10,\ F-\/11)}}
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00194\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00195\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a231e562baa9a39735892c366c80c1bd9}{copyPlainText}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ text,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00203\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00204\ DWORD\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a6838a6aa9794aed1d6d00c5cdd3cdc4f}{pastePlainText}}(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ buffer\_size,\ DWORD*\ pError);}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00207\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00208\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_aa61d024d897249e80564a81e27b07670}{copyHtml}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ htmlFragment,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ plainText,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00211\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00212\ DWORD\ \mbox{\hyperlink{_windows_clipboard_manager_8h_aa9c244a534768cfeee09c3f83bf11009}{pasteHtml}}(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ buffer\_size,\ DWORD*\ pError);}
+\DoxyCodeLine{00213\ }
+\DoxyCodeLine{00215\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00216\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a9da7374753ed183e714fc0563ecd729d}{copyFiles}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ pathsJson,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00219\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00220\ DWORD\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a819210a6fcce3cc8d447d827f92ba6b5}{pasteFiles}}(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ buffer\_size,\ DWORD*\ pError);}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00223\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00224\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a5072576c6da71343c436351b88b1ed6e}{copyImage}}(\textcolor{keyword}{const}\ BYTE*\ dib,\ DWORD\ dibSize,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00231\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00232\ DWORD\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a4f5a1e04fb892dd02f9b39f5db91a220}{pasteImage}}(BYTE*\ buffer,\ DWORD\ buffer\_size,\ DWORD*\ pError);}
+\DoxyCodeLine{00233\ }
+\DoxyCodeLine{00235\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00236\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a6221bda4e0f1d67e70e95fc65b7f0dfb}{copyCustomFormat}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatName,\ \textcolor{keyword}{const}\ BYTE*\ data,\ DWORD\ size,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00237\ }
+\DoxyCodeLine{00239\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00240\ DWORD\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a11fa379658e4e0206fa5e973647481c2}{pasteCustomFormat}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatName,\ BYTE*\ buffer,\ DWORD\ buffer\_size,\ DWORD*\ pError);}
+\DoxyCodeLine{00241\ }
+\DoxyCodeLine{00258\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00259\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a869c30d4946daf20b54c23ccf1869535}{copyMultipleFormats}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ itemsJson,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00260\ }
+\DoxyCodeLine{00262\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00263\ BOOL\ \mbox{\hyperlink{_windows_clipboard_manager_8h_aae68cc1edc728c2150a684ed16301bb5}{hasClipboardFormat}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatName,\ DWORD*\ pError);}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00266\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00267\ DWORD\ \mbox{\hyperlink{_windows_clipboard_manager_8h_ab978d3e5e9ceeb564b8aa8b54c3ba6f5}{getClipboardFormats}}(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ buffer\_size,\ DWORD*\ pError);}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00270\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00271\ DWORD\ \mbox{\hyperlink{_windows_clipboard_manager_8h_afbf01822ffe7139590f089075121752d}{getPreferredClipboardFormat}}(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ buffer\_size,\ DWORD*\ pError);}
+\DoxyCodeLine{00272\ }
+\DoxyCodeLine{00274\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00275\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_aef53b12c09e5a5c3586dee54723f5235}{clearClipboard}}(DWORD*\ pError);}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00290\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00291\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_aab35ed73394fc6108085b5f624640530}{reserveDeferredFormats}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatNamesJson,\ \mbox{\hyperlink{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}{ClipboardRenderCallback}}\ provider,}
+\DoxyCodeLine{00292\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ context,\ DWORD*\ pError);}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00295\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00296\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a514025400825e4e8f865d486b31b6927}{recoverDeferredState}}(DWORD*\ pError);}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00299\ \textcolor{comment}{//\ Asynchronous\ API\ -\/\ WinRT\ clipboard\ history\ (F-\/12)}}
+\DoxyCodeLine{00300\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00311\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00312\ uint32\_t\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a7cc2a98b1c05ca5cc76a2d41ab3f0200}{getClipboardHistory}}(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00313\ }
+\DoxyCodeLine{00315\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00316\ uint32\_t\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a07fe9997b18b8b72fcf3cc6bb9af1f2d}{restoreHistoryItem}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ itemId,\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00319\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00320\ uint32\_t\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a2b484a5d8f94fa174bb7ab0e234c9ea1}{deleteHistoryItem}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ itemId,\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00321\ }
+\DoxyCodeLine{00323\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00324\ uint32\_t\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a2f74b83053e0d83110bc7425c29b1bb4}{clearUnpinnedHistory}}(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00330\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00331\ uint32\_t\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a22352ba8722a0fe96ed0c21ab63cea34}{getClipboardHistoryAvailability}}(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00332\ }
+\DoxyCodeLine{00342\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ WINDOWSCLIPBOARDMANAGER\_API}
+\DoxyCodeLine{00343\ BOOL\ \mbox{\hyperlink{_windows_clipboard_manager_8h_aefd6d10f2a1ecbddfe69fc50e02794e9}{cancelClipboardRequest}}(uint32\_t\ requestId,\ DWORD*\ pError);}
+
+\end{DoxyCode}
