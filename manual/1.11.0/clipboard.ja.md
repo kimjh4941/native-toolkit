@@ -128,6 +128,51 @@ Language:
     - [1514 について](#1514-について)
     - [通常の利用では発生しないエラーコード](#通常の利用では発生しないエラーコード)
 
+- [Windows](#windows)
+  - [WindowsClipboardManager](#windowsclipboardmanager)
+  - [セットアップ](#セットアップ-3)
+    - [オーナー UI スレッド](#オーナー-ui-スレッド)
+    - [2 つの API 形式](#2-つの-api-形式)
+    - [値の読み取りは 2 段階です](#値の読み取りは-2-段階です)
+    - [書き込みオプションのフラグ](#書き込みオプションのフラグ)
+  - [初期化 / ライフサイクル](#初期化--ライフサイクル)
+    - [初期化](#初期化)
+    - [履歴イベントのコールバック](#履歴イベントのコールバック)
+    - [終了処理](#終了処理)
+    - [破棄可能かの確認](#破棄可能かの確認)
+  - [コピー](#コピー-3)
+    - [プレーンテキストのコピー](#プレーンテキストのコピー)
+    - [空文字列のコピー](#空文字列のコピー)
+    - [HTML のコピー](#html-のコピー)
+    - [ファイルのコピー](#ファイルのコピー)
+    - [画像のコピー](#画像のコピー-1)
+    - [独自形式のコピー](#独自形式のコピー)
+    - [複数形式の同時コピー](#複数形式の同時コピー)
+  - [書き込みオプション](#書き込みオプション)
+  - [貼り付け](#貼り付け)
+    - [プレーンテキストの貼り付け](#プレーンテキストの貼り付け)
+    - [HTML の貼り付け](#html-の貼り付け)
+    - [ファイルの貼り付け](#ファイルの貼り付け)
+    - [画像の貼り付け](#画像の貼り付け)
+    - [独自形式の貼り付け](#独自形式の貼り付け)
+  - [検査 / クリア](#検査--クリア)
+    - [形式の有無](#形式の有無)
+    - [形式一覧の取得](#形式一覧の取得)
+    - [優先形式の取得](#優先形式の取得)
+    - [クリップボードのクリア](#クリップボードのクリア)
+  - [遅延レンダリング](#遅延レンダリング)
+    - [形式の予約](#形式の予約)
+    - [部分状態からの復旧](#部分状態からの復旧)
+  - [履歴](#履歴)
+    - [履歴の利用可否](#履歴の利用可否)
+    - [履歴一覧の取得](#履歴一覧の取得)
+    - [履歴項目の復元](#履歴項目の復元)
+    - [履歴項目の削除](#履歴項目の削除)
+    - [未固定履歴のクリア](#未固定履歴のクリア)
+    - [リクエストのキャンセル](#リクエストのキャンセル)
+  - [エラー処理](#エラー処理-3)
+    - [値の読み取りは 2 回呼ぶため 7 は正常です](#値の読み取りは-2-回呼ぶため-7-は正常です)
+
 ---
 
 ## Android
@@ -1822,3 +1867,555 @@ Task {
 #### 通常の利用では発生しないエラーコード
 
 1506、1507、1509、1510、1521、1522、1524 は、API が報告しうるものの、アプリケーションから意図的に発生させることが難しい条件を表します。受け取ったコードを調べられるように一覧に載せているだけであり、それぞれに分岐を書く必要はありません。
+
+---
+
+## Windows
+
+### WindowsClipboardManager
+
+`WindowsClipboardManager` は、Win32 クリップボードと WinRT のクリップボード履歴を扱う C Bridge API（`extern "C"`）です。Windows 11 以降が必要です。
+
+ライブラリは `windows-native-toolkit-1.2.0.nupkg` として配布されます。
+
+- 対応範囲: テキスト / HTML / ファイル / 画像 / 独自形式のコピーと貼り付け、複数形式の同時書き込み、内容の検査、変更監視、遅延レンダリング、クリップボード履歴
+- ヘッダー: `WindowsClipboardManager.h`
+
+この節のスクリーンショットは `WindowsLibraryExample` のものです。同アプリの Clipboard 画面は、以下の節と同じ順序で操作をまとめています。
+
+<p align="center">
+    <img src="images/windows/clipboard/Example_WindowsClipboardManager.png" alt="Example_WindowsClipboardManager" width="800" />
+</p>
+
+---
+
+### セットアップ
+
+NuGet パッケージをプロジェクトへ追加し、ヘッダーを include します。
+
+```cpp
+#include "WindowsClipboardManager.h"
+```
+
+#### オーナー UI スレッド
+
+`initClipboardManager` を呼び出したスレッドが **オーナー UI スレッド** になり、2 つの義務を負います。
+
+1. マネージャーの生存期間中、メッセージポンプを回し続ける必要があります。これは実行時に検証できないため、エラーとしてではなく呼び出し側の契約として扱います。
+2. 呼び出し前に STA として初期化されている必要があります（`CoInitializeEx` に `COINIT_APARTMENTTHREADED` を指定するか、`winrt::init_apartment(winrt::apartment_type::single_threaded)`）。こちらは **検証されます**。MTA や未初期化のスレッドでは `CLIPBOARD_ERROR_WRONG_APARTMENT` を返し、マネージャーは初期化されません。
+
+アパートメントはホストのものであり、本ライブラリが初期化・終了処理を行うことはありません。
+
+プロセス全体の状態を扱う操作はオーナースレッド専用で、他スレッドからは `CLIPBOARD_ERROR_WRONG_THREAD` になります。対象は `setClipboardHistoryCallbacks`、`uninitClipboardManager`、`reserveDeferredFormats`、`recoverDeferredState` です。コールバックはすべてオーナー UI スレッドへ配送されます。
+
+#### 2 つの API 形式
+
+| 形式 | 結果の返し方 | 該当 API |
+|---|---|---|
+| 同期 | 戻る前に `DWORD* pError` を設定します | コピー・貼り付け・検査のすべて |
+| 非同期リクエスト | 0 以外のリクエスト ID を返し、完了コールバックがちょうど 1 回発火します | 履歴の 5 つの API |
+
+受理されたリクエストは 0 以外の ID を返し、そのコールバックはオーナー UI スレッドでちょうど 1 回実行されます。受理されなかった場合は `0` を返し、コールバックは呼ばれません。
+
+#### 値の読み取りは 2 段階です
+
+読み取り系 API は必要なバッファサイズを返すため、サイズ取得と読み取りの 2 回呼び出します。
+
+```cpp
+DWORD err = CLIPBOARD_ERROR_NONE;
+const DWORD required = pastePlainText(nullptr, 0, &err);
+if (err != CLIPBOARD_ERROR_BUFFER_TOO_SMALL && err != CLIPBOARD_ERROR_NONE)
+{
+    return; // FORMAT_UNAVAILABLE、EMPTY など
+}
+
+std::wstring text(required, 0);
+pastePlainText(text.data(), required, &err);
+if (err == CLIPBOARD_ERROR_NONE)
+{
+    text.resize(required - 1); // 終端文字を落とします
+}
+```
+
+テキスト系は終端を含む `wchar_t` 単位、`pasteImage` と `pasteCustomFormat` はバイト単位で数えます。
+
+#### 書き込みオプションのフラグ
+
+コピー系 API はいずれもオプションのビットマスクを受け取り、Windows が内容をどこまで伝播してよいかを指定します。
+
+| 定数 | 効果 |
+|---|---|
+| `CLIPBOARD_WRITE_OPTION_NONE` | 制限しません |
+| `CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY` | クリップボード履歴（Win+V）に残しません |
+| `CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING` | 他デバイスへ同期しません |
+| `CLIPBOARD_WRITE_OPTION_SENSITIVE` | 上記の両方 |
+
+これらが制限するのは履歴と同期だけです。いずれのオプションを付けても、Ctrl+V による通常の貼り付けはできます。
+
+---
+
+### 初期化 / ライフサイクル
+
+#### 初期化
+
+```cpp
+void OnClipboardChanged()
+{
+    // クリップボードの内容が変わったときに、オーナー UI スレッドで呼ばれます。
+    // 本ライブラリ経由の書き込みでは発火しません。
+}
+
+DWORD err = CLIPBOARD_ERROR_NONE;
+initClipboardManager(&OnClipboardChanged, &err);
+// err == 0: 成功
+// err == 18 (WRONG_APARTMENT): 呼び出しスレッドが STA ではありません
+```
+
+変更通知が不要であれば `nullptr` を渡します。同じスレッドから再度呼ぶと冪等な成功になり、別スレッドから呼ぶと `CLIPBOARD_ERROR_WRONG_THREAD` になります。関数ポインタは `uninitClipboardManager` が `TRUE` を返すまで有効に保つ必要があります。
+
+#### 履歴イベントのコールバック
+
+```cpp
+void OnHistoryChanged()            { /* 履歴へ新しい項目が追加されました */ }
+void OnHistoryEnabledChanged(BOOL) { /* 下記の注意を参照してください */ }
+void OnRoamingEnabledChanged(BOOL) { /* 下記の注意を参照してください */ }
+
+DWORD err = CLIPBOARD_ERROR_NONE;
+setClipboardHistoryCallbacks(&OnHistoryChanged,
+                             &OnHistoryEnabledChanged,
+                             &OnRoamingEnabledChanged,
+                             &err);
+```
+
+3 つすべてに `nullptr` を渡すと監視を停止し、登録を解除します。
+
+`onHistoryChanged` が発火するのは **新しい項目が追加されたとき** だけです。削除やクリアでの発火は保証されないため、自分で削除・クリアを行った後は改めて取得してください。
+
+**`onHistoryEnabledChanged` と `onRoamingEnabledChanged` を動作の判断に使わないでください。** 基盤となる WinRT イベントは、プロセスあたり高々 1 回しか発火せず、クリップボード履歴が無効な状態で登録した場合は一度も発火しないことが確認されています。現在の設定が必要な場合は `getClipboardHistoryAvailability` を呼んでください。`onHistoryChanged` はこの影響を受けません。
+
+#### 終了処理
+
+```cpp
+DWORD err = CLIPBOARD_ERROR_NONE;
+const BOOL done = uninitClipboardManager(&err);
+// done == FALSE: 処理が残っています。メッセージを処理してから再度呼びます。
+```
+
+`FALSE` は何かが残っていることを意味します。解除できていないリスナートークン、未配送のキャンセル、実行中のリクエスト、実行中の同期呼び出しのいずれかです。**再試行の間はメッセージポンプを回し続けてください。UI スレッドをブロックしたまま繰り返してはいけません。** キャンセルは即時ではなくキューへ積まれるため、リクエストが残っている限り初回は必ず `FALSE` になります。
+
+**プロセス終了前に必ず呼んでください。** `reserveDeferredFormats` で予約した形式は `WM_RENDERALLFORMATS` によって確定されますが、このメッセージはオーナーウィンドウが破棄されるときにのみ送られ、その破棄はこの関数からしか行われません。単に終了したプロセスではメッセージが届かず、予約した形式はクリップボードから失われます。
+
+```cpp
+// WinUI 3: ウィンドウが存在するうちに終了処理を行います
+Closed([](auto&&, auto&&)
+{
+    DWORD err = CLIPBOARD_ERROR_NONE;
+    uninitClipboardManager(&err);
+});
+```
+
+#### 破棄可能かの確認
+
+```cpp
+DWORD err = CLIPBOARD_ERROR_NONE;
+const BOOL ready = canDestroyClipboardManager(&err);
+```
+
+ブロックしない状態問い合わせです。`TRUE` は現時点で残作業がないことを示すだけで、**次の `uninitClipboardManager` が成功することを保証しません**。部分状態の復旧や OS API の失敗で失敗し得るためです。最終的な判定は `uninit` の戻り値で行ってください。
+
+---
+
+### コピー
+
+#### プレーンテキストのコピー
+
+```cpp
+DWORD err = CLIPBOARD_ERROR_NONE;
+copyPlainText(L"Hello from native-toolkit", CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+#### 空文字列のコピー
+
+空文字列はエラーではなく、有効なペイロードとして扱われます。クリップボードには `CF_UNICODETEXT` が載ります。
+
+```cpp
+copyPlainText(L"", CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+#### HTML のコピー
+
+`CF_HTML` とプレーンテキストのフォールバックを同時に書き込むため、HTML を解釈しないアプリでも読める文字列を受け取れます。
+
+```cpp
+copyHtml(L"<b>Hello</b> from native-toolkit",   // HTML フラグメント
+         L"Hello from native-toolkit",          // プレーンテキストのフォールバック
+         CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+`CF_HTML` のヘッダーと `<html><body>` のラッパーはライブラリ側で構築します。渡すのはフラグメントだけです。
+
+#### ファイルのコピー
+
+絶対パスの JSON 配列を受け取り、エクスプローラーが貼り付けに使う `CF_HDROP` を書き込みます。
+
+```cpp
+copyFiles(LR"(["C:\\temp\\sample-1.txt","C:\\temp\\sample-2.txt"])",
+          CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+空配列は `CLIPBOARD_ERROR_INVALID_PARAMETER` で拒否されます。
+
+#### 画像のコピー
+
+デバイス独立ビットマップ（`CF_DIB`）を受け取ります。`BITMAPINFOHEADER` の後ろにピクセルデータが続く形式です。
+
+```cpp
+std::vector<BYTE> dib(sizeof(BITMAPINFOHEADER) + 8 * 8 * 4, 0);
+auto* header = reinterpret_cast<BITMAPINFOHEADER*>(dib.data());
+header->biSize        = sizeof(BITMAPINFOHEADER);
+header->biWidth       = 8;
+header->biHeight      = 8;
+header->biPlanes      = 1;
+header->biBitCount    = 32;
+header->biCompression = BI_RGB;
+header->biSizeImage   = 8 * 8 * 4;
+// ピクセルを BGRA で埋めます
+
+copyImage(dib.data(), static_cast<DWORD>(dib.size()), CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+ヘッダーは検証されます。幅が正でない、高さが top-down、RLE とビット深度が不一致、`biSizeImage` がバッファ範囲外、といった場合は `CLIPBOARD_ERROR_INVALID_DATA` になります。
+
+#### 独自形式のコピー
+
+形式名を登録し、バイト列をそのまま書き込みます。形式名を知っているアプリだけが読み戻せます。
+
+```cpp
+const std::string blob = "native-toolkit-sample-payload";
+copyCustomFormat(L"NativeToolkitSample",
+                 reinterpret_cast<const BYTE*>(blob.data()),
+                 static_cast<DWORD>(blob.size()),
+                 CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+#### 複数形式の同時コピー
+
+1 回の操作で複数の形式を配置し、貼り付け先のアプリが理解できる最も豊かな形式を選べるようにします。**最も豊かな形式を先頭に並べてください。** 順序は契約の一部です。
+
+```cpp
+copyMultipleFormats(
+    LR"([{"format":"HTML Format","html":"<b>Hello</b> from native-toolkit"},
+         {"format":"CF_UNICODETEXT","text":"Hello from native-toolkit"}])",
+    CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+各項目が持つペイロードキーは 1 つだけです。
+
+| キー | 内容 | 指定できる形式 |
+|---|---|---|
+| `text` | UTF-16 テキスト | テキスト系（`CF_UNICODETEXT`、`CF_TEXT`） |
+| `html` | HTML フラグメント。`CF_HTML` 全体はライブラリが構築します | `HTML Format` |
+| `base64` | 生バイト列 | `CF_DIB`、`CF_HDROP`、独自形式を含む任意の形式 |
+
+既知のバイナリ形式に対する `base64` は構造が検証されます。`format` の重複、形式とペイロード種別の不一致、`CF_BITMAP`（`HBITMAP` の所有権を扱う経路がないため）は、**何も配置する前に** `CLIPBOARD_ERROR_INVALID_PARAMETER` で拒否されます。
+
+画像を加える場合も、項目を 1 つ増やすだけです。
+
+```cpp
+copyMultipleFormats(
+    LR"([{"format":"HTML Format","html":"<b>Hello</b> from native-toolkit"},
+         {"format":"CF_UNICODETEXT","text":"Hello from native-toolkit"},
+         {"format":"CF_DIB","base64":"<DIB バイト列の base64>"}])",
+    CLIPBOARD_WRITE_OPTION_NONE, &err);
+```
+
+途中で失敗した場合はクリップボードを空にし直します。そのロールバックにも失敗した場合は `*pError` が `CLIPBOARD_ERROR_PARTIAL_STATE` になり、一部の形式が残ることがあります。
+
+---
+
+### 書き込みオプション
+
+同じ内容をプライバシー設定を変えて書き込む例です。
+
+```cpp
+// Win+V に残さず、他デバイスへも同期しません
+copyPlainText(L"Sensitive sample value", CLIPBOARD_WRITE_OPTION_SENSITIVE, &err);
+
+// Win+V に残さないだけです
+copyPlainText(L"History excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY, &err);
+
+// 他デバイスへ同期しないだけです
+copyPlainText(L"Roaming excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING, &err);
+```
+
+3 つとも、現在のセッションでは Ctrl+V で貼り付けられます。制限の対象は履歴と同期であって、クリップボードそのものではありません。
+
+---
+
+### 貼り付け
+
+#### プレーンテキストの貼り付け
+
+```cpp
+DWORD err = CLIPBOARD_ERROR_NONE;
+const DWORD required = pastePlainText(nullptr, 0, &err);
+std::wstring text(required, 0);
+pastePlainText(text.data(), required, &err);
+```
+
+#### HTML の貼り付け
+
+返るのはフラグメントだけです。`CF_HTML` のヘッダーと `<html><body>` のラッパーは取り除かれ、UTF-8 のペイロードは UTF-16 へデコードされます。
+
+```cpp
+const DWORD required = pasteHtml(nullptr, 0, &err);
+std::wstring html(required, 0);
+pasteHtml(html.data(), required, &err);
+// html == L"<b>Hello</b> from native-toolkit"
+```
+
+#### ファイルの貼り付け
+
+`CF_HDROP` の一覧をパスの JSON 配列として返すため、エクスプローラーでコピーしたファイルをそのまま読み取れます。
+
+```cpp
+const DWORD required = pasteFiles(nullptr, 0, &err);
+std::wstring json(required, 0);
+pasteFiles(json.data(), required, &err);
+// json == LR"(["C:\\...\\a.txt","C:\\...\\b.txt"])"
+```
+
+#### 画像の貼り付け
+
+`CF_DIB` のバイト列を返します。サイズは文字数ではなくバイト数です。
+
+```cpp
+const DWORD required = pasteImage(nullptr, 0, &err);
+std::vector<BYTE> dib(required);
+pasteImage(dib.data(), required, &err);
+
+BITMAPINFOHEADER header{};
+std::memcpy(&header, dib.data(), sizeof(header));
+// header.biWidth、header.biHeight、header.biBitCount
+```
+
+返るサイズはピクセルデータより大きくなることがあります。Windows が確保単位を切り上げるためです。画像の大きさはバッファ長ではなくヘッダーから読み取ってください。
+
+クリップボードに画像がない場合、`pasteImage` はサイズ取得の呼び出しでも `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` を返します。
+
+#### 独自形式の貼り付け
+
+```cpp
+const DWORD required = pasteCustomFormat(L"NativeToolkitSample", nullptr, 0, &err);
+std::vector<BYTE> blob(required);
+pasteCustomFormat(L"NativeToolkitSample", blob.data(), required, &err);
+```
+
+バイト数は書き込んだときと一致します。独自形式は加工されずにそのまま往復します。
+
+---
+
+### 検査 / クリア
+
+#### 形式の有無
+
+```cpp
+const BOOL present = hasClipboardFormat(L"CF_UNICODETEXT", &err);
+```
+
+`CF_*` の定数名と、登録済みの独自形式名のどちらも指定できます。
+
+#### 形式一覧の取得
+
+現在クリップボードにある形式を JSON 配列で返します。Windows が自動合成した形式も含みます。
+
+```cpp
+const DWORD required = getClipboardFormats(nullptr, 0, &err);
+std::wstring json(required, 0);
+getClipboardFormats(json.data(), required, &err);
+// ["CF_UNICODETEXT","HTML Format","0x0010","CF_TEXT","0x0007"]
+```
+
+`CF_TEXT` や `CF_OEMTEXT` が `CF_UNICODETEXT` と並ぶのは、システムがそれらを合成するためです。
+
+#### 優先形式の取得
+
+本ライブラリが読み取れる形式のうち、最も情報量の多いものを返します。候補の順序は `CF_UNICODETEXT`、`CF_HDROP`、`CF_DIB`、`CF_BITMAP` です。
+
+```cpp
+const DWORD required = getPreferredClipboardFormat(nullptr, 0, &err);
+std::wstring name(required, 0);
+getPreferredClipboardFormat(name.data(), required, &err);
+```
+
+`HTML Format` は候補に含まれないため、テキストと HTML が載っている場合は `CF_UNICODETEXT` になります。独自形式だけが載っている場合は空文字列を返します。
+
+#### クリップボードのクリア
+
+```cpp
+clearClipboard(&err);
+```
+
+実行後は `getClipboardFormats` が `[]` を返し、貼り付けは `CLIPBOARD_ERROR_EMPTY` ではなく `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` を返します。データを要求する前に形式の有無を確認する設計のためです。
+
+---
+
+### 遅延レンダリング
+
+遅延レンダリングは、形式を提示するだけで実データを作りません。実際に要求されたときにだけペイロードを生成するため、貼り付けられないかもしれない重い表現を先に直列化せずに済みます。
+
+#### 形式の予約
+
+```cpp
+DWORD OnRenderFormat(const wchar_t* formatName, void* context,
+                     BYTE* buffer, DWORD bufferSize, DWORD* pRequiredSize)
+{
+    const std::vector<BYTE>& payload = PayloadFor(formatName);
+    *pRequiredSize = static_cast<DWORD>(payload.size());
+
+    if (!buffer || bufferSize < payload.size())
+    {
+        return CLIPBOARD_ERROR_BUFFER_TOO_SMALL;   // サイズ問い合わせ
+    }
+    std::memcpy(buffer, payload.data(), payload.size());
+    return CLIPBOARD_ERROR_NONE;                   // データ供給
+}
+
+DWORD err = CLIPBOARD_ERROR_NONE;
+reserveDeferredFormats(LR"(["HTML Format","CF_UNICODETEXT"])",
+                       &OnRenderFormat, nullptr, &err);
+```
+
+プロバイダーは `WM_RENDERFORMAT` の処理中に、オーナー UI スレッドで呼ばれます。**クリップボード API を呼んではならず、ブロックしてはならず、例外を投げてはいけません。** `*pRequiredSize` は両方の段階で設定し、かつ同じ値を返してください。データ供給時のサイズは、サイズ問い合わせ時に返した値と一致する必要があります。
+
+予約が生き続ける条件は 2 つあります。
+
+- 予約は、このプロセスがクリップボードを所有している間だけ有効です。他のアプリがコピーすると破棄され、プロバイダーは呼ばれません。
+- ペイロードが要求される時点でオーナーウィンドウが存在している必要があるため、**プロセス終了前に `uninitClipboardManager` を呼んでください**。呼ばない場合、予約した形式はレンダリングされずに失われます。
+
+**クリップボード履歴が有効な場合、履歴サービスが予約直後にすべての形式をレンダリングします。** そのためプロバイダーは外部の貼り付けより先に呼ばれます。「まだプロバイダーが呼ばれていない」ことを不変条件として扱わないでください。
+
+#### 部分状態からの復旧
+
+```cpp
+recoverDeferredState(&err);
+```
+
+ロールバックの失敗が残した `CLIPBOARD_ERROR_PARTIAL_STATE` からの復旧を再試行します。復旧すべき状態がないときに呼んでも成功し、有効な予約を壊すことはありません。
+
+---
+
+### 履歴
+
+履歴の 5 つの API は非同期です。受理されると 0 以外のリクエスト ID を返し、コールバックはオーナー UI スレッドでちょうど 1 回発火します。
+
+```cpp
+void OnRequestCompleted(uint32_t requestId, DWORD error, const wchar_t* json)
+{
+    // json が有効なのはこのコールバックの間だけです。戻る前にコピーしてください。
+}
+```
+
+クリップボード履歴は Windows の設定で有効になっている必要があります。無効な場合でもリクエストは受理され、コールバックは空リストではなく `CLIPBOARD_ERROR_HISTORY_DISABLED`（10）を返します。「無効」が「空」と取り違えられることはありません。
+
+#### 履歴の利用可否
+
+```cpp
+DWORD err = CLIPBOARD_ERROR_NONE;
+const uint32_t id = getClipboardHistoryAvailability(&OnRequestCompleted, &err);
+// コールバックの json: {"historyEnabled":true,"roamingEnabled":false}
+```
+
+現在の設定を確実に読み取れるのはこの API です。Windows の設定で変更した内容にも追従します。
+
+#### 履歴一覧の取得
+
+```cpp
+const uint32_t id = getClipboardHistory(&OnRequestCompleted, &err);
+```
+
+コールバックは新しい順に項目を受け取ります。
+
+```json
+[{"id":"{EC8B5A45-...}","text":"history-3","contentTypes":["Text"],"timestamp":"134329814601772022"}]
+```
+
+`timestamp` は JSON の数値ではなく **10 進の文字列** です。1601 年からの 100ns 単位（FILETIME）を保持しており、JSON の数値が持つ倍精度では int64 の全範囲を表現できないためです。テキスト表現を持たない項目では `text` が `null` になります。
+
+#### 履歴項目の復元
+
+履歴の項目を、現在のクリップボードの内容にします。
+
+```cpp
+const uint32_t id = restoreHistoryItem(itemId, &OnRequestCompleted, &err);
+```
+
+復元を実行するのは本ライブラリではなく Windows の履歴サービスであるため、通常のクリップボード変更コールバックが外部変更として発火します。
+
+#### 履歴項目の削除
+
+```cpp
+const uint32_t id = deleteHistoryItem(itemId, &OnRequestCompleted, &err);
+```
+
+削除では `onHistoryChanged` の発火が保証されないため、実行後に一覧を取得し直してください。
+
+#### 未固定履歴のクリア
+
+```cpp
+const uint32_t id = clearUnpinnedHistory(&OnRequestCompleted, &err);
+```
+
+**固定（ピン留め）した項目は残ります。** これは OS の挙動です。利用者が意図して固定したものだからです。
+
+#### リクエストのキャンセル
+
+```cpp
+const BOOL queued = cancelClipboardRequest(id, &err);
+```
+
+任意のスレッドから呼べます。`TRUE` はキャンセルがオーナー UI スレッドへ積まれたことを示し、`FALSE` は ID が未知、すでに完了済み、または送信に失敗したことを示します。
+
+コールバックは **ちょうど 1 回** 発火します。キャンセルが間に合えば `CLIPBOARD_ERROR_CANCELED`、間に合わなければ通常の結果です。`FALSE` が返っても、すでに配送中の完了通知が抑止されるわけではありません。
+
+---
+
+### エラー処理
+
+同期 API は `DWORD* pError` で、非同期リクエストは完了コールバックの `error` 引数で結果を返します。
+
+```cpp
+DWORD err = CLIPBOARD_ERROR_NONE;
+copyPlainText(text, CLIPBOARD_WRITE_OPTION_NONE, &err);
+if (err != CLIPBOARD_ERROR_NONE)
+{
+    // err を処理します
+}
+```
+
+| コード | 定数 | 発生する場面 |
+|---|---|---|
+| 0 | `CLIPBOARD_ERROR_NONE` | 成功 |
+| 1 | `CLIPBOARD_ERROR_INVALID_PARAMETER` | 引数が null または不正、ファイル一覧が空、複数形式指定の重複や種別不一致、`CF_BITMAP` |
+| 2 | `CLIPBOARD_ERROR_NOT_INITIALIZED` | `initClipboardManager` の前、または終了処理の開始後に呼ばれた |
+| 3 | `CLIPBOARD_ERROR_BUSY` | 他のアプリが保持しておりクリップボードを開けなかった |
+| 4 | `CLIPBOARD_ERROR_EMPTY` | 形式は存在するがデータが空 |
+| 5 | `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` | 要求した形式がクリップボードにない |
+| 6 | `CLIPBOARD_ERROR_INVALID_DATA` | 不正な DIB など、構造の検証に失敗した |
+| 7 | `CLIPBOARD_ERROR_BUFFER_TOO_SMALL` | バッファが null または不足。必要なサイズは戻り値が保持します |
+| 8 | `CLIPBOARD_ERROR_OUT_OF_MEMORY` | メモリ確保に失敗した |
+| 9 | `CLIPBOARD_ERROR_ACCESS_DENIED` | システムが操作を拒否した |
+| 10 | `CLIPBOARD_ERROR_HISTORY_DISABLED` | Windows の設定でクリップボード履歴が無効 |
+| 11 | `CLIPBOARD_ERROR_ITEM_DELETED` | 対象の履歴項目が存在しない |
+| 12 | `CLIPBOARD_ERROR_MONITOR_REGISTER_FAILED` | クリップボードまたは履歴のリスナーを登録できなかった |
+| 13 | `CLIPBOARD_ERROR_PARTIAL_STATE` | ロールバックに失敗した。`recoverDeferredState` を呼びます |
+| 14 | `CLIPBOARD_ERROR_WRONG_THREAD` | オーナースレッド専用 API を別スレッドから呼んだ |
+| 15 | `CLIPBOARD_ERROR_CANCELED` | 完了前にキャンセルされた |
+| 16 | `CLIPBOARD_ERROR_NOT_SUPPORTED` | この環境では利用できない操作 |
+| 17 | `CLIPBOARD_ERROR_NOT_FOREGROUND` | 前面のウィンドウが必要な操作 |
+| 18 | `CLIPBOARD_ERROR_WRONG_APARTMENT` | 初期化したスレッドが STA ではない |
+| 19 | `CLIPBOARD_ERROR_UNKNOWN` | それ以外 |
+
+#### 値の読み取りは 2 回呼ぶため 7 は正常です
+
+`CLIPBOARD_ERROR_BUFFER_TOO_SMALL` は、サイズ問い合わせの呼び出しでは正常な結果であって失敗ではありません。エラーとして扱うのは、データを読み取る側の呼び出しで返ってきた場合だけです。

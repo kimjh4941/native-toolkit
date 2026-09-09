@@ -1179,7 +1179,7 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 `WindowsNotificationManager`는 Windows Toast 알림을 위한 C 브리지 API(`extern "C"`)입니다.
 **패키지** (MSIX) 및 **비패키지** (일반 Win32) 앱을 모두 지원하며, Windows 11 이상이 필요합니다.
 
-라이브러리는 `windows-native-toolkit-1.1.0.nupkg`로 배포됩니다.
+라이브러리는 `windows-native-toolkit-1.2.0.nupkg`로 배포됩니다.
 
 ---
 

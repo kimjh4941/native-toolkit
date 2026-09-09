@@ -32,10 +32,10 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android: `dist/1.10.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.10.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.10.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.10.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
+- macOS: `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@
 
 # バージョン
 
-## 1.10.0
+## 1.11.0
 
 # 対応 OS バージョン
 
@@ -132,6 +132,16 @@
   - バッジ（パッケージ済みアプリ）
   - アクションボタンとテキスト入力
 
+- クリップボード機能
+  - コピー（テキスト、HTML、ファイル、画像、独自形式、複数形式の同時指定）
+  - 書き込みオプション（履歴から除外、同期から除外、機密）
+  - 貼り付け（テキスト、HTML、ファイル、画像、独自形式）
+  - 形式の検査（有無、一覧、優先形式）
+  - クリア
+  - クリップボード変更の監視
+  - 遅延レンダリング（形式の予約、要求時の生成）
+  - クリップボード履歴（利用可否、一覧、復元、削除、未固定のクリア、キャンセル）
+
 ## Mac
 
 - ダイアログ機能
@@ -162,10 +172,6 @@
   - クリップボード変更監視
   - システムペーストボタン（PasteButton）
   - クリア
-
-## 追加予定機能
-
-- Windows 向けクリップボード連携（Android / iOS / macOS は対応済み。上記「機能一覧」参照）
 
 ## サンプル
 
@@ -273,7 +279,7 @@ dependencies {
 
 #### 対応プラットフォーム: Windows x64（win-x64）
 
-1. `windows-native-toolkit-1.1.0.nupkg` を `C:\packages` にコピーします。
+1. `windows-native-toolkit-1.2.0.nupkg` を `C:\packages` にコピーします。
 2. Visual Studio 2022 を起動し、**ツール** → **オプション** → **NuGet パッケージ マネージャー** → **パッケージ ソース** を開きます。
 3. 右上の **+** を押し、次の内容を入力します。
    - 名前: LocalPackages

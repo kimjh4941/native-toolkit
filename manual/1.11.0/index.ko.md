@@ -32,10 +32,10 @@
 
 # 배포 산출물 위치 (`dist/<version>/`)
 
-- Android: `dist/1.10.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.10.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.10.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.10.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
+- macOS: `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@
 
 # 버전
 
-## 1.10.0
+## 1.11.0
 
 # 지원 OS 버전
 
@@ -132,6 +132,16 @@
   - 배지 (패키지 앱)
   - 액션 버튼 및 텍스트 입력
 
+- 클립보드 기능
+  - 복사 (텍스트, HTML, 파일, 이미지, 사용자 정의 형식, 여러 형식 동시 지정)
+  - 쓰기 옵션 (히스토리 제외, 동기화 제외, 민감 정보)
+  - 붙여넣기 (텍스트, HTML, 파일, 이미지, 사용자 정의 형식)
+  - 형식 검사 (존재 여부, 목록, 우선 형식)
+  - 지우기
+  - 클립보드 변경 감시
+  - 지연 렌더링 (형식 예약, 요청 시 생성)
+  - 클립보드 히스토리 (사용 가능 여부, 목록, 복원, 삭제, 고정되지 않은 항목 지우기, 취소)
+
 ## Mac
 
 - 다이얼로그 기능
@@ -162,10 +172,6 @@
   - 클립보드 변경 감시
   - 시스템 붙여넣기 버튼 (PasteButton)
   - 지우기
-
-## 추가 예정 기능
-
-- Windows용 클립보드 연동 (Android / iOS / macOS는 지원됨. 위 "기능 목록" 참고)
 
 ## 샘플
 
@@ -273,7 +279,7 @@ dependencies {
 
 #### 지원 플랫폼: Windows x64（win-x64）
 
-1. `windows-native-toolkit-1.1.0.nupkg`를 `C:\packages`에 복사합니다.
+1. `windows-native-toolkit-1.2.0.nupkg`를 `C:\packages`에 복사합니다.
 2. Visual Studio 2022에서 **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**를 엽니다.
 3. **+**를 눌러 다음을 입력합니다.
    - Name: LocalPackages

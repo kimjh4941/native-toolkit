@@ -32,10 +32,10 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/1.10.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.10.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.10.0/windows/windows-native-toolkit-1.1.0.nupkg`
-- macOS: `dist/1.10.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
+- macOS: `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +44,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.10.0
+## 1.11.0
 
 # Supported OS versions
 
@@ -132,6 +132,16 @@ Markdown files in this directory are published as versioned documents under `doc
   - Badge (packaged apps)
   - Action buttons and text input
 
+- Clipboard features
+  - Copy (text, HTML, files, image, custom format, multiple formats at once)
+  - Write options (exclude from history, exclude from roaming, sensitive)
+  - Paste (text, HTML, files, image, custom format)
+  - Format inspection (has format, format list, preferred format)
+  - Clear
+  - Clipboard change observation
+  - Delayed rendering (reserve formats, render on demand)
+  - Clipboard history (availability, list, restore, delete, clear unpinned, cancel)
+
 ## Mac
 
 - Dialog features
@@ -162,10 +172,6 @@ Markdown files in this directory are published as versioned documents under `doc
   - Clipboard change observation
   - System paste button (PasteButton)
   - Clear
-
-## Planned features
-
-- Clipboard integration for Windows (Android, iOS and macOS are available; see [Feature list](#feature-list) above)
 
 ## Samples
 
@@ -273,7 +279,7 @@ dependencies {
 
 #### Supported platform: Windows x64 (win-x64)
 
-1. Copy `windows-native-toolkit-1.1.0.nupkg` to `C:\packages`.
+1. Copy `windows-native-toolkit-1.2.0.nupkg` to `C:\packages`.
 2. Launch Visual Studio 2022 and open **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**.
 3. Click **+** and enter:
    - Name: LocalPackages
