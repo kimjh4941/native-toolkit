@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['removeallnotifications_0',['removeAllNotifications',['../_windows_notification_manager_8h.html#a30e79d02929cc97ba1d943f192a093ff',1,'WindowsNotificationManager.cpp']]],
-  ['removenotificationbyid_1',['removeNotificationById',['../_windows_notification_manager_8h.html#a560d0f9070727b3657532920007538e1',1,'WindowsNotificationManager.cpp']]],
-  ['removenotificationsbytag_2',['removeNotificationsByTag',['../_windows_notification_manager_8h.html#a3231f9ff1ea50ea24713a900933b5e26',1,'WindowsNotificationManager.cpp']]]
+  ['initclipboardmanager_0',['initClipboardManager',['../_windows_clipboard_manager_8h.html#a3d12e6528fb6bfba93b45f17195f4310',1,'WindowsClipboardManager.cpp']]],
+  ['initnotificationmanager_1',['initNotificationManager',['../_windows_notification_manager_8h.html#afdcee652892661d3010ff537b81c918c',1,'WindowsNotificationManager.cpp']]],
+  ['initwinappsdk_2',['initWinAppSdk',['../_windows_notification_manager_8h.html#a453cb6cb34f3c27279e29c1756be5446',1,'WindowsAppSdkBootstrap.cpp']]],
+  ['instance_3',['Instance',['../class_windows_dialog_manager.html#ab66f172ff3aafc0fb3ce9a075d753a4f',1,'WindowsDialogManager']]]
 ];

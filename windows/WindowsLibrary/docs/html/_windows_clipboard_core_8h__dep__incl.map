@@ -1,0 +1,7 @@
+<map id="WindowsClipboardCore.h" name="WindowsClipboardCore.h">
+<area shape="rect" id="Node000001" title="Win32 clipboard operations (synchronous, RAII&#45;guarded)." alt="" coords="127,5,296,32"/>
+<area shape="rect" id="Node000002" href="$_windows_clipboard_deferred_provider_8h.html" title="Adapts the public two&#45;phase render callback to an HGLOBAL renderer." alt="" coords="5,80,186,123"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="183,43,127,82,124,77,180,39"/>
+<area shape="rect" id="Node000003" href="$_windows_clipboard_manager_internal_8h_source.html" title=" " alt="" coords="210,88,445,115"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="244,39,311,85,308,90,240,43"/>
+</map>

@@ -5,7 +5,7 @@
 - Android: `DialogFragment` + 通知 + シェア + クリップボードベースのネイティブ API
 - iOS: `UIAlertController` + 通知 + シェア + クリップボードベースのネイティブ API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + 通知 + シェア + クリップボードベースのネイティブ API
-- Windows: Win32 共通ダイアログおよびトースト通知の C 形式 API
+- Windows: Win32 共通ダイアログ、トースト通知、クリップボードの C 形式 API
 
 > 目的: ネイティブアプリから、各 OS の標準機能を一貫した呼び方で利用できるようにする。
 
@@ -20,10 +20,10 @@
 2. 組み込み手順は `docs/<version>/manual/index.ja.md` を参照。
 3. API 仕様は `docs/<version>/`（または `docs/latest/`）の各プラットフォーム資料を参照。
 
-例（`1.10.0`）:
+例（`1.11.0`）:
 
-- マニュアル: `docs/1.10.0/manual/index.ja.md`
-- 公開ドキュメント: `docs/1.10.0/manual/`
+- マニュアル: `docs/1.11.0/manual/index.ja.md`
+- 公開ドキュメント: `docs/1.11.0/manual/`
 
 ## 詳細ドキュメント
 
@@ -33,26 +33,26 @@
 
 ## バージョン
 
-- 現在のリリース: 1.10.0
+- 現在のリリース: 1.11.0
 - 最新公開ドキュメントのバージョン: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 対応 OS（1.10.0）
+## 対応 OS（1.11.0）
 
 - Android 12 以降
 - iOS 18 以降
 - Windows 11 以降
 - macOS 15 以降
 
-## 配布物（1.10.0）
+## 配布物（1.11.0）
 
-- Android: `dist/1.10.0/android/android-native-toolkit-1.3.0.aar`
+- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
 - iOS:
-  - `dist/1.10.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.10.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.11.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
 - macOS:
-  - `dist/1.10.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.10.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.10.0/windows/windows-native-toolkit-1.1.0.nupkg`
+  - `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.11.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
 
 ## 収録モジュール（概要）
 
@@ -92,8 +92,8 @@
 ### Windows
 
 - `windows/WindowsLibrary`
-  - C 形式 API（例: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`）
-  - ヘッダ: `windows/WindowsLibrary/WindowsDialogManager.h`、`windows/WindowsLibrary/WindowsNotificationManager.h`
+  - C 形式 API（例: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`）
+  - ヘッダ: `windows/WindowsLibrary/WindowsDialogManager.h`、`windows/WindowsLibrary/WindowsNotificationManager.h`、`windows/WindowsLibrary/WindowsClipboardManager.h`
   - Doc: Doxygen
 
 - `windows/UnityWindowsPlugin`
@@ -189,13 +189,13 @@ doxygen Doxyfile
 `docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
 
 ```bash
-./scripts/publish_docs.sh 1.10.0
+./scripts/publish_docs.sh 1.11.0
 ```
 
 既存の生成物をコピーだけする場合:
 
 ```bash
-./scripts/publish_docs.sh 1.10.0 --skip-build
+./scripts/publish_docs.sh 1.11.0 --skip-build
 ```
 
 manual のコピー元は `manual/<version>/` です。
@@ -205,7 +205,7 @@ manual のコピー元は `manual/<version>/` です。
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`
+- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 

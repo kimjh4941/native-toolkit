@@ -126,6 +126,9 @@
     <ClInclude Include="NotificationPage.xaml.h">
       <DependentUpon>NotificationPage.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="ClipboardPage.xaml.h">
+      <DependentUpon>ClipboardPage.xaml</DependentUpon>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
@@ -133,6 +136,7 @@
     <Page Include="MainMenuPage.xaml" />
     <Page Include="DialogPage.xaml" />
     <Page Include="NotificationPage.xaml" />
+    <Page Include="ClipboardPage.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -153,6 +157,9 @@
     <ClCompile Include="NotificationPage.xaml.cpp">
       <DependentUpon>NotificationPage.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="ClipboardPage.xaml.cpp">
+      <DependentUpon>ClipboardPage.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +178,10 @@
     <Midl Include="NotificationPage.idl">
       <SubType>Code</SubType>
       <DependentUpon>NotificationPage.xaml</DependentUpon>
+    </Midl>
+    <Midl Include="ClipboardPage.idl">
+      <SubType>Code</SubType>
+      <DependentUpon>ClipboardPage.xaml</DependentUpon>
     </Midl>
   </ItemGroup>
   <ItemGroup>

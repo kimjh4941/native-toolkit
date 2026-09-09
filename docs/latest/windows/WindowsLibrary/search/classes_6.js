@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['unpackagedbackend_0',['UnpackagedBackend',['../class_unpackaged_backend.html',1,'']]]
+  ['lease_0',['Lease',['../class_clipboard_lifecycle_1_1_lease.html',1,'ClipboardLifecycle']]]
 ];

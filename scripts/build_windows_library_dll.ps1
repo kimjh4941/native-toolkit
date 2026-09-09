@@ -43,7 +43,7 @@
   ./scripts/build_windows_library_dll.ps1 -m WindowsLibrary -v 1.3.0 -Package
 
 .EXAMPLE
-  ./scripts/build_windows_library_dll.ps1 -c release -m WindowsLibrary -v 1.1.0 -o dist\1.4.0\windows\windows-native-toolkit-1.1.0.dll -Package
+  ./scripts/build_windows_library_dll.ps1 -c release -m WindowsLibrary -v 1.2.0 -o dist\1.11.0\windows\windows-native-toolkit-1.2.0.dll -Package
 #>
 [CmdletBinding()]
 param(

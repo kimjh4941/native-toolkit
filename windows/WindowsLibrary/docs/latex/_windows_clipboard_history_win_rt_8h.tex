@@ -1,0 +1,29 @@
+\doxysection{Windows\+Clipboard\+History\+Win\+Rt.\+h File Reference}
+\hypertarget{_windows_clipboard_history_win_rt_8h}{}\label{_windows_clipboard_history_win_rt_8h}\index{WindowsClipboardHistoryWinRt.h@{WindowsClipboardHistoryWinRt.h}}
+
+
+Win\+RT (Windows.\+Application\+Model.\+Data\+Transfer.\+Clipboard) implementation of \doxylink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}.  
+
+
+{\ttfamily \#include "{}Windows\+Clipboard\+History\+Backend.\+h"{}}\newline
+{\ttfamily \#include $<$memory$>$}\newline
+Include dependency graph for Windows\+Clipboard\+History\+Win\+Rt.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_windows_clipboard_history_win_rt_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_history_win_rt_8h_a516b373da7e651231145bcb1f60d1996}\label{_windows_clipboard_history_win_rt_8h_a516b373da7e651231145bcb1f60d1996} 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}} $>$ {\bfseries Make\+Clipboard\+History\+Win\+Rt\+Backend} ()
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Win\+RT (Windows.\+Application\+Model.\+Data\+Transfer.\+Clipboard) implementation of \doxylink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}. 
+
+Requires C++20 (co\+\_\+await) -\/ compiled with a per-\/file Language\+Standard override; the rest of Windows\+Library stays on C++17. Never included from a C++17 translation unit\+: only reached through the \doxylink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend} pointer created by Make\+Clipboard\+History\+Win\+Rt\+Backend(). 

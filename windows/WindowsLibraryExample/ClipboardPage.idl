@@ -1,0 +1,8 @@
+namespace WindowsLibraryExample
+{
+    [default_interface]
+    runtimeclass ClipboardPage : Microsoft.UI.Xaml.Controls.Page
+    {
+        ClipboardPage();
+    }
+}

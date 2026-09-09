@@ -91,6 +91,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="NotificationManagerTest.cpp" />
+    <ClCompile Include="ClipboardFormatsTest.cpp" />
+    <ClCompile Include="ClipboardHistoryCoordinatorTest.cpp" />
+    <ClCompile Include="ClipboardCoreTest.cpp" />
+    <ClCompile Include="ClipboardDeferredProviderTest.cpp" />
     <!-- Production code under test, compiled directly into the test (internal class methods
          are not exported from the DLL). These include the WindowsLibrary pch.h directly. -->
     <ClCompile Include="..\WindowsLibrary\common.cpp">
@@ -100,6 +104,26 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WindowsLibrary\WindowsClassicActivator.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <!-- Clipboard: only the WinRT-free, non-coroutine layers are linked into this test
+         project (see ClipboardHistoryCoordinatorTest.cpp header comment for why
+         WindowsClipboardManager.cpp / WindowsClipboardWindow.cpp / WindowsClipboardHistoryWinRt.cpp
+         are intentionally excluded - STA/message-pump and C++20-coroutine dependencies
+         that MSTest's default host does not provide). -->
+    <ClCompile Include="..\WindowsLibrary\WindowsClipboardFormats.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\WindowsClipboardCore.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\WindowsClipboardDeferredProvider.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\WindowsClipboardLifecycle.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\WindowsClipboardHistoryCoordinator.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>

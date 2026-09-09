@@ -94,26 +94,35 @@ badgeUseCases.setBadgeCount(count) { result in ... }
 repository.setBadgeCount(count) { result in ... }
 ```
 
-### Manager の公開 API 方式（callback 版 + ネイティブ版の併設）
+### Manager の公開 API 方式
 
-Manager は UseCase を呼び出す際、用途に応じて 2 種類の公開 API を用意してよい。
+Manager の公開 API は、**システム API / UseCase の同期性 × スレッドアフィニティ**で決める。同期的に完結する処理を、API 形式を揃える目的だけで非同期化しない。
 
-- **callback 版**: `(isSuccess/completed, ..., errorMessage: String?) -> Void` の形。Unity Bridge が C 相互運用（関数ポインタ・delegate）でしか呼べないため必須。既存の Notification / Dialog Manager もこの形式。
-- **ネイティブ版**: プラットフォームの例外機構（Swift の `async throws`、Kotlin の `suspend fun` + 例外、C# の `async Task<T>` + 例外など）を使う形。Bridge を介さないネイティブ呼び出し元（サンプルアプリ、他のネイティブコードからの利用）向け。
+| 処理の性質 | スレッドアフィニティ要件なし | UI / Main thread 要件あり |
+|---|---|---|
+| 同期 | 同期 API | 呼び出し元を UI に限定するなら同期 API。任意スレッド対応なら UI へ配送し、callback 等で完了通知 |
+| 非同期 | プラットフォーム標準の非同期 API。ただし C ABI Bridge のようにプラットフォーム標準の非同期戻り値を直接表現しない境界では、スレッドアフィニティ要件がない場合に限り、ワーカースレッドで待機して同期形式にしてよい（待機方法・タイムアウトは `windows.md` を参照） | UI で開始し、UI をブロックせずプラットフォーム標準の非同期 API で待機 |
+
+- **callback 版**: `(isSuccess/completed, ..., errorMessage: String?) -> Void` の形。Unity Bridge で非同期完了または UI スレッドへの配送完了を通知する場合に使う。
+- **ネイティブ版**: Bridge を介さないネイティブ呼び出し元向け。同期処理は通常の関数と型付きエラー、非同期処理は Swift の `async throws`、Kotlin の `suspend fun` + 例外など、処理の性質に合う形式で公開する。
 
 **方針:**
-- callback 版は Bridge 向けとして必ず維持する（既存 API を壊さない）。
-- ネイティブ版は callback 版と共存させ、UseCase の呼び出しをそのまま公開する薄いラッパーとする（Manager 内でロジックを重複させない）。
+- 既存の callback API は互換性のため維持する（既存 API を壊さない）。
+- 新規 Bridge API は、同期処理かつ呼び出しスレッド制約がない場合は同期形式でよい。スレッドアフィニティ要件がある非同期処理、または任意スレッドから UI へ配送する処理は callback 形式にする。スレッドアフィニティ要件がない非同期処理は上表の例外に従い、ワーカースレッドで待機して同期形式にしてもよい。
+- ネイティブ版は UseCase の同期 / 非同期を維持して公開する薄いラッパーとし、Manager 内でロジックを重複させない。
 - ネイティブ版はエラーを型付き（Domain Error）のまま伝播させ、callback 版のような文字列化（`errorMessage: String?`）を強制しない。
 - サンプルアプリなど純粋ネイティブの呼び出し元は、ネイティブ版を優先して使う。
 
 ```swift
-// Bridge 向け（既存維持）
+// Bridge 向け（非同期完了または UI 配送が必要）
 public func share(content: ShareContent, completion: ((Bool, Bool, String?, String?) -> Void)? = nil)
 
-// ネイティブ呼び出し元向け（UseCase をそのまま公開する薄いラッパー）
+// ネイティブ呼び出し元向け（非同期 UseCase をそのまま公開）
 @discardableResult
 public func share(content: ShareContent) async throws -> ShareResult
+
+// ネイティブ呼び出し元向け（同期 UseCase をそのまま公開）
+public func readText() throws -> String
 ```
 
 ### システム API に合わせた同期・非同期設計
@@ -190,6 +199,27 @@ final class MockNotificationRepository: NotificationRepository {
 | iOS 18+ / macOS 15+ | Swift Testing (`@Test` / `#expect`) | XCTest は使わない      |
 | Android             | JUnit 4 / 5 + MockK                 | プロジェクト設定に従う |
 | Windows             | xUnit / MSTest / NUnit              | プロジェクト設定に従う |
+
+### UI 自動テスト
+
+単体テストとは別枠で扱う。サンプルアプリを実際に操作して、計画ファイルの手動確認観点のうち**アプリ内で完結するもの**を自動化する。
+
+| プラットフォーム | フレームワーク | テストコードの言語 |
+| --- | --- | --- |
+| iOS 18+ / macOS 15+ | XCUITest | Swift（製品コードと同じ） |
+| Android | Espresso / UIAutomator | Kotlin（製品コードと同じ） |
+| Windows | FlaUI + MSTest（詳細は `windows.md`） | C#（製品コードは C++） |
+
+**原則: テストコードの言語が製品コードと異なる場合、その言語をテストプロジェクト内に限定し、製品コードへ持ち込まない。**
+
+iOS / macOS / Android は製品コードと同じ言語の一次サポート UI テストフレームワークがあるため、そのまま従う。Windows は同等のものが C++ 側に存在しないため C# を使うが、適用範囲はテストプロジェクト内に閉じる。
+
+自動化しないもの（理由を明記して手動確認観点として残す）:
+
+- 他アプリ内部の UI 検証
+- OS のシェル UI・システム設定
+- 権限ダイアログの初回同意
+- 実機依存の外部サービス連携・別デバイス連携
 
 ### 検査の書き方（必須）
 
@@ -286,6 +316,39 @@ typedef void (*NativeStatusCallback)(const char* status);
 1. サンプル側で Unity プラグインに依存させて回避しない
 2. サンプル側でプラットフォーム API を直接叩いて代替しない（ライブラリの検証にならない）
 3. **ネイティブライブラリ側に配置し直す**（「層とモジュールの対応」参照）。これは機能側の設計不備であり、機能設計書へ差し戻して修正する
+
+---
+
+## サンプルアプリの入力欄
+
+既定として入力欄（`TextBox` / `EditText` / `TextField` / `NSTextField` 等）を置かない。操作はボタンで表現し、値は次のいずれかで供給する。
+
+| 値の性質 | 供給方法 | 例 |
+|---|---|---|
+| 固定の代表値 | コード内の定数として持つ | `kSampleText = L"Hello from native-toolkit"` |
+| 実行時にしか決まらない値（生成ID、ハンドル） | アプリ内部の状態として保持する | `ClipboardPage::m_lastHistoryItemId` |
+| 任意文字列が分岐条件になる場合 | 代表値ごとにボタンを分ける | `CopyPlainText` と `CopyPlainText (empty)` |
+
+**理由:**
+
+1. Windows / Android / iOS / macOS の 4 サンプルが例外なくこの形であり、1 画面だけ例外を作ると操作手順とテストの書き方が分岐する
+2. 手動確認で操作者の打ち間違いがライブラリの欠陥と区別できない。GUID のような値では特に判別できない
+3. 確認の網羅性を「全操作が実行されたか」で機械的に照合できる。入力欄は値空間が非有界でこの照合が成立しない
+
+**根拠にしてはならないもの:** 「入力欄は自動化できないから」は誤りである。UI Automation は `ValuePattern`、XCUITest は `typeText` で入力欄を操作でき、Compose テストも同様である。正しくは「技術的には可能だが、テスト基盤の拡張が伴う」。実際、Windows の UI テスト Adapter (`IUiElement`) は `Invoke()` のみを公開しており、値入力の手段を持たない。
+
+**例外:** 機能の性質上必要な場合は置いてよい。ただし計画書に次の 2 点を明記する。
+
+1. なぜ固定の代表値や内部保持では足りないのか
+2. UI テストでどう値を入力するか（テスト Adapter の拡張が必要かどうか）
+
+理由の記載がない入力欄は `review-document` の指摘対象とする。
+
+**機械検査:** `python3 scripts/check_sample_app_inputs.py` が 4 サンプルを検査する（Windows では `python3` が Microsoft Store のエイリアスに解決され、コードを実行せず終了することがある。その場合は `python` を使う）。この欠陥は 1 画面を読んでも異常が見えず、他の画面と並べて初めて分かるため、レビューの目視では検出できない。例外を通す場合は、該当ファイルに次のコメントを置いて計画書を指し示す。
+
+```
+sample-app-input-approved: artifact/designs/<feature>/<計画書ファイル名>
+```
 
 ---
 

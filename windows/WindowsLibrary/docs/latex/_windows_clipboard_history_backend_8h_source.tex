@@ -1,0 +1,82 @@
+\doxysection{Windows\+Clipboard\+History\+Backend.\+h}
+\hypertarget{_windows_clipboard_history_backend_8h_source}{}\label{_windows_clipboard_history_backend_8h_source}\mbox{\hyperlink{_windows_clipboard_history_backend_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <windows.h>}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <optional>}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Domain\ types}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_clipboard_history_entry}{ClipboardHistoryEntry}}}
+\DoxyCodeLine{00025\ \{}
+\DoxyCodeLine{00026\ \ \ \ \ std::wstring\ id;}
+\DoxyCodeLine{00027\ \ \ \ \ std::optional<std::wstring>\ text;\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ nullopt\ when\ the\ item\ carries\ no\ text}}
+\DoxyCodeLine{00028\ \ \ \ \ std::vector<std::wstring>\ \ \ contentTypes;\ \textcolor{comment}{//\ format\ names\ available\ on\ the\ item}}
+\DoxyCodeLine{00029\ \ \ \ \ int64\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ timestampUtc\ =\ 0;}
+\DoxyCodeLine{00030\ \};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_clipboard_history_availability}{ClipboardHistoryAvailability}}}
+\DoxyCodeLine{00033\ \{}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keywordtype}{bool}\ historyEnabled\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{keywordtype}{bool}\ roamingEnabled\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00036\ \};}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ Completion\ callbacks:\ platform-\/independent,\ invoked\ on\ the\ owner\ UI\ thread,}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ exactly\ once\ per\ request,\ and\ MUST\ NOT\ throw\ (implementations\ catch\ and\ log}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ any\ violation\ rather\ than\ propagate\ it).}}
+\DoxyCodeLine{00041\ \textcolor{keyword}{using\ }HistoryItemsCallback\ \ \ \ \ \ \ \ =\ std::function<void(DWORD\ error,\ std::vector<ClipboardHistoryEntry>)>;}
+\DoxyCodeLine{00042\ \textcolor{keyword}{using\ }HistoryStatusCallback\ \ \ \ \ \ \ =\ std::function<void(DWORD\ error)>;}
+\DoxyCodeLine{00043\ \textcolor{keyword}{using\ }HistoryAvailabilityCallback\ =\ std::function<void(DWORD\ error,\ \mbox{\hyperlink{struct_clipboard_history_availability}{ClipboardHistoryAvailability}})>;}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ Event\ callbacks\ raised\ by\ the\ backend\ while\ watching.\ Individually\ nullable.}}
+\DoxyCodeLine{00046\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_clipboard_history_events}{ClipboardHistoryEvents}}}
+\DoxyCodeLine{00047\ \{}
+\DoxyCodeLine{00048\ \ \ \ \ std::function<void()>\ onHistoryChanged;\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ a\ NEW\ ITEM\ was\ added}}
+\DoxyCodeLine{00049\ \ \ \ \ std::function<void()>\ onHistoryEnabledChanged;\ \ \textcolor{comment}{//\ value\ is\ queried\ later\ on\ the\ owner\ UI\ thread}}
+\DoxyCodeLine{00050\ \ \ \ \ std::function<void()>\ onRoamingEnabledChanged;\ \ \textcolor{comment}{//\ value\ is\ queried\ later\ on\ the\ owner\ UI\ thread}}
+\DoxyCodeLine{00051\ \};}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Port}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboardHistoryBackend}}}
+\DoxyCodeLine{00058\ \{}
+\DoxyCodeLine{00059\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{class_i_clipboard_history_backend}{\string~IClipboardHistoryBackend}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{comment}{//\ All\ of\ these\ must\ be\ called\ on\ the\ owner\ UI\ thread.\ They\ return}}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{comment}{//\ immediately;\ completion\ is\ delivered\ through\ the\ callback,\ on\ the\ same}}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{comment}{//\ thread,\ exactly\ once.}}
+\DoxyCodeLine{00065\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ GetAvailabilityAsync(HistoryAvailabilityCallback\ done)\ =\ 0;}
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ GetItemsAsync(HistoryItemsCallback\ done)\ =\ 0;}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ SetItemAsContentAsync(\textcolor{keyword}{const}\ std::wstring\&\ \textcolor{keywordtype}{id},\ HistoryStatusCallback\ done)\ =\ 0;}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ DeleteItemAsync(\textcolor{keyword}{const}\ std::wstring\&\ \textcolor{keywordtype}{id},\ HistoryStatusCallback\ done)\ =\ 0;}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ ClearUnpinnedAsync(HistoryStatusCallback\ done)\ =\ 0;}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \ \ \ \ \textcolor{comment}{//\ Synchronous\ event-\/value\ queries.\ These\ MUST\ be\ called\ on\ the\ focused}}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{comment}{//\ owner\ UI\ thread.\ Event\ handlers\ only\ signal\ that\ a\ value\ changed;\ they}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{comment}{//\ must\ not\ call\ Clipboard\ APIs\ on\ the\ WinRT\ event\ thread.}}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keyword}{virtual}\ DWORD\ QueryHistoryEnabled(\textcolor{keywordtype}{bool}\&\ enabled)\ =\ 0;}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keyword}{virtual}\ DWORD\ QueryRoamingEnabled(\textcolor{keywordtype}{bool}\&\ enabled)\ =\ 0;}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{comment}{//\ Event\ subscription.\ The\ internal\ WinRT\ handler\ (if\ any)\ is\ registered}}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{comment}{//\ once\ and\ stays\ stable;\ user-\/facing\ callbacks\ are\ an\ immutable\ snapshot}}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{comment}{//\ swapped\ atomically\ via\ ReplaceEvents,\ so\ replacement\ never\ re-\/registers}}
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{comment}{//\ the\ underlying\ event.}}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keyword}{virtual}\ DWORD\ StartWatch(std::shared\_ptr<const\ ClipboardHistoryEvents>\ events)\ =\ 0;}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ \ ReplaceEvents(std::shared\_ptr<const\ ClipboardHistoryEvents>\ events)\ =\ 0;}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \ StopWatch()\ =\ 0;\ \ \ \ \ \ \ \ \textcolor{comment}{//\ true\ only\ when\ every\ subscription\ was\ fully\ revoked}}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{bool}\ \ CanDestroy()\ \textcolor{keyword}{const}\ =\ 0;\ \textcolor{comment}{//\ false\ while\ a\ subscription\ or\ in-\/flight\ callback\ remains}}
+\DoxyCodeLine{00085\ \};}
+
+\end{DoxyCode}

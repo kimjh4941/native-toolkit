@@ -1,0 +1,125 @@
+\doxysection{Windows\+Clipboard\+History\+Coordinator.\+h}
+\hypertarget{_windows_clipboard_history_coordinator_8h_source}{}\label{_windows_clipboard_history_coordinator_8h_source}\mbox{\hyperlink{_windows_clipboard_history_coordinator_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_history_backend_8h}{WindowsClipboardHistoryBackend.h}}"{}}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_lifecycle_8h}{WindowsClipboardLifecycle.h}}"{}}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_manager_8h}{WindowsClipboardManager.h}}"{}}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <map>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <mutex>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Messages\ posted\ to\ the\ dispatch\ window\ by\ this\ coordinator.}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#define\ WM\_APP\_CLIPBOARD\_REQUEST\ \ \ \ \ \ \ (WM\_APP\ +\ 1)}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#define\ WM\_APP\_CLIPBOARD\_CANCEL\ \ \ \ \ \ \ \ (WM\_APP\ +\ 2)}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#define\ WM\_APP\_CLIPBOARD\_DRAIN\ \ \ \ \ \ \ \ \ (WM\_APP\ +\ 3)}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ History\ event\ notification:\ wParam\ =\ pending\ event\ id,\ lParam\ =\ watch}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ generation.\ Posted\ from\ whichever\ thread\ WinRT\ invokes\ the\ backend\ handler}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ on.\ The\ owner\ UI\ thread\ resolves\ the\ pending\ immutable\ callback\ snapshot\ and}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ validates\ the\ generation\ before\ delivery.}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#define\ WM\_APP\_CLIPBOARD\_HISTORY\_EVENT\ (WM\_APP\ +\ 4)}}
+\DoxyCodeLine{00033\ \textcolor{keyword}{enum}\ ClipboardHistoryEventKind\ :\ WPARAM}
+\DoxyCodeLine{00034\ \{}
+\DoxyCodeLine{00035\ \ \ \ \ kHistoryChanged\ =\ 0,}
+\DoxyCodeLine{00036\ \ \ \ \ kHistoryEnabledChanged\ =\ 1,}
+\DoxyCodeLine{00037\ \ \ \ \ kRoamingEnabledChanged\ =\ 2,}
+\DoxyCodeLine{00038\ \};}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{class\ }ClipboardHistoryCoordinator\ :\ \textcolor{keyword}{public}\ std::enable\_shared\_from\_this<ClipboardHistoryCoordinator>}
+\DoxyCodeLine{00041\ \{}
+\DoxyCodeLine{00042\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00043\ \ \ \ \ ClipboardHistoryCoordinator(std::unique\_ptr<IClipboardHistoryBackend>\ backend,\ \mbox{\hyperlink{class_clipboard_lifecycle}{ClipboardLifecycle}}\&\ lifecycle);}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keywordtype}{void}\ AttachDispatchWindow(HWND\ hwnd);}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordtype}{void}\ DetachDispatchWindow();}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \ \ \ \ \textcolor{comment}{//\ Bridge\ entry\ points\ (any\ thread).}}
+\DoxyCodeLine{00049\ \ \ \ \ uint32\_t\ RequestGetItems(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00050\ \ \ \ \ uint32\_t\ RequestRestoreItem(\textcolor{keyword}{const}\ std::wstring\&\ \textcolor{keywordtype}{id},\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00051\ \ \ \ \ uint32\_t\ RequestDeleteItem(\textcolor{keyword}{const}\ std::wstring\&\ \textcolor{keywordtype}{id},\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00052\ \ \ \ \ uint32\_t\ RequestClearUnpinned(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00053\ \ \ \ \ uint32\_t\ RequestGetAvailability(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00054\ \ \ \ \ BOOL\ \ \ \ \ CancelRequest(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD*\ pError);}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{comment}{//\ WndProc\ entry\ points\ (owner\ UI\ thread\ only).}}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keywordtype}{void}\ OnStartQueuedRequest(uint32\_t\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keywordtype}{void}\ OnCancelMessage(uint32\_t\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordtype}{void}\ OnDrainMessage();}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{void}\ OnHistoryEventMessage(WPARAM\ eventId,\ LPARAM\ generation);}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{comment}{//\ History\ event\ registration\ (owner\ UI\ thread\ only,\ synchronous).}}
+\DoxyCodeLine{00063\ \ \ \ \ DWORD\ SetHistoryCallbacks(\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{ClipboardHistoryChangedCallback}}\ onChanged,}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ onHistoryEnabled,}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ onRoamingEnabled);}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{comment}{//\ Shutdown\ coordination\ (owner\ UI\ thread\ only).}}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{comment}{//\ Moves\ every\ still-\/queued/running-\/but-\/uncompleted\ entry's\ completion}}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{comment}{//\ right\ into\ the\ drain\ queue\ and\ posts\ (or\ retries\ posting)\ a\ single}}
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{comment}{//\ WM\_APP\_CLIPBOARD\_DRAIN.\ Returns\ true\ only\ when\ nothing\ remains\ to\ drain.}}
+\DoxyCodeLine{00071\ \ \ \ \ \textcolor{keywordtype}{bool}\ CloseAndDrain();}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordtype}{bool}\ StopWatch();}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keywordtype}{bool}\ CanDestroy()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keyword}{using\ }StartFn\ =\ std::function<void(uint32\_t,\ \mbox{\hyperlink{class_clipboard_lifecycle_1_1_lease}{ClipboardLifecycle::Lease}})>;}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{struct\ }RequestEntry}
+\DoxyCodeLine{00079\ \ \ \ \ \{}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ callback\ =\ \textcolor{keyword}{nullptr};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ completion\ right}}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ std::optional<StartFn>\ start;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Queued\ only}}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ std::optional<ClipboardLifecycle::Lease>\ lease;\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Queued\ only}}
+\DoxyCodeLine{00083\ \ \ \ \ \};}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keyword}{struct\ }HistoryCallbackSnapshot}
+\DoxyCodeLine{00086\ \ \ \ \ \{}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ uint64\_t\ watchGeneration\ =\ 0;}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{ClipboardHistoryChangedCallback}}\ historyChanged\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ historyEnabled\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ roamingEnabled\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00091\ \ \ \ \ \};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{keyword}{struct\ }PendingHistoryEvent}
+\DoxyCodeLine{00094\ \ \ \ \ \{}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ ClipboardHistoryEventKind\ kind\ =\ kHistoryChanged;}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ std::shared\_ptr<const\ HistoryCallbackSnapshot>\ callbacks;}
+\DoxyCodeLine{00097\ \ \ \ \ \};}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \ \ \ \ uint32\_t\ Accept(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError,\ StartFn\ start);}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{keywordtype}{void}\ Complete(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD\ error,\ \textcolor{keyword}{const}\ std::wstring*\ json);}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{keywordtype}{void}\ CompleteItems(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD\ error,\ \textcolor{keyword}{const}\ std::vector<ClipboardHistoryEntry>\&\ items);}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordtype}{void}\ CompleteStatus(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD\ error);}
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{keywordtype}{void}\ CompleteAvailability(uint32\_t\ \textcolor{keywordtype}{id},\ DWORD\ error,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{struct_clipboard_history_availability}{ClipboardHistoryAvailability}}\&\ avail);}
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keywordtype}{void}\ PostHistoryEvent(ClipboardHistoryEventKind\ kind,}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::shared\_ptr<const\ HistoryCallbackSnapshot>\ callbacks);\ \textcolor{comment}{//\ any\ thread}}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keywordtype}{void}\ InvalidateHistoryEvents();\ \textcolor{comment}{//\ owner\ UI\ thread}}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \ \ \ \ std::unique\_ptr<IClipboardHistoryBackend>\ backend\_;}
+\DoxyCodeLine{00109\ \ \ \ \ \mbox{\hyperlink{class_clipboard_lifecycle}{ClipboardLifecycle}}\&\ lifecycle\_;}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keyword}{mutable}\ std::mutex\ mutex\_;}
+\DoxyCodeLine{00112\ \ \ \ \ HWND\ dispatchHwnd\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00113\ \ \ \ \ uint32\_t\ nextId\_\ =\ 1;}
+\DoxyCodeLine{00114\ \ \ \ \ std::map<uint32\_t,\ RequestEntry>\ table\_;}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{comment}{//\ UI-\/thread-\/only\ (no\ lock\ needed:\ only\ touched\ from\ CloseAndDrain/OnDrainMessage,}}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{comment}{//\ both\ constrained\ to\ the\ owner\ UI\ thread).}}
+\DoxyCodeLine{00118\ \ \ \ \ std::vector<std::pair<uint32\_t,\ ClipboardRequestCallback>>\ pendingDrain\_;}
+\DoxyCodeLine{00119\ \ \ \ \ std::atomic<size\_t>\ pendingDrainCount\_\{\ 0\ \};\ \textcolor{comment}{//\ mirrors\ pendingDrain\_.size()\ for\ lock-\/free\ CanDestroy()}}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordtype}{bool}\ drainMessagePosted\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordtype}{bool}\ isWatching\_\ =\ \textcolor{keyword}{false};\ \textcolor{comment}{//\ UI-\/thread-\/only}}
+\DoxyCodeLine{00123\ \ \ \ \ uint64\_t\ watchGeneration\_\ =\ 1;\ \textcolor{comment}{//\ UI-\/thread-\/only;\ incremented\ after\ a\ successful\ stop}}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{comment}{//\ Posted\ event\ state.\ The\ immutable\ callback\ snapshot\ is\ retained\ until}}
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{comment}{//\ the\ owner\ UI\ thread\ consumes\ the\ event.\ Stop\ invalidates\ the\ generation}}
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{comment}{//\ and\ clears\ this\ table,\ so\ queued\ messages\ from\ an\ old\ watch\ session\ are}}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{comment}{//\ harmless\ even\ after\ a\ new\ registration\ starts.}}
+\DoxyCodeLine{00129\ \ \ \ \ uint32\_t\ nextHistoryEventId\_\ =\ 1;\ \textcolor{comment}{//\ guarded\ by\ mutex\_}}
+\DoxyCodeLine{00130\ \ \ \ \ std::map<uint32\_t,\ PendingHistoryEvent>\ pendingHistoryEvents\_;\ \textcolor{comment}{//\ guarded\ by\ mutex\_}}
+\DoxyCodeLine{00131\ \};}
+
+\end{DoxyCode}
