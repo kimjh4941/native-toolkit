@@ -319,6 +319,39 @@ typedef void (*NativeStatusCallback)(const char* status);
 
 ---
 
+## サンプルアプリの入力欄
+
+既定として入力欄（`TextBox` / `EditText` / `TextField` / `NSTextField` 等）を置かない。操作はボタンで表現し、値は次のいずれかで供給する。
+
+| 値の性質 | 供給方法 | 例 |
+|---|---|---|
+| 固定の代表値 | コード内の定数として持つ | `kSampleText = L"Hello from native-toolkit"` |
+| 実行時にしか決まらない値（生成ID、ハンドル） | アプリ内部の状態として保持する | `ClipboardPage::m_lastHistoryItemId` |
+| 任意文字列が分岐条件になる場合 | 代表値ごとにボタンを分ける | `CopyPlainText` と `CopyPlainText (empty)` |
+
+**理由:**
+
+1. Windows / Android / iOS / macOS の 4 サンプルが例外なくこの形であり、1 画面だけ例外を作ると操作手順とテストの書き方が分岐する
+2. 手動確認で操作者の打ち間違いがライブラリの欠陥と区別できない。GUID のような値では特に判別できない
+3. 確認の網羅性を「全操作が実行されたか」で機械的に照合できる。入力欄は値空間が非有界でこの照合が成立しない
+
+**根拠にしてはならないもの:** 「入力欄は自動化できないから」は誤りである。UI Automation は `ValuePattern`、XCUITest は `typeText` で入力欄を操作でき、Compose テストも同様である。正しくは「技術的には可能だが、テスト基盤の拡張が伴う」。実際、Windows の UI テスト Adapter (`IUiElement`) は `Invoke()` のみを公開しており、値入力の手段を持たない。
+
+**例外:** 機能の性質上必要な場合は置いてよい。ただし計画書に次の 2 点を明記する。
+
+1. なぜ固定の代表値や内部保持では足りないのか
+2. UI テストでどう値を入力するか（テスト Adapter の拡張が必要かどうか）
+
+理由の記載がない入力欄は `review-document` の指摘対象とする。
+
+**機械検査:** `python3 scripts/check_sample_app_inputs.py` が 4 サンプルを検査する。この欠陥は 1 画面を読んでも異常が見えず、他の画面と並べて初めて分かるため、レビューの目視では検出できない。例外を通す場合は、該当ファイルに次のコメントを置いて計画書を指し示す。
+
+```
+sample-app-input-approved: artifact/designs/<feature>/<計画書ファイル名>
+```
+
+---
+
 ## Minimum OS Versions
 
 設計・実装時は、以下の最小バージョン以上で動作確認が必須。
