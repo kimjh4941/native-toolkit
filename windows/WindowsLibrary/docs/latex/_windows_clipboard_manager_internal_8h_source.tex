@@ -1,0 +1,114 @@
+\doxysection{Windows\+Clipboard\+Manager\+Internal.\+h}
+\hypertarget{_windows_clipboard_manager_internal_8h_source}{}\label{_windows_clipboard_manager_internal_8h_source}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_manager_8h}{WindowsClipboardManager.h}}"{}}}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_core_8h}{WindowsClipboardCore.h}}"{}}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_lifecycle_8h}{WindowsClipboardLifecycle.h}}"{}}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_history_backend_8h}{WindowsClipboardHistoryBackend.h}}"{}}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_history_coordinator_8h}{WindowsClipboardHistoryCoordinator.h}}"{}}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#include\ <mutex>}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{namespace\ }WindowsClipboardManagerTest\ \{\ \textcolor{keyword}{class\ }ClipboardManagerTest;\ \}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{keyword}{class\ }ClipboardManager}
+\DoxyCodeLine{00016\ \{}
+\DoxyCodeLine{00017\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00018\ \ \ \ \ \textcolor{keyword}{static}\ ClipboardManager\&\ GetInstance();}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{comment}{//\ Initialization\ /\ shutdown\ (Bridge\ entry\ points).}}
+\DoxyCodeLine{00021\ \ \ \ \ \textcolor{keywordtype}{void}\ InitClipboardManager(\mbox{\hyperlink{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}{ClipboardChangedCallback}}\ onChanged,\ DWORD*\ pError);}
+\DoxyCodeLine{00022\ \ \ \ \ BOOL\ Uninit(DWORD*\ pError);}
+\DoxyCodeLine{00023\ \ \ \ \ BOOL\ CanDestroy(DWORD*\ pError)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{void}\ SetHistoryCallbacks(\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{ClipboardHistoryChangedCallback}}\ onHistoryChanged,}
+\DoxyCodeLine{00025\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ onHistoryEnabledChanged,}
+\DoxyCodeLine{00026\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{ClipboardFlagChangedCallback}}\ onRoamingEnabledChanged,}
+\DoxyCodeLine{00027\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DWORD*\ pError);}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{comment}{//\ Win32\ synchronous\ core\ (any\ thread).}}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keywordtype}{void}\ \ \ CopyPlainText(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ text,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00031\ \ \ \ \ DWORD\ \ PastePlainText(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keywordtype}{void}\ \ \ CopyHtml(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ html,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ plainText,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00033\ \ \ \ \ DWORD\ \ PasteHtml(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keywordtype}{void}\ \ \ CopyFiles(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ pathsJson,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00035\ \ \ \ \ DWORD\ \ PasteFiles(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keywordtype}{void}\ \ \ CopyImage(\textcolor{keyword}{const}\ BYTE*\ dib,\ DWORD\ dibSize,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00037\ \ \ \ \ DWORD\ \ PasteImage(BYTE*\ buffer,\ DWORD\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keywordtype}{void}\ \ \ CopyCustomFormat(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatName,\ \textcolor{keyword}{const}\ BYTE*\ data,\ DWORD\ size,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00039\ \ \ \ \ DWORD\ \ PasteCustomFormat(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatName,\ BYTE*\ buffer,\ DWORD\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keywordtype}{void}\ \ \ CopyMultipleFormats(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ itemsJson,\ DWORD\ options,\ DWORD*\ pError);}
+\DoxyCodeLine{00041\ \ \ \ \ BOOL\ \ \ HasClipboardFormat(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatName,\ DWORD*\ pError);}
+\DoxyCodeLine{00042\ \ \ \ \ DWORD\ \ GetClipboardFormats(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00043\ \ \ \ \ DWORD\ \ GetPreferredClipboardFormat(\textcolor{keywordtype}{wchar\_t}*\ buffer,\ DWORD\ bufferSize,\ DWORD*\ pError);}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordtype}{void}\ \ \ ClearClipboard(DWORD*\ pError);}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{comment}{//\ Deferred\ rendering\ (owner\ UI\ thread\ only).}}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordtype}{void}\ ReserveDeferredFormats(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ formatNamesJson,\ \mbox{\hyperlink{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}{ClipboardRenderCallback}}\ provider,}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ context,\ DWORD*\ pError);}
+\DoxyCodeLine{00049\ \ \ \ \ \textcolor{keywordtype}{void}\ RecoverDeferredState(DWORD*\ pError);}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \ \ \textcolor{comment}{//\ Async\ history\ (any\ thread\ for\ the\ request\ call;\ UI\ thread\ for\ callback\ delivery).}}
+\DoxyCodeLine{00052\ \ \ \ \ uint32\_t\ GetClipboardHistory(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00053\ \ \ \ \ uint32\_t\ RestoreHistoryItem(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ itemId,\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00054\ \ \ \ \ uint32\_t\ DeleteHistoryItem(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ itemId,\ \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00055\ \ \ \ \ uint32\_t\ ClearUnpinnedHistory(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00056\ \ \ \ \ uint32\_t\ GetClipboardHistoryAvailability(\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{ClipboardRequestCallback}}\ cb,\ DWORD*\ pError);}
+\DoxyCodeLine{00057\ \ \ \ \ BOOL\ \ \ \ \ CancelClipboardRequest(uint32\_t\ requestId,\ DWORD*\ pError);}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{comment}{//\ WndProc\ callbacks\ (owner\ UI\ thread\ only).}}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{void}\ OnClipboardUpdate();}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordtype}{void}\ OnRenderFormat(UINT\ format);}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keywordtype}{void}\ OnRenderAllFormats(HWND\ hwnd);}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keywordtype}{void}\ OnDestroyClipboardMsg();}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keywordtype}{void}\ OnHistoryRequestMessage(uint32\_t\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00065\ \ \ \ \ \textcolor{keywordtype}{void}\ OnHistoryCancelMessage(uint32\_t\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{keywordtype}{void}\ OnHistoryDrainMessage();}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keywordtype}{void}\ OnHistoryEventMessage(WPARAM\ eventId,\ LPARAM\ generation);}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{comment}{//\ Test\ seam:\ replace\ the\ history\ backend\ with\ a\ mock\ for\ WinRT-\/free\ unit\ tests.}}
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{comment}{//\ Must\ be\ called\ before\ InitClipboardManager\ (or\ after\ a\ full\ Uninit).}}
+\DoxyCodeLine{00071\ \ \ \ \ \textcolor{keywordtype}{void}\ SetHistoryBackendFactoryForTest(std::unique\_ptr<IClipboardHistoryBackend>\ (*factory)());}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }WindowsClipboardManagerTest::ClipboardManagerTest;}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \ \ ClipboardManager();}
+\DoxyCodeLine{00077\ \ \ \ \ ClipboardManager(\textcolor{keyword}{const}\ ClipboardManager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00078\ \ \ \ \ ClipboardManager\&\ operator=(\textcolor{keyword}{const}\ ClipboardManager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{comment}{//\ Atomically\ (under\ initMutex\_)\ checks\ initialized\_,\ enters\ the\ lifecycle}}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{comment}{//\ lease,\ and\ snapshots\ dispatchHwnd\_\ in\ one\ step.\ Any-\/thread\ callers\ must}}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{comment}{//\ use\ this\ instead\ of\ reading\ initialized\_/dispatchHwnd\_/coordinator\_}}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{comment}{//\ directly,\ because\ Uninit()\ flips\ that\ state\ under\ the\ same\ mutex.}}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordtype}{bool}\ AcquireSyncLease(DWORD*\ pError,\ std::optional<ClipboardLifecycle::Lease>\&\ outLease,\ HWND\&\ outHwnd)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{comment}{//\ Same\ idea\ for\ the\ async\ history\ entry\ points:\ snapshots\ coordinator\_}}
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{comment}{//\ under\ initMutex\_\ so\ it\ can't\ be\ reset\ mid-\/call\ by\ a\ concurrent\ Uninit.}}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keywordtype}{bool}\ AcquireHistoryCoordinator(DWORD*\ pError,\ std::shared\_ptr<ClipboardHistoryCoordinator>\&\ outCoordinator)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{comment}{//\ Atomically\ validates\ initialization\ and\ owner-\/thread\ affinity,\ acquires}}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{comment}{//\ a\ lifecycle\ lease,\ and\ snapshots\ UI-\/owned\ state.\ This\ makes\ wrong-\/thread}}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{comment}{//\ rejection\ safe\ while\ Uninit()\ updates\ the\ same\ state.}}
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keywordtype}{bool}\ AcquireOwnerContext(DWORD*\ pError,}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::optional<ClipboardLifecycle::Lease>\&\ outLease,}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ HWND\&\ outHwnd,}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::shared\_ptr<ClipboardHistoryCoordinator>\&\ outCoordinator)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keyword}{mutable}\ std::mutex\ initMutex\_;}
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{keywordtype}{bool}\ initialized\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00098\ \ \ \ \ DWORD\ ownerThreadId\_\ =\ 0;}
+\DoxyCodeLine{00099\ \ \ \ \ HWND\ dispatchHwnd\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ \ \ \ \mbox{\hyperlink{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}{ClipboardChangedCallback}}\ onChanged\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{keyword}{mutable}\ \mbox{\hyperlink{class_clipboard_lifecycle}{ClipboardLifecycle}}\ lifecycle\_;}
+\DoxyCodeLine{00104\ \ \ \ \ \mbox{\hyperlink{class_clipboard_watcher}{ClipboardWatcher}}\ watcher\_;}
+\DoxyCodeLine{00105\ \ \ \ \ \mbox{\hyperlink{class_deferred_clipboard}{DeferredClipboard}}\ deferred\_;}
+\DoxyCodeLine{00106\ \ \ \ \ std::shared\_ptr<ClipboardHistoryCoordinator>\ coordinator\_;}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \ \ \ \ std::unique\_ptr<IClipboardHistoryBackend>\ (*testBackendFactory\_)()\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00109\ \};}
+
+\end{DoxyCode}

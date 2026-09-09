@@ -1,0 +1,230 @@
+\doxysection{Windows\+Clipboard\+Core.\+h}
+\hypertarget{_windows_clipboard_core_8h_source}{}\label{_windows_clipboard_core_8h_source}\mbox{\hyperlink{_windows_clipboard_core_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ <windows.h>}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <map>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <set>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ IClipboardWin32Api\ -\/\ thin\ function\ table\ over\ the\ Win32\ clipboard\ API.}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Production\ code\ uses\ DefaultWin32Api();\ tests\ inject\ a\ stub\ that\ can\ fail}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ on\ demand\ (SetWin32ApiForTest)\ to\ exercise\ otherwise-\/unreachable\ error\ paths.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00025\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboardWin32Api}}}
+\DoxyCodeLine{00026\ \{}
+\DoxyCodeLine{00027\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{class_i_clipboard_win32_api}{\string~IClipboardWin32Api}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keyword}{virtual}\ BOOL\ \ \ OpenClipboard(HWND\ owner)\ =\ 0;}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keyword}{virtual}\ BOOL\ \ \ CloseClipboard()\ =\ 0;}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keyword}{virtual}\ BOOL\ \ \ EmptyClipboard()\ =\ 0;}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keyword}{virtual}\ HANDLE\ SetClipboardData(UINT\ format,\ HANDLE\ hMem)\ =\ 0;}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keyword}{virtual}\ HANDLE\ GetClipboardData(UINT\ format)\ =\ 0;}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keyword}{virtual}\ HWND\ \ \ GetClipboardOwner()\ =\ 0;}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{keyword}{virtual}\ BOOL\ \ \ IsClipboardFormatAvailable(UINT\ format)\ =\ 0;}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keyword}{virtual}\ BOOL\ \ \ AddClipboardFormatListener(HWND\ hwnd)\ =\ 0;}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keyword}{virtual}\ BOOL\ \ \ RemoveClipboardFormatListener(HWND\ hwnd)\ =\ 0;}
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keyword}{virtual}\ DWORD\ \ GetClipboardSequenceNumber()\ =\ 0;}
+\DoxyCodeLine{00039\ \};}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboardWin32Api}}\&\ DefaultWin32Api();}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ Test-\/only\ injection\ point.\ Pass\ nullptr\ to\ restore\ the\ default\ (real)\ API.}}
+\DoxyCodeLine{00043\ \textcolor{keywordtype}{void}\ SetWin32ApiForTest(\mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboardWin32Api}}*\ api);}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ Currently\ active\ API\ (DefaultWin32Api()\ unless\ overridden\ for\ a\ test).}}
+\DoxyCodeLine{00046\ \mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboardWin32Api}}\&\ ActiveWin32Api();}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ RAII\ helpers}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ Opens\ the\ clipboard\ with\ a\ bounded\ retry:\ another\ process\ may\ hold\ it\ briefly.}}
+\DoxyCodeLine{00053\ \textcolor{keyword}{class\ }ClipboardScope}
+\DoxyCodeLine{00054\ \{}
+\DoxyCodeLine{00055\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{keyword}{explicit}\ ClipboardScope(HWND\ owner);}
+\DoxyCodeLine{00057\ \ \ \ \ \string~ClipboardScope();}
+\DoxyCodeLine{00058\ \ \ \ \ ClipboardScope(\textcolor{keyword}{const}\ ClipboardScope\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00059\ \ \ \ \ ClipboardScope\&\ operator=(\textcolor{keyword}{const}\ ClipboardScope\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{bool}\ IsOpen()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ opened\_;\ \}}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keywordtype}{bool}\ opened\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00064\ \};}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ Owns\ an\ HGLOBAL\ until\ it\ is\ handed\ to\ the\ clipboard.\ Release()\ is\ called\ only}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ after\ SetClipboardData\ succeeds,\ because\ ownership\ then\ moves\ to\ the\ system.}}
+\DoxyCodeLine{00068\ \textcolor{keyword}{class\ }GlobalMem}
+\DoxyCodeLine{00069\ \{}
+\DoxyCodeLine{00070\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00071\ \ \ \ \ GlobalMem()\ =\ \textcolor{keywordflow}{default};\ \textcolor{comment}{//\ invalid\ (IsValid()\ ==\ false);\ does\ not\ call\ GlobalAlloc}}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keyword}{explicit}\ GlobalMem(SIZE\_T\ bytes);}
+\DoxyCodeLine{00073\ \ \ \ \ \string~GlobalMem();}
+\DoxyCodeLine{00074\ \ \ \ \ GlobalMem(GlobalMem\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00075\ \ \ \ \ GlobalMem\&\ operator=(GlobalMem\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00076\ \ \ \ \ GlobalMem(\textcolor{keyword}{const}\ GlobalMem\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00077\ \ \ \ \ GlobalMem\&\ operator=(\textcolor{keyword}{const}\ GlobalMem\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keywordtype}{bool}\ IsValid()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ h\_\ !=\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00080\ \ \ \ \ HGLOBAL\ Get()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ h\_;\ \}}
+\DoxyCodeLine{00081\ \ \ \ \ HGLOBAL\ Release();}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00084\ \ \ \ \ HGLOBAL\ h\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00085\ \};}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \textcolor{keyword}{class\ }GlobalLockScope}
+\DoxyCodeLine{00088\ \{}
+\DoxyCodeLine{00089\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keyword}{explicit}\ GlobalLockScope(HGLOBAL\ h);}
+\DoxyCodeLine{00091\ \ \ \ \ \string~GlobalLockScope();}
+\DoxyCodeLine{00092\ \ \ \ \ GlobalLockScope(\textcolor{keyword}{const}\ GlobalLockScope\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00093\ \ \ \ \ GlobalLockScope\&\ operator=(\textcolor{keyword}{const}\ GlobalLockScope\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{keywordtype}{bool}\ IsValid()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ p\_\ !=\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordtype}{void}*\ Get()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ p\_;\ \}}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00098\ \ \ \ \ HGLOBAL\ h\_;}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{keywordtype}{void}*\ p\_;}
+\DoxyCodeLine{00100\ \};}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ Places\ one\ format\ and\ transfers\ ownership\ only\ on\ success.}}
+\DoxyCodeLine{00103\ \textcolor{keywordtype}{bool}\ PutFormat(UINT\ format,\ \mbox{\hyperlink{class_global_mem}{GlobalMem}}\&\ mem);}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ Copy\ /\ paste}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ outMutated\ (nullable):\ set\ to\ true\ as\ soon\ as\ the\ OS\ clipboard\ is\ actually}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ changed\ (EmptyClipboard\ succeeds),\ independent\ of\ the\ function's\ own\ return}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ code.\ A\ caller-\/side\ self-\/write\ suppression\ must\ key\ off\ this,\ not\ off}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ success,\ because\ a\ write\ that\ empties\ the\ clipboard\ and\ then\ fails\ to\ place}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ a\ format\ (or\ to\ place\ a\ write-\/option\ marker)\ still\ changes\ real\ clipboard}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ content\ and\ would\ otherwise\ be\ misreported\ to\ the\ caller\ as\ an\ external}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ change\ (H4,\ 2026-\/07-\/29\ v2\ review).}}
+\DoxyCodeLine{00116\ DWORD\ CopyPlainText(HWND\ owner,\ \textcolor{keyword}{const}\ std::wstring\&\ text,\ DWORD\ options,\ \textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00117\ DWORD\ PastePlainText(HWND\ owner,\ std::wstring\&\ out);}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ DWORD\ CopyHtml(HWND\ owner,\ \textcolor{keyword}{const}\ std::string\&\ utf8Fragment,\ \textcolor{keyword}{const}\ std::wstring\&\ plainFallback,\ DWORD\ options,\ \textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00120\ DWORD\ PasteHtmlFragment(HWND\ owner,\ std::string\&\ outUtf8);}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ DWORD\ CopyFiles(HWND\ owner,\ \textcolor{keyword}{const}\ std::vector<std::wstring>\&\ paths,\ DWORD\ options,\ \textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00123\ DWORD\ PasteFiles(HWND\ owner,\ std::vector<std::wstring>\&\ out);}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00125\ DWORD\ CopyDib(HWND\ owner,\ \textcolor{keyword}{const}\ std::vector<BYTE>\&\ dib,\ DWORD\ options,\ \textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00126\ DWORD\ PasteDib(HWND\ owner,\ std::vector<BYTE>\&\ out);}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ DWORD\ CopyCustom(HWND\ owner,\ \textcolor{keyword}{const}\ std::wstring\&\ formatName,\ \textcolor{keyword}{const}\ std::vector<BYTE>\&\ blob,\ DWORD\ options,\ \textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00129\ DWORD\ PasteCustom(HWND\ owner,\ \textcolor{keyword}{const}\ std::wstring\&\ formatName,\ std::vector<BYTE>\&\ out);}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ Pre-\/encoded\ payload\ for\ one\ clipboard\ format,\ in\ placement\ order\ (richest\ first).}}
+\DoxyCodeLine{00132\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_format_payload}{FormatPayload}}}
+\DoxyCodeLine{00133\ \{}
+\DoxyCodeLine{00134\ \ \ \ \ UINT\ format\ =\ 0;}
+\DoxyCodeLine{00135\ \ \ \ \ std::vector<BYTE>\ data;}
+\DoxyCodeLine{00136\ \};}
+\DoxyCodeLine{00137\ DWORD\ CopyMultipleFormats(HWND\ owner,\ \textcolor{keyword}{const}\ std::vector<FormatPayload>\&\ items,\ DWORD\ options,\ \textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ Inspection\ /\ clear}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ DWORD\ ListFormats(HWND\ owner,\ std::vector<UINT>\&\ out);}
+\DoxyCodeLine{00144\ DWORD\ FormatName(UINT\ format,\ std::wstring\&\ out);}
+\DoxyCodeLine{00145\ \textcolor{keywordtype}{int}\ \ \ PickPreferredFormat();}
+\DoxyCodeLine{00146\ DWORD\ ClearClipboard(HWND\ owner);}
+\DoxyCodeLine{00147\ \textcolor{keywordtype}{bool}\ \ HasFormat(UINT\ format);}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ Places\ the\ CanIncludeInClipboardHistory\ /\ CanUploadToCloudClipboard\ registered}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ formats.\ Must\ be\ called\ inside\ the\ same\ Open/Empty/Close\ sequence\ as\ the\ data}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ they\ apply\ to\ (i.e.\ from\ inside\ one\ of\ the\ Copy*\ functions\ above).}}
+\DoxyCodeLine{00152\ \textcolor{keywordtype}{bool}\ ApplyWriteOptions(DWORD\ options);}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ F-\/10:\ Deferred\ rendering}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_deferred_clipboard}{DeferredClipboard}}}
+\DoxyCodeLine{00159\ \{}
+\DoxyCodeLine{00160\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keyword}{using\ }Renderer\ =\ std::function<\mbox{\hyperlink{class_global_mem}{GlobalMem}}()>;\ \textcolor{comment}{//\ returns\ an\ owned\ HGLOBAL,\ or\ invalid\ on\ failure}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \ \ \ \ DWORD\ Reserve(HWND\ owner,\ std::map<UINT,\ Renderer>\ renderers,\ \textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00164\ \ \ \ \ DWORD\ RecoverFromPartialState(\textcolor{keywordtype}{bool}*\ outMutated\ =\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00165\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ IsPartial()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ partial\_;\ \}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \ \ \ \ \textcolor{keywordtype}{void}\ OnRenderFormat(UINT\ format);\ \ \ \ \ \ \ \textcolor{comment}{//\ WM\_RENDERFORMAT\ handler;\ must\ not\ call\ OpenClipboard}}
+\DoxyCodeLine{00168\ \ \ \ \ \textcolor{keywordtype}{void}\ OnRenderAllFormats(HWND\ hwnd);\ \ \ \ \ \textcolor{comment}{//\ WM\_RENDERALLFORMATS\ handler}}
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{keywordtype}{void}\ OnDestroyClipboard();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ WM\_DESTROYCLIPBOARD\ handler}}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keywordtype}{void}\ Clear();}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \ \ \ \ HWND\ owner\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00175\ \ \ \ \ \textcolor{keywordtype}{bool}\ partial\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00176\ \ \ \ \ std::map<UINT,\ Renderer>\ renderers\_;}
+\DoxyCodeLine{00177\ \ \ \ \ std::set<UINT>\ rendered\_;}
+\DoxyCodeLine{00178\ \};}
+\DoxyCodeLine{00179\ }
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00181\ \textcolor{comment}{//\ F-\/09:\ Change\ monitoring}}
+\DoxyCodeLine{00182\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{preprocessor}{\#include\ <mutex>}}
+\DoxyCodeLine{00185\ \textcolor{preprocessor}{\#include\ <unordered\_set>}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \textcolor{keyword}{class\ }\mbox{\hyperlink{class_clipboard_watcher}{ClipboardWatcher}}}
+\DoxyCodeLine{00188\ \{}
+\DoxyCodeLine{00189\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00190\ \ \ \ \ \textcolor{keyword}{class\ }SelfWriteTransaction}
+\DoxyCodeLine{00191\ \ \ \ \ \{}
+\DoxyCodeLine{00192\ \ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \ \ SelfWriteTransaction(SelfWriteTransaction\&\&)\ \textcolor{keyword}{noexcept}\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ SelfWriteTransaction\&\ operator=(SelfWriteTransaction\&\&)\ \textcolor{keyword}{noexcept}\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ SelfWriteTransaction(\textcolor{keyword}{const}\ SelfWriteTransaction\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ SelfWriteTransaction\&\ operator=(\textcolor{keyword}{const}\ SelfWriteTransaction\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Records\ the\ current\ clipboard\ sequence\ while\ the\ transaction\ still}}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ excludes\ WM\_CLIPBOARDUPDATE\ classification.}}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}\ NoteMutation();}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }ClipboardWatcher;}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \ \ \textcolor{keyword}{explicit}\ SelfWriteTransaction(ClipboardWatcher\&\ owner);}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \ \ ClipboardWatcher*\ owner\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \ \ std::unique\_lock<std::mutex>\ lock\_;}
+\DoxyCodeLine{00208\ \ \ \ \ \};}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \ \ \ \ \textcolor{keywordtype}{bool}\ Start(HWND\ hwnd);}
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{keywordtype}{bool}\ Stop();}
+\DoxyCodeLine{00212\ \ \ \ \ \textcolor{keywordtype}{bool}\ IsRegistered()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ registered\_;\ \}}
+\DoxyCodeLine{00213\ }
+\DoxyCodeLine{00214\ \ \ \ \ SelfWriteTransaction\ BeginSelfWrite();}
+\DoxyCodeLine{00215\ \ \ \ \ \textcolor{keywordtype}{void}\ NoteSelfWrite();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ any\ thread:\ record\ current\ sequence\ number}}
+\DoxyCodeLine{00216\ \ \ \ \ \textcolor{keywordtype}{bool}\ TakeSelfWrite(DWORD\ seq);\ \ \ \ \ \ \textcolor{comment}{//\ UI\ thread:\ true\ if\ seq\ was\ a\ self-\/write}}
+\DoxyCodeLine{00217\ \ \ \ \ \textcolor{keywordtype}{void}\ OnClipboardUpdate();\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ UI\ thread:\ WM\_CLIPBOARDUPDATE;\ returns\ via\ IsSelfWrite\ check}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \ \ \ \ \textcolor{comment}{//\ Set\ by\ the\ owner\ to\ be\ notified\ on\ a\ genuine\ (non-\/self)\ content\ change.}}
+\DoxyCodeLine{00220\ \ \ \ \ std::function<void()>\ onChanged;}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{keywordtype}{void}\ NoteSelfWriteLocked();}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{keywordtype}{bool}\ TakeSelfWriteLocked(DWORD\ seq);}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{comment}{//\ UI-\/thread-\/only\ state}}
+\DoxyCodeLine{00227\ \ \ \ \ HWND\ \ hwnd\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00228\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ registered\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00229\ \ \ \ \ DWORD\ lastProcessedSeq\_\ =\ 0;}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \ \ \ \ \textcolor{comment}{//\ Cross-\/thread\ state}}
+\DoxyCodeLine{00232\ \ \ \ \ \textcolor{keyword}{mutable}\ std::mutex\ \ \ \ \ \ \ \ selfWriteMutex\_;}
+\DoxyCodeLine{00233\ \ \ \ \ std::unordered\_set<DWORD>\ selfWriteSeq\_;}
+\DoxyCodeLine{00234\ \};}
+
+\end{DoxyCode}

@@ -1,0 +1,27 @@
+<map id="WindowsClipboardDeferredProvider.h" name="WindowsClipboardDeferredProvider.h">
+<area shape="rect" id="Node000001" title="Adapts the public two&#45;phase render callback to an HGLOBAL renderer." alt="" coords="232,5,413,48"/>
+<area shape="rect" id="Node000002" href="$_windows_clipboard_core_8h.html" title="Win32 clipboard operations (synchronous, RAII&#45;guarded)." alt="" coords="238,96,407,123"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="325,49,325,80,320,80,320,49"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="5,171,59,197"/>
+<area shape="poly" id="edge13_Node000001_Node000004" title=" " alt="" coords="285,51,70,165,68,161,283,46"/>
+<area shape="rect" id="Node000011" href="$_windows_clipboard_manager_8h.html" title="Public C Bridge API for the Windows Clipboard Manager." alt="" coords="554,96,745,123"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="407,46,584,89,583,94,406,51"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="608,171,691,197"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="381,121,593,167,592,173,380,126"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="267,126,74,173,73,168,266,121"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="83,171,141,197"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="287,126,156,170,154,165,285,121"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="165,171,243,197"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="303,125,239,165,236,160,301,121"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="266,171,312,197"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="319,124,304,158,299,155,314,122"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="336,171,376,197"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="331,122,346,155,341,158,326,124"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="399,171,457,197"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="343,121,399,159,396,164,340,125"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="480,171,584,197"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="360,121,482,163,480,168,358,126"/>
+<area shape="poly" id="edge11_Node000011_Node000003" title=" " alt="" coords="652,123,652,155,647,155,647,123"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="715,171,776,197"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="668,121,718,159,715,163,664,125"/>
+</map>

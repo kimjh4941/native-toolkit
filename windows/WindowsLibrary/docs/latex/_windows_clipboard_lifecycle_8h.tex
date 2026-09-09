@@ -1,0 +1,38 @@
+\doxysection{Windows\+Clipboard\+Lifecycle.\+h File Reference}
+\hypertarget{_windows_clipboard_lifecycle_8h}{}\label{_windows_clipboard_lifecycle_8h}\index{WindowsClipboardLifecycle.h@{WindowsClipboardLifecycle.h}}
+
+
+Unified in-\/flight/closing state shared by request coroutines, history event callbacks and any-\/thread synchronous Bridge calls.  
+
+
+{\ttfamily \#include $<$mutex$>$}\newline
+{\ttfamily \#include $<$optional$>$}\newline
+Include dependency graph for Windows\+Clipboard\+Lifecycle.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=225pt]{_windows_clipboard_lifecycle_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=323pt]{_windows_clipboard_lifecycle_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_clipboard_lifecycle}{Clipboard\+Lifecycle}}
+\item 
+class \mbox{\hyperlink{class_clipboard_lifecycle_1_1_lease}{Clipboard\+Lifecycle\+::\+Lease}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Unified in-\/flight/closing state shared by request coroutines, history event callbacks and any-\/thread synchronous Bridge calls. 
+
+A single instance is owned by the Manager and referenced by the history coordinator. Try\+Enter()/\+Close\+And\+Reserve\+Drain\+Work()/\+Can\+Destroy() are all guarded by the same mutex so that "{}may I still start work"{} and "{}is  shutdown complete"{} can never race each other. 

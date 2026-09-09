@@ -1,0 +1,43 @@
+\doxysection{Clipboard\+Watcher Class Reference}
+\hypertarget{class_clipboard_watcher}{}\label{class_clipboard_watcher}\index{ClipboardWatcher@{ClipboardWatcher}}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_clipboard_watcher_1_1_self_write_transaction}{Self\+Write\+Transaction}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_clipboard_watcher_a1b47d3392b7cc1f7ed11ff1dab1278b7}\label{class_clipboard_watcher_a1b47d3392b7cc1f7ed11ff1dab1278b7} 
+bool {\bfseries Start} (HWND hwnd)
+\item 
+\Hypertarget{class_clipboard_watcher_aae22a62316dda06d49e530dce44d6c7f}\label{class_clipboard_watcher_aae22a62316dda06d49e530dce44d6c7f} 
+bool {\bfseries Stop} ()
+\item 
+\Hypertarget{class_clipboard_watcher_a0838920ea5ddc97783900a730c5cfb6d}\label{class_clipboard_watcher_a0838920ea5ddc97783900a730c5cfb6d} 
+bool {\bfseries Is\+Registered} () const
+\item 
+\Hypertarget{class_clipboard_watcher_a8b5686fa7c030debe1da528121b09f0a}\label{class_clipboard_watcher_a8b5686fa7c030debe1da528121b09f0a} 
+\mbox{\hyperlink{class_clipboard_watcher_1_1_self_write_transaction}{Self\+Write\+Transaction}} {\bfseries Begin\+Self\+Write} ()
+\item 
+\Hypertarget{class_clipboard_watcher_aefd91973ee1ae5d78d21e19b77e232fc}\label{class_clipboard_watcher_aefd91973ee1ae5d78d21e19b77e232fc} 
+void {\bfseries Note\+Self\+Write} ()
+\item 
+\Hypertarget{class_clipboard_watcher_af84e80c58949897db9aac85db243af9f}\label{class_clipboard_watcher_af84e80c58949897db9aac85db243af9f} 
+bool {\bfseries Take\+Self\+Write} (DWORD seq)
+\item 
+\Hypertarget{class_clipboard_watcher_a390c0cb0d6fdfce8311da9c9b10cbc03}\label{class_clipboard_watcher_a390c0cb0d6fdfce8311da9c9b10cbc03} 
+void {\bfseries On\+Clipboard\+Update} ()
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_clipboard_watcher_a12f42caccb51fd1f27d64b1b2c9214a0}\label{class_clipboard_watcher_a12f42caccb51fd1f27d64b1b2c9214a0} 
+std\+::function$<$ void()$>$ {\bfseries on\+Changed}
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_windows_clipboard_core_8h}{Windows\+Clipboard\+Core.\+h}}\item 
+Windows\+Clipboard\+Core.\+cpp\end{DoxyCompactItemize}

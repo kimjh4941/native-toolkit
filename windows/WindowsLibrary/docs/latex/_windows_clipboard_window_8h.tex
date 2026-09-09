@@ -1,0 +1,31 @@
+\doxysection{Windows\+Clipboard\+Window.\+h File Reference}
+\hypertarget{_windows_clipboard_window_8h}{}\label{_windows_clipboard_window_8h}\index{WindowsClipboardWindow.h@{WindowsClipboardWindow.h}}
+
+
+Creates/destroys the toolkit-\/owned dispatch window (dispatch\+Hwnd).  
+
+
+{\ttfamily \#include $<$windows.\+h$>$}\newline
+Include dependency graph for Windows\+Clipboard\+Window.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=221pt]{_windows_clipboard_window_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_window_8cpp_af795149d31c8312e8b58b7633dc9fa9e}\label{_windows_clipboard_window_8cpp_af795149d31c8312e8b58b7633dc9fa9e} 
+HWND {\bfseries Windows\+Clipboard\+Window\+::\+Create} ()
+\item 
+\Hypertarget{_windows_clipboard_window_8cpp_acdbddf527cee420a5c4b360537e59e9b}\label{_windows_clipboard_window_8cpp_acdbddf527cee420a5c4b360537e59e9b} 
+void {\bfseries Windows\+Clipboard\+Window\+::\+Destroy} (HWND hwnd)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Creates/destroys the toolkit-\/owned dispatch window (dispatch\+Hwnd). 
+
+A hidden top-\/level window (not HWND\+\_\+\+MESSAGE -\/ see design notes) with its own Wnd\+Proc, used as\+: the Set\+Clipboard\+Data owner for delayed rendering, the Add\+Clipboard\+Format\+Listener target, and the UI-\/thread dispatch target for history requests/cancel/drain messages. Routes messages to the \doxylink{class_clipboard_manager}{Clipboard\+Manager} singleton. 

@@ -1,0 +1,68 @@
+\doxysection{Windows\+Clipboard\+History\+Coordinator.\+h File Reference}
+\hypertarget{_windows_clipboard_history_coordinator_8h}{}\label{_windows_clipboard_history_coordinator_8h}\index{WindowsClipboardHistoryCoordinator.h@{WindowsClipboardHistoryCoordinator.h}}
+
+
+Application-\/layer request state machine for clipboard history (F-\/12).  
+
+
+{\ttfamily \#include "{}Windows\+Clipboard\+History\+Backend.\+h"{}}\newline
+{\ttfamily \#include "{}Windows\+Clipboard\+Lifecycle.\+h"{}}\newline
+{\ttfamily \#include "{}Windows\+Clipboard\+Manager.\+h"{}}\newline
+{\ttfamily \#include $<$atomic$>$}\newline
+{\ttfamily \#include $<$map$>$}\newline
+{\ttfamily \#include $<$memory$>$}\newline
+{\ttfamily \#include $<$mutex$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+Include dependency graph for Windows\+Clipboard\+History\+Coordinator.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_windows_clipboard_history_coordinator_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=268pt]{_windows_clipboard_history_coordinator_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_clipboard_history_coordinator}{Clipboard\+History\+Coordinator}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_history_coordinator_8h_a3801f43d7f17c769db7192fe0136af27}\label{_windows_clipboard_history_coordinator_8h_a3801f43d7f17c769db7192fe0136af27} 
+\#define {\bfseries WM\+\_\+\+APP\+\_\+\+CLIPBOARD\+\_\+\+REQUEST}~(WM\+\_\+\+APP + 1)
+\item 
+\Hypertarget{_windows_clipboard_history_coordinator_8h_a0b29abcc48dedc8143c5c53aa259d3e9}\label{_windows_clipboard_history_coordinator_8h_a0b29abcc48dedc8143c5c53aa259d3e9} 
+\#define {\bfseries WM\+\_\+\+APP\+\_\+\+CLIPBOARD\+\_\+\+CANCEL}~(WM\+\_\+\+APP + 2)
+\item 
+\Hypertarget{_windows_clipboard_history_coordinator_8h_a7034bd9b448ef725c4359887d4becd93}\label{_windows_clipboard_history_coordinator_8h_a7034bd9b448ef725c4359887d4becd93} 
+\#define {\bfseries WM\+\_\+\+APP\+\_\+\+CLIPBOARD\+\_\+\+DRAIN}~(WM\+\_\+\+APP + 3)
+\item 
+\Hypertarget{_windows_clipboard_history_coordinator_8h_ab7e57b4ac2b8fb2e82580f13ef25578c}\label{_windows_clipboard_history_coordinator_8h_ab7e57b4ac2b8fb2e82580f13ef25578c} 
+\#define {\bfseries WM\+\_\+\+APP\+\_\+\+CLIPBOARD\+\_\+\+HISTORY\+\_\+\+EVENT}~(WM\+\_\+\+APP + 4)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_history_coordinator_8h_aa81d9d185cbdd3b409dfb9282591f6bd}\label{_windows_clipboard_history_coordinator_8h_aa81d9d185cbdd3b409dfb9282591f6bd} 
+enum {\bfseries Clipboard\+History\+Event\+Kind} \+: WPARAM \{ {\bfseries k\+History\+Changed} = 0
+, {\bfseries k\+History\+Enabled\+Changed} = 1
+, {\bfseries k\+Roaming\+Enabled\+Changed} = 2
+ \}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Application-\/layer request state machine for clipboard history (F-\/12). 
+
+Owns the Queued -\/\texorpdfstring{$>$}{>} Running -\/\texorpdfstring{$>$}{>} Finished lifecycle of history requests, the single-\/owner request table, cancellation, and the shutdown drain. Never touches Win\+RT types directly (see \doxylink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend} / Data layer).
+
+Thread-\/safety\+: Request\texorpdfstring{$\ast$}{*}() and Cancel\+Request() are callable from any thread. On\+Start\+Queued\+Request(), On\+Drain\+Message(), Set\+History\+Callbacks(), Stop\+Watch() and Close\+And\+Drain() MUST be called on the owner UI thread. 

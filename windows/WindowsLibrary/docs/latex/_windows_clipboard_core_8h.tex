@@ -1,0 +1,122 @@
+\doxysection{Windows\+Clipboard\+Core.\+h File Reference}
+\hypertarget{_windows_clipboard_core_8h}{}\label{_windows_clipboard_core_8h}\index{WindowsClipboardCore.h@{WindowsClipboardCore.h}}
+
+
+Win32 clipboard operations (synchronous, RAII-\/guarded).  
+
+
+{\ttfamily \#include $<$windows.\+h$>$}\newline
+{\ttfamily \#include $<$string$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+{\ttfamily \#include $<$functional$>$}\newline
+{\ttfamily \#include $<$map$>$}\newline
+{\ttfamily \#include $<$set$>$}\newline
+{\ttfamily \#include $<$mutex$>$}\newline
+{\ttfamily \#include $<$unordered\+\_\+set$>$}\newline
+Include dependency graph for Windows\+Clipboard\+Core.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_windows_clipboard_core_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_windows_clipboard_core_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboard\+Win32\+Api}}
+\item 
+class \mbox{\hyperlink{class_clipboard_scope}{Clipboard\+Scope}}
+\item 
+class \mbox{\hyperlink{class_global_mem}{Global\+Mem}}
+\item 
+class \mbox{\hyperlink{class_global_lock_scope}{Global\+Lock\+Scope}}
+\item 
+struct \mbox{\hyperlink{struct_format_payload}{Format\+Payload}}
+\item 
+class \mbox{\hyperlink{class_deferred_clipboard}{Deferred\+Clipboard}}
+\item 
+class \mbox{\hyperlink{class_clipboard_watcher}{Clipboard\+Watcher}}
+\item 
+class \mbox{\hyperlink{class_clipboard_watcher_1_1_self_write_transaction}{Clipboard\+Watcher\+::\+Self\+Write\+Transaction}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a60ab84c78bcd7846fed150ec1e2ef470}\label{_windows_clipboard_core_8h_a60ab84c78bcd7846fed150ec1e2ef470} 
+\mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboard\+Win32\+Api}} \& {\bfseries Default\+Win32\+Api} ()
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a2ac6b3267b50ec65450b0a07c0b90ac7}\label{_windows_clipboard_core_8h_a2ac6b3267b50ec65450b0a07c0b90ac7} 
+void {\bfseries Set\+Win32\+Api\+For\+Test} (\mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboard\+Win32\+Api}} \texorpdfstring{$\ast$}{*}api)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a8e8771c09c47622ec9aa903908b5c6c2}\label{_windows_clipboard_core_8h_a8e8771c09c47622ec9aa903908b5c6c2} 
+\mbox{\hyperlink{class_i_clipboard_win32_api}{IClipboard\+Win32\+Api}} \& {\bfseries Active\+Win32\+Api} ()
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a53abbd44483cbf3207aa119ca8404bd4}\label{_windows_clipboard_core_8h_a53abbd44483cbf3207aa119ca8404bd4} 
+bool {\bfseries Put\+Format} (UINT format, \mbox{\hyperlink{class_global_mem}{Global\+Mem}} \&mem)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_aae150f1d3a5f1743a1bfcda414450ec4}\label{_windows_clipboard_core_8h_aae150f1d3a5f1743a1bfcda414450ec4} 
+DWORD {\bfseries Copy\+Plain\+Text} (HWND owner, const std\+::wstring \&text, DWORD options, bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a3428c7e3c20043e4762af6938c19067a}\label{_windows_clipboard_core_8h_a3428c7e3c20043e4762af6938c19067a} 
+DWORD {\bfseries Paste\+Plain\+Text} (HWND owner, std\+::wstring \&out)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_adfde9a317b222802170626985b433a9a}\label{_windows_clipboard_core_8h_adfde9a317b222802170626985b433a9a} 
+DWORD {\bfseries Copy\+Html} (HWND owner, const std\+::string \&utf8\+Fragment, const std\+::wstring \&plain\+Fallback, DWORD options, bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a4f16e6397366acb1bfb7d117dd40469f}\label{_windows_clipboard_core_8h_a4f16e6397366acb1bfb7d117dd40469f} 
+DWORD {\bfseries Paste\+Html\+Fragment} (HWND owner, std\+::string \&out\+Utf8)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_ae2a62cde07923f1d31503e6f143cce6e}\label{_windows_clipboard_core_8h_ae2a62cde07923f1d31503e6f143cce6e} 
+DWORD {\bfseries Copy\+Files} (HWND owner, const std\+::vector$<$ std\+::wstring $>$ \&paths, DWORD options, bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a12f9c5b68d83ccaf59d355900f7c58ab}\label{_windows_clipboard_core_8h_a12f9c5b68d83ccaf59d355900f7c58ab} 
+DWORD {\bfseries Paste\+Files} (HWND owner, std\+::vector$<$ std\+::wstring $>$ \&out)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a439796dd8106786618fd2587e6ffcc17}\label{_windows_clipboard_core_8h_a439796dd8106786618fd2587e6ffcc17} 
+DWORD {\bfseries Copy\+Dib} (HWND owner, const std\+::vector$<$ BYTE $>$ \&dib, DWORD options, bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a7039fed4e6e15be79458f4f845ef6722}\label{_windows_clipboard_core_8h_a7039fed4e6e15be79458f4f845ef6722} 
+DWORD {\bfseries Paste\+Dib} (HWND owner, std\+::vector$<$ BYTE $>$ \&out)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a4a96c03ed727973068a88907ee30c005}\label{_windows_clipboard_core_8h_a4a96c03ed727973068a88907ee30c005} 
+DWORD {\bfseries Copy\+Custom} (HWND owner, const std\+::wstring \&format\+Name, const std\+::vector$<$ BYTE $>$ \&blob, DWORD options, bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_aa19670a395afe453ea399d2db547e8c0}\label{_windows_clipboard_core_8h_aa19670a395afe453ea399d2db547e8c0} 
+DWORD {\bfseries Paste\+Custom} (HWND owner, const std\+::wstring \&format\+Name, std\+::vector$<$ BYTE $>$ \&out)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a9e2768bba85b1a0972c4971b3edbe57c}\label{_windows_clipboard_core_8h_a9e2768bba85b1a0972c4971b3edbe57c} 
+DWORD {\bfseries Copy\+Multiple\+Formats} (HWND owner, const std\+::vector$<$ \mbox{\hyperlink{struct_format_payload}{Format\+Payload}} $>$ \&items, DWORD options, bool \texorpdfstring{$\ast$}{*}out\+Mutated=nullptr)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_ab9035f329f4251f894f71daad741eb03}\label{_windows_clipboard_core_8h_ab9035f329f4251f894f71daad741eb03} 
+DWORD {\bfseries List\+Formats} (HWND owner, std\+::vector$<$ UINT $>$ \&out)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a2d4a139176d9765cf00c666cc339d54e}\label{_windows_clipboard_core_8h_a2d4a139176d9765cf00c666cc339d54e} 
+DWORD {\bfseries Format\+Name} (UINT format, std\+::wstring \&out)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a26184fbce71ff33d3579a687b1540c3d}\label{_windows_clipboard_core_8h_a26184fbce71ff33d3579a687b1540c3d} 
+int {\bfseries Pick\+Preferred\+Format} ()
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a4bde0712f69b9e814fd43d2eb4b8d90a}\label{_windows_clipboard_core_8h_a4bde0712f69b9e814fd43d2eb4b8d90a} 
+DWORD {\bfseries Clear\+Clipboard} (HWND owner)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_a646758fdfc1769187a65cb8df3e77946}\label{_windows_clipboard_core_8h_a646758fdfc1769187a65cb8df3e77946} 
+bool {\bfseries Has\+Format} (UINT format)
+\item 
+\Hypertarget{_windows_clipboard_core_8h_aa00ff7e8c6562872e9dd77ebb38620a5}\label{_windows_clipboard_core_8h_aa00ff7e8c6562872e9dd77ebb38620a5} 
+bool {\bfseries Apply\+Write\+Options} (DWORD options)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Win32 clipboard operations (synchronous, RAII-\/guarded). 
+
+Thin, mechanical wrapper over the Win32 clipboard API. Every entry point opens the clipboard, performs one operation, and closes it. Ownership of clipboard-\/bound memory (Global\+Alloc handles) is tracked with RAII so a handle is freed on every failure path and released to the system exactly once, on success. 

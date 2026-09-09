@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['removeallnotifications_0',['removeAllNotifications',['../_windows_notification_manager_8h.html#a30e79d02929cc97ba1d943f192a093ff',1,'WindowsNotificationManager.cpp']]],
-  ['removenotificationbyid_1',['removeNotificationById',['../_windows_notification_manager_8h.html#a560d0f9070727b3657532920007538e1',1,'WindowsNotificationManager.cpp']]],
-  ['removenotificationsbytag_2',['removeNotificationsByTag',['../_windows_notification_manager_8h.html#a3231f9ff1ea50ea24713a900933b5e26',1,'WindowsNotificationManager.cpp']]]
+  ['notification_5fuser_5finput_5fdata_0',['NOTIFICATION_USER_INPUT_DATA',['../struct_n_o_t_i_f_i_c_a_t_i_o_n___u_s_e_r___i_n_p_u_t___d_a_t_a.html',1,'']]],
+  ['notificationactivationcallback_1',['NotificationActivationCallback',['../class_notification_activation_callback.html',1,'']]],
+  ['notificationactivationcallbackfactory_2',['NotificationActivationCallbackFactory',['../class_notification_activation_callback_factory.html',1,'']]],
+  ['notificationinvokedcallback_3',['NotificationInvokedCallback',['../_windows_notification_manager_8h.html#abc20e8c43c097314c579508e13666315',1,'WindowsNotificationManager.h']]]
 ];

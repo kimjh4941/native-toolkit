@@ -1,0 +1,15 @@
+\doxysection{Windows\+Clipboard\+History\+Win\+Rt.\+h}
+\hypertarget{_windows_clipboard_history_win_rt_8h_source}{}\label{_windows_clipboard_history_win_rt_8h_source}\mbox{\hyperlink{_windows_clipboard_history_win_rt_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_windows_clipboard_history_backend_8h}{WindowsClipboardHistoryBackend.h}}"{}}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ Factory:\ the\ concrete\ type\ and\ its\ WinRT\ dependencies\ stay\ out\ of\ every}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ C++17\ header.\ Must\ be\ called\ on\ the\ owner\ UI\ thread\ (STA\ already\ verified}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ by\ the\ Manager\ before\ this\ is\ constructed).}}
+\DoxyCodeLine{00019\ std::unique\_ptr<IClipboardHistoryBackend>\ MakeClipboardHistoryWinRtBackend();}
+
+\end{DoxyCode}

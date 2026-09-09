@@ -1,0 +1,53 @@
+\doxysection{IClipboard\+History\+Backend Class Reference}
+\hypertarget{class_i_clipboard_history_backend}{}\label{class_i_clipboard_history_backend}\index{IClipboardHistoryBackend@{IClipboardHistoryBackend}}
+
+
+Inheritance diagram for IClipboard\+History\+Backend\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=210pt]{class_i_clipboard_history_backend__inherit__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_i_clipboard_history_backend_aae9d421daea2a2bd95623e308abdd52e}\label{class_i_clipboard_history_backend_aae9d421daea2a2bd95623e308abdd52e} 
+virtual void {\bfseries Get\+Availability\+Async} (History\+Availability\+Callback done)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_a85de419488fc5e076f3f0d0cac24bcef}\label{class_i_clipboard_history_backend_a85de419488fc5e076f3f0d0cac24bcef} 
+virtual void {\bfseries Get\+Items\+Async} (History\+Items\+Callback done)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_aa61ad6332b7bcc3933264cde25b4d1d3}\label{class_i_clipboard_history_backend_aa61ad6332b7bcc3933264cde25b4d1d3} 
+virtual void {\bfseries Set\+Item\+As\+Content\+Async} (const std\+::wstring \&id, History\+Status\+Callback done)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_a27be7ef39504402822f0d0000e4357f0}\label{class_i_clipboard_history_backend_a27be7ef39504402822f0d0000e4357f0} 
+virtual void {\bfseries Delete\+Item\+Async} (const std\+::wstring \&id, History\+Status\+Callback done)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_a636ce7d7bcea80b87350d6f2c2e8f835}\label{class_i_clipboard_history_backend_a636ce7d7bcea80b87350d6f2c2e8f835} 
+virtual void {\bfseries Clear\+Unpinned\+Async} (History\+Status\+Callback done)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_a74d98333eb10780e46c889a71d32bc0b}\label{class_i_clipboard_history_backend_a74d98333eb10780e46c889a71d32bc0b} 
+virtual DWORD {\bfseries Query\+History\+Enabled} (bool \&enabled)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_a0ed3c3494bbdb7a26b93fdee2b054475}\label{class_i_clipboard_history_backend_a0ed3c3494bbdb7a26b93fdee2b054475} 
+virtual DWORD {\bfseries Query\+Roaming\+Enabled} (bool \&enabled)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_a9de2d81ebcb41efe0a1a9b4f389d948d}\label{class_i_clipboard_history_backend_a9de2d81ebcb41efe0a1a9b4f389d948d} 
+virtual DWORD {\bfseries Start\+Watch} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{struct_clipboard_history_events}{Clipboard\+History\+Events}} $>$ events)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_a12e08e3f205b42437750d56e5c8d3c4b}\label{class_i_clipboard_history_backend_a12e08e3f205b42437750d56e5c8d3c4b} 
+virtual void {\bfseries Replace\+Events} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{struct_clipboard_history_events}{Clipboard\+History\+Events}} $>$ events)=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_ad830abaaf41f6ad11e9dba805e97f814}\label{class_i_clipboard_history_backend_ad830abaaf41f6ad11e9dba805e97f814} 
+virtual bool {\bfseries Stop\+Watch} ()=0
+\item 
+\Hypertarget{class_i_clipboard_history_backend_aa8141f5ce7292b09bcf63a53df417a4f}\label{class_i_clipboard_history_backend_aa8141f5ce7292b09bcf63a53df417a4f} 
+virtual bool {\bfseries Can\+Destroy} () const =0
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_windows_clipboard_history_backend_8h}{Windows\+Clipboard\+History\+Backend.\+h}}\end{DoxyCompactItemize}

@@ -1,0 +1,131 @@
+\doxysection{Clipboard\+Manager Class Reference}
+\hypertarget{class_clipboard_manager}{}\label{class_clipboard_manager}\index{ClipboardManager@{ClipboardManager}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_clipboard_manager_aceb9a146582b1bcfdc92532ae9d602fd}\label{class_clipboard_manager_aceb9a146582b1bcfdc92532ae9d602fd} 
+void {\bfseries Init\+Clipboard\+Manager} (\mbox{\hyperlink{_windows_clipboard_manager_8h_aabb5a679a0ebd1da24b7e6b436dcb665}{Clipboard\+Changed\+Callback}} on\+Changed, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a7b84c64ea02b6ebb0c410e7a2141922f}\label{class_clipboard_manager_a7b84c64ea02b6ebb0c410e7a2141922f} 
+BOOL {\bfseries Uninit} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a99ac3c3d56bf06afc27b4c74df38fcd2}\label{class_clipboard_manager_a99ac3c3d56bf06afc27b4c74df38fcd2} 
+BOOL {\bfseries Can\+Destroy} (DWORD \texorpdfstring{$\ast$}{*}p\+Error) const
+\item 
+\Hypertarget{class_clipboard_manager_a7bb4cd5086ae2ce5b25c73ca8c2e8fa9}\label{class_clipboard_manager_a7bb4cd5086ae2ce5b25c73ca8c2e8fa9} 
+void {\bfseries Set\+History\+Callbacks} (\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{Clipboard\+History\+Changed\+Callback}} on\+History\+Changed, \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}} on\+History\+Enabled\+Changed, \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}} on\+Roaming\+Enabled\+Changed, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a9b034f2451200a1961d882555ccfe17f}\label{class_clipboard_manager_a9b034f2451200a1961d882555ccfe17f} 
+void {\bfseries Copy\+Plain\+Text} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}text, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a0a722bdfde52b7c90d90bcdcc69efa24}\label{class_clipboard_manager_a0a722bdfde52b7c90d90bcdcc69efa24} 
+DWORD {\bfseries Paste\+Plain\+Text} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_acc4dda2e9bd6719a24a3524b6389d8ee}\label{class_clipboard_manager_acc4dda2e9bd6719a24a3524b6389d8ee} 
+void {\bfseries Copy\+Html} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}html, const wchar\+\_\+t \texorpdfstring{$\ast$}{*}plain\+Text, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a12bacfd53b1d844f09cc880506f465a1}\label{class_clipboard_manager_a12bacfd53b1d844f09cc880506f465a1} 
+DWORD {\bfseries Paste\+Html} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a633585189b6ee32ed161f3bfd2549bc0}\label{class_clipboard_manager_a633585189b6ee32ed161f3bfd2549bc0} 
+void {\bfseries Copy\+Files} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}paths\+Json, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_aa0ba39bf3c639da7e68194f99c5cddfd}\label{class_clipboard_manager_aa0ba39bf3c639da7e68194f99c5cddfd} 
+DWORD {\bfseries Paste\+Files} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_acb919fb4d315c15b76d04be97368b03e}\label{class_clipboard_manager_acb919fb4d315c15b76d04be97368b03e} 
+void {\bfseries Copy\+Image} (const BYTE \texorpdfstring{$\ast$}{*}dib, DWORD dib\+Size, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a0c4f953fdb0af12318c376c0692c237a}\label{class_clipboard_manager_a0c4f953fdb0af12318c376c0692c237a} 
+DWORD {\bfseries Paste\+Image} (BYTE \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_af663c0db7cb0b53c52ad6d067502e0b3}\label{class_clipboard_manager_af663c0db7cb0b53c52ad6d067502e0b3} 
+void {\bfseries Copy\+Custom\+Format} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, const BYTE \texorpdfstring{$\ast$}{*}data, DWORD size, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a96342a0409666099b0a96176636311f3}\label{class_clipboard_manager_a96342a0409666099b0a96176636311f3} 
+DWORD {\bfseries Paste\+Custom\+Format} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, BYTE \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_aa071a287ab3770f1e61580bcf0cb4413}\label{class_clipboard_manager_aa071a287ab3770f1e61580bcf0cb4413} 
+void {\bfseries Copy\+Multiple\+Formats} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}items\+Json, DWORD options, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a53e972f535313f3446b4cb29d5b143d8}\label{class_clipboard_manager_a53e972f535313f3446b4cb29d5b143d8} 
+BOOL {\bfseries Has\+Clipboard\+Format} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Name, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a1686155e6e1119105f0c486d095c5acf}\label{class_clipboard_manager_a1686155e6e1119105f0c486d095c5acf} 
+DWORD {\bfseries Get\+Clipboard\+Formats} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_aa503e1b4ab497ecdf3348e3a75c28b71}\label{class_clipboard_manager_aa503e1b4ab497ecdf3348e3a75c28b71} 
+DWORD {\bfseries Get\+Preferred\+Clipboard\+Format} (wchar\+\_\+t \texorpdfstring{$\ast$}{*}buffer, DWORD buffer\+Size, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_af1e8182114a1e36eb2c8a70126ec3db4}\label{class_clipboard_manager_af1e8182114a1e36eb2c8a70126ec3db4} 
+void {\bfseries Clear\+Clipboard} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a59c556ce5f34d98957b19721b6ef2776}\label{class_clipboard_manager_a59c556ce5f34d98957b19721b6ef2776} 
+void {\bfseries Reserve\+Deferred\+Formats} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}format\+Names\+Json, \mbox{\hyperlink{_windows_clipboard_manager_8h_acf6736df9b3cf59bca76dc9c1ee252de}{Clipboard\+Render\+Callback}} provider, void \texorpdfstring{$\ast$}{*}context, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a19d33a457346a25ab2976c9ed9b32505}\label{class_clipboard_manager_a19d33a457346a25ab2976c9ed9b32505} 
+void {\bfseries Recover\+Deferred\+State} (DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a94d8d9b31dd9ae33354478046029c36c}\label{class_clipboard_manager_a94d8d9b31dd9ae33354478046029c36c} 
+uint32\+\_\+t {\bfseries Get\+Clipboard\+History} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a63f78bbba70b7db27141ee305989a12b}\label{class_clipboard_manager_a63f78bbba70b7db27141ee305989a12b} 
+uint32\+\_\+t {\bfseries Restore\+History\+Item} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}item\+Id, \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a5cfb6334127bed938cf92cabe8c4b950}\label{class_clipboard_manager_a5cfb6334127bed938cf92cabe8c4b950} 
+uint32\+\_\+t {\bfseries Delete\+History\+Item} (const wchar\+\_\+t \texorpdfstring{$\ast$}{*}item\+Id, \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_aaaa925cae3456706147e976d059c16f1}\label{class_clipboard_manager_aaaa925cae3456706147e976d059c16f1} 
+uint32\+\_\+t {\bfseries Clear\+Unpinned\+History} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a4a07845e37408641ac948cdc07d7049a}\label{class_clipboard_manager_a4a07845e37408641ac948cdc07d7049a} 
+uint32\+\_\+t {\bfseries Get\+Clipboard\+History\+Availability} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a5b972268f1fe68017363f3e736928079}\label{class_clipboard_manager_a5b972268f1fe68017363f3e736928079} 
+BOOL {\bfseries Cancel\+Clipboard\+Request} (uint32\+\_\+t request\+Id, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_manager_a8d56d8b11c12afa12b66412fb68548cf}\label{class_clipboard_manager_a8d56d8b11c12afa12b66412fb68548cf} 
+void {\bfseries On\+Clipboard\+Update} ()
+\item 
+\Hypertarget{class_clipboard_manager_a2a10e2ca8e68b61071d3ddc0f6d95c49}\label{class_clipboard_manager_a2a10e2ca8e68b61071d3ddc0f6d95c49} 
+void {\bfseries On\+Render\+Format} (UINT format)
+\item 
+\Hypertarget{class_clipboard_manager_ad5997e6bddf693d928f7e6828ee8c494}\label{class_clipboard_manager_ad5997e6bddf693d928f7e6828ee8c494} 
+void {\bfseries On\+Render\+All\+Formats} (HWND hwnd)
+\item 
+\Hypertarget{class_clipboard_manager_abf6972dc49ff5b7032b8cf2daa4046c5}\label{class_clipboard_manager_abf6972dc49ff5b7032b8cf2daa4046c5} 
+void {\bfseries On\+Destroy\+Clipboard\+Msg} ()
+\item 
+\Hypertarget{class_clipboard_manager_af9d067ce148323afe8eff720a499b2ba}\label{class_clipboard_manager_af9d067ce148323afe8eff720a499b2ba} 
+void {\bfseries On\+History\+Request\+Message} (uint32\+\_\+t id)
+\item 
+\Hypertarget{class_clipboard_manager_a8f689d2a7a955c348dd6dff616edac63}\label{class_clipboard_manager_a8f689d2a7a955c348dd6dff616edac63} 
+void {\bfseries On\+History\+Cancel\+Message} (uint32\+\_\+t id)
+\item 
+\Hypertarget{class_clipboard_manager_ad869767696715a4dbd145cc4741a1d64}\label{class_clipboard_manager_ad869767696715a4dbd145cc4741a1d64} 
+void {\bfseries On\+History\+Drain\+Message} ()
+\item 
+\Hypertarget{class_clipboard_manager_ae4a7a2aa961f2cd33fb962d588e12b56}\label{class_clipboard_manager_ae4a7a2aa961f2cd33fb962d588e12b56} 
+void {\bfseries On\+History\+Event\+Message} (WPARAM event\+Id, LPARAM generation)
+\item 
+\Hypertarget{class_clipboard_manager_afbeb4b6086a77b251e7a3dbf2a73b85f}\label{class_clipboard_manager_afbeb4b6086a77b251e7a3dbf2a73b85f} 
+void {\bfseries Set\+History\+Backend\+Factory\+For\+Test} (std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}} $>$(\texorpdfstring{$\ast$}{*}factory)())
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_clipboard_manager_a737e1f01d55c292d462aff179d94168e}\label{class_clipboard_manager_a737e1f01d55c292d462aff179d94168e} 
+static \mbox{\hyperlink{class_clipboard_manager}{Clipboard\+Manager}} \& {\bfseries Get\+Instance} ()
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_clipboard_manager_af5064b237fdd1ecd0984e50b29d90d59}\label{class_clipboard_manager_af5064b237fdd1ecd0984e50b29d90d59} 
+class {\bfseries Windows\+Clipboard\+Manager\+Test\+::\+Clipboard\+Manager\+Test}
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Clipboard\+Manager\+Internal.\+h\item 
+Windows\+Clipboard\+Manager.\+cpp\end{DoxyCompactItemize}

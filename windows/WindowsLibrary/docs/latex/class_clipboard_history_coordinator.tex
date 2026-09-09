@@ -1,0 +1,82 @@
+\doxysection{Clipboard\+History\+Coordinator Class Reference}
+\hypertarget{class_clipboard_history_coordinator}{}\label{class_clipboard_history_coordinator}\index{ClipboardHistoryCoordinator@{ClipboardHistoryCoordinator}}
+
+
+Inheritance diagram for Clipboard\+History\+Coordinator\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=224pt]{class_clipboard_history_coordinator__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Clipboard\+History\+Coordinator\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=224pt]{class_clipboard_history_coordinator__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a73e8533b9445fbdd2c69dfe726fdf4e0}\label{class_clipboard_history_coordinator_a73e8533b9445fbdd2c69dfe726fdf4e0} 
+{\bfseries Clipboard\+History\+Coordinator} (std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{class_i_clipboard_history_backend}{IClipboard\+History\+Backend}} $>$ backend, \mbox{\hyperlink{class_clipboard_lifecycle}{Clipboard\+Lifecycle}} \&lifecycle)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a846b41b67b69723e1334b37ad8888efb}\label{class_clipboard_history_coordinator_a846b41b67b69723e1334b37ad8888efb} 
+void {\bfseries Attach\+Dispatch\+Window} (HWND hwnd)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a829423e1718237a0bb18d09ecb7bd690}\label{class_clipboard_history_coordinator_a829423e1718237a0bb18d09ecb7bd690} 
+void {\bfseries Detach\+Dispatch\+Window} ()
+\item 
+\Hypertarget{class_clipboard_history_coordinator_afa58c37c43dfc5a92bb230af9bae104f}\label{class_clipboard_history_coordinator_afa58c37c43dfc5a92bb230af9bae104f} 
+uint32\+\_\+t {\bfseries Request\+Get\+Items} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a2fbc8f7c4f39245f6eb63608566b1b2b}\label{class_clipboard_history_coordinator_a2fbc8f7c4f39245f6eb63608566b1b2b} 
+uint32\+\_\+t {\bfseries Request\+Restore\+Item} (const std\+::wstring \&id, \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a244789628894090e4348ef438559b3f2}\label{class_clipboard_history_coordinator_a244789628894090e4348ef438559b3f2} 
+uint32\+\_\+t {\bfseries Request\+Delete\+Item} (const std\+::wstring \&id, \mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a14d591e5f7f5feab491fbc5115686827}\label{class_clipboard_history_coordinator_a14d591e5f7f5feab491fbc5115686827} 
+uint32\+\_\+t {\bfseries Request\+Clear\+Unpinned} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a52f90be0261a367a1f112ea19e5d8c5b}\label{class_clipboard_history_coordinator_a52f90be0261a367a1f112ea19e5d8c5b} 
+uint32\+\_\+t {\bfseries Request\+Get\+Availability} (\mbox{\hyperlink{_windows_clipboard_manager_8h_a15c9dfc1613f29bb5ea4afad8e6b0d7d}{Clipboard\+Request\+Callback}} cb, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a02d6cc903dadb99d4d32e418ce1c936c}\label{class_clipboard_history_coordinator_a02d6cc903dadb99d4d32e418ce1c936c} 
+BOOL {\bfseries Cancel\+Request} (uint32\+\_\+t id, DWORD \texorpdfstring{$\ast$}{*}p\+Error)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a5bfbc07bb1c313327b471e1d2aa5e24b}\label{class_clipboard_history_coordinator_a5bfbc07bb1c313327b471e1d2aa5e24b} 
+void {\bfseries On\+Start\+Queued\+Request} (uint32\+\_\+t id)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_af7dffc816fe494aa5146d12343b5ba1f}\label{class_clipboard_history_coordinator_af7dffc816fe494aa5146d12343b5ba1f} 
+void {\bfseries On\+Cancel\+Message} (uint32\+\_\+t id)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a4992943502e42b5acb4b7a6568efd7e4}\label{class_clipboard_history_coordinator_a4992943502e42b5acb4b7a6568efd7e4} 
+void {\bfseries On\+Drain\+Message} ()
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a0262a129397e2650d3183784741a809c}\label{class_clipboard_history_coordinator_a0262a129397e2650d3183784741a809c} 
+void {\bfseries On\+History\+Event\+Message} (WPARAM event\+Id, LPARAM generation)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a3e3cfdee128fa6ab9b6263f06cdf55fd}\label{class_clipboard_history_coordinator_a3e3cfdee128fa6ab9b6263f06cdf55fd} 
+DWORD {\bfseries Set\+History\+Callbacks} (\mbox{\hyperlink{_windows_clipboard_manager_8h_ad37f2941ee9c9c0f7cd0768aed52b6a2}{Clipboard\+History\+Changed\+Callback}} on\+Changed, \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}} on\+History\+Enabled, \mbox{\hyperlink{_windows_clipboard_manager_8h_ad079d1a97e420b6f6c35c0c2b961fb77}{Clipboard\+Flag\+Changed\+Callback}} on\+Roaming\+Enabled)
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a659fb044febd6e6ac93e40c140c474b4}\label{class_clipboard_history_coordinator_a659fb044febd6e6ac93e40c140c474b4} 
+bool {\bfseries Close\+And\+Drain} ()
+\item 
+\Hypertarget{class_clipboard_history_coordinator_af1f442ecf7ac4fb517358b392476fcf6}\label{class_clipboard_history_coordinator_af1f442ecf7ac4fb517358b392476fcf6} 
+bool {\bfseries Stop\+Watch} ()
+\item 
+\Hypertarget{class_clipboard_history_coordinator_a390791fac9d4b4145a0e5d63ab8f3544}\label{class_clipboard_history_coordinator_a390791fac9d4b4145a0e5d63ab8f3544} 
+bool {\bfseries Can\+Destroy} () const
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_windows_clipboard_history_coordinator_8h}{Windows\+Clipboard\+History\+Coordinator.\+h}}\item 
+Windows\+Clipboard\+History\+Coordinator.\+cpp\end{DoxyCompactItemize}
