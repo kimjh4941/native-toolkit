@@ -1,0 +1,10 @@
+<map id="WindowsClipboardManager.h" name="WindowsClipboardManager.h">
+<area shape="rect" id="Node000001" title="Public C Bridge API for the Windows Clipboard Manager." alt="" coords="240,5,431,32"/>
+<area shape="rect" id="Node000002" href="$_windows_clipboard_deferred_provider_8h.html" title="Adapts the public two&#45;phase render callback to an HGLOBAL renderer." alt="" coords="5,80,186,123"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="284,40,158,82,157,77,283,35"/>
+<area shape="rect" id="Node000003" href="$_windows_clipboard_history_coordinator_8h.html" title="Application&#45;layer request state machine for clipboard history (F&#45;12)." alt="" coords="210,88,461,115"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="338,48,338,88,333,88,333,48"/>
+<area shape="rect" id="Node000004" href="$_windows_clipboard_manager_internal_8h_source.html" title=" " alt="" coords="300,171,534,197"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="417,35,449,52,475,79,482,101,475,124,458,151,436,172,432,168,454,148,470,122,477,101,471,81,446,57,415,40"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="361,124,406,169,403,172,357,128"/>
+</map>

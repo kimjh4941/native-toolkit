@@ -1,0 +1,7 @@
+<map id="WindowsClipboardLifecycle.h" name="WindowsClipboardLifecycle.h">
+<area shape="rect" id="Node000001" title="Unified in&#45;flight/closing state shared by request coroutines, history event callbacks and any&#45;thread ..." alt="" coords="5,5,199,32"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="31,80,88,107"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="97,34,77,68,72,65,92,31"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="112,80,178,107"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="112,31,132,65,127,68,107,34"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="WindowsDialogManager::ShowMultiFolderDialog" name="WindowsDialogManager::ShowMultiFolderDialog">
+<area shape="rect" id="Node000001" title="Show a multi&#45;select folder dialog." alt="" coords="207,5,370,48"/>
+<area shape="rect" id="Node000002" href="$_windows_dialog_manager_8cpp.html#a38315b036c5613fad11792c7212de759" title="Public API: Show multi&#45;select folder dialog." alt="" coords="5,13,159,40"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="191,29,159,29,159,24,191,24"/>
+</map>
