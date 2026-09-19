@@ -26,6 +26,7 @@
 | [migration](topics/migration/README.md) | 移行 | 進行中 | 2026-08-30 | ツールチェーン・言語モード移行（Swift 6 / Android / Windows）の管理 |
 | [bridge-testing](topics/bridge-testing/README.md) | テスト債務 | 未着手 | 2026-08-15 | Unity ブリッジ層（Objective-C `.m`）を通るテストが iOS の全機能に無い |
 | [manual-integrity](topics/manual-integrity/README.md) | ドキュメント | 一部対応 | 2026-09-06 | マニュアルの画像リンク切れ・アンカー切れ（index 機能一覧は修正済み） |
+| [windows-architecture](topics/windows-architecture/README.md) | アーキテクチャ | 企画中 | 2026-09-19 | Windows ライブラリの構成再編と、C++ API（`WindowsLibrary`）/ 汎用 C ABI（`WindowsLibraryCApi`）への分離 |
 
 状態の語彙: 未着手 / 企画中 / 設計済 / 進行中 / 一部対応 / 完了
 
