@@ -148,7 +148,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 0a | スパイク: FlaUI でトーストとバッジを扱えるかを確かめ、computer use で補う項目を確定する（7.2）。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0b | `DialogPage.xaml` と `NotificationPage.xaml` に AutomationId を付ける（見た目も動作も変えない。例外として、Notification 画面に 5 秒後に予約するボタンを 1 つ足す）。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0c | Dialog と Notification の UI テストを追加する。FlaUI で扱えない項目は computer use の確認手順書にする。**完了** | 無し | `feature/NTKIT-16` | - |
-| 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する**。スクリプトと基準の結果は完了。CU-01 の初回の実行が残っている | 無し | `feature/NTKIT-16` | - |
+| 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する**。**完了** | 無し | `feature/NTKIT-16` | - |
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる | 無し | - | - |
 | 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける | 無し | - | - |
 | 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**この時点ではまだ C ABI も残す** | ライブラリに C++ API が増える | - | - |

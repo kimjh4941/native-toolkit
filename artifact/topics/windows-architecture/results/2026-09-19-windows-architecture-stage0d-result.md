@@ -45,4 +45,24 @@
 | 画面の消灯とスリープの抑止（段階 0b の結果の 4 章） | 実行中だけ `SetThreadExecutionState(ES_CONTINUOUS \| ES_SYSTEM_REQUIRED \| ES_DISPLAY_REQUIRED)`。終わったら `ES_CONTINUOUS` だけに戻す。今回の 8 分の実行で画面は消えなかった |
 | 画面がロックされていたら止める | 3 章のとおり |
 | テストの件数と所要時間の記録（段階 0c の結果の 5 章） | 2 章のとおり |
-| CU-01 の初回の実行 | **未実施。** Claude のデスクトップアプリから `windows/WindowsLibraryExampleUITest/ComputerUse/CU-01-hero-image.md` の手順で実行し、スクリーンショットを `ComputerUse/evidence/CU-01/2026-09-19-0d.png` に残して、本書に判定を追記する |
+| CU-01 の初回の実行 | **合格**（5 章） |
+
+## 5. CU-01（computer use）
+
+Claude のデスクトップアプリ（Code タブ、このリポジトリのフォルダ、ワークツリー無し）から、`windows/WindowsLibraryExampleUITest/ComputerUse/CU-01-hero-image.md` の手順で実行した。
+
+| 項目 | 内容 |
+|---|---|
+| 判定 | **合格** |
+| 理由 | 「Native Toolkit Example」のグループに、タイトル `With Image`、本文 `Toast with hero image` の通知があり、画像が手順書 2 章の見え方と一致した（灰色の枠の上半分と、左上・右上から中央の下で交わる 2 本の斜線）。判定に迷った点は無い |
+| サンプルの表示 | `✅ [InitializeManager] initialized. setting=0`、`✅ [ShowWithImage] errorCode=0` |
+| スクリーンショット | `windows/WindowsLibraryExampleUITest/ComputerUse/evidence/CU-01/2026-09-19-0d.png`（327×292。通知 1 件だけ。画面は 1920×1080）。段階 0c で FlaUI で撮影した大きさ（334×295）とほぼ同じ |
+| 後片付け | RemoveAll は `errorCode=0`。サンプルのプロセスは終了した |
+
+手順と違ったことと、手順書への反映:
+
+| 違ったこと | 影響 | 手順書への反映 |
+|---|---|---|
+| アプリを起動する操作を 2 回行い、サンプルのウィンドウが 2 つ開いた | 無し（操作したのは 1 つ。後片付けで両方閉じた） | 手順 1 に「起動の操作は 1 回だけ」と、開いてしまったときの扱いを足した |
+| computer use の権限で、通知センターに `Esc` を送れなかった | 無し（サンプルのウィンドウをクリックして閉じた） | 手順 11 に、その場合の閉じ方を足した |
+| 集中モードがオンだった | 無し（前提で「どちらでもよい」としている） | 変更無し |
