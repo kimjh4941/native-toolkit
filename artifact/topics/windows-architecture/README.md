@@ -112,7 +112,7 @@ Windows だけ名前を変えるのは、次の 2 つが理由である。
 
 | 今の C ABI | C++ API |
 |---|---|
-| 出力引数 `DWORD* pError` | `std::expected<T, Error>`（C++23）か自前の `Result<T>`。どちらにするかは D-2 |
+| 出力引数 `DWORD* pError` | 自前の `Result<T>`（D-2）。`std::expected<T, Error>` と同じ使い方にし、C++23 が正式になったら置き換えられるようにする |
 | `#define CLIPBOARD_ERROR_*` | `enum class ClipboardError : uint32_t` |
 | `wchar_t* buffer, DWORD bufferSize` | `std::wstring` を返す |
 | 履歴などを JSON 文字列で返す | `std::vector<ClipboardHistoryItem>` などの構造体 |
@@ -149,7 +149,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 0b | `DialogPage.xaml` と `NotificationPage.xaml` に AutomationId を付ける（見た目も動作も変えない。例外として、Notification 画面に 5 秒後に予約するボタンを 1 つ足す）。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0c | Dialog と Notification の UI テストを追加する。FlaUI で扱えない項目は computer use の確認手順書にする。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する**。**完了** | 無し | `feature/NTKIT-16` | - |
-| 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる | 無し | - | - |
+| 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる。**完了**（C++20） | 無し | `feature/NTKIT-16` | - |
 | 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける | 無し | - | - |
 | 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**この時点ではまだ C ABI も残す** | ライブラリに C++ API が増える | - | - |
 | 4 | サンプルを C++ API に移行する。移行前と同じ UI テストが通ることを確かめる | 無し（サンプルが使う API だけが変わる） | - | - |
@@ -295,7 +295,7 @@ computer use は画面を AI が解釈して操作するので、FlaUI と違っ
 | ID | 決めること | 選択肢 | 推奨 |
 |---|---|---|---|
 | D-1 | `windows-toolchain-migration` との関係 | 統合する / 分ける | **統合**。段階 1 の C++ 標準の決定がそのまま移行作業になる。分けると、C++17 のまま API を設計して後でやり直すことになる |
-| D-2 | C++ 標準とエラーの返し方 | C++20 + 自前の `Result<T>` / C++23 + `std::expected` | 未検討。Toolset v143 の C++23 対応状況を確認してから決める |
+| D-2 | C++ 標準とエラーの返し方 | C++20 + 自前の `Result<T>` / C++23 + `std::expected` | **決定（2026-09-19）: C++20 + 自前の `Result<T>`**。今の MSVC（VS 17.14、14.44）では `std::expected` は `/std:c++23preview` でしか使えず、公開ヘッダーで使うと C++ API の利用者にもプレビューのオプションを強いる。`Result<T>` は `std::expected` と同じ使い方にする（段階 3 の設計書で決める） |
 | D-3 | WindowsLibrary の配り方 | A: 静的ライブラリ + ヘッダー / B: DLL のまま、公開ヘッダーを C ABI の薄い C++ ラッパーにする | **A**。C++ の型を DLL の境界で受け渡すと、コンパイラ・CRT・Debug/Release の組み合わせが一致しないと動かない。A ならこの問題が起きない |
 | D-4 | 破壊的変更の扱い | 2.0.0 で一度に切り替える / 1.x の間は C ABI も非推奨として残す | 未決 |
 | D-5 | C ABI の公開方法 | `.def` だけにする / `__declspec(dllexport)` だけにする | `.def` だけにする。公開する関数が 1 か所で分かる |
@@ -362,7 +362,7 @@ ntk_clipboard_history_free(h);
 - [x] Clipboard / Notification / Dialog のすべてに UI テストがある（`results/2026-09-19-windows-architecture-stage0c-result.md`）
 - [x] 段階 0d で、今のコードで全件通ることを確かめ、結果を記録する（`results/2026-09-19-windows-architecture-stage0d-result.md`、`scripts/test_windows.baseline.json`）
 - [ ] 段階 1 〜 6 を終え、段階ごとに 3 つの層（ユニットテスト、UI テスト、computer use）の結果が記録と変わらないことを確認する
-- [ ] `WindowsLibrary` に MFC / COM への依存が無い
+- [x] `WindowsLibrary` に MFC / COM への依存が無い（`results/2026-09-19-windows-architecture-stage1-result.md`）
 - [ ] `WindowsLibrary` の公開ヘッダーに C ABI（`extern "C"`）が無い
 - [ ] 47 関数すべてを `WindowsLibraryCApi` から公開している
 - [ ] `UnityWindowsPlugin` がリポジトリに残っていない（プロジェクト、ソリューション、スクリプト、README、ルール）

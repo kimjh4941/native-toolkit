@@ -15,7 +15,7 @@ using namespace winrt::Windows::Data::Xml::Dom;
 using namespace winrt::Windows::Data::Json;
 // NOTE: do not pull in the whole winrt::Windows::Foundation namespace — it exposes
 // winrt::Windows::Foundation::IUnknown which collides with the global ::IUnknown when
-// MFC's shell headers (shobjidl) are present. Bring in only the types we use.
+// the shell headers (shobjidl) are present. Bring in only the types we use.
 using winrt::Windows::Foundation::Uri;
 using winrt::Windows::Foundation::IAsyncOperation;
 using namespace winrt::Windows::Foundation::Collections;
@@ -80,7 +80,7 @@ public:
     void RegisterActivation(DWORD* pError) override
     {
         DLog(TAG, L"[PackagedBackend::RegisterActivation]");
-        auto& mgr = AppNotificationManager::Default();
+        auto mgr = AppNotificationManager::Default();
         m_invokedToken = mgr.NotificationInvoked(
             [](AppNotificationManager const& sender,
                AppNotificationActivatedEventArgs const& args)
@@ -96,7 +96,7 @@ public:
         DLog(TAG, L"[PackagedBackend::UnregisterActivation]");
         try
         {
-            auto& mgr = AppNotificationManager::Default();
+            auto mgr = AppNotificationManager::Default();
             mgr.NotificationInvoked(m_invokedToken);
             mgr.Unregister();
         }

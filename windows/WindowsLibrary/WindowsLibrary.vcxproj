@@ -24,7 +24,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{44A5717A-BB61-08F5-6279-98AD08C8E2F7}</ProjectGuid>
-    <Keyword>MFCDLLProj</Keyword>
+    <Keyword>Win32Proj</Keyword>
     <RootNamespace>WindowsLibrary</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -34,7 +34,6 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Static</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -42,14 +41,12 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Static</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -57,7 +54,6 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -79,7 +75,7 @@
   <PropertyGroup Label="UserMacros" />
   <!--
     Windows App SDK 2.x ships no pre-generated C++/WinRT headers and the package's
-    RAR-based reference projection does not run in this MFC/packages.config project.
+    RAR-based reference projection does not run in this packages.config project.
     We disable the package auto-projection and generate the Microsoft.Windows.* headers
     manually with the Windows SDK cppwinrt.exe (see GenerateWindowsAppSDKProjection below),
     matching the SDK's prebuilt winrt/base.h version (2.0.250303.1).
@@ -87,14 +83,9 @@
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <CppWinRTEnablePlatformProjection>false</CppWinRTEnablePlatformProjection>
     <CppWinRTEnableReferenceProjection>false</CppWinRTEnableReferenceProjection>
-    <!-- Keep the existing classic COM/MFC .idl compilation; the CppWinRT package's
-         ModernIDL mode redefines IUnknown/_FLAGGED_WORD_BLOB against WindowsLibrary.idl. -->
-    <CppWinRTModernIDL>false</CppWinRTModernIDL>
     <CppWinRTUsePrefixedNamespace>false</CppWinRTUsePrefixedNamespace>
-    <!-- WindowsLibrary.idl is a classic COM type library (.tlb), not a WinRT component.
-         Without this, the presence of an .idl makes CppWinRT advertise a WindowsLibrary.winmd
-         to consuming C++/WinRT projects (e.g. WindowsLibraryExample), whose MIDL then fails
-         to import the non-existent winmd. -->
+    <!-- Not a WinRT component: there is no WindowsLibrary.winmd to advertise to
+         consuming C++/WinRT projects (e.g. WindowsLibraryExample). -->
     <CppWinRTGenerateWindowsMetadata>false</CppWinRTGenerateWindowsMetadata>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -120,7 +111,7 @@
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -129,15 +120,9 @@
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
       <RegisterOutput>false</RegisterOutput>
     </Link>
-    <Midl>
-      <MkTypLibCompatible>false</MkTypLibCompatible>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TypeLibraryName>$(IntDir)WindowsLibrary.tlb</TypeLibraryName>
-    </Midl>
     <ResourceCompile>
       <Culture>0x0411</Culture>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -147,7 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -155,16 +140,9 @@
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
       <RegisterOutput>false</RegisterOutput>
     </Link>
-    <Midl>
-      <MkTypLibCompatible>false</MkTypLibCompatible>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TypeLibraryName>$(IntDir)WindowsLibrary.tlb</TypeLibraryName>
-      <TargetEnvironment>Win32</TargetEnvironment>
-    </Midl>
     <ResourceCompile>
       <Culture>0x0411</Culture>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -176,7 +154,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -186,16 +164,9 @@
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
       <RegisterOutput>false</RegisterOutput>
     </Link>
-    <Midl>
-      <MkTypLibCompatible>false</MkTypLibCompatible>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TypeLibraryName>$(IntDir)WindowsLibrary.tlb</TypeLibraryName>
-      <TargetEnvironment>Win32</TargetEnvironment>
-    </Midl>
     <ResourceCompile>
       <Culture>0x0411</Culture>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -207,7 +178,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions);WINDOWSLIBRARY_EXPORTS</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -218,15 +189,9 @@
       <ModuleDefinitionFile>.\WindowsLibrary.def</ModuleDefinitionFile>
       <RegisterOutput>false</RegisterOutput>
     </Link>
-    <Midl>
-      <MkTypLibCompatible>false</MkTypLibCompatible>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TypeLibraryName>$(IntDir)WindowsLibrary.tlb</TypeLibraryName>
-    </Midl>
     <ResourceCompile>
       <Culture>0x0411</Culture>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -238,7 +203,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="WindowsDialogManager.cpp" />
-    <ClCompile Include="WindowsLibrary.cpp" />
     <ClCompile Include="WindowsNotificationManager.cpp" />
     <ClCompile Include="WindowsClassicActivator.cpp" />
     <ClCompile Include="WindowsAppSdkBootstrap.cpp" />
@@ -249,28 +213,17 @@
     <ClCompile Include="WindowsClipboardHistoryCoordinator.cpp" />
     <ClCompile Include="WindowsClipboardWindow.cpp" />
     <ClCompile Include="WindowsClipboardManager.cpp" />
-    <!-- Requires C++20 (co_await); the rest of WindowsLibrary stays on the project
-         default (stdcpp17) so this is a per-file override, not a project-wide change. -->
-    <ClCompile Include="WindowsClipboardHistoryWinRt.cpp">
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <!-- The shared PCH was compiled under the project's default (C++17); a
-           file compiled at a different /std: cannot consume it (C2855). -->
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="WindowsClipboardHistoryWinRt.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="res\WindowsLibrary.rc2" />
     <None Include="WindowsLibrary.def" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
-    <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WindowsDialogManager.h" />
-    <ClInclude Include="WindowsLibrary.h" />
     <ClInclude Include="WindowsNotificationManager.h" />
     <ClInclude Include="WindowsNotificationBackend.h" />
     <ClInclude Include="WindowsNotificationManagerInternal.h" />
@@ -289,9 +242,6 @@
   <ItemGroup>
     <ResourceCompile Include="WindowsLibrary.rc" />
   </ItemGroup>
-  <ItemGroup>
-    <Midl Include="WindowsLibrary.idl" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="packages\Microsoft.Web.WebView2.1.0.2903.40\build\native\Microsoft.Web.WebView2.targets" Condition="Exists('packages\Microsoft.Web.WebView2.1.0.2903.40\build\native\Microsoft.Web.WebView2.targets')" />
@@ -304,7 +254,7 @@
     from the AppSDK metadata winmds using the Windows SDK cppwinrt.exe. This matches the
     version of the SDK's prebuilt winrt/base.h so the static_assert version guard passes.
     The package's own RAR-based projection is disabled above because it does not run in this
-    MFC/packages.config project (ResolveAssemblyReferences yields no winmd references).
+    packages.config project (ResolveAssemblyReferences yields no winmd references).
   -->
   <Target Name="GenerateWindowsAppSDKProjection" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64'" Inputs="$(MSBuildProjectFullPath);packages\Microsoft.WindowsAppSDK.1.7.250513003\lib\uap10.0\Microsoft.Windows.AppNotifications.winmd" Outputs="$(GeneratedFilesDir)winrt\Microsoft.Windows.AppNotifications.h;$(GeneratedFilesDir)winrt\Microsoft.Windows.ApplicationModel.WindowsAppRuntime.h">
     <PropertyGroup>

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "WindowsClipboardFormats.h"
+#include <shlobj_core.h> // DROPFILES
 #include <climits>
 #include <cstdio>
 #include <cstring>

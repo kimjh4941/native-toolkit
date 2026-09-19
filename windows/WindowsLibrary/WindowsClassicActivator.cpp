@@ -1,7 +1,7 @@
 // WindowsClassicActivator.cpp
 //
 // Translation-unit isolation strategy:
-//   pch.h provides MFC + winrt basics. Classic shell headers are included HERE
+//   pch.h provides Win32 + winrt basics. Classic shell headers are included HERE
 //   and kept out of pch.h to avoid the ::IUnknown ambiguity that arises when
 //   winrt::Windows::Foundation namespace is opened alongside <ShObjIdl.h>.
 //   The COM activator uses WRL (not winrt::implements) so it inherits ::IUnknown

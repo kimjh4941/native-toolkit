@@ -91,9 +91,11 @@ function Find-VsTool([string]$pattern, [string]$what) {
     return $found
 }
 
-function Invoke-MSBuild([string]$solution, [string]$configuration) {
-    Write-Step 'build' "$(Split-Path -Leaf $solution) ($configuration|$Platform)"
-    & $script:MSBuild $solution /t:Build /m /nologo /v:minimal "/p:Configuration=$configuration" "/p:Platform=$Platform"
+# $target is a project of the solution to build with its references, or
+# 'Build' for the whole solution.
+function Invoke-MSBuild([string]$solution, [string]$configuration, [string]$target = 'Build') {
+    Write-Step 'build' "$(Split-Path -Leaf $solution) $target ($configuration|$Platform)"
+    & $script:MSBuild $solution "/t:$target" /m /nologo /v:minimal "/p:Configuration=$configuration" "/p:Platform=$Platform"
     if ($LASTEXITCODE -ne 0) {
         Fail "MSBuild failed for $solution (exit code $LASTEXITCODE)."
     }
@@ -247,8 +249,10 @@ try {
         Write-Summary 'unit' $unit
     }
 
-    # 2. Sample app
-    Invoke-MSBuild $ExampleSln $ExampleConfiguration
+    # 2. Sample app. Only the sample and what it references: the solution also
+    # holds UnityWindowsPlugin, whose build registers it with regsvr32 and so
+    # fails without administrator rights whenever WindowsLibrary changes.
+    Invoke-MSBuild $ExampleSln $ExampleConfiguration 'WindowsLibraryExample'
     Deploy-Example
 
     # 3. UI tests

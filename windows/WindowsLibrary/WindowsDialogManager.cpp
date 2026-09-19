@@ -6,10 +6,8 @@
  *  using Win32 Common Dialogs and IFileOpenDialog (COM).
  */
 #include "pch.h"
-#include "afxdialogex.h"
 #include <windows.h>
 #include <string>
-#include "resource.h" // Header file containing resource IDs
 #include "common.h"
 #include "WindowsDialogManager.h"
 #include <memory>
@@ -490,13 +488,7 @@ public:
 
 private:
     // Constructor is private
-    WindowsDialogManager(CWnd* pParent = nullptr)
-        : m_dialogEx(IDD_DIALOG, pParent)
-    {
-
-    }
-
-    CDialogEx m_dialogEx; ///< MFC dialog instance (template IDD_DIALOG)
+    WindowsDialogManager() = default;
 };
 
 /**
@@ -514,7 +506,6 @@ int showAlertDialog(
 )
 {
     DFLog(TAG, L"showAlertDialog title: %ls, message: %ls, buttons: %d, icon: %d, defbutton: %d, options: %d, pError: %p", title, message, buttons, icon, defbutton, options, pError);
-    DFLog(TAG, L"showAlertDialog IDD_DIALOG: %d", IDD_DIALOG);
 
     int result = WindowsDialogManager::Instance().ShowAlertDialog(title, message, buttons, icon, defbutton, options, pError);
     if (result == 0) {

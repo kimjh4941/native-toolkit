@@ -22,16 +22,12 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <!-- The code under test (WindowsNotificationManager.cpp) includes the WindowsLibrary
-         pch.h which pulls MFC framework.h, so the test must be MFC-enabled too. -->
-    <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -55,7 +51,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
       <!-- winrt/base.h + manually generated Microsoft.Windows.* projection headers -->
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -74,7 +70,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -136,7 +132,7 @@
     with the Windows SDK cppwinrt.exe, matching the SDK's prebuilt winrt/base.h version.
     The AppSDK NuGet build integration is intentionally NOT imported here: this test only
     consumes the generated headers and the OS/SDK winrt headers, and pulling the aggregate
-    AppSDK package injects auto-initializer sources that clash with MFC (IUnknown ambiguity).
+    AppSDK package injects auto-initializer sources that the test does not need.
     Windows App SDK 1.7 ships all winmds in a single lib\uap10.0 folder.
   -->
   <Target Name="GenerateWindowsAppSDKProjection"

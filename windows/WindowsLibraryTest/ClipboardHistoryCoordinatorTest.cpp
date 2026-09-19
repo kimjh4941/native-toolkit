@@ -9,7 +9,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // and the real WM_APP_CLIPBOARD_* message pump. OnStartQueuedRequest/
 // OnCancelMessage/OnDrainMessage are invoked directly to simulate "as if" the
 // dispatch window's WndProc had already routed the posted message - this
-// keeps the suite C++17/STA-free while still covering the Queued -> Running
+// keeps the suite STA-free and off the WinRT backend while still covering the Queued -> Running
 // -> Finished state machine, cancellation races and the shutdown drain.
 // See the implementation result report for why WindowsClipboardManager.cpp /
 // WindowsClipboardHistoryWinRt.cpp are intentionally NOT linked into this

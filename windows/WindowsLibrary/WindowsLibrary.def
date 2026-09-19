@@ -3,11 +3,6 @@
 LIBRARY
 
 EXPORTS
-    ; 明示的なエクスポートはここへ記述できます
-	DllCanUnloadNow     PRIVATE
-	DllGetClassObject   PRIVATE
-	DllRegisterServer   PRIVATE
-	DllUnregisterServer PRIVATE
 	; Notification Manager Bridge
 	initNotificationManager
 	uninitNotificationManager
