@@ -37,3 +37,4 @@ Agent-specific wrappers in `.github/skills/` reference these files.
 - Write comment text in English.
 - Write user-facing message text in English.
 - When adding rules, update this index and place details in each rule file.
+- Commit only through the commit-msg workflow (./workflows/commit-msg/workflow.md). Do not run `git commit` directly.
