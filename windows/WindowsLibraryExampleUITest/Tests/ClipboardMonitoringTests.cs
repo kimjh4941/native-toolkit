@@ -9,6 +9,7 @@ namespace WindowsLibraryExampleUITest.Tests;
 /// left to manual verification.
 /// </summary>
 [TestClass]
+[TestCategory("Clipboard")]
 public sealed class ClipboardMonitoringTests
 {
     private const string MonitorLine = "[Monitor] clipboard content changed";

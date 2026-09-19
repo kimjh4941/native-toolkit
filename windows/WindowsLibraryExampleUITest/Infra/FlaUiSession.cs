@@ -43,6 +43,8 @@ public sealed class FlaUiSession : IUiSession
 
     public IOsSettings OsSettings { get; }
 
+    public IExternalClipboard ExternalClipboard { get; } = new Win32ExternalClipboard();
+
     /// <summary>Launches the packaged sample app and waits for its main window.</summary>
     public static FlaUiSession Launch(TimeSpan? windowTimeout = null)
     {

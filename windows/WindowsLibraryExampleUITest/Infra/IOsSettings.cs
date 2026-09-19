@@ -33,4 +33,18 @@ public interface IOsSettings
     /// from UI Automation.
     /// </remarks>
     IDisposable TurnOffAppNotifications();
+
+    /// <summary>
+    /// Turns Windows clipboard history on or off. Does nothing (and the scope
+    /// restores nothing) when it is already in that state.
+    /// </summary>
+    /// <remarks>
+    /// Some checks need it off: while history is on, the history service renders
+    /// every deferred format as soon as it is reserved, so "not rendered until
+    /// pasted" cannot be observed.
+    /// Switching history off makes Windows empty the clipboard shortly after;
+    /// the call returns only once that has happened and the clipboard is quiet,
+    /// so nothing the test puts there afterwards is wiped.
+    /// </remarks>
+    IDisposable SetClipboardHistory(bool enabled);
 }

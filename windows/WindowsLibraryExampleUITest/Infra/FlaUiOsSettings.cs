@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Win32;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 
@@ -14,11 +15,17 @@ internal sealed class FlaUiOsSettings : IOsSettings
 {
     private const string DoNotDisturbKey = "DoNotDisturb";
     private const string AppNotificationsKey = "AppNotifications";
+    private const string ClipboardHistoryKey = "ClipboardHistory";
+    private const string AbsentValue = "absent";
+    private const string ClipboardKeyPath = @"Software\Microsoft\Clipboard";
+    private const string ClipboardHistoryValue = "EnableClipboardHistory";
     private const string AppToggleId = "SystemSettings_Notifications_AppNotifications_ToggleSwitch";
     private static readonly TimeSpan ToggleTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan SettingsPageTimeout = TimeSpan.FromSeconds(20);
     private static readonly TimeSpan HoldTime = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan PageLoadTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan ClipboardClearTimeout = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan ClipboardQuietTime = TimeSpan.FromMilliseconds(500);
 
     private readonly FlaUiNotificationCenter _center;
 
@@ -72,6 +79,58 @@ internal sealed class FlaUiOsSettings : IOsSettings
         });
     }
 
+    public IDisposable SetClipboardHistory(bool enabled)
+    {
+        var original = ReadClipboardHistory();
+        var wanted = enabled ? 1 : 0;
+        if (original == wanted)
+        {
+            return new Scope(null);
+        }
+
+        RecordedSettings.Record(ClipboardHistoryKey, original?.ToString() ?? AbsentValue);
+        SwitchClipboardHistory(wanted);
+        return new Scope(() =>
+        {
+            SwitchClipboardHistory(original);
+            RecordedSettings.Clear(ClipboardHistoryKey);
+        });
+    }
+
+    /// <summary>
+    /// Writes the setting and returns once the clipboard has settled.
+    /// </summary>
+    /// <remarks>
+    /// Switching history off makes Windows empty the clipboard within about half
+    /// a second. Anything a test put on the clipboard in that window was seen to
+    /// vanish, so wait for the clipboard to change (when switching off) and then
+    /// to stay unchanged for a moment.
+    /// </remarks>
+    private static void SwitchClipboardHistory(int? value)
+    {
+        var before = Native.GetClipboardSequenceNumber();
+        WriteClipboardHistory(value);
+
+        if (value == 0)
+        {
+            FlaUiHelpers.WaitUntil(() => Native.GetClipboardSequenceNumber() != before, ClipboardClearTimeout);
+        }
+
+        var last = Native.GetClipboardSequenceNumber();
+        var quietSince = DateTime.UtcNow;
+        var deadline = DateTime.UtcNow + ClipboardClearTimeout;
+        while (DateTime.UtcNow - quietSince < ClipboardQuietTime && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(FlaUiHelpers.PollInterval);
+            var now = Native.GetClipboardSequenceNumber();
+            if (now != last)
+            {
+                last = now;
+                quietSince = DateTime.UtcNow;
+            }
+        }
+    }
+
     /// <summary>
     /// Puts back what an interrupted run left changed. Called once at the start
     /// of every test run.
@@ -79,6 +138,12 @@ internal sealed class FlaUiOsSettings : IOsSettings
     public void RestoreLeftovers()
     {
         var recorded = RecordedSettings.ReadAll();
+
+        if (recorded.TryGetValue(ClipboardHistoryKey, out var history))
+        {
+            SwitchClipboardHistory(history == AbsentValue ? null : int.Parse(history));
+            RecordedSettings.Clear(ClipboardHistoryKey);
+        }
 
         if (recorded.TryGetValue(DoNotDisturbKey, out var dnd) && dnd == "On")
         {
@@ -94,6 +159,29 @@ internal sealed class FlaUiOsSettings : IOsSettings
                 "An earlier test run was stopped while the sample app's notifications were switched off. " +
                 "Switch them back on (Settings > System > Notifications > " + AppIdentity.DisplayName + "), " +
                 $"then delete {RecordedSettings.FilePath} and run the tests again.");
+        }
+    }
+
+    /// <summary>
+    /// The EnableClipboardHistory value (1 on, 0 off), or null when it has
+    /// never been set. Windows applies a change as soon as it is written.
+    /// </summary>
+    private static int? ReadClipboardHistory()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(ClipboardKeyPath);
+        return key?.GetValue(ClipboardHistoryValue) as int?;
+    }
+
+    private static void WriteClipboardHistory(int? value)
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(ClipboardKeyPath);
+        if (value is null)
+        {
+            key.DeleteValue(ClipboardHistoryValue, throwOnMissingValue: false);
+        }
+        else
+        {
+            key.SetValue(ClipboardHistoryValue, value.Value, RegistryValueKind.DWord);
         }
     }
 

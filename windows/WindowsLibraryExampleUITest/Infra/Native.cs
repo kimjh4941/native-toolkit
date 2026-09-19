@@ -25,6 +25,10 @@ internal static class Native
     [DllImport("user32.dll")]
     private static extern bool IsWindow(IntPtr hwnd);
 
+    /// <summary>Changes every time the clipboard content changes.</summary>
+    [DllImport("user32.dll")]
+    public static extern uint GetClipboardSequenceNumber();
+
     /// <summary>
     /// Returns the first visible top-level window of the process with the given
     /// window class, or <see cref="IntPtr.Zero"/>.

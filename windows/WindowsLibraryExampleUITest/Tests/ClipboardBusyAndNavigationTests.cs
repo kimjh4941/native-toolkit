@@ -8,6 +8,7 @@ namespace WindowsLibraryExampleUITest.Tests;
 /// process-wide busy flag, page re-entry, and completing a pending shutdown.
 /// </summary>
 [TestClass]
+[TestCategory("Clipboard")]
 public sealed class ClipboardBusyAndNavigationTests
 {
     private const int Canceled = 15;

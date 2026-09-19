@@ -13,6 +13,7 @@ namespace WindowsLibraryExampleUITest.Tests;
 /// state changed, so sharing one instance would couple the tests to their order.
 /// </remarks>
 [TestClass]
+[TestCategory("Clipboard")]
 public sealed class ClipboardErrorCaseTests
 {
     private const int InvalidParameter = 1;

@@ -228,7 +228,7 @@ public sealed class NotificationTests
     [TestMethod]
     public void SetBadgeGlyph_ShowsTheAlertGlyph_AndClearBadgeRemovesIt()
     {
-        const string AlertGlyph = "";
+        const string AlertGlyph = "\uEDAD";
 
         Ready().PressAndExpect("SetBadgeGlyph", "SetBadgeGlyph(alert)", 0);
         Session.Badge.WaitFor(badge => badge == AlertGlyph);

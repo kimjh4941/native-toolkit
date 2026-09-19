@@ -13,6 +13,7 @@ namespace WindowsLibraryExampleUITest.Tests;
 /// deliberately drive the app into ShuttingDown and leave it there.
 /// </remarks>
 [TestClass]
+[TestCategory("Clipboard")]
 public sealed class ClipboardLifecycleTests
 {
     private const int NotInitialized = 2;

@@ -99,5 +99,62 @@ public sealed class ClipboardPage
             text => text.Contains(fragment, StringComparison.Ordinal),
             window ?? NegativeObservationWindow);
 
+    /// <summary>How many times the fragment appears in the log.</summary>
+    /// <remarks>
+    /// The log only grows, so "a new event arrived" is an increase in this
+    /// count rather than the fragment being present at all.
+    /// </remarks>
+    public int LogCount(string fragment)
+    {
+        var log = LogText;
+        var count = 0;
+        for (var at = log.IndexOf(fragment, StringComparison.Ordinal); at >= 0;
+             at = log.IndexOf(fragment, at + fragment.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>Waits until the fragment appears in the log at least <paramref name="count"/> times.</summary>
+    public void WaitForLogCount(string fragment, int count)
+    {
+        var deadline = DateTime.UtcNow + ResultTimeout;
+        while (LogCount(fragment) < count)
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new InvalidOperationException(
+                    $"'{fragment}' appeared {LogCount(fragment)} time(s) in the log, expected {count}, " +
+                    $"within {ResultTimeout.TotalSeconds:0} seconds.");
+            }
+            Thread.Sleep(100);
+        }
+    }
+
+    /// <summary>
+    /// Waits for a fragment in the result line without ever echoing the line.
+    /// </summary>
+    /// <remarks>
+    /// For clipboard history results: the line shows the start of the history
+    /// JSON, which holds the user's own clipboard text. On failure only the
+    /// first two lines ("[method] errorCode=N" and "count=N, first id=...") are
+    /// reported.
+    /// </remarks>
+    public string WaitForRedacted(string fragment)
+    {
+        try
+        {
+            return _session.WaitForText(ResultId, text => text.Contains(fragment, StringComparison.Ordinal), ResultTimeout);
+        }
+        catch (InvalidOperationException)
+        {
+            var head = string.Join(" | ", ResultText.Split('\n').Take(2));
+            throw new InvalidOperationException(
+                $"The result did not contain '{fragment}' within {ResultTimeout.TotalSeconds:0} seconds. " +
+                $"Result (history text omitted): {head}");
+        }
+    }
+
     public static string ResultMarker(string method, int errorCode) => $"[{method}] errorCode={errorCode}";
 }

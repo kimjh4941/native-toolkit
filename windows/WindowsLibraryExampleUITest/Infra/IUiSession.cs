@@ -51,4 +51,7 @@ public interface IUiSession : IDisposable
 
     /// <summary>Windows settings that some tests change and put back.</summary>
     IOsSettings OsSettings { get; }
+
+    /// <summary>The clipboard as another application sees it.</summary>
+    IExternalClipboard ExternalClipboard { get; }
 }
