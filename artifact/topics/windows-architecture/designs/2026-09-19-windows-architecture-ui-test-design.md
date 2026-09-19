@@ -8,7 +8,7 @@
   - 本書の付録 A（Dialog の事前確認。2026-09-19 実施）
   - `artifact/features/notification/designs/2026-05-31-windows-notification-sample-app-design-v2.md` の 7 章（手動確認の観点）
   - `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md` の 8 章（手動確認）
-- 決定事項: 10 章（U-1 〜 U-4。2026-09-19 決定）
+- 決定事項: 10 章（U-1 〜 U-6。2026-09-19 決定）
 
 ## 1. 目的と範囲
 
@@ -79,9 +79,15 @@
 
 | 設定 | 読み方・切り替え方 | 状態 |
 |---|---|---|
-| 集中モード（応答不可） | 通知センターの `DoNotDisturbButton`（`Toggle` パターン） | 読み取りと切り替えの両方を確認済み |
-| クリップボードの履歴 | 未確認 | 付録 B の Clipboard の追加テストで必要。段階 0c の最初に確かめる |
-| アプリの通知の有効・無効 | 未確認 | `NOTIFICATION_ERROR_DISABLED` のテストで必要。段階 0c の最初に確かめる |
+| 集中モード（応答不可） | 通知センターの `DoNotDisturbButton`（`Toggle` パターン） | 確認済み（段階 0a） |
+| クリップボードの履歴 | レジストリ `HKCU\Software\Microsoft\Clipboard` の `EnableClipboardHistory`（DWORD、1 = 有効）。書き換えるとすぐに反映される | 確認済み（付録 C） |
+| アプリの通知の有効・無効 | 設定アプリのこのアプリ専用のページにあるスイッチ `SystemSettings_Notifications_AppNotifications_ToggleSwitch`。ページは、通知センターのアプリのグループの `SettingsButton` → メニュー項目 `GoToNotificationSettingsMenuItem` で開く。レジストリ（`Notifications\Settings\<AUMID>` の `Enabled`）は書き換えても反映されない | 確認済み（付録 C） |
+
+アプリの通知を切り替えるときの注意:
+
+- **設定アプリを先に閉じる。** 設定アプリは 1 つしか起動できず、別の仮想デスクトップで開いていると隠された状態（DWM の cloaked）になり、UI Automation から操作できない。テストの前に `SystemSettings` のプロセスを終了する（設定は変更した時点で保存されるので、閉じても失われるものは無い）
+- **通知センターにこのアプリの通知が 1 件以上必要。** グループのメニューを出すため。先に `ShowBasic` で 1 件出す
+- 無効にすると、このアプリの通知は通知センターから消える。オンに戻すときは、開いたままの同じ設定ページのスイッチを使う
 
 扱い方は U-2 で決めたとおり、**テストが切り替え、終わったら元に戻す**。
 
@@ -94,7 +100,19 @@
 外部アプリ（メモ帳、Word、ペイント、エクスプローラー）とのやり取りは、**テストのプロセス自身が外部のアプリとしてクリップボードを読み書きする**ことで確かめる。ライブラリが責任を持つのはクリップボードに入った形式の中身であり、Word での見た目ではないため。
 
 - 読み書きは Win32（`OpenClipboard` / `GetClipboardData` / `SetClipboardData`）で行い、`Infra` に閉じ込める
-- **見込み**。段階 0c の最初に確かめる
+- `OpenClipboard` には所有ウィンドウ（メッセージ専用ウィンドウでよい）を渡す。所有者が無いと `EmptyClipboard` の後の `SetClipboardData` が失敗する。ほかのプロセスが一瞬クリップボードを開いていることがあるので、開けるまで少し待って再試行する
+- 確認済み（付録 C）
+
+### 3.8 利用者の環境への影響
+
+UI テストは、テストを実行している利用者自身のクリップボードと履歴を使う。
+
+| 影響 | 扱い |
+|---|---|
+| クリップボードの中身が上書きされる | テストの前に文字列を保存し、終わったら戻す（文字列以外の形式は戻せない） |
+| クリップボードの履歴に項目が増える | 受け入れる |
+| 履歴の `Delete` | テストが自分で作った項目だけを消すので問題ない |
+| **履歴の `Clear`（ピン留め以外をすべて消す）** | **利用者のピン留めしていない履歴がすべて消え、元に戻せない。明示したときだけ実行する**（U-6） |
 
 ## 4. テスト基盤（`Infra`）の拡張
 
@@ -132,7 +150,7 @@
 |---|---|
 | 表示 | `Schedule (+5s)` |
 | AutomationId | `ScheduleSoon`（ハンドラ `ScheduleSoon_Click`） |
-| 動作 | `Schedule (+1m)` と同じペイロード・同じタグ（`scheduled`）で、5 秒後に予約する。`CancelScheduled` で取り消せる |
+| 動作 | `Schedule (+1m)` と同じタイトル（`Scheduled`）・同じタグ（`scheduled`）で、5 秒後に予約する。本文だけ `Fires in ~5 seconds` にする。`CancelScheduled` で取り消せる |
 
 既存の `Schedule (+1m)` は残す（人が操作して確かめるときに使う）。
 
@@ -185,7 +203,7 @@ Dialog の異常系（`pError` に `GetLastError()` や `CommDlgExtendedError()`
 | N-17 | ShowBasic → RemoveAll | 通知が無くなる |
 | N-18 | Uninitialize → ShowBasic | `Not initialized` の案内 |
 | N-19 | 初期化せずに ShowBasic | `Not initialized` の案内 |
-| N-20 | アプリの通知を OS の設定で無効にして ShowBasic | `Notifications are disabled` の案内（`DISABLED`）。設定の切り替えが自動化できた場合だけ（3.6） |
+| N-20 | アプリの通知を OS の設定で無効にして ShowBasic | `GetSetting` が `DisabledForApplication`、ShowBasic で `Notifications are disabled` の案内（`DISABLED`）。最後に有効へ戻し、`GetSetting` が `Enabled` に戻ることを確かめる（3.6） |
 | N-21 | ShowBasic（バナー） | バナーにタイトル `Hello`。約 7 秒で消える。集中モードはテストがオフにし、終わったら戻す（3.6） |
 | N-22 | ShowWithButtons（バナー）→ Open | サンプルに `{"action":"open"}` |
 | N-23 | メニュー → Notification → Back → 再び入る | 画面が作り直され、コールバックの表示先も新しい画面になる |
@@ -237,7 +255,8 @@ Clipboard のテストの実行中は computer use を動かさない（Clipboar
 | `Notification` | 6.2 のうちバナー以外 |
 | `NotificationBanner` | N-21、N-22（集中モードの切り替えを伴う） |
 | `Clipboard` | 既存の 31 件と付録 B の追加分のうち、OS の設定を変えないもの |
-| `ClipboardHistory` | 付録 B のうち、クリップボードの履歴の設定が必要なもの |
+| `ClipboardHistory` | 付録 B のうち、クリップボードの履歴の設定が必要なもの（`Clear` を除く） |
+| `ClipboardHistoryDestructive` | 履歴の `Clear`。**既定では実行しない。** スクリプトに `-IncludeDestructive` を付けたときだけ実行する（U-6） |
 
 computer use の確認手順書は、スクリプトの後に Claude のデスクトップアプリから実行する。
 
@@ -248,7 +267,7 @@ computer use の確認手順書は、スクリプトの後に Claude のデス�
 | 段階 | 内容 | 確かめ方 |
 |---|---|---|
 | 0b | 5.1 の AutomationId と 5.2 のボタン | 既存の Clipboard の UI テストが通る。5.2 のボタン以外の見た目が変わっていない |
-| 0c | 4 章の基盤、6 章のテスト、7 章の手順書。最初に 3.6 と 3.7 の見込みを確かめる。調査用のコード（`Spike/`）は削除する | 新しいテストが今のコードで通る |
+| 0c | 4 章の基盤、6 章のテスト、7 章の手順書（3.6 と 3.7 の見込みは付録 C で確認済み）。調査用のコード（`Spike/`）は削除する | 新しいテストが今のコードで通る |
 | 0d | 8 章のスクリプト | 全件が通り、結果を記録した |
 
 ## 10. 決定事項（2026-09-19）
@@ -259,6 +278,8 @@ computer use の確認手順書は、スクリプトの後に Claude のデス�
 | U-2 | テストに必要な OS の設定（集中モード、クリップボードの履歴、アプリの通知）の扱い | **テストが切り替え、終わったら元に戻す**（3.6） | Clipboard の履歴は、履歴のテストでは有効、遅延レンダリングの発火のテストでは無効が必要で、1 回の実行の中で切り替えが要る。事前に人が設定する方式では全自動にならない。合わないテストを飛ばす方式は、飛ばしたことに気づきにくい。途中で強制終了すると設定が変わったまま残る弱点は、実行前の値を記録し、スクリプトの最後と次回の実行の最初に戻すことで補う |
 | U-3 | Clipboard の追加テスト（付録 B）を段階 0 に含めるか | **含める** | 再編で最も大きく書き換わるのは Clipboard（4,665 行）で、その外部アプリとのやり取りや履歴は今は手動でしか確かめられない |
 | U-4 | 複数ファイルの戻り値の形式（付録 A の注記） | **テストは今の形式のまま書く** | 段階 0 のテストは今の動作を固定するためのもの。形式を変えるかは段階 3 の C++ API の設計で決め、変えるならテストもそのとき合わせる |
+| U-5 | N-20（アプリの通知を無効にしたときの動作）の確かめ方 | **テストの前に設定アプリを閉じ、通知センターのメニューから設定ページを開いてスイッチを操作する**（3.6） | レジストリでは切り替えられない。設定アプリが別の仮想デスクトップで開いていると操作できないので、先に閉じる |
+| U-6 | 履歴の `Clear` のテスト | **明示したときだけ実行する**（`-IncludeDestructive`） | 利用者のピン留めしていない履歴がすべて消え、元に戻せない。そのほかの履歴のテストは毎回実行する |
 
 ## 付録 A. Dialog の事前確認（2026-09-19）
 
@@ -308,7 +329,7 @@ computer use の確認手順書は、スクリプトの後に Claude のデス�
 | 8.3 | GetHistory | 新しい順、時刻の文字列 | 履歴を有効 |
 | 8.3 | Restore → 貼り付け | 復元した内容 | 履歴を有効 |
 | 8.3 | Delete → GetHistory | 項目が無くなる | 履歴を有効 |
-| 8.3 | Clear → GetHistory | ピン留めした項目だけが残る | 履歴を有効 |
+| 8.3 | Clear → GetHistory | ピン留めした項目だけが残る。**明示したときだけ実行**（U-6） | 履歴を有効 |
 | 8.3 | コールバックを設定 → コピー | 履歴追加のログ | 履歴を有効 |
 | 8.3 | SENSITIVE でコピー → Win+V | 履歴の画面に出ない（Win+V の画面を FlaUI で読む。見込み） | 履歴を有効 |
 | 8.3 | GetHistory → Cancel | `CANCELED` か先に成功のどちらか 1 回 | 履歴を有効 |
@@ -318,3 +339,25 @@ computer use の確認手順書は、スクリプトの後に Claude のデス�
 - 8.3 `EXCLUDE_ROAMING` → 別のデバイス（2 台目のデバイスが必要）
 - 8.3 設定変更のコールバック（`onHistoryEnabledChanged`。サンプルアプリ計画 8.3 の注記のとおり、OS 側の動作が信頼できない）
 - 8.1 の Word・ブラウザ・ペイントでの見た目（形式の中身の確認で代える）
+
+## 付録 C. 段階 0c の事前確認（2026-09-19）
+
+3.6 と 3.7 の見込みを、段階 0c の本体に入る前に確かめた。調査用のコード（`windows/WindowsLibraryExampleUITest/Spike/`）はコミットしない。
+
+| # | 確かめたこと | 方法 | 結果 |
+|---|---|---|---|
+| 1 | クリップボードの履歴の有効・無効を切り替えられるか | `EnableClipboardHistory` を書き換え、`Clipboard.IsHistoryEnabled()` で読む | 書き換えた直後に反映された。元の値（有効）に戻したことも API で確認した |
+| 2 | アプリの通知の有効・無効を切り替えられるか | 下の経緯のとおり | 設定ページのスイッチで切り替えられた。無効のとき `GetSetting` は `DisabledForApplication`、ShowBasic は `Notifications are disabled` の案内（N-20 の期待どおり）。有効に戻すと `Enabled` に戻った |
+| 3 | テストのプロセスが外部のアプリとしてクリップボードを読み書きできるか | サンプルの CopyPlainText をテストが読む。テストが書き込み、サンプルの監視と PastePlainText で確かめる | 読めた（`Hello from native-toolkit`）。書き込むとサンプルが変更のログ（`[Monitor] clipboard content changed`）を出し、PastePlainText で同じ文字列が返った |
+
+2 の経緯:
+
+| 回 | やり方 | 結果 |
+|---|---|---|
+| 1 | レジストリ `Notifications\Settings\<AUMID>` に `Enabled=0` を書く | OS の API は `Enabled` のまま。書いた値は削除して元に戻した |
+| 2 | 通知センターのアプリのグループの設定ボタンを押し、開いた設定ページを探す | 見つからなかった。設定アプリは開いていたが、別の仮想デスクトップにあり隠された状態（cloaked）だった |
+| 3 | 設定アプリを閉じてからやり直す | 設定アプリが開かなかった。グループの設定ボタンは設定アプリを開くのではなく、メニューを出すボタンだった |
+| 4 | メニューの項目を調べる | `TurnOffNotificationsMenuItem`（すべての通知をオフ）、`GoToNotificationSettingsMenuItem`（通知の設定を開く）、`ChangePriorityMenuItem` があった |
+| 5 | 設定アプリを閉じてから、`GoToNotificationSettingsMenuItem` で設定ページを開き、同じページのスイッチでオフ → オンにする | 成功。ページは約 5 秒で開いた |
+
+`TurnOffNotificationsMenuItem` でもオフにはできるが、オフにするとこのアプリの通知が通知センターから消え、同じ経路でオンに戻せない。オフとオンを同じ設定ページで行うため、`GoToNotificationSettingsMenuItem` を使う。
