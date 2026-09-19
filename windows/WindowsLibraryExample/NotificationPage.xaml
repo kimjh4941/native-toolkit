@@ -26,37 +26,38 @@
             <StackPanel Width="600" HorizontalAlignment="Center" Padding="30,8,30,30" Spacing="16">
 
                 <TextBlock Text="Init / Setting" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="InitializeManager" Style="{StaticResource NotificationButtonStyle}" Click="InitializeManager_Click"/>
-                <Button Content="Uninitialize" Style="{StaticResource NotificationButtonStyle}" Click="Uninitialize_Click"/>
-                <Button Content="GetSetting" Style="{StaticResource NotificationButtonStyle}" Click="GetSetting_Click"/>
-                <Button Content="Open Notification Settings" Style="{StaticResource NotificationButtonStyle}" Click="OpenSettings_Click"/>
+                <Button AutomationProperties.AutomationId="InitializeManager" Content="InitializeManager" Style="{StaticResource NotificationButtonStyle}" Click="InitializeManager_Click"/>
+                <Button AutomationProperties.AutomationId="Uninitialize" Content="Uninitialize" Style="{StaticResource NotificationButtonStyle}" Click="Uninitialize_Click"/>
+                <Button AutomationProperties.AutomationId="GetSetting" Content="GetSetting" Style="{StaticResource NotificationButtonStyle}" Click="GetSetting_Click"/>
+                <Button AutomationProperties.AutomationId="OpenSettings" Content="Open Notification Settings" Style="{StaticResource NotificationButtonStyle}" Click="OpenSettings_Click"/>
 
                 <TextBlock Text="Show" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="ShowBasic" Style="{StaticResource NotificationButtonStyle}" Click="ShowBasic_Click"/>
-                <Button Content="ShowWithButtons" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithButtons_Click"/>
-                <Button Content="ShowWithImage" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithImage_Click"/>
-                <Button Content="ShowWithInput (TextBox + ComboBox)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithInput_Click"/>
-                <Button Content="ShowWithExpiration (10s)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithExpiration_Click"/>
-                <Button Content="ShowWithAudio (reminder)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithAudio_Click"/>
+                <Button AutomationProperties.AutomationId="ShowBasic" Content="ShowBasic" Style="{StaticResource NotificationButtonStyle}" Click="ShowBasic_Click"/>
+                <Button AutomationProperties.AutomationId="ShowWithButtons" Content="ShowWithButtons" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithButtons_Click"/>
+                <Button AutomationProperties.AutomationId="ShowWithImage" Content="ShowWithImage" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithImage_Click"/>
+                <Button AutomationProperties.AutomationId="ShowWithInput" Content="ShowWithInput (TextBox + ComboBox)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithInput_Click"/>
+                <Button AutomationProperties.AutomationId="ShowWithExpiration" Content="ShowWithExpiration (10s)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithExpiration_Click"/>
+                <Button AutomationProperties.AutomationId="ShowWithAudio" Content="ShowWithAudio (reminder)" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithAudio_Click"/>
 
                 <TextBlock Text="Schedule" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="Schedule (+1m)" Style="{StaticResource NotificationButtonStyle}" Click="Schedule_Click"/>
-                <Button Content="CancelScheduled" Style="{StaticResource NotificationButtonStyle}" Click="CancelScheduled_Click"/>
+                <Button AutomationProperties.AutomationId="Schedule" Content="Schedule (+1m)" Style="{StaticResource NotificationButtonStyle}" Click="Schedule_Click"/>
+                <Button AutomationProperties.AutomationId="ScheduleSoon" Content="Schedule (+5s)" Style="{StaticResource NotificationButtonStyle}" Click="ScheduleSoon_Click"/>
+                <Button AutomationProperties.AutomationId="CancelScheduled" Content="CancelScheduled" Style="{StaticResource NotificationButtonStyle}" Click="CancelScheduled_Click"/>
 
                 <TextBlock Text="Progress" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="ShowWithProgress" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithProgress_Click"/>
-                <Button Content="UpdateProgress (0.6)" Style="{StaticResource NotificationButtonStyle}" Click="UpdateProgress_Click"/>
+                <Button AutomationProperties.AutomationId="ShowWithProgress" Content="ShowWithProgress" Style="{StaticResource NotificationButtonStyle}" Click="ShowWithProgress_Click"/>
+                <Button AutomationProperties.AutomationId="UpdateProgress" Content="UpdateProgress (0.6)" Style="{StaticResource NotificationButtonStyle}" Click="UpdateProgress_Click"/>
 
                 <TextBlock Text="Badge" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="SetBadge (5)" Style="{StaticResource NotificationButtonStyle}" Click="SetBadge_Click"/>
-                <Button Content="SetBadgeGlyph (alert)" Style="{StaticResource NotificationButtonStyle}" Click="SetBadgeGlyph_Click"/>
-                <Button Content="ClearBadge" Style="{StaticResource NotificationButtonStyle}" Click="ClearBadge_Click"/>
+                <Button AutomationProperties.AutomationId="SetBadge" Content="SetBadge (5)" Style="{StaticResource NotificationButtonStyle}" Click="SetBadge_Click"/>
+                <Button AutomationProperties.AutomationId="SetBadgeGlyph" Content="SetBadgeGlyph (alert)" Style="{StaticResource NotificationButtonStyle}" Click="SetBadgeGlyph_Click"/>
+                <Button AutomationProperties.AutomationId="ClearBadge" Content="ClearBadge" Style="{StaticResource NotificationButtonStyle}" Click="ClearBadge_Click"/>
 
                 <TextBlock Text="Remove / Query" FontSize="18" FontWeight="SemiBold"/>
-                <Button Content="GetAllNotifications" Style="{StaticResource NotificationButtonStyle}" Click="GetAllNotifications_Click"/>
-                <Button Content="RemoveById (last id)" Style="{StaticResource NotificationButtonStyle}" Click="RemoveById_Click"/>
-                <Button Content="RemoveByTag (sample)" Style="{StaticResource NotificationButtonStyle}" Click="RemoveByTag_Click"/>
-                <Button Content="RemoveAll" Style="{StaticResource NotificationButtonStyle}" Click="RemoveAll_Click"/>
+                <Button AutomationProperties.AutomationId="GetAllNotifications" Content="GetAllNotifications" Style="{StaticResource NotificationButtonStyle}" Click="GetAllNotifications_Click"/>
+                <Button AutomationProperties.AutomationId="RemoveById" Content="RemoveById (last id)" Style="{StaticResource NotificationButtonStyle}" Click="RemoveById_Click"/>
+                <Button AutomationProperties.AutomationId="RemoveByTag" Content="RemoveByTag (sample)" Style="{StaticResource NotificationButtonStyle}" Click="RemoveByTag_Click"/>
+                <Button AutomationProperties.AutomationId="RemoveAll" Content="RemoveAll" Style="{StaticResource NotificationButtonStyle}" Click="RemoveAll_Click"/>
 
             </StackPanel>
         </ScrollViewer>

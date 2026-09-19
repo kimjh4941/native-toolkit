@@ -269,6 +269,19 @@ namespace winrt::WindowsLibraryExample::implementation
         ShowResult(L"Schedule", err);
     }
 
+    void NotificationPage::ScheduleSoon_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        DLog(TAG, L"[ScheduleSoon_Click]");
+        if (!EnsureInitialized()) return;
+        DWORD err = 0;
+        auto now = std::chrono::system_clock::now();
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            (now + std::chrono::seconds(5)).time_since_epoch()).count();
+        std::wstring payload = LR"({"title":"Scheduled","body":"Fires in ~5 seconds","tag":"scheduled"})";
+        scheduleNotification(payload.c_str(), static_cast<int64_t>(ms), &err);
+        ShowResult(L"ScheduleSoon", err);
+    }
+
     void NotificationPage::CancelScheduled_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[CancelScheduled_Click]");

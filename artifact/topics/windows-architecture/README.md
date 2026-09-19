@@ -146,7 +146,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 段階 | 内容 | 動作の変更 | ブランチ | PR |
 |---|---|---|---|---|
 | 0a | スパイク: FlaUI でトーストとバッジを扱えるかを確かめ、computer use で補う項目を確定する（7.2）。**完了** | 無し | `feature/NTKIT-16` | - |
-| 0b | `DialogPage.xaml` と `NotificationPage.xaml` に AutomationId を付ける（見た目も動作も変えない。例外として、Notification 画面に 5 秒後に予約するボタンを 1 つ足す） | 無し | - | - |
+| 0b | `DialogPage.xaml` と `NotificationPage.xaml` に AutomationId を付ける（見た目も動作も変えない。例外として、Notification 画面に 5 秒後に予約するボタンを 1 つ足す）。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0c | Dialog と Notification の UI テストを追加する。FlaUI で扱えない項目は computer use の確認手順書にする | 無し | - | - |
 | 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する** | 無し | - | - |
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる | 無し | - | - |
