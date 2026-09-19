@@ -54,7 +54,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
       <!-- winrt/base.h + manually generated Microsoft.Windows.* projection headers -->
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -72,7 +72,7 @@
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -93,13 +93,13 @@
     <ClCompile Include="ClipboardDeferredProviderTest.cpp" />
     <!-- Production code under test, compiled directly into the test (internal class methods
          are not exported from the DLL). These include the WindowsLibrary pch.h directly. -->
-    <ClCompile Include="..\WindowsLibrary\common.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Common\common.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsNotificationManager.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Notification\WindowsNotificationManager.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClassicActivator.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Notification\Data\WindowsClassicActivator.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <!-- Clipboard: only the WinRT-free, non-coroutine layers are linked into this test
@@ -107,19 +107,19 @@
          WindowsClipboardManager.cpp / WindowsClipboardWindow.cpp / WindowsClipboardHistoryWinRt.cpp
          are intentionally excluded - STA/message-pump and C++20-coroutine dependencies
          that MSTest's default host does not provide). -->
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardFormats.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Domain\WindowsClipboardFormats.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardCore.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardCore.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardDeferredProvider.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardDeferredProvider.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardLifecycle.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Application\WindowsClipboardLifecycle.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardHistoryCoordinator.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Application\WindowsClipboardHistoryCoordinator.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>

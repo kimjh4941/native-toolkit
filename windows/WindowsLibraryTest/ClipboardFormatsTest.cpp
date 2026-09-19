@@ -1,6 +1,6 @@
 #include "pch.h"
 #include <shlobj.h> // DROPFILES
-#include "../WindowsLibrary/WindowsClipboardFormats.h"
+#include "Clipboard/Domain/WindowsClipboardFormats.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace ClipboardFormats;

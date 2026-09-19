@@ -4,8 +4,8 @@
 #include "NotificationPage.g.cpp"
 #endif
 
-#include "common.h"
-#include "WindowsNotificationManager.h"
+#include "Common/common.h"
+#include "Notification/WindowsNotificationManager.h"
 
 #include <chrono>
 #include <functional>

@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "WindowsClipboardCore.h"
-#include "WindowsClipboardFormats.h"
-#include "WindowsClipboardManager.h"
-#include "common.h"
+#include "Clipboard/Data/WindowsClipboardCore.h"
+#include "Clipboard/Domain/WindowsClipboardFormats.h"
+#include "Clipboard/WindowsClipboardManager.h"
+#include "Common/common.h"
 #include <shellapi.h>
 #include <shlobj_core.h>
 

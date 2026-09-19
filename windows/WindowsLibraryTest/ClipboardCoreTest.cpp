@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "../WindowsLibrary/WindowsClipboardCore.h"
-#include "../WindowsLibrary/WindowsClipboardManager.h"
+#include "Clipboard/Data/WindowsClipboardCore.h"
+#include "Clipboard/WindowsClipboardManager.h"
 #include <atomic>
 #include <thread>
 

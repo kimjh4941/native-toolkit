@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "../WindowsLibrary/WindowsClipboardDeferredProvider.h"
+#include "Clipboard/Data/WindowsClipboardDeferredProvider.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

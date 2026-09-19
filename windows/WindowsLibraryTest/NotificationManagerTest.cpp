@@ -2,8 +2,8 @@
 // WindowsClassicActivator.h defines INotificationActivationCallback manually
 // (without the SDK NotificationActivationCallback.h) so it must come before
 // any WRL headers that include Unknwn.h to avoid MIDL_INTERFACE redefinition.
-#include "../WindowsLibrary/WindowsClassicActivator.h"
-#include "../WindowsLibrary/WindowsNotificationManagerInternal.h"
+#include "Notification/Data/WindowsClassicActivator.h"
+#include "Notification/WindowsNotificationManagerInternal.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace winrt::Windows::Data::Json;

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "WindowsClipboardManager.h"
-#include "WindowsClipboardCore.h"
-#include "WindowsClipboardLifecycle.h"
-#include "WindowsClipboardHistoryBackend.h"
-#include "WindowsClipboardHistoryCoordinator.h"
+#include "Clipboard/WindowsClipboardManager.h"
+#include "Clipboard/Data/WindowsClipboardCore.h"
+#include "Clipboard/Application/WindowsClipboardLifecycle.h"
+#include "Clipboard/Application/WindowsClipboardHistoryBackend.h"
+#include "Clipboard/Application/WindowsClipboardHistoryCoordinator.h"
 #include <memory>
 #include <mutex>
 #include <string>

@@ -5,8 +5,8 @@
 //           winrt/Microsoft.Windows.AppNotifications.Builder.h,
 //           winrt/Windows.UI.Notifications.h, winrt/Windows.Data.Json.h
 
-#include "WindowsNotificationManager.h"
-#include "WindowsNotificationBackend.h"
+#include "Notification/WindowsNotificationManager.h"
+#include "Notification/Application/WindowsNotificationBackend.h"
 #include <memory>
 #include <mutex>
 #include <string>

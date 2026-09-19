@@ -4,8 +4,8 @@
 #include "DialogPage.g.cpp"
 #endif
 
-#include "common.h"
-#include "WindowsDialogManager.h"
+#include "Common/common.h"
+#include "Dialog/WindowsDialogManager.h"
 
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;

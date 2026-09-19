@@ -93,7 +93,7 @@
 
 - `windows/WindowsLibrary`
   - C 形式 API（例: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`）
-  - ヘッダ: `windows/WindowsLibrary/WindowsDialogManager.h`、`windows/WindowsLibrary/WindowsNotificationManager.h`、`windows/WindowsLibrary/WindowsClipboardManager.h`
+  - ヘッダ: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`、`windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`、`windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
   - Doc: Doxygen
 
 - `windows/UnityWindowsPlugin`
@@ -205,7 +205,7 @@ manual のコピー元は `manual/<version>/` です。
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+- Windows: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 

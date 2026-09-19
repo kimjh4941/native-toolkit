@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "WindowsClipboardManagerInternal.h"
-#include "WindowsClipboardWindow.h"
-#include "WindowsClipboardHistoryWinRt.h"
-#include "WindowsClipboardFormats.h"
-#include "WindowsClipboardDeferredProvider.h"
-#include "common.h"
+#include "Clipboard/WindowsClipboardManagerInternal.h"
+#include "Clipboard/Data/WindowsClipboardWindow.h"
+#include "Clipboard/Data/WindowsClipboardHistoryWinRt.h"
+#include "Clipboard/Domain/WindowsClipboardFormats.h"
+#include "Clipboard/Data/WindowsClipboardDeferredProvider.h"
+#include "Common/common.h"
 #include <map>
 #include <set>
 #include <type_traits>

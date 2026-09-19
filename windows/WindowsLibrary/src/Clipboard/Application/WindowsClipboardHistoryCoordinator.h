@@ -12,9 +12,9 @@
  */
 #pragma once
 
-#include "WindowsClipboardHistoryBackend.h"
-#include "WindowsClipboardLifecycle.h"
-#include "WindowsClipboardManager.h"
+#include "Clipboard/Application/WindowsClipboardHistoryBackend.h"
+#include "Clipboard/Application/WindowsClipboardLifecycle.h"
+#include "Clipboard/WindowsClipboardManager.h"
 #include <atomic>
 #include <map>
 #include <memory>

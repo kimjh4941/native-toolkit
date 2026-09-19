@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "../WindowsLibrary/WindowsClipboardHistoryCoordinator.h"
+#include "Clipboard/Application/WindowsClipboardHistoryCoordinator.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

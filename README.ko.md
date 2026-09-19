@@ -93,7 +93,7 @@
 
 - `windows/WindowsLibrary`
   - C 형태 API (예: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`)
-  - 헤더: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+  - 헤더: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
   - 문서: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/UnityWindowsPlugin`
@@ -207,7 +207,7 @@ manual 복사 원본은 `manual/<version>/` 입니다.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+- Windows: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 

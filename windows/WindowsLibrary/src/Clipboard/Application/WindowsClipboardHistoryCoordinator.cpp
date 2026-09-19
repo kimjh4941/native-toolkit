@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "WindowsClipboardHistoryCoordinator.h"
-#include "common.h"
+#include "Clipboard/Application/WindowsClipboardHistoryCoordinator.h"
+#include "Common/common.h"
 
 using namespace winrt::Windows::Data::Json;
 

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "WindowsClipboardLifecycle.h"
+#include "Clipboard/Application/WindowsClipboardLifecycle.h"
 
 void ClipboardLifecycle::Lease::Release()
 {

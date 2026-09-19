@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include "WindowsClipboardHistoryBackend.h"
+#include "Clipboard/Application/WindowsClipboardHistoryBackend.h"
 #include <memory>
 
 // Factory: the concrete type and its WinRT dependencies stay out of every

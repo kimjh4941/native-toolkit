@@ -150,7 +150,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 0c | Dialog と Notification の UI テストを追加する。FlaUI で扱えない項目は computer use の確認手順書にする。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する**。**完了** | 無し | `feature/NTKIT-16` | - |
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる。**完了**（C++20） | 無し | `feature/NTKIT-16` | - |
-| 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける | 無し | - | - |
+| 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける。**完了**（ファイルの移動だけ。層が混ざったファイルは機能の直下に置き、段階 3 で分ける） | 無し | `feature/NTKIT-16` | - |
 | 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**この時点ではまだ C ABI も残す** | ライブラリに C++ API が増える | - | - |
 | 4 | サンプルを C++ API に移行する。移行前と同じ UI テストが通ることを確かめる | 無し（サンプルが使う API だけが変わる） | - | - |
 | 5 | `WindowsLibraryCApi` を新しく作って C ABI を移し、`WindowsLibrary` から C ABI を削除する。`UnityWindowsPlugin` を削除する | C ABI を提供する DLL が変わる | - | - |

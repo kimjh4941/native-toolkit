@@ -1,120 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Notification">
-      <UniqueIdentifier>{A1B2C3D4-E5F6-4A7B-8C9D-1E2F3A4B5C6D}</UniqueIdentifier>
+    <Filter Include="src">
+      <UniqueIdentifier>{7998A632-DD09-590F-A44D-366B5BB86CA1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dialog">
-      <UniqueIdentifier>{B2C3D4E5-F6A7-4B8C-9D0E-2F3A4B5C6D7E}</UniqueIdentifier>
+    <Filter Include="src\Clipboard">
+      <UniqueIdentifier>{C941C8DF-A358-50EB-9A50-6E384BE786B0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Bootstrap">
-      <UniqueIdentifier>{C3D4E5F6-A7B8-4C9D-0E1F-3A4B5C6D7E8F}</UniqueIdentifier>
+    <Filter Include="src\Clipboard\Application">
+      <UniqueIdentifier>{F3513D9C-F907-5CC6-A349-9C892E1887D4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Clipboard">
-      <UniqueIdentifier>{D4E5F6A7-B8C9-4D0E-1F2A-4B5C6D7E8F90}</UniqueIdentifier>
+    <Filter Include="src\Clipboard\Data">
+      <UniqueIdentifier>{9DEB6B1C-88C7-50AE-98CE-1DD96DC0967A}</UniqueIdentifier>
     </Filter>
-    <Filter Include="リソース ファイル">
+    <Filter Include="src\Clipboard\Domain">
+      <UniqueIdentifier>{FEFE5374-58DB-520A-A654-F3FC0E81F731}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Common">
+      <UniqueIdentifier>{E534CE9E-6654-597C-965D-9707E3091F58}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Dialog">
+      <UniqueIdentifier>{1EF9C047-0D95-5B00-B7AD-E0E0DED6D3A1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Notification">
+      <UniqueIdentifier>{DA14CF5E-88A2-5D87-B6BE-B272D36AD152}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Notification\Application">
+      <UniqueIdentifier>{9644ACA9-3B57-55BD-862C-26083749480F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Notification\Data">
+      <UniqueIdentifier>{144B776F-3F6F-5942-B654-16DCC9A76C10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="common.cpp" />
-    <ClCompile Include="WindowsDialogManager.cpp">
-      <Filter>Dialog</Filter>
+    <ClCompile Include="src\Clipboard\Application\WindowsClipboardHistoryCoordinator.cpp">
+      <Filter>src\Clipboard\Application</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsNotificationManager.cpp">
-      <Filter>Notification</Filter>
+    <ClCompile Include="src\Clipboard\Application\WindowsClipboardLifecycle.cpp">
+      <Filter>src\Clipboard\Application</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClassicActivator.cpp">
-      <Filter>Notification</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardCore.cpp">
+      <Filter>src\Clipboard\Data</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsAppSdkBootstrap.cpp">
-      <Filter>Bootstrap</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardDeferredProvider.cpp">
+      <Filter>src\Clipboard\Data</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardFormats.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardHistoryWinRt.cpp">
+      <Filter>src\Clipboard\Data</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardCore.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardWindow.cpp">
+      <Filter>src\Clipboard\Data</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardDeferredProvider.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Clipboard\Domain\WindowsClipboardFormats.cpp">
+      <Filter>src\Clipboard\Domain</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardLifecycle.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Clipboard\WindowsClipboardManager.cpp">
+      <Filter>src\Clipboard</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardHistoryCoordinator.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Common\common.cpp">
+      <Filter>src\Common</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardWindow.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Dialog\WindowsDialogManager.cpp">
+      <Filter>src\Dialog</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardManager.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Notification\Data\WindowsAppSdkBootstrap.cpp">
+      <Filter>src\Notification\Data</Filter>
     </ClCompile>
-    <ClCompile Include="WindowsClipboardHistoryWinRt.cpp">
-      <Filter>Clipboard</Filter>
+    <ClCompile Include="src\Notification\Data\WindowsClassicActivator.cpp">
+      <Filter>src\Notification\Data</Filter>
     </ClCompile>
+    <ClCompile Include="src\Notification\WindowsNotificationManager.cpp">
+      <Filter>src\Notification</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="src\Clipboard\Application\WindowsClipboardHistoryBackend.h">
+      <Filter>src\Clipboard\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\Application\WindowsClipboardHistoryCoordinator.h">
+      <Filter>src\Clipboard\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\Application\WindowsClipboardLifecycle.h">
+      <Filter>src\Clipboard\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\Data\WindowsClipboardCore.h">
+      <Filter>src\Clipboard\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\Data\WindowsClipboardDeferredProvider.h">
+      <Filter>src\Clipboard\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\Data\WindowsClipboardHistoryWinRt.h">
+      <Filter>src\Clipboard\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\Data\WindowsClipboardWindow.h">
+      <Filter>src\Clipboard\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\Domain\WindowsClipboardFormats.h">
+      <Filter>src\Clipboard\Domain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\WindowsClipboardManager.h">
+      <Filter>src\Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\WindowsClipboardManagerInternal.h">
+      <Filter>src\Clipboard</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\common.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dialog\WindowsDialogManager.h">
+      <Filter>src\Dialog</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h">
+      <Filter>src\Notification\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Notification\Data\WindowsClassicActivator.h">
+      <Filter>src\Notification\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Notification\WindowsNotificationManager.h">
+      <Filter>src\Notification</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Notification\WindowsNotificationManagerInternal.h">
+      <Filter>src\Notification</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="WindowsLibrary.def" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="targetver.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="common.h" />
-    <ClInclude Include="WindowsDialogManager.h">
-      <Filter>Dialog</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsNotificationManager.h">
-      <Filter>Notification</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsNotificationManagerInternal.h">
-      <Filter>Notification</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsNotificationBackend.h">
-      <Filter>Notification</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClassicActivator.h">
-      <Filter>Notification</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardManager.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardManagerInternal.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardCore.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardDeferredProvider.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardFormats.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardLifecycle.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardHistoryBackend.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardHistoryCoordinator.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardHistoryWinRt.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsClipboardWindow.h">
-      <Filter>Clipboard</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="WindowsLibrary.rc">
-      <Filter>リソース ファイル</Filter>
+      <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
 </Project>

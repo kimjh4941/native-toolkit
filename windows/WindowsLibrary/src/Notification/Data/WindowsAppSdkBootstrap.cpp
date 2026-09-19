@@ -5,8 +5,8 @@
 // WindowsNotificationManager.cpp, does not take a hard dependency on
 // Microsoft.WindowsAppRuntime.Bootstrap.dll.
 #include <MddBootstrap.h>
-#include "WindowsNotificationManagerInternal.h"
-#include "common.h"
+#include "Notification/WindowsNotificationManagerInternal.h"
+#include "Common/common.h"
 
 namespace
 {

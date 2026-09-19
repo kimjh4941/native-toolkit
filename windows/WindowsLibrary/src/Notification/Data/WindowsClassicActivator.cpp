@@ -26,9 +26,9 @@
 #include <propkey.h>       // PKEY_AppUserModel_ID, PKEY_AppUserModel_ToastActivatorCLSID
 #include <propvarutil.h>   // InitPropVariantFromString, InitPropVariantFromCLSID
 
-#include "WindowsClassicActivator.h"
-#include "WindowsNotificationManagerInternal.h"
-#include "common.h"
+#include "Notification/Data/WindowsClassicActivator.h"
+#include "Notification/WindowsNotificationManagerInternal.h"
+#include "Common/common.h"
 
 // WinRT — used for toast delivery, XML, badge, JSON (all in WinRT classic APIs)
 // DO NOT open winrt::Windows::Foundation namespace to avoid ::IUnknown collision.

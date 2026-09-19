@@ -4,8 +4,8 @@
  */
 #pragma once
 
-#include "WindowsClipboardCore.h"
-#include "WindowsClipboardManager.h"
+#include "Clipboard/Data/WindowsClipboardCore.h"
+#include "Clipboard/WindowsClipboardManager.h"
 #include <string>
 
 DeferredClipboard::Renderer MakeDeferredRenderer(ClipboardRenderCallback provider,

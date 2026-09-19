@@ -4,8 +4,8 @@
 #include "ClipboardPage.g.cpp"
 #endif
 
-#include "common.h"
-#include "WindowsClipboardManager.h"
+#include "Common/common.h"
+#include "Clipboard/WindowsClipboardManager.h"
 
 #include <winrt/Windows.System.Threading.h>
 

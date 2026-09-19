@@ -94,7 +94,7 @@ Example (`1.11.0`):
 - `windows/WindowsLibrary`
   - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`)
   - Unity C# calls `WindowsLibrary.dll` directly through P/Invoke
-  - Headers: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+  - Headers: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/UnityWindowsPlugin`
@@ -209,7 +209,7 @@ For native integration, start from the core library docs per platform.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+- Windows: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
 
 ## Unity Native Toolkit (Unity 6)
 

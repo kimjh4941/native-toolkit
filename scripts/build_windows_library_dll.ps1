@@ -124,9 +124,9 @@ $ModuleConfig = @{
         Packable = $true
         # Public headers shipped in the NuGet package (internal headers excluded).
         Headers  = @(
-            'windows\WindowsLibrary\common.h',
-            'windows\WindowsLibrary\WindowsDialogManager.h',
-            'windows\WindowsLibrary\WindowsNotificationManager.h'
+            'windows\WindowsLibrary\src\Common\common.h',
+            'windows\WindowsLibrary\src\Dialog\WindowsDialogManager.h',
+            'windows\WindowsLibrary\src\Notification\WindowsNotificationManager.h'
         )
     }
     'UnityWindowsPlugin' = @{

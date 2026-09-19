@@ -3,7 +3,7 @@
 // Windows.h must be included before this header (via pch.h).
 // Classic shell headers are isolated in WindowsClassicActivator.cpp.
 
-#include "WindowsNotificationBackend.h"
+#include "Notification/Application/WindowsNotificationBackend.h"
 #include <string>
 
 // Define NOTIFICATION_USER_INPUT_DATA and INotificationActivationCallback manually
