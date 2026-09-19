@@ -146,7 +146,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 段階 | 内容 | 動作の変更 | ブランチ | PR |
 |---|---|---|---|---|
 | 0a | スパイク: FlaUI でトーストとバッジを扱えるかを確かめ、computer use で補う項目を確定する（7.2）。**完了** | 無し | `feature/NTKIT-16` | - |
-| 0b | `DialogPage.xaml` と `NotificationPage.xaml` に AutomationId を付ける（見た目も動作も変えない） | 無し | - | - |
+| 0b | `DialogPage.xaml` と `NotificationPage.xaml` に AutomationId を付ける（見た目も動作も変えない。例外として、Notification 画面に 5 秒後に予約するボタンを 1 つ足す） | 無し | - | - |
 | 0c | Dialog と Notification の UI テストを追加する。FlaUI で扱えない項目は computer use の確認手順書にする | 無し | - | - |
 | 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する** | 無し | - | - |
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる | 無し | - | - |
@@ -165,7 +165,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 
 | 段階 | 設計書 | 理由 |
 |---|---|---|
-| 0（テスト） | 書く | Dialog と Notification にどんな UI テストを書き、何を確かめるか。段階 0a の結果に基づく FlaUI と computer use の分担 |
+| 0（テスト） | 書く（**作成済み**: `designs/2026-09-19-windows-architecture-ui-test-design.md`） | Dialog と Notification にどんな UI テストを書き、何を確かめるか。段階 0a の結果に基づく FlaUI と computer use の分担 |
 | 1 MFC / COM の除去 | 書かない | 機械的な作業。この README の表と実装結果で足りる |
 | 2 ディレクトリの再編 | 書かない | 同上 |
 | 3 C++ API | 書く | 公開 API は長く残る約束になる |
@@ -259,7 +259,7 @@ UI テストはサンプルアプリをボタン操作と表示で外から確�
 
 | 項目 | 手段 | 確認すること |
 |---|---|---|
-| Dialog（`MessageBox`、ファイル・フォルダのダイアログ） | FlaUI（見込み） | 標準の Win32 ウィンドウなので、見つけてボタンを押し、サンプルに表示された戻り値を確かめる |
+| Dialog（`MessageBox`、ファイル・フォルダのダイアログ） | FlaUI | ダイアログを Win32 で見つけ、コントロール ID でボタンを押し、サンプルに表示された戻り値を確かめる。ダイアログを開くボタンはマウスクリックで押す（UI テストの設計書の 3.1、3.2） |
 | Notification の API の戻り値とサンプルの表示 | FlaUI | 他の画面と同じ |
 | 通知のタイトル・本文 | FlaUI | 通知センターで通知を見つけ、タイトルと本文を確かめる |
 | 通知のボタン・入力欄・選択肢 → コールバック | FlaUI | 通知センターで通知を展開して操作し、サンプルに表示された `argsJson` を確かめる |
