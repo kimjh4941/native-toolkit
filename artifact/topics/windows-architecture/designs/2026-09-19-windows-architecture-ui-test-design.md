@@ -93,6 +93,10 @@
 - 切り替えた状態が保たれることを 2 秒間見届け、戻ってしまったら切り替え直す（最大 3 回）
 - 設定ページがまれに開かないことがあるので、そのときは手順を最初から 1 回やり直す
 
+クリップボードの履歴を切り替えるときの注意:
+
+- **履歴を無効にすると、Windows がクリップボードを空にする**（約 0.5 秒後。段階 0c で判明）。切り替えの直後にテストが書き込んだ内容が消されるので、クリップボードの変更の番号（`GetClipboardSequenceNumber`）が変わり、その後 500 ms 変わらなくなるまで待ってから戻る
+
 扱い方は U-2 で決めたとおり、**テストが切り替え、終わったら元に戻す**。
 
 - 切り替える前の値を、実行ごとにファイル（`%TEMP%` 配下）へ記録する
@@ -114,8 +118,8 @@ UI テストは、テストを実行している利用者自身のクリップ�
 
 | 影響 | 扱い |
 |---|---|
-| クリップボードの中身が上書きされる | テストの前に文字列を保存し、終わったら戻す（文字列以外の形式は戻せない） |
-| クリップボードの履歴に項目が増える | 受け入れる |
+| クリップボードの中身が上書きされる | 実行の最初に文字列を保存し、実行の最後に戻す（`TestRunHooks`。文字列以外の形式は戻せない） |
+| クリップボードの履歴に項目が増える | 受け入れる。履歴の結果の表示には利用者の履歴の文字列が含まれうるので、テストの失敗のメッセージやログに出さない（`ClipboardPage.WaitForRedacted`） |
 | 履歴の `Delete` | テストが自分で作った項目だけを消すので問題ない |
 | **履歴の `Clear`（ピン留め以外をすべて消す）** | **利用者のピン留めしていない履歴がすべて消え、元に戻せない。明示したときだけ実行する**（U-6） |
 
@@ -226,19 +230,30 @@ Dialog の異常系（`pError` に `GetLastError()` や `CommDlgExtendedError()`
 
 既存の 31 件（`ClipboardBusyAndNavigationTests` 10、`ClipboardErrorCaseTests` 10、`ClipboardLifecycleTests` 8、`ClipboardMonitoringTests` 3）はそのまま使う。サンプルアプリ計画の手動確認（8.1 〜 8.4）のうち、既存のテストに無いもの（付録 B）を段階 0 で追加する（U-3）。
 
+追加した 25 件（段階 0c）:
+
+| クラス | 件数 | 付録 B の範囲 |
+|---|---|---|
+| `ClipboardInteropTests` | 11 | 8.1（外部アプリとのやり取り、GetPreferredFormat の 4 通り） |
+| `ClipboardExternalChangeTests` | 5 | 8.2（外部でのコピーと貼り付け、遅延レンダリング） |
+| `ClipboardHistoryTests` | 8 | 8.3（`Clear` 以外） |
+| `ClipboardHistoryDestructiveTests` | 1 | 8.3 の `Clear`（U-6） |
+
 ## 7. computer use の確認手順書
 
 `windows/WindowsLibraryExampleUITest/ComputerUse/` に 1 項目 1 ファイルで置く。
 
 | ID | 対象 | 手順の要点 | 合格の条件 |
 |---|---|---|---|
-| CU-01 | 画像付き通知の画像 | ShowWithImage → 通知センターで通知を展開する | サンプルの `Assets/StoreLogo.png` と同じ画像が表示されている |
+| CU-01 | 画像付き通知の画像（`CU-01-hero-image.md`） | ShowWithImage → 通知センターで通知を展開する | サンプルの `Assets/StoreLogo.png` が表示されている。通知の幅に拡大され上半分だけが見える（灰色の枠の上半分と、中央の下で交わる 2 本の斜線） |
 
 当初はバッジのグリフの種類（CU-02）も computer use で確かめる予定だったが、グリフが文字コード（alert は `U+EDAD`）で読めると分かったので、N-14 で FlaUI が確かめる（U-7）。
 
 各手順書に書くこと: 前提（サンプルを配置済み、集中モードの状態）、操作の手順、期待する結果、合格の条件、証拠として残すスクリーンショットの範囲。
 
 **スクリーンショットは、サンプルアプリの通知またはタスクバーのサンプルアプリのアイコンの範囲だけに切り取る。** 通知センター全体やタスクバー全体は写さない。
+
+スクリーンショットは `ComputerUse/evidence/<ID>/<日付>-<段階>.png` に保存してコミットし、その段階の結果のファイルから参照する。
 
 Clipboard のテストの実行中は computer use を動かさない（Clipboard のサンプルアプリ計画 8 章の注意。画面の撮影がクリップボードに書き込む場合がある）。
 
@@ -260,9 +275,9 @@ Clipboard のテストの実行中は computer use を動かさない（Clipboar
 | `Dialog` | 6.1 |
 | `Notification` | 6.2 のうちバナー以外 |
 | `NotificationBanner` | N-21、N-22（集中モードの切り替えを伴う） |
-| `Clipboard` | 既存の 31 件と付録 B の追加分のうち、OS の設定を変えないもの |
-| `ClipboardHistory` | 付録 B のうち、クリップボードの履歴の設定が必要なもの（`Clear` を除く） |
-| `ClipboardHistoryDestructive` | 履歴の `Clear`。**既定では実行しない。** スクリプトに `-IncludeDestructive` を付けたときだけ実行する（U-6） |
+| `Clipboard` | 既存の 31 件と付録 B の追加分のうち、利用者の履歴を読み書きしないもの（遅延レンダリングのテストは履歴を一時的に無効にする） |
+| `ClipboardHistory` | 付録 B のうち、履歴を有効にして利用者の履歴を使うもの（`Clear` を除く） |
+| `ClipboardHistoryDestructive` | 履歴の `Clear`。**既定では実行しない。** スクリプトに `-IncludeDestructive` を付けたときだけ実行する（U-6）。スクリプトは環境変数 `NTK_UITEST_DESTRUCTIVE=1` を設定し、テストはそれが無いと `Inconclusive` で終わる。フィルタを付けない `dotnet test` でも消えないようにするため、カテゴリだけに頼らない |
 
 computer use の確認手順書は、スクリプトの後に Claude のデスクトップアプリから実行する。
 
@@ -336,9 +351,9 @@ computer use の確認手順書は、スクリプトの後に Claude のデス�
 | 8.3 | GetHistory | 新しい順、時刻の文字列 | 履歴を有効 |
 | 8.3 | Restore → 貼り付け | 復元した内容 | 履歴を有効 |
 | 8.3 | Delete → GetHistory | 項目が無くなる | 履歴を有効 |
-| 8.3 | Clear → GetHistory | ピン留めした項目だけが残る。**明示したときだけ実行**（U-6） | 履歴を有効 |
+| 8.3 | Clear → GetHistory | ピン留めした項目だけが残る。サンプルからはピン留めできないので、テストが追加した項目が消えることを確かめる。**明示したときだけ実行**（U-6） | 履歴を有効 |
 | 8.3 | コールバックを設定 → コピー | 履歴追加のログ | 履歴を有効 |
-| 8.3 | SENSITIVE でコピー → Win+V | 履歴の画面に出ない（Win+V の画面を FlaUI で読む。見込み） | 履歴を有効 |
+| 8.3 | SENSITIVE でコピー → Win+V | 履歴に追加されない。**Win+V の画面ではなく、履歴の追加のログと GetHistory で確かめる**（Win+V の画面は履歴の API と同じ一覧を表示する。段階 0c で変更） | 履歴を有効 |
 | 8.3 | GetHistory → Cancel | `CANCELED` か先に成功のどちらか 1 回 | 履歴を有効 |
 
 対象外:
@@ -353,7 +368,7 @@ computer use の確認手順書は、スクリプトの後に Claude のデス�
 
 | # | 確かめたこと | 方法 | 結果 |
 |---|---|---|---|
-| 1 | クリップボードの履歴の有効・無効を切り替えられるか | `EnableClipboardHistory` を書き換え、`Clipboard.IsHistoryEnabled()` で読む | 書き換えた直後に反映された。元の値（有効）に戻したことも API で確認した |
+| 1 | クリップボードの履歴の有効・無効を切り替えられるか | `EnableClipboardHistory` を書き換え、`Clipboard.IsHistoryEnabled()` で読む | 書き換えた直後に反映された。元の値（有効）に戻したことも API で確認した。**追記（段階 0c の本体）**: 無効にすると約 0.5 秒後にクリップボードが空になる（3.6） |
 | 2 | アプリの通知の有効・無効を切り替えられるか | 下の経緯のとおり | 設定ページのスイッチで切り替えられた。無効のとき `GetSetting` は `DisabledForApplication`、ShowBasic は `Notifications are disabled` の案内（N-20 の期待どおり）。有効に戻すと `Enabled` に戻った |
 | 3 | テストのプロセスが外部のアプリとしてクリップボードを読み書きできるか | サンプルの CopyPlainText をテストが読む。テストが書き込み、サンプルの監視と PastePlainText で確かめる | 読めた（`Hello from native-toolkit`）。書き込むとサンプルが変更のログ（`[Monitor] clipboard content changed`）を出し、PastePlainText で同じ文字列が返った |
 
