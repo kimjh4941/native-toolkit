@@ -148,7 +148,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 0a | スパイク: FlaUI でトーストとバッジを扱えるかを確かめ、computer use で補う項目を確定する（7.2）。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0b | `DialogPage.xaml` と `NotificationPage.xaml` に AutomationId を付ける（見た目も動作も変えない。例外として、Notification 画面に 5 秒後に予約するボタンを 1 つ足す）。**完了** | 無し | `feature/NTKIT-16` | - |
 | 0c | Dialog と Notification の UI テストを追加する。FlaUI で扱えない項目は computer use の確認手順書にする。**完了** | 無し | `feature/NTKIT-16` | - |
-| 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する** | 無し | - | - |
+| 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する**。スクリプトと基準の結果は完了。CU-01 の初回の実行が残っている | 無し | `feature/NTKIT-16` | - |
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる | 無し | - | - |
 | 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける | 無し | - | - |
 | 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**この時点ではまだ C ABI も残す** | ライブラリに C++ API が増える | - | - |
@@ -360,7 +360,7 @@ ntk_clipboard_history_free(h);
 - [ ] UI テスト、C++ API、C ABI の設計書を、それぞれの段階の前に書く
 - [ ] C++ API と C ABI の設計書が、別のモデルのレビューを通っている
 - [x] Clipboard / Notification / Dialog のすべてに UI テストがある（`results/2026-09-19-windows-architecture-stage0c-result.md`）
-- [ ] 段階 0d で、今のコードで全件通ることを確かめ、結果を記録する
+- [x] 段階 0d で、今のコードで全件通ることを確かめ、結果を記録する（`results/2026-09-19-windows-architecture-stage0d-result.md`、`scripts/test_windows.baseline.json`）
 - [ ] 段階 1 〜 6 を終え、段階ごとに 3 つの層（ユニットテスト、UI テスト、computer use）の結果が記録と変わらないことを確認する
 - [ ] `WindowsLibrary` に MFC / COM への依存が無い
 - [ ] `WindowsLibrary` の公開ヘッダーに C ABI（`extern "C"`）が無い

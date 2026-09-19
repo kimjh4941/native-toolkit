@@ -261,12 +261,23 @@ Clipboard のテストの実行中は computer use を動かさない（Clipboar
 
 `scripts/test_windows.ps1` で次を順に行う。
 
-0. 前回の実行で OS の設定の記録が残っていれば、その値へ戻す（3.6）
-1. `WindowsLibrary` と `WindowsLibraryTest` をビルドし、`vstest.console.exe` でユニットテストを実行する
-2. `WindowsLibraryExample` をビルドし、AppX のレイアウトを `Add-AppxPackage -Register` で登録する（今は Visual Studio からの配置に頼っている。スクリプトで登録しないと、テストが古いビルドを相手にしてしまう）
-3. `WindowsLibraryExampleUITest` を実行する。調査用のテスト（カテゴリ `Spike`）は含めない
-4. OS の設定を記録した値へ戻し、戻ったことを確かめる
-5. 結果（件数と失敗の一覧）を表示し、`-Baseline` を付けたときは記録する
+0. 画面がロックされていたら、分かりやすいメッセージで止める。実行中は `SetThreadExecutionState` で画面の消灯とスリープを抑える（電源の設定は変えない）
+1. `WindowsLibrary` と `WindowsLibraryTest` をビルドし（Debug）、`vstest.console.exe` でユニットテストを実行する
+2. `WindowsLibraryExample` をビルドし（Release）、`.appxrecipe` の一覧に従って AppX のレイアウトへコピーしてから `Add-AppxPackage -Register` で登録する（Visual Studio の配置と同じこと。スクリプトで登録しないと、テストが古いビルドを相手にしてしまう）
+3. `WindowsLibraryExampleUITest` を実行する。前回の実行で OS の設定の記録が残っていれば、テストの最初（`TestRunHooks`）がその値へ戻す（3.6）
+4. OS の設定の記録が残っていないこと（すべて戻ったこと）を確かめる
+5. 結果（件数と失敗の一覧）を表示し、基準の結果（`scripts/test_windows.baseline.json`）とテストごとに比べて、結果が変わったテスト、増えたテスト、無くなったテストを表示する。`-Baseline` を付けたときは、この実行の結果を新しい基準として保存する（失敗が無いときだけ）
+
+オプション:
+
+| オプション | 内容 |
+|---|---|
+| `-IncludeDestructive` | 履歴の `Clear` も実行する（U-6） |
+| `-Baseline` | 結果を基準として保存する。`-Filter` や `-SkipUnitTests` とは併用できない |
+| `-Filter` | UI テストを `dotnet test` のフィルタで絞る（例: `TestCategory=Dialog`） |
+| `-SkipUnitTests` | 1 を飛ばす |
+
+結果のファイル（TRX）は `windows/WindowsLibraryExampleUITest/TestResults/test_windows/<日時>/` に出る（コミットしない）。失敗が 1 件でもあるか、OS の設定が戻っていなければ、終了コードは 1。
 
 テストのカテゴリ:
 
