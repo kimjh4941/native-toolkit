@@ -1,7 +1,7 @@
 using WindowsLibraryExampleUITest.Infra;
 using WindowsLibraryExampleUITest.Pages;
 
-namespace WindowsLibraryExampleUITest.Tests;
+namespace WindowsLibraryExampleUITest.Tests.Clipboard;
 
 /// <summary>
 /// Covers the Error cases section of the sample app plan: each button drives one

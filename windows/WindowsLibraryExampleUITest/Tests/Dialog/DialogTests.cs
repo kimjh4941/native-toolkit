@@ -1,7 +1,7 @@
 using WindowsLibraryExampleUITest.Infra;
 using WindowsLibraryExampleUITest.Pages;
 
-namespace WindowsLibraryExampleUITest.Tests;
+namespace WindowsLibraryExampleUITest.Tests.Dialog;
 
 /// <summary>
 /// Covers the dialog sample page: each of the six dialogs, accepted and

@@ -1,7 +1,7 @@
 using WindowsLibraryExampleUITest.Infra;
 using WindowsLibraryExampleUITest.Pages;
 
-namespace WindowsLibraryExampleUITest.Tests;
+namespace WindowsLibraryExampleUITest.Tests.Clipboard;
 
 /// <summary>
 /// Covers the "History" rows (8.3) of the Windows clipboard sample app plan,

@@ -1,7 +1,7 @@
 using WindowsLibraryExampleUITest.Infra;
 using WindowsLibraryExampleUITest.Pages;
 
-namespace WindowsLibraryExampleUITest.Tests;
+namespace WindowsLibraryExampleUITest.Tests.Notification;
 
 /// <summary>
 /// Covers the notification sample page (N-01 to N-20 and N-23 in

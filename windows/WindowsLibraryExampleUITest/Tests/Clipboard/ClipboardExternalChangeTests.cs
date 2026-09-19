@@ -1,7 +1,7 @@
 using WindowsLibraryExampleUITest.Infra;
 using WindowsLibraryExampleUITest.Pages;
 
-namespace WindowsLibraryExampleUITest.Tests;
+namespace WindowsLibraryExampleUITest.Tests.Clipboard;
 
 /// <summary>
 /// Covers the "Monitoring / Deferred" rows (8.2) of the Windows clipboard

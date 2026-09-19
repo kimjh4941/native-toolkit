@@ -1,7 +1,7 @@
 using WindowsLibraryExampleUITest.Infra;
 using WindowsLibraryExampleUITest.Pages;
 
-namespace WindowsLibraryExampleUITest.Tests;
+namespace WindowsLibraryExampleUITest.Tests.Clipboard;
 
 /// <summary>
 /// Covers the "Interoperability" rows (8.1) of the Windows clipboard sample app
