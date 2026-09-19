@@ -26,6 +26,11 @@ Agent-specific wrappers in `.github/skills/` reference these files.
 - Review and refine (企画書・設計書レビュー): ./workflows/review-and-refine/workflow.md
 - Commit message (コミットメッセージ生成): ./workflows/commit-msg/workflow.md
 
+## Design documents
+
+- Layout of `artifact/` (features / topics) and the topic list: ../artifact/README.md
+- The workflows above apply to `artifact/features/` only. Documents under `artifact/topics/` are written by hand.
+
 ## Common policy
 
 - For platform-specific implementation, apply the corresponding platform rule file.
