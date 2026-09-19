@@ -3,9 +3,9 @@
 - 日付: 2026-07-25
 - 対象ブランチ: `feature/NTKIT-12`
 - 対象差分: `develop...HEAD` は空。未追跡の Android Clipboard 実装ファイルをレビュー対象として確認
-- 前回レビュー: `artifact/reviews/clipboard/2026-07-25-android-clipboard-implementation-feature-review-v2.md`
-- 設計書: `artifact/designs/clipboard/2026-07-25-android-clipboard-design.md`
-- 実装結果: `artifact/results/clipboard/2026-07-25-android-clipboard-implementation-feature-result-v1.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-07-25-android-clipboard-implementation-feature-review-v2.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md`
+- 実装結果: `artifact/features/clipboard/results/2026-07-25-android-clipboard-implementation-feature-result-v1.md`
 - 対象 OS: Android
 - 総合評価: LGTM
 

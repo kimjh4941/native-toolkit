@@ -3,9 +3,9 @@
 - 日付: 2026-09-02
 - 対象ブランチ: `feature/NTKIT-15`
 - 対象差分: `git diff develop`（**未コミットの working tree を含む**）
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v13.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implementation-feature-review-v11.md`（high 4 / medium 7 / low 7）
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v13.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implementation-feature-review-v11.md`（high 4 / medium 7 / low 7）
 - 対象OS: macOS 15 以降
 - 適用ルール: `agent-rules/coding-rules/common.md`、`agent-rules/coding-rules/mac.md`
 - 対象外: 設計書 §7.12 のスコープ変更判断そのもの / T-18 / MT-01〜MT-09 / 旧サンプル計画 v1
@@ -69,7 +69,7 @@ L-5 の空回り監査）は解消している。残っているのは **「直�
 
 ### H-1. §15 実装完了条件が、存在しない Bridge テストを [x] としている（v11 H-3 の未解消部分）
 
-- 該当（宣言）: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:1781`
+- 該当（宣言）: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:1781`
 
 ```
 - [x] 12.4 の Bridge テスト BT-01〜BT-03 / BT-05〜BT-08 / BT-10〜BT-12 / BT-17 / BT-20〜BT-25 が全通過する
@@ -193,7 +193,7 @@ v11 H-2 の対処案は「throw する **または** 設計と DocC に明記す
 ```
 
 `domains` は `UnityMacClipboardManagerBridge.m:48` ほかのコメント
-「`// isolation domains (MIGRATION.md section 6, plan C).`」にしか存在しない。
+「`// isolation domains (artifact/topics/migration/README.md section 6, plan C).`」にしか存在しない。
 削除済みの型名がコメントに 1 行残っていれば、設計書側の取り残しはそれを根拠に「実在する」と判定される。
 
 **(c) 「設計 → 実装」の向きが今も未検査** — `check_error_mapping:204`
@@ -227,7 +227,7 @@ v11 が実演した 1 パターン（テストの文字列リテラル経由の�
 
 ### M-1. v11 M-1 の 7 件のうち 3 件が §15 に残り、同型の 4 件目を新たに検出した
 
-いずれも `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md` の §15 設計完了条件。
+いずれも `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md` の §15 設計完了条件。
 
 | 行 | 内容 | 実態 |
 |---|---|---|

@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/`
-- 計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md`
+- 計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md`
 - 対応タスク: T-18（機能設計 §13）
-- 前版: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md`
-- 反映したレビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v1.md`
+- 前版: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md`
+- 反映したレビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v1.md`
 
 > **v1 との最大の違いは、UI テストが実行できたことである。** v1 は「環境で実行できない」と
 > 記録したが、本版では 5 件すべてを実行し、そのうち 4 件が失敗した。失敗はいずれも本物で、

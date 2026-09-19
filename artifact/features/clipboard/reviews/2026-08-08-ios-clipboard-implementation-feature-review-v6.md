@@ -6,11 +6,11 @@
 - 対象OS: iOS 18以降
 - ブランチ: `feature/NTKIT-14`
 - 比較差分: `develop...feature/NTKIT-14` と未コミットのv1〜v6修正差分
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v5.md`
-- 追加参照: `artifact/MIGRATION.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v5.md`
+- 追加参照: `artifact/topics/migration/README.md`
 
 ## レビュー概要
 
@@ -27,8 +27,8 @@
 - façade、Bridge header、設計書はいずれもcallbackを全経路でmain thread / main actorから1回だけ呼ぶと規定している。
   - `ios/UnityIosPlugin/UnityIosPlugin/Clipboard/UnityIosClipboardManager.swift:16`
   - `ios/UnityIosPlugin/UnityIosPlugin/Clipboard/UnityIosClipboardManagerBridge.h:13`
-  - `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md:1000`
-  - `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md:1154`
+  - `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md:1000`
+  - `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md:1154`
 - 正常系は`Task { @MainActor in ... }`へ入るが、parse / validation失敗はその前にhandlerを直接呼んでいる。したがってC entry pointまたはSwift façadeがbackground threadから不正requestを受けると、callbackもbackground threadで実行される。
   - operation callback: `copy`の`deliverInvalidRequest`、`append`のoptions拒否、`clear`、`removePasteboard`、`startObserving`
     - `ios/UnityIosPlugin/UnityIosPlugin/Clipboard/UnityIosClipboardManager.swift:42`
@@ -44,8 +44,8 @@
   - `ios/UnityIosPlugin/UnityIosPluginTests/Clipboard/UnityIosClipboardManagerCallbackContractTests.swift:65`
   - `ios/UnityIosPlugin/UnityIosPluginTests/Clipboard/UnityIosClipboardManagerCallbackContractTests.swift:111`
 - result v6の「Bridge callbackがmain threadでexactly-once」と「H-01解消」は、診断解消については正しいが、実行時契約については成立しない。
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:183`
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:215`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:183`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:215`
 
 **修正方針**
 
@@ -62,15 +62,15 @@
 ### M-01: 「コンパイラが全呼び出し側で検証」はObjective-C callerには成立しない
 
 - `@Sendable`はSwift側の型検査には有効だが、Objective-C blockのcaptureをSwift concurrency checkerが全件検証するものではない。Bridge `.m`がC関数ポインタだけをcaptureしていることは、実装監査によって確認した安全性である。
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:28`
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:39`
-- result v6とMIGRATION.mdは「Swift callerはコンパイラが検証し、Objective-C callerはblock capture監査とBridgeテストで担保する」と区別すると正確である。
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:28`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:39`
+- result v6とartifact/topics/migration/README.mdは「Swift callerはコンパイラが検証し、Objective-C callerはblock capture監査とBridgeテストで担保する」と区別すると正確である。
 
-### M-02: MIGRATION.mdの129件とカテゴリ内訳126件が同じ観測段階として並んでいる
+### M-02: artifact/topics/migration/README.mdの129件とカテゴリ内訳126件が同じ観測段階として並んでいる
 
 - §4.2は冒頭で初期観測値129件、Clipboard 19件を示しているが、カテゴリ表は`32 + 17 + 14 + 13 + 11 + 7 + 32 = 126`件である。
-  - `artifact/MIGRATION.md:147`
-  - `artifact/MIGRATION.md:163`
+  - `artifact/topics/migration/README.md:147`
+  - `artifact/topics/migration/README.md:163`
 - カテゴリ表は局所3件修正後の126件を示しているように見える。初期129件の内訳へ直すか、「局所3件修正後・126件」と段階を明記し、領域別129件の表と混在させないこと。
 
 ## 軽微な指摘（low）
@@ -78,8 +78,8 @@
 ### L-01: result v6の「修正前126件」は段階名が不正確
 
 - 同じresult内の検証表ではv4時点129件、局所3件修正後126件としているため、「修正前126件」は案C適用前という意味でも曖昧である。
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:100`
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:152`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:100`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md:152`
 - 「局所3件修正後（案C適用前）126件」と記載すると観測段階が一意になる。
 
 ## 設計書整合性チェック

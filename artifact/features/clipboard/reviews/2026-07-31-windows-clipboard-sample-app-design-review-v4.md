@@ -1,11 +1,11 @@
 # レビュー結果
 
 - 日付: 2026-07-31
-- 対象ファイル: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v4.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v4.md`
 - 文書種別: サンプルアプリ設計
 - 機能名: clipboard
 - 対象 OS: Windows
-- 前回レビュー: `artifact/reviews/clipboard/2026-07-31-windows-clipboard-sample-app-design-review-v3.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-07-31-windows-clipboard-sample-app-design-review-v3.md`
 
 ---
 

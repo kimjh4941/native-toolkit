@@ -2,9 +2,9 @@
 
 - 日付: 2026-07-11
 - ブランチ: `feature/NTKIT-11`
-- 対象実装結果: `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md`
-- 対象設計書: `artifact/designs/share/2026-07-11-macos-share-design.md`
-- 前回レビュー: `artifact/reviews/share/2026-07-11-macos-share-implementation-feature-review-v1.md`
+- 対象実装結果: `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md`
+- 対象設計書: `artifact/features/share/designs/2026-07-11-macos-share-design.md`
+- 前回レビュー: `artifact/features/share/reviews/2026-07-11-macos-share-implementation-feature-review-v1.md`
 - 比較範囲: `develop...HEAD` は空。ローカル未追跡の Share 実装ファイルと v2 実装結果 artifact を対象に再レビュー。
 
 ## レビュー概要
@@ -18,11 +18,11 @@ v1 の High 2件への反映状況を中心に確認した。
 
 ### 1. T5/T8 の必須完了条件である picker / Unity Bridge の実 UI 検証が未完了のまま残っている
 
-- 設計書は T5 の完了条件として、実機での picker 表示・直接実行、`show()` を `mouseDown` 文脈で呼んだ場合の安定表示、分岐判断の確定を要求している: `artifact/designs/share/2026-07-11-macos-share-design.md:816`
-- T8 も Unity Bridge 経由で picker が `mouseDown` 制約を満たして安定表示できること、満たせない場合は代替分岐を採用することを完了条件にしている: `artifact/designs/share/2026-07-11-macos-share-design.md:819`
-- v2 実装結果自身も「T5/T8 の mouseDown 実UI検証は、本セッションでは完了できなかった」と明記している: `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md:41`, `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md:42`
-- DoD でも picker 表示と Unity Bridge 経由起動は `△` のまま: `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md:93`, `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md:95`
-- 設計書にも、分岐 A を実証的には確定できておらず、実機再検証が必要と追記されている: `artifact/designs/share/2026-07-11-macos-share-design.md:832`
+- 設計書は T5 の完了条件として、実機での picker 表示・直接実行、`show()` を `mouseDown` 文脈で呼んだ場合の安定表示、分岐判断の確定を要求している: `artifact/features/share/designs/2026-07-11-macos-share-design.md:816`
+- T8 も Unity Bridge 経由で picker が `mouseDown` 制約を満たして安定表示できること、満たせない場合は代替分岐を採用することを完了条件にしている: `artifact/features/share/designs/2026-07-11-macos-share-design.md:819`
+- v2 実装結果自身も「T5/T8 の mouseDown 実UI検証は、本セッションでは完了できなかった」と明記している: `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md:41`, `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md:42`
+- DoD でも picker 表示と Unity Bridge 経由起動は `△` のまま: `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md:93`, `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md:95`
+- 設計書にも、分岐 A を実証的には確定できておらず、実機再検証が必要と追記されている: `artifact/features/share/designs/2026-07-11-macos-share-design.md:832`
 
 影響: v2 は未完了理由と安全側の運用を明確化しているが、設計が T5/T8 の完了条件として要求していた「実 UI での picker / Unity Bridge 安定表示確認」は満たしていない。したがって、この実装を「T5/T8 完了」として次工程へ進める判断はまだ危険。
 

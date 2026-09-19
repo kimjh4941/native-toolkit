@@ -5,7 +5,7 @@
 - 日付: 2026-05-31
 - 対象OS: Windows（最小: Windows 11）
 - 対象機能: notification
-- 計画ファイル: `artifact/designs/notification/2026-05-31-windows-notification-sample-app-design-v2.md`
+- 計画ファイル: `artifact/features/notification/designs/2026-05-31-windows-notification-sample-app-design-v2.md`
 - 対象サンプルアプリ: `windows/WindowsLibraryExample`（WinUI 3 / C++/WinRT）
 
 ---
@@ -39,7 +39,7 @@
 - toast activation 拡張（T-21）・`MinVersion` 整合は実機検証/設計判断を要する open 項目のため本修正では未変更（下記 4. を維持）。
 - `DialogPage` の結果表示体裁は計画で「移設・無変更」と確定済みのため変更せず。
 - 反映後、Debug|x64 で再ビルド成功（EXIT 0。警告のみ、エラーなし）。
-- レビュー結果: `artifact/reviews/notification/2026-05-31-windows-notification-implement-sample-app-review-v1.md`
+- レビュー結果: `artifact/features/notification/reviews/2026-05-31-windows-notification-implement-sample-app-review-v1.md`
 
 ---
 

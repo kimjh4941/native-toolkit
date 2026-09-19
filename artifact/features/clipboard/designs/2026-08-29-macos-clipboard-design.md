@@ -1,7 +1,7 @@
 # macOS クリップボード機能 実装設計書
 
 - 作成日: 2026-08-29
-- 対象企画書: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v3.md`
+- 対象企画書: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v3.md`
 - 対象OS: macOS 15 以降（`MACOSX_DEPLOYMENT_TARGET` は 15.0 / 15.1）
 - 使用言語: Swift 6（strict concurrency）、Objective-C（Bridge）
 - 対象モジュール: `mac/MacLibrary`（Domain 〜 Manager）、`mac/UnityMacPlugin`（Unity Bridge）

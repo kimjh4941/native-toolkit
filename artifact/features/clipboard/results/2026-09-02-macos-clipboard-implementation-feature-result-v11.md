@@ -5,10 +5,10 @@
 - 日付: 2026-09-02
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **実装レビュー v9 の指摘 4 件（H 1 / M 1 / L 2）の反映**
-- 前版: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v10.md`
+- 前版: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v10.md`
 
 > **v10 は修正せず保持する。** レビュー v9 が読んだ状態のままにしてある。件数の誤りも
 > そのまま残っており、本版が訂正版である。
@@ -17,7 +17,7 @@
 
 ## 1. レビュー v9 の判定
 
-レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implementation-feature-review-v9.md`
+レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implementation-feature-review-v9.md`
 
 | ID | severity | v9 の判定 | 本版 |
 |---|---|---|---|
@@ -159,7 +159,7 @@ xcodebuild -workspace mac/MacWorkspace.xcworkspace -scheme UnityMacPlugin \
   SWIFT_COMPILATION_MODE=wholemodule clean build
 
 python3 scripts/check_design_consistency.py \
-  artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md
+  artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md
 
 git diff develop --check
 ```

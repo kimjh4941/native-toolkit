@@ -5,7 +5,7 @@
 - 日付: 2026-07-04
 - 機能名: share
 - 対象OS: iOS
-- 設計書: artifact/designs/share/2026-07-04-ios-share-design.md
+- 設計書: artifact/features/share/designs/2026-07-04-ios-share-design.md
 - ブランチ: feature/NTKIT-10
 
 ## 1. 実装サマリー

@@ -137,7 +137,7 @@ enum ClipboardDetectionMapper {
     // isolation boundary. These entry points avoid the crossing entirely: everything is
     // resolved and used inside one nonisolated domain, and only `PasteboardScope` (a domain
     // value type) comes in. Asserting the crossing is safe with an `@unchecked Sendable`
-    // wrapper would hide a requirement rather than state it (MIGRATION.md section 6, why
+    // wrapper would hide a requirement rather than state it (artifact/topics/migration/README.md section 6, why
     // plan C was preferred over plan B).
 
     /// Which of `patterns` the pasteboard matches.

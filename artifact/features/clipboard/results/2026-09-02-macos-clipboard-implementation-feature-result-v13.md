@@ -5,10 +5,10 @@
 - 日付: 2026-09-02
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **実装レビュー v11 の指摘 18 件（H 4 / M 7 / L 7）の反映**
-- 前版: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v12.md`
+- 前版: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v12.md`
 
 > v10 / v11 / v12 は修正せず保持する。各版はそれを対象としたレビューが読んだ状態のままである。
 
@@ -16,7 +16,7 @@
 
 ## 1. レビュー v11 の位置づけ
 
-レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implementation-feature-review-v11.md`
+レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implementation-feature-review-v11.md`
 
 **このレビューだけレビュアーが違う。** v1〜v10 は同一のレビューエージェントが担当し、
 v11 は別のエージェントが独立して実施した。

@@ -2,8 +2,8 @@
 
 - 日付: 2026-07-11
 - ブランチ: `feature/NTKIT-11`
-- 対象計画: `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md`
-- 対象実装結果: `artifact/results/share/2026-07-11-macos-share-implement-sample-app-result-v1.md`
+- 対象計画: `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md`
+- 対象実装結果: `artifact/features/share/results/2026-07-11-macos-share-implement-sample-app-result-v1.md`
 - 比較範囲: `develop...HEAD` とローカル未コミット/未追跡のサンプル実装差分
 - 対象OS: macOS
 
@@ -27,8 +27,8 @@
 
 実装結果の変更ファイル一覧は、`ShareSampleView.swift`、`ShareSampleViewUITests.swift`、`ContentView.swift`、既存画像アセット再利用に限定されている。
 
-- `artifact/results/share/2026-07-11-macos-share-implement-sample-app-result-v1.md:12`
-- `artifact/results/share/2026-07-11-macos-share-implement-sample-app-result-v1.md:19`
+- `artifact/features/share/results/2026-07-11-macos-share-implement-sample-app-result-v1.md:12`
+- `artifact/features/share/results/2026-07-11-macos-share-implement-sample-app-result-v1.md:19`
 
 一方、ローカル working tree にはサンプル実装結果に記録されていない次の差分も残っている。
 

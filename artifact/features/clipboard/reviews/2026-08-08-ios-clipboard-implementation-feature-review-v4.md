@@ -13,7 +13,7 @@
 >
 > うち 3 件は v5 で修正済み。残る 16 件（Bridge callback の `sending 'handler'`）は
 > **NTKIT-14 受け入れ前に解消が必要**。
-> 詳細: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
+> 詳細: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
 > 監査性のため本文は当時のまま保持している。再レビュー（v5）は別途実施が必要。
 
 ## レビュー対象
@@ -22,10 +22,10 @@
 - 対象OS: iOS 18以降
 - ブランチ: `feature/NTKIT-14`
 - 比較差分: `develop...feature/NTKIT-14` と未コミットのv1〜v4修正差分
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v3.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v3.md`
 
 ## レビュー概要
 

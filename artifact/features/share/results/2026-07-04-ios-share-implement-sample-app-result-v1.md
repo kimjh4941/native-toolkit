@@ -2,8 +2,8 @@
 
 - 対象アプリ: `ios/IosLibraryExample`
 - 対象OS: iOS 18 以降
-- 参照計画: `artifact/designs/share/2026-07-04-ios-share-sample-app-design-v1.md`
-- 参照実装結果（ライブラリ）: `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v3.md`
+- 参照計画: `artifact/features/share/designs/2026-07-04-ios-share-sample-app-design-v1.md`
+- 参照実装結果（ライブラリ）: `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v3.md`
 - 作成日: 2026-07-04
 - 版: v1
 

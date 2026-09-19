@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-08-01
-- 対象ファイル: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v3.md`
+- 対象ファイル: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v3.md`
 - 機能名: clipboard
 - 対象 OS: iOS 18 以降
 - レビュー方法: 本モデルによる全文確認、別モデルによる独立レビュー、Apple 公式文書と Xcode 26.3 SDK による照合

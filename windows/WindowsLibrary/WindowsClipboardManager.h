@@ -7,7 +7,7 @@
  *  history access via WinRT Windows.ApplicationModel.DataTransfer.Clipboard.
  *  Minimum OS: Windows 11.
  *
- *  See artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md
+ *  See artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md
  *  for the full concurrency and lifecycle contract summarized in the notes
  *  below.
  */

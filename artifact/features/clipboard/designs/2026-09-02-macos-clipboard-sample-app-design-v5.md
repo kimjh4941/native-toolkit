@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/MacLibraryExample/`
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v14.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v14.md`
 - 対応タスク: T-18（設計書 **§13**）
-- 前版: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md`
+- 前版: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md`
 - レビュー: `.../2026-09-02-macos-clipboard-sample-app-design-review-v2.md`（v2 に対して）、
   `.../2026-09-02-macos-clipboard-sample-app-design-review.md`（v1 に対して）
 
@@ -768,7 +768,7 @@ git diff develop --check
 検査スクリプト側も併せて実行する。
 
 ```
-python3 scripts/check_design_consistency.py artifact/designs/clipboard/<本書>
+python3 scripts/check_design_consistency.py artifact/features/clipboard/designs/<本書>
 python3 -m unittest discover -s scripts/tests
 ```
 

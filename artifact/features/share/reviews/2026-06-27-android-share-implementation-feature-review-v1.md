@@ -7,8 +7,8 @@
 - 差分:
   - `git diff develop...HEAD`
   - 未コミット差分（`git status --short` 上の Share Chooser Action 追加分を含めて確認）
-- 設計書: `artifact/designs/share/2026-06-21-android-share-design-v4.md`
-- 実装結果: `artifact/results/share/2026-06-21-android-share-implementation-feature-result-v3.md`
+- 設計書: `artifact/features/share/designs/2026-06-21-android-share-design-v4.md`
+- 実装結果: `artifact/features/share/results/2026-06-21-android-share-implementation-feature-result-v3.md`
 - 対象OS: Android
 
 ## レビュー概要
@@ -47,7 +47,7 @@ Unity 向け Share Chooser Action 受信経路として、動的 `BroadcastRecei
 1. `android/unity_android_plugin/src/main/java/android/unity/share/ShareChooserActionInputs.kt:16`
    KDoc が `@param` を省略している。internal 関数なので必須対象外だが、設計上重要な入力契約を担う関数なので、`SEND` の扱いと重複除去の意味を KDoc に残すと読み手に親切。
 
-2. `artifact/results/share/2026-06-21-android-share-implementation-feature-result-v3.md`
+2. `artifact/features/share/results/2026-06-21-android-share-implementation-feature-result-v3.md`
    実装結果では API 34+ 計装テスト未実施を明記している一方、DoD は概ね達成済みのように読める。必須テストが未実行なら、総合の達成状況は `△` として残した方が後続レビューで誤読しにくい。
 
 ## 設計書整合性チェック

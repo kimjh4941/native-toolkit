@@ -4,7 +4,7 @@
 
 - 日付: 2026-09-03
 - 機能名: clipboard（**iOS 側の観点。NTKIT-14**）
-- 設計: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v6.md` §6.3 / §6.5
+- 設計: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v6.md` §6.3 / §6.5
 - 実施ブランチ: `feature/NTKIT-15`（macOS 側。**端末 B として macOS サンプルを使ったため、記録もこちらに置く**）
 - 端末 A: iPhone XS / iOS 18.7.2（iOS サンプルアプリ）
 - 端末 B: MacBook Air (arm64) / macOS 26.3 / 25D125（`MacLibraryExample`）

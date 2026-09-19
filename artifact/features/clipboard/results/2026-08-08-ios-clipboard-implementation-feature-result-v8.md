@@ -5,10 +5,10 @@
 - 日付: 2026-08-08
 - 機能名: clipboard
 - 対象OS: iOS
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 対象レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v7.md`
-- 前版: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v7.md`
-- 追加参照: `artifact/MIGRATION.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 対象レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v7.md`
+- 前版: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v7.md`
+- 追加参照: `artifact/topics/migration/README.md`
 - ブランチ: `feature/NTKIT-14`
 
 ## 1. 実装サマリー
@@ -21,7 +21,7 @@
 ### 1.2 実装時の追加判断
 
 - レビュー v7 の指摘は文書上の整合性に限定されるため、コードやテストは変更しない。
-- `artifact/MIGRATION.md`の案Cを、現在の最終方針へ統一した。
+- `artifact/topics/migration/README.md`の案Cを、現在の最終方針へ統一した。
   - Swift callerのclosure transferは`@Sendable`によりコンパイラが検証する。
   - Objective-C callerはblock capture監査とBridge契約テストで担保する。
   - `@Sendable`は実行executorを固定しないため、main-thread実行は全経路のdelivery監査とmain-actor helperで保証する。
@@ -34,12 +34,12 @@
 
 ### 2.1 新規作成
 
-- `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
+- `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
 
 ### 2.2 既存変更
 
-- `artifact/MIGRATION.md` — 案Cの評価をSwift / Objective-Cの担保範囲とmain-thread delivery契約へ統一。
-- `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v7.md` — 本文を保持し、経路数と`append` parse失敗をErrataで訂正。
+- `artifact/topics/migration/README.md` — 案Cの評価をSwift / Objective-Cの担保範囲とmain-thread delivery契約へ統一。
+- `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v7.md` — 本文を保持し、経路数と`append` parse失敗をErrataで訂正。
 
 ### 2.3 非変更
 
@@ -65,7 +65,7 @@
 ## 4. 同期・非同期レイヤー対応
 
 - System API、Repository、UseCase、Manager、Bridgeのシグネチャとactor isolationに変更なし。
-- `@Sendable`はclosure transfer、`deliverOnMain`はcallback executorを担うという責務分離をMIGRATION.mdへ正確に反映した。
+- `@Sendable`はclosure transfer、`deliverOnMain`はcallback executorを担うという責務分離をartifact/topics/migration/README.mdへ正確に反映した。
 - 設計差分なし。
 
 ## 5. ビルド結果
@@ -90,7 +90,7 @@
 
 ## 7. Definition of Done
 
-- ○ レビュー v7 M-01: MIGRATION.mdの案C評価と担保範囲を統一。
+- ○ レビュー v7 M-01: artifact/topics/migration/README.mdの案C評価と担保範囲を統一。
 - ○ レビュー v7 L-01: 実装callsite 10箇所と公開分岐14経路を区別。
 - ○ result v7本文を保持し、Errataへ`append` parse失敗を記録。
 - ○ Clipboard strict診断0件を維持。

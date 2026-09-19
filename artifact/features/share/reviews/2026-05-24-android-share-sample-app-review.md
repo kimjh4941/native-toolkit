@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-05-24
-- 対象ファイル: artifact/designs/share/2026-05-24-android-share-implement-sample-app-v1.md
+- 対象ファイル: artifact/features/share/designs/2026-05-24-android-share-implement-sample-app-v1.md
 - 機能名: android-share
 - 対象 OS: Android
 

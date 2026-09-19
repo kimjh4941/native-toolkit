@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-06-21
-- 対象ファイル: `artifact/designs/share/2026-06-21-android-share-sample-app-design-v4.md`
+- 対象ファイル: `artifact/features/share/designs/2026-06-21-android-share-sample-app-design-v4.md`
 - 機能名: share
 - 対象 OS: Android 12 以降
 

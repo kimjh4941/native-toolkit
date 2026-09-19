@@ -2,8 +2,8 @@
 
 - 作成日: 2026-08-29
 - 改訂日: 2026-08-29（v5: 第 4 回レビュー指摘 10 件を全件反映）
-- 前版: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v4.md`
-- 初版: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design.md`
+- 前版: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v4.md`
+- 初版: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design.md`
 - レビュー: `.../2026-08-29-macos-clipboard-design-review-v4.md`（第 4 回）、`-v3.md`、`-v2.md`、`.../2026-08-29-macos-clipboard-design-review.md`（第 1 回）
 
 ## 用語（件数の基準。R3-L8）
@@ -13,7 +13,7 @@
 - **UseCase**: **17 本**（+ `ClipboardContentValidator` / `ClipboardChangeTracker` / `ClipboardUseCases` 集約 = ファイル 20 本）
 - **callback 必須の Bridge endpoint**: **3 件**（`clipboardProvideFilePromise` / `clipboardReceiveFilePromises` / `clipboardCreatePasteboard`）。残り 16 件は NULL 許容
 - **JSON shape**（§8.4.4）: 入力専用 **7**、入出力共用 **3**、出力専用 **7**、イベント **2** = 実体 **19 型**
-- 対象企画書: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v3.md`
+- 対象企画書: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v3.md`
 - 対象OS: macOS 15 以降（`MACOSX_DEPLOYMENT_TARGET` は 15.0 / 15.1）
 - 使用言語: Swift 6（strict concurrency）、Objective-C（Bridge）
 - 対象モジュール: `mac/MacLibrary`（Domain 〜 Manager）、`mac/UnityMacPlugin`（Unity Bridge）

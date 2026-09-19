@@ -6,17 +6,17 @@
 >   `removePasteboard` / `startObserving`）、`append` options拒否1経路、JSON callback 8経路である。
 > - 下表のoperation parse失敗から`append`が欠落していた。実装には含まれており、文書だけの誤り。
 >
-> 訂正: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
+> 訂正: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
 
 ## 基本情報
 
 - 日付: 2026-08-08
 - 機能名: clipboard
 - 対象OS: iOS
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 対象レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v6.md`
-- 前版: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md`
-- 追加参照: `artifact/MIGRATION.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 対象レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v6.md`
+- 前版: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md`
+- 追加参照: `artifact/topics/migration/README.md`
 - ブランチ: feature/NTKIT-14
 
 ---
@@ -89,18 +89,18 @@ v6 の「コンパイラが全呼び出し側で検証」は Objective-C caller 
 `@Sendable` は Swift 側の型検査にのみ有効であり、ObjC block の capture を
 Swift concurrency checker が全件検証するわけではない。
 
-result / MIGRATION.md を次のように区別して記載し直した。
+result / artifact/topics/migration/README.md を次のように区別して記載し直した。
 
 | 呼び出し側 | 担保手段 |
 |---|---|
 | Swift caller | `@Sendable` によりコンパイラが型検査する |
 | **Objective-C caller** | **コンパイラ検証は及ばない。** block の capture 監査（C 関数ポインタのみ）と Bridge 契約テストで担保する |
 
-あわせて「`@Sendable` は実行 executor を main actor に固定しない」ことを MIGRATION.md §6 に明記した。
+あわせて「`@Sendable` は実行 executor を main actor に固定しない」ことを artifact/topics/migration/README.md §6 に明記した。
 
 ### 1.3 M-02 / L-01: 観測段階の表記
 
-MIGRATION.md §4.2 で、領域別表（初期観測 129 件）とカテゴリ別表（126 件）が同じ段階として
+artifact/topics/migration/README.md §4.2 で、領域別表（初期観測 129 件）とカテゴリ別表（126 件）が同じ段階として
 並んでいた。カテゴリ表を **「局所 3 件修正後（案 C 適用前）・計 126」** と明記し、
 領域別表とは観測段階が異なることを注記した。
 
@@ -120,7 +120,7 @@ result v6 §1.3(b) の「修正前 126 件」も同様に段階が曖昧だっ�
 
 ### 2.3 変更（ドキュメント）
 
-- `artifact/MIGRATION.md` — M-01（担保範囲の区別、`@Sendable` の意味の明確化）、M-02（観測段階の明記）、確認事項に早期失敗経路を追加
+- `artifact/topics/migration/README.md` — M-01（担保範囲の区別、`@Sendable` の意味の明確化）、M-02（観測段階の明記）、確認事項に早期失敗経路を追加
 
 ### 2.4 変更なし
 
@@ -134,7 +134,7 @@ result v6 §1.3(b) の「修正前 126 件」も同様に段階が曖昧だっ�
 
 ### 3.1 Swift 5 + strict concurrency complete（whole-module / clean）
 
-`UnityIosPlugin` scheme。集計は MIGRATION.md §4.3 の正規コマンドによる unique 行数。
+`UnityIosPlugin` scheme。集計は artifact/topics/migration/README.md §4.3 の正規コマンドによる unique 行数。
 
 | 段階 | ビルド | error | unique warning | うち Clipboard |
 |---|---|---|---|---|
@@ -161,7 +161,7 @@ delivery helper の追加による診断の増減はない。
 ### レビュー v6 項目
 - ○ H-01 全経路 main thread の実行時契約（早期失敗経路を含む）
 - ○ M-01 `@Sendable` の検証範囲の記述訂正
-- ○ M-02 MIGRATION.md の観測段階の分離
+- ○ M-02 artifact/topics/migration/README.md の観測段階の分離
 - ○ L-01 result の段階名の明確化
 
 ### 実装
@@ -201,7 +201,7 @@ delivery helper の追加による診断の増減はない。
 > 4 について: 今回の欠陥は Bridge 共通の構造に由来する可能性が高い。案 C を他機能へ適用する際は、
 > **`@Sendable` 付与だけで済ませず、早期失敗経路の delivery も同時に監査する**こと。
 
-移行管理全体の着手順は `artifact/MIGRATION.md` §8 を参照。
+移行管理全体の着手順は `artifact/topics/migration/README.md` §8 を参照。
 
 ---
 

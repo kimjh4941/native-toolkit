@@ -5,8 +5,8 @@
 - 対象差分:
   - `git diff develop...HEAD`
   - 追加確認: sample app 実装は未コミット working tree 差分として存在したため、`git diff` / 未追跡ファイルもレビュー対象に含めた
-- 計画ファイル: artifact/designs/clipboard/2026-07-25-android-clipboard-sample-app-design-v3.md
-- 実装結果ファイル: artifact/results/clipboard/2026-07-25-android-clipboard-implement-sample-app-result-v1.md
+- 計画ファイル: artifact/features/clipboard/designs/2026-07-25-android-clipboard-sample-app-design-v3.md
+- 実装結果ファイル: artifact/features/clipboard/results/2026-07-25-android-clipboard-implement-sample-app-result-v1.md
 - 対象 OS: Android
 
 ---

@@ -2,9 +2,9 @@
 
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `MacLibraryExample`
-- 対象設計書: artifact/designs/share/2026-07-11-macos-share-design.md
-- 対象実装結果: artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md
-- 対象実装レビュー: artifact/reviews/share/2026-07-11-macos-share-implementation-feature-review-v3.md
+- 対象設計書: artifact/features/share/designs/2026-07-11-macos-share-design.md
+- 対象実装結果: artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md
+- 対象実装レビュー: artifact/features/share/reviews/2026-07-11-macos-share-implementation-feature-review-v3.md
 - 作成日: 2026-07-11
 - 出力言語: 日本語
 

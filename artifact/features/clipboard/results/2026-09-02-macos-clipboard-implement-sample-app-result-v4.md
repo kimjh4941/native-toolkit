@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/`
-- 計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`（本版で §4.1 / §4.2 を更新）
+- 計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`（本版で §4.1 / §4.2 を更新）
 - 対応タスク: T-18（機能設計 §13）
-- 前版: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v3.md`
-- 反映したレビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v3.md`
+- 前版: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v3.md`
+- 反映したレビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v3.md`
 
 > レビュー v3 の 8 件（A 3 / B 4 / C 1）をすべて反映した。**A 3 件のうち 2 件は、前ラウンドで
 > 直したのと同じ欠陥が、直さなかった兄弟の経路に残っていたものである。**

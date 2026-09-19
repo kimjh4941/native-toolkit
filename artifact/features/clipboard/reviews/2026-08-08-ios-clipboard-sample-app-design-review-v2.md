@@ -1,13 +1,13 @@
 # レビュー結果
 
 - 日付: 2026-08-08
-- 対象ファイル: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md`
 - 機能名: clipboard
 - 対象 OS: iOS 18 以降
-- 参照企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 参照設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 参照実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-sample-app-design-review.md`
+- 参照企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 参照設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 参照実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-sample-app-design-review.md`
 
 ---
 
@@ -29,8 +29,8 @@
 #### 1. `Copy Custom Data`から`Load File (public.data)`が成功する保証がない
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:342`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:606`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:342`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:606`
 - `Copy Custom Data`は未登録の`com.jonghyunkim.nativetoolkit.example.custom`というidentifierだけでDataを書き込む。
   - `ios/IosLibrary/IosLibrary/Clipboard/Data/Repository/ClipboardMappers.swift:90`
 - `.file(utType:)`は、providerが要求identifierへconformするときだけ対象を選ぶ。
@@ -40,9 +40,9 @@
 
 #### 2. T-00対応表がなお複数ケースを「実施可能」と過大評価している
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:536`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:536`
 - 企画書の16ケースは「直前の状況」と「操作」の組であり、同じAPIを押せるだけではケースを満たさない。
-  - `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md:384`
+  - `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md:384`
 - 現在の表には少なくとも次の不一致がある。
 
 | ケース | v2の記載 | 問題 |
@@ -60,8 +60,8 @@
 #### 3. Paste Controlの「対応外型のみ → all failure」は実装上到達しない
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:484`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:616`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:484`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:616`
 - receiverの`canPaste`は、providerにaccepted typeが1件もなければ`false`を返す。
   - `ios/IosLibrary/IosLibrary/Clipboard/Presentation/ClipboardPasteReceiverView.swift:42`
 - そのため「他アプリで対応外の型のみをコピー」した場合はPaste Controlが無効になり、`paste(itemProviders:)`も`onPasteFailure`も呼ばれない。`items=0, failures=1`という期待結果には到達しない。
@@ -73,8 +73,8 @@
 #### 1. accessibility identifierの単一情報源がUI test targetから参照できる構成になっていない
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:570`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:653`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:570`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:653`
 - v2は`ClipboardSampleIdentifiers`をapp targetの`ClipboardSampleView.swift`内に置き、ViewとUI testの双方から参照するとしている。
 - XCUITest bundleはappとは別target・別processであり、app targetのinternal enumをそのまま参照する前提にはできない。現行UI test fileも`XCTest`だけをimportしている。
   - `ios/IosLibraryExample/IosLibraryExampleUITests/IosLibraryExampleUITests.swift:8`
@@ -84,7 +84,7 @@
 
 #### 2. UI testの非同期待機とScrollView操作が不足している
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:693`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:693`
 - `waitForExistence`はelementの出現だけを待ち、既に存在する`clipboard.result`や`clipboard.status`のlabel変更は待たない。async API結果や観測eventを即時部分一致で読むとflakyになる。
 - Error Casesなど画面下部のbuttonについて、off-screen elementを確実に表示してからtapする方法も未定義である。
 - `XCTNSPredicateExpectation`または`XCTWaiter`でlabelの期待値を待つhelperと、`isHittable`になるまでscrollするhelperを計画へ追加すること。
@@ -92,7 +92,7 @@
 
 #### 3. 一時ファイルの手動確認でrequest directoryとsession directoryを混同している
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:607`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:607`
 - `consumeLoadedFile`が削除するのは返却URLの親であるrequest directoryであり、session directoryではない。
   - `ios/IosLibrary/IosLibrary/Clipboard/Data/File/ClipboardTemporaryFileStore.swift:13`
 - active session directoryは残り得るため、「返却されたsession directoryが残っていない」を期待すると正常実装を失敗扱いする。
@@ -100,22 +100,22 @@
 
 #### 4. M-12 / M-13を実施可能とするためのfixtureと手順がない
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:635`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:635`
 - M-12は「他sessionかつ24時間より古いdirectory」を用意し、別processの最初のfile store初期化を起こす必要がある。単なる時刻操作だけでは、残留物の作成・app強制終了・再起動後の初回load・削除確認という前後条件が不足する。
 - M-13で64 MiB / 100 MP境界も扱うとしているが、画面が提供するのは小さなbundle画像だけであり、境界fixtureの生成・import手順がない。1.5の「サンプルでは扱わない」とも表現が揺れている。
 - M-12は専用実機手順を追加するかT-13側のharnessへ委譲すること。M-13は通常fixtureでのInstruments計測とlimit境界unit testを分離し、「境界を本サンプルで扱う」という記載を撤回すること。
 
 #### 5. cleanup失敗を成功表示だけで終えるとサンプルから契約違反を検出できない
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:365`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:365`
 - 削除失敗をconsole logだけへ出し、load自体を成功表示にすると、手動確認者はstorage leakを結果領域から識別できない。
 - load成功とcleanup失敗を区別し、例えば`fileSize=<n>, cleanup=failed`を警告表示すること。pathは不要であり、秘匿方針を維持できる。
 
 #### 6. 自動化可能なError Casesと再起動ケースが手動へ残されている
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:676`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:685`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:676`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:685`
 - Error Cases 11件はすべて固定入力であり、4件だけに絞る技術的理由がない。workflowの「自動化可能な手動観点をUI testへ実装する」という条件に対し不足する。
 - named pasteboardの非永続性も、`XCUIApplication.terminate()`後に再`launch()`し、`Use Fixed Named Scope (no create)`を押せるため、「1セッションで完結しない」は自動化除外理由にならない。
 - U-9はBack後のno-crashしか確認せず、対応先にした手動#18の「監視が停止する」を検証していない。
@@ -123,7 +123,7 @@
 
 #### 7. Observeの異常系操作でmanagerと画面の観測状態が不一致になり得る
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:512`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:512`
 - `startObserving`は新しいscopeを解決する前に既存観測を停止する。
   - `ios/IosLibrary/IosLibrary/Clipboard/IosClipboardManager.swift:326`
 - 観測中にError Casesの`Observe Unresolvable Named`を押すと、manager側は既存観測を停止してからthrowする一方、画面の`isObserving`は`true`のまま残り、Start / StopとScope buttonの活性状態が実態とずれる。
@@ -133,12 +133,12 @@
 
 #### 1. 非`ClipboardError`の生成失敗mappingが擬似コードのままである
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:465`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:465`
 - `.unknown(...)`は実装可能な式ではない。`ClipboardError.unknown(ClipboardFailureDetail(systemError: error))`など、既存public initializerを使う形へ確定すると実装差が減る。
 
 #### 2. UI testで「各テストの冒頭にClear」の具体的な初期化順が不足している
 
-- 対象: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v2.md:695`
+- 対象: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v2.md:695`
 - `Clear Active Scope`はClipboard画面内の下部buttonなので、launch直後には操作できない。
 - `launch → menu遷移 → Clear buttonまでscroll → clear完了をwait → 対象sectionへ移動`を共通setup helperとして明記するとよい。
 

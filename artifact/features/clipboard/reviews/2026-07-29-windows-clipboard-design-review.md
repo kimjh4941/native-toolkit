@@ -1,7 +1,7 @@
 # 再レビュー結果
 
 - 日付: 2026-07-29
-- 対象ファイル: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design.md`
 - 機能名: clipboard
 - 対象 OS: Windows 11 以降
 - 対象版: v5（リクエスト状態機械と層境界版）

@@ -6,9 +6,9 @@
 - 基準差分: `git diff develop...HEAD`
 - 最終修正差分: staged `git diff --cached`（9 files、+462 / -39）
 - 対象 OS: macOS 15 以降
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
-- 実装結果: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v6.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v6.md`
 - T-18、MT-01〜MT-09、Swift 6 言語モード移行、develop から追跡済みの他の `xcuserdata` は対象外
 
 ## レビュー概要
@@ -44,7 +44,7 @@
 
 **判定: 解消**
 
-- 実装結果 v8 は宣言数と parameter 展開後の実行数を分離し、再現コマンドも `clean test` で固定した（`artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v8.md:92-102,129-155`）。
+- 実装結果 v8 は宣言数と parameter 展開後の実行数を分離し、再現コマンドも `clean test` で固定した（`artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v8.md:92-102,129-155`）。
 - レビュー時の source / xcresult と一致した。
 
 ### L-5 [low]: 設計書末尾の余分な空行
@@ -60,7 +60,7 @@
 
 - 本ブランチで変更された iOS `UserInterfaceState.xcuserstate` は追跡解除されている。
 - `ios/.gitignore` と `mac/.gitignore` の `xcuserdata/` は各 subtree 内の Xcode user data を任意深度で除外することを確認した。
-- workflow / consistency script / `MIGRATION.md` の変更理由は実装結果 v8 に明記され、未整理の既存追跡ファイル15件も範囲外残作業として分離された（実装結果:108-125,190-195）。
+- workflow / consistency script / `artifact/topics/migration/README.md` の変更理由は実装結果 v8 に明記され、未整理の既存追跡ファイル15件も範囲外残作業として分離された（実装結果:108-125,190-195）。
 
 ## 重大な問題（high）
 
@@ -74,9 +74,9 @@
 
 ### L-7: strict 診断の領域別内訳が1件ずれている
 
-- 実装結果 v8 は total 173件の内訳を Dialog 101 / Notification 53 / Share 18 とするが、合計は172になる（`artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v8.md:157-159`）。
+- 実装結果 v8 は total 173件の内訳を Dialog 101 / Notification 53 / Share 18 とするが、合計は172になる（`artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v8.md:157-159`）。
 - レビュー時に同じ path + message の unique 条件で再集計した結果は Dialog 101 / **Notification 54** / Share 18 / Clipboard 0 = 173だった。
-- `artifact/MIGRATION.md:215-223` の詳細表も MacLibrary Notification 52 + UnityMacPlugin Notification 2 = 54を示す。
+- `artifact/topics/migration/README.md:215-223` の詳細表も MacLibrary Notification 52 + UnityMacPlugin Notification 2 = 54を示す。
 - 合否、Clipboard 0件、total 173件には影響しない。mergeを妨げない文書誤記として、53を54へ訂正することを推奨する。
 
 ## 設計書整合性チェック

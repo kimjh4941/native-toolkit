@@ -7,7 +7,7 @@
 - 対象OS: Windows 11 以降
 - 対象機能: クリップボード（Clipboard）
 - 使用言語: VC++（Win32 コア = C++17 / WinRT 履歴 = C++20）
-- 対象企画書: `artifact/plans/clipboard/2026-07-27-windows-clipboard-research.md`
+- 対象企画書: `artifact/features/clipboard/plans/2026-07-27-windows-clipboard-research.md`
 
 ---
 

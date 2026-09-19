@@ -3,9 +3,9 @@
 - 日付: 2026-07-29
 - 対象ブランチ: `feature/NTKIT-13`
 - レビュー範囲: Clipboard 関連の作業ツリー差分
-- 設計書: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
-- 実装結果: `artifact/results/clipboard/2026-07-29-windows-clipboard-implementation-feature-result-v2.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-07-29-windows-clipboard-implementation-feature-review-v1.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
+- 実装結果: `artifact/features/clipboard/results/2026-07-29-windows-clipboard-implementation-feature-result-v2.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-07-29-windows-clipboard-implementation-feature-review-v1.md`
 - 総合評価: **要修正（重大）**
 
 ## 概要

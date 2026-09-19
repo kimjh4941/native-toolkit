@@ -12,7 +12,7 @@ nine reviewers failed to see exactly this, so review is the wrong instrument.
 
 An exception is allowed when the feature genuinely needs one. Put
 
-    sample-app-input-approved: artifact/designs/<feature>/<plan>.md
+    sample-app-input-approved: artifact/features/<feature>/designs/<plan>.md
 
 in the file that declares the field. The marker must name the plan document
 that carries the reason, so the exception stays traceable from the code; a

@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: iOS 18 以降
 - 対象サンプルアプリ: `ios/IosLibraryExample`
-- 計画ファイル: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v6.md`
-- 機能設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 実装結果 v1: `artifact/results/clipboard/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md`
-- レビュー: `artifact/reviews/clipboard/2026-08-11-ios-clipboard-implement-sample-app-review-v1.md`（総合評価: 要修正（重大））
+- 計画ファイル: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v6.md`
+- 機能設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 実装結果 v1: `artifact/features/clipboard/results/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md`
+- レビュー: `artifact/features/clipboard/reviews/2026-08-11-ios-clipboard-implement-sample-app-review-v1.md`（総合評価: 要修正（重大））
 - 対応タスク: 設計書 T-12
 
 本レポートは v1 に対するレビュー v1 の指摘（高 1 / 中 2 / 低 2）を反映した差分をまとめる。
@@ -205,7 +205,7 @@ v1 / v2 初稿が非不具合の根拠にしていた 2 点は、いずれも寿
 | 対象 | 記述 | 状態 |
 |---|---|---|
 | `IosClipboardManager.swift:35` / `PasteboardScope.swift:10` | ライブラリの**公開 DocC 契約** | 観測と不一致。**要再評価** |
-| `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md` | 設計書の「非永続」記述 | 同上 |
+| `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md` | 設計書の「非永続」記述 | 同上 |
 
 T-13 の長時間測定の結果が出るまでは、次のいずれとも断定しないこと。
 

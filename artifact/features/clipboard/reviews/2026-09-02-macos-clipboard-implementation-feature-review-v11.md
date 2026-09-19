@@ -3,8 +3,8 @@
 - 日付: 2026-09-02
 - 対象ブランチ: `feature/NTKIT-15`
 - 対象差分: `git diff develop`（**未コミットの working tree を含む**）
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v12.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v12.md`
 - 対象OS: macOS 15 以降
 - 適用ルール: `agent-rules/coding-rules/common.md`、`agent-rules/coding-rules/mac.md`
 - 対象外: 設計書 §7.12 のスコープ変更判断そのもの / T-18 / MT-01〜MT-09 / 旧サンプル計画 v1
@@ -361,7 +361,7 @@ deinit {
 
 ### L-1. §12.2 の IT-20 / IT-50 が表として壊れている
 
-- 該当: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:1581-1583`
+- 該当: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:1581-1583`
 
 IT-11 の後に空行が入り、IT-20 / IT-50 の 2 行がヘッダ行の無い「表」になっている
 （IT-12〜IT-19 削除の副作用）。Markdown としては表にならず、`| IT-20 | ... |` が

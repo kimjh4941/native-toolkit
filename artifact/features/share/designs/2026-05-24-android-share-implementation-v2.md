@@ -1,6 +1,6 @@
 # Android シェア機能 実装設計書
 
-- 対象企画書: artifact/plans/share/2026-05-23-android-share-research-v2.md
+- 対象企画書: artifact/features/share/plans/2026-05-23-android-share-research-v2.md
 - 作成日: 2026-05-24
 - 改訂日: 2026-05-24（v2: レビュー指摘反映）
 - 対象OS: Android

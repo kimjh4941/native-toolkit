@@ -7,8 +7,8 @@
 - ブランチ: `feature/NTKIT-13`
 - PR: 指定なし
 - 差分: `git diff develop...HEAD` のうち、`windows/WindowsLibraryExample`、`windows/WindowsLibraryExampleUITest`、関連ルール・成果物を対象
-- 計画: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v5.md`
-- 実装結果: `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
+- 計画: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
 - 参照ルール:
   - `agent-rules/coding-rules/common.md`
   - `agent-rules/coding-rules/windows.md`
@@ -40,8 +40,8 @@
   - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp:76`
   - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp:83`
   - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp:528`
-  - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:21`
-  - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:339`
+  - `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:21`
+  - `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:339`
 - 実測: 28件中1件失敗。再入場後のログは placeholder ではなく、旧予約に由来する provider query / fill ログになった。
 - 原因候補:
   - テストが後続イベントを発生し得る `ReserveDeferredFormats` でログ状態を作っており、「再入場時にログが初期化されたこと」と「再入場後に新しいproviderイベントが来ないこと」を混同している。
@@ -69,9 +69,9 @@
 ### M2. 自動化範囲の集計が誤り、未検証観点が残る
 
 - 該当:
-  - `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v5.md:627`
-  - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:206`
-  - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:339`
+  - `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md:627`
+  - `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:206`
+  - `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:339`
 - v5 §8.4は17確認項目だが、resultは16項目としている。
 - 少なくとも次が未検証または検証不十分:
   - cleanup完了ログ
@@ -102,9 +102,9 @@
 ### M5. 実装結果の変更ファイル一覧と現在の実装が一致しない
 
 - 該当:
-  - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:27`
-  - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:47`
-  - `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:178`
+  - `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:27`
+  - `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:47`
+  - `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:178`
 - §1は「新規4 + 既存4だけ」「v5 §11を満たす」としたままだが、その後 `.gitignore`、ルール2ファイル、UIテストプロジェクト11ファイル、AutomationIdが追加されている。
 - 別タスクで追加した経緯は§5にあるが、レビュー対象時点の最終変更一覧と検証結果に更新されていない。27/28という最新結果も反映する。
 
@@ -113,7 +113,7 @@
 ### L1. `CompleteWorkerOperation` が計画に反してpublic
 
 - 該当:
-  - `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v5.md:497`
+  - `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md:497`
   - `windows/WindowsLibraryExample/ClipboardPage.xaml.h:129`
 - 計画はprivate memberを要求するが、実装はpublicへ切り替えている。member function内で定義したlambdaからprivate memberを呼べるため、公開する必然性はない。
 

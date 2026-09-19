@@ -5,16 +5,16 @@
 - 日付: 2026-09-02
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **実装レビュー v8 の指摘 7 件（H 2 / M 4 / L 1）の反映**
-- 前版: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v9.md`
+- 前版: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v9.md`
 
 ---
 
 ## 1. レビュー v8 の判定
 
-レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implementation-feature-review-v8.md`
+レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implementation-feature-review-v8.md`
 
 - 総合: **要修正（重大）**。high 2 / medium 4 / low 1
 - File Promise 実行経路の削除、coordinator の縮小、エラーコードの欠番方針（実装側）は妥当と判定された

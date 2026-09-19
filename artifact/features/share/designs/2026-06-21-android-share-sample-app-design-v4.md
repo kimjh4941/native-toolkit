@@ -1,11 +1,11 @@
 # 実装計画: Share サンプルアプリ（AndroidLibraryExample）v4
 
 - 対象アプリ: `android/AndroidLibraryExample`
-- 参照設計書: `artifact/designs/share/2026-06-20-android-share-design-v3.md`
-- 前版: `artifact/designs/share/2026-06-20-android-share-sample-app-design-v3.md`
+- 参照設計書: `artifact/features/share/designs/2026-06-20-android-share-design-v3.md`
+- 前版: `artifact/features/share/designs/2026-06-20-android-share-sample-app-design-v3.md`
 - 作成日: 2026-06-21
 - 改訂: v4（**ライブラリ機能のうちサンプル未デモ分の補完** / 設計レビュー反映済み）
-- レビュー: `artifact/reviews/share/2026-06-21-android-share-sample-app-design-review.md`（高優先度2件・中2件・低1件を反映）
+- レビュー: `artifact/features/share/reviews/2026-06-21-android-share-sample-app-design-review.md`（高優先度2件・中2件・低1件を反映）
 
 ---
 

@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-07-28
-- 対象ファイル: `artifact/plans/clipboard/2026-07-27-windows-clipboard-research-v2.md`
+- 対象ファイル: `artifact/features/clipboard/plans/2026-07-27-windows-clipboard-research-v2.md`
 - 機能名: clipboard
 - 対象 OS: Windows
 - レビュー範囲: 同期 / 非同期方針と公開 Bridge 契約

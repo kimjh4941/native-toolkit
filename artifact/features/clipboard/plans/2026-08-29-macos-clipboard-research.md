@@ -6,7 +6,7 @@
 - 使用言語: Swift
 - 対象フレームワーク: AppKit（`NSPasteboard` / `NSPasteboardItem` / `NSFilePromiseProvider` / `NSFilePromiseReceiver`）、UniformTypeIdentifiers（`UTType`）、DataDetection（`DDMatch*`）、SwiftUI（`PasteButton`）
 - 検証環境: macOS 26.3 / Xcode 26.3 / MacOSX26.2.sdk（AppKit ヘッダ・`AppKit.swiftinterface` を一次確認に使用）
-- 関連: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`（iOS 版）、`artifact/plans/clipboard/2026-07-25-android-clipboard-research.md`（Android 版）
+- 関連: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`（iOS 版）、`artifact/features/clipboard/plans/2026-07-25-android-clipboard-research.md`（Android 版）
 
 ---
 
@@ -405,7 +405,7 @@ ObjC 側の対応シンボル（Swift からは不可視。全網羅の担保と
 | RK-03 | プライバシー | `detectedValues(for:)` は一致時に**ユーザー通知が発生し、拒否されると throw する**（ヘッダに明記） | 「通知なしの内容取得」はできない | 通知を避ける用途では `detectedPatterns` / `detectedMetadata` のみを使う。`detectedValues` はユーザー操作起点でのみ呼ぶ |
 | RK-04 | 機能欠落 | iOS の `UIPasteboard.OptionsKey.expirationDate` に相当する API が macOS に**存在しない** | クリップボード内容の自動失効ができない。iOS と API パリティが取れない | 公開 API で `expirationDate` 相当を受け付けない、または「macOS では無視される」ことを DocC に明記。自前タイマで `clearContents()` する代替は所有権を他アプリに奪われた後に誤消去する危険があるため、`changeCount` 一致時のみ消去する |
 | RK-05 | 仕様差異 | `clearContents()` は `prepareForNewContents(with: .currentHostOnly)` で設定したオプションを**解除する**（ヘッダに明記） | 「ローカル限定でコピー」を意図した実装が Universal Clipboard に流出する | ローカル限定コピーでは `clearContents()` を呼ばず、必ず `prepareForNewContents(with: .currentHostOnly)` を先頭手順にする。Repository 層で所有権取得を 1 経路に集約する |
-| RK-06 | 寿命 | 名前付き / 一意名ペーストボードは**アプリ終了後もペーストボードサーバに残る**（`withUniqueName()` の公式文書「lifetime ... is not related to the lifetime of the creating app」） | 機密データが終了後も他アプリから読める。iOS 版で検出済みの M-08 と同種の露出が macOS では**仕様として発生する** | 一意名ペーストボードは使用後に必ず `releaseGlobally()` を呼ぶ（`defer` で保証）。機密データは名前付きペーストボードに置かない。DocC の契約文で「終了後も残存しうる」ことを明記する。関連: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md` |
+| RK-06 | 寿命 | 名前付き / 一意名ペーストボードは**アプリ終了後もペーストボードサーバに残る**（`withUniqueName()` の公式文書「lifetime ... is not related to the lifetime of the creating app」） | 機密データが終了後も他アプリから読める。iOS 版で検出済みの M-08 と同種の露出が macOS では**仕様として発生する** | 一意名ペーストボードは使用後に必ず `releaseGlobally()` を呼ぶ（`defer` で保証）。機密データは名前付きペーストボードに置かない。DocC の契約文で「終了後も残存しうる」ことを明記する。関連: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md` |
 | RK-07 | 寿命 | `releaseGlobally()` を標準ペーストボード（`general` 等）に呼ぶと「no other application can use the receiver」となる | システム全体のクリップボードを破壊しうる | Repository 層で `general` および標準名に対する `releaseGlobally()` を**呼べない構造**にする（一意名生成経路のみが解放責務を持つ） |
 | RK-08 | 並行性 | `NSPasteboard` / `NSPasteboardItem` は **非 Sendable**（`@_nonSendable(_assumed)`。コンパイラで確認済み）。ただし MainActor 隔離でもない | Swift 6 でアクター境界を越えて渡すとコンパイルエラー。誤って `nonisolated(unsafe)` で回避するとデータ競合 | ペーストボードインスタンスを保持して受け渡さず、使用箇所ごとに `NSPasteboard.general` を取得する。Repository を `@MainActor` に固定するか、専用のシリアル実行文脈に閉じる |
 | RK-09 | 並行性 | `NSServicesMenuRequestor` の要件は `nonisolated`。`NSView`（MainActor）で適合すると Swift 6 で `ConformanceIsolation` エラー（実測） | ビルド不能 | 適合を `@MainActor` で隔離する（`final class V: NSView, @MainActor NSServicesMenuRequestor`）。または要件実装を `nonisolated` にする |

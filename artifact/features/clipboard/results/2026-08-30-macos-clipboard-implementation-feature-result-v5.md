@@ -5,7 +5,7 @@
 - 日付: 2026-08-30
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **実装レビュー v3 の指摘 2 件（M-7 / L-1）の反映**
 - 前版: `2026-08-30-macos-clipboard-implementation-feature-result-v4.md`
@@ -16,7 +16,7 @@
 
 ## 1. レビュー v3 の判定
 
-レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v3.md`
+レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v3.md`
 
 - H-1: **完全解消**（前回は部分解消）
 - M-4 / M-6: **解消**
@@ -102,4 +102,4 @@ production code の不具合は v1 で出尽くしている。v2 以降の指摘
 1. **再レビュー**: 本版を対象に実装レビュー v4 を実施する
 2. **T-18**: サンプルアプリ（`design-sample-app` で設計）
 3. **手動確認**: MT-01〜MT-08 を実機で実施
-4. `MIGRATION.md` の `swift6-migration` は別トピックで範囲外
+4. `artifact/topics/migration/README.md` の `swift6-migration` は別トピックで範囲外

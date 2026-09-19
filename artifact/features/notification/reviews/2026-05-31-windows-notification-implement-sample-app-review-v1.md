@@ -7,8 +7,8 @@
 - 対象機能: notification
 - ブランチ: `feature/NTKIT-9`
 - レビュー対象: ローカル未コミット差分（`develop`/`main` との差分は未コミットのため `git diff` 相当を対象）
-- 計画ファイル: `artifact/designs/notification/2026-05-31-windows-notification-sample-app-design-v2.md`
-- 実装結果ファイル: `artifact/results/notification/2026-05-31-windows-notification-implement-sample-app-result-v1.md`
+- 計画ファイル: `artifact/features/notification/designs/2026-05-31-windows-notification-sample-app-design-v2.md`
+- 実装結果ファイル: `artifact/features/notification/results/2026-05-31-windows-notification-implement-sample-app-result-v1.md`
 - 参照ルール: `agent-rules/coding-rules/common.md` / `agent-rules/coding-rules/windows.md`
 
 ---

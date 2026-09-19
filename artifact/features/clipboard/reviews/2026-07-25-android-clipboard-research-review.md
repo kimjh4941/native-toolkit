@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-07-25
-- 対象ファイル: artifact/plans/clipboard/2026-07-25-android-clipboard-research.md
+- 対象ファイル: artifact/features/clipboard/plans/2026-07-25-android-clipboard-research.md
 - 機能名: clipboard
 - 対象 OS: Android
 

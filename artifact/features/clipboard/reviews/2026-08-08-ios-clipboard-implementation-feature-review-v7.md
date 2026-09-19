@@ -6,11 +6,11 @@
 - 対象OS: iOS 18以降
 - ブランチ: `feature/NTKIT-14`
 - 比較差分: `develop...feature/NTKIT-14` と未コミットのv1〜v7修正差分
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v7.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v6.md`
-- 追加参照: `artifact/MIGRATION.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v7.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v6.md`
+- 追加参照: `artifact/topics/migration/README.md`
 
 ## レビュー概要
 
@@ -19,7 +19,7 @@
 - background caller + malformed requestを組み合わせた4分類の回帰テストは、回数1とmain threadを同時に検証しており、前回H-01を再現可能な形で固定している。
 - Swift 5 strict whole-module clean buildは成功し、unique source warning 110件、Clipboard 0件を独立再現した。
 - UnityIosPlugin tests 83件、失敗0を独立再現した。
-- コード上の受け入れブロッカーは解消した。残るのはMIGRATION.mdの案C比較表に旧評価が残る文書上の矛盾と、result v7の経路数表記のみである。
+- コード上の受け入れブロッカーは解消した。残るのはartifact/topics/migration/README.mdの案C比較表に旧評価が残る文書上の矛盾と、result v7の経路数表記のみである。
 
 ## 重大な問題（high）
 
@@ -27,13 +27,13 @@
 
 ## 改善提案（medium）
 
-### M-01: MIGRATION.mdの案C比較表が、直後の正しい担保範囲と矛盾している
+### M-01: artifact/topics/migration/README.mdの案C比較表が、直後の正しい担保範囲と矛盾している
 
 - §6の案C評価には、現在も「実行時の変更ゼロ。コンパイラが全呼び出し側で検証する」と記載されている。
-  - `artifact/MIGRATION.md:486`
+  - `artifact/topics/migration/README.md:486`
 - 直後の担保範囲では、Objective-C callerにコンパイラ検証は及ばず、capture監査とBridge契約テストで担保すると正しく訂正されている。
-  - `artifact/MIGRATION.md:495`
-  - `artifact/MIGRATION.md:500`
+  - `artifact/topics/migration/README.md:495`
+  - `artifact/topics/migration/README.md:500`
 - また、最終的に採用した解決策は`@Sendable`だけでなくmain-actor delivery helperを含み、早期失敗callbackの実行threadを変更している。案C単体の型注釈は実行時変更ゼロでも、NTKIT-14へ適用した全体は実行時変更ゼロではない。
 - 案Cの評価を次の趣旨へ更新すると決定記録が一貫する。
   - Swift callerのclosure transferはコンパイラが検証する
@@ -47,7 +47,7 @@
 - 実装修正箇所としては、共通`deliverInvalidRequest`内部1箇所、append options拒否1箇所、JSON 8箇所で計10 callsiteである。
 - 公開endpoint上の早期失敗分岐は、共通helperを使う`copy`、`append` parse失敗、`clear`、`removePasteboard`、`startObserving`の5経路に、append options拒否1経路、JSON 8経路を加えた14経路である。
 - result v7の適用表はoperation parse失敗から`append`を落としている。
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v7.md:55`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v7.md:55`
 - 「実装callsite 10箇所、公開早期失敗分岐14経路」と区別し、表へ`append` parse失敗を追加すると監査範囲が明確になる。実装自体に漏れはない。
 
 ## 設計書整合性チェック
@@ -98,4 +98,4 @@
 
 **要修正（軽微）**
 
-前回H-01の実行時不具合は解消され、回帰テストとstrict診断の双方で確認できた。Clipboard実装コードに新たな重大・中程度の問題は見つからず、受け入れブロッカーは解消済みである。MIGRATION.mdの案C比較表に残る旧評価を後段の正しい担保範囲へ合わせ、result v7のcallsite数と公開経路数を区別すればLGTMと判断できる。
+前回H-01の実行時不具合は解消され、回帰テストとstrict診断の双方で確認できた。Clipboard実装コードに新たな重大・中程度の問題は見つからず、受け入れブロッカーは解消済みである。artifact/topics/migration/README.mdの案C比較表に残る旧評価を後段の正しい担保範囲へ合わせ、result v7のcallsite数と公開経路数を区別すればLGTMと判断できる。

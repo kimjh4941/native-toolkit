@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-05-31
-- 対象ファイル: artifact/designs/notification/2026-05-31-windows-notification-sample-app-design-v1.md
+- 対象ファイル: artifact/features/notification/designs/2026-05-31-windows-notification-sample-app-design-v1.md
 - 機能名: notification
 - 対象 OS: Windows（最小 Windows 11）
 - ドキュメント種別: sample-app-design

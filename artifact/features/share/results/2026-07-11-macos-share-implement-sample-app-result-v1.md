@@ -2,8 +2,8 @@
 
 - 対象OS: macOS
 - 対象サンプルアプリ: `MacLibraryExample`
-- 対象計画: artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md
-- 対象計画レビュー: artifact/reviews/share/2026-07-11-macos-share-sample-app-design-review.md
+- 対象計画: artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md
+- 対象計画レビュー: artifact/features/share/reviews/2026-07-11-macos-share-sample-app-design-review.md
 - 作成日: 2026-07-11
 
 ---

@@ -1,8 +1,8 @@
 # 実装計画: Share サンプルアプリ（AndroidLibraryExample）v3
 
 - 対象アプリ: `android/AndroidLibraryExample`
-- 参照設計書: `artifact/designs/share/2026-06-20-android-share-design-v3.md`
-- 前版: `artifact/designs/share/2026-05-24-android-share-implement-sample-app-v2.md`
+- 参照設計書: `artifact/features/share/designs/2026-06-20-android-share-design-v3.md`
+- 前版: `artifact/features/share/designs/2026-05-24-android-share-implement-sample-app-v2.md`
 - 作成日: 2026-06-20
 - 改訂: v3（**受信側デモの追加** + 親設計 v3 反映：リッチプレビュー送信・コールバック文言修正）
 

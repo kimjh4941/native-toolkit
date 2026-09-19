@@ -7,10 +7,10 @@
 - ブランチ: `feature/NTKIT-15`
 - HEAD: `a634619bd4cb0c8f32d1f891bd187eabf9c6fee3`
 - 比較基準: `develop`（merge-base: `9367da5c6aeb634c26944c9ec7d4385c54e40d13`）
-- サンプル計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v3.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v2.md`
-- 機能設計（参照のみ）: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- サンプル計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v3.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v2.md`
+- 機能設計（参照のみ）: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - 対象差分:
   - `git diff develop...HEAD`: clipboard 機能実装全体を含む 135 ファイル
   - `git status --porcelain`: サンプル本体・unit test・UI test・共有 scheme は未追跡、`ContentView.swift` と `scripts/check_design_consistency.py` は変更済み
@@ -70,7 +70,7 @@
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:187-232`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:534-540`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md:478-490`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md:478-490`
 - `CopyText` / `CopyURL` / `CopyImage` 等は共通 `copy` helper を通り、この helper が常に `ClipboardCopyOptions(localOnly: localOnly)` を渡す。したがって Copy Options セクションで toggle を off にした後は、通常 Copy セクションの全操作まで off になる。
 - 計画は通常 Copy と `Toggle localOnly + CopyWithCurrentOptions` を別の実演経路としており、公開 API の既定値も `true` である。通常 Copy は `.default`、現在値を試すのは `CopyWithCurrentOptions` に限定するのが計画と一致する。
 - 併せて `CopyWithCurrentOptions` は押下時に toggle 値を捕捉し、scope と同じ時点の入力として Task に渡すべきである。
@@ -80,7 +80,7 @@
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:81-105`
   - 同 `:168-189`
-  - 実装結果 `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v3.md:116-119`
+  - 実装結果 `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v3.md:116-119`
 - 現在の `tap` が `sequence > before && label matches` を待つ実装自体は妥当である。同じボタンを 2 回押すテストも、同一文言の正常な再実行で偽陰性を起こさないことを確認する。
 - しかしこれは、sequence 条件を削除した mutant、または 2 回目だけ Result を更新しない mutant をテストが確実に殺す証明ではない。「条件分岐を書かないと mutant を作れない」ことは変異検査を省略する理由にはならない。mutant はその検証契約だけを意図的に壊すためのものだからである。
 - よって result v3 の自己評価どおり、現状は偽陽性防止の証明ではない。全ボタン検査の共通 harness という中心的な B なので、workflow の停止条件 2 は未充足である。待機判定を純粋関数へ分離して「label は一致するが sequence は同じ」を拒否するテストを置くか、2 回目だけ Result 更新を抑止する UI mutant で落ちることを確認する必要がある。
@@ -98,7 +98,7 @@
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:269-294`
   - `mac/MacLibraryExample/MacLibraryExampleTests/ClipboardSampleTests.swift:76-109`
   - `mac/MacLibrary/MacLibraryTests/Clipboard/ClipboardLogAuditTests.swift:44-64`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md:770-782`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md:770-782`
 - UI test は実入力 `nt-sample` が画面へ出ないことを正しく確認する。unit test は `SampleOutcome.logText` が message / payload を含まないことを確認する。
 - しかしライブラリ側の log audit の走査根は `MacLibrary/Clipboard` と `UnityMacPlugin/Clipboard` の 2 本だけで、`MacLibraryExample` は対象外である。sample action に `Log.d(TAG, "name: \(sampleName)")` を追加する mutant は UI test と `SampleOutcome` test の双方を通る。
 - 現在の sample source を目視した範囲では名前の直接ログはなく、これは A の現存不具合ではない。ただし MS-07 の「画面とログ」を確認済みとするには sample source の log audit または実ログ capture が必要である。
@@ -114,7 +114,7 @@
 
 ### L-01 [C]: 計画の変更ファイル一覧が UI test と検査スクリプトを含まない
 
-- 対象: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md:350-378`
+- 対象: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md:350-378`
 - §7.2 は UI test を作成済みと明記するが、§4.1 の新規作成一覧に `ClipboardSampleViewUITests.swift` がない。今回の worktree 変更である `scripts/check_design_consistency.py` も一覧にない。
 - result v3 には両変更の理由があるため実装判断は追跡できるが、workflow の「変更ファイル一覧と実際の diff」の記述上は不一致である。
 
@@ -178,8 +178,8 @@
 
 ### design consistency / whitespace
 
-- `python3 scripts/check_design_consistency.py artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`: FAIL なし。`named symbols exist in the implementation` は OK（免除なし）。
-- `python3 scripts/check_design_consistency.py artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`: 全項目 OK。
+- `python3 scripts/check_design_consistency.py artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`: FAIL なし。`named symbols exist in the implementation` は OK（免除なし）。
+- `python3 scripts/check_design_consistency.py artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`: 全項目 OK。
 - `git diff develop --check`: 出力なし。
 - 未追跡の sample Swift 4 ファイルも `git diff --no-index --check /dev/null <file>` で whitespace error なし。
 

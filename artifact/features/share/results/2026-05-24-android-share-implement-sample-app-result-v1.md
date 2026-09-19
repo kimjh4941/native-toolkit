@@ -2,7 +2,7 @@
 
 - 日付: 2026-05-24
 - 対象アプリ: `android/AndroidLibraryExample`
-- 参照計画ファイル: `artifact/designs/share/2026-05-24-android-share-implement-sample-app-v2.md`
+- 参照計画ファイル: `artifact/features/share/designs/2026-05-24-android-share-implement-sample-app-v2.md`
 - ビルド結果: BUILD SUCCESSFUL
 
 ---

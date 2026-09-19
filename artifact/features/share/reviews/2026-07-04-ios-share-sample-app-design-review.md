@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-07-04
-- 対象ファイル: artifact/designs/share/2026-07-04-ios-share-sample-app-design-v1.md
+- 対象ファイル: artifact/features/share/designs/2026-07-04-ios-share-sample-app-design-v1.md
 - 機能名: share
 - 対象 OS: iOS 18 以降
 

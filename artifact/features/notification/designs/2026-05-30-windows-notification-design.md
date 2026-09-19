@@ -2,7 +2,7 @@
 
 - 作成日: 2026-05-30
 - 対象OS: Windows
-- 対象企画書: `artifact/plans/notification/2026-05-30-windows-notification-research-v2.md`
+- 対象企画書: `artifact/features/notification/plans/2026-05-30-windows-notification-research-v2.md`
 - 言語: VC++（C++/WinRT）
 
 ---

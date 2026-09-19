@@ -6,10 +6,10 @@
 - 対象OS: iOS 18以降
 - ブランチ: `feature/NTKIT-14`
 - 比較差分: `develop...feature/NTKIT-14` と未コミットのv1〜v3修正差分
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v3.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v2.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v3.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v2.md`
 
 ## レビュー概要
 
@@ -24,8 +24,8 @@
 ### H-01: `PasteItemProviderLoader`解放時にpending loadをcancelせず、一時fileが残りうる
 
 - 設計D-16 / S6は`PasteItemProviderLoader`自身に`isolated deinit`を要求しているが、実装にはdeinitがない。
-  - `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md:455`
-  - `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md:766`
+  - `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md:455`
+  - `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md:766`
   - `ios/IosLibrary/IosLibrary/Clipboard/Presentation/PasteItemProviderLoader.swift:21`
 - 推奨container経路はcontainerのdeinitがreceiver経由でcancelするが、公開された`PasteControlFactory.makeComponents`経路ではreceiverの解放時cleanupを保証できない。
   - `ios/IosLibrary/IosLibrary/Clipboard/Presentation/PasteControlFactory.swift:16`
@@ -46,7 +46,7 @@
   - Notification: 9件（`NotificationActionOptions` 3、`NotificationCategoryOptions` 4、`NotificationPermissionHelper.shared` 1、`IosNotificationManager.shared` 1）
   - Share: 3件（`ShareSheetPresenter` 2、`IosShareManager.shared` 1）
 - v3レポートの「Dialog 1 / Notification 8 / Share 4」は合計こそ13だが分類が異なる。
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v3.md:35`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v3.md:35`
 - `ShareResult`の行は`ShareSheetPresenter` errorに対するnoteであり、独立errorではない。内訳を1 / 9 / 3へ訂正すること。
 
 ### M-02: 「通常ビルドのwarningは0件」は再現しない

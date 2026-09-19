@@ -5,7 +5,7 @@
 - 日付: 2026-07-29
 - 機能名: Windows Clipboard Manager
 - 対象OS: Windows
-- 設計書: artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md（正本。無印版は不使用）
+- 設計書: artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md（正本。無印版は不使用）
 - ブランチ: feature/NTKIT-13
 
 ## 1. 実装サマリー

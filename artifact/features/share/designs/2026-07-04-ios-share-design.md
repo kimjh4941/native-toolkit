@@ -1,6 +1,6 @@
 # iOS 共有（Share）機能 実装設計書
 
-- 対象企画書: artifact/plans/share/2026-07-04-ios-share-research.md
+- 対象企画書: artifact/features/share/plans/2026-07-04-ios-share-research.md
 - 対象OS: iOS 18 以降
 - 使用言語: Swift / Objective-C（Bridge）
 - 作成日: 2026-07-04

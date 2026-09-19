@@ -1,11 +1,11 @@
 # レビュー結果
 
 - 日付: 2026-08-08
-- 対象ファイル: `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md`
 - 機能名: clipboard
 - 対象 OS: iOS 18以降
-- 参照設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 参照実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
+- 参照設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 参照実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
 
 ---
 
@@ -26,8 +26,8 @@
 #### 1. Error Casesの期待コードが実装済みエラー契約と一致しない
 
 - 対象: 5.8、5.11
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:333`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:365`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:333`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:365`
 - 10行中、次の6行が`ClipboardError.errorCode`と不一致である。
 
 | ケース | 計画の期待値 | 実装の期待値 |
@@ -48,8 +48,8 @@
 #### 2. `loadItem(.file)`の一時ファイル所有権とcleanupが設計されていない
 
 - 対象: 5.6、8.1
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:304`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:462`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:304`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:462`
 - `ClipboardLoadedItem.file(URL)`は、返却URLと親ディレクトリを呼び出し側が削除する契約である。
   - `ios/IosLibrary/IosLibrary/Clipboard/Domain/Model/ClipboardLoadRequest.swift:17`
 - 計画はfile size表示だけを定義し、成功後の削除、削除失敗時の扱い、手動確認を定義していないため、ボタン操作のたびに一時ディレクトリが残る。
@@ -59,8 +59,8 @@
 #### 3. 必須の自動UIテストが変更ファイルと検証計画から欠落している
 
 - 対象: 7章、8章
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:426`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:451`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:426`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:451`
 - `implement-sample-app` workflowは、自動化可能な手動観点を既存UI test targetへ追加してから実機確認することを必須としている。
 - `IosLibraryExampleUITests` targetは既に存在するが、計画の変更ファイルは`ClipboardSampleView.swift`と`ContentView.swift`だけである。
   - `ios/IosLibraryExample/IosLibraryExampleUITests/IosLibraryExampleUITests.swift:1`
@@ -73,10 +73,10 @@
 #### 4. T-00のprivacy行列を「本サンプルで実施可能」とする記述が成立しない
 
 - 対象: 6章、8.3
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:421`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:487`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:421`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:487`
 - 企画書のケース13〜15は、`itemProviders` getterのみ、取得済みproviderへの`canLoadObject`のみ、実ロードを別々に実行して、通知・promptの契機を切り分ける試験である。
-  - `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md:399`
+  - `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md:399`
 - 現在の`IosClipboardManager.loadItem`はこれらを1操作へ内包し、サンプル画面の`Load`ボタンでは段階を分離できない。out-of-scopeとした`contains(pasteboardTypes:)`のケース12も実行できない。
 - 「Snapshot / Check / Detect / LoadボタンでT-00を実施可能」という断定を撤回し、次のいずれかへ分離すること。
   - T-00専用の実験harnessでUIKit APIの各段階を個別観測する
@@ -88,15 +88,15 @@
 #### 1. 名前付きpasteboardの寿命とremove後の確認手順が現在の状態設計では再現できない
 
 - `Remove Active Pasteboard`成功後に`activeScope = .general`へ戻す一方、手動確認は「同scopeを解決できない」ことを要求している。
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:250`
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:460`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:250`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:460`
 - M-08も、再起動後に固定名をcreateせず参照対象へ設定する導線がないため、create操作がpasteboardを再生成してしまう。
 - `Use Fixed Named Scope (without create)`を追加するか`lastRemovedScope`を保持し、remove後・再起動後に`read` / `startObserving`して`CLIPBOARD_UNAVAILABLE`を確認できる手順を定義すること。
 
 #### 2. P-11のキャンセル説明が「配信抑止のみ」となっており、実装契約を過度に単純化している
 
 - 対象: 5.6
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:314`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:314`
 - P-11はcancel時にcallerへ`CLIPBOARD_CANCELLED`を完了として返し、`Progress.cancel()`を試み、遅延結果を破棄する。OS処理そのものの中断だけが保証されない。
 - 「配信抑止のみ」はP-9 / P-10の非協調的検出APIに近い説明である。P-11については、cancel結果の表示、late result破棄、OS中断非保証を分けて記載すること。
 - 共通`run`は全`ClipboardError`を`❌`表示するが、設計v4はサンプルアプリで`CLIPBOARD_CANCELLED`を呼び出し側起点の通常系として示すことを要求している。cancelledだけは「Cancellation completed」などの中立表示へ分岐し、Cancel button直後の表示との上書き順も決めること。
@@ -105,7 +105,7 @@
 #### 3. Paste Control生成失敗と部分成功のUI更新契約が実装可能な粒度に達していない
 
 - 対象: 5.9
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:342`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:342`
 - 提示された`UIViewRepresentable`には生成失敗callbackがないが、本文は空`UIView`を返して結果領域へエラー表示するとしている。
 - `onCreationFailure`を型へ追加し、`makeUIView`中の同期的なSwiftUI state変更を避けてmain actorの次turnで通知するなど、状態更新方法を明記すること。
 - 部分成功では`onPaste`の直後に`onPartialFailure`が呼ばれるため、単一`resultText`を順番に上書きすると成功itemの情報を失う。item件数とfailure code一覧を1つの結果へ集約する方針を決めること。
@@ -113,14 +113,14 @@
 #### 4. クリップボード値の画面表示方針を実装時判断のまま残さない
 
 - 5.5は「値そのものは表示しない」と断定した直後に、表示するかを実装時に確定するとしている。
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:299`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:299`
 - 画面要件、security方針、`updateResult`のログ内容に影響するため、設計レビュー時点で決める必要がある。
 - 推奨は、外部clipboard値は画面にもログにも表示せず、件数・byte数・kindだけを表示すること。sample自身が直前にcopyした固定文字列だけを表示する場合は、その限定条件と、`updateResult`がresult本文をログへ出さないことを明記すること。
 
 #### 5. 抽出した境界値観点が画面操作または対象外理由へ結び付いていない
 
 - 1.5は64 MiB上限ちょうどや100 MPを境界観点として挙げるが、実装詳細と手動確認には該当操作がない。
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:75`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:75`
 - サンプルで扱うなら再現用データ生成手順とmemory負荷対策を追加すること。unit test / Instruments専用とするなら、サンプル対象外と理由を明記し、T-13のどこで確認するかを対応付けること。
 
 #### 6. Paste Controlと手動確認用fixtureの前提が不足している
@@ -142,7 +142,7 @@
 #### 1. project fileの同期rootは確認済みなので「要検証」を解消できる
 
 - 対象: 7.3
-  - `artifact/designs/clipboard/2026-08-08-ios-clipboard-sample-app-design-v1.md:446`
+  - `artifact/features/clipboard/designs/2026-08-08-ios-clipboard-sample-app-design-v1.md:446`
 - `IosLibraryExample.xcodeproj/project.pbxproj`には`PBXFileSystemSynchronizedRootGroup`が存在する。計画上の要検証を「確認済み」へ変更できる。
 
 #### 2. `pastedSummary`と`isObserving`の画面反映・活性条件を明記するとよい

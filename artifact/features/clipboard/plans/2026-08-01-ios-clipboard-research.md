@@ -2,7 +2,7 @@
 
 - 作成日: 2026-08-01
 - 改訂日: 2026-08-01（初版に第 1 回レビュー指摘を反映。以降の改訂は `-v2` 以降の別ファイル）
-- 最新版: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v2.md`（第 2 回レビュー反映済み。以降はこちらを参照する）
+- 最新版: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v2.md`（第 2 回レビュー反映済み。以降はこちらを参照する）
 - 対象OS: iOS 18 以降
 - 対象機能: クリップボード（Clipboard / Pasteboard: コピー / ペースト）
 - 使用言語: Swift
@@ -838,7 +838,7 @@ final class PasteReceiverViewController: UIViewController {
 
 ## レビュー反映履歴（第 1 回 / 2026-08-01）
 
-対象レビュー: `artifact/reviews/clipboard/2026-08-01-ios-clipboard-research-review.md`
+対象レビュー: `artifact/features/clipboard/reviews/2026-08-01-ios-clipboard-research-review.md`
 
 | 優先度 | 指摘 | 反映内容 |
 |---|---|---|

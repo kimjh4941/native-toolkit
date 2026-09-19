@@ -16,7 +16,7 @@
 2. インタラクティブ入力でサンプル計画を確定する（必須）
    - ダイアログで「サンプルアプリ計画ファイルを指定してください」と促す
    - 入力がない場合は次を候補として提示する:
-     - `artifact/designs/<feature>/` 配下の `*-sample-app-design*.md`
+     - `artifact/features/<feature>/designs/` 配下の `*-sample-app-design*.md`
    - 指定された計画ファイルを読み込み、画面要件・変更ファイル一覧・実装詳細・手動確認観点を把握する
 
 3. サンプルアプリを実装/更新する（必須）
@@ -79,7 +79,7 @@
 
 7. 実装結果を保存する（必須）
 
-- 保存先: `artifact/results/<feature>/`
+- 保存先: `artifact/features/<feature>/results/`
 - ファイル名: `YYYY-MM-DD-<os>-<feature>-implement-sample-app-result-vN.md`
 - 既存ファイルがある場合は `vN` をインクリメントし、上書きしない
 - 最低限、次を記載する:

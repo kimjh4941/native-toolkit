@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: iOS 18 以降
 - 対象サンプルアプリ: `ios/IosLibraryExample`
-- 計画ファイル: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v6.md`
-- 機能設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 機能実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
+- 計画ファイル: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v6.md`
+- 機能設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 機能実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v8.md`
 - 対応タスク: 設計書 T-12
 - ビルド環境: Xcode 26.3 / Swift 6.2.4 コンパイラ / `SWIFT_VERSION = 5.0`
 

@@ -4,8 +4,8 @@
 
 - 日付: 2026-05-30
 - ブランチ: feature/NTKIT-9（未コミット差分 + 未追跡ファイルを対象）
-- 設計書: artifact/designs/notification/2026-05-30-windows-notification-implementation-v2.md
-- 実装結果ファイル: artifact/results/notification/2026-05-30-windows-notification-implement-feature-result-v1.md
+- 設計書: artifact/features/notification/designs/2026-05-30-windows-notification-implementation-v2.md
+- 実装結果ファイル: artifact/features/notification/results/2026-05-30-windows-notification-implement-feature-result-v1.md
 - OS: Windows
 
 ---

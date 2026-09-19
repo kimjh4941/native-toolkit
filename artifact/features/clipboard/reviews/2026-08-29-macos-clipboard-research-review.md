@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-08-29
-- 対象ファイル: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research.md`
+- 対象ファイル: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research.md`
 - 機能名: clipboard
 - 対象 OS: macOS 15 以降
 
@@ -76,7 +76,7 @@
 
 ## 第2回レビュー（改善版 v2）
 
-- 対象ファイル: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v2.md`
+- 対象ファイル: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v2.md`
 - 実施日: 2026-08-29
 
 ### 追加の改善点

@@ -7,9 +7,9 @@
 - 機能名: clipboard
 - 対象OS: Android（Android 12 / API 31 以降）
 - 対象サンプルアプリ: `android/AndroidLibraryExample`
-- 設計書: `artifact/designs/clipboard/2026-07-25-android-clipboard-design.md`（**v5**）
-- 実装結果: `artifact/results/clipboard/2026-07-25-android-clipboard-implementation-feature-result-v3.md`
-- レビュー: `artifact/reviews/clipboard/2026-07-25-android-clipboard-sample-app-design-review.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md`（**v5**）
+- 実装結果: `artifact/features/clipboard/results/2026-07-25-android-clipboard-implementation-feature-result-v3.md`
+- レビュー: `artifact/features/clipboard/reviews/2026-07-25-android-clipboard-sample-app-design-review.md`
 - 前版: 同ディレクトリ `...-sample-app-design-v1.md` / `-v2.md`
 - 使用言語: Kotlin（Jetpack Compose）
 

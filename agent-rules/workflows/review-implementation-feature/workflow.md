@@ -23,10 +23,10 @@
 3. インタラクティブ入力で参照ファイルを確定する（必須）
    - ダイアログで「レビュー対象機能の設計書ファイルを指定してください」と促す
    - 設計書ファイルの入力がない場合は次を候補として提示する
-     - `artifact/designs/<feature>/` 配下の `*-implementation*.md`
+     - `artifact/features/<feature>/designs/` 配下の `*-implementation*.md`
    - ダイアログで「レビュー対象機能の実装結果ファイルを指定してください」と促す
    - 実装結果ファイルの入力がない場合は次を候補として提示する
-     - `artifact/results/<feature>/` 配下の `*-implementation-result*.md`
+     - `artifact/features/<feature>/results/` 配下の `*-implementation-result*.md`
    - ダイアログで「対象OSを選択してください」と促す（ラジオボタン: Android / iOS / macOS / Windows）
 
 4. プロジェクトルールを読み込む（必須）
@@ -118,7 +118,7 @@
    - LGTM / 要修正（軽微） / 要修正（重大） のいずれかで示す
 
 8. レビュー結果ファイルを保存する（必須）
-   - 保存先: `artifact/reviews/<feature>/`
+   - 保存先: `artifact/features/<feature>/reviews/`
    - ファイル名: `YYYY-MM-DD-<os>-<feature>-implementation-feature-review-vN.md`
    - 同名が存在する場合は `vN` をインクリメントし、既存ファイルを上書きしない
    - 最低限、次を含める:
@@ -167,7 +167,7 @@
    > 3 ラウンドは 1H → 1H → 1H と減って収束に見えたが、レビュアーを替えた次のラウンドで
    > 4H / 7M / 7L が出て、うち 2 件は製品の実不具合だった（無言に失敗する paste button、
    > Unity への誤ったエラーコード）。件数の減少は収束ではなかった。
-   > 記録: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v14.md` §5
+   > 記録: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v14.md` §5
 
 10. 出力ルール
    - 指摘は具体的なファイルパスと行番号を可能な限り示す

@@ -4,18 +4,18 @@
 > §2 の「129 対 21」という比較は**母集団が一致していない**（iOS の scheme 単位 129 と、
 > iOS 13 + macOS 8 の合算 21 の比較）。差分を未診断数として数値化することはできない。
 > また §2 のカテゴリ内訳は `sort -u` を掛けない raw 出現の集計であり、
-> 正規化単位が `artifact/MIGRATION.md` §4.3 と異なる。
+> 正規化単位が `artifact/topics/migration/README.md` §4.3 と異なる。
 > いずれも v6 §1.3 で訂正済み。
 > なお §3.3 の「残 16 件は Bridge 共通設計待ち」は **v6 で解消済み**（Clipboard 診断 0 件）。
-> 訂正: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v6.md`
+> 訂正: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v6.md`
 
 ## 基本情報
 
 - 日付: 2026-08-08
 - 機能名: clipboard
 - 対象OS: iOS
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 前版: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 前版: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`
 - ブランチ: feature/NTKIT-14
 - 種別: **訂正レポート**（レビュー v4 の指摘によるものではなく、計測方法の誤りの自主訂正）
 
@@ -64,7 +64,7 @@ xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme UnityIosPlugin \
 この方法は Swift 公式の段階的移行方針と一致する。
 参照: [Swift 6 Migration Guide](https://www.swift.org/migration/documentation/migrationguide/)
 
-運用ルールは `artifact/MIGRATION.md` §3.1 / §4.3 に定めた。
+運用ルールは `artifact/topics/migration/README.md` §3.1 / §4.3 に定めた。
 
 ---
 
@@ -159,7 +159,7 @@ C 関数ポインタ由来の handler を `Task { @MainActor }` へ渡す**Bridg
 Clipboard の件数が多いのは 15 endpoint と API 面が広いためで、新種の欠陥ではない。
 
 個別に手当てすると Bridge ごとに方針が食い違うため、**共通の先行設計タスクで決定する**。
-有力案 2 つと検証項目は `artifact/MIGRATION.md` §6 に記載した。
+有力案 2 つと検証項目は `artifact/topics/migration/README.md` §6 に記載した。
 
 **この 16 件は NTKIT-14 の受け入れ前に解消する。** 新規差分が追加した診断であり、
 baseline として固定してはならないため。
@@ -224,7 +224,7 @@ baseline として固定してはならないため。
 | 4 | I-08 / I-09 | - |
 | 5 | T-00 / T-12 / T-13（実機・サンプルアプリ） | - |
 
-移行管理全体の着手順は `artifact/MIGRATION.md` §8 を参照。
+移行管理全体の着手順は `artifact/topics/migration/README.md` §8 を参照。
 
 ---
 

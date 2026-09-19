@@ -415,10 +415,10 @@ manifest のツールチェーン情報が現在の環境と一致しない場�
 既存の機能開発と同じ規約に従う。
 
 ```
-artifact/plans/<topic>/     企画書
-artifact/designs/<topic>/   設計書
-artifact/results/<topic>/   実装結果
-artifact/reviews/<topic>/   レビュー結果
+artifact/topics/<topic>/plans/     企画書
+artifact/topics/<topic>/designs/   設計書
+artifact/topics/<topic>/results/   実装結果
+artifact/topics/<topic>/reviews/   レビュー結果
 ```
 
 命名: `<YYYY-MM-DD>-<platform>-<topic>-<doctype>-v<n>.md`
@@ -451,17 +451,17 @@ Epic: Swift 6 Migration
 ```
 
 ```
-artifact/plans/swift6-migration/
+artifact/topics/swift6-migration/plans/
   2026-XX-XX-apple-swift6-migration-research-v1.md
 
-artifact/designs/swift6-migration/
+artifact/topics/swift6-migration/designs/
   2026-XX-XX-ios-swift6-migration-design-v1.md
   2026-XX-XX-macos-swift6-migration-design-v1.md
 
-artifact/results/swift6-migration/
+artifact/topics/swift6-migration/results/
   2026-XX-XX-ios-swift6-migration-implementation-feature-result-v1.md
 
-artifact/reviews/swift6-migration/
+artifact/topics/swift6-migration/reviews/
   2026-XX-XX-ios-swift6-migration-implementation-feature-review-v1.md
 ```
 
@@ -605,7 +605,7 @@ current-health inventory は移行先決定を待たずに取得してよい。
 
 > 新規追加・変更するコードは、対応する `artifact/baselines/` の診断を増やしてはならない。
 > 既存の診断は baseline として固定し、`scripts/check_baseline.sh --mode check` の差分のみを
-> 判定対象とする。移行そのものは `artifact/MIGRATION.md` の各トピックで管理する。
+> 判定対象とする。移行そのものは `artifact/topics/migration/README.md` の各トピックで管理する。
 
 プラットフォーム固有の計測コマンドのみを `ios.md` / `android.md` / `windows.md` に記載する。
 
@@ -624,7 +624,7 @@ current-health inventory は移行先決定を待たずに取得してよい。
 
 ## 10. 関連
 
-- Clipboard 設計 v4: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`（I-10 が現行定義のまま）
-- Clipboard 実装結果 v4: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`（**「Clipboard 由来 0 件」の記載は誤り。4.2 参照**）
-- Clipboard レビュー v4: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v4.md`（分離方針の合意）
+- Clipboard 設計 v4: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`（I-10 が現行定義のまま）
+- Clipboard 実装結果 v4: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`（**「Clipboard 由来 0 件」の記載は誤り。4.2 参照**）
+- Clipboard レビュー v4: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v4.md`（分離方針の合意）
 - [Swift 6 Migration Guide](https://www.swift.org/migration/documentation/migrationguide/)

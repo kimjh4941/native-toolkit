@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-05-30
-- 対象ファイル: artifact/plans/notification/2026-05-30-windows-notification-research.md
+- 対象ファイル: artifact/features/notification/plans/2026-05-30-windows-notification-research.md
 - 機能名: notification
 - 対象OS: Windows
 

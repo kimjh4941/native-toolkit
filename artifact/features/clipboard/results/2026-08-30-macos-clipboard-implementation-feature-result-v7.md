@@ -5,7 +5,7 @@
 - 日付: 2026-08-30
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **実装レビュー v5 の指摘 3 件（M-7 / M-8 / L-3）の反映**
 - 前版: `2026-08-30-macos-clipboard-implementation-feature-result-v6.md`
@@ -16,7 +16,7 @@
 
 ## 1. レビュー v5 の判定
 
-レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v5.md`
+レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v5.md`
 
 - M-7: **部分解消**（監査対象のログを `stringWithFormat:` に限定する抜け道）
 - M-8: **部分解消**（`StartGate` が待機・解放を行わずテストへ未接続）
@@ -124,4 +124,4 @@ Log 呼び出し数の一致）を併せて入れた。
 1. **再レビュー**: 本版を対象に実装レビュー v6 を実施する
 2. **T-18**: サンプルアプリ（`design-sample-app` で設計）
 3. **手動確認**: MT-01〜MT-08 を実機で実施
-4. `MIGRATION.md` の `swift6-migration` は別トピックで範囲外
+4. `artifact/topics/migration/README.md` の `swift6-migration` は別トピックで範囲外

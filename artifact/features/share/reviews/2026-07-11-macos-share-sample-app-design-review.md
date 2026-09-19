@@ -1,11 +1,11 @@
 # macOS Share サンプルアプリ設計レビュー結果
 
 - 日付: 2026-07-11
-- 対象ファイル: `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md`
+- 対象ファイル: `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md`
 - 対象OS: macOS
 - 対象サンプルアプリ: `MacLibraryExample`
 - レビュー種別: サンプルアプリ実装計画書 再レビュー
-- 前回レビュー: `artifact/reviews/share/2026-07-11-macos-share-sample-app-design-review.md`
+- 前回レビュー: `artifact/features/share/reviews/2026-07-11-macos-share-sample-app-design-review.md`
 
 ---
 
@@ -37,19 +37,19 @@
 
 対象計画書は、サンプル画像について既存 `test-image` アセットを再利用し、新規アセットを追加しない方針へ更新されている。
 
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:61`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:102`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:145`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:147`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:61`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:102`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:145`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:147`
 
 また、`.imageFile(path:)` がファイルパスを要求する点について、`NSImage(named: "test-image")` で読み込み、temp PNG へ書き出して path を渡す橋渡しも明記されている。
 
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:82`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:148`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:182`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:222`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:223`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:269`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:82`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:148`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:182`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:222`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:223`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:269`
 
 ローカル確認でも、macOS Example 側に `Assets.xcassets/test-image.imageset` と `test.png` / `test 1.png` / `test 2.png` が存在しているため、計画とリポジトリ状態は整合している。
 
@@ -59,12 +59,12 @@
 
 対象計画書は、「設計書の mouseDown 制約に沿う」という断定を避け、サンプルは「実ユーザークリック起点で picker を実機確認するための導線」を提供するものとして整理されている。
 
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:58`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:120`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:181`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:253`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:254`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:270`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:58`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:120`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:181`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:253`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:254`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:270`
 
 `Task {}` 経由が `NSSharingServicePicker.show(...)` の `mouseDown` コンテキスト保持を保証しない点も、前提・操作導線・呼び出し境界・手動確認観点に反映されている。picker 系ボタンを実 UI 手動検証用、direct service / `canPerform` を相対的に安定した確認経路として分けた点も妥当。
 
@@ -74,10 +74,10 @@
 
 基本情報に実装レビュー v3 が追加され、実機 / 実 UI 検証は次工程の手動確認で扱い、サンプル設計レビューの pass/fail には含めないという切り分けも明記されている。
 
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:7`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:58`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:253`
-- `artifact/designs/share/2026-07-11-macos-share-sample-app-design-v1.md:270`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:7`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:58`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:253`
+- `artifact/features/share/designs/2026-07-11-macos-share-sample-app-design-v1.md:270`
 
 ## 確認できた良い点
 

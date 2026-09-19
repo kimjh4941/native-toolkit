@@ -5,9 +5,9 @@
 - ブランチ: `feature/NTKIT-13`
 - 対応コミット: `b7a952780900a5ae34275e349d6bf6c7016e85a8`
 - 比較: `develop...HEAD`、およびレビュー v3 対応差分 `b7a95278^...b7a95278`
-- 計画: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v5.md`
-- 実装結果: `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v3.md`
+- 計画: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-21-windows-clipboard-implement-sample-app-review-v3.md`
 - 対象OS: Windows 11以降
 
 ## 検証結果

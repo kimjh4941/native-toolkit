@@ -5,9 +5,9 @@
 - 日付: 2026-07-04
 - 機能名: share
 - 対象OS: iOS
-- 設計書: artifact/designs/share/2026-07-04-ios-share-design.md
+- 設計書: artifact/features/share/designs/2026-07-04-ios-share-design.md
 - ブランチ: feature/NTKIT-10
-- 版: v3（`artifact/reviews/share/2026-07-04-ios-share-implementation-feature-review-v1.md` の指摘 H1/M1/M2/L1、および `artifact/reviews/share/2026-07-04-ios-share-implementation-feature-review-v2.md`（総合評価: LGTM）の低優先度指摘 L1 を反映）
+- 版: v3（`artifact/features/share/reviews/2026-07-04-ios-share-implementation-feature-review-v1.md` の指摘 H1/M1/M2/L1、および `artifact/features/share/reviews/2026-07-04-ios-share-implementation-feature-review-v2.md`（総合評価: LGTM）の低優先度指摘 L1 を反映）
 
 ## 1. 実装サマリー
 

@@ -5,8 +5,8 @@
 - 日付: 2026-06-20
 - 機能名: Share（Android Share v3 レビュー指摘修正）
 - 対象OS: Android
-- 設計書: `artifact/designs/share/2026-06-20-android-share-design-v3.md`
-- レビュー: `artifact/reviews/share/2026-06-20-android-share-implementation-feature-review-v1.md`
+- 設計書: `artifact/features/share/designs/2026-06-20-android-share-design-v3.md`
+- レビュー: `artifact/features/share/reviews/2026-06-20-android-share-implementation-feature-review-v1.md`
 - ブランチ: `feature/NTKIT-8`
 
 ## 1. 実装サマリー

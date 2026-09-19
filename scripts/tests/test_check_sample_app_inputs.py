@@ -77,7 +77,7 @@ class Declarations(unittest.TestCase):
 
 
 class Approval(unittest.TestCase):
-    MARKER = "sample-app-input-approved: artifact/designs/f/plan.md"
+    MARKER = "sample-app-input-approved: artifact/features/f/designs/plan.md"
 
     def test_marker_allows_the_field(self):
         code, out = run({

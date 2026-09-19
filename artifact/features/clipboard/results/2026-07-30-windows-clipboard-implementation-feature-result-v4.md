@@ -5,9 +5,9 @@
 - 日付: 2026-07-30
 - 機能名: Windows Clipboard Manager
 - 対象OS: Windows
-- 設計書: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
 - ブランチ: `feature/NTKIT-13`
-- 対応レビュー: `artifact/reviews/clipboard/2026-07-30-windows-clipboard-implementation-feature-review-v3.md`
+- 対応レビュー: `artifact/features/clipboard/reviews/2026-07-30-windows-clipboard-implementation-feature-review-v3.md`
 
 ## 1. 実装サマリー
 
@@ -38,11 +38,11 @@
 - `windows/WindowsLibrary/WindowsClipboardDeferredProvider.h`
 - `windows/WindowsLibrary/WindowsClipboardDeferredProvider.cpp`
 - `windows/WindowsLibraryTest/ClipboardDeferredProviderTest.cpp`
-- `artifact/results/clipboard/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
+- `artifact/features/clipboard/results/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
 
 ### 2.2 既存変更
 
-- `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
+- `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
 - `windows/WindowsLibrary/WindowsClipboardCore.h`
 - `windows/WindowsLibrary/WindowsClipboardCore.cpp`
 - `windows/WindowsLibrary/WindowsClipboardFormats.h`

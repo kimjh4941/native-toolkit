@@ -6,10 +6,10 @@
 - 機能名: Windows Clipboard Manager
 - 対象OS: Windows 11 以降
 - 対象サンプルアプリ: `windows/WindowsLibraryExample`（WinUI 3 / C++/WinRT / MSIX パッケージ済み）
-- 設計書: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
-- 実装結果: `artifact/results/clipboard/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
-- 前版: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v2.md`
-- 対応レビュー: `artifact/reviews/clipboard/2026-07-31-windows-clipboard-sample-app-design-review-v2.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
+- 実装結果: `artifact/features/clipboard/results/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
+- 前版: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v2.md`
+- 対応レビュー: `artifact/features/clipboard/reviews/2026-07-31-windows-clipboard-sample-app-design-review-v2.md`
 - ブランチ: `feature/NTKIT-13`
 - 対応タスク: 機能設計書 T-19（サンプルアプリ対応）
 
@@ -393,7 +393,7 @@ std::atomic<ManagerState> g_managerState{ ManagerState::Uninitialized };
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.h`
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp`
 - `windows/WindowsLibraryExample/ClipboardPage.idl`
-- `artifact/results/clipboard/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`（implement-sample-app で作成）
+- `artifact/features/clipboard/results/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`（implement-sample-app で作成）
 
 ### 4.2 既存変更
 

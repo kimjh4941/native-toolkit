@@ -6,8 +6,8 @@
 - ブランチ: `feature/NTKIT-10`
 - PR: なし（ローカルブランチ差分）
 - diff: `git diff develop...HEAD`
-- 設計書: `artifact/designs/share/2026-07-04-ios-share-design.md`
-- 実装結果: `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v1.md`
+- 設計書: `artifact/features/share/designs/2026-07-04-ios-share-design.md`
+- 実装結果: `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v1.md`
 - 対象 OS: iOS 18 以降
 
 ## レビュー概要
@@ -36,7 +36,7 @@
 ### M1. Presenter の `hasResumed` guard が設計どおり main actor 上に再隔離されていない
 
 - 対象:
-  - `artifact/designs/share/2026-07-04-ios-share-design.md:275`
+  - `artifact/features/share/designs/2026-07-04-ios-share-design.md:275`
   - `ios/IosLibrary/IosLibrary/Share/Presentation/ShareSheetPresenter.swift:57`
   - `ios/IosLibrary/IosLibrary/Share/Presentation/ShareSheetPresenter.swift:61`
   - `ios/IosLibrary/IosLibrary/Share/Presentation/ShareSheetPresenter.swift:77`
@@ -47,8 +47,8 @@
 ### M2. 実装結果レポートが pbxproj 変更を「既存変更なし」としている
 
 - 対象:
-  - `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v1.md:55`
-  - `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v1.md:57`
+  - `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v1.md:55`
+  - `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v1.md:57`
   - `ios/IosLibrary/IosLibrary.xcodeproj/project.pbxproj`
   - `ios/UnityIosPlugin/UnityIosPlugin.xcodeproj/project.pbxproj`
 - 問題: 実装結果では既存ファイル変更なし、pbxproj 手動追記不要と記載されていますが、develop 差分では両 xcodeproj の `CURRENT_PROJECT_VERSION` が更新されています。
@@ -63,7 +63,7 @@
   - `agent-rules/coding-rules/ios.md:11`
   - `agent-rules/coding-rules/ios.md:31`
   - `ios/IosLibrary/IosLibrary/Share/Application/UseCase/ShareUseCases.swift:21`
-  - `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v1.md:175`
+  - `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v1.md:175`
 - 問題: iOS ルールは public / internal Swift 関数の先頭ログを求めていますが、`ShareContentUseCase.execute(content:)` に `Log.d` がありません。実装結果では「全 public/@objc/Bridge 関数に先頭 Log.d/Log.e が付与」となっています。
 - 影響: 動作には影響しませんが、プロジェクトルールと DoD の記述に対して不一致です。
 - 修正案: UseCase に `TAG` と先頭ログを追加するか、UseCase は既存 Notification 実装と同様にログ対象外とするなら DoD / ルール側に例外を明記してください。

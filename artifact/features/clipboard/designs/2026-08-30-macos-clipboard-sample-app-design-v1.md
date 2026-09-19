@@ -6,8 +6,8 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/MacLibraryExample/`
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
-- 実装結果: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
 - 対応タスク: T-18
 - 主参照ペア: Windows（`windows/WindowsLibraryExample/`）
 

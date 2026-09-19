@@ -7,10 +7,10 @@
 - 対象OS: macOS 15 以降
 - ブランチ: `feature/NTKIT-15`
 - レビュー対象: 未コミットの作業ツリー（`git status --porcelain` で取得。`git diff develop...HEAD` には現れない）
-- 計画ファイル: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`
-- 実装結果ファイル: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v5.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v4.md`
-- 機能設計（参照のみ）: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- 計画ファイル: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`
+- 実装結果ファイル: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v5.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v4.md`
+- 機能設計（参照のみ）: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - ラウンド: v1 から数えて 5 回目
 
 ---
@@ -255,7 +255,7 @@ MU-8: 4 節ある文書の第 3 節に宣言を置いた文書が免除される
 
 ### C-01: 計画 §4.1 / §4.2 が今回の新規・変更ファイルを取りこぼしている
 
-- 対象: 計画 §4.1 / §4.2（`artifact/designs/.../sample-app-design-v5.md:355-375`）
+- 対象: 計画 §4.1 / §4.2（`artifact/features/clipboard/designs/.../sample-app-design-v5.md:355-375`）
 - 一覧に無いのに作業ツリーで作成・変更されているもの:
   - `scripts/tests/test_check_design_consistency.py`（**新規**）
   - `agent-rules/coding-rules/common.md`（**変更**）
@@ -568,7 +568,7 @@ xcrun xcresulttool get test-results summary --path /tmp/rev5.xcresult
 cd /Users/jonghyunkim/Desktop/native-toolkit
 python3 -m unittest discover -s scripts/tests
 python3 scripts/check_design_consistency.py \
-  artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md
+  artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md
 ```
 
 変異検査は上記に対して MU-1〜MU-8 を 1 件ずつ（MU-5 / MU-6 のみ同時に）適用して実行した。

@@ -7,8 +7,8 @@
 - HEAD: `ab7f6aa24006f2dc3aa3bd941fffffcd03d5da44`
 - 比較基準: `develop...HEAD`（merge-base: `dea227c9b00cc30f42a6c46827cb8988f32a1607`）
 - 追加対象: 未コミットの `ios/IosLibraryExample` 配下、計画・実装結果ファイル
-- 計画: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v6.md`
-- 実装結果: `artifact/results/clipboard/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md`
+- 計画: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v6.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md`
 - 対象OS: iOS 18以降
 
 ## レビュー概要
@@ -25,8 +25,8 @@
 
 - 対象:
   - `ios/IosLibraryExample/IosLibraryExampleUITests/IosLibraryExampleUITests.swift:316`
-  - `artifact/results/clipboard/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md:288`
-  - 計画 `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v6.md:1034`
+  - `artifact/features/clipboard/results/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md:288`
+  - 計画 `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v6.md:1034`
 - 計画v6は、固定named pasteboardをcreate → remove → no-create Readし、`CLIPBOARD_UNAVAILABLE`を確認してからfresh createすることをU-10の前提にしている。
 - U-10aはpreflightを持つが、U-10b自身は`useFixedNamed` → `createNamed`から始まり、既存pasteboardのremove / unavailable確認を行わない。XCTestの実行順や前回失敗したrunの後処理へ依存している。
 - `createNamed`は`create: true`で既存pasteboardも解決する。開始時に残存していた場合、今回のprocessが新規作成したpasteboardとは言えず、terminate後にreadableでも「作成process終了後にOSが回収しなかった」証拠にならない。
@@ -55,7 +55,7 @@
 
 - 対象:
   - `ios/IosLibraryExample/IosLibraryExampleUITests/IosLibraryExampleUITests.swift:331`
-  - `artifact/results/clipboard/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md:190`
+  - `artifact/features/clipboard/results/2026-08-09-ios-clipboard-implement-sample-app-result-v1.md:190`
 - `xcodebuild`は20 passed / 1 skipped / 0 failedで成功するが、U-10bは計画§9.2の必須期待値を確認していない。
 - resultはskipを開示しているため隠蔽ではないが、総合受け入れでは「test command成功」と「計画のU-10完了」を分離する必要がある。
 - controlled preflight後も同じなら、U-10bを単にgreen化せず、設計v6と機能設計v4を改訂して期待値・観測期間・T-13への移管条件を確定すること。それまでは計画書整合性を未達として扱うこと。

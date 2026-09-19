@@ -1,13 +1,13 @@
 # レビュー結果
 
 - 日付: 2026-07-31
-- 対象ファイル: `artifact/designs/clipboard/2026-07-30-windows-clipboard-sample-app-design-v1.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-07-30-windows-clipboard-sample-app-design-v1.md`
 - 文書種別: サンプルアプリ設計
 - 機能名: clipboard
 - 対象 OS: Windows
 - 参照:
-  - `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
-  - `artifact/results/clipboard/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
+  - `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
+  - `artifact/features/clipboard/results/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
   - `windows/WindowsLibrary/WindowsClipboardManager.h`
   - `windows/WindowsLibrary/WindowsClipboardManager.cpp`
   - `windows/WindowsLibrary/WindowsClipboardCore.cpp`

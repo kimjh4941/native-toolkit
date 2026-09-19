@@ -6,9 +6,9 @@
 - 機能名: clipboard
 - 対象OS: iOS 18 以降
 - 対象サンプルアプリ: `ios/IosLibraryExample`
-- 計画ファイル: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v6.md`
-- 実装結果 v2: `artifact/results/clipboard/2026-08-11-ios-clipboard-implement-sample-app-result-v2.md`
-- レビュー: `artifact/reviews/clipboard/2026-08-11-ios-clipboard-implement-sample-app-review-v1.md`
+- 計画ファイル: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v6.md`
+- 実装結果 v2: `artifact/features/clipboard/results/2026-08-11-ios-clipboard-implement-sample-app-result-v2.md`
+- レビュー: `artifact/features/clipboard/reviews/2026-08-11-ios-clipboard-implement-sample-app-review-v1.md`
 - 実機: iPhone XS / iOS 18.7.2
 - 対応タスク: 設計書 T-12
 

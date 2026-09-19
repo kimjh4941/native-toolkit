@@ -45,7 +45,7 @@ void clipboardCopy(const char* contentJson, const char* optionsJson, const char*
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -59,7 +59,7 @@ void clipboardAppend(const char* contentJson, const char* ownershipJson, Clipboa
                                              ownershipJson:NTStr(ownershipJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -72,7 +72,7 @@ void clipboardRead(const char* scopeJson, ClipboardJsonCallback callback) {
     [[UnityMacClipboardManager shared] readWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -86,7 +86,7 @@ void clipboardReadData(const char* utType, const char* scopeJson, ClipboardJsonC
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -100,7 +100,7 @@ void clipboardSnapshot(const char* matchingTypesJson, const char* scopeJson, Cli
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -113,7 +113,7 @@ void clipboardClear(const char* scopeJson, ClipboardJsonCallback callback) {
     [[UnityMacClipboardManager shared] clearWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -130,7 +130,7 @@ void clipboardCreatePasteboard(const char* requestJson, ClipboardJsonCallback ca
     [[UnityMacClipboardManager shared] createPasteboardWithRequestJson:NTStr(requestJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -144,7 +144,7 @@ void clipboardDetectPatterns(const char* patternsJson, const char* scopeJson, Cl
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -158,7 +158,7 @@ void clipboardDetectValues(const char* patternsJson, const char* scopeJson, Clip
                                              scopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -171,7 +171,7 @@ void clipboardDetectMetadata(const char* scopeJson, ClipboardJsonCallback callba
     [[UnityMacClipboardManager shared] detectMetadataWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -184,7 +184,7 @@ void clipboardAccessBehavior(const char* scopeJson, ClipboardJsonCallback callba
     [[UnityMacClipboardManager shared] accessBehaviorWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }
@@ -197,7 +197,7 @@ void clipboardCheckForegroundChange(const char* scopeJson, ClipboardJsonCallback
     [[UnityMacClipboardManager shared] checkForegroundChangeWithScopeJson:NTStr(scopeJson)
                                              handler:^(BOOL isSuccess, NSString* json, NSInteger errorCode, NSString* errorMessage) {
         // Captures the C function pointer only, so the block is safe to move between
-        // isolation domains (MIGRATION.md section 6, plan C).
+        // isolation domains (artifact/topics/migration/README.md section 6, plan C).
         if (callback) {
             callback(isSuccess, json.UTF8String, errorCode, errorMessage.UTF8String);
         }

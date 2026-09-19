@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/`
-- 計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`（§7.1 / §7.4 / §8.1 を更新）
+- 計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`（§7.1 / §7.4 / §8.1 を更新）
 - 対応タスク: T-18（機能設計 §13）
-- 前版: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v4.md`
-- 反映したレビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v4.md`
+- 前版: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v4.md`
+- 反映したレビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v4.md`
 
 > レビュー v4 の 13 件（A 1 / B 6 / C 6）をすべて反映した。**併せて、4 ラウンド続いた
 > 「検査が自分で対象を決める」形に対して、個別修正ではなく規則を

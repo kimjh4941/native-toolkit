@@ -5,7 +5,7 @@
 - 日付: 2026-05-24
 - 機能名: Android シェア機能（Share）
 - 対象OS: Android
-- 設計書: artifact/designs/share/2026-05-24-android-share-implementation-v2.md
+- 設計書: artifact/features/share/designs/2026-05-24-android-share-implementation-v2.md
 - ブランチ: feature/NTKIT-8
 
 ## 1. 実装サマリー

@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/`
-- 計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`（本版で v4 から更新）
+- 計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`（本版で v4 から更新）
 - 対応タスク: T-18（機能設計 §13）
-- 前版: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md`
-- 反映したレビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v2.md`
+- 前版: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md`
+- 反映したレビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v2.md`
 
 > **v2 の「レビュー v1 の 4 件」という記載は誤りだった。** レビュー v1 は 10 件（高 4 / 中 4 /
 > 低 2）で、v2 が扱ったのは高 4 件だけである。残り 6 件は反映も記録もされないまま追跡表から

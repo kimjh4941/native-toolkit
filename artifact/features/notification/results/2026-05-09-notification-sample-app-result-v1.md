@@ -3,7 +3,7 @@
 - 日付: 2026-05-09
 - 対象OS: macOS
 - 対象サンプルアプリ: MacLibraryExample
-- 設計書: artifact/designs/notification/2026-05-09-macos-notification-implementation-v3.md
+- 設計書: artifact/features/notification/designs/2026-05-09-macos-notification-implementation-v3.md
 - 実装結果ファイル: 未指定
 
 ## 1. 前提情報の抽出（設計書由来）

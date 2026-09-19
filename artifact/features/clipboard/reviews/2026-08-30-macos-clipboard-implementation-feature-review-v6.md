@@ -5,9 +5,9 @@
 - ブランチ: `feature/NTKIT-15`
 - 基準差分: `git diff develop...HEAD`（123 files、+31,541 / -19）
 - 対象 OS: macOS 15 以降
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
-- 実装結果: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v7.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v5.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v7.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v5.md`
 - T-18（サンプルアプリ）、MT-01〜MT-09、Swift 6 言語モードへの移行は設計どおり対象外
 
 ## レビュー概要
@@ -86,18 +86,18 @@
 
 ### L-4: 実装結果 v7 のテスト件数が現行 suite と一致しない
 
-- 結果レポートは MacLibrary 421件、UnityMacPlugin 79件とする（`artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v7.md:85-94`）。
+- 結果レポートは MacLibrary 421件、UnityMacPlugin 79件とする（`artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v7.md:85-94`）。
 - 現行 source の `@Test` 宣言はそれぞれ 437 / 80 件であり、レビュー時の xcresult も total 437 / 80、失敗 0 だった。parameter 展開込みの device 集計は 497 / 81 である。
 - 合否の主張は正しいが、件数が古い。再現コマンド、件数の定義（宣言数または展開後 run 数）、xcresult の summary を結果レポートへ揃えること。
 
 ### L-5: `git diff --check` が設計書末尾の余分な空行を検出する
 
-- `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md:2547` に `new blank line at EOF` がある。
+- `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md:2547` に `new blank line at EOF` がある。
 - 機能影響はないが、merge 前に除去して diff check を通すこと。
 
 ### L-6: feature 差分に Clipboard 実装結果で説明されていないファイルが混在する
 
-- `develop...HEAD` には `agent-rules/workflows/{design-feature,research-feature,review-document}/workflow.md`、`artifact/MIGRATION.md`、iOS workspace の `UserInterfaceState.xcuserstate` も含まれる。
+- `develop...HEAD` には `agent-rules/workflows/{design-feature,research-feature,review-document}/workflow.md`、`artifact/topics/migration/README.md`、iOS workspace の `UserInterfaceState.xcuserstate` も含まれる。
 - workflow / migration 更新が Clipboard 設計の再発防止として意図した変更なら、実装結果へ明記して scope を説明すること。少なくとも user-specific な iOS `xcuserstate` は macOS Clipboard の成果物ではないため merge 対象から外すこと。
 
 ## 設計書整合性チェック

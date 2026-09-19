@@ -2,9 +2,9 @@
 
 - 作成日: 2026-08-29
 - 改訂日: 2026-08-29（v2: 第 1 回レビュー指摘 20 件を全件反映）
-- 前版: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design.md`
-- レビュー: `artifact/reviews/clipboard/2026-08-29-macos-clipboard-design-review.md`
-- 対象企画書: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v3.md`
+- 前版: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design.md`
+- レビュー: `artifact/features/clipboard/reviews/2026-08-29-macos-clipboard-design-review.md`
+- 対象企画書: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v3.md`
 - 対象OS: macOS 15 以降（`MACOSX_DEPLOYMENT_TARGET` は 15.0 / 15.1）
 - 使用言語: Swift 6（strict concurrency）、Objective-C（Bridge）
 - 対象モジュール: `mac/MacLibrary`（Domain 〜 Manager）、`mac/UnityMacPlugin`（Unity Bridge）

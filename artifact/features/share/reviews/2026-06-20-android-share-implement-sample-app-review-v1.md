@@ -5,7 +5,7 @@
 - 日付: 2026-06-20
 - 対象OS: Android
 - ブランチ: `feature/NTKIT-8`
-- 計画ファイル: `artifact/designs/share/2026-06-20-android-share-sample-app-design-v3.md`
+- 計画ファイル: `artifact/features/share/designs/2026-06-20-android-share-sample-app-design-v3.md`
 - 実装結果ファイル: 該当する v3 sample-app result は未作成
 - diff:
   - `develop...HEAD` は Share v1/v2 や skill 移行を含む広範な差分
@@ -30,7 +30,7 @@ app、androidTest APK、unit test の build は成功した。接続実機 Pixel
 - `android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/android/nativetoolkit/example/MainActivity.kt:23-30`
 - `android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/android/nativetoolkit/example/MainActivity.kt:40-44`
 - `android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/android/nativetoolkit/example/MainActivity.kt:56-60`
-- `artifact/designs/share/2026-06-20-android-share-sample-app-design-v3.md:485-487`
+- `artifact/features/share/designs/2026-06-20-android-share-sample-app-design-v3.md:485-487`
 
 `clearReceivedShare()` は Compose state だけを null にし、`Activity.intent` に残る `ACTION_SEND` / `ACTION_SEND_MULTIPLE` を消費済みにしない。`onNewIntent()` でも `setIntent(intent)` しているため、画面内 Back またはシステム Back の後に process recreation / configuration recreation が起きると、`onCreate()` が同じ share Intent を再び parse して `ReceivedShareScreen` を再表示する。
 
@@ -50,7 +50,7 @@ assertion を現 applicationId に更新するか、価値のないテンプレ�
 
 対象:
 
-- `artifact/results/share/`（`2026-06-20-android-share-*-sample-app-result-vN.md` が存在しない）
+- `artifact/features/share/results/`（`2026-06-20-android-share-*-sample-app-result-vN.md` が存在しない）
 - `android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/android/nativetoolkit/example/ShareSampleScreen.kt:180-208`
 
 計画に対応する result がないため、変更ファイル一覧、追加判断、build / test 結果、手動確認の実施状況を照合できない。特に rich preview の画像を計画の `R.mipmap.ic_launcher` ではなく `android.R.mipmap.sym_def_app_icon` に変更した判断が記録されていない。

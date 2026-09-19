@@ -16,9 +16,9 @@
 2. インタラクティブ入力でパラメータを確定する（必須）
    - ダイアログで「レビュー対象のファイルを指定してください」と促す
    - 入力がない場合は以下の候補を提示:
-     - `artifact/plans/<feature>/` 配下の `*-research*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
-     - `artifact/designs/<feature>/` 配下の `*-design*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
-     - `artifact/designs/<feature>/` 配下の `*-sample-app-design*.md` を探索し、同一ドキュメントの改訂版がある場合は最も大きいバージョンのみ
+     - `artifact/features/<feature>/plans/` 配下の `*-research*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
+     - `artifact/features/<feature>/designs/` 配下の `*-design*.md` を探索し、同一ドキュメントの改訂版（`-v2`, `-v3` など）がある場合は最も大きいバージョンのみ
+     - `artifact/features/<feature>/designs/` 配下の `*-sample-app-design*.md` を探索し、同一ドキュメントの改訂版がある場合は最も大きいバージョンのみ
    - バージョンサフィックスがないファイルは `v1` とみなし、`vN` が存在する場合は `vN` を優先する
    - ユーザーが選択したファイルパスを確定する
 
@@ -98,11 +98,11 @@
    - 総合評価を表示する
 
 7. レビュー結果をファイルに保存する（必須）
-   - 保存先: `artifact/reviews/<feature>/YYYY-MM-DD-<os>-<feature>-<document-type>-review.md`
+   - 保存先: `artifact/features/<feature>/reviews/YYYY-MM-DD-<os>-<feature>-<document-type>-review.md`
      - `<os>`: 対象 OS（例: `android` / `ios` / `macos` / `windows`）
      - `<feature>`: 対象ファイルのパスから自動抽出（例: `android-notification`）
      - `<document-type>`: ファイル種別に応じて `research` / `design` / `sample-app-design`
-     - 例: `artifact/reviews/notification/2026-05-16-android-notification-research-review.md`
+     - 例: `artifact/features/notification/reviews/2026-05-16-android-notification-research-review.md`
    - ファイル形式（Markdown）:
 
      ```

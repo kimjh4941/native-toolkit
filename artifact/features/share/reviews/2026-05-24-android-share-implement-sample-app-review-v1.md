@@ -2,8 +2,8 @@
 
 - 日付: 2026-05-24
 - ブランチ: `feature/NTKIT-8`（ローカル未コミット差分）
-- 計画ファイル: `artifact/designs/share/2026-05-24-android-share-implement-sample-app-v2.md`
-- 実装結果ファイル: `artifact/results/share/2026-05-24-android-share-implement-sample-app-result-v1.md`
+- 計画ファイル: `artifact/features/share/designs/2026-05-24-android-share-implement-sample-app-v2.md`
+- 実装結果ファイル: `artifact/features/share/results/2026-05-24-android-share-implement-sample-app-result-v1.md`
 - 対象 OS: Android
 
 ---

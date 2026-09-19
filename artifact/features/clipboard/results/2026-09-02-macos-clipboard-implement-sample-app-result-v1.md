@@ -6,7 +6,7 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/`
-- 計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md`
+- 計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md`
 - 対応タスク: T-18（機能設計 §13）
 
 > **ビルド確認と実機動作確認を区別する。** UI テストはこの環境で実行できていない（§5）。

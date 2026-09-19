@@ -5,9 +5,9 @@
 - ブランチ: `feature/NTKIT-13`
 - 対応コミット: `92d26ffaa6fb913112767d6e50f572f1fbb743e9`
 - 比較: `develop...HEAD`、およびレビュー v1 対応差分 `92d26ffa^...92d26ffa`
-- 計画: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v5.md`
-- 実装結果: `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v1.md`
+- 計画: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-21-windows-clipboard-implement-sample-app-review-v1.md`
 - 対象OS: Windows 11以降
 
 ## 検証結果
@@ -69,7 +69,7 @@
 
 ### M3. 実装結果のUIテストファイル一覧が再び現状と一致していない
 
-- 該当: `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:51`
+- 該当: `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:51`
 - §1.4は「新規12ファイル」と記載し、ツリーにも `ClipboardMonitoringTests.cs` がない。実際の `WindowsLibraryExampleUITest` は14ファイルである。
 - v1 M5の目的は最終状態との一致なので、件数を14へ直し、Testsに5ファイルすべてを列挙する。
 

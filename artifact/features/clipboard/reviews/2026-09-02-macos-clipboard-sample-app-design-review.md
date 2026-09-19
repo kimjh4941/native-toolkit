@@ -1,11 +1,11 @@
 # レビュー結果
 
 - 日付: 2026-09-02
-- 対象ファイル: `artifact/designs/clipboard/2026-08-30-macos-clipboard-sample-app-design-v1.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-30-macos-clipboard-sample-app-design-v1.md`
 - 機能名: clipboard
 - 対象 OS: macOS 15 以降
-- 参照設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
-- 参照実装結果: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
+- 参照設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
+- 参照実装結果: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
 
 ---
 

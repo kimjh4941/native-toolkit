@@ -6,8 +6,8 @@
 - 機能名: macos-notification
 - 対象OS: macOS
 - ブランチ: feature/NTKIT-7（develop との差分）
-- 設計書: artifact/designs/notification/2026-05-09-macos-notification-implementation-v3.md
-- 実装結果: artifact/results/notification/2026-05-09-macos-notification-implementation-result-v1.md
+- 設計書: artifact/features/notification/designs/2026-05-09-macos-notification-implementation-v3.md
+- 実装結果: artifact/features/notification/results/2026-05-09-macos-notification-implementation-result-v1.md
 
 ---
 

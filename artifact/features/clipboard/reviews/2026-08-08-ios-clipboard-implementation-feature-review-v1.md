@@ -6,9 +6,9 @@
 - 対象OS: iOS 18以降
 - ブランチ: `feature/NTKIT-14`
 - 比較差分: `develop...feature/NTKIT-14`
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-08-02-ios-clipboard-implementation-feature-result-v1.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-02-ios-clipboard-implementation-feature-result-v1.md`
 - 差分概要: 93ファイル、16,218行追加、12行削除。ClipboardのDomain〜Manager、Unity Bridge、テスト、規約・成果物を追加
 
 ## レビュー概要

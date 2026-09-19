@@ -1,6 +1,6 @@
 # Android シェア機能 実装設計書 v3
 
-- 前版: artifact/designs/share/2026-05-24-android-share-implementation-v2.md
+- 前版: artifact/features/share/designs/2026-05-24-android-share-implementation-v2.md
 - 作成日: 2026-06-20
 - 改訂日: 2026-06-20（v3: 既存実装のレビュー指摘反映 + Unity 観点の機能拡張）
 - 対象OS: Android

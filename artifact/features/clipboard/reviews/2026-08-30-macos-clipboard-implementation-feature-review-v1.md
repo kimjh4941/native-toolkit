@@ -6,9 +6,9 @@
 - 差分: `git diff develop...HEAD`（112 files、+29,310 / -19）
 - 対象コミット: `b3b398e5`、`01825f11`
 - 対象 OS: macOS 15 以降
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
-- 実装結果: `artifact/results/clipboard/2026-08-29-macos-clipboard-implementation-feature-result-v2.md`
-- 企画書: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v3.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-29-macos-clipboard-implementation-feature-result-v2.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v3.md`
 
 ## レビュー概要
 

@@ -7,9 +7,9 @@
 - HEAD: `a634619bd4cb0c8f32d1f891bd187eabf9c6fee3`
 - 比較基準: `develop`（merge-base: `9367da5c6aeb634c26944c9ec7d4385c54e40d13`）
 - 追加対象: 未コミット・未追跡の `mac/MacLibraryExample/` 配下、実装結果 v2、前回レビュー v1
-- サンプル計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md`
-- 機能設計（参照のみ）: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- サンプル計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md`
+- 機能設計（参照のみ）: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - 対象 OS: macOS 15 以降
 
 > サンプル実装の大半は未追跡であり、`git diff develop...HEAD` には現れない。指定された新規 4
@@ -50,7 +50,7 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:106`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:466`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:475`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:451`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:451`
 - 計画は Picker を「状態のみ」と定義するが、`applyScopeChoice` は named / unique の選択ごとに
   `createPasteboard` を実行する。general へ切り替えた後に unique を選ぶと新しい unique を作り、以前の
   unique への参照を失う。明示 remove が必要な pasteboard を画面から回収できなくなる。
@@ -69,7 +69,7 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:320`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:333`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:496`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:484`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:484`
 - `arrangeDetectionText` / `arrangePlainText` と後続 detect は、それぞれ実行時点の `activeScope` を読む。
   最初の `await` 中に利用者が Picker を変更すると、fixture を scope A に書き、scope B を detect する。
   「arrange → act を一続き」「現在内容に依存しない」という決定性を満たさない。
@@ -85,8 +85,8 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:117`
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:132`
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:145`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:740`
-  - 実装結果 `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md:136`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:740`
+  - 実装結果 `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md:136`
 - MS-01 は 6 ボタンだけで、実際には Copy、Read、Observe、Clear の 4 セクションしか触らない。
   Scope、Copy Options、Append、Detect、Paste Control、Error Cases は未検査であり、計画の
   「10 セクションすべてのボタン」と result の「確認済み」は成立しない。
@@ -103,7 +103,7 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:183`
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:204`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:746`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:746`
 - テストが押す `CreateEmptyNamedPasteboard` の実入力は空文字である。一方、非表示を検査する値は
   ソースから読んだ `sampleName`（`nt-sample`）であり、その操作には渡されていない。実装が実入力を
   そのまま表示しても空文字なので、この assertion は常に通る。
@@ -117,7 +117,7 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
 
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExampleTests/ClipboardSampleTests.swift:199`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:645`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:645`
 - Swift の block comment はネスト可能だが、非貪欲 regex は最初の `*/` で終了する。例えば外側
   comment 内で内側 comment の後ろに置いた偽の manager call が右辺へ残り、未実装操作を called と
   数えられる。
@@ -136,7 +136,7 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:519`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:539`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:594`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:518`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:518`
 - `reachedCodes` を更新するのは expected-error の `report` だけである。通常の `run` / `runSync` と
   `buildPasteButton` で ClipboardError に到達しても表示一覧に残らない。環境依存の 1513 / 1514
   などを実際に観測しても、「到達したコード一覧」という画面の意味が変わる。
@@ -154,7 +154,7 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
 
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:124`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:676`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:676`
 - section / result / status には identifier があるが、`clipboard.button.<name>` は 0 件である。
   UI テストは表示 label に依存し、UI の文言変更と機能識別を分離できない。
 - 全 button に一意な identifier を付け、UI test は identifier で取得すること。
@@ -169,7 +169,7 @@ MS-03 / MS-07 を十分には検査していない。加えて、Picker の新�
 
 ### M-05 [C]: result は前回 10 指摘のうち high 4 件だけを「レビュー v1 の 4 件」と記録している
 
-- 対象: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md:20`
+- 対象: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v2.md:20`
 - 前回レビューには high 4、medium 4、low 2 がある。v2 は high だけを列挙し、未反映の M-01、
   M-02、M-04、L-02 が追跡表から消えている。このため「すべて反映」と誤読できる。
 - 全指摘を resolved / partial / open / rejected で追跡し、UI テスト追加という計画差分も追加判断へ

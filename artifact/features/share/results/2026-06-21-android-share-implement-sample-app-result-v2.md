@@ -2,9 +2,9 @@
 
 - 実施日: 2026-06-21
 - 対象アプリ: `android/AndroidLibraryExample`
-- 参照計画: `artifact/designs/share/2026-06-20-android-share-sample-app-design-v3.md`
-- 参照レビュー: `artifact/reviews/share/2026-06-20-android-share-implement-sample-app-review-v1.md`
-- 前回結果: `artifact/results/share/2026-06-20-android-share-implement-sample-app-result-v1.md`
+- 参照計画: `artifact/features/share/designs/2026-06-20-android-share-sample-app-design-v3.md`
+- 参照レビュー: `artifact/features/share/reviews/2026-06-20-android-share-implement-sample-app-review-v1.md`
+- 前回結果: `artifact/features/share/results/2026-06-20-android-share-implement-sample-app-result-v1.md`
 - バージョン: v2
 
 ## 実装サマリー

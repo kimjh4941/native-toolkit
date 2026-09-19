@@ -1,9 +1,9 @@
 # 再レビュー結果
 
 - 日付: 2026-08-02
-- 対象ファイル: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v2.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-02-ios-clipboard-design-review.md`
-- 基準企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v2.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-02-ios-clipboard-design-review.md`
+- 基準企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
 - 機能名: clipboard
 - 対象 OS: iOS 18 以降
 - レビュー方法: 本モデルによる全文・前回指摘追跡、別モデルによる独立再レビュー、`common.md` / `ios.md` / design workflow、Xcode 26.3 iOS 26.2 SDK interface との照合

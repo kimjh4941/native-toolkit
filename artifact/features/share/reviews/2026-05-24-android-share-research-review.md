@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-05-24
-- 対象ファイル: artifact/plans/share/2026-05-23-android-share-research.md
+- 対象ファイル: artifact/features/share/plans/2026-05-23-android-share-research.md
 - 機能名: share
 - 対象 OS: Android
 

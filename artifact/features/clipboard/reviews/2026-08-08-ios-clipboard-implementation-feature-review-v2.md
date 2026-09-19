@@ -6,10 +6,10 @@
 - 対象OS: iOS 18以降
 - ブランチ: `feature/NTKIT-14`
 - 比較差分: `develop...feature/NTKIT-14` に加え、実装レビュー v1 反映分の未コミット差分を含む
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v2.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v1.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v2.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v1.md`
 
 ## レビュー概要
 
@@ -60,7 +60,7 @@
 ### M-02: `options.localOnly` の既定値がJSON schemaへ反映されていない
 
 - 設計は`options.localOnly`の既定を`true`としているが、`options: {}` またはexpirationDateだけのobjectは `localOnly` 欠落でinvalid requestになる。
-  - `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md:1043`
+  - `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md:1043`
   - `ios/UnityIosPlugin/UnityIosPlugin/Clipboard/UnityIosClipboardJsonParser.swift:131`
   - `ios/UnityIosPlugin/UnityIosPlugin/Clipboard/UnityIosClipboardJsonParser.swift:135`
 - `localOnly`省略時は `true` を使用し、型が存在して不正な場合だけrejectするテストを追加すること。
@@ -82,7 +82,7 @@
   - `ios/IosLibrary/IosLibraryTests/Clipboard/Data/ClipboardProviderLoadExecutorTests.swift:61`
 - 空providerの実装は`failures == [.noMatchingItem]`だが、設計U-83はitems / failuresの双方を空としている。
   - `ios/IosLibrary/IosLibrary/Clipboard/Presentation/PasteItemProviderLoader.swift:70`
-  - `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md:1421`
+  - `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md:1421`
 - observer世代テストはstop/start後に新しいnotificationを同期postしているだけで、queue済みの旧observer closureが新購読者へ届かないことを直接再現していない。また `newSubscriberCount <= 1` は新購読者へ1回届くことを保証しない。
   - `ios/IosLibrary/IosLibraryTests/Clipboard/Presentation/IosClipboardManagerTests.swift:97`
   - `ios/IosLibrary/IosLibraryTests/Clipboard/Presentation/IosClipboardManagerTests.swift:107`

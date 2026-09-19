@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-07-25
-- 対象ファイル: artifact/designs/clipboard/2026-07-25-android-clipboard-sample-app-design-v2.md
+- 対象ファイル: artifact/features/clipboard/designs/2026-07-25-android-clipboard-sample-app-design-v2.md
 - 機能名: clipboard
 - 対象 OS: Android
 

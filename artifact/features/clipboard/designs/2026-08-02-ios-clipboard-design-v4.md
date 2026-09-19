@@ -2,7 +2,7 @@
 
 - 作成日: 2026-08-02
 - 改訂日: 2026-08-02（v4: 第 3 回レビュー指摘を反映）
-- 前版: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v3.md`
+- 前版: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v3.md`
 - 対象OS: iOS 18 以降
 - 対象機能: クリップボード（Clipboard / Pasteboard）
 - 使用言語: Swift（Bridge の一部は Objective-C）
@@ -29,13 +29,13 @@
 >
 > **回収されるのか、回収が遅いだけなのかは未確定。** 上限付き観測では区別できないため、
 > T-13 の long-duration measurement へ残す。詳細は
-> `artifact/results/clipboard/2026-08-15-ios-clipboard-implement-sample-app-result-v3.md` 4 章。
+> `artifact/features/clipboard/results/2026-08-15-ios-clipboard-implement-sample-app-result-v3.md` 4 章。
 
 ---
 
 ## 対象企画書
 
-- `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`（第 4 回レビュー反映版）
+- `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`（第 4 回レビュー反映版）
 
 企画書から引き継いだ前提:
 
@@ -1723,7 +1723,7 @@ v2 からの変更: T-11b が I-10（`UnityIosPlugin` の strict build）を担�
 
 ## レビュー反映履歴
 
-対象レビュー: `artifact/reviews/clipboard/2026-08-02-ios-clipboard-design-review-v2.md`
+対象レビュー: `artifact/features/clipboard/reviews/2026-08-02-ios-clipboard-design-review-v2.md`
 
 ### 第 2 回レビュー反映（v3 / 2026-08-02）
 
@@ -1747,7 +1747,7 @@ v2 からの変更: T-11b が I-10（`UnityIosPlugin` の strict build）を担�
 
 ### 第3回レビュー反映（v4 / 2026-08-02）
 
-対象レビュー: `artifact/reviews/clipboard/2026-08-02-ios-clipboard-design-review-v3.md`
+対象レビュー: `artifact/features/clipboard/reviews/2026-08-02-ios-clipboard-design-review-v3.md`
 
 | 優先度 | 指摘 | 反映内容 |
 |---|---|---|

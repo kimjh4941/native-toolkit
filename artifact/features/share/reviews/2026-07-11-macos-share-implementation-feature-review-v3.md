@@ -2,9 +2,9 @@
 
 - 日付: 2026-07-11
 - ブランチ: `feature/NTKIT-11`
-- 対象実装結果: `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md`
-- 対象設計書: `artifact/designs/share/2026-07-11-macos-share-design.md`
-- 前回レビュー: `artifact/reviews/share/2026-07-11-macos-share-implementation-feature-review-v2.md`
+- 対象実装結果: `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md`
+- 対象設計書: `artifact/features/share/designs/2026-07-11-macos-share-design.md`
+- 前回レビュー: `artifact/features/share/reviews/2026-07-11-macos-share-implementation-feature-review-v2.md`
 - 比較範囲: `develop...HEAD` は空。ローカル未追跡の Share 実装ファイルと v2 実装結果 artifact を対象に再レビュー。
 - スコープ調整: ユーザー指定により、実機 / 実 UI / Unity 実環境での mouseDown 検証は今回のレビュー対象外とする。コード、設計 artifact、単体テスト、ビルド可能性をレビュー対象にする。
 
@@ -31,7 +31,7 @@ v2 の残指摘を再確認した。
 
 - v2 High: T5/T8 の実 UI 検証未完了
   - 今回はユーザー指定によりレビュー対象外。
-  - `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v2.md` では未完了事項として明記済みであり、コードレビューの pass/fail には含めない。
+  - `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v2.md` では未完了事項として明記済みであり、コードレビューの pass/fail には含めない。
 - v2 Medium: `SharePickerPresenterTests` が `ShareError.self` のみを検証していた
   - 解消。現在は `ShareError.alreadyInProgress.errorCode` との一致を確認している: `mac/MacLibrary/MacLibraryTests/Share/SharePickerPresenterTests.swift:25`, `mac/MacLibrary/MacLibraryTests/Share/SharePickerPresenterTests.swift:26`, `mac/MacLibrary/MacLibraryTests/Share/SharePickerPresenterTests.swift:46`, `mac/MacLibrary/MacLibraryTests/Share/SharePickerPresenterTests.swift:47`
 

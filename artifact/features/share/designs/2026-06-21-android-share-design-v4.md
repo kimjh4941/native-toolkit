@@ -5,8 +5,8 @@
 - 作成日: 2026-06-21
 - 種別: 機能追加（Unity Bridge への新規コールバック経路）
 - 改訂: v4（設計レビュー反映済み — 高 4 / 中 5 / 低 1）
-- レビュー: `artifact/reviews/share/2026-06-21-android-share-design-review.md`
-- 関連: `artifact/designs/share/2026-06-20-android-share-design-v3.md`, `artifact/plans/share/2026-05-23-android-share-research-v2.md`
+- レビュー: `artifact/features/share/reviews/2026-06-21-android-share-design-review.md`
+- 関連: `artifact/features/share/designs/2026-06-20-android-share-design-v3.md`, `artifact/features/share/plans/2026-05-23-android-share-research-v2.md`
 
 ---
 

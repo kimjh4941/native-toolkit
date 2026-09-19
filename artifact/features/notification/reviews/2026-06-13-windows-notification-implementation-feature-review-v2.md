@@ -6,8 +6,8 @@
 - Target OS: Windows
 - Target feature: notification
 - Review scope: current workspace implementation and the actual Unity sample controller used by the package consumer
-- Design document: `artifact/designs/notification/2026-05-30-windows-notification-design-v3.md`
-- Primary result reference: `artifact/results/notification/2026-05-30-windows-notification-implement-feature-result-v1.md`
+- Design document: `artifact/features/notification/designs/2026-05-30-windows-notification-design-v3.md`
+- Primary result reference: `artifact/features/notification/results/2026-05-30-windows-notification-implement-feature-result-v1.md`
 
 ---
 

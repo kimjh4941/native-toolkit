@@ -6,10 +6,10 @@
 - 機能名: Windows Clipboard Manager
 - 対象 OS: Windows 11 以降
 - 対象サンプル: `windows/WindowsLibraryExample`（WinUI 3 / C++/WinRT / MSIX）
-- 機能設計: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
-- 実装結果: `artifact/results/clipboard/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
-- 前版: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v4.md`
-- 対応レビュー: `artifact/reviews/clipboard/2026-07-31-windows-clipboard-sample-app-design-review-v4.md`
+- 機能設計: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
+- 実装結果: `artifact/features/clipboard/results/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
+- 前版: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v4.md`
+- 対応レビュー: `artifact/features/clipboard/reviews/2026-07-31-windows-clipboard-sample-app-design-review-v4.md`
 - ブランチ: `feature/NTKIT-13`
 - 対応タスク: 機能設計 T-19
 
@@ -136,7 +136,7 @@ macOS sample に Clipboard 画面がないため、画面構成は Windows の `
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.h`
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp`
 - `windows/WindowsLibraryExample/ClipboardPage.idl`
-- `artifact/results/clipboard/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`
+- `artifact/features/clipboard/results/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`
 
 既存変更:
 

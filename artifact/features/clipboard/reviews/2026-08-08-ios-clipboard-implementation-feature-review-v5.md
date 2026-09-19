@@ -6,11 +6,11 @@
 - 対象OS: iOS 18以降
 - ブランチ: `feature/NTKIT-14`
 - 比較差分: `develop...feature/NTKIT-14` と未コミットのv1〜v5修正差分
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v4.md`
-- 追加参照: `artifact/MIGRATION.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v4.md`
+- 追加参照: `artifact/topics/migration/README.md`
 
 ## レビュー概要
 
@@ -31,7 +31,7 @@
   - `ios/UnityIosPlugin/UnityIosPlugin/Clipboard/UnityIosClipboardManager.swift:99`
   - `ios/UnityIosPlugin/UnityIosPlugin/Clipboard/UnityIosClipboardManager.swift:289`
 - Swift 6ではerrorになる契約違反候補であり、設計I-10と、設計v5で予定する「Clipboard差分が新規strict診断を追加しない」というDoDの双方に未達である。
-- `artifact/MIGRATION.md`のBridge callback actor-boundary先行設計で案A / Bを比較し、決定した共通方針をClipboardへ適用して16件を0にする必要がある。
+- `artifact/topics/migration/README.md`のBridge callback actor-boundary先行設計で案A / Bを比較し、決定した共通方針をClipboardへ適用して16件を0にする必要がある。
 - 修正後はSwift 5 strict whole-module clean buildでClipboard診断0件を確認し、全endpointのcallbackがmain threadでexactly-once、nil callback、C文字列・block寿命、start/stop観測境界を保つテストを追加すること。
 
 ## 改善提案（medium）
@@ -48,20 +48,20 @@
 ### M-02: Swift 5 / Swift 6診断の比較母集団と「unique」の定義を揃える必要がある
 
 - result v5はiOSのSwift 5 strict 129件と、iOS 13件 + macOS 8件のSwift 6診断21件を直接比較し、差分を早期停止分としている。対象platform / schemeが一致しないため、この差分をそのまま未診断数とは評価できない。
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md:83`
-  - `artifact/MIGRATION.md:206`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v5.md:83`
+  - `artifact/topics/migration/README.md:206`
 - 比較はiOS 129対iOS 13、またはmacOSのSwift 5 readinessも取得したうえでApple全体同士に揃える必要がある。
-- 独立再計測した修正後126件は、full source-location行を`sort -u`した場合、`sending` 39、`static property` 14、その他73だった。MIGRATION.mdの「sending 34 / static property 8」は別の正規化単位に見えるため、baseline schema確定前は「出現」と断定せず、unique keyの定義または集計コマンドを明記すること。
-  - `artifact/MIGRATION.md:147`
-  - `artifact/MIGRATION.md:162`
+- 独立再計測した修正後126件は、full source-location行を`sort -u`した場合、`sending` 39、`static property` 14、その他73だった。artifact/topics/migration/README.mdの「sending 34 / static property 8」は別の正規化単位に見えるため、baseline schema確定前は「出現」と断定せず、unique keyの定義または集計コマンドを明記すること。
+  - `artifact/topics/migration/README.md:147`
+  - `artifact/topics/migration/README.md:162`
 
 ## 軽微な指摘（low）
 
 ### L-01: `isolated deinit`の個別評価までErrataで撤回している
 
 - result v4の「新規追加した`isolated deinit`は新たな診断を発生させていない」という個別主張は、Clipboard全体に別診断が19件あったこととは独立しており、現在も成立する。
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v4.md:6`
-  - `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md:26`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v4.md:6`
+  - `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v5.md:26`
 - Errataは「Clipboard全体が0件という根拠にはならない」と限定し、deinit自体の評価は撤回しない方が正確である。
 
 ### L-02: xcframework生成後のbuild numberをresult v5へ記録するとよい
@@ -116,4 +116,4 @@
 
 **要修正（重大）**
 
-局所修正3件、Errata、result v5の主要な訂正判断は妥当である。しかし、NTKIT-14が追加するBridge callback診断16件が残り、Swift 6ではerrorになる。MIGRATION.mdで定義した先行設計を実施し、Clipboardへ適用して診断0件とcallback契約を検証するまで受け入れできない。併せてISO 8601出力テストと診断集計文を修正してから再レビューが必要である。
+局所修正3件、Errata、result v5の主要な訂正判断は妥当である。しかし、NTKIT-14が追加するBridge callback診断16件が残り、Swift 6ではerrorになる。artifact/topics/migration/README.mdで定義した先行設計を実施し、Clipboardへ適用して診断0件とcallback契約を検証するまで受け入れできない。併せてISO 8601出力テストと診断集計文を修正してから再レビューが必要である。

@@ -16,10 +16,10 @@
 2. インタラクティブ入力で対象を確定する（必須）
    - ダイアログで「対象機能の設計書ファイルを指定してください」と促す
    - 設計書ファイルの入力がない場合は次を候補として提示する
-     - `artifact/designs/<feature>/` 配下の `*-design*.md`
+     - `artifact/features/<feature>/designs/` 配下の `*-design*.md`
    - ダイアログで「対象機能の実装結果ファイルを指定してください」と促す
    - 実装結果ファイルの入力がない場合は次を候補として提示する
-     - `artifact/results/<feature>/` 配下の `*-implementation-feature-result*.md`
+     - `artifact/features/<feature>/results/` 配下の `*-implementation-feature-result*.md`
    - ダイアログで「対象OSを選択してください」と促す（ラジオボタン: Android / iOS / macOS / Windows）
    - ダイアログで「対象サンプルアプリ（例: IosLibraryExample）を指定してください」と促す
 
@@ -123,7 +123,7 @@
      - **アプリ内で完結する操作は、原則として自動化する。** ボタンを押して結果表示を読むだけで
        判定できる項目を手動欄に置かない
 
-   保存先: `artifact/designs/<feature>/`
+   保存先: `artifact/features/<feature>/designs/`
    ファイル名: `YYYY-MM-DD-<os>-<feature>-sample-app-design-vN.md`
    同名が存在する場合は `vN` をインクリメントし、既存ファイルを上書きしない。
 

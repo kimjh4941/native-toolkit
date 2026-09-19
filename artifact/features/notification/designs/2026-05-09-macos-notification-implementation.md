@@ -2,7 +2,7 @@
 
 ## 対象企画書
 
-- artifact/plans/notification/2026-05-09-macos-notification-research-v2.md
+- artifact/features/notification/plans/2026-05-09-macos-notification-research-v2.md
 
 ## 設計目的
 

@@ -6,8 +6,8 @@
 - 機能名: clipboard
 - 対象OS: Android
 - 対象サンプルアプリ: `android/AndroidLibraryExample`
-- 計画ファイル: `artifact/designs/clipboard/2026-07-25-android-clipboard-sample-app-design-v3.md`
-- 機能設計書: `artifact/designs/clipboard/2026-07-25-android-clipboard-design.md`（v5）
+- 計画ファイル: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-sample-app-design-v3.md`
+- 機能設計書: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md`（v5）
 
 ---
 

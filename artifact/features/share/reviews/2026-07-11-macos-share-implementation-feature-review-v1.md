@@ -2,8 +2,8 @@
 
 - 日付: 2026-07-11
 - ブランチ: `feature/NTKIT-11`
-- 対象実装結果: `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v1.md`
-- 対象設計書: `artifact/designs/share/2026-07-11-macos-share-design.md`
+- 対象実装結果: `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v1.md`
+- 対象設計書: `artifact/features/share/designs/2026-07-11-macos-share-design.md`
 - 比較範囲: `develop...HEAD` は空。ローカル未追跡の Share 実装ファイルと実装結果 artifact を対象にレビュー。
 
 ## Findings
@@ -11,10 +11,10 @@
 ### High: T5/T8 の必須完了条件である picker / Unity Bridge の実 UI 検証が未完了のまま、実装完了扱いになっている
 
 - 根拠:
-  - 設計書は T5 の完了条件として、実機での picker 表示・直接実行、`show()` を `mouseDown` 文脈で呼んだ場合の安定表示、分岐判断の確定を要求している: `artifact/designs/share/2026-07-11-macos-share-design.md:816`
-  - T8 も Unity Bridge 経由で picker が `mouseDown` 制約を満たして安定表示できること、満たせない場合は代替分岐を採用することを完了条件にしている: `artifact/designs/share/2026-07-11-macos-share-design.md:819`
-  - リスク欄でも、通常の Unity Bridge 呼び出しで `mouseDown` 文脈が保証されないため、T5 で早期検証して分岐確定することが明記されている: `artifact/designs/share/2026-07-11-macos-share-design.md:831`, `artifact/designs/share/2026-07-11-macos-share-design.md:846`
-  - 実装結果では該当検証が未実施として残っている: `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v1.md:135`, `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v1.md:136`, `artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v1.md:168`
+  - 設計書は T5 の完了条件として、実機での picker 表示・直接実行、`show()` を `mouseDown` 文脈で呼んだ場合の安定表示、分岐判断の確定を要求している: `artifact/features/share/designs/2026-07-11-macos-share-design.md:816`
+  - T8 も Unity Bridge 経由で picker が `mouseDown` 制約を満たして安定表示できること、満たせない場合は代替分岐を採用することを完了条件にしている: `artifact/features/share/designs/2026-07-11-macos-share-design.md:819`
+  - リスク欄でも、通常の Unity Bridge 呼び出しで `mouseDown` 文脈が保証されないため、T5 で早期検証して分岐確定することが明記されている: `artifact/features/share/designs/2026-07-11-macos-share-design.md:831`, `artifact/features/share/designs/2026-07-11-macos-share-design.md:846`
+  - 実装結果では該当検証が未実施として残っている: `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v1.md:135`, `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v1.md:136`, `artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v1.md:168`
 
 影響: 主 API の `shareContent` は picker 方式であり、Unity からボタン起点で呼んだときに安定表示できるかが未確定です。設計上はこの検証結果で分岐 A/B/C を確定する前提なので、現時点では T5/T8 を完了扱いにできません。
 

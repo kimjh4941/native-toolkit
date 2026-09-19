@@ -5,7 +5,7 @@
 - 日付: 2026-07-25
 - 機能名: clipboard
 - 対象OS: Android
-- 設計書: artifact/designs/clipboard/2026-07-25-android-clipboard-design.md（v4）
+- 設計書: artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md（v4）
 - ブランチ: feature/NTKIT-12
 
 ## 1. 実装サマリー

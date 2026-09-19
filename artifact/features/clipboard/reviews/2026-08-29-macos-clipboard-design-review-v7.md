@@ -1,8 +1,8 @@
 # レビュー結果（v8 変更差分）
 
 - 日付: 2026-09-02
-- 対象ファイル: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v8.md`
-- 比較元: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v8.md`
+- 比較元: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
 - レビュー範囲: ヘッダ、§12.6 MT-05、§12.6.1、§13 T-18 の変更箇所のみ
 - 機能名: clipboard
 - 対象 OS: macOS 15 以降

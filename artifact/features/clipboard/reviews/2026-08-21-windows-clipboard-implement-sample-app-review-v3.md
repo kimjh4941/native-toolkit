@@ -5,9 +5,9 @@
 - ブランチ: `feature/NTKIT-13`
 - 対応コミット: `4393934ff91c923862815e9fe8ead4dd422c9aaf`
 - 比較: `develop...HEAD`、およびレビュー v2 対応差分 `4393934f^...4393934f`
-- 計画: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v5.md`
-- 実装結果: `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v2.md`
+- 計画: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-21-windows-clipboard-implement-sample-app-review-v2.md`
 - 対象OS: Windows 11以降
 
 ## 検証結果
@@ -41,7 +41,7 @@
 
 ### M2. 実装結果のページ離脱時callback説明が旧実装のまま
 
-- 該当: `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:145`
+- 該当: `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md:145`
 - §2.4は「`OnNavigatedFrom`でhubをnull、`OnRequestCompleted`のunknown id分岐」と記載しているが、現在の主契約は `g_requestOwners[requestId] = m_pageId` と `g_activePageId` の照合である。
 - §5.11には新方式が正しく記録されているため、§2.4も同じ説明へ更新し、最終状態の要約と対応履歴を一致させる。
 

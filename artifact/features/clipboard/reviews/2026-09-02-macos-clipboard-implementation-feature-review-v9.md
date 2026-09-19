@@ -6,9 +6,9 @@
 - 基準差分: `git diff develop...HEAD`
 - 再レビュー差分: 未コミット working tree 13 files（+166 / -147）および実装結果 v10
 - 対象 OS: macOS 15 以降
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`（working tree で更新）
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v10.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implementation-feature-review-v8.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`（working tree で更新）
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v10.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implementation-feature-review-v8.md`
 - §7.12 のスコープ変更根拠そのもの、T-18、手動確認、旧サンプル計画 v1 は前回同様に判定対象外
 
 ## レビュー概要
@@ -36,7 +36,7 @@
 
 ### H-3: File Promise を削除した設計書の現行契約が、依然として File Promise の実装・テスト完了を要求している
 
-- common.md 適用表は、存在しない `FilePromiseHandle` と `ReceiveFilePromisesUseCase` を現在の適合根拠にしている（`artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:311-312`）。Bridge方針にも削除済み `releaseFilePromise` が残る（同:560）。
+- common.md 適用表は、存在しない `FilePromiseHandle` と `ReceiveFilePromisesUseCase` を現在の適合根拠にしている（`artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:311-312`）。Bridge方針にも削除済み `releaseFilePromise` が残る（同:560）。
 - §12.1 は `ClipboardError` を全25ケースとし、現在存在しない `quiet >= overall` を `ClipboardLimits` 境界値に含める。実装は20ケースで、limitsは warn / max / total の3値だけである（同:1561-1562、`mac/MacLibrary/MacLibrary/Clipboard/Domain/Model/ClipboardLimits.swift:13-42`）。
 - §12.2 は `inFlightCount`、receipt reader、`overallTimeout`、file promise operation queue、snapshot stagingなど削除済み経路を IT-14 / IT-16〜18 / IT-21〜23 / IT-30 / IT-39 / IT-51〜52 として要求する（設計:1585-1597）。
 - §12.4 は total 15 endpoint に対して「資源を生成しない16 endpoint」と記載し、受領 terminal、`sourcePath`、receive `onEvent` を BT-09 / BT-15 / BT-16 / BT-19 に残す（同:1623-1638）。createPasteboard だけが callback 必須なので、NULL許容 operation endpoint は14件である。
@@ -54,7 +54,7 @@
 
 ### M-5: UnityMacPlugin の展開後実行数は71ではなく72
 
-- 実装結果 v10 は UnityMacPlugin を宣言71 / 実行71と記載する（`artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v10.md:115-118`）。
+- 実装結果 v10 は UnityMacPlugin を宣言71 / 実行71と記載する（`artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v10.md:115-118`）。
 - レビュー時の source は `@Test` 71宣言で一致したが、xcresult は `totalTestCount: 71`、device configuration の `passedTests: 72` だった。`namedScopeRequiresName(kind:)` が2引数へ展開されるためである（`mac/UnityMacPlugin/UnityMacPluginTests/Clipboard/UnityMacClipboardJsonParserTests.swift:85-90`）。
 - 正しい記録は MacLibrary 302 / 346、UnityMacPlugin 71 / **72**、失敗0。v9の実行74から削除した handle test 2件を引いても72になる。§4と§4.1を訂正する必要がある。
 

@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-07-04
-- 対象ファイル: artifact/plans/share/2026-07-04-ios-share-research.md
+- 対象ファイル: artifact/features/share/plans/2026-07-04-ios-share-research.md
 - 機能名: share
 - 対象 OS: iOS 18 以降
 

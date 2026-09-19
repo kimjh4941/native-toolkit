@@ -2,8 +2,8 @@
 
 - 作成日: 2026-08-29
 - 改訂日: 2026-08-29（v7: 第 6 回レビュー指摘 14 件を全件反映 + 機械照合スクリプトを導入）
-- 前版: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v6.md`
-- 初版: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design.md`
+- 前版: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v6.md`
+- 初版: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design.md`
 - レビュー: `.../2026-08-29-macos-clipboard-design-review-v6.md`（第 6 回）、`-v5.md`（第 5 回）、`-v4.md`、`-v3.md`、`-v2.md`、`.../2026-08-29-macos-clipboard-design-review.md`（第 1 回）
 
 > **正規契約の所在（v6 で確立、v7 で機械照合を追加）**
@@ -19,9 +19,9 @@
 - **UseCase**: **18 本**（+ `ClipboardContentValidator` / `ClipboardChangeTracker` / `ClipboardUseCases` 集約 = ファイル 21 本）。18 本目は `GetChangeCountUseCase`（公開 OP ではなく、変更監視と stale 判定が Repository へ直接触れないための内部 UseCase。R-M2）
 - **callback 必須の Bridge endpoint**: **3 件**（`clipboardProvideFilePromise` / `clipboardReceiveFilePromises` / `clipboardCreatePasteboard`）。残り 16 件は NULL 許容
 - **JSON shape**（§8.4.4）: 入力専用 **6**、入出力共用 **4**、出力専用 **8**、イベント **2** = 実体 **20 型**（R5-L11 で排他的に再定義）
-- 対象企画書: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v3.md`
+- 対象企画書: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v3.md`
 - 対象OS: macOS 15 以降（`MACOSX_DEPLOYMENT_TARGET` は 15.0 / 15.1）
-- 使用言語: Swift 5.0 言語モード（プロジェクト現行設定）、Objective-C（Bridge）。**Swift 6 への移行は `artifact/MIGRATION.md` の `swift6-migration` トピックが管理する別タスクであり、本設計の範囲外**。本設計は「Swift 6 でも通る書き方を選ぶが、言語モードは切り替えない」立場を取る
+- 使用言語: Swift 5.0 言語モード（プロジェクト現行設定）、Objective-C（Bridge）。**Swift 6 への移行は `artifact/topics/migration/README.md` の `swift6-migration` トピックが管理する別タスクであり、本設計の範囲外**。本設計は「Swift 6 でも通る書き方を選ぶが、言語モードは切り替えない」立場を取る
 - 対象モジュール: `mac/MacLibrary`（Domain 〜 Manager）、`mac/UnityMacPlugin`（Unity Bridge）
 - 適用ルール: `agent-rules/coding-rules/common.md`、`agent-rules/coding-rules/mac.md`
 
@@ -572,7 +572,7 @@ func attachStaleQuery(_ query: @escaping @MainActor (PasteboardScope) throws -> 
 
 **tick の実装（T-07 実測）**: `Timer` ではなく `Task` の繰り返しループを使う。`@MainActor` クラスの `deinit` は nonisolated であり、Swift 6 では非 Sendable な `Timer` に触れられない（`cannot access property with a non-Sendable type 'Timer?' from nonisolated deinit`）。`Task` は `Sendable` なので `deinit` から cancel できる。ループは `weak self` を捕捉し、coordinator が解放されたら自ら終了する。
 
-**この診断は `swiftc -typecheck` では出ず、whole-module の strict build でのみ現れた。**CT-01 の計測条件（`MIGRATION.md` §4.3）を守る理由の実例。
+**この診断は `swiftc -typecheck` では出ず、whole-module の strict build でのみ現れた。**CT-01 の計測条件（`artifact/topics/migration/README.md` §4.3）を守る理由の実例。
 
 **tick の経路**
 
@@ -1669,7 +1669,7 @@ public protocol ClipboardPromiseRegistry {
 | 成功時 | `isSuccess = YES`、`errorCode = 0`、`errorMessage = NULL` |
 | 失敗時 | `isSuccess = NO`、`errorCode` は `BridgeError` または `ClipboardError` の値、`errorMessage` は英語メッセージ |
 | 数値 | `changeCount` は 64bit 整数（JSON number）。バイト列は **Base64 文字列** |
-| **Swift facade の handler 型** | **`@Sendable` を付与する（案 C）**。`MIGRATION.md` §6 の決定事項で、iOS Clipboard へ適用済み。§8.4.6 参照 |
+| **Swift facade の handler 型** | **`@Sendable` を付与する（案 C）**。`artifact/topics/migration/README.md` §6 の決定事項で、iOS Clipboard へ適用済み。§8.4.6 参照 |
 
 #### 8.4.2 callback typedef
 
@@ -1975,7 +1975,7 @@ Bridge は C ABI にクロージャを載せられないため、`FilePromiseReq
 ネイティブ版で `FilePromiseSource.writer` を渡した場合はスナップショットを行わない。呼び出し側がクロージャ内で自由に生成できるため。**この差分を DocC に明記する。**
 
 
-#### 8.4.6 Swift facade の handler 型規約（案 C。`MIGRATION.md` §6）
+#### 8.4.6 Swift facade の handler 型規約（案 C。`artifact/topics/migration/README.md` §6）
 
 Bridge の Swift facade は `nonisolated` クラスであり、C 関数ポインタ由来の handler を
 `Task { @MainActor in }` へ渡す。この構造は strict concurrency で
@@ -2001,7 +2001,7 @@ main actor に固定しない。** §8.4.1 の「callback スレッドは常に�
 **parser の並行安全性（T-16a 実測）**: facade は任意スレッドから呼ばれるため、
 `JSONEncoder` / `JSONDecoder` / `ISO8601DateFormatter` を**インスタンスで共有してはならない**。
 coder は呼び出しごとに生成し、日付は `Date.ISO8601FormatStyle`（Sendable な値型）を使う。
-これは iOS Clipboard が既に採った修正と同一（`MIGRATION.md` §4.2）。
+これは iOS Clipboard が既に採った修正と同一（`artifact/topics/migration/README.md` §4.2）。
 `UnityMacClipboardJsonParser` は `struct` + `Sendable` とし、facade 自身も可変状態を持たない。
 
 **検証の担保範囲**
@@ -2011,7 +2011,7 @@ coder は呼び出しごとに生成し、日付は `Date.ISO8601FormatStyle`（
 | Swift caller | `@Sendable` によりコンパイラが型検査する |
 | **Objective-C caller** | **コンパイラ検証は及ばない。** block の capture 監査（C 関数ポインタのみであること）と Bridge 契約テスト（BT-20〜BT-23）で担保する |
 
-**適用時の確認事項**（`MIGRATION.md` §6）
+**適用時の確認事項**（`artifact/topics/migration/README.md` §6）
 
 - Objective-C 側が無変更でビルドできること（`@Sendable` は block 表現に影響しない）
 - callback が **main thread で exactly-once**。**background thread から呼ばれた場合の早期リターン経路を含めて**検証する
@@ -2276,10 +2276,10 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 | **BT-17** | **機械照合: 公開 OP が 20、Bridge endpoint が 19、operation callback 必須が 3、event callback 必須が 2、§8.4.3 の prototype 数と §8.4.4 の実体 20 型が冒頭「用語」の記載と一致する** | **R3-L8 / R4-L8 / R5-L11** |
 | **BT-18** | **`clipboardProvideFilePromise` が `scopeJson` を受け取り、scope 解決失敗でエラーを返す** | **R5-H5** |
 | **BT-19** | **`onChange` / `onEvent` が NULL のとき operation callback に 1302 を返し、購読・受領を開始しない** | **R5-M8** |
-| **BT-20** | **全 19 endpoint の Swift facade の handler 型に `@Sendable` が付いている**（案 C。§8.4.6） | **MIGRATION.md §6** |
-| **BT-21** | **Objective-C 側を無変更でビルドでき、`.m` の block が C 関数ポインタ以外をキャプチャしていない** | **MIGRATION.md §6** |
-| **BT-22** | **background thread から呼び出した場合も、JSON パース失敗・引数 NULL の早期リターン経路を含めて callback が main thread で exactly-once** | **MIGRATION.md §6** |
-| **BT-23** | **`nil` callback で trap しない。監視の start / stop 境界で handler が交差しない** | **MIGRATION.md §6** |
+| **BT-20** | **全 19 endpoint の Swift facade の handler 型に `@Sendable` が付いている**（案 C。§8.4.6） | **artifact/topics/migration/README.md §6** |
+| **BT-21** | **Objective-C 側を無変更でビルドでき、`.m` の block が C 関数ポインタ以外をキャプチャしていない** | **artifact/topics/migration/README.md §6** |
+| **BT-22** | **background thread から呼び出した場合も、JSON パース失敗・引数 NULL の早期リターン経路を含めて callback が main thread で exactly-once** | **artifact/topics/migration/README.md §6** |
+| **BT-23** | **`nil` callback で trap しない。監視の start / stop 境界で handler が交差しない** | **artifact/topics/migration/README.md §6** |
 | **BT-24** | **`optionsJson` が nil / 空 / 正常 / 不正 の 4 通りで区別される。不正は 1301** | **R-M3** |
 | **BT-25** | **C 層のログに `contentJson` / `scopeJson` の平文が出ない**（長さと短縮ハッシュのみ） | **R-H3** |
 
@@ -2287,7 +2287,7 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 
 | ID | 検証内容 |
 |---|---|
-| CT-01 | **本機能が追加した差分が strict concurrency 診断を増やさない**（`SWIFT_VERSION=5.0` / `SWIFT_STRICT_CONCURRENCY=complete` / `SWIFT_COMPILATION_MODE=wholemodule` / `clean build`、最下流 scheme `UnityMacPlugin`。`MIGRATION.md` §3.3 / §4.3）。Clipboard は `develop` に存在しない新規差分のため、**`Clipboard/` 配下の診断は 0 件であること** |
+| CT-01 | **本機能が追加した差分が strict concurrency 診断を増やさない**（`SWIFT_VERSION=5.0` / `SWIFT_STRICT_CONCURRENCY=complete` / `SWIFT_COMPILATION_MODE=wholemodule` / `clean build`、最下流 scheme `UnityMacPlugin`。`artifact/topics/migration/README.md` §3.3 / §4.3）。Clipboard は `develop` に存在しない新規差分のため、**`Clipboard/` 配下の診断は 0 件であること** |
 | CT-02 | `ClipboardChangeMonitor` が非 Sendable 捕捉の警告を出さない（RK-10） |
 | CT-03 | `FilePromiseDelegate` が nonisolated 要件を満たす |
 | CT-04 | Manager の callback が常に MainActor |
@@ -2479,8 +2479,8 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 
 ### 実装完了条件（次工程で満たす）
 
-- [x] **本機能の差分が strict concurrency 診断を増やしていない**（CT-01 の条件で計測し、`Clipboard/` 配下 0 件）。`MIGRATION.md` §3.3「機能タスクの DoD は差分のみを判定する」に従う。**プロジェクトを Swift 6 言語モードへ切り替えることは本タスクの完了条件ではない**
-- [x] **Unity Bridge の Swift facade の handler が案 C（`@Sendable` 付与）で書かれている**（`MIGRATION.md` §6。iOS Clipboard 適用済みの決定事項）
+- [x] **本機能の差分が strict concurrency 診断を増やしていない**（CT-01 の条件で計測し、`Clipboard/` 配下 0 件）。`artifact/topics/migration/README.md` §3.3「機能タスクの DoD は差分のみを判定する」に従う。**プロジェクトを Swift 6 言語モードへ切り替えることは本タスクの完了条件ではない**
+- [x] **Unity Bridge の Swift facade の handler が案 C（`@Sendable` 付与）で書かれている**（`artifact/topics/migration/README.md` §6。iOS Clipboard 適用済みの決定事項）
 - [x] **実装のシグネチャ・actor isolation・キャンセル・timeout・exactly-once 契約が §9 の対応表と一致している**
 - [x] **`@discardableResult` が戻り値のある OP-01〜OP-07 / OP-09〜OP-11 のみに付いている（OP-08 には付いていない）**（R3-M6 / R4-M7）
 - [x] **OP-16 が `async throws` で、`.snapshot` のコピーが MainActor 外で実行される**（R4-H3）
@@ -2521,7 +2521,7 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 設計書を更新したら必ず実行する。
 
 ```
-python3 scripts/check_design_consistency.py artifact/designs/clipboard/<設計書>.md
+python3 scripts/check_design_consistency.py artifact/features/clipboard/designs/<設計書>.md
 ```
 
 検査項目。

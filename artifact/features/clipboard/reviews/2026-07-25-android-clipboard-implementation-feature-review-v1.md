@@ -3,8 +3,8 @@
 - 日付: 2026-07-25
 - 対象ブランチ: `feature/NTKIT-12`
 - 対象差分: `develop...HEAD` は空。未追跡の Android Clipboard 実装ファイルをレビュー対象として確認
-- 設計書: `artifact/designs/clipboard/2026-07-25-android-clipboard-design.md`
-- 実装結果: `artifact/results/clipboard/2026-07-25-android-clipboard-implementation-feature-result-v1.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md`
+- 実装結果: `artifact/features/clipboard/results/2026-07-25-android-clipboard-implementation-feature-result-v1.md`
 - 対象 OS: Android
 - 総合評価: 要修正（重大）
 
@@ -29,7 +29,7 @@ Android Clipboard 機能として、`android_library` に Domain/Application/Dat
 
 2. **同期 `read()` が `ReadNotAllowed` を `"null"` に変換してしまい、設計の唯一の失敗ケースが Bridge で失われます。**
    - 該当箇所:
-     - 設計書: `artifact/designs/clipboard/2026-07-25-android-clipboard-design.md:370-387`
+     - 設計書: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md:370-387`
      - Repository: `android/android_library/src/main/java/android/library/clipboard/data/repository/ClipboardRepositoryImpl.kt:30-38`
      - Manager: `android/unity_android_plugin/src/main/java/android/unity/clipboard/UnityAndroidClipboardManager.kt:181-189`
    - Repository は `SecurityException` を `ClipboardDomainError.ReadNotAllowed` に変換していますが、Manager の `read(context)` は `catch (Exception)` で全例外を捕捉し、常に `"null"` を返します。そのため、設計が「唯一の失敗ケース」とした `SecurityException -> ReadNotAllowed` と、空 clipboard / 黙示的 `null` が Bridge では区別不能になります。
@@ -39,7 +39,7 @@ Android Clipboard 機能として、`android_library` に Domain/Application/Dat
 
 1. **URI の不正値検証が設計より弱く、`InvalidUri` が blank 以外でほぼ発生しません。**
    - 該当箇所:
-     - 設計書: `artifact/designs/clipboard/2026-07-25-android-clipboard-design.md:231-233`
+     - 設計書: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md:231-233`
      - UseCase: `android/android_library/src/main/java/android/library/clipboard/application/usecase/CopyUriUseCase.kt:21-24`
      - Mapper: `android/android_library/src/main/java/android/library/clipboard/data/repository/ClipboardMappers.kt:18-23`
    - UseCase は blank のみを `InvalidUri` にしており、Data 層は `Uri.parse(uri)` をそのまま `ClipData.newUri` に渡しています。`Uri.parse` は多くの文字列を構文的に受け入れるため、設計にある「パース失敗」やテスト設計の「不正 URI」が実質的に検証されません。許容 scheme（少なくとも `content://` / `file://`）や `scheme != null` など、設計上の不正 URI 条件を明確化してテストしてください。

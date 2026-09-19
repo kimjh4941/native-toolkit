@@ -3,8 +3,8 @@
 - 日付: 2026-07-29
 - 対象ブランチ: `feature/NTKIT-13`
 - 対象差分: `develop...HEAD` は Clipboard 以外の大量差分を含み、Clipboard 実装の大半が未追跡であるため、作業ツリー上の Clipboard 関連ファイルに限定してレビュー
-- 設計書: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
-- 実装結果: `artifact/results/clipboard/2026-07-29-windows-clipboard-implementation-feature-result-v1.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
+- 実装結果: `artifact/features/clipboard/results/2026-07-29-windows-clipboard-implementation-feature-result-v1.md`
 - 対象 OS: Windows 11
 - 総合評価: **要修正（重大）**
 

@@ -11,7 +11,7 @@
 
 ## 目的
 
-Windows のネイティブクリップボード API を、native-toolkit の対象範囲について網羅し、組み込み設計に必要な情報を整理する。Windows には系統の異なる 2 つの API 群（Win32 クリップボード API / WinRT `Windows.ApplicationModel.DataTransfer`）が存在するため、両者の責務・制約・使い分けを明確にすることを主眼とする。あわせて Android 版クリップボード（`artifact/plans/clipboard/2026-07-25-android-clipboard-research.md`）との公開 API 対応関係を整理する。
+Windows のネイティブクリップボード API を、native-toolkit の対象範囲について網羅し、組み込み設計に必要な情報を整理する。Windows には系統の異なる 2 つの API 群（Win32 クリップボード API / WinRT `Windows.ApplicationModel.DataTransfer`）が存在するため、両者の責務・制約・使い分けを明確にすることを主眼とする。あわせて Android 版クリップボード（`artifact/features/clipboard/plans/2026-07-25-android-clipboard-research.md`）との公開 API 対応関係を整理する。
 
 用語の定義（レビュー指摘反映）: 本書の「全網羅」は **native-toolkit の対象範囲（In scope）を網羅する**という意味で用いる。Out of scope の API についても、範囲外である旨を明記したうえで存在のみ一覧化する。
 
@@ -55,7 +55,7 @@ Windows のネイティブクリップボード API を、native-toolkit の対�
 | 旧来フォーマット（`CF_PENDATA` / `CF_SYLK` / `CF_DIF` / `CF_TIFF` / `CF_RIFF` / `CF_WAVE` / `CF_DSP*`）の**実装** | 現行アプリでの相互運用需要がないため。存在のみ API 表に記載 |
 | 旧クリップボードビューアチェーン（`SetClipboardViewer` 系）の**実運用** | 公式が後方互換専用と位置づけ、フォーマットリスナーを推奨しているため。存在のみ API 表に記載 |
 | Enterprise Data Protection（`DataPackageView.RequestAccessAsync` / `UnlockAndAssumeEnterpriseIdentity`） | 企業ポリシー連携は対象外 |
-| 共有（Share）機能（`DataTransferManager`） | 別機能 `artifact/plans/share/` の範囲 |
+| 共有（Share）機能（`DataTransferManager`） | 別機能 `artifact/features/share/plans/` の範囲 |
 | `DataPackage.SetDataProvider`（WinRT 遅延提供） | Package Identity 必須のため未パッケージで使えない。Win32 の遅延レンダリング（S-10）で代替 |
 
 ---

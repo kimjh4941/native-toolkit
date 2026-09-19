@@ -6,9 +6,9 @@
 - 基準差分: `git diff develop...HEAD`（115 files、+32,632 / -19）
 - スコープ変更コミット: `78203ef9`（File Promise 4 操作の削除）
 - 対象 OS: macOS 15 以降
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
-- 実装結果: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v9.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v7.md`（LGTM）
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v9.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v7.md`（LGTM）
 - ユーザー指定に従い、§7.12 のスコープ変更根拠そのもの、T-18、手動確認、旧サンプル計画 v1 は判定対象外
 
 ## レビュー概要
@@ -24,14 +24,14 @@
 
 ### H-1: 設計書の公開エラーコード表が実装および「番号を動かさない」方針と矛盾している
 
-- 設計書は 1516〜1520 を欠番にし、1521 以降を動かさないと明記している（`artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:42-43`）。
+- 設計書は 1516〜1520 を欠番にし、1521 以降を動かさないと明記している（`artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:42-43`）。
 - しかし §11 は `emptyContent`〜`detectionFailed` を 1496〜1510、`pasteLoadFailed`〜`cancelled` を 1516〜1519、`unknown` を 1594 と記載している（同:1509-1528）。これでは 1516〜1520 が欠番にならず、既存コードも5ずつ移動する。
 - 実装は `emptyContent == 1501`、`detectionFailed == 1515`、`pasteLoadFailed == 1521`、`cancelled == 1524`、`unknown == 1599` であり、互換性を保つ正しい割り当てである（`ClipboardError.swift:64-84`）。テストも 1501 / 1511 / 1523 / 1524 / 1599 を固定している（`mac/MacLibrary/MacLibraryTests/Clipboard/Domain/ClipboardErrorTests.swift:93-99`）。
 - Bridge 利用者が設計書を正として実装すると、全ドメインエラーを誤解釈する。§11 を実装の割り当てへ戻し、機械照合に「ケース名 → 固定コード」の完全対応検査を追加する必要がある。
 
 ### H-2: Bridge JSON schema が設計 16 型、実装 18 型、テスト 20 型の三つに分裂している
 
-- 設計 §8.4.4 は入力4 + 共用4 + 出力7 + event1 = 16 型とするが、共用に削除対象だった `HandleJson` を残し、出力から実際に使う `AccessBehaviorJson` を落としている（`artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:1258-1265`）。同じ設計の endpoint 表は `clipboardAccessBehavior` の戻り値を `AccessBehaviorJson` としている（同:1231-1232）。
+- 設計 §8.4.4 は入力4 + 共用4 + 出力7 + event1 = 16 型とするが、共用に削除対象だった `HandleJson` を残し、出力から実際に使う `AccessBehaviorJson` を落としている（`artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:1258-1265`）。同じ設計の endpoint 表は `clipboardAccessBehavior` の戻り値を `AccessBehaviorJson` としている（同:1231-1232）。
 - 実装は未使用の `HandleJson` / `parseHandleId` / `encodeHandle` とその専用テストを残している一方、設計の inventory にない `ScopeResultJson` と `AccessBehaviorJson` を持つ。`createPasteboard` は設計の `ScopeJson` 直返しではなく `{"scope": ...}` の `ScopeResultJson` を encode する（`mac/UnityMacPlugin/UnityMacPlugin/Clipboard/UnityMacClipboardJsonParser.swift:56-58,218-225,357-360,385-387,434-441`、設計:1213-1214）。したがって実装上の top-level shape は18型である。
 - production DocC は旧20型のままである（`UnityMacClipboardJsonParser.swift:9-19`）。さらに BT-11 は実在する型を列挙せず、削除済み `FilePromiseRequestJson` / `PolicyJson` / `ReceiptEventJson` を単なる文字列として並べて20件を確認しているため、実装と無関係に成功する false green になっている（`mac/UnityMacPlugin/UnityMacPluginTests/Clipboard/UnityMacClipboardJsonParserTests.swift:22-42`）。
 - C# 側が依存する wire shape の契約を一つに確定する必要がある。設計の「16型」と `createPasteboard -> ScopeJson` を正とするなら、`HandleJson` と `ScopeResultJson` を削除し、集合を入力4 / 共用3（Scope / Ownership / Patterns）/ 出力8（AccessBehavior を追加）/ event1へ直すと16型になる。別の wire shape を意図するなら、その形と件数を設計へ明記する。いずれの場合も BT-11 は実型の encode/decode または型ごとの fixture を参照し、削除済み型名だけでは通らない検査にする。
@@ -46,14 +46,14 @@
 
 ### M-2: 設計書の現行テスト設計・タスク・完了条件に削除済み契約が残っている
 
-- §12.1 は `CancelReceiveFilePromisesUseCase` と `ProvideFilePromiseUseCase` を現在のテスト対象として残す（`artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:1556,1560`）。
+- §12.1 は `CancelReceiveFilePromisesUseCase` と `ProvideFilePromiseUseCase` を現在のテスト対象として残す（`artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:1556,1560`）。
 - §12.4 は受領 terminal、19 endpoint、20 JSON型など旧 BT-09〜BT-17 を残す（同:1629-1635）。T-06b のレビュー条件にも `CancelReceiveFilePromisesUseCase` が残る（同:1684）。
 - §15 の過去チェック項目にも公開 OP 20 / Bridge 19、全19 endpoint、File Promise 状態機械が「現行の達成済み条件」として残る（同:1767-1771）。履歴として残すなら変更履歴へ移し、現行テスト設計・タスク・DoD からは除外または v9 で廃止済みと明示するべきである。
 - `check_design_consistency.py` は22 / 22を返すが、これらの旧 ID / 型名 / 件数を検出しない。変更履歴だけを除外したうえで、現行章に `FilePromise` / `Receipt`、19 endpoint、20 JSON型などが再出現しない検査を追加する必要がある。
 
 ### M-3: 実装結果 v9 がテスト宣言数と展開後実行数を再び混同している
 
-- 実装結果は 357 / 74 を「宣言」と記載する（`artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v9.md:89-96`）。実際の `@Test` 宣言は `rg -n '@Test'` で MacLibrary 305、UnityMacPlugin 73である。
+- 実装結果は 357 / 74 を「宣言」と記載する（`artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v9.md:89-96`）。実際の `@Test` 宣言は `rg -n '@Test'` で MacLibrary 305、UnityMacPlugin 73である。
 - レビュー時の xcresult は parameter 展開後の passed tests が 357 / 74、base test count が 305 / 73だった。従って clean test の合否値は正しいが、§3.1 のラベルと「削除した80件」の導出は正しくない。
 - v8 で定義した「宣言数 / 展開後実行数」を維持し、v9 は MacLibrary 305 / 357、UnityMacPlugin 73 / 74 と記録するべきである。削除件数も同じ基準同士で再計算する必要がある。
 

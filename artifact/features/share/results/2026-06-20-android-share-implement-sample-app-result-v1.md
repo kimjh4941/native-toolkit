@@ -2,7 +2,7 @@
 
 - 実施日: 2026-06-20
 - 対象アプリ: `android/AndroidLibraryExample`
-- 参照計画: `artifact/designs/share/2026-06-20-android-share-sample-app-design-v3.md`
+- 参照計画: `artifact/features/share/designs/2026-06-20-android-share-sample-app-design-v3.md`
 - バージョン: v1（初版）
 
 ---

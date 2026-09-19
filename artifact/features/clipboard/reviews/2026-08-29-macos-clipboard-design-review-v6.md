@@ -1,8 +1,8 @@
 # レビュー結果（第6回）
 
 - 日付: 2026-08-29
-- 対象ファイル: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v6.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-29-macos-clipboard-design-review-v5.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v6.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-29-macos-clipboard-design-review-v5.md`
 - 機能名: clipboard
 - 対象 OS: macOS 15 以降
 - レビュー方法: 設計書全文、企画書 v3、前回レビュー、`common.md` / `mac.md`、既存 macOS 実装、および別エージェントによる独立レビューの照合

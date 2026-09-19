@@ -6,9 +6,9 @@
 - 基準差分: `git diff develop...HEAD`（112 files、+29,310 / -19）
 - 修正差分: 未コミットの `git diff`（追跡対象23 files、+1,050 / -204）および未追跡ファイル
 - 対象 OS: macOS 15 以降
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
-- 実装結果: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v6.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v4.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
+- 実装結果: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v6.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v4.md`
 - T-18（サンプルアプリ）およびSwift 6移行は指定どおり対象外
 
 ## レビュー概要

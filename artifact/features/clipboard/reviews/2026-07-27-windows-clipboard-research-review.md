@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-07-27
-- 対象ファイル: `artifact/plans/clipboard/2026-07-27-windows-clipboard-research.md`
+- 対象ファイル: `artifact/features/clipboard/plans/2026-07-27-windows-clipboard-research.md`
 - 機能名: clipboard
 - 対象 OS: Windows 11 以降
 - 判定: **要修正**

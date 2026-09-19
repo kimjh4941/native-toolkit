@@ -132,7 +132,7 @@ fun deleteChannel(channelId: String): Result<Unit>
 
 **`suspend fun` にしなくてよいもの:**
 
-- `ClipboardManager` / `NotificationManagerCompat` 等、システムサービスへの同期 API 呼び出しのみで完結する UseCase・Repository（例: clipboard の `ClipboardUseCases` は全メソッド非 suspend。設計判断の理由は `artifact/designs/clipboard/*-design.md` を参照）
+- `ClipboardManager` / `NotificationManagerCompat` 等、システムサービスへの同期 API 呼び出しのみで完結する UseCase・Repository（例: clipboard の `ClipboardUseCases` は全メソッド非 suspend。設計判断の理由は `artifact/features/clipboard/designs/*-design.md` を参照）
 - 単発の軽量なファイル書き込み・読み込みなど、呼び出し元で `launch(Dispatchers.IO) { ... }` に包めば足りる処理（下記サンプルアプリの扱いを参照）
 
 **サンプルアプリ（`AndroidLibraryExample`）での非同期処理:**

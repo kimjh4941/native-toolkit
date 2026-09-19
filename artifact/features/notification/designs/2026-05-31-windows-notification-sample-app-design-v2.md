@@ -6,8 +6,8 @@
 - 改訂日: 2026-05-31（v2 — レビュー反映）
 - 対象OS: Windows（最小: Windows 11 を想定。実プロジェクト設定との整合は 1.4 / 4.2 参照）
 - 対象機能: Notification
-- 設計書: `artifact/designs/notification/2026-05-30-windows-notification-design-v2.md`
-- 実装結果: `artifact/results/notification/2026-05-30-windows-notification-implement-feature-result-v1.md`
+- 設計書: `artifact/features/notification/designs/2026-05-30-windows-notification-design-v2.md`
+- 実装結果: `artifact/features/notification/results/2026-05-30-windows-notification-implement-feature-result-v1.md`
 - 対象サンプルアプリ: `windows/WindowsLibraryExample`（WinUI 3 / C++/WinRT デスクトップアプリ）
 
 > **v1 からの主な変更点（レビュー反映）**

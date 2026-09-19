@@ -5,7 +5,7 @@
 - 日付: YYYY-MM-DD
 - 機能名: <feature>
 - 対象OS: Android / iOS / macOS / Windows
-- 設計書: artifact/designs/<feature>/<design-file>.md
+- 設計書: artifact/features/<feature>/designs/<design-file>.md
 - ブランチ: <branch-name>
 
 ## 1. 実装サマリー

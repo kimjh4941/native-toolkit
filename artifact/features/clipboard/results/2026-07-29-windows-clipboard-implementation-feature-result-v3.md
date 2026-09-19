@@ -5,10 +5,10 @@
 - 日付: 2026-07-29
 - 機能名: Windows Clipboard Manager
 - 対象OS: Windows
-- 設計書: artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md
+- 設計書: artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md
 - ブランチ: feature/NTKIT-13
-- 対応するレビュー: artifact/reviews/clipboard/2026-07-29-windows-clipboard-implementation-feature-review-v2.md（総合評価: 要修正（重大））
-- 前バージョン: artifact/results/clipboard/2026-07-29-windows-clipboard-implementation-feature-result-v2.md
+- 対応するレビュー: artifact/features/clipboard/reviews/2026-07-29-windows-clipboard-implementation-feature-review-v2.md（総合評価: 要修正（重大））
+- 前バージョン: artifact/features/clipboard/results/2026-07-29-windows-clipboard-implementation-feature-result-v2.md
 
 v2 実装に対する再レビュー（v2）の指摘（H1〜H4, M1〜M6, L1）への対応をまとめる。v1/v2 で報告済みの内容は重複を避け、本書は再レビュー対応差分に絞る。
 
@@ -28,7 +28,7 @@ v2 実装に対する再レビュー（v2）の指摘（H1〜H4, M1〜M6, L1）�
 | # | 指摘 | 対応 |
 |---|---|---|
 | M1 | `copyMultipleFormats` が `base64` を処理せず、format/payload の不正な組合せも受理できる | `ClipboardFormats::Base64Decode`（RFC 4648、長さ・文字種・パディング位置を検証）を新規実装し、`"base64"` キーを追加。`format` の重複登録を拒否。`CF_DIB`/`CF_DIBV5`/`CF_HDROP` への base64 payload は既存の `ValidateDib`/`ValidateDropFiles` で構造検証。設計書 v2 も本文書の M2（v1レビュー）で既に触れていた `base64` 対応を実装で埋めた形 |
-| M2 | `timestamp` を設計変更なしに number → string へ変更していた | 設計書（`artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`）の該当 2 箇所（F-12a の JSON スキーマ表、履歴 API の JSON スキーマ一覧）を `"timestamp":"<int64>"`（10進数文字列）に更新し、変更理由（`double` 精度では 100ns 単位の FILETIME 相当ティック値を正確に表せない）を明記。これにより実装・ヘッダ・設計書が一致した状態になった（consumer/manual は本機能について未作成のため対象外） |
+| M2 | `timestamp` を設計変更なしに number → string へ変更していた | 設計書（`artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`）の該当 2 箇所（F-12a の JSON スキーマ表、履歴 API の JSON スキーマ一覧）を `"timestamp":"<int64>"`（10進数文字列）に更新し、変更理由（`double` 精度では 100ns 単位の FILETIME 相当ティック値を正確に表せない）を明記。これにより実装・ヘッダ・設計書が一致した状態になった（consumer/manual は本機能について未作成のため対象外） |
 | M3 | 内側の `catch (...)` が `std::bad_alloc` も `INVALID_PARAMETER` に変換する | `CopyFiles`/`CopyMultipleFormats` の JSON パース `catch` ブロックに `catch (const std::bad_alloc&) { throw; }` を追加し、`SafeBridgeCall` まで正しく伝播して `OUT_OF_MEMORY` に正規化されるようにした |
 | M5 | `/utf-8` が設定されていない | **部分対応・意図的な差し戻しあり**（詳細は 2 節）。プロジェクト全体への `/utf-8` 追加を一度実施したが、`common.h` など既存ファイルが Shift-JIS エンコードであることが実ビルドで判明し（`C4828`: 現在の文字セットで表示できない文字）、既存コードの解釈を破壊する回帰を確認したため差し戻した。代わりに新規 Clipboard ファイル（テストの 2 ファイルを含む）内の非 ASCII 文字（emダッシュ、コメント中の日本語）を ASCII に置換し、実際に埋め込みが必要だった 1 箇所（UTF-8 往復変換テストの日本語文字列）はソースコード上は数値コードポイントから構築する形に変更して非 ASCII バイトそのものを排除した |
 | M6 | 実装結果の「自動検証済み」が実際のカバレッジより強い | 本書 2 節で「実装済み」「自動テスト済み」「実機未確認」を明示的に分けて再記載する |

@@ -1,9 +1,9 @@
 # レビュー結果（範囲を絞ったレビュー）
 
 - 日付: 2026-09-02
-- 対象ファイル: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v3.md`
-- 前版: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v2.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-sample-app-design-review-v2.md`（高 2 / 中 9 / 低 8 = 19 件）
+- 対象ファイル: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v3.md`
+- 前版: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v2.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-sample-app-design-review-v2.md`（高 2 / 中 9 / 低 8 = 19 件）
 - 併せて確認したライブラリ側修正: `ClipboardLog.request(_:)` と `ClipboardLogAuditTests.swift`
 - レビュー範囲: 依頼どおり (1) 前回指摘の解消状況、(2) v3 で書き直した節の新規欠陥、(3) `ClipboardLog.request` 修正の 3 点のみ。§2 / §4 / §6.1 / §6.3 / §6.4 / §6.5 / §7.2 / §7.3 / §8 / §9 / §10 は変更なしのため通読のみ。
 

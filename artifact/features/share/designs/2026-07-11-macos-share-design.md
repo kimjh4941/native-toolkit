@@ -1,6 +1,6 @@
 # macOS 共有（Share）機能 実装設計書
 
-- 対象企画書: artifact/plans/share/2026-07-11-macos-share-research.md
+- 対象企画書: artifact/features/share/plans/2026-07-11-macos-share-research.md
 - 対象OS: macOS 15 以降
 - 使用言語: Swift（AppKit） / Objective-C（Bridge）
 - 作成日: 2026-07-11

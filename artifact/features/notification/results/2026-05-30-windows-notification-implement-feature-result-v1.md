@@ -5,7 +5,7 @@
 - 日付: 2026-05-30
 - 機能名: notification
 - 対象OS: Windows
-- 設計書: artifact/designs/notification/2026-05-30-windows-notification-implementation-v2.md
+- 設計書: artifact/features/notification/designs/2026-05-30-windows-notification-implementation-v2.md
 - ブランチ: feature/NTKIT-9
 
 ## 1. 実装サマリー

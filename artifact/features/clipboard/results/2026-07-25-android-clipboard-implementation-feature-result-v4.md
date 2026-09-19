@@ -5,8 +5,8 @@
 - 日付: 2026-07-25
 - 機能名: clipboard
 - 対象OS: Android
-- 設計書: artifact/designs/clipboard/2026-07-25-android-clipboard-design.md（**v5**）
-- 実装結果 v1/v2/v3: artifact/results/clipboard/2026-07-25-android-clipboard-implementation-feature-result-v1.md / v2.md / v3.md
+- 設計書: artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md（**v5**）
+- 実装結果 v1/v2/v3: artifact/features/clipboard/results/2026-07-25-android-clipboard-implementation-feature-result-v1.md / v2.md / v3.md
 - ブランチ: feature/NTKIT-12
 
 本レポートは v1〜v3 の記載と実コードの間に生じた乖離を訂正する。v1〜v3 は本訂正の対象範囲以外は変更なく有効。

@@ -3,9 +3,9 @@
 - 日付: 2026-07-30
 - 対象ブランチ: `feature/NTKIT-13`
 - レビュー範囲: `develop...HEAD` は他機能を大量に含むため、Clipboard 関連の作業ツリー差分に限定
-- 設計書: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
-- 実装結果: `artifact/results/clipboard/2026-07-29-windows-clipboard-implementation-feature-result-v3.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-07-29-windows-clipboard-implementation-feature-review-v2.md`
+- 設計書: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
+- 実装結果: `artifact/features/clipboard/results/2026-07-29-windows-clipboard-implementation-feature-result-v3.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-07-29-windows-clipboard-implementation-feature-review-v2.md`
 - 対象 OS: Windows 11
 - 総合評価: **要修正（重大）**
 
@@ -261,7 +261,7 @@ Debug x64 のテスト build、Release x64 の library build は成功し、自�
 
 ## 実行確認
 
-- `git diff --check -- windows/WindowsLibrary windows/WindowsLibraryTest artifact/designs/clipboard artifact/results/clipboard artifact/reviews/clipboard`: エラーなし
+- `git diff --check -- windows/WindowsLibrary windows/WindowsLibraryTest artifact/features/clipboard/designs artifact/features/clipboard/results artifact/features/clipboard/reviews`: エラーなし
 - Debug|x64 `WindowsLibraryTest`: rebuild成功
 - `vstest.console.exe windows\WindowsLibraryTest\x64\Debug\WindowsLibraryTest.dll`: **92/92成功**
 - Release|x64 `WindowsLibrary`: rebuild成功

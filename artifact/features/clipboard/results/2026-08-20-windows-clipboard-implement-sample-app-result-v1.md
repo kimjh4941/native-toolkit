@@ -6,9 +6,9 @@
 - 機能名: Windows Clipboard Manager
 - 対象OS: Windows 11 以降
 - 対象サンプルアプリ: `windows/WindowsLibraryExample`（WinUI 3 / C++/WinRT / MSIX）
-- サンプル計画: `artifact/designs/clipboard/2026-07-31-windows-clipboard-sample-app-design-v5.md`
-- 機能設計: `artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md`
-- 機能実装結果: `artifact/results/clipboard/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
+- サンプル計画: `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md`
+- 機能設計: `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`
+- 機能実装結果: `artifact/features/clipboard/results/2026-07-30-windows-clipboard-implementation-feature-result-v4.md`
 - ブランチ: `feature/NTKIT-13`
 - 対応タスク: 機能設計 T-19
 
@@ -80,7 +80,7 @@ windows/WindowsLibraryExampleUITest/
 
 ### 1.6 成果物
 
-- `artifact/results/clipboard/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
+- `artifact/features/clipboard/results/2026-08-20-windows-clipboard-implement-sample-app-result-v1.md`
 
 ### 1.7 非変更
 
@@ -394,7 +394,7 @@ C を選ぶ理由は「UIA が C# 向けだから」ではない。UIA は COM A
 
 ### 5.9 レビュー v1 対応
 
-`artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v1.md`（総合評価: 要修正（重大））への対応。
+`artifact/features/clipboard/reviews/2026-08-21-windows-clipboard-implement-sample-app-review-v1.md`（総合評価: 要修正（重大））への対応。
 
 #### 5.9.1 指摘と対応
 
@@ -440,7 +440,7 @@ L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したた�
 
 ### 5.11 レビュー v2 対応
 
-`artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v2.md`（総合評価: 要修正（重大））への対応。
+`artifact/features/clipboard/reviews/2026-08-21-windows-clipboard-implement-sample-app-review-v2.md`（総合評価: 要修正（重大））への対応。
 
 #### 5.11.1 指摘と対応
 
@@ -481,7 +481,7 @@ L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したた�
 
 ### 5.13 レビュー v3 対応
 
-`artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v3.md`（総合評価: 要修正（軽微））への対応。v2 の重大指摘 H1 は解消と評価された。
+`artifact/features/clipboard/reviews/2026-08-21-windows-clipboard-implement-sample-app-review-v3.md`（総合評価: 要修正（軽微））への対応。v2 の重大指摘 H1 は解消と評価された。
 
 | 指摘 | 対応 |
 |---|---|
@@ -495,7 +495,7 @@ L1 と H1 の対応で `ClipboardPage.xaml.h` / `.xaml.cpp` を変更したた�
 
 ### 5.15 レビュー v4: コードレビュー完了
 
-`artifact/reviews/clipboard/2026-08-21-windows-clipboard-implement-sample-app-review-v4.md`
+`artifact/features/clipboard/reviews/2026-08-21-windows-clipboard-implement-sample-app-review-v4.md`
 
 | 項目 | 結果 |
 |---|---|

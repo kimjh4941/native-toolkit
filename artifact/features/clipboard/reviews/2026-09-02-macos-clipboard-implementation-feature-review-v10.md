@@ -6,9 +6,9 @@
 - 基準差分: `git diff develop...HEAD`
 - working tree: 未コミット変更を含む現在状態
 - 対象 OS: macOS 15 以降
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v11.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implementation-feature-review-v9.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v11.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implementation-feature-review-v9.md`
 - スコープ: File Promise 4 操作（OP-16 / OP-17 / OP-18 / OP-20）を v1 対象外にした後の削除完了性。§7.12 の実測根拠そのもの、T-18、手動確認、旧サンプル計画 v1 は判定対象外
 
 ## レビュー概要
@@ -32,7 +32,7 @@
 
 ### H-4: File Promise 削除後の現行設計・DoD に、まだ削除済み契約と存在しないテスト範囲が残っている
 
-- §8.4.4 は JSON shape を実体 17 型に確定し、`HandleJson` は削除したと説明しているが、直後の「JSON schema（全型）」サンプルに `// HandleJson (required: id)` と `{ "id": ... }` が残っている（`artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:1265-1300`）。実装側の `UnityMacClipboardJsonParserTests.seventeenConcreteTypes()` は `HandleJson` が含まれないことを検査しているため、設計サンプルだけが現行 wire format と矛盾している。
+- §8.4.4 は JSON shape を実体 17 型に確定し、`HandleJson` は削除したと説明しているが、直後の「JSON schema（全型）」サンプルに `// HandleJson (required: id)` と `{ "id": ... }` が残っている（`artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:1265-1300`）。実装側の `UnityMacClipboardJsonParserTests.seventeenConcreteTypes()` は `HandleJson` が含まれないことを検査しているため、設計サンプルだけが現行 wire format と矛盾している。
 - §12.5 の CT-09 / CT-10 / CT-15 / CT-17 は、nonisolated delegate の状態更新、解放予約、terminal と `CancellationError` の競合、handle 登録中 cancel と session 残留を検証するとしている（同:1640-1643）。これらは OP-16 / OP-18 / OP-20 の File Promise lifecycle 用語であり、現在の production code には該当する File Promise / Receipt 実装がない。
 - T-16b の完了条件は `BT-12〜BT-19` を要求するが、§12.4 の現行 Bridge テスト表は BT-12 の次が BT-17 で、BT-13〜BT-16 / BT-18 / BT-19 が存在しない（同:1612-1629、1678）。範囲表記を読む限り、実在しないテストの全通過を要求している。
 - §15 の実装完了条件に、削除したはずの `OP-16 が async throws で、.snapshot のコピーが MainActor 外で実行される` が残っている（同:1774-1784）。同じ DoD には `IT-21〜IT-53` 全通過も残るが、§12.2 の現行 IT は IT-01〜IT-11 / IT-20 / IT-50 のみで、範囲内の大半が存在しない（同:1571-1586、1786-1788）。
@@ -55,7 +55,7 @@
 
 ### L-4: 機械照合の説明が v11 の実体 26 検査まで更新されていない
 
-- §15 は `scripts/check_design_consistency.py` による機械照合を「全 22 検査」としている（`artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md:1735`）。
+- §15 は `scripts/check_design_consistency.py` による機械照合を「全 22 検査」としている（`artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md:1735`）。
 - §16.1 の検査項目表も 10 分類のままで、v11 で追加・差し替えた 26 検査の実体、特に `named symbols exist in the implementation` と `quoted counts match the declarations` が説明されていない（同:1810-1825）。
 - 実装結果 v11 は 26 / 26 と書いており、実行結果もその通りなので、設計側の説明だけが古い。重大ではないが、次のレビュー時に検査の期待値を読み違えやすい。
 

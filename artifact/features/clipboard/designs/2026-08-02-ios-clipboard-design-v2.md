@@ -2,8 +2,8 @@
 
 - 作成日: 2026-08-02
 - 改訂日: 2026-08-02（v2: 第 1 回レビュー指摘を反映）
-- 前版: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design.md`
-- 最新版: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v3.md`（第 2 回レビュー反映済み。以降はこちらを参照する）
+- 前版: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design.md`
+- 最新版: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v3.md`（第 2 回レビュー反映済み。以降はこちらを参照する）
 - 対象OS: iOS 18 以降
 - 対象機能: クリップボード（Clipboard / Pasteboard）
 - 使用言語: Swift（Bridge の一部は Objective-C）
@@ -13,7 +13,7 @@
 
 ## 対象企画書
 
-- `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`（第 4 回レビュー反映版）
+- `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`（第 4 回レビュー反映版）
 
 企画書から引き継いだ前提:
 
@@ -1304,7 +1304,7 @@ T-00 → T-01 → T-02 → T-03 → T-04 ┐
 
 ## レビュー反映履歴
 
-対象レビュー: `artifact/reviews/clipboard/2026-08-02-ios-clipboard-design-review.md`
+対象レビュー: `artifact/features/clipboard/reviews/2026-08-02-ios-clipboard-design-review.md`
 
 ### 第 1 回レビュー反映（v2 / 2026-08-02）
 

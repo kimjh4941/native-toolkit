@@ -5,7 +5,7 @@
 - 日付: 2026-08-02
 - 機能名: clipboard
 - 対象OS: iOS
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
 - ブランチ: feature/NTKIT-14
 
 ## 1. 実装サマリー

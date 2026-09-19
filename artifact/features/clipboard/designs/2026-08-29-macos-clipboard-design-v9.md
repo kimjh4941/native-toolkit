@@ -2,8 +2,8 @@
 
 - 作成日: 2026-08-29
 - 改訂日: 2026-09-02（v9: **File Promise 4 操作を v1 対象外にし、実装ごと削除**。実測記録を §7.12 に残す）
-- 前版: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v8.md`
-- 初版: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design.md`
+- 前版: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v8.md`
+- 初版: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design.md`
 - レビュー: `.../2026-08-29-macos-clipboard-design-review-v6.md`（第 6 回）、`-v5.md`（第 5 回）、`-v4.md`、`-v3.md`、`-v2.md`、`.../2026-08-29-macos-clipboard-design-review.md`（第 1 回）
 
 > **v9 で File Promise（OP-16〜OP-18 / OP-20）を v1 の範囲から外し、実装ごと削除した。**
@@ -20,9 +20,9 @@
 - **UseCase**: **14 本**（+ `ClipboardContentValidator` / `ClipboardChangeTracker` / `ClipboardUseCases` 集約 = ファイル 17 本）。14 本目は `GetChangeCountUseCase`（公開 OP ではなく、変更監視が Repository へ直接触れないための内部 UseCase。R-M2）
 - **callback 必須の Bridge endpoint**: **1 件**（`clipboardCreatePasteboard`）。残り 14 件は NULL 許容
 - **JSON shape**（§8.4.4）: 入力専用 **4**、入出力共用 **3**、出力専用 **9**、イベント **1** = 実体 **17 型**（R5-L11 で排他的に再定義。v9 で File Promise 分を削除、R8-H2 で `HandleJson` 削除と `AccessBehaviorJson` / `ScopeResultJson` 追記）
-- 対象企画書: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v3.md`
+- 対象企画書: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v3.md`
 - 対象OS: macOS 15 以降（`MACOSX_DEPLOYMENT_TARGET` は 15.0 / 15.1）
-- 使用言語: Swift 5.0 言語モード（プロジェクト現行設定）、Objective-C（Bridge）。**Swift 6 への移行は `artifact/MIGRATION.md` の `swift6-migration` トピックが管理する別タスクであり、本設計の範囲外**。本設計は「Swift 6 でも通る書き方を選ぶが、言語モードは切り替えない」立場を取る
+- 使用言語: Swift 5.0 言語モード（プロジェクト現行設定）、Objective-C（Bridge）。**Swift 6 への移行は `artifact/topics/migration/README.md` の `swift6-migration` トピックが管理する別タスクであり、本設計の範囲外**。本設計は「Swift 6 でも通る書き方を選ぶが、言語モードは切り替えない」立場を取る
 - 対象モジュール: `mac/MacLibrary`（Domain 〜 Manager）、`mac/UnityMacPlugin`（Unity Bridge）
 - 適用ルール: `agent-rules/coding-rules/common.md`、`agent-rules/coding-rules/mac.md`
 
@@ -1160,7 +1160,7 @@ v8 まではこの Port が File Promise の登録・受領 session も担って
 | 成功時 | `isSuccess = YES`、`errorCode = 0`、`errorMessage = NULL` |
 | 失敗時 | `isSuccess = NO`、`errorCode` は `BridgeError` または `ClipboardError` の値、`errorMessage` は英語メッセージ |
 | 数値 | `changeCount` は 64bit 整数（JSON number）。バイト列は **Base64 文字列** |
-| **Swift facade の handler 型** | **`@Sendable` を付与する（案 C）**。`MIGRATION.md` §6 の決定事項で、iOS Clipboard へ適用済み。§8.4.6 参照 |
+| **Swift facade の handler 型** | **`@Sendable` を付与する（案 C）**。`artifact/topics/migration/README.md` §6 の決定事項で、iOS Clipboard へ適用済み。§8.4.6 参照 |
 
 #### 8.4.2 callback typedef
 
@@ -1389,7 +1389,7 @@ void clipboardCheckForegroundChange(const char* scopeJson,
 | `metadataTypes` | string[] | 不可 | `[]` |
 | `contentTypeIdentifier` | string | **可** | `null` |
 
-#### 8.4.5 Swift facade の handler 型規約（案 C。`MIGRATION.md` §6）
+#### 8.4.5 Swift facade の handler 型規約（案 C。`artifact/topics/migration/README.md` §6）
 
 Bridge の Swift facade は `nonisolated` クラスであり、C 関数ポインタ由来の handler を
 `Task { @MainActor in }` へ渡す。この構造は strict concurrency で
@@ -1415,7 +1415,7 @@ main actor に固定しない。** §8.4.1 の「callback スレッドは常に�
 **parser の並行安全性（T-16a 実測）**: facade は任意スレッドから呼ばれるため、
 `JSONEncoder` / `JSONDecoder` / `ISO8601DateFormatter` を**インスタンスで共有してはならない**。
 coder は呼び出しごとに生成し、日付は `Date.ISO8601FormatStyle`（Sendable な値型）を使う。
-これは iOS Clipboard が既に採った修正と同一（`MIGRATION.md` §4.2）。
+これは iOS Clipboard が既に採った修正と同一（`artifact/topics/migration/README.md` §4.2）。
 `UnityMacClipboardJsonParser` は `struct` + `Sendable` とし、facade 自身も可変状態を持たない。
 
 **検証の担保範囲**
@@ -1425,7 +1425,7 @@ coder は呼び出しごとに生成し、日付は `Date.ISO8601FormatStyle`（
 | Swift caller | `@Sendable` によりコンパイラが型検査する |
 | **Objective-C caller** | **コンパイラ検証は及ばない。** block の capture 監査（C 関数ポインタのみであること）と Bridge 契約テスト（BT-20〜BT-23）で担保する |
 
-**適用時の確認事項**（`MIGRATION.md` §6）
+**適用時の確認事項**（`artifact/topics/migration/README.md` §6）
 
 - Objective-C 側が無変更でビルドできること（`@Sendable` は block 表現に影響しない）
 - callback が **main thread で exactly-once**。**background thread から呼ばれた場合の早期リターン経路を含めて**検証する
@@ -1625,10 +1625,10 @@ Mock は `shouldFail` と、呼び出し回数・戻り値スタブの 3 点セ�
 | **BT-11** | **§8.4.4 の全 JSON 型（実体 17 型）が round-trip する。型名の文字列一覧ではなく `ClipboardJson` の宣言そのものを読む**（R8-H2） | **R2-H3 / R3-L8 / R4-L8 / R5-L11** |
 | **BT-12** | **event callback が購読中 N 回呼ばれ、operation callback は 1 回のみ** | **R2-H3（exactly-once の適用範囲）** | **未実装**
 | **BT-17** | **機械照合: 公開 OP が 16、Bridge endpoint が 15、operation callback 必須が 1、event callback 必須が 1、§8.4.3 の prototype 数と §8.4.4 の実体 17 型が冒頭「用語」の記載と一致する** | **R3-L8 / R4-L8 / R5-L11** |
-| **BT-20** | **全 15 endpoint の Swift facade の handler 型に `@Sendable` が付いている**（案 C。§8.4.5） | **MIGRATION.md §6** |
-| **BT-21** | **Objective-C 側を無変更でビルドでき、`.m` の block が C 関数ポインタ以外をキャプチャしていない** | **MIGRATION.md §6** |
-| **BT-22** | **background thread から呼び出した場合も、JSON パース失敗・引数 NULL の早期リターン経路を含めて callback が main thread で exactly-once** | **MIGRATION.md §6** |
-| **BT-23** | **`nil` callback で trap しない。監視の start / stop 境界で handler が交差しない** | **MIGRATION.md §6** |
+| **BT-20** | **全 15 endpoint の Swift facade の handler 型に `@Sendable` が付いている**（案 C。§8.4.5） | **artifact/topics/migration/README.md §6** |
+| **BT-21** | **Objective-C 側を無変更でビルドでき、`.m` の block が C 関数ポインタ以外をキャプチャしていない** | **artifact/topics/migration/README.md §6** |
+| **BT-22** | **background thread から呼び出した場合も、JSON パース失敗・引数 NULL の早期リターン経路を含めて callback が main thread で exactly-once** | **artifact/topics/migration/README.md §6** |
+| **BT-23** | **`nil` callback で trap しない。監視の start / stop 境界で handler が交差しない** | **artifact/topics/migration/README.md §6** |
 | **BT-24** | **`optionsJson` が nil / 空 / 正常 / 不正 の 4 通りで区別される。不正は 1301** | **R-M3** |
 | **BT-25** | **C 層のログに `contentJson` / `scopeJson` の平文が出ない**（長さと短縮ハッシュのみ） | **R-H3** |
 
@@ -1636,7 +1636,7 @@ Mock は `shouldFail` と、呼び出し回数・戻り値スタブの 3 点セ�
 
 | ID | 検証内容 |
 |---|---|
-| CT-01 | **本機能が追加した差分が strict concurrency 診断を増やさない**（`SWIFT_VERSION=5.0` / `SWIFT_STRICT_CONCURRENCY=complete` / `SWIFT_COMPILATION_MODE=wholemodule` / `clean build`、最下流 scheme `UnityMacPlugin`。`MIGRATION.md` §3.3 / §4.3）。Clipboard は `develop` に存在しない新規差分のため、**`Clipboard/` 配下の診断は 0 件であること** |
+| CT-01 | **本機能が追加した差分が strict concurrency 診断を増やさない**（`SWIFT_VERSION=5.0` / `SWIFT_STRICT_CONCURRENCY=complete` / `SWIFT_COMPILATION_MODE=wholemodule` / `clean build`、最下流 scheme `UnityMacPlugin`。`artifact/topics/migration/README.md` §3.3 / §4.3）。Clipboard は `develop` に存在しない新規差分のため、**`Clipboard/` 配下の診断は 0 件であること** |
 | CT-02 | `ClipboardChangeMonitor` が非 Sendable 捕捉の警告を出さない（RK-10） |
 | CT-04 | Manager の callback が常に MainActor |
 | CT-05 | 同期 UseCase が `async` になっていない（シグネチャ検査） | **未実装**
@@ -1781,8 +1781,8 @@ v9 で File Promise（旧 OP-16〜OP-18 / OP-20）を範囲から外したため
 > 実際に存在しないテストを [x] にしていた（R12-H1）。テストが通ることは実行が示すもので、
 > 文書のチェックでは検証にならない。現行の通過数は実装結果レポートに記録する。
 
-- [x] **本機能の差分が strict concurrency 診断を増やしていない**（CT-01 の条件で計測し、`Clipboard/` 配下 0 件）。`MIGRATION.md` §3.3「機能タスクの DoD は差分のみを判定する」に従う。**プロジェクトを Swift 6 言語モードへ切り替えることは本タスクの完了条件ではない**
-- [x] **Unity Bridge の Swift facade の handler が案 C（`@Sendable` 付与）で書かれている**（`MIGRATION.md` §6。iOS Clipboard 適用済みの決定事項）
+- [x] **本機能の差分が strict concurrency 診断を増やしていない**（CT-01 の条件で計測し、`Clipboard/` 配下 0 件）。`artifact/topics/migration/README.md` §3.3「機能タスクの DoD は差分のみを判定する」に従う。**プロジェクトを Swift 6 言語モードへ切り替えることは本タスクの完了条件ではない**
+- [x] **Unity Bridge の Swift facade の handler が案 C（`@Sendable` 付与）で書かれている**（`artifact/topics/migration/README.md` §6。iOS Clipboard 適用済みの決定事項）
 - [x] **実装のシグネチャ・actor isolation・キャンセル・timeout・exactly-once 契約が §9 の対応表と一致している**
 - [x] **`@discardableResult` が戻り値のある OP-01〜OP-07 / OP-09〜OP-11 のみに付いている（OP-08 には付いていない）**（R3-M6 / R4-M7）
 - [x] `public` シンボルすべてに英語の DocC が付いている
@@ -1799,7 +1799,7 @@ v9 で File Promise（旧 OP-16〜OP-18 / OP-20）を範囲から外したため
 設計書を更新したら必ず実行する。
 
 ```
-python3 scripts/check_design_consistency.py artifact/designs/clipboard/<設計書>.md
+python3 scripts/check_design_consistency.py artifact/features/clipboard/designs/<設計書>.md
 ```
 
 検査項目。

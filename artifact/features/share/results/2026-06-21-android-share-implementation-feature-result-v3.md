@@ -5,7 +5,7 @@
 - 日付: 2026-06-21
 - 機能名: Android Share v4 — Unity 向けカスタムチューザーアクション受信経路
 - 対象OS: Android
-- 設計書: artifact/designs/share/2026-06-21-android-share-design-v4.md
+- 設計書: artifact/features/share/designs/2026-06-21-android-share-design-v4.md
 - ブランチ: feature/NTKIT-8
 
 ## 1. 実装サマリー

@@ -6,11 +6,11 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/MacLibraryExample/`
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implementation-feature-result-v14.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v14.md`
 - 対応タスク: T-18（設計書 **§13**）
-- 前版: `artifact/designs/clipboard/2026-08-30-macos-clipboard-sample-app-design-v1.md`
-- レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-sample-app-design-review.md`
+- 前版: `artifact/features/clipboard/designs/2026-08-30-macos-clipboard-sample-app-design-v1.md`
+- レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-sample-app-design-review.md`
 
 > T-18 の完了条件（設計書 §13）:
 > **「全公開 OP が `MacLibraryExample` から Unity 非依存で実行できること」**

@@ -84,7 +84,7 @@
 
 9. 企画書を保存する
    - 作成した企画結果を Markdown ファイルとして保存する
-   - 保存先は `artifact/plans/<feature>/` 配下とする
+   - 保存先は `artifact/features/<feature>/plans/` 配下とする
    - ファイル名は `YYYY-MM-DD-<os>-<feature>-research.md` 形式を推奨する
    - 保存後に保存先パスを明示する
 

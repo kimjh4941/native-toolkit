@@ -5,10 +5,10 @@
 - 日付: 2026-07-29
 - 機能名: Windows Clipboard Manager
 - 対象OS: Windows
-- 設計書: artifact/designs/clipboard/2026-07-28-windows-clipboard-design-v2.md
+- 設計書: artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md
 - ブランチ: feature/NTKIT-13
-- 対応するレビュー: artifact/reviews/clipboard/2026-07-29-windows-clipboard-implementation-feature-review-v1.md（総合評価: 要修正（重大））
-- 前バージョン: artifact/results/clipboard/2026-07-29-windows-clipboard-implementation-feature-result-v1.md
+- 対応するレビュー: artifact/features/clipboard/reviews/2026-07-29-windows-clipboard-implementation-feature-review-v1.md（総合評価: 要修正（重大））
+- 前バージョン: artifact/features/clipboard/results/2026-07-29-windows-clipboard-implementation-feature-result-v1.md
 
 このレポートは v1 実装に対するレビュー v1 の指摘（H1〜H6, M1〜M7, L1〜L2）をすべて反映した結果をまとめる。v1 で報告済みの内容（設計対応表・変更ファイル一覧・未検証項目の大枠）は重複を避けるため v1 を参照し、本書は **レビュー対応差分** に絞る。
 

@@ -2,15 +2,15 @@
 
 - 作成日: 2026-08-29
 - 改訂日: 2026-08-29（v3: 実機検証 V-11 / V-13 の結果を反映、RK-22 / RK-23 新設）
-- 前版: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research-v2.md`
-- 初版: `artifact/plans/clipboard/2026-08-29-macos-clipboard-research.md`
-- レビュー: `artifact/reviews/clipboard/2026-08-29-macos-clipboard-research-review.md`
+- 前版: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research-v2.md`
+- 初版: `artifact/features/clipboard/plans/2026-08-29-macos-clipboard-research.md`
+- レビュー: `artifact/features/clipboard/reviews/2026-08-29-macos-clipboard-research-review.md`
 - 対象OS: macOS 15 以降（本リポジトリの `MACOSX_DEPLOYMENT_TARGET` は 15.0 / 15.1）
 - 対象機能: クリップボード（Clipboard / Pasteboard: コピー / ペースト）
 - 使用言語: Swift
 - 対象フレームワーク: AppKit（`NSPasteboard` / `NSPasteboardItem` / `NSFilePromiseProvider` / `NSFilePromiseReceiver`）、UniformTypeIdentifiers（`UTType`）、DataDetection（`DDMatch*`）、SwiftUI（`PasteButton` / `copyable` / `cuttable` / `pasteDestination`）
 - 検証環境: macOS 26.3 / Xcode 26.3 / MacOSX26.2.sdk（AppKit・SwiftUI のヘッダと `.swiftinterface` を一次確認に使用）
-- 関連: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`（iOS 版）、`artifact/plans/clipboard/2026-07-25-android-clipboard-research.md`（Android 版）
+- 関連: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`（iOS 版）、`artifact/features/clipboard/plans/2026-07-25-android-clipboard-research.md`（Android 版）
 
 ---
 

@@ -5,7 +5,7 @@
 > 「Clipboard 由来は 0 件」（§4 / §6 / §7.1）は成立しない。正しくは 19 件。
 > Swift 6 言語モードでのみ計測しており、型検査段階の停止によりフロー解析段階の診断に到達せず、
 > `UnityIosPlugin` は自身のソースが一度もコンパイルされていなかった。
-> 訂正: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
+> 訂正: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
 > 監査性のため本文は当時のまま保持している。
 
 ## 基本情報
@@ -13,9 +13,9 @@
 - 日付: 2026-08-08
 - 機能名: clipboard
 - 対象OS: iOS
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 対象レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v2.md`
-- 前版: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v2.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 対象レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v2.md`
+- 前版: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v2.md`
 - ブランチ: feature/NTKIT-14
 
 ## 1. 実装サマリー

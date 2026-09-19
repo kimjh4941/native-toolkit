@@ -2,8 +2,8 @@
 
 - 対象アプリ: `ios/IosLibraryExample`
 - 対象OS: iOS 18 以降
-- 参照設計書: `artifact/designs/share/2026-07-04-ios-share-design.md`
-- 参照実装結果: `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v3.md`
+- 参照設計書: `artifact/features/share/designs/2026-07-04-ios-share-design.md`
+- 参照実装結果: `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v3.md`
 - 作成日: 2026-07-04
 - 版: v1
 - 使用言語: Swift（SwiftUI）

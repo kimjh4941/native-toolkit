@@ -5,8 +5,8 @@
 - 日付: 2026-06-20
 - 対象OS: Android
 - 対象ブランチ: `feature/NTKIT-8`
-- 設計書: `artifact/designs/share/2026-06-20-android-share-design-v3.md`
-- 実装結果: `artifact/results/share/2026-06-20-android-share-implementation-feature-result-v1.md`
+- 設計書: `artifact/features/share/designs/2026-06-20-android-share-design-v3.md`
+- 実装結果: `artifact/features/share/results/2026-06-20-android-share-implementation-feature-result-v1.md`
 - レビュー範囲: 実装結果レポートに記載された Android Share v3 の未コミット差分
 
 ## レビュー概要
@@ -26,7 +26,7 @@ API 35 の結果判定、application スコープ Coordinator、起動失敗時�
 - `android/android_library/src/main/java/android/library/share/application/usecase/ShareWithCallbackUseCase.kt:23-30`
 - `android/android_library/src/main/java/android/library/share/domain/model/ShareContent.kt:12-17`
 - `android/AndroidLibraryExample/gradle.properties:25-26`
-- `artifact/results/share/2026-06-20-android-share-implementation-feature-result-v1.md:160-165`
+- `artifact/features/share/results/2026-06-20-android-share-implementation-feature-result-v1.md:160-165`
 
 `shareText` と `shareWithCallback` にデフォルト引数を追加しているが、Kotlin のデフォルト引数は既存 JVM descriptor の overload を自動保持しない。既存 AAR に対してコンパイル済みの利用側は、旧 descriptor を呼び出して `NoSuchMethodError` になる。`ShareContent` の primary constructor へのプロパティ追加も constructor / `copy` の ABI を変更する。さらに、公開 interface への抽象メソッド `cancelPendingCallback` 追加は外部実装を破壊する。
 
@@ -37,7 +37,7 @@ API 35 の結果判定、application スコープ Coordinator、起動失敗時�
 対象:
 
 - `android/android_library/src/main/java/android/library/share/data/repository/ShareRepositoryImpl.kt:101-121`
-- `artifact/designs/share/2026-06-20-android-share-design-v3.md:595-602`
+- `artifact/features/share/designs/2026-06-20-android-share-design-v3.md:595-602`
 - `agent-rules/coding-rules/common.md:130-136`
 
 設計では `pushDynamicShortcut` の戻り値 `false` に加え、`IllegalArgumentException` 等も `DirectShareRegistrationFailed(reason)` へ変換する。しかし実装は `false` のみを変換し、`ShortcutInfoCompat.Builder.build()` や `pushDynamicShortcut()` が投げるプラットフォーム例外をそのまま外へ漏らす。
@@ -53,7 +53,7 @@ API 35 の結果判定、application スコープ Coordinator、起動失敗時�
 - `android/android_library/src/test/java/android/library/share/data/ShareCallbackCoordinatorTest.kt:31-44`
 - `android/android_library/src/test/java/android/library/share/data/ShareCallbackCoordinatorTest.kt:53-75`
 - `android/android_library/src/test/java/android/library/share/data/ShareCallbackCoordinatorTest.kt:109-153`
-- `artifact/designs/share/2026-06-20-android-share-design-v3.md:621-645`
+- `artifact/features/share/designs/2026-06-20-android-share-design-v3.md:621-645`
 
 `cancelWithStaleToken...` は `received` を一度も assertion していない。`register_twice...` は broadcast を配送せず、登録直後に first callback が 0 である自明な事実だけを確認している。cancel テストも解除前の Receiver を保持して遅延配送していないため、atomic claim の成否を通過しない。
 
@@ -68,8 +68,8 @@ FakeContext が登録履歴を保持し、旧 Receiver を明示的に呼べる�
 
 対象:
 
-- `artifact/designs/share/2026-06-20-android-share-design-v3.md:647-653,686-708`
-- `artifact/results/share/2026-06-20-android-share-implementation-feature-result-v1.md:124-156`
+- `artifact/features/share/designs/2026-06-20-android-share-design-v3.md:647-653,686-708`
+- `artifact/features/share/results/2026-06-20-android-share-implementation-feature-result-v1.md:124-156`
 
 API 35 の Copy/Edit/Unknown、Unity 経路の Coordinator 共有、chooser 起動失敗時の解除、preview URI grant、main looper dispatch が未検証である。設計は API 依存部分を unit または instrumented test で直接検証し、API 34/35/36 の統合テストを行うとしているため、結果レポートの複数の DoD `○` はコード存在の確認に留まり、完了条件を満たしていない。
 
@@ -100,7 +100,7 @@ Robolectric または instrumented test を追加し、少なくとも設計上�
 対象:
 
 - `android/AndroidLibraryExample/gradle.properties:25-26`
-- `artifact/results/share/2026-06-20-android-share-implementation-feature-result-v1.md:30-52`
+- `artifact/features/share/results/2026-06-20-android-share-implementation-feature-result-v1.md:30-52`
 
 `libraryVersion=1.2.0` への変更がレポートに記載されていない。採用判断に影響するため、変更理由と互換性方針を含めて追記すること。
 

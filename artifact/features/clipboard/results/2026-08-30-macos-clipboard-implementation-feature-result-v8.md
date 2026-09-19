@@ -5,7 +5,7 @@
 - 日付: 2026-08-30
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **実装レビュー v6 の指摘 5 件（M-8 / M-9 / L-4 / L-5 / L-6）の反映**
 - 前版: `2026-08-30-macos-clipboard-implementation-feature-result-v7.md`
@@ -16,7 +16,7 @@
 
 ## 1. レビュー v6 の判定
 
-レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v6.md`
+レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v6.md`
 
 - M-7: **解消**（signature 由来の payload 集合 × 全 `Log` 形式）
 - L-3: **解消**（OP-16 / OP-18 の `@discardableResult` 契約を統一）
@@ -118,8 +118,8 @@ v7 の 421 / 79 は誤りだった。数え方を定義して両方を記録す�
 |---|---|
 | `agent-rules/workflows/{design-feature,research-feature,review-document}/workflow.md` | 設計レビューが 6 ラウンド収束しなかったことへの再発防止。機械照合をワークフローに組み込んだ |
 | `scripts/check_design_consistency.py` | 同上。相互参照のドリフトを人手で追うのをやめるための検査 |
-| `artifact/MIGRATION.md` | macOS の `swift5-concurrency-readiness` 実測を追記（未計測欄の解消） |
-| `artifact/plans/clipboard/*` | 本機能の調査記録 |
+| `artifact/topics/migration/README.md` | macOS の `swift5-concurrency-readiness` 実測を追記（未計測欄の解消） |
+| `artifact/features/clipboard/plans/*` | 本機能の調査記録 |
 
 追跡済みの `xcuserdata` は他に 15 件あるが、いずれも develop 時点からの既存状態であり
 本ブランチの差分ではないため触っていない。別途のリポジトリ整理とする。
@@ -151,7 +151,7 @@ xcodebuild -workspace mac/MacWorkspace.xcworkspace -scheme UnityMacPlugin \
   SWIFT_COMPILATION_MODE=wholemodule clean build
 
 python3 scripts/check_design_consistency.py \
-  artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md
+  artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md
 ```
 
 strict 診断 173 件の内訳は Dialog 101 / Notification 54 / Share 18 で、Clipboard の
@@ -192,5 +192,5 @@ CT-01 という**厳しい方の**ビルドだけを見て、通常ビルドを�
 1. **再レビュー**: 本版を対象に実装レビュー v7 を実施する
 2. **T-18**: サンプルアプリ（`design-sample-app` で設計）
 3. **手動確認**: MT-01〜MT-08 を実機で実施
-4. `MIGRATION.md` の `swift6-migration` は別トピックで範囲外
+4. `artifact/topics/migration/README.md` の `swift6-migration` は別トピックで範囲外
 5. 追跡済み `xcuserdata` 15 件の整理（本ブランチ範囲外）

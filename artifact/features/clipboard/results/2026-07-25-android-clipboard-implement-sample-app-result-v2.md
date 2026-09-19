@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: Android
 - 対象サンプルアプリ: `android/AndroidLibraryExample`
-- 計画ファイル: `artifact/designs/clipboard/2026-07-25-android-clipboard-sample-app-design-v3.md`
-- 機能設計書: `artifact/designs/clipboard/2026-07-25-android-clipboard-design.md`（v5）
-- 実装結果 v1: `artifact/results/clipboard/2026-07-25-android-clipboard-implement-sample-app-result-v1.md`
-- レビュー: `artifact/reviews/clipboard/2026-07-25-android-clipboard-implement-sample-app-review-v1.md`（総合評価: 要修正（軽微））
+- 計画ファイル: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-sample-app-design-v3.md`
+- 機能設計書: `artifact/features/clipboard/designs/2026-07-25-android-clipboard-design.md`（v5）
+- 実装結果 v1: `artifact/features/clipboard/results/2026-07-25-android-clipboard-implement-sample-app-result-v1.md`
+- レビュー: `artifact/features/clipboard/reviews/2026-07-25-android-clipboard-implement-sample-app-review-v1.md`（総合評価: 要修正（軽微））
 
 本レポートは v1 実装に対するレビュー v1 の指摘（軽微2件）を反映した差分をまとめる。v1 の変更ファイル・実装内容・UI テスト構成・手動確認状況は変わらないため、変更点のみ記載する。
 

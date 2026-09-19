@@ -5,10 +5,10 @@
 - 日付: 2026-09-02
 - 対象 OS: macOS 15 以降（実行ホストは macOS 26.3 / Xcode 26.3）
 - ブランチ: `feature/NTKIT-15`
-- サンプル計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v4.md`
-- 前回レビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v3.md`
-- 機能設計（参照のみ）: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- サンプル計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v4.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v3.md`
+- 機能設計（参照のみ）: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - 対象差分: `git status --porcelain`（サンプル本体・unit test・UI test 2 本・共有 scheme は untracked、
   `ContentView.swift` と `scripts/check_design_consistency.py` は変更済み）
 
@@ -119,7 +119,7 @@
 
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:555-584`（`runScopeCreating` / `releasePrevious`）
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md:462`（`CreateNamedPasteboard` の呼び出し方針）
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md:462`（`CreateNamedPasteboard` の呼び出し方針）
 - `releasePrevious(for:)` は `if case .named = request { previous = createdNamed } else { previous = createdUnique }`
   で、**named 要求でも既存の named を `removePasteboard` する**。
 - v3 H-01 が問題にしたのは unique だけである。計画 §5.1 も「`unique` を選び直すたびに新しい
@@ -247,7 +247,7 @@ if Self.isResultOfThisClick(text: lastText, sequence: sequence(app),
 
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:573-584`
-  - `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v4.md:41-43`
+  - `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v4.md:41-43`
 - `createdUnique = nil` と `activeScope = .general` を `removePasteboard` の**前**に行うため、解放が
   throw すると資源は残り handle は失われる。unique は名前がシステム生成なので回収不能になる。
 - 現行ライブラリではこの throw が起きない（`PasteboardResolver.resolve` は空名のみ拒否、

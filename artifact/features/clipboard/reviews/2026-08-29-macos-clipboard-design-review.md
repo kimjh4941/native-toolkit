@@ -1,7 +1,7 @@
 # レビュー結果
 
 - 日付: 2026-08-29
-- 対象ファイル: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design.md`
 - 機能名: clipboard
 - 対象 OS: macOS 15 以降
 

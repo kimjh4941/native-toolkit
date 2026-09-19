@@ -8,9 +8,9 @@
 - diff:
   - `git diff develop...HEAD`
   - `git diff develop`（v3 反映分が未コミット作業ツリーにあるため併用）
-- 設計書: `artifact/designs/share/2026-07-04-ios-share-design.md`
-- 実装結果: `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v3.md`
-- 前回レビュー: `artifact/reviews/share/2026-07-04-ios-share-implementation-feature-review-v2.md`
+- 設計書: `artifact/features/share/designs/2026-07-04-ios-share-design.md`
+- 実装結果: `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v3.md`
+- 前回レビュー: `artifact/features/share/reviews/2026-07-04-ios-share-implementation-feature-review-v2.md`
 - 対象 OS: iOS 18 以降
 
 ## レビュー概要
@@ -32,7 +32,7 @@ v2 レビューの low 指摘だった main thread callback 契約の専用テ�
 ### L1. 実装結果レポートに古い「専用ユニットテスト未追加」記述が残っている
 
 - 対象:
-  - `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v3.md:110`
+  - `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v3.md:110`
 - 問題: v3 で `UnityIosShareManagerTests/shareWithInvalidJsonInvokesHandlerOnMainThreadWithError` が追加され、JSON 不正時の `"Invalid share content JSON."` と main thread callback を検証済みだが、第 3.2 章の表には「専用ユニットテストは未追加」と残っている。
 - 影響: 実装やテストには影響しないが、実装結果 artifact のテスト状況が一部矛盾して見える。
 - 改善案: 当該行を「`UnityIosShareJsonParserTests/parseContentInvalidJsonReturnsNil` と `UnityIosShareManagerTests/shareWithInvalidJsonInvokesHandlerOnMainThreadWithError` で確認」に更新する。

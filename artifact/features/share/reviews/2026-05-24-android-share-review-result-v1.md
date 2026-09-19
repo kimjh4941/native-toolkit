@@ -4,8 +4,8 @@
 
 - 日付: 2026-05-24
 - ブランチ: feature/NTKIT-8（未コミット差分）
-- 設計書: artifact/designs/share/2026-05-24-android-share-implementation-v2.md
-- 実装結果ファイル: artifact/results/share/2026-05-24-android-share-implementation-result-v1.md
+- 設計書: artifact/features/share/designs/2026-05-24-android-share-implementation-v2.md
+- 実装結果ファイル: artifact/features/share/results/2026-05-24-android-share-implementation-result-v1.md
 - 対象OS: Android
 
 ---

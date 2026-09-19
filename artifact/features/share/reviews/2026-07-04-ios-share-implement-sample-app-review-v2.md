@@ -2,9 +2,9 @@
 
 - 日付: 2026-07-04
 - ブランチ: `feature/NTKIT-10`（ローカル未コミット差分）
-- 計画ファイル: `artifact/designs/share/2026-07-04-ios-share-sample-app-design-v1.md`
-- 実装結果ファイル: `artifact/results/share/2026-07-04-ios-share-implement-sample-app-result-v2.md`
-- 前回レビュー: `artifact/reviews/share/2026-07-04-ios-share-implement-sample-app-review-v1.md`
+- 計画ファイル: `artifact/features/share/designs/2026-07-04-ios-share-sample-app-design-v1.md`
+- 実装結果ファイル: `artifact/features/share/results/2026-07-04-ios-share-implement-sample-app-result-v2.md`
+- 前回レビュー: `artifact/features/share/reviews/2026-07-04-ios-share-implement-sample-app-review-v1.md`
 - 対象 OS: iOS
 
 ---

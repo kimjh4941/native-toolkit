@@ -1,13 +1,13 @@
 # レビュー結果
 
 - 日付: 2026-08-09
-- 対象ファイル: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md`
+- 対象ファイル: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md`
 - 機能名: clipboard sample app
 - 対象 OS: iOS 18 以降
-- 参照企画書: `artifact/plans/clipboard/2026-08-01-ios-clipboard-research-v4.md`
-- 参照設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
+- 参照企画書: `artifact/features/clipboard/plans/2026-08-01-ios-clipboard-research-v4.md`
+- 参照設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
 - 参照実装: `ios/IosLibrary/IosLibrary/Clipboard`
-- 前回レビュー: `artifact/reviews/clipboard/2026-08-09-ios-clipboard-sample-app-design-review.md`
+- 前回レビュー: `artifact/features/clipboard/reviews/2026-08-09-ios-clipboard-sample-app-design-review.md`
 
 ---
 
@@ -28,7 +28,7 @@
 
 #### 1. M-16は3つの観測値を必要とするのに、2 bit / 4通りへ縮約している
 
-- 対象: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:682`
+- 対象: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:682`
 - 手順と6.5は、次の3値を別々に記録している。
   - `bodyBeforeAppend`: append前にbodyが端末Bへ現れたか
   - `bodyAfterAppend`: append後にbodyが端末Bへ現れたか
@@ -40,8 +40,8 @@
 #### 2. M-16に正の対照と端末Bの事前条件がなく、「転送なし」を継承成功と誤判定しうる
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:677`
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:709`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:677`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:709`
 - 現在の手順は端末AだけをClearし、30秒後に端末BをReadする。次の状態はいずれも`body=false / append=false`に見える。
   - `localOnly`とappendが期待どおり非転送だった
   - Handoff / Universal Clipboardがその試行で機能していなかった
@@ -55,8 +55,8 @@
 #### 3. 初回UI Checkが実際の戻り値を捨て、baseline更新も誤って断定する
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:488`
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:986`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:488`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:986`
 - v5は、managerのtrackerとView内の初回状態が一致しないことを正しく説明している。それにもかかわらず、View内の初回表示を常に`changed=false (first UI check; baseline updated)`へ固定している。
 - trackerが前のView、`startObserving`の`resync`、notificationの`markReported`で既に作成され、その後にchangeCountが変わっていれば、View内の初回Checkでも実戻り値はtrueになりうる。falseへ固定すると検出結果を隠す。
 - 解決不能scopeでは`CheckForegroundChangeUseCase.execute`が早期returnし、trackerを更新しない。それでも`baseline updated`と表示されるため、文言も事実と一致しない。
@@ -68,30 +68,30 @@
 #### 1. invocation sequenceの単調増加範囲と再起動後の初期値が未定義
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:246`
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:993`
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:1063`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:246`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:993`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:1063`
 - `resultSequence`は`@State`なので、View再生成やprocess再起動をまたぐグローバル単調値ではない。U-10は`terminate()` / `launch()`をまたぐため、終了前のseqを`after`として保持すると、再起動後に0から始まるseqが超えられずtimeoutする。
 - 「単調増加」は同一View / process epoch内の契約と明記すること。launch後は旧seqを破棄し、初期placeholderを0またはnilとして再取得してからtapする手順を定義すること。代案はsession UUID + seqをmarkerへ含めること。
 - `currentResultSequence()`について、resultがまだ存在しない場合、placeholderの場合、parse不能の場合の扱いも定義すること。
 
 #### 2. U-10が前回実行の固定named pasteboard残存と終了直後の削除遅延を排除していない
 
-- 対象: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:993`
+- 対象: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:993`
 - 固定名を使うため、前回失敗したUI testがpasteboardを残していると、今回のcreate / readが新規作成によるものか判別できない。
 - test開始時に固定pasteboardをcreate → remove → no-createでunavailable確認してからfresh createすること。
 - terminate後のno-create Readを1回だけ実行すると、OS側の終了処理との競合で不安定になりうる。上限時間つきpollで`CLIPBOARD_UNAVAILABLE`を待ち、timeout時は最後の状態を記録すること。
 
 #### 3. case 4の画面表示自体がclipboard-aware UIを初期化しない保証がない
 
-- 対象: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:645`
+- 対象: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:645`
 - case 4は「他の操作を一切行わず、初回Checkだけ」を要求するが、同じ画面には`UIPasteControl`が存在する。controlのtarget / paste configurationに応じてsystemがenabled状態を評価するため、厳密には`changeCount`だけにprivacy挙動を帰属できない可能性が残る。
 - case 4専用起動引数・表示modeでPaste Controlを生成しない、または当該sectionを明示操作まで遅延生成することが望ましい。
 - 少なくとも、画面mount時にmanager初期化以外のclipboard read / preflight / Paste Control生成が行われないことを検証し、case 4の前提として記録すること。
 
 #### 4. M-16の記録単位が片側OSの列になっており、2台の組合せを表現できない
 
-- 対象: `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:745`
+- 対象: `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:745`
 - 現在は列をiOS 18 / iOS 26、行を「端末BのOSバージョン」としているが、Universal Clipboardは端末A / Bの組合せに依存する。AがどのOS / buildなのか記録できず、列のiOSがどちらの端末を表すかも曖昧である。
 - 1試行を1行とし、trial ID、A端末 / OS build、B端末 / OS build、接続条件、許可状態、正の対照、3つの観測値、結論を列に持つ形式へ変更すること。
 
@@ -100,8 +100,8 @@
 #### 1. marker一覧の件数と`cancelLoads`の位置づけが一致しない
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:279`
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:410`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:279`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:410`
 - 一覧を数えると、Scope 6 + Copy 12 + Copy Options 3 + Append 3 + Read 4 + Load 5 + Detect 2 + Observe 3 + Clear 1 + Error 11 = **50件**である。操作総数を明記する場合は、この内訳と一致させる必要がある。
 - `cancelLoads`を「すべての結果」のmarker一覧へ含めている一方、Cancel操作はload completionの結果を待つcontrol APIであり、`[cancelLoads]`結果を生成する契約が書かれていない。Cancelがresultを即時上書きすると、後続の`.cancelled` completionと競合する。
 - 結果生成操作とcontrol-only操作を分け、`cancelLoads`はbutton identifierだけを持つcontrolとして定義すること。Paste Controlは別の`pastedSummary`更新経路であることも一覧上で区別すること。
@@ -109,8 +109,8 @@
 #### 2. U-2 / U-11の期待文字列が実際の表示形式と一致しない
 
 - 対象:
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:976`
-  - `artifact/designs/clipboard/2026-08-09-ios-clipboard-sample-app-design-v5.md:985`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:976`
+  - `artifact/features/clipboard/designs/2026-08-09-ios-clipboard-sample-app-design-v5.md:985`
 - 実形式は`✅ #<seq> [read] ...`なので、U-2の`✅ [read]`やU-11の`✅ [loadFile]`は連続substringとして存在しない。
 - 期待値を`marker=read` / `marker=loadFile`とpayload条件へ分け、9.4の`waitForResult(after:marker:contains:)`を使う表記へ統一すること。
 

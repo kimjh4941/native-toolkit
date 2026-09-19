@@ -8,17 +8,17 @@
 >   Swift 側の型検査にのみ有効で、実行 executor を main actor に固定するものでもない。v7 §1.2 で訂正。
 > - §1.3(b) の「修正前 126 件」は「**局所 3 件修正後（案 C 適用前）126 件**」が正確。
 >
-> 訂正: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v7.md`
+> 訂正: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v7.md`
 
 ## 基本情報
 
 - 日付: 2026-08-08
 - 機能名: clipboard
 - 対象OS: iOS
-- 設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
-- 対象レビュー: `artifact/reviews/clipboard/2026-08-08-ios-clipboard-implementation-feature-review-v5.md`
-- 前版: `artifact/results/clipboard/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
-- 追加参照: `artifact/MIGRATION.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
+- 対象レビュー: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v5.md`
+- 前版: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v5.md`
+- 追加参照: `artifact/topics/migration/README.md`
 - ブランチ: feature/NTKIT-14
 
 ---
@@ -29,7 +29,7 @@
 
 `UnityIosClipboardManager` に残っていた 16 件の `sending 'handler'` 診断を **0 件**にした。
 
-`artifact/MIGRATION.md` §6 の先行設計として 3 案を比較し、**案 C** を採用した。
+`artifact/topics/migration/README.md` §6 の先行設計として 3 案を比較し、**案 C** を採用した。
 
 | 案 | 内容 | 評価 |
 |---|---|---|
@@ -95,11 +95,11 @@ Apple 全体同士の比較には macOS の Swift 5 readiness 取得が必要で
 
 **(b) 集計単位**
 
-v5 / MIGRATION.md の「`sending` 34 / `static property` 8」は、Clipboard パスのみを対象に
+v5 / artifact/topics/migration/README.md の「`sending` 34 / `static property` 8」は、Clipboard パスのみを対象に
 `sort -u` を掛けずに raw 出現を数えたものだった。レビューの「`sending` 39 / `static property` 14」
 とは**正規化単位も対象範囲も異なる**。
 
-正規コマンドを `artifact/MIGRATION.md` §4.3 に明記し、以後はこれで統一する。
+正規コマンドを `artifact/topics/migration/README.md` §4.3 に明記し、以後はこれで統一する。
 
 ```bash
 grep -oE "/[^ ]*\.swift:[0-9]+:[0-9]+: (warning|error): .*" "$LOG" \
@@ -141,8 +141,8 @@ result v4 の Errata を修正し、撤回対象を「Clipboard 全体 0 件」�
 
 ### 2.3 変更（ドキュメント）
 
-- `artifact/MIGRATION.md` — 案 C の決定記録、集計の正規化単位、母集団を揃えた比較、着手順の更新
-- `artifact/results/clipboard/..._result-v4.md` — L-01 の Errata 限定化
+- `artifact/topics/migration/README.md` — 案 C の決定記録、集計の正規化単位、母集団を揃えた比較、着手順の更新
+- `artifact/features/clipboard/results/..._result-v4.md` — L-01 の Errata 限定化
 
 ### 2.4 変更なし
 
@@ -220,7 +220,7 @@ result v4 の Errata を修正し、撤回対象を「Clipboard 全体 0 件」�
 | 4 | Notification / Dialog / Share への案 C 一括適用 | 移行タスク本体 |
 | 5 | macOS の Swift 5 readiness 計測 | 移行タスク本体 |
 
-移行管理全体の着手順は `artifact/MIGRATION.md` §8 を参照。
+移行管理全体の着手順は `artifact/topics/migration/README.md` §8 を参照。
 
 **受け入れブロッカーだった H-01 は解消した。** 残るのは設計正本の更新（1）と、
 当初から実機・別ワークフロー待ちの項目（2〜3）である。

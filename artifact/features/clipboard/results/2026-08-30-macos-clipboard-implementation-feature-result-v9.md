@@ -5,10 +5,10 @@
 - 日付: 2026-09-02
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v9.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v9.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **File Promise 4 操作（OP-16 / OP-17 / OP-18 / OP-20）の削除**
-- 前版: `artifact/results/clipboard/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
+- 前版: `artifact/features/clipboard/results/2026-08-30-macos-clipboard-implementation-feature-result-v8.md`
 
 > **本版はレビュー指摘への対応ではない。** 実装レビュー v7 は LGTM を出しており、その後に
 > 行った**スコープ変更**の記録である。

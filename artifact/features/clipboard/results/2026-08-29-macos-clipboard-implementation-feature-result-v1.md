@@ -3,7 +3,7 @@
 > **Errata（2026-08-30）**
 >
 > **§7.2 の Swift 6 測定は無効である。** `swiftc -swift-version 6 -typecheck` は
-> `artifact/MIGRATION.md` §4.3 の必須条件（whole-module / clean / 最下流 scheme）を満たさず、
+> `artifact/topics/migration/README.md` §4.3 の必須条件（whole-module / clean / 最下流 scheme）を満たさず、
 > フロー解析段階の `sending` 系診断が構造的に出ない。§1 の誤り #3 と同一の失敗である。
 > §7.2 が挙げた選択肢 (b)「Clipboard ターゲットのみ Swift 6」も、Clipboard が独立ターゲット
 > ではないため成立しない。
@@ -18,7 +18,7 @@
 - 日付: 2026-08-29
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **T-01 / T-02 / T-11a / T-11b の 4 タスクに限定**（ユーザー指示による先行実装）
 

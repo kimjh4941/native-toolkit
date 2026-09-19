@@ -7,8 +7,8 @@
 - HEAD: `a634619bd4cb0c8f32d1f891bd187eabf9c6fee3`
 - 比較基準: `develop...HEAD`（merge-base: `9367da5c6aeb634c26944c9ec7d4385c54e40d13`）
 - 追加対象: 未コミット・未追跡の `mac/MacLibraryExample/` 配下および実装結果 v1
-- 計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md`
-- 実装結果: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md`
+- 計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md`
+- 実装結果: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md`
 - 対象 OS: macOS 15 以降
 
 > `develop...HEAD` は機能ブランチ全体の差分を含む。一方、今回のサンプル本体・テスト・共有
@@ -33,8 +33,8 @@
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:45`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:81`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:264`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:451`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:264`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:451`
 - 計画は画面上部に Active scope の `Picker` を置き、`general / named / unique` を選べることを
   画面要件としている。
 - 実装は現在値を表示する `Text` と create / remove ボタンだけで、`Picker` は存在しない。
@@ -48,8 +48,8 @@
 
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:290`
-  - 実装結果 `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:50`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:482`
+  - 実装結果 `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:50`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:482`
 - `DetectPatterns` / `DetectValues` は arrange の copy を同じ `run` 内で `try await` するが、
   `DetectMetadata` は `try? await arrangePlainText()` で失敗を捨てた後に OP-11 を実行する。
 - named pasteboard の解決失敗や copy 失敗が起きても、前に残っていた内容で OP-11 を実行するため、
@@ -65,7 +65,7 @@
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:62`
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:83`
   - `mac/MacLibraryExample/MacLibraryExampleUITests/ClipboardSampleViewUITests.swift:97`
-  - 実装結果 `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:117`
+  - 実装結果 `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:117`
 - `tap` はボタン押下後、表示が placeholder でなければ即時 return する。2 回目以降は非同期処理が
   更新する前の前回結果が既に placeholder ではないため、新しい操作が何も報告しなくても成功扱いになる。
 - MS-01 の配列は 6 ボタンだけで、実際に触るのは Copy / Read / Observe / Clear の 4 セクションである。
@@ -81,7 +81,7 @@
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExampleTests/ClipboardSampleTests.swift:171`
   - `mac/MacLibraryExample/MacLibraryExampleTests/ClipboardSampleTests.swift:199`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:645`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:645`
 - `stripped(_:)` が除去するのは `//` 以降だけで、`/* ... */` の block comment はそのまま残る。
   したがって実呼び出しを `/* MacClipboardManager.shared.clear(...) */` に置換しても、正規表現は
   `clear` を called として抽出する。
@@ -100,7 +100,7 @@
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:474`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:487`
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:529`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:518`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:518`
 - `reachedCodes` へ追加するのは expected-error runner の `report` だけである。通常の `run` / `runSync`
   や paste button 構築で ClipboardError に到達しても一覧へ残らない。
 - 特に計画 §6.6 が「到達したら記録」とする環境依存の 1513 / 1514 は通常 detect 経路で発生するため、
@@ -111,7 +111,7 @@
 
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample/ClipboardSampleView.swift:81`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:676`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:676`
 - section / result / observe status には identifier があるが、各 `Button` に
   `clipboard.button.<name>` が付いていない。UI テストは可変な表示 label に依存している。
 - 計画どおり button identifier を付け、UI テストも identifier を使うこと。長い ScrollView 内の
@@ -121,8 +121,8 @@
 
 - 対象:
   - `mac/MacLibraryExample/MacLibraryExample.xcodeproj/xcshareddata/xcschemes/MacLibraryExample.xcscheme:26`
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:690`
-  - 実装結果 `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:145`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:690`
+  - 実装結果 `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:145`
 - 共有 scheme の TestAction は unit test と UI test をどちらも `skipped="NO"` にしている。一方、
   計画の再現コマンドは対象を限定しない `xcodebuild clean test` であり、現在の環境では既知の
   UI test 失敗を含んで command 全体が失敗する。
@@ -132,8 +132,8 @@
 ### M-04: UI テスト追加という計画差分が「追加判断」に記録されていない
 
 - 対象:
-  - 計画 `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v4.md:687`
-  - 実装結果 `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:81`
+  - 計画 `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v4.md:687`
+  - 実装結果 `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v1.md:81`
 - 計画は費用対効果を理由に UI テストを「書かない」と明記するが、実装は 5 件を追加した。
 - result の追加判断には menu navigation fallback だけがあり、「UI テストを追加する判断」と
   pasteboard 共有時の直列化方針、未実行時の scheme 方針が記録されていない。

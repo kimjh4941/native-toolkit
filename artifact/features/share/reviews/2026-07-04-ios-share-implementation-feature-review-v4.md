@@ -8,16 +8,16 @@
 - diff:
   - `git diff develop...HEAD`
   - `git diff develop`（v4 確認時点の未コミット作業ツリーを含めて確認）
-- 設計書: `artifact/designs/share/2026-07-04-ios-share-design.md`
-- 実装結果: `artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v3.md`
-- 前回レビュー: `artifact/reviews/share/2026-07-04-ios-share-implementation-feature-review-v3.md`
+- 設計書: `artifact/features/share/designs/2026-07-04-ios-share-design.md`
+- 実装結果: `artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v3.md`
+- 前回レビュー: `artifact/features/share/reviews/2026-07-04-ios-share-implementation-feature-review-v3.md`
 - 対象 OS: iOS 18 以降
 
 ## レビュー概要
 
 v3 レビューで残した low 指摘「実装結果レポートに古い『専用ユニットテスト未追加』記述が残っている」が反映されたかを中心に再レビューした。
 
-`artifact/results/share/2026-07-04-ios-share-implementation-feature-result-v3.md:110` は、`UnityIosShareJsonParserTests/parseContentInvalidJsonReturnsNil` と `UnityIosShareManagerTests/shareWithInvalidJsonInvokesHandlerOnMainThreadWithError` の両方で確認済みという記述に更新されており、前回の不整合は解消されている。
+`artifact/features/share/results/2026-07-04-ios-share-implementation-feature-result-v3.md:110` は、`UnityIosShareJsonParserTests/parseContentInvalidJsonReturnsNil` と `UnityIosShareManagerTests/shareWithInvalidJsonInvokesHandlerOnMainThreadWithError` の両方で確認済みという記述に更新されており、前回の不整合は解消されている。
 
 ## 重大な問題（high）
 

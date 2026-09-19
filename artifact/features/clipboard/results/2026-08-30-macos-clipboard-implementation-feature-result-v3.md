@@ -5,7 +5,7 @@
 - 日付: 2026-08-30
 - 機能名: clipboard
 - 対象OS: macOS
-- 設計書: `artifact/designs/clipboard/2026-08-29-macos-clipboard-design-v7.md`
+- 設計書: `artifact/features/clipboard/designs/2026-08-29-macos-clipboard-design-v7.md`
 - ブランチ: feature/NTKIT-15
 - スコープ: **T-03 〜 T-17 の全タスク**（v1 / v2 の T-01 / T-02 / T-11a / T-11b に続く）+ 実装レビュー指摘 7 件の修正
 - 前版: `2026-08-29-macos-clipboard-implementation-feature-result-v2.md`
@@ -60,7 +60,7 @@ T-18（サンプルアプリ）は `design-sample-app` で別途設計するた�
 
 ## 2. 実装レビュー v1 の指摘反映
 
-レビュー: `artifact/reviews/clipboard/2026-08-30-macos-clipboard-implementation-feature-review-v1.md`
+レビュー: `artifact/features/clipboard/reviews/2026-08-30-macos-clipboard-implementation-feature-review-v1.md`
 実施者: Codex（gpt-5.6-sol）。総合評価 **要修正（重大）**、high 4 件 / medium 3 件。
 
 **7 件すべてを実コードで再現確認したうえで修正した。** 指摘はいずれも妥当であり、
@@ -116,14 +116,14 @@ H-3 の調査中、**Swift 側にも同じ漏えい**があった（`parseScope`
 
 ### 4.1 strict concurrency 診断
 
-`MIGRATION.md` §4.3 の条件（whole-module / clean / 最下流 scheme）で計測。
+`artifact/topics/migration/README.md` §4.3 の条件（whole-module / clean / 最下流 scheme）で計測。
 
 ```
 unique 173 件 / Clipboard 由来 0 件
 ```
 
 本機能は `develop` に存在しない新規差分のため、`Clipboard/` 配下の診断はすべて本タスクが
-追加したものになる。0 件は `MIGRATION.md` §3.3 の機能タスク DoD を満たす。
+追加したものになる。0 件は `artifact/topics/migration/README.md` §3.3 の機能タスク DoD を満たす。
 
 **この計測は baseline ではない**。feature branch 上の確認目的であり、`artifact/baselines/` へは保存していない。
 
@@ -138,7 +138,7 @@ unique 173 件 / Clipboard 由来 0 件
 | `ClipboardRepositoryImpl` | 検出 API への `sending` 違反 6 件 |
 | `UnityMacClipboardManager` | `static let shared` の非 Sendable、`sending 'body'` |
 
-`MIGRATION.md` §4.3 が whole-module を必須条件にしている理由の実例である。
+`artifact/topics/migration/README.md` §4.3 が whole-module を必須条件にしている理由の実例である。
 
 ### 4.3 未実施
 
@@ -189,7 +189,7 @@ unique 173 件 / Clipboard 由来 0 件
 1. **再レビュー**: 本版と修正を対象に実装レビュー v2 を実施する
 2. **T-18**: `design-sample-app` でサンプルアプリを設計し、実装する
 3. **手動確認**: MT-01〜MT-08 を実機で実施する
-4. `MIGRATION.md` の `swift6-migration` は別トピック。本タスクの範囲外
+4. `artifact/topics/migration/README.md` の `swift6-migration` は別トピック。本タスクの範囲外
 
 ---
 

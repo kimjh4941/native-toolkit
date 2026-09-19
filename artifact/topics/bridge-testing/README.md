@@ -82,4 +82,4 @@ Clipboard は 4 機能中もっとも手厚い。**この課題は Clipboard の
 ## 備考
 
 本ファイルは**チケットを立てずに記録だけ残したもの**。着手を決めた時点でチケット化し、
-必要なら企画書・設計書を `artifact/plans/` `artifact/designs/` へ起こす。
+必要なら企画書・設計書を `artifact/topics/bridge-testing/plans/` `artifact/topics/bridge-testing/designs/` へ起こす。

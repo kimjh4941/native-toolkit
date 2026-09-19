@@ -5,8 +5,8 @@
 - 日付: 2026-08-15
 - 機能名: clipboard
 - 対象OS: iOS 18 以降
-- 実装結果 v3: `artifact/results/clipboard/2026-08-15-ios-clipboard-implement-sample-app-result-v3.md`
-- 機能設計書: `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md`
+- 実装結果 v3: `artifact/features/clipboard/results/2026-08-15-ios-clipboard-implement-sample-app-result-v3.md`
+- 機能設計書: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`
 - 実機: iPhone XS / iOS 18.7.2
 - 対応タスク: 設計書 T-13（M-08）/ T-14（DocC 見直し）
 
@@ -88,7 +88,7 @@ iOS は強制終了時に `deinit` を実行しない。今回測定したのは
 | `ios/IosLibrary/IosLibrary/Clipboard/Domain/Model/PasteboardScope.swift` | 公開 DocC（`- Note:` と `.general` の記述） |
 | `ios/IosLibrary/IosLibrary/Clipboard/Data/Repository/PasteboardResolver.swift` | internal コメント 2 か所 |
 | `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md` | DocC 記事（`### Named / unique pasteboards ...`） |
-| `artifact/designs/clipboard/2026-08-02-ios-clipboard-design-v4.md` | **正誤追記**（本文は保持） |
+| `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md` | **正誤追記**（本文は保持） |
 
 `grep` で `only while the app that created` / `non-persistent` / `not persistent` の残存が
 0 件であることを確認済み。
@@ -156,7 +156,7 @@ case general
 |---|---|
 | T-00 プライバシー 16 ケース | 未計測。**DocC が「未計測・自分で検証せよ」と明記済み**のため文書上の誤りはない |
 | M-06 / M-16（2 台必要） | macOS Clipboard 機能の完成後に Mac を端末 B として実施（v3 §7.3） |
-| ブリッジ統合テスト | `artifact/BRIDGE_TESTING.md`。既存 3 機能と同条件のため本機能を止めない |
+| ブリッジ統合テスト | `artifact/topics/bridge-testing/README.md`。既存 3 機能と同条件のため本機能を止めない |
 | M-12 の active session 除外 / M-13 の 100 MP | harness へ委譲 |
 
 ---
@@ -169,7 +169,7 @@ case general
 |---|---|---|
 | 1 | M-08 の文言訂正 | **完了**（2 章） |
 | 2 | T-14 DocC | **既存**。M-08 反映の見直しを本作業で実施 |
-| 3 | ブリッジ統合テスト | 別課題（`BRIDGE_TESTING.md`） |
+| 3 | ブリッジ統合テスト | 別課題（`artifact/topics/bridge-testing/README.md`） |
 | 4 | T-00 | DocC が未計測と明記済み。文書上の誤りなし |
 
 ### 4.2 解消済みの要検証項目
@@ -198,5 +198,5 @@ M-08 は制限事項として文書化し、利用者に明示削除を指示し
 | T-13 | M-08 の long-duration measurement（制限事項の解消） |
 | T-13 | M-06 / M-16（macOS Clipboard 完成後） |
 | T-00 | プライバシー実機スパイク 16 ケース |
-| 別課題 | ブリッジ統合テスト（`BRIDGE_TESTING.md`） |
-| 別課題 | Swift 6 移行（`MIGRATION.md`） |
+| 別課題 | ブリッジ統合テスト（`artifact/topics/bridge-testing/README.md`） |
+| 別課題 | Swift 6 移行（`artifact/topics/migration/README.md`） |

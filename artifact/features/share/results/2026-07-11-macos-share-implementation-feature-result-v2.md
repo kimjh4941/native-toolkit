@@ -5,9 +5,9 @@
 - 日付: 2026-07-11
 - 機能名: share
 - 対象OS: macOS
-- 設計書: artifact/designs/share/2026-07-11-macos-share-design.md
-- 対象レビュー: artifact/reviews/share/2026-07-11-macos-share-implementation-feature-review-v1.md
-- 対象実装結果（前版）: artifact/results/share/2026-07-11-macos-share-implementation-feature-result-v1.md
+- 設計書: artifact/features/share/designs/2026-07-11-macos-share-design.md
+- 対象レビュー: artifact/features/share/reviews/2026-07-11-macos-share-implementation-feature-review-v1.md
+- 対象実装結果（前版）: artifact/features/share/results/2026-07-11-macos-share-implementation-feature-result-v1.md
 - ブランチ: feature/NTKIT-11
 
 本ファイルは v1 を置き換えるものではなく、レビュー v1 で指摘された 2 件（High×2）への対応結果を記録する。
@@ -57,7 +57,7 @@
 - `mac/MacLibrary/MacLibrary/Share/Presentation/SharePickerPresenter.swift`: `presentPicker`/`performService` に busy-guard 追加、テスト専用ヘルパー（`beginInFlightForTesting`/`resumeInFlightForTesting`）追加、ドキュメントコメント更新
 - `mac/MacLibrary/MacLibrary/Share/MacShareManager.swift`: DocC コメントに `Task { @MainActor }` の mouseDown リスクと `shareViaService` 推奨を追記（コードロジックは無変更）
 - `mac/MacLibrary/MacLibraryTests/Share/ShareErrorTests.swift`: `alreadyInProgress` のテスト2件追加
-- `artifact/designs/share/2026-07-11-macos-share-design.md`: §12 リスク表・§14 要検証に、実装で判明した `Task {}` hop リスクと実機検証未完了の記録を追記
+- `artifact/features/share/designs/2026-07-11-macos-share-design.md`: §12 リスク表・§14 要検証に、実装で判明した `Task {}` hop リスクと実機検証未完了の記録を追記
 
 ### 2.3 一時作成後に削除・復元済み（リポジトリに残っていない）
 

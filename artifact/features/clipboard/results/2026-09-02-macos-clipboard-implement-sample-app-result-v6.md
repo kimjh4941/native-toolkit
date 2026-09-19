@@ -6,10 +6,10 @@
 - 機能名: clipboard
 - 対象OS: macOS 15 以降
 - 対象サンプルアプリ: `mac/MacLibraryExample/`
-- 計画: `artifact/designs/clipboard/2026-09-02-macos-clipboard-sample-app-design-v5.md`
+- 計画: `artifact/features/clipboard/designs/2026-09-02-macos-clipboard-sample-app-design-v5.md`
 - 対応タスク: T-18（機能設計 §13）
-- 前版: `artifact/results/clipboard/2026-09-02-macos-clipboard-implement-sample-app-result-v5.md`
-- 反映したレビュー: `artifact/reviews/clipboard/2026-09-02-macos-clipboard-implement-sample-app-review-v5.md`
+- 前版: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implement-sample-app-result-v5.md`
+- 反映したレビュー: `artifact/features/clipboard/reviews/2026-09-02-macos-clipboard-implement-sample-app-review-v5.md`
 
 > レビュー v5 は **A 0 件**だったが、変異 8 件中 5 件が通過し、止める基準の条件 2 が未充足
 > だった。**本版は個別の穴を塞ぐのではなく、走査で書いた検査が 1 ホップで黙る機構そのものを

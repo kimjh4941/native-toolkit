@@ -10,7 +10,7 @@
 
 ## 対象企画書
 
-- artifact/plans/clipboard/2026-07-25-android-clipboard-research.md（v5）
+- artifact/features/clipboard/plans/2026-07-25-android-clipboard-research.md（v5）
 
 企画書由来の前提と本設計での新規判断は、各セクションで「【企画書由来】」「【設計判断】」として分離する。
 

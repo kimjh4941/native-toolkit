@@ -3,7 +3,7 @@
 - 作成日: 2026-05-30
 - 改訂日: 2026-05-30（v2 — レビュー反映）
 - 対象OS: Windows（最小: Windows 11）
-- 対象企画書: `artifact/plans/notification/2026-05-30-windows-notification-research-v2.md`
+- 対象企画書: `artifact/features/notification/plans/2026-05-30-windows-notification-research-v2.md`
 - 言語: VC++（C++/WinRT）
 
 > **v1 からの主な変更点**

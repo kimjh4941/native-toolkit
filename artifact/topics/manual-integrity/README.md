@@ -278,7 +278,7 @@ Clipboard とは無関係である。
 
 # 関連
 
-- 同種の横断課題: [BRIDGE_TESTING.md](BRIDGE_TESTING.md)
+- 同種の横断課題: [artifact/topics/bridge-testing/README.md](artifact/topics/bridge-testing/README.md)
 - 検査ワークフロー: `agent-rules/workflows/verify-manual/workflow.md`（`/verify-manual`）
 - 検査の実体: `scripts/verify_manual.sh`
 - リリース時のゲート: `agent-rules/workflows/release/workflow.md` ステップ3
