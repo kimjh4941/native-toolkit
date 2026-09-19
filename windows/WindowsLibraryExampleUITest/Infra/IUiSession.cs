@@ -31,4 +31,12 @@ public interface IUiSession : IDisposable
     /// Returns the last observed text so a failure message can show it.
     /// </summary>
     string WaitForText(string automationId, Func<string, bool> predicate, TimeSpan? timeout = null);
+
+    /// <summary>Waits for a modal dialog (window class #32770) owned by the app.</summary>
+    /// <remarks>
+    /// The dialog is located through Win32 by process id and window class, not
+    /// by walking the app window: while the modal loop runs, the app's own
+    /// automation tree does not answer.
+    /// </remarks>
+    IUiDialog WaitForDialog(TimeSpan? timeout = null);
 }

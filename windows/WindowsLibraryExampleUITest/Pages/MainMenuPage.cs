@@ -21,4 +21,13 @@ public sealed class MainMenuPage
         _session.WaitForElement("ResultTextBlock");
         return new ClipboardPage(_session);
     }
+
+    public DialogPage OpenDialogSample()
+    {
+        _session.WaitForElement("DialogCard").Invoke();
+
+        // ShowAlertDialog only exists on the dialog page.
+        _session.WaitForElement("ShowAlertDialog");
+        return new DialogPage(_session);
+    }
 }
