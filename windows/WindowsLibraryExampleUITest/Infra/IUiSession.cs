@@ -39,4 +39,16 @@ public interface IUiSession : IDisposable
     /// automation tree does not answer.
     /// </remarks>
     IUiDialog WaitForDialog(TimeSpan? timeout = null);
+
+    /// <summary>The notification centre, for the app's own notifications.</summary>
+    INotificationCenter NotificationCenter { get; }
+
+    /// <summary>Notification banners, for the app's own notifications.</summary>
+    IBanners Banners { get; }
+
+    /// <summary>The badge on the app's taskbar button.</summary>
+    ITaskbarBadge Badge { get; }
+
+    /// <summary>Windows settings that some tests change and put back.</summary>
+    IOsSettings OsSettings { get; }
 }

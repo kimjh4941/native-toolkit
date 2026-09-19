@@ -22,6 +22,15 @@ public sealed class MainMenuPage
         return new ClipboardPage(_session);
     }
 
+    public NotificationPage OpenNotificationSample()
+    {
+        _session.WaitForElement("NotificationCard").Invoke();
+
+        // InitializeManager only exists on the notification page.
+        _session.WaitForElement("InitializeManager");
+        return new NotificationPage(_session);
+    }
+
     public DialogPage OpenDialogSample()
     {
         _session.WaitForElement("DialogCard").Invoke();
