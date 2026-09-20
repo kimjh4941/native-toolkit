@@ -944,6 +944,36 @@ void ClipboardManager::ReserveDeferredFormats(const wchar_t* formatNamesJson, Cl
     if (mutated) selfWrite.NoteMutation();
 }
 
+
+void ClipboardManager::ReserveDeferredProviders(
+    const std::vector<std::wstring>& formatNames,
+    NativeToolkit::Clipboard::RenderProvider provider,
+    DWORD* pError)
+{
+    DFLog(TAG, L"[ReserveDeferredProviders] count: %zu", formatNames.size());
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    std::shared_ptr<ClipboardHistoryCoordinator> coordinator;
+    if (!AcquireOwnerContext(pError, lease, hwnd, coordinator)) return;
+    if (formatNames.empty() || !provider) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
+
+    std::map<UINT, DeferredClipboard::Renderer> renderers;
+    for (const auto& name : formatNames)
+    {
+        const UINT fmt = ResolveFormatId(name);
+        if (fmt == 0) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
+        // Each format gets its own renderer holding its own copy of the name,
+        // so the provider is told which one is being asked for.
+        renderers[fmt] = MakeDeferredRenderer(provider, name);
+    }
+
+    auto selfWrite = watcher_.BeginSelfWrite();
+    bool mutated = false;
+    const DWORD err = deferred_.Reserve(hwnd, std::move(renderers), &mutated);
+    SetErr(pError, err);
+    if (mutated) selfWrite.NoteMutation();
+}
+
 void ClipboardManager::RecoverDeferredState(DWORD* pError)
 {
     DLog(TAG, L"[RecoverDeferredState]");

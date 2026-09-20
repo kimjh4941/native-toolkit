@@ -1,13 +1,10 @@
 #include "pch.h"
-#include "Clipboard/Data/WindowsClipboardCore.h"
-#include "Clipboard/WindowsClipboardApiInternal.h"
+#include "ClipboardSessionForTest.h"
 #include "Clipboard/WindowsClipboardManagerInternal.h"
 
 #include <cstring>
 #include <functional>
-#include <map>
 #include <string>
-#include <thread>
 #include <vector>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -39,83 +36,10 @@ namespace WindowsClipboardApiCoreTest
 
 namespace Api = NativeToolkit::Clipboard;
 using Api::ErrorCode;
+using ClipboardSessionForTest::Check;
 
 namespace
 {
-    struct StaFailure { std::wstring message; };
-
-    void Check(bool condition, const wchar_t* message)
-    {
-        if (!condition) throw StaFailure{message};
-    }
-
-    /// A clipboard that keeps what is put in it, and nothing else's.
-    class StoringClipboard final : public IClipboardWin32Api
-    {
-    public:
-        ~StoringClipboard() override { Free(); }
-
-        BOOL OpenClipboard(HWND) override { return TRUE; }
-        BOOL CloseClipboard() override { return TRUE; }
-        BOOL EmptyClipboard() override { Free(); return TRUE; }
-
-        HANDLE SetClipboardData(UINT format, HANDLE hMem) override
-        {
-            // The real clipboard takes ownership; so does this.
-            if (const auto existing = data_.find(format); existing != data_.end()) {
-                ::GlobalFree(existing->second);
-            }
-            data_[format] = static_cast<HGLOBAL>(hMem);
-            ::SetLastError(ERROR_SUCCESS);
-            return hMem ? hMem : reinterpret_cast<HANDLE>(1);
-        }
-
-        HANDLE GetClipboardData(UINT format) override
-        {
-            const auto found = data_.find(format);
-            return found == data_.end() ? nullptr : found->second;
-        }
-
-        HWND  GetClipboardOwner() override { return nullptr; }
-        BOOL  IsClipboardFormatAvailable(UINT format) override
-        {
-            return data_.count(format) != 0 ? TRUE : FALSE;
-        }
-        BOOL  AddClipboardFormatListener(HWND) override { return TRUE; }
-        BOOL  RemoveClipboardFormatListener(HWND) override { return TRUE; }
-        DWORD GetClipboardSequenceNumber() override { return ++sequence_; }
-
-        /// The bytes stored under a format, for comparing one write with another.
-        std::vector<BYTE> BytesOf(UINT format) const
-        {
-            const auto found = data_.find(format);
-            if (found == data_.end() || !found->second) return {};
-            const SIZE_T size = ::GlobalSize(found->second);
-            const void* locked = ::GlobalLock(found->second);
-            std::vector<BYTE> bytes(size);
-            if (locked && size) ::memcpy(bytes.data(), locked, size);
-            if (locked) ::GlobalUnlock(found->second);
-            return bytes;
-        }
-
-        bool Holds(UINT format) const { return data_.count(format) != 0; }
-        size_t FormatCount() const { return data_.size(); }
-
-    private:
-        void Free()
-        {
-            for (auto& [format, handle] : data_) {
-                if (handle) ::GlobalFree(handle);
-            }
-            data_.clear();
-        }
-
-        std::map<UINT, HGLOBAL> data_;
-        DWORD                   sequence_ = 1;
-    };
-
-    StoringClipboard* g_clipboard = nullptr;
-
     std::vector<BYTE> MakeMinimalDib(LONG width, LONG height, WORD bitCount)
     {
         BITMAPINFOHEADER header{};
@@ -137,62 +61,6 @@ namespace
         std::vector<std::byte> bytes(raw.size());
         if (!raw.empty()) ::memcpy(bytes.data(), raw.data(), raw.size());
         return bytes;
-    }
-
-    void PumpMessages()
-    {
-        MSG message;
-        while (::PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
-            ::TranslateMessage(&message);
-            ::DispatchMessageW(&message);
-        }
-    }
-
-    void CloseTheManagerFromItsOwnerThread()
-    {
-        auto& backing = ClipboardManager::GetInstance();
-        for (int attempt = 0; attempt < 6; ++attempt) {
-            DWORD error = CLIPBOARD_ERROR_NONE;
-            if (backing.Uninit(&error)) return;
-            if (error == CLIPBOARD_ERROR_WRONG_THREAD) return;
-            PumpMessages();
-        }
-    }
-
-    /// Runs the body on an STA thread with a session open and a fake clipboard
-    /// installed, and reports whatever the body found wrong.
-    std::wstring RunWithSession(const std::function<void(Api::Session&)>& body)
-    {
-        std::wstring failure;
-        std::thread worker([&] {
-            if (FAILED(::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED))) {
-                failure = L"CoInitializeEx(STA) failed";
-                return;
-            }
-            StoringClipboard clipboard;
-            g_clipboard = &clipboard;
-            SetWin32ApiForTest(&clipboard);
-            try {
-                auto session = Api::Session::Create(Api::SessionOptions{});
-                Check(session.has_value(), L"Create failed");
-                // Closing is the body's job in the ordinary case too, but a
-                // failed check leaves early and an unclosed session would be
-                // abandoned - which asserts, and would bury the real failure.
-                struct Closer {
-                    Api::Session& session;
-                    ~Closer() { for (int i = 0; i < 6 && !session.Close().has_value(); ++i) PumpMessages(); }
-                } closer{session.value()};
-                body(session.value());
-            }
-            catch (const StaFailure& f) { failure = f.message; }
-            catch (...)                 { failure = L"the STA body threw something unknown"; }
-            CloseTheManagerFromItsOwnerThread();
-            SetWin32ApiForTest(nullptr);
-            g_clipboard = nullptr;
-            ::CoUninitialize();
-        });
-        worker.join();
-        return failure;
     }
 }
 
@@ -325,8 +193,8 @@ public:
 
             const UINT history = ::RegisterClipboardFormatW(L"CanIncludeInClipboardHistory");
             const UINT roaming = ::RegisterClipboardFormatW(L"CanUploadToCloudClipboard");
-            Check(g_clipboard->Holds(history), L"the history marker was not placed");
-            Check(g_clipboard->Holds(roaming), L"the roaming marker was not placed");
+            Check(ClipboardSessionForTest::Current()->Holds(history), L"the history marker was not placed");
+            Check(ClipboardSessionForTest::Current()->Holds(roaming), L"the roaming marker was not placed");
         });
     }
 
@@ -337,8 +205,8 @@ public:
 
             const UINT history = ::RegisterClipboardFormatW(L"CanIncludeInClipboardHistory");
             const UINT roaming = ::RegisterClipboardFormatW(L"CanUploadToCloudClipboard");
-            Check(!g_clipboard->Holds(history), L"a marker was placed without being asked for");
-            Check(!g_clipboard->Holds(roaming), L"a marker was placed without being asked for");
+            Check(!ClipboardSessionForTest::Current()->Holds(history), L"a marker was placed without being asked for");
+            Check(!ClipboardSessionForTest::Current()->Holds(roaming), L"a marker was placed without being asked for");
         });
     }
 
@@ -379,8 +247,8 @@ public:
             Check(session.CopyMultiple(items).has_value(), L"CopyMultiple failed");
 
             const UINT htmlFormat = ::RegisterClipboardFormatW(L"HTML Format");
-            const std::vector<BYTE> fromStruct = g_clipboard->BytesOf(htmlFormat);
-            const std::vector<BYTE> textFromStruct = g_clipboard->BytesOf(CF_UNICODETEXT);
+            const std::vector<BYTE> fromStruct = ClipboardSessionForTest::Current()->BytesOf(htmlFormat);
+            const std::vector<BYTE> textFromStruct = ClipboardSessionForTest::Current()->BytesOf(CF_UNICODETEXT);
             Check(!fromStruct.empty(), L"the struct path wrote no HTML");
 
             DWORD error = CLIPBOARD_ERROR_NONE;
@@ -390,9 +258,9 @@ public:
                 CLIPBOARD_WRITE_OPTION_NONE, &error);
             Check(error == CLIPBOARD_ERROR_NONE, L"the JSON path was refused");
 
-            Check(g_clipboard->BytesOf(htmlFormat) == fromStruct,
+            Check(ClipboardSessionForTest::Current()->BytesOf(htmlFormat) == fromStruct,
                   L"the two paths wrote different HTML bytes");
-            Check(g_clipboard->BytesOf(CF_UNICODETEXT) == textFromStruct,
+            Check(ClipboardSessionForTest::Current()->BytesOf(CF_UNICODETEXT) == textFromStruct,
                   L"the two paths wrote different text bytes");
         });
     }
@@ -529,7 +397,7 @@ private:
 
     static void Run(const std::function<void(Api::Session&)>& body)
     {
-        const std::wstring failure = RunWithSession(body);
+        const std::wstring failure = ClipboardSessionForTest::Run(body);
         if (!failure.empty()) Assert::Fail(failure.c_str());
     }
 };

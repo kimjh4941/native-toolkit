@@ -29,6 +29,7 @@
 #include <cstring>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -486,6 +487,31 @@ Result<void> Session::Clear()
 
     DWORD error = CLIPBOARD_ERROR_NONE;
     Backing().ClearClipboard(&error);
+    return ToResult(error);
+}
+
+
+// =============================================================================
+// Deferred rendering (OP-40, OP-41)
+// =============================================================================
+
+Result<void> Session::ReserveDeferred(std::span<const std::wstring> formats, RenderProvider provider)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    if (!provider) return Unexpected{Error{ErrorCode::InvalidParameter, CLIPBOARD_ERROR_INVALID_PARAMETER}};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().ReserveDeferredProviders(std::vector<std::wstring>(formats.begin(), formats.end()),
+                                       std::move(provider), &error);
+    return ToResult(error);
+}
+
+Result<void> Session::RecoverDeferredState()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().RecoverDeferredState(&error);
     return ToResult(error);
 }
 

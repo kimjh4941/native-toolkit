@@ -91,6 +91,21 @@ struct SessionOptions {
 };
 
 /**
+ * @brief Produces the bytes of a reserved format, when something asks for them.
+ * @details
+ *  Called on the thread that owns the session, from inside the message the OS
+ *  sends to collect the data. That places three hard limits on what it may do:
+ *  it must not call any clipboard operation, including this session's own; it
+ *  must not block, because the asking application is waiting; and it must not
+ *  capture the session, which would be a cycle.
+ *
+ *  Returning a failure, or throwing, means the format renders as nothing: by
+ *  then the reservation has been made and the asking application is mid-paste,
+ *  so there is no one left to report to. Both are logged.
+ */
+using RenderProvider = std::function<Result<std::vector<std::byte>>(std::wstring_view formatName)>;
+
+/**
  * @brief The clipboard of this process.
  * @details
  *  Create must be called from a thread that is already an initialised STA and
@@ -232,6 +247,33 @@ public:
 
     /// Empties the clipboard.
     Result<void> Clear();
+
+    // --- Deferred rendering (OP-40, OP-41) ---------------------------------
+    //
+    // Owner thread only: these run on the same thread the messages arrive on.
+
+    /**
+     * @brief Offers formats without producing them, until someone asks.
+     * @details
+     *  Use it when the data is expensive and most pastes will not want it. The
+     *  names and the provider are copied, so neither has to outlive the call.
+     *
+     *  Only formats the OS can hold as a block of memory can be deferred; a
+     *  handle format such as CF_BITMAP cannot.
+     *
+     * @retval InvalidParameter No formats, an unknown name, or no provider.
+     * @retval WrongThread      Called from a thread other than the owner.
+     * @retval PartialState     The reservation failed partway and could not be
+     *                          rolled back; call RecoverDeferredState.
+     */
+    Result<void> ReserveDeferred(std::span<const std::wstring> formats, RenderProvider provider);
+
+    /**
+     * @brief Retries the rollback a failed reservation left undone.
+     * @details Succeeds, and does nothing, when there is nothing to recover.
+     *          Owner thread only.
+     */
+    Result<void> RecoverDeferredState();
 
 private:
     Session() = default;

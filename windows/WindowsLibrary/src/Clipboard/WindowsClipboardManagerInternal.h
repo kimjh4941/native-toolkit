@@ -70,6 +70,12 @@ public:
     // Deferred rendering (owner UI thread only).
     void ReserveDeferredFormats(const wchar_t* formatNamesJson, ClipboardRenderCallback provider,
                                 void* context, DWORD* pError);
+
+    /// The same reservation from a list of names and a C++ provider. The names
+    /// and the provider are copied, so neither has to outlive the call.
+    void ReserveDeferredProviders(const std::vector<std::wstring>& formatNames,
+                                  NativeToolkit::Clipboard::RenderProvider provider,
+                                  DWORD* pError);
     void RecoverDeferredState(DWORD* pError);
 
     // Async history (any thread for the request call; UI thread for callback delivery).
