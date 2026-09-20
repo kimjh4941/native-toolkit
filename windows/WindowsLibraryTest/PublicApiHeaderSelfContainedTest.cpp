@@ -19,7 +19,8 @@
 
 // --- Internal headers -------------------------------------------------------
 #include "Common/CommonInternal.h"
-#include "Dialog/WindowsDialogManagerInternal.h"
+#include "Dialog/Data/WindowsDialogWin32.h"
+#include "Dialog/Domain/WindowsDialogError.h"
 
 // --- Public headers again, now that windows.h has arrived through the ones
 //     above, to prove they are include-order independent ---------------------

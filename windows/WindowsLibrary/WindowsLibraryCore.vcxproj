@@ -232,7 +232,8 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="src\Dialog\WindowsDialogManager.h" />
-    <ClInclude Include="src\Dialog\WindowsDialogManagerInternal.h" />
+    <ClInclude Include="src\Dialog\Data\WindowsDialogWin32.h" />
+    <ClInclude Include="src\Dialog\Domain\WindowsDialogError.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManager.h" />
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManagerInternal.h" />

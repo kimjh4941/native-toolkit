@@ -9,7 +9,7 @@
 #include <windows.h>
 #include "Common/CommonInternal.h"
 #include "Dialog/WindowsDialogManager.h"
-#include "Dialog/WindowsDialogManagerInternal.h"
+#include "Dialog/Data/WindowsDialogWin32.h"
 
 /**
  * @brief Public API: Show alert dialog.

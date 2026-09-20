@@ -1,12 +1,13 @@
 /**
- * @file WindowsDialogManagerInternal.h
- * @brief Windows Dialog Manager implementation (internal)
+ * @file WindowsDialogWin32.h
+ * @brief Data layer: the Win32 and COM dialogs themselves
  * @details
  *  Implements various dialogs (alert, file open/save, folder selection)
  *  using Win32 Common Dialogs and IFileOpenDialog (COM).
- *  The exported C functions live in src/Bridge/DialogBridge.cpp and call
- *  this class; library code must not include the public Dialog header for
- *  the implementation.
+ *  The exported C functions in src/Bridge/DialogBridge.cpp and the C++ API
+ *  both call this class. It takes the raw Win32 shapes - the MB_* flag
+ *  words and the double-NUL filter block - so the bridge can hand through
+ *  what the C ABI accepts without a lossy conversion (design N-9).
  */
 #pragma once
 #include <windows.h>

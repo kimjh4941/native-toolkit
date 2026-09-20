@@ -89,6 +89,7 @@
     <ClCompile Include="NotificationManagerTest.cpp" />
     <ClCompile Include="ClipboardFormatsTest.cpp" />
     <ClCompile Include="ClipboardHistoryCoordinatorTest.cpp" />
+    <ClCompile Include="DialogErrorDomainTest.cpp" />
     <ClCompile Include="PublicApiTypesTest.cpp" />
     <ClCompile Include="PublicApiErrorMappingTest.cpp" />
     <ClCompile Include="PublicApiHeaderSelfContainedTest.cpp">

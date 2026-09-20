@@ -31,6 +31,12 @@
     <Filter Include="src\Dialog">
       <UniqueIdentifier>{1EF9C047-0D95-5B00-B7AD-E0E0DED6D3A1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Dialog\Data">
+      <UniqueIdentifier>{A4F21C87-63D5-4E09-B8A1-5F7C2E940D63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\Dialog\Domain">
+      <UniqueIdentifier>{E71B9D30-2C48-4A5F-9B6E-0D83F14C7A29}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Notification">
       <UniqueIdentifier>{DA14CF5E-88A2-5D87-B6BE-B272D36AD152}</UniqueIdentifier>
     </Filter>
@@ -147,8 +153,11 @@
     <ClInclude Include="src\Dialog\WindowsDialogManager.h">
       <Filter>src\Dialog</Filter>
     </ClInclude>
-    <ClInclude Include="src\Dialog\WindowsDialogManagerInternal.h">
-      <Filter>src\Dialog</Filter>
+    <ClInclude Include="src\Dialog\Data\WindowsDialogWin32.h">
+      <Filter>src\Dialog\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dialog\Domain\WindowsDialogError.h">
+      <Filter>src\Dialog\Domain</Filter>
     </ClInclude>
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h">
       <Filter>src\Notification\Application</Filter>
