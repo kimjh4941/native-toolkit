@@ -235,6 +235,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="src\Dialog\WindowsDialogManager.h" />
+    <ClInclude Include="src\Dialog\Data\WindowsDialogFlags.h" />
     <ClInclude Include="src\Dialog\Data\WindowsDialogWin32.h" />
     <ClInclude Include="src\Dialog\Domain\WindowsDialogError.h" />
     <ClInclude Include="src\Dialog\Domain\WindowsDialogMapping.h" />

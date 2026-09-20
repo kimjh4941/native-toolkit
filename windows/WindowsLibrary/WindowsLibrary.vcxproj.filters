@@ -165,6 +165,9 @@
     <ClInclude Include="src\Dialog\WindowsDialogManager.h">
       <Filter>src\Dialog</Filter>
     </ClInclude>
+    <ClInclude Include="src\Dialog\Data\WindowsDialogFlags.h">
+      <Filter>src\Dialog\Data</Filter>
+    </ClInclude>
     <ClInclude Include="src\Dialog\Data\WindowsDialogWin32.h">
       <Filter>src\Dialog\Data</Filter>
     </ClInclude>

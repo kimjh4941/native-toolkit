@@ -1,23 +1,22 @@
 /**
  * @file WindowsDialogMapping.h
- * @brief Domain layer: turns the public request types into the Win32 shapes.
+ * @brief Domain layer: the data shapes the file dialogs read and write.
  * @details
- *  Pure logic - no Win32 call - so every rule here is testable without showing
- *  a dialog. Three things live in this file, and each one is a place where a
- *  rewrite could quietly lose what the C ABI accepts today:
+ *  Pure logic over strings and buffers, with no windows.h in sight, so these
+ *  rules can be read and tested without the platform. The Win32 flag words
+ *  live in Data/WindowsDialogFlags.h instead, because they are the API rather
+ *  than a shape of data.
  *
- *   - the flag words of MessageBoxW, including the escape hatch for bits the
- *     enumerations do not name (design N-9);
- *   - the filter block, which is a string with embedded NULs terminated by two
- *     of them, and the "All Files" default the C ABI falls back to (DLG-12);
- *   - the packed result of the multi-select dialogs, where the count is of
- *     NUL-separated strings rather than of files, so N files come back as N+1
- *     entries with the folder first (DLG-02, DLG-04).
+ *  Two shapes are easy to get subtly wrong, and both are recorded in the input
+ *  inventory:
+ *
+ *   - the filter block is a string with embedded NULs terminated by two of
+ *     them, and an absent filter means "All Files" (DLG-12);
+ *   - the multi-select buffer packs strings, not files: N files arrive as N+1
+ *     entries led by their folder, while one file arrives as a single full
+ *     path (DLG-02, DLG-04).
  */
 #pragma once
-
-#include <windows.h>
-#include <commdlg.h>
 
 #include <string>
 #include <vector>
@@ -25,56 +24,6 @@
 #include "NativeToolkit/Dialog.h"
 
 namespace NativeToolkit::Dialog::Domain {
-
-/// The MessageBoxW uType for a request, including any raw bits it carries.
-inline UINT ToMessageBoxType(const AlertRequest& request) noexcept
-{
-    UINT type = 0;
-    switch (request.buttons) {
-        case AlertButtons::Ok:                type |= MB_OK; break;
-        case AlertButtons::OkCancel:          type |= MB_OKCANCEL; break;
-        case AlertButtons::YesNo:             type |= MB_YESNO; break;
-        case AlertButtons::YesNoCancel:       type |= MB_YESNOCANCEL; break;
-        case AlertButtons::RetryCancel:       type |= MB_RETRYCANCEL; break;
-        case AlertButtons::AbortRetryIgnore:  type |= MB_ABORTRETRYIGNORE; break;
-        case AlertButtons::CancelTryContinue: type |= MB_CANCELTRYCONTINUE; break;
-    }
-    switch (request.icon) {
-        case AlertIcon::None:        break;
-        case AlertIcon::Information: type |= MB_ICONINFORMATION; break;
-        case AlertIcon::Warning:     type |= MB_ICONWARNING; break;
-        case AlertIcon::Error:       type |= MB_ICONERROR; break;
-        case AlertIcon::Question:    type |= MB_ICONQUESTION; break;
-    }
-    switch (request.defaultButton) {
-        case AlertDefaultButton::First:  type |= MB_DEFBUTTON1; break;
-        case AlertDefaultButton::Second: type |= MB_DEFBUTTON2; break;
-        case AlertDefaultButton::Third:  type |= MB_DEFBUTTON3; break;
-        case AlertDefaultButton::Fourth: type |= MB_DEFBUTTON4; break;
-    }
-    if (request.topMost)        type |= MB_TOPMOST;
-    if (request.showHelpButton) type |= MB_HELP;
-    return type | request.extraFlags;
-}
-
-/// The button id MessageBoxW returned, as the public enumeration.
-inline AlertResult FromMessageBoxResult(int id) noexcept
-{
-    switch (id) {
-        case IDOK:       return AlertResult::Ok;
-        case IDCANCEL:   return AlertResult::Cancel;
-        case IDYES:      return AlertResult::Yes;
-        case IDNO:       return AlertResult::No;
-        case IDRETRY:    return AlertResult::Retry;
-        case IDABORT:    return AlertResult::Abort;
-        case IDIGNORE:   return AlertResult::Ignore;
-        case IDTRYAGAIN: return AlertResult::TryAgain;
-        case IDCONTINUE: return AlertResult::Continue;
-        case IDCLOSE:    return AlertResult::Close;
-        case IDHELP:     return AlertResult::Help;
-        default:         return AlertResult::Cancel;
-    }
-}
 
 /**
  * @brief Builds the Win32 filter block: "desc\0pattern;pattern\0...\0\0".

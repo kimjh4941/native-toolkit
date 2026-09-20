@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Dialog/Data/WindowsDialogFlags.h"
 #include "Dialog/Domain/WindowsDialogMapping.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -23,6 +24,7 @@ namespace WindowsDialogMappingTest
 {
 
 namespace Domain = NativeToolkit::Dialog::Domain;
+namespace Data = NativeToolkit::Dialog::Data;
 using namespace NativeToolkit::Dialog;
 
 namespace
@@ -54,14 +56,14 @@ public:
         request.icon          = AlertIcon::Warning;
         request.defaultButton = AlertDefaultButton::Second;
 
-        const UINT type = Domain::ToMessageBoxType(request);
+        const UINT type = Data::ToMessageBoxType(request);
 
         Assert::AreEqual<UINT>(MB_YESNOCANCEL | MB_ICONWARNING | MB_DEFBUTTON2, type);
     }
 
     TEST_METHOD(Test_ToMessageBoxType_DefaultRequestIsPlainOk)
     {
-        Assert::AreEqual<UINT>(MB_OK | MB_DEFBUTTON1, Domain::ToMessageBoxType(AlertRequest{}));
+        Assert::AreEqual<UINT>(MB_OK | MB_DEFBUTTON1, Data::ToMessageBoxType(AlertRequest{}));
     }
 
     TEST_METHOD(Test_ToMessageBoxType_PassesExtraFlagsThrough)
@@ -71,7 +73,7 @@ public:
         AlertRequest request;
         request.extraFlags = MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_RTLREADING;
 
-        const UINT type = Domain::ToMessageBoxType(request);
+        const UINT type = Data::ToMessageBoxType(request);
 
         Assert::AreEqual<UINT>(MB_SYSTEMMODAL, type & MB_SYSTEMMODAL);
         Assert::AreEqual<UINT>(MB_SETFOREGROUND, type & MB_SETFOREGROUND);
@@ -84,7 +86,7 @@ public:
         request.topMost        = true;
         request.showHelpButton = true;
 
-        const UINT type = Domain::ToMessageBoxType(request);
+        const UINT type = Data::ToMessageBoxType(request);
 
         Assert::AreEqual<UINT>(MB_TOPMOST, type & MB_TOPMOST);
         Assert::AreEqual<UINT>(MB_HELP, type & MB_HELP);
@@ -92,17 +94,17 @@ public:
 
     TEST_METHOD(Test_FromMessageBoxResult_CoversEveryButtonId)
     {
-        Assert::IsTrue(AlertResult::Ok       == Domain::FromMessageBoxResult(IDOK));
-        Assert::IsTrue(AlertResult::Cancel   == Domain::FromMessageBoxResult(IDCANCEL));
-        Assert::IsTrue(AlertResult::Yes      == Domain::FromMessageBoxResult(IDYES));
-        Assert::IsTrue(AlertResult::No       == Domain::FromMessageBoxResult(IDNO));
-        Assert::IsTrue(AlertResult::Retry    == Domain::FromMessageBoxResult(IDRETRY));
-        Assert::IsTrue(AlertResult::Abort    == Domain::FromMessageBoxResult(IDABORT));
-        Assert::IsTrue(AlertResult::Ignore   == Domain::FromMessageBoxResult(IDIGNORE));
-        Assert::IsTrue(AlertResult::TryAgain == Domain::FromMessageBoxResult(IDTRYAGAIN));
-        Assert::IsTrue(AlertResult::Continue == Domain::FromMessageBoxResult(IDCONTINUE));
-        Assert::IsTrue(AlertResult::Close    == Domain::FromMessageBoxResult(IDCLOSE));
-        Assert::IsTrue(AlertResult::Help     == Domain::FromMessageBoxResult(IDHELP));
+        Assert::IsTrue(AlertResult::Ok       == Data::FromMessageBoxResult(IDOK));
+        Assert::IsTrue(AlertResult::Cancel   == Data::FromMessageBoxResult(IDCANCEL));
+        Assert::IsTrue(AlertResult::Yes      == Data::FromMessageBoxResult(IDYES));
+        Assert::IsTrue(AlertResult::No       == Data::FromMessageBoxResult(IDNO));
+        Assert::IsTrue(AlertResult::Retry    == Data::FromMessageBoxResult(IDRETRY));
+        Assert::IsTrue(AlertResult::Abort    == Data::FromMessageBoxResult(IDABORT));
+        Assert::IsTrue(AlertResult::Ignore   == Data::FromMessageBoxResult(IDIGNORE));
+        Assert::IsTrue(AlertResult::TryAgain == Data::FromMessageBoxResult(IDTRYAGAIN));
+        Assert::IsTrue(AlertResult::Continue == Data::FromMessageBoxResult(IDCONTINUE));
+        Assert::IsTrue(AlertResult::Close    == Data::FromMessageBoxResult(IDCLOSE));
+        Assert::IsTrue(AlertResult::Help     == Data::FromMessageBoxResult(IDHELP));
     }
 
     // --- Filter block -------------------------------------------------------

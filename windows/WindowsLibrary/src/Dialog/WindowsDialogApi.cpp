@@ -19,6 +19,7 @@
 #include "Common/CommonInternal.h"
 #include "Dialog/Data/WindowsDialogWin32.h"
 #include "Dialog/Domain/WindowsDialogError.h"
+#include "Dialog/Data/WindowsDialogFlags.h"
 #include "Dialog/Domain/WindowsDialogMapping.h"
 #include "NativeToolkit/Dialog.h"
 
@@ -46,7 +47,7 @@ Result<AlertResult> ShowAlert(const AlertRequest& request)
           static_cast<int>(request.icon), request.extraFlags);
 
     DWORD error = 0;
-    const UINT type = Domain::ToMessageBoxType(request);
+    const UINT type = Data::ToMessageBoxType(request);
     const int pressed = WindowsDialogManager::Instance().ShowAlertDialog(
         request.title.c_str(), request.message.c_str(),
         type, 0u, 0u, 0u, &error);
@@ -54,7 +55,7 @@ Result<AlertResult> ShowAlert(const AlertRequest& request)
     if (pressed == 0) {
         return Unexpected{Classify(false, error)};
     }
-    return Domain::FromMessageBoxResult(pressed);
+    return Data::FromMessageBoxResult(pressed);
 }
 
 Result<std::wstring> ShowOpenFile(const FileRequest& request)
