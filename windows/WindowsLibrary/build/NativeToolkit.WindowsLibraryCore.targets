@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NativeToolkit.WindowsLibraryCore.targets
+  ========================================
+  Picks the right flavour of WindowsLibraryCore.lib and checks the consumer's
+  build settings against the ones the library was built with.
+
+  Four flavours are shipped: x64, Debug and Release, each with /MD and /MT.
+  A mismatch in the C runtime or the iterator debug level is caught by the
+  linker (LNK2038) because MSVC records those in every object; the settings it
+  does not record are checked here instead, before the build starts.
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <NativeToolkitCoreConfiguration Condition="'$(NativeToolkitCoreConfiguration)'=='' and '$(Configuration)'=='Debug'">Debug</NativeToolkitCoreConfiguration>
+    <NativeToolkitCoreConfiguration Condition="'$(NativeToolkitCoreConfiguration)'==''">Release</NativeToolkitCoreConfiguration>
+    <NativeToolkitCoreLibDir Condition="'$(NativeToolkitCoreLibDir)'==''">$(NativeToolkitRoot)lib\$(Platform)\$(NativeToolkitCoreConfiguration)-$(NativeToolkitCrt)\</NativeToolkitCoreLibDir>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>$(NativeToolkitCoreLibDir)WindowsLibraryCore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <Target Name="NativeToolkitCheckConsumerSettings" BeforeTargets="ClCompile">
+    <Error Condition="'$(Platform)'!='x64'"
+           Text="NativeToolkit ships x64 only. This project builds for $(Platform); see the windows-architecture topic (D-3) for when other architectures are decided." />
+    <Error Condition="!Exists('$(NativeToolkitCoreLibDir)WindowsLibraryCore.lib')"
+           Text="WindowsLibraryCore.lib was not found at $(NativeToolkitCoreLibDir). Expected one of the four shipped flavours: $(Platform) x Debug|Release x MD|MT." />
+    <Warning Condition="'$(WholeProgramOptimization)'=='true'"
+             Text="The shipped library is built without /GL, so link-time code generation cannot inline across it. This is not an error; see D-3." />
+  </Target>
+
+</Project>

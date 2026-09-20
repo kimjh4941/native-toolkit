@@ -10,6 +10,7 @@
  */
 #pragma once
 #include <windows.h>
+#include <commdlg.h> // GetOpenFileNameW, GetSaveFileNameW, CommDlgExtendedError
 #include <string>
 #include <memory>
 #include <shobjidl.h> // IFileDialog, IFileOpenDialog

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NativeToolkit.WindowsLibraryCore.props
+  ======================================
+  What a consumer of the static WindowsLibraryCore has to be given.
+
+  A static library carries no MSBuild settings of its own, so everything the
+  library needs from its own NuGet packages (C++/WinRT, the Windows App SDK)
+  has to reach the consuming project through a file like this one. The values
+  below were measured in the stage 3 spike by linking a minimal consumer with
+  /WHOLEARCHIVE against the core and resolving every symbol the linker
+  reported; see artifact/topics/windows-architecture/results/
+  2026-09-20-windows-architecture-stage3-link-spike-result.md.
+
+  This is the skeleton the NuGet package of stage 6 will ship. Paths are
+  parameterised so the same file works from the repository and from a package
+  layout: set NativeToolkitCoreLibDir and NativeToolkitWindowsAppSdkDir, or let
+  them default to the repository layout.
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <!-- Where this .props sits: <package>\build\ -->
+    <NativeToolkitRoot Condition="'$(NativeToolkitRoot)'==''">$(MSBuildThisFileDirectory)..\</NativeToolkitRoot>
+    <!-- Public headers of the C++ API (stage 3 onwards). -->
+    <NativeToolkitIncludeDir Condition="'$(NativeToolkitIncludeDir)'==''">$(NativeToolkitRoot)include\</NativeToolkitIncludeDir>
+    <!-- The Windows App SDK package the core was built against. -->
+    <NativeToolkitWindowsAppSdkDir Condition="'$(NativeToolkitWindowsAppSdkDir)'==''">$(NativeToolkitRoot)packages\Microsoft.WindowsAppSDK.1.7.250513003\</NativeToolkitWindowsAppSdkDir>
+    <!-- Which flavour of the core to link: the consumer's configuration and CRT decide. -->
+    <NativeToolkitCrt Condition="'$(NativeToolkitCrt)'=='' and ('$(RuntimeLibrary)'=='MultiThreaded' or '$(RuntimeLibrary)'=='MultiThreadedDebug')">MT</NativeToolkitCrt>
+    <NativeToolkitCrt Condition="'$(NativeToolkitCrt)'==''">MD</NativeToolkitCrt>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(NativeToolkitIncludeDir);$(NativeToolkitWindowsAppSdkDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- The public headers are C++20 and the library is built with /EHsc. -->
+      <LanguageStandard Condition="'%(ClCompile.LanguageStandard)'==''">stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <!--
+        Measured in the spike. windowsapp.lib resolves the C++/WinRT runtime
+        (WINRT_IMPL_RoGetActivationFactory and friends); Bootstrap.lib resolves
+        MddBootstrapInitialize, and lives only inside the Windows App SDK
+        package, under lib\win10-<arch>\.
+      -->
+      <AdditionalDependencies>user32.lib;advapi32.lib;shell32.lib;shlwapi.lib;ole32.lib;oleaut32.lib;propsys.lib;windowsapp.lib;$(NativeToolkitWindowsAppSdkDir)lib\win10-x64\Microsoft.WindowsAppRuntime.Bootstrap.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+</Project>

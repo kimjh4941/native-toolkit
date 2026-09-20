@@ -219,6 +219,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Common\common.h" />
+    <ClInclude Include="src\Common\BuildStamp.h" />
     <ClInclude Include="src\Common\CommonInternal.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="targetver.h" />

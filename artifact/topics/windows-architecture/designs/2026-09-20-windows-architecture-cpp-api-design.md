@@ -417,7 +417,7 @@ public:
 
 ### 7.5 利用者の前提
 
-段階 6 のマニュアルはこの節を元に書く。**7.5.1 と 7.5.2 の配布構成は T-03 のスパイクの結果で確定する**（S-8）。それまでは暫定である。
+段階 6 のマニュアルはこの節を元に書く。配布構成は **T-03 のスパイクで確定した**（`results/2026-09-20-windows-architecture-stage3-link-spike-result.md`）。
 
 #### 7.5.1 ビルド
 
@@ -430,7 +430,7 @@ public:
 | x64 | 配るのは x64 のみ。ARM64 は段階 5 で判断する。**パッケージに ARM64 対応と書かない** |
 | リンカーがライブラリのビルドに使った MSVC 以上であること | 新しい v143 でビルドした `.obj` は古い v143 のリンカーで扱えないことがある。配布物に最小のビルド番号を明記する |
 
-**配る静的ライブラリ（暫定）**: x64 の Debug / Release × `/MD` / `/MT` の 4 種。`/MT` を配らないと `/MT` の利用者はリンクできない。**Windows App SDK が `/MT` と組めるかは未確認**で、T-03 で確かめる。成立しない場合は `/MD` のみに絞るか、ソース配布で補い、7.5 と DoD を段階 3 のうちに書き換える（RK-08）。
+**配る静的ライブラリ**: x64 の Debug / Release × `/MD` / `/MT` の **4 種で確定**。`/MT` は Windows App SDK と C++/WinRT を含めてコンパイル・リンク・実行まで確認済み（T-03）。`/MT` を配らないと `/MT` の利用者はリンクできない。
 
 **`/GL` を使わない**: 配る `.lib` では `WholeProgramOptimization` を無効にする（D-3）。今の Release 2 構成では有効なので外す（T-03）。
 
@@ -442,12 +442,13 @@ public:
 #### 7.5.2 リンクと配布
 
 - 静的ライブラリは MSBuild の設定を伝播しない。今 `WindowsLibrary` が NuGet の `.props` / `.targets` から受け取っている C++/WinRT と Windows App SDK の設定は、**利用者側に同じものを用意する必要がある**
-- そのため、**配布物に `.props` / `.targets` の層を付ける**。段階 3 では骨組みを作り、**サンプル（WinUI 3 / MSIX）で機能することを確かめる**（T-03 の完了条件）
-- 伝播が必要なものは T-03 で実測して確定する。少なくとも次が対象になる
+- そのため、**配布物に `.props` / `.targets` の層を付ける**。骨組みは `windows/WindowsLibrary/build/` に作成済み（T-03）。サンプルでの検証は段階 4 でサンプルを Core にリンクするときに行う
+- 伝播が必要なものは T-03 で実測した。次のとおり
 
 | 種別 | 内容 |
 |---|---|
-| import / system ライブラリ | `windowsapp.lib`、`Comdlg32.lib`、`Shell32.lib`、`Ole32.lib` ほか（実測で確定） |
+| import / system ライブラリ | `user32.lib`、`advapi32.lib`、`shell32.lib`、`shlwapi.lib`、`ole32.lib`、`oleaut32.lib`、`propsys.lib`、`windowsapp.lib` |
+| Windows App SDK の `.lib` | `packages\Microsoft.WindowsAppSDK.<版>\lib\**win10-x64**\Microsoft.WindowsAppRuntime.Bootstrap.lib`（`MddBootstrapInitialize` を解決する。NuGet の中にしか無い） |
 | 実行時の資産 | `Microsoft.WindowsAppRuntime.Bootstrap.dll`（unpackaged で通知を使う場合） |
 | マクロ | C++/WinRT のマクロ設定（`WINRT_*`）。助言ではなく一致が要件 |
 
@@ -1081,7 +1082,7 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | U-A | `Result<T, E>` / `Unexpected<E>` / `Failure<Code>` | 値とエラーの取り出し、`value_or`、ムーブ、値を返さない形、コピー・ムーブ代入、`T == E` の場合。**機能ごとの別名が別の型になること**（`static_assert`） |
 | U-B | 型の変換 | `WriteOptions` とビットフラグ、`NotificationContent` と今の JSON（**キーとフィールドの対応表を持ち、T-17 の入力一覧の全キーを網羅する**）、`HistoryItem` と今の JSON スキーマ、`FormatPayload` の種別と並び、Dialog の列挙と `MB_*` / `OFN_*`。**同じ入力から C ABI と C++ API の両方を作って結果を比較する** |
 | U-C | Dialog の新しい層 | `DialogError` への分類（`CommDlgExtendedError` → `SystemError`、キャンセル → `Canceled`）。ダイアログは出さず失敗注入で確かめる |
-| U-D | 公開ヘッダーの自己完結 | 5 つの公開ヘッダーそれぞれを**翻訳単位の最初で単独に include** してコンパイルが通ること。`<windows.h>` を先に include した場合と、しない場合の両方 |
+| U-D | ヘッダーの自己完結 | 5 つの公開ヘッダーと **`src/**/*Internal.h`** のそれぞれを、翻訳単位の最初で単独に include してコンパイルが通ること。`<windows.h>` を先に include した場合としない場合の両方。**内部ヘッダーを対象に含めるのは、T-03 で `WindowsDialogManagerInternal.h` が `<commdlg.h>` を includer 任せにしていたため** |
 
 - 検査の書き方（common.md）に従い、「公開ヘッダーの全操作が 9 章の表に載っていること」を、ヘッダーの宣言一覧と設計書の表の**両辺から導出して**比較する（T-13）
 - 空回り防止の下限は「`include/NativeToolkit/` の 3 つの機能ヘッダーで 47 件以上」とする
@@ -1162,7 +1163,7 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | RK-05 | 静的ライブラリにしたときの依存の伝播が想定より広い | 利用者のリンクが通らない | T-03 のスパイクで実測し、`.props` / `.targets` に落とす。サンプルで実証する |
 | RK-06 | 自前の `Result` と `std::expected` の差が将来の移行の負担になる | C++23 への移行が機械的に済まない | 差を 7.2 の表に明記し、「差し替え可能」と謳わない |
 | RK-07 | 10 章の約束が設計書ベースで、実装が設計書と食い違っている可能性がある | 守るべき約束を取り違える | 契約テストは**今の実装の振る舞い**に対して書く。引用行の照合（T-13）で劣化を防ぐ |
-| RK-08 | Windows App SDK が `/MT` と組めない | 4 種の配布が成立しない | T-03 のスパイクで先に確かめる。成立しない場合は `/MD` のみかソース配布に切り替え、**段階 3 のうちに 7.5 と DoD を書き換える** |
+| RK-08 | （解消）Windows App SDK が `/MT` と組めない | - | T-03 で `/MT` のコンパイル・リンク・実行を確認した。4 種の配布は成立する |
 | RK-09 | COM の初期化と解除の不均衡を段階 3 で残す（N-8） | 段階 5 まで解消しない | 現状維持であり悪化はしない。Doxygen で利用者に前提を示す。段階 5 の申し送りに記録する |
 | RK-10 | cold start の活性化が `Manager::Create` の中から配送される | 利用者のハンドラが `Manager` を受け取る前に呼ばれる | Doxygen に明記し、ハンドラが `Manager` を前提にしない書き方をサンプルで示す |
 | RK-11 | `AlertRequest::extraFlags` の逃げ道が乱用される | 型で表した意味が骨抜きになる | 逃げ道はブリッジの互換用であることを Doxygen に書き、サンプルでは使わない。段階 5 で必要な `MB_*` を列挙に昇格させる |
@@ -1196,8 +1197,8 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 - [ ] `extern "C"` の関数が DLL 側の翻訳単位にのみ存在し、コアのヘッダーに `dllimport` / `dllexport` が無い
 - [ ] `.def` に 52 個が列挙され、`__declspec(dllexport)` に依存する公開関数が無い
 - [ ] 3 プロジェクトの C++ 標準が `stdcpp20` で揃っている
-- [ ] 配布構成で `/GL` が無効になっている
-- [ ] T-03 の結論が 7.5 に反映されている（`/MT` の可否、伝播するライブラリ、`WINRT_*`）
+- [x] 配布構成で `/GL` が無効になっている（Core の Release 2 構成）
+- [x] T-03 の結論が 7.5 に反映されている（`/MT` は可、伝播するライブラリ 8 + 1、`WINRT_*` は `detect_mismatch` で検査）
 - [ ] `.vcxproj` と `.vcxproj.filters` の対応が 1 対 1 である
 - [ ] `build_windows_library_dll.ps1` が `include/NativeToolkit` の 5 ヘッダーを含む
 - [ ] `windows.md` の変更案（5.2）が段階 5 の課題として記録されている
