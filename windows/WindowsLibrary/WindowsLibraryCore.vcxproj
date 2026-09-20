@@ -211,6 +211,7 @@
     </ClCompile>
     <ClCompile Include="src\Notification\WindowsNotificationManager.cpp" />
     <ClCompile Include="src\Notification\Data\WindowsClassicActivator.cpp" />
+    <ClCompile Include="src\Notification\WindowsNotificationApi.cpp" />
     <ClCompile Include="src\Notification\Data\WindowsAppSdkBootstrap.cpp" />
     <ClCompile Include="src\Clipboard\Domain\WindowsClipboardFormats.cpp" />
     <ClCompile Include="src\Clipboard\Data\WindowsClipboardCore.cpp" />
@@ -243,8 +244,10 @@
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h" />
     <ClInclude Include="src\Notification\Domain\WindowsNotificationValidation.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManagerInternal.h" />
+    <ClInclude Include="src\Notification\WindowsNotificationApiInternal.h" />
     <ClInclude Include="src\Notification\Data\WindowsClassicActivator.h" />
     <ClInclude Include="src\Notification\Data\WindowsNotificationBuilder.h" />
+    <ClInclude Include="src\Notification\Data\WindowsNotificationActivation.h" />
     <ClInclude Include="src\Clipboard\WindowsClipboardManager.h" />
     <ClInclude Include="src\Clipboard\WindowsClipboardManagerInternal.h" />
     <ClInclude Include="src\Clipboard\Data\WindowsClipboardCore.h" />

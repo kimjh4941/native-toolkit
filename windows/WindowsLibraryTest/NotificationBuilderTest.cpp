@@ -3,7 +3,7 @@
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/Data/WindowsNotificationBuilder.h"
 
-#include <appmodel.h>
+#include "AppSdkRuntimeForTest.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace winrt::Windows::Data::Json;
@@ -28,110 +28,18 @@ namespace WindowsNotificationBuilderTest
 namespace Data = NativeToolkit::Notification::Data;
 using namespace NativeToolkit::Notification;
 
-namespace
-{
-    // ------------------------------------------------------------------
-    // The Windows App SDK runtime.
-    //
-    // Building a toast activates App SDK types, which an unpackaged process
-    // can only reach once the bootstrapper has made the runtime package
-    // available. The rest of the tests deliberately avoid the App SDK, and
-    // linking the bootstrap library here would make every one of them fail to
-    // load on a machine without the runtime. So the DLL is loaded by hand,
-    // from next to this test, and only this class depends on it.
-    //
-    // The signatures are the ones MddBootstrap.h declares; the header itself
-    // is not included because including it is what creates the link-time
-    // dependency this is avoiding.
-    // ------------------------------------------------------------------
-
-    constexpr uint32_t kAppSdkMajorMinor = 0x00010007;  ///< Windows App SDK 1.7.
-
-    using MddBootstrapInitialize2Fn = HRESULT(__stdcall*)(uint32_t, PCWSTR, PACKAGE_VERSION, int32_t);
-    using MddBootstrapShutdownFn    = void(__stdcall*)();
-
-    HMODULE g_bootstrap = nullptr;
-
-    /// The folder this test DLL was loaded from.
-    std::wstring ThisModuleFolder()
-    {
-        HMODULE self = nullptr;
-        if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
-                                    | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                reinterpret_cast<LPCWSTR>(&ThisModuleFolder), &self)) {
-            return {};
-        }
-        wchar_t path[MAX_PATH] = {};
-        const DWORD length = GetModuleFileNameW(self, path, MAX_PATH);
-        if (length == 0 || length == MAX_PATH) {
-            return {};
-        }
-        std::wstring full{path, length};
-        const size_t slash = full.find_last_of(L'\\');
-        return slash == std::wstring::npos ? std::wstring{} : full.substr(0, slash + 1);
-    }
-
-    /// Makes the App SDK runtime available, or says why it could not be.
-    std::wstring StartAppSdk()
-    {
-        const std::wstring folder = ThisModuleFolder();
-        if (folder.empty()) {
-            return L"could not work out where this test DLL lives";
-        }
-
-        g_bootstrap = LoadLibraryW((folder + L"Microsoft.WindowsAppRuntime.Bootstrap.dll").c_str());
-        if (!g_bootstrap) {
-            return L"Microsoft.WindowsAppRuntime.Bootstrap.dll was not next to the test DLL; "
-                   L"the CopyAppSdkBootstrap build step should have put it there";
-        }
-
-        const auto initialize = reinterpret_cast<MddBootstrapInitialize2Fn>(
-            GetProcAddress(g_bootstrap, "MddBootstrapInitialize2"));
-        if (!initialize) {
-            return L"the bootstrap DLL does not export MddBootstrapInitialize2";
-        }
-
-        // No options: a test must never be answered with the dialog the
-        // bootstrapper shows when it finds no matching runtime.
-        PACKAGE_VERSION anyVersion{};
-        const HRESULT hr = initialize(kAppSdkMajorMinor, L"", anyVersion, 0);
-        if (FAILED(hr)) {
-            return L"the Windows App Runtime 1.7 could not be made available (hr="
-                   + std::to_wstring(static_cast<unsigned long>(hr)) + L")";
-        }
-        return {};
-    }
-
-    void StopAppSdk()
-    {
-        if (!g_bootstrap) {
-            return;
-        }
-        if (const auto shutdown = reinterpret_cast<MddBootstrapShutdownFn>(
-                GetProcAddress(g_bootstrap, "MddBootstrapShutdown"))) {
-            shutdown();
-        }
-        // The DLL itself stays loaded: the runtime it brought in is still
-        // referenced by the WinRT factories this process cached.
-        g_bootstrap = nullptr;
-    }
-}
-
 TEST_CLASS(NotificationBuilderTest)
 {
 public:
 
     TEST_CLASS_INITIALIZE(StartRuntime)
     {
-        const std::wstring failure = StartAppSdk();
+        // Building a toast activates App SDK types, so the runtime has to be
+        // there. Only this class and NotificationApiTest need it.
+        const std::wstring& failure = AppSdkRuntimeForTest::Ensure();
         if (!failure.empty()) {
             Assert::Fail(failure.c_str());
         }
-    }
-
-    TEST_CLASS_CLEANUP(StopRuntime)
-    {
-        StopAppSdk();
     }
 
     // --- Text and identity --------------------------------------------------

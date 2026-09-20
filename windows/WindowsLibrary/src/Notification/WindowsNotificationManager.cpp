@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/Data/WindowsClassicActivator.h"
+#include "Notification/Data/WindowsNotificationBuilder.h"
+#include "Notification/Domain/WindowsNotificationValidation.h"
 #include "Common/CommonInternal.h"
 
 #include <future>
@@ -24,6 +26,17 @@ static const wchar_t* TAG = L"WindowsNotificationManager";
 
 namespace
 {
+    // The OS drops a notification scheduled too far ahead, so say so rather
+    // than let it disappear. Shared by both Schedule overloads.
+    void WarnIfOutsideDeliveryWindow(int64_t scheduledTimeMs)
+    {
+        const auto tp = std::chrono::system_clock::time_point{
+            std::chrono::milliseconds(scheduledTimeMs)
+        };
+        if ((winrt::clock::from_sys(tp) - winrt::clock::now()) > std::chrono::minutes(5))
+            DLog(TAG, L"[Schedule] WARNING: scheduled time exceeds 5-minute delivery window. OS may drop the notification.");
+    }
+
     // Run a WinRT async operation to completion without blocking on the calling
     // apartment. cppwinrt's IAsyncXxx::get() asserts (!is_sta_thread) when waited
     // on from an STA thread (the WinUI UI thread), so the work is dispatched to a
@@ -305,6 +318,18 @@ bool WindowsNotificationManager::CheckInitialized(const wchar_t* caller, DWORD* 
     return true;
 }
 
+bool WindowsNotificationManager::CheckEnabled(const wchar_t* caller, DWORD* pError)
+{
+    const int setting = m_backend->Setting();
+    if (setting != 0)
+    {
+        DFLog(TAG, L"[%ls] notification disabled. setting=%d", caller, setting);
+        if (pError) *pError = NOTIFICATION_ERROR_DISABLED;
+        return false;
+    }
+    return true;
+}
+
 void WindowsNotificationManager::InvokeCallback(const std::wstring& argsJson)
 {
     NotificationInvokedCallback cb;
@@ -318,6 +343,12 @@ void WindowsNotificationManager::InvokeCallback(const std::wstring& argsJson)
 void WindowsNotificationManager::SetBackendForTest(std::unique_ptr<INotificationBackend> backend)
 {
     m_backend = std::move(backend);
+}
+
+void WindowsNotificationManager::SetCallbackForTest(NotificationInvokedCallback callback)
+{
+    std::lock_guard<std::mutex> lk(m_callbackMutex);
+    m_callback = callback;
 }
 
 // =============================================================================
@@ -657,6 +688,49 @@ DeliverPayload WindowsNotificationManager::BuildPayload(const JsonObject& json, 
     return payload;
 }
 
+DeliverPayload WindowsNotificationManager::BuildPayload(
+    const NativeToolkit::Notification::NotificationContent& content, DWORD* pError)
+{
+    DLog(TAG, L"[BuildPayload] from content");
+
+    namespace Api = NativeToolkit::Notification;
+
+    DeliverPayload payload;
+
+    const auto validated = Api::Domain::Validate(content);
+    if (!validated.has_value())
+    {
+        DLog(TAG, L"[BuildPayload] validation failed");
+        if (pError) *pError = static_cast<DWORD>(validated.error().code);
+        return payload;
+    }
+
+    auto notification = Api::Data::BuildFromContent(content).BuildNotification();
+    payload.xmlPayload = std::wstring{ notification.Payload() };
+
+    payload.tag   = content.tag;
+    payload.group = content.group;
+
+    if (content.expiration.has_value())
+    {
+        payload.hasExpiration = true;
+        payload.expirationSec = content.expiration->count();
+    }
+    payload.expiresOnReboot = content.expiresOnReboot;
+
+    if (content.progress.has_value())
+    {
+        payload.hasProgress   = true;
+        payload.progressValue = content.progress->value;
+        if (content.progress->valueStr.has_value())
+            payload.progressValueStr = *content.progress->valueStr;
+        if (content.progress->status.has_value())
+            payload.progressStatus = *content.progress->status;
+    }
+
+    return payload;
+}
+
 void WindowsNotificationManager::ApplyButtons(
     AppNotificationBuilder& builder,
     const JsonArray& buttons,
@@ -824,13 +898,7 @@ void WindowsNotificationManager::Show(const wchar_t* jsonPayload, DWORD* pError)
 
     try
     {
-        int setting = m_backend->Setting();
-        if (setting != 0)
-        {
-            DFLog(TAG, L"[Show] notification disabled. setting=%d", setting);
-            if (pError) *pError = NOTIFICATION_ERROR_DISABLED;
-            return;
-        }
+        if (!CheckEnabled(L"Show", pError)) return;
 
         JsonObject json;
         if (!JsonObject::TryParse(hstring{ jsonPayload }, json))
@@ -842,6 +910,35 @@ void WindowsNotificationManager::Show(const wchar_t* jsonPayload, DWORD* pError)
 
         DWORD buildErr = NOTIFICATION_SUCCESS;
         DeliverPayload payload = BuildPayload(json, &buildErr);
+        if (buildErr != NOTIFICATION_SUCCESS)
+        {
+            if (pError) *pError = buildErr;
+            return;
+        }
+
+        m_backend->Deliver(payload, pError);
+    }
+    catch (winrt::hresult_error const& ex)
+    {
+        DFLog(TAG, L"[Show] WinRT exception. hr=0x%08lx", ex.code().value);
+        if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+    }
+}
+
+void WindowsNotificationManager::Show(
+    const NativeToolkit::Notification::NotificationContent& content, DWORD* pError)
+{
+    DFLog(TAG, L"[Show] content. title=%ls", content.title.c_str());
+
+    if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"Show", pError)) return;
+
+    try
+    {
+        if (!CheckEnabled(L"Show", pError)) return;
+
+        DWORD buildErr = NOTIFICATION_SUCCESS;
+        DeliverPayload payload = BuildPayload(content, &buildErr);
         if (buildErr != NOTIFICATION_SUCCESS)
         {
             if (pError) *pError = buildErr;
@@ -873,13 +970,7 @@ void WindowsNotificationManager::Schedule(
 
     try
     {
-        int setting = m_backend->Setting();
-        if (setting != 0)
-        {
-            DFLog(TAG, L"[Schedule] notification disabled. setting=%d", setting);
-            if (pError) *pError = NOTIFICATION_ERROR_DISABLED;
-            return;
-        }
+        if (!CheckEnabled(L"Schedule", pError)) return;
 
         JsonObject json;
         if (!JsonObject::TryParse(hstring{ jsonPayload }, json))
@@ -897,15 +988,40 @@ void WindowsNotificationManager::Schedule(
             return;
         }
 
-        // Warn if scheduled time is far in the future (OS delivery window)
+        WarnIfOutsideDeliveryWindow(scheduledTimeMs);
+
+        m_backend->Schedule(payload, scheduledTimeMs, pError);
+    }
+    catch (winrt::hresult_error const& ex)
+    {
+        DFLog(TAG, L"[Schedule] WinRT exception. hr=0x%08lx", ex.code().value);
+        if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+    }
+}
+
+void WindowsNotificationManager::Schedule(
+    const NativeToolkit::Notification::NotificationContent& content,
+    int64_t scheduledTimeMs,
+    DWORD* pError)
+{
+    DFLog(TAG, L"[Schedule] content. scheduledTimeMs=%lld", scheduledTimeMs);
+
+    if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (!CheckInitialized(L"Schedule", pError)) return;
+
+    try
+    {
+        if (!CheckEnabled(L"Schedule", pError)) return;
+
+        DWORD buildErr = NOTIFICATION_SUCCESS;
+        DeliverPayload payload = BuildPayload(content, &buildErr);
+        if (buildErr != NOTIFICATION_SUCCESS)
         {
-            auto tp = std::chrono::system_clock::time_point{
-                std::chrono::milliseconds(scheduledTimeMs)
-            };
-            auto scheduledTime = winrt::clock::from_sys(tp);
-            if ((scheduledTime - winrt::clock::now()) > std::chrono::minutes(5))
-                DLog(TAG, L"[Schedule] WARNING: scheduled time exceeds 5-minute delivery window. OS may drop the notification.");
+            if (pError) *pError = buildErr;
+            return;
         }
+
+        WarnIfOutsideDeliveryWindow(scheduledTimeMs);
 
         m_backend->Schedule(payload, scheduledTimeMs, pError);
     }

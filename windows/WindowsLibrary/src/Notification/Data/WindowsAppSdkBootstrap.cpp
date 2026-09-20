@@ -7,6 +7,7 @@
 #include <MddBootstrap.h>
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Common/CommonInternal.h"
+#include "NativeToolkit/Notification.h"
 
 namespace
 {
@@ -38,3 +39,71 @@ void WindowsNotificationManager::InitWinAppSdk(uint32_t majorMinorVersion, DWORD
     // only runtime action performed here.
     DLog(TAG, L"[InitWinAppSdk] DeploymentManager skipped for unpackaged bootstrap");
 }
+
+// =============================================================================
+// Runtime — the C++ API of OP-07
+//
+// Kept in this translation unit because this is the one place that is allowed
+// to know about MddBootstrap: the unit tests compile the manager but not this
+// file, and that is what keeps them independent of the bootstrap DLL.
+//
+// The difference from initWinAppSdk is the shutdown. The C ABI has no
+// counterpart to initWinAppSdk and leaves the runtime loaded for the life of
+// the process; that stays true for C callers, while a C++ caller gets a token
+// whose destruction releases it (N-7).
+// =============================================================================
+
+namespace NativeToolkit::Notification {
+
+namespace
+{
+    const wchar_t* API_TAG = L"NativeToolkit::Notification";
+}
+
+Result<Runtime> Runtime::Initialize(RuntimeVersion version)
+{
+    DFLog(API_TAG, L"[Runtime::Initialize] majorMinor=0x%08x", version.majorMinor);
+
+    PACKAGE_VERSION minVersion{};
+    const HRESULT hr = MddBootstrapInitialize(version.majorMinor, nullptr, minVersion);
+    if (FAILED(hr))
+    {
+        DFLog(API_TAG, L"[Runtime::Initialize] MddBootstrapInitialize failed. hr=0x%08lx", hr);
+        return Unexpected{Error{ErrorCode::HResultFailure, static_cast<uint32_t>(hr)}};
+    }
+
+    Runtime runtime;
+    runtime.held_ = true;
+    return runtime;
+}
+
+Runtime::Runtime(Runtime&& other) noexcept : held_(other.held_)
+{
+    other.held_ = false;
+}
+
+Runtime& Runtime::operator=(Runtime&& other) noexcept
+{
+    if (this != &other)
+    {
+        Close();
+        held_ = other.held_;
+        other.held_ = false;
+    }
+    return *this;
+}
+
+Runtime::~Runtime()
+{
+    Close();
+}
+
+void Runtime::Close() noexcept
+{
+    if (!held_) return;
+    DLog(API_TAG, L"[Runtime::Close]");
+    MddBootstrapShutdown();
+    held_ = false;
+}
+
+}  // namespace NativeToolkit::Notification

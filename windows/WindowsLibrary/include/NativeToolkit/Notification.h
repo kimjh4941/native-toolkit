@@ -20,6 +20,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -190,6 +191,103 @@ struct NotificationRef {
 struct ActivationArgs {
     ArgumentPairs values;
     std::wstring  rawArguments;  ///< The untouched argument string, for anything values cannot express.
+};
+
+/// What Manager::Create needs to know about the app it is running in.
+struct ManagerOptions {
+    /// Called when the user acts on a notification, on whichever thread the OS
+    /// delivers the activation. Leaving it empty means activations are dropped.
+    std::function<void(const ActivationArgs&)> onInvoked;
+
+    bool         isPackaged = true;  ///< False for a plain Win32 app with no package identity.
+    std::wstring displayName;        ///< Required when isPackaged is false.
+    std::wstring iconUri;            ///< Required when isPackaged is false.
+};
+
+/**
+ * @brief The Windows App Runtime, held for as long as notifications are used.
+ * @details
+ *  Only an unpackaged app needs this: a packaged one already has the runtime.
+ *  Destroying the token shuts the bootstrapper down again, which the C ABI
+ *  never did - initWinAppSdk has no counterpart and leaves the runtime loaded
+ *  for the life of the process (N-7). The C ABI keeps that behaviour; a C++
+ *  caller gets the matching pair.
+ *
+ *  Move only, because shutting the runtime down twice is not the same as
+ *  shutting it down once.
+ */
+class Runtime {
+public:
+    /// Makes the runtime of that version available to this process.
+    static Result<Runtime> Initialize(RuntimeVersion version);
+
+    Runtime(Runtime&& other) noexcept;
+    Runtime& operator=(Runtime&& other) noexcept;
+    Runtime(const Runtime&) = delete;
+    Runtime& operator=(const Runtime&) = delete;
+    ~Runtime();
+
+    /// Shuts the runtime down. Doing it twice is allowed and does nothing.
+    void Close() noexcept;
+
+private:
+    Runtime() = default;
+    bool held_ = false;
+};
+
+namespace Detail { class TestAccess; }
+
+/**
+ * @brief The notification service of this process.
+ * @details
+ *  Windows registers one activation handler per process, so there can be one
+ *  Manager at a time and a second Create fails with NotSupported rather than
+ *  quietly taking the first one's place. Move only, for the same reason as
+ *  Runtime.
+ *
+ *  Every operation is synchronous and blocks the calling thread, including the
+ *  ones the platform exposes asynchronously; that is what the implementation
+ *  does today and the C++ API does not change it.
+ */
+class Manager {
+public:
+    /// Registers this process for notifications.
+    static Result<Manager> Create(const ManagerOptions& options);
+
+    Manager(Manager&& other) noexcept;
+    Manager& operator=(Manager&& other) noexcept;
+    Manager(const Manager&) = delete;
+    Manager& operator=(const Manager&) = delete;
+    ~Manager();
+
+    /// Replaces the activation handler. An empty handler drops activations.
+    void SetInvokedHandler(std::function<void(const ActivationArgs&)> handler);
+
+    /// Unregisters. Doing it twice is allowed and does nothing. Returns nothing
+    /// because the C ABI counterpart reports nothing either.
+    void Close() noexcept;
+
+    Result<void>                         Show(const NotificationContent& content);
+    Result<void>                         Schedule(const NotificationContent& content,
+                                                  std::chrono::system_clock::time_point when);
+    Result<void>                         CancelScheduled(const std::wstring& tag, const std::wstring& group);
+    Result<void>                         UpdateProgress(const ProgressUpdate& update);
+    Result<void>                         SetBadge(int value);
+    Result<void>                         RemoveById(uint32_t id);
+    Result<void>                         RemoveByTag(const std::wstring& tag, const std::wstring& group);
+    Result<void>                         RemoveAll();
+    Result<std::vector<NotificationRef>> GetAll();
+    Result<NotificationSetting>          GetSetting();
+    Result<void>                         OpenSettings();
+
+private:
+    // Create registers this process with the OS, which a test host cannot do.
+    // This lets the library's own tests build a Manager without it; nothing
+    // outside the library can define the class it names.
+    friend class Detail::TestAccess;
+
+    Manager() = default;
+    bool held_ = false;
 };
 
 }  // namespace NativeToolkit::Notification

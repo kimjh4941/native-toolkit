@@ -7,6 +7,7 @@
 
 #include "Notification/WindowsNotificationManager.h"
 #include "Notification/Application/WindowsNotificationBackend.h"
+#include "NativeToolkit/Notification.h"
 #include <memory>
 #include <mutex>
 #include <string>
@@ -16,6 +17,7 @@ class PackagedBackend;  // defined in WindowsNotificationManager.cpp
 namespace WindowsNotificationManagerTest { class NotificationManagerTest; }
 namespace WindowsNotificationValidationDomainTest { class NotificationValidationDomainTest; }
 namespace WindowsNotificationBuilderTest { class NotificationBuilderTest; }
+namespace WindowsNotificationApiTest { class NotificationApiTest; }
 
 class WindowsNotificationManager
 {
@@ -28,6 +30,15 @@ public:
     void Uninit();
     void Show(const wchar_t* jsonPayload, DWORD* pError);
     void Schedule(const wchar_t* jsonPayload, int64_t scheduledTimeMs, DWORD* pError);
+
+    // The same two operations described by the C++ API content type instead of
+    // by a JSON payload. They take the identical route once the payload is
+    // built, and they check that notifications are enabled before they build,
+    // so a disabled app is told it is disabled rather than told its content is
+    // wrong (which is what checking in the other order would report).
+    void Show(const NativeToolkit::Notification::NotificationContent& content, DWORD* pError);
+    void Schedule(const NativeToolkit::Notification::NotificationContent& content,
+                  int64_t scheduledTimeMs, DWORD* pError);
     void CancelScheduled(const wchar_t* tag, const wchar_t* group, DWORD* pError);
     void UpdateProgress(const wchar_t* tag, const wchar_t* group,
                         double value, const wchar_t* valueStr,
@@ -47,6 +58,10 @@ public:
     // Test seam: replace the backend with a mock for WinRT-free unit tests.
     void SetBackendForTest(std::unique_ptr<INotificationBackend> backend);
 
+    // Test seam: install the activation callback without going through Init,
+    // which would register this process with the OS.
+    void SetCallbackForTest(NotificationInvokedCallback callback);
+
 private:
     friend class PackagedBackend;
     friend class WindowsNotificationManagerTest::NotificationManagerTest;
@@ -56,12 +71,18 @@ private:
     /// The struct path is compared against this one, XML against XML; see
     /// NotificationBuilderTest (stage 3, T-08).
     friend class WindowsNotificationBuilderTest::NotificationBuilderTest;
+    /// Drives the C++ API against a mock backend; see NotificationApiTest
+    /// (stage 3, T-08).
+    friend class WindowsNotificationApiTest::NotificationApiTest;
 
     WindowsNotificationManager() = default;
     WindowsNotificationManager(const WindowsNotificationManager&) = delete;
     WindowsNotificationManager& operator=(const WindowsNotificationManager&) = delete;
 
     bool CheckInitialized(const wchar_t* caller, DWORD* pError) const;
+
+    /// False, and *pError set to DISABLED, when the OS has notifications off.
+    bool CheckEnabled(const wchar_t* caller, DWORD* pError);
 
     void OnNotificationInvoked(
         winrt::Microsoft::Windows::AppNotifications::AppNotificationManager const&,
@@ -76,6 +97,12 @@ private:
     // Calls BuildFromJson, captures XML + expiration/progress metadata.
     // Returns empty payload and sets *pError on failure.
     DeliverPayload BuildPayload(const winrt::Windows::Data::Json::JsonObject& json, DWORD* pError);
+
+    /// The same, from the C++ API content type. Validation is the Domain rule
+    /// set rather than ValidatePayload; NotificationValidationDomainTest holds
+    /// the two to the same answers until T-14 makes them one.
+    DeliverPayload BuildPayload(const NativeToolkit::Notification::NotificationContent& content,
+                                DWORD* pError);
 
     void ApplyButtons(
         winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder& builder,
