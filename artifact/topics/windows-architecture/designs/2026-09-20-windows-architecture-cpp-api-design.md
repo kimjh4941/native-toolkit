@@ -12,6 +12,11 @@
 | 前段階 | 段階 0a〜0d、1、2 は完了（`results/` に記録） |
 | 反映した決定 | D-1（統合）、D-2（C++20 + 自前の `Result`）、D-3（静的ライブラリ + ヘッダー）、D-4（2.0.0 で一括切替） |
 
+> **機械照合（この設計書を更新したら必ず両方を実行する）**
+>
+> - `python3 scripts/check_design_consistency.py <この設計書>` — 設計書が**自分自身と**矛盾していないか（OP 件数、§8.1 と §9 の対応、タスクの粒度と合計、ID 昇順、表の列数、見出し順）
+> - `python3 scripts/check_cpp_api_contract.py` — 設計書が**外側と**矛盾していないか（T-13）。§8.1 の 47 操作を両端から導出（C 名は `.def` の輸出一覧、C++ 名は公開ヘッダー）、エラー列挙と `#define` の 1 対 1、`@retval` と §11.4、§10 が引く行番号と引用先。壊れたときに落ちることは `scripts/tests/test_check_cpp_api_contract.py` が検査する
+
 ## 0. レビューの反映
 
 2 者（Claude のサブエージェント、Codex）に 2 周レビューしてもらい、指摘を反映した。結果は `reviews/2026-09-20-windows-architecture-cpp-api-design-review-v1.md` と同 `-v2.md`。
