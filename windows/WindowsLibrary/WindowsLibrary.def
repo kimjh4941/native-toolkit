@@ -16,6 +16,8 @@ EXPORTS
 	removeAllNotifications
 	getAllNotifications
 	getNotificationSetting
+	initWinAppSdk
+	openNotificationSettings
 	; Clipboard Manager Bridge
 	initClipboardManager
 	setClipboardHistoryCallbacks
@@ -51,3 +53,11 @@ EXPORTS
 	DFLLog
 	ToWString
 	ConcatWStrings
+
+	; Dialog
+	showAlertDialog
+	showFileDialog
+	showMultiFileDialog
+	showSaveFileDialog
+	showFolderDialog
+	showMultiFolderDialog
