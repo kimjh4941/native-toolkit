@@ -95,6 +95,13 @@ static_assert(std::is_constructible_v<NativeToolkit::Result<ClipError, ClipError
 static_assert(std::is_pointer_v<NativeToolkit::WindowHandle>,
               "WindowHandle must be a pointer");
 
+// Each feature namespace names its own error cases, so a caller never has to
+// leave it: clip::ErrorCode and dlg::ErrorCode are different enumerations.
+static_assert(std::is_same_v<NativeToolkit::Clipboard::ErrorCode, NativeToolkit::ClipboardError>,
+              "Clipboard::ErrorCode must alias ClipboardError");
+static_assert(!std::is_same_v<NativeToolkit::Clipboard::ErrorCode, NativeToolkit::Dialog::ErrorCode>,
+              "the per-feature ErrorCode aliases must stay distinct");
+
 TEST_CLASS(PublicApiResultTest)
 {
 public:

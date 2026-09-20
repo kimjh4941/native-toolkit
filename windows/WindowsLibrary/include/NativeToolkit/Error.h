@@ -237,16 +237,22 @@ enum class ClipboardError : uint32_t {
 }  // namespace NativeToolkit
 
 namespace NativeToolkit::Dialog {
+/// The feature's error cases, reachable without leaving this namespace.
+using ErrorCode = NativeToolkit::DialogError;
 using Error = Failure<DialogError>;
 template <class T = void> using Result = NativeToolkit::Result<T, Error>;
 }  // namespace NativeToolkit::Dialog
 
 namespace NativeToolkit::Notification {
+/// The feature's error cases, reachable without leaving this namespace.
+using ErrorCode = NativeToolkit::NotificationError;
 using Error = Failure<NotificationError>;
 template <class T = void> using Result = NativeToolkit::Result<T, Error>;
 }  // namespace NativeToolkit::Notification
 
 namespace NativeToolkit::Clipboard {
+/// The feature's error cases, reachable without leaving this namespace.
+using ErrorCode = NativeToolkit::ClipboardError;
 using Error = Failure<ClipboardError>;
 template <class T = void> using Result = NativeToolkit::Result<T, Error>;
 }  // namespace NativeToolkit::Clipboard

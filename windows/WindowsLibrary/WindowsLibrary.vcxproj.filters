@@ -40,6 +40,9 @@
     <Filter Include="src\Notification">
       <UniqueIdentifier>{DA14CF5E-88A2-5D87-B6BE-B272D36AD152}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Notification\Domain">
+      <UniqueIdentifier>{5D3A8E17-64B2-4F91-8C0D-A72E6B5F3410}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Notification\Application">
       <UniqueIdentifier>{9644ACA9-3B57-55BD-862C-26083749480F}</UniqueIdentifier>
     </Filter>
@@ -144,6 +147,9 @@
     <ClInclude Include="include\NativeToolkit\Dialog.h">
       <Filter>include\NativeToolkit</Filter>
     </ClInclude>
+    <ClInclude Include="include\NativeToolkit\Notification.h">
+      <Filter>include\NativeToolkit</Filter>
+    </ClInclude>
     <ClInclude Include="include\NativeToolkit\Error.h">
       <Filter>include\NativeToolkit</Filter>
     </ClInclude>
@@ -170,6 +176,9 @@
     </ClInclude>
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h">
       <Filter>src\Notification\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Notification\Domain\WindowsNotificationValidation.h">
+      <Filter>src\Notification\Domain</Filter>
     </ClInclude>
     <ClInclude Include="src\Notification\Data\WindowsClassicActivator.h">
       <Filter>src\Notification\Data</Filter>

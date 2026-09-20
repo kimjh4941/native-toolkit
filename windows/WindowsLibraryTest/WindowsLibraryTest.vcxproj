@@ -91,6 +91,7 @@
     <ClCompile Include="ClipboardHistoryCoordinatorTest.cpp" />
     <ClCompile Include="DialogErrorDomainTest.cpp" />
     <ClCompile Include="DialogMappingTest.cpp" />
+    <ClCompile Include="NotificationValidationDomainTest.cpp" />
     <ClCompile Include="PublicApiTypesTest.cpp" />
     <ClCompile Include="PublicApiErrorMappingTest.cpp" />
     <ClCompile Include="PublicApiHeaderSelfContainedTest.cpp">

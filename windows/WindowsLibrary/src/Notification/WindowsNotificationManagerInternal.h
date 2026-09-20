@@ -14,6 +14,7 @@
 class PackagedBackend;  // defined in WindowsNotificationManager.cpp
 
 namespace WindowsNotificationManagerTest { class NotificationManagerTest; }
+namespace WindowsNotificationValidationDomainTest { class NotificationValidationDomainTest; }
 
 class WindowsNotificationManager
 {
@@ -48,6 +49,9 @@ public:
 private:
     friend class PackagedBackend;
     friend class WindowsNotificationManagerTest::NotificationManagerTest;
+    /// The Domain rules are compared against these JSON rules; see
+    /// NotificationValidationDomainTest (stage 3, T-07).
+    friend class WindowsNotificationValidationDomainTest::NotificationValidationDomainTest;
 
     WindowsNotificationManager() = default;
     WindowsNotificationManager(const WindowsNotificationManager&) = delete;
