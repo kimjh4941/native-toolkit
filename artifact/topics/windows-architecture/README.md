@@ -71,7 +71,7 @@ Dialog は Win32 の common dialog、Clipboard は Win32 + WinRT、Notification 
 
 ```
 windows/
-  WindowsLibrary/                           # C++ API（公開）
+  WindowsLibraryCore/                       # C++ API（公開・静的ライブラリ）
     include/NativeToolkit/                  # NuGet に入れる公開ヘッダー
       Clipboard.h  Notification.h  Dialog.h  Error.h  Types.h
     src/
@@ -79,17 +79,19 @@ windows/
       Notification/{Application,Data,Domain}/
       Dialog/{Application,Data,Domain}/
       Common/
-  WindowsLibraryCApi/                       # 汎用の C ABI（公開）
+  WindowsLibraryCApi/                       # 汎用の C ABI（公開・DLL）
     include/NativeToolkitC/                 # C ABI の公開ヘッダー
       Clipboard.h  Notification.h  Dialog.h
     src/
       Clipboard/  Notification/  Dialog/    # C++ API を呼び出して型を変換するだけ
-    WindowsLibraryCApi.def                  # 47 関数をここに移す
+    WindowsLibraryCApi.def                  # 公開する関数をここに書く
 ```
 
-依存の向きは `WindowsLibraryCApi` → `WindowsLibrary`。機能の実装は `WindowsLibrary` にだけ置き、`WindowsLibraryCApi` は型の変換（`std::wstring` とバッファ、構造体とデータ受け渡し形式、`std::function` と関数ポインタ）だけを受け持つ。
+ここへ至る道筋は段階 3 と段階 5 に分かれる。段階 3 で `WindowsLibraryCore`（静的）と `WindowsLibrary`（今の C ABI の DLL）に分け、段階 5 で後者を `WindowsLibraryCApi` に改名して中身を新しい C ABI に置き換える（5 章）。
 
-- ネイティブの利用者（`WindowsLibraryExample` など C++ / WinRT のアプリ）は C++ API を使う
+依存の向きは `WindowsLibraryCApi` → `WindowsLibraryCore`。機能の実装は `WindowsLibraryCore` にだけ置き、`WindowsLibraryCApi` は型の変換（`std::wstring` とバッファ、構造体とデータ受け渡し形式、`std::function` と関数ポインタ）だけを受け持つ。
+
+- ネイティブの利用者（`WindowsLibraryExample` など C++ / WinRT のアプリ）は C++ API を使う。静的ライブラリなので、利用者のビルド構成（Debug / Release、`/MD` / `/MT`）に合わせた `.lib` を配る（D-3）
 - C ABI の利用者（C#、Rust、Python など）は `WindowsLibraryCApi` を使う。Unity もその 1 つで、Unity 側の確認は別リポジトリ `unity-native-plugin` で行う
 
 ### 3.1 名前を Unity から変える理由
@@ -141,7 +143,9 @@ public:
 }
 ```
 
-C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの形式にしても変換は `WindowsLibraryCApi` が受け持ち、`WindowsLibrary` の C++ API には持ち込まない。
+> 上のコードは企画時の素描である。**確定した形は段階 3 の設計書**（`designs/2026-09-20-windows-architecture-cpp-api-design.md`）にあり、次の点が違う。`std::expected` ではなく自前の `Result<T, E>` を使う（D-2。差し替えは機械的には済まない）。`Session::Create` は `SessionOptions` を受け取り、配送用ウィンドウはライブラリが作るのでホストの `HWND` は受け取らない。履歴は `std::future` ではなくコールバックで返す（完了がオーナー UI スレッドに限られる契約を `std::future` では表せないため）。
+
+C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの形式にしても変換は C ABI 側が受け持ち、C++ API には持ち込まない。
 
 ## 5. 段階
 
@@ -155,13 +159,15 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する**。**完了** | 無し | `feature/NTKIT-16` | - |
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる。**完了**（C++20） | 無し | `feature/NTKIT-16` | - |
 | 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける。**完了**（ファイルの移動だけ。層が混ざったファイルは機能の直下に置き、段階 3 で分ける） | 無し | `feature/NTKIT-16` | - |
-| 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**この時点ではまだ C ABI も残す** | ライブラリに C++ API が増える | - | - |
-| 4 | サンプルを C++ API に移行する。移行前と同じ UI テストが通ることを確かめる | 無し（サンプルが使う API だけが変わる） | - | - |
-| 5 | `WindowsLibraryCApi` を新しく作って C ABI を移し、`WindowsLibrary` から C ABI を削除する。`UnityWindowsPlugin` を削除する | C ABI を提供する DLL が変わる | - | - |
+| 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**成果物を `WindowsLibraryCore`（静的ライブラリ）と `WindowsLibrary`（C ABI の DLL）に分け**、C ABI をコアの上に載せ替える。C ABI の 52 関数とその動作は変えない | ライブラリに C++ API が増える。配布物の構成が変わる | - | - |
+| 4 | サンプルを C++ API に移行し、`WindowsLibraryCore` を参照するようにする。移行前と同じ UI テストが通ることを確かめる | 無し（サンプルが使う API だけが変わる） | - | - |
+| 5 | 段階 3 で分けた DLL を `WindowsLibraryCApi` に改名し、中身を新しい C ABI（D-6 〜 D-10）に置き換える。`UnityWindowsPlugin` を削除する | C ABI が変わる（2.0.0。D-4） | - | - |
 | 6 | NuGet、マニュアル、Doxygen を新しい API に合わせる | - | - | - |
 | 7 | CI を作る（ユニットテストだけ。UI テストと computer use はローカルで実行する） | - | - | - |
 
-サンプルの移行（段階 4）は、C ABI の削除（段階 5）より前に行う。逆にすると、段階 5 が終わった時点でサンプルがビルドできなくなる（C ABI のヘッダーを include しているため）。
+サンプルの移行（段階 4）は、C ABI の置き換え（段階 5）より前に行う。逆にすると、段階 5 が終わった時点でサンプルがビルドできなくなる（C ABI のヘッダーを include しているため）。
+
+**成果物の分割を段階 3 で行う理由**（2026-09-20 に段階 3 の設計とレビューで判明）: 今の `WindowsLibrary` は全構成が DLL で、C++ のメソッドは export されず `.def` にも無い。分割を段階 5 まで先送りすると、段階 4 でサンプルが C++ API にリンクできない。また `extern "C"` の関数が実装と同じ翻訳単位にあるため、静的ライブラリへそのまま入れると、参照されない関数（`.def` に無い Dialog の 6 個と `initWinAppSdk`）が DLL から消える。詳細は `designs/2026-09-20-windows-architecture-cpp-api-design.md` の 7.6。
 
 ### 5.1 設計書
 
@@ -172,7 +178,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 0（テスト） | 書く（**作成済み**: `designs/2026-09-19-windows-architecture-ui-test-design.md`） | Dialog と Notification にどんな UI テストを書き、何を確かめるか。段階 0a の結果に基づく FlaUI と computer use の分担 |
 | 1 MFC / COM の除去 | 書かない | 機械的な作業。この README の表と実装結果で足りる |
 | 2 ディレクトリの再編 | 書かない | 同上 |
-| 3 C++ API | 書く | 公開 API は長く残る約束になる |
+| 3 C++ API | 書く（**作成済み**: `designs/2026-09-20-windows-architecture-cpp-api-design.md`。別モデル 2 者のレビューを 2 ラウンド実施し、`reviews/` に記録） | 公開 API は長く残る約束になる |
 | 4 サンプルの移行 | 書かない | 段階 3 の設計書に従って書き換えるだけ |
 | 5 C ABI | 書く | 公開 API。D-6 〜 D-10 の決定を反映する |
 | 6 ドキュメント / 7 CI | 書かない | この README の表で足りる |
@@ -182,7 +188,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 設計書 | 書くこと |
 |---|---|
 | UI テスト | 機能ごとのテストケースの一覧と、確かめる内容。FlaUI で扱う項目と computer use で扱う項目の分担。computer use の確認手順書の一覧 |
-| C++ API | 47 関数それぞれの置き換え先。エラーの型、所有権、スレッドの約束。**既存の約束が新しい C++ API のどこで守られるかの対応表** |
+| C++ API | 47 関数それぞれの置き換え先。エラーの型、所有権、スレッドの約束。**既存の約束が新しい C++ API のどこで守られるかの対応表**。利用者の前提（ビルド・リンク・実行・呼び出し方） |
 | C ABI | 公開する関数の一覧。D-6 〜 D-10 の決定の反映。メモリの確保と解放の決まり |
 
 C++ API の設計書にある「既存の約束の対応表」は、次の設計書から作る。C++ API に書き直しても、ここに書かれた約束（たとえば Clipboard の「コールバックは必ずオーナーの UI スレッドで、受け付けた要求 1 件につき 1 回だけ呼ぶ」）は守り続ける必要がある。対応表が無いと、書き直したときに約束が抜けても気づけない。
@@ -212,9 +218,13 @@ artifact/topics/windows-architecture/
   designs/
     YYYY-MM-DD-windows-architecture-ui-test-design.md        # 段階 0
     YYYY-MM-DD-windows-architecture-cpp-api-design.md        # 段階 3
+    YYYY-MM-DD-windows-architecture-c-abi-input-inventory.md # 今の C ABI が受け付ける入力の一覧
     YYYY-MM-DD-windows-architecture-c-abi-design.md          # 段階 5
+  reviews/                                                   # 設計書のレビュー結果
   results/                                                   # 段階ごとの実装結果
 ```
+
+`c-abi-input-inventory.md` は、今の C ABI が受け付ける入力（JSON のキー、`MB_*` / `OFN_*` の組み合わせ、バッファの規約）を実装から導出した一覧である。サンプルアプリが使っていない入力は UI テストでは守れないため、段階 3 と段階 5 で「動作を変えていない」ことを確かめる基準として使う。
 
 公開 API の 2 本（C++ API と C ABI）は、後から変えると利用者全員に影響する。これまでの機能開発と同じく、別のモデルにレビューしてもらってから着手する。
 
@@ -300,7 +310,7 @@ computer use は画面を AI が解釈して操作するので、FlaUI と違っ
 |---|---|---|---|
 | D-1 | `windows-toolchain-migration` との関係 | 統合する / 分ける | **決定（2026-09-20）: 統合**。段階 1 の C++ 標準の決定がそのまま移行作業になる。分けると、C++17 のまま API を設計して後でやり直すことになる。ツールセット・SDK の版・対応 OS は段階 3 の設計書で決める |
 | D-2 | C++ 標準とエラーの返し方 | C++20 + 自前の `Result<T>` / C++23 + `std::expected` | **決定（2026-09-19）: C++20 + 自前の `Result<T>`**。今の MSVC（VS 17.14、14.44）では `std::expected` は `/std:c++23preview` でしか使えず、公開ヘッダーで使うと C++ API の利用者にもプレビューのオプションを強いる。`Result<T>` は `std::expected` と同じ使い方にする（段階 3 の設計書で決める） |
-| D-3 | WindowsLibrary の配り方 | A: 静的ライブラリ + ヘッダー / B: DLL のまま、公開ヘッダーを C ABI の薄い C++ ラッパーにする | **決定（2026-09-20）: A**。C++ の型を DLL の境界で受け渡すと、コンパイラ・CRT・Debug/Release の組み合わせが一致しないと動かない。A ならこの問題が起きない。Debug と Release の両方の `.lib` を配り、配る `.lib` では `/GL` を使わない（利用者のコンパイラの版に縛られるため）。DLL が要る利用者は `WindowsLibraryCApi` を使う |
+| D-3 | WindowsLibrary の配り方 | A: 静的ライブラリ + ヘッダー / B: DLL のまま、公開ヘッダーを C ABI の薄い C++ ラッパーにする | **決定（2026-09-20）: A**。C++ の型を DLL の境界で受け渡すと、別ヒープでの解放やイテレータのデバッグ水準の違いが**実行時に**壊れる。A ではこの不一致が `LNK2038` として**リンク時のエラーになる**（問題が消えるのではなく、検出が早くなる）。そのため構成ごとの `.lib` を配る必要があり、x64 の Debug / Release × `/MD` / `/MT` の 4 種を基本とする（`/MT` の可否は段階 3 のスパイクで確かめる）。配る `.lib` では `/GL` を使わない。DLL が要る利用者は C ABI を使う |
 | D-4 | 破壊的変更の扱い | 2.0.0 で一度に切り替える / 1.x の間は C ABI も非推奨として残す | **決定（2026-09-20）: 2.0.0 で一度に切り替える**。D-6 〜 D-10 で C ABI は JSON・`wchar_t*`・`pError` をすべて捨てる全面刷新になるので、1.x に残すと実質 2 つの ABI を並行して保守し、両方に UI テストを維持することになる。今の DLL は `dist/1.11.0/` に残るので、既存の利用者はその版を使い続けられる。移行の手順はマニュアルに書く |
 | D-5 | C ABI の公開方法 | `.def` だけにする / `__declspec(dllexport)` だけにする | `.def` だけにする。公開する関数が 1 か所で分かる |
 | D-6 | C ABI でのデータの受け渡し形式 | 今の JSON 文字列のまま / C の構造体を公開する / 不透明なハンドルと取得関数 | **データの種類ごとに使い分ける**（下の表）。JSON はやめる |
@@ -361,8 +371,8 @@ ntk_clipboard_history_free(h);
 - [ ] D-1 〜 D-10 を決める
 - [ ] チケットを割り当てる
 - [x] 段階 0a のスパイクで、FlaUI と computer use の分担を確定する（`results/2026-09-19-windows-architecture-stage0a-spike-result.md`）
-- [ ] UI テスト、C++ API、C ABI の設計書を、それぞれの段階の前に書く
-- [ ] C++ API と C ABI の設計書が、別のモデルのレビューを通っている
+- [x] UI テストと C++ API の設計書を書いた（C ABI の設計書は段階 5 の前に書く）
+- [x] C++ API の設計書が別のモデルのレビューを通っている（`reviews/` に 2 ラウンド分を記録。C ABI の設計書は段階 5）
 - [x] Clipboard / Notification / Dialog のすべてに UI テストがある（`results/2026-09-19-windows-architecture-stage0c-result.md`）
 - [x] 段階 0d で、今のコードで全件通ることを確かめ、結果を記録する（`results/2026-09-19-windows-architecture-stage0d-result.md`、`scripts/test_windows.baseline.json`）
 - [ ] 段階 1 〜 6 を終え、段階ごとに 3 つの層（ユニットテスト、UI テスト、computer use）の結果が記録と変わらないことを確認する
