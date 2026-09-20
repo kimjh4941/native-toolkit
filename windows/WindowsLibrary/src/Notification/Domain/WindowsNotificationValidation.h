@@ -45,11 +45,13 @@ enum class ValidationFailure {
 /// The rule a payload broke, or None.
 inline ValidationFailure FindFailure(const NotificationContent& content) noexcept
 {
-    if (content.audio.loop && content.duration != Duration::Long) {
-        return ValidationFailure::LoopingAudioNeedsLongDuration;
-    }
-    if (content.audio.kind == AudioKind::Uri && content.audio.uri.empty()) {
-        return ValidationFailure::AudioUriMissing;
+    if (content.audio.has_value()) {
+        if (content.audio->loop && content.duration != Duration::Long) {
+            return ValidationFailure::LoopingAudioNeedsLongDuration;
+        }
+        if (content.audio->kind == AudioKind::Uri && content.audio->uri.empty()) {
+            return ValidationFailure::AudioUriMissing;
+        }
     }
     if (content.buttons.size() > kMaxButtons) {
         return ValidationFailure::TooManyButtons;

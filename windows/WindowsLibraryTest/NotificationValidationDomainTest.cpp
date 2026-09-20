@@ -80,7 +80,8 @@ public:
         Assert::IsFalse(JsonIsValid(LR"({"audio":{"loop":true}})"));
 
         NotificationContent content;
-        content.audio.loop = true;            // duration stays Short
+        content.audio = AudioSpec{};
+        content.audio->loop = true;           // duration stays Short
         Assert::IsFalse(Domain::IsValid(content));
         Assert::IsTrue(Domain::ValidationFailure::LoopingAudioNeedsLongDuration == Domain::FindFailure(content));
     }
@@ -90,8 +91,9 @@ public:
         Assert::IsTrue(JsonIsValid(LR"({"duration":"long","audio":{"loop":true}})"));
 
         NotificationContent content;
-        content.duration   = Duration::Long;
-        content.audio.loop = true;
+        content.duration = Duration::Long;
+        content.audio = AudioSpec{};
+        content.audio->loop = true;
         Assert::IsTrue(Domain::IsValid(content));
     }
 
@@ -131,12 +133,13 @@ public:
         // ApplyAudio rejects audio.type=uri with no uri; the struct says the
         // same before anything is built.
         NotificationContent content;
-        content.audio.kind = AudioKind::Uri;
+        content.audio = AudioSpec{};
+        content.audio->kind = AudioKind::Uri;
 
         Assert::IsFalse(Domain::IsValid(content));
         Assert::IsTrue(Domain::ValidationFailure::AudioUriMissing == Domain::FindFailure(content));
 
-        content.audio.uri = L"ms-appx:///sound.wav";
+        content.audio->uri = L"ms-appx:///sound.wav";
         Assert::IsTrue(Domain::IsValid(content));
     }
 
@@ -156,7 +159,8 @@ public:
     TEST_METHOD(Test_Validate_ReportsInvalidParameter)
     {
         NotificationContent content;
-        content.audio.loop = true;
+        content.audio = AudioSpec{};
+        content.audio->loop = true;
 
         const auto result = Domain::Validate(content);
 

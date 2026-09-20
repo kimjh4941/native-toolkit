@@ -151,7 +151,7 @@ struct NotificationContent {
     std::optional<AppLogo>      appLogo;          ///< JSON: appLogo.
     std::wstring                attribution;      ///< JSON: attribution.
     Duration                    duration = Duration::Short;
-    AudioSpec                   audio;
+    std::optional<AudioSpec>    audio;            ///< JSON: audio. Absent leaves the sound to the OS.
     std::vector<Button>         buttons;          ///< At most five.
     std::vector<TextInput>      textInputs;       ///< JSON: textBoxes.
     std::vector<ComboInput>     comboInputs;      ///< JSON: comboBoxes.

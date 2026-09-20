@@ -675,7 +675,7 @@ struct NotificationContent {
     std::optional<AppLogo>      appLogo;           // JSON: appLogo（uri + crop）
     std::wstring                attribution;       // JSON: attribution
     Duration                    duration = Duration::Short;
-    AudioSpec                   audio;
+    std::optional<AudioSpec>    audio;             // JSON: audio。空なら音は OS に任せる（T-08）
     std::vector<Button>         buttons;           // 最大 5（NTF-34）
     std::vector<TextInput>      textInputs;
     std::vector<ComboInput>     comboInputs;

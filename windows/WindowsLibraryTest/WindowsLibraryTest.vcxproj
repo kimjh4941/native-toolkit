@@ -91,6 +91,7 @@
     <ClCompile Include="ClipboardHistoryCoordinatorTest.cpp" />
     <ClCompile Include="DialogErrorDomainTest.cpp" />
     <ClCompile Include="DialogMappingTest.cpp" />
+    <ClCompile Include="NotificationBuilderTest.cpp" />
     <ClCompile Include="NotificationValidationDomainTest.cpp" />
     <ClCompile Include="PublicApiTypesTest.cpp" />
     <ClCompile Include="PublicApiErrorMappingTest.cpp" />
@@ -155,6 +156,20 @@
     <MakeDir Directories="$(GeneratedFilesDir)" />
     <Message Importance="high" Text="Generating Windows App SDK C++/WinRT projection into $(GeneratedFilesDir)" />
     <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.Builder.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppLifecycle.winmd&quot; -ref &quot;$(_AppSdkLib)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
+  </Target>
+  <!--
+    NotificationBuilderTest builds real toasts, so it needs the Windows App SDK
+    runtime. The bootstrap DLL is copied next to the test rather than linked:
+    the test loads it by an explicit path at run time, so a machine without the
+    App Runtime fails that one test class instead of failing to load the whole
+    test DLL.
+  -->
+  <Target Name="CopyAppSdkBootstrap"
+          AfterTargets="Build"
+          Condition="'$(Platform)'=='x64'">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.1.7.250513003\runtimes\win-x64\native\Microsoft.WindowsAppRuntime.Bootstrap.dll"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets" />
 </Project>
