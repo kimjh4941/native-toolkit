@@ -300,7 +300,7 @@ namespace NativeToolkit::Clipboard {
 - **エラーの型を消さない。** `Clipboard::Result<T>` と `Dialog::Result<T>` は別の型で、`error()` はその機能の `Failure<Code>` を返す
 - 8 章のシグネチャに書く `Result<...>` は、すべてその機能の名前空間の別名を指す。`Result<>` は `Result<void>` と同じ
 - 実装の要件
-  - コピー系の特殊メンバは `T` と `E` がともにコピー可能なときだけ有効にする。**`Result<Session>` と `Result<Manager>` はムーブのみになる**
+  - コピー系の特殊メンバは `T` と `E` がともにコピー可能なときだけ有効にする。**`Result<Session>` と `Result<Manager>` はムーブのみになる**。実装には **`requires` 節による制約が要る**（T-04 で実測）。コピーを削除した基底クラスを継承するだけでは、派生側がコピーコンストラクタを宣言している限り `std::is_copy_constructible_v` は `true` を返し、標準ライブラリが型特性を見て誤った経路を選ぶ
   - `value_or` は `T` がコピー可能なときだけ有効にする
   - 破棄は活性メンバのみ。`T` と `E` がともに自明に破棄可能なら `Result` も自明に破棄可能にする
   - 代入で活性メンバが入れ替わるとき、旧メンバを破棄してから新メンバを構築する。構築が例外を投げた場合は `Unexpected<E>`（`E` は `nothrow` で構築できる `Failure<Code>`）へ退避し、**値を持たない有効な状態**にする。`valueless` を公開しない
@@ -1082,7 +1082,7 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | U-A | `Result<T, E>` / `Unexpected<E>` / `Failure<Code>` | 値とエラーの取り出し、`value_or`、ムーブ、値を返さない形、コピー・ムーブ代入、`T == E` の場合。**機能ごとの別名が別の型になること**（`static_assert`） |
 | U-B | 型の変換 | `WriteOptions` とビットフラグ、`NotificationContent` と今の JSON（**キーとフィールドの対応表を持ち、T-17 の入力一覧の全キーを網羅する**）、`HistoryItem` と今の JSON スキーマ、`FormatPayload` の種別と並び、Dialog の列挙と `MB_*` / `OFN_*`。**同じ入力から C ABI と C++ API の両方を作って結果を比較する** |
 | U-C | Dialog の新しい層 | `DialogError` への分類（`CommDlgExtendedError` → `SystemError`、キャンセル → `Canceled`）。ダイアログは出さず失敗注入で確かめる |
-| U-D | ヘッダーの自己完結 | 5 つの公開ヘッダーと **`src/**/*Internal.h`** のそれぞれを、翻訳単位の最初で単独に include してコンパイルが通ること。`<windows.h>` を先に include した場合としない場合の両方。**内部ヘッダーを対象に含めるのは、T-03 で `WindowsDialogManagerInternal.h` が `<commdlg.h>` を includer 任せにしていたため** |
+| U-D | ヘッダーの自己完結 | 5 つの公開ヘッダーと **`src/**/*Internal.h`** のそれぞれを、翻訳単位の最初で単独に include してコンパイルが通ること。`<windows.h>` を先に include した場合としない場合の両方。**内部ヘッダーを対象に含めるのは、T-03 で `WindowsDialogManagerInternal.h` が `<commdlg.h>` を includer 任せにしていたため**。**このテストはプリコンパイル済みヘッダーを使ってはならない**（MSVC は `#include "pch.h"` より前の内容を無視するため、PCH のままでは検査が空回りする。T-04 で実測） |
 
 - 検査の書き方（common.md）に従い、「公開ヘッダーの全操作が 9 章の表に載っていること」を、ヘッダーの宣言一覧と設計書の表の**両辺から導出して**比較する（T-13）
 - 空回り防止の下限は「`include/NativeToolkit/` の 3 つの機能ヘッダーで 47 件以上」とする

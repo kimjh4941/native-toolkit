@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "Common/BuildStamp.h"
+#include "NativeToolkit/BuildStamp.h"
 
 // Internal declarations of the helpers that common.h publishes to C ABI consumers.
 // The declarations are identical except that they carry no dllexport/dllimport:

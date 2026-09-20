@@ -4,6 +4,12 @@
     <Filter Include="src">
       <UniqueIdentifier>{7998A632-DD09-590F-A44D-366B5BB86CA1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{2F5A6B71-9C3D-4E82-A0F4-7D1B8E5C2A36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\NativeToolkit">
+      <UniqueIdentifier>{8C4E2D19-5B7A-46F3-9E10-C2A7F5D30B48}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Bridge">
       <UniqueIdentifier>{D6C9E309-56CD-421E-8DF5-4C6FAE6FF6E9}</UniqueIdentifier>
     </Filter>
@@ -123,10 +129,16 @@
     <ClInclude Include="src\Clipboard\WindowsClipboardManagerInternal.h">
       <Filter>src\Clipboard</Filter>
     </ClInclude>
-    <ClInclude Include="src\Common\common.h">
-      <Filter>src\Common</Filter>
+    <ClInclude Include="include\NativeToolkit\BuildStamp.h">
+      <Filter>include\NativeToolkit</Filter>
     </ClInclude>
-    <ClInclude Include="src\Common\BuildStamp.h">
+    <ClInclude Include="include\NativeToolkit\Error.h">
+      <Filter>include\NativeToolkit</Filter>
+    </ClInclude>
+    <ClInclude Include="include\NativeToolkit\Types.h">
+      <Filter>include\NativeToolkit</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\common.h">
       <Filter>src\Common</Filter>
     </ClInclude>
     <ClInclude Include="src\Common\CommonInternal.h">
