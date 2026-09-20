@@ -457,6 +457,7 @@ public:
 | フォルダのダイアログはライブラリが `CoInitializeEx(COINIT_APARTMENTTHREADED)` を呼ぶ。別のアパートメントで初期化済みでも続行する | Dialog |
 | 通知のコールバックは OS が選んだスレッドで来る。ただし cold start の 1 回だけは `Manager::Create` の中から呼び出しスレッドで来る | Notification |
 | 完了のコールバックはオーナー UI スレッドで来る | Clipboard |
+| **`using namespace NativeToolkit::Clipboard;` のような取り込みをしない。** `Session` / `Manager` / `Runtime` は機能ごとの名前空間で文脈を与えた一般名なので、取り込むと利用者の型と衝突しうる。使うなら `namespace clip = NativeToolkit::Clipboard;` のように別名を切る | 全機能 |
 
 ### 7.6 成果物の分け方
 
