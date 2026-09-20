@@ -105,6 +105,15 @@ struct SessionOptions {
  */
 using RenderProvider = std::function<Result<std::vector<std::byte>>(std::wstring_view formatName)>;
 
+/// Told how a request that produces no payload ended.
+using CompletionHandler = std::function<void(RequestId, Result<void>)>;
+
+/// Told what the history holds, or why it could not be read.
+using HistoryItemsHandler = std::function<void(RequestId, Result<std::vector<HistoryItem>>)>;
+
+/// Told what the OS has the history and its roaming set to.
+using AvailabilityHandler = std::function<void(RequestId, Result<HistoryAvailability>)>;
+
 /**
  * @brief The clipboard of this process.
  * @details
@@ -274,6 +283,41 @@ public:
      *          Owner thread only.
      */
     Result<void> RecoverDeferredState();
+
+    // --- The clipboard history (OP-42..OP-47) ------------------------------
+    //
+    // These five ask; they do not answer. Each returns as soon as the request
+    // is accepted, and the handler is called later, on the thread that owns
+    // the session, exactly once - never inside the call that made the request.
+    // A request that is not accepted has no handler call at all.
+    //
+    // The requests themselves may be made from any thread.
+
+    /// Asks for what the history holds.
+    Result<RequestId> GetHistory(HistoryItemsHandler handler);
+
+    /// Asks for an item to be put back on the clipboard.
+    Result<RequestId> RestoreHistoryItem(std::wstring_view itemId, CompletionHandler handler);
+
+    /// Asks for an item to be removed from the history.
+    Result<RequestId> DeleteHistoryItem(std::wstring_view itemId, CompletionHandler handler);
+
+    /// Asks for the history to be emptied. Pinned items stay.
+    Result<RequestId> ClearUnpinnedHistory(CompletionHandler handler);
+
+    /// Asks whether the OS has the history, and its roaming, turned on.
+    Result<RequestId> GetHistoryAvailability(AvailabilityHandler handler);
+
+    /**
+     * @brief Gives up on a request.
+     * @details
+     *  Callable from any thread. This cancels the request, not its answer: a
+     *  completion already on its way is still delivered, with Canceled, so the
+     *  handler is called exactly once either way.
+     *
+     * @retval InvalidParameter No such request, or it has already finished.
+     */
+    Result<void> CancelRequest(RequestId id);
 
 private:
     Session() = default;

@@ -31,6 +31,7 @@
 #include <cstring>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -148,7 +149,8 @@ inline void CloseTheManagerFromItsOwnerThread()
  *        clipboard in place.
  * @return What went wrong, or an empty string.
  */
-inline std::wstring Run(const std::function<void(NativeToolkit::Clipboard::Session&)>& body)
+inline std::wstring Run(const std::function<void(NativeToolkit::Clipboard::Session&)>& body,
+                        std::unique_ptr<IClipboardHistoryBackend> (*historyBackend)() = nullptr)
 {
     namespace Api = NativeToolkit::Clipboard;
 
@@ -158,6 +160,9 @@ inline std::wstring Run(const std::function<void(NativeToolkit::Clipboard::Sessi
             failure = L"CoInitializeEx(STA) failed";
             return;
         }
+        // The factory has to be in place before the session is created, which
+        // is when the coordinator builds its backend.
+        ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(historyBackend);
         StoringClipboard clipboard;
         Current() = &clipboard;
         SetWin32ApiForTest(&clipboard);
@@ -177,6 +182,7 @@ inline std::wstring Run(const std::function<void(NativeToolkit::Clipboard::Sessi
         catch (...)              { failure = L"the session body threw something unknown"; }
         CloseTheManagerFromItsOwnerThread();
         SetWin32ApiForTest(nullptr);
+        ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(nullptr);
         Current() = nullptr;
         ::CoUninitialize();
     });

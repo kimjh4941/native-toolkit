@@ -27,6 +27,7 @@
 
 #include <crtdbg.h>
 #include <cstring>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -37,6 +38,8 @@
 #include "Clipboard/WindowsClipboardManagerInternal.h"
 #include "Common/CommonInternal.h"
 #include "NativeToolkit/Clipboard.h"
+
+#include <winrt/Windows.Data.Json.h>
 
 namespace NativeToolkit::Clipboard {
 
@@ -120,6 +123,10 @@ ClipboardManager& Backing() noexcept
 {
     return ClipboardManager::GetInstance();
 }
+
+/// Drops the history handlers this process is still holding. Defined with the
+/// rest of the request bookkeeping further down; Close needs it here.
+void ForgetPendingRequests();
 
 /// The failure a closed or moved-from session gives every data operation.
 Error NotOpen()
@@ -270,6 +277,7 @@ Result<void> Session::Close()
     }
 
     ClearHandlers();
+    ForgetPendingRequests();
     {
         std::lock_guard<std::mutex> lock(g_stateMutex);
         g_state = ProcessState::Free;
@@ -513,6 +521,252 @@ Result<void> Session::RecoverDeferredState()
     DWORD error = CLIPBOARD_ERROR_NONE;
     Backing().RecoverDeferredState(&error);
     return ToResult(error);
+}
+
+
+// =============================================================================
+// The clipboard history (OP-42..OP-47)
+//
+// The coordinator underneath takes a plain function pointer and answers with a
+// JSON string, so the handler a caller gave is kept here, against the id the
+// request was accepted under, and the JSON is read back into the types the API
+// promises. Nothing about how a completion is delivered is touched: it still
+// arrives on the owner thread, after the call that asked for it, exactly once.
+//
+// The handler is stored while the request is being accepted, not after: a
+// request made from another thread can be picked up and finished by the owner
+// thread before the accepting call has even returned, and a completion that
+// found no handler would be a request answered into nothing.
+// =============================================================================
+
+namespace {
+
+/// What a completion is turned into before the handler sees it.
+enum class RequestKind { Items, Availability, NoPayload };
+
+struct PendingRequest {
+    RequestKind         kind = RequestKind::NoPayload;
+    HistoryItemsHandler items;
+    AvailabilityHandler availability;
+    CompletionHandler   completion;
+};
+
+std::mutex                              g_requestMutex;
+std::map<uint32_t, PendingRequest>      g_requests;
+
+/// Reads back the array the coordinator encodes for a history listing.
+std::vector<HistoryItem> ParseItems(const wchar_t* json)
+{
+    using winrt::Windows::Data::Json::JsonArray;
+    using winrt::Windows::Data::Json::JsonValueType;
+
+    std::vector<HistoryItem> items;
+    JsonArray array{nullptr};
+    if (!json || !JsonArray::TryParse(winrt::hstring{json}, array)) {
+        return items;
+    }
+    // The payload is built by this library, so a shape we cannot read would be
+    // a bug rather than bad input - which is exactly when losing the handler
+    // call would be worst. Whatever was read is what the caller gets.
+    try {
+    for (const auto& entry : array) {
+        const auto object = entry.GetObject();
+        HistoryItem item;
+        item.id = std::wstring{object.GetNamedString(L"id", L"")};
+
+        // An item that carries no text has null here, which is not the same as
+        // an item whose text is empty (CLP-118).
+        if (object.HasKey(L"text") &&
+            object.GetNamedValue(L"text").ValueType() == JsonValueType::String) {
+            item.text = std::wstring{object.GetNamedString(L"text")};
+        }
+
+        if (object.HasKey(L"contentTypes")) {
+            for (const auto& type : object.GetNamedArray(L"contentTypes")) {
+                item.contentTypes.emplace_back(type.GetString());
+            }
+        }
+
+        // The tick count is carried as a decimal string, because a JSON number
+        // could not hold it without rounding.
+        try {
+            item.timestampTicks = std::stoll(std::wstring{object.GetNamedString(L"timestamp", L"0")});
+        } catch (...) {
+            item.timestampTicks = 0;
+        }
+        items.push_back(std::move(item));
+    }
+    } catch (...) {
+        DLog(TAG, L"[ParseItems] the history payload could not be read");
+    }
+    return items;
+}
+
+/// Reads back the object the coordinator encodes for an availability answer.
+HistoryAvailability ParseAvailability(const wchar_t* json)
+{
+    using winrt::Windows::Data::Json::JsonObject;
+
+    HistoryAvailability availability;
+    JsonObject object{nullptr};
+    if (!json || !JsonObject::TryParse(winrt::hstring{json}, object)) {
+        return availability;
+    }
+    availability.historyEnabled = object.GetNamedBoolean(L"historyEnabled", false);
+    availability.roamingEnabled = object.GetNamedBoolean(L"roamingEnabled", false);
+    return availability;
+}
+
+/// The one callback the coordinator knows about. Finds whose request this was,
+/// takes the handler out of the table so it can only run once, and calls it.
+void ForwardRequestCompletion(uint32_t rawId, DWORD error, const wchar_t* json)
+{
+    PendingRequest pending;
+    {
+        std::lock_guard<std::mutex> lock(g_requestMutex);
+        const auto found = g_requests.find(rawId);
+        if (found == g_requests.end()) {
+            DFLog(TAG, L"[ForwardRequestCompletion] no handler for request %u", rawId);
+            return;
+        }
+        pending = std::move(found->second);
+        g_requests.erase(found);
+    }
+
+    const RequestId id{rawId};
+    const bool succeeded = error == CLIPBOARD_ERROR_NONE;
+
+    // A handler is the caller's code running on the thread that delivers every
+    // other completion. The coordinator underneath already catches what comes
+    // back out of here, so this is not what keeps the next request answerable;
+    // what it adds is a line in the log naming the request, instead of an
+    // exception disappearing into a catch-all several frames up.
+    try {
+    switch (pending.kind) {
+        case RequestKind::Items:
+            if (pending.items) {
+                if (succeeded) pending.items(id, ParseItems(json));
+                else           pending.items(id, Unexpected{Fail(error)});
+            }
+            break;
+        case RequestKind::Availability:
+            if (pending.availability) {
+                if (succeeded) pending.availability(id, ParseAvailability(json));
+                else           pending.availability(id, Unexpected{Fail(error)});
+            }
+            break;
+        case RequestKind::NoPayload:
+            if (pending.completion) {
+                pending.completion(id, succeeded ? Result<void>{} : Result<void>{Unexpected{Fail(error)}});
+            }
+            break;
+    }
+    } catch (...) {
+        DFLog(TAG, L"[ForwardRequestCompletion] the handler for request %u threw", rawId);
+    }
+}
+
+/// Registers the handler, asks, and keeps it only if the request was accepted.
+/// accept is whatever calls the manager and returns the raw request id.
+Result<RequestId> Accept(PendingRequest pending, const std::function<uint32_t(DWORD*)>& accept)
+{
+    std::lock_guard<std::mutex> lock(g_requestMutex);
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    const uint32_t rawId = accept(&error);
+    if (rawId == 0 || error != CLIPBOARD_ERROR_NONE) {
+        // Nothing was registered, so nothing will ever be called (CLP-06).
+        return Unexpected{Fail(error == CLIPBOARD_ERROR_NONE ? CLIPBOARD_ERROR_UNKNOWN : error)};
+    }
+    g_requests[rawId] = std::move(pending);
+    return RequestId{rawId};
+}
+
+/// Forgets every handler this process is still holding. Used when the session
+/// that owned them is gone.
+void ForgetPendingRequests()
+{
+    std::lock_guard<std::mutex> lock(g_requestMutex);
+    g_requests.clear();
+}
+
+}  // namespace
+
+Result<RequestId> Session::GetHistory(HistoryItemsHandler handler)
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    PendingRequest pending;
+    pending.kind = RequestKind::Items;
+    pending.items = std::move(handler);
+    return Accept(std::move(pending), [](DWORD* error) {
+        return Backing().GetClipboardHistory(&ForwardRequestCompletion, error);
+    });
+}
+
+Result<RequestId> Session::RestoreHistoryItem(std::wstring_view itemId, CompletionHandler handler)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    std::wstring ownedId;
+    if (const auto bad = Borrow(itemId, ownedId)) return Unexpected{*bad};
+
+    PendingRequest pending;
+    pending.kind = RequestKind::NoPayload;
+    pending.completion = std::move(handler);
+    return Accept(std::move(pending), [&ownedId](DWORD* error) {
+        return Backing().RestoreHistoryItem(ownedId.c_str(), &ForwardRequestCompletion, error);
+    });
+}
+
+Result<RequestId> Session::DeleteHistoryItem(std::wstring_view itemId, CompletionHandler handler)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    std::wstring ownedId;
+    if (const auto bad = Borrow(itemId, ownedId)) return Unexpected{*bad};
+
+    PendingRequest pending;
+    pending.kind = RequestKind::NoPayload;
+    pending.completion = std::move(handler);
+    return Accept(std::move(pending), [&ownedId](DWORD* error) {
+        return Backing().DeleteHistoryItem(ownedId.c_str(), &ForwardRequestCompletion, error);
+    });
+}
+
+Result<RequestId> Session::ClearUnpinnedHistory(CompletionHandler handler)
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    PendingRequest pending;
+    pending.kind = RequestKind::NoPayload;
+    pending.completion = std::move(handler);
+    return Accept(std::move(pending), [](DWORD* error) {
+        return Backing().ClearUnpinnedHistory(&ForwardRequestCompletion, error);
+    });
+}
+
+Result<RequestId> Session::GetHistoryAvailability(AvailabilityHandler handler)
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    PendingRequest pending;
+    pending.kind = RequestKind::Availability;
+    pending.availability = std::move(handler);
+    return Accept(std::move(pending), [](DWORD* error) {
+        return Backing().GetClipboardHistoryAvailability(&ForwardRequestCompletion, error);
+    });
+}
+
+Result<void> Session::CancelRequest(RequestId id)
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    // The handler stays in the table: cancelling a request does not cancel its
+    // answer, and the completion still arrives, with Canceled (CLP-17).
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    if (!Backing().CancelClipboardRequest(static_cast<uint32_t>(id), &error)) {
+        return Unexpected{Fail(error == CLIPBOARD_ERROR_NONE ? CLIPBOARD_ERROR_UNKNOWN : error)};
+    }
+    return {};
 }
 
 // =============================================================================
