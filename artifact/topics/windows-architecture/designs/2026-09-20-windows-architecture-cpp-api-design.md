@@ -55,6 +55,7 @@
 - 既存の 47 個の C ABI 関数それぞれについて、C++ API での置き換え先を決める
 - 既存の約束（コールバックの回数・スレッド、所有権、状態機械、エラー）が、新しい C++ API のどこで守られるかを対応表で示す
 - 段階 4（サンプルの移行）が、この設計書だけで書き換えられる粒度にする
+- 公開する型は、**`designs/2026-09-20-windows-architecture-c-abi-input-inventory.md`（今の C ABI が受け付ける入力の一覧）から導出する**。サンプルが使っていない入力を落とさないため
 
 ## 2. スコープ
 
@@ -226,6 +227,7 @@ using WindowHandle = ::HWND__*;                  // HWND と同じ表現
 }
 ```
 
+- **公開ヘッダーは ASCII だけで書く。** 非 ASCII を入れると、`/utf-8` を付けない利用者の翻訳単位が CP932 として解釈されて壊れる（`warning C4819`）。実測で確認した（`results/2026-09-20-windows-architecture-stage3-header-spike-result.md`）
 - 公開宣言では `HWND` ではなく `WindowHandle` だけを使う。`HWND` との相互運用は **`STRICT`（MSVC の既定）が前提**であることを Doxygen に書く。`NO_STRICT` では `HWND` が汎用ハンドル型になり暗黙変換が成立しない
 - ツールセットは v143、Windows SDK は `10.0`、サンプルの `WindowsTargetPlatformMinVersion 10.0.17763.0` は維持する。対応 OS は Windows 11 以降
 
@@ -303,6 +305,8 @@ namespace NativeToolkit::Clipboard {
   - 代入で活性メンバが入れ替わるとき、旧メンバを破棄してから新メンバを構築する。構築が例外を投げた場合は `Unexpected<E>`（`E` は `nothrow` で構築できる `Failure<Code>`）へ退避し、**値を持たない有効な状態**にする。`valueless` を公開しない
   - 無検査のアクセサ（`value()` / `error()`）は `noexcept`。事前条件の違反はデバッグビルドで assert する
   - `T == E` でも曖昧にならない（エラー側は `Unexpected` を必須にすることで区別する）
+
+**実装方式**: `std::variant<T, E>` を添字で保持する形で骨組みを作り、MSVC v143 / C++20 で上の要件（別名が別の型、`Result<Session>` がムーブのみ、`Result<int>` が自明に破棄可能、`T == E` が曖昧でない）が満たせることを確認した。ただし `std::variant` は `valueless_by_exception` を持ちうるため、「値を持たない不正状態を公開しない」を厳密に満たすには自前の union にするか、`valueless` を内部で `Failure` に写す必要がある。どちらを採るかは T-04 で決める。
 
 **`std::expected` との関係**: **差し替えは機械的には済まない**。違いを次に示す。段階 3 では自前の `Result` を使い、C++23 へ移す判断は別の作業として扱う。
 
@@ -613,29 +617,29 @@ struct RuntimeVersion { uint32_t majorMinor = 0; };
 
 using ArgumentPairs = std::vector<std::pair<std::wstring, std::wstring>>;  // 任意のキー値を落とさない
 
+// フィールド名は JSON のキーに合わせる（label / placeholder / defaultSelection）
 struct Button {
-    std::wstring  content;
-    ArgumentPairs arguments;                       // arguments と invokeUri はボタン単位で排他（NTF-34）
+    std::wstring  label;                           // JSON: label（必須）
+    ArgumentPairs args;                            // JSON: args。args と invokeUri はボタン単位で排他
     std::wstring  invokeUri;
-    std::wstring  imageUri;
-    std::wstring  inputId;
 };
-struct TextInput  { std::wstring id; std::wstring placeHolder; std::wstring title; };
-struct ComboItem  { std::wstring id; std::wstring content; };
-struct ComboInput { std::wstring id; std::wstring title; std::wstring defaultItemId; std::vector<ComboItem> items; };
+struct TextInput  { std::wstring id; std::wstring placeholder; std::wstring title; };
+struct ComboItem  { std::wstring id; std::wstring label; };
+struct ComboInput { std::wstring id; std::wstring title; std::wstring defaultSelection; std::vector<ComboItem> items; };
+struct AppLogo    { std::wstring uri; LogoCrop crop = LogoCrop::None; };   // JSON: appLogo は入れ子のオブジェクト
 
 struct AudioSpec {
     AudioKind    kind = AudioKind::Event;
-    std::wstring eventName;                        // Event のときの名前（既定音、loopingAlarm など）
-    std::wstring uri;                              // Uri のとき
-    bool         loop = false;                     // loop は duration == Long が必須（NTF-34）
-};
+    std::wstring eventName;                        // JSON: event。reminder / alarm / loopingAlarm / loopingCall
+    std::wstring uri;                              // JSON: uri（kind == Uri のとき必須）
+    bool         loop = false;                     // loop は duration == Long が必須
+};                                                 // kind == Mute のとき eventName と loop は捨てられる（今の実装と同じ）
 
 struct ProgressSpec {
-    std::wstring title;                            // 進捗のタイトル
-    double       value = 0.0;
-    std::wstring valueString;
-    std::wstring status;
+    std::wstring                title;             // JSON: title
+    double                      value = 0.0;       // JSON: value（範囲の検査は無い）
+    std::optional<std::wstring> valueStr;          // JSON: valueStr。**キーの有無**がバインドの有無を決める
+    std::optional<std::wstring> status;            // JSON: status。同上
 };
 
 struct NotificationContent {
@@ -644,23 +648,22 @@ struct NotificationContent {
     std::wstring                tag;
     std::wstring                group;
     Scenario                    scenario = Scenario::Default;
-    std::wstring                heroImageUri;
-    std::wstring                inlineImageUri;
-    std::wstring                appLogoUri;
-    LogoCrop                    appLogoCrop = LogoCrop::None;
-    std::wstring                attributionText;
-    ArgumentPairs               arguments;         // 通知全体の引数
-    std::wstring                invokeUri;
+    std::wstring                heroImage;         // JSON: heroImage
+    std::wstring                inlineImage;       // JSON: inlineImage
+    std::optional<AppLogo>      appLogo;           // JSON: appLogo（uri + crop）
+    std::wstring                attribution;       // JSON: attribution
     Duration                    duration = Duration::Short;
     AudioSpec                   audio;
     std::vector<Button>         buttons;           // 最大 5（NTF-34）
     std::vector<TextInput>      textInputs;
     std::vector<ComboInput>     comboInputs;
-    std::optional<ProgressSpec> progress;
-    std::optional<std::chrono::system_clock::time_point> timestamp;   // 表示時刻
-    std::optional<std::chrono::seconds> expiresAfter;                 // 相対（今の expiration と同じ）
-    bool                        expiresOnReboot = false;
+    std::optional<ProgressSpec> progress;              // Schedule では無視される（今の実装と同じ）
+    std::optional<std::chrono::system_clock::time_point> timestamp;  // JSON: timestamp（絶対・Unix 秒）
+    std::optional<std::chrono::seconds> expiration;    // JSON: expiration（相対秒）。Schedule では無視される
+    bool                        expiresOnReboot = false;              // unpackaged では無視される
+    ArgumentPairs               unknownKeys;                          // 今は黙って無視される未知のキーを保持する
 };
+// 最上位に arguments / invokeUri は無い（今の C ABI に存在しないため足さない）
 
 struct ProgressUpdate {
     std::wstring tag;
@@ -885,7 +888,12 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | CLP-123 | 1096 | 複数形式は情報量の多い順に並べる | `std::span<const FormatPayload>` の順序として維持し、Doxygen に書く |
 | CLP-125 | 実装 `ClipboardCore::CopyDib` / `PasteDib`（clipboard v2 の行は要再確認） | 画像は DIB のバイト列。エンコードは呼び出し側 | 変更なし |
 | CLP-133 | 9、1471 | 公開ヘッダーと Win32 コアは C++17 互換を保つ（当時の制約） | **段階 1 で解消済み**（全構成 C++20）。C++20 を前提にする |
-| CLP-137 | 実装 `ClipboardFormats::IsMultiFormatPayloadAllowed` / `ClipboardFormatsTest` | 複数形式の投入は、形式と種別（text / html / bytes）の対応と重複を**配置前に**検証して弾く | `FormatPayload::Kind` として型で表し、検証は `Domain` の同じ関数を使う |
+| CLP-137 | 実装 `ClipboardFormats::IsMultiFormatPayloadAllowed` / `ClipboardFormatsTest` | 複数形式の投入は、形式と種別の対応と重複を**配置前に**検証して弾く。`"HTML Format"` は**名前の完全一致**で判定し、`CF_BITMAP` は全種別を拒否、`CF_TEXT` + text は **ANSI に変換**される | `FormatPayload` の `variant` で表し、検証は `Domain` の同じ関数を使う |
+| CLP-138 | 実装 `reserveDeferredFormats`（`:687`） | 形式名の**重複は黙って上書き**される（`copyMultipleFormats` がエラーにするのと非対称） | 変更しない。Doxygen に書く |
+| CLP-139 | 実装 `IsValidWriteOptions`（`Core.cpp:146`） | `options` は `0x3` 以外のビットが立っていると**書き込み前に** `InvalidParameter` | `WriteOptions` の 2 つの `bool` に対応。ブリッジは今の検査を維持する |
+| CLP-140 | 実装 `WriteStringToBuffer` / `WriteBytesToBuffer`（`:41`、`:65`） | 戻り値の単位は wchar_t 数（NUL 含む）とバイト数で異なり、**`0` は常にエラー**。長さ 0 の内容を表さない。`getPreferredClipboardFormat` は該当なしのとき空文字列で `1` を返す | C++ API では値返しになる。ブリッジは今の単位と `0` の意味を維持する |
+| CLP-141 | 実装 `hasClipboardFormat`（`:607`） | 問い合わせるだけで `RegisterClipboardFormatW` により**形式を登録してしまう** | 変更しない。副作用を Doxygen に書く |
+| CLP-142 | 実装 `MakeDeferredRenderer`（`DeferredProvider.cpp:13`） | 2 相の 2 回目で必要サイズが 1 回目と違うと、その形式を**黙って捨てる**。0 のときと例外のときも捨てる | 内部の 2 相を残すので変わらない（N-2）。C++ API の provider が投げた場合は `Unknown`（N-3） |
 
 ### 10.2 Notification
 
@@ -906,7 +914,10 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | NTF-39 | 122、252 | `initWinAppSdk` は `initNotificationManager` より前に呼ぶ。**ヘッダーは unpackaged 用と明記している** | `Runtime::Initialize` を unpackaged の前提として Doxygen に書く。packaged では不要（7.5.4）。型では強制しない |
 | NTF-60 | 実装 `WindowsNotificationManager::Init`（早期 return の前で `m_callback` を代入） | 2 回目の `init` は冪等に成功し、**活性化のコールバックを差し替える** | `Manager::SetInvokedHandler` で表す（N-10）。ブリッジはこれを使って今の動作を再現する |
 | NTF-61 | 実装 同 `Init`（`CoInitializeEx(nullptr, COINIT_MULTITHREADED)`） | COM を **MTA** で初期化し、`RPC_E_CHANGED_MODE` を許容する。`CoUninitialize` は呼ばない | 段階 3 では現状維持（N-8）。mode と副作用を Doxygen と 7.5.4 に書く |
-| NTF-62 | 実装 同 `BuildPayload`（`now() + seconds`） | `expiration` は**相対の秒数**であり、絶対時刻ではない | `NotificationContent::expiresAfter`（`std::chrono::seconds`）で表す |
+| NTF-62 | 実装 同 `BuildPayload`（`now() + seconds`） | `expiration` は**相対の秒数**であり、絶対時刻ではない。`timestamp` は絶対の Unix 秒、`scheduleNotification` の引数は絶対の Unix ミリ秒で、3 つとも単位が違う | `expiration`（`std::chrono::seconds`）と `timestamp`（`time_point`）で型として分ける |
+| NTF-63 | 実装 `Schedule` の 2 経路（tag / group しか使わない） | **`expiration` と `progress` は予約の経路では無視される**。`expiresOnReboot` は unpackaged で無視される | 型としては受け取り、**無視されることを Doxygen に書く**。挙動は変えない |
+| NTF-64 | 実装 `BuildFromJson`（既知のキーだけを読む） | **未知のキーは黙って無視される**（エラーにならない） | 厳密な構造体にすると今通っている入力が無言で落ちるため、`NotificationContent::unknownKeys` で保持してブリッジが素通しする |
+| NTF-65 | 実装 `setBadge`（`:179`〜`:190`） | badge の `int` は**符号で意味が変わる**（正=件数・上限なし、0=消去、-1〜-6=グリフ表、-6 未満は `INVALID_PARAMETER`） | 段階 3 では `int` のまま維持する。列挙への分割は段階 5 の C ABI で判断する |
 | NTF-41 / NTF-42 / NTF-43 | 341-373、544 | `Setting()` は 1 操作につき 1 回。Show の順序。5 分を超える予約は警告ログ | 実装の順序として維持する |
 | NTF-44 / NTF-45 | 396-408 | 進捗の sequence number は呼び出し側が渡し、そのまま OS に渡す。bind 名の対応 | `ProgressUpdate::sequenceNumber` として維持 |
 | NTF-46 | 375-378 | 予約の取り消しは tag / group の一致で行う（ID ではない） | 変更なし |
@@ -934,6 +945,10 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | DLG-12 | フィルターが `nullptr` のときの既定は `L"All Files\0*.*\0"` | `filters` が空のときに同じものを使う |
 | DLG-13 | ファイル系の 3 API には**タイトルの引数が無い**（フォルダ系にはある） | `FileRequest::title` / `SaveFileRequest::title` は C++ API の新機能。ブリッジは常に空を渡すため、C ABI の動作は変わらない |
 | DLG-14 | `showAlertDialog` は `buttons \| icon \| defbutton \| options` を OR して `MessageBoxW` の `type` にする。値の検証はしていない | 列挙で表せない組み合わせは `AlertRequest::extraFlags` で素通しする（N-9） |
+| DLG-15 | **`showFileDialog` は成功時に `*pError` を 0 にしない**（キャンセルと失敗の経路でしか設定しない）。既存の不具合 | 段階 3 では**そのまま再現する**。修正は別の作業（14 章 RK-12） |
+| DLG-16 | `showMultiFolderDialog` は成功時と溢れ時に `IFileOpenDialog::Release()` を呼んでいない。また成功して `count == 0` のときの戻り値がキャンセルと同じ `0`（`*pError` でのみ区別できる） | 同上。C++ API では空の `vector` と `Canceled` で区別できる |
+| DLG-17 | `buffer == nullptr` を検査せず即座に `ZeroMemory` する。バッファ不足でも**必要サイズを返さない** | C++ API ではバッファが無くなる。ブリッジ側は今の振る舞いを維持する |
+| DLG-18 | 6 つとも**オーナー HWND・初期ディレクトリ・既定ファイル名・フィルター番号を受け取らない**（`nFilterIndex` は 1 固定） | `owner` だけ C++ API で受け取れるようにする。ほかは今の範囲のまま |
 
 ### 10.4 新規設計判断（既存の約束を変える点）
 
@@ -1084,7 +1099,7 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 
 ## 13. 実装タスク分解
 
-合計見積: 約 20.5 日
+合計見積: 約 20.0 日
 
 **T-03 は設計を確定させるためのスパイクであり、これが終わるまで 7.5 の配布構成は暫定とする**（S-8）。結果によっては 7.5 と 15.3 を段階 3 のうちに書き換える。
 
@@ -1106,7 +1121,7 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | T-14 | 既存の C ABI 52 関数を、DLL ブリッジとして C++ API（と Dialog の内部入口）の上に載せ替える | 1.5日 | T-06, T-08, T-11, T-12, T-17 | `dumpbin /exports` の差分 0 件。**T-17 の入力一覧の全項目が同じ結果になる**。単体テストと UI テストが baseline と一致 | `pError` が今と同じか（`uninit` の 5 通り、`cancel` の 2 通り、Dialog の戻り値の数え方） |
 | T-15 | 回帰の確認: `scripts/test_windows.ps1` と CU-01 | 0.5日 | T-13, T-14 | 3 層すべてが段階 0d の記録と一致 | 記録との差分が 0 件か |
 | T-16 | 公開ヘッダーの Doxygen（`@brief` / `@param` / `@return` / `@retval`、10 章で維持する注意書き、7.5.4 の前提） | 1.0日 | T-14 | 全公開宣言にコメントがある | スレッド・再入・寿命・`Close()` 必須が書かれているか |
-| T-17 | **C ABI が受け付ける入力の一覧を実装から導出する**（JSON のキー、`MB_*` / `OFN_*` の組み合わせ、フィルター文字列の形、バッファの規約）。T-14 の突き合わせの基準にする | 1.0日 | T-02 | 47 関数それぞれについて、受け付ける入力と返す値の一覧がある | サンプルが使っている範囲に縮んでいないか |
+| T-17 | `designs/2026-09-20-windows-architecture-c-abi-input-inventory.md`（**作成済み**）を、分割後のコードに対して検証し直し、T-14 の突き合わせに使える形に保つ | 0.5日 | T-02 | 一覧の全項目が分割後も同じ結果になる | 一覧がサンプルの使う範囲に縮んでいないか |
 
 ### 13.1 先行と後続
 
@@ -1130,6 +1145,7 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | RK-09 | COM の初期化と解除の不均衡を段階 3 で残す（N-8） | 段階 5 まで解消しない | 現状維持であり悪化はしない。Doxygen で利用者に前提を示す。段階 5 の申し送りに記録する |
 | RK-10 | cold start の活性化が `Manager::Create` の中から配送される | 利用者のハンドラが `Manager` を受け取る前に呼ばれる | Doxygen に明記し、ハンドラが `Manager` を前提にしない書き方をサンプルで示す |
 | RK-11 | `AlertRequest::extraFlags` の逃げ道が乱用される | 型で表した意味が骨抜きになる | 逃げ道はブリッジの互換用であることを Doxygen に書き、サンプルでは使わない。段階 5 で必要な `MB_*` を列挙に昇格させる |
+| RK-12 | 既存の不具合（DLG-15 の `pError` 未設定、DLG-16 の `Release` 漏れ）をそのまま再現する | 不具合が段階 3 の後も残る | 段階 3 は動作を変えない段階なので再現が正しい。**別チケットとして切り出し**、段階 5 か独立の修正で直す |
 
 ## 15. Definition of Done
 
