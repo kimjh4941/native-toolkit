@@ -204,7 +204,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\Dialog\WindowsDialogManager.cpp" />
+    <ClCompile Include="src\Bridge\AppSdkBootstrapBridge.cpp" />
+    <ClCompile Include="src\Bridge\ClipboardBridge.cpp" />
+    <ClCompile Include="src\Bridge\DialogBridge.cpp" />
+    <ClCompile Include="src\Bridge\NotificationBridge.cpp" />
     <ClCompile Include="src\Notification\WindowsNotificationManager.cpp" />
     <ClCompile Include="src\Notification\Data\WindowsClassicActivator.cpp" />
     <ClCompile Include="src\Notification\Data\WindowsAppSdkBootstrap.cpp" />
@@ -227,6 +230,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="src\Dialog\WindowsDialogManager.h" />
+    <ClInclude Include="src\Dialog\WindowsDialogManagerInternal.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManager.h" />
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManagerInternal.h" />

@@ -38,13 +38,3 @@ void WindowsNotificationManager::InitWinAppSdk(uint32_t majorMinorVersion, DWORD
     // only runtime action performed here.
     DLog(TAG, L"[InitWinAppSdk] DeploymentManager skipped for unpackaged bootstrap");
 }
-
-// =============================================================================
-// C Bridge API
-// =============================================================================
-
-void initWinAppSdk(uint32_t majorMinorVersion, DWORD* pError)
-{
-    DFLog(TAG, L"[initWinAppSdk] majorMinorVersion=0x%08x", majorMinorVersion);
-    WindowsNotificationManager::GetInstance().InitWinAppSdk(majorMinorVersion, pError);
-}
