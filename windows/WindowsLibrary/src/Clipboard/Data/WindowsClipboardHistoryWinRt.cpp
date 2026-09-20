@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "Clipboard/Data/WindowsClipboardHistoryWinRt.h"
 #include "Clipboard/WindowsClipboardManager.h"
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 #include <algorithm>
 #include <atomic>
 #include <mutex>

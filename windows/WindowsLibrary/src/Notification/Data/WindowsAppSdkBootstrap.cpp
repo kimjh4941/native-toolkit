@@ -6,7 +6,7 @@
 // Microsoft.WindowsAppRuntime.Bootstrap.dll.
 #include <MddBootstrap.h>
 #include "Notification/WindowsNotificationManagerInternal.h"
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 
 namespace
 {

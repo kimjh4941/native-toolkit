@@ -44,3 +44,10 @@ EXPORTS
 	clearUnpinnedHistory
 	getClipboardHistoryAvailability
 	cancelClipboardRequest
+
+	; Common
+	DLog
+	DFLog
+	DFLLog
+	ToWString
+	ConcatWStrings

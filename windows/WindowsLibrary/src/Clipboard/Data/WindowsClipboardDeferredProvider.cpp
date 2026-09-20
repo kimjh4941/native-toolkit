@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Clipboard/Data/WindowsClipboardDeferredProvider.h"
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 
 static const wchar_t* TAG = L"WindowsClipboardDeferredProvider";
 

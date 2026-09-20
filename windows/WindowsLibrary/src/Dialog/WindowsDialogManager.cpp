@@ -8,7 +8,7 @@
 #include "pch.h"
 #include <windows.h>
 #include <string>
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 #include "Dialog/WindowsDialogManager.h"
 #include <memory>
 #include <shobjidl.h> // IFileDialog, IFileOpenDialog

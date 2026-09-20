@@ -4,7 +4,7 @@
 #include "Clipboard/Data/WindowsClipboardHistoryWinRt.h"
 #include "Clipboard/Domain/WindowsClipboardFormats.h"
 #include "Clipboard/Data/WindowsClipboardDeferredProvider.h"
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 #include <map>
 #include <set>
 #include <type_traits>

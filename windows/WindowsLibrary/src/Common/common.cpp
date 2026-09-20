@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 #include <memory>
 
 void DLog(const wchar_t* tag, const wchar_t* message)

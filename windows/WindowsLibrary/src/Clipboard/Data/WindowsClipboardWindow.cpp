@@ -2,7 +2,7 @@
 #include "Clipboard/Data/WindowsClipboardWindow.h"
 #include "Clipboard/WindowsClipboardManagerInternal.h"
 #include "Clipboard/Application/WindowsClipboardHistoryCoordinator.h" // WM_APP_CLIPBOARD_* message ids
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 
 static const wchar_t* TAG = L"WindowsClipboardWindow";
 static const wchar_t* kClassName = L"NativeToolkitClipboardWindow";

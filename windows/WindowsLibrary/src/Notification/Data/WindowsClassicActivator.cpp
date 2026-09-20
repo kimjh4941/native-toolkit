@@ -28,7 +28,7 @@
 
 #include "Notification/Data/WindowsClassicActivator.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 
 // WinRT — used for toast delivery, XML, badge, JSON (all in WinRT classic APIs)
 // DO NOT open winrt::Windows::Foundation namespace to avoid ::IUnknown collision.

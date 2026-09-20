@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/Data/WindowsClassicActivator.h"
-#include "Common/common.h"
+#include "Common/CommonInternal.h"
 
 #include <future>
 #include <algorithm>
