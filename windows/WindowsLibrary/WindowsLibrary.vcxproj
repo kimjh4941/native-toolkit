@@ -220,6 +220,7 @@
   <ItemGroup>
     <ClInclude Include="include\NativeToolkit\BuildStamp.h" />
     <ClInclude Include="include\NativeToolkit\Error.h" />
+    <ClInclude Include="include\NativeToolkit\Dialog.h" />
     <ClInclude Include="include\NativeToolkit\Types.h" />
     <ClInclude Include="src\Common\common.h" />
     <ClInclude Include="src\Common\CommonInternal.h" />
@@ -228,6 +229,7 @@
     <ClInclude Include="src\Dialog\WindowsDialogManager.h" />
     <ClInclude Include="src\Dialog\Data\WindowsDialogWin32.h" />
     <ClInclude Include="src\Dialog\Domain\WindowsDialogError.h" />
+    <ClInclude Include="src\Dialog\Domain\WindowsDialogMapping.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManager.h" />
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManagerInternal.h" />

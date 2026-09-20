@@ -17,6 +17,9 @@
 
 namespace NativeToolkit::Dialog::Domain {
 
+/// The outcome of a dialog, as the C++ API reports it.
+using ClassifiedOutcome = Failure<DialogError>;
+
 /// What the C ABI writes to *pError when the user dismissed a dialog (DLG-01).
 inline constexpr uint32_t kCanceledSentinel = 0xFFFFFFFFu;
 

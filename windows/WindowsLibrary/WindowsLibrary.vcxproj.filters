@@ -80,6 +80,9 @@
     <ClCompile Include="src\Common\common.cpp">
       <Filter>src\Common</Filter>
     </ClCompile>
+    <ClCompile Include="src\Dialog\WindowsDialogApi.cpp">
+      <Filter>src\Dialog</Filter>
+    </ClCompile>
     <ClCompile Include="src\Bridge\AppSdkBootstrapBridge.cpp">
       <Filter>src\Bridge</Filter>
     </ClCompile>
@@ -138,6 +141,9 @@
     <ClInclude Include="include\NativeToolkit\BuildStamp.h">
       <Filter>include\NativeToolkit</Filter>
     </ClInclude>
+    <ClInclude Include="include\NativeToolkit\Dialog.h">
+      <Filter>include\NativeToolkit</Filter>
+    </ClInclude>
     <ClInclude Include="include\NativeToolkit\Error.h">
       <Filter>include\NativeToolkit</Filter>
     </ClInclude>
@@ -157,6 +163,9 @@
       <Filter>src\Dialog\Data</Filter>
     </ClInclude>
     <ClInclude Include="src\Dialog\Domain\WindowsDialogError.h">
+      <Filter>src\Dialog\Domain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Dialog\Domain\WindowsDialogMapping.h">
       <Filter>src\Dialog\Domain</Filter>
     </ClInclude>
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h">
