@@ -101,6 +101,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="ClipboardApiTest.cpp" />
+    <ClCompile Include="ClipboardApiCoreTest.cpp" />
     <ClCompile Include="ClipboardCoreTest.cpp" />
     <ClCompile Include="ClipboardDeferredProviderTest.cpp" />
     <!-- Production code under test, compiled directly into the test (internal class methods

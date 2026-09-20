@@ -38,6 +38,74 @@ namespace
                                      nullptr, nullptr) == needed;
     }
 
+
+    // ---- Multi-format items --------------------------------------------
+    //
+    // Which payload a format may carry, how text is encoded for it, and which
+    // binary payloads are checked, are rules of the clipboard rather than of
+    // JSON. Both the JSON entry point and the C++ API build their items here
+    // so the two cannot drift apart (CLP-123, CLP-137, M1).
+
+    enum class MultiItemKind { Text, Html, Bytes };
+
+    DWORD BuildMultiFormatItem(const std::wstring& formatName,
+                               MultiItemKind kind,
+                               const std::wstring& text,
+                               std::vector<BYTE> bytes,
+                               std::set<UINT>& seenFormats,
+                               FormatPayload& out)
+    {
+        if (formatName.empty()) return CLIPBOARD_ERROR_INVALID_PARAMETER;
+
+        const UINT fmt = ResolveFormatId(formatName);
+        if (fmt == 0) return CLIPBOARD_ERROR_INVALID_PARAMETER;
+        if (!seenFormats.insert(fmt).second) return CLIPBOARD_ERROR_INVALID_PARAMETER;
+
+        const auto payloadKind =
+            kind == MultiItemKind::Text ? ClipboardFormats::MultiFormatPayloadKind::Text
+          : kind == MultiItemKind::Html ? ClipboardFormats::MultiFormatPayloadKind::Html
+                                        : ClipboardFormats::MultiFormatPayloadKind::Base64;
+        if (!ClipboardFormats::IsMultiFormatPayloadAllowed(formatName, fmt, payloadKind))
+            return CLIPBOARD_ERROR_INVALID_PARAMETER;
+
+        out = FormatPayload{};
+        out.format = fmt;
+
+        if (kind == MultiItemKind::Text)
+        {
+            if (fmt == CF_TEXT)
+            {
+                if (!EncodeAnsiText(text, out.data)) return CLIPBOARD_ERROR_INVALID_DATA;
+                return CLIPBOARD_ERROR_NONE;
+            }
+            size_t chars = 0, byteCount = 0;
+            if (!ClipboardFormats::CheckedAdd(text.size(), 1, chars) ||
+                !ClipboardFormats::CheckedMul(chars, sizeof(wchar_t), byteCount))
+                return CLIPBOARD_ERROR_INVALID_DATA;
+            out.data.resize(byteCount);
+            ::memcpy(out.data.data(), text.c_str(), byteCount);
+            return CLIPBOARD_ERROR_NONE;
+        }
+
+        if (kind == MultiItemKind::Html)
+        {
+            const std::string cf = ClipboardFormats::BuildCfHtml(ClipboardFormats::WideToUtf8(text));
+            if (cf.empty()) return CLIPBOARD_ERROR_INVALID_PARAMETER;
+            out.data.assign(cf.begin(), cf.end());
+            out.data.push_back(0);
+            return CLIPBOARD_ERROR_NONE;
+        }
+
+        // Generic binary: decoded as-is for a custom format, and structurally
+        // checked for the known binary ones we have a validator for.
+        if ((fmt == CF_DIB || fmt == CF_DIBV5) && !ClipboardFormats::ValidateDib(bytes.data(), bytes.size()))
+            return CLIPBOARD_ERROR_INVALID_DATA;
+        if (fmt == CF_HDROP && !ClipboardFormats::ValidateDropFiles(bytes.data(), bytes.size()))
+            return CLIPBOARD_ERROR_INVALID_DATA;
+        out.data = std::move(bytes);
+        return CLIPBOARD_ERROR_NONE;
+    }
+
     DWORD WriteStringToBuffer(const std::wstring& value, wchar_t* buffer, DWORD bufferSize, DWORD* pError)
     {
         size_t neededSize = 0;
@@ -497,91 +565,35 @@ void ClipboardManager::CopyMultipleFormats(const wchar_t* itemsJson, DWORD optio
         {
             JsonObject obj = v.GetObject();
             const std::wstring formatName(obj.HasKey(L"format") ? obj.GetNamedString(L"format") : L"");
-            if (formatName.empty()) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
-            const UINT fmt = ResolveFormatId(formatName);
-            if (fmt == 0) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
-            if (!seenFormats.insert(fmt).second) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; } // M1: duplicate format
 
             const bool hasText = obj.HasKey(L"text");
             const bool hasHtml = obj.HasKey(L"html");
             const bool hasBase64 = obj.HasKey(L"base64");
-            const int payloadCount = (hasText ? 1 : 0) + (hasHtml ? 1 : 0) + (hasBase64 ? 1 : 0);
-            if (payloadCount != 1) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
-
-            const auto payloadKind = hasText
-                ? ClipboardFormats::MultiFormatPayloadKind::Text
-                : (hasHtml ? ClipboardFormats::MultiFormatPayloadKind::Html
-                           : ClipboardFormats::MultiFormatPayloadKind::Base64);
-            if (!ClipboardFormats::IsMultiFormatPayloadAllowed(formatName, fmt, payloadKind))
+            if ((hasText ? 1 : 0) + (hasHtml ? 1 : 0) + (hasBase64 ? 1 : 0) != 1)
             {
                 SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER);
                 return;
             }
 
-            FormatPayload payload;
-            payload.format = fmt;
-            if (hasText)
+            std::wstring text;
+            std::vector<BYTE> bytes;
+            MultiItemKind kind = MultiItemKind::Bytes;
+            if (hasText)      { kind = MultiItemKind::Text; text = obj.GetNamedString(L"text"); }
+            else if (hasHtml) { kind = MultiItemKind::Html; text = obj.GetNamedString(L"html"); }
+            else
             {
-                const std::wstring text(obj.GetNamedString(L"text"));
-                if (fmt == CF_TEXT)
-                {
-                    if (!EncodeAnsiText(text, payload.data))
-                    {
-                        SetErr(pError, CLIPBOARD_ERROR_INVALID_DATA);
-                        return;
-                    }
-                }
-                else
-                {
-                    size_t chars = 0, bytes = 0;
-                    if (!ClipboardFormats::CheckedAdd(text.size(), 1, chars) ||
-                        !ClipboardFormats::CheckedMul(chars, sizeof(wchar_t), bytes))
-                    {
-                        SetErr(pError, CLIPBOARD_ERROR_INVALID_DATA);
-                        return;
-                    }
-                    payload.data.resize(bytes);
-                    ::memcpy(payload.data.data(), text.c_str(), bytes);
-                }
-            }
-            else if (hasHtml)
-            {
-                const std::wstring html(obj.GetNamedString(L"html"));
-                const std::string utf8 = ClipboardFormats::WideToUtf8(html);
-                const std::string cf = ClipboardFormats::BuildCfHtml(utf8);
-                if (cf.empty()) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
-                payload.data.assign(cf.begin(), cf.end());
-                payload.data.push_back(0);
-            }
-            else if (hasBase64)
-            {
-                // Generic binary payload kind (M1): decoded as-is for custom
-                // formats, and structurally validated for the known binary
-                // formats we already have a validator for.
                 const std::wstring b64w(obj.GetNamedString(L"base64"));
-                std::vector<BYTE> decoded;
-                if (!ClipboardFormats::Base64Decode(ClipboardFormats::WideToUtf8(b64w), decoded))
+                if (!ClipboardFormats::Base64Decode(ClipboardFormats::WideToUtf8(b64w), bytes))
                 {
                     SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER);
                     return;
                 }
-                if ((fmt == CF_DIB || fmt == CF_DIBV5) && !ClipboardFormats::ValidateDib(decoded.data(), decoded.size()))
-                {
-                    SetErr(pError, CLIPBOARD_ERROR_INVALID_DATA);
-                    return;
-                }
-                if (fmt == CF_HDROP && !ClipboardFormats::ValidateDropFiles(decoded.data(), decoded.size()))
-                {
-                    SetErr(pError, CLIPBOARD_ERROR_INVALID_DATA);
-                    return;
-                }
-                payload.data = std::move(decoded);
             }
-            else
-            {
-                SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER);
-                return;
-            }
+
+            FormatPayload payload;
+            const DWORD itemErr = BuildMultiFormatItem(formatName, kind, text, std::move(bytes),
+                                                       seenFormats, payload);
+            if (itemErr != CLIPBOARD_ERROR_NONE) { SetErr(pError, itemErr); return; }
             items.push_back(std::move(payload));
         }
     }
@@ -658,6 +670,238 @@ void ClipboardManager::ClearClipboard(DWORD* pError)
     const DWORD err = ::ClearClipboard(hwnd);
     SetErr(pError, err);
     if (err == CLIPBOARD_ERROR_NONE) selfWrite.NoteMutation();
+}
+
+
+// -----------------------------------------------------------------------
+// The same core, in values (the C++ API)
+//
+// Each of these is its JSON or buffer counterpart above with the encoding
+// stripped off: the same lease, the same self-write bookkeeping keyed on
+// whether the clipboard actually changed, and the same Data layer call.
+// -----------------------------------------------------------------------
+
+void ClipboardManager::CopyText(const std::wstring& text, DWORD options, DWORD* pError)
+{
+    DFLog(TAG, L"[CopyText] options: %lu", options);
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    auto selfWrite = watcher_.BeginSelfWrite();
+    bool mutated = false;
+    SetErr(pError, ::CopyPlainText(hwnd, text, options, &mutated));
+    if (mutated) selfWrite.NoteMutation();
+}
+
+void ClipboardManager::PasteText(std::wstring& out, DWORD* pError)
+{
+    DLog(TAG, L"[PasteText]");
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+    SetErr(pError, ::PastePlainText(hwnd, out));
+}
+
+void ClipboardManager::CopyHtmlFragment(const std::wstring& fragment, const std::wstring& plainText,
+                                        DWORD options, DWORD* pError)
+{
+    DFLog(TAG, L"[CopyHtmlFragment] options: %lu", options);
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    auto selfWrite = watcher_.BeginSelfWrite();
+    bool mutated = false;
+    SetErr(pError, ::CopyHtml(hwnd, ClipboardFormats::WideToUtf8(fragment), plainText, options, &mutated));
+    if (mutated) selfWrite.NoteMutation();
+}
+
+void ClipboardManager::PasteHtmlFragmentValue(std::wstring& out, DWORD* pError)
+{
+    DLog(TAG, L"[PasteHtmlFragmentValue]");
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    std::string utf8;
+    const DWORD err = ::PasteHtmlFragment(hwnd, utf8);
+    if (err != CLIPBOARD_ERROR_NONE) { SetErr(pError, err); return; }
+    out = ClipboardFormats::Utf8ToWide(utf8);
+    SetErr(pError, CLIPBOARD_ERROR_NONE);
+}
+
+void ClipboardManager::CopyFilePaths(const std::vector<std::wstring>& paths, DWORD options, DWORD* pError)
+{
+    DFLog(TAG, L"[CopyFilePaths] count: %zu, options: %lu", paths.size(), options);
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    auto selfWrite = watcher_.BeginSelfWrite();
+    bool mutated = false;
+    SetErr(pError, ::CopyFiles(hwnd, paths, options, &mutated));
+    if (mutated) selfWrite.NoteMutation();
+}
+
+void ClipboardManager::PasteFilePaths(std::vector<std::wstring>& out, DWORD* pError)
+{
+    DLog(TAG, L"[PasteFilePaths]");
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+    SetErr(pError, ::PasteFiles(hwnd, out));
+}
+
+void ClipboardManager::CopyImageBytes(const std::vector<BYTE>& dib, DWORD options, DWORD* pError)
+{
+    DFLog(TAG, L"[CopyImageBytes] size: %zu, options: %lu", dib.size(), options);
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    auto selfWrite = watcher_.BeginSelfWrite();
+    bool mutated = false;
+    SetErr(pError, ::CopyDib(hwnd, dib, options, &mutated));
+    if (mutated) selfWrite.NoteMutation();
+}
+
+void ClipboardManager::PasteImageBytes(std::vector<BYTE>& out, DWORD* pError)
+{
+    DLog(TAG, L"[PasteImageBytes]");
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+    SetErr(pError, ::PasteDib(hwnd, out));
+}
+
+void ClipboardManager::CopyCustomBytes(const std::wstring& formatName, const std::vector<BYTE>& data,
+                                       DWORD options, DWORD* pError)
+{
+    DFLog(TAG, L"[CopyCustomBytes] format: %ls, options: %lu", formatName.c_str(), options);
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+    if (formatName.empty()) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
+
+    auto selfWrite = watcher_.BeginSelfWrite();
+    bool mutated = false;
+    SetErr(pError, ::CopyCustom(hwnd, formatName, data, options, &mutated));
+    if (mutated) selfWrite.NoteMutation();
+}
+
+void ClipboardManager::PasteCustomBytes(const std::wstring& formatName, std::vector<BYTE>& out, DWORD* pError)
+{
+    DFLog(TAG, L"[PasteCustomBytes] format: %ls", formatName.c_str());
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+    if (formatName.empty()) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
+    SetErr(pError, ::PasteCustom(hwnd, formatName, out));
+}
+
+void ClipboardManager::CopyFormatPayloads(
+    const std::vector<NativeToolkit::Clipboard::FormatPayload>& payloads, DWORD options, DWORD* pError)
+{
+    DFLog(TAG, L"[CopyFormatPayloads] count: %zu, options: %lu", payloads.size(), options);
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    std::vector<FormatPayload> items;
+    std::set<UINT> seenFormats;
+    for (const auto& payload : payloads)
+    {
+        std::wstring formatName;
+        std::wstring text;
+        std::vector<BYTE> bytes;
+        MultiItemKind kind = MultiItemKind::Bytes;
+
+        if (const auto* asText = std::get_if<NativeToolkit::Clipboard::TextPayload>(&payload))
+        {
+            kind = MultiItemKind::Text;
+            formatName = asText->formatName;
+            text = asText->text;
+        }
+        else if (const auto* asHtml = std::get_if<NativeToolkit::Clipboard::HtmlPayload>(&payload))
+        {
+            kind = MultiItemKind::Html;
+            formatName = asHtml->formatName;
+            text = asHtml->html;
+        }
+        else
+        {
+            const auto& asBytes = std::get<NativeToolkit::Clipboard::BytesPayload>(payload);
+            formatName = asBytes.formatName;
+            bytes.resize(asBytes.bytes.size());
+            if (!asBytes.bytes.empty())
+                ::memcpy(bytes.data(), asBytes.bytes.data(), asBytes.bytes.size());
+        }
+
+        FormatPayload item;
+        const DWORD itemErr = BuildMultiFormatItem(formatName, kind, text, std::move(bytes),
+                                                   seenFormats, item);
+        if (itemErr != CLIPBOARD_ERROR_NONE) { SetErr(pError, itemErr); return; }
+        items.push_back(std::move(item));
+    }
+
+    auto selfWrite = watcher_.BeginSelfWrite();
+    bool mutated = false;
+    SetErr(pError, ::CopyMultipleFormats(hwnd, items, options, &mutated));
+    if (mutated) selfWrite.NoteMutation();
+}
+
+bool ClipboardManager::HasFormatNamed(const std::wstring& formatName, DWORD* pError)
+{
+    DFLog(TAG, L"[HasFormatNamed] format: %ls", formatName.c_str());
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return false;
+    if (formatName.empty()) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return false; }
+    const bool has = ::HasFormat(ResolveFormatId(formatName));
+    SetErr(pError, CLIPBOARD_ERROR_NONE);
+    return has;
+}
+
+void ClipboardManager::ListFormatNames(std::vector<std::wstring>& out, DWORD* pError)
+{
+    DLog(TAG, L"[ListFormatNames]");
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    std::vector<UINT> formats;
+    const DWORD err = ::ListFormats(hwnd, formats);
+    if (err != CLIPBOARD_ERROR_NONE) { SetErr(pError, err); return; }
+
+    for (UINT fmt : formats)
+    {
+        std::wstring name;
+        if (::FormatName(fmt, name) != CLIPBOARD_ERROR_NONE)
+        {
+            // A format with no name is still a format; the hex spelling is
+            // what the C ABI reports and what callers already match on.
+            wchar_t hex[16];
+            ::swprintf_s(hex, L"0x%04X", fmt);
+            name = hex;
+        }
+        out.push_back(std::move(name));
+    }
+    SetErr(pError, CLIPBOARD_ERROR_NONE);
+}
+
+void ClipboardManager::PreferredFormatName(std::wstring& out, DWORD* pError)
+{
+    DLog(TAG, L"[PreferredFormatName]");
+    std::optional<ClipboardLifecycle::Lease> lease;
+    HWND hwnd = nullptr;
+    if (!AcquireSyncLease(pError, lease, hwnd)) return;
+
+    // No format at all is an empty name, not a failure: that is what the C ABI
+    // writes into the caller's buffer.
+    const int fmt = ::PickPreferredFormat();
+    if (fmt > 0) ::FormatName(static_cast<UINT>(fmt), out);
+    SetErr(pError, CLIPBOARD_ERROR_NONE);
 }
 
 // -----------------------------------------------------------------------

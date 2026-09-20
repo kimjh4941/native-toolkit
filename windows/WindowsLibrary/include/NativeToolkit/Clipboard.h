@@ -15,7 +15,9 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -66,6 +68,16 @@ struct HistoryHandlers {
     std::function<void()>     onHistoryChanged;
     std::function<void(bool)> onHistoryEnabledChanged;
     std::function<void(bool)> onRoamingEnabledChanged;
+};
+
+/**
+ * @brief What the OS may do with what is written.
+ * @details Both default to allowed, which is what a write with no options
+ *          means today. Setting both is what "sensitive" means.
+ */
+struct WriteOptions {
+    bool excludeFromHistory = false;  ///< Keep it out of the clipboard history.
+    bool excludeFromRoaming = false;  ///< Do not let it reach other devices.
 };
 
 /**
@@ -148,6 +160,78 @@ public:
 
     /// Installs or, with a default-constructed value, removes the history handlers.
     Result<void> SetHistoryHandlers(HistoryHandlers handlers);
+
+    // --- The synchronous core (OP-25..OP-39) -------------------------------
+    //
+    // Callable from any thread. Each one opens and closes the clipboard for
+    // itself, so between two of them anything may have changed it.
+    //
+    // A wstring_view argument is read only up to its own length: it does not
+    // have to be NUL terminated, and a view into the middle of a larger string
+    // is fine. A NUL inside one is InvalidParameter rather than a silent
+    // truncation, because the clipboard formats underneath are NUL terminated
+    // and could not carry the rest.
+
+    /// Writes text as CF_UNICODETEXT.
+    Result<void> CopyText(std::wstring_view text, WriteOptions options = {});
+
+    /// Reads CF_UNICODETEXT.
+    Result<std::wstring> PasteText();
+
+    /// Writes an HTML fragment as CF_HTML, with plainText as the text fallback.
+    Result<void> CopyHtml(std::wstring_view fragment, std::wstring_view plainText,
+                          WriteOptions options = {});
+
+    /// Reads the fragment out of CF_HTML, without its header.
+    Result<std::wstring> PasteHtml();
+
+    /// Writes paths as CF_HDROP.
+    Result<void> CopyFiles(std::span<const std::wstring> paths, WriteOptions options = {});
+
+    /// Reads the paths of CF_HDROP.
+    Result<std::vector<std::wstring>> PasteFiles();
+
+    /**
+     * @brief Writes an image as CF_DIB.
+     * @details The bytes are a device-independent bitmap, header first and
+     *          with no BITMAPFILEHEADER: this is the clipboard's own shape,
+     *          not a .bmp file, and the library does not convert one to the
+     *          other.
+     */
+    Result<void> CopyDib(std::span<const std::byte> dib, WriteOptions options = {});
+
+    /// Reads CF_DIB, in the same shape CopyDib takes.
+    Result<std::vector<std::byte>> PasteDib();
+
+    /// Writes bytes under a registered format name.
+    Result<void> CopyCustom(std::wstring_view formatName, std::span<const std::byte> data,
+                            WriteOptions options = {});
+
+    /// Reads the bytes of a registered format.
+    Result<std::vector<std::byte>> PasteCustom(std::wstring_view formatName);
+
+    /**
+     * @brief Writes several formats of one thing in a single operation.
+     * @details
+     *  The items are placed in the order given, so put the richest first: that
+     *  is the order a reader walks. Every item is checked before anything is
+     *  placed, so a bad one leaves the clipboard untouched rather than half
+     *  written. Naming the same format twice is InvalidParameter.
+     */
+    Result<void> CopyMultiple(std::span<const FormatPayload> items, WriteOptions options = {});
+
+    /// Whether the clipboard currently offers that format.
+    Result<bool> HasFormat(std::wstring_view formatName);
+
+    /// Every format the clipboard offers, in the order the OS reports them.
+    /// A format with no registered name is reported as "0x____".
+    Result<std::vector<std::wstring>> GetFormats();
+
+    /// The format a reader should prefer, or an empty name when there is none.
+    Result<std::wstring> GetPreferredFormat();
+
+    /// Empties the clipboard.
+    Result<void> Clear();
 
 private:
     Session() = default;

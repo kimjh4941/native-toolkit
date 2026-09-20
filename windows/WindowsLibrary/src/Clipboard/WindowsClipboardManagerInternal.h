@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Clipboard/WindowsClipboardManager.h"
+#include "NativeToolkit/Clipboard.h"
 #include "Clipboard/Data/WindowsClipboardCore.h"
 #include "Clipboard/Application/WindowsClipboardLifecycle.h"
 #include "Clipboard/Application/WindowsClipboardHistoryBackend.h"
@@ -43,6 +44,28 @@ public:
     DWORD  GetClipboardFormats(wchar_t* buffer, DWORD bufferSize, DWORD* pError);
     DWORD  GetPreferredClipboardFormat(wchar_t* buffer, DWORD bufferSize, DWORD* pError);
     void   ClearClipboard(DWORD* pError);
+
+    // The same operations described in values instead of in buffers and JSON,
+    // for the C++ API. They take the identical route once the payload is in
+    // hand; only the shape of the input and the output differs. T-14 folds the
+    // buffer and JSON entry points above onto these.
+    void CopyText(const std::wstring& text, DWORD options, DWORD* pError);
+    void PasteText(std::wstring& out, DWORD* pError);
+    void CopyHtmlFragment(const std::wstring& fragment, const std::wstring& plainText,
+                          DWORD options, DWORD* pError);
+    void PasteHtmlFragmentValue(std::wstring& out, DWORD* pError);
+    void CopyFilePaths(const std::vector<std::wstring>& paths, DWORD options, DWORD* pError);
+    void PasteFilePaths(std::vector<std::wstring>& out, DWORD* pError);
+    void CopyImageBytes(const std::vector<BYTE>& dib, DWORD options, DWORD* pError);
+    void PasteImageBytes(std::vector<BYTE>& out, DWORD* pError);
+    void CopyCustomBytes(const std::wstring& formatName, const std::vector<BYTE>& data,
+                         DWORD options, DWORD* pError);
+    void PasteCustomBytes(const std::wstring& formatName, std::vector<BYTE>& out, DWORD* pError);
+    void CopyFormatPayloads(const std::vector<NativeToolkit::Clipboard::FormatPayload>& items,
+                            DWORD options, DWORD* pError);
+    bool HasFormatNamed(const std::wstring& formatName, DWORD* pError);
+    void ListFormatNames(std::vector<std::wstring>& out, DWORD* pError);
+    void PreferredFormatName(std::wstring& out, DWORD* pError);
 
     // Deferred rendering (owner UI thread only).
     void ReserveDeferredFormats(const wchar_t* formatNamesJson, ClipboardRenderCallback provider,

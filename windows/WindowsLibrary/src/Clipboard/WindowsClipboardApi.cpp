@@ -26,8 +26,11 @@
 #include "pch.h"
 
 #include <crtdbg.h>
+#include <cstring>
 #include <mutex>
+#include <optional>
 #include <utility>
+#include <vector>
 
 #include "Clipboard/WindowsClipboardApiInternal.h"
 #include "Clipboard/WindowsClipboardManagerInternal.h"
@@ -115,6 +118,64 @@ Result<void> ToResult(DWORD error)
 ClipboardManager& Backing() noexcept
 {
     return ClipboardManager::GetInstance();
+}
+
+/// The failure a closed or moved-from session gives every data operation.
+Error NotOpen()
+{
+    return Error{ErrorCode::NotInitialized, CLIPBOARD_ERROR_NOT_INITIALIZED};
+}
+
+/// The typed failure for a raw code the manager reported.
+Error Fail(DWORD error)
+{
+    return Error{static_cast<ErrorCode>(error), error};
+}
+
+/**
+ * @brief Takes an owned copy of a borrowed string, or says why it cannot.
+ * @details
+ *  A wstring_view need not be NUL terminated and may be a window into a larger
+ *  string, so the only safe thing to do with one is copy exactly its length
+ *  before handing it to anything that expects a C string.
+ *
+ *  A NUL inside the view is refused rather than silently truncated: every
+ *  clipboard format underneath ends at the first NUL, so the rest of what the
+ *  caller passed could not be written, and quietly writing a prefix is the
+ *  kind of loss that is found much later.
+ */
+std::optional<Error> Borrow(std::wstring_view view, std::wstring& out)
+{
+    if (view.find(L'\0') != std::wstring_view::npos) {
+        DLog(TAG, L"[Borrow] the argument contains an embedded NUL");
+        return Error{ErrorCode::InvalidParameter, CLIPBOARD_ERROR_INVALID_PARAMETER};
+    }
+    out.assign(view.data(), view.size());
+    return std::nullopt;
+}
+
+/// The flag word the C ABI uses for the same two choices.
+DWORD ToOptionFlags(WriteOptions options)
+{
+    DWORD flags = CLIPBOARD_WRITE_OPTION_NONE;
+    if (options.excludeFromHistory) flags |= CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY;
+    if (options.excludeFromRoaming) flags |= CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING;
+    return flags;
+}
+
+/// std::byte and BYTE are the same byte; the layers underneath spell it BYTE.
+std::vector<BYTE> ToRawBytes(std::span<const std::byte> bytes)
+{
+    std::vector<BYTE> raw(bytes.size());
+    if (!bytes.empty()) ::memcpy(raw.data(), bytes.data(), bytes.size());
+    return raw;
+}
+
+std::vector<std::byte> FromRawBytes(const std::vector<BYTE>& raw)
+{
+    std::vector<std::byte> bytes(raw.size());
+    if (!raw.empty()) ::memcpy(bytes.data(), raw.data(), raw.size());
+    return bytes;
 }
 
 }  // namespace
@@ -254,6 +315,177 @@ Result<void> Session::SetHistoryHandlers(HistoryHandlers handlers)
                                   wantsEnabled ? &ForwardHistoryEnabledChanged : nullptr,
                                   wantsRoaming ? &ForwardRoamingEnabledChanged : nullptr,
                                   &error);
+    return ToResult(error);
+}
+
+
+// =============================================================================
+// The synchronous core (OP-25..OP-39)
+// =============================================================================
+
+Result<void> Session::CopyText(std::wstring_view text, WriteOptions options)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    std::wstring owned;
+    if (const auto bad = Borrow(text, owned)) return Unexpected{*bad};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().CopyText(owned, ToOptionFlags(options), &error);
+    return ToResult(error);
+}
+
+Result<std::wstring> Session::PasteText()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    std::wstring text;
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().PasteText(text, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return text;
+}
+
+Result<void> Session::CopyHtml(std::wstring_view fragment, std::wstring_view plainText,
+                               WriteOptions options)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    std::wstring ownedFragment;
+    std::wstring ownedPlain;
+    if (const auto bad = Borrow(fragment, ownedFragment)) return Unexpected{*bad};
+    if (const auto bad = Borrow(plainText, ownedPlain))   return Unexpected{*bad};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().CopyHtmlFragment(ownedFragment, ownedPlain, ToOptionFlags(options), &error);
+    return ToResult(error);
+}
+
+Result<std::wstring> Session::PasteHtml()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    std::wstring fragment;
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().PasteHtmlFragmentValue(fragment, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return fragment;
+}
+
+Result<void> Session::CopyFiles(std::span<const std::wstring> paths, WriteOptions options)
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().CopyFilePaths(std::vector<std::wstring>(paths.begin(), paths.end()),
+                            ToOptionFlags(options), &error);
+    return ToResult(error);
+}
+
+Result<std::vector<std::wstring>> Session::PasteFiles()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    std::vector<std::wstring> paths;
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().PasteFilePaths(paths, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return paths;
+}
+
+Result<void> Session::CopyDib(std::span<const std::byte> dib, WriteOptions options)
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().CopyImageBytes(ToRawBytes(dib), ToOptionFlags(options), &error);
+    return ToResult(error);
+}
+
+Result<std::vector<std::byte>> Session::PasteDib()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    std::vector<BYTE> raw;
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().PasteImageBytes(raw, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return FromRawBytes(raw);
+}
+
+Result<void> Session::CopyCustom(std::wstring_view formatName, std::span<const std::byte> data,
+                                 WriteOptions options)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    std::wstring ownedName;
+    if (const auto bad = Borrow(formatName, ownedName)) return Unexpected{*bad};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().CopyCustomBytes(ownedName, ToRawBytes(data), ToOptionFlags(options), &error);
+    return ToResult(error);
+}
+
+Result<std::vector<std::byte>> Session::PasteCustom(std::wstring_view formatName)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    std::wstring ownedName;
+    if (const auto bad = Borrow(formatName, ownedName)) return Unexpected{*bad};
+
+    std::vector<BYTE> raw;
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().PasteCustomBytes(ownedName, raw, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return FromRawBytes(raw);
+}
+
+Result<void> Session::CopyMultiple(std::span<const FormatPayload> items, WriteOptions options)
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().CopyFormatPayloads(std::vector<FormatPayload>(items.begin(), items.end()),
+                                 ToOptionFlags(options), &error);
+    return ToResult(error);
+}
+
+Result<bool> Session::HasFormat(std::wstring_view formatName)
+{
+    if (!held_) return Unexpected{NotOpen()};
+    std::wstring ownedName;
+    if (const auto bad = Borrow(formatName, ownedName)) return Unexpected{*bad};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    const bool has = Backing().HasFormatNamed(ownedName, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return has;
+}
+
+Result<std::vector<std::wstring>> Session::GetFormats()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    std::vector<std::wstring> names;
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().ListFormatNames(names, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return names;
+}
+
+Result<std::wstring> Session::GetPreferredFormat()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    std::wstring name;
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().PreferredFormatName(name, &error);
+    if (error != CLIPBOARD_ERROR_NONE) return Unexpected{Fail(error)};
+    return name;
+}
+
+Result<void> Session::Clear()
+{
+    if (!held_) return Unexpected{NotOpen()};
+
+    DWORD error = CLIPBOARD_ERROR_NONE;
+    Backing().ClearClipboard(&error);
     return ToResult(error);
 }
 
