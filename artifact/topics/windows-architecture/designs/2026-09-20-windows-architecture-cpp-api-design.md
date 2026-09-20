@@ -140,6 +140,7 @@ common.md との差は次の 1 点で、`windows.md` の既定（Manager + フ�
 | 節 | 今の記述 | 段階 5 での変更案 |
 |---|---|---|
 | アーキテクチャ / Bridge の配置 | 「`extern "C"` C Bridge は `WindowsLibrary` に実装し、`WindowsLibrary.dll` からエクスポートする」「中継用の別 DLL やラッパープロジェクトを追加しない」 | C Bridge は `WindowsLibraryCApi` に置く。機能の実装は静的な C++ コアに置く（D-3、7.6） |
+| アーキテクチャ / 基本構造 | 「`XxxManager (singleton)` ← 公開 API・システム Delegate 所有・ロジック集約」 | **公開面からは singleton を外す**。実体がプロセスに 1 個である点は変わらないが、取得は静的アクセサではなくオブジェクトの所有にする（7.4.4）。内部の singleton は残る |
 | 原則 | 「C Bridge は薄く保つ（複雑なデータは JSON 文字列で渡す）」 | JSON をやめる（D-6）。薄く保つ原則は残す |
 | 文字列・API 取り扱い方針 | 「公開 API は `extern "C"` + `__declspec(dllexport/dllimport)` で公開する」 | C++ API は名前空間付きの通常の C++ 宣言。C ABI の公開方法は `.def` だけにする（D-5） |
 | 文字列・API 取り扱い方針 | 「エラー情報は `DWORD* pError` など out 引数で返す」 | C++ API は `Result`（D-2）。C ABI は戻り値でエラーコードを返す（D-10） |
@@ -394,6 +395,25 @@ public:
 - **`std::span` と `std::wstring_view` は呼び出しの間だけ有効**とし、実装は保持しない。例外は `ReserveDeferred` で、形式名と provider は**深いコピーを取って保持する**
 - 遅延レンダリングの provider は `RenderProvider`（8.2）にする。2 相の呼び出しは**内部の `DeferredClipboard` には残し**、C++ API の表面だけ 1 回にまとめる（N-2）
 - コールバックはすべて `std::function` にする。公開 API に `void* context` を出さない
+
+#### 7.4.4 なぜ静的アクセサを公開しないか
+
+「プロセスに 1 個」であることと、「どう取得するか」は別の話である。混同しやすいので分けて記す。
+
+| 事柄 | 由来 |
+|---|---|
+| `Session` と `Manager` がプロセスに 1 個しか作れない | **Windows 側の制約**。Clipboard はオーナー UI スレッドと配送用ウィンドウがプロセスに 1 組、Notification は `CoRegisterClassObject` と `AppNotificationManager::Register` がプロセス 1 回きり |
+| 静的アクセサ（`GetInstance()` / `Default()`）を公開せず、オブジェクトを渡す | **この設計の判断**。Windows の制約ではない |
+
+インスタンスを渡す形にした理由は次の 3 つ。
+
+- `Close()` の成功を必須にできる（N-5）。静的アクセサでは「誰も閉じない」経路を型で塞げない
+- 内部の singleton をテストで差し替えても、公開面がプロセス全体の状態に依存しない
+- 閉じた後・ムーブした後の呼び出しを `NotInitialized` として扱える
+
+**流儀との関係**: WinRT 自身は `AppNotificationManager::Default()` のような静的アクセサを多用するため、その流儀に寄せる案もありうる。採らないのは、WinRT のそれらは OS が寿命を持つのに対し、ここでは利用者に `Close()` を守らせる必要があるためである。`agent-rules/coding-rules/windows.md` の「`XxxManager (singleton)`」とも食い違うので、段階 5 でルールを直す（5.2）。
+
+利用者がアプリ内の離れた場所から使いたい場合は、**利用者のアプリ側でオブジェクトを保持する**（`App` のメンバに持つなど）。ライブラリはその方法を強制しない。
 
 ### 7.5 利用者の前提
 
