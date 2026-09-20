@@ -108,6 +108,10 @@ Windows だけ名前を変えるのは、次の 2 つが理由である。
 
 `UnityWindowsPlugin` の中身は MFC の雛形だけなので、名前を変えるのではなく、`WindowsLibraryCApi` を新しく作って `UnityWindowsPlugin` を削除する。
 
+ただし、**今の C ABI 自体は既に配布済みである**。`WindowsLibrary` の DLL は `dist/<リリース版>/windows/windows-native-toolkit-<DLL の版>.dll` として配っており（例: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.dll`）、`unity-native-plugin` はこの DLL を `unity-windows-native-toolkit.dll` という名前で同梱し、今の C ABI を P/Invoke している。したがって D-6 〜 D-10 の C ABI の変更は `unity-native-plugin` にとって破壊的変更になる（D-4）。空だったのは `UnityWindowsPlugin` プロジェクトであって、Unity 向けの配布物ではない。
+
+> `unity-native-plugin` 側の同梱の事実は、別リポジトリを 2026-09-19 に調べて分かったもので、このリポジトリのファイルだけでは確かめられない。
+
 ## 4. C++ API の方針
 
 | 今の C ABI | C++ API |
@@ -294,10 +298,10 @@ computer use は画面を AI が解釈して操作するので、FlaUI と違っ
 
 | ID | 決めること | 選択肢 | 推奨 |
 |---|---|---|---|
-| D-1 | `windows-toolchain-migration` との関係 | 統合する / 分ける | **統合**。段階 1 の C++ 標準の決定がそのまま移行作業になる。分けると、C++17 のまま API を設計して後でやり直すことになる |
+| D-1 | `windows-toolchain-migration` との関係 | 統合する / 分ける | **決定（2026-09-20）: 統合**。段階 1 の C++ 標準の決定がそのまま移行作業になる。分けると、C++17 のまま API を設計して後でやり直すことになる。ツールセット・SDK の版・対応 OS は段階 3 の設計書で決める |
 | D-2 | C++ 標準とエラーの返し方 | C++20 + 自前の `Result<T>` / C++23 + `std::expected` | **決定（2026-09-19）: C++20 + 自前の `Result<T>`**。今の MSVC（VS 17.14、14.44）では `std::expected` は `/std:c++23preview` でしか使えず、公開ヘッダーで使うと C++ API の利用者にもプレビューのオプションを強いる。`Result<T>` は `std::expected` と同じ使い方にする（段階 3 の設計書で決める） |
-| D-3 | WindowsLibrary の配り方 | A: 静的ライブラリ + ヘッダー / B: DLL のまま、公開ヘッダーを C ABI の薄い C++ ラッパーにする | **A**。C++ の型を DLL の境界で受け渡すと、コンパイラ・CRT・Debug/Release の組み合わせが一致しないと動かない。A ならこの問題が起きない |
-| D-4 | 破壊的変更の扱い | 2.0.0 で一度に切り替える / 1.x の間は C ABI も非推奨として残す | 未決 |
+| D-3 | WindowsLibrary の配り方 | A: 静的ライブラリ + ヘッダー / B: DLL のまま、公開ヘッダーを C ABI の薄い C++ ラッパーにする | **決定（2026-09-20）: A**。C++ の型を DLL の境界で受け渡すと、コンパイラ・CRT・Debug/Release の組み合わせが一致しないと動かない。A ならこの問題が起きない。Debug と Release の両方の `.lib` を配り、配る `.lib` では `/GL` を使わない（利用者のコンパイラの版に縛られるため）。DLL が要る利用者は `WindowsLibraryCApi` を使う |
+| D-4 | 破壊的変更の扱い | 2.0.0 で一度に切り替える / 1.x の間は C ABI も非推奨として残す | **決定（2026-09-20）: 2.0.0 で一度に切り替える**。D-6 〜 D-10 で C ABI は JSON・`wchar_t*`・`pError` をすべて捨てる全面刷新になるので、1.x に残すと実質 2 つの ABI を並行して保守し、両方に UI テストを維持することになる。今の DLL は `dist/1.11.0/` に残るので、既存の利用者はその版を使い続けられる。移行の手順はマニュアルに書く |
 | D-5 | C ABI の公開方法 | `.def` だけにする / `__declspec(dllexport)` だけにする | `.def` だけにする。公開する関数が 1 か所で分かる |
 | D-6 | C ABI でのデータの受け渡し形式 | 今の JSON 文字列のまま / C の構造体を公開する / 不透明なハンドルと取得関数 | **データの種類ごとに使い分ける**（下の表）。JSON はやめる |
 | D-7 | C ABI の文字コード | UTF-16（`wchar_t*`。今の形） / UTF-8（`char*`） / 両方 | **UTF-8 を基本にする**。C# 向けに UTF-16 版を足すかは後で決める |
