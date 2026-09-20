@@ -220,6 +220,7 @@
     <ClCompile Include="src\Clipboard\Application\WindowsClipboardHistoryCoordinator.cpp" />
     <ClCompile Include="src\Clipboard\Data\WindowsClipboardWindow.cpp" />
     <ClCompile Include="src\Clipboard\WindowsClipboardManager.cpp" />
+    <ClCompile Include="src\Clipboard\WindowsClipboardApi.cpp" />
     <ClCompile Include="src\Clipboard\Data\WindowsClipboardHistoryWinRt.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -230,6 +231,7 @@
     <ClInclude Include="include\NativeToolkit\Error.h" />
     <ClInclude Include="include\NativeToolkit\Dialog.h" />
     <ClInclude Include="include\NativeToolkit\Notification.h" />
+    <ClInclude Include="include\NativeToolkit\Clipboard.h" />
     <ClInclude Include="include\NativeToolkit\Types.h" />
     <ClInclude Include="src\Common\common.h" />
     <ClInclude Include="src\Common\CommonInternal.h" />
@@ -250,6 +252,7 @@
     <ClInclude Include="src\Notification\Data\WindowsNotificationActivation.h" />
     <ClInclude Include="src\Clipboard\WindowsClipboardManager.h" />
     <ClInclude Include="src\Clipboard\WindowsClipboardManagerInternal.h" />
+    <ClInclude Include="src\Clipboard\WindowsClipboardApiInternal.h" />
     <ClInclude Include="src\Clipboard\Data\WindowsClipboardCore.h" />
     <ClInclude Include="src\Clipboard\Data\WindowsClipboardDeferredProvider.h" />
     <ClInclude Include="src\Clipboard\Domain\WindowsClipboardFormats.h" />

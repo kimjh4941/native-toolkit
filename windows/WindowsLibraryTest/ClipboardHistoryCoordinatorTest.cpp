@@ -11,9 +11,9 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // dispatch window's WndProc had already routed the posted message - this
 // keeps the suite STA-free and off the WinRT backend while still covering the Queued -> Running
 // -> Finished state machine, cancellation races and the shutdown drain.
-// See the implementation result report for why WindowsClipboardManager.cpp /
-// WindowsClipboardHistoryWinRt.cpp are intentionally NOT linked into this
-// test project.
+// ClipboardApiTest now links WindowsClipboardManager.cpp and drives the real
+// manager from an STA thread; this suite stays as it is because testing the
+// state machine directly is what keeps it free of a message pump.
 // ============================================================================
 
 namespace WindowsClipboardHistoryCoordinatorTest

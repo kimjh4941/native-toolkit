@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace WindowsClipboardManagerTest { class ClipboardManagerTest; }
+namespace WindowsClipboardApiTest { class ClipboardApiTest; }
 
 class ClipboardManager
 {
@@ -72,6 +73,9 @@ public:
 
 private:
     friend class WindowsClipboardManagerTest::ClipboardManagerTest;
+    /// Drives Session against the real manager on an STA thread; see
+    /// ClipboardApiTest (stage 3, T-09).
+    friend class WindowsClipboardApiTest::ClipboardApiTest;
 
     ClipboardManager();
     ClipboardManager(const ClipboardManager&) = delete;
