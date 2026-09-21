@@ -6,10 +6,16 @@
 // PCH would hide exactly the missing includes this file is here to catch.
 #include "NativeToolkitC/Common.h"
 #include "NativeToolkitC/Common.h"
+#include "NativeToolkitC/Dialog.h"
+#include "NativeToolkitC/Dialog.h"
+#include "NativeToolkitC/Notification.h"
+#include "NativeToolkitC/Notification.h"
 
 #include <windows.h>
 
 #include "NativeToolkitC/Common.h"
+#include "NativeToolkitC/Dialog.h"
+#include "NativeToolkitC/Notification.h"
 
 // The C linkage the headers promise: a C++ caller gets the unmangled names the
 // .def exports. Taking the addresses makes the linker resolve them.
@@ -20,6 +26,8 @@ extern "C" size_t ntk_test_headers_self_contained()
         reinterpret_cast<const void*>(&ntk_last_system_code),
         reinterpret_cast<const void*>(&ntk_string_data),
         reinterpret_cast<const void*>(&ntk_string_list_at),
+        reinterpret_cast<const void*>(&ntk_dialog_show_alert),
+        reinterpret_cast<const void*>(&ntk_notification_manager_create),
     };
     return sizeof(functions);
 }

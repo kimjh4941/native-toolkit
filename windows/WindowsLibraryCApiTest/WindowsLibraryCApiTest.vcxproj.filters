@@ -10,6 +10,9 @@
     <Filter Include="Dialog">
       <UniqueIdentifier>{9E4D7B26-1C5A-4F83-A06E-3D8B2F7C5E19}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Notification">
+      <UniqueIdentifier>{3B7F1A94-6D2C-4E58-B1A7-8C0E5F2D9A63}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\WindowsLibraryCApi\src\Common\CallbackGate.cpp">
@@ -36,6 +39,15 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Dialog\DialogConvert.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationCApi.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationConvert.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationRuntime.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
     <ClCompile Include="Common\CApiCommonTest.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -53,6 +65,12 @@
     </ClCompile>
     <ClCompile Include="Dialog\CApiDialogTest.cpp">
       <Filter>Dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\CApiNotificationHeaderAsC.c">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\CApiNotificationTest.cpp">
+      <Filter>Notification</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp" />
   </ItemGroup>

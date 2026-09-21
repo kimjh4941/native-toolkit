@@ -27,6 +27,7 @@
  */
 #include "pch.h"
 
+#include <atomic>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -50,6 +51,9 @@ std::function<void(const ActivationArgs&)> g_handler;
 /// True while a Manager exists. Guards the second Create (7.4.2).
 bool g_managerLive = false;
 
+/// Test seam: runs between taking the copy of the handler and calling it.
+std::atomic<void (*)()> g_afterHandlerCopy{nullptr};
+
 /// The C callback the manager takes, which forwards to whatever handler is set.
 void ForwardActivation(const wchar_t* argsJson)
 {
@@ -57,6 +61,9 @@ void ForwardActivation(const wchar_t* argsJson)
     {
         std::lock_guard<std::mutex> lock(g_handlerMutex);
         handler = g_handler;
+    }
+    if (const auto hook = g_afterHandlerCopy.load()) {
+        hook();
     }
     if (!handler) {
         DLog(TAG, L"[ForwardActivation] no handler installed; activation dropped");
@@ -335,6 +342,16 @@ Manager TestAccess::MakeManager()
     manager.held_ = true;
     g_managerLive = true;
     return manager;
+}
+
+void TestAccess::Activate(const std::wstring& argsJson)
+{
+    ForwardActivation(argsJson.c_str());
+}
+
+void TestAccess::SetAfterHandlerCopy(void (*hook)()) noexcept
+{
+    g_afterHandlerCopy.store(hook);
 }
 
 }  // namespace Detail

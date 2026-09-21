@@ -881,7 +881,11 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
 | CT-20 | 履歴の timestamp の変換（WinRT の tick → Unix ミリ秒）。既知の値で。0（読めなかった）は 0 | 1970-01-01、2026-01-01、0 の tick |
 
 - 今の C ABI のテスト（`ClipboardBridgeTest`、`NotificationBridgeTest`、`NotificationPayloadTest`）は今の C ABI とともに削除する。C++ API のテスト（約 260 件）はそのまま通る。E-10 で消す項目を使うテストだけを直す
-- テストプロジェクトに `src/Dialog/WindowsDialogApi.cpp` を足す（CT-15）。`WindowsAppSdkBootstrap.cpp` は Bootstrap の DLL に依存させないため入れず、Runtime は CT-19 の差し込み口で差し替える
+- テストプロジェクトは Core の `.lib` をリンクするので、Core のソースを個別に足さない（Bootstrap の DLL はテストの隣に複製する）。OS に触れる部分は差し込み口で差し替える
+  - Runtime の Bootstrap: C ABI の `SetRuntimeHooksForTest`（CT-19）
+  - `Manager::Create`（OS への登録）: C ABI の `SetManagerFactoryForTest`。テストは C++ の `Detail::TestAccess::MakeManager` の上の工場を渡す
+  - 活性化の配送: C++ の `TestAccess::Activate`。配送の「ハンドラのコピーの後、呼ぶ前」で止める `TestAccess::SetAfterHandlerCopy`（CT-18）
+  - 生きているテスト用のマネージャーの操作は OS に届くので、Notification の操作は入口の検査と閉じたマネージャーの経路で確かめる。成功の経路は C++ API のテストと CT-21 が受け持つ
 
 ### 12.2 実際の DLL を通す確認
 

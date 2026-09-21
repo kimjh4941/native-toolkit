@@ -12,6 +12,8 @@
  */
 #pragma once
 
+#include <string>
+
 #include "NativeToolkit/Notification.h"
 
 namespace NativeToolkit::Notification::Detail {
@@ -27,6 +29,21 @@ public:
      *          it releases the process the same way.
      */
     static Manager MakeManager();
+
+    /**
+     * @brief Delivers an activation as the OS would, on the calling thread.
+     * @param argsJson The argument JSON the backend would have produced.
+     */
+    static void Activate(const std::wstring& argsJson);
+
+    /**
+     * @brief Runs hook in every delivery after the handler has been copied
+     *        and before it is called; nullptr removes it.
+     * @details The window a replacement or a Close can land in while a
+     *          delivery is under way. A test blocks in hook to hold a
+     *          delivery there (stage 5 design CT-18).
+     */
+    static void SetAfterHandlerCopy(void (*hook)()) noexcept;
 };
 
 }  // namespace NativeToolkit::Notification::Detail

@@ -85,6 +85,7 @@
   <ItemGroup>
     <ClInclude Include="include\NativeToolkitC\Common.h" />
     <ClInclude Include="include\NativeToolkitC\Dialog.h" />
+    <ClInclude Include="include\NativeToolkitC\Notification.h" />
     <ClInclude Include="src\Common\CallbackGate.h" />
     <ClInclude Include="src\Common\Guard.h" />
     <ClInclude Include="src\Common\Handles.h" />
@@ -93,6 +94,9 @@
     <ClInclude Include="src\Common\StructInput.h" />
     <ClInclude Include="src\Common\Utf8.h" />
     <ClInclude Include="src\Dialog\DialogConvert.h" />
+    <ClInclude Include="src\Notification\NotificationCApiInternal.h" />
+    <ClInclude Include="src\Notification\NotificationConvert.h" />
+    <ClInclude Include="src\Notification\NotificationRuntime.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Common\CallbackGate.cpp" />
@@ -103,6 +107,9 @@
     <ClCompile Include="src\Common\Version.cpp" />
     <ClCompile Include="src\Dialog\DialogCApi.cpp" />
     <ClCompile Include="src\Dialog\DialogConvert.cpp" />
+    <ClCompile Include="src\Notification\NotificationCApi.cpp" />
+    <ClCompile Include="src\Notification\NotificationConvert.cpp" />
+    <ClCompile Include="src\Notification\NotificationRuntime.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="WindowsLibraryCApi.def" />

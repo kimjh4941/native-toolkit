@@ -8,6 +8,10 @@
   in the way it comes into the C ABI DLL: the static WindowsLibraryCore
   through a ProjectReference, and what it needs at link time through the
   core's consumer props. The core's own tests stay in WindowsLibraryTest.
+
+  ..\WindowsLibrary\src is on the include path for the core's test seams
+  only (the *Internal.h headers with ...ForTest and TestAccess). It comes
+  last, so a C ABI header of the same name always wins.
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
@@ -56,7 +60,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/EHsc /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibraryCApi\include;..\WindowsLibraryCApi\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibraryCApi\include;..\WindowsLibraryCApi\src;$(ProjectDir);..\WindowsLibrary\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -107,6 +111,15 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Dialog\DialogConvert.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationCApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationConvert.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationRuntime.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <!-- The tests. The header checks compile on their own: a PCH would hide a missing include. -->
     <ClCompile Include="Common\CApiCommonTest.cpp" />
     <ClCompile Include="Common\CApiHeadersAsC.c">
@@ -126,6 +139,12 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <ClCompile Include="Dialog\CApiDialogTest.cpp" />
+    <ClCompile Include="Notification\CApiNotificationHeaderAsC.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>CompileAsC</CompileAs>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="Notification\CApiNotificationTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\WindowsLibrary\WindowsLibraryCore.vcxproj">

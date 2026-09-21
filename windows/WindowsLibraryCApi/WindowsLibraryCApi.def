@@ -26,3 +26,32 @@ EXPORTS
 	ntk_dialog_show_save_file
 	ntk_dialog_show_pick_folder
 	ntk_dialog_show_pick_folders
+	; Notification: runtime (OP-07)
+	ntk_notification_runtime_initialize
+	ntk_notification_runtime_free
+	; Notification: manager (OP-08, OP-09)
+	ntk_notification_manager_create
+	ntk_notification_manager_set_invoked_handler
+	ntk_notification_manager_close
+	ntk_notification_manager_free
+	; Notification: operations (OP-12..OP-20; OP-10 and OP-11 come with the content builder)
+	ntk_notification_cancel_scheduled
+	ntk_notification_update_progress
+	ntk_notification_set_badge
+	ntk_notification_remove_by_id
+	ntk_notification_remove_by_tag
+	ntk_notification_remove_all
+	ntk_notification_get_all
+	ntk_notification_get_setting
+	ntk_notification_open_settings
+	; Notification: list (output of OP-18)
+	ntk_notification_list_count
+	ntk_notification_list_id_at
+	ntk_notification_list_tag_at
+	ntk_notification_list_group_at
+	ntk_notification_list_free
+	; Notification: activation (argument of ntk_notification_invoked_fn)
+	ntk_notification_activation_raw_arguments
+	ntk_notification_activation_value_count
+	ntk_notification_activation_key_at
+	ntk_notification_activation_value_at
