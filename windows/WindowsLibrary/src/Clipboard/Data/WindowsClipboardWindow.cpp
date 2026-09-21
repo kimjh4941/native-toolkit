@@ -7,8 +7,23 @@
 static const wchar_t* TAG = L"WindowsClipboardWindow";
 static const wchar_t* kClassName = L"NativeToolkitClipboardWindow";
 
+// The image this copy of the core was linked into.
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+
 namespace
 {
+    /// The class is registered under this module, not the process's exe. A
+    /// class without CS_GLOBALCLASS is known by its name and its module
+    /// together, so every copy of the static core in a process - one in the
+    /// exe and one in the C ABI DLL, or two plugins - registers its own and
+    /// gets its own window procedure. Under the exe's handle the second copy's
+    /// registration failed with ERROR_CLASS_ALREADY_EXISTS, and it could open
+    /// no session.
+    HINSTANCE ThisModule() noexcept
+    {
+        return reinterpret_cast<HINSTANCE>(&__ImageBase);
+    }
+
     LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
         // Every case below eventually reaches a Manager/Coordinator method that
@@ -61,7 +76,7 @@ namespace
         WNDCLASSEXW wc{};
         wc.cbSize = sizeof(wc);
         wc.lpfnWndProc = WndProc;
-        wc.hInstance = ::GetModuleHandleW(nullptr);
+        wc.hInstance = ThisModule();
         wc.lpszClassName = kClassName;
         atom = ::RegisterClassExW(&wc);
         return atom;
@@ -81,7 +96,7 @@ namespace WindowsClipboardWindow
         // Hidden top-level window (not HWND_MESSAGE): message-only windows are not used
         // for this feature because WM_CLIPBOARDUPDATE delivery to them is unverified.
         HWND hwnd = ::CreateWindowExW(0, kClassName, kClassName, WS_POPUP, 0, 0, 0, 0,
-                                      nullptr, nullptr, ::GetModuleHandleW(nullptr), nullptr);
+                                      nullptr, nullptr, ThisModule(), nullptr);
         if (!hwnd)
         {
             DFLog(TAG, L"[Create] CreateWindowExW failed. err=%lu", ::GetLastError());
