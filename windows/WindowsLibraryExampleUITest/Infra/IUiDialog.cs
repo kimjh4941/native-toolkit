@@ -25,4 +25,10 @@ public interface IUiDialog
 
     /// <summary>True once the dialog window has closed.</summary>
     bool WaitUntilClosed(TimeSpan? timeout = null);
+
+    /// <summary>
+    /// Waits for another modal dialog of the app to appear while this one is
+    /// open, such as the confirmation a save dialog raises, and returns it.
+    /// </summary>
+    IUiDialog WaitForNextDialog(TimeSpan? timeout = null);
 }

@@ -340,6 +340,26 @@ public sealed class FlaUiSession : IUiSession
             return result.Success;
         }
 
+        public IUiDialog WaitForNextDialog(TimeSpan? timeout = null)
+        {
+            var processId = _dialog.Properties.ProcessId.ValueOrDefault;
+            var found = Retry.While(
+                () => Native.FindVisibleWindow(processId, DialogWindowClass, _handle),
+                handle => handle == IntPtr.Zero,
+                timeout ?? DefaultTimeout,
+                PollInterval,
+                throwOnTimeout: false);
+
+            if (!found.Success || found.Result == IntPtr.Zero)
+            {
+                throw new InvalidOperationException(
+                    $"No other dialog appeared over '{Title}' within " +
+                    $"{(timeout ?? DefaultTimeout).TotalSeconds:0} seconds.");
+            }
+
+            return new FlaUiDialog(_dialog.Automation.FromHandle(found.Result), found.Result);
+        }
+
         private AutomationElement Find(
             string controlId,
             Func<FlaUI.Core.Conditions.ConditionFactory, FlaUI.Core.Conditions.ConditionBase> kind)

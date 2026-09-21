@@ -32,6 +32,12 @@ const wchar_t* TAG = L"NativeToolkit::Dialog";
 constexpr size_t kSinglePathBuffer = 1024;    ///< One full path, as the sample sizes it.
 constexpr size_t kMultiPathBuffer  = 32768;   ///< Many paths; the Win32 dialogs cap well below this.
 
+/// An empty title leaves the dialog's own default, so it is passed as none.
+const wchar_t* TitleOrNull(const std::wstring& title) noexcept
+{
+    return title.empty() ? nullptr : title.c_str();
+}
+
 /// Turns an outcome into a failure, or nothing when it succeeded.
 Domain::ClassifiedOutcome Classify(bool succeeded, DWORD rawError) noexcept
 {
@@ -42,15 +48,15 @@ Domain::ClassifiedOutcome Classify(bool succeeded, DWORD rawError) noexcept
 
 Result<AlertResult> ShowAlert(const AlertRequest& request)
 {
-    DFLog(TAG, L"[ShowAlert] title: %ls, buttons: %d, icon: %d, extraFlags: 0x%08x",
+    DFLog(TAG, L"[ShowAlert] title: %ls, buttons: %d, icon: %d, extraFlags: 0x%08x, owner: %p",
           request.title.c_str(), static_cast<int>(request.buttons),
-          static_cast<int>(request.icon), request.extraFlags);
+          static_cast<int>(request.icon), request.extraFlags, request.owner);
 
     DWORD error = 0;
     const UINT type = Data::ToMessageBoxType(request);
     const int pressed = WindowsDialogManager::Instance().ShowAlertDialog(
         request.title.c_str(), request.message.c_str(),
-        type, 0u, 0u, 0u, &error);
+        type, 0u, 0u, 0u, &error, request.owner);
 
     if (pressed == 0) {
         return Unexpected{Classify(false, error)};
@@ -60,14 +66,16 @@ Result<AlertResult> ShowAlert(const AlertRequest& request)
 
 Result<std::wstring> ShowOpenFile(const FileRequest& request)
 {
-    DFLog(TAG, L"[ShowOpenFile] filters: %zu, fileMustExist: %d", request.filters.size(), request.fileMustExist);
+    DFLog(TAG, L"[ShowOpenFile] title: %ls, filters: %zu, fileMustExist: %d, owner: %p",
+          request.title.c_str(), request.filters.size(), request.fileMustExist, request.owner);
 
     std::wstring buffer(kSinglePathBuffer, L'\0');
     const std::wstring filter = Domain::BuildFilterBlock(request.filters);
     DWORD error = 0;
 
     const BOOL ok = WindowsDialogManager::Instance().ShowFileDialog(
-        buffer.data(), static_cast<DWORD>(buffer.size()), filter.c_str(), &error);
+        buffer.data(), static_cast<DWORD>(buffer.size()), filter.c_str(), &error,
+        request.owner, TitleOrNull(request.title), request.fileMustExist);
 
     const auto outcome = Classify(ok != FALSE && buffer[0] != L'\0', error);
     if (!Domain::Succeeded(outcome)) {
@@ -78,14 +86,16 @@ Result<std::wstring> ShowOpenFile(const FileRequest& request)
 
 Result<std::vector<std::wstring>> ShowOpenFiles(const FileRequest& request)
 {
-    DFLog(TAG, L"[ShowOpenFiles] filters: %zu", request.filters.size());
+    DFLog(TAG, L"[ShowOpenFiles] title: %ls, filters: %zu, fileMustExist: %d, owner: %p",
+          request.title.c_str(), request.filters.size(), request.fileMustExist, request.owner);
 
     std::wstring buffer(kMultiPathBuffer, L'\0');
     const std::wstring filter = Domain::BuildFilterBlock(request.filters);
     DWORD error = 0;
 
     const int count = WindowsDialogManager::Instance().ShowMultiFileDialog(
-        buffer.data(), static_cast<DWORD>(buffer.size()), filter.c_str(), &error);
+        buffer.data(), static_cast<DWORD>(buffer.size()), filter.c_str(), &error,
+        request.owner, TitleOrNull(request.title), request.fileMustExist);
 
     // count is a number of NUL-separated strings, not of files: 0 means the
     // user cancelled and -1 means the call failed (DLG-02).
@@ -98,8 +108,9 @@ Result<std::vector<std::wstring>> ShowOpenFiles(const FileRequest& request)
 
 Result<std::wstring> ShowSaveFile(const SaveFileRequest& request)
 {
-    DFLog(TAG, L"[ShowSaveFile] filters: %zu, defaultExtension: %ls",
-          request.filters.size(), request.defaultExtension.c_str());
+    DFLog(TAG, L"[ShowSaveFile] title: %ls, filters: %zu, defaultExtension: %ls, overwritePrompt: %d, owner: %p",
+          request.title.c_str(), request.filters.size(), request.defaultExtension.c_str(),
+          request.overwritePrompt, request.owner);
 
     std::wstring buffer(kSinglePathBuffer, L'\0');
     const std::wstring filter = Domain::BuildFilterBlock(request.filters);
@@ -107,7 +118,8 @@ Result<std::wstring> ShowSaveFile(const SaveFileRequest& request)
 
     const BOOL ok = WindowsDialogManager::Instance().ShowSaveFileDialog(
         buffer.data(), static_cast<DWORD>(buffer.size()), filter.c_str(),
-        request.defaultExtension.empty() ? nullptr : request.defaultExtension.c_str(), &error);
+        request.defaultExtension.empty() ? nullptr : request.defaultExtension.c_str(), &error,
+        request.owner, TitleOrNull(request.title), request.overwritePrompt);
 
     const auto outcome = Classify(ok != FALSE && buffer[0] != L'\0', error);
     if (!Domain::Succeeded(outcome)) {
@@ -118,14 +130,14 @@ Result<std::wstring> ShowSaveFile(const SaveFileRequest& request)
 
 Result<std::wstring> ShowPickFolder(const FolderRequest& request)
 {
-    DFLog(TAG, L"[ShowPickFolder] title: %ls", request.title.c_str());
+    DFLog(TAG, L"[ShowPickFolder] title: %ls, owner: %p", request.title.c_str(), request.owner);
 
     std::wstring buffer(kSinglePathBuffer, L'\0');
     DWORD error = 0;
 
     const BOOL ok = WindowsDialogManager::Instance().ShowFolderDialog(
         buffer.data(), static_cast<DWORD>(buffer.size()),
-        request.title.empty() ? nullptr : request.title.c_str(), &error);
+        TitleOrNull(request.title), &error, request.owner);
 
     const auto outcome = Classify(ok != FALSE && buffer[0] != L'\0', error);
     if (!Domain::Succeeded(outcome)) {
@@ -136,14 +148,14 @@ Result<std::wstring> ShowPickFolder(const FolderRequest& request)
 
 Result<std::vector<std::wstring>> ShowPickFolders(const FolderRequest& request)
 {
-    DFLog(TAG, L"[ShowPickFolders] title: %ls", request.title.c_str());
+    DFLog(TAG, L"[ShowPickFolders] title: %ls, owner: %p", request.title.c_str(), request.owner);
 
     std::wstring buffer(kMultiPathBuffer, L'\0');
     DWORD error = 0;
 
     const int count = WindowsDialogManager::Instance().ShowMultiFolderDialog(
         buffer.data(), static_cast<DWORD>(buffer.size()),
-        request.title.empty() ? nullptr : request.title.c_str(), &error);
+        TitleOrNull(request.title), &error, request.owner);
 
     // Unlike the file version this count is a folder count, and a successful
     // pick of nothing shares the value 0 with a cancellation (DLG-16), so the

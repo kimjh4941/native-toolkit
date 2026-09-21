@@ -120,6 +120,7 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[ShowFileDialogButton_Click]");
         Dialog::FileRequest request;
+        request.title = L"Open File";
         request.filters = AllFiles();
 
         const auto result = Dialog::ShowOpenFile(request);
@@ -138,6 +139,7 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[ShowMultiFileDialogButton_Click]");
         Dialog::FileRequest request;
+        request.title = L"Open Files";
         request.filters = AllFiles();
 
         const auto result = Dialog::ShowOpenFiles(request);
@@ -192,6 +194,7 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[ShowSaveFileDialogButton_Click]");
         Dialog::SaveFileRequest request;
+        request.title = L"Save File";
         request.filters = AllFiles();
         request.defaultExtension = L"txt";
 

@@ -5,7 +5,7 @@ namespace WindowsLibraryExampleUITest.Tests.Dialog;
 
 /// <summary>
 /// Covers the dialog sample page: each of the six dialogs, accepted and
-/// cancelled, plus returning to the menu (D-01 to D-13 in
+/// cancelled, plus returning to the menu and the overwrite confirmation (D-01 to D-14 in
 /// artifact/topics/windows-architecture/designs/2026-09-19-windows-architecture-ui-test-design.md).
 /// </summary>
 /// <remarks>
@@ -43,9 +43,19 @@ public sealed class DialogTests
     [ClassCleanup]
     public static void DeleteTestFiles()
     {
-        if (Directory.Exists(Work))
+        // The common file dialogs move the app's current directory into the
+        // folder they last showed, so the folder stays in use until the app
+        // process has fully exited. Give it a few seconds rather than failing.
+        for (var attempt = 1; Directory.Exists(Work); attempt++)
         {
-            Directory.Delete(Work, recursive: true);
+            try
+            {
+                Directory.Delete(Work, recursive: true);
+            }
+            catch (IOException) when (attempt < 20)
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(500));
+            }
         }
     }
 
@@ -95,7 +105,10 @@ public sealed class DialogTests
     [TestMethod]
     public void OpenFile_Cancel_ReportsCanceled()
     {
-        Page.Open("ShowFileDialog").Press(DialogPage.Controls.Cancel);
+        var dialog = Page.Open("ShowFileDialog");
+        Assert.AreEqual("Open File", dialog.Title);
+
+        dialog.Press(DialogPage.Controls.Cancel);
 
         Page.WaitForResult("ShowFileDialog was canceled.");
     }
@@ -115,7 +128,10 @@ public sealed class DialogTests
     [TestMethod]
     public void OpenMultipleFiles_Cancel_ReportsCanceled()
     {
-        Page.Open("ShowMultiFileDialog").Press(DialogPage.Controls.Cancel);
+        var dialog = Page.Open("ShowMultiFileDialog");
+        Assert.AreEqual("Open Files", dialog.Title);
+
+        dialog.Press(DialogPage.Controls.Cancel);
 
         Page.WaitForResult("ShowMultiFileDialog was canceled.");
     }
@@ -143,7 +159,10 @@ public sealed class DialogTests
     [TestMethod]
     public void SaveFile_Cancel_ReportsCanceled()
     {
-        Page.Open("ShowSaveFileDialog").Press(DialogPage.Controls.Cancel);
+        var dialog = Page.Open("ShowSaveFileDialog");
+        Assert.AreEqual("Save File", dialog.Title);
+
+        dialog.Press(DialogPage.Controls.Cancel);
 
         Page.WaitForResult("ShowSaveFileDialog was canceled.");
     }
@@ -224,5 +243,22 @@ public sealed class DialogTests
         var dialog = Page.Open("ShowAlertDialog");
         dialog.Press(DialogPage.Controls.Accept);
         Page.WaitForResult("ShowAlertDialog Result: 1");
+    }
+
+    /// <summary>D-14</summary>
+    /// <remarks>
+    /// Picking a file that exists raises the overwrite confirmation, because
+    /// the sample leaves SaveFileRequest::overwritePrompt at its default.
+    /// </remarks>
+    [TestMethod]
+    public void SaveFile_ExistingFile_AsksBeforeOverwriting()
+    {
+        var dialog = Page.Open("ShowSaveFileDialog");
+        dialog.SetText(DialogPage.Controls.SaveFileName, FileA);
+        dialog.Press(DialogPage.Controls.Accept);
+
+        dialog.WaitForNextDialog().Press(DialogPage.Controls.ConfirmYes);
+
+        Page.WaitForResult($"ShowSaveFileDialog Result: 1, savePath: {FileA}");
     }
 }

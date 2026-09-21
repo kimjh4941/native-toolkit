@@ -23,6 +23,13 @@ public sealed class DialogPage
 
         public const string Cancel = "2";
 
+        /// <summary>
+        /// Yes in the save dialog's overwrite confirmation. That confirmation is a
+        /// task dialog, whose buttons are named "CommandButton_" + the button id
+        /// (IDYES is 6) rather than the bare id a message box uses.
+        /// </summary>
+        public const string ConfirmYes = "CommandButton_6";
+
         /// <summary>File name box of the open-file dialog.</summary>
         public const string OpenFileName = "1148";
 

@@ -54,6 +54,7 @@ public:
      * @param defbutton Default button.
      * @param options Additional options.
      * @param pError Optional out error code. 0 on success, GetLastError() on failure.
+     * @param owner Owner window, or nullptr for none.
      * @return Button ID clicked by the user. 0 on failure.
      */
     int ShowAlertDialog(
@@ -63,13 +64,14 @@ public:
         UINT icon,
         UINT defbutton,
         UINT options,
-        DWORD* pError = nullptr  // Optional
+        DWORD* pError = nullptr,  // Optional
+        HWND owner = nullptr
     )
     {
-        DFLog(TAG, L"ShowAlertDialog title: %ls, message: %ls, buttons: %d, icon: %d, defbutton: %d, options: %d, pError: %p", title, message, buttons, icon, defbutton, options, pError);
-        
+        DFLog(TAG, L"ShowAlertDialog title: %ls, message: %ls, buttons: %d, icon: %d, defbutton: %d, options: %d, pError: %p, owner: %p", title, message, buttons, icon, defbutton, options, pError, owner);
+
         UINT type = buttons | icon | defbutton | options;
-        int result = MessageBoxW(nullptr, message, title, type);
+        int result = MessageBoxW(owner, message, title, type);
 
         if (result == 0) {
             DWORD lastError = GetLastError();
@@ -92,26 +94,33 @@ public:
      * @param buffer_size Size of buffer in wchar_t units.
      * @param filter Win32 filter string.
      * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
+     * @param owner Owner window, or nullptr for none.
+     * @param title Dialog title, or nullptr for the system default.
+     * @param fileMustExist Whether the picked file has to exist (OFN_FILEMUSTEXIST).
      * @return TRUE on success or cancel, FALSE on failure.
      */
     BOOL ShowFileDialog(
         wchar_t* buffer,
         DWORD buffer_size,
         const wchar_t* filter,
-        DWORD* pError = nullptr  // Optional
+        DWORD* pError = nullptr,  // Optional
+        HWND owner = nullptr,
+        const wchar_t* title = nullptr,
+        bool fileMustExist = true
     )
     {
-        DFLog(TAG, L"ShowFileDialog buffer_size: %lu, filter: %ls, pError: %p", buffer_size, filter ? filter : L"null", pError);
+        DFLog(TAG, L"ShowFileDialog buffer_size: %lu, filter: %ls, pError: %p, owner: %p, title: %ls, fileMustExist: %d", buffer_size, filter ? filter : L"null", pError, owner, title ? title : L"null", fileMustExist ? 1 : 0);
 
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
         OPENFILENAMEW ofn = { 0 };
         ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = nullptr;
+        ofn.hwndOwner = owner;
+        ofn.lpstrTitle = title;
         ofn.lpstrFile = buffer;
         ofn.nMaxFile = buffer_size;
         ofn.lpstrFilter = filter ? filter : L"All Files\0*.*\0";
         ofn.nFilterIndex = 1;
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+        ofn.Flags = OFN_PATHMUSTEXIST | (fileMustExist ? OFN_FILEMUSTEXIST : 0);
 
         BOOL result = GetOpenFileNameW(&ofn);
         if (!result) {
@@ -143,26 +152,33 @@ public:
      * @param buffer_size Size of buffer in wchar_t units.
      * @param filter Win32 filter string.
      * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
+     * @param owner Owner window, or nullptr for none.
+     * @param title Dialog title, or nullptr for the system default.
+     * @param fileMustExist Whether the picked files have to exist (OFN_FILEMUSTEXIST).
      * @return Number of selected items. 0=canceled, -1=error, otherwise >=1.
      */
     int ShowMultiFileDialog(
         wchar_t* buffer,
         DWORD buffer_size,
         const wchar_t* filter,
-        DWORD* pError = nullptr  // Optional
+        DWORD* pError = nullptr,  // Optional
+        HWND owner = nullptr,
+        const wchar_t* title = nullptr,
+        bool fileMustExist = true
     )
     {
-        DFLog(TAG, L"ShowMultiFileDialog buffer_size: %lu, filter: %ls, pError: %p", buffer_size, filter ? filter : L"null", pError);
+        DFLog(TAG, L"ShowMultiFileDialog buffer_size: %lu, filter: %ls, pError: %p, owner: %p, title: %ls, fileMustExist: %d", buffer_size, filter ? filter : L"null", pError, owner, title ? title : L"null", fileMustExist ? 1 : 0);
 
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
         OPENFILENAMEW ofn = { 0 };
         ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = nullptr;
+        ofn.hwndOwner = owner;
+        ofn.lpstrTitle = title;
         ofn.lpstrFile = buffer;
         ofn.nMaxFile = buffer_size;
         ofn.lpstrFilter = filter ? filter : L"All Files\0*.*\0";
         ofn.nFilterIndex = 1;
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
+        ofn.Flags = OFN_PATHMUSTEXIST | (fileMustExist ? OFN_FILEMUSTEXIST : 0) | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
 
         BOOL result = GetOpenFileNameW(&ofn);
         if (!result) {
@@ -210,16 +226,18 @@ public:
      * @param buffer_size Size of buffer in wchar_t units.
      * @param title Dialog title.
      * @param pError Out error code. 0=success, -1=canceled, otherwise HRESULT.
+     * @param owner Owner window, or nullptr for none.
      * @return TRUE on success or cancel, FALSE on failure.
      */
     BOOL ShowFolderDialog(
         wchar_t* buffer,
         DWORD buffer_size,
         const wchar_t* title = L"Select Folder",
-        DWORD * pError = nullptr  // Optional
+        DWORD * pError = nullptr,  // Optional
+        HWND owner = nullptr
     )
     {
-        DFLog(TAG, L"ShowFolderDialog buffer_size: %lu, title: %ls, pError: %p", buffer_size, title ? title : L"null", pError);
+        DFLog(TAG, L"ShowFolderDialog buffer_size: %lu, title: %ls, pError: %p, owner: %p", buffer_size, title ? title : L"null", pError, owner);
 
         // COM initialization (not needed if already initialized by caller)
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
@@ -255,7 +273,7 @@ public:
         pFileOpen->SetOptions(dwOptions | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
 
         // Show dialog
-        hr = pFileOpen->Show(nullptr);
+        hr = pFileOpen->Show(owner);
         if (SUCCEEDED(hr)) {
             IShellItem* pItem = nullptr;
             hr = pFileOpen->GetResult(&pItem);
@@ -317,16 +335,18 @@ public:
      * @param buffer_size Size of buffer in wchar_t units.
      * @param title Dialog title.
      * @param pError Out error code. 0=success, -1=canceled, otherwise HRESULT.
+     * @param owner Owner window, or nullptr for none.
      * @return Number of selected folders. 0=canceled, -1=error, otherwise >=1.
      */
     int ShowMultiFolderDialog(
         wchar_t* buffer,
         DWORD buffer_size,
         const wchar_t* title = L"Select Folder",
-        DWORD* pError = nullptr  // Optional
+        DWORD* pError = nullptr,  // Optional
+        HWND owner = nullptr
     )
     {
-        DFLog(TAG, L"ShowMultiFolderDialog buffer_size: %lu, title: %ls, pError: %p", buffer_size, title ? title : L"null", pError);
+        DFLog(TAG, L"ShowMultiFolderDialog buffer_size: %lu, title: %ls, pError: %p, owner: %p", buffer_size, title ? title : L"null", pError, owner);
 
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
 
@@ -364,7 +384,7 @@ public:
         pFileOpen->SetOptions(dwOptions | FOS_PICKFOLDERS | FOS_ALLOWMULTISELECT | FOS_FORCEFILESYSTEM);
 
         // Show dialog
-        hr = pFileOpen->Show(nullptr);
+        hr = pFileOpen->Show(owner);
         if (SUCCEEDED(hr)) {
             IShellItemArray* pItems = nullptr;
             hr = pFileOpen->GetResults(&pItems);
@@ -443,6 +463,9 @@ public:
      * @param filter Win32 filter string.
      * @param def_ext Default extension.
      * @param pError Out error code. 0=success, -1=canceled, otherwise CommDlgExtendedError.
+     * @param owner Owner window, or nullptr for none.
+     * @param title Dialog title, or nullptr for the system default.
+     * @param overwritePrompt Whether to ask before an existing file is picked (OFN_OVERWRITEPROMPT).
      * @return TRUE on success or cancel, FALSE on failure.
      */
     BOOL ShowSaveFileDialog(
@@ -450,20 +473,24 @@ public:
         DWORD buffer_size,
         const wchar_t* filter,
         const wchar_t* def_ext = nullptr,
-        DWORD* pError = nullptr  // Optional
+        DWORD* pError = nullptr,  // Optional
+        HWND owner = nullptr,
+        const wchar_t* title = nullptr,
+        bool overwritePrompt = true
     )
     {
-        DFLog(TAG, L"ShowSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError);
+        DFLog(TAG, L"ShowSaveFileDialog buffer_size: %lu, filter: %ls, def_ext: %ls, pError: %p, owner: %p, title: %ls, overwritePrompt: %d", buffer_size, filter ? filter : L"null", def_ext ? def_ext : L"null", pError, owner, title ? title : L"null", overwritePrompt ? 1 : 0);
 
         ZeroMemory(buffer, buffer_size * sizeof(wchar_t));
         OPENFILENAMEW ofn = { 0 };
         ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = nullptr;
+        ofn.hwndOwner = owner;
+        ofn.lpstrTitle = title;
         ofn.lpstrFile = buffer;
         ofn.nMaxFile = buffer_size;
         ofn.lpstrFilter = filter ? filter : L"All Files\0*.*\0";
         ofn.nFilterIndex = 1;
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+        ofn.Flags = OFN_PATHMUSTEXIST | (overwritePrompt ? OFN_OVERWRITEPROMPT : 0);
         ofn.lpstrDefExt = def_ext;
 
         BOOL result = GetSaveFileNameW(&ofn);

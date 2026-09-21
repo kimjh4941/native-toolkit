@@ -31,15 +31,15 @@ internal static class Native
 
     /// <summary>
     /// Returns the first visible top-level window of the process with the given
-    /// window class, or <see cref="IntPtr.Zero"/>.
+    /// window class, other than <paramref name="except"/>, or <see cref="IntPtr.Zero"/>.
     /// </summary>
-    public static IntPtr FindVisibleWindow(int processId, string className)
+    public static IntPtr FindVisibleWindow(int processId, string className, IntPtr except = default)
     {
         var found = IntPtr.Zero;
         EnumWindows((hwnd, _) =>
         {
             GetWindowThreadProcessId(hwnd, out var pid);
-            if (pid != processId || !IsWindowVisible(hwnd))
+            if (pid != processId || hwnd == except || !IsWindowVisible(hwnd))
             {
                 return true;
             }
