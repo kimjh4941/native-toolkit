@@ -65,6 +65,14 @@ void ForwardActivation(const wchar_t* argsJson)
     handler(Data::ParseActivationJson(argsJson ? argsJson : L""));
 }
 
+/// What a closed or moved-from Manager gives every operation. It owns none of
+/// the process's notification state, and asking the state directly would let a
+/// moved-from handle act on whatever the live one owns.
+Error Closed() noexcept
+{
+    return Error{ErrorCode::NotInitialized, NOTIFICATION_ERROR_NOT_INITIALIZED};
+}
+
 /// Nothing on success, or the case the manager reported.
 Result<void> ToResult(DWORD error)
 {
@@ -174,6 +182,7 @@ void Manager::SetInvokedHandler(std::function<void(const ActivationArgs&)> handl
 
 Result<void> Manager::Show(const NotificationContent& content)
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().Show(content, &error);
     return ToResult(error);
@@ -182,6 +191,7 @@ Result<void> Manager::Show(const NotificationContent& content)
 Result<void> Manager::Schedule(const NotificationContent& content,
                                std::chrono::system_clock::time_point when)
 {
+    if (!held_) return Unexpected{Closed()};
     const auto milliseconds =
         std::chrono::duration_cast<std::chrono::milliseconds>(when.time_since_epoch()).count();
 
@@ -192,6 +202,7 @@ Result<void> Manager::Schedule(const NotificationContent& content,
 
 Result<void> Manager::CancelScheduled(const std::wstring& tag, const std::wstring& group)
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().CancelScheduled(tag.c_str(), group.c_str(), &error);
     return ToResult(error);
@@ -199,6 +210,7 @@ Result<void> Manager::CancelScheduled(const std::wstring& tag, const std::wstrin
 
 Result<void> Manager::UpdateProgress(const ProgressUpdate& update)
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().UpdateProgress(update.tag.c_str(), update.group.c_str(), update.value,
                              update.valueString.c_str(), update.status.c_str(),
@@ -212,6 +224,7 @@ Result<void> Manager::UpdateProgress(const ProgressUpdate& update)
 
 Result<void> Manager::SetBadge(int value)
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().SetBadge(value, &error);
     return ToResult(error);
@@ -219,6 +232,7 @@ Result<void> Manager::SetBadge(int value)
 
 Result<void> Manager::RemoveById(uint32_t id)
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().RemoveById(id, &error);
     return ToResult(error);
@@ -226,6 +240,7 @@ Result<void> Manager::RemoveById(uint32_t id)
 
 Result<void> Manager::RemoveByTag(const std::wstring& tag, const std::wstring& group)
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().RemoveByTag(tag.c_str(), group.c_str(), &error);
     return ToResult(error);
@@ -233,6 +248,7 @@ Result<void> Manager::RemoveByTag(const std::wstring& tag, const std::wstring& g
 
 Result<void> Manager::RemoveAll()
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().RemoveAll(&error);
     return ToResult(error);
@@ -240,6 +256,7 @@ Result<void> Manager::RemoveAll()
 
 Result<std::vector<NotificationRef>> Manager::GetAll()
 {
+    if (!held_) return Unexpected{Closed()};
     // The manager writes a JSON array into a caller buffer and truncates
     // silently when it does not fit, so the size is chosen here and checked by
     // parsing: a truncated array has lost its closing bracket and cannot parse.
@@ -287,6 +304,7 @@ Result<std::vector<NotificationRef>> Manager::GetAll()
 
 Result<NotificationSetting> Manager::GetSetting()
 {
+    if (!held_) return Unexpected{Closed()};
     // The C ABI packs "could not ask" into the same int as the answer, by
     // returning -1. Here the two are told apart.
     const int setting = Backing().GetSetting();
@@ -298,6 +316,7 @@ Result<NotificationSetting> Manager::GetSetting()
 
 Result<void> Manager::OpenSettings()
 {
+    if (!held_) return Unexpected{Closed()};
     DWORD error = NOTIFICATION_SUCCESS;
     Backing().OpenSettings(&error);
     return ToResult(error);

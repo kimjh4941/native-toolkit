@@ -94,6 +94,7 @@
     <ClCompile Include="NotificationBuilderTest.cpp" />
     <ClCompile Include="AppSdkRuntimeForTest.cpp" />
     <ClCompile Include="NotificationApiTest.cpp" />
+    <ClCompile Include="NotificationBridgeTest.cpp" />
     <ClCompile Include="NotificationValidationDomainTest.cpp" />
     <ClCompile Include="PublicApiTypesTest.cpp" />
     <ClCompile Include="PublicApiErrorMappingTest.cpp" />
@@ -115,6 +116,9 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WindowsLibrary\src\Notification\WindowsNotificationApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+        <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationBridge.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WindowsLibrary\src\Notification\Data\WindowsClassicActivator.cpp">
