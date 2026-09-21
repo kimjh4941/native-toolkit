@@ -3,7 +3,7 @@
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/WindowsNotificationApiInternal.h"
 #include "Bridge/NotificationPayloadJson.h"
-#include "AppSdkRuntimeForTest.h"
+#include "Support/AppSdkRuntimeForTest.h"
 
 #include <functional>
 #include <optional>

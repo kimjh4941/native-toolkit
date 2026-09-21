@@ -54,7 +54,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
       <!-- winrt/base.h + manually generated Microsoft.Windows.* projection headers -->
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\include;..\WindowsLibrary\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\include;..\WindowsLibrary\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -72,7 +72,7 @@
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\include;..\WindowsLibrary\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\include;..\WindowsLibrary\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,29 +86,29 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NotificationManagerTest.cpp" />
-    <ClCompile Include="ClipboardFormatsTest.cpp" />
-    <ClCompile Include="ClipboardHistoryCoordinatorTest.cpp" />
-    <ClCompile Include="DialogErrorDomainTest.cpp" />
-    <ClCompile Include="DialogMappingTest.cpp" />
-    <ClCompile Include="NotificationBuilderTest.cpp" />
-    <ClCompile Include="AppSdkRuntimeForTest.cpp" />
-    <ClCompile Include="NotificationApiTest.cpp" />
-    <ClCompile Include="NotificationBridgeTest.cpp" />
-    <ClCompile Include="NotificationPayloadTest.cpp" />
-    <ClCompile Include="NotificationValidationDomainTest.cpp" />
-    <ClCompile Include="PublicApiTypesTest.cpp" />
-    <ClCompile Include="PublicApiErrorMappingTest.cpp" />
-    <ClCompile Include="PublicApiHeaderSelfContainedTest.cpp">
+    <ClCompile Include="Notification\NotificationManagerTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardFormatsTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardHistoryCoordinatorTest.cpp" />
+    <ClCompile Include="Dialog\DialogErrorDomainTest.cpp" />
+    <ClCompile Include="Dialog\DialogMappingTest.cpp" />
+    <ClCompile Include="Notification\NotificationBuilderTest.cpp" />
+    <ClCompile Include="Support\AppSdkRuntimeForTest.cpp" />
+    <ClCompile Include="Notification\NotificationApiTest.cpp" />
+    <ClCompile Include="Notification\NotificationBridgeTest.cpp" />
+    <ClCompile Include="Notification\NotificationPayloadTest.cpp" />
+    <ClCompile Include="Notification\NotificationValidationDomainTest.cpp" />
+    <ClCompile Include="PublicApi\PublicApiTypesTest.cpp" />
+    <ClCompile Include="PublicApi\PublicApiErrorMappingTest.cpp" />
+    <ClCompile Include="PublicApi\PublicApiHeaderSelfContainedTest.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="ClipboardApiTest.cpp" />
-    <ClCompile Include="ClipboardBridgeTest.cpp" />
-    <ClCompile Include="ClipboardApiCoreTest.cpp" />
-    <ClCompile Include="ClipboardApiDeferredTest.cpp" />
-    <ClCompile Include="ClipboardApiHistoryTest.cpp" />
-    <ClCompile Include="ClipboardCoreTest.cpp" />
-    <ClCompile Include="ClipboardDeferredProviderTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardApiTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardBridgeTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardApiCoreTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardApiDeferredTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardApiHistoryTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardCoreTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardDeferredProviderTest.cpp" />
     <!-- Production code under test, compiled directly into the test (internal class methods
          are not exported from the DLL). These include the WindowsLibrary pch.h directly. -->
     <ClCompile Include="..\WindowsLibrary\src\Common\common.cpp">
@@ -169,8 +169,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AppSdkRuntimeForTest.h" />
-    <ClInclude Include="ClipboardSessionForTest.h" />
+    <ClInclude Include="Support\AppSdkRuntimeForTest.h" />
+    <ClInclude Include="Support\ClipboardSessionForTest.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

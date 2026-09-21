@@ -3,7 +3,7 @@
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/WindowsNotificationApiInternal.h"
 #include "Notification/Data/WindowsNotificationActivation.h"
-#include "AppSdkRuntimeForTest.h"
+#include "Support/AppSdkRuntimeForTest.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

@@ -4,7 +4,7 @@
 #include "Notification/Data/WindowsNotificationBuilder.h"
 #include "Bridge/NotificationPayloadJson.h"
 
-#include "AppSdkRuntimeForTest.h"
+#include "Support/AppSdkRuntimeForTest.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace winrt::Windows::Data::Json;

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "ClipboardSessionForTest.h"
+#include "Support/ClipboardSessionForTest.h"
 #include "Clipboard/WindowsClipboardManager.h"
 #include "Clipboard/WindowsClipboardManagerInternal.h"
 

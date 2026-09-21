@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Clipboard">
+      <UniqueIdentifier>{56231E64-FAA4-538A-8E51-8C075185F9DA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dialog">
+      <UniqueIdentifier>{0DE88150-C019-5DA9-838E-4CFDFCF32D3E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Library Sources">
+      <UniqueIdentifier>{D2272D8A-3179-5280-A925-E646E9ECA2FA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Notification">
+      <UniqueIdentifier>{1CAD9F30-86C8-5CAD-AC46-48C16BE06B83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PublicApi">
+      <UniqueIdentifier>{4EE864AE-8819-5817-B3F8-FB0243FE8D8E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Support">
+      <UniqueIdentifier>{9DC2731D-1F31-5EBD-9A46-DDB4BEAB61EE}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardBridge.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardPayloadJson.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationBridge.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationPayloadJson.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Application\WindowsClipboardHistoryCoordinator.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Application\WindowsClipboardLifecycle.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardCore.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardDeferredProvider.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardHistoryWinRt.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardWindow.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Domain\WindowsClipboardFormats.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\WindowsClipboardApi.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\WindowsClipboardManager.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Common\common.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Notification\Data\WindowsClassicActivator.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Notification\WindowsNotificationApi.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Notification\WindowsNotificationManager.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardApiCoreTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardApiDeferredTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardApiHistoryTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardApiTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardBridgeTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardCoreTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardDeferredProviderTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardFormatsTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardHistoryCoordinatorTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Dialog\DialogErrorDomainTest.cpp">
+      <Filter>Dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="Dialog\DialogMappingTest.cpp">
+      <Filter>Dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\NotificationApiTest.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\NotificationBridgeTest.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\NotificationBuilderTest.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\NotificationManagerTest.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\NotificationPayloadTest.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\NotificationValidationDomainTest.cpp">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="PublicApi\PublicApiErrorMappingTest.cpp">
+      <Filter>PublicApi</Filter>
+    </ClCompile>
+    <ClCompile Include="PublicApi\PublicApiHeaderSelfContainedTest.cpp">
+      <Filter>PublicApi</Filter>
+    </ClCompile>
+    <ClCompile Include="PublicApi\PublicApiTypesTest.cpp">
+      <Filter>PublicApi</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\AppSdkRuntimeForTest.cpp">
+      <Filter>Support</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="Support\AppSdkRuntimeForTest.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\ClipboardSessionForTest.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

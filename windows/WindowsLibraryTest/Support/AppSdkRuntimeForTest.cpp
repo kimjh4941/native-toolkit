@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "AppSdkRuntimeForTest.h"
+#include "Support/AppSdkRuntimeForTest.h"
 
 #include <appmodel.h>
 
