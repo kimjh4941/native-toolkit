@@ -16,11 +16,10 @@
 #include <windows.h>
 #include <cstdint>
 
-#ifdef WINDOWSLIBRARY_EXPORTS
-#define WINDOWSCLIPBOARDMANAGER_API __declspec(dllexport)
-#else
-#define WINDOWSCLIPBOARDMANAGER_API __declspec(dllimport)
-#endif
+// The DLL's surface is the .def file and nothing else (D-5, design 7.6.1).
+// These declarations carry no __declspec: the static core includes this header
+// too, and an export macro there would either leak dllexport into whatever links
+// the core, or make the core read its own functions as dllimport.
 
 // ---------------------------------------------------------------------------
 // Error codes (0 = success, non-success values 1-19)
@@ -122,7 +121,7 @@ typedef DWORD (*ClipboardRenderCallback)(const wchar_t* formatName,
  *       idempotent success.
  *       The function pointer must stay valid until uninitClipboardManager returns TRUE.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void initClipboardManager(ClipboardChangedCallback onChanged, DWORD* pError);
 
 /**
@@ -146,7 +145,7 @@ void initClipboardManager(ClipboardChangedCallback onChanged, DWORD* pError);
  *       while clipboard history is disabled. Call getClipboardHistoryAvailability
  *       whenever the current setting matters. onHistoryChanged is unaffected.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void setClipboardHistoryCallbacks(ClipboardHistoryChangedCallback onHistoryChanged,
                                   ClipboardFlagChangedCallback onHistoryEnabledChanged,
                                   ClipboardFlagChangedCallback onRoamingEnabledChanged,
@@ -172,7 +171,7 @@ void setClipboardHistoryCallbacks(ClipboardHistoryChangedCallback onHistoryChang
  *       is destroyed only from here. A process that simply exits never receives the
  *       message and every reserved format is dropped from the clipboard.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 BOOL uninitClipboardManager(DWORD* pError);
 
 /**
@@ -183,7 +182,7 @@ BOOL uninitClipboardManager(DWORD* pError);
  *         call can still fail on partial-state recovery or an OS API error.
  *         Judge the final result by the uninit return value.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 BOOL canDestroyClipboardManager(DWORD* pError);
 
 // ---------------------------------------------------------------------------
@@ -191,7 +190,7 @@ BOOL canDestroyClipboardManager(DWORD* pError);
 // ---------------------------------------------------------------------------
 
 /** @brief Copies plain text to the clipboard. @param options CLIPBOARD_WRITE_OPTION_* flags. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void copyPlainText(const wchar_t* text, DWORD options, DWORD* pError);
 
 /**
@@ -200,27 +199,27 @@ void copyPlainText(const wchar_t* text, DWORD options, DWORD* pError);
  *         null or buffer_size is too small, returns the required size and sets
  *         *pError to CLIPBOARD_ERROR_BUFFER_TOO_SMALL.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 DWORD pastePlainText(wchar_t* buffer, DWORD buffer_size, DWORD* pError);
 
 /** @brief Copies an HTML fragment (with a plain-text fallback) to the clipboard. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void copyHtml(const wchar_t* htmlFragment, const wchar_t* plainText, DWORD options, DWORD* pError);
 
 /** @brief Reads the HTML fragment (UTF-16, decoded from CF_HTML's UTF-8 payload) from the clipboard. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 DWORD pasteHtml(wchar_t* buffer, DWORD buffer_size, DWORD* pError);
 
 /** @brief Copies a list of file paths (JSON array of strings) to the clipboard as CF_HDROP. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void copyFiles(const wchar_t* pathsJson, DWORD options, DWORD* pError);
 
 /** @brief Reads a CF_HDROP file list from the clipboard as a JSON array of strings. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 DWORD pasteFiles(wchar_t* buffer, DWORD buffer_size, DWORD* pError);
 
 /** @brief Copies a device-independent bitmap (CF_DIB) to the clipboard. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void copyImage(const BYTE* dib, DWORD dibSize, DWORD options, DWORD* pError);
 
 /**
@@ -228,15 +227,15 @@ void copyImage(const BYTE* dib, DWORD dibSize, DWORD options, DWORD* pError);
  * @return Required buffer size in bytes. If buffer is null or too small, returns
  *         the required size and sets *pError to CLIPBOARD_ERROR_BUFFER_TOO_SMALL.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 DWORD pasteImage(BYTE* buffer, DWORD buffer_size, DWORD* pError);
 
 /** @brief Copies raw bytes to the clipboard under a registered custom format name. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void copyCustomFormat(const wchar_t* formatName, const BYTE* data, DWORD size, DWORD options, DWORD* pError);
 
 /** @brief Reads raw bytes from the clipboard under a registered custom format name. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 DWORD pasteCustomFormat(const wchar_t* formatName, BYTE* buffer, DWORD buffer_size, DWORD* pError);
 
 /**
@@ -255,23 +254,23 @@ DWORD pasteCustomFormat(const wchar_t* formatName, BYTE* buffer, DWORD buffer_si
  *       If that rollback also fails, *pError is CLIPBOARD_ERROR_PARTIAL_STATE and
  *       some formats may remain on the clipboard.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void copyMultipleFormats(const wchar_t* itemsJson, DWORD options, DWORD* pError);
 
 /** @brief Returns whether the clipboard currently holds the given format (name or CF_* constant name). */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 BOOL hasClipboardFormat(const wchar_t* formatName, DWORD* pError);
 
 /** @brief Returns the currently available clipboard formats as a JSON array of format names. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 DWORD getClipboardFormats(wchar_t* buffer, DWORD buffer_size, DWORD* pError);
 
 /** @brief Returns the name of the most descriptive available format the caller understands. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 DWORD getPreferredClipboardFormat(wchar_t* buffer, DWORD buffer_size, DWORD* pError);
 
 /** @brief Empties the clipboard. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void clearClipboard(DWORD* pError);
 
 /**
@@ -287,12 +286,12 @@ void clearClipboard(DWORD* pError);
  *       reserved format as soon as it is reserved, so the provider runs before any
  *       external paste. Do not treat "provider not called yet" as an invariant.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void reserveDeferredFormats(const wchar_t* formatNamesJson, ClipboardRenderCallback provider,
                             void* context, DWORD* pError);
 
 /** @brief Retries recovery from a CLIPBOARD_ERROR_PARTIAL_STATE left by a failed rollback. UI-thread-limited. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 void recoverDeferredState(DWORD* pError);
 
 // ---------------------------------------------------------------------------
@@ -308,26 +307,26 @@ void recoverDeferredState(DWORD* pError);
  *       int64 range without loss:
  *       [{"id":"...","text":"..."|null,"contentTypes":["Text","Bitmap"],"timestamp":"<int64>"}]
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 uint32_t getClipboardHistory(ClipboardRequestCallback cb, DWORD* pError);
 
 /** @brief Restores a clipboard history item as the current clipboard content. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 uint32_t restoreHistoryItem(const wchar_t* itemId, ClipboardRequestCallback cb, DWORD* pError);
 
 /** @brief Deletes one clipboard history item. */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 uint32_t deleteHistoryItem(const wchar_t* itemId, ClipboardRequestCallback cb, DWORD* pError);
 
 /** @brief Clears the clipboard history. Pinned items are not removed (OS behavior). */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 uint32_t clearUnpinnedHistory(ClipboardRequestCallback cb, DWORD* pError);
 
 /**
  * @brief Queries clipboard history/roaming availability.
  * @note On success, cb receives: {"historyEnabled":true,"roamingEnabled":false}
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 uint32_t getClipboardHistoryAvailability(ClipboardRequestCallback cb, DWORD* pError);
 
 /**
@@ -339,5 +338,5 @@ uint32_t getClipboardHistoryAvailability(ClipboardRequestCallback cb, DWORD* pEr
  * @note Callable from any thread. The callback still fires exactly once, on the
  *       owner UI thread, with CLIPBOARD_ERROR_CANCELED when cancellation wins.
  */
-extern "C" WINDOWSCLIPBOARDMANAGER_API
+extern "C"
 BOOL cancelClipboardRequest(uint32_t requestId, DWORD* pError);

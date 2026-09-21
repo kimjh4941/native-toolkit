@@ -8,11 +8,10 @@
  */
 #pragma once
 
-#ifdef WINDOWSLIBRARY_EXPORTS
-#define WINDOWSDIALOGMANAGER_API __declspec(dllexport)
-#else
-#define WINDOWSDIALOGMANAGER_API __declspec(dllimport)
-#endif
+// The DLL's surface is the .def file and nothing else (D-5, design 7.6.1).
+// These declarations carry no __declspec: the static core includes this header
+// too, and an export macro there would either leak dllexport into whatever links
+// the core, or make the core read its own functions as dllimport.
 
 /**
  * @brief Displays a message box (alert dialog).
@@ -27,7 +26,7 @@
  *                - On failure: GetLastError() value
  * @return The identifier of the button the user clicked (IDOK/IDCANCEL/IDYES/IDNO, etc.). 0 on failure.
  */
-extern "C" WINDOWSDIALOGMANAGER_API
+extern "C"
 int showAlertDialog(
     const wchar_t* title,
     const wchar_t* message,
@@ -50,7 +49,7 @@ int showAlertDialog(
  * @return TRUE on success or cancel, FALSE on failure.
  * @note The function also returns TRUE when the dialog is canceled. Check pError to distinguish.
  */
-extern "C" WINDOWSDIALOGMANAGER_API
+extern "C"
 BOOL showFileDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -71,7 +70,7 @@ BOOL showFileDialog(
  *                     - Failure: CommDlgExtendedError() value
  * @return Count of selected items. 0 if canceled, -1 on failure, otherwise >= 1.
  */
-extern "C" WINDOWSDIALOGMANAGER_API
+extern "C"
 int showMultiFileDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -91,7 +90,7 @@ int showMultiFileDialog(
  *                     - Failure: CommDlgExtendedError() value
  * @return TRUE on success or cancel, FALSE on failure.
  */
-extern "C" WINDOWSDIALOGMANAGER_API
+extern "C"
 BOOL showSaveFileDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -111,7 +110,7 @@ BOOL showSaveFileDialog(
  *                     - Failure: HRESULT or ERROR_INSUFFICIENT_BUFFER
  * @return TRUE on success or cancel, FALSE on failure.
  */
-extern "C" WINDOWSDIALOGMANAGER_API
+extern "C"
 BOOL showFolderDialog(
     wchar_t* buffer,
     DWORD buffer_size,
@@ -130,7 +129,7 @@ BOOL showFolderDialog(
  *                     - Failure: HRESULT or ERROR_INSUFFICIENT_BUFFER
  * @return Count of selected folders. 0 if canceled, -1 on failure, otherwise >= 1.
  */
-extern "C" WINDOWSDIALOGMANAGER_API
+extern "C"
 int showMultiFolderDialog(
     wchar_t* buffer,
     DWORD buffer_size,

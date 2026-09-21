@@ -8,11 +8,10 @@
  */
 #pragma once
 
-#ifdef WINDOWSLIBRARY_EXPORTS
-#define WINDOWSNOTIFICATIONMANAGER_API __declspec(dllexport)
-#else
-#define WINDOWSNOTIFICATIONMANAGER_API __declspec(dllimport)
-#endif
+// The DLL's surface is the .def file and nothing else (D-5, design 7.6.1).
+// These declarations carry no __declspec: the static core includes this header
+// too, and an export macro there would either leak dllexport into whatever links
+// the core, or make the core read its own functions as dllimport.
 
 // Error codes
 #define NOTIFICATION_SUCCESS                    0
@@ -40,7 +39,7 @@ typedef void (*NotificationInvokedCallback)(const wchar_t* argsJson);
  * @param majorMinorVersion WinAppSDK major/minor version packed as 0xMMMMmmmm (e.g. 0x00010007 for 1.7).
  * @param pError            Out pointer for error code. 0 on success, 5 (HRESULT_FAILURE) on failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void initWinAppSdk(uint32_t majorMinorVersion, DWORD* pError);
 
 /**
@@ -55,7 +54,7 @@ void initWinAppSdk(uint32_t majorMinorVersion, DWORD* pError);
  * @param pError      Out pointer for error code. 0 on success, 1-8 on failure.
  * @note Call initWinAppSdk before this function for unpackaged apps.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void initNotificationManager(
     NotificationInvokedCallback callback,
     BOOL isPackaged,
@@ -67,7 +66,7 @@ void initNotificationManager(
 /**
  * @brief Uninitializes the notification manager and unregisters callbacks.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void uninitNotificationManager();
 
 /**
@@ -75,7 +74,7 @@ void uninitNotificationManager();
  * @param jsonPayload JSON string. See design doc for full schema.
  * @param pError      Out pointer for error code. 0 on success, 1-8 on failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void showNotification(
     const wchar_t* jsonPayload,
     DWORD* pError
@@ -87,7 +86,7 @@ void showNotification(
  * @param scheduledTimeUnixMs Delivery time in milliseconds since Unix epoch (UTC).
  * @param pError              Out pointer for error code. 0 on success, 1-8 on failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void scheduleNotification(
     const wchar_t* jsonPayload,
     int64_t scheduledTimeUnixMs,
@@ -100,7 +99,7 @@ void scheduleNotification(
  * @param group  Group of the notification to cancel.
  * @param pError Out pointer for error code. 0 on success, 5 on WinRT failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void cancelScheduledNotification(
     const wchar_t* tag,
     const wchar_t* group,
@@ -117,7 +116,7 @@ void cancelScheduledNotification(
  * @param sequenceNumber Sequence number; must be greater than the previous value.
  * @param pError         Out pointer for error code. 0 on success, 1/4/5 on failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void updateNotificationProgress(
     const wchar_t* tag,
     const wchar_t* group,
@@ -135,7 +134,7 @@ void updateNotificationProgress(
  * @param pError Out pointer for error code. 0 on success, 6/7 on failure,
  *               8 (NOT_SUPPORTED) for unpackaged apps (live-tile registration requires MSIX identity).
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void setBadge(int value, DWORD* pError);
 
 /**
@@ -144,7 +143,7 @@ void setBadge(int value, DWORD* pError);
  * @param pError         Out pointer for error code. 0 on success, 5 on WinRT failure,
  *                       8 (NOT_SUPPORTED) for unpackaged apps (classic API has no numeric ID).
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void removeNotificationById(uint32_t notificationId, DWORD* pError);
 
 /**
@@ -153,7 +152,7 @@ void removeNotificationById(uint32_t notificationId, DWORD* pError);
  * @param group  Group filter; pass empty string to match all groups for the tag.
  * @param pError Out pointer for error code. 0 on success, 5 on WinRT failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void removeNotificationsByTag(
     const wchar_t* tag,
     const wchar_t* group,
@@ -164,7 +163,7 @@ void removeNotificationsByTag(
  * @brief Removes all notifications from Notification Center.
  * @param pError Out pointer for error code. 0 on success, 5 on WinRT failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void removeAllNotifications(DWORD* pError);
 
 /**
@@ -174,7 +173,7 @@ void removeAllNotifications(DWORD* pError);
  * @param pError     Out pointer for error code. 0 on success, 5 on WinRT failure,
  *                   8 (NOT_SUPPORTED) for unpackaged apps (classic API has no numeric ID enumeration).
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void getAllNotifications(
     wchar_t* outJson,
     uint32_t bufferSize,
@@ -187,7 +186,7 @@ void getAllNotifications(
  *         3=DisabledByGroupPolicy, 4=DisabledByManifest, -1=error.
  * @note This return value is independent of the NOTIFICATION_ERROR_* code space.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 int getNotificationSetting();
 
 /**
@@ -197,5 +196,5 @@ int getNotificationSetting();
  *          settings page. Launches the ms-settings:notifications URI.
  * @param pError Out pointer for error code. 0 on success, 5 on WinRT failure.
  */
-extern "C" WINDOWSNOTIFICATIONMANAGER_API
+extern "C"
 void openNotificationSettings(DWORD* pError);

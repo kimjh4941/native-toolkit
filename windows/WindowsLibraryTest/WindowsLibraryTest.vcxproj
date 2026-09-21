@@ -50,7 +50,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WINDOWS;_DEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
       <!-- winrt/base.h + manually generated Microsoft.Windows.* projection headers -->
@@ -69,7 +69,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WINDOWS;NDEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\include;..\WindowsLibrary\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
