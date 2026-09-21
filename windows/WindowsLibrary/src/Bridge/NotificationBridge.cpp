@@ -24,10 +24,13 @@
  *  the bridge never destroys one: each call leaks its token on purpose, which
  *  is exactly what the C ABI does today.
  *
- *  Two functions are deliberately still on the manager, and say so where they
- *  are defined: showNotification and scheduleNotification take JSON, which the
- *  next step of T-14 moves into this file, and getAllNotifications answers in
- *  JSON that the backend itself writes.
+ *  The payload JSON is read here, by NotificationPayloadJson, because it
+ *  belongs to the C ABI: a C++ caller hands over a NotificationContent and
+ *  never sees a string of JSON. Reading it here also keeps the order of the
+ *  answers, which is observable - see ReadPayload.
+ *
+ *  getAllNotifications is deliberately still on the manager, and says so where
+ *  it is defined: it answers in JSON that the backend itself writes.
  *
  *  This translation unit belongs to the DLL only.
  */
@@ -35,6 +38,9 @@
 
 #include <optional>
 
+#include <winrt/Windows.Data.Json.h>
+
+#include "Bridge/NotificationPayloadJson.h"
 #include "Common/CommonInternal.h"
 #include "NativeToolkit/Notification.h"
 #include "Notification/WindowsNotificationManager.h"
@@ -77,6 +83,52 @@ bool NotInitialized(const wchar_t* caller, DWORD* pError)
 void Report(const Api::Result<void>& result, DWORD* pError)
 {
     if (pError) *pError = result.has_value() ? NOTIFICATION_SUCCESS : ToCError(result.error());
+}
+
+/**
+ * @brief Reads a JSON payload, or writes why it could not be read.
+ * @return False when the caller should stop.
+ * @details
+ *  The order of the answers is the order the manager used to give them, and it
+ *  is observable: a malformed payload sent while notifications are switched
+ *  off has always come back DISABLED rather than INVALID_PAYLOAD, because the
+ *  setting was checked before the text was parsed. Show checks the setting
+ *  again for itself, which costs one more query of a value the OS is happy to
+ *  be asked for.
+ *
+ *  "Could not ask" is not "disabled": the query throwing is left for Show to
+ *  turn into an HRESULT failure, inside the try it has always had.
+ */
+bool ReadPayload(const wchar_t* caller, const wchar_t* json,
+                 Api::NotificationContent& content, DWORD* pError)
+{
+    if (pError) *pError = NOTIFICATION_SUCCESS;
+    if (NotInitialized(caller, pError)) return false;
+
+    if (const auto setting = g_manager->GetSetting();
+        setting.has_value() && setting.value() != Api::NotificationSetting::Enabled) {
+        DFLog(TAG, L"[%ls] notification disabled. setting=%d",
+              caller, static_cast<int>(setting.value()));
+        if (pError) *pError = NOTIFICATION_ERROR_DISABLED;
+        return false;
+    }
+
+    winrt::Windows::Data::Json::JsonObject parsed{nullptr};
+    if (!json || !winrt::Windows::Data::Json::JsonObject::TryParse(winrt::hstring{json}, parsed)) {
+        DFLog(TAG, L"[%ls] invalid JSON payload", caller);
+        if (pError) *pError = NOTIFICATION_ERROR_INVALID_PAYLOAD;
+        return false;
+    }
+
+    try {
+        NotificationPayloadJson::Read(parsed, content);
+    } catch (const winrt::hresult_error& error) {
+        // A value of the wrong type has always come back as this.
+        DFLog(TAG, L"[%ls] the payload could not be read. hr=0x%08lx", caller, error.code().value);
+        if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+        return false;
+    }
+    return true;
 }
 
 /// Hands the activation on to a C callback, as the string it arrived as.
@@ -145,19 +197,24 @@ void uninitNotificationManager()
 
 void showNotification(const wchar_t* jsonPayload, DWORD* pError)
 {
-    // Still on the manager: the payload is JSON, and moving the parse into
-    // this file is the second step of T-14.
     DFLog(TAG, L"[showNotification] jsonPayload=%ls", jsonPayload ? jsonPayload : L"null");
-    WindowsNotificationManager::GetInstance().Show(jsonPayload, pError);
+
+    Api::NotificationContent content;
+    if (!ReadPayload(L"Show", jsonPayload, content, pError)) return;
+    Report(g_manager->Show(content), pError);
 }
 
 void scheduleNotification(
     const wchar_t* jsonPayload, int64_t scheduledTimeUnixMs, DWORD* pError)
 {
-    // Still on the manager, for the same reason as showNotification.
     DFLog(TAG, L"[scheduleNotification] scheduledTimeUnixMs=%lld", scheduledTimeUnixMs);
-    WindowsNotificationManager::GetInstance().Schedule(
-        jsonPayload, scheduledTimeUnixMs, pError);
+
+    Api::NotificationContent content;
+    if (!ReadPayload(L"Schedule", jsonPayload, content, pError)) return;
+
+    const auto when = std::chrono::system_clock::time_point{
+        std::chrono::milliseconds{scheduledTimeUnixMs}};
+    Report(g_manager->Schedule(content, when), pError);
 }
 
 void cancelScheduledNotification(

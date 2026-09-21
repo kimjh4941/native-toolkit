@@ -100,7 +100,7 @@ public:
         content.title = L"t";
         Button button;
         button.label = L"Open";
-        button.args  = {{L"action", L"open"}, {L"id", L"42"}};
+        button.args  = ArgumentPairs{{L"action", L"open"}, {L"id", L"42"}};
         content.buttons.push_back(button);
 
         AssertSameXml(
@@ -133,7 +133,7 @@ public:
             const std::wstring label = L"b" + std::to_wstring(i);
             Button button;
             button.label = label;
-            button.args  = {{L"n", std::to_wstring(i)}};
+            button.args  = ArgumentPairs{{L"n", std::to_wstring(i)}};
             content.buttons.push_back(button);
 
             if (i > 1) json += L",";
@@ -368,7 +368,7 @@ public:
 
         Button open;
         open.label = L"Open";
-        open.args  = {{L"action", L"open"}};
+        open.args  = ArgumentPairs{{L"action", L"open"}};
         Button docs;
         docs.label     = L"Docs";
         docs.invokeUri = L"https://example.com/docs";

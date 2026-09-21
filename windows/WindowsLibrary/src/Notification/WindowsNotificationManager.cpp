@@ -928,7 +928,7 @@ void WindowsNotificationManager::Show(const wchar_t* jsonPayload, DWORD* pError)
 void WindowsNotificationManager::Show(
     const NativeToolkit::Notification::NotificationContent& content, DWORD* pError)
 {
-    DFLog(TAG, L"[Show] content. title=%ls", content.title.c_str());
+    DFLog(TAG, L"[Show] content. title=%ls", content.title.value_or(L"(none)").c_str());
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
     if (!CheckInitialized(L"Show", pError)) return;

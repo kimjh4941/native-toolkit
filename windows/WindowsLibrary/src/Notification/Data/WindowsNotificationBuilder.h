@@ -18,13 +18,15 @@
  *   - a progress bar binds its value string and status only when the caller
  *     provided them, because it is the presence of the key that decides.
  *
- *  The JSON path decides field by field on whether the key is present; a
- *  struct has no absent string, so here an empty string means the same thing.
- *  The one place that distinction is observable is a deliberately empty title
- *  or body, which the JSON path renders as an empty line and this one drops.
- *  Everything that carries a URI, an id or a label is unusable when empty, so
- *  the two agree. Fields where absence changes the toast - the sound, the app
- *  logo, the progress bar, the timestamp - are optional rather than empty.
+ *  The JSON path decides field by field on whether the key is present, and so
+ *  does this one: the fields where an empty value differs from an absent one
+ *  are optional in NotificationContent, and are read here with has_value
+ *  rather than with empty. Section 1.10 of the input inventory lists the ten
+ *  places that matters, and NotificationPayloadTest pins each of them.
+ *
+ *  The fields that are plain strings - the tag, the group, a combo box title
+ *  and its default selection - were checked the same way and come out the same
+ *  whether they are empty or absent, so skipping an empty one is faithful.
  *
  *  Validation lives in Domain and runs before this is called.
  */
@@ -70,10 +72,12 @@ inline void ApplyButtons(WinRtBuilder::AppNotificationBuilder& builder,
 {
     for (const auto& source : buttons) {
         WinRtBuilder::AppNotificationButton button{winrt::hstring{source.label}};
-        if (!source.invokeUri.empty()) {
-            button.InvokeUri(winrt::Windows::Foundation::Uri{winrt::hstring{source.invokeUri}});
-        } else {
-            for (const auto& [key, value] : source.args) {
+        // Which one is set decides, not whether it holds anything: an invoke
+        // URI that is present and empty is a bad URI, and the App SDK says so.
+        if (source.invokeUri.has_value()) {
+            button.InvokeUri(winrt::Windows::Foundation::Uri{winrt::hstring{*source.invokeUri}});
+        } else if (source.args.has_value()) {
+            for (const auto& [key, value] : *source.args) {
                 button.AddArgument(winrt::hstring{key}, winrt::hstring{value});
             }
         }
@@ -86,12 +90,14 @@ inline void ApplyTextInputs(WinRtBuilder::AppNotificationBuilder& builder,
                             const std::vector<TextInput>& inputs)
 {
     for (const auto& input : inputs) {
-        if (input.placeholder.empty() && input.title.empty()) {
+        // Either one being present picks the three-argument overload, which
+        // writes attributes the one-argument overload does not.
+        if (!input.placeholder.has_value() && !input.title.has_value()) {
             builder.AddTextBox(winrt::hstring{input.id});
         } else {
             builder.AddTextBox(winrt::hstring{input.id},
-                               winrt::hstring{input.placeholder},
-                               winrt::hstring{input.title});
+                               winrt::hstring{input.placeholder.value_or(L"")},
+                               winrt::hstring{input.title.value_or(L"")});
         }
     }
 }
@@ -127,11 +133,11 @@ inline void ApplyImages(WinRtBuilder::AppNotificationBuilder& builder,
                                                                    : AppNotificationImageCrop::Default;
         builder.SetAppLogoOverride(Uri{winrt::hstring{content.appLogo->uri}}, crop);
     }
-    if (!content.heroImage.empty()) {
-        builder.SetHeroImage(Uri{winrt::hstring{content.heroImage}});
+    if (content.heroImage.has_value()) {
+        builder.SetHeroImage(Uri{winrt::hstring{*content.heroImage}});
     }
-    if (!content.inlineImage.empty()) {
-        builder.SetInlineImage(Uri{winrt::hstring{content.inlineImage}});
+    if (content.inlineImage.has_value()) {
+        builder.SetInlineImage(Uri{winrt::hstring{*content.inlineImage}});
     }
 }
 
@@ -148,7 +154,9 @@ inline void ApplyAudio(WinRtBuilder::AppNotificationBuilder& builder, const Audi
     const auto looping = audio.loop ? AppNotificationAudioLooping::Loop
                                     : AppNotificationAudioLooping::None;
     if (audio.kind == AudioKind::Uri) {
-        builder.SetAudioUri(Uri{winrt::hstring{audio.uri}}, looping);
+        // Validation refused a Uri kind with no uri at all, so there is one
+        // here; whether it parses is for the App SDK to say.
+        builder.SetAudioUri(Uri{winrt::hstring{audio.uri.value_or(L"")}}, looping);
         return;
     }
     builder.SetAudioEvent(ToSoundEvent(audio.eventName), looping);
@@ -158,8 +166,8 @@ inline void ApplyAudio(WinRtBuilder::AppNotificationBuilder& builder, const Audi
 inline void ApplyProgress(WinRtBuilder::AppNotificationBuilder& builder, const ProgressSpec& progress)
 {
     WinRtBuilder::AppNotificationProgressBar bar;
-    if (!progress.title.empty()) {
-        bar.Title(winrt::hstring{progress.title});
+    if (progress.title.has_value()) {
+        bar.Title(winrt::hstring{*progress.title});
     }
     bar.BindValue();
     if (progress.valueStr.has_value()) {
@@ -180,10 +188,10 @@ inline WinRtBuilder::AppNotificationBuilder BuildFromContent(const NotificationC
 {
     WinRtBuilder::AppNotificationBuilder builder;
 
-    if (!content.title.empty()) builder.AddText(winrt::hstring{content.title});
-    if (!content.body.empty())  builder.AddText(winrt::hstring{content.body});
-    if (!content.tag.empty())   builder.SetTag(winrt::hstring{content.tag});
-    if (!content.group.empty()) builder.SetGroup(winrt::hstring{content.group});
+    if (content.title.has_value()) builder.AddText(winrt::hstring{*content.title});
+    if (content.body.has_value())  builder.AddText(winrt::hstring{*content.body});
+    if (!content.tag.empty())      builder.SetTag(winrt::hstring{content.tag});
+    if (!content.group.empty())    builder.SetGroup(winrt::hstring{content.group});
 
     ApplyScenario(builder, content.scenario);
     if (content.duration == Duration::Long) {
@@ -200,8 +208,8 @@ inline WinRtBuilder::AppNotificationBuilder BuildFromContent(const NotificationC
     if (content.progress.has_value()) {
         ApplyProgress(builder, *content.progress);
     }
-    if (!content.attribution.empty()) {
-        builder.SetAttributionText(winrt::hstring{content.attribution});
+    if (content.attribution.has_value()) {
+        builder.SetAttributionText(winrt::hstring{*content.attribution});
     }
     if (content.timestamp.has_value()) {
         builder.SetTimeStamp(winrt::clock::from_sys(*content.timestamp));

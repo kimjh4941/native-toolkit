@@ -207,6 +207,7 @@
     <ClCompile Include="src\Bridge\ClipboardBridge.cpp" />
     <ClCompile Include="src\Bridge\DialogBridge.cpp" />
     <ClCompile Include="src\Bridge\NotificationBridge.cpp" />
+    <ClCompile Include="src\Bridge\NotificationPayloadJson.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="WindowsLibraryCore.vcxproj">
@@ -216,6 +217,9 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="WindowsLibrary.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Bridge\NotificationPayloadJson.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\NativeToolkit\BuildStamp.h" />

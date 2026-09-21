@@ -14,6 +14,15 @@
  *  not know are accepted and ignored today, so unknownKeys carries them
  *  through instead of dropping them silently.
  *
+ *  Several fields are optional where a plain string would do, because the
+ *  platform tells an absent value from an empty one and the two are not the
+ *  same: an empty title is a blank line on the toast, an empty image URI is a
+ *  failure rather than no image, and whether a button carries arguments at all
+ *  is what decides its exclusivity with invokeUri. Section 1.10 of the input
+ *  inventory lists the ten places this matters, derived from the
+ *  implementation. The fields that are plain strings were checked the same way
+ *  and come out identical either way.
+ *
  *  Keep this header ASCII only.
  */
 #pragma once
@@ -82,16 +91,16 @@ using ArgumentPairs = std::vector<std::pair<std::wstring, std::wstring>>;
  *          notification as a whole.
  */
 struct Button {
-    std::wstring  label;      ///< JSON: label. Required.
-    ArgumentPairs args;       ///< JSON: args. Any keys the caller likes.
-    std::wstring  invokeUri;  ///< JSON: invokeUri.
+    std::wstring                 label;      ///< JSON: label. Required.
+    std::optional<ArgumentPairs> args;       ///< JSON: args. Any keys the caller likes.
+    std::optional<std::wstring>  invokeUri;  ///< JSON: invokeUri.
 };
 
 /// A text field on the toast. JSON: an entry of textBoxes.
 struct TextInput {
-    std::wstring id;           ///< JSON: id. Required.
-    std::wstring placeholder;  ///< JSON: placeholder.
-    std::wstring title;        ///< JSON: title.
+    std::wstring                id;           ///< JSON: id. Required.
+    std::optional<std::wstring> placeholder;  ///< JSON: placeholder.
+    std::optional<std::wstring> title;        ///< JSON: title.
 };
 
 /// One choice of a selection field. JSON: an entry of comboBoxes[].items.
@@ -118,7 +127,7 @@ struct AppLogo {
 struct AudioSpec {
     AudioKind    kind = AudioKind::Event;
     std::wstring eventName;   ///< JSON: audio.event, e.g. "reminder", "alarm", "loopingAlarm", "loopingCall".
-    std::wstring uri;         ///< JSON: audio.uri. Required when kind is Uri.
+    std::optional<std::wstring> uri;  ///< JSON: audio.uri. Required when kind is Uri.
     bool         loop = false;///< JSON: audio.loop. Requires Duration::Long.
 };
 
@@ -128,7 +137,7 @@ struct AudioSpec {
  *          not its content, decides whether the bar binds that part at all.
  */
 struct ProgressSpec {
-    std::wstring                title;        ///< JSON: progress.title.
+    std::optional<std::wstring> title;        ///< JSON: progress.title.
     double                      value = 0.0;  ///< JSON: progress.value. Not range checked.
     std::optional<std::wstring> valueStr;     ///< JSON: progress.valueStr.
     std::optional<std::wstring> status;       ///< JSON: progress.status.
@@ -142,15 +151,15 @@ struct ProgressSpec {
  *  API does not change it.
  */
 struct NotificationContent {
-    std::wstring                title;            ///< JSON: title. Shown first.
-    std::wstring                body;             ///< JSON: body. Shown second.
+    std::optional<std::wstring> title;            ///< JSON: title. Shown first.
+    std::optional<std::wstring> body;             ///< JSON: body. Shown second.
     std::wstring                tag;              ///< JSON: tag.
     std::wstring                group;            ///< JSON: group.
     Scenario                    scenario = Scenario::Default;
-    std::wstring                heroImage;        ///< JSON: heroImage.
-    std::wstring                inlineImage;      ///< JSON: inlineImage.
+    std::optional<std::wstring> heroImage;        ///< JSON: heroImage.
+    std::optional<std::wstring> inlineImage;      ///< JSON: inlineImage.
     std::optional<AppLogo>      appLogo;          ///< JSON: appLogo.
-    std::wstring                attribution;      ///< JSON: attribution.
+    std::optional<std::wstring> attribution;      ///< JSON: attribution.
     Duration                    duration = Duration::Short;
     std::optional<AudioSpec>    audio;            ///< JSON: audio. Absent leaves the sound to the OS.
     std::vector<Button>         buttons;          ///< At most five.

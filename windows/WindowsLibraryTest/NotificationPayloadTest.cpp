@@ -1,9 +1,12 @@
 #include "pch.h"
 #include "Notification/Data/WindowsClassicActivator.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
+#include "Notification/WindowsNotificationApiInternal.h"
+#include "Bridge/NotificationPayloadJson.h"
 #include "AppSdkRuntimeForTest.h"
 
 #include <functional>
+#include <optional>
 #include <string>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -19,10 +22,12 @@ using namespace winrt::Windows::Data::Json;
 // implementation branches on HasKey, so "" is a value, while an empty string
 // in NotificationContent means the field is not there at all.
 //
-// Each test below pins what the payload does today with one of those twelve.
-// They are written against the JSON entry point, which T-14 is about to move
-// onto the struct, and they have to keep passing afterwards: that is the whole
-// of "the C ABI behaves the same", made checkable.
+// Each test below pins what the payload does with one of those cases, and runs
+// the route the C ABI now takes: the bridge's parser fills a
+// NotificationContent, Manager::Show validates and builds it, and a recording
+// backend hands back the XML that would have been delivered. They were written
+// against the old JSON entry point first and passed unchanged against this
+// one, which is what "the C ABI behaves the same" means here.
 // ============================================================================
 
 namespace WindowsNotificationPayloadTest
@@ -30,13 +35,24 @@ namespace WindowsNotificationPayloadTest
 
 namespace
 {
-    /// A backend that accepts everything, so Show gets as far as building.
+    /// A backend that accepts everything and keeps what it was given, so a
+    /// test can read the XML the payload turned into.
     struct AcceptingBackend final : public INotificationBackend
     {
+        DeliverPayload last;
+
         void RegisterActivation(DWORD* pError) override { if (pError) *pError = NOTIFICATION_SUCCESS; }
         void UnregisterActivation() override {}
-        void Deliver(const DeliverPayload&, DWORD* pError) override { if (pError) *pError = NOTIFICATION_SUCCESS; }
-        void Schedule(const DeliverPayload&, int64_t, DWORD* pError) override { if (pError) *pError = NOTIFICATION_SUCCESS; }
+        void Deliver(const DeliverPayload& payload, DWORD* pError) override
+        {
+            last = payload;
+            if (pError) *pError = NOTIFICATION_SUCCESS;
+        }
+        void Schedule(const DeliverPayload& payload, int64_t, DWORD* pError) override
+        {
+            last = payload;
+            if (pError) *pError = NOTIFICATION_SUCCESS;
+        }
         void CancelSchedule(const wchar_t*, const wchar_t*, DWORD* pError) override { if (pError) *pError = NOTIFICATION_SUCCESS; }
         void SetBadge(int, DWORD* pError) override { if (pError) *pError = NOTIFICATION_SUCCESS; }
         void UpdateProgress(const wchar_t*, const wchar_t*, double, const wchar_t*,
@@ -47,6 +63,13 @@ namespace
         void GetAll(wchar_t*, uint32_t, DWORD* pError) override { if (pError) *pError = NOTIFICATION_SUCCESS; }
         int  Setting() override { return 0; }
     };
+
+    AcceptingBackend* g_backend = nullptr;
+
+    /// One manager for the whole of a test. Closing one uninitialises the
+    /// manager underneath it, so a fresh one per call would leave the second
+    /// call with nothing to talk to.
+    std::optional<NativeToolkit::Notification::Manager> g_manager;
 }
 
 TEST_CLASS(NotificationPayloadTest)
@@ -62,16 +85,22 @@ public:
 
     TEST_METHOD_INITIALIZE(InstallABackend)
     {
+        auto backend = std::make_unique<AcceptingBackend>();
+        g_backend = backend.get();
         auto& backing = WindowsNotificationManager::GetInstance();
-        backing.SetBackendForTest(std::make_unique<AcceptingBackend>());
+        backing.SetBackendForTest(std::move(backend));
         backing.m_initialized = true;
+        g_manager.emplace(NativeToolkit::Notification::Detail::TestAccess::MakeManager());
     }
 
     TEST_METHOD_CLEANUP(RemoveTheBackend)
     {
+        g_manager.reset();
         auto& backing = WindowsNotificationManager::GetInstance();
         backing.m_initialized = false;
         backing.SetBackendForTest(nullptr);
+        g_backend = nullptr;
+
     }
 
     // --- Text that is there but empty ---------------------------------------
@@ -197,17 +226,19 @@ public:
 
 private:
 
-    /// The XML the payload builds, with its tag and group.
+    /// The XML the payload builds, with its tag and group, by the route the C
+    /// ABI now takes.
     static std::wstring Describe(const wchar_t* payload)
     {
-        DWORD error = NOTIFICATION_SUCCESS;
-        auto builder = WindowsNotificationManager::GetInstance().BuildFromJson(
-            JsonObject::Parse(payload), &error);
-        Assert::AreEqual<DWORD>(NOTIFICATION_SUCCESS, error, L"the payload was rejected");
-        auto notification = builder.BuildNotification();
-        return L"tag=" + std::wstring{notification.Tag()}
-             + L" group=" + std::wstring{notification.Group()}
-             + L" " + std::wstring{notification.Payload()};
+        NativeToolkit::Notification::NotificationContent content;
+        NotificationPayloadJson::Read(JsonObject::Parse(payload), content);
+
+        const auto shown = g_manager->Show(content);
+        Assert::IsTrue(shown.has_value(), L"the payload was rejected");
+
+        return L"tag=" + g_backend->last.tag
+             + L" group=" + g_backend->last.group
+             + L" " + g_backend->last.xmlPayload;
     }
 
     static bool Contains(const wchar_t* payload, const wchar_t* fragment)
@@ -228,11 +259,22 @@ private:
     }
 
     /// What a C caller would read from pError for this payload.
+    ///
+    /// The two steps are the bridge's: a value of the wrong shape throws while
+    /// it is being read and has always come back as an HRESULT failure, and
+    /// everything after that is Manager::Show's answer.
     static DWORD ShowError(const wchar_t* payload)
     {
-        DWORD error = 0xFFFFFFFFu;
-        WindowsNotificationManager::GetInstance().Show(payload, &error);
-        return error;
+        NativeToolkit::Notification::NotificationContent content;
+        try {
+            NotificationPayloadJson::Read(JsonObject::Parse(payload), content);
+        } catch (const winrt::hresult_error&) {
+            return NOTIFICATION_ERROR_HRESULT_FAILURE;
+        }
+
+        const auto shown = g_manager->Show(content);
+        return shown.has_value() ? NOTIFICATION_SUCCESS
+                                 : static_cast<DWORD>(shown.error().code);
     }
 };
 

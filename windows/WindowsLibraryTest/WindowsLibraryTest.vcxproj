@@ -122,6 +122,9 @@
         <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationBridge.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+        <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationPayloadJson.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibrary\src\Notification\Data\WindowsClassicActivator.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>

@@ -49,7 +49,10 @@ inline ValidationFailure FindFailure(const NotificationContent& content) noexcep
         if (content.audio->loop && content.duration != Duration::Long) {
             return ValidationFailure::LoopingAudioNeedsLongDuration;
         }
-        if (content.audio->kind == AudioKind::Uri && content.audio->uri.empty()) {
+        // No uri at all is this rule; a uri that is present and does not parse
+        // is the App SDK's answer later, and a different one (1.10 of the
+        // input inventory).
+        if (content.audio->kind == AudioKind::Uri && !content.audio->uri.has_value()) {
             return ValidationFailure::AudioUriMissing;
         }
     }
@@ -57,7 +60,9 @@ inline ValidationFailure FindFailure(const NotificationContent& content) noexcep
         return ValidationFailure::TooManyButtons;
     }
     for (const auto& button : content.buttons) {
-        if (!button.args.empty() && !button.invokeUri.empty()) {
+        // Giving both is the violation, whatever they hold: an empty args
+        // object still counts as having given arguments.
+        if (button.args.has_value() && button.invokeUri.has_value()) {
             return ValidationFailure::ButtonHasArgsAndInvokeUri;
         }
     }

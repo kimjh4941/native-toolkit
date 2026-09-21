@@ -30,7 +30,7 @@ namespace
     {
         Button button;
         button.label = std::move(label);
-        button.args.emplace_back(L"action", L"open");
+        button.args = ArgumentPairs{{L"action", L"open"}};
         return button;
     }
 }
