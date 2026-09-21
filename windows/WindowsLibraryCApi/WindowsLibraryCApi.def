@@ -19,3 +19,10 @@ EXPORTS
 	ntk_string_list_count
 	ntk_string_list_at
 	ntk_string_list_free
+	; Dialog (OP-01..OP-06)
+	ntk_dialog_show_alert
+	ntk_dialog_show_open_file
+	ntk_dialog_show_open_files
+	ntk_dialog_show_save_file
+	ntk_dialog_show_pick_folder
+	ntk_dialog_show_pick_folders

@@ -13,9 +13,15 @@
     <Filter Include="src\Common">
       <UniqueIdentifier>{70F76053-EA7F-58FC-9D7C-6B1900601599}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Dialog">
+      <UniqueIdentifier>{89A1A7BD-BA5B-5F21-A515-17DE4FADBEE6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\NativeToolkitC\Common.h">
+      <Filter>include\NativeToolkitC</Filter>
+    </ClInclude>
+    <ClInclude Include="include\NativeToolkitC\Dialog.h">
       <Filter>include\NativeToolkitC</Filter>
     </ClInclude>
     <ClInclude Include="src\Common\CallbackGate.h">
@@ -39,6 +45,9 @@
     <ClInclude Include="src\Common\Utf8.h">
       <Filter>src\Common</Filter>
     </ClInclude>
+    <ClInclude Include="src\Dialog\DialogConvert.h">
+      <Filter>src\Dialog</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Common\CallbackGate.cpp">
@@ -58,6 +67,12 @@
     </ClCompile>
     <ClCompile Include="src\Common\Version.cpp">
       <Filter>src\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dialog\DialogCApi.cpp">
+      <Filter>src\Dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dialog\DialogConvert.cpp">
+      <Filter>src\Dialog</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

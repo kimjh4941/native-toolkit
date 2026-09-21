@@ -69,6 +69,9 @@
     <ClCompile Include="..\WindowsLibrary\src\Common\common.cpp">
       <Filter>Library Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Dialog\WindowsDialogApi.cpp">
+      <Filter>Library Sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibrary\src\Notification\Data\WindowsClassicActivator.cpp">
       <Filter>Library Sources</Filter>
     </ClCompile>
@@ -96,13 +99,28 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Common\Version.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Dialog\DialogCApi.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Dialog\DialogConvert.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
     <ClCompile Include="CApi\CApiCommonTest.cpp">
+      <Filter>CApi</Filter>
+    </ClCompile>
+    <ClCompile Include="CApi\CApiDialogHeaderAsC.c">
+      <Filter>CApi</Filter>
+    </ClCompile>
+    <ClCompile Include="CApi\CApiDialogTest.cpp">
       <Filter>CApi</Filter>
     </ClCompile>
     <ClCompile Include="CApi\CApiHeadersAsC.c">
       <Filter>CApi</Filter>
     </ClCompile>
     <ClCompile Include="CApi\CApiHeadersSelfContained.cpp">
+      <Filter>CApi</Filter>
+    </ClCompile>
+    <ClCompile Include="CApi\CApiLayoutTest.cpp">
       <Filter>CApi</Filter>
     </ClCompile>
     <ClCompile Include="Clipboard\ClipboardApiCoreTest.cpp">
