@@ -512,7 +512,7 @@ public:
 
 - `WindowsLibraryTest` は今、ライブラリの **8 つの `.cpp` だけ**を選んでコンパイルし、`WINDOWSLIBRARY_EXPORTS` を定義している（`WindowsClipboardManager.cpp` や WinRT 背面は意図的に外し、`SetHistoryBackendFactoryForTest` で差し替えている）。静的コア全体をリンクすると対象が変わるため、**今と同じ対象範囲を保つか、増える分を意図として記録する**（T-02 の完了条件）
 - `WindowsLibraryExample` は段階 4 で `WindowsLibraryCore.vcxproj` を参照するようにする。段階 3 では include パスの追加と、`.props` の骨組みが効くことの確認まで（T-03）
-- `scripts/build_windows_library_dll.ps1` の `Project` / `Headers` を更新する。`Headers` は今 `src` 配下の 3 ファイルだけなので、`include/NativeToolkit` の 5 ヘッダーを加える（T-03）
+- `scripts/build_windows_library_dll.ps1` の `Headers` には C ABI のヘッダー 4 つを置く（`common.h`、`WindowsDialogManager.h`、`WindowsNotificationManager.h`、`WindowsClipboardManager.h`。最後の 1 つは Clipboard の追加以来抜けていたため段階 3 で足した）。**`include/NativeToolkit` のヘッダーは DLL のパッケージには入れない**。DLL が出すのは C ABI だけで、C++ API は `WindowsLibraryCore.lib` が無いとリンクできないため、ヘッダーだけを入れると利用者はリンクエラーで初めて使えないと知ることになる。C++ API のヘッダーは段階 6 で Core の静的ライブラリ（`/MD`・`/MT` × Debug・Release の 4 種）と一緒に配布する（2026-09-21 に決定。当初の案は T-03 で `include/NativeToolkit` の 5 ヘッダーを加えるものだった）
 - 段階 5 でやることは「ブリッジ用の `.cpp` 群を `WindowsLibraryCApi` へ移し、中身を新しい C ABI に置き換える」だけになる
 
 ## 8. API 設計
@@ -1178,32 +1178,32 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 
 ### 15.1 機能
 
-- [ ] `include/NativeToolkit/` の 5 ファイルがあり、47 操作すべての C++ API がある
-- [ ] 8.1 の対応表の全 47 行が実装され、9 章の表と操作の集合が一致する
-- [ ] 8.2 の型がすべて宣言されている（`Manager` / `Session` / `Runtime` を含む）
-- [ ] 公開ヘッダーが `<windows.h>` と WinRT の型を露出しておらず、単独 include でコンパイルできる（U-D）
-- [ ] 3 つの `enum class` の値が既存の定数と 1 対 1 で一致する
-- [ ] `Result` が機能ごとに別の型で、ムーブのみの `T` を入れられる
-- [ ] C ABI 52 関数が DLL ブリッジとして載り、**`dumpbin /exports` の差分が 0 件**で、T-17 の入力一覧の全項目が同じ結果になる
+- [x] `include/NativeToolkit/` の 6 ファイルがあり、47 操作すべての C++ API がある（当初 5。T-03 で `detect_mismatch` のための `BuildStamp.h` が加わった）
+- [x] 8.1 の対応表の全 47 行が実装され、9 章の表と操作の集合が一致する
+- [x] 8.2 の型がすべて宣言されている（`Manager` / `Session` / `Runtime` を含む）
+- [x] 公開ヘッダーが `<windows.h>` と WinRT の型を露出しておらず、単独 include でコンパイルできる（U-D）
+- [x] 3 つの `enum class` の値が既存の定数と 1 対 1 で一致する
+- [x] `Result` が機能ごとに別の型で、ムーブのみの `T` を入れられる
+- [x] C ABI 52 関数が DLL ブリッジとして載り、**`dumpbin /exports` の差分が 0 件**で、T-17 の入力一覧の全項目が同じ結果になる
 
 ### 15.2 品質
 
-- [ ] 既存の単体テスト 106 件が通る
-- [ ] 契約テスト C-1〜C-8、C-10〜C-12 が通る（C-9 は意図的に書かない）
-- [ ] `scripts/test_windows.ps1` の結果が `scripts/test_windows.baseline.json` と一致する
-- [ ] CU-01 が合格で、証拠のスクリーンショットが残っている
-- [ ] 実装のシグネチャ、完了スレッド、キャンセルの契約が 9 章・10 章の表と一致する
-- [ ] 公開ヘッダーの全宣言に Doxygen があり、スレッド・再入・寿命・`Close()` 必須が書かれている
-- [ ] 機械照合（T-13）が通り、検査を壊して落ちることを確かめてある。**10 章の引用行の照合を含む**
+- [x] 既存の単体テスト 106 件が通る（4 件は `Test_BuildFromJson_*` から `Test_BuildPayload_*` へ改名）
+- [x] 契約テスト C-1〜C-8、C-10〜C-12 が通る（C-9 は意図的に書かない。C-5 は 5 通りのうち 3 通りを実状態で強制し、残る 2 通りは C-10 の照合が守る）
+- [x] `scripts/test_windows.ps1` の結果が `scripts/test_windows.baseline.json` と一致する（UI テストは段階 3 前の baseline と完全一致。baseline は 2026-09-21 に記録し直した）
+- [ ] CU-01 が合格で、証拠のスクリーンショットが残っている（2026-09-19 の証拠は段階 3 の前のもの。段階 3 で通知の組み立てを書き直したため**再実行が要る**）
+- [x] 実装のシグネチャ、完了スレッド、キャンセルの契約が 9 章・10 章の表と一致する
+- [x] 公開ヘッダーの全宣言に Doxygen があり、スレッド・再入・寿命・`Close()` 必須が書かれている
+- [x] 機械照合（T-13）が通り、検査を壊して落ちることを確かめてある。**10 章の引用行の照合を含む**
 
 ### 15.3 構成
 
-- [ ] `WindowsLibraryCore`（静的）と `WindowsLibrary`（DLL）に分かれ、依存の向きが Core ← DLL である
-- [ ] `extern "C"` の関数が DLL 側の翻訳単位にのみ存在し、コアのヘッダーに `dllimport` / `dllexport` が無い
-- [ ] `.def` に 52 個が列挙され、`__declspec(dllexport)` に依存する公開関数が無い
-- [ ] 3 プロジェクトの C++ 標準が `stdcpp20` で揃っている
+- [x] `WindowsLibraryCore`（静的）と `WindowsLibrary`（DLL）に分かれ、依存の向きが Core ← DLL である
+- [x] `extern "C"` の関数が DLL 側の翻訳単位にのみ存在し、コアのヘッダーに `dllimport` / `dllexport` が無い
+- [x] `.def` に 52 個が列挙され、`__declspec(dllexport)` に依存する公開関数が無い
+- [x] 3 プロジェクトの C++ 標準が `stdcpp20` で揃っている
 - [x] 配布構成で `/GL` が無効になっている（Core の Release 2 構成）
 - [x] T-03 の結論が 7.5 に反映されている（`/MT` は可、伝播するライブラリ 8 + 1、`WINRT_*` は `detect_mismatch` で検査）
-- [ ] `.vcxproj` と `.vcxproj.filters` の対応が 1 対 1 である
-- [ ] `build_windows_library_dll.ps1` が `include/NativeToolkit` の 5 ヘッダーを含む
-- [ ] `windows.md` の変更案（5.2）が段階 5 の課題として記録されている
+- [x] `.vcxproj` と `.vcxproj.filters` の対応が 1 対 1 である（Core と DLL。テストのプロジェクトは元から `.filters` を持たない）
+- [x] `build_windows_library_dll.ps1` が C ABI のヘッダー 4 つを含む。`include/NativeToolkit` のヘッダーは段階 6 で Core の静的ライブラリと一緒に配布する（7.6 の決定）
+- [x] `windows.md` の変更案（5.2）が段階 5 の課題として記録されている
