@@ -857,7 +857,10 @@ bool ClipboardManager::HasFormatNamed(const std::wstring& formatName, DWORD* pEr
     std::optional<ClipboardLifecycle::Lease> lease;
     HWND hwnd = nullptr;
     if (!AcquireSyncLease(pError, lease, hwnd)) return false;
-    if (formatName.empty()) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return false; }
+    // An empty name is not an error: it is a name no format has, so the answer
+    // is simply no. Only a null one is refused, and a null one cannot get this
+    // far. Asking is not writing, so there is nothing to protect here that the
+    // C ABI does not already leave unprotected (ClipboardBridgeTest).
     const bool has = ::HasFormat(ResolveFormatId(formatName));
     SetErr(pError, CLIPBOARD_ERROR_NONE);
     return has;

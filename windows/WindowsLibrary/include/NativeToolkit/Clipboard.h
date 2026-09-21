@@ -244,7 +244,8 @@ public:
      */
     Result<void> CopyMultiple(std::span<const FormatPayload> items, WriteOptions options = {});
 
-    /// Whether the clipboard currently offers that format.
+    /// Whether the clipboard currently offers that format. A name no format
+    /// has, including an empty one, is simply absent rather than an error.
     Result<bool> HasFormat(std::wstring_view formatName);
 
     /// Every format the clipboard offers, in the order the OS reports them.
