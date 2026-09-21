@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Notification/Domain/WindowsNotificationValidation.h"
+#include "Bridge/NotificationPayloadJson.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include <winrt/Windows.Data.Json.h>
 
@@ -37,13 +38,18 @@ namespace
 
 TEST_CLASS(NotificationValidationDomainTest)
 {
-    /// Runs the JSON rules the way Show does today. This has to be a member:
-    /// the manager befriends the class, not the file.
+    /// Whether the payload survives the rules, by the route it takes now: the
+    /// bridge reads it into a content and the Domain rules judge that.
+    ///
+    /// There is one rule set, so this no longer compares two of them. What it
+    /// still catches is a payload that reads into the wrong shape - a looping
+    /// sound that arrives without its loop, a sixth button that is dropped
+    /// rather than counted - which would make an invalid payload look valid.
     static bool JsonIsValid(const wchar_t* payload)
     {
-        JsonObject json = JsonObject::Parse(payload);
-        DWORD error = 0;
-        return WindowsNotificationManager::GetInstance().ValidatePayload(json, &error);
+        NotificationContent content;
+        NotificationPayloadJson::Read(JsonObject::Parse(payload), content);
+        return Domain::IsValid(content);
     }
 
 public:

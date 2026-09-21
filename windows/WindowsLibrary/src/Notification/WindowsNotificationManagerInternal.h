@@ -29,14 +29,10 @@ public:
     void Init(NotificationInvokedCallback callback, BOOL isPackaged,
               const wchar_t* displayName, const wchar_t* iconUri, DWORD* pError);
     void Uninit();
-    void Show(const wchar_t* jsonPayload, DWORD* pError);
-    void Schedule(const wchar_t* jsonPayload, int64_t scheduledTimeMs, DWORD* pError);
-
-    // The same two operations described by the C++ API content type instead of
-    // by a JSON payload. They take the identical route once the payload is
-    // built, and they check that notifications are enabled before they build,
-    // so a disabled app is told it is disabled rather than told its content is
-    // wrong (which is what checking in the other order would report).
+    // A notification is described by a NotificationContent, whoever is asking:
+    // the C ABI's JSON is read into one by the bridge. Both check that
+    // notifications are enabled before they build, so a disabled app is told
+    // it is disabled rather than told its content is wrong.
     void Show(const NativeToolkit::Notification::NotificationContent& content, DWORD* pError);
     void Schedule(const NativeToolkit::Notification::NotificationContent& content,
                   int64_t scheduledTimeMs, DWORD* pError);
@@ -92,37 +88,11 @@ private:
         winrt::Microsoft::Windows::AppNotifications::AppNotificationManager const&,
         winrt::Microsoft::Windows::AppNotifications::AppNotificationActivatedEventArgs const& args);
 
-    bool ValidatePayload(const winrt::Windows::Data::Json::JsonObject& json, DWORD* pError);
-
-    winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder
-        BuildFromJson(const winrt::Windows::Data::Json::JsonObject& json, DWORD* pError);
-
-    // Build a neutral DeliverPayload from parsed JSON.
-    // Calls BuildFromJson, captures XML + expiration/progress metadata.
-    // Returns empty payload and sets *pError on failure.
-    DeliverPayload BuildPayload(const winrt::Windows::Data::Json::JsonObject& json, DWORD* pError);
-
-    /// The same, from the C++ API content type. Validation is the Domain rule
-    /// set rather than ValidatePayload; NotificationValidationDomainTest holds
-    /// the two to the same answers until T-14 makes them one.
+    /// Validates the content against the Domain rules and captures the XML,
+    /// the tag and the group, plus the expiration and progress the backend
+    /// needs but the XML does not carry.
     DeliverPayload BuildPayload(const NativeToolkit::Notification::NotificationContent& content,
                                 DWORD* pError);
-
-    void ApplyButtons(
-        winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder& builder,
-        const winrt::Windows::Data::Json::JsonArray& buttons, DWORD* pError);
-    void ApplyComboBoxes(
-        winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder& builder,
-        const winrt::Windows::Data::Json::JsonArray& combos, DWORD* pError);
-    void ApplyImages(
-        winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder& builder,
-        const winrt::Windows::Data::Json::JsonObject& json);
-    void ApplyAudio(
-        winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder& builder,
-        const winrt::Windows::Data::Json::JsonObject& audioObj, DWORD* pError);
-    void ApplyProgress(
-        winrt::Microsoft::Windows::AppNotifications::Builder::AppNotificationBuilder& builder,
-        const winrt::Windows::Data::Json::JsonObject& progressObj);
 
     std::wstring ArgsToJson(
         const winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::hstring>& args,

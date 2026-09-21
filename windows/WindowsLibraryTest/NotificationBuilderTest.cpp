@@ -2,6 +2,7 @@
 #include "Notification/Data/WindowsClassicActivator.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/Data/WindowsNotificationBuilder.h"
+#include "Bridge/NotificationPayloadJson.h"
 
 #include "AppSdkRuntimeForTest.h"
 
@@ -11,15 +12,16 @@ using namespace winrt::Windows::Data::Json;
 // ============================================================================
 // U-E of the stage 3 design, for the Data layer of the notification feature.
 //
-// There are now two ways to describe a toast: the JSON payload the C ABI takes
-// and the NotificationContent of the C++ API. Until T-14 unifies them they are
-// built by separate code, and the risk is not that the new path breaks loudly
-// but that it quietly builds a poorer toast - an image it forgets, a sound it
-// gets wrong - which no caller of the C ABI would ever notice.
+// There are two ways to describe a toast: the JSON payload the C ABI takes and
+// the NotificationContent a C++ caller writes. One builder now serves both, so
+// what is left to go wrong is the reading: a payload whose key lands in the
+// wrong field, or in no field at all, would build a poorer toast that no
+// caller of the C ABI would ever notice.
 //
-// So every test here describes the same notification twice and compares the
-// XML the App SDK produces. Anything the struct path drops shows up as a
-// difference in the payload rather than as a missing feature in the product.
+// So every test here describes the same notification twice - once as the
+// payload, once as the content a reader of the documentation would write - and
+// compares the toast each produces. A key the parser forgets shows up as a
+// difference in the XML rather than as a missing feature in the product.
 // ============================================================================
 
 namespace WindowsNotificationBuilderTest
@@ -426,14 +428,14 @@ private:
              + L" " + std::wstring{notification.Payload()};
     }
 
-    /// The toast the C ABI would deliver for this payload.
+    /// The toast the C ABI would deliver for this payload, by the route it
+    /// takes now: the bridge reads it into a content and the same builder
+    /// turns that into a toast.
     static std::wstring FromJson(const wchar_t* payload)
     {
-        DWORD error = NOTIFICATION_SUCCESS;
-        auto builder = WindowsNotificationManager::GetInstance().BuildFromJson(
-            JsonObject::Parse(payload), &error);
-        Assert::AreEqual<DWORD>(NOTIFICATION_SUCCESS, error, L"the JSON payload was rejected");
-        return Describe(builder.BuildNotification());
+        NotificationContent parsed;
+        NotificationPayloadJson::Read(JsonObject::Parse(payload), parsed);
+        return FromContent(parsed);
     }
 
     /// The toast the C++ API would deliver for this content.

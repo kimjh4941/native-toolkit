@@ -4,6 +4,7 @@
 // any WRL headers that include Unknwn.h to avoid MIDL_INTERFACE redefinition.
 #include "Notification/Data/WindowsClassicActivator.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
+#include "Bridge/NotificationPayloadJson.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace winrt::Windows::Data::Json;
@@ -78,6 +79,21 @@ struct MockBackend final : public INotificationBackend
 namespace WindowsNotificationManagerTest
 {
 
+namespace
+{
+    /// The content a payload reads into. The manager takes a content now; the
+    /// payload is the bridge's to read, and these tests still describe their
+    /// cases in it because that is how a C caller writes them.
+    NativeToolkit::Notification::NotificationContent ContentOf(const wchar_t* payload)
+    {
+        NativeToolkit::Notification::NotificationContent content;
+        NotificationPayloadJson::Read(
+            winrt::Windows::Data::Json::JsonObject::Parse(payload), content);
+        return content;
+    }
+}
+
+
 TEST_CLASS(NotificationManagerTest)
 {
 public:
@@ -126,7 +142,7 @@ public:
         mgr.m_initialized = false;
 
         DWORD err = 0;
-        mgr.Show(L"{\"title\":\"test\"}", &err);
+        mgr.Show(ContentOf(LR"({"title":"test"})"), &err);
         Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_INITIALIZED), err);
     }
 
@@ -136,7 +152,7 @@ public:
         mgr.m_initialized = false;
 
         DWORD err = 0;
-        mgr.Schedule(L"{\"title\":\"test\"}", 0, &err);
+        mgr.Schedule(ContentOf(LR"({"title":"test"})"), 0, &err);
         Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_INITIALIZED), err);
     }
 
@@ -189,14 +205,12 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    // BuildFromJson validation — requires WinRT init only (no app registration)
-    // Tested by forcing m_initialized=true and calling Show() which calls BuildFromJson.
-    // Since AppNotificationManager::Default().Setting() is called before BuildFromJson,
-    // these tests are marked as manual-confirm in environments without AppSDK registered.
-    // The pure validation path (INVALID_PARAMETER before WinRT call) is tested via SetBadge.
+    // Payload validation — requires WinRT init only (no app registration).
+    // The payload is read into a content first, which is what the bridge does,
+    // and BuildPayload is what validates it and reports the code.
     // -------------------------------------------------------------------------
 
-    TEST_METHOD(Test_BuildFromJson_TooManyButtons_ReturnsInvalidParameter)
+    TEST_METHOD(Test_BuildPayload_TooManyButtons_ReturnsInvalidParameter)
     {
         auto& mgr = WindowsNotificationManager::GetInstance();
         mgr.m_initialized = true;
@@ -215,15 +229,12 @@ public:
             ]
         })";
 
-        JsonObject json;
-        Assert::IsTrue(JsonObject::TryParse(winrt::hstring{ payload }, json));
-
         DWORD err = NOTIFICATION_SUCCESS;
-        mgr.BuildFromJson(json, &err);
+        mgr.BuildPayload(ContentOf(payload), &err);
         Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_INVALID_PARAMETER), err);
     }
 
-    TEST_METHOD(Test_BuildFromJson_AudioLoopWithoutLongDuration_ReturnsInvalidParameter)
+    TEST_METHOD(Test_BuildPayload_AudioLoopWithoutLongDuration_ReturnsInvalidParameter)
     {
         auto& mgr = WindowsNotificationManager::GetInstance();
         mgr.m_initialized = true;
@@ -235,15 +246,12 @@ public:
             "audio": {"type":"event","event":"alarm","loop":true}
         })";
 
-        JsonObject json;
-        Assert::IsTrue(JsonObject::TryParse(winrt::hstring{ payload }, json));
-
         DWORD err = NOTIFICATION_SUCCESS;
-        mgr.BuildFromJson(json, &err);
+        mgr.BuildPayload(ContentOf(payload), &err);
         Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_INVALID_PARAMETER), err);
     }
 
-    TEST_METHOD(Test_BuildFromJson_ButtonWithArgsAndInvokeUri_ReturnsInvalidParameter)
+    TEST_METHOD(Test_BuildPayload_ButtonWithArgsAndInvokeUri_ReturnsInvalidParameter)
     {
         auto& mgr = WindowsNotificationManager::GetInstance();
         mgr.m_initialized = true;
@@ -256,15 +264,12 @@ public:
             ]
         })";
 
-        JsonObject json;
-        Assert::IsTrue(JsonObject::TryParse(winrt::hstring{ payload }, json));
-
         DWORD err = NOTIFICATION_SUCCESS;
-        mgr.BuildFromJson(json, &err);
+        mgr.BuildPayload(ContentOf(payload), &err);
         Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_INVALID_PARAMETER), err);
     }
 
-    TEST_METHOD(Test_BuildFromJson_InvalidJson_CannotParse)
+    TEST_METHOD(Test_BuildPayload_InvalidJson_CannotParse)
     {
         // TryParse on invalid JSON returns false — tested at JSON layer
         JsonObject json;
@@ -294,7 +299,7 @@ public:
         } guard;
 
         DWORD err = NOTIFICATION_SUCCESS;
-        mgr.Show(L"{\"title\":\"t\"}", &err);
+        mgr.Show(ContentOf(LR"({"title":"t"})"), &err);
         Assert::AreEqual(static_cast<DWORD>(NOTIFICATION_ERROR_DISABLED), err);
     }
 
@@ -315,7 +320,7 @@ public:
         } guard;
 
         DWORD err = NOTIFICATION_SUCCESS;
-        mgr.Show(L"{\"title\":\"hello\"}", &err);
+        mgr.Show(ContentOf(LR"({"title":"hello"})"), &err);
         // May fail at AppNotificationBuilder runtime if WinRT is not fully set up,
         // but at minimum the backend Deliver path is entered (err != NOT_INITIALIZED).
         Assert::AreNotEqual(static_cast<DWORD>(NOTIFICATION_ERROR_NOT_INITIALIZED), err);
