@@ -19,6 +19,7 @@ public sealed class ClipboardLifecycleTests
     private const int NotInitialized = 2;
     private const int Canceled = 15;
     private const int WrongThread = 14;
+    private const int NotSupported = 16;
 
     private const string ShuttingDownGuard = "Shutting down. Press CanDestroy, then Uninitialize again.";
     private const string StateReady = "manager state: Ready";
@@ -134,9 +135,10 @@ public sealed class ClipboardLifecycleTests
     {
         EnterShuttingDown();
 
-        Page.PressAndExpect("ErrForceInitialize", "Force Initialize while shutting down", 0);
+        // The closing session still exists, so a second one is refused.
+        Page.PressAndExpect("ErrForceInitialize", "Force Initialize while shutting down", NotSupported);
 
-        // Init reported success, yet the lifecycle gate is still closed.
+        // The lifecycle gate is still closed.
         var afterCopy = Page.PressAndExpect(
             "ErrCopyAfterUninitialize", "CopyPlainText (after Uninitialize)", NotInitialized);
 

@@ -4,20 +4,24 @@
 #include "ClipboardPage.g.cpp"
 #endif
 
-#include "Common/common.h"
-#include "Clipboard/WindowsClipboardManager.h"
+#include "SampleLog.h"
+#include "NativeToolkit/Clipboard.h"
 
 #include <winrt/Windows.System.Threading.h>
 
 #include <atomic>
+#include <cstddef>
 #include <cstdio>
 #include <ctime>
+#include <optional>
+#include <span>
 #include <vector>
 
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;
-using namespace winrt::Windows::Data::Json;
 using winrt::Windows::System::Threading::ThreadPool;
+
+namespace Clipboard = NativeToolkit::Clipboard;
 
 static const wchar_t* TAG = L"ClipboardPage";
 
@@ -26,14 +30,20 @@ namespace
     // -----------------------------------------------------------------------
     // Process-lifetime state
     //
-    // The manager outlives the page: navigating away does not uninitialize it,
-    // so the "is it usable" state cannot live in a page member (a new page
-    // instance would report false while the manager is still running).
+    // The session outlives the page: navigating away does not close it, so the
+    // "is it usable" state cannot live in a page member (a new page instance
+    // would report false while the session is still open).
     // -----------------------------------------------------------------------
 
-    // Three states, not a bool: once the owner UI thread calls uninit the
-    // lifecycle gate is closed even when uninit returns FALSE, so "initialized"
-    // and "usable" are no longer the same thing.
+    // The one Session this process may have. Created and closed on the owner
+    // UI thread only. Worker operations read it while the busy flag is held,
+    // and the lifecycle buttons refuse to run under busy, so the two never
+    // overlap.
+    std::optional<Clipboard::Session> g_session;
+
+    // Three states, not a bool: once the owner UI thread calls Close the
+    // lifecycle gate is closed even when Close fails, so "open" and "usable"
+    // are no longer the same thing.
     enum class ManagerState
     {
         Uninitialized,
@@ -57,9 +67,9 @@ namespace
         BusyLease& operator=(const BusyLease&) = delete;
     };
 
-    // Forwarding hub. The C bridge callbacks are free function pointers and
-    // cannot capture state, so they forward to these, which the active page
-    // registers on navigation and clears on navigation away.
+    // Forwarding hub. The session's handlers are installed once, when it is
+    // created, so they forward to these, which the active page registers on
+    // navigation and clears on navigation away.
     winrt::Microsoft::UI::Dispatching::DispatcherQueue g_dispatcher{ nullptr };
     std::function<void(std::wstring)> g_logSink;
     std::function<void(uint32_t, DWORD, winrt::hstring)> g_requestSink;
@@ -79,14 +89,61 @@ namespace
     // thread (accept and completion both run there), so it needs no lock.
     std::map<uint32_t, uint64_t> g_requestOwners;
 
-    // Deferred payloads are finalized at reservation time. The toolkit requires
-    // the fill size to match the queried size exactly, so the provider must not
-    // rebuild the data on the second phase.
-    std::map<std::wstring, std::vector<BYTE>> g_deferredPayloads;
+    // Deferred payloads are finalized at reservation time, so the provider
+    // hands back exactly what was decided when the formats were offered.
+    std::map<std::wstring, std::vector<std::byte>> g_deferredPayloads;
 
     const wchar_t* const kSampleText = L"Hello from native-toolkit";
     const wchar_t* const kSampleHtmlFragment = L"<b>Hello</b> from native-toolkit";
     const wchar_t* const kCustomFormatName = L"NativeToolkitSample";
+
+    // ---- Results ----------------------------------------------------------
+
+    // The error code a result is reported with: 0 for success, otherwise the
+    // ClipboardError value (the same numbers as the C ABI's constants).
+    constexpr DWORD kNoError = 0;
+
+    DWORD CodeOf(Clipboard::ErrorCode code)
+    {
+        return static_cast<DWORD>(code);
+    }
+
+    template <class T>
+    DWORD CodeOf(Clipboard::Result<T> const& result)
+    {
+        return result.has_value() ? kNoError : CodeOf(result.error().code);
+    }
+
+    // Runs call against the session, or reports NotInitialized when there is
+    // none, which is what the session itself says once it is closed.
+    template <class F>
+    auto WithSession(F&& call) -> decltype(call(std::declval<Clipboard::Session&>()))
+    {
+        if (!g_session.has_value())
+        {
+            return NativeToolkit::Unexpected{ Clipboard::Error{ Clipboard::ErrorCode::NotInitialized } };
+        }
+        return call(*g_session);
+    }
+
+    // Closes the session. It is only dropped once Close succeeds: until then it
+    // is still ours to close, and a later attempt can finish the job.
+    bool CloseSession(DWORD& error)
+    {
+        error = kNoError;
+        if (!g_session.has_value())
+        {
+            return true;
+        }
+        const auto closed = g_session->Close();
+        if (!closed.has_value())
+        {
+            error = CodeOf(closed);
+            return false;
+        }
+        g_session.reset();
+        return true;
+    }
 
     void PostLog(std::wstring line)
     {
@@ -114,38 +171,103 @@ namespace
         });
     }
 
-    // ---- Bridge callback thunks (owner UI thread) -------------------------
+    // ---- JSON for display -------------------------------------------------
+    //
+    // History results arrive as values; the page shows them as JSON, the shape
+    // a reader of the log is used to.
 
-    void OnClipboardChangedThunk()
+    // Escapes a path (or any short literal) for embedding in a JSON string.
+    std::wstring JsonEscape(const std::wstring& value)
     {
-        DLog(TAG, L"[OnClipboardChangedThunk]");
+        std::wstring out;
+        out.reserve(value.size() + 8);
+        for (const wchar_t c : value)
+        {
+            switch (c)
+            {
+            case L'\\': out += L"\\\\"; break;
+            case L'"':  out += L"\\\""; break;
+            case L'\n': out += L"\\n"; break;
+            case L'\r': out += L"\\r"; break;
+            case L'\t': out += L"\\t"; break;
+            default:    out.push_back(c); break;
+            }
+        }
+        return out;
+    }
+
+    std::wstring JsonString(const std::wstring& value)
+    {
+        return L"\"" + JsonEscape(value) + L"\"";
+    }
+
+    std::wstring JsonStringArray(const std::vector<std::wstring>& values)
+    {
+        std::wstring out = L"[";
+        for (size_t i = 0; i < values.size(); ++i)
+        {
+            if (i > 0) out += L",";
+            out += JsonString(values[i]);
+        }
+        return out + L"]";
+    }
+
+    std::wstring HistoryJson(const std::vector<Clipboard::HistoryItem>& items)
+    {
+        std::wstring out = L"[";
+        for (size_t i = 0; i < items.size(); ++i)
+        {
+            const auto& item = items[i];
+            if (i > 0) out += L",";
+            out += L"{\"id\":" + JsonString(item.id);
+            if (item.text.has_value())
+            {
+                out += L",\"text\":" + JsonString(*item.text);
+            }
+            out += L",\"contentTypes\":" + JsonStringArray(item.contentTypes);
+            out += L",\"timestamp\":\"" + std::to_wstring(item.timestampTicks) + L"\"}";
+        }
+        return out + L"]";
+    }
+
+    std::wstring AvailabilityJson(const Clipboard::HistoryAvailability& availability)
+    {
+        return std::wstring(L"{\"historyEnabled\":") + (availability.historyEnabled ? L"true" : L"false") +
+               L",\"roamingEnabled\":" + (availability.roamingEnabled ? L"true" : L"false") + L"}";
+    }
+
+    // ---- Session handlers (owner UI thread) -------------------------------
+
+    void OnClipboardChanged()
+    {
+        DLog(TAG, L"[OnClipboardChanged]");
         PostLog(L"[Monitor] clipboard content changed");
     }
 
-    void OnHistoryChangedThunk()
+    void OnHistoryChanged()
     {
-        DLog(TAG, L"[OnHistoryChangedThunk]");
+        DLog(TAG, L"[OnHistoryChanged]");
         PostLog(L"[History] a new item was added to the history");
     }
 
-    void OnHistoryEnabledChangedThunk(BOOL enabled)
+    void OnHistoryEnabledChanged(bool enabled)
     {
-        DFLog(TAG, L"[OnHistoryEnabledChangedThunk] enabled: %d", enabled ? 1 : 0);
+        DFLog(TAG, L"[OnHistoryEnabledChanged] enabled: %d", enabled ? 1 : 0);
         PostLog(std::wstring(L"[History] history enabled changed: ") + (enabled ? L"true" : L"false"));
     }
 
-    void OnRoamingEnabledChangedThunk(BOOL enabled)
+    void OnRoamingEnabledChanged(bool enabled)
     {
-        DFLog(TAG, L"[OnRoamingEnabledChangedThunk] enabled: %d", enabled ? 1 : 0);
+        DFLog(TAG, L"[OnRoamingEnabledChanged] enabled: %d", enabled ? 1 : 0);
         PostLog(std::wstring(L"[History] roaming enabled changed: ") + (enabled ? L"true" : L"false"));
     }
 
-    void OnRequestCompletedThunk(uint32_t requestId, DWORD error, const wchar_t* json)
+    // Every history request completes here, with its result already turned
+    // into a code and a JSON string for display.
+    void DeliverRequestCompletion(uint32_t requestId, DWORD error, std::wstring json)
     {
-        DFLog(TAG, L"[OnRequestCompletedThunk] id: %u, error: %lu", requestId, error);
-        // The payload is only valid while this callback runs, so copy it before
-        // anything is handed to the dispatcher queue.
-        winrt::hstring payload{ json ? json : L"" };
+        DFLog(TAG, L"[DeliverRequestCompletion] id: %u, error: %lu", requestId, error);
+        winrt::hstring payload{ json };
         auto dispatcher = g_dispatcher;
         if (!dispatcher)
         {
@@ -175,48 +297,64 @@ namespace
         });
     }
 
-    // Runs on the owner UI thread inside WM_RENDERFORMAT handling: must not
-    // touch XAML, must not block, and must not let an exception cross the C
-    // boundary.
-    DWORD ClipboardRenderProviderThunk(const wchar_t* formatName,
-                                       void* /*context*/,
-                                       BYTE* buffer,
-                                       DWORD bufferSize,
-                                       DWORD* pRequiredSize)
+    void OnHistoryItems(Clipboard::RequestId id, Clipboard::Result<std::vector<Clipboard::HistoryItem>> result)
+    {
+        DeliverRequestCompletion(static_cast<uint32_t>(id), CodeOf(result),
+                                 result.has_value() ? HistoryJson(result.value()) : std::wstring());
+    }
+
+    void OnAvailability(Clipboard::RequestId id, Clipboard::Result<Clipboard::HistoryAvailability> result)
+    {
+        DeliverRequestCompletion(static_cast<uint32_t>(id), CodeOf(result),
+                                 result.has_value() ? AvailabilityJson(result.value()) : std::wstring());
+    }
+
+    void OnRequestDone(Clipboard::RequestId id, Clipboard::Result<void> result)
+    {
+        DeliverRequestCompletion(static_cast<uint32_t>(id), CodeOf(result), std::wstring());
+    }
+
+    uint32_t IdOf(Clipboard::Result<Clipboard::RequestId> const& accepted)
+    {
+        return accepted.has_value() ? static_cast<uint32_t>(accepted.value()) : 0u;
+    }
+
+    // Runs on the owner UI thread while the system asks for a deferred format:
+    // must not touch XAML and must not block.
+    Clipboard::Result<std::vector<std::byte>> RenderDeferredFormat(std::wstring_view formatName)
     {
         try
         {
-            if (!formatName || !pRequiredSize)
-            {
-                return CLIPBOARD_ERROR_INVALID_PARAMETER;
-            }
-
-            const auto it = g_deferredPayloads.find(formatName);
+            const std::wstring name{ formatName };
+            const auto it = g_deferredPayloads.find(name);
             if (it == g_deferredPayloads.end())
             {
-                return CLIPBOARD_ERROR_FORMAT_UNAVAILABLE;
+                return NativeToolkit::Unexpected{ Clipboard::Error{ Clipboard::ErrorCode::FormatUnavailable } };
             }
-
-            const DWORD needed = static_cast<DWORD>(it->second.size());
-            *pRequiredSize = needed;
-
-            if (!buffer || bufferSize < needed)
-            {
-                PostLog(std::wstring(L"[Provider] format=") + formatName +
-                        L" phase=size required=" + std::to_wstring(needed));
-                return CLIPBOARD_ERROR_BUFFER_TOO_SMALL;
-            }
-
-            ::memcpy(buffer, it->second.data(), needed);
-            PostLog(std::wstring(L"[Provider] format=") + formatName +
-                    L" phase=fill size=" + std::to_wstring(needed) + L" result=0");
-            return CLIPBOARD_ERROR_NONE;
+            PostLog(L"[Provider] format=" + name + L" phase=fill size=" +
+                    std::to_wstring(it->second.size()) + L" result=0");
+            return it->second;
         }
         catch (...)
         {
-            return CLIPBOARD_ERROR_UNKNOWN;
+            return NativeToolkit::Unexpected{ Clipboard::Error{ Clipboard::ErrorCode::Unknown } };
         }
     }
+
+    Clipboard::SessionOptions MakeSessionOptions()
+    {
+        Clipboard::SessionOptions options;
+        options.onClipboardChanged = &OnClipboardChanged;
+        return options;
+    }
+
+    // ---- Write options ----------------------------------------------------
+
+    const Clipboard::WriteOptions kPlain{};
+    // Sensitive is both exclusions at once.
+    const Clipboard::WriteOptions kSensitive{ true, true };
+    const Clipboard::WriteOptions kExcludeHistory{ true, false };
+    const Clipboard::WriteOptions kExcludeRoaming{ false, true };
 
     // ---- Sample data ------------------------------------------------------
 
@@ -258,13 +396,13 @@ namespace
     }
 
     // 8x8, 32bpp, BI_RGB solid colour. Built in code so the sample needs no asset.
-    std::vector<BYTE> BuildSampleDib()
+    std::vector<std::byte> BuildSampleDib()
     {
         const LONG width = 8;
         const LONG height = 8;
         const size_t pixelBytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 4u;
 
-        std::vector<BYTE> dib(sizeof(BITMAPINFOHEADER) + pixelBytes, 0);
+        std::vector<std::byte> dib(sizeof(BITMAPINFOHEADER) + pixelBytes, std::byte{ 0 });
         auto* header = reinterpret_cast<BITMAPINFOHEADER*>(dib.data());
         header->biSize = sizeof(BITMAPINFOHEADER);
         header->biWidth = width;
@@ -274,61 +412,27 @@ namespace
         header->biCompression = BI_RGB;
         header->biSizeImage = static_cast<DWORD>(pixelBytes);
 
-        BYTE* pixels = dib.data() + sizeof(BITMAPINFOHEADER);
+        std::byte* pixels = dib.data() + sizeof(BITMAPINFOHEADER);
         for (size_t i = 0; i < pixelBytes; i += 4)
         {
-            pixels[i + 0] = 0xD7; // blue
-            pixels[i + 1] = 0x78; // green
-            pixels[i + 2] = 0x00; // red
-            pixels[i + 3] = 0xFF; // alpha
+            pixels[i + 0] = std::byte{ 0xD7 }; // blue
+            pixels[i + 1] = std::byte{ 0x78 }; // green
+            pixels[i + 2] = std::byte{ 0x00 }; // red
+            pixels[i + 3] = std::byte{ 0xFF }; // alpha
         }
         return dib;
     }
 
-    std::string Base64Encode(const std::vector<BYTE>& data)
+    std::vector<std::byte> ToBytes(const std::string& value)
     {
-        static const char* table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        std::string out;
-        out.reserve(((data.size() + 2) / 3) * 4);
-
-        size_t i = 0;
-        while (i + 2 < data.size())
-        {
-            const unsigned v = (static_cast<unsigned>(data[i]) << 16) |
-                               (static_cast<unsigned>(data[i + 1]) << 8) |
-                               static_cast<unsigned>(data[i + 2]);
-            out.push_back(table[(v >> 18) & 0x3F]);
-            out.push_back(table[(v >> 12) & 0x3F]);
-            out.push_back(table[(v >> 6) & 0x3F]);
-            out.push_back(table[v & 0x3F]);
-            i += 3;
-        }
-
-        const size_t remaining = data.size() - i;
-        if (remaining == 1)
-        {
-            const unsigned v = static_cast<unsigned>(data[i]) << 16;
-            out.push_back(table[(v >> 18) & 0x3F]);
-            out.push_back(table[(v >> 12) & 0x3F]);
-            out.push_back('=');
-            out.push_back('=');
-        }
-        else if (remaining == 2)
-        {
-            const unsigned v = (static_cast<unsigned>(data[i]) << 16) |
-                               (static_cast<unsigned>(data[i + 1]) << 8);
-            out.push_back(table[(v >> 18) & 0x3F]);
-            out.push_back(table[(v >> 12) & 0x3F]);
-            out.push_back(table[(v >> 6) & 0x3F]);
-            out.push_back('=');
-        }
-        return out;
+        const auto view = std::as_bytes(std::span(value.data(), value.size()));
+        return std::vector<std::byte>(view.begin(), view.end());
     }
 
     // CF_HTML payload with a byte-offset header. Offsets are computed from fixed
     // prefix lengths, and the numeric fields use a fixed width so re-formatting
     // with the real values cannot change the header length.
-    std::vector<BYTE> BuildCfHtmlBytes(const std::string& utf8Fragment)
+    std::vector<std::byte> BuildCfHtmlBytes(const std::string& utf8Fragment)
     {
         const std::string prefix = "<html><body><!--StartFragment-->";
         const std::string suffix = "<!--EndFragment--></body></html>";
@@ -344,7 +448,7 @@ namespace
                                                size_t{ 0 }, size_t{ 0 }, size_t{ 0 }, size_t{ 0 });
         if (headerLength <= 0)
         {
-            return std::vector<BYTE>();
+            return std::vector<std::byte>();
         }
 
         const size_t startHtml = static_cast<size_t>(headerLength);
@@ -357,7 +461,7 @@ namespace
                                           startHtml, endHtml, startFragment, endFragment);
         if (written != headerLength)
         {
-            return std::vector<BYTE>();
+            return std::vector<std::byte>();
         }
 
         std::string payload;
@@ -367,12 +471,12 @@ namespace
         payload.append(utf8Fragment);
         payload.append(suffix);
 
-        return std::vector<BYTE>(payload.begin(), payload.end());
+        return ToBytes(payload);
     }
 
-    std::vector<BYTE> BuildUnicodeTextBytes(const std::wstring& text)
+    std::vector<std::byte> BuildUnicodeTextBytes(const std::wstring& text)
     {
-        std::vector<BYTE> bytes((text.size() + 1) * sizeof(wchar_t), 0);
+        std::vector<std::byte> bytes((text.size() + 1) * sizeof(wchar_t), std::byte{ 0 });
         ::memcpy(bytes.data(), text.c_str(), text.size() * sizeof(wchar_t));
         return bytes;
     }
@@ -400,114 +504,6 @@ namespace
         const BOOL ok = ::WriteFile(file, content.data(), static_cast<DWORD>(content.size()), &written, nullptr);
         ::CloseHandle(file);
         return ok != FALSE && written == content.size();
-    }
-
-    // Escapes a path (or any short literal) for embedding in a JSON string.
-    std::wstring JsonEscape(const std::wstring& value)
-    {
-        std::wstring out;
-        out.reserve(value.size() + 8);
-        for (const wchar_t c : value)
-        {
-            switch (c)
-            {
-            case L'\\': out += L"\\\\"; break;
-            case L'"':  out += L"\\\""; break;
-            case L'\n': out += L"\\n"; break;
-            case L'\r': out += L"\\r"; break;
-            case L'\t': out += L"\\t"; break;
-            default:    out.push_back(c); break;
-            }
-        }
-        return out;
-    }
-
-    // ---- Two-phase buffer helpers ----------------------------------------
-    //
-    // Deliberately not expressed in terms of WorkerResult: these live in the
-    // anonymous namespace, while WorkerResult is a page-private type.
-
-    struct BufferFetch
-    {
-        DWORD        error{ CLIPBOARD_ERROR_NONE };
-        bool         sampleFailure{ false };
-        std::wstring detail;
-    };
-
-    BufferFetch FetchWide(const std::function<DWORD(wchar_t*, DWORD, DWORD*)>& call, std::wstring& out)
-    {
-        out.clear();
-
-        DWORD queryError = CLIPBOARD_ERROR_NONE;
-        const DWORD needed = call(nullptr, 0, &queryError);
-        if (queryError != CLIPBOARD_ERROR_BUFFER_TOO_SMALL)
-        {
-            if (queryError == CLIPBOARD_ERROR_NONE)
-            {
-                return { CLIPBOARD_ERROR_NONE, true, L"Size query unexpectedly reported success" };
-            }
-            return { queryError, false, L"" };
-        }
-        if (needed == 0)
-        {
-            // A wide payload always carries at least the NUL terminator.
-            return { CLIPBOARD_ERROR_NONE, true, L"Size query returned zero elements" };
-        }
-
-        std::vector<wchar_t> buffer(needed, L'\0');
-        DWORD fillError = CLIPBOARD_ERROR_NONE;
-        const DWORD actual = call(buffer.data(), needed, &fillError);
-        if (fillError != CLIPBOARD_ERROR_NONE)
-        {
-            // Do not retry: another application may keep growing the content.
-            return { fillError, false, L"" };
-        }
-        if (actual > needed)
-        {
-            return { CLIPBOARD_ERROR_NONE, true, L"Returned size exceeds the allocated buffer" };
-        }
-
-        buffer[needed - 1] = L'\0';
-        out.assign(buffer.data());
-        return { CLIPBOARD_ERROR_NONE, false, L"" };
-    }
-
-    BufferFetch FetchBytes(const std::function<DWORD(BYTE*, DWORD, DWORD*)>& call, std::vector<BYTE>& out)
-    {
-        out.clear();
-
-        DWORD queryError = CLIPBOARD_ERROR_NONE;
-        const DWORD needed = call(nullptr, 0, &queryError);
-        if (queryError != CLIPBOARD_ERROR_BUFFER_TOO_SMALL)
-        {
-            if (queryError == CLIPBOARD_ERROR_NONE)
-            {
-                return { CLIPBOARD_ERROR_NONE, true, L"Size query unexpectedly reported success" };
-            }
-            return { queryError, false, L"" };
-        }
-        if (needed == 0)
-        {
-            // Empty payload: the toolkit reports BUFFER_TOO_SMALL with zero bytes,
-            // so this is a success and the second call must not be made.
-            return { CLIPBOARD_ERROR_NONE, false, L"" };
-        }
-
-        std::vector<BYTE> buffer(needed, 0);
-        DWORD fillError = CLIPBOARD_ERROR_NONE;
-        const DWORD actual = call(buffer.data(), needed, &fillError);
-        if (fillError != CLIPBOARD_ERROR_NONE)
-        {
-            return { fillError, false, L"" };
-        }
-        if (actual > needed)
-        {
-            return { CLIPBOARD_ERROR_NONE, true, L"Returned size exceeds the allocated buffer" };
-        }
-
-        buffer.resize(actual);
-        out = std::move(buffer);
-        return { CLIPBOARD_ERROR_NONE, false, L"" };
     }
 
     std::wstring Preview(const std::wstring& value, size_t limit)
@@ -576,7 +572,7 @@ namespace winrt::WindowsLibraryExample::implementation
         // No page is showing: anything still queued is dropped when it runs.
         g_activePageId.store(0);
         // Callbacks delivered while the page is away are dropped and are not
-        // replayed on re-entry. The manager itself keeps running.
+        // replayed on re-entry. The session itself stays open.
         g_logSink = nullptr;
         g_requestSink = nullptr;
     }
@@ -613,40 +609,40 @@ namespace winrt::WindowsLibraryExample::implementation
 
     void ClipboardPage::ShowResult(std::wstring const& method, DWORD err, std::wstring const& detail)
     {
-        std::wstring text = (err == CLIPBOARD_ERROR_NONE ? L"✅ " : L"❌ ") +
+        std::wstring text = (err == kNoError ? L"✅ " : L"❌ ") +
                             std::wstring(L"[") + method + L"] errorCode=" + std::to_wstring(err);
 
-        switch (err)
+        switch (static_cast<Clipboard::ErrorCode>(err))
         {
-        case CLIPBOARD_ERROR_NOT_INITIALIZED:
-            // Press Initialize only helps when nothing is shutting down: once the
-            // gate is closed a fresh Init returns success without reopening it.
+        case Clipboard::ErrorCode::NotInitialized:
+            // Press Initialize only helps when nothing is shutting down: while a
+            // closed-but-not-finished session exists, a new one is refused.
             text += (g_managerState.load() == ManagerState::ShuttingDown)
                         ? L" - Press CanDestroy, then Uninitialize again."
                         : L" - Press InitializeManager first.";
             break;
-        case CLIPBOARD_ERROR_EMPTY:
+        case Clipboard::ErrorCode::Empty:
             text += L" - The clipboard is empty.";
             break;
-        case CLIPBOARD_ERROR_FORMAT_UNAVAILABLE:
+        case Clipboard::ErrorCode::FormatUnavailable:
             text += L" - The requested format is not on the clipboard.";
             break;
-        case CLIPBOARD_ERROR_HISTORY_DISABLED:
+        case Clipboard::ErrorCode::HistoryDisabled:
             text += L" - Enable clipboard history in Windows Settings.";
             break;
-        case CLIPBOARD_ERROR_PARTIAL_STATE:
+        case Clipboard::ErrorCode::PartialState:
             text += L" - Press RecoverDeferredState.";
             break;
-        case CLIPBOARD_ERROR_WRONG_THREAD:
+        case Clipboard::ErrorCode::WrongThread:
             text += L" - This API is limited to the owner UI thread.";
             break;
-        case CLIPBOARD_ERROR_CANCELED:
+        case Clipboard::ErrorCode::Canceled:
             text += L" - Wait for the pending callbacks, then retry.";
             break;
-        case CLIPBOARD_ERROR_NOT_FOREGROUND:
+        case Clipboard::ErrorCode::NotForeground:
             text += L" - Bring this app to the foreground and retry.";
             break;
-        case CLIPBOARD_ERROR_WRONG_APARTMENT:
+        case Clipboard::ErrorCode::WrongApartment:
             text += L" - The calling thread is not an initialized STA.";
             break;
         default:
@@ -733,13 +729,13 @@ namespace winrt::WindowsLibraryExample::implementation
         return false;
     }
 
-    ClipboardPage::WorkerResult ClipboardPage::MakeBridgeResult(DWORD err,
-                                                               std::wstring detail,
-                                                               std::wstring logLine)
+    ClipboardPage::WorkerResult ClipboardPage::MakeApiResult(DWORD err,
+                                                            std::wstring detail,
+                                                            std::wstring logLine)
     {
         WorkerResult result;
-        result.outcome = WorkerOutcome::BridgeResult;
-        result.bridgeError = err;
+        result.outcome = WorkerOutcome::ApiResult;
+        result.apiError = err;
         result.detail = std::move(detail);
         result.logLine = std::move(logLine);
         return result;
@@ -837,8 +833,8 @@ namespace winrt::WindowsLibraryExample::implementation
         {
             switch (result.outcome)
             {
-            case WorkerOutcome::BridgeResult:
-                ShowResult(method, result.bridgeError, result.detail);
+            case WorkerOutcome::ApiResult:
+                ShowResult(method, result.apiError, result.detail);
                 break;
             case WorkerOutcome::SampleOutOfMemory:
                 ShowSampleFailure(method, L"Out of memory in sample code");
@@ -875,7 +871,7 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         if (requestId == 0)
         {
-            // Rejected before acceptance: the callback will never fire.
+            // Rejected before acceptance: the handler will never run.
             ShowResult(method, acceptError, L"Request was not accepted");
             return;
         }
@@ -905,7 +901,7 @@ namespace winrt::WindowsLibraryExample::implementation
         std::wstring payload{ json };
         std::wstring detail;
 
-        if (error == CLIPBOARD_ERROR_NONE && !payload.empty())
+        if (error == kNoError && !payload.empty())
         {
             detail = Preview(payload, 160);
 
@@ -913,7 +909,7 @@ namespace winrt::WindowsLibraryExample::implementation
             {
                 try
                 {
-                    JsonArray items = JsonArray::Parse(json);
+                    auto items = winrt::Windows::Data::Json::JsonArray::Parse(json);
                     if (items.Size() > 0)
                     {
                         m_lastHistoryItemId = std::wstring(items.GetObjectAt(0).GetNamedString(L"id"));
@@ -951,15 +947,25 @@ namespace winrt::WindowsLibraryExample::implementation
         }
         if (g_managerState.load() == ManagerState::ShuttingDown)
         {
-            // A fresh Init succeeds here but does not reopen the lifecycle gate,
-            // so refuse it and point at the retry path instead.
+            // The closing session still exists, so a new one would be refused;
+            // point at the retry path instead.
             RefreshStateText(L"❌ Shutting down. Press CanDestroy, then Uninitialize again.");
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        initClipboardManager(&OnClipboardChangedThunk, &err);
-        if (err == CLIPBOARD_ERROR_NONE)
+        DWORD err = kNoError;
+        if (!g_session.has_value())
+        {
+            auto created = Clipboard::Session::Create(MakeSessionOptions());
+            err = CodeOf(created);
+            if (created.has_value())
+            {
+                g_session.emplace(std::move(created).value());
+            }
+        }
+        // Otherwise it was opened on an earlier visit to the page and is still open.
+
+        if (err == kNoError)
         {
             g_managerState.store(ManagerState::Ready);
         }
@@ -974,12 +980,15 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        setClipboardHistoryCallbacks(&OnHistoryChangedThunk,
-                                     &OnHistoryEnabledChangedThunk,
-                                     &OnRoamingEnabledChangedThunk,
-                                     &err);
-        ShowResult(L"SetHistoryCallbacks", err, L"");
+        Clipboard::HistoryHandlers handlers;
+        handlers.onHistoryChanged = &OnHistoryChanged;
+        handlers.onHistoryEnabledChanged = &OnHistoryEnabledChanged;
+        handlers.onRoamingEnabledChanged = &OnRoamingEnabledChanged;
+        const auto result = WithSession([&](Clipboard::Session& session)
+        {
+            return session.SetHistoryHandlers(std::move(handlers));
+        });
+        ShowResult(L"SetHistoryCallbacks", CodeOf(result), L"");
     }
 
     void ClipboardPage::Uninitialize_Click(IInspectable const&, RoutedEventArgs const&)
@@ -995,8 +1004,8 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const BOOL done = uninitClipboardManager(&err);
+        DWORD err = kNoError;
+        const bool done = CloseSession(err);
         AppendLog(L"[Lifecycle] uninit returned " + std::wstring(done ? L"TRUE" : L"FALSE") +
                   L" errorCode=" + std::to_wstring(err));
 
@@ -1030,7 +1039,7 @@ namespace winrt::WindowsLibraryExample::implementation
                         }
                     }
 
-                    WorkerResult result = MakeBridgeResult(CLIPBOARD_ERROR_NONE);
+                    WorkerResult result = MakeApiResult(kNoError);
                     result.logOnly = true;
                     result.logLine = failed == 0
                         ? L"[Cleanup] temp cleanup succeeded (removed " + std::to_wstring(removed) + L")"
@@ -1043,7 +1052,7 @@ namespace winrt::WindowsLibraryExample::implementation
         g_managerState.store(ManagerState::ShuttingDown);
         std::wstring hint = L"Uninitialize pending: waiting for callbacks. "
                             L"Press CanDestroy, then Uninitialize again.";
-        if (err == CLIPBOARD_ERROR_MONITOR_REGISTER_FAILED)
+        if (err == CodeOf(Clipboard::ErrorCode::MonitorRegisterFailed))
         {
             hint = L"Listener teardown failed. Press CanDestroy, then Uninitialize again.";
         }
@@ -1060,10 +1069,10 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const BOOL canDestroy = canDestroyClipboardManager(&err);
-        ShowResult(L"CanDestroy", err,
-                   std::wstring(L"returned ") + (canDestroy ? L"TRUE" : L"FALSE"));
+        // No session is as closable as it gets.
+        const bool canClose = !g_session.has_value() || g_session->CanClose();
+        ShowResult(L"CanDestroy", kNoError,
+                   std::wstring(L"returned ") + (canClose ? L"TRUE" : L"FALSE"));
     }
 
     // -----------------------------------------------------------------------
@@ -1076,9 +1085,10 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyPlainText", WorkerPrecondition::ReadyRequired,
             [text = std::wstring(kSampleText)]() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyPlainText(text.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err);
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyText(text, kPlain);
+                })));
             });
     }
 
@@ -1088,9 +1098,10 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyPlainText (empty)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyPlainText(L"", CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"An empty string is a valid payload");
+                return MakeApiResult(CodeOf(WithSession([](Clipboard::Session& session)
+                {
+                    return session.CopyText(L"", kPlain);
+                })), L"An empty string is a valid payload");
             });
     }
 
@@ -1100,9 +1111,10 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyHtml", WorkerPrecondition::ReadyRequired,
             [html = std::wstring(kSampleHtmlFragment), text = std::wstring(kSampleText)]() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyHtml(html.c_str(), text.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err);
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyHtml(html, text, kPlain);
+                })));
             });
     }
 
@@ -1130,10 +1142,12 @@ namespace winrt::WindowsLibraryExample::implementation
                     return failure;
                 }
 
-                const std::wstring json = L"[\"" + JsonEscape(first) + L"\",\"" + JsonEscape(second) + L"\"]";
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyFiles(json.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"2 files", L"[Copy] files: " + first + L", " + second);
+                const std::vector<std::wstring> paths{ first, second };
+                const auto result = WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyFiles(paths, kPlain);
+                });
+                return MakeApiResult(CodeOf(result), L"2 files", L"[Copy] files: " + first + L", " + second);
             });
     }
 
@@ -1143,10 +1157,12 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyImage", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                const std::vector<BYTE> dib = BuildSampleDib();
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyImage(dib.data(), static_cast<DWORD>(dib.size()), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"8x8 32bpp DIB, " + std::to_wstring(dib.size()) + L" bytes");
+                const std::vector<std::byte> dib = BuildSampleDib();
+                const auto result = WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyDib(dib, kPlain);
+                });
+                return MakeApiResult(CodeOf(result), L"8x8 32bpp DIB, " + std::to_wstring(dib.size()) + L" bytes");
             });
     }
 
@@ -1156,15 +1172,13 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyCustomFormat", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                const std::string blob = "native-toolkit-sample-payload";
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyCustomFormat(kCustomFormatName,
-                                 reinterpret_cast<const BYTE*>(blob.data()),
-                                 static_cast<DWORD>(blob.size()),
-                                 CLIPBOARD_WRITE_OPTION_NONE,
-                                 &err);
-                return MakeBridgeResult(err, std::wstring(kCustomFormatName) + L", " +
-                                                 std::to_wstring(blob.size()) + L" bytes");
+                const std::vector<std::byte> blob = ToBytes("native-toolkit-sample-payload");
+                const auto result = WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyCustom(kCustomFormatName, blob, kPlain);
+                });
+                return MakeApiResult(CodeOf(result), std::wstring(kCustomFormatName) + L", " +
+                                                         std::to_wstring(blob.size()) + L" bytes");
             });
     }
 
@@ -1175,12 +1189,15 @@ namespace winrt::WindowsLibraryExample::implementation
             []() -> WorkerResult
             {
                 // Richest format first, as the placement order is part of the contract.
-                const std::wstring json =
-                    L"[{\"format\":\"HTML Format\",\"html\":\"" + JsonEscape(kSampleHtmlFragment) + L"\"},"
-                    L"{\"format\":\"CF_UNICODETEXT\",\"text\":\"" + JsonEscape(kSampleText) + L"\"}]";
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyMultipleFormats(json.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"HTML Format + CF_UNICODETEXT");
+                const std::vector<Clipboard::FormatPayload> items{
+                    Clipboard::HtmlPayload{ L"HTML Format", kSampleHtmlFragment },
+                    Clipboard::TextPayload{ L"CF_UNICODETEXT", kSampleText },
+                };
+                const auto result = WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyMultiple(items, kPlain);
+                });
+                return MakeApiResult(CodeOf(result), L"HTML Format + CF_UNICODETEXT");
             });
     }
 
@@ -1190,14 +1207,16 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyMultipleFormats (with image)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                const std::string base64 = Base64Encode(BuildSampleDib());
-                const std::wstring json =
-                    L"[{\"format\":\"HTML Format\",\"html\":\"" + JsonEscape(kSampleHtmlFragment) + L"\"},"
-                    L"{\"format\":\"CF_UNICODETEXT\",\"text\":\"" + JsonEscape(kSampleText) + L"\"},"
-                    L"{\"format\":\"CF_DIB\",\"base64\":\"" + Utf8ToWide(base64) + L"\"}]";
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyMultipleFormats(json.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"HTML Format + CF_UNICODETEXT + CF_DIB");
+                const std::vector<Clipboard::FormatPayload> items{
+                    Clipboard::HtmlPayload{ L"HTML Format", kSampleHtmlFragment },
+                    Clipboard::TextPayload{ L"CF_UNICODETEXT", kSampleText },
+                    Clipboard::BytesPayload{ L"CF_DIB", BuildSampleDib() },
+                };
+                const auto result = WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyMultiple(items, kPlain);
+                });
+                return MakeApiResult(CodeOf(result), L"HTML Format + CF_UNICODETEXT + CF_DIB");
             });
     }
 
@@ -1211,9 +1230,10 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyPlainText (SENSITIVE)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyPlainText(L"Sensitive sample value", CLIPBOARD_WRITE_OPTION_SENSITIVE, &err);
-                return MakeBridgeResult(err, L"Should not appear in Win+V");
+                return MakeApiResult(CodeOf(WithSession([](Clipboard::Session& session)
+                {
+                    return session.CopyText(L"Sensitive sample value", kSensitive);
+                })), L"Should not appear in Win+V");
             });
     }
 
@@ -1223,9 +1243,10 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyPlainText (EXCLUDE_HISTORY)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyPlainText(L"History excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY, &err);
-                return MakeBridgeResult(err, L"Should not appear in Win+V");
+                return MakeApiResult(CodeOf(WithSession([](Clipboard::Session& session)
+                {
+                    return session.CopyText(L"History excluded sample value", kExcludeHistory);
+                })), L"Should not appear in Win+V");
             });
     }
 
@@ -1235,9 +1256,10 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyPlainText (EXCLUDE_ROAMING)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyPlainText(L"Roaming excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING, &err);
-                return MakeBridgeResult(err, L"Should not sync to another device");
+                return MakeApiResult(CodeOf(WithSession([](Clipboard::Session& session)
+                {
+                    return session.CopyText(L"Roaming excluded sample value", kExcludeRoaming);
+                })), L"Should not sync to another device");
             });
     }
 
@@ -1273,8 +1295,7 @@ namespace winrt::WindowsLibraryExample::implementation
                     failure.detail = L"Could not delete " + std::to_wstring(failed) + L" file(s)";
                     return failure;
                 }
-                return MakeBridgeResult(CLIPBOARD_ERROR_NONE,
-                                        L"removed " + std::to_wstring(removed) + L" file(s)");
+                return MakeApiResult(kNoError, L"removed " + std::to_wstring(removed) + L" file(s)");
             });
     }
 
@@ -1288,18 +1309,8 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"PastePlainText", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                std::wstring text;
-                const BufferFetch fetch = FetchWide(
-                    [](wchar_t* buffer, DWORD size, DWORD* pError) { return pastePlainText(buffer, size, pError); },
-                    text);
-                if (fetch.sampleFailure)
-                {
-                    WorkerResult failure;
-                    failure.outcome = WorkerOutcome::SampleFailure;
-                    failure.detail = fetch.detail;
-                    return failure;
-                }
-                return MakeBridgeResult(fetch.error, Preview(text, 100));
+                const auto text = WithSession([](Clipboard::Session& session) { return session.PasteText(); });
+                return MakeApiResult(CodeOf(text), text.has_value() ? Preview(text.value(), 100) : L"");
             });
     }
 
@@ -1309,18 +1320,8 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"PasteHtml", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                std::wstring html;
-                const BufferFetch fetch = FetchWide(
-                    [](wchar_t* buffer, DWORD size, DWORD* pError) { return pasteHtml(buffer, size, pError); },
-                    html);
-                if (fetch.sampleFailure)
-                {
-                    WorkerResult failure;
-                    failure.outcome = WorkerOutcome::SampleFailure;
-                    failure.detail = fetch.detail;
-                    return failure;
-                }
-                return MakeBridgeResult(fetch.error, Preview(html, 100));
+                const auto html = WithSession([](Clipboard::Session& session) { return session.PasteHtml(); });
+                return MakeApiResult(CodeOf(html), html.has_value() ? Preview(html.value(), 100) : L"");
             });
     }
 
@@ -1330,18 +1331,9 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"PasteFiles", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                std::wstring json;
-                const BufferFetch fetch = FetchWide(
-                    [](wchar_t* buffer, DWORD size, DWORD* pError) { return pasteFiles(buffer, size, pError); },
-                    json);
-                if (fetch.sampleFailure)
-                {
-                    WorkerResult failure;
-                    failure.outcome = WorkerOutcome::SampleFailure;
-                    failure.detail = fetch.detail;
-                    return failure;
-                }
-                return MakeBridgeResult(fetch.error, Preview(json, 160));
+                const auto files = WithSession([](Clipboard::Session& session) { return session.PasteFiles(); });
+                return MakeApiResult(CodeOf(files),
+                                     files.has_value() ? Preview(JsonStringArray(files.value()), 160) : L"");
             });
     }
 
@@ -1351,21 +1343,12 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"PasteImage", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                std::vector<BYTE> dib;
-                const BufferFetch fetch = FetchBytes(
-                    [](BYTE* buffer, DWORD size, DWORD* pError) { return pasteImage(buffer, size, pError); },
-                    dib);
-                if (fetch.sampleFailure)
+                const auto pasted = WithSession([](Clipboard::Session& session) { return session.PasteDib(); });
+                if (!pasted.has_value())
                 {
-                    WorkerResult failure;
-                    failure.outcome = WorkerOutcome::SampleFailure;
-                    failure.detail = fetch.detail;
-                    return failure;
+                    return MakeApiResult(CodeOf(pasted));
                 }
-                if (fetch.error != CLIPBOARD_ERROR_NONE)
-                {
-                    return MakeBridgeResult(fetch.error);
-                }
+                const auto& dib = pasted.value();
 
                 // The toolkit validates the DIB, but reading the header here is the
                 // sample's own dereference and needs its own bounds check first.
@@ -1388,11 +1371,11 @@ namespace winrt::WindowsLibraryExample::implementation
                     return failure;
                 }
 
-                return MakeBridgeResult(CLIPBOARD_ERROR_NONE,
-                                        std::to_wstring(dib.size()) + L" bytes, width=" +
-                                            std::to_wstring(header.biWidth) + L", height=" +
-                                            std::to_wstring(header.biHeight) + L", bitCount=" +
-                                            std::to_wstring(header.biBitCount));
+                return MakeApiResult(kNoError,
+                                     std::to_wstring(dib.size()) + L" bytes, width=" +
+                                         std::to_wstring(header.biWidth) + L", height=" +
+                                         std::to_wstring(header.biHeight) + L", bitCount=" +
+                                         std::to_wstring(header.biBitCount));
             });
     }
 
@@ -1402,28 +1385,19 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"PasteCustomFormat", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                std::vector<BYTE> blob;
-                const BufferFetch fetch = FetchBytes(
-                    [](BYTE* buffer, DWORD size, DWORD* pError)
-                    {
-                        return pasteCustomFormat(kCustomFormatName, buffer, size, pError);
-                    },
-                    blob);
-                if (fetch.sampleFailure)
+                const auto pasted = WithSession([](Clipboard::Session& session)
                 {
-                    WorkerResult failure;
-                    failure.outcome = WorkerOutcome::SampleFailure;
-                    failure.detail = fetch.detail;
-                    return failure;
-                }
-                if (fetch.error != CLIPBOARD_ERROR_NONE)
+                    return session.PasteCustom(kCustomFormatName);
+                });
+                if (!pasted.has_value())
                 {
-                    return MakeBridgeResult(fetch.error);
+                    return MakeApiResult(CodeOf(pasted));
                 }
+                const auto& blob = pasted.value();
 
-                std::string preview(blob.begin(), blob.size() > 32 ? blob.begin() + 32 : blob.end());
-                return MakeBridgeResult(CLIPBOARD_ERROR_NONE,
-                                        std::to_wstring(blob.size()) + L" bytes: " + Utf8ToWide(preview));
+                const size_t shown = blob.size() > 32 ? 32 : blob.size();
+                const std::string preview(reinterpret_cast<const char*>(blob.data()), shown);
+                return MakeApiResult(kNoError, std::to_wstring(blob.size()) + L" bytes: " + Utf8ToWide(preview));
             });
     }
 
@@ -1437,9 +1411,12 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"HasFormat (CF_UNICODETEXT)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                const BOOL present = hasClipboardFormat(L"CF_UNICODETEXT", &err);
-                return MakeBridgeResult(err, std::wstring(L"returned ") + (present ? L"TRUE" : L"FALSE"));
+                const auto present = WithSession([](Clipboard::Session& session)
+                {
+                    return session.HasFormat(L"CF_UNICODETEXT");
+                });
+                const bool yes = present.has_value() && present.value();
+                return MakeApiResult(CodeOf(present), std::wstring(L"returned ") + (yes ? L"TRUE" : L"FALSE"));
             });
     }
 
@@ -1449,18 +1426,9 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"GetClipboardFormats", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                std::wstring json;
-                const BufferFetch fetch = FetchWide(
-                    [](wchar_t* buffer, DWORD size, DWORD* pError) { return getClipboardFormats(buffer, size, pError); },
-                    json);
-                if (fetch.sampleFailure)
-                {
-                    WorkerResult failure;
-                    failure.outcome = WorkerOutcome::SampleFailure;
-                    failure.detail = fetch.detail;
-                    return failure;
-                }
-                return MakeBridgeResult(fetch.error, Preview(json, 200));
+                const auto formats = WithSession([](Clipboard::Session& session) { return session.GetFormats(); });
+                return MakeApiResult(CodeOf(formats),
+                                     formats.has_value() ? Preview(JsonStringArray(formats.value()), 200) : L"");
             });
     }
 
@@ -1470,22 +1438,16 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"GetPreferredFormat", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                std::wstring name;
-                const BufferFetch fetch = FetchWide(
-                    [](wchar_t* buffer, DWORD size, DWORD* pError)
-                    {
-                        return getPreferredClipboardFormat(buffer, size, pError);
-                    },
-                    name);
-                if (fetch.sampleFailure)
+                const auto name = WithSession([](Clipboard::Session& session)
                 {
-                    WorkerResult failure;
-                    failure.outcome = WorkerOutcome::SampleFailure;
-                    failure.detail = fetch.detail;
-                    return failure;
+                    return session.GetPreferredFormat();
+                });
+                if (!name.has_value())
+                {
+                    return MakeApiResult(CodeOf(name));
                 }
-                return MakeBridgeResult(fetch.error,
-                                        name.empty() ? std::wstring(L"(no candidate format)") : name);
+                return MakeApiResult(kNoError,
+                                     name.value().empty() ? std::wstring(L"(no candidate format)") : name.value());
             });
     }
 
@@ -1495,9 +1457,10 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"ClearClipboard", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                clearClipboard(&err);
-                return MakeBridgeResult(err);
+                return MakeApiResult(CodeOf(WithSession([](Clipboard::Session& session)
+                {
+                    return session.Clear();
+                })));
             });
     }
 
@@ -1513,17 +1476,19 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        // Finalize both payloads now so the provider returns the same size in the
-        // size and fill phases.
+        // Finalize both payloads now, so the provider hands back what was
+        // decided when the formats were offered.
         g_deferredPayloads.clear();
         g_deferredPayloads[L"CF_UNICODETEXT"] = BuildUnicodeTextBytes(kSampleText);
         g_deferredPayloads[L"HTML Format"] = BuildCfHtmlBytes(WideToUtf8(kSampleHtmlFragment));
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        reserveDeferredFormats(L"[\"HTML Format\",\"CF_UNICODETEXT\"]",
-                               &ClipboardRenderProviderThunk, nullptr, &err);
+        const std::vector<std::wstring> formats{ L"HTML Format", L"CF_UNICODETEXT" };
+        const DWORD err = CodeOf(WithSession([&](Clipboard::Session& session)
+        {
+            return session.ReserveDeferred(formats, &RenderDeferredFormat);
+        }));
         ShowResult(L"ReserveDeferredFormats", err, L"");
-        if (err == CLIPBOARD_ERROR_NONE)
+        if (err == kNoError)
         {
             AppendLog(L"[Reserve] OK formats=[HTML Format, CF_UNICODETEXT] (provider not called yet)");
         }
@@ -1537,9 +1502,8 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        recoverDeferredState(&err);
-        ShowResult(L"RecoverDeferredState", err, L"");
+        const auto result = WithSession([](Clipboard::Session& session) { return session.RecoverDeferredState(); });
+        ShowResult(L"RecoverDeferredState", CodeOf(result), L"");
     }
 
     // -----------------------------------------------------------------------
@@ -1554,9 +1518,11 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const uint32_t id = getClipboardHistoryAvailability(&OnRequestCompletedThunk, &err);
-        RegisterHistoryRequest(id, L"GetHistoryAvailability", err);
+        const auto accepted = WithSession([](Clipboard::Session& session)
+        {
+            return session.GetHistoryAvailability(&OnAvailability);
+        });
+        RegisterHistoryRequest(IdOf(accepted), L"GetHistoryAvailability", CodeOf(accepted));
     }
 
     void ClipboardPage::GetClipboardHistory_Click(IInspectable const&, RoutedEventArgs const&)
@@ -1567,9 +1533,11 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const uint32_t id = getClipboardHistory(&OnRequestCompletedThunk, &err);
-        RegisterHistoryRequest(id, L"GetClipboardHistory", err);
+        const auto accepted = WithSession([](Clipboard::Session& session)
+        {
+            return session.GetHistory(&OnHistoryItems);
+        });
+        RegisterHistoryRequest(IdOf(accepted), L"GetClipboardHistory", CodeOf(accepted));
     }
 
     void ClipboardPage::RestoreHistoryItem_Click(IInspectable const&, RoutedEventArgs const&)
@@ -1585,9 +1553,11 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const uint32_t id = restoreHistoryItem(m_lastHistoryItemId.c_str(), &OnRequestCompletedThunk, &err);
-        RegisterHistoryRequest(id, L"RestoreHistoryItem", err);
+        const auto accepted = WithSession([&](Clipboard::Session& session)
+        {
+            return session.RestoreHistoryItem(m_lastHistoryItemId, &OnRequestDone);
+        });
+        RegisterHistoryRequest(IdOf(accepted), L"RestoreHistoryItem", CodeOf(accepted));
     }
 
     void ClipboardPage::DeleteHistoryItem_Click(IInspectable const&, RoutedEventArgs const&)
@@ -1603,9 +1573,12 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const uint32_t id = deleteHistoryItem(m_lastHistoryItemId.c_str(), &OnRequestCompletedThunk, &err);
-        RegisterHistoryRequest(id, L"DeleteHistoryItem", err);
+        const auto accepted = WithSession([&](Clipboard::Session& session)
+        {
+            return session.DeleteHistoryItem(m_lastHistoryItemId, &OnRequestDone);
+        });
+        const uint32_t id = IdOf(accepted);
+        RegisterHistoryRequest(id, L"DeleteHistoryItem", CodeOf(accepted));
         if (id != 0)
         {
             // The captured id is consumed: require a fresh fetch before the next use.
@@ -1621,9 +1594,11 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const uint32_t id = clearUnpinnedHistory(&OnRequestCompletedThunk, &err);
-        RegisterHistoryRequest(id, L"ClearUnpinnedHistory", err);
+        const auto accepted = WithSession([](Clipboard::Session& session)
+        {
+            return session.ClearUnpinnedHistory(&OnRequestDone);
+        });
+        RegisterHistoryRequest(IdOf(accepted), L"ClearUnpinnedHistory", CodeOf(accepted));
     }
 
     void ClipboardPage::CancelLastRequest_Click(IInspectable const&, RoutedEventArgs const&)
@@ -1639,11 +1614,13 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const BOOL queued = cancelClipboardRequest(m_lastRequestId, &err);
-        ShowResult(L"CancelLastRequest", err,
+        const auto canceled = WithSession([&](Clipboard::Session& session)
+        {
+            return session.CancelRequest(Clipboard::RequestId{ m_lastRequestId });
+        });
+        ShowResult(L"CancelLastRequest", CodeOf(canceled),
                    std::wstring(L"id=") + std::to_wstring(m_lastRequestId) +
-                       L", returned " + (queued ? L"TRUE" : L"FALSE"));
+                       L", returned " + (canceled.has_value() ? L"TRUE" : L"FALSE"));
     }
 
     void ClipboardPage::RequestAndImmediateUninitialize_Click(IInspectable const&, RoutedEventArgs const&)
@@ -1655,11 +1632,14 @@ namespace winrt::WindowsLibraryExample::implementation
         }
 
         // Both calls happen in one handler on purpose: the request is only posted
-        // to the dispatch window, so it is still queued when uninit drains it.
+        // to the dispatch window, so it is still queued when Close drains it.
         // Splitting this across two clicks lets the pump complete the request and
         // the drain path is never exercised.
-        DWORD requestError = CLIPBOARD_ERROR_NONE;
-        const uint32_t id = getClipboardHistory(&OnRequestCompletedThunk, &requestError);
+        const auto accepted = WithSession([](Clipboard::Session& session)
+        {
+            return session.GetHistory(&OnHistoryItems);
+        });
+        const uint32_t id = IdOf(accepted);
         if (id != 0)
         {
             m_pendingRequests[id] = L"GetClipboardHistory (immediate uninit)";
@@ -1667,8 +1647,8 @@ namespace winrt::WindowsLibraryExample::implementation
             g_requestOwners[id] = m_pageId;
         }
 
-        DWORD uninitError = CLIPBOARD_ERROR_NONE;
-        const BOOL done = uninitClipboardManager(&uninitError);
+        DWORD uninitError = kNoError;
+        const bool done = CloseSession(uninitError);
         g_managerState.store(done ? ManagerState::Uninitialized : ManagerState::ShuttingDown);
 
         AppendLog(L"[Lifecycle] request id=" + std::to_wstring(id) +
@@ -1689,32 +1669,33 @@ namespace winrt::WindowsLibraryExample::implementation
     void ClipboardPage::ReserveDeferredOnWorker_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ReserveDeferredOnWorker_Click]");
-        // Ready is required: when the manager is not initialized the toolkit
-        // reports NOT_INITIALIZED before it ever checks the calling thread.
+        // Ready is required: a closed session reports NOT_INITIALIZED before it
+        // ever checks the calling thread.
         StartWorkerOperation(L"ReserveDeferred (worker thread)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                reserveDeferredFormats(L"[\"CF_UNICODETEXT\"]",
-                                       &ClipboardRenderProviderThunk, nullptr, &err);
-                return MakeBridgeResult(err, L"expected WRONG_THREAD(14)");
+                const std::vector<std::wstring> formats{ L"CF_UNICODETEXT" };
+                const auto result = WithSession([&](Clipboard::Session& session)
+                {
+                    return session.ReserveDeferred(formats, &RenderDeferredFormat);
+                });
+                return MakeApiResult(CodeOf(result), L"expected WRONG_THREAD(14)");
             });
     }
 
     void ClipboardPage::UninitializeOnWorker_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[UninitializeOnWorker_Click]");
-        // Ready is required for the same reason: an uninitialized manager returns
-        // TRUE before the thread check. The state is deliberately left untouched,
-        // because this call never reaches the code that closes the lifecycle gate.
+        // Ready is required so there is a session to call Close on. The state is
+        // deliberately left untouched: Close refuses another thread before it
+        // closes the lifecycle gate.
         StartWorkerOperation(L"Uninitialize (worker thread)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                const BOOL done = uninitClipboardManager(&err);
-                return MakeBridgeResult(err,
-                                        std::wstring(L"returned ") + (done ? L"TRUE" : L"FALSE") +
-                                            L", expected WRONG_THREAD(14)");
+                const auto closed = WithSession([](Clipboard::Session& session) { return session.Close(); });
+                return MakeApiResult(CodeOf(closed),
+                                     std::wstring(L"returned ") + (closed.has_value() ? L"TRUE" : L"FALSE") +
+                                         L", expected WRONG_THREAD(14)");
             });
     }
 
@@ -1727,12 +1708,14 @@ namespace winrt::WindowsLibraryExample::implementation
             []() -> WorkerResult
             {
                 ::Sleep(5000);
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                const BOOL present = hasClipboardFormat(L"CF_UNICODETEXT", &err);
-                return MakeBridgeResult(err,
-                                        std::wstring(L"after 5s, CF_UNICODETEXT present=") +
-                                            (present ? L"TRUE" : L"FALSE"),
-                                        L"[Worker] delayed check finished");
+                const auto present = WithSession([](Clipboard::Session& session)
+                {
+                    return session.HasFormat(L"CF_UNICODETEXT");
+                });
+                const bool yes = present.has_value() && present.value();
+                return MakeApiResult(CodeOf(present),
+                                     std::wstring(L"after 5s, CF_UNICODETEXT present=") + (yes ? L"TRUE" : L"FALSE"),
+                                     L"[Worker] delayed check finished");
             });
     }
 
@@ -1740,15 +1723,18 @@ namespace winrt::WindowsLibraryExample::implementation
     // Error cases
     // -----------------------------------------------------------------------
 
-    void ClipboardPage::ErrCopyPlainTextNull_Click(IInspectable const&, RoutedEventArgs const&)
+    void ClipboardPage::ErrCopyTextEmbeddedNul_Click(IInspectable const&, RoutedEventArgs const&)
     {
-        DLog(TAG, L"[ErrCopyPlainTextNull_Click]");
-        StartWorkerOperation(L"CopyPlainText (null)", WorkerPrecondition::ReadyRequired,
+        DLog(TAG, L"[ErrCopyTextEmbeddedNul_Click]");
+        StartWorkerOperation(L"CopyText (embedded NUL)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyPlainText(nullptr, CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"expected INVALID_PARAMETER(1)");
+                // CF_UNICODETEXT ends at the first NUL, so it could not carry the rest.
+                const std::wstring text(L"before\0after", 12);
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyText(text, kPlain);
+                })), L"expected INVALID_PARAMETER(1)");
             });
     }
 
@@ -1758,20 +1744,19 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"PastePlainText (after Clear)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD clearError = CLIPBOARD_ERROR_NONE;
-                clearClipboard(&clearError);
-                if (clearError != CLIPBOARD_ERROR_NONE)
+                const DWORD clearError = CodeOf(WithSession([](Clipboard::Session& session)
                 {
-                    return MakeBridgeResult(clearError, L"ClearClipboard failed before the paste");
+                    return session.Clear();
+                }));
+                if (clearError != kNoError)
+                {
+                    return MakeApiResult(clearError, L"ClearClipboard failed before the paste");
                 }
 
-                std::wstring text;
-                const BufferFetch fetch = FetchWide(
-                    [](wchar_t* buffer, DWORD size, DWORD* pError) { return pastePlainText(buffer, size, pError); },
-                    text);
                 // FORMAT_UNAVAILABLE, not EMPTY: the toolkit checks format availability
                 // before it ever asks for the data.
-                return MakeBridgeResult(fetch.error, L"expected FORMAT_UNAVAILABLE(5)");
+                const auto text = WithSession([](Clipboard::Session& session) { return session.PasteText(); });
+                return MakeApiResult(CodeOf(text), L"expected FORMAT_UNAVAILABLE(5)");
             });
     }
 
@@ -1781,32 +1766,17 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"PasteHtml (text only)", WorkerPrecondition::ReadyRequired,
             [text = std::wstring(kSampleText)]() -> WorkerResult
             {
-                DWORD copyError = CLIPBOARD_ERROR_NONE;
-                copyPlainText(text.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &copyError);
-                if (copyError != CLIPBOARD_ERROR_NONE)
+                const DWORD copyError = CodeOf(WithSession([&](Clipboard::Session& session)
                 {
-                    return MakeBridgeResult(copyError, L"CopyPlainText failed before the paste");
+                    return session.CopyText(text, kPlain);
+                }));
+                if (copyError != kNoError)
+                {
+                    return MakeApiResult(copyError, L"CopyPlainText failed before the paste");
                 }
 
-                std::wstring html;
-                const BufferFetch fetch = FetchWide(
-                    [](wchar_t* buffer, DWORD size, DWORD* pError) { return pasteHtml(buffer, size, pError); },
-                    html);
-                return MakeBridgeResult(fetch.error, L"expected FORMAT_UNAVAILABLE(5)");
-            });
-    }
-
-    void ClipboardPage::ErrPasteImageSizeQuery_Click(IInspectable const&, RoutedEventArgs const&)
-    {
-        DLog(TAG, L"[ErrPasteImageSizeQuery_Click]");
-        StartWorkerOperation(L"PasteImage (size query only)", WorkerPrecondition::ReadyRequired,
-            []() -> WorkerResult
-            {
-                // Only the first phase, to show the required size contract.
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                const DWORD needed = pasteImage(nullptr, 0, &err);
-                return MakeBridgeResult(err, L"required size=" + std::to_wstring(needed) +
-                                                 L", expected BUFFER_TOO_SMALL(7)");
+                const auto html = WithSession([](Clipboard::Session& session) { return session.PasteHtml(); });
+                return MakeApiResult(CodeOf(html), L"expected FORMAT_UNAVAILABLE(5)");
             });
     }
 
@@ -1816,12 +1786,13 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyMultipleFormats (CF_BITMAP)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                const std::string base64 = Base64Encode(BuildSampleDib());
-                const std::wstring json =
-                    L"[{\"format\":\"CF_BITMAP\",\"base64\":\"" + Utf8ToWide(base64) + L"\"}]";
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyMultipleFormats(json.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"expected INVALID_PARAMETER(1)");
+                const std::vector<Clipboard::FormatPayload> items{
+                    Clipboard::BytesPayload{ L"CF_BITMAP", BuildSampleDib() },
+                };
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyMultiple(items, kPlain);
+                })), L"expected INVALID_PARAMETER(1)");
             });
     }
 
@@ -1831,12 +1802,14 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyMultipleFormats (duplicate format)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                const std::wstring json =
-                    L"[{\"format\":\"CF_UNICODETEXT\",\"text\":\"first\"},"
-                    L"{\"format\":\"CF_UNICODETEXT\",\"text\":\"second\"}]";
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyMultipleFormats(json.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"expected INVALID_PARAMETER(1)");
+                const std::vector<Clipboard::FormatPayload> items{
+                    Clipboard::TextPayload{ L"CF_UNICODETEXT", L"first" },
+                    Clipboard::TextPayload{ L"CF_UNICODETEXT", L"second" },
+                };
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyMultiple(items, kPlain);
+                })), L"expected INVALID_PARAMETER(1)");
             });
     }
 
@@ -1846,11 +1819,14 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyMultipleFormats (CF_DIB + text)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                // CF_DIB only accepts a base64 payload.
-                const std::wstring json = L"[{\"format\":\"CF_DIB\",\"text\":\"not a bitmap\"}]";
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyMultipleFormats(json.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"expected INVALID_PARAMETER(1)");
+                // CF_DIB only accepts a bytes payload.
+                const std::vector<Clipboard::FormatPayload> items{
+                    Clipboard::TextPayload{ L"CF_DIB", L"not a bitmap" },
+                };
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyMultiple(items, kPlain);
+                })), L"expected INVALID_PARAMETER(1)");
             });
     }
 
@@ -1860,22 +1836,25 @@ namespace winrt::WindowsLibraryExample::implementation
         StartWorkerOperation(L"CopyFiles (empty array)", WorkerPrecondition::ReadyRequired,
             []() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyFiles(L"[]", CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"expected INVALID_PARAMETER(1)");
+                const std::vector<std::wstring> none;
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyFiles(none, kPlain);
+                })), L"expected INVALID_PARAMETER(1)");
             });
     }
 
     void ClipboardPage::ErrCopyAfterUninitialize_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ErrCopyAfterUninitialize_Click]");
-        // Deliberately bypasses the state guard so the Bridge error is observed.
+        // Deliberately bypasses the state guard so the toolkit's own error is observed.
         StartWorkerOperation(L"CopyPlainText (after Uninitialize)", WorkerPrecondition::NoStateGuard,
             [text = std::wstring(kSampleText)]() -> WorkerResult
             {
-                DWORD err = CLIPBOARD_ERROR_NONE;
-                copyPlainText(text.c_str(), CLIPBOARD_WRITE_OPTION_NONE, &err);
-                return MakeBridgeResult(err, L"expected NOT_INITIALIZED(2)");
+                return MakeApiResult(CodeOf(WithSession([&](Clipboard::Session& session)
+                {
+                    return session.CopyText(text, kPlain);
+                })), L"expected NOT_INITIALIZED(2)");
             });
     }
 
@@ -1887,12 +1866,16 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        // Shows that a fresh Init reports success while the gate stays closed, so
+        // The closing session still exists, so Create refuses a second one and
         // the state must not move to Ready here.
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        initClipboardManager(&OnClipboardChangedThunk, &err);
-        ShowResult(L"Force Initialize while shutting down", err,
-                   L"Init reports success but the gate stays closed. "
+        auto created = Clipboard::Session::Create(MakeSessionOptions());
+        if (created.has_value())
+        {
+            // Not expected. Close the stray session at once so the page keeps one.
+            created.value().Close();
+        }
+        ShowResult(L"Force Initialize while shutting down", CodeOf(created),
+                   L"expected NOT_SUPPORTED(16): a session already exists and its gate stays closed. "
                    L"Press \"CopyPlainText (after Uninitialize)\" to see NOT_INITIALIZED(2).");
     }
 
@@ -1904,10 +1887,12 @@ namespace winrt::WindowsLibraryExample::implementation
             return;
         }
 
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const BOOL queued = cancelClipboardRequest(0xFFFFFFFFu, &err);
-        ShowResult(L"CancelClipboardRequest (unknown id)", err,
-                   std::wstring(L"returned ") + (queued ? L"TRUE" : L"FALSE") +
+        const auto canceled = WithSession([](Clipboard::Session& session)
+        {
+            return session.CancelRequest(Clipboard::RequestId{ 0xFFFFFFFFu });
+        });
+        ShowResult(L"CancelClipboardRequest (unknown id)", CodeOf(canceled),
+                   std::wstring(L"returned ") + (canceled.has_value() ? L"TRUE" : L"FALSE") +
                        L", expected FALSE + INVALID_PARAMETER(1)");
     }
 
@@ -1918,21 +1903,28 @@ namespace winrt::WindowsLibraryExample::implementation
     void ShutdownClipboardManagerForAppExit()
     {
         DLog(TAG, L"[ShutdownClipboardManagerForAppExit]");
-        if (g_managerState.load() == ManagerState::Uninitialized)
+        if (!g_session.has_value())
         {
             return;
         }
 
-        // Uninit is what destroys the owner window, and destroying it is the only
+        // Close is what destroys the owner window, and destroying it is the only
         // point at which the system sends WM_RENDERALLFORMATS. Without this call the
         // process simply exits and every format reserved for delayed rendering is
         // dropped from the clipboard instead of being materialized.
-        DWORD err = CLIPBOARD_ERROR_NONE;
-        const BOOL done = uninitClipboardManager(&err);
+        DWORD err = kNoError;
+        const bool done = CloseSession(err);
 
-        // Single attempt by design. A FALSE return means a request is still draining
-        // and the documented recovery is to pump messages and retry, but the window is
+        // Single attempt by design. A failure means a request is still draining and
+        // the documented recovery is to pump messages and retry, but the window is
         // already closing and cannot pump. Retrying here would block application exit.
+        if (!done)
+        {
+            // Destroying an unclosed session abandons it, which asserts in Debug.
+            // The process is about to end, so hand it to the heap and let it go.
+            new Clipboard::Session(std::move(*g_session));
+            g_session.reset();
+        }
         g_managerState.store(done ? ManagerState::Uninitialized : ManagerState::ShuttingDown);
     }
 }

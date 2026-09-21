@@ -75,10 +75,9 @@ namespace winrt::WindowsLibraryExample::implementation
         void DelayedWorkerCheck_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
 
         // Error cases
-        void ErrCopyPlainTextNull_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
+        void ErrCopyTextEmbeddedNul_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
         void ErrPasteAfterClear_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
         void ErrPasteHtmlTextOnly_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
-        void ErrPasteImageSizeQuery_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
         void ErrMultiCfBitmap_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
         void ErrMultiDuplicate_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
         void ErrMultiTypeMismatch_Click(winrt::Windows::Foundation::IInspectable const&, winrt::Microsoft::UI::Xaml::RoutedEventArgs const&);
@@ -89,10 +88,10 @@ namespace winrt::WindowsLibraryExample::implementation
 
     private:
         // How a worker operation finished. Sample-side failures are kept apart from
-        // Bridge domain errors so the UI never reports one as the other.
+        // toolkit errors so the UI never reports one as the other.
         enum class WorkerOutcome
         {
-            BridgeResult,
+            ApiResult,
             SampleFailure,
             SampleOutOfMemory,
             SampleWinRtFailure,
@@ -103,7 +102,7 @@ namespace winrt::WindowsLibraryExample::implementation
         struct WorkerResult
         {
             WorkerOutcome outcome{ WorkerOutcome::SampleFailure };
-            DWORD         bridgeError{ 0 };
+            DWORD         apiError{ 0 };  // A ClipboardError value; 0 is success.
             HRESULT       sampleHresult{ S_OK };
             std::wstring  detail;
             std::wstring  logLine;
@@ -113,11 +112,11 @@ namespace winrt::WindowsLibraryExample::implementation
             bool          logOnly{ false };
         };
 
-        static WorkerResult MakeBridgeResult(DWORD err,
-                                             std::wstring detail = {},
-                                             std::wstring logLine = {});
+        static WorkerResult MakeApiResult(DWORD err,
+                                          std::wstring detail = {},
+                                          std::wstring logLine = {});
 
-        // Manager-state requirement a button imposes before calling the Bridge.
+        // Manager-state requirement a button imposes before calling the toolkit.
         enum class WorkerPrecondition
         {
             ReadyRequired,

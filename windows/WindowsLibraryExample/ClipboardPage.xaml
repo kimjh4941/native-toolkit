@@ -84,10 +84,9 @@
                 <Button AutomationProperties.AutomationId="DelayedWorkerCheck" Content="Delayed Worker Check (5s)" Style="{StaticResource NotificationButtonStyle}" Click="DelayedWorkerCheck_Click"/>
 
                 <TextBlock Text="Error cases" FontSize="18" FontWeight="SemiBold"/>
-                <Button AutomationProperties.AutomationId="ErrCopyPlainTextNull" Content="CopyPlainText (null)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyPlainTextNull_Click"/>
+                <Button AutomationProperties.AutomationId="ErrCopyTextEmbeddedNul" Content="CopyText (embedded NUL)" Style="{StaticResource NotificationButtonStyle}" Click="ErrCopyTextEmbeddedNul_Click"/>
                 <Button AutomationProperties.AutomationId="ErrPasteAfterClear" Content="PastePlainText (after Clear)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteAfterClear_Click"/>
                 <Button AutomationProperties.AutomationId="ErrPasteHtmlTextOnly" Content="PasteHtml (text only)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteHtmlTextOnly_Click"/>
-                <Button AutomationProperties.AutomationId="ErrPasteImageSizeQuery" Content="PasteImage (size query only)" Style="{StaticResource NotificationButtonStyle}" Click="ErrPasteImageSizeQuery_Click"/>
                 <Button AutomationProperties.AutomationId="ErrMultiCfBitmap" Content="CopyMultipleFormats (CF_BITMAP)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiCfBitmap_Click"/>
                 <Button AutomationProperties.AutomationId="ErrMultiDuplicate" Content="CopyMultipleFormats (duplicate format)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiDuplicate_Click"/>
                 <Button AutomationProperties.AutomationId="ErrMultiTypeMismatch" Content="CopyMultipleFormats (CF_DIB + text)" Style="{StaticResource NotificationButtonStyle}" Click="ErrMultiTypeMismatch_Click"/>

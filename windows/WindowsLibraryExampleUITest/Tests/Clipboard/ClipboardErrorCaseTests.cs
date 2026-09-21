@@ -19,7 +19,6 @@ public sealed class ClipboardErrorCaseTests
     private const int InvalidParameter = 1;
     private const int NotInitialized = 2;
     private const int FormatUnavailable = 5;
-    private const int BufferTooSmall = 7;
 
     private IUiSession? _session;
     private ClipboardPage? _page;
@@ -42,8 +41,10 @@ public sealed class ClipboardErrorCaseTests
     private ClipboardPage Page => _page ?? throw new InvalidOperationException("Setup did not run.");
 
     [TestMethod]
-    public void CopyPlainText_WithNullText_ReportsInvalidParameter()
-        => Page.PressAndExpect("ErrCopyPlainTextNull", "CopyPlainText (null)", InvalidParameter);
+    public void CopyText_WithEmbeddedNul_ReportsInvalidParameter()
+        // The C++ API takes a wstring_view, which cannot be null; a NUL inside
+        // the text is its InvalidParameter case, since CF_UNICODETEXT would end there.
+        => Page.PressAndExpect("ErrCopyTextEmbeddedNul", "CopyText (embedded NUL)", InvalidParameter);
 
     [TestMethod]
     public void PastePlainText_AfterClear_ReportsFormatUnavailable()
@@ -56,19 +57,6 @@ public sealed class ClipboardErrorCaseTests
         => Page.PressAndExpect("ErrPasteHtmlTextOnly", "PasteHtml (text only)", FormatUnavailable);
 
     [TestMethod]
-    public void PasteImage_SizeQuery_ReportsBufferTooSmall()
-    {
-        // An image has to be on the clipboard first: pasteImage checks format
-        // availability before it ever computes a size, so without this step the
-        // call reports FORMAT_UNAVAILABLE(5) and never exercises the buffer contract.
-        Page.PressAndExpect("CopyImage", "CopyImage", 0);
-
-        // First phase of the two-call buffer contract: no buffer, so the toolkit
-        // reports BUFFER_TOO_SMALL together with the size the caller must allocate.
-        Page.PressAndExpect("ErrPasteImageSizeQuery", "PasteImage (size query only)", BufferTooSmall);
-    }
-
-    [TestMethod]
     public void CopyMultipleFormats_WithCfBitmap_ReportsInvalidParameter()
         // CF_BITMAP is rejected outright: there is no HBITMAP ownership path.
         => Page.PressAndExpect("ErrMultiCfBitmap", "CopyMultipleFormats (CF_BITMAP)", InvalidParameter);
@@ -79,7 +67,7 @@ public sealed class ClipboardErrorCaseTests
 
     [TestMethod]
     public void CopyMultipleFormats_WithMismatchedPayloadKind_ReportsInvalidParameter()
-        // CF_DIB only accepts a base64 payload.
+        // CF_DIB only accepts a bytes payload.
         => Page.PressAndExpect("ErrMultiTypeMismatch", "CopyMultipleFormats (CF_DIB + text)", InvalidParameter);
 
     [TestMethod]
