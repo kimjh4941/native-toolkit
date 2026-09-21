@@ -84,8 +84,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\NativeToolkitC\Common.h" />
+    <ClInclude Include="src\Common\CallbackGate.h" />
+    <ClInclude Include="src\Common\Guard.h" />
+    <ClInclude Include="src\Common\Handles.h" />
+    <ClInclude Include="src\Common\LastError.h" />
+    <ClInclude Include="src\Common\ReleaseGuard.h" />
+    <ClInclude Include="src\Common\StructInput.h" />
+    <ClInclude Include="src\Common\Utf8.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Common\CallbackGate.cpp" />
+    <ClCompile Include="src\Common\Handles.cpp" />
+    <ClCompile Include="src\Common\LastError.cpp" />
+    <ClCompile Include="src\Common\ReleaseGuard.cpp" />
+    <ClCompile Include="src\Common\Utf8.cpp" />
     <ClCompile Include="src\Common\Version.cpp" />
   </ItemGroup>
   <ItemGroup>

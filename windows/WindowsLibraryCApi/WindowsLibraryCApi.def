@@ -4,5 +4,18 @@
 LIBRARY
 
 EXPORTS
-	; Common
+	; Common: version and error
 	ntk_version
+	ntk_last_system_code
+	; Common: ntk_string
+	ntk_string_data
+	ntk_string_size
+	ntk_string_free
+	; Common: ntk_bytes
+	ntk_bytes_data
+	ntk_bytes_size
+	ntk_bytes_free
+	; Common: ntk_string_list
+	ntk_string_list_count
+	ntk_string_list_at
+	ntk_string_list_free

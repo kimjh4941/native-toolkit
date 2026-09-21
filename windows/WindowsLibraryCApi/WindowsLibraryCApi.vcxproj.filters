@@ -4,11 +4,11 @@
     <Filter Include="include">
       <UniqueIdentifier>{8052560E-D895-5893-A68B-B0221D5912C6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\NativeToolkitC">
-      <UniqueIdentifier>{C97B34EA-7117-5FB4-BF3D-DEED6FAEC6FB}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{25858551-6A1E-506B-9262-8823F649D8B3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\NativeToolkitC">
+      <UniqueIdentifier>{C97B34EA-7117-5FB4-BF3D-DEED6FAEC6FB}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Common">
       <UniqueIdentifier>{70F76053-EA7F-58FC-9D7C-6B1900601599}</UniqueIdentifier>
@@ -18,8 +18,44 @@
     <ClInclude Include="include\NativeToolkitC\Common.h">
       <Filter>include\NativeToolkitC</Filter>
     </ClInclude>
+    <ClInclude Include="src\Common\CallbackGate.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\Guard.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\Handles.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\LastError.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\ReleaseGuard.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\StructInput.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\Utf8.h">
+      <Filter>src\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Common\CallbackGate.cpp">
+      <Filter>src\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common\Handles.cpp">
+      <Filter>src\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common\LastError.cpp">
+      <Filter>src\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common\ReleaseGuard.cpp">
+      <Filter>src\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common\Utf8.cpp">
+      <Filter>src\Common</Filter>
+    </ClCompile>
     <ClCompile Include="src\Common\Version.cpp">
       <Filter>src\Common</Filter>
     </ClCompile>
