@@ -80,6 +80,75 @@ namespace
         return std::make_unique<NeverCompletingBackend>();
     }
 
+    /// What the controllable backend below exposes to a test.
+    struct BackendScript
+    {
+        std::shared_ptr<const ClipboardHistoryEvents> events;  ///< As last registered.
+        bool failStopWatch = false;                             ///< StopWatch reports failure.
+        bool running = false;                                   ///< A GetItems is in flight.
+    };
+    BackendScript g_script;
+
+    /// A history backend a test can steer: it keeps the events it was handed
+    /// so the test can raise them, it can refuse to stop watching, and a
+    /// GetItems it has started stays in flight until the test says otherwise.
+    /// That last part is what keeps Close from finishing now that Close
+    /// delivers its own cancellations (stage 5 design E-19).
+    class ControllableBackend final : public IClipboardHistoryBackend
+    {
+    public:
+        void GetAvailabilityAsync(HistoryAvailabilityCallback) override {}
+        void GetItemsAsync(HistoryItemsCallback) override { g_script.running = true; }
+        void SetItemAsContentAsync(const std::wstring&, HistoryStatusCallback) override {}
+        void DeleteItemAsync(const std::wstring&, HistoryStatusCallback) override {}
+        void ClearUnpinnedAsync(HistoryStatusCallback) override {}
+
+        DWORD QueryHistoryEnabled(bool& enabled) override { enabled = true; return CLIPBOARD_ERROR_NONE; }
+        DWORD QueryRoamingEnabled(bool& enabled) override { enabled = true; return CLIPBOARD_ERROR_NONE; }
+
+        DWORD StartWatch(std::shared_ptr<const ClipboardHistoryEvents> events) override
+        {
+            g_script.events = std::move(events);
+            return CLIPBOARD_ERROR_NONE;
+        }
+        void ReplaceEvents(std::shared_ptr<const ClipboardHistoryEvents> events) override
+        {
+            g_script.events = std::move(events);
+        }
+        bool StopWatch() override
+        {
+            if (g_script.failStopWatch) return false;
+            g_script.events.reset();
+            return true;
+        }
+        bool CanDestroy() const override { return !g_script.running; }
+    };
+
+    std::unique_ptr<IClipboardHistoryBackend> MakeControllableBackend()
+    {
+        g_script = BackendScript{};
+        return std::make_unique<ControllableBackend>();
+    }
+
+    void PumpMessages();
+
+    /// Raises "a new item was added" the way the OS would, and delivers it.
+    void RaiseHistoryChanged()
+    {
+        if (g_script.events && g_script.events->onHistoryChanged) g_script.events->onHistoryChanged();
+        PumpMessages();
+    }
+
+    int g_changedByFirst = 0;
+    int g_changedBySecond = 0;
+
+    Api::HistoryHandlers CountingHandlers(int& counter)
+    {
+        Api::HistoryHandlers handlers;
+        handlers.onHistoryChanged = [&counter] { ++counter; };
+        return handlers;
+    }
+
     /// Delivers whatever the session posted to itself. Nothing here runs a
     /// real message loop, so the drain only happens when it is asked for.
     void PumpMessages()
@@ -292,29 +361,58 @@ public:
         });
     }
 
-    TEST_METHOD(Test_CloseWithARequestStillInFlight_ReportsCanceled)
+    TEST_METHOD(Test_CloseWithARequestQueued_DeliversItsCancellationAndCloses)
     {
-        // An accepted request that has not been delivered yet is what Canceled
-        // means: the session is closing, and that request will be answered
-        // with a cancellation rather than a result.
+        // CT-22. An accepted request that has not been delivered yet is
+        // cancelled by Close, and Close delivers that cancellation itself: no
+        // message loop runs here, yet it closes, and the request is answered
+        // exactly once, with Canceled, before Close returns (E-19).
         ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(&MakeNeverCompletingBackend);
 
         RunOnSta([] {
             auto session = Api::Session::Create(Api::SessionOptions{});
             Check(session.has_value(), L"Create failed");
 
-            auto& backing = ClipboardManager::GetInstance();
+            s_completions = 0;
+            s_lastError = CLIPBOARD_ERROR_NONE;
             DWORD error = CLIPBOARD_ERROR_NONE;
-            const uint32_t id = backing.GetClipboardHistory(&IgnoreRequest, &error);
-            Check(error == CLIPBOARD_ERROR_NONE, L"the request was not accepted");
-            Check(id != 0, L"the request has no id");
+            const uint32_t id = ClipboardManager::GetInstance().GetClipboardHistory(&CountRequest, &error);
+            Check(error == CLIPBOARD_ERROR_NONE && id != 0, L"the request was not accepted");
+
+            Check(session.value().Close().has_value(), L"Close did not deliver its own cancellations");
+            Check(s_completions == 1, L"the request was not answered exactly once inside Close");
+            Check(s_lastError == CLIPBOARD_ERROR_CANCELED, L"the request was not answered with Canceled");
+
+            PumpMessages();
+            Check(s_completions == 1, L"the request was answered a second time");
+        });
+    }
+
+    TEST_METHOD(Test_CloseWithARequestRunning_ReportsBusyUntilItFinishes)
+    {
+        // CT-22. What is left once the cancellations are delivered is an OS
+        // operation that has started and not ended, and that Close cannot
+        // hurry: it reports Busy, with the request already answered.
+        ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(&MakeControllableBackend);
+
+        RunOnSta([] {
+            auto session = Api::Session::Create(Api::SessionOptions{});
+            Check(session.has_value(), L"Create failed");
+
+            s_completions = 0;
+            DWORD error = CLIPBOARD_ERROR_NONE;
+            ClipboardManager::GetInstance().GetClipboardHistory(&CountRequest, &error);
+            PumpMessages();  // starts it
+            Check(g_script.running, L"the request never reached the backend");
 
             const auto result = session.value().Close();
-            Check(!result.has_value(), L"Close succeeded with a request still queued");
-            Check(ErrorCode::Canceled == result.error().code, L"not Canceled");
+            Check(!result.has_value(), L"Close succeeded with an operation running");
+            Check(ErrorCode::Busy == result.error().code, L"not Busy");
+            Check(s_completions == 1, L"the request was not answered by the drain");
 
-            // Delivering the cancellation is what lets the retry succeed.
-            Check(CloseWithRetries(session.value()).has_value(), L"Close never succeeded");
+            g_script.running = false;
+            Check(session.value().Close().has_value(), L"Close failed once the operation ended");
+            Check(s_completions == 1, L"the request was answered a second time");
         });
     }
 
@@ -325,7 +423,7 @@ public:
         // It answers "is there anything left to wait for", which an open
         // session has not even started asking. The useful moment is between
         // two Close attempts.
-        ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(&MakeNeverCompletingBackend);
+        ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(&MakeControllableBackend);
 
         RunOnSta([] {
             auto session = Api::Session::Create(Api::SessionOptions{});
@@ -334,13 +432,14 @@ public:
 
             DWORD error = CLIPBOARD_ERROR_NONE;
             ClipboardManager::GetInstance().GetClipboardHistory(&IgnoreRequest, &error);
+            PumpMessages();  // starts it
 
-            Check(!session.value().Close().has_value(), L"Close succeeded with a request queued");
-            Check(!session.value().CanClose(), L"the undelivered completion was not waited for");
+            Check(!session.value().Close().has_value(), L"Close succeeded with an operation running");
+            Check(!session.value().CanClose(), L"the running operation was not waited for");
 
-            PumpMessages();
-            Check(session.value().CanClose(), L"the drain did not finish");
-            Check(session.value().Close().has_value(), L"Close failed after the drain");
+            g_script.running = false;
+            Check(session.value().CanClose(), L"the shutdown still had something to wait for");
+            Check(session.value().Close().has_value(), L"Close failed once nothing was left");
 
             Check(session.value().CanClose(), L"a closed session said shutdown could not finish");
         });
@@ -497,6 +596,62 @@ public:
         });
     }
 
+    TEST_METHOD(Test_SetHistoryHandlersFromAnotherThread_KeepsTheOldHandlers)
+    {
+        // CT-23. Refused before anything changes (E-20): the handlers in place
+        // are still the ones called afterwards.
+        ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(&MakeControllableBackend);
+
+        RunOnSta([] {
+            auto session = Api::Session::Create(Api::SessionOptions{});
+            Check(session.has_value(), L"Create failed");
+            g_changedByFirst = 0;
+            g_changedBySecond = 0;
+            Check(session.value().SetHistoryHandlers(CountingHandlers(g_changedByFirst)).has_value(),
+                  L"the first handlers were refused");
+
+            Api::Result<void> fromElsewhere;
+            std::thread elsewhere([&] {
+                fromElsewhere = session.value().SetHistoryHandlers(CountingHandlers(g_changedBySecond));
+            });
+            elsewhere.join();
+            Check(!fromElsewhere.has_value(), L"another thread replaced the handlers");
+            Check(ErrorCode::WrongThread == fromElsewhere.error().code, L"not WrongThread");
+
+            RaiseHistoryChanged();
+            Check(g_changedByFirst == 1, L"the handlers in place were not called");
+            Check(g_changedBySecond == 0, L"the refused handlers were called");
+
+            Check(CloseWithRetries(session.value()).has_value(), L"Close failed");
+        });
+    }
+
+    TEST_METHOD(Test_SetHistoryHandlersWhenStoppingFails_KeepsTheOldHandlers)
+    {
+        // CT-23. A removal the backend could not carry out leaves the old
+        // registration in place, and the handlers it forwards to with it.
+        ClipboardManager::GetInstance().SetHistoryBackendFactoryForTest(&MakeControllableBackend);
+
+        RunOnSta([] {
+            auto session = Api::Session::Create(Api::SessionOptions{});
+            Check(session.has_value(), L"Create failed");
+            g_changedByFirst = 0;
+            Check(session.value().SetHistoryHandlers(CountingHandlers(g_changedByFirst)).has_value(),
+                  L"the handlers were refused");
+
+            g_script.failStopWatch = true;
+            const auto removed = session.value().SetHistoryHandlers(Api::HistoryHandlers{});
+            Check(!removed.has_value(), L"a failed removal reported success");
+            Check(ErrorCode::MonitorRegisterFailed == removed.error().code, L"not MonitorRegisterFailed");
+
+            RaiseHistoryChanged();
+            Check(g_changedByFirst == 1, L"the old handlers were dropped with the registration still in place");
+
+            g_script.failStopWatch = false;
+            Check(CloseWithRetries(session.value()).has_value(), L"Close failed");
+        });
+    }
+
 private:
 
     /// Runs the body on an STA thread and fails this test with whatever it
@@ -508,6 +663,15 @@ private:
     }
 
     static void IgnoreRequest(uint32_t, DWORD, const wchar_t*) {}
+
+    static inline int   s_completions = 0;
+    static inline DWORD s_lastError = CLIPBOARD_ERROR_NONE;
+
+    static void CountRequest(uint32_t, DWORD error, const wchar_t*)
+    {
+        ++s_completions;
+        s_lastError = error;
+    }
 };
 
 }  // namespace WindowsClipboardApiTest

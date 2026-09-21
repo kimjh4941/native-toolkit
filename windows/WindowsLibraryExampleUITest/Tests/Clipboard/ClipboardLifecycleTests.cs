@@ -9,21 +9,19 @@ namespace WindowsLibraryExampleUITest.Tests.Clipboard;
 /// </summary>
 /// <remarks>
 /// The sample tracks Uninitialized / Ready / ShuttingDown for the lifetime of
-/// the process, so each test starts a fresh instance. Several of these cases
-/// deliberately drive the app into ShuttingDown and leave it there.
+/// the process, so each test starts a fresh instance. Since stage 5 a close no
+/// longer fails for want of a message loop (design E-19), and the sample has no
+/// way left to make it fail on demand, so ShuttingDown is not driven here; how
+/// Close fails and recovers is covered by the unit tests (C-5 to C-8, CT-22).
 /// </remarks>
 [TestClass]
 [TestCategory("Clipboard")]
 public sealed class ClipboardLifecycleTests
 {
-    private const int NotInitialized = 2;
     private const int Canceled = 15;
     private const int WrongThread = 14;
-    private const int NotSupported = 16;
 
-    private const string ShuttingDownGuard = "Shutting down. Press CanDestroy, then Uninitialize again.";
     private const string StateReady = "manager state: Ready";
-    private const string StateShuttingDown = "manager state: Shutting down";
     private const string StateUninitialized = "manager state: Uninitialized";
 
     private IUiSession? _session;
@@ -45,32 +43,6 @@ public sealed class ClipboardLifecycleTests
     }
 
     private ClipboardPage Page => _page ?? throw new InvalidOperationException("Setup did not run.");
-
-    /// <summary>Drives the app into ShuttingDown deterministically.</summary>
-    /// <remarks>
-    /// The request is only posted to the dispatch window, so it is still queued
-    /// when the same handler calls uninit. Splitting this across two presses would
-    /// let the message pump complete the request first and the drain path would
-    /// never be exercised.
-    /// </remarks>
-    private void EnterShuttingDown()
-    {
-        Page.Initialize();
-        Page.Press("RequestAndImmediateUninitialize");
-
-        // Read this from the log, not the result line: the pending request is
-        // cancelled by the drain moments later and its callback overwrites the
-        // result line before a poll can observe the uninit outcome.
-        var log = Page.WaitForLog("then uninit returned FALSE");
-        StringAssert.Contains(log, $"errorCode={Canceled}");
-
-        // Wait for the cancelled callback to land as well, so a later press is
-        // not overwritten by it mid-assertion.
-        Page.WaitForLog($"[Request] completed id=");
-        Page.WaitForLog($"error={Canceled}");
-
-        Page.WaitFor(StateShuttingDown);
-    }
 
     [TestMethod]
     public void Initialize_CalledTwice_SucceedsBothTimes()
@@ -101,48 +73,27 @@ public sealed class ClipboardLifecycleTests
         StringAssert.Contains(canDestroy, "returned TRUE");
     }
 
+    /// <remarks>
+    /// The request is only posted to the dispatch window, so it is still queued
+    /// when the same handler closes. Close cancels it and delivers the
+    /// cancellation itself (stage 5 design E-19), so the uninit succeeds at the
+    /// first attempt and the request is answered once, with Canceled. Until
+    /// stage 5 this left the app shutting down, waiting for a message loop.
+    /// </remarks>
     [TestMethod]
-    public void RequestThenImmediateUninitialize_ReportsCanceledAndEntersShuttingDown()
+    public void RequestThenImmediateUninitialize_DeliversTheCancellationAndCloses()
     {
-        EnterShuttingDown();
-    }
+        Page.Initialize();
+        Page.Press("RequestAndImmediateUninitialize");
 
-    [TestMethod]
-    public void ShuttingDown_RefusesNormalOperations()
-    {
-        EnterShuttingDown();
+        // Read from the log: the cancelled request's completion is queued to
+        // the UI and overwrites the result line after the uninit outcome.
+        var log = Page.WaitForLog("then uninit returned TRUE");
+        StringAssert.Contains(log, "errorCode=0");
 
-        // The guard runs before the bridge call, so no errorCode is reported at all.
-        var result = Page.PressAndWaitFor("CopyPlainText", ShuttingDownGuard);
-
-        StringAssert.Contains(result, StateShuttingDown);
-    }
-
-    [TestMethod]
-    public void ShuttingDown_RefusesInitialize()
-    {
-        EnterShuttingDown();
-
-        // A fresh Init would report success without reopening the gate, so the
-        // sample refuses it rather than showing a misleading result.
-        var result = Page.PressAndWaitFor("InitializeManager", ShuttingDownGuard);
-
-        StringAssert.Contains(result, StateShuttingDown);
-    }
-
-    [TestMethod]
-    public void ForceInitialize_WhileShuttingDown_DoesNotReopenTheGate()
-    {
-        EnterShuttingDown();
-
-        // The closing session still exists, so a second one is refused.
-        Page.PressAndExpect("ErrForceInitialize", "Force Initialize while shutting down", NotSupported);
-
-        // The lifecycle gate is still closed.
-        var afterCopy = Page.PressAndExpect(
-            "ErrCopyAfterUninitialize", "CopyPlainText (after Uninitialize)", NotInitialized);
-
-        StringAssert.Contains(afterCopy, StateShuttingDown);
+        Page.WaitForLog("[Request] completed id=");
+        Page.WaitForLog($"error={Canceled}");
+        Page.WaitFor(StateUninitialized);
     }
 
     [TestMethod]

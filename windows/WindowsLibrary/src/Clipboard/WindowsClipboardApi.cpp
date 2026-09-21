@@ -269,11 +269,21 @@ Result<void> Session::Close()
     }
     DLog(TAG, L"[Session::Close]");
 
+    // Canceled means the requests still queued were cancelled and their
+    // completions posted to this session's own window. Delivering those here,
+    // between attempts and without holding anything, lets Close finish without
+    // the caller running a message loop (stage 5 design E-19). Only that one
+    // message is dispatched, and only a few passes are made: a drain that does
+    // not finish is still reported as Canceled.
+    constexpr int kDrainPasses = 4;
     DWORD error = CLIPBOARD_ERROR_NONE;
-    if (!Backing().Uninit(&error)) {
-        // The session stays open and stays this object's to close; the caller
-        // is expected to act on the reason and try again.
-        return Unexpected{Error{static_cast<ErrorCode>(error), error}};
+    for (int pass = 0; !Backing().Uninit(&error); ++pass) {
+        if (error != CLIPBOARD_ERROR_CANCELED || pass == kDrainPasses ||
+            Backing().DispatchPendingDrain() == 0) {
+            // The session stays open and stays this object's to close; the
+            // caller is expected to act on the reason and try again.
+            return Unexpected{Error{static_cast<ErrorCode>(error), error}};
+        }
     }
 
     ClearHandlers();
@@ -307,13 +317,23 @@ Result<void> Session::SetHistoryHandlers(HistoryHandlers handlers)
     }
     DLog(TAG, L"[Session::SetHistoryHandlers]");
 
+    // Refused before anything changes: swapping the handlers first would leave
+    // the new ones in place behind a WrongThread (stage 5 design E-20).
+    {
+        std::lock_guard<std::mutex> lock(g_stateMutex);
+        if (g_ownerThread != ::GetCurrentThreadId()) {
+            return Unexpected{Error{ErrorCode::WrongThread, CLIPBOARD_ERROR_WRONG_THREAD}};
+        }
+    }
+
     const bool wantsChanged = static_cast<bool>(handlers.onHistoryChanged);
     const bool wantsEnabled = static_cast<bool>(handlers.onHistoryEnabledChanged);
     const bool wantsRoaming = static_cast<bool>(handlers.onRoamingEnabledChanged);
 
+    HistoryHandlers previous;
     {
         std::lock_guard<std::mutex> lock(g_handlerMutex);
-        g_historyHandlers = std::move(handlers);
+        previous = std::exchange(g_historyHandlers, std::move(handlers));
     }
 
     // A handler the caller left empty is passed on as a null pointer, so that
@@ -324,6 +344,12 @@ Result<void> Session::SetHistoryHandlers(HistoryHandlers handlers)
                                   wantsEnabled ? &ForwardHistoryEnabledChanged : nullptr,
                                   wantsRoaming ? &ForwardRoamingEnabledChanged : nullptr,
                                   &error);
+    if (error != CLIPBOARD_ERROR_NONE) {
+        // The registration underneath did not change (a failed StopWatch keeps
+        // the old one), so the handlers it forwards to must not change either.
+        std::lock_guard<std::mutex> lock(g_handlerMutex);
+        g_historyHandlers = std::move(previous);
+    }
     return ToResult(error);
 }
 

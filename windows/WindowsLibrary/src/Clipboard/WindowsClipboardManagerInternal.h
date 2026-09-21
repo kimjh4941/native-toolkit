@@ -23,6 +23,12 @@ public:
     void InitClipboardManager(ClipboardChangedCallback onChanged, DWORD* pError);
     BOOL Uninit(DWORD* pError);
     BOOL CanDestroy(DWORD* pError) const;
+
+    /// Delivers the cancellations an Uninit that returned CANCELED posted to
+    /// the dispatch window, and nothing else. Owner thread only; returns how
+    /// many messages it dispatched. Takes no lock while dispatching, because
+    /// the completions it delivers run caller code (stage 5 design E-19).
+    size_t DispatchPendingDrain();
     void SetHistoryCallbacks(ClipboardHistoryChangedCallback onHistoryChanged,
                              ClipboardFlagChangedCallback onHistoryEnabledChanged,
                              ClipboardFlagChangedCallback onRoamingEnabledChanged,

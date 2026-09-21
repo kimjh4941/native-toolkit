@@ -1632,9 +1632,11 @@ namespace winrt::WindowsLibraryExample::implementation
         }
 
         // Both calls happen in one handler on purpose: the request is only posted
-        // to the dispatch window, so it is still queued when Close drains it.
-        // Splitting this across two clicks lets the pump complete the request and
-        // the drain path is never exercised.
+        // to the dispatch window, so it is still queued when Close runs. Close
+        // cancels it and delivers the cancellation itself, so it succeeds at the
+        // first attempt and the request is answered once with CANCELED(15).
+        // Splitting this across two clicks would let the pump start the request
+        // first, and the cancellation path would never be shown.
         const auto accepted = WithSession([](Clipboard::Session& session)
         {
             return session.GetHistory(&OnHistoryItems);

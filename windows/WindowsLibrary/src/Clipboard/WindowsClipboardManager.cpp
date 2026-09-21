@@ -314,6 +314,29 @@ BOOL ClipboardManager::Uninit(DWORD* pError)
     return TRUE;
 }
 
+size_t ClipboardManager::DispatchPendingDrain()
+{
+    HWND hwnd = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(initMutex_);
+        if (!initialized_ || ::GetCurrentThreadId() != ownerThreadId_) return 0;
+        hwnd = dispatchHwnd_;
+    }
+    DFLog(TAG, L"[DispatchPendingDrain] hwnd: %p", hwnd);
+
+    // Only this window's drain message: the caller may be in the middle of
+    // someone else's message handling (an app shutting down, a Unity domain
+    // reload), where dispatching anything more would re-enter code that does
+    // not expect it.
+    size_t dispatched = 0;
+    MSG message;
+    while (hwnd && ::PeekMessageW(&message, hwnd, WM_APP_CLIPBOARD_DRAIN, WM_APP_CLIPBOARD_DRAIN, PM_REMOVE)) {
+        ::DispatchMessageW(&message);
+        ++dispatched;
+    }
+    return dispatched;
+}
+
 BOOL ClipboardManager::CanDestroy(DWORD* pError) const
 {
     // Locked for the same reason as AcquireSyncLease: initialized_/coordinator_

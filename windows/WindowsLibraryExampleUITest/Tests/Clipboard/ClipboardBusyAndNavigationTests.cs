@@ -11,12 +11,8 @@ namespace WindowsLibraryExampleUITest.Tests.Clipboard;
 [TestCategory("Clipboard")]
 public sealed class ClipboardBusyAndNavigationTests
 {
-    private const int Canceled = 15;
-
     private const string BusyGuard = "Busy: another clipboard operation is running";
     private const string StateReady = "manager state: Ready";
-    private const string StateShuttingDown = "manager state: Shutting down";
-    private const string StateUninitialized = "manager state: Uninitialized";
     private const string ReserveToken = "[Reserve] OK";
 
     private IUiSession? _session;
@@ -150,30 +146,6 @@ public sealed class ClipboardBusyAndNavigationTests
             "A log entry from the previous page request reached the new page.");
     }
 
-    // ---- Completing a pending shutdown ---------------------------------
-
-    [TestMethod]
-    public void PendingShutdown_AfterDrain_ReportsDestroyable()
-    {
-        EnterShuttingDown();
-
-        var result = Page.PressAndExpect("CanDestroy", "CanDestroy", 0);
-
-        StringAssert.Contains(result, "returned TRUE");
-    }
-
-    [TestMethod]
-    public void PendingShutdown_SecondUninitialize_CompletesTeardown()
-    {
-        EnterShuttingDown();
-        Page.PressAndExpect("CanDestroy", "CanDestroy", 0);
-
-        var result = Page.PressAndExpect("Uninitialize", "Uninitialize", 0);
-
-        StringAssert.Contains(result, "temp cleanup pending");
-        StringAssert.Contains(result, StateUninitialized);
-    }
-
     [TestMethod]
     public void Uninitialize_RunsTempCleanupAndLogsTheOutcome()
     {
@@ -206,18 +178,4 @@ public sealed class ClipboardBusyAndNavigationTests
         StringAssert.Contains(result, StateReady);
     }
 
-    private void EnterShuttingDown()
-    {
-        Page.Initialize();
-        Page.Press("RequestAndImmediateUninitialize");
-
-        // Read from the log: the result line is overwritten by the cancelled
-        // request's callback before a poll can observe the uninit outcome.
-        var log = Page.WaitForLog("then uninit returned FALSE");
-        StringAssert.Contains(log, $"errorCode={Canceled}");
-
-        Page.WaitForLog("[Request] completed id=");
-        Page.WaitForLog($"error={Canceled}");
-        Page.WaitFor(StateShuttingDown);
-    }
 }
