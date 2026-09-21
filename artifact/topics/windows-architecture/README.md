@@ -160,7 +160,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる。**完了**（C++20） | 無し | `feature/NTKIT-16` | - |
 | 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける。**完了**（ファイルの移動だけ。層が混ざったファイルは機能の直下に置き、段階 3 で分ける） | 無し | `feature/NTKIT-16` | - |
 | 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**成果物を `WindowsLibraryCore`（静的ライブラリ）と `WindowsLibrary`（C ABI の DLL）に分け**、C ABI をコアの上に載せ替える。C ABI の 52 関数とその動作は変えない | ライブラリに C++ API が増える。配布物の構成が変わる | - | - |
-| 4 | サンプルを C++ API に移行し、`WindowsLibraryCore` を参照するようにする。移行前と同じ UI テストが通ることを確かめる | 無し（サンプルが使う API だけが変わる） | - | - |
+| 4 | サンプルを C++ API に移行し、`WindowsLibraryCore` を参照するようにする。移行前と同じ UI テストが通ることを確かめる。**完了**（CU-01 の再実行を除く。C ABI にしかない動作を確かめていた UI テスト 4 件は C++ API の動作に置き換えた。`results/2026-09-21-windows-architecture-stage4-result.md`） | 無し（サンプルが使う API だけが変わる） | `feature/NTKIT-16` | - |
 | 5 | 段階 3 で分けた DLL を `WindowsLibraryCApi` に改名し、中身を新しい C ABI（D-6 〜 D-10）に置き換える。`UnityWindowsPlugin` を削除する | C ABI が変わる（2.0.0。D-4） | - | - |
 | 6 | NuGet、マニュアル、Doxygen を新しい API に合わせる | - | - | - |
 | 7 | CI を作る（ユニットテストだけ。UI テストと computer use はローカルで実行する） | - | - | - |
