@@ -4,32 +4,68 @@
 #include "NotificationPage.g.cpp"
 #endif
 
-#include "Common/common.h"
-#include "Notification/WindowsNotificationManager.h"
+#include "SampleLog.h"
+#include "NativeToolkit/Notification.h"
 
 #include <chrono>
 #include <functional>
+#include <optional>
 
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;
-using namespace winrt::Windows::Data::Json;
+
+namespace Notification = NativeToolkit::Notification;
 
 static const wchar_t* TAG = L"NotificationPage";
 
 namespace
 {
-    // Process-lifetime forwarding hub. The C bridge callback is a free function pointer,
-    // so it cannot capture state; it forwards to this std::function which the active
-    // NotificationPage registers/unregisters. Cleared on navigation away (no leak / null-safe).
+    // The one Manager this process may have. It outlives the page: navigating
+    // away does not unregister, so a notification can still be acted on.
+    std::optional<Notification::Manager> g_manager;
+
+    // Forwarding hub. The Manager's handler is installed once, at creation, and
+    // forwards to this std::function, which the active NotificationPage
+    // registers/unregisters. Cleared on navigation away (no leak / null-safe).
     std::function<void(winrt::hstring)> g_notificationHandler;
 
-    void OnNotificationInvokedThunk(const wchar_t* argsJson)
+    void OnNotificationInvoked(Notification::ActivationArgs const& args)
     {
-        DFLog(TAG, L"[OnNotificationInvokedThunk] argsJson=%ls", argsJson ? argsJson : L"null");
+        DFLog(TAG, L"[OnNotificationInvoked] rawArguments=%ls", args.rawArguments.c_str());
         if (g_notificationHandler)
         {
-            g_notificationHandler(winrt::hstring{ argsJson ? argsJson : L"" });
+            g_notificationHandler(winrt::hstring{ args.rawArguments });
         }
+    }
+
+    // The error code a result is reported with: 0 for success, otherwise the
+    // NotificationError value (the same numbers as the C ABI's constants).
+    template <class T>
+    unsigned long CodeOf(Notification::Result<T> const& result)
+    {
+        return result.has_value() ? 0ul : static_cast<unsigned long>(result.error().code);
+    }
+
+    unsigned long NotInitializedCode()
+    {
+        return static_cast<unsigned long>(Notification::ErrorCode::NotInitialized);
+    }
+
+    Notification::Button MakeButton(std::wstring label, std::wstring action)
+    {
+        Notification::Button button;
+        button.label = std::move(label);
+        button.args = Notification::ArgumentPairs{ { L"action", std::move(action) } };
+        return button;
+    }
+
+    Notification::NotificationContent MakeContent(std::wstring title, std::wstring body, std::wstring tag)
+    {
+        Notification::NotificationContent content;
+        content.title = std::move(title);
+        content.body = std::move(body);
+        content.tag = std::move(tag);
+        return content;
     }
 }
 
@@ -88,12 +124,12 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         // DISABLED: notifications are turned off for this app. Guide the user to
         // the settings page (Open Notification Settings button) to re-enable them.
-        if (err == NOTIFICATION_ERROR_DISABLED)
+        if (err == static_cast<unsigned long>(Notification::ErrorCode::Disabled))
         {
             SetResultText(L"❌ [" + method + L"] Notifications are disabled. Tap \"Open Notification Settings\" to enable.");
             return;
         }
-        if (err == NOTIFICATION_ERROR_NOT_SUPPORTED)
+        if (err == static_cast<unsigned long>(Notification::ErrorCode::NotSupported))
         {
             if (method.find(L"RemoveById") == 0)
             {
@@ -122,25 +158,38 @@ namespace winrt::WindowsLibraryExample::implementation
     void NotificationPage::InitializeManager_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[InitializeManager_Click]");
-        DWORD err = 0;
-        // Packaged (MSIX) app -> isPackaged = TRUE, no CLSID / launchUri.
-        initNotificationManager(&OnNotificationInvokedThunk, TRUE, nullptr, nullptr, &err);
-        if (err == 0)
+        if (!g_manager.has_value())
         {
-            m_initialized = true;
-            int setting = getNotificationSetting();
-            SetResultText(L"✅ [InitializeManager] initialized. setting=" + std::to_wstring(setting));
+            // Packaged (MSIX) app -> isPackaged = true, no display name / icon.
+            Notification::ManagerOptions options;
+            options.onInvoked = &OnNotificationInvoked;
+            options.isPackaged = true;
+
+            auto created = Notification::Manager::Create(options);
+            if (!created.has_value())
+            {
+                ShowResult(L"InitializeManager", CodeOf(created));
+                return;
+            }
+            g_manager.emplace(std::move(created).value());
         }
-        else
-        {
-            ShowResult(L"InitializeManager", err);
-        }
+        // Already created by an earlier visit to the page: it is still
+        // registered, and its handler already forwards to the hub.
+
+        m_initialized = true;
+        const auto setting = g_manager->GetSetting();
+        const int value = setting.has_value() ? static_cast<int>(setting.value()) : -1;
+        SetResultText(L"✅ [InitializeManager] initialized. setting=" + std::to_wstring(value));
     }
 
     void NotificationPage::Uninitialize_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[Uninitialize_Click]");
-        uninitNotificationManager();
+        if (g_manager.has_value())
+        {
+            g_manager->Close();
+            g_manager.reset();
+        }
         m_initialized = false;
         SetResultText(L"✅ [Uninitialize] done");
     }
@@ -148,7 +197,17 @@ namespace winrt::WindowsLibraryExample::implementation
     void NotificationPage::GetSetting_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[GetSetting_Click]");
-        int setting = getNotificationSetting();
+        // No manager, or the question failed: shown as -1.
+        int setting = -1;
+        if (g_manager.has_value())
+        {
+            const auto result = g_manager->GetSetting();
+            if (result.has_value())
+            {
+                setting = static_cast<int>(result.value());
+            }
+        }
+
         std::wstring label;
         switch (setting)
         {
@@ -166,8 +225,7 @@ namespace winrt::WindowsLibraryExample::implementation
     void NotificationPage::OpenSettings_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[OpenSettings_Click]");
-        DWORD err = 0;
-        openNotificationSettings(&err);
+        const unsigned long err = g_manager.has_value() ? CodeOf(g_manager->OpenSettings()) : NotInitializedCode();
         if (err == 0)
             SetResultText(L"✅ [OpenSettings] Opened notification settings. Enable notifications, then retry.");
         else
@@ -180,78 +238,83 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[ShowBasic_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        std::wstring payload = LR"({"title":"Hello","body":"Basic toast","tag":"sample"})";
-        showNotification(payload.c_str(), &err);
-        ShowResult(L"ShowBasic", err);
+        const auto content = MakeContent(L"Hello", L"Basic toast", L"sample");
+        ShowResult(L"ShowBasic", CodeOf(g_manager->Show(content)));
     }
 
     void NotificationPage::ShowWithButtons_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ShowWithButtons_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        std::wstring payload = LR"({"title":"Actionable","body":"Toast with buttons","tag":"sample",)"
-            LR"("buttons":[{"label":"Open","args":{"action":"open"}},{"label":"Dismiss","args":{"action":"dismiss"}}]})";
-        showNotification(payload.c_str(), &err);
-        ShowResult(L"ShowWithButtons", err);
+        auto content = MakeContent(L"Actionable", L"Toast with buttons", L"sample");
+        content.buttons = { MakeButton(L"Open", L"open"), MakeButton(L"Dismiss", L"dismiss") };
+        ShowResult(L"ShowWithButtons", CodeOf(g_manager->Show(content)));
     }
 
     void NotificationPage::ShowWithImage_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ShowWithImage_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        std::wstring payload = LR"({"title":"With Image","body":"Toast with hero image","tag":"sample",)"
-            LR"("heroImage":"ms-appx:///Assets/StoreLogo.png"})";
-        showNotification(payload.c_str(), &err);
-        ShowResult(L"ShowWithImage", err);
+        auto content = MakeContent(L"With Image", L"Toast with hero image", L"sample");
+        content.heroImage = L"ms-appx:///Assets/StoreLogo.png";
+        ShowResult(L"ShowWithImage", CodeOf(g_manager->Show(content)));
     }
 
     void NotificationPage::ShowWithInput_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ShowWithInput_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        std::wstring payload = LR"({"title":"Reply","body":"Type a reply and pick an option","tag":"sample",)"
-            LR"("textBoxes":[{"id":"reply","placeholder":"Type a message"}],)"
-            LR"("comboBoxes":[{"id":"opt","title":"Status","defaultSelection":"busy",)"
-            LR"("items":[{"id":"free","label":"Free"},{"id":"busy","label":"Busy"}]}],)"
-            LR"("buttons":[{"label":"Send","args":{"action":"send"}}]})";
-        showNotification(payload.c_str(), &err);
-        ShowResult(L"ShowWithInput", err);
+        auto content = MakeContent(L"Reply", L"Type a reply and pick an option", L"sample");
+
+        Notification::TextInput reply;
+        reply.id = L"reply";
+        reply.placeholder = L"Type a message";
+        content.textInputs = { reply };
+
+        Notification::ComboInput status;
+        status.id = L"opt";
+        status.title = L"Status";
+        status.defaultSelection = L"busy";
+        status.items = { { L"free", L"Free" }, { L"busy", L"Busy" } };
+        content.comboInputs = { status };
+
+        content.buttons = { MakeButton(L"Send", L"send") };
+        ShowResult(L"ShowWithInput", CodeOf(g_manager->Show(content)));
     }
 
     void NotificationPage::ShowWithProgress_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ShowWithProgress_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        std::wstring payload = LR"({"title":"Downloading","body":"In progress","tag":"progress-sample",)"
-            LR"("progress":{"title":"Toolkit.zip","value":0.3,"valueStr":"30%","status":"Downloading"}})";
-        showNotification(payload.c_str(), &err);
-        ShowResult(L"ShowWithProgress", err);
+        auto content = MakeContent(L"Downloading", L"In progress", L"progress-sample");
+        Notification::ProgressSpec progress;
+        progress.title = L"Toolkit.zip";
+        progress.value = 0.3;
+        progress.valueStr = L"30%";
+        progress.status = L"Downloading";
+        content.progress = progress;
+        ShowResult(L"ShowWithProgress", CodeOf(g_manager->Show(content)));
     }
 
     void NotificationPage::ShowWithExpiration_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ShowWithExpiration_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        std::wstring payload = LR"({"title":"Expires","body":"This toast expires in 10 seconds","tag":"sample","expiration":10})";
-        showNotification(payload.c_str(), &err);
-        ShowResult(L"ShowWithExpiration", err);
+        auto content = MakeContent(L"Expires", L"This toast expires in 10 seconds", L"sample");
+        content.expiration = std::chrono::seconds(10);
+        ShowResult(L"ShowWithExpiration", CodeOf(g_manager->Show(content)));
     }
 
     void NotificationPage::ShowWithAudio_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ShowWithAudio_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        std::wstring payload = LR"({"title":"Reminder","body":"Toast with reminder sound","tag":"sample",)"
-            LR"("audio":{"type":"event","event":"reminder"}})";
-        showNotification(payload.c_str(), &err);
-        ShowResult(L"ShowWithAudio", err);
+        auto content = MakeContent(L"Reminder", L"Toast with reminder sound", L"sample");
+        Notification::AudioSpec audio;
+        audio.kind = Notification::AudioKind::Event;
+        audio.eventName = L"reminder";
+        content.audio = audio;
+        ShowResult(L"ShowWithAudio", CodeOf(g_manager->Show(content)));
     }
 
     // ---- Schedule ----
@@ -260,35 +323,25 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[Schedule_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        auto now = std::chrono::system_clock::now();
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-            (now + std::chrono::seconds(60)).time_since_epoch()).count();
-        std::wstring payload = LR"({"title":"Scheduled","body":"Fires in ~1 minute","tag":"scheduled"})";
-        scheduleNotification(payload.c_str(), static_cast<int64_t>(ms), &err);
-        ShowResult(L"Schedule", err);
+        const auto when = std::chrono::system_clock::now() + std::chrono::seconds(60);
+        const auto content = MakeContent(L"Scheduled", L"Fires in ~1 minute", L"scheduled");
+        ShowResult(L"Schedule", CodeOf(g_manager->Schedule(content, when)));
     }
 
     void NotificationPage::ScheduleSoon_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ScheduleSoon_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        auto now = std::chrono::system_clock::now();
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-            (now + std::chrono::seconds(5)).time_since_epoch()).count();
-        std::wstring payload = LR"({"title":"Scheduled","body":"Fires in ~5 seconds","tag":"scheduled"})";
-        scheduleNotification(payload.c_str(), static_cast<int64_t>(ms), &err);
-        ShowResult(L"ScheduleSoon", err);
+        const auto when = std::chrono::system_clock::now() + std::chrono::seconds(5);
+        const auto content = MakeContent(L"Scheduled", L"Fires in ~5 seconds", L"scheduled");
+        ShowResult(L"ScheduleSoon", CodeOf(g_manager->Schedule(content, when)));
     }
 
     void NotificationPage::CancelScheduled_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[CancelScheduled_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        cancelScheduledNotification(L"scheduled", L"", &err);
-        ShowResult(L"CancelScheduled", err);
+        ShowResult(L"CancelScheduled", CodeOf(g_manager->CancelScheduled(L"scheduled", L"")));
     }
 
     // ---- Progress ----
@@ -297,15 +350,20 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[UpdateProgress_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        updateNotificationProgress(L"progress-sample", L"", 0.6, L"60%", L"Downloading", m_progressSeq++, &err);
-        // PROGRESS_NOT_FOUND: no progress notification is currently shown.
-        if (err == NOTIFICATION_ERROR_PROGRESS_NOT_FOUND)
+        Notification::ProgressUpdate update;
+        update.tag = L"progress-sample";
+        update.value = 0.6;
+        update.valueString = L"60%";
+        update.status = L"Downloading";
+        update.sequenceNumber = m_progressSeq++;
+        const auto result = g_manager->UpdateProgress(update);
+        // ProgressNotFound: no progress notification is currently shown.
+        if (!result.has_value() && result.error().code == Notification::ErrorCode::ProgressNotFound)
         {
             SetResultText(L"❌ [UpdateProgress] No progress notification. Tap ShowWithProgress first.");
             return;
         }
-        ShowResult(L"UpdateProgress", err);
+        ShowResult(L"UpdateProgress", CodeOf(result));
     }
 
     // ---- Badge ----
@@ -314,27 +372,21 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[SetBadge_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        setBadge(5, &err);
-        ShowResult(L"SetBadge(5)", err);
+        ShowResult(L"SetBadge(5)", CodeOf(g_manager->SetBadge(5)));
     }
 
     void NotificationPage::SetBadgeGlyph_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[SetBadgeGlyph_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        setBadge(-1, &err); // glyph: alert
-        ShowResult(L"SetBadgeGlyph(alert)", err);
+        ShowResult(L"SetBadgeGlyph(alert)", CodeOf(g_manager->SetBadge(-1))); // glyph: alert
     }
 
     void NotificationPage::ClearBadge_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[ClearBadge_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        setBadge(0, &err);
-        ShowResult(L"ClearBadge", err);
+        ShowResult(L"ClearBadge", CodeOf(g_manager->SetBadge(0)));
     }
 
     // ---- Remove / Query ----
@@ -343,42 +395,29 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[GetAllNotifications_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        wchar_t buf[4096] = { 0 };
-        getAllNotifications(buf, 4096, &err);
-        if (err != 0)
+        const auto result = g_manager->GetAll();
+        if (!result.has_value())
         {
-            ShowResult(L"GetAllNotifications", err);
+            ShowResult(L"GetAllNotifications", CodeOf(result));
             return;
         }
 
-        std::wstring ids;
-        uint32_t count = 0;
-        try
-        {
-            JsonArray arr = JsonArray::Parse(winrt::hstring{ buf });
-            count = arr.Size();
-            for (auto const& item : arr)
-            {
-                auto obj = item.GetObject();
-                auto id = static_cast<uint32_t>(obj.GetNamedNumber(L"id"));
-                if (!ids.empty()) ids += L", ";
-                ids += std::to_wstring(id);
-                m_lastNotificationId = id;
-                m_hasLastId = true;
-            }
-        }
-        catch (...)
-        {
-            DLog(TAG, L"[GetAllNotifications] JSON parse failed");
-        }
-
-        if (count == 0)
+        const auto& notifications = result.value();
+        if (notifications.empty())
         {
             SetResultText(L"ℹ️ [GetAllNotifications] No active notifications. Tap a Show button first.");
             return;
         }
-        SetResultText(L"✅ [GetAllNotifications] count=" + std::to_wstring(count) + L", ids=[" + ids + L"]");
+
+        std::wstring ids;
+        for (const auto& notification : notifications)
+        {
+            if (!ids.empty()) ids += L", ";
+            ids += std::to_wstring(notification.id);
+            m_lastNotificationId = notification.id;
+            m_hasLastId = true;
+        }
+        SetResultText(L"✅ [GetAllNotifications] count=" + std::to_wstring(notifications.size()) + L", ids=[" + ids + L"]");
     }
 
     void NotificationPage::RemoveById_Click(IInspectable const&, RoutedEventArgs const&)
@@ -390,9 +429,8 @@ namespace winrt::WindowsLibraryExample::implementation
             SetResultText(L"❌ [RemoveById] No captured id. Tap GetAllNotifications first.");
             return;
         }
-        DWORD err = 0;
-        uint32_t removedId = m_lastNotificationId;
-        removeNotificationById(removedId, &err);
+        const uint32_t removedId = m_lastNotificationId;
+        const unsigned long err = CodeOf(g_manager->RemoveById(removedId));
         if (err == 0)
         {
             // The captured id is now consumed; require a fresh GetAllNotifications
@@ -407,17 +445,13 @@ namespace winrt::WindowsLibraryExample::implementation
     {
         DLog(TAG, L"[RemoveByTag_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        removeNotificationsByTag(L"sample", L"", &err);
-        ShowResult(L"RemoveByTag(sample)", err);
+        ShowResult(L"RemoveByTag(sample)", CodeOf(g_manager->RemoveByTag(L"sample", L"")));
     }
 
     void NotificationPage::RemoveAll_Click(IInspectable const&, RoutedEventArgs const&)
     {
         DLog(TAG, L"[RemoveAll_Click]");
         if (!EnsureInitialized()) return;
-        DWORD err = 0;
-        removeAllNotifications(&err);
-        ShowResult(L"RemoveAll", err);
+        ShowResult(L"RemoveAll", CodeOf(g_manager->RemoveAll()));
     }
 }

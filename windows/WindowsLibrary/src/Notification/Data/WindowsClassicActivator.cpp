@@ -22,6 +22,9 @@
 // which causes C2027 when combined with WinRT headers via pch.h.
 #include <ShObjIdl.h>      // IShellLinkW, CLSID_ShellLink
 #include <shlobj.h>        // SHGetSpecialFolderPathW
+// Named here because the static core cannot count on the app linking the
+// classic Win32 libraries (a WinUI app links windowsapp.lib only).
+#pragma comment(lib, "shell32.lib")
 #include <propsys.h>       // IPropertyStore
 #include <propkey.h>       // PKEY_AppUserModel_ID, PKEY_AppUserModel_ToastActivatorCLSID
 #include <propvarutil.h>   // InitPropVariantFromString, InitPropVariantFromCLSID
