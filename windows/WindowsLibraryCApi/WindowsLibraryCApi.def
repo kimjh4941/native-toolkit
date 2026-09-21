@@ -34,7 +34,9 @@ EXPORTS
 	ntk_notification_manager_set_invoked_handler
 	ntk_notification_manager_close
 	ntk_notification_manager_free
-	; Notification: operations (OP-12..OP-20; OP-10 and OP-11 come with the content builder)
+	; Notification: operations (OP-10..OP-20)
+	ntk_notification_show
+	ntk_notification_schedule
 	ntk_notification_cancel_scheduled
 	ntk_notification_update_progress
 	ntk_notification_set_badge
@@ -55,3 +57,26 @@ EXPORTS
 	ntk_notification_activation_value_count
 	ntk_notification_activation_key_at
 	ntk_notification_activation_value_at
+	; Notification: content builder
+	ntk_notification_content_create
+	ntk_notification_content_free
+	ntk_notification_content_set_title
+	ntk_notification_content_set_body
+	ntk_notification_content_set_tag
+	ntk_notification_content_set_group
+	ntk_notification_content_set_scenario
+	ntk_notification_content_set_hero_image
+	ntk_notification_content_set_inline_image
+	ntk_notification_content_set_app_logo
+	ntk_notification_content_set_attribution
+	ntk_notification_content_set_duration
+	ntk_notification_content_set_audio
+	ntk_notification_content_add_button
+	ntk_notification_content_add_button_argument
+	ntk_notification_content_add_text_input
+	ntk_notification_content_add_combo
+	ntk_notification_content_add_combo_item
+	ntk_notification_content_set_progress
+	ntk_notification_content_set_timestamp
+	ntk_notification_content_set_expiration
+	ntk_notification_content_set_expires_on_reboot

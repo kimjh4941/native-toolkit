@@ -206,7 +206,11 @@ void NTK_CALL ntk_notification_manager_free(ntk_notification_manager* manager);
 ntk_notification_error NTK_CALL ntk_notification_show(
     ntk_notification_manager* manager, const ntk_notification_content* content);
 
-/** @brief OP-11. Shows a notification at unix_ms (milliseconds since 1970-01-01 UTC). Progress is ignored. */
+/**
+ * @brief OP-11. Shows a notification at unix_ms (milliseconds since 1970-01-01 UTC).
+ *        Progress is ignored. A time beyond about 29,000 years either side is
+ *        NTK_NOTIFICATION_ERROR_INVALID_PARAMETER.
+ */
 ntk_notification_error NTK_CALL ntk_notification_schedule(
     ntk_notification_manager* manager, const ntk_notification_content* content, int64_t unix_ms);
 
@@ -341,7 +345,10 @@ ntk_notification_error NTK_CALL ntk_notification_content_add_combo_item(
 ntk_notification_error NTK_CALL ntk_notification_content_set_progress(
     ntk_notification_content* content, const char* title, double value,
     const char* value_string, const char* status);
-/** The time the notification claims, in milliseconds since 1970-01-01 UTC. */
+/**
+ * The time the notification claims, in milliseconds since 1970-01-01 UTC.
+ * Beyond about 29,000 years either side is NTK_NOTIFICATION_ERROR_INVALID_PARAMETER.
+ */
 ntk_notification_error NTK_CALL ntk_notification_content_set_timestamp(
     ntk_notification_content* content, int64_t unix_ms);
 /** Seconds after delivery at which the action centre drops it. */

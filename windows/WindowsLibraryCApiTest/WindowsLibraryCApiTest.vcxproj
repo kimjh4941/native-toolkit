@@ -114,6 +114,9 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationCApi.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationContentCApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationConvert.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -144,6 +147,7 @@
       <CompileAs>CompileAsC</CompileAs>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
+    <ClCompile Include="Notification\CApiNotificationContentTest.cpp" />
     <ClCompile Include="Notification\CApiNotificationTest.cpp" />
   </ItemGroup>
   <ItemGroup>

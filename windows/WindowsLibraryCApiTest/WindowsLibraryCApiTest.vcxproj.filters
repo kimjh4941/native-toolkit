@@ -42,6 +42,9 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationCApi.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationContentCApi.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationConvert.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
@@ -67,6 +70,9 @@
       <Filter>Dialog</Filter>
     </ClCompile>
     <ClCompile Include="Notification\CApiNotificationHeaderAsC.c">
+      <Filter>Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="Notification\CApiNotificationContentTest.cpp">
       <Filter>Notification</Filter>
     </ClCompile>
     <ClCompile Include="Notification\CApiNotificationTest.cpp">

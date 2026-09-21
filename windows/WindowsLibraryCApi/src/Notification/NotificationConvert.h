@@ -31,6 +31,10 @@ struct ntk_notification_manager {
     bool open = true;
 };
 
+struct ntk_notification_content {
+    NativeToolkit::Notification::NotificationContent content;
+};
+
 struct ntk_notification_list {
     struct Entry {
         uint32_t    id = 0;

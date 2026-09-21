@@ -92,6 +92,9 @@
     <ClCompile Include="src\Notification\NotificationCApi.cpp">
       <Filter>src\Notification</Filter>
     </ClCompile>
+    <ClCompile Include="src\Notification\NotificationContentCApi.cpp">
+      <Filter>src\Notification</Filter>
+    </ClCompile>
     <ClCompile Include="src\Notification\NotificationConvert.cpp">
       <Filter>src\Notification</Filter>
     </ClCompile>

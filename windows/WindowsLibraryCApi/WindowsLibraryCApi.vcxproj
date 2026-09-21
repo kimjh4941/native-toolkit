@@ -108,6 +108,7 @@
     <ClCompile Include="src\Dialog\DialogCApi.cpp" />
     <ClCompile Include="src\Dialog\DialogConvert.cpp" />
     <ClCompile Include="src\Notification\NotificationCApi.cpp" />
+    <ClCompile Include="src\Notification\NotificationContentCApi.cpp" />
     <ClCompile Include="src\Notification\NotificationConvert.cpp" />
     <ClCompile Include="src\Notification\NotificationRuntime.cpp" />
   </ItemGroup>
