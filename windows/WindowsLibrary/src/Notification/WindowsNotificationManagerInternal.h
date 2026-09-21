@@ -18,6 +18,7 @@ namespace WindowsNotificationManagerTest { class NotificationManagerTest; }
 namespace WindowsNotificationValidationDomainTest { class NotificationValidationDomainTest; }
 namespace WindowsNotificationBuilderTest { class NotificationBuilderTest; }
 namespace WindowsNotificationApiTest { class NotificationApiTest; }
+namespace WindowsNotificationPayloadTest { class NotificationPayloadTest; }
 
 class WindowsNotificationManager
 {
@@ -74,6 +75,9 @@ private:
     /// Drives the C++ API against a mock backend; see NotificationApiTest
     /// (stage 3, T-08).
     friend class WindowsNotificationApiTest::NotificationApiTest;
+    /// Records what the JSON payload accepts today, so T-14 can move the parse
+    /// without changing any of it; see NotificationPayloadTest (stage 3, T-17).
+    friend class WindowsNotificationPayloadTest::NotificationPayloadTest;
 
     WindowsNotificationManager() = default;
     WindowsNotificationManager(const WindowsNotificationManager&) = delete;

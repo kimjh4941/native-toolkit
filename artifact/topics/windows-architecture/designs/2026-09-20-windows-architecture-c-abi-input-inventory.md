@@ -108,6 +108,42 @@
 
 `getAllNotifications` は `[{"id":<数値>,"tag":"...","group":"..."}]` を `_TRUNCATE` でバッファへ書く。**必要サイズは返さない**（`:251`）。
 
+### 1.10 キーが**有って空**のとき（T-17 で追加）
+
+1.1〜1.7 は「渡したとき」と「省略したとき」を書いているが、**3 つ目の場合**を書いていなかった。実装は `HasKey` で分岐するため、**空文字列は値であって不在ではない**。T-14 で `NotificationContent` に載せ替える際、空文字列を「無し」として扱うと次が変わる。
+
+下の表は **`WindowsLibraryTest/NotificationPayloadTest.cpp` が実装から導出**したものであり、読みによる推定ではない。同テストは T-14 の載せ替え後も通らなければならない。
+
+| # | 入力 | 空のときの結果 | 省略したときの結果 | 同じか |
+|---|---|---|---|---|
+| 1 | `title: ""` | 空の `<text/>` を出す | 何も出さない | **違う** |
+| 2 | `body: ""` | 2 行目に空の `<text/>` を出す | 何も出さない | **違う** |
+| 3 | `attribution: ""` | 空の attribution 要素を出す | 何も出さない | **違う** |
+| 4 | `progress.title: ""` | `title=''` を出す | 属性を出さない | **違う** |
+| 5 | `heroImage: ""` | `Uri{""}` が例外 → `HRESULT_FAILURE`(5) | 画像なしで成功 | **違う** |
+| 6 | `inlineImage: ""` | 同上 → 5 | 同上 | **違う** |
+| 7 | `audio.uri: ""`（`type=uri`） | `Uri{""}` が例外 → **5** | キーが無い場合は `INVALID_PARAMETER`(**7**) | **違う**（しかも 5 と 7 で異なる） |
+| 8 | `buttons[].invokeUri: ""` | `Uri{""}` が例外 → 5 | `args` 側として扱う | **違う** |
+| 9 | `textBoxes[].placeholder: ""` | 3 引数版 `AddTextBox` → `placeHolderContent` 属性が出る | 1 引数版 → 属性が出ない | **違う** |
+| 10 | `buttons[].args: {}` + `invokeUri` | 排他違反 → `INVALID_PARAMETER`(7) | `invokeUri` だけなら成功 | **違う**（排他は**キーの有無**で判定する） |
+| 11 | `comboBoxes[].title: ""` | 省略時と同じ（builder が空値を落とす） | 同左 | 同じ |
+| 12 | `comboBoxes[].defaultSelection: ""` | 同上 | 同左 | 同じ |
+| 13 | `tag: ""` / `group: ""` | 省略時と同じ | 同左 | 同じ |
+| 14 | `scenario: ""` / `audio.event: ""` | 未知の値として黙って既定 | 同左 | 同じ |
+
+**11 と 12 は読みでは逆に見える**（`HasKey` が真なので `Title()` と `SelectedItem()` を呼ぶ）。空値を落としているのは App SDK の builder 側であり、呼び出し規約からは分からない。実装から導出する理由がここにある。
+
+**結論**: 1〜10 の 10 件は、空文字列を「無し」とする表現では再現できない。`NotificationContent` の該当フィールドは**不在と空を区別できる型**が要る（4 章の 16 番）。
+
+### 1.11 Clipboard と Dialog に同じ問題が無い理由（T-17 で確認）
+
+| 機能 | 理由 |
+|---|---|
+| Clipboard `copyMultipleFormats` | 「どのペイロードか」を `FormatPayload` の variant が**明示的に**持つ。JSON 側は `HasKey` で決めるが、その判定はブリッジが行って variant に載せるため、空文字列に意味を推測させない |
+| Clipboard `copyFiles` / `reserveDeferredFormats` | 配列の要素に有無の分岐が無い。空の形式名は今も `RegisterClipboardFormatW("")` が 0 を返して `INVALID_PARAMETER` であり、C++ API も同じ検査を通る |
+| Clipboard の同期 API | 引数が `wstring_view` で、**空と不在を呼び出し側が区別しない**（どちらも空の内容として扱う）のが元からの契約 |
+| Dialog | JSON を使わない。フラグ語とフィルター文字列は S-3 の逃げ道でブリッジが内部層へ素通しする |
+
 ## 2. Dialog の Win32 フラグと戻り値
 
 | # | 関数 | フラグ | 呼び出し側が変えられるか | フィルター | タイトル | オーナー | バッファ | 戻り値 |
@@ -203,3 +239,4 @@
 | 13 | **符号で意味が変わる badge の `int`** | `setBadge` |
 | 14 | **3 種類の時刻表現**（`expiration` = 相対秒、`timestamp` = 絶対 Unix 秒、`scheduleNotification` の引数 = 絶対 Unix ミリ秒） | 通知 |
 | 15 | backend による黙った無視（`expiresOnReboot` は unpackaged で、`expiration` と `progress` は `Schedule` で無視。`mute` は `loop` / `event` を捨てる） | 通知 |
+| 16 | **キーが有って空**であることと、キーが無いことの区別（1.10 の 10 件） | `showNotification` / `scheduleNotification` |
