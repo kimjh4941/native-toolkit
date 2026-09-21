@@ -4,17 +4,11 @@
     <Filter Include="include">
       <UniqueIdentifier>{2F5A6B71-9C3D-4E82-A0F4-7D1B8E5C2A36}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{7998A632-DD09-590F-A44D-366B5BB86CA1}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\NativeToolkit">
       <UniqueIdentifier>{8C4E2D19-5B7A-46F3-9E10-C2A7F5D30B48}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\Bridge">
-      <UniqueIdentifier>{D6C9E309-56CD-421E-8DF5-4C6FAE6FF6E9}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\Clipboard">
       <UniqueIdentifier>{C941C8DF-A358-50EB-9A50-6E384BE786B0}</UniqueIdentifier>
@@ -55,27 +49,57 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
-    <ClCompile Include="src\Bridge\AppSdkBootstrapBridge.cpp">
-      <Filter>src\Bridge</Filter>
+    <ClCompile Include="src\Clipboard\Application\WindowsClipboardHistoryCoordinator.cpp">
+      <Filter>src\Clipboard\Application</Filter>
     </ClCompile>
-    <ClCompile Include="src\Bridge\ClipboardBridge.cpp">
-      <Filter>src\Bridge</Filter>
+    <ClCompile Include="src\Clipboard\Application\WindowsClipboardLifecycle.cpp">
+      <Filter>src\Clipboard\Application</Filter>
     </ClCompile>
-    <ClCompile Include="src\Bridge\ClipboardPayloadJson.cpp">
-      <Filter>src\Bridge</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardCore.cpp">
+      <Filter>src\Clipboard\Data</Filter>
     </ClCompile>
-    <ClCompile Include="src\Bridge\DialogBridge.cpp">
-      <Filter>src\Bridge</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardDeferredProvider.cpp">
+      <Filter>src\Clipboard\Data</Filter>
     </ClCompile>
-    <ClCompile Include="src\Bridge\NotificationBridge.cpp">
-      <Filter>src\Bridge</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardHistoryWinRt.cpp">
+      <Filter>src\Clipboard\Data</Filter>
     </ClCompile>
-    <ClCompile Include="src\Bridge\NotificationPayloadJson.cpp">
-      <Filter>src\Bridge</Filter>
+    <ClCompile Include="src\Clipboard\Data\WindowsClipboardWindow.cpp">
+      <Filter>src\Clipboard\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Clipboard\Domain\WindowsClipboardFormats.cpp">
+      <Filter>src\Clipboard\Domain</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Clipboard\WindowsClipboardApi.cpp">
+      <Filter>src\Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Clipboard\WindowsClipboardManager.cpp">
+      <Filter>src\Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common\common.cpp">
+      <Filter>src\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Dialog\WindowsDialogApi.cpp">
+      <Filter>src\Dialog</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Notification\Data\WindowsAppSdkBootstrap.cpp">
+      <Filter>src\Notification\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Notification\Data\WindowsClassicActivator.cpp">
+      <Filter>src\Notification\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Notification\WindowsNotificationApi.cpp">
+      <Filter>src\Notification</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Notification\WindowsNotificationManager.cpp">
+      <Filter>src\Notification</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\NativeToolkit\BuildStamp.h">
+      <Filter>include\NativeToolkit</Filter>
+    </ClInclude>
+    <ClInclude Include="include\NativeToolkit\Clipboard.h">
       <Filter>include\NativeToolkit</Filter>
     </ClInclude>
     <ClInclude Include="include\NativeToolkit\Dialog.h">
@@ -91,12 +115,6 @@
       <Filter>include\NativeToolkit</Filter>
     </ClInclude>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="src\Bridge\ClipboardPayloadJson.h">
-      <Filter>src\Bridge</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Bridge\NotificationPayloadJson.h">
-      <Filter>src\Bridge</Filter>
-    </ClInclude>
     <ClInclude Include="src\Clipboard\Application\WindowsClipboardHistoryBackend.h">
       <Filter>src\Clipboard\Application</Filter>
     </ClInclude>
@@ -120,6 +138,9 @@
     </ClInclude>
     <ClInclude Include="src\Clipboard\Domain\WindowsClipboardFormats.h">
       <Filter>src\Clipboard\Domain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Clipboard\WindowsClipboardApiInternal.h">
+      <Filter>src\Clipboard</Filter>
     </ClInclude>
     <ClInclude Include="src\Clipboard\WindowsClipboardManager.h">
       <Filter>src\Clipboard</Filter>
@@ -154,8 +175,17 @@
     <ClInclude Include="src\Notification\Data\WindowsClassicActivator.h">
       <Filter>src\Notification\Data</Filter>
     </ClInclude>
+    <ClInclude Include="src\Notification\Data\WindowsNotificationActivation.h">
+      <Filter>src\Notification\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Notification\Data\WindowsNotificationBuilder.h">
+      <Filter>src\Notification\Data</Filter>
+    </ClInclude>
     <ClInclude Include="src\Notification\Domain\WindowsNotificationValidation.h">
       <Filter>src\Notification\Domain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Notification\WindowsNotificationApiInternal.h">
+      <Filter>src\Notification</Filter>
     </ClInclude>
     <ClInclude Include="src\Notification\WindowsNotificationManager.h">
       <Filter>src\Notification</Filter>
@@ -167,11 +197,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="WindowsLibrary.def" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="WindowsLibrary.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
   </ItemGroup>
 </Project>

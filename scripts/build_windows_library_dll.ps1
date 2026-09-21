@@ -126,7 +126,10 @@ $ModuleConfig = @{
         Headers  = @(
             'windows\WindowsLibrary\src\Common\common.h',
             'windows\WindowsLibrary\src\Dialog\WindowsDialogManager.h',
-            'windows\WindowsLibrary\src\Notification\WindowsNotificationManager.h'
+            'windows\WindowsLibrary\src\Notification\WindowsNotificationManager.h',
+            # Missing since the clipboard shipped, which left it unusable from the
+            # package (windows-architecture README, the list of problems).
+            'windows\WindowsLibrary\src\Clipboard\WindowsClipboardManager.h'
         )
     }
     'UnityWindowsPlugin' = @{
