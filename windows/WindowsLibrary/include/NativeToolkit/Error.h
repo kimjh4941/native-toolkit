@@ -119,11 +119,17 @@ public:
     ~Result() requires kTriviallyDestructible = default;
     ~Result() { Destroy(); }
 
+    /// True when this holds a value; false when it holds a failure.
     bool     has_value() const noexcept { return hasValue_; }
+    /// The same as has_value().
     explicit operator bool() const noexcept { return hasValue_; }
 
+    /// The value. Requires has_value(); anything else is undefined, asserted
+    /// in a debug build, and never throws.
     T&       value() & noexcept { return storage_.value; }
+    /// @copydoc value()
     const T& value() const& noexcept { return storage_.value; }
+    /// The value, moved out. Requires has_value().
     T&&      value() && noexcept { return std::move(storage_.value); }
 
     /// Returns the value when there is one, otherwise the fallback. Requires a copyable T.
@@ -131,8 +137,12 @@ public:
         requires std::is_copy_constructible_v<T>
     { return hasValue_ ? storage_.value : std::move(fallback); }
 
+    /// The failure. Requires !has_value(); anything else is undefined,
+    /// asserted in a debug build, and never throws.
     E&       error() & noexcept { return storage_.error; }
+    /// @copydoc error()
     const E& error() const& noexcept { return storage_.error; }
+    /// The failure, moved out. Requires !has_value().
     E&&      error() && noexcept { return std::move(storage_.error); }
 
 private:
@@ -175,11 +185,16 @@ public:
     Result() noexcept : error_{}, hasValue_(true) {}
     Result(Unexpected<E> error) : error_(std::move(error.error)), hasValue_(false) {}
 
+    /// True when the operation succeeded.
     bool     has_value() const noexcept { return hasValue_; }
+    /// The same as has_value().
     explicit operator bool() const noexcept { return hasValue_; }
 
+    /// The failure. Requires !has_value().
     E&       error() & noexcept { return error_; }
+    /// @copydoc error()
     const E& error() const& noexcept { return error_; }
+    /// The failure, moved out. Requires !has_value().
     E&&      error() && noexcept { return std::move(error_); }
 
 private:
@@ -239,20 +254,26 @@ enum class ClipboardError : uint32_t {
 namespace NativeToolkit::Dialog {
 /// The feature's error cases, reachable without leaving this namespace.
 using ErrorCode = NativeToolkit::DialogError;
+/// A failure of this feature: its case, and the raw value the OS reported.
 using Error = Failure<DialogError>;
+/// What an operation of this feature returns. Result<> is one with no value.
 template <class T = void> using Result = NativeToolkit::Result<T, Error>;
 }  // namespace NativeToolkit::Dialog
 
 namespace NativeToolkit::Notification {
 /// The feature's error cases, reachable without leaving this namespace.
 using ErrorCode = NativeToolkit::NotificationError;
+/// A failure of this feature: its case, and the raw value the OS reported.
 using Error = Failure<NotificationError>;
+/// What an operation of this feature returns. Result<> is one with no value.
 template <class T = void> using Result = NativeToolkit::Result<T, Error>;
 }  // namespace NativeToolkit::Notification
 
 namespace NativeToolkit::Clipboard {
 /// The feature's error cases, reachable without leaving this namespace.
 using ErrorCode = NativeToolkit::ClipboardError;
+/// A failure of this feature: its case, and the raw value the OS reported.
 using Error = Failure<ClipboardError>;
+/// What an operation of this feature returns. Result<> is one with no value.
 template <class T = void> using Result = NativeToolkit::Result<T, Error>;
 }  // namespace NativeToolkit::Clipboard

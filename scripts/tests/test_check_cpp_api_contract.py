@@ -123,6 +123,21 @@ class ContractChecker(unittest.TestCase):
                             (DESIGN, "| OP-07 | `HResultFailure` |",
                              "| OP-07 | `HResultFailure`、`NoSuchError` |"))
 
+    # --- T-16 ---------------------------------------------------------------
+
+    def test_an_operation_that_can_fail_but_says_nothing_about_it(self):
+        self.assert_catches("every operation that can fail documents how",
+                            (CLIPBOARD_H, "     * @retval Busy           Another process kept the clipboard open.\n"
+                                          "     * @retval Unknown        The clipboard refused.\n",
+                             ""),
+                            (CLIPBOARD_H, "     * @retval NotInitialized Closed, or moved from.\n"
+                                          "     */\n    Result<void> Clear();",
+                             "     */\n    Result<void> Clear();"))
+
+    def test_an_operation_with_no_comment_at_all(self):
+        self.assert_catches("every operation is documented",
+                            (CLIPBOARD_H, "    /**\n     * @brief Empties the clipboard.\n", "    /*\n"))
+
     # --- section 10 ---------------------------------------------------------
 
     def test_a_citation_that_points_somewhere_else(self):

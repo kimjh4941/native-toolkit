@@ -11,6 +11,8 @@ has been implemented starts to rot:
   errors     every error enumeration against the #define it was copied from,
              one to one, both read from source.
   retvals    every @retval a public header promises against section 11.4.
+  documented every operation has a comment, and every one that can fail a
+             @retval - the completion condition of T-16, kept checked.
   citations  every line number section 10 cites, against the document it cites.
 
 Each check reports OK, FAIL, or SKIP. A check that cannot find its subject
@@ -275,13 +277,15 @@ def class_body(text, name):
     return None
 
 
-def retvals_of(texts, function_name, class_name):
-    """The @retval names of the doc comment that introduces a declaration.
+def doc_comment_of(texts, function_name, class_name):
+    """The doc comment that introduces a declaration, or None.
 
     Scoped to the class the operation belongs to. Close is a member of both
     Manager and Session, and taking whichever came first in a concatenation
     would have compared one operation's documentation with another's row - a
     check that reads the wrong thing and agrees with it is worse than no check.
+
+    Both /** */ blocks and runs of /// lines count.
     """
     for text in texts.values():
         scope = class_body(text, class_name) if class_name else text
@@ -290,12 +294,22 @@ def retvals_of(texts, function_name, class_name):
         position = re.search(r"\b" + re.escape(function_name) + r"\s*\(", scope)
         if not position:
             continue
+        before = scope[:position.start()]
         # Only the return type stands between the comment and the name.
-        comment = re.search(r"/\*\*(?:(?!\*/).)*\*/[\w:<>,\s&*]*$",
-                            scope[:position.start()], re.S)
-        if comment:
-            return re.findall(r"@retval\s+(\w+)", comment.group(0))
-    return []
+        block = re.search(r"/\*\*(?:(?!\*/).)*\*/[\w:<>,\s&*]*$", before, re.S)
+        if block:
+            return block.group(0)
+        lines = re.search(r"((?:[ \t]*///[^\n]*\n)+)[\w:<>,\s&*]*$", before)
+        if lines:
+            return lines.group(1)
+        return None
+    return None
+
+
+def retvals_of(texts, function_name, class_name):
+    """The @retval names of the doc comment that introduces a declaration."""
+    comment = doc_comment_of(texts, function_name, class_name)
+    return re.findall(r"@retval\s+(\w+)", comment) if comment else []
 
 
 def enum_values(name):
@@ -403,8 +417,11 @@ def check_retvals(design, rep):
     for cells in table_rows(design, "### 11.4"):
         if len(cells) < 2:
             continue
+        # An operation can have more than one row: OP-42..OP-46 list what the
+        # call returns and, separately, what reaches the handler. Either is a
+        # legitimate thing for a header to document, so the rows are joined.
         for op in expand_op_key(cells[0]):
-            rows[op] = set(backticked(outside_parentheses(cells[1])))
+            rows.setdefault(op, set()).update(backticked(outside_parentheses(cells[1])))
     if not ops or not rows:
         rep.skip("@retval agrees with 11.4", "no 8.1 or no 11.4 table")
         return
@@ -445,6 +462,43 @@ def check_retvals(design, rep):
     unknown = sorted({name for names in rows.values() for name in names} - known)
     rep.check(not unknown, f"11.4 names errors that exist ({len(rows)} operations)",
               f"no such enumerator: {', '.join(unknown)}")
+
+
+def check_documented(design, rep):
+    """Every operation is documented, and every one that can fail says how.
+
+    This is T-16's completion condition made into something that stays true:
+    an operation added without a comment, or a @retval deleted from one that
+    section 11.4 says can fail, fails here rather than being noticed in a
+    review. An operation 11.4 lists as returning nothing - Manager::Close and
+    Session::CanClose - needs a comment but no @retval.
+    """
+    ops = operations(design)
+    rows = {}
+    for cells in table_rows(design, "### 11.4"):
+        if len(cells) < 2:
+            continue
+        for op in expand_op_key(cells[0]):
+            rows.setdefault(op, set()).update(backticked(outside_parentheses(cells[1])))
+    if not ops:
+        rep.skip("every operation is documented", "no 8.1 table")
+        return
+
+    _, texts = header_declarations()
+    undocumented = []
+    unexplained = []
+    for op, (_, cpp, klass) in sorted(ops.items()):
+        comment = doc_comment_of(texts, cpp, klass)
+        name = f"{op} {klass + '::' if klass else ''}{cpp}"
+        if not comment:
+            undocumented.append(name)
+        elif rows.get(op) and not re.search(r"@retval\s+\w+", comment):
+            unexplained.append(name)
+
+    rep.check(not undocumented, f"every operation is documented ({len(ops)} operations)",
+              f"no comment: {', '.join(undocumented)}")
+    rep.check(not unexplained, "every operation that can fail documents how",
+              f"11.4 lists errors but the header has no @retval: {', '.join(unexplained)}")
 
 
 def check_citations(design, rep):
@@ -540,6 +594,7 @@ def main(argv):
     check_operations(design, rep)
     check_error_enums(rep)
     check_retvals(design, rep)
+    check_documented(design, rep)
     check_citations(design, rep)
     return 0 if rep.dump() else 1
 

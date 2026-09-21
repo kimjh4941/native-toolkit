@@ -227,7 +227,17 @@ struct ManagerOptions {
  */
 class Runtime {
 public:
-    /// Makes the runtime of that version available to this process.
+    /**
+     * @brief Makes the runtime of that version available to this process.
+     * @details
+     *  For an unpackaged app only, and before Manager::Create. A packaged app
+     *  has the runtime through its package and does not call this (NTF-39).
+     *  Nothing in the types enforces that; calling it from a packaged app is
+     *  an HRESULT failure from the bootstrapper.
+     *
+     * @param version The major and minor version, as 0xMMMMmmmm.
+     * @retval HResultFailure The bootstrapper refused; systemCode holds its HRESULT.
+     */
     static Result<Runtime> Initialize(RuntimeVersion version);
 
     Runtime(Runtime&& other) noexcept;
@@ -257,10 +267,37 @@ namespace Detail { class TestAccess; }
  *  Every operation is synchronous and blocks the calling thread, including the
  *  ones the platform exposes asynchronously; that is what the implementation
  *  does today and the C++ API does not change it.
+ *
+ *  **Where the handler runs.** On whichever thread the OS delivers the
+ *  activation, and it is not moved to yours: a handler that touches UI has to
+ *  marshal to the UI thread itself (NTF-02, RK-04). It is called outside the
+ *  library's own locks.
+ *
+ *  **The first activation can arrive before Create returns.** When an
+ *  unpackaged app is launched by clicking a toast, that activation is delivered
+ *  from inside Create, on the thread calling it, exactly once (NTF-09). A
+ *  handler must not assume the Manager it was given to already exists
+ *  (RK-10).
+ *
+ *  **COM.** Create initialises COM on the calling thread as a multi-threaded
+ *  apartment, accepts RPC_E_CHANGED_MODE when the thread already has another
+ *  apartment, and never uninitialises it (N-8, NTF-61). A thread that Create
+ *  leaves as an MTA cannot then create a Clipboard::Session, which needs an
+ *  STA: initialise the thread as an STA first if both run on it.
+ *
+ *  **Unpackaged apps** get NotSupported from SetBadge, RemoveById and GetAll,
+ *  which the platform offers to packaged apps only (NTF-52).
  */
 class Manager {
 public:
-    /// Registers this process for notifications.
+    /**
+     * @brief Registers this process for notifications.
+     * @details The handler in options is installed before the registration,
+     *          so an activation that arrives during it is not lost.
+     * @retval InvalidParameter An unpackaged app without a display name or an icon.
+     * @retval HResultFailure   COM, the shortcut or the activator registration failed.
+     * @retval NotSupported     A Manager already exists in this process.
+     */
     static Result<Manager> Create(const ManagerOptions& options);
 
     Manager(Manager&& other) noexcept;
@@ -269,25 +306,123 @@ public:
     Manager& operator=(const Manager&) = delete;
     ~Manager();
 
-    /// Replaces the activation handler. An empty handler drops activations.
+    /**
+     * @brief Replaces the activation handler.
+     * @details An empty handler drops activations. Takes effect for the next
+     *          activation; one being delivered right now finishes with the
+     *          handler it started with.
+     */
     void SetInvokedHandler(std::function<void(const ActivationArgs&)> handler);
 
-    /// Unregisters. Doing it twice is allowed and does nothing. Returns nothing
-    /// because the C ABI counterpart reports nothing either.
+    /**
+     * @brief Unregisters.
+     * @details The registration is revoked before the handler is dropped, so an
+     *          activation cannot arrive with nothing to receive it (NTF-40).
+     *          Doing it twice is allowed and does nothing. Returns nothing
+     *          because the C ABI counterpart reports nothing either.
+     */
     void Close() noexcept;
 
-    Result<void>                         Show(const NotificationContent& content);
-    Result<void>                         Schedule(const NotificationContent& content,
-                                                  std::chrono::system_clock::time_point when);
-    Result<void>                         CancelScheduled(const std::wstring& tag, const std::wstring& group);
-    Result<void>                         UpdateProgress(const ProgressUpdate& update);
-    Result<void>                         SetBadge(int value);
-    Result<void>                         RemoveById(uint32_t id);
-    Result<void>                         RemoveByTag(const std::wstring& tag, const std::wstring& group);
-    Result<void>                         RemoveAll();
+    /**
+     * @brief Shows a notification now.
+     * @details The content is checked before anything is built. A content that
+     *          breaks a rule - a sixth button, a looping sound on a short
+     *          toast - is refused whole rather than shown in part.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval Disabled         Notifications are off for this app or this user.
+     * @retval InvalidParameter The content breaks one of the rules.
+     * @retval HResultFailure   The platform refused, for instance an image URI that does not parse.
+     */
+    Result<void> Show(const NotificationContent& content);
+
+    /**
+     * @brief Shows a notification at a time.
+     * @details
+     *  The platform's scheduler knows nothing of an expiration or a progress
+     *  bar, so both are ignored here (NTF-63). It may also drop a notification
+     *  scheduled more than a few minutes ahead; the library logs a warning when
+     *  asked to.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval Disabled         Notifications are off for this app or this user.
+     * @retval InvalidParameter The content breaks one of the rules.
+     * @retval HResultFailure   The platform refused.
+     */
+    Result<void> Schedule(const NotificationContent& content,
+                          std::chrono::system_clock::time_point when);
+
+    /**
+     * @brief Takes back a scheduled notification, by the tag and group it was given.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval HResultFailure The platform refused.
+     */
+    Result<void> CancelScheduled(const std::wstring& tag, const std::wstring& group);
+
+    /**
+     * @brief Changes the progress bar of a notification that is showing.
+     * @details The sequence number is the caller's to keep: the OS discards an
+     *          update whose number is not newer than the last it saw (NTF-44).
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval ProgressNotFound No such notification, or the update was stale.
+     * @retval HResultFailure   The platform refused.
+     */
+    Result<void> UpdateProgress(const ProgressUpdate& update);
+
+    /**
+     * @brief Sets the badge on the taskbar icon.
+     * @details
+     *  The sign decides the meaning: a positive value is a count with no upper
+     *  limit, zero clears the badge, and -1 to -6 name the glyphs alert,
+     *  activity, newMessage, available, busy and away (NTF-65).
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter A value below -6.
+     * @retval BadgeFailed      The platform refused.
+     * @retval NotSupported     An unpackaged app.
+     */
+    Result<void> SetBadge(int value);
+
+    /**
+     * @brief Removes one notification from the action centre.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval HResultFailure The platform refused.
+     * @retval NotSupported   An unpackaged app.
+     */
+    Result<void> RemoveById(uint32_t id);
+
+    /**
+     * @brief Removes the notifications with a tag and group from the action centre.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval HResultFailure The platform refused.
+     */
+    Result<void> RemoveByTag(const std::wstring& tag, const std::wstring& group);
+
+    /**
+     * @brief Removes every notification of this app from the action centre.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval HResultFailure The platform refused.
+     */
+    Result<void> RemoveAll();
+
+    /**
+     * @brief The notifications of this app in the action centre.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval HResultFailure The platform refused.
+     * @retval NotSupported   An unpackaged app.
+     */
     Result<std::vector<NotificationRef>> GetAll();
-    Result<NotificationSetting>          GetSetting();
-    Result<void>                         OpenSettings();
+
+    /**
+     * @brief Whether the OS lets this app show notifications, and if not, why.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval HResultFailure The setting could not be read.
+     */
+    Result<NotificationSetting> GetSetting();
+
+    /**
+     * @brief Opens the notification page of the Windows settings.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval HResultFailure The settings could not be launched.
+     */
+    Result<void> OpenSettings();
 
 private:
     // Create registers this process with the OS, which a test host cannot do.

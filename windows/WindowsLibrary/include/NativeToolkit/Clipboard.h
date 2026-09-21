@@ -61,8 +61,12 @@ struct HistoryAvailability {
 
 /**
  * @brief What to be told about the history.
- * @details Passing a default-constructed value unregisters every handler.
- *          Handlers arrive on the thread that created the session.
+ * @details
+ *  Passing a default-constructed value unregisters every handler.
+ *
+ *  Handlers arrive on the thread that created the session, and are not moved
+ *  to any other (CLP-04). onHistoryChanged fires when an item is added, not
+ *  when one is removed or the history is cleared (CLP-31).
  */
 struct HistoryHandlers {
     std::function<void()>     onHistoryChanged;
@@ -84,7 +88,9 @@ struct WriteOptions {
  * @brief What Session::Create needs.
  * @details onClipboardChanged is called when the clipboard changes because of
  *          something other than this session's own writes. It arrives on the
- *          creating thread, never inside the call that caused it.
+ *          creating thread, never inside the call that caused it. Leaving it
+ *          empty skips registering the listener, which is also what makes a
+ *          failure to register it survivable.
  */
 struct SessionOptions {
     std::function<void()> onClipboardChanged;
@@ -138,12 +144,22 @@ using AvailabilityHandler = std::function<void(RequestId, Result<HistoryAvailabi
  *  work could only pretend to have cleaned up. From then on Create keeps
  *  failing and there is no way back.
  *
- *  Never destroy a session from inside one of its own callbacks, and never
- *  capture one in a handler you give it.
+ *  **Inside a callback**, do not destroy the session, and do not call Close or
+ *  SetHistoryHandlers on it: both change the gate the callback is running
+ *  under, and a debug build asserts (CLP-05, CLP-34). Do not capture the
+ *  session in a handler you give it either - that is a cycle.
  */
 class Session {
 public:
-    /// Opens the clipboard for this process on the calling thread.
+    /**
+     * @brief Opens the clipboard for this process on the calling thread.
+     * @retval WrongApartment        The calling thread is not an initialised STA.
+     * @retval MonitorRegisterFailed onClipboardChanged was given and its listener could not be registered.
+     * @retval OutOfMemory           The session could not be built.
+     * @retval Unknown               The window that receives the session's messages could not be created.
+     * @retval NotSupported          A session already exists, and this is its thread; or one was abandoned.
+     * @retval WrongThread           A session already exists on another thread.
+     */
     static Result<Session> Create(const SessionOptions& options);
 
     Session(Session&& other) noexcept;
@@ -182,7 +198,14 @@ public:
      */
     bool CanClose() const noexcept;
 
-    /// Installs or, with a default-constructed value, removes the history handlers.
+    /**
+     * @brief Installs or, with a default-constructed value, removes the history handlers.
+     * @details Owner thread only, and never from inside one of the session's
+     *          own callbacks (CLP-05).
+     * @retval NotInitialized        Closed, or moved from.
+     * @retval WrongThread           Called from a thread other than the owner.
+     * @retval MonitorRegisterFailed The history event could not be subscribed to.
+     */
     Result<void> SetHistoryHandlers(HistoryHandlers handlers);
 
     // --- The synchronous core (OP-25..OP-39) -------------------------------
@@ -196,23 +219,68 @@ public:
     // truncation, because the clipboard formats underneath are NUL terminated
     // and could not carry the rest.
 
-    /// Writes text as CF_UNICODETEXT.
+    /**
+     * @brief Writes text as CF_UNICODETEXT.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL, or one the format cannot take.
+     * @retval Busy             Another process kept the clipboard open.
+     * @retval OutOfMemory      The data could not be copied into place.
+     * @retval Unknown          The clipboard refused the write.
+     */
     Result<void> CopyText(std::wstring_view text, WriteOptions options = {});
 
-    /// Reads CF_UNICODETEXT.
+    /**
+     * @brief Reads CF_UNICODETEXT.
+     * @retval NotInitialized    Closed, or moved from.
+     * @retval Busy              Another process kept the clipboard open.
+     * @retval Empty             The clipboard holds nothing.
+     * @retval FormatUnavailable The clipboard holds something, but not this.
+     * @retval InvalidData       What is there is not in the shape this format promises.
+     * @retval OutOfMemory       The data could not be copied out.
+     */
     Result<std::wstring> PasteText();
 
-    /// Writes an HTML fragment as CF_HTML, with plainText as the text fallback.
+    /**
+     * @brief Writes an HTML fragment as CF_HTML, with plainText as the text fallback.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL, or one the format cannot take.
+     * @retval Busy             Another process kept the clipboard open.
+     * @retval OutOfMemory      The data could not be copied into place.
+     * @retval Unknown          The clipboard refused the write.
+     */
     Result<void> CopyHtml(std::wstring_view fragment, std::wstring_view plainText,
                           WriteOptions options = {});
 
-    /// Reads the fragment out of CF_HTML, without its header.
+    /**
+     * @brief Reads the fragment out of CF_HTML, without its header.
+     * @retval NotInitialized    Closed, or moved from.
+     * @retval Busy              Another process kept the clipboard open.
+     * @retval Empty             The clipboard holds nothing.
+     * @retval FormatUnavailable The clipboard holds something, but not this.
+     * @retval InvalidData       What is there is not in the shape this format promises.
+     * @retval OutOfMemory       The data could not be copied out.
+     */
     Result<std::wstring> PasteHtml();
 
-    /// Writes paths as CF_HDROP.
+    /**
+     * @brief Writes paths as CF_HDROP.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL, or one the format cannot take.
+     * @retval Busy             Another process kept the clipboard open.
+     * @retval OutOfMemory      The data could not be copied into place.
+     * @retval Unknown          The clipboard refused the write.
+     */
     Result<void> CopyFiles(std::span<const std::wstring> paths, WriteOptions options = {});
 
-    /// Reads the paths of CF_HDROP.
+    /**
+     * @brief Reads the paths of CF_HDROP.
+     * @retval NotInitialized    Closed, or moved from.
+     * @retval Busy              Another process kept the clipboard open.
+     * @retval Empty             The clipboard holds nothing.
+     * @retval FormatUnavailable The clipboard holds something, but not this.
+     * @retval InvalidData       What is there is not in the shape this format promises.
+     * @retval OutOfMemory       The data could not be copied out.
+     */
     Result<std::vector<std::wstring>> PasteFiles();
 
     /**
@@ -221,17 +289,47 @@ public:
      *          with no BITMAPFILEHEADER: this is the clipboard's own shape,
      *          not a .bmp file, and the library does not convert one to the
      *          other.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL, or one the format cannot take.
+     * @retval Busy             Another process kept the clipboard open.
+     * @retval OutOfMemory      The data could not be copied into place.
+     * @retval Unknown          The clipboard refused the write.
+     * @retval InvalidData      The bytes are not a well-formed bitmap.
      */
     Result<void> CopyDib(std::span<const std::byte> dib, WriteOptions options = {});
 
-    /// Reads CF_DIB, in the same shape CopyDib takes.
+    /**
+     * @brief Reads CF_DIB, in the same shape CopyDib takes.
+     * @retval NotInitialized    Closed, or moved from.
+     * @retval Busy              Another process kept the clipboard open.
+     * @retval Empty             The clipboard holds nothing.
+     * @retval FormatUnavailable The clipboard holds something, but not this.
+     * @retval InvalidData       What is there is not in the shape this format promises.
+     * @retval OutOfMemory       The data could not be copied out.
+     */
     Result<std::vector<std::byte>> PasteDib();
 
-    /// Writes bytes under a registered format name.
+    /**
+     * @brief Writes bytes under a registered format name.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL, or one the format cannot take.
+     * @retval Busy             Another process kept the clipboard open.
+     * @retval OutOfMemory      The data could not be copied into place.
+     * @retval Unknown          The clipboard refused the write.
+     */
     Result<void> CopyCustom(std::wstring_view formatName, std::span<const std::byte> data,
                             WriteOptions options = {});
 
-    /// Reads the bytes of a registered format.
+    /**
+     * @brief Reads the bytes of a registered format.
+     * @retval NotInitialized    Closed, or moved from.
+     * @retval Busy              Another process kept the clipboard open.
+     * @retval Empty             The clipboard holds nothing.
+     * @retval FormatUnavailable The clipboard holds something, but not this.
+     * @retval InvalidData       What is there is not in the shape this format promises.
+     * @retval OutOfMemory       The data could not be copied out.
+     * @retval InvalidParameter  A format name with an embedded NUL.
+     */
     Result<std::vector<std::byte>> PasteCustom(std::wstring_view formatName);
 
     /**
@@ -241,21 +339,51 @@ public:
      *  is the order a reader walks. Every item is checked before anything is
      *  placed, so a bad one leaves the clipboard untouched rather than half
      *  written. Naming the same format twice is InvalidParameter.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL, or one the format cannot take.
+     * @retval Busy             Another process kept the clipboard open.
+     * @retval OutOfMemory      The data could not be copied into place.
+     * @retval Unknown          The clipboard refused the write.
+     * @retval InvalidData      A bitmap or a file list that is not well formed.
+     * @retval PartialState     A placement failed and so did the rollback.
      */
     Result<void> CopyMultiple(std::span<const FormatPayload> items, WriteOptions options = {});
 
-    /// Whether the clipboard currently offers that format. A name no format
-    /// has, including an empty one, is simply absent rather than an error.
+    /**
+     * @brief Whether the clipboard currently offers that format.
+     * @details
+     *  A name no format has, including an empty one, is simply absent rather
+     *  than an error.
+     *
+     *  Asking registers the name with the OS as a side effect: a clipboard
+     *  format name is registered the first time anything looks it up, and it
+     *  stays registered for the session of the machine (CLP-141).
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter A name with an embedded NUL.
+     */
     Result<bool> HasFormat(std::wstring_view formatName);
 
-    /// Every format the clipboard offers, in the order the OS reports them.
-    /// A format with no registered name is reported as "0x____".
+    /**
+     * @brief Every format the clipboard offers, in the order the OS reports them.
+     * @details A format with no registered name is reported as "0x____".
+     * @retval NotInitialized Closed, or moved from.
+     * @retval Busy           Another process kept the clipboard open.
+     * @retval Unknown        The list could not be read.
+     */
     Result<std::vector<std::wstring>> GetFormats();
 
-    /// The format a reader should prefer, or an empty name when there is none.
+    /**
+     * @brief The format a reader should prefer, or an empty name when there is none.
+     * @retval NotInitialized Closed, or moved from.
+     */
     Result<std::wstring> GetPreferredFormat();
 
-    /// Empties the clipboard.
+    /**
+     * @brief Empties the clipboard.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval Busy           Another process kept the clipboard open.
+     * @retval Unknown        The clipboard refused.
+     */
     Result<void> Clear();
 
     // --- Deferred rendering (OP-40, OP-41) ---------------------------------
@@ -271,10 +399,16 @@ public:
      *  Only formats the OS can hold as a block of memory can be deferred; a
      *  handle format such as CF_BITMAP cannot.
      *
+     *  Naming the same format twice is not an error here: the later one takes
+     *  its place. CopyMultiple refuses the same thing, and the difference is
+     *  kept rather than silently changed (CLP-138).
+     *
+     * @retval NotInitialized   Closed, or moved from.
      * @retval InvalidParameter No formats, an unknown name, or no provider.
      * @retval WrongThread      Called from a thread other than the owner.
      * @retval PartialState     The reservation failed partway and could not be
      *                          rolled back; call RecoverDeferredState.
+     * @retval Unknown          The clipboard refused the reservation.
      */
     Result<void> ReserveDeferred(std::span<const std::wstring> formats, RenderProvider provider);
 
@@ -282,6 +416,9 @@ public:
      * @brief Retries the rollback a failed reservation left undone.
      * @details Succeeds, and does nothing, when there is nothing to recover.
      *          Owner thread only.
+     * @retval NotInitialized Closed, or moved from.
+     * @retval WrongThread    Called from a thread other than the owner.
+     * @retval PartialState   The rollback failed again.
      */
     Result<void> RecoverDeferredState();
 
@@ -294,19 +431,50 @@ public:
     //
     // The requests themselves may be made from any thread.
 
-    /// Asks for what the history holds.
+    /**
+     * @brief Asks for what the history holds.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL.
+     * @retval OutOfMemory      The request could not be recorded.
+     * @retval Unknown          The request could not be handed to the owning thread.
+     */
     Result<RequestId> GetHistory(HistoryItemsHandler handler);
 
-    /// Asks for an item to be put back on the clipboard.
+    /**
+     * @brief Asks for an item to be put back on the clipboard.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL.
+     * @retval OutOfMemory      The request could not be recorded.
+     * @retval Unknown          The request could not be handed to the owning thread.
+     */
     Result<RequestId> RestoreHistoryItem(std::wstring_view itemId, CompletionHandler handler);
 
-    /// Asks for an item to be removed from the history.
+    /**
+     * @brief Asks for an item to be removed from the history.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL.
+     * @retval OutOfMemory      The request could not be recorded.
+     * @retval Unknown          The request could not be handed to the owning thread.
+     */
     Result<RequestId> DeleteHistoryItem(std::wstring_view itemId, CompletionHandler handler);
 
-    /// Asks for the history to be emptied. Pinned items stay.
+    /**
+     * @brief Asks for the history to be emptied.
+     * @details Pinned items stay (CLP-82).
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL.
+     * @retval OutOfMemory      The request could not be recorded.
+     * @retval Unknown          The request could not be handed to the owning thread.
+     */
     Result<RequestId> ClearUnpinnedHistory(CompletionHandler handler);
 
-    /// Asks whether the OS has the history, and its roaming, turned on.
+    /**
+     * @brief Asks whether the OS has the history, and its roaming, turned on.
+     * @retval NotInitialized   Closed, or moved from.
+     * @retval InvalidParameter An argument with an embedded NUL.
+     * @retval OutOfMemory      The request could not be recorded.
+     * @retval Unknown          The request could not be handed to the owning thread.
+     */
     Result<RequestId> GetHistoryAvailability(AvailabilityHandler handler);
 
     /**
@@ -316,7 +484,9 @@ public:
      *  completion already on its way is still delivered, with Canceled, so the
      *  handler is called exactly once either way.
      *
+     * @retval NotInitialized   Closed, or moved from.
      * @retval InvalidParameter No such request, or it has already finished.
+     * @retval Unknown          The cancellation could not be handed to the owning thread.
      */
     Result<void> CancelRequest(RequestId id);
 

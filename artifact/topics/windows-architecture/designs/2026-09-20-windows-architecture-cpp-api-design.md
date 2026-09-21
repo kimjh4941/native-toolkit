@@ -1057,14 +1057,14 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | OP-07 | `HResultFailure` |
 | OP-08 | `InvalidParameter`（unpackaged で `displayName` / `iconUri` が無い）、`HResultFailure`（`CoInitializeEx` の失敗、ショートカット生成、`CoRegisterClassObject`）、`NotSupported`（2 個目） |
 | OP-09 | 無し（戻り値を持たない） |
-| OP-10 / OP-11 | `NotInitialized`、`Disabled`、`InvalidPayload`（JSON の解析失敗に相当）、**`InvalidParameter`（意味の検証の失敗。今の実装はこちらを返す）**、`HResultFailure` |
+| OP-10 / OP-11 | `NotInitialized`、`Disabled`、`InvalidPayload`（JSON の解析失敗。**C ABI でのみ起きる**。C++ API は JSON を受け取らない）、**`InvalidParameter`（意味の検証の失敗。今の実装はこちらを返す）**、`HResultFailure` |
 | OP-12 | `NotInitialized`、`HResultFailure` |
 | OP-13 | `NotInitialized`、`ProgressNotFound`、`HResultFailure` |
 | OP-14 | `NotInitialized`、`BadgeFailed`、`InvalidParameter`、unpackaged では `NotSupported` |
 | OP-15 | `NotInitialized`、`HResultFailure`、unpackaged では `NotSupported` |
 | OP-16 / OP-17 | `NotInitialized`、`HResultFailure` |
 | OP-18 | `NotInitialized`、`HResultFailure`、unpackaged では `NotSupported` |
-| OP-19 | `HResultFailure`（今の `-1` に対応） |
+| OP-19 | `HResultFailure`（今の `-1` に対応）、`NotInitialized`（閉じた・ムーブ済みの `Manager`。T-14 で所有権を見るようにした結果） |
 | OP-20 | `NotInitialized`、`HResultFailure` |
 | OP-21 | `InvalidParameter`、`WrongApartment`、`MonitorRegisterFailed`、`OutOfMemory`、`Unknown`（配送用ウィンドウの生成失敗、backend 生成時の例外）、`NotSupported`（同スレッドの 2 個目）、`WrongThread`（別スレッドの 2 個目） |
 | OP-22 | `NotInitialized`、`WrongThread`、`MonitorRegisterFailed` |
@@ -1074,7 +1074,7 @@ README 5.1 が求める表。既存の設計書とコードが定めた契約が
 | OP-40 / OP-41 | `NotInitialized`、`WrongThread`、`InvalidParameter`、`PartialState`、`Unknown` |
 | OP-42〜OP-46（受付） | `NotInitialized`、`InvalidParameter`、`OutOfMemory`、`Unknown`（投稿の失敗） |
 | OP-42〜OP-46（コールバック） | `NotForeground`、`HistoryDisabled`、`AccessDenied`、`ItemDeleted`、`Canceled`、`Empty`、`OutOfMemory`、`Unknown` |
-| OP-47 | `InvalidParameter`（未知・完了済みの ID）、`Unknown`（投稿の失敗） |
+| OP-47 | `InvalidParameter`（未知・完了済みの ID）、`Unknown`（投稿の失敗）、`NotInitialized`（閉じた・ムーブ済みの `Session`） |
 
 ## 12. テスト設計
 

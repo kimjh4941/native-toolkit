@@ -129,22 +129,62 @@ struct FolderRequest {
     WindowHandle owner = nullptr;
 };
 
-/// OP-01. Shows a message box and reports which button was pressed.
+/**
+ * @brief OP-01. Shows a message box and reports which button was pressed.
+ * @details Pressing Cancel is a button like any other and comes back as
+ *          AlertResult::Cancel, not as a failure.
+ * @retval InvalidParameter A request the message box could not be built from.
+ * @retval SystemError      MessageBoxW failed; systemCode holds GetLastError.
+ * @retval Unknown          The message box failed without saying why.
+ */
 Result<AlertResult> ShowAlert(const AlertRequest& request);
 
-/// OP-02. Asks for one existing file.
+/**
+ * @brief OP-02. Asks for one existing file.
+ * @retval InvalidParameter A request the dialog could not be built from.
+ * @retval Canceled         The user dismissed the dialog.
+ * @retval SystemError      The OS reported a failure; systemCode holds its value.
+ * @retval Unknown          The dialog failed without saying why.
+ */
 Result<std::wstring> ShowOpenFile(const FileRequest& request);
 
-/// OP-03. Asks for one or more existing files, in the order the dialog returned them.
+/**
+ * @brief OP-03. Asks for one or more existing files, in the order the dialog returned them.
+ * @details Every path is a full path. The C ABI hands back the folder and the
+ *          names separately and counts the folder as an entry (DLG-02); here
+ *          that is already joined.
+ * @retval InvalidParameter A request the dialog could not be built from.
+ * @retval Canceled         The user dismissed the dialog.
+ * @retval SystemError      The OS reported a failure; systemCode holds its value.
+ * @retval Unknown          The dialog failed without saying why.
+ */
 Result<std::vector<std::wstring>> ShowOpenFiles(const FileRequest& request);
 
-/// OP-04. Asks where to save a file.
+/**
+ * @brief OP-04. Asks where to save a file.
+ * @retval InvalidParameter A request the dialog could not be built from.
+ * @retval Canceled         The user dismissed the dialog.
+ * @retval SystemError      The OS reported a failure; systemCode holds its value.
+ * @retval Unknown          The dialog failed without saying why.
+ */
 Result<std::wstring> ShowSaveFile(const SaveFileRequest& request);
 
-/// OP-05. Asks for one folder.
+/**
+ * @brief OP-05. Asks for one folder.
+ * @retval InvalidParameter A request the dialog could not be built from.
+ * @retval Canceled         The user dismissed the dialog.
+ * @retval SystemError      The OS reported a failure; systemCode holds its value.
+ * @retval Unknown          The dialog failed without saying why.
+ */
 Result<std::wstring> ShowPickFolder(const FolderRequest& request);
 
-/// OP-06. Asks for one or more folders.
+/**
+ * @brief OP-06. Asks for one or more folders.
+ * @retval InvalidParameter A request the dialog could not be built from.
+ * @retval Canceled         The user dismissed the dialog.
+ * @retval SystemError      The OS reported a failure; systemCode holds its value.
+ * @retval Unknown          The dialog failed without saying why.
+ */
 Result<std::vector<std::wstring>> ShowPickFolders(const FolderRequest& request);
 
 }  // namespace NativeToolkit::Dialog
