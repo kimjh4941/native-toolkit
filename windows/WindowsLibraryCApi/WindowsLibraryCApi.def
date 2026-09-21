@@ -1,0 +1,8 @@
+; WindowsLibraryCApi.def - the only list of what the C ABI DLL exports (D-5).
+; Keep it in the order of the stage 5 design, section 8.2.
+
+LIBRARY
+
+EXPORTS
+	; Common
+	ntk_version

@@ -249,9 +249,9 @@ try {
         Write-Summary 'unit' $unit
     }
 
-    # 2. Sample app. Only the sample and what it references: the solution also
-    # holds UnityWindowsPlugin, whose build registers it with regsvr32 and so
-    # fails without administrator rights whenever WindowsLibrary changes.
+    # 2. Sample app. Only the sample and what it references, not the whole
+    # solution: the sample links the core alone, and building the rest adds
+    # nothing the UI tests use.
     Invoke-MSBuild $ExampleSln $ExampleConfiguration 'WindowsLibraryExample'
     Deploy-Example
 

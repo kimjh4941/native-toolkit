@@ -10,7 +10,7 @@
   package from scripts/nuget/NativeToolkit.
 
 .PARAMETER Module
-  Module to build (repeatable). Valid: WindowsLibrary, UnityWindowsPlugin.
+  Module to build (repeatable). Valid: WindowsLibrary.
   Default: WindowsLibrary.
 
 .PARAMETER Configuration
@@ -94,7 +94,7 @@ function Update-RcVersion([string]$rcPath, [string]$version) {
 function Show-Usage {
     Write-Host @'
 Usage: ./scripts/build_windows_library_dll.ps1 [-Module <name>]... [-Configuration <debug|release>] [-Platform <x64>] [-LibraryVersion <version>] [-Output <path>] [-Package] [-Nuget <path>]
-  -m, -Module          Module to build (repeatable): WindowsLibrary, UnityWindowsPlugin (default: WindowsLibrary)
+  -m, -Module          Module to build (repeatable): WindowsLibrary (default: WindowsLibrary)
   -c, -Configuration   debug or release (default: release)
   -p, -Platform        MSBuild platform (default: x64)
   -v, -LibraryVersion  library version for default output naming / NuGet version
@@ -131,15 +131,6 @@ $ModuleConfig = @{
             # package (windows-architecture README, the list of problems).
             'windows\WindowsLibrary\src\Clipboard\WindowsClipboardManager.h'
         )
-    }
-    'UnityWindowsPlugin' = @{
-        Project  = 'windows\UnityWindowsPlugin\UnityWindowsPlugin.vcxproj'
-        Def      = 'windows\UnityWindowsPlugin\UnityWindowsPlugin.def'
-        Rc       = 'windows\UnityWindowsPlugin\UnityWindowsPlugin.rc'
-        DllName  = 'UnityWindowsPlugin'
-        Prefix   = 'unity-windows-native-toolkit'
-        Packable = $false
-        Headers  = @()
     }
 }
 
