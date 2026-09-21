@@ -71,7 +71,7 @@ Dialog は Win32 の common dialog、Clipboard は Win32 + WinRT、Notification 
 
 ```
 windows/
-  WindowsLibraryCore/                       # C++ API（公開・静的ライブラリ）
+  WindowsLibrary/                           # WindowsLibraryCore.vcxproj: C++ API（公開・静的ライブラリ）
     include/NativeToolkit/                  # NuGet に入れる公開ヘッダー
       Clipboard.h  Notification.h  Dialog.h  Error.h  Types.h
     src/
@@ -85,9 +85,13 @@ windows/
     src/
       Clipboard/  Notification/  Dialog/    # C++ API を呼び出して型を変換するだけ
     WindowsLibraryCApi.def                  # 公開する関数をここに書く
+  WindowsLibraryTest/                       # C++ API の単体テスト
+  WindowsLibraryCApiTest/                   # C ABI の単体テスト
 ```
 
 ここへ至る道筋は段階 3 と段階 5 に分かれる。段階 3 で `WindowsLibraryCore`（静的）と `WindowsLibrary`（今の C ABI の DLL）に分け、段階 5 で後者を `WindowsLibraryCApi` に改名して中身を新しい C ABI に置き換える（5 章）。
+
+C++ API のフォルダは `WindowsLibrary/` のまま `WindowsLibraryCore/` に改名しない（C ABI の設計書の E-11）。フォルダはソリューション `WindowsLibrary.sln` とビルドの出力先も兼ねており、改名すると参照の付け替えが広がるのに、得られるのは名前の一致だけだからである。プロジェクト、`.lib`、`.props` の名前が `WindowsLibraryCore` なので、中身の区別は付く。
 
 依存の向きは `WindowsLibraryCApi` → `WindowsLibraryCore`。機能の実装は `WindowsLibraryCore` にだけ置き、`WindowsLibraryCApi` は型の変換（`std::wstring` とバッファ、構造体とデータ受け渡し形式、`std::function` と関数ポインタ）だけを受け持つ。
 

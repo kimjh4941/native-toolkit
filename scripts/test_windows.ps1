@@ -4,8 +4,8 @@
   of the sample app.
 
 .DESCRIPTION
-  1. Builds WindowsLibrary + WindowsLibraryTest and runs the unit tests with
-     vstest.console.exe.
+  1. Builds WindowsLibrary.sln and runs the unit tests (WindowsLibraryTest and
+     WindowsLibraryCApiTest) with vstest.console.exe.
   2. Builds WindowsLibraryExample and registers its AppX layout, so the UI
      tests always run against the build just made (a plain MSBuild does not
      update the registered layout; this does what Visual Studio's Deploy does).
@@ -237,13 +237,19 @@ try {
     if (-not $SkipUnitTests) {
         Invoke-MSBuild $LibrarySln $UnitTestConfiguration
         $vstest = Find-VsTool '**\TestPlatform\vstest.console.exe' 'vstest.console.exe'
-        $unitDll = Join-Path $WindowsDir "WindowsLibrary\$Platform\$UnitTestConfiguration\WindowsLibraryTest.dll"
-        if (-not (Test-Path $unitDll)) {
-            Fail "Unit test DLL not found at $unitDll."
+        # The core's tests and the C ABI's, in one run so that they share one
+        # result file (the test class names do not overlap).
+        $unitDlls = @('WindowsLibraryTest.dll', 'WindowsLibraryCApiTest.dll') | ForEach-Object {
+            Join-Path $WindowsDir "WindowsLibrary\$Platform\$UnitTestConfiguration\$_"
+        }
+        foreach ($unitDll in $unitDlls) {
+            if (-not (Test-Path $unitDll)) {
+                Fail "Unit test DLL not found at $unitDll."
+            }
         }
         $unitResults = Join-Path $ResultsDir 'unit'
-        Write-Step 'unit' "vstest.console $unitDll"
-        & $vstest $unitDll '/Logger:trx' "/ResultsDirectory:$unitResults" | Out-Host
+        Write-Step 'unit' "vstest.console $($unitDlls -join ' ')"
+        & $vstest @unitDlls '/Logger:trx' "/ResultsDirectory:$unitResults" | Out-Host
         $unit = Read-Trx (Find-Trx $unitResults)
         foreach ($key in $unit.Keys) { $results["unit/$key"] = $unit[$key] }
         Write-Summary 'unit' $unit

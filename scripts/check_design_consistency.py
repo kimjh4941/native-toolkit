@@ -62,7 +62,8 @@ ID_PREFIXES = ("IT", "BT", "CT", "PT", "OP", "RK", "DV")
 # mac/ and its symbols were reported missing although they exist in windows/.
 SOURCE_ROOTS = {
     "windows-clipboard": ["windows/WindowsLibrary", "windows/WindowsLibraryTest",
-                          "windows/WindowsLibraryExample", "windows/WindowsLibraryCApi"],
+                          "windows/WindowsLibraryExample", "windows/WindowsLibraryCApi",
+                          "windows/WindowsLibraryCApiTest"],
     "android-clipboard": ["android/android_library", "android/unity_android_plugin",
                           "android/AndroidLibraryExample"],
     "ios-clipboard": ["ios/IosLibrary", "ios/UnityIosPlugin", "ios/IosLibraryExample"],

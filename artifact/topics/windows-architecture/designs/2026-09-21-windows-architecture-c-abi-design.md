@@ -7,7 +7,7 @@
 | 対象企画書 | `artifact/topics/windows-architecture/README.md` |
 | 対象段階 | 段階 5（段階 3 で分けた DLL を `WindowsLibraryCApi` に改名し、中身を新しい C ABI に置き換える。`UnityWindowsPlugin` を削除する） |
 | 対象 OS | Windows 11 以降 |
-| 作成日 | 2026-09-21（v2 のレビューを反映した第 3 版） |
+| 作成日 | 2026-09-21（v2 のレビューを反映した第 3 版。実装中に E-11 と 12.1 のテストの置き場所を直した） |
 | ブランチ | `feature/NTKIT-16` |
 | 前段階 | 段階 3（C++ API）と段階 4（サンプルの移行）は完了。CU-01 の再実行だけが残っている |
 | 反映した決定 | D-4、D-5、D-6（E-5 で見直し）、D-7、D-8（E-17 で例外を明記）、D-9、D-10、E-1〜E-20（4.2） |
@@ -218,7 +218,7 @@ Unity Editor はネイティブの DLL を下ろさない。ドメインリロ�
 
 - E-10、E-13、E-19、E-20 を除く C++ API の振る舞いの変更。E-10 は読み手のいない項目の削除、E-13 と E-20 は約束に実装を合わせる修正、E-19 は close の再試行の条件を緩める変更で、C++ の利用者が今している再試行のループはそのまま動く
 - `unity-native-plugin` の P/Invoke の書き換え（別リポジトリ。README 5.1）。こちらは対応表（8.3）と申し送りを出すまで
-- `windows/WindowsLibrary/` を `windows/WindowsLibraryCore/` に改名すること。段階 6 で行う（E-11）
+- `windows/WindowsLibrary/` を `windows/WindowsLibraryCore/` に改名すること。改名しない（E-11）
 - NuGet、マニュアル、Doxygen の生成（段階 6）、CI（段階 7）
 - UTF-16 版の関数（E-7）
 - COM の初期化と解除の不均衡（C++ API の設計書の N-8、RK-09）。1.3.3 に前提として書くだけ
@@ -254,7 +254,7 @@ Unity Editor はネイティブの DLL を下ろさない。ドメインリロ�
 | E-8 | 真偽値は `int32_t`（0 が偽、0 以外が真）。列挙の型は `typedef int32_t`、**値は無名の `enum`** で定義する | 推奨。R-26 で値の定義を直した | C の `bool` と C# の既定のマーシャリング（4 バイトの `BOOL`）の食い違いを避ける。無名の `enum` にすると bindgen が値を整数の定数として出し、型として `enum` の大きさには依存しない |
 | E-9 | **0 で埋めた構造体が既定値**になるようにする。C++ で既定が真の項目は、C では名前を反転する（`fileMustExist` → `allow_missing_file`）。構造体の詰め物は明示の `reserved` 項目にする | 推奨。R-7 で詰め物を足した | 項目を書き忘れても C++ の既定と同じ振る舞いになる。詰め物を明示すると、版の見分けが確実になる（7.8） |
 | E-10 | 今の C ABI のためだけに C++ API に置いた項目を消す: `AlertRequest::extraFlags`、`NotificationContent::unknownKeys`。列挙の値 `InvalidPayload`（3）、`DialogError::BufferTooSmall`（3）、`ClipboardError::BufferTooSmall`（7）は**番号を欠番として残し、返さない** | 推奨。R-4 で範囲を直した | 抜け道を持たない（E-2）ので読み手がいない。C++ API はまだ配布していない（段階 6） |
-| E-11 | フォルダ `windows/WindowsLibrary/` の `WindowsLibraryCore/` への改名は段階 6 に回す | 推奨。異論なし | 段階 5 の差分を C ABI に集中させる |
+| E-11 | フォルダ `windows/WindowsLibrary/` は **`WindowsLibraryCore/` に改名しない**（v3 までは段階 6 に回すとしていた） | 2026-09-21 利用者 | フォルダは `WindowsLibrary.sln` とビルドの出力先も兼ねており、改名すると sln、サンプル、テスト、`.props` の import、スクリプト、規約、各機能の文書の参照を付け替えることになる。得られるのは名前の一致だけで、プロジェクト、`.lib`、`.props` の名前が `WindowsLibraryCore` なので中身の区別は付く |
 | E-12 | **通知の活性化のハンドラに解放のコールバックを付ける**。包みは `shared_ptr` の解放ガードを共有し、最後の参照が消えたとき（配送中の呼び出しがすべて戻った後）に `release(user_data)` をちょうど 1 回呼ぶ。close と差し替えは待たない | 2026-09-21 利用者（R-1）。S-1 で数え方を解放ガードに直した | C++ の配送はロックの外でハンドラを呼ぶので、close や差し替えの後も古いハンドラが走りうる。close の中で待つと、コールバックが UI スレッドへ同期的に戻る作りで行き詰まる |
 | E-13 | **C++ の Dialog の実装を直す**。`owner`、ファイルのダイアログの `title`、`fileMustExist`、`overwritePrompt` を Win32 に渡す | 2026-09-21 利用者（R-5） | `Dialog.h` が既に約束している機能で、実装が追いついていない。C の項目を置いても効かないのでは意味が無い |
 | E-14 | **履歴の timestamp は Unix ミリ秒に変換して返す**（`ntk_clipboard_history_item_timestamp_unix_ms`）。C++ API は WinRT の tick のまま | 2026-09-21 利用者（R-25） | 通知の時刻（Unix ミリ秒）と単位がそろい、各言語でそのまま日時にできる |
@@ -320,7 +320,7 @@ C++ API の設計書 5.2 で段階 5 に送った 6 か所を直す（T-14）。
 
 ```
 windows/
-  WindowsLibrary/                           # 段階 6 で WindowsLibraryCore/ に改名（E-11）
+  WindowsLibrary/                           # 改名しない（E-11）
     WindowsLibraryCore.vcxproj              # C++ API（静的）
     include/NativeToolkit/                  # C++ API のヘッダー。E-10 の整理
     src/                                    # Bridge/ を削除。*Codes.h を追加（8.5）
@@ -335,8 +335,7 @@ windows/
       Notification/  NotificationCApi.cpp、NotificationContentCApi.cpp
       Clipboard/     ClipboardCApi.cpp、ClipboardItemsCApi.cpp、ClipboardHistoryCApi.cpp
   WindowsLibraryCApiSmoke/                  # 新規。公開ヘッダーと import ライブラリだけで組む C の実行ファイル（CT-21）
-  WindowsLibraryTest/
-    CApi/                                   # 新規。12.1 のテスト
+  WindowsLibraryCApiTest/                   # 新規。12.1 のテスト（Common/、Dialog/ など機能ごと）
 ```
 
 - 依存の向きは CApi → Core だけ。DLL の CRT は `/MD`。C ABI の境界では C++ の型も CRT の資源も受け渡さないので、利用者の CRT と一致しなくてよい
@@ -852,9 +851,11 @@ C++ API の設計書 10 章の約束は、C++ API が守る。C ABI は包むだ
 
 ## 12. テスト設計
 
-### 12.1 単体テスト（`WindowsLibraryTest/CApi/`）
+### 12.1 単体テスト（`WindowsLibraryCApiTest/`）
 
-C ABI の `.cpp` をテストプロジェクトに直接コンパイルし、C++ API のテストと同じ偽物（`StoringClipboard`、偽の通知 backend、STA の harness）を使う。
+C ABI のテストは、C++ API のテスト（`WindowsLibraryTest`）とは別のプロジェクトに置く。成果物とテストプロジェクトを 1 対 1 にし、T-12 で今の C ABI のテストを消すときに取り違えないためである。
+
+C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内部の部品（ハンドル、構造体の読み方、`CallbackGate`、変換）も単独で確かめる。Core は C ABI の DLL と同じく、静的ライブラリを `ProjectReference` と `NativeToolkit.WindowsLibraryCore.props` で取り込む。C++ API のテストと同じ偽物（`StoringClipboard`、偽の通知 backend、STA の harness）を使うときは、その差し込み口（`*Internal.h` の `...ForTest`）が Core の `.lib` に入っているので、include パスに `..\WindowsLibrary\src` を足して使う（T-05 以降）。
 
 | ID | 確かめること | 方法 |
 |---|---|---|
