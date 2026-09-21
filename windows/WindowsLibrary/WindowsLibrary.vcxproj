@@ -205,6 +205,7 @@
     </ClCompile>
     <ClCompile Include="src\Bridge\AppSdkBootstrapBridge.cpp" />
     <ClCompile Include="src\Bridge\ClipboardBridge.cpp" />
+    <ClCompile Include="src\Bridge\ClipboardPayloadJson.cpp" />
     <ClCompile Include="src\Bridge\DialogBridge.cpp" />
     <ClCompile Include="src\Bridge\NotificationBridge.cpp" />
     <ClCompile Include="src\Bridge\NotificationPayloadJson.cpp" />
@@ -220,6 +221,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Bridge\NotificationPayloadJson.h" />
+    <ClInclude Include="src\Bridge\ClipboardPayloadJson.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\NativeToolkit\BuildStamp.h" />

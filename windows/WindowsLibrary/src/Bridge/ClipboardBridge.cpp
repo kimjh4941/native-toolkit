@@ -43,6 +43,7 @@
 #include <string>
 #include <vector>
 
+#include "Bridge/ClipboardPayloadJson.h"
 #include "Clipboard/Domain/WindowsClipboardFormats.h"
 #include "Clipboard/WindowsClipboardManager.h"
 #include "Clipboard/WindowsClipboardManagerInternal.h"
@@ -136,31 +137,6 @@ DWORD WriteBytesToBuffer(const std::vector<BYTE>& data, BYTE* buffer, DWORD buff
     if (needed > 0) ::memcpy(buffer, data.data(), needed);
     SetErr(pError, CLIPBOARD_ERROR_NONE);
     return needed;
-}
-
-/// A JSON array of strings, which is how the C ABI carries a list.
-std::wstring ToJsonArray(const std::vector<std::wstring>& values)
-{
-    JsonArray array;
-    for (const auto& value : values) {
-        array.Append(JsonValue::CreateStringValue(value));
-    }
-    return std::wstring{array.Stringify()};
-}
-
-/// Reads a JSON array of strings. std::bad_alloc is not a malformed input and
-/// must reach SafeBridgeCall as OUT_OF_MEMORY rather than be folded into one
-/// (M3), so only a parse or type error is caught here.
-bool ReadJsonArray(const wchar_t* json, std::vector<std::wstring>& out)
-{
-    try {
-        for (const auto& value : JsonArray::Parse(json)) {
-            out.emplace_back(value.GetString());
-        }
-        return true;
-    }
-    catch (const std::bad_alloc&) { throw; }
-    catch (...) { return false; }
 }
 
 }  // namespace
@@ -327,7 +303,7 @@ void copyFiles(const wchar_t* pathsJson, DWORD options, DWORD* pError)
         if (!pathsJson) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
 
         std::vector<std::wstring> paths;
-        if (!ReadJsonArray(pathsJson, paths)) {
+        if (!ClipboardPayloadJson::ReadStringArray(pathsJson, paths)) {
             SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER);
             return;
         }
@@ -344,7 +320,7 @@ DWORD pasteFiles(wchar_t* buffer, DWORD buffer_size, DWORD* pError)
         if (NotInitialized(pError)) return 0;
         auto pasted = g_session->PasteFiles();
         if (!pasted.has_value()) { SetErr(pError, ToCError(pasted.error())); return 0; }
-        return WriteStringToBuffer(ToJsonArray(pasted.value()), buffer, buffer_size, pError);
+        return WriteStringToBuffer(ClipboardPayloadJson::WriteStringArray(pasted.value()), buffer, buffer_size, pError);
     });
 }
 
@@ -406,44 +382,10 @@ void copyMultipleFormats(const wchar_t* itemsJson, DWORD options, DWORD* pError)
         if (!itemsJson) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
 
         std::vector<Api::FormatPayload> items;
-        try {
-            for (const auto& entry : JsonArray::Parse(itemsJson)) {
-                const auto object = entry.GetObject();
-                const std::wstring formatName{
-                    object.HasKey(L"format") ? object.GetNamedString(L"format") : L""};
-
-                // Exactly one payload, decided by which key is there. The
-                // variant then carries that choice instead of leaving it to be
-                // guessed from what the value holds.
-                const bool hasText = object.HasKey(L"text");
-                const bool hasHtml = object.HasKey(L"html");
-                const bool hasBytes = object.HasKey(L"base64");
-                if ((hasText ? 1 : 0) + (hasHtml ? 1 : 0) + (hasBytes ? 1 : 0) != 1) {
-                    SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER);
-                    return;
-                }
-
-                if (hasText) {
-                    items.push_back(Api::TextPayload{formatName,
-                                                     std::wstring{object.GetNamedString(L"text")}});
-                } else if (hasHtml) {
-                    items.push_back(Api::HtmlPayload{formatName,
-                                                     std::wstring{object.GetNamedString(L"html")}});
-                } else {
-                    std::vector<BYTE> decoded;
-                    const std::wstring encoded{object.GetNamedString(L"base64")};
-                    if (!ClipboardFormats::Base64Decode(ClipboardFormats::WideToUtf8(encoded), decoded)) {
-                        SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER);
-                        return;
-                    }
-                    std::vector<std::byte> bytes(decoded.size());
-                    if (!decoded.empty()) ::memcpy(bytes.data(), decoded.data(), decoded.size());
-                    items.push_back(Api::BytesPayload{formatName, std::move(bytes)});
-                }
-            }
+        if (!ClipboardPayloadJson::ReadFormatItems(itemsJson, items)) {
+            SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER);
+            return;
         }
-        catch (const std::bad_alloc&) { throw; }
-        catch (...) { SetErr(pError, CLIPBOARD_ERROR_INVALID_PARAMETER); return; }
 
         Report(g_session->CopyMultiple(items, Api::WriteOptions{
                    (options & CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY) != 0,
@@ -471,7 +413,7 @@ DWORD getClipboardFormats(wchar_t* buffer, DWORD buffer_size, DWORD* pError)
         if (NotInitialized(pError)) return 0;
         auto formats = g_session->GetFormats();
         if (!formats.has_value()) { SetErr(pError, ToCError(formats.error())); return 0; }
-        return WriteStringToBuffer(ToJsonArray(formats.value()), buffer, buffer_size, pError);
+        return WriteStringToBuffer(ClipboardPayloadJson::WriteStringArray(formats.value()), buffer, buffer_size, pError);
     });
 }
 

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ClipboardSessionForTest.h"
 #include "Clipboard/WindowsClipboardManagerInternal.h"
+#include "Bridge/ClipboardPayloadJson.h"
 
 #include <cstring>
 #include <functional>
@@ -235,10 +236,12 @@ public:
 
     TEST_METHOD(Test_CopyMultiple_MatchesWhatTheJsonPathWrites)
     {
-        // U-B. The rules about which payload a format may carry, and how each
-        // is encoded, used to live in the JSON parser. This is the check that
-        // the struct goes through the same ones: the same description, written
-        // both ways, has to leave the same bytes on the clipboard.
+        // U-B. One writer serves both callers now, so what is left to go wrong
+        // is the reading: which payload an item carries is decided by which key
+        // the JSON has, and an item that reads into the wrong alternative would
+        // write different bytes. So the same description is written both ways -
+        // once as the payload, once as the items someone would write by hand -
+        // and both have to leave the same bytes on the clipboard.
         Run([](Api::Session& session) {
             const std::vector<Api::FormatPayload> items{
                 Api::HtmlPayload{L"HTML Format", L"<i>text</i>"},
@@ -249,19 +252,19 @@ public:
             const UINT htmlFormat = ::RegisterClipboardFormatW(L"HTML Format");
             const std::vector<BYTE> fromStruct = ClipboardSessionForTest::Current()->BytesOf(htmlFormat);
             const std::vector<BYTE> textFromStruct = ClipboardSessionForTest::Current()->BytesOf(CF_UNICODETEXT);
-            Check(!fromStruct.empty(), L"the struct path wrote no HTML");
+            Check(!fromStruct.empty(), L"nothing was written by hand");
 
-            DWORD error = CLIPBOARD_ERROR_NONE;
-            ClipboardManager::GetInstance().CopyMultipleFormats(
-                LR"([{"format":"HTML Format","html":"<i>text</i>"},)"
-                LR"({"format":"CF_UNICODETEXT","text":"text"}])",
-                CLIPBOARD_WRITE_OPTION_NONE, &error);
-            Check(error == CLIPBOARD_ERROR_NONE, L"the JSON path was refused");
+            std::vector<Api::FormatPayload> fromJson;
+            Check(ClipboardPayloadJson::ReadFormatItems(
+                      LR"([{"format":"HTML Format","html":"<i>text</i>"},)"
+                      LR"({"format":"CF_UNICODETEXT","text":"text"}])", fromJson),
+                  L"the payload could not be read");
+            Check(session.CopyMultiple(fromJson).has_value(), L"the payload was refused");
 
             Check(ClipboardSessionForTest::Current()->BytesOf(htmlFormat) == fromStruct,
-                  L"the two paths wrote different HTML bytes");
+                  L"the payload and the hand-written items differ in HTML");
             Check(ClipboardSessionForTest::Current()->BytesOf(CF_UNICODETEXT) == textFromStruct,
-                  L"the two paths wrote different text bytes");
+                  L"the payload and the hand-written items differ in text");
         });
     }
 

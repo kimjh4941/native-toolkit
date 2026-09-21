@@ -28,27 +28,12 @@ public:
                              ClipboardFlagChangedCallback onRoamingEnabledChanged,
                              DWORD* pError);
 
-    // Win32 synchronous core (any thread).
-    void   CopyPlainText(const wchar_t* text, DWORD options, DWORD* pError);
-    DWORD  PastePlainText(wchar_t* buffer, DWORD bufferSize, DWORD* pError);
-    void   CopyHtml(const wchar_t* html, const wchar_t* plainText, DWORD options, DWORD* pError);
-    DWORD  PasteHtml(wchar_t* buffer, DWORD bufferSize, DWORD* pError);
-    void   CopyFiles(const wchar_t* pathsJson, DWORD options, DWORD* pError);
-    DWORD  PasteFiles(wchar_t* buffer, DWORD bufferSize, DWORD* pError);
-    void   CopyImage(const BYTE* dib, DWORD dibSize, DWORD options, DWORD* pError);
-    DWORD  PasteImage(BYTE* buffer, DWORD bufferSize, DWORD* pError);
-    void   CopyCustomFormat(const wchar_t* formatName, const BYTE* data, DWORD size, DWORD options, DWORD* pError);
-    DWORD  PasteCustomFormat(const wchar_t* formatName, BYTE* buffer, DWORD bufferSize, DWORD* pError);
-    void   CopyMultipleFormats(const wchar_t* itemsJson, DWORD options, DWORD* pError);
-    BOOL   HasClipboardFormat(const wchar_t* formatName, DWORD* pError);
-    DWORD  GetClipboardFormats(wchar_t* buffer, DWORD bufferSize, DWORD* pError);
-    DWORD  GetPreferredClipboardFormat(wchar_t* buffer, DWORD bufferSize, DWORD* pError);
+    // Win32 synchronous core (any thread). Empties the clipboard; everything
+    // else here is below, in values.
     void   ClearClipboard(DWORD* pError);
 
-    // The same operations described in values instead of in buffers and JSON,
-    // for the C++ API. They take the identical route once the payload is in
-    // hand; only the shape of the input and the output differs. T-14 folds the
-    // buffer and JSON entry points above onto these.
+    // The operations in values. The C ABI's buffers and JSON are the bridge's
+    // to translate, so these are the only way to the clipboard.
     void CopyText(const std::wstring& text, DWORD options, DWORD* pError);
     void PasteText(std::wstring& out, DWORD* pError);
     void CopyHtmlFragment(const std::wstring& fragment, const std::wstring& plainText,

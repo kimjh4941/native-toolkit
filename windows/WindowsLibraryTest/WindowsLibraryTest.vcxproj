@@ -126,6 +126,9 @@
         <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardBridge.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+        <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardPayloadJson.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
         <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationPayloadJson.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
