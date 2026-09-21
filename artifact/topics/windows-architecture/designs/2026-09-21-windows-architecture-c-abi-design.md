@@ -10,7 +10,7 @@
 | 作成日 | 2026-09-21（v2 のレビューを反映した第 3 版。実装中に E-11 と 12.1 のテストの置き場所を直した） |
 | ブランチ | `feature/NTKIT-16` |
 | 前段階 | 段階 3（C++ API）と段階 4（サンプルの移行）は完了。CU-01 の再実行だけが残っている |
-| 反映した決定 | D-4、D-5、D-6（E-5 で見直し）、D-7、D-8（E-17 で例外を明記）、D-9、D-10、E-1〜E-20（4.2） |
+| 反映した決定 | D-4、D-5、D-6（E-5 で見直し）、D-7、D-8（E-17 で例外を明記）、D-9、D-10、E-1〜E-21（4.2） |
 | 元にした設計書 | `designs/2026-09-20-windows-architecture-cpp-api-design.md`（C ABI はこの C++ API の上に載る。OP の番号、約束、エラーはそこから引き継ぐ） |
 | レビュー | `reviews/2026-09-21-windows-architecture-c-abi-design-review-v1.md`（3 者、R-1〜R-30）、`-v2.md`（3 者、S-1〜S-12） |
 
@@ -209,7 +209,7 @@ Unity Editor はネイティブの DLL を下ろさない。ドメインリロ�
 - 今の DLL（`windows/WindowsLibrary/WindowsLibrary.vcxproj`）と `src/Bridge/` の削除、`UnityWindowsPlugin` の削除
 - 今の C ABI のためだけに C++ API に残した項目の整理（E-10）
 - **C++ の Dialog が約束しながら実装に渡していない 4 項目の修正（E-13）**
-- **C++ の Clipboard の 2 つの修正**: close が自分宛てのメッセージを処理する（E-19）、ハンドラの差し替えの順序（E-20）。E-19 に合わせたサンプルと UI テストの修正
+- **C++ の Clipboard の 3 つの修正**: close が自分宛てのメッセージを処理する（E-19）、ハンドラの差し替えの順序（E-20）、隠しウィンドウのクラスをモジュールごとに登録する（E-21）。E-19 に合わせたサンプルと UI テストの修正
 - C ABI の単体テスト、実際の DLL を通す確認、機械照合
 - ビルドスクリプトと配布物の名前（`windows-native-toolkit-capi`、2.0.0）
 - `agent-rules/coding-rules/windows.md` の修正（C++ API の設計書 5.2。README 5.1 が同じ PR を求めている）
@@ -264,6 +264,7 @@ Unity Editor はネイティブの DLL を下ろさない。ドメインリロ�
 | E-18 | **非同期の完了は、システムコードをコールバックの引数で渡す**。スレッドごとの値には書かない | 推奨（R-12） | 完了はオーナーのスレッドの値を任意の時点で上書きしてしまう。Go では goroutine が OS スレッドを移るので、スレッドごとの値を後から読めない |
 | E-19 | **C++ の `Session::Close` が、自分の隠しウィンドウ宛てのメッセージ（取り消した要求の完了の配送）を内部で処理してから判定する**。`CANCELED` を返すのは、処理しても配送が終わらないときだけになる | 2026-09-21 利用者（S-4） | 利用者が close の再試行の間にループを回す必要が無くなる。Unity のドメインリロードの中のように、ループを安全に回せない場面でも閉じられる。C++ と C の両方に効く。取り消した要求の完了は close の中で届く（受付の呼び出しの中では来ない、という CLP-02 は変わらない）。**サンプルの「Request + Immediate Uninitialize」は失敗しなくなる**。サンプルから close を確実に失敗させる手段は残らないので、それを使って「Shutting down」の状態を作る UI テスト 5 件は削除し、close の失敗は単体テスト（C-5〜C-8、CT-22）に任せる（2026-09-21 利用者が決定。T-17） |
 | E-20 | **C++ の `Session::SetHistoryHandlers` が、オーナーのスレッドかどうかを確かめてからハンドラを差し替える** | 推奨（S-5） | 今は先に差し替えるので、`WRONG_THREAD` が返っても新しいハンドラが入っている。C++ の不具合で、約束（オーナーのスレッドだけ）を変えない |
+| E-21 | **Clipboard の隠しウィンドウのクラスを、exe ではなく Core が入ったモジュール（`__ImageBase`）で登録する** | T-07 の実装中に発見 | 静的な Core が 1 つのプロセスに 2 つ入ると（exe と C ABI の DLL、2 つのプラグイン、2 つのテストの DLL）、2 つ目のクラスの登録が `ERROR_CLASS_ALREADY_EXISTS` で失敗し、セッションを作れなかった。`CS_GLOBALCLASS` の無いクラスは名前とモジュールの組で区別されるので、Core の写しごとに自分のクラスとウィンドウプロシージャを持つ。Core が exe に入る場合（サンプル）は今と同じ値になり、振る舞いは変わらない |
 
 ### 4.3 不足前提
 
@@ -886,6 +887,8 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
   - `Manager::Create`（OS への登録）: C ABI の `SetManagerFactoryForTest`。テストは C++ の `Detail::TestAccess::MakeManager` の上の工場を渡す
   - 活性化の配送: C++ の `TestAccess::Activate`。配送の「ハンドラのコピーの後、呼ぶ前」で止める `TestAccess::SetAfterHandlerCopy`（CT-18）
   - 生きているテスト用のマネージャーの操作は OS に届くので、Notification の操作は入口の検査と閉じたマネージャーの経路で確かめる。成功の経路は C++ API のテストと CT-21 が受け持つ
+  - Clipboard: C++ API のテストの `StoringClipboard` と履歴の backend の差し込み口（`WindowsLibraryTest/Support/ClipboardSessionForTest.h`、`SetHistoryBackendFactoryForTest`）を、include パスの最後に置いた `..\WindowsLibraryTest` から使う。各テストは STA のオーナースレッドで C ABI のセッションを作り、終わりに `ClipboardTestAccess::ResetProcessState` で放棄の記録も戻す
+  - クリップボードの変化の通知: テストがセッションの隠しウィンドウ（偽のクリップボードを最後に開いたウィンドウ）へ `WM_CLIPBOARDUPDATE` を送って起こす
 
 ### 12.2 実際の DLL を通す確認
 

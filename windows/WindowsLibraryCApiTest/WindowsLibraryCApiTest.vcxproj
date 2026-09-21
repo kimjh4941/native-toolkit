@@ -10,8 +10,10 @@
   core's consumer props. The core's own tests stay in WindowsLibraryTest.
 
   ..\WindowsLibrary\src is on the include path for the core's test seams
-  only (the *Internal.h headers with ...ForTest and TestAccess). It comes
-  last, so a C ABI header of the same name always wins.
+  only (the *Internal.h headers with ...ForTest and TestAccess), and
+  ..\WindowsLibraryTest for the fakes the C++ API's tests already have
+  (Support\ClipboardSessionForTest.h). Both come last, so a C ABI header of
+  the same name always wins.
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
@@ -60,7 +62,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/EHsc /utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibraryCApi\include;..\WindowsLibraryCApi\src;$(ProjectDir);..\WindowsLibrary\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibraryCApi\include;..\WindowsLibraryCApi\src;$(ProjectDir);..\WindowsLibrary\src;..\WindowsLibraryTest;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -80,6 +82,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Clipboard\CApiClipboardHarness.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -87,6 +90,12 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <!-- The C ABI under test. -->
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardCApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardConvert.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Common\CallbackGate.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -124,6 +133,12 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <!-- The tests. The header checks compile on their own: a PCH would hide a missing include. -->
+    <ClCompile Include="Clipboard\CApiClipboardHeaderAsC.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>CompileAsC</CompileAs>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <ClCompile Include="Clipboard\CApiClipboardTest.cpp" />
     <ClCompile Include="Common\CApiCommonTest.cpp" />
     <ClCompile Include="Common\CApiHeadersAsC.c">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>

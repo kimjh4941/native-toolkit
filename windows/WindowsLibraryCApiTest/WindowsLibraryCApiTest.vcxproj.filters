@@ -4,6 +4,9 @@
     <Filter Include="C ABI Sources">
       <UniqueIdentifier>{0C6B1F52-7A3E-4D19-8B6A-2E5F9D0C4A71}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Clipboard">
+      <UniqueIdentifier>{7C2E9A41-5B8D-4F36-9E1A-2D4B6F8C0A57}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{5A2E8C14-3F6B-4E07-9D21-7B4C0A6E1F38}</UniqueIdentifier>
     </Filter>
@@ -15,6 +18,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardCApi.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardConvert.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Common\CallbackGate.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
@@ -51,6 +60,12 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Notification\NotificationRuntime.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
+    <ClCompile Include="Clipboard\CApiClipboardHeaderAsC.c">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\CApiClipboardTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
     <ClCompile Include="Common\CApiCommonTest.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -81,6 +96,9 @@
     <ClCompile Include="pch.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Clipboard\CApiClipboardHarness.h">
+      <Filter>Clipboard</Filter>
+    </ClInclude>
     <ClInclude Include="pch.h" />
   </ItemGroup>
 </Project>

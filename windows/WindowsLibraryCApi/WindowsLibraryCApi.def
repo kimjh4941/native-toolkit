@@ -80,3 +80,25 @@ EXPORTS
 	ntk_notification_content_set_timestamp
 	ntk_notification_content_set_expiration
 	ntk_notification_content_set_expires_on_reboot
+	; Clipboard: session (OP-21, OP-23, OP-24)
+	ntk_clipboard_session_create
+	ntk_clipboard_session_close
+	ntk_clipboard_session_can_close
+	ntk_clipboard_session_free
+	; Clipboard: history handlers (OP-22)
+	ntk_clipboard_set_history_handlers
+	; Clipboard: read and write (OP-25..OP-39; OP-35 comes with the multi-format builder)
+	ntk_clipboard_copy_text
+	ntk_clipboard_paste_text
+	ntk_clipboard_copy_html
+	ntk_clipboard_paste_html
+	ntk_clipboard_copy_files
+	ntk_clipboard_paste_files
+	ntk_clipboard_copy_dib
+	ntk_clipboard_paste_dib
+	ntk_clipboard_copy_custom
+	ntk_clipboard_paste_custom
+	ntk_clipboard_has_format
+	ntk_clipboard_get_formats
+	ntk_clipboard_get_preferred_format
+	ntk_clipboard_clear

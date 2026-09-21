@@ -12,6 +12,7 @@
 #pragma pack(push, 1)
 #include "NativeToolkitC/Dialog.h"
 #include "NativeToolkitC/Notification.h"
+#include "NativeToolkitC/Clipboard.h"
 #pragma pack(pop)
 
 #include <cstddef>
@@ -74,6 +75,20 @@ NTK_LAYOUT(ntk_notification_progress_update, value_string, 32);
 NTK_LAYOUT(ntk_notification_progress_update, status, 40);
 NTK_LAYOUT(ntk_notification_progress_update, sequence_number, 48);
 NTK_LAYOUT(ntk_notification_progress_update, reserved1, 52);
+
+static_assert(sizeof(ntk_clipboard_session_options) == 24, "ntk_clipboard_session_options");
+NTK_LAYOUT(ntk_clipboard_session_options, struct_size, 0);
+NTK_LAYOUT(ntk_clipboard_session_options, reserved0, 4);
+NTK_LAYOUT(ntk_clipboard_session_options, on_clipboard_changed, 8);
+NTK_LAYOUT(ntk_clipboard_session_options, user_data, 16);
+
+static_assert(sizeof(ntk_clipboard_history_handlers) == 40, "ntk_clipboard_history_handlers");
+NTK_LAYOUT(ntk_clipboard_history_handlers, struct_size, 0);
+NTK_LAYOUT(ntk_clipboard_history_handlers, reserved0, 4);
+NTK_LAYOUT(ntk_clipboard_history_handlers, on_history_changed, 8);
+NTK_LAYOUT(ntk_clipboard_history_handlers, on_history_enabled_changed, 16);
+NTK_LAYOUT(ntk_clipboard_history_handlers, on_roaming_enabled_changed, 24);
+NTK_LAYOUT(ntk_clipboard_history_handlers, user_data, 32);
 
 // Anything to link.
 extern "C" int ntk_test_layout() { return 0; }
