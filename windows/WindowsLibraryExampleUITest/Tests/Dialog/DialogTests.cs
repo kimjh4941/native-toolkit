@@ -122,21 +122,21 @@ public sealed class DialogTests
 
     /// <summary>D-06</summary>
     /// <remarks>
-    /// The result is the folder followed by the bare file names, and the count
-    /// includes the folder: two files report 3. This pins the current format;
-    /// whether to keep it is decided in the C++ API design (stage 3).
+    /// Each file comes back as a full path and the count is the number of
+    /// files, as with folders. The C ABI's folder-then-names layout, where two
+    /// files report 3 (DLG-02), is joined by the C++ API (stage 3 design,
+    /// OP-03); the sample shows the C++ API since stage 4.
     /// </remarks>
     [TestMethod]
-    public void OpenMultipleFiles_PickTwo_ReturnsFolderThenNames()
+    public void OpenMultipleFiles_PickTwo_ReturnsFullPaths()
     {
         var dialog = Page.Open("ShowMultiFileDialog");
         dialog.SetText(DialogPage.Controls.OpenFileName, $"\"{FileA}\" \"{FileB}\"");
         dialog.Press(DialogPage.Controls.Accept);
 
-        var result = Page.WaitForResult("ShowMultiFileDialog Result: 3");
-        StringAssert.Contains(result, $"multiBuffer[0]: {Work}\n");
-        StringAssert.Contains(result, "multiBuffer[1]: a.txt\n");
-        StringAssert.Contains(result, "multiBuffer[2]: b.txt\n");
+        var result = Page.WaitForResult("ShowMultiFileDialog Result: 2");
+        StringAssert.Contains(result, $"multiBuffer[0]: {FileA}\n");
+        StringAssert.Contains(result, $"multiBuffer[1]: {FileB}\n");
     }
 
     /// <summary>D-07</summary>

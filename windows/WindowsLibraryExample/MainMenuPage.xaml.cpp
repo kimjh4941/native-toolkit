@@ -4,7 +4,7 @@
 #include "MainMenuPage.g.cpp"
 #endif
 
-#include "Common/common.h"
+#include "SampleLog.h"
 
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;

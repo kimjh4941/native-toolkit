@@ -12,6 +12,9 @@
 #pragma once
 #include <windows.h>
 #include <commdlg.h> // GetOpenFileNameW, GetSaveFileNameW, CommDlgExtendedError
+// The static core names its own import libraries: an app that links it does
+// not necessarily link the classic Win32 set (a WinUI app has windowsapp.lib only).
+#pragma comment(lib, "comdlg32.lib")
 #include <string>
 #include <memory>
 #include <shobjidl.h> // IFileDialog, IFileOpenDialog
