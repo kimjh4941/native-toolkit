@@ -62,6 +62,18 @@ struct ntk_clipboard_items {
     std::vector<NativeToolkit::Clipboard::FormatPayload> items;
 };
 
+/// The items a history listing handed back, already in UTF-8.
+struct ntk_clipboard_history {
+    struct Item {
+        std::string                id;
+        bool                       hasText = false;
+        std::string                text;
+        std::vector<std::string>   contentTypes;
+        int64_t                    unixMs = 0;
+    };
+    std::vector<Item> items;
+};
+
 namespace NativeToolkitC::Detail::Clipboard {
 
 namespace Api = NativeToolkit::Clipboard;
@@ -88,6 +100,14 @@ bool ToBytes(const uint8_t* data, size_t size, std::vector<std::byte>& out);
 /// An array of required strings (paths, format names): false for a NULL
 /// array with a count, a NULL entry or invalid UTF-8.
 bool ToStrings(const char* const* strings, size_t count, std::vector<std::wstring>& out);
+
+/// A WinRT timestamp (100 ns ticks since 1601-01-01 UTC) as milliseconds
+/// since 1970-01-01 UTC, rounded down. 0, which the C++ API uses for a time it
+/// could not read, stays 0 rather than becoming a date in 1601 (8.4.3, E-14).
+int64_t TicksToUnixMs(int64_t ticks) noexcept;
+
+/// The history handle for a listing. Throws std::bad_alloc.
+ntk_clipboard_history ToHistory(const std::vector<Api::HistoryItem>& items);
 
 /// The provider handed to the C++ API for one reservation. It calls fn
 /// through gate, and never after the reservation's release has run.

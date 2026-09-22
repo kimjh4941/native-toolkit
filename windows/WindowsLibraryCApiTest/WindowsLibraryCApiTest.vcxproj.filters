@@ -27,6 +27,9 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardDeferredCApi.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardHistoryCApi.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardItemsCApi.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
@@ -70,6 +73,9 @@
       <Filter>Clipboard</Filter>
     </ClCompile>
     <ClCompile Include="Clipboard\CApiClipboardDeferredTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\CApiClipboardHistoryTest.cpp">
       <Filter>Clipboard</Filter>
     </ClCompile>
     <ClCompile Include="Clipboard\CApiClipboardItemsTest.cpp">

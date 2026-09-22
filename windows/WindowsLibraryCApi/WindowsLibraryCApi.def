@@ -113,3 +113,17 @@ EXPORTS
 	ntk_clipboard_reserve_deferred
 	ntk_clipboard_recover_deferred_state
 	ntk_clipboard_render_target_set
+	; Clipboard: history requests (OP-42..OP-47)
+	ntk_clipboard_get_history
+	ntk_clipboard_restore_history_item
+	ntk_clipboard_delete_history_item
+	ntk_clipboard_clear_unpinned_history
+	ntk_clipboard_get_history_availability
+	ntk_clipboard_cancel_request
+	; Clipboard: history (argument of ntk_clipboard_history_fn)
+	ntk_clipboard_history_count
+	ntk_clipboard_history_item_id
+	ntk_clipboard_history_item_text
+	ntk_clipboard_history_item_content_type_count
+	ntk_clipboard_history_item_content_type_at
+	ntk_clipboard_history_item_timestamp_unix_ms

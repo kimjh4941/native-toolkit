@@ -99,6 +99,9 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardDeferredCApi.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardHistoryCApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardItemsCApi.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -145,6 +148,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <ClCompile Include="Clipboard\CApiClipboardDeferredTest.cpp" />
+    <ClCompile Include="Clipboard\CApiClipboardHistoryTest.cpp" />
     <ClCompile Include="Clipboard\CApiClipboardItemsTest.cpp" />
     <ClCompile Include="Clipboard\CApiClipboardTest.cpp" />
     <ClCompile Include="Common\CApiCommonTest.cpp" />

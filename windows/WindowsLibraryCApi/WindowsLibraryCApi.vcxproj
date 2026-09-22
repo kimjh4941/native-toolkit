@@ -105,6 +105,7 @@
     <ClCompile Include="src\Clipboard\ClipboardCApi.cpp" />
     <ClCompile Include="src\Clipboard\ClipboardConvert.cpp" />
     <ClCompile Include="src\Clipboard\ClipboardDeferredCApi.cpp" />
+    <ClCompile Include="src\Clipboard\ClipboardHistoryCApi.cpp" />
     <ClCompile Include="src\Clipboard\ClipboardItemsCApi.cpp" />
     <ClCompile Include="src\Common\CallbackGate.cpp" />
     <ClCompile Include="src\Common\Handles.cpp" />

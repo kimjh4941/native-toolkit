@@ -111,6 +111,35 @@ bool ToStrings(const char* const* strings, size_t count, std::vector<std::wstrin
     return true;
 }
 
+int64_t TicksToUnixMs(int64_t ticks) noexcept
+{
+    if (ticks == 0) return 0;
+    // 1601-01-01 to 1970-01-01, in 100 ns ticks.
+    constexpr int64_t kEpochTicks = 116444736000000000LL;
+    constexpr int64_t kTicksPerMs = 10000;
+    const int64_t sinceEpoch = ticks - kEpochTicks;
+    int64_t ms = sinceEpoch / kTicksPerMs;
+    if (sinceEpoch % kTicksPerMs < 0) --ms;   // round down before 1970, too
+    return ms;
+}
+
+ntk_clipboard_history ToHistory(const std::vector<Api::HistoryItem>& items)
+{
+    ntk_clipboard_history history;
+    history.items.reserve(items.size());
+    for (const auto& item : items) {
+        ntk_clipboard_history::Item converted;
+        converted.id = WideToUtf8(item.id);
+        converted.hasText = item.text.has_value();
+        if (item.text) converted.text = WideToUtf8(*item.text);
+        converted.contentTypes.reserve(item.contentTypes.size());
+        for (const auto& type : item.contentTypes) converted.contentTypes.push_back(WideToUtf8(type));
+        converted.unixMs = TicksToUnixMs(item.timestampTicks);
+        history.items.push_back(std::move(converted));
+    }
+    return history;
+}
+
 Api::RenderProvider MakeRenderProvider(ntk_clipboard_render_fn fn, std::shared_ptr<ReleaseGuard> guard,
                                        std::shared_ptr<CallbackGate> gate)
 {

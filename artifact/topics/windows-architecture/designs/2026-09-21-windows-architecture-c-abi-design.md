@@ -890,6 +890,8 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
   - Clipboard: Win32 の差し込み口（`SetWin32ApiForTest`）と履歴の backend の差し込み口（`SetHistoryBackendFactoryForTest`）を使い、C++ API のテストの harness の部品（`WindowsLibraryTest/Support/ClipboardSessionForTest.h`）を include パスの最後に置いた `..\WindowsLibraryTest` から使う。各テストは STA のオーナースレッドで C ABI のセッションを作り、終わりに `ClipboardTestAccess::ResetProcessState` で放棄の記録も戻す
   - 偽のクリップボードは C++ API のテストの `StoringClipboard` ではなく、C ABI のテストの `OwnerClipboard`（`WindowsLibraryCApiTest/Clipboard/CApiClipboardHarness.h`）を使う。`StoringClipboard` と同じく中身を保持したうえで、Windows と同じくオーナーへ `WM_DESTROYCLIPBOARD`（空にしたとき）と `WM_RENDERFORMAT`（予約だけの形式を読んだとき）を送る。遅延レンダリングの `release` の時期（7.5.3）はこの 2 つのメッセージで決まるので、送らない偽物では CT-13 を確かめられない（T-08 で置き換えた）。ウィンドウを壊したときの `WM_RENDERALLFORMATS` は送れないので、close の中で provider が呼ばれることは単体テストでは確かめない
   - クリップボードの変化の通知: テストがセッションの隠しウィンドウ（クリップボードのオーナー）へ `WM_CLIPBOARDUPDATE` を送って起こす
+  - 履歴の要求: 履歴の backend の偽物が要求を預かり、テストが `FinishHeld` で完了させる。メッセージのポンプはテストが手で回すので、「後で」の時点が決まる
+  - CT-17 の「ほかのスレッドの呼び出しの最中の `_free` は、それが戻るまで待つ」は、`CallbackGate` の単体テスト（T-02 の `Test_Shut_WaitsForACallbackRunningOnAnotherThread`）で確かめる。セッションのコールバックはすべてオーナーのスレッドで来るので、セッションで作るとオーナー以外のスレッドからの `_free`（放棄）になり、`_free` はゲートの `Shut` を呼ぶだけだからである
 
 ### 12.2 実際の DLL を通す確認
 

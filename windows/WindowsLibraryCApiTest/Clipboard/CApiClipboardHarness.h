@@ -141,12 +141,23 @@ inline OwnerClipboard*& Current()
     return clipboard;
 }
 
-/// A history backend that keeps the events it was handed, so a test can
-/// raise them, and answers every query with "on".
+/// What the history backend does, written by the test. It keeps the events it
+/// was handed, so a test can raise them; it answers a request at once, or
+/// holds it until FinishHeld when finishOnStart is false.
 struct EventScript {
     std::shared_ptr<const ClipboardHistoryEvents> events;
     bool historyEnabled = true;
     bool roamingEnabled = true;
+
+    std::vector<ClipboardHistoryEntry> items;
+    ClipboardHistoryAvailability       availability{true, false};
+    bool                               finishOnStart = true;
+    DWORD                              nextError = CLIPBOARD_ERROR_NONE;
+    std::wstring                       lastItemId;   ///< What restore or delete was asked for.
+
+    HistoryItemsCallback        heldItems;
+    HistoryAvailabilityCallback heldAvailability;
+    HistoryStatusCallback       heldStatus;
 };
 
 inline EventScript& Script()
@@ -155,14 +166,33 @@ inline EventScript& Script()
     return script;
 }
 
+/// Finishes the requests the backend is holding, as the OS would.
+inline void FinishHeld()
+{
+    auto& s = Script();
+    if (s.heldItems)        { auto done = std::move(s.heldItems);        s.heldItems = nullptr;        done(s.nextError, s.items); }
+    if (s.heldAvailability) { auto done = std::move(s.heldAvailability); s.heldAvailability = nullptr; done(s.nextError, s.availability); }
+    if (s.heldStatus)       { auto done = std::move(s.heldStatus);       s.heldStatus = nullptr;       done(s.nextError); }
+}
+
 class EventBackend final : public IClipboardHistoryBackend
 {
 public:
-    void GetAvailabilityAsync(HistoryAvailabilityCallback) override {}
-    void GetItemsAsync(HistoryItemsCallback) override {}
-    void SetItemAsContentAsync(const std::wstring&, HistoryStatusCallback) override {}
-    void DeleteItemAsync(const std::wstring&, HistoryStatusCallback) override {}
-    void ClearUnpinnedAsync(HistoryStatusCallback) override {}
+    void GetAvailabilityAsync(HistoryAvailabilityCallback done) override
+    {
+        auto& s = Script();
+        if (s.finishOnStart) done(s.nextError, s.availability);
+        else                 s.heldAvailability = std::move(done);
+    }
+    void GetItemsAsync(HistoryItemsCallback done) override
+    {
+        auto& s = Script();
+        if (s.finishOnStart) done(s.nextError, s.items);
+        else                 s.heldItems = std::move(done);
+    }
+    void SetItemAsContentAsync(const std::wstring& id, HistoryStatusCallback done) override { Status(id, std::move(done)); }
+    void DeleteItemAsync(const std::wstring& id, HistoryStatusCallback done) override { Status(id, std::move(done)); }
+    void ClearUnpinnedAsync(HistoryStatusCallback done) override { Status(L"", std::move(done)); }
 
     DWORD QueryHistoryEnabled(bool& enabled) override { enabled = Script().historyEnabled; return CLIPBOARD_ERROR_NONE; }
     DWORD QueryRoamingEnabled(bool& enabled) override { enabled = Script().roamingEnabled; return CLIPBOARD_ERROR_NONE; }
@@ -175,6 +205,15 @@ public:
     void ReplaceEvents(std::shared_ptr<const ClipboardHistoryEvents> events) override { Script().events = std::move(events); }
     bool StopWatch() override { Script().events.reset(); return true; }
     bool CanDestroy() const override { return true; }
+
+private:
+    static void Status(const std::wstring& id, HistoryStatusCallback done)
+    {
+        auto& s = Script();
+        s.lastItemId = id;
+        if (s.finishOnStart) done(s.nextError);
+        else                 s.heldStatus = std::move(done);
+    }
 };
 
 inline std::unique_ptr<IClipboardHistoryBackend> MakeEventBackend()
