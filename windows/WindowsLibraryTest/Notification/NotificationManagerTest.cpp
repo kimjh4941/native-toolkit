@@ -4,7 +4,7 @@
 // any WRL headers that include Unknwn.h to avoid MIDL_INTERFACE redefinition.
 #include "Notification/Data/WindowsClassicActivator.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
-#include "Bridge/NotificationPayloadJson.h"
+#include "Support/NotificationPayloadJson.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace winrt::Windows::Data::Json;
@@ -81,9 +81,9 @@ namespace WindowsNotificationManagerTest
 
 namespace
 {
-    /// The content a payload reads into. The manager takes a content now; the
-    /// payload is the bridge's to read, and these tests still describe their
-    /// cases in it because that is how a C caller writes them.
+    /// The content a payload reads into. The manager takes a content; these
+    /// tests describe their cases as JSON because it is short, and the test
+    /// helper Support/NotificationPayloadJson reads it.
     NativeToolkit::Notification::NotificationContent ContentOf(const wchar_t* payload)
     {
         NativeToolkit::Notification::NotificationContent content;

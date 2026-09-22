@@ -9,10 +9,8 @@
  *  The fields come from what the JSON payload of the C ABI actually accepts,
  *  listed in designs/2026-09-20-windows-architecture-c-abi-input-inventory.md
  *  section 1, and the names follow the JSON keys so the two can be compared.
- *  Two shapes there do not reduce to fixed fields and are kept open:
- *  a button's arguments are an arbitrary string map, and keys the parser does
- *  not know are accepted and ignored today, so unknownKeys carries them
- *  through instead of dropping them silently.
+ *  One shape there does not reduce to fixed fields and is kept open: a
+ *  button's arguments are an arbitrary string map.
  *
  *  Several fields are optional where a plain string would do, because the
  *  platform tells an absent value from an empty one and the two are not the
@@ -169,7 +167,6 @@ struct NotificationContent {
     std::optional<std::chrono::system_clock::time_point> timestamp;   ///< JSON: timestamp, an absolute time.
     std::optional<std::chrono::seconds>                  expiration;  ///< JSON: expiration, relative to delivery.
     bool                        expiresOnReboot = false;              ///< Packaged apps only.
-    ArgumentPairs               unknownKeys;      ///< Keys the parser does not know, kept rather than dropped.
 };
 
 /// What to change on a notification that is already showing a progress bar.

@@ -313,7 +313,7 @@ C++ API の設計書 5.2 で段階 5 に送った 6 か所を直す（T-14）。
 | 旧ヘッダーへの内部の依存 | Core の内部（`WindowsClipboardManagerInternal.h`、`WindowsNotificationManagerInternal.h`、Clipboard の Core / HistoryCoordinator / DeferredProvider / HistoryWinRt、両機能の `*Api.cpp`）とテスト約 10 ファイルが、旧ヘッダーの `#define` とコールバックの typedef を使っている | 定数と typedef を内部ヘッダーへ移す（8.5） |
 | `extern "C"` | `src/Bridge/` のほか、`src/Common/CommonInternal.h` の `DLog` などの宣言 | Core に `extern "C"` の関数宣言を残さない |
 | `UnityWindowsPlugin` | `.sln` から外れた MFC の雛形。README などに 15 ファイル・91 か所の参照（README 6） | 削除。運用の参照を `WindowsLibraryCApi` に直す |
-| テスト | `ClipboardBridgeTest`（20）、`NotificationBridgeTest`（5）、`NotificationPayloadTest`（13） | 今の C ABI とともに削除し、12.1 の C ABI のテストに置き換える |
+| テスト | `ClipboardBridgeTest`（20）、`NotificationBridgeTest`（5）、`NotificationPayloadTest`（13） | `ClipboardBridgeTest` と `NotificationBridgeTest` は今の C ABI とともに削除し、12.1 の C ABI のテストに置き換える。`NotificationPayloadTest` は残す（12.1。T-12 で変えた） |
 
 ## 7. 実装アーキテクチャ
 
@@ -881,7 +881,9 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
 | CT-19 | Runtime とマネージャーの順序: マネージャーが生きている間の `runtime_free` は Shutdown を呼ばず、最後の close で呼ぶ。逆の順序でも正しく呼ぶ。2 回目の `runtime_initialize` は `NOT_SUPPORTED` | C ABI の Runtime の包みに Shutdown の関数の差し込み口を置き、差し替えて数える |
 | CT-20 | 履歴の timestamp の変換（WinRT の tick → Unix ミリ秒）。既知の値で。0（読めなかった）は 0 | 1970-01-01、2026-01-01、0 の tick |
 
-- 今の C ABI のテスト（`ClipboardBridgeTest`、`NotificationBridgeTest`、`NotificationPayloadTest`）は今の C ABI とともに削除する。C++ API のテスト（約 260 件）はそのまま通る。E-10 で消す項目を使うテストだけを直す
+- 今の C ABI のテストのうち、`ClipboardBridgeTest` と `NotificationBridgeTest` は今の C ABI とともに削除する。C++ API のテストはそのまま通る。E-10 で消す項目を使うテストだけを直す（`DialogMappingTest` の `extraFlags` の 1 件を消した）
+- **JSON の読み取りはテストの補助に移す**（T-12 で変えた）。`src/Bridge/` の `NotificationPayloadJson` と `ClipboardPayloadJson` は、C++ API のテスト 4 群（`NotificationBuilderTest`、`NotificationManagerTest`、`NotificationValidationDomainTest`、`ClipboardApiCoreTest`）が入力を短く書くための記法として使っていたので、`WindowsLibraryTest/Support/` に移した。ライブラリには JSON を読む処理が残らない。未知のキーは読み飛ばす（`unknownKeys` は E-10 で消した）
+- **`NotificationPayloadTest` は残す**（T-12 で変えた）。13 件は、入力一覧 §1.10 の「在るが空」と「無い」で C++ の Core が作る通知がどう違うかを押さえており、JSON は入力を書く記法にすぎない。消すと §1.10 を C++ の層で押さえるテストが無くなる
 - テストプロジェクトは Core の `.lib` をリンクするので、Core のソースを個別に足さない（Bootstrap の DLL はテストの隣に複製する）。OS に触れる部分は差し込み口で差し替える
   - Runtime の Bootstrap: C ABI の `SetRuntimeHooksForTest`（CT-19）
   - `Manager::Create`（OS への登録）: C ABI の `SetManagerFactoryForTest`。テストは C++ の `Detail::TestAccess::MakeManager` の上の工場を渡す

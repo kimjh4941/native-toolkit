@@ -67,15 +67,7 @@ enum class AlertResult {
     Help,   ///< The help button (IDHELP), which only appears with showHelpButton.
 };
 
-/**
- * @brief What to show in a message box.
- * @details
- *  extraFlags exists because showAlertDialog of the C ABI ORs four arbitrary
- *  UINTs into MessageBoxW without validating them, so callers can pass MB_*
- *  bits the enumerations above do not name (MB_SYSTEMMODAL, MB_SETFOREGROUND,
- *  MB_RTLREADING and so on). The compatibility bridge needs to hand those
- *  through unchanged (design N-9). New code should stay with the enumerations.
- */
+/** @brief What to show in a message box. */
 struct AlertRequest {
     std::wstring       title;
     std::wstring       message;
@@ -84,7 +76,6 @@ struct AlertRequest {
     AlertDefaultButton defaultButton  = AlertDefaultButton::First;
     bool               topMost        = false;  ///< MB_TOPMOST
     bool               showHelpButton = false;  ///< MB_HELP
-    uint32_t           extraFlags     = 0;      ///< Raw MB_* bits; for the bridge.
     WindowHandle       owner          = nullptr;///< The C ABI always passes none (DLG-09).
 };
 

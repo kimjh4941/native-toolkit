@@ -1,14 +1,12 @@
 /**
  * @file ClipboardPayloadJson.h
- * @brief Reads the C ABI's clipboard payloads into the C++ API's values.
+ * @brief Test helper: reads the 1.x C ABI's clipboard payloads into the C++
+ *        API's values.
  * @details
- *  JSON belongs to the C ABI, so its parsers belong here rather than in the
- *  library: a C++ caller hands over values and never sees a string of JSON.
- *
- *  These are separate functions rather than lambdas inside the bridge so that
- *  a test can compare what a payload reads into against what someone writing
- *  the values by hand would produce, which is the only thing that catches a
- *  key landing in the wrong field.
+ *  The JSON belonged to the 1.x C ABI, which stage 5 removed (design 8.5). The
+ *  reader stays for the tests only, where a payload is a short way to write
+ *  down a set of values; nothing in the library reads JSON from a caller any
+ *  more.
  */
 #pragma once
 

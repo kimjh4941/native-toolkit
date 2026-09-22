@@ -142,14 +142,11 @@
     <ClInclude Include="src\Clipboard\WindowsClipboardApiInternal.h">
       <Filter>src\Clipboard</Filter>
     </ClInclude>
-    <ClInclude Include="src\Clipboard\WindowsClipboardManager.h">
+    <ClInclude Include="src\Clipboard\ClipboardCodes.h">
       <Filter>src\Clipboard</Filter>
     </ClInclude>
     <ClInclude Include="src\Clipboard\WindowsClipboardManagerInternal.h">
       <Filter>src\Clipboard</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Common\common.h">
-      <Filter>src\Common</Filter>
     </ClInclude>
     <ClInclude Include="src\Common\CommonInternal.h">
       <Filter>src\Common</Filter>
@@ -165,9 +162,6 @@
     </ClInclude>
     <ClInclude Include="src\Dialog\Domain\WindowsDialogMapping.h">
       <Filter>src\Dialog\Domain</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Dialog\WindowsDialogManager.h">
-      <Filter>src\Dialog</Filter>
     </ClInclude>
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h">
       <Filter>src\Notification\Application</Filter>
@@ -187,7 +181,7 @@
     <ClInclude Include="src\Notification\WindowsNotificationApiInternal.h">
       <Filter>src\Notification</Filter>
     </ClInclude>
-    <ClInclude Include="src\Notification\WindowsNotificationManager.h">
+    <ClInclude Include="src\Notification\NotificationCodes.h">
       <Filter>src\Notification</Filter>
     </ClInclude>
     <ClInclude Include="src\Notification\WindowsNotificationManagerInternal.h">

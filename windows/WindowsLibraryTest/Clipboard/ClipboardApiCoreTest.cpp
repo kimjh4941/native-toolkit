@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Support/ClipboardSessionForTest.h"
 #include "Clipboard/WindowsClipboardManagerInternal.h"
-#include "Bridge/ClipboardPayloadJson.h"
+#include "Support/ClipboardPayloadJson.h"
 
 #include <cstring>
 #include <functional>

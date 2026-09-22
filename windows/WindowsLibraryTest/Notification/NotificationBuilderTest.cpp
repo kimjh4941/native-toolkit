@@ -2,7 +2,7 @@
 #include "Notification/Data/WindowsClassicActivator.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/Data/WindowsNotificationBuilder.h"
-#include "Bridge/NotificationPayloadJson.h"
+#include "Support/NotificationPayloadJson.h"
 
 #include "Support/AppSdkRuntimeForTest.h"
 

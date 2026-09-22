@@ -6,11 +6,6 @@
  *  API and the Domain layer must not depend on it. What is only about shapes
  *  of data - the filter block, the packed multi-select buffers - stays in
  *  Domain, where it needs no windows.h at all.
- *
- *  ToMessageBoxType forwards AlertRequest::extraFlags untouched. showAlertDialog
- *  of the C ABI ORs four arbitrary UINTs into MessageBoxW and validates none of
- *  them, so the bridge has to be able to pass bits the enumerations do not name
- *  (design N-9).
  */
 #pragma once
 
@@ -20,7 +15,7 @@
 
 namespace NativeToolkit::Dialog::Data {
 
-/// The MessageBoxW uType for a request, including any raw bits it carries.
+/// The MessageBoxW uType for a request.
 inline UINT ToMessageBoxType(const AlertRequest& request) noexcept
 {
     UINT type = 0;
@@ -48,7 +43,7 @@ inline UINT ToMessageBoxType(const AlertRequest& request) noexcept
     }
     if (request.topMost)        type |= MB_TOPMOST;
     if (request.showHelpButton) type |= MB_HELP;
-    return type | request.extraFlags;
+    return type;
 }
 
 /// The button id MessageBoxW returned, as the public enumeration.

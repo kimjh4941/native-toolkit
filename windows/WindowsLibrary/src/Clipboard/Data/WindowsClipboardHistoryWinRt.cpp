@@ -1,7 +1,7 @@
 // Requires C++20 (co_await) - see WindowsLibrary.vcxproj per-file LanguageStandard override.
 #include "pch.h"
 #include "Clipboard/Data/WindowsClipboardHistoryWinRt.h"
-#include "Clipboard/WindowsClipboardManager.h"
+#include "Clipboard/ClipboardCodes.h"
 #include "Common/CommonInternal.h"
 #include <algorithm>
 #include <atomic>

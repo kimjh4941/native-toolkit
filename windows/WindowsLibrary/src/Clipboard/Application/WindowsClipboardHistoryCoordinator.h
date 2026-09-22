@@ -14,7 +14,7 @@
 
 #include "Clipboard/Application/WindowsClipboardHistoryBackend.h"
 #include "Clipboard/Application/WindowsClipboardLifecycle.h"
-#include "Clipboard/WindowsClipboardManager.h"
+#include "Clipboard/ClipboardCodes.h"
 #include <atomic>
 #include <map>
 #include <memory>

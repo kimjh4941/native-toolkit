@@ -5,7 +5,7 @@
 //           winrt/Microsoft.Windows.AppNotifications.Builder.h,
 //           winrt/Windows.UI.Notifications.h, winrt/Windows.Data.Json.h
 
-#include "Notification/WindowsNotificationManager.h"
+#include "Notification/NotificationCodes.h"
 #include "Notification/Application/WindowsNotificationBackend.h"
 #include "NativeToolkit/Notification.h"
 #include <memory>
@@ -71,8 +71,8 @@ private:
     /// Drives the C++ API against a mock backend; see NotificationApiTest
     /// (stage 3, T-08).
     friend class WindowsNotificationApiTest::NotificationApiTest;
-    /// Records what the JSON payload accepts today, so T-14 can move the parse
-    /// without changing any of it; see NotificationPayloadTest (stage 3, T-17).
+    /// Pins what the content does in each case of the input inventory's 1.10;
+    /// see NotificationPayloadTest.
     friend class WindowsNotificationPayloadTest::NotificationPayloadTest;
 
     WindowsNotificationManager() = default;

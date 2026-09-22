@@ -48,9 +48,9 @@ Domain::ClassifiedOutcome Classify(bool succeeded, DWORD rawError) noexcept
 
 Result<AlertResult> ShowAlert(const AlertRequest& request)
 {
-    DFLog(TAG, L"[ShowAlert] title: %ls, buttons: %d, icon: %d, extraFlags: 0x%08x, owner: %p",
+    DFLog(TAG, L"[ShowAlert] title: %ls, buttons: %d, icon: %d, owner: %p",
           request.title.c_str(), static_cast<int>(request.buttons),
-          static_cast<int>(request.icon), request.extraFlags, request.owner);
+          static_cast<int>(request.icon), request.owner);
 
     DWORD error = 0;
     const UINT type = Data::ToMessageBoxType(request);

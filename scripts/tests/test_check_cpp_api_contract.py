@@ -35,6 +35,8 @@ COPIED = [
     "windows/WindowsLibraryCApi/include/NativeToolkitC/Dialog.h",
     "windows/WindowsLibraryCApi/include/NativeToolkitC/Notification.h",
     "windows/WindowsLibraryCApi/include/NativeToolkitC/Clipboard.h",
+    "windows/WindowsLibrary/src/Clipboard/ClipboardCodes.h",
+    "windows/WindowsLibrary/src/Notification/NotificationCodes.h",
 ]
 
 DESIGN = COPIED[0]
@@ -105,6 +107,18 @@ class ContractChecker(unittest.TestCase):
         self.assert_catches("ClipboardError matches the C ABI",
                             (ERROR_H, "    Busy                  = 3,",
                              "    Busy                  = 33,"))
+
+    def test_an_internal_code_whose_value_moved(self):
+        self.assert_catches("ClipboardError matches its internal codes",
+                            ("windows/WindowsLibrary/src/Clipboard/ClipboardCodes.h",
+                             "#define CLIPBOARD_ERROR_BUSY                     3",
+                             "#define CLIPBOARD_ERROR_BUSY                     33"))
+
+    def test_an_internal_success_value_that_moved(self):
+        self.assert_catches("NotificationError matches its internal codes",
+                            ("windows/WindowsLibrary/src/Notification/NotificationCodes.h",
+                             "#define NOTIFICATION_SUCCESS                    0",
+                             "#define NOTIFICATION_SUCCESS                    9"))
 
     def test_an_enumerator_that_was_renamed(self):
         self.assert_catches("NotificationError matches the C ABI",

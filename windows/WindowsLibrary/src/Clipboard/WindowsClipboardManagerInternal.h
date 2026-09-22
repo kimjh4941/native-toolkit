@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Clipboard/WindowsClipboardManager.h"
+#include "Clipboard/ClipboardCodes.h"
 #include "NativeToolkit/Clipboard.h"
 #include "Clipboard/Data/WindowsClipboardCore.h"
 #include "Clipboard/Application/WindowsClipboardLifecycle.h"
@@ -38,8 +38,8 @@ public:
     // else here is below, in values.
     void   ClearClipboard(DWORD* pError);
 
-    // The operations in values. The C ABI's buffers and JSON are the bridge's
-    // to translate, so these are the only way to the clipboard.
+    // The operations in values. The C++ API, and the C ABI on top of it,
+    // translate to and from these, so they are the only way to the clipboard.
     void CopyText(const std::wstring& text, DWORD options, DWORD* pError);
     void PasteText(std::wstring& out, DWORD* pError);
     void CopyHtmlFragment(const std::wstring& fragment, const std::wstring& plainText,

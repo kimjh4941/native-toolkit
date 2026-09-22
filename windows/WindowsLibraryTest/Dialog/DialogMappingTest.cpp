@@ -8,12 +8,10 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // U-C of the stage 3 design, for the conversions between the public request
 // types and the Win32 shapes.
 //
-// Three of these are places where the C++ API could silently accept less than
-// the C ABI does, which is the regression class the input inventory exists to
+// Two of these are places where a conversion could silently lose part of what
+// it is given, which is the regression class the input inventory exists to
 // prevent:
 //
-//  - the MB_* flag word, where showAlertDialog ORs four arbitrary UINTs and
-//    validates nothing, so extraFlags has to survive untouched (N-9);
 //  - the filter block, a string with embedded NULs that ends with two of them,
 //    plus the "All Files" fallback (DLG-12);
 //  - the packed multi-select buffer, whose count is of strings rather than of
@@ -64,20 +62,6 @@ public:
     TEST_METHOD(Test_ToMessageBoxType_DefaultRequestIsPlainOk)
     {
         Assert::AreEqual<UINT>(MB_OK | MB_DEFBUTTON1, Data::ToMessageBoxType(AlertRequest{}));
-    }
-
-    TEST_METHOD(Test_ToMessageBoxType_PassesExtraFlagsThrough)
-    {
-        // The escape hatch of N-9: bits the enumerations do not name have to
-        // reach MessageBoxW unchanged, or the bridge loses what callers pass.
-        AlertRequest request;
-        request.extraFlags = MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_RTLREADING;
-
-        const UINT type = Data::ToMessageBoxType(request);
-
-        Assert::AreEqual<UINT>(MB_SYSTEMMODAL, type & MB_SYSTEMMODAL);
-        Assert::AreEqual<UINT>(MB_SETFOREGROUND, type & MB_SETFOREGROUND);
-        Assert::AreEqual<UINT>(MB_RTLREADING, type & MB_RTLREADING);
     }
 
     TEST_METHOD(Test_ToMessageBoxType_HelpAndTopMostAreFlags)

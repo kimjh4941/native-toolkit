@@ -233,16 +233,14 @@
     <ClInclude Include="include\NativeToolkit\Notification.h" />
     <ClInclude Include="include\NativeToolkit\Clipboard.h" />
     <ClInclude Include="include\NativeToolkit\Types.h" />
-    <ClInclude Include="src\Common\common.h" />
     <ClInclude Include="src\Common\CommonInternal.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="src\Dialog\WindowsDialogManager.h" />
     <ClInclude Include="src\Dialog\Data\WindowsDialogFlags.h" />
     <ClInclude Include="src\Dialog\Data\WindowsDialogWin32.h" />
     <ClInclude Include="src\Dialog\Domain\WindowsDialogError.h" />
     <ClInclude Include="src\Dialog\Domain\WindowsDialogMapping.h" />
-    <ClInclude Include="src\Notification\WindowsNotificationManager.h" />
+    <ClInclude Include="src\Notification\NotificationCodes.h" />
     <ClInclude Include="src\Notification\Application\WindowsNotificationBackend.h" />
     <ClInclude Include="src\Notification\Domain\WindowsNotificationValidation.h" />
     <ClInclude Include="src\Notification\WindowsNotificationManagerInternal.h" />
@@ -250,7 +248,7 @@
     <ClInclude Include="src\Notification\Data\WindowsClassicActivator.h" />
     <ClInclude Include="src\Notification\Data\WindowsNotificationBuilder.h" />
     <ClInclude Include="src\Notification\Data\WindowsNotificationActivation.h" />
-    <ClInclude Include="src\Clipboard\WindowsClipboardManager.h" />
+    <ClInclude Include="src\Clipboard\ClipboardCodes.h" />
     <ClInclude Include="src\Clipboard\WindowsClipboardManagerInternal.h" />
     <ClInclude Include="src\Clipboard\WindowsClipboardApiInternal.h" />
     <ClInclude Include="src\Clipboard\Data\WindowsClipboardCore.h" />

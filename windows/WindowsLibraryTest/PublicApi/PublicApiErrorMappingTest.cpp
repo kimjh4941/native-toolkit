@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "NativeToolkit/Error.h"
-#include "Clipboard/WindowsClipboardManager.h"
-#include "Notification/WindowsNotificationManager.h"
+#include "Clipboard/ClipboardCodes.h"
+#include "Notification/NotificationCodes.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

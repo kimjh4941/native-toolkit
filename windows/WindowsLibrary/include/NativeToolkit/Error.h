@@ -207,7 +207,7 @@ enum class DialogError : uint32_t {
     None             = 0,  ///< Success.
     InvalidParameter = 1,  ///< A null argument, or a zero-sized buffer on the C ABI.
     Canceled         = 2,  ///< The user dismissed the dialog.
-    BufferTooSmall   = 3,  ///< Only reachable through the C ABI; the C++ API returns values.
+    BufferTooSmall   = 3,  ///< Reserved: never returned. The 1.x C ABI's caller buffer was too small.
     SystemError      = 4,  ///< GetLastError, CommDlgExtendedError or a failed HRESULT; see systemCode.
     Unknown          = 5,  ///< Anything the cases above do not cover.
 };
@@ -217,7 +217,7 @@ enum class NotificationError : uint32_t {
     None             = 0,
     NotInitialized   = 1,  ///< Used before Create, or after Close.
     Disabled         = 2,  ///< Notifications are off for this app or user.
-    InvalidPayload   = 3,  ///< The content failed validation.
+    InvalidPayload   = 3,  ///< Reserved: never returned. The 1.x C ABI's JSON payload did not parse.
     ProgressNotFound = 4,  ///< No notification to update, or a stale sequence number.
     HResultFailure   = 5,  ///< Registration, the shortcut, or the runtime bootstrap failed.
     BadgeFailed      = 6,
@@ -234,7 +234,7 @@ enum class ClipboardError : uint32_t {
     Empty                 = 4,
     FormatUnavailable     = 5,
     InvalidData           = 6,   ///< A payload failed its structural checks.
-    BufferTooSmall        = 7,   ///< Only reachable through the C ABI.
+    BufferTooSmall        = 7,   ///< Reserved: never returned. The 1.x C ABI's caller buffer was too small.
     OutOfMemory           = 8,
     AccessDenied          = 9,
     HistoryDisabled       = 10,

@@ -18,9 +18,9 @@
  *   - a progress bar binds its value string and status only when the caller
  *     provided them, because it is the presence of the key that decides.
  *
- *  The JSON path decides field by field on whether the key is present, and so
- *  does this one: the fields where an empty value differs from an absent one
- *  are optional in NotificationContent, and are read here with has_value
+ *  The 1.x JSON payload decided field by field on whether a key was present,
+ *  and so does this: the fields where an empty value differs from an absent
+ *  one are optional in NotificationContent, and are read here with has_value
  *  rather than with empty. Section 1.10 of the input inventory lists the ten
  *  places that matters, and NotificationPayloadTest pins each of them.
  *

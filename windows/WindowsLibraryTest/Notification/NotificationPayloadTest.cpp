@@ -2,7 +2,7 @@
 #include "Notification/Data/WindowsClassicActivator.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include "Notification/WindowsNotificationApiInternal.h"
-#include "Bridge/NotificationPayloadJson.h"
+#include "Support/NotificationPayloadJson.h"
 #include "Support/AppSdkRuntimeForTest.h"
 
 #include <functional>
@@ -22,12 +22,13 @@ using namespace winrt::Windows::Data::Json;
 // implementation branches on HasKey, so "" is a value, while an empty string
 // in NotificationContent means the field is not there at all.
 //
-// Each test below pins what the payload does with one of those cases, and runs
-// the route the C ABI now takes: the bridge's parser fills a
-// NotificationContent, Manager::Show validates and builds it, and a recording
-// backend hands back the XML that would have been delivered. They were written
-// against the old JSON entry point first and passed unchanged against this
-// one, which is what "the C ABI behaves the same" means here.
+// Each test below pins what the C++ API does with one of those cases: a
+// NotificationContent is written down as JSON (the test helper
+// Support/NotificationPayloadJson reads it, keeping present-but-empty apart
+// from absent), Manager::Show validates and builds it, and a recording backend
+// hands back the XML that would have been delivered. The 1.x C ABI that took
+// this JSON is gone (stage 5); what it established about the content is not,
+// and this is where the C++ side of it stays pinned.
 // ============================================================================
 
 namespace WindowsNotificationPayloadTest
@@ -226,8 +227,7 @@ public:
 
 private:
 
-    /// The XML the payload builds, with its tag and group, by the route the C
-    /// ABI now takes.
+    /// The XML the content the payload describes builds, with its tag and group.
     static std::wstring Describe(const wchar_t* payload)
     {
         NativeToolkit::Notification::NotificationContent content;
@@ -258,11 +258,11 @@ private:
         return count;
     }
 
-    /// What a C caller would read from pError for this payload.
+    /// The error this payload's content comes back with.
     ///
-    /// The two steps are the bridge's: a value of the wrong shape throws while
-    /// it is being read and has always come back as an HRESULT failure, and
-    /// everything after that is Manager::Show's answer.
+    /// A value of the wrong shape throws while the helper reads it, which the
+    /// 1.x C ABI reported as an HRESULT failure; everything after that is
+    /// Manager::Show's answer.
     static DWORD ShowError(const wchar_t* payload)
     {
         NativeToolkit::Notification::NotificationContent content;

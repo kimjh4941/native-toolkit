@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Notification/Domain/WindowsNotificationValidation.h"
-#include "Bridge/NotificationPayloadJson.h"
+#include "Support/NotificationPayloadJson.h"
 #include "Notification/WindowsNotificationManagerInternal.h"
 #include <winrt/Windows.Data.Json.h>
 

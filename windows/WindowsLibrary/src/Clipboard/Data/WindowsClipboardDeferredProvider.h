@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Clipboard/Data/WindowsClipboardCore.h"
-#include "Clipboard/WindowsClipboardManager.h"
+#include "Clipboard/ClipboardCodes.h"
 #include "NativeToolkit/Clipboard.h"
 #include <string>
 

@@ -10,7 +10,8 @@ has been implemented starts to rot:
              ABI exports its half is check_c_abi_contract.py's to say: the C
              names of this section are the 1.x ones, which stage 5 retired.
   errors     every error enumeration against the value the C ABI gives it,
-             one to one, both read from source.
+             and against the constant the implementation uses internally
+             (src/<feature>/<Feature>Codes.h), one to one, all read from source.
   retvals    every @retval a public header promises against section 11.4.
   documented every operation has a comment, and every one that can fail a
              @retval - the completion condition of T-16, kept checked.
@@ -56,6 +57,12 @@ ERROR_SOURCES = {
                        "NTK_CLIPBOARD_ERROR_"),
     "NotificationError": ("windows/WindowsLibraryCApi/include/NativeToolkitC/Notification.h",
                           "NTK_NOTIFICATION_ERROR_"),
+}
+# enum in Error.h  ->  the #define the implementation reports it with (8.5).
+# DialogError has none: the dialogs report Win32 values, not codes of their own.
+INTERNAL_SOURCES = {
+    "ClipboardError": ("windows/WindowsLibrary/src/Clipboard/ClipboardCodes.h", "CLIPBOARD_ERROR_"),
+    "NotificationError": ("windows/WindowsLibrary/src/Notification/NotificationCodes.h", "NOTIFICATION_ERROR_"),
 }
 
 # Which section of 10 cites which document.
@@ -329,6 +336,23 @@ def defined_values(path, prefix):
     return values
 
 
+def internal_values(path, prefix):
+    """The #define constants of one family, as name -> value. The family's
+    success value is spelled <FAMILY>_SUCCESS in one of them and reads as NONE."""
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    values = {}
+    family = prefix.rsplit("_ERROR_", 1)[0]
+    for match in re.finditer(r"^#define\s+(\w+)\s+(\d+)", text, re.M):
+        name, value = match.group(1), int(match.group(2))
+        if name.startswith(prefix):
+            values[name[len(prefix):]] = value
+        elif name == f"{family}_SUCCESS":
+            values["NONE"] = value
+    return values
+
+
 def flatten(name):
     return name.replace("_", "").lower()
 
@@ -365,12 +389,16 @@ def check_operations(design, rep):
 
 def check_error_enums(rep):
     checked = 0
-    for enum, (path, prefix) in sorted(ERROR_SOURCES.items()):
+    sources = [(enum, path, prefix, defined_values, "the C ABI")
+               for enum, (path, prefix) in sorted(ERROR_SOURCES.items())]
+    sources += [(enum, path, prefix, internal_values, "its internal codes")
+                for enum, (path, prefix) in sorted(INTERNAL_SOURCES.items())]
+    for enum, path, prefix, read_values, against in sources:
         members = enum_values(enum)
-        defines = defined_values(at(path), prefix)
+        defines = read_values(at(path), prefix)
         if not members or not defines:
-            rep.skip(f"{enum} matches the C ABI",
-                     "the enum or the C ABI's values could not be read")
+            rep.skip(f"{enum} matches {against}",
+                     f"the enum or {against} could not be read")
             continue
         checked += 1
 
@@ -379,13 +407,13 @@ def check_error_enums(rep):
         for member, value in members.items():
             flat = flatten(member)
             if flat not in by_flat:
-                problems.append(f"{member} has no C ABI value")
+                problems.append(f"{member} has no value in {against}")
             elif by_flat[flat] != value:
-                problems.append(f"{member}={value} but the C ABI says {by_flat[flat]}")
+                problems.append(f"{member}={value} but {against} says {by_flat[flat]}")
         for name in by_flat:
             if name not in {flatten(m) for m in members}:
                 problems.append(f"{prefix}{name.upper()} has no enumerator")
-        rep.check(not problems, f"{enum} matches the C ABI ({len(members)} values)",
+        rep.check(not problems, f"{enum} matches {against} ({len(members)} values)",
                   "; ".join(problems))
 
     if checked == 0:

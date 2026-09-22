@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Bridge/NotificationPayloadJson.h"
+#include "Support/NotificationPayloadJson.h"
 
 #include <string>
 
@@ -140,22 +140,6 @@ void ReadProgress(const JsonObject& json, NotificationContent& content)
     content.progress  = std::move(progress);
 }
 
-/// Every key the payload knows. Anything else is kept rather than dropped.
-const wchar_t* const kKnownKeys[] = {
-    L"title", L"body", L"tag", L"group", L"scenario", L"duration",
-    L"buttons", L"textBoxes", L"comboBoxes", L"appLogo",
-    L"heroImage", L"inlineImage", L"audio", L"progress",
-    L"attribution", L"timestamp", L"expiration", L"expiresOnReboot",
-};
-
-bool IsKnown(const winrt::hstring& key)
-{
-    for (const wchar_t* known : kKnownKeys) {
-        if (key == known) return true;
-    }
-    return false;
-}
-
 }  // namespace
 
 void Read(const JsonObject& json, NotificationContent& content)
@@ -189,13 +173,7 @@ void Read(const JsonObject& json, NotificationContent& content)
     content.expiresOnReboot =
         json.HasKey(L"expiresOnReboot") && json.GetNamedBoolean(L"expiresOnReboot");
 
-    // A key the payload does not know has always been ignored without
-    // complaint, so it must not become an error now (NTF-64).
-    for (const auto& [key, value] : json) {
-        if (!IsKnown(key)) {
-            content.unknownKeys.emplace_back(std::wstring{key}, std::wstring{value.Stringify()});
-        }
-    }
+    // A key the payload does not know is ignored, as the 1.x parser did (NTF-64).
 }
 
 }  // namespace NotificationPayloadJson

@@ -92,10 +92,9 @@
     <ClCompile Include="Dialog\DialogErrorDomainTest.cpp" />
     <ClCompile Include="Dialog\DialogMappingTest.cpp" />
     <ClCompile Include="Notification\NotificationBuilderTest.cpp" />
+    <ClCompile Include="Notification\NotificationPayloadTest.cpp" />
     <ClCompile Include="Support\AppSdkRuntimeForTest.cpp" />
     <ClCompile Include="Notification\NotificationApiTest.cpp" />
-    <ClCompile Include="Notification\NotificationBridgeTest.cpp" />
-    <ClCompile Include="Notification\NotificationPayloadTest.cpp" />
     <ClCompile Include="Notification\NotificationValidationDomainTest.cpp" />
     <ClCompile Include="PublicApi\PublicApiTypesTest.cpp" />
     <ClCompile Include="PublicApi\PublicApiErrorMappingTest.cpp" />
@@ -103,7 +102,6 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Clipboard\ClipboardApiTest.cpp" />
-    <ClCompile Include="Clipboard\ClipboardBridgeTest.cpp" />
     <ClCompile Include="Clipboard\ClipboardApiCoreTest.cpp" />
     <ClCompile Include="Clipboard\ClipboardApiDeferredTest.cpp" />
     <ClCompile Include="Clipboard\ClipboardApiHistoryTest.cpp" />
@@ -120,16 +118,10 @@
     <ClCompile Include="..\WindowsLibrary\src\Notification\WindowsNotificationApi.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-        <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationBridge.cpp">
+        <ClCompile Include="Support\ClipboardPayloadJson.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-        <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardBridge.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-        <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardPayloadJson.cpp">
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-    </ClCompile>
-        <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationPayloadJson.cpp">
+        <ClCompile Include="Support\NotificationPayloadJson.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\WindowsLibrary\src\Notification\Data\WindowsClassicActivator.cpp">
@@ -170,6 +162,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Support\AppSdkRuntimeForTest.h" />
+    <ClInclude Include="Support\ClipboardPayloadJson.h" />
+    <ClInclude Include="Support\NotificationPayloadJson.h" />
     <ClInclude Include="Support\ClipboardSessionForTest.h" />
   </ItemGroup>
   <ItemGroup>

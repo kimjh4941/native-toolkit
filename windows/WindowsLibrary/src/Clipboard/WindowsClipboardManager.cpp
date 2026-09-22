@@ -367,9 +367,9 @@ void ClipboardManager::SetHistoryCallbacks(ClipboardHistoryChangedCallback onHis
 // -----------------------------------------------------------------------
 // Win32 synchronous core
 //
-// Everything here takes and returns values. The C ABI's caller buffers and its
-// JSON are the bridge's work (Bridge/ClipboardBridge, Bridge/ClipboardPayloadJson),
-// so there is one way to reach the clipboard rather than one for each caller.
+// Everything here takes and returns values. Turning them into what a caller
+// holds is the C++ API's work, and the C ABI's on top of it, so there is one
+// way to reach the clipboard rather than one for each caller.
 // -----------------------------------------------------------------------
 
 void ClipboardManager::ClearClipboard(DWORD* pError)
@@ -571,8 +571,7 @@ bool ClipboardManager::HasFormatNamed(const std::wstring& formatName, DWORD* pEr
     if (!AcquireSyncLease(pError, lease, hwnd)) return false;
     // An empty name is not an error: it is a name no format has, so the answer
     // is simply no. Only a null one is refused, and a null one cannot get this
-    // far. Asking is not writing, so there is nothing to protect here that the
-    // C ABI does not already leave unprotected (ClipboardBridgeTest).
+    // far. Asking is not writing, so there is nothing here to protect.
     const bool has = ::HasFormat(ResolveFormatId(formatName));
     SetErr(pError, CLIPBOARD_ERROR_NONE);
     return has;

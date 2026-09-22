@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Bridge/ClipboardPayloadJson.h"
+#include "Support/ClipboardPayloadJson.h"
 
 #include <winrt/Windows.Data.Json.h>
 

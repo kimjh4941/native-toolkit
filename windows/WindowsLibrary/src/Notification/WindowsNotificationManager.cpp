@@ -516,9 +516,9 @@ std::wstring WindowsNotificationManager::ArgsToJson(
 // =============================================================================
 // BuildPayload
 //
-// The payload arrives as a NotificationContent. Reading the C ABI's JSON into
-// one is the bridge's work (Bridge/NotificationPayloadJson), so there is one
-// way to build a notification here rather than one for each caller.
+// The payload arrives as a NotificationContent, whoever is asking: the C
+// ABI builds one with its content builder. There is one way to build a
+// notification here rather than one for each caller.
 // =============================================================================
 
 DeliverPayload WindowsNotificationManager::BuildPayload(

@@ -21,17 +21,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardBridge.cpp">
-      <Filter>Library Sources</Filter>
+    <ClCompile Include="Support\ClipboardPayloadJson.cpp">
+      <Filter>Support</Filter>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\src\Bridge\ClipboardPayloadJson.cpp">
-      <Filter>Library Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationBridge.cpp">
-      <Filter>Library Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\src\Bridge\NotificationPayloadJson.cpp">
-      <Filter>Library Sources</Filter>
+    <ClCompile Include="Support\NotificationPayloadJson.cpp">
+      <Filter>Support</Filter>
     </ClCompile>
     <ClCompile Include="..\WindowsLibrary\src\Clipboard\Application\WindowsClipboardHistoryCoordinator.cpp">
       <Filter>Library Sources</Filter>
@@ -84,9 +78,6 @@
     <ClCompile Include="Clipboard\ClipboardApiTest.cpp">
       <Filter>Clipboard</Filter>
     </ClCompile>
-    <ClCompile Include="Clipboard\ClipboardBridgeTest.cpp">
-      <Filter>Clipboard</Filter>
-    </ClCompile>
     <ClCompile Include="Clipboard\ClipboardCoreTest.cpp">
       <Filter>Clipboard</Filter>
     </ClCompile>
@@ -108,16 +99,13 @@
     <ClCompile Include="Notification\NotificationApiTest.cpp">
       <Filter>Notification</Filter>
     </ClCompile>
-    <ClCompile Include="Notification\NotificationBridgeTest.cpp">
-      <Filter>Notification</Filter>
-    </ClCompile>
     <ClCompile Include="Notification\NotificationBuilderTest.cpp">
       <Filter>Notification</Filter>
     </ClCompile>
-    <ClCompile Include="Notification\NotificationManagerTest.cpp">
+    <ClCompile Include="Notification\NotificationPayloadTest.cpp">
       <Filter>Notification</Filter>
     </ClCompile>
-    <ClCompile Include="Notification\NotificationPayloadTest.cpp">
+    <ClCompile Include="Notification\NotificationManagerTest.cpp">
       <Filter>Notification</Filter>
     </ClCompile>
     <ClCompile Include="Notification\NotificationValidationDomainTest.cpp">
@@ -138,6 +126,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Support\ClipboardPayloadJson.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\NotificationPayloadJson.h">
+      <Filter>Support</Filter>
+    </ClInclude>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Support\AppSdkRuntimeForTest.h">
       <Filter>Support</Filter>
