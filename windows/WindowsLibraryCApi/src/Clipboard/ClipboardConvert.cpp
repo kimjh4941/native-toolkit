@@ -97,18 +97,46 @@ bool ToBytes(const uint8_t* data, size_t size, std::vector<std::byte>& out)
     return true;
 }
 
-bool ToPaths(const char* const* paths, size_t count, std::vector<std::wstring>& out)
+bool ToStrings(const char* const* strings, size_t count, std::vector<std::wstring>& out)
 {
     out.clear();
     if (count == 0) return true;
-    if (!paths) return false;
+    if (!strings) return false;
     out.reserve(count);
     for (size_t i = 0; i < count; ++i) {
-        std::wstring path;
-        if (!RequiredText(paths[i], path)) return false;
-        out.push_back(std::move(path));
+        std::wstring text;
+        if (!RequiredText(strings[i], text)) return false;
+        out.push_back(std::move(text));
     }
     return true;
+}
+
+Api::RenderProvider MakeRenderProvider(ntk_clipboard_render_fn fn, std::shared_ptr<ReleaseGuard> guard,
+                                       std::shared_ptr<CallbackGate> gate)
+{
+    return [fn, guard = std::move(guard), gate = std::move(gate)](std::wstring_view formatName)
+               -> Api::Result<std::vector<std::byte>> {
+        // Called from the owner's window procedure; nothing may leave it.
+        try {
+            const std::string name = WideToUtf8(formatName);
+            ntk_clipboard_render_target target;
+            ntk_clipboard_error code = NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE;
+            gate->Run([&] {
+                // After release the user_data is the caller's again.
+                if (guard->IsFired()) return;
+                code = NTK_CLIPBOARD_ERROR_UNKNOWN;
+                CallCaller([&] { code = fn(guard->UserData(), name.c_str(), &target); });
+            });
+            if (code == NTK_CLIPBOARD_ERROR_NONE && target.set) return std::move(target.bytes);
+            // Nothing to render: the provider failed, or returned NONE without
+            // handing anything over (7.5.3).
+            if (code == NTK_CLIPBOARD_ERROR_NONE) code = NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE;
+            return NativeToolkit::Unexpected{Api::Error{static_cast<Api::ErrorCode>(code), static_cast<uint32_t>(code)}};
+        } catch (...) {
+            return NativeToolkit::Unexpected{
+                Api::Error{Api::ErrorCode::Unknown, static_cast<uint32_t>(NTK_CLIPBOARD_ERROR_UNKNOWN)}};
+        }
+    };
 }
 
 }  // namespace NativeToolkitC::Detail::Clipboard

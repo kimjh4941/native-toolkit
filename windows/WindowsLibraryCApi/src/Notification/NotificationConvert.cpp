@@ -38,16 +38,6 @@ ntk_notification_error ReadStruct(const T* in, T& out)
 
 }  // namespace
 
-std::shared_ptr<ReleaseGuard> NewGuard(ntk_release_fn release, void* userData)
-{
-    try {
-        return std::make_shared<ReleaseGuard>(release, userData);
-    } catch (...) {
-        if (release) CallCaller([&] { release(userData); });
-        throw;
-    }
-}
-
 std::function<void(const Api::ActivationArgs&)> MakeHandler(ntk_notification_invoked_fn fn,
                                                              std::shared_ptr<ReleaseGuard> guard)
 {

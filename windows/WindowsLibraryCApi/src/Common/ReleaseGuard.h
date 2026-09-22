@@ -2,6 +2,7 @@
 // The release callback, called exactly once (stage 5 design 7.5.1, 7.5.3).
 
 #include <atomic>
+#include <memory>
 
 #include "NativeToolkitC/Common.h"
 
@@ -35,5 +36,13 @@ private:
     void*             userData_;
     std::atomic<bool> fired_{false};
 };
+
+/**
+ * @brief A guard for release and userData, shared by every copy of a callback.
+ * @details If the guard cannot be allocated, release is called here and
+ *          std::bad_alloc is rethrown: release runs exactly once whatever
+ *          happens (7.5.1).
+ */
+std::shared_ptr<ReleaseGuard> NewReleaseGuard(ntk_release_fn release, void* userData);
 
 }  // namespace NativeToolkitC::Detail

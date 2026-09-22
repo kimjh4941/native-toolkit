@@ -39,6 +39,9 @@
     <ClInclude Include="src\Clipboard\ClipboardConvert.h">
       <Filter>src\Clipboard</Filter>
     </ClInclude>
+    <ClInclude Include="src\Clipboard\ClipboardResult.h">
+      <Filter>src\Clipboard</Filter>
+    </ClInclude>
     <ClInclude Include="src\Common\CallbackGate.h">
       <Filter>src\Common</Filter>
     </ClInclude>
@@ -78,6 +81,12 @@
       <Filter>src\Clipboard</Filter>
     </ClCompile>
     <ClCompile Include="src\Clipboard\ClipboardConvert.cpp">
+      <Filter>src\Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Clipboard\ClipboardDeferredCApi.cpp">
+      <Filter>src\Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Clipboard\ClipboardItemsCApi.cpp">
       <Filter>src\Clipboard</Filter>
     </ClCompile>
     <ClCompile Include="src\Common\CallbackGate.cpp">

@@ -24,6 +24,12 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardConvert.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardDeferredCApi.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardItemsCApi.cpp">
+      <Filter>C ABI Sources</Filter>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Common\CallbackGate.cpp">
       <Filter>C ABI Sources</Filter>
     </ClCompile>
@@ -61,6 +67,12 @@
       <Filter>C ABI Sources</Filter>
     </ClCompile>
     <ClCompile Include="Clipboard\CApiClipboardHeaderAsC.c">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\CApiClipboardDeferredTest.cpp">
+      <Filter>Clipboard</Filter>
+    </ClCompile>
+    <ClCompile Include="Clipboard\CApiClipboardItemsTest.cpp">
       <Filter>Clipboard</Filter>
     </ClCompile>
     <ClCompile Include="Clipboard\CApiClipboardTest.cpp">

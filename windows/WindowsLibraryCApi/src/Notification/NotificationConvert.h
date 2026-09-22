@@ -53,13 +53,11 @@ namespace NativeToolkitC::Detail::Notification {
 
 namespace Api = NativeToolkit::Notification;
 
-/**
- * @brief A guard for release and user_data.
- * @details If the guard cannot be allocated, release is called here and
- *          std::bad_alloc is rethrown: release runs exactly once whatever
- *          happens (7.5.1).
- */
-std::shared_ptr<ReleaseGuard> NewGuard(ntk_release_fn release, void* userData);
+/// A guard for release and user_data; see NewReleaseGuard.
+inline std::shared_ptr<ReleaseGuard> NewGuard(ntk_release_fn release, void* userData)
+{
+    return NewReleaseGuard(release, userData);
+}
 
 /// The C++ handler that calls fn with the guard's user_data, or an empty one
 /// for a NULL fn. Every copy holds a share of the guard. Nothing it does

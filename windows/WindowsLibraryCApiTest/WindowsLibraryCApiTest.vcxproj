@@ -96,6 +96,12 @@
     <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardConvert.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardDeferredCApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibraryCApi\src\Clipboard\ClipboardItemsCApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\WindowsLibraryCApi\src\Common\CallbackGate.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -138,6 +144,8 @@
       <CompileAs>CompileAsC</CompileAs>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
+    <ClCompile Include="Clipboard\CApiClipboardDeferredTest.cpp" />
+    <ClCompile Include="Clipboard\CApiClipboardItemsTest.cpp" />
     <ClCompile Include="Clipboard\CApiClipboardTest.cpp" />
     <ClCompile Include="Common\CApiCommonTest.cpp" />
     <ClCompile Include="Common\CApiHeadersAsC.c">

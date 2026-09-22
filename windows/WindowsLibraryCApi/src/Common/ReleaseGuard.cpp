@@ -14,4 +14,14 @@ void ReleaseGuard::Fire() noexcept
     }
 }
 
+std::shared_ptr<ReleaseGuard> NewReleaseGuard(ntk_release_fn release, void* userData)
+{
+    try {
+        return std::make_shared<ReleaseGuard>(release, userData);
+    } catch (...) {
+        if (release) CallCaller([&] { release(userData); });
+        throw;
+    }
+}
+
 }  // namespace NativeToolkitC::Detail

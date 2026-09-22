@@ -11,63 +11,12 @@
 #include <vector>
 
 #include "Clipboard/ClipboardConvert.h"
-#include "Common/Guard.h"
+#include "Clipboard/ClipboardResult.h"
 #include "Common/Handles.h"
-#include "Common/LastError.h"
 #include "Common/Utf8.h"
 
 using namespace NativeToolkitC::Detail;
 using namespace NativeToolkitC::Detail::Clipboard;
-
-namespace {
-
-constexpr ntk_clipboard_error kInvalid = NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
-
-ntk_clipboard_error Succeed() noexcept
-{
-    SetLastSystemCode(0);
-    return NTK_CLIPBOARD_ERROR_NONE;
-}
-
-ntk_clipboard_error Fail(ntk_clipboard_error code, uint32_t systemCode = 0) noexcept
-{
-    SetLastSystemCode(systemCode);
-    return code;
-}
-
-ntk_clipboard_error Fail(const Api::Error& error) noexcept
-{
-    // The C values are the C++ enumeration's (checked by T-11).
-    return Fail(static_cast<ntk_clipboard_error>(error.code), error.systemCode);
-}
-
-ntk_clipboard_error Done(const Api::Result<void>& result) noexcept
-{
-    return result.has_value() ? Succeed() : Fail(result.error());
-}
-
-/// Everything below runs inside this: no exception leaves the C ABI (7.7).
-/// The C++ API reports its own out-of-memory with the error value as the
-/// system code, and so does this.
-template <class F>
-ntk_clipboard_error Run(F&& body) noexcept
-{
-    return Guarded<ntk_clipboard_error>(NTK_CLIPBOARD_ERROR_UNKNOWN, NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY,
-                                        NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY, body);
-}
-
-/// An operation on the session: a NULL handle is refused, anything else is
-/// the C++ API's to answer, closed or not.
-template <class F>
-ntk_clipboard_error WithSession(ntk_clipboard_session* session, F&& body) noexcept
-{
-    return Run([&]() -> ntk_clipboard_error {
-        if (!session) return Fail(kInvalid);
-        return body(session->session);
-    });
-}
-
-}  // namespace
 
 // =============================================================================
 // Session (OP-21..OP-24)
@@ -95,7 +44,14 @@ extern "C" ntk_clipboard_error NTK_CALL ntk_clipboard_session_create(
 
 extern "C" ntk_clipboard_error NTK_CALL ntk_clipboard_session_close(ntk_clipboard_session* session)
 {
-    return WithSession(session, [](Api::Session& s) { return Done(s.Close()); });
+    return WithSession(session, [&](Api::Session& s) -> ntk_clipboard_error {
+        const auto result = s.Close();
+        if (!result.has_value()) return Fail(result.error());
+        // The window is gone, so no provider is called again; the C++ API
+        // keeps its copies all the same, and the releases are due now (7.5.3).
+        session->FireGuards();
+        return Succeed();
+    });
 }
 
 extern "C" int32_t NTK_CALL ntk_clipboard_session_can_close(const ntk_clipboard_session* session)
@@ -109,6 +65,7 @@ extern "C" void NTK_CALL ntk_clipboard_session_free(ntk_clipboard_session* sessi
     // Callbacks stop first, and the ones running on other threads finish,
     // before the Session goes; an unclosed one is then abandoned (7.4).
     session->gate->Shut();
+    session->FireGuards();
     delete session;
 }
 
@@ -183,7 +140,7 @@ extern "C" ntk_clipboard_error NTK_CALL ntk_clipboard_copy_files(
     return WithSession(session, [&](Api::Session& s) -> ntk_clipboard_error {
         Api::WriteOptions options;
         std::vector<std::wstring> widePaths;
-        if (ToWriteOptions(flags, options) != NTK_CLIPBOARD_ERROR_NONE || !ToPaths(paths, count, widePaths)) {
+        if (ToWriteOptions(flags, options) != NTK_CLIPBOARD_ERROR_NONE || !ToStrings(paths, count, widePaths)) {
             return Fail(kInvalid);
         }
         return Done(s.CopyFiles(widePaths, options));

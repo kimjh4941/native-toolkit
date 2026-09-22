@@ -887,8 +887,9 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
   - `Manager::Create`（OS への登録）: C ABI の `SetManagerFactoryForTest`。テストは C++ の `Detail::TestAccess::MakeManager` の上の工場を渡す
   - 活性化の配送: C++ の `TestAccess::Activate`。配送の「ハンドラのコピーの後、呼ぶ前」で止める `TestAccess::SetAfterHandlerCopy`（CT-18）
   - 生きているテスト用のマネージャーの操作は OS に届くので、Notification の操作は入口の検査と閉じたマネージャーの経路で確かめる。成功の経路は C++ API のテストと CT-21 が受け持つ
-  - Clipboard: C++ API のテストの `StoringClipboard` と履歴の backend の差し込み口（`WindowsLibraryTest/Support/ClipboardSessionForTest.h`、`SetHistoryBackendFactoryForTest`）を、include パスの最後に置いた `..\WindowsLibraryTest` から使う。各テストは STA のオーナースレッドで C ABI のセッションを作り、終わりに `ClipboardTestAccess::ResetProcessState` で放棄の記録も戻す
-  - クリップボードの変化の通知: テストがセッションの隠しウィンドウ（偽のクリップボードを最後に開いたウィンドウ）へ `WM_CLIPBOARDUPDATE` を送って起こす
+  - Clipboard: Win32 の差し込み口（`SetWin32ApiForTest`）と履歴の backend の差し込み口（`SetHistoryBackendFactoryForTest`）を使い、C++ API のテストの harness の部品（`WindowsLibraryTest/Support/ClipboardSessionForTest.h`）を include パスの最後に置いた `..\WindowsLibraryTest` から使う。各テストは STA のオーナースレッドで C ABI のセッションを作り、終わりに `ClipboardTestAccess::ResetProcessState` で放棄の記録も戻す
+  - 偽のクリップボードは C++ API のテストの `StoringClipboard` ではなく、C ABI のテストの `OwnerClipboard`（`WindowsLibraryCApiTest/Clipboard/CApiClipboardHarness.h`）を使う。`StoringClipboard` と同じく中身を保持したうえで、Windows と同じくオーナーへ `WM_DESTROYCLIPBOARD`（空にしたとき）と `WM_RENDERFORMAT`（予約だけの形式を読んだとき）を送る。遅延レンダリングの `release` の時期（7.5.3）はこの 2 つのメッセージで決まるので、送らない偽物では CT-13 を確かめられない（T-08 で置き換えた）。ウィンドウを壊したときの `WM_RENDERALLFORMATS` は送れないので、close の中で provider が呼ばれることは単体テストでは確かめない
+  - クリップボードの変化の通知: テストがセッションの隠しウィンドウ（クリップボードのオーナー）へ `WM_CLIPBOARDUPDATE` を送って起こす
 
 ### 12.2 実際の DLL を通す確認
 

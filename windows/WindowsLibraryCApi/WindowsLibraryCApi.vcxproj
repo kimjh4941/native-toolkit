@@ -88,6 +88,7 @@
     <ClInclude Include="include\NativeToolkitC\Dialog.h" />
     <ClInclude Include="include\NativeToolkitC\Notification.h" />
     <ClInclude Include="src\Clipboard\ClipboardConvert.h" />
+    <ClInclude Include="src\Clipboard\ClipboardResult.h" />
     <ClInclude Include="src\Common\CallbackGate.h" />
     <ClInclude Include="src\Common\Guard.h" />
     <ClInclude Include="src\Common\Handles.h" />
@@ -103,6 +104,8 @@
   <ItemGroup>
     <ClCompile Include="src\Clipboard\ClipboardCApi.cpp" />
     <ClCompile Include="src\Clipboard\ClipboardConvert.cpp" />
+    <ClCompile Include="src\Clipboard\ClipboardDeferredCApi.cpp" />
+    <ClCompile Include="src\Clipboard\ClipboardItemsCApi.cpp" />
     <ClCompile Include="src\Common\CallbackGate.cpp" />
     <ClCompile Include="src\Common\Handles.cpp" />
     <ClCompile Include="src\Common\LastError.cpp" />

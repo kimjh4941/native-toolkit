@@ -87,7 +87,7 @@ EXPORTS
 	ntk_clipboard_session_free
 	; Clipboard: history handlers (OP-22)
 	ntk_clipboard_set_history_handlers
-	; Clipboard: read and write (OP-25..OP-39; OP-35 comes with the multi-format builder)
+	; Clipboard: read and write (OP-25..OP-39)
 	ntk_clipboard_copy_text
 	ntk_clipboard_paste_text
 	ntk_clipboard_copy_html
@@ -98,7 +98,18 @@ EXPORTS
 	ntk_clipboard_paste_dib
 	ntk_clipboard_copy_custom
 	ntk_clipboard_paste_custom
+	ntk_clipboard_copy_multiple
 	ntk_clipboard_has_format
 	ntk_clipboard_get_formats
 	ntk_clipboard_get_preferred_format
 	ntk_clipboard_clear
+	; Clipboard: multi-format builder
+	ntk_clipboard_items_create
+	ntk_clipboard_items_add_text
+	ntk_clipboard_items_add_html
+	ntk_clipboard_items_add_bytes
+	ntk_clipboard_items_free
+	; Clipboard: deferred rendering (OP-40, OP-41)
+	ntk_clipboard_reserve_deferred
+	ntk_clipboard_recover_deferred_state
+	ntk_clipboard_render_target_set
