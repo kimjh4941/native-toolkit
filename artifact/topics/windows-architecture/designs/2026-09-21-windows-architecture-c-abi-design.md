@@ -897,7 +897,7 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
 
 | ID | 確かめること | 方法 |
 |---|---|---|
-| CT-21 | 公開ヘッダーと import ライブラリだけで組んだ C の実行ファイルと C++ の実行ファイルが、実際の DLL で動く（C++ はリンケージの確認のため） | `WindowsLibraryCApiSmoke`（C、`/TC`）が次を行う。`ntk_version` がヘッダーの `NTK_VERSION` と一致する。`ntk_string` などの出力を得て解放する。構造体の入力を渡す。Clipboard のセッションを STA で作り、テキストを往復させ、履歴の可否の完了を 1 回受け取って close する（前面でないときは `NOT_FOREGROUND` の完了で可）。Dialog と通知は UI を出さない関数だけ |
+| CT-21 | 公開ヘッダーと import ライブラリだけで組んだ C の実行ファイルと C++ の実行ファイルが、実際の DLL で動く（C++ はリンケージの確認のため） | `WindowsLibraryCApiSmoke`（C、`/TC`）が次を行う。`ntk_version` がヘッダーの `NTK_VERSION` と一致する。`ntk_string` などの出力を得て解放する。構造体の入力を渡す。Clipboard のセッションを STA で作り、テキストを往復させ、履歴の可否の完了を 1 回受け取って close する（前面でないときは `NOT_FOREGROUND` の完了で可）。Dialog と通知は UI を出さない関数だけ。同じ `smoke.c` を C（`WindowsLibraryCApiSmoke`）と C++（`WindowsLibraryCApiSmokeCpp`）で組む。**本物のクリップボードに書く**ので、書き込みは `NTK_CLIPBOARD_WRITE_SENSITIVE`（履歴とローミングに残さない）にし、元がテキストだけならそのテキストに戻す。テキスト以外があるときは往復を飛ばして終了コード 2 を返し、`--overwrite-clipboard` を付けたときだけ上書きして最後に空にする。`scripts/test_windows.ps1` は単体テストの後に両方を `--overwrite-clipboard` で流す（UI テストもクリップボードに書く） |
 
 ### 12.3 機械照合（T-11）
 

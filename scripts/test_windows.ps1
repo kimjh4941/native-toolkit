@@ -5,7 +5,9 @@
 
 .DESCRIPTION
   1. Builds WindowsLibrary.sln and runs the unit tests (WindowsLibraryTest and
-     WindowsLibraryCApiTest) with vstest.console.exe.
+     WindowsLibraryCApiTest) with vstest.console.exe, then the C ABI smoke
+     executables (WindowsLibraryCApiSmoke, C and C++) against the real DLL.
+     The smoke run writes the clipboard, as the UI tests do.
   2. Builds WindowsLibraryExample and registers its AppX layout, so the UI
      tests always run against the build just made (a plain MSBuild does not
      update the registered layout; this does what Visual Studio's Deploy does).
@@ -253,6 +255,22 @@ try {
         $unit = Read-Trx (Find-Trx $unitResults)
         foreach ($key in $unit.Keys) { $results["unit/$key"] = $unit[$key] }
         Write-Summary 'unit' $unit
+
+        # The C ABI through its real DLL, from C and from C++ (CT-21). Exit
+        # code 0 is a pass; 2 would be a skipped round trip, which
+        # --overwrite-clipboard rules out.
+        $smoke = [ordered]@{}
+        foreach ($name in @('WindowsLibraryCApiSmoke', 'WindowsLibraryCApiSmokeCpp')) {
+            $exe = Join-Path $WindowsDir "WindowsLibrary\$Platform\$UnitTestConfiguration\$name.exe"
+            if (-not (Test-Path $exe)) {
+                Fail "Smoke executable not found at $exe."
+            }
+            Write-Step 'smoke' "$name --overwrite-clipboard"
+            & $exe '--overwrite-clipboard' | Out-Host
+            $smoke[$name] = if ($LASTEXITCODE -eq 0) { 'Passed' } else { 'Failed' }
+        }
+        foreach ($key in $smoke.Keys) { $results["smoke/$key"] = $smoke[$key] }
+        Write-Summary 'smoke' $smoke
     }
 
     # 2. Sample app. Only the sample and what it references, not the whole
