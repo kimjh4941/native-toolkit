@@ -23,7 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "scripts" / "check_cpp_api_contract.py"
 
 # What the checker reads. Copying only these keeps a case fast; anything it
-# cannot find it reports as SKIP, which the assertions below would catch.
+# cannot find it reports as a failure, which the clean case below would catch.
 COPIED = [
     "artifact/topics/windows-architecture/designs/2026-09-20-windows-architecture-cpp-api-design.md",
     "artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md",
@@ -32,15 +32,14 @@ COPIED = [
     "windows/WindowsLibrary/include/NativeToolkit/Notification.h",
     "windows/WindowsLibrary/include/NativeToolkit/Clipboard.h",
     "windows/WindowsLibrary/include/NativeToolkit/Error.h",
-    "windows/WindowsLibrary/WindowsLibrary.def",
-    "windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h",
-    "windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h",
+    "windows/WindowsLibraryCApi/include/NativeToolkitC/Dialog.h",
+    "windows/WindowsLibraryCApi/include/NativeToolkitC/Notification.h",
+    "windows/WindowsLibraryCApi/include/NativeToolkitC/Clipboard.h",
 ]
 
 DESIGN = COPIED[0]
 CLIPBOARD_H = "windows/WindowsLibrary/include/NativeToolkit/Clipboard.h"
 ERROR_H = "windows/WindowsLibrary/include/NativeToolkit/Error.h"
-EXPORTS = "windows/WindowsLibrary/WindowsLibrary.def"
 
 
 def run(root):
@@ -55,11 +54,13 @@ def failures(output):
 
 class ContractChecker(unittest.TestCase):
 
-    def check_with(self, edits=()):
+    def check_with(self, edits=(), removed=()):
         """Runs the checker over a copy of the tree, with those edits applied."""
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             for fragment in COPIED:
+                if fragment in removed:
+                    continue
                 destination = root / fragment
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(ROOT / fragment, destination)
@@ -84,9 +85,9 @@ class ContractChecker(unittest.TestCase):
 
     # --- section 8.1 against the code ---------------------------------------
 
-    def test_a_c_name_that_is_not_exported(self):
-        self.assert_catches("every C name in 8.1 is exported",
-                            (EXPORTS, "copyPlainText", "copyPlainTextRenamed"))
+    def test_a_file_it_cannot_read_fails(self):
+        output = self.check_with(removed=(ERROR_H,))
+        self.assertTrue(any("cannot check" in line for line in failures(output)), output)
 
     def test_a_cpp_name_the_headers_do_not_declare(self):
         self.assert_catches("every C++ name in 8.1 is declared",
@@ -101,12 +102,12 @@ class ContractChecker(unittest.TestCase):
     # --- the enumerations against their #define -----------------------------
 
     def test_an_enumerator_whose_value_moved(self):
-        self.assert_catches("ClipboardError matches its #define",
+        self.assert_catches("ClipboardError matches the C ABI",
                             (ERROR_H, "    Busy                  = 3,",
                              "    Busy                  = 33,"))
 
     def test_an_enumerator_that_was_renamed(self):
-        self.assert_catches("NotificationError matches its #define",
+        self.assert_catches("NotificationError matches the C ABI",
                             (ERROR_H, "    Disabled         = 2,",
                              "    DisabledRenamed  = 2,"))
 

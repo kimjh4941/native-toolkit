@@ -5,18 +5,19 @@ check_design_consistency.py asks whether a document agrees with itself. This
 asks whether it agrees with everything outside it, which is where a design that
 has been implemented starts to rot:
 
-  ops        the 47 operations of section 8.1, derived from both ends - the C
-             names from the DLL's export list, the C++ names from the public
-             headers - so neither list can drift without the other noticing.
-  errors     every error enumeration against the #define it was copied from,
+  ops        the 47 operations of section 8.1 against the public headers, so
+             neither list can drift without the other noticing. Whether the C
+             ABI exports its half is check_c_abi_contract.py's to say: the C
+             names of this section are the 1.x ones, which stage 5 retired.
+  errors     every error enumeration against the value the C ABI gives it,
              one to one, both read from source.
   retvals    every @retval a public header promises against section 11.4.
   documented every operation has a comment, and every one that can fail a
              @retval - the completion condition of T-16, kept checked.
   citations  every line number section 10 cites, against the document it cites.
 
-Each check reports OK, FAIL, or SKIP. A check that cannot find its subject
-reports SKIP and never OK: a silent vacuous pass hands out false confidence,
+Each check reports OK or FAIL. A check that cannot find its subject fails
+(stage 5 design 8.5, R-30): a silent vacuous pass hands out false confidence,
 which is worse than having no check at all. A check whose subject is present
 but which found nothing to compare also fails, for the same reason.
 
@@ -46,16 +47,16 @@ PUBLIC_HEADERS = [
     "windows/WindowsLibrary/include/NativeToolkit/Clipboard.h",
 ]
 ERROR_HEADER = "windows/WindowsLibrary/include/NativeToolkit/Error.h"
-EXPORT_LIST = "windows/WindowsLibrary/WindowsLibrary.def"
-
-# enum in Error.h  ->  the #define block it was copied from.
+# enum in Error.h  ->  the C ABI header whose anonymous enum carries its values
+# (stage 5 design E-8, 8.5).
 ERROR_SOURCES = {
-    "ClipboardError": ("windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h",
-                       "CLIPBOARD_ERROR_"),
-    "NotificationError": ("windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h",
-                          "NOTIFICATION_ERROR_"),
+    "DialogError": ("windows/WindowsLibraryCApi/include/NativeToolkitC/Dialog.h",
+                    "NTK_DIALOG_ERROR_"),
+    "ClipboardError": ("windows/WindowsLibraryCApi/include/NativeToolkitC/Clipboard.h",
+                       "NTK_CLIPBOARD_ERROR_"),
+    "NotificationError": ("windows/WindowsLibraryCApi/include/NativeToolkitC/Notification.h",
+                          "NTK_NOTIFICATION_ERROR_"),
 }
-# DialogError is new in this design (G-1) and has no #define to agree with.
 
 # Which section of 10 cites which document.
 CITED_DOCUMENTS = {
@@ -97,7 +98,8 @@ class Report:
         self.notes.append(f"  OK   {name}" + (f": {detail}" if detail else ""))
 
     def skip(self, name, why):
-        self.notes.append(f"  SKIP {name}: {why}")
+        # Not being able to look is a failure, never a pass (8.5).
+        self.failures.append(f"  FAIL {name}: cannot check: {why}")
 
     def check(self, condition, name, detail=""):
         if condition:
@@ -192,17 +194,6 @@ def operations(design):
 # ---------------------------------------------------------------------------
 # Reading the code
 # ---------------------------------------------------------------------------
-
-def exported_names():
-    if not at(EXPORT_LIST).exists():
-        return set()
-    names = set()
-    for line in at(EXPORT_LIST).read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and line not in ("EXPORTS",) and not line.startswith((";", "LIBRARY")):
-            names.add(line)
-    return names
-
 
 # A declaration ends at its semicolon and may span several lines, and its
 # parameter list may contain braces, because a default argument can be "= {}".
@@ -325,18 +316,16 @@ def enum_values(name):
 
 
 def defined_values(path, prefix):
-    """The #define constants of one family, as name -> value."""
+    """The C ABI's constants of one family, from its anonymous enums, as
+    name -> value (NTK_CLIPBOARD_ERROR_BUSY = 3 reads as BUSY -> 3)."""
     if not path.exists():
         return {}
     text = path.read_text(encoding="utf-8")
     values = {}
-    for match in re.finditer(r"^#define\s+(\w+)\s+(\d+)", text, re.M):
-        name, value = match.group(1), int(match.group(2))
-        family = prefix.rsplit("_ERROR_", 1)[0]
-        if name.startswith(prefix):
-            values[name[len(prefix):]] = value
-        elif name == f"{family}_SUCCESS":
-            values["NONE"] = value
+    for body in re.findall(r"enum\s*\{(.*?)\};", text, re.S):
+        for name, value in re.findall(r"(\w+)\s*=\s*(\d+)", body):
+            if name.startswith(prefix):
+                values[name[len(prefix):]] = int(value)
     return values
 
 
@@ -357,14 +346,6 @@ def check_operations(design, rep):
     if not declared:
         rep.skip("operations", "no public headers to read")
         return
-
-    exports = exported_names()
-    if exports:
-        missing = sorted(c for _, (c, _, _) in sorted(ops.items()) if c not in exports)
-        rep.check(not missing, "every C name in 8.1 is exported",
-                  f"not exported: {', '.join(missing)}")
-    else:
-        rep.skip("every C name in 8.1 is exported", "no export list")
 
     names = {n for _, n in declared}
     undeclared = []
@@ -388,8 +369,8 @@ def check_error_enums(rep):
         members = enum_values(enum)
         defines = defined_values(at(path), prefix)
         if not members or not defines:
-            rep.skip(f"{enum} matches its #define",
-                     "the enum or the #define block could not be read")
+            rep.skip(f"{enum} matches the C ABI",
+                     "the enum or the C ABI's values could not be read")
             continue
         checked += 1
 
@@ -398,13 +379,13 @@ def check_error_enums(rep):
         for member, value in members.items():
             flat = flatten(member)
             if flat not in by_flat:
-                problems.append(f"{member} has no #define")
+                problems.append(f"{member} has no C ABI value")
             elif by_flat[flat] != value:
-                problems.append(f"{member}={value} but the #define says {by_flat[flat]}")
+                problems.append(f"{member}={value} but the C ABI says {by_flat[flat]}")
         for name in by_flat:
             if name not in {flatten(m) for m in members}:
                 problems.append(f"{prefix}{name.upper()} has no enumerator")
-        rep.check(not problems, f"{enum} matches its #define ({len(members)} values)",
+        rep.check(not problems, f"{enum} matches the C ABI ({len(members)} values)",
                   "; ".join(problems))
 
     if checked == 0:
