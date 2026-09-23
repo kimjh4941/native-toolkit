@@ -48,6 +48,7 @@ run while writing a design or before a commit.
 | `check_cpp_api_contract.py` | The Windows C++ API design against the public headers and what it cites |
 | `check_c_abi_contract.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A |
 | `check_sample_app_inputs.py` | That no sample app screen declares a text input field (`agent-rules/coding-rules/common.md`) |
+| `check_manual_c_examples.py [<version>]` | The manual's C examples against the C ABI: every exported function is shown, every name exists, the three languages carry the same code, and the examples compile as C |
 
 ## Test
 
@@ -78,7 +79,7 @@ breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 56 cases
+python -m unittest discover -s scripts/tests    # 68 cases
 ```
 
 `test_windows.ps1`, by contrast, runs the product's own tests. The two are
@@ -90,6 +91,11 @@ unrelated despite the similar names.
 |---|---|
 | `publish_docs.sh <version> [--skip-build] [--os <targets>]` | Generates each platform's API reference, copies it and `manual/<version>/` to `docs/<version>/`, and refreshes `docs/latest/` |
 | `verify_manual.sh <version> [--strict]` | Seven checks over `manual/<version>/`: image references, sample conformance, anchors, artifact names, prose style, language parity, the index feature list |
+
+Check 2 of `verify_manual.sh` compares code examples against the sample app,
+which is C++, so the C examples of the Windows chapters are outside it.
+`check_manual_c_examples.py` is what covers those; its compile check needs
+Visual Studio and reports SKIP without it, unless `--require-compile` is given.
 
 `publish_docs.sh` also moves `docs/latest/`, so it belongs to a release rather
 than to day-to-day work. The workflows that call these two are

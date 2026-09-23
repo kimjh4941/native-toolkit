@@ -13,6 +13,9 @@
 
 3. 検査を実行する
    - `./scripts/verify_manual.sh <version>` を実行する
+   - あわせて `python scripts/check_manual_c_examples.py <version>` を実行する
+     （マニュアルの C の例を C ABI と照合する。検査 2 はサンプルアプリが C++ のため C の例を見ない）
+     - Visual Studio がある環境では compile も走る。無い環境では SKIP と表示される
    - `--strict` 指定時は `./scripts/verify_manual.sh <version> --strict` を実行する
    - スクリプトが 7 項目を検査し、終了コードで停止項目の有無を返す
 

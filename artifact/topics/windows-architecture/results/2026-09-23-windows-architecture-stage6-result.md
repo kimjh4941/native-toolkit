@@ -129,4 +129,19 @@ F-3 では「C++ API を本文、C ABI を節」とし、C ABI は代表例 1〜
 | 3 言語の一致 | コメントを除いたコードが 3 言語で一致する |
 | `verify_manual.sh 1.12.0` | 停止項目は 3.3 と同じ 1 件（前版から引き継いだ macOS の画像）のみ |
 
-残る弱点: `verify_manual.sh` の検査 2（サンプル整合）はコード例をサンプルアプリと突き合わせるが、**サンプルは C++ なので C の例は対象外**である。C の例は黙って古くなり得る。今回は緩和として、C の例でも形式名やリテラル（`"CF_UNICODETEXT"`、`"NativeToolkitSample"`、`"sample"`、`"progress-sample"` など）を C++ 側と同じ値にそろえた。機械で守るなら、上記のコンパイル確認をスクリプト化するか、`WindowsLibraryCApiSmoke` を例と同じ操作まで広げるのが次の手になる。
+`verify_manual.sh` の検査 2（サンプル整合）はコード例をサンプルアプリと突き合わせるが、**サンプルは C++ なので C の例は対象外**である。放っておくと C の例は黙って古くなるため、上の 4 つの確認を `scripts/check_manual_c_examples.py` として残した（利用者の決定）。
+
+| 検査 | 内容 |
+|---|---|
+| coverage | `.def` が公開する関数がすべて、いずれかの例に登場する |
+| symbols | 例が使う `ntk_` と `NTK_` の名前がすべて公開ヘッダーに存在する |
+| parity | コメントを除いたコードが 3 言語で一致する |
+| compile | 例を素の C（`/TC`、/W4、警告をエラー扱い）でコンパイルする |
+
+- 実行: `python scripts/check_manual_c_examples.py [<版>]`。版の既定は `manual/` の最大
+- compile は Visual Studio が要るため、無い環境では SKIP と表示する。`--require-compile` を付けると失敗にする（Windows の CI 向け）
+- ファイルが読めないときは SKIP せず失敗する（R-30 と同じ方針）
+- 自己テスト 12 件を `scripts/tests/test_check_manual_c_examples.py` に置いた（`scripts/tests` 全体で 68 件）
+- `agent-rules/workflows/verify-manual/workflow.md` の手順 3 から `verify_manual.sh` と並べて実行する
+
+なお C の例でも、形式名やリテラル（`"CF_UNICODETEXT"`、`"NativeToolkitSample"`、`"sample"`、`"progress-sample"` など）は C++ 側と同じ値にそろえてある。
