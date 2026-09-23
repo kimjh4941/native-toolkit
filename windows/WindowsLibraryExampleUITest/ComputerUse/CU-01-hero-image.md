@@ -29,7 +29,7 @@
 
 ## 3. 操作の手順
 
-1. スタートメニューから **Native Toolkit Example** を起動する。**起動の操作は 1 回だけにする**（2 回行うとウィンドウが 2 つ開く。開いてしまったら、後片付けですべて閉じる）
+1. **Native Toolkit Example** を起動する。computer use の `open_application` を使う（エクスプローラー（シェル）の権限は「クリックのみ」になるので、スタートメニューの検索に文字を打てない）。**起動の操作は 1 回だけにする**（2 回行うとウィンドウが 2 つ開く。開いてしまったら、後片付けですべて閉じる）
 2. メイン画面で **Notification Example** を押す
 3. **InitializeManager** を押す。上部の結果の表示が `✅ [InitializeManager]` で始まることを確かめる
 4. **RemoveAll** を押し、前の通知を消す
@@ -58,6 +58,7 @@
 ## 5. 証拠として残すスクリーンショット
 
 - **サンプルアプリの「With Image」の通知 1 件の範囲だけ** に切り取る。通知センター全体や、ほかのアプリの通知は写さない
+- computer use の撮影はファイルに保存できないので、画面の座標を求めてから PowerShell（`Graphics.CopyFromScreen`）で同じ範囲を切り取って保存する。computer use の画面の座標は縮小されているので、`SetProcessDPIAware` を呼んでから `PrimaryScreen.Bounds.Width / 撮影の幅` の倍率で実際の画素に直す
 - 保存先: `windows/WindowsLibraryExampleUITest/ComputerUse/evidence/CU-01/<日付>-<段階>.png`（例: `2026-09-19-0d.png`）。コミットする
 - その段階の結果のファイルに、判定（合格／失敗）とスクリーンショットのパスを書く
 

@@ -45,7 +45,7 @@ C ABI にしかない動作を確かめていたもの。ほかの UI テスト�
 | DLL 無しでのビルド | Debug / Release とも、サンプルのビルドで作られるのは `WindowsLibraryCore` だけ。AppX に残っていた古い DLL を消してから実行し、配置されるファイルに DLL が無いこと（レシピ 16 → 14 項目）を確かめた |
 | サンプル自身のコンパイルの警告 | 0 件 |
 | `check_design_consistency.py`（UI テスト設計書）、`check_cpp_api_contract.py` | すべて OK |
-| CU-01 | **未実施。** 段階 3 の DoD と合わせて、develop へのマージ前に computer use で行う |
+| CU-01 | **合格**（2026-09-23。段階 3 と段階 5 の分を兼ねて実行した。`2026-09-23-windows-architecture-stage5-result.md` の 3.2） |
 
 ## 5. 教訓
 
