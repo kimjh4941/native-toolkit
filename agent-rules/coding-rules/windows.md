@@ -4,7 +4,7 @@
 
 このルールは以下に適用する。
 
-- C++ API と機能の実装（`windows/WindowsLibrary/` 配下。`WindowsLibraryCore`）
+- C++ API と機能の実装（`windows/WindowsLibrary/` 配下。`WindowsLibrary`）
 - C ABI（`windows/WindowsLibraryCApi/` 配下）
 
 ただし「UI 自動テスト（サンプルアプリ）」の節だけは、C# で書く UI テストプロジェクトにも適用する。それ以外の節（アーキテクチャ、ログ、コメント、文字列・API 取り扱い、同期 / 非同期）は C++ API と C ABI のみが対象で、UI テストプロジェクトには適用しない。
@@ -41,11 +41,11 @@ UseCase / Repository を**最初から作らない**。後述のトリガーが�
 
 ### C ABI の配置
 
-- 機能の実装と C++ API は **`windows/WindowsLibrary`（`WindowsLibraryCore`、静的ライブラリ）** に置く。
+- 機能の実装と C++ API は **`windows/WindowsLibrary`（`WindowsLibrary`、静的ライブラリ）** に置く。
 - C ABI（`ntk_*`）は **`windows/WindowsLibraryCApi`（DLL）** に置き、C++ API を呼んで型を変換するだけにする。機能の実装を C ABI に書かない。
-- 依存の向きは `WindowsLibraryCApi` → `WindowsLibraryCore` の一方向。中継用の別 DLL やラッパープロジェクトを追加しない。
+- 依存の向きは `WindowsLibraryCApi` → `WindowsLibrary` の一方向。中継用の別 DLL やラッパープロジェクトを追加しない。
 - C# / Rust / Python などは C ABI の DLL を P/Invoke する。Unity もその 1 つで、Unity 側の確認は別リポジトリ `unity-native-plugin` で行う。
-- `windows/WindowsLibraryExample` の新機能実装は C++ API（`WindowsLibraryCore`）だけを利用する。既存の project / solution 構成は変更しない。
+- `windows/WindowsLibraryExample` の新機能実装は C++ API（`WindowsLibrary`）だけを利用する。既存の project / solution 構成は変更しない。
 
 ### Solution Explorer 上のファイル整理
 
@@ -156,7 +156,7 @@ DFLog(TAG, L"[ShowDialog] failed. hr=0x%08lx", hr);
 
 | モジュール | 成果物 | NuGet | 雛形 |
 |---|---|---|---|
-| `WindowsLibraryCore` | 静的ライブラリ（Release と Debug） | `NativeToolkit` | `scripts/nuget/NativeToolkit/` |
+| `WindowsLibrary` | 静的ライブラリ（Release と Debug） | `NativeToolkit` | `scripts/nuget/NativeToolkit/` |
 | `WindowsLibraryCApi` | `NativeToolkitC.dll` と import ライブラリ | `NativeToolkit.CApi` | `scripts/nuget/NativeToolkitCApi/` |
 
 - 版番号はヘッダーが持つ。C++ API は `NativeToolkit/BuildStamp.h` の `NATIVETOOLKIT_VERSION_*`、C ABI は `NativeToolkitC/Common.h` の `NTK_VERSION_*`。`-LibraryVersion` がこれと違うとビルドを拒否する

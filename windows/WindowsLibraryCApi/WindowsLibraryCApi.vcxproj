@@ -2,10 +2,10 @@
 <!--
   WindowsLibraryCApi: the general-purpose C ABI of NativeToolkit (stage 5).
 
-  A DLL over the static WindowsLibraryCore. It includes nothing but the C++
+  A DLL over the static WindowsLibrary. It includes nothing but the C++
   API's public headers, so it needs none of C++/WinRT or the Windows App SDK
   to compile; what the core needs at link time comes from the core's own
-  consumer props (build\NativeToolkit.WindowsLibraryCore.props), which is the
+  consumer props (build\NativeToolkit.WindowsLibrary.props), which is the
   same file a native consumer of the core uses. The exports are listed in
   WindowsLibraryCApi.def and nowhere else (D-5).
 -->
@@ -46,7 +46,7 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <!-- The C++ API's headers and the libraries the core links against. -->
-    <Import Project="..\WindowsLibrary\build\NativeToolkit.WindowsLibraryCore.props" />
+    <Import Project="..\WindowsLibrary\build\NativeToolkit.WindowsLibrary.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
@@ -127,7 +127,7 @@
     <ResourceCompile Include="WindowsLibraryCApi.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WindowsLibrary\WindowsLibraryCore.vcxproj">
+    <ProjectReference Include="..\WindowsLibrary\WindowsLibrary.vcxproj">
       <Project>{6b1d8e42-2a77-4c35-9f0e-3c8e5a17b904}</Project>
     </ProjectReference>
   </ItemGroup>

@@ -93,10 +93,10 @@
 
 ### Windows
 
-- `windows/WindowsLibrary` (`WindowsLibraryCore.vcxproj`, 정적 라이브러리)
+- `windows/WindowsLibrary` (`WindowsLibrary.vcxproj`, 정적 라이브러리)
   - C++ API: `NativeToolkit::Dialog`, `NativeToolkit::Notification`, `NativeToolkit::Clipboard`
   - 헤더: `windows/WindowsLibrary/include/NativeToolkit/`
-  - 네이티브 C++ 앱은 `windows/WindowsLibrary/build/NativeToolkit.WindowsLibraryCore.props`로 링크
+  - 네이티브 C++ 앱은 `windows/WindowsLibrary/build/NativeToolkit.WindowsLibrary.props`로 링크
   - 문서: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/WindowsLibraryCApi` (DLL, `NativeToolkitC.dll`)

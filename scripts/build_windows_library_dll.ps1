@@ -9,7 +9,7 @@
   one or both modules via MSBuild and copies them with distributable names
   under dist/<release>/windows/:
 
-    WindowsLibraryCore - the C++ API, a static library
+    WindowsLibrary - the C++ API, a static library
       windows-native-toolkit-<version>.lib        the static library
       include/NativeToolkit/*.h                   the public headers
       windows-native-toolkit-<version>.nupkg      -Package: NativeToolkit
@@ -39,7 +39,7 @@
   android-native-toolkit-1.3.0.aar. It defaults to -LibraryVersion.
 
 .PARAMETER Module
-  Module to build (repeatable). Valid: WindowsLibraryCore, WindowsLibraryCApi.
+  Module to build (repeatable). Valid: WindowsLibrary, WindowsLibraryCApi.
   Default: both.
 
 .PARAMETER Configuration
@@ -72,11 +72,11 @@
   ./scripts/build_windows_library_dll.ps1 -m WindowsLibraryCApi -c debug -v 2.0.0 -o C:\tmp\windows-native-toolkit-capi-verify.dll
 
 .EXAMPLE
-  ./scripts/build_windows_library_dll.ps1 -m WindowsLibraryCore -c release -v 2.0.0 -o dist\1.12.0\windows\windows-native-toolkit-2.0.0.lib
+  ./scripts/build_windows_library_dll.ps1 -m WindowsLibrary -c release -v 2.0.0 -o dist\1.12.0\windows\windows-native-toolkit-2.0.0.lib
 #>
 [CmdletBinding()]
 param(
-    [Alias('m')][string[]]$Module = @('WindowsLibraryCore', 'WindowsLibraryCApi'),
+    [Alias('m')][string[]]$Module = @('WindowsLibrary', 'WindowsLibraryCApi'),
     [Alias('c')][string]$Configuration = 'release',
     [Alias('p')][string]$Platform = 'x64',
     [Alias('v')][string]$LibraryVersion = '',
@@ -124,7 +124,7 @@ function Update-RcVersion([string]$rcPath, [string]$version) {
 function Show-Usage {
     Write-Host @'
 Usage: ./scripts/build_windows_library_dll.ps1 [-Module <name>]... [-Configuration <debug|release>] [-Platform <x64>] [-LibraryVersion <version>] [-ReleaseVersion <version>] [-Output <path>] [-Package] [-Nuget <path>]
-  -m, -Module          module to build (repeatable): WindowsLibraryCore, WindowsLibraryCApi (default: both)
+  -m, -Module          module to build (repeatable): WindowsLibrary, WindowsLibraryCApi (default: both)
   -c, -Configuration   debug or release (default: release)
   -p, -Platform        MSBuild platform (default: x64)
   -v, -LibraryVersion  library version; must match the module's public headers
@@ -146,11 +146,11 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 
 # Per-module build configuration.
 $ModuleConfig = @{
-    'WindowsLibraryCore' = @{
+    'WindowsLibrary' = @{
         Kind          = 'static'
-        Project       = 'windows\WindowsLibrary\WindowsLibraryCore.vcxproj'
+        Project       = 'windows\WindowsLibrary\WindowsLibrary.vcxproj'
         # The library's own name. The project appends -Debug in Debug builds.
-        TargetName    = 'WindowsLibraryCore'
+        TargetName    = 'WindowsLibrary'
         Prefix        = 'windows-native-toolkit'
         # Every public header, shipped as include\NativeToolkit\<name>.h.
         HeaderDir     = 'windows\WindowsLibrary\include\NativeToolkit'
@@ -188,7 +188,7 @@ if ($Configuration -ne 'debug' -and $Configuration -ne 'release') {
     Fail "Configuration must be 'debug' or 'release'."
 }
 
-if (-not $Module -or $Module.Count -eq 0) { $Module = @('WindowsLibraryCore', 'WindowsLibraryCApi') }
+if (-not $Module -or $Module.Count -eq 0) { $Module = @('WindowsLibrary', 'WindowsLibraryCApi') }
 
 foreach ($m in $Module) {
     if (-not $ModuleConfig.ContainsKey($m)) {

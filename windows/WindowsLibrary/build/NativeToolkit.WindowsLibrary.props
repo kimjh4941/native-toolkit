@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  NativeToolkit.WindowsLibraryCore.props
+  NativeToolkit.WindowsLibrary.props
   ======================================
-  What a consumer of the static WindowsLibraryCore has to be given.
+  What a consumer of the static WindowsLibrary has to be given.
 
   A static library carries no MSBuild settings of its own, so everything the
   library needs from its own NuGet packages (C++/WinRT, the Windows App SDK)
@@ -14,7 +14,7 @@
 
   This is the skeleton the NuGet package of stage 6 will ship. Paths are
   parameterised so the same file works from the repository and from a package
-  layout: set NativeToolkitCoreLibDir and NativeToolkitWindowsAppSdkDir, or let
+  layout: set NativeToolkitLibraryDir and NativeToolkitWindowsAppSdkDir, or let
   them default to the repository layout.
 -->
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">

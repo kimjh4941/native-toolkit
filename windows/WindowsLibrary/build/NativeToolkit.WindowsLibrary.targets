@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  NativeToolkit.WindowsLibraryCore.targets
+  NativeToolkit.WindowsLibrary.targets
   ========================================
-  Picks the right flavour of WindowsLibraryCore.lib and checks the consumer's
+  Picks the right flavour of WindowsLibrary.lib and checks the consumer's
   build settings against the ones the library was built with.
 
   Four flavours are shipped: x64, Debug and Release, each with /MD and /MT.
@@ -13,22 +13,22 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <NativeToolkitCoreConfiguration Condition="'$(NativeToolkitCoreConfiguration)'=='' and '$(Configuration)'=='Debug'">Debug</NativeToolkitCoreConfiguration>
-    <NativeToolkitCoreConfiguration Condition="'$(NativeToolkitCoreConfiguration)'==''">Release</NativeToolkitCoreConfiguration>
-    <NativeToolkitCoreLibDir Condition="'$(NativeToolkitCoreLibDir)'==''">$(NativeToolkitRoot)lib\$(Platform)\$(NativeToolkitCoreConfiguration)-$(NativeToolkitCrt)\</NativeToolkitCoreLibDir>
+    <NativeToolkitLibConfiguration Condition="'$(NativeToolkitLibConfiguration)'=='' and '$(Configuration)'=='Debug'">Debug</NativeToolkitLibConfiguration>
+    <NativeToolkitLibConfiguration Condition="'$(NativeToolkitLibConfiguration)'==''">Release</NativeToolkitLibConfiguration>
+    <NativeToolkitLibraryDir Condition="'$(NativeToolkitLibraryDir)'==''">$(NativeToolkitRoot)lib\$(Platform)\$(NativeToolkitLibConfiguration)-$(NativeToolkitCrt)\</NativeToolkitLibraryDir>
   </PropertyGroup>
 
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalDependencies>$(NativeToolkitCoreLibDir)WindowsLibraryCore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(NativeToolkitLibraryDir)WindowsLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
   <Target Name="NativeToolkitCheckConsumerSettings" BeforeTargets="ClCompile">
     <Error Condition="'$(Platform)'!='x64'"
            Text="NativeToolkit ships x64 only. This project builds for $(Platform); see the windows-architecture topic (D-3) for when other architectures are decided." />
-    <Error Condition="!Exists('$(NativeToolkitCoreLibDir)WindowsLibraryCore.lib')"
-           Text="WindowsLibraryCore.lib was not found at $(NativeToolkitCoreLibDir). Expected one of the four shipped flavours: $(Platform) x Debug|Release x MD|MT." />
+    <Error Condition="!Exists('$(NativeToolkitLibraryDir)WindowsLibrary.lib')"
+           Text="WindowsLibrary.lib was not found at $(NativeToolkitLibraryDir). Expected one of the four shipped flavours: $(Platform) x Debug|Release x MD|MT." />
     <Warning Condition="'$(WholeProgramOptimization)'=='true'"
              Text="The shipped library is built without /GL, so link-time code generation cannot inline across it. This is not an error; see D-3." />
   </Target>

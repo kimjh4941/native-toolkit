@@ -212,7 +212,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WindowsLibrary\WindowsLibraryCore.vcxproj">
+    <ProjectReference Include="..\WindowsLibrary\WindowsLibrary.vcxproj">
       <Project>{6b1d8e42-2a77-4c35-9f0e-3c8e5a17b904}</Project>
     </ProjectReference>
   </ItemGroup>

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36109.1 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsLibraryCore", "WindowsLibraryCore.vcxproj", "{6B1D8E42-2A77-4C35-9F0E-3C8E5A17B904}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsLibrary", "WindowsLibrary.vcxproj", "{6B1D8E42-2A77-4C35-9F0E-3C8E5A17B904}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsLibraryCApi", "..\WindowsLibraryCApi\WindowsLibraryCApi.vcxproj", "{3F6A1C2B-8D4E-4B7A-9E21-5C0D7A6B9F13}"
 EndProject

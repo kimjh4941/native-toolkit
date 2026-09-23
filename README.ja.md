@@ -93,10 +93,10 @@
 
 ### Windows
 
-- `windows/WindowsLibrary`（`WindowsLibraryCore.vcxproj`、静的ライブラリ）
+- `windows/WindowsLibrary`（`WindowsLibrary.vcxproj`、静的ライブラリ）
   - C++ API: `NativeToolkit::Dialog`、`NativeToolkit::Notification`、`NativeToolkit::Clipboard`
   - ヘッダ: `windows/WindowsLibrary/include/NativeToolkit/`
-  - ネイティブの C++ アプリは `windows/WindowsLibrary/build/NativeToolkit.WindowsLibraryCore.props` でリンクする
+  - ネイティブの C++ アプリは `windows/WindowsLibrary/build/NativeToolkit.WindowsLibrary.props` でリンクする
   - Doc: Doxygen（`windows/WindowsLibrary/Doxyfile`）
 
 - `windows/WindowsLibraryCApi`（DLL、`NativeToolkitC.dll`）

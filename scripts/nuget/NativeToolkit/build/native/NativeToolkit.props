@@ -15,8 +15,8 @@
     <NativeToolkitConfig Condition="'$(Configuration)'=='Debug'">Debug</NativeToolkitConfig>
     <NativeToolkitConfig Condition="'$(NativeToolkitConfig)'==''">Release</NativeToolkitConfig>
 
-    <NativeToolkitLibName Condition="'$(NativeToolkitConfig)'=='Debug'">WindowsLibraryCore-Debug.lib</NativeToolkitLibName>
-    <NativeToolkitLibName Condition="'$(NativeToolkitLibName)'==''">WindowsLibraryCore.lib</NativeToolkitLibName>
+    <NativeToolkitLibName Condition="'$(NativeToolkitConfig)'=='Debug'">WindowsLibrary-Debug.lib</NativeToolkitLibName>
+    <NativeToolkitLibName Condition="'$(NativeToolkitLibName)'==''">WindowsLibrary.lib</NativeToolkitLibName>
 
     <NativeToolkitLibDir>$(MSBuildThisFileDirectory)lib\x64\$(NativeToolkitConfig)</NativeToolkitLibDir>
   </PropertyGroup>

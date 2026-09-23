@@ -93,10 +93,10 @@ Example (`1.12.0`):
 
 ### Windows
 
-- `windows/WindowsLibrary` (`WindowsLibraryCore.vcxproj`, a static library)
+- `windows/WindowsLibrary` (`WindowsLibrary.vcxproj`, a static library)
   - The C++ API: `NativeToolkit::Dialog`, `NativeToolkit::Notification`, `NativeToolkit::Clipboard`
   - Headers: `windows/WindowsLibrary/include/NativeToolkit/`
-  - A native C++ app links it through `windows/WindowsLibrary/build/NativeToolkit.WindowsLibraryCore.props`
+  - A native C++ app links it through `windows/WindowsLibrary/build/NativeToolkit.WindowsLibrary.props`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
 - `windows/WindowsLibraryCApi` (a DLL, `NativeToolkitC.dll`)

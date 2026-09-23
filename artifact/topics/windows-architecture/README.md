@@ -71,7 +71,7 @@ Dialog は Win32 の common dialog、Clipboard は Win32 + WinRT、Notification 
 
 ```
 windows/
-  WindowsLibrary/                           # WindowsLibraryCore.vcxproj: C++ API（公開・静的ライブラリ）
+  WindowsLibrary/                           # WindowsLibrary.vcxproj: C++ API（公開・静的ライブラリ）
     include/NativeToolkit/                  # NuGet に入れる公開ヘッダー
       Clipboard.h  Notification.h  Dialog.h  Error.h  Types.h
     src/
@@ -91,9 +91,11 @@ windows/
 
 ここへ至る道筋は段階 3 と段階 5 に分かれる。段階 3 で `WindowsLibraryCore`（静的）と `WindowsLibrary`（今の C ABI の DLL）に分け、段階 5 で後者を `WindowsLibraryCApi` に改名して中身を新しい C ABI に置き換える（5 章）。
 
-C++ API のフォルダは `WindowsLibrary/` のまま `WindowsLibraryCore/` に改名しない（C ABI の設計書の E-11）。フォルダはソリューション `WindowsLibrary.sln` とビルドの出力先も兼ねており、改名すると参照の付け替えが広がるのに、得られるのは名前の一致だけだからである。プロジェクト、`.lib`、`.props` の名前が `WindowsLibraryCore` なので、中身の区別は付く。
+C++ API のフォルダは `WindowsLibrary/` のまま `WindowsLibraryCore/` に改名しない（C ABI の設計書の E-11）。フォルダはソリューション `WindowsLibrary.sln` とビルドの出力先も兼ねており、改名すると参照の付け替えが広がるのに、得られるのは名前の一致だけだからである。
 
-依存の向きは `WindowsLibraryCApi` → `WindowsLibraryCore`。機能の実装は `WindowsLibraryCore` にだけ置き、`WindowsLibraryCApi` は型の変換（`std::wstring` とバッファ、構造体とデータ受け渡し形式、`std::function` と関数ポインタ）だけを受け持つ。
+プロジェクトと成果物は 2026-09-23 に `WindowsLibraryCore` から **`WindowsLibrary` に戻した**（利用者の決定。段階 6 の結果 5 章）。段階 3 で `Core` を付けたのは、当時まだ 1.x の C ABI の `WindowsLibrary.vcxproj` が同じフォルダーにあったからで、その理由は段階 5 の T-12 で消えている。今はフォルダー・プロジェクト・`.lib`・`.props` がすべて `WindowsLibrary` で、C ABI 側が `WindowsLibraryCApi` である。
+
+依存の向きは `WindowsLibraryCApi` → `WindowsLibrary`。機能の実装は `WindowsLibrary` にだけ置き、`WindowsLibraryCApi` は型の変換（`std::wstring` とバッファ、構造体とデータ受け渡し形式、`std::function` と関数ポインタ）だけを受け持つ。
 
 - ネイティブの利用者（`WindowsLibraryExample` など C++ / WinRT のアプリ）は C++ API を使う。静的ライブラリなので、利用者のビルド構成（Debug / Release、`/MD` / `/MT`）に合わせた `.lib` を配る（D-3）
 - C ABI の利用者（C#、Rust、Python など）は `WindowsLibraryCApi` を使う。Unity もその 1 つで、Unity 側の確認は別リポジトリ `unity-native-plugin` で行う

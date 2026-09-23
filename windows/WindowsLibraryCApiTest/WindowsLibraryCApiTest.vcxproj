@@ -5,7 +5,7 @@
   The C ABI's sources are compiled into the test rather than loaded from the
   DLL, so that its internal pieces (the handles, the struct reading rules, the
   callback gate, the conversions) can be tested on their own. The core comes
-  in the way it comes into the C ABI DLL: the static WindowsLibraryCore
+  in the way it comes into the C ABI DLL: the static WindowsLibrary
   through a ProjectReference, and what it needs at link time through the
   core's consumer props. The core's own tests stay in WindowsLibraryTest.
 
@@ -50,7 +50,7 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <!-- The C++ API's headers and the libraries the core links against. -->
-    <Import Project="..\WindowsLibrary\build\NativeToolkit.WindowsLibraryCore.props" />
+    <Import Project="..\WindowsLibrary\build\NativeToolkit.WindowsLibrary.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
@@ -178,7 +178,7 @@
     <ClCompile Include="Notification\CApiNotificationTest.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WindowsLibrary\WindowsLibraryCore.vcxproj">
+    <ProjectReference Include="..\WindowsLibrary\WindowsLibrary.vcxproj">
       <Project>{6b1d8e42-2a77-4c35-9f0e-3c8e5a17b904}</Project>
     </ProjectReference>
   </ItemGroup>

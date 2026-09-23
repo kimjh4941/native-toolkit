@@ -37,7 +37,7 @@
 
 | パッケージ | 中身 |
 |---|---|
-| `windows-native-toolkit-2.0.0.nupkg`（`NativeToolkit`） | `build/native/NativeToolkit.props`、公開ヘッダー 6 つ（`NativeToolkit/`）、`lib/x64/Release/WindowsLibraryCore.lib`、`lib/x64/Debug/WindowsLibraryCore-Debug.lib` |
+| `windows-native-toolkit-2.0.0.nupkg`（`NativeToolkit`） | `build/native/NativeToolkit.props`、公開ヘッダー 6 つ（`NativeToolkit/`）、`lib/x64/Release/WindowsLibraryCore.lib`、`lib/x64/Debug/WindowsLibraryCore-Debug.lib`（5 章で `WindowsLibrary.lib` / `WindowsLibrary-Debug.lib` に改名） |
 | `windows-native-toolkit-capi-2.0.0.nupkg`（`NativeToolkit.CApi`） | `build/native/NativeToolkit.CApi.props` と `.targets`、公開ヘッダー 4 つ（`NativeToolkitC/`）、`runtimes/win-x64/native/NativeToolkitC.dll` と `.lib` |
 
 どちらも `Microsoft.WindowsAppSDK 1.7.250513003` を依存として宣言している。
@@ -80,3 +80,30 @@ C ABI の実行ファイルは、最初は `Microsoft.WindowsAppRuntime.Bootstra
 - **ドキュメントサイトの公開**（`./scripts/publish_docs.sh 1.12.0 --os all`）。`docs/<版>/` と `docs/latest/` を更新する作業で、リリースのときに行う（F-7）
 - マニュアルの macOS の通知の画像 30 件（前版からの引き継ぎ）
 - 段階 7: CI（ユニットテストのみ）
+
+## 5. 追補: プロジェクトと成果物を `WindowsLibrary` に戻した（2026-09-23）
+
+段階 6 のコミットの後、利用者の決定でプロジェクト名と成果物名を `WindowsLibraryCore` から `WindowsLibrary` に戻した。フォルダーを改名しないという E-11 の決定はそのままなので、結果としてフォルダー・プロジェクト・`.lib`・`.props` がすべて `WindowsLibrary` でそろう。
+
+| 項目 | 前 | 後 |
+|---|---|---|
+| プロジェクト | `WindowsLibraryCore.vcxproj` | `WindowsLibrary.vcxproj` |
+| 静的ライブラリ | `WindowsLibraryCore.lib` / `WindowsLibraryCore-Debug.lib` | `WindowsLibrary.lib` / `WindowsLibrary-Debug.lib` |
+| 利用者向け props | `build/NativeToolkit.WindowsLibraryCore.props`（と `.targets`） | `build/NativeToolkit.WindowsLibrary.props`（と `.targets`） |
+| ビルドスクリプトのモジュール名 | `-m WindowsLibraryCore` | `-m WindowsLibrary` |
+
+`Core` を付けたのは段階 3 で、当時は同じフォルダーに 1.x の C ABI の `WindowsLibrary.vcxproj` があり名前が衝突したためである。その理由は段階 5 の T-12（プロジェクトごと削除）で消えていた。
+
+併せて直したもの:
+
+- `WindowsLibraryExample.sln` に、T-12 で削除した 1.x プロジェクトの項目（GUID `44A5717A-BB61-08F5-6279-98AD08C8E2F7`）が残っていた。存在しないファイルを指していたが、今回の改名でそれが新しいプロジェクトに解決し、同じプロジェクトが 2 つの GUID で登録される状態になるため、項目と構成の 12 行を取り除いた
+- NuGet パッケージ `NativeToolkit` がリンクさせる名前が変わるので、パッケージと `dist/1.12.0/windows/` を作り直した。1.12.0 は未リリースなので外部への影響は無い
+
+確認:
+
+| 確認 | 結果 |
+|---|---|
+| `WindowsLibrary.sln` と `WindowsLibraryExample.sln` のビルド（Release / x64） | どちらも成功 |
+| ユニットテスト（`WindowsLibraryTest` + `WindowsLibraryCApiTest`） | 404 件、失敗 0 |
+| パッケージの中身 | `build/native/lib/x64/{Release/WindowsLibrary.lib, Debug/WindowsLibrary-Debug.lib}`。props も同じ名前を参照する |
+| 消費テスト（3.2 と同じ手順を再実行） | C++ は Release / Debug とも成功、C は成功して `ntk_version()` が `0x00020000` |
