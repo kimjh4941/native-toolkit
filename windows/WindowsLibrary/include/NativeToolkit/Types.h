@@ -33,10 +33,10 @@ using WindowHandle = ::HWND__*;
 /**
  * @brief Per-write options accepted by every clipboard copy operation.
  * @details
- *  Mirrors the CLIPBOARD_WRITE_OPTION_* flags of the C ABI: excludeHistory is
- *  0x1, excludeRoaming is 0x2, and both together are what that ABI calls
- *  SENSITIVE. Placing the markers is not best effort - a failure rolls the
- *  whole write back.
+ *  The implementation's CLIPBOARD_WRITE_OPTION_* flags and the C ABI's
+ *  NTK_CLIPBOARD_WRITE_* carry the same two bits: excludeHistory is 0x1,
+ *  excludeRoaming is 0x2, and both together are SENSITIVE. Placing the
+ *  markers is not best effort - a failure rolls the whole write back.
  */
 struct WriteOptions {
     bool excludeHistory = false;  ///< Keep the value out of the clipboard history (Win+V).

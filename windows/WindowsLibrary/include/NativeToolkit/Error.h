@@ -202,17 +202,18 @@ private:
     bool hasValue_;
 };
 
-/// Errors of the Dialog feature. New in the C++ API: the C ABI passes raw OS values.
+/// Errors of the Dialog feature. New in the C++ API: the 1.x C ABI passed raw OS values.
 enum class DialogError : uint32_t {
     None             = 0,  ///< Success.
-    InvalidParameter = 1,  ///< A null argument, or a zero-sized buffer on the C ABI.
+    InvalidParameter = 1,  ///< A null argument, or a request the API cannot read.
     Canceled         = 2,  ///< The user dismissed the dialog.
     BufferTooSmall   = 3,  ///< Reserved: never returned. The 1.x C ABI's caller buffer was too small.
     SystemError      = 4,  ///< GetLastError, CommDlgExtendedError or a failed HRESULT; see systemCode.
     Unknown          = 5,  ///< Anything the cases above do not cover.
 };
 
-/// Errors of the Notification feature. The values match NOTIFICATION_* of the C ABI.
+/// Errors of the Notification feature. The values match NOTIFICATION_ERROR_* of NotificationCodes.h
+/// and NTK_NOTIFICATION_ERROR_* of the C ABI.
 enum class NotificationError : uint32_t {
     None             = 0,
     NotInitialized   = 1,  ///< Used before Create, or after Close.
@@ -225,7 +226,8 @@ enum class NotificationError : uint32_t {
     NotSupported     = 8,  ///< Not available for this app type, or a second manager.
 };
 
-/// Errors of the Clipboard feature. The values match CLIPBOARD_ERROR_* of the C ABI.
+/// Errors of the Clipboard feature. The values match CLIPBOARD_ERROR_* of ClipboardCodes.h
+/// and NTK_CLIPBOARD_ERROR_* of the C ABI.
 enum class ClipboardError : uint32_t {
     None                  = 0,
     InvalidParameter      = 1,   ///< Null or empty arguments, an embedded NUL, an unknown request id.

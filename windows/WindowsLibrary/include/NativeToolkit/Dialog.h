@@ -76,13 +76,13 @@ struct AlertRequest {
     AlertDefaultButton defaultButton  = AlertDefaultButton::First;
     bool               topMost        = false;  ///< MB_TOPMOST
     bool               showHelpButton = false;  ///< MB_HELP
-    WindowHandle       owner          = nullptr;///< The C ABI always passes none (DLG-09).
+    WindowHandle       owner          = nullptr;///< The window the dialog belongs to, or none.
 };
 
 /**
  * @brief One entry of a file dialog's type list.
  * @details
- *  The C ABI takes the Win32 block directly: pairs of strings separated by
+ *  The 1.x C ABI took the Win32 block directly: pairs of strings separated by
  *  NULs and terminated by two (DLG-12). This is that block as data. An entry
  *  with no patterns matches everything.
  */
@@ -94,9 +94,9 @@ struct FileFilter {
 /**
  * @brief What to show in an open-file dialog.
  * @details
- *  With no filters the dialog offers every file, which is what the C ABI does
+ *  With no filters the dialog offers every file, which is what the 1.x C ABI did
  *  when it is handed no filter at all (DLG-12). title has no counterpart in
- *  the C ABI, where these dialogs take no title (DLG-13).
+ *  the 1.x C ABI, where these dialogs took no title (DLG-13).
  */
 struct FileRequest {
     std::wstring            title;
@@ -110,7 +110,7 @@ struct SaveFileRequest {
     std::wstring            title;
     std::vector<FileFilter> filters;
     std::wstring            defaultExtension;       ///< Appended when the user types none.
-    bool                    overwritePrompt = true; ///< OFN_OVERWRITEPROMPT (DLG-11); the C ABI always asks.
+    bool                    overwritePrompt = true; ///< OFN_OVERWRITEPROMPT (DLG-11).
     WindowHandle            owner           = nullptr;
 };
 
@@ -141,7 +141,7 @@ Result<std::wstring> ShowOpenFile(const FileRequest& request);
 
 /**
  * @brief OP-03. Asks for one or more existing files, in the order the dialog returned them.
- * @details Every path is a full path. The C ABI hands back the folder and the
+ * @details Every path is a full path. The 1.x C ABI handed back the folder and the
  *          names separately and counts the folder as an entry (DLG-02); here
  *          that is already joined.
  * @retval InvalidParameter A request the dialog could not be built from.

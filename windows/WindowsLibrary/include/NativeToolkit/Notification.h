@@ -6,11 +6,13 @@
  *  topic (design section 8). This header carries the content types; the
  *  Manager and Runtime that use them arrive with OP-07..OP-20.
  *
- *  The fields come from what the JSON payload of the C ABI actually accepts,
+ *  The fields come from what the JSON payload of the 1.x C ABI accepted,
  *  listed in designs/2026-09-20-windows-architecture-c-abi-input-inventory.md
- *  section 1, and the names follow the JSON keys so the two can be compared.
- *  One shape there does not reduce to fixed fields and is kept open: a
- *  button's arguments are an arbitrary string map.
+ *  section 1. That payload is gone (stage 5), but the "JSON: <key>" notes
+ *  below stay: they are how a field is traced back to the inventory, and to
+ *  what NotificationPayloadTest pins. One shape there does not reduce to
+ *  fixed fields and is kept open: a button's arguments are an arbitrary
+ *  string map.
  *
  *  Several fields are optional where a plain string would do, because the
  *  platform tells an absent value from an empty one and the two are not the
@@ -214,10 +216,11 @@ struct ManagerOptions {
  * @brief The Windows App Runtime, held for as long as notifications are used.
  * @details
  *  Only an unpackaged app needs this: a packaged one already has the runtime.
- *  Destroying the token shuts the bootstrapper down again, which the C ABI
- *  never did - initWinAppSdk has no counterpart and leaves the runtime loaded
- *  for the life of the process (N-7). The C ABI keeps that behaviour; a C++
- *  caller gets the matching pair.
+ *  Destroying the token shuts the bootstrapper down again, which the 1.x C
+ *  ABI never did: initWinAppSdk had no counterpart and left the runtime
+ *  loaded for the life of the process (N-7). The 2.x C ABI has the matching
+ *  pair as well - ntk_notification_runtime_free shuts it down, waiting for
+ *  the last manager to close first.
  *
  *  Move only, because shutting the runtime down twice is not the same as
  *  shutting it down once.
@@ -315,8 +318,9 @@ public:
      * @brief Unregisters.
      * @details The registration is revoked before the handler is dropped, so an
      *          activation cannot arrive with nothing to receive it (NTF-40).
-     *          Doing it twice is allowed and does nothing. Returns nothing
-     *          because the C ABI counterpart reports nothing either.
+     *          Doing it twice is allowed and does nothing. Returns nothing:
+     *          there is nothing a caller could do about a failure to
+     *          unregister, and ntk_notification_manager_close says as much.
      */
     void Close() noexcept;
 

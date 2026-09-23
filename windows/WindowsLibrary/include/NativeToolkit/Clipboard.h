@@ -172,12 +172,19 @@ public:
 
     /**
      * @brief Closes the session.
-     * @details Must be called from the owning thread. Closing an already
-     *          closed session succeeds, so a retry loop can call it until it
-     *          does.
+     * @details
+     *  Must be called from the owning thread. Closing an already closed
+     *  session succeeds, so a retry loop can call it until it does.
+     *
+     *  Requests still in flight are cancelled, and their completions are
+     *  delivered inside this call: Close dispatches its own window's drain
+     *  message between attempts, so the caller needs no message loop of its
+     *  own to finish closing. Busy is what a retry waits on - another
+     *  thread's read or write - and Canceled is left only for a drain that
+     *  did not finish in the few passes Close makes.
      * @retval WrongThread           Called from a thread other than the owner.
      * @retval MonitorRegisterFailed A clipboard or history listener could not be dropped.
-     * @retval Canceled              Requests were still being drained.
+     * @retval Canceled              The cancelled requests were not all delivered yet.
      * @retval Busy                  Something still holds the session open.
      * @retval PartialState          A half-finished write could not be rolled back.
      */

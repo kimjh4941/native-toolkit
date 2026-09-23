@@ -237,12 +237,16 @@ ntk_clipboard_error NTK_CALL ntk_clipboard_clear(ntk_clipboard_session* session)
 /* ------------------------------------------------------------------------ */
 
 ntk_clipboard_error NTK_CALL ntk_clipboard_items_create(ntk_clipboard_items** out_items);
+/** Adds text under a format name, e.g. "CF_UNICODETEXT". */
 ntk_clipboard_error NTK_CALL ntk_clipboard_items_add_text(
     ntk_clipboard_items* items, const char* format_name, const char* text);
+/** Adds an HTML fragment under a format name, e.g. "HTML Format". */
 ntk_clipboard_error NTK_CALL ntk_clipboard_items_add_html(
     ntk_clipboard_items* items, const char* format_name, const char* html);
+/** Adds bytes under a format name. data may be NULL only when size is 0. */
 ntk_clipboard_error NTK_CALL ntk_clipboard_items_add_bytes(
     ntk_clipboard_items* items, const char* format_name, const uint8_t* data, size_t size);
+/** Releases the builder. Does nothing for NULL. */
 void NTK_CALL ntk_clipboard_items_free(ntk_clipboard_items* items);
 
 /* ------------------------------------------------------------------------ */
@@ -310,13 +314,16 @@ ntk_clipboard_error NTK_CALL ntk_clipboard_cancel_request(
 /* ------------------------------------------------------------------------ */
 
 size_t      NTK_CALL ntk_clipboard_history_count(const ntk_clipboard_history* history);
+/** The id of the item at index, which restore and delete take. */
 const char* NTK_CALL ntk_clipboard_history_item_id(
     const ntk_clipboard_history* history, size_t index, size_t* out_size);
 /** NULL for an item that carries no text, as well as out of range. */
 const char* NTK_CALL ntk_clipboard_history_item_text(
     const ntk_clipboard_history* history, size_t index, size_t* out_size);
+/** How many format names the item carries. */
 size_t      NTK_CALL ntk_clipboard_history_item_content_type_count(
     const ntk_clipboard_history* history, size_t index);
+/** One of the item's format names, as the OS reports it. */
 const char* NTK_CALL ntk_clipboard_history_item_content_type_at(
     const ntk_clipboard_history* history, size_t index, size_t type_index, size_t* out_size);
 /** Milliseconds since 1970-01-01 UTC; 0 when the OS gave no time. */

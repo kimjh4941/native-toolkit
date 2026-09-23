@@ -261,11 +261,15 @@ ntk_notification_error NTK_CALL ntk_notification_open_settings(ntk_notification_
 /* ------------------------------------------------------------------------ */
 
 size_t      NTK_CALL ntk_notification_list_count(const ntk_notification_list* list);
+/** The notification id at index, or 0 when index is out of range. */
 uint32_t    NTK_CALL ntk_notification_list_id_at(const ntk_notification_list* list, size_t index);
+/** The tag at index, NULL when index is out of range. out_size may be NULL. */
 const char* NTK_CALL ntk_notification_list_tag_at(
     const ntk_notification_list* list, size_t index, size_t* out_size);
+/** The group at index, NULL when index is out of range. out_size may be NULL. */
 const char* NTK_CALL ntk_notification_list_group_at(
     const ntk_notification_list* list, size_t index, size_t* out_size);
+/** Releases the list. Does nothing for NULL. */
 void        NTK_CALL ntk_notification_list_free(ntk_notification_list* list);
 
 /* ------------------------------------------------------------------------ */
@@ -279,8 +283,10 @@ const char* NTK_CALL ntk_notification_activation_raw_arguments(
 /** The number of key and value pairs (button arguments and the user's input), in no particular order. */
 size_t      NTK_CALL ntk_notification_activation_value_count(
     const ntk_notification_activation* activation);
+/** The key at index, NULL when index is out of range. out_size may be NULL. */
 const char* NTK_CALL ntk_notification_activation_key_at(
     const ntk_notification_activation* activation, size_t index, size_t* out_size);
+/** The value at index, NULL when index is out of range. out_size may be NULL. */
 const char* NTK_CALL ntk_notification_activation_value_at(
     const ntk_notification_activation* activation, size_t index, size_t* out_size);
 
@@ -294,6 +300,7 @@ const char* NTK_CALL ntk_notification_activation_value_at(
 /* ------------------------------------------------------------------------ */
 
 ntk_notification_error NTK_CALL ntk_notification_content_create(ntk_notification_content** out_content);
+/** Releases the content. Does nothing for NULL. */
 void NTK_CALL ntk_notification_content_free(ntk_notification_content* content);
 /** Optional: NULL removes it. */
 ntk_notification_error NTK_CALL ntk_notification_content_set_title(ntk_notification_content* content, const char* value);
@@ -303,6 +310,7 @@ ntk_notification_error NTK_CALL ntk_notification_content_set_body(ntk_notificati
 ntk_notification_error NTK_CALL ntk_notification_content_set_tag(ntk_notification_content* content, const char* value);
 /** NULL is "". */
 ntk_notification_error NTK_CALL ntk_notification_content_set_group(ntk_notification_content* content, const char* value);
+/** How the OS should treat the notification (reminder, alarm and so on). */
 ntk_notification_error NTK_CALL ntk_notification_content_set_scenario(
     ntk_notification_content* content, ntk_notification_scenario value);
 /** Optional: NULL removes it. */
@@ -314,6 +322,7 @@ ntk_notification_error NTK_CALL ntk_notification_content_set_app_logo(
     ntk_notification_content* content, const char* uri, ntk_notification_logo_crop crop);
 /** Optional: NULL removes it. */
 ntk_notification_error NTK_CALL ntk_notification_content_set_attribution(ntk_notification_content* content, const char* value);
+/** How long the notification stays on screen. */
 ntk_notification_error NTK_CALL ntk_notification_content_set_duration(
     ntk_notification_content* content, ntk_notification_duration value);
 /** event_name NULL is ""; uri NULL is absent. A looping sound needs NTK_NOTIFICATION_DURATION_LONG. */

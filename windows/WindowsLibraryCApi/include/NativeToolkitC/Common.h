@@ -66,20 +66,25 @@ typedef struct ntk_string ntk_string;
 const char* NTK_CALL ntk_string_data(const ntk_string* s);
 /** The length in bytes, without the terminator. */
 size_t      NTK_CALL ntk_string_size(const ntk_string* s);
+/** Releases the string. Does nothing for NULL. */
 void        NTK_CALL ntk_string_free(ntk_string* s);
 
 /** Bytes the library returned. */
 typedef struct ntk_bytes ntk_bytes;
 /** The bytes; never NULL for a valid handle, even when the size is 0. */
 const uint8_t* NTK_CALL ntk_bytes_data(const ntk_bytes* b);
+/** The number of bytes. */
 size_t         NTK_CALL ntk_bytes_size(const ntk_bytes* b);
+/** Releases the bytes. Does nothing for NULL. */
 void           NTK_CALL ntk_bytes_free(ntk_bytes* b);
 
 /** A list of strings the library returned. */
 typedef struct ntk_string_list ntk_string_list;
+/** The number of strings. */
 size_t      NTK_CALL ntk_string_list_count(const ntk_string_list* list);
 /** The string at index, or NULL when index is out of range. out_size may be NULL. */
 const char* NTK_CALL ntk_string_list_at(const ntk_string_list* list, size_t index, size_t* out_size);
+/** Releases the list. Does nothing for NULL. */
 void        NTK_CALL ntk_string_list_free(ntk_string_list* list);
 
 #ifdef __cplusplus
