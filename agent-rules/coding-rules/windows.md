@@ -38,7 +38,6 @@ UseCase / Repository を**最初から作らない**。後述のトリガーが�
 
 - Windows の `extern "C"` C Bridge は **`windows/WindowsLibrary` に実装し、`WindowsLibrary.dll` からエクスポートする**。
 - Unity C# は `WindowsLibrary.dll` の C API を直接 P/Invoke する。中継用の別 DLL やラッパープロジェクトを追加しない。
-- `windows/UnityWindowsPlugin` は現在使用していないため、新機能の Bridge、Manager、Delegate、依存関係を追加しない。既存ファイル、project、solution 登録は削除・変更せず、そのまま残す。
 - `windows/WindowsLibraryExample` の新機能実装は `WindowsLibrary` のみを利用する。既存の project / solution 構成は変更しない。
 
 ### Solution Explorer 上のファイル整理

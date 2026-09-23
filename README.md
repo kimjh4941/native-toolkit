@@ -91,15 +91,16 @@ Example (`1.11.0`):
 
 ### Windows
 
-- `windows/WindowsLibrary`
-  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`)
-  - Unity C# calls `WindowsLibrary.dll` directly through P/Invoke
-  - Headers: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
+- `windows/WindowsLibrary` (`WindowsLibraryCore.vcxproj`, a static library)
+  - The C++ API: `NativeToolkit::Dialog`, `NativeToolkit::Notification`, `NativeToolkit::Clipboard`
+  - Headers: `windows/WindowsLibrary/include/NativeToolkit/`
+  - A native C++ app links it through `windows/WindowsLibrary/build/NativeToolkit.WindowsLibraryCore.props`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
-- `windows/UnityWindowsPlugin`
-  - Legacy minimal stub; it is not used by current integrations
-  - New Windows features and Unity bridge APIs belong in `WindowsLibrary`, not this project
+- `windows/WindowsLibraryCApi` (a DLL, `NativeToolkitC.dll`)
+  - The general-purpose C ABI over the C++ API: `ntk_*` functions, UTF-8 strings, opaque handles
+  - Headers: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
+  - For C#, Rust, Python and other languages; Unity calls it through P/Invoke (in `unity-native-plugin`)
 
 ## Repository layout
 
@@ -122,8 +123,8 @@ mac/
   generate_docc.sh
 
 windows/
-  WindowsLibrary/
-  UnityWindowsPlugin/       # Legacy unused stub
+  WindowsLibrary/           # C++ API (static library)
+  WindowsLibraryCApi/       # C ABI (DLL)
   WindowsLibraryExample/
 
 manual/
@@ -152,8 +153,8 @@ docs/
 # macOS XCFramework (all modules)
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
 
-# Windows DLL / NuGet
-./scripts/build_windows_library_dll.ps1 -c release -m WindowsLibrary -v 1.3.0 -Package
+# Windows C ABI (DLL, import library and headers)
+./scripts/build_windows_library_dll.ps1 -c release -v 2.0.0
 ```
 
 ## API docs generation
@@ -209,7 +210,7 @@ For native integration, start from the core library docs per platform.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
+- Windows: `windows/WindowsLibrary/include/NativeToolkit/` (C++ API), `windows/WindowsLibraryCApi/include/NativeToolkitC/` (C ABI)
 
 ## Unity Native Toolkit (Unity 6)
 

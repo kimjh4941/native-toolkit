@@ -91,13 +91,16 @@
 
 ### Windows
 
-- `windows/WindowsLibrary`
-  - C 형태 API (예: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`)
-  - 헤더: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
+- `windows/WindowsLibrary` (`WindowsLibraryCore.vcxproj`, 정적 라이브러리)
+  - C++ API: `NativeToolkit::Dialog`, `NativeToolkit::Notification`, `NativeToolkit::Clipboard`
+  - 헤더: `windows/WindowsLibrary/include/NativeToolkit/`
+  - 네이티브 C++ 앱은 `windows/WindowsLibrary/build/NativeToolkit.WindowsLibraryCore.props`로 링크
   - 문서: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
-- `windows/UnityWindowsPlugin`
-  - 보조 모듈: 플러그인 연동용 프로젝트 포함(현재 최소 스텁)
+- `windows/WindowsLibraryCApi` (DLL, `NativeToolkitC.dll`)
+  - C++ API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
+  - 헤더: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
+  - C#, Rust, Python 등 다른 언어용. Unity는 P/Invoke로 호출 (`unity-native-plugin`)
 
 ## 디렉터리 구조
 
@@ -120,8 +123,8 @@ mac/
   generate_docc.sh
 
 windows/
-  WindowsLibrary/
-  UnityWindowsPlugin/
+  WindowsLibrary/           # C++ API (정적 라이브러리)
+  WindowsLibraryCApi/       # C ABI (DLL)
   WindowsLibraryExample/
 
 manual/
@@ -150,8 +153,8 @@ docs/
 # macOS XCFramework (전체 모듈)
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
 
-# Windows DLL / NuGet
-./scripts/build_windows_library_dll.ps1 -c release -m WindowsLibrary -v 1.3.0 -Package
+# Windows C ABI (DLL, import 라이브러리, 헤더)
+./scripts/build_windows_library_dll.ps1 -c release -v 2.0.0
 ```
 
 ## API 문서 생성
@@ -207,7 +210,7 @@ manual 복사 원본은 `manual/<version>/` 입니다.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/src/Dialog/WindowsDialogManager.h`, `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.h`, `windows/WindowsLibrary/src/Clipboard/WindowsClipboardManager.h`
+- Windows: `windows/WindowsLibrary/include/NativeToolkit/` (C++ API), `windows/WindowsLibraryCApi/include/NativeToolkitC/` (C ABI)
 
 ## Unity Native Toolkit (Unity 6)
 

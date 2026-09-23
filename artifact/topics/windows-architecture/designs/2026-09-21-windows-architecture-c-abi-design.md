@@ -341,6 +341,9 @@ windows/
 
 - 依存の向きは CApi → Core だけ。DLL の CRT は `/MD`。C ABI の境界では C++ の型も CRT の資源も受け渡さないので、利用者の CRT と一致しなくてよい
 - 配布物の名前は `windows-native-toolkit-capi-<版>.dll`（README 3.1）、版は 2.0.0（D-4）
+  - DLL 自体の名前は `NativeToolkitC.dll`（ビルドスクリプトが `.def` の `LIBRARY` に入れる名前で、版の情報の `OriginalFilename` と同じ。Visual Studio でのビルドはプロジェクト名の `WindowsLibraryCApi.dll`）。import ライブラリはこの名前の DLL を読み込むので、C / C++ から import ライブラリでリンクする利用者は、配布物をこの名前で置く。1.x の `NativeToolkit.dll` と `windows-native-toolkit-<版>.dll` と同じ関係（T-13 で決めた）
+  - `scripts/build_windows_library_dll.ps1` は `dist/<版>/windows/` に、DLL、import ライブラリ（`.lib`）、公開ヘッダー（`include/NativeToolkitC/`）を出す。版が `Common.h` の `NTK_VERSION_*` と違えば失敗する。DLL は `Microsoft.WindowsAppRuntime.Bootstrap.dll` を読み込むので、利用者は Windows App SDK のそれを隣に置く（1.x の DLL と同じ）
+  - NuGet パッケージは段階 6 で作り直すまで作らない。`-Package` は理由を示して失敗する。1.x の雛形（`scripts/nuget/NativeToolkit`）は 1.x の DLL とヘッダーを前提にしており、今は使えない
 - x64 のみ（C++ API の設計書 7.5.1 と同じ）
 
 ### 7.2 公開ヘッダー

@@ -132,4 +132,7 @@
   <ItemGroup>
     <None Include="WindowsLibraryCApi.def" />
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="WindowsLibraryCApi.rc" />
+  </ItemGroup>
 </Project>
