@@ -150,6 +150,22 @@ DFLog(TAG, L"[ShowDialog] failed. hr=0x%08lx", hr);
 
 ---
 
+## 配布（NuGet / 版番号）
+
+`scripts/build_windows_library_dll.ps1` が 2 つの成果物と 2 つの NuGet パッケージを作る。
+
+| モジュール | 成果物 | NuGet | 雛形 |
+|---|---|---|---|
+| `WindowsLibraryCore` | 静的ライブラリ（Release と Debug） | `NativeToolkit` | `scripts/nuget/NativeToolkit/` |
+| `WindowsLibraryCApi` | `NativeToolkitC.dll` と import ライブラリ | `NativeToolkit.CApi` | `scripts/nuget/NativeToolkitCApi/` |
+
+- 版番号はヘッダーが持つ。C++ API は `NativeToolkit/BuildStamp.h` の `NATIVETOOLKIT_VERSION_*`、C ABI は `NativeToolkitC/Common.h` の `NTK_VERSION_*`。`-LibraryVersion` がこれと違うとビルドを拒否する
+- `dist/<リリース版>/` の版はリポジトリのリリース版で、ライブラリの版とは別である（`-ReleaseVersion`）
+- 公開ヘッダーを増やしたら、その場所は `HeaderDir` で拾うので雛形の変更は要らない。ヘッダーの置き場所自体を変えるときだけ `ModuleConfig` を直す
+- 静的ライブラリは MSVC v143 / `/std:c++20` / `/MD`・`/MDd` / x64 で作る。利用者側がこれと違うと LNK2038 になる（`BuildStamp.h` の `detect_mismatch`）
+
+---
+
 ## コメントと言語ポリシー
 
 - コメント本文（Doxygen、HeaderDoc、行コメント、ブロックコメント）は英語で記述する

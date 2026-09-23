@@ -1,0 +1,33 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    NativeToolkit.CApi: the C ABI as a DLL.
+
+    The headers are plain C99 and pull in nothing but <stddef.h> and
+    <stdint.h>, so the toolset, the C runtime and the C++ standard of the
+    consumer do not have to match the library's.
+  -->
+  <PropertyGroup>
+    <NativeToolkitCApiPackageRoot>$(MSBuildThisFileDirectory)..\..</NativeToolkitCApiPackageRoot>
+    <NativeToolkitCApiIncludeDir>$(MSBuildThisFileDirectory)include</NativeToolkitCApiIncludeDir>
+    <NativeToolkitCApiNativeDir>$(NativeToolkitCApiPackageRoot)\runtimes\win-x64\native</NativeToolkitCApiNativeDir>
+  </PropertyGroup>
+
+  <!-- Auto-add include/lib (MSVC) -->
+  <ItemDefinitionGroup Condition="'$(PlatformToolset)' != ''">
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(NativeToolkitCApiIncludeDir)</AdditionalIncludeDirectories>
+    </ClCompile>
+
+    <Link>
+      <AdditionalDependencies>NativeToolkitC.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(NativeToolkitCApiNativeDir)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- x64 only: say so at build time rather than at link time. -->
+  <Target Name="NativeToolkitCApiCheckPlatform" BeforeTargets="ClCompile" Condition="'$(PlatformToolset)' != '' And '$(Platform)' != 'x64'">
+    <Error Text="NativeToolkit.CApi ships x64 only, and this project builds $(Platform)." />
+  </Target>
+
+</Project>

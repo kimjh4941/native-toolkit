@@ -1,31 +1,46 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-  Build the Windows C ABI DLL, its import library and its public headers.
+  Build the Windows C++ API static library and the C ABI DLL, with their public
+  headers and their NuGet packages.
 
 .DESCRIPTION
-  Windows counterpart of scripts/build_xcode26_library_xcframework.sh. Builds the
-  C ABI (windows/WindowsLibraryCApi) via MSBuild and copies it with a
-  distributable name under dist/<version>/windows/:
+  Windows counterpart of scripts/build_xcode26_library_xcframework.sh. Builds
+  one or both modules via MSBuild and copies them with distributable names
+  under dist/<release>/windows/:
 
-    windows-native-toolkit-capi-<version>.dll   the DLL (its own name is NativeToolkitC.dll)
-    windows-native-toolkit-capi-<version>.lib   its import library, which loads NativeToolkitC.dll
-    include/NativeToolkitC/*.h                   the public headers
+    WindowsLibraryCore - the C++ API, a static library
+      windows-native-toolkit-<version>.lib        the static library
+      include/NativeToolkit/*.h                   the public headers
+      windows-native-toolkit-<version>.nupkg      -Package: NativeToolkit
 
-  The DLL imports Microsoft.WindowsAppRuntime.Bootstrap.dll, which comes with
-  the Windows App SDK and has to sit next to it.
+    WindowsLibraryCApi - the C ABI, a DLL
+      windows-native-toolkit-capi-<version>.dll   the DLL (its own name is NativeToolkitC.dll)
+      windows-native-toolkit-capi-<version>.lib   its import library, which loads NativeToolkitC.dll
+      include/NativeToolkitC/*.h                  the public headers
+      windows-native-toolkit-capi-<version>.nupkg -Package: NativeToolkit.CApi
 
-  The version must be the one the headers declare (NTK_VERSION in
-  NativeToolkitC/Common.h): a DLL stamped with another would tell a caller that
-  checks ntk_version() the wrong thing.
+  Both need the Windows App SDK. The DLL imports
+  Microsoft.WindowsAppRuntime.Bootstrap.dll, which has to sit next to it; a
+  consumer of the static library restores Microsoft.WindowsAppSDK itself, and
+  both NuGet packages declare it as a dependency.
 
-  The 1.x C ABI and its NuGet package are gone (stage 5 of the
-  windows-architecture topic). A NuGet package for the new layout comes with
-  stage 6; until then -Package is refused.
+  The NuGet package of the static library carries the Release and the Debug
+  library, so -Package builds both configurations for that module whatever
+  -Configuration says.
+
+  -LibraryVersion must be the version the module's headers declare
+  (NATIVETOOLKIT_VERSION_* in NativeToolkit/BuildStamp.h, NTK_VERSION_* in
+  NativeToolkitC/Common.h): a binary stamped with another would tell a caller
+  that checks ntk_version() the wrong thing.
+
+  -ReleaseVersion names the dist/<release>/ folder. That is the version of the
+  repository's release, not of this library: dist/1.11.0/android holds
+  android-native-toolkit-1.3.0.aar. It defaults to -LibraryVersion.
 
 .PARAMETER Module
-  Module to build (repeatable). Valid: WindowsLibraryCApi.
-  Default: WindowsLibraryCApi.
+  Module to build (repeatable). Valid: WindowsLibraryCore, WindowsLibraryCApi.
+  Default: both.
 
 .PARAMETER Configuration
   debug or release (default: release).
@@ -34,32 +49,38 @@
   MSBuild platform (default: x64).
 
 .PARAMETER LibraryVersion
-  Library version used for default output naming and the NuGet package version.
+  Library version. Must match what the module's public headers declare.
+
+.PARAMETER ReleaseVersion
+  Version of the dist/<release>/ folder (default: -LibraryVersion).
 
 .PARAMETER Output
-  Output DLL path. Only allowed for a single module. The .lib is written next to it.
+  Output path (.dll for the C ABI, .lib for the C++ API). Only allowed for a
+  single module. The import library, the headers and the package are written
+  alongside it.
 
 .PARAMETER Package
-  Pack a NuGet package. No module is packable until stage 6 redoes the package.
+  Pack the module's NuGet package next to the distributable.
 
 .PARAMETER Nuget
   Path to nuget.exe. If omitted, 'nuget' is resolved from PATH.
 
 .EXAMPLE
-  ./scripts/build_windows_library_dll.ps1 -Configuration release -LibraryVersion 2.0.0
+  ./scripts/build_windows_library_dll.ps1 -Configuration release -LibraryVersion 2.0.0 -ReleaseVersion 1.12.0 -Package
 
 .EXAMPLE
-  ./scripts/build_windows_library_dll.ps1 -c debug -v 2.0.0 -o C:\tmp\windows-native-toolkit-capi-verify.dll
+  ./scripts/build_windows_library_dll.ps1 -m WindowsLibraryCApi -c debug -v 2.0.0 -o C:\tmp\windows-native-toolkit-capi-verify.dll
 
 .EXAMPLE
-  ./scripts/build_windows_library_dll.ps1 -c release -v 2.0.0 -o dist\2.0.0\windows\windows-native-toolkit-capi-2.0.0.dll
+  ./scripts/build_windows_library_dll.ps1 -m WindowsLibraryCore -c release -v 2.0.0 -o dist\1.12.0\windows\windows-native-toolkit-2.0.0.lib
 #>
 [CmdletBinding()]
 param(
-    [Alias('m')][string[]]$Module = @('WindowsLibraryCApi'),
+    [Alias('m')][string[]]$Module = @('WindowsLibraryCore', 'WindowsLibraryCApi'),
     [Alias('c')][string]$Configuration = 'release',
     [Alias('p')][string]$Platform = 'x64',
     [Alias('v')][string]$LibraryVersion = '',
+    [Alias('r')][string]$ReleaseVersion = '',
     [Alias('o')][string]$Output = '',
     [switch]$Package,
     [string]$Nuget = '',
@@ -102,13 +123,14 @@ function Update-RcVersion([string]$rcPath, [string]$version) {
 
 function Show-Usage {
     Write-Host @'
-Usage: ./scripts/build_windows_library_dll.ps1 [-Module <name>]... [-Configuration <debug|release>] [-Platform <x64>] [-LibraryVersion <version>] [-Output <path>] [-Package] [-Nuget <path>]
-  -m, -Module          Module to build (repeatable): WindowsLibraryCApi (default: WindowsLibraryCApi)
+Usage: ./scripts/build_windows_library_dll.ps1 [-Module <name>]... [-Configuration <debug|release>] [-Platform <x64>] [-LibraryVersion <version>] [-ReleaseVersion <version>] [-Output <path>] [-Package] [-Nuget <path>]
+  -m, -Module          module to build (repeatable): WindowsLibraryCore, WindowsLibraryCApi (default: both)
   -c, -Configuration   debug or release (default: release)
   -p, -Platform        MSBuild platform (default: x64)
-  -v, -LibraryVersion  library version for default output naming / NuGet version
-  -o, -Output          output DLL path (single module only; .lib and include\ written alongside)
-      -Package         pack a NuGet package (refused until stage 6)
+  -v, -LibraryVersion  library version; must match the module's public headers
+  -r, -ReleaseVersion  version of the dist/<release>/ folder (default: -LibraryVersion)
+  -o, -Output          output path (single module only; .lib/.dll, headers and package written alongside)
+      -Package         pack the module's NuGet package
       -Nuget           path to nuget.exe (default: resolved from PATH)
   -h, -Help            show help
 '@
@@ -124,19 +146,36 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 
 # Per-module build configuration.
 $ModuleConfig = @{
+    'WindowsLibraryCore' = @{
+        Kind          = 'static'
+        Project       = 'windows\WindowsLibrary\WindowsLibraryCore.vcxproj'
+        # The library's own name. The project appends -Debug in Debug builds.
+        TargetName    = 'WindowsLibraryCore'
+        Prefix        = 'windows-native-toolkit'
+        # Every public header, shipped as include\NativeToolkit\<name>.h.
+        HeaderDir     = 'windows\WindowsLibrary\include\NativeToolkit'
+        # Where the headers declare the version.
+        VersionHeader = 'windows\WindowsLibrary\include\NativeToolkit\BuildStamp.h'
+        VersionMacro  = 'NATIVETOOLKIT_VERSION'
+        Packable      = $true
+        PackageId     = 'NativeToolkit'
+        NuspecDir     = 'nuget\NativeToolkit'
+    }
     'WindowsLibraryCApi' = @{
-        Project    = 'windows\WindowsLibraryCApi\WindowsLibraryCApi.vcxproj'
-        Def        = 'windows\WindowsLibraryCApi\WindowsLibraryCApi.def'
-        Rc         = 'windows\WindowsLibraryCApi\WindowsLibraryCApi.rc'
+        Kind          = 'dll'
+        Project       = 'windows\WindowsLibraryCApi\WindowsLibraryCApi.vcxproj'
+        Def           = 'windows\WindowsLibraryCApi\WindowsLibraryCApi.def'
+        Rc            = 'windows\WindowsLibraryCApi\WindowsLibraryCApi.rc'
         # The DLL's own name: the import library loads this, whatever the
         # distributable copy is called.
-        DllName    = 'NativeToolkitC'
-        Prefix     = 'windows-native-toolkit-capi'
-        Packable   = $false
-        # Every public header, shipped as include\NativeToolkitC\<name>.h.
-        HeaderDir  = 'windows\WindowsLibraryCApi\include\NativeToolkitC'
-        # Where the headers declare the version (NTK_VERSION_MAJOR and so on).
+        DllName       = 'NativeToolkitC'
+        Prefix        = 'windows-native-toolkit-capi'
+        HeaderDir     = 'windows\WindowsLibraryCApi\include\NativeToolkitC'
         VersionHeader = 'windows\WindowsLibraryCApi\include\NativeToolkitC\Common.h'
+        VersionMacro  = 'NTK_VERSION'
+        Packable      = $true
+        PackageId     = 'NativeToolkit.CApi'
+        NuspecDir     = 'nuget\NativeToolkitCApi'
     }
 }
 
@@ -149,7 +188,7 @@ if ($Configuration -ne 'debug' -and $Configuration -ne 'release') {
     Fail "Configuration must be 'debug' or 'release'."
 }
 
-if (-not $Module -or $Module.Count -eq 0) { $Module = @('WindowsLibraryCApi') }
+if (-not $Module -or $Module.Count -eq 0) { $Module = @('WindowsLibraryCore', 'WindowsLibraryCApi') }
 
 foreach ($m in $Module) {
     if (-not $ModuleConfig.ContainsKey($m)) {
@@ -164,10 +203,11 @@ if ($OutputSet -and $Module.Count -gt 1) {
     Fail "-Output is not allowed for multi-module builds."
 }
 
-if (-not [string]::IsNullOrEmpty($LibraryVersion)) {
-    if ($LibraryVersion -match '[\s/]') {
+foreach ($name in 'LibraryVersion', 'ReleaseVersion') {
+    $value = (Get-Variable -Name $name -ValueOnly)
+    if (-not [string]::IsNullOrEmpty($value) -and $value -match '[\s/]') {
         Show-Usage
-        Fail "-LibraryVersion must not contain spaces or '/' characters."
+        Fail "-$name must not contain spaces or '/' characters."
     }
 }
 
@@ -181,12 +221,12 @@ if ($Package -and [string]::IsNullOrEmpty($LibraryVersion)) {
 }
 
 # The version the headers declare, as "major.minor.patch".
-function Get-HeaderVersion([string]$headerPath) {
+function Get-HeaderVersion([string]$headerPath, [string]$macro) {
     if (-not (Test-Path $headerPath)) { Fail "Version header not found: $headerPath" }
     $text = [System.IO.File]::ReadAllText($headerPath)
     $parts = foreach ($part in 'MAJOR', 'MINOR', 'PATCH') {
-        $match = [regex]::Match($text, "#define\s+NTK_VERSION_$part\s+(\d+)")
-        if (-not $match.Success) { Fail "NTK_VERSION_$part not found in $headerPath" }
+        $match = [regex]::Match($text, "#define\s+${macro}_$part\s+(\d+)")
+        if (-not $match.Success) { Fail "${macro}_$part not found in $headerPath" }
         $match.Groups[1].Value
     }
     return ($parts -join '.')
@@ -194,12 +234,17 @@ function Get-HeaderVersion([string]$headerPath) {
 
 if (-not [string]::IsNullOrEmpty($LibraryVersion)) {
     foreach ($m in $Module) {
-        $declared = Get-HeaderVersion (Join-Path (Split-Path -Parent $PSScriptRoot) $ModuleConfig[$m].VersionHeader)
+        $cfg = $ModuleConfig[$m]
+        $declared = Get-HeaderVersion (Join-Path $RepoRoot $cfg.VersionHeader) $cfg.VersionMacro
         if ($LibraryVersion -ne $declared) {
-            Fail "-LibraryVersion $LibraryVersion differs from the version the headers declare ($declared). Change NTK_VERSION_* in NativeToolkitC/Common.h first."
+            Fail "-LibraryVersion $LibraryVersion differs from the version [$m] declares ($declared). Change $($cfg.VersionMacro)_* in $(Split-Path -Leaf $cfg.VersionHeader) first."
         }
     }
 }
+
+# The dist/<release>/ folder. The repository's release version, not this
+# library's: dist/1.11.0/android holds android-native-toolkit-1.3.0.aar.
+$DistVersion = if (-not [string]::IsNullOrEmpty($ReleaseVersion)) { $ReleaseVersion } else { $LibraryVersion }
 
 # MSBuild configuration name (Debug/Release).
 $MsbuildConfig = if ($Configuration -eq 'debug') { 'Debug' } else { 'Release' }
@@ -235,30 +280,34 @@ function Resolve-Nuget {
 $MSBuild = Resolve-MSBuild
 
 # ---------------------------------------------------------------------------
-# Build a single module -> produces <DllName>.dll/.lib in $stageDir
+# Build one module in one configuration -> its outputs in $stageDir
 # ---------------------------------------------------------------------------
 
-function Build-Module([hashtable]$cfg, [string]$stageDir) {
+function Build-Module([hashtable]$cfg, [string]$stageDir, [string]$msbuildConfig) {
     $projectPath = Join-Path $RepoRoot $cfg.Project
-    $defPath     = Join-Path $RepoRoot $cfg.Def
-    $dllName     = $cfg.DllName
-
     if (-not (Test-Path $projectPath)) { Fail "Project not found: $projectPath" }
-    if (-not (Test-Path $defPath))     { Fail "DEF file not found: $defPath" }
 
-    # Stage a temporary DEF with the distributable LIBRARY name so the DLL/lib
-    # are emitted as <DllName>.dll / <DllName>.lib.
-    $tempDef = Join-Path ([System.IO.Path]::GetTempPath()) "$dllName.def"
-    $defLines = Get-Content -LiteralPath $defPath
-    $defLines = $defLines | ForEach-Object {
-        if ($_ -match '^\s*LIBRARY') { "LIBRARY $dllName" } else { $_ }
-    }
-    Set-Content -LiteralPath $tempDef -Value $defLines -Encoding ASCII
+    $isDll = $cfg.Kind -eq 'dll'
+    $tempDef = $null
 
-    # Stamp the source version resource (FILEVERSION / PRODUCTVERSION) from the
-    # library version and persist it, mirroring the macOS pbxproj version update.
-    if (-not [string]::IsNullOrEmpty($LibraryVersion) -and -not [string]::IsNullOrEmpty($cfg.Rc)) {
-        Update-RcVersion (Join-Path $RepoRoot $cfg.Rc) $LibraryVersion
+    if ($isDll) {
+        $defPath = Join-Path $RepoRoot $cfg.Def
+        if (-not (Test-Path $defPath)) { Fail "DEF file not found: $defPath" }
+
+        # Stage a temporary DEF with the distributable LIBRARY name so the DLL/lib
+        # are emitted as <DllName>.dll / <DllName>.lib.
+        $tempDef = Join-Path ([System.IO.Path]::GetTempPath()) "$($cfg.DllName).def"
+        $defLines = Get-Content -LiteralPath $defPath
+        $defLines = $defLines | ForEach-Object {
+            if ($_ -match '^\s*LIBRARY') { "LIBRARY $($cfg.DllName)" } else { $_ }
+        }
+        Set-Content -LiteralPath $tempDef -Value $defLines -Encoding ASCII
+
+        # Stamp the source version resource (FILEVERSION / PRODUCTVERSION) from the
+        # library version and persist it, mirroring the macOS pbxproj version update.
+        if (-not [string]::IsNullOrEmpty($LibraryVersion) -and -not [string]::IsNullOrEmpty($cfg.Rc)) {
+            Update-RcVersion (Join-Path $RepoRoot $cfg.Rc) $LibraryVersion
+        }
     }
 
     if (Test-Path $stageDir) { Remove-Item -Recurse -Force $stageDir }
@@ -266,98 +315,135 @@ function Build-Module([hashtable]$cfg, [string]$stageDir) {
     $outDir = (Resolve-Path $stageDir).Path
     if (-not $outDir.EndsWith('\')) { $outDir = "$outDir\" }
 
-    # Override props: disable type-library registration, inject the temp DEF,
-    # and name and place the DLL. The props reach every project the build
+    # Override props: disable type-library registration, and for the DLL inject
+    # the temp DEF and name the output. The props reach every project the build
     # touches, the static core included, so everything but the registration is
     # conditioned on the module's own project: a global /p:TargetName would
     # rename the core's .lib too, into the import library's name.
     $projectName = [System.IO.Path]::GetFileNameWithoutExtension($cfg.Project)
-    $tempProps = Join-Path ([System.IO.Path]::GetTempPath()) "$dllName.override.props"
+    $stamp = if ($isDll) { $cfg.DllName } else { $cfg.TargetName }
+    $tempProps = Join-Path ([System.IO.Path]::GetTempPath()) "$stamp.$msbuildConfig.override.props"
+
+    $dllProps = if ($isDll) {
+@"
+    <NativeToolkitTempDef>$tempDef</NativeToolkitTempDef>
+    <TargetName>$($cfg.DllName)</TargetName>
+"@
+    } else { '' }
+
+    $dllItems = if ($isDll) {
+@"
+  <ItemDefinitionGroup Condition="'`$(MSBuildProjectName)'=='$projectName'">
+    <Link>
+      <ModuleDefinitionFile>`$(NativeToolkitTempDef)</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+"@
+    } else { '' }
+
     $propsContent = @"
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'`$(MSBuildProjectName)'=='$projectName'">
-    <NativeToolkitTempDef>$tempDef</NativeToolkitTempDef>
-    <TargetName>$dllName</TargetName>
-    <OutDir>$outDir</OutDir>
+$dllProps    <OutDir>$outDir</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
       <RegisterOutput>false</RegisterOutput>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'`$(MSBuildProjectName)'=='$projectName'">
-    <Link>
-      <ModuleDefinitionFile>`$(NativeToolkitTempDef)</ModuleDefinitionFile>
-    </Link>
-  </ItemDefinitionGroup>
-</Project>
+$dllItems</Project>
 "@
     Set-Content -LiteralPath $tempProps -Value $propsContent -Encoding UTF8
 
-    Write-Step 'build' "MSBuild $($cfg.DllName) ($MsbuildConfig|$Platform)"
-    & $MSBuild $projectPath /t:Build /p:Configuration=$MsbuildConfig /p:Platform=$Platform `
+    Write-Step 'build' "MSBuild $projectName ($msbuildConfig|$Platform)"
+    & $MSBuild $projectPath /t:Build /p:Configuration=$msbuildConfig /p:Platform=$Platform `
         /p:ForceImportBeforeCppTargets=$tempProps /nologo /v:minimal | Out-Host
     $buildExit = $LASTEXITCODE
 
-    Remove-Item -LiteralPath $tempDef -Force -ErrorAction SilentlyContinue
+    if ($tempDef) { Remove-Item -LiteralPath $tempDef -Force -ErrorAction SilentlyContinue }
     Remove-Item -LiteralPath $tempProps -Force -ErrorAction SilentlyContinue
 
-    if ($buildExit -ne 0) { Fail "[$($cfg.DllName)] Build failed (exit $buildExit)." }
+    if ($buildExit -ne 0) { Fail "[$projectName] Build failed (exit $buildExit)." }
 
-    $dll = Join-Path $outDir "$dllName.dll"
-    $lib = Join-Path $outDir "$dllName.lib"
-    if (-not (Test-Path $dll)) { Fail "[$($cfg.DllName)] Output not found: $dll" }
-    if (-not (Test-Path $lib)) { Fail "[$($cfg.DllName)] Output not found: $lib" }
+    if ($isDll) {
+        $dll = Join-Path $outDir "$($cfg.DllName).dll"
+        $lib = Join-Path $outDir "$($cfg.DllName).lib"
+        if (-not (Test-Path $dll)) { Fail "[$projectName] Output not found: $dll" }
+        if (-not (Test-Path $lib)) { Fail "[$projectName] Output not found: $lib" }
 
-    # Drop intermediate link artifacts.
-    Remove-Item -Path (Join-Path $outDir "$dllName.exp") -Force -ErrorAction SilentlyContinue
+        # Drop intermediate link artifacts.
+        Remove-Item -Path (Join-Path $outDir "$($cfg.DllName).exp") -Force -ErrorAction SilentlyContinue
 
-    return [pscustomobject]@{ Dll = $dll; Lib = $lib }
+        return [pscustomobject]@{ Dll = $dll; Lib = $lib; Configuration = $msbuildConfig }
+    }
+
+    # The static library keeps the name its project gives it, which carries a
+    # -Debug suffix in Debug builds.
+    $libs = @(Get-ChildItem -LiteralPath $outDir -Filter "$($cfg.TargetName)*.lib" -File)
+    if ($libs.Count -ne 1) {
+        Fail "[$projectName] Expected one $($cfg.TargetName)*.lib in $outDir, found $($libs.Count)."
+    }
+    return [pscustomobject]@{ Dll = $null; Lib = $libs[0].FullName; Configuration = $msbuildConfig }
 }
 
 # ---------------------------------------------------------------------------
-# Pack the NuGet package from scripts/nuget/NativeToolkit
+# Pack the module's NuGet package from scripts/nuget/<template>
 # ---------------------------------------------------------------------------
 
-function Invoke-NugetPack([hashtable]$cfg, [pscustomobject]$built, [string]$nupkgTarget) {
+function Invoke-NugetPack([hashtable]$cfg, [hashtable]$builtByConfig, [string]$nupkgTarget) {
     $nuget = Resolve-Nuget
-    $templateDir = Join-Path $PSScriptRoot 'nuget\NativeToolkit'
+    $templateDir = Join-Path $PSScriptRoot $cfg.NuspecDir
     if (-not (Test-Path $templateDir)) { Fail "NuGet template not found: $templateDir" }
 
     # Stage a packing layout next to a copy of the template.
-    $packDir = Join-Path ([System.IO.Path]::GetTempPath()) "nupkg-$($cfg.DllName)-$LibraryVersion"
+    $packDir = Join-Path ([System.IO.Path]::GetTempPath()) "nupkg-$($cfg.PackageId)-$LibraryVersion"
     if (Test-Path $packDir) { Remove-Item -Recurse -Force $packDir }
     New-Item -ItemType Directory -Force -Path $packDir | Out-Null
 
     Copy-Item -Recurse -Force (Join-Path $templateDir '*') $packDir
 
-    # Stage binaries (x64 runtime path).
-    $nativeDir = Join-Path $packDir 'runtimes\win-x64\native'
-    New-Item -ItemType Directory -Force -Path $nativeDir | Out-Null
-    Copy-Item -Force $built.Dll (Join-Path $nativeDir "$($cfg.DllName).dll")
-    Copy-Item -Force $built.Lib (Join-Path $nativeDir "$($cfg.DllName).lib")
-
-    # Stage public headers.
-    $includeDir = Join-Path $packDir 'include'
-    New-Item -ItemType Directory -Force -Path $includeDir | Out-Null
-    foreach ($h in $cfg.Headers) {
-        $src = Join-Path $RepoRoot $h
-        if (-not (Test-Path $src)) { Fail "Public header not found: $src" }
-        Copy-Item -Force $src $includeDir
+    if ($cfg.Kind -eq 'dll') {
+        # The DLL and its import library, under the x64 runtime path.
+        $nativeDir = Join-Path $packDir 'runtimes\win-x64\native'
+        New-Item -ItemType Directory -Force -Path $nativeDir | Out-Null
+        $built = $builtByConfig['Release']
+        if (-not $built) { $built = $builtByConfig.Values | Select-Object -First 1 }
+        Copy-Item -Force $built.Dll (Join-Path $nativeDir "$($cfg.DllName).dll")
+        Copy-Item -Force $built.Lib (Join-Path $nativeDir "$($cfg.DllName).lib")
+    } else {
+        # Both configurations of the static library: a consumer's Debug build
+        # links the Debug one (different CRT and iterator debug level).
+        foreach ($c in 'Release', 'Debug') {
+            $built = $builtByConfig[$c]
+            if (-not $built) { Fail "[$($cfg.PackageId)] The package needs the $c library, which was not built." }
+            $libDir = Join-Path $packDir "build\native\lib\x64\$c"
+            New-Item -ItemType Directory -Force -Path $libDir | Out-Null
+            Copy-Item -Force $built.Lib $libDir
+        }
     }
 
-    # Pack to a temp dir (nuget names it NativeToolkit.<version>.nupkg), then move
-    # the package to the requested target path/name (next to the distributable DLL).
+    # Stage the public headers as include\<leaf>\*.h; the nuspec copies the tree
+    # to build\native\include, so a consumer writes #include <<leaf>/Name.h>.
+    $headerSource = Join-Path $RepoRoot $cfg.HeaderDir
+    $includeDir = Join-Path $packDir ('include\' + (Split-Path -Leaf $cfg.HeaderDir))
+    New-Item -ItemType Directory -Force -Path $includeDir | Out-Null
+    $headers = @(Get-ChildItem -LiteralPath $headerSource -Filter '*.h' -File -ErrorAction SilentlyContinue)
+    if ($headers.Count -eq 0) { Fail "[$($cfg.PackageId)] No public headers in $headerSource" }
+    foreach ($h in $headers) { Copy-Item -Force $h.FullName $includeDir }
+
+    # Pack to a temp dir (nuget names it <id>.<version>.nupkg), then move the
+    # package to the requested target path/name (next to the distributable).
     $packOut = Join-Path $packDir '_out'
     New-Item -ItemType Directory -Force -Path $packOut | Out-Null
 
-    Write-Step 'package' "nuget pack NativeToolkit $LibraryVersion"
-    $nuspec = Join-Path $packDir 'NativeToolkit.nuspec'
+    Write-Step 'package' "nuget pack $($cfg.PackageId) $LibraryVersion"
+    $nuspec = Join-Path $packDir "$($cfg.PackageId).nuspec"
+    if (-not (Test-Path $nuspec)) { Fail "Nuspec not found in template: $nuspec" }
     & $nuget pack $nuspec -Version $LibraryVersion -OutputDirectory $packOut -NonInteractive -Verbosity quiet | Out-Host
     $packExit = $LASTEXITCODE
     if ($packExit -ne 0) { Remove-Item -Recurse -Force $packDir -ErrorAction SilentlyContinue; Fail "nuget pack failed (exit $packExit)." }
 
-    $produced = Join-Path $packOut "NativeToolkit.$LibraryVersion.nupkg"
+    $produced = Join-Path $packOut "$($cfg.PackageId).$LibraryVersion.nupkg"
     if (-not (Test-Path $produced)) { Remove-Item -Recurse -Force $packDir -ErrorAction SilentlyContinue; Fail "Expected package not found: $produced" }
 
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $nupkgTarget) | Out-Null
@@ -375,33 +461,51 @@ foreach ($moduleName in $Module) {
     $cfg = $ModuleConfig[$moduleName]
 
     if ($Package -and -not $cfg.Packable) {
-        Fail "[$moduleName] has no NuGet package until stage 6 of the windows-architecture topic redoes it. Remove -Package."
+        Fail "[$moduleName] has no NuGet package. Remove -Package."
     }
 
     Write-Step 'info' "[$moduleName] Building ($MsbuildConfig|$Platform) version=$(if ($LibraryVersion) { $LibraryVersion } else { 'n/a' })"
 
-    $stageDir = Join-Path $RepoRoot "windows\Build\$moduleName"
-    Write-Step 'clean' "[$moduleName] Cleaning build staging"
-    $built = Build-Module $cfg $stageDir
+    # The static library's package carries both configurations.
+    $configsToBuild = @($MsbuildConfig)
+    if ($Package -and $cfg.Kind -eq 'static') {
+        $configsToBuild = @('Release', 'Debug')
+    }
 
-    # Resolve the distributable DLL output path.
+    $stageRoot = Join-Path $RepoRoot "windows\Build\$moduleName"
+    Write-Step 'clean' "[$moduleName] Cleaning build staging"
+    if (Test-Path $stageRoot) { Remove-Item -Recurse -Force $stageRoot }
+
+    $builtByConfig = @{}
+    foreach ($c in $configsToBuild) {
+        $builtByConfig[$c] = Build-Module $cfg (Join-Path $stageRoot $c) $c
+    }
+    $built = $builtByConfig[$MsbuildConfig]
+
+    # Resolve the distributable output path.
+    $extension = if ($cfg.Kind -eq 'dll') { '.dll' } else { '.lib' }
     if ($OutputSet) {
-        $dllTarget = if ([System.IO.Path]::IsPathRooted($Output)) { $Output } else { Join-Path $RepoRoot $Output }
+        $target = if ([System.IO.Path]::IsPathRooted($Output)) { $Output } else { Join-Path $RepoRoot $Output }
     } else {
         $suffix = if ($Configuration -eq 'debug') { "-debug" } else { "" }
-        $fileName = "$($cfg.Prefix)-$LibraryVersion$suffix.dll"
-        $dllTarget = Join-Path $RepoRoot "dist\$LibraryVersion\windows\$fileName"
+        $fileName = "$($cfg.Prefix)-$LibraryVersion$suffix$extension"
+        $target = Join-Path $RepoRoot "dist\$DistVersion\windows\$fileName"
     }
-    $libTarget = [System.IO.Path]::ChangeExtension($dllTarget, '.lib')
 
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dllTarget) | Out-Null
-    Copy-Item -Force $built.Dll $dllTarget
-    Copy-Item -Force $built.Lib $libTarget
-    Write-Step 'done' "[$moduleName] Created $dllTarget and $libTarget"
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+    if ($cfg.Kind -eq 'dll') {
+        $libTarget = [System.IO.Path]::ChangeExtension($target, '.lib')
+        Copy-Item -Force $built.Dll $target
+        Copy-Item -Force $built.Lib $libTarget
+        Write-Step 'done' "[$moduleName] Created $target and $libTarget"
+    } else {
+        Copy-Item -Force $built.Lib $target
+        Write-Step 'done' "[$moduleName] Created $target"
+    }
 
-    # The public headers, next to the DLL as include\NativeToolkitC\*.h.
+    # The public headers, next to the distributable as include\<leaf>\*.h.
     $headerSource = Join-Path $RepoRoot $cfg.HeaderDir
-    $headerTarget = Join-Path (Split-Path -Parent $dllTarget) ("include\" + (Split-Path -Leaf $cfg.HeaderDir))
+    $headerTarget = Join-Path (Split-Path -Parent $target) ("include\" + (Split-Path -Leaf $cfg.HeaderDir))
     $headers = @(Get-ChildItem -LiteralPath $headerSource -Filter '*.h' -File -ErrorAction SilentlyContinue)
     if ($headers.Count -eq 0) { Fail "[$moduleName] No public headers in $headerSource" }
     New-Item -ItemType Directory -Force -Path $headerTarget | Out-Null
@@ -409,9 +513,9 @@ foreach ($moduleName in $Module) {
     Write-Step 'done' "[$moduleName] Copied $($headers.Count) headers to $headerTarget"
 
     if ($Package) {
-        # Place the package next to the distributable DLL with the same base name.
-        $nupkgTarget = [System.IO.Path]::ChangeExtension($dllTarget, '.nupkg')
-        $nupkg = Invoke-NugetPack $cfg $built $nupkgTarget
+        # Place the package next to the distributable with the same base name.
+        $nupkgTarget = [System.IO.Path]::ChangeExtension($target, '.nupkg')
+        $nupkg = Invoke-NugetPack $cfg $builtByConfig $nupkgTarget
         Write-Step 'done' "[$moduleName] Created $nupkg"
     }
 }

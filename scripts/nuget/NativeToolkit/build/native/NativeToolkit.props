@@ -1,27 +1,52 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <!-- NuGet package root -->
+  <!--
+    NativeToolkit: the C++ API as a static library.
+
+    The library is built with MSVC v143, /std:c++20 and the DLL runtime (/MD,
+    /MDd). A consumer that differs in the C runtime, the iterator debug level
+    or the C++/WinRT configuration fails the link with LNK2038, which is what
+    NativeToolkit/BuildStamp.h is for.
+  -->
   <PropertyGroup>
-    <WindowsLibraryPackageRoot>$(MSBuildThisFileDirectory)..\..</WindowsLibraryPackageRoot>
-    <WindowsLibraryIncludeDir>$(WindowsLibraryPackageRoot)\build\native\include</WindowsLibraryIncludeDir>
+    <NativeToolkitIncludeDir>$(MSBuildThisFileDirectory)include</NativeToolkitIncludeDir>
 
-    <!-- Platform mapping: win-x64 / win-x86 -->
-    <WindowsLibraryRid Condition="'$(Platform)'=='x64'">win-x64</WindowsLibraryRid>
-    <WindowsLibraryRid Condition="'$(Platform)'=='Win32'">win-x86</WindowsLibraryRid>
+    <!-- Debug and Release libraries differ in CRT and iterator debug level. -->
+    <NativeToolkitConfig Condition="'$(Configuration)'=='Debug'">Debug</NativeToolkitConfig>
+    <NativeToolkitConfig Condition="'$(NativeToolkitConfig)'==''">Release</NativeToolkitConfig>
 
-    <WindowsLibraryNativeDir>$(WindowsLibraryPackageRoot)\runtimes\$(WindowsLibraryRid)\native</WindowsLibraryNativeDir>
+    <NativeToolkitLibName Condition="'$(NativeToolkitConfig)'=='Debug'">WindowsLibraryCore-Debug.lib</NativeToolkitLibName>
+    <NativeToolkitLibName Condition="'$(NativeToolkitLibName)'==''">WindowsLibraryCore.lib</NativeToolkitLibName>
+
+    <NativeToolkitLibDir>$(MSBuildThisFileDirectory)lib\x64\$(NativeToolkitConfig)</NativeToolkitLibDir>
   </PropertyGroup>
 
   <!-- Auto-add include/lib (MSVC) -->
   <ItemDefinitionGroup Condition="'$(PlatformToolset)' != ''">
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(WindowsLibraryIncludeDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(NativeToolkitIncludeDir)</AdditionalIncludeDirectories>
+      <!-- The public headers are C++20; leave a project that already sets it alone. -->
+      <LanguageStandard Condition="'%(ClCompile.LanguageStandard)'==''">stdcpp20</LanguageStandard>
     </ClCompile>
 
     <Link>
-      <AdditionalDependencies>NativeToolkit.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(WindowsLibraryNativeDir)</AdditionalLibraryDirectories>
+      <!--
+        A static library carries no settings of its own, so everything it needs
+        from the system reaches the consumer here. The list was measured in the
+        stage 3 link spike: windowsapp.lib resolves the C++/WinRT runtime
+        (WINRT_IMPL_RoGetActivationFactory and friends) and propsys.lib
+        InitPropVariantFromCLSID. Microsoft.WindowsAppRuntime.Bootstrap.lib
+        comes from the Microsoft.WindowsAppSDK package, which this one depends
+        on and which adds it itself.
+      -->
+      <AdditionalDependencies>$(NativeToolkitLibName);user32.lib;advapi32.lib;shell32.lib;shlwapi.lib;ole32.lib;oleaut32.lib;propsys.lib;windowsapp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(NativeToolkitLibDir)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
+
+  <!-- x64 only: say so at build time rather than at link time. -->
+  <Target Name="NativeToolkitCheckPlatform" BeforeTargets="ClCompile" Condition="'$(PlatformToolset)' != '' And '$(Platform)' != 'x64'">
+    <Error Text="NativeToolkit ships x64 only, and this project builds $(Platform)." />
+  </Target>
 
 </Project>
