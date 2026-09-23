@@ -15,7 +15,7 @@
 | `scripts/check_c_abi_contract.py` | 12.3 の機械照合。自己テスト 19 件 |
 | 削除 | 1.x の C ABI（DLL、`src/Bridge/`、旧ヘッダー 4 つ、旧テスト 2 群）、`UnityWindowsPlugin` |
 
-設計書からの変更は、設計書の該当箇所に理由とともに記した（E-11 の改名の取りやめ、E-21 のウィンドウクラス、12.1 のテストの置き場所と偽物、CT-11 の比べ方、`NotificationPayloadTest` を残したこと、T-13 の配布物の名前）。
+設計書からの変更は、設計書の該当箇所に理由とともに記した（E-11 の改名の取りやめ、E-21 のウィンドウクラス、12.1 のテストの置き場所と偽物、通知の内容のビルダーのテストの比べ方（12.1 の表）、`NotificationPayloadTest` を残したこと、T-13 の配布物の名前）。
 
 ## 2. `unity-native-plugin` への申し送り
 
@@ -62,6 +62,32 @@ Unity Editor はネイティブの DLL を下ろさない。ドメインリロ�
 - **Rust**: `bindgen` でヘッダーから生成できる。ハンドルは `NonNull` を包んだ型にして `Drop` で `_free`。コールバックは `extern "C" fn`
 - **Python**: `ctypes` で扱える。オーナーのスレッドで `GetMessageW` のループを回す
 
-## 3. 確かめたこと
+## 3. 確かめたこと（T-16、2026-09-23）
 
-（T-16 の回帰の確認でまとめる）
+| 確認 | 結果 |
+|---|---|
+| `scripts/test_windows.ps1 -IncludeDestructive -Baseline`（全件） | **495 件すべて成功、失敗 0**。9 分 43 秒。内訳は単体 404、スモーク 2、UI 89。Windows の設定は元に戻った |
+| 単体テスト（Debug / Release） | どちらも 404 件成功（C++ API 274、C ABI 130） |
+| `dumpbin /exports` と `.def` | 105 個で一致。DLL が読み込むのは C ABI の DLL と OS のものだけ |
+| 機械照合 | `check_c_abi_contract.py` 8 項目、`check_cpp_api_contract.py` 12 項目、`check_design_consistency.py`。`scripts/tests` の自己テスト 56 件 |
+| スモーク（CT-21） | C と C++ の実行ファイルが実際の DLL で成功（テキストの往復を含む） |
+
+### 3.1 ベースラインとの差分
+
+段階 4 のベースライン（390 件、2026-09-21）と比べ、**新規 138 件、消えた 33 件、結果が変わったもの 0 件**。今回の結果（495 件）を新しいベースラインとして記録した。
+
+| 差分 | 件数 | 理由 |
+|---|---|---|
+| 消えた | 25 | 1.x の C ABI のテスト（`ClipboardBridgeTest` 20、`NotificationBridgeTest` 5）。ABI とともに削除（T-12） |
+| 消えた | 1 | `DialogMappingTest` の `extraFlags` の 1 件（E-10） |
+| 消えた | 1 | `ClipboardApiTest` の close のテスト 1 件。E-19 で `CANCELED` の再試行が不要になり、書き直した（T-17） |
+| 消えた | 6 | Clipboard の UI テスト。E-19 で作れなくなった場面（T-17。利用者の決定で 5 件削除・1 件書き直し） |
+| 新規 | 130 | C ABI の単体テスト（`WindowsLibraryCApiTest`） |
+| 新規 | 2 | スモークの実行ファイル 2 つ（CT-21） |
+| 新規 | 4 | C++ API のテスト（E-19 の close、E-20 のハンドラ。T-17） |
+| 新規 | 2 | UI テスト（T-03 の D-14、E-19 に合わせて書き直した 1 件） |
+
+### 3.2 残っていること
+
+- **CU-01（computer use の確認）** は未実施。段階 3 と段階 4 の分を含め、develop へマージする前に Claude デスクトップアプリから実行する
+- NuGet、マニュアル、Doxygen の生成は段階 6

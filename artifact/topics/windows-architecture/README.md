@@ -163,9 +163,9 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 0d | `scripts/test_windows.ps1` を作る。**今のコードで全件通ることを確かめ、結果を記録する**。**完了** | 無し | `feature/NTKIT-16` | - |
 | 1 | `WindowsLibrary` と `WindowsLibraryTest` から MFC / COM の雛形を消し、C++ 標準をそろえる。**完了**（C++20） | 無し | `feature/NTKIT-16` | - |
 | 2 | ディレクトリを `src/<Feature>/{Application,Data,Domain}` に分ける。**完了**（ファイルの移動だけ。層が混ざったファイルは機能の直下に置き、段階 3 で分ける） | 無し | `feature/NTKIT-16` | - |
-| 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**成果物を `WindowsLibraryCore`（静的ライブラリ）と `WindowsLibrary`（C ABI の DLL）に分け**、C ABI をコアの上に載せ替える。C ABI の 52 関数とその動作は変えない | ライブラリに C++ API が増える。配布物の構成が変わる | - | - |
+| 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**成果物を `WindowsLibraryCore`（静的ライブラリ）と `WindowsLibrary`（C ABI の DLL）に分け**、C ABI をコアの上に載せ替える。C ABI の 52 関数とその動作は変えない。**完了**（`results/2026-09-21-windows-architecture-stage3-bridge-result.md`） | ライブラリに C++ API が増える。配布物の構成が変わる | `feature/NTKIT-16` | - |
 | 4 | サンプルを C++ API に移行し、`WindowsLibraryCore` を参照するようにする。移行前と同じ UI テストが通ることを確かめる。**完了**（CU-01 の再実行を除く。C ABI にしかない動作を確かめていた UI テスト 4 件は C++ API の動作に置き換えた。`results/2026-09-21-windows-architecture-stage4-result.md`） | 無し（サンプルが使う API だけが変わる） | `feature/NTKIT-16` | - |
-| 5 | 段階 3 で分けた DLL を `WindowsLibraryCApi` に改名し、中身を新しい C ABI（D-6 〜 D-10）に置き換える。`UnityWindowsPlugin` を削除する | C ABI が変わる（2.0.0。D-4） | - | - |
+| 5 | 段階 3 で分けた DLL を `WindowsLibraryCApi` に改名し、中身を新しい C ABI（D-6 〜 D-10）に置き換える。`UnityWindowsPlugin` を削除する。**完了**（CU-01 の再実行を除く。`results/2026-09-23-windows-architecture-stage5-result.md`） | C ABI が変わる（2.0.0。D-4） | `feature/NTKIT-16` | - |
 | 6 | NuGet、マニュアル、Doxygen を新しい API に合わせる | - | - | - |
 | 7 | CI を作る（ユニットテストだけ。UI テストと computer use はローカルで実行する） | - | - | - |
 
@@ -393,11 +393,11 @@ ntk_clipboard_history_free(h);
 - [x] 段階 0d で、今のコードで全件通ることを確かめ、結果を記録する（`results/2026-09-19-windows-architecture-stage0d-result.md`、`scripts/test_windows.baseline.json`）
 - [ ] 段階 1 〜 6 を終え、段階ごとに 3 つの層（ユニットテスト、UI テスト、computer use）の結果が記録と変わらないことを確認する
 - [x] `WindowsLibrary` に MFC / COM への依存が無い（`results/2026-09-19-windows-architecture-stage1-result.md`）
-- [ ] `WindowsLibrary` の公開ヘッダーに C ABI（`extern "C"`）が無い
-- [ ] 47 関数すべてを `WindowsLibraryCApi` から公開している
-- [ ] `UnityWindowsPlugin` がリポジトリに残っていない（プロジェクト、ソリューション、スクリプト、README、ルール）
+- [x] `WindowsLibrary` の公開ヘッダーに C ABI（`extern "C"`）が無い（段階 5 T-12）
+- [x] 47 関数すべてを `WindowsLibraryCApi` から公開している（47 操作を含む 105 関数。機械照合）
+- [x] `UnityWindowsPlugin` がリポジトリに残っていない（プロジェクト、ソリューション、スクリプト、README、ルール）
 - [ ] NuGet パッケージに全機能の公開ヘッダーが入っている
-- [ ] `WindowsLibraryExample` が C++ API だけを使っている
+- [x] `WindowsLibraryExample` が C++ API だけを使っている（段階 4）
 - [ ] 段階 7 の CI が develop で動いている
 
 ## 10. 関連

@@ -988,27 +988,27 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
 
 ### 15.1 機能
 
-- [ ] `windows/WindowsLibraryCApi/` があり、`WindowsLibraryCore` だけに依存する
-- [ ] 8.2 の 105 関数が `.def`、ヘッダー、付録 A、実装にあり、`dumpbin /exports` と一致する
-- [ ] 8.1 の 47 操作すべてに C 関数があり、9 章の表と操作の集合が一致する
-- [ ] 公開ヘッダーが C と C++ の両方でコンパイルでき、`<windows.h>` を include せず、ASCII だけである
-- [ ] エラーと列挙の値が C++ API と一致する
-- [ ] 今の C ABI（DLL、`src/Bridge/`、ヘッダー 4 つ）と `UnityWindowsPlugin` が無く、Core に `extern "C"` の関数宣言が無い
-- [ ] E-10 の整理、E-13 の Dialog の修正、E-19 と E-20 の Clipboard の修正が済んでいる
+- [x] `windows/WindowsLibraryCApi/` があり、`WindowsLibraryCore` だけに依存する（`dumpbin /dependents` は DLL と OS のものだけ）
+- [x] 8.2 の 105 関数が `.def`、ヘッダー、付録 A、実装にあり、`dumpbin /exports` と一致する（機械照合と T-16 の Release ビルドで確認）
+- [x] 8.1 の 47 操作すべてに C 関数があり、9 章の表と操作の集合が一致する（機械照合）
+- [x] 公開ヘッダーが C と C++ の両方でコンパイルでき、`<windows.h>` を include せず、ASCII だけである（CT-01、CT-02、CT-03）
+- [x] エラーと列挙の値が C++ API と一致する（機械照合。12 の列挙と 11 章の表）
+- [x] 今の C ABI（DLL、`src/Bridge/`、ヘッダー 4 つ）と `UnityWindowsPlugin` が無く、Core に `extern "C"` の関数宣言が無い（T-12。残る `extern "C"` は `__ImageBase` の変数宣言だけ）
+- [x] E-10 の整理、E-13 の Dialog の修正、E-19 と E-20 の Clipboard の修正が済んでいる（E-21 のウィンドウクラスも）
 
 ### 15.2 品質
 
-- [ ] CT-01〜CT-23 が通る
-- [ ] C++ API の単体テストと `scripts/test_windows.ps1`（全件）が通る。Dialog の UI テストを足し、E-19 に合わせて Clipboard の UI テストを書き換え・削除した
-- [ ] 機械照合（12.3）が通り、壊すと落ちること、ファイルが無いと失敗することを確かめてある
-- [ ] 公開ヘッダーの全宣言に Doxygen があり、スレッド、寿命、`user_data` の期間、借りたポインタの期間、`release` の規則、エラーが書かれている
+- [x] CT-01〜CT-23 が通る（CT-03 は機械照合の `ascii`、CT-22 と CT-23 は `ClipboardApiTest`）
+- [x] C++ API の単体テストと `scripts/test_windows.ps1`（全件）が通る。Dialog の UI テストを足し、E-19 に合わせて Clipboard の UI テストを書き換え・削除した（T-16: 495 件すべて成功）
+- [x] 機械照合（12.3）が通り、壊すと落ちること、ファイルが無いと失敗することを確かめてある（自己テスト 19 件）
+- [x] 公開ヘッダーの全宣言に Doxygen があり、スレッド、寿命、`user_data` の期間、借りたポインタの期間、`release` の規則、エラーが書かれている（T-14）
 
 ### 15.3 構成と文書
 
-- [ ] ビルドスクリプトが `windows-native-toolkit-capi` の 2.0.0 を出力する
-- [ ] `windows.md` の 5.2 の 6 か所と、C++ の公開ヘッダーの旧 C ABI に触れる Doxygen が直っている
-- [ ] `UnityWindowsPlugin` の運用の参照（プロジェクト、ソリューション、ビルドスクリプト、現行の README とルール）が 0 件。履歴を書いた文書（`artifact/`）は対象外
-- [ ] 8.3 の対応表が 52 関数すべてを含み、結果文書に `unity-native-plugin` への申し送り（1.3.4 を含む）がある
+- [x] ビルドスクリプトが `windows-native-toolkit-capi` の 2.0.0 を出力する（DLL、import ライブラリ、公開ヘッダー）
+- [x] `windows.md` の 5.2 の 6 か所と、C++ の公開ヘッダーの旧 C ABI に触れる Doxygen が直っている（T-14）
+- [x] `UnityWindowsPlugin` の運用の参照（プロジェクト、ソリューション、ビルドスクリプト、現行の README とルール）が 0 件。履歴を書いた文書（`artifact/`）は対象外
+- [x] 8.3 の対応表が 52 関数すべてを含み、結果文書に `unity-native-plugin` への申し送り（1.3.4 を含む）がある（T-15）
 
 ## 付録 A. 公開ヘッダーの宣言
 

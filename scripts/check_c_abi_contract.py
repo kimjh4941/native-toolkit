@@ -15,7 +15,7 @@ here, so neither can drift without the other noticing:
               mirrors, and the error enumerations against the tables of
               chapter 11.
   names       every function, type and constant follows the rules of 1.1.
-  ascii       the public headers are ASCII only.
+  ascii       the public headers are ASCII only (CT-03).
 
 A file that cannot be read fails its check (R-30): a check that skips because
 its subject is missing reports agreement it never checked.
@@ -491,7 +491,7 @@ def check_ascii(rep):
         for number, line in enumerate(path.read_bytes().splitlines(), 1):
             if any(byte > 127 for byte in line):
                 problems.append(f"{label}:{number}")
-    rep.check(not problems, "ascii: the public headers are ASCII only", ", ".join(problems))
+    rep.check(not problems, "ascii: the public headers are ASCII only (CT-03)", ", ".join(problems))
 
 
 def main(argv):
