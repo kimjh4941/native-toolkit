@@ -166,7 +166,7 @@ C ABI でのデータの受け渡し形式は D-6 〜 D-10 で決める。どの
 | 3 | C++ API を `include/NativeToolkit/` に作り、中身を C++ の形に書き直す。**成果物を `WindowsLibraryCore`（静的ライブラリ）と `WindowsLibrary`（C ABI の DLL）に分け**、C ABI をコアの上に載せ替える。C ABI の 52 関数とその動作は変えない。**完了**（`results/2026-09-21-windows-architecture-stage3-bridge-result.md`） | ライブラリに C++ API が増える。配布物の構成が変わる | `feature/NTKIT-16` | - |
 | 4 | サンプルを C++ API に移行し、`WindowsLibraryCore` を参照するようにする。移行前と同じ UI テストが通ることを確かめる。**完了**（C ABI にしかない動作を確かめていた UI テスト 4 件は C++ API の動作に置き換えた。`results/2026-09-21-windows-architecture-stage4-result.md`） | 無し（サンプルが使う API だけが変わる） | `feature/NTKIT-16` | - |
 | 5 | 段階 3 で分けた DLL を `WindowsLibraryCApi` に改名し、中身を新しい C ABI（D-6 〜 D-10）に置き換える。`UnityWindowsPlugin` を削除する。**完了**（`results/2026-09-23-windows-architecture-stage5-result.md`。CU-01 は合格） | C ABI が変わる（2.0.0。D-4） | `feature/NTKIT-16` | - |
-| 6 | NuGet、マニュアル、Doxygen を新しい API に合わせる | - | - | - |
+| 6 | NuGet、マニュアル、Doxygen を新しい API に合わせる。**完了**（ドキュメントサイトの公開はリリース時。`results/2026-09-23-windows-architecture-stage6-result.md`） | - | `feature/NTKIT-16` | - |
 | 7 | CI を作る（ユニットテストだけ。UI テストと computer use はローカルで実行する） | - | - | - |
 
 サンプルの移行（段階 4）は、C ABI の置き換え（段階 5）より前に行う。逆にすると、段階 5 が終わった時点でサンプルがビルドできなくなる（C ABI のヘッダーを include しているため）。
@@ -396,7 +396,7 @@ ntk_clipboard_history_free(h);
 - [x] `WindowsLibrary` の公開ヘッダーに C ABI（`extern "C"`）が無い（段階 5 T-12）
 - [x] 47 関数すべてを `WindowsLibraryCApi` から公開している（47 操作を含む 105 関数。機械照合）
 - [x] `UnityWindowsPlugin` がリポジトリに残っていない（プロジェクト、ソリューション、スクリプト、README、ルール）
-- [ ] NuGet パッケージに全機能の公開ヘッダーが入っている
+- [x] NuGet パッケージに全機能の公開ヘッダーが入っている（`NativeToolkit` に C++ API の 6 つ、`NativeToolkit.CApi` に C ABI の 4 つ。段階 6）
 - [x] `WindowsLibraryExample` が C++ API だけを使っている（段階 4）
 - [ ] 段階 7 の CI が develop で動いている
 
