@@ -25,6 +25,9 @@
     - [ShowPickFolders - 다중 폴더 선택 다이얼로그](#showpickfolders---다중-폴더-선택-다이얼로그)
     - [ShowSaveFile - 저장 다이얼로그](#showsavefile---저장-다이얼로그)
   - [C ABI](#c-abi)
+    - [메시지 박스](#메시지-박스)
+    - [파일 선택](#파일-선택)
+    - [폴더 선택](#폴더-선택)
 - [macOS](#macos)
   - [MacDialogManager](#macdialogmanager)
 
@@ -847,14 +850,21 @@ else if (result.error().code == Dialog::ErrorCode::Canceled)
 
 - C에서, 그리고 C DLL을 호출할 수 있는 언어에서 사용하기 위한 API입니다. 헤더는 C99이며 `<stddef.h>`와 `<stdint.h>` 외에는 include하지 않습니다.
 - 문자열은 입출력 모두 NUL로 끝나는 UTF-8입니다. `NULL`은 빈 문자열을 의미합니다.
-- 요청 구조체는 0으로 채우고 `struct_size`에 자신의 `sizeof`를 넣습니다. 0이 기본값입니다.
+- 요청 구조체는 0으로 채우고 `struct_size`에 자신의 `sizeof`를 넣습니다. 0이 기본값입니다. 기본값을 0으로 유지하기 위해 두 플래그는 C++ API와 이름의 방향이 반대입니다. `allow_missing_file`은 `fileMustExist`의 반대, `skip_overwrite_prompt`는 `overwritePrompt`의 반대입니다.
 - 오류는 반환값으로 보고됩니다. OS가 돌려준 원래 값은 같은 스레드에서 실패 직후에 `ntk_last_system_code()`로 읽습니다.
 - 라이브러리가 돌려주는 것은 핸들이며, 대응하는 `_free`로 해제합니다. 핸들에서 꺼낸 포인터는 그 핸들을 해제할 때까지 유효합니다.
+
+#### 메시지 박스
 
 ```c
 #include <string.h>
 #include <NativeToolkitC/Common.h>
 #include <NativeToolkitC/Dialog.h>
+
+/* 헤더와 DLL은 같은 버전이어야 합니다. */
+if (ntk_version() != NTK_VERSION) {
+    return;
+}
 
 /* 0으로 채운 상태가 기본값입니다. struct_size는 이 구조체가 어느 버전인지
    DLL에 알려 줍니다. */
@@ -866,6 +876,8 @@ request.message = "This is a native Windows dialog!";
 request.buttons = NTK_DIALOG_ALERT_BUTTONS_OK_CANCEL;
 request.icon = NTK_DIALOG_ALERT_ICON_INFORMATION;
 request.default_button = NTK_DIALOG_ALERT_DEFAULT_BUTTON_SECOND;
+/* 선택: request.top_most = 1; request.show_help_button = 1;
+   request.owner = hwnd; */
 
 ntk_dialog_alert_result pressed = 0;
 ntk_dialog_error error = ntk_dialog_show_alert(&request, &pressed);
@@ -877,25 +889,31 @@ if (error == NTK_DIALOG_ERROR_NONE) {
 }
 ```
 
-선택 계열은 경로를 핸들로 반환합니다.
+#### 파일 선택
+
+`ntk_dialog_show_open_file`과 `ntk_dialog_show_save_file`은 경로 하나를 `ntk_string`으로 반환합니다. `ntk_dialog_show_open_files`는 `ntk_string_list`를 반환하며, 각 항목은 인덱스로 읽고 리스트를 해제할 때까지 유효합니다.
 
 ```c
 #include <string.h>
 #include <NativeToolkitC/Common.h>
 #include <NativeToolkitC/Dialog.h>
 
-ntk_dialog_file_request request;
-memset(&request, 0, sizeof(request));
-request.struct_size = (uint32_t)sizeof(request);
-request.title = "Open File";
-
-/* 종류 목록의 한 항목입니다. 패턴은 ';'로 구분합니다. */
+/* 종류 목록입니다. 패턴은 ';'로 구분합니다. 모든 파일을 대상으로 하려면
+   NULL과 0개를 전달합니다. */
 ntk_dialog_filter filters[1];
 filters[0].name = "All Files";
 filters[0].patterns = "*.*";
 
+/* --- 기존 파일 하나 -------------------------------------------------- */
+ntk_dialog_file_request open_request;
+memset(&open_request, 0, sizeof(open_request));
+open_request.struct_size = (uint32_t)sizeof(open_request);
+open_request.title = "Open File";
+/* 0은 "선택하는 파일이 실제로 존재할 것"을 요구합니다(OFN_FILEMUSTEXIST). */
+open_request.allow_missing_file = 0;
+
 ntk_string* path = NULL;
-ntk_dialog_error error = ntk_dialog_show_open_file(&request, filters, 1, &path);
+ntk_dialog_error error = ntk_dialog_show_open_file(&open_request, filters, 1, &path);
 if (error == NTK_DIALOG_ERROR_NONE) {
     /* 빌린 포인터입니다. ntk_string_free 전까지 유효합니다. */
     const char* utf8 = ntk_string_data(path);
@@ -904,6 +922,74 @@ if (error == NTK_DIALOG_ERROR_NONE) {
     ntk_string_free(path);
 } else if (error == NTK_DIALOG_ERROR_CANCELED) {
     /* 사용자가 다이얼로그를 닫았습니다. path는 NULL 그대로입니다. */
+}
+
+/* --- 기존 파일 하나 이상 --------------------------------------------- */
+ntk_string_list* paths = NULL;
+error = ntk_dialog_show_open_files(&open_request, filters, 1, &paths);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    size_t count = ntk_string_list_count(paths);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        size_t size = 0;
+        const char* entry = ntk_string_list_at(paths, i, &size);  /* 전체 경로 */
+        (void)entry; (void)size;
+    }
+    ntk_string_list_free(paths);
+}
+
+/* --- 저장 위치 -------------------------------------------------------- */
+ntk_dialog_save_file_request save_request;
+memset(&save_request, 0, sizeof(save_request));
+save_request.struct_size = (uint32_t)sizeof(save_request);
+save_request.title = "Save File";
+save_request.default_extension = "txt";
+/* 0은 "기존 파일을 선택했을 때 확인한다"는 뜻입니다. */
+save_request.skip_overwrite_prompt = 0;
+
+ntk_string* save_path = NULL;
+error = ntk_dialog_show_save_file(&save_request, filters, 1, &save_path);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    ntk_string_free(save_path);
+}
+```
+
+#### 폴더 선택
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+ntk_dialog_folder_request request;
+memset(&request, 0, sizeof(request));
+request.struct_size = (uint32_t)sizeof(request);
+/* NULL이나 ""로 두면 OS의 기본 제목이 사용됩니다. */
+request.title = "Select Folder";
+
+/* --- 폴더 하나 -------------------------------------------------------- */
+ntk_string* folder = NULL;
+ntk_dialog_error error = ntk_dialog_show_pick_folder(&request, &folder);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(folder);
+    (void)utf8;
+    ntk_string_free(folder);
+}
+
+/* --- 폴더 하나 이상 --------------------------------------------------- */
+request.title = "Select Folders";
+
+ntk_string_list* folders = NULL;
+error = ntk_dialog_show_pick_folders(&request, &folders);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    size_t count = ntk_string_list_count(folders);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        size_t size = 0;
+        const char* entry = ntk_string_list_at(folders, i, &size);
+        (void)entry; (void)size;
+    }
+    ntk_string_list_free(folders);
 }
 ```
 
@@ -915,8 +1001,6 @@ if (error == NTK_DIALOG_ERROR_NONE) {
 | `Dialog::ShowSaveFile` | `ntk_dialog_show_save_file` |
 | `Dialog::ShowPickFolder` | `ntk_dialog_show_pick_folder` |
 | `Dialog::ShowPickFolders` | `ntk_dialog_show_pick_folders` |
----
-
 ## macOS
 
 ### MacDialogManager

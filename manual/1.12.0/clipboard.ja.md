@@ -170,6 +170,11 @@ Language:
     - [リクエストのキャンセル](#リクエストのキャンセル)
   - [エラー処理](#エラー処理-3)
   - [C ABI](#c-abi)
+    - [セッション・リスナー・終了](#セッションリスナー終了)
+    - [書き込み](#書き込み)
+    - [読み取りと検査](#読み取りと検査)
+    - [遅延レンダリング](#遅延レンダリング-1)
+    - [クリップボード履歴](#クリップボード履歴)
 
 ---
 
@@ -2339,6 +2344,9 @@ if (!result.has_value())
 - セッションはハンドルです。メッセージループを回す STA スレッドで `ntk_clipboard_session_create` を呼び、同じスレッドで `ntk_clipboard_session_close` を呼んでから `ntk_clipboard_session_free` します。
 - `ntk_clipboard_reserve_deferred` は `user_data` と `release` を受け取ります。`release` は呼び出しの結果にかかわらず必ず 1 回呼ばれます。バインディングが確保したものは、ここで解放します。セッションのオプションと履歴のハンドラーは `user_data` だけを持ち、セッションと同じだけ生きます。
 - 読み取りはハンドルで返ります。`ntk_string`、`ntk_bytes`、`ntk_string_list` があり、それぞれ対応する `_free` で解放します。ハンドルから取り出したポインターは、そのハンドルを解放するまで有効です。
+- 書き込みのフラグは `NTK_CLIPBOARD_WRITE_DEFAULT`、`_EXCLUDE_HISTORY`、`_EXCLUDE_ROAMING`、`_SENSITIVE`（両方の除外）です。
+
+#### セッション・リスナー・終了
 
 ```c
 #include <string.h>
@@ -2347,14 +2355,20 @@ if (!result.has_value())
 
 static void NTK_CALL on_clipboard_changed(void* user_data)
 {
-    /* 所有スレッドで呼ばれます。 */
+    /* 所有スレッドで呼ばれ、原因となった呼び出しの中では呼ばれません。
+       このセッション自身の書き込みは通知されません。 */
     (void)user_data;
 }
 
+static void NTK_CALL on_history_changed(void* user_data)         { (void)user_data; }
+static void NTK_CALL on_history_enabled(void* user_data, int32_t enabled) { (void)user_data; (void)enabled; }
+static void NTK_CALL on_roaming_enabled(void* user_data, int32_t enabled) { (void)user_data; (void)enabled; }
+
+/* 呼び出すスレッドは STA で、メッセージループを回している必要があります。 */
 ntk_clipboard_session_options options;
 memset(&options, 0, sizeof(options));
 options.struct_size = (uint32_t)sizeof(options);
-options.on_clipboard_changed = &on_clipboard_changed;
+options.on_clipboard_changed = &on_clipboard_changed;   /* NULL ならリスナー無し */
 options.user_data = NULL;
 
 ntk_clipboard_session* session = NULL;
@@ -2363,19 +2377,240 @@ if (error != NTK_CLIPBOARD_ERROR_NONE) {
     return;   /* STA でないスレッドなら WRONG_APARTMENT です */
 }
 
-/* 書いてから読み戻します。文字列は UTF-8 です。 */
-error = ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+/* 履歴のイベントです。所有スレッド専用で、0 で埋めた構造体を渡すと
+   3 つとも登録を解除します。 */
+ntk_clipboard_history_handlers handlers;
+memset(&handlers, 0, sizeof(handlers));
+handlers.struct_size = (uint32_t)sizeof(handlers);
+handlers.on_history_changed = &on_history_changed;
+handlers.on_history_enabled_changed = &on_history_enabled;
+handlers.on_roaming_enabled_changed = &on_roaming_enabled;
+handlers.user_data = NULL;
+error = ntk_clipboard_set_history_handlers(session, &handlers);
 
-ntk_string* text = NULL;
-if (ntk_clipboard_paste_text(session, &text) == NTK_CLIPBOARD_ERROR_NONE) {
-    const char* utf8 = ntk_string_data(text);   /* ntk_string_free までは有効です */
-    (void)utf8;
-    ntk_string_free(text);
+/* 閉じるのは呼び出し側の責任で、失敗することがあります（別スレッドが操作の
+   途中なら BUSY）。can_close は、いま閉じ終えられるかを答えます。 */
+if (ntk_clipboard_session_can_close(session)) {
+    error = ntk_clipboard_session_close(session);
+}
+ntk_clipboard_session_free(session);
+```
+
+#### 書き込み
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* テキストです。空文字列も正しい値です。 */
+ntk_clipboard_error error =
+    ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* SENSITIVE: 履歴に残さず、他の端末にも同期しません。 */
+error = ntk_clipboard_copy_text(session, "Sensitive sample value", NTK_CLIPBOARD_WRITE_SENSITIVE);
+
+/* HTML です。CF_HTML のヘッダーはライブラリの中で組み立てます。2 番目の
+   文字列は、同時に書き込むプレーンテキストの代替です。 */
+error = ntk_clipboard_copy_html(session, "<b>Hello</b> from native-toolkit",
+                                "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* ファイルです。各パスはフルパスで、一覧を空にはできません。 */
+const char* paths[2];
+paths[0] = "C:\\temp\\native-toolkit-1.txt";
+paths[1] = "C:\\temp\\native-toolkit-2.txt";
+error = ntk_clipboard_copy_files(session, paths, 2, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* 画像です。パックされた DIB で、ヘッダーは検査されます。 */
+error = ntk_clipboard_copy_dib(session, dib_bytes, dib_size, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* 独自形式です。標準の名前でなければ Windows に登録されます。 */
+error = ntk_clipboard_copy_custom(session, "NativeToolkitSample",
+                                  payload_bytes, payload_size, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* 1 回の書き込みで複数の形式を置きます。一覧を組んでからコピーします。
+   配置の順序は受け取るアプリから見えるので、豊かな形式を先頭にします。 */
+ntk_clipboard_items* items = NULL;
+if (ntk_clipboard_items_create(&items) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_clipboard_items_add_html(items, "HTML Format", "<b>Hello</b> from native-toolkit");
+    ntk_clipboard_items_add_text(items, "CF_UNICODETEXT", "Hello from native-toolkit");
+    ntk_clipboard_items_add_bytes(items, "CF_DIB", dib_bytes, dib_size);
+    error = ntk_clipboard_copy_multiple(session, items, NTK_CLIPBOARD_WRITE_DEFAULT);
+    ntk_clipboard_items_free(items);
 }
 
-/* 所有スレッドから呼び、結果を確認します。close は失敗することがあります。 */
-error = ntk_clipboard_session_close(session);
-ntk_clipboard_session_free(session);
+/* クリップボードを空にします。 */
+error = ntk_clipboard_clear(session);
+```
+
+#### 読み取りと検査
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* テキストと HTML は ntk_string で返ります。 */
+ntk_string* text = NULL;
+ntk_clipboard_error error = ntk_clipboard_paste_text(session, &text);
+if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(text);   /* ntk_string_free までは有効 */
+    size_t size = ntk_string_size(text);
+    (void)utf8; (void)size;
+    ntk_string_free(text);
+} else if (error == NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE) {
+    /* クリップボードにテキストがありません。 */
+}
+
+ntk_string* html = NULL;
+if (ntk_clipboard_paste_html(session, &html) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_string_free(html);   /* CF_HTML のヘッダーを取り除いた断片です */
+}
+
+/* ファイルは一覧で返ります。 */
+ntk_string_list* files = NULL;
+if (ntk_clipboard_paste_files(session, &files) == NTK_CLIPBOARD_ERROR_NONE) {
+    size_t count = ntk_string_list_count(files);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* path = ntk_string_list_at(files, i, NULL);
+        (void)path;
+    }
+    ntk_string_list_free(files);
+}
+
+/* 画像と独自形式はバイト列で返ります。 */
+ntk_bytes* dib = NULL;
+if (ntk_clipboard_paste_dib(session, &dib) == NTK_CLIPBOARD_ERROR_NONE) {
+    const uint8_t* data = ntk_bytes_data(dib);
+    size_t size = ntk_bytes_size(dib);
+    (void)data; (void)size;
+    ntk_bytes_free(dib);
+}
+
+ntk_bytes* custom = NULL;
+if (ntk_clipboard_paste_custom(session, "NativeToolkitSample", &custom) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_bytes_free(custom);
+}
+
+/* クリップボードの中身の検査です。特定の形式の有無、形式の一覧、優先形式。 */
+int32_t present = 0;
+error = ntk_clipboard_has_format(session, "CF_UNICODETEXT", &present);
+
+ntk_string_list* formats = NULL;
+if (ntk_clipboard_get_formats(session, &formats) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_string_list_free(formats);
+}
+
+ntk_string* preferred = NULL;
+if (ntk_clipboard_get_preferred_format(session, &preferred) == NTK_CLIPBOARD_ERROR_NONE) {
+    /* 空文字列は候補が無いことを意味します。 */
+    ntk_string_free(preferred);
+}
+```
+
+#### 遅延レンダリング
+
+所有スレッド専用です。プロバイダーは所有スレッドで、データを集めるメッセージの中から呼ばれます。クリップボードの関数を一切呼べず、ブロックもできません。バイト列は `ntk_clipboard_render_target_set` で 1 回だけ渡します。
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static ntk_clipboard_error NTK_CALL render(void* user_data, const char* format_name,
+                                           ntk_clipboard_render_target* target)
+{
+    const uint8_t* bytes = NULL;
+    size_t size = 0;
+    if (!lookup_payload(user_data, format_name, &bytes, &size)) {
+        return NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE;   /* 空として渡ります */
+    }
+    return ntk_clipboard_render_target_set(target, bytes, size);
+}
+
+static void NTK_CALL release_payloads(void* user_data)
+{
+    /* ちょうど 1 回呼ばれます。予約が終わったとき（次の予約、書き込み、
+       クリア、他のプログラムがクリップボードを空にしたとき、復旧、close の
+       成功、free）と、呼び出しが失敗したときは戻る前に呼ばれます。 */
+    (void)user_data;
+}
+
+const char* formats[2];
+formats[0] = "HTML Format";
+formats[1] = "CF_UNICODETEXT";
+
+ntk_clipboard_error error =
+    ntk_clipboard_reserve_deferred(session, formats, 2, &render, payloads, &release_payloads);
+
+/* PARTIAL_STATE の後は、失敗した予約が残したものを片付けます。 */
+if (error == NTK_CLIPBOARD_ERROR_PARTIAL_STATE) {
+    error = ntk_clipboard_recover_deferred_state(session);
+}
+```
+
+#### クリップボード履歴
+
+5 つとも非同期です。呼び出しはリクエストが受け付けられたかどうかを返し、完了はあとから所有スレッドでちょうど 1 回届きます。開始した呼び出しの中では呼ばれません。`NTK_CLIPBOARD_ERROR_HISTORY_DISABLED` は、利用者が履歴を無効にしていることを意味します。
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static void NTK_CALL on_availability(void* user_data, uint32_t request_id,
+                                     ntk_clipboard_error error, uint32_t system_code,
+                                     int32_t history_enabled, int32_t roaming_enabled)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error == NTK_CLIPBOARD_ERROR_NONE) {
+        (void)history_enabled; (void)roaming_enabled;
+    }
+}
+
+static void NTK_CALL on_history(void* user_data, uint32_t request_id,
+                                ntk_clipboard_error error, uint32_t system_code,
+                                const ntk_clipboard_history* history)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;   /* 失敗のときは history が NULL です */
+    }
+    /* この呼び出しの間だけ有効です。 */
+    size_t count = ntk_clipboard_history_count(history);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* id = ntk_clipboard_history_item_id(history, i, NULL);
+        const char* text = ntk_clipboard_history_item_text(history, i, NULL);  /* 持たない項目では NULL */
+        int64_t when = ntk_clipboard_history_item_timestamp_unix_ms(history, i);
+        size_t types = ntk_clipboard_history_item_content_type_count(history, i);
+        size_t t;
+        for (t = 0; t < types; ++t) {
+            const char* type = ntk_clipboard_history_item_content_type_at(history, i, t, NULL);
+            (void)type;
+        }
+        (void)id; (void)text; (void)when;
+    }
+}
+
+static void NTK_CALL on_done(void* user_data, uint32_t request_id,
+                             ntk_clipboard_error error, uint32_t system_code)
+{
+    /* 取り消されたか close で打ち切られたときは CANCELED です。 */
+    (void)user_data; (void)request_id; (void)error; (void)system_code;
+}
+
+uint32_t request = 0;
+ntk_clipboard_error error =
+    ntk_clipboard_get_history_availability(session, &on_availability, NULL, &request);
+
+error = ntk_clipboard_get_history(session, &on_history, NULL, &request);
+
+/* item_id は ntk_clipboard_history_item_id の値を、コールバックの中で複写して
+   持っておいたものです。 */
+error = ntk_clipboard_restore_history_item(session, item_id, &on_done, NULL, &request);
+error = ntk_clipboard_delete_history_item(session, item_id, &on_done, NULL, &request);
+error = ntk_clipboard_clear_unpinned_history(session, &on_done, NULL, &request);
+
+/* 完了していないリクエストを取り消します。完了は CANCELED で 1 回呼ばれます。 */
+error = ntk_clipboard_cancel_request(session, request);
 ```
 
 | C++ API | C ABI |
@@ -2388,7 +2623,8 @@ ntk_clipboard_session_free(session);
 | `CopyMultiple` と `FormatPayload` | `ntk_clipboard_items_create` と `_add_text` / `_add_html` / `_add_bytes`、そして `ntk_clipboard_copy_multiple` |
 | `PasteText` / `PasteHtml` / `PasteFiles` / `PasteDib` / `PasteCustom` | `ntk_clipboard_paste_text` / `_paste_html` / `_paste_files` / `_paste_dib` / `_paste_custom` |
 | `HasFormat` / `GetFormats` / `GetPreferredFormat` / `Clear` | `ntk_clipboard_has_format` / `_get_formats` / `_get_preferred_format` / `_clear` |
-| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred` / `_recover_deferred_state` |
+| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred`（`ntk_clipboard_render_target_set` と組で） / `_recover_deferred_state` |
 | `GetHistory` / `RestoreHistoryItem` / `DeleteHistoryItem` / `ClearUnpinnedHistory` / `GetHistoryAvailability` | `ntk_clipboard_get_history` / `_restore_history_item` / `_delete_history_item` / `_clear_unpinned_history` / `_get_history_availability` |
+| `HistoryItem` | `ntk_clipboard_history_count` / `_item_id` / `_item_text` / `_item_content_type_at` / `_item_timestamp_unix_ms` |
 | `CancelRequest` | `ntk_clipboard_cancel_request` |
 | `WriteOptions` | `flags` 引数: `NTK_CLIPBOARD_WRITE_DEFAULT` / `_EXCLUDE_HISTORY` / `_EXCLUDE_ROAMING` / `_SENSITIVE` |

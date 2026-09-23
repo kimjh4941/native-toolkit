@@ -81,6 +81,10 @@
   - [활성화 핸들러](#활성화-핸들러)
   - [오류 코드](#오류-코드)
   - [C ABI](#c-abi)
+    - [런타임, 매니저, 활성화](#런타임-매니저-활성화)
+    - [내용 구성, 표시, 예약](#내용-구성-표시-예약)
+    - [진행률, 배지, OS 설정](#진행률-배지-os-설정)
+    - [목록과 삭제](#목록과-삭제)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [설정](#설정-2)
@@ -1634,8 +1638,11 @@ g_notificationHandler = nullptr;
 
 - C에서, 그리고 C DLL을 호출할 수 있는 언어에서 같은 알림을 사용하기 위한 API입니다.
 - 내용은 구조체가 아니라 핸들로 구성합니다. 세터를 하나씩 호출하고 `ntk_notification_content_free`로 해제합니다.
-- `ntk_notification_manager_options`는 `user_data`와 `release`를 가집니다. `release`는 등록마다 정확히 한 번 호출되며(등록 함수가 실패했을 때도 호출됩니다), 바인딩이 할당한 것을 여기서 해제합니다.
+- 등록은 `user_data`와 `release`를 동반합니다. `release`는 등록마다 정확히 한 번 호출되며(등록 함수가 실패했을 때도 호출됩니다), 바인딩이 할당한 것을 여기서 해제합니다.
 - 핸들은 `ntk_notification_manager_free`, `ntk_notification_runtime_free`, `ntk_notification_list_free`로 해제합니다.
+- 모든 함수는 어느 스레드에서든 호출할 수 있습니다. 활성화는 OS가 고른 스레드로 전달되며, 거기서 받는 것은 그 호출 동안만 유효합니다.
+
+#### 런타임, 매니저, 활성화
 
 ```c
 #include <string.h>
@@ -1644,37 +1651,188 @@ g_notificationHandler = nullptr;
 
 static void NTK_CALL on_invoked(void* user_data, const ntk_notification_activation* activation)
 {
-    /* OS가 고른 스레드에서 호출됩니다. activation은 이 호출 동안만 유효합니다. */
-    const char* raw = ntk_notification_activation_raw_arguments(activation);
-    (void)user_data; (void)raw;
+    /* OS가 고른 스레드에서 호출됩니다. 여기서 읽은 것은 호출 밖에서 쓸 수 없습니다. */
+    size_t size = 0;
+    const char* raw = ntk_notification_activation_raw_arguments(activation, &size);
+    (void)raw; (void)user_data;
+
+    /* 눌린 버튼의 인수와 사용자의 입력이 id를 키로 하여 함께 담겨 있습니다. */
+    size_t count = ntk_notification_activation_value_count(activation);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* key = ntk_notification_activation_key_at(activation, i, NULL);
+        const char* value = ntk_notification_activation_value_at(activation, i, NULL);
+        (void)key; (void)value;
+    }
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* 등록 함수가 실패했을 때를 포함해 정확히 한 번 호출됩니다. */
+    (void)user_data;
+}
+
+/* 패키지 식별자가 없는 앱은 먼저 Windows App SDK 런타임을 로드하고, 알림을
+   사용하는 동안 핸들을 유지합니다. 0x00010007은 1.7입니다.
+   패키지 앱에서는 필요하지 않습니다. */
+ntk_notification_runtime* runtime = NULL;
+ntk_notification_error error = ntk_notification_runtime_initialize(0x00010007u, &runtime);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
 }
 
 ntk_notification_manager_options options;
 memset(&options, 0, sizeof(options));
 options.struct_size = (uint32_t)sizeof(options);
 options.on_invoked = &on_invoked;
-options.user_data = NULL;   /* on_invoked와 release에 전달됩니다 */
-options.release = NULL;     /* user_data를 다 쓰면 한 번만 호출됩니다 */
-options.is_unpackaged = 0;  /* 패키지 식별자가 없는 앱이면 0이 아닌 값 */
+options.user_data = NULL;
+options.release = &release_user_data;
+options.is_unpackaged = 1;                 /* 패키지(MSIX) 앱이면 0 */
+options.display_name = "MyApp";            /* 비패키지일 때는 필수 */
+options.icon_uri = "C:\\path\\to\\app-icon.png";
 
 ntk_notification_manager* manager = NULL;
-ntk_notification_error error = ntk_notification_manager_create(&options, &manager);
+error = ntk_notification_manager_create(&options, &manager);
 if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_runtime_free(runtime);
     return;
 }
 
-/* 내용 빌더: 만들고, 설정하고, 표시하고, 해제합니다. */
-ntk_notification_content* content = NULL;
-if (ntk_notification_content_create(&content) == NTK_NOTIFICATION_ERROR_NONE) {
-    ntk_notification_content_set_title(content, "Hello");   /* UTF-8 */
-    ntk_notification_content_set_body(content, "Basic toast");
-    ntk_notification_content_set_tag(content, "sample");
-    error = ntk_notification_show(manager, content);
-    ntk_notification_content_free(content);
-}
+/* 나중에 핸들러를 교체하는 경우입니다. 이전 등록의 release는 그 등록으로
+   실행 중이던 활성화가 모두 끝난 뒤에 호출됩니다. */
+error = ntk_notification_manager_set_invoked_handler(manager, &on_invoked, NULL, &release_user_data);
 
+/* 종료할 때는 close → 매니저 해제 → 런타임 해제 순서입니다. */
 ntk_notification_manager_close(manager);
 ntk_notification_manager_free(manager);
+ntk_notification_runtime_free(runtime);
+```
+
+#### 내용 구성, 표시, 예약
+
+OS가 필수로 요구하는 것 외에 세터는 모두 선택입니다. `add_button`과 `add_combo`는 추가한 항목의 인덱스를 돌려주고, 인수와 항목 세터는 그 인덱스를 지정합니다.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create(&content) != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+
+/* 문구와 식별자입니다. 모두 UTF-8입니다. */
+ntk_notification_content_set_title(content, "Hello");
+ntk_notification_content_set_body(content, "Basic toast");
+ntk_notification_content_set_tag(content, "sample");
+ntk_notification_content_set_group(content, "");
+ntk_notification_content_set_attribution(content, "native-toolkit");
+ntk_notification_content_set_scenario(content, NTK_NOTIFICATION_SCENARIO_DEFAULT);
+ntk_notification_content_set_duration(content, NTK_NOTIFICATION_DURATION_SHORT);
+
+/* 이미지입니다. */
+ntk_notification_content_set_hero_image(content, "ms-appx:///Assets/StoreLogo.png");
+ntk_notification_content_set_inline_image(content, NULL);   /* NULL이면 해제 */
+ntk_notification_content_set_app_logo(content, "ms-appx:///Assets/StoreLogo.png",
+                                      NTK_NOTIFICATION_LOGO_CROP_CIRCLE);
+
+/* 사운드입니다. 이름이 있는 시스템 사운드이며 반복하지 않습니다. */
+ntk_notification_content_set_audio(content, NTK_NOTIFICATION_AUDIO_KIND_EVENT,
+                                   "reminder", NULL, 0);
+
+/* 버튼입니다. with_arguments를 0이 아닌 값으로 주면 인수 목록이 준비됩니다. */
+size_t button = 0;
+ntk_notification_content_add_button(content, "Open", NULL, 1, &button);
+ntk_notification_content_add_button_argument(content, button, "action", "open");
+
+/* 텍스트 필드와 선택 필드입니다. */
+ntk_notification_content_add_text_input(content, "reply", "Type a message", NULL);
+
+size_t combo = 0;
+ntk_notification_content_add_combo(content, "opt", "Status", "busy", &combo);
+ntk_notification_content_add_combo_item(content, combo, "free", "Free");
+ntk_notification_content_add_combo_item(content, combo, "busy", "Busy");
+
+/* 진행률 표시줄과 시각입니다. 둘 다 예약에서는 무시됩니다. */
+ntk_notification_content_set_progress(content, "Toolkit.zip", 0.3, "30%", "Downloading");
+ntk_notification_content_set_expiration(content, 10);            /* 전달 후 초 */
+ntk_notification_content_set_expires_on_reboot(content, 0);      /* 패키지 앱 전용 */
+ntk_notification_content_set_timestamp(content, 1758585600000);  /* Unix 밀리초 */
+
+/* 지금 표시하는 경우입니다. */
+ntk_notification_error error = ntk_notification_show(manager, content);
+
+/* 절대 시각으로 예약하는 경우입니다. 시각은 Unix 밀리초입니다. */
+error = ntk_notification_schedule(manager, content, 1758585660000);
+
+ntk_notification_content_free(content);
+
+/* 예약한 알림은 태그와 그룹으로 취소합니다. */
+error = ntk_notification_cancel_scheduled(manager, "scheduled", "");
+```
+
+#### 진행률, 배지, OS 설정
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+/* 진행률 표시줄이 있는 알림을 갱신합니다. */
+ntk_notification_progress_update update;
+memset(&update, 0, sizeof(update));
+update.struct_size = (uint32_t)sizeof(update);
+update.tag = "progress-sample";      /* ntk_notification_show에 전달한 값 */
+update.group = "";
+update.value = 0.6;
+update.value_string = "60%";
+update.status = "Downloading";
+update.sequence_number = 2;          /* 호출하는 쪽에서 증가시킵니다 */
+
+ntk_notification_error error = ntk_notification_update_progress(manager, &update);
+if (error == NTK_NOTIFICATION_ERROR_PROGRESS_NOT_FOUND) {
+    /* 갱신할 대상이 없거나 시퀀스 번호가 오래되었습니다. */
+}
+
+/* 작업 표시줄 아이콘의 배지입니다. 패키지 앱 전용이며 그 외에는
+   NOT_SUPPORTED입니다. 5는 숫자, -1은 alert 글리프, 0은 지우기입니다. */
+error = ntk_notification_set_badge(manager, 5);
+
+/* OS 설정 상태와, 그것을 바꾸는 화면입니다. */
+ntk_notification_setting setting = NTK_NOTIFICATION_SETTING_ENABLED;
+error = ntk_notification_get_setting(manager, &setting);
+if (setting != NTK_NOTIFICATION_SETTING_ENABLED) {
+    error = ntk_notification_open_settings(manager);
+}
+```
+
+#### 목록과 삭제
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+/* 알림 센터에 있는 것들입니다. 패키지 앱 전용입니다. */
+ntk_notification_list* list = NULL;
+ntk_notification_error error = ntk_notification_get_all(manager, &list);
+if (error == NTK_NOTIFICATION_ERROR_NONE) {
+    size_t count = ntk_notification_list_count(list);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        uint32_t id = ntk_notification_list_id_at(list, i);
+        const char* tag = ntk_notification_list_tag_at(list, i, NULL);
+        const char* group = ntk_notification_list_group_at(list, i, NULL);
+        (void)id; (void)tag; (void)group;
+    }
+    /* 위의 포인터는 이 호출 전까지 유효합니다. */
+    ntk_notification_list_free(list);
+}
+
+/* 삭제는 get_all이 알려 준 id(패키지 앱 전용), 태그와 그룹, 또는 이 앱이
+   올린 것 전부의 세 가지입니다. */
+error = ntk_notification_remove_by_id(manager, 1u);
+error = ntk_notification_remove_by_tag(manager, "sample", "");
+error = ntk_notification_remove_all(manager);
 ```
 
 | C++ API | C ABI |
@@ -1684,6 +1842,7 @@ ntk_notification_manager_free(manager);
 | `Manager::SetInvokedHandler` | `ntk_notification_manager_set_invoked_handler` |
 | `Manager::Close` | `ntk_notification_manager_close` / `ntk_notification_manager_free` |
 | `NotificationContent` | `ntk_notification_content_create`와 22개의 세터 |
+| `ActivationArgs` | `ntk_notification_activation_raw_arguments` / `_value_count` / `_key_at` / `_value_at` |
 | `Manager::Show` | `ntk_notification_show` |
 | `Manager::Schedule` | `ntk_notification_schedule`(시각은 Unix 밀리초) |
 | `Manager::CancelScheduled` | `ntk_notification_cancel_scheduled` |
@@ -1693,6 +1852,7 @@ ntk_notification_manager_free(manager);
 | `Manager::RemoveById` / `RemoveByTag` / `RemoveAll` | `ntk_notification_remove_by_id` / `_by_tag` / `_all` |
 | `Manager::GetSetting` | `ntk_notification_get_setting` |
 | `Manager::OpenSettings` | `ntk_notification_open_settings` |
+
 ---
 
 ## macOS

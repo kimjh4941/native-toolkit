@@ -25,6 +25,9 @@ Language:
     - [ShowPickFolders - Multi-folder picker dialog](#showpickfolders---multi-folder-picker-dialog)
     - [ShowSaveFile - Save file dialog](#showsavefile---save-file-dialog)
   - [C ABI](#c-abi)
+    - [Message box](#message-box)
+    - [File pickers](#file-pickers)
+    - [Folder pickers](#folder-pickers)
 - [macOS](#macos)
   - [MacDialogManager](#macdialogmanager)
 
@@ -847,14 +850,21 @@ else if (result.error().code == Dialog::ErrorCode::Canceled)
 
 - The same dialogs for C, and for any language that can call a C DLL. The header is plain C99 and includes nothing but `<stddef.h>` and `<stdint.h>`.
 - Strings are NUL-terminated UTF-8 in both directions. `NULL` means an empty string.
-- A request struct is filled with zeros and given its own `sizeof` in `struct_size`; the zeros are the defaults.
+- A request struct is filled with zeros and given its own `sizeof` in `struct_size`; the zeros are the defaults. That inverts two flag names against the C++ API, so that the default stays zero: `allow_missing_file` is the opposite of `fileMustExist`, and `skip_overwrite_prompt` the opposite of `overwritePrompt`.
 - A function reports its error as the return value. The raw value the OS gave is `ntk_last_system_code()`, read on the same thread right after the failure.
 - Anything the library hands back is a handle that the caller frees with the matching `_free`. A pointer read out of a handle stays valid until that handle is freed.
+
+#### Message box
 
 ```c
 #include <string.h>
 #include <NativeToolkitC/Common.h>
 #include <NativeToolkitC/Dialog.h>
+
+/* The headers and the DLL have to be the same version. */
+if (ntk_version() != NTK_VERSION) {
+    return;
+}
 
 /* Zero-filled means "the defaults"; struct_size is what tells the DLL
    which version of the struct this is. */
@@ -866,6 +876,8 @@ request.message = "This is a native Windows dialog!";
 request.buttons = NTK_DIALOG_ALERT_BUTTONS_OK_CANCEL;
 request.icon = NTK_DIALOG_ALERT_ICON_INFORMATION;
 request.default_button = NTK_DIALOG_ALERT_DEFAULT_BUTTON_SECOND;
+/* Optional: request.top_most = 1; request.show_help_button = 1;
+   request.owner = hwnd; */
 
 ntk_dialog_alert_result pressed = 0;
 ntk_dialog_error error = ntk_dialog_show_alert(&request, &pressed);
@@ -877,25 +889,31 @@ if (error == NTK_DIALOG_ERROR_NONE) {
 }
 ```
 
-The pickers return their paths as a handle:
+#### File pickers
+
+`ntk_dialog_show_open_file` and `ntk_dialog_show_save_file` hand back one path as an `ntk_string`; `ntk_dialog_show_open_files` hands back an `ntk_string_list`, whose entries are read by index and are valid until the list is freed.
 
 ```c
 #include <string.h>
 #include <NativeToolkitC/Common.h>
 #include <NativeToolkitC/Dialog.h>
 
-ntk_dialog_file_request request;
-memset(&request, 0, sizeof(request));
-request.struct_size = (uint32_t)sizeof(request);
-request.title = "Open File";
-
-/* One entry of the type list. Patterns are separated by ';'. */
+/* The type list. Patterns are separated by ';'. Pass NULL with a count of 0
+   for every file. */
 ntk_dialog_filter filters[1];
 filters[0].name = "All Files";
 filters[0].patterns = "*.*";
 
+/* --- One existing file --------------------------------------------- */
+ntk_dialog_file_request open_request;
+memset(&open_request, 0, sizeof(open_request));
+open_request.struct_size = (uint32_t)sizeof(open_request);
+open_request.title = "Open File";
+/* Zero means the picked file has to exist (OFN_FILEMUSTEXIST). */
+open_request.allow_missing_file = 0;
+
 ntk_string* path = NULL;
-ntk_dialog_error error = ntk_dialog_show_open_file(&request, filters, 1, &path);
+ntk_dialog_error error = ntk_dialog_show_open_file(&open_request, filters, 1, &path);
 if (error == NTK_DIALOG_ERROR_NONE) {
     /* Borrowed: valid until ntk_string_free. */
     const char* utf8 = ntk_string_data(path);
@@ -904,6 +922,74 @@ if (error == NTK_DIALOG_ERROR_NONE) {
     ntk_string_free(path);
 } else if (error == NTK_DIALOG_ERROR_CANCELED) {
     /* The user dismissed the dialog; path stays NULL. */
+}
+
+/* --- One or more existing files ------------------------------------ */
+ntk_string_list* paths = NULL;
+error = ntk_dialog_show_open_files(&open_request, filters, 1, &paths);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    size_t count = ntk_string_list_count(paths);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        size_t size = 0;
+        const char* entry = ntk_string_list_at(paths, i, &size);  /* a full path */
+        (void)entry; (void)size;
+    }
+    ntk_string_list_free(paths);
+}
+
+/* --- Where to save ------------------------------------------------- */
+ntk_dialog_save_file_request save_request;
+memset(&save_request, 0, sizeof(save_request));
+save_request.struct_size = (uint32_t)sizeof(save_request);
+save_request.title = "Save File";
+save_request.default_extension = "txt";
+/* Zero means the dialog asks before an existing file is picked. */
+save_request.skip_overwrite_prompt = 0;
+
+ntk_string* save_path = NULL;
+error = ntk_dialog_show_save_file(&save_request, filters, 1, &save_path);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    ntk_string_free(save_path);
+}
+```
+
+#### Folder pickers
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+ntk_dialog_folder_request request;
+memset(&request, 0, sizeof(request));
+request.struct_size = (uint32_t)sizeof(request);
+/* NULL or "" leaves the system title. */
+request.title = "Select Folder";
+
+/* --- One folder ----------------------------------------------------- */
+ntk_string* folder = NULL;
+ntk_dialog_error error = ntk_dialog_show_pick_folder(&request, &folder);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(folder);
+    (void)utf8;
+    ntk_string_free(folder);
+}
+
+/* --- One or more folders -------------------------------------------- */
+request.title = "Select Folders";
+
+ntk_string_list* folders = NULL;
+error = ntk_dialog_show_pick_folders(&request, &folders);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    size_t count = ntk_string_list_count(folders);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        size_t size = 0;
+        const char* entry = ntk_string_list_at(folders, i, &size);
+        (void)entry; (void)size;
+    }
+    ntk_string_list_free(folders);
 }
 ```
 
@@ -915,8 +1001,6 @@ if (error == NTK_DIALOG_ERROR_NONE) {
 | `Dialog::ShowSaveFile` | `ntk_dialog_show_save_file` |
 | `Dialog::ShowPickFolder` | `ntk_dialog_show_pick_folder` |
 | `Dialog::ShowPickFolders` | `ntk_dialog_show_pick_folders` |
----
-
 ## macOS
 
 ### MacDialogManager

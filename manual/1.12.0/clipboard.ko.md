@@ -181,6 +181,11 @@ Language:
     - [요청 취소](#요청-취소)
   - [에러 처리](#에러-처리-3)
   - [C ABI](#c-abi)
+    - [세션, 리스너, 종료](#세션-리스너-종료)
+    - [쓰기](#쓰기)
+    - [읽기와 검사](#읽기와-검사)
+    - [지연 렌더링](#지연-렌더링-1)
+    - [클립보드 히스토리](#클립보드-히스토리)
 
 ---
 
@@ -2350,6 +2355,9 @@ if (!result.has_value())
 - 세션은 핸들입니다. 메시지 루프를 도는 STA 스레드에서 `ntk_clipboard_session_create`를 호출하고, 같은 스레드에서 `ntk_clipboard_session_close`를 호출한 뒤 `ntk_clipboard_session_free`합니다.
 - `ntk_clipboard_reserve_deferred`는 `user_data`와 `release`를 받습니다. `release`는 호출 결과와 무관하게 반드시 한 번 호출되며, 바인딩이 할당한 것을 여기서 해제합니다. 세션 옵션과 히스토리 핸들러는 `user_data`만 가지며 세션과 같은 기간 동안 유지됩니다.
 - 읽기는 핸들로 반환됩니다. `ntk_string`, `ntk_bytes`, `ntk_string_list`가 있으며 각각 대응하는 `_free`로 해제합니다. 핸들에서 꺼낸 포인터는 그 핸들을 해제할 때까지 유효합니다.
+- 쓰기 플래그는 `NTK_CLIPBOARD_WRITE_DEFAULT`, `_EXCLUDE_HISTORY`, `_EXCLUDE_ROAMING`, `_SENSITIVE`(두 가지 제외)입니다.
+
+#### 세션, 리스너, 종료
 
 ```c
 #include <string.h>
@@ -2358,14 +2366,20 @@ if (!result.has_value())
 
 static void NTK_CALL on_clipboard_changed(void* user_data)
 {
-    /* 소유 스레드에서 호출됩니다. */
+    /* 소유 스레드에서 호출되며, 원인이 된 호출 안에서는 호출되지 않습니다.
+       이 세션이 직접 한 쓰기는 통지되지 않습니다. */
     (void)user_data;
 }
 
+static void NTK_CALL on_history_changed(void* user_data)         { (void)user_data; }
+static void NTK_CALL on_history_enabled(void* user_data, int32_t enabled) { (void)user_data; (void)enabled; }
+static void NTK_CALL on_roaming_enabled(void* user_data, int32_t enabled) { (void)user_data; (void)enabled; }
+
+/* 호출하는 스레드는 STA여야 하고 메시지 루프를 돌려야 합니다. */
 ntk_clipboard_session_options options;
 memset(&options, 0, sizeof(options));
 options.struct_size = (uint32_t)sizeof(options);
-options.on_clipboard_changed = &on_clipboard_changed;
+options.on_clipboard_changed = &on_clipboard_changed;   /* NULL이면 리스너 없음 */
 options.user_data = NULL;
 
 ntk_clipboard_session* session = NULL;
@@ -2374,19 +2388,240 @@ if (error != NTK_CLIPBOARD_ERROR_NONE) {
     return;   /* STA가 아닌 스레드라면 WRONG_APARTMENT입니다 */
 }
 
-/* 쓴 다음 다시 읽습니다. 문자열은 UTF-8입니다. */
-error = ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+/* 히스토리 이벤트입니다. 소유 스레드 전용이며, 0으로 채운 구조체를 전달하면
+   세 가지 등록이 모두 해제됩니다. */
+ntk_clipboard_history_handlers handlers;
+memset(&handlers, 0, sizeof(handlers));
+handlers.struct_size = (uint32_t)sizeof(handlers);
+handlers.on_history_changed = &on_history_changed;
+handlers.on_history_enabled_changed = &on_history_enabled;
+handlers.on_roaming_enabled_changed = &on_roaming_enabled;
+handlers.user_data = NULL;
+error = ntk_clipboard_set_history_handlers(session, &handlers);
 
-ntk_string* text = NULL;
-if (ntk_clipboard_paste_text(session, &text) == NTK_CLIPBOARD_ERROR_NONE) {
-    const char* utf8 = ntk_string_data(text);   /* ntk_string_free 전까지 유효합니다 */
-    (void)utf8;
-    ntk_string_free(text);
+/* 닫는 일은 호출하는 쪽의 책임이며 실패할 수 있습니다(다른 스레드가 작업
+   중이면 BUSY). can_close는 지금 닫기를 끝낼 수 있는지 알려 줍니다. */
+if (ntk_clipboard_session_can_close(session)) {
+    error = ntk_clipboard_session_close(session);
+}
+ntk_clipboard_session_free(session);
+```
+
+#### 쓰기
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* 텍스트입니다. 빈 문자열도 올바른 값입니다. */
+ntk_clipboard_error error =
+    ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* SENSITIVE: 히스토리에 남기지 않고 다른 기기로도 동기화하지 않습니다. */
+error = ntk_clipboard_copy_text(session, "Sensitive sample value", NTK_CLIPBOARD_WRITE_SENSITIVE);
+
+/* HTML입니다. CF_HTML 헤더는 라이브러리 안에서 만듭니다. 두 번째 문자열은
+   함께 쓰는 일반 텍스트 대체본입니다. */
+error = ntk_clipboard_copy_html(session, "<b>Hello</b> from native-toolkit",
+                                "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* 파일입니다. 각 경로는 전체 경로이며 목록을 비울 수 없습니다. */
+const char* paths[2];
+paths[0] = "C:\\temp\\native-toolkit-1.txt";
+paths[1] = "C:\\temp\\native-toolkit-2.txt";
+error = ntk_clipboard_copy_files(session, paths, 2, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* 이미지입니다. 패킹된 DIB이며 헤더는 검사합니다. */
+error = ntk_clipboard_copy_dib(session, dib_bytes, dib_size, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* 사용자 정의 형식입니다. 표준 이름이 아니면 Windows에 등록됩니다. */
+error = ntk_clipboard_copy_custom(session, "NativeToolkitSample",
+                                  payload_bytes, payload_size, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* 한 번의 쓰기로 여러 형식을 배치합니다. 목록을 만든 뒤 복사합니다.
+   배치 순서는 받는 앱이 보므로 가장 풍부한 형식을 앞에 둡니다. */
+ntk_clipboard_items* items = NULL;
+if (ntk_clipboard_items_create(&items) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_clipboard_items_add_html(items, "HTML Format", "<b>Hello</b> from native-toolkit");
+    ntk_clipboard_items_add_text(items, "CF_UNICODETEXT", "Hello from native-toolkit");
+    ntk_clipboard_items_add_bytes(items, "CF_DIB", dib_bytes, dib_size);
+    error = ntk_clipboard_copy_multiple(session, items, NTK_CLIPBOARD_WRITE_DEFAULT);
+    ntk_clipboard_items_free(items);
 }
 
-/* 소유 스레드에서 호출하고 결과를 확인합니다. close는 실패할 수 있습니다. */
-error = ntk_clipboard_session_close(session);
-ntk_clipboard_session_free(session);
+/* 클립보드를 비웁니다. */
+error = ntk_clipboard_clear(session);
+```
+
+#### 읽기와 검사
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* 텍스트와 HTML은 ntk_string으로 반환됩니다. */
+ntk_string* text = NULL;
+ntk_clipboard_error error = ntk_clipboard_paste_text(session, &text);
+if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(text);   /* ntk_string_free 전까지 유효 */
+    size_t size = ntk_string_size(text);
+    (void)utf8; (void)size;
+    ntk_string_free(text);
+} else if (error == NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE) {
+    /* 클립보드에 텍스트가 없습니다. */
+}
+
+ntk_string* html = NULL;
+if (ntk_clipboard_paste_html(session, &html) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_string_free(html);   /* CF_HTML 헤더를 제거한 조각입니다 */
+}
+
+/* 파일은 목록으로 반환됩니다. */
+ntk_string_list* files = NULL;
+if (ntk_clipboard_paste_files(session, &files) == NTK_CLIPBOARD_ERROR_NONE) {
+    size_t count = ntk_string_list_count(files);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* path = ntk_string_list_at(files, i, NULL);
+        (void)path;
+    }
+    ntk_string_list_free(files);
+}
+
+/* 이미지와 사용자 정의 형식은 바이트열로 반환됩니다. */
+ntk_bytes* dib = NULL;
+if (ntk_clipboard_paste_dib(session, &dib) == NTK_CLIPBOARD_ERROR_NONE) {
+    const uint8_t* data = ntk_bytes_data(dib);
+    size_t size = ntk_bytes_size(dib);
+    (void)data; (void)size;
+    ntk_bytes_free(dib);
+}
+
+ntk_bytes* custom = NULL;
+if (ntk_clipboard_paste_custom(session, "NativeToolkitSample", &custom) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_bytes_free(custom);
+}
+
+/* 클립보드 내용 검사입니다. 특정 형식의 유무, 형식 목록, 우선 형식. */
+int32_t present = 0;
+error = ntk_clipboard_has_format(session, "CF_UNICODETEXT", &present);
+
+ntk_string_list* formats = NULL;
+if (ntk_clipboard_get_formats(session, &formats) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_string_list_free(formats);
+}
+
+ntk_string* preferred = NULL;
+if (ntk_clipboard_get_preferred_format(session, &preferred) == NTK_CLIPBOARD_ERROR_NONE) {
+    /* 빈 문자열은 후보가 없다는 뜻입니다. */
+    ntk_string_free(preferred);
+}
+```
+
+#### 지연 렌더링
+
+소유 스레드 전용입니다. 제공자는 소유 스레드에서, 데이터를 모으는 메시지 안에서 호출됩니다. 클립보드 함수를 전혀 호출할 수 없고 블로킹해서도 안 되며, 바이트열은 `ntk_clipboard_render_target_set`으로 한 번만 전달합니다.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static ntk_clipboard_error NTK_CALL render(void* user_data, const char* format_name,
+                                           ntk_clipboard_render_target* target)
+{
+    const uint8_t* bytes = NULL;
+    size_t size = 0;
+    if (!lookup_payload(user_data, format_name, &bytes, &size)) {
+        return NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE;   /* 빈 값으로 전달됩니다 */
+    }
+    return ntk_clipboard_render_target_set(target, bytes, size);
+}
+
+static void NTK_CALL release_payloads(void* user_data)
+{
+    /* 정확히 한 번 호출됩니다. 예약이 끝날 때(다음 예약, 쓰기, 지우기, 다른
+       프로그램이 클립보드를 비웠을 때, 복구, close 성공, free)와, 호출이
+       실패했을 때는 반환 전에 호출됩니다. */
+    (void)user_data;
+}
+
+const char* formats[2];
+formats[0] = "HTML Format";
+formats[1] = "CF_UNICODETEXT";
+
+ntk_clipboard_error error =
+    ntk_clipboard_reserve_deferred(session, formats, 2, &render, payloads, &release_payloads);
+
+/* PARTIAL_STATE 이후에는 실패한 예약이 남긴 것을 정리합니다. */
+if (error == NTK_CLIPBOARD_ERROR_PARTIAL_STATE) {
+    error = ntk_clipboard_recover_deferred_state(session);
+}
+```
+
+#### 클립보드 히스토리
+
+다섯 가지 모두 비동기입니다. 호출은 요청이 접수되었는지를 반환하고, 완료는 나중에 소유 스레드에서 정확히 한 번 전달되며, 시작한 호출 안에서는 호출되지 않습니다. `NTK_CLIPBOARD_ERROR_HISTORY_DISABLED`는 사용자가 히스토리를 꺼 두었다는 뜻입니다.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static void NTK_CALL on_availability(void* user_data, uint32_t request_id,
+                                     ntk_clipboard_error error, uint32_t system_code,
+                                     int32_t history_enabled, int32_t roaming_enabled)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error == NTK_CLIPBOARD_ERROR_NONE) {
+        (void)history_enabled; (void)roaming_enabled;
+    }
+}
+
+static void NTK_CALL on_history(void* user_data, uint32_t request_id,
+                                ntk_clipboard_error error, uint32_t system_code,
+                                const ntk_clipboard_history* history)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;   /* 실패일 때는 history가 NULL입니다 */
+    }
+    /* 이 호출 동안만 유효합니다. */
+    size_t count = ntk_clipboard_history_count(history);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* id = ntk_clipboard_history_item_id(history, i, NULL);
+        const char* text = ntk_clipboard_history_item_text(history, i, NULL);  /* 없는 항목은 NULL */
+        int64_t when = ntk_clipboard_history_item_timestamp_unix_ms(history, i);
+        size_t types = ntk_clipboard_history_item_content_type_count(history, i);
+        size_t t;
+        for (t = 0; t < types; ++t) {
+            const char* type = ntk_clipboard_history_item_content_type_at(history, i, t, NULL);
+            (void)type;
+        }
+        (void)id; (void)text; (void)when;
+    }
+}
+
+static void NTK_CALL on_done(void* user_data, uint32_t request_id,
+                             ntk_clipboard_error error, uint32_t system_code)
+{
+    /* 취소되었거나 close로 정리되었을 때는 CANCELED입니다. */
+    (void)user_data; (void)request_id; (void)error; (void)system_code;
+}
+
+uint32_t request = 0;
+ntk_clipboard_error error =
+    ntk_clipboard_get_history_availability(session, &on_availability, NULL, &request);
+
+error = ntk_clipboard_get_history(session, &on_history, NULL, &request);
+
+/* item_id는 ntk_clipboard_history_item_id의 값을 콜백 안에서 복사해 둔
+   것입니다. */
+error = ntk_clipboard_restore_history_item(session, item_id, &on_done, NULL, &request);
+error = ntk_clipboard_delete_history_item(session, item_id, &on_done, NULL, &request);
+error = ntk_clipboard_clear_unpinned_history(session, &on_done, NULL, &request);
+
+/* 완료되지 않은 요청을 취소합니다. 완료는 CANCELED로 한 번 호출됩니다. */
+error = ntk_clipboard_cancel_request(session, request);
 ```
 
 | C++ API | C ABI |
@@ -2399,7 +2634,8 @@ ntk_clipboard_session_free(session);
 | `CopyMultiple`과 `FormatPayload` | `ntk_clipboard_items_create`와 `_add_text` / `_add_html` / `_add_bytes`, 그리고 `ntk_clipboard_copy_multiple` |
 | `PasteText` / `PasteHtml` / `PasteFiles` / `PasteDib` / `PasteCustom` | `ntk_clipboard_paste_text` / `_paste_html` / `_paste_files` / `_paste_dib` / `_paste_custom` |
 | `HasFormat` / `GetFormats` / `GetPreferredFormat` / `Clear` | `ntk_clipboard_has_format` / `_get_formats` / `_get_preferred_format` / `_clear` |
-| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred` / `_recover_deferred_state` |
+| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred`(`ntk_clipboard_render_target_set`과 함께) / `_recover_deferred_state` |
 | `GetHistory` / `RestoreHistoryItem` / `DeleteHistoryItem` / `ClearUnpinnedHistory` / `GetHistoryAvailability` | `ntk_clipboard_get_history` / `_restore_history_item` / `_delete_history_item` / `_clear_unpinned_history` / `_get_history_availability` |
+| `HistoryItem` | `ntk_clipboard_history_count` / `_item_id` / `_item_text` / `_item_content_type_at` / `_item_timestamp_unix_ms` |
 | `CancelRequest` | `ntk_clipboard_cancel_request` |
 | `WriteOptions` | `flags` 인수: `NTK_CLIPBOARD_WRITE_DEFAULT` / `_EXCLUDE_HISTORY` / `_EXCLUDE_ROAMING` / `_SENSITIVE` |

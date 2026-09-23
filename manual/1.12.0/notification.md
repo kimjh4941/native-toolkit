@@ -81,6 +81,10 @@ Language:
   - [Activation handler](#activation-handler)
   - [Error Codes](#error-codes)
   - [C ABI](#c-abi)
+    - [The runtime, the manager and activations](#the-runtime-the-manager-and-activations)
+    - [Building the content, showing and scheduling](#building-the-content-showing-and-scheduling)
+    - [Progress, badge and the OS settings](#progress-badge-and-the-os-settings)
+    - [Listing and removing](#listing-and-removing)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [Setup](#setup-2)
@@ -1634,8 +1638,11 @@ g_notificationHandler = nullptr;
 
 - The same notifications for C, and for any language that can call a C DLL.
 - The content is built through a handle instead of a struct, one setter at a time, and freed with `ntk_notification_content_free`.
-- `ntk_notification_manager_options` carries `user_data` and a `release` callback. `release` is called exactly once for every registration, whatever the registering function returned, so it is where a binding frees what it allocated.
+- A registration carries `user_data` and a `release` callback. `release` is called exactly once for every registration, whatever the registering function returned, so it is where a binding frees what it allocated.
 - Handles are freed with `ntk_notification_manager_free`, `ntk_notification_runtime_free` and `ntk_notification_list_free`.
+- Every function may be called from any thread. Activations arrive on a thread the OS picks, and everything the activation hands over is valid only during that call.
+
+#### The runtime, the manager and activations
 
 ```c
 #include <string.h>
@@ -1644,37 +1651,188 @@ g_notificationHandler = nullptr;
 
 static void NTK_CALL on_invoked(void* user_data, const ntk_notification_activation* activation)
 {
-    /* On a thread the OS picks. The activation is valid only during this call. */
-    const char* raw = ntk_notification_activation_raw_arguments(activation);
-    (void)user_data; (void)raw;
+    /* On a thread the OS picks. Nothing read here outlives the call. */
+    size_t size = 0;
+    const char* raw = ntk_notification_activation_raw_arguments(activation, &size);
+    (void)raw; (void)user_data;
+
+    /* The button's arguments and the user's input, merged, keyed by id. */
+    size_t count = ntk_notification_activation_value_count(activation);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* key = ntk_notification_activation_key_at(activation, i, NULL);
+        const char* value = ntk_notification_activation_value_at(activation, i, NULL);
+        (void)key; (void)value;
+    }
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* Called exactly once, even when the registering call failed. */
+    (void)user_data;
+}
+
+/* An app without package identity loads the Windows App SDK runtime first and
+   keeps the handle for as long as notifications are used. 0x00010007 is 1.7.
+   A packaged app skips this. */
+ntk_notification_runtime* runtime = NULL;
+ntk_notification_error error = ntk_notification_runtime_initialize(0x00010007u, &runtime);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
 }
 
 ntk_notification_manager_options options;
 memset(&options, 0, sizeof(options));
 options.struct_size = (uint32_t)sizeof(options);
 options.on_invoked = &on_invoked;
-options.user_data = NULL;   /* passed to on_invoked and to release */
-options.release = NULL;     /* called once when the library is done with user_data */
-options.is_unpackaged = 0;  /* non-zero for an app without package identity */
+options.user_data = NULL;
+options.release = &release_user_data;
+options.is_unpackaged = 1;                 /* 0 for a packaged (MSIX) app */
+options.display_name = "MyApp";            /* required when unpackaged */
+options.icon_uri = "C:\\path\\to\\app-icon.png";
 
 ntk_notification_manager* manager = NULL;
-ntk_notification_error error = ntk_notification_manager_create(&options, &manager);
+error = ntk_notification_manager_create(&options, &manager);
 if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_runtime_free(runtime);
     return;
 }
 
-/* The content builder: create, set, show, free. */
-ntk_notification_content* content = NULL;
-if (ntk_notification_content_create(&content) == NTK_NOTIFICATION_ERROR_NONE) {
-    ntk_notification_content_set_title(content, "Hello");   /* UTF-8 */
-    ntk_notification_content_set_body(content, "Basic toast");
-    ntk_notification_content_set_tag(content, "sample");
-    error = ntk_notification_show(manager, content);
-    ntk_notification_content_free(content);
-}
+/* Replacing the handler later: the previous registration's release follows
+   once no activation is still running it. */
+error = ntk_notification_manager_set_invoked_handler(manager, &on_invoked, NULL, &release_user_data);
 
+/* Shutting down: close, free the manager, then free the runtime. */
 ntk_notification_manager_close(manager);
 ntk_notification_manager_free(manager);
+ntk_notification_runtime_free(runtime);
+```
+
+#### Building the content, showing and scheduling
+
+Every setter is optional except what the OS itself requires. `add_button` and `add_combo` hand back the index of what they added, which the argument and item setters then address.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create(&content) != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+
+/* Text and identity. UTF-8 throughout. */
+ntk_notification_content_set_title(content, "Hello");
+ntk_notification_content_set_body(content, "Basic toast");
+ntk_notification_content_set_tag(content, "sample");
+ntk_notification_content_set_group(content, "");
+ntk_notification_content_set_attribution(content, "native-toolkit");
+ntk_notification_content_set_scenario(content, NTK_NOTIFICATION_SCENARIO_DEFAULT);
+ntk_notification_content_set_duration(content, NTK_NOTIFICATION_DURATION_SHORT);
+
+/* Images. */
+ntk_notification_content_set_hero_image(content, "ms-appx:///Assets/StoreLogo.png");
+ntk_notification_content_set_inline_image(content, NULL);   /* NULL removes it */
+ntk_notification_content_set_app_logo(content, "ms-appx:///Assets/StoreLogo.png",
+                                      NTK_NOTIFICATION_LOGO_CROP_CIRCLE);
+
+/* Sound: a named system sound, no looping. */
+ntk_notification_content_set_audio(content, NTK_NOTIFICATION_AUDIO_KIND_EVENT,
+                                   "reminder", NULL, 0);
+
+/* Buttons. with_arguments non-zero starts an argument list to add to. */
+size_t button = 0;
+ntk_notification_content_add_button(content, "Open", NULL, 1, &button);
+ntk_notification_content_add_button_argument(content, button, "action", "open");
+
+/* A text field and a selection field. */
+ntk_notification_content_add_text_input(content, "reply", "Type a message", NULL);
+
+size_t combo = 0;
+ntk_notification_content_add_combo(content, "opt", "Status", "busy", &combo);
+ntk_notification_content_add_combo_item(content, combo, "free", "Free");
+ntk_notification_content_add_combo_item(content, combo, "busy", "Busy");
+
+/* A progress bar, and the timings. Both are ignored when scheduling. */
+ntk_notification_content_set_progress(content, "Toolkit.zip", 0.3, "30%", "Downloading");
+ntk_notification_content_set_expiration(content, 10);            /* seconds after delivery */
+ntk_notification_content_set_expires_on_reboot(content, 0);      /* packaged apps only */
+ntk_notification_content_set_timestamp(content, 1758585600000);  /* Unix milliseconds */
+
+/* Show it now... */
+ntk_notification_error error = ntk_notification_show(manager, content);
+
+/* ...or at an absolute time, again in Unix milliseconds. */
+error = ntk_notification_schedule(manager, content, 1758585660000);
+
+ntk_notification_content_free(content);
+
+/* Cancel a scheduled notification by tag and group. */
+error = ntk_notification_cancel_scheduled(manager, "scheduled", "");
+```
+
+#### Progress, badge and the OS settings
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+/* Update the bar of a notification that is already showing one. */
+ntk_notification_progress_update update;
+memset(&update, 0, sizeof(update));
+update.struct_size = (uint32_t)sizeof(update);
+update.tag = "progress-sample";      /* as given to ntk_notification_show */
+update.group = "";
+update.value = 0.6;
+update.value_string = "60%";
+update.status = "Downloading";
+update.sequence_number = 2;          /* yours to increase */
+
+ntk_notification_error error = ntk_notification_update_progress(manager, &update);
+if (error == NTK_NOTIFICATION_ERROR_PROGRESS_NOT_FOUND) {
+    /* Nothing to update, or the sequence number was stale. */
+}
+
+/* Badge on the taskbar icon. Packaged apps only: NOT_SUPPORTED otherwise.
+   5 is a number, -1 the alert glyph, 0 clears it. */
+error = ntk_notification_set_badge(manager, 5);
+
+/* What the OS reports, and the page that changes it. */
+ntk_notification_setting setting = NTK_NOTIFICATION_SETTING_ENABLED;
+error = ntk_notification_get_setting(manager, &setting);
+if (setting != NTK_NOTIFICATION_SETTING_ENABLED) {
+    error = ntk_notification_open_settings(manager);
+}
+```
+
+#### Listing and removing
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+/* What is in the action centre. Packaged apps only. */
+ntk_notification_list* list = NULL;
+ntk_notification_error error = ntk_notification_get_all(manager, &list);
+if (error == NTK_NOTIFICATION_ERROR_NONE) {
+    size_t count = ntk_notification_list_count(list);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        uint32_t id = ntk_notification_list_id_at(list, i);
+        const char* tag = ntk_notification_list_tag_at(list, i, NULL);
+        const char* group = ntk_notification_list_group_at(list, i, NULL);
+        (void)id; (void)tag; (void)group;
+    }
+    /* The pointers above are valid until this call. */
+    ntk_notification_list_free(list);
+}
+
+/* Removing: by the id get_all reported (packaged apps only), by tag and
+   group, or everything this app put there. */
+error = ntk_notification_remove_by_id(manager, 1u);
+error = ntk_notification_remove_by_tag(manager, "sample", "");
+error = ntk_notification_remove_all(manager);
 ```
 
 | C++ API | C ABI |
@@ -1684,6 +1842,7 @@ ntk_notification_manager_free(manager);
 | `Manager::SetInvokedHandler` | `ntk_notification_manager_set_invoked_handler` |
 | `Manager::Close` | `ntk_notification_manager_close` / `ntk_notification_manager_free` |
 | `NotificationContent` | `ntk_notification_content_create` and its 22 setters |
+| `ActivationArgs` | `ntk_notification_activation_raw_arguments` / `_value_count` / `_key_at` / `_value_at` |
 | `Manager::Show` | `ntk_notification_show` |
 | `Manager::Schedule` | `ntk_notification_schedule` (the time is Unix milliseconds) |
 | `Manager::CancelScheduled` | `ntk_notification_cancel_scheduled` |
@@ -1693,6 +1852,7 @@ ntk_notification_manager_free(manager);
 | `Manager::RemoveById` / `RemoveByTag` / `RemoveAll` | `ntk_notification_remove_by_id` / `_by_tag` / `_all` |
 | `Manager::GetSetting` | `ntk_notification_get_setting` |
 | `Manager::OpenSettings` | `ntk_notification_open_settings` |
+
 ---
 
 ## macOS

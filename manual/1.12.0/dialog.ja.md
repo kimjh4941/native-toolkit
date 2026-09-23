@@ -25,6 +25,9 @@
     - [ShowPickFolders - 複数フォルダー選択ダイアログ](#showpickfolders---複数フォルダー選択ダイアログ)
     - [ShowSaveFile - 保存ダイアログ](#showsavefile---保存ダイアログ)
   - [C ABI](#c-abi)
+    - [メッセージボックス](#メッセージボックス)
+    - [ファイルの選択](#ファイルの選択)
+    - [フォルダーの選択](#フォルダーの選択)
 - [macOS](#macos)
   - [MacDialogManager](#macdialogmanager)
 
@@ -847,14 +850,21 @@ else if (result.error().code == Dialog::ErrorCode::Canceled)
 
 - C から、そして C の DLL を呼べる言語から使うための API です。ヘッダーは C99 で、`<stddef.h>` と `<stdint.h>` 以外を include しません。
 - 文字列は入出力とも NUL 終端の UTF-8 です。`NULL` は空文字列を意味します。
-- 要求の構造体は 0 で埋め、`struct_size` に自身の `sizeof` を入れます。0 が既定値です。
+- 要求の構造体は 0 で埋め、`struct_size` に自身の `sizeof` を入れます。0 が既定値です。既定値を 0 に保つため、2 つのフラグは C++ API と名前の向きが逆になっています。`allow_missing_file` は `fileMustExist` の逆、`skip_overwrite_prompt` は `overwritePrompt` の逆です。
 - エラーは戻り値で報告されます。OS が返した生の値は、同じスレッドで失敗の直後に `ntk_last_system_code()` で読みます。
 - ライブラリが返すものはハンドルで、対応する `_free` で解放します。ハンドルから取り出したポインターは、そのハンドルを解放するまで有効です。
+
+#### メッセージボックス
 
 ```c
 #include <string.h>
 #include <NativeToolkitC/Common.h>
 #include <NativeToolkitC/Dialog.h>
+
+/* ヘッダーと DLL は同じ版である必要があります。 */
+if (ntk_version() != NTK_VERSION) {
+    return;
+}
 
 /* 0 で埋めた状態が既定値です。struct_size は、この構造体がどの版かを
    DLL に伝えます。 */
@@ -866,6 +876,8 @@ request.message = "This is a native Windows dialog!";
 request.buttons = NTK_DIALOG_ALERT_BUTTONS_OK_CANCEL;
 request.icon = NTK_DIALOG_ALERT_ICON_INFORMATION;
 request.default_button = NTK_DIALOG_ALERT_DEFAULT_BUTTON_SECOND;
+/* 任意: request.top_most = 1; request.show_help_button = 1;
+   request.owner = hwnd; */
 
 ntk_dialog_alert_result pressed = 0;
 ntk_dialog_error error = ntk_dialog_show_alert(&request, &pressed);
@@ -877,25 +889,31 @@ if (error == NTK_DIALOG_ERROR_NONE) {
 }
 ```
 
-選択系はパスをハンドルで返します。
+#### ファイルの選択
+
+`ntk_dialog_show_open_file` と `ntk_dialog_show_save_file` はパスを 1 つ `ntk_string` で返します。`ntk_dialog_show_open_files` は `ntk_string_list` を返し、各項目は添字で読み、リストを解放するまで有効です。
 
 ```c
 #include <string.h>
 #include <NativeToolkitC/Common.h>
 #include <NativeToolkitC/Dialog.h>
 
-ntk_dialog_file_request request;
-memset(&request, 0, sizeof(request));
-request.struct_size = (uint32_t)sizeof(request);
-request.title = "Open File";
-
-/* 種類の一覧の 1 項目です。パターンは ';' で区切ります。 */
+/* 種類の一覧です。パターンは ';' で区切ります。すべてのファイルを対象に
+   するときは NULL と 0 件を渡します。 */
 ntk_dialog_filter filters[1];
 filters[0].name = "All Files";
 filters[0].patterns = "*.*";
 
+/* --- 既存のファイルを 1 つ ----------------------------------------- */
+ntk_dialog_file_request open_request;
+memset(&open_request, 0, sizeof(open_request));
+open_request.struct_size = (uint32_t)sizeof(open_request);
+open_request.title = "Open File";
+/* 0 は「選ぶファイルが実在すること」を求めます（OFN_FILEMUSTEXIST）。 */
+open_request.allow_missing_file = 0;
+
 ntk_string* path = NULL;
-ntk_dialog_error error = ntk_dialog_show_open_file(&request, filters, 1, &path);
+ntk_dialog_error error = ntk_dialog_show_open_file(&open_request, filters, 1, &path);
 if (error == NTK_DIALOG_ERROR_NONE) {
     /* 借りたポインターです。ntk_string_free までは有効です。 */
     const char* utf8 = ntk_string_data(path);
@@ -904,6 +922,74 @@ if (error == NTK_DIALOG_ERROR_NONE) {
     ntk_string_free(path);
 } else if (error == NTK_DIALOG_ERROR_CANCELED) {
     /* 利用者がダイアログを閉じました。path は NULL のままです。 */
+}
+
+/* --- 既存のファイルを 1 つ以上 ------------------------------------- */
+ntk_string_list* paths = NULL;
+error = ntk_dialog_show_open_files(&open_request, filters, 1, &paths);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    size_t count = ntk_string_list_count(paths);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        size_t size = 0;
+        const char* entry = ntk_string_list_at(paths, i, &size);  /* フルパス */
+        (void)entry; (void)size;
+    }
+    ntk_string_list_free(paths);
+}
+
+/* --- 保存先 --------------------------------------------------------- */
+ntk_dialog_save_file_request save_request;
+memset(&save_request, 0, sizeof(save_request));
+save_request.struct_size = (uint32_t)sizeof(save_request);
+save_request.title = "Save File";
+save_request.default_extension = "txt";
+/* 0 は「既存のファイルを選んだときに確認する」です。 */
+save_request.skip_overwrite_prompt = 0;
+
+ntk_string* save_path = NULL;
+error = ntk_dialog_show_save_file(&save_request, filters, 1, &save_path);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    ntk_string_free(save_path);
+}
+```
+
+#### フォルダーの選択
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+ntk_dialog_folder_request request;
+memset(&request, 0, sizeof(request));
+request.struct_size = (uint32_t)sizeof(request);
+/* NULL か "" にすると OS の既定のタイトルになります。 */
+request.title = "Select Folder";
+
+/* --- フォルダーを 1 つ ---------------------------------------------- */
+ntk_string* folder = NULL;
+ntk_dialog_error error = ntk_dialog_show_pick_folder(&request, &folder);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(folder);
+    (void)utf8;
+    ntk_string_free(folder);
+}
+
+/* --- フォルダーを 1 つ以上 ------------------------------------------ */
+request.title = "Select Folders";
+
+ntk_string_list* folders = NULL;
+error = ntk_dialog_show_pick_folders(&request, &folders);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    size_t count = ntk_string_list_count(folders);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        size_t size = 0;
+        const char* entry = ntk_string_list_at(folders, i, &size);
+        (void)entry; (void)size;
+    }
+    ntk_string_list_free(folders);
 }
 ```
 
@@ -915,8 +1001,6 @@ if (error == NTK_DIALOG_ERROR_NONE) {
 | `Dialog::ShowSaveFile` | `ntk_dialog_show_save_file` |
 | `Dialog::ShowPickFolder` | `ntk_dialog_show_pick_folder` |
 | `Dialog::ShowPickFolders` | `ntk_dialog_show_pick_folders` |
----
-
 ## macOS
 
 ### MacDialogManager

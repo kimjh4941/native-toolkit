@@ -175,6 +175,11 @@ Language:
     - [Cancel Request](#cancel-request)
   - [Error Handling](#error-handling-3)
   - [C ABI](#c-abi)
+    - [The session, its listeners and closing](#the-session-its-listeners-and-closing)
+    - [Writing](#writing)
+    - [Reading and inspecting](#reading-and-inspecting)
+    - [Deferred rendering](#deferred-rendering-1)
+    - [Clipboard history](#clipboard-history)
 
 ---
 
@@ -2344,6 +2349,9 @@ if (!result.has_value())
 - The session is a handle: `ntk_clipboard_session_create` on an STA thread that pumps messages, then `ntk_clipboard_session_close` from that same thread and `ntk_clipboard_session_free`.
 - `ntk_clipboard_reserve_deferred` takes `user_data` and a `release` callback, and `release` is called exactly once whatever the call returned - that is where a binding frees what it allocated. The session options and the history handlers carry `user_data` only; they last as long as the session.
 - Reads hand back handles: `ntk_string`, `ntk_bytes` and `ntk_string_list`, each freed with its own `_free`. A pointer read from a handle stays valid until that handle is freed.
+- The write flags are `NTK_CLIPBOARD_WRITE_DEFAULT`, `_EXCLUDE_HISTORY`, `_EXCLUDE_ROAMING` and `_SENSITIVE` (both exclusions).
+
+#### The session, its listeners and closing
 
 ```c
 #include <string.h>
@@ -2352,14 +2360,20 @@ if (!result.has_value())
 
 static void NTK_CALL on_clipboard_changed(void* user_data)
 {
-    /* On the owner thread. */
+    /* On the owner thread, and never inside the call that caused it.
+       Changes this session made itself are not reported. */
     (void)user_data;
 }
 
+static void NTK_CALL on_history_changed(void* user_data)         { (void)user_data; }
+static void NTK_CALL on_history_enabled(void* user_data, int32_t enabled) { (void)user_data; (void)enabled; }
+static void NTK_CALL on_roaming_enabled(void* user_data, int32_t enabled) { (void)user_data; (void)enabled; }
+
+/* The calling thread must already be an STA and must pump messages. */
 ntk_clipboard_session_options options;
 memset(&options, 0, sizeof(options));
 options.struct_size = (uint32_t)sizeof(options);
-options.on_clipboard_changed = &on_clipboard_changed;
+options.on_clipboard_changed = &on_clipboard_changed;   /* NULL: no listener */
 options.user_data = NULL;
 
 ntk_clipboard_session* session = NULL;
@@ -2368,19 +2382,238 @@ if (error != NTK_CLIPBOARD_ERROR_NONE) {
     return;   /* WRONG_APARTMENT when the thread is not an STA */
 }
 
-/* Write, then read back. Strings are UTF-8. */
-error = ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+/* History events. Owner thread only; a zeroed struct unregisters all three. */
+ntk_clipboard_history_handlers handlers;
+memset(&handlers, 0, sizeof(handlers));
+handlers.struct_size = (uint32_t)sizeof(handlers);
+handlers.on_history_changed = &on_history_changed;
+handlers.on_history_enabled_changed = &on_history_enabled;
+handlers.on_roaming_enabled_changed = &on_roaming_enabled;
+handlers.user_data = NULL;
+error = ntk_clipboard_set_history_handlers(session, &handlers);
 
-ntk_string* text = NULL;
-if (ntk_clipboard_paste_text(session, &text) == NTK_CLIPBOARD_ERROR_NONE) {
-    const char* utf8 = ntk_string_data(text);   /* valid until ntk_string_free */
-    (void)utf8;
-    ntk_string_free(text);
+/* Closing is the caller's job and can fail: BUSY while another thread is
+   still inside an operation. can_close answers whether it could finish now. */
+if (ntk_clipboard_session_can_close(session)) {
+    error = ntk_clipboard_session_close(session);
+}
+ntk_clipboard_session_free(session);
+```
+
+#### Writing
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* Text. An empty string is a valid payload. */
+ntk_clipboard_error error =
+    ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* Sensitive: kept out of the history and off other devices. */
+error = ntk_clipboard_copy_text(session, "Sensitive sample value", NTK_CLIPBOARD_WRITE_SENSITIVE);
+
+/* HTML. The CF_HTML header is built inside the library; the second string is
+   the plain text alternative written alongside it. */
+error = ntk_clipboard_copy_html(session, "<b>Hello</b> from native-toolkit",
+                                "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* Files. Every path is a full path and the list must not be empty. */
+const char* paths[2];
+paths[0] = "C:\\temp\\native-toolkit-1.txt";
+paths[1] = "C:\\temp\\native-toolkit-2.txt";
+error = ntk_clipboard_copy_files(session, paths, 2, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* An image, as a packed DIB. The header is checked. */
+error = ntk_clipboard_copy_dib(session, dib_bytes, dib_size, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* A custom format. The name is registered with Windows if it is not standard. */
+error = ntk_clipboard_copy_custom(session, "NativeToolkitSample",
+                                  payload_bytes, payload_size, NTK_CLIPBOARD_WRITE_DEFAULT);
+
+/* Several formats in one write. Build the list, then copy it: the richest
+   format goes first, because the order is what receiving programs see. */
+ntk_clipboard_items* items = NULL;
+if (ntk_clipboard_items_create(&items) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_clipboard_items_add_html(items, "HTML Format", "<b>Hello</b> from native-toolkit");
+    ntk_clipboard_items_add_text(items, "CF_UNICODETEXT", "Hello from native-toolkit");
+    ntk_clipboard_items_add_bytes(items, "CF_DIB", dib_bytes, dib_size);
+    error = ntk_clipboard_copy_multiple(session, items, NTK_CLIPBOARD_WRITE_DEFAULT);
+    ntk_clipboard_items_free(items);
 }
 
-/* From the owner thread, and check the result: close can fail. */
-error = ntk_clipboard_session_close(session);
-ntk_clipboard_session_free(session);
+/* Empty the clipboard. */
+error = ntk_clipboard_clear(session);
+```
+
+#### Reading and inspecting
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* Text and HTML come back as ntk_string. */
+ntk_string* text = NULL;
+ntk_clipboard_error error = ntk_clipboard_paste_text(session, &text);
+if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(text);   /* valid until ntk_string_free */
+    size_t size = ntk_string_size(text);
+    (void)utf8; (void)size;
+    ntk_string_free(text);
+} else if (error == NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE) {
+    /* There is no text on the clipboard. */
+}
+
+ntk_string* html = NULL;
+if (ntk_clipboard_paste_html(session, &html) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_string_free(html);   /* the fragment, with the CF_HTML header removed */
+}
+
+/* Files come back as a list. */
+ntk_string_list* files = NULL;
+if (ntk_clipboard_paste_files(session, &files) == NTK_CLIPBOARD_ERROR_NONE) {
+    size_t count = ntk_string_list_count(files);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* path = ntk_string_list_at(files, i, NULL);
+        (void)path;
+    }
+    ntk_string_list_free(files);
+}
+
+/* Images and custom formats come back as bytes. */
+ntk_bytes* dib = NULL;
+if (ntk_clipboard_paste_dib(session, &dib) == NTK_CLIPBOARD_ERROR_NONE) {
+    const uint8_t* data = ntk_bytes_data(dib);
+    size_t size = ntk_bytes_size(dib);
+    (void)data; (void)size;
+    ntk_bytes_free(dib);
+}
+
+ntk_bytes* custom = NULL;
+if (ntk_clipboard_paste_custom(session, "NativeToolkitSample", &custom) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_bytes_free(custom);
+}
+
+/* What is on the clipboard: one format, every format, the preferred one. */
+int32_t present = 0;
+error = ntk_clipboard_has_format(session, "CF_UNICODETEXT", &present);
+
+ntk_string_list* formats = NULL;
+if (ntk_clipboard_get_formats(session, &formats) == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_string_list_free(formats);
+}
+
+ntk_string* preferred = NULL;
+if (ntk_clipboard_get_preferred_format(session, &preferred) == NTK_CLIPBOARD_ERROR_NONE) {
+    /* An empty string means there is no candidate. */
+    ntk_string_free(preferred);
+}
+```
+
+#### Deferred rendering
+
+Owner thread only. The provider runs on the owner thread, inside the message that collects the data: it must not call any clipboard function, must not block, and hands the bytes over with at most one `ntk_clipboard_render_target_set`.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static ntk_clipboard_error NTK_CALL render(void* user_data, const char* format_name,
+                                           ntk_clipboard_render_target* target)
+{
+    const uint8_t* bytes = NULL;
+    size_t size = 0;
+    if (!lookup_payload(user_data, format_name, &bytes, &size)) {
+        return NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE;   /* renders nothing */
+    }
+    return ntk_clipboard_render_target_set(target, bytes, size);
+}
+
+static void NTK_CALL release_payloads(void* user_data)
+{
+    /* Called exactly once: when the reservation ends (a later reservation, a
+       write, a clear, another program emptying the clipboard, recovery, a
+       successful close or free), and before the call returns when it failed. */
+    (void)user_data;
+}
+
+const char* formats[2];
+formats[0] = "HTML Format";
+formats[1] = "CF_UNICODETEXT";
+
+ntk_clipboard_error error =
+    ntk_clipboard_reserve_deferred(session, formats, 2, &render, payloads, &release_payloads);
+
+/* After PARTIAL_STATE, clear what the failed reservation left behind. */
+if (error == NTK_CLIPBOARD_ERROR_PARTIAL_STATE) {
+    error = ntk_clipboard_recover_deferred_state(session);
+}
+```
+
+#### Clipboard history
+
+Each of the five is asynchronous: the call reports whether the request was accepted, and the completion comes later on the owner thread, exactly once, never inside the call that started it. `NTK_CLIPBOARD_ERROR_HISTORY_DISABLED` means the user has the history turned off.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static void NTK_CALL on_availability(void* user_data, uint32_t request_id,
+                                     ntk_clipboard_error error, uint32_t system_code,
+                                     int32_t history_enabled, int32_t roaming_enabled)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error == NTK_CLIPBOARD_ERROR_NONE) {
+        (void)history_enabled; (void)roaming_enabled;
+    }
+}
+
+static void NTK_CALL on_history(void* user_data, uint32_t request_id,
+                                ntk_clipboard_error error, uint32_t system_code,
+                                const ntk_clipboard_history* history)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;   /* history is NULL on failure */
+    }
+    /* Valid during this call only. */
+    size_t count = ntk_clipboard_history_count(history);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* id = ntk_clipboard_history_item_id(history, i, NULL);
+        const char* text = ntk_clipboard_history_item_text(history, i, NULL);  /* NULL when it carries none */
+        int64_t when = ntk_clipboard_history_item_timestamp_unix_ms(history, i);
+        size_t types = ntk_clipboard_history_item_content_type_count(history, i);
+        size_t t;
+        for (t = 0; t < types; ++t) {
+            const char* type = ntk_clipboard_history_item_content_type_at(history, i, t, NULL);
+            (void)type;
+        }
+        (void)id; (void)text; (void)when;
+    }
+}
+
+static void NTK_CALL on_done(void* user_data, uint32_t request_id,
+                             ntk_clipboard_error error, uint32_t system_code)
+{
+    /* CANCELED when the request was cancelled or drained by close. */
+    (void)user_data; (void)request_id; (void)error; (void)system_code;
+}
+
+uint32_t request = 0;
+ntk_clipboard_error error =
+    ntk_clipboard_get_history_availability(session, &on_availability, NULL, &request);
+
+error = ntk_clipboard_get_history(session, &on_history, NULL, &request);
+
+/* item_id comes from ntk_clipboard_history_item_id, copied out of the callback. */
+error = ntk_clipboard_restore_history_item(session, item_id, &on_done, NULL, &request);
+error = ntk_clipboard_delete_history_item(session, item_id, &on_done, NULL, &request);
+error = ntk_clipboard_clear_unpinned_history(session, &on_done, NULL, &request);
+
+/* Cancel one that has not completed; its completion still runs, with CANCELED. */
+error = ntk_clipboard_cancel_request(session, request);
 ```
 
 | C++ API | C ABI |
@@ -2393,7 +2626,8 @@ ntk_clipboard_session_free(session);
 | `CopyMultiple` with `FormatPayload` | `ntk_clipboard_items_create` and its `_add_text` / `_add_html` / `_add_bytes`, then `ntk_clipboard_copy_multiple` |
 | `PasteText` / `PasteHtml` / `PasteFiles` / `PasteDib` / `PasteCustom` | `ntk_clipboard_paste_text` / `_paste_html` / `_paste_files` / `_paste_dib` / `_paste_custom` |
 | `HasFormat` / `GetFormats` / `GetPreferredFormat` / `Clear` | `ntk_clipboard_has_format` / `_get_formats` / `_get_preferred_format` / `_clear` |
-| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred` / `_recover_deferred_state` |
+| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred` (with `ntk_clipboard_render_target_set`) / `_recover_deferred_state` |
 | `GetHistory` / `RestoreHistoryItem` / `DeleteHistoryItem` / `ClearUnpinnedHistory` / `GetHistoryAvailability` | `ntk_clipboard_get_history` / `_restore_history_item` / `_delete_history_item` / `_clear_unpinned_history` / `_get_history_availability` |
+| `HistoryItem` | `ntk_clipboard_history_count` / `_item_id` / `_item_text` / `_item_content_type_at` / `_item_timestamp_unix_ms` |
 | `CancelRequest` | `ntk_clipboard_cancel_request` |
 | `WriteOptions` | The `flags` argument: `NTK_CLIPBOARD_WRITE_DEFAULT` / `_EXCLUDE_HISTORY` / `_EXCLUDE_ROAMING` / `_SENSITIVE` |

@@ -81,6 +81,10 @@
   - [活性化ハンドラー](#活性化ハンドラー)
   - [エラーコード](#エラーコード)
   - [C ABI](#c-abi)
+    - [ランタイム・マネージャー・活性化](#ランタイムマネージャー活性化)
+    - [内容の組み立て・表示・予約](#内容の組み立て表示予約)
+    - [進捗・バッジ・OS の設定](#進捗バッジos-の設定)
+    - [一覧と削除](#一覧と削除)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [セットアップ](#セットアップ-2)
@@ -1634,8 +1638,11 @@ g_notificationHandler = nullptr;
 
 - C から、そして C の DLL を呼べる言語から同じ通知を使うための API です。
 - 内容は構造体ではなくハンドルで組み立てます。セッターを 1 つずつ呼び、`ntk_notification_content_free` で解放します。
-- `ntk_notification_manager_options` は `user_data` と `release` を持ちます。`release` は登録ごとに必ず 1 回呼ばれます（登録した関数が失敗したときも呼ばれます）。バインディングが確保したものは、ここで解放します。
+- 登録は `user_data` と `release` を伴います。`release` は登録ごとに必ず 1 回呼ばれます（登録した関数が失敗したときも呼ばれます）。バインディングが確保したものは、ここで解放します。
 - ハンドルは `ntk_notification_manager_free`、`ntk_notification_runtime_free`、`ntk_notification_list_free` で解放します。
+- すべての関数はどのスレッドからでも呼べます。活性化は OS が選んだスレッドで届き、そこで受け取るものはその呼び出しの間だけ有効です。
+
+#### ランタイム・マネージャー・活性化
 
 ```c
 #include <string.h>
@@ -1644,37 +1651,188 @@ g_notificationHandler = nullptr;
 
 static void NTK_CALL on_invoked(void* user_data, const ntk_notification_activation* activation)
 {
-    /* OS が選んだスレッドで呼ばれます。activation はこの呼び出しの間だけ有効です。 */
-    const char* raw = ntk_notification_activation_raw_arguments(activation);
-    (void)user_data; (void)raw;
+    /* OS が選んだスレッドで呼ばれます。ここで読んだものは呼び出しの外では使えません。 */
+    size_t size = 0;
+    const char* raw = ntk_notification_activation_raw_arguments(activation, &size);
+    (void)raw; (void)user_data;
+
+    /* 押されたボタンの引数と利用者の入力が、id をキーとしてまとまっています。 */
+    size_t count = ntk_notification_activation_value_count(activation);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* key = ntk_notification_activation_key_at(activation, i, NULL);
+        const char* value = ntk_notification_activation_value_at(activation, i, NULL);
+        (void)key; (void)value;
+    }
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* 登録した関数が失敗したときも含め、ちょうど 1 回呼ばれます。 */
+    (void)user_data;
+}
+
+/* パッケージ識別子を持たないアプリは、先に Windows App SDK のランタイムを
+   読み込み、通知を使う間ハンドルを保持します。0x00010007 は 1.7 です。
+   パッケージ済みアプリでは不要です。 */
+ntk_notification_runtime* runtime = NULL;
+ntk_notification_error error = ntk_notification_runtime_initialize(0x00010007u, &runtime);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
 }
 
 ntk_notification_manager_options options;
 memset(&options, 0, sizeof(options));
 options.struct_size = (uint32_t)sizeof(options);
 options.on_invoked = &on_invoked;
-options.user_data = NULL;   /* on_invoked と release に渡されます */
-options.release = NULL;     /* user_data を使い終わったときに 1 回だけ呼ばれます */
-options.is_unpackaged = 0;  /* パッケージ識別子を持たないアプリでは 0 以外 */
+options.user_data = NULL;
+options.release = &release_user_data;
+options.is_unpackaged = 1;                 /* パッケージ済み（MSIX）アプリでは 0 */
+options.display_name = "MyApp";            /* パッケージ無しのときは必須 */
+options.icon_uri = "C:\\path\\to\\app-icon.png";
 
 ntk_notification_manager* manager = NULL;
-ntk_notification_error error = ntk_notification_manager_create(&options, &manager);
+error = ntk_notification_manager_create(&options, &manager);
 if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_runtime_free(runtime);
     return;
 }
 
-/* 内容のビルダー: 作る、設定する、表示する、解放する。 */
-ntk_notification_content* content = NULL;
-if (ntk_notification_content_create(&content) == NTK_NOTIFICATION_ERROR_NONE) {
-    ntk_notification_content_set_title(content, "Hello");   /* UTF-8 */
-    ntk_notification_content_set_body(content, "Basic toast");
-    ntk_notification_content_set_tag(content, "sample");
-    error = ntk_notification_show(manager, content);
-    ntk_notification_content_free(content);
-}
+/* あとからハンドラーを差し替える場合。前の登録の release は、その登録で
+   走っている活性化がすべて戻ってから呼ばれます。 */
+error = ntk_notification_manager_set_invoked_handler(manager, &on_invoked, NULL, &release_user_data);
 
+/* 終了時は close → マネージャーの解放 → ランタイムの解放の順です。 */
 ntk_notification_manager_close(manager);
 ntk_notification_manager_free(manager);
+ntk_notification_runtime_free(runtime);
+```
+
+#### 内容の組み立て・表示・予約
+
+OS が必須とするもの以外、セッターはすべて任意です。`add_button` と `add_combo` は追加したものの添字を返し、引数や項目のセッターはその添字を指定します。
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create(&content) != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+
+/* 文言と識別子です。すべて UTF-8 です。 */
+ntk_notification_content_set_title(content, "Hello");
+ntk_notification_content_set_body(content, "Basic toast");
+ntk_notification_content_set_tag(content, "sample");
+ntk_notification_content_set_group(content, "");
+ntk_notification_content_set_attribution(content, "native-toolkit");
+ntk_notification_content_set_scenario(content, NTK_NOTIFICATION_SCENARIO_DEFAULT);
+ntk_notification_content_set_duration(content, NTK_NOTIFICATION_DURATION_SHORT);
+
+/* 画像です。 */
+ntk_notification_content_set_hero_image(content, "ms-appx:///Assets/StoreLogo.png");
+ntk_notification_content_set_inline_image(content, NULL);   /* NULL で取り消し */
+ntk_notification_content_set_app_logo(content, "ms-appx:///Assets/StoreLogo.png",
+                                      NTK_NOTIFICATION_LOGO_CROP_CIRCLE);
+
+/* 音です。名前付きのシステム音で、繰り返しはしません。 */
+ntk_notification_content_set_audio(content, NTK_NOTIFICATION_AUDIO_KIND_EVENT,
+                                   "reminder", NULL, 0);
+
+/* ボタンです。with_arguments を 0 以外にすると、引数の一覧が用意されます。 */
+size_t button = 0;
+ntk_notification_content_add_button(content, "Open", NULL, 1, &button);
+ntk_notification_content_add_button_argument(content, button, "action", "open");
+
+/* テキスト欄と選択欄です。 */
+ntk_notification_content_add_text_input(content, "reply", "Type a message", NULL);
+
+size_t combo = 0;
+ntk_notification_content_add_combo(content, "opt", "Status", "busy", &combo);
+ntk_notification_content_add_combo_item(content, combo, "free", "Free");
+ntk_notification_content_add_combo_item(content, combo, "busy", "Busy");
+
+/* 進捗バーと時刻です。どちらも予約では無視されます。 */
+ntk_notification_content_set_progress(content, "Toolkit.zip", 0.3, "30%", "Downloading");
+ntk_notification_content_set_expiration(content, 10);            /* 配信からの秒数 */
+ntk_notification_content_set_expires_on_reboot(content, 0);      /* パッケージ済みアプリのみ */
+ntk_notification_content_set_timestamp(content, 1758585600000);  /* Unix ミリ秒 */
+
+/* いま表示する場合。 */
+ntk_notification_error error = ntk_notification_show(manager, content);
+
+/* 絶対時刻を指定して予約する場合。時刻は Unix ミリ秒です。 */
+error = ntk_notification_schedule(manager, content, 1758585660000);
+
+ntk_notification_content_free(content);
+
+/* 予約した通知は、タグとグループで取り消します。 */
+error = ntk_notification_cancel_scheduled(manager, "scheduled", "");
+```
+
+#### 進捗・バッジ・OS の設定
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+/* 進捗バーを表示している通知を更新します。 */
+ntk_notification_progress_update update;
+memset(&update, 0, sizeof(update));
+update.struct_size = (uint32_t)sizeof(update);
+update.tag = "progress-sample";      /* ntk_notification_show に渡したもの */
+update.group = "";
+update.value = 0.6;
+update.value_string = "60%";
+update.status = "Downloading";
+update.sequence_number = 2;          /* 呼び出し側が増やします */
+
+ntk_notification_error error = ntk_notification_update_progress(manager, &update);
+if (error == NTK_NOTIFICATION_ERROR_PROGRESS_NOT_FOUND) {
+    /* 更新対象が無いか、シーケンス番号が古いです。 */
+}
+
+/* タスクバーのアイコンのバッジです。パッケージ済みアプリ専用で、それ以外は
+   NOT_SUPPORTED です。5 は数字、-1 は alert のグリフ、0 は消去です。 */
+error = ntk_notification_set_badge(manager, 5);
+
+/* OS の設定の状態と、それを変える画面です。 */
+ntk_notification_setting setting = NTK_NOTIFICATION_SETTING_ENABLED;
+error = ntk_notification_get_setting(manager, &setting);
+if (setting != NTK_NOTIFICATION_SETTING_ENABLED) {
+    error = ntk_notification_open_settings(manager);
+}
+```
+
+#### 一覧と削除
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+/* 通知センターにあるものです。パッケージ済みアプリ専用です。 */
+ntk_notification_list* list = NULL;
+ntk_notification_error error = ntk_notification_get_all(manager, &list);
+if (error == NTK_NOTIFICATION_ERROR_NONE) {
+    size_t count = ntk_notification_list_count(list);
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        uint32_t id = ntk_notification_list_id_at(list, i);
+        const char* tag = ntk_notification_list_tag_at(list, i, NULL);
+        const char* group = ntk_notification_list_group_at(list, i, NULL);
+        (void)id; (void)tag; (void)group;
+    }
+    /* 上のポインターは、この呼び出しまで有効です。 */
+    ntk_notification_list_free(list);
+}
+
+/* 削除は、get_all が返した id（パッケージ済みアプリ専用）、タグとグループ、
+   またはこのアプリが出したものすべて、の 3 通りです。 */
+error = ntk_notification_remove_by_id(manager, 1u);
+error = ntk_notification_remove_by_tag(manager, "sample", "");
+error = ntk_notification_remove_all(manager);
 ```
 
 | C++ API | C ABI |
@@ -1684,6 +1842,7 @@ ntk_notification_manager_free(manager);
 | `Manager::SetInvokedHandler` | `ntk_notification_manager_set_invoked_handler` |
 | `Manager::Close` | `ntk_notification_manager_close` / `ntk_notification_manager_free` |
 | `NotificationContent` | `ntk_notification_content_create` と 22 個のセッター |
+| `ActivationArgs` | `ntk_notification_activation_raw_arguments` / `_value_count` / `_key_at` / `_value_at` |
 | `Manager::Show` | `ntk_notification_show` |
 | `Manager::Schedule` | `ntk_notification_schedule`（時刻は Unix ミリ秒） |
 | `Manager::CancelScheduled` | `ntk_notification_cancel_scheduled` |
@@ -1693,6 +1852,7 @@ ntk_notification_manager_free(manager);
 | `Manager::RemoveById` / `RemoveByTag` / `RemoveAll` | `ntk_notification_remove_by_id` / `_by_tag` / `_all` |
 | `Manager::GetSetting` | `ntk_notification_get_setting` |
 | `Manager::OpenSettings` | `ntk_notification_open_settings` |
+
 ---
 
 ## macOS
