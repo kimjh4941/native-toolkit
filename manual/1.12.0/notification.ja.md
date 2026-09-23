@@ -52,14 +52,16 @@
     - [カテゴリの削除](#カテゴリの削除)
     - [アクション受信コールバック](#アクション受信コールバック)
 - [Windows](#windows)
-  - [WindowsNotificationManager](#windowsnotificationmanager)
+  - [NativeToolkit::Notification](#nativetoolkitnotification)
   - [セットアップ](#セットアップ-2)
     - [Package.appxmanifest（パッケージ済みアプリ）](#packageappxmanifestパッケージ済みアプリ)
-    - [初期化](#初期化)
+    - [Manager の作成 パッケージ済みアプリ](#manager-の作成-パッケージ済みアプリ)
+    - [Manager の作成 パッケージ無しアプリ](#manager-の作成-パッケージ無しアプリ)
+    - [終了](#終了)
   - [初期化 / 設定](#初期化--設定)
     - [通知設定の取得](#通知設定の取得)
-    - [通知設定を開く](#通知設定を開く)
-  - [通知の表示](#通知の表示-3)
+    - [通知設定を開く](#通知設定を開く-1)
+  - [通知の表示](#通知の表示-1)
     - [基本](#基本)
     - [ボタン付き](#ボタン付き)
     - [画像付き](#画像付き)
@@ -70,14 +72,15 @@
   - [スケジュール通知](#スケジュール通知-2)
     - [スケジュールのキャンセル](#スケジュールのキャンセル-2)
   - [進捗の更新](#進捗の更新)
-  - [バッジ](#バッジ-2)
+  - [バッジ](#バッジ-1)
   - [削除 / クエリ](#削除--クエリ)
     - [全通知の取得](#全通知の取得)
     - [ID 指定削除](#id-指定削除)
     - [タグ指定削除](#タグ指定削除)
     - [全削除](#全削除)
-  - [コールバック](#コールバック)
-  - [エラーコード](#エラーコード-1)
+  - [活性化ハンドラー](#活性化ハンドラー)
+  - [エラーコード](#エラーコード)
+  - [C ABI](#c-abi)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [セットアップ](#セットアップ-2)
@@ -1174,12 +1177,20 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 ## Windows
 
-### WindowsNotificationManager
+**パッケージ済み**（MSIX）アプリと**パッケージ無し**（通常の Win32）アプリの両方に対応したトースト通知です。Windows 11 以降が必要です。Windows ライブラリは、1 つの実装を 2 つの公開 API から提供します。サンプルアプリは C++ API を使用しています。
 
-`WindowsNotificationManager` は Windows Toast 通知向けの C ブリッジ API（`extern "C"`）です。
-**パッケージ済み**（MSIX）と**非パッケージ**（プレーン Win32）の両方のアプリをサポートし、Windows 11 以降が必要です。
+| API | 名前 | ヘッダー | NuGet パッケージ |
+|---|---|---|---|
+| C++ API | `NativeToolkit::Notification` | `<NativeToolkit/Notification.h>` | `NativeToolkit` |
+| C ABI | `ntk_notification_*` | `<NativeToolkitC/Notification.h>` | `NativeToolkit.CApi` |
 
-ライブラリは `windows-native-toolkit-1.2.0.nupkg` として配布されます。
+### NativeToolkit::Notification
+
+- `Notification::Manager` はプロセスの通知サービスです。Windows はプロセスごとに 1 つの活性化ハンドラーしか登録しないため、`Manager` は同時に 1 つだけです。2 つ目の `Create` は `ErrorCode::NotSupported` で失敗します。
+- すべての操作は同期で、呼び出したスレッドをブロックします。
+- 戻り値は `Notification::Result<T>` です。`has_value()` で成否を判定し、失敗時の `error()` は `Notification::ErrorCode` と OS の生の値 `systemCode` を持ちます。
+- `Manager::Create` は呼び出したスレッドを MTA（マルチスレッドアパートメント）にします。MTA になったスレッドでは、STA を必要とする `Clipboard::Session` を作れません。同じスレッドで両方を使う場合は、先にそのスレッドを STA で初期化してください。
+- パッケージ無しのアプリでは、`SetBadge`、`RemoveById`、`GetAll` が `ErrorCode::NotSupported` になります。これらはプラットフォームがパッケージ済みアプリにのみ提供している機能です。
 
 ---
 
@@ -1187,7 +1198,7 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 #### Package.appxmanifest（パッケージ済みアプリ）
 
-`<Application>` 要素内に以下の拡張機能を追加してトースト起動を有効にします：
+トーストの活性化を有効にするため、`<Application>` 要素の中に次の拡張を追加します。
 
 ```xml
 <Extensions>
@@ -1208,48 +1219,80 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 </Extensions>
 ```
 
-CLSID はご自身のマニフェストに登録したものに置き換えてください。サンプルアプリは `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF` を使用しています。
+CLSID は、ご自身のマニフェストに登録したものに置き換えてください。サンプルアプリは `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF` を使用しています。
 
-#### 初期化
-
-**パッケージ済みアプリ（MSIX）：**
+#### Manager の作成 パッケージ済みアプリ
 
 ```cpp
-#include "WindowsNotificationManager.h"
+#include <NativeToolkit/Notification.h>
 
-void OnNotificationInvokedThunk(const wchar_t* argsJson)
+#include <optional>
+
+namespace Notification = NativeToolkit::Notification;
+
+// このプロセスで唯一の Manager です。ムーブ専用なので、
+// 作成した画面より長く生きる場所に置きます。
+std::optional<Notification::Manager> g_manager;
+
+void OnNotificationInvoked(Notification::ActivationArgs const& args)
 {
-    // 通知本体またはアクションボタンがクリックされたときに呼ばれます。
-    // UI 要素を操作する場合は UI スレッドへディスパッチしてください。
+    // OS が選んだスレッドで呼ばれます。UI を触る前に UI スレッドへ移してください。
+    // 「活性化ハンドラー」を参照してください。
 }
 
-DWORD err = 0;
-initNotificationManager(&OnNotificationInvokedThunk, TRUE, nullptr, nullptr, &err);
-// err == 0: 成功。err == 2: このアプリの通知が OS 設定で無効になっています。
+Notification::ManagerOptions options;
+// 利用者が通知を操作したときに呼ばれます。空のままにすると活性化は捨てられます。
+options.onInvoked = &OnNotificationInvoked;
+// パッケージ済み（MSIX）アプリでは、表示名もアイコンも不要です。
+options.isPackaged = true;
+
+auto created = Notification::Manager::Create(options);
+if (created.has_value())
+{
+    g_manager.emplace(std::move(created).value());
+}
+else
+{
+    // NotSupported: このプロセスにはすでに Manager があります。
+    const Notification::ErrorCode code = created.error().code;
+}
 ```
 
-**非パッケージアプリ（プレーン Win32 / Unity）：**
+#### Manager の作成 パッケージ無しアプリ
+
+パッケージ識別子を持たないアプリでは、先に Windows App SDK のランタイムを読み込み、通知を使う間そのトークンを保持し続けます。
 
 ```cpp
-DWORD err = 0;
+#include <NativeToolkit/Notification.h>
 
-// Step 1: Windows App SDK ランタイムのブートストラップ（起動時に一度）
-initWinAppSdk(0x00010007, &err); // 0x00010007 = WinAppSDK 1.7
+namespace Notification = NativeToolkit::Notification;
 
-// Step 2: 表示名とアイコンパスを指定して初期化
-initNotificationManager(
-    &OnNotificationInvokedThunk,
-    FALSE,                          // isPackaged = FALSE
-    L"MyApp",                       // 通知センターに表示される表示名
-    L"C:\\path\\to\\app-icon.png", // アイコンパス（必須、ファイルが存在すること）
-    &err
-);
+// 手順 1: Windows App SDK のランタイムを読み込みます。0x00010007 は 1.7 です。
+auto runtime = Notification::Runtime::Initialize(Notification::RuntimeVersion{ 0x00010007 });
+if (!runtime.has_value())
+{
+    // HResultFailure: systemCode にブートストラッパーの HRESULT が入ります。
+    return;
+}
+// 破棄するとランタイムが下りるため、値を保持し続けます。
+Notification::Runtime held = std::move(runtime).value();
+
+// 手順 2: 表示名とアイコン（どちらも必須）を指定して Manager を作ります。
+Notification::ManagerOptions options;
+options.onInvoked = &OnNotificationInvoked;
+options.isPackaged = false;
+options.displayName = L"MyApp";
+options.iconUri = L"C:\\path\\to\\app-icon.png";
+
+auto created = Notification::Manager::Create(options);
 ```
 
-**終了処理：**
+#### 終了
 
 ```cpp
-uninitNotificationManager();
+// 登録を解除し、活性化を止めます。2 回呼んでも何も起きません。
+g_manager->Close();
+g_manager.reset();
 ```
 
 ---
@@ -1259,34 +1302,50 @@ uninitNotificationManager();
 #### 通知設定の取得
 
 ```cpp
-int setting = getNotificationSetting();
-// 0: 有効（Enabled）
-// 1: アプリで無効（DisabledForApplication）
-// 2: ユーザーで無効（DisabledForUser）
-// 3: グループポリシーで無効（DisabledByGroupPolicy）
-// 4: マニフェストで無効（DisabledByManifest）
-// -1: エラー（WinRT 例外）
+const auto setting = g_manager->GetSetting();
+if (setting.has_value())
+{
+    switch (setting.value())
+    {
+    case Notification::NotificationSetting::Enabled:                break; // 0
+    case Notification::NotificationSetting::DisabledForApplication: break; // 1
+    case Notification::NotificationSetting::DisabledForUser:        break; // 2
+    case Notification::NotificationSetting::DisabledByGroupPolicy:  break; // 3
+    case Notification::NotificationSetting::DisabledByManifest:     break; // 4
+    }
+}
 ```
 
 #### 通知設定を開く
 
-`getNotificationSetting()` が 1〜4 を返した場合、OS の通知設定ページを開いてユーザーに再有効化を促します。
+Windows の通知設定の画面を開きます。`GetSetting` が `Enabled` 以外を返したときに、利用者に通知を有効化してもらうために使用します。
 
 ```cpp
-DWORD err = 0;
-openNotificationSettings(&err);
+const auto result = g_manager->OpenSettings();
 ```
 
 ---
 
 ### 通知の表示
 
+トーストに載せられる内容はすべて `NotificationContent` にあります。サンプルはタイトル・本文・タグを入れ、そこから 1 つずつ足していきます。
+
+```cpp
+Notification::NotificationContent MakeContent(std::wstring title, std::wstring body, std::wstring tag)
+{
+    Notification::NotificationContent content;
+    content.title = std::move(title);
+    content.body = std::move(body);
+    content.tag = std::move(tag);
+    return content;
+}
+```
+
 #### 基本
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload = LR"({"title":"こんにちは","body":"基本トースト","tag":"sample"})";
-showNotification(payload, &err);
+const auto content = MakeContent(L"Hello", L"Basic toast", L"sample");
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1295,14 +1354,21 @@ showNotification(payload, &err);
 
 #### ボタン付き
 
-クリックされたボタンの `args` がコールバックの `argsJson` に含まれます。
+ボタンは自身の引数を持ち、押されたときに活性化ハンドラーへ届きます。ボタンは最大 5 個です。
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"アクション付き","body":"ボタン付きトースト","tag":"sample",)"
-    LR"("buttons":[{"label":"開く","args":{"action":"open"}},{"label":"閉じる","args":{"action":"dismiss"}}]})";
-showNotification(payload, &err);
+Notification::Button MakeButton(std::wstring label, std::wstring action)
+{
+    Notification::Button button;
+    button.label = std::move(label);
+    // キーは任意です。ActivationArgs::values で戻ってきます。
+    button.args = Notification::ArgumentPairs{ { L"action", std::move(action) } };
+    return button;
+}
+
+auto content = MakeContent(L"Actionable", L"Toast with buttons", L"sample");
+content.buttons = { MakeButton(L"Open", L"open"), MakeButton(L"Dismiss", L"dismiss") };
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1312,11 +1378,10 @@ showNotification(payload, &err);
 #### 画像付き
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"画像付き","body":"ヒーロー画像付きトースト","tag":"sample",)"
-    LR"("heroImage":"ms-appx:///Assets/StoreLogo.png"})";
-showNotification(payload, &err);
+auto content = MakeContent(L"With Image", L"Toast with hero image", L"sample");
+// パッケージ済みアプリでは ms-appx:/// が使えます。file:/// や http(s):// も使えます。
+content.heroImage = L"ms-appx:///Assets/StoreLogo.png";
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1325,17 +1390,26 @@ showNotification(payload, &err);
 
 #### 入力付き
 
-テキストボックスとコンボボックスの入力値がコールバックの `argsJson` に含まれます。
+利用者が入力・選択した値は、フィールドの id をキーとして活性化ハンドラーに届きます。
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"返信","body":"メッセージを入力してオプションを選択","tag":"sample",)"
-    LR"("textBoxes":[{"id":"reply","placeholder":"メッセージを入力"}],)"
-    LR"("comboBoxes":[{"id":"opt","title":"ステータス","defaultSelection":"busy",)"
-    LR"("items":[{"id":"free","label":"空き"},{"id":"busy","label":"取込中"}]}],)"
-    LR"("buttons":[{"label":"送信","args":{"action":"send"}}]})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Reply", L"Type a reply and pick an option", L"sample");
+
+Notification::TextInput reply;
+reply.id = L"reply";
+reply.placeholder = L"Type a message";
+content.textInputs = { reply };
+
+Notification::ComboInput status;
+status.id = L"opt";
+status.title = L"Status";
+// items との突き合わせは行いません。存在しない id を指定すると未選択になります。
+status.defaultSelection = L"busy";
+status.items = { { L"free", L"Free" }, { L"busy", L"Busy" } };
+content.comboInputs = { status };
+
+content.buttons = { MakeButton(L"Send", L"send") };
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1344,14 +1418,20 @@ showNotification(payload, &err);
 
 #### 進捗バー付き
 
-同じ `tag` を `updateNotificationProgress` に渡して後から進捗を更新できます。
+進捗バーを表示します。あとから同じタグで `UpdateProgress` を呼ぶと更新できます。
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"ダウンロード中","body":"処理中","tag":"progress-sample",)"
-    LR"("progress":{"title":"Toolkit.zip","value":0.3,"valueStr":"30%","status":"Downloading"}})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Downloading", L"In progress", L"progress-sample");
+
+Notification::ProgressSpec progress;
+progress.title = L"Toolkit.zip";
+// 0.0 〜 1.0 です。ここでは範囲の検査はしません。
+progress.value = 0.3;
+progress.valueStr = L"30%";
+progress.status = L"Downloading";
+content.progress = progress;
+
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1360,72 +1440,73 @@ showNotification(payload, &err);
 
 #### 有効期限付き
 
-`expiration` 秒後に通知センターから自動的に削除されます。
+指定した時間が過ぎると、通知は通知センターから消えます。配信からの相対時間で、`Schedule` では無視されます。
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"期限付き","body":"10秒後に消えます","tag":"sample","expiration":10})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Expires", L"This toast expires in 10 seconds", L"sample");
+content.expiration = std::chrono::seconds(10);
+const auto result = g_manager->Show(content);
 ```
 
 #### サウンド付き
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"リマインダー","body":"リマインダーサウンド付きトースト","tag":"sample",)"
-    LR"("audio":{"type":"event","event":"reminder"}})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Reminder", L"Toast with reminder sound", L"sample");
+
+Notification::AudioSpec audio;
+// Event: 名前付きのシステム音。Mute: 無音。Uri: audio.uri の音。
+audio.kind = Notification::AudioKind::Event;
+audio.eventName = L"reminder";
+content.audio = audio;
+
+const auto result = g_manager->Show(content);
 ```
 
 ---
 
 ### スケジュール通知
 
-配信時刻を Unix タイムスタンプ（ミリ秒）で指定します。
+`Schedule` は絶対時刻を `std::chrono::system_clock::time_point` で受け取ります。予約では `expiration` と `progress` は無視されます。
 
 ```cpp
 #include <chrono>
 
-DWORD err = 0;
-auto now = std::chrono::system_clock::now();
-auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-    (now + std::chrono::seconds(60)).time_since_epoch()).count();
-
-const wchar_t* payload =
-    LR"({"title":"スケジュール通知","body":"約1分後に届きます","tag":"scheduled"})";
-scheduleNotification(payload, static_cast<int64_t>(ms), &err);
+const auto when = std::chrono::system_clock::now() + std::chrono::seconds(60);
+const auto content = MakeContent(L"Scheduled", L"Fires in ~1 minute", L"scheduled");
+const auto result = g_manager->Schedule(content, when);
 ```
 
-> **注意:** アプリが未起動の状態でスケジュール時刻を過ぎた通知は、OS によって破棄される場合があります。
+> **注意:** 5 分以上過去の時刻を指定した通知は、配信時刻にアプリが起動していなかった場合、OS に破棄されることがあります。
 
 #### スケジュールのキャンセル
 
 ```cpp
-DWORD err = 0;
-cancelScheduledNotification(L"scheduled", L"", &err);
+// 予約した通知のタグとグループを指定します。
+const auto result = g_manager->CancelScheduled(L"scheduled", L"");
 ```
 
 ---
 
 ### 進捗の更新
 
-既存の進捗通知を更新します。事前に `progress` フィールド付きの `showNotification` が必要です。
-通知センターに対象通知が存在しない場合は `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND (4)` を返します。
+進捗バーを表示している通知を更新します。`ErrorCode::ProgressNotFound` は、該当する通知が通知センターに無いか、シーケンス番号が古いことを意味します。
 
 ```cpp
-DWORD err = 0;
-static uint32_t seq = 1;
-updateNotificationProgress(
-    L"progress-sample",  // tag（showNotification と同じ値）
-    L"",                 // group
-    0.6,                 // 進捗値（0.0〜1.0）
-    L"60%",             // 表示文字列オーバーライド
-    L"Downloading",      // ステータスラベル
-    seq++,               // シーケンス番号（呼び出しごとに増加させる）
-    &err
-);
+Notification::ProgressUpdate update;
+// Show に渡したタグ・グループと一致させます。
+update.tag = L"progress-sample";
+update.group = L"";
+update.value = 0.6;
+update.valueString = L"60%";
+update.status = L"Downloading";
+// 呼び出し側が増やします。逆戻りした更新は OS が捨てます。
+update.sequenceNumber = seq++;
+
+const auto result = g_manager->UpdateProgress(update);
+if (!result.has_value() && result.error().code == Notification::ErrorCode::ProgressNotFound)
+{
+    // 更新対象がありません。先に進捗付きの通知を表示してください。
+}
 ```
 
 <p align="center">
@@ -1436,18 +1517,15 @@ updateNotificationProgress(
 
 ### バッジ
 
-タスクバーアイコンにバッジを設定します。パッケージ済み（MSIX）アプリが必要です。
-非パッケージアプリでは `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` を返します。
+タスクバーのアイコンにバッジを付けます。パッケージ済みアプリ専用で、パッケージ無しのアプリでは `ErrorCode::NotSupported` になります。
 
 ```cpp
-DWORD err = 0;
-
-setBadge(5,  &err);   // 数値バッジ
-setBadge(-1, &err);   // グリフ: alert
-setBadge(0,  &err);   // バッジをクリア
+g_manager->SetBadge(5);   // 数字のバッジ
+g_manager->SetBadge(-1);  // グリフ: alert
+g_manager->SetBadge(0);   // バッジを消す
 ```
 
-**グリフ値:** `-1`=alert、`-2`=activity、`-3`=newMessage、`-4`=available、`-5`=busy、`-6`=away
+**グリフの値:** `-1`=alert、`-2`=activity、`-3`=newMessage、`-4`=available、`-5`=busy、`-6`=away。-6 より小さい値は `ErrorCode::InvalidParameter` です。
 
 <p align="center">
     <img src="images/windows/notification/Example_WindowsNotificationManager_Badge.png" alt="Example_WindowsNotificationManager_Badge" width="800" />
@@ -1459,62 +1537,66 @@ setBadge(0,  &err);   // バッジをクリア
 
 #### 全通知の取得
 
-通知センターにある通知の JSON 配列を返します。各要素は `id`・`tag`・`group` を含みます。
-非パッケージアプリでは `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` を返します。
+通知センターにあるものを一覧します。パッケージ済みアプリ専用です。
 
 ```cpp
-DWORD err = 0;
-wchar_t buf[4096] = {};
-getAllNotifications(buf, 4096, &err);
-// buf: [{"id":1,"tag":"sample","group":""},...]
+const auto result = g_manager->GetAll();
+if (result.has_value())
+{
+    for (const Notification::NotificationRef& notification : result.value())
+    {
+        const uint32_t id = notification.id;
+        const std::wstring& tag = notification.tag;
+        const std::wstring& group = notification.group;
+    }
+}
 ```
 
 #### ID 指定削除
 
-`getAllNotifications` で取得した数値 ID を指定して削除します。
-非パッケージアプリでは `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` を返します。
+`GetAll` が返した id を指定して 1 件だけ削除します。パッケージ済みアプリ専用です。
 
 ```cpp
-DWORD err = 0;
-removeNotificationById(notificationId, &err);
+const auto result = g_manager->RemoveById(notificationId);
 ```
 
 #### タグ指定削除
 
 ```cpp
-DWORD err = 0;
-removeNotificationsByTag(L"sample", L"", &err);
+const auto result = g_manager->RemoveByTag(L"sample", L"");
 ```
 
 #### 全削除
 
 ```cpp
-DWORD err = 0;
-removeAllNotifications(&err);
+const auto result = g_manager->RemoveAll();
 ```
 
 ---
 
-### コールバック
+### 活性化ハンドラー
 
-`NotificationInvokedCallback` は通知本体またはアクションボタンがクリックされたときに呼ばれます。
-`argsJson` にはアクション引数とユーザー入力（テキストボックス・コンボボックス）が JSON 文字列として含まれます。
+ハンドラーは OS が活性化を配信したスレッドで動き、呼び出し側のスレッドへは移されません。`ActivationArgs::values` には、押されたボタンの引数と、すべてのテキスト欄・選択欄の内容が id をキーとしてまとめて入ります。`rawArguments` は手を加えていない引数の文字列です。
 
-サンプルアプリでは静的転送ハブを使ってアクティブな UI ページへ安全にルーティングしています：
+パッケージ無しのアプリがトーストのクリックで起動した場合、その最初の活性化は `Manager::Create` の中から、呼び出したスレッドで配信されます。ハンドラーは、自分が属する Manager がすでに存在していると想定してはいけません。
+
+サンプルアプリでは、ハンドラーを作成時に 1 回だけ登録し、そのときに画面に出ているページへ転送しています。
 
 ```cpp
 namespace
 {
     std::function<void(winrt::hstring)> g_notificationHandler;
 
-    void OnNotificationInvokedThunk(const wchar_t* argsJson)
+    void OnNotificationInvoked(Notification::ActivationArgs const& args)
     {
         if (g_notificationHandler)
-            g_notificationHandler(winrt::hstring{ argsJson ? argsJson : L"" });
+        {
+            g_notificationHandler(winrt::hstring{ args.rawArguments });
+        }
     }
 }
 
-// OnNavigatedTo — ハンドラ登録
+// OnNavigatedTo で登録し、UI スレッドへ移します。
 auto weakText = winrt::make_weak(ResultTextBlock());
 auto dq = DispatcherQueue();
 g_notificationHandler = [weakText, dq](winrt::hstring args)
@@ -1526,7 +1608,7 @@ g_notificationHandler = [weakText, dq](winrt::hstring args)
     });
 };
 
-// OnNavigatedFrom — ハンドラ解除
+// OnNavigatedFrom で解除します。
 g_notificationHandler = nullptr;
 ```
 
@@ -1534,18 +1616,83 @@ g_notificationHandler = nullptr;
 
 ### エラーコード
 
+`Notification::ErrorCode`（`NativeToolkit::NotificationError`）です。同じ数値が C ABI の `NTK_NOTIFICATION_ERROR_*` になります。
+
 | コード | 名前 | 説明 |
 |---|---|---|
-| 0 | `NOTIFICATION_SUCCESS` | 成功 |
-| 1 | `NOTIFICATION_ERROR_NOT_INITIALIZED` | `initNotificationManager` が未呼び出し |
-| 2 | `NOTIFICATION_ERROR_DISABLED` | OS 設定でアプリの通知が無効 |
-| 3 | `NOTIFICATION_ERROR_INVALID_PAYLOAD` | JSON ペイロードの形式が不正 |
-| 4 | `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND` | 通知センターに対象の進捗通知が存在しない |
-| 5 | `NOTIFICATION_ERROR_HRESULT_FAILURE` | WinRT / COM 内部エラー |
-| 6 | `NOTIFICATION_ERROR_BADGE_FAILED` | バッジ更新の失敗 |
-| 7 | `NOTIFICATION_ERROR_INVALID_PARAMETER` | パラメータ値が不正 |
-| 8 | `NOTIFICATION_ERROR_NOT_SUPPORTED` | このアプリ種別では未対応の機能（非パッケージアプリでの `removeNotificationById` / `getAllNotifications` / `setBadge` など） |
+| 0 | `None` | 成功 |
+| 1 | `NotInitialized` | `Create` の前、または `Close` の後に使用しました |
+| 2 | `Disabled` | このアプリまたは利用者に対して通知が無効です |
+| 3 | `InvalidPayload` | 予約済みで返りません。1.x の C ABI で JSON が解析できなかった場合の値です |
+| 4 | `ProgressNotFound` | 更新対象の通知が無いか、シーケンス番号が古いです |
+| 5 | `HResultFailure` | 登録、ショートカット、またはランタイムの読み込みに失敗しました |
+| 6 | `BadgeFailed` | バッジの更新に失敗しました |
+| 7 | `InvalidParameter` | 引数が不正です（-6 より小さいバッジ値など） |
+| 8 | `NotSupported` | このアプリの種類では使用できません（パッケージ無しでの `SetBadge` / `RemoveById` / `GetAll`）、または 2 つ目の Manager です |
 
+### C ABI
+
+- C から、そして C の DLL を呼べる言語から同じ通知を使うための API です。
+- 内容は構造体ではなくハンドルで組み立てます。セッターを 1 つずつ呼び、`ntk_notification_content_free` で解放します。
+- `ntk_notification_manager_options` は `user_data` と `release` を持ちます。`release` は登録ごとに必ず 1 回呼ばれます（登録した関数が失敗したときも呼ばれます）。バインディングが確保したものは、ここで解放します。
+- ハンドルは `ntk_notification_manager_free`、`ntk_notification_runtime_free`、`ntk_notification_list_free` で解放します。
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+static void NTK_CALL on_invoked(void* user_data, const ntk_notification_activation* activation)
+{
+    /* OS が選んだスレッドで呼ばれます。activation はこの呼び出しの間だけ有効です。 */
+    const char* raw = ntk_notification_activation_raw_arguments(activation);
+    (void)user_data; (void)raw;
+}
+
+ntk_notification_manager_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.on_invoked = &on_invoked;
+options.user_data = NULL;   /* on_invoked と release に渡されます */
+options.release = NULL;     /* user_data を使い終わったときに 1 回だけ呼ばれます */
+options.is_unpackaged = 0;  /* パッケージ識別子を持たないアプリでは 0 以外 */
+
+ntk_notification_manager* manager = NULL;
+ntk_notification_error error = ntk_notification_manager_create(&options, &manager);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+
+/* 内容のビルダー: 作る、設定する、表示する、解放する。 */
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create(&content) == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_set_title(content, "Hello");   /* UTF-8 */
+    ntk_notification_content_set_body(content, "Basic toast");
+    ntk_notification_content_set_tag(content, "sample");
+    error = ntk_notification_show(manager, content);
+    ntk_notification_content_free(content);
+}
+
+ntk_notification_manager_close(manager);
+ntk_notification_manager_free(manager);
+```
+
+| C++ API | C ABI |
+|---|---|
+| `Runtime::Initialize` / デストラクター | `ntk_notification_runtime_initialize` / `ntk_notification_runtime_free` |
+| `Manager::Create` | `ntk_notification_manager_create` |
+| `Manager::SetInvokedHandler` | `ntk_notification_manager_set_invoked_handler` |
+| `Manager::Close` | `ntk_notification_manager_close` / `ntk_notification_manager_free` |
+| `NotificationContent` | `ntk_notification_content_create` と 22 個のセッター |
+| `Manager::Show` | `ntk_notification_show` |
+| `Manager::Schedule` | `ntk_notification_schedule`（時刻は Unix ミリ秒） |
+| `Manager::CancelScheduled` | `ntk_notification_cancel_scheduled` |
+| `Manager::UpdateProgress` | `ntk_notification_update_progress` |
+| `Manager::SetBadge` | `ntk_notification_set_badge` |
+| `Manager::GetAll` | `ntk_notification_get_all` と `ntk_notification_list_*` |
+| `Manager::RemoveById` / `RemoveByTag` / `RemoveAll` | `ntk_notification_remove_by_id` / `_by_tag` / `_all` |
+| `Manager::GetSetting` | `ntk_notification_get_setting` |
+| `Manager::OpenSettings` | `ntk_notification_open_settings` |
 ---
 
 ## macOS

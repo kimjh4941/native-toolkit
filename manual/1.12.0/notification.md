@@ -46,20 +46,22 @@ Language:
     - [Cancel Scheduled](#cancel-scheduled)
   - [Query](#query)
   - [Badge](#badge)
-  - [Categories and Actions](#categories-and-actions)
+  - [Category and Actions](#category-and-actions)
     - [Register Category](#register-category)
     - [Attach Category to Notification](#attach-category-to-notification)
     - [Remove Category](#remove-category)
     - [Action Received Callbacks](#action-received-callbacks)
 - [Windows](#windows)
-  - [WindowsNotificationManager](#windowsnotificationmanager)
+  - [NativeToolkit::Notification](#nativetoolkitnotification)
   - [Setup](#setup-2)
     - [Package.appxmanifest (Packaged apps)](#packageappxmanifest-packaged-apps)
-    - [Initialize](#initialize)
+    - [Create the manager (packaged app)](#create-the-manager-packaged-app)
+    - [Create the manager (unpackaged app)](#create-the-manager-unpackaged-app)
+    - [Close](#close)
   - [Init / Setting](#init--setting)
     - [Get Notification Setting](#get-notification-setting)
-    - [Open Notification Settings](#open-notification-settings-2)
-  - [Show Notification](#show-notification-3)
+    - [Open Notification Settings](#open-notification-settings-1)
+  - [Show Notification](#show-notification-1)
     - [Basic](#basic)
     - [With Buttons](#with-buttons)
     - [With Image](#with-image)
@@ -68,16 +70,17 @@ Language:
     - [With Expiration](#with-expiration)
     - [With Audio](#with-audio)
   - [Schedule Notification](#schedule-notification)
-    - [Cancel Scheduled](#cancel-scheduled)
+    - [Cancel Scheduled](#cancel-scheduled-1)
   - [Update Progress](#update-progress)
-  - [Badge](#badge-2)
+  - [Badge](#badge-1)
   - [Remove / Query](#remove--query)
     - [Get All Notifications](#get-all-notifications)
     - [Remove by ID](#remove-by-id)
     - [Remove by Tag](#remove-by-tag)
     - [Remove All](#remove-all)
-  - [Callback](#callback)
-  - [Error Codes](#error-codes-1)
+  - [Activation handler](#activation-handler)
+  - [Error Codes](#error-codes)
+  - [C ABI](#c-abi)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [Setup](#setup-2)
@@ -1174,12 +1177,20 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 ## Windows
 
-### WindowsNotificationManager
+Toast notifications for **packaged** (MSIX) and **unpackaged** (plain Win32) apps, on Windows 11 or later. The Windows library offers them through two public APIs over one implementation, and the sample app uses the C++ API.
 
-`WindowsNotificationManager` provides a C bridge API (`extern "C"`) for Windows Toast notifications.
-It supports both **packaged** (MSIX) and **unpackaged** (plain Win32) apps, and requires Windows 11 or later.
+| API | Names | Header | NuGet package |
+|---|---|---|---|
+| C++ API | `NativeToolkit::Notification` | `<NativeToolkit/Notification.h>` | `NativeToolkit` |
+| C ABI | `ntk_notification_*` | `<NativeToolkitC/Notification.h>` | `NativeToolkit.CApi` |
 
-The library is distributed as `windows-native-toolkit-1.2.0.nupkg`.
+### NativeToolkit::Notification
+
+- `Notification::Manager` is the notification service of the process. Windows registers one activation handler per process, so there is one `Manager` at a time: a second `Create` fails with `ErrorCode::NotSupported`.
+- Every operation is synchronous and blocks the calling thread.
+- A call returns `Notification::Result<T>`: `has_value()` tells the two cases apart, and `error()` carries a `Notification::ErrorCode` plus the raw `systemCode`.
+- `Manager::Create` puts the calling thread into a multi-threaded apartment. A thread left as an MTA cannot create a `Clipboard::Session`, which needs an STA - initialise the thread as an STA first when both run on it.
+- Unpackaged apps get `ErrorCode::NotSupported` from `SetBadge`, `RemoveById` and `GetAll`, which the platform offers to packaged apps only.
 
 ---
 
@@ -1210,46 +1221,78 @@ Add the following extensions inside the `<Application>` element to enable toast 
 
 Replace the CLSID with the one registered in your own manifest. The sample app uses `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF`.
 
-#### Initialize
-
-**Packaged app (MSIX):**
+#### Create the manager (packaged app)
 
 ```cpp
-#include "WindowsNotificationManager.h"
+#include <NativeToolkit/Notification.h>
 
-void OnNotificationInvokedThunk(const wchar_t* argsJson)
+#include <optional>
+
+namespace Notification = NativeToolkit::Notification;
+
+// The one Manager this process may have. It is move only, so keep it where it
+// outlives the screen that created it.
+std::optional<Notification::Manager> g_manager;
+
+void OnNotificationInvoked(Notification::ActivationArgs const& args)
 {
-    // Called when a notification or action button is clicked.
-    // Dispatch to the UI thread before touching UI elements.
+    // Runs on a thread the OS picks. Marshal to the UI thread before touching
+    // UI elements; see "Activation handler" below.
 }
 
-DWORD err = 0;
-initNotificationManager(&OnNotificationInvokedThunk, TRUE, nullptr, nullptr, &err);
-// err == 0: success. err == 2: notifications are disabled for this app.
+Notification::ManagerOptions options;
+// Called when the user acts on a notification. Leaving it empty drops activations.
+options.onInvoked = &OnNotificationInvoked;
+// A packaged (MSIX) app needs neither a display name nor an icon.
+options.isPackaged = true;
+
+auto created = Notification::Manager::Create(options);
+if (created.has_value())
+{
+    g_manager.emplace(std::move(created).value());
+}
+else
+{
+    // NotSupported: a Manager already exists in this process.
+    const Notification::ErrorCode code = created.error().code;
+}
 ```
 
-**Unpackaged app (plain Win32 / Unity):**
+#### Create the manager (unpackaged app)
+
+An app without package identity loads the Windows App SDK runtime first and keeps the token alive for as long as notifications are used.
 
 ```cpp
-DWORD err = 0;
+#include <NativeToolkit/Notification.h>
 
-// Step 1: Bootstrap the Windows App SDK runtime (once at startup)
-initWinAppSdk(0x00010007, &err); // 0x00010007 = WinAppSDK 1.7
+namespace Notification = NativeToolkit::Notification;
 
-// Step 2: Initialize with display name and icon path
-initNotificationManager(
-    &OnNotificationInvokedThunk,
-    FALSE,                          // isPackaged = FALSE
-    L"MyApp",                       // display name shown in Notification Center
-    L"C:\\path\\to\\app-icon.png", // icon path (required, must exist)
-    &err
-);
+// Step 1: bootstrap the Windows App SDK runtime. 0x00010007 is 1.7.
+auto runtime = Notification::Runtime::Initialize(Notification::RuntimeVersion{ 0x00010007 });
+if (!runtime.has_value())
+{
+    // HResultFailure: systemCode holds the bootstrapper's HRESULT.
+    return;
+}
+// Keep the value alive; destroying it shuts the runtime down again.
+Notification::Runtime held = std::move(runtime).value();
+
+// Step 2: create the manager with a display name and an icon, both required here.
+Notification::ManagerOptions options;
+options.onInvoked = &OnNotificationInvoked;
+options.isPackaged = false;
+options.displayName = L"MyApp";
+options.iconUri = L"C:\\path\\to\\app-icon.png";
+
+auto created = Notification::Manager::Create(options);
 ```
 
-**Uninitialize:**
+#### Close
 
 ```cpp
-uninitNotificationManager();
+// Unregisters the process and stops activations. Doing it twice does nothing.
+g_manager->Close();
+g_manager.reset();
 ```
 
 ---
@@ -1259,34 +1302,50 @@ uninitNotificationManager();
 #### Get Notification Setting
 
 ```cpp
-int setting = getNotificationSetting();
-// 0: Enabled
-// 1: DisabledForApplication
-// 2: DisabledForUser
-// 3: DisabledByGroupPolicy
-// 4: DisabledByManifest
-// -1: Error (WinRT exception)
+const auto setting = g_manager->GetSetting();
+if (setting.has_value())
+{
+    switch (setting.value())
+    {
+    case Notification::NotificationSetting::Enabled:                break; // 0
+    case Notification::NotificationSetting::DisabledForApplication: break; // 1
+    case Notification::NotificationSetting::DisabledForUser:        break; // 2
+    case Notification::NotificationSetting::DisabledByGroupPolicy:  break; // 3
+    case Notification::NotificationSetting::DisabledByManifest:     break; // 4
+    }
+}
 ```
 
 #### Open Notification Settings
 
-Opens the Windows system Notifications Settings page. Use this when `getNotificationSetting()` returns 1–4 to guide the user to re-enable notifications.
+Opens the Windows notification settings page. Use it when `GetSetting` reports anything but `Enabled`, to let the user turn notifications back on.
 
 ```cpp
-DWORD err = 0;
-openNotificationSettings(&err);
+const auto result = g_manager->OpenSettings();
 ```
 
 ---
 
 ### Show Notification
 
+Everything a toast can carry lives in `NotificationContent`. The sample fills a title, a body and a tag, and adds one thing at a time from there.
+
+```cpp
+Notification::NotificationContent MakeContent(std::wstring title, std::wstring body, std::wstring tag)
+{
+    Notification::NotificationContent content;
+    content.title = std::move(title);
+    content.body = std::move(body);
+    content.tag = std::move(tag);
+    return content;
+}
+```
+
 #### Basic
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload = LR"({"title":"Hello","body":"Basic toast","tag":"sample"})";
-showNotification(payload, &err);
+const auto content = MakeContent(L"Hello", L"Basic toast", L"sample");
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1295,14 +1354,21 @@ showNotification(payload, &err);
 
 #### With Buttons
 
-Action button clicks are delivered via `NotificationInvokedCallback` with the button's `args` as JSON.
+A button carries its own arguments, which reach the activation handler when it is pressed. At most five buttons.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"Actionable","body":"Toast with buttons","tag":"sample",)"
-    LR"("buttons":[{"label":"Open","args":{"action":"open"}},{"label":"Dismiss","args":{"action":"dismiss"}}]})";
-showNotification(payload, &err);
+Notification::Button MakeButton(std::wstring label, std::wstring action)
+{
+    Notification::Button button;
+    button.label = std::move(label);
+    // Any keys you like; they come back in ActivationArgs::values.
+    button.args = Notification::ArgumentPairs{ { L"action", std::move(action) } };
+    return button;
+}
+
+auto content = MakeContent(L"Actionable", L"Toast with buttons", L"sample");
+content.buttons = { MakeButton(L"Open", L"open"), MakeButton(L"Dismiss", L"dismiss") };
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1312,11 +1378,10 @@ showNotification(payload, &err);
 #### With Image
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"With Image","body":"Toast with hero image","tag":"sample",)"
-    LR"("heroImage":"ms-appx:///Assets/StoreLogo.png"})";
-showNotification(payload, &err);
+auto content = MakeContent(L"With Image", L"Toast with hero image", L"sample");
+// A packaged app can use ms-appx:///; a file:/// or http(s):// URI works too.
+content.heroImage = L"ms-appx:///Assets/StoreLogo.png";
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1325,17 +1390,26 @@ showNotification(payload, &err);
 
 #### With Input
 
-Text box and combo box values are included in the callback's `argsJson`.
+The values the user typed or picked arrive in the activation handler, keyed by the field ids.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"Reply","body":"Type a reply and pick an option","tag":"sample",)"
-    LR"("textBoxes":[{"id":"reply","placeholder":"Type a message"}],)"
-    LR"("comboBoxes":[{"id":"opt","title":"Status","defaultSelection":"busy",)"
-    LR"("items":[{"id":"free","label":"Free"},{"id":"busy","label":"Busy"}]}],)"
-    LR"("buttons":[{"label":"Send","args":{"action":"send"}}]})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Reply", L"Type a reply and pick an option", L"sample");
+
+Notification::TextInput reply;
+reply.id = L"reply";
+reply.placeholder = L"Type a message";
+content.textInputs = { reply };
+
+Notification::ComboInput status;
+status.id = L"opt";
+status.title = L"Status";
+// Not checked against items; an id that is not there leaves the field unset.
+status.defaultSelection = L"busy";
+status.items = { { L"free", L"Free" }, { L"busy", L"Busy" } };
+content.comboInputs = { status };
+
+content.buttons = { MakeButton(L"Send", L"send") };
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1344,14 +1418,20 @@ showNotification(payload, &err);
 
 #### With Progress
 
-Displays a progress bar. Use the same `tag` with `updateNotificationProgress` to update it later.
+Shows a progress bar. Update it later with `UpdateProgress` and the same tag.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"Downloading","body":"In progress","tag":"progress-sample",)"
-    LR"("progress":{"title":"Toolkit.zip","value":0.3,"valueStr":"30%","status":"Downloading"}})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Downloading", L"In progress", L"progress-sample");
+
+Notification::ProgressSpec progress;
+progress.title = L"Toolkit.zip";
+// 0.0 - 1.0. The value is not range checked here.
+progress.value = 0.3;
+progress.valueStr = L"30%";
+progress.status = L"Downloading";
+content.progress = progress;
+
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1360,42 +1440,40 @@ showNotification(payload, &err);
 
 #### With Expiration
 
-The notification is automatically removed from Notification Center after `expiration` seconds.
+The notification leaves the action centre once the time has passed. It is relative to delivery, and `Schedule` ignores it.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"Expires","body":"This toast expires in 10 seconds","tag":"sample","expiration":10})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Expires", L"This toast expires in 10 seconds", L"sample");
+content.expiration = std::chrono::seconds(10);
+const auto result = g_manager->Show(content);
 ```
 
 #### With Audio
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"Reminder","body":"Toast with reminder sound","tag":"sample",)"
-    LR"("audio":{"type":"event","event":"reminder"}})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Reminder", L"Toast with reminder sound", L"sample");
+
+Notification::AudioSpec audio;
+// Event: a named system sound. Mute: no sound. Uri: the sound at audio.uri.
+audio.kind = Notification::AudioKind::Event;
+audio.eventName = L"reminder";
+content.audio = audio;
+
+const auto result = g_manager->Show(content);
 ```
 
 ---
 
 ### Schedule Notification
 
-Pass the target time as a Unix timestamp in milliseconds.
+`Schedule` takes an absolute time as a `std::chrono::system_clock::time_point`. `expiration` and `progress` are ignored when scheduling.
 
 ```cpp
 #include <chrono>
 
-DWORD err = 0;
-auto now = std::chrono::system_clock::now();
-auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-    (now + std::chrono::seconds(60)).time_since_epoch()).count();
-
-const wchar_t* payload =
-    LR"({"title":"Scheduled","body":"Fires in ~1 minute","tag":"scheduled"})";
-scheduleNotification(payload, static_cast<int64_t>(ms), &err);
+const auto when = std::chrono::system_clock::now() + std::chrono::seconds(60);
+const auto content = MakeContent(L"Scheduled", L"Fires in ~1 minute", L"scheduled");
+const auto result = g_manager->Schedule(content, when);
 ```
 
 > **Note:** Notifications scheduled more than 5 minutes in the past may be discarded by the OS if the app was not running at delivery time.
@@ -1403,29 +1481,32 @@ scheduleNotification(payload, static_cast<int64_t>(ms), &err);
 #### Cancel Scheduled
 
 ```cpp
-DWORD err = 0;
-cancelScheduledNotification(L"scheduled", L"", &err);
+// The tag and the group of the scheduled notification.
+const auto result = g_manager->CancelScheduled(L"scheduled", L"");
 ```
 
 ---
 
 ### Update Progress
 
-Updates the progress bar of an existing notification. Call `showNotification` with a `progress` payload first.
-Returns `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND (4)` if no matching notification is in Notification Center.
+Updates the progress bar of a notification that is already showing one. `ErrorCode::ProgressNotFound` means there is no such notification in the action centre, or the sequence number was stale.
 
 ```cpp
-DWORD err = 0;
-static uint32_t seq = 1;
-updateNotificationProgress(
-    L"progress-sample",  // tag (must match showNotification)
-    L"",                 // group
-    0.6,                 // progress value (0.0 – 1.0)
-    L"60%",             // display string override
-    L"Downloading",      // status label
-    seq++,               // sequence number (must increase each call)
-    &err
-);
+Notification::ProgressUpdate update;
+// Must match the tag and group given to Show.
+update.tag = L"progress-sample";
+update.group = L"";
+update.value = 0.6;
+update.valueString = L"60%";
+update.status = L"Downloading";
+// Yours to increase; the OS drops an update that goes backwards.
+update.sequenceNumber = seq++;
+
+const auto result = g_manager->UpdateProgress(update);
+if (!result.has_value() && result.error().code == Notification::ErrorCode::ProgressNotFound)
+{
+    // Nothing to update: show a progress notification first.
+}
 ```
 
 <p align="center">
@@ -1436,18 +1517,15 @@ updateNotificationProgress(
 
 ### Badge
 
-Sets the badge on the taskbar icon. Requires a packaged (MSIX) app.
-Returns `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` for unpackaged apps.
+Sets the badge on the taskbar icon. Packaged apps only: an unpackaged app gets `ErrorCode::NotSupported`.
 
 ```cpp
-DWORD err = 0;
-
-setBadge(5,  &err);   // numeric badge
-setBadge(-1, &err);   // glyph: alert
-setBadge(0,  &err);   // clear badge
+g_manager->SetBadge(5);   // numeric badge
+g_manager->SetBadge(-1);  // glyph: alert
+g_manager->SetBadge(0);   // clear the badge
 ```
 
-**Glyph values:** `-1`=alert, `-2`=activity, `-3`=newMessage, `-4`=available, `-5`=busy, `-6`=away
+**Glyph values:** `-1`=alert, `-2`=activity, `-3`=newMessage, `-4`=available, `-5`=busy, `-6`=away. A value below -6 is `ErrorCode::InvalidParameter`.
 
 <p align="center">
     <img src="images/windows/notification/Example_WindowsNotificationManager_Badge.png" alt="Example_WindowsNotificationManager_Badge" width="800" />
@@ -1459,62 +1537,66 @@ setBadge(0,  &err);   // clear badge
 
 #### Get All Notifications
 
-Returns a JSON array of active notifications in Notification Center. Each element contains `id`, `tag`, and `group`.
-Returns `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` for unpackaged apps.
+Lists what is in the action centre. Packaged apps only.
 
 ```cpp
-DWORD err = 0;
-wchar_t buf[4096] = {};
-getAllNotifications(buf, 4096, &err);
-// buf: [{"id":1,"tag":"sample","group":""},...]
+const auto result = g_manager->GetAll();
+if (result.has_value())
+{
+    for (const Notification::NotificationRef& notification : result.value())
+    {
+        const uint32_t id = notification.id;
+        const std::wstring& tag = notification.tag;
+        const std::wstring& group = notification.group;
+    }
+}
 ```
 
 #### Remove by ID
 
-Removes a specific notification by its numeric ID (obtained from `getAllNotifications`).
-Returns `NOTIFICATION_ERROR_NOT_SUPPORTED (8)` for unpackaged apps.
+Removes one notification by the id `GetAll` reported. Packaged apps only.
 
 ```cpp
-DWORD err = 0;
-removeNotificationById(notificationId, &err);
+const auto result = g_manager->RemoveById(notificationId);
 ```
 
 #### Remove by Tag
 
 ```cpp
-DWORD err = 0;
-removeNotificationsByTag(L"sample", L"", &err);
+const auto result = g_manager->RemoveByTag(L"sample", L"");
 ```
 
 #### Remove All
 
 ```cpp
-DWORD err = 0;
-removeAllNotifications(&err);
+const auto result = g_manager->RemoveAll();
 ```
 
 ---
 
-### Callback
+### Activation handler
 
-`NotificationInvokedCallback` is invoked when the user clicks the notification body or an action button.
-`argsJson` contains the action arguments and any user input (text box / combo box values) as a JSON string.
+The handler runs on whichever thread the OS delivers the activation on, and it is not moved to yours. `ActivationArgs::values` holds the arguments of the button that was pressed merged with the contents of every text and selection field, keyed by their ids; `rawArguments` is the untouched argument string.
 
-The sample app uses a static forwarding hub to route the callback to the active UI page safely:
+When an unpackaged app is launched by clicking a toast, that first activation is delivered from inside `Manager::Create`, on the calling thread - a handler must not assume the manager it belongs to already exists.
+
+The sample app installs the handler once, at creation, and forwards it to whichever page is on screen:
 
 ```cpp
 namespace
 {
     std::function<void(winrt::hstring)> g_notificationHandler;
 
-    void OnNotificationInvokedThunk(const wchar_t* argsJson)
+    void OnNotificationInvoked(Notification::ActivationArgs const& args)
     {
         if (g_notificationHandler)
-            g_notificationHandler(winrt::hstring{ argsJson ? argsJson : L"" });
+        {
+            g_notificationHandler(winrt::hstring{ args.rawArguments });
+        }
     }
 }
 
-// In OnNavigatedTo — register handler
+// In OnNavigatedTo - register, and marshal to the UI thread.
 auto weakText = winrt::make_weak(ResultTextBlock());
 auto dq = DispatcherQueue();
 g_notificationHandler = [weakText, dq](winrt::hstring args)
@@ -1526,7 +1608,7 @@ g_notificationHandler = [weakText, dq](winrt::hstring args)
     });
 };
 
-// In OnNavigatedFrom — unregister
+// In OnNavigatedFrom - unregister.
 g_notificationHandler = nullptr;
 ```
 
@@ -1534,18 +1616,83 @@ g_notificationHandler = nullptr;
 
 ### Error Codes
 
+`Notification::ErrorCode` (`NativeToolkit::NotificationError`). The same numbers are the C ABI's `NTK_NOTIFICATION_ERROR_*`.
+
 | Code | Name | Description |
 |---|---|---|
-| 0 | `NOTIFICATION_SUCCESS` | Success |
-| 1 | `NOTIFICATION_ERROR_NOT_INITIALIZED` | `initNotificationManager` has not been called |
-| 2 | `NOTIFICATION_ERROR_DISABLED` | Notifications are disabled for this app in OS settings |
-| 3 | `NOTIFICATION_ERROR_INVALID_PAYLOAD` | Malformed JSON payload |
-| 4 | `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND` | No matching progress notification in Notification Center |
-| 5 | `NOTIFICATION_ERROR_HRESULT_FAILURE` | WinRT / COM internal error |
-| 6 | `NOTIFICATION_ERROR_BADGE_FAILED` | Badge update failed |
-| 7 | `NOTIFICATION_ERROR_INVALID_PARAMETER` | Invalid parameter value |
-| 8 | `NOTIFICATION_ERROR_NOT_SUPPORTED` | Feature not available for this app type (e.g. `removeNotificationById` / `getAllNotifications` / `setBadge` for unpackaged apps) |
+| 0 | `None` | Success |
+| 1 | `NotInitialized` | Used before `Create`, or after `Close` |
+| 2 | `Disabled` | Notifications are off for this app or user |
+| 3 | `InvalidPayload` | Reserved: never returned. The 1.x C ABI's JSON payload did not parse |
+| 4 | `ProgressNotFound` | No notification to update, or a stale sequence number |
+| 5 | `HResultFailure` | Registration, the shortcut, or the runtime bootstrap failed |
+| 6 | `BadgeFailed` | The badge update failed |
+| 7 | `InvalidParameter` | A bad argument, such as a badge value below -6 |
+| 8 | `NotSupported` | Not available for this app type (`SetBadge` / `RemoveById` / `GetAll` for unpackaged apps), or a second manager |
 
+### C ABI
+
+- The same notifications for C, and for any language that can call a C DLL.
+- The content is built through a handle instead of a struct, one setter at a time, and freed with `ntk_notification_content_free`.
+- `ntk_notification_manager_options` carries `user_data` and a `release` callback. `release` is called exactly once for every registration, whatever the registering function returned, so it is where a binding frees what it allocated.
+- Handles are freed with `ntk_notification_manager_free`, `ntk_notification_runtime_free` and `ntk_notification_list_free`.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+static void NTK_CALL on_invoked(void* user_data, const ntk_notification_activation* activation)
+{
+    /* On a thread the OS picks. The activation is valid only during this call. */
+    const char* raw = ntk_notification_activation_raw_arguments(activation);
+    (void)user_data; (void)raw;
+}
+
+ntk_notification_manager_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.on_invoked = &on_invoked;
+options.user_data = NULL;   /* passed to on_invoked and to release */
+options.release = NULL;     /* called once when the library is done with user_data */
+options.is_unpackaged = 0;  /* non-zero for an app without package identity */
+
+ntk_notification_manager* manager = NULL;
+ntk_notification_error error = ntk_notification_manager_create(&options, &manager);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+
+/* The content builder: create, set, show, free. */
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create(&content) == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_set_title(content, "Hello");   /* UTF-8 */
+    ntk_notification_content_set_body(content, "Basic toast");
+    ntk_notification_content_set_tag(content, "sample");
+    error = ntk_notification_show(manager, content);
+    ntk_notification_content_free(content);
+}
+
+ntk_notification_manager_close(manager);
+ntk_notification_manager_free(manager);
+```
+
+| C++ API | C ABI |
+|---|---|
+| `Runtime::Initialize` / destructor | `ntk_notification_runtime_initialize` / `ntk_notification_runtime_free` |
+| `Manager::Create` | `ntk_notification_manager_create` |
+| `Manager::SetInvokedHandler` | `ntk_notification_manager_set_invoked_handler` |
+| `Manager::Close` | `ntk_notification_manager_close` / `ntk_notification_manager_free` |
+| `NotificationContent` | `ntk_notification_content_create` and its 22 setters |
+| `Manager::Show` | `ntk_notification_show` |
+| `Manager::Schedule` | `ntk_notification_schedule` (the time is Unix milliseconds) |
+| `Manager::CancelScheduled` | `ntk_notification_cancel_scheduled` |
+| `Manager::UpdateProgress` | `ntk_notification_update_progress` |
+| `Manager::SetBadge` | `ntk_notification_set_badge` |
+| `Manager::GetAll` | `ntk_notification_get_all` and `ntk_notification_list_*` |
+| `Manager::RemoveById` / `RemoveByTag` / `RemoveAll` | `ntk_notification_remove_by_id` / `_by_tag` / `_all` |
+| `Manager::GetSetting` | `ntk_notification_get_setting` |
+| `Manager::OpenSettings` | `ntk_notification_open_settings` |
 ---
 
 ## macOS

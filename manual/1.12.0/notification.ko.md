@@ -52,32 +52,35 @@
     - [카테고리 삭제](#카테고리-삭제)
     - [액션 수신 콜백](#액션-수신-콜백)
 - [Windows](#windows)
-  - [WindowsNotificationManager](#windowsnotificationmanager)
+  - [NativeToolkit::Notification](#nativetoolkitnotification)
   - [설정](#설정-2)
-    - [Package.appxmanifest (패키지 앱)](#packageappxmanifest-패키지-앱)
-    - [초기화](#초기화)
+    - [Package.appxmanifest(패키지 앱)](#packageappxmanifest패키지-앱)
+    - [Manager 생성 패키지 앱](#manager-생성-패키지-앱)
+    - [Manager 생성 비패키지 앱](#manager-생성-비패키지-앱)
+    - [종료](#종료)
   - [초기화 / 설정](#초기화--설정)
     - [알림 설정 가져오기](#알림-설정-가져오기)
-    - [알림 설정 열기](#알림-설정-열기)
-  - [알림 표시](#알림-표시-3)
+    - [알림 설정 열기](#알림-설정-열기-1)
+  - [알림 표시](#알림-표시-1)
     - [기본](#기본)
     - [버튼 포함](#버튼-포함)
     - [이미지 포함](#이미지-포함)
     - [입력 포함](#입력-포함)
-    - [진행 표시줄 포함](#진행-표시줄-포함)
-    - [만료 시간 포함](#만료-시간-포함)
-    - [오디오 포함](#오디오-포함)
+    - [진행률 포함](#진행률-포함)
+    - [만료 포함](#만료-포함)
+    - [사운드 포함](#사운드-포함)
   - [알림 예약](#알림-예약)
-    - [예약 취소](#예약-취소)
-  - [진행 업데이트](#진행-업데이트)
-  - [배지](#배지-2)
+    - [예약 취소](#예약-취소-2)
+  - [진행률 갱신](#진행률-갱신)
+  - [배지](#배지-1)
   - [삭제 / 조회](#삭제--조회)
     - [전체 알림 가져오기](#전체-알림-가져오기)
     - [ID로 삭제](#id로-삭제)
     - [태그로 삭제](#태그로-삭제)
     - [전체 삭제](#전체-삭제)
-  - [콜백](#콜백)
-  - [오류 코드](#오류-코드-1)
+  - [활성화 핸들러](#활성화-핸들러)
+  - [오류 코드](#오류-코드)
+  - [C ABI](#c-abi)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
   - [설정](#설정-2)
@@ -1174,20 +1177,28 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 
 ## Windows
 
-### WindowsNotificationManager
+**패키지 앱**(MSIX)과 **비패키지 앱**(일반 Win32)을 모두 지원하는 토스트 알림입니다. Windows 11 이상이 필요합니다. Windows 라이브러리는 하나의 구현을 두 가지 공개 API로 제공하며, 샘플 앱은 C++ API를 사용합니다.
 
-`WindowsNotificationManager`는 Windows Toast 알림을 위한 C 브리지 API(`extern "C"`)입니다.
-**패키지** (MSIX) 및 **비패키지** (일반 Win32) 앱을 모두 지원하며, Windows 11 이상이 필요합니다.
+| API | 이름 | 헤더 | NuGet 패키지 |
+|---|---|---|---|
+| C++ API | `NativeToolkit::Notification` | `<NativeToolkit/Notification.h>` | `NativeToolkit` |
+| C ABI | `ntk_notification_*` | `<NativeToolkitC/Notification.h>` | `NativeToolkit.CApi` |
 
-라이브러리는 `windows-native-toolkit-1.2.0.nupkg`로 배포됩니다.
+### NativeToolkit::Notification
+
+- `Notification::Manager`는 프로세스의 알림 서비스입니다. Windows는 프로세스마다 활성화 핸들러를 하나만 등록하므로 `Manager`도 한 번에 하나만 존재합니다. 두 번째 `Create`는 `ErrorCode::NotSupported`로 실패합니다.
+- 모든 작업은 동기이며 호출한 스레드를 블로킹합니다.
+- 반환값은 `Notification::Result<T>`입니다. `has_value()`로 성공과 실패를 구분하고, 실패 시 `error()`는 `Notification::ErrorCode`와 OS의 원래 값인 `systemCode`를 가집니다.
+- `Manager::Create`는 호출한 스레드를 MTA(다중 스레드 아파트먼트)로 만듭니다. MTA가 된 스레드에서는 STA가 필요한 `Clipboard::Session`을 만들 수 없으므로, 같은 스레드에서 둘 다 사용한다면 먼저 그 스레드를 STA로 초기화해 주세요.
+- 비패키지 앱에서는 `SetBadge`, `RemoveById`, `GetAll`이 `ErrorCode::NotSupported`가 됩니다. 플랫폼이 패키지 앱에만 제공하는 기능이기 때문입니다.
 
 ---
 
 ### 설정
 
-#### Package.appxmanifest (패키지 앱)
+#### Package.appxmanifest(패키지 앱)
 
-`<Application>` 요소 내에 다음 확장 기능을 추가하여 Toast 활성화를 사용 설정합니다:
+토스트 활성화를 사용하려면 `<Application>` 요소 안에 다음 확장을 추가합니다.
 
 ```xml
 <Extensions>
@@ -1208,48 +1219,80 @@ IosNotificationManager.shared.onTextInputActionReceived = { notificationId, acti
 </Extensions>
 ```
 
-CLSID는 자신의 매니페스트에 등록된 값으로 교체하세요. 샘플 앱은 `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF`를 사용합니다.
+CLSID는 사용하시는 매니페스트에 등록한 값으로 바꿔 주세요. 샘플 앱은 `5F6A1B27-7C0B-4E1B-9070-6F1966502BAF`를 사용합니다.
 
-#### 초기화
-
-**패키지 앱 (MSIX):**
+#### Manager 생성 패키지 앱
 
 ```cpp
-#include "WindowsNotificationManager.h"
+#include <NativeToolkit/Notification.h>
 
-void OnNotificationInvokedThunk(const wchar_t* argsJson)
+#include <optional>
+
+namespace Notification = NativeToolkit::Notification;
+
+// 이 프로세스의 유일한 Manager입니다. 이동 전용이므로
+// 생성한 화면보다 오래 사는 위치에 둡니다.
+std::optional<Notification::Manager> g_manager;
+
+void OnNotificationInvoked(Notification::ActivationArgs const& args)
 {
-    // 알림 본문 또는 액션 버튼이 클릭되면 호출됩니다.
-    // UI 요소를 조작하는 경우 UI 스레드로 디스패치하세요.
+    // OS가 고른 스레드에서 호출됩니다. UI를 다루기 전에 UI 스레드로 옮겨 주세요.
+    // 아래 "활성화 핸들러"를 참고해 주세요.
 }
 
-DWORD err = 0;
-initNotificationManager(&OnNotificationInvokedThunk, TRUE, nullptr, nullptr, &err);
-// err == 0: 성공. err == 2: OS 설정에서 이 앱의 알림이 비활성화됨.
+Notification::ManagerOptions options;
+// 사용자가 알림을 조작했을 때 호출됩니다. 비워 두면 활성화가 버려집니다.
+options.onInvoked = &OnNotificationInvoked;
+// 패키지(MSIX) 앱은 표시 이름과 아이콘이 필요하지 않습니다.
+options.isPackaged = true;
+
+auto created = Notification::Manager::Create(options);
+if (created.has_value())
+{
+    g_manager.emplace(std::move(created).value());
+}
+else
+{
+    // NotSupported: 이 프로세스에 이미 Manager가 있습니다.
+    const Notification::ErrorCode code = created.error().code;
+}
 ```
 
-**비패키지 앱 (일반 Win32 / Unity):**
+#### Manager 생성 비패키지 앱
+
+패키지 식별자가 없는 앱은 먼저 Windows App SDK 런타임을 로드하고, 알림을 사용하는 동안 그 토큰을 유지합니다.
 
 ```cpp
-DWORD err = 0;
+#include <NativeToolkit/Notification.h>
 
-// Step 1: Windows App SDK 런타임 부트스트랩 (시작 시 한 번)
-initWinAppSdk(0x00010007, &err); // 0x00010007 = WinAppSDK 1.7
+namespace Notification = NativeToolkit::Notification;
 
-// Step 2: 표시 이름과 아이콘 경로를 지정하여 초기화
-initNotificationManager(
-    &OnNotificationInvokedThunk,
-    FALSE,                          // isPackaged = FALSE
-    L"MyApp",                       // 알림 센터에 표시될 앱 이름
-    L"C:\\path\\to\\app-icon.png", // 아이콘 경로 (필수, 파일이 존재해야 함)
-    &err
-);
+// 1단계: Windows App SDK 런타임을 로드합니다. 0x00010007은 1.7입니다.
+auto runtime = Notification::Runtime::Initialize(Notification::RuntimeVersion{ 0x00010007 });
+if (!runtime.has_value())
+{
+    // HResultFailure: systemCode에 부트스트래퍼의 HRESULT가 들어갑니다.
+    return;
+}
+// 파괴하면 런타임이 내려가므로 값을 계속 유지합니다.
+Notification::Runtime held = std::move(runtime).value();
+
+// 2단계: 표시 이름과 아이콘(둘 다 필수)을 지정해 Manager를 만듭니다.
+Notification::ManagerOptions options;
+options.onInvoked = &OnNotificationInvoked;
+options.isPackaged = false;
+options.displayName = L"MyApp";
+options.iconUri = L"C:\\path\\to\\app-icon.png";
+
+auto created = Notification::Manager::Create(options);
 ```
 
-**종료 처리:**
+#### 종료
 
 ```cpp
-uninitNotificationManager();
+// 등록을 해제하고 활성화를 멈춥니다. 두 번 호출해도 아무 일도 일어나지 않습니다.
+g_manager->Close();
+g_manager.reset();
 ```
 
 ---
@@ -1259,34 +1302,50 @@ uninitNotificationManager();
 #### 알림 설정 가져오기
 
 ```cpp
-int setting = getNotificationSetting();
-// 0: 활성화됨 (Enabled)
-// 1: 앱에서 비활성화 (DisabledForApplication)
-// 2: 사용자가 비활성화 (DisabledForUser)
-// 3: 그룹 정책으로 비활성화 (DisabledByGroupPolicy)
-// 4: 매니페스트로 비활성화 (DisabledByManifest)
-// -1: 오류 (WinRT 예외)
+const auto setting = g_manager->GetSetting();
+if (setting.has_value())
+{
+    switch (setting.value())
+    {
+    case Notification::NotificationSetting::Enabled:                break; // 0
+    case Notification::NotificationSetting::DisabledForApplication: break; // 1
+    case Notification::NotificationSetting::DisabledForUser:        break; // 2
+    case Notification::NotificationSetting::DisabledByGroupPolicy:  break; // 3
+    case Notification::NotificationSetting::DisabledByManifest:     break; // 4
+    }
+}
 ```
 
 #### 알림 설정 열기
 
-`getNotificationSetting()`이 1〜4를 반환한 경우, OS 알림 설정 페이지를 열어 사용자에게 재활성화를 안내합니다.
+Windows 알림 설정 화면을 엽니다. `GetSetting`이 `Enabled` 외의 값을 반환했을 때 사용자가 알림을 다시 켜도록 안내할 때 사용합니다.
 
 ```cpp
-DWORD err = 0;
-openNotificationSettings(&err);
+const auto result = g_manager->OpenSettings();
 ```
 
 ---
 
 ### 알림 표시
 
+토스트에 담을 수 있는 내용은 모두 `NotificationContent`에 있습니다. 샘플은 제목, 본문, 태그를 넣고 거기에서 하나씩 추가합니다.
+
+```cpp
+Notification::NotificationContent MakeContent(std::wstring title, std::wstring body, std::wstring tag)
+{
+    Notification::NotificationContent content;
+    content.title = std::move(title);
+    content.body = std::move(body);
+    content.tag = std::move(tag);
+    return content;
+}
+```
+
 #### 기본
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload = LR"({"title":"안녕하세요","body":"기본 토스트","tag":"sample"})";
-showNotification(payload, &err);
+const auto content = MakeContent(L"Hello", L"Basic toast", L"sample");
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1295,14 +1354,21 @@ showNotification(payload, &err);
 
 #### 버튼 포함
 
-클릭된 버튼의 `args`가 콜백의 `argsJson`에 포함됩니다.
+버튼은 자신의 인수를 가지며, 눌리면 활성화 핸들러로 전달됩니다. 버튼은 최대 5개입니다.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"액션 포함","body":"버튼이 있는 토스트","tag":"sample",)"
-    LR"("buttons":[{"label":"열기","args":{"action":"open"}},{"label":"닫기","args":{"action":"dismiss"}}]})";
-showNotification(payload, &err);
+Notification::Button MakeButton(std::wstring label, std::wstring action)
+{
+    Notification::Button button;
+    button.label = std::move(label);
+    // 키는 자유롭게 정할 수 있습니다. ActivationArgs::values로 돌아옵니다.
+    button.args = Notification::ArgumentPairs{ { L"action", std::move(action) } };
+    return button;
+}
+
+auto content = MakeContent(L"Actionable", L"Toast with buttons", L"sample");
+content.buttons = { MakeButton(L"Open", L"open"), MakeButton(L"Dismiss", L"dismiss") };
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1312,11 +1378,10 @@ showNotification(payload, &err);
 #### 이미지 포함
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"이미지 포함","body":"히어로 이미지가 있는 토스트","tag":"sample",)"
-    LR"("heroImage":"ms-appx:///Assets/StoreLogo.png"})";
-showNotification(payload, &err);
+auto content = MakeContent(L"With Image", L"Toast with hero image", L"sample");
+// 패키지 앱에서는 ms-appx:///를 사용할 수 있습니다. file:///이나 http(s):// 도 됩니다.
+content.heroImage = L"ms-appx:///Assets/StoreLogo.png";
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
@@ -1325,107 +1390,123 @@ showNotification(payload, &err);
 
 #### 입력 포함
 
-텍스트 박스와 콤보 박스의 입력값이 콜백의 `argsJson`에 포함됩니다.
+사용자가 입력하거나 선택한 값은 필드 id를 키로 하여 활성화 핸들러로 전달됩니다.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"답장","body":"메시지를 입력하고 옵션을 선택하세요","tag":"sample",)"
-    LR"("textBoxes":[{"id":"reply","placeholder":"메시지를 입력하세요"}],)"
-    LR"("comboBoxes":[{"id":"opt","title":"상태","defaultSelection":"busy",)"
-    LR"("items":[{"id":"free","label":"여유"},{"id":"busy","label":"바쁨"}]}],)"
-    LR"("buttons":[{"label":"보내기","args":{"action":"send"}}]})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Reply", L"Type a reply and pick an option", L"sample");
+
+Notification::TextInput reply;
+reply.id = L"reply";
+reply.placeholder = L"Type a message";
+content.textInputs = { reply };
+
+Notification::ComboInput status;
+status.id = L"opt";
+status.title = L"Status";
+// items와 대조하지 않습니다. 없는 id를 지정하면 선택되지 않은 상태가 됩니다.
+status.defaultSelection = L"busy";
+status.items = { { L"free", L"Free" }, { L"busy", L"Busy" } };
+content.comboInputs = { status };
+
+content.buttons = { MakeButton(L"Send", L"send") };
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
     <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithInput.png" alt="Example_WindowsNotificationManager_ShowWithInput" width="800" />
 </p>
 
-#### 진행 표시줄 포함
+#### 진행률 포함
 
-같은 `tag`를 `updateNotificationProgress`에 전달하여 나중에 진행률을 업데이트할 수 있습니다.
+진행률 표시줄을 보여 줍니다. 이후 같은 태그로 `UpdateProgress`를 호출하면 갱신할 수 있습니다.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"다운로드 중","body":"진행 중","tag":"progress-sample",)"
-    LR"("progress":{"title":"Toolkit.zip","value":0.3,"valueStr":"30%","status":"Downloading"}})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Downloading", L"In progress", L"progress-sample");
+
+Notification::ProgressSpec progress;
+progress.title = L"Toolkit.zip";
+// 0.0 ~ 1.0입니다. 여기서는 범위를 검사하지 않습니다.
+progress.value = 0.3;
+progress.valueStr = L"30%";
+progress.status = L"Downloading";
+content.progress = progress;
+
+const auto result = g_manager->Show(content);
 ```
 
 <p align="center">
     <img src="images/windows/notification/Example_WindowsNotificationManager_ShowWithProgress.png" alt="Example_WindowsNotificationManager_ShowWithProgress" width="800" />
 </p>
 
-#### 만료 시간 포함
+#### 만료 포함
 
-`expiration`초 후 알림 센터에서 자동으로 제거됩니다.
+지정한 시간이 지나면 알림이 알림 센터에서 사라집니다. 전달 시점 기준의 상대 시간이며, `Schedule`에서는 무시됩니다.
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"만료 예정","body":"10초 후에 사라집니다","tag":"sample","expiration":10})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Expires", L"This toast expires in 10 seconds", L"sample");
+content.expiration = std::chrono::seconds(10);
+const auto result = g_manager->Show(content);
 ```
 
-#### 오디오 포함
+#### 사운드 포함
 
 ```cpp
-DWORD err = 0;
-const wchar_t* payload =
-    LR"({"title":"리마인더","body":"리마인더 사운드가 있는 토스트","tag":"sample",)"
-    LR"("audio":{"type":"event","event":"reminder"}})";
-showNotification(payload, &err);
+auto content = MakeContent(L"Reminder", L"Toast with reminder sound", L"sample");
+
+Notification::AudioSpec audio;
+// Event: 이름이 있는 시스템 사운드. Mute: 무음. Uri: audio.uri의 사운드.
+audio.kind = Notification::AudioKind::Event;
+audio.eventName = L"reminder";
+content.audio = audio;
+
+const auto result = g_manager->Show(content);
 ```
 
 ---
 
 ### 알림 예약
 
-배달 시각을 Unix 타임스탬프(밀리초)로 지정합니다.
+`Schedule`은 절대 시각을 `std::chrono::system_clock::time_point`로 받습니다. 예약에서는 `expiration`과 `progress`가 무시됩니다.
 
 ```cpp
 #include <chrono>
 
-DWORD err = 0;
-auto now = std::chrono::system_clock::now();
-auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-    (now + std::chrono::seconds(60)).time_since_epoch()).count();
-
-const wchar_t* payload =
-    LR"({"title":"예약 알림","body":"약 1분 후에 도착합니다","tag":"scheduled"})";
-scheduleNotification(payload, static_cast<int64_t>(ms), &err);
+const auto when = std::chrono::system_clock::now() + std::chrono::seconds(60);
+const auto content = MakeContent(L"Scheduled", L"Fires in ~1 minute", L"scheduled");
+const auto result = g_manager->Schedule(content, when);
 ```
 
-> **참고:** 앱이 실행되지 않은 상태에서 예약 시각이 지난 알림은 OS에 의해 삭제될 수 있습니다.
+> **참고:** 5분 이상 과거로 예약된 알림은 전달 시각에 앱이 실행 중이 아니었다면 OS가 버릴 수 있습니다.
 
 #### 예약 취소
 
 ```cpp
-DWORD err = 0;
-cancelScheduledNotification(L"scheduled", L"", &err);
+// 예약한 알림의 태그와 그룹을 지정합니다.
+const auto result = g_manager->CancelScheduled(L"scheduled", L"");
 ```
 
 ---
 
-### 진행 업데이트
+### 진행률 갱신
 
-기존 진행 알림을 업데이트합니다. 먼저 `progress` 필드가 포함된 `showNotification`을 호출해야 합니다.
-알림 센터에 대상 알림이 없으면 `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND (4)`를 반환합니다.
+진행률 표시줄이 있는 알림을 갱신합니다. `ErrorCode::ProgressNotFound`는 해당 알림이 알림 센터에 없거나 시퀀스 번호가 오래되었다는 뜻입니다.
 
 ```cpp
-DWORD err = 0;
-static uint32_t seq = 1;
-updateNotificationProgress(
-    L"progress-sample",  // tag (showNotification과 동일한 값)
-    L"",                 // group
-    0.6,                 // 진행값 (0.0 ~ 1.0)
-    L"60%",             // 표시 문자열 오버라이드
-    L"Downloading",      // 상태 레이블
-    seq++,               // 시퀀스 번호 (호출할 때마다 증가)
-    &err
-);
+Notification::ProgressUpdate update;
+// Show에 전달한 태그, 그룹과 일치해야 합니다.
+update.tag = L"progress-sample";
+update.group = L"";
+update.value = 0.6;
+update.valueString = L"60%";
+update.status = L"Downloading";
+// 호출하는 쪽에서 증가시킵니다. 뒤로 간 갱신은 OS가 버립니다.
+update.sequenceNumber = seq++;
+
+const auto result = g_manager->UpdateProgress(update);
+if (!result.has_value() && result.error().code == Notification::ErrorCode::ProgressNotFound)
+{
+    // 갱신할 대상이 없습니다. 먼저 진행률이 있는 알림을 표시해 주세요.
+}
 ```
 
 <p align="center">
@@ -1436,18 +1517,15 @@ updateNotificationProgress(
 
 ### 배지
 
-작업 표시줄 아이콘에 배지를 설정합니다. 패키지 (MSIX) 앱이 필요합니다.
-비패키지 앱에서는 `NOTIFICATION_ERROR_NOT_SUPPORTED (8)`를 반환합니다.
+작업 표시줄 아이콘에 배지를 표시합니다. 패키지 앱 전용이며, 비패키지 앱에서는 `ErrorCode::NotSupported`가 됩니다.
 
 ```cpp
-DWORD err = 0;
-
-setBadge(5,  &err);   // 숫자 배지
-setBadge(-1, &err);   // 글리프: alert
-setBadge(0,  &err);   // 배지 지우기
+g_manager->SetBadge(5);   // 숫자 배지
+g_manager->SetBadge(-1);  // 글리프: alert
+g_manager->SetBadge(0);   // 배지 지우기
 ```
 
-**글리프 값:** `-1`=alert、`-2`=activity、`-3`=newMessage、`-4`=available、`-5`=busy、`-6`=away
+**글리프 값:** `-1`=alert, `-2`=activity, `-3`=newMessage, `-4`=available, `-5`=busy, `-6`=away. -6보다 작은 값은 `ErrorCode::InvalidParameter`입니다.
 
 <p align="center">
     <img src="images/windows/notification/Example_WindowsNotificationManager_Badge.png" alt="Example_WindowsNotificationManager_Badge" width="800" />
@@ -1459,62 +1537,66 @@ setBadge(0,  &err);   // 배지 지우기
 
 #### 전체 알림 가져오기
 
-알림 센터에 있는 알림의 JSON 배열을 반환합니다. 각 요소에는 `id`·`tag`·`group`이 포함됩니다.
-비패키지 앱에서는 `NOTIFICATION_ERROR_NOT_SUPPORTED (8)`를 반환합니다.
+알림 센터에 있는 알림을 나열합니다. 패키지 앱 전용입니다.
 
 ```cpp
-DWORD err = 0;
-wchar_t buf[4096] = {};
-getAllNotifications(buf, 4096, &err);
-// buf: [{"id":1,"tag":"sample","group":""},...]
+const auto result = g_manager->GetAll();
+if (result.has_value())
+{
+    for (const Notification::NotificationRef& notification : result.value())
+    {
+        const uint32_t id = notification.id;
+        const std::wstring& tag = notification.tag;
+        const std::wstring& group = notification.group;
+    }
+}
 ```
 
 #### ID로 삭제
 
-`getAllNotifications`에서 얻은 숫자 ID를 지정하여 삭제합니다.
-비패키지 앱에서는 `NOTIFICATION_ERROR_NOT_SUPPORTED (8)`를 반환합니다.
+`GetAll`이 알려 준 id로 한 건만 삭제합니다. 패키지 앱 전용입니다.
 
 ```cpp
-DWORD err = 0;
-removeNotificationById(notificationId, &err);
+const auto result = g_manager->RemoveById(notificationId);
 ```
 
 #### 태그로 삭제
 
 ```cpp
-DWORD err = 0;
-removeNotificationsByTag(L"sample", L"", &err);
+const auto result = g_manager->RemoveByTag(L"sample", L"");
 ```
 
 #### 전체 삭제
 
 ```cpp
-DWORD err = 0;
-removeAllNotifications(&err);
+const auto result = g_manager->RemoveAll();
 ```
 
 ---
 
-### 콜백
+### 활성화 핸들러
 
-`NotificationInvokedCallback`은 사용자가 알림 본문 또는 액션 버튼을 클릭할 때 호출됩니다.
-`argsJson`에는 액션 인수와 사용자 입력(텍스트 박스 / 콤보 박스 값)이 JSON 문자열로 포함됩니다.
+핸들러는 OS가 활성화를 전달한 스레드에서 실행되며, 호출하는 쪽의 스레드로 옮겨지지 않습니다. `ActivationArgs::values`에는 눌린 버튼의 인수와 모든 텍스트 필드, 선택 필드의 내용이 id를 키로 하여 함께 담깁니다. `rawArguments`는 가공하지 않은 인수 문자열입니다.
 
-샘플 앱은 정적 전달 허브를 사용하여 활성 UI 페이지로 안전하게 라우팅합니다:
+비패키지 앱이 토스트 클릭으로 시작된 경우, 그 첫 번째 활성화는 `Manager::Create` 안에서 호출한 스레드로 전달됩니다. 따라서 핸들러는 자신이 속한 Manager가 이미 존재한다고 가정해서는 안 됩니다.
+
+샘플 앱은 생성 시 핸들러를 한 번만 등록하고, 그때 화면에 있는 페이지로 전달합니다.
 
 ```cpp
 namespace
 {
     std::function<void(winrt::hstring)> g_notificationHandler;
 
-    void OnNotificationInvokedThunk(const wchar_t* argsJson)
+    void OnNotificationInvoked(Notification::ActivationArgs const& args)
     {
         if (g_notificationHandler)
-            g_notificationHandler(winrt::hstring{ argsJson ? argsJson : L"" });
+        {
+            g_notificationHandler(winrt::hstring{ args.rawArguments });
+        }
     }
 }
 
-// OnNavigatedTo — 핸들러 등록
+// OnNavigatedTo에서 등록하고 UI 스레드로 옮깁니다.
 auto weakText = winrt::make_weak(ResultTextBlock());
 auto dq = DispatcherQueue();
 g_notificationHandler = [weakText, dq](winrt::hstring args)
@@ -1526,7 +1608,7 @@ g_notificationHandler = [weakText, dq](winrt::hstring args)
     });
 };
 
-// OnNavigatedFrom — 핸들러 해제
+// OnNavigatedFrom에서 해제합니다.
 g_notificationHandler = nullptr;
 ```
 
@@ -1534,18 +1616,83 @@ g_notificationHandler = nullptr;
 
 ### 오류 코드
 
+`Notification::ErrorCode`(`NativeToolkit::NotificationError`)입니다. 같은 숫자가 C ABI의 `NTK_NOTIFICATION_ERROR_*`입니다.
+
 | 코드 | 이름 | 설명 |
 |---|---|---|
-| 0 | `NOTIFICATION_SUCCESS` | 성공 |
-| 1 | `NOTIFICATION_ERROR_NOT_INITIALIZED` | `initNotificationManager`가 호출되지 않음 |
-| 2 | `NOTIFICATION_ERROR_DISABLED` | OS 설정에서 앱 알림이 비활성화됨 |
-| 3 | `NOTIFICATION_ERROR_INVALID_PAYLOAD` | JSON 페이로드 형식이 잘못됨 |
-| 4 | `NOTIFICATION_ERROR_PROGRESS_NOT_FOUND` | 알림 센터에 대상 진행 알림이 없음 |
-| 5 | `NOTIFICATION_ERROR_HRESULT_FAILURE` | WinRT / COM 내부 오류 |
-| 6 | `NOTIFICATION_ERROR_BADGE_FAILED` | 배지 업데이트 실패 |
-| 7 | `NOTIFICATION_ERROR_INVALID_PARAMETER` | 잘못된 파라미터 값 |
-| 8 | `NOTIFICATION_ERROR_NOT_SUPPORTED` | 이 앱 유형에서 지원되지 않는 기능 (비패키지 앱의 `removeNotificationById` / `getAllNotifications` / `setBadge` 등) |
+| 0 | `None` | 성공 |
+| 1 | `NotInitialized` | `Create` 전 또는 `Close` 후에 사용했습니다 |
+| 2 | `Disabled` | 이 앱 또는 사용자에 대해 알림이 꺼져 있습니다 |
+| 3 | `InvalidPayload` | 예약된 값으로 반환되지 않습니다. 1.x C ABI에서 JSON을 해석하지 못했을 때의 값입니다 |
+| 4 | `ProgressNotFound` | 갱신할 알림이 없거나 시퀀스 번호가 오래되었습니다 |
+| 5 | `HResultFailure` | 등록, 바로 가기, 또는 런타임 로드에 실패했습니다 |
+| 6 | `BadgeFailed` | 배지 갱신에 실패했습니다 |
+| 7 | `InvalidParameter` | 인수가 잘못되었습니다(-6보다 작은 배지 값 등) |
+| 8 | `NotSupported` | 이 앱 종류에서는 사용할 수 없거나(비패키지 앱의 `SetBadge` / `RemoveById` / `GetAll`), 두 번째 Manager입니다 |
 
+### C ABI
+
+- C에서, 그리고 C DLL을 호출할 수 있는 언어에서 같은 알림을 사용하기 위한 API입니다.
+- 내용은 구조체가 아니라 핸들로 구성합니다. 세터를 하나씩 호출하고 `ntk_notification_content_free`로 해제합니다.
+- `ntk_notification_manager_options`는 `user_data`와 `release`를 가집니다. `release`는 등록마다 정확히 한 번 호출되며(등록 함수가 실패했을 때도 호출됩니다), 바인딩이 할당한 것을 여기서 해제합니다.
+- 핸들은 `ntk_notification_manager_free`, `ntk_notification_runtime_free`, `ntk_notification_list_free`로 해제합니다.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Notification.h>
+
+static void NTK_CALL on_invoked(void* user_data, const ntk_notification_activation* activation)
+{
+    /* OS가 고른 스레드에서 호출됩니다. activation은 이 호출 동안만 유효합니다. */
+    const char* raw = ntk_notification_activation_raw_arguments(activation);
+    (void)user_data; (void)raw;
+}
+
+ntk_notification_manager_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.on_invoked = &on_invoked;
+options.user_data = NULL;   /* on_invoked와 release에 전달됩니다 */
+options.release = NULL;     /* user_data를 다 쓰면 한 번만 호출됩니다 */
+options.is_unpackaged = 0;  /* 패키지 식별자가 없는 앱이면 0이 아닌 값 */
+
+ntk_notification_manager* manager = NULL;
+ntk_notification_error error = ntk_notification_manager_create(&options, &manager);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+
+/* 내용 빌더: 만들고, 설정하고, 표시하고, 해제합니다. */
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create(&content) == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_set_title(content, "Hello");   /* UTF-8 */
+    ntk_notification_content_set_body(content, "Basic toast");
+    ntk_notification_content_set_tag(content, "sample");
+    error = ntk_notification_show(manager, content);
+    ntk_notification_content_free(content);
+}
+
+ntk_notification_manager_close(manager);
+ntk_notification_manager_free(manager);
+```
+
+| C++ API | C ABI |
+|---|---|
+| `Runtime::Initialize` / 소멸자 | `ntk_notification_runtime_initialize` / `ntk_notification_runtime_free` |
+| `Manager::Create` | `ntk_notification_manager_create` |
+| `Manager::SetInvokedHandler` | `ntk_notification_manager_set_invoked_handler` |
+| `Manager::Close` | `ntk_notification_manager_close` / `ntk_notification_manager_free` |
+| `NotificationContent` | `ntk_notification_content_create`와 22개의 세터 |
+| `Manager::Show` | `ntk_notification_show` |
+| `Manager::Schedule` | `ntk_notification_schedule`(시각은 Unix 밀리초) |
+| `Manager::CancelScheduled` | `ntk_notification_cancel_scheduled` |
+| `Manager::UpdateProgress` | `ntk_notification_update_progress` |
+| `Manager::SetBadge` | `ntk_notification_set_badge` |
+| `Manager::GetAll` | `ntk_notification_get_all`과 `ntk_notification_list_*` |
+| `Manager::RemoveById` / `RemoveByTag` / `RemoveAll` | `ntk_notification_remove_by_id` / `_by_tag` / `_all` |
+| `Manager::GetSetting` | `ntk_notification_get_setting` |
+| `Manager::OpenSettings` | `ntk_notification_open_settings` |
 ---
 
 ## macOS

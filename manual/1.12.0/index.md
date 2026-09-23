@@ -32,10 +32,11 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
-- macOS: `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows (C++ API): `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +45,7 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.11.0
+## 1.12.0
 
 # Supported OS versions
 
@@ -279,7 +280,18 @@ dependencies {
 
 #### Supported platform: Windows x64 (win-x64)
 
-1. Copy `windows-native-toolkit-1.2.0.nupkg` to `C:\packages`.
+The Windows library ships as two NuGet packages over one implementation. Install the one that matches how you call it; installing both is fine.
+
+| Package | For | Contents |
+|---|---|---|
+| `NativeToolkit` | C++ callers | The C++ API headers (`NativeToolkit/`) and the static library |
+| `NativeToolkit.CApi` | C callers, and other languages | The C ABI headers (`NativeToolkitC/`), `NativeToolkitC.dll` and its import library |
+
+`NativeToolkit` is a static library built with MSVC v143, `/std:c++20` and the DLL runtime (`/MD`, `/MDd`), x64 only; a project that differs in those settings fails the link with LNK2038. `NativeToolkit.CApi` carries no such requirement, because its headers are plain C99.
+
+Both declare `Microsoft.WindowsAppSDK` as a dependency, which NuGet restores with them. An app without package identity also needs `Microsoft.WindowsAppRuntime.Bootstrap.dll` next to its executable.
+
+1. Copy `windows-native-toolkit-2.0.0.nupkg` and `windows-native-toolkit-capi-2.0.0.nupkg` to `C:\packages`.
 2. Launch Visual Studio 2022 and open **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**.
 3. Click **+** and enter:
    - Name: LocalPackages
@@ -288,8 +300,22 @@ dependencies {
 4. Open your target solution.
 5. In **Solution Explorer**, right-click your project and select **Manage NuGet Packages**.
 6. Change **Package source** to **LocalPackages**.
-7. Search for **NativeToolkit** and click **Install**.
+7. Search for **NativeToolkit** or **NativeToolkit.CApi** and click **Install**.
 8. If a license prompt appears, accept it to complete installation.
+
+#### Migrating from 1.x
+
+1.x shipped one package whose only API was the C ABI (`showAlertDialog`, `initNotificationManager`, `initClipboardManager` and so on). 2.0.0 replaces it: every function has a new name and a new signature, so nothing written against 1.x still compiles.
+
+| 1.x | 2.0.0 |
+|---|---|
+| `<common.h>`, `<WindowsDialogManager.h>`, `<WindowsNotificationManager.h>`, `<WindowsClipboardManager.h>` | `<NativeToolkit/Dialog.h>` and friends, or `<NativeToolkitC/Dialog.h>` and friends |
+| JSON payload strings | Typed structs (C++) or a content builder (C ABI) |
+| `wchar_t*` buffers, sized by calling twice | Values returned by the call (C++), or handles freed with their `_free` (C ABI) |
+| `DWORD* pError` | `Result<T>` (C++), or the return value plus `ntk_last_system_code()` (C ABI) |
+| Free functions with process-wide state | `Clipboard::Session` and `Notification::Manager`, whose lifetimes are explicit |
+
+The per-operation mapping is in each feature page's Windows section. A project that cannot move yet can stay on the 1.11.0 release, whose Windows package still holds the 1.x C ABI.
 
 ### macOS
 

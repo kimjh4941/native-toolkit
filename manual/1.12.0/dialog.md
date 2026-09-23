@@ -17,7 +17,14 @@ Language:
 - [iOS](#ios)
   - [iOSDialogManager](#iosdialogmanager)
 - [Windows](#windows)
-  - [WindowsDialogManager](#windowsdialogmanager)
+  - [NativeToolkit::Dialog](#nativetoolkitdialog)
+    - [ShowAlert - Basic dialog](#showalert---basic-dialog-1)
+    - [ShowOpenFile - File picker dialog](#showopenfile---file-picker-dialog)
+    - [ShowOpenFiles - Multi-file picker dialog](#showopenfiles---multi-file-picker-dialog)
+    - [ShowPickFolder - Folder picker dialog](#showpickfolder---folder-picker-dialog)
+    - [ShowPickFolders - Multi-folder picker dialog](#showpickfolders---multi-folder-picker-dialog)
+    - [ShowSaveFile - Save file dialog](#showsavefile---save-file-dialog)
+  - [C ABI](#c-abi)
 - [macOS](#macos)
   - [MacDialogManager](#macdialogmanager)
 
@@ -610,200 +617,304 @@ IosDialogManager.shared.showLoginDialog(
 
 ## Windows
 
-### WindowsDialogManager
+The Windows library offers the same dialogs through two public APIs. Both come from one implementation, and the sample app uses the C++ API.
 
-#### ShowDialog - Basic dialog
+| API | Names | Header | NuGet package |
+|---|---|---|---|
+| C++ API | `NativeToolkit::Dialog` | `<NativeToolkit/Dialog.h>` | `NativeToolkit` |
+| C ABI | `ntk_dialog_*` | `<NativeToolkitC/Dialog.h>` | `NativeToolkit.CApi` |
 
-- Displays a dialog.
+### NativeToolkit::Dialog
+
+- Every dialog is modal and blocks the calling thread, so call these functions from the UI thread.
+- A call returns `Dialog::Result<T>`. `has_value()` tells the two cases apart, `value()` is the result and `error()` is a `Dialog::Error`, which carries the documented `code` and the raw `systemCode` the OS reported.
+- The user dismissing a dialog is not a failure of the call, but it is not a value either: it arrives as `Dialog::ErrorCode::Canceled`.
+- The headers never include `<windows.h>`. `request.owner` takes a `NativeToolkit::WindowHandle`, which is `HWND`.
+
+#### ShowAlert - Basic dialog
+
+- Displays a message box and reports which button was pressed.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// Declare a variable to receive the error code. 0 indicates success, non-zero indicates an error.
-DWORD errorCode = 0;
-// result: identifier of the pressed button. Returns 0 on error.
-int result = showAlertDialog(
-    // Set the title.
-    L"Native Windows Dialog",
-    // Set the message.
-    L"This is a native Windows dialog!",
-    // Set button type. Here, OK and Cancel buttons are displayed.
-    MB_OKCANCEL,
-    // Set icon. Here, an information icon is displayed.
-    MB_ICONINFORMATION,
-    // Set default button. Here, the second button is the default.
-    MB_DEFBUTTON2,
-    // Set options. Here, application modal is specified.
-    MB_APPLMODAL,
-    // Pass a reference to the error code variable.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::AlertRequest request;
+// Set the title.
+request.title = L"Native Windows Dialog";
+// Set the message.
+request.message = L"This is a native Windows dialog!";
+// Set which buttons are shown. Here, OK and Cancel.
+request.buttons = Dialog::AlertButtons::OkCancel;
+// Set the icon. Here, an information icon.
+request.icon = Dialog::AlertIcon::Information;
+// Set which button starts out focused. Here, the second one.
+request.defaultButton = Dialog::AlertDefaultButton::Second;
+// Optional: the window the dialog belongs to, and MB_TOPMOST / MB_HELP.
+// request.owner = hwnd;
+// request.topMost = true;
+// request.showHelpButton = true;
+
+const auto result = Dialog::ShowAlert(request);
+if (result.has_value())
+{
+    // Cancel is a button like any other, so it arrives as
+    // AlertResult::Cancel rather than as a failure.
+    const Dialog::AlertResult pressed = result.value();
+    if (pressed == Dialog::AlertResult::Ok)
+    {
+        // The user pressed OK.
+    }
+}
+else
+{
+    // code is the documented case, systemCode the raw value from the OS.
+    const Dialog::ErrorCode code = result.error().code;
+    const uint32_t systemCode = result.error().systemCode;
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
 </p>
 
-#### ShowFileDialog - File picker dialog
+#### ShowOpenFile - File picker dialog
 
-- Displays a dialog.
+- Asks for one existing file and returns its full path.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// Declare a buffer to store file paths.
-wchar_t filePath[1024] = { 0 };
-// Set filters. Each filter is separated by a null character (\0), and terminated with a double null.
-const wchar_t* filter = L"All Files\0*.*\0";
-// Declare a variable to receive the error code. 0 means success, -1 means canceled, otherwise CommDlgExtendedError.
-DWORD errorCode = 0;
-// result: returns TRUE on success. Also returns TRUE when canceled. Returns FALSE on failure.
-BOOL result = showFileDialog(
-    // Pass the file path buffer.
-    filePath,
-    // Pass the buffer size.
-    1024,
-    // Pass the filter.
-    filter,
-    // Pass a reference to the error code variable.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FileRequest request;
+// Set the title.
+request.title = L"Open File";
+// Set the type list. An entry is a description and its patterns.
+// With no filters at all the dialog offers every file.
+request.filters = { Dialog::FileFilter{ L"All Files", { L"*.*" } } };
+// The picked file has to exist (OFN_FILEMUSTEXIST). This is the default.
+request.fileMustExist = true;
+
+const auto result = Dialog::ShowOpenFile(request);
+if (result.has_value())
+{
+    // A full path.
+    const std::wstring& filePath = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // The user dismissed the dialog.
+}
+else
+{
+    const uint32_t systemCode = result.error().systemCode;
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
 </p>
 
-#### ShowMultiFileDialog - Multi-file picker dialog
+#### ShowOpenFiles - Multi-file picker dialog
 
-- Displays a dialog.
+- Asks for one or more existing files, in the order the dialog returned them.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// Declare a buffer to store file paths.
-wchar_t multiBuffer[4096] = { 0 };
-// Set filters. Each filter is separated by a null character (\0), and terminated with a double null.
-const wchar_t* filter = L"All Files\0*.*\0";
-// Declare a variable to receive the error code. 0 means success, -1 means canceled, otherwise CommDlgExtendedError.
-DWORD errorCode = 0;
-// result: number of selected items. 0 means canceled, -1 means error, otherwise a value >= 1.
-int result = showMultiFileDialog(
-    // Pass the file path buffer.
-    multiBuffer,
-    // Pass the buffer size.
-    4096,
-    // Pass the filter.
-    filter,
-    // Pass a reference to the error code variable.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FileRequest request;
+// Set the title.
+request.title = L"Open Files";
+// Set the type list.
+request.filters = { Dialog::FileFilter{ L"All Files", { L"*.*" } } };
+
+const auto result = Dialog::ShowOpenFiles(request);
+if (result.has_value())
+{
+    // Every entry is a full path, and the folder is not an entry of its own.
+    const std::vector<std::wstring>& paths = result.value();
+    for (const std::wstring& path : paths)
+    {
+        // One selected file.
+    }
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // The user dismissed the dialog.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
 </p>
 
-#### ShowFolderDialog - Folder picker dialog
+#### ShowPickFolder - Folder picker dialog
 
-- Displays a dialog.
+- Asks for one folder.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// Declare a buffer to store folder paths.
-wchar_t folderPath[1024] = { 0 };
-// Set the title.
-const wchar_t* title = L"Select Folder";
-// Declare a variable to receive the error code. 0 means success, -1 means canceled, otherwise HRESULT.
-DWORD errorCode = 0;
-// result: returns TRUE on success. Also returns TRUE when canceled. Returns FALSE on failure.
-BOOL result = showFolderDialog(
-    // Pass the folder path buffer.
-    folderPath,
-    // Pass the buffer size.
-    1024,
-    // Pass the title.
-    title,
-    // Pass a reference to the error code variable.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FolderRequest request;
+// Set the title. An empty title leaves the system default.
+request.title = L"Select Folder";
+
+const auto result = Dialog::ShowPickFolder(request);
+if (result.has_value())
+{
+    const std::wstring& folderPath = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // The user dismissed the dialog.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
 </p>
 
-#### ShowMultiFolderDialog - Multi-folder picker dialog
+#### ShowPickFolders - Multi-folder picker dialog
 
-- Displays a dialog.
+- Asks for one or more folders.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// Declare a buffer to store folder paths.
-wchar_t multiFolderBuffer[4096] = { 0 };
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FolderRequest request;
 // Set the title.
-const wchar_t* title = L"Select Folders";
-// Declare a variable to receive the error code. 0 means success, -1 means canceled, otherwise HRESULT.
-DWORD errorCode = 0;
-// result: number of selected items. 0 means canceled, -1 means error, otherwise a value >= 1.
-int result = showMultiFolderDialog(
-    // Pass the folder path buffer.
-    multiFolderBuffer,
-    // Pass the buffer size.
-    4096,
-    // Pass the title.
-    title,
-    // Pass a reference to the error code variable.
-    &errorCode
-);
+request.title = L"Select Folders";
+
+const auto result = Dialog::ShowPickFolders(request);
+if (result.has_value())
+{
+    // Every entry is a full path.
+    const std::vector<std::wstring>& paths = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // The user dismissed the dialog.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
 </p>
 
-#### ShowSaveFileDialog - Save file dialog
+#### ShowSaveFile - Save file dialog
 
-- Displays a dialog.
+- Asks where to save a file. The file itself is not created.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// Declare a buffer to store file paths.
-wchar_t savePath[1024] = { 0 };
-// Set filters. Each filter is separated by a null character (\0), and terminated with a double null.
-const wchar_t* filter = L"All Files\0*.*\0";
-// Set default extension.
-const wchar_t* def_ext = L"txt";
-// Declare a variable to receive the error code. 0 means success, -1 means canceled, otherwise CommDlgExtendedError.
-DWORD errorCode = 0;
-// result: returns TRUE on success. Also returns TRUE when canceled. Returns FALSE on failure.
-BOOL result = showSaveFileDialog(
-    // Pass the file path buffer.
-    savePath,
-    // Pass the buffer size.
-    1024,
-    // Pass the filter.
-    filter,
-    // Pass the default extension.
-    def_ext,
-    // Pass a reference to the error code variable.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::SaveFileRequest request;
+// Set the title.
+request.title = L"Save File";
+// Set the type list.
+request.filters = { Dialog::FileFilter{ L"All Files", { L"*.*" } } };
+// Set the extension appended when the user types none.
+request.defaultExtension = L"txt";
+// Ask before an existing file is picked (OFN_OVERWRITEPROMPT). This is the default.
+request.overwritePrompt = true;
+
+const auto result = Dialog::ShowSaveFile(request);
+if (result.has_value())
+{
+    const std::wstring& savePath = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // The user dismissed the dialog.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
 </p>
 
+### C ABI
+
+- The same dialogs for C, and for any language that can call a C DLL. The header is plain C99 and includes nothing but `<stddef.h>` and `<stdint.h>`.
+- Strings are NUL-terminated UTF-8 in both directions. `NULL` means an empty string.
+- A request struct is filled with zeros and given its own `sizeof` in `struct_size`; the zeros are the defaults.
+- A function reports its error as the return value. The raw value the OS gave is `ntk_last_system_code()`, read on the same thread right after the failure.
+- Anything the library hands back is a handle that the caller frees with the matching `_free`. A pointer read out of a handle stays valid until that handle is freed.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+/* Zero-filled means "the defaults"; struct_size is what tells the DLL
+   which version of the struct this is. */
+ntk_dialog_alert_request request;
+memset(&request, 0, sizeof(request));
+request.struct_size = (uint32_t)sizeof(request);
+request.title = "Native Windows Dialog";
+request.message = "This is a native Windows dialog!";
+request.buttons = NTK_DIALOG_ALERT_BUTTONS_OK_CANCEL;
+request.icon = NTK_DIALOG_ALERT_ICON_INFORMATION;
+request.default_button = NTK_DIALOG_ALERT_DEFAULT_BUTTON_SECOND;
+
+ntk_dialog_alert_result pressed = 0;
+ntk_dialog_error error = ntk_dialog_show_alert(&request, &pressed);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    /* Cancel is a button, so it is NTK_DIALOG_ALERT_RESULT_CANCEL here. */
+} else if (error == NTK_DIALOG_ERROR_SYSTEM_ERROR) {
+    uint32_t system_code = ntk_last_system_code();
+    (void)system_code;
+}
+```
+
+The pickers return their paths as a handle:
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+ntk_dialog_file_request request;
+memset(&request, 0, sizeof(request));
+request.struct_size = (uint32_t)sizeof(request);
+request.title = "Open File";
+
+/* One entry of the type list. Patterns are separated by ';'. */
+ntk_dialog_filter filters[1];
+filters[0].name = "All Files";
+filters[0].patterns = "*.*";
+
+ntk_string* path = NULL;
+ntk_dialog_error error = ntk_dialog_show_open_file(&request, filters, 1, &path);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    /* Borrowed: valid until ntk_string_free. */
+    const char* utf8 = ntk_string_data(path);
+    size_t size = ntk_string_size(path);
+    (void)utf8; (void)size;
+    ntk_string_free(path);
+} else if (error == NTK_DIALOG_ERROR_CANCELED) {
+    /* The user dismissed the dialog; path stays NULL. */
+}
+```
+
+| C++ API | C ABI |
+|---|---|
+| `Dialog::ShowAlert` | `ntk_dialog_show_alert` |
+| `Dialog::ShowOpenFile` | `ntk_dialog_show_open_file` |
+| `Dialog::ShowOpenFiles` | `ntk_dialog_show_open_files` |
+| `Dialog::ShowSaveFile` | `ntk_dialog_show_save_file` |
+| `Dialog::ShowPickFolder` | `ntk_dialog_show_pick_folder` |
+| `Dialog::ShowPickFolders` | `ntk_dialog_show_pick_folders` |
 ---
 
 ## macOS

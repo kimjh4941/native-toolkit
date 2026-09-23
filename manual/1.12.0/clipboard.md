@@ -134,17 +134,15 @@ Language:
   - [Error Handling](#error-handling-2)
     - [About 1514](#about-1514)
 - [Windows](#windows)
-  - [WindowsClipboardManager](#windowsclipboardmanager)
   - [Setup](#setup-3)
-    - [The owner UI thread](#the-owner-ui-thread)
-    - [Two API shapes](#two-api-shapes)
-    - [Reading a value: the two-phase buffer](#reading-a-value-the-two-phase-buffer)
-    - [Write option flags](#write-option-flags)
+    - [The owner STA thread](#the-owner-sta-thread)
+    - [Synchronous and asynchronous operations](#synchronous-and-asynchronous-operations)
+    - [Write options](#write-options)
   - [Init / Lifecycle](#init--lifecycle)
-    - [Initialize](#initialize)
-    - [History event callbacks](#history-event-callbacks)
-    - [Uninitialize](#uninitialize)
-    - [Can Destroy](#can-destroy)
+    - [Create the session](#create-the-session)
+    - [History event handlers](#history-event-handlers)
+    - [Close](#close)
+    - [CanClose](#canclose)
   - [Copy](#copy-3)
     - [Copy Plain Text](#copy-plain-text-2)
     - [Copy Plain Text (Empty)](#copy-plain-text-empty-2)
@@ -153,7 +151,7 @@ Language:
     - [Copy Image](#copy-image-1)
     - [Copy Custom Format](#copy-custom-format)
     - [Copy Multiple Formats](#copy-multiple-formats)
-  - [Write Options](#write-options)
+  - [Write Options](#write-options-1)
   - [Paste](#paste)
     - [Paste Plain Text](#paste-plain-text)
     - [Paste HTML](#paste-html)
@@ -176,7 +174,7 @@ Language:
     - [Clear Unpinned History](#clear-unpinned-history)
     - [Cancel Request](#cancel-request)
   - [Error Handling](#error-handling-3)
-    - [Reading a value is two calls, so 7 is expected](#reading-a-value-is-two-calls-so-7-is-expected)
+  - [C ABI](#c-abi)
 
 ---
 
@@ -1877,14 +1875,14 @@ Task {
 
 ## Windows
 
-### WindowsClipboardManager
+The Win32 clipboard and the WinRT clipboard history, on Windows 11 or later. The Windows library offers them through two public APIs over one implementation, and the sample app uses the C++ API.
 
-`WindowsClipboardManager` provides a C bridge API (`extern "C"`) over the Win32 clipboard and the WinRT clipboard history, and requires Windows 11 or later.
-
-The library is distributed as `windows-native-toolkit-1.2.0.nupkg`.
+| API | Names | Header | NuGet package |
+|---|---|---|---|
+| C++ API | `NativeToolkit::Clipboard` | `<NativeToolkit/Clipboard.h>` | `NativeToolkit` |
+| C ABI | `ntk_clipboard_*` | `<NativeToolkitC/Clipboard.h>` | `NativeToolkit.CApi` |
 
 - Scope: copy and paste for text, HTML, files, images and custom formats; multi-format writes; content inspection; change monitoring; delayed rendering; and clipboard history.
-- Header: `WindowsClipboardManager.h`
 
 The screenshot in this section comes from `WindowsLibraryExample`, whose Clipboard screen groups the operations in the same order as the sections below.
 
@@ -1896,137 +1894,124 @@ The screenshot in this section comes from `WindowsLibraryExample`, whose Clipboa
 
 ### Setup
 
-Add the NuGet package to your project and include the header:
-
 ```cpp
-#include "WindowsClipboardManager.h"
+#include <NativeToolkit/Clipboard.h>
+
+namespace Clipboard = NativeToolkit::Clipboard;
 ```
 
-#### The owner UI thread
+#### The owner STA thread
 
-The thread that calls `initClipboardManager` is adopted as the **owner UI thread**, and it has two obligations:
+The thread that calls `Clipboard::Session::Create` owns the session, and it has two obligations:
 
-1. It must run a message pump for the lifetime of the manager. This cannot be checked at runtime, so it is a caller contract rather than a reported error.
-2. It must already be a single-threaded apartment (`CoInitializeEx` with `COINIT_APARTMENTTHREADED`, or `winrt::init_apartment(winrt::apartment_type::single_threaded)`). This **is** checked: an MTA or uninitialized thread returns `CLIPBOARD_ERROR_WRONG_APARTMENT` and the manager is not initialized.
+1. It must run a message pump for the lifetime of the session. This cannot be checked at run time, so it is a caller contract rather than a reported error.
+2. It must already be a single-threaded apartment (`CoInitializeEx` with `COINIT_APARTMENTTHREADED`, or `winrt::init_apartment(winrt::apartment_type::single_threaded)`). This **is** checked: an MTA or uninitialised thread gets `ErrorCode::WrongApartment` and no session is created.
 
-The toolkit never initializes or uninitializes the apartment; it belongs to the host.
+The toolkit never initialises or uninitialises the apartment; it belongs to the host.
 
-Operations that touch process-wide state are limited to the owner thread and return `CLIPBOARD_ERROR_WRONG_THREAD` elsewhere: `setClipboardHistoryCallbacks`, `uninitClipboardManager`, `reserveDeferredFormats` and `recoverDeferredState`. Every callback is delivered on the owner UI thread.
+There is one clipboard per process, so a second `Create` fails: `ErrorCode::NotSupported` from the owning thread, `ErrorCode::WrongThread` from any other.
 
-#### Two API shapes
+Operations that touch process-wide state are limited to the owner thread and return `ErrorCode::WrongThread` elsewhere: `SetHistoryHandlers`, `Close`, `ReserveDeferred` and `RecoverDeferredState`. Every handler is delivered on the owner thread.
+
+Inside a handler, do not destroy the session and do not call `Close` or `SetHistoryHandlers` on it. Do not capture the session in a handler you give it either - that is a cycle.
+
+#### Synchronous and asynchronous operations
 
 | Shape | Result | Used by |
 |---|---|---|
-| Synchronous | `DWORD* pError` set before returning | Every copy, paste and inspection API |
-| Asynchronous request | Returns a nonzero request id; the completion callback fires exactly once | The five clipboard history APIs |
+| Synchronous | `Clipboard::Result<T>`, before returning | Every copy, paste and inspection operation |
+| Asynchronous request | `Clipboard::Result<RequestId>`; the handler runs exactly once | The five clipboard history operations |
 
-An accepted request returns a nonzero id, and its callback runs exactly once on the owner UI thread. A rejected request returns `0` and never invokes the callback.
+An accepted request returns its `RequestId` and its handler runs exactly once, on the owner thread. A rejected request returns a failure and never runs the handler.
 
-#### Reading a value: the two-phase buffer
+The values are typed: reads hand back a `std::wstring` or a `std::vector<std::byte>`, so there is no sizing call and no buffer to manage.
 
-Every read reports the required buffer size, so the call is made twice: once to size the buffer, once to fill it.
+#### Write options
 
-```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const DWORD required = pastePlainText(nullptr, 0, &err);
-if (err != CLIPBOARD_ERROR_BUFFER_TOO_SMALL && err != CLIPBOARD_ERROR_NONE)
-{
-    return; // FORMAT_UNAVAILABLE, EMPTY, ...
-}
+Every copy operation takes `Clipboard::WriteOptions`, which controls how Windows may propagate the content. Both fields default to allowed.
 
-std::wstring text(required, 0);
-pastePlainText(text.data(), required, &err);
-if (err == CLIPBOARD_ERROR_NONE)
-{
-    text.resize(required - 1); // drop the terminator
-}
-```
-
-Text APIs count in `wchar_t` including the terminator; `pasteImage` and `pasteCustomFormat` count in bytes.
-
-#### Write option flags
-
-Every copy API takes an options bitmask that controls how Windows may propagate the content.
-
-| Constant | Effect |
+| Field | Effect |
 |---|---|
-| `CLIPBOARD_WRITE_OPTION_NONE` | No restriction |
-| `CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY` | Keeps the entry out of clipboard history (Win+V) |
-| `CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING` | Keeps the entry from syncing to other devices |
-| `CLIPBOARD_WRITE_OPTION_SENSITIVE` | Both of the above |
+| (none set) | No restriction |
+| `excludeFromHistory` | Keeps the entry out of the clipboard history (Win+V) |
+| `excludeFromRoaming` | Keeps the entry from syncing to other devices |
+| both | What the C ABI calls SENSITIVE |
 
-These affect history and roaming only. Content written with any of them is still pasted normally with Ctrl+V.
+These affect history and roaming only. Content written with any of them is still pasted normally with Ctrl+V. Placing the markers is not best effort: a failure rolls the whole write back.
 
 ---
 
 ### Init / Lifecycle
 
-#### Initialize
+#### Create the session
 
 ```cpp
+#include <optional>
+
+// Move only, and it outlives the screen that created it.
+std::optional<Clipboard::Session> g_session;
+
 void OnClipboardChanged()
 {
-    // The clipboard content changed. Runs on the owner UI thread.
-    // Writes made through this library do not raise it.
+    // Someone other than this session wrote to the clipboard.
+    // Delivered on the owner thread, never inside the call that caused it.
 }
 
-DWORD err = CLIPBOARD_ERROR_NONE;
-initClipboardManager(&OnClipboardChanged, &err);
-// err == 0: success
-// err == 18 (WRONG_APARTMENT): the calling thread is not an STA
-```
+Clipboard::SessionOptions options;
+// Leaving this empty skips registering the listener.
+options.onClipboardChanged = &OnClipboardChanged;
 
-Pass `nullptr` if you do not need change notifications. Calling it again from the same thread is idempotent success; from a different thread it returns `CLIPBOARD_ERROR_WRONG_THREAD`. The function pointer must stay valid until `uninitClipboardManager` returns `TRUE`.
-
-#### History event callbacks
-
-```cpp
-void OnHistoryChanged()            { /* a new item was added to the history */ }
-void OnHistoryEnabledChanged(BOOL) { /* see the caution below */ }
-void OnRoamingEnabledChanged(BOOL) { /* see the caution below */ }
-
-DWORD err = CLIPBOARD_ERROR_NONE;
-setClipboardHistoryCallbacks(&OnHistoryChanged,
-                             &OnHistoryEnabledChanged,
-                             &OnRoamingEnabledChanged,
-                             &err);
-```
-
-Passing all three as `nullptr` stops watching and clears the registration.
-
-`onHistoryChanged` fires only when a **new item is added**. Deletions and clears are not guaranteed to raise it, so re-query after your own delete or clear calls.
-
-**Do not drive behaviour from `onHistoryEnabledChanged` or `onRoamingEnabledChanged`.** The underlying WinRT events were observed to fire at most once per process, and never at all when the registration is made while clipboard history is disabled. Call `getClipboardHistoryAvailability` whenever the current setting matters. `onHistoryChanged` is unaffected.
-
-#### Uninitialize
-
-```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const BOOL done = uninitClipboardManager(&err);
-// done == FALSE: work is still draining. Keep pumping messages and call again.
-```
-
-`FALSE` means something is still outstanding: an unrevoked listener token, an undelivered cancellation, a running request, or an in-flight synchronous call. **Keep the message pump running between retries; do not spin while blocking the UI thread.** The first call always returns `FALSE` while any request is pending, because cancellations are queued rather than fired inline.
-
-**Call this before the process exits.** Formats reserved with `reserveDeferredFormats` are materialized by `WM_RENDERALLFORMATS`, which the system sends only while the owner window is being destroyed, and that window is destroyed only from here. A process that simply exits never receives the message, and every reserved format is dropped from the clipboard.
-
-```cpp
-// WinUI 3: shut down while the window still exists
-Closed([](auto&&, auto&&)
+auto created = Clipboard::Session::Create(options);
+if (created.has_value())
 {
-    DWORD err = CLIPBOARD_ERROR_NONE;
-    uninitClipboardManager(&err);
-});
+    g_session.emplace(std::move(created).value());
+}
+else
+{
+    // WrongApartment: the calling thread is not an initialised STA.
+    const Clipboard::ErrorCode code = created.error().code;
+}
 ```
 
-#### Can Destroy
+#### History event handlers
+
+Owner thread only. A default-constructed `HistoryHandlers` unregisters everything. `onHistoryChanged` fires when an item is added, not when one is removed or the history is cleared.
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const BOOL ready = canDestroyClipboardManager(&err);
+Clipboard::HistoryHandlers handlers;
+handlers.onHistoryChanged = &OnHistoryChanged;                  // void()
+handlers.onHistoryEnabledChanged = &OnHistoryEnabledChanged;    // void(bool)
+handlers.onRoamingEnabledChanged = &OnRoamingEnabledChanged;    // void(bool)
+
+const auto result = g_session->SetHistoryHandlers(std::move(handlers));
+// On failure the previous handlers stay in place.
 ```
 
-A non-blocking state query. `TRUE` means nothing is outstanding right now. It does **not** promise that the next `uninitClipboardManager` succeeds, because that call can still fail on partial-state recovery or an OS error. Judge the final result by the `uninit` return value.
+#### Close
+
+Owner thread only. Closing is the caller's job: `Close` reports why it could not finish, and a caller that gets a failure is expected to deal with it and try again.
+
+```cpp
+const auto closed = g_session->Close();
+if (closed.has_value())
+{
+    g_session.reset();
+}
+else
+{
+    // Busy: another thread is still inside an operation. Let it finish and retry.
+}
+```
+
+Destroying a session that was never closed successfully **abandons** it: its window, its listeners and its pending requests stay in place until the process exits, and `Create` keeps failing from then on with no way back.
+
+#### CanClose
+
+Answers whether a `Close` could finish now - that is, whether there is no work in flight. It is false while an operation is running, and an open session with nothing in flight answers true.
+
+```cpp
+const bool canClose = !g_session.has_value() || g_session->CanClose();
+```
 
 ---
 
@@ -2035,125 +2020,83 @@ A non-blocking state query. `TRUE` means nothing is outstanding right now. It do
 #### Copy Plain Text
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-copyPlainText(L"Hello from native-toolkit", CLIPBOARD_WRITE_OPTION_NONE, &err);
+const auto result = g_session->CopyText(L"Hello from native-toolkit", Clipboard::WriteOptions{});
 ```
 
 #### Copy Plain Text (Empty)
 
-An empty string is a valid payload, not an error. The clipboard still carries `CF_UNICODETEXT`.
+An empty string is a valid payload, not an error.
 
 ```cpp
-copyPlainText(L"", CLIPBOARD_WRITE_OPTION_NONE, &err);
+const auto result = g_session->CopyText(L"", Clipboard::WriteOptions{});
 ```
 
 #### Copy HTML
 
-Writes `CF_HTML` together with a plain-text fallback, so an application that does not understand HTML still receives readable text.
+The CF_HTML header is built inside the library. The second argument is the plain-text alternative written alongside it.
 
 ```cpp
-copyHtml(L"<b>Hello</b> from native-toolkit",   // HTML fragment
-         L"Hello from native-toolkit",          // plain-text fallback
-         CLIPBOARD_WRITE_OPTION_NONE, &err);
+const auto result = g_session->CopyHtml(
+    L"<b>Hello</b> from native-toolkit",   // the HTML fragment
+    L"Hello from native-toolkit",          // the plain text alternative
+    Clipboard::WriteOptions{});
 ```
-
-The `CF_HTML` header and the surrounding `<html><body>` wrapper are built for you; pass the fragment only.
 
 #### Copy Files
 
-Takes a JSON array of absolute paths and writes `CF_HDROP`, which is what Explorer pastes.
+Every path is a full path, and the list must not be empty.
 
 ```cpp
-copyFiles(LR"(["C:\\temp\\sample-1.txt","C:\\temp\\sample-2.txt"])",
-          CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<std::wstring> paths{ firstFilePath, secondFilePath };
+const auto result = g_session->CopyFiles(paths, Clipboard::WriteOptions{});
 ```
-
-An empty array is rejected with `CLIPBOARD_ERROR_INVALID_PARAMETER`.
 
 #### Copy Image
 
-Takes a device-independent bitmap (`CF_DIB`): a `BITMAPINFOHEADER` followed by the pixel data.
+The bytes are a packed DIB (a `BITMAPINFOHEADER`, its colour table if any, and the pixels). The library checks the header.
 
 ```cpp
-std::vector<BYTE> dib(sizeof(BITMAPINFOHEADER) + 8 * 8 * 4, 0);
-auto* header = reinterpret_cast<BITMAPINFOHEADER*>(dib.data());
-header->biSize        = sizeof(BITMAPINFOHEADER);
-header->biWidth       = 8;
-header->biHeight      = 8;
-header->biPlanes      = 1;
-header->biBitCount    = 32;
-header->biCompression = BI_RGB;
-header->biSizeImage   = 8 * 8 * 4;
-// fill the pixels as BGRA ...
-
-copyImage(dib.data(), static_cast<DWORD>(dib.size()), CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<std::byte> dib = BuildSampleDib();  // 8x8, 32bpp, BI_RGB
+const auto result = g_session->CopyDib(dib, Clipboard::WriteOptions{});
 ```
-
-The header is validated: a non-positive width, a top-down height, an RLE depth mismatch, or a `biSizeImage` outside the buffer is rejected with `CLIPBOARD_ERROR_INVALID_DATA`.
 
 #### Copy Custom Format
 
-Registers the format name and writes the bytes unchanged, so only an application that knows the name can read it back.
+The name is registered with Windows if it is not a standard one.
 
 ```cpp
-const std::string blob = "native-toolkit-sample-payload";
-copyCustomFormat(L"NativeToolkitSample",
-                 reinterpret_cast<const BYTE*>(blob.data()),
-                 static_cast<DWORD>(blob.size()),
-                 CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<std::byte> blob = ToBytes("native-toolkit-sample-payload");
+const auto result = g_session->CopyCustom(L"NativeToolkitSample", blob, Clipboard::WriteOptions{});
 ```
 
 #### Copy Multiple Formats
 
-Places several formats in one operation so that each consuming application can pick the richest one it understands. **List the richest format first**: the order is part of the contract.
+One clipboard write that places several formats at once. An item is text, HTML or bytes - never half of each - and the placement order is part of what receiving applications see, so the richest format goes first.
 
 ```cpp
-copyMultipleFormats(
-    LR"([{"format":"HTML Format","html":"<b>Hello</b> from native-toolkit"},
-         {"format":"CF_UNICODETEXT","text":"Hello from native-toolkit"}])",
-    CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<Clipboard::FormatPayload> items{
+    Clipboard::HtmlPayload{ L"HTML Format", L"<b>Hello</b> from native-toolkit" },
+    Clipboard::TextPayload{ L"CF_UNICODETEXT", L"Hello from native-toolkit" },
+    Clipboard::BytesPayload{ L"CF_DIB", BuildSampleDib() },
+};
+const auto result = g_session->CopyMultiple(items, Clipboard::WriteOptions{});
 ```
 
-Each item carries exactly one payload key.
-
-| Key | Meaning | Allowed formats |
-|---|---|---|
-| `text` | UTF-16 text | Text-shaped formats (`CF_UNICODETEXT`, `CF_TEXT`) |
-| `html` | An HTML fragment; the full `CF_HTML` payload is built for you | `HTML Format` |
-| `base64` | Raw bytes | Any format, including `CF_DIB`, `CF_HDROP` and custom names |
-
-A `base64` payload for a known binary format is structurally validated. Duplicate `format` entries, a payload kind that does not match the target format, and `CF_BITMAP` (there is no `HBITMAP` ownership path) are all rejected with `CLIPBOARD_ERROR_INVALID_PARAMETER` **before anything is placed**.
-
-Adding an image is the same call with one more entry:
-
-```cpp
-copyMultipleFormats(
-    LR"([{"format":"HTML Format","html":"<b>Hello</b> from native-toolkit"},
-         {"format":"CF_UNICODETEXT","text":"Hello from native-toolkit"},
-         {"format":"CF_DIB","base64":"<base64 of the DIB bytes>"}])",
-    CLIPBOARD_WRITE_OPTION_NONE, &err);
-```
-
-On a partial failure the clipboard is emptied again. If that rollback also fails, `*pError` is `CLIPBOARD_ERROR_PARTIAL_STATE` and some formats may remain.
+A duplicate format name, or an item whose payload does not suit its format, is `ErrorCode::InvalidParameter` and nothing is written.
 
 ---
 
 ### Write Options
 
-The same content with different privacy options:
-
 ```cpp
-// Kept out of Win+V, and not synced to other devices
-copyPlainText(L"Sensitive sample value", CLIPBOARD_WRITE_OPTION_SENSITIVE, &err);
+// Both exclusions at once: what the C ABI calls SENSITIVE.
+const Clipboard::WriteOptions sensitive{ true, true };
+const auto result = g_session->CopyText(L"Sensitive sample value", sensitive);
 
-// Kept out of Win+V only
-copyPlainText(L"History excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY, &err);
-
-// Not synced to other devices only
-copyPlainText(L"Roaming excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING, &err);
+// One at a time.
+const Clipboard::WriteOptions excludeHistory{ true, false };
+const Clipboard::WriteOptions excludeRoaming{ false, true };
 ```
-
-All three remain pasteable with Ctrl+V in the current session. The options restrict history and roaming, not the clipboard itself.
 
 ---
 
@@ -2162,61 +2105,55 @@ All three remain pasteable with Ctrl+V in the current session. The options restr
 #### Paste Plain Text
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const DWORD required = pastePlainText(nullptr, 0, &err);
-std::wstring text(required, 0);
-pastePlainText(text.data(), required, &err);
+const auto text = g_session->PasteText();
+if (text.has_value())
+{
+    const std::wstring& value = text.value();
+}
+else if (text.error().code == Clipboard::ErrorCode::FormatUnavailable)
+{
+    // There is no text on the clipboard.
+}
 ```
 
 #### Paste HTML
 
-Returns the fragment only. The `CF_HTML` header and the `<html><body>` wrapper are stripped, and the UTF-8 payload is decoded to UTF-16.
+Returns the fragment, with the CF_HTML header removed.
 
 ```cpp
-const DWORD required = pasteHtml(nullptr, 0, &err);
-std::wstring html(required, 0);
-pasteHtml(html.data(), required, &err);
-// html == L"<b>Hello</b> from native-toolkit"
+const auto html = g_session->PasteHtml();
 ```
 
 #### Paste Files
 
-Returns the `CF_HDROP` list as a JSON array of paths, so files copied in Explorer can be read directly.
-
 ```cpp
-const DWORD required = pasteFiles(nullptr, 0, &err);
-std::wstring json(required, 0);
-pasteFiles(json.data(), required, &err);
-// json == LR"(["C:\\...\\a.txt","C:\\...\\b.txt"])"
+const auto files = g_session->PasteFiles();
+if (files.has_value())
+{
+    for (const std::wstring& path : files.value())
+    {
+        // One dropped file.
+    }
+}
 ```
 
 #### Paste Image
 
-Returns the `CF_DIB` bytes. Sizes are in bytes, not characters.
+Hands back the packed DIB as it sits on the clipboard.
 
 ```cpp
-const DWORD required = pasteImage(nullptr, 0, &err);
-std::vector<BYTE> dib(required);
-pasteImage(dib.data(), required, &err);
-
-BITMAPINFOHEADER header{};
-std::memcpy(&header, dib.data(), sizeof(header));
-// header.biWidth, header.biHeight, header.biBitCount
+const auto pasted = g_session->PasteDib();
+if (pasted.has_value())
+{
+    const std::vector<std::byte>& dib = pasted.value();
+}
 ```
-
-The returned size can exceed the pixel data, because Windows rounds the underlying allocation up. Read the extent from the header rather than from the buffer length.
-
-`pasteImage` reports `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` when no image is on the clipboard, including for the sizing call.
 
 #### Paste Custom Format
 
 ```cpp
-const DWORD required = pasteCustomFormat(L"NativeToolkitSample", nullptr, 0, &err);
-std::vector<BYTE> blob(required);
-pasteCustomFormat(L"NativeToolkitSample", blob.data(), required, &err);
+const auto pasted = g_session->PasteCustom(L"NativeToolkitSample");
 ```
-
-The byte count matches what was written: a custom format is passed through unchanged.
 
 ---
 
@@ -2225,202 +2162,238 @@ The byte count matches what was written: a custom format is passed through uncha
 #### Has Format
 
 ```cpp
-const BOOL present = hasClipboardFormat(L"CF_UNICODETEXT", &err);
+const auto present = g_session->HasFormat(L"CF_UNICODETEXT");
+const bool yes = present.has_value() && present.value();
 ```
-
-Accepts a `CF_*` constant name or a registered custom format name.
 
 #### Get Clipboard Formats
 
-Returns everything currently on the clipboard as a JSON array, including the formats Windows synthesizes for you.
+Every format currently on the clipboard, by name.
 
 ```cpp
-const DWORD required = getClipboardFormats(nullptr, 0, &err);
-std::wstring json(required, 0);
-getClipboardFormats(json.data(), required, &err);
-// ["CF_UNICODETEXT","HTML Format","0x0010","CF_TEXT","0x0007"]
+const auto formats = g_session->GetFormats();
 ```
-
-`CF_TEXT` and `CF_OEMTEXT` usually appear next to `CF_UNICODETEXT` because the system synthesizes them.
 
 #### Get Preferred Format
 
-Returns the most descriptive format among the ones this library can read, in the order `CF_UNICODETEXT`, `CF_HDROP`, `CF_DIB`, `CF_BITMAP`.
+The format Windows would hand over first. An empty string means there is no candidate.
 
 ```cpp
-const DWORD required = getPreferredClipboardFormat(nullptr, 0, &err);
-std::wstring name(required, 0);
-getPreferredClipboardFormat(name.data(), required, &err);
+const auto name = g_session->GetPreferredFormat();
 ```
-
-`HTML Format` is not a candidate, so text plus HTML resolves to `CF_UNICODETEXT`. A clipboard holding only a custom format returns an empty string.
 
 #### Clear Clipboard
 
 ```cpp
-clearClipboard(&err);
+const auto result = g_session->Clear();
 ```
-
-Afterwards `getClipboardFormats` returns `[]`, and a paste reports `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` rather than `CLIPBOARD_ERROR_EMPTY`: availability is checked before the data is ever requested.
 
 ---
 
 ### Deferred Rendering
 
-Delayed rendering advertises formats without producing them. The payload is built only if something actually asks for it, which avoids serializing an expensive representation that may never be pasted.
+The session offers formats without producing their bytes, and the provider is asked for them only when an application pastes.
 
 #### Reserve Deferred Formats
 
-```cpp
-DWORD OnRenderFormat(const wchar_t* formatName, void* context,
-                     BYTE* buffer, DWORD bufferSize, DWORD* pRequiredSize)
-{
-    const std::vector<BYTE>& payload = PayloadFor(formatName);
-    *pRequiredSize = static_cast<DWORD>(payload.size());
+Owner thread only. The provider runs on the owner thread, inside the message that collects the data, which sets three hard limits: it must not call any clipboard operation, it must not block, and it must not capture the session.
 
-    if (!buffer || bufferSize < payload.size())
+```cpp
+Clipboard::Result<std::vector<std::byte>> RenderDeferredFormat(std::wstring_view formatName)
+{
+    const auto it = g_deferredPayloads.find(std::wstring(formatName));
+    if (it == g_deferredPayloads.end())
     {
-        return CLIPBOARD_ERROR_BUFFER_TOO_SMALL;   // sizing phase
+        return NativeToolkit::Unexpected{ Clipboard::Error{ Clipboard::ErrorCode::FormatUnavailable } };
     }
-    std::memcpy(buffer, payload.data(), payload.size());
-    return CLIPBOARD_ERROR_NONE;                   // fill phase
+    return it->second;   // the bytes, decided when the formats were offered
 }
 
-DWORD err = CLIPBOARD_ERROR_NONE;
-reserveDeferredFormats(LR"(["HTML Format","CF_UNICODETEXT"])",
-                       &OnRenderFormat, nullptr, &err);
+const std::vector<std::wstring> formats{ L"HTML Format", L"CF_UNICODETEXT" };
+const auto result = g_session->ReserveDeferred(formats, &RenderDeferredFormat);
 ```
 
-The provider runs on the owner UI thread inside `WM_RENDERFORMAT`. It **must not call any clipboard API, must not block, and must not throw**. Set `*pRequiredSize` in both phases, and return the same size in both: the fill size must match the size reported while sizing.
-
-Two conditions decide whether a reservation survives:
-
-- The reservation lives only while this process owns the clipboard. Another application copying something discards it, and the provider is not called.
-- The owner window must still exist when the payload is requested, so **call `uninitClipboardManager` before the process exits**. Otherwise the reserved formats are lost instead of rendered.
-
-**When Windows clipboard history is enabled, the history service renders every reserved format as soon as it is reserved**, so the provider runs before any external paste. Do not treat "the provider has not been called yet" as an invariant.
+Returning a failure, or throwing, renders that format as nothing: by then the asking application is mid-paste and there is no one left to report to. Both are logged.
 
 #### Recover Deferred State
 
-```cpp
-recoverDeferredState(&err);
-```
+Owner thread only. Clears a half-placed reservation after `ErrorCode::PartialState`.
 
-Retries the recovery from a `CLIPBOARD_ERROR_PARTIAL_STATE` left by a failed rollback. Calling it when there is nothing to recover succeeds and leaves a valid reservation untouched.
+```cpp
+const auto result = g_session->RecoverDeferredState();
+```
 
 ---
 
 ### History
 
-The five history APIs are asynchronous. Each returns a nonzero request id on acceptance, and the callback fires exactly once on the owner UI thread.
-
-```cpp
-void OnRequestCompleted(uint32_t requestId, DWORD error, const wchar_t* json)
-{
-    // json is valid ONLY during this callback: copy it before returning.
-}
-```
-
-Clipboard history must be enabled in Windows Settings. When it is off, the request is accepted and the callback reports `CLIPBOARD_ERROR_HISTORY_DISABLED` (10) rather than an empty list, so "disabled" is never mistaken for "empty".
+The five history operations are asynchronous: each returns a `RequestId` and calls its handler exactly once, on the owner thread. `ErrorCode::HistoryDisabled` means the user has the history turned off in Windows Settings.
 
 #### Get History Availability
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const uint32_t id = getClipboardHistoryAvailability(&OnRequestCompleted, &err);
-// callback json: {"historyEnabled":true,"roamingEnabled":false}
+const auto accepted = g_session->GetHistoryAvailability(
+    [](Clipboard::RequestId id, Clipboard::Result<Clipboard::HistoryAvailability> result)
+    {
+        if (result.has_value())
+        {
+            const bool historyEnabled = result.value().historyEnabled;
+            const bool roamingEnabled = result.value().roamingEnabled;
+        }
+    });
 ```
-
-This is the reliable way to read the current setting, and it tracks changes made in Windows Settings.
 
 #### Get Clipboard History
 
 ```cpp
-const uint32_t id = getClipboardHistory(&OnRequestCompleted, &err);
+const auto accepted = g_session->GetHistory(
+    [](Clipboard::RequestId id, Clipboard::Result<std::vector<Clipboard::HistoryItem>> result)
+    {
+        if (!result.has_value()) return;
+        for (const Clipboard::HistoryItem& item : result.value())
+        {
+            const std::wstring& id = item.id;                  // for restore / delete
+            const std::optional<std::wstring>& text = item.text;  // absent for a non-text item
+            const std::vector<std::wstring>& types = item.contentTypes;
+            const int64_t ticks = item.timestampTicks;
+        }
+    });
 ```
-
-The callback receives the items newest first:
-
-```json
-[{"id":"{EC8B5A45-...}","text":"history-3","contentTypes":["Text"],"timestamp":"134329814601772022"}]
-```
-
-`timestamp` is a **decimal string**, not a JSON number: it holds 100ns FILETIME ticks since 1601, and a JSON number's double precision cannot carry the full int64 range. `text` is `null` for an item that has no text representation.
 
 #### Restore History Item
 
-Makes a history item the current clipboard content.
+Puts the item back on the clipboard. The id comes from `GetHistory`.
 
 ```cpp
-const uint32_t id = restoreHistoryItem(itemId, &OnRequestCompleted, &err);
+const auto accepted = g_session->RestoreHistoryItem(itemId,
+    [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });
 ```
-
-The restore is performed by the Windows history service rather than by this library, so it raises the ordinary clipboard-changed callback as an external change.
 
 #### Delete History Item
 
-```cpp
-const uint32_t id = deleteHistoryItem(itemId, &OnRequestCompleted, &err);
-```
+`ErrorCode::ItemDeleted` means the item is already gone.
 
-`onHistoryChanged` is not guaranteed to fire for a deletion, so re-query the list afterwards.
+```cpp
+const auto accepted = g_session->DeleteHistoryItem(itemId,
+    [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });
+```
 
 #### Clear Unpinned History
 
-```cpp
-const uint32_t id = clearUnpinnedHistory(&OnRequestCompleted, &err);
-```
+Removes everything the user has not pinned.
 
-**Pinned items are kept.** This is OS behaviour: the user pinned them deliberately.
+```cpp
+const auto accepted = g_session->ClearUnpinnedHistory(
+    [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });
+```
 
 #### Cancel Request
 
+Cancels a request that has not completed. Its handler still runs, once, with `ErrorCode::Canceled`.
+
 ```cpp
-const BOOL queued = cancelClipboardRequest(id, &err);
+if (accepted.has_value())
+{
+    const auto result = g_session->CancelRequest(accepted.value());
+}
 ```
-
-Callable from any thread. `TRUE` means the cancellation was queued to the owner UI thread; `FALSE` means the id is unknown, already completed, or the post failed.
-
-The callback still fires **exactly once**, with `CLIPBOARD_ERROR_CANCELED` when the cancellation wins and with the ordinary result when it does not. A `FALSE` return does not suppress a completion that is already on its way.
 
 ---
 
 ### Error Handling
 
-Synchronous APIs report through `DWORD* pError`; asynchronous requests report through the `error` argument of the completion callback.
+Synchronous operations report through the returned `Result`; asynchronous requests report through the `Result` their handler receives. `Clipboard::Error` carries the case and the raw `systemCode`.
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-copyPlainText(text, CLIPBOARD_WRITE_OPTION_NONE, &err);
-if (err != CLIPBOARD_ERROR_NONE)
+const auto result = g_session->CopyText(text, Clipboard::WriteOptions{});
+if (!result.has_value())
 {
-    // handle err
+    const Clipboard::ErrorCode code = result.error().code;
+    const uint32_t systemCode = result.error().systemCode;
 }
 ```
 
-| Code | Constant | When |
+`Clipboard::ErrorCode` (`NativeToolkit::ClipboardError`). The same numbers are the C ABI's `NTK_CLIPBOARD_ERROR_*`.
+
+| Code | Name | When |
 |---|---|---|
-| 0 | `CLIPBOARD_ERROR_NONE` | Success |
-| 1 | `CLIPBOARD_ERROR_INVALID_PARAMETER` | A null or malformed argument, an empty file list, a duplicate or mismatched multi-format entry, `CF_BITMAP` |
-| 2 | `CLIPBOARD_ERROR_NOT_INITIALIZED` | Called before `initClipboardManager`, or after shutdown began |
-| 3 | `CLIPBOARD_ERROR_BUSY` | The clipboard could not be opened; another application holds it |
-| 4 | `CLIPBOARD_ERROR_EMPTY` | The format is present but carries no data |
-| 5 | `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` | The requested format is not on the clipboard |
-| 6 | `CLIPBOARD_ERROR_INVALID_DATA` | The data failed structural validation, such as a malformed DIB |
-| 7 | `CLIPBOARD_ERROR_BUFFER_TOO_SMALL` | The buffer was null or short; the return value holds the size needed |
-| 8 | `CLIPBOARD_ERROR_OUT_OF_MEMORY` | An allocation failed |
-| 9 | `CLIPBOARD_ERROR_ACCESS_DENIED` | The system refused the operation |
-| 10 | `CLIPBOARD_ERROR_HISTORY_DISABLED` | Clipboard history is turned off in Windows Settings |
-| 11 | `CLIPBOARD_ERROR_ITEM_DELETED` | The history item no longer exists |
-| 12 | `CLIPBOARD_ERROR_MONITOR_REGISTER_FAILED` | A clipboard or history listener could not be registered |
-| 13 | `CLIPBOARD_ERROR_PARTIAL_STATE` | A rollback failed; call `recoverDeferredState` |
-| 14 | `CLIPBOARD_ERROR_WRONG_THREAD` | An owner-thread-only API was called from another thread |
-| 15 | `CLIPBOARD_ERROR_CANCELED` | The request was cancelled before it completed |
-| 16 | `CLIPBOARD_ERROR_NOT_SUPPORTED` | The operation is unavailable on this system |
-| 17 | `CLIPBOARD_ERROR_NOT_FOREGROUND` | The operation requires a foreground window |
-| 18 | `CLIPBOARD_ERROR_WRONG_APARTMENT` | The initializing thread is not an STA |
-| 19 | `CLIPBOARD_ERROR_UNKNOWN` | Anything else |
+| 0 | `None` | Success |
+| 1 | `InvalidParameter` | A malformed argument, an empty file list, a duplicate or mismatched multi-format entry, `CF_BITMAP` |
+| 2 | `NotInitialized` | Used before `Create`, or after `Close` |
+| 3 | `Busy` | The clipboard could not be opened, or `Close` still has work in flight |
+| 4 | `Empty` | The format is present but carries no data |
+| 5 | `FormatUnavailable` | The requested format is not on the clipboard |
+| 6 | `InvalidData` | The data failed structural validation, such as a malformed DIB |
+| 7 | `BufferTooSmall` | Reserved: never returned. The 1.x C ABI's caller buffer was too small |
+| 8 | `OutOfMemory` | An allocation failed |
+| 9 | `AccessDenied` | The system refused the operation |
+| 10 | `HistoryDisabled` | Clipboard history is turned off in Windows Settings |
+| 11 | `ItemDeleted` | The history item no longer exists |
+| 12 | `MonitorRegisterFailed` | A listener or event token could not be registered or revoked |
+| 13 | `PartialState` | A placement failed and the rollback failed too; call `RecoverDeferredState` |
+| 14 | `WrongThread` | An owner-thread-only operation was called from another thread |
+| 15 | `Canceled` | Cancelled, or drained by `Close` |
+| 16 | `NotSupported` | No Windows equivalent, or a second session |
+| 17 | `NotForeground` | This process is not in the foreground; reported through the handler |
+| 18 | `WrongApartment` | The calling thread is not an STA |
+| 19 | `Unknown` | Anything else |
 
-#### Reading a value is two calls, so 7 is expected
+### C ABI
 
-`CLIPBOARD_ERROR_BUFFER_TOO_SMALL` is the normal outcome of the sizing call, not a failure. Treat it as an error only when it comes back from the filling call.
+- The same clipboard for C, and for any language that can call a C DLL.
+- The session is a handle: `ntk_clipboard_session_create` on an STA thread that pumps messages, then `ntk_clipboard_session_close` from that same thread and `ntk_clipboard_session_free`.
+- `ntk_clipboard_reserve_deferred` takes `user_data` and a `release` callback, and `release` is called exactly once whatever the call returned - that is where a binding frees what it allocated. The session options and the history handlers carry `user_data` only; they last as long as the session.
+- Reads hand back handles: `ntk_string`, `ntk_bytes` and `ntk_string_list`, each freed with its own `_free`. A pointer read from a handle stays valid until that handle is freed.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static void NTK_CALL on_clipboard_changed(void* user_data)
+{
+    /* On the owner thread. */
+    (void)user_data;
+}
+
+ntk_clipboard_session_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.on_clipboard_changed = &on_clipboard_changed;
+options.user_data = NULL;
+
+ntk_clipboard_session* session = NULL;
+ntk_clipboard_error error = ntk_clipboard_session_create(&options, &session);
+if (error != NTK_CLIPBOARD_ERROR_NONE) {
+    return;   /* WRONG_APARTMENT when the thread is not an STA */
+}
+
+/* Write, then read back. Strings are UTF-8. */
+error = ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+ntk_string* text = NULL;
+if (ntk_clipboard_paste_text(session, &text) == NTK_CLIPBOARD_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(text);   /* valid until ntk_string_free */
+    (void)utf8;
+    ntk_string_free(text);
+}
+
+/* From the owner thread, and check the result: close can fail. */
+error = ntk_clipboard_session_close(session);
+ntk_clipboard_session_free(session);
+```
+
+| C++ API | C ABI |
+|---|---|
+| `Session::Create` | `ntk_clipboard_session_create` |
+| `Session::Close` / destructor | `ntk_clipboard_session_close` / `ntk_clipboard_session_free` |
+| `Session::CanClose` | `ntk_clipboard_session_can_close` |
+| `Session::SetHistoryHandlers` | `ntk_clipboard_set_history_handlers` |
+| `CopyText` / `CopyHtml` / `CopyFiles` / `CopyDib` / `CopyCustom` | `ntk_clipboard_copy_text` / `_copy_html` / `_copy_files` / `_copy_dib` / `_copy_custom` |
+| `CopyMultiple` with `FormatPayload` | `ntk_clipboard_items_create` and its `_add_text` / `_add_html` / `_add_bytes`, then `ntk_clipboard_copy_multiple` |
+| `PasteText` / `PasteHtml` / `PasteFiles` / `PasteDib` / `PasteCustom` | `ntk_clipboard_paste_text` / `_paste_html` / `_paste_files` / `_paste_dib` / `_paste_custom` |
+| `HasFormat` / `GetFormats` / `GetPreferredFormat` / `Clear` | `ntk_clipboard_has_format` / `_get_formats` / `_get_preferred_format` / `_clear` |
+| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred` / `_recover_deferred_state` |
+| `GetHistory` / `RestoreHistoryItem` / `DeleteHistoryItem` / `ClearUnpinnedHistory` / `GetHistoryAvailability` | `ntk_clipboard_get_history` / `_restore_history_item` / `_delete_history_item` / `_clear_unpinned_history` / `_get_history_availability` |
+| `CancelRequest` | `ntk_clipboard_cancel_request` |
+| `WriteOptions` | The `flags` argument: `NTK_CLIPBOARD_WRITE_DEFAULT` / `_EXCLUDE_HISTORY` / `_EXCLUDE_ROAMING` / `_SENSITIVE` |

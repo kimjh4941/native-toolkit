@@ -17,7 +17,14 @@
 - [iOS](#ios)
   - [iOSDialogManager](#iosdialogmanager)
 - [Windows](#windows)
-  - [WindowsDialogManager](#windowsdialogmanager)
+  - [NativeToolkit::Dialog](#nativetoolkitdialog)
+    - [ShowAlert - 기본 다이얼로그](#showalert---기본-다이얼로그-1)
+    - [ShowOpenFile - 파일 선택 다이얼로그](#showopenfile---파일-선택-다이얼로그)
+    - [ShowOpenFiles - 다중 파일 선택 다이얼로그](#showopenfiles---다중-파일-선택-다이얼로그)
+    - [ShowPickFolder - 폴더 선택 다이얼로그](#showpickfolder---폴더-선택-다이얼로그)
+    - [ShowPickFolders - 다중 폴더 선택 다이얼로그](#showpickfolders---다중-폴더-선택-다이얼로그)
+    - [ShowSaveFile - 저장 다이얼로그](#showsavefile---저장-다이얼로그)
+  - [C ABI](#c-abi)
 - [macOS](#macos)
   - [MacDialogManager](#macdialogmanager)
 
@@ -610,200 +617,304 @@ IosDialogManager.shared.showLoginDialog(
 
 ## Windows
 
-### WindowsDialogManager
+Windows 라이브러리는 같은 다이얼로그를 두 가지 공개 API로 제공합니다. 구현은 하나이며, 샘플 앱은 C++ API를 사용합니다.
 
-#### ShowDialog - 기본 다이얼로그
+| API | 이름 | 헤더 | NuGet 패키지 |
+|---|---|---|---|
+| C++ API | `NativeToolkit::Dialog` | `<NativeToolkit/Dialog.h>` | `NativeToolkit` |
+| C ABI | `ntk_dialog_*` | `<NativeToolkitC/Dialog.h>` | `NativeToolkit.CApi` |
 
-- 다이얼로그를 표시합니다.
+### NativeToolkit::Dialog
+
+- 모든 다이얼로그는 모달이며 호출한 스레드를 블로킹합니다. UI 스레드에서 호출해 주세요.
+- 반환값은 `Dialog::Result<T>`입니다. `has_value()`로 성공과 실패를 구분하고, 성공이면 `value()`, 실패면 `error()`(`Dialog::Error`)를 참조합니다. `Dialog::Error`는 정의된 구분인 `code`와 OS가 보고한 원래 값인 `systemCode`를 가집니다.
+- 사용자가 다이얼로그를 닫은 경우는 호출의 실패도 값도 아니므로 `Dialog::ErrorCode::Canceled`로 돌아옵니다.
+- 공개 헤더는 `<windows.h>`를 include하지 않습니다. `request.owner`는 `NativeToolkit::WindowHandle`(`HWND`와 같은 타입)을 받습니다.
+
+#### ShowAlert - 기본 다이얼로그
+
+- 메시지 박스를 표시하고 눌린 버튼을 반환합니다.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// 오류 코드를 받을 변수를 선언합니다. 0은 성공, 0이 아닌 값은 오류를 의미합니다.
-DWORD errorCode = 0;
-// result: 눌린 버튼 식별자를 가져옵니다. 오류 시 0을 반환합니다.
-int result = showAlertDialog(
-    // 제목을 설정합니다.
-    L"Native Windows Dialog",
-    // 메시지를 설정합니다.
-    L"This is a native Windows dialog!",
-    // 버튼 유형을 설정합니다. 여기서는 OK와 Cancel 버튼을 표시합니다.
-    MB_OKCANCEL,
-    // 아이콘을 설정합니다. 여기서는 정보 아이콘을 표시합니다.
-    MB_ICONINFORMATION,
-    // 기본 버튼을 설정합니다. 여기서는 두 번째 버튼이 기본값입니다.
-    MB_DEFBUTTON2,
-    // 옵션을 설정합니다. 여기서는 애플리케이션 모달을 지정합니다.
-    MB_APPLMODAL,
-    // 오류 코드 변수의 참조를 전달합니다.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::AlertRequest request;
+// 제목을 설정합니다.
+request.title = L"Native Windows Dialog";
+// 메시지를 설정합니다.
+request.message = L"This is a native Windows dialog!";
+// 표시할 버튼을 설정합니다. 여기서는 OK와 Cancel입니다.
+request.buttons = Dialog::AlertButtons::OkCancel;
+// 아이콘을 설정합니다. 여기서는 정보 아이콘입니다.
+request.icon = Dialog::AlertIcon::Information;
+// 처음에 포커스를 받을 버튼을 설정합니다. 여기서는 두 번째입니다.
+request.defaultButton = Dialog::AlertDefaultButton::Second;
+// 선택: 소유자 윈도우, MB_TOPMOST, MB_HELP도 지정할 수 있습니다.
+// request.owner = hwnd;
+// request.topMost = true;
+// request.showHelpButton = true;
+
+const auto result = Dialog::ShowAlert(request);
+if (result.has_value())
+{
+    // Cancel도 하나의 버튼이므로 실패가 아니라
+    // AlertResult::Cancel로 돌아옵니다.
+    const Dialog::AlertResult pressed = result.value();
+    if (pressed == Dialog::AlertResult::Ok)
+    {
+        // OK를 눌렀을 때의 처리입니다.
+    }
+}
+else
+{
+    // code가 정의된 구분, systemCode가 OS의 원래 값입니다.
+    const Dialog::ErrorCode code = result.error().code;
+    const uint32_t systemCode = result.error().systemCode;
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowAlertDialog.png" alt="Example_WindowsDialogManager_ShowAlertDialog" width="300" />
 </p>
 
-#### ShowFileDialog - 파일 선택 다이얼로그
+#### ShowOpenFile - 파일 선택 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 기존 파일을 하나 선택하게 하고 전체 경로를 반환합니다.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// 파일 경로를 저장할 버퍼를 선언합니다.
-wchar_t filePath[1024] = { 0 };
-// 필터를 설정합니다. 각 필터는 널 문자(\0)로 구분되며 마지막은 이중 널 문자로 종료됩니다.
-const wchar_t* filter = L"All Files\0*.*\0";
-// 오류 코드를 받을 변수를 선언합니다. 0은 성공, -1은 취소, 그 외는 CommDlgExtendedError입니다.
-DWORD errorCode = 0;
-// result: 성공 시 TRUE를 반환합니다. 취소 시에도 TRUE를 반환하며, 실패 시 FALSE를 반환합니다.
-BOOL result = showFileDialog(
-    // 파일 경로 버퍼를 전달합니다.
-    filePath,
-    // 버퍼 크기를 전달합니다.
-    1024,
-    // 필터를 전달합니다.
-    filter,
-    // 오류 코드 변수의 참조를 전달합니다.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FileRequest request;
+// 제목을 설정합니다.
+request.title = L"Open File";
+// 종류 목록을 설정합니다. 한 항목은 설명과 패턴의 쌍입니다.
+// 필터를 하나도 설정하지 않으면 모든 파일이 대상이 됩니다.
+request.filters = { Dialog::FileFilter{ L"All Files", { L"*.*" } } };
+// 선택하는 파일이 실제로 존재하도록 요구합니다(OFN_FILEMUSTEXIST). 기본값입니다.
+request.fileMustExist = true;
+
+const auto result = Dialog::ShowOpenFile(request);
+if (result.has_value())
+{
+    // 전체 경로입니다.
+    const std::wstring& filePath = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // 사용자가 다이얼로그를 닫았습니다.
+}
+else
+{
+    const uint32_t systemCode = result.error().systemCode;
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowFileDialog.png" alt="Example_WindowsDialogManager_ShowFileDialog" width="1000" />
 </p>
 
-#### ShowMultiFileDialog - 다중 파일 선택 다이얼로그
+#### ShowOpenFiles - 다중 파일 선택 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 기존 파일을 하나 이상, 다이얼로그가 반환한 순서대로 가져옵니다.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// 파일 경로를 저장할 버퍼를 선언합니다.
-wchar_t multiBuffer[4096] = { 0 };
-// 필터를 설정합니다. 각 필터는 널 문자(\0)로 구분되며 마지막은 이중 널 문자로 종료됩니다.
-const wchar_t* filter = L"All Files\0*.*\0";
-// 오류 코드를 받을 변수를 선언합니다. 0은 성공, -1은 취소, 그 외는 CommDlgExtendedError입니다.
-DWORD errorCode = 0;
-// result: 선택된 항목 수를 가져옵니다. 0은 취소, -1은 오류, 그 외는 1 이상의 값입니다.
-int result = showMultiFileDialog(
-    // 파일 경로 버퍼를 전달합니다.
-    multiBuffer,
-    // 버퍼 크기를 전달합니다.
-    4096,
-    // 필터를 전달합니다.
-    filter,
-    // 오류 코드 변수의 참조를 전달합니다.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FileRequest request;
+// 제목을 설정합니다.
+request.title = L"Open Files";
+// 종류 목록을 설정합니다.
+request.filters = { Dialog::FileFilter{ L"All Files", { L"*.*" } } };
+
+const auto result = Dialog::ShowOpenFiles(request);
+if (result.has_value())
+{
+    // 각 항목은 전체 경로이며, 폴더 자체는 항목에 포함되지 않습니다.
+    const std::vector<std::wstring>& paths = result.value();
+    for (const std::wstring& path : paths)
+    {
+        // 선택된 파일 하나입니다.
+    }
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // 사용자가 다이얼로그를 닫았습니다.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowMultiFileDialog.png" alt="Example_WindowsDialogManager_ShowMultiFileDialog" width="1000" />
 </p>
 
-#### ShowFolderDialog - 폴더 선택 다이얼로그
+#### ShowPickFolder - 폴더 선택 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 폴더를 하나 선택하게 합니다.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// 폴더 경로를 저장할 버퍼를 선언합니다.
-wchar_t folderPath[1024] = { 0 };
-// 제목을 설정합니다.
-const wchar_t* title = L"Select Folder";
-// 오류 코드를 받을 변수를 선언합니다. 0은 성공, -1은 취소, 그 외는 HRESULT입니다.
-DWORD errorCode = 0;
-// result: 성공 시 TRUE를 반환합니다. 취소 시에도 TRUE를 반환하며, 실패 시 FALSE를 반환합니다.
-BOOL result = showFolderDialog(
-    // 폴더 경로 버퍼를 전달합니다.
-    folderPath,
-    // 버퍼 크기를 전달합니다.
-    1024,
-    // 제목을 전달합니다.
-    title,
-    // 오류 코드 변수의 참조를 전달합니다.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FolderRequest request;
+// 제목을 설정합니다. 비워 두면 OS의 기본 제목이 사용됩니다.
+request.title = L"Select Folder";
+
+const auto result = Dialog::ShowPickFolder(request);
+if (result.has_value())
+{
+    const std::wstring& folderPath = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // 사용자가 다이얼로그를 닫았습니다.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowFolderDialog.png" alt="Example_WindowsDialogManager_ShowFolderDialog" width="1000" />
 </p>
 
-#### ShowMultiFolderDialog - 다중 폴더 선택 다이얼로그
+#### ShowPickFolders - 다중 폴더 선택 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 폴더를 하나 이상 선택하게 합니다.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// 폴더 경로를 저장할 버퍼를 선언합니다.
-wchar_t multiFolderBuffer[4096] = { 0 };
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::FolderRequest request;
 // 제목을 설정합니다.
-const wchar_t* title = L"Select Folders";
-// 오류 코드를 받을 변수를 선언합니다. 0은 성공, -1은 취소, 그 외는 HRESULT입니다.
-DWORD errorCode = 0;
-// result: 선택된 항목 수를 가져옵니다. 0은 취소, -1은 오류, 그 외는 1 이상의 값입니다.
-int result = showMultiFolderDialog(
-    // 폴더 경로 버퍼를 전달합니다.
-    multiFolderBuffer,
-    // 버퍼 크기를 전달합니다.
-    4096,
-    // 제목을 전달합니다.
-    title,
-    // 오류 코드 변수의 참조를 전달합니다.
-    &errorCode
-);
+request.title = L"Select Folders";
+
+const auto result = Dialog::ShowPickFolders(request);
+if (result.has_value())
+{
+    // 각 항목은 전체 경로입니다.
+    const std::vector<std::wstring>& paths = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // 사용자가 다이얼로그를 닫았습니다.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowMultiFolderDialog.png" alt="Example_WindowsDialogManager_ShowMultiFolderDialog" width="1000" />
 </p>
 
-#### ShowSaveFileDialog - 파일 저장 다이얼로그
+#### ShowSaveFile - 저장 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 저장할 위치를 선택하게 합니다. 파일 자체는 만들어지지 않습니다.
 
 ```cpp
-#include <common.h>
-#include <WindowsDialogManager.h>
+#include <NativeToolkit/Dialog.h>
 
-// 파일 경로를 저장할 버퍼를 선언합니다.
-wchar_t savePath[1024] = { 0 };
-// 필터를 설정합니다. 각 필터는 널 문자(\0)로 구분되며 마지막은 이중 널 문자로 종료됩니다.
-const wchar_t* filter = L"All Files\0*.*\0";
-// 기본 확장자를 설정합니다.
-const wchar_t* def_ext = L"txt";
-// 오류 코드를 받을 변수를 선언합니다. 0은 성공, -1은 취소, 그 외는 CommDlgExtendedError입니다.
-DWORD errorCode = 0;
-// result: 성공 시 TRUE를 반환합니다. 취소 시에도 TRUE를 반환하며, 실패 시 FALSE를 반환합니다.
-BOOL result = showSaveFileDialog(
-    // 파일 경로 버퍼를 전달합니다.
-    savePath,
-    // 버퍼 크기를 전달합니다.
-    1024,
-    // 필터를 전달합니다.
-    filter,
-    // 기본 확장자를 전달합니다.
-    def_ext,
-    // 오류 코드 변수의 참조를 전달합니다.
-    &errorCode
-);
+namespace Dialog = NativeToolkit::Dialog;
+
+Dialog::SaveFileRequest request;
+// 제목을 설정합니다.
+request.title = L"Save File";
+// 종류 목록을 설정합니다.
+request.filters = { Dialog::FileFilter{ L"All Files", { L"*.*" } } };
+// 확장자를 입력하지 않았을 때 붙일 확장자를 설정합니다.
+request.defaultExtension = L"txt";
+// 기존 파일을 선택했을 때 확인합니다(OFN_OVERWRITEPROMPT). 기본값입니다.
+request.overwritePrompt = true;
+
+const auto result = Dialog::ShowSaveFile(request);
+if (result.has_value())
+{
+    const std::wstring& savePath = result.value();
+}
+else if (result.error().code == Dialog::ErrorCode::Canceled)
+{
+    // 사용자가 다이얼로그를 닫았습니다.
+}
 ```
 
 <p align="center">
     <img src="images/windows/dialog/Example_WindowsDialogManager_ShowSaveFileDialog.png" alt="Example_WindowsDialogManager_ShowSaveFileDialog" width="1000" />
 </p>
 
+### C ABI
+
+- C에서, 그리고 C DLL을 호출할 수 있는 언어에서 사용하기 위한 API입니다. 헤더는 C99이며 `<stddef.h>`와 `<stdint.h>` 외에는 include하지 않습니다.
+- 문자열은 입출력 모두 NUL로 끝나는 UTF-8입니다. `NULL`은 빈 문자열을 의미합니다.
+- 요청 구조체는 0으로 채우고 `struct_size`에 자신의 `sizeof`를 넣습니다. 0이 기본값입니다.
+- 오류는 반환값으로 보고됩니다. OS가 돌려준 원래 값은 같은 스레드에서 실패 직후에 `ntk_last_system_code()`로 읽습니다.
+- 라이브러리가 돌려주는 것은 핸들이며, 대응하는 `_free`로 해제합니다. 핸들에서 꺼낸 포인터는 그 핸들을 해제할 때까지 유효합니다.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+/* 0으로 채운 상태가 기본값입니다. struct_size는 이 구조체가 어느 버전인지
+   DLL에 알려 줍니다. */
+ntk_dialog_alert_request request;
+memset(&request, 0, sizeof(request));
+request.struct_size = (uint32_t)sizeof(request);
+request.title = "Native Windows Dialog";
+request.message = "This is a native Windows dialog!";
+request.buttons = NTK_DIALOG_ALERT_BUTTONS_OK_CANCEL;
+request.icon = NTK_DIALOG_ALERT_ICON_INFORMATION;
+request.default_button = NTK_DIALOG_ALERT_DEFAULT_BUTTON_SECOND;
+
+ntk_dialog_alert_result pressed = 0;
+ntk_dialog_error error = ntk_dialog_show_alert(&request, &pressed);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    /* Cancel도 버튼이므로 여기서는 NTK_DIALOG_ALERT_RESULT_CANCEL입니다. */
+} else if (error == NTK_DIALOG_ERROR_SYSTEM_ERROR) {
+    uint32_t system_code = ntk_last_system_code();
+    (void)system_code;
+}
+```
+
+선택 계열은 경로를 핸들로 반환합니다.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+ntk_dialog_file_request request;
+memset(&request, 0, sizeof(request));
+request.struct_size = (uint32_t)sizeof(request);
+request.title = "Open File";
+
+/* 종류 목록의 한 항목입니다. 패턴은 ';'로 구분합니다. */
+ntk_dialog_filter filters[1];
+filters[0].name = "All Files";
+filters[0].patterns = "*.*";
+
+ntk_string* path = NULL;
+ntk_dialog_error error = ntk_dialog_show_open_file(&request, filters, 1, &path);
+if (error == NTK_DIALOG_ERROR_NONE) {
+    /* 빌린 포인터입니다. ntk_string_free 전까지 유효합니다. */
+    const char* utf8 = ntk_string_data(path);
+    size_t size = ntk_string_size(path);
+    (void)utf8; (void)size;
+    ntk_string_free(path);
+} else if (error == NTK_DIALOG_ERROR_CANCELED) {
+    /* 사용자가 다이얼로그를 닫았습니다. path는 NULL 그대로입니다. */
+}
+```
+
+| C++ API | C ABI |
+|---|---|
+| `Dialog::ShowAlert` | `ntk_dialog_show_alert` |
+| `Dialog::ShowOpenFile` | `ntk_dialog_show_open_file` |
+| `Dialog::ShowOpenFiles` | `ntk_dialog_show_open_files` |
+| `Dialog::ShowSaveFile` | `ntk_dialog_show_save_file` |
+| `Dialog::ShowPickFolder` | `ntk_dialog_show_pick_folder` |
+| `Dialog::ShowPickFolders` | `ntk_dialog_show_pick_folders` |
 ---
 
 ## macOS

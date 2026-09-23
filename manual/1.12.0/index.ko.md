@@ -32,10 +32,11 @@
 
 # 배포 산출물 위치 (`dist/<version>/`)
 
-- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
-- macOS: `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
+- iOS: `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows (C++ API): `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -44,7 +45,7 @@
 
 # 버전
 
-## 1.11.0
+## 1.12.0
 
 # 지원 OS 버전
 
@@ -279,7 +280,18 @@ dependencies {
 
 #### 지원 플랫폼: Windows x64（win-x64）
 
-1. `windows-native-toolkit-1.2.0.nupkg`를 `C:\packages`에 복사합니다.
+Windows 라이브러리는 하나의 구현을 두 개의 NuGet 패키지로 배포합니다. 호출 방식에 맞는 쪽을 설치해 주세요. 둘 다 설치해도 괜찮습니다.
+
+| 패키지 | 대상 | 내용 |
+|---|---|---|
+| `NativeToolkit` | C++에서 호출하는 경우 | C++ API 공개 헤더(`NativeToolkit/`)와 정적 라이브러리 |
+| `NativeToolkit.CApi` | C에서, 그리고 다른 언어에서 호출하는 경우 | C ABI 공개 헤더(`NativeToolkitC/`), `NativeToolkitC.dll`, 그 import 라이브러리 |
+
+`NativeToolkit`은 MSVC v143, `/std:c++20`, DLL 런타임(`/MD`, `/MDd`), x64로 만든 정적 라이브러리입니다. 이 설정이 다른 프로젝트는 LNK2038로 링크에 실패합니다. `NativeToolkit.CApi`에는 이런 제약이 없습니다. 헤더가 C99만으로 작성되어 있기 때문입니다.
+
+둘 다 `Microsoft.WindowsAppSDK`를 의존으로 선언하며 NuGet이 함께 복원합니다. 패키지 식별자가 없는 앱은 `Microsoft.WindowsAppRuntime.Bootstrap.dll`도 실행 파일 옆에 두어야 합니다.
+
+1. `windows-native-toolkit-2.0.0.nupkg`와 `windows-native-toolkit-capi-2.0.0.nupkg`를 `C:\packages`에 복사합니다.
 2. Visual Studio 2022에서 **Tools** → **Options** → **NuGet Package Manager** → **Package Sources**를 엽니다.
 3. **+**를 눌러 다음을 입력합니다.
    - Name: LocalPackages
@@ -288,8 +300,22 @@ dependencies {
 4. 대상 솔루션을 엽니다.
 5. **Solution Explorer**에서 프로젝트를 우클릭하고 **Manage NuGet Packages**를 선택합니다.
 6. **Package source**를 **LocalPackages**로 변경합니다.
-7. **NativeToolkit**을 검색해 **Install**을 클릭합니다.
+7. **NativeToolkit** 또는 **NativeToolkit.CApi**를 검색해 **Install**을 클릭합니다.
 8. 라이선스 확인 창이 나오면 동의하여 설치를 완료합니다.
+
+#### 1.x에서 이전하기
+
+1.x는 C ABI만 공개하는 하나의 패키지였습니다(`showAlertDialog`, `initNotificationManager`, `initClipboardManager` 등). 2.0.0은 그것을 대체합니다. 모든 함수의 이름과 시그니처가 바뀌므로 1.x용으로 작성한 코드는 그대로 컴파일되지 않습니다.
+
+| 1.x | 2.0.0 |
+|---|---|
+| `<common.h>`, `<WindowsDialogManager.h>`, `<WindowsNotificationManager.h>`, `<WindowsClipboardManager.h>` | `<NativeToolkit/Dialog.h>` 등, 또는 `<NativeToolkitC/Dialog.h>` 등 |
+| JSON 문자열 | 타입이 있는 구조체(C++) 또는 내용 빌더(C ABI) |
+| `wchar_t*` 버퍼와 두 번의 호출 | 호출이 반환하는 값(C++) 또는 `_free`로 해제하는 핸들(C ABI) |
+| `DWORD* pError` | `Result<T>`(C++) 또는 반환값과 `ntk_last_system_code()`(C ABI) |
+| 프로세스 전역 상태를 가진 자유 함수 | 수명이 명시된 `Clipboard::Session`과 `Notification::Manager` |
+
+작업별 대응은 각 기능 페이지의 Windows 절에 있습니다. 아직 이전할 수 없는 프로젝트는 1.11.0 릴리스를 그대로 사용할 수 있습니다. 그 릴리스의 Windows 패키지에 1.x C ABI가 남아 있습니다.
 
 ### macOS
 

@@ -140,15 +140,13 @@ Language:
     - [일반적인 사용에서는 발생하지 않는 에러 코드](#일반적인-사용에서는-발생하지-않는-에러-코드)
 
 - [Windows](#windows)
-  - [WindowsClipboardManager](#windowsclipboardmanager)
   - [설정](#설정-3)
-    - [소유자 UI 스레드](#소유자-ui-스레드)
-    - [두 가지 API 형식](#두-가지-api-형식)
-    - [값 읽기는 2 단계입니다](#값-읽기는-2-단계입니다)
-    - [쓰기 옵션 플래그](#쓰기-옵션-플래그)
+    - [소유자 STA 스레드](#소유자-sta-스레드)
+    - [동기와 비동기 작업](#동기와-비동기-작업)
+    - [쓰기 옵션](#쓰기-옵션)
   - [초기화 / 라이프사이클](#초기화--라이프사이클)
-    - [초기화](#초기화)
-    - [히스토리 이벤트 콜백](#히스토리-이벤트-콜백)
+    - [세션 생성](#세션-생성)
+    - [히스토리 이벤트 핸들러](#히스토리-이벤트-핸들러)
     - [종료 처리](#종료-처리)
     - [파기 가능 여부 확인](#파기-가능-여부-확인)
   - [복사](#복사-3)
@@ -159,7 +157,7 @@ Language:
     - [이미지 복사](#이미지-복사-1)
     - [사용자 정의 형식 복사](#사용자-정의-형식-복사)
     - [여러 형식 동시 복사](#여러-형식-동시-복사)
-  - [쓰기 옵션](#쓰기-옵션)
+  - [쓰기 옵션](#쓰기-옵션-1)
   - [붙여넣기](#붙여넣기)
     - [일반 텍스트 붙여넣기](#일반-텍스트-붙여넣기)
     - [HTML 붙여넣기](#html-붙여넣기)
@@ -182,7 +180,7 @@ Language:
     - [고정되지 않은 히스토리 지우기](#고정되지-않은-히스토리-지우기)
     - [요청 취소](#요청-취소)
   - [에러 처리](#에러-처리-3)
-    - [값 읽기는 두 번 호출하므로 7 은 정상입니다](#값-읽기는-두-번-호출하므로-7-은-정상입니다)
+  - [C ABI](#c-abi)
 
 ---
 
@@ -1883,16 +1881,16 @@ Task {
 
 ## Windows
 
-### WindowsClipboardManager
+Win32 클립보드와 WinRT 클립보드 히스토리입니다. Windows 11 이상이 필요합니다. Windows 라이브러리는 하나의 구현을 두 가지 공개 API로 제공하며, 샘플 앱은 C++ API를 사용합니다.
 
-`WindowsClipboardManager` 는 Win32 클립보드와 WinRT 클립보드 히스토리를 다루는 C Bridge API(`extern "C"`)입니다. Windows 11 이상이 필요합니다.
+| API | 이름 | 헤더 | NuGet 패키지 |
+|---|---|---|---|
+| C++ API | `NativeToolkit::Clipboard` | `<NativeToolkit/Clipboard.h>` | `NativeToolkit` |
+| C ABI | `ntk_clipboard_*` | `<NativeToolkitC/Clipboard.h>` | `NativeToolkit.CApi` |
 
-라이브러리는 `windows-native-toolkit-1.2.0.nupkg` 로 배포됩니다.
+- 범위: 텍스트, HTML, 파일, 이미지, 사용자 정의 형식의 복사와 붙여넣기, 여러 형식 동시 쓰기, 내용 검사, 변경 감시, 지연 렌더링, 클립보드 히스토리입니다.
 
-- 지원 범위: 텍스트 / HTML / 파일 / 이미지 / 사용자 정의 형식의 복사와 붙여넣기, 여러 형식 동시 쓰기, 내용 검사, 변경 감시, 지연 렌더링, 클립보드 히스토리
-- 헤더: `WindowsClipboardManager.h`
-
-이 절의 스크린샷은 `WindowsLibraryExample` 의 것입니다. 이 앱의 Clipboard 화면은 아래 절과 같은 순서로 조작을 묶어 두었습니다.
+이 절의 스크린샷은 `WindowsLibraryExample`의 것입니다. 샘플의 클립보드 화면은 아래 절과 같은 순서로 작업을 배치하고 있습니다.
 
 <p align="center">
     <img src="images/windows/clipboard/Example_WindowsClipboardManager.png" alt="Example_WindowsClipboardManager" width="800" />
@@ -1902,137 +1900,124 @@ Task {
 
 ### 설정
 
-NuGet 패키지를 프로젝트에 추가하고 헤더를 include 합니다.
-
 ```cpp
-#include "WindowsClipboardManager.h"
+#include <NativeToolkit/Clipboard.h>
+
+namespace Clipboard = NativeToolkit::Clipboard;
 ```
 
-#### 소유자 UI 스레드
+#### 소유자 STA 스레드
 
-`initClipboardManager` 를 호출한 스레드가 **소유자 UI 스레드** 가 되며, 두 가지 의무를 집니다.
+`Clipboard::Session::Create`를 호출한 스레드가 세션의 소유자가 되며, 두 가지 의무를 집니다.
 
-1. 매니저가 살아 있는 동안 메시지 펌프를 계속 돌려야 합니다. 이는 런타임에 검증할 수 없으므로 에러가 아니라 호출 측의 계약으로 다룹니다.
-2. 호출 전에 STA 로 초기화되어 있어야 합니다(`CoInitializeEx` 에 `COINIT_APARTMENTTHREADED` 를 지정하거나 `winrt::init_apartment(winrt::apartment_type::single_threaded)`). 이쪽은 **검증됩니다**. MTA 이거나 초기화되지 않은 스레드에서는 `CLIPBOARD_ERROR_WRONG_APARTMENT` 를 반환하며 매니저는 초기화되지 않습니다.
+1. 세션이 살아 있는 동안 메시지 루프를 계속 돌려야 합니다. 런타임에 확인할 수 없으므로 오류가 아니라 호출하는 쪽과의 약속입니다.
+2. 이미 STA(단일 스레드 아파트먼트)여야 합니다(`CoInitializeEx`에 `COINIT_APARTMENTTHREADED`, 또는 `winrt::init_apartment(winrt::apartment_type::single_threaded)`). 이쪽은 **확인합니다**. MTA이거나 초기화되지 않은 스레드에서는 `ErrorCode::WrongApartment`가 되고 세션은 만들어지지 않습니다.
 
-아파트먼트는 호스트의 것이며, 이 라이브러리가 초기화하거나 종료하지 않습니다.
+아파트먼트의 초기화와 해제는 툴킷이 하지 않습니다. 호스트의 몫입니다.
 
-프로세스 전역 상태를 다루는 조작은 소유자 스레드 전용이며, 다른 스레드에서는 `CLIPBOARD_ERROR_WRONG_THREAD` 가 됩니다. 대상은 `setClipboardHistoryCallbacks`, `uninitClipboardManager`, `reserveDeferredFormats`, `recoverDeferredState` 입니다. 모든 콜백은 소유자 UI 스레드로 전달됩니다.
+클립보드는 프로세스마다 하나이므로 두 번째 `Create`는 실패합니다. 소유 스레드에서는 `ErrorCode::NotSupported`, 다른 스레드에서는 `ErrorCode::WrongThread`입니다.
 
-#### 두 가지 API 형식
+프로세스 전체 상태를 다루는 작업은 소유 스레드 전용이며, 다른 스레드에서는 `ErrorCode::WrongThread`가 됩니다: `SetHistoryHandlers`, `Close`, `ReserveDeferred`, `RecoverDeferredState`입니다. 모든 핸들러는 소유 스레드에서 호출됩니다.
 
-| 형식 | 결과 반환 방식 | 해당 API |
+핸들러 안에서 세션을 파기하지 마시고, `Close`와 `SetHistoryHandlers`도 호출하지 마세요. 세션에 건네는 핸들러가 세션을 캡처하는 것도 순환이 되므로 피해 주세요.
+
+#### 동기와 비동기 작업
+
+| 형식 | 결과 | 대상 |
 |---|---|---|
-| 동기 | 반환 전에 `DWORD* pError` 를 설정합니다 | 복사 / 붙여넣기 / 검사 전체 |
-| 비동기 요청 | 0 이 아닌 요청 ID 를 반환하고 완료 콜백이 정확히 한 번 발생합니다 | 히스토리 5 개 API |
+| 동기 | 반환 전에 `Clipboard::Result<T>` | 복사, 붙여넣기, 검사 전부 |
+| 비동기 요청 | `Clipboard::Result<RequestId>`. 핸들러는 정확히 한 번 | 히스토리 작업 5가지 |
 
-수락된 요청은 0 이 아닌 ID 를 반환하고, 콜백은 소유자 UI 스레드에서 정확히 한 번 실행됩니다. 거부된 경우에는 `0` 을 반환하며 콜백은 호출되지 않습니다.
+접수된 요청은 `RequestId`를 반환하고, 그 핸들러는 소유 스레드에서 정확히 한 번 호출됩니다. 접수되지 않으면 실패가 반환되고 핸들러는 호출되지 않습니다.
 
-#### 값 읽기는 2 단계입니다
+값에는 타입이 있습니다. 읽기는 `std::wstring`이나 `std::vector<std::byte>`를 그대로 반환하므로 크기를 묻는 호출도, 버퍼 관리도 없습니다.
 
-읽기 API 는 필요한 버퍼 크기를 반환하므로, 크기 확인과 읽기를 위해 두 번 호출합니다.
+#### 쓰기 옵션
 
-```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const DWORD required = pastePlainText(nullptr, 0, &err);
-if (err != CLIPBOARD_ERROR_BUFFER_TOO_SMALL && err != CLIPBOARD_ERROR_NONE)
-{
-    return; // FORMAT_UNAVAILABLE, EMPTY 등
-}
+모든 복사 작업은 `Clipboard::WriteOptions`를 받습니다. Windows가 내용을 어디까지 퍼뜨려도 되는지를 지정합니다. 두 항목 모두 기본값은 허용입니다.
 
-std::wstring text(required, 0);
-pastePlainText(text.data(), required, &err);
-if (err == CLIPBOARD_ERROR_NONE)
-{
-    text.resize(required - 1); // 종단 문자를 제거합니다
-}
-```
-
-텍스트 계열은 종단을 포함한 `wchar_t` 단위, `pasteImage` 와 `pasteCustomFormat` 은 바이트 단위로 셉니다.
-
-#### 쓰기 옵션 플래그
-
-복사 API 는 모두 옵션 비트마스크를 받아, Windows 가 내용을 어디까지 전파해도 되는지를 지정합니다.
-
-| 상수 | 효과 |
+| 항목 | 효과 |
 |---|---|
-| `CLIPBOARD_WRITE_OPTION_NONE` | 제한하지 않습니다 |
-| `CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY` | 클립보드 히스토리(Win+V)에 남기지 않습니다 |
-| `CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING` | 다른 기기로 동기화하지 않습니다 |
-| `CLIPBOARD_WRITE_OPTION_SENSITIVE` | 위 두 가지 모두 |
+| 아무것도 설정하지 않음 | 제한하지 않습니다 |
+| `excludeFromHistory` | 클립보드 히스토리(Win+V)에 남기지 않습니다 |
+| `excludeFromRoaming` | 다른 기기로 동기화하지 않습니다 |
+| 둘 다 | C ABI가 SENSITIVE라고 부르는 상태입니다 |
 
-이들이 제한하는 것은 히스토리와 동기화뿐입니다. 어떤 옵션을 붙여도 Ctrl+V 로 하는 일반적인 붙여넣기는 가능합니다.
+이 옵션은 히스토리와 동기화에만 영향을 줍니다. 어느 옵션으로 쓴 내용이든 Ctrl+V로는 평소대로 붙여넣어집니다. 마커 설정은 최선 노력이 아닙니다. 실패하면 쓰기 전체가 되돌려집니다.
 
 ---
 
 ### 초기화 / 라이프사이클
 
-#### 초기화
+#### 세션 생성
 
 ```cpp
+#include <optional>
+
+// 이동 전용이며, 생성한 화면보다 오래 삽니다.
+std::optional<Clipboard::Session> g_session;
+
 void OnClipboardChanged()
 {
-    // 클립보드 내용이 바뀌면 소유자 UI 스레드에서 호출됩니다.
-    // 이 라이브러리를 통한 쓰기에서는 발생하지 않습니다.
+    // 이 세션이 아닌 다른 쪽이 클립보드에 썼습니다.
+    // 소유 스레드에서 호출되며, 원인이 된 호출 안에서는 호출되지 않습니다.
 }
 
-DWORD err = CLIPBOARD_ERROR_NONE;
-initClipboardManager(&OnClipboardChanged, &err);
-// err == 0: 성공
-// err == 18 (WRONG_APARTMENT): 호출 스레드가 STA 가 아닙니다
+Clipboard::SessionOptions options;
+// 비워 두면 리스너 등록 자체를 하지 않습니다.
+options.onClipboardChanged = &OnClipboardChanged;
+
+auto created = Clipboard::Session::Create(options);
+if (created.has_value())
+{
+    g_session.emplace(std::move(created).value());
+}
+else
+{
+    // WrongApartment: 호출한 스레드가 초기화된 STA가 아닙니다.
+    const Clipboard::ErrorCode code = created.error().code;
+}
 ```
 
-변경 알림이 필요 없으면 `nullptr` 을 전달합니다. 같은 스레드에서 다시 호출하면 멱등한 성공이 되고, 다른 스레드에서 호출하면 `CLIPBOARD_ERROR_WRONG_THREAD` 가 됩니다. 함수 포인터는 `uninitClipboardManager` 가 `TRUE` 를 반환할 때까지 유효해야 합니다.
+#### 히스토리 이벤트 핸들러
 
-#### 히스토리 이벤트 콜백
+소유 스레드 전용입니다. 기본 생성한 `HistoryHandlers`를 전달하면 모든 등록이 해제됩니다. `onHistoryChanged`는 항목이 추가될 때 호출되며, 삭제나 전체 지우기에서는 호출되지 않습니다.
 
 ```cpp
-void OnHistoryChanged()            { /* 히스토리에 새 항목이 추가되었습니다 */ }
-void OnHistoryEnabledChanged(BOOL) { /* 아래 주의 사항을 참고하십시오 */ }
-void OnRoamingEnabledChanged(BOOL) { /* 아래 주의 사항을 참고하십시오 */ }
+Clipboard::HistoryHandlers handlers;
+handlers.onHistoryChanged = &OnHistoryChanged;                  // void()
+handlers.onHistoryEnabledChanged = &OnHistoryEnabledChanged;    // void(bool)
+handlers.onRoamingEnabledChanged = &OnRoamingEnabledChanged;    // void(bool)
 
-DWORD err = CLIPBOARD_ERROR_NONE;
-setClipboardHistoryCallbacks(&OnHistoryChanged,
-                             &OnHistoryEnabledChanged,
-                             &OnRoamingEnabledChanged,
-                             &err);
+const auto result = g_session->SetHistoryHandlers(std::move(handlers));
+// 실패하면 이전 핸들러가 그대로 남습니다.
 ```
-
-세 개 모두에 `nullptr` 을 전달하면 감시를 멈추고 등록을 해제합니다.
-
-`onHistoryChanged` 가 발생하는 것은 **새 항목이 추가되었을 때** 뿐입니다. 삭제나 비우기에서의 발생은 보장되지 않으므로, 직접 삭제하거나 비운 뒤에는 다시 조회하십시오.
-
-**`onHistoryEnabledChanged` 와 `onRoamingEnabledChanged` 를 동작 판단에 사용하지 마십시오.** 기반이 되는 WinRT 이벤트는 프로세스당 많아야 한 번만 발생하며, 클립보드 히스토리가 비활성인 상태에서 등록하면 한 번도 발생하지 않는 것이 확인되었습니다. 현재 설정이 필요하면 `getClipboardHistoryAvailability` 를 호출하십시오. `onHistoryChanged` 는 영향을 받지 않습니다.
 
 #### 종료 처리
 
-```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const BOOL done = uninitClipboardManager(&err);
-// done == FALSE: 처리가 남아 있습니다. 메시지를 처리한 뒤 다시 호출합니다.
-```
-
-`FALSE` 는 무언가가 남아 있다는 뜻입니다. 해제되지 않은 리스너 토큰, 전달되지 않은 취소, 실행 중인 요청, 진행 중인 동기 호출 중 하나입니다. **재시도 사이에는 메시지 펌프를 계속 돌리십시오. UI 스레드를 막은 채 반복해서는 안 됩니다.** 취소는 즉시가 아니라 큐에 쌓이므로, 요청이 남아 있는 한 첫 호출은 반드시 `FALSE` 가 됩니다.
-
-**프로세스 종료 전에 반드시 호출하십시오.** `reserveDeferredFormats` 로 예약한 형식은 `WM_RENDERALLFORMATS` 로 확정되는데, 이 메시지는 소유자 윈도우가 파기될 때만 전송되며 그 파기는 이 함수에서만 이루어집니다. 그냥 종료한 프로세스에는 메시지가 도달하지 않아, 예약한 형식이 클립보드에서 사라집니다.
+소유 스레드 전용입니다. 닫는 일은 호출하는 쪽의 책임입니다. `Close`는 끝내지 못한 이유를 반환하므로, 받은 쪽에서 처리한 뒤 다시 시도해 주세요.
 
 ```cpp
-// WinUI 3: 윈도우가 살아 있는 동안 종료 처리를 수행합니다
-Closed([](auto&&, auto&&)
+const auto closed = g_session->Close();
+if (closed.has_value())
 {
-    DWORD err = CLIPBOARD_ERROR_NONE;
-    uninitClipboardManager(&err);
-});
+    g_session.reset();
+}
+else
+{
+    // Busy: 다른 스레드가 작업 중입니다. 끝나기를 기다렸다가 다시 시도합니다.
+}
 ```
+
+닫기에 성공하지 못한 채 파기하면 세션은 **포기**됩니다. 윈도우, 리스너, 처리 중인 요청이 프로세스 종료까지 남고, 이후 `Create`는 계속 실패하며 되돌릴 방법이 없습니다.
 
 #### 파기 가능 여부 확인
 
-```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const BOOL ready = canDestroyClipboardManager(&err);
-```
+지금 `Close`를 끝낼 수 있는지, 즉 처리 중인 작업이 없는지를 알려 줍니다. 작업 중에는 false이고, 열려 있으면서 아무것도 처리하지 않는 세션은 true를 반환합니다.
 
-블로킹하지 않는 상태 조회입니다. `TRUE` 는 현재 남은 작업이 없다는 것만 나타내며, **다음 `uninitClipboardManager` 의 성공을 보장하지 않습니다**. 부분 상태 복구나 OS API 실패로 실패할 수 있기 때문입니다. 최종 판정은 `uninit` 의 반환값으로 하십시오.
+```cpp
+const bool canClose = !g_session.has_value() || g_session->CanClose();
+```
 
 ---
 
@@ -2041,125 +2026,83 @@ const BOOL ready = canDestroyClipboardManager(&err);
 #### 일반 텍스트 복사
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-copyPlainText(L"Hello from native-toolkit", CLIPBOARD_WRITE_OPTION_NONE, &err);
+const auto result = g_session->CopyText(L"Hello from native-toolkit", Clipboard::WriteOptions{});
 ```
 
 #### 빈 문자열 복사
 
-빈 문자열은 에러가 아니라 유효한 페이로드로 다룹니다. 클립보드에는 `CF_UNICODETEXT` 가 올라갑니다.
+빈 문자열은 올바른 값이며 오류가 아닙니다.
 
 ```cpp
-copyPlainText(L"", CLIPBOARD_WRITE_OPTION_NONE, &err);
+const auto result = g_session->CopyText(L"", Clipboard::WriteOptions{});
 ```
 
 #### HTML 복사
 
-`CF_HTML` 과 일반 텍스트 폴백을 함께 씁니다. 따라서 HTML 을 해석하지 않는 앱도 읽을 수 있는 문자열을 받습니다.
+CF_HTML 헤더는 라이브러리 안에서 만듭니다. 두 번째 인수는 함께 쓰는 일반 텍스트 대체본입니다.
 
 ```cpp
-copyHtml(L"<b>Hello</b> from native-toolkit",   // HTML 프래그먼트
-         L"Hello from native-toolkit",          // 일반 텍스트 폴백
-         CLIPBOARD_WRITE_OPTION_NONE, &err);
+const auto result = g_session->CopyHtml(
+    L"<b>Hello</b> from native-toolkit",   // HTML 조각
+    L"Hello from native-toolkit",          // 일반 텍스트 대체본
+    Clipboard::WriteOptions{});
 ```
-
-`CF_HTML` 헤더와 `<html><body>` 래퍼는 라이브러리가 구성합니다. 전달하는 것은 프래그먼트뿐입니다.
 
 #### 파일 복사
 
-절대 경로의 JSON 배열을 받아, 탐색기가 붙여넣기에 사용하는 `CF_HDROP` 을 씁니다.
+각 경로는 전체 경로이며, 목록을 비울 수 없습니다.
 
 ```cpp
-copyFiles(LR"(["C:\\temp\\sample-1.txt","C:\\temp\\sample-2.txt"])",
-          CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<std::wstring> paths{ firstFilePath, secondFilePath };
+const auto result = g_session->CopyFiles(paths, Clipboard::WriteOptions{});
 ```
-
-빈 배열은 `CLIPBOARD_ERROR_INVALID_PARAMETER` 로 거부됩니다.
 
 #### 이미지 복사
 
-장치 독립 비트맵(`CF_DIB`)을 받습니다. `BITMAPINFOHEADER` 뒤에 픽셀 데이터가 이어지는 형식입니다.
+바이트열은 패킹된 DIB(`BITMAPINFOHEADER`, 있다면 컬러 테이블, 픽셀)입니다. 헤더는 라이브러리가 검사합니다.
 
 ```cpp
-std::vector<BYTE> dib(sizeof(BITMAPINFOHEADER) + 8 * 8 * 4, 0);
-auto* header = reinterpret_cast<BITMAPINFOHEADER*>(dib.data());
-header->biSize        = sizeof(BITMAPINFOHEADER);
-header->biWidth       = 8;
-header->biHeight      = 8;
-header->biPlanes      = 1;
-header->biBitCount    = 32;
-header->biCompression = BI_RGB;
-header->biSizeImage   = 8 * 8 * 4;
-// 픽셀을 BGRA 로 채웁니다
-
-copyImage(dib.data(), static_cast<DWORD>(dib.size()), CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<std::byte> dib = BuildSampleDib();  // 8x8, 32bpp, BI_RGB
+const auto result = g_session->CopyDib(dib, Clipboard::WriteOptions{});
 ```
-
-헤더는 검증됩니다. 너비가 양수가 아니거나, 높이가 top-down 이거나, RLE 와 비트 깊이가 맞지 않거나, `biSizeImage` 가 버퍼 범위를 벗어나면 `CLIPBOARD_ERROR_INVALID_DATA` 가 됩니다.
 
 #### 사용자 정의 형식 복사
 
-형식 이름을 등록하고 바이트를 그대로 씁니다. 형식 이름을 아는 앱만 다시 읽을 수 있습니다.
+표준 형식 이름이 아니면 Windows에 등록됩니다.
 
 ```cpp
-const std::string blob = "native-toolkit-sample-payload";
-copyCustomFormat(L"NativeToolkitSample",
-                 reinterpret_cast<const BYTE*>(blob.data()),
-                 static_cast<DWORD>(blob.size()),
-                 CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<std::byte> blob = ToBytes("native-toolkit-sample-payload");
+const auto result = g_session->CopyCustom(L"NativeToolkitSample", blob, Clipboard::WriteOptions{});
 ```
 
 #### 여러 형식 동시 복사
 
-한 번의 조작으로 여러 형식을 배치하여, 붙여넣는 앱이 이해할 수 있는 가장 풍부한 형식을 고를 수 있게 합니다. **가장 풍부한 형식을 맨 앞에 두십시오.** 순서는 계약의 일부입니다.
+한 번의 쓰기로 여러 형식을 배치합니다. 한 항목은 텍스트, HTML, 바이트열 중 하나이며 섞이지 않습니다. 배치 순서는 받는 앱이 보는 정보이므로 가장 풍부한 형식을 앞에 둡니다.
 
 ```cpp
-copyMultipleFormats(
-    LR"([{"format":"HTML Format","html":"<b>Hello</b> from native-toolkit"},
-         {"format":"CF_UNICODETEXT","text":"Hello from native-toolkit"}])",
-    CLIPBOARD_WRITE_OPTION_NONE, &err);
+const std::vector<Clipboard::FormatPayload> items{
+    Clipboard::HtmlPayload{ L"HTML Format", L"<b>Hello</b> from native-toolkit" },
+    Clipboard::TextPayload{ L"CF_UNICODETEXT", L"Hello from native-toolkit" },
+    Clipboard::BytesPayload{ L"CF_DIB", BuildSampleDib() },
+};
+const auto result = g_session->CopyMultiple(items, Clipboard::WriteOptions{});
 ```
 
-각 항목이 갖는 페이로드 키는 하나뿐입니다.
-
-| 키 | 내용 | 지정 가능한 형식 |
-|---|---|---|
-| `text` | UTF-16 텍스트 | 텍스트 계열(`CF_UNICODETEXT`, `CF_TEXT`) |
-| `html` | HTML 프래그먼트. `CF_HTML` 전체는 라이브러리가 구성합니다 | `HTML Format` |
-| `base64` | 원시 바이트 | `CF_DIB`, `CF_HDROP`, 사용자 정의 형식을 포함한 모든 형식 |
-
-알려진 바이너리 형식에 대한 `base64` 는 구조가 검증됩니다. `format` 중복, 형식과 페이로드 종류의 불일치, `CF_BITMAP`(`HBITMAP` 소유권 경로가 없기 때문)은 **아무것도 배치하기 전에** `CLIPBOARD_ERROR_INVALID_PARAMETER` 로 거부됩니다.
-
-이미지를 더할 때도 항목을 하나 늘리기만 하면 됩니다.
-
-```cpp
-copyMultipleFormats(
-    LR"([{"format":"HTML Format","html":"<b>Hello</b> from native-toolkit"},
-         {"format":"CF_UNICODETEXT","text":"Hello from native-toolkit"},
-         {"format":"CF_DIB","base64":"<DIB 바이트의 base64>"}])",
-    CLIPBOARD_WRITE_OPTION_NONE, &err);
-```
-
-도중에 실패하면 클립보드를 다시 비웁니다. 그 롤백마저 실패하면 `*pError` 가 `CLIPBOARD_ERROR_PARTIAL_STATE` 가 되고, 일부 형식이 남을 수 있습니다.
+형식 이름이 중복되거나 형식에 맞지 않는 값을 담은 항목이 있으면 `ErrorCode::InvalidParameter`가 되고 아무것도 쓰이지 않습니다.
 
 ---
 
 ### 쓰기 옵션
 
-같은 내용을 프라이버시 설정만 바꿔 쓰는 예입니다.
-
 ```cpp
-// Win+V 에 남기지 않고, 다른 기기로도 동기화하지 않습니다
-copyPlainText(L"Sensitive sample value", CLIPBOARD_WRITE_OPTION_SENSITIVE, &err);
+// 두 가지 제외를 동시에 지정합니다. C ABI가 SENSITIVE라고 부르는 상태입니다.
+const Clipboard::WriteOptions sensitive{ true, true };
+const auto result = g_session->CopyText(L"Sensitive sample value", sensitive);
 
-// Win+V 에 남기지 않을 뿐입니다
-copyPlainText(L"History excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_HISTORY, &err);
-
-// 다른 기기로 동기화하지 않을 뿐입니다
-copyPlainText(L"Roaming excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_ROAMING, &err);
+// 하나씩 지정할 수도 있습니다.
+const Clipboard::WriteOptions excludeHistory{ true, false };
+const Clipboard::WriteOptions excludeRoaming{ false, true };
 ```
-
-세 가지 모두 현재 세션에서는 Ctrl+V 로 붙여넣을 수 있습니다. 제한 대상은 히스토리와 동기화이지 클립보드 자체가 아닙니다.
 
 ---
 
@@ -2168,61 +2111,55 @@ copyPlainText(L"Roaming excluded sample value", CLIPBOARD_WRITE_OPTION_EXCLUDE_R
 #### 일반 텍스트 붙여넣기
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const DWORD required = pastePlainText(nullptr, 0, &err);
-std::wstring text(required, 0);
-pastePlainText(text.data(), required, &err);
+const auto text = g_session->PasteText();
+if (text.has_value())
+{
+    const std::wstring& value = text.value();
+}
+else if (text.error().code == Clipboard::ErrorCode::FormatUnavailable)
+{
+    // 클립보드에 텍스트가 없습니다.
+}
 ```
 
 #### HTML 붙여넣기
 
-반환되는 것은 프래그먼트뿐입니다. `CF_HTML` 헤더와 `<html><body>` 래퍼는 제거되고, UTF-8 페이로드는 UTF-16 으로 디코딩됩니다.
+CF_HTML 헤더를 제거한 조각을 반환합니다.
 
 ```cpp
-const DWORD required = pasteHtml(nullptr, 0, &err);
-std::wstring html(required, 0);
-pasteHtml(html.data(), required, &err);
-// html == L"<b>Hello</b> from native-toolkit"
+const auto html = g_session->PasteHtml();
 ```
 
 #### 파일 붙여넣기
 
-`CF_HDROP` 목록을 경로의 JSON 배열로 반환하므로, 탐색기에서 복사한 파일을 그대로 읽을 수 있습니다.
-
 ```cpp
-const DWORD required = pasteFiles(nullptr, 0, &err);
-std::wstring json(required, 0);
-pasteFiles(json.data(), required, &err);
-// json == LR"(["C:\\...\\a.txt","C:\\...\\b.txt"])"
+const auto files = g_session->PasteFiles();
+if (files.has_value())
+{
+    for (const std::wstring& path : files.value())
+    {
+        // 받은 파일 한 건입니다.
+    }
+}
 ```
 
 #### 이미지 붙여넣기
 
-`CF_DIB` 바이트를 반환합니다. 크기는 문자 수가 아니라 바이트 수입니다.
+클립보드에 있는 패킹된 DIB를 그대로 반환합니다.
 
 ```cpp
-const DWORD required = pasteImage(nullptr, 0, &err);
-std::vector<BYTE> dib(required);
-pasteImage(dib.data(), required, &err);
-
-BITMAPINFOHEADER header{};
-std::memcpy(&header, dib.data(), sizeof(header));
-// header.biWidth, header.biHeight, header.biBitCount
+const auto pasted = g_session->PasteDib();
+if (pasted.has_value())
+{
+    const std::vector<std::byte>& dib = pasted.value();
+}
 ```
-
-반환되는 크기는 픽셀 데이터보다 커질 수 있습니다. Windows 가 할당 단위를 올림하기 때문입니다. 이미지 크기는 버퍼 길이가 아니라 헤더에서 읽으십시오.
-
-클립보드에 이미지가 없으면 `pasteImage` 는 크기 확인 호출에서도 `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` 을 반환합니다.
 
 #### 사용자 정의 형식 붙여넣기
 
 ```cpp
-const DWORD required = pasteCustomFormat(L"NativeToolkitSample", nullptr, 0, &err);
-std::vector<BYTE> blob(required);
-pasteCustomFormat(L"NativeToolkitSample", blob.data(), required, &err);
+const auto pasted = g_session->PasteCustom(L"NativeToolkitSample");
 ```
-
-바이트 수는 쓸 때와 일치합니다. 사용자 정의 형식은 가공되지 않고 그대로 왕복합니다.
 
 ---
 
@@ -2231,202 +2168,238 @@ pasteCustomFormat(L"NativeToolkitSample", blob.data(), required, &err);
 #### 형식 존재 여부
 
 ```cpp
-const BOOL present = hasClipboardFormat(L"CF_UNICODETEXT", &err);
+const auto present = g_session->HasFormat(L"CF_UNICODETEXT");
+const bool yes = present.has_value() && present.value();
 ```
-
-`CF_*` 상수 이름과 등록된 사용자 정의 형식 이름을 모두 지정할 수 있습니다.
 
 #### 형식 목록 가져오기
 
-현재 클립보드에 있는 형식을 JSON 배열로 반환합니다. Windows 가 자동으로 합성한 형식도 포함됩니다.
+지금 클립보드에 있는 형식을 이름으로 반환합니다.
 
 ```cpp
-const DWORD required = getClipboardFormats(nullptr, 0, &err);
-std::wstring json(required, 0);
-getClipboardFormats(json.data(), required, &err);
-// ["CF_UNICODETEXT","HTML Format","0x0010","CF_TEXT","0x0007"]
+const auto formats = g_session->GetFormats();
 ```
-
-`CF_TEXT` 나 `CF_OEMTEXT` 가 `CF_UNICODETEXT` 와 함께 나타나는 것은 시스템이 그것들을 합성하기 때문입니다.
 
 #### 우선 형식 가져오기
 
-이 라이브러리가 읽을 수 있는 형식 중 정보량이 가장 많은 것을 반환합니다. 후보 순서는 `CF_UNICODETEXT`, `CF_HDROP`, `CF_DIB`, `CF_BITMAP` 입니다.
+Windows가 가장 먼저 건네줄 형식입니다. 빈 문자열은 후보가 없다는 뜻입니다.
 
 ```cpp
-const DWORD required = getPreferredClipboardFormat(nullptr, 0, &err);
-std::wstring name(required, 0);
-getPreferredClipboardFormat(name.data(), required, &err);
+const auto name = g_session->GetPreferredFormat();
 ```
-
-`HTML Format` 은 후보에 포함되지 않으므로, 텍스트와 HTML 이 함께 올라가 있으면 `CF_UNICODETEXT` 가 됩니다. 사용자 정의 형식만 올라가 있으면 빈 문자열을 반환합니다.
 
 #### 클립보드 지우기
 
 ```cpp
-clearClipboard(&err);
+const auto result = g_session->Clear();
 ```
-
-실행 후에는 `getClipboardFormats` 가 `[]` 를 반환하고, 붙여넣기는 `CLIPBOARD_ERROR_EMPTY` 가 아니라 `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` 을 반환합니다. 데이터를 요청하기 전에 형식 존재 여부를 확인하는 설계이기 때문입니다.
 
 ---
 
 ### 지연 렌더링
 
-지연 렌더링은 형식만 제시하고 실제 데이터를 만들지 않습니다. 실제로 요청되었을 때만 페이로드를 생성하므로, 붙여넣지 않을 수도 있는 무거운 표현을 미리 직렬화하지 않아도 됩니다.
+바이트열을 준비하지 않은 채 형식만 제시하고, 다른 앱이 붙여넣을 때 비로소 제공자에게 요청합니다.
 
 #### 형식 예약
 
-```cpp
-DWORD OnRenderFormat(const wchar_t* formatName, void* context,
-                     BYTE* buffer, DWORD bufferSize, DWORD* pRequiredSize)
-{
-    const std::vector<BYTE>& payload = PayloadFor(formatName);
-    *pRequiredSize = static_cast<DWORD>(payload.size());
+소유 스레드 전용입니다. 제공자는 소유 스레드에서, 데이터를 모으는 메시지 안에서 호출됩니다. 그래서 세 가지 제약이 있습니다. 클립보드 작업을 전혀 호출할 수 없고, 블로킹해서는 안 되며, 세션을 캡처해서도 안 됩니다.
 
-    if (!buffer || bufferSize < payload.size())
+```cpp
+Clipboard::Result<std::vector<std::byte>> RenderDeferredFormat(std::wstring_view formatName)
+{
+    const auto it = g_deferredPayloads.find(std::wstring(formatName));
+    if (it == g_deferredPayloads.end())
     {
-        return CLIPBOARD_ERROR_BUFFER_TOO_SMALL;   // 크기 확인 단계
+        return NativeToolkit::Unexpected{ Clipboard::Error{ Clipboard::ErrorCode::FormatUnavailable } };
     }
-    std::memcpy(buffer, payload.data(), payload.size());
-    return CLIPBOARD_ERROR_NONE;                   // 데이터 제공 단계
+    return it->second;   // 형식을 제시한 시점에 확정한 바이트열입니다.
 }
 
-DWORD err = CLIPBOARD_ERROR_NONE;
-reserveDeferredFormats(LR"(["HTML Format","CF_UNICODETEXT"])",
-                       &OnRenderFormat, nullptr, &err);
+const std::vector<std::wstring> formats{ L"HTML Format", L"CF_UNICODETEXT" };
+const auto result = g_session->ReserveDeferred(formats, &RenderDeferredFormat);
 ```
 
-프로바이더는 `WM_RENDERFORMAT` 처리 중에 소유자 UI 스레드에서 호출됩니다. **클립보드 API 를 호출해서는 안 되고, 블로킹해서는 안 되며, 예외를 던져서도 안 됩니다.** `*pRequiredSize` 는 두 단계 모두에서 설정하고, 같은 값을 반환하십시오. 데이터 제공 시의 크기는 크기 확인 시 반환한 값과 일치해야 합니다.
-
-예약이 유지되는 조건은 두 가지입니다.
-
-- 예약은 이 프로세스가 클립보드를 소유하고 있는 동안에만 유효합니다. 다른 앱이 복사하면 파기되고 프로바이더는 호출되지 않습니다.
-- 페이로드가 요청되는 시점에 소유자 윈도우가 존재해야 하므로, **프로세스 종료 전에 `uninitClipboardManager` 를 호출하십시오.** 호출하지 않으면 예약한 형식은 렌더링되지 않고 사라집니다.
-
-**클립보드 히스토리가 활성인 경우, 히스토리 서비스가 예약 직후에 모든 형식을 렌더링합니다.** 따라서 프로바이더는 외부의 붙여넣기보다 먼저 호출됩니다. "아직 프로바이더가 호출되지 않았다" 를 불변 조건으로 다루지 마십시오.
+실패를 반환하거나 예외를 던지면 그 형식은 빈 값으로 전달됩니다. 그 시점에 상대 앱은 붙여넣는 중이어서 보고할 상대가 없기 때문입니다. 둘 다 로그에는 남습니다.
 
 #### 부분 상태 복구
 
-```cpp
-recoverDeferredState(&err);
-```
+소유 스레드 전용입니다. `ErrorCode::PartialState` 이후에 반쯤 배치된 예약을 정리합니다.
 
-롤백 실패가 남긴 `CLIPBOARD_ERROR_PARTIAL_STATE` 로부터의 복구를 재시도합니다. 복구할 상태가 없을 때 호출해도 성공하며, 유효한 예약을 망가뜨리지 않습니다.
+```cpp
+const auto result = g_session->RecoverDeferredState();
+```
 
 ---
 
 ### 히스토리
 
-히스토리의 5 개 API 는 비동기입니다. 수락되면 0 이 아닌 요청 ID 를 반환하고, 콜백은 소유자 UI 스레드에서 정확히 한 번 발생합니다.
-
-```cpp
-void OnRequestCompleted(uint32_t requestId, DWORD error, const wchar_t* json)
-{
-    // json 이 유효한 것은 이 콜백 동안뿐입니다. 반환하기 전에 복사하십시오.
-}
-```
-
-클립보드 히스토리는 Windows 설정에서 활성화되어 있어야 합니다. 비활성이어도 요청은 수락되며, 콜백은 빈 목록이 아니라 `CLIPBOARD_ERROR_HISTORY_DISABLED`(10)를 반환합니다. "비활성" 이 "비어 있음" 으로 오인되는 일은 없습니다.
+히스토리 작업 5가지는 비동기입니다. `RequestId`를 반환하고 핸들러를 소유 스레드에서 정확히 한 번 호출합니다. `ErrorCode::HistoryDisabled`는 Windows 설정에서 히스토리가 꺼져 있다는 뜻입니다.
 
 #### 히스토리 사용 가능 여부
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-const uint32_t id = getClipboardHistoryAvailability(&OnRequestCompleted, &err);
-// 콜백의 json: {"historyEnabled":true,"roamingEnabled":false}
+const auto accepted = g_session->GetHistoryAvailability(
+    [](Clipboard::RequestId id, Clipboard::Result<Clipboard::HistoryAvailability> result)
+    {
+        if (result.has_value())
+        {
+            const bool historyEnabled = result.value().historyEnabled;
+            const bool roamingEnabled = result.value().roamingEnabled;
+        }
+    });
 ```
-
-현재 설정을 확실하게 읽을 수 있는 것은 이 API 입니다. Windows 설정에서 변경한 내용도 따라갑니다.
 
 #### 히스토리 목록 가져오기
 
 ```cpp
-const uint32_t id = getClipboardHistory(&OnRequestCompleted, &err);
+const auto accepted = g_session->GetHistory(
+    [](Clipboard::RequestId id, Clipboard::Result<std::vector<Clipboard::HistoryItem>> result)
+    {
+        if (!result.has_value()) return;
+        for (const Clipboard::HistoryItem& item : result.value())
+        {
+            const std::wstring& id = item.id;                    // 복원, 삭제에 사용합니다
+            const std::optional<std::wstring>& text = item.text;  // 텍스트가 없는 항목에서는 비어 있습니다
+            const std::vector<std::wstring>& types = item.contentTypes;
+            const int64_t ticks = item.timestampTicks;
+        }
+    });
 ```
-
-콜백은 최신 항목부터 순서대로 받습니다.
-
-```json
-[{"id":"{EC8B5A45-...}","text":"history-3","contentTypes":["Text"],"timestamp":"134329814601772022"}]
-```
-
-`timestamp` 는 JSON 숫자가 아니라 **10 진 문자열** 입니다. 1601 년부터의 100ns 단위(FILETIME)를 담고 있으며, JSON 숫자의 배정밀도로는 int64 전체 범위를 표현할 수 없기 때문입니다. 텍스트 표현이 없는 항목에서는 `text` 가 `null` 이 됩니다.
 
 #### 히스토리 항목 복원
 
-히스토리 항목을 현재 클립보드 내용으로 만듭니다.
+항목을 클립보드에 되돌립니다. id는 `GetHistory`에서 얻은 값입니다.
 
 ```cpp
-const uint32_t id = restoreHistoryItem(itemId, &OnRequestCompleted, &err);
+const auto accepted = g_session->RestoreHistoryItem(itemId,
+    [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });
 ```
-
-복원을 수행하는 것은 이 라이브러리가 아니라 Windows 히스토리 서비스이므로, 일반적인 클립보드 변경 콜백이 외부 변경으로서 발생합니다.
 
 #### 히스토리 항목 삭제
 
-```cpp
-const uint32_t id = deleteHistoryItem(itemId, &OnRequestCompleted, &err);
-```
+`ErrorCode::ItemDeleted`는 그 항목이 이미 없다는 뜻입니다.
 
-삭제에서는 `onHistoryChanged` 발생이 보장되지 않으므로, 실행 후에 목록을 다시 가져오십시오.
+```cpp
+const auto accepted = g_session->DeleteHistoryItem(itemId,
+    [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });
+```
 
 #### 고정되지 않은 히스토리 지우기
 
-```cpp
-const uint32_t id = clearUnpinnedHistory(&OnRequestCompleted, &err);
-```
+사용자가 고정하지 않은 항목을 모두 삭제합니다.
 
-**고정(핀)한 항목은 남습니다.** 이는 OS 의 동작입니다. 사용자가 의도적으로 고정한 것이기 때문입니다.
+```cpp
+const auto accepted = g_session->ClearUnpinnedHistory(
+    [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });
+```
 
 #### 요청 취소
 
+완료되지 않은 요청을 취소합니다. 핸들러는 `ErrorCode::Canceled`로 한 번 호출됩니다.
+
 ```cpp
-const BOOL queued = cancelClipboardRequest(id, &err);
+if (accepted.has_value())
+{
+    const auto result = g_session->CancelRequest(accepted.value());
+}
 ```
-
-어느 스레드에서나 호출할 수 있습니다. `TRUE` 는 취소가 소유자 UI 스레드로 큐에 쌓였음을 나타내고, `FALSE` 는 ID 가 알려지지 않았거나 이미 완료되었거나 전송에 실패했음을 나타냅니다.
-
-콜백은 **정확히 한 번** 발생합니다. 취소가 이기면 `CLIPBOARD_ERROR_CANCELED`, 그렇지 않으면 일반적인 결과입니다. `FALSE` 가 반환되어도 이미 전달 중인 완료 통지가 억제되지는 않습니다.
 
 ---
 
 ### 에러 처리
 
-동기 API 는 `DWORD* pError` 로, 비동기 요청은 완료 콜백의 `error` 인수로 결과를 반환합니다.
+동기 작업은 반환된 `Result`로, 비동기 요청은 핸들러가 받는 `Result`로 보고합니다. `Clipboard::Error`는 구분과 OS의 원래 값인 `systemCode`를 가집니다.
 
 ```cpp
-DWORD err = CLIPBOARD_ERROR_NONE;
-copyPlainText(text, CLIPBOARD_WRITE_OPTION_NONE, &err);
-if (err != CLIPBOARD_ERROR_NONE)
+const auto result = g_session->CopyText(text, Clipboard::WriteOptions{});
+if (!result.has_value())
 {
-    // err 를 처리합니다
+    const Clipboard::ErrorCode code = result.error().code;
+    const uint32_t systemCode = result.error().systemCode;
 }
 ```
 
-| 코드 | 상수 | 발생하는 상황 |
+`Clipboard::ErrorCode`(`NativeToolkit::ClipboardError`)입니다. 같은 숫자가 C ABI의 `NTK_CLIPBOARD_ERROR_*`입니다.
+
+| 코드 | 이름 | 발생하는 경우 |
 |---|---|---|
-| 0 | `CLIPBOARD_ERROR_NONE` | 성공 |
-| 1 | `CLIPBOARD_ERROR_INVALID_PARAMETER` | 인수가 null 이거나 잘못됨, 파일 목록이 비어 있음, 여러 형식 지정의 중복이나 종류 불일치, `CF_BITMAP` |
-| 2 | `CLIPBOARD_ERROR_NOT_INITIALIZED` | `initClipboardManager` 이전이거나 종료 처리 시작 이후에 호출됨 |
-| 3 | `CLIPBOARD_ERROR_BUSY` | 다른 앱이 점유하고 있어 클립보드를 열 수 없음 |
-| 4 | `CLIPBOARD_ERROR_EMPTY` | 형식은 있으나 데이터가 비어 있음 |
-| 5 | `CLIPBOARD_ERROR_FORMAT_UNAVAILABLE` | 요청한 형식이 클립보드에 없음 |
-| 6 | `CLIPBOARD_ERROR_INVALID_DATA` | 잘못된 DIB 등 구조 검증에 실패함 |
-| 7 | `CLIPBOARD_ERROR_BUFFER_TOO_SMALL` | 버퍼가 null 이거나 부족함. 필요한 크기는 반환값이 담습니다 |
-| 8 | `CLIPBOARD_ERROR_OUT_OF_MEMORY` | 메모리 확보에 실패함 |
-| 9 | `CLIPBOARD_ERROR_ACCESS_DENIED` | 시스템이 조작을 거부함 |
-| 10 | `CLIPBOARD_ERROR_HISTORY_DISABLED` | Windows 설정에서 클립보드 히스토리가 비활성 |
-| 11 | `CLIPBOARD_ERROR_ITEM_DELETED` | 대상 히스토리 항목이 존재하지 않음 |
-| 12 | `CLIPBOARD_ERROR_MONITOR_REGISTER_FAILED` | 클립보드 또는 히스토리 리스너를 등록하지 못함 |
-| 13 | `CLIPBOARD_ERROR_PARTIAL_STATE` | 롤백에 실패함. `recoverDeferredState` 를 호출합니다 |
-| 14 | `CLIPBOARD_ERROR_WRONG_THREAD` | 소유자 스레드 전용 API 를 다른 스레드에서 호출함 |
-| 15 | `CLIPBOARD_ERROR_CANCELED` | 완료 전에 취소됨 |
-| 16 | `CLIPBOARD_ERROR_NOT_SUPPORTED` | 이 환경에서는 사용할 수 없는 조작 |
-| 17 | `CLIPBOARD_ERROR_NOT_FOREGROUND` | 포그라운드 윈도우가 필요한 조작 |
-| 18 | `CLIPBOARD_ERROR_WRONG_APARTMENT` | 초기화한 스레드가 STA 가 아님 |
-| 19 | `CLIPBOARD_ERROR_UNKNOWN` | 그 외 |
+| 0 | `None` | 성공 |
+| 1 | `InvalidParameter` | 잘못된 인수, 빈 파일 목록, 여러 형식 항목의 중복 또는 불일치, `CF_BITMAP` |
+| 2 | `NotInitialized` | `Create` 전 또는 `Close` 후에 사용했습니다 |
+| 3 | `Busy` | 클립보드를 열지 못했거나 `Close` 작업이 아직 남아 있습니다 |
+| 4 | `Empty` | 형식은 있지만 데이터가 비어 있습니다 |
+| 5 | `FormatUnavailable` | 요청한 형식이 클립보드에 없습니다 |
+| 6 | `InvalidData` | 구조 검사에 실패했습니다(잘못된 DIB 등) |
+| 7 | `BufferTooSmall` | 예약된 값으로 반환되지 않습니다. 1.x C ABI에서 호출자의 버퍼가 작았을 때의 값입니다 |
+| 8 | `OutOfMemory` | 할당에 실패했습니다 |
+| 9 | `AccessDenied` | 시스템이 작업을 거부했습니다 |
+| 10 | `HistoryDisabled` | Windows 설정에서 클립보드 히스토리가 꺼져 있습니다 |
+| 11 | `ItemDeleted` | 해당 히스토리 항목이 이미 없습니다 |
+| 12 | `MonitorRegisterFailed` | 리스너나 이벤트 토큰을 등록 또는 해제하지 못했습니다 |
+| 13 | `PartialState` | 배치에 실패했고 롤백도 실패했습니다. `RecoverDeferredState`를 호출해 주세요 |
+| 14 | `WrongThread` | 소유 스레드 전용 작업을 다른 스레드에서 호출했습니다 |
+| 15 | `Canceled` | 취소되었거나 `Close`로 정리되었습니다 |
+| 16 | `NotSupported` | Windows에 대응하는 기능이 없거나 두 번째 세션입니다 |
+| 17 | `NotForeground` | 이 프로세스가 포그라운드가 아닙니다. 콜백으로 보고됩니다 |
+| 18 | `WrongApartment` | 호출한 스레드가 STA가 아닙니다 |
+| 19 | `Unknown` | 그 밖의 경우 |
 
-#### 값 읽기는 두 번 호출하므로 7 은 정상입니다
+### C ABI
 
-`CLIPBOARD_ERROR_BUFFER_TOO_SMALL` 은 크기 확인 호출에서는 정상적인 결과이지 실패가 아닙니다. 에러로 다루는 것은 데이터를 읽는 쪽 호출에서 반환된 경우뿐입니다.
+- C에서, 그리고 C DLL을 호출할 수 있는 언어에서 같은 클립보드를 사용하기 위한 API입니다.
+- 세션은 핸들입니다. 메시지 루프를 도는 STA 스레드에서 `ntk_clipboard_session_create`를 호출하고, 같은 스레드에서 `ntk_clipboard_session_close`를 호출한 뒤 `ntk_clipboard_session_free`합니다.
+- `ntk_clipboard_reserve_deferred`는 `user_data`와 `release`를 받습니다. `release`는 호출 결과와 무관하게 반드시 한 번 호출되며, 바인딩이 할당한 것을 여기서 해제합니다. 세션 옵션과 히스토리 핸들러는 `user_data`만 가지며 세션과 같은 기간 동안 유지됩니다.
+- 읽기는 핸들로 반환됩니다. `ntk_string`, `ntk_bytes`, `ntk_string_list`가 있으며 각각 대응하는 `_free`로 해제합니다. 핸들에서 꺼낸 포인터는 그 핸들을 해제할 때까지 유효합니다.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static void NTK_CALL on_clipboard_changed(void* user_data)
+{
+    /* 소유 스레드에서 호출됩니다. */
+    (void)user_data;
+}
+
+ntk_clipboard_session_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.on_clipboard_changed = &on_clipboard_changed;
+options.user_data = NULL;
+
+ntk_clipboard_session* session = NULL;
+ntk_clipboard_error error = ntk_clipboard_session_create(&options, &session);
+if (error != NTK_CLIPBOARD_ERROR_NONE) {
+    return;   /* STA가 아닌 스레드라면 WRONG_APARTMENT입니다 */
+}
+
+/* 쓴 다음 다시 읽습니다. 문자열은 UTF-8입니다. */
+error = ntk_clipboard_copy_text(session, "Hello from native-toolkit", NTK_CLIPBOARD_WRITE_DEFAULT);
+
+ntk_string* text = NULL;
+if (ntk_clipboard_paste_text(session, &text) == NTK_CLIPBOARD_ERROR_NONE) {
+    const char* utf8 = ntk_string_data(text);   /* ntk_string_free 전까지 유효합니다 */
+    (void)utf8;
+    ntk_string_free(text);
+}
+
+/* 소유 스레드에서 호출하고 결과를 확인합니다. close는 실패할 수 있습니다. */
+error = ntk_clipboard_session_close(session);
+ntk_clipboard_session_free(session);
+```
+
+| C++ API | C ABI |
+|---|---|
+| `Session::Create` | `ntk_clipboard_session_create` |
+| `Session::Close` / 소멸자 | `ntk_clipboard_session_close` / `ntk_clipboard_session_free` |
+| `Session::CanClose` | `ntk_clipboard_session_can_close` |
+| `Session::SetHistoryHandlers` | `ntk_clipboard_set_history_handlers` |
+| `CopyText` / `CopyHtml` / `CopyFiles` / `CopyDib` / `CopyCustom` | `ntk_clipboard_copy_text` / `_copy_html` / `_copy_files` / `_copy_dib` / `_copy_custom` |
+| `CopyMultiple`과 `FormatPayload` | `ntk_clipboard_items_create`와 `_add_text` / `_add_html` / `_add_bytes`, 그리고 `ntk_clipboard_copy_multiple` |
+| `PasteText` / `PasteHtml` / `PasteFiles` / `PasteDib` / `PasteCustom` | `ntk_clipboard_paste_text` / `_paste_html` / `_paste_files` / `_paste_dib` / `_paste_custom` |
+| `HasFormat` / `GetFormats` / `GetPreferredFormat` / `Clear` | `ntk_clipboard_has_format` / `_get_formats` / `_get_preferred_format` / `_clear` |
+| `ReserveDeferred` / `RecoverDeferredState` | `ntk_clipboard_reserve_deferred` / `_recover_deferred_state` |
+| `GetHistory` / `RestoreHistoryItem` / `DeleteHistoryItem` / `ClearUnpinnedHistory` / `GetHistoryAvailability` | `ntk_clipboard_get_history` / `_restore_history_item` / `_delete_history_item` / `_clear_unpinned_history` / `_get_history_availability` |
+| `CancelRequest` | `ntk_clipboard_cancel_request` |
+| `WriteOptions` | `flags` 인수: `NTK_CLIPBOARD_WRITE_DEFAULT` / `_EXCLUDE_HISTORY` / `_EXCLUDE_ROAMING` / `_SENSITIVE` |
