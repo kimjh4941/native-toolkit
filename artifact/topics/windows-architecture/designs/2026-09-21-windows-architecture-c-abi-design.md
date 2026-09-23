@@ -607,7 +607,7 @@ windows/
 | `initNotificationManager` | `ntk_notification_manager_create` | 2 回目は成功（コールバックの差し替え）ではなく `NOT_SUPPORTED`。差し替えは `ntk_notification_manager_set_invoked_handler`。`user_data` の解放は `release` で知らされる（E-12） |
 | `uninitNotificationManager` | `ntk_notification_manager_close` / `_free` | 戻った後も、配送中の活性化が 1 回走りうる。`user_data` は `release` の後に解放する |
 | `showNotification` | `ntk_notification_show` | JSON ではなくビルダー。JSON の解析の失敗（`INVALID_PAYLOAD`）は起きなくなり、意味の検証の失敗は今と同じ `INVALID_PARAMETER`。**`timestamp` は Unix 秒から Unix ミリ秒になる**。scenario、音声の種別（`audio.type`）、ロゴの crop は、未知の文字列が黙って既定になっていたのが、列挙の範囲外の値なら `INVALID_PARAMETER` になる。ボタンのラベルや入力欄の ID が無いときは、`HRESULT_FAILURE` から `INVALID_PARAMETER` になる |
-| `scheduleNotification` | `ntk_notification_schedule` | 同上 |
+| `scheduleNotification` | `ntk_notification_schedule` | 同上。予定時刻は今も Unix ミリ秒だが、`system_clock` が持てる範囲（前後およそ 2.9 万年）を超えると `INVALID_PARAMETER`（T-06） |
 | `cancelScheduledNotification` | `ntk_notification_cancel_scheduled` | - |
 | `updateNotificationProgress` | `ntk_notification_update_progress` | 6 引数が構造体になる |
 | `setBadge` | `ntk_notification_set_badge` | - |
@@ -619,7 +619,7 @@ windows/
 | `openNotificationSettings` | `ntk_notification_open_settings` | - |
 | （コールバック）`NotificationInvokedCallback` | `ntk_notification_invoked_fn` | 引数が JSON の文字列から、活性化のハンドルになる。`ntk_notification_activation_raw_arguments` は今と同じ JSON を返す |
 | `initClipboardManager` | `ntk_clipboard_session_create` | 同じスレッドからの 2 回目は成功ではなく `NOT_SUPPORTED`（C++ API の OP-21。段階 4 のサンプルで確かめた差） |
-| `setClipboardHistoryCallbacks` | `ntk_clipboard_set_history_handlers` | 3 つのコールバックが 1 つの構造体と `user_data` になる |
+| `setClipboardHistoryCallbacks` | `ntk_clipboard_set_history_handlers` | 3 つのコールバックが 1 つの構造体と `user_data` になる。外すのは `NULL` か 3 つとも `NULL`。**失敗したときは古いハンドラが残り、新しい `user_data` は登録されない**（E-20） |
 | `uninitClipboardManager` | `ntk_clipboard_session_close` | `BOOL` + `pError` ではなくエラーだけ。成功した後に `_free` する。**処理中の要求があっても、メッセージを回さずに閉じられる**（E-19）。`BUSY` のときだけ再試行する |
 | `canDestroyClipboardManager` | `ntk_clipboard_session_can_close` | - |
 | `copyPlainText` | `ntk_clipboard_copy_text` | 未知のオプションのビットは、今と同じく `INVALID_PARAMETER`（1.11.0 のコアも拒んでいた。捨てていたのは配布していない段階 3 のブリッジだけ）。`SENSITIVE`（3）は同じ値で残す |
