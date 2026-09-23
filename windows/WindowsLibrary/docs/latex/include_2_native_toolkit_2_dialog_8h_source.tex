@@ -1,0 +1,98 @@
+\doxysection{Dialog.\+h}
+\hypertarget{include_2_native_toolkit_2_dialog_8h_source}{}\label{include_2_native_toolkit_2_dialog_8h_source}\index{WindowsLibrary/include/NativeToolkit/Dialog.h@{WindowsLibrary/include/NativeToolkit/Dialog.h}}
+\mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ "{}NativeToolkit/BuildStamp.h"{}}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_error_8h}{NativeToolkit/Error.h}}"{}}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_types_8h}{NativeToolkit/Types.h}}"{}}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{keyword}{namespace\ }NativeToolkit::Dialog\ \{}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00036\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983}{AlertButtons}}\ \{}
+\DoxyCodeLine{00037\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983aa60852f204ed8028c1c58808b746d115}{Ok}},\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00038\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a4b116999b87115628973f2e30b59fd08}{OkCancel}},\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00039\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983ab65ffbcb4dcfb93ecdc257d6e4ba42c4}{YesNo}},\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00040\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a71fc7b7aece69111c0b6967de4b101c5}{YesNoCancel}},\ \ \ \ \ \ \ }
+\DoxyCodeLine{00041\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a5d1f937d009d6f924b50b9e742ecc8ac}{RetryCancel}},\ \ \ \ \ \ \ }
+\DoxyCodeLine{00042\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a080cccc8400ed0226bf270eadb078851}{AbortRetryIgnore}},\ \ }
+\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a1150839156005b4c6153e3e530011a6f}{CancelTryContinue}},\ }
+\DoxyCodeLine{00044\ \};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220d}{AlertIcon}}\ \{}
+\DoxyCodeLine{00048\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da6adf97f83acf6453d4a6a4b1070f3754}{None}},\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00049\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa82be0f551b8708bc08eb33cd9ded0cf}{Information}},\ }
+\DoxyCodeLine{00050\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da0eaadb4fcb48a0a0ed7bc9868be9fbaa}{Warning}},\ \ \ \ \ }
+\DoxyCodeLine{00051\ \ \ \ \ \mbox{\hyperlink{_error_8h_afb3eb14cc79ed39a40f4f32e85eb04a2}{Error}},\ \ \ \ \ \ \ }
+\DoxyCodeLine{00052\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa97ea56b0e00b2379736ae60869ff66a}{Question}},\ \ \ \ }
+\DoxyCodeLine{00053\ \};}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00056\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfa}{AlertDefaultButton}}\ \{}
+\DoxyCodeLine{00057\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa7fb55ed0b7a30342ba6da306428cae04}{First}},\ \ }
+\DoxyCodeLine{00058\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaac22cf8376b1893dcfcef0649fe1a7d87}{Second}},\ }
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa168909c0b6f1dfbd48f679d47059c1d6}{Third}},\ \ }
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa6e599f7a2a9186d391be4537f105be98}{Fourth}},\ }
+\DoxyCodeLine{00061\ \};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113}{AlertResult}}\ \{}
+\DoxyCodeLine{00065\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983aa60852f204ed8028c1c58808b746d115}{Ok}},\ Cancel,\ Yes,\ No,\ Retry,\ Abort,\ Ignore,\ TryAgain,\ Continue,}
+\DoxyCodeLine{00066\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113ad3d2e617335f08df83599665eef8a418}{Close}},\ \ }
+\DoxyCodeLine{00067\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113a6a26f548831e6a8c26bfbbd9f6ec61e0}{Help}},\ \ \ }
+\DoxyCodeLine{00068\ \};}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00071\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request}{AlertRequest}}\ \{}
+\DoxyCodeLine{00072\ \ \ \ \ std::wstring\ \ \ \ \ \ \ title;}
+\DoxyCodeLine{00073\ \ \ \ \ std::wstring\ \ \ \ \ \ \ message;}
+\DoxyCodeLine{00074\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983}{AlertButtons}}\ \ \ \ \ \ \ buttons\ \ \ \ \ \ \ \ =\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983aa60852f204ed8028c1c58808b746d115}{AlertButtons::Ok}};}
+\DoxyCodeLine{00075\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220d}{AlertIcon}}\ \ \ \ \ \ \ \ \ \ icon\ \ \ \ \ \ \ \ \ \ \ =\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da6adf97f83acf6453d4a6a4b1070f3754}{AlertIcon::None}};}
+\DoxyCodeLine{00076\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfa}{AlertDefaultButton}}\ defaultButton\ \ =\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa7fb55ed0b7a30342ba6da306428cae04}{AlertDefaultButton::First}};}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request_a4b7d770302e229045a14ec24319e6342}{topMost}}\ \ \ \ \ \ \ \ =\ \textcolor{keyword}{false};\ \ }
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request_a263a5635e544e80d3f886c2727edd19e}{showHelpButton}}\ =\ \textcolor{keyword}{false};\ \ }
+\DoxyCodeLine{00079\ \ \ \ \ \mbox{\hyperlink{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}{WindowHandle}}\ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request_a6b123a14f78ae347a68ac3e286f8f008}{owner}}\ \ \ \ \ \ \ \ \ \ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00080\ \};}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00089\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_filter}{FileFilter}}\ \{}
+\DoxyCodeLine{00090\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_filter_ae6046c3878de44c05bff630f90d2b470}{description}};\ \ }
+\DoxyCodeLine{00091\ \ \ \ \ std::vector<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_filter_ab4902a9e12cc47fee67d5ce34864fb58}{patterns}};\ \ \ \ \ }
+\DoxyCodeLine{00092\ \};}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00101\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{FileRequest}}\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ title;}
+\DoxyCodeLine{00103\ \ \ \ \ std::vector<FileFilter>\ filters;}
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request_a16602f30507c999a9638a91547cd4901}{fileMustExist}}\ =\ \textcolor{keyword}{true};\ \ \ }
+\DoxyCodeLine{00105\ \ \ \ \ \mbox{\hyperlink{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}{WindowHandle}}\ \ \ \ \ \ \ \ \ \ \ \ owner\ \ \ \ \ \ \ \ \ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00106\ \};}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00109\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_save_file_request}{SaveFileRequest}}\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ title;}
+\DoxyCodeLine{00111\ \ \ \ \ std::vector<FileFilter>\ filters;}
+\DoxyCodeLine{00112\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_save_file_request_a05a91ec445686afb240a4f9da9c9e769}{defaultExtension}};\ \ \ \ \ \ \ }
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_save_file_request_a84d91947da20f381f6372eb7169adebb}{overwritePrompt}}\ =\ \textcolor{keyword}{true};\ }
+\DoxyCodeLine{00114\ \ \ \ \ \mbox{\hyperlink{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}{WindowHandle}}\ \ \ \ \ \ \ \ \ \ \ \ owner\ \ \ \ \ \ \ \ \ \ \ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00115\ \};}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00118\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{FolderRequest}}\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ std::wstring\ title;}
+\DoxyCodeLine{00120\ \ \ \ \ \mbox{\hyperlink{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}{WindowHandle}}\ owner\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00121\ \};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00131\ \mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result<AlertResult>}}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_aee4fba34d4e502dee1c8d4ed634d6d7f}{ShowAlert}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request}{AlertRequest}}\&\ request);}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00140\ \mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result<std::wstring>}}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_aed9d0e367ecfc51ef47448e09758c57d}{ShowOpenFile}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{FileRequest}}\&\ request);}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00152\ \mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result<std::vector<std::wstring>}}>\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a1e527c03dce1ca1d3aa4dbebed1dc979}{ShowOpenFiles}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{FileRequest}}\&\ request);}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00161\ \mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result<std::wstring>}}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a66ebc99781147e8c98a495b52c281708}{ShowSaveFile}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_save_file_request}{SaveFileRequest}}\&\ request);}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00170\ \mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result<std::wstring>}}\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a67f0a7d9f11fbde8bb5485d2b2be13e7}{ShowPickFolder}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{FolderRequest}}\&\ request);}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00179\ \mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result<std::vector<std::wstring>}}>\ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a13fac283ffcbb6706ad6457904bc841d}{ShowPickFolders}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{FolderRequest}}\&\ request);}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Dialog}}
+
+\end{DoxyCode}

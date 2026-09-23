@@ -1,0 +1,235 @@
+\doxysection{Windows\+Library\+CApi/include/\+Native\+Toolkit\+C/\+Dialog.h File Reference}
+\hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h}{}\label{_api_2include_2_native_toolkit_c_2_dialog_8h}\index{WindowsLibraryCApi/include/NativeToolkitC/Dialog.h@{WindowsLibraryCApi/include/NativeToolkitC/Dialog.h}}
+
+
+Message boxes and the file and folder pickers (OP-\/01..OP-\/06).  
+
+
+{\ttfamily \#include "{}Native\+Toolkit\+C/\+Common.\+h"{}}\newline
+Include dependency graph for Dialog.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=212pt]{_api_2include_2_native_toolkit_c_2_dialog_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structntk__dialog__filter}{ntk\+\_\+dialog\+\_\+filter}}
+\item 
+struct \mbox{\hyperlink{structntk__dialog__alert__request}{ntk\+\_\+dialog\+\_\+alert\+\_\+request}}
+\item 
+struct \mbox{\hyperlink{structntk__dialog__file__request}{ntk\+\_\+dialog\+\_\+file\+\_\+request}}
+\item 
+struct \mbox{\hyperlink{structntk__dialog__save__file__request}{ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request}}
+\item 
+struct \mbox{\hyperlink{structntk__dialog__folder__request}{ntk\+\_\+dialog\+\_\+folder\+\_\+request}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef int32\+\_\+t \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a32833410827a594e18bcc9caacc9cede}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a32833410827a594e18bcc9caacc9cede} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+dialog\+\_\+alert\+\_\+buttons}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_ab1b696b702afa87a4f5cbdbeed77ba7c}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_ab1b696b702afa87a4f5cbdbeed77ba7c} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+dialog\+\_\+alert\+\_\+icon}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_aff929e49ad6211ef280e27e3375d2a6b}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_aff929e49ad6211ef280e27e3375d2a6b} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+dialog\+\_\+alert\+\_\+default\+\_\+button}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a223261ce2223d0e3f6c1d8f64dd70236}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a223261ce2223d0e3f6c1d8f64dd70236} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+dialog\+\_\+alert\+\_\+result}
+\item 
+typedef struct ntk\+\_\+dialog\+\_\+filter \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a8af38689d16c259e7f1b42f6a066aa0b}{ntk\+\_\+dialog\+\_\+filter}}
+\item 
+typedef struct ntk\+\_\+dialog\+\_\+alert\+\_\+request \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_afecbc811d8877cf2b3eb1cb2ece9917c}{ntk\+\_\+dialog\+\_\+alert\+\_\+request}}
+\item 
+typedef struct ntk\+\_\+dialog\+\_\+file\+\_\+request \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a748f3f9cfd93be9d90a0bc916dad8b1a}{ntk\+\_\+dialog\+\_\+file\+\_\+request}}
+\item 
+typedef struct ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a53f39f179fe792f851b5a2f8d2bb3277}{ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request}}
+\item 
+typedef struct ntk\+\_\+dialog\+\_\+folder\+\_\+request \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a4ecde88e09f9a95a806b48b8fd0e4a73}{ntk\+\_\+dialog\+\_\+folder\+\_\+request}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a3ed6dac99e6ebbc544cbe86f9037a0c1}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a3ed6dac99e6ebbc544cbe86f9037a0c1} 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+NONE} = 0
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER} = 1
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+CANCELED} = 2
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+BUFFER\+\_\+\+TOO\+\_\+\+SMALL} = 3
+, \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+SYSTEM\+\_\+\+ERROR} = 4
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+UNKNOWN} = 5
+ \}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a352324d2db0fdf7b97ff80e649e1ac5f}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a352324d2db0fdf7b97ff80e649e1ac5f} 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+BUTTONS\+\_\+\+OK} = 0
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+BUTTONS\+\_\+\+OK\+\_\+\+CANCEL} = 1
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+BUTTONS\+\_\+\+YES\+\_\+\+NO} = 2
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+BUTTONS\+\_\+\+YES\+\_\+\+NO\+\_\+\+CANCEL} = 3
+, \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+BUTTONS\+\_\+\+RETRY\+\_\+\+CANCEL} = 4
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+BUTTONS\+\_\+\+ABORT\+\_\+\+RETRY\+\_\+\+IGNORE} = 5
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+BUTTONS\+\_\+\+CANCEL\+\_\+\+TRY\+\_\+\+CONTINUE} = 6
+ \}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a863ebb6c5a3128b569373f86bc516e8b}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a863ebb6c5a3128b569373f86bc516e8b} 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+ICON\+\_\+\+NONE} = 0
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+ICON\+\_\+\+INFORMATION} = 1
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+ICON\+\_\+\+WARNING} = 2
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+ICON\+\_\+\+ERROR} = 3
+, \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+ICON\+\_\+\+QUESTION} = 4
+ \}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_af04d1e25f6a2b08a6bb7d4a57a48f3df}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_af04d1e25f6a2b08a6bb7d4a57a48f3df} 
+enum \{ {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+DEFAULT\+\_\+\+BUTTON\+\_\+\+FIRST} = 0
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+DEFAULT\+\_\+\+BUTTON\+\_\+\+SECOND} = 1
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+DEFAULT\+\_\+\+BUTTON\+\_\+\+THIRD} = 2
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+DEFAULT\+\_\+\+BUTTON\+\_\+\+FOURTH} = 3
+ \}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_ae73eafb1f70a3091da29b8d315abd6ef}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_ae73eafb1f70a3091da29b8d315abd6ef} 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+OK} = 0
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+CANCEL} = 1
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+YES} = 2
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+NO} = 3
+, \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+RETRY} = 4
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+ABORT} = 5
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+IGNORE} = 6
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+TRY\+\_\+\+AGAIN} = 7
+, \newline
+{\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+CONTINUE} = 8
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+CLOSE} = 9
+, {\bfseries NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+HELP} = 10
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_ad0b5446e68b75e9cffeddf84617bc121}{ntk\+\_\+dialog\+\_\+show\+\_\+alert}} (const \mbox{\hyperlink{structntk__dialog__alert__request}{ntk\+\_\+dialog\+\_\+alert\+\_\+request}} \texorpdfstring{$\ast$}{*}request, ntk\+\_\+dialog\+\_\+alert\+\_\+result \texorpdfstring{$\ast$}{*}out\+\_\+result)
+\begin{DoxyCompactList}\small\item\em OP-\/01. Shows a message box and reports which button was pressed. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a89072c1f5a9fed5b7015d22fd6e6bb37}{ntk\+\_\+dialog\+\_\+show\+\_\+open\+\_\+file}} (const \mbox{\hyperlink{structntk__dialog__file__request}{ntk\+\_\+dialog\+\_\+file\+\_\+request}} \texorpdfstring{$\ast$}{*}request, const \mbox{\hyperlink{structntk__dialog__filter}{ntk\+\_\+dialog\+\_\+filter}} \texorpdfstring{$\ast$}{*}filters, size\+\_\+t filter\+\_\+count, \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+path)
+\begin{DoxyCompactList}\small\item\em OP-\/02. Asks for one existing file. The path, up to 1023 characters, is returned in \texorpdfstring{$\ast$}{*}out\+\_\+path. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a2194ebcb831032f963d69e0a6b39911d}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a2194ebcb831032f963d69e0a6b39911d} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+dialog\+\_\+show\+\_\+open\+\_\+files} (const \mbox{\hyperlink{structntk__dialog__file__request}{ntk\+\_\+dialog\+\_\+file\+\_\+request}} \texorpdfstring{$\ast$}{*}request, const \mbox{\hyperlink{structntk__dialog__filter}{ntk\+\_\+dialog\+\_\+filter}} \texorpdfstring{$\ast$}{*}filters, size\+\_\+t filter\+\_\+count, \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+paths)
+\begin{DoxyCompactList}\small\item\em OP-\/03. Asks for one or more existing files; every entry is a full path. Errors as ntk\+\_\+dialog\+\_\+show\+\_\+open\+\_\+file. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_ab91dec7f40f27e4ace838a128b12bf17}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_ab91dec7f40f27e4ace838a128b12bf17} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+dialog\+\_\+show\+\_\+save\+\_\+file} (const \mbox{\hyperlink{structntk__dialog__save__file__request}{ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request}} \texorpdfstring{$\ast$}{*}request, const \mbox{\hyperlink{structntk__dialog__filter}{ntk\+\_\+dialog\+\_\+filter}} \texorpdfstring{$\ast$}{*}filters, size\+\_\+t filter\+\_\+count, \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+path)
+\begin{DoxyCompactList}\small\item\em OP-\/04. Asks where to save. The file is not created. Errors as ntk\+\_\+dialog\+\_\+show\+\_\+open\+\_\+file. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a3675d03d0b691b661df67be0ef28cce5}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a3675d03d0b691b661df67be0ef28cce5} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+dialog\+\_\+show\+\_\+pick\+\_\+folder} (const \mbox{\hyperlink{structntk__dialog__folder__request}{ntk\+\_\+dialog\+\_\+folder\+\_\+request}} \texorpdfstring{$\ast$}{*}request, \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+path)
+\begin{DoxyCompactList}\small\item\em OP-\/05. Asks for one folder. Errors as ntk\+\_\+dialog\+\_\+show\+\_\+open\+\_\+file. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a49cf4298881a170b111869bdb745103d}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_a49cf4298881a170b111869bdb745103d} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+dialog\+\_\+show\+\_\+pick\+\_\+folders} (const \mbox{\hyperlink{structntk__dialog__folder__request}{ntk\+\_\+dialog\+\_\+folder\+\_\+request}} \texorpdfstring{$\ast$}{*}request, \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+paths)
+\begin{DoxyCompactList}\small\item\em OP-\/06. Asks for one or more folders; every entry is a full path. Errors as ntk\+\_\+dialog\+\_\+show\+\_\+open\+\_\+file. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Message boxes and the file and folder pickers (OP-\/01..OP-\/06). 
+
+Every function here is modal\+: it blocks the calling thread until the user closes the dialog, so call it from a UI thread. The folder pickers initialise COM on the calling thread as an STA if nothing has yet.
+
+A NULL request means every field at its default; so does a request filled with zeros apart from struct\+\_\+size (design E-\/9). 
+
+\label{doc-typedef-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_afecbc811d8877cf2b3eb1cb2ece9917c}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_alert\_request@{ntk\_dialog\_alert\_request}}
+\index{ntk\_dialog\_alert\_request@{ntk\_dialog\_alert\_request}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_alert\_request}{ntk\_dialog\_alert\_request}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_afecbc811d8877cf2b3eb1cb2ece9917c} 
+typedef struct ntk\+\_\+dialog\+\_\+alert\+\_\+request ntk\+\_\+dialog\+\_\+alert\+\_\+request}
+
+What to show in a message box. sizeof 56. \Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_error@{ntk\_dialog\_error}}
+\index{ntk\_dialog\_error@{ntk\_dialog\_error}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_error}{ntk\_dialog\_error}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21} 
+typedef int32\+\_\+t \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}}}
+
+The result of every dialog function. The raw OS value of a failure is \doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()}. \Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a748f3f9cfd93be9d90a0bc916dad8b1a}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_file\_request@{ntk\_dialog\_file\_request}}
+\index{ntk\_dialog\_file\_request@{ntk\_dialog\_file\_request}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_file\_request}{ntk\_dialog\_file\_request}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_a748f3f9cfd93be9d90a0bc916dad8b1a} 
+typedef struct ntk\+\_\+dialog\+\_\+file\+\_\+request ntk\+\_\+dialog\+\_\+file\+\_\+request}
+
+What to show in an open-\/file dialog. sizeof 32. \Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a8af38689d16c259e7f1b42f6a066aa0b}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_filter@{ntk\_dialog\_filter}}
+\index{ntk\_dialog\_filter@{ntk\_dialog\_filter}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_filter}{ntk\_dialog\_filter}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_a8af38689d16c259e7f1b42f6a066aa0b} 
+typedef struct ntk\+\_\+dialog\+\_\+filter ntk\+\_\+dialog\+\_\+filter}
+
+One entry of a file dialog\textquotesingle{}s type list. Frozen\+: it has no struct\+\_\+size and will never gain a member. \Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a4ecde88e09f9a95a806b48b8fd0e4a73}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_folder\_request@{ntk\_dialog\_folder\_request}}
+\index{ntk\_dialog\_folder\_request@{ntk\_dialog\_folder\_request}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_folder\_request}{ntk\_dialog\_folder\_request}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_a4ecde88e09f9a95a806b48b8fd0e4a73} 
+typedef struct ntk\+\_\+dialog\+\_\+folder\+\_\+request ntk\+\_\+dialog\+\_\+folder\+\_\+request}
+
+What to show in a folder picker. sizeof 24. \Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a53f39f179fe792f851b5a2f8d2bb3277}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_save\_file\_request}{ntk\_dialog\_save\_file\_request}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_a53f39f179fe792f851b5a2f8d2bb3277} 
+typedef struct ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request}
+
+What to show in a save-\/file dialog. sizeof 40. 
+
+\label{doc-func-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_ad0b5446e68b75e9cffeddf84617bc121}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_show\_alert@{ntk\_dialog\_show\_alert}}
+\index{ntk\_dialog\_show\_alert@{ntk\_dialog\_show\_alert}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_show\_alert()}{ntk\_dialog\_show\_alert()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_ad0b5446e68b75e9cffeddf84617bc121} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+dialog\+\_\+show\+\_\+alert (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structntk__dialog__alert__request}{ntk\+\_\+dialog\+\_\+alert\+\_\+request}} \texorpdfstring{$\ast$}{*}}]{request}{, }\item[{ntk\+\_\+dialog\+\_\+alert\+\_\+result \texorpdfstring{$\ast$}{*}}]{out\+\_\+result}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/01. Shows a message box and reports which button was pressed. 
+
+Cancel is a button like any other\+: it comes back as NTK\+\_\+\+DIALOG\+\_\+\+ALERT\+\_\+\+RESULT\+\_\+\+CANCEL with NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+NONE. 
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER} & out\+\_\+result is NULL, or the request is malformed. \\
+\hline
+{\em NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+SYSTEM\+\_\+\+ERROR} & Message\+BoxW failed; see \doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()}. \\
+\hline
+{\em NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+UNKNOWN} & Anything else. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_a89072c1f5a9fed5b7015d22fd6e6bb37}\index{Dialog.h@{Dialog.h}!ntk\_dialog\_show\_open\_file@{ntk\_dialog\_show\_open\_file}}
+\index{ntk\_dialog\_show\_open\_file@{ntk\_dialog\_show\_open\_file}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_dialog\_show\_open\_file()}{ntk\_dialog\_show\_open\_file()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_dialog_8h_a89072c1f5a9fed5b7015d22fd6e6bb37} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\+\_\+dialog\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+dialog\+\_\+show\+\_\+open\+\_\+file (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structntk__dialog__file__request}{ntk\+\_\+dialog\+\_\+file\+\_\+request}} \texorpdfstring{$\ast$}{*}}]{request}{, }\item[{const \mbox{\hyperlink{structntk__dialog__filter}{ntk\+\_\+dialog\+\_\+filter}} \texorpdfstring{$\ast$}{*}}]{filters}{, }\item[{size\+\_\+t}]{filter\+\_\+count}{, }\item[{\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+path}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/02. Asks for one existing file. The path, up to 1023 characters, is returned in \texorpdfstring{$\ast$}{*}out\+\_\+path. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em filters} & The type list, or NULL with filter\+\_\+count 0 for every file. \\
+\hline
+{\em out\+\_\+path} & Receives a handle to free with ntk\+\_\+string\+\_\+free; NULL on failure. \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER} & A NULL out\+\_\+path, a malformed request or filter. \\
+\hline
+{\em NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+CANCELED} & The user dismissed the dialog. \\
+\hline
+{\em NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+SYSTEM\+\_\+\+ERROR} & The OS reported a failure; see \doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()}. \\
+\hline
+{\em NTK\+\_\+\+DIALOG\+\_\+\+ERROR\+\_\+\+UNKNOWN} & Anything else. \\
+\hline
+\end{DoxyRetVals}

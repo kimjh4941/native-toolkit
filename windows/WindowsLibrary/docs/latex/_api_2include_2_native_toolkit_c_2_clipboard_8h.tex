@@ -1,0 +1,640 @@
+\doxysection{Windows\+Library\+CApi/include/\+Native\+Toolkit\+C/\+Clipboard.h File Reference}
+\hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h}{}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h}\index{WindowsLibraryCApi/include/NativeToolkitC/Clipboard.h@{WindowsLibraryCApi/include/NativeToolkitC/Clipboard.h}}
+
+
+The clipboard\+: a session, reading and writing, deferred rendering, and the clipboard history (OP-\/21..OP-\/47).  
+
+
+{\ttfamily \#include "{}Native\+Toolkit\+C/\+Common.\+h"{}}\newline
+Include dependency graph for Clipboard.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=212pt]{_api_2include_2_native_toolkit_c_2_clipboard_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structntk__clipboard__session__options}{ntk\+\_\+clipboard\+\_\+session\+\_\+options}}
+\item 
+struct \mbox{\hyperlink{structntk__clipboard__history__handlers}{ntk\+\_\+clipboard\+\_\+history\+\_\+handlers}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef int32\+\_\+t \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}}
+\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1579a23f5ead63e7ce842d485a33efa7}{ntk\+\_\+clipboard\+\_\+changed\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data)
+\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a703160c0ecbd2ff91656b29e789f9a3c}{ntk\+\_\+clipboard\+\_\+history\+\_\+changed\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data)
+\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad}{ntk\+\_\+clipboard\+\_\+flag\+\_\+changed\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, int32\+\_\+t enabled)
+\item 
+typedef \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}}(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066}{ntk\+\_\+clipboard\+\_\+render\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}} \texorpdfstring{$\ast$}{*}target)
+\begin{DoxyCompactList}\small\item\em Produces the bytes of a deferred format when a program asks for it. \end{DoxyCompactList}\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f}{ntk\+\_\+clipboard\+\_\+history\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t request\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} error, uint32\+\_\+t system\+\_\+code, const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history)
+\begin{DoxyCompactList}\small\item\em The completion of ntk\+\_\+clipboard\+\_\+get\+\_\+history. On the owner thread, exactly once per accepted request. \end{DoxyCompactList}\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t request\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} error, uint32\+\_\+t system\+\_\+code)
+\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4cdb9981758e56046f3e060c41abf1eb}{ntk\+\_\+clipboard\+\_\+availability\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t request\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} error, uint32\+\_\+t system\+\_\+code, int32\+\_\+t history\+\_\+enabled, int32\+\_\+t roaming\+\_\+enabled)
+\item 
+typedef struct ntk\+\_\+clipboard\+\_\+session\+\_\+options \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae31626914e6d2dfd211fa8cfa31f8fba}{ntk\+\_\+clipboard\+\_\+session\+\_\+options}}
+\item 
+typedef struct ntk\+\_\+clipboard\+\_\+history\+\_\+handlers \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a44370eea2df2fa3d33b84aa7b6fe823b}{ntk\+\_\+clipboard\+\_\+history\+\_\+handlers}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NONE} = 0
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eaf4693dfb31e15ae52a87fda67fd585c6}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER}} = 1
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea82b46e7b24e7806ddf51a5f3a7b64f9a}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED}} = 2
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY}} = 3
+, \newline
+{\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+EMPTY} = 4
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+FORMAT\+\_\+\+UNAVAILABLE} = 5
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+DATA} = 6
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUFFER\+\_\+\+TOO\+\_\+\+SMALL} = 7
+, \newline
+{\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+OUT\+\_\+\+OF\+\_\+\+MEMORY} = 8
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+ACCESS\+\_\+\+DENIED} = 9
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+HISTORY\+\_\+\+DISABLED} = 10
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+ITEM\+\_\+\+DELETED} = 11
+, \newline
+{\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+MONITOR\+\_\+\+REGISTER\+\_\+\+FAILED} = 12
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+PARTIAL\+\_\+\+STATE}} = 13
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea76a3ca15e53ef9b6492011d4ff1f6416}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD}} = 14
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED} = 15
+, \newline
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eab260e11abb12edde815e3fe427e26eff}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED}} = 16
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea2e8eb38daf8182db7a87df277d350f3c}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+FOREGROUND}} = 17
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea044b029d57859663ef612047ea9053a6}{NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+APARTMENT}} = 18
+, {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+UNKNOWN} = 19
+ \}
+\item 
+enum \{ {\bfseries NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+DEFAULT} = 0
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21aca5952b9717564a101bb1479f7300729}{NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+EXCLUDE\+\_\+\+HISTORY}} = 1
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21a79cf06e678a99baa673b6c16b61ba5b3}{NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+EXCLUDE\+\_\+\+ROAMING}} = 2
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21ad82724e540d4c7fdbc233710e582e385}{NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+SENSITIVE}} = 3
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ab072c4b1011c66ce1f14873151973864}{ntk\+\_\+clipboard\+\_\+session\+\_\+create}} (const \mbox{\hyperlink{structntk__clipboard__session__options}{ntk\+\_\+clipboard\+\_\+session\+\_\+options}} \texorpdfstring{$\ast$}{*}options, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+session)
+\begin{DoxyCompactList}\small\item\em OP-\/21. Opens the session; the calling thread becomes its owner. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aaad4a0b1d2f294124624fb48e9263ef3}{ntk\+\_\+clipboard\+\_\+session\+\_\+close}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session)
+\begin{DoxyCompactList}\small\item\em OP-\/23. Closes the session. Owner thread only. Free the handle after. \end{DoxyCompactList}\item 
+int32\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a63c44962dceda75097209b8ea4149bc9}{ntk\+\_\+clipboard\+\_\+session\+\_\+can\+\_\+close}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session)
+\begin{DoxyCompactList}\small\item\em OP-\/24. Whether a close that is under way has nothing left to wait for. \end{DoxyCompactList}\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa5088098dd41fac2e582bf900c507c02}{ntk\+\_\+clipboard\+\_\+session\+\_\+free}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session)
+\begin{DoxyCompactList}\small\item\em Frees the handle. No callback of the session runs after this returns. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a59713e057cd4062dbb597d0eb6f90c77}{ntk\+\_\+clipboard\+\_\+set\+\_\+history\+\_\+handlers}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const \mbox{\hyperlink{structntk__clipboard__history__handlers}{ntk\+\_\+clipboard\+\_\+history\+\_\+handlers}} \texorpdfstring{$\ast$}{*}handlers)
+\begin{DoxyCompactList}\small\item\em OP-\/22. Replaces the history handlers. Owner thread only. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afa0fbd7f031ac90e3d52d2059720ef99}{ntk\+\_\+clipboard\+\_\+copy\+\_\+text}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}text, uint32\+\_\+t flags)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1bd9cca576455f915814caf6d494c125}{ntk\+\_\+clipboard\+\_\+paste\+\_\+text}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+text)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a787861ae0a63b15de64ff34e3f5549cd}{ntk\+\_\+clipboard\+\_\+copy\+\_\+html}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}fragment, const char \texorpdfstring{$\ast$}{*}plain\+\_\+text, uint32\+\_\+t flags)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a7940b237dfba200cdf7faceaccd9d44a}{ntk\+\_\+clipboard\+\_\+paste\+\_\+html}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+html)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a12f951b70d9a5c2bc77c23f0c951da6e}{ntk\+\_\+clipboard\+\_\+copy\+\_\+files}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}const \texorpdfstring{$\ast$}{*}paths, size\+\_\+t count, uint32\+\_\+t flags)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9fc9c25469d6e3929bd0c590cfc05f4f}{ntk\+\_\+clipboard\+\_\+paste\+\_\+files}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+paths)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a264966dd86d3204fec26b95200dbfae3}{ntk\+\_\+clipboard\+\_\+copy\+\_\+dib}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const uint8\+\_\+t \texorpdfstring{$\ast$}{*}dib, size\+\_\+t size, uint32\+\_\+t flags)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa7c6a75c6c018dbb5d7811d4d8c10136}{ntk\+\_\+clipboard\+\_\+paste\+\_\+dib}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+dib)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a2735d42f9d682f16991410f260c5a97c}{ntk\+\_\+clipboard\+\_\+copy\+\_\+custom}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, const uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, size\+\_\+t size, uint32\+\_\+t flags)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aef35ab38a449311c02f41925e90de0ad}{ntk\+\_\+clipboard\+\_\+paste\+\_\+custom}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+data)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a457a6fc3541bdaf67fcb5ae61250d483}{ntk\+\_\+clipboard\+\_\+copy\+\_\+multiple}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}items, uint32\+\_\+t flags)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8832635fd4ce142bfb67e1614c97c709}{ntk\+\_\+clipboard\+\_\+has\+\_\+format}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, int32\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+present)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a53ae1841be4766e74c13677eea3bf338}{ntk\+\_\+clipboard\+\_\+get\+\_\+formats}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+formats)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a031bf5e4b1f6bc49dfddeb8b937224d5}{ntk\+\_\+clipboard\+\_\+get\+\_\+preferred\+\_\+format}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+format)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a812bf5ec0fbc4c1d6ba12087590f2ca0}{ntk\+\_\+clipboard\+\_\+clear}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session)
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a034ec142d27caadfe6118eddb560fd7c}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a034ec142d27caadfe6118eddb560fd7c} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+clipboard\+\_\+items\+\_\+create} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+items)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a25bed7adacefdc024a84f21537a741a2}{ntk\+\_\+clipboard\+\_\+items\+\_\+add\+\_\+text}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}items, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, const char \texorpdfstring{$\ast$}{*}text)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_af778abb015806e4e034e1215c64f24ec}{ntk\+\_\+clipboard\+\_\+items\+\_\+add\+\_\+html}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}items, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, const char \texorpdfstring{$\ast$}{*}html)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1a550e963b1c3659c5953767e1116f09}{ntk\+\_\+clipboard\+\_\+items\+\_\+add\+\_\+bytes}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}items, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, const uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, size\+\_\+t size)
+\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae3c22ea6068ac6d7723df3932274611f}{ntk\+\_\+clipboard\+\_\+items\+\_\+free}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}items)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9bf7bc5908bf97a0c380eb005255cad5}{ntk\+\_\+clipboard\+\_\+reserve\+\_\+deferred}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}const \texorpdfstring{$\ast$}{*}formats, size\+\_\+t count, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066}{ntk\+\_\+clipboard\+\_\+render\+\_\+fn}} provider, void \texorpdfstring{$\ast$}{*}user\+\_\+data, \mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\+\_\+release\+\_\+fn}} release)
+\begin{DoxyCompactList}\small\item\em OP-\/40. Puts formats on the clipboard whose bytes provider produces only when a program asks for them. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae2a84b782a670e4f43cb23e9b550a5e2}{ntk\+\_\+clipboard\+\_\+recover\+\_\+deferred\+\_\+state}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a070dc834f81f07703d3ac04d45a54912}{ntk\+\_\+clipboard\+\_\+render\+\_\+target\+\_\+set}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}} \texorpdfstring{$\ast$}{*}target, const uint8\+\_\+t \texorpdfstring{$\ast$}{*}data, size\+\_\+t size)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a97882733f5cf78643e30af7e2d948ae9}{ntk\+\_\+clipboard\+\_\+get\+\_\+history}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f}{ntk\+\_\+clipboard\+\_\+history\+\_\+fn}} callback, void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+request\+\_\+id)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a42ac6a4cb43b49353e83e6f76968737a}{ntk\+\_\+clipboard\+\_\+restore\+\_\+history\+\_\+item}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}item\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}} callback, void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+request\+\_\+id)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_af2681a56647e79e6f4703e9bc492edb6}{ntk\+\_\+clipboard\+\_\+delete\+\_\+history\+\_\+item}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, const char \texorpdfstring{$\ast$}{*}item\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}} callback, void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+request\+\_\+id)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_acb638d63b8368ceb57b52c1624495720}{ntk\+\_\+clipboard\+\_\+clear\+\_\+unpinned\+\_\+history}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}} callback, void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+request\+\_\+id)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8a975a6d3b1b080e1479953e93795769}{ntk\+\_\+clipboard\+\_\+get\+\_\+history\+\_\+availability}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4cdb9981758e56046f3e060c41abf1eb}{ntk\+\_\+clipboard\+\_\+availability\+\_\+fn}} callback, void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+request\+\_\+id)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a6fc2242f6e98bdc59543c1818d9e83f1}{ntk\+\_\+clipboard\+\_\+cancel\+\_\+request}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}session, uint32\+\_\+t request\+\_\+id)
+\begin{DoxyCompactList}\small\item\em OP-\/47. Cancels a request\+: its completion comes with NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED unless it was already on its way. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a6b2d95275ae5ce07f26729a619f166f3}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a6b2d95275ae5ce07f26729a619f166f3} 
+size\+\_\+t NTK\+\_\+\+CALL {\bfseries ntk\+\_\+clipboard\+\_\+history\+\_\+count} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a65715062b2cbb06f2e1660d6c9e854cd}{ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+id}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history, size\+\_\+t index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a19cf008473fc22ae3f9ab7c9a6829a57}{ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+text}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history, size\+\_\+t index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+size\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a3c317247aa90f12c8f40f2125299e697}{ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+content\+\_\+type\+\_\+count}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history, size\+\_\+t index)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad475e784c1ea0742ab4b3bbf4e5e68b4}{ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+content\+\_\+type\+\_\+at}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history, size\+\_\+t index, size\+\_\+t type\+\_\+index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+int64\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa6cff4c6c88eeb8c0afa309ffba367b2}{ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+timestamp\+\_\+unix\+\_\+ms}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history, size\+\_\+t index)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The clipboard\+: a session, reading and writing, deferred rendering, and the clipboard history (OP-\/21..OP-\/47). 
+
+The owner thread\+: the thread that calls ntk\+\_\+clipboard\+\_\+session\+\_\+create owns the session. It must be initialised for COM as an STA (Co\+Initialize\+Ex(\+NULL, COINIT\+\_\+\+APARTMENTTHREADED)) and must keep running a message loop (Get\+MessageW, Translate\+Message, Dispatch\+MessageW)\+: the session owns a hidden window, and every callback and completion is delivered through it. A thread with no message loop receives nothing.
+
+Which thread may call what\+:
+\begin{DoxyItemize}
+\item Reading and writing, and starting a history request\+: any thread. While this session has formats reserved for deferred rendering, a read or write on another thread waits until the owner handles the messages Windows sends it, so the owner must not wait for such a thread.
+\item The session itself, the history handlers and deferred rendering\+: the owner thread only.
+\item Completions and callbacks arrive on the owner thread.
+\end{DoxyItemize}
+
+One session per process. A second ntk\+\_\+clipboard\+\_\+session\+\_\+create is NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED from the owner thread and NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD from any other.
+
+Inside a callback of a session, do not close, free, or replace the history handlers of that session (design 1.\+3.\+5). 
+
+\label{doc-typedef-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4cdb9981758e56046f3e060c41abf1eb}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_availability\_fn@{ntk\_clipboard\_availability\_fn}}
+\index{ntk\_clipboard\_availability\_fn@{ntk\_clipboard\_availability\_fn}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_availability\_fn}{ntk\_clipboard\_availability\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4cdb9981758e56046f3e060c41abf1eb} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+availability\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t request\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} error, uint32\+\_\+t system\+\_\+code, int32\+\_\+t history\+\_\+enabled, int32\+\_\+t roaming\+\_\+enabled)}
+
+The completion of ntk\+\_\+clipboard\+\_\+get\+\_\+history\+\_\+availability. Both flags are 0 on failure. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1579a23f5ead63e7ce842d485a33efa7}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_changed\_fn@{ntk\_clipboard\_changed\_fn}}
+\index{ntk\_clipboard\_changed\_fn@{ntk\_clipboard\_changed\_fn}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_changed\_fn}{ntk\_clipboard\_changed\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1579a23f5ead63e7ce842d485a33efa7} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+changed\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data)}
+
+The clipboard changed. Changes this session made itself are not reported. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_completion\_fn@{ntk\_clipboard\_completion\_fn}}
+\index{ntk\_clipboard\_completion\_fn@{ntk\_clipboard\_completion\_fn}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_completion\_fn}{ntk\_clipboard\_completion\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+completion\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t request\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} error, uint32\+\_\+t system\+\_\+code)}
+
+The completion of a history request that returns no data. On the owner thread, exactly once per accepted request. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_error@{ntk\_clipboard\_error}}
+\index{ntk\_clipboard\_error@{ntk\_clipboard\_error}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_error}{ntk\_clipboard\_error}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee} 
+typedef int32\+\_\+t \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}}}
+
+The result of every clipboard function that can fail. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_flag\_changed\_fn@{ntk\_clipboard\_flag\_changed\_fn}}
+\index{ntk\_clipboard\_flag\_changed\_fn@{ntk\_clipboard\_flag\_changed\_fn}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_flag\_changed\_fn}{ntk\_clipboard\_flag\_changed\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+flag\+\_\+changed\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, int32\+\_\+t enabled)}
+
+The user turned the history, or its roaming, on (non-\/zero) or off (0). \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history@{ntk\_clipboard\_history}}
+\index{ntk\_clipboard\_history@{ntk\_clipboard\_history}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history}{ntk\_clipboard\_history}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}}}
+
+The items of the clipboard history. Lent to \doxylink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f}{ntk\+\_\+clipboard\+\_\+history\+\_\+fn} for the call only. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a703160c0ecbd2ff91656b29e789f9a3c}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_changed\_fn@{ntk\_clipboard\_history\_changed\_fn}}
+\index{ntk\_clipboard\_history\_changed\_fn@{ntk\_clipboard\_history\_changed\_fn}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_changed\_fn}{ntk\_clipboard\_history\_changed\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a703160c0ecbd2ff91656b29e789f9a3c} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+history\+\_\+changed\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data)}
+
+An item was added to the clipboard history. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_fn@{ntk\_clipboard\_history\_fn}}
+\index{ntk\_clipboard\_history\_fn@{ntk\_clipboard\_history\_fn}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_fn}{ntk\_clipboard\_history\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+history\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, uint32\+\_\+t request\+\_\+id, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} error, uint32\+\_\+t system\+\_\+code, const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}history)}
+
+
+
+The completion of ntk\+\_\+clipboard\+\_\+get\+\_\+history. On the owner thread, exactly once per accepted request. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em history} & The items, valid during the call only; NULL on failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a44370eea2df2fa3d33b84aa7b6fe823b}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_handlers@{ntk\_clipboard\_history\_handlers}}
+\index{ntk\_clipboard\_history\_handlers@{ntk\_clipboard\_history\_handlers}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_handlers}{ntk\_clipboard\_history\_handlers}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a44370eea2df2fa3d33b84aa7b6fe823b} 
+typedef struct ntk\+\_\+clipboard\+\_\+history\+\_\+handlers ntk\+\_\+clipboard\+\_\+history\+\_\+handlers}
+
+The history handlers. sizeof 40. Any of the three may be NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_items@{ntk\_clipboard\_items}}
+\index{ntk\_clipboard\_items@{ntk\_clipboard\_items}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_items}{ntk\_clipboard\_items}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}}}
+
+Several formats to write at once. Not thread safe\+: build it on one thread. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_render\_fn@{ntk\_clipboard\_render\_fn}}
+\index{ntk\_clipboard\_render\_fn@{ntk\_clipboard\_render\_fn}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_render\_fn}{ntk\_clipboard\_render\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066} 
+typedef \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}}(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+render\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, const char \texorpdfstring{$\ast$}{*}format\+\_\+name, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}} \texorpdfstring{$\ast$}{*}target)}
+
+
+
+Produces the bytes of a deferred format when a program asks for it. 
+
+Runs on the owner thread. Hand the bytes over with at most one ntk\+\_\+clipboard\+\_\+render\+\_\+target\+\_\+set, then return NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NONE. Returning NONE without setting renders nothing; returning anything else renders nothing even if set was called. Call no other clipboard function and do not block. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_render\_target@{ntk\_clipboard\_render\_target}}
+\index{ntk\_clipboard\_render\_target@{ntk\_clipboard\_render\_target}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_render\_target}{ntk\_clipboard\_render\_target}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}}}
+
+Where a deferred format\textquotesingle{}s bytes go. Lent to \doxylink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066}{ntk\+\_\+clipboard\+\_\+render\+\_\+fn} for the call only. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session@{ntk\_clipboard\_session}}
+\index{ntk\_clipboard\_session@{ntk\_clipboard\_session}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session}{ntk\_clipboard\_session}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}}}
+
+The one clipboard session of the process. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae31626914e6d2dfd211fa8cfa31f8fba}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_options@{ntk\_clipboard\_session\_options}}
+\index{ntk\_clipboard\_session\_options@{ntk\_clipboard\_session\_options}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session\_options}{ntk\_clipboard\_session\_options}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae31626914e6d2dfd211fa8cfa31f8fba} 
+typedef struct ntk\+\_\+clipboard\+\_\+session\+\_\+options ntk\+\_\+clipboard\+\_\+session\+\_\+options}
+
+How to create the session. sizeof 24. 
+
+\label{doc-enum-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3e}\doxysubsubsection{\texorpdfstring{anonymous enum}{anonymous enum}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3e} 
+anonymous enum}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_INVALID\_PARAMETER@{NTK\_CLIPBOARD\_ERROR\_INVALID\_PARAMETER}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_INVALID\_PARAMETER@{NTK\_CLIPBOARD\_ERROR\_INVALID\_PARAMETER}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eaf4693dfb31e15ae52a87fda67fd585c6}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eaf4693dfb31e15ae52a87fda67fd585c6} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER&A NULL handle, output or required argument; malformed input. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_NOT\_INITIALIZED@{NTK\_CLIPBOARD\_ERROR\_NOT\_INITIALIZED}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_NOT\_INITIALIZED@{NTK\_CLIPBOARD\_ERROR\_NOT\_INITIALIZED}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea82b46e7b24e7806ddf51a5f3a7b64f9a}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea82b46e7b24e7806ddf51a5f3a7b64f9a} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED&The session is closed. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_BUSY@{NTK\_CLIPBOARD\_ERROR\_BUSY}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_BUSY@{NTK\_CLIPBOARD\_ERROR\_BUSY}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY&Another program holds the clipboard, or close has work in flight on another thread. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE@{NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE@{NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+PARTIAL\+\_\+\+STATE&A deferred reservation failed and could not be rolled back. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_WRONG\_THREAD@{NTK\_CLIPBOARD\_ERROR\_WRONG\_THREAD}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_WRONG\_THREAD@{NTK\_CLIPBOARD\_ERROR\_WRONG\_THREAD}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea76a3ca15e53ef9b6492011d4ff1f6416}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea76a3ca15e53ef9b6492011d4ff1f6416} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD&An owner-\/thread function called from another thread. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_NOT\_SUPPORTED@{NTK\_CLIPBOARD\_ERROR\_NOT\_SUPPORTED}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_NOT\_SUPPORTED@{NTK\_CLIPBOARD\_ERROR\_NOT\_SUPPORTED}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eab260e11abb12edde815e3fe427e26eff}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eab260e11abb12edde815e3fe427e26eff} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED&A second session, or an input struct from a newer version. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_NOT\_FOREGROUND@{NTK\_CLIPBOARD\_ERROR\_NOT\_FOREGROUND}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_NOT\_FOREGROUND@{NTK\_CLIPBOARD\_ERROR\_NOT\_FOREGROUND}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea2e8eb38daf8182db7a87df277d350f3c}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea2e8eb38daf8182db7a87df277d350f3c} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+FOREGROUND&History needs this process in the foreground. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_WRONG\_APARTMENT@{NTK\_CLIPBOARD\_ERROR\_WRONG\_APARTMENT}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_WRONG\_APARTMENT@{NTK\_CLIPBOARD\_ERROR\_WRONG\_APARTMENT}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea044b029d57859663ef612047ea9053a6}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea044b029d57859663ef612047ea9053a6} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+APARTMENT&The owner thread is not an STA. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21}\doxysubsubsection{\texorpdfstring{anonymous enum}{anonymous enum}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21} 
+anonymous enum}
+
+The flags of every copy function. Any other bit is NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER. \begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_HISTORY@{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_HISTORY}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_HISTORY@{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_HISTORY}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21aca5952b9717564a101bb1479f7300729}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21aca5952b9717564a101bb1479f7300729} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+EXCLUDE\+\_\+\+HISTORY&Keep it out of the clipboard history. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_ROAMING@{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_ROAMING}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_ROAMING@{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_ROAMING}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21a79cf06e678a99baa673b6c16b61ba5b3}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21a79cf06e678a99baa673b6c16b61ba5b3} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+EXCLUDE\+\_\+\+ROAMING&Do not let it reach the user\textquotesingle{}s other devices. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_WRITE\_SENSITIVE@{NTK\_CLIPBOARD\_WRITE\_SENSITIVE}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_WRITE\_SENSITIVE@{NTK\_CLIPBOARD\_WRITE\_SENSITIVE}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21ad82724e540d4c7fdbc233710e582e385}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21ad82724e540d4c7fdbc233710e582e385} 
+NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+SENSITIVE&Both of the above. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+\label{doc-func-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a6fc2242f6e98bdc59543c1818d9e83f1}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_cancel\_request@{ntk\_clipboard\_cancel\_request}}
+\index{ntk\_clipboard\_cancel\_request@{ntk\_clipboard\_cancel\_request}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_cancel\_request()}{ntk\_clipboard\_cancel\_request()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a6fc2242f6e98bdc59543c1818d9e83f1} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+cancel\+\_\+request (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{uint32\+\_\+t}]{request\+\_\+id}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/47. Cancels a request\+: its completion comes with NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED unless it was already on its way. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER} & Unknown or already completed. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a812bf5ec0fbc4c1d6ba12087590f2ca0}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_clear@{ntk\_clipboard\_clear}}
+\index{ntk\_clipboard\_clear@{ntk\_clipboard\_clear}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_clear()}{ntk\_clipboard\_clear()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a812bf5ec0fbc4c1d6ba12087590f2ca0} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+clear (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{}\end{DoxyParamCaption})}
+
+OP-\/39. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_acb638d63b8368ceb57b52c1624495720}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_clear\_unpinned\_history@{ntk\_clipboard\_clear\_unpinned\_history}}
+\index{ntk\_clipboard\_clear\_unpinned\_history@{ntk\_clipboard\_clear\_unpinned\_history}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_clear\_unpinned\_history()}{ntk\_clipboard\_clear\_unpinned\_history()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_acb638d63b8368ceb57b52c1624495720} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+clear\+\_\+unpinned\+\_\+history (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}}}]{callback}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+request\+\_\+id}{}\end{DoxyParamCaption})}
+
+OP-\/45. Deletes every item that is not pinned. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a2735d42f9d682f16991410f260c5a97c}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_copy\_custom@{ntk\_clipboard\_copy\_custom}}
+\index{ntk\_clipboard\_copy\_custom@{ntk\_clipboard\_copy\_custom}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_copy\_custom()}{ntk\_clipboard\_copy\_custom()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a2735d42f9d682f16991410f260c5a97c} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+copy\+\_\+custom (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{format\+\_\+name}{, }\item[{const uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{size\+\_\+t}]{size}{, }\item[{uint32\+\_\+t}]{flags}{}\end{DoxyParamCaption})}
+
+OP-\/33. format\+\_\+name is required; data may be NULL only when size is 0. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a264966dd86d3204fec26b95200dbfae3}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_copy\_dib@{ntk\_clipboard\_copy\_dib}}
+\index{ntk\_clipboard\_copy\_dib@{ntk\_clipboard\_copy\_dib}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_copy\_dib()}{ntk\_clipboard\_copy\_dib()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a264966dd86d3204fec26b95200dbfae3} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+copy\+\_\+dib (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{dib}{, }\item[{size\+\_\+t}]{size}{, }\item[{uint32\+\_\+t}]{flags}{}\end{DoxyParamCaption})}
+
+OP-\/31. A packed DIB (CF\+\_\+\+DIB). dib may be NULL only when size is 0. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a12f951b70d9a5c2bc77c23f0c951da6e}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_copy\_files@{ntk\_clipboard\_copy\_files}}
+\index{ntk\_clipboard\_copy\_files@{ntk\_clipboard\_copy\_files}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_copy\_files()}{ntk\_clipboard\_copy\_files()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a12f951b70d9a5c2bc77c23f0c951da6e} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+copy\+\_\+files (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}const \texorpdfstring{$\ast$}{*}}]{paths}{, }\item[{size\+\_\+t}]{count}{, }\item[{uint32\+\_\+t}]{flags}{}\end{DoxyParamCaption})}
+
+OP-\/29. Every path is required. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a787861ae0a63b15de64ff34e3f5549cd}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_copy\_html@{ntk\_clipboard\_copy\_html}}
+\index{ntk\_clipboard\_copy\_html@{ntk\_clipboard\_copy\_html}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_copy\_html()}{ntk\_clipboard\_copy\_html()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a787861ae0a63b15de64ff34e3f5549cd} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+copy\+\_\+html (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{fragment}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{plain\+\_\+text}{, }\item[{uint32\+\_\+t}]{flags}{}\end{DoxyParamCaption})}
+
+OP-\/27. fragment is required; plain\+\_\+text NULL is "{}"{}. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a457a6fc3541bdaf67fcb5ae61250d483}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_copy\_multiple@{ntk\_clipboard\_copy\_multiple}}
+\index{ntk\_clipboard\_copy\_multiple@{ntk\_clipboard\_copy\_multiple}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_copy\_multiple()}{ntk\_clipboard\_copy\_multiple()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a457a6fc3541bdaf67fcb5ae61250d483} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+copy\+\_\+multiple (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}}]{items}{, }\item[{uint32\+\_\+t}]{flags}{}\end{DoxyParamCaption})}
+
+OP-\/35. Writes every item at once, in the order they were added. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_afa0fbd7f031ac90e3d52d2059720ef99}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_copy\_text@{ntk\_clipboard\_copy\_text}}
+\index{ntk\_clipboard\_copy\_text@{ntk\_clipboard\_copy\_text}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_copy\_text()}{ntk\_clipboard\_copy\_text()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_afa0fbd7f031ac90e3d52d2059720ef99} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+copy\+\_\+text (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{text}{, }\item[{uint32\+\_\+t}]{flags}{}\end{DoxyParamCaption})}
+
+OP-\/25. text is required. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_af2681a56647e79e6f4703e9bc492edb6}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_delete\_history\_item@{ntk\_clipboard\_delete\_history\_item}}
+\index{ntk\_clipboard\_delete\_history\_item@{ntk\_clipboard\_delete\_history\_item}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_delete\_history\_item()}{ntk\_clipboard\_delete\_history\_item()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_af2681a56647e79e6f4703e9bc492edb6} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+delete\+\_\+history\+\_\+item (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{item\+\_\+id}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}}}]{callback}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+request\+\_\+id}{}\end{DoxyParamCaption})}
+
+OP-\/44. item\+\_\+id is required. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a53ae1841be4766e74c13677eea3bf338}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_get\_formats@{ntk\_clipboard\_get\_formats}}
+\index{ntk\_clipboard\_get\_formats@{ntk\_clipboard\_get\_formats}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_get\_formats()}{ntk\_clipboard\_get\_formats()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a53ae1841be4766e74c13677eea3bf338} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+get\+\_\+formats (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+formats}{}\end{DoxyParamCaption})}
+
+OP-\/37. The names of the formats on the clipboard. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a97882733f5cf78643e30af7e2d948ae9}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_get\_history@{ntk\_clipboard\_get\_history}}
+\index{ntk\_clipboard\_get\_history@{ntk\_clipboard\_get\_history}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_get\_history()}{ntk\_clipboard\_get\_history()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a97882733f5cf78643e30af7e2d948ae9} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+get\+\_\+history (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f}{ntk\+\_\+clipboard\+\_\+history\+\_\+fn}}}]{callback}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+request\+\_\+id}{}\end{DoxyParamCaption})}
+
+OP-\/42. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8a975a6d3b1b080e1479953e93795769}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_get\_history\_availability@{ntk\_clipboard\_get\_history\_availability}}
+\index{ntk\_clipboard\_get\_history\_availability@{ntk\_clipboard\_get\_history\_availability}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_get\_history\_availability()}{ntk\_clipboard\_get\_history\_availability()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8a975a6d3b1b080e1479953e93795769} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+get\+\_\+history\+\_\+availability (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4cdb9981758e56046f3e060c41abf1eb}{ntk\+\_\+clipboard\+\_\+availability\+\_\+fn}}}]{callback}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+request\+\_\+id}{}\end{DoxyParamCaption})}
+
+OP-\/46. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a031bf5e4b1f6bc49dfddeb8b937224d5}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_get\_preferred\_format@{ntk\_clipboard\_get\_preferred\_format}}
+\index{ntk\_clipboard\_get\_preferred\_format@{ntk\_clipboard\_get\_preferred\_format}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_get\_preferred\_format()}{ntk\_clipboard\_get\_preferred\_format()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a031bf5e4b1f6bc49dfddeb8b937224d5} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+get\+\_\+preferred\+\_\+format (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+format}{}\end{DoxyParamCaption})}
+
+OP-\/38. The richest format this library can read, or "{}"{} when there is none. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8832635fd4ce142bfb67e1614c97c709}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_has\_format@{ntk\_clipboard\_has\_format}}
+\index{ntk\_clipboard\_has\_format@{ntk\_clipboard\_has\_format}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_has\_format()}{ntk\_clipboard\_has\_format()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8832635fd4ce142bfb67e1614c97c709} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+has\+\_\+format (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{format\+\_\+name}{, }\item[{int32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+present}{}\end{DoxyParamCaption})}
+
+OP-\/36. format\+\_\+name is required; \texorpdfstring{$\ast$}{*}out\+\_\+present is non-\/zero when the format is there. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad475e784c1ea0742ab4b3bbf4e5e68b4}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_item\_content\_type\_at@{ntk\_clipboard\_history\_item\_content\_type\_at}}
+\index{ntk\_clipboard\_history\_item\_content\_type\_at@{ntk\_clipboard\_history\_item\_content\_type\_at}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_item\_content\_type\_at()}{ntk\_clipboard\_history\_item\_content\_type\_at()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad475e784c1ea0742ab4b3bbf4e5e68b4} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+content\+\_\+type\+\_\+at (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}}]{history}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t}]{type\+\_\+index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+One of the item\textquotesingle{}s format names, as the OS reports it. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a3c317247aa90f12c8f40f2125299e697}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_item\_content\_type\_count@{ntk\_clipboard\_history\_item\_content\_type\_count}}
+\index{ntk\_clipboard\_history\_item\_content\_type\_count@{ntk\_clipboard\_history\_item\_content\_type\_count}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_item\_content\_type\_count()}{ntk\_clipboard\_history\_item\_content\_type\_count()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a3c317247aa90f12c8f40f2125299e697} 
+size\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+content\+\_\+type\+\_\+count (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}}]{history}{, }\item[{size\+\_\+t}]{index}{}\end{DoxyParamCaption})}
+
+How many format names the item carries. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a65715062b2cbb06f2e1660d6c9e854cd}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_item\_id@{ntk\_clipboard\_history\_item\_id}}
+\index{ntk\_clipboard\_history\_item\_id@{ntk\_clipboard\_history\_item\_id}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_item\_id()}{ntk\_clipboard\_history\_item\_id()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a65715062b2cbb06f2e1660d6c9e854cd} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+id (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}}]{history}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+The id of the item at index, which restore and delete take. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a19cf008473fc22ae3f9ab7c9a6829a57}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_item\_text@{ntk\_clipboard\_history\_item\_text}}
+\index{ntk\_clipboard\_history\_item\_text@{ntk\_clipboard\_history\_item\_text}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_item\_text()}{ntk\_clipboard\_history\_item\_text()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a19cf008473fc22ae3f9ab7c9a6829a57} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+text (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}}]{history}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+NULL for an item that carries no text, as well as out of range. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa6cff4c6c88eeb8c0afa309ffba367b2}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_history\_item\_timestamp\_unix\_ms@{ntk\_clipboard\_history\_item\_timestamp\_unix\_ms}}
+\index{ntk\_clipboard\_history\_item\_timestamp\_unix\_ms@{ntk\_clipboard\_history\_item\_timestamp\_unix\_ms}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_history\_item\_timestamp\_unix\_ms()}{ntk\_clipboard\_history\_item\_timestamp\_unix\_ms()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa6cff4c6c88eeb8c0afa309ffba367b2} 
+int64\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+history\+\_\+item\+\_\+timestamp\+\_\+unix\+\_\+ms (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\+\_\+clipboard\+\_\+history}} \texorpdfstring{$\ast$}{*}}]{history}{, }\item[{size\+\_\+t}]{index}{}\end{DoxyParamCaption})}
+
+Milliseconds since 1970-\/01-\/01 UTC; 0 when the OS gave no time. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1a550e963b1c3659c5953767e1116f09}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_items\_add\_bytes@{ntk\_clipboard\_items\_add\_bytes}}
+\index{ntk\_clipboard\_items\_add\_bytes@{ntk\_clipboard\_items\_add\_bytes}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_items\_add\_bytes()}{ntk\_clipboard\_items\_add\_bytes()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1a550e963b1c3659c5953767e1116f09} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+items\+\_\+add\+\_\+bytes (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}}]{items}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{format\+\_\+name}{, }\item[{const uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{size\+\_\+t}]{size}{}\end{DoxyParamCaption})}
+
+Adds bytes under a format name. data may be NULL only when size is 0. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_af778abb015806e4e034e1215c64f24ec}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_items\_add\_html@{ntk\_clipboard\_items\_add\_html}}
+\index{ntk\_clipboard\_items\_add\_html@{ntk\_clipboard\_items\_add\_html}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_items\_add\_html()}{ntk\_clipboard\_items\_add\_html()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_af778abb015806e4e034e1215c64f24ec} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+items\+\_\+add\+\_\+html (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}}]{items}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{format\+\_\+name}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{html}{}\end{DoxyParamCaption})}
+
+Adds an HTML fragment under a format name, e.\+g. "{}\+HTML Format"{}. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a25bed7adacefdc024a84f21537a741a2}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_items\_add\_text@{ntk\_clipboard\_items\_add\_text}}
+\index{ntk\_clipboard\_items\_add\_text@{ntk\_clipboard\_items\_add\_text}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_items\_add\_text()}{ntk\_clipboard\_items\_add\_text()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a25bed7adacefdc024a84f21537a741a2} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+items\+\_\+add\+\_\+text (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}}]{items}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{format\+\_\+name}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{text}{}\end{DoxyParamCaption})}
+
+Adds text under a format name, e.\+g. "{}\+CF\+\_\+\+UNICODETEXT"{}. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae3c22ea6068ac6d7723df3932274611f}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_items\_free@{ntk\_clipboard\_items\_free}}
+\index{ntk\_clipboard\_items\_free@{ntk\_clipboard\_items\_free}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_items\_free()}{ntk\_clipboard\_items\_free()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae3c22ea6068ac6d7723df3932274611f} 
+void NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+items\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\+\_\+clipboard\+\_\+items}} \texorpdfstring{$\ast$}{*}}]{items}{}\end{DoxyParamCaption})}
+
+Releases the builder. Does nothing for NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_aef35ab38a449311c02f41925e90de0ad}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_paste\_custom@{ntk\_clipboard\_paste\_custom}}
+\index{ntk\_clipboard\_paste\_custom@{ntk\_clipboard\_paste\_custom}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_paste\_custom()}{ntk\_clipboard\_paste\_custom()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_aef35ab38a449311c02f41925e90de0ad} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+paste\+\_\+custom (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{format\+\_\+name}{, }\item[{\mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+data}{}\end{DoxyParamCaption})}
+
+OP-\/34. format\+\_\+name is required. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa7c6a75c6c018dbb5d7811d4d8c10136}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_paste\_dib@{ntk\_clipboard\_paste\_dib}}
+\index{ntk\_clipboard\_paste\_dib@{ntk\_clipboard\_paste\_dib}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_paste\_dib()}{ntk\_clipboard\_paste\_dib()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa7c6a75c6c018dbb5d7811d4d8c10136} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+paste\+\_\+dib (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+dib}{}\end{DoxyParamCaption})}
+
+OP-\/32. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9fc9c25469d6e3929bd0c590cfc05f4f}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_paste\_files@{ntk\_clipboard\_paste\_files}}
+\index{ntk\_clipboard\_paste\_files@{ntk\_clipboard\_paste\_files}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_paste\_files()}{ntk\_clipboard\_paste\_files()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9fc9c25469d6e3929bd0c590cfc05f4f} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+paste\+\_\+files (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+paths}{}\end{DoxyParamCaption})}
+
+OP-\/30. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a7940b237dfba200cdf7faceaccd9d44a}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_paste\_html@{ntk\_clipboard\_paste\_html}}
+\index{ntk\_clipboard\_paste\_html@{ntk\_clipboard\_paste\_html}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_paste\_html()}{ntk\_clipboard\_paste\_html()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a7940b237dfba200cdf7faceaccd9d44a} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+paste\+\_\+html (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+html}{}\end{DoxyParamCaption})}
+
+OP-\/28. The fragment, as it was copied. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1bd9cca576455f915814caf6d494c125}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_paste\_text@{ntk\_clipboard\_paste\_text}}
+\index{ntk\_clipboard\_paste\_text@{ntk\_clipboard\_paste\_text}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_paste\_text()}{ntk\_clipboard\_paste\_text()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1bd9cca576455f915814caf6d494c125} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+paste\+\_\+text (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+text}{}\end{DoxyParamCaption})}
+
+OP-\/26. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae2a84b782a670e4f43cb23e9b550a5e2}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_recover\_deferred\_state@{ntk\_clipboard\_recover\_deferred\_state}}
+\index{ntk\_clipboard\_recover\_deferred\_state@{ntk\_clipboard\_recover\_deferred\_state}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_recover\_deferred\_state()}{ntk\_clipboard\_recover\_deferred\_state()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae2a84b782a670e4f43cb23e9b550a5e2} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+recover\+\_\+deferred\+\_\+state (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{}\end{DoxyParamCaption})}
+
+OP-\/41. Clears what a failed reservation left behind. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a070dc834f81f07703d3ac04d45a54912}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_render\_target\_set@{ntk\_clipboard\_render\_target\_set}}
+\index{ntk\_clipboard\_render\_target\_set@{ntk\_clipboard\_render\_target\_set}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_render\_target\_set()}{ntk\_clipboard\_render\_target\_set()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a070dc834f81f07703d3ac04d45a54912} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+render\+\_\+target\+\_\+set (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\+\_\+clipboard\+\_\+render\+\_\+target}} \texorpdfstring{$\ast$}{*}}]{target}{, }\item[{const uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{data}{, }\item[{size\+\_\+t}]{size}{}\end{DoxyParamCaption})}
+
+Hands the requested format\textquotesingle{}s bytes over; copied at once. Once per call of the provider. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9bf7bc5908bf97a0c380eb005255cad5}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_reserve\_deferred@{ntk\_clipboard\_reserve\_deferred}}
+\index{ntk\_clipboard\_reserve\_deferred@{ntk\_clipboard\_reserve\_deferred}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_reserve\_deferred()}{ntk\_clipboard\_reserve\_deferred()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9bf7bc5908bf97a0c380eb005255cad5} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+reserve\+\_\+deferred (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}const \texorpdfstring{$\ast$}{*}}]{formats}{, }\item[{size\+\_\+t}]{count}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066}{ntk\+\_\+clipboard\+\_\+render\+\_\+fn}}}]{provider}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{\mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\+\_\+release\+\_\+fn}}}]{release}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/40. Puts formats on the clipboard whose bytes provider produces only when a program asks for them. 
+
+release is called exactly once whatever this returns\+: when the reservation ends (the next reservation, a write or clear, another program emptying the clipboard, recovery, a successful close, or free), and on failure before this returns. After NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+PARTIAL\+\_\+\+STATE it is kept until one of those. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a42ac6a4cb43b49353e83e6f76968737a}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_restore\_history\_item@{ntk\_clipboard\_restore\_history\_item}}
+\index{ntk\_clipboard\_restore\_history\_item@{ntk\_clipboard\_restore\_history\_item}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_restore\_history\_item()}{ntk\_clipboard\_restore\_history\_item()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a42ac6a4cb43b49353e83e6f76968737a} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+restore\+\_\+history\+\_\+item (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{item\+\_\+id}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}}}]{callback}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+request\+\_\+id}{}\end{DoxyParamCaption})}
+
+OP-\/43. Puts a history item back on the clipboard. item\+\_\+id is required. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a63c44962dceda75097209b8ea4149bc9}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_can\_close@{ntk\_clipboard\_session\_can\_close}}
+\index{ntk\_clipboard\_session\_can\_close@{ntk\_clipboard\_session\_can\_close}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session\_can\_close()}{ntk\_clipboard\_session\_can\_close()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a63c44962dceda75097209b8ea4149bc9} 
+int32\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+session\+\_\+can\+\_\+close (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/24. Whether a close that is under way has nothing left to wait for. 
+
+0 for a session that has not started closing, non-\/zero once it is closed, and non-\/zero for NULL\+: there is nothing to close. Advice for a retry loop between two close attempts; close decides. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_aaad4a0b1d2f294124624fb48e9263ef3}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_close@{ntk\_clipboard\_session\_close}}
+\index{ntk\_clipboard\_session\_close@{ntk\_clipboard\_session\_close}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session\_close()}{ntk\_clipboard\_session\_close()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_aaad4a0b1d2f294124624fb48e9263ef3} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+session\+\_\+close (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/23. Closes the session. Owner thread only. Free the handle after. 
+
+Requests still in flight are cancelled\+: their completions arrive inside this call with NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED, so no message loop is needed. Retry only on NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY, once the other threads\textquotesingle{} reads and writes have finished. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ab072c4b1011c66ce1f14873151973864}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_create@{ntk\_clipboard\_session\_create}}
+\index{ntk\_clipboard\_session\_create@{ntk\_clipboard\_session\_create}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session\_create()}{ntk\_clipboard\_session\_create()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ab072c4b1011c66ce1f14873151973864} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+session\+\_\+create (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structntk__clipboard__session__options}{ntk\+\_\+clipboard\+\_\+session\+\_\+options}} \texorpdfstring{$\ast$}{*}}]{options}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+session}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/21. Opens the session; the calling thread becomes its owner. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em options} & NULL, or zeroed apart from struct\+\_\+size, for no listener. \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+APARTMENT} & The calling thread is not an STA. \\
+\hline
+{\em NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED} & A session exists (or was abandoned) on this thread, or options come from a newer version. \\
+\hline
+{\em NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD} & A session exists (or was abandoned) on another thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa5088098dd41fac2e582bf900c507c02}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_free@{ntk\_clipboard\_session\_free}}
+\index{ntk\_clipboard\_session\_free@{ntk\_clipboard\_session\_free}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session\_free()}{ntk\_clipboard\_session\_free()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa5088098dd41fac2e582bf900c507c02} 
+void NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+session\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{}\end{DoxyParamCaption})}
+
+
+
+Frees the handle. No callback of the session runs after this returns. 
+
+A session that was not closed is abandoned\+: its callbacks stop, but no new session can be created in this process. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a59713e057cd4062dbb597d0eb6f90c77}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_set\_history\_handlers@{ntk\_clipboard\_set\_history\_handlers}}
+\index{ntk\_clipboard\_set\_history\_handlers@{ntk\_clipboard\_set\_history\_handlers}!Clipboard.h@{Clipboard.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_clipboard\_set\_history\_handlers()}{ntk\_clipboard\_set\_history\_handlers()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a59713e057cd4062dbb597d0eb6f90c77} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+set\+\_\+history\+\_\+handlers (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const \mbox{\hyperlink{structntk__clipboard__history__handlers}{ntk\+\_\+clipboard\+\_\+history\+\_\+handlers}} \texorpdfstring{$\ast$}{*}}]{handlers}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/22. Replaces the history handlers. Owner thread only. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em handlers} & NULL, or all three NULL, removes them.\\
+\hline
+\end{DoxyParams}
+On success the previous user\+\_\+data is no longer used once this returns. On failure the previous handlers stay and the new user\+\_\+data is not kept. 

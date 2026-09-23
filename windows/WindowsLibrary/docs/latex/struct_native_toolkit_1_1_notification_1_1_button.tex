@@ -1,0 +1,33 @@
+\doxysection{Native\+Toolkit\+::Notification\+::Button Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_notification_1_1_button}{}\label{struct_native_toolkit_1_1_notification_1_1_button}\index{NativeToolkit::Notification::Button@{NativeToolkit::Notification::Button}}
+
+
+A button on the toast. JSON\+: an entry of buttons.  
+
+
+
+
+{\ttfamily \#include $<$Notification.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_button_a5af36d18f7848fec2bc884dce82c90cb}\label{struct_native_toolkit_1_1_notification_1_1_button_a5af36d18f7848fec2bc884dce82c90cb} 
+std\+::wstring {\bfseries label}
+\begin{DoxyCompactList}\small\item\em JSON\+: label. Required. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_button_a81b185223062b9f828e71922d2cce4c2}\label{struct_native_toolkit_1_1_notification_1_1_button_a81b185223062b9f828e71922d2cce4c2} 
+std\+::optional$<$ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a31195299f7d10826ac2f741abc0972cf}{Argument\+Pairs}} $>$ {\bfseries args}
+\begin{DoxyCompactList}\small\item\em JSON\+: args. Any keys the caller likes. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_button_a2d252e7592979cf16c8050ab19a083c3}\label{struct_native_toolkit_1_1_notification_1_1_button_a2d252e7592979cf16c8050ab19a083c3} 
+std\+::optional$<$ std\+::wstring $>$ {\bfseries invoke\+Uri}
+\begin{DoxyCompactList}\small\item\em JSON\+: invoke\+Uri. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+A button on the toast. JSON\+: an entry of buttons. 
+
+args and invoke\+Uri are mutually exclusive, per button -\/ not for the notification as a whole. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h}{Notification.\+h}}\end{DoxyCompactItemize}

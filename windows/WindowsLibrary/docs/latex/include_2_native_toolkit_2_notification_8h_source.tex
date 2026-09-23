@@ -1,0 +1,219 @@
+\doxysection{Notification.\+h}
+\hypertarget{include_2_native_toolkit_2_notification_8h_source}{}\label{include_2_native_toolkit_2_notification_8h_source}\index{WindowsLibrary/include/NativeToolkit/Notification.h@{WindowsLibrary/include/NativeToolkit/Notification.h}}
+\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <chrono>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <optional>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}NativeToolkit/BuildStamp.h"{}}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_error_8h}{NativeToolkit/Error.h}}"{}}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{keyword}{namespace\ }NativeToolkit::Notification\ \{}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00044\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7d}{Scenario}}\ \{}
+\DoxyCodeLine{00045\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da7a1920d61156abc05a60135aefe8bc67}{Default}},\ \ \ \ \ \ }
+\DoxyCodeLine{00046\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da92a9774c2a5df29ac4bffb46219ea9cd}{Reminder}},\ \ \ \ \ }
+\DoxyCodeLine{00047\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da46c4c4d980dfe025ae5b35aa0011dde4}{Alarm}},\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00048\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da2708565083321423b1a3244979bade9b}{Urgent}},\ \ \ \ \ \ \ }
+\DoxyCodeLine{00049\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da8f2521baf1658c89c8c04e9ca0be48fd}{IncomingCall}},\ }
+\DoxyCodeLine{00050\ \};}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00053\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4d}{AudioKind}}\ \{}
+\DoxyCodeLine{00054\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4daa4ecfc70574394990cf17bd83df499f7}{Event}},\ \ }
+\DoxyCodeLine{00055\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da00cd7be4cb21c59179316d7844a8cfc4}{Mute}},\ \ \ }
+\DoxyCodeLine{00056\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da3840cd8f73026713059f0ed0562c5493}{Uri}},\ \ \ \ }
+\DoxyCodeLine{00057\ \};}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00060\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bd}{Duration}}\ \{}
+\DoxyCodeLine{00061\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda30bb747c98bccdd11b3f89e644c4d0ad}{Short}},\ \ }
+\DoxyCodeLine{00062\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda8394f0347c184cf156ac5924dccb773b}{Long}},\ \ \ }
+\DoxyCodeLine{00063\ \};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00066\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9}{LogoCrop}}\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a6adf97f83acf6453d4a6a4b1070f3754}{None}},\ \ \ \ }
+\DoxyCodeLine{00068\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a30954d90085f6eaaf5817917fc5fecb3}{Circle}},\ \ }
+\DoxyCodeLine{00069\ \};}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00072\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}{NotificationSetting}}\ \{}
+\DoxyCodeLine{00073\ \ \ \ \ Enabled\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ 0,}
+\DoxyCodeLine{00074\ \ \ \ \ DisabledForApplication\ =\ 1,}
+\DoxyCodeLine{00075\ \ \ \ \ DisabledForUser\ \ \ \ \ \ \ \ =\ 2,}
+\DoxyCodeLine{00076\ \ \ \ \ DisabledByGroupPolicy\ \ =\ 3,}
+\DoxyCodeLine{00077\ \ \ \ \ DisabledByManifest\ \ \ \ \ =\ 4,}
+\DoxyCodeLine{00078\ \};}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00081\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_runtime_version}{RuntimeVersion}}\ \{}
+\DoxyCodeLine{00082\ \ \ \ \ uint32\_t\ majorMinor\ =\ 0;}
+\DoxyCodeLine{00083\ \};}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00086\ \textcolor{keyword}{using\ }\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a31195299f7d10826ac2f741abc0972cf}{ArgumentPairs}}\ =\ std::vector<std::pair<std::wstring,\ std::wstring>>;}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00093\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_button}{Button}}\ \{}
+\DoxyCodeLine{00094\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_button_a5af36d18f7848fec2bc884dce82c90cb}{label}};\ \ \ \ \ \ }
+\DoxyCodeLine{00095\ \ \ \ \ std::optional<ArgumentPairs>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_button_a81b185223062b9f828e71922d2cce4c2}{args}};\ \ \ \ \ \ \ }
+\DoxyCodeLine{00096\ \ \ \ \ std::optional<std::wstring>\ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_button_a2d252e7592979cf16c8050ab19a083c3}{invokeUri}};\ \ }
+\DoxyCodeLine{00097\ \};}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00100\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_text_input}{TextInput}}\ \{}
+\DoxyCodeLine{00101\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_text_input_a0b136381af1f46ba84ec35bb046ae02a}{id}};\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00102\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_text_input_af84fcd714f72cca5c347aa485eb561eb}{placeholder}};\ \ }
+\DoxyCodeLine{00103\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_text_input_a1bb7b528bba37b3f30b0316f6fdd8227}{title}};\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00104\ \};}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00107\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_item}{ComboItem}}\ \{}
+\DoxyCodeLine{00108\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_item_a696adbe446762529ab46645075f9e48d}{id}};\ \ \ \ \ }
+\DoxyCodeLine{00109\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_item_ad2eab9a116ec9e81cfd2a57215f3af70}{label}};\ \ }
+\DoxyCodeLine{00110\ \};}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00113\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_input}{ComboInput}}\ \{}
+\DoxyCodeLine{00114\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_input_a9cd70b56ac744d61ff77c138baab677a}{id}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00115\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_input_ab68915494acdbd381d91e65068c99da3}{title}};\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00116\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_input_ac5a7bc3c72fc4f18913e48029c59cd9a}{defaultSelection}};\ \ }
+\DoxyCodeLine{00117\ \ \ \ \ std::vector<ComboItem>\ items;}
+\DoxyCodeLine{00118\ \};}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00121\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_app_logo}{AppLogo}}\ \{}
+\DoxyCodeLine{00122\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_app_logo_ae794dfec63c6999171d72bb1ee73987b}{uri}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00123\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9}{LogoCrop}}\ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_app_logo_a88cffb1adc9400bd54ac1fdd57cabbba}{crop}}\ =\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a6adf97f83acf6453d4a6a4b1070f3754}{LogoCrop::None}};}
+\DoxyCodeLine{00124\ \};}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00127\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_audio_spec}{AudioSpec}}\ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4d}{AudioKind}}\ \ \ \ kind\ =\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4daa4ecfc70574394990cf17bd83df499f7}{AudioKind::Event}};}
+\DoxyCodeLine{00129\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_audio_spec_a1255007593017becf4e54994b2f8c21f}{eventName}};\ \ \ }
+\DoxyCodeLine{00130\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_audio_spec_adc416c483250d0e93afae78f4cbc3470}{uri}};\ \ }
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_audio_spec_a74f89b8889634d725bf903b1b355033e}{loop}}\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00132\ \};}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00139\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_spec}{ProgressSpec}}\ \{}
+\DoxyCodeLine{00140\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_spec_a0feca4479aa96088bb04880a43b0b83c}{title}};\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keywordtype}{double}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_spec_ae76906777739d44679e10fa768c1222b}{value}}\ =\ 0.0;\ \ }
+\DoxyCodeLine{00142\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_spec_af59036e30ef02e245fe4d622bdd7b779}{valueStr}};\ \ \ \ \ }
+\DoxyCodeLine{00143\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_spec_a2f7d920151bcd797783c1b89f6522c56}{status}};\ \ \ \ \ \ \ }
+\DoxyCodeLine{00144\ \};}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00153\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{NotificationContent}}\ \{}
+\DoxyCodeLine{00154\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a8c334c406d2e921893b0c9df1ce178af}{title}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00155\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_aa16fe9f4b90fc22be57b7ad7b2a24548}{body}};\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00156\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_ad0a1a7047d03c47ebcc32ccc3b6b6ed3}{tag}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00157\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a867629b57e166c28acfc6dbd2d3c0625}{group}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00158\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7d}{Scenario}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ scenario\ =\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da7a1920d61156abc05a60135aefe8bc67}{Scenario::Default}};}
+\DoxyCodeLine{00159\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_abd5ba1cdac8d57f6da3c80fc0d858bda}{heroImage}};\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00160\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_aa311f188cdda6e2cbbed735ecf493722}{inlineImage}};\ \ \ \ \ \ }
+\DoxyCodeLine{00161\ \ \ \ \ std::optional<AppLogo>\ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a943885f716e940c36f3b3375590b4217}{appLogo}};\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00162\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a229a69946422cc8fafe90735f0079ebb}{attribution}};\ \ \ \ \ \ }
+\DoxyCodeLine{00163\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bd}{Duration}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ duration\ =\ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda30bb747c98bccdd11b3f89e644c4d0ad}{Duration::Short}};}
+\DoxyCodeLine{00164\ \ \ \ \ std::optional<AudioSpec>\ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a1f4ef69606c748972500d648225278fa}{audio}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00165\ \ \ \ \ std::vector<Button>\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_aec3c37b0dd55728a52117c07f86ba358}{buttons}};\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00166\ \ \ \ \ std::vector<TextInput>\ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_ab49f60e5ecdad470ba3eea224860aee6}{textInputs}};\ \ \ \ \ \ \ }
+\DoxyCodeLine{00167\ \ \ \ \ std::vector<ComboInput>\ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_ab8af2ce8f4f8a97c841ec663e11dab40}{comboInputs}};\ \ \ \ \ \ }
+\DoxyCodeLine{00168\ \ \ \ \ std::optional<ProgressSpec>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a4422fb4c10c34d663af0091a9c6f64d5}{progress}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00169\ \ \ \ \ std::optional<std::chrono::system\_clock::time\_point>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_acf58d488056ef39910efba4970791a36}{timestamp}};\ \ \ }
+\DoxyCodeLine{00170\ \ \ \ \ std::optional<std::chrono::seconds>\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a743c3e51ef0f691b6cebf1e1624b0a7d}{expiration}};\ \ }
+\DoxyCodeLine{00171\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content_a1b3b6367e7a18d7513e0fc2af07df287}{expiresOnReboot}}\ =\ \textcolor{keyword}{false};\ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00172\ \};}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00175\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update}{ProgressUpdate}}\ \{}
+\DoxyCodeLine{00176\ \ \ \ \ std::wstring\ tag;}
+\DoxyCodeLine{00177\ \ \ \ \ std::wstring\ group;}
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keywordtype}{double}\ \ \ \ \ \ \ value\ =\ 0.0;}
+\DoxyCodeLine{00179\ \ \ \ \ std::wstring\ valueString;}
+\DoxyCodeLine{00180\ \ \ \ \ std::wstring\ status;}
+\DoxyCodeLine{00181\ \ \ \ \ uint32\_t\ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update_a2271ff994bbac2a4f915c530938b9824}{sequenceNumber}}\ =\ 0;\ \ }
+\DoxyCodeLine{00182\ \};}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00185\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_ref}{NotificationRef}}\ \{}
+\DoxyCodeLine{00186\ \ \ \ \ uint32\_t\ \ \ \ \ \textcolor{keywordtype}{id}\ =\ 0;}
+\DoxyCodeLine{00187\ \ \ \ \ std::wstring\ tag;}
+\DoxyCodeLine{00188\ \ \ \ \ std::wstring\ group;}
+\DoxyCodeLine{00189\ \};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00199\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{ActivationArgs}}\ \{}
+\DoxyCodeLine{00200\ \ \ \ \ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a31195299f7d10826ac2f741abc0972cf}{ArgumentPairs}}\ values;}
+\DoxyCodeLine{00201\ \ \ \ \ std::wstring\ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args_a14bfc7def340ce0ec5ea1ff72acfa9b9}{rawArguments}};\ \ }
+\DoxyCodeLine{00202\ \};}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00205\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options}{ManagerOptions}}\ \{}
+\DoxyCodeLine{00208\ \ \ \ \ std::function<void(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{ActivationArgs}}\&)>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f}{onInvoked}};}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_a6ba0c715728a2cb49176f041e348354f}{isPackaged}}\ =\ \textcolor{keyword}{true};\ \ }
+\DoxyCodeLine{00211\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29}{displayName}};\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00212\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ae8b4807099ff7cb3cfdd3fd3b538d57a}{iconUri}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00213\ \};}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00228\ \textcolor{keyword}{class\ }Runtime\ \{}
+\DoxyCodeLine{00229\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00241\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result<Runtime>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime_ac37a2accad6417c26da1a8d5235e0f37}{Initialize}}(\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_runtime_version}{RuntimeVersion}}\ version);}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \ \ \ \ Runtime(Runtime\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00244\ \ \ \ \ Runtime\&\ operator=(Runtime\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00245\ \ \ \ \ Runtime(\textcolor{keyword}{const}\ Runtime\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00246\ \ \ \ \ Runtime\&\ operator=(\textcolor{keyword}{const}\ Runtime\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00247\ \ \ \ \ \string~Runtime();}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00250\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime_a348acb8e1c8cf70f4cafc1998269d7f6}{Close}}()\ noexcept;}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ private:}
+\DoxyCodeLine{00253\ \ \ \ \ Runtime()\ =\ default;}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{keywordtype}{bool}\ held\_\ =\ false;}
+\DoxyCodeLine{00255\ \};}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ namespace\ Detail\ \{\ \textcolor{keyword}{class\ }TestAccess;\ \}}
+\DoxyCodeLine{00258\ }
+\DoxyCodeLine{00291\ \textcolor{keyword}{class\ }Manager\ \{}
+\DoxyCodeLine{00292\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00301\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result<Manager>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Create}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options}{ManagerOptions}}\&\ options);}
+\DoxyCodeLine{00302\ }
+\DoxyCodeLine{00303\ \ \ \ \ Manager(Manager\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00304\ \ \ \ \ Manager\&\ operator=(Manager\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00305\ \ \ \ \ Manager(\textcolor{keyword}{const}\ Manager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00306\ \ \ \ \ Manager\&\ operator=(\textcolor{keyword}{const}\ Manager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00307\ \ \ \ \ \string~Manager();}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00315\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac381e57accfaa3eda2f480632b2879c4}{SetInvokedHandler}}(std::function<\textcolor{keywordtype}{void}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{ActivationArgs}}\&)>\ handler);}
+\DoxyCodeLine{00316\ }
+\DoxyCodeLine{00325\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_aa54c30e1524e9f140a4bdd8794eaa8ba}{Close}}()\ noexcept;}
+\DoxyCodeLine{00326\ }
+\DoxyCodeLine{00337\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d}{Show}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{NotificationContent}}\&\ content);}
+\DoxyCodeLine{00338\ }
+\DoxyCodeLine{00351\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e}{Schedule}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{NotificationContent}}\&\ content,}
+\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::chrono::system\_clock::time\_point\ when);}
+\DoxyCodeLine{00353\ }
+\DoxyCodeLine{00359\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217}{CancelScheduled}}(const\ std::wstring\&\ tag,\ const\ std::wstring\&\ group);}
+\DoxyCodeLine{00360\ }
+\DoxyCodeLine{00369\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c}{UpdateProgress}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update}{ProgressUpdate}}\&\ update);}
+\DoxyCodeLine{00370\ }
+\DoxyCodeLine{00382\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248}{SetBadge}}(\textcolor{keywordtype}{int}\ value);}
+\DoxyCodeLine{00383\ }
+\DoxyCodeLine{00390\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507}{RemoveById}}(uint32\_t\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00397\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a}{RemoveByTag}}(const\ std::wstring\&\ tag,\ const\ std::wstring\&\ group);}
+\DoxyCodeLine{00398\ }
+\DoxyCodeLine{00404\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8}{RemoveAll}}();}
+\DoxyCodeLine{00405\ }
+\DoxyCodeLine{00412\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<std::vector<\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_ref}{NotificationRef}}>>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1}{GetAll}}();}
+\DoxyCodeLine{00413\ }
+\DoxyCodeLine{00419\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}{NotificationSetting}}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3}{GetSetting}}();}
+\DoxyCodeLine{00420\ }
+\DoxyCodeLine{00426\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946}{OpenSettings}}();}
+\DoxyCodeLine{00427\ }
+\DoxyCodeLine{00428\ private:}
+\DoxyCodeLine{00429\ \ \ \ \ \textcolor{comment}{//\ Create\ registers\ this\ process\ with\ the\ OS,\ which\ a\ test\ host\ cannot\ do.}}
+\DoxyCodeLine{00430\ \ \ \ \ \textcolor{comment}{//\ This\ lets\ the\ library's\ own\ tests\ build\ a\ Manager\ without\ it;\ nothing}}
+\DoxyCodeLine{00431\ \ \ \ \ \textcolor{comment}{//\ outside\ the\ library\ can\ define\ the\ class\ it\ names.}}
+\DoxyCodeLine{00432\ \ \ \ \ friend\ class\ Detail::TestAccess;}
+\DoxyCodeLine{00433\ }
+\DoxyCodeLine{00434\ \ \ \ \ Manager()\ =\ default;}
+\DoxyCodeLine{00435\ \ \ \ \ \textcolor{keywordtype}{bool}\ held\_\ =\ false;}
+\DoxyCodeLine{00436\ \};}
+\DoxyCodeLine{00437\ }
+\DoxyCodeLine{00438\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Notification}}
+
+\end{DoxyCode}

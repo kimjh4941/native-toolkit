@@ -1,0 +1,221 @@
+\doxysection{Windows\+Library\+CApi/include/\+Native\+Toolkit\+C/\+Common.h File Reference}
+\hypertarget{_common_8h}{}\label{_common_8h}\index{WindowsLibraryCApi/include/NativeToolkitC/Common.h@{WindowsLibraryCApi/include/NativeToolkitC/Common.h}}
+
+
+What every part of the Native\+Toolkit C ABI shares\+: the version, the last system code, and the three output handles (a string, bytes and a list of strings).  
+
+
+{\ttfamily \#include $<$stddef.\+h$>$}\newline
+{\ttfamily \#include $<$stdint.\+h$>$}\newline
+Include dependency graph for Common.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=198pt]{_common_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_common_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_common_8h_ad47e89fcff12a13e22e6e8cb4fdb0a91}\label{_common_8h_ad47e89fcff12a13e22e6e8cb4fdb0a91} 
+\#define {\bfseries NTK\+\_\+\+CALL}
+\item 
+\Hypertarget{_common_8h_aac9a180850e201cb0ca92282afb610e0}\label{_common_8h_aac9a180850e201cb0ca92282afb610e0} 
+\#define {\bfseries NTK\+\_\+\+VERSION\+\_\+\+MAJOR}~2
+\item 
+\Hypertarget{_common_8h_a799885fea456667e78281cdb9b398255}\label{_common_8h_a799885fea456667e78281cdb9b398255} 
+\#define {\bfseries NTK\+\_\+\+VERSION\+\_\+\+MINOR}~0
+\item 
+\Hypertarget{_common_8h_a9a87dbe6de9f03e36fb7c1ea646a162c}\label{_common_8h_a9a87dbe6de9f03e36fb7c1ea646a162c} 
+\#define {\bfseries NTK\+\_\+\+VERSION\+\_\+\+PATCH}~0
+\item 
+\#define \mbox{\hyperlink{_common_8h_a9953aefcb4563df4a57ee254ff462c66}{NTK\+\_\+\+VERSION}}~0x020000
+\item 
+\#define \mbox{\hyperlink{_common_8h_a4f877433ab0d0eb5ec0da6ff7ffb9dab}{NTK\+\_\+\+SYSTEM\+\_\+\+CODE\+\_\+\+E\+\_\+\+OUTOFMEMORY}}~0x8007000E
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\+\_\+release\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data)
+\begin{DoxyCompactList}\small\item\em Tells the caller that the library is done with a user\+\_\+data pointer. \end{DoxyCompactList}\item 
+typedef struct \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}}
+\item 
+typedef struct \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}}
+\item 
+typedef struct \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+uint32\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_af43e62d145570a270fbd8031185b7662}{ntk\+\_\+version}} (void)
+\begin{DoxyCompactList}\small\item\em The version of the DLL, in the form of NTK\+\_\+\+VERSION. \end{DoxyCompactList}\item 
+uint32\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code}} (void)
+\begin{DoxyCompactList}\small\item\em The raw value the OS reported for the last failure on this thread. \end{DoxyCompactList}\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_aa60ec32b271d7c985ddeb5e5b86c2c7a}{ntk\+\_\+string\+\_\+data}} (const \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}s)
+\item 
+size\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a85a1812293a8198228bee8f332620460}{ntk\+\_\+string\+\_\+size}} (const \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}s)
+\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a1f12d2da6c2f42f5c1944ecf89390d1b}{ntk\+\_\+string\+\_\+free}} (\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}s)
+\item 
+const uint8\+\_\+t \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a3cd4e7434d9bcf70d3a0c36144b0bc22}{ntk\+\_\+bytes\+\_\+data}} (const \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}b)
+\item 
+size\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a34f586b8677b7dfdfa66c2ae427a8363}{ntk\+\_\+bytes\+\_\+size}} (const \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}b)
+\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a1b1113e0d2592b9fe5ea16cdde4a1ce8}{ntk\+\_\+bytes\+\_\+free}} (\mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}b)
+\item 
+size\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a8f587784aa4fc2b27f525e396cbffb02}{ntk\+\_\+string\+\_\+list\+\_\+count}} (const \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}list)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a9f7b810733496c8c632850fbf1dbe01c}{ntk\+\_\+string\+\_\+list\+\_\+at}} (const \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}list, size\+\_\+t index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_common_8h_a9df648263955544604bf9ed856138d16}{ntk\+\_\+string\+\_\+list\+\_\+free}} (\mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}list)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+What every part of the Native\+Toolkit C ABI shares\+: the version, the last system code, and the three output handles (a string, bytes and a list of strings). 
+
+Rules that hold for the whole C ABI (stage 5 design, sections 1 and 7)\+:
+\begin{DoxyItemize}
+\item Strings are NUL-\/terminated UTF-\/8, in and out.
+\item Every handle a function hands out is released with its own \+\_\+free, and \+\_\+free(\+NULL) does nothing. Pointers read from a handle stay valid until that handle is freed.
+\item A failing function reports its error as the return value; the raw value the OS gave, if any, is \doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()} on the same thread.
+\item The header is plain C99, includes nothing but \texorpdfstring{$<$}{<}stddef.\+h\texorpdfstring{$>$}{>} and \texorpdfstring{$<$}{<}stdint.\+h\texorpdfstring{$>$}{>}, and is ASCII only. 
+\end{DoxyItemize}
+
+\label{doc-define-members}
+\Hypertarget{_common_8h_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{_common_8h_a4f877433ab0d0eb5ec0da6ff7ffb9dab}\index{Common.h@{Common.h}!NTK\_SYSTEM\_CODE\_E\_OUTOFMEMORY@{NTK\_SYSTEM\_CODE\_E\_OUTOFMEMORY}}
+\index{NTK\_SYSTEM\_CODE\_E\_OUTOFMEMORY@{NTK\_SYSTEM\_CODE\_E\_OUTOFMEMORY}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{NTK\_SYSTEM\_CODE\_E\_OUTOFMEMORY}{NTK\_SYSTEM\_CODE\_E\_OUTOFMEMORY}}
+{\footnotesize\ttfamily \label{_common_8h_a4f877433ab0d0eb5ec0da6ff7ffb9dab} 
+\#define NTK\+\_\+\+SYSTEM\+\_\+\+CODE\+\_\+\+E\+\_\+\+OUTOFMEMORY~0x8007000E}
+
+\doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()} after an out-\/of-\/memory failure the C ABI caught (E\+\_\+\+OUTOFMEMORY). \Hypertarget{_common_8h_a9953aefcb4563df4a57ee254ff462c66}\index{Common.h@{Common.h}!NTK\_VERSION@{NTK\_VERSION}}
+\index{NTK\_VERSION@{NTK\_VERSION}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{NTK\_VERSION}{NTK\_VERSION}}
+{\footnotesize\ttfamily \label{_common_8h_a9953aefcb4563df4a57ee254ff462c66} 
+\#define NTK\+\_\+\+VERSION~0x020000}
+
+(MAJOR \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 16) \texorpdfstring{$\vert$}{|} (MINOR \texorpdfstring{$<$}{<}\texorpdfstring{$<$}{<} 8) \texorpdfstring{$\vert$}{|} PATCH, written as a literal so that every binding generator can read it. 
+
+\label{doc-typedef-members}
+\Hypertarget{_common_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{_common_8h_aced1770a254eaf98d935ece8ee38d951}\index{Common.h@{Common.h}!ntk\_bytes@{ntk\_bytes}}
+\index{ntk\_bytes@{ntk\_bytes}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_bytes}{ntk\_bytes}}
+{\footnotesize\ttfamily \label{_common_8h_aced1770a254eaf98d935ece8ee38d951} 
+typedef struct \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}}}
+
+Bytes the library returned. \Hypertarget{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}\index{Common.h@{Common.h}!ntk\_release\_fn@{ntk\_release\_fn}}
+\index{ntk\_release\_fn@{ntk\_release\_fn}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_release\_fn}{ntk\_release\_fn}}
+{\footnotesize\ttfamily \label{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+release\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data)}
+
+
+
+Tells the caller that the library is done with a user\+\_\+data pointer. 
+
+Called exactly once for every registration that takes one, whatever the registering function returned. \Hypertarget{_common_8h_a631dd86bfa069f6344c0c694023f84ba}\index{Common.h@{Common.h}!ntk\_string@{ntk\_string}}
+\index{ntk\_string@{ntk\_string}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string}{ntk\_string}}
+{\footnotesize\ttfamily \label{_common_8h_a631dd86bfa069f6344c0c694023f84ba} 
+typedef struct \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}}}
+
+A string the library returned. \Hypertarget{_common_8h_a30dd287e97dccfee61b44fde93575812}\index{Common.h@{Common.h}!ntk\_string\_list@{ntk\_string\_list}}
+\index{ntk\_string\_list@{ntk\_string\_list}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string\_list}{ntk\_string\_list}}
+{\footnotesize\ttfamily \label{_common_8h_a30dd287e97dccfee61b44fde93575812} 
+typedef struct \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}}}
+
+A list of strings the library returned. 
+
+\label{doc-func-members}
+\Hypertarget{_common_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_common_8h_a3cd4e7434d9bcf70d3a0c36144b0bc22}\index{Common.h@{Common.h}!ntk\_bytes\_data@{ntk\_bytes\_data}}
+\index{ntk\_bytes\_data@{ntk\_bytes\_data}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_bytes\_data()}{ntk\_bytes\_data()}}
+{\footnotesize\ttfamily \label{_common_8h_a3cd4e7434d9bcf70d3a0c36144b0bc22} 
+const uint8\+\_\+t \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+bytes\+\_\+data (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}}]{b}{}\end{DoxyParamCaption})}
+
+The bytes; never NULL for a valid handle, even when the size is 0. \Hypertarget{_common_8h_a1b1113e0d2592b9fe5ea16cdde4a1ce8}\index{Common.h@{Common.h}!ntk\_bytes\_free@{ntk\_bytes\_free}}
+\index{ntk\_bytes\_free@{ntk\_bytes\_free}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_bytes\_free()}{ntk\_bytes\_free()}}
+{\footnotesize\ttfamily \label{_common_8h_a1b1113e0d2592b9fe5ea16cdde4a1ce8} 
+void NTK\+\_\+\+CALL ntk\+\_\+bytes\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}}]{b}{}\end{DoxyParamCaption})}
+
+Releases the bytes. Does nothing for NULL. \Hypertarget{_common_8h_a34f586b8677b7dfdfa66c2ae427a8363}\index{Common.h@{Common.h}!ntk\_bytes\_size@{ntk\_bytes\_size}}
+\index{ntk\_bytes\_size@{ntk\_bytes\_size}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_bytes\_size()}{ntk\_bytes\_size()}}
+{\footnotesize\ttfamily \label{_common_8h_a34f586b8677b7dfdfa66c2ae427a8363} 
+size\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+bytes\+\_\+size (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\+\_\+bytes}} \texorpdfstring{$\ast$}{*}}]{b}{}\end{DoxyParamCaption})}
+
+The number of bytes. \Hypertarget{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}\index{Common.h@{Common.h}!ntk\_last\_system\_code@{ntk\_last\_system\_code}}
+\index{ntk\_last\_system\_code@{ntk\_last\_system\_code}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_last\_system\_code()}{ntk\_last\_system\_code()}}
+{\footnotesize\ttfamily \label{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124} 
+uint32\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+last\+\_\+system\+\_\+code (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+The raw value the OS reported for the last failure on this thread. 
+
+Updated by every function that returns an error\+: 0 on success. Read it straight after the failure, on the same thread. \Hypertarget{_common_8h_aa60ec32b271d7c985ddeb5e5b86c2c7a}\index{Common.h@{Common.h}!ntk\_string\_data@{ntk\_string\_data}}
+\index{ntk\_string\_data@{ntk\_string\_data}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string\_data()}{ntk\_string\_data()}}
+{\footnotesize\ttfamily \label{_common_8h_aa60ec32b271d7c985ddeb5e5b86c2c7a} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+string\+\_\+data (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}}]{s}{}\end{DoxyParamCaption})}
+
+The text, NUL-\/terminated. Valid until the handle is freed. \Hypertarget{_common_8h_a1f12d2da6c2f42f5c1944ecf89390d1b}\index{Common.h@{Common.h}!ntk\_string\_free@{ntk\_string\_free}}
+\index{ntk\_string\_free@{ntk\_string\_free}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string\_free()}{ntk\_string\_free()}}
+{\footnotesize\ttfamily \label{_common_8h_a1f12d2da6c2f42f5c1944ecf89390d1b} 
+void NTK\+\_\+\+CALL ntk\+\_\+string\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}}]{s}{}\end{DoxyParamCaption})}
+
+Releases the string. Does nothing for NULL. \Hypertarget{_common_8h_a9f7b810733496c8c632850fbf1dbe01c}\index{Common.h@{Common.h}!ntk\_string\_list\_at@{ntk\_string\_list\_at}}
+\index{ntk\_string\_list\_at@{ntk\_string\_list\_at}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string\_list\_at()}{ntk\_string\_list\_at()}}
+{\footnotesize\ttfamily \label{_common_8h_a9f7b810733496c8c632850fbf1dbe01c} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+string\+\_\+list\+\_\+at (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}}]{list}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+The string at index, or NULL when index is out of range. out\+\_\+size may be NULL. \Hypertarget{_common_8h_a8f587784aa4fc2b27f525e396cbffb02}\index{Common.h@{Common.h}!ntk\_string\_list\_count@{ntk\_string\_list\_count}}
+\index{ntk\_string\_list\_count@{ntk\_string\_list\_count}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string\_list\_count()}{ntk\_string\_list\_count()}}
+{\footnotesize\ttfamily \label{_common_8h_a8f587784aa4fc2b27f525e396cbffb02} 
+size\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+string\+\_\+list\+\_\+count (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}}]{list}{}\end{DoxyParamCaption})}
+
+The number of strings. \Hypertarget{_common_8h_a9df648263955544604bf9ed856138d16}\index{Common.h@{Common.h}!ntk\_string\_list\_free@{ntk\_string\_list\_free}}
+\index{ntk\_string\_list\_free@{ntk\_string\_list\_free}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string\_list\_free()}{ntk\_string\_list\_free()}}
+{\footnotesize\ttfamily \label{_common_8h_a9df648263955544604bf9ed856138d16} 
+void NTK\+\_\+\+CALL ntk\+\_\+string\+\_\+list\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\+\_\+string\+\_\+list}} \texorpdfstring{$\ast$}{*}}]{list}{}\end{DoxyParamCaption})}
+
+Releases the list. Does nothing for NULL. \Hypertarget{_common_8h_a85a1812293a8198228bee8f332620460}\index{Common.h@{Common.h}!ntk\_string\_size@{ntk\_string\_size}}
+\index{ntk\_string\_size@{ntk\_string\_size}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_string\_size()}{ntk\_string\_size()}}
+{\footnotesize\ttfamily \label{_common_8h_a85a1812293a8198228bee8f332620460} 
+size\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+string\+\_\+size (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\+\_\+string}} \texorpdfstring{$\ast$}{*}}]{s}{}\end{DoxyParamCaption})}
+
+The length in bytes, without the terminator. \Hypertarget{_common_8h_af43e62d145570a270fbd8031185b7662}\index{Common.h@{Common.h}!ntk\_version@{ntk\_version}}
+\index{ntk\_version@{ntk\_version}!Common.h@{Common.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_version()}{ntk\_version()}}
+{\footnotesize\ttfamily \label{_common_8h_af43e62d145570a270fbd8031185b7662} 
+uint32\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+version (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+The version of the DLL, in the form of NTK\+\_\+\+VERSION. 
+
+Compare it with NTK\+\_\+\+VERSION to find a header and a DLL that do not belong together. 

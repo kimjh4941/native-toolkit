@@ -1,0 +1,508 @@
+\doxysection{Native\+Toolkit\+::Notification\+::Manager Class Reference}
+\hypertarget{class_native_toolkit_1_1_notification_1_1_manager}{}\label{class_native_toolkit_1_1_notification_1_1_manager}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+
+
+The notification service of this process.  
+
+
+
+
+{\ttfamily \#include $<$Notification.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a790a77d9ae37afcce8b9ae39863043a2}\label{class_native_toolkit_1_1_notification_1_1_manager_a790a77d9ae37afcce8b9ae39863043a2} 
+{\bfseries Manager} (\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} \&\&other) noexcept
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a824a701f23f4db9334af9d3d9c0634aa}\label{class_native_toolkit_1_1_notification_1_1_manager_a824a701f23f4db9334af9d3d9c0634aa} 
+\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} \& {\bfseries operator=} (\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} \&\&other) noexcept
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a368640e1a90734349fd697a673c5a8e2}\label{class_native_toolkit_1_1_notification_1_1_manager_a368640e1a90734349fd697a673c5a8e2} 
+{\bfseries Manager} (const \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} \&)=delete
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a17bf521bfd99fa78ab6f34dbd456f688}\label{class_native_toolkit_1_1_notification_1_1_manager_a17bf521bfd99fa78ab6f34dbd456f688} 
+\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} \& {\bfseries operator=} (const \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} \&)=delete
+\item 
+void \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac381e57accfaa3eda2f480632b2879c4}{Set\+Invoked\+Handler}} (std\+::function$<$ void(const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{Activation\+Args}} \&)$>$ handler)
+\begin{DoxyCompactList}\small\item\em Replaces the activation handler. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_aa54c30e1524e9f140a4bdd8794eaa8ba}{Close}} () noexcept
+\begin{DoxyCompactList}\small\item\em Unregisters. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d}{Show}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{Notification\+Content}} \&content)
+\begin{DoxyCompactList}\small\item\em Shows a notification now. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e}{Schedule}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{Notification\+Content}} \&content, std\+::chrono\+::system\+\_\+clock\+::time\+\_\+point when)
+\begin{DoxyCompactList}\small\item\em Shows a notification at a time. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217}{Cancel\+Scheduled}} (const std\+::wstring \&tag, const std\+::wstring \&group)
+\begin{DoxyCompactList}\small\item\em Takes back a scheduled notification, by the tag and group it was given. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c}{Update\+Progress}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update}{Progress\+Update}} \&update)
+\begin{DoxyCompactList}\small\item\em Changes the progress bar of a notification that is showing. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248}{Set\+Badge}} (int value)
+\begin{DoxyCompactList}\small\item\em Sets the badge on the taskbar icon. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507}{Remove\+By\+Id}} (uint32\+\_\+t id)
+\begin{DoxyCompactList}\small\item\em Removes one notification from the action centre. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a}{Remove\+By\+Tag}} (const std\+::wstring \&tag, const std\+::wstring \&group)
+\begin{DoxyCompactList}\small\item\em Removes the notifications with a tag and group from the action centre. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8}{Remove\+All}} ()
+\begin{DoxyCompactList}\small\item\em Removes every notification of this app from the action centre. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ std\+::vector$<$ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_ref}{Notification\+Ref}} $>$ $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1}{Get\+All}} ()
+\begin{DoxyCompactList}\small\item\em The notifications of this app in the action centre. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}{Notification\+Setting}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3}{Get\+Setting}} ()
+\begin{DoxyCompactList}\small\item\em Whether the OS lets this app show notifications, and if not, why. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946}{Open\+Settings}} ()
+\begin{DoxyCompactList}\small\item\em Opens the notification page of the Windows settings. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Create}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options}{Manager\+Options}} \&options)
+\begin{DoxyCompactList}\small\item\em Registers this process for notifications. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a31a18cb8d3415508d00f35f9ed6ad5dc}\label{class_native_toolkit_1_1_notification_1_1_manager_a31a18cb8d3415508d00f35f9ed6ad5dc} 
+class {\bfseries Detail\+::\+Test\+Access}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The notification service of this process. 
+
+Windows registers one activation handler per process, so there can be one \doxylink{class_native_toolkit_1_1_notification_1_1_manager}{Manager} at a time and a second Create fails with Not\+Supported rather than quietly taking the first one\textquotesingle{}s place. Move only, for the same reason as \doxylink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}.
+
+Every operation is synchronous and blocks the calling thread, including the ones the platform exposes asynchronously; that is what the implementation does today and the C++ API does not change it.
+
+{\bfseries{Where the handler runs.}} On whichever thread the OS delivers the activation, and it is not moved to yours\+: a handler that touches UI has to marshal to the UI thread itself (NTF-\/02, RK-\/04). It is called outside the library\textquotesingle{}s own locks.
+
+{\bfseries{The first activation can arrive before Create returns.}} When an unpackaged app is launched by clicking a toast, that activation is delivered from inside Create, on the thread calling it, exactly once (NTF-\/09). A handler must not assume the \doxylink{class_native_toolkit_1_1_notification_1_1_manager}{Manager} it was given to already exists (RK-\/10).
+
+{\bfseries{COM.}} Create initialises COM on the calling thread as a multi-\/threaded apartment, accepts RPC\+\_\+\+E\+\_\+\+CHANGED\+\_\+\+MODE when the thread already has another apartment, and never uninitialises it (N-\/8, NTF-\/61). A thread that Create leaves as an MTA cannot then create a \doxylink{class_native_toolkit_1_1_clipboard_1_1_session}{Clipboard\+::\+Session}, which needs an STA\+: initialise the thread as an STA first if both run on it.
+
+{\bfseries{Unpackaged apps}} get Not\+Supported from Set\+Badge, Remove\+By\+Id and Get\+All, which the platform offers to packaged apps only (NTF-\/52). 
+
+\label{doc-func-members}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!CancelScheduled@{CancelScheduled}}
+\index{CancelScheduled@{CancelScheduled}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{CancelScheduled()}{CancelScheduled()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Cancel\+Scheduled (\begin{DoxyParamCaption}\item[{const std\+::wstring \&}]{tag}{, }\item[{const std\+::wstring \&}]{group}{}\end{DoxyParamCaption})}
+
+
+
+Takes back a scheduled notification, by the tag and group it was given. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em HResult\+Failure} & The platform refused. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=222pt]{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=222pt]{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_aa54c30e1524e9f140a4bdd8794eaa8ba}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!Close@{Close}}
+\index{Close@{Close}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{Close()}{Close()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_aa54c30e1524e9f140a4bdd8794eaa8ba} 
+void Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Close (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Unregisters. 
+
+The registration is revoked before the handler is dropped, so an activation cannot arrive with nothing to receive it (NTF-\/40). Doing it twice is allowed and does nothing. Returns nothing\+: there is nothing a caller could do about a failure to unregister, and ntk\+\_\+notification\+\_\+manager\+\_\+close says as much. \Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!Create@{Create}}
+\index{Create@{Create}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{Create()}{Create()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Manager}} $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Create (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options}{Manager\+Options}} \&}]{options}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Registers this process for notifications. 
+
+The handler in options is installed before the registration, so an activation that arrives during it is not lost. 
+\begin{DoxyRetVals}{Return values}
+{\em Invalid\+Parameter} & An unpackaged app without a display name or an icon. \\
+\hline
+{\em HResult\+Failure} & COM, the shortcut or the activator registration failed. \\
+\hline
+{\em Not\+Supported} & A \doxylink{class_native_toolkit_1_1_notification_1_1_manager}{Manager} already exists in this process. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!GetAll@{GetAll}}
+\index{GetAll@{GetAll}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{GetAll()}{GetAll()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ std\+::vector$<$ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_ref}{Notification\+Ref}} $>$ $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Get\+All (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+The notifications of this app in the action centre. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em HResult\+Failure} & The platform refused. \\
+\hline
+{\em Not\+Supported} & An unpackaged app. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!GetSetting@{GetSetting}}
+\index{GetSetting@{GetSetting}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{GetSetting()}{GetSetting()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}{Notification\+Setting}} $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Get\+Setting (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Whether the OS lets this app show notifications, and if not, why. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em HResult\+Failure} & The setting could not be read. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!OpenSettings@{OpenSettings}}
+\index{OpenSettings@{OpenSettings}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{OpenSettings()}{OpenSettings()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Open\+Settings (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Opens the notification page of the Windows settings. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em HResult\+Failure} & The settings could not be launched. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!RemoveAll@{RemoveAll}}
+\index{RemoveAll@{RemoveAll}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{RemoveAll()}{RemoveAll()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Remove\+All (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Removes every notification of this app from the action centre. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em HResult\+Failure} & The platform refused. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!RemoveById@{RemoveById}}
+\index{RemoveById@{RemoveById}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{RemoveById()}{RemoveById()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Remove\+By\+Id (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{id}{}\end{DoxyParamCaption})}
+
+
+
+Removes one notification from the action centre. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em HResult\+Failure} & The platform refused. \\
+\hline
+{\em Not\+Supported} & An unpackaged app. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!RemoveByTag@{RemoveByTag}}
+\index{RemoveByTag@{RemoveByTag}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{RemoveByTag()}{RemoveByTag()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Remove\+By\+Tag (\begin{DoxyParamCaption}\item[{const std\+::wstring \&}]{tag}{, }\item[{const std\+::wstring \&}]{group}{}\end{DoxyParamCaption})}
+
+
+
+Removes the notifications with a tag and group from the action centre. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em HResult\+Failure} & The platform refused. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=210pt]{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=210pt]{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!Schedule@{Schedule}}
+\index{Schedule@{Schedule}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{Schedule()}{Schedule()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Schedule (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{Notification\+Content}} \&}]{content}{, }\item[{std\+::chrono\+::system\+\_\+clock\+::time\+\_\+point}]{when}{}\end{DoxyParamCaption})}
+
+
+
+Shows a notification at a time. 
+
+The platform\textquotesingle{}s scheduler knows nothing of an expiration or a progress bar, so both are ignored here (NTF-\/63). It may also drop a notification scheduled more than a few minutes ahead; the library logs a warning when asked to. 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Disabled} & Notifications are off for this app or this user. \\
+\hline
+{\em Invalid\+Parameter} & The content breaks one of the rules. \\
+\hline
+{\em HResult\+Failure} & The platform refused. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!SetBadge@{SetBadge}}
+\index{SetBadge@{SetBadge}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{SetBadge()}{SetBadge()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Set\+Badge (\begin{DoxyParamCaption}\item[{int}]{value}{}\end{DoxyParamCaption})}
+
+
+
+Sets the badge on the taskbar icon. 
+
+The sign decides the meaning\+: a positive value is a count with no upper limit, zero clears the badge, and -\/1 to -\/6 name the glyphs alert, activity, new\+Message, available, busy and away (NTF-\/65). 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & A value below -\/6. \\
+\hline
+{\em Badge\+Failed} & The platform refused. \\
+\hline
+{\em Not\+Supported} & An unpackaged app. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_ac381e57accfaa3eda2f480632b2879c4}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!SetInvokedHandler@{SetInvokedHandler}}
+\index{SetInvokedHandler@{SetInvokedHandler}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{SetInvokedHandler()}{SetInvokedHandler()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_ac381e57accfaa3eda2f480632b2879c4} 
+void Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Set\+Invoked\+Handler (\begin{DoxyParamCaption}\item[{std\+::function$<$ void(const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{Activation\+Args}} \&)$>$}]{handler}{}\end{DoxyParamCaption})}
+
+
+
+Replaces the activation handler. 
+
+An empty handler drops activations. Takes effect for the next activation; one being delivered right now finishes with the handler it started with. \Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!Show@{Show}}
+\index{Show@{Show}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{Show()}{Show()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Show (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{Notification\+Content}} \&}]{content}{}\end{DoxyParamCaption})}
+
+
+
+Shows a notification now. 
+
+The content is checked before anything is built. A content that breaks a rule -\/ a sixth button, a looping sound on a short toast -\/ is refused whole rather than shown in part. 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Disabled} & Notifications are off for this app or this user. \\
+\hline
+{\em Invalid\+Parameter} & The content breaks one of the rules. \\
+\hline
+{\em HResult\+Failure} & The platform refused, for instance an image URI that does not parse. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c}\index{NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}!UpdateProgress@{UpdateProgress}}
+\index{UpdateProgress@{UpdateProgress}!NativeToolkit::Notification::Manager@{NativeToolkit::Notification::Manager}}
+\doxysubsubsection{\texorpdfstring{UpdateProgress()}{UpdateProgress()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+::\+Update\+Progress (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update}{Progress\+Update}} \&}]{update}{}\end{DoxyParamCaption})}
+
+
+
+Changes the progress bar of a notification that is showing. 
+
+The sequence number is the caller\textquotesingle{}s to keep\+: the OS discards an update whose number is not newer than the last it saw (NTF-\/44). 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Progress\+Not\+Found} & No such notification, or the update was stale. \\
+\hline
+{\em HResult\+Failure} & The platform refused. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=216pt]{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=216pt]{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c_icgraph}
+\end{center}
+\end{figure}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h}{Notification.\+h}}\end{DoxyCompactItemize}

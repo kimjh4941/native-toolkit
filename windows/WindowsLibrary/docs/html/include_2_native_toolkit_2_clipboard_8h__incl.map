@@ -1,0 +1,33 @@
+<map id="WindowsLibrary/include/NativeToolkit/Clipboard.h" name="WindowsLibrary/include/NativeToolkit/Clipboard.h">
+<area shape="rect" id="Node000001" title="The clipboard session and the values its operations exchange." alt="" coords="431,5,602,48"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="27,96,92,123"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="431,43,281,67,111,99,107,99,106,94,110,93,280,62,430,38"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,171,66,197"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="431,40,312,61,246,78,183,98,119,130,66,164,63,159,116,125,181,94,245,72,311,56,430,35"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="382,96,460,123"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="494,51,449,88,446,84,490,47"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="484,96,550,123"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="520,49,520,80,514,80,514,49"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="574,96,623,123"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="540,47,577,83,573,87,536,51"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="648,96,701,123"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="559,46,637,86,635,91,556,51"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="725,96,812,123"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="583,46,716,88,714,93,581,51"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="836,96,896,123"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="603,43,822,93,820,98,602,48"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="920,96,978,123"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="604,37,742,60,905,93,904,98,741,65,603,43"/>
+<area shape="rect" id="Node000011" href="$_build_stamp_8h_source.html" title=" " alt="" coords="90,171,269,197"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="431,40,300,62,243,78,222,88,207,98,197,110,190,125,183,156,178,154,185,123,192,107,203,94,219,83,241,73,299,56,430,34"/>
+<area shape="rect" id="Node000012" href="$_error_8h.html" title="Failure values and the Result type the C++ API returns." alt="" coords="217,96,358,123"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="459,51,339,93,337,88,457,46"/>
+<area shape="poly" id="edge12_Node000012_Node000003" title=" " alt="" coords="244,126,82,172,80,167,243,121"/>
+<area shape="poly" id="edge16_Node000012_Node000011" title=" " alt="" coords="270,125,213,164,210,159,267,121"/>
+<area shape="rect" id="Node000013" title=" " alt="" coords="293,171,338,197"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="295,122,308,155,303,157,290,124"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="362,171,445,197"/>
+<area shape="poly" id="edge14_Node000012_Node000014" title=" " alt="" coords="309,121,372,160,369,164,306,125"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="469,171,522,197"/>
+<area shape="poly" id="edge15_Node000012_Node000015" title=" " alt="" coords="325,121,456,166,454,171,323,126"/>
+</map>

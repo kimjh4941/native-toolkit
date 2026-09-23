@@ -1,4 +1,21 @@
 var searchData=
 [
-  ['_5fiid_0',['_IID',['../struct___i_i_d.html',1,'']]]
+  ['abortretryignore_0',['AbortRetryIgnore',['../include_2_native_toolkit_2_dialog_8h.html#ae6b69bf55e9edcc3afe347f175bce983a080cccc8400ed0226bf270eadb078851',1,'NativeToolkit::Dialog']]],
+  ['activationargs_1',['ActivationArgs',['../struct_native_toolkit_1_1_notification_1_1_activation_args.html',1,'NativeToolkit::Notification']]],
+  ['alarm_2',['Alarm',['../include_2_native_toolkit_2_notification_8h.html#a6902df659de12919a0b5b8fbf8f67b7da46c4c4d980dfe025ae5b35aa0011dde4',1,'NativeToolkit::Notification']]],
+  ['alertbuttons_3',['AlertButtons',['../include_2_native_toolkit_2_dialog_8h.html#ae6b69bf55e9edcc3afe347f175bce983',1,'NativeToolkit::Dialog']]],
+  ['alertdefaultbutton_4',['AlertDefaultButton',['../include_2_native_toolkit_2_dialog_8h.html#a00b46e661631c5ec37e4f0b4be46adfa',1,'NativeToolkit::Dialog']]],
+  ['alerticon_5',['AlertIcon',['../include_2_native_toolkit_2_dialog_8h.html#a4132ec14d97ea1198a7bf67ba085220d',1,'NativeToolkit::Dialog']]],
+  ['alertrequest_6',['AlertRequest',['../struct_native_toolkit_1_1_dialog_1_1_alert_request.html',1,'NativeToolkit::Dialog']]],
+  ['alertresult_7',['AlertResult',['../include_2_native_toolkit_2_dialog_8h.html#a272ce1912ca1270162449816c5293113',1,'NativeToolkit::Dialog']]],
+  ['allow_5fmissing_5ffile_8',['allow_missing_file',['../structntk__dialog__file__request.html#adb68e88e715526bedf5af2ee2cc57e5e',1,'ntk_dialog_file_request']]],
+  ['applogo_9',['AppLogo',['../struct_native_toolkit_1_1_notification_1_1_app_logo.html',1,'NativeToolkit::Notification']]],
+  ['applogo_10',['appLogo',['../struct_native_toolkit_1_1_notification_1_1_notification_content.html#a943885f716e940c36f3b3375590b4217',1,'NativeToolkit::Notification::NotificationContent']]],
+  ['args_11',['args',['../struct_native_toolkit_1_1_notification_1_1_button.html#a81b185223062b9f828e71922d2cce4c2',1,'NativeToolkit::Notification::Button']]],
+  ['argumentpairs_12',['ArgumentPairs',['../include_2_native_toolkit_2_notification_8h.html#a31195299f7d10826ac2f741abc0972cf',1,'NativeToolkit::Notification']]],
+  ['attribution_13',['attribution',['../struct_native_toolkit_1_1_notification_1_1_notification_content.html#a229a69946422cc8fafe90735f0079ebb',1,'NativeToolkit::Notification::NotificationContent']]],
+  ['audio_14',['audio',['../struct_native_toolkit_1_1_notification_1_1_notification_content.html#a1f4ef69606c748972500d648225278fa',1,'NativeToolkit::Notification::NotificationContent']]],
+  ['audiokind_15',['AudioKind',['../include_2_native_toolkit_2_notification_8h.html#a9a579802da36bf3bc556fb8b584a8f4d',1,'NativeToolkit::Notification']]],
+  ['audiospec_16',['AudioSpec',['../struct_native_toolkit_1_1_notification_1_1_audio_spec.html',1,'NativeToolkit::Notification']]],
+  ['availabilityhandler_17',['AvailabilityHandler',['../include_2_native_toolkit_2_clipboard_8h.html#ac3f5895aa7cf66253f83bd8609af8603',1,'NativeToolkit::Clipboard']]]
 ];

@@ -1,0 +1,640 @@
+\doxysection{Windows\+Library\+CApi/include/\+Native\+Toolkit\+C/\+Notification.h File Reference}
+\hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h}{}\label{_api_2include_2_native_toolkit_c_2_notification_8h}\index{WindowsLibraryCApi/include/NativeToolkitC/Notification.h@{WindowsLibraryCApi/include/NativeToolkitC/Notification.h}}
+
+
+Toast notifications\+: the runtime, the manager, its operations, and the content builder (OP-\/07..OP-\/20).  
+
+
+{\ttfamily \#include "{}Native\+Toolkit\+C/\+Common.\+h"{}}\newline
+Include dependency graph for Notification.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=212pt]{_api_2include_2_native_toolkit_c_2_notification_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structntk__notification__manager__options}{ntk\+\_\+notification\+\_\+manager\+\_\+options}}
+\item 
+struct \mbox{\hyperlink{structntk__notification__progress__update}{ntk\+\_\+notification\+\_\+progress\+\_\+update}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef int32\+\_\+t \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ae95a82419152845249512560acb4f95c}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ae95a82419152845249512560acb4f95c} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+notification\+\_\+setting}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ae0d02d18cf40f718a6584553ba895085}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ae0d02d18cf40f718a6584553ba895085} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+notification\+\_\+scenario}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ab48955b12b8fa18887ad600b881f0f55}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ab48955b12b8fa18887ad600b881f0f55} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+notification\+\_\+audio\+\_\+kind}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_aea821c6b73b40aa92571dc0a8e98b07b}\label{_api_2include_2_native_toolkit_c_2_notification_8h_aea821c6b73b40aa92571dc0a8e98b07b} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+notification\+\_\+duration}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ab5d418adff95d584bab30b18d706da2f}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ab5d418adff95d584bab30b18d706da2f} 
+typedef int32\+\_\+t {\bfseries ntk\+\_\+notification\+\_\+logo\+\_\+crop}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\+\_\+notification\+\_\+runtime}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\+\_\+notification\+\_\+runtime}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}}
+\item 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}}
+\item 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\+\_\+notification\+\_\+invoked\+\_\+fn}}) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}activation)
+\begin{DoxyCompactList}\small\item\em Receives an activation\+: the user clicked the notification, a button, or submitted its inputs. \end{DoxyCompactList}\item 
+typedef struct ntk\+\_\+notification\+\_\+manager\+\_\+options \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a46fefca76c32764dba6356a0385a7bf3}{ntk\+\_\+notification\+\_\+manager\+\_\+options}}
+\item 
+typedef struct ntk\+\_\+notification\+\_\+progress\+\_\+update \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a874e8f11bce968f9aaea3ad9a4467fa0}{ntk\+\_\+notification\+\_\+progress\+\_\+update}}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NONE} = 0
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041eae612d6cc72c7c8920dc104974bdc5273}{NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED}} = 1
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea20e08e6f4970d5048d462ab25b1d3bb0}{NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+DISABLED}} = 2
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PAYLOAD} = 3
+, \newline
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea334e4937b0097cc6f23883675f85dbe8}{NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+PROGRESS\+\_\+\+NOT\+\_\+\+FOUND}} = 4
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea81c04620a740983711afdda00372572f}{NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+HRESULT\+\_\+\+FAILURE}} = 5
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+BADGE\+\_\+\+FAILED} = 6
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea69fea2be8947edce6a22c8d973c0e511}{NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER}} = 7
+, \newline
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea7dbe4fbafcbd5223a544b74e41121967}{NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED}} = 8
+ \}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a6a088c32dfa43070714db44e28f210c1}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a6a088c32dfa43070714db44e28f210c1} 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SETTING\+\_\+\+ENABLED} = 0
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SETTING\+\_\+\+DISABLED\+\_\+\+FOR\+\_\+\+APPLICATION} = 1
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SETTING\+\_\+\+DISABLED\+\_\+\+FOR\+\_\+\+USER} = 2
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SETTING\+\_\+\+DISABLED\+\_\+\+BY\+\_\+\+GROUP\+\_\+\+POLICY} = 3
+, \newline
+{\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SETTING\+\_\+\+DISABLED\+\_\+\+BY\+\_\+\+MANIFEST} = 4
+ \}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a5bebe52e975c221f387714615bcf8e91}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a5bebe52e975c221f387714615bcf8e91} 
+enum \{ \newline
+{\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SCENARIO\+\_\+\+DEFAULT} = 0
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SCENARIO\+\_\+\+REMINDER} = 1
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SCENARIO\+\_\+\+ALARM} = 2
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SCENARIO\+\_\+\+URGENT} = 3
+, \newline
+{\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+SCENARIO\+\_\+\+INCOMING\+\_\+\+CALL} = 4
+ \}
+\item 
+enum \{ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bad689d235d9100a03ce3b85b0370bf3c1}{NTK\+\_\+\+NOTIFICATION\+\_\+\+AUDIO\+\_\+\+KIND\+\_\+\+EVENT}} = 0
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bae27a226f6ba0818806967dfd38145eb0}{NTK\+\_\+\+NOTIFICATION\+\_\+\+AUDIO\+\_\+\+KIND\+\_\+\+MUTE}} = 1
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899baaffd9f3097db2f464cd9d5a2bec304d6}{NTK\+\_\+\+NOTIFICATION\+\_\+\+AUDIO\+\_\+\+KIND\+\_\+\+URI}} = 2
+ \}
+\item 
+enum \{ {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+DURATION\+\_\+\+SHORT} = 0
+, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ab8dc748d45dc73a849792b06445aa967ac9528b28021e58bb374664fdfd78dc92}{NTK\+\_\+\+NOTIFICATION\+\_\+\+DURATION\+\_\+\+LONG}} = 1
+ \}
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_adb1cf3c76cfcd955a0ef94b7178549b5}\label{_api_2include_2_native_toolkit_c_2_notification_8h_adb1cf3c76cfcd955a0ef94b7178549b5} 
+enum \{ {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+LOGO\+\_\+\+CROP\+\_\+\+NONE} = 0
+, {\bfseries NTK\+\_\+\+NOTIFICATION\+\_\+\+LOGO\+\_\+\+CROP\+\_\+\+CIRCLE} = 1
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa22914c77e0bade82093c9994450997a}{ntk\+\_\+notification\+\_\+runtime\+\_\+initialize}} (uint32\+\_\+t major\+\_\+minor, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\+\_\+notification\+\_\+runtime}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+runtime)
+\begin{DoxyCompactList}\small\item\em OP-\/07. Loads the Windows App SDK runtime for an app without package identity. Call it before ntk\+\_\+notification\+\_\+manager\+\_\+create. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_abdc1564c403d83f19b6b43dc1ae8df12}\label{_api_2include_2_native_toolkit_c_2_notification_8h_abdc1564c403d83f19b6b43dc1ae8df12} 
+void NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+runtime\+\_\+free} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\+\_\+notification\+\_\+runtime}} \texorpdfstring{$\ast$}{*}runtime)
+\begin{DoxyCompactList}\small\item\em Releases the runtime. The runtime is unloaded now if no manager is open, otherwise when the last manager closes. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a7512a4ba9a509be3853dfe11778a320b}{ntk\+\_\+notification\+\_\+manager\+\_\+create}} (const \mbox{\hyperlink{structntk__notification__manager__options}{ntk\+\_\+notification\+\_\+manager\+\_\+options}} \texorpdfstring{$\ast$}{*}options, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+manager)
+\begin{DoxyCompactList}\small\item\em OP-\/08. Registers this process for notifications and creates the manager. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2b3e0fc4693fed3e5ce18af8c4893ab5}{ntk\+\_\+notification\+\_\+manager\+\_\+set\+\_\+invoked\+\_\+handler}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\+\_\+notification\+\_\+invoked\+\_\+fn}} on\+\_\+invoked, void \texorpdfstring{$\ast$}{*}user\+\_\+data, \mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\+\_\+release\+\_\+fn}} release)
+\begin{DoxyCompactList}\small\item\em Replaces the activation handler. on\+\_\+invoked may be NULL to drop activations. \end{DoxyCompactList}\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a3a4c66cf1dcf6a4f075a3ed664ffbb70}{ntk\+\_\+notification\+\_\+manager\+\_\+close}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager)
+\begin{DoxyCompactList}\small\item\em OP-\/09. Unregisters the process. Every operation then returns NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED. Closing twice does nothing. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a3f5bd14160eef9267633f66d960f6dd1}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a3f5bd14160eef9267633f66d960f6dd1} 
+void NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+manager\+\_\+free} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager)
+\begin{DoxyCompactList}\small\item\em Closes the manager if it is open, then frees the handle. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_acf326625f7dceea3036019afa4665791}\label{_api_2include_2_native_toolkit_c_2_notification_8h_acf326625f7dceea3036019afa4665791} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+show} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content)
+\begin{DoxyCompactList}\small\item\em OP-\/10. Shows a notification now. The content is not changed and may be reused. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a32382a691f83f4fce00e60be86bfb6cb}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a32382a691f83f4fce00e60be86bfb6cb} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+schedule} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, int64\+\_\+t unix\+\_\+ms)
+\begin{DoxyCompactList}\small\item\em OP-\/11. Shows a notification at unix\+\_\+ms (milliseconds since 1970-\/01-\/01 UTC). Progress is ignored. A time beyond about 29,000 years either side is NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ad0a257b2056ac74e681d42d40e6d0483}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ad0a257b2056ac74e681d42d40e6d0483} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+cancel\+\_\+scheduled} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, const char \texorpdfstring{$\ast$}{*}tag, const char \texorpdfstring{$\ast$}{*}group)
+\begin{DoxyCompactList}\small\item\em OP-\/12. Cancels scheduled notifications with this tag and group. NULL is "{}"{}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a5c88461400429fe8c0ec64814c0d815a}{ntk\+\_\+notification\+\_\+update\+\_\+progress}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, const \mbox{\hyperlink{structntk__notification__progress__update}{ntk\+\_\+notification\+\_\+progress\+\_\+update}} \texorpdfstring{$\ast$}{*}update)
+\begin{DoxyCompactList}\small\item\em OP-\/13. Updates the progress of a shown notification. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a9930703e01a12048039e12cbef125389}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a9930703e01a12048039e12cbef125389} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+set\+\_\+badge} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, int32\+\_\+t value)
+\begin{DoxyCompactList}\small\item\em OP-\/14. Sets the badge on the taskbar icon\+: a count, or a glyph for -\/1 to -\/6. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ae6acd72bbb24f41394d3df01e3d36a0e}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ae6acd72bbb24f41394d3df01e3d36a0e} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+remove\+\_\+by\+\_\+id} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, uint32\+\_\+t id)
+\begin{DoxyCompactList}\small\item\em OP-\/15. Removes the notification with this id from the action centre. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a9211453ee0ee34d07509c913b7d63eb8}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a9211453ee0ee34d07509c913b7d63eb8} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+remove\+\_\+by\+\_\+tag} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, const char \texorpdfstring{$\ast$}{*}tag, const char \texorpdfstring{$\ast$}{*}group)
+\begin{DoxyCompactList}\small\item\em OP-\/16. Removes the notifications with this tag and group. NULL is "{}"{}. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ac2560278ac6030612163d080c777e959}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ac2560278ac6030612163d080c777e959} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+remove\+\_\+all} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager)
+\begin{DoxyCompactList}\small\item\em OP-\/17. Removes every notification of this app. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a20e6eb0942f1ced0f7d7888d90a760ea}{ntk\+\_\+notification\+\_\+get\+\_\+all}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+list)
+\begin{DoxyCompactList}\small\item\em OP-\/18. Lists the notifications of this app in the action centre. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a4d2c2a4947d821c1dd1d1aa3b7019aaf}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a4d2c2a4947d821c1dd1d1aa3b7019aaf} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+get\+\_\+setting} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager, ntk\+\_\+notification\+\_\+setting \texorpdfstring{$\ast$}{*}out\+\_\+setting)
+\begin{DoxyCompactList}\small\item\em OP-\/19. Whether the user or the system lets this app show notifications. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_adf601f8fcd5643e526a5de4b4f80cd77}\label{_api_2include_2_native_toolkit_c_2_notification_8h_adf601f8fcd5643e526a5de4b4f80cd77} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+open\+\_\+settings} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}manager)
+\begin{DoxyCompactList}\small\item\em OP-\/20. Opens the notification page of the Settings app. \end{DoxyCompactList}\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a8df20a0bb5ae74305dea185492f7e863}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a8df20a0bb5ae74305dea185492f7e863} 
+size\+\_\+t NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+list\+\_\+count} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}list)
+\item 
+uint32\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4a542893cb22bfc2d408a3413a8a6cfa}{ntk\+\_\+notification\+\_\+list\+\_\+id\+\_\+at}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}list, size\+\_\+t index)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a444d0b23a464c816c148a0bbb4c03003}{ntk\+\_\+notification\+\_\+list\+\_\+tag\+\_\+at}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}list, size\+\_\+t index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a644279fc4e23c61a25d51a34cd82b29c}{ntk\+\_\+notification\+\_\+list\+\_\+group\+\_\+at}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}list, size\+\_\+t index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a46fec43ab9bdec9cef8032e35b5618d9}{ntk\+\_\+notification\+\_\+list\+\_\+free}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}list)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae0ffb550534ff986c274d952cbfcd3dc}{ntk\+\_\+notification\+\_\+activation\+\_\+raw\+\_\+arguments}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}activation, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+size\+\_\+t NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2fb78312d0cd188ed14c4fbeb0348448}{ntk\+\_\+notification\+\_\+activation\+\_\+value\+\_\+count}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}activation)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a82ddd9d7da9a2c9e400543a1b8942509}{ntk\+\_\+notification\+\_\+activation\+\_\+key\+\_\+at}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}activation, size\+\_\+t index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ab7a10779e71f829edba7f7509884708e}{ntk\+\_\+notification\+\_\+activation\+\_\+value\+\_\+at}} (const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}activation, size\+\_\+t index, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+size)
+\item 
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a6794485f246239a9e580c56de2a989ae}\label{_api_2include_2_native_toolkit_c_2_notification_8h_a6794485f246239a9e580c56de2a989ae} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL {\bfseries ntk\+\_\+notification\+\_\+content\+\_\+create} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}out\+\_\+content)
+\item 
+void NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a74a193629c15f4387d21fcfb6a441124}{ntk\+\_\+notification\+\_\+content\+\_\+free}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a02735411bf027e4b1424132f531b3152}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+title}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a89b978ca4edc7ab0d7c0be34123d0b26}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+body}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa63e229bb4db8df2407c43ea388ed5e6}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+tag}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a0f21c5322c06186d12b8caac9686e5c9}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+group}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a7886f7d418acb7e9f0d2790b0ff21efe}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+scenario}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, ntk\+\_\+notification\+\_\+scenario value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_adc8bdeccdbca0a70d16fc729d0d209c4}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+hero\+\_\+image}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a1a37ce71a356733381f157d16d292b51}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+inline\+\_\+image}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad829d2903e2da956de2d33b01fdd1e04}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+app\+\_\+logo}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}uri, ntk\+\_\+notification\+\_\+logo\+\_\+crop crop)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a0c90af2f28fdfa1ccc7866080dc946f9}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+attribution}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a02e3261135581e1441db951a429ee689}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+duration}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, ntk\+\_\+notification\+\_\+duration value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa243d07af90d34e38ee192084a3027b2}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+audio}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, ntk\+\_\+notification\+\_\+audio\+\_\+kind kind, const char \texorpdfstring{$\ast$}{*}event\+\_\+name, const char \texorpdfstring{$\ast$}{*}uri, int32\+\_\+t loop)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ab492401fd1f35e50706995a22616e9aa}{ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+button}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}label, const char \texorpdfstring{$\ast$}{*}invoke\+\_\+uri, int32\+\_\+t with\+\_\+arguments, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+index)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae89b777e4117c790d6dd455885269234}{ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+button\+\_\+argument}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, size\+\_\+t button\+\_\+index, const char \texorpdfstring{$\ast$}{*}key, const char \texorpdfstring{$\ast$}{*}value)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2335ed23bc53a027956571711ea9f028}{ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+text\+\_\+input}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}id, const char \texorpdfstring{$\ast$}{*}placeholder, const char \texorpdfstring{$\ast$}{*}title)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa8f889995f2acb690486ae4a125c7143}{ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+combo}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}id, const char \texorpdfstring{$\ast$}{*}title, const char \texorpdfstring{$\ast$}{*}default\+\_\+selection, size\+\_\+t \texorpdfstring{$\ast$}{*}out\+\_\+index)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a3022be06fcf8bbde7df226b16206bd10}{ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+combo\+\_\+item}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, size\+\_\+t combo\+\_\+index, const char \texorpdfstring{$\ast$}{*}id, const char \texorpdfstring{$\ast$}{*}label)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_adaf3a522c956acebbf0a4101833abf16}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+progress}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, const char \texorpdfstring{$\ast$}{*}title, double value, const char \texorpdfstring{$\ast$}{*}value\+\_\+string, const char \texorpdfstring{$\ast$}{*}status)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a8ba9981e3e20bd9ec5927b42fca0b908}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+timestamp}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, int64\+\_\+t unix\+\_\+ms)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2e424112338f3b87793c21b8a7a59ba5}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+expiration}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, int64\+\_\+t seconds)
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a5f464e0df9a750f2aa7e040f8a0c8047}{ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+expires\+\_\+on\+\_\+reboot}} (\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}content, int32\+\_\+t value)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Toast notifications\+: the runtime, the manager, its operations, and the content builder (OP-\/07..OP-\/20). 
+
+Threads\+: every function may be called from any thread. The operations that wait for the OS block the calling thread until it answers.
+
+Activations arrive on a thread the OS picks, never on a thread of yours by arrangement. The one exception is the activation that launched the process (cold start)\+: it arrives inside ntk\+\_\+notification\+\_\+manager\+\_\+create, on the calling thread, before \texorpdfstring{$\ast$}{*}out\+\_\+manager is written.
+
+One manager per process\+: Windows registers one activation handler per process, so a second ntk\+\_\+notification\+\_\+manager\+\_\+create is refused with NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED until the first is closed.
+
+COM\+: ntk\+\_\+notification\+\_\+manager\+\_\+create initialises the calling thread for COM as an MTA and does not uninitialise it. A thread that is to own a clipboard session must not be that thread (design 1.\+3.\+3). 
+
+\label{doc-typedef-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}\index{Notification.h@{Notification.h}!ntk\_notification\_activation@{ntk\_notification\_activation}}
+\index{ntk\_notification\_activation@{ntk\_notification\_activation}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_activation}{ntk\_notification\_activation}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}}}
+
+What a user\textquotesingle{}s click carried. Lent to \doxylink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\+\_\+notification\+\_\+invoked\+\_\+fn} for the call only. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}\index{Notification.h@{Notification.h}!ntk\_notification\_content@{ntk\_notification\_content}}
+\index{ntk\_notification\_content@{ntk\_notification\_content}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content}{ntk\_notification\_content}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}}}
+
+A notification being described. Not thread safe\+: build it on one thread. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}\index{Notification.h@{Notification.h}!ntk\_notification\_error@{ntk\_notification\_error}}
+\index{ntk\_notification\_error@{ntk\_notification\_error}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_error}{ntk\_notification\_error}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73} 
+typedef int32\+\_\+t \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}}}
+
+The result of every notification function that can fail. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}\index{Notification.h@{Notification.h}!ntk\_notification\_invoked\_fn@{ntk\_notification\_invoked\_fn}}
+\index{ntk\_notification\_invoked\_fn@{ntk\_notification\_invoked\_fn}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_invoked\_fn}{ntk\_notification\_invoked\_fn}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815} 
+typedef void(NTK\+\_\+\+CALL \texorpdfstring{$\ast$}{*} ntk\+\_\+notification\+\_\+invoked\+\_\+fn) (void \texorpdfstring{$\ast$}{*}user\+\_\+data, const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}activation)}
+
+
+
+Receives an activation\+: the user clicked the notification, a button, or submitted its inputs. 
+
+Runs on a thread the OS picks. The activation and every pointer read from it are valid only during the call. Do not close, free or replace the handler of the manager from inside it, and do not block waiting for another thread that might be doing so. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}\index{Notification.h@{Notification.h}!ntk\_notification\_list@{ntk\_notification\_list}}
+\index{ntk\_notification\_list@{ntk\_notification\_list}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_list}{ntk\_notification\_list}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}}}
+
+The output of ntk\+\_\+notification\+\_\+get\+\_\+all. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}\index{Notification.h@{Notification.h}!ntk\_notification\_manager@{ntk\_notification\_manager}}
+\index{ntk\_notification\_manager@{ntk\_notification\_manager}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_manager}{ntk\_notification\_manager}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}}}
+
+The one notification manager of the process. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a46fefca76c32764dba6356a0385a7bf3}\index{Notification.h@{Notification.h}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_manager\_options}{ntk\_notification\_manager\_options}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a46fefca76c32764dba6356a0385a7bf3} 
+typedef struct ntk\+\_\+notification\+\_\+manager\+\_\+options ntk\+\_\+notification\+\_\+manager\+\_\+options}
+
+How to create the manager. sizeof 56. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a874e8f11bce968f9aaea3ad9a4467fa0}\index{Notification.h@{Notification.h}!ntk\_notification\_progress\_update@{ntk\_notification\_progress\_update}}
+\index{ntk\_notification\_progress\_update@{ntk\_notification\_progress\_update}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_progress\_update}{ntk\_notification\_progress\_update}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a874e8f11bce968f9aaea3ad9a4467fa0} 
+typedef struct ntk\+\_\+notification\+\_\+progress\+\_\+update ntk\+\_\+notification\+\_\+progress\+\_\+update}
+
+A new state for a notification that shows progress. sizeof 56. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}\index{Notification.h@{Notification.h}!ntk\_notification\_runtime@{ntk\_notification\_runtime}}
+\index{ntk\_notification\_runtime@{ntk\_notification\_runtime}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_runtime}{ntk\_notification\_runtime}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd} 
+typedef struct \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\+\_\+notification\+\_\+runtime}} \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\+\_\+notification\+\_\+runtime}}}
+
+The Windows App SDK runtime, loaded for an unpackaged app. 
+
+\label{doc-enum-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ab8dc748d45dc73a849792b06445aa967}\doxysubsubsection{\texorpdfstring{anonymous enum}{anonymous enum}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ab8dc748d45dc73a849792b06445aa967} 
+anonymous enum}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_DURATION\_LONG@{NTK\_NOTIFICATION\_DURATION\_LONG}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_DURATION\_LONG@{NTK\_NOTIFICATION\_DURATION\_LONG}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ab8dc748d45dc73a849792b06445aa967ac9528b28021e58bb374664fdfd78dc92}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ab8dc748d45dc73a849792b06445aa967ac9528b28021e58bb374664fdfd78dc92} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+DURATION\+\_\+\+LONG&Required before a looping sound is allowed. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899b}\doxysubsubsection{\texorpdfstring{anonymous enum}{anonymous enum}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899b} 
+anonymous enum}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_AUDIO\_KIND\_EVENT@{NTK\_NOTIFICATION\_AUDIO\_KIND\_EVENT}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_AUDIO\_KIND\_EVENT@{NTK\_NOTIFICATION\_AUDIO\_KIND\_EVENT}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bad689d235d9100a03ce3b85b0370bf3c1}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bad689d235d9100a03ce3b85b0370bf3c1} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+AUDIO\+\_\+\+KIND\+\_\+\+EVENT&A named system sound. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_AUDIO\_KIND\_MUTE@{NTK\_NOTIFICATION\_AUDIO\_KIND\_MUTE}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_AUDIO\_KIND\_MUTE@{NTK\_NOTIFICATION\_AUDIO\_KIND\_MUTE}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bae27a226f6ba0818806967dfd38145eb0}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bae27a226f6ba0818806967dfd38145eb0} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+AUDIO\+\_\+\+KIND\+\_\+\+MUTE&No sound; the loop and event name are ignored. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_AUDIO\_KIND\_URI@{NTK\_NOTIFICATION\_AUDIO\_KIND\_URI}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_AUDIO\_KIND\_URI@{NTK\_NOTIFICATION\_AUDIO\_KIND\_URI}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899baaffd9f3097db2f464cd9d5a2bec304d6}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899baaffd9f3097db2f464cd9d5a2bec304d6} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+AUDIO\+\_\+\+KIND\+\_\+\+URI&The sound at the given URI. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041e}\doxysubsubsection{\texorpdfstring{anonymous enum}{anonymous enum}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041e} 
+anonymous enum}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_ERROR\_NOT\_INITIALIZED@{NTK\_NOTIFICATION\_ERROR\_NOT\_INITIALIZED}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_ERROR\_NOT\_INITIALIZED@{NTK\_NOTIFICATION\_ERROR\_NOT\_INITIALIZED}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041eae612d6cc72c7c8920dc104974bdc5273}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041eae612d6cc72c7c8920dc104974bdc5273} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED&The manager is closed. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_ERROR\_DISABLED@{NTK\_NOTIFICATION\_ERROR\_DISABLED}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_ERROR\_DISABLED@{NTK\_NOTIFICATION\_ERROR\_DISABLED}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea20e08e6f4970d5048d462ab25b1d3bb0}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea20e08e6f4970d5048d462ab25b1d3bb0} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+DISABLED&Notifications are off for this app or user. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_ERROR\_PROGRESS\_NOT\_FOUND@{NTK\_NOTIFICATION\_ERROR\_PROGRESS\_NOT\_FOUND}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_ERROR\_PROGRESS\_NOT\_FOUND@{NTK\_NOTIFICATION\_ERROR\_PROGRESS\_NOT\_FOUND}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea334e4937b0097cc6f23883675f85dbe8}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea334e4937b0097cc6f23883675f85dbe8} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+PROGRESS\+\_\+\+NOT\+\_\+\+FOUND&No notification to update, or a stale sequence number. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_ERROR\_HRESULT\_FAILURE@{NTK\_NOTIFICATION\_ERROR\_HRESULT\_FAILURE}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_ERROR\_HRESULT\_FAILURE@{NTK\_NOTIFICATION\_ERROR\_HRESULT\_FAILURE}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea81c04620a740983711afdda00372572f}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea81c04620a740983711afdda00372572f} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+HRESULT\+\_\+\+FAILURE&The OS failed; see \doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()}. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_ERROR\_INVALID\_PARAMETER@{NTK\_NOTIFICATION\_ERROR\_INVALID\_PARAMETER}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_ERROR\_INVALID\_PARAMETER@{NTK\_NOTIFICATION\_ERROR\_INVALID\_PARAMETER}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea69fea2be8947edce6a22c8d973c0e511}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea69fea2be8947edce6a22c8d973c0e511} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER&A NULL handle or output, malformed input, or content the OS would refuse. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_NOTIFICATION\_ERROR\_NOT\_SUPPORTED@{NTK\_NOTIFICATION\_ERROR\_NOT\_SUPPORTED}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!NTK\_NOTIFICATION\_ERROR\_NOT\_SUPPORTED@{NTK\_NOTIFICATION\_ERROR\_NOT\_SUPPORTED}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea7dbe4fbafcbd5223a544b74e41121967}\label{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea7dbe4fbafcbd5223a544b74e41121967} 
+NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED&Not available for this app type, a second manager or runtime, or an input struct from a newer version. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+\label{doc-func-members}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a82ddd9d7da9a2c9e400543a1b8942509}\index{Notification.h@{Notification.h}!ntk\_notification\_activation\_key\_at@{ntk\_notification\_activation\_key\_at}}
+\index{ntk\_notification\_activation\_key\_at@{ntk\_notification\_activation\_key\_at}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_activation\_key\_at()}{ntk\_notification\_activation\_key\_at()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a82ddd9d7da9a2c9e400543a1b8942509} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+activation\+\_\+key\+\_\+at (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}}]{activation}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+The key at index, NULL when index is out of range. out\+\_\+size may be NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ae0ffb550534ff986c274d952cbfcd3dc}\index{Notification.h@{Notification.h}!ntk\_notification\_activation\_raw\_arguments@{ntk\_notification\_activation\_raw\_arguments}}
+\index{ntk\_notification\_activation\_raw\_arguments@{ntk\_notification\_activation\_raw\_arguments}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_activation\_raw\_arguments()}{ntk\_notification\_activation\_raw\_arguments()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ae0ffb550534ff986c274d952cbfcd3dc} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+activation\+\_\+raw\+\_\+arguments (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}}]{activation}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+The arguments as the library received them, as JSON\+: the same text the 1.\+x C ABI passed. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ab7a10779e71f829edba7f7509884708e}\index{Notification.h@{Notification.h}!ntk\_notification\_activation\_value\_at@{ntk\_notification\_activation\_value\_at}}
+\index{ntk\_notification\_activation\_value\_at@{ntk\_notification\_activation\_value\_at}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_activation\_value\_at()}{ntk\_notification\_activation\_value\_at()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ab7a10779e71f829edba7f7509884708e} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+activation\+\_\+value\+\_\+at (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}}]{activation}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+The value at index, NULL when index is out of range. out\+\_\+size may be NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a2fb78312d0cd188ed14c4fbeb0348448}\index{Notification.h@{Notification.h}!ntk\_notification\_activation\_value\_count@{ntk\_notification\_activation\_value\_count}}
+\index{ntk\_notification\_activation\_value\_count@{ntk\_notification\_activation\_value\_count}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_activation\_value\_count()}{ntk\_notification\_activation\_value\_count()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a2fb78312d0cd188ed14c4fbeb0348448} 
+size\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+activation\+\_\+value\+\_\+count (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\+\_\+notification\+\_\+activation}} \texorpdfstring{$\ast$}{*}}]{activation}{}\end{DoxyParamCaption})}
+
+The number of key and value pairs (button arguments and the user\textquotesingle{}s input), in no particular order. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ab492401fd1f35e50706995a22616e9aa}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_add\_button@{ntk\_notification\_content\_add\_button}}
+\index{ntk\_notification\_content\_add\_button@{ntk\_notification\_content\_add\_button}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_add\_button()}{ntk\_notification\_content\_add\_button()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ab492401fd1f35e50706995a22616e9aa} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+button (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{label}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{invoke\+\_\+uri}{, }\item[{int32\+\_\+t}]{with\+\_\+arguments}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+index}{}\end{DoxyParamCaption})}
+
+Adds a button (at most five are shown). label is required; invoke\+\_\+uri NULL is absent. with\+\_\+arguments non-\/zero gives the button an empty argument list to add to. out\+\_\+index may be NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ae89b777e4117c790d6dd455885269234}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_add\_button\_argument@{ntk\_notification\_content\_add\_button\_argument}}
+\index{ntk\_notification\_content\_add\_button\_argument@{ntk\_notification\_content\_add\_button\_argument}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_add\_button\_argument()}{ntk\_notification\_content\_add\_button\_argument()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ae89b777e4117c790d6dd455885269234} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+button\+\_\+argument (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{size\+\_\+t}]{button\+\_\+index}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{key}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+key is required; value NULL is "{}"{}. Gives the button an argument list if it had none. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_aa8f889995f2acb690486ae4a125c7143}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_add\_combo@{ntk\_notification\_content\_add\_combo}}
+\index{ntk\_notification\_content\_add\_combo@{ntk\_notification\_content\_add\_combo}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_add\_combo()}{ntk\_notification\_content\_add\_combo()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_aa8f889995f2acb690486ae4a125c7143} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+combo (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{id}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{title}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{default\+\_\+selection}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+index}{}\end{DoxyParamCaption})}
+
+id is required; title and default\+\_\+selection NULL are "{}"{}. out\+\_\+index may be NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a3022be06fcf8bbde7df226b16206bd10}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_add\_combo\_item@{ntk\_notification\_content\_add\_combo\_item}}
+\index{ntk\_notification\_content\_add\_combo\_item@{ntk\_notification\_content\_add\_combo\_item}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_add\_combo\_item()}{ntk\_notification\_content\_add\_combo\_item()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a3022be06fcf8bbde7df226b16206bd10} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+combo\+\_\+item (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{size\+\_\+t}]{combo\+\_\+index}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{id}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{label}{}\end{DoxyParamCaption})}
+
+id and label are required. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a2335ed23bc53a027956571711ea9f028}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_add\_text\_input@{ntk\_notification\_content\_add\_text\_input}}
+\index{ntk\_notification\_content\_add\_text\_input@{ntk\_notification\_content\_add\_text\_input}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_add\_text\_input()}{ntk\_notification\_content\_add\_text\_input()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a2335ed23bc53a027956571711ea9f028} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+add\+\_\+text\+\_\+input (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{id}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{placeholder}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{title}{}\end{DoxyParamCaption})}
+
+id is required; placeholder and title NULL are absent. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a74a193629c15f4387d21fcfb6a441124}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_free@{ntk\_notification\_content\_free}}
+\index{ntk\_notification\_content\_free@{ntk\_notification\_content\_free}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_free()}{ntk\_notification\_content\_free()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a74a193629c15f4387d21fcfb6a441124} 
+void NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{}\end{DoxyParamCaption})}
+
+Releases the content. Does nothing for NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_ad829d2903e2da956de2d33b01fdd1e04}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_app\_logo@{ntk\_notification\_content\_set\_app\_logo}}
+\index{ntk\_notification\_content\_set\_app\_logo@{ntk\_notification\_content\_set\_app\_logo}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_app\_logo()}{ntk\_notification\_content\_set\_app\_logo()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_ad829d2903e2da956de2d33b01fdd1e04} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+app\+\_\+logo (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{uri}{, }\item[{ntk\+\_\+notification\+\_\+logo\+\_\+crop}]{crop}{}\end{DoxyParamCaption})}
+
+uri NULL removes the logo. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a0c90af2f28fdfa1ccc7866080dc946f9}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_attribution@{ntk\_notification\_content\_set\_attribution}}
+\index{ntk\_notification\_content\_set\_attribution@{ntk\_notification\_content\_set\_attribution}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_attribution()}{ntk\_notification\_content\_set\_attribution()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a0c90af2f28fdfa1ccc7866080dc946f9} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+attribution (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+Optional\+: NULL removes it. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_aa243d07af90d34e38ee192084a3027b2}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_audio@{ntk\_notification\_content\_set\_audio}}
+\index{ntk\_notification\_content\_set\_audio@{ntk\_notification\_content\_set\_audio}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_audio()}{ntk\_notification\_content\_set\_audio()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_aa243d07af90d34e38ee192084a3027b2} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+audio (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{ntk\+\_\+notification\+\_\+audio\+\_\+kind}]{kind}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{event\+\_\+name}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{uri}{, }\item[{int32\+\_\+t}]{loop}{}\end{DoxyParamCaption})}
+
+event\+\_\+name NULL is "{}"{}; uri NULL is absent. A looping sound needs NTK\+\_\+\+NOTIFICATION\+\_\+\+DURATION\+\_\+\+LONG. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a89b978ca4edc7ab0d7c0be34123d0b26}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_body@{ntk\_notification\_content\_set\_body}}
+\index{ntk\_notification\_content\_set\_body@{ntk\_notification\_content\_set\_body}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_body()}{ntk\_notification\_content\_set\_body()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a89b978ca4edc7ab0d7c0be34123d0b26} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+body (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+Optional\+: NULL removes it. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a02e3261135581e1441db951a429ee689}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_duration@{ntk\_notification\_content\_set\_duration}}
+\index{ntk\_notification\_content\_set\_duration@{ntk\_notification\_content\_set\_duration}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_duration()}{ntk\_notification\_content\_set\_duration()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a02e3261135581e1441db951a429ee689} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+duration (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{ntk\+\_\+notification\+\_\+duration}]{value}{}\end{DoxyParamCaption})}
+
+How long the notification stays on screen. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a2e424112338f3b87793c21b8a7a59ba5}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_expiration@{ntk\_notification\_content\_set\_expiration}}
+\index{ntk\_notification\_content\_set\_expiration@{ntk\_notification\_content\_set\_expiration}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_expiration()}{ntk\_notification\_content\_set\_expiration()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a2e424112338f3b87793c21b8a7a59ba5} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+expiration (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{int64\+\_\+t}]{seconds}{}\end{DoxyParamCaption})}
+
+Seconds after delivery at which the action centre drops it. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a5f464e0df9a750f2aa7e040f8a0c8047}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_expires\_on\_reboot@{ntk\_notification\_content\_set\_expires\_on\_reboot}}
+\index{ntk\_notification\_content\_set\_expires\_on\_reboot@{ntk\_notification\_content\_set\_expires\_on\_reboot}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_expires\_on\_reboot()}{ntk\_notification\_content\_set\_expires\_on\_reboot()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a5f464e0df9a750f2aa7e040f8a0c8047} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+expires\+\_\+on\+\_\+reboot (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{int32\+\_\+t}]{value}{}\end{DoxyParamCaption})}
+
+Non-\/zero\+: dropped at the next reboot. Packaged apps only. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a0f21c5322c06186d12b8caac9686e5c9}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_group@{ntk\_notification\_content\_set\_group}}
+\index{ntk\_notification\_content\_set\_group@{ntk\_notification\_content\_set\_group}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_group()}{ntk\_notification\_content\_set\_group()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a0f21c5322c06186d12b8caac9686e5c9} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+group (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+NULL is "{}"{}. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_adc8bdeccdbca0a70d16fc729d0d209c4}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_hero\_image@{ntk\_notification\_content\_set\_hero\_image}}
+\index{ntk\_notification\_content\_set\_hero\_image@{ntk\_notification\_content\_set\_hero\_image}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_hero\_image()}{ntk\_notification\_content\_set\_hero\_image()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_adc8bdeccdbca0a70d16fc729d0d209c4} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+hero\+\_\+image (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+Optional\+: NULL removes it. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a1a37ce71a356733381f157d16d292b51}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_inline\_image@{ntk\_notification\_content\_set\_inline\_image}}
+\index{ntk\_notification\_content\_set\_inline\_image@{ntk\_notification\_content\_set\_inline\_image}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_inline\_image()}{ntk\_notification\_content\_set\_inline\_image()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a1a37ce71a356733381f157d16d292b51} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+inline\+\_\+image (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+Optional\+: NULL removes it. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_adaf3a522c956acebbf0a4101833abf16}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_progress@{ntk\_notification\_content\_set\_progress}}
+\index{ntk\_notification\_content\_set\_progress@{ntk\_notification\_content\_set\_progress}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_progress()}{ntk\_notification\_content\_set\_progress()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_adaf3a522c956acebbf0a4101833abf16} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+progress (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{title}{, }\item[{double}]{value}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value\+\_\+string}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{status}{}\end{DoxyParamCaption})}
+
+Each string NULL is absent. Ignored when scheduling. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a7886f7d418acb7e9f0d2790b0ff21efe}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_scenario@{ntk\_notification\_content\_set\_scenario}}
+\index{ntk\_notification\_content\_set\_scenario@{ntk\_notification\_content\_set\_scenario}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_scenario()}{ntk\_notification\_content\_set\_scenario()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a7886f7d418acb7e9f0d2790b0ff21efe} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+scenario (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{ntk\+\_\+notification\+\_\+scenario}]{value}{}\end{DoxyParamCaption})}
+
+How the OS should treat the notification (reminder, alarm and so on). \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_aa63e229bb4db8df2407c43ea388ed5e6}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_tag@{ntk\_notification\_content\_set\_tag}}
+\index{ntk\_notification\_content\_set\_tag@{ntk\_notification\_content\_set\_tag}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_tag()}{ntk\_notification\_content\_set\_tag()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_aa63e229bb4db8df2407c43ea388ed5e6} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+tag (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+NULL is "{}"{}. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a8ba9981e3e20bd9ec5927b42fca0b908}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_timestamp@{ntk\_notification\_content\_set\_timestamp}}
+\index{ntk\_notification\_content\_set\_timestamp@{ntk\_notification\_content\_set\_timestamp}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_timestamp()}{ntk\_notification\_content\_set\_timestamp()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a8ba9981e3e20bd9ec5927b42fca0b908} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+timestamp (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{int64\+\_\+t}]{unix\+\_\+ms}{}\end{DoxyParamCaption})}
+
+The time the notification claims, in milliseconds since 1970-\/01-\/01 UTC. Beyond about 29,000 years either side is NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a02735411bf027e4b1424132f531b3152}\index{Notification.h@{Notification.h}!ntk\_notification\_content\_set\_title@{ntk\_notification\_content\_set\_title}}
+\index{ntk\_notification\_content\_set\_title@{ntk\_notification\_content\_set\_title}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_content\_set\_title()}{ntk\_notification\_content\_set\_title()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a02735411bf027e4b1424132f531b3152} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+content\+\_\+set\+\_\+title (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\+\_\+notification\+\_\+content}} \texorpdfstring{$\ast$}{*}}]{content}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{value}{}\end{DoxyParamCaption})}
+
+Optional\+: NULL removes it. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a20e6eb0942f1ced0f7d7888d90a760ea}\index{Notification.h@{Notification.h}!ntk\_notification\_get\_all@{ntk\_notification\_get\_all}}
+\index{ntk\_notification\_get\_all@{ntk\_notification\_get\_all}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_get\_all()}{ntk\_notification\_get\_all()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a20e6eb0942f1ced0f7d7888d90a760ea} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+get\+\_\+all (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}}]{manager}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+list}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/18. Lists the notifications of this app in the action centre. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em out\+\_\+list} & Receives a handle to free with ntk\+\_\+notification\+\_\+list\+\_\+free; NULL on failure. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a46fec43ab9bdec9cef8032e35b5618d9}\index{Notification.h@{Notification.h}!ntk\_notification\_list\_free@{ntk\_notification\_list\_free}}
+\index{ntk\_notification\_list\_free@{ntk\_notification\_list\_free}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_list\_free()}{ntk\_notification\_list\_free()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a46fec43ab9bdec9cef8032e35b5618d9} 
+void NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+list\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}}]{list}{}\end{DoxyParamCaption})}
+
+Releases the list. Does nothing for NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a644279fc4e23c61a25d51a34cd82b29c}\index{Notification.h@{Notification.h}!ntk\_notification\_list\_group\_at@{ntk\_notification\_list\_group\_at}}
+\index{ntk\_notification\_list\_group\_at@{ntk\_notification\_list\_group\_at}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_list\_group\_at()}{ntk\_notification\_list\_group\_at()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a644279fc4e23c61a25d51a34cd82b29c} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+list\+\_\+group\+\_\+at (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}}]{list}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+The group at index, NULL when index is out of range. out\+\_\+size may be NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a4a542893cb22bfc2d408a3413a8a6cfa}\index{Notification.h@{Notification.h}!ntk\_notification\_list\_id\_at@{ntk\_notification\_list\_id\_at}}
+\index{ntk\_notification\_list\_id\_at@{ntk\_notification\_list\_id\_at}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_list\_id\_at()}{ntk\_notification\_list\_id\_at()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a4a542893cb22bfc2d408a3413a8a6cfa} 
+uint32\+\_\+t NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+list\+\_\+id\+\_\+at (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}}]{list}{, }\item[{size\+\_\+t}]{index}{}\end{DoxyParamCaption})}
+
+The notification id at index, or 0 when index is out of range. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a444d0b23a464c816c148a0bbb4c03003}\index{Notification.h@{Notification.h}!ntk\_notification\_list\_tag\_at@{ntk\_notification\_list\_tag\_at}}
+\index{ntk\_notification\_list\_tag\_at@{ntk\_notification\_list\_tag\_at}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_list\_tag\_at()}{ntk\_notification\_list\_tag\_at()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a444d0b23a464c816c148a0bbb4c03003} 
+const char \texorpdfstring{$\ast$}{*}NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+list\+\_\+tag\+\_\+at (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\+\_\+notification\+\_\+list}} \texorpdfstring{$\ast$}{*}}]{list}{, }\item[{size\+\_\+t}]{index}{, }\item[{size\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+size}{}\end{DoxyParamCaption})}
+
+The tag at index, NULL when index is out of range. out\+\_\+size may be NULL. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a3a4c66cf1dcf6a4f075a3ed664ffbb70}\index{Notification.h@{Notification.h}!ntk\_notification\_manager\_close@{ntk\_notification\_manager\_close}}
+\index{ntk\_notification\_manager\_close@{ntk\_notification\_manager\_close}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_manager\_close()}{ntk\_notification\_manager\_close()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a3a4c66cf1dcf6a4f075a3ed664ffbb70} 
+void NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+manager\+\_\+close (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}}]{manager}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/09. Unregisters the process. Every operation then returns NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED. Closing twice does nothing. 
+
+An activation already in flight may still run once after this returns; the handler\textquotesingle{}s release comes after it. \Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a7512a4ba9a509be3853dfe11778a320b}\index{Notification.h@{Notification.h}!ntk\_notification\_manager\_create@{ntk\_notification\_manager\_create}}
+\index{ntk\_notification\_manager\_create@{ntk\_notification\_manager\_create}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_manager\_create()}{ntk\_notification\_manager\_create()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a7512a4ba9a509be3853dfe11778a320b} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+manager\+\_\+create (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structntk__notification__manager__options}{ntk\+\_\+notification\+\_\+manager\+\_\+options}} \texorpdfstring{$\ast$}{*}}]{options}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+manager}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/08. Registers this process for notifications and creates the manager. 
+
+options-\/\texorpdfstring{$>$}{>}release is called exactly once whatever this returns\+: on failure, on the calling thread before this returns; on success, once the handler has been replaced or the manager closed and the last activation in flight has returned. It is not called only when it cannot be read\+: options is NULL, or its struct\+\_\+size is below the size of this version or above 4096. 
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER} & A NULL argument, malformed options, or a missing name or icon for an unpackaged app. \\
+\hline
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED} & A manager is already open, or options come from a newer version. \\
+\hline
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+HRESULT\+\_\+\+FAILURE} & Registration failed; see \doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()}. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a2b3e0fc4693fed3e5ce18af8c4893ab5}\index{Notification.h@{Notification.h}!ntk\_notification\_manager\_set\_invoked\_handler@{ntk\_notification\_manager\_set\_invoked\_handler}}
+\index{ntk\_notification\_manager\_set\_invoked\_handler@{ntk\_notification\_manager\_set\_invoked\_handler}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_manager\_set\_invoked\_handler()}{ntk\_notification\_manager\_set\_invoked\_handler()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a2b3e0fc4693fed3e5ce18af8c4893ab5} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+manager\+\_\+set\+\_\+invoked\+\_\+handler (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}}]{manager}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\+\_\+notification\+\_\+invoked\+\_\+fn}}}]{on\+\_\+invoked}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{\mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\+\_\+release\+\_\+fn}}}]{release}{}\end{DoxyParamCaption})}
+
+
+
+Replaces the activation handler. on\+\_\+invoked may be NULL to drop activations. 
+
+release is called exactly once whatever this returns. The previous handler\textquotesingle{}s release follows once no activation is running it; an activation already in flight may still run the previous handler after this returns. 
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER} & manager is NULL. \\
+\hline
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED} & The manager is closed; nothing is registered. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_aa22914c77e0bade82093c9994450997a}\index{Notification.h@{Notification.h}!ntk\_notification\_runtime\_initialize@{ntk\_notification\_runtime\_initialize}}
+\index{ntk\_notification\_runtime\_initialize@{ntk\_notification\_runtime\_initialize}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_runtime\_initialize()}{ntk\_notification\_runtime\_initialize()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_aa22914c77e0bade82093c9994450997a} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+runtime\+\_\+initialize (\begin{DoxyParamCaption}\item[{uint32\+\_\+t}]{major\+\_\+minor}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\+\_\+notification\+\_\+runtime}} \texorpdfstring{$\ast$}{*}\texorpdfstring{$\ast$}{*}}]{out\+\_\+runtime}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/07. Loads the Windows App SDK runtime for an app without package identity. Call it before ntk\+\_\+notification\+\_\+manager\+\_\+create. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em major\+\_\+minor} & The runtime version, e.\+g. 0x00010007 for 1.\+7.\\
+\hline
+\end{DoxyParams}
+One runtime per process\+: a second call while the first handle is alive, or while its release is still waiting for the managers to close, is NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED. 
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+INVALID\+\_\+\+PARAMETER} & out\+\_\+runtime is NULL. \\
+\hline
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED} & A runtime is already loaded. \\
+\hline
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+HRESULT\+\_\+\+FAILURE} & The bootstrap failed; see \doxylink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\+\_\+last\+\_\+system\+\_\+code()}. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_a5c88461400429fe8c0ec64814c0d815a}\index{Notification.h@{Notification.h}!ntk\_notification\_update\_progress@{ntk\_notification\_update\_progress}}
+\index{ntk\_notification\_update\_progress@{ntk\_notification\_update\_progress}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{ntk\_notification\_update\_progress()}{ntk\_notification\_update\_progress()}}
+{\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_notification_8h_a5c88461400429fe8c0ec64814c0d815a} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\+\_\+notification\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+notification\+\_\+update\+\_\+progress (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\+\_\+notification\+\_\+manager}} \texorpdfstring{$\ast$}{*}}]{manager}{, }\item[{const \mbox{\hyperlink{structntk__notification__progress__update}{ntk\+\_\+notification\+\_\+progress\+\_\+update}} \texorpdfstring{$\ast$}{*}}]{update}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/13. Updates the progress of a shown notification. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+PROGRESS\+\_\+\+NOT\+\_\+\+FOUND} & No such notification, or a stale sequence number. \\
+\hline
+{\em NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED} & update comes from a newer version. \\
+\hline
+\end{DoxyRetVals}

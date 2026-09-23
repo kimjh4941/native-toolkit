@@ -1,0 +1,30 @@
+\doxysection{Native\+Toolkit\+::Dialog\+::File\+Filter Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_filter}{}\label{struct_native_toolkit_1_1_dialog_1_1_file_filter}\index{NativeToolkit::Dialog::FileFilter@{NativeToolkit::Dialog::FileFilter}}
+
+
+One entry of a file dialog\textquotesingle{}s type list.  
+
+
+
+
+{\ttfamily \#include $<$Dialog.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_filter_ae6046c3878de44c05bff630f90d2b470}\label{struct_native_toolkit_1_1_dialog_1_1_file_filter_ae6046c3878de44c05bff630f90d2b470} 
+std\+::wstring {\bfseries description}
+\begin{DoxyCompactList}\small\item\em What the user sees, e.\+g. "{}\+Text files"{}. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_filter_ab4902a9e12cc47fee67d5ce34864fb58}\label{struct_native_toolkit_1_1_dialog_1_1_file_filter_ab4902a9e12cc47fee67d5ce34864fb58} 
+std\+::vector$<$ std\+::wstring $>$ {\bfseries patterns}
+\begin{DoxyCompactList}\small\item\em e.\+g. \{ L"{}\texorpdfstring{$\ast$}{*}.\+txt"{}, L"{}\texorpdfstring{$\ast$}{*}.\+log"{} \}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+One entry of a file dialog\textquotesingle{}s type list. 
+
+The 1.\+x C ABI took the Win32 block directly\+: pairs of strings separated by NULs and terminated by two (DLG-\/12). This is that block as data. An entry with no patterns matches everything. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h}{Dialog.\+h}}\end{DoxyCompactItemize}

@@ -1,0 +1,89 @@
+\doxysection{ntk\+\_\+notification\+\_\+manager\+\_\+options Struct Reference}
+\hypertarget{structntk__notification__manager__options}{}\label{structntk__notification__manager__options}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+
+
+{\ttfamily \#include $<$Notification.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{structntk__notification__manager__options_acccc9173e6f6bfb245ac66befb64ce5f}\label{structntk__notification__manager__options_acccc9173e6f6bfb245ac66befb64ce5f} 
+uint32\+\_\+t {\bfseries struct\+\_\+size}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structntk__notification__manager__options_a0d49bce9f1f26a0a5e7f986e17c3fd51}{reserved0}}
+\item 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\+\_\+notification\+\_\+invoked\+\_\+fn}} \mbox{\hyperlink{structntk__notification__manager__options_ad48a28d321254aaf7f4014d2ac0f5d89}{on\+\_\+invoked}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structntk__notification__manager__options_af50d24c1a9ce8348ba904a4f13b04d06}{user\+\_\+data}}
+\item 
+\mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\+\_\+release\+\_\+fn}} \mbox{\hyperlink{structntk__notification__manager__options_a10127f7a6194f9e7cc2d03e0d7eb6c8e}{release}}
+\item 
+int32\+\_\+t \mbox{\hyperlink{structntk__notification__manager__options_a8ac82024e686e2ed10f852ef5d4ad118}{is\+\_\+unpackaged}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structntk__notification__manager__options_a43ad8558fbf34b18e9d763f21775e534}{reserved1}}
+\item 
+const char \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structntk__notification__manager__options_a84a3df547f2c31f13b2e2ab39187fb8b}{display\+\_\+name}}
+\item 
+const char \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structntk__notification__manager__options_a9defd3711582f0de30f52da5b5305ee0}{icon\+\_\+uri}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+How to create the manager. sizeof 56. 
+
+\label{doc-variable-members}
+\Hypertarget{structntk__notification__manager__options_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{structntk__notification__manager__options_a84a3df547f2c31f13b2e2ab39187fb8b}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!display\_name@{display\_name}}
+\index{display\_name@{display\_name}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{display\_name}{display\_name}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_a84a3df547f2c31f13b2e2ab39187fb8b} 
+const char\texorpdfstring{$\ast$}{*} ntk\+\_\+notification\+\_\+manager\+\_\+options\+::display\+\_\+name}
+
+Required when is\+\_\+unpackaged. NULL is "{}"{}. \Hypertarget{structntk__notification__manager__options_a9defd3711582f0de30f52da5b5305ee0}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!icon\_uri@{icon\_uri}}
+\index{icon\_uri@{icon\_uri}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{icon\_uri}{icon\_uri}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_a9defd3711582f0de30f52da5b5305ee0} 
+const char\texorpdfstring{$\ast$}{*} ntk\+\_\+notification\+\_\+manager\+\_\+options\+::icon\+\_\+uri}
+
+Required when is\+\_\+unpackaged. NULL is "{}"{}. \Hypertarget{structntk__notification__manager__options_a8ac82024e686e2ed10f852ef5d4ad118}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!is\_unpackaged@{is\_unpackaged}}
+\index{is\_unpackaged@{is\_unpackaged}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{is\_unpackaged}{is\_unpackaged}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_a8ac82024e686e2ed10f852ef5d4ad118} 
+int32\+\_\+t ntk\+\_\+notification\+\_\+manager\+\_\+options\+::is\+\_\+unpackaged}
+
+Non-\/zero for an app without package identity. \Hypertarget{structntk__notification__manager__options_ad48a28d321254aaf7f4014d2ac0f5d89}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!on\_invoked@{on\_invoked}}
+\index{on\_invoked@{on\_invoked}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{on\_invoked}{on\_invoked}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_ad48a28d321254aaf7f4014d2ac0f5d89} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\+\_\+notification\+\_\+invoked\+\_\+fn}} ntk\+\_\+notification\+\_\+manager\+\_\+options\+::on\+\_\+invoked}
+
+NULL\+: activations are dropped. \Hypertarget{structntk__notification__manager__options_a10127f7a6194f9e7cc2d03e0d7eb6c8e}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!release@{release}}
+\index{release@{release}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{release}{release}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_a10127f7a6194f9e7cc2d03e0d7eb6c8e} 
+\mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\+\_\+release\+\_\+fn}} ntk\+\_\+notification\+\_\+manager\+\_\+options\+::release}
+
+May be NULL. Called once when the library is done with user\+\_\+data. \Hypertarget{structntk__notification__manager__options_a0d49bce9f1f26a0a5e7f986e17c3fd51}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!reserved0@{reserved0}}
+\index{reserved0@{reserved0}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{reserved0}{reserved0}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_a0d49bce9f1f26a0a5e7f986e17c3fd51} 
+uint32\+\_\+t ntk\+\_\+notification\+\_\+manager\+\_\+options\+::reserved0}
+
+Must be 0. \Hypertarget{structntk__notification__manager__options_a43ad8558fbf34b18e9d763f21775e534}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!reserved1@{reserved1}}
+\index{reserved1@{reserved1}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{reserved1}{reserved1}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_a43ad8558fbf34b18e9d763f21775e534} 
+uint32\+\_\+t ntk\+\_\+notification\+\_\+manager\+\_\+options\+::reserved1}
+
+Must be 0. \Hypertarget{structntk__notification__manager__options_af50d24c1a9ce8348ba904a4f13b04d06}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!user\_data@{user\_data}}
+\index{user\_data@{user\_data}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
+\doxysubsubsection{\texorpdfstring{user\_data}{user\_data}}
+{\footnotesize\ttfamily \label{structntk__notification__manager__options_af50d24c1a9ce8348ba904a4f13b04d06} 
+void\texorpdfstring{$\ast$}{*} ntk\+\_\+notification\+\_\+manager\+\_\+options\+::user\+\_\+data}
+
+Passed to on\+\_\+invoked and release. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library\+CApi/include/\+Native\+Toolkit\+C/\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h}{Notification.\+h}}\end{DoxyCompactItemize}

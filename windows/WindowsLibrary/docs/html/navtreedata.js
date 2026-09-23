@@ -24,14 +24,15 @@
 */
 var NAVTREE =
 [
-  [ "WindowsLibrary", "index.html", [
+  [ "NativeToolkit (Windows)", "index.html", [
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],
       [ "Class Index", "classes.html", null ],
       [ "Class Hierarchy", "hierarchy.html", "hierarchy" ],
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", null ],
-        [ "Functions", "functions_func.html", null ]
+        [ "Functions", "functions_func.html", null ],
+        [ "Variables", "functions_vars.html", null ]
       ] ]
     ] ],
     [ "Files", "files.html", [
@@ -39,7 +40,9 @@ var NAVTREE =
       [ "File Members", "globals.html", [
         [ "All", "globals.html", null ],
         [ "Functions", "globals_func.html", null ],
-        [ "Typedefs", "globals_type.html", null ]
+        [ "Typedefs", "globals_type.html", null ],
+        [ "Enumerator", "globals_eval.html", null ],
+        [ "Macros", "globals_defs.html", null ]
       ] ]
     ] ]
   ] ]
@@ -47,7 +50,8 @@ var NAVTREE =
 
 var NAVTREEINDEX =
 [
-"_resource_8h_source.html"
+"_api_2include_2_native_toolkit_c_2_clipboard_8h.html",
+"dir_9d92ceec7c201fb2c5bdd61919c25963.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

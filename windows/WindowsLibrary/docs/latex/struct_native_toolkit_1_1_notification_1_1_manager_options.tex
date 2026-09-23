@@ -1,0 +1,44 @@
+\doxysection{Native\+Toolkit\+::Notification\+::Manager\+Options Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options}{}\label{struct_native_toolkit_1_1_notification_1_1_manager_options}\index{NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}}
+
+
+What \doxylink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Manager\+::\+Create} needs to know about the app it is running in.  
+
+
+
+
+{\ttfamily \#include $<$Notification.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+std\+::function$<$ void(const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{Activation\+Args}} \&)$>$ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f}{on\+Invoked}}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_a6ba0c715728a2cb49176f041e348354f}\label{struct_native_toolkit_1_1_notification_1_1_manager_options_a6ba0c715728a2cb49176f041e348354f} 
+bool {\bfseries is\+Packaged} = true
+\begin{DoxyCompactList}\small\item\em False for a plain Win32 app with no package identity. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29}\label{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29} 
+std\+::wstring {\bfseries display\+Name}
+\begin{DoxyCompactList}\small\item\em Required when is\+Packaged is false. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ae8b4807099ff7cb3cfdd3fd3b538d57a}\label{struct_native_toolkit_1_1_notification_1_1_manager_options_ae8b4807099ff7cb3cfdd3fd3b538d57a} 
+std\+::wstring {\bfseries icon\+Uri}
+\begin{DoxyCompactList}\small\item\em Required when is\+Packaged is false. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+What \doxylink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Manager\+::\+Create} needs to know about the app it is running in. 
+
+\label{doc-variable-members}
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f}\index{NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}!onInvoked@{onInvoked}}
+\index{onInvoked@{onInvoked}!NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}}
+\doxysubsubsection{\texorpdfstring{onInvoked}{onInvoked}}
+{\footnotesize\ttfamily \label{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f} 
+std\+::function$<$void(const \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{Activation\+Args}}\&)$>$ Native\+Toolkit\+::\+Notification\+::\+Manager\+Options\+::on\+Invoked}
+
+Called when the user acts on a notification, on whichever thread the OS delivers the activation. Leaving it empty means activations are dropped. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h}{Notification.\+h}}\end{DoxyCompactItemize}

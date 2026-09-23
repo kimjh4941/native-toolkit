@@ -1,0 +1,739 @@
+\doxysection{Native\+Toolkit\+::Clipboard\+::Session Class Reference}
+\hypertarget{class_native_toolkit_1_1_clipboard_1_1_session}{}\label{class_native_toolkit_1_1_clipboard_1_1_session}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+
+
+The clipboard of this process.  
+
+
+
+
+{\ttfamily \#include $<$Clipboard.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a3e87298a7f9d0887b68a1e69b8a536da}\label{class_native_toolkit_1_1_clipboard_1_1_session_a3e87298a7f9d0887b68a1e69b8a536da} 
+{\bfseries Session} (\mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} \&\&other) noexcept
+\item 
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a53d69e4a42599b09f2b48e8bb0f28319}\label{class_native_toolkit_1_1_clipboard_1_1_session_a53d69e4a42599b09f2b48e8bb0f28319} 
+\mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} \& {\bfseries operator=} (\mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} \&\&other) noexcept
+\item 
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a2d827c37e0853e724012feea8cac9412}\label{class_native_toolkit_1_1_clipboard_1_1_session_a2d827c37e0853e724012feea8cac9412} 
+{\bfseries Session} (const \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} \&)=delete
+\item 
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a39c4beeb7d66bb27de1e527ffb2a0b56}\label{class_native_toolkit_1_1_clipboard_1_1_session_a39c4beeb7d66bb27de1e527ffb2a0b56} 
+\mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} \& {\bfseries operator=} (const \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} \&)=delete
+\item 
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a1ec2925617b46796d52089f6136785f5}\label{class_native_toolkit_1_1_clipboard_1_1_session_a1ec2925617b46796d52089f6136785f5} 
+{\bfseries \texorpdfstring{$\sim$}{\string~}\+Session} ()
+\begin{DoxyCompactList}\small\item\em Abandons an unclosed session; see the class note. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a7769f727254bef99e644a927b783a41d}{Close}} ()
+\begin{DoxyCompactList}\small\item\em Closes the session. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_aae56a7c355a3c8f050804bcafa1a3a18}{Can\+Close}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Whether a shutdown that is under way can finish. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a68e65e2b94a1d1e3787138f206ed17ce}{Set\+History\+Handlers}} (\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_handlers}{History\+Handlers}} handlers)
+\begin{DoxyCompactList}\small\item\em Installs or, with a default-\/constructed value, removes the history handlers. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ae2daa2460566a23ba8c9465a1874a0be}{Copy\+Text}} (std\+::wstring\+\_\+view text, \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}} options=\{\})
+\begin{DoxyCompactList}\small\item\em Writes text as CF\+\_\+\+UNICODETEXT. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::wstring $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a814a7391c8de9af2c46c4c199d6f635d}{Paste\+Text}} ()
+\begin{DoxyCompactList}\small\item\em Reads CF\+\_\+\+UNICODETEXT. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a49b3137e35b565511edab6ca87bdef78}{Copy\+Html}} (std\+::wstring\+\_\+view fragment, std\+::wstring\+\_\+view plain\+Text, \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}} options=\{\})
+\begin{DoxyCompactList}\small\item\em Writes an HTML fragment as CF\+\_\+\+HTML, with plain\+Text as the text fallback. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::wstring $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a4be38d2fd92ab59b2576fc793fed25ea}{Paste\+Html}} ()
+\begin{DoxyCompactList}\small\item\em Reads the fragment out of CF\+\_\+\+HTML, without its header. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_af7f5555d4b933c651c52853f92df1897}{Copy\+Files}} (std\+::span$<$ const std\+::wstring $>$ paths, \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}} options=\{\})
+\begin{DoxyCompactList}\small\item\em Writes paths as CF\+\_\+\+HDROP. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::wstring $>$ $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ab2336e4bd36797b6731e3acab4166e44}{Paste\+Files}} ()
+\begin{DoxyCompactList}\small\item\em Reads the paths of CF\+\_\+\+HDROP. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a54f8861ac58012154b4a13fa112bfaef}{Copy\+Dib}} (std\+::span$<$ const std\+::byte $>$ dib, \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}} options=\{\})
+\begin{DoxyCompactList}\small\item\em Writes an image as CF\+\_\+\+DIB. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::byte $>$ $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a4caf6836d9b1a8778d77e80e75007154}{Paste\+Dib}} ()
+\begin{DoxyCompactList}\small\item\em Reads CF\+\_\+\+DIB, in the same shape Copy\+Dib takes. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ac8deda5e52c0176174f4ba984b5699b7}{Copy\+Custom}} (std\+::wstring\+\_\+view format\+Name, std\+::span$<$ const std\+::byte $>$ data, \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}} options=\{\})
+\begin{DoxyCompactList}\small\item\em Writes bytes under a registered format name. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::byte $>$ $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_aa23e6574dd79bf1b6bd7116577b64dbb}{Paste\+Custom}} (std\+::wstring\+\_\+view format\+Name)
+\begin{DoxyCompactList}\small\item\em Reads the bytes of a registered format. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_af706ec8e1c4b85ba0f39738f62cba215}{Copy\+Multiple}} (std\+::span$<$ const \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_aa5f6d721dacfa82d68e074a0abdc040b}{Format\+Payload}} $>$ items, \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}} options=\{\})
+\begin{DoxyCompactList}\small\item\em Writes several formats of one thing in a single operation. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ bool $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a3731973e1a3d441792a6ee949a13aa3c}{Has\+Format}} (std\+::wstring\+\_\+view format\+Name)
+\begin{DoxyCompactList}\small\item\em Whether the clipboard currently offers that format. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::wstring $>$ $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ad1619db67c40707b3f8c9e4c6b598ed8}{Get\+Formats}} ()
+\begin{DoxyCompactList}\small\item\em Every format the clipboard offers, in the order the OS reports them. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::wstring $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a0e554f4cde49e7ccd71ae563064eef7b}{Get\+Preferred\+Format}} ()
+\begin{DoxyCompactList}\small\item\em The format a reader should prefer, or an empty name when there is none. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a0e19d402ab3b2c2f3c4a5399b91bccb6}{Clear}} ()
+\begin{DoxyCompactList}\small\item\em Empties the clipboard. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a98f5d919f3869599f8d0b2f4e76dc2da}{Reserve\+Deferred}} (std\+::span$<$ const std\+::wstring $>$ formats, \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a47371d208ec687919a9d92abbb741881}{Render\+Provider}} provider)
+\begin{DoxyCompactList}\small\item\em Offers formats without producing them, until someone asks. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a637b42c2761f3606a8ee672edbc69cca}{Recover\+Deferred\+State}} ()
+\begin{DoxyCompactList}\small\item\em Retries the rollback a failed reservation left undone. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a01b30dafbf9037225126dcde5fe0e734}{Get\+History}} (\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a56ffc87606e7f053798c4a9966619bfd}{History\+Items\+Handler}} handler)
+\begin{DoxyCompactList}\small\item\em Asks for what the history holds. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a5a55043f17634950da37fdcb4509f420}{Restore\+History\+Item}} (std\+::wstring\+\_\+view item\+Id, \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{Completion\+Handler}} handler)
+\begin{DoxyCompactList}\small\item\em Asks for an item to be put back on the clipboard. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a9bc522743c6b6309caf83280772127b9}{Delete\+History\+Item}} (std\+::wstring\+\_\+view item\+Id, \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{Completion\+Handler}} handler)
+\begin{DoxyCompactList}\small\item\em Asks for an item to be removed from the history. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a4c30febbd42372586e3d58baa9f247f7}{Clear\+Unpinned\+History}} (\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{Completion\+Handler}} handler)
+\begin{DoxyCompactList}\small\item\em Asks for the history to be emptied. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a16e1338f01d0b6d8fe5c071a8b90e99d}{Get\+History\+Availability}} (\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ac3f5895aa7cf66253f83bd8609af8603}{Availability\+Handler}} handler)
+\begin{DoxyCompactList}\small\item\em Asks whether the OS has the history, and its roaming, turned on. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a189e54ddf8682de5d287632b619e7ee1}{Cancel\+Request}} (\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} id)
+\begin{DoxyCompactList}\small\item\em Gives up on a request. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ad03113d8b1a9e67493cf81cac6330c6b}{Create}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_session_options}{Session\+Options}} \&options)
+\begin{DoxyCompactList}\small\item\em Opens the clipboard for this process on the calling thread. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The clipboard of this process. 
+
+Create must be called from a thread that is already an initialised STA and that runs a message pump\+: the clipboard is a windowed, thread-\/affine part of Windows, and the session builds a window on that thread to receive its messages. That thread owns the session; the synchronous operations may be called from any thread, but the ones marked owner-\/only may not.
+
+There is one clipboard per process, so a second Create fails\+: Not\+Supported when it comes from the owning thread, Wrong\+Thread from any other.
+
+{\bfseries{Closing is the caller\textquotesingle{}s job.}} Close reports the same five reasons the C ABI reports, and a caller that gets one is expected to deal with it and try again -\/ that is why Close returns a \doxylink{class_native_toolkit_1_1_result}{Result} and the destructor does not.
+
+{\bfseries{The destructor abandons.}} Destroying a session that has not been closed successfully leaves its window, its listeners and its pending requests in place until the process exits, asserts in a debug build and logs in a release one. It does not try to tidy up on another thread\+: no Win32 call tells us whether a message pump will run again, so a destructor that posted work could only pretend to have cleaned up. From then on Create keeps failing and there is no way back.
+
+{\bfseries{Inside a callback}}, do not destroy the session, and do not call Close or Set\+History\+Handlers on it\+: both change the gate the callback is running under, and a debug build asserts (CLP-\/05, CLP-\/34). Do not capture the session in a handler you give it either -\/ that is a cycle. 
+
+\label{doc-func-members}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a189e54ddf8682de5d287632b619e7ee1}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CancelRequest@{CancelRequest}}
+\index{CancelRequest@{CancelRequest}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CancelRequest()}{CancelRequest()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a189e54ddf8682de5d287632b619e7ee1} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Cancel\+Request (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}}}]{id}{}\end{DoxyParamCaption})}
+
+
+
+Gives up on a request. 
+
+Callable from any thread. This cancels the request, not its answer\+: a completion already on its way is still delivered, with Canceled, so the handler is called exactly once either way.
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & No such request, or it has already finished. \\
+\hline
+{\em Unknown} & The cancellation could not be handed to the owning thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_aae56a7c355a3c8f050804bcafa1a3a18}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CanClose@{CanClose}}
+\index{CanClose@{CanClose}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CanClose()}{CanClose()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_aae56a7c355a3c8f050804bcafa1a3a18} 
+bool Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Can\+Close (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Whether a shutdown that is under way can finish. 
+
+This answers "{}is there anything left to wait for"{} -\/ no listener, no event token, no queued completion, no synchronous call in progress -\/ which is the question a retry loop between two Close attempts wants answered. A session that has not started closing has not closed its gate, so this is false for an open one; a closed session is true.
+
+Callable from any thread, and advice only\+: it can be stale the moment it is returned, and a Close that follows a true can still fail on rolling back a half-\/finished write. Close is what decides. \Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a0e19d402ab3b2c2f3c4a5399b91bccb6}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!Clear@{Clear}}
+\index{Clear@{Clear}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{Clear()}{Clear()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a0e19d402ab3b2c2f3c4a5399b91bccb6} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Clear (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Empties the clipboard. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Unknown} & The clipboard refused. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a4c30febbd42372586e3d58baa9f247f7}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!ClearUnpinnedHistory@{ClearUnpinnedHistory}}
+\index{ClearUnpinnedHistory@{ClearUnpinnedHistory}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{ClearUnpinnedHistory()}{ClearUnpinnedHistory()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a4c30febbd42372586e3d58baa9f247f7} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Clear\+Unpinned\+History (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{Completion\+Handler}}}]{handler}{}\end{DoxyParamCaption})}
+
+
+
+Asks for the history to be emptied. 
+
+Pinned items stay (CLP-\/82). 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL. \\
+\hline
+{\em Out\+Of\+Memory} & The request could not be recorded. \\
+\hline
+{\em Unknown} & The request could not be handed to the owning thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a7769f727254bef99e644a927b783a41d}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!Close@{Close}}
+\index{Close@{Close}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{Close()}{Close()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a7769f727254bef99e644a927b783a41d} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Close (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Closes the session. 
+
+Must be called from the owning thread. Closing an already closed session succeeds, so a retry loop can call it until it does.
+
+Requests still in flight are cancelled, and their completions are delivered inside this call\+: Close dispatches its own window\textquotesingle{}s drain message between attempts, so the caller needs no message loop of its own to finish closing. Busy is what a retry waits on -\/ another thread\textquotesingle{}s read or write -\/ and Canceled is left only for a drain that did not finish in the few passes Close makes. 
+\begin{DoxyRetVals}{Return values}
+{\em Wrong\+Thread} & Called from a thread other than the owner. \\
+\hline
+{\em Monitor\+Register\+Failed} & A clipboard or history listener could not be dropped. \\
+\hline
+{\em Canceled} & The cancelled requests were not all delivered yet. \\
+\hline
+{\em Busy} & Something still holds the session open. \\
+\hline
+{\em Partial\+State} & A half-\/finished write could not be rolled back. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_ac8deda5e52c0176174f4ba984b5699b7}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CopyCustom@{CopyCustom}}
+\index{CopyCustom@{CopyCustom}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CopyCustom()}{CopyCustom()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_ac8deda5e52c0176174f4ba984b5699b7} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Copy\+Custom (\begin{DoxyParamCaption}\item[{std\+::wstring\+\_\+view}]{format\+Name}{, }\item[{std\+::span$<$ const std\+::byte $>$}]{data}{, }\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}}}]{options}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Writes bytes under a registered format name. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL, or one the format cannot take. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied into place. \\
+\hline
+{\em Unknown} & The clipboard refused the write. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a54f8861ac58012154b4a13fa112bfaef}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CopyDib@{CopyDib}}
+\index{CopyDib@{CopyDib}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CopyDib()}{CopyDib()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a54f8861ac58012154b4a13fa112bfaef} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Copy\+Dib (\begin{DoxyParamCaption}\item[{std\+::span$<$ const std\+::byte $>$}]{dib}{, }\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}}}]{options}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Writes an image as CF\+\_\+\+DIB. 
+
+The bytes are a device-\/independent bitmap, header first and with no BITMAPFILEHEADER\+: this is the clipboard\textquotesingle{}s own shape, not a .bmp file, and the library does not convert one to the other. 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL, or one the format cannot take. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied into place. \\
+\hline
+{\em Unknown} & The clipboard refused the write. \\
+\hline
+{\em Invalid\+Data} & The bytes are not a well-\/formed bitmap. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_af7f5555d4b933c651c52853f92df1897}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CopyFiles@{CopyFiles}}
+\index{CopyFiles@{CopyFiles}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CopyFiles()}{CopyFiles()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_af7f5555d4b933c651c52853f92df1897} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Copy\+Files (\begin{DoxyParamCaption}\item[{std\+::span$<$ const std\+::wstring $>$}]{paths}{, }\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}}}]{options}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Writes paths as CF\+\_\+\+HDROP. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL, or one the format cannot take. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied into place. \\
+\hline
+{\em Unknown} & The clipboard refused the write. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a49b3137e35b565511edab6ca87bdef78}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CopyHtml@{CopyHtml}}
+\index{CopyHtml@{CopyHtml}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CopyHtml()}{CopyHtml()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a49b3137e35b565511edab6ca87bdef78} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Copy\+Html (\begin{DoxyParamCaption}\item[{std\+::wstring\+\_\+view}]{fragment}{, }\item[{std\+::wstring\+\_\+view}]{plain\+Text}{, }\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}}}]{options}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Writes an HTML fragment as CF\+\_\+\+HTML, with plain\+Text as the text fallback. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL, or one the format cannot take. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied into place. \\
+\hline
+{\em Unknown} & The clipboard refused the write. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_af706ec8e1c4b85ba0f39738f62cba215}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CopyMultiple@{CopyMultiple}}
+\index{CopyMultiple@{CopyMultiple}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CopyMultiple()}{CopyMultiple()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_af706ec8e1c4b85ba0f39738f62cba215} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Copy\+Multiple (\begin{DoxyParamCaption}\item[{std\+::span$<$ const \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_aa5f6d721dacfa82d68e074a0abdc040b}{Format\+Payload}} $>$}]{items}{, }\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}}}]{options}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Writes several formats of one thing in a single operation. 
+
+The items are placed in the order given, so put the richest first\+: that is the order a reader walks. Every item is checked before anything is placed, so a bad one leaves the clipboard untouched rather than half written. Naming the same format twice is Invalid\+Parameter. 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL, or one the format cannot take. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied into place. \\
+\hline
+{\em Unknown} & The clipboard refused the write. \\
+\hline
+{\em Invalid\+Data} & A bitmap or a file list that is not well formed. \\
+\hline
+{\em Partial\+State} & A placement failed and so did the rollback. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_ae2daa2460566a23ba8c9465a1874a0be}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CopyText@{CopyText}}
+\index{CopyText@{CopyText}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{CopyText()}{CopyText()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_ae2daa2460566a23ba8c9465a1874a0be} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Copy\+Text (\begin{DoxyParamCaption}\item[{std\+::wstring\+\_\+view}]{text}{, }\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{Write\+Options}}}]{options}{ = {\ttfamily \{\}}}\end{DoxyParamCaption})}
+
+
+
+Writes text as CF\+\_\+\+UNICODETEXT. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL, or one the format cannot take. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied into place. \\
+\hline
+{\em Unknown} & The clipboard refused the write. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=200pt]{class_native_toolkit_1_1_clipboard_1_1_session_ae2daa2460566a23ba8c9465a1874a0be_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=200pt]{class_native_toolkit_1_1_clipboard_1_1_session_ae2daa2460566a23ba8c9465a1874a0be_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_ad03113d8b1a9e67493cf81cac6330c6b}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!Create@{Create}}
+\index{Create@{Create}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{Create()}{Create()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_ad03113d8b1a9e67493cf81cac6330c6b} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session}{Session}} $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Create (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_session_options}{Session\+Options}} \&}]{options}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Opens the clipboard for this process on the calling thread. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Wrong\+Apartment} & The calling thread is not an initialised STA. \\
+\hline
+{\em Monitor\+Register\+Failed} & on\+Clipboard\+Changed was given and its listener could not be registered. \\
+\hline
+{\em Out\+Of\+Memory} & The session could not be built. \\
+\hline
+{\em Unknown} & The window that receives the session\textquotesingle{}s messages could not be created. \\
+\hline
+{\em Not\+Supported} & A session already exists, and this is its thread; or one was abandoned. \\
+\hline
+{\em Wrong\+Thread} & A session already exists on another thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a9bc522743c6b6309caf83280772127b9}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!DeleteHistoryItem@{DeleteHistoryItem}}
+\index{DeleteHistoryItem@{DeleteHistoryItem}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{DeleteHistoryItem()}{DeleteHistoryItem()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a9bc522743c6b6309caf83280772127b9} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Delete\+History\+Item (\begin{DoxyParamCaption}\item[{std\+::wstring\+\_\+view}]{item\+Id}{, }\item[{\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{Completion\+Handler}}}]{handler}{}\end{DoxyParamCaption})}
+
+
+
+Asks for an item to be removed from the history. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL. \\
+\hline
+{\em Out\+Of\+Memory} & The request could not be recorded. \\
+\hline
+{\em Unknown} & The request could not be handed to the owning thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_ad1619db67c40707b3f8c9e4c6b598ed8}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!GetFormats@{GetFormats}}
+\index{GetFormats@{GetFormats}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{GetFormats()}{GetFormats()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_ad1619db67c40707b3f8c9e4c6b598ed8} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::wstring $>$ $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Get\+Formats (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Every format the clipboard offers, in the order the OS reports them. 
+
+A format with no registered name is reported as "{}0x\+\_\+\+\_\+\+\_\+\+\_\+"{}. 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Unknown} & The list could not be read. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a01b30dafbf9037225126dcde5fe0e734}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!GetHistory@{GetHistory}}
+\index{GetHistory@{GetHistory}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{GetHistory()}{GetHistory()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a01b30dafbf9037225126dcde5fe0e734} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Get\+History (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a56ffc87606e7f053798c4a9966619bfd}{History\+Items\+Handler}}}]{handler}{}\end{DoxyParamCaption})}
+
+
+
+Asks for what the history holds. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL. \\
+\hline
+{\em Out\+Of\+Memory} & The request could not be recorded. \\
+\hline
+{\em Unknown} & The request could not be handed to the owning thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a16e1338f01d0b6d8fe5c071a8b90e99d}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!GetHistoryAvailability@{GetHistoryAvailability}}
+\index{GetHistoryAvailability@{GetHistoryAvailability}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{GetHistoryAvailability()}{GetHistoryAvailability()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a16e1338f01d0b6d8fe5c071a8b90e99d} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Get\+History\+Availability (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ac3f5895aa7cf66253f83bd8609af8603}{Availability\+Handler}}}]{handler}{}\end{DoxyParamCaption})}
+
+
+
+Asks whether the OS has the history, and its roaming, turned on. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL. \\
+\hline
+{\em Out\+Of\+Memory} & The request could not be recorded. \\
+\hline
+{\em Unknown} & The request could not be handed to the owning thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a0e554f4cde49e7ccd71ae563064eef7b}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!GetPreferredFormat@{GetPreferredFormat}}
+\index{GetPreferredFormat@{GetPreferredFormat}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{GetPreferredFormat()}{GetPreferredFormat()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a0e554f4cde49e7ccd71ae563064eef7b} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::wstring $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Get\+Preferred\+Format (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+The format a reader should prefer, or an empty name when there is none. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a3731973e1a3d441792a6ee949a13aa3c}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!HasFormat@{HasFormat}}
+\index{HasFormat@{HasFormat}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{HasFormat()}{HasFormat()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a3731973e1a3d441792a6ee949a13aa3c} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ bool $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Has\+Format (\begin{DoxyParamCaption}\item[{std\+::wstring\+\_\+view}]{format\+Name}{}\end{DoxyParamCaption})}
+
+
+
+Whether the clipboard currently offers that format. 
+
+A name no format has, including an empty one, is simply absent rather than an error.
+
+Asking registers the name with the OS as a side effect\+: a clipboard format name is registered the first time anything looks it up, and it stays registered for the session of the machine (CLP-\/141). 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & A name with an embedded NUL. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_aa23e6574dd79bf1b6bd7116577b64dbb}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!PasteCustom@{PasteCustom}}
+\index{PasteCustom@{PasteCustom}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{PasteCustom()}{PasteCustom()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_aa23e6574dd79bf1b6bd7116577b64dbb} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::byte $>$ $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Paste\+Custom (\begin{DoxyParamCaption}\item[{std\+::wstring\+\_\+view}]{format\+Name}{}\end{DoxyParamCaption})}
+
+
+
+Reads the bytes of a registered format. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Empty} & The clipboard holds nothing. \\
+\hline
+{\em Format\+Unavailable} & The clipboard holds something, but not this. \\
+\hline
+{\em Invalid\+Data} & What is there is not in the shape this format promises. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied out. \\
+\hline
+{\em Invalid\+Parameter} & A format name with an embedded NUL. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a4caf6836d9b1a8778d77e80e75007154}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!PasteDib@{PasteDib}}
+\index{PasteDib@{PasteDib}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{PasteDib()}{PasteDib()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a4caf6836d9b1a8778d77e80e75007154} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::byte $>$ $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Paste\+Dib (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Reads CF\+\_\+\+DIB, in the same shape Copy\+Dib takes. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Empty} & The clipboard holds nothing. \\
+\hline
+{\em Format\+Unavailable} & The clipboard holds something, but not this. \\
+\hline
+{\em Invalid\+Data} & What is there is not in the shape this format promises. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied out. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_ab2336e4bd36797b6731e3acab4166e44}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!PasteFiles@{PasteFiles}}
+\index{PasteFiles@{PasteFiles}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{PasteFiles()}{PasteFiles()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_ab2336e4bd36797b6731e3acab4166e44} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::vector$<$ std\+::wstring $>$ $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Paste\+Files (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Reads the paths of CF\+\_\+\+HDROP. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Empty} & The clipboard holds nothing. \\
+\hline
+{\em Format\+Unavailable} & The clipboard holds something, but not this. \\
+\hline
+{\em Invalid\+Data} & What is there is not in the shape this format promises. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied out. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a4be38d2fd92ab59b2576fc793fed25ea}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!PasteHtml@{PasteHtml}}
+\index{PasteHtml@{PasteHtml}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{PasteHtml()}{PasteHtml()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a4be38d2fd92ab59b2576fc793fed25ea} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::wstring $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Paste\+Html (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Reads the fragment out of CF\+\_\+\+HTML, without its header. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Empty} & The clipboard holds nothing. \\
+\hline
+{\em Format\+Unavailable} & The clipboard holds something, but not this. \\
+\hline
+{\em Invalid\+Data} & What is there is not in the shape this format promises. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied out. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a814a7391c8de9af2c46c4c199d6f635d}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!PasteText@{PasteText}}
+\index{PasteText@{PasteText}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{PasteText()}{PasteText()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a814a7391c8de9af2c46c4c199d6f635d} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ std\+::wstring $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Paste\+Text (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Reads CF\+\_\+\+UNICODETEXT. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Busy} & Another process kept the clipboard open. \\
+\hline
+{\em Empty} & The clipboard holds nothing. \\
+\hline
+{\em Format\+Unavailable} & The clipboard holds something, but not this. \\
+\hline
+{\em Invalid\+Data} & What is there is not in the shape this format promises. \\
+\hline
+{\em Out\+Of\+Memory} & The data could not be copied out. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a637b42c2761f3606a8ee672edbc69cca}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!RecoverDeferredState@{RecoverDeferredState}}
+\index{RecoverDeferredState@{RecoverDeferredState}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{RecoverDeferredState()}{RecoverDeferredState()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a637b42c2761f3606a8ee672edbc69cca} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Recover\+Deferred\+State (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Retries the rollback a failed reservation left undone. 
+
+Succeeds, and does nothing, when there is nothing to recover. Owner thread only. 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Wrong\+Thread} & Called from a thread other than the owner. \\
+\hline
+{\em Partial\+State} & The rollback failed again. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a98f5d919f3869599f8d0b2f4e76dc2da}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!ReserveDeferred@{ReserveDeferred}}
+\index{ReserveDeferred@{ReserveDeferred}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{ReserveDeferred()}{ReserveDeferred()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a98f5d919f3869599f8d0b2f4e76dc2da} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Reserve\+Deferred (\begin{DoxyParamCaption}\item[{std\+::span$<$ const std\+::wstring $>$}]{formats}{, }\item[{\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a47371d208ec687919a9d92abbb741881}{Render\+Provider}}}]{provider}{}\end{DoxyParamCaption})}
+
+
+
+Offers formats without producing them, until someone asks. 
+
+Use it when the data is expensive and most pastes will not want it. The names and the provider are copied, so neither has to outlive the call.
+
+Only formats the OS can hold as a block of memory can be deferred; a handle format such as CF\+\_\+\+BITMAP cannot.
+
+Naming the same format twice is not an error here\+: the later one takes its place. Copy\+Multiple refuses the same thing, and the difference is kept rather than silently changed (CLP-\/138).
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & No formats, an unknown name, or no provider. \\
+\hline
+{\em Wrong\+Thread} & Called from a thread other than the owner. \\
+\hline
+{\em Partial\+State} & The reservation failed partway and could not be rolled back; call Recover\+Deferred\+State. \\
+\hline
+{\em Unknown} & The clipboard refused the reservation. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a5a55043f17634950da37fdcb4509f420}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!RestoreHistoryItem@{RestoreHistoryItem}}
+\index{RestoreHistoryItem@{RestoreHistoryItem}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{RestoreHistoryItem()}{RestoreHistoryItem()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a5a55043f17634950da37fdcb4509f420} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{Request\+Id}} $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Restore\+History\+Item (\begin{DoxyParamCaption}\item[{std\+::wstring\+\_\+view}]{item\+Id}{, }\item[{\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{Completion\+Handler}}}]{handler}{}\end{DoxyParamCaption})}
+
+
+
+Asks for an item to be put back on the clipboard. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Invalid\+Parameter} & An argument with an embedded NUL. \\
+\hline
+{\em Out\+Of\+Memory} & The request could not be recorded. \\
+\hline
+{\em Unknown} & The request could not be handed to the owning thread. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_a68e65e2b94a1d1e3787138f206ed17ce}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!SetHistoryHandlers@{SetHistoryHandlers}}
+\index{SetHistoryHandlers@{SetHistoryHandlers}!NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}}
+\doxysubsubsection{\texorpdfstring{SetHistoryHandlers()}{SetHistoryHandlers()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_clipboard_1_1_session_a68e65e2b94a1d1e3787138f206ed17ce} 
+\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}$<$ void $>$ Native\+Toolkit\+::\+Clipboard\+::\+Session\+::\+Set\+History\+Handlers (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_handlers}{History\+Handlers}}}]{handlers}{}\end{DoxyParamCaption})}
+
+
+
+Installs or, with a default-\/constructed value, removes the history handlers. 
+
+Owner thread only, and never from inside one of the session\textquotesingle{}s own callbacks (CLP-\/05). 
+\begin{DoxyRetVals}{Return values}
+{\em Not\+Initialized} & Closed, or moved from. \\
+\hline
+{\em Wrong\+Thread} & Called from a thread other than the owner. \\
+\hline
+{\em Monitor\+Register\+Failed} & The history event could not be subscribed to. \\
+\hline
+\end{DoxyRetVals}
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=229pt]{class_native_toolkit_1_1_clipboard_1_1_session_a68e65e2b94a1d1e3787138f206ed17ce_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=229pt]{class_native_toolkit_1_1_clipboard_1_1_session_a68e65e2b94a1d1e3787138f206ed17ce_icgraph}
+\end{center}
+\end{figure}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h}{Clipboard.\+h}}\end{DoxyCompactItemize}

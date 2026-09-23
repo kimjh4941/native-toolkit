@@ -1,0 +1,281 @@
+\doxysection{Windows\+Library/include/\+Native\+Toolkit/\+Error.h File Reference}
+\hypertarget{_error_8h}{}\label{_error_8h}\index{WindowsLibrary/include/NativeToolkit/Error.h@{WindowsLibrary/include/NativeToolkit/Error.h}}
+
+
+Failure values and the Result type the C++ API returns.  
+
+
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include $<$new$>$}\newline
+{\ttfamily \#include $<$type\+\_\+traits$>$}\newline
+{\ttfamily \#include $<$utility$>$}\newline
+{\ttfamily \#include "{}Native\+Toolkit/\+Build\+Stamp.\+h"{}}\newline
+Include dependency graph for Error.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_error_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{_error_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Native\+Toolkit\+::\+Failure$<$ Code $>$}}
+\begin{DoxyCompactList}\small\item\em A failed operation\+: which case, plus the raw value the OS reported. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_unexpected}{Native\+Toolkit\+::\+Unexpected$<$ E $>$}}
+\begin{DoxyCompactList}\small\item\em Wraps an error so that constructing a failed \doxylink{class_native_toolkit_1_1_result}{Result} is explicit. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1detail_1_1_copy_control}{Native\+Toolkit\+::detail\+::\+Copy\+Control$<$ Copyable $>$}}
+\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1detail_1_1_copy_control_3_01false_01_4}{Native\+Toolkit\+::detail\+::\+Copy\+Control$<$ false $>$}}
+\item 
+class \mbox{\hyperlink{class_native_toolkit_1_1_result}{Native\+Toolkit\+::\+Result$<$ T, E $>$}}
+\begin{DoxyCompactList}\small\item\em Either a value of type T or a failure of type E. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4}{Native\+Toolkit\+::\+Result$<$ void, E $>$}}
+\begin{DoxyCompactList}\small\item\em The same contract for operations that return no value. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_error_8h_a901b688de4ba89986480a16ee5981082}\label{_error_8h_a901b688de4ba89986480a16ee5981082} 
+using {\bfseries Native\+Toolkit\+::\+Dialog\+::\+Error\+Code} = \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4}{Native\+Toolkit\+::\+Dialog\+Error}}
+\begin{DoxyCompactList}\small\item\em The feature\textquotesingle{}s error cases, reachable without leaving this namespace. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_afb3eb14cc79ed39a40f4f32e85eb04a2}\label{_error_8h_afb3eb14cc79ed39a40f4f32e85eb04a2} 
+using {\bfseries Native\+Toolkit\+::\+Dialog\+::\+Error} = \mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Failure}}$<$\mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4}{Dialog\+Error}}$>$
+\begin{DoxyCompactList}\small\item\em A failure of this feature\+: its case, and the raw value the OS reported. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}\label{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6} 
+{\footnotesize template$<$class T = void$>$ }\\using {\bfseries Native\+Toolkit\+::\+Dialog\+::\+Result} = \mbox{\hyperlink{class_native_toolkit_1_1_result}{Native\+Toolkit\+::\+Result}}$<$T, \mbox{\hyperlink{_error_8h_afb3eb14cc79ed39a40f4f32e85eb04a2}{Error}}$>$
+\begin{DoxyCompactList}\small\item\em What an operation of this feature returns. \doxylink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result$<$$>$} is one with no value. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_a073bd70efe509c1f6af6ba6e929cbac2}\label{_error_8h_a073bd70efe509c1f6af6ba6e929cbac2} 
+using {\bfseries Native\+Toolkit\+::\+Notification\+::\+Error\+Code} = \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731}{Native\+Toolkit\+::\+Notification\+Error}}
+\begin{DoxyCompactList}\small\item\em The feature\textquotesingle{}s error cases, reachable without leaving this namespace. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_a10670324dffe9fca4465a789b6fb4019}\label{_error_8h_a10670324dffe9fca4465a789b6fb4019} 
+using {\bfseries Native\+Toolkit\+::\+Notification\+::\+Error} = \mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Failure}}$<$\mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731}{Notification\+Error}}$>$
+\begin{DoxyCompactList}\small\item\em A failure of this feature\+: its case, and the raw value the OS reported. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}\label{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0} 
+{\footnotesize template$<$class T = void$>$ }\\using {\bfseries Native\+Toolkit\+::\+Notification\+::\+Result} = \mbox{\hyperlink{class_native_toolkit_1_1_result}{Native\+Toolkit\+::\+Result}}$<$T, \mbox{\hyperlink{_error_8h_a10670324dffe9fca4465a789b6fb4019}{Error}}$>$
+\begin{DoxyCompactList}\small\item\em What an operation of this feature returns. \doxylink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result$<$$>$} is one with no value. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_a8f0fe7545fa132ae619ecfbdf63d1963}\label{_error_8h_a8f0fe7545fa132ae619ecfbdf63d1963} 
+using {\bfseries Native\+Toolkit\+::\+Clipboard\+::\+Error\+Code} = \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913b}{Native\+Toolkit\+::\+Clipboard\+Error}}
+\begin{DoxyCompactList}\small\item\em The feature\textquotesingle{}s error cases, reachable without leaving this namespace. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_a83d9051f774c146aae25f6a6c65b75a0}\label{_error_8h_a83d9051f774c146aae25f6a6c65b75a0} 
+using {\bfseries Native\+Toolkit\+::\+Clipboard\+::\+Error} = \mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Failure}}$<$\mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913b}{Clipboard\+Error}}$>$
+\begin{DoxyCompactList}\small\item\em A failure of this feature\+: its case, and the raw value the OS reported. \end{DoxyCompactList}\item 
+\Hypertarget{_error_8h_ab79440e7d2d897f75534ec351b92f553}\label{_error_8h_ab79440e7d2d897f75534ec351b92f553} 
+{\footnotesize template$<$class T = void$>$ }\\using {\bfseries Native\+Toolkit\+::\+Clipboard\+::\+Result} = \mbox{\hyperlink{class_native_toolkit_1_1_result}{Native\+Toolkit\+::\+Result}}$<$T, \mbox{\hyperlink{_error_8h_a83d9051f774c146aae25f6a6c65b75a0}{Error}}$>$
+\begin{DoxyCompactList}\small\item\em What an operation of this feature returns. \doxylink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result$<$$>$} is one with no value. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4}{Native\+Toolkit\+::\+Dialog\+Error}} \+: uint32\+\_\+t \{ \newline
+\mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a6adf97f83acf6453d4a6a4b1070f3754}{None}} = 0
+, \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a627251310d3384b591e4138be21145d5}{Invalid\+Parameter}} = 1
+, \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a0e22fe7d45f8e5632a4abf369b24e29c}{Canceled}} = 2
+, \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4ab801c4d44abd4738b7f69c4e390ed61d}{Buffer\+Too\+Small}} = 3
+, \newline
+\mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4ab932b91f686c2aa588adfd9a407155ca}{System\+Error}} = 4
+, \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a88183b946cc5f0e8c96b2e66e1c74a7e}{Unknown}} = 5
+ \}
+\begin{DoxyCompactList}\small\item\em Errors of the Dialog feature. New in the C++ API\+: the 1.\+x C ABI passed raw OS values. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731}{Native\+Toolkit\+::\+Notification\+Error}} \+: uint32\+\_\+t \{ \newline
+{\bfseries None} = 0
+, \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9646ad3a1c3e708b4fa8b4b4270fbab6}{Not\+Initialized}} = 1
+, \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731ab9f5c797ebbf55adccdd8539a65a0241}{Disabled}} = 2
+, \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a2d730f4aa6a660e8825d5294008a4ef7}{Invalid\+Payload}} = 3
+, \newline
+\mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a416aa046bd8aae21dedec019f6d8b396}{Progress\+Not\+Found}} = 4
+, \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a6d5ecb8044bd5e9f36a006cc0735d455}{HResult\+Failure}} = 5
+, {\bfseries Badge\+Failed} = 6
+, \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a627251310d3384b591e4138be21145d5}{Invalid\+Parameter}} = 7
+, \newline
+\mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9ed2d871602556951e39f3cebd08d6cb}{Not\+Supported}} = 8
+ \}
+\item 
+enum class \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913b}{Native\+Toolkit\+::\+Clipboard\+Error}} \+: uint32\+\_\+t \{ \newline
+{\bfseries None} = 0
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba627251310d3384b591e4138be21145d5}{Invalid\+Parameter}} = 1
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba9646ad3a1c3e708b4fa8b4b4270fbab6}{Not\+Initialized}} = 2
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913bad8a942ef2b04672adfafef0ad817a407}{Busy}} = 3
+, \newline
+{\bfseries Empty} = 4
+, {\bfseries Format\+Unavailable} = 5
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba3c4b6828f5a12280debdb5a12e0e72ba}{Invalid\+Data}} = 6
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913bab801c4d44abd4738b7f69c4e390ed61d}{Buffer\+Too\+Small}} = 7
+, \newline
+{\bfseries Out\+Of\+Memory} = 8
+, {\bfseries Access\+Denied} = 9
+, {\bfseries History\+Disabled} = 10
+, {\bfseries Item\+Deleted} = 11
+, \newline
+\mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba28eb41b179cc33c9f9b5563e97d42922}{Monitor\+Register\+Failed}} = 12
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913bab85b248497a5f061db55c410a1a6bd65}{Partial\+State}} = 13
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913badfe12b5ddee50d3c2b7edbc8f3de8c3b}{Wrong\+Thread}} = 14
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba0e22fe7d45f8e5632a4abf369b24e29c}{Canceled}} = 15
+, \newline
+\mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba9ed2d871602556951e39f3cebd08d6cb}{Not\+Supported}} = 16
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913bacd659e801dfa5622b768b11bfec95db4}{Not\+Foreground}} = 17
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba935a43ef0c969c7c65e93958142ed108}{Wrong\+Apartment}} = 18
+, \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba88183b946cc5f0e8c96b2e66e1c74a7e}{Unknown}} = 19
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{_error_8h_a88c24d1371816670b75b99c145004f90}\label{_error_8h_a88c24d1371816670b75b99c145004f90} 
+{\footnotesize template$<$class E$>$ }\\{\bfseries Native\+Toolkit\+::\+Unexpected} (E) -\/$>$ Unexpected$<$ E $>$
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Failure values and the Result type the C++ API returns. 
+
+Part of the public C++ API added in stage 3 of the windows-\/architecture topic (design section 7.\+2). Operations report failure by value, never by throwing\+: a failure that happens after a call has been entered -\/ an OS or Win\+RT failure, an allocation inside the library -\/ always comes back as a Failure. Building the arguments at the call site is ordinary C++ and can still throw std\+::bad\+\_\+alloc.
+
+Each feature binds Result to its own error enumeration, so Clipboard\+::\+Result and Dialog\+::\+Result are different types and the enum a failure carries is never erased to a number.
+
+This is NOT std\+::expected and swapping it for std\+::expected is not mechanical. The differences are listed in section 7.\+2 of the design\+: errors are built through Unexpected rather than std\+::unexpected, value() has a precondition instead of throwing, and there is no state that holds neither a value nor an error.
+
+Keep this header ASCII only. 
+
+\label{doc-enum-members}
+\Hypertarget{_error_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913b}\index{Error.h@{Error.h}!ClipboardError@{ClipboardError}}
+\index{ClipboardError@{ClipboardError}!Error.h@{Error.h}}
+\doxysubsubsection{\texorpdfstring{ClipboardError}{ClipboardError}}
+{\footnotesize\ttfamily \label{_error_8h_ada7cfc73861a162117b713e92ef3913b} 
+enum class \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913b}{Native\+Toolkit\+::\+Clipboard\+Error}} \+: uint32\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+Errors of the Clipboard feature. The values match CLIPBOARD\+\_\+\+ERROR\+\_\+\texorpdfstring{$\ast$}{*} of Clipboard\+Codes.\+h and NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\texorpdfstring{$\ast$}{*} of the C ABI. \begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{InvalidParameter@{InvalidParameter}!Error.h@{Error.h}}\index{Error.h@{Error.h}!InvalidParameter@{InvalidParameter}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba627251310d3384b591e4138be21145d5}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba627251310d3384b591e4138be21145d5} 
+Invalid\+Parameter&Null or empty arguments, an embedded NUL, an unknown request id. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NotInitialized@{NotInitialized}!Error.h@{Error.h}}\index{Error.h@{Error.h}!NotInitialized@{NotInitialized}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba9646ad3a1c3e708b4fa8b4b4270fbab6}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba9646ad3a1c3e708b4fa8b4b4270fbab6} 
+Not\+Initialized&Used before Create, or after Close. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Busy@{Busy}!Error.h@{Error.h}}\index{Error.h@{Error.h}!Busy@{Busy}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913bad8a942ef2b04672adfafef0ad817a407}\label{_error_8h_ada7cfc73861a162117b713e92ef3913bad8a942ef2b04672adfafef0ad817a407} 
+Busy&Open\+Clipboard kept failing, or Close still has work in flight. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{InvalidData@{InvalidData}!Error.h@{Error.h}}\index{Error.h@{Error.h}!InvalidData@{InvalidData}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba3c4b6828f5a12280debdb5a12e0e72ba}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba3c4b6828f5a12280debdb5a12e0e72ba} 
+Invalid\+Data&A payload failed its structural checks. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{BufferTooSmall@{BufferTooSmall}!Error.h@{Error.h}}\index{Error.h@{Error.h}!BufferTooSmall@{BufferTooSmall}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913bab801c4d44abd4738b7f69c4e390ed61d}\label{_error_8h_ada7cfc73861a162117b713e92ef3913bab801c4d44abd4738b7f69c4e390ed61d} 
+Buffer\+Too\+Small&Reserved\+: never returned. The 1.\+x C ABI\textquotesingle{}s caller buffer was too small. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MonitorRegisterFailed@{MonitorRegisterFailed}!Error.h@{Error.h}}\index{Error.h@{Error.h}!MonitorRegisterFailed@{MonitorRegisterFailed}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba28eb41b179cc33c9f9b5563e97d42922}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba28eb41b179cc33c9f9b5563e97d42922} 
+Monitor\+Register\+Failed&A listener or event token could not be registered or revoked. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{PartialState@{PartialState}!Error.h@{Error.h}}\index{Error.h@{Error.h}!PartialState@{PartialState}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913bab85b248497a5f061db55c410a1a6bd65}\label{_error_8h_ada7cfc73861a162117b713e92ef3913bab85b248497a5f061db55c410a1a6bd65} 
+Partial\+State&A placement failed and the rollback failed too. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{WrongThread@{WrongThread}!Error.h@{Error.h}}\index{Error.h@{Error.h}!WrongThread@{WrongThread}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913badfe12b5ddee50d3c2b7edbc8f3de8c3b}\label{_error_8h_ada7cfc73861a162117b713e92ef3913badfe12b5ddee50d3c2b7edbc8f3de8c3b} 
+Wrong\+Thread&An owner-\/thread-\/only call from another thread. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Canceled@{Canceled}!Error.h@{Error.h}}\index{Error.h@{Error.h}!Canceled@{Canceled}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba0e22fe7d45f8e5632a4abf369b24e29c}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba0e22fe7d45f8e5632a4abf369b24e29c} 
+Canceled&Cancelled, or drained by Close. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NotSupported@{NotSupported}!Error.h@{Error.h}}\index{Error.h@{Error.h}!NotSupported@{NotSupported}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba9ed2d871602556951e39f3cebd08d6cb}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba9ed2d871602556951e39f3cebd08d6cb} 
+Not\+Supported&No Windows equivalent, or a second session. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NotForeground@{NotForeground}!Error.h@{Error.h}}\index{Error.h@{Error.h}!NotForeground@{NotForeground}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913bacd659e801dfa5622b768b11bfec95db4}\label{_error_8h_ada7cfc73861a162117b713e92ef3913bacd659e801dfa5622b768b11bfec95db4} 
+Not\+Foreground&This process is not in the foreground; reported through the callback. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{WrongApartment@{WrongApartment}!Error.h@{Error.h}}\index{Error.h@{Error.h}!WrongApartment@{WrongApartment}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba935a43ef0c969c7c65e93958142ed108}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba935a43ef0c969c7c65e93958142ed108} 
+Wrong\+Apartment&The calling thread is not an STA. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Unknown@{Unknown}!Error.h@{Error.h}}\index{Error.h@{Error.h}!Unknown@{Unknown}}}\Hypertarget{_error_8h_ada7cfc73861a162117b713e92ef3913ba88183b946cc5f0e8c96b2e66e1c74a7e}\label{_error_8h_ada7cfc73861a162117b713e92ef3913ba88183b946cc5f0e8c96b2e66e1c74a7e} 
+Unknown&Anything else; the raw value is always logged. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{_error_8h_a44ba98a306944211dec13c86bcf760d4}\index{Error.h@{Error.h}!DialogError@{DialogError}}
+\index{DialogError@{DialogError}!Error.h@{Error.h}}
+\doxysubsubsection{\texorpdfstring{DialogError}{DialogError}}
+{\footnotesize\ttfamily \label{_error_8h_a44ba98a306944211dec13c86bcf760d4} 
+enum class \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4}{Native\+Toolkit\+::\+Dialog\+Error}} \+: uint32\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Errors of the Dialog feature. New in the C++ API\+: the 1.\+x C ABI passed raw OS values. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{None@{None}!Error.h@{Error.h}}\index{Error.h@{Error.h}!None@{None}}}\Hypertarget{_error_8h_a44ba98a306944211dec13c86bcf760d4a6adf97f83acf6453d4a6a4b1070f3754}\label{_error_8h_a44ba98a306944211dec13c86bcf760d4a6adf97f83acf6453d4a6a4b1070f3754} 
+None&Success. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{InvalidParameter@{InvalidParameter}!Error.h@{Error.h}}\index{Error.h@{Error.h}!InvalidParameter@{InvalidParameter}}}\Hypertarget{_error_8h_a44ba98a306944211dec13c86bcf760d4a627251310d3384b591e4138be21145d5}\label{_error_8h_a44ba98a306944211dec13c86bcf760d4a627251310d3384b591e4138be21145d5} 
+Invalid\+Parameter&A null argument, or a request the API cannot read. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Canceled@{Canceled}!Error.h@{Error.h}}\index{Error.h@{Error.h}!Canceled@{Canceled}}}\Hypertarget{_error_8h_a44ba98a306944211dec13c86bcf760d4a0e22fe7d45f8e5632a4abf369b24e29c}\label{_error_8h_a44ba98a306944211dec13c86bcf760d4a0e22fe7d45f8e5632a4abf369b24e29c} 
+Canceled&The user dismissed the dialog. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{BufferTooSmall@{BufferTooSmall}!Error.h@{Error.h}}\index{Error.h@{Error.h}!BufferTooSmall@{BufferTooSmall}}}\Hypertarget{_error_8h_a44ba98a306944211dec13c86bcf760d4ab801c4d44abd4738b7f69c4e390ed61d}\label{_error_8h_a44ba98a306944211dec13c86bcf760d4ab801c4d44abd4738b7f69c4e390ed61d} 
+Buffer\+Too\+Small&Reserved\+: never returned. The 1.\+x C ABI\textquotesingle{}s caller buffer was too small. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{SystemError@{SystemError}!Error.h@{Error.h}}\index{Error.h@{Error.h}!SystemError@{SystemError}}}\Hypertarget{_error_8h_a44ba98a306944211dec13c86bcf760d4ab932b91f686c2aa588adfd9a407155ca}\label{_error_8h_a44ba98a306944211dec13c86bcf760d4ab932b91f686c2aa588adfd9a407155ca} 
+System\+Error&Get\+Last\+Error, Comm\+Dlg\+Extended\+Error or a failed HRESULT; see system\+Code. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Unknown@{Unknown}!Error.h@{Error.h}}\index{Error.h@{Error.h}!Unknown@{Unknown}}}\Hypertarget{_error_8h_a44ba98a306944211dec13c86bcf760d4a88183b946cc5f0e8c96b2e66e1c74a7e}\label{_error_8h_a44ba98a306944211dec13c86bcf760d4a88183b946cc5f0e8c96b2e66e1c74a7e} 
+Unknown&Anything the cases above do not cover. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731}\index{Error.h@{Error.h}!NotificationError@{NotificationError}}
+\index{NotificationError@{NotificationError}!Error.h@{Error.h}}
+\doxysubsubsection{\texorpdfstring{NotificationError}{NotificationError}}
+{\footnotesize\ttfamily \label{_error_8h_abc375c7dfcb96b6c36a20b231f832731} 
+enum class \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731}{Native\+Toolkit\+::\+Notification\+Error}} \+: uint32\+\_\+t\hspace{0.3cm}{\ttfamily [strong]}}
+
+Errors of the Notification feature. The values match NOTIFICATION\+\_\+\+ERROR\+\_\+\texorpdfstring{$\ast$}{*} of Notification\+Codes.\+h and NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\texorpdfstring{$\ast$}{*} of the C ABI. \begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NotInitialized@{NotInitialized}!Error.h@{Error.h}}\index{Error.h@{Error.h}!NotInitialized@{NotInitialized}}}\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9646ad3a1c3e708b4fa8b4b4270fbab6}\label{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9646ad3a1c3e708b4fa8b4b4270fbab6} 
+Not\+Initialized&Used before Create, or after Close. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Disabled@{Disabled}!Error.h@{Error.h}}\index{Error.h@{Error.h}!Disabled@{Disabled}}}\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731ab9f5c797ebbf55adccdd8539a65a0241}\label{_error_8h_abc375c7dfcb96b6c36a20b231f832731ab9f5c797ebbf55adccdd8539a65a0241} 
+Disabled&Notifications are off for this app or user. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{InvalidPayload@{InvalidPayload}!Error.h@{Error.h}}\index{Error.h@{Error.h}!InvalidPayload@{InvalidPayload}}}\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731a2d730f4aa6a660e8825d5294008a4ef7}\label{_error_8h_abc375c7dfcb96b6c36a20b231f832731a2d730f4aa6a660e8825d5294008a4ef7} 
+Invalid\+Payload&Reserved\+: never returned. The 1.\+x C ABI\textquotesingle{}s JSON payload did not parse. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ProgressNotFound@{ProgressNotFound}!Error.h@{Error.h}}\index{Error.h@{Error.h}!ProgressNotFound@{ProgressNotFound}}}\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731a416aa046bd8aae21dedec019f6d8b396}\label{_error_8h_abc375c7dfcb96b6c36a20b231f832731a416aa046bd8aae21dedec019f6d8b396} 
+Progress\+Not\+Found&No notification to update, or a stale sequence number. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{HResultFailure@{HResultFailure}!Error.h@{Error.h}}\index{Error.h@{Error.h}!HResultFailure@{HResultFailure}}}\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731a6d5ecb8044bd5e9f36a006cc0735d455}\label{_error_8h_abc375c7dfcb96b6c36a20b231f832731a6d5ecb8044bd5e9f36a006cc0735d455} 
+HResult\+Failure&Registration, the shortcut, or the runtime bootstrap failed. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{InvalidParameter@{InvalidParameter}!Error.h@{Error.h}}\index{Error.h@{Error.h}!InvalidParameter@{InvalidParameter}}}\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731a627251310d3384b591e4138be21145d5}\label{_error_8h_abc375c7dfcb96b6c36a20b231f832731a627251310d3384b591e4138be21145d5} 
+Invalid\+Parameter&A bad argument, such as a badge value below -\/6. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NotSupported@{NotSupported}!Error.h@{Error.h}}\index{Error.h@{Error.h}!NotSupported@{NotSupported}}}\Hypertarget{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9ed2d871602556951e39f3cebd08d6cb}\label{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9ed2d871602556951e39f3cebd08d6cb} 
+Not\+Supported&Not available for this app type, or a second manager. \\
+\hline
+
+\end{DoxyEnumFields}

@@ -1,0 +1,167 @@
+\doxysection{Clipboard.\+h}
+\hypertarget{include_2_native_toolkit_2_clipboard_8h_source}{}\label{include_2_native_toolkit_2_clipboard_8h_source}\index{WindowsLibrary/include/NativeToolkit/Clipboard.h@{WindowsLibrary/include/NativeToolkit/Clipboard.h}}
+\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ <optional>}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <span>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <string\_view>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <variant>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}NativeToolkit/BuildStamp.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_error_8h}{NativeToolkit/Error.h}}"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }NativeToolkit::Clipboard\ \{}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00034\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{RequestId}}\ :\ uint32\_t\ \{\};}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00037\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_text_payload}{TextPayload}}\ \{\ std::wstring\ formatName;\ std::wstring\ text;\ \};}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_html_payload}{HtmlPayload}}\ \{\ std::wstring\ formatName;\ std::wstring\ html;\ \};}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_bytes_payload}{BytesPayload}}\ \{\ std::wstring\ formatName;\ std::vector<std::byte>\ bytes;\ \};}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00046\ \textcolor{keyword}{using\ }\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_aa5f6d721dacfa82d68e074a0abdc040b}{FormatPayload}}\ =\ std::variant<TextPayload,\ HtmlPayload,\ BytesPayload>;}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00049\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_item}{HistoryItem}}\ \{}
+\DoxyCodeLine{00050\ \ \ \ \ std::wstring\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ id;}
+\DoxyCodeLine{00051\ \ \ \ \ std::optional<std::wstring>\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_item_acecf7790b8acc9645723024a447fd11e}{text}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00052\ \ \ \ \ std::vector<std::wstring>\ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_item_a8f78bdb281962664e8d4cf2d2bb5253a}{contentTypes}};\ \ \ \ }
+\DoxyCodeLine{00053\ \ \ \ \ int64\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ timestampTicks\ =\ 0;}
+\DoxyCodeLine{00054\ \};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_availability}{HistoryAvailability}}\ \{}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keywordtype}{bool}\ historyEnabled\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordtype}{bool}\ roamingEnabled\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00060\ \};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00071\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_handlers}{HistoryHandlers}}\ \{}
+\DoxyCodeLine{00072\ \ \ \ \ std::function<void()>\ \ \ \ \ onHistoryChanged;}
+\DoxyCodeLine{00073\ \ \ \ \ std::function<void(\textcolor{keywordtype}{bool})>\ onHistoryEnabledChanged;}
+\DoxyCodeLine{00074\ \ \ \ \ std::function<void(\textcolor{keywordtype}{bool})>\ onRoamingEnabledChanged;}
+\DoxyCodeLine{00075\ \};}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00082\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{WriteOptions}}\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options_a56a4687f5cc7f8efdeff915e0c31fd02}{excludeFromHistory}}\ =\ \textcolor{keyword}{false};\ \ }
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options_a873df1f5ddcb52507f30e1af240d27c5}{excludeFromRoaming}}\ =\ \textcolor{keyword}{false};\ \ }
+\DoxyCodeLine{00085\ \};}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00095\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_session_options}{SessionOptions}}\ \{}
+\DoxyCodeLine{00096\ \ \ \ \ std::function<void()>\ onClipboardChanged;}
+\DoxyCodeLine{00097\ \};}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00112\ \textcolor{keyword}{using\ }\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a47371d208ec687919a9d92abbb741881}{RenderProvider}}\ =\ std::function<Result<std::vector<std::byte>>(std::wstring\_view\ formatName)>;}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00115\ \textcolor{keyword}{using\ }\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{CompletionHandler}}\ =\ std::function<void(\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{RequestId}},\ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}})>;}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00118\ \textcolor{keyword}{using\ }\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a56ffc87606e7f053798c4a9966619bfd}{HistoryItemsHandler}}\ =\ std::function<void(\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{RequestId}},\ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}<std::vector<HistoryItem>>)>;}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00121\ \textcolor{keyword}{using\ }\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ac3f5895aa7cf66253f83bd8609af8603}{AvailabilityHandler}}\ =\ std::function<void(\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{RequestId}},\ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<HistoryAvailability>}})>;}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00152\ \textcolor{keyword}{class\ }Session\ \{}
+\DoxyCodeLine{00153\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<Session>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ad03113d8b1a9e67493cf81cac6330c6b}{Create}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_session_options}{SessionOptions}}\&\ options);}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00165\ \ \ \ \ Session(Session\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00166\ \ \ \ \ Session\&\ operator=(Session\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00167\ \ \ \ \ Session(\textcolor{keyword}{const}\ Session\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00168\ \ \ \ \ Session\&\ operator=(\textcolor{keyword}{const}\ Session\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00171\ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a1ec2925617b46796d52089f6136785f5}{\string~Session}}();}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00191\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a7769f727254bef99e644a927b783a41d}{Close}}();}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00206\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_aae56a7c355a3c8f050804bcafa1a3a18}{CanClose}}()\ const\ noexcept;}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00216\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a68e65e2b94a1d1e3787138f206ed17ce}{SetHistoryHandlers}}(\mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_history_handlers}{HistoryHandlers}}\ handlers);}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/\ The\ synchronous\ core\ (OP-\/25..OP-\/39)\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00219\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{comment}{//\ Callable\ from\ any\ thread.\ Each\ one\ opens\ and\ closes\ the\ clipboard\ for}}
+\DoxyCodeLine{00221\ \ \ \ \ \textcolor{comment}{//\ itself,\ so\ between\ two\ of\ them\ anything\ may\ have\ changed\ it.}}
+\DoxyCodeLine{00222\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{comment}{//\ A\ wstring\_view\ argument\ is\ read\ only\ up\ to\ its\ own\ length:\ it\ does\ not}}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{comment}{//\ have\ to\ be\ NUL\ terminated,\ and\ a\ view\ into\ the\ middle\ of\ a\ larger\ string}}
+\DoxyCodeLine{00225\ \ \ \ \ \textcolor{comment}{//\ is\ fine.\ A\ NUL\ inside\ one\ is\ InvalidParameter\ rather\ than\ a\ silent}}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{comment}{//\ truncation,\ because\ the\ clipboard\ formats\ underneath\ are\ NUL\ terminated}}
+\DoxyCodeLine{00227\ \ \ \ \ \textcolor{comment}{//\ and\ could\ not\ carry\ the\ rest.}}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00237\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ae2daa2460566a23ba8c9465a1874a0be}{CopyText}}(std::wstring\_view\ text,\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{WriteOptions}}\ options\ =\ \{\});}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00248\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<std::wstring>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a814a7391c8de9af2c46c4c199d6f635d}{PasteText}}();}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00258\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a49b3137e35b565511edab6ca87bdef78}{CopyHtml}}(std::wstring\_view\ fragment,\ std::wstring\_view\ plainText,}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{WriteOptions}}\ options\ =\ \{\});}
+\DoxyCodeLine{00260\ }
+\DoxyCodeLine{00270\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<std::wstring>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a4be38d2fd92ab59b2576fc793fed25ea}{PasteHtml}}();}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00280\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_af7f5555d4b933c651c52853f92df1897}{CopyFiles}}(std::span<const\ std::wstring>\ paths,\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{WriteOptions}}\ options\ =\ \{\});}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00291\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<std::vector<std::wstring>}}>\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ab2336e4bd36797b6731e3acab4166e44}{PasteFiles}}();}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00306\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a54f8861ac58012154b4a13fa112bfaef}{CopyDib}}(std::span<const\ std::byte>\ dib,\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{WriteOptions}}\ options\ =\ \{\});}
+\DoxyCodeLine{00307\ }
+\DoxyCodeLine{00317\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<std::vector<std::byte>}}>\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a4caf6836d9b1a8778d77e80e75007154}{PasteDib}}();}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00327\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ac8deda5e52c0176174f4ba984b5699b7}{CopyCustom}}(std::wstring\_view\ formatName,\ std::span<const\ std::byte>\ data,}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{WriteOptions}}\ options\ =\ \{\});}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00340\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<std::vector<std::byte>}}>\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_aa23e6574dd79bf1b6bd7116577b64dbb}{PasteCustom}}(std::wstring\_view\ formatName);}
+\DoxyCodeLine{00341\ }
+\DoxyCodeLine{00357\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_af706ec8e1c4b85ba0f39738f62cba215}{CopyMultiple}}(std::span<const\ FormatPayload>\ items,\ \mbox{\hyperlink{struct_native_toolkit_1_1_clipboard_1_1_write_options}{WriteOptions}}\ options\ =\ \{\});}
+\DoxyCodeLine{00358\ }
+\DoxyCodeLine{00371\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<bool>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a3731973e1a3d441792a6ee949a13aa3c}{HasFormat}}(std::wstring\_view\ formatName);}
+\DoxyCodeLine{00372\ }
+\DoxyCodeLine{00380\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<std::vector<std::wstring>}}>\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_ad1619db67c40707b3f8c9e4c6b598ed8}{GetFormats}}();}
+\DoxyCodeLine{00381\ }
+\DoxyCodeLine{00386\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<std::wstring>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a0e554f4cde49e7ccd71ae563064eef7b}{GetPreferredFormat}}();}
+\DoxyCodeLine{00387\ }
+\DoxyCodeLine{00394\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a0e19d402ab3b2c2f3c4a5399b91bccb6}{Clear}}();}
+\DoxyCodeLine{00395\ }
+\DoxyCodeLine{00396\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/\ Deferred\ rendering\ (OP-\/40,\ OP-\/41)\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00397\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00398\ \ \ \ \ \textcolor{comment}{//\ Owner\ thread\ only:\ these\ run\ on\ the\ same\ thread\ the\ messages\ arrive\ on.}}
+\DoxyCodeLine{00399\ }
+\DoxyCodeLine{00420\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a98f5d919f3869599f8d0b2f4e76dc2da}{ReserveDeferred}}(std::span<const\ std::wstring>\ formats,\ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a47371d208ec687919a9d92abbb741881}{RenderProvider}}\ provider);}
+\DoxyCodeLine{00421\ }
+\DoxyCodeLine{00430\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a637b42c2761f3606a8ee672edbc69cca}{RecoverDeferredState}}();}
+\DoxyCodeLine{00431\ }
+\DoxyCodeLine{00432\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/\ The\ clipboard\ history\ (OP-\/42..OP-\/47)\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00433\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00434\ \ \ \ \ \textcolor{comment}{//\ These\ five\ ask;\ they\ do\ not\ answer.\ Each\ returns\ as\ soon\ as\ the\ request}}
+\DoxyCodeLine{00435\ \ \ \ \ \textcolor{comment}{//\ is\ accepted,\ and\ the\ handler\ is\ called\ later,\ on\ the\ thread\ that\ owns}}
+\DoxyCodeLine{00436\ \ \ \ \ \textcolor{comment}{//\ the\ session,\ exactly\ once\ -\/\ never\ inside\ the\ call\ that\ made\ the\ request.}}
+\DoxyCodeLine{00437\ \ \ \ \ \textcolor{comment}{//\ A\ request\ that\ is\ not\ accepted\ has\ no\ handler\ call\ at\ all.}}
+\DoxyCodeLine{00438\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00439\ \ \ \ \ \textcolor{comment}{//\ The\ requests\ themselves\ may\ be\ made\ from\ any\ thread.}}
+\DoxyCodeLine{00440\ }
+\DoxyCodeLine{00448\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<RequestId>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a01b30dafbf9037225126dcde5fe0e734}{GetHistory}}(\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a56ffc87606e7f053798c4a9966619bfd}{HistoryItemsHandler}}\ handler);}
+\DoxyCodeLine{00449\ }
+\DoxyCodeLine{00457\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<RequestId>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a5a55043f17634950da37fdcb4509f420}{RestoreHistoryItem}}(std::wstring\_view\ itemId,\ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{CompletionHandler}}\ handler);}
+\DoxyCodeLine{00458\ }
+\DoxyCodeLine{00466\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<RequestId>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a9bc522743c6b6309caf83280772127b9}{DeleteHistoryItem}}(std::wstring\_view\ itemId,\ \mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{CompletionHandler}}\ handler);}
+\DoxyCodeLine{00467\ }
+\DoxyCodeLine{00476\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<RequestId>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a4c30febbd42372586e3d58baa9f247f7}{ClearUnpinnedHistory}}(\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ad34f197eae1b1c8f8799349aeb9755d8}{CompletionHandler}}\ handler);}
+\DoxyCodeLine{00477\ }
+\DoxyCodeLine{00485\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<RequestId>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a16e1338f01d0b6d8fe5c071a8b90e99d}{GetHistoryAvailability}}(\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_ac3f5895aa7cf66253f83bd8609af8603}{AvailabilityHandler}}\ handler);}
+\DoxyCodeLine{00486\ }
+\DoxyCodeLine{00498\ \ \ \ \ \mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result<void>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_clipboard_1_1_session_a189e54ddf8682de5d287632b619e7ee1}{CancelRequest}}(\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h_a2fd615c89cd8bbad72e458f02161e568}{RequestId}}\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00499\ }
+\DoxyCodeLine{00500\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00501\ \ \ \ \ Session()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00502\ }
+\DoxyCodeLine{00504\ \ \ \ \ \textcolor{keywordtype}{void}\ Abandon()\ noexcept;}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00506\ \ \ \ \ \textcolor{keywordtype}{bool}\ held\_\ =\ false;}
+\DoxyCodeLine{00507\ \};}
+\DoxyCodeLine{00508\ }
+\DoxyCodeLine{00509\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Clipboard}}
+
+\end{DoxyCode}

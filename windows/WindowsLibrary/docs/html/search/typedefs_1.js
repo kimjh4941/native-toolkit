@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['notificationinvokedcallback_0',['NotificationInvokedCallback',['../_windows_notification_manager_8h.html#abc20e8c43c097314c579508e13666315',1,'WindowsNotificationManager.h']]]
+  ['completionhandler_0',['CompletionHandler',['../include_2_native_toolkit_2_clipboard_8h.html#ad34f197eae1b1c8f8799349aeb9755d8',1,'NativeToolkit::Clipboard']]]
 ];

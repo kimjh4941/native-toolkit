@@ -1,0 +1,244 @@
+\doxysection{Notification.\+h}
+\hypertarget{_api_2include_2_native_toolkit_c_2_notification_8h_source}{}\label{_api_2include_2_native_toolkit_c_2_notification_8h_source}\index{WindowsLibraryCApi/include/NativeToolkitC/Notification.h@{WindowsLibraryCApi/include/NativeToolkitC/Notification.h}}
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#ifndef\ NATIVETOOLKITC\_NOTIFICATION\_H}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#define\ NATIVETOOLKITC\_NOTIFICATION\_H}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_common_8h}{NativeToolkitC/Common.h}}"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00028\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#pragma\ pack(push,\ 8)}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00034\ \textcolor{keyword}{typedef}\ int32\_t\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}};}
+\DoxyCodeLine{00035\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00036\ \ \ \ \ NTK\_NOTIFICATION\_ERROR\_NONE\ =\ 0,}
+\DoxyCodeLine{00037\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041eae612d6cc72c7c8920dc104974bdc5273}{NTK\_NOTIFICATION\_ERROR\_NOT\_INITIALIZED}}\ =\ 1,\ \ \ \ \ }
+\DoxyCodeLine{00038\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea20e08e6f4970d5048d462ab25b1d3bb0}{NTK\_NOTIFICATION\_ERROR\_DISABLED}}\ =\ 2,\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00039\ \ \ \ \ NTK\_NOTIFICATION\_ERROR\_INVALID\_PAYLOAD\ =\ 3,\ \ \ \ \ \textcolor{comment}{/*\ reserved,\ never\ returned\ */}}
+\DoxyCodeLine{00040\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea334e4937b0097cc6f23883675f85dbe8}{NTK\_NOTIFICATION\_ERROR\_PROGRESS\_NOT\_FOUND}}\ =\ 4,\ \ }
+\DoxyCodeLine{00041\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea81c04620a740983711afdda00372572f}{NTK\_NOTIFICATION\_ERROR\_HRESULT\_FAILURE}}\ =\ 5,\ \ \ \ \ }
+\DoxyCodeLine{00042\ \ \ \ \ NTK\_NOTIFICATION\_ERROR\_BADGE\_FAILED\ =\ 6,}
+\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea69fea2be8947edce6a22c8d973c0e511}{NTK\_NOTIFICATION\_ERROR\_INVALID\_PARAMETER}}\ =\ 7,\ \ \ }
+\DoxyCodeLine{00044\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ace8a647ba48a27bb3316f0b7a26e041ea7dbe4fbafcbd5223a544b74e41121967}{NTK\_NOTIFICATION\_ERROR\_NOT\_SUPPORTED}}\ =\ 8\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00045\ \};}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_notification\_setting;}
+\DoxyCodeLine{00048\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00049\ \ \ \ \ NTK\_NOTIFICATION\_SETTING\_ENABLED\ =\ 0,}
+\DoxyCodeLine{00050\ \ \ \ \ NTK\_NOTIFICATION\_SETTING\_DISABLED\_FOR\_APPLICATION\ =\ 1,}
+\DoxyCodeLine{00051\ \ \ \ \ NTK\_NOTIFICATION\_SETTING\_DISABLED\_FOR\_USER\ =\ 2,}
+\DoxyCodeLine{00052\ \ \ \ \ NTK\_NOTIFICATION\_SETTING\_DISABLED\_BY\_GROUP\_POLICY\ =\ 3,}
+\DoxyCodeLine{00053\ \ \ \ \ NTK\_NOTIFICATION\_SETTING\_DISABLED\_BY\_MANIFEST\ =\ 4}
+\DoxyCodeLine{00054\ \};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_notification\_scenario;}
+\DoxyCodeLine{00057\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00058\ \ \ \ \ NTK\_NOTIFICATION\_SCENARIO\_DEFAULT\ =\ 0,}
+\DoxyCodeLine{00059\ \ \ \ \ NTK\_NOTIFICATION\_SCENARIO\_REMINDER\ =\ 1,}
+\DoxyCodeLine{00060\ \ \ \ \ NTK\_NOTIFICATION\_SCENARIO\_ALARM\ =\ 2,}
+\DoxyCodeLine{00061\ \ \ \ \ NTK\_NOTIFICATION\_SCENARIO\_URGENT\ =\ 3,}
+\DoxyCodeLine{00062\ \ \ \ \ NTK\_NOTIFICATION\_SCENARIO\_INCOMING\_CALL\ =\ 4}
+\DoxyCodeLine{00063\ \};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_notification\_audio\_kind;}
+\DoxyCodeLine{00066\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bad689d235d9100a03ce3b85b0370bf3c1}{NTK\_NOTIFICATION\_AUDIO\_KIND\_EVENT}}\ =\ 0,\ \ \ }
+\DoxyCodeLine{00068\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899bae27a226f6ba0818806967dfd38145eb0}{NTK\_NOTIFICATION\_AUDIO\_KIND\_MUTE}}\ =\ 1,\ \ \ \ }
+\DoxyCodeLine{00069\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad3c3ce26899afecba64c863adbe0899baaffd9f3097db2f464cd9d5a2bec304d6}{NTK\_NOTIFICATION\_AUDIO\_KIND\_URI}}\ =\ 2\ \ \ \ \ \ }
+\DoxyCodeLine{00070\ \};}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_notification\_duration;}
+\DoxyCodeLine{00073\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00074\ \ \ \ \ NTK\_NOTIFICATION\_DURATION\_SHORT\ =\ 0,}
+\DoxyCodeLine{00075\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ab8dc748d45dc73a849792b06445aa967ac9528b28021e58bb374664fdfd78dc92}{NTK\_NOTIFICATION\_DURATION\_LONG}}\ =\ 1\ \ \ \ \ \ \ }
+\DoxyCodeLine{00076\ \};}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_notification\_logo\_crop;}
+\DoxyCodeLine{00079\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00080\ \ \ \ \ NTK\_NOTIFICATION\_LOGO\_CROP\_NONE\ =\ 0,}
+\DoxyCodeLine{00081\ \ \ \ \ NTK\_NOTIFICATION\_LOGO\_CROP\_CIRCLE\ =\ 1}
+\DoxyCodeLine{00082\ \};}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00085\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\_notification\_runtime}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\_notification\_runtime}};}
+\DoxyCodeLine{00087\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}};}
+\DoxyCodeLine{00089\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}};}
+\DoxyCodeLine{00091\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}};}
+\DoxyCodeLine{00093\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\_notification\_activation}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\_notification\_activation}};}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00103\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\_notification\_invoked\_fn}})(}
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keywordtype}{void}*\ user\_data,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\_notification\_activation}}*\ activation);}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00107\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__notification__manager__options}{ntk\_notification\_manager\_options}}\ \{}
+\DoxyCodeLine{00108\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ struct\_size;}
+\DoxyCodeLine{00109\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__manager__options_a0d49bce9f1f26a0a5e7f986e17c3fd51}{reserved0}};\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\_notification\_invoked\_fn}}\ \mbox{\hyperlink{structntk__notification__manager__options_ad48a28d321254aaf7f4014d2ac0f5d89}{on\_invoked}};\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__manager__options_af50d24c1a9ce8348ba904a4f13b04d06}{user\_data}};\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00112\ \ \ \ \ \mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\_release\_fn}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__manager__options_a10127f7a6194f9e7cc2d03e0d7eb6c8e}{release}};\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00113\ \ \ \ \ int32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__manager__options_a8ac82024e686e2ed10f852ef5d4ad118}{is\_unpackaged}};\ \ \ \ \ \ \ }
+\DoxyCodeLine{00114\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__manager__options_a43ad8558fbf34b18e9d763f21775e534}{reserved1}};\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__manager__options_a84a3df547f2c31f13b2e2ab39187fb8b}{display\_name}};\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__manager__options_a9defd3711582f0de30f52da5b5305ee0}{icon\_uri}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00117\ \}\ \mbox{\hyperlink{structntk__notification__manager__options}{ntk\_notification\_manager\_options}};}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00120\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__notification__progress__update}{ntk\_notification\_progress\_update}}\ \{}
+\DoxyCodeLine{00121\ \ \ \ \ uint32\_t\ \ \ \ struct\_size;}
+\DoxyCodeLine{00122\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__notification__progress__update_ae2d1a0595596e1cd677a6efb0d44f620}{reserved0}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__notification__progress__update_aa384b9f47b521b951130d641b120963e}{tag}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__notification__progress__update_a363228a634f0e06732782d386c3478b6}{group}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keywordtype}{double}\ \ \ \ \ \ \mbox{\hyperlink{structntk__notification__progress__update_a9fc7191c022ca96d29481e1621553ee8}{value}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__notification__progress__update_ae0973177c9a75278a0c2cf2b10f950fe}{value\_string}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__notification__progress__update_a90930418e64c5399e4c61f6b46780750}{status}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00128\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__notification__progress__update_a3f854340494467d63a0fb93b448b4ef0}{sequence\_number}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00129\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__notification__progress__update_a642e457b7c21dccc69896cef45ab8d7f}{reserved1}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00130\ \}\ \mbox{\hyperlink{structntk__notification__progress__update}{ntk\_notification\_progress\_update}};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00133\ \textcolor{comment}{/*\ Runtime\ (unpackaged\ apps\ only)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00134\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00147\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa22914c77e0bade82093c9994450997a}{ntk\_notification\_runtime\_initialize}}(}
+\DoxyCodeLine{00148\ \ \ \ \ uint32\_t\ major\_minor,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\_notification\_runtime}}**\ out\_runtime);}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00154\ \textcolor{keywordtype}{void}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_abdc1564c403d83f19b6b43dc1ae8df12}{ntk\_notification\_runtime\_free}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a37646798219966eccdd25d70682a68cd}{ntk\_notification\_runtime}}*\ runtime);}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00156\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00157\ \textcolor{comment}{/*\ Manager\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00158\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00159\ }
+\DoxyCodeLine{00172\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a7512a4ba9a509be3853dfe11778a320b}{ntk\_notification\_manager\_create}}(}
+\DoxyCodeLine{00173\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__notification__manager__options}{ntk\_notification\_manager\_options}}*\ options,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}**\ out\_manager);}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00184\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2b3e0fc4693fed3e5ce18af8c4893ab5}{ntk\_notification\_manager\_set\_invoked\_handler}}(}
+\DoxyCodeLine{00185\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad815072877eb4ba927b3f877fa166815}{ntk\_notification\_invoked\_fn}}\ on\_invoked,\ \textcolor{keywordtype}{void}*\ user\_data,}
+\DoxyCodeLine{00186\ \ \ \ \ \mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\_release\_fn}}\ release);}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00194\ \textcolor{keywordtype}{void}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a3a4c66cf1dcf6a4f075a3ed664ffbb70}{ntk\_notification\_manager\_close}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager);}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00197\ \textcolor{keywordtype}{void}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a3f5bd14160eef9267633f66d960f6dd1}{ntk\_notification\_manager\_free}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager);}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00200\ \textcolor{comment}{/*\ Operations.\ Each\ returns\ NTK\_NOTIFICATION\_ERROR\_INVALID\_PARAMETER\ for\ a\ \ \ */}}
+\DoxyCodeLine{00201\ \textcolor{comment}{/*\ NULL\ manager\ or\ output,\ and\ NTK\_NOTIFICATION\_ERROR\_NOT\_INITIALIZED\ once\ \ \ */}}
+\DoxyCodeLine{00202\ \textcolor{comment}{/*\ the\ manager\ is\ closed.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00203\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00206\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acf326625f7dceea3036019afa4665791}{ntk\_notification\_show}}(}
+\DoxyCodeLine{00207\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content);}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00214\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a32382a691f83f4fce00e60be86bfb6cb}{ntk\_notification\_schedule}}(}
+\DoxyCodeLine{00215\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ int64\_t\ unix\_ms);}
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00218\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad0a257b2056ac74e681d42d40e6d0483}{ntk\_notification\_cancel\_scheduled}}(}
+\DoxyCodeLine{00219\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ group);}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00226\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a5c88461400429fe8c0ec64814c0d815a}{ntk\_notification\_update\_progress}}(}
+\DoxyCodeLine{00227\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__notification__progress__update}{ntk\_notification\_progress\_update}}*\ update);}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00230\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a9930703e01a12048039e12cbef125389}{ntk\_notification\_set\_badge}}(}
+\DoxyCodeLine{00231\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ int32\_t\ value);}
+\DoxyCodeLine{00232\ }
+\DoxyCodeLine{00234\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae6acd72bbb24f41394d3df01e3d36a0e}{ntk\_notification\_remove\_by\_id}}(}
+\DoxyCodeLine{00235\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ uint32\_t\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00238\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a9211453ee0ee34d07509c913b7d63eb8}{ntk\_notification\_remove\_by\_tag}}(}
+\DoxyCodeLine{00239\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ tag,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ group);}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00242\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac2560278ac6030612163d080c777e959}{ntk\_notification\_remove\_all}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager);}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00248\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a20e6eb0942f1ced0f7d7888d90a760ea}{ntk\_notification\_get\_all}}(}
+\DoxyCodeLine{00249\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}}**\ out\_list);}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00252\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4d2c2a4947d821c1dd1d1aa3b7019aaf}{ntk\_notification\_get\_setting}}(}
+\DoxyCodeLine{00253\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager,\ ntk\_notification\_setting*\ out\_setting);}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00256\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_adf601f8fcd5643e526a5de4b4f80cd77}{ntk\_notification\_open\_settings}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ac1a2683139ed84fdb555ddec04a2876f}{ntk\_notification\_manager}}*\ manager);}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00259\ \textcolor{comment}{/*\ List\ (output\ of\ ntk\_notification\_get\_all).\ NULL\ or\ an\ index\ out\ of\ range\ */}}
+\DoxyCodeLine{00260\ \textcolor{comment}{/*\ reads\ as\ 0\ or\ NULL:\ check\ the\ count\ first.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00261\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00263\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ NTK\_CALL\ ntk\_notification\_list\_count(\textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}}*\ list);}
+\DoxyCodeLine{00265\ uint32\_t\ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4a542893cb22bfc2d408a3413a8a6cfa}{ntk\_notification\_list\_id\_at}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index);}
+\DoxyCodeLine{00267\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a444d0b23a464c816c148a0bbb4c03003}{ntk\_notification\_list\_tag\_at}}(}
+\DoxyCodeLine{00268\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00270\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a644279fc4e23c61a25d51a34cd82b29c}{ntk\_notification\_list\_group\_at}}(}
+\DoxyCodeLine{00271\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00273\ \textcolor{keywordtype}{void}\ \ \ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a46fec43ab9bdec9cef8032e35b5618d9}{ntk\_notification\_list\_free}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae998779258a058377e590478cbd0232e}{ntk\_notification\_list}}*\ list);}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00276\ \textcolor{comment}{/*\ Activation\ (argument\ of\ ntk\_notification\_invoked\_fn).\ Valid\ during\ the\ \ \ */}}
+\DoxyCodeLine{00277\ \textcolor{comment}{/*\ call\ only.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00278\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00279\ }
+\DoxyCodeLine{00281\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae0ffb550534ff986c274d952cbfcd3dc}{ntk\_notification\_activation\_raw\_arguments}}(}
+\DoxyCodeLine{00282\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\_notification\_activation}}*\ activation,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00284\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2fb78312d0cd188ed14c4fbeb0348448}{ntk\_notification\_activation\_value\_count}}(}
+\DoxyCodeLine{00285\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\_notification\_activation}}*\ activation);}
+\DoxyCodeLine{00287\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a82ddd9d7da9a2c9e400543a1b8942509}{ntk\_notification\_activation\_key\_at}}(}
+\DoxyCodeLine{00288\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\_notification\_activation}}*\ activation,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00290\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ab7a10779e71f829edba7f7509884708e}{ntk\_notification\_activation\_value\_at}}(}
+\DoxyCodeLine{00291\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a4674ded37d97e3e8aadc775b0eafc598}{ntk\_notification\_activation}}*\ activation,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00293\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00294\ \textcolor{comment}{/*\ Content\ builder.\ Every\ setter\ returns\ NTK\_NOTIFICATION\_ERROR\_INVALID\_\ \ \ \ */}}
+\DoxyCodeLine{00295\ \textcolor{comment}{/*\ PARAMETER\ for\ a\ NULL\ content,\ invalid\ UTF-\/8,\ an\ index\ or\ enum\ value\ out\ \ */}}
+\DoxyCodeLine{00296\ \textcolor{comment}{/*\ of\ range,\ or\ a\ required\ string\ that\ is\ NULL.\ The\ builder\ checks\ nothing\ */}}
+\DoxyCodeLine{00297\ \textcolor{comment}{/*\ else:\ ntk\_notification\_show\ refuses\ content\ the\ OS\ would.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00298\ \textcolor{comment}{/*\ For\ the\ optional\ strings,\ NULL\ means\ absent\ and\ "{}"{}\ means\ present\ and\ \ \ \ */}}
+\DoxyCodeLine{00299\ \textcolor{comment}{/*\ empty.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00300\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ ntk\_notification\_content\_create(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}**\ out\_content);}
+\DoxyCodeLine{00304\ \textcolor{keywordtype}{void}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a74a193629c15f4387d21fcfb6a441124}{ntk\_notification\_content\_free}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content);}
+\DoxyCodeLine{00306\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a02735411bf027e4b1424132f531b3152}{ntk\_notification\_content\_set\_title}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00308\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a89b978ca4edc7ab0d7c0be34123d0b26}{ntk\_notification\_content\_set\_body}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00310\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa63e229bb4db8df2407c43ea388ed5e6}{ntk\_notification\_content\_set\_tag}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00312\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a0f21c5322c06186d12b8caac9686e5c9}{ntk\_notification\_content\_set\_group}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00314\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a7886f7d418acb7e9f0d2790b0ff21efe}{ntk\_notification\_content\_set\_scenario}}(}
+\DoxyCodeLine{00315\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ ntk\_notification\_scenario\ value);}
+\DoxyCodeLine{00317\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_adc8bdeccdbca0a70d16fc729d0d209c4}{ntk\_notification\_content\_set\_hero\_image}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00319\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a1a37ce71a356733381f157d16d292b51}{ntk\_notification\_content\_set\_inline\_image}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00321\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ad829d2903e2da956de2d33b01fdd1e04}{ntk\_notification\_content\_set\_app\_logo}}(}
+\DoxyCodeLine{00322\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ uri,\ ntk\_notification\_logo\_crop\ crop);}
+\DoxyCodeLine{00324\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a0c90af2f28fdfa1ccc7866080dc946f9}{ntk\_notification\_content\_set\_attribution}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00326\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a02e3261135581e1441db951a429ee689}{ntk\_notification\_content\_set\_duration}}(}
+\DoxyCodeLine{00327\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ ntk\_notification\_duration\ value);}
+\DoxyCodeLine{00329\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa243d07af90d34e38ee192084a3027b2}{ntk\_notification\_content\_set\_audio}}(}
+\DoxyCodeLine{00330\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ ntk\_notification\_audio\_kind\ kind,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ event\_name,}
+\DoxyCodeLine{00331\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ uri,\ int32\_t\ loop);}
+\DoxyCodeLine{00337\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ab492401fd1f35e50706995a22616e9aa}{ntk\_notification\_content\_add\_button}}(}
+\DoxyCodeLine{00338\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ label,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ invoke\_uri,}
+\DoxyCodeLine{00339\ \ \ \ \ int32\_t\ with\_arguments,\ \textcolor{keywordtype}{size\_t}*\ out\_index);}
+\DoxyCodeLine{00341\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_ae89b777e4117c790d6dd455885269234}{ntk\_notification\_content\_add\_button\_argument}}(}
+\DoxyCodeLine{00342\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keywordtype}{size\_t}\ button\_index,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ key,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value);}
+\DoxyCodeLine{00344\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2335ed23bc53a027956571711ea9f028}{ntk\_notification\_content\_add\_text\_input}}(}
+\DoxyCodeLine{00345\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keywordtype}{id},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ placeholder,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ title);}
+\DoxyCodeLine{00347\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_aa8f889995f2acb690486ae4a125c7143}{ntk\_notification\_content\_add\_combo}}(}
+\DoxyCodeLine{00348\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keywordtype}{id},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ title,}
+\DoxyCodeLine{00349\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ default\_selection,\ \textcolor{keywordtype}{size\_t}*\ out\_index);}
+\DoxyCodeLine{00351\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a3022be06fcf8bbde7df226b16206bd10}{ntk\_notification\_content\_add\_combo\_item}}(}
+\DoxyCodeLine{00352\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keywordtype}{size\_t}\ combo\_index,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keywordtype}{id},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ label);}
+\DoxyCodeLine{00354\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_adaf3a522c956acebbf0a4101833abf16}{ntk\_notification\_content\_set\_progress}}(}
+\DoxyCodeLine{00355\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ title,\ \textcolor{keywordtype}{double}\ value,}
+\DoxyCodeLine{00356\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ value\_string,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ status);}
+\DoxyCodeLine{00361\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a8ba9981e3e20bd9ec5927b42fca0b908}{ntk\_notification\_content\_set\_timestamp}}(}
+\DoxyCodeLine{00362\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ int64\_t\ unix\_ms);}
+\DoxyCodeLine{00364\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a2e424112338f3b87793c21b8a7a59ba5}{ntk\_notification\_content\_set\_expiration}}(}
+\DoxyCodeLine{00365\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ int64\_t\ seconds);}
+\DoxyCodeLine{00367\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a83b58fc550fdf6904eadc2eccab70e73}{ntk\_notification\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_a5f464e0df9a750f2aa7e040f8a0c8047}{ntk\_notification\_content\_set\_expires\_on\_reboot}}(}
+\DoxyCodeLine{00368\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_notification_8h_acd3df533942b008540f7b5c7074743ef}{ntk\_notification\_content}}*\ content,\ int32\_t\ value);}
+\DoxyCodeLine{00369\ }
+\DoxyCodeLine{00370\ \textcolor{preprocessor}{\#pragma\ pack(pop)}}
+\DoxyCodeLine{00371\ }
+\DoxyCodeLine{00372\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00373\ \}}
+\DoxyCodeLine{00374\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00375\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

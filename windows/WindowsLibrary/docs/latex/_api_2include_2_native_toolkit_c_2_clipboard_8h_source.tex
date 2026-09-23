@@ -1,0 +1,214 @@
+\doxysection{Clipboard.\+h}
+\hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_source}{}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_source}\index{WindowsLibraryCApi/include/NativeToolkitC/Clipboard.h@{WindowsLibraryCApi/include/NativeToolkitC/Clipboard.h}}
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#ifndef\ NATIVETOOLKITC\_CLIPBOARD\_H}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#define\ NATIVETOOLKITC\_CLIPBOARD\_H}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_common_8h}{NativeToolkitC/Common.h}}"{}}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00035\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#pragma\ pack(push,\ 8)}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00041\ \textcolor{keyword}{typedef}\ int32\_t\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}};}
+\DoxyCodeLine{00042\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00043\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_NONE\ =\ 0,}
+\DoxyCodeLine{00044\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eaf4693dfb31e15ae52a87fda67fd585c6}{NTK\_CLIPBOARD\_ERROR\_INVALID\_PARAMETER}}\ =\ 1,\ \ \ \ \ \ }
+\DoxyCodeLine{00045\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea82b46e7b24e7806ddf51a5f3a7b64f9a}{NTK\_CLIPBOARD\_ERROR\_NOT\_INITIALIZED}}\ =\ 2,\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00046\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3}{NTK\_CLIPBOARD\_ERROR\_BUSY}}\ =\ 3,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00047\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_EMPTY\ =\ 4,}
+\DoxyCodeLine{00048\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_FORMAT\_UNAVAILABLE\ =\ 5,}
+\DoxyCodeLine{00049\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_INVALID\_DATA\ =\ 6,}
+\DoxyCodeLine{00050\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_BUFFER\_TOO\_SMALL\ =\ 7,\ \ \ \ \ \ \ \textcolor{comment}{/*\ reserved,\ never\ returned\ */}}
+\DoxyCodeLine{00051\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_OUT\_OF\_MEMORY\ =\ 8,}
+\DoxyCodeLine{00052\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_ACCESS\_DENIED\ =\ 9,}
+\DoxyCodeLine{00053\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_HISTORY\_DISABLED\ =\ 10,}
+\DoxyCodeLine{00054\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_ITEM\_DELETED\ =\ 11,}
+\DoxyCodeLine{00055\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_MONITOR\_REGISTER\_FAILED\ =\ 12,}
+\DoxyCodeLine{00056\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df}{NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE}}\ =\ 13,\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00057\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea76a3ca15e53ef9b6492011d4ff1f6416}{NTK\_CLIPBOARD\_ERROR\_WRONG\_THREAD}}\ =\ 14,\ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00058\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_CANCELED\ =\ 15,}
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eab260e11abb12edde815e3fe427e26eff}{NTK\_CLIPBOARD\_ERROR\_NOT\_SUPPORTED}}\ =\ 16,\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea2e8eb38daf8182db7a87df277d350f3c}{NTK\_CLIPBOARD\_ERROR\_NOT\_FOREGROUND}}\ =\ 17,\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00061\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea044b029d57859663ef612047ea9053a6}{NTK\_CLIPBOARD\_ERROR\_WRONG\_APARTMENT}}\ =\ 18,\ \ \ \ \ \ \ }
+\DoxyCodeLine{00062\ \ \ \ \ NTK\_CLIPBOARD\_ERROR\_UNKNOWN\ =\ 19}
+\DoxyCodeLine{00063\ \};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00066\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ NTK\_CLIPBOARD\_WRITE\_DEFAULT\ =\ 0,}
+\DoxyCodeLine{00068\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21aca5952b9717564a101bb1479f7300729}{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_HISTORY}}\ =\ 1,\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00069\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21a79cf06e678a99baa673b6c16b61ba5b3}{NTK\_CLIPBOARD\_WRITE\_EXCLUDE\_ROAMING}}\ =\ 2,\ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00070\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a689668d4f70c3b7e53e7896d39747f21ad82724e540d4c7fdbc233710e582e385}{NTK\_CLIPBOARD\_WRITE\_SENSITIVE}}\ =\ 3\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00071\ \};}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00074\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}};}
+\DoxyCodeLine{00076\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}};}
+\DoxyCodeLine{00078\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}};}
+\DoxyCodeLine{00080\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\_clipboard\_render\_target}}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\_clipboard\_render\_target}};}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00083\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1579a23f5ead63e7ce842d485a33efa7}{ntk\_clipboard\_changed\_fn}})(\textcolor{keywordtype}{void}*\ user\_data);}
+\DoxyCodeLine{00085\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a703160c0ecbd2ff91656b29e789f9a3c}{ntk\_clipboard\_history\_changed\_fn}})(\textcolor{keywordtype}{void}*\ user\_data);}
+\DoxyCodeLine{00087\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad}{ntk\_clipboard\_flag\_changed\_fn}})(\textcolor{keywordtype}{void}*\ user\_data,\ int32\_t\ enabled);}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00097\ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066}{ntk\_clipboard\_render\_fn}})(}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keywordtype}{void}*\ user\_data,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format\_name,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\_clipboard\_render\_target}}*\ target);}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00105\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f}{ntk\_clipboard\_history\_fn}})(}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keywordtype}{void}*\ user\_data,\ uint32\_t\ request\_id,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ error,\ uint32\_t\ system\_code,}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}*\ history);}
+\DoxyCodeLine{00109\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\_clipboard\_completion\_fn}})(}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keywordtype}{void}*\ user\_data,\ uint32\_t\ request\_id,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ error,\ uint32\_t\ system\_code);}
+\DoxyCodeLine{00112\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4cdb9981758e56046f3e060c41abf1eb}{ntk\_clipboard\_availability\_fn}})(}
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordtype}{void}*\ user\_data,\ uint32\_t\ request\_id,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ error,\ uint32\_t\ system\_code,}
+\DoxyCodeLine{00114\ \ \ \ \ int32\_t\ history\_enabled,\ int32\_t\ roaming\_enabled);}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00117\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__clipboard__session__options}{ntk\_clipboard\_session\_options}}\ \{}
+\DoxyCodeLine{00118\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ struct\_size;}
+\DoxyCodeLine{00119\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__clipboard__session__options_a4a415c4f754d7d7f0eeefc2bb7919551}{reserved0}};\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00120\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1579a23f5ead63e7ce842d485a33efa7}{ntk\_clipboard\_changed\_fn}}\ \mbox{\hyperlink{structntk__clipboard__session__options_a3761756829392a516927605fe03437f3}{on\_clipboard\_changed}};\ \ }
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__clipboard__session__options_ad53e83c41cd19863797a8397f6edb926}{user\_data}};\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00122\ \}\ \mbox{\hyperlink{structntk__clipboard__session__options}{ntk\_clipboard\_session\_options}};}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00125\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__clipboard__history__handlers}{ntk\_clipboard\_history\_handlers}}\ \{}
+\DoxyCodeLine{00126\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ struct\_size;}
+\DoxyCodeLine{00127\ \ \ \ \ uint32\_t\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__clipboard__history__handlers_ab2d82e725ce4d3f2a72f34c172a4b97e}{reserved0}};\ \ \ \ \ }
+\DoxyCodeLine{00128\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a703160c0ecbd2ff91656b29e789f9a3c}{ntk\_clipboard\_history\_changed\_fn}}\ on\_history\_changed;}
+\DoxyCodeLine{00129\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad}{ntk\_clipboard\_flag\_changed\_fn}}\ \ \ \ on\_history\_enabled\_changed;}
+\DoxyCodeLine{00130\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad}{ntk\_clipboard\_flag\_changed\_fn}}\ \ \ \ on\_roaming\_enabled\_changed;}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structntk__clipboard__history__handlers_aa9ab5a12010abb007a372aebd6aa8a23}{user\_data}};\ \ \ \ \ }
+\DoxyCodeLine{00132\ \}\ \mbox{\hyperlink{structntk__clipboard__history__handlers}{ntk\_clipboard\_history\_handlers}};}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00135\ \textcolor{comment}{/*\ Session\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00136\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00145\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ab072c4b1011c66ce1f14873151973864}{ntk\_clipboard\_session\_create}}(}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__clipboard__session__options}{ntk\_clipboard\_session\_options}}*\ options,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}**\ out\_session);}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00155\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aaad4a0b1d2f294124624fb48e9263ef3}{ntk\_clipboard\_session\_close}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session);}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00163\ int32\_t\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a63c44962dceda75097209b8ea4149bc9}{ntk\_clipboard\_session\_can\_close}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session);}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00170\ \textcolor{keywordtype}{void}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa5088098dd41fac2e582bf900c507c02}{ntk\_clipboard\_session\_free}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session);}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00179\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a59713e057cd4062dbb597d0eb6f90c77}{ntk\_clipboard\_set\_history\_handlers}}(}
+\DoxyCodeLine{00180\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__clipboard__history__handlers}{ntk\_clipboard\_history\_handlers}}*\ handlers);}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00183\ \textcolor{comment}{/*\ Read\ and\ write.\ Each\ returns\ NTK\_CLIPBOARD\_ERROR\_INVALID\_PARAMETER\ for\ a\ */}}
+\DoxyCodeLine{00184\ \textcolor{comment}{/*\ NULL\ session,\ output\ or\ required\ argument,\ invalid\ UTF-\/8\ or\ an\ unknown\ \ \ */}}
+\DoxyCodeLine{00185\ \textcolor{comment}{/*\ flag,\ and\ NTK\_CLIPBOARD\_ERROR\_NOT\_INITIALIZED\ once\ the\ session\ is\ closed.*/}}
+\DoxyCodeLine{00186\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00189\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afa0fbd7f031ac90e3d52d2059720ef99}{ntk\_clipboard\_copy\_text}}(}
+\DoxyCodeLine{00190\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ text,\ uint32\_t\ flags);}
+\DoxyCodeLine{00192\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1bd9cca576455f915814caf6d494c125}{ntk\_clipboard\_paste\_text}}(}
+\DoxyCodeLine{00193\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}**\ out\_text);}
+\DoxyCodeLine{00195\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a787861ae0a63b15de64ff34e3f5549cd}{ntk\_clipboard\_copy\_html}}(}
+\DoxyCodeLine{00196\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ fragment,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ plain\_text,\ uint32\_t\ flags);}
+\DoxyCodeLine{00198\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a7940b237dfba200cdf7faceaccd9d44a}{ntk\_clipboard\_paste\_html}}(}
+\DoxyCodeLine{00199\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}**\ out\_html);}
+\DoxyCodeLine{00201\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a12f951b70d9a5c2bc77c23f0c951da6e}{ntk\_clipboard\_copy\_files}}(}
+\DoxyCodeLine{00202\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}*\ paths,\ \textcolor{keywordtype}{size\_t}\ count,\ uint32\_t\ flags);}
+\DoxyCodeLine{00204\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9fc9c25469d6e3929bd0c590cfc05f4f}{ntk\_clipboard\_paste\_files}}(}
+\DoxyCodeLine{00205\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}**\ out\_paths);}
+\DoxyCodeLine{00207\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a264966dd86d3204fec26b95200dbfae3}{ntk\_clipboard\_copy\_dib}}(}
+\DoxyCodeLine{00208\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ uint8\_t*\ dib,\ \textcolor{keywordtype}{size\_t}\ size,\ uint32\_t\ flags);}
+\DoxyCodeLine{00210\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa7c6a75c6c018dbb5d7811d4d8c10136}{ntk\_clipboard\_paste\_dib}}(}
+\DoxyCodeLine{00211\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\_bytes}}**\ out\_dib);}
+\DoxyCodeLine{00213\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a2735d42f9d682f16991410f260c5a97c}{ntk\_clipboard\_copy\_custom}}(}
+\DoxyCodeLine{00214\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format\_name,\ \textcolor{keyword}{const}\ uint8\_t*\ data,\ \textcolor{keywordtype}{size\_t}\ size,}
+\DoxyCodeLine{00215\ \ \ \ \ uint32\_t\ flags);}
+\DoxyCodeLine{00217\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aef35ab38a449311c02f41925e90de0ad}{ntk\_clipboard\_paste\_custom}}(}
+\DoxyCodeLine{00218\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format\_name,\ \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\_bytes}}**\ out\_data);}
+\DoxyCodeLine{00220\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a457a6fc3541bdaf67fcb5ae61250d483}{ntk\_clipboard\_copy\_multiple}}(}
+\DoxyCodeLine{00221\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}}*\ items,\ uint32\_t\ flags);}
+\DoxyCodeLine{00223\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8832635fd4ce142bfb67e1614c97c709}{ntk\_clipboard\_has\_format}}(}
+\DoxyCodeLine{00224\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format\_name,\ int32\_t*\ out\_present);}
+\DoxyCodeLine{00226\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a53ae1841be4766e74c13677eea3bf338}{ntk\_clipboard\_get\_formats}}(}
+\DoxyCodeLine{00227\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}**\ out\_formats);}
+\DoxyCodeLine{00229\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a031bf5e4b1f6bc49dfddeb8b937224d5}{ntk\_clipboard\_get\_preferred\_format}}(}
+\DoxyCodeLine{00230\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}**\ out\_format);}
+\DoxyCodeLine{00232\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a812bf5ec0fbc4c1d6ba12087590f2ca0}{ntk\_clipboard\_clear}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session);}
+\DoxyCodeLine{00233\ }
+\DoxyCodeLine{00234\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00235\ \textcolor{comment}{/*\ Multi-\/format\ builder\ (for\ ntk\_clipboard\_copy\_multiple).\ format\_name\ is\ \ \ */}}
+\DoxyCodeLine{00236\ \textcolor{comment}{/*\ required\ everywhere;\ whether\ it\ suits\ the\ kind\ is\ checked\ by\ the\ copy.\ \ \ */}}
+\DoxyCodeLine{00237\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ ntk\_clipboard\_items\_create(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}}**\ out\_items);}
+\DoxyCodeLine{00241\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a25bed7adacefdc024a84f21537a741a2}{ntk\_clipboard\_items\_add\_text}}(}
+\DoxyCodeLine{00242\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}}*\ items,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format\_name,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ text);}
+\DoxyCodeLine{00244\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_af778abb015806e4e034e1215c64f24ec}{ntk\_clipboard\_items\_add\_html}}(}
+\DoxyCodeLine{00245\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}}*\ items,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format\_name,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ html);}
+\DoxyCodeLine{00247\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1a550e963b1c3659c5953767e1116f09}{ntk\_clipboard\_items\_add\_bytes}}(}
+\DoxyCodeLine{00248\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}}*\ items,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format\_name,\ \textcolor{keyword}{const}\ uint8\_t*\ data,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00250\ \textcolor{keywordtype}{void}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae3c22ea6068ac6d7723df3932274611f}{ntk\_clipboard\_items\_free}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ada06c081b0de01e5d8de1b3b1bd662d0}{ntk\_clipboard\_items}}*\ items);}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00253\ \textcolor{comment}{/*\ Deferred\ rendering\ (owner\ thread)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00254\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00265\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a9bf7bc5908bf97a0c380eb005255cad5}{ntk\_clipboard\_reserve\_deferred}}(}
+\DoxyCodeLine{00266\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}*\ formats,\ \textcolor{keywordtype}{size\_t}\ count,}
+\DoxyCodeLine{00267\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a5ae278b7d72359bef04f60b5cdd19066}{ntk\_clipboard\_render\_fn}}\ provider,\ \textcolor{keywordtype}{void}*\ user\_data,\ \mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\_release\_fn}}\ release);}
+\DoxyCodeLine{00269\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ae2a84b782a670e4f43cb23e9b550a5e2}{ntk\_clipboard\_recover\_deferred\_state}}(\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session);}
+\DoxyCodeLine{00271\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a070dc834f81f07703d3ac04d45a54912}{ntk\_clipboard\_render\_target\_set}}(}
+\DoxyCodeLine{00272\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a21e37a3a191b67dabe54432c54a0a83e}{ntk\_clipboard\_render\_target}}*\ target,\ \textcolor{keyword}{const}\ uint8\_t*\ data,\ \textcolor{keywordtype}{size\_t}\ size);}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00274\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00275\ \textcolor{comment}{/*\ History\ requests.\ callback\ is\ required.\ The\ completion\ comes\ later\ on\ \ \ \ */}}
+\DoxyCodeLine{00276\ \textcolor{comment}{/*\ the\ owner\ thread,\ exactly\ once\ per\ accepted\ request\ and\ never\ inside\ the\ */}}
+\DoxyCodeLine{00277\ \textcolor{comment}{/*\ call\ that\ started\ it;\ a\ request\ that\ was\ refused\ never\ completes.\ From\ \ */}}
+\DoxyCodeLine{00278\ \textcolor{comment}{/*\ another\ thread\ the\ completion\ may\ come\ before\ the\ call\ returns,\ so\ match\ */}}
+\DoxyCodeLine{00279\ \textcolor{comment}{/*\ completions\ by\ user\_data\ rather\ than\ by\ request\ id.\ out\_request\_id\ may\ \ \ */}}
+\DoxyCodeLine{00280\ \textcolor{comment}{/*\ be\ NULL.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ */}}
+\DoxyCodeLine{00281\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00282\ }
+\DoxyCodeLine{00284\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a97882733f5cf78643e30af7e2d948ae9}{ntk\_clipboard\_get\_history}}(}
+\DoxyCodeLine{00285\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a1c17971c44bb65f258dfa010a382ef7f}{ntk\_clipboard\_history\_fn}}\ callback,\ \textcolor{keywordtype}{void}*\ user\_data,}
+\DoxyCodeLine{00286\ \ \ \ \ uint32\_t*\ out\_request\_id);}
+\DoxyCodeLine{00288\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a42ac6a4cb43b49353e83e6f76968737a}{ntk\_clipboard\_restore\_history\_item}}(}
+\DoxyCodeLine{00289\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ item\_id,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\_clipboard\_completion\_fn}}\ callback,}
+\DoxyCodeLine{00290\ \ \ \ \ \textcolor{keywordtype}{void}*\ user\_data,\ uint32\_t*\ out\_request\_id);}
+\DoxyCodeLine{00292\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_af2681a56647e79e6f4703e9bc492edb6}{ntk\_clipboard\_delete\_history\_item}}(}
+\DoxyCodeLine{00293\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ item\_id,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\_clipboard\_completion\_fn}}\ callback,}
+\DoxyCodeLine{00294\ \ \ \ \ \textcolor{keywordtype}{void}*\ user\_data,\ uint32\_t*\ out\_request\_id);}
+\DoxyCodeLine{00296\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_acb638d63b8368ceb57b52c1624495720}{ntk\_clipboard\_clear\_unpinned\_history}}(}
+\DoxyCodeLine{00297\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\_clipboard\_completion\_fn}}\ callback,\ \textcolor{keywordtype}{void}*\ user\_data,}
+\DoxyCodeLine{00298\ \ \ \ \ uint32\_t*\ out\_request\_id);}
+\DoxyCodeLine{00300\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a8a975a6d3b1b080e1479953e93795769}{ntk\_clipboard\_get\_history\_availability}}(}
+\DoxyCodeLine{00301\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4cdb9981758e56046f3e060c41abf1eb}{ntk\_clipboard\_availability\_fn}}\ callback,\ \textcolor{keywordtype}{void}*\ user\_data,}
+\DoxyCodeLine{00302\ \ \ \ \ uint32\_t*\ out\_request\_id);}
+\DoxyCodeLine{00308\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\_clipboard\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a6fc2242f6e98bdc59543c1818d9e83f1}{ntk\_clipboard\_cancel\_request}}(}
+\DoxyCodeLine{00309\ \ \ \ \ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\_clipboard\_session}}*\ session,\ uint32\_t\ request\_id);}
+\DoxyCodeLine{00310\ }
+\DoxyCodeLine{00311\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00312\ \textcolor{comment}{/*\ History\ (argument\ of\ ntk\_clipboard\_history\_fn).\ Valid\ during\ the\ call\ \ \ \ */}}
+\DoxyCodeLine{00313\ \textcolor{comment}{/*\ only.\ NULL\ or\ an\ index\ out\ of\ range\ reads\ as\ 0\ or\ NULL:\ check\ the\ count.\ */}}
+\DoxyCodeLine{00314\ \textcolor{comment}{/*\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ */}}
+\DoxyCodeLine{00315\ }
+\DoxyCodeLine{00316\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ NTK\_CALL\ ntk\_clipboard\_history\_count(\textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}*\ history);}
+\DoxyCodeLine{00318\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a65715062b2cbb06f2e1660d6c9e854cd}{ntk\_clipboard\_history\_item\_id}}(}
+\DoxyCodeLine{00319\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}*\ history,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00321\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a19cf008473fc22ae3f9ab7c9a6829a57}{ntk\_clipboard\_history\_item\_text}}(}
+\DoxyCodeLine{00322\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}*\ history,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00324\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a3c317247aa90f12c8f40f2125299e697}{ntk\_clipboard\_history\_item\_content\_type\_count}}(}
+\DoxyCodeLine{00325\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}*\ history,\ \textcolor{keywordtype}{size\_t}\ index);}
+\DoxyCodeLine{00327\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad475e784c1ea0742ab4b3bbf4e5e68b4}{ntk\_clipboard\_history\_item\_content\_type\_at}}(}
+\DoxyCodeLine{00328\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}*\ history,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}\ type\_index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00330\ int64\_t\ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_aa6cff4c6c88eeb8c0afa309ffba367b2}{ntk\_clipboard\_history\_item\_timestamp\_unix\_ms}}(}
+\DoxyCodeLine{00331\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_afbf8701c6b873f86e72894b33dec5e75}{ntk\_clipboard\_history}}*\ history,\ \textcolor{keywordtype}{size\_t}\ index);}
+\DoxyCodeLine{00332\ }
+\DoxyCodeLine{00333\ \textcolor{preprocessor}{\#pragma\ pack(pop)}}
+\DoxyCodeLine{00334\ }
+\DoxyCodeLine{00335\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00336\ \}}
+\DoxyCodeLine{00337\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00338\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

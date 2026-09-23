@@ -1,9 +1,8 @@
 var searchData=
 [
-  ['packagedbackend_0',['PackagedBackend',['../class_packaged_backend.html',1,'']]],
-  ['pastecustomformat_1',['pasteCustomFormat',['../_windows_clipboard_manager_8h.html#a11fa379658e4e0206fa5e973647481c2',1,'WindowsClipboardManager.cpp']]],
-  ['pastefiles_2',['pasteFiles',['../_windows_clipboard_manager_8h.html#a819210a6fcce3cc8d447d827f92ba6b5',1,'WindowsClipboardManager.cpp']]],
-  ['pastehtml_3',['pasteHtml',['../_windows_clipboard_manager_8h.html#aa9c244a534768cfeee09c3f83bf11009',1,'WindowsClipboardManager.cpp']]],
-  ['pasteimage_4',['pasteImage',['../_windows_clipboard_manager_8h.html#a4f5a1e04fb892dd02f9b39f5db91a220',1,'WindowsClipboardManager.cpp']]],
-  ['pasteplaintext_5',['pastePlainText',['../_windows_clipboard_manager_8h.html#a6838a6aa9794aed1d6d00c5cdd3cdc4f',1,'WindowsClipboardManager.cpp']]]
+  ['manager_0',['Manager',['../class_native_toolkit_1_1_notification_1_1_manager.html',1,'NativeToolkit::Notification']]],
+  ['manageroptions_1',['ManagerOptions',['../struct_native_toolkit_1_1_notification_1_1_manager_options.html',1,'NativeToolkit::Notification']]],
+  ['message_2',['message',['../structntk__dialog__alert__request.html#a422c5ab7b8fab22bf087dbab1decfc43',1,'ntk_dialog_alert_request']]],
+  ['monitorregisterfailed_3',['MonitorRegisterFailed',['../_error_8h.html#ada7cfc73861a162117b713e92ef3913ba28eb41b179cc33c9f9b5563e97d42922',1,'NativeToolkit']]],
+  ['mute_4',['Mute',['../include_2_native_toolkit_2_notification_8h.html#a9a579802da36bf3bc556fb8b584a8f4da00cd7be4cb21c59179316d7844a8cfc4',1,'NativeToolkit::Notification']]]
 ];

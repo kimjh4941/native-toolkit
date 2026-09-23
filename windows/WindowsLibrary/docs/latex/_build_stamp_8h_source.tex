@@ -1,0 +1,48 @@
+\doxysection{Build\+Stamp.\+h}
+\hypertarget{_build_stamp_8h_source}{}\label{_build_stamp_8h_source}\index{WindowsLibrary/include/NativeToolkit/BuildStamp.h@{WindowsLibrary/include/NativeToolkit/BuildStamp.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Build-\/setting\ guard\ for\ consumers\ of\ the\ static\ library.}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ MSVC\ records\ the\ C\ runtime\ choice\ and\ the\ iterator\ debug\ level\ in\ every}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ object\ and\ fails\ the\ link\ (LNK2038)\ when\ they\ disagree.\ It\ records\ nothing}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ about\ the\ version\ of\ these\ headers\ or\ about\ the\ C++/WinRT\ configuration,\ so}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ a\ consumer\ can\ link\ headers\ of\ one\ version\ against\ a\ library\ of\ another\ and}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ only\ find\ out\ at\ run\ time.\ \#pragma\ detect\_mismatch\ adds\ those\ records:\ the}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ linker\ compares\ the\ value\ the\ consumer\ compiled\ with\ against\ the\ value\ the}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ library\ was\ compiled\ with,\ and\ refuses\ the\ link\ when\ they\ differ.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ Every\ public\ and\ internal\ header\ that\ a\ consumer\ can\ include\ pulls\ this\ in.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ The\ release\ these\ headers\ and\ the\ static\ library\ come\ from.\ The\ build\ script}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ refuses\ to\ stamp\ a\ distributable\ with\ any\ other\ version,\ the\ way\ NTK\_VERSION\_*}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ works\ for\ the\ C\ ABI.\ It\ is\ a\ label,\ not\ a\ link-\/time\ guard:\ what\ the\ linker}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ compares\ is\ NATIVETOOLKIT\_ABI\_VERSION\ below.}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#define\ NATIVETOOLKIT\_VERSION\_MAJOR\ 2}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ NATIVETOOLKIT\_VERSION\_MINOR\ 0}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#define\ NATIVETOOLKIT\_VERSION\_PATCH\ 0}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#define\ NATIVETOOLKIT\_ABI\_VERSION\ "{}1"{}}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#pragma\ detect\_mismatch("{}nativetoolkit\_abi\_version"{},\ NATIVETOOLKIT\_ABI\_VERSION)}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ C++/WinRT's\ macro\ configuration\ has\ to\ match\ across\ every\ file\ that\ forms\ one}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ binary,\ including\ static\ libraries.\ Record\ the\ settings\ that\ change\ the}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ generated\ code.}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#if\ defined(WINRT\_NO\_MODULE\_LOCK)}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#pragma\ detect\_mismatch("{}nativetoolkit\_winrt\_module\_lock"{},\ "{}none"{})}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#elif\ defined(WINRT\_CUSTOM\_MODULE\_LOCK)}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#pragma\ detect\_mismatch("{}nativetoolkit\_winrt\_module\_lock"{},\ "{}custom"{})}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#pragma\ detect\_mismatch("{}nativetoolkit\_winrt\_module\_lock"{},\ "{}default"{})}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#if\ defined(WINRT\_NO\_MAKE\_DETECTION)}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#pragma\ detect\_mismatch("{}nativetoolkit\_winrt\_make\_detection"{},\ "{}off"{})}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#pragma\ detect\_mismatch("{}nativetoolkit\_winrt\_make\_detection"{},\ "{}on"{})}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

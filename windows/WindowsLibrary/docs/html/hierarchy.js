@@ -1,40 +1,52 @@
 var hierarchy =
 [
-    [ "_IID", "struct___i_i_d.html", null ],
-    [ "ClipboardFormats::CfHtmlOffsets", "struct_clipboard_formats_1_1_cf_html_offsets.html", null ],
-    [ "ClipboardHistoryAvailability", "struct_clipboard_history_availability.html", null ],
-    [ "ClipboardHistoryEntry", "struct_clipboard_history_entry.html", null ],
-    [ "ClipboardHistoryEvents", "struct_clipboard_history_events.html", null ],
-    [ "ClipboardLifecycle", "class_clipboard_lifecycle.html", null ],
-    [ "ClipboardManager", "class_clipboard_manager.html", null ],
-    [ "ClipboardScope", "class_clipboard_scope.html", null ],
-    [ "ClipboardWatcher", "class_clipboard_watcher.html", null ],
-    [ "CWinApp", null, [
-      [ "CWindowsLibraryApp", "class_c_windows_library_app.html", null ]
+    [ "NativeToolkit::Notification::ActivationArgs", "struct_native_toolkit_1_1_notification_1_1_activation_args.html", null ],
+    [ "NativeToolkit::Dialog::AlertRequest", "struct_native_toolkit_1_1_dialog_1_1_alert_request.html", null ],
+    [ "NativeToolkit::Notification::AppLogo", "struct_native_toolkit_1_1_notification_1_1_app_logo.html", null ],
+    [ "NativeToolkit::Notification::AudioSpec", "struct_native_toolkit_1_1_notification_1_1_audio_spec.html", null ],
+    [ "NativeToolkit::Notification::Button", "struct_native_toolkit_1_1_notification_1_1_button.html", null ],
+    [ "NativeToolkit::Clipboard::BytesPayload", "struct_native_toolkit_1_1_clipboard_1_1_bytes_payload.html", null ],
+    [ "NativeToolkit::Notification::ComboInput", "struct_native_toolkit_1_1_notification_1_1_combo_input.html", null ],
+    [ "NativeToolkit::Notification::ComboItem", "struct_native_toolkit_1_1_notification_1_1_combo_item.html", null ],
+    [ "NativeToolkit::detail::CopyControl< Copyable >", "struct_native_toolkit_1_1detail_1_1_copy_control.html", [
+      [ "NativeToolkit::Result< T, Error >", "class_native_toolkit_1_1_result.html", null ],
+      [ "NativeToolkit::Result< void, E >", "class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html", null ]
     ] ],
-    [ "DeferredClipboard", "class_deferred_clipboard.html", null ],
-    [ "DeliverPayload", "struct_deliver_payload.html", null ],
-    [ "std::enable_shared_from_this", null, [
-      [ "ClipboardHistoryCoordinator", "class_clipboard_history_coordinator.html", null ]
+    [ "NativeToolkit::detail::CopyControl< false >", "struct_native_toolkit_1_1detail_1_1_copy_control_3_01false_01_4.html", null ],
+    [ "NativeToolkit::detail::CopyControl< std::is_copy_constructible_v< T > &&std::is_copy_constructible_v< E > >", "struct_native_toolkit_1_1detail_1_1_copy_control.html", [
+      [ "NativeToolkit::Result< T, E >", "class_native_toolkit_1_1_result.html", null ]
     ] ],
-    [ "FormatPayload", "struct_format_payload.html", null ],
-    [ "GlobalLockScope", "class_global_lock_scope.html", null ],
-    [ "GlobalMem", "class_global_mem.html", null ],
-    [ "IClipboardHistoryBackend", "class_i_clipboard_history_backend.html", [
-      [ "ClipboardHistoryWinRt", "class_clipboard_history_win_rt.html", null ]
-    ] ],
-    [ "IClipboardWin32Api", "class_i_clipboard_win32_api.html", null ],
-    [ "INotificationBackend", "struct_i_notification_backend.html", [
-      [ "PackagedBackend", "class_packaged_backend.html", null ],
-      [ "UnpackagedBackend", "class_unpackaged_backend.html", null ]
-    ] ],
-    [ "ClipboardLifecycle::Lease", "class_clipboard_lifecycle_1_1_lease.html", null ],
-    [ "NOTIFICATION_USER_INPUT_DATA", "struct_n_o_t_i_f_i_c_a_t_i_o_n___u_s_e_r___i_n_p_u_t___d_a_t_a.html", null ],
-    [ "Microsoft::WRL::RuntimeClass", null, [
-      [ "NotificationActivationCallback", "class_notification_activation_callback.html", null ],
-      [ "NotificationActivationCallbackFactory", "class_notification_activation_callback_factory.html", null ]
-    ] ],
-    [ "ClipboardWatcher::SelfWriteTransaction", "class_clipboard_watcher_1_1_self_write_transaction.html", null ],
-    [ "WindowsDialogManager", "class_windows_dialog_manager.html", null ],
-    [ "WindowsNotificationManager", "class_windows_notification_manager.html", null ]
+    [ "NativeToolkit::Failure< Code >", "struct_native_toolkit_1_1_failure.html", null ],
+    [ "NativeToolkit::Dialog::FileFilter", "struct_native_toolkit_1_1_dialog_1_1_file_filter.html", null ],
+    [ "NativeToolkit::Dialog::FileRequest", "struct_native_toolkit_1_1_dialog_1_1_file_request.html", null ],
+    [ "NativeToolkit::Dialog::FolderRequest", "struct_native_toolkit_1_1_dialog_1_1_folder_request.html", null ],
+    [ "NativeToolkit::Clipboard::HistoryAvailability", "struct_native_toolkit_1_1_clipboard_1_1_history_availability.html", null ],
+    [ "NativeToolkit::Clipboard::HistoryHandlers", "struct_native_toolkit_1_1_clipboard_1_1_history_handlers.html", null ],
+    [ "NativeToolkit::Clipboard::HistoryItem", "struct_native_toolkit_1_1_clipboard_1_1_history_item.html", null ],
+    [ "NativeToolkit::Clipboard::HtmlPayload", "struct_native_toolkit_1_1_clipboard_1_1_html_payload.html", null ],
+    [ "NativeToolkit::Notification::Manager", "class_native_toolkit_1_1_notification_1_1_manager.html", null ],
+    [ "NativeToolkit::Notification::ManagerOptions", "struct_native_toolkit_1_1_notification_1_1_manager_options.html", null ],
+    [ "NativeToolkit::Notification::NotificationContent", "struct_native_toolkit_1_1_notification_1_1_notification_content.html", null ],
+    [ "NativeToolkit::Notification::NotificationRef", "struct_native_toolkit_1_1_notification_1_1_notification_ref.html", null ],
+    [ "ntk_clipboard_history_handlers", "structntk__clipboard__history__handlers.html", null ],
+    [ "ntk_clipboard_session_options", "structntk__clipboard__session__options.html", null ],
+    [ "ntk_dialog_alert_request", "structntk__dialog__alert__request.html", null ],
+    [ "ntk_dialog_file_request", "structntk__dialog__file__request.html", null ],
+    [ "ntk_dialog_filter", "structntk__dialog__filter.html", null ],
+    [ "ntk_dialog_folder_request", "structntk__dialog__folder__request.html", null ],
+    [ "ntk_dialog_save_file_request", "structntk__dialog__save__file__request.html", null ],
+    [ "ntk_notification_manager_options", "structntk__notification__manager__options.html", null ],
+    [ "ntk_notification_progress_update", "structntk__notification__progress__update.html", null ],
+    [ "NativeToolkit::Notification::ProgressSpec", "struct_native_toolkit_1_1_notification_1_1_progress_spec.html", null ],
+    [ "NativeToolkit::Notification::ProgressUpdate", "struct_native_toolkit_1_1_notification_1_1_progress_update.html", null ],
+    [ "NativeToolkit::Notification::Runtime", "class_native_toolkit_1_1_notification_1_1_runtime.html", null ],
+    [ "NativeToolkit::Notification::RuntimeVersion", "struct_native_toolkit_1_1_notification_1_1_runtime_version.html", null ],
+    [ "NativeToolkit::Dialog::SaveFileRequest", "struct_native_toolkit_1_1_dialog_1_1_save_file_request.html", null ],
+    [ "NativeToolkit::Clipboard::Session", "class_native_toolkit_1_1_clipboard_1_1_session.html", null ],
+    [ "NativeToolkit::Clipboard::SessionOptions", "struct_native_toolkit_1_1_clipboard_1_1_session_options.html", null ],
+    [ "NativeToolkit::Notification::TextInput", "struct_native_toolkit_1_1_notification_1_1_text_input.html", null ],
+    [ "NativeToolkit::Clipboard::TextPayload", "struct_native_toolkit_1_1_clipboard_1_1_text_payload.html", null ],
+    [ "NativeToolkit::Unexpected< E >", "struct_native_toolkit_1_1_unexpected.html", null ],
+    [ "NativeToolkit::Clipboard::WriteOptions", "struct_native_toolkit_1_1_clipboard_1_1_write_options.html", null ],
+    [ "NativeToolkit::WriteOptions", "struct_native_toolkit_1_1_write_options.html", null ]
 ];

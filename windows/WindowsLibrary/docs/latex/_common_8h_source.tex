@@ -1,0 +1,55 @@
+\doxysection{Common.\+h}
+\hypertarget{_common_8h_source}{}\label{_common_8h_source}\index{WindowsLibraryCApi/include/NativeToolkitC/Common.h@{WindowsLibraryCApi/include/NativeToolkitC/Common.h}}
+\mbox{\hyperlink{_common_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#ifndef\ NATIVETOOLKITC\_COMMON\_H}}
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#define\ NATIVETOOLKITC\_COMMON\_H}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00024\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#if\ defined(\_MSC\_VER)}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#define\ NTK\_CALL\ \_\_cdecl}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#define\ NTK\_CALL}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#define\ NTK\_VERSION\_MAJOR\ 2}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#define\ NTK\_VERSION\_MINOR\ 0}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#define\ NTK\_VERSION\_PATCH\ 0}\textcolor{preprocessor}{}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#define\ NTK\_VERSION\ 0x020000}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ NTK\_SYSTEM\_CODE\_E\_OUTOFMEMORY\ 0x8007000E}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{typedef}\ void\ (NTK\_CALL\ *\mbox{\hyperlink{_common_8h_ac916fbfb4c483123caa8c1aa555bfea7}{ntk\_release\_fn}})(\textcolor{keywordtype}{void}*\ user\_data);}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00054\ uint32\_t\ NTK\_CALL\ \mbox{\hyperlink{_common_8h_af43e62d145570a270fbd8031185b7662}{ntk\_version}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00061\ uint32\_t\ NTK\_CALL\ \mbox{\hyperlink{_common_8h_abeeebfcaf748e3130c1abc2f4f17e124}{ntk\_last\_system\_code}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}\ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}};}
+\DoxyCodeLine{00066\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_common_8h_aa60ec32b271d7c985ddeb5e5b86c2c7a}{ntk\_string\_data}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}*\ s);}
+\DoxyCodeLine{00068\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a85a1812293a8198228bee8f332620460}{ntk\_string\_size}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}*\ s);}
+\DoxyCodeLine{00070\ \textcolor{keywordtype}{void}\ \ \ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a1f12d2da6c2f42f5c1944ecf89390d1b}{ntk\_string\_free}}(\mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}*\ s);}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00073\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\_bytes}}\ \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\_bytes}};}
+\DoxyCodeLine{00075\ \textcolor{keyword}{const}\ uint8\_t*\ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a3cd4e7434d9bcf70d3a0c36144b0bc22}{ntk\_bytes\_data}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\_bytes}}*\ b);}
+\DoxyCodeLine{00077\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a34f586b8677b7dfdfa66c2ae427a8363}{ntk\_bytes\_size}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\_bytes}}*\ b);}
+\DoxyCodeLine{00079\ \textcolor{keywordtype}{void}\ \ \ \ \ \ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a1b1113e0d2592b9fe5ea16cdde4a1ce8}{ntk\_bytes\_free}}(\mbox{\hyperlink{_common_8h_aced1770a254eaf98d935ece8ee38d951}{ntk\_bytes}}*\ b);}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00082\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}\ \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}};}
+\DoxyCodeLine{00084\ \textcolor{keywordtype}{size\_t}\ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a8f587784aa4fc2b27f525e396cbffb02}{ntk\_string\_list\_count}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}*\ list);}
+\DoxyCodeLine{00086\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a9f7b810733496c8c632850fbf1dbe01c}{ntk\_string\_list\_at}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}*\ list,\ \textcolor{keywordtype}{size\_t}\ index,\ \textcolor{keywordtype}{size\_t}*\ out\_size);}
+\DoxyCodeLine{00088\ \textcolor{keywordtype}{void}\ \ \ \ \ \ \ \ NTK\_CALL\ \mbox{\hyperlink{_common_8h_a9df648263955544604bf9ed856138d16}{ntk\_string\_list\_free}}(\mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}*\ list);}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00091\ \}}
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

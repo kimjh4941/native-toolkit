@@ -1,0 +1,73 @@
+\doxysection{ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request Struct Reference}
+\hypertarget{structntk__dialog__save__file__request}{}\label{structntk__dialog__save__file__request}\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+
+
+{\ttfamily \#include $<$Dialog.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{structntk__dialog__save__file__request_a655b50e013b51bde54dc846e843fbceb}\label{structntk__dialog__save__file__request_a655b50e013b51bde54dc846e843fbceb} 
+uint32\+\_\+t {\bfseries struct\+\_\+size}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structntk__dialog__save__file__request_a401f287e419103ee9cd9169faa228249}{reserved0}}
+\item 
+const char \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structntk__dialog__save__file__request_a0932cd614611446bffdc1a57799d3eaa}{title}}
+\item 
+const char \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structntk__dialog__save__file__request_a789874a884f0b4fa5346a2cc93af03bf}{default\+\_\+extension}}
+\item 
+int32\+\_\+t \mbox{\hyperlink{structntk__dialog__save__file__request_a4fd0ecd3c5ae40a86e842f46557eed21}{skip\+\_\+overwrite\+\_\+prompt}}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structntk__dialog__save__file__request_ab98e3926ca185305578a4bb50bb1bdbe}{reserved1}}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structntk__dialog__save__file__request_ab44253831094064f621aee66437a09ae}{owner}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+What to show in a save-\/file dialog. sizeof 40. 
+
+\label{doc-variable-members}
+\Hypertarget{structntk__dialog__save__file__request_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{structntk__dialog__save__file__request_a789874a884f0b4fa5346a2cc93af03bf}\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}!default\_extension@{default\_extension}}
+\index{default\_extension@{default\_extension}!ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+\doxysubsubsection{\texorpdfstring{default\_extension}{default\_extension}}
+{\footnotesize\ttfamily \label{structntk__dialog__save__file__request_a789874a884f0b4fa5346a2cc93af03bf} 
+const char\texorpdfstring{$\ast$}{*} ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request\+::default\+\_\+extension}
+
+Appended when the user types none. NULL or "{}"{}\+: none. \Hypertarget{structntk__dialog__save__file__request_ab44253831094064f621aee66437a09ae}\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}!owner@{owner}}
+\index{owner@{owner}!ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+\doxysubsubsection{\texorpdfstring{owner}{owner}}
+{\footnotesize\ttfamily \label{structntk__dialog__save__file__request_ab44253831094064f621aee66437a09ae} 
+void\texorpdfstring{$\ast$}{*} ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request\+::owner}
+
+HWND of the owner window, or NULL. \Hypertarget{structntk__dialog__save__file__request_a401f287e419103ee9cd9169faa228249}\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}!reserved0@{reserved0}}
+\index{reserved0@{reserved0}!ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+\doxysubsubsection{\texorpdfstring{reserved0}{reserved0}}
+{\footnotesize\ttfamily \label{structntk__dialog__save__file__request_a401f287e419103ee9cd9169faa228249} 
+uint32\+\_\+t ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request\+::reserved0}
+
+Must be 0. \Hypertarget{structntk__dialog__save__file__request_ab98e3926ca185305578a4bb50bb1bdbe}\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}!reserved1@{reserved1}}
+\index{reserved1@{reserved1}!ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+\doxysubsubsection{\texorpdfstring{reserved1}{reserved1}}
+{\footnotesize\ttfamily \label{structntk__dialog__save__file__request_ab98e3926ca185305578a4bb50bb1bdbe} 
+uint32\+\_\+t ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request\+::reserved1}
+
+Must be 0. \Hypertarget{structntk__dialog__save__file__request_a4fd0ecd3c5ae40a86e842f46557eed21}\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}!skip\_overwrite\_prompt@{skip\_overwrite\_prompt}}
+\index{skip\_overwrite\_prompt@{skip\_overwrite\_prompt}!ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+\doxysubsubsection{\texorpdfstring{skip\_overwrite\_prompt}{skip\_overwrite\_prompt}}
+{\footnotesize\ttfamily \label{structntk__dialog__save__file__request_a4fd0ecd3c5ae40a86e842f46557eed21} 
+int32\+\_\+t ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request\+::skip\+\_\+overwrite\+\_\+prompt}
+
+Non-\/zero\+: do not ask before an existing file is picked. \Hypertarget{structntk__dialog__save__file__request_a0932cd614611446bffdc1a57799d3eaa}\index{ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}!title@{title}}
+\index{title@{title}!ntk\_dialog\_save\_file\_request@{ntk\_dialog\_save\_file\_request}}
+\doxysubsubsection{\texorpdfstring{title}{title}}
+{\footnotesize\ttfamily \label{structntk__dialog__save__file__request_a0932cd614611446bffdc1a57799d3eaa} 
+const char\texorpdfstring{$\ast$}{*} ntk\+\_\+dialog\+\_\+save\+\_\+file\+\_\+request\+::title}
+
+NULL or "{}"{}\+: the system title. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library\+CApi/include/\+Native\+Toolkit\+C/\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h}{Dialog.\+h}}\end{DoxyCompactItemize}

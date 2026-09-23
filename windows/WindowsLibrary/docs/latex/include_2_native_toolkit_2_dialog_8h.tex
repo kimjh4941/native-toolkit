@@ -1,0 +1,360 @@
+\doxysection{Windows\+Library/include/\+Native\+Toolkit/\+Dialog.h File Reference}
+\hypertarget{include_2_native_toolkit_2_dialog_8h}{}\label{include_2_native_toolkit_2_dialog_8h}\index{WindowsLibrary/include/NativeToolkit/Dialog.h@{WindowsLibrary/include/NativeToolkit/Dialog.h}}
+
+
+The dialogs of Windows\+: message boxes, file pickers, folder pickers.  
+
+
+{\ttfamily \#include $<$string$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+{\ttfamily \#include "{}Native\+Toolkit/\+Build\+Stamp.\+h"{}}\newline
+{\ttfamily \#include "{}Native\+Toolkit/\+Error.\+h"{}}\newline
+{\ttfamily \#include "{}Native\+Toolkit/\+Types.\+h"{}}\newline
+Include dependency graph for Dialog.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{include_2_native_toolkit_2_dialog_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Request}}
+\begin{DoxyCompactList}\small\item\em What to show in a message box. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_filter}{Native\+Toolkit\+::\+Dialog\+::\+File\+Filter}}
+\begin{DoxyCompactList}\small\item\em One entry of a file dialog\textquotesingle{}s type list. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{Native\+Toolkit\+::\+Dialog\+::\+File\+Request}}
+\begin{DoxyCompactList}\small\item\em What to show in an open-\/file dialog. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_save_file_request}{Native\+Toolkit\+::\+Dialog\+::\+Save\+File\+Request}}
+\begin{DoxyCompactList}\small\item\em What to show in a save-\/file dialog. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{Native\+Toolkit\+::\+Dialog\+::\+Folder\+Request}}
+\begin{DoxyCompactList}\small\item\em What to show in a folder picker. An empty title leaves the OS default (DLG-\/05). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Buttons}} \{ \newline
+\mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983aa60852f204ed8028c1c58808b746d115}{Ok}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a4b116999b87115628973f2e30b59fd08}{Ok\+Cancel}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983ab65ffbcb4dcfb93ecdc257d6e4ba42c4}{Yes\+No}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a71fc7b7aece69111c0b6967de4b101c5}{Yes\+No\+Cancel}}
+, \newline
+\mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a5d1f937d009d6f924b50b9e742ecc8ac}{Retry\+Cancel}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a080cccc8400ed0226bf270eadb078851}{Abort\+Retry\+Ignore}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a1150839156005b4c6153e3e530011a6f}{Cancel\+Try\+Continue}}
+ \}
+\begin{DoxyCompactList}\small\item\em Which buttons a message box shows. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220d}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Icon}} \{ \newline
+\mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da6adf97f83acf6453d4a6a4b1070f3754}{None}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa82be0f551b8708bc08eb33cd9ded0cf}{Information}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da0eaadb4fcb48a0a0ed7bc9868be9fbaa}{Warning}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da902b0d55fddef6f8d651fe1035b7d4bd}{Error}}
+, \newline
+\mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa97ea56b0e00b2379736ae60869ff66a}{Question}}
+ \}
+\begin{DoxyCompactList}\small\item\em Which icon a message box shows. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfa}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Default\+Button}} \{ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa7fb55ed0b7a30342ba6da306428cae04}{First}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaac22cf8376b1893dcfcef0649fe1a7d87}{Second}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa168909c0b6f1dfbd48f679d47059c1d6}{Third}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa6e599f7a2a9186d391be4537f105be98}{Fourth}}
+ \}
+\begin{DoxyCompactList}\small\item\em Which button starts out focused. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Result}} \{ \newline
+{\bfseries Ok}
+, {\bfseries Cancel}
+, {\bfseries Yes}
+, {\bfseries No}
+, \newline
+{\bfseries Retry}
+, {\bfseries Abort}
+, {\bfseries Ignore}
+, {\bfseries Try\+Again}
+, \newline
+{\bfseries Continue}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113ad3d2e617335f08df83599665eef8a418}{Close}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113a6a26f548831e6a8c26bfbbd9f6ec61e0}{Help}}
+ \}
+\begin{DoxyCompactList}\small\item\em Which button the user pressed. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result}}$<$ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113}{Alert\+Result}} $>$ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_aee4fba34d4e502dee1c8d4ed634d6d7f}{Native\+Toolkit\+::\+Dialog\+::\+Show\+Alert}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request}{Alert\+Request}} \&request)
+\begin{DoxyCompactList}\small\item\em OP-\/01. Shows a message box and reports which button was pressed. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result}}$<$ std\+::wstring $>$ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_aed9d0e367ecfc51ef47448e09758c57d}{Native\+Toolkit\+::\+Dialog\+::\+Show\+Open\+File}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{File\+Request}} \&request)
+\begin{DoxyCompactList}\small\item\em OP-\/02. Asks for one existing file. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result}}$<$ std\+::vector$<$ std\+::wstring $>$ $>$ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a1e527c03dce1ca1d3aa4dbebed1dc979}{Native\+Toolkit\+::\+Dialog\+::\+Show\+Open\+Files}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{File\+Request}} \&request)
+\begin{DoxyCompactList}\small\item\em OP-\/03. Asks for one or more existing files, in the order the dialog returned them. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result}}$<$ std\+::wstring $>$ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a66ebc99781147e8c98a495b52c281708}{Native\+Toolkit\+::\+Dialog\+::\+Show\+Save\+File}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_save_file_request}{Save\+File\+Request}} \&request)
+\begin{DoxyCompactList}\small\item\em OP-\/04. Asks where to save a file. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result}}$<$ std\+::wstring $>$ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a67f0a7d9f11fbde8bb5485d2b2be13e7}{Native\+Toolkit\+::\+Dialog\+::\+Show\+Pick\+Folder}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{Folder\+Request}} \&request)
+\begin{DoxyCompactList}\small\item\em OP-\/05. Asks for one folder. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result}}$<$ std\+::vector$<$ std\+::wstring $>$ $>$ \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a13fac283ffcbb6706ad6457904bc841d}{Native\+Toolkit\+::\+Dialog\+::\+Show\+Pick\+Folders}} (const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{Folder\+Request}} \&request)
+\begin{DoxyCompactList}\small\item\em OP-\/06. Asks for one or more folders. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The dialogs of Windows\+: message boxes, file pickers, folder pickers. 
+
+Part of the public C++ API added in stage 3 of the windows-\/architecture topic (design section 8, OP-\/01..OP-\/06). These are free functions rather than members of a class\+: a dialog owns no state and holds no resource between calls, so there is nothing for an object to carry.
+
+Every call is modal and blocks the calling thread, so call them from the UI thread. The folder pickers initialise COM themselves as apartment-\/threaded and tolerate a thread that is already in another apartment (DLG-\/06).
+
+Cancelling is not a failure of the call but it is not a value either, so it arrives as Dialog\+Error\+::\+Canceled. Whatever the OS reported stays in Failure\+::system\+Code.
+
+Do not pull this namespace in with a using-\/directive\+: Result and the request types are plain names that the feature namespace gives meaning to.
+
+Keep this header ASCII only. 
+
+\label{doc-enum-members}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983}\index{Dialog.h@{Dialog.h}!AlertButtons@{AlertButtons}}
+\index{AlertButtons@{AlertButtons}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{AlertButtons}{AlertButtons}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Buttons}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Which buttons a message box shows. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Ok@{Ok}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Ok@{Ok}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983aa60852f204ed8028c1c58808b746d115}\label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983aa60852f204ed8028c1c58808b746d115} 
+Ok&MB\+\_\+\+OK. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{OkCancel@{OkCancel}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!OkCancel@{OkCancel}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a4b116999b87115628973f2e30b59fd08}\label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a4b116999b87115628973f2e30b59fd08} 
+Ok\+Cancel&MB\+\_\+\+OKCANCEL. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{YesNo@{YesNo}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!YesNo@{YesNo}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983ab65ffbcb4dcfb93ecdc257d6e4ba42c4}\label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983ab65ffbcb4dcfb93ecdc257d6e4ba42c4} 
+Yes\+No&MB\+\_\+\+YESNO. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{YesNoCancel@{YesNoCancel}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!YesNoCancel@{YesNoCancel}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a71fc7b7aece69111c0b6967de4b101c5}\label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a71fc7b7aece69111c0b6967de4b101c5} 
+Yes\+No\+Cancel&MB\+\_\+\+YESNOCANCEL. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{RetryCancel@{RetryCancel}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!RetryCancel@{RetryCancel}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a5d1f937d009d6f924b50b9e742ecc8ac}\label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a5d1f937d009d6f924b50b9e742ecc8ac} 
+Retry\+Cancel&MB\+\_\+\+RETRYCANCEL. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{AbortRetryIgnore@{AbortRetryIgnore}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!AbortRetryIgnore@{AbortRetryIgnore}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a080cccc8400ed0226bf270eadb078851}\label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a080cccc8400ed0226bf270eadb078851} 
+Abort\+Retry\+Ignore&MB\+\_\+\+ABORTRETRYIGNORE. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{CancelTryContinue@{CancelTryContinue}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!CancelTryContinue@{CancelTryContinue}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a1150839156005b4c6153e3e530011a6f}\label{include_2_native_toolkit_2_dialog_8h_ae6b69bf55e9edcc3afe347f175bce983a1150839156005b4c6153e3e530011a6f} 
+Cancel\+Try\+Continue&MB\+\_\+\+CANCELTRYCONTINUE. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfa}\index{Dialog.h@{Dialog.h}!AlertDefaultButton@{AlertDefaultButton}}
+\index{AlertDefaultButton@{AlertDefaultButton}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{AlertDefaultButton}{AlertDefaultButton}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfa} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfa}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Default\+Button}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Which button starts out focused. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{First@{First}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!First@{First}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa7fb55ed0b7a30342ba6da306428cae04}\label{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa7fb55ed0b7a30342ba6da306428cae04} 
+First&MB\+\_\+\+DEFBUTTON1. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Second@{Second}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Second@{Second}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaac22cf8376b1893dcfcef0649fe1a7d87}\label{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaac22cf8376b1893dcfcef0649fe1a7d87} 
+Second&MB\+\_\+\+DEFBUTTON2. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Third@{Third}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Third@{Third}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa168909c0b6f1dfbd48f679d47059c1d6}\label{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa168909c0b6f1dfbd48f679d47059c1d6} 
+Third&MB\+\_\+\+DEFBUTTON3. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Fourth@{Fourth}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Fourth@{Fourth}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa6e599f7a2a9186d391be4537f105be98}\label{include_2_native_toolkit_2_dialog_8h_a00b46e661631c5ec37e4f0b4be46adfaa6e599f7a2a9186d391be4537f105be98} 
+Fourth&MB\+\_\+\+DEFBUTTON4. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220d}\index{Dialog.h@{Dialog.h}!AlertIcon@{AlertIcon}}
+\index{AlertIcon@{AlertIcon}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{AlertIcon}{AlertIcon}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220d} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220d}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Icon}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Which icon a message box shows. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{None@{None}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!None@{None}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da6adf97f83acf6453d4a6a4b1070f3754}\label{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da6adf97f83acf6453d4a6a4b1070f3754} 
+None&No icon. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Information@{Information}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Information@{Information}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa82be0f551b8708bc08eb33cd9ded0cf}\label{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa82be0f551b8708bc08eb33cd9ded0cf} 
+Information&MB\+\_\+\+ICONINFORMATION. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Warning@{Warning}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Warning@{Warning}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da0eaadb4fcb48a0a0ed7bc9868be9fbaa}\label{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da0eaadb4fcb48a0a0ed7bc9868be9fbaa} 
+Warning&MB\+\_\+\+ICONWARNING. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Error@{Error}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Error@{Error}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da902b0d55fddef6f8d651fe1035b7d4bd}\label{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220da902b0d55fddef6f8d651fe1035b7d4bd} 
+Error&MB\+\_\+\+ICONERROR. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Question@{Question}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Question@{Question}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa97ea56b0e00b2379736ae60869ff66a}\label{include_2_native_toolkit_2_dialog_8h_a4132ec14d97ea1198a7bf67ba085220daa97ea56b0e00b2379736ae60869ff66a} 
+Question&MB\+\_\+\+ICONQUESTION. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113}\index{Dialog.h@{Dialog.h}!AlertResult@{AlertResult}}
+\index{AlertResult@{AlertResult}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{AlertResult}{AlertResult}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113}{Native\+Toolkit\+::\+Dialog\+::\+Alert\+Result}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Which button the user pressed. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Close@{Close}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Close@{Close}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113ad3d2e617335f08df83599665eef8a418}\label{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113ad3d2e617335f08df83599665eef8a418} 
+Close&The dialog was closed with its own control (IDCLOSE). \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Help@{Help}!Dialog.h@{Dialog.h}}\index{Dialog.h@{Dialog.h}!Help@{Help}}}\Hypertarget{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113a6a26f548831e6a8c26bfbbd9f6ec61e0}\label{include_2_native_toolkit_2_dialog_8h_a272ce1912ca1270162449816c5293113a6a26f548831e6a8c26bfbbd9f6ec61e0} 
+Help&The help button (IDHELP), which only appears with show\+Help\+Button. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+\label{doc-func-members}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_aee4fba34d4e502dee1c8d4ed634d6d7f}\index{Dialog.h@{Dialog.h}!ShowAlert@{ShowAlert}}
+\index{ShowAlert@{ShowAlert}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ShowAlert()}{ShowAlert()}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_aee4fba34d4e502dee1c8d4ed634d6d7f} 
+Result$<$ Alert\+Result $>$ Native\+Toolkit\+::\+Dialog\+::\+Show\+Alert (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_alert_request}{Alert\+Request}} \&}]{request}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/01. Shows a message box and reports which button was pressed. 
+
+Pressing Cancel is a button like any other and comes back as Alert\+Result\+::\+Cancel, not as a failure. 
+\begin{DoxyRetVals}{Return values}
+{\em Invalid\+Parameter} & A request the message box could not be built from. \\
+\hline
+{\em System\+Error} & Message\+BoxW failed; system\+Code holds Get\+Last\+Error. \\
+\hline
+{\em Unknown} & The message box failed without saying why. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_aed9d0e367ecfc51ef47448e09758c57d}\index{Dialog.h@{Dialog.h}!ShowOpenFile@{ShowOpenFile}}
+\index{ShowOpenFile@{ShowOpenFile}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ShowOpenFile()}{ShowOpenFile()}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_aed9d0e367ecfc51ef47448e09758c57d} 
+Result$<$ std\+::wstring $>$ Native\+Toolkit\+::\+Dialog\+::\+Show\+Open\+File (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{File\+Request}} \&}]{request}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/02. Asks for one existing file. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Invalid\+Parameter} & A request the dialog could not be built from. \\
+\hline
+{\em Canceled} & The user dismissed the dialog. \\
+\hline
+{\em System\+Error} & The OS reported a failure; system\+Code holds its value. \\
+\hline
+{\em Unknown} & The dialog failed without saying why. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_a1e527c03dce1ca1d3aa4dbebed1dc979}\index{Dialog.h@{Dialog.h}!ShowOpenFiles@{ShowOpenFiles}}
+\index{ShowOpenFiles@{ShowOpenFiles}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ShowOpenFiles()}{ShowOpenFiles()}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_a1e527c03dce1ca1d3aa4dbebed1dc979} 
+Result$<$ std\+::vector$<$ std\+::wstring $>$ $>$ Native\+Toolkit\+::\+Dialog\+::\+Show\+Open\+Files (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_request}{File\+Request}} \&}]{request}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/03. Asks for one or more existing files, in the order the dialog returned them. 
+
+Every path is a full path. The 1.\+x C ABI handed back the folder and the names separately and counts the folder as an entry (DLG-\/02); here that is already joined. 
+\begin{DoxyRetVals}{Return values}
+{\em Invalid\+Parameter} & A request the dialog could not be built from. \\
+\hline
+{\em Canceled} & The user dismissed the dialog. \\
+\hline
+{\em System\+Error} & The OS reported a failure; system\+Code holds its value. \\
+\hline
+{\em Unknown} & The dialog failed without saying why. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_a67f0a7d9f11fbde8bb5485d2b2be13e7}\index{Dialog.h@{Dialog.h}!ShowPickFolder@{ShowPickFolder}}
+\index{ShowPickFolder@{ShowPickFolder}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ShowPickFolder()}{ShowPickFolder()}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_a67f0a7d9f11fbde8bb5485d2b2be13e7} 
+Result$<$ std\+::wstring $>$ Native\+Toolkit\+::\+Dialog\+::\+Show\+Pick\+Folder (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{Folder\+Request}} \&}]{request}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/05. Asks for one folder. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Invalid\+Parameter} & A request the dialog could not be built from. \\
+\hline
+{\em Canceled} & The user dismissed the dialog. \\
+\hline
+{\em System\+Error} & The OS reported a failure; system\+Code holds its value. \\
+\hline
+{\em Unknown} & The dialog failed without saying why. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_a13fac283ffcbb6706ad6457904bc841d}\index{Dialog.h@{Dialog.h}!ShowPickFolders@{ShowPickFolders}}
+\index{ShowPickFolders@{ShowPickFolders}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ShowPickFolders()}{ShowPickFolders()}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_a13fac283ffcbb6706ad6457904bc841d} 
+Result$<$ std\+::vector$<$ std\+::wstring $>$ $>$ Native\+Toolkit\+::\+Dialog\+::\+Show\+Pick\+Folders (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_folder_request}{Folder\+Request}} \&}]{request}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/06. Asks for one or more folders. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Invalid\+Parameter} & A request the dialog could not be built from. \\
+\hline
+{\em Canceled} & The user dismissed the dialog. \\
+\hline
+{\em System\+Error} & The OS reported a failure; system\+Code holds its value. \\
+\hline
+{\em Unknown} & The dialog failed without saying why. \\
+\hline
+\end{DoxyRetVals}
+\Hypertarget{include_2_native_toolkit_2_dialog_8h_a66ebc99781147e8c98a495b52c281708}\index{Dialog.h@{Dialog.h}!ShowSaveFile@{ShowSaveFile}}
+\index{ShowSaveFile@{ShowSaveFile}!Dialog.h@{Dialog.h}}
+\doxysubsubsection{\texorpdfstring{ShowSaveFile()}{ShowSaveFile()}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_dialog_8h_a66ebc99781147e8c98a495b52c281708} 
+Result$<$ std\+::wstring $>$ Native\+Toolkit\+::\+Dialog\+::\+Show\+Save\+File (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_save_file_request}{Save\+File\+Request}} \&}]{request}{}\end{DoxyParamCaption})}
+
+
+
+OP-\/04. Asks where to save a file. 
+
+
+\begin{DoxyRetVals}{Return values}
+{\em Invalid\+Parameter} & A request the dialog could not be built from. \\
+\hline
+{\em Canceled} & The user dismissed the dialog. \\
+\hline
+{\em System\+Error} & The OS reported a failure; system\+Code holds its value. \\
+\hline
+{\em Unknown} & The dialog failed without saying why. \\
+\hline
+\end{DoxyRetVals}

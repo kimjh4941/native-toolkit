@@ -1,11 +1,15 @@
 var searchData=
 [
-  ['getallnotifications_0',['getAllNotifications',['../_windows_notification_manager_8h.html#a9ceb94d7d307716abd1c494e1142072c',1,'WindowsNotificationManager.cpp']]],
-  ['getclipboardformats_1',['getClipboardFormats',['../_windows_clipboard_manager_8h.html#ab978d3e5e9ceeb564b8aa8b54c3ba6f5',1,'WindowsClipboardManager.cpp']]],
-  ['getclipboardhistory_2',['getClipboardHistory',['../_windows_clipboard_manager_8h.html#a7cc2a98b1c05ca5cc76a2d41ab3f0200',1,'WindowsClipboardManager.cpp']]],
-  ['getclipboardhistoryavailability_3',['getClipboardHistoryAvailability',['../_windows_clipboard_manager_8h.html#a22352ba8722a0fe96ed0c21ab63cea34',1,'WindowsClipboardManager.cpp']]],
-  ['getnotificationsetting_4',['getNotificationSetting',['../_windows_notification_manager_8h.html#a26c5e330ede5cb4bc7338f3074a10cfb',1,'WindowsNotificationManager.cpp']]],
-  ['getpreferredclipboardformat_5',['getPreferredClipboardFormat',['../_windows_clipboard_manager_8h.html#afbf01822ffe7139590f089075121752d',1,'WindowsClipboardManager.cpp']]],
-  ['globallockscope_6',['GlobalLockScope',['../class_global_lock_scope.html',1,'']]],
-  ['globalmem_7',['GlobalMem',['../class_global_mem.html',1,'']]]
+  ['error_0',['Error',['../_error_8h.html#afb3eb14cc79ed39a40f4f32e85eb04a2',1,'NativeToolkit::Dialog::Error'],['../_error_8h.html#a10670324dffe9fca4465a789b6fb4019',1,'NativeToolkit::Notification::Error'],['../_error_8h.html#a83d9051f774c146aae25f6a6c65b75a0',1,'NativeToolkit::Clipboard::Error'],['../include_2_native_toolkit_2_dialog_8h.html#a4132ec14d97ea1198a7bf67ba085220da902b0d55fddef6f8d651fe1035b7d4bd',1,'ErrorNativeToolkit::Dialog']]],
+  ['error_1',['error',['../class_native_toolkit_1_1_result.html#a54e81884c4db5a7ffa27140457d63010',1,'NativeToolkit::Result::error() &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a34018e137fd48a8ce837e69a9ba5d66e',1,'NativeToolkit::Result::error() const &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a843d8dd69a247114dd6aa8a67b04b8cc',1,'NativeToolkit::Result::error() &amp;&amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#ab582f1340a0b7ec85628da8d16360bfb',1,'NativeToolkit::Result&lt; void, E &gt;::error() &amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#af014088fef928bd62b585e14aa5d956d',1,'NativeToolkit::Result&lt; void, E &gt;::error() const &amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#ae7741b7b021a83c9729471885267e4b1',1,'NativeToolkit::Result&lt; void, E &gt;::error() &amp;&amp;noexcept']]],
+  ['error_2eh_2',['Error.h',['../_error_8h.html',1,'']]],
+  ['errorcode_3',['ErrorCode',['../_error_8h.html#a901b688de4ba89986480a16ee5981082',1,'NativeToolkit::Dialog::ErrorCode'],['../_error_8h.html#a073bd70efe509c1f6af6ba6e929cbac2',1,'NativeToolkit::Notification::ErrorCode'],['../_error_8h.html#a8f0fe7545fa132ae619ecfbdf63d1963',1,'NativeToolkit::Clipboard::ErrorCode']]],
+  ['event_4',['Event',['../include_2_native_toolkit_2_notification_8h.html#a9a579802da36bf3bc556fb8b584a8f4daa4ecfc70574394990cf17bd83df499f7',1,'NativeToolkit::Notification']]],
+  ['eventname_5',['eventName',['../struct_native_toolkit_1_1_notification_1_1_audio_spec.html#a1255007593017becf4e54994b2f8c21f',1,'NativeToolkit::Notification::AudioSpec']]],
+  ['excludefromhistory_6',['excludeFromHistory',['../struct_native_toolkit_1_1_clipboard_1_1_write_options.html#a56a4687f5cc7f8efdeff915e0c31fd02',1,'NativeToolkit::Clipboard::WriteOptions']]],
+  ['excludefromroaming_7',['excludeFromRoaming',['../struct_native_toolkit_1_1_clipboard_1_1_write_options.html#a873df1f5ddcb52507f30e1af240d27c5',1,'NativeToolkit::Clipboard::WriteOptions']]],
+  ['excludehistory_8',['excludeHistory',['../struct_native_toolkit_1_1_write_options.html#aeecf563fde52538b4a1a9569c0116f37',1,'NativeToolkit::WriteOptions']]],
+  ['excluderoaming_9',['excludeRoaming',['../struct_native_toolkit_1_1_write_options.html#ada03bbc0697dc749fc200fa9caca0c8e',1,'NativeToolkit::WriteOptions']]],
+  ['expiration_10',['expiration',['../struct_native_toolkit_1_1_notification_1_1_notification_content.html#a743c3e51ef0f691b6cebf1e1624b0a7d',1,'NativeToolkit::Notification::NotificationContent']]],
+  ['expiresonreboot_11',['expiresOnReboot',['../struct_native_toolkit_1_1_notification_1_1_notification_content.html#a1b3b6367e7a18d7513e0fc2af07df287',1,'NativeToolkit::Notification::NotificationContent']]]
 ];

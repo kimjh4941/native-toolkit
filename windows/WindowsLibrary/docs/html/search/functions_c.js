@@ -1,0 +1,5 @@
+var searchData=
+[
+  ['value_0',['value',['../class_native_toolkit_1_1_result.html#ae94e85e7ba2d15b2162e22c10f6e4e6d',1,'NativeToolkit::Result::value() &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a4ca6e8db0bf6cd2f26f24878c4e8f8a2',1,'NativeToolkit::Result::value() const &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a2b53f8e2e3b57aab6a6d07aa87009d27',1,'NativeToolkit::Result::value() &amp;&amp;noexcept'],['../class_native_toolkit_1_1_result.html#ae94e85e7ba2d15b2162e22c10f6e4e6d',1,'NativeToolkit::Result&lt; void, E &gt;::value()']]],
+  ['value_5for_1',['value_or',['../class_native_toolkit_1_1_result.html#afff9a497bfd0bcbf841a48d604949705',1,'NativeToolkit::Result::value_or()'],['../class_native_toolkit_1_1_result.html#afff9a497bfd0bcbf841a48d604949705',1,'NativeToolkit::Result&lt; void, E &gt;::value_or()']]]
+];

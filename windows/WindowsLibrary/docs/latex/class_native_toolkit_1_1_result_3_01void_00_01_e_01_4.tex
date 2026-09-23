@@ -1,0 +1,91 @@
+\doxysection{Native\+Toolkit\+::Result\texorpdfstring{$<$}{<} void, E \texorpdfstring{$>$}{>} Class Template Reference}
+\hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4}{}\label{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4}\index{NativeToolkit::Result$<$ void, E $>$@{NativeToolkit::Result$<$ void, E $>$}}
+
+
+The same contract for operations that return no value.  
+
+
+
+
+{\ttfamily \#include $<$Error.\+h$>$}
+
+
+
+Inheritance diagram for Native\+Toolkit\+::Result\texorpdfstring{$<$}{<} void, E \texorpdfstring{$>$}{>}\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=216pt]{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Native\+Toolkit\+::Result\texorpdfstring{$<$}{<} void, E \texorpdfstring{$>$}{>}\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=216pt]{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_a1c042b581e87b0855be3cc7315c29d19}\label{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_a1c042b581e87b0855be3cc7315c29d19} 
+{\bfseries Result} (\mbox{\hyperlink{struct_native_toolkit_1_1_unexpected}{Unexpected}}$<$ E $>$ \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ab582f1340a0b7ec85628da8d16360bfb}{error}})
+\item 
+\Hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_a41637189fbe3b9afcbfde9cff3c132dd}\label{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_a41637189fbe3b9afcbfde9cff3c132dd} 
+bool {\bfseries has\+\_\+value} () const noexcept
+\begin{DoxyCompactList}\small\item\em True when the operation succeeded. \end{DoxyCompactList}\item 
+\Hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_af0f4972a5ad4903d82e15b657bec7bd1}\label{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_af0f4972a5ad4903d82e15b657bec7bd1} 
+{\bfseries operator bool} () const noexcept
+\begin{DoxyCompactList}\small\item\em The same as \doxylink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_a41637189fbe3b9afcbfde9cff3c132dd}{has\+\_\+value()}. \end{DoxyCompactList}\item 
+\Hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ab582f1340a0b7ec85628da8d16360bfb}\label{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ab582f1340a0b7ec85628da8d16360bfb} 
+E \& {\bfseries error} () \&noexcept
+\begin{DoxyCompactList}\small\item\em The failure. Requires !has\+\_\+value(). \end{DoxyCompactList}\item 
+const E \& \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_af014088fef928bd62b585e14aa5d956d}{error}} () const \&noexcept
+\begin{DoxyCompactList}\small\item\em The failure. Requires !has\+\_\+value().    \end{DoxyCompactList}\item 
+\Hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ae7741b7b021a83c9729471885267e4b1}\label{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ae7741b7b021a83c9729471885267e4b1} 
+E \&\& {\bfseries error} () \&\&noexcept
+\begin{DoxyCompactList}\small\item\em The failure, moved out. Requires !has\+\_\+value(). \end{DoxyCompactList}\item 
+\Hypertarget{class_native_toolkit_1_1_result_a32a5525a33b3e1613888441d307f9de5}\label{class_native_toolkit_1_1_result_a32a5525a33b3e1613888441d307f9de5} 
+\mbox{\hyperlink{class_native_toolkit_1_1_result}{Result}} \& {\bfseries operator=} (const \mbox{\hyperlink{class_native_toolkit_1_1_result}{Result}} \&other)
+\item 
+void \& \mbox{\hyperlink{class_native_toolkit_1_1_result_ae94e85e7ba2d15b2162e22c10f6e4e6d}{value}} () \&noexcept
+\item 
+\Hypertarget{class_native_toolkit_1_1_result_afff9a497bfd0bcbf841a48d604949705}\label{class_native_toolkit_1_1_result_afff9a497bfd0bcbf841a48d604949705} 
+void {\bfseries value\+\_\+or} (void fallback) const \&
+\begin{DoxyCompactList}\small\item\em Returns the value when there is one, otherwise the fallback. Requires a copyable T. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$class E$>$\newline
+class Native\+Toolkit\+::\+Result$<$ void, E $>$}
+The same contract for operations that return no value. 
+
+\label{doc-func-members}
+\Hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_af014088fef928bd62b585e14aa5d956d}\index{NativeToolkit::Result$<$ void, E $>$@{NativeToolkit::Result$<$ void, E $>$}!error@{error}}
+\index{error@{error}!NativeToolkit::Result$<$ void, E $>$@{NativeToolkit::Result$<$ void, E $>$}}
+\doxysubsubsection{\texorpdfstring{error()}{error()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_af014088fef928bd62b585e14aa5d956d} 
+template$<$class E$>$ \\
+const E \& \mbox{\hyperlink{class_native_toolkit_1_1_result}{Native\+Toolkit\+::\+Result}}$<$ void, E $>$\+::error (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) const \&\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+The failure. Requires !has\+\_\+value().    
+
+\Hypertarget{class_native_toolkit_1_1_result_ae94e85e7ba2d15b2162e22c10f6e4e6d}\index{NativeToolkit::Result$<$ void, E $>$@{NativeToolkit::Result$<$ void, E $>$}!value@{value}}
+\index{value@{value}!NativeToolkit::Result$<$ void, E $>$@{NativeToolkit::Result$<$ void, E $>$}}
+\doxysubsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_result_ae94e85e7ba2d15b2162e22c10f6e4e6d} 
+void \& \mbox{\hyperlink{class_native_toolkit_1_1_result}{Native\+Toolkit\+::\+Result}}$<$ void, E $>$\+::value (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption}) \&\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+The value. Requires \doxylink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_a41637189fbe3b9afcbfde9cff3c132dd}{has\+\_\+value()}; anything else is undefined, asserted in a debug build, and never throws. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{_error_8h}{Error.\+h}}\end{DoxyCompactItemize}

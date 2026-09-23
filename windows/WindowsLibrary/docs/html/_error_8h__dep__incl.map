@@ -1,0 +1,9 @@
+<map id="WindowsLibrary/include/NativeToolkit/Error.h" name="WindowsLibrary/include/NativeToolkit/Error.h">
+<area shape="rect" id="Node000001" title="Failure values and the Result type the C++ API returns." alt="" coords="201,5,360,48"/>
+<area shape="rect" id="Node000002" href="$include_2_native_toolkit_2_clipboard_8h.html" title="The clipboard session and the values its operations exchange." alt="" coords="5,96,177,139"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="223,57,136,98,134,93,221,53"/>
+<area shape="rect" id="Node000003" href="$include_2_native_toolkit_2_dialog_8h.html" title="The dialogs of Windows: message boxes, file pickers, folder pickers." alt="" coords="201,96,360,139"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="283,64,283,96,278,96,278,64"/>
+<area shape="rect" id="Node000004" href="$include_2_native_toolkit_2_notification_8h.html" title="Toast notifications, their content and the values they carry back." alt="" coords="384,96,566,139"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="341,52,430,93,428,98,339,57"/>
+</map>
