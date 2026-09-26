@@ -2264,6 +2264,8 @@ const auto accepted = g_session->GetHistory(
 
 項目をクリップボードに戻します。id は `GetHistory` で得たものです。
 
+完了が成功であることは、シェルが要求を受け付けたという意味で、クリップボードがその項目になったことまでは保証しません。置き換える対象の内容が `excludeFromHistory`（`sensitive` はこれを含みます）で書かれていた場合、Windows は成功を返したままクリップボードを変えず、断ったことを示す状態も返しません。確実にする必要がある場合は、クリップボードを読み戻すか、呼び出しの前後で `GetClipboardSequenceNumber` を比べてください。
+
 ```cpp
 const auto accepted = g_session->RestoreHistoryItem(itemId,
     [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });

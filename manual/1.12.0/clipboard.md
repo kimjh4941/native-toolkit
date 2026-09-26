@@ -2269,6 +2269,8 @@ const auto accepted = g_session->GetHistory(
 
 Puts the item back on the clipboard. The id comes from `GetHistory`.
 
+A successful completion means the shell accepted the request, not that the clipboard now holds that item. Windows reports success and leaves the clipboard untouched when the content it would replace was written with `excludeFromHistory` (which `sensitive` includes), and gives no status for having declined. Read the clipboard back, or compare `GetClipboardSequenceNumber` across the call, when it has to be certain.
+
 ```cpp
 const auto accepted = g_session->RestoreHistoryItem(itemId,
     [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });

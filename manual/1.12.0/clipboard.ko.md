@@ -2275,6 +2275,8 @@ const auto accepted = g_session->GetHistory(
 
 항목을 클립보드에 되돌립니다. id는 `GetHistory`에서 얻은 값입니다.
 
+완료가 성공이라는 것은 셸이 요청을 받아들였다는 뜻이며, 클립보드가 그 항목이 되었음을 보장하지는 않습니다. 대체할 대상의 내용이 `excludeFromHistory`(`sensitive`가 이를 포함합니다)로 쓰여 있었다면 Windows는 성공을 반환한 채 클립보드를 바꾸지 않으며, 거절했음을 알리는 상태도 반환하지 않습니다. 확실히 해야 한다면 클립보드를 다시 읽거나, 호출 전후로 `GetClipboardSequenceNumber`를 비교해 주세요.
+
 ```cpp
 const auto accepted = g_session->RestoreHistoryItem(itemId,
     [](Clipboard::RequestId id, Clipboard::Result<void> result) { /* ... */ });
