@@ -208,7 +208,20 @@ struct ManagerOptions {
     std::function<void(const ActivationArgs&)> onInvoked;
 
     bool         isPackaged = true;  ///< False for a plain Win32 app with no package identity.
-    std::wstring displayName;        ///< Required when isPackaged is false.
+
+    /**
+     * @brief Required when isPackaged is false, and then more than a label: it
+     *        is the app's AUMID.
+     * @details Create names the Start Menu shortcut after it, derives the
+     *          activator CLSID from it, and writes
+     *          HKCU\Software\Classes\AppUserModelId\<displayName>, including
+     *          CustomActivator - the value that routes an activation to a
+     *          process that is already running. Those writes overwrite, so two
+     *          apps that pass the same displayName take each other's
+     *          activations. A value left there by an earlier Windows App SDK
+     *          registration of the same AUMID is replaced.
+     */
+    std::wstring displayName;
     std::wstring iconUri;            ///< Required when isPackaged is false.
 };
 

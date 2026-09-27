@@ -421,7 +421,22 @@ void UnpackagedBackend::RegisterActivation(DWORD* pError)
             }
         }
 
-        DFLog(TAG, L"[RegisterActivation] registry written. LocalServer32=%ls", localServer32Val.c_str());
+        // What actually routes an activation to a process that is already
+        // running. The shortcut's ToastActivatorCLSID is not enough on its own:
+        // measured with the same binary, the same button and one value changed,
+        // an activation arrives only while this is here (results/
+        // 2026-09-27-windows-unpackaged-activation-finding.md). The write
+        // overwrites, so a machine carrying a value from an earlier Windows App
+        // SDK registration of this AUMID is repaired by it.
+        if (!WriteRegistryString(HKEY_CURRENT_USER, aumidKey, L"CustomActivator", clsidStr))
+        {
+            DLog(TAG, L"[RegisterActivation] AppUserModelId CustomActivator registry write failed");
+            if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
+            return;
+        }
+
+        DFLog(TAG, L"[RegisterActivation] registry written. LocalServer32=%ls CustomActivator=%ls",
+              localServer32Val.c_str(), clsidStr.c_str());
     }
 
     // 3. Start Menu shortcut (required for toast display and scheduled delivery)

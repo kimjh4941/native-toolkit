@@ -284,7 +284,17 @@ ntk_clipboard_error NTK_CALL ntk_clipboard_render_target_set(
 ntk_clipboard_error NTK_CALL ntk_clipboard_get_history(
     ntk_clipboard_session* session, ntk_clipboard_history_fn callback, void* user_data,
     uint32_t* out_request_id);
-/** OP-43. Puts a history item back on the clipboard. item_id is required. */
+/**
+ * OP-43. Puts a history item back on the clipboard. item_id is required.
+ *
+ * A completion of NTK_CLIPBOARD_ERROR_NONE means the shell accepted the
+ * request, not that the clipboard now holds that item. Windows reports success
+ * and leaves the clipboard untouched when the content it would replace was
+ * written with NTK_CLIPBOARD_WRITE_EXCLUDE_HISTORY (or _SENSITIVE, which
+ * includes it), and gives no status for having declined. A caller that must be
+ * certain reads the clipboard back, or compares GetClipboardSequenceNumber
+ * across the call.
+ */
 ntk_clipboard_error NTK_CALL ntk_clipboard_restore_history_item(
     ntk_clipboard_session* session, const char* item_id, ntk_clipboard_completion_fn callback,
     void* user_data, uint32_t* out_request_id);

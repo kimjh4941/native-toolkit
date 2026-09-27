@@ -449,6 +449,16 @@ public:
 
     /**
      * @brief Asks for an item to be put back on the clipboard.
+     * @details A successful completion means the shell accepted the request,
+     *          not that the clipboard now holds that item. Windows reports
+     *          success and leaves the clipboard untouched when the content it
+     *          would replace was written with WriteOptions::excludeFromHistory,
+     *          and says nothing about having declined: its status has only
+     *          Success, AccessDenied and ItemDeleted. Measured on 2026-09-26;
+     *          see results/2026-09-26-windows-clipboard-history-restore-finding.md
+     *          of the windows-architecture topic. A caller that must be certain
+     *          reads the clipboard back, or compares GetClipboardSequenceNumber
+     *          across the call.
      * @retval NotInitialized   Closed, or moved from.
      * @retval InvalidParameter An argument with an embedded NUL.
      * @retval OutOfMemory      The request could not be recorded.

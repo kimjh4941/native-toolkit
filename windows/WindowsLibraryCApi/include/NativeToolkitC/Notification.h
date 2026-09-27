@@ -112,7 +112,14 @@ typedef struct ntk_notification_manager_options {
     ntk_release_fn              release;             /**< May be NULL. Called once when the library is done with user_data. */
     int32_t                     is_unpackaged;       /**< Non-zero for an app without package identity. */
     uint32_t                    reserved1;           /**< Must be 0. */
-    const char*                 display_name;        /**< Required when is_unpackaged. NULL is "". */
+    /**
+     * Required when is_unpackaged, and then it is the app's AUMID: it names the
+     * Start Menu shortcut, the activator CLSID is derived from it, and
+     * HKCU\Software\Classes\AppUserModelId\<display_name> is written,
+     * CustomActivator included. Those writes overwrite, so two apps passing the
+     * same display_name take each other's activations. NULL is "".
+     */
+    const char*                 display_name;
     const char*                 icon_uri;            /**< Required when is_unpackaged. NULL is "". */
 } ntk_notification_manager_options;
 
