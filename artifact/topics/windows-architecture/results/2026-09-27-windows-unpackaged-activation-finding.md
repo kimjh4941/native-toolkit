@@ -58,8 +58,8 @@ Unity を通さない素の Win32 のコンソールアプリ（2.0.0 の C++ AP
 - 書き込みは上書きなので、以前の Windows App SDK の値が残った PC もこれで直る。別の後片付けは要らない
 - 公開ヘッダー（C++ API の `ManagerOptions::displayName`、C ABI の `ntk_notification_manager_options::display_name`）に、パッケージ化しないアプリではこの名前が AUMID になり、ショートカット名・CLSID の導出元・レジストリのキー名を兼ねること、書き込みは上書きなので **同じ `displayName` を使う別のアプリの活性化先を奪う**ことを書いた
 
-1.x と 2.0.0 は、この経路が同一のコードである（`WindowsClassicActivator.cpp` は T-12 の直前の `32a4dffb` と修正前の HEAD で差分が無い）。修正は 2.0.0 に入る。1.x に出すかどうかは、`unity-native-plugin` の移行の時期を聞いて決める。
+1.x と 2.0.0 は、この経路が同一のコードである（`WindowsClassicActivator.cpp` は T-12 の直前の `32a4dffb` と修正前の HEAD で差分が無い）。修正は **2.0.0（dist 1.12.0）だけに入れる**。1.x のパッチは出さない（2026-09-27 利用者の決定）。1.x を使うのは移行中の `unity-native-plugin` だけで、1.x を出すには T-12 で消したビルドの経路を `32a4dffb` から復活させ、2.0.0 を説明するマニュアルと食い違う DLL を配ることになるためである。出荷済みの 1.x（dist 1.11.0、`windows-native-toolkit-1.2.0.dll`）はこの不具合を持ったままで、パッケージ化しないアプリには 1.x の間、ボタンの活性化が届かない。
 
 ## 5. 申し送り
 
-`unity-native-plugin` には、原因、修正、手元で試すなら `HKCU\Software\Classes\AppUserModelId\Unity NativeToolkit\CustomActivator = {C66BF59D-6D49-4213-BDDC-8EAD33B69E62}` を書けば動くことを伝えた。あちらは CI で値を手書きして通すことはせず（利用者が 1.x で踏む不具合を隠すため）、W-04 と W-11 をライブラリの修正待ちとしてスキップし、前提の確認を「`CustomActivator` がこの AUMID の CLSID であること」に改める。
+`unity-native-plugin` には、原因、修正、手元で試すなら `HKCU\Software\Classes\AppUserModelId\Unity NativeToolkit\CustomActivator = {C66BF59D-6D49-4213-BDDC-8EAD33B69E62}` を書けば動くことを伝えた。1.x には出さないことも伝えた。あちらは CI で値を手書きして通すことはせず（利用者が 1.x で踏む不具合を隠すため）、W-04 と W-11 をライブラリの修正待ちとしてスキップし、前提の確認を「`CustomActivator` がこの AUMID の CLSID であること」に改める。W-04 と W-11 は、C ABI への移行と一緒に戻る。
