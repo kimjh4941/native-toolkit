@@ -624,7 +624,7 @@ current-health inventory は移行先決定を待たずに取得してよい。
 
 ## 10. 関連
 
-- Clipboard 設計 v4: `artifact/features/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`（I-10 が現行定義のまま）
-- Clipboard 実装結果 v4: `artifact/features/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`（**「Clipboard 由来 0 件」の記載は誤り。4.2 参照**）
-- Clipboard レビュー v4: `artifact/features/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v4.md`（分離方針の合意）
+- Clipboard 設計 v4: `artifact/ios/clipboard/designs/2026-08-02-ios-clipboard-design-v4.md`（I-10 が現行定義のまま）
+- Clipboard 実装結果 v4: `artifact/ios/clipboard/results/2026-08-08-ios-clipboard-implementation-feature-result-v4.md`（**「Clipboard 由来 0 件」の記載は誤り。4.2 参照**）
+- Clipboard レビュー v4: `artifact/ios/clipboard/reviews/2026-08-08-ios-clipboard-implementation-feature-review-v4.md`（分離方針の合意）
 - [Swift 6 Migration Guide](https://www.swift.org/migration/documentation/migrationguide/)

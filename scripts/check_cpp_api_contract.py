@@ -68,9 +68,9 @@ INTERNAL_SOURCES = {
 # Which section of 10 cites which document.
 CITED_DOCUMENTS = {
     "### 10.1": ("clipboard v2",
-                 "artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md"),
+                 "artifact/windows/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md"),
     "### 10.2": ("notification v3",
-                 "artifact/features/notification/designs/2026-05-30-windows-notification-design-v3.md"),
+                 "artifact/windows/notification/designs/2026-05-30-windows-notification-design-v3.md"),
 }
 CITATION_WINDOW = 3  # lines either side, as T-13 specifies
 # An anchor shorter than this matches too much to prove anything: "int" is in

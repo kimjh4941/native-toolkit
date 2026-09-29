@@ -872,7 +872,7 @@ public:
 
 README 5.1 が求める表。既存の設計書とコードが定めた契約が、C++ API のどこで守られるかを示す。
 
-**ID の扱い（R-9 の反映）**: `CLP-xx` / `NTF-xx` / `DLG-xx` は**この設計書が振った番号**であり、元の設計書には存在しない。照合できるよう、出典の行番号（`clipboard v2` = `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`、`notification v3` = `artifact/features/notification/designs/2026-05-30-windows-notification-design-v3.md`）を併記する。Dialog は設計書が無いため、出典は実装のファイルとする。
+**ID の扱い（R-9 の反映）**: `CLP-xx` / `NTF-xx` / `DLG-xx` は**この設計書が振った番号**であり、元の設計書には存在しない。照合できるよう、出典の行番号（`clipboard v2` = `artifact/windows/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`、`notification v3` = `artifact/windows/notification/designs/2026-05-30-windows-notification-design-v3.md`）を併記する。Dialog は設計書が無いため、出典は実装のファイルとする。
 
 ここに載せるのは「書き直しで壊れうるもの」に限る。内部実装の規約（ロックの順序、RAII の使い方など）は実装が変わらないため対象外とする。
 

@@ -26,8 +26,8 @@ CHECKER = ROOT / "scripts" / "check_cpp_api_contract.py"
 # cannot find it reports as a failure, which the clean case below would catch.
 COPIED = [
     "artifact/topics/windows-architecture/designs/2026-09-20-windows-architecture-cpp-api-design.md",
-    "artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md",
-    "artifact/features/notification/designs/2026-05-30-windows-notification-design-v3.md",
+    "artifact/windows/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md",
+    "artifact/windows/notification/designs/2026-05-30-windows-notification-design-v3.md",
     "windows/WindowsLibrary/include/NativeToolkit/Dialog.h",
     "windows/WindowsLibrary/include/NativeToolkit/Notification.h",
     "windows/WindowsLibrary/include/NativeToolkit/Clipboard.h",

@@ -213,8 +213,8 @@ C++ API の設計書にある「既存の約束の対応表」は、次の設計
 
 | 機能 | 約束が書かれている設計書 |
 |---|---|
-| Clipboard | `artifact/features/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`（1,518 行） |
-| Notification | `artifact/features/notification/designs/2026-05-30-windows-notification-design-v3.md`（922 行） |
+| Clipboard | `artifact/windows/clipboard/designs/2026-07-28-windows-clipboard-design-v2.md`（1,518 行） |
+| Notification | `artifact/windows/notification/designs/2026-05-30-windows-notification-design-v3.md`（922 行） |
 | Dialog | **無い**。約束はコードから読み取って書き起こす |
 
 UI テストの設計書は、既存のサンプルアプリの設計書にある手動確認の観点を出発点にする（Clipboard: `2026-07-31-windows-clipboard-sample-app-design-v5.md`、Notification: `2026-05-31-windows-notification-sample-app-design-v2.md`）。Dialog にはサンプルアプリの設計書も無い。

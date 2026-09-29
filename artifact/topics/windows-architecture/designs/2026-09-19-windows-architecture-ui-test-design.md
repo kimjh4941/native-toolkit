@@ -6,8 +6,8 @@
   - `artifact/topics/windows-architecture/README.md`（7 章 検証方法）
   - `artifact/topics/windows-architecture/results/2026-09-19-windows-architecture-stage0a-spike-result.md`（通知とバッジ）
   - 本書の付録 A（Dialog の事前確認。2026-09-19 実施）
-  - `artifact/features/notification/designs/2026-05-31-windows-notification-sample-app-design-v2.md` の 7 章（手動確認の観点）
-  - `artifact/features/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md` の 8 章（手動確認）
+  - `artifact/windows/notification/designs/2026-05-31-windows-notification-sample-app-design-v2.md` の 7 章（手動確認の観点）
+  - `artifact/windows/clipboard/designs/2026-07-31-windows-clipboard-sample-app-design-v5.md` の 8 章（手動確認）
 - 決定事項: 10 章（U-1 〜 U-7。2026-09-19 決定）
 
 ## 1. 目的と範囲

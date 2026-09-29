@@ -167,7 +167,7 @@
    > 3 ラウンドは 1H → 1H → 1H と減って収束に見えたが、レビュアーを替えた次のラウンドで
    > 4H / 7M / 7L が出て、うち 2 件は製品の実不具合だった（無言に失敗する paste button、
    > Unity への誤ったエラーコード）。件数の減少は収束ではなかった。
-   > 記録: `artifact/features/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v14.md` §5
+   > 記録: `artifact/macos/clipboard/results/2026-09-02-macos-clipboard-implementation-feature-result-v14.md` §5
 
 10. 出力ルール
    - 指摘は具体的なファイルパスと行番号を可能な限り示す
