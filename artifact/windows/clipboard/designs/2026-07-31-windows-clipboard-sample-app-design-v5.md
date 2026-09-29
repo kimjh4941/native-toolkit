@@ -136,7 +136,7 @@ macOS sample に Clipboard 画面がないため、画面構成は Windows の `
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.h`
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp`
 - `windows/WindowsLibraryExample/ClipboardPage.idl`
-- `artifact/features/clipboard/results/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`
+- `artifact/windows/clipboard/results/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`
 
 既存変更:
 

@@ -50,7 +50,7 @@ assertion を現 applicationId に更新するか、価値のないテンプレ�
 
 対象:
 
-- `artifact/features/share/results/`（`2026-06-20-android-share-*-sample-app-result-vN.md` が存在しない）
+- `artifact/android/share/results/`（`2026-06-20-android-share-*-sample-app-result-vN.md` が存在しない）
 - `android/AndroidLibraryExample/app/src/main/java/com/jonghyunkim/android/nativetoolkit/example/ShareSampleScreen.kt:180-208`
 
 計画に対応する result がないため、変更ファイル一覧、追加判断、build / test 結果、手動確認の実施状況を照合できない。特に rich preview の画像を計画の `R.mipmap.ic_launcher` ではなく `android.R.mipmap.sym_def_app_icon` に変更した判断が記録されていない。

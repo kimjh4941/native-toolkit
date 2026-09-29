@@ -23,10 +23,10 @@
 3. インタラクティブ入力で参照ファイルを確定する（必須）
    - ダイアログで「レビュー対象機能の設計書ファイルを指定してください」と促す
    - 設計書ファイルの入力がない場合は次を候補として提示する
-     - `artifact/features/<feature>/designs/` 配下の `*-implementation*.md`
+     - `artifact/*/<feature>/designs/` 配下の `*-implementation*.md`
    - ダイアログで「レビュー対象機能の実装結果ファイルを指定してください」と促す
    - 実装結果ファイルの入力がない場合は次を候補として提示する
-     - `artifact/features/<feature>/results/` 配下の `*-implementation-result*.md`
+     - `artifact/*/<feature>/results/` 配下の `*-implementation-result*.md`
    - ダイアログで「対象OSを選択してください」と促す（ラジオボタン: Android / iOS / macOS / Windows）
 
 4. プロジェクトルールを読み込む（必須）
@@ -118,7 +118,7 @@
    - LGTM / 要修正（軽微） / 要修正（重大） のいずれかで示す
 
 8. レビュー結果ファイルを保存する（必須）
-   - 保存先: `artifact/features/<feature>/reviews/`
+   - 保存先: `artifact/<os>/<feature>/reviews/`
    - ファイル名: `YYYY-MM-DD-<os>-<feature>-implementation-feature-review-vN.md`
    - 同名が存在する場合は `vN` をインクリメントし、既存ファイルを上書きしない
    - 最低限、次を含める:

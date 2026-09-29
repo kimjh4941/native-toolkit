@@ -142,7 +142,7 @@ result v4 の Errata を修正し、撤回対象を「Clipboard 全体 0 件」�
 ### 2.3 変更（ドキュメント）
 
 - `artifact/topics/migration/README.md` — 案 C の決定記録、集計の正規化単位、母集団を揃えた比較、着手順の更新
-- `artifact/features/clipboard/results/..._result-v4.md` — L-01 の Errata 限定化
+- `artifact/ios/clipboard/results/..._result-v4.md` — L-01 の Errata 限定化
 
 ### 2.4 変更なし
 

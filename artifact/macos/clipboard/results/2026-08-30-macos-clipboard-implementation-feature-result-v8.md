@@ -119,7 +119,7 @@ v7 の 421 / 79 は誤りだった。数え方を定義して両方を記録す�
 | `agent-rules/workflows/{design-feature,research-feature,review-document}/workflow.md` | 設計レビューが 6 ラウンド収束しなかったことへの再発防止。機械照合をワークフローに組み込んだ |
 | `scripts/check_design_consistency.py` | 同上。相互参照のドリフトを人手で追うのをやめるための検査 |
 | `artifact/topics/migration/README.md` | macOS の `swift5-concurrency-readiness` 実測を追記（未計測欄の解消） |
-| `artifact/features/clipboard/plans/*` | 本機能の調査記録 |
+| `artifact/macos/clipboard/plans/*` | 本機能の調査記録 |
 
 追跡済みの `xcuserdata` は他に 15 件あるが、いずれも develop 時点からの既存状態であり
 本ブランチの差分ではないため触っていない。別途のリポジトリ整理とする。

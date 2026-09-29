@@ -255,7 +255,7 @@ MU-8: 4 節ある文書の第 3 節に宣言を置いた文書が免除される
 
 ### C-01: 計画 §4.1 / §4.2 が今回の新規・変更ファイルを取りこぼしている
 
-- 対象: 計画 §4.1 / §4.2（`artifact/features/clipboard/designs/.../sample-app-design-v5.md:355-375`）
+- 対象: 計画 §4.1 / §4.2（`artifact/macos/clipboard/designs/.../sample-app-design-v5.md:355-375`）
 - 一覧に無いのに作業ツリーで作成・変更されているもの:
   - `scripts/tests/test_check_design_consistency.py`（**新規**）
   - `agent-rules/coding-rules/common.md`（**変更**）

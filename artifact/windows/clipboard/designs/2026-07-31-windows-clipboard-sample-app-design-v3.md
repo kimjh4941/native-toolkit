@@ -393,7 +393,7 @@ std::atomic<ManagerState> g_managerState{ ManagerState::Uninitialized };
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.h`
 - `windows/WindowsLibraryExample/ClipboardPage.xaml.cpp`
 - `windows/WindowsLibraryExample/ClipboardPage.idl`
-- `artifact/features/clipboard/results/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`（implement-sample-app で作成）
+- `artifact/windows/clipboard/results/YYYY-MM-DD-windows-clipboard-implement-sample-app-result-v1.md`（implement-sample-app で作成）
 
 ### 4.2 既存変更
 

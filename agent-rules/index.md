@@ -28,8 +28,8 @@ Agent-specific wrappers in `.github/skills/` reference these files.
 
 ## Design documents
 
-- Layout of `artifact/` (features / topics) and the topic list: ../artifact/README.md
-- The workflows above apply to `artifact/features/` only. Documents under `artifact/topics/` are written by hand.
+- Layout of `artifact/` (<os> / topics) and the topic list: ../artifact/README.md
+- The workflows above write to `artifact/<os>/<feature>/<kind>/`, where `<os>` is `android`, `ios`, `macos` or `windows`. A step that looks for candidates before the OS is chosen searches `artifact/*/<feature>/<kind>/`. Documents under `artifact/topics/` are written by hand.
 
 ## Common policy
 

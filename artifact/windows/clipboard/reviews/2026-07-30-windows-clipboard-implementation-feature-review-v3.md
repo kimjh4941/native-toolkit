@@ -261,7 +261,7 @@ Debug x64 のテスト build、Release x64 の library build は成功し、自�
 
 ## 実行確認
 
-- `git diff --check -- windows/WindowsLibrary windows/WindowsLibraryTest artifact/features/clipboard/designs artifact/features/clipboard/results artifact/features/clipboard/reviews`: エラーなし
+- `git diff --check -- windows/WindowsLibrary windows/WindowsLibraryTest artifact/windows/clipboard/designs artifact/windows/clipboard/results artifact/windows/clipboard/reviews`: エラーなし
 - Debug|x64 `WindowsLibraryTest`: rebuild成功
 - `vstest.console.exe windows\WindowsLibraryTest\x64\Debug\WindowsLibraryTest.dll`: **92/92成功**
 - Release|x64 `WindowsLibrary`: rebuild成功

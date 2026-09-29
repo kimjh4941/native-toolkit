@@ -768,7 +768,7 @@ git diff develop --check
 検査スクリプト側も併せて実行する。
 
 ```
-python3 scripts/check_design_consistency.py artifact/features/clipboard/designs/<本書>
+python3 scripts/check_design_consistency.py artifact/macos/clipboard/designs/<本書>
 python3 -m unittest discover -s scripts/tests
 ```
 

@@ -1,15 +1,22 @@
 # artifact
 
-設計・検討文書の置き場。機能とそれ以外で分ける。
+設計・検討文書の置き場。機能の文書は OS ごとに、それ以外はトピックごとに分ける。
 
 | ディレクトリ | 対象 | 作り方 |
 |---|---|---|
-| `features/<feature>/` | OS 機能の追加（clipboard / notification / share など） | `agent-rules/workflows/` のワークフローで作成する |
+| `<os>/<feature>/` | OS 機能の追加（clipboard / notification / share など） | `agent-rules/workflows/` のワークフローで作成する |
 | `topics/<topic>/` | 機能単位でない課題（移行・検証負債・構成変更など） | 手動で作成する。ワークフローは使わない |
 
-## features/
+## <os>/
 
-`features/<feature>/{plans,designs,results,reviews}/` に、各ワークフローが保存先として指定する文書を置く。
+`<os>` は `android` / `ios` / `macos` / `windows`（小文字）。`<os>/<feature>/{plans,designs,results,reviews}/` に、各ワークフローが保存先として指定する文書を置く。
+
+- 文書は「機能 × OS × 版」で増え、作業は OS ごとに進むので、OS を最上位にする。コードの並び（`<Platform>/<Feature>`）とも揃う
+- ファイル名は OS 名を含めたままにする（例: `2026-08-29-macos-clipboard-design-v7.md`）。ファイル名だけで引用されても、どの OS の文書か分かるようにするため
+- OS を選ぶ前に候補を探すワークフローの手順は、`artifact/*/<feature>/<種類>/`（全 OS）を探す
+- `unity-native-plugin` も同じ構成にしている
+
+2026-09-29 に `features/<feature>/<種類>/` から今の形に移した。移動に伴うパスの書き換えは、版の付いた文書でも参照の機械的な更新として行い、中身は変えていない。記録として当時のパスを残した行が 3 つある（`git status` の出力をそのまま写した 2 行と、段階 2 の結果の記述 1 行）。
 
 ## topics/
 
@@ -34,6 +41,6 @@
 
 | 書かないもの | 書く場所 |
 |---|---|
-| 機能開発のタスク | `features/` の設計書とチケット |
+| 機能開発のタスク | `<os>/<feature>/` の設計書とチケット |
 | 作業ごとの進捗 | 各トピックの README、または `results/` |
 | 件数・診断数などの実測値 | 各トピックの README（生成ファイルがあればそちら） |

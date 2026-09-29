@@ -2521,7 +2521,7 @@ Mock は `shouldFail` / `xxxCallCount` / `stubbedXxx` の 3 点セット。
 設計書を更新したら必ず実行する。
 
 ```
-python3 scripts/check_design_consistency.py artifact/features/clipboard/designs/<設計書>.md
+python3 scripts/check_design_consistency.py artifact/macos/clipboard/designs/<設計書>.md
 ```
 
 検査項目。

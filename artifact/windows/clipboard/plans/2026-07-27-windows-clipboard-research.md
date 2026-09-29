@@ -55,7 +55,7 @@ Windows のネイティブクリップボード API を、native-toolkit の対�
 | 旧来フォーマット（`CF_PENDATA` / `CF_SYLK` / `CF_DIF` / `CF_TIFF` / `CF_RIFF` / `CF_WAVE` / `CF_DSP*`）の**実装** | 現行アプリでの相互運用需要がないため。存在のみ API 表に記載 |
 | 旧クリップボードビューアチェーン（`SetClipboardViewer` 系）の**実運用** | 公式が後方互換専用と位置づけ、フォーマットリスナーを推奨しているため。存在のみ API 表に記載 |
 | Enterprise Data Protection（`DataPackageView.RequestAccessAsync` / `UnlockAndAssumeEnterpriseIdentity`） | 企業ポリシー連携は対象外 |
-| 共有（Share）機能（`DataTransferManager`） | 別機能 `artifact/features/share/plans/` の範囲 |
+| 共有（Share）機能（`DataTransferManager`） | 別機能 `artifact/windows/share/plans/` の範囲 |
 | `DataPackage.SetDataProvider`（WinRT 遅延提供） | Package Identity 必須のため未パッケージで使えない。Win32 の遅延レンダリング（S-10）で代替 |
 
 ---
