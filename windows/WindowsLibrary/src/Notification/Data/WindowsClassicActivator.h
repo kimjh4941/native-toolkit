@@ -78,5 +78,3 @@ std::wstring ClassicArgsToJson(
     const wchar_t* invokedArgs,
     const NOTIFICATION_USER_INPUT_DATA* data,
     unsigned long count);
-
-bool TryGetLaunchActivationJson(std::wstring* argsJson);

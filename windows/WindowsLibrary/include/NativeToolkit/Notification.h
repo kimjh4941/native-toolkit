@@ -287,10 +287,14 @@ namespace Detail { class TestAccess; }
  *  library's own locks.
  *
  *  **The first activation can arrive before Create returns.** When an
- *  unpackaged app is launched by clicking a toast, that activation is delivered
- *  from inside Create, on the thread calling it, exactly once (NTF-09). A
- *  handler must not assume the Manager it was given to already exists
- *  (RK-10).
+ *  unpackaged app is launched by clicking a toast (cold start), that
+ *  activation comes the same way as every other one, exactly once, and can
+ *  arrive as soon as Create has registered the process, before Create
+ *  returns. With the calling thread an STA it has been seen to arrive inside
+ *  Create, on that thread. A handler must not assume the Manager it was given
+ *  to already exists (RK-10). The process's command line says only that COM
+ *  launched it (`-ToastActivated -Embedding`); it carries nothing of the
+ *  toast.
  *
  *  **COM.** Create initialises COM on the calling thread as a multi-threaded
  *  apartment, accepts RPC_E_CHANGED_MODE when the thread already has another

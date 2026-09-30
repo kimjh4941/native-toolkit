@@ -131,39 +131,6 @@ std::wstring ClassicArgsToJson(
     return std::wstring{ root.Stringify() };
 }
 
-bool TryGetLaunchActivationJson(std::wstring* argsJson)
-{
-    DLog(TAG, L"[TryGetLaunchActivationJson]");
-
-    const wchar_t* cmdLine = GetCommandLineW();
-    if (!cmdLine || !*cmdLine)
-        return false;
-
-    constexpr wchar_t kLaunchMarker[] = L"-ToastActivated";
-    const wchar_t* marker = wcsstr(cmdLine, kLaunchMarker);
-    if (!marker)
-        return false;
-
-    const wchar_t* invokedArgs = marker + _countof(kLaunchMarker) - 1;
-    while (*invokedArgs == L' ' || *invokedArgs == L'\t')
-        ++invokedArgs;
-
-    std::wstring normalizedArgs{ invokedArgs };
-    if (normalizedArgs.size() >= 2 &&
-        normalizedArgs.front() == L'"' &&
-        normalizedArgs.back() == L'"')
-    {
-        normalizedArgs = normalizedArgs.substr(1, normalizedArgs.size() - 2);
-    }
-
-    if (argsJson)
-        *argsJson = ClassicArgsToJson(normalizedArgs.c_str(), nullptr, 0);
-
-    DFLog(TAG, L"[TryGetLaunchActivationJson] detected launch activation. invokedArgs=%ls",
-          normalizedArgs.empty() ? L"<empty>" : normalizedArgs.c_str());
-    return true;
-}
-
 // ============================================================================
 // COM activator — WRL-based INotificationActivationCallback + IClassFactory
 // WRL uses ::IUnknown (from <Unknwn.h>), not winrt::Windows::Foundation::IUnknown.
@@ -446,9 +413,6 @@ void UnpackagedBackend::RegisterActivation(DWORD* pError)
         if (pError) *pError = NOTIFICATION_ERROR_HRESULT_FAILURE;
         return;
     }
-
-    if (TryGetLaunchActivationJson(nullptr))
-        DLog(TAG, L"[RegisterActivation] cold-start marker detected; launch fallback is available");
 
     if (pError) *pError = NOTIFICATION_SUCCESS;
 }

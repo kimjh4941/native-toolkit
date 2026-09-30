@@ -7,9 +7,12 @@
  * wait for the OS block the calling thread until it answers.
  *
  * Activations arrive on a thread the OS picks, never on a thread of yours by
- * arrangement. The one exception is the activation that launched the process
- * (cold start): it arrives inside ntk_notification_manager_create, on the
- * calling thread, before *out_manager is written.
+ * arrangement. The activation that launched the process (cold start) comes
+ * the same way, exactly once, and can arrive before
+ * ntk_notification_manager_create returns, so before *out_manager is written;
+ * with the calling thread an STA it has been seen inside the call, on that
+ * thread. The process's command line says only that COM launched it
+ * ("-ToastActivated -Embedding"); it carries nothing of the toast.
  *
  * One manager per process: Windows registers one activation handler per
  * process, so a second ntk_notification_manager_create is refused with

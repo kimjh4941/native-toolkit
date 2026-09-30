@@ -48,6 +48,7 @@ Unity を通さない素の Win32 のコンソールアプリ（2.0.0 の C++ AP
 - STA のまま届いたので、COM のアパートメント（報告者の仮説の 1 つ）は原因ではない。MTA は試していない
 - `SetCurrentProcessExplicitAppUserModelID` はライブラリも呼んでおらず、プローブも呼ばずに届いた。原因ではない
 - コールドスタート（プロセスが起動していないときの活性化）は試していない。ライブラリには、コマンドラインの `-ToastActivated` を `Init` で 1 回だけ受け取る別の経路がある。`CustomActivator` と `LocalServer32` はその起動にも使われるはずだが、測っていない
+  - 2026-09-30 追記: 測った。起動は正しく動くが、その別の経路が中身の無い活性化をもう 1 回出していたので削除した（`2026-09-30-windows-cold-start-activation-finding.md`）
 
 プローブのショートカットとレジストリ（`AppUserModelId\NativeToolkit ActivationProbe` と `CLSID\{FE818D52-...}`）は、確認後に削除した。
 

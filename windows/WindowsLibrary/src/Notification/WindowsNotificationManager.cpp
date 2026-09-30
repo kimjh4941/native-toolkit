@@ -416,17 +416,11 @@ void WindowsNotificationManager::Init(
             return;
         }
 
-        if (!isPackaged && !m_launchActivationConsumed)
-        {
-            std::wstring launchArgsJson;
-            if (TryGetLaunchActivationJson(&launchArgsJson))
-            {
-                DFLog(TAG, L"[Init] consuming launch activation fallback. argsJson=%ls",
-                      launchArgsJson.c_str());
-                m_launchActivationConsumed = true;
-                InvokeCallback(launchArgsJson);
-            }
-        }
+        // A process that COM launched for a toast (cold start) gets that
+        // activation through the class object RegisterActivation just
+        // registered, like any other. Its command line carries no arguments of
+        // the toast, only "-ToastActivated -Embedding", so it is not read
+        // (results/2026-09-30-windows-cold-start-activation-finding.md).
 
         int setting = m_backend->Setting();
         DFLog(TAG, L"[Init] NotificationSetting=%d", setting);
@@ -472,7 +466,6 @@ void WindowsNotificationManager::Uninit()
     }
 
     m_backend.reset();
-    m_launchActivationConsumed = false;
     m_initialized = false;
 }
 

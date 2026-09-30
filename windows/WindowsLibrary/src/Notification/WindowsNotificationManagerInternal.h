@@ -101,6 +101,5 @@ private:
     std::unique_ptr<INotificationBackend> m_backend;
     NotificationInvokedCallback           m_callback  = nullptr;
     std::mutex                            m_callbackMutex;
-    bool                                  m_launchActivationConsumed = false;
     bool                                  m_initialized = false;
 };
