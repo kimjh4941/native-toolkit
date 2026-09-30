@@ -43,7 +43,7 @@ enum {
     NTK_CLIPBOARD_ERROR_NONE = 0,
     NTK_CLIPBOARD_ERROR_INVALID_PARAMETER = 1,      /**< A NULL handle, output or required argument; malformed input. */
     NTK_CLIPBOARD_ERROR_NOT_INITIALIZED = 2,        /**< The session is closed. */
-    NTK_CLIPBOARD_ERROR_BUSY = 3,                   /**< Another program holds the clipboard, or close has work in flight on another thread. */
+    NTK_CLIPBOARD_ERROR_BUSY = 3,                   /**< Another program holds the clipboard; from close, work still in flight (a history request's WinRT work, or another thread's read or write). */
     NTK_CLIPBOARD_ERROR_EMPTY = 4,
     NTK_CLIPBOARD_ERROR_FORMAT_UNAVAILABLE = 5,
     NTK_CLIPBOARD_ERROR_INVALID_DATA = 6,
@@ -148,9 +148,22 @@ ntk_clipboard_error NTK_CALL ntk_clipboard_session_create(
 /**
  * @brief OP-23. Closes the session. Owner thread only. Free the handle after.
  * @details Requests still in flight are cancelled: their completions arrive
- *          inside this call with NTK_CLIPBOARD_ERROR_CANCELED, so no message
- *          loop is needed. Retry only on NTK_CLIPBOARD_ERROR_BUSY, once the
- *          other threads' reads and writes have finished.
+ *          inside this call with NTK_CLIPBOARD_ERROR_CANCELED, and delivering
+ *          them needs no message loop.
+ *
+ *          The work a cancelled request had started does not stop with it.
+ *          Until a history request's WinRT work has finished, and until other
+ *          threads' reads and writes have, this returns
+ *          NTK_CLIPBOARD_ERROR_BUSY. That WinRT work resumes through the owner
+ *          thread's messages, so it finishes only while the owner handles
+ *          them: keep the message loop running between attempts. Without it,
+ *          close stays BUSY.
+ *
+ *          Every failure except NTK_CLIPBOARD_ERROR_WRONG_THREAD (BUSY,
+ *          CANCELED, PARTIAL_STATE, MONITOR_REGISTER_FAILED) leaves the
+ *          session open and can clear on a later attempt, so retry until
+ *          close succeeds, handling messages in between. Freeing a session
+ *          that never closed abandons it (see ntk_clipboard_session_free).
  */
 ntk_clipboard_error NTK_CALL ntk_clipboard_session_close(ntk_clipboard_session* session);
 

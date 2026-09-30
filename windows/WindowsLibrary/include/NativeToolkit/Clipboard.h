@@ -178,15 +178,26 @@ public:
      *
      *  Requests still in flight are cancelled, and their completions are
      *  delivered inside this call: Close dispatches its own window's drain
-     *  message between attempts, so the caller needs no message loop of its
-     *  own to finish closing. Busy is what a retry waits on - another
-     *  thread's read or write - and Canceled is left only for a drain that
-     *  did not finish in the few passes Close makes.
+     *  message between attempts, so delivering them needs no message loop.
+     *  Canceled is left only for a drain that did not finish in the few
+     *  passes Close makes.
+     *
+     *  The work a cancelled request had started does not stop with it. Until
+     *  a history request's WinRT work has finished, and until other threads'
+     *  reads and writes have, Close is Busy. That WinRT work resumes through
+     *  the owner thread's messages, so it finishes only while the owner
+     *  handles them: keep the message loop running between attempts. Without
+     *  it, Close stays Busy.
+     *
+     *  Every failure except WrongThread leaves the session open and can clear
+     *  on a later attempt, so retry until Close succeeds, handling messages
+     *  in between. Destroying the session instead abandons it (see the class
+     *  note).
      * @retval WrongThread           Called from a thread other than the owner.
-     * @retval MonitorRegisterFailed A clipboard or history listener could not be dropped.
+     * @retval MonitorRegisterFailed A clipboard or history listener could not be dropped yet.
      * @retval Canceled              The cancelled requests were not all delivered yet.
-     * @retval Busy                  Something still holds the session open.
-     * @retval PartialState          A half-finished write could not be rolled back.
+     * @retval Busy                  Work is still in flight: a history request's WinRT work, or another thread's read or write.
+     * @retval PartialState          A half-finished write could not be rolled back yet.
      */
     Result<void> Close();
 

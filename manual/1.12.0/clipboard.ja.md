@@ -1989,7 +1989,9 @@ const auto result = g_session->SetHistoryHandlers(std::move(handlers));
 
 #### 終了処理
 
-所有スレッド専用です。閉じるのは呼び出し側の責任です。`Close` は終えられなかった理由を返すので、受け取った側で対処してやり直してください。
+所有スレッド専用です。閉じるのは呼び出し側の責任です。`Close` は終えられなかった理由を返すので、受け取った側でやり直してください。`WrongThread` 以外の失敗では、セッションは開いたままで、後の試行で解消することがあります。所有スレッドのメッセージループから（たとえば毎フレーム）、成功するまで `Close` を呼んでください。
+
+処理中のリクエストは取り消され、その完了は `Close` の中で届きます。取り消された履歴のリクエストが始めていた処理は、取り消しでは止まりません。その WinRT の処理が終わるまで `Close` は `Busy` を返し、処理は所有スレッドがメッセージを処理している間にしか終わりません。メッセージを処理せずにやり直し続けると、`Busy` のままです。
 
 ```cpp
 const auto closed = g_session->Close();
@@ -1999,7 +2001,9 @@ if (closed.has_value())
 }
 else
 {
-    // Busy: 別スレッドが操作の途中です。終わるのを待って再試行します。
+    // まだ閉じていません: Busy（履歴のリクエストの WinRT の処理か、別スレッドの
+    // 読み書きが残っている）、Canceled、PartialState、MonitorRegisterFailed。
+    // メッセージの処理を続け、もう一度 Close を呼びます。
 }
 ```
 
@@ -2007,7 +2011,7 @@ else
 
 #### 破棄可能かの確認
 
-いま `Close` を終えられるか、つまり処理中の作業が無いかを答えます。操作の実行中は false で、開いていて何も処理していないセッションは true を返します。
+2 回の `Close` の間で、始まった終了処理に待つものが残っていないかを答えます。まだ閉じ始めていない開いたセッションは false、閉じたセッションは true を返します。そのため、最初に `Close` を呼ぶかどうかの判断には使えません。
 
 ```cpp
 const bool canClose = !g_session.has_value() || g_session->CanClose();
@@ -2322,7 +2326,7 @@ if (!result.has_value())
 | 0 | `None` | 成功 |
 | 1 | `InvalidParameter` | 引数が不正、ファイル一覧が空、複数形式の項目が重複または不一致、`CF_BITMAP` |
 | 2 | `NotInitialized` | `Create` の前、または `Close` の後に使用しました |
-| 3 | `Busy` | クリップボードを開けなかったか、`Close` の処理がまだ残っています |
+| 3 | `Busy` | クリップボードを開けなかったか、`Close` の処理がまだ残っています（履歴のリクエストの WinRT の処理か、別スレッドの読み書き） |
 | 4 | `Empty` | 形式はありますがデータが空です |
 | 5 | `FormatUnavailable` | 要求した形式がクリップボードにありません |
 | 6 | `InvalidData` | 構造の検査に失敗しました（壊れた DIB など） |
@@ -2390,12 +2394,20 @@ handlers.on_roaming_enabled_changed = &on_roaming_enabled;
 handlers.user_data = NULL;
 error = ntk_clipboard_set_history_handlers(session, &handlers);
 
-/* 閉じるのは呼び出し側の責任で、失敗することがあります（別スレッドが操作の
-   途中なら BUSY）。can_close は、いま閉じ終えられるかを答えます。 */
-if (ntk_clipboard_session_can_close(session)) {
-    error = ntk_clipboard_session_close(session);
+/* 閉じるのは呼び出し側の責任で、失敗することがあります。所有スレッドの
+   メッセージループから（たとえば毎フレーム）、成功するまで close を呼びます。
+   WRONG_THREAD 以外の失敗では開いたままで、後で解消することがあります。 */
+error = ntk_clipboard_session_close(session);
+if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_clipboard_session_free(session);
+    session = NULL;
+} else if (error != NTK_CLIPBOARD_ERROR_WRONG_THREAD) {
+    /* まだ閉じていません（履歴のリクエストの WinRT の処理か、別スレッドの
+       読み書きが残っていれば BUSY）。メッセージを処理してから close を呼び直します。
+       can_close は、待つものが残っているかを答えます。 */
+    int32_t nothing_left = ntk_clipboard_session_can_close(session);
+    (void)nothing_left;
 }
-ntk_clipboard_session_free(session);
 ```
 
 #### 書き込み

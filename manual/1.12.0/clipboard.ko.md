@@ -2000,7 +2000,9 @@ const auto result = g_session->SetHistoryHandlers(std::move(handlers));
 
 #### 종료 처리
 
-소유 스레드 전용입니다. 닫는 일은 호출하는 쪽의 책임입니다. `Close`는 끝내지 못한 이유를 반환하므로, 받은 쪽에서 처리한 뒤 다시 시도해 주세요.
+소유 스레드 전용입니다. 닫는 일은 호출하는 쪽의 책임입니다. `Close`는 끝내지 못한 이유를 반환하므로, 받은 쪽에서 다시 시도해 주세요. `WrongThread` 이외의 실패에서는 세션이 열린 채로 남으며, 이후 시도에서 해소될 수 있습니다. 소유 스레드의 메시지 루프에서(예: 매 프레임) 성공할 때까지 `Close`를 호출해 주세요.
+
+처리 중인 요청은 취소되고, 그 완료는 `Close` 안에서 전달됩니다. 취소된 기록 요청이 시작한 처리는 취소로 멈추지 않습니다. 그 WinRT 처리가 끝날 때까지 `Close`는 `Busy`를 반환하며, 처리는 소유 스레드가 메시지를 처리하는 동안에만 끝납니다. 메시지를 처리하지 않고 다시 시도만 하면 계속 `Busy`입니다.
 
 ```cpp
 const auto closed = g_session->Close();
@@ -2010,7 +2012,9 @@ if (closed.has_value())
 }
 else
 {
-    // Busy: 다른 스레드가 작업 중입니다. 끝나기를 기다렸다가 다시 시도합니다.
+    // 아직 닫히지 않았습니다: Busy(기록 요청의 WinRT 처리나 다른 스레드의
+    // 읽기·쓰기가 남아 있음), Canceled, PartialState, MonitorRegisterFailed.
+    // 메시지 처리를 계속하고 Close를 다시 호출합니다.
 }
 ```
 
@@ -2018,7 +2022,7 @@ else
 
 #### 파기 가능 여부 확인
 
-지금 `Close`를 끝낼 수 있는지, 즉 처리 중인 작업이 없는지를 알려 줍니다. 작업 중에는 false이고, 열려 있으면서 아무것도 처리하지 않는 세션은 true를 반환합니다.
+두 번의 `Close` 사이에서, 시작된 종료 처리에 기다릴 것이 남아 있지 않은지를 알려 줍니다. 아직 닫기 시작하지 않은 열린 세션은 false, 닫힌 세션은 true를 반환합니다. 따라서 처음 `Close`를 호출할지 판단하는 데에는 쓸 수 없습니다.
 
 ```cpp
 const bool canClose = !g_session.has_value() || g_session->CanClose();
@@ -2333,7 +2337,7 @@ if (!result.has_value())
 | 0 | `None` | 성공 |
 | 1 | `InvalidParameter` | 잘못된 인수, 빈 파일 목록, 여러 형식 항목의 중복 또는 불일치, `CF_BITMAP` |
 | 2 | `NotInitialized` | `Create` 전 또는 `Close` 후에 사용했습니다 |
-| 3 | `Busy` | 클립보드를 열지 못했거나 `Close` 작업이 아직 남아 있습니다 |
+| 3 | `Busy` | 클립보드를 열지 못했거나 `Close` 작업이 아직 남아 있습니다(기록 요청의 WinRT 처리나 다른 스레드의 읽기·쓰기) |
 | 4 | `Empty` | 형식은 있지만 데이터가 비어 있습니다 |
 | 5 | `FormatUnavailable` | 요청한 형식이 클립보드에 없습니다 |
 | 6 | `InvalidData` | 구조 검사에 실패했습니다(잘못된 DIB 등) |
@@ -2401,12 +2405,20 @@ handlers.on_roaming_enabled_changed = &on_roaming_enabled;
 handlers.user_data = NULL;
 error = ntk_clipboard_set_history_handlers(session, &handlers);
 
-/* 닫는 일은 호출하는 쪽의 책임이며 실패할 수 있습니다(다른 스레드가 작업
-   중이면 BUSY). can_close는 지금 닫기를 끝낼 수 있는지 알려 줍니다. */
-if (ntk_clipboard_session_can_close(session)) {
-    error = ntk_clipboard_session_close(session);
+/* 닫는 일은 호출하는 쪽의 책임이며 실패할 수 있습니다. 소유 스레드의
+   메시지 루프에서(예: 매 프레임) 성공할 때까지 close를 호출합니다.
+   WRONG_THREAD 이외의 실패에서는 열린 채로 남으며, 나중에 해소될 수 있습니다. */
+error = ntk_clipboard_session_close(session);
+if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_clipboard_session_free(session);
+    session = NULL;
+} else if (error != NTK_CLIPBOARD_ERROR_WRONG_THREAD) {
+    /* 아직 닫히지 않았습니다(기록 요청의 WinRT 처리나 다른 스레드의
+       읽기·쓰기가 남아 있으면 BUSY). 메시지를 처리한 뒤 close를 다시 호출합니다.
+       can_close는 기다릴 것이 남아 있는지 알려 줍니다. */
+    int32_t nothing_left = ntk_clipboard_session_can_close(session);
+    (void)nothing_left;
 }
-ntk_clipboard_session_free(session);
 ```
 
 #### 쓰기

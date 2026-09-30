@@ -1,4 +1,4 @@
-f3f06cb741ebed2410b6f1c5129b7d58e584cf9cc460165cff457798570e9ea5
+1fc4b753c0989c71b1aa8d2d9c5a3a5bcf522aaec16017dbaef3bd59f54a4916
 # sha256 over the 93 tracked build inputs of the Windows distributables,
 # written by scripts/check_windows_dist.py --stamp when they were built.
 # scripts/check_windows_dist.py compares it with the tree.

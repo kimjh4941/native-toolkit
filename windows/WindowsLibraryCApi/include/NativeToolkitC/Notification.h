@@ -118,7 +118,7 @@ typedef struct ntk_notification_manager_options {
     /**
      * Required when is_unpackaged, and then it is the app's AUMID: it names the
      * Start Menu shortcut, the activator CLSID is derived from it, and
-     * HKCU\Software\Classes\AppUserModelId\<display_name> is written,
+     * `HKCU\Software\Classes\AppUserModelId\<display_name>` is written,
      * CustomActivator included. Those writes overwrite, so two apps passing the
      * same display_name take each other's activations. NULL is "".
      */

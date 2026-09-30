@@ -232,7 +232,7 @@ enum class ClipboardError : uint32_t {
     None                  = 0,
     InvalidParameter      = 1,   ///< Null or empty arguments, an embedded NUL, an unknown request id.
     NotInitialized        = 2,   ///< Used before Create, or after Close.
-    Busy                  = 3,   ///< OpenClipboard kept failing, or Close still has work in flight.
+    Busy                  = 3,   ///< OpenClipboard kept failing, or Close still has work in flight (a history request's WinRT work, or another thread's read or write).
     Empty                 = 4,
     FormatUnavailable     = 5,
     InvalidData           = 6,   ///< A payload failed its structural checks.

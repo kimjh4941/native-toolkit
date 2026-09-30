@@ -214,7 +214,7 @@ struct ManagerOptions {
      *        is the app's AUMID.
      * @details Create names the Start Menu shortcut after it, derives the
      *          activator CLSID from it, and writes
-     *          HKCU\Software\Classes\AppUserModelId\<displayName>, including
+     *          `HKCU\Software\Classes\AppUserModelId\<displayName>`, including
      *          CustomActivator - the value that routes an activation to a
      *          process that is already running. Those writes overwrite, so two
      *          apps that pass the same displayName take each other's

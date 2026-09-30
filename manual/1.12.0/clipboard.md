@@ -1994,7 +1994,9 @@ const auto result = g_session->SetHistoryHandlers(std::move(handlers));
 
 #### Close
 
-Owner thread only. Closing is the caller's job: `Close` reports why it could not finish, and a caller that gets a failure is expected to deal with it and try again.
+Owner thread only. Closing is the caller's job: `Close` reports why it could not finish, and a caller that gets a failure is expected to try again. Every failure except `WrongThread` leaves the session open and can clear on a later attempt, so call `Close` from the owner's message loop (for example once per frame) until it succeeds.
+
+Requests still in flight are cancelled, and their completions arrive inside `Close`. The work a cancelled history request had started does not stop with it: `Close` is `Busy` until that WinRT work has finished, and the work finishes only while the owner thread handles its messages. A retry loop that does not handle messages stays `Busy`.
 
 ```cpp
 const auto closed = g_session->Close();
@@ -2004,7 +2006,9 @@ if (closed.has_value())
 }
 else
 {
-    // Busy: another thread is still inside an operation. Let it finish and retry.
+    // Not closed yet: Busy (a history request's WinRT work, or another thread's
+    // read or write, still in flight), Canceled, PartialState or
+    // MonitorRegisterFailed. Keep handling messages and call Close again.
 }
 ```
 
@@ -2012,7 +2016,7 @@ Destroying a session that was never closed successfully **abandons** it: its win
 
 #### CanClose
 
-Answers whether a `Close` could finish now - that is, whether there is no work in flight. It is false while an operation is running, and an open session with nothing in flight answers true.
+Answers, between two `Close` attempts, whether a close that is under way has nothing left to wait for. An open session that has not started closing answers false, and a closed one true, so it is no test for whether to call `Close` the first time.
 
 ```cpp
 const bool canClose = !g_session.has_value() || g_session->CanClose();
@@ -2327,7 +2331,7 @@ if (!result.has_value())
 | 0 | `None` | Success |
 | 1 | `InvalidParameter` | A malformed argument, an empty file list, a duplicate or mismatched multi-format entry, `CF_BITMAP` |
 | 2 | `NotInitialized` | Used before `Create`, or after `Close` |
-| 3 | `Busy` | The clipboard could not be opened, or `Close` still has work in flight |
+| 3 | `Busy` | The clipboard could not be opened, or `Close` still has work in flight (a history request's WinRT work, or another thread's read or write) |
 | 4 | `Empty` | The format is present but carries no data |
 | 5 | `FormatUnavailable` | The requested format is not on the clipboard |
 | 6 | `InvalidData` | The data failed structural validation, such as a malformed DIB |
@@ -2394,12 +2398,20 @@ handlers.on_roaming_enabled_changed = &on_roaming_enabled;
 handlers.user_data = NULL;
 error = ntk_clipboard_set_history_handlers(session, &handlers);
 
-/* Closing is the caller's job and can fail: BUSY while another thread is
-   still inside an operation. can_close answers whether it could finish now. */
-if (ntk_clipboard_session_can_close(session)) {
-    error = ntk_clipboard_session_close(session);
+/* Closing is the caller's job and can fail. Call close from the owner's
+   message loop (for example once per frame) until it succeeds: every
+   failure but WRONG_THREAD leaves the session open and can clear later. */
+error = ntk_clipboard_session_close(session);
+if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    ntk_clipboard_session_free(session);
+    session = NULL;
+} else if (error != NTK_CLIPBOARD_ERROR_WRONG_THREAD) {
+    /* Not closed yet (BUSY while a history request's WinRT work or another
+       thread's read or write is in flight). Handle messages, then call close
+       again; can_close says whether anything is left to wait for. */
+    int32_t nothing_left = ntk_clipboard_session_can_close(session);
+    (void)nothing_left;
 }
-ntk_clipboard_session_free(session);
 ```
 
 #### Writing
