@@ -36,6 +36,11 @@ artifacts from one source tree:
 `-ReleaseVersion` (`-r`) names the `dist/<release>/` folder and is a different
 number (the repository's release, not the library's).
 
+A full release build (both modules, `-Package`, the default output) also writes
+`dist/<release>/windows/SOURCE-HASH.txt`, a hash of the sources it read, which
+`check_windows_dist.py` compares with the tree. Any other build leaves that
+file alone, so a partial rebuild cannot make stale packages look current.
+
 ## Check
 
 These read both sides of a comparison from source, so neither side can drift
@@ -49,6 +54,7 @@ run while writing a design or before a commit.
 | `check_c_abi_contract.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A |
 | `check_sample_app_inputs.py` | That no sample app screen declares a text input field (`agent-rules/coding-rules/common.md`) |
 | `check_manual_c_examples.py [<version>]` | The manual's C examples against the C ABI: every exported function is shown, every name exists, the three languages carry the same code, and the examples compile as C |
+| `check_windows_dist.py [<release>]` | `dist/<release>/windows/` against the tree: built from the current sources, the same public headers (loose and in both packages), the declared versions in the file names, every `.def` export in the DLL. Run before a release |
 
 ## Test
 

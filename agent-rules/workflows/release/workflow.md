@@ -37,6 +37,7 @@ squash は使用しない。
 | ブランチ | `git branch --show-current` が `feature/` または `release/` 系であること |
 | 未コミット変更 | `git status --porcelain` の出力が空であること |
 | dist | `dist/<version>/` が存在し、android / ios / mac / windows の各アーティファクトが揃っていること |
+| dist 整合（Windows） | `python3 scripts/check_windows_dist.py <version>` が FAIL 0 件で終了すること（`dist/<version>/windows/` が今のソースから作られたか、ヘッダー・版番号付きのファイル名・DLL の関数名が合っているかを見る。`source` が ❌ なら `build_windows_library_dll.ps1` の全体ビルドで作り直す） |
 | manual | `manual/<version>/` に `*.md`, `*.ja.md`, `*.ko.md` の各マニュアルが存在すること |
 | docs | `docs/<version>/` が存在すること |
 | manual 整合 | `./scripts/verify_manual.sh <version>` が停止項目 0 件で終了すること（画像リンク切れ・アンカー切れ・成果物名の不一致を検出する。警告項目は ❌ にしない） |

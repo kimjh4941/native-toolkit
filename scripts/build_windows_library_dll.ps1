@@ -20,6 +20,10 @@
       include/NativeToolkitC/*.h                  the public headers
       windows-native-toolkit-capi-<version>.nupkg -Package: NativeToolkit.CApi
 
+  A full release build (both modules, -Package, the default output) also
+  writes SOURCE-HASH.txt, a hash of the sources it was built from, which
+  scripts/check_windows_dist.py compares with the tree before a release.
+
   Both need the Windows App SDK. The DLL imports
   Microsoft.WindowsAppRuntime.Bootstrap.dll, which has to sit next to it; a
   consumer of the static library restores Microsoft.WindowsAppSDK itself, and
@@ -518,4 +522,19 @@ foreach ($moduleName in $Module) {
         $nupkg = Invoke-NugetPack $cfg $builtByConfig $nupkgTarget
         Write-Step 'done' "[$moduleName] Created $nupkg"
     }
+}
+
+# Record which sources the distributables were built from, so
+# check_windows_dist.py can tell when dist/ falls behind the tree. Only a full
+# release build replaces every distributable; any other build leaves the record
+# alone, and a record that no longer matches keeps failing until one runs.
+$fullBuild = (-not $OutputSet) -and $Package -and ($Configuration -eq 'release') -and
+    (@($ModuleConfig.Keys | Where-Object { $Module -notcontains $_ }).Count -eq 0)
+if ($fullBuild) {
+    $python = Get-Command python, python3 -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $python) { Fail "python not found; cannot record the source hash. Run: python scripts/check_windows_dist.py $DistVersion --stamp" }
+    & $python.Source (Join-Path $RepoRoot 'scripts\check_windows_dist.py') $DistVersion --stamp
+    if ($LASTEXITCODE -ne 0) { Fail "Recording the source hash failed." }
+} else {
+    Write-Step 'info' "Not a full release build; dist\$DistVersion\windows\SOURCE-HASH.txt left as it was"
 }
