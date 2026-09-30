@@ -310,7 +310,7 @@ NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+INITIALIZED&The session is c
 \hline
 
 \raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_BUSY@{NTK\_CLIPBOARD\_ERROR\_BUSY}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_BUSY@{NTK\_CLIPBOARD\_ERROR\_BUSY}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3} 
-NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY&Another program holds the clipboard, or close has work in flight on another thread. \\
+NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY&Another program holds the clipboard; from close, work still in flight (a history request\textquotesingle{}s Win\+RT work, or another thread\textquotesingle{}s read or write). \\
 \hline
 
 \raisebox{\heightof{T}}[0pt][0pt]{\index{NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE@{NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE}!Clipboard.h@{Clipboard.h}}\index{Clipboard.h@{Clipboard.h}!NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE@{NTK\_CLIPBOARD\_ERROR\_PARTIAL\_STATE}}}\Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df}\label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df} 
@@ -568,7 +568,9 @@ release is called exactly once whatever this returns\+: when the reservation end
 {\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a42ac6a4cb43b49353e83e6f76968737a} 
 \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a0a98339446f6a57c014f4b1d16c02dee}{ntk\+\_\+clipboard\+\_\+error}} NTK\+\_\+\+CALL ntk\+\_\+clipboard\+\_\+restore\+\_\+history\+\_\+item (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a611b7da1f88db221331175553f22a502}{ntk\+\_\+clipboard\+\_\+session}} \texorpdfstring{$\ast$}{*}}]{session}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{item\+\_\+id}{, }\item[{\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ad72df9b9058b4c20b74f56db78b06d3b}{ntk\+\_\+clipboard\+\_\+completion\+\_\+fn}}}]{callback}{, }\item[{void \texorpdfstring{$\ast$}{*}}]{user\+\_\+data}{, }\item[{uint32\+\_\+t \texorpdfstring{$\ast$}{*}}]{out\+\_\+request\+\_\+id}{}\end{DoxyParamCaption})}
 
-OP-\/43. Puts a history item back on the clipboard. item\+\_\+id is required. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a63c44962dceda75097209b8ea4149bc9}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_can\_close@{ntk\_clipboard\_session\_can\_close}}
+OP-\/43. Puts a history item back on the clipboard. item\+\_\+id is required.
+
+A completion of NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+NONE means the shell accepted the request, not that the clipboard now holds that item. Windows reports success and leaves the clipboard untouched when the content it would replace was written with NTK\+\_\+\+CLIPBOARD\+\_\+\+WRITE\+\_\+\+EXCLUDE\+\_\+\+HISTORY (or \+\_\+\+SENSITIVE, which includes it), and gives no status for having declined. A caller that must be certain reads the clipboard back, or compares Get\+Clipboard\+Sequence\+Number across the call. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_a63c44962dceda75097209b8ea4149bc9}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_can\_close@{ntk\_clipboard\_session\_can\_close}}
 \index{ntk\_clipboard\_session\_can\_close@{ntk\_clipboard\_session\_can\_close}!Clipboard.h@{Clipboard.h}}
 \doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session\_can\_close()}{ntk\_clipboard\_session\_can\_close()}}
 {\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_a63c44962dceda75097209b8ea4149bc9} 
@@ -588,7 +590,11 @@ OP-\/24. Whether a close that is under way has nothing left to wait for.
 
 OP-\/23. Closes the session. Owner thread only. Free the handle after. 
 
-Requests still in flight are cancelled\+: their completions arrive inside this call with NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED, so no message loop is needed. Retry only on NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY, once the other threads\textquotesingle{} reads and writes have finished. \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ab072c4b1011c66ce1f14873151973864}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_create@{ntk\_clipboard\_session\_create}}
+Requests still in flight are cancelled\+: their completions arrive inside this call with NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+CANCELED, and delivering them needs no message loop.
+
+The work a cancelled request had started does not stop with it. Until a history request\textquotesingle{}s Win\+RT work has finished, and until other threads\textquotesingle{} reads and writes have, this returns NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+BUSY. That Win\+RT work resumes through the owner thread\textquotesingle{}s messages, so it finishes only while the owner handles them\+: keep the message loop running between attempts. Without it, close stays BUSY.
+
+Every failure except NTK\+\_\+\+CLIPBOARD\+\_\+\+ERROR\+\_\+\+WRONG\+\_\+\+THREAD (BUSY, CANCELED, PARTIAL\+\_\+\+STATE, MONITOR\+\_\+\+REGISTER\+\_\+\+FAILED) leaves the session open and can clear on a later attempt, so retry until close succeeds, handling messages in between. Freeing a session that never closed abandons it (see ntk\+\_\+clipboard\+\_\+session\+\_\+free). \Hypertarget{_api_2include_2_native_toolkit_c_2_clipboard_8h_ab072c4b1011c66ce1f14873151973864}\index{Clipboard.h@{Clipboard.h}!ntk\_clipboard\_session\_create@{ntk\_clipboard\_session\_create}}
 \index{ntk\_clipboard\_session\_create@{ntk\_clipboard\_session\_create}!Clipboard.h@{Clipboard.h}}
 \doxysubsubsection{\texorpdfstring{ntk\_clipboard\_session\_create()}{ntk\_clipboard\_session\_create()}}
 {\footnotesize\ttfamily \label{_api_2include_2_native_toolkit_c_2_clipboard_8h_ab072c4b1011c66ce1f14873151973864} 

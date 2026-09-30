@@ -122,7 +122,7 @@ uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>struct_size</b></
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Required when is_unpackaged. NULL is "". </p>
+<p>Required when is_unpackaged, and then it is the app's AUMID: it names the Start Menu shortcut, the activator CLSID is derived from it, and <span class="tt">HKCU\Software\Classes\AppUserModelId\&lt;display_name&gt;</span> is written, CustomActivator included. Those writes overwrite, so two apps passing the same display_name take each other's activations. NULL is "". </p>
 
 </div>
 </div>

@@ -104,9 +104,8 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a6ba0c715728a2cb49176f041e348354f" id="r_a6ba0c715728a2cb49176f041e348354f"><td class="memItemLeft" align="right" valign="top"><a id="a6ba0c715728a2cb49176f041e348354f" name="a6ba0c715728a2cb49176f041e348354f"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>isPackaged</b> = true</td></tr>
 <tr class="memdesc:a6ba0c715728a2cb49176f041e348354f"><td class="mdescLeft">&#160;</td><td class="mdescRight">False for a plain Win32 app with no package identity. <br /></td></tr>
-<tr class="memitem:ab50a219b945f480240f7d49d1928ba29" id="r_ab50a219b945f480240f7d49d1928ba29"><td class="memItemLeft" align="right" valign="top"><a id="ab50a219b945f480240f7d49d1928ba29" name="ab50a219b945f480240f7d49d1928ba29"></a>
-std::wstring&#160;</td><td class="memItemRight" valign="bottom"><b>displayName</b></td></tr>
-<tr class="memdesc:ab50a219b945f480240f7d49d1928ba29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Required when isPackaged is false. <br /></td></tr>
+<tr class="memitem:ab50a219b945f480240f7d49d1928ba29" id="r_ab50a219b945f480240f7d49d1928ba29"><td class="memItemLeft" align="right" valign="top">std::wstring&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab50a219b945f480240f7d49d1928ba29">displayName</a></td></tr>
+<tr class="memdesc:ab50a219b945f480240f7d49d1928ba29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Required when isPackaged is false, and then more than a label: it is the app's AUMID.  <br /></td></tr>
 <tr class="memitem:ae8b4807099ff7cb3cfdd3fd3b538d57a" id="r_ae8b4807099ff7cb3cfdd3fd3b538d57a"><td class="memItemLeft" align="right" valign="top"><a id="ae8b4807099ff7cb3cfdd3fd3b538d57a" name="ae8b4807099ff7cb3cfdd3fd3b538d57a"></a>
 std::wstring&#160;</td><td class="memItemRight" valign="bottom"><b>iconUri</b></td></tr>
 <tr class="memdesc:ae8b4807099ff7cb3cfdd3fd3b538d57a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Required when isPackaged is false. <br /></td></tr>
@@ -114,6 +113,23 @@ std::wstring&#160;</td><td class="memItemRight" valign="bottom"><b>iconUri</b></
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>What <a class="el" href="class_native_toolkit_1_1_notification_1_1_manager.html#a41817de02e03d45f92d4654a685c4ea1" title="Registers this process for notifications.">Manager::Create</a> needs to know about the app it is running in. </p>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Member Data Documentation</h2>
+<a id="ab50a219b945f480240f7d49d1928ba29" name="ab50a219b945f480240f7d49d1928ba29"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab50a219b945f480240f7d49d1928ba29">&#9670;&#160;</a></span>displayName</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::wstring NativeToolkit::Notification::ManagerOptions::displayName</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Required when isPackaged is false, and then more than a label: it is the app's AUMID. </p>
+<p>Create names the Start Menu shortcut after it, derives the activator CLSID from it, and writes <span class="tt">HKCU\Software\Classes\AppUserModelId\&lt;displayName&gt;</span>, including CustomActivator - the value that routes an activation to a process that is already running. Those writes overwrite, so two apps that pass the same displayName take each other's activations. A value left there by an earlier Windows App SDK registration of the same AUMID is replaced. </p>
+
+</div>
+</div>
 <a id="ad45a0f69ba34722358e8d64a27516f8f" name="ad45a0f69ba34722358e8d64a27516f8f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad45a0f69ba34722358e8d64a27516f8f">&#9670;&#160;</a></span>onInvoked</h2>
 

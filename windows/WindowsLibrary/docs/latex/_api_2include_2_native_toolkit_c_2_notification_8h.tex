@@ -227,7 +227,7 @@ Toast notifications\+: the runtime, the manager, its operations, and the content
 
 Threads\+: every function may be called from any thread. The operations that wait for the OS block the calling thread until it answers.
 
-Activations arrive on a thread the OS picks, never on a thread of yours by arrangement. The one exception is the activation that launched the process (cold start)\+: it arrives inside ntk\+\_\+notification\+\_\+manager\+\_\+create, on the calling thread, before \texorpdfstring{$\ast$}{*}out\+\_\+manager is written.
+Activations arrive on a thread the OS picks, never on a thread of yours by arrangement. The activation that launched the process (cold start) comes the same way, exactly once, and can arrive before ntk\+\_\+notification\+\_\+manager\+\_\+create returns, so before \texorpdfstring{$\ast$}{*}out\+\_\+manager is written; with the calling thread an STA it has been seen inside the call, on that thread. The process\textquotesingle{}s command line says only that COM launched it ("{}-\/\+Toast\+Activated -\/\+Embedding"{}); it carries nothing of the toast.
 
 One manager per process\+: Windows registers one activation handler per process, so a second ntk\+\_\+notification\+\_\+manager\+\_\+create is refused with NTK\+\_\+\+NOTIFICATION\+\_\+\+ERROR\+\_\+\+NOT\+\_\+\+SUPPORTED until the first is closed.
 

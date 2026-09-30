@@ -144,76 +144,77 @@
 \DoxyCodeLine{00208\ \ \ \ \ std::function<void(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{ActivationArgs}}\&)>\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f}{onInvoked}};}
 \DoxyCodeLine{00209\ }
 \DoxyCodeLine{00210\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_a6ba0c715728a2cb49176f041e348354f}{isPackaged}}\ =\ \textcolor{keyword}{true};\ \ }
-\DoxyCodeLine{00211\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29}{displayName}};\ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00212\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ae8b4807099ff7cb3cfdd3fd3b538d57a}{iconUri}};\ \ \ \ \ \ \ \ \ \ \ \ }
-\DoxyCodeLine{00213\ \};}
-\DoxyCodeLine{00214\ }
-\DoxyCodeLine{00228\ \textcolor{keyword}{class\ }Runtime\ \{}
-\DoxyCodeLine{00229\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00241\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result<Runtime>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime_ac37a2accad6417c26da1a8d5235e0f37}{Initialize}}(\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_runtime_version}{RuntimeVersion}}\ version);}
-\DoxyCodeLine{00242\ }
-\DoxyCodeLine{00243\ \ \ \ \ Runtime(Runtime\&\&\ other)\ \textcolor{keyword}{noexcept};}
-\DoxyCodeLine{00244\ \ \ \ \ Runtime\&\ operator=(Runtime\&\&\ other)\ \textcolor{keyword}{noexcept};}
-\DoxyCodeLine{00245\ \ \ \ \ Runtime(\textcolor{keyword}{const}\ Runtime\&)\ =\ \textcolor{keyword}{delete};}
-\DoxyCodeLine{00246\ \ \ \ \ Runtime\&\ operator=(\textcolor{keyword}{const}\ Runtime\&)\ =\ \textcolor{keyword}{delete};}
-\DoxyCodeLine{00247\ \ \ \ \ \string~Runtime();}
-\DoxyCodeLine{00248\ }
-\DoxyCodeLine{00250\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime_a348acb8e1c8cf70f4cafc1998269d7f6}{Close}}()\ noexcept;}
-\DoxyCodeLine{00251\ }
-\DoxyCodeLine{00252\ private:}
-\DoxyCodeLine{00253\ \ \ \ \ Runtime()\ =\ default;}
-\DoxyCodeLine{00254\ \ \ \ \ \textcolor{keywordtype}{bool}\ held\_\ =\ false;}
-\DoxyCodeLine{00255\ \};}
-\DoxyCodeLine{00256\ }
-\DoxyCodeLine{00257\ namespace\ Detail\ \{\ \textcolor{keyword}{class\ }TestAccess;\ \}}
-\DoxyCodeLine{00258\ }
-\DoxyCodeLine{00291\ \textcolor{keyword}{class\ }Manager\ \{}
-\DoxyCodeLine{00292\ \textcolor{keyword}{public}:}
-\DoxyCodeLine{00301\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result<Manager>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Create}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options}{ManagerOptions}}\&\ options);}
-\DoxyCodeLine{00302\ }
-\DoxyCodeLine{00303\ \ \ \ \ Manager(Manager\&\&\ other)\ \textcolor{keyword}{noexcept};}
-\DoxyCodeLine{00304\ \ \ \ \ Manager\&\ operator=(Manager\&\&\ other)\ \textcolor{keyword}{noexcept};}
-\DoxyCodeLine{00305\ \ \ \ \ Manager(\textcolor{keyword}{const}\ Manager\&)\ =\ \textcolor{keyword}{delete};}
-\DoxyCodeLine{00306\ \ \ \ \ Manager\&\ operator=(\textcolor{keyword}{const}\ Manager\&)\ =\ \textcolor{keyword}{delete};}
-\DoxyCodeLine{00307\ \ \ \ \ \string~Manager();}
-\DoxyCodeLine{00308\ }
-\DoxyCodeLine{00315\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac381e57accfaa3eda2f480632b2879c4}{SetInvokedHandler}}(std::function<\textcolor{keywordtype}{void}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{ActivationArgs}}\&)>\ handler);}
-\DoxyCodeLine{00316\ }
-\DoxyCodeLine{00325\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_aa54c30e1524e9f140a4bdd8794eaa8ba}{Close}}()\ noexcept;}
-\DoxyCodeLine{00326\ }
-\DoxyCodeLine{00337\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d}{Show}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{NotificationContent}}\&\ content);}
-\DoxyCodeLine{00338\ }
-\DoxyCodeLine{00351\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e}{Schedule}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{NotificationContent}}\&\ content,}
-\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::chrono::system\_clock::time\_point\ when);}
-\DoxyCodeLine{00353\ }
-\DoxyCodeLine{00359\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217}{CancelScheduled}}(const\ std::wstring\&\ tag,\ const\ std::wstring\&\ group);}
-\DoxyCodeLine{00360\ }
-\DoxyCodeLine{00369\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c}{UpdateProgress}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update}{ProgressUpdate}}\&\ update);}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00224\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29}{displayName}};}
+\DoxyCodeLine{00225\ \ \ \ \ std::wstring\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ae8b4807099ff7cb3cfdd3fd3b538d57a}{iconUri}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00226\ \};}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00241\ \textcolor{keyword}{class\ }Runtime\ \{}
+\DoxyCodeLine{00242\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result<Runtime>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime_ac37a2accad6417c26da1a8d5235e0f37}{Initialize}}(\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_runtime_version}{RuntimeVersion}}\ version);}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \ \ \ \ Runtime(Runtime\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00257\ \ \ \ \ Runtime\&\ operator=(Runtime\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00258\ \ \ \ \ Runtime(\textcolor{keyword}{const}\ Runtime\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00259\ \ \ \ \ Runtime\&\ operator=(\textcolor{keyword}{const}\ Runtime\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00260\ \ \ \ \ \string~Runtime();}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00263\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime_a348acb8e1c8cf70f4cafc1998269d7f6}{Close}}()\ noexcept;}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ private:}
+\DoxyCodeLine{00266\ \ \ \ \ Runtime()\ =\ default;}
+\DoxyCodeLine{00267\ \ \ \ \ \textcolor{keywordtype}{bool}\ held\_\ =\ false;}
+\DoxyCodeLine{00268\ \};}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ namespace\ Detail\ \{\ \textcolor{keyword}{class\ }TestAccess;\ \}}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00308\ \textcolor{keyword}{class\ }Manager\ \{}
+\DoxyCodeLine{00309\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00318\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result<Manager>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Create}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options}{ManagerOptions}}\&\ options);}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \ \ \ \ Manager(Manager\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00321\ \ \ \ \ Manager\&\ operator=(Manager\&\&\ other)\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00322\ \ \ \ \ Manager(\textcolor{keyword}{const}\ Manager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00323\ \ \ \ \ Manager\&\ operator=(\textcolor{keyword}{const}\ Manager\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00324\ \ \ \ \ \string~Manager();}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00332\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac381e57accfaa3eda2f480632b2879c4}{SetInvokedHandler}}(std::function<\textcolor{keywordtype}{void}(\textcolor{keyword}{const}\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{ActivationArgs}}\&)>\ handler);}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00342\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_aa54c30e1524e9f140a4bdd8794eaa8ba}{Close}}()\ noexcept;}
+\DoxyCodeLine{00343\ }
+\DoxyCodeLine{00354\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ab5037530bfdf4829c7d72622b12ecb3d}{Show}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{NotificationContent}}\&\ content);}
+\DoxyCodeLine{00355\ }
+\DoxyCodeLine{00368\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a10fd3991fe908f4ed28b931d48c38f3e}{Schedule}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{NotificationContent}}\&\ content,}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::chrono::system\_clock::time\_point\ when);}
 \DoxyCodeLine{00370\ }
-\DoxyCodeLine{00382\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248}{SetBadge}}(\textcolor{keywordtype}{int}\ value);}
-\DoxyCodeLine{00383\ }
-\DoxyCodeLine{00390\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507}{RemoveById}}(uint32\_t\ \textcolor{keywordtype}{id});}
-\DoxyCodeLine{00391\ }
-\DoxyCodeLine{00397\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a}{RemoveByTag}}(const\ std::wstring\&\ tag,\ const\ std::wstring\&\ group);}
-\DoxyCodeLine{00398\ }
-\DoxyCodeLine{00404\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8}{RemoveAll}}();}
-\DoxyCodeLine{00405\ }
-\DoxyCodeLine{00412\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<std::vector<\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_ref}{NotificationRef}}>>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1}{GetAll}}();}
-\DoxyCodeLine{00413\ }
-\DoxyCodeLine{00419\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}{NotificationSetting}}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3}{GetSetting}}();}
-\DoxyCodeLine{00420\ }
-\DoxyCodeLine{00426\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946}{OpenSettings}}();}
-\DoxyCodeLine{00427\ }
-\DoxyCodeLine{00428\ private:}
-\DoxyCodeLine{00429\ \ \ \ \ \textcolor{comment}{//\ Create\ registers\ this\ process\ with\ the\ OS,\ which\ a\ test\ host\ cannot\ do.}}
-\DoxyCodeLine{00430\ \ \ \ \ \textcolor{comment}{//\ This\ lets\ the\ library's\ own\ tests\ build\ a\ Manager\ without\ it;\ nothing}}
-\DoxyCodeLine{00431\ \ \ \ \ \textcolor{comment}{//\ outside\ the\ library\ can\ define\ the\ class\ it\ names.}}
-\DoxyCodeLine{00432\ \ \ \ \ friend\ class\ Detail::TestAccess;}
-\DoxyCodeLine{00433\ }
-\DoxyCodeLine{00434\ \ \ \ \ Manager()\ =\ default;}
-\DoxyCodeLine{00435\ \ \ \ \ \textcolor{keywordtype}{bool}\ held\_\ =\ false;}
-\DoxyCodeLine{00436\ \};}
+\DoxyCodeLine{00376\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a09e987012401a5efe2efbd110b699217}{CancelScheduled}}(const\ std::wstring\&\ tag,\ const\ std::wstring\&\ group);}
+\DoxyCodeLine{00377\ }
+\DoxyCodeLine{00386\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ae68a3be9d653400c3f1785f51b5ee97c}{UpdateProgress}}(const\ \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update}{ProgressUpdate}}\&\ update);}
+\DoxyCodeLine{00387\ }
+\DoxyCodeLine{00399\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a4a6488796595936e218217ba8b223248}{SetBadge}}(\textcolor{keywordtype}{int}\ value);}
+\DoxyCodeLine{00400\ }
+\DoxyCodeLine{00407\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a2acd8926d3ac931ee08ce4a56bf75507}{RemoveById}}(uint32\_t\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00408\ }
+\DoxyCodeLine{00414\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ad89b1ddf7e8df3c3d78d649bd2aba37a}{RemoveByTag}}(const\ std::wstring\&\ tag,\ const\ std::wstring\&\ group);}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00421\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a9362a6618f8b84daf75140130047e0f8}{RemoveAll}}();}
+\DoxyCodeLine{00422\ }
+\DoxyCodeLine{00429\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<std::vector<\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_ref}{NotificationRef}}>>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_addfd1647f0fca7c56006509e3c26b0f1}{GetAll}}();}
+\DoxyCodeLine{00430\ }
+\DoxyCodeLine{00436\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}{NotificationSetting}}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_ac2ce5e2ab3fd85a33e2dc14a27a7f0f3}{GetSetting}}();}
 \DoxyCodeLine{00437\ }
-\DoxyCodeLine{00438\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Notification}}
+\DoxyCodeLine{00443\ \ \ \ \ \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}<\textcolor{keywordtype}{void}>\ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager_a43916a6963063ebaa0634badcfdd5946}{OpenSettings}}();}
+\DoxyCodeLine{00444\ }
+\DoxyCodeLine{00445\ private:}
+\DoxyCodeLine{00446\ \ \ \ \ \textcolor{comment}{//\ Create\ registers\ this\ process\ with\ the\ OS,\ which\ a\ test\ host\ cannot\ do.}}
+\DoxyCodeLine{00447\ \ \ \ \ \textcolor{comment}{//\ This\ lets\ the\ library's\ own\ tests\ build\ a\ Manager\ without\ it;\ nothing}}
+\DoxyCodeLine{00448\ \ \ \ \ \textcolor{comment}{//\ outside\ the\ library\ can\ define\ the\ class\ it\ names.}}
+\DoxyCodeLine{00449\ \ \ \ \ friend\ class\ Detail::TestAccess;}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00451\ \ \ \ \ Manager()\ =\ default;}
+\DoxyCodeLine{00452\ \ \ \ \ \textcolor{keywordtype}{bool}\ held\_\ =\ false;}
+\DoxyCodeLine{00453\ \};}
+\DoxyCodeLine{00454\ }
+\DoxyCodeLine{00455\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Notification}}
 
 \end{DoxyCode}

@@ -187,17 +187,21 @@ Closes the session.
 
 Must be called from the owning thread. Closing an already closed session succeeds, so a retry loop can call it until it does.
 
-Requests still in flight are cancelled, and their completions are delivered inside this call\+: Close dispatches its own window\textquotesingle{}s drain message between attempts, so the caller needs no message loop of its own to finish closing. Busy is what a retry waits on -\/ another thread\textquotesingle{}s read or write -\/ and Canceled is left only for a drain that did not finish in the few passes Close makes. 
+Requests still in flight are cancelled, and their completions are delivered inside this call\+: Close dispatches its own window\textquotesingle{}s drain message between attempts, so delivering them needs no message loop. Canceled is left only for a drain that did not finish in the few passes Close makes.
+
+The work a cancelled request had started does not stop with it. Until a history request\textquotesingle{}s Win\+RT work has finished, and until other threads\textquotesingle{} reads and writes have, Close is Busy. That Win\+RT work resumes through the owner thread\textquotesingle{}s messages, so it finishes only while the owner handles them\+: keep the message loop running between attempts. Without it, Close stays Busy.
+
+Every failure except Wrong\+Thread leaves the session open and can clear on a later attempt, so retry until Close succeeds, handling messages in between. Destroying the session instead abandons it (see the class note). 
 \begin{DoxyRetVals}{Return values}
 {\em Wrong\+Thread} & Called from a thread other than the owner. \\
 \hline
-{\em Monitor\+Register\+Failed} & A clipboard or history listener could not be dropped. \\
+{\em Monitor\+Register\+Failed} & A clipboard or history listener could not be dropped yet. \\
 \hline
 {\em Canceled} & The cancelled requests were not all delivered yet. \\
 \hline
-{\em Busy} & Something still holds the session open. \\
+{\em Busy} & Work is still in flight\+: a history request\textquotesingle{}s Win\+RT work, or another thread\textquotesingle{}s read or write. \\
 \hline
-{\em Partial\+State} & A half-\/finished write could not be rolled back. \\
+{\em Partial\+State} & A half-\/finished write could not be rolled back yet. \\
 \hline
 \end{DoxyRetVals}
 \Hypertarget{class_native_toolkit_1_1_clipboard_1_1_session_ac8deda5e52c0176174f4ba984b5699b7}\index{NativeToolkit::Clipboard::Session@{NativeToolkit::Clipboard::Session}!CopyCustom@{CopyCustom}}
@@ -686,7 +690,7 @@ Naming the same format twice is not an error here\+: the later one takes its pla
 
 Asks for an item to be put back on the clipboard. 
 
-
+A successful completion means the shell accepted the request, not that the clipboard now holds that item. Windows reports success and leaves the clipboard untouched when the content it would replace was written with \doxylink{struct_native_toolkit_1_1_clipboard_1_1_write_options_a56a4687f5cc7f8efdeff915e0c31fd02}{Write\+Options\+::exclude\+From\+History}, and says nothing about having declined\+: its status has only Success, Access\+Denied and Item\+Deleted. Measured on 2026-\/09-\/26; see results/2026-\/09-\/26-\/windows-\/clipboard-\/history-\/restore-\/finding.\+md of the windows-\/architecture topic. A caller that must be certain reads the clipboard back, or compares Get\+Clipboard\+Sequence\+Number across the call. 
 \begin{DoxyRetVals}{Return values}
 {\em Not\+Initialized} & Closed, or moved from. \\
 \hline

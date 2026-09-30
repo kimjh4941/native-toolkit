@@ -471,7 +471,7 @@ size_t NTK_CALL&#160;</td><td class="memItemRight" valign="bottom"><b>ntk_clipbo
 </td></tr>
 <tr><td class="fieldname"><a id="a4c8a21c6dc3053896281a9d8aa0e6b3ea82b46e7b24e7806ddf51a5f3a7b64f9a" name="a4c8a21c6dc3053896281a9d8aa0e6b3ea82b46e7b24e7806ddf51a5f3a7b64f9a"></a>NTK_CLIPBOARD_ERROR_NOT_INITIALIZED&#160;</td><td class="fielddoc"><p>The session is closed. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3" name="a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3"></a>NTK_CLIPBOARD_ERROR_BUSY&#160;</td><td class="fielddoc"><p>Another program holds the clipboard, or close has work in flight on another thread. </p>
+<tr><td class="fieldname"><a id="a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3" name="a4c8a21c6dc3053896281a9d8aa0e6b3ea22fb0ff5d70c265a3be07e32cc50e2d3"></a>NTK_CLIPBOARD_ERROR_BUSY&#160;</td><td class="fielddoc"><p>Another program holds the clipboard; from close, work still in flight (a history request's WinRT work, or another thread's read or write). </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df" name="a4c8a21c6dc3053896281a9d8aa0e6b3eacd790ababde5c066303c9f1313ef27df"></a>NTK_CLIPBOARD_ERROR_PARTIAL_STATE&#160;</td><td class="fielddoc"><p>A deferred reservation failed and could not be rolled back. </p>
 </td></tr>
@@ -1420,7 +1420,8 @@ size_t NTK_CALL&#160;</td><td class="memItemRight" valign="bottom"><b>ntk_clipbo
         </tr>
       </table>
 </div><div class="memdoc">
-<p>OP-43. Puts a history item back on the clipboard. item_id is required. </p>
+<p>OP-43. Puts a history item back on the clipboard. item_id is required.</p>
+<p>A completion of NTK_CLIPBOARD_ERROR_NONE means the shell accepted the request, not that the clipboard now holds that item. Windows reports success and leaves the clipboard untouched when the content it would replace was written with NTK_CLIPBOARD_WRITE_EXCLUDE_HISTORY (or _SENSITIVE, which includes it), and gives no status for having declined. A caller that must be certain reads the clipboard back, or compares GetClipboardSequenceNumber across the call. </p>
 
 </div>
 </div>
@@ -1460,7 +1461,9 @@ size_t NTK_CALL&#160;</td><td class="memItemRight" valign="bottom"><b>ntk_clipbo
 </div><div class="memdoc">
 
 <p>OP-23. Closes the session. Owner thread only. Free the handle after. </p>
-<p>Requests still in flight are cancelled: their completions arrive inside this call with NTK_CLIPBOARD_ERROR_CANCELED, so no message loop is needed. Retry only on NTK_CLIPBOARD_ERROR_BUSY, once the other threads' reads and writes have finished. </p>
+<p>Requests still in flight are cancelled: their completions arrive inside this call with NTK_CLIPBOARD_ERROR_CANCELED, and delivering them needs no message loop.</p>
+<p>The work a cancelled request had started does not stop with it. Until a history request's WinRT work has finished, and until other threads' reads and writes have, this returns NTK_CLIPBOARD_ERROR_BUSY. That WinRT work resumes through the owner thread's messages, so it finishes only while the owner handles them: keep the message loop running between attempts. Without it, close stays BUSY.</p>
+<p>Every failure except NTK_CLIPBOARD_ERROR_WRONG_THREAD (BUSY, CANCELED, PARTIAL_STATE, MONITOR_REGISTER_FAILED) leaves the session open and can clear on a later attempt, so retry until close succeeds, handling messages in between. Freeing a session that never closed abandons it (see ntk_clipboard_session_free). </p>
 
 </div>
 </div>

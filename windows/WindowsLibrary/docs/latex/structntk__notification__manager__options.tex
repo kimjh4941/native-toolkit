@@ -40,7 +40,7 @@ How to create the manager. sizeof 56.
 {\footnotesize\ttfamily \label{structntk__notification__manager__options_a84a3df547f2c31f13b2e2ab39187fb8b} 
 const char\texorpdfstring{$\ast$}{*} ntk\+\_\+notification\+\_\+manager\+\_\+options\+::display\+\_\+name}
 
-Required when is\+\_\+unpackaged. NULL is "{}"{}. \Hypertarget{structntk__notification__manager__options_a9defd3711582f0de30f52da5b5305ee0}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!icon\_uri@{icon\_uri}}
+Required when is\+\_\+unpackaged, and then it is the app\textquotesingle{}s AUMID\+: it names the Start Menu shortcut, the activator CLSID is derived from it, and {\ttfamily HKCU\textbackslash{}Software\textbackslash{}Classes\textbackslash{}App\+User\+Model\+Id\textbackslash{}\texorpdfstring{$<$}{<}display\+\_\+name\texorpdfstring{$>$}{>}} is written, Custom\+Activator included. Those writes overwrite, so two apps passing the same display\+\_\+name take each other\textquotesingle{}s activations. NULL is "{}"{}. \Hypertarget{structntk__notification__manager__options_a9defd3711582f0de30f52da5b5305ee0}\index{ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}!icon\_uri@{icon\_uri}}
 \index{icon\_uri@{icon\_uri}!ntk\_notification\_manager\_options@{ntk\_notification\_manager\_options}}
 \doxysubsubsection{\texorpdfstring{icon\_uri}{icon\_uri}}
 {\footnotesize\ttfamily \label{structntk__notification__manager__options_a9defd3711582f0de30f52da5b5305ee0} 

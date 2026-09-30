@@ -17,9 +17,8 @@ std\+::function$<$ void(const \mbox{\hyperlink{struct_native_toolkit_1_1_notific
 \Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_a6ba0c715728a2cb49176f041e348354f}\label{struct_native_toolkit_1_1_notification_1_1_manager_options_a6ba0c715728a2cb49176f041e348354f} 
 bool {\bfseries is\+Packaged} = true
 \begin{DoxyCompactList}\small\item\em False for a plain Win32 app with no package identity. \end{DoxyCompactList}\item 
-\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29}\label{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29} 
-std\+::wstring {\bfseries display\+Name}
-\begin{DoxyCompactList}\small\item\em Required when is\+Packaged is false. \end{DoxyCompactList}\item 
+std\+::wstring \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29}{display\+Name}}
+\begin{DoxyCompactList}\small\item\em Required when is\+Packaged is false, and then more than a label\+: it is the app\textquotesingle{}s AUMID. \end{DoxyCompactList}\item 
 \Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ae8b4807099ff7cb3cfdd3fd3b538d57a}\label{struct_native_toolkit_1_1_notification_1_1_manager_options_ae8b4807099ff7cb3cfdd3fd3b538d57a} 
 std\+::wstring {\bfseries icon\+Uri}
 \begin{DoxyCompactList}\small\item\em Required when is\+Packaged is false. \end{DoxyCompactList}\end{DoxyCompactItemize}
@@ -31,7 +30,17 @@ What \doxylink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d4
 \label{doc-variable-members}
 \Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_doc-variable-members}
 \doxysubsection{Member Data Documentation}
-\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f}\index{NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}!onInvoked@{onInvoked}}
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29}\index{NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}!displayName@{displayName}}
+\index{displayName@{displayName}!NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}}
+\doxysubsubsection{\texorpdfstring{displayName}{displayName}}
+{\footnotesize\ttfamily \label{struct_native_toolkit_1_1_notification_1_1_manager_options_ab50a219b945f480240f7d49d1928ba29} 
+std\+::wstring Native\+Toolkit\+::\+Notification\+::\+Manager\+Options\+::display\+Name}
+
+
+
+Required when is\+Packaged is false, and then more than a label\+: it is the app\textquotesingle{}s AUMID. 
+
+Create names the Start Menu shortcut after it, derives the activator CLSID from it, and writes {\ttfamily HKCU\textbackslash{}Software\textbackslash{}Classes\textbackslash{}App\+User\+Model\+Id\textbackslash{}\texorpdfstring{$<$}{<}display\+Name\texorpdfstring{$>$}{>}}, including Custom\+Activator -\/ the value that routes an activation to a process that is already running. Those writes overwrite, so two apps that pass the same display\+Name take each other\textquotesingle{}s activations. A value left there by an earlier Windows App SDK registration of the same AUMID is replaced. \Hypertarget{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f}\index{NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}!onInvoked@{onInvoked}}
 \index{onInvoked@{onInvoked}!NativeToolkit::Notification::ManagerOptions@{NativeToolkit::Notification::ManagerOptions}}
 \doxysubsubsection{\texorpdfstring{onInvoked}{onInvoked}}
 {\footnotesize\ttfamily \label{struct_native_toolkit_1_1_notification_1_1_manager_options_ad45a0f69ba34722358e8d64a27516f8f} 
