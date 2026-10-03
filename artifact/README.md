@@ -33,7 +33,7 @@
 | [migration](topics/migration/README.md) | 移行 | 進行中 | 2026-08-30 | ツールチェーン・言語モード移行（Swift 6 / Android / Windows）の管理 |
 | [bridge-testing](topics/bridge-testing/README.md) | テスト債務 | 未着手 | 2026-08-15 | Unity ブリッジ層（Objective-C `.m`）を通るテストが iOS の全機能に無い |
 | [manual-integrity](topics/manual-integrity/README.md) | ドキュメント | 一部対応 | 2026-09-06 | マニュアルの画像リンク切れ・アンカー切れ（index 機能一覧は修正済み） |
-| general-c-abi（README は着手時に作る） | アーキテクチャ | 未着手 | 2026-10-03 | Android / iOS / macOS にも、Windows（windows-architecture）と同じ汎用 C ABI を 1 OS ずつ作る予定。今の JSON ブリッジは C 構造体に書き換えず、新しい C ABI を別の成果物として足してからブリッジを消す（Windows の段階 5 の順番）。Windows の C ABI 設計書の E-1〜E-21、`struct_size` による版の管理、対応表（8.3）、`check_c_abi_contract.py` / `check_manual_c_examples.py` を引き継ぐ。OS ごとの違いは、スレッドモデルと、ホスト言語の寿命の規則（ARC、JNI のグローバル参照）になる見込み |
+| [android-c-abi](topics/android-c-abi/README.md) | アーキテクチャ | 企画中 | 2026-10-03 | Windows（windows-architecture）と同じ汎用 C ABI を 1 OS ずつ作る、その最初の Android の分。iOS / macOS は Android の後に別のトピックにする。Android には C のコードが無く、ネイティブ利用者に届かないロジックが Unity のブリッジに残っているので、先に `android_library` へ移してから NDK の C ABI（`android_library_capi`）を足し、`unity_android_plugin` を消す。未決事項 D-1〜D-17 のうち 11 個を決定済み。残りの 6 個は C ABI の設計で決める。ツールチェーンの移行（Kotlin 2.4.20、AGP 9.3.3、compileSdk 36）もこのトピックで行う |
 | [windows-architecture](topics/windows-architecture/README.md) | アーキテクチャ | 進行中 | 2026-10-03 | Windows ライブラリの構成再編と、C++ API（`WindowsLibrary`）/ 汎用 C ABI（`WindowsLibraryCApi`）への分離。段階 0〜6 と、その後に見つかった 4 件の対処は完了し、1.12.0 でリリースした（2026-10-03）。活性化の自動テストと段階 7（CI）が残り（README 5.3） |
 
 状態の語彙: 未着手 / 企画中 / 設計済 / 進行中 / 一部対応 / 完了

@@ -44,7 +44,7 @@ Clipboard タスク（NTKIT-14）で、設計 DoD に次の 2 条件が同時に
 |---|---|---|---|---|---|
 | `swift6-migration` / **Bridge callback actor-boundary** | ios / macos の Unity Bridge | `nonisolated` + `Task { @MainActor }` | **案 C 決定済み**（6 章）。Clipboard へ適用済み、他 3 機能は未適用 | - | 未採番 |
 | `swift6-migration` | ios / macos | Swift 5.0 言語モード | Swift 6 | 暫定観測値のみ（4.2） | 未採番 |
-| `android-toolchain-migration` | android | Kotlin 2.0.21 / AGP 8.9.1 | **未決定** | 未着手（7 章） | 未採番 |
+| `android-toolchain-migration` | android | Kotlin 2.0.21 / AGP 8.9.1 | **`android-c-abi` に統合**（2026-10-03。移行先は `artifact/topics/android-c-abi/README.md` 8.3: Kotlin 2.4.20、AGP 9.3.3、compileSdk 36） | 同トピックの段階 0f | NTKIT-17 |
 | `windows-toolchain-migration` | windows | C++17（`stdcpp17`）/ Toolset v143 | **未決定** | 未着手（7 章） | 未採番 |
 
 3 トピックは互いに依存しない。並行・順次のどちらでも進められる。
