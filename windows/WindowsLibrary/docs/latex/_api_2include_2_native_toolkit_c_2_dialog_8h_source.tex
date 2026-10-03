@@ -1,0 +1,143 @@
+\doxysection{Dialog.\+h}
+\hypertarget{_api_2include_2_native_toolkit_c_2_dialog_8h_source}{}\label{_api_2include_2_native_toolkit_c_2_dialog_8h_source}\index{WindowsLibraryCApi/include/NativeToolkitC/Dialog.h@{WindowsLibraryCApi/include/NativeToolkitC/Dialog.h}}
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ NATIVETOOLKITC\_DIALOG\_H}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ NATIVETOOLKITC\_DIALOG\_H}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{_common_8h}{NativeToolkitC/Common.h}}"{}}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00018\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#pragma\ pack(push,\ 8)}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00024\ \textcolor{keyword}{typedef}\ int32\_t\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\_dialog\_error}};}
+\DoxyCodeLine{00025\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00026\ \ \ \ \ NTK\_DIALOG\_ERROR\_NONE\ =\ 0,}
+\DoxyCodeLine{00027\ \ \ \ \ NTK\_DIALOG\_ERROR\_INVALID\_PARAMETER\ =\ 1,}
+\DoxyCodeLine{00028\ \ \ \ \ NTK\_DIALOG\_ERROR\_CANCELED\ =\ 2,}
+\DoxyCodeLine{00029\ \ \ \ \ NTK\_DIALOG\_ERROR\_BUFFER\_TOO\_SMALL\ =\ 3,\ \ \ \textcolor{comment}{/*\ reserved,\ never\ returned\ */}}
+\DoxyCodeLine{00030\ \ \ \ \ NTK\_DIALOG\_ERROR\_SYSTEM\_ERROR\ =\ 4,}
+\DoxyCodeLine{00031\ \ \ \ \ NTK\_DIALOG\_ERROR\_UNKNOWN\ =\ 5}
+\DoxyCodeLine{00032\ \};}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_dialog\_alert\_buttons;}
+\DoxyCodeLine{00035\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00036\ \ \ \ \ NTK\_DIALOG\_ALERT\_BUTTONS\_OK\ =\ 0,}
+\DoxyCodeLine{00037\ \ \ \ \ NTK\_DIALOG\_ALERT\_BUTTONS\_OK\_CANCEL\ =\ 1,}
+\DoxyCodeLine{00038\ \ \ \ \ NTK\_DIALOG\_ALERT\_BUTTONS\_YES\_NO\ =\ 2,}
+\DoxyCodeLine{00039\ \ \ \ \ NTK\_DIALOG\_ALERT\_BUTTONS\_YES\_NO\_CANCEL\ =\ 3,}
+\DoxyCodeLine{00040\ \ \ \ \ NTK\_DIALOG\_ALERT\_BUTTONS\_RETRY\_CANCEL\ =\ 4,}
+\DoxyCodeLine{00041\ \ \ \ \ NTK\_DIALOG\_ALERT\_BUTTONS\_ABORT\_RETRY\_IGNORE\ =\ 5,}
+\DoxyCodeLine{00042\ \ \ \ \ NTK\_DIALOG\_ALERT\_BUTTONS\_CANCEL\_TRY\_CONTINUE\ =\ 6}
+\DoxyCodeLine{00043\ \};}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_dialog\_alert\_icon;}
+\DoxyCodeLine{00046\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00047\ \ \ \ \ NTK\_DIALOG\_ALERT\_ICON\_NONE\ =\ 0,}
+\DoxyCodeLine{00048\ \ \ \ \ NTK\_DIALOG\_ALERT\_ICON\_INFORMATION\ =\ 1,}
+\DoxyCodeLine{00049\ \ \ \ \ NTK\_DIALOG\_ALERT\_ICON\_WARNING\ =\ 2,}
+\DoxyCodeLine{00050\ \ \ \ \ NTK\_DIALOG\_ALERT\_ICON\_ERROR\ =\ 3,}
+\DoxyCodeLine{00051\ \ \ \ \ NTK\_DIALOG\_ALERT\_ICON\_QUESTION\ =\ 4}
+\DoxyCodeLine{00052\ \};}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_dialog\_alert\_default\_button;}
+\DoxyCodeLine{00055\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00056\ \ \ \ \ NTK\_DIALOG\_ALERT\_DEFAULT\_BUTTON\_FIRST\ =\ 0,}
+\DoxyCodeLine{00057\ \ \ \ \ NTK\_DIALOG\_ALERT\_DEFAULT\_BUTTON\_SECOND\ =\ 1,}
+\DoxyCodeLine{00058\ \ \ \ \ NTK\_DIALOG\_ALERT\_DEFAULT\_BUTTON\_THIRD\ =\ 2,}
+\DoxyCodeLine{00059\ \ \ \ \ NTK\_DIALOG\_ALERT\_DEFAULT\_BUTTON\_FOURTH\ =\ 3}
+\DoxyCodeLine{00060\ \};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{keyword}{typedef}\ int32\_t\ ntk\_dialog\_alert\_result;}
+\DoxyCodeLine{00063\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00064\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_OK\ =\ 0,}
+\DoxyCodeLine{00065\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_CANCEL\ =\ 1,}
+\DoxyCodeLine{00066\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_YES\ =\ 2,}
+\DoxyCodeLine{00067\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_NO\ =\ 3,}
+\DoxyCodeLine{00068\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_RETRY\ =\ 4,}
+\DoxyCodeLine{00069\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_ABORT\ =\ 5,}
+\DoxyCodeLine{00070\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_IGNORE\ =\ 6,}
+\DoxyCodeLine{00071\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_TRY\_AGAIN\ =\ 7,}
+\DoxyCodeLine{00072\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_CONTINUE\ =\ 8,}
+\DoxyCodeLine{00073\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_CLOSE\ =\ 9,}
+\DoxyCodeLine{00074\ \ \ \ \ NTK\_DIALOG\_ALERT\_RESULT\_HELP\ =\ 10}
+\DoxyCodeLine{00075\ \};}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00081\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__dialog__filter}{ntk\_dialog\_filter}}\ \{}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__filter_a1ea9f57f36e13f097f8c5713389ed781}{name}};\ \ \ \ \ \ \ }
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__filter_a5650eea3d93e976d894ac19e0e99c770}{patterns}};\ \ \ }
+\DoxyCodeLine{00084\ \}\ \mbox{\hyperlink{structntk__dialog__filter}{ntk\_dialog\_filter}};}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00087\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__dialog__alert__request}{ntk\_dialog\_alert\_request}}\ \{}
+\DoxyCodeLine{00088\ \ \ \ \ uint32\_t\ \ \ \ struct\_size;}
+\DoxyCodeLine{00089\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__dialog__alert__request_a699e529446d4df365a68ec52f560602f}{reserved0}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__alert__request_a6987f115439869643f8b390be3c0cdb2}{title}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__alert__request_a422c5ab7b8fab22bf087dbab1decfc43}{message}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00092\ \ \ \ \ ntk\_dialog\_alert\_buttons\ \ \ \ \ \ \ \ buttons;}
+\DoxyCodeLine{00093\ \ \ \ \ ntk\_dialog\_alert\_icon\ \ \ \ \ \ \ \ \ \ \ icon;}
+\DoxyCodeLine{00094\ \ \ \ \ ntk\_dialog\_alert\_default\_button\ default\_button;}
+\DoxyCodeLine{00095\ \ \ \ \ int32\_t\ \ \ \ \ \mbox{\hyperlink{structntk__dialog__alert__request_a70d13c8b86774df36b0012826eff8359}{top\_most}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00096\ \ \ \ \ int32\_t\ \ \ \ \ \mbox{\hyperlink{structntk__dialog__alert__request_ab0709697aee8187662871b8e25eccc39}{show\_help\_button}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00097\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__dialog__alert__request_a1c30579aceee90afcc18d5514811af8c}{reserved1}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \mbox{\hyperlink{structntk__dialog__alert__request_a10fefebbb7affaa35b23b0a0c7786923}{owner}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00099\ \}\ \mbox{\hyperlink{structntk__dialog__alert__request}{ntk\_dialog\_alert\_request}};}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00102\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__dialog__file__request}{ntk\_dialog\_file\_request}}\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ uint32\_t\ \ \ \ struct\_size;}
+\DoxyCodeLine{00104\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__dialog__file__request_ad6ac786bb13cc1b82eb8c31a3932bae4}{reserved0}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__file__request_ae4856958bb5474fb7c382c8dd5030fba}{title}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00106\ \ \ \ \ int32\_t\ \ \ \ \ \mbox{\hyperlink{structntk__dialog__file__request_adb68e88e715526bedf5af2ee2cc57e5e}{allow\_missing\_file}};\ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00107\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__dialog__file__request_a44d7f79f83f19d625b389610f43ad579}{reserved1}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \mbox{\hyperlink{structntk__dialog__file__request_afc08b969e1d75f3fa7d4b0c17c55c731}{owner}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00109\ \}\ \mbox{\hyperlink{structntk__dialog__file__request}{ntk\_dialog\_file\_request}};}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00112\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__dialog__save__file__request}{ntk\_dialog\_save\_file\_request}}\ \{}
+\DoxyCodeLine{00113\ \ \ \ \ uint32\_t\ \ \ \ struct\_size;}
+\DoxyCodeLine{00114\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__dialog__save__file__request_a401f287e419103ee9cd9169faa228249}{reserved0}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__save__file__request_a0932cd614611446bffdc1a57799d3eaa}{title}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__save__file__request_a789874a884f0b4fa5346a2cc93af03bf}{default\_extension}};\ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00117\ \ \ \ \ int32\_t\ \ \ \ \ \mbox{\hyperlink{structntk__dialog__save__file__request_a4fd0ecd3c5ae40a86e842f46557eed21}{skip\_overwrite\_prompt}};\ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00118\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__dialog__save__file__request_ab98e3926ca185305578a4bb50bb1bdbe}{reserved1}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \mbox{\hyperlink{structntk__dialog__save__file__request_ab44253831094064f621aee66437a09ae}{owner}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00120\ \}\ \mbox{\hyperlink{structntk__dialog__save__file__request}{ntk\_dialog\_save\_file\_request}};}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00123\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structntk__dialog__folder__request}{ntk\_dialog\_folder\_request}}\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ uint32\_t\ \ \ \ struct\_size;}
+\DoxyCodeLine{00125\ \ \ \ \ uint32\_t\ \ \ \ \mbox{\hyperlink{structntk__dialog__folder__request_a33a1d200bbafdd6ba00220adf8369d94}{reserved0}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structntk__dialog__folder__request_a7cbf187a1f8020281ec7e046a5a84433}{title}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \mbox{\hyperlink{structntk__dialog__folder__request_a3d18fac3531792f909c564b32c4d1660}{owner}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00128\ \}\ \mbox{\hyperlink{structntk__dialog__folder__request}{ntk\_dialog\_folder\_request}};}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00138\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\_dialog\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_ad0b5446e68b75e9cffeddf84617bc121}{ntk\_dialog\_show\_alert}}(}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__alert__request}{ntk\_dialog\_alert\_request}}*\ request,\ ntk\_dialog\_alert\_result*\ out\_result);}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00150\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\_dialog\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a89072c1f5a9fed5b7015d22fd6e6bb37}{ntk\_dialog\_show\_open\_file}}(}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__file__request}{ntk\_dialog\_file\_request}}*\ request,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__filter}{ntk\_dialog\_filter}}*\ filters,\ \textcolor{keywordtype}{size\_t}\ filter\_count,}
+\DoxyCodeLine{00152\ \ \ \ \ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}**\ out\_path);}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00155\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\_dialog\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a2194ebcb831032f963d69e0a6b39911d}{ntk\_dialog\_show\_open\_files}}(}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__file__request}{ntk\_dialog\_file\_request}}*\ request,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__filter}{ntk\_dialog\_filter}}*\ filters,\ \textcolor{keywordtype}{size\_t}\ filter\_count,}
+\DoxyCodeLine{00157\ \ \ \ \ \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}**\ out\_paths);}
+\DoxyCodeLine{00158\ }
+\DoxyCodeLine{00160\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\_dialog\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_ab91dec7f40f27e4ace838a128b12bf17}{ntk\_dialog\_show\_save\_file}}(}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__save__file__request}{ntk\_dialog\_save\_file\_request}}*\ request,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__filter}{ntk\_dialog\_filter}}*\ filters,\ \textcolor{keywordtype}{size\_t}\ filter\_count,}
+\DoxyCodeLine{00162\ \ \ \ \ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}**\ out\_path);}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00165\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\_dialog\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a3675d03d0b691b661df67be0ef28cce5}{ntk\_dialog\_show\_pick\_folder}}(}
+\DoxyCodeLine{00166\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__folder__request}{ntk\_dialog\_folder\_request}}*\ request,\ \mbox{\hyperlink{_common_8h_a631dd86bfa069f6344c0c694023f84ba}{ntk\_string}}**\ out\_path);}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00169\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a90f289879937e22ca33f458a9cbd7c21}{ntk\_dialog\_error}}\ NTK\_CALL\ \mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_dialog_8h_a49cf4298881a170b111869bdb745103d}{ntk\_dialog\_show\_pick\_folders}}(}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structntk__dialog__folder__request}{ntk\_dialog\_folder\_request}}*\ request,\ \mbox{\hyperlink{_common_8h_a30dd287e97dccfee61b44fde93575812}{ntk\_string\_list}}**\ out\_paths);}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \textcolor{preprocessor}{\#pragma\ pack(pop)}}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00175\ \}}
+\DoxyCodeLine{00176\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00177\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

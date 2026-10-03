@@ -15,17 +15,35 @@ public sealed class FlaUiSession : IUiSession
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan ExitTimeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
+    private const string DialogWindowClass = "#32770";
 
     private readonly Application _application;
     private readonly UIA3Automation _automation;
     private readonly Window _window;
+    private readonly FlaUiNotificationCenter _notificationCenter;
 
     private FlaUiSession(Application application, UIA3Automation automation, Window window)
     {
         _application = application;
         _automation = automation;
         _window = window;
+
+        var desktop = automation.GetDesktop();
+        _notificationCenter = new FlaUiNotificationCenter(desktop);
+        Banners = new FlaUiBanners(desktop);
+        Badge = new FlaUiTaskbarBadge(desktop);
+        OsSettings = new FlaUiOsSettings(_notificationCenter);
     }
+
+    public INotificationCenter NotificationCenter => _notificationCenter;
+
+    public IBanners Banners { get; }
+
+    public ITaskbarBadge Badge { get; }
+
+    public IOsSettings OsSettings { get; }
+
+    public IExternalClipboard ExternalClipboard { get; } = new Win32ExternalClipboard();
 
     /// <summary>Launches the packaged sample app and waits for its main window.</summary>
     public static FlaUiSession Launch(TimeSpan? windowTimeout = null)
@@ -127,6 +145,29 @@ public sealed class FlaUiSession : IUiSession
         return last;
     }
 
+    public IUiDialog WaitForDialog(TimeSpan? timeout = null)
+    {
+        // The process id is read from the main window: for a packaged app it is
+        // the process that actually owns the windows.
+        var processId = _window.Properties.ProcessId.ValueOrDefault;
+
+        var found = Retry.While(
+            () => Native.FindVisibleWindow(processId, DialogWindowClass),
+            handle => handle == IntPtr.Zero,
+            timeout ?? DefaultTimeout,
+            PollInterval,
+            throwOnTimeout: false);
+
+        if (!found.Success || found.Result == IntPtr.Zero)
+        {
+            throw new InvalidOperationException(
+                $"No modal dialog (window class {DialogWindowClass}) appeared within " +
+                $"{(timeout ?? DefaultTimeout).TotalSeconds:0} seconds.");
+        }
+
+        return new FlaUiDialog(_automation.FromHandle(found.Result), found.Result);
+    }
+
     /// <summary>
     /// Watches the element for <paramref name="window"/> and reports whether the
     /// predicate stayed false the whole time.
@@ -163,6 +204,17 @@ public sealed class FlaUiSession : IUiSession
     {
         try
         {
+            // A notification centre left open would take the next test's Win+N
+            // as "close" (it toggles).
+            try
+            {
+                _notificationCenter.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"UI test cleanup: could not close the notification centre. {ex.Message}");
+            }
+
             try
             {
                 _application.Close();
@@ -239,6 +291,90 @@ public sealed class FlaUiSession : IUiSession
             }
 
             _element.Click();
+        }
+
+        public void Click()
+        {
+            FlaUiHelpers.WaitUntilStable(_element);
+            _element.Click();
+        }
+    }
+
+    private sealed class FlaUiDialog : IUiDialog
+    {
+        private readonly AutomationElement _dialog;
+        private readonly IntPtr _handle;
+
+        public FlaUiDialog(AutomationElement dialog, IntPtr handle)
+        {
+            _dialog = dialog;
+            _handle = handle;
+        }
+
+        public string Title => _dialog.Name ?? string.Empty;
+
+        public void SetText(string controlId, string text)
+        {
+            var edit = Find(controlId, cf => cf.ByControlType(ControlType.Edit));
+            if (!edit.Patterns.Value.IsSupported)
+            {
+                throw new InvalidOperationException($"Control '{controlId}' in the dialog does not accept text.");
+            }
+            edit.Patterns.Value.Pattern.SetValue(text);
+        }
+
+        public void Press(string controlId)
+        {
+            var button = Find(controlId, cf =>
+                cf.ByControlType(ControlType.Button).Or(cf.ByControlType(ControlType.SplitButton)));
+            button.Patterns.Invoke.Pattern.Invoke();
+        }
+
+        public bool WaitUntilClosed(TimeSpan? timeout = null)
+        {
+            var result = Retry.WhileTrue(
+                () => Native.IsVisibleWindow(_handle),
+                timeout ?? DefaultTimeout,
+                PollInterval,
+                throwOnTimeout: false);
+            return result.Success;
+        }
+
+        public IUiDialog WaitForNextDialog(TimeSpan? timeout = null)
+        {
+            var processId = _dialog.Properties.ProcessId.ValueOrDefault;
+            var found = Retry.While(
+                () => Native.FindVisibleWindow(processId, DialogWindowClass, _handle),
+                handle => handle == IntPtr.Zero,
+                timeout ?? DefaultTimeout,
+                PollInterval,
+                throwOnTimeout: false);
+
+            if (!found.Success || found.Result == IntPtr.Zero)
+            {
+                throw new InvalidOperationException(
+                    $"No other dialog appeared over '{Title}' within " +
+                    $"{(timeout ?? DefaultTimeout).TotalSeconds:0} seconds.");
+            }
+
+            return new FlaUiDialog(_dialog.Automation.FromHandle(found.Result), found.Result);
+        }
+
+        private AutomationElement Find(
+            string controlId,
+            Func<FlaUI.Core.Conditions.ConditionFactory, FlaUI.Core.Conditions.ConditionBase> kind)
+        {
+            var found = Retry.WhileNull(
+                () => _dialog.FindFirstDescendant(cf => cf.ByAutomationId(controlId).And(kind(cf))),
+                DefaultTimeout,
+                PollInterval,
+                throwOnTimeout: false);
+
+            return found.Success && found.Result is not null
+                ? found.Result
+                : throw new InvalidOperationException(
+                    $"No control with id '{controlId}' in the dialog '{Title}' within " +
+                    $"{DefaultTimeout.TotalSeconds:0} seconds.");
         }
     }
 }

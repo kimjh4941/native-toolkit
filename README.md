@@ -5,7 +5,7 @@ A cross-platform toolkit that bundles native platform features for native apps.
 - Android: `DialogFragment` + notification + share + clipboard-based native API
 - iOS: `UIAlertController` + notification + share + clipboard-based native API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + notification + share + clipboard-based native API
-- Windows: Win32 common dialogs, toast notifications and clipboard exposed as C-style APIs
+- Windows: Win32 common dialogs, toast notifications and clipboard as a C++ API, with a C ABI over it
 
 > Goal: make it easy for native apps to use each OS's standard features with a consistent calling pattern.
 
@@ -20,10 +20,10 @@ Other languages:
 2. For integration steps, read `docs/<version>/manual/index.md`.
 3. For API references, use `docs/<version>/` (or `docs/latest/`).
 
-Example (`1.11.0`):
+Example (`1.12.0`):
 
-- Manual: `docs/1.11.0/manual/index.md`
-- Published docs: `docs/1.11.0/manual/`
+- Manual: `docs/1.12.0/manual/index.md`
+- Published docs: `docs/1.12.0/manual/`
 
 ## Detailed Documentation
 
@@ -33,26 +33,28 @@ Example (`1.11.0`):
 
 ## Version
 
-- Current release: 1.11.0
+- Current release: 1.12.0
 - Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## Supported OS (1.11.0)
+## Supported OS (1.12.0)
 
 - Android 12+
 - iOS 18+
 - Windows 11+
 - macOS 15+
 
-## Distributables (1.11.0)
+## Distributables (1.12.0)
 
-- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
+- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
 - iOS:
-  - `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.11.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.12.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
 - macOS:
-  - `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.11.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
+  - `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.12.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+- Windows:
+  - `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg` (C++ API)
+  - `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg` (C ABI)
 
 ## Modules (overview)
 
@@ -91,15 +93,16 @@ Example (`1.11.0`):
 
 ### Windows
 
-- `windows/WindowsLibrary`
-  - C-exported APIs (e.g., `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`)
-  - Unity C# calls `WindowsLibrary.dll` directly through P/Invoke
-  - Headers: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+- `windows/WindowsLibrary` (`WindowsLibrary.vcxproj`, a static library)
+  - The C++ API: `NativeToolkit::Dialog`, `NativeToolkit::Notification`, `NativeToolkit::Clipboard`
+  - Headers: `windows/WindowsLibrary/include/NativeToolkit/`
+  - A native C++ app links it through `windows/WindowsLibrary/build/NativeToolkit.WindowsLibrary.props`
   - Docs: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
-- `windows/UnityWindowsPlugin`
-  - Legacy minimal stub; it is not used by current integrations
-  - New Windows features and Unity bridge APIs belong in `WindowsLibrary`, not this project
+- `windows/WindowsLibraryCApi` (a DLL, `NativeToolkitC.dll`)
+  - The general-purpose C ABI over the C++ API: `ntk_*` functions, UTF-8 strings, opaque handles
+  - Headers: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
+  - For C#, Rust, Python and other languages; Unity calls it through P/Invoke (in `unity-native-plugin`)
 
 ## Repository layout
 
@@ -122,8 +125,8 @@ mac/
   generate_docc.sh
 
 windows/
-  WindowsLibrary/
-  UnityWindowsPlugin/       # Legacy unused stub
+  WindowsLibrary/           # C++ API (static library)
+  WindowsLibraryCApi/       # C ABI (DLL)
   WindowsLibraryExample/
 
 manual/
@@ -152,8 +155,8 @@ docs/
 # macOS XCFramework (all modules)
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
 
-# Windows DLL / NuGet
-./scripts/build_windows_library_dll.ps1 -c release -m WindowsLibrary -v 1.3.0 -Package
+# Windows C ABI (DLL, import library and headers)
+./scripts/build_windows_library_dll.ps1 -c release -v 2.0.0
 ```
 
 ## API docs generation
@@ -191,13 +194,13 @@ doxygen Doxyfile
 Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
 ```bash
-./scripts/publish_docs.sh 1.11.0
+./scripts/publish_docs.sh 1.12.0
 ```
 
 Copy only (skip generation):
 
 ```bash
-./scripts/publish_docs.sh 1.11.0 --skip-build
+./scripts/publish_docs.sh 1.12.0 --skip-build
 ```
 
 Manual source path is `manual/<version>/`.
@@ -209,7 +212,7 @@ For native integration, start from the core library docs per platform.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+- Windows: `windows/WindowsLibrary/include/NativeToolkit/` (C++ API), `windows/WindowsLibraryCApi/include/NativeToolkitC/` (C ABI)
 
 ## Unity Native Toolkit (Unity 6)
 

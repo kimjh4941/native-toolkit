@@ -21,6 +21,12 @@ public static class AppIdentity
     /// <summary>Application/@Id from Package.appxmanifest.</summary>
     public const string ApplicationId = "App";
 
+    /// <summary>
+    /// uap:VisualElements/@DisplayName from Package.appxmanifest: the name the
+    /// shell shows on the app's notifications and its taskbar button.
+    /// </summary>
+    public const string DisplayName = "Native Toolkit Example";
+
     public static string ResolveAumid()
     {
         var familyName = QueryPackageFamilyName();

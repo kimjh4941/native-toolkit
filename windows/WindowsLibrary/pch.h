@@ -1,9 +1,13 @@
 ﻿#ifndef PCH_H
 #define PCH_H
 
-#include "framework.h"          // MFC (afxwin.h, afxext.h etc.) must come first
+#include "targetver.h"
 
-// WinRT base — must follow MFC headers
+// Win32 — must precede winrt/base.h. Not WIN32_LEAN_AND_MEAN: the dialogs need
+// the common dialog and COM declarations that the full windows.h brings in.
+#include <windows.h>
+
+// WinRT base
 #include <winrt/base.h>
 
 // Windows.Foundation — required for IAsyncOperation::get() / Uri
@@ -25,9 +29,8 @@
 // Launcher — open the system notification settings page
 #include <winrt/Windows.System.h>
 
-// Clipboard (history). Only WindowsClipboardHistoryWinRt.cpp actually co_awaits
-// Clipboard::GetHistoryItemsAsync(); the type is still safe to see from C++17
-// translation units (no coroutine syntax here).
+// Clipboard (history). Only WindowsClipboardHistoryWinRt.cpp co_awaits
+// Clipboard::GetHistoryItemsAsync().
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 
 // NOTE: WinAppSDK Bootstrap/Deployment headers (MddBootstrap.h,

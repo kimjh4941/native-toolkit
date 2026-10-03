@@ -1,9 +1,4 @@
 var searchData=
 [
-  ['getallnotifications_0',['getAllNotifications',['../_windows_notification_manager_8h.html#a9ceb94d7d307716abd1c494e1142072c',1,'WindowsNotificationManager.cpp']]],
-  ['getclipboardformats_1',['getClipboardFormats',['../_windows_clipboard_manager_8h.html#ab978d3e5e9ceeb564b8aa8b54c3ba6f5',1,'WindowsClipboardManager.cpp']]],
-  ['getclipboardhistory_2',['getClipboardHistory',['../_windows_clipboard_manager_8h.html#a7cc2a98b1c05ca5cc76a2d41ab3f0200',1,'WindowsClipboardManager.cpp']]],
-  ['getclipboardhistoryavailability_3',['getClipboardHistoryAvailability',['../_windows_clipboard_manager_8h.html#a22352ba8722a0fe96ed0c21ab63cea34',1,'WindowsClipboardManager.cpp']]],
-  ['getnotificationsetting_4',['getNotificationSetting',['../_windows_notification_manager_8h.html#a26c5e330ede5cb4bc7338f3074a10cfb',1,'WindowsNotificationManager.cpp']]],
-  ['getpreferredclipboardformat_5',['getPreferredClipboardFormat',['../_windows_clipboard_manager_8h.html#afbf01822ffe7139590f089075121752d',1,'WindowsClipboardManager.cpp']]]
+  ['error_0',['error',['../class_native_toolkit_1_1_result.html#a54e81884c4db5a7ffa27140457d63010',1,'NativeToolkit::Result::error() &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a34018e137fd48a8ce837e69a9ba5d66e',1,'NativeToolkit::Result::error() const &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a843d8dd69a247114dd6aa8a67b04b8cc',1,'NativeToolkit::Result::error() &amp;&amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#ab582f1340a0b7ec85628da8d16360bfb',1,'NativeToolkit::Result&lt; void, E &gt;::error() &amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#af014088fef928bd62b585e14aa5d956d',1,'NativeToolkit::Result&lt; void, E &gt;::error() const &amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#ae7741b7b021a83c9729471885267e4b1',1,'NativeToolkit::Result&lt; void, E &gt;::error() &amp;&amp;noexcept']]]
 ];

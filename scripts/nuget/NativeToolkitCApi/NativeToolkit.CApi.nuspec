@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>NativeToolkit.CApi</id>
+    <!-- scripts/build_windows_library_dll.ps1 passes the real version to nuget pack. -->
+    <version>2.0.0</version>
+    <authors>Kim JongHyun</authors>
+    <description>Native Windows toolkit C ABI (ntk_* functions): Win32 common dialogs, Windows App SDK notifications and the clipboard, for C, C++ and any language that can call a C DLL. x64 DLL with its import library and C99 headers. The C++ API of the same library is the NativeToolkit package.</description>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <dependencies>
+      <!-- The DLL imports Microsoft.WindowsAppRuntime.Bootstrap.dll, which has
+           to sit next to it at run time. -->
+      <dependency id="Microsoft.WindowsAppSDK" version="1.7.250513003" />
+    </dependencies>
+  </metadata>
+
+  <files>
+    <!-- MSBuild hooks (include/import library, and the DLL copy) -->
+    <file src="build\native\NativeToolkit.CApi.props" target="build\native\NativeToolkit.CApi.props" />
+    <file src="build\native\NativeToolkit.CApi.targets" target="build\native\NativeToolkit.CApi.targets" />
+
+    <!-- Public headers, included as <NativeToolkitC/Clipboard.h> -->
+    <file src="include\**\*.h" target="build\native\include" />
+
+    <!-- Binaries (x64) -->
+    <file src="runtimes\win-x64\native\NativeToolkitC.dll" target="runtimes\win-x64\native\NativeToolkitC.dll" />
+    <file src="runtimes\win-x64\native\NativeToolkitC.lib" target="runtimes\win-x64\native\NativeToolkitC.lib" />
+  </files>
+</package>

@@ -17,7 +17,7 @@ import MacLibrary
 /// Handler parameters are `@Sendable`. The façade is `nonisolated` and passes handlers into
 /// `Task { @MainActor }`, which without the annotation is a strict-concurrency violation. The
 /// blocks the Objective-C bridge passes capture nothing but C function pointers, so the
-/// annotation states a fact rather than papering over one (`MIGRATION.md` section 6, plan C).
+/// annotation states a fact rather than papering over one (`artifact/topics/migration/README.md` section 6, plan C).
 /// `@Sendable` says a closure can be moved safely; it does not pin where it runs, so main
 /// thread delivery is guaranteed separately by routing every path through the hop below.
 ///

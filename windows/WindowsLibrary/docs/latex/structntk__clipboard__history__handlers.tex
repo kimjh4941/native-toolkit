@@ -1,0 +1,50 @@
+\doxysection{ntk\+\_\+clipboard\+\_\+history\+\_\+handlers Struct Reference}
+\hypertarget{structntk__clipboard__history__handlers}{}\label{structntk__clipboard__history__handlers}\index{ntk\_clipboard\_history\_handlers@{ntk\_clipboard\_history\_handlers}}
+
+
+{\ttfamily \#include $<$Clipboard.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{structntk__clipboard__history__handlers_adc85c763bf3b288f735fea86b5df8e3c}\label{structntk__clipboard__history__handlers_adc85c763bf3b288f735fea86b5df8e3c} 
+uint32\+\_\+t {\bfseries struct\+\_\+size}
+\item 
+uint32\+\_\+t \mbox{\hyperlink{structntk__clipboard__history__handlers_ab2d82e725ce4d3f2a72f34c172a4b97e}{reserved0}}
+\item 
+\Hypertarget{structntk__clipboard__history__handlers_a90ed5ee2fc9c04acee75d4ca2d168eea}\label{structntk__clipboard__history__handlers_a90ed5ee2fc9c04acee75d4ca2d168eea} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_a703160c0ecbd2ff91656b29e789f9a3c}{ntk\+\_\+clipboard\+\_\+history\+\_\+changed\+\_\+fn}} {\bfseries on\+\_\+history\+\_\+changed}
+\item 
+\Hypertarget{structntk__clipboard__history__handlers_afbb561f5f0d202737522390eb89f82f7}\label{structntk__clipboard__history__handlers_afbb561f5f0d202737522390eb89f82f7} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad}{ntk\+\_\+clipboard\+\_\+flag\+\_\+changed\+\_\+fn}} {\bfseries on\+\_\+history\+\_\+enabled\+\_\+changed}
+\item 
+\Hypertarget{structntk__clipboard__history__handlers_ab36b45502a448b29ce88640cbcd0ace5}\label{structntk__clipboard__history__handlers_ab36b45502a448b29ce88640cbcd0ace5} 
+\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h_ac3e6be26c42d03f32ca361dc5eac3fad}{ntk\+\_\+clipboard\+\_\+flag\+\_\+changed\+\_\+fn}} {\bfseries on\+\_\+roaming\+\_\+enabled\+\_\+changed}
+\item 
+void \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structntk__clipboard__history__handlers_aa9ab5a12010abb007a372aebd6aa8a23}{user\+\_\+data}}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The history handlers. sizeof 40. Any of the three may be NULL. 
+
+\label{doc-variable-members}
+\Hypertarget{structntk__clipboard__history__handlers_doc-variable-members}
+\doxysubsection{Member Data Documentation}
+\Hypertarget{structntk__clipboard__history__handlers_ab2d82e725ce4d3f2a72f34c172a4b97e}\index{ntk\_clipboard\_history\_handlers@{ntk\_clipboard\_history\_handlers}!reserved0@{reserved0}}
+\index{reserved0@{reserved0}!ntk\_clipboard\_history\_handlers@{ntk\_clipboard\_history\_handlers}}
+\doxysubsubsection{\texorpdfstring{reserved0}{reserved0}}
+{\footnotesize\ttfamily \label{structntk__clipboard__history__handlers_ab2d82e725ce4d3f2a72f34c172a4b97e} 
+uint32\+\_\+t ntk\+\_\+clipboard\+\_\+history\+\_\+handlers\+::reserved0}
+
+Must be 0. \Hypertarget{structntk__clipboard__history__handlers_aa9ab5a12010abb007a372aebd6aa8a23}\index{ntk\_clipboard\_history\_handlers@{ntk\_clipboard\_history\_handlers}!user\_data@{user\_data}}
+\index{user\_data@{user\_data}!ntk\_clipboard\_history\_handlers@{ntk\_clipboard\_history\_handlers}}
+\doxysubsubsection{\texorpdfstring{user\_data}{user\_data}}
+{\footnotesize\ttfamily \label{structntk__clipboard__history__handlers_aa9ab5a12010abb007a372aebd6aa8a23} 
+void\texorpdfstring{$\ast$}{*} ntk\+\_\+clipboard\+\_\+history\+\_\+handlers\+::user\+\_\+data}
+
+Passed to all three. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library\+CApi/include/\+Native\+Toolkit\+C/\mbox{\hyperlink{_api_2include_2_native_toolkit_c_2_clipboard_8h}{Clipboard.\+h}}\end{DoxyCompactItemize}

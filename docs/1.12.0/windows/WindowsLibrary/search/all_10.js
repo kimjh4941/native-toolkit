@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['savefilerequest_0',['SaveFileRequest',['../struct_native_toolkit_1_1_dialog_1_1_save_file_request.html',1,'NativeToolkit::Dialog']]],
+  ['scenario_1',['Scenario',['../include_2_native_toolkit_2_notification_8h.html#a6902df659de12919a0b5b8fbf8f67b7d',1,'NativeToolkit::Notification']]],
+  ['schedule_2',['Schedule',['../class_native_toolkit_1_1_notification_1_1_manager.html#a10fd3991fe908f4ed28b931d48c38f3e',1,'NativeToolkit::Notification::Manager']]],
+  ['second_3',['Second',['../include_2_native_toolkit_2_dialog_8h.html#a00b46e661631c5ec37e4f0b4be46adfaac22cf8376b1893dcfcef0649fe1a7d87',1,'NativeToolkit::Dialog']]],
+  ['sequence_5fnumber_4',['sequence_number',['../structntk__notification__progress__update.html#a3f854340494467d63a0fb93b448b4ef0',1,'ntk_notification_progress_update']]],
+  ['sequencenumber_5',['sequenceNumber',['../struct_native_toolkit_1_1_notification_1_1_progress_update.html#a2271ff994bbac2a4f915c530938b9824',1,'NativeToolkit::Notification::ProgressUpdate']]],
+  ['session_6',['Session',['../class_native_toolkit_1_1_clipboard_1_1_session.html',1,'NativeToolkit::Clipboard']]],
+  ['sessionoptions_7',['SessionOptions',['../struct_native_toolkit_1_1_clipboard_1_1_session_options.html',1,'NativeToolkit::Clipboard']]],
+  ['setbadge_8',['SetBadge',['../class_native_toolkit_1_1_notification_1_1_manager.html#a4a6488796595936e218217ba8b223248',1,'NativeToolkit::Notification::Manager']]],
+  ['sethistoryhandlers_9',['SetHistoryHandlers',['../class_native_toolkit_1_1_clipboard_1_1_session.html#a68e65e2b94a1d1e3787138f206ed17ce',1,'NativeToolkit::Clipboard::Session']]],
+  ['setinvokedhandler_10',['SetInvokedHandler',['../class_native_toolkit_1_1_notification_1_1_manager.html#ac381e57accfaa3eda2f480632b2879c4',1,'NativeToolkit::Notification::Manager']]],
+  ['short_11',['Short',['../include_2_native_toolkit_2_notification_8h.html#ac0ed2b7fcb28a70a74276058c08305bda30bb747c98bccdd11b3f89e644c4d0ad',1,'NativeToolkit::Notification']]],
+  ['show_12',['Show',['../class_native_toolkit_1_1_notification_1_1_manager.html#ab5037530bfdf4829c7d72622b12ecb3d',1,'NativeToolkit::Notification::Manager']]],
+  ['show_5fhelp_5fbutton_13',['show_help_button',['../structntk__dialog__alert__request.html#ab0709697aee8187662871b8e25eccc39',1,'ntk_dialog_alert_request']]],
+  ['showalert_14',['ShowAlert',['../include_2_native_toolkit_2_dialog_8h.html#aee4fba34d4e502dee1c8d4ed634d6d7f',1,'NativeToolkit::Dialog']]],
+  ['showhelpbutton_15',['showHelpButton',['../struct_native_toolkit_1_1_dialog_1_1_alert_request.html#a263a5635e544e80d3f886c2727edd19e',1,'NativeToolkit::Dialog::AlertRequest']]],
+  ['showopenfile_16',['ShowOpenFile',['../include_2_native_toolkit_2_dialog_8h.html#aed9d0e367ecfc51ef47448e09758c57d',1,'NativeToolkit::Dialog']]],
+  ['showopenfiles_17',['ShowOpenFiles',['../include_2_native_toolkit_2_dialog_8h.html#a1e527c03dce1ca1d3aa4dbebed1dc979',1,'NativeToolkit::Dialog']]],
+  ['showpickfolder_18',['ShowPickFolder',['../include_2_native_toolkit_2_dialog_8h.html#a67f0a7d9f11fbde8bb5485d2b2be13e7',1,'NativeToolkit::Dialog']]],
+  ['showpickfolders_19',['ShowPickFolders',['../include_2_native_toolkit_2_dialog_8h.html#a13fac283ffcbb6706ad6457904bc841d',1,'NativeToolkit::Dialog']]],
+  ['showsavefile_20',['ShowSaveFile',['../include_2_native_toolkit_2_dialog_8h.html#a66ebc99781147e8c98a495b52c281708',1,'NativeToolkit::Dialog']]],
+  ['skip_5foverwrite_5fprompt_21',['skip_overwrite_prompt',['../structntk__dialog__save__file__request.html#a4fd0ecd3c5ae40a86e842f46557eed21',1,'ntk_dialog_save_file_request']]],
+  ['status_22',['status',['../struct_native_toolkit_1_1_notification_1_1_progress_spec.html#a2f7d920151bcd797783c1b89f6522c56',1,'NativeToolkit::Notification::ProgressSpec::status'],['../structntk__notification__progress__update.html#a90930418e64c5399e4c61f6b46780750',1,'ntk_notification_progress_update::status']]],
+  ['systemcode_23',['systemCode',['../struct_native_toolkit_1_1_failure.html#a918d729a6ac78061afbba863cc1db70c',1,'NativeToolkit::Failure']]],
+  ['systemerror_24',['SystemError',['../_error_8h.html#a44ba98a306944211dec13c86bcf760d4ab932b91f686c2aa588adfd9a407155ca',1,'NativeToolkit']]]
+];

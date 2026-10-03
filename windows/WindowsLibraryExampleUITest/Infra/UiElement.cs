@@ -18,4 +18,19 @@ public interface IUiElement
 
     /// <summary>Performs the element's primary action (Invoke pattern).</summary>
     void Invoke();
+
+    /// <summary>
+    /// Clicks the element with the mouse once it has stopped moving.
+    /// </summary>
+    /// <remarks>
+    /// Use this instead of <see cref="Invoke"/> for a button whose handler opens
+    /// a modal dialog. An Invoke stays in progress inside the app until the
+    /// dialog closes, and every further UI Automation call into the app then
+    /// times out, including the ones needed to operate the dialog. A click only
+    /// sends input and returns.
+    /// Waiting for the element to stop moving matters right after a page
+    /// navigation: the page slides in, and a position read mid-animation lands
+    /// the click on a different button.
+    /// </remarks>
+    void Click();
 }

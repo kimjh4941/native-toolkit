@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -22,16 +22,12 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <!-- The code under test (WindowsNotificationManager.cpp) includes the WindowsLibrary
-         pch.h which pulls MFC framework.h, so the test must be MFC-enabled too. -->
-    <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -54,11 +50,11 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WINDOWS;_DEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
       <!-- winrt/base.h + manually generated Microsoft.Windows.* projection headers -->
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\include;..\WindowsLibrary\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -73,10 +69,10 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WINDOWS;NDEBUG;WINDOWSLIBRARY_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/EHsc /bigobj %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\$(TargetPlatformVersion)\cppwinrt;$(GeneratedFilesDir);$(VCInstallDir)Auxiliary\VS\UnitTest\include;..\WindowsLibrary;..\WindowsLibrary\include;..\WindowsLibrary\src;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -90,20 +86,45 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="NotificationManagerTest.cpp" />
-    <ClCompile Include="ClipboardFormatsTest.cpp" />
-    <ClCompile Include="ClipboardHistoryCoordinatorTest.cpp" />
-    <ClCompile Include="ClipboardCoreTest.cpp" />
-    <ClCompile Include="ClipboardDeferredProviderTest.cpp" />
+    <ClCompile Include="Notification\NotificationManagerTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardFormatsTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardHistoryCoordinatorTest.cpp" />
+    <ClCompile Include="Dialog\DialogErrorDomainTest.cpp" />
+    <ClCompile Include="Dialog\DialogMappingTest.cpp" />
+    <ClCompile Include="Notification\NotificationBuilderTest.cpp" />
+    <ClCompile Include="Notification\NotificationPayloadTest.cpp" />
+    <ClCompile Include="Support\AppSdkRuntimeForTest.cpp" />
+    <ClCompile Include="Notification\NotificationApiTest.cpp" />
+    <ClCompile Include="Notification\NotificationValidationDomainTest.cpp" />
+    <ClCompile Include="PublicApi\PublicApiTypesTest.cpp" />
+    <ClCompile Include="PublicApi\PublicApiErrorMappingTest.cpp" />
+    <ClCompile Include="PublicApi\PublicApiHeaderSelfContainedTest.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Clipboard\ClipboardApiTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardApiCoreTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardApiDeferredTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardApiHistoryTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardCoreTest.cpp" />
+    <ClCompile Include="Clipboard\ClipboardDeferredProviderTest.cpp" />
     <!-- Production code under test, compiled directly into the test (internal class methods
          are not exported from the DLL). These include the WindowsLibrary pch.h directly. -->
-    <ClCompile Include="..\WindowsLibrary\common.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Common\common.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsNotificationManager.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Notification\WindowsNotificationManager.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClassicActivator.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Notification\WindowsNotificationApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+        <ClCompile Include="Support\ClipboardPayloadJson.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+        <ClCompile Include="Support\NotificationPayloadJson.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\WindowsLibrary\src\Notification\Data\WindowsClassicActivator.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <!-- Clipboard: only the WinRT-free, non-coroutine layers are linked into this test
@@ -111,21 +132,39 @@
          WindowsClipboardManager.cpp / WindowsClipboardWindow.cpp / WindowsClipboardHistoryWinRt.cpp
          are intentionally excluded - STA/message-pump and C++20-coroutine dependencies
          that MSTest's default host does not provide). -->
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardFormats.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Domain\WindowsClipboardFormats.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardCore.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardCore.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardDeferredProvider.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardDeferredProvider.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardLifecycle.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Application\WindowsClipboardLifecycle.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\WindowsLibrary\WindowsClipboardHistoryCoordinator.cpp">
+    <ClCompile Include="..\WindowsLibrary\src\Clipboard\Application\WindowsClipboardHistoryCoordinator.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+        <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardWindow.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+        <ClCompile Include="..\WindowsLibrary\src\Clipboard\Data\WindowsClipboardHistoryWinRt.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+        <ClCompile Include="..\WindowsLibrary\src\Clipboard\WindowsClipboardManager.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+        <ClCompile Include="..\WindowsLibrary\src\Clipboard\WindowsClipboardApi.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Support\AppSdkRuntimeForTest.h" />
+    <ClInclude Include="Support\ClipboardPayloadJson.h" />
+    <ClInclude Include="Support\NotificationPayloadJson.h" />
+    <ClInclude Include="Support\ClipboardSessionForTest.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -136,7 +175,7 @@
     with the Windows SDK cppwinrt.exe, matching the SDK's prebuilt winrt/base.h version.
     The AppSDK NuGet build integration is intentionally NOT imported here: this test only
     consumes the generated headers and the OS/SDK winrt headers, and pulling the aggregate
-    AppSDK package injects auto-initializer sources that clash with MFC (IUnknown ambiguity).
+    AppSDK package injects auto-initializer sources that the test does not need.
     Windows App SDK 1.7 ships all winmds in a single lib\uap10.0 folder.
   -->
   <Target Name="GenerateWindowsAppSDKProjection"
@@ -151,6 +190,20 @@
     <MakeDir Directories="$(GeneratedFilesDir)" />
     <Message Importance="high" Text="Generating Windows App SDK C++/WinRT projection into $(GeneratedFilesDir)" />
     <Exec Command="&quot;$(_SdkCppWinRT)&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppNotifications.Builder.winmd&quot; -in &quot;$(_AppSdkLib)\Microsoft.Windows.AppLifecycle.winmd&quot; -ref &quot;$(_AppSdkLib)&quot; -ref $(TargetPlatformVersion) -out &quot;$(GeneratedFilesDir).&quot;" />
+  </Target>
+  <!--
+    NotificationBuilderTest builds real toasts, so it needs the Windows App SDK
+    runtime. The bootstrap DLL is copied next to the test rather than linked:
+    the test loads it by an explicit path at run time, so a machine without the
+    App Runtime fails that one test class instead of failing to load the whole
+    test DLL.
+  -->
+  <Target Name="CopyAppSdkBootstrap"
+          AfterTargets="Build"
+          Condition="'$(Platform)'=='x64'">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.1.7.250513003\runtimes\win-x64\native\Microsoft.WindowsAppRuntime.Bootstrap.dll"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
   </Target>
   <ImportGroup Label="ExtensionTargets" />
 </Project>

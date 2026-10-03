@@ -1,0 +1,36 @@
+\doxysection{Native\+Toolkit\+::Notification\+::Progress\+Spec Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_notification_1_1_progress_spec}{}\label{struct_native_toolkit_1_1_notification_1_1_progress_spec}\index{NativeToolkit::Notification::ProgressSpec@{NativeToolkit::Notification::ProgressSpec}}
+
+
+The progress bar. JSON\+: progress.  
+
+
+
+
+{\ttfamily \#include $<$Notification.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_progress_spec_a0feca4479aa96088bb04880a43b0b83c}\label{struct_native_toolkit_1_1_notification_1_1_progress_spec_a0feca4479aa96088bb04880a43b0b83c} 
+std\+::optional$<$ std\+::wstring $>$ {\bfseries title}
+\begin{DoxyCompactList}\small\item\em JSON\+: progress.\+title. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_progress_spec_ae76906777739d44679e10fa768c1222b}\label{struct_native_toolkit_1_1_notification_1_1_progress_spec_ae76906777739d44679e10fa768c1222b} 
+double {\bfseries value} = 0.\+0
+\begin{DoxyCompactList}\small\item\em JSON\+: progress.\+value. Not range checked. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_progress_spec_af59036e30ef02e245fe4d622bdd7b779}\label{struct_native_toolkit_1_1_notification_1_1_progress_spec_af59036e30ef02e245fe4d622bdd7b779} 
+std\+::optional$<$ std\+::wstring $>$ {\bfseries value\+Str}
+\begin{DoxyCompactList}\small\item\em JSON\+: progress.\+value\+Str. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_progress_spec_a2f7d920151bcd797783c1b89f6522c56}\label{struct_native_toolkit_1_1_notification_1_1_progress_spec_a2f7d920151bcd797783c1b89f6522c56} 
+std\+::optional$<$ std\+::wstring $>$ {\bfseries status}
+\begin{DoxyCompactList}\small\item\em JSON\+: progress.\+status. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The progress bar. JSON\+: progress. 
+
+value\+Str and status are optional because the presence of the key, not its content, decides whether the bar binds that part at all. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h}{Notification.\+h}}\end{DoxyCompactItemize}

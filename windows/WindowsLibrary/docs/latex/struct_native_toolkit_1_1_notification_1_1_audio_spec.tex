@@ -1,0 +1,34 @@
+\doxysection{Native\+Toolkit\+::Notification\+::Audio\+Spec Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_notification_1_1_audio_spec}{}\label{struct_native_toolkit_1_1_notification_1_1_audio_spec}\index{NativeToolkit::Notification::AudioSpec@{NativeToolkit::Notification::AudioSpec}}
+
+
+The sound. JSON\+: audio.  
+
+
+
+
+{\ttfamily \#include $<$Notification.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_audio_spec_aa0ae75a688fcf8f38582505c27ec184a}\label{struct_native_toolkit_1_1_notification_1_1_audio_spec_aa0ae75a688fcf8f38582505c27ec184a} 
+\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4d}{Audio\+Kind}} {\bfseries kind} = \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4daa4ecfc70574394990cf17bd83df499f7}{Audio\+Kind\+::\+Event}}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_audio_spec_a1255007593017becf4e54994b2f8c21f}\label{struct_native_toolkit_1_1_notification_1_1_audio_spec_a1255007593017becf4e54994b2f8c21f} 
+std\+::wstring {\bfseries event\+Name}
+\begin{DoxyCompactList}\small\item\em JSON\+: audio.\+event, e.\+g. "{}reminder"{}, "{}alarm"{}, "{}looping\+Alarm"{}, "{}looping\+Call"{}. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_audio_spec_adc416c483250d0e93afae78f4cbc3470}\label{struct_native_toolkit_1_1_notification_1_1_audio_spec_adc416c483250d0e93afae78f4cbc3470} 
+std\+::optional$<$ std\+::wstring $>$ {\bfseries uri}
+\begin{DoxyCompactList}\small\item\em JSON\+: audio.\+uri. Required when kind is Uri. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_notification_1_1_audio_spec_a74f89b8889634d725bf903b1b355033e}\label{struct_native_toolkit_1_1_notification_1_1_audio_spec_a74f89b8889634d725bf903b1b355033e} 
+bool {\bfseries loop} = false
+\begin{DoxyCompactList}\small\item\em JSON\+: audio.\+loop. Requires \doxylink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda8394f0347c184cf156ac5924dccb773b}{Duration\+::\+Long}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The sound. JSON\+: audio. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h}{Notification.\+h}}\end{DoxyCompactItemize}

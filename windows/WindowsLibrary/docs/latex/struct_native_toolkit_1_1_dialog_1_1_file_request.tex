@@ -1,0 +1,36 @@
+\doxysection{Native\+Toolkit\+::Dialog\+::File\+Request Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_request}{}\label{struct_native_toolkit_1_1_dialog_1_1_file_request}\index{NativeToolkit::Dialog::FileRequest@{NativeToolkit::Dialog::FileRequest}}
+
+
+What to show in an open-\/file dialog.  
+
+
+
+
+{\ttfamily \#include $<$Dialog.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_request_aa8e7404355c8900a008d2e92e4325bc9}\label{struct_native_toolkit_1_1_dialog_1_1_file_request_aa8e7404355c8900a008d2e92e4325bc9} 
+std\+::wstring {\bfseries title}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_request_a9e53be6ebb5187d42da35ca4dfc08d40}\label{struct_native_toolkit_1_1_dialog_1_1_file_request_a9e53be6ebb5187d42da35ca4dfc08d40} 
+std\+::vector$<$ \mbox{\hyperlink{struct_native_toolkit_1_1_dialog_1_1_file_filter}{File\+Filter}} $>$ {\bfseries filters}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_request_a16602f30507c999a9638a91547cd4901}\label{struct_native_toolkit_1_1_dialog_1_1_file_request_a16602f30507c999a9638a91547cd4901} 
+bool {\bfseries file\+Must\+Exist} = true
+\begin{DoxyCompactList}\small\item\em OFN\+\_\+\+FILEMUSTEXIST (DLG-\/11). \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_dialog_1_1_file_request_a10e30544ecfb07e1016637284ba06e56}\label{struct_native_toolkit_1_1_dialog_1_1_file_request_a10e30544ecfb07e1016637284ba06e56} 
+\mbox{\hyperlink{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}{Window\+Handle}} {\bfseries owner} = nullptr
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+What to show in an open-\/file dialog. 
+
+With no filters the dialog offers every file, which is what the 1.\+x C ABI did when it is handed no filter at all (DLG-\/12). title has no counterpart in the 1.\+x C ABI, where these dialogs took no title (DLG-\/13). 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_dialog_8h}{Dialog.\+h}}\end{DoxyCompactItemize}
