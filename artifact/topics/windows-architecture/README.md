@@ -239,12 +239,38 @@ artifact/topics/windows-architecture/
     YYYY-MM-DD-windows-architecture-c-abi-input-inventory.md # 今の C ABI が受け付ける入力の一覧
     YYYY-MM-DD-windows-architecture-c-abi-design.md          # 段階 5
   reviews/                                                   # 設計書のレビュー結果
-  results/                                                   # 段階ごとの実装結果
+  results/                                                   # 段階ごとの実装結果と、段階 6 の後に見つかったこと
+    probes/                                                  # 確かめるのに使った素の Win32 の試験プログラム
 ```
 
 `c-abi-input-inventory.md` は、今の C ABI が受け付ける入力（JSON のキー、`MB_*` / `OFN_*` の組み合わせ、バッファの規約）を実装から導出した一覧である。サンプルアプリが使っていない入力は UI テストでは守れないため、段階 3 と段階 5 で「動作を変えていない」ことを確かめる基準として使う。
 
 公開 API の 2 本（C++ API と C ABI）は、後から変えると利用者全員に影響する。これまでの機能開発と同じく、別のモデルにレビューしてもらってから着手する。
+
+### 5.2 段階 6 の後に見つかったこと（2026-09-26 〜 09-30）
+
+段階 6 の後、`unity-native-plugin` からの報告と、リリース前の確認で次の 4 つが見つかった。どれも `feature/NTKIT-16` で対処済みで、2.0.0（dist 1.12.0）にだけ入る。出荷済みの 1.x には入れない。
+
+| 日付 | 内容 | 対処 | 記録 |
+|---|---|---|---|
+| 2026-09-26 | クリップボードの履歴の復元が、`excludeFromHistory` で書いた内容を置き換えないのに成功を返す | 説明だけ（検出はしない） | `results/2026-09-26-windows-clipboard-history-restore-finding.md` |
+| 2026-09-27 | パッケージ化しないアプリに、通知の活性化が一度も届いていなかった（`CustomActivator` を書いていなかった） | 修正 | `results/2026-09-27-windows-unpackaged-activation-finding.md` |
+| 2026-09-30 | コールドスタートの通知の活性化が 2 回（空の 1 回と本物）届いていた | 修正（コマンドラインから読む経路を削除） | `results/2026-09-30-windows-cold-start-activation-finding.md` |
+| 2026-09-30 | クリップボードの close の説明が実際と違った（`BUSY` はメッセージを処理しないと解けない。`WrongThread` 以外は再試行してよい） | 説明とマニュアルの修正 | `results/2026-09-30-windows-clipboard-close-busy-finding.md` |
+
+パッケージ化しないアプリの通知は、このリポジトリのサンプル（MSIX）と UI テストでは通らない経路なので、2 つの活性化の不具合は素の Win32 の試験プログラムで確かめた。そのソースは `results/probes/` に置いた。
+
+`dist/1.12.0/windows` が今のソースから作られたかは、`scripts/check_windows_dist.py` で確かめられる（リリースの手順に組み込み済み）。
+
+### 5.3 残っている作業（2026-10-03 時点）
+
+上から順に行う。
+
+1. `feature/NTKIT-16` を develop にマージし、1.12.0 をリリースする（`agent-rules/workflows/release/workflow.md`）。`docs/1.12.0/` はまだ無いので、リリースで `./scripts/publish_docs.sh 1.12.0 --os all` を実行する
+   - 判断が要ること: `verify_manual.sh 1.12.0` の停止項目 1 件は、macOS の通知の画像 30 枚が 1.11.0 から欠けていることで、今回の作業で作り込んだものではない。撮り直すには Mac でサンプルを動かす必要がある。推奨は、`artifact/` に記録して続行すること
+2. 確定したコミットかタグと、`windows-native-toolkit-capi-2.0.0.dll` の MD5 を `unity-native-plugin` に伝える。Unity 側はその DLL に差し替える（MD5 が `41ac440bf583e7e209c98a034904e008` なら流し直しは要らない。`results/2026-09-30-windows-cold-start-activation-finding.md` 6.1）
+3. パッケージ化しないアプリの通知の活性化を、自動テストにする。`results/probes/activationprobe` を土台に、warm（起動中）とコールドスタートの両方を FlaUI で押す。今は手で押して確かめるしかない
+4. 段階 7（CI）。中身はスパイクから始まる: クリップボードと通知の単体テストが GitHub の Windows のランナー（ウィンドウステーション、Windows App SDK のランタイム、Server SKU）で通るか。CI には、ローカルのスクリプトでは不要な `nuget restore` を足す（`packages.config` を使い、`packages/` は Git の管理外のため）
 
 ## 6. 段階ごとに壊れる場所
 
