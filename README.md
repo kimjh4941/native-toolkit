@@ -164,7 +164,7 @@ docs/
 ### Android
 
 ```bash
-cd android/AndroidLibraryExample
+cd android
 ./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
 ```
 

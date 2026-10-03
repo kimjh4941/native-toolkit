@@ -20,8 +20,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
 
-ANDROID_EXAMPLE_DIR="${ROOT_DIR}/android/AndroidLibraryExample"
-GRADLE_PROPERTIES_PATH="${ANDROID_EXAMPLE_DIR}/gradle.properties"
+ANDROID_GRADLE_ROOT="${ROOT_DIR}/android"
+GRADLE_PROPERTIES_PATH="${ANDROID_GRADLE_ROOT}/gradle.properties"
 
 BUILD_TYPE="release"
 MODULES=()
@@ -227,8 +227,8 @@ else
   BUILD_LOG_TARGET="${ROOT_DIR}/${LOG_PATH}"
 fi
 
-if [[ ! -x "${ANDROID_EXAMPLE_DIR}/gradlew" ]]; then
-  echo "Error: Gradle wrapper not found at ${ANDROID_EXAMPLE_DIR}/gradlew" >&2
+if [[ ! -x "${ANDROID_GRADLE_ROOT}/gradlew" ]]; then
+  echo "Error: Gradle wrapper not found at ${ANDROID_GRADLE_ROOT}/gradlew" >&2
   exit 1
 fi
 
@@ -282,7 +282,7 @@ if [[ -n "${LIBRARY_VERSION}" ]]; then
 fi
 
 mkdir -p "$(dirname -- "${BUILD_LOG_TARGET}")"
-(cd "${ANDROID_EXAMPLE_DIR}" && ./gradlew "${GRADLE_ARGS[@]}") 2>&1 | tee "${BUILD_LOG_TARGET}"
+(cd "${ANDROID_GRADLE_ROOT}" && ./gradlew "${GRADLE_ARGS[@]}") 2>&1 | tee "${BUILD_LOG_TARGET}"
 
 for i in "${!MODULES[@]}"; do
   module="${MODULES[$i]}"

@@ -33,7 +33,7 @@
 | [migration](topics/migration/README.md) | 移行 | 進行中 | 2026-08-30 | ツールチェーン・言語モード移行（Swift 6 / Android / Windows）の管理 |
 | [bridge-testing](topics/bridge-testing/README.md) | テスト債務 | 未着手 | 2026-08-15 | Unity ブリッジ層（Objective-C `.m`）を通るテストが iOS の全機能に無い |
 | [manual-integrity](topics/manual-integrity/README.md) | ドキュメント | 一部対応 | 2026-09-06 | マニュアルの画像リンク切れ・アンカー切れ（index 機能一覧は修正済み） |
-| [android-c-abi](topics/android-c-abi/README.md) | アーキテクチャ | 企画中 | 2026-10-03 | Windows（windows-architecture）と同じ汎用 C ABI を 1 OS ずつ作る、その最初の Android の分。iOS / macOS は Android の後に別のトピックにする。Android には C のコードが無く、ネイティブ利用者に届かないロジックが Unity のブリッジに残っているので、先に `android_library` へ移してから NDK の C ABI（`android_library_capi`）を足し、`unity_android_plugin` を消す。未決事項 D-1〜D-18 のうち 13 個を決定済み（D-10 は ABI だけ）。残りは C ABI の設計で決める。ツールチェーンの移行（Kotlin 2.4.20、AGP 9.3.1、compileSdk 36）もこのトピックで行う。企画書は別モデルのレビューを 3 回通した（区分 A は 0）。次は段階 0（Gradle のルートの移動） |
+| [android-c-abi](topics/android-c-abi/README.md) | アーキテクチャ | 進行中 | 2026-10-03 | Windows（windows-architecture）と同じ汎用 C ABI を 1 OS ずつ作る、その最初の Android の分。iOS / macOS は Android の後に別のトピックにする。Android には C のコードが無く、ネイティブ利用者に届かないロジックが Unity のブリッジに残っているので、先に `android_library` へ移してから NDK の C ABI（`android_library_capi`）を足し、`unity_android_plugin` を消す。未決事項 D-1〜D-18 のうち 13 個を決定済み（D-10 は ABI だけ）。残りは C ABI の設計で決める。ツールチェーンの移行（Kotlin 2.4.20、AGP 9.3.1、compileSdk 36）もこのトピックで行う。企画書は別モデルのレビューを 3 回通した（区分 A は 0）。段階 0（Gradle のルートを `android/` に移す）は完了。次は段階 0a（UI テストのスパイク） |
 | [windows-architecture](topics/windows-architecture/README.md) | アーキテクチャ | 進行中 | 2026-10-03 | Windows ライブラリの構成再編と、C++ API（`WindowsLibrary`）/ 汎用 C ABI（`WindowsLibraryCApi`）への分離。段階 0〜6 と、その後に見つかった 4 件の対処は完了し、1.12.0 でリリースした（2026-10-03）。活性化の自動テストと段階 7（CI）が残り（README 5.3） |
 
 状態の語彙: 未着手 / 企画中 / 設計済 / 進行中 / 一部対応 / 完了

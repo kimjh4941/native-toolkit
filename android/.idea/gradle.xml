@@ -10,9 +10,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/../android_library" />
-            <option value="$PROJECT_DIR$/../unity_android_plugin" />
+            <option value="$PROJECT_DIR$/AndroidLibraryExample/app" />
+            <option value="$PROJECT_DIR$/android_library" />
+            <option value="$PROJECT_DIR$/unity_android_plugin" />
           </set>
         </option>
       </GradleProjectSettings>

@@ -59,7 +59,7 @@
 
    **インストール方法（OS別）**
 
-   - Android: `./gradlew installDebug` を実行して接続済み実機にインストールする
+   - Android: `android/` で `./gradlew :app:installDebug` を実行して接続済み実機にインストールする
    - iOS: Xcode でスキームを選択して実機に Run する
    - macOS: Xcode でスキームを選択して Run する、またはビルド成果物（.app）を直接起動する
    - Windows: プロジェクト構成に従う。

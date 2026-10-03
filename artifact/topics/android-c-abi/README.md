@@ -225,7 +225,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 
 | 段階 | 内容 | 動作の変更 |
 |---|---|---|
-| 0 | Gradle のルートを `android/` に移す（D-16）。サンプルを `android/AndroidLibraryExample/app` のままモジュールの 1 つにし、全モジュールを相対パスで include する。どこからも使っていない古い雛形もここで消す。`scripts/build_android_library_aar.sh`、`scripts/publish_docs.sh`、`agent-rules/workflows/` の Gradle の呼び出しを直す | 無し |
+| 0 | Gradle のルートを `android/` に移す（D-16）。サンプルを `android/AndroidLibraryExample/app` のままモジュールの 1 つにし、全モジュールを相対パスで include する。どこからも使っていない古い雛形もここで消す。`scripts/build_android_library_aar.sh`、`scripts/publish_docs.sh`、`agent-rules/workflows/` の Gradle の呼び出しを直す。**完了**（`results/2026-10-03-android-c-abi-stage0-result.md`。release の AAR は 1.12.0 の出荷物と中身が同じ） | 無し |
 | 0a | スパイク: サンプルの UI テストで扱える項目を確定する（7.2）。UiAutomator で、通知のシェードのタイトル・本文・アクションのボタン・入力欄・dismiss、POST_NOTIFICATIONS のダイアログ、Chooser と Chooser Action、Direct Share、スケジュール通知、前景サービスの通知を扱えるか。アプリ内の Dialog は Espresso / Compose のテストで扱えるか。予約の復元を、2 段の手順（予約 → プロセスの終了か再起動 → 確認）で自動化できるか。アプリの更新で `AlarmManager` の Alarm が残るか（D-11） | 無し |
 | 0b | サンプルの画面に testTag を付ける（今は全画面で 0 個。Windows の AutomationId に当たる。見た目も動作も変えない） | 無し |
 | 0c | Dialog / Notification / Share の UI テストを足す（Clipboard は 14 件ある）。UiAutomator で扱えない項目は、人の確認の手順書にする。テストの依存（UiAutomator 2.4.0 など）は、今のツールチェーンで入る版を使う（8.3 で確かめた範囲では AGP 8.1.1 / compileSdk 34 で入る） | 無し |
@@ -515,7 +515,7 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 - [ ] Clipboard / Notification / Share / Dialog のすべてにサンプルの UI テストがある
 - [ ] 段階 1a のスパイクで 8.2 を確かめる
 - [ ] UI テスト・C ABI・Kotlin の API の設計書を書き、別のモデルのレビューを通す
-- [ ] Gradle のルートが `android/` で、絶対パスが残っていない（段階 0）
+- [x] Gradle のルートが `android/` で、絶対パスが残っていない（段階 0）
 - [ ] `scripts/test_android.sh` があり、今のコードの結果を API 35 と API 36 で基準として記録している（段階 0d）
 - [ ] パッケージ名に `android.*` が残っていない（`android_library` は段階 0e、ブリッジの `android.unity.*` は段階 3 で消える）
 - [ ] ツールチェーンが 8.3 の版で、依存の `minAndroidGradlePluginVersion` の最大と `minCompileSdk` の最大が 8.3 の表（8.9.1 と 36）と一致する。自分の AAR の `minCompileSdk` が 36 で、`minAgpVersion` を書いていない（段階 0g。AAR の `aar-metadata.properties` で確かめる）

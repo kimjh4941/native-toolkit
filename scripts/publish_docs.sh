@@ -210,7 +210,7 @@ resolve_highest_docs_version() {
 }
 
 generate_android() {
-  local android_root="${ROOT_DIR}/android/AndroidLibraryExample"
+  local android_root="${ROOT_DIR}/android"
   local preferred_java_home="/Applications/Android Studio Panda 1 .app/Contents/jbr/Contents/Home"
   local preferred_java_home_alt="/Applications/Android Studio Panda 1.app/Contents/jbr/Contents/Home"
   if [[ ! -x "${android_root}/gradlew" ]]; then

@@ -19,11 +19,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AndroidLibraryExample"
-include(":app")
+rootProject.name = "native-toolkit-android"
 include(":android_library")
-project(":android_library").projectDir =
-    File("/Users/jonghyunkim/Desktop/native-toolkit/android/android_library")
 include(":unity_android_plugin")
-project(":unity_android_plugin").projectDir =
-    File("/Users/jonghyunkim/Desktop/native-toolkit/android/unity_android_plugin")
+include(":app")
+project(":app").projectDir = file("AndroidLibraryExample/app")
