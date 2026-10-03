@@ -1,0 +1,210 @@
+\doxysection{Windows\+Library/include/\+Native\+Toolkit/\+Notification.h File Reference}
+\hypertarget{include_2_native_toolkit_2_notification_8h}{}\label{include_2_native_toolkit_2_notification_8h}\index{WindowsLibrary/include/NativeToolkit/Notification.h@{WindowsLibrary/include/NativeToolkit/Notification.h}}
+
+
+Toast notifications, their content and the values they carry back.  
+
+
+{\ttfamily \#include $<$chrono$>$}\newline
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include $<$functional$>$}\newline
+{\ttfamily \#include $<$optional$>$}\newline
+{\ttfamily \#include $<$string$>$}\newline
+{\ttfamily \#include $<$utility$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+{\ttfamily \#include "{}Native\+Toolkit/\+Build\+Stamp.\+h"{}}\newline
+{\ttfamily \#include "{}Native\+Toolkit/\+Error.\+h"{}}\newline
+Include dependency graph for Notification.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{include_2_native_toolkit_2_notification_8h__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_runtime_version}{Native\+Toolkit\+::\+Notification\+::\+Runtime\+Version}}
+\begin{DoxyCompactList}\small\item\em The version of the Windows App \doxylink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime} to bootstrap, as 0x\+MMMMmmmm. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_button}{Native\+Toolkit\+::\+Notification\+::\+Button}}
+\begin{DoxyCompactList}\small\item\em A button on the toast. JSON\+: an entry of buttons. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_text_input}{Native\+Toolkit\+::\+Notification\+::\+Text\+Input}}
+\begin{DoxyCompactList}\small\item\em A text field on the toast. JSON\+: an entry of text\+Boxes. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_item}{Native\+Toolkit\+::\+Notification\+::\+Combo\+Item}}
+\begin{DoxyCompactList}\small\item\em One choice of a selection field. JSON\+: an entry of combo\+Boxes\mbox{[}\mbox{]}.items. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_combo_input}{Native\+Toolkit\+::\+Notification\+::\+Combo\+Input}}
+\begin{DoxyCompactList}\small\item\em A selection field on the toast. JSON\+: an entry of combo\+Boxes. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_app_logo}{Native\+Toolkit\+::\+Notification\+::\+App\+Logo}}
+\begin{DoxyCompactList}\small\item\em The app logo override. JSON\+: app\+Logo. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_audio_spec}{Native\+Toolkit\+::\+Notification\+::\+Audio\+Spec}}
+\begin{DoxyCompactList}\small\item\em The sound. JSON\+: audio. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_spec}{Native\+Toolkit\+::\+Notification\+::\+Progress\+Spec}}
+\begin{DoxyCompactList}\small\item\em The progress bar. JSON\+: progress. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_content}{Native\+Toolkit\+::\+Notification\+::\+Notification\+Content}}
+\begin{DoxyCompactList}\small\item\em Everything a toast can carry. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_progress_update}{Native\+Toolkit\+::\+Notification\+::\+Progress\+Update}}
+\begin{DoxyCompactList}\small\item\em What to change on a notification that is already showing a progress bar. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_notification_ref}{Native\+Toolkit\+::\+Notification\+::\+Notification\+Ref}}
+\begin{DoxyCompactList}\small\item\em A notification that is currently in the action centre. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_activation_args}{Native\+Toolkit\+::\+Notification\+::\+Activation\+Args}}
+\begin{DoxyCompactList}\small\item\em What the user did, as it reaches the invoked handler. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_manager_options}{Native\+Toolkit\+::\+Notification\+::\+Manager\+Options}}
+\begin{DoxyCompactList}\small\item\em What \doxylink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Manager\+::\+Create} needs to know about the app it is running in. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Native\+Toolkit\+::\+Notification\+::\+Runtime}}
+\begin{DoxyCompactList}\small\item\em The Windows App \doxylink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}, held for as long as notifications are used. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_manager}{Native\+Toolkit\+::\+Notification\+::\+Manager}}
+\begin{DoxyCompactList}\small\item\em The notification service of this process. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{include_2_native_toolkit_2_notification_8h_a31195299f7d10826ac2f741abc0972cf}\label{include_2_native_toolkit_2_notification_8h_a31195299f7d10826ac2f741abc0972cf} 
+using {\bfseries Native\+Toolkit\+::\+Notification\+::\+Argument\+Pairs} = std\+::vector$<$std\+::pair$<$std\+::wstring, std\+::wstring$>$$>$
+\begin{DoxyCompactList}\small\item\em Arbitrary key/value pairs, kept in order. Used for button arguments and activation values. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7d}{Native\+Toolkit\+::\+Notification\+::\+Scenario}} \{ \newline
+\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da7a1920d61156abc05a60135aefe8bc67}{Default}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da92a9774c2a5df29ac4bffb46219ea9cd}{Reminder}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da46c4c4d980dfe025ae5b35aa0011dde4}{Alarm}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da2708565083321423b1a3244979bade9b}{Urgent}}
+, \newline
+\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da8f2521baf1658c89c8c04e9ca0be48fd}{Incoming\+Call}}
+ \}
+\begin{DoxyCompactList}\small\item\em How the system treats the notification. JSON\+: scenario. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4d}{Native\+Toolkit\+::\+Notification\+::\+Audio\+Kind}} \{ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4daa4ecfc70574394990cf17bd83df499f7}{Event}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da00cd7be4cb21c59179316d7844a8cfc4}{Mute}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da3840cd8f73026713059f0ed0562c5493}{Uri}}
+ \}
+\begin{DoxyCompactList}\small\item\em Which sound to play. JSON\+: audio.\+type. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bd}{Native\+Toolkit\+::\+Notification\+::\+Duration}} \{ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda30bb747c98bccdd11b3f89e644c4d0ad}{Short}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda8394f0347c184cf156ac5924dccb773b}{Long}}
+ \}
+\begin{DoxyCompactList}\small\item\em How long the toast stays on screen. JSON\+: duration. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9}{Native\+Toolkit\+::\+Notification\+::\+Logo\+Crop}} \{ \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a6adf97f83acf6453d4a6a4b1070f3754}{None}}
+, \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a30954d90085f6eaaf5817917fc5fecb3}{Circle}}
+ \}
+\begin{DoxyCompactList}\small\item\em How the app logo is cropped. JSON\+: app\+Logo.\+crop. \end{DoxyCompactList}\item 
+\Hypertarget{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}\label{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a25835592fe3976946b5ca95093c3775c}{Native\+Toolkit\+::\+Notification\+::\+Notification\+Setting}} \{ \newline
+{\bfseries Enabled} = 0
+, {\bfseries Disabled\+For\+Application} = 1
+, {\bfseries Disabled\+For\+User} = 2
+, {\bfseries Disabled\+By\+Group\+Policy} = 3
+, \newline
+{\bfseries Disabled\+By\+Manifest} = 4
+ \}
+\begin{DoxyCompactList}\small\item\em What the notification settings of the OS report. Matches get\+Notification\+Setting. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Toast notifications, their content and the values they carry back. 
+
+Part of the public C++ API added in stage 3 of the windows-\/architecture topic (design section 8). This header carries the content types; the Manager and Runtime that use them arrive with OP-\/07..OP-\/20.
+
+The fields come from what the JSON payload of the 1.\+x C ABI accepted, listed in designs/2026-\/09-\/20-\/windows-\/architecture-\/c-\/abi-\/input-\/inventory.\+md section 1. That payload is gone (stage 5), but the "{}\+JSON\+: $<$key$>$"{} notes below stay\+: they are how a field is traced back to the inventory, and to what Notification\+Payload\+Test pins. One shape there does not reduce to fixed fields and is kept open\+: a button\textquotesingle{}s arguments are an arbitrary string map.
+
+Several fields are optional where a plain string would do, because the platform tells an absent value from an empty one and the two are not the same\+: an empty title is a blank line on the toast, an empty image URI is a failure rather than no image, and whether a button carries arguments at all is what decides its exclusivity with invoke\+Uri. Section 1.\+10 of the input inventory lists the ten places this matters, derived from the implementation. The fields that are plain strings were checked the same way and come out identical either way.
+
+Keep this header ASCII only. 
+
+\label{doc-enum-members}
+\Hypertarget{include_2_native_toolkit_2_notification_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4d}\index{Notification.h@{Notification.h}!AudioKind@{AudioKind}}
+\index{AudioKind@{AudioKind}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{AudioKind}{AudioKind}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4d} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4d}{Native\+Toolkit\+::\+Notification\+::\+Audio\+Kind}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Which sound to play. JSON\+: audio.\+type. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Event@{Event}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Event@{Event}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4daa4ecfc70574394990cf17bd83df499f7}\label{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4daa4ecfc70574394990cf17bd83df499f7} 
+Event&"{}event"{}, the default\+: a named system sound. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Mute@{Mute}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Mute@{Mute}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da00cd7be4cb21c59179316d7844a8cfc4}\label{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da00cd7be4cb21c59179316d7844a8cfc4} 
+Mute&"{}mute"{}\+: no sound. The loop and event fields are then ignored. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Uri@{Uri}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Uri@{Uri}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da3840cd8f73026713059f0ed0562c5493}\label{include_2_native_toolkit_2_notification_8h_a9a579802da36bf3bc556fb8b584a8f4da3840cd8f73026713059f0ed0562c5493} 
+Uri&"{}uri"{}\+: the sound at \doxylink{struct_native_toolkit_1_1_notification_1_1_audio_spec_adc416c483250d0e93afae78f4cbc3470}{Audio\+Spec\+::uri}. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bd}\index{Notification.h@{Notification.h}!Duration@{Duration}}
+\index{Duration@{Duration}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{Duration}{Duration}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bd} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bd}{Native\+Toolkit\+::\+Notification\+::\+Duration}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+How long the toast stays on screen. JSON\+: duration. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Short@{Short}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Short@{Short}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda30bb747c98bccdd11b3f89e644c4d0ad}\label{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda30bb747c98bccdd11b3f89e644c4d0ad} 
+Short&The default. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Long@{Long}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Long@{Long}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda8394f0347c184cf156ac5924dccb773b}\label{include_2_native_toolkit_2_notification_8h_ac0ed2b7fcb28a70a74276058c08305bda8394f0347c184cf156ac5924dccb773b} 
+Long&"{}long"{}. Required before a looping sound is allowed. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9}\index{Notification.h@{Notification.h}!LogoCrop@{LogoCrop}}
+\index{LogoCrop@{LogoCrop}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{LogoCrop}{LogoCrop}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9}{Native\+Toolkit\+::\+Notification\+::\+Logo\+Crop}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+How the app logo is cropped. JSON\+: app\+Logo.\+crop. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{None@{None}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!None@{None}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a6adf97f83acf6453d4a6a4b1070f3754}\label{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a6adf97f83acf6453d4a6a4b1070f3754} 
+None&Anything other than "{}circle"{}. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Circle@{Circle}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Circle@{Circle}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a30954d90085f6eaaf5817917fc5fecb3}\label{include_2_native_toolkit_2_notification_8h_a26311faaec5fae3e71eeb9417203f6f9a30954d90085f6eaaf5817917fc5fecb3} 
+Circle&"{}circle"{} \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7d}\index{Notification.h@{Notification.h}!Scenario@{Scenario}}
+\index{Scenario@{Scenario}!Notification.h@{Notification.h}}
+\doxysubsubsection{\texorpdfstring{Scenario}{Scenario}}
+{\footnotesize\ttfamily \label{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7d} 
+enum class \mbox{\hyperlink{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7d}{Native\+Toolkit\+::\+Notification\+::\+Scenario}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+How the system treats the notification. JSON\+: scenario. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Default@{Default}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Default@{Default}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da7a1920d61156abc05a60135aefe8bc67}\label{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da7a1920d61156abc05a60135aefe8bc67} 
+Default&No scenario; the plain toast. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Reminder@{Reminder}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Reminder@{Reminder}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da92a9774c2a5df29ac4bffb46219ea9cd}\label{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da92a9774c2a5df29ac4bffb46219ea9cd} 
+Reminder&"{}reminder"{} \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Alarm@{Alarm}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Alarm@{Alarm}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da46c4c4d980dfe025ae5b35aa0011dde4}\label{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da46c4c4d980dfe025ae5b35aa0011dde4} 
+Alarm&"{}alarm"{} \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{Urgent@{Urgent}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!Urgent@{Urgent}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da2708565083321423b1a3244979bade9b}\label{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da2708565083321423b1a3244979bade9b} 
+Urgent&"{}urgent"{} \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IncomingCall@{IncomingCall}!Notification.h@{Notification.h}}\index{Notification.h@{Notification.h}!IncomingCall@{IncomingCall}}}\Hypertarget{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da8f2521baf1658c89c8c04e9ca0be48fd}\label{include_2_native_toolkit_2_notification_8h_a6902df659de12919a0b5b8fbf8f67b7da8f2521baf1658c89c8c04e9ca0be48fd} 
+Incoming\+Call&"{}incoming\+Call"{} \\
+\hline
+
+\end{DoxyEnumFields}

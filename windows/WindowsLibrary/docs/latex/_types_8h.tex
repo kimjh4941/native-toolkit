@@ -1,0 +1,58 @@
+\doxysection{Windows\+Library/include/\+Native\+Toolkit/\+Types.h File Reference}
+\hypertarget{_types_8h}{}\label{_types_8h}\index{WindowsLibrary/include/NativeToolkit/Types.h@{WindowsLibrary/include/NativeToolkit/Types.h}}
+
+
+Value types shared by every feature of the C++ API.  
+
+
+{\ttfamily \#include $<$cstdint$>$}\newline
+{\ttfamily \#include "{}Native\+Toolkit/\+Build\+Stamp.\+h"{}}\newline
+Include dependency graph for Types.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=278pt]{_types_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=200pt]{_types_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{struct_native_toolkit_1_1_write_options}{Native\+Toolkit\+::\+Write\+Options}}
+\begin{DoxyCompactList}\small\item\em Per-\/write options accepted by every clipboard copy operation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+using \mbox{\hyperlink{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}{Native\+Toolkit\+::\+Window\+Handle}} = \+::\+HWND\+\_\+\+\_\+\texorpdfstring{$\ast$}{*}
+\begin{DoxyCompactList}\small\item\em A window handle, with the same representation as HWND. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Value types shared by every feature of the C++ API. 
+
+Part of the public C++ API added in stage 3 of the windows-\/architecture topic. The public headers never include \texorpdfstring{$<$}{<}windows.\+h\texorpdfstring{$>$}{>}\+: a consumer that has not included it still gets a usable Window\+Handle, and one that has gets the very same type as HWND.
+
+Keep this header ASCII only. A non-\/\+ASCII byte forces every consumer to compile with /utf-\/8 or see warning C4819. 
+
+\label{doc-typedef-members}
+\Hypertarget{_types_8h_doc-typedef-members}
+\doxysubsection{Typedef Documentation}
+\Hypertarget{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}\index{Types.h@{Types.h}!WindowHandle@{WindowHandle}}
+\index{WindowHandle@{WindowHandle}!Types.h@{Types.h}}
+\doxysubsubsection{\texorpdfstring{WindowHandle}{WindowHandle}}
+{\footnotesize\ttfamily \label{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498} 
+using \mbox{\hyperlink{_types_8h_af0e4a0273870f77b69e7b8ebd45eb498}{Native\+Toolkit\+::\+Window\+Handle}} = \+::\+HWND\+\_\+\+\_\+\texorpdfstring{$\ast$}{*}}
+
+
+
+A window handle, with the same representation as HWND. 
+
+Interoperating with HWND assumes the STRICT handle model, which MSVC uses by default. Under NO\+\_\+\+STRICT, HWND is a generic handle and does not convert implicitly to this type. 

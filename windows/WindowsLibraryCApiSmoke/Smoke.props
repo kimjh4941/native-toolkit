@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the two smoke executables share (stage 5 design CT-21): the C ABI's
+  public headers and nothing else of the library, the import library of the
+  real DLL through the ProjectReference in each project, and the Windows App
+  SDK bootstrap DLL copied next to the executable, because the C ABI DLL
+  imports it.
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- Both projects sit in this folder; keep their intermediates apart. -->
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\WindowsLibraryCApi\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <Target Name="CopyAppSdkBootstrap" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\WindowsLibrary\packages\Microsoft.WindowsAppSDK.1.7.250513003\runtimes\win-x64\native\Microsoft.WindowsAppRuntime.Bootstrap.dll"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

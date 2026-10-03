@@ -35,12 +35,12 @@
                     FontSize="20"
                     TextWrapping="Wrap"/>
             </Border>
-            <Button Content="ShowAlertDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowAlertDialogButton_Click"/>
-            <Button Content="ShowFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowFileDialogButton_Click"/>
-            <Button Content="ShowMultiFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowMultiFileDialogButton_Click"/>
-            <Button Content="ShowFolderDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowFolderDialogButton_Click"/>
-            <Button Content="ShowMultiFolderDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowMultiFolderDialogButton_Click"/>
-            <Button Content="ShowSaveFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowSaveFileDialogButton_Click"/>
+            <Button AutomationProperties.AutomationId="ShowAlertDialog" Content="ShowAlertDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowAlertDialogButton_Click"/>
+            <Button AutomationProperties.AutomationId="ShowFileDialog" Content="ShowFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowFileDialogButton_Click"/>
+            <Button AutomationProperties.AutomationId="ShowMultiFileDialog" Content="ShowMultiFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowMultiFileDialogButton_Click"/>
+            <Button AutomationProperties.AutomationId="ShowFolderDialog" Content="ShowFolderDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowFolderDialogButton_Click"/>
+            <Button AutomationProperties.AutomationId="ShowMultiFolderDialog" Content="ShowMultiFolderDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowMultiFolderDialogButton_Click"/>
+            <Button AutomationProperties.AutomationId="ShowSaveFileDialog" Content="ShowSaveFileDialog" Style="{StaticResource DialogButtonStyle}" Click="ShowSaveFileDialogButton_Click"/>
         </StackPanel>
     </ScrollViewer>
 </Page>

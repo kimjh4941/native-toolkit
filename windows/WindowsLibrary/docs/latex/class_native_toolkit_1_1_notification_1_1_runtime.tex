@@ -1,0 +1,73 @@
+\doxysection{Native\+Toolkit\+::Notification\+::Runtime Class Reference}
+\hypertarget{class_native_toolkit_1_1_notification_1_1_runtime}{}\label{class_native_toolkit_1_1_notification_1_1_runtime}\index{NativeToolkit::Notification::Runtime@{NativeToolkit::Notification::Runtime}}
+
+
+The Windows App \doxylink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}, held for as long as notifications are used.  
+
+
+
+
+{\ttfamily \#include $<$Notification.\+h$>$}
+
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_runtime_a178cc46320f7f4734f9968e57b22d642}\label{class_native_toolkit_1_1_notification_1_1_runtime_a178cc46320f7f4734f9968e57b22d642} 
+{\bfseries Runtime} (\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} \&\&other) noexcept
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_runtime_adfe66747fce9f8ff542d7f448a04283f}\label{class_native_toolkit_1_1_notification_1_1_runtime_adfe66747fce9f8ff542d7f448a04283f} 
+\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} \& {\bfseries operator=} (\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} \&\&other) noexcept
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_runtime_a0c5021174d68eb27b7cd45db8ea38a92}\label{class_native_toolkit_1_1_notification_1_1_runtime_a0c5021174d68eb27b7cd45db8ea38a92} 
+{\bfseries Runtime} (const \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} \&)=delete
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_runtime_af47ff2c10747f2af3b254be11bb252f6}\label{class_native_toolkit_1_1_notification_1_1_runtime_af47ff2c10747f2af3b254be11bb252f6} 
+\mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} \& {\bfseries operator=} (const \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} \&)=delete
+\item 
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_runtime_a348acb8e1c8cf70f4cafc1998269d7f6}\label{class_native_toolkit_1_1_notification_1_1_runtime_a348acb8e1c8cf70f4cafc1998269d7f6} 
+void {\bfseries Close} () noexcept
+\begin{DoxyCompactList}\small\item\em Shuts the runtime down. Doing it twice is allowed and does nothing. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} $>$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime_ac37a2accad6417c26da1a8d5235e0f37}{Initialize}} (\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_runtime_version}{Runtime\+Version}} version)
+\begin{DoxyCompactList}\small\item\em Makes the runtime of that version available to this process. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The Windows App \doxylink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}, held for as long as notifications are used. 
+
+Only an unpackaged app needs this\+: a packaged one already has the runtime. Destroying the token shuts the bootstrapper down again, which the 1.\+x C ABI never did\+: init\+Win\+App\+Sdk had no counterpart and left the runtime loaded for the life of the process (N-\/7). The 2.\+x C ABI has the matching pair as well -\/ ntk\+\_\+notification\+\_\+runtime\+\_\+free shuts it down, waiting for the last manager to close first.
+
+Move only, because shutting the runtime down twice is not the same as shutting it down once. 
+
+\label{doc-func-members}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_runtime_doc-func-members}
+\doxysubsection{Member Function Documentation}
+\Hypertarget{class_native_toolkit_1_1_notification_1_1_runtime_ac37a2accad6417c26da1a8d5235e0f37}\index{NativeToolkit::Notification::Runtime@{NativeToolkit::Notification::Runtime}!Initialize@{Initialize}}
+\index{Initialize@{Initialize}!NativeToolkit::Notification::Runtime@{NativeToolkit::Notification::Runtime}}
+\doxysubsubsection{\texorpdfstring{Initialize()}{Initialize()}}
+{\footnotesize\ttfamily \label{class_native_toolkit_1_1_notification_1_1_runtime_ac37a2accad6417c26da1a8d5235e0f37} 
+\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}$<$ \mbox{\hyperlink{class_native_toolkit_1_1_notification_1_1_runtime}{Runtime}} $>$ Native\+Toolkit\+::\+Notification\+::\+Runtime\+::\+Initialize (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{struct_native_toolkit_1_1_notification_1_1_runtime_version}{Runtime\+Version}}}]{version}{}\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Makes the runtime of that version available to this process. 
+
+For an unpackaged app only, and before \doxylink{class_native_toolkit_1_1_notification_1_1_manager_a41817de02e03d45f92d4654a685c4ea1}{Manager\+::\+Create}. A packaged app has the runtime through its package and does not call this (NTF-\/39). Nothing in the types enforces that; calling it from a packaged app is an HRESULT failure from the bootstrapper.
+
+
+\begin{DoxyParams}{Parameters}
+{\em version} & The major and minor version, as 0x\+MMMMmmmm. \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyRetVals}{Return values}
+{\em HResult\+Failure} & The bootstrapper refused; system\+Code holds its HRESULT. \\
+\hline
+\end{DoxyRetVals}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_notification_8h}{Notification.\+h}}\end{DoxyCompactItemize}

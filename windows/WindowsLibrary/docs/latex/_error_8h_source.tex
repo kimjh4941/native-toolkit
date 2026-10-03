@@ -1,0 +1,214 @@
+\doxysection{Error.\+h}
+\hypertarget{_error_8h_source}{}\label{_error_8h_source}\index{WindowsLibrary/include/NativeToolkit/Error.h@{WindowsLibrary/include/NativeToolkit/Error.h}}
+\mbox{\hyperlink{_error_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#pragma\ once}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <new>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}NativeToolkit/BuildStamp.h"{}}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{keyword}{namespace\ }NativeToolkit\ \{}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00039\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Code>}
+\DoxyCodeLine{00040\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Failure}}\ \{}
+\DoxyCodeLine{00041\ \ \ \ \ Code\ \ \ \ \ \mbox{\hyperlink{struct_native_toolkit_1_1_failure_af720f6284e5abdcd2ec9aa0572ff53f5}{code}}\{\};\ \ \ \ \ \ \ \ \ \ \ }
+\DoxyCodeLine{00042\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{struct_native_toolkit_1_1_failure_a918d729a6ac78061afbba863cc1db70c}{systemCode}}\ =\ 0;\ \ \ }
+\DoxyCodeLine{00043\ \};}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00050\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ E>}
+\DoxyCodeLine{00051\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1_unexpected}{Unexpected}}\ \{}
+\DoxyCodeLine{00052\ \ \ \ \ E\ error;}
+\DoxyCodeLine{00053\ \};}
+\DoxyCodeLine{00054\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ E>\ \mbox{\hyperlink{struct_native_toolkit_1_1_unexpected}{Unexpected}}(E)\ -\/>\ \mbox{\hyperlink{struct_native_toolkit_1_1_unexpected}{Unexpected<E>}};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{keyword}{namespace\ }detail\ \{}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00060\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ Copyable>}
+\DoxyCodeLine{00061\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{struct_native_toolkit_1_1detail_1_1_copy_control}{CopyControl}}\ \{\};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00064\ \textcolor{keyword}{struct\ }CopyControl<false>\ \{}
+\DoxyCodeLine{00065\ \ \ \ \ CopyControl()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00066\ \ \ \ \ CopyControl(\textcolor{keyword}{const}\ CopyControl\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00067\ \ \ \ \ CopyControl\&\ operator=(\textcolor{keyword}{const}\ CopyControl\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00068\ \ \ \ \ CopyControl(CopyControl\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00069\ \ \ \ \ CopyControl\&\ operator=(CopyControl\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00070\ \};}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \}\ \ \textcolor{comment}{//\ namespace\ detail}}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00083\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ E>}
+\DoxyCodeLine{00084\ \textcolor{keyword}{class\ }Result\ :\ \textcolor{keyword}{private}\ \mbox{\hyperlink{struct_native_toolkit_1_1detail_1_1_copy_control}{detail::CopyControl}}<std::is\_copy\_constructible\_v<T>\ \&\&\ std::is\_copy\_constructible\_v<E>>\ \{}
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keyword}{static\_assert}(!std::is\_reference\_v<T>,\ \textcolor{stringliteral}{"{}Result<T\&>\ is\ not\ supported"{}});}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ kTriviallyDestructible\ =}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ std::is\_trivially\_destructible\_v<T>\ \&\&\ std::is\_trivially\_destructible\_v<E>;}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00091\ \ \ \ \ Result(T\ \mbox{\hyperlink{class_native_toolkit_1_1_result_ae94e85e7ba2d15b2162e22c10f6e4e6d}{value}})\ :\ hasValue\_(\textcolor{keyword}{true})\ \{\ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.value))\ T(std::move(\mbox{\hyperlink{class_native_toolkit_1_1_result_ae94e85e7ba2d15b2162e22c10f6e4e6d}{value}}));\ \}}
+\DoxyCodeLine{00092\ \ \ \ \ Result(\mbox{\hyperlink{struct_native_toolkit_1_1_unexpected}{Unexpected<E>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_result_a54e81884c4db5a7ffa27140457d63010}{error}})\ :\ hasValue\_(\textcolor{keyword}{false})\ \{\ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.error))\ E(std::move(\mbox{\hyperlink{class_native_toolkit_1_1_result_a54e81884c4db5a7ffa27140457d63010}{error}}.error));\ \}}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \ \ \ \ Result(\textcolor{keyword}{const}\ Result\&\ other)}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ \textcolor{keyword}{requires}\ (std::is\_copy\_constructible\_v<T>\ \&\&\ std::is\_copy\_constructible\_v<E>)}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ :\ hasValue\_(other.hasValue\_)}
+\DoxyCodeLine{00097\ \ \ \ \ \{}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (hasValue\_)\ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.value))\ T(other.storage\_.value);}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ else\ \ \ \ \ \ \ \ \ \ \ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.error))\ E(other.storage\_.error);}
+\DoxyCodeLine{00100\ \ \ \ \ \}}
+\DoxyCodeLine{00101\ \ \ \ \ Result(Result\&\&\ other)\ \textcolor{keyword}{noexcept}(std::is\_nothrow\_move\_constructible\_v<T>\ \&\&\ std::is\_nothrow\_move\_constructible\_v<E>)}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ :\ hasValue\_(other.hasValue\_)}
+\DoxyCodeLine{00103\ \ \ \ \ \{}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (hasValue\_)\ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.value))\ T(std::move(other.storage\_.value));}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ else\ \ \ \ \ \ \ \ \ \ \ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.error))\ E(std::move(other.storage\_.error));}
+\DoxyCodeLine{00106\ \ \ \ \ \}}
+\DoxyCodeLine{00107\ \ \ \ \ Result\&\ operator=(\textcolor{keyword}{const}\ Result\&\ other)}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \textcolor{keyword}{requires}\ (std::is\_copy\_constructible\_v<T>\ \&\&\ std::is\_copy\_constructible\_v<E>)}
+\DoxyCodeLine{00109\ \ \ \ \ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{this}\ !=\ \&other)\ \{\ Destroy();\ CopyFrom(other);\ \}}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00112\ \ \ \ \ \}}
+\DoxyCodeLine{00113\ \ \ \ \ Result\&\ operator=(Result\&\&\ other)\ \textcolor{keyword}{noexcept}(std::is\_nothrow\_move\_constructible\_v<T>\ \&\&\ std::is\_nothrow\_move\_constructible\_v<E>)}
+\DoxyCodeLine{00114\ \ \ \ \ \{}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{this}\ !=\ \&other)\ \{\ Destroy();\ MoveFrom(std::move(other));\ \}}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00117\ \ \ \ \ \}}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \ \ \ \ \string~Result()\ \textcolor{keyword}{requires}\ kTriviallyDestructible\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00120\ \ \ \ \ \string~Result()\ \{\ Destroy();\ \}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_a0f1e5436aa0be82555dfb9e3c20853aa}{has\_value}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ hasValue\_;\ \}}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{operator}\ bool()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ hasValue\_;\ \}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00129\ \ \ \ \ T\&\ \ \ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_ae94e85e7ba2d15b2162e22c10f6e4e6d}{value}}()\ \&\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ storage\_.value;\ \}}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{class_native_toolkit_1_1_result_a4ca6e8db0bf6cd2f26f24878c4e8f8a2}{value}}()\ const\&\ noexcept\ \{\ \textcolor{keywordflow}{return}\ storage\_.value;\ \}}
+\DoxyCodeLine{00133\ \ \ \ \ T\&\&\ \ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_a2b53f8e2e3b57aab6a6d07aa87009d27}{value}}()\ \&\&\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ std::move(storage\_.value);\ \}}
+\DoxyCodeLine{00134\ }
+\DoxyCodeLine{00136\ \ \ \ \ T\ \mbox{\hyperlink{class_native_toolkit_1_1_result_afff9a497bfd0bcbf841a48d604949705}{value\_or}}(T\ fallback)\ \textcolor{keyword}{const}\&}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \textcolor{keyword}{requires}\ std::is\_copy\_constructible\_v<T>}
+\DoxyCodeLine{00138\ \ \ \ \ \{\ \textcolor{keywordflow}{return}\ hasValue\_\ ?\ storage\_.value\ :\ std::move(fallback);\ \}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00142\ \ \ \ \ E\&\ \ \ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_a54e81884c4db5a7ffa27140457d63010}{error}}()\ \&\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ storage\_.error;\ \}}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keyword}{const}\ E\&\ \mbox{\hyperlink{class_native_toolkit_1_1_result_a34018e137fd48a8ce837e69a9ba5d66e}{error}}()\ const\&\ noexcept\ \{\ \textcolor{keywordflow}{return}\ storage\_.error;\ \}}
+\DoxyCodeLine{00146\ \ \ \ \ E\&\&\ \ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_a843d8dd69a247114dd6aa8a67b04b8cc}{error}}()\ \&\&\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ std::move(storage\_.error);\ \}}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keyword}{union\ }Storage\ \{}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ Storage()\ \{\}}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \string~Storage()\ \textcolor{keyword}{requires}\ kTriviallyDestructible\ =\ default;}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ \string~Storage()\ \{\}}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ T\ value;}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \ \ E\ error;}
+\DoxyCodeLine{00155\ \ \ \ \ \};}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordtype}{void}\ Destroy()\ noexcept}
+\DoxyCodeLine{00158\ \ \ \ \ \{}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ \textcolor{keyword}{constexpr}\ (!kTriviallyDestructible)\ \{}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (hasValue\_)\ storage\_.value.\string~T();}
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \ \ \ \ \ \ \ \ \ \ storage\_.error.\string~E();}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00163\ \ \ \ \ \}}
+\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keywordtype}{void}\ CopyFrom(\textcolor{keyword}{const}\ Result\&\ other)}
+\DoxyCodeLine{00165\ \ \ \ \ \{}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ hasValue\_\ =\ other.hasValue\_;}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (hasValue\_)\ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.value))\ T(other.storage\_.\mbox{\hyperlink{class_native_toolkit_1_1_result_ae94e85e7ba2d15b2162e22c10f6e4e6d}{value}});}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \ \ else\ \ \ \ \ \ \ \ \ \ \ ::new\ (static\_cast<\textcolor{keywordtype}{void}*>(\&storage\_.\mbox{\hyperlink{class_native_toolkit_1_1_result_a54e81884c4db5a7ffa27140457d63010}{error}}))\ E(other.storage\_.\mbox{\hyperlink{class_native_toolkit_1_1_result_a54e81884c4db5a7ffa27140457d63010}{error}});}
+\DoxyCodeLine{00169\ \ \ \ \ \}}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keywordtype}{void}\ MoveFrom(Result\&\&\ other)}
+\DoxyCodeLine{00171\ \ \ \ \ \{}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ hasValue\_\ =\ other.hasValue\_;}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (hasValue\_)\ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.value))\ T(std::move(other.storage\_.value));}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ else\ \ \ \ \ \ \ \ \ \ \ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&storage\_.error))\ E(std::move(other.storage\_.error));}
+\DoxyCodeLine{00175\ \ \ \ \ \}}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00177\ \ \ \ \ Storage\ storage\_;}
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ hasValue\_;}
+\DoxyCodeLine{00179\ \};}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00182\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ E>}
+\DoxyCodeLine{00183\ \textcolor{keyword}{class\ }Result<void,\ E>\ \{}
+\DoxyCodeLine{00184\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00185\ \ \ \ \ Result()\ noexcept\ :\ error\_\{\},\ hasValue\_(\textcolor{keyword}{true})\ \{\}}
+\DoxyCodeLine{00186\ \ \ \ \ Result(\mbox{\hyperlink{struct_native_toolkit_1_1_unexpected}{Unexpected<E>}}\ \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ab582f1340a0b7ec85628da8d16360bfb}{error}})\ :\ error\_(std::move(\mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ab582f1340a0b7ec85628da8d16360bfb}{error}}.error)),\ hasValue\_(\textcolor{keyword}{false})\ \{\}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_a41637189fbe3b9afcbfde9cff3c132dd}{has\_value}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ hasValue\_;\ \}}
+\DoxyCodeLine{00191\ \ \ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{operator}\ bool()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ hasValue\_;\ \}}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00194\ \ \ \ \ E\&\ \ \ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ab582f1340a0b7ec85628da8d16360bfb}{error}}()\ \&\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ error\_;\ \}}
+\DoxyCodeLine{00196\ \ \ \ \ \textcolor{keyword}{const}\ E\&\ \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_af014088fef928bd62b585e14aa5d956d}{error}}()\ const\&\ noexcept\ \{\ \textcolor{keywordflow}{return}\ error\_;\ \}}
+\DoxyCodeLine{00198\ \ \ \ \ E\&\&\ \ \ \ \ \ \mbox{\hyperlink{class_native_toolkit_1_1_result_3_01void_00_01_e_01_4_ae7741b7b021a83c9729471885267e4b1}{error}}()\ \&\&\ \textcolor{keyword}{noexcept}\ \{\ \textcolor{keywordflow}{return}\ std::move(error\_);\ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00201\ \ \ \ \ E\ \ \ \ error\_;}
+\DoxyCodeLine{00202\ \ \ \ \ \textcolor{keywordtype}{bool}\ hasValue\_;}
+\DoxyCodeLine{00203\ \};}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00206\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4}{DialogError}}\ :\ uint32\_t\ \{}
+\DoxyCodeLine{00207\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a6adf97f83acf6453d4a6a4b1070f3754}{None}}\ \ \ \ \ \ \ \ \ \ \ \ \ =\ 0,\ \ }
+\DoxyCodeLine{00208\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a627251310d3384b591e4138be21145d5}{InvalidParameter}}\ =\ 1,\ \ }
+\DoxyCodeLine{00209\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a0e22fe7d45f8e5632a4abf369b24e29c}{Canceled}}\ \ \ \ \ \ \ \ \ =\ 2,\ \ }
+\DoxyCodeLine{00210\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4ab801c4d44abd4738b7f69c4e390ed61d}{BufferTooSmall}}\ \ \ =\ 3,\ \ }
+\DoxyCodeLine{00211\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4ab932b91f686c2aa588adfd9a407155ca}{SystemError}}\ \ \ \ \ \ =\ 4,\ \ }
+\DoxyCodeLine{00212\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a88183b946cc5f0e8c96b2e66e1c74a7e}{Unknown}}\ \ \ \ \ \ \ \ \ \ =\ 5,\ \ }
+\DoxyCodeLine{00213\ \};}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00217\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731}{NotificationError}}\ :\ uint32\_t\ \{}
+\DoxyCodeLine{00218\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a6adf97f83acf6453d4a6a4b1070f3754}{None}}\ \ \ \ \ \ \ \ \ \ \ \ \ =\ 0,}
+\DoxyCodeLine{00219\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9646ad3a1c3e708b4fa8b4b4270fbab6}{NotInitialized}}\ \ \ =\ 1,\ \ }
+\DoxyCodeLine{00220\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731ab9f5c797ebbf55adccdd8539a65a0241}{Disabled}}\ \ \ \ \ \ \ \ \ =\ 2,\ \ }
+\DoxyCodeLine{00221\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a2d730f4aa6a660e8825d5294008a4ef7}{InvalidPayload}}\ \ \ =\ 3,\ \ }
+\DoxyCodeLine{00222\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a416aa046bd8aae21dedec019f6d8b396}{ProgressNotFound}}\ =\ 4,\ \ }
+\DoxyCodeLine{00223\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a6d5ecb8044bd5e9f36a006cc0735d455}{HResultFailure}}\ \ \ =\ 5,\ \ }
+\DoxyCodeLine{00224\ \ \ \ \ BadgeFailed\ \ \ \ \ \ =\ 6,}
+\DoxyCodeLine{00225\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a627251310d3384b591e4138be21145d5}{InvalidParameter}}\ =\ 7,\ \ }
+\DoxyCodeLine{00226\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9ed2d871602556951e39f3cebd08d6cb}{NotSupported}}\ \ \ \ \ =\ 8,\ \ }
+\DoxyCodeLine{00227\ \};}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00231\ \textcolor{keyword}{enum\ class}\ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913b}{ClipboardError}}\ :\ uint32\_t\ \{}
+\DoxyCodeLine{00232\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a6adf97f83acf6453d4a6a4b1070f3754}{None}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ 0,}
+\DoxyCodeLine{00233\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a627251310d3384b591e4138be21145d5}{InvalidParameter}}\ \ \ \ \ \ =\ 1,\ \ \ }
+\DoxyCodeLine{00234\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9646ad3a1c3e708b4fa8b4b4270fbab6}{NotInitialized}}\ \ \ \ \ \ \ \ =\ 2,\ \ \ }
+\DoxyCodeLine{00235\ \ \ \ \ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913bad8a942ef2b04672adfafef0ad817a407}{Busy}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ 3,\ \ \ }
+\DoxyCodeLine{00236\ \ \ \ \ Empty\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ 4,}
+\DoxyCodeLine{00237\ \ \ \ \ FormatUnavailable\ \ \ \ \ =\ 5,}
+\DoxyCodeLine{00238\ \ \ \ \ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba3c4b6828f5a12280debdb5a12e0e72ba}{InvalidData}}\ \ \ \ \ \ \ \ \ \ \ =\ 6,\ \ \ }
+\DoxyCodeLine{00239\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4ab801c4d44abd4738b7f69c4e390ed61d}{BufferTooSmall}}\ \ \ \ \ \ \ \ =\ 7,\ \ \ }
+\DoxyCodeLine{00240\ \ \ \ \ OutOfMemory\ \ \ \ \ \ \ \ \ \ \ =\ 8,}
+\DoxyCodeLine{00241\ \ \ \ \ AccessDenied\ \ \ \ \ \ \ \ \ \ =\ 9,}
+\DoxyCodeLine{00242\ \ \ \ \ HistoryDisabled\ \ \ \ \ \ \ =\ 10,}
+\DoxyCodeLine{00243\ \ \ \ \ ItemDeleted\ \ \ \ \ \ \ \ \ \ \ =\ 11,}
+\DoxyCodeLine{00244\ \ \ \ \ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba28eb41b179cc33c9f9b5563e97d42922}{MonitorRegisterFailed}}\ =\ 12,\ \ }
+\DoxyCodeLine{00245\ \ \ \ \ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913bab85b248497a5f061db55c410a1a6bd65}{PartialState}}\ \ \ \ \ \ \ \ \ \ =\ 13,\ \ }
+\DoxyCodeLine{00246\ \ \ \ \ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913badfe12b5ddee50d3c2b7edbc8f3de8c3b}{WrongThread}}\ \ \ \ \ \ \ \ \ \ \ =\ 14,\ \ }
+\DoxyCodeLine{00247\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a0e22fe7d45f8e5632a4abf369b24e29c}{Canceled}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ 15,\ \ }
+\DoxyCodeLine{00248\ \ \ \ \ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731a9ed2d871602556951e39f3cebd08d6cb}{NotSupported}}\ \ \ \ \ \ \ \ \ \ =\ 16,\ \ }
+\DoxyCodeLine{00249\ \ \ \ \ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913bacd659e801dfa5622b768b11bfec95db4}{NotForeground}}\ \ \ \ \ \ \ \ \ =\ 17,\ \ }
+\DoxyCodeLine{00250\ \ \ \ \ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913ba935a43ef0c969c7c65e93958142ed108}{WrongApartment}}\ \ \ \ \ \ \ \ =\ 18,\ \ }
+\DoxyCodeLine{00251\ \ \ \ \ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4a88183b946cc5f0e8c96b2e66e1c74a7e}{Unknown}}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ =\ 19,\ \ }
+\DoxyCodeLine{00252\ \};}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \textcolor{keyword}{namespace\ }NativeToolkit::Dialog\ \{}
+\DoxyCodeLine{00258\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_a901b688de4ba89986480a16ee5981082}{ErrorCode}}\ =\ \mbox{\hyperlink{_error_8h_a44ba98a306944211dec13c86bcf760d4}{NativeToolkit::DialogError}};}
+\DoxyCodeLine{00260\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_afb3eb14cc79ed39a40f4f32e85eb04a2}{Error}}\ =\ \mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Failure<DialogError>}};}
+\DoxyCodeLine{00262\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T\ =\ \textcolor{keywordtype}{void}>\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_a47b47af0da72a9bece59e8bbe8a500c6}{Result}}\ =\ \mbox{\hyperlink{class_native_toolkit_1_1_result}{NativeToolkit::Result<T,\ Error>}};}
+\DoxyCodeLine{00263\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Dialog}}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \textcolor{keyword}{namespace\ }NativeToolkit::Notification\ \{}
+\DoxyCodeLine{00267\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_a073bd70efe509c1f6af6ba6e929cbac2}{ErrorCode}}\ =\ \mbox{\hyperlink{_error_8h_abc375c7dfcb96b6c36a20b231f832731}{NativeToolkit::NotificationError}};}
+\DoxyCodeLine{00269\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_a10670324dffe9fca4465a789b6fb4019}{Error}}\ =\ \mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Failure<NotificationError>}};}
+\DoxyCodeLine{00271\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T\ =\ \textcolor{keywordtype}{void}>\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_aa47d5854dd731c26bc1dbc6de65434e0}{Result}}\ =\ \mbox{\hyperlink{class_native_toolkit_1_1_result}{NativeToolkit::Result<T,\ Error>}};}
+\DoxyCodeLine{00272\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Notification}}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00274\ \textcolor{keyword}{namespace\ }NativeToolkit::Clipboard\ \{}
+\DoxyCodeLine{00276\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_a8f0fe7545fa132ae619ecfbdf63d1963}{ErrorCode}}\ =\ \mbox{\hyperlink{_error_8h_ada7cfc73861a162117b713e92ef3913b}{NativeToolkit::ClipboardError}};}
+\DoxyCodeLine{00278\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_a83d9051f774c146aae25f6a6c65b75a0}{Error}}\ =\ \mbox{\hyperlink{struct_native_toolkit_1_1_failure}{Failure<ClipboardError>}};}
+\DoxyCodeLine{00280\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T\ =\ \textcolor{keywordtype}{void}>\ \textcolor{keyword}{using\ }\mbox{\hyperlink{_error_8h_ab79440e7d2d897f75534ec351b92f553}{Result}}\ =\ \mbox{\hyperlink{class_native_toolkit_1_1_result}{NativeToolkit::Result<T,\ Error>}};}
+\DoxyCodeLine{00281\ \}\ \ \textcolor{comment}{//\ namespace\ NativeToolkit::Clipboard}}
+
+\end{DoxyCode}

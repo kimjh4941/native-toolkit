@@ -1,0 +1,32 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Copy NativeToolkitC.dll next to the consumer's binary after every build.
+
+    The DLL imports Microsoft.WindowsAppRuntime.Bootstrap.dll, which the
+    Microsoft.WindowsAppSDK package brings along; an unpackaged app has to have
+    that DLL in the same folder as well.
+  -->
+  <PropertyGroup>
+    <NativeToolkitCApiPackageRoot>$(MSBuildThisFileDirectory)..\..</NativeToolkitCApiPackageRoot>
+    <NativeToolkitCApiNativeDir>$(NativeToolkitCApiPackageRoot)\runtimes\win-x64\native</NativeToolkitCApiNativeDir>
+    <NativeToolkitCApiDll>$(NativeToolkitCApiNativeDir)\NativeToolkitC.dll</NativeToolkitCApiDll>
+
+    <NativeToolkitCApiAppxDir>$(OutDir)AppX\</NativeToolkitCApiAppxDir>
+
+    <!-- Default to TargetPath/TargetDir/OutDir -->
+    <NativeToolkitCApiOutputDir Condition="'$(TargetPath)' == '' And '$(TargetDir)' == '' And '$(OutDir)' != ''">$(OutDir)</NativeToolkitCApiOutputDir>
+    <NativeToolkitCApiOutputDir Condition="'$(TargetPath)' == '' And '$(TargetDir)' != ''">$(TargetDir)</NativeToolkitCApiOutputDir>
+    <NativeToolkitCApiOutputDir Condition="'$(TargetPath)' != ''">$([System.IO.Path]::GetDirectoryName('$(TargetPath)'))\</NativeToolkitCApiOutputDir>
+
+    <!-- Prefer AppX only when it exists -->
+    <NativeToolkitCApiOutputDir Condition="Exists('$(NativeToolkitCApiAppxDir)')">$(NativeToolkitCApiAppxDir)</NativeToolkitCApiOutputDir>
+  </PropertyGroup>
+
+  <Target Name="NativeToolkitCApi_CopyDllToOutput" AfterTargets="Build"
+          Condition="Exists('$(NativeToolkitCApiDll)') And '$(NativeToolkitCApiOutputDir)' != ''">
+    <MakeDir Directories="$(NativeToolkitCApiOutputDir)" Condition="!Exists('$(NativeToolkitCApiOutputDir)')" />
+    <Copy SourceFiles="$(NativeToolkitCApiDll)" DestinationFolder="$(NativeToolkitCApiOutputDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

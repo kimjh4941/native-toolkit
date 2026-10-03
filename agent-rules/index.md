@@ -26,9 +26,22 @@ Agent-specific wrappers in `.github/skills/` reference these files.
 - Review and refine (企画書・設計書レビュー): ./workflows/review-and-refine/workflow.md
 - Commit message (コミットメッセージ生成): ./workflows/commit-msg/workflow.md
 
+## Design documents
+
+- Layout of `artifact/` (<os> / topics) and the topic list: ../artifact/README.md
+- The workflows above write to `artifact/<os>/<feature>/<kind>/`, where `<os>` is `android`, `ios`, `macos` or `windows`. A step that looks for candidates before the OS is chosen searches `artifact/*/<feature>/<kind>/`. Documents under `artifact/topics/` are written by hand.
+
 ## Common policy
 
 - For platform-specific implementation, apply the corresponding platform rule file.
 - Write comment text in English.
 - Write user-facing message text in English.
 - When adding rules, update this index and place details in each rule file.
+- Commit only through the commit-msg workflow (./workflows/commit-msg/workflow.md). Do not run `git commit` directly.
+
+## Working with the user
+
+- When the user has to decide, name the option you recommend and why in one line. Do not present a neutral list of choices.
+- Do not offer to stop or pause at a milestone. Finish the step, report the result, and go on to the next one; the user says when to stop. Still ask before anything hard to reverse or outward-facing (commits, pushes, PRs, releases, messages to others).
+- Choose the number of subagents or reviewers yourself from the work (distinct viewpoints, not volume), and state the choice in one line.
+- Write findings, decisions and remaining work into `artifact/` when they happen, not at release time. An agent's own memory and its session transcripts are only a backup: they stay on one machine, and transcripts are deleted after a retention period.

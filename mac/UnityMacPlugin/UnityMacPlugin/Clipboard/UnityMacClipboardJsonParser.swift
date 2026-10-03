@@ -240,7 +240,7 @@ enum ClipboardJson {
 /// instance shared by every bridge call would be used from several threads at once. Creating
 /// them per call costs far less than the encoding itself. Dates use `Date.ISO8601FormatStyle`,
 /// a `Sendable` value type, rather than a shared `ISO8601DateFormatter` — the same change the
-/// iOS clipboard bridge already made (`MIGRATION.md` section 4.2).
+/// iOS clipboard bridge already made (`artifact/topics/migration/README.md` section 4.2).
 struct UnityMacClipboardJsonParser: Sendable {
 
     private let TAG = "UnityMacClipboardJsonParser"

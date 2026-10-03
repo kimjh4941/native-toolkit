@@ -86,7 +86,7 @@ class SourceRootRouting(unittest.TestCase):
     Windows design was checked against Swift files and its symbols reported missing.
     """
 
-    BODY = TITLE + INFO + "\n## 1. 本文\n\n`initClipboardManager` を名指す。\n"
+    BODY = TITLE + INFO + "\n## 1. 本文\n\n`ntk_clipboard_session_create` を名指す。\n"
 
     def check(self, filename):
         with tempfile.TemporaryDirectory() as directory:
@@ -100,7 +100,7 @@ class SourceRootRouting(unittest.TestCase):
             return line
 
     def test_windows_document_reaches_the_windows_sources(self):
-        # initClipboardManager is declared in windows/WindowsLibrary only.
+        # ntk_clipboard_session_create is declared in windows/WindowsLibraryCApi only.
         self.assertIn("OK", self.check("2026-07-31-windows-clipboard-design.md"))
 
     def test_macos_document_does_not_reach_the_windows_sources(self):

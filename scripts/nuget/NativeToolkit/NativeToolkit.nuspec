@@ -2,29 +2,26 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>NativeToolkit</id>
-    <version>1.0.0</version>
+    <!-- scripts/build_windows_library_dll.ps1 passes the real version to nuget pack. -->
+    <version>2.0.0</version>
     <authors>Kim JongHyun</authors>
-    <description>Native Windows toolkit (Win32 common dialogs and Windows App SDK notifications) for Win32/WinUI.</description>
+    <description>Native Windows toolkit for C++: Win32 common dialogs, Windows App SDK notifications and the clipboard. Static library for MSVC v143, x64, C++20. The C ABI of the same library is the NativeToolkit.CApi package.</description>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <dependencies />
+    <dependencies>
+      <!-- Notification uses the Windows App SDK, and a consumer of a static
+           library links its libraries itself. -->
+      <dependency id="Microsoft.WindowsAppSDK" version="1.7.250513003" />
+    </dependencies>
   </metadata>
 
   <files>
-    <!-- MSBuild hooks (auto: include/lib + dll copy) -->
+    <!-- MSBuild hook: include directory and the library for this configuration -->
     <file src="build\native\NativeToolkit.props" target="build\native\NativeToolkit.props" />
-    <file src="build\native\NativeToolkit.targets" target="build\native\NativeToolkit.targets" />
 
-    <!-- Public headers -->
-    <file src="include\**\*.*" target="build\native\include" />
+    <!-- Public headers, included as <NativeToolkit/Clipboard.h> -->
+    <file src="include\**\*.h" target="build\native\include" />
 
-    <!-- Binaries (x64) -->
-    <file src="runtimes\win-x64\native\NativeToolkit.dll" target="runtimes\win-x64\native\NativeToolkit.dll" />
-    <file src="runtimes\win-x64\native\NativeToolkit.lib" target="runtimes\win-x64\native\NativeToolkit.lib" />
-
-    <!-- Binaries (x86) -->
-    <!--
-    <file src="runtimes\win-x86\native\NativeToolkit.dll" target="runtimes\win-x86\native\NativeToolkit.dll" />
-    <file src="runtimes\win-x86\native\NativeToolkit.lib" target="runtimes\win-x86\native\NativeToolkit.lib" />
-    -->
+    <!-- Static library, staged per configuration by the build script (x64) -->
+    <file src="build\native\lib\**\*.lib" target="build\native\lib" />
   </files>
 </package>

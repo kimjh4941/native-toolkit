@@ -1,0 +1,35 @@
+\doxysection{Native\+Toolkit\+::Clipboard\+::History\+Handlers Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_clipboard_1_1_history_handlers}{}\label{struct_native_toolkit_1_1_clipboard_1_1_history_handlers}\index{NativeToolkit::Clipboard::HistoryHandlers@{NativeToolkit::Clipboard::HistoryHandlers}}
+
+
+What to be told about the history.  
+
+
+
+
+{\ttfamily \#include $<$Clipboard.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_clipboard_1_1_history_handlers_af8e60b243414c65c96beca0e24a879c4}\label{struct_native_toolkit_1_1_clipboard_1_1_history_handlers_af8e60b243414c65c96beca0e24a879c4} 
+std\+::function$<$ void()$>$ {\bfseries on\+History\+Changed}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_clipboard_1_1_history_handlers_aaa13558d0df8187060ebeec40a425522}\label{struct_native_toolkit_1_1_clipboard_1_1_history_handlers_aaa13558d0df8187060ebeec40a425522} 
+std\+::function$<$ void(bool)$>$ {\bfseries on\+History\+Enabled\+Changed}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_clipboard_1_1_history_handlers_ae8c5897646566d579e7b52a822d4f781}\label{struct_native_toolkit_1_1_clipboard_1_1_history_handlers_ae8c5897646566d579e7b52a822d4f781} 
+std\+::function$<$ void(bool)$>$ {\bfseries on\+Roaming\+Enabled\+Changed}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+What to be told about the history. 
+
+Passing a default-\/constructed value unregisters every handler.
+
+Handlers arrive on the thread that created the session, and are not moved to any other (CLP-\/04). on\+History\+Changed fires when an item is added, not when one is removed or the history is cleared (CLP-\/31). 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h}{Clipboard.\+h}}\end{DoxyCompactItemize}

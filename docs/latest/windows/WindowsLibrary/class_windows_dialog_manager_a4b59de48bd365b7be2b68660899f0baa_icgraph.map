@@ -1,5 +1,0 @@
-<map id="WindowsDialogManager::ShowMultiFileDialog" name="WindowsDialogManager::ShowMultiFileDialog">
-<area shape="rect" id="Node000001" title="Show a multi&#45;select file open dialog." alt="" coords="192,5,354,48"/>
-<area shape="rect" id="Node000002" href="$_windows_dialog_manager_8cpp.html#a6699cdb7316aebdd63727b4da2468c41" title="Public API: Show multi&#45;select file open dialog." alt="" coords="5,13,144,40"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="176,29,144,29,144,24,176,24"/>
-</map>

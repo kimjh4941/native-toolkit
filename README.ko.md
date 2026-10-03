@@ -5,7 +5,7 @@
 - Android: `DialogFragment` + 알림 + 공유 + 클립보드 기반 네이티브 API
 - iOS: `UIAlertController` + 알림 + 공유 + 클립보드 기반 네이티브 API
 - macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + 알림 + 공유 + 클립보드 기반 네이티브 API
-- Windows: Win32 공통 다이얼로그, 토스트 알림, 클립보드의 C 형태 API
+- Windows: Win32 공통 다이얼로그, 토스트 알림, 클립보드의 C++ API와 그 위의 C ABI
 
 > 목표: 네이티브 앱에서 각 OS의 표준 기능을 공통된 호출 방식으로 사용할 수 있게 한다.
 
@@ -20,10 +20,10 @@
 2. 연동 절차는 `docs/<version>/manual/index.ko.md` 를 확인합니다.
 3. API 참조는 `docs/<version>/` 또는 `docs/latest/` 를 사용합니다.
 
-예시 (`1.11.0`):
+예시 (`1.12.0`):
 
-- 매뉴얼: `docs/1.11.0/manual/index.ko.md`
-- 배포 문서: `docs/1.11.0/manual/`
+- 매뉴얼: `docs/1.12.0/manual/index.ko.md`
+- 배포 문서: `docs/1.12.0/manual/`
 
 ## 상세 문서
 
@@ -33,26 +33,28 @@
 
 ## 버전
 
-- 현재 릴리스: 1.11.0
+- 현재 릴리스: 1.12.0
 - 최신 공개 문서 버전: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 지원 OS (1.11.0)
+## 지원 OS (1.12.0)
 
 - Android 12 이상
 - iOS 18 이상
 - Windows 11 이상
 - macOS 15 이상
 
-## 배포 산출물 (1.11.0)
+## 배포 산출물 (1.12.0)
 
-- Android: `dist/1.11.0/android/android-native-toolkit-1.3.0.aar`
+- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
 - iOS:
-  - `dist/1.11.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.11.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.12.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
 - macOS:
-  - `dist/1.11.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.11.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
-- Windows: `dist/1.11.0/windows/windows-native-toolkit-1.2.0.nupkg`
+  - `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.12.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+- Windows:
+  - `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg`(C++ API)
+  - `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`(C ABI)
 
 ## 포함 모듈(개요)
 
@@ -91,13 +93,16 @@
 
 ### Windows
 
-- `windows/WindowsLibrary`
-  - C 형태 API (예: `showAlertDialog`, `showFileDialog`, `showFolderDialog`, `showNotification`, `scheduleNotification`, `copyPlainText`, `getClipboardHistory`)
-  - 헤더: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+- `windows/WindowsLibrary` (`WindowsLibrary.vcxproj`, 정적 라이브러리)
+  - C++ API: `NativeToolkit::Dialog`, `NativeToolkit::Notification`, `NativeToolkit::Clipboard`
+  - 헤더: `windows/WindowsLibrary/include/NativeToolkit/`
+  - 네이티브 C++ 앱은 `windows/WindowsLibrary/build/NativeToolkit.WindowsLibrary.props`로 링크
   - 문서: Doxygen (`windows/WindowsLibrary/Doxyfile`)
 
-- `windows/UnityWindowsPlugin`
-  - 보조 모듈: 플러그인 연동용 프로젝트 포함(현재 최소 스텁)
+- `windows/WindowsLibraryCApi` (DLL, `NativeToolkitC.dll`)
+  - C++ API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
+  - 헤더: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
+  - C#, Rust, Python 등 다른 언어용. Unity는 P/Invoke로 호출 (`unity-native-plugin`)
 
 ## 디렉터리 구조
 
@@ -120,8 +125,8 @@ mac/
   generate_docc.sh
 
 windows/
-  WindowsLibrary/
-  UnityWindowsPlugin/
+  WindowsLibrary/           # C++ API (정적 라이브러리)
+  WindowsLibraryCApi/       # C ABI (DLL)
   WindowsLibraryExample/
 
 manual/
@@ -150,8 +155,8 @@ docs/
 # macOS XCFramework (전체 모듈)
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
 
-# Windows DLL / NuGet
-./scripts/build_windows_library_dll.ps1 -c release -m WindowsLibrary -v 1.3.0 -Package
+# Windows C ABI (DLL, import 라이브러리, 헤더)
+./scripts/build_windows_library_dll.ps1 -c release -v 2.0.0
 ```
 
 ## API 문서 생성
@@ -189,13 +194,13 @@ doxygen Doxyfile
 `docs/<version>/` 를 생성하고, `docs/latest/` 는 `docs/` 내 가장 높은 버전으로 갱신됩니다.
 
 ```bash
-./scripts/publish_docs.sh 1.11.0
+./scripts/publish_docs.sh 1.12.0
 ```
 
 생성 없이 복사만 할 경우:
 
 ```bash
-./scripts/publish_docs.sh 1.11.0 --skip-build
+./scripts/publish_docs.sh 1.12.0 --skip-build
 ```
 
 manual 복사 원본은 `manual/<version>/` 입니다.
@@ -207,7 +212,7 @@ manual 복사 원본은 `manual/<version>/` 입니다.
 - Android: `android/android_library/MODULE.md`
 - iOS: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md`
 - macOS: `mac/MacLibrary/MacLibrary/MacLibrary.docc/MacLibrary.md`
-- Windows: `windows/WindowsLibrary/WindowsDialogManager.h`, `windows/WindowsLibrary/WindowsNotificationManager.h`, `windows/WindowsLibrary/WindowsClipboardManager.h`
+- Windows: `windows/WindowsLibrary/include/NativeToolkit/` (C++ API), `windows/WindowsLibraryCApi/include/NativeToolkitC/` (C ABI)
 
 ## Unity Native Toolkit (Unity 6)
 

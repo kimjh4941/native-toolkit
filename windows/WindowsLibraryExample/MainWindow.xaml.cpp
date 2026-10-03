@@ -4,7 +4,7 @@
 #include "MainWindow.g.cpp"
 #endif
 
-#include "common.h"
+#include "SampleLog.h"
 #include "ClipboardPage.xaml.h"
 
 using namespace winrt;

@@ -1,0 +1,30 @@
+\doxysection{Native\+Toolkit\+::Clipboard\+::Write\+Options Struct Reference}
+\hypertarget{struct_native_toolkit_1_1_clipboard_1_1_write_options}{}\label{struct_native_toolkit_1_1_clipboard_1_1_write_options}\index{NativeToolkit::Clipboard::WriteOptions@{NativeToolkit::Clipboard::WriteOptions}}
+
+
+What the OS may do with what is written.  
+
+
+
+
+{\ttfamily \#include $<$Clipboard.\+h$>$}
+
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{struct_native_toolkit_1_1_clipboard_1_1_write_options_a56a4687f5cc7f8efdeff915e0c31fd02}\label{struct_native_toolkit_1_1_clipboard_1_1_write_options_a56a4687f5cc7f8efdeff915e0c31fd02} 
+bool {\bfseries exclude\+From\+History} = false
+\begin{DoxyCompactList}\small\item\em Keep it out of the clipboard history. \end{DoxyCompactList}\item 
+\Hypertarget{struct_native_toolkit_1_1_clipboard_1_1_write_options_a873df1f5ddcb52507f30e1af240d27c5}\label{struct_native_toolkit_1_1_clipboard_1_1_write_options_a873df1f5ddcb52507f30e1af240d27c5} 
+bool {\bfseries exclude\+From\+Roaming} = false
+\begin{DoxyCompactList}\small\item\em Do not let it reach other devices. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+What the OS may do with what is written. 
+
+Both default to allowed, which is what a write with no options means today. Setting both is what "{}sensitive"{} means. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+Windows\+Library/include/\+Native\+Toolkit/\mbox{\hyperlink{include_2_native_toolkit_2_clipboard_8h}{Clipboard.\+h}}\end{DoxyCompactItemize}

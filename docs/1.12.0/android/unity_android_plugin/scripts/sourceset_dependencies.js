@@ -1,0 +1,1 @@
+sourceset_dependencies='{":unity_android_plugin:dokkaHtml/main":[]}'
