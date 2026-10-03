@@ -1,5 +1,0 @@
-<map id="WindowsDialogManager::ShowFolderDialog" name="WindowsDialogManager::ShowFolderDialog">
-<area shape="rect" id="Node000001" title="Show a single folder selection dialog." alt="" coords="179,5,341,48"/>
-<area shape="rect" id="Node000002" href="$_windows_dialog_manager_8cpp.html#a8ea7e4ed624084fa09e2623e076f3d13" title="Public API: Show single folder selection dialog." alt="" coords="5,13,131,40"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,29,131,29,131,24,163,24"/>
-</map>
