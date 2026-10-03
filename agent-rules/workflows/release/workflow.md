@@ -2,6 +2,8 @@
 
 以下の手順を実行してください。
 
+**リリースは Mac で行う。** `docs/<version>/` を作る `./scripts/publish_docs.sh <version> --os all` は iOS / macOS の DocC を作り直すので Mac が要り、作れなかった OS を飛ばしたまま `docs/latest/` を置き換える。Windows の PC では `docs/` を sparse checkout から外していることもある。Mac 以外で実行されたら、続けずにその旨をユーザーに伝える。
+
 ## ステップ1: 引数解析
 
 `$ARGUMENTS` を解析する:
