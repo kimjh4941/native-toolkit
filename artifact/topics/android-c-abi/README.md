@@ -226,10 +226,10 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 | 段階 | 内容 | 動作の変更 |
 |---|---|---|
 | 0 | Gradle のルートを `android/` に移す（D-16）。サンプルを `android/AndroidLibraryExample/app` のままモジュールの 1 つにし、全モジュールを相対パスで include する。どこからも使っていない古い雛形もここで消す。`scripts/build_android_library_aar.sh`、`scripts/publish_docs.sh`、`agent-rules/workflows/` の Gradle の呼び出しを直す。**完了**（`results/2026-10-03-android-c-abi-stage0-result.md`。release の AAR は 1.12.0 の出荷物と中身が同じ） | 無し |
-| 0a | スパイク: サンプルの UI テストで扱える項目を確定する（7.2）。UiAutomator で、通知のシェードのタイトル・本文・アクションのボタン・入力欄・dismiss、POST_NOTIFICATIONS のダイアログ、Chooser と Chooser Action、Direct Share、スケジュール通知、前景サービスの通知を扱えるか。アプリ内の Dialog は Espresso / Compose のテストで扱えるか。予約の復元を、2 段の手順（予約 → プロセスの終了か再起動 → 確認）で自動化できるか。アプリの更新で `AlarmManager` の Alarm が残るか（D-11） | 無し |
+| 0a | スパイク: サンプルの UI テストで扱える項目を確定する（7.2）。UiAutomator で、通知のシェードのタイトル・本文・アクションのボタン・入力欄・dismiss、POST_NOTIFICATIONS のダイアログ、Chooser と Chooser Action、Direct Share、スケジュール通知、前景サービスの通知を扱えるか。アプリ内の Dialog は Espresso / Compose のテストで扱えるか。予約の復元を、2 段の手順（予約 → プロセスの終了か再起動 → 確認）で自動化できるか。アプリの更新で `AlarmManager` の Alarm が残るか（D-11）。**完了**（`results/2026-10-03-android-c-abi-stage0a-spike-result.md`。試した項目はすべて自動化できた。更新の後も Alarm は残る。予約の保存が失われる場合を見つけた） | 無し |
 | 0b | サンプルの画面に testTag を付ける（今は全画面で 0 個。Windows の AutomationId に当たる。見た目も動作も変えない） | 無し |
 | 0c | Dialog / Notification / Share の UI テストを足す（Clipboard は 14 件ある）。UiAutomator で扱えない項目は、人の確認の手順書にする。テストの依存（UiAutomator 2.4.0 など）は、今のツールチェーンで入る版を使う（8.3 で確かめた範囲では AGP 8.1.1 / compileSdk 34 で入る） | 無し |
-| 0d | `scripts/test_android.sh` を作り（unit・instrumented・UI テストをまとめて実行）、**今のコードで全件通ることを確かめ、結果を基準として記録する**。基準は API 35 と API 36 の 2 つのエミュレータで取る（0h で targetSdk 36 にしたときの変化を見るため） | 無し |
+| 0d | `scripts/test_android.sh` を作り（unit・instrumented・UI テストをまとめて実行）、**今のコードで全件通ることを確かめ、結果を基準として記録する**。基準は API 35（エミュレータ）と API 36（実機）の 2 つで取る（0h で targetSdk 36 にしたときの変化を見るため。7.2） | 無し |
 | 0e | パッケージ名を `com.jonghyunkim.nativetoolkit.*` に変える（D-15）。機械的な改名だけを行い、0d の基準と同じ結果になることを確かめる。ブリッジ（`android.unity.*`）は改名しない（段階 3 で消すので）。改名の前の名前と作り方（`SharedPreferences` の名前、Alarm のコンポーネント名、action の文字列、request code の式（`"tag::id".hashCode()`）、data の URI の scheme、PendingIntent の flags）を結果に記録する（1b で 1.x の Alarm を取り消すときに使う） | Kotlin の利用者から見たパッケージ名が変わる（2.0.0） |
 | 0f | ビルドの道具を上げる: AGP 9.3.1、Gradle 9.7.0、Kotlin 2.4.20（`languageVersion = apiVersion = 2.2`）、AGP 9 の新しい DSL と組み込みの Kotlin、Dokka 2.2.0（`publish_docs.sh` の `dokkaHtml` も直す）、JVM 17。**SDK と依存の版は変えない**。0d の基準と同じ結果になることを確かめる | 無し |
 | 0g | 依存と compileSdk を上げる: compileSdk 36、androidx（8.3）、`aarMetadata.minCompileSdk = 36`。使っていない `material` を外し、`fragment` を明示の依存にする。`appcompat` を外せるかも確かめる。0d の基準と同じ結果になることを確かめる | 利用者の最低条件が 8.3 のとおり上がる |
@@ -330,7 +330,7 @@ Windows では 47 の操作が 105 の C 関数になった（ハンドルの読
 | instrumented テスト | `android_library` の androidTest（今 20 件）。1b で、移すロジックに当たるブリッジのテストを書き直して足す | Android の API を通した動作 |
 | C ABI のテスト | `android_library_capi_test`: テスト用の `.so`（GoogleTest とテストの入口）を instrumented テストから動かす。C ABI は JavaVM と Context が要るので、端末かエミュレータの上でしか試せない | NULL と不正な入力の拒否、`struct_size`、`release` の回数と競合、スレッド、attach / detach、UTF-8 と Modified UTF-8、JNI の例外、初期化（自動・明示・Startup の無効・`dlopen` だけ・別の provider が先） |
 | smoke | `android_library_capi_smoke`: ビルドが作った Maven リポジトリから 2 つの AAR だけを解決し、Prefab のヘッダーで組む C のアプリ。R8 を有効にした release で組み、`arm64-v8a` と `x86_64` の両方でリンクする | 配布物だけで使えること。R8 を有効にした利用者で JNI の名前が壊れないこと |
-| サンプルの UI テスト | `AndroidLibraryExample` の androidTest（今 23 件: Clipboard 14 件、受け取った共有の解析 8 件、雛形 1 件。段階 0c で全機能に広げる）。API 35 と API 36 のエミュレータ | 0e〜0h と 1b の前後で、ネイティブの利用者から見た動作が変わらないこと |
+| サンプルの UI テスト | `AndroidLibraryExample` の androidTest（今 23 件: Clipboard 14 件、受け取った共有の解析 8 件、雛形 1 件。段階 0c で全機能に広げる）。API 35（エミュレータ）と API 36（実機） | 0e〜0h と 1b の前後で、ネイティブの利用者から見た動作が変わらないこと |
 | 更新のテスト | 1.x のサンプルで予約した後に 2.0.0 へ更新する（0a で確かめる 2 段の手順を使う）。保存した予約（`persistAcrossBoot=true`）は Alarm が取り消され保存データが消えること、保存しなかった予約は発火しても何も表示されずアプリが落ちないこと、新しく予約できることを確かめる | D-11 |
 | 32 ビットのテスト | 64 ビットの端末に `adb install --abi armeabi-v7a` でサンプル（32 ビットの ABI も組んだもの）を入れ、起動して Kotlin の機能が使えることを確かめる（`.so` が無いので C ABI の関数そのものが存在しない。C ABI の利用者の側の扱いは 3.1 のとおりマニュアルの契約にする） | D-10 |
 | Unity | `unity-native-plugin` の Android のテスト（今の Runtime はメソッド 97・展開後 116 ケース、PlayMode はメソッド 12（`[UnityTest]` 11 + `[Test]` 1）。C ABI に合わせて作り直す）と Player テスト | Unity から C ABI を通した動作。別リポジトリで行う（段階 2c） |
@@ -360,20 +360,21 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 
 基本は自動化する。アプリ内の画面と Dialog は Compose / Espresso のテストで、通知のシェード・権限のダイアログ・Chooser などのシステムの UI は UiAutomator で扱う。**扱えないと段階 0a で確かめた項目だけ**を人の確認にし、手順書を用意する（Windows の computer use の決まり（`windows-architecture/README.md` 7.3）に合わせ、判定があいまいなら失敗とする）。
 
-システムの UI は OS の版で見た目と構造が変わるので、UI テストはエミュレータの版を固定して流す（API 35 の `Pixel_8_Android_15` と、API 36 のエミュレータ。API 36 は作る必要がある）。
+システムの UI は OS の版で見た目と構造が変わるので、UI テストは版を固定した 2 つの環境で流す（2026-10-03 に決定）。
 
-目標はサンプルの全機能を自動化することだが、次の項目は自動化が難しい見込みである（段階 0a で確定する）。
-
-| 項目 | 難しい理由 | 扱いの案 |
+| 環境 | 機種と版 | 使い道 |
 |---|---|---|
-| 画像の中身（BigPicture、大きいアイコン、カスタムビューの画像） | 画像の要素があることは分かるが、どの画像かは分からない（Windows と同じ） | 人の確認（Claude のデスクトップアプリの computer use でエミュレータの画面を見る） |
+| 実機（開発用。利用者の確認済み） | Pixel 6a、Android 16（API 36）、`google/bluejay/bluejay:16/BP2A.250705.008/13578956`、ABI は `arm64-v8a` / `armeabi-v7a` / `armeabi`、表示言語は en-US | API 36 の基準。32 ビットのテスト（D-10。Pixel 7 以降は 64 ビット専用なので、この端末で行う）。システムの自動更新は切る。fingerprint が変わったら基準を取り直す |
+| エミュレータ | `Pixel_8_Android_15`（API 35） | API 35 の基準 |
+
+段階 0a のスパイク（`results/2026-10-03-android-c-abi-stage0a-spike-result.md`）で、試した項目はすべて自動化できると確かめた。自動化しないのは次の 2 つだけである。
+
+| 項目 | 理由 | 扱い |
+|---|---|---|
+| 画像の中身（BigPicture、大きいアイコン、カスタムビューの画像） | 画像の要素があることは分かるが、どの画像かは分からない（Windows と同じ） | 人の確認（Claude のデスクトップアプリの computer use で画面を見る） |
 | 音・振動 | UI からは確かめられない | 対象外。チャンネルの設定値は API で確かめる |
-| Direct Share の共有先が Chooser に並ぶこと | 並ぶかどうかと順番を OS が決める | 登録は `ShortcutManager` の API で確かめ、Chooser に並ぶことは人の確認 |
-| Media の style | Android 13 以降はシェードではなくメディアのプレーヤーの枠に出る | 段階 0a で確かめる |
 
-再起動の後の予約の復元は、`test_android.sh` から 2 段の手順（予約 → プロセスの終了か再起動 → 再接続して確認）で自動化する見込みで、0a で確かめる。
-
-自動化できる見込みのもの: アプリ内の画面と Dialog（Compose / Espresso）、通知のシェードのタイトル・本文・展開・アクションのボタン・入力欄（RemoteInput）・dismiss・進捗・グループ・CallStyle・スケジュール通知、通知の権限のダイアログ（権限の取り消しはシェルのコマンドで行う）、Chooser と Chooser Action（サンプル自身が `SEND */*` を受けるので、共有先にサンプルを選べる）、設定画面を開く 3 つの操作（開いた画面のパッケージで確かめる）。
+自動化するもの: アプリ内の画面と Dialog、通知のシェードのタイトル・本文・展開・アクションのボタン・dismiss（行を幅いっぱいにスワイプ）・進捗・グループ・CallStyle・Media の style（Android 16 ではシェードの中に出た）・スケジュール通知、通知の権限のダイアログ（取り消しはホストで行う）、Chooser と Chooser Action、Direct Share の共有先が Chooser に並ぶこと、設定画面を開く 3 つの操作、Toast（アクセシビリティのイベントで読む）。アプリの更新と端末の再起動をまたぐ予約は、`test_android.sh` から 2 段の手順（予約 → `adb install -r` か `adb reboot` → `dumpsys notification`）で確かめる。通知の中の入力欄（RemoteInput）は、ライブラリにもサンプルにも無いので対象外とする。
 
 ## 8. 未決事項
 
@@ -391,7 +392,7 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 | D-8 | Dialog の同期性 | A: 非同期（完了コールバック）だけ / B: Windows と同じく呼び出し元をブロックする | **A（C ABI の設計で決める）**。Flutter は 3.29 から Android で Dart が main スレッドで動き、無効にする選択肢も削除された（flutter/flutter#174408）ので、main をブロックするとデッドロックする。Windows の Dialog はモーダルで呼び出し元をブロックするので、**Dialog の関数は Windows と同じ名前・同じ形にはならない**（D-3 の A でなければ成り立たない理由の 1 つ） |
 | D-9 | C ABI の配布物 | A: 1 つの AAR（Kotlin の受け口 + `jni/<abi>/libntk.so` + Prefab のヘッダー）/ B: AAR と、`.so` とヘッダーを別に配る | **A（C ABI の設計で決める）**。Kotlin の受け口と `.so` は必ず一緒に要る。Prefab に入れれば NDK・React Native・Godot は `find_package` で使える。名前は `android-native-toolkit-capi-<版>.aar`（Windows の `windows-native-toolkit-capi-<版>` に合わせる）。`android-native-toolkit-<版>.aar` への依存は D-17 の Maven リポジトリの POM で伝える |
 | D-10 | ネイティブのビルドの設定 | NDK の版、libc++、公開シンボル、ABI | **ABI は決定（2026-10-03）: `arm64-v8a` と `x86_64` だけ**（レビュー v1 の A-2 を受けて `armeabi-v7a` を外した）。Windows の `struct_size` の規則（sizeof を 8 バイトの倍数で増やす、最小の大きさを 2.0.0 の sizeof に固定）とヘッダーの `/* sizeof N */` は 64 ビットが前提で、32 ビットでは構造体の大きさが変わり、照合スクリプトと 1 つのヘッダーから作るバインディングが成り立たない（Windows も E-17 で x64 だけにした）。32 ビットの端末（安価な端末、Android TV、Wear OS）は残っており、そこで 32 ビットの ABI を組んだアプリが入ると `.so` が無い。そのため `NtkInitializer` は `UnsatisfiedLinkError` を捕まえてアプリを落とさず、Kotlin の受け口は「`.so` が無い」状態として扱う。C ABI の関数そのものは存在しないので、利用者の側の扱いは 3.1 のとおり（7 章の 32 ビットのテスト）。**残り（C ABI の設計で決める）**: NDK r30（LTS、30.0.16248370）を `ndkVersion` で固定、`c++_static`、version script で `ntk_*` と `JNI_OnLoad` だけを公開、native メソッドはすべて `JNI_OnLoad` の `RegisterNatives` で登録する（JNI の命名規則の `Java_*` を公開しないため）。`c++_static` と version script は middleware ベンダー向けガイドの推奨で、Unity や Flutter が持つ `libc++_shared.so` と衝突しない。r28 以降は 16 KB のページに既定で合う。C ABI の境界を C++ の例外が越えないことは Windows と同じ |
-| D-11 | 1.x で予約・表示した通知 | A: 古いクラス名を残して移行する / B: 2.0.0 への更新の後に一度だけ破棄し、保存形式をクラス名に依存しない JSON にする | **決定（2026-10-03）: B**（レビュー v1 の A-3 を受けて決め直し、v2 を受けて具体にした。前の決定は「互換を捨てて `restoreScheduled` で作り直す」だったが、改名の後は `restoreScheduled` でも作り直せない）。**破棄**: 既存の BootReceiver が受ける `MY_PACKAGE_REPLACED` と、ライブラリを初めて使うときに、印を付けて一度だけ行う。保存した予約（`persistAcrossBoot=true`）は、保存データの平文の `tag::id` から 0e で記録した式で PendingIntent を作り直して Alarm を取り消し（`filterEquals` はコンポーネント名を文字列で比べるので、クラスが無くても一致する）、保存データを消す。保存しなかった予約（`persistAcrossBoot=false`）は列挙できないので取り消せないが、発火しても受け手のクラスが無いので何も表示されない（更新テストで確かめる）。**保存形式**: ライブラリのデータは JSON、利用者が Kotlin の API で渡した `Intent`（タップ先など）は `Intent.toUri` で保存する（2026-10-03 に決定）。Parcel は公式に永続化に使うべきでないとされ、今後の改名や R8 の難読化でも壊れる。`toUri` では、再起動をまたぐ予約の `Intent` の extra は基本型と文字列だけが残る（Kotlin の API の設計書の対応表と、マニュアルに書く。C ABI からは `Intent` を渡さないので影響しない）。A は古いクラス名（`android.*`）を移行のためだけに残し続けることになる（B も取り消しのために古い名前を文字列で持つが、クラスは残さない）。利用者は更新の後に予約し直す（移行ガイドに書く）。1.x で表示中の通知のタップは、旧 Receiver が無くなるので反応しない（同じく書く） |
+| D-11 | 1.x で予約・表示した通知 | A: 古いクラス名を残して移行する / B: 2.0.0 への更新の後に一度だけ破棄し、保存形式をクラス名に依存しない JSON にする | **決定（2026-10-03）: B**（レビュー v1 の A-3 を受けて決め直し、v2 を受けて具体にした。前の決定は「互換を捨てて `restoreScheduled` で作り直す」だったが、改名の後は `restoreScheduled` でも作り直せない）。**破棄**: 既存の BootReceiver が受ける `MY_PACKAGE_REPLACED` と、ライブラリを初めて使うときに、印を付けて一度だけ行う。保存した予約（`persistAcrossBoot=true`）は、保存データの平文の `tag::id` から 0e で記録した式で PendingIntent を作り直して Alarm を取り消し（`filterEquals` はコンポーネント名を文字列で比べるので、クラスが無くても一致する）、保存データを消す。保存しなかった予約（`persistAcrossBoot=false`）は列挙できないので取り消せないが、発火しても受け手のクラスが無いので何も表示されない（更新テストで確かめる。アプリを更新しても OS が Alarm を残すことは、段階 0a で確かめた）。**保存形式**: ライブラリのデータは JSON、利用者が Kotlin の API で渡した `Intent`（タップ先など）は `Intent.toUri` で保存する（2026-10-03 に決定）。Parcel は公式に永続化に使うべきでないとされ、今後の改名や R8 の難読化でも壊れる。`toUri` では、再起動をまたぐ予約の `Intent` の extra は基本型と文字列だけが残る（Kotlin の API の設計書の対応表と、マニュアルに書く。C ABI からは `Intent` を渡さないので影響しない）。A は古いクラス名（`android.*`）を移行のためだけに残し続けることになる（B も取り消しのために古い名前を文字列で持つが、クラスは残さない）。利用者は更新の後に予約し直す（移行ガイドに書く）。1.x で表示中の通知のタップは、旧 Receiver が無くなるので反応しない（同じく書く） |
 | D-12 | 版 | `android_library` と C ABI の版 | **決定（2026-10-03）: どちらも 2.0.0**。`unity_android_plugin` を消すのは破壊的変更で、Windows も 2.0.0 にした。`android_library` もパッケージ名が変わる（D-15） |
 | D-13 | `ntk_last_system_code()` に入れる値（E-4） | 0 のまま / Android のシステムのエラーを数値にして入れる | **C ABI の設計で決める**。Android の失敗は数値ではなく例外で来ることが多い。例外のクラス名を返す関数を足すか、Windows の HRESULT の定数を `Common.h` から分けるか（3.3）も含めて決める |
 | D-14 | `android-toolchain-migration`（`migration/README.md`）との関係 | 統合する / 分ける | **決定（2026-10-03）: 統合する**。版は AGP 9.3.1 + Gradle 9.7.0 + Kotlin 2.4.20（8.3。レビュー v1 の A-12 を受けて、KGP 2.4.20 が確かめている範囲に合わせた）。2.0.0 は破壊的変更なので、版を上げるならここが最も安い。Google Play が 2026-08-31 から targetSdk 36 を求めており、サンプルの targetSdk 35 は上げる必要がある。Windows も D-1 で同じ理由から統合した |
@@ -501,6 +502,7 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 | `release` の状態機械（D-6） | C ABI |
 | `Common.h` の分け方、共通の部分の置き場所（1 か所か、写して照合か）、`NTK_VERSION` の意味（3.3） | C ABI |
 | イベントを保つ件数・期限・順序・重複の扱い（4 章） | Kotlin の API |
+| 予約の保存の書き込みを確実にすること。今は `apply()` なので、予約した直後にプロセスが止まると保存が失われ、再起動の後に戻らない（段階 0a で見つけた） | Kotlin の API |
 | 透明な Activity の契約（D-7） | Kotlin の API |
 | `consumer-rules.pro` の中身: JNI から名前で引くクラスと native メソッド、manifest の Receiver と Activity、Initializer、保存に名前を使うクラス | Kotlin の API・C ABI |
 | manifest の merge で利用者に入る権限とコンポーネントの扱い。任意の権限を利用者が選んで入れる形にするか、`tools:node="remove"` の手順を書くか | Kotlin の API |
@@ -511,7 +513,7 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 
 - [ ] D-1 〜 D-18 を決める（残りは C ABI の設計で決める D-4・D-6・D-8・D-9・D-10 の残り・D-13）
 - [x] この README のレビューで区分 A が 0 になっている（3 回。`reviews/` の v1〜v3）
-- [ ] 段階 0a のスパイクで、UiAutomator と人の確認の分担を確定する
+- [x] 段階 0a のスパイクで、UiAutomator と人の確認の分担を確定する
 - [ ] Clipboard / Notification / Share / Dialog のすべてにサンプルの UI テストがある
 - [ ] 段階 1a のスパイクで 8.2 を確かめる
 - [ ] UI テスト・C ABI・Kotlin の API の設計書を書き、別のモデルのレビューを通す
