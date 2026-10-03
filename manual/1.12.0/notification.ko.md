@@ -1291,6 +1291,8 @@ options.iconUri = L"C:\\path\\to\\app-icon.png";
 auto created = Notification::Manager::Create(options);
 ```
 
+여기서 `displayName`은 표시 이름에 그치지 않고 앱의 AppUserModelID(AUMID)가 됩니다. `Create`는 이 이름으로 시작 메뉴 바로 가기를 만들고, 활성화 CLSID를 이 이름에서 도출하며, `HKCU\Software\Classes\AppUserModelId\<displayName>`을 기록합니다. 여기에는 실행 중인 프로세스로 활성화를 전달하는 `CustomActivator`도 포함됩니다. 기록은 덮어쓰기이므로 앱마다 다른 이름을 사용해 주세요. 같은 `displayName`을 사용하는 두 앱은 서로의 활성화를 가로챕니다. C ABI의 `display_name`도 마찬가지입니다.
+
 #### 종료
 
 ```cpp
@@ -1582,7 +1584,7 @@ const auto result = g_manager->RemoveAll();
 
 핸들러는 OS가 활성화를 전달한 스레드에서 실행되며, 호출하는 쪽의 스레드로 옮겨지지 않습니다. `ActivationArgs::values`에는 눌린 버튼의 인수와 모든 텍스트 필드, 선택 필드의 내용이 id를 키로 하여 함께 담깁니다. `rawArguments`는 가공하지 않은 인수 문자열입니다.
 
-비패키지 앱이 토스트 클릭으로 시작된 경우, 그 첫 번째 활성화는 `Manager::Create` 안에서 호출한 스레드로 전달됩니다. 따라서 핸들러는 자신이 속한 Manager가 이미 존재한다고 가정해서는 안 됩니다.
+비패키지 앱이 토스트 클릭으로 시작된 경우(콜드 스타트)에도, 그 활성화는 다른 활성화와 같은 경로로 한 번만 전달됩니다. `Manager::Create`가 반환되기 전에 전달될 수 있으며, 호출한 스레드가 STA일 때는 `Create` 안에서 그 스레드로 전달되는 것을 확인했습니다. 따라서 핸들러는 자신이 속한 Manager가 이미 존재한다고 가정해서는 안 됩니다. 프로세스의 명령줄에는 COM이 시작했다는 표시(`-ToastActivated -Embedding`)만 있고, 토스트의 내용은 들어 있지 않습니다.
 
 샘플 앱은 생성 시 핸들러를 한 번만 등록하고, 그때 화면에 있는 페이지로 전달합니다.
 

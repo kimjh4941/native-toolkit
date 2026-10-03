@@ -1291,6 +1291,8 @@ options.iconUri = L"C:\\path\\to\\app-icon.png";
 auto created = Notification::Manager::Create(options);
 ```
 
+ここでの `displayName` は表示名にとどまらず、アプリの AppUserModelID（AUMID）になります。`Create` はこの名前でスタートメニューのショートカットを作り、活性化の CLSID をこの名前から導き、`HKCU\Software\Classes\AppUserModelId\<displayName>` を書き込みます。この中には、起動中のプロセスに活性化を届ける `CustomActivator` も含まれます。書き込みは上書きなので、アプリごとに別の名前にしてください。同じ `displayName` を使う 2 つのアプリは、互いの活性化を奪い合います。C ABI の `display_name` も同じです。
+
 #### 終了
 
 ```cpp
@@ -1582,7 +1584,7 @@ const auto result = g_manager->RemoveAll();
 
 ハンドラーは OS が活性化を配信したスレッドで動き、呼び出し側のスレッドへは移されません。`ActivationArgs::values` には、押されたボタンの引数と、すべてのテキスト欄・選択欄の内容が id をキーとしてまとめて入ります。`rawArguments` は手を加えていない引数の文字列です。
 
-パッケージ無しのアプリがトーストのクリックで起動した場合、その最初の活性化は `Manager::Create` の中から、呼び出したスレッドで配信されます。ハンドラーは、自分が属する Manager がすでに存在していると想定してはいけません。
+パッケージ無しのアプリがトーストのクリックで起動した場合（コールドスタート）も、その活性化はほかの活性化と同じ経路で 1 回だけ届きます。`Manager::Create` が戻る前に届くことがあり、呼び出したスレッドが STA のときは、`Create` の中でそのスレッドに届くことを確かめています。ハンドラーは、自分が属する Manager がすでに存在していると想定してはいけません。プロセスのコマンドラインには COM に起動されたこと（`-ToastActivated -Embedding`）しか載らず、トーストの内容は含まれません。
 
 サンプルアプリでは、ハンドラーを作成時に 1 回だけ登録し、そのときに画面に出ているページへ転送しています。
 

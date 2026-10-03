@@ -1291,6 +1291,8 @@ options.iconUri = L"C:\\path\\to\\app-icon.png";
 auto created = Notification::Manager::Create(options);
 ```
 
+`displayName` is more than a label here: it becomes the app's AppUserModelID (AUMID). `Create` names the Start Menu shortcut after it, derives the activator's CLSID from it, and writes `HKCU\Software\Classes\AppUserModelId\<displayName>`, including `CustomActivator`, which routes an activation to the running process. These writes overwrite, so give each app its own name: two apps that pass the same `displayName` take each other's activations. The same holds for `display_name` in the C ABI.
+
 #### Close
 
 ```cpp
@@ -1582,7 +1584,7 @@ const auto result = g_manager->RemoveAll();
 
 The handler runs on whichever thread the OS delivers the activation on, and it is not moved to yours. `ActivationArgs::values` holds the arguments of the button that was pressed merged with the contents of every text and selection field, keyed by their ids; `rawArguments` is the untouched argument string.
 
-When an unpackaged app is launched by clicking a toast, that first activation is delivered from inside `Manager::Create`, on the calling thread - a handler must not assume the manager it belongs to already exists.
+When an unpackaged app is launched by clicking a toast (cold start), that activation comes the same way as any other, exactly once, and it can arrive before `Manager::Create` returns: with the calling thread an STA, it has been seen to arrive inside `Create`, on that thread. A handler must not assume the manager it belongs to already exists. The process's command line only says that COM launched it (`-ToastActivated -Embedding`); it carries nothing of the toast.
 
 The sample app installs the handler once, at creation, and forwards it to whichever page is on screen:
 
