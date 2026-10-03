@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Gives the instrumented tests input focus: since Android 10 only the focused app can
+             read the clipboard or receive its change callbacks. -->
+        <activity
+            android:name="android.library.testing.FocusActivity"
+            android:exported="false" />
+    </application>
+
+</manifest>

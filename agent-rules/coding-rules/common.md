@@ -6,6 +6,22 @@
 
 ---
 
+## ライブラリ本体の依存の範囲
+
+ネイティブライブラリ本体（OS ごとの公開 API と C ABI）は、特定のアプリの枠組み・実行環境に依存しない。どのエンジン・言語・枠組みからでも同じ本体を使えることが、このライブラリの前提である。
+
+| 区分 | 例 | 本体からの依存 |
+|---|---|---|
+| OS と、OS の提供元の標準のライブラリ | Win32 / WinRT、C++/WinRT、Windows App SDK、WebView2、androidx、Foundation / UIKit / AppKit | してよい |
+| アプリの枠組み・実行環境 | Unity、Godot、Unreal、Flutter、React Native、.NET（.NET Framework を含む） | してはならない |
+
+- 枠組みごとの対応（Unity の C#、Godot・Unreal のプラグイン、.NET のラッパーなど）は、本体の外の薄いラッパーにする。ラッパーは C ABI か本体の公開 API を呼ぶだけで、機能のロジックを持たない（持つのは型の変換、スレッドの受け渡し、枠組みへの組み込みだけ）
+- 本体の公開 API は、特定の枠組みの都合を前提にしない。例: Android で前面の Activity を `FragmentActivity` に限らない（Unity の `UnityPlayerActivity` や Flutter の `FlutterActivity` は `FragmentActivity` ではない）
+- OS の提供元のライブラリでも、利用者がランタイムを配る必要があるもの（Windows App SDK、WebView2）は、マニュアルの動作環境に書く
+- 今ある Unity Bridge（下の「Unity Bridge パターン」）はこの原則より前からあるもので、OS ごとの C ABI に置き換えて外していく（Windows は置き換え済み。Android は `artifact/topics/android-c-abi/`、iOS / macOS は後のトピック）
+
+---
+
 ## Clean Architecture
 
 ### 層の定義と依存方向

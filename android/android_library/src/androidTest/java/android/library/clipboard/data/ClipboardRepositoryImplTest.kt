@@ -5,14 +5,17 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.library.clipboard.data.repository.ClipboardRepositoryImpl
 import android.library.clipboard.domain.model.ClipContent
+import android.library.testing.FocusActivity
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -25,6 +28,10 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class ClipboardRepositoryImplTest {
+
+    /** Keeps an activity of this app in front: only the focused app can use the clipboard (Android 10+). */
+    @get:Rule
+    val focus = ActivityScenarioRule(FocusActivity::class.java)
 
     private val appContext: Context
         get() = InstrumentationRegistry.getInstrumentation().targetContext

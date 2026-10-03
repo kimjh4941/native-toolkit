@@ -5,7 +5,7 @@ All implementation rules are managed in this folder.
 
 ## Index
 
-- Common implementation policy (Clean Architecture / TDD / Bridge): ./coding-rules/common.md
+- Common implementation policy (library dependencies / Clean Architecture / TDD / Bridge): ./coding-rules/common.md
 - Android coding rules: ./coding-rules/android.md
 - iOS coding rules (Swift + Objective-C): ./coding-rules/ios.md
 

@@ -1,13 +1,11 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jonghyunkim.android.nativetoolkit.example.infra.CategoryClipboard
+import com.jonghyunkim.android.nativetoolkit.example.infra.SampleApp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,23 +17,22 @@ import org.junit.runner.RunWith
  * pasting into another app or observing system UI (see the implementation result doc for the
  * full list of automated vs. manual-only items).
  */
+@CategoryClipboard
 @RunWith(AndroidJUnit4::class)
 class ClipboardSampleScreenUiTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
+    private val app by lazy { SampleApp(composeTestRule) }
+
     private fun navigateToClipboardScreen() {
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText("Clipboard Example"))
-        composeTestRule.onNodeWithText("Clipboard Example").performClick()
-        composeTestRule.onNodeWithText("Clipboard Example", substring = true).assertExists()
+        app.open("clipboard")
     }
 
-    private fun click(label: String) {
-        // The button list is a LazyColumn: off-screen nodes are not composed yet, so scroll the
-        // scrollable container to the target node (by matcher) rather than scrolling the node itself.
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
-        composeTestRule.onNodeWithText(label).performClick()
+    /** Clicks a button by its test tag (stage 0c: buttons are found by tag, not by label). */
+    private fun click(tag: String) {
+        app.click(tag)
     }
 
     private fun waitForStatus(substring: String) {
@@ -47,67 +44,67 @@ class ClipboardSampleScreenUiTest {
     @Test
     fun copyPlainText_success_showsSuccessStatus() {
         navigateToClipboardScreen()
-        click("Copy Plain Text")
+        click("clipboard.copyPlainText")
         waitForStatus("✅ copyPlainText called")
     }
 
     @Test
     fun copyPlainTextEmpty_isAllowed_showsSuccessStatus() {
         navigateToClipboardScreen()
-        click("Copy Plain Text (empty, allowed)")
+        click("clipboard.copyPlainTextEmptyAllowed")
         waitForStatus("✅ copyPlainText (empty) called")
     }
 
     @Test
     fun copyUri_thenRead_showsContentUriInResult() {
         navigateToClipboardScreen()
-        click("Copy URI (content:// via FileProvider)")
+        click("clipboard.copyUriContentViaFileProvider")
         waitForStatus("✅ copyUri called: content://")
-        click("Read Clipboard")
+        click("clipboard.readClipboard")
         waitForStatus("uri=content://")
     }
 
     @Test
     fun copyMultipleText_thenRead_showsThreeItems() {
         navigateToClipboardScreen()
-        click("Copy Multiple Text")
+        click("clipboard.copyMultipleText")
         waitForStatus("✅ copyMultipleText called (3 items)")
-        click("Read Clipboard")
+        click("clipboard.readClipboard")
         waitForStatus("text=first")
     }
 
     @Test
     fun read_afterClear_showsEmptyNormalCase() {
         navigateToClipboardScreen()
-        click("Copy Plain Text")
+        click("clipboard.copyPlainText")
         waitForStatus("✅ copyPlainText called")
-        click("Clear Clipboard")
+        click("clipboard.clearClipboard")
         waitForStatus("✅ clear called")
-        click("Read Clipboard")
+        click("clipboard.readClipboard")
         waitForStatus("ℹ️ Clipboard is empty (normal)")
     }
 
     @Test
     fun getDescription_afterClear_showsEmptyNormalCase() {
         navigateToClipboardScreen()
-        click("Copy Plain Text")
+        click("clipboard.copyPlainText")
         waitForStatus("✅ copyPlainText called")
-        click("Clear Clipboard")
+        click("clipboard.clearClipboard")
         waitForStatus("✅ clear called")
-        click("Get Description")
+        click("clipboard.getDescription")
         waitForStatus("ℹ️ Clipboard is empty (normal)")
     }
 
     @Test
     fun hasClip_reflectsCopyAndClearState() {
         navigateToClipboardScreen()
-        click("Copy Plain Text")
+        click("clipboard.copyPlainText")
         waitForStatus("✅ copyPlainText called")
-        click("Has Clip")
+        click("clipboard.hasClip")
         waitForStatus("✅ hasClip = true")
-        click("Clear Clipboard")
+        click("clipboard.clearClipboard")
         waitForStatus("✅ clear called")
-        click("Has Clip")
+        click("clipboard.hasClip")
         waitForStatus("✅ hasClip = false")
     }
 
@@ -120,9 +117,9 @@ class ClipboardSampleScreenUiTest {
         // ClipboardChangeMonitor.start() itself is covered by the library-level instrumented test
         // (ClipboardChangeMonitorTest in android_library), not duplicated here.
         navigateToClipboardScreen()
-        click("Start Observing")
+        click("clipboard.startObserving")
         waitForStatus("✅ observing started")
-        click("Copy Plain Text")
+        click("clipboard.copyPlainText")
         waitForStatus("ℹ️ Clipboard changed")
     }
 
@@ -132,22 +129,22 @@ class ClipboardSampleScreenUiTest {
         // Start Observing tap. Idempotent system-listener registration itself is verified by
         // ClipboardChangeMonitorTest at the library level.
         navigateToClipboardScreen()
-        click("Start Observing")
+        click("clipboard.startObserving")
         waitForStatus("✅ observing started")
-        click("Start Observing")
+        click("clipboard.startObserving")
         waitForStatus("✅ observing started")
-        click("Copy Plain Text")
+        click("clipboard.copyPlainText")
         waitForStatus("ℹ️ Clipboard changed")
     }
 
     @Test
     fun observe_stop_thenCopy_doesNotNotify() {
         navigateToClipboardScreen()
-        click("Start Observing")
+        click("clipboard.startObserving")
         waitForStatus("✅ observing started")
-        click("Stop Observing")
+        click("clipboard.stopObserving")
         waitForStatus("✅ observing stopped")
-        click("Copy Plain Text")
+        click("clipboard.copyPlainText")
         waitForStatus("✅ copyPlainText called")
         // The stop status must remain the last "observing" message; no "Clipboard changed" text appears.
         composeTestRule.onNodeWithText("Clipboard changed", substring = true).assertDoesNotExist()
@@ -156,28 +153,28 @@ class ClipboardSampleScreenUiTest {
     @Test
     fun errorCase_copyHtmlEmpty_showsEmptyContent() {
         navigateToClipboardScreen()
-        click("Copy HTML (empty) → EmptyContent")
+        click("clipboard.copyHtmlEmptyEmptyContent")
         waitForStatus("❌ EmptyContent")
     }
 
     @Test
     fun errorCase_copyMultipleEmptyList_showsEmptyItemList() {
         navigateToClipboardScreen()
-        click("Copy Multiple (empty list) → EmptyItemList")
+        click("clipboard.copyMultipleEmptyListEmptyItemList")
         waitForStatus("❌ EmptyItemList")
     }
 
     @Test
     fun errorCase_copyUriBlank_showsInvalidUri() {
         navigateToClipboardScreen()
-        click("Copy URI (blank) → InvalidUri")
+        click("clipboard.copyUriBlankInvalidUri")
         waitForStatus("❌ InvalidUri")
     }
 
     @Test
     fun errorCase_copyUriHttpScheme_showsInvalidUri() {
         navigateToClipboardScreen()
-        click("Copy URI (http scheme) → InvalidUri")
+        click("clipboard.copyUriHttpSchemeInvalidUri")
         waitForStatus("❌ InvalidUri: http://example.com/x")
     }
 }

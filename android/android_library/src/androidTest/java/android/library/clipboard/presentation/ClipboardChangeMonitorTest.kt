@@ -3,7 +3,9 @@ package android.library.clipboard.presentation
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.library.testing.FocusActivity
 import androidx.core.content.ContextCompat
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
@@ -11,10 +13,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Instrumented tests for [ClipboardChangeMonitor] against the real system ClipboardManager.
@@ -23,6 +27,10 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(AndroidJUnit4::class)
 class ClipboardChangeMonitorTest {
+
+    /** Keeps an activity of this app in front: only the focused app can use the clipboard (Android 10+). */
+    @get:Rule
+    val focus = ActivityScenarioRule(FocusActivity::class.java)
 
     private lateinit var appContext: Context
     private lateinit var monitor: ClipboardChangeMonitor
@@ -56,18 +64,29 @@ class ClipboardChangeMonitorTest {
 
     @Test
     fun start_calledTwice_doesNotRegisterDuplicateListener() {
-        var firstCallbackCount = 0
-        monitor.start(appContext) { firstCallbackCount++ }
-        monitor.start(appContext) { firstCallbackCount++ }
+        // The platform can notify more than once per copy (twice on API 35 and 36), so compare
+        // against a listener registered directly with the platform.
+        val clipboardManager = ContextCompat.getSystemService(appContext, ClipboardManager::class.java)!!
+        val platformCount = AtomicInteger()
+        val reference = ClipboardManager.OnPrimaryClipChangedListener { platformCount.incrementAndGet() }
+        clipboardManager.addPrimaryClipChangedListener(reference)
+        try {
+            val monitorCount = AtomicInteger()
+            monitor.start(appContext) { monitorCount.incrementAndGet() }
+            monitor.start(appContext) { monitorCount.incrementAndGet() }
 
-        val latch = CountDownLatch(1)
-        setPrimaryClip("trigger-2")
-        // Give the system listener a moment to fire, then verify only one registration exists.
-        Thread.sleep(200)
+            setPrimaryClip("trigger-2")
+            // Wait for the first notification, then give any follow-up notifications time to arrive.
+            val deadline = System.currentTimeMillis() + 5_000
+            while (platformCount.get() == 0 && System.currentTimeMillis() < deadline) Thread.sleep(50)
+            Thread.sleep(1_000)
 
-        // Only one listener should be registered: a single change fires at most once via this monitor.
-        assertTrue(firstCallbackCount <= 1)
-        latch.countDown()
+            // Only one listener should be registered: the monitor fires once per platform notification.
+            assertTrue(platformCount.get() > 0)
+            assertEquals(platformCount.get(), monitorCount.get())
+        } finally {
+            clipboardManager.removePrimaryClipChangedListener(reference)
+        }
     }
 
     @Test

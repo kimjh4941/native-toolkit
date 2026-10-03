@@ -207,6 +207,8 @@ class ShareChooserActionInstrumentedTest {
 
         // NoOpStartActivityContext prevents ActivityNotFoundException while keeping the registration.
         UnityAndroidShareManager.shareText(NoOpStartActivityContext(appContext), shareJson)
+        // shareText registers the receiver on the main thread; wait for it before broadcasting.
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 
         // Simulate chooser action tap via direct broadcast (real PendingIntent path needs manual check).
         appContext.sendBroadcast(Intent(action).setPackage(appContext.packageName))
