@@ -95,14 +95,28 @@ class NotificationShade(private val instrumentation: Instrumentation, private va
         find(text).click()
     }
 
-    /** Swipes the notification that contains [text] away. */
-    fun swipeAway(text: String) {
-        row(text).swipe(Direction.RIGHT, 1.0f, SWIPE_SPEED)
+    /**
+     * Swipes the notification that contains [text] away until [isGone] holds. A swipe can fail to
+     * dismiss (seen on the emulator), so the row is found and swiped again, up to 3 times.
+     */
+    fun swipeAway(text: String, isGone: () -> Boolean) {
+        repeat(SWIPE_RETRIES) {
+            val row = runCatching { row(text, SHORT_MS) }.getOrNull() ?: return
+            row.swipe(Direction.RIGHT, 1.0f, SWIPE_SPEED)
+            val end = System.currentTimeMillis() + SWIPE_WAIT_MS
+            while (System.currentTimeMillis() < end) {
+                if (isGone()) return
+                Thread.sleep(200)
+            }
+        }
     }
 
     companion object {
         private const val SYSTEM_UI = "com.android.systemui"
         private const val TIMEOUT_MS = 10_000L
+        private const val SHORT_MS = 3_000L
         private const val SWIPE_SPEED = 2_000
+        private const val SWIPE_RETRIES = 3
+        private const val SWIPE_WAIT_MS = 4_000L
     }
 }

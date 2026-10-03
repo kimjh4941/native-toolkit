@@ -7,6 +7,7 @@ import android.library.notification.data.repository.NotificationUseCases
 import android.library.notification.domain.model.NotificationChannel
 import android.library.notification.domain.model.NotificationContent
 import android.library.notification.domain.model.NotificationSchedule
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jonghyunkim.android.nativetoolkit.example.infra.CategoryHost
@@ -58,8 +59,8 @@ class HostPhaseTest {
         // The library saves with apply(); commit() writes the whole map synchronously, so the
         // schedule is on disk before the host updates or reboots the device (3.7).
         context.getSharedPreferences(SCHEDULER_PREFERENCES, Context.MODE_PRIVATE).edit().commit()
-        // Read by the host script to know when to check.
-        println("HOST_TRIGGER_AT=$triggerAt")
+        // Read by the host script from logcat to know when to check.
+        Log.i(TAG, "HOST_TRIGGER_AT=$triggerAt")
     }
 
     private fun command(id: Int, title: String) = AndroidNotificationCommand(
@@ -73,5 +74,6 @@ class HostPhaseTest {
 
     private companion object {
         const val SCHEDULER_PREFERENCES = "android.library.notification.scheduler"
+        const val TAG = "HostPhaseTest"
     }
 }

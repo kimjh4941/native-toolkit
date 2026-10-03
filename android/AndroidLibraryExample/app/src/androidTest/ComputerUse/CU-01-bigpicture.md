@@ -2,7 +2,7 @@
 
 - 対象: `artifact/topics/android-c-abi/designs/2026-10-03-android-c-abi-ui-test-design.md` の 7 章、6.3 N-13
 - 自動のテストで確かめていること: 通知に画像（`EXTRA_PICTURE` か `EXTRA_PICTURE_ICON`）と大きいアイコンがあること。どの画像かは確かめられない
-- 手段: Claude のデスクトップアプリの computer use。実機は scrcpy などで画面を Mac に映す。エミュレータはそのまま見る
+- 手段: Claude のデスクトップアプリの computer use（実機は scrcpy などで画面を Mac に映す。エミュレータはそのまま見る）か、`adb` で手順どおりに操作し、`adb exec-out screencap` で撮った画面を Claude が見る
 - 判定があいまいなら失敗とする
 
 ## 前提

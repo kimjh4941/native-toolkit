@@ -55,7 +55,7 @@ class NotificationInteractionUiTest : SampleUiTest() {
         notifications.waitFor(1110)
         shade.open()
         val visible = shade.findAny(listOf("Interaction / deleteIntent", "Native Toolkit Interaction"))
-        shade.swipeAway(visible)
+        shade.swipeAway(visible) { notifications.find(1110) == null }
         notifications.waitGone(1110)
         toasts.waitFor("DeleteIntent Sample dismissed (deleteIntent)")
         shade.close()

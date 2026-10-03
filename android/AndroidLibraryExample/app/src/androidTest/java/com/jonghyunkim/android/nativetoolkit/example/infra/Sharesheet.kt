@@ -39,8 +39,10 @@ class Sharesheet(private val device: UiDevice) {
     /** Clicks the target, chooser action or shortcut labelled [label]. */
     fun choose(label: String) {
         // The target list can re-layout while it loads: the found object can go stale, or the click
-        // can land after the list moved. Retry until the Sharesheet closes.
+        // can land after the list moved. Retry until the Sharesheet closes. Closing can take longer
+        // than CLOSE_MS on the emulator, so a Sharesheet that is already gone counts as chosen.
         repeat(CHOOSE_RETRIES) { attempt ->
+            if (attempt > 0 && !device.hasObject(By.pkg(RESOLVER))) return
             try {
                 find(label).click()
                 device.waitForIdle()
@@ -68,6 +70,6 @@ class Sharesheet(private val device: UiDevice) {
         private const val SHORT_MS = 1_500L
         private const val MAX_SCROLLS = 6
         private const val CHOOSE_RETRIES = 3
-        private const val CLOSE_MS = 3_000L
+        private const val CLOSE_MS = 5_000L
     }
 }
