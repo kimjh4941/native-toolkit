@@ -38,3 +38,9 @@ Agent-specific wrappers in `.github/skills/` reference these files.
 - Write user-facing message text in English.
 - When adding rules, update this index and place details in each rule file.
 - Commit only through the commit-msg workflow (./workflows/commit-msg/workflow.md). Do not run `git commit` directly.
+
+## Working with the user
+
+- When the user has to decide, name the option you recommend and why in one line. Do not present a neutral list of choices.
+- Do not offer to stop or pause at a milestone. Finish the step, report the result, and go on to the next one; the user says when to stop. Still ask before anything hard to reverse or outward-facing (commits, pushes, PRs, releases, messages to others).
+- Choose the number of subagents or reviewers yourself from the work (distinct viewpoints, not volume), and state the choice in one line.
