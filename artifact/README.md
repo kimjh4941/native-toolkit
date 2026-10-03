@@ -34,7 +34,7 @@
 | [bridge-testing](topics/bridge-testing/README.md) | テスト債務 | 未着手 | 2026-08-15 | Unity ブリッジ層（Objective-C `.m`）を通るテストが iOS の全機能に無い |
 | [manual-integrity](topics/manual-integrity/README.md) | ドキュメント | 一部対応 | 2026-09-06 | マニュアルの画像リンク切れ・アンカー切れ（index 機能一覧は修正済み） |
 | general-c-abi（README は着手時に作る） | アーキテクチャ | 未着手 | 2026-10-03 | Android / iOS / macOS にも、Windows（windows-architecture）と同じ汎用 C ABI を 1 OS ずつ作る予定。今の JSON ブリッジは C 構造体に書き換えず、新しい C ABI を別の成果物として足してからブリッジを消す（Windows の段階 5 の順番）。Windows の C ABI 設計書の E-1〜E-21、`struct_size` による版の管理、対応表（8.3）、`check_c_abi_contract.py` / `check_manual_c_examples.py` を引き継ぐ。OS ごとの違いは、スレッドモデルと、ホスト言語の寿命の規則（ARC、JNI のグローバル参照）になる見込み |
-| [windows-architecture](topics/windows-architecture/README.md) | アーキテクチャ | 進行中 | 2026-10-03 | Windows ライブラリの構成再編と、C++ API（`WindowsLibrary`）/ 汎用 C ABI（`WindowsLibraryCApi`）への分離。段階 0〜6 と、その後に見つかった 4 件の対処は完了。develop へのマージ、1.12.0 のリリース、活性化の自動テスト、段階 7（CI）が残り（README 5.3） |
+| [windows-architecture](topics/windows-architecture/README.md) | アーキテクチャ | 進行中 | 2026-10-03 | Windows ライブラリの構成再編と、C++ API（`WindowsLibrary`）/ 汎用 C ABI（`WindowsLibraryCApi`）への分離。段階 0〜6 と、その後に見つかった 4 件の対処は完了し、1.12.0 でリリースした（2026-10-03）。活性化の自動テストと段階 7（CI）が残り（README 5.3） |
 
 状態の語彙: 未着手 / 企画中 / 設計済 / 進行中 / 一部対応 / 完了
 
