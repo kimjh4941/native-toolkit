@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -90,7 +91,7 @@ fun ClipboardSampleScreen(
     ) {
         Button(
             onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("clipboard.back")
         ) {
             Text(text = "← Back to Main")
         }
@@ -109,6 +110,7 @@ fun ClipboardSampleScreen(
         Text(
             text = statusText,
             modifier = Modifier
+                .testTag("clipboard.status")
                 .fillMaxWidth()
                 .padding(8.dp)
         )
@@ -145,7 +147,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyPlainText")
                 ) {
                     Text(text = "Copy Plain Text")
                 }
@@ -163,7 +165,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyPlainTextEmptyAllowed")
                 ) {
                     Text(text = "Copy Plain Text (empty, allowed)")
                 }
@@ -183,7 +185,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyHtmlText")
                 ) {
                     Text(text = "Copy HTML Text")
                 }
@@ -213,7 +215,7 @@ fun ClipboardSampleScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyUriContentViaFileProvider")
                 ) {
                     Text(text = "Copy URI (content:// via FileProvider)")
                 }
@@ -233,7 +235,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyMultipleText")
                 ) {
                     Text(text = "Copy Multiple Text")
                 }
@@ -275,7 +277,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copySensitiveText")
                 ) {
                     Text(text = "Copy Sensitive Text")
                 }
@@ -309,7 +311,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.readClipboard")
                 ) {
                     Text(text = "Read Clipboard")
                 }
@@ -324,7 +326,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.hasClip")
                 ) {
                     Text(text = "Has Clip")
                 }
@@ -346,7 +348,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.getDescription")
                 ) {
                     Text(text = "Get Description")
                 }
@@ -374,7 +376,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.clearClipboard")
                 ) {
                     Text(text = "Clear Clipboard")
                 }
@@ -416,7 +418,7 @@ fun ClipboardSampleScreen(
                             "❌ failed to start observing"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.startObserving")
                 ) {
                     Text(text = "Start Observing")
                 }
@@ -428,7 +430,7 @@ fun ClipboardSampleScreen(
                         monitor.stop()
                         statusText = "✅ observing stopped"
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.stopObserving")
                 ) {
                     Text(text = "Stop Observing")
                 }
@@ -460,7 +462,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyHtmlEmptyEmptyContent")
                 ) {
                     Text(text = "Copy HTML (empty) → EmptyContent")
                 }
@@ -478,7 +480,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyMultipleEmptyListEmptyItemList")
                 ) {
                     Text(text = "Copy Multiple (empty list) → EmptyItemList")
                 }
@@ -496,7 +498,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyUriBlankInvalidUri")
                 ) {
                     Text(text = "Copy URI (blank) → InvalidUri")
                 }
@@ -514,7 +516,7 @@ fun ClipboardSampleScreen(
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyUriHttpSchemeInvalidUri")
                 ) {
                     Text(text = "Copy URI (http scheme) → InvalidUri")
                 }

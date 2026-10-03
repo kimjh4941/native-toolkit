@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,7 +46,7 @@ fun ReceivedShareScreen(
     ) {
         Button(
             onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("receivedShare.back")
         ) {
             Text(text = "← Back to Main")
         }
@@ -75,14 +76,15 @@ fun ReceivedShareScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                ReceivedShareField(label = "Action", value = content.action)
+                ReceivedShareField(label = "Action", testTag = "receivedShare.action", value = content.action)
                 HorizontalDivider()
-                ReceivedShareField(label = "MIME type", value = content.mimeType ?: "(none)")
+                ReceivedShareField(label = "MIME type", testTag = "receivedShare.mimeType", value = content.mimeType ?: "(none)")
                 HorizontalDivider()
-                ReceivedShareField(label = "Text", value = content.text ?: "(none)")
+                ReceivedShareField(label = "Text", testTag = "receivedShare.text", value = content.text ?: "(none)")
                 HorizontalDivider()
                 ReceivedShareField(
                     label = "Stream URIs",
+                    testTag = "receivedShare.streamUris",
                     value = if (content.streamUris.isEmpty()) {
                         "(none)"
                     } else {
@@ -91,7 +93,7 @@ fun ReceivedShareScreen(
                 )
                 if (content.shortcutId != null) {
                     HorizontalDivider()
-                    ReceivedShareField(label = "Direct Share target", value = content.shortcutId)
+                    ReceivedShareField(label = "Direct Share target", testTag = "receivedShare.directShareTarget", value = content.shortcutId)
                 }
             }
         }
@@ -99,7 +101,7 @@ fun ReceivedShareScreen(
 }
 
 @Composable
-private fun ReceivedShareField(label: String, value: String) {
+private fun ReceivedShareField(label: String, testTag: String, value: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,7 +115,9 @@ private fun ReceivedShareField(label: String, value: String) {
         Text(
             text = value,
             fontSize = 14.sp,
-            modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+            modifier = Modifier
+                .testTag(testTag)
+                .padding(start = 8.dp, top = 2.dp)
         )
     }
 }

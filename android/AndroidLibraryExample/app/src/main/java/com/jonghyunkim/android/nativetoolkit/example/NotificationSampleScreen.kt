@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -933,7 +934,7 @@ fun NotificationSampleScreen(
     ) {
         Button(
             onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("notification.back")
         ) {
             Text(text = "← Back to Main")
         }
@@ -952,6 +953,7 @@ fun NotificationSampleScreen(
         Text(
             text = statusText,
             modifier = Modifier
+                .testTag("notification.status")
                 .fillMaxWidth()
                 .padding(8.dp)
         )
@@ -980,7 +982,7 @@ fun NotificationSampleScreen(
                                 append("exactAlarmAllowed=$exactAlarmAllowed")
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.checkNotificationPermission")
                     ) {
                         Text(text = "Check Notification Permission")
                     }
@@ -996,7 +998,7 @@ fun NotificationSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.requestNotificationPermission")
                     ) {
                         Text(text = "Request Notification Permission")
                     }
@@ -1011,7 +1013,7 @@ fun NotificationSampleScreen(
                                 "❌ Failed to open settings screen. This device may not support the target settings screen."
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.openNotificationSettings")
                     ) {
                         Text(text = "Open Notification Settings")
                     }
@@ -1026,7 +1028,7 @@ fun NotificationSampleScreen(
                                 "❌ Failed to open app details settings."
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.openAppDetailsSettings")
                     ) {
                         Text(text = "Open App Details Settings")
                     }
@@ -1041,7 +1043,7 @@ fun NotificationSampleScreen(
                                 "❌ Failed to open exact alarm settings."
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.openExactAlarmSettings")
                     ) {
                         Text(text = "Open Exact Alarm Settings")
                     }
@@ -1064,7 +1066,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Default style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showDefaultStyle")
                     ) {
                         Text(text = "Show Default Style")
                     }
@@ -1077,7 +1079,7 @@ fun NotificationSampleScreen(
                                 label = "Default Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteDefaultStyle")
                     ) {
                         Text(text = "Delete Default Style")
                     }
@@ -1090,7 +1092,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed BigText style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showBigTextStyle")
                     ) {
                         Text(text = "Show BigText Style")
                     }
@@ -1103,7 +1105,7 @@ fun NotificationSampleScreen(
                                 label = "BigText Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteBigTextStyle")
                     ) {
                         Text(text = "Delete BigText Style")
                     }
@@ -1116,7 +1118,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Inbox style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showInboxStyle")
                     ) {
                         Text(text = "Show Inbox Style")
                     }
@@ -1129,7 +1131,7 @@ fun NotificationSampleScreen(
                                 label = "Inbox Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteInboxStyle")
                     ) {
                         Text(text = "Delete Inbox Style")
                     }
@@ -1142,7 +1144,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed BigPicture style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showBigPictureStyle")
                     ) {
                         Text(text = "Show BigPicture Style")
                     }
@@ -1155,7 +1157,7 @@ fun NotificationSampleScreen(
                                 label = "BigPicture Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteBigPictureStyle")
                     ) {
                         Text(text = "Delete BigPicture Style")
                     }
@@ -1168,7 +1170,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Messaging style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showMessagingStyle")
                     ) {
                         Text(text = "Show Messaging Style")
                     }
@@ -1181,7 +1183,7 @@ fun NotificationSampleScreen(
                                 label = "Messaging Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteMessagingStyle")
                     ) {
                         Text(text = "Delete Messaging Style")
                     }
@@ -1204,7 +1206,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Media style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showMediaStyle")
                     ) {
                         Text(text = "Show Media Style")
                     }
@@ -1217,7 +1219,7 @@ fun NotificationSampleScreen(
                                 label = "Media Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteMediaStyle")
                     ) {
                         Text(text = "Delete Media Style")
                     }
@@ -1230,7 +1232,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed DecoratedCustomView style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showDecoratedCustomViewStyle")
                     ) {
                         Text(text = "Show DecoratedCustomView Style")
                     }
@@ -1243,7 +1245,7 @@ fun NotificationSampleScreen(
                                 label = "DecoratedCustomView Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteDecoratedCustomViewStyle")
                     ) {
                         Text(text = "Delete DecoratedCustomView Style")
                     }
@@ -1256,7 +1258,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed DecoratedMediaCustomView style notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showDecoratedMediaCustomViewStyle")
                     ) {
                         Text(text = "Show DecoratedMediaCustomView Style")
                     }
@@ -1269,7 +1271,7 @@ fun NotificationSampleScreen(
                                 label = "DecoratedMediaCustomView Style"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteDecoratedMediaCustomViewStyle")
                     ) {
                         Text(text = "Delete DecoratedMediaCustomView Style")
                     }
@@ -1292,7 +1294,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Group Child 1 notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showGroupChild1")
                     ) {
                         Text(text = "Show Group Child 1")
                     }
@@ -1305,7 +1307,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Group Child 2 notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showGroupChild2")
                     ) {
                         Text(text = "Show Group Child 2")
                     }
@@ -1318,7 +1320,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Group Summary notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showGroupSummary")
                     ) {
                         Text(text = "Show Group Summary")
                     }
@@ -1331,7 +1333,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed Group Alert Behavior sample. Verify summary-only alert behavior."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showGroupAlertBehavior")
                     ) {
                         Text(text = "Show Group Alert Behavior")
                     }
@@ -1344,7 +1346,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed DeleteIntent sample. Swipe the notification and verify the receiver callback."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showDeleteIntentSample")
                     ) {
                         Text(text = "Show DeleteIntent Sample")
                     }
@@ -1357,7 +1359,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed FullScreenIntent reference sample. Depending on device state, it appears as heads-up or full-screen."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showFullScreenIntentSample")
                     ) {
                         Text(text = "Show FullScreenIntent Sample")
                     }
@@ -1370,7 +1372,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed action button sample notification. Press Accept / Decline and check the status text."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showActionButtonsSample")
                     ) {
                         Text(text = "Show Action Buttons Sample")
                     }
@@ -1383,7 +1385,7 @@ fun NotificationSampleScreen(
                                 label = "Action Buttons Sample"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteActionButtonsSample")
                     ) {
                         Text(text = "Delete Action Buttons Sample")
                     }
@@ -1406,7 +1408,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed progress notification at 10%."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showProgress10")
                     ) {
                         Text(text = "Show Progress 10%")
                     }
@@ -1419,7 +1421,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Updated progress notification to 50%."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showProgress50")
                     ) {
                         Text(text = "Show Progress 50%")
                     }
@@ -1432,7 +1434,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Updated progress notification to 100%."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showProgress100")
                     ) {
                         Text(text = "Show Progress 100%")
                     }
@@ -1445,7 +1447,7 @@ fun NotificationSampleScreen(
                                 successMessage = "✅ Displayed indeterminate progress notification."
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showIndeterminateProgress")
                     ) {
                         Text(text = "Show Indeterminate Progress")
                     }
@@ -1458,7 +1460,7 @@ fun NotificationSampleScreen(
                                 label = "Progress"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteProgress")
                     ) {
                         Text(text = "Delete Progress")
                     }
@@ -1477,7 +1479,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = { startProgressForegroundService() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.startProgressFgs10")
                     ) {
                         Text(text = "Start Progress FGS 10%")
                     }
@@ -1485,7 +1487,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = { updateProgressForegroundService(progressValue = 50) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.updateProgressFgs50")
                     ) {
                         Text(text = "Update Progress FGS 50%")
                     }
@@ -1493,7 +1495,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = { updateProgressForegroundService(progressValue = 90) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.updateProgressFgs90")
                     ) {
                         Text(text = "Update Progress FGS 90%")
                     }
@@ -1501,7 +1503,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = { completeProgressForegroundService() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.completeProgressFgs")
                     ) {
                         Text(text = "Complete Progress FGS")
                     }
@@ -1509,7 +1511,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = { stopProgressForegroundService() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.stopProgressFgs")
                     ) {
                         Text(text = "Stop Progress FGS")
                     }
@@ -1533,7 +1535,7 @@ fun NotificationSampleScreen(
                                 label = "Incoming Call"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.incomingCall")
                     ) {
                         Text(text = "Incoming Call")
                     }
@@ -1546,7 +1548,7 @@ fun NotificationSampleScreen(
                                 label = "Ongoing Call"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.ongoingCall")
                     ) {
                         Text(text = "Ongoing Call")
                     }
@@ -1559,7 +1561,7 @@ fun NotificationSampleScreen(
                                 label = "Screening Call"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.screeningCall")
                     ) {
                         Text(text = "Screening Call")
                     }
@@ -1567,7 +1569,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = { stopCallForegroundService() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.stopCallForegroundService")
                     ) {
                         Text(text = "Stop Call Foreground Service")
                     }
@@ -1605,7 +1607,7 @@ fun NotificationSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.scheduleNotification15Sec")
                     ) {
                         Text(text = "Schedule Notification (15 sec)")
                     }
@@ -1615,7 +1617,7 @@ fun NotificationSampleScreen(
                         onClick = {
                             checkScheduledNotificationStatus(buildScheduledCommand())
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.checkScheduleIsScheduled")
                     ) {
                         Text(text = "Check Schedule isScheduled")
                     }
@@ -1628,7 +1630,7 @@ fun NotificationSampleScreen(
                                 label = "Schedule Notification"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("notification.deleteScheduleNotification")
                     ) {
                         Text(text = "Delete Schedule Notification")
                     }

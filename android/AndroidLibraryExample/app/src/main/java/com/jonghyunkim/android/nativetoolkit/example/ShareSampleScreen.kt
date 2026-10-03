@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -92,7 +93,7 @@ fun ShareSampleScreen(
     ) {
         Button(
             onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("share.back")
         ) {
             Text(text = "← Back to Main")
         }
@@ -111,6 +112,7 @@ fun ShareSampleScreen(
         Text(
             text = statusText,
             modifier = Modifier
+                .testTag("share.status")
                 .fillMaxWidth()
                 .padding(8.dp)
         )
@@ -155,7 +157,7 @@ fun ShareSampleScreen(
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareText")
                     ) {
                         Text(text = "Share Text")
                     }
@@ -175,7 +177,7 @@ fun ShareSampleScreen(
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareUrl")
                     ) {
                         Text(text = "Share URL")
                     }
@@ -224,7 +226,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareTextWithRichPreview")
                     ) {
                         Text(text = "Share Text with Rich Preview")
                     }
@@ -279,7 +281,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareTextWithCustomAction")
                     ) {
                         Text(text = "Share Text with Custom Action")
                     }
@@ -305,7 +307,7 @@ fun ShareSampleScreen(
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareWithSubjectTitle")
                     ) {
                         Text(text = "Share with Subject & Title")
                     }
@@ -356,7 +358,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareImage")
                     ) {
                         Text(text = "Share Image")
                     }
@@ -413,7 +415,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareMultipleImages")
                     ) {
                         Text(text = "Share Multiple Images")
                     }
@@ -455,7 +457,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareFile")
                     ) {
                         Text(text = "Share File")
                     }
@@ -501,7 +503,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareMultipleFiles")
                     ) {
                         Text(text = "Share Multiple Files")
                     }
@@ -558,7 +560,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.registerDirectShareTarget")
                     ) {
                         Text(text = "Register Direct Share Target")
                     }
@@ -575,7 +577,7 @@ fun ShareSampleScreen(
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.removeDirectShareTarget")
                     ) {
                         Text(text = "Remove Direct Share Target")
                     }
@@ -613,7 +615,7 @@ fun ShareSampleScreen(
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareWithCallback")
                     ) {
                         Text(text = "Share with Callback")
                     }
@@ -671,7 +673,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareWithCallbackRichPreview")
                     ) {
                         Text(text = "Share with Callback + Rich Preview")
                     }
@@ -687,7 +689,7 @@ fun ShareSampleScreen(
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.cancelPendingCallback")
                     ) {
                         Text(text = "Cancel Pending Callback")
                     }

@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,7 +45,7 @@ fun AndroidDialogFragmentTestScreen(
         item {
             Button(
                 onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().testTag("dialog.back")
             ) {
                 Text(text = "← Back to Main")
             }
@@ -65,6 +66,7 @@ fun AndroidDialogFragmentTestScreen(
             Text(
                 text = resultText,
                 modifier = Modifier
+                    .testTag("dialog.status")
                     .fillMaxWidth()
                     .padding(8.dp)
             )
@@ -72,7 +74,7 @@ fun AndroidDialogFragmentTestScreen(
         item {
             Button(
                 onClick = { onButtonClick(ButtonType.SHOW_DIALOG) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().testTag("dialog.showDialog")
             ) {
                 Text(text = "ShowDialog")
             }
@@ -80,7 +82,7 @@ fun AndroidDialogFragmentTestScreen(
         item {
             Button(
                 onClick = { onButtonClick(ButtonType.SHOW_CONFIRM_DIALOG) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().testTag("dialog.showConfirmDialog")
             ) {
                 Text(text = "ShowConfirmDialog")
             }
@@ -88,7 +90,7 @@ fun AndroidDialogFragmentTestScreen(
         item {
             Button(
                 onClick = { onButtonClick(ButtonType.SHOW_SINGLE_CHOICE_ITEM_DIALOG) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().testTag("dialog.showSingleChoiceItemDialog")
             ) {
                 Text(text = "ShowSingleChoiceItemDialog")
             }
@@ -96,7 +98,7 @@ fun AndroidDialogFragmentTestScreen(
         item {
             Button(
                 onClick = { onButtonClick(ButtonType.SHOW_MULTI_CHOICE_ITEM_DIALOG) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().testTag("dialog.showMultiChoiceItemDialog")
             ) {
                 Text(text = "ShowMultiChoiceItemDialog")
             }
@@ -104,7 +106,7 @@ fun AndroidDialogFragmentTestScreen(
         item {
             Button(
                 onClick = { onButtonClick(ButtonType.SHOW_TEXT_INPUT_DIALOG) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().testTag("dialog.showTextInputDialog")
             ) {
                 Text(text = "ShowTextInputDialog")
             }
@@ -112,7 +114,7 @@ fun AndroidDialogFragmentTestScreen(
         item {
             Button(
                 onClick = { onButtonClick(ButtonType.SHOW_LOGIN_DIALOG) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().testTag("dialog.showLoginDialog")
             ) {
                 Text(text = "ShowLoginDialog")
             }
