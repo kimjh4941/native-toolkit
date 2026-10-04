@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
+import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationSettingsPort
 import com.jonghyunkim.nativetoolkit.notification.application.usecase.ForegroundServiceUseCases
 import com.jonghyunkim.nativetoolkit.notification.application.usecase.NotificationUseCases
 
@@ -43,6 +44,17 @@ internal object NotificationUseCasesFactory {
         LegacyScheduleCleaner.runOnceInBackground(context)
         val repository = NotificationRepositoryImpl(context.applicationContext)
         return ForegroundServiceUseCases(commands = repository, runtime = repository)
+    }
+
+    /**
+     * Builds the settings port that opens screens from [context]: from an Activity directly,
+     * otherwise with `FLAG_ACTIVITY_NEW_TASK`.
+     *
+     * @param context The Context to open screens from.
+     */
+    fun settingsPort(context: Context): NotificationSettingsPort {
+        Log.d(TAG, "[settingsPort] context: $context")
+        return AndroidNotificationSettingsGateway(context)
     }
 
     /**
