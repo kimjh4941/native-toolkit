@@ -237,7 +237,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 | 0b | サンプルの画面に testTag を付ける（今は全画面で 0 個。Windows の AutomationId に当たる。見た目も動作も変えない）。**完了**（`results/2026-10-03-android-c-abi-stage0b-result.md`） | 無し |
 | 0c | Dialog / Notification / Share の UI テストを足す（Clipboard は 14 件ある）。UiAutomator で扱えない項目は、人の確認の手順書にする。テストの依存（UiAutomator 2.4.0 など）は、今のツールチェーンで入る版を使う（8.3 で確かめた範囲では AGP 8.1.1 / compileSdk 34 で入る）。**完了**（`results/2026-10-03-android-c-abi-stage0c-result.md`。設計書の全ケースをテストにし、両方の環境で通る。ライブラリの instrumented テストの失敗 9 件をテストの側で直した） | 無し |
 | 0d | `scripts/test_android.sh` を作り（unit・instrumented・UI テストをまとめて実行）、**今のコードで全件通ることを確かめ、結果を基準として記録する**。基準は API 35（エミュレータ）と API 36（実機）の 2 つで取る（0h で targetSdk 36 にしたときの変化を見るため。7.2）。**完了**（`results/2026-10-03-android-c-abi-stage0d-result.md`。両方の環境で全 317 件が通り、基準を `scripts/test_android.baseline.<機種>-<API>.json` に保存した。人の確認 CU-01・CU-02 も合格） | 無し |
-| 0e | パッケージ名を `com.jonghyunkim.nativetoolkit.*` に変える（D-15）。機械的な改名だけを行い、0d の基準と同じ結果になることを確かめる。ブリッジ（`android.unity.*`）は改名しない（段階 3 で消すので）。改名の前の名前と作り方（`SharedPreferences` の名前、Alarm のコンポーネント名、action の文字列、request code の式（`"tag::id".hashCode()`）、data の URI の scheme、PendingIntent の flags）を結果に記録する（1b で 1.x の Alarm を取り消すときに使う） | Kotlin の利用者から見たパッケージ名が変わる（2.0.0） |
+| 0e | パッケージ名を `com.jonghyunkim.nativetoolkit.*` に変える（D-15）。機械的な改名だけを行い、0d の基準と同じ結果になることを確かめる。ブリッジ（`android.unity.*`）は改名しない（段階 3 で消すので）。改名の前の名前と作り方（`SharedPreferences` の名前、Alarm のコンポーネント名、action の文字列、request code の式（`"tag::id".hashCode()`）、data の URI の scheme、PendingIntent の flags）を結果に記録する（1b で 1.x の Alarm を取り消すときに使う）。**完了**（`results/2026-10-04-android-c-abi-stage0e-result.md`。保存と通信の識別子 3 つは変えず、1b で決める。改名で壊れうる所のテストは両方の環境で通った。全体の実行は 0h の後） | Kotlin の利用者から見たパッケージ名が変わる（2.0.0） |
 | 0f | ビルドの道具を上げる: AGP 9.3.1、Gradle 9.7.0、Kotlin 2.4.20（`languageVersion = apiVersion = 2.2`）、AGP 9 の新しい DSL と組み込みの Kotlin、Dokka 2.2.0（`publish_docs.sh` の `dokkaHtml` も直す）、JVM 17。**SDK と依存の版は変えない**。0d の基準と同じ結果になることを確かめる | 無し |
 | 0g | 依存と compileSdk を上げる: compileSdk 36、androidx（8.3）、`aarMetadata.minCompileSdk = 36`。使っていない `material` を外し、`fragment` を明示の依存にする。`appcompat` を外せるかも確かめる。0d の基準と同じ結果になることを確かめる | 利用者の最低条件が 8.3 のとおり上がる |
 | 0h | サンプルの targetSdk を 36 にする。UI テストを直してよいのはこの段だけで、直した理由を結果に記録する | サンプルの targetSdk が 36 になる |
@@ -301,6 +301,7 @@ artifact/topics/android-c-abi/
 | 予約した通知の保存データと Alarm | クラス名とパッケージ名が入っている（1.4） | 0e（壊れる）・1b（破棄して新しい形式にする） |
 | `unity-native-plugin` の `PreBuildProcessor` / `PostBuildProcessor` | 古い 2 つの AAR を必須にし、KGP 2.0.21 を当てている | 2c（直す）・3（直していないと組めない） |
 | マニュアル（`manual/<版>/{dialog,notification}.*.md`） | `android.library.*` を 3 言語で計 75 か所参照している | 0e・4 |
+| `unity-native-plugin` の `AndroidNotificationManager.cs`（654 行） | 通知の表示のイベントを `AndroidJavaProxy("android.library.notification.NotificationShownSupport$NotificationShownListener")` で受けている。0e の後にこのリポジトリで作った AAR では、クラス名が変わって受け取れなくなる。Unity の側の基準は 1.12.0 の出荷物の AAR で取る | 0e（壊れる）・2c（C ABI に移して消える） |
 | `unity-native-plugin` の Runtime テスト | 約 60 件は JSON の組み立てと解析のテストで、C ABI では意味を失う。書き換えではなく作り直しになる | 2c |
 
 ## 6. 公開面の規模
@@ -343,6 +344,8 @@ Windows では 47 の操作が 105 の C 関数になった（ハンドルの読
 | Unity | `unity-native-plugin` の Android のテスト（今の Runtime はメソッド 97・展開後 116 ケース、PlayMode はメソッド 12（`[UnityTest]` 11 + `[Test]` 1）。C ABI に合わせて作り直す）と Player テスト | Unity から C ABI を通した動作。別リポジトリで行う（段階 2c） |
 
 件数は、ランナーが報告する展開後の件数で記録する（`test_android.sh` の基準も同じ）。
+
+**全体の実行の時期**（2026-10-04 に決定）: 全体の実行（両方の環境、Host を含む）は 1 回に約 2 時間かかる。そこで、各段・各機能を直した直後は、ビルドと単体テスト、直した所に関係するテストだけを両方の環境で流す（例: 1b で Dialog を直したら `--filter Dialog`）。全体を流して 0d の基準と比べるのは、区切りの 2 回（0h の後と 1b の後）とする。各段は別のコミットにするので、区切りで落ちたら段ごとに遡って原因を探す。Windows（windows-architecture）は段階ごとに全件を流したが、全件が 1 回 8〜24 分だったからで、Android は所要時間が 5 倍以上なので分ける。
 
 **ABI ごとに確かめられる範囲**（2026-10-03 に確認）: 試験環境は 2 つとも arm64 である（実機の Pixel 6a、Apple Silicon の Mac の上のエミュレータ。Apple Silicon の Mac のエミュレータは arm64 のイメージしか動かせない）。
 

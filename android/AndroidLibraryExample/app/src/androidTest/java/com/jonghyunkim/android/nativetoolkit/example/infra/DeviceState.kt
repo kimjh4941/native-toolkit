@@ -3,9 +3,9 @@ package com.jonghyunkim.android.nativetoolkit.example.infra
 import android.Manifest
 import android.app.Instrumentation
 import android.content.Intent
-import android.library.notification.data.repository.NotificationUseCases
-import android.library.notification.presentation.call.CallStyleForegroundService
-import android.library.notification.presentation.progress.ProgressForegroundNotifications
+import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCases
+import com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleForegroundService
+import com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundNotifications
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.test.uiautomator.By

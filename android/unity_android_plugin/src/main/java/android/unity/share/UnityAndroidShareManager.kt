@@ -2,11 +2,11 @@ package android.unity.share
 
 import android.content.ActivityNotFoundException
 import android.content.Context
-import android.library.share.data.repository.ShareUseCases
-import android.library.share.domain.error.ShareDomainError
-import android.library.share.domain.model.DirectShareTarget
-import android.library.share.domain.model.ShareContent
-import android.library.share.domain.model.SharePreviewOptions
+import com.jonghyunkim.nativetoolkit.share.data.repository.ShareUseCases
+import com.jonghyunkim.nativetoolkit.share.domain.error.ShareDomainError
+import com.jonghyunkim.nativetoolkit.share.domain.model.DirectShareTarget
+import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
+import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64

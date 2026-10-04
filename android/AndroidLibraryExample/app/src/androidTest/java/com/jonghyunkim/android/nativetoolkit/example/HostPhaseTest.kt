@@ -2,11 +2,11 @@ package com.jonghyunkim.android.nativetoolkit.example
 
 import android.Manifest
 import android.content.Context
-import android.library.notification.application.model.AndroidNotificationCommand
-import android.library.notification.data.repository.NotificationUseCases
-import android.library.notification.domain.model.NotificationChannel
-import android.library.notification.domain.model.NotificationContent
-import android.library.notification.domain.model.NotificationSchedule
+import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
+import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCases
+import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationChannel
+import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationContent
+import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSchedule
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry

@@ -166,7 +166,7 @@ done
 if [[ -z "${FILTER}" ]]; then
   echo "[instrumented] the sample's template, android_library, unity_android_plugin"
   run_target "${RUNNER}" "example.android.ExampleInstrumentedTest"
-  run_target "android.library.test/androidx.test.runner.AndroidJUnitRunner" "package:android.library"
+  run_target "com.jonghyunkim.nativetoolkit.test/androidx.test.runner.AndroidJUnitRunner" "package:com.jonghyunkim.nativetoolkit"
   run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.unity"
   run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.plugin"
 fi

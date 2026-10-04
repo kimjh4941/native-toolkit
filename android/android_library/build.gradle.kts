@@ -21,7 +21,7 @@ if (cliLibraryVersion != null) {
 }
 
 android {
-    namespace = "android.library"
+    namespace = "com.jonghyunkim.nativetoolkit"
     compileSdk = 35
 
     defaultConfig {

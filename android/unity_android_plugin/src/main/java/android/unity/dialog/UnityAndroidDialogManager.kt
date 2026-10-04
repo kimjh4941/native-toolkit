@@ -1,7 +1,7 @@
 package android.unity.dialog
 
 import android.content.Context
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogFragment
 import android.util.Log
 import androidx.fragment.app.FragmentActivity
 import kotlin.Boolean

@@ -1,7 +1,7 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.content.Intent
-import android.library.notification.presentation.permission.NotificationPermissionHelper
+import com.jonghyunkim.nativetoolkit.notification.presentation.permission.NotificationPermissionHelper
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent

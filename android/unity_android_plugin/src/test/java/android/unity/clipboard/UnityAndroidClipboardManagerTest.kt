@@ -13,7 +13,7 @@ import org.junit.Test
  *
  * Under the local JVM unit test stub (isReturnDefaultValues=true), ContextCompat.getSystemService
  * for ClipboardManager returns null, so all real-clipboard paths deterministically surface
- * [android.library.clipboard.domain.error.ClipboardDomainError.ClipboardUnavailable]. This is used
+ * [com.jonghyunkim.nativetoolkit.clipboard.domain.error.ClipboardDomainError.ClipboardUnavailable]. This is used
  * here to verify that the synchronous read()/getDescription() JSON contract surfaces an
  * identifiable error rather than silently collapsing to "null", and that copy() failures are
  * reported through the operation listener without ever logging clipboard content.

@@ -1,6 +1,6 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
-import android.library.notification.presentation.permission.NotificationPermissionHelper
+import com.jonghyunkim.nativetoolkit.notification.presentation.permission.NotificationPermissionHelper
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize

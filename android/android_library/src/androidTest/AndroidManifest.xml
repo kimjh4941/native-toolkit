@@ -5,7 +5,7 @@
         <!-- Gives the instrumented tests input focus: since Android 10 only the focused app can
              read the clipboard or receive its change callbacks. -->
         <activity
-            android:name="android.library.testing.FocusActivity"
+            android:name="com.jonghyunkim.nativetoolkit.testing.FocusActivity"
             android:exported="false" />
     </application>
 

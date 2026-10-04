@@ -1,12 +1,12 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.content.Context
-import android.library.clipboard.data.repository.ClipboardUseCases
-import android.library.clipboard.domain.error.ClipboardDomainError
-import android.library.clipboard.domain.model.ClipContent
-import android.library.clipboard.domain.model.ClipDescriptionInfo
-import android.library.clipboard.domain.model.ClipReadResult
-import android.library.clipboard.presentation.ClipboardChangeMonitor
+import com.jonghyunkim.nativetoolkit.clipboard.data.repository.ClipboardUseCases
+import com.jonghyunkim.nativetoolkit.clipboard.domain.error.ClipboardDomainError
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipContent
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipDescriptionInfo
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipReadResult
+import com.jonghyunkim.nativetoolkit.clipboard.presentation.ClipboardChangeMonitor
 import android.os.Build
 import android.os.Handler
 import android.os.Looper

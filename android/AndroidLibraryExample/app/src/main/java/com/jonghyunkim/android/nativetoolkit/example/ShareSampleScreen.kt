@@ -2,11 +2,11 @@ package com.jonghyunkim.android.nativetoolkit.example
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.library.share.data.repository.ShareUseCases
-import android.library.share.domain.error.ShareDomainError
-import android.library.share.domain.model.DirectShareTarget
-import android.library.share.domain.model.ShareContent
-import android.library.share.domain.model.SharePreviewOptions
+import com.jonghyunkim.nativetoolkit.share.data.repository.ShareUseCases
+import com.jonghyunkim.nativetoolkit.share.domain.error.ShareDomainError
+import com.jonghyunkim.nativetoolkit.share.domain.model.DirectShareTarget
+import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
+import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import android.util.Base64
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity

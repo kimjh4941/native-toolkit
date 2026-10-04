@@ -1,6 +1,6 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogFragment
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Arrangement

@@ -6,7 +6,7 @@ Core Android UI / system helper module providing both a versatile `AndroidDialog
 
 The notification module follows a clean layered structure:
 
-- `android.library.notification.domain.model`
+- `com.jonghyunkim.nativetoolkit.notification.domain.model`
   - Pure notification models split by responsibility:
     - `NotificationChannel.kt`
     - `NotificationProgress.kt`
@@ -15,24 +15,24 @@ The notification module follows a clean layered structure:
     - `NotificationContent.kt`
     - `NotificationSchedule.kt`
     - `ActiveNotification.kt`
-- `android.library.notification.application.model`
+- `com.jonghyunkim.nativetoolkit.notification.application.model`
   - Android-facing command types such as `AndroidNotificationCommand`
-- `android.library.notification.application.port`
+- `com.jonghyunkim.nativetoolkit.notification.application.port`
   - `NotificationCommandRepository.kt`
   - `AndroidNotificationRuntimeRepository.kt`
-- `android.library.notification.application.usecase`
+- `com.jonghyunkim.nativetoolkit.notification.application.usecase`
   - `NotificationDispatchUseCases.kt`
   - `NotificationChannelUseCases.kt`
   - `NotificationScheduleUseCases.kt`
   - `NotificationQueryUseCases.kt`
   - `ForegroundNotificationUseCases.kt`
-- `android.library.notification.data.repository`
+- `com.jonghyunkim.nativetoolkit.notification.data.repository`
   - Android-specific implementations and payload mapping
-- `android.library.notification.presentation.permission`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.permission`
   - UI permission helper for Android 13+
-- `android.library.notification.presentation.call`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.call`
   - CallStyle foreground-service helpers and notification builders
-- `android.library.notification.presentation.progress`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.progress`
   - Optional `dataSync` foreground-service helpers for long-running progress notifications
 
 ### Legacy status
@@ -67,13 +67,13 @@ The module includes support for:
 - `CreateNotificationChannelUseCase`
 - `ScheduleNotificationUseCase`
 - `StartForegroundNotificationUseCase`
-- `android.library.notification.presentation.permission.NotificationPermissionHelper`
-- `android.library.notification.presentation.call.CallStyleType`
-- `android.library.notification.presentation.call.CallStyleNotificationFactory`
-- `android.library.notification.presentation.call.CallStyleForegroundService`
-- `android.library.notification.presentation.progress.ProgressForegroundNotifications`
-- `android.library.notification.presentation.progress.ProgressForegroundServiceIntents`
-- `android.library.notification.presentation.progress.ProgressForegroundService`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.permission.NotificationPermissionHelper`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleType`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleNotificationFactory`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleForegroundService`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundNotifications`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundServiceIntents`
+- `com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundService`
 
 ### Notification quick example
 ```kotlin
