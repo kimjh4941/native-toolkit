@@ -2,12 +2,8 @@ package com.jonghyunkim.nativetoolkit.notification.presentation.progress
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.os.Parcelable
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
-import com.jonghyunkim.nativetoolkit.notification.data.repository.AndroidNotificationCommandPayload
-import com.jonghyunkim.nativetoolkit.notification.data.repository.toCommand
-import com.jonghyunkim.nativetoolkit.notification.data.repository.toPayload
+import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCasesFactory
 
 /**
  * Intent factory for [ProgressForegroundService].
@@ -59,29 +55,15 @@ object ProgressForegroundServiceIntents {
         }
     }
 
-    internal fun extractCommand(intent: Intent?): AndroidNotificationCommand? {
-        val payload = intent?.parcelableExtra<AndroidNotificationCommandPayload>(EXTRA_COMMAND)
-        return payload?.toCommand()
-    }
+    internal fun extractCommand(intent: Intent?): AndroidNotificationCommand? =
+        NotificationUseCasesFactory.commandOf(intent, EXTRA_COMMAND)
 
     private fun createCommandIntent(
         context: Context,
         action: String,
         command: AndroidNotificationCommand
     ): Intent {
-        return Intent().setClassName(context, SERVICE_CLASS_NAME).apply {
-            this.action = action
-            putExtra(EXTRA_COMMAND, command.toPayload())
-        }
+        val intent = Intent().setClassName(context, SERVICE_CLASS_NAME).setAction(action)
+        return NotificationUseCasesFactory.putCommand(intent, EXTRA_COMMAND, command)
     }
 }
-
-private inline fun <reified T : Parcelable> Intent.parcelableExtra(key: String): T? {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        getParcelableExtra(key, T::class.java)
-    } else {
-        @Suppress("DEPRECATION")
-        getParcelableExtra(key)
-    }
-}
-

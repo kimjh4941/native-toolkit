@@ -42,6 +42,7 @@ import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationChann
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSchedule
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationStyle
 import android.util.Log
+import java.io.IOException
 
 class NotificationRepositoryImpl(context: Context) :
     NotificationCommandRepository,
@@ -51,6 +52,7 @@ class NotificationRepositoryImpl(context: Context) :
     private val notificationManager =
         appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val scheduleStore = JsonNotificationScheduleStore(appContext)
 
     override fun hasPermission(): Boolean {
         Log.d(TAG, "[hasPermission]")
@@ -71,6 +73,7 @@ class NotificationRepositoryImpl(context: Context) :
 
     override fun send(command: AndroidNotificationCommand) {
         Log.d(TAG, "[send] command: $command")
+        ScheduleTestHooks.beforeSend?.invoke(command)
         notify(command)
     }
 
@@ -132,51 +135,94 @@ class NotificationRepositoryImpl(context: Context) :
 
     override fun schedule(command: AndroidNotificationCommand, schedule: NotificationSchedule): Boolean {
         Log.d(TAG, "[schedule] command: $command, schedule: $schedule")
+        val id = command.content.id
+        val tag = command.content.tag
         if (schedule.triggerAtMillis <= System.currentTimeMillis()) {
             send(command)
-            NotificationSchedulerSupport.remove(appContext, command.content.id, command.content.tag)
+            scheduleStore.remove(id, tag)
             return true
         }
 
-        val pendingIntent = createSchedulePendingIntent(command)
-        scheduleAlarm(schedule, pendingIntent)
-
-        if (schedule.persistAcrossBoot) {
-            NotificationSchedulerSupport.persist(
-                appContext,
-                ScheduledNotificationEntry(command = command, schedule = schedule)
-            )
+        val generation = ScheduleIdentity.newGeneration()
+        val entry = if (schedule.persistAcrossBoot) {
+            JsonNotificationScheduleStore.newEntry(appContext, command, schedule, generation)
         } else {
-            NotificationSchedulerSupport.remove(appContext, command.content.id, command.content.tag)
+            null
+        }
+        ScheduleLock.withLock {
+            scheduleAlarm(schedule, createSchedulePendingIntent(command, generation))
+            if (entry != null) {
+                scheduleStore.put(entry)
+            } else {
+                scheduleStore.remove(id, tag)
+            }
         }
         return true
     }
 
     override fun cancelScheduled(id: Int, tag: String?) {
         Log.d(TAG, "[cancelScheduled] id: $id, tag: $tag")
-        alarmManager.cancel(createSchedulePendingIntent(id = id, tag = tag))
-        NotificationSchedulerSupport.remove(appContext, id, tag)
+        ScheduleLock.withLock {
+            alarmManager.cancel(createSchedulePendingIntent(id, tag))
+            scheduleStore.remove(id, tag)
+        }
     }
 
     override fun cancelAllScheduled() {
         Log.d(TAG, "[cancelAllScheduled]")
-        NotificationSchedulerSupport.loadAll(appContext).forEach { entry ->
-            alarmManager.cancel(createSchedulePendingIntent(entry.command))
+        ScheduleLock.withLock {
+            scheduleStore.loadAll().forEach { entry ->
+                alarmManager.cancel(createSchedulePendingIntent(entry.command.content.id, entry.command.content.tag))
+            }
+            scheduleStore.clear()
         }
-        NotificationSchedulerSupport.clear(appContext)
     }
 
     override fun restoreScheduled() {
         Log.d(TAG, "[restoreScheduled]")
         val now = System.currentTimeMillis()
-        NotificationSchedulerSupport.loadAll(appContext).forEach { entry ->
-            if (entry.schedule.triggerAtMillis <= now) {
-                send(entry.command)
-                NotificationSchedulerSupport.remove(appContext, entry.command.content.id, entry.command.content.tag)
-            } else {
-                scheduleAlarm(entry.schedule, createSchedulePendingIntent(entry.command))
+        var writeFailure: IOException? = null
+        scheduleStore.loadAll().forEach { entry ->
+            val id = entry.command.content.id
+            val tag = entry.command.content.tag
+            try {
+                if (entry.schedule.triggerAtMillis <= now) {
+                    // Skip the entry when it was canceled or scheduled again meanwhile.
+                    if (!isStillSaved(entry)) return@forEach
+                    send(entry.command)
+                    scheduleStore.removeIfGeneration(id, tag, entry.generation)
+                } else {
+                    ScheduleLock.withLock {
+                        if (!isStillSaved(entry)) return@withLock
+                        if (entry.lossy && isAlarmAlive(entry)) {
+                            Log.d(TAG, "[restoreScheduled] keeping the live Alarm of a lossy entry; id: $id, tag: $tag")
+                            return@withLock
+                        }
+                        scheduleAlarm(entry.schedule, createSchedulePendingIntent(entry.command, entry.generation))
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "[restoreScheduled] could not write the saved schedule; id: $id, tag: $tag", e)
+                writeFailure = e
             }
         }
+        writeFailure?.let { throw it }
+    }
+
+    private fun isStillSaved(entry: ScheduledNotificationEntry): Boolean {
+        Log.d(TAG, "[isStillSaved] id: ${entry.command.content.id}, tag: ${entry.command.content.tag}, generation: ${entry.generation}")
+        return scheduleStore.get(entry.command.content.id, entry.command.content.tag)?.generation == entry.generation
+    }
+
+    // The Alarm set in this install and this boot is still alive (Kotlin API design 8.6).
+    private fun isAlarmAlive(entry: ScheduledNotificationEntry): Boolean {
+        Log.d(TAG, "[isAlarmAlive] installId: ${entry.installId}, bootCount: ${entry.bootCount}")
+        return ScheduleIdentity.isAlarmAlive(
+            entryInstallId = entry.installId,
+            entryBootCount = entry.bootCount,
+            installId = ScheduleIdentity.installId(appContext),
+            bootCount = ScheduleIdentity.bootCount(appContext)
+        )
     }
 
     override fun getActive(): List<ActiveNotification> {
@@ -290,28 +336,23 @@ class NotificationRepositoryImpl(context: Context) :
         }
     }
 
-    private fun createSchedulePendingIntent(command: AndroidNotificationCommand): PendingIntent {
-        return createSchedulePendingIntent(id = command.content.id, tag = command.content.tag, command = command)
-    }
-
-    private fun createSchedulePendingIntent(
-        id: Int,
-        tag: String?,
-        command: AndroidNotificationCommand? = null
-    ): PendingIntent {
-        val scheduleCommand = command ?: AndroidNotificationCommand(
-            content = com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationContent(
-                id = id,
-                title = "",
-                message = "",
-                tag = tag
-            )
-        )
-        val intent = NotificationSchedulerSupport.buildScheduleIntent(appContext, scheduleCommand)
+    // Request code 0: the data URI tells schedules apart (Kotlin API design 8.6).
+    private fun createSchedulePendingIntent(command: AndroidNotificationCommand, generation: Long): PendingIntent {
+        Log.d(TAG, "[createSchedulePendingIntent] command: $command, generation: $generation")
         return PendingIntent.getBroadcast(
             appContext,
-            NotificationSchedulerSupport.scheduleKey(id, tag).hashCode(),
-            intent,
+            0,
+            ScheduledAlarmExtras.intent(appContext, command, generation),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun createSchedulePendingIntent(id: Int, tag: String?): PendingIntent {
+        Log.d(TAG, "[createSchedulePendingIntent] id: $id, tag: $tag")
+        return PendingIntent.getBroadcast(
+            appContext,
+            0,
+            NotificationSchedulerSupport.scheduleIntent(appContext, id, tag),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
@@ -322,6 +363,7 @@ class NotificationRepositoryImpl(context: Context) :
         pendingIntent: PendingIntent
     ) {
         Log.d(TAG, "[scheduleAlarm] schedule: $schedule")
+        ScheduleTestHooks.beforeAlarm?.invoke()
         val exactAllowed = alarmManager.canScheduleExactAlarms()
         when {
             schedule.exact && schedule.allowWhileIdle && exactAllowed -> {

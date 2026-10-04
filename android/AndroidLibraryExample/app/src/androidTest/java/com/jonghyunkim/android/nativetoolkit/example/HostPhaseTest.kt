@@ -1,7 +1,6 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.Manifest
-import android.content.Context
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
 import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCases
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationChannel
@@ -55,10 +54,9 @@ class HostPhaseTest {
             val transientResult = useCases.schedule(command(transient, "Host transient $transient"), NotificationSchedule(triggerAtMillis = triggerAt, persistAcrossBoot = false))
             assertTrue("transient schedule failed: $transientResult", transientResult.isSuccess)
         }
+        // The library finishes writing the schedule before schedule() returns, so it is on disk
+        // before the host updates or reboots the device (3.7).
         assertTrue("schedule $persisted was not saved", useCases.isScheduled(context, persisted))
-        // The library saves with apply(); commit() writes the whole map synchronously, so the
-        // schedule is on disk before the host updates or reboots the device (3.7).
-        context.getSharedPreferences(SCHEDULER_PREFERENCES, Context.MODE_PRIVATE).edit().commit()
         // Read by the host script from logcat to know when to check.
         Log.i(TAG, "HOST_TRIGGER_AT=$triggerAt")
     }
@@ -73,7 +71,6 @@ class HostPhaseTest {
     )
 
     private companion object {
-        const val SCHEDULER_PREFERENCES = "android.library.notification.scheduler"
         const val TAG = "HostPhaseTest"
     }
 }

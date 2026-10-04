@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import com.jonghyunkim.nativetoolkit.common.presentation.ForegroundActivityTracker
+import com.jonghyunkim.nativetoolkit.notification.data.repository.LegacyScheduleCleaner
 
 /**
  * Initializes the parts of the library that need the Application (Kotlin API design 8.1).
@@ -65,6 +66,7 @@ object LibraryRuntime {
             registeredOn = app
             application = app
             state.succeed()
+            LegacyScheduleCleaner.runOnceInBackground(app)
             InitState.DONE
         } catch (e: Exception) {
             Log.e(TAG, "[ensureInitialized] context: $context", e)

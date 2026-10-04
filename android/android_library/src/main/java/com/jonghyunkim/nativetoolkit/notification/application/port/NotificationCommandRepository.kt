@@ -42,22 +42,43 @@ interface NotificationCommandRepository {
     /**
      * Registers a scheduled notification.
      *
+     * A schedule with `persistAcrossBoot` is saved so that it can be restored after a reboot. When
+     * the save fails, the Alarm stays set but is not restored after a reboot.
+     *
      * @return True if registration succeeds.
+     * @throws java.io.IOException When the saved schedules cannot be written.
      */
     fun schedule(command: AndroidNotificationCommand, schedule: NotificationSchedule): Boolean
 
     /**
      * Cancels the schedule for a specific notification.
      *
+     * When removing the saved schedule fails, the Alarm stays canceled but the schedule may come
+     * back after a reboot.
+     *
      * @param id Notification ID.
      * @param tag Optional notification tag.
+     * @throws java.io.IOException When the saved schedules cannot be written.
      */
     fun cancelScheduled(id: Int, tag: String? = null)
 
-    /** Cancels all scheduled notifications. */
+    /**
+     * Cancels all scheduled notifications.
+     *
+     * When clearing the saved schedules fails, the Alarms stay canceled but the schedules may come
+     * back after a reboot.
+     *
+     * @throws java.io.IOException When the saved schedules cannot be written.
+     */
     fun cancelAllScheduled()
 
-    /** Restores previously scheduled notifications, mainly after device reboot. */
+    /**
+     * Restores previously scheduled notifications, mainly after device reboot.
+     *
+     * A failure to write one saved schedule is logged and the others are still restored.
+     *
+     * @throws java.io.IOException After every schedule was handled, when a write failed.
+     */
     fun restoreScheduled()
 
     /**

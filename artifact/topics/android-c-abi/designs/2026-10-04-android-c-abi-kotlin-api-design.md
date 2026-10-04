@@ -563,7 +563,7 @@
 | extra の `String`、`Boolean`、`Byte`、`Char`、`Short`、`Int`、`Long`、`Float`、`Double` | 残る |
 | それ以外の extra（`String` でない `CharSequence`、配列、`ArrayList`、`Parcelable`、`Uri`、`Bundle`、`Serializable`） | 落ちる（`lossy`）。落ちた extra のキーを警告のログに出す（値は出さない） |
 | `ClipData` | 落ちる（`lossy`） |
-| `sourceBounds`、`identifier` | IT-14 で確かめて表を直す |
+| `sourceBounds`、`identifier` | 残る（1b の IT-14 で API 35・36 で確かめた） |
 
 **Alarm の Intent**:
 

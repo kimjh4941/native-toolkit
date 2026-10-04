@@ -5,10 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
-import com.jonghyunkim.nativetoolkit.notification.application.usecase.StartForegroundNotificationUseCase
-import com.jonghyunkim.nativetoolkit.notification.application.usecase.StopForegroundNotificationUseCase
-import com.jonghyunkim.nativetoolkit.notification.application.usecase.UpdateForegroundNotificationUseCase
-import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationRepositoryImpl
+import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCasesFactory
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -20,16 +17,7 @@ import android.util.Log
  */
 class CallStyleForegroundService : Service() {
 
-    private val repository by lazy { NotificationRepositoryImpl(this) }
-    private val startForegroundNotificationUseCase by lazy {
-        StartForegroundNotificationUseCase(repository)
-    }
-    private val updateForegroundNotificationUseCase by lazy {
-        UpdateForegroundNotificationUseCase(repository)
-    }
-    private val stopForegroundNotificationUseCase by lazy {
-        StopForegroundNotificationUseCase(repository)
-    }
+    private val useCases by lazy { NotificationUseCasesFactory.foregroundServiceUseCases(this) }
 
     private var isForegroundStarted: Boolean = false
     private var currentType: CallStyleType = CallStyleType.INCOMING
@@ -91,9 +79,9 @@ class CallStyleForegroundService : Service() {
     ) {
         Log.d(TAG, "[startOrUpdateForeground] id: ${command.content.id}, foregroundServiceType: $foregroundServiceType")
         if (isForegroundStarted) {
-            updateForegroundNotificationUseCase(this, command, foregroundServiceType)
+            useCases.updateForeground(this, command, foregroundServiceType)
         } else {
-            startForegroundNotificationUseCase(this, command, foregroundServiceType)
+            useCases.startForeground(this, command, foregroundServiceType)
         }
     }
 
@@ -101,7 +89,7 @@ class CallStyleForegroundService : Service() {
         Log.d(TAG, "[stopCall]")
         runCatching {
             if (isForegroundStarted) {
-                stopForegroundNotificationUseCase(this, removeNotification = true)
+                useCases.stopForeground(this, removeNotification = true)
             }
         }
         isForegroundStarted = false

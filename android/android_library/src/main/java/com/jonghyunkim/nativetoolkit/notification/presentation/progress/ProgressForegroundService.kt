@@ -3,11 +3,7 @@ package com.jonghyunkim.nativetoolkit.notification.presentation.progress
 import android.app.Service
 import android.content.pm.ServiceInfo
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
-import com.jonghyunkim.nativetoolkit.notification.application.usecase.ShowNotificationUseCase
-import com.jonghyunkim.nativetoolkit.notification.application.usecase.StartForegroundNotificationUseCase
-import com.jonghyunkim.nativetoolkit.notification.application.usecase.StopForegroundNotificationUseCase
-import com.jonghyunkim.nativetoolkit.notification.application.usecase.UpdateForegroundNotificationUseCase
-import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationRepositoryImpl
+import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCasesFactory
 import android.os.IBinder
 import android.util.Log
 
@@ -18,17 +14,7 @@ import android.util.Log
  */
 class ProgressForegroundService : Service() {
 
-    private val repository by lazy { NotificationRepositoryImpl(this) }
-    private val showNotificationUseCase by lazy { ShowNotificationUseCase(repository) }
-    private val startForegroundNotificationUseCase by lazy {
-        StartForegroundNotificationUseCase(repository)
-    }
-    private val updateForegroundNotificationUseCase by lazy {
-        UpdateForegroundNotificationUseCase(repository)
-    }
-    private val stopForegroundNotificationUseCase by lazy {
-        StopForegroundNotificationUseCase(repository)
-    }
+    private val useCases by lazy { NotificationUseCasesFactory.foregroundServiceUseCases(this) }
 
     private var isForegroundStarted: Boolean = false
     private val progressForegroundServiceType: Int = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
@@ -80,9 +66,9 @@ class ProgressForegroundService : Service() {
         Log.d(TAG, "[showProgress] id: ${command.content.id}")
         runCatching {
             if (isForegroundStarted) {
-                updateForegroundNotificationUseCase(this, command, progressForegroundServiceType)
+                useCases.updateForeground(this, command, progressForegroundServiceType)
             } else {
-                startForegroundNotificationUseCase(this, command, progressForegroundServiceType)
+                useCases.startForeground(this, command, progressForegroundServiceType)
                 isForegroundStarted = true
             }
         }.onFailure { throwable ->
@@ -95,10 +81,10 @@ class ProgressForegroundService : Service() {
         Log.d(TAG, "[completeProgress] id: ${command.content.id}")
         runCatching {
             if (isForegroundStarted) {
-                stopForegroundNotificationUseCase(this, removeNotification = false)
+                useCases.stopForeground(this, removeNotification = false)
             }
             isForegroundStarted = false
-            showNotificationUseCase(command)
+            useCases.show(command)
         }.onFailure { throwable ->
             Log.e(TAG, "[completeProgress] failed for id=${command.content.id}", throwable)
             stopProgress()
@@ -112,7 +98,7 @@ class ProgressForegroundService : Service() {
         Log.d(TAG, "[stopProgress]")
         runCatching {
             if (isForegroundStarted) {
-                stopForegroundNotificationUseCase(this, removeNotification = true)
+                useCases.stopForeground(this, removeNotification = true)
             }
         }
         isForegroundStarted = false

@@ -1,8 +1,9 @@
 package com.jonghyunkim.nativetoolkit.notification.application.usecase
 
 import android.content.Context
+import android.util.Log
 import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationCommandRepository
-import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationSchedulerSupport
+import com.jonghyunkim.nativetoolkit.notification.data.repository.JsonNotificationScheduleStore
 
 /**
  * Use-case suite for notification features.
@@ -35,11 +36,18 @@ class NotificationUseCases(repository: NotificationCommandRepository) {
     /**
      * Checks whether the specified notification ID is scheduled.
      *
+     * Reads the saved schedules directly, so only schedules with `persistAcrossBoot` are found.
+     *
      * @return True if scheduled.
      */
     fun isScheduled(context: Context, id: Int, tag: String? = null): Boolean {
-        return NotificationSchedulerSupport.loadAll(context).any { entry ->
+        Log.d(TAG, "[isScheduled] context: $context, id: $id, tag: $tag")
+        return JsonNotificationScheduleStore(context).loadAll().any { entry ->
             entry.command.content.id == id && entry.command.content.tag == tag
         }
+    }
+
+    private companion object {
+        private const val TAG = "NotificationUseCases"
     }
 }

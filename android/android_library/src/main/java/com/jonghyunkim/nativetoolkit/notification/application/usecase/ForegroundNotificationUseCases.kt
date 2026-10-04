@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.Service
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
 import com.jonghyunkim.nativetoolkit.notification.application.port.AndroidNotificationRuntimeRepository
+import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationCommandRepository
 import android.util.Log
 
 /**
@@ -56,4 +57,20 @@ class StopForegroundNotificationUseCase(private val repository: AndroidNotificat
         repository.stopForeground(service, removeNotification)
     }
     companion object { private const val TAG = "StopForegroundNotificationUseCase" }
+}
+
+/**
+ * The use cases of the library's foreground services (Kotlin API design 8.14).
+ *
+ * @param commands Shows notifications.
+ * @param runtime Starts, updates and stops foreground mode.
+ */
+internal class ForegroundServiceUseCases(
+    commands: NotificationCommandRepository,
+    runtime: AndroidNotificationRuntimeRepository
+) {
+    val show = ShowNotificationUseCase(commands)
+    val startForeground = StartForegroundNotificationUseCase(runtime)
+    val updateForeground = UpdateForegroundNotificationUseCase(runtime)
+    val stopForeground = StopForegroundNotificationUseCase(runtime)
 }
