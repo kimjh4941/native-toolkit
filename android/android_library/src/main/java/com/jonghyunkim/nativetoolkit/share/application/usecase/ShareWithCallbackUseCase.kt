@@ -4,6 +4,7 @@ import com.jonghyunkim.nativetoolkit.share.application.port.ShareRepository
 import com.jonghyunkim.nativetoolkit.share.application.port.RichPreviewShareRepository
 import com.jonghyunkim.nativetoolkit.share.domain.error.ShareDomainError
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
+import com.jonghyunkim.nativetoolkit.share.domain.model.logSafeDescription
 import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import android.util.Log
 
@@ -22,7 +23,7 @@ class ShareWithCallbackUseCase(private val repository: ShareRepository) {
      * @param onResult Called with the selected package name, or null if unavailable.
      */
     operator fun invoke(content: ShareContent, onResult: (String?) -> Unit) {
-        Log.d(TAG, "[invoke] content: $content, onResult: $onResult")
+        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, onResult: $onResult")
         if (content.text.isBlank()) throw ShareDomainError.EmptyContent
         repository.shareWithCallback(content, onResult)
     }
@@ -41,7 +42,7 @@ class ShareWithCallbackUseCase(private val repository: ShareRepository) {
         onResult: (String?) -> Unit,
         onFinished: () -> Unit = {}
     ) {
-        Log.d(TAG, "[invoke] content: $content, preview: $preview, onResult: $onResult, onFinished: $onFinished")
+        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, preview: $preview, onResult: $onResult, onFinished: $onFinished")
         if (content.text.isBlank()) throw ShareDomainError.EmptyContent
         val richPreviewRepository = repository as? RichPreviewShareRepository
         if (richPreviewRepository != null) {

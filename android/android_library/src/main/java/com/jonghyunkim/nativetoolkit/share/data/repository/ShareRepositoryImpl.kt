@@ -11,6 +11,7 @@ import com.jonghyunkim.nativetoolkit.share.application.port.RichPreviewShareRepo
 import com.jonghyunkim.nativetoolkit.share.domain.error.ShareDomainError
 import com.jonghyunkim.nativetoolkit.share.domain.model.DirectShareTarget
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
+import com.jonghyunkim.nativetoolkit.share.domain.model.logSafeDescription
 import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import android.net.Uri
 import android.os.Build
@@ -32,7 +33,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
     private val coordinator = ShareCallbackCoordinator.get(context)
 
     override fun shareText(content: ShareContent, chooserActionsJson: String) {
-        Log.d(TAG, "[shareText] content: $content, chooserActionsJson: $chooserActionsJson")
+        Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson")
         shareText(content, chooserActionsJson, SharePreviewOptions())
     }
 
@@ -41,7 +42,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         chooserActionsJson: String,
         preview: SharePreviewOptions
     ) {
-        Log.d(TAG, "[shareText] content: $content, chooserActionsJson: $chooserActionsJson, preview: $preview")
+        Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson, preview: $preview")
         val previewUri = resolveOptionalPreviewUri(preview.thumbnailPath)
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = content.mimeType
@@ -144,7 +145,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         content: ShareContent,
         onResult: (String?) -> Unit
     ) {
-        Log.d(TAG, "[shareWithCallback] content: $content, onResult: $onResult")
+        Log.d(TAG, "[shareWithCallback] content: ${content.logSafeDescription()}, onResult: $onResult")
         shareWithCallback(content, SharePreviewOptions(), onResult) {}
     }
 
@@ -154,7 +155,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         onResult: (String?) -> Unit,
         onFinished: () -> Unit
     ) {
-        Log.d(TAG, "[shareWithCallback] content: $content, preview: $preview, onResult: $onResult, onFinished: $onFinished")
+        Log.d(TAG, "[shareWithCallback] content: ${content.logSafeDescription()}, preview: $preview, onResult: $onResult, onFinished: $onFinished")
         val callbackAction = "${context.packageName}.SHARE_CALLBACK"
         val token = coordinator.register(callbackAction, onResult, onFinished)
         try {

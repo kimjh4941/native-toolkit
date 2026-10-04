@@ -88,7 +88,13 @@ dependencies {
     // AndroidDialogFragment exposes DialogFragment in the public API.
     api(libs.androidx.fragment)
     implementation(libs.androidx.media)
+    // LibraryInitializer (public, extends androidx.startup.Initializer) registers the foreground
+    // tracker at app start (Kotlin API design 8.1).
+    api(libs.androidx.startup.runtime)
+    // The suspend versions of the manager APIs (Kotlin API design 8.7, 8.8).
+    implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.uiautomator)
 }

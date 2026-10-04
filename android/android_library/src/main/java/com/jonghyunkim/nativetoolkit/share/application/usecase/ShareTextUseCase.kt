@@ -4,6 +4,7 @@ import com.jonghyunkim.nativetoolkit.share.application.port.ShareRepository
 import com.jonghyunkim.nativetoolkit.share.application.port.RichPreviewShareRepository
 import com.jonghyunkim.nativetoolkit.share.domain.error.ShareDomainError
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
+import com.jonghyunkim.nativetoolkit.share.domain.model.logSafeDescription
 import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import android.util.Log
 
@@ -20,7 +21,7 @@ class ShareTextUseCase(private val repository: ShareRepository) {
      * @param chooserActionsJson JSON array of custom chooser actions for API 34+. Defaults to empty.
      */
     operator fun invoke(content: ShareContent, chooserActionsJson: String = "[]") {
-        Log.d(TAG, "[invoke] content: $content, chooserActionsJson: $chooserActionsJson")
+        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson")
         if (content.text.isBlank()) throw ShareDomainError.EmptyContent
         if (content.mimeType.isBlank()) throw ShareDomainError.InvalidMimeType(content.mimeType)
         repository.shareText(content, chooserActionsJson)
@@ -41,7 +42,7 @@ class ShareTextUseCase(private val repository: ShareRepository) {
         chooserActionsJson: String,
         preview: SharePreviewOptions
     ) {
-        Log.d(TAG, "[invoke] content: $content, chooserActionsJson: $chooserActionsJson, preview: $preview")
+        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson, preview: $preview")
         if (content.text.isBlank()) throw ShareDomainError.EmptyContent
         if (content.mimeType.isBlank()) throw ShareDomainError.InvalidMimeType(content.mimeType)
         val richPreviewRepository = repository as? RichPreviewShareRepository

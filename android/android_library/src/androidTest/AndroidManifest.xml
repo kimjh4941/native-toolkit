@@ -7,6 +7,16 @@
         <activity
             android:name="com.jonghyunkim.nativetoolkit.testing.FocusActivity"
             android:exported="false" />
+        <!-- Dialog and permission tests (Kotlin API design IT-03 to IT-07): a FragmentActivity,
+             and a plain Activity that makes the library start its transparent host. -->
+        <activity
+            android:name="com.jonghyunkim.nativetoolkit.testing.TestFragmentActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Light" />
+        <activity
+            android:name="com.jonghyunkim.nativetoolkit.testing.PlainActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Light" />
     </application>
 
 </manifest>

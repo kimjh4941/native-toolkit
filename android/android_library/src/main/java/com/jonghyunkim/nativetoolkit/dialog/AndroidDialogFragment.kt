@@ -6,6 +6,13 @@ import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.DialogFragment
+import com.jonghyunkim.nativetoolkit.common.domain.CancelReason
+import com.jonghyunkim.nativetoolkit.common.presentation.UiHost
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogButton
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
+import com.jonghyunkim.nativetoolkit.dialog.presentation.FragmentDialogPresenter
 import kotlin.toString
 
 /**
@@ -130,6 +137,12 @@ class AndroidDialogFragment : DialogFragment() {
 
     private var dialogType: DialogType = DialogType.SIMPLE
 
+    // Set only when AndroidDialogManager shows this fragment (Kotlin API design 8.8). Everything
+    // that depends on it is skipped for fragments created through the public newInstance, whose
+    // listener behavior stays unchanged.
+    private var requestId: Long = NO_REQUEST_ID
+    private val isRequest: Boolean get() = requestId != NO_REQUEST_ID
+
     interface DialogListener {
         /** Callback for Simple dialog positive button tap (or cancel event). */
         fun onDialog(dialog: AndroidDialogFragment, buttonText: String?, isSuccessful: Boolean, errorMessage: String?)
@@ -180,6 +193,7 @@ class AndroidDialogFragment : DialogFragment() {
             enablePositiveButtonWhenEmpty = it.getBoolean(ARG_ENABLE_POSITIVE_BUTTON_WHEN_EMPTY)
             cancelableOnTouchOutside = it.getBoolean(ARG_CANCELABLE_ON_TOUCH_OUTSIDE, true)
             cancelable = it.getBoolean(ARG_CANCELABLE, true)
+            requestId = it.getLong(ARG_REQUEST_ID, NO_REQUEST_ID)
 
             Log.d(TAG, "dialogType: $dialogType")
             Log.d(TAG, "title: $title")
@@ -197,6 +211,15 @@ class AndroidDialogFragment : DialogFragment() {
             Log.d(TAG, "enablePositiveButtonWhenEmpty: $enablePositiveButtonWhenEmpty")
             Log.d(TAG, "cancelableOnTouchOutside: $cancelableOnTouchOutside")
             Log.d(TAG, "cancelable: $cancelable")
+            Log.d(TAG, "requestId: $requestId")
+        }
+        if (isRequest) {
+            if (savedInstanceState != null) {
+                checkedItem = savedInstanceState.getInt(STATE_CHECKED_ITEM, checkedItem)
+                savedInstanceState.getBooleanArray(STATE_CHECKED_ITEMS)?.let { checkedItems = it }
+            }
+            // A fragment restored after the process died has no live request: close it.
+            if (!FragmentDialogPresenter.attach(requestId, this)) dismissAllowingStateLoss()
         }
     }
 
@@ -217,6 +240,7 @@ class AndroidDialogFragment : DialogFragment() {
                         setPositiveButton(buttonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             dialogListener?.onDialog(this@AndroidDialogFragment, buttonText ?: "OK", true, null)
+                            report(DialogResult.Button(DialogButton.POSITIVE, buttonText ?: "OK", DialogValue.None))
                         }
                     }
 
@@ -224,10 +248,12 @@ class AndroidDialogFragment : DialogFragment() {
                         setNegativeButton(negativeButtonText ?: "No") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
                             confirmListener?.onConfirmDialog(this@AndroidDialogFragment, negativeButtonText ?: "No", true, null)
+                            report(DialogResult.Button(DialogButton.NEGATIVE, negativeButtonText ?: "No", DialogValue.None))
                         }
                         setPositiveButton(positiveButtonText ?: "Yes") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             confirmListener?.onConfirmDialog(this@AndroidDialogFragment, positiveButtonText ?: "Yes", true, null)
+                            report(DialogResult.Button(DialogButton.POSITIVE, positiveButtonText ?: "Yes", DialogValue.None))
                         }
                     }
 
@@ -239,10 +265,12 @@ class AndroidDialogFragment : DialogFragment() {
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
                             singleChoiceItemListener?.onSingleChoiceItemDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, true, null)
+                            report(DialogResult.Button(DialogButton.NEGATIVE, negativeButtonText ?: "Cancel", DialogValue.None))
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             singleChoiceItemListener?.onSingleChoiceItemDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", checkedItem, true, null)
+                            report(DialogResult.Button(DialogButton.POSITIVE, positiveButtonText ?: "OK", DialogValue.SingleChoice(checkedItem.takeIf { it >= 0 })))
                         }
                     }
 
@@ -254,10 +282,12 @@ class AndroidDialogFragment : DialogFragment() {
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
                             multiChoiceItemListener?.onMultiChoiceItemDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, true, null)
+                            report(DialogResult.Button(DialogButton.NEGATIVE, negativeButtonText ?: "Cancel", DialogValue.None))
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             multiChoiceItemListener?.onMultiChoiceItemDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", checkedItems!!, true, null)
+                            report(DialogResult.Button(DialogButton.POSITIVE, positiveButtonText ?: "OK", DialogValue.MultiChoice(checkedItems!!.toList())))
                         }
                     }
 
@@ -270,11 +300,13 @@ class AndroidDialogFragment : DialogFragment() {
                         setView(editText)
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
                             textInputListener?.onTextInputDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, true, null)
+                            report(DialogResult.Button(DialogButton.NEGATIVE, negativeButtonText ?: "Cancel", DialogValue.None))
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             val inputText = editText.text.toString()
                             textInputListener?.onTextInputDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", inputText, true, null)
+                            report(DialogResult.Button(DialogButton.POSITIVE, positiveButtonText ?: "OK", DialogValue.Text(inputText)))
                         }
                     }
 
@@ -304,12 +336,14 @@ class AndroidDialogFragment : DialogFragment() {
                         setNegativeButton(negativeButtonText ?: "Cancel") { dialog, id ->
                             Log.d(TAG, "NegativeButton Click")
                             loginListener?.onLoginDialog(this@AndroidDialogFragment, negativeButtonText ?: "Cancel", null, null, true, null)
+                            report(DialogResult.Button(DialogButton.NEGATIVE, negativeButtonText ?: "Cancel", DialogValue.None))
                         }
                         setPositiveButton(positiveButtonText ?: "OK") { dialog, id ->
                             Log.d(TAG, "PositiveButton Click")
                             val username = usernameEditText.text.toString()
                             val password = passwordEditText.text.toString()
                             loginListener?.onLoginDialog(this@AndroidDialogFragment, positiveButtonText ?: "OK", username, password, true, null)
+                            report(DialogResult.Button(DialogButton.POSITIVE, positiveButtonText ?: "OK", DialogValue.Login(username, password)))
                         }
                     }
                 }
@@ -330,7 +364,7 @@ class AndroidDialogFragment : DialogFragment() {
                                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                                 override fun afterTextChanged(s: android.text.Editable?) {
-                                    Log.d(TAG, "afterTextChanged: ${s.toString()}")
+                                    Log.d(TAG, "afterTextChanged: length: ${s?.length ?: 0}")
                                     positiveButton.isEnabled = enablePositiveButtonWhenEmpty || !s.isNullOrEmpty()
                                     Log.d(TAG, "positiveButton.isEnabled: ${positiveButton.isEnabled}")
                                 }
@@ -346,7 +380,7 @@ class AndroidDialogFragment : DialogFragment() {
                                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                                 override fun afterTextChanged(s: android.text.Editable?) {
-                                    Log.d(TAG, "afterTextChanged: ${s.toString()}")
+                                    Log.d(TAG, "afterTextChanged: length: ${s?.length ?: 0}")
                                     val username = usernameEditText?.text?.toString() ?: ""
                                     val password = passwordEditText?.text?.toString() ?: ""
                                     positiveButton.isEnabled = enablePositiveButtonWhenEmpty || (username.isNotEmpty() && password.isNotEmpty())
@@ -372,6 +406,7 @@ class AndroidDialogFragment : DialogFragment() {
     override fun onCancel(dialog: DialogInterface) {
         super.onCancel(dialog)
         Log.d(TAG, "onCancel")
+        report(DialogResult.Dismissed)
         when (dialogType) {
             DialogType.SIMPLE -> {
                 dialogListener?.onDialog(this, "Cancel", true, "")
@@ -395,6 +430,32 @@ class AndroidDialogFragment : DialogFragment() {
     }
 
     /** Assign listener for Simple dialog variant. */
+    override fun onSaveInstanceState(outState: Bundle) {
+        Log.d(TAG, "[onSaveInstanceState] outState: $outState")
+        super.onSaveInstanceState(outState)
+        if (isRequest) {
+            outState.putInt(STATE_CHECKED_ITEM, checkedItem)
+            checkedItems?.let { outState.putBooleanArray(STATE_CHECKED_ITEMS, it) }
+        }
+    }
+
+    override fun onDestroy() {
+        Log.d(TAG, "[onDestroy]")
+        val hostActivity = activity
+        super.onDestroy()
+        // A configuration change recreates this fragment with the same request ID, so only a
+        // destroy for good ends the request (exactly once through the gate).
+        if (isRequest && hostActivity?.isChangingConfigurations != true) {
+            report(DialogResult.Canceled(CancelReason.HOST_DESTROYED))
+            FragmentDialogPresenter.detach(requestId, this)
+            UiHost.onLibraryFragmentGone(hostActivity)
+        }
+    }
+
+    private fun report(result: DialogResult) {
+        if (isRequest) FragmentDialogPresenter.complete(requestId, result)
+    }
+
     fun setDialogListener(listener: DialogListener) {
         Log.d(TAG, "setDialogListener")
         this.dialogListener = listener
@@ -449,6 +510,52 @@ class AndroidDialogFragment : DialogFragment() {
         private const val ARG_DIALOG_TYPE = "dialog_type"
         private const val ARG_CANCELABLE_ON_TOUCH_OUTSIDE = "cancelable_on_touch_outside"
         private const val ARG_CANCELABLE = "cancelable"
+        private const val ARG_REQUEST_ID = "request_id"
+        private const val STATE_CHECKED_ITEM = "state_checked_item"
+        private const val STATE_CHECKED_ITEMS = "state_checked_items"
+        private const val NO_REQUEST_ID = -1L
+
+        /**
+         * Creates a fragment for a request of AndroidDialogManager (Kotlin API design 8.8).
+         *
+         * @param requestId The request ID.
+         * @param request The dialog.
+         */
+        internal fun newRequestInstance(requestId: Long, request: DialogRequest): AndroidDialogFragment {
+            Log.d(TAG, "[newRequestInstance] requestId: $requestId, request: $request")
+            val fragment = when (request) {
+                is DialogRequest.Alert -> newInstance(
+                    request.title, request.message, request.buttonText,
+                    request.options.cancelableOnTouchOutside, request.options.cancelable
+                )
+                is DialogRequest.Confirm -> newInstance(
+                    request.title, request.message, request.negativeText, request.positiveText,
+                    request.options.cancelableOnTouchOutside, request.options.cancelable
+                )
+                is DialogRequest.SingleChoice -> newInstance(
+                    request.title, request.items.toTypedArray(), request.checkedIndex ?: -1,
+                    request.negativeText, request.positiveText,
+                    request.options.cancelableOnTouchOutside, request.options.cancelable
+                )
+                is DialogRequest.MultiChoice -> newInstance(
+                    request.title, request.items.toTypedArray(), request.checked.toBooleanArray(),
+                    request.negativeText, request.positiveText,
+                    request.options.cancelableOnTouchOutside, request.options.cancelable
+                )
+                is DialogRequest.TextInput -> newInstance(
+                    request.title, request.message, request.hint, request.negativeText,
+                    request.positiveText, request.enablePositiveWhenEmpty,
+                    request.options.cancelableOnTouchOutside, request.options.cancelable
+                )
+                is DialogRequest.Login -> newInstance(
+                    request.title, request.message, request.usernameHint, request.passwordHint,
+                    request.negativeText, request.positiveText, request.enablePositiveWhenEmpty,
+                    request.options.cancelableOnTouchOutside, request.options.cancelable
+                )
+            }
+            fragment.requireArguments().putLong(ARG_REQUEST_ID, requestId)
+            return fragment
+        }
 
         /**
          * Create a Simple dialog with a single positive button.
