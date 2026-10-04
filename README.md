@@ -165,7 +165,7 @@ docs/
 
 ```bash
 cd android
-./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
+./gradlew :android_library:dokkaGeneratePublicationHtml :unity_android_plugin:dokkaGeneratePublicationHtml
 ```
 
 ### iOS (DocC)

@@ -401,6 +401,6 @@ Currently throws when fundamental preconditions fail (e.g. Activity is null). Fu
 
 ## Dokka
 ```
-./gradlew :android_library:clean :android_library:dokkaHtml
+./gradlew :android_library:clean :android_library:dokkaGeneratePublicationHtml
 ```
 Output: `android_library/build/dokka/html`

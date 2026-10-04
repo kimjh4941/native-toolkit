@@ -401,6 +401,6 @@ Additional wrapper guarantees:
 ## Dokka
 Generate API docs:
 ```
-./gradlew :unity_android_plugin:clean :unity_android_plugin:dokkaHtml
+./gradlew :unity_android_plugin:clean :unity_android_plugin:dokkaGeneratePublicationHtml
 ```
 Output directory: `unity_android_plugin/build/dokka/html`.

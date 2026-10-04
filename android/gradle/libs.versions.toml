@@ -1,8 +1,8 @@
 [versions]
-agp = "8.9.1"
+agp = "9.3.1"
 appcompatVersion = "1.6.1"
 fragmentKtx = "1.8.6"
-kotlin = "2.0.21"
+kotlin = "2.4.20"
 coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -13,7 +13,7 @@ activityCompose = "1.8.0"
 composeBom = "2024.09.00"
 appcompat = "1.7.0"
 material = "1.12.0"
-dokka = "2.0.0"
+dokka = "2.2.0"
 androidxMedia = "1.7.0"
 orgJson = "20251224"
 
@@ -39,10 +39,12 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-media = { group = "androidx.media", name = "media", version.ref = "androidxMedia" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 orgjson = { group = "org.json", name = "json", version.ref = "orgJson" }
+# AGP 9 runs the built-in Kotlin with this KGP when it is on the buildscript classpath.
+kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

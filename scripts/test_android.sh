@@ -112,12 +112,12 @@ fi
 # --- 1. Unit tests -------------------------------------------------------------------------
 if [[ "${SKIP_UNIT}" -eq 0 && -z "${FILTER}" ]]; then
   echo "[unit] running"
-  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :android_library:testReleaseUnitTest :unity_android_plugin:testReleaseUnitTest :app:testDebugUnitTest)
+  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :android_library:testDebugUnitTest :unity_android_plugin:testDebugUnitTest :app:testDebugUnitTest)
   python3 - "${ANDROID_DIR}" >> "${RESULTS}" <<'PY'
 import glob, json, sys, xml.etree.ElementTree as ET
 root = sys.argv[1]
-for pattern in ["android_library/build/test-results/testReleaseUnitTest/*.xml",
-                "unity_android_plugin/build/test-results/testReleaseUnitTest/*.xml",
+for pattern in ["android_library/build/test-results/testDebugUnitTest/*.xml",
+                "unity_android_plugin/build/test-results/testDebugUnitTest/*.xml",
                 "AndroidLibraryExample/app/build/test-results/testDebugUnitTest/*.xml"]:
     for path in glob.glob(f"{root}/{pattern}"):
         for case in ET.parse(path).getroot().iter("testcase"):

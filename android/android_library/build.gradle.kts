@@ -1,7 +1,9 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    id("kotlin-parcelize")
+    alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.dokka)
 }
 
@@ -40,33 +42,37 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
 }
 
-tasks.dokkaHtml.configure {
-    outputDirectory.set(layout.buildDirectory.dir("dokka/html"))
-    dokkaSourceSets {
-        // Suppress all source sets by default
-        configureEach {
-            suppress.set(true)
-        }
-        // Only document the main source set & include MODULE.md
-        named("main") {
-            suppress.set(false)
-            includes.setFrom("MODULE.md")   // Prevent duplication: do not add in configureEach
-            jdkVersion.set(11)
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+        // Consumers compiling with Kotlin 2.1 or later can use the library (README 8.3).
+        languageVersion = KotlinVersion.KOTLIN_2_2
+        apiVersion = KotlinVersion.KOTLIN_2_2
+    }
+}
+
+dokka {
+    dokkaPublications.html {
+        outputDirectory.set(layout.buildDirectory.dir("dokka/html"))
+    }
+    // Dokka v2 names the Android source sets after the variants (debug, release, debugUnitTest, ...)
+    // and registers them late. Document only the published variant and include MODULE.md there
+    // (adding it to every source set duplicates it).
+    dokkaSourceSets.configureEach {
+        val isPublished = name == "release"
+        suppress.set(!isPublished)
+        if (isPublished) {
+            includes.from("MODULE.md")
+            jdkVersion.set(17)
             skipDeprecated.set(false)
-            // If necessary:
-            // reportUndocumented.set(true)
-            // failOnWarning.set(true)
         }
     }
 }
