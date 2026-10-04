@@ -54,6 +54,7 @@ UI_CLASSES=(
   NavigationUiTest DialogUiTest
   NotificationSettingsUiTest NotificationStyleUiTest NotificationInteractionUiTest
   NotificationProgressUiTest NotificationCallUiTest NotificationScheduleUiTest NotificationTapUiTest
+  NotificationEventDeliveryUiTest ScreenResultSinkInstrumentedTest
   ShareUiTest ReceivedShareUiTest ReceivedShareLaunchUiTest
   ClipboardSampleScreenUiTest ClipboardAdditionalUiTest
   IncomingShareParserInstrumentedTest MainActivityIncomingShareInstrumentedTest
@@ -64,6 +65,9 @@ HOST_STATE_CASES=(
   n50_exactAlarmDenied_scheduleFails:exactAlarmDenied
   n03_permissionRevoked_requestAndAllow:permissionRevoked
   n04_permissionRevoked_requestAndDenyThenCheck:permissionRevoked
+  n10_permissionRevoked_requestCoroutineAndAllow:permissionRevoked
+  n11_permissionRevoked_requestCoroutineAndDeny:permissionRevoked
+  n12_permissionRevoked_requestSurvivesTheRecreation:permissionRevoked
   n05_permissionRevoked_showFails:permissionRevoked
   n09_permissionRevoked_foregroundServicesAndScheduleFail:permissionRevoked
 )

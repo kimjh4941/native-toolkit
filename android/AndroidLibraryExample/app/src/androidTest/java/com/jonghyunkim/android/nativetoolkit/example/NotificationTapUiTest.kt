@@ -44,7 +44,21 @@ class NotificationTapUiTest : ExternalLaunchUiTest() {
         shade.open()
         shade.clickButton("Native Toolkit Player", "Previous")
         assertTrue("the sample did not come back on its notification screen", device.wait(Until.hasObject(By.res("notification.back")), 10_000))
+        // The action now goes through the library's event (sample app design 4.3).
+        app.waitForStatus("notification", "✅ Action button pressed: Previous (id=previous, notificationId=1006)")
         notifications.waitFor(1006)
+    }
+
+    @Test
+    fun n29_eventSampleBodyTapIsReported() {
+        app.click("notification.showEventSample")
+        app.waitForStatus("notification", "✅ Displayed event sample.")
+        notifications.waitFor(1120)
+        goHome()
+        shade.open()
+        shade.clickBody("Tap this notification to send a body tap event.")
+        assertTrue("the sample did not come back on its notification screen", device.wait(Until.hasObject(By.res("notification.back")), 10_000))
+        app.waitForText("notification.events", "ℹ️ #1 Body tapped (notificationId=1120, tag=null)")
     }
 
     private fun goHome() {

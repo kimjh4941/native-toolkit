@@ -35,6 +35,8 @@ class NotificationScheduleUiTest : SampleUiTest() {
         assertEquals("alarm", sbn.notification.category)
         assertEquals("native_toolkit_schedule_high", sbn.notification.channelId)
         assertEquals(4, notifications.channel("native_toolkit_schedule_high")!!.importance)
+        // The library reports the shown schedule to the screen (sample app design 4.2).
+        app.waitForText("notification.events", "ℹ️ #1 Scheduled notification shown (notificationId=1010)")
         app.click("notification.checkScheduleIsScheduled")
         app.waitForStatus("notification", "ℹ️ Schedule Notification is currently not scheduled. (isScheduled=false)")
     }

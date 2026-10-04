@@ -2,6 +2,8 @@ package com.jonghyunkim.android.nativetoolkit.example
 
 import android.content.pm.ShortcutManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jonghyunkim.android.nativetoolkit.example.infra.Sharesheet
+import androidx.test.uiautomator.By
 import com.jonghyunkim.android.nativetoolkit.example.infra.CategoryShare
 import com.jonghyunkim.android.nativetoolkit.example.infra.ExternalLaunchUiTest
 import com.jonghyunkim.android.nativetoolkit.example.infra.Sharesheet.Companion.SAMPLE_LABEL
@@ -177,6 +179,41 @@ class ShareUiTest : ExternalLaunchUiTest() {
         app.click("share.removeDirectShareTarget")
         app.waitForStatus("share", "✅ removeDirectShareTargets called")
         assertFalse("sample_1 is still registered", shortcutIds().contains("sample_1"))
+    }
+
+    @Test
+    fun s18_selectionEventReportsTheChosenTargetWithItsToken() {
+        app.click("share.shareForSelection")
+        app.waitForStatus("share", "waiting for selection...")
+        val token = Regex("token=(\\d+)").find(app.status("share"))!!.groupValues[1]
+        sharesheet.choose(SHARE_TARGET_LABEL)
+        shareTarget.waitOpen()
+        assertEquals("Hello with a selection event from native-toolkit", shareTarget.value("text"))
+        shareTarget.close(context.packageName)
+        app.waitForStatus("share", "✅ Selected (token=$token): ${ShareTargetApp.PACKAGE}")
+    }
+
+    @Test
+    fun s19_selectionDismissedSendsNothing_thenCancel() {
+        app.click("share.shareForSelection")
+        sharesheet.dismiss()
+        app.waitForStatus("share", "waiting for selection...")
+        Thread.sleep(1_500)
+        assertTrue(app.status("share"), app.status("share").contains("waiting for selection..."))
+        // That a canceled wait gets no selection is checked by the library (IT-15); here only the
+        // screen's handling of the token is.
+        app.click("share.cancelShareSelection")
+        app.waitForStatus("share", "✅ cancelShareSelection called (token=")
+        app.click("share.cancelShareSelection")
+        app.waitForStatus("share", "ℹ️ No selection is pending.")
+    }
+
+    @Test
+    fun s20_invalidChooserActionIsRejected() {
+        app.click("share.shareTextWithInvalidAction")
+        app.waitForStatus("share", "❌ InvalidChooserAction: dup")
+        Thread.sleep(1_000)
+        assertFalse("the Sharesheet opened", device.hasObject(By.pkg(Sharesheet.RESOLVER)))
     }
 
     /**

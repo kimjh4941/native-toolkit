@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +41,12 @@ fun AppRouter(
     var currentScreen by rememberSaveable { mutableStateOf(MainScreen.MAIN_MENU) }
     var dialogResultText by rememberSaveable { mutableStateOf("Result will be displayed here") }
 
+    // Dialog results go to the router of the current MainActivity, also after a recreation.
+    DisposableEffect(Unit) {
+        val detach = ScreenResults.dialog.attach { dialogResultText = it }
+        onDispose { detach() }
+    }
+
     val received = activity.receivedShare
     LaunchedEffect(received) {
         if (received != null) {
@@ -67,15 +74,10 @@ fun AppRouter(
             }
 
             MainScreen.ANDROID_DIALOG_TEST -> {
-                AndroidDialogFragmentTestScreen(
+                DialogSampleScreen(
                     modifier = Modifier.padding(innerPadding),
                     resultText = dialogResultText,
-                    onBack = { currentScreen = MainScreen.MAIN_MENU },
-                    onButtonClick = { buttonType ->
-                        activity.handleAndroidDialogTestButtonClick(buttonType) { updatedText ->
-                            dialogResultText = updatedText
-                        }
-                    }
+                    onBack = { currentScreen = MainScreen.MAIN_MENU }
                 )
             }
 

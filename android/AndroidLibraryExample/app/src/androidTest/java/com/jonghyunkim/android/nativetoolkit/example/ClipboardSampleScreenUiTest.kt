@@ -154,14 +154,14 @@ class ClipboardSampleScreenUiTest {
     fun errorCase_copyHtmlEmpty_showsEmptyContent() {
         navigateToClipboardScreen()
         click("clipboard.copyHtmlEmptyEmptyContent")
-        waitForStatus("❌ EmptyContent")
+        waitForStatus("❌ EmptyContent: HTML body is empty [errorCode=EMPTY_CONTENT]")
     }
 
     @Test
     fun errorCase_copyMultipleEmptyList_showsEmptyItemList() {
         navigateToClipboardScreen()
         click("clipboard.copyMultipleEmptyListEmptyItemList")
-        waitForStatus("❌ EmptyItemList")
+        waitForStatus("❌ EmptyItemList: no items to copy [errorCode=EMPTY_ITEMS]")
     }
 
     @Test
@@ -169,12 +169,13 @@ class ClipboardSampleScreenUiTest {
         navigateToClipboardScreen()
         click("clipboard.copyUriBlankInvalidUri")
         waitForStatus("❌ InvalidUri")
+        waitForStatus("[errorCode=INVALID_URI]")
     }
 
     @Test
     fun errorCase_copyUriHttpScheme_showsInvalidUri() {
         navigateToClipboardScreen()
         click("clipboard.copyUriHttpSchemeInvalidUri")
-        waitForStatus("❌ InvalidUri: http://example.com/x")
+        waitForStatus("❌ InvalidUri: http://example.com/x [errorCode=INVALID_URI]")
     }
 }

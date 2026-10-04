@@ -31,6 +31,9 @@ class Toasts(private val instrumentation: Instrumentation) {
         instrumentation.uiAutomation.setOnAccessibilityEventListener(null)
     }
 
+    /** The number of Toasts containing [text] shown since [start], matched as [waitFor] does. */
+    fun count(text: String): Int = texts.count { it.contains(text) }
+
     /** Waits until a Toast containing [expected] has been shown since [start]. */
     fun waitFor(expected: String, timeoutMs: Long = 10_000L) {
         val end = SystemClock.elapsedRealtime() + timeoutMs

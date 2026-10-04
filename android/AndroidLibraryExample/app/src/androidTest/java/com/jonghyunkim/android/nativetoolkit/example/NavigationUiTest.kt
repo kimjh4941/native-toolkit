@@ -38,10 +38,10 @@ class NavigationUiTest : SampleUiTest() {
         app.click("dialog.showDialog")
         dialogs.waitFor("Hello from Android")
         dialogs.positive().click()
-        app.waitForStatus("dialog", "Result: onDialog - buttonText: OK, errorMessage: null")
+        app.waitForStatus("dialog", "Result: alert - button: POSITIVE (OK)")
         app.back("dialog")
         app.open("dialog")
-        app.waitForStatus("dialog", "Result: onDialog - buttonText: OK, errorMessage: null")
+        app.waitForStatus("dialog", "Result: alert - button: POSITIVE (OK)")
     }
 
     @Test

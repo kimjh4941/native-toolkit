@@ -10,7 +10,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Dialog screen (6.2 of the android-c-abi UI test design). */
+/**
+ * Dialog screen (6.2 of the android-c-abi UI test design). The screen uses AndroidDialogManager
+ * since stage 1b (sample app design 4.5): the results are DialogResult lines, and input values show
+ * as lengths only.
+ */
 @CategoryDialog
 @RunWith(AndroidJUnit4::class)
 class DialogUiTest : SampleUiTest() {
@@ -27,7 +31,7 @@ class DialogUiTest : SampleUiTest() {
         assertEquals("This is a native Android dialog!", dialogs.message())
         assertButton("OK", dialogs.positive().text)
         dialogs.positive().click()
-        expectResult("onDialog - buttonText: OK, errorMessage: null")
+        expectResult("alert - button: POSITIVE (OK)")
     }
 
     @Test
@@ -38,7 +42,7 @@ class DialogUiTest : SampleUiTest() {
         assertButton("No", dialogs.negative().text)
         assertButton("Yes", dialogs.positive().text)
         dialogs.positive().click()
-        expectResult("onConfirmDialog - buttonText: Yes, errorMessage: null")
+        expectResult("confirm - button: POSITIVE (Yes)")
     }
 
     @Test
@@ -46,7 +50,7 @@ class DialogUiTest : SampleUiTest() {
         app.click("dialog.showConfirmDialog")
         dialogs.waitFor("Confirmation")
         dialogs.negative().click()
-        expectResult("onConfirmDialog - buttonText: No, errorMessage: null")
+        expectResult("confirm - button: NEGATIVE (No)")
     }
 
     @Test
@@ -57,7 +61,7 @@ class DialogUiTest : SampleUiTest() {
         assertFalse(dialogs.isChecked("Option 2"))
         assertFalse(dialogs.isChecked("Option 3"))
         dialogs.positive().click()
-        expectResult("onSingleChoiceItemDialog - buttonText: OK, checkedItem: 0, errorMessage: null")
+        expectResult("singleChoice - button: POSITIVE (OK), index: 0")
     }
 
     @Test
@@ -66,7 +70,7 @@ class DialogUiTest : SampleUiTest() {
         dialogs.waitFor("Please select one")
         dialogs.clickItem("Option 3")
         dialogs.positive().click()
-        expectResult("onSingleChoiceItemDialog - buttonText: OK, checkedItem: 2, errorMessage: null")
+        expectResult("singleChoice - button: POSITIVE (OK), index: 2")
     }
 
     @Test
@@ -74,7 +78,7 @@ class DialogUiTest : SampleUiTest() {
         app.click("dialog.showSingleChoiceItemDialog")
         dialogs.waitFor("Please select one")
         dialogs.negative().click()
-        expectResult("onSingleChoiceItemDialog - buttonText: Cancel, checkedItem: null, errorMessage: null")
+        expectResult("singleChoice - button: NEGATIVE (Cancel)")
     }
 
     @Test
@@ -83,7 +87,7 @@ class DialogUiTest : SampleUiTest() {
         dialogs.waitFor("Multiple Selection")
         assertEquals(listOf(false, true, false, true), (1..4).map { dialogs.isChecked("Option $it") })
         dialogs.positive().click()
-        expectResult("onMultiChoiceItemDialog - buttonText: OK, checkedItems: [false, true, false, true], errorMessage: null")
+        expectResult("multiChoice - button: POSITIVE (OK), checked: [false, true, false, true]")
     }
 
     @Test
@@ -92,7 +96,7 @@ class DialogUiTest : SampleUiTest() {
         dialogs.waitFor("Multiple Selection")
         dialogs.clickItem("Option 1")
         dialogs.positive().click()
-        expectResult("onMultiChoiceItemDialog - buttonText: OK, checkedItems: [true, true, false, true], errorMessage: null")
+        expectResult("multiChoice - button: POSITIVE (OK), checked: [true, true, false, true]")
     }
 
     @Test
@@ -100,7 +104,7 @@ class DialogUiTest : SampleUiTest() {
         app.click("dialog.showMultiChoiceItemDialog")
         dialogs.waitFor("Multiple Selection")
         dialogs.negative().click()
-        expectResult("onMultiChoiceItemDialog - buttonText: Cancel, checkedItems: null, errorMessage: null")
+        expectResult("multiChoice - button: NEGATIVE (Cancel)")
     }
 
     @Test
@@ -120,7 +124,7 @@ class DialogUiTest : SampleUiTest() {
         dialogs.inputs()[0].text = "Alice"
         device.waitForIdle()
         dialogs.positive().click()
-        expectResult("onTextInputDialog - buttonText: OK, inputText: Alice, errorMessage: null")
+        expectResult("textInput - button: POSITIVE (OK), textLength: 5")
     }
 
     @Test
@@ -128,7 +132,7 @@ class DialogUiTest : SampleUiTest() {
         app.click("dialog.showTextInputDialog")
         dialogs.waitFor("Text Input")
         dialogs.negative().click()
-        expectResult("onTextInputDialog - buttonText: Cancel, inputText: null, errorMessage: null")
+        expectResult("textInput - button: NEGATIVE (Cancel)")
     }
 
     @Test
@@ -153,7 +157,7 @@ class DialogUiTest : SampleUiTest() {
         inputs[1].text = "pass1"
         device.waitForIdle()
         dialogs.positive().click()
-        expectResult("onLoginDialog - buttonText: Login, username: user1, password: pass1, errorMessage: null")
+        expectResult("login - button: POSITIVE (Login), usernameLength: 5, passwordLength: 5")
     }
 
     @Test
@@ -161,7 +165,7 @@ class DialogUiTest : SampleUiTest() {
         app.click("dialog.showLoginDialog")
         dialogs.waitFor("Login")
         dialogs.negative().click()
-        expectResult("onLoginDialog - buttonText: Cancel, username: null, password: null, errorMessage: null")
+        expectResult("login - button: NEGATIVE (Cancel)")
     }
 
     @Test
@@ -185,6 +189,51 @@ class DialogUiTest : SampleUiTest() {
             if (tag == "dialog.showDialog") dialogs.positive().click() else dialogs.negative().click()
             device.waitForIdle()
         }
+    }
+
+    @Test
+    fun d17_confirmCoroutineYes() {
+        app.click("dialog.showConfirmCoroutine")
+        dialogs.waitFor("Confirmation")
+        dialogs.positive().click()
+        expectResult("confirm - button: POSITIVE (Yes)")
+    }
+
+    @Test
+    fun d18_cancelableDialogBackIsDismissed() {
+        app.click("dialog.showCancelableDialog")
+        dialogs.waitFor("Cancelable")
+        device.pressBack()
+        expectResult("alert - Dismissed")
+        assertFalse(dialogs.isShowing())
+    }
+
+    @Test
+    fun d19_cancelAfterTwoSecondsClosesTheDialog() {
+        app.click("dialog.showAndCancel")
+        dialogs.waitFor("Hello from Android")
+        app.waitForStatus("dialog", "❌\nResult: alert - Canceled: REQUESTED")
+        assertFalse(dialogs.isShowing())
+    }
+
+    @Test
+    fun d20_resultReachesTheRecreatedScreen() {
+        app.click("dialog.showConfirmDialog")
+        dialogs.waitFor("Confirmation")
+        compose.activityRule.scenario.recreate()
+        // The library restores the dialog; its result goes to the new screen (review I-X2).
+        dialogs.waitFor("Confirmation")
+        dialogs.positive().click()
+        expectResult("confirm - button: POSITIVE (Yes)")
+    }
+
+    @Test
+    fun d21_cancelSurvivesTheRecreation() {
+        app.click("dialog.showAndCancel")
+        dialogs.waitFor("Hello from Android")
+        compose.activityRule.scenario.recreate()
+        app.waitForStatus("dialog", "❌\nResult: alert - Canceled: REQUESTED")
+        assertFalse(dialogs.isShowing())
     }
 
     /** The platform theme shows button labels in capitals, so compare them ignoring case. */

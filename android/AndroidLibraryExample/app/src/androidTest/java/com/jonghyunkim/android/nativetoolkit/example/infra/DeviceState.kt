@@ -3,6 +3,7 @@ package com.jonghyunkim.android.nativetoolkit.example.infra
 import android.Manifest
 import android.app.Instrumentation
 import android.content.Intent
+import com.jonghyunkim.nativetoolkit.notification.AndroidNotificationManager
 import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCases
 import com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleForegroundService
 import com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundNotifications
@@ -42,12 +43,25 @@ class DeviceState(private val instrumentation: Instrumentation, private val devi
         for (id in SCHEDULED_IDS) runCatching { useCases.cancelScheduled(id, null) }
         runCatching { ShortcutManagerCompat.removeLongLivedShortcuts(context, listOf(DIRECT_SHARE_ID)) }
         NotificationManagerCompat.from(context).cancelAll()
+        dropKeptNotificationEvents()
         ActiveNotifications(context).let { notifications ->
             val end = System.currentTimeMillis() + 15_000
             while (notifications.sampleIds().isNotEmpty() && System.currentTimeMillis() < end) {
                 NotificationManagerCompat.from(context).cancelAll()
                 Thread.sleep(200)
             }
+        }
+    }
+
+    /**
+     * Drops the notification events the library kept while no listener was registered, so they
+     * do not reach the next test's MainActivity (sample app design 4.2). Adding a listener takes
+     * them; it is removed at once. Works only before MainActivity is created, that is with
+     * [ExternalLaunchUiTest]: the Compose rule creates the activity before this runs.
+     */
+    fun dropKeptNotificationEvents() {
+        instrumentation.runOnMainSync {
+            AndroidNotificationManager.getInstance(context).interactions.addListener { _, _ -> }.remove()
         }
     }
 

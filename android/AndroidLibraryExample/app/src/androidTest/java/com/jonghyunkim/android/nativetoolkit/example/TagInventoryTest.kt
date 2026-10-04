@@ -73,13 +73,15 @@ class TagInventoryTest {
             "dialog",
             "back", "status",
             "showDialog", "showConfirmDialog", "showSingleChoiceItemDialog",
-            "showMultiChoiceItemDialog", "showTextInputDialog", "showLoginDialog"
+            "showMultiChoiceItemDialog", "showTextInputDialog", "showLoginDialog",
+            "showConfirmCoroutine", "showCancelableDialog", "showAndCancel"
         )
 
         val NOTIFICATION_TAGS = tags(
             "notification",
-            "back", "status",
-            "checkNotificationPermission", "requestNotificationPermission", "openNotificationSettings",
+            "back", "status", "events",
+            "checkNotificationPermission", "requestNotificationPermission", "requestNotificationPermissionCoroutine",
+            "openNotificationSettings",
             "openAppDetailsSettings", "openExactAlarmSettings",
             "showDefaultStyle", "deleteDefaultStyle", "showBigTextStyle", "deleteBigTextStyle",
             "showInboxStyle", "deleteInboxStyle", "showBigPictureStyle", "deleteBigPictureStyle",
@@ -87,7 +89,7 @@ class TagInventoryTest {
             "showMediaStyle", "deleteMediaStyle", "showDecoratedCustomViewStyle", "deleteDecoratedCustomViewStyle",
             "showDecoratedMediaCustomViewStyle", "deleteDecoratedMediaCustomViewStyle",
             "showGroupChild1", "showGroupChild2", "showGroupSummary", "showGroupAlertBehavior",
-            "showDeleteIntentSample", "showFullScreenIntentSample", "showActionButtonsSample", "deleteActionButtonsSample",
+            "showEventSample", "showDeleteIntentSample", "showFullScreenIntentSample", "showActionButtonsSample", "deleteActionButtonsSample",
             "showProgress10", "showProgress50", "showProgress100", "showIndeterminateProgress", "deleteProgress",
             "startProgressFgs10", "updateProgressFgs50", "updateProgressFgs90", "completeProgressFgs", "stopProgressFgs",
             "incomingCall", "ongoingCall", "screeningCall", "stopCallForegroundService",
@@ -97,10 +99,12 @@ class TagInventoryTest {
         val SHARE_TAGS = tags(
             "share",
             "back", "status",
-            "shareText", "shareUrl", "shareTextWithRichPreview", "shareTextWithCustomAction", "shareWithSubjectTitle",
+            "shareText", "shareUrl", "shareTextWithRichPreview", "shareTextWithCustomAction", "shareTextWithInvalidAction",
+            "shareWithSubjectTitle",
             "shareImage", "shareMultipleImages", "shareFile", "shareMultipleFiles",
             "registerDirectShareTarget", "removeDirectShareTarget",
-            "shareWithCallback", "shareWithCallbackRichPreview", "cancelPendingCallback"
+            "shareWithCallback", "shareWithCallbackRichPreview", "cancelPendingCallback",
+            "shareForSelection", "cancelShareSelection"
         )
 
         val CLIPBOARD_TAGS = tags(

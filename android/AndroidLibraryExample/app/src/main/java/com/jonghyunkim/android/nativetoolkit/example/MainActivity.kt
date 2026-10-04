@@ -1,6 +1,7 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.content.Intent
+import com.jonghyunkim.nativetoolkit.common.event.EventHub
 import com.jonghyunkim.nativetoolkit.notification.presentation.permission.NotificationPermissionHelper
 import android.os.Bundle
 import android.util.Log
@@ -21,6 +22,7 @@ import com.jonghyunkim.android.nativetoolkit.example.ui.theme.AndroidTheme
 class MainActivity : AppCompatActivity() {
 
     private lateinit var notificationPermissionHelper: NotificationPermissionHelper
+    private var eventRegistrations: List<EventHub.Registration> = emptyList()
 
     /** Received share content; updated on receipt and observed by Compose to navigate to the received screen. */
     var receivedShare by mutableStateOf<ReceivedShareContent?>(null)
@@ -32,6 +34,8 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "[onCreate] intent: $intent")
         super.onCreate(savedInstanceState)
         notificationPermissionHelper = NotificationPermissionHelper(this)
+        // Events kept by the library while no listener was registered arrive inside this call.
+        eventRegistrations = SampleEvents.register(this)
         title = "Native Toolkit Example"
         enableEdgeToEdge()
         handleIncomingShare(intent)
@@ -46,6 +50,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        Log.d(TAG, "[onDestroy]")
+        eventRegistrations.forEach { it.remove() }
+        eventRegistrations = emptyList()
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {

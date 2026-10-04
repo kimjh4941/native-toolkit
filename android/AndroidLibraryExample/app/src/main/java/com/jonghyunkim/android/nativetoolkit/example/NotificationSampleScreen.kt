@@ -2,18 +2,14 @@ package com.jonghyunkim.android.nativetoolkit.example
 
 import android.app.PendingIntent
 import android.app.NotificationManager
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationAction
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCustomViewPlatformOptions
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationPlatformOptions
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidPendingIntentRequest
-import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidPendingIntentType
 import com.jonghyunkim.nativetoolkit.notification.application.model.RemoteViewAction
-import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCases
+import com.jonghyunkim.nativetoolkit.notification.AndroidNotificationManager
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationChannel
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationContent
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationCustomViewStyleData
@@ -25,7 +21,13 @@ import com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleFor
 import com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleNotificationFactory
 import com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleType
 import com.jonghyunkim.nativetoolkit.notification.presentation.permission.NotificationPermissionHelper
-import com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundNotifications
+import com.jonghyunkim.nativetoolkit.notification.domain.error.PermissionRequestDomainError
+import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSettingsOpenResult
+import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSettingsTarget
+import com.jonghyunkim.nativetoolkit.notification.domain.model.PermissionRequestResult
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationEventIntents
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationInteraction
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationShown
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
@@ -46,9 +48,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.launch
 
 const val TAG = "NotificationSampleScreen"
 private const val ACTION_OPEN_NOTIFICATION_SAMPLE = "native.toolkit.notification.open"
@@ -70,6 +75,7 @@ private const val ACTION_OPEN_GROUPING_SAMPLE = "native.toolkit.notification.gro
 private const val ACTION_OPEN_FULL_SCREEN_SAMPLE = "native.toolkit.notification.fullscreen.open"
 private const val GROUP_SAMPLE_KEY = "native.toolkit.grouping.sample"
 private const val ACTION_SAMPLE_NOTIFICATION_ID = 1112
+private const val EVENT_SAMPLE_NOTIFICATION_ID = 1120
 
 @Composable
 fun NotificationSampleScreen(
@@ -79,39 +85,43 @@ fun NotificationSampleScreen(
     onBack: () -> Unit
 ) {
     Log.d(TAG, "[NotificationSampleScreen] modifier: $modifier, activity: $activity, permissionHelper: $permissionHelper, onBack: $onBack")
-    val useCases = remember(activity) { NotificationUseCases(activity) }
+    val manager = remember(activity) { AndroidNotificationManager.getInstance(activity) }
+    val scope = rememberCoroutineScope()
 
     var statusText by remember {
         mutableStateOf("Explore notification samples. Start by checking the current permission state.")
     }
 
-    DisposableEffect(activity) {
-        NotificationActionReceiver.isSampleScreenActive = true
+    // The permission request callback reaches the screen shown when it answers (review I-X3).
+    DisposableEffect(Unit) {
+        val detach = ScreenResults.notificationStatus.attach { statusText = it }
+        onDispose { detach() }
+    }
 
-        val actionButtonReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action != NotificationActionReceiver.ACTION_NOTIFICATION_BUTTON_INTERNAL) {
-                    return
+    // Events of the library while this screen is shown (sample app design 4.2). The number counts
+    // the events this screen received, so a test can tell one delivery from two.
+    var eventCount by remember { mutableStateOf(0) }
+    var eventText by remember { mutableStateOf("ℹ️ #0 No events yet") }
+
+    LaunchedEffect(Unit) {
+        SampleEvents.notificationEvents.collect { event ->
+            Log.d(TAG, "[collect] event: $event")
+            val text = when (event) {
+                is NotificationInteraction -> when (event.kind) {
+                    NotificationInteraction.Kind.ACTION -> {
+                        val label = event.data[SampleEvents.DATA_LABEL].orEmpty()
+                        statusText = "✅ Action button pressed: $label (id=${event.actionId}, notificationId=${event.notificationId})"
+                        "Action $label (notificationId=${event.notificationId})"
+                    }
+                    NotificationInteraction.Kind.BODY_TAP -> "Body tapped (notificationId=${event.notificationId}, tag=${event.tag})"
+                    // SampleEvents shows dismissals as toasts and does not pass them here.
+                    NotificationInteraction.Kind.DISMISS -> return@collect
                 }
-
-                val actionId = intent.getStringExtra(NotificationActionReceiver.EXTRA_ACTION_ID).orEmpty()
-                val actionLabel = intent.getStringExtra(NotificationActionReceiver.EXTRA_ACTION_LABEL).orEmpty()
-                val notificationId = intent.getIntExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, -1)
-                statusText = "✅ Action button pressed: $actionLabel (id=$actionId, notificationId=$notificationId)"
+                is NotificationShown -> "Scheduled notification shown (notificationId=${event.notificationId})"
+                else -> return@collect
             }
-        }
-
-        val filter = IntentFilter(NotificationActionReceiver.ACTION_NOTIFICATION_BUTTON_INTERNAL)
-        ContextCompat.registerReceiver(
-            activity,
-            actionButtonReceiver,
-            filter,
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-
-        onDispose {
-            NotificationActionReceiver.isSampleScreenActive = false
-            runCatching { activity.unregisterReceiver(actionButtonReceiver) }
+            eventCount++
+            eventText = "ℹ️ #$eventCount $text"
         }
     }
 
@@ -157,7 +167,7 @@ fun NotificationSampleScreen(
 
     fun ensureChannel(channel: NotificationChannel) {
         Log.d(TAG, "[ensureChannel] channelId=${channel.id}")
-        useCases.createChannel(channel)
+        manager.createChannel(channel)
             .onFailure { Log.w(TAG, "[ensureChannel] failed: channelId=${channel.id}", it) }
     }
 
@@ -192,16 +202,6 @@ fun NotificationSampleScreen(
         )
     }
 
-    fun buildBroadcastPendingIntentRequest(intent: Intent, requestCode: Int): AndroidPendingIntentRequest {
-        Log.d(TAG, "[buildBroadcastPendingIntentRequest] requestCode: $requestCode")
-        return AndroidPendingIntentRequest(
-            intent = intent,
-            requestCode = requestCode,
-            type = AndroidPendingIntentType.BROADCAST,
-            flags = PendingIntent.FLAG_UPDATE_CURRENT
-        )
-    }
-
     fun buildDefaultOpenAppPlatformOptions(requestCode: Int): AndroidNotificationPlatformOptions {
         Log.d(TAG, "[buildDefaultOpenAppPlatformOptions] requestCode: $requestCode")
         return AndroidNotificationPlatformOptions(
@@ -212,56 +212,45 @@ fun NotificationSampleScreen(
         )
     }
 
-    fun buildMediaActions(baseRequestCode: Int): List<AndroidNotificationAction> {
-        Log.d(TAG, "[buildMediaActions] baseRequestCode: $baseRequestCode")
+    // The media actions bring the app to the front, as the Activity PendingIntents before them did.
+    fun buildMediaActions(notificationId: Int): List<AndroidNotificationAction> {
+        Log.d(TAG, "[buildMediaActions] notificationId: $notificationId")
+        fun action(actionId: String, label: String, iconResId: Int) = AndroidNotificationAction(
+            title = label,
+            pendingIntent = NotificationEventIntents.action(
+                context = activity,
+                notificationId = notificationId,
+                tag = null,
+                actionId = actionId,
+                data = mapOf(SampleEvents.DATA_LABEL to label),
+                launchApp = true
+            ),
+            iconResId = iconResId
+        )
         return listOf(
-            AndroidNotificationAction(
-                title = "Previous",
-                pendingIntent = buildActivityPendingIntentRequest(baseRequestCode, "native.toolkit.media.previous"),
-                iconResId = android.R.drawable.ic_media_previous
-            ),
-            AndroidNotificationAction(
-                title = "Play",
-                pendingIntent = buildActivityPendingIntentRequest(baseRequestCode + 1, "native.toolkit.media.play"),
-                iconResId = android.R.drawable.ic_media_play
-            ),
-            AndroidNotificationAction(
-                title = "Next",
-                pendingIntent = buildActivityPendingIntentRequest(baseRequestCode + 2, "native.toolkit.media.next"),
-                iconResId = android.R.drawable.ic_media_next
-            )
+            action("previous", "Previous", android.R.drawable.ic_media_previous),
+            action("play", "Play", android.R.drawable.ic_media_play),
+            action("next", "Next", android.R.drawable.ic_media_next)
         )
     }
 
-    fun buildAcceptDeclineActions(baseRequestCode: Int): List<AndroidNotificationAction> {
-        Log.d(TAG, "[buildAcceptDeclineActions] baseRequestCode: $baseRequestCode")
-        return listOf(
-            AndroidNotificationAction(
-                title = "Accept",
-                pendingIntent = buildBroadcastPendingIntentRequest(
-                    intent = NotificationActionReceiver.createIntent(
-                        context = activity,
-                        actionId = "accept",
-                        actionLabel = "Accept",
-                        notificationId = ACTION_SAMPLE_NOTIFICATION_ID
-                    ),
-                    requestCode = baseRequestCode
-                ),
-                iconResId = android.R.drawable.ic_menu_call
+    fun buildAcceptDeclineActions(): List<AndroidNotificationAction> {
+        Log.d(TAG, "[buildAcceptDeclineActions]")
+        fun action(actionId: String, label: String, iconResId: Int) = AndroidNotificationAction(
+            title = label,
+            pendingIntent = NotificationEventIntents.action(
+                context = activity,
+                notificationId = ACTION_SAMPLE_NOTIFICATION_ID,
+                tag = null,
+                actionId = actionId,
+                data = mapOf(SampleEvents.DATA_LABEL to label),
+                launchApp = false
             ),
-            AndroidNotificationAction(
-                title = "Decline",
-                pendingIntent = buildBroadcastPendingIntentRequest(
-                    intent = NotificationActionReceiver.createIntent(
-                        context = activity,
-                        actionId = "decline",
-                        actionLabel = "Decline",
-                        notificationId = ACTION_SAMPLE_NOTIFICATION_ID
-                    ),
-                    requestCode = baseRequestCode + 1
-                ),
-                iconResId = android.R.drawable.ic_menu_close_clear_cancel
-            )
+            iconResId = iconResId
+        )
+        return listOf(
+            action("accept", "Accept", android.R.drawable.ic_menu_call),
+            action("decline", "Decline", android.R.drawable.ic_menu_close_clear_cancel)
         )
     }
 
@@ -431,7 +420,7 @@ fun NotificationSampleScreen(
             autoCancel = false,
             platformOptions = AndroidNotificationPlatformOptions(
                 contentIntent = buildActivityPendingIntentRequest(2000, "native.toolkit.media.open"),
-                actions = buildMediaActions(2010)
+                actions = buildMediaActions(1006)
             )
         )
     }
@@ -458,14 +447,12 @@ fun NotificationSampleScreen(
                         RemoteViewAction.SetImage(R.id.notification_icon, R.mipmap.ic_launcher_round),
                         RemoteViewAction.SetClickIntent(
                             viewId = R.id.notification_btn_dismiss,
-                            pendingIntent = buildBroadcastPendingIntentRequest(
-                                intent = NotificationActionReceiver.createIntent(
-                                    context = activity,
-                                    actionId = "custom_view_dismiss",
-                                    actionLabel = "Dismiss",
-                                    notificationId = 1007
-                                ),
-                                requestCode = 2101
+                            pendingIntent = NotificationEventIntents.action(
+                                context = activity,
+                                notificationId = 1007,
+                                tag = null,
+                                actionId = "custom_view_dismiss",
+                                data = mapOf(SampleEvents.DATA_LABEL to "Dismiss")
                             )
                         )
                     )
@@ -495,7 +482,7 @@ fun NotificationSampleScreen(
             autoCancel = false,
             platformOptions = AndroidNotificationPlatformOptions(
                 contentIntent = buildActivityPendingIntentRequest(2200, "native.toolkit.decorated.media.open"),
-                actions = buildMediaActions(2210),
+                actions = buildMediaActions(1008),
                 customViewOptions = AndroidNotificationCustomViewPlatformOptions(
                     viewActions = listOf(
                         RemoteViewAction.SetText(R.id.notification_title, "Native Toolkit Player"),
@@ -689,6 +676,27 @@ fun NotificationSampleScreen(
         )
     }
 
+    // The body tap goes through the library, which brings the app to the front and reports the tap.
+    fun buildEventSampleCommand(): AndroidNotificationCommand {
+        Log.d(TAG, "[buildEventSampleCommand]")
+        return buildStyleCommand(
+            id = EVENT_SAMPLE_NOTIFICATION_ID,
+            title = "Native Toolkit Event",
+            message = "Tap this notification to send a body tap event.",
+            style = NotificationStyle.Default,
+            channel = interactionGroupingSampleChannel,
+            subText = "Interaction / Body Tap Event",
+            platformOptions = AndroidNotificationPlatformOptions(
+                contentIntent = NotificationEventIntents.bodyTap(
+                    context = activity,
+                    notificationId = EVENT_SAMPLE_NOTIFICATION_ID,
+                    tag = null,
+                    launchApp = true
+                )
+            )
+        )
+    }
+
     fun buildDeleteIntentSampleCommand(): AndroidNotificationCommand {
         Log.d(TAG, "[buildDeleteIntentSampleCommand]")
         return buildStyleCommand(
@@ -696,7 +704,7 @@ fun NotificationSampleScreen(
             title = "Native Toolkit Interaction",
             message = "Swipe away this notification to trigger deleteIntent.",
             style = NotificationStyle.BigText(
-                bigText = "Dismiss this notification from the shade. The app will receive a BroadcastReceiver callback through deleteIntent.",
+                bigText = "Dismiss this notification from the shade. The app will receive a dismiss event from the library.",
                 summaryText = "deleteIntent",
                 bigContentTitle = "Interaction / deleteIntent"
             ),
@@ -704,12 +712,11 @@ fun NotificationSampleScreen(
             subText = "Interaction / deleteIntent",
             platformOptions = AndroidNotificationPlatformOptions(
                 contentIntent = buildActivityPendingIntentRequest(5110, ACTION_OPEN_GROUPING_SAMPLE),
-                deleteIntent = buildBroadcastPendingIntentRequest(
-                    intent = NotificationDeleteReceiver.createIntent(
-                        context = activity,
-                        sampleLabel = "DeleteIntent Sample"
-                    ),
-                    requestCode = 5111
+                deleteIntent = NotificationEventIntents.dismiss(
+                    context = activity,
+                    notificationId = 1110,
+                    tag = null,
+                    data = mapOf(SampleEvents.DATA_LABEL to "DeleteIntent Sample")
                 )
             )
         )
@@ -757,7 +764,7 @@ fun NotificationSampleScreen(
             autoCancel = false,
             platformOptions = AndroidNotificationPlatformOptions(
                 contentIntent = buildActivityPendingIntentRequest(5130, ACTION_OPEN_GROUPING_SAMPLE),
-                actions = buildAcceptDeclineActions(baseRequestCode = 5131)
+                actions = buildAcceptDeclineActions()
             )
         )
     }
@@ -765,13 +772,13 @@ fun NotificationSampleScreen(
     fun startProgressForegroundService() {
         Log.d(TAG, "[startProgressForegroundService]")
         createChannel(progressForegroundSampleChannel)
-        if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+        if (!manager.hasPermission() || !manager.areNotificationsEnabled()) {
             statusText = "❌ Unable to show the progress foreground service. Check permissions or notification settings."
             return
         }
 
         runCatching {
-            ProgressForegroundNotifications.start(activity, buildProgressForegroundCommand(progressValue = 10))
+            manager.startProgress(buildProgressForegroundCommand(progressValue = 10))
         }.onSuccess {
             statusText = "✅ Started dataSync progress foreground service. A 10% notification is now shown."
         }.onFailure { throwable ->
@@ -783,7 +790,7 @@ fun NotificationSampleScreen(
     fun updateProgressForegroundService(progressValue: Int) {
         Log.d(TAG, "[updateProgressForegroundService] progressValue: $progressValue")
         runCatching {
-            ProgressForegroundNotifications.update(activity, buildProgressForegroundCommand(progressValue = progressValue))
+            manager.updateProgress(buildProgressForegroundCommand(progressValue = progressValue))
         }.onSuccess {
             statusText = "✅ Updated dataSync progress foreground service to ${progressValue.coerceIn(0, 100)}%."
         }.onFailure { throwable ->
@@ -795,7 +802,7 @@ fun NotificationSampleScreen(
     fun completeProgressForegroundService() {
         Log.d(TAG, "[completeProgressForegroundService]")
         runCatching {
-            ProgressForegroundNotifications.complete(activity, buildProgressForegroundCompleteCommand())
+            manager.completeProgress(buildProgressForegroundCompleteCommand())
         }.onSuccess {
             statusText = "✅ Completed progress foreground service. It has been downgraded to a regular notification."
         }.onFailure { throwable ->
@@ -807,7 +814,7 @@ fun NotificationSampleScreen(
     fun stopProgressForegroundService() {
         Log.d(TAG, "[stopProgressForegroundService]")
         runCatching {
-            ProgressForegroundNotifications.stop(activity)
+            manager.stopProgress()
         }.onSuccess {
             statusText = "ℹ️ Requested progress foreground service stop."
         }.onFailure { throwable ->
@@ -819,7 +826,7 @@ fun NotificationSampleScreen(
     fun startCallForegroundService(type: CallStyleType, label: String) {
         Log.d(TAG, "[startCallForegroundService] type: $type, label: $label")
         createChannel(callSampleChannel)
-        if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+        if (!manager.hasPermission() || !manager.areNotificationsEnabled()) {
             statusText = "❌ Unable to show call notifications. Check permissions or notification settings."
             return
         }
@@ -856,12 +863,12 @@ fun NotificationSampleScreen(
         Log.d(TAG, "[showNotificationSample] id: ${command.content.id}, successMessage: $successMessage")
         val channel = command.content.channel
         ensureChannel(channel)
-        if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+        if (!manager.hasPermission() || !manager.areNotificationsEnabled()) {
             statusText = "❌ Unable to show notifications. Check permissions or notification settings."
             return
         }
 
-        useCases.show(command)
+        manager.show(command)
             .onSuccess { statusText = successMessage }
             .onFailure { throwable ->
                 Log.e(TAG, "[showNotificationSample] failed to show notification", throwable)
@@ -871,7 +878,7 @@ fun NotificationSampleScreen(
 
     fun showNotificationSamples(commands: List<AndroidNotificationCommand>, successMessage: String) {
         Log.d(TAG, "[showNotificationSamples] count: ${commands.size}, successMessage: $successMessage")
-        if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+        if (!manager.hasPermission() || !manager.areNotificationsEnabled()) {
             statusText = "❌ Unable to show notifications. Check permissions or notification settings."
             return
         }
@@ -879,7 +886,7 @@ fun NotificationSampleScreen(
         runCatching {
             commands.forEach { command ->
                 ensureChannel(command.content.channel)
-                useCases.show(command).getOrThrow()
+                manager.show(command).getOrThrow()
             }
         }.onSuccess {
             statusText = successMessage
@@ -891,7 +898,7 @@ fun NotificationSampleScreen(
 
     fun deleteNotificationSample(command: AndroidNotificationCommand, label: String) {
         Log.d(TAG, "[deleteNotificationSample] id: ${command.content.id}, label: $label")
-        useCases.cancel(command.content.id, command.content.tag)
+        manager.cancel(command.content.id, command.content.tag)
             .onSuccess { statusText = "🗑️ Deleted $label notification." }
             .onFailure { throwable ->
                 Log.e(TAG, "[deleteNotificationSample] failed to delete notification label=$label", throwable)
@@ -901,10 +908,10 @@ fun NotificationSampleScreen(
 
     fun deleteScheduledNotificationSample(command: AndroidNotificationCommand, label: String) {
         Log.d(TAG, "[deleteScheduledNotificationSample] id: ${command.content.id}, label: $label")
-        useCases.cancelScheduled(command.content.id, command.content.tag)
-            .mapCatching { useCases.cancel(command.content.id, command.content.tag).getOrThrow() }
+        manager.cancelScheduled(command.content.id, command.content.tag)
+            .mapCatching { manager.cancel(command.content.id, command.content.tag).getOrThrow() }
             .onSuccess {
-                val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
+                val scheduled = manager.isScheduled(command.content.id, command.content.tag)
                 statusText = "🗑️ Deleted $label. Cleared both scheduled and active notifications. (isScheduled=$scheduled)"
             }
             .onFailure { throwable ->
@@ -915,7 +922,7 @@ fun NotificationSampleScreen(
 
     fun checkScheduledNotificationStatus(command: AndroidNotificationCommand) {
         Log.d(TAG, "[checkScheduledNotificationStatus] id: ${command.content.id}")
-        val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
+        val scheduled = manager.isScheduled(command.content.id, command.content.tag)
         statusText = if (scheduled) {
             "ℹ️ Schedule Notification is currently scheduled. (isScheduled=true)"
         } else {
@@ -958,6 +965,14 @@ fun NotificationSampleScreen(
                 .padding(8.dp)
         )
 
+        Text(
+            text = eventText,
+            modifier = Modifier
+                .testTag("notification.events")
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -974,10 +989,11 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            val exactAlarmAllowed = permissionHelper.canScheduleExactAlarms()
+                            val exactAlarmAllowed = manager.canScheduleExactAlarms()
                             statusText = buildString {
-                                appendLine("permissionGranted=${permissionHelper.hasPermission()}")
-                                appendLine("notificationsEnabled=${permissionHelper.areNotificationsEnabled()}")
+                                appendLine("permissionGranted=${manager.hasPermission()}")
+                                appendLine("notificationsEnabled=${manager.areNotificationsEnabled()}")
+                                // The rationale needs an Activity, so it stays on the helper (sample app design S-1).
                                 appendLine("shouldShowRationale=${permissionHelper.shouldShowPermissionRationale()}")
                                 append("exactAlarmAllowed=$exactAlarmAllowed")
                             }
@@ -990,12 +1006,16 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            permissionHelper.requestPermission { granted ->
-                                statusText = if (granted) {
-                                    "✅ Notification permission granted."
-                                } else {
-                                    "❌ Notification permission is not granted. Use 'Open Notification Settings' above to enable it."
-                                }
+                            // The request outlives a recreation of MainActivity, so the result goes
+                            // to the screen shown when it comes.
+                            manager.requestPermission { result ->
+                                ScreenResults.notificationStatus.deliver(when (result) {
+                                    PermissionRequestResult.Granted -> "✅ Notification permission granted."
+                                    PermissionRequestResult.Denied ->
+                                        "❌ Notification permission is not granted. Use 'Open Notification Settings' above to enable it."
+                                    is PermissionRequestResult.Canceled -> "❌ Permission request ended: ${result.reason}"
+                                    is PermissionRequestResult.Failed -> "❌ Permission request ended: ${result.reason}"
+                                })
                             }
                         },
                         modifier = Modifier.fillMaxWidth().testTag("notification.requestNotificationPermission")
@@ -1006,7 +1026,29 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            val opened = permissionHelper.openNotificationSettings()
+                            scope.launch {
+                                statusText = try {
+                                    if (manager.requestPermission()) {
+                                        "✅ Notification permission granted (coroutine)."
+                                    } else {
+                                        "❌ Notification permission is not granted (coroutine)."
+                                    }
+                                } catch (e: PermissionRequestDomainError.Canceled) {
+                                    "❌ Permission request ended: ${e.reason}"
+                                } catch (e: PermissionRequestDomainError.Unavailable) {
+                                    "❌ Permission request ended: ${e.reason}"
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("notification.requestNotificationPermissionCoroutine")
+                    ) {
+                        Text(text = "Request Notification Permission (Coroutine)")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            val opened = manager.openSettings(NotificationSettingsTarget.NOTIFICATIONS, activity) != NotificationSettingsOpenResult.FAILED
                             statusText = if (opened) {
                                 "ℹ️ Opened notification settings or app details settings."
                             } else {
@@ -1021,7 +1063,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            val opened = permissionHelper.openAppDetailsSettings()
+                            val opened = manager.openSettings(NotificationSettingsTarget.APP_DETAILS, activity) != NotificationSettingsOpenResult.FAILED
                             statusText = if (opened) {
                                 "ℹ️ Opened app details settings."
                             } else {
@@ -1036,7 +1078,7 @@ fun NotificationSampleScreen(
                 item {
                     Button(
                         onClick = {
-                            val opened = permissionHelper.openExactAlarmSettings()
+                            val opened = manager.openSettings(NotificationSettingsTarget.EXACT_ALARM, activity) != NotificationSettingsOpenResult.FAILED
                             statusText = if (opened) {
                                 "ℹ️ Opened exact alarm settings or app details settings."
                             } else {
@@ -1342,6 +1384,19 @@ fun NotificationSampleScreen(
                     Button(
                         onClick = {
                             showNotificationSample(
+                                command = buildEventSampleCommand(),
+                                successMessage = "✅ Displayed event sample. Tap the notification body and check the event line."
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("notification.showEventSample")
+                    ) {
+                        Text(text = "Show Event Sample (Body Tap)")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            showNotificationSample(
                                 command = buildDeleteIntentSampleCommand(),
                                 successMessage = "✅ Displayed DeleteIntent sample. Swipe the notification and verify the receiver callback."
                             )
@@ -1588,18 +1643,18 @@ fun NotificationSampleScreen(
                     Button(
                         onClick = {
                             createChannel(scheduleSampleChannel)
-                            if (!permissionHelper.hasPermission() || !permissionHelper.areNotificationsEnabled()) {
+                            if (!manager.hasPermission() || !manager.areNotificationsEnabled()) {
                                 statusText = "❌ Unable to schedule notifications. Check permissions or notification settings."
-                            } else if (!permissionHelper.canScheduleExactAlarms()) {
+                            } else if (!manager.canScheduleExactAlarms()) {
                                 statusText = "❌ Exact alarms are not allowed. Use 'Open Exact Alarm Settings' above to enable them."
                             } else {
                                 val triggerAt = System.currentTimeMillis() + 15_000L
-                                useCases.schedule(
+                                manager.schedule(
                                     buildScheduledCommand(),
                                     NotificationSchedule(triggerAtMillis = triggerAt)
                                 ).onSuccess {
                                     val command = buildScheduledCommand()
-                                    val scheduled = useCases.isScheduled(activity, command.content.id, command.content.tag)
+                                    val scheduled = manager.isScheduled(command.content.id, command.content.tag)
                                     statusText = "✅ Scheduled a high-priority notification for 15 seconds later. (isScheduled=$scheduled)"
                                 }.onFailure { throwable ->
                                     Log.e(TAG, "[schedule] failed", throwable)

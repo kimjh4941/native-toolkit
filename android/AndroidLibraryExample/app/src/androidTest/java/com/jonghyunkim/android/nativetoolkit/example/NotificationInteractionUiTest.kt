@@ -109,6 +109,24 @@ class NotificationInteractionUiTest : SampleUiTest() {
         shade.close()
     }
 
+    @Test
+    fun n60_eachActionIsDeliveredOnce_andNotReplayedOnReentry() {
+        app.waitForText("notification.events", "ℹ️ #0 No events yet")
+        showActionButtons()
+        repeat(2) { n ->
+            shade.open()
+            shade.clickButton("Interaction / Action Buttons", "Accept")
+            shade.close()
+            app.waitForText("notification.events", "ℹ️ #${n + 1} Action Accept (notificationId=1112)")
+        }
+        // Leaving and opening the screen again does not bring the old events back.
+        app.back("notification")
+        app.open("notification")
+        app.waitForText("notification.events", "ℹ️ #0 No events yet")
+        Thread.sleep(1_000)
+        assertEquals("ℹ️ #0 No events yet", app.text("notification.events"))
+    }
+
     private fun showActionButtons() {
         app.click("notification.showActionButtonsSample")
         app.waitForStatus("notification", "✅ Displayed action button sample notification. Press Accept / Decline and check the status text.")

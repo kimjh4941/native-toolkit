@@ -1,6 +1,8 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.runner.lifecycle.Stage
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
 import com.jonghyunkim.android.nativetoolkit.example.infra.CategoryHostState
@@ -59,6 +61,41 @@ class NotificationHostStateUiTest : SampleUiTest() {
         app.click("notification.checkNotificationPermission")
         val status = app.waitForStatus("notification", "permissionGranted=false")
         assertTrue(status, status.contains("shouldShowRationale=true"))
+    }
+
+    @Test
+    fun n10_permissionRevoked_requestCoroutineAndAllow() {
+        app.click("notification.requestNotificationPermissionCoroutine")
+        permissionButton("permission_allow_button").click()
+        app.waitForStatus("notification", "✅ Notification permission granted (coroutine).")
+    }
+
+    @Test
+    fun n11_permissionRevoked_requestCoroutineAndDeny() {
+        app.click("notification.requestNotificationPermissionCoroutine")
+        permissionButton("permission_deny_button").click()
+        app.waitForStatus("notification", "❌ Notification permission is not granted (coroutine).")
+    }
+
+    @Test
+    fun n12_permissionRevoked_requestSurvivesTheRecreation() {
+        app.click("notification.requestNotificationPermission")
+        permissionButton("permission_allow_button")
+        // The permission dialog keeps MainActivity paused, and ActivityScenario.recreate waits for
+        // RESUMED, so recreate the activity itself.
+        instrumentation.runOnMainSync {
+            ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.PAUSED)
+                .first { it is MainActivity }
+                .recreate()
+        }
+        permissionButton("permission_allow_button").click()
+        // The answer goes to the notification screen of the new MainActivity (review I-X3). The
+        // Compose rule still points at the old activity, so read the status with UiAutomator, inside
+        // waitUntil: the rule drives the frames, and nothing is redrawn while the test only waits.
+        val expected = "✅ Notification permission granted."
+        compose.waitUntil(10_000) {
+            device.findObject(By.res("notification.status"))?.text?.contains(expected) == true
+        }
     }
 
     @Test
