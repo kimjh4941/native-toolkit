@@ -17,6 +17,25 @@
 
 **実装前チェック:** 追加するクラスを `unity_android_plugin` に置こうとしたら、「`AndroidLibraryExample` からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
 
+### Manager の役（`android_library`）
+
+`android_library` には `manager/` パッケージが無い。`common.md` の Manager 層の役は、次の 2 つが担う。
+
+- 機能ごとの `*UseCases`（UseCase を `val` で集めるもの。Context からの組み立ては data の `ClipboardUseCases(context)`、`ShareUseCases(context)` などの組み立ての根）
+- presentation の Delegate の持ち主（`DialogManager`、`NotificationPermissionManager` などの `*Manager`、`ClipboardObserver` などの `*Observer`、`NotificationEvents` などの `*Events`）
+
+data の組み立ての根（`*UseCases(context)`、`NotificationUseCasesFactory`）は、presentation から使ってよい。
+
+**UseCase を置かない口の条件:** `common.md` の「Manager は必ず UseCase 経由で Data 層にアクセスする」は、Data 層に届く操作の規則である。次の口は Data 層に届かないので UseCase を置かない。
+
+1. presentation の Delegate の持ち主への受け手の登録・解除と、監視の開始・停止
+2. presentation の PendingIntent の要求の factory
+3. Context の資源の即時の問い合わせ（リソース名の解決など）
+4. 状態を持たない純粋な関数（エラーの分類など）
+5. ライブラリの初期化
+
+**既存の例外:** `NotificationUseCases.isScheduled(context, id, tag)` は、application から data の保存を直接読む（2.0.0 で既存の口の動作を変えないため。`artifact/topics/android-c-abi/README.md` 4 章）。新しく足す口でこの形をまねしない。
+
 ---
 
 ## ログ（Log.d）
@@ -49,6 +68,24 @@ Log.e(TAG, "[methodName] param1: $param1, param2: $param2")
 - private utility extension 関数（`JSONObject` 拡張等の軽量ヘルパー）
 - 純粋 UI ユーティリティ（`AlwaysVisibleLazyColumnScrollbar` 等）
 - 既にログがある箇所（重複追加しない）
+
+**秘密の値を伏せる（例外）:**
+
+全パラメータを出す規則の例外として、秘密になりうる値はログに出さない。
+
+| 項目 | 規則 |
+|---|---|
+| 伏せる値 | Clipboard の本文（テキスト、HTML、URI）、Dialog の入力（テキスト、ユーザー名、パスワード）、Share の本文（`text`、`subject`）、通知の `data` の値（キーは出す）、`Intent` の extra の値 |
+| 書き方 | `LogRedaction.redact(value)` で `<redacted, length=N>`（`null` は `null`）にするか、長さ・件数・種類だけを出す。既存の公開の型の `toString()` は変えず、ログの箇所で伏せる。新しい型は `toString()` で伏せてよい |
+| 出してよい値 | 長さ、件数、ID、種類、真偽値、通知のタイトルとメッセージ |
+| 先頭の `Log.d` | 残す。伏せる値を持つ引数は `redact` を通すか、長さだけを出す |
+| C / C++ | `__android_log_print`、タグ `ntk`。同じ値を伏せる |
+
+```kotlin
+fun copyPlainText(content: ClipContent.PlainText) {
+    Log.d(TAG, "[copyPlainText] textLength: ${content.text.length}, label: ${content.label}")
+}
+```
 
 **TAG の定義:**
 

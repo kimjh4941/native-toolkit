@@ -221,7 +221,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 | Chooser Action の動的 Receiver の一式 | `share/presentation/` |
 | Clipboard のエラーの分類（今のブリッジの 7 つのコード） | `clipboard/domain/error/`（`ClipboardDomainError` との対応を決める） |
 | Dialog を、ほかの機能と同じ層に分ける（2026-10-03 に決定）。今は `dialog/AndroidDialogFragment.kt` の 1 ファイル（622 行）に、種類・listener 6 つ・表示・結果づくりが入っている。上の「前面の Activity の上に出す口」と完了のコールバック（D-8）を足すのに合わせて、要求と結果（domain）、Dialog を出す port と UseCase（application）、`AndroidDialogFragment` と port の実装（presentation）に分ける。`AndroidDialogFragment` を公開の API に残すか、UseCase だけを公開するかは設計書で決める | `dialog/{domain,application,presentation}/` |
-| notification の依存の向きを直す（2026-10-03 に決定）。application が data に依存している（`NotificationUseCases` が `data.repository.NotificationSchedulerSupport` を直接呼ぶ）のを port を通す形にする。presentation の前景サービス 2 つが `NotificationRepositoryImpl` と data の payload を直接使っているのを、application を通す形にする。層の外にある `notification/NotificationShownSupport.kt` を、上のイベントの口に入れる。application が Android の型（`Notification`、`Service`、`Intent` など）を持つのは、前景サービスに要るので変えない。clipboard と share は依存の向きが守れているので変えない | `notification/application/`、`notification/data/`、`notification/presentation/` |
+| notification の依存の向きを直す（2026-10-03 に決定）。application が data に依存している（`NotificationUseCases` が `data.repository.NotificationSchedulerSupport` を直接呼ぶ）のを port を通す形にする。presentation の前景サービス 2 つが `NotificationRepositoryImpl` と data の payload を直接使っているのを、application を通す形にする。層の外にある `notification/NotificationShownSupport.kt` を、上のイベントの口に入れる（今の名前の枠は、ブリッジが使うので段階 3 まで残す）。**ただし、既存の公開の口 `NotificationUseCases.isScheduled(context, id, tag)` は、今と同じく data の保存を直接読む形を残す**（2026-10-04 に決定。この口は repository を介さずにライブラリの保存を読むことが今の動作で、port に替えると Startup を無効にした場面などで結果が変わり、1b の「動作を変えない」に反するため。Kotlin の API の設計書 8.14）。application が Android の型（`Notification`、`Service`、`Intent` など）を持つのは、前景サービスに要るので変えない。clipboard と share は依存の向きが守れているので変えない | `notification/application/`、`notification/data/`、`notification/presentation/` |
 
 `shareText` が Chooser Action を JSON 文字列で受け取っている（`ShareTextUseCase.kt` 22 行）のは、Kotlin の API としては型にする。
 
@@ -268,7 +268,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 |---|---|---|
 | UI テスト（**作成済み**: `designs/2026-10-03-android-c-abi-ui-test-design.md`。別モデル 2 者のレビューを 2 回通した） | 0a の後、0b の前 | 機能ごとのテストケースの一覧と、確かめる内容。UiAutomator で扱う項目と人が確かめる項目の分担（0a の結果に基づく）。出発点は既存のサンプルアプリの設計書にある手動確認の観点 |
 | C ABI（**第 1 部は作成済み**: `designs/2026-10-04-android-c-abi-c-abi-design.md`。別モデル 2 者のレビューを 5 回通した） | 1a の後。1b の前に、スレッド・寿命・Context の章と D-4・D-6・D-8・D-9・D-10・D-13 の決定を終える。関数の一覧と付録 A のヘッダーまで含めた全体は 2b の前に終える | 公開 API。Windows の設計書と同じ構成（名前の規則、3 つの受け渡し方式、スレッドの前提、エラー、メモリ、`struct_size`、全関数の一覧、付録 A のヘッダー）。**今のブリッジの 69 メソッドと新しい関数の対応表**と、6 章の振る舞いの集合。8.6 の項目 |
-| Kotlin の API の補完 | C ABI の設計書のスレッド・寿命・Context の章と残りの決定を終えた後、1b の前（C ABI の設計書の全体を待たない） | ネイティブの利用者に公開する Kotlin の API が増える。**今のブリッジの約束が新しい API のどこで守られるかの対応表**を含める |
+| Kotlin の API の補完（**作成済み**: `designs/2026-10-04-android-c-abi-kotlin-api-design.md`。別モデル 2 者のレビューを 5 回と、直した所の確かめ） | C ABI の設計書のスレッド・寿命・Context の章と残りの決定を終えた後、1b の前（C ABI の設計書の全体を待たない） | ネイティブの利用者に公開する Kotlin の API が増える。**今のブリッジの約束が新しい API のどこで守られるかの対応表**を含める |
 
 スパイク（0a、1a）の結果は設計書にせず `results/` に記録する。0b・0c は UI テストの設計書に従う。段階 0・0d・0e〜0h・2a・2c・3・4 は設計書を書かない（この README の表で足りる。2c は対応表を渡す）。
 
