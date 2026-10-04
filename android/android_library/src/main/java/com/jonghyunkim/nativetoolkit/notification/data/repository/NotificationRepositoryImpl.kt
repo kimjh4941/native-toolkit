@@ -19,7 +19,6 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.widget.RemoteViews
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
@@ -569,7 +568,7 @@ class NotificationRepositoryImpl(context: Context) :
 
     private fun loadBitmapFromResource(resId: Int): Bitmap? {
         return runCatching {
-            AppCompatResources.getDrawable(appContext, resId)?.toBitmapSafely()
+            ContextCompat.getDrawable(appContext, resId)?.toBitmapSafely()
                 ?: BitmapFactory.decodeResource(appContext.resources, resId)
         }.getOrNull()
     }

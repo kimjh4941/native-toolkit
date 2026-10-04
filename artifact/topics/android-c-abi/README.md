@@ -239,7 +239,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 | 0d | `scripts/test_android.sh` を作り（unit・instrumented・UI テストをまとめて実行）、**今のコードで全件通ることを確かめ、結果を基準として記録する**。基準は API 35（エミュレータ）と API 36（実機）の 2 つで取る（0h で targetSdk 36 にしたときの変化を見るため。7.2）。**完了**（`results/2026-10-03-android-c-abi-stage0d-result.md`。両方の環境で全 317 件が通り、基準を `scripts/test_android.baseline.<機種>-<API>.json` に保存した。人の確認 CU-01・CU-02 も合格） | 無し |
 | 0e | パッケージ名を `com.jonghyunkim.nativetoolkit.*` に変える（D-15）。機械的な改名だけを行い、0d の基準と同じ結果になることを確かめる。ブリッジ（`android.unity.*`）は改名しない（段階 3 で消すので）。改名の前の名前と作り方（`SharedPreferences` の名前、Alarm のコンポーネント名、action の文字列、request code の式（`"tag::id".hashCode()`）、data の URI の scheme、PendingIntent の flags）を結果に記録する（1b で 1.x の Alarm を取り消すときに使う）。**完了**（`results/2026-10-04-android-c-abi-stage0e-result.md`。保存と通信の識別子 3 つは変えず、1b で決める。改名で壊れうる所のテストは両方の環境で通った。全体の実行は 0h の後） | Kotlin の利用者から見たパッケージ名が変わる（2.0.0） |
 | 0f | ビルドの道具を上げる: AGP 9.3.1、Gradle 9.7.0、Kotlin 2.4.20（`languageVersion = apiVersion = 2.2`）、AGP 9 の新しい DSL と組み込みの Kotlin、Dokka 2.2.0（`publish_docs.sh` の `dokkaHtml` も直す）、JVM 17。**SDK と依存の版は変えない**。0d の基準と同じ結果になることを確かめる。**完了**（`results/2026-10-04-android-c-abi-stage0f-result.md`。単体テストは debug だけになり、Dokka v2 の対象は `release` の source set。AGP 9 の既定で AAR の `minCompileSdk` が 35 になった） | 無し |
-| 0g | 依存と compileSdk を上げる: compileSdk 36、androidx（8.3）、`aarMetadata.minCompileSdk = 36`。使っていない `material` を外し、`fragment` を明示の依存にする。`appcompat` を外せるかも確かめる。0d の基準と同じ結果になることを確かめる | 利用者の最低条件が 8.3 のとおり上がる |
+| 0g | 依存と compileSdk を上げる: compileSdk 36、androidx（8.3）、`aarMetadata.minCompileSdk = 36`。使っていない `material` を外し、`fragment` を明示の依存にする。`appcompat` を外せるかも確かめる。0d の基準と同じ結果になることを確かめる。**完了**（`results/2026-10-04-android-c-abi-stage0g-result.md`。ライブラリから `material` と `appcompat` を外し、`fragment` を `api` で明示した。利用者に伝わる stdlib が 2.4.20 になる件を 8.2 に足した） | 利用者の最低条件が 8.3 のとおり上がる |
 | 0h | サンプルの targetSdk を 36 にする。UI テストを直してよいのはこの段だけで、直した理由を結果に記録する | サンプルの targetSdk が 36 になる |
 | 1a | スパイク: NDK のビルド（8.2）。結果で D-4・D-6・D-9・D-10・D-13 を決め、C ABI の設計書を書く | 無し |
 | 1b | Kotlin の API を補完する（4 章）。1.2 のロジックを `android_library` へ移し、イベントを保つ口、予約の保存形式と 1.x のデータの破棄、前面の Activity と透明な Activity を足す。サンプルの Receiver を、移したライブラリの仕組みに置き換える。Dialog を層に分け、notification の依存の向きを直す（4 章）。新しい API（Activity の要らない Dialog と権限の要求、イベントの口）を使う画面をサンプルに足す | 1.x で予約した通知を破棄する（D-11）。それ以外の、ネイティブの利用者から見た動作は変えない。Kotlin の利用者に androidx.startup の依存が入る |
@@ -430,6 +430,7 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 | テスト用の `.so` を別のモジュール（`android_library_capi_test`）に置き、配る AAR に混ざらないか | AAR の中身を確かめる | 7 章 |
 | GoogleTest の入れ方 | Prefab で配られているのは 1.11.0-beta-1（2021 年）だけ。古さが問題なら、ソースを取り込んで組む（BSD-3-Clause なので LICENSE を同梱し、置き場所を決める。テストにしか使わず配布物には入らない） | 7 章 |
 | 利用者の minSdk | `unity-native-plugin` の設定は `AndroidMinSdkVersion` 25 だが、書き出し済みの `Build/Android` は minSdk 31 になっている。どこで 31 に上がるのか（AAR の manifest の merge か、手で変えたか）を確かめる | 3.1 |
+| Kotlin 2.2 でコンパイルする利用者が、このライブラリを使って組めるか（2026-10-04 に段階 0g で発見） | KGP 2.4.20 は既定で `kotlin-stdlib:2.4.20` を依存に入れ、Parcelize のランタイム（`kotlin-parcelize-runtime:2.4.20`）も stdlib 2.4.20 を求める。Kotlin のコンパイラは 1 つ先の版のメタデータまでしか読めないので、`languageVersion = apiVersion = 2.2` にしても、Kotlin 2.2 の利用者が組めない可能性がある（C ABI の利用者は Kotlin をコンパイルしないので関係しない）。KGP 2.2.x の小さなアプリから、このライブラリの AAR と POM で組んでみる。組めなければ、stdlib と Parcelize のランタイムを 2.2.21 で明示し、Parcelize のプラグイン 2.4.20 が作るコードがそのランタイムで動くかも確かめる | 8.3 の Kotlin の行（利用者に求める Kotlin の版） |
 
 確認済みのもの（2026-10-03）:
 

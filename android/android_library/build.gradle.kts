@@ -24,12 +24,17 @@ if (cliLibraryVersion != null) {
 
 android {
     namespace = "com.jonghyunkim.nativetoolkit"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 31
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+        // Consumers need compileSdk 36 or later (README 8.3). AGP 9 would otherwise write the
+        // library's own compileSdk here.
+        aarMetadata {
+            minCompileSdk = 36
+        }
     }
 
     buildTypes {
@@ -80,9 +85,9 @@ dokka {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
+    // AndroidDialogFragment exposes DialogFragment in the public API.
+    api(libs.androidx.fragment)
     implementation(libs.androidx.media)
-    implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

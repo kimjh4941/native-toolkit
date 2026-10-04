@@ -23,12 +23,17 @@ if (cliLibraryVersion != null) {
 
 android {
     namespace = "android.plugin"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 31
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+        // Consumers need compileSdk 36 or later (README 8.3). AGP 9 would otherwise write the
+        // library's own compileSdk here.
+        aarMetadata {
+            minCompileSdk = 36
+        }
     }
 
     buildTypes {
@@ -80,8 +85,7 @@ dokka {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat.v161)
-    implementation(libs.material)
+    implementation(libs.androidx.fragment)
     implementation(project(":android_library"))
     testImplementation(libs.junit)
     testImplementation(libs.orgjson)

@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.jonghyunkim.android.nativetoolkit.testsharetarget"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.jonghyunkim.android.nativetoolkit.testsharetarget"
