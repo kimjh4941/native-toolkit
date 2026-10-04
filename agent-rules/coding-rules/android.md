@@ -17,14 +17,15 @@
 
 **実装前チェック:** 追加するクラスを `unity_android_plugin` に置こうとしたら、「`AndroidLibraryExample` からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
 
-### Manager の役（`android_library`）
+### Manager（`android_library`）
 
-`android_library` には `manager/` パッケージが無い。`common.md` の Manager 層の役は、次の 2 つが担う。
+ほかの OS（`Ios*Manager`、`Mac*Manager`、`Windows*Manager`）とそろえ、機能ごとの入口 `AndroidClipboardManager`、`AndroidDialogManager`、`AndroidNotificationManager`、`AndroidShareManager` を `android_library` に置く（`artifact/topics/android-c-abi/designs/2026-10-04-android-c-abi-kotlin-api-design.md` 6.3）。
 
-- 機能ごとの `*UseCases`（UseCase を `val` で集めるもの。Context からの組み立ては data の `ClipboardUseCases(context)`、`ShareUseCases(context)` などの組み立ての根）
-- presentation の Delegate の持ち主（`DialogManager`、`NotificationPermissionManager` などの `*Manager`、`ClipboardObserver` などの `*Observer`、`NotificationEvents` などの `*Events`）
-
-data の組み立ての根（`*UseCases(context)`、`NotificationUseCasesFactory`）は、presentation から使ってよい。
+- 入口だけの薄い層にする。UseCase と、イベント・監視の持ち主に委ね、ロジックを持たない
+- `class Android*Manager internal constructor(依存)` と `companion object { @JvmStatic fun getInstance(context: Context) }`。持つのは Application の Context だけ（Activity を持ち続けない）
+- テストは internal の constructor で UseCase と port を差し替える
+- C ABI の受け口は、機能ごとにこの Manager を呼ぶ。C 特有の処理（文字列の変換、ハンドル、`release`）は受け口に残す
+- 既存の `*UseCases`（`ClipboardUseCases(context)` など）は既存の入口として残す。data の組み立ての根（`*UseCases(context)`、`NotificationUseCasesFactory`）は、presentation から使ってよい
 
 **UseCase を置かない口の条件:** `common.md` の「Manager は必ず UseCase 経由で Data 層にアクセスする」は、Data 層に届く操作の規則である。次の口は Data 層に届かないので UseCase を置かない。
 

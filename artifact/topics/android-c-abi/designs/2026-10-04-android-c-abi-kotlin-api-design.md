@@ -7,12 +7,12 @@
 | 対象企画書 | `artifact/topics/android-c-abi/README.md`（4 章、D-7、D-11、8.6） |
 | 対象段階 | 段階 1b（Kotlin の API の補完）の前 |
 | 対象 OS | Android 12（API 31）以降 |
-| 作成日 | 2026-10-04（5 回目のレビューと利用者の決定を反映した第 6 版。**決定**） |
+| 作成日 | 2026-10-04（第 7 版。第 6 版で決定の後、利用者の決定で機能ごとの Manager を足した。直した所の確かめを経て**決定**） |
 | ブランチ | `feature/NTKIT-17` |
 | 前段階 | 段階 0（UI テストと基準、パッケージ名、ツールチェーン）、段階 1a（NDK のスパイク）、C ABI の設計書の第 1 部（決定） |
 | 元にした文書 | C ABI の設計書 第 1 部（`designs/2026-10-04-android-c-abi-c-abi-design.md`。以下「C ABI の設計書」）の 9.1（K-1〜K-9）、0e の結果（`results/2026-10-04-android-c-abi-stage0e-result.md` 4 章。1.x の識別子）、ブリッジとサンプルの Receiver の洗い出し（2026-10-04。5 章） |
 | 後に続く文書 | C ABI の設計書 第 2 部（2b の前。この設計書の口を C の関数に写す。8.15 の申し送り） |
-| レビュー | `reviews/2026-10-04-android-c-abi-kotlin-api-design-review-v1.md`（1 回目。W-C1〜W-C34、W-X1〜W-X19）、`-v2.md`（2 回目。X-C、X-X1〜X-X12）、`-v3.md`（3 回目。Y-C1〜Y-C22、Y-X1〜Y-X6）、`-v4.md`（4 回目。Z-C1〜Z-C12、Z-X1〜Z-X4）、`-v5.md`（5 回目。V5-C1〜V5-C10、V5-X1〜V5-X4） |
+| レビュー | `reviews/2026-10-04-android-c-abi-kotlin-api-design-review-v1.md`（1 回目。W-C1〜W-C34、W-X1〜W-X19）、`-v2.md`（2 回目。X-C、X-X1〜X-X12）、`-v3.md`（3 回目。Y-C1〜Y-C22、Y-X1〜Y-X6）、`-v4.md`（4 回目。Z-C1〜Z-C12、Z-X1〜Z-X4）、`-v5.md`（5 回目。V5-C1〜V5-C10、V5-X1〜V5-X4）、`-v6.md`（第 7 版の確かめ。V7-X1〜V7-X2） |
 
 - **`PLANNED_SYMBOLS_EXEMPT`**: この設計書は、まだ書かれていないクラスと関数（`LibraryRuntime`、`ForegroundActivityTracker`、`EventHub` など）を定める。名前が実装に存在するかの照合は 1b の実装の後に行う（15 章）
 
@@ -66,6 +66,12 @@
 | `ScheduleLock` の範囲（V5-C2）、置き直しの読み直し（V5-C3）、K-9 の行の数（V5-C4） | 8.6、11 |
 | tag `untagged` と tag 無しが今は同じ予約になる（Claude の C） | 予約の鍵は今と同じ形（tag が無ければ `untagged`）にした（8.6） |
 | テスト（V5-X3、V5-X4） | IT-12、IT-23 |
+
+### 0.6 第 7 版での反映（利用者の決定）
+
+| 決定 | 反映 |
+|---|---|
+| ほかの OS（iOS・macOS の機能ごとの Manager、Windows の Manager）とそろえ、`android_library` にも機能ごとの Manager を置く。名前はほかの OS とそろえて `Android*Manager`。C ABI の受け口は機能ごとにこの Manager を呼ぶ（2026-10-04） | `AndroidClipboardManager`、`AndroidDialogManager`、`AndroidNotificationManager`、`AndroidShareManager` を入口だけの薄い層として置いた（6.3、付録 A）。第 6 版の `DialogManager`、`NotificationPermissionManager`、`NotificationSettingsManager` はこの 4 つにまとめた。イベントと監視の持ち主は internal にし、Manager から使う。既存の `*UseCases` などの公開の口は今のまま残す（K-9） |
 
 ## 1. 設計目的
 
@@ -124,15 +130,15 @@
 | KA-7 | 新しい口の PendingIntent の同一性と宛先 | ライブラリの manifest の受け手へは明示の component（クラス名は変えない識別子）と、data の URI での区別。アプリの起動の Activity へは `Intent.setIdentifier`。request code は 0（8.5、8.6、8.9） |
 | KA-8 | 予約の保存形式、Alarm の extra、排他 | **今の流れを写し、直列化の形と書き方だけを変える**。保存は再起動をまたぐ予約だけ、`AtomicFile` の JSON に同期で書く。Alarm の extra は JSON と OS の Parcelable。予約の操作は 1 つのロック（8.6） |
 | KA-9 | 1.x の予約の破棄（D-11） | `LegacyScheduleCleaner`。状態と印のファイル、失敗したらやり直す（8.6） |
-| KA-10 | Dialog の層と公開の範囲 | `AndroidDialogFragment` は今の場所と動作で公開のまま。新しい入口は `DialogManager`（8.8） |
-| KA-11 | 権限の要求と設定の画面 | `NotificationPermissionManager`、`NotificationSettingsManager`（8.7） |
+| KA-10 | Dialog の層と公開の範囲 | `AndroidDialogFragment` は今の場所と動作で公開のまま。新しい入口は `AndroidDialogManager`（8.8、6.3） |
+| KA-11 | 権限の要求と設定の画面 | `AndroidNotificationManager` の `requestPermission`、`canScheduleExactAlarms`、`openSettings`（8.7） |
 | KA-12 | Share の口 | 新しい口は「開く（同期、印を返す）」と「選択のイベント（`ShareEvents.selections`）」。既存の `shareWithCallback` は形と動作を変えず、中を要求ごとの PendingIntent に載せる（8.9） |
 | KA-13 | Clipboard の口 | `ClipboardErrorCode.of`、`ClipboardObserver`、`ClipboardEvents`（8.10） |
 | KA-14 | ログの規則の例外（README 8.6） | 秘密の値を伏せる。既存のログの 2 か所も直す（8.11） |
 | KA-15 | manifest の権限 | 宣言は今のまま。7 つそれぞれの外し方と外したときの動作をマニュアルに書く（8.12） |
 | KA-16 | ブリッジだけが使う口 | 1b では残し、段階 3 で消す（8.13） |
 | KA-17 | 前面の判定の受け持ち | C ABI の受け口が C-4 のとおり判定する。Kotlin の側（`UiHost`）も判定し、受け口の判定の後に状況が変わった場合に同じ値で完了する（8.15） |
-| KA-18 | Android での層の当て方 | Manager の役は、機能ごとの `*UseCases`（集約、既存の形）と presentation の Delegate の持ち主（`*Manager`、`*Observer`、`*Events`）。UseCase を置かない口の条件を `android.md` に書く（6.3） |
+| KA-18 | Android での層の当て方 | ほかの OS とそろえ、機能ごとの入口 `AndroidClipboardManager`・`AndroidDialogManager`・`AndroidNotificationManager`・`AndroidShareManager`（入口だけの薄い層）を置く。C ABI の受け口はこれを呼ぶ。既存の `*UseCases` は今のまま残す。UseCase を置かない口の条件を `android.md` に書く（6.3） |
 
 ### 3.3 1b で変わる動作と、1b で直さない不具合
 
@@ -195,7 +201,7 @@
 | 全メソッドの先頭で全パラメータの `Log.d` | **直す** | 秘密の値を伏せる例外を足す（8.11） |
 | Manager の置き場所（`manager/` が無い） | **書き足す** | Android での Manager の役と、UseCase を置かない口の条件（6.3） |
 | KDoc | 適合 | 足す公開の口に付ける |
-| Coroutine（`suspend fun` + 例外送出） | 適合 | `DialogManager.show` と `NotificationPermissionManager.request` の `suspend` 版 |
+| Coroutine（`suspend fun` + 例外送出） | 適合 | `AndroidDialogManager.show` と `AndroidNotificationManager.requestPermission` の `suspend` 版 |
 
 `android.md` の 2 つの書き足し（ログ、Manager の役）は、**この設計書の決定と同じ PR** で行う。
 
@@ -260,15 +266,16 @@
 | `common/presentation/NtkHostActivity.kt` | 透明な宿主 | internal（manifest） |
 | `common/logging/LogRedaction.kt` | `<redacted, length=N>` | RG |
 | `clipboard/domain/error/ClipboardErrorCode.kt` | 7 つのコードと `of` | public |
-| `clipboard/presentation/ClipboardObserver.kt` | プロセスで 1 つの監視（Delegate の持ち主） | public |
-| `clipboard/presentation/ClipboardEvents.kt` | `changes: EventHub<Unit>` | public |
+| `clipboard/presentation/ClipboardObserver.kt` | プロセスで 1 つの監視（Delegate の持ち主） | internal |
+| `clipboard/presentation/ClipboardEvents.kt` | `changes: EventHub<Unit>` | internal |
+| `clipboard/presentation/AndroidClipboardManager.kt` | 入口（6.3） | public |
 | `dialog/AndroidDialogFragment.kt` | **今の場所のまま**。要求の ID を入れる internal の factory を足す（8.8） | public（今と同じ） |
 | `dialog/domain/model/DialogRequest.kt`、`DialogOptions.kt`、`DialogResult.kt`、`DialogValue.kt`、`DialogButton.kt` | 要求と結果 | public |
 | `dialog/domain/error/DialogError.kt`、`DialogDomainError.kt` | 失敗の値と、`suspend` 版が投げる例外 | public |
 | `dialog/application/port/DialogPresenter.kt` | port | public |
 | `dialog/application/usecase/ShowDialogUseCase.kt`、`CancelDialogUseCase.kt` | 1 操作 1 クラス | public |
 | `dialog/presentation/FragmentDialogPresenter.kt` | port の実装 | internal |
-| `dialog/presentation/DialogManager.kt` | 入口（callback 版と `suspend` 版） | public |
+| `dialog/presentation/AndroidDialogManager.kt` | 入口（6.3） | public |
 | `notification/domain/model/PermissionRequestResult.kt`、`NotificationSettingsTarget.kt`、`NotificationSettingsOpenResult.kt` | 結果と値 | public |
 | `notification/domain/error/PermissionRequestDomainError.kt` | `suspend` 版が投げる例外 | public |
 | `notification/application/port/NotificationPermissionPort.kt`、`NotificationSettingsPort.kt` | port | public |
@@ -285,20 +292,20 @@
 | `notification/data/repository/LegacyScheduleCleaner.kt` | 1.x の破棄 | internal |
 | `notification/data/repository/AndroidNotificationSettingsGateway.kt` | 設定の画面の port の実装（Context を持つ） | internal |
 | `notification/presentation/resource/NotificationResourceResolver.kt` | 名前の解決 | public |
-| `notification/presentation/event/NotificationEvents.kt`、`NotificationInteraction.kt`、`NotificationShown.kt` | イベントの口と型 | public |
+| `notification/presentation/event/NotificationEvents.kt` | イベントの口 | internal |
+| `notification/presentation/event/NotificationInteraction.kt`、`NotificationShown.kt` | イベントの型 | public |
 | `notification/presentation/event/NotificationEventReceiver.kt` | manifest の Receiver | internal |
 | `notification/presentation/event/NotificationLaunchActivity.kt` | 見えない Activity | internal |
 | `notification/presentation/event/NotificationEventIntents.kt` | PendingIntent の要求を作る（factory） | public |
 | `notification/presentation/permission/FragmentPermissionRequester.kt` | port の実装（会を持つ） | internal |
 | `notification/presentation/permission/PermissionRequestFragment.kt` | 画面の無い Fragment | internal |
-| `notification/presentation/permission/NotificationPermissionManager.kt` | 入口 | public |
-| `notification/presentation/settings/NotificationSettingsManager.kt` | 入口 | public |
+| `notification/presentation/AndroidNotificationManager.kt` | 入口（6.3） | public |
 | `share/domain/model/ShareChooserAction.kt`、`ShareSelection.kt` | 値 | public |
 | `share/application/port/ShareRepository.kt` | (直す) 3 つの関数を既定の実装つきで足す | public（今と同じ） |
 | `share/application/usecase/ShareForSelectionUseCase.kt`、`CancelShareSelectionUseCase.kt`、`ShareTextWithActionsUseCase.kt` | 1 操作 1 クラス | public |
-| `share/application/usecase/ShareUseCases.kt` | (直す) 3 つの `val` を足す | public（今と同じ） |
 | `share/domain/error/ShareDomainError.kt` | (直す) `InvalidChooserAction` を足す | public（今と同じ） |
-| `share/presentation/ShareEvents.kt` | `chooserActions`、`selections` | public |
+| `share/presentation/ShareEvents.kt` | `chooserActions`、`selections` | internal |
+| `share/presentation/AndroidShareManager.kt` | 入口（6.3） | public |
 | `share/presentation/ShareChooserActionReceiver.kt` | 動的 Receiver（プロセスで 1 つ） | internal |
 | `share/data/repository/ShareCallbackCoordinator.kt` | (直す) 要求ごとの印、ロックの外での呼び出し | internal（今と同じ） |
 | `share/data/repository/ShareRepositoryImpl.kt` | (直す) 要求ごとの PendingIntent、型のある Chooser Action | internal（今と同じ） |
@@ -317,7 +324,7 @@
 
 | 規則 | 内容 |
 |---|---|
-| 呼べるスレッド | 結果を待つ操作、取り消し、`LibraryRuntime`、Share と設定の画面の口、同期の UseCase は、どのスレッドからでも呼べる。**main だけの口**: `EventHub` の足す・外す、`ForegroundActivityTracker`、`ClipboardObserver`（main 以外から呼ぶと `IllegalStateException`） |
+| 呼べるスレッド | 結果を待つ操作、取り消し、`LibraryRuntime`、Share と設定の画面の口、同期の UseCase は、どのスレッドからでも呼べる。**main だけの口**: `EventHub` の足す・外す、`ForegroundActivityTracker`、`AndroidClipboardManager` の `startObserving` / `stopObserving` / `isObserving`（main 以外から呼ぶと `IllegalStateException`） |
 | 待たない | どの口も main を待たない。main で動かす処理は `MainPoster.post` で積む（main から呼んでも積む） |
 | コールバック | 新しい口の完了とイベントは、すべて main で呼ぶ。**呼び出しの中で同期に呼ばない。例外は `EventHub.addListener` が保っていたイベントを渡すことだけ**（K-7。8.4） |
 | 積む順 | `MainPoster` は 1 つの `Handler(Looper.getMainLooper())` に同期メッセージだけを積む |
@@ -325,26 +332,40 @@
 | 例外 | **新しい口**（`EventHub` の受け手、新しい完了のコールバック）が投げた例外は、ライブラリが捕まえてログを出し、ほかの受け手・待ちの処理を続ける。**既存の口**（`shareWithCallback` の `onResult` / `onFinished`、`AndroidDialogFragment` の listener など）の例外の伝わり方は今のまま |
 | ディスク | 同期の予約の口は、呼び出しスレッドでファイルに書く（8.6）。main から呼ぶと、ディスクの書き込みと、ほかのスレッドの予約の操作の書き込みを待ちうる（StrictMode のディスクの書き込みに当たる）と KDoc に書く。予約の 2 つの受け手は今と同じく main の上で同期に行う（小さなファイル）。1.x の破棄だけを `LibraryExecutors` で行う |
 
-### 6.3 公開の口ごとの層（KA-18）
+### 6.3 機能ごとの Manager（KA-18）
 
-`android_library` には `manager/` が無い（`android.md`）。Manager の役は、既存の形どおり機能ごとの `*UseCases`（UseCase を `val` で集めるもの。Context からの組み立ては data の `ClipboardUseCases(context)`、`ShareUseCases(context)` など）と、presentation の Delegate の持ち主が担う。
+ほかの OS（iOS・macOS の `Ios*Manager`・`Mac*Manager`、Windows の `Windows*Manager`）とそろえ、`android_library` に機能ごとの入口 `AndroidClipboardManager`、`AndroidDialogManager`、`AndroidNotificationManager`、`AndroidShareManager` を置く（利用者の決定。2026-10-04）。
+
+| 規則 | 内容 |
+|---|---|
+| 役目 | 入口だけ（ファサード）。UseCase と、イベント・監視・宿主の持ち主に委ね、ロジックを持たない（common.md の「Manager 内でロジックを重複させない」） |
+| 形 | `class Android*Manager internal constructor(依存)` と `companion object { @JvmStatic fun getInstance(context: Context) }`。プロセスで 1 つ。持つのは Application の Context だけ（Activity を持ち続けない。前面の Activity はそのつど `ForegroundActivityTracker` から引く） |
+| テスト | internal の constructor で UseCase と port を差し替える（iOS の `IosNotificationManager` が repository を受け取れるのと同じ） |
+| 公開の API | 結果を待つ操作は callback 版と `suspend` 版、同期の操作は同期のまま（委ねる UseCase と同じ引数・戻り値・例外・スレッド）。**例外は `AndroidShareManager.shareText(content, preview)` だけ**で、Chooser Action の JSON の引数を出さず、`ShareTextUseCase(content, "[]", preview)` に委ねる（README 4 章の「Kotlin の API では Chooser Action を型にする」。型のある Chooser Action は `shareTextWithActions` で受ける）。宣言は付録 A |
+| C ABI | C ABI の受け口（`capi.jni`）は、機能ごとにこの Manager を呼ぶ。C 特有の処理（UTF-8 の変換、ハンドル、登録の表と `release`、前面の判定 C-4）は受け口に残す（8.15） |
+| 既存の入口 | `ClipboardUseCases`・`ShareUseCases`・`NotificationUseCases`・`AndroidDialogFragment`・`NotificationPermissionHelper`・`ProgressForegroundNotifications` などの既存の公開の口は、今の形と動作で残す（K-9）。マニュアルは Manager を勧める入口として書く（段階 4） |
+| 持ち主の可視性 | `NotificationEvents`・`ShareEvents`・`ClipboardEvents`・`ClipboardObserver` は internal にし、Manager のプロパティと関数から使う |
 
 **UseCase を置かない口の条件**（`android.md` に書く）: common.md の「Manager は必ず UseCase 経由で Data 層にアクセスする」は、Data 層に届く操作の規則である。次の口は Data 層に届かないので UseCase を置かない。(1) presentation の Delegate の持ち主への受け手の登録・解除と監視の開始・停止、(2) presentation の PendingIntent の要求の factory、(3) Context の資源の即時の問い合わせ（リソース名の解決）、(4) 状態を持たない純粋な関数（エラーの分類）、(5) 初期化。
 
-| 公開の口 | Manager の役 | UseCase | 実装 |
+| 公開の口 | Manager | UseCase | 委ねる先 |
 |---|---|---|---|
-| Dialog を出す・取り消す | `DialogManager` | `ShowDialogUseCase`、`CancelDialogUseCase` | `FragmentDialogPresenter` |
-| 権限の要求・取り消し | `NotificationPermissionManager` | `RequestNotificationPermissionUseCase`、`CancelNotificationPermissionRequestUseCase` | `FragmentPermissionRequester` |
-| 正確なアラームの可否、設定の画面 | `NotificationSettingsManager` | `CanScheduleExactAlarmsUseCase`、`OpenNotificationSettingsUseCase` | `AndroidNotificationSettingsGateway` |
-| 選択をイベントで受ける Share、取り消し | `ShareUseCases`（集約に `val` を足す） | `ShareForSelectionUseCase`、`CancelShareSelectionUseCase` | `ShareRepositoryImpl` |
-| 型のある Chooser Action つきの Share | `ShareUseCases` | `ShareTextWithActionsUseCase` | 同上 |
-| 予約の有無（既存の口） | `NotificationUseCases` | 既存の `isScheduled(context, …)`（今と同じく data の保存を直接読む。利用者の決定） | data の `JsonNotificationScheduleStore` |
-| 通知・Share・Clipboard のイベントの受け手 | `NotificationEvents`、`ShareEvents`、`ClipboardEvents` | 置かない（条件 1） | `EventHub` |
-| Clipboard の監視の開始・停止 | `ClipboardObserver` | 置かない（条件 1） | `ClipboardChangeMonitor` |
-| 通知のイベントの PendingIntent を作る | - | 置かない（条件 2） | `NotificationEventIntents` |
-| リソース名の解決 | - | 置かない（条件 3） | `NotificationResourceResolver` |
-| Clipboard のエラーの分類 | - | 置かない（条件 4） | `ClipboardErrorCode.of` |
-| 初期化 | `LibraryRuntime` | 置かない（条件 5） | - |
+| Clipboard の既存の操作（コピー 4 種、消去、読み取り、`hasClip`、説明） | `AndroidClipboardManager` | 既存の Clipboard の UseCase | `ClipboardRepositoryImpl` |
+| Clipboard の監視の開始・停止、変更のイベント | `AndroidClipboardManager` | 置かない（条件 1） | `ClipboardObserver`、`ClipboardEvents` |
+| Clipboard のエラーの分類 | `AndroidClipboardManager.errorCodeOf`（`ClipboardErrorCode.of` も公開） | 置かない（条件 4） | `ClipboardErrorCode` |
+| Dialog を出す・取り消す | `AndroidDialogManager` | `ShowDialogUseCase`、`CancelDialogUseCase` | `FragmentDialogPresenter` |
+| 通知の既存の操作（表示、更新、消去、チャンネル、予約、`getActive`、問い合わせ） | `AndroidNotificationManager` | 既存の Notification の UseCase | `NotificationRepositoryImpl` |
+| 予約の有無 | `AndroidNotificationManager.isScheduled` | 既存の `NotificationUseCases.isScheduled(context, …)` に委ねる（今と同じく data の保存を直接読む。利用者の決定） | `JsonNotificationScheduleStore` |
+| Progress の前景サービス | `AndroidNotificationManager` | 今の公開の `ProgressForegroundNotifications` に委ねる（今と同じ経路） | 前景サービス |
+| 権限の要求・取り消し | `AndroidNotificationManager` | `RequestNotificationPermissionUseCase`、`CancelNotificationPermissionRequestUseCase` | `FragmentPermissionRequester` |
+| 正確なアラームの可否、設定の画面 | `AndroidNotificationManager` | `CanScheduleExactAlarmsUseCase`、`OpenNotificationSettingsUseCase` | `AndroidNotificationSettingsGateway` |
+| 通知のイベント（タップ・アクション・dismiss、shown） | `AndroidNotificationManager` | 置かない（条件 1） | `NotificationEvents` |
+| Share の既存の操作（テキスト、画像、ファイル、Direct Share、`shareWithCallback` と取り消し） | `AndroidShareManager` | 既存の Share の UseCase | `ShareRepositoryImpl` |
+| 選択をイベントで受ける Share、取り消し、選択のイベント | `AndroidShareManager` | `ShareForSelectionUseCase`、`CancelShareSelectionUseCase` | 同上、`ShareEvents` |
+| 型のある Chooser Action つきの Share、アクションのイベント | `AndroidShareManager` | `ShareTextWithActionsUseCase` | 同上、`ShareChooserActionReceiver` |
+| 通知のイベントの PendingIntent を作る | -（公開の factory `NotificationEventIntents`） | 置かない（条件 2） | - |
+| リソース名の解決 | -（公開の `NotificationResourceResolver`） | 置かない（条件 3） | - |
+| 初期化 | -（公開の `LibraryRuntime`） | 置かない（条件 5） | - |
 
 ## 7. 今のブリッジの約束の対応表（README 5.1）
 
@@ -353,23 +374,23 @@
 | ブリッジの約束 | 新しい Kotlin の API | 違い |
 |---|---|---|
 | Clipboard の操作の結果を listener で返す（C1） | 同期の UseCase（今と同じ） | 結果の口は C ABI / 包み |
-| 7 つのエラーコード（C2） | `ClipboardErrorCode.of(throwable)` | 文言は包み |
+| 7 つのエラーコード（C2） | `AndroidClipboardManager.errorCodeOf(throwable)` | 文言は包み |
 | `hasClip` は例外を偽にする（C4） | `ClipboardUseCases.hasClip()` は投げる（今と同じ） | 偽にするのは C ABI / 包み |
-| 変更の監視はプロセスで 1 つ（C6） | `ClipboardObserver` と `ClipboardEvents.changes` | 受け手を複数持てる |
-| Dialog を Context から出す、失敗を返す（D1、D2） | `DialogManager.show`。失敗は `DialogResult.Failed` | 前面でなければ `Failed(NOT_FOREGROUND)`。Activity でない前面では透明な宿主に出す |
+| 変更の監視はプロセスで 1 つ（C6） | `AndroidClipboardManager` の `startObserving` と `changes` | 受け手を複数持てる |
+| Dialog を Context から出す、失敗を返す（D1、D2） | `AndroidDialogManager.show`。失敗は `DialogResult.Failed` | 前面でなければ `Failed(NOT_FOREGROUND)`。Activity でない前面では透明な宿主に出す |
 | Dialog の listener は種類ごとに 1 つで差し替え（D5） | 要求ごとの `onResult` | 包みが 1 つの受け手に集める |
 | 単一選択の `null` を `-1`（D4） | `DialogValue.SingleChoice(index: Int?)` | `-1` は C ABI / 包み |
 | キャンセルの戻りが `"Cancel"`、入力が `""` | `DialogResult.Dismissed` | 包みが今の値に写す |
 | 通知の操作の結果を呼び出しスレッドで同期に返す（N1） | 同期の UseCase（今と同じ） | - |
-| `canScheduleExactAlarms`、設定の画面（N5、N6） | `NotificationSettingsManager` | - |
+| `canScheduleExactAlarms`、設定の画面（N5、N6） | `AndroidNotificationManager` の `canScheduleExactAlarms`、`openSettings` | - |
 | リソース名の解決（N8） | `NotificationResourceResolver` | - |
-| タップ・アクション・dismiss・カスタムビューのクリック（N10、N14） | `NotificationEventIntents` と `NotificationEvents.interactions` | 受け手が 0 の間のものを保つ。アプリを開くものは見えない Activity を通す。起動の flags はランチャーと同じ（8.5）。起動の Intent の action を `actionId` に書き換えるのはやめる（このリポジトリに読む所が無い。2c で確かめる） |
+| タップ・アクション・dismiss・カスタムビューのクリック（N10、N14） | `NotificationEventIntents` と `AndroidNotificationManager.interactions` | 受け手が 0 の間のものを保つ。アプリを開くものは見えない Activity を通す。起動の flags はランチャーと同じ（8.5）。起動の Intent の action を `actionId` に書き換えるのはやめる（このリポジトリに読む所が無い。2c で確かめる） |
 | 全画面の Intent（`id + Int.MAX_VALUE/2`、起動の Intent） | `NotificationEventIntents.fullScreenLaunch` | request code 0、`setIdentifier` で区別（8.5） |
 | request code の式（N11） | data の URI か `setIdentifier` で区別し、request code は 0 | 衝突しない |
-| shown の listener（N15） | `NotificationEvents.shown` | 受け手を複数持てる |
+| shown の listener（N15） | `AndroidNotificationManager.shown` | 受け手を複数持てる |
 | Progress の値の補正（N12）、style の代わりの値（N9）、JSON の検査の文言（N16） | 持たない | C ABI / 包み |
-| Chooser Action の Receiver（S2） | `ShareChooserAction` と `ShareEvents.chooserActions` | action の文字列はライブラリが決める |
-| 選ばれたアプリの listener、listener を外すと待ちも消す（S3） | `ShareUseCases.shareForSelection` と `ShareEvents.selections`、`cancelShareSelection(token)` | 選択に印が付く。古い Chooser の選択は届かない |
+| Chooser Action の Receiver（S2） | `AndroidShareManager` の `shareTextWithActions` と `chooserActions` | action の文字列はライブラリが決める |
+| 選ばれたアプリの listener、listener を外すと待ちも消す（S3） | `AndroidShareManager` の `shareForSelection`、`selections`、`cancelShareSelection(token)` | 選択に印が付く。古い Chooser の選択は届かない |
 | アイコンの Base64（S4） | バイト列（今と同じ） | Base64 は包み |
 | Clipboard と Share の操作を main で動かす | 同期の UseCase（今と同じ） | C ABI の受け口が main に積む |
 
@@ -599,9 +620,9 @@
 
 ### 8.7 通知の権限の要求と設定の画面（KA-11、K-6）
 
-**権限の要求**: `NotificationPermissionManager.request(context, onResult)` は、`context.applicationContext` を持つ `FragmentPermissionRequester`（プロセスで 1 つ。port の実装）を使い、`RequestNotificationPermissionUseCase` を呼ぶ。UseCase は ID を `RequestIds` から取り、port の `request(id, onResult)` を呼んで ID を返す。port の実装は main に積み、門に ID を `ACTIVE` で入れてから、次の表で扱う。port の宣言は Context を持たない（実装が Application の Context を持つ）。
+**権限の要求**: `AndroidNotificationManager.requestPermission(onResult)` は、Manager が持つ Application の Context を持つ `FragmentPermissionRequester`（プロセスで 1 つ。port の実装）を使い、`RequestNotificationPermissionUseCase` を呼ぶ。UseCase は ID を `RequestIds` から取り、port の `request(id, onResult)` を呼んで ID を返す。port の実装は main に積み、門に ID を `ACTIVE` で入れてから、次の表で扱う。port の宣言は Context を持たない（実装が Application の Context を持つ）。
 
-`suspend fun request(context): Boolean` は許可されたかを返し、取り消しと失敗は `PermissionRequestDomainError`（`Canceled(reason)`、`Unavailable(reason)`）を投げる。コルーチンの取り消しでは `cancel(id)` を呼び、`CancellationException` を投げる（Kotlin の決まりのとおり）。
+`suspend fun requestPermission(): Boolean` は許可されたかを返し、取り消しと失敗は `PermissionRequestDomainError`（`Canceled(reason)`、`Unavailable(reason)`）を投げる。コルーチンの取り消しでは `cancel(id)` を呼び、`CancellationException` を投げる（Kotlin の決まりのとおり）。
 
 会（`session`）は 1 つまで。会の ID は門に入れない。会は `UiHostClient` で、`isActive()` は「この会が今の会で、待ちが 1 つ以上あるか、Fragment を足した後か」。
 
@@ -619,7 +640,7 @@
 - 個々の待ちの完了はすべて `tryComplete` を通す。待ちの一覧は先に外してから 1 人ずつ呼び、各呼び出しの例外は捕まえて次へ進む
 - 既存の `NotificationPermissionHelper` は今の形と動作のまま残す（3.3）
 
-**設定の画面**: `NotificationSettingsManager.open(context, target)` は `AndroidNotificationSettingsGateway(context)`（port の実装。`context` が Activity ならそれ、違えば Application の Context と `NEW_TASK`）を作り、`OpenNotificationSettingsUseCase` を呼ぶ。今のブリッジ（N6）と同じく、開けなければアプリの詳細の画面で `OPENED_FALLBACK`、それも開けなければ `FAILED`。前面かどうかは見ない（C ABI の受け口が C-4 のとおり判定し、前面の Activity を渡す）。`canScheduleExactAlarms(context)` も同じ形。
+**設定の画面**: `AndroidNotificationManager.openSettings(target, from: Context? = null)` は `AndroidNotificationSettingsGateway(from ?: Application の Context)`（port の実装。`from` が Activity ならそれから開き、無ければ Application の Context と `NEW_TASK`）を作り、`OpenNotificationSettingsUseCase` を呼ぶ。今のブリッジ（N6）と同じく、開けなければアプリの詳細の画面で `OPENED_FALLBACK`、それも開けなければ `FAILED`。前面かどうかは見ない（C ABI の受け口が C-4 のとおり判定し、前面の Activity を渡す）。`canScheduleExactAlarms()` も同じ形。
 
 ### 8.8 Dialog（KA-10、K-3）
 
@@ -627,7 +648,7 @@
 
 - 否定のボタンの値は `DialogValue.None`、肯定のボタンは種類ごとの値。`DialogValue.Text` と `Login` の `toString()` は値を伏せる（新しい型なので既存の動作に関係しない）
 - `ShowDialogUseCase` は入力を検査して投げる（選択肢が空、`checked` の数が違う、`checkedIndex` が範囲の外）。検査の後、ID を `RequestIds` から取り、port の `show(id, request, onResult)` を呼んで ID を返す。port の実装（`FragmentDialogPresenter`）は main に積み、門に ID を入れて `UiHost.acquire` する（8.3）
-- `DialogManager.show(request, onResult): Long` は callback 版（`DialogResult` の 4 つのどれかを 1 回）。`suspend fun DialogManager.show(request): DialogResult.Answer` はネイティブ版で、答え（`Button` か `Dismissed`）を返し、取り消しと失敗は `DialogDomainError`（`Canceled(reason)`、`Unavailable(error)`）を投げる。コルーチンの取り消しでは `cancel(id)` を呼び、`CancellationException` を投げる
+- `AndroidDialogManager.show(request, onResult): Long` は callback 版（`DialogResult` の 4 つのどれかを 1 回）。`suspend fun AndroidDialogManager.show(request): DialogResult.Answer` はネイティブ版で、答え（`Button` か `Dismissed`）を返し、取り消しと失敗は `DialogDomainError`（`Canceled(reason)`、`Unavailable(error)`）を投げる。コルーチンの取り消しでは `cancel(id)` を呼び、`CancellationException` を投げる
 - 要求の ID は、`AndroidDialogFragment` の **internal の factory**（`AndroidDialogFragment.newRequestInstance(requestId, request)`）で引数に入れる。公開の `newInstance` は今のまま
 
 `AndroidDialogFragment` の変更（**`ARG_REQUEST_ID` があるときだけ動く**。無ければ今の listener の動作のまま。K-9）:
@@ -670,15 +691,15 @@
 |---|---|
 | 既存 `ShareWithCallbackUseCase` / `ShareUseCases.shareWithCallback` | **形と動作は今のまま**（戻り値 `Unit`、`onResult` / `onFinished`）。中は要求ごとの PendingIntent に載る。変わるのは README の 1b の行の修正（古い選択が届かない）だけ |
 | 既存 `CancelPendingShareCallbackUseCase` | 今のまま（今の待ちを消す） |
-| 新 `ShareUseCases.shareForSelection`（`ShareForSelectionUseCase`） | 上の仕組みで開き、印を返す（同期。開けなければ投げる。今の `shareWithCallback` と同じ検査と例外）。選択は `ShareEvents.selections` に印つきで届く。Chooser を閉じたときと選択でない結果のときは何も来ない |
-| 新 `ShareUseCases.cancelShareSelection`（`CancelShareSelectionUseCase`） | 印が今の待ちなら消す |
+| 新 `AndroidShareManager.shareForSelection`（`ShareForSelectionUseCase`） | 上の仕組みで開き、印を返す（同期。開けなければ投げる。今の `shareWithCallback` と同じ検査と例外）。選択は `ShareEvents.selections` に印つきで届く。Chooser を閉じたときと選択でない結果のときは何も来ない |
+| 新 `AndroidShareManager.cancelShareSelection`（`CancelShareSelectionUseCase`） | 印が今の待ちなら消す |
 
 - 新しい口は「開く操作（同期）」と「選択のイベント」で、待つ操作が無いので `suspend` 版は要らない（C ABI の設計書 AC-22 と同じ形。4.1）
 - `ShareRepository`（公開の port）に足す 3 つの関数は、既定の実装（`UnsupportedOperationException` を投げる）を持つ interface の関数にする（既存の利用者の実装を壊さない）。`ShareRepositoryImpl` が実装する
 
 **Chooser Action**:
 
-- `ShareUseCases.shareTextWithActions(content, actions, preview)`（`ShareTextWithActionsUseCase`）
+- `AndroidShareManager.shareTextWithActions(content, actions, preview)`（`ShareTextWithActionsUseCase`）
 - 各アクションの PendingIntent: action `com.jonghyunkim.nativetoolkit.share.action.CHOOSER_ACTION`、data `ntk-share-action://<パッケージ>/<ProcessNonce>/<世代>/<id>`、`setPackage`、request code 0、`FLAG_UPDATE_CURRENT` と `FLAG_IMMUTABLE`。アイコンのバイト列（`BitmapFactory` で読める形式）を `Bitmap` にするのは data の層
 - **順序**: 入力の検査（`id` が空・重複、アイコンが画像として読めない → `ShareDomainError.InvalidChooserAction(id)` を投げる。このときは世代を上げないので、前の Share のアクションは生きたまま）→ 世代を上げる（アクションが空でも上げる。今のブリッジが、空のリストでも起動の前に前の Receiver を外すのと同じ）→ Chooser を起動する
 - `ShareChooserActionReceiver`（動的、プロセスで 1 つ、登録したまま）は、nonce と世代が今のものなら main の上で `ShareEvents.chooserActions.emit(id)`
@@ -752,6 +773,7 @@ Clipboard の既存のログはすでに伏せている（`logSafeDescription`�
 
 ### 8.15 C ABI の設計書 第 2 部への申し送り
 
+- **呼ぶ先**（KA-18）: C ABI の受け口は、機能ごとに `AndroidClipboardManager`・`AndroidDialogManager`・`AndroidNotificationManager`・`AndroidShareManager` を呼ぶ（`getInstance` で得る）。第 2 部の対応表は、この Manager の口と C の関数を並べる
 - **前面の判定の受け持ち**（KA-17）: C ABI の受け口は C-4 のとおり、Dialog・権限の要求・Share の Chooser・設定の画面の前に前面を判定し、前面でなければ Kotlin を呼ばずに `NOT_FOREGROUND` で完了する。Dialog と権限は、受け口の判定の後に前面が変わった場合に `UiHost` が同じ `NOT_FOREGROUND` で完了するので、受け口はそれをそのまま写す
 - C ABI は Dialog と権限で callback 版を使う（`suspend` 版は使わない）
 - エラーの写し: `UiUnavailableReason.NOT_INITIALIZED` → `NOT_INITIALIZED`、`NOT_FOREGROUND` → `NOT_FOREGROUND`、`HOST_START_FAILED` と `DialogError.SHOW_FAILED` → `UNKNOWN`、`CancelReason` → `CANCELED`
@@ -766,19 +788,19 @@ Clipboard の既存のログはすでに伏せている（`logSafeDescription`�
 | 操作 | System API と実行方式 | Repository / 実装 | UseCase | Manager callback | Manager native | Bridge（C ABI） | thread | キャンセル・資源の持ち主 | 方式を変える理由 |
 |---|---|---|---|---|---|---|---|---|---|
 | 初期化 | `registerActivityLifecycleCallbacks`（同期） | - | - | - | `LibraryRuntime.ensureInitialized`（同期、待たない） | `ntk_android_init` などが呼ぶ | どれでも | - | - |
-| Dialog を出す | `DialogFragment.showNow`（main） | `FragmentDialogPresenter` | `ShowDialogUseCase` | `DialogManager.show(request, onResult)`（main で 1 回） | `suspend DialogManager.show(request): DialogResult.Answer`（失敗は例外） | 完了つきの操作（callback 版） | 呼ぶのはどれでも、完了は main | `cancel(id)`、門 | 利用者の操作を待つので非同期 |
-| Dialog の取り消し | `dismissAllowingStateLoss`（main） | 同上 | `CancelDialogUseCase` | - | `DialogManager.cancel`（同期、積む） | 取り消し | どれでも | - | 即時の control |
-| 権限の要求 | `RequestPermission`（main、非同期） | `FragmentPermissionRequester` | `RequestNotificationPermissionUseCase` | `NotificationPermissionManager.request(context, onResult)` | `suspend ...request(context): Boolean`（失敗は例外） | 完了つきの操作（callback 版） | 同上 | `cancel(id)`、会 | 同上 |
-| 権限の要求の取り消し | - | 同上 | `CancelNotificationPermissionRequestUseCase` | - | `...cancel`（同期、積む） | 取り消し | どれでも | - | 即時の control |
-| 正確なアラームの可否 | `canScheduleExactAlarms`（同期） | `AndroidNotificationSettingsGateway` | `CanScheduleExactAlarmsUseCase` | - | `NotificationSettingsManager.canScheduleExactAlarms` | 同期の問い合わせ | どれでも | - | - |
-| 設定の画面 | `startActivity`（同期） | 同上 | `OpenNotificationSettingsUseCase` | - | `NotificationSettingsManager.open` | 前面の Activity を渡す | どれでも | - | - |
+| Dialog を出す | `DialogFragment.showNow`（main） | `FragmentDialogPresenter` | `ShowDialogUseCase` | `AndroidDialogManager.show(request, onResult)`（main で 1 回） | `suspend AndroidDialogManager.show(request): DialogResult.Answer`（失敗は例外） | 完了つきの操作（callback 版） | 呼ぶのはどれでも、完了は main | `cancel(id)`、門 | 利用者の操作を待つので非同期 |
+| Dialog の取り消し | `dismissAllowingStateLoss`（main） | 同上 | `CancelDialogUseCase` | - | `AndroidDialogManager.cancel`（同期、積む） | 取り消し | どれでも | - | 即時の control |
+| 権限の要求 | `RequestPermission`（main、非同期） | `FragmentPermissionRequester` | `RequestNotificationPermissionUseCase` | `AndroidNotificationManager.requestPermission(onResult)` | `suspend ...requestPermission(): Boolean`（失敗は例外） | 完了つきの操作（callback 版） | 同上 | `cancel(id)`、会 | 同上 |
+| 権限の要求の取り消し | - | 同上 | `CancelNotificationPermissionRequestUseCase` | - | `AndroidNotificationManager.cancelPermissionRequest`（同期、積む） | 取り消し | どれでも | - | 即時の control |
+| 正確なアラームの可否 | `canScheduleExactAlarms`（同期） | `AndroidNotificationSettingsGateway` | `CanScheduleExactAlarmsUseCase` | - | `AndroidNotificationManager.canScheduleExactAlarms` | 同期の問い合わせ | どれでも | - | - |
+| 設定の画面 | `startActivity`（同期） | 同上 | `OpenNotificationSettingsUseCase` | - | `AndroidNotificationManager.openSettings` | 前面の Activity を渡す | どれでも | - | - |
 | 予約の保存（既存の口の中） | `AtomicFile`（同期） | `JsonNotificationScheduleStore` | 今の UseCase | - | 今の UseCase（`Result`） | 同期 | どれでも | `ScheduleLock` | `apply()` から同期の書き込みへ（README 8.6） |
-| 通知のイベント | broadcast / Activity（main） | Receiver、見えない Activity | - | `NotificationEvents.interactions` の受け手 | - | イベントの登録 | main | `Registration.remove` | - |
-| shown | broadcast（main） | `ScheduledNotificationReceiver` | - | `NotificationEvents.shown` の受け手 | - | イベントの登録 | main | 同上 | - |
-| 選択をイベントで受ける Share | `createChooser` + `startActivity`（同期） | `ShareRepositoryImpl`、`ShareCallbackCoordinator` | `ShareForSelectionUseCase` | `ShareEvents.selections` の受け手 | `ShareUseCases.shareForSelection`（同期、印を返す） | 開く操作の完了と選択のイベント | 呼ぶのはどれでも、選択は main | `cancelShareSelection(token)` | - |
-| Chooser Action つきの Share | 同上 | 同上、`ShareChooserActionReceiver` | `ShareTextWithActionsUseCase` | `ShareEvents.chooserActions` の受け手 | `ShareUseCases.shareTextWithActions` | 開く操作とイベントの登録 | 同上 | `Registration.remove` | - |
-| Clipboard の監視 | `OnPrimaryClipChangedListener`（main） | `ClipboardChangeMonitor` | - | `ClipboardEvents.changes` の受け手 | `ClipboardObserver.start` / `stop`（同期） | 監視の開始・停止とイベント | main | `stop`、`Registration.remove` | - |
-| Clipboard のエラーの分類 | - | - | - | - | `ClipboardErrorCode.of`（同期） | エラーの値 | どれでも | - | - |
+| 通知のイベント | broadcast / Activity（main） | Receiver、見えない Activity | - | `AndroidNotificationManager.interactions` の受け手 | - | イベントの登録 | main | `Registration.remove` | - |
+| shown | broadcast（main） | `ScheduledNotificationReceiver` | - | `AndroidNotificationManager.shown` の受け手 | - | イベントの登録 | main | 同上 | - |
+| 選択をイベントで受ける Share | `createChooser` + `startActivity`（同期） | `ShareRepositoryImpl`、`ShareCallbackCoordinator` | `ShareForSelectionUseCase` | `AndroidShareManager.selections` の受け手 | `AndroidShareManager.shareForSelection`（同期、印を返す） | 開く操作の完了と選択のイベント | 呼ぶのはどれでも、選択は main | `cancelShareSelection(token)` | - |
+| Chooser Action つきの Share | 同上 | 同上、`ShareChooserActionReceiver` | `ShareTextWithActionsUseCase` | `AndroidShareManager.chooserActions` の受け手 | `AndroidShareManager.shareTextWithActions` | 開く操作とイベントの登録 | 同上 | `Registration.remove` | - |
+| Clipboard の監視 | `OnPrimaryClipChangedListener`（main） | `ClipboardChangeMonitor` | - | `AndroidClipboardManager.changes` の受け手 | `AndroidClipboardManager.startObserving` / `stopObserving`（同期） | 監視の開始・停止とイベント | main | `stop`、`Registration.remove` | - |
+| Clipboard のエラーの分類 | - | - | - | - | `AndroidClipboardManager.errorCodeOf`（同期） | エラーの値 | どれでも | - | - |
 
 ## 10. ドメインエラーの一覧とエラーの対応表
 
@@ -860,6 +882,7 @@ C ABI のエラーの値への写しは 8.15 と第 2 部。
 | IT-24 | 変えない識別子と Alarm の extra | 8.5 の変えない識別子の値（受け手のクラス名を含む）。予約した Alarm の PendingIntent の component が変えない識別子のクラス名で、extra が 8.6 の 4 つだけで、ライブラリのクラスの Parcelable が無いこと |
 | IT-25 | codec | command の全部の欄（内容の約 30 欄、style ごと、アクション、CallStyle の 3 つの Intent、カスタムビューの動作、`Bitmap`、`null` と既定の値）を Alarm の extra の形と保存の形の両方で符号化して戻し、等しいこと（`Intent` は `filterEquals` と extra のキーと値。保存の形は `toUri` の表のとおり）。版の規則（版 1 に欄を足した JSON を読める、知らない欄の無視、無い欄の既定の値、知らない版のファイルを名前を変えて残す） |
 | IT-26 | 更新をまたぐ Alarm | 2 つの版のサンプルの APK（R8 有効。後の版は JSON に欄を 1 つ足す）で、前の版で `Intent` と複数の `Bitmap` を持つ予約を置き、`adb install -r` で後の版にし、発火した通知の内容が同じこと |
+| IT-27 | Manager | 4 つの Manager の各口が、委ねる先（UseCase、イベントの持ち主、既存の口）と同じ結果・例外・スレッドになること。`AndroidShareManager.shareText(content, preview)` が `ShareTextUseCase(content, "[]", preview)` と同じ結果になること。`getInstance` がプロセスで 1 つを返し、Activity を持ち続けないこと（`LeakCanary` の代わりに、Activity を閉じた後の弱い参照が消えることで確かめる） |
 
 - 人の確認 CU-03: 1.12.0 のタグから組んだサンプル（同じ applicationId と署名）で予約し、2.0.0 を `adb install -r` で入れ、保存した予約が取り消され、保存しない予約が発火しても何も出ず、新しく予約できる（README 9 章の DoD）
 - `test_android.sh` の全 317 件（0d の基準）が 1b の後も同じ結果になること。サンプルの Receiver を置き換えたテストと `HostPhaseTest` の補いを消したテストは、理由を結果に書く
@@ -876,9 +899,9 @@ C ABI のエラーの値への写しは 8.15 と第 2 部。
 | T-04 | `EventHub` | 0.5日 | T-02 |
 | T-05 | `UiHost`、`UiRequestGate`、`NtkHostActivity` | 1.5日 | T-03 |
 | T-06 | Dialog の domain と application | 1.0日 | T-02 |
-| T-07 | Dialog の presentation と `DialogManager` | 1.5日 | T-05、T-06 |
-| T-08 | 権限の要求と `NotificationPermissionManager` | 1.5日 | T-05 |
-| T-09 | 設定の画面の port・UseCase・`NotificationSettingsManager` | 0.5日 | T-02 |
+| T-07 | Dialog の presentation（`FragmentDialogPresenter`、`AndroidDialogFragment` の要求の ID） | 1.5日 | T-05、T-06 |
+| T-08 | 権限の要求（port、UseCase、`FragmentPermissionRequester`） | 1.5日 | T-05 |
+| T-09 | 設定の画面の port・UseCase・gateway | 0.5日 | T-02 |
 | T-10 | 通知のイベント | 1.5日 | T-04 |
 | T-11 | リソース名の解決 | 0.5日 | - |
 | T-12 | 予約の保存（JSON、`AtomicFile`、版の規則、`lossy`・`installId`・`bootCount`） | 1.5日 | T-02 |
@@ -889,12 +912,13 @@ C ABI のエラーの値への写しは 8.15 と第 2 部。
 | T-17 | 型のある Chooser Action と Receiver | 1.0日 | T-04 |
 | T-18 | Clipboard のエラーの分類と監視 | 1.0日 | T-04 |
 | T-19 | manifest、`consumer-rules.pro` | 0.5日 | T-02、T-05、T-10 |
-| T-20 | サンプル: Receiver の置き換えと新しい画面（design-sample-app で設計する） | 1.5日 | T-07、T-08、T-10、T-17 |
+| T-20 | サンプル: Receiver の置き換えと新しい画面（design-sample-app で設計する） | 1.5日 | T-24 |
 | T-21 | 1.x の破棄・権限を外した版・R8・更新をまたぐ Alarm のテスト、`test_android.sh` | 1.5日 | T-13、T-14、T-19 |
 | T-22 | ブリッジのテストの書き直し | 1.0日 | T-10、T-11、T-17、T-18 |
 | T-23 | 全体の実行と基準との比べ合わせ、CU-03 | 1.0日 | T-20、T-21、T-22 |
+| T-24 | 4 つの Manager（委ねるだけの入口、`getInstance`、テスト用の constructor）と IT-27 | 1.0日 | T-07、T-08、T-09、T-10、T-15、T-16、T-17、T-18 |
 
-合計見積: 約 24.5 日
+合計見積: 約 25.5 日
 
 - `android.md` は、この設計書の決定と同じ PR で直す（タスクに入れない）
 - 機能ごとに関係するテストだけを両方の環境で流し、全体の実行は T-23 で行う（README 7 章）
@@ -969,12 +993,22 @@ enum class ClipboardErrorCode {
     EMPTY_CONTENT, EMPTY_ITEMS, INVALID_URI, UNAVAILABLE, READ_NOT_ALLOWED, SECURITY, UNKNOWN;
     companion object { fun of(error: Throwable): ClipboardErrorCode }
 }
-object ClipboardObserver {
-    @MainThread fun start(context: Context)
-    @MainThread fun stop()
+class AndroidClipboardManager internal constructor(/* use cases, observer, events */) {
+    fun copyPlainText(content: ClipContent.PlainText)                 // same exceptions as the existing use cases
+    fun copyHtmlText(content: ClipContent.HtmlText)
+    fun copyUri(content: ClipContent.UriContent)
+    fun copyMultipleText(content: ClipContent.MultipleText)
+    fun clear()
+    fun read(): ClipReadResult?
+    fun hasClip(): Boolean
+    fun getDescription(): ClipDescriptionInfo?
+    @MainThread fun startObserving()
+    @MainThread fun stopObserving()
     @MainThread fun isObserving(): Boolean
+    val changes: EventHub<Unit>
+    fun errorCodeOf(error: Throwable): ClipboardErrorCode
+    companion object { @JvmStatic fun getInstance(context: Context): AndroidClipboardManager }
 }
-object ClipboardEvents { val changes: EventHub<Unit> }
 
 // dialog.domain
 data class DialogOptions(val cancelable: Boolean = true, val cancelableOnTouchOutside: Boolean = true)
@@ -1033,10 +1067,11 @@ class ShowDialogUseCase(private val presenter: DialogPresenter) {
 class CancelDialogUseCase(private val presenter: DialogPresenter) { operator fun invoke(requestId: Long) }
 
 // dialog.presentation
-object DialogManager {
+class AndroidDialogManager internal constructor(/* use cases */) {
     fun show(request: DialogRequest, onResult: (DialogResult) -> Unit): Long
     suspend fun show(request: DialogRequest): DialogResult.Answer          // throws DialogDomainError
     fun cancel(requestId: Long)
+    companion object { @JvmStatic fun getInstance(context: Context): AndroidDialogManager }
 }
 
 // notification.domain
@@ -1074,24 +1109,42 @@ class OpenNotificationSettingsUseCase(private val port: NotificationSettingsPort
 }
 
 // notification.presentation
-object NotificationPermissionManager {
-    fun request(context: Context, onResult: (PermissionRequestResult) -> Unit): Long
-    suspend fun request(context: Context): Boolean                        // throws PermissionRequestDomainError
-    fun cancel(requestId: Long)
-}
-object NotificationSettingsManager {
-    fun canScheduleExactAlarms(context: Context): Boolean
-    fun open(context: Context, target: NotificationSettingsTarget): NotificationSettingsOpenResult
+class AndroidNotificationManager internal constructor(/* use cases, ports, events */) {
+    // existing operations (same arguments, results and exceptions as the existing use cases)
+    fun show(command: AndroidNotificationCommand): Result<Unit>
+    fun update(command: AndroidNotificationCommand): Result<Unit>
+    fun cancel(id: Int, tag: String? = null): Result<Unit>
+    fun cancelAll(): Result<Unit>
+    fun createChannel(channel: NotificationChannel): Result<Unit>
+    fun createChannels(channels: List<NotificationChannel>): Result<Unit>
+    fun deleteChannel(channelId: String): Result<Unit>
+    fun schedule(command: AndroidNotificationCommand, schedule: NotificationSchedule): Result<Unit>
+    fun cancelScheduled(id: Int, tag: String? = null): Result<Unit>
+    fun cancelAllScheduled(): Result<Unit>
+    fun restoreScheduled(): Result<Unit>
+    fun isScheduled(id: Int, tag: String? = null): Boolean                // delegates to NotificationUseCases.isScheduled(context, ...)
+    fun getActive(): List<ActiveNotification>
+    fun hasPermission(): Boolean
+    fun areNotificationsEnabled(): Boolean
+    fun startProgress(command: AndroidNotificationCommand)                // delegates to ProgressForegroundNotifications
+    fun updateProgress(command: AndroidNotificationCommand)
+    fun completeProgress(command: AndroidNotificationCommand)
+    fun stopProgress()
+    // new operations
+    fun requestPermission(onResult: (PermissionRequestResult) -> Unit): Long
+    suspend fun requestPermission(): Boolean                             // throws PermissionRequestDomainError
+    fun cancelPermissionRequest(requestId: Long)
+    fun canScheduleExactAlarms(): Boolean
+    fun openSettings(target: NotificationSettingsTarget, from: Context? = null): NotificationSettingsOpenResult
+    val interactions: EventHub<NotificationInteraction>
+    val shown: EventHub<NotificationShown>
+    companion object { @JvmStatic fun getInstance(context: Context): AndroidNotificationManager }
 }
 class NotificationInteraction(val kind: Kind, val notificationId: Int, val tag: String?,
                               val actionId: String?, val data: Map<String, String>) {   // equals/hashCode by value; toString redacts data values
     enum class Kind { BODY_TAP, ACTION, DISMISS }
 }
 data class NotificationShown(val notificationId: Int, val tag: String?, val channelId: String)
-object NotificationEvents {
-    val interactions: EventHub<NotificationInteraction>
-    val shown: EventHub<NotificationShown>
-}
 object NotificationEventIntents {
     fun bodyTap(context: Context, notificationId: Int, tag: String?, data: Map<String, String> = emptyMap(),
                 launchApp: Boolean = true): AndroidPendingIntentRequest
@@ -1129,17 +1182,26 @@ class CancelShareSelectionUseCase(private val repository: ShareRepository) { ope
 class ShareTextWithActionsUseCase(private val repository: ShareRepository) {
     operator fun invoke(content: ShareContent, actions: List<ShareChooserAction>, preview: SharePreviewOptions = SharePreviewOptions())
 }
-class ShareUseCases(repository: ShareRepository) {             // existing aggregator; three vals added
-    // ... existing vals unchanged ...
-    val shareForSelection = ShareForSelectionUseCase(repository)
-    val cancelShareSelection = CancelShareSelectionUseCase(repository)
-    val shareTextWithActions = ShareTextWithActionsUseCase(repository)
-}
-
-// share.presentation
-object ShareEvents {
+class AndroidShareManager internal constructor(/* use cases, coordinator, events */) {
+    // existing operations (same arguments, results and exceptions as the existing use cases)
+    fun shareText(content: ShareContent, preview: SharePreviewOptions = SharePreviewOptions())   // delegates to ShareTextUseCase(content, "[]", preview)
+    fun shareImage(filePath: String, mimeType: String)
+    fun shareImages(filePaths: List<String>)
+    fun shareFile(filePath: String)
+    fun shareFiles(filePaths: List<String>)
+    fun registerDirectShareTarget(target: DirectShareTarget, iconBytes: ByteArray)
+    fun removeDirectShareTargets(ids: List<String>)
+    fun shareWithCallback(content: ShareContent, preview: SharePreviewOptions = SharePreviewOptions(),
+                          onResult: (String?) -> Unit, onFinished: () -> Unit = {})
+    fun cancelPendingCallback()
+    // new operations
+    fun shareTextWithActions(content: ShareContent, actions: List<ShareChooserAction>,
+                             preview: SharePreviewOptions = SharePreviewOptions())
+    fun shareForSelection(content: ShareContent, preview: SharePreviewOptions = SharePreviewOptions()): Long
+    fun cancelShareSelection(token: Long)
     val chooserActions: EventHub<String>
     val selections: EventHub<ShareSelection>
+    companion object { @JvmStatic fun getInstance(context: Context): AndroidShareManager }
 }
 ```
 
