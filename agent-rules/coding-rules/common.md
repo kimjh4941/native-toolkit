@@ -56,7 +56,18 @@ Domain → Application → Data
 **「Manager 層」と `Unity*Manager` クラスを混同しないこと。**
 `UnityAndroidShareManager` / `UnityIosShareManager` などは名前に Manager を含むが **Unity Bridge 層**であり、Manager 層ではない。Manager 層の実体はネイティブライブラリ側の `IosShareManager` / `IosNotificationManager` のようなクラスを指す。
 
-ネイティブライブラリ側に Manager 層の受け皿が無い場合（例: Android の `android_library`）、Unity プラグインへ流すのではなく、**ネイティブライブラリ内に配置先を作る**（`presentation/` などプラットフォーム API 依存が許される層）。
+**Manager の置き場所（全 OS 共通）:** Manager は機能のフォルダー・パッケージの直下に置き、層のフォルダー（Domain / Application / Data / Presentation）と並べる。Manager は Presentation の上の別の層なので、層のフォルダーの中（`Presentation/` など）にも、`Manager/` のような専用のフォルダーにも入れない。
+
+| OS | 例 |
+|---|---|
+| iOS | `ios/IosLibrary/IosLibrary/Notification/IosNotificationManager.swift` |
+| macOS | `mac/MacLibrary/MacLibrary/Notification/MacNotificationManager.swift` |
+| Windows | `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.cpp` |
+| Android | `android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/notification/AndroidNotificationManager.kt`（パッケージ `com.jonghyunkim.nativetoolkit.notification`） |
+
+- Manager が使う部品（system Delegate・Listener の所有クラス、イベントの持ち主など）は、Presentation などプラットフォーム API 依存が許される層に置く
+- ネイティブライブラリ側に Manager がまだ無い機能でも、Unity プラグインへ流さず、ネイティブライブラリの機能の直下に置く
+- 直していない既存の例外: macOS の Clipboard（`mac/MacLibrary/MacLibrary/Clipboard/Manager/MacClipboardManager.swift`）。機能の直下へ移す作業が残っている（2026-10-04 に置き場所を決めたときの記録）。新しいコードでこの形をまねしない
 
 判定の自己チェック:
 

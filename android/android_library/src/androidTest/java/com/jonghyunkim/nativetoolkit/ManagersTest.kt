@@ -11,9 +11,9 @@ import com.jonghyunkim.nativetoolkit.clipboard.domain.error.ClipboardErrorCode
 import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipContent
 import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipDescriptionInfo
 import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipReadResult
-import com.jonghyunkim.nativetoolkit.clipboard.presentation.AndroidClipboardManager
+import com.jonghyunkim.nativetoolkit.clipboard.AndroidClipboardManager
 import com.jonghyunkim.nativetoolkit.clipboard.presentation.ClipboardEvents
-import com.jonghyunkim.nativetoolkit.dialog.presentation.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
 import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationCommandRepository
 import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationPermissionPort
@@ -29,7 +29,7 @@ import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSched
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSettingsOpenResult
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSettingsTarget
 import com.jonghyunkim.nativetoolkit.notification.domain.model.PermissionRequestResult
-import com.jonghyunkim.nativetoolkit.notification.presentation.AndroidNotificationManager
+import com.jonghyunkim.nativetoolkit.notification.AndroidNotificationManager
 import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationEvents
 import com.jonghyunkim.nativetoolkit.share.application.port.RichPreviewShareRepository
 import com.jonghyunkim.nativetoolkit.share.application.usecase.CancelShareSelectionUseCase
@@ -41,7 +41,7 @@ import com.jonghyunkim.nativetoolkit.share.domain.model.DirectShareTarget
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareChooserAction
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
 import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
-import com.jonghyunkim.nativetoolkit.share.presentation.AndroidShareManager
+import com.jonghyunkim.nativetoolkit.share.AndroidShareManager
 import com.jonghyunkim.nativetoolkit.share.presentation.ShareEvents
 import com.jonghyunkim.nativetoolkit.testing.TestFragmentActivity
 import kotlinx.coroutines.CancellationException

@@ -1,4 +1,4 @@
-package com.jonghyunkim.nativetoolkit.notification.presentation
+package com.jonghyunkim.nativetoolkit.notification
 
 import android.content.Context
 import android.util.Log
@@ -23,9 +23,9 @@ import com.jonghyunkim.nativetoolkit.notification.presentation.event.Notificatio
 import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationShown
 import com.jonghyunkim.nativetoolkit.notification.presentation.permission.FragmentPermissionRequester
 import com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundNotifications
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.suspendCancellableCoroutine
 import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCases as createNotificationUseCases
 
 /**
@@ -289,7 +289,7 @@ class AndroidNotificationManager internal constructor(
     }
 
     companion object {
-        private const val TAG = "com.jonghyunkim.nativetoolkit.notification.presentation.AndroidNotificationManager"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.notification.AndroidNotificationManager"
 
         @Volatile
         private var instance: AndroidNotificationManager? = null

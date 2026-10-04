@@ -16,7 +16,7 @@ import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogButton
 import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
 import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
 import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
-import com.jonghyunkim.nativetoolkit.dialog.presentation.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
 import com.jonghyunkim.nativetoolkit.testing.PlainActivity
 import com.jonghyunkim.nativetoolkit.testing.TestFragmentActivity
 import org.junit.After

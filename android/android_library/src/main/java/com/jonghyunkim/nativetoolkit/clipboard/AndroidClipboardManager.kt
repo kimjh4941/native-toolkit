@@ -1,4 +1,4 @@
-package com.jonghyunkim.nativetoolkit.clipboard.presentation
+package com.jonghyunkim.nativetoolkit.clipboard
 
 import android.content.Context
 import android.util.Log
@@ -8,6 +8,8 @@ import com.jonghyunkim.nativetoolkit.clipboard.domain.error.ClipboardErrorCode
 import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipContent
 import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipDescriptionInfo
 import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipReadResult
+import com.jonghyunkim.nativetoolkit.clipboard.presentation.ClipboardEvents
+import com.jonghyunkim.nativetoolkit.clipboard.presentation.ClipboardObserver
 import com.jonghyunkim.nativetoolkit.common.event.EventHub
 import com.jonghyunkim.nativetoolkit.common.logging.LogRedaction
 import com.jonghyunkim.nativetoolkit.clipboard.data.repository.ClipboardUseCases as createClipboardUseCases
@@ -138,7 +140,7 @@ class AndroidClipboardManager internal constructor(
     }
 
     companion object {
-        private const val TAG = "com.jonghyunkim.nativetoolkit.clipboard.presentation.AndroidClipboardManager"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.clipboard.AndroidClipboardManager"
 
         @Volatile
         private var instance: AndroidClipboardManager? = null

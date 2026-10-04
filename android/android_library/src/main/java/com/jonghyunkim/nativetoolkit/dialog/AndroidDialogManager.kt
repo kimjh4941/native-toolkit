@@ -1,4 +1,4 @@
-package com.jonghyunkim.nativetoolkit.dialog.presentation
+package com.jonghyunkim.nativetoolkit.dialog
 
 import android.content.Context
 import android.util.Log
@@ -7,9 +7,10 @@ import com.jonghyunkim.nativetoolkit.dialog.application.usecase.ShowDialogUseCas
 import com.jonghyunkim.nativetoolkit.dialog.domain.error.DialogDomainError
 import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
 import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
-import kotlinx.coroutines.suspendCancellableCoroutine
+import com.jonghyunkim.nativetoolkit.dialog.presentation.FragmentDialogPresenter
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * The entry point for dialogs (Kotlin API design 6.3, 8.8).
@@ -74,7 +75,7 @@ class AndroidDialogManager internal constructor(
     }
 
     companion object {
-        private const val TAG = "com.jonghyunkim.nativetoolkit.dialog.presentation.AndroidDialogManager"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager"
 
         private val instance: AndroidDialogManager by lazy {
             AndroidDialogManager(

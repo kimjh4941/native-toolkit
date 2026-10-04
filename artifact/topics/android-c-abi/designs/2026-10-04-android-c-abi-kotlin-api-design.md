@@ -7,7 +7,7 @@
 | 対象企画書 | `artifact/topics/android-c-abi/README.md`（4 章、D-7、D-11、8.6） |
 | 対象段階 | 段階 1b（Kotlin の API の補完）の前 |
 | 対象 OS | Android 12（API 31）以降 |
-| 作成日 | 2026-10-04（第 7 版。第 6 版で決定の後、利用者の決定で機能ごとの Manager を足した。直した所の確かめを経て**決定**） |
+| 作成日 | 2026-10-04（第 7 版。第 6 版で決定の後、利用者の決定で機能ごとの Manager を足した。直した所の確かめを経て**決定**。1b の実装中に、利用者の決定で Manager の置き場所を機能のパッケージの直下に改めた（0.7）） |
 | ブランチ | `feature/NTKIT-17` |
 | 前段階 | 段階 0（UI テストと基準、パッケージ名、ツールチェーン）、段階 1a（NDK のスパイク）、C ABI の設計書の第 1 部（決定） |
 | 元にした文書 | C ABI の設計書 第 1 部（`designs/2026-10-04-android-c-abi-c-abi-design.md`。以下「C ABI の設計書」）の 9.1（K-1〜K-9）、0e の結果（`results/2026-10-04-android-c-abi-stage0e-result.md` 4 章。1.x の識別子）、ブリッジとサンプルの Receiver の洗い出し（2026-10-04。5 章） |
@@ -72,6 +72,12 @@
 | 決定 | 反映 |
 |---|---|
 | ほかの OS（iOS・macOS の機能ごとの Manager、Windows の Manager）とそろえ、`android_library` にも機能ごとの Manager を置く。名前はほかの OS とそろえて `Android*Manager`。C ABI の受け口は機能ごとにこの Manager を呼ぶ（2026-10-04） | `AndroidClipboardManager`、`AndroidDialogManager`、`AndroidNotificationManager`、`AndroidShareManager` を入口だけの薄い層として置いた（6.3、付録 A）。第 6 版の `DialogManager`、`NotificationPermissionManager`、`NotificationSettingsManager` はこの 4 つにまとめた。イベントと監視の持ち主は internal にし、Manager から使う。既存の `*UseCases` などの公開の口は今のまま残す（K-9） |
+
+### 0.7 1b の実装中の利用者の決定
+
+| 決定 | 反映 |
+|---|---|
+| Manager は Presentation の上の別の層なので、ほかの OS（iOS・Windows はすべて、macOS は Clipboard を除く 3 つ）と同じく、機能のパッケージの直下に置き、層のパッケージと並べる。今後ほかの OS もこの形にそろえる（2026-10-04） | 4 つの Manager を `<機能>/presentation/` から `<機能>/` に移した（6.1、6.3、付録 A）。`common.md` の「層とモジュールの対応」と `android.md` の Manager の節に置き場所を書いた。macOS の Clipboard（`Clipboard/Manager/`）は別の作業として記録した |
 
 ## 1. 設計目的
 
@@ -199,7 +205,7 @@
 |---|---|---|
 | モジュール配置 | 適合 | 5 章の移すものをすべて `android_library` へ |
 | 全メソッドの先頭で全パラメータの `Log.d` | **直す** | 秘密の値を伏せる例外を足す（8.11） |
-| Manager の置き場所（`manager/` が無い） | **書き足す** | Android での Manager の役と、UseCase を置かない口の条件（6.3） |
+| Manager の置き場所（`manager/` が無い） | **書き足す** | Android での Manager の役と置き場所（機能のパッケージの直下。0.7）、UseCase を置かない口の条件（6.3） |
 | KDoc | 適合 | 足す公開の口に付ける |
 | Coroutine（`suspend fun` + 例外送出） | 適合 | `AndroidDialogManager.show` と `AndroidNotificationManager.requestPermission` の `suspend` 版 |
 
@@ -268,14 +274,14 @@
 | `clipboard/domain/error/ClipboardErrorCode.kt` | 7 つのコードと `of` | public |
 | `clipboard/presentation/ClipboardObserver.kt` | プロセスで 1 つの監視（Delegate の持ち主） | internal |
 | `clipboard/presentation/ClipboardEvents.kt` | `changes: EventHub<Unit>` | internal |
-| `clipboard/presentation/AndroidClipboardManager.kt` | 入口（6.3） | public |
+| `clipboard/AndroidClipboardManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
 | `dialog/AndroidDialogFragment.kt` | **今の場所のまま**。要求の ID を入れる internal の factory を足す（8.8） | public（今と同じ） |
 | `dialog/domain/model/DialogRequest.kt`、`DialogOptions.kt`、`DialogResult.kt`、`DialogValue.kt`、`DialogButton.kt` | 要求と結果 | public |
 | `dialog/domain/error/DialogError.kt`、`DialogDomainError.kt` | 失敗の値と、`suspend` 版が投げる例外 | public |
 | `dialog/application/port/DialogPresenter.kt` | port | public |
 | `dialog/application/usecase/ShowDialogUseCase.kt`、`CancelDialogUseCase.kt` | 1 操作 1 クラス | public |
 | `dialog/presentation/FragmentDialogPresenter.kt` | port の実装 | internal |
-| `dialog/presentation/AndroidDialogManager.kt` | 入口（6.3） | public |
+| `dialog/AndroidDialogManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
 | `notification/domain/model/PermissionRequestResult.kt`、`NotificationSettingsTarget.kt`、`NotificationSettingsOpenResult.kt` | 結果と値 | public |
 | `notification/domain/error/PermissionRequestDomainError.kt` | `suspend` 版が投げる例外 | public |
 | `notification/application/port/NotificationPermissionPort.kt`、`NotificationSettingsPort.kt` | port | public |
@@ -299,13 +305,13 @@
 | `notification/presentation/event/NotificationEventIntents.kt` | PendingIntent の要求を作る（factory） | public |
 | `notification/presentation/permission/FragmentPermissionRequester.kt` | port の実装（会を持つ） | internal |
 | `notification/presentation/permission/PermissionRequestFragment.kt` | 画面の無い Fragment | internal |
-| `notification/presentation/AndroidNotificationManager.kt` | 入口（6.3） | public |
+| `notification/AndroidNotificationManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
 | `share/domain/model/ShareChooserAction.kt`、`ShareSelection.kt` | 値 | public |
 | `share/application/port/ShareRepository.kt` | (直す) 3 つの関数を既定の実装つきで足す | public（今と同じ） |
 | `share/application/usecase/ShareForSelectionUseCase.kt`、`CancelShareSelectionUseCase.kt`、`ShareTextWithActionsUseCase.kt` | 1 操作 1 クラス | public |
 | `share/domain/error/ShareDomainError.kt` | (直す) `InvalidChooserAction` を足す | public（今と同じ） |
 | `share/presentation/ShareEvents.kt` | `chooserActions`、`selections` | internal |
-| `share/presentation/AndroidShareManager.kt` | 入口（6.3） | public |
+| `share/AndroidShareManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
 | `share/presentation/ShareChooserActionReceiver.kt` | 動的 Receiver（プロセスで 1 つ） | internal |
 | `share/data/repository/ShareCallbackCoordinator.kt` | (直す) 要求ごとの印、ロックの外での呼び出し | internal（今と同じ） |
 | `share/data/repository/ShareRepositoryImpl.kt` | (直す) 要求ごとの PendingIntent、型のある Chooser Action | internal（今と同じ） |
@@ -339,6 +345,7 @@
 | 規則 | 内容 |
 |---|---|
 | 役目 | 入口だけ（ファサード）。UseCase と、イベント・監視・宿主の持ち主に委ね、ロジックを持たない（common.md の「Manager 内でロジックを重複させない」） |
+| 置き場所 | 機能のパッケージの直下（`<機能>/Android*Manager.kt`。パッケージは `com.jonghyunkim.nativetoolkit.<機能>`）。層のパッケージ（`domain`・`application`・`data`・`presentation`）には入れない。ほかの OS と同じ（0.7） |
 | 形 | `class Android*Manager internal constructor(依存)` と `companion object { @JvmStatic fun getInstance(context: Context) }`。プロセスで 1 つ。持つのは Application の Context だけ（Activity を持ち続けない。前面の Activity はそのつど `ForegroundActivityTracker` から引く） |
 | テスト | internal の constructor で UseCase と port を差し替える（iOS の `IosNotificationManager` が repository を受け取れるのと同じ） |
 | 公開の API | 結果を待つ操作は callback 版と `suspend` 版、同期の操作は同期のまま（委ねる UseCase と同じ引数・戻り値・例外・スレッド）。**例外は `AndroidShareManager.shareText(content, preview)` だけ**で、Chooser Action の JSON の引数を出さず、`ShareTextUseCase(content, "[]", preview)` に委ねる（README 4 章の「Kotlin の API では Chooser Action を型にする」。型のある Chooser Action は `shareTextWithActions` で受ける）。宣言は付録 A |
@@ -988,11 +995,12 @@ object ForegroundActivityTracker : Application.ActivityLifecycleCallbacks {
 }
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) object LogRedaction { fun redact(value: CharSequence?): String }
 
-// clipboard
+// clipboard.domain
 enum class ClipboardErrorCode {
     EMPTY_CONTENT, EMPTY_ITEMS, INVALID_URI, UNAVAILABLE, READ_NOT_ALLOWED, SECURITY, UNKNOWN;
     companion object { fun of(error: Throwable): ClipboardErrorCode }
 }
+// clipboard (feature root: Manager layer)
 class AndroidClipboardManager internal constructor(/* use cases, observer, events */) {
     fun copyPlainText(content: ClipContent.PlainText)                 // same exceptions as the existing use cases
     fun copyHtmlText(content: ClipContent.HtmlText)
@@ -1066,7 +1074,7 @@ class ShowDialogUseCase(private val presenter: DialogPresenter) {
 }
 class CancelDialogUseCase(private val presenter: DialogPresenter) { operator fun invoke(requestId: Long) }
 
-// dialog.presentation
+// dialog (feature root: Manager layer)
 class AndroidDialogManager internal constructor(/* use cases */) {
     fun show(request: DialogRequest, onResult: (DialogResult) -> Unit): Long
     suspend fun show(request: DialogRequest): DialogResult.Answer          // throws DialogDomainError
@@ -1108,7 +1116,7 @@ class OpenNotificationSettingsUseCase(private val port: NotificationSettingsPort
     operator fun invoke(target: NotificationSettingsTarget): NotificationSettingsOpenResult
 }
 
-// notification.presentation
+// notification (feature root: Manager layer)
 class AndroidNotificationManager internal constructor(/* use cases, ports, events */) {
     // existing operations (same arguments, results and exceptions as the existing use cases)
     fun show(command: AndroidNotificationCommand): Result<Unit>
@@ -1140,6 +1148,8 @@ class AndroidNotificationManager internal constructor(/* use cases, ports, event
     val shown: EventHub<NotificationShown>
     companion object { @JvmStatic fun getInstance(context: Context): AndroidNotificationManager }
 }
+
+// notification.presentation
 class NotificationInteraction(val kind: Kind, val notificationId: Int, val tag: String?,
                               val actionId: String?, val data: Map<String, String>) {   // equals/hashCode by value; toString redacts data values
     enum class Kind { BODY_TAP, ACTION, DISMISS }
@@ -1182,6 +1192,8 @@ class CancelShareSelectionUseCase(private val repository: ShareRepository) { ope
 class ShareTextWithActionsUseCase(private val repository: ShareRepository) {
     operator fun invoke(content: ShareContent, actions: List<ShareChooserAction>, preview: SharePreviewOptions = SharePreviewOptions())
 }
+
+// share (feature root: Manager layer)
 class AndroidShareManager internal constructor(/* use cases, coordinator, events */) {
     // existing operations (same arguments, results and exceptions as the existing use cases)
     fun shareText(content: ShareContent, preview: SharePreviewOptions = SharePreviewOptions())   // delegates to ShareTextUseCase(content, "[]", preview)

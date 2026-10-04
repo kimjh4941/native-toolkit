@@ -11,9 +11,9 @@
 | `android/AndroidLibraryExample` | ネイティブサンプル。`implementation(project(":android_library"))` のみ | `unity_android_plugin` への依存、`android.unity.*` の import |
 
 **`Unity*Manager` は Unity Bridge 層であって Manager 層ではない。**
-`android_library` には現状 `manager/` パッケージが無いが、それは「Manager 層のものを `unity_android_plugin` に置いてよい」という意味ではない。system Listener など、ネイティブ利用者にも必要なクラスは `android_library` の `presentation/` などに配置する。
+Manager 層（`Android*Manager`）は `android_library` の機能のパッケージの直下に置く（`common.md` の「Manager の置き場所」）。Manager 層のものを `unity_android_plugin` に置いてはならない。system Listener など、Manager から使う部品でネイティブ利用者にも必要なクラスは、`android_library` の `presentation/` などに配置する。
 
-**具体例:** Clipboard の変更監視 `ClipboardChangeMonitor`（`ClipboardManager.OnPrimaryClipChangedListener` を所有）は `android/android_library/src/main/java/android/library/clipboard/presentation/` に置き、`UnityAndroidClipboardManager` はそこへ委譲するだけにする。
+**具体例:** Clipboard の変更監視 `ClipboardChangeMonitor`（`ClipboardManager.OnPrimaryClipChangedListener` を所有）は `android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/clipboard/presentation/` に置き、`UnityAndroidClipboardManager` はそこへ委譲するだけにする。
 
 **実装前チェック:** 追加するクラスを `unity_android_plugin` に置こうとしたら、「`AndroidLibraryExample` からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
 
@@ -21,6 +21,7 @@
 
 ほかの OS（`Ios*Manager`、`Mac*Manager`、`Windows*Manager`）とそろえ、機能ごとの入口 `AndroidClipboardManager`、`AndroidDialogManager`、`AndroidNotificationManager`、`AndroidShareManager` を `android_library` に置く（`artifact/topics/android-c-abi/designs/2026-10-04-android-c-abi-kotlin-api-design.md` 6.3）。
 
+- 置き場所は機能のパッケージの直下（`<機能>/Android*Manager.kt`、パッケージ `com.jonghyunkim.nativetoolkit.<機能>`）。`presentation/` などの層のパッケージには入れない（`common.md` の「Manager の置き場所」）
 - 入口だけの薄い層にする。UseCase と、イベント・監視の持ち主に委ね、ロジックを持たない
 - `class Android*Manager internal constructor(依存)` と `companion object { @JvmStatic fun getInstance(context: Context) }`。持つのは Application の Context だけ（Activity を持ち続けない）
 - テストは internal の constructor で UseCase と port を差し替える

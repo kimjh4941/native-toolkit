@@ -1,4 +1,4 @@
-package com.jonghyunkim.nativetoolkit.share.presentation
+package com.jonghyunkim.nativetoolkit.share
 
 import android.content.Context
 import android.util.Log
@@ -14,6 +14,7 @@ import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
 import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareSelection
 import com.jonghyunkim.nativetoolkit.share.domain.model.logSafeDescription
+import com.jonghyunkim.nativetoolkit.share.presentation.ShareEvents
 
 /**
  * The entry point for sharing (Kotlin API design 6.3, 8.9).
@@ -179,7 +180,7 @@ class AndroidShareManager internal constructor(
     }
 
     companion object {
-        private const val TAG = "com.jonghyunkim.nativetoolkit.share.presentation.AndroidShareManager"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.share.AndroidShareManager"
 
         @Volatile
         private var instance: AndroidShareManager? = null
