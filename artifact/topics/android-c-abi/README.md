@@ -240,7 +240,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 | 0e | パッケージ名を `com.jonghyunkim.nativetoolkit.*` に変える（D-15）。機械的な改名だけを行い、0d の基準と同じ結果になることを確かめる。ブリッジ（`android.unity.*`）は改名しない（段階 3 で消すので）。改名の前の名前と作り方（`SharedPreferences` の名前、Alarm のコンポーネント名、action の文字列、request code の式（`"tag::id".hashCode()`）、data の URI の scheme、PendingIntent の flags）を結果に記録する（1b で 1.x の Alarm を取り消すときに使う）。**完了**（`results/2026-10-04-android-c-abi-stage0e-result.md`。保存と通信の識別子 3 つは変えず、1b で決める。改名で壊れうる所のテストは両方の環境で通った。全体の実行は 0h の後） | Kotlin の利用者から見たパッケージ名が変わる（2.0.0） |
 | 0f | ビルドの道具を上げる: AGP 9.3.1、Gradle 9.7.0、Kotlin 2.4.20（`languageVersion = apiVersion = 2.2`）、AGP 9 の新しい DSL と組み込みの Kotlin、Dokka 2.2.0（`publish_docs.sh` の `dokkaHtml` も直す）、JVM 17。**SDK と依存の版は変えない**。0d の基準と同じ結果になることを確かめる。**完了**（`results/2026-10-04-android-c-abi-stage0f-result.md`。単体テストは debug だけになり、Dokka v2 の対象は `release` の source set。AGP 9 の既定で AAR の `minCompileSdk` が 35 になった） | 無し |
 | 0g | 依存と compileSdk を上げる: compileSdk 36、androidx（8.3）、`aarMetadata.minCompileSdk = 36`。使っていない `material` を外し、`fragment` を明示の依存にする。`appcompat` を外せるかも確かめる。0d の基準と同じ結果になることを確かめる。**完了**（`results/2026-10-04-android-c-abi-stage0g-result.md`。ライブラリから `material` と `appcompat` を外し、`fragment` を `api` で明示した。利用者に伝わる stdlib が 2.4.20 になる件を 8.2 に足した） | 利用者の最低条件が 8.3 のとおり上がる |
-| 0h | サンプルの targetSdk を 36 にする。UI テストを直してよいのはこの段だけで、直した理由を結果に記録する | サンプルの targetSdk が 36 になる |
+| 0h | サンプルの targetSdk を 36 にする。UI テストを直してよいのはこの段だけで、直した理由を結果に記録する。**完了**（`results/2026-10-04-android-c-abi-stage0h-result.md`。UI テストは直さずに通った。0e〜0h の後の全体の実行で、両方の環境とも 317 件すべて成功し、0d の基準と同じ） | サンプルの targetSdk が 36 になる |
 | 1a | スパイク: NDK のビルド（8.2）。結果で D-4・D-6・D-9・D-10・D-13 を決め、C ABI の設計書を書く | 無し |
 | 1b | Kotlin の API を補完する（4 章）。1.2 のロジックを `android_library` へ移し、イベントを保つ口、予約の保存形式と 1.x のデータの破棄、前面の Activity と透明な Activity を足す。サンプルの Receiver を、移したライブラリの仕組みに置き換える。Dialog を層に分け、notification の依存の向きを直す（4 章）。新しい API（Activity の要らない Dialog と権限の要求、イベントの口）を使う画面をサンプルに足す | 1.x で予約した通知を破棄する（D-11）。それ以外の、ネイティブの利用者から見た動作は変えない。Kotlin の利用者に androidx.startup の依存が入る |
 | 2a | `check_c_abi_contract.py` と `check_manual_c_examples.py` を OS ごとに動くようにする（パス、機能名、操作の数、公開シンボルの読み方、コンパイラを OS ごとの設定にする）。照合の対象に、イベントと完了のコールバック（6 章の振る舞いの集合）を入れる。C ABI の設計で `Common.h` を分けると決めた場合は、Windows の側（ヘッダー、照合、マニュアル）もここで直す（3.3） | 無し（`Common.h` を分ける場合も、Windows の C ABI の名前と値は変えない） |
@@ -345,7 +345,7 @@ Windows では 47 の操作が 105 の C 関数になった（ハンドルの読
 
 件数は、ランナーが報告する展開後の件数で記録する（`test_android.sh` の基準も同じ）。
 
-**全体の実行の時期**（2026-10-04 に決定）: 全体の実行（両方の環境、Host を含む）は 1 回に約 2 時間かかる。そこで、各段・各機能を直した直後は、ビルドと単体テスト、直した所に関係するテストだけを両方の環境で流す（例: 1b で Dialog を直したら `--filter Dialog`）。全体を流して 0d の基準と比べるのは、区切りの 2 回（0h の後と 1b の後）とする。各段は別のコミットにするので、区切りで落ちたら段ごとに遡って原因を探す。Windows（windows-architecture）は段階ごとに全件を流したが、全件が 1 回 8〜24 分だったからで、Android は所要時間が 5 倍以上なので分ける。
+**全体の実行の時期**（2026-10-04 に決定）: 全体の実行（両方の環境、Host を含む）は 1 回に約 1 時間かかる（0h の後の実行で、実機 19 分、エミュレータ 46 分。順に流すので合わせて 65 分）。そこで、各段・各機能を直した直後は、ビルドと単体テスト、直した所に関係するテストだけを両方の環境で流す（例: 1b で Dialog を直したら `--filter Dialog`）。全体を流して 0d の基準と比べるのは、区切りの 2 回（0h の後と 1b の後）とする。各段は別のコミットにするので、区切りで落ちたら段ごとに遡って原因を探す。Windows（windows-architecture）は段階ごとに全件を流したが、全件が 1 回 8〜24 分だったからで、Android はその 3〜8 倍かかり、端末の再起動も伴うので分ける。
 
 **ABI ごとに確かめられる範囲**（2026-10-03 に確認）: 試験環境は 2 つとも arm64 である（実機の Pixel 6a、Apple Silicon の Mac の上のエミュレータ。Apple Silicon の Mac のエミュレータは arm64 のイメージしか動かせない）。
 
