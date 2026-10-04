@@ -22,4 +22,6 @@ sealed class ShareDomainError : Exception() {
     data object EmptyFileList : ShareDomainError()
     /** Base64 icon decoding failed for the given target ID. */
     data class InvalidBase64Icon(val id: String) : ShareDomainError()
+    /** A chooser action has an empty or duplicate ID, or an icon that is not a readable image. */
+    data class InvalidChooserAction(val id: String) : ShareDomainError()
 }

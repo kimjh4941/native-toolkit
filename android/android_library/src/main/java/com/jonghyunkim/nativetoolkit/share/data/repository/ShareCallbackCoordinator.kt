@@ -4,39 +4,15 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
 import android.service.chooser.ChooserResult
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-
-internal interface ShareCallbackReceiverRegistry {
-    fun register(receiver: BroadcastReceiver, action: String)
-    fun unregister(receiver: BroadcastReceiver)
-}
-
-private class AndroidShareCallbackReceiverRegistry(
-    private val appContext: Context
-) : ShareCallbackReceiverRegistry {
-    override fun register(receiver: BroadcastReceiver, action: String) {
-        Log.d(TAG, "[register] receiver: $receiver, action: $action")
-        ContextCompat.registerReceiver(
-            appContext,
-            receiver,
-            IntentFilter(action),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-    }
-
-    override fun unregister(receiver: BroadcastReceiver) {
-        Log.d(TAG, "[unregister] receiver: $receiver")
-        appContext.unregisterReceiver(receiver)
-    }
-
-    private companion object {
-        private const val TAG = "AndroidShareCallbackReceiverRegistry"
-    }
-}
+import com.jonghyunkim.nativetoolkit.common.runtime.ProcessNonce
+import com.jonghyunkim.nativetoolkit.share.domain.model.ShareSelection
+import com.jonghyunkim.nativetoolkit.share.presentation.ShareEvents
 
 // Internal result distinguishing an app selection from non-selection actions (Copy/Edit/Unknown).
 internal sealed interface CallbackResult {
@@ -80,85 +56,172 @@ internal object ShareCallbackResultParser {
     }
 }
 
-// Application-scoped single owner of the share-callback BroadcastReceiver.
-// All public methods are synchronized; safe to call from any thread.
+/**
+ * The result Intent of a share request (Kotlin API design 8.9): action [ACTION_RESULT], data
+ * `ntk-share-result://<package>/<process nonce>/<token>`, limited to this package.
+ */
+internal object ShareResultIntents {
+
+    private const val TAG = "com.jonghyunkim.nativetoolkit.share.data.repository.ShareResultIntents"
+
+    const val ACTION_RESULT: String = "com.jonghyunkim.nativetoolkit.share.action.RESULT"
+    const val SCHEME_RESULT: String = "ntk-share-result"
+
+    /**
+     * Builds the result Intent of [token].
+     *
+     * @param context Any Context.
+     * @param nonce The process nonce.
+     * @param token The request's token.
+     */
+    fun intent(context: Context, nonce: Long, token: Long): Intent {
+        Log.d(TAG, "[intent] nonce: $nonce, token: $token")
+        val uri = Uri.Builder()
+            .scheme(SCHEME_RESULT)
+            .authority(context.packageName)
+            .appendPath(nonce.toString())
+            .appendPath(token.toString())
+            .build()
+        return Intent(ACTION_RESULT, uri).setPackage(context.packageName)
+    }
+
+    /**
+     * The filter of the receiver: the action and the scheme and authority of the data.
+     *
+     * @param context Any Context.
+     */
+    fun filter(context: Context): IntentFilter {
+        Log.d(TAG, "[filter] context: $context")
+        return IntentFilter(ACTION_RESULT).apply {
+            addDataScheme(SCHEME_RESULT)
+            addDataAuthority(context.packageName, null)
+        }
+    }
+
+    /**
+     * Reads the nonce and the token from a result Intent, or `null`.
+     *
+     * @param intent The received Intent.
+     */
+    fun nonceAndToken(intent: Intent?): Pair<Long, Long>? {
+        Log.d(TAG, "[nonceAndToken] intent: $intent")
+        val segments = intent?.data?.takeIf { it.scheme == SCHEME_RESULT }?.pathSegments ?: return null
+        if (segments.size != 2) return null
+        val nonce = segments[0].toLongOrNull() ?: return null
+        val token = segments[1].toLongOrNull() ?: return null
+        return nonce to token
+    }
+}
+
+/** What a share request waits for. */
+internal sealed interface ShareWaitMode {
+    /** The existing `shareWithCallback`: [onSelected] for a pick, then [onFinished] once. */
+    class Callback(val onSelected: (String?) -> Unit, val onFinished: () -> Unit) : ShareWaitMode {
+        override fun toString(): String = "Callback"
+    }
+
+    /** `shareForSelection`: a pick becomes a selection event. */
+    data object Event : ShareWaitMode
+}
+
+/**
+ * The single wait for a share result in this process (Kotlin API design 8.9).
+ *
+ * Each request gets a token, and its result Intent carries the process nonce and the token, so a
+ * result of an older Sharesheet or an earlier process is dropped. Opening a new one replaces the
+ * wait (the old wait's onFinished is not called, as before). Inside the lock only the token is
+ * checked and the wait taken out; user functions and events run outside it.
+ *
+ * @param nonce The process nonce in the result URIs.
+ * @param ensureReceiver Registers the one result receiver of the process; called under the lock
+ *   until it succeeds.
+ * @param emitSelection Delivers a selection event; called on the main thread.
+ */
 internal class ShareCallbackCoordinator(
-    private val appContext: Context,
-    private val receiverRegistry: ShareCallbackReceiverRegistry =
-        AndroidShareCallbackReceiverRegistry(appContext)
+    val nonce: Long,
+    private val ensureReceiver: () -> Unit,
+    private val emitSelection: (ShareSelection) -> Unit
 ) {
 
-    private val lock = Any()
-    private data class PendingRegistration(
-        val token: Long,
-        val receiver: BroadcastReceiver
-    )
+    private class Pending(val token: Long, val mode: ShareWaitMode)
 
-    private var pending: PendingRegistration? = null
+    private val lock = Any()
+    private var receiverRegistered = false
+    private var pending: Pending? = null
     private var nextToken: Long = 0L
 
-    /** Registers a one-shot receiver, replacing any previous pending one. Returns a token for cancel(token). */
-    fun register(
-        action: String,
-        onSelected: (String?) -> Unit,
-        onFinished: () -> Unit = {}
-    ): Long = synchronized(lock) {
-        Log.d(TAG, "[register] action: $action")
-        unregisterLocked()
+    /**
+     * Starts waiting for a new request, replacing the current wait.
+     *
+     * @param mode What to do with the result.
+     * @return The token of the request; the first one is 1.
+     */
+    fun register(mode: ShareWaitMode): Long = synchronized(lock) {
+        Log.d(TAG, "[register] mode: $mode")
+        if (!receiverRegistered) {
+            ensureReceiver()
+            receiverRegistered = true
+        }
         val token = ++nextToken
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context?, intent: Intent?) {
-                Log.d(TAG, "[onReceive] ctx: $ctx, intent: $intent")
-                val claimed = synchronized(lock) {
-                    val current = pending
-                    if (current?.token != token || current.receiver !== this) {
-                        false
-                    } else {
-                        unregisterLocked()
-                        true
-                    }
-                }
-                if (!claimed) {
-                    Log.d(TAG, "[onReceive] stale or cancelled registration; ignoring")
-                    return
-                }
-                try {
-                    when (val r = ShareCallbackResultParser.parse(intent)) {
-                        is CallbackResult.Selected -> onSelected(r.packageName)
-                        CallbackResult.Ignored -> Log.d(TAG, "[onReceive] non-selection action; not notifying")
-                    }
-                } finally {
-                    onFinished()
-                }
-            }
-        }
-        pending = PendingRegistration(token, receiver)
-        try {
-            receiverRegistry.register(receiver, action)
-        } catch (e: RuntimeException) {
-            if (pending?.token == token) pending = null
-            throw e
-        }
+        pending = Pending(token, mode)
         token
     }
 
-    /** Unregisters only if the given token is still the current registration (launch-failure path). */
+    /**
+     * Handles a received result. Main thread.
+     *
+     * @param nonce The nonce in the result URI.
+     * @param token The token in the result URI.
+     * @param result The parsed result.
+     */
+    fun deliver(nonce: Long, token: Long, result: CallbackResult) {
+        Log.d(TAG, "[deliver] nonce: $nonce, token: $token, result: $result")
+        val mode = synchronized(lock) {
+            val current = pending
+            if (nonce != this.nonce || current == null || current.token != token) {
+                null
+            } else {
+                pending = null
+                current.mode
+            }
+        }
+        if (mode == null) {
+            Log.d(TAG, "[deliver] stale or cancelled request; ignoring")
+            return
+        }
+        when (mode) {
+            is ShareWaitMode.Callback -> try {
+                if (result is CallbackResult.Selected) mode.onSelected(result.packageName)
+            } finally {
+                mode.onFinished()
+            }
+            ShareWaitMode.Event -> if (result is CallbackResult.Selected) {
+                emitSelection(ShareSelection(token, result.packageName))
+            }
+        }
+    }
+
+    /**
+     * Stops waiting only when [token] is the current wait (the launch-failure path and
+     * `cancelShareSelection`).
+     *
+     * @param token The request's token.
+     */
     fun cancel(token: Long) = synchronized(lock) {
         Log.d(TAG, "[cancel] token: $token")
-        if (pending?.token == token) unregisterLocked()
+        if (pending?.token == token) pending = null
     }
 
-    /** Unconditionally unregisters the current pending receiver (explicit cancel / teardown). */
+    /** Returns the token of the current wait, or `null`. */
+    fun currentToken(): Long? = synchronized(lock) {
+        Log.d(TAG, "[currentToken]")
+        pending?.token
+    }
+
+    /** Stops waiting for the current request (explicit cancel). */
     fun cancel() = synchronized(lock) {
         Log.d(TAG, "[cancel]")
-        unregisterLocked()
-    }
-
-    private fun unregisterLocked() {
-        pending?.let {
-            runCatching { receiverRegistry.unregister(it.receiver) }
-            pending = null
-        }
+        pending = null
     }
 
     companion object {
@@ -166,12 +229,41 @@ internal class ShareCallbackCoordinator(
 
         @Volatile private var instance: ShareCallbackCoordinator? = null
 
-        /** Returns the application-scoped singleton (one per process). */
+        /**
+         * Returns the process-wide coordinator. Nothing is registered until the first request.
+         *
+         * @param context Any Context.
+         */
         fun get(context: Context): ShareCallbackCoordinator {
             Log.d(TAG, "[get] context: $context")
             return instance ?: synchronized(this) {
-                instance ?: ShareCallbackCoordinator(context.applicationContext).also { instance = it }
+                instance ?: create(context.applicationContext).also { instance = it }
             }
+        }
+
+        private fun create(appContext: Context): ShareCallbackCoordinator {
+            Log.d(TAG, "[create] appContext: $appContext")
+            lateinit var coordinator: ShareCallbackCoordinator
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    Log.d(TAG, "[onReceive] intent: $intent")
+                    val (nonce, token) = ShareResultIntents.nonceAndToken(intent) ?: return
+                    coordinator.deliver(nonce, token, ShareCallbackResultParser.parse(intent))
+                }
+            }
+            coordinator = ShareCallbackCoordinator(
+                nonce = ProcessNonce.value,
+                ensureReceiver = {
+                    ContextCompat.registerReceiver(
+                        appContext,
+                        receiver,
+                        ShareResultIntents.filter(appContext),
+                        ContextCompat.RECEIVER_NOT_EXPORTED
+                    )
+                },
+                emitSelection = { ShareEvents.selections.emit(it) }
+            )
+            return coordinator
         }
     }
 }

@@ -10,9 +10,11 @@ import android.graphics.BitmapFactory
 import com.jonghyunkim.nativetoolkit.share.application.port.RichPreviewShareRepository
 import com.jonghyunkim.nativetoolkit.share.domain.error.ShareDomainError
 import com.jonghyunkim.nativetoolkit.share.domain.model.DirectShareTarget
+import com.jonghyunkim.nativetoolkit.share.domain.model.ShareChooserAction
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
 import com.jonghyunkim.nativetoolkit.share.domain.model.logSafeDescription
 import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
+import com.jonghyunkim.nativetoolkit.share.presentation.ShareChooserActionReceiver
 import android.net.Uri
 import android.os.Build
 import android.service.chooser.ChooserAction
@@ -30,7 +32,7 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
 
     internal var shortcutPublisher: DirectShareShortcutPublisher = AndroidDirectShareShortcutPublisher
 
-    private val coordinator = ShareCallbackCoordinator.get(context)
+    private val coordinator by lazy { ShareCallbackCoordinator.get(context) }
 
     override fun shareText(content: ShareContent, chooserActionsJson: String) {
         Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson")
@@ -43,21 +45,50 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         preview: SharePreviewOptions
     ) {
         Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson, preview: $preview")
-        val previewUri = resolveOptionalPreviewUri(preview.thumbnailPath)
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = content.mimeType
-            putExtra(Intent.EXTRA_TEXT, content.text)
-            content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
-            preview.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
-            previewUri?.let {
-                // Sharesheet reads the thumbnail from clipData, not from data.
-                clipData = ClipData.newUri(context.contentResolver, null, it)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-        }
-        val chooserIntent = Intent.createChooser(shareIntent, content.title)
+        val chooserIntent = Intent.createChooser(textShareIntent(content, preview), content.title)
         addChooserActionsIfSupported(chooserIntent, chooserActionsJson)
         startActivity(chooserIntent)
+    }
+
+    override fun shareTextWithActions(
+        content: ShareContent,
+        actions: List<ShareChooserAction>,
+        preview: SharePreviewOptions
+    ) {
+        Log.d(TAG, "[shareTextWithActions] content: ${content.logSafeDescription()}, actions: $actions, preview: $preview")
+        // Check every action before the generation changes, so a rejected share leaves the
+        // actions of the previous share working.
+        val seen = HashSet<String>()
+        val icons = actions.map { action ->
+            if (action.id.isEmpty() || !seen.add(action.id)) throw ShareDomainError.InvalidChooserAction(action.id)
+            BitmapFactory.decodeByteArray(action.iconBytes, 0, action.iconBytes.size)
+                ?: throw ShareDomainError.InvalidChooserAction(action.id)
+        }
+        val generation = ShareChooserActionReceiver.nextGeneration(context)
+        val chooserIntent = Intent.createChooser(textShareIntent(content, preview), content.title)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && actions.isNotEmpty()) {
+            val chooserActions = actions.zip(icons).map { (action, icon) ->
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    0,
+                    ShareChooserActionReceiver.intent(context, generation, action.id),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                ChooserAction.Builder(android.graphics.drawable.Icon.createWithBitmap(icon), action.label, pendingIntent).build()
+            }
+            chooserIntent.putExtra(Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS, chooserActions.toTypedArray())
+        }
+        startActivity(chooserIntent)
+    }
+
+    override fun shareForSelection(content: ShareContent, preview: SharePreviewOptions): Long {
+        Log.d(TAG, "[shareForSelection] content: ${content.logSafeDescription()}, preview: $preview")
+        return openWithResult(content, preview, ShareWaitMode.Event)
+    }
+
+    override fun cancelShareSelection(token: Long) {
+        Log.d(TAG, "[cancelShareSelection] token: $token")
+        coordinator.cancel(token)
     }
 
     override fun shareImage(filePath: String, mimeType: String) {
@@ -156,33 +187,43 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         onFinished: () -> Unit
     ) {
         Log.d(TAG, "[shareWithCallback] content: ${content.logSafeDescription()}, preview: $preview, onResult: $onResult, onFinished: $onFinished")
-        val callbackAction = "${context.packageName}.SHARE_CALLBACK"
-        val token = coordinator.register(callbackAction, onResult, onFinished)
+        openWithResult(content, preview, ShareWaitMode.Callback(onResult, onFinished))
+    }
+
+    // Each request has its own result PendingIntent: the data URI carries the process nonce and
+    // the request's token (Kotlin API design 8.9).
+    private fun openWithResult(content: ShareContent, preview: SharePreviewOptions, mode: ShareWaitMode): Long {
+        Log.d(TAG, "[openWithResult] content: ${content.logSafeDescription()}, preview: $preview, mode: $mode")
+        val token = coordinator.register(mode)
         try {
-            val previewUri = resolveOptionalPreviewUri(preview.thumbnailPath)
-            val callbackIntent = Intent(callbackAction).setPackage(context.packageName)
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
                 SHARE_CALLBACK_REQUEST_CODE,
-                callbackIntent,
+                ShareResultIntents.intent(context, coordinator.nonce, token),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
-            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = content.mimeType
-                putExtra(Intent.EXTRA_TEXT, content.text)
-                content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
-                preview.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
-                previewUri?.let {
-                    // Sharesheet reads the thumbnail from clipData, not from data.
-                    clipData = ClipData.newUri(context.contentResolver, null, it)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-            }
-            val chooserIntent = Intent.createChooser(shareIntent, content.title, pendingIntent.intentSender)
+            val chooserIntent = Intent.createChooser(textShareIntent(content, preview), content.title, pendingIntent.intentSender)
             startActivity(chooserIntent)
         } catch (e: Throwable) {
             coordinator.cancel(token)
             throw e
+        }
+        return token
+    }
+
+    private fun textShareIntent(content: ShareContent, preview: SharePreviewOptions): Intent {
+        Log.d(TAG, "[textShareIntent] content: ${content.logSafeDescription()}, preview: $preview")
+        val previewUri = resolveOptionalPreviewUri(preview.thumbnailPath)
+        return Intent(Intent.ACTION_SEND).apply {
+            type = content.mimeType
+            putExtra(Intent.EXTRA_TEXT, content.text)
+            content.subject?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+            preview.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
+            previewUri?.let {
+                // Sharesheet reads the thumbnail from clipData, not from data.
+                clipData = ClipData.newUri(context.contentResolver, null, it)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
         }
     }
 
