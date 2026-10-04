@@ -55,6 +55,22 @@
             android:theme="@style/NativeToolkit.Theme.Host"
             android:windowSoftInputMode="adjustResize" />
 
+        <!--
+            Notification taps, actions and dismissals (Kotlin API design 8.5). The class names are
+            compatibility identifiers: scheduled notifications store them, so never move them.
+        -->
+        <receiver
+            android:name=".notification.presentation.event.NotificationEventReceiver"
+            android:exported="false" />
+
+        <activity
+            android:name=".notification.presentation.event.NotificationLaunchActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay" />
+
         <receiver
             android:name=".notification.data.repository.ScheduledNotificationReceiver"
             android:enabled="true"

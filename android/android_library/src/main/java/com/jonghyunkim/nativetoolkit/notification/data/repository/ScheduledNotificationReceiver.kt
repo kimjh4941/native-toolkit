@@ -7,6 +7,8 @@ import com.jonghyunkim.nativetoolkit.notification.NotificationShownSupport
 import android.util.Log
 import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationCommandRepository
 import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationSchedulerSupport.parcelableExtra
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationEvents
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationShown
 
 internal class ScheduledNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -19,10 +21,14 @@ internal class ScheduledNotificationReceiver : BroadcastReceiver() {
         repository.send(command)
         NotificationSchedulerSupport.remove(context.applicationContext, command.content.id, command.content.tag)
 
+        @Suppress("DEPRECATION")
         NotificationShownSupport.shownListener?.onNotificationShown(
             command.content.id,
             command.content.tag,
             command.content.channel.id
+        )
+        NotificationEvents.shown.emit(
+            NotificationShown(command.content.id, command.content.tag, command.content.channel.id)
         )
     }
 

@@ -5,6 +5,9 @@ package com.jonghyunkim.nativetoolkit.notification
  *
  * Calls [shownListener] when a notification is displayed.
  */
+@Deprecated(
+    "Use the shown events of AndroidNotificationManager. Kept only for the Unity bridge; removed in stage 3 before 2.0.0 ships."
+)
 object NotificationShownSupport {
 
     /**

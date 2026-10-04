@@ -73,9 +73,12 @@ class AndroidDialogManagerTest {
 
     @After
     fun tearDown() {
-        scenario?.close()
+        // Restore the orientation first: closing or launching while a rotation is pending
+        // recreates the next Activity under ActivityScenario.
         device.setOrientationNatural()
+        device.waitForIdle()
         device.unfreezeRotation()
+        scenario?.close()
     }
 
     private fun launch(activity: Class<out Activity>) {
