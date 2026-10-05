@@ -11,6 +11,7 @@
 #include <NativeToolkitC/Android.h>
 #include <NativeToolkitC/Clipboard.h>
 #include <NativeToolkitC/Dialog.h>
+#include <NativeToolkitC/Notification.h>
 
 #include "TestSupport.h"
 #include "ntk_debug_probe.h"
@@ -178,5 +179,22 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_awaitAlert(JNIEnv* env
     }
     jintArray result = env->NewIntArray(2);
     env->SetIntArrayRegion(result, 0, 2, values);
+    return result;
+}
+
+// The builders before initialization (noStartup; part 2, 6.3: usable before initialization):
+// the errors of create, a setter and the channel create, all expected to be NONE.
+extern "C" JNIEXPORT jintArray JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_buildersUninitialized(JNIEnv* env, jclass) {
+    ntk_notification_content* content = nullptr;
+    ntk_notification_channel* channel = nullptr;
+    jint values[] = {ntk_notification_content_create(1, "t", "m", &content),
+                     ntk_notification_content_set_priority(content, 1),
+                     ntk_notification_channel_create("id", "Name", 3, &channel),
+                     ntk_notification_content_set_channel(content, channel)};
+    ntk_notification_channel_free(channel);
+    ntk_notification_content_free(content);
+    jintArray result = env->NewIntArray(4);
+    env->SetIntArrayRegion(result, 0, 4, values);
     return result;
 }

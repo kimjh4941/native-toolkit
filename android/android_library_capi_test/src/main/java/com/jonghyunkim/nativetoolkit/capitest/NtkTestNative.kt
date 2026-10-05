@@ -48,6 +48,10 @@ object NtkTestNative {
     @JvmStatic
     external fun awaitAlert(): IntArray
 
+    /** The notification builders before initialization: four errors, all expected NONE. */
+    @JvmStatic
+    external fun buildersUninitialized(): IntArray
+
     /** Runs one GoogleTest case; true when it ran and passed. */
     @JvmStatic
     external fun runCase(name: String): Boolean

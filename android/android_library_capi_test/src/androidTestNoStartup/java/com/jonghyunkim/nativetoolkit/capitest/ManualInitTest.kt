@@ -80,6 +80,13 @@ class ManualInitTest {
     }
 
     @Test
+    fun theNotificationBuildersWorkBeforeInitialization() {
+        NtkTestNative.load()
+        assertEquals(0, NtkTestNative.isInitialized())
+        assertEquals(listOf(0, 0, 0, 0), NtkTestNative.buildersUninitialized().toList())
+    }
+
+    @Test
     fun theCPathInitializesWithoutJniOnLoad() {
         // libntk.so is opened by the linker only, as with dlopen: JNI_OnLoad has not run, and
         // ntk_android_init must not make it run (it does not call System.loadLibrary).

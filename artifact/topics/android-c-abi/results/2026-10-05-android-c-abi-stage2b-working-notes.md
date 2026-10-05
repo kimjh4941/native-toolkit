@@ -177,3 +177,41 @@
 | D9: 単一選択の添字の範囲を見逃す | `Dialog.InvalidRequestsAreRejectedAtTheEntryAndReleasedHere` |
 
 - 流さなかった変異: D2（受け口の前面の判定を省く）。Kotlin の `UiHost` も前面でなければ同じ `NOT_FOREGROUND` で完了する（Kotlin の設計書 KA-17）ので、結果が変わらない同値の変異
+
+## TB-5（2026-10-05）
+
+### 作ったもの
+
+- C: `src/Notification/Builders.h`（ビルダーのデータの形。設定しなかった項目は `optional` の空で、Kotlin の既定値になる）と `Builders.cpp`（内容のビルダー 40 関数、チャンネルのビルダー 11 関数）
+- テスト: GoogleTest `NotificationBuilder` 10 件、`NotificationContent` 1 件、`NotificationChannel` 2 件。noStartup に「初期化の前にビルダーが使える」1 件
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| ビルダーを Kotlin の値に変える処理と名前の解決を TB-6 に移した（第 2 部 13 章の TB-5・TB-6 の行を直した） | ビルダーには読み出しの口が無く、写した中身・既定値・名前は、通知を出して確かめるしかない。名前は表示の時点で引く（第 2 部 6.3） |
+| 範囲は入口で見て、補正しない（AP-8）: priority -2〜2、visibility -1〜1、group_alert_behavior 0〜2、timestamp・timeout_after は 0 以上、progress は不定でなければ 0 ≦ current ≦ max、importance 0〜4、ロック画面の見え方 -1〜1、振動の長さは 0 以上、semantic action は 0〜12（API 31 までの `SEMANTIC_ACTION_*`）、`_set_tap` は 0〜2、group_conversation は -1〜1 | 第 2 部 6.3 の表に無い 3 つ（振動の長さ、semantic action、group_conversation）は、Android と Kotlin が受ける値の範囲で決めた |
+| Kotlin が必須の項目は `NULL` を `INVALID_PARAMETER`: BigText の本文、Messaging の利用者の名前、メッセージの本文、custom view の layout、view のクリックの view と action の ID、アクションの title と action の ID、`_add_data` の鍵と値、チャンネルの ID（空も不可）と名前、グループの ID を付けるときの名前 | 第 2 部 6.3 の「`NULL` は設定しない（既定に戻す）」は、任意の項目に当てる。必須の項目は戻す既定値が無い |
+| Inbox の行は 0 行を受ける（`NULL` と 0） | Android の InboxStyle は行が無くても出せる |
+| アクションの `no_user_interface` は、Kotlin の `showsUserInterface`（既定は真）を反転した名前 | 0 で埋めた構造体が既定値になるように（E-9） |
+| `_add_data` で同じ鍵をもう一度足すと、値を置き換える | Kotlin の `data` は Map |
+| setter は C++ の例外を外へ出さない（`Guard`。`bad_alloc` は `OUT_OF_MEMORY`） | 第 1 部 1.1 |
+
+### 確かめたこと
+
+- capi のテスト 94 件（startup 78、noStartup 14、noNtkInitializer 2）が Pixel 6a とエミュレータで通る
+- release の `libntk.so` の公開は `ntk_*` 108（Common 11、Android 2、Clipboard 27、Dialog 17、内容のビルダー 40、チャンネルのビルダー 11）
+
+### 変異（Pixel 6a、startup の GoogleTest）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| B1: priority の上限を 3 まで許す | `NotificationBuilder.NumbersOutOfRangeAreRejectedNotCorrected` |
+| B2: Messaging の style が無くてもメッセージを足せる | `NotificationBuilder.AMessageOrAViewClickNeedsItsStyle` |
+| B3: custom view の style を設定しても種類が変わらない（後から設定したものが勝たない） | `NotificationBuilder.AMessageOrAViewClickNeedsItsStyle` |
+| B4: importance 5 を受ける | `NotificationChannel.CreateChecksTheIdNameAndImportance` |
+| B5: アクションの `reserved1` を見逃す | `NotificationBuilder.AnActionFollowsTheStructSizeRules` |
+| B6: 不定の進み具合でも範囲を見る | `NotificationBuilder.ProgressNeedsCurrentWithinMaxUnlessIndeterminate` |
+| B7: semantic action の上限を 13 まで許す | `NotificationBuilder.AnActionFollowsTheStructSizeRules` |
+
+- 確かめていないこと: チャンネルのビルダーを深く写すこと（ビルダーを解放した後も内容が持つこと）は、解放しても落ちないことまで。写した値が通知に表れることは TB-6 で確かめる

@@ -24,6 +24,7 @@ add_library(ntk_test SHARED
     tests/ClipboardTest.cpp
     tests/CommonTest.cpp
     tests/DialogTest.cpp
+    tests/NotificationBuilderTest.cpp
     tests/ProbeTest.cpp
     tests/RegistryTest.cpp
     tests/StructSizeTest.cpp
