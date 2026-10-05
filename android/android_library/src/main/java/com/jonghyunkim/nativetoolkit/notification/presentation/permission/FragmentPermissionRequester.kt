@@ -43,14 +43,20 @@ internal class FragmentPermissionRequester private constructor(
     }
 
     private class Environment(private val appContext: Context) : PermissionEnvironment<FragmentActivity> {
-        override fun isGrantedOrNotNeeded(): Boolean =
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        override fun isGrantedOrNotNeeded(): Boolean {
+            Log.d(TAG, "[isGrantedOrNotNeeded]")
+            return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) ==
                 PackageManager.PERMISSION_GRANTED
+        }
 
-        override fun isInitialized(): Boolean = LibraryRuntime.isInitialized()
+        override fun isInitialized(): Boolean {
+            Log.d(TAG, "[isInitialized]")
+            return LibraryRuntime.isInitialized()
+        }
 
         override fun acquire(client: UiHostClient<FragmentActivity>) {
+            Log.d(TAG, "[acquire] client: $client")
             UiHost.acquire(client)
         }
 
@@ -61,7 +67,10 @@ internal class FragmentPermissionRequester private constructor(
                 .commitNow()
         }
 
-        override fun isStateSaved(error: Exception): Boolean = error is IllegalStateException
+        override fun isStateSaved(error: Exception): Boolean {
+            Log.d(TAG, "[isStateSaved] error: $error")
+            return error is IllegalStateException
+        }
     }
 
     companion object {

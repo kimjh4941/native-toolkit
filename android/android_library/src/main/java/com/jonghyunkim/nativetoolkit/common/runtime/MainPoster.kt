@@ -55,7 +55,10 @@ object MainPoster {
     /**
      * Returns whether the caller runs on the main thread.
      */
-    fun isMainThread(): Boolean = Looper.myLooper() == Looper.getMainLooper()
+    fun isMainThread(): Boolean {
+        Log.d(TAG, "[isMainThread]")
+        return Looper.myLooper() == Looper.getMainLooper()
+    }
 
     /**
      * Throws [IllegalStateException] unless the caller runs on the main thread.
@@ -63,6 +66,7 @@ object MainPoster {
      * @param name The API name used in the error message.
      */
     internal fun checkMainThread(name: String) {
+        Log.d(TAG, "[checkMainThread] name: $name")
         check(isMainThread()) { "$name must be called on the main thread" }
     }
 }

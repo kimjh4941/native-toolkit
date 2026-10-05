@@ -20,6 +20,6 @@ class CancelShareSelectionUseCase(private val repository: ShareRepository) {
     }
 
     private companion object {
-        private const val TAG = "CancelShareSelectionUseCase"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.share.application.usecase.CancelShareSelectionUseCase"
     }
 }

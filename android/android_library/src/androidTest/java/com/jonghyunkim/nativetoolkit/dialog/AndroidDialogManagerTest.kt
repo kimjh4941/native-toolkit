@@ -285,6 +285,16 @@ class AndroidDialogManagerTest {
     // --- IT-03: the suspend version ---
 
     @Test
+    fun suspend_hostDestroyed_throwsCanceled() {
+        launch(PlainActivity::class.java)
+        val shown = CoroutineScope(Dispatchers.Default).async { manager.show(DialogRequest.Alert(title = "it03-suspend-destroyed", message = "m")) }
+        waitText("it03-suspend-destroyed")
+        instrumentation.runOnMainSync { ForegroundActivityTracker.current()?.finish() }
+        val error = runCatching { runBlocking { withTimeout(10_000) { shown.await() } } }.exceptionOrNull()
+        assertEquals(DialogDomainError.Canceled(CancelReason.HOST_DESTROYED), error)
+    }
+
+    @Test
     fun suspend_answer_cancelByTheCoroutine_andUnavailable() {
         launch(TestFragmentActivity::class.java)
         val scope = CoroutineScope(Dispatchers.Default)

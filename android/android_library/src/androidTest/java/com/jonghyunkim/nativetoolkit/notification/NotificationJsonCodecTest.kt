@@ -242,6 +242,21 @@ class NotificationJsonCodecTest {
     }
 
     @Test
+    fun aCommandOfAnotherVersion_isNotDecoded() {
+        // The Alarm form has no file to move aside: a later version's command is refused, and the
+        // receiver, which catches the failure, shows nothing (design 8.6, review of stage 1b).
+        val command = AndroidNotificationCommand(NotificationContent(id = 5, title = "t", message = "m"))
+        val json = NotificationJsonCodec.encodeCommand(command, StoredBinarySlots())
+        assertEquals(NotificationJsonCodec.VERSION, json.getInt("v"))
+        for (other in listOf<Any>(NotificationJsonCodec.VERSION + 1, JSONObject(), "x", 1.5)) {
+            json.put("v", other)
+            assertTrue("v=$other", runCatching { NotificationJsonCodec.decodeCommand(json, StoredBinarySlots()) }.exceptionOrNull() is org.json.JSONException)
+        }
+        json.remove("v")
+        assertEquals(command.content, NotificationJsonCodec.decodeCommand(json, StoredBinarySlots()).content)
+    }
+
+    @Test
     fun unknownFields_areIgnored() {
         val command = AndroidNotificationCommand(NotificationContent(id = 4, title = "t", message = "m", style = NotificationStyle.BigText("b")))
         val json = NotificationJsonCodec.encodeCommand(command, StoredBinarySlots())

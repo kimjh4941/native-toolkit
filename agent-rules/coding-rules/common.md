@@ -78,7 +78,7 @@ Domain → Application → Data
 | Windows | C++ API（`NativeToolkit::<機能>`）。`windows.md` の「基本構造」のとおり | 所有するオブジェクト（`Session`・`Manager`）か関数。その下に内部の singleton の `Windows*Manager` を置く |
 
 - 入口の形は、その OS の資源の寿命に合わせる。Windows の公開面は、閉じる必要のある所有のオブジェクトを表すので、名前を `Manager` にそろえない（`Session` を `Manager` と呼ぶと、閉じなくてよいプロセスに 1 つのものに見える）
-- 1.12.0 でリリース済みの Windows の C++ API と C ABI の名前は、名前をそろえるためだけには変えない
+- 1.12.0 でリリース済みの Windows の C++ API と C ABI の名前は、名前をそろえるためだけには変えない。そろえるかの見直しは `artifact/topics/windows-architecture/README.md` の 5.3 の 3 に残してある
 
 判定の自己チェック:
 

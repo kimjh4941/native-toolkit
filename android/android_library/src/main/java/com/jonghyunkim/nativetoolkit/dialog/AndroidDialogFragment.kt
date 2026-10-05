@@ -429,7 +429,6 @@ class AndroidDialogFragment : DialogFragment() {
         }
     }
 
-    /** Assign listener for Simple dialog variant. */
     override fun onSaveInstanceState(outState: Bundle) {
         Log.d(TAG, "[onSaveInstanceState] outState: $outState")
         super.onSaveInstanceState(outState)
@@ -456,6 +455,7 @@ class AndroidDialogFragment : DialogFragment() {
         if (isRequest) FragmentDialogPresenter.complete(requestId, result)
     }
 
+    /** Assign listener for Simple dialog variant. */
     fun setDialogListener(listener: DialogListener) {
         Log.d(TAG, "setDialogListener")
         this.dialogListener = listener

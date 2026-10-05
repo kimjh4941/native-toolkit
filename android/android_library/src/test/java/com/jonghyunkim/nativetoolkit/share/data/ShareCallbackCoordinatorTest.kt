@@ -138,11 +138,21 @@ class ShareCallbackCoordinatorTest {
     @Test
     fun cancelAndRegisterFromInsideTheCallback_doNotBlock() {
         val nextToken = AtomicReference<Long?>(null)
+        val finishedInsideTheCallback = AtomicReference<Boolean?>(null)
         val done = CountDownLatch(1)
+        // From another thread: the lock is reentrant, so a call on the callback's own thread would
+        // pass even if the callback ran inside the lock.
         val mode = ShareWaitMode.Callback(
             onSelected = {
-                coordinator.cancel()
-                nextToken.set(coordinator.register(ShareWaitMode.Event))
+                val other = Thread {
+                    coordinator.cancel()
+                    nextToken.set(coordinator.register(ShareWaitMode.Event))
+                }
+                other.start()
+                other.join(2_000)
+                // Recorded before the callback returns: a callback inside the lock would block the
+                // other thread until after this point.
+                finishedInsideTheCallback.set(!other.isAlive && nextToken.get() != null)
             },
             onFinished = { done.countDown() }
         )
@@ -150,6 +160,7 @@ class ShareCallbackCoordinatorTest {
         val thread = Thread { coordinator.deliver(nonce, token, selected) }.apply { start() }
         assertTrue("the callback blocked", done.await(5, TimeUnit.SECONDS))
         thread.join(5_000)
+        assertEquals("register from another thread blocked inside the callback", true, finishedInsideTheCallback.get())
         // The wait registered inside the callback is the current one.
         coordinator.deliver(nonce, nextToken.get()!!, selected)
         assertEquals(listOf(ShareSelection(nextToken.get()!!, "com.example.app")), selections)

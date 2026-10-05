@@ -86,6 +86,7 @@
 | IT-19・IT-22・IT-26 は、サンプルに flavor を足さず、`android_library` だけに依存する試験専用のアプリ（`android/AndroidLibraryExample/releaseProbe`、`testShareTarget` と同じ形のモジュール）で行い、確かめた後も残して `test_android.sh` の段で毎回流す（2026-10-05）。サンプルに flavor を足すと、ビルドの名前・スクリプト・全機能で共通のワークフロー・0d の基準の土台を作り直すことになり、確かめたいもの（ライブラリが利用者の R8・権限なし・更新のもとで壊れないか）より影響が大きいため | 12 章の IT-19・IT-22・IT-26 の行と、`test_android.sh` の段 |
 | IT-26 の「後の版は JSON に欄を 1 つ足す」は行わない（ライブラリの本体に試験のための切り替えが要る。知らない欄を読み飛ばすことは IT-25 で確かめた）。代わりに、前の版と後の版で R8 の名前の付け方（obfuscation の辞書）を変え、ライブラリのクラスの名前が変わっても前の版の予約が後の版で発火して内容が同じことで、保存と Alarm が R8 の名前に頼らないことを確かめる（クラス名が入っていないことの直接の確かめは IT-24）。「複数の `Bitmap`」は、公開の口で `Bitmap` を持つ欄が `largeIconBitmap` だけなので 1 つにする | 同上 |
 | T-23 の照合で、12 章の IT-21・IT-23 にテストが無く（タスク表のどの行にも割り当てていなかった）、ほかの行にも一部の欠けがあると分かった。IT-21・IT-23 と、利用者から見える動作の欠け（A: IT-01・IT-02 の Startup を無効にした経路と前面、IT-03・IT-07 のプロセスの死の後、IT-10・IT-11 のコールドスタート）を T-23 で書き、検証の穴（B）と記述（C）は安いものだけ埋めて、残りは理由つきで 1b の実装結果に書く（2026-10-05） | 12 章のテストと 1b の実装結果 |
+| 1b の実装レビュー（2026-10-05、`reviews/2026-10-05-android-c-abi-stage1b-implementation-feature-review-v1.md`）で、直さずに残すもの: (1) 12 章の行の一部の欠け（実装結果 5.1 の △ と 5.2。上の決定のとおり、検証の穴と記述は安いものだけ埋めた）。(2) 型のある Chooser Action の受け手で、世代の照合と `emit` の間に新しい Share が世代を上げると、古いアクションが 1 度だけ届きうる（照合の時点を区切りとみなす。届くのは新しい Share を開く操作と同時に古い Chooser のアクションを押したときだけ）。(3) 公開の sealed class `ShareDomainError` に `InvalidChooserAction` を足したので、利用者の網羅的な `when` はコンパイルが通らなくなる（ソースの互換。10 章で決めた足し方で、K-9 の動作の互換には当たらない）。(4) `ShareTextUseCase` の `@Deprecated`（8.13）は、JSON を渡さない `ShareUseCases.shareText(content)` にも警告を出す（同じ関数のため） | 実装結果 5.1・7 章 |
 
 ## 1. 設計目的
 
@@ -201,7 +202,7 @@
 | 方針 | 適合 | この設計での扱い |
 |---|---|---|
 | 層とモジュールの対応（Manager 層までネイティブのライブラリ） | 適合 | 移すロジックと Manager の役はすべて `android_library`（6.3） |
-| 層の依存と Port の型の制約 | 適合 | 足す port（Dialog、権限、設定の画面）は domain の型だけ。予約の保存は data の中に閉じる。既存の port `NotificationCommandRepository` は変えない。既存の `NotificationUseCases.isScheduled(context, …)` が data を直接読むのは今のまま残す（利用者の決定。8.14）Share のアイコンは `ByteArray` |
+| 層の依存と Port の型の制約 | 適合 | 足す port（Dialog、権限、設定の画面）は domain の型だけ。予約の保存は data の中に閉じる。既存の port `NotificationCommandRepository` は変えない。既存の `NotificationUseCases.isScheduled(context, …)` が data を直接読むのは今のまま残す（利用者の決定。8.14）Share のアイコンは `ByteArray`。**例外（1b の実装レビューで記録、2026-10-05）**: data から presentation のイベントの持ち主と受け手への依存が 3 か所ある（`ShareRepositoryImpl` → `ShareChooserActionReceiver`、`ShareCallbackCoordinator` → `ShareEvents`、`ScheduledNotificationReceiver` → `NotificationEvents`）。6.1 の置き場所（イベントの持ち主と受け手は presentation）から出るもので、今の `ShareCallbackCoordinator` が受け手を持つのと同じ形 |
 | Manager → UseCase → Repository、1 操作 1 UseCase | 適合 | data に届く公開の操作ごとに UseCase を置き、Manager の役から呼ぶ（6.3）。data に届かない口（受け手の登録、presentation の監視、factory、純粋な関数）は UseCase を置かない（6.3 の条件） |
 | Manager の公開 API（callback 版とネイティブ版） | 適合 | 結果を待つ操作（Dialog、権限）は callback 版と `suspend` 版（答えを返し、取り消しと失敗は型のある例外で投げる）。Share の選択は完了ではなくイベント（AC-22）なので、開く操作は同期の 1 つだけ |
 | システム API に合わせた同期・非同期 | 適合 | 同期で済むもの（保存、分類、問い合わせ、開く）は同期のまま（9 章） |
@@ -761,7 +762,7 @@ Clipboard の既存のログはすでに伏せている（`logSafeDescription`�
 | `FOREGROUND_SERVICE_DATA_SYNC` | Progress の前景サービスが同様 | 外すなら `ProgressForegroundService` の `<service>` も外す | 同上 |
 | `FOREGROUND_SERVICE_SPECIAL_USE` | CallStyle の前景サービスが同様 | 外すなら `CallStyleForegroundService` の `<service>` も外す | 同上 |
 
-- IT-19 の版はサンプルの flavor の manifest で作る
+- IT-19 の版は、試験専用のアプリ（0.8）の flavor の manifest で作る
 - `consumer-rules.pro`: `-keep class com.jonghyunkim.nativetoolkit.common.runtime.LibraryInitializer { <init>(); }`。manifest のコンポーネントは AAPT の規則で守られる。ライブラリが Alarm と保存に入れるクラス名は manifest の受け手の名前だけ（AAPT の規則で R8 が名前を変えない）なので、それ以外は要らない
 
 ### 8.13 ブリッジだけが使う公開の口（KA-16）

@@ -81,4 +81,18 @@ class InitializationStateTest {
             assertEquals(listeners, local.size)
         }
     }
+
+    @Test
+    fun aThrowingListener_doesNotStopTheOthers() {
+        val ran = AtomicInteger()
+        state.addListener { throw IllegalStateException("app code") }
+        state.addListener { ran.incrementAndGet() }
+        state.tryBegin()
+        state.succeed()
+        posted.toList().forEach { it() }
+        assertEquals(1, ran.get())
+        posted.clear()
+        state.addListener { throw IllegalStateException("app code") }
+        posted.toList().forEach { it() }
+    }
 }

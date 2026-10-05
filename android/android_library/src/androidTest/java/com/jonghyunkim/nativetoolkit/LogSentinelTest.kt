@@ -26,6 +26,8 @@ import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotif
 import com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCases
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationChannel
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationContent
+import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSchedule
+import com.jonghyunkim.nativetoolkit.testing.ScheduleTestSupport
 import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationEventIntents
 import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationEvents
 import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationInteraction
@@ -103,7 +105,7 @@ class LogSentinelTest {
         // Clipboard: copy and read back while this app has the focus.
         val clipboard = AndroidClipboardManager.getInstance(context)
         clipboard.copyPlainText(ClipContent.PlainText("clip-$sentinel"))
-        assertTrue(clipboard.read().toString().length >= 0)
+        assertEquals("clip-$sentinel", clipboard.read()?.items?.firstOrNull()?.text)
 
         // Share: the body (text and subject; 8.11) on every text share path; the Sharesheet is not opened.
         val share = ShareRepositoryImpl(RecordingContext(context))
@@ -132,6 +134,16 @@ class LogSentinelTest {
         }
         PendingIntent.getBroadcast(context, tap.requestCode, tap.intent, tap.flags or PendingIntent.FLAG_IMMUTABLE).send()
         assertEquals(data, events.poll(10, TimeUnit.SECONDS)?.data)
+
+        // Schedule: the data goes into the Alarm's JSON and the saved file.
+        ScheduleTestSupport(instrumentation).shell("appops set ${context.packageName} SCHEDULE_EXACT_ALARM allow")
+        val scheduled = AndroidNotificationCommand(
+            posted.copy(id = 2102, tag = "it21-schedule"),
+            AndroidNotificationPlatformOptions(contentIntent = NotificationEventIntents.bodyTap(context, 2102, "it21-schedule", data, launchApp = false))
+        )
+        assertTrue(useCases.schedule(scheduled, NotificationSchedule(System.currentTimeMillis() + 600_000, persistAcrossBoot = true)).isSuccess)
+        assertTrue(useCases.isScheduled(context, 2102, "it21-schedule"))
+        useCases.cancelScheduled(2102, "it21-schedule")
 
         Thread.sleep(1_000)
         val log = ownLog()

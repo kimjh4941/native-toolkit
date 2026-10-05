@@ -46,7 +46,12 @@
 | `UiHostCore.kt` を `UiHost` から分けた | 宿主の状態の表を単体テスト（UT-03）で確かめるため |
 | テーマのファイル名を `ntk_themes.xml` にした | 利用者のアプリの `themes.xml` と名前がぶつからないようにするため |
 | `AndroidNotificationSettingsGateway` は通知の設定の Intent に `package:` の data を付けない | 付けると開く Activity が無く、必ず代わりの画面（`OPENED_FALLBACK`）になった |
-| 1.x の破棄（`LegacyScheduleCleaner`）は `LibraryRuntime` が済みになったときと、`NotificationUseCasesFactory` が初めて UseCase を作るときに始める | 設計の「済みになったとき」「初めて UseCase を作るとき」のとおり。common から notification の data への依存が 1 つ増える |
+| 1.x の破棄（`LegacyScheduleCleaner.runOnceInBackground`）は、`LibraryRuntime` が済みになったとき、`NotificationUseCasesFactory` が UseCase を作るたび、Boot の受け手が動くたびに呼び、済んでいれば何もしない | 設計の「済みになったとき」「初めて UseCase を作るとき」を、呼ぶたびに済みかを見る形で書いた。common から notification の data への依存が 1 つ増える |
+| data から presentation のイベントの持ち主と受け手への依存が 3 か所（`ShareRepositoryImpl` → `ShareChooserActionReceiver`、`ShareCallbackCoordinator` → `ShareEvents`、`ScheduledNotificationReceiver` → `NotificationEvents`） | 6.1 の置き場所から出る。設計 4.1 に例外として書いた（レビューで記録） |
+| `kotlinx-coroutines-core` を `android_library` の依存に足した | `suspend` 版の口（8.7・8.8）のため。6.1 の「ほかに」の表には無かった |
+| 宿主が閉じてよいかは、取り除かれている途中の Fragment（`isRemoving`）を数えない | 8.3 は「`ntk.` の Fragment が 1 つも無ければ」とだけ書く。取り消した Fragment の後始末の最中に閉じ損ねないための詳細化 |
+| `MainPoster.isMainThread()` が RG の公開のメンバー | 付録 A に無い。C ABI の受け口が main の判定に使う想定 |
+| domain の型（`ClipboardErrorCode`、`DialogError`）の関数は先頭の `Log.d` を持たない | domain は `android.util.Log` を使わない（common.md「Domain はプラットフォーム依存なし」）。android.md のログの規則より層の規則を優先した |
 | 1.x の破棄で、JSON として読めない項目は、解析できない鍵と同じく飛ばす（失敗に数えない） | 設計は「後ろが整数でなければ」だけを挙げていた。毎回同じ結果になるので、やり直しても変わらない |
 | `ScheduleLock.kt` に `ScheduleIdentity` と `ScheduleTestHooks`（IT-12・IT-13 の注入の口）を置いた。`InstallId` という型は作らず `ScheduleIdentity.installId()` にした | 識別の値と試験の口を、ロックと同じ場所で持つため |
 | 受け手が extra を読めないとき、同じ世代の削除に使う id と tag は data の URI から取る | extra が読めなくても、保存の項目を消せるようにするため |
@@ -63,6 +68,9 @@
 | `EventHub.Registration.remove()` に main の検査が無い（設計 6.2 は main 以外で `IllegalStateException`） | 何も変える前に検査する。単体テストを 1 件足した |
 | 8.13 の `@Deprecated` が `ShareTextUseCase` の JSON の形に無い | 2 つの `invoke` に付けた（`ShareUseCases.shareText` もこれを通る）。`AndroidShareManager.shareText` は IT-27 のとおりこれに委ねるので、警告を抑えた |
 | `NotificationEventIntents` の 4 つの定数が public で、付録 A に無い | internal にした（使うのはライブラリ自身のテストだけ） |
+| （実装レビュー A）`addOnInitializedListener` の利用者の関数を、例外を捕まえずに main に積んでいた（設計 6.2 は捕まえてログを出し、続ける） | `InitializationState` が積むときに包む。単体テストを 1 件足した |
+| （実装レビュー B）Alarm の extra の command の JSON の版（`v`）を読むときに確かめていなかった（8.6） | 整数の今の版でなければ読まない（受け手は表示しない。欄が無ければ版 1）。codec のテストを 1 件足した |
+| （実装レビュー C）新しいコードの TAG がクラスの完全名でない 5 か所、先頭の `Log.d` が無い小さな関数 12 個、`AndroidDialogFragment` の KDoc の位置のずれ | 直した。`LogRedaction.redact` のログは長さだけを出す |
 
 ## 2. 変更ファイル
 
@@ -133,7 +141,7 @@
   - 成功: 564、564
   - 失敗: 0、0
 - 0d の基準との比べ: 両方の環境で、結果が変わったテスト 0、増えたテスト 251、無くなったテスト 4。無くなった 4 件は、T-16 で書き直した `ShareCallbackCoordinatorTest` の古い単体テスト（新しい 12 件に置き換えた）
-- 失敗時の対応: 4.3 と 7 章
+- 失敗時の対応: 1.2 の後半（T-23 で直したもの）と 7 章
 - 未実施項目: 5.2
 
 ### 5.1 テスト詳細
@@ -144,46 +152,46 @@
 |---|---|---|---|
 | UT-01 | L `InitializationStateTest` | △ | 実際の `LibraryRuntime` で途中の例外の後に登録を戻すこと、本当に同時の `tryBegin` は試していない |
 | UT-02 | L `EventHubTest` | ○ | `remove` の main の検査を T-23 で足した |
-| UT-03 | L `UiHostCoreTest` | △ | Dialog の状態の表の全セルと「宿主の破棄と結果」の両順は試していない |
+| UT-03 | L `UiHostCoreTest` | △ | Dialog の状態の表の全セル、「宿主の破棄と結果」の両順、起動待ちの取り消しと宿主の到着の片方の順、見張りや起動の失敗で非 active の利用者を飛ばすことは試していない |
 | UT-04 | L `ClipboardErrorCodeTest` | ○ | |
 | UT-05 | L `LegacyScheduleDiscardTest` | ○ | |
-| UT-06 | L `PermissionSessionsTest` | △ | API 32 以下の分岐（SDK の判定の差し替え）は試していない |
+| UT-06 | L `PermissionSessionsTest` | △ | API 32 以下の分岐（SDK の判定の差し替え）、宿主待ちと Fragment を足した後の (1)(2) の判定のセルは試していない |
 | UT-07 | L `LogRedactionTest` | ○ | 新しい型の `toString` を T-23 で足した |
-| UT-08 | L `ShareCallbackCoordinatorTest` | ○ | |
+| UT-08 | L `ShareCallbackCoordinatorTest` | ○ | 「利用者の関数はロックの外で呼ぶ」は、レビューの指摘で、コールバックの中から別のスレッドで `register` を呼ぶ形に直した（ロックは同じスレッドで入り直せるので、前の形では確かめになっていなかった） |
 | IT-01 | P `withoutStartup`、L の各テストの前提 | ○ | Startup を外した版で、手動の初期化の後に前面が取れる（T-23） |
 | IT-02 | L `ForegroundActivityTrackerTest`、P `withoutStartup`（`seed`） | ○ | T-23 |
-| IT-03 | L `AndroidDialogManagerTest`、`ExistingDialogApiTest`、S `DialogUiTest`、P `dialogBeforeKill`・`afterKill` | ○ | `suspend` 版とプロセスの死の後を T-23 で足した |
+| IT-03 | L `AndroidDialogManagerTest`、`ExistingDialogApiTest`、S `DialogUiTest`、P `dialogBeforeKill`・`afterKill` | ○ | `suspend` 版（答え・取り消し・前面が無いときの例外・宿主の破棄での `Canceled`）とプロセスの死の後を T-23 で足した。`suspend` 版で試した種類は Confirm と Alert |
 | IT-04 | L `AndroidDialogManagerTest` | △ | 表示の失敗で宿主が閉じることは試していない |
 | IT-05 | L `AndroidDialogManagerTest` | △ | 誤った `seed` の後に見張りで `NOT_FOREGROUND` になることは試していない（見張りの論理は UT-03） |
 | IT-06 | L `AndroidDialogManagerTest` | ○ | |
-| IT-07 | L `NotificationPermissionRequestTest`（段 5b）、S `NotificationHostStateUiTest` n03〜n12、P `permissionBeforeKill`・`afterKill` | ○ | プロセスの死の後を T-23 で足した |
+| IT-07 | L `NotificationPermissionRequestTest`（段 5b）、`ManagersTest`（`suspend` 版の例外。偽物の port）、S `NotificationHostStateUiTest` n03〜n12、P `permissionBeforeKill`・`afterKill` | △ | プロセスの死の後は、戻した後に権限のダイアログが出ていれば BACK で閉じてから、戻った Fragment が残らないこととダイアログが出直さないことを見る。戻った Fragment が `launch` しないことを直接には確かめていない |
 | IT-08 | L `NotificationSettingsGatewayTest`、`ManagersTest` | △ | 代わりの画面（`OPENED_FALLBACK`）は偽物の値だけ |
 | IT-09 | L `NotificationEventsTest`、S `NotificationStyleUiTest` n16 | ○ | |
 | IT-10 | L `NotificationEventsTest`、S `NotificationEventDeliveryUiTest`、P `coldEvents` | ○ | コールドスタートを T-23 で足した |
 | IT-11 | L `NotificationEventsTest`、S `NotificationTapUiTest` n28・n29、P `r8`・`coldLaunch` | △ | 「Receiver から起動する形は後ろのとき開かない」の比べは行っていない（OS の動作でライブラリのコードではない） |
-| IT-12 | L `ScheduleFlowTest` | △ | OS が Alarm を消した後の更新、更新の途中に期限が来た Alarm は行っていない。バックアップからの戻しは `installId` の違いで代えた |
+| IT-12 | L `ScheduleFlowTest` | △ | OS が Alarm を消した後の更新、更新の途中に期限が来た Alarm は行っていない。バックアップからの戻しは `installId` の違いで代えた。`MY_PACKAGE_REPLACED` の置き直しは `restoreScheduled()` を直接呼び、受け手の経路は通らない（受け手の経路は IT-26 と CU-03） |
 | IT-13 | L `ScheduleFlowTest`、ホストの H-02 | ○ | プロセスの停止と再起動は H-02 |
 | IT-14 | L `ScheduleToUriTest` | ○ | 再起動は `bootCount` を変えて擬似 |
 | IT-15 | L `ShareSelectionTest`、S `ShareUiTest` | ○ | プロセスの停止は別の nonce で擬似 |
 | IT-16 | L `ShareSelectionTest` | ○ | |
 | IT-17 | L `ClipboardObserverTest` | ○ | |
 | IT-18 | L `LegacyScheduleCleanerTest`、CU-03 | ○ | |
-| IT-19 | P `noPermissions`、段 6b の manifest の検査 | △ | `RECEIVE_BOOT_COMPLETED` を外したときに再起動の後に戻らないこと、通知が出ないことまでは見ていない |
+| IT-19 | P `noPermissions`、段 6b の manifest の検査 | △ | 実行で見るのは、権限の問い合わせが偽になることと、権限の要求が `Denied` になることだけ。正確でない Alarm で予約が動くこと、全画面が heads-up になること、`RECEIVE_BOOT_COMPLETED` を外したときに再起動の後に戻らないこと、通知が出ないことは見ていない |
 | IT-20 | L `ShareSelectionTest`、`NotificationPendingIntentIdentityTest`、P `postColdTap`（全画面の起動） | ○ | 通知の側を T-23 で足した |
-| IT-21 | L `LogSentinelTest` | ○ | T-23 |
+| IT-21 | L `LogSentinelTest` | ○ | T-23。レビューの指摘で、Clipboard は読み戻した本文を比べ、予約の経路（`data` が Alarm の JSON と保存に入る）も通すようにした |
 | IT-22 | P `r8` | ○ | |
 | IT-23 | L `ExistingDialogApiTest`、`ExistingPermissionHelperTest`（段 5b）、`ExistingShareApiTest`、`ExistingNotificationApiTest`、`ShareSelectionTest`（`shareWithCallback`）、`ScheduleFlowTest`、P `withoutStartup` | ○ | T-23 |
 | IT-24 | L `ScheduleIdentifiersTest` | ○ | |
-| IT-25 | L `NotificationJsonCodecTest` | ○ | |
-| IT-26 | P `scheduleForUpdate`・`verifyAfterUpdate` | ○ | 0.8 の形 |
-| IT-27 | L `ManagersTest` | △ | Dialog と Progress の委ね先との比べは無い（Dialog は L `AndroidDialogManagerTest` が Manager を通して試している） |
-| CU-03 | adb と UiAutomator の画面の読み取りで両方の環境 | ○ | 4 章 |
+| IT-25 | L `NotificationJsonCodecTest` | △ | カスタムビューの動作は数を比べていない（復号で欠けても落ちない）。レビューの指摘で、版の違う command を読まないことを足した |
+| IT-26 | P `scheduleForUpdate`・`verifyAfterUpdate` | △ | 0.8 の形。`Bitmap` は欠けていないことだけを見て、中身は比べていない |
+| IT-27 | L `ManagersTest` | △ | Dialog と Progress の委ね先との比べは無い（Dialog は L `AndroidDialogManagerTest` が Manager を通して試している）。スレッドの比べは無く、失敗の比べは show と schedule だけ |
+| CU-03 | adb と UiAutomator の画面の読み取りで両方の環境 | ○ | 5.3 |
 
-**壊して落ちるかの確かめ（変異）**: 足した検査ごとに、契約は保ったまま形を変える変異を入れて流した。T-21〜T-23 の変異 32 個（T-21 で 4、T-22 で 5、T-23 で 23）のうち、最後まで落ちなかったのは次の 3 つで、どれもふつうの流れでは区別できないか、別の規則が同じものを守っている。途中で落ちなかった 3 つ（IT-21 のテキスト入力の欄、IT-20 の `FLAG_UPDATE_CURRENT`、全画面の起動の identifier）は、テストの側の穴だったので直して落ちることを確かめた。
+**壊して落ちるかの確かめ（変異）**: 足した検査ごとに、契約は保ったまま形を変える変異を入れて流した。T-21〜T-23 の変異 31 個（T-21 で 4、T-22 で 5、T-23 で 22）と、レビューの後の直しの変異 7 個のうち、最後まで落ちなかったのは次の 3 つで、どれもふつうの流れでは区別できないか、別の規則が同じものを守っている。途中で落ちなかった 3 つ（IT-21 のテキスト入力の欄、IT-20 の `FLAG_UPDATE_CURRENT`、全画面の起動の identifier）は、テストの側の穴だったので直して落ちることを確かめた。
 
 | 変異 | 落ちなかった理由 |
 |---|---|
-| ライブラリの consumer rule（`LibraryInitializer` の keep）を外す | androidx.startup 1.1.1 自身の consumer rule が `Initializer` の子クラスの constructor を残す。ライブラリの規則は重ねがけで、8.12 のとおり残す |
+| ライブラリの consumer rule（`LibraryInitializer` の keep）を外す | androidx.startup（1.2.0）自身の consumer rule が `Initializer` の子クラスの constructor を残す。ライブラリの規則は重ねがけで、8.12 のとおり残す |
 | `ForegroundActivityTracker` の「止まった」の条件を外す | 止まった Activity は同じ流れで状態の保存の印も付き、終わる Activity は `isFinishing` で外れる |
 | 宿主が閉じてよいかを最初の Fragment だけで決める | 判定は main に積んで後で行うので、取り消した Fragment はもう一覧に無い。代わりに「毎回閉じる」変異で IT-04 のテストが落ちることを確かめた |
 
@@ -195,6 +203,19 @@
 | 5.1 の表の △ の部分 | - | UT-01・UT-03・UT-06、IT-04・IT-05・IT-08・IT-11・IT-12・IT-19・IT-27 の欠け | 利用者の決定（0.8）で、検証の穴（B）と記述（C）は安いものだけ埋めた。ここは残す |
 | ホストのケース以外の再起動 | - | IT-14 の「再起動の後」 | `bootCount` を変えて擬似にした |
 
+### 5.3 CU-03（1.12.0 からの更新）
+
+- 行った人と方法: Claude が adb と UiAutomator の画面の読み取りで、両方の環境で行った（2026-10-05）
+- 準備:
+  - 1.12.0 のタグの Gradle のルートは `android/AndroidLibraryExample` で、その `settings.gradle.kts` はライブラリを絶対パス（今のツリーの `android_library`）で指していた。1.12.0 の作業ツリーを作り、そのツリーのライブラリを指すように直した
+  - 1.12.0 のサンプルにある予約は 15 秒後の 1 つだけで、保存する形しか作れない（`persistAcrossBoot` の既定が真）。作業ツリーのサンプルの画面だけを変え、予約を 120 秒後にし、同じボタンで保存しない予約（id 1011）も置くようにした。ライブラリは 1.12.0 のまま
+- 手順: 1.12.0 を元にしたサンプル（同じ applicationId、debug の鍵）を入れて予約する（1010 は保存する、1011 は保存しない）→ 今のサンプルを `adb install -r` で入れる → 発火の時刻を過ぎるまで待つ → 今のサンプルで予約し直す
+- 結果（両方の環境で同じ）:
+  - 更新の前: Alarm 2 つ、1.x の保存（`android.library.notification.scheduler.xml`）
+  - 更新の後: Alarm 1 つ（1010 を取り消した）、`shared_prefs` が空、破棄済みの印 `no_backup/ntk/legacy_v1_discarded`。`LegacyScheduleCleaner` のログに `cancelAlarm 1010`、`deletePreferences`、`mark`
+  - 発火の時刻の後: Alarm 0、通知 0（1.x の Alarm の宛先は 1.x の受け手のクラスで、2.0.0 には無い）
+  - 今のサンプルで予約し直すと、15 秒後に 1010 が出て、新しい保存 `files/ntk/notification_schedules.json` が書かれた
+
 ## 6. Definition of Done
 
 - 判定基準:
@@ -202,7 +223,7 @@
   - △: 一部 OK だが、追加確認が必要
   - ×: 未達、または設計書との差分が未解消
   - -: 対象外
-- △ 6.1 のファイルと可視性、付録 A の宣言があり、8 章の動き、9 章のスレッド、取り消しの契約と一致している — 付録 A の宣言は名前・引数・戻り値・可視性まですべて一致。9 章のスレッドと取り消しは主な 13 の文を照合して一致（`remove` の検査を直した）。6.1 のファイルのまとめ方の違い（15 か所）と 8.3 に無かった動きは、設計書を実装に合わせて直した（7 章）。△ は 8.3 の直しがまだレビューを通っていないため
+- △ 6.1 のファイルと可視性、付録 A の宣言があり、8 章の動き、9 章のスレッド、取り消しの契約と一致している — 付録 A の宣言は名前・引数・戻り値・可視性まですべて実装にある（付録 A に無い公開のメンバーは `MainPoster.isMainThread()`（RG）だけで、1.2 に書いた）。9 章のスレッドと取り消しは主な 13 の文を照合して一致（`remove` の検査を直した）。6.1 のファイルのまとめ方の違い（15 か所）と 8.3 に無かった動きは、設計書を実装に合わせて直した（7 章）。△ は 8.3 の直しがまだレビューを通っていないため
 - ○ `PLANNED_SYMBOLS_EXEMPT` の名前を実装と照合した — 265 の名前のうち、プロジェクトの名前で実装に無いのは `InstallId` だけ（`ScheduleIdentity.installId()`）
 - ○ 5.1 のロジックがすべて `android_library` にあるか、7 章で C ABI / 包みの受け持ちと決めている
 - ○ `android.md` に 2 つの書き足しがあり、IT-21 が通る
@@ -219,6 +240,12 @@
   - 6.1 のファイルの表と実装のまとめ方の違い（15 か所）。6.1 は `ShareRepositoryImpl` を internal と書いていたが、実装は 1.12.0 と同じ public（設計書の書き誤り。K-9 には実装が合っている）。T-23 で表を直した
   - 8.3 の表に無かった動き: 前面の `FragmentActivity` が状態を保存した後なら、宿主を起動せず `NOT_FOREGROUND` を返す。`showNow` と `commitNow` の `IllegalStateException` は理由を問わず状態の保存とみなす。権限の会は `commitNow` が投げた後に `finishIfIdle` を積まない（宿主の `onCreate` の最後で呼ばれるので害は無い）。T-23 で 8.3 に書き足した
 - 影響範囲: 利用者から見える動作は変わらない（どれも設計書の記述の側の差で、設計書を実装に合わせた）
+
+**レビューで記録したもの（直さない。設計書 0.8）**
+
+- 型のある Chooser Action の受け手で、世代の照合と `emit` の間に新しい Share が世代を上げると、古いアクションが 1 度だけ届きうる（Codex。照合の時点を区切りとみなす）
+- 公開の sealed class `ShareDomainError` に `InvalidChooserAction` を足したので、利用者の網羅的な `when` はコンパイルが通らなくなる（ソースの互換）
+- `ShareTextUseCase` の `@Deprecated` は、JSON を渡さない `ShareUseCases.shareText(content)` にも警告を出す
 
 **段階 2 への申し送り**
 

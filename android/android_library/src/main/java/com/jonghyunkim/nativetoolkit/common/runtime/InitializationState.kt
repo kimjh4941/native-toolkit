@@ -9,7 +9,8 @@ import android.util.Log
  * The state and the listener list change together under one short lock, so a listener is never
  * lost and never posted twice. No I/O and no callback runs inside the lock.
  *
- * @param post Posts a listener to the main thread.
+ * @param post Posts a listener to the main thread. A listener that throws is logged and does not
+ *   stop the others (Kotlin API design 6.2).
  */
 internal class InitializationState(private val post: (() -> Unit) -> Unit) {
 
@@ -61,7 +62,7 @@ internal class InitializationState(private val post: (() -> Unit) -> Unit) {
             pending.clear()
             listeners
         }
-        toRun.forEach(post)
+        toRun.forEach(::postGuarded)
     }
 
     /** Returns to not-started so that a later call can try again. Pending listeners stay. */
@@ -84,6 +85,18 @@ internal class InitializationState(private val post: (() -> Unit) -> Unit) {
                 false
             }
         }
-        if (runNow) post(listener)
+        if (runNow) postGuarded(listener)
+    }
+
+    // The listeners are the app's code: an exception is caught and logged (design 6.2).
+    private fun postGuarded(listener: () -> Unit) {
+        Log.d(TAG, "[postGuarded] listener: $listener")
+        post {
+            try {
+                listener()
+            } catch (e: Exception) {
+                Log.e(TAG, "[postGuarded] a listener threw", e)
+            }
+        }
     }
 }

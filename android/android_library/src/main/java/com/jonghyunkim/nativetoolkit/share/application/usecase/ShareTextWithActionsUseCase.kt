@@ -38,6 +38,6 @@ class ShareTextWithActionsUseCase(private val repository: ShareRepository) {
     }
 
     private companion object {
-        private const val TAG = "ShareTextWithActionsUseCase"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.share.application.usecase.ShareTextWithActionsUseCase"
     }
 }

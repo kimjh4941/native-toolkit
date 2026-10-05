@@ -180,10 +180,19 @@ internal object NotificationJsonCodec {
      *
      * @param json The JSON.
      * @param slots Where Intents and Bitmaps come from.
-     * @throws org.json.JSONException When required fields are missing.
+     * @throws org.json.JSONException When required fields are missing, or the JSON has another
+     *   version (a later version's Alarm left after going back to this one is not shown).
      */
     fun decodeCommand(json: JSONObject, slots: NotificationBinarySlots): AndroidNotificationCommand {
         Log.d(TAG, "[decodeCommand] slots: $slots")
+        // No "v" is version 1; a "v" that is not this version's whole number is refused.
+        val version = when (val raw = json.opt("v")) {
+            null -> VERSION
+            is Int -> raw
+            is Long -> raw.takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
+            else -> null
+        }
+        if (version != VERSION) throw org.json.JSONException("unsupported command version ${json.opt("v")}")
         return AndroidNotificationCommand(
             content = decodeContent(json.getJSONObject("content")),
             platformOptions = json.optJSONObject("platform")?.let { decodePlatform(it, slots) }

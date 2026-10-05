@@ -48,6 +48,6 @@ class NotificationUseCases(repository: NotificationCommandRepository) {
     }
 
     private companion object {
-        private const val TAG = "NotificationUseCases"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.notification.application.usecase.NotificationUseCases"
     }
 }

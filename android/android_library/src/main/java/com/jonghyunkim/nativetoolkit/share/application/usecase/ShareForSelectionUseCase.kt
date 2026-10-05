@@ -28,6 +28,6 @@ class ShareForSelectionUseCase(private val repository: ShareRepository) {
     }
 
     private companion object {
-        private const val TAG = "ShareForSelectionUseCase"
+        private const val TAG = "com.jonghyunkim.nativetoolkit.share.application.usecase.ShareForSelectionUseCase"
     }
 }

@@ -58,12 +58,20 @@ internal object UiHost {
     private object AndroidEnvironment : UiHostEnvironment<FragmentActivity, Activity> {
         override fun isInitialized(): Boolean = LibraryRuntime.isInitialized()
 
-        override fun currentActivity(): Activity? = ForegroundActivityTracker.current()
+        override fun currentActivity(): Activity? {
+            Log.d(TAG, "[currentActivity]")
+            return ForegroundActivityTracker.current()
+        }
 
-        override fun currentHost(): FragmentActivity? = ForegroundActivityTracker.currentFragmentActivity()
+        override fun currentHost(): FragmentActivity? {
+            Log.d(TAG, "[currentHost]")
+            return ForegroundActivityTracker.currentFragmentActivity()
+        }
 
-        override fun isSavedFragmentActivity(activity: Activity): Boolean =
-            (activity as? FragmentActivity)?.supportFragmentManager?.isStateSaved == true
+        override fun isSavedFragmentActivity(activity: Activity): Boolean {
+            Log.d(TAG, "[isSavedFragmentActivity] activity: $activity")
+            return (activity as? FragmentActivity)?.supportFragmentManager?.isStateSaved == true
+        }
 
         override fun launchHost(from: Activity, token: Long) {
             Log.d(TAG, "[launchHost] from: $from, token: $token")
@@ -74,10 +82,12 @@ internal object UiHost {
         }
 
         override fun postDelayed(delayMillis: Long, runnable: Runnable) {
+            Log.d(TAG, "[postDelayed] delayMillis: $delayMillis, runnable: $runnable")
             MainPoster.postDelayed(delayMillis, runnable)
         }
 
         override fun cancel(runnable: Runnable) {
+            Log.d(TAG, "[cancel] runnable: $runnable")
             MainPoster.cancel(runnable)
         }
     }

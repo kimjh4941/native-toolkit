@@ -9,7 +9,7 @@ import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationS
 import com.jonghyunkim.nativetoolkit.notification.application.usecase.ForegroundServiceUseCases
 import com.jonghyunkim.nativetoolkit.notification.application.usecase.NotificationUseCases
 
-private const val TAG = "NotificationUseCasesFactory"
+private const val TAG = "com.jonghyunkim.nativetoolkit.notification.data.repository.NotificationUseCasesFactoryKt"
 
 /**
  * Factory function for [NotificationUseCases].

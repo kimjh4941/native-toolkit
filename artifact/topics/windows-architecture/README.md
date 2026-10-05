@@ -272,10 +272,11 @@ artifact/topics/windows-architecture/
 - `unity-native-plugin`（`unity-native-plugin-57`）に、タグと両方の MD5 を伝え、同梱している古い DLL を差し替えるよう頼んだ（2026-10-03）。流し直しは要らない
 - `verify_manual.sh 1.12.0` の停止項目（macOS の通知の画像 30 枚の参照切れ）は、1.11.0 から引き継いだまま出荷した。`artifact/topics/manual-integrity/README.md` の課題として残る
 
-残りは次の 2 つで、上から順に行う。
+残りは次の 3 つで、1 と 2 は上から順に行う。3 は時期を決めていない。
 
 1. パッケージ化しないアプリの通知の活性化を、自動テストにする。`results/probes/activationprobe` を土台に、warm（起動中）とコールドスタートの両方を FlaUI で押す。今は手で押して確かめるしかない
 2. 段階 7（CI）。中身はスパイクから始まる: クリップボードと通知の単体テストが GitHub の Windows のランナー（ウィンドウステーション、Windows App SDK のランタイム、Server SKU）で通るか。CI には、ローカルのスクリプトでは不要な `nuget restore` を足す（`packages.config` を使い、`packages/` は Git の管理外のため）
+3. 公開の入口の名前の見直し（2026-10-05 に記録。android-c-abi の段階 1b の後）。どの OS も機能ごとに公開の入口を 1 つ持ち、C ABI はその入口を呼ぶ（`agent-rules/coding-rules/common.md`「機能の公開の入口」）。iOS・macOS・Android の入口は機能ごとの Manager だが、Windows の公開の C++ の口は `Clipboard::Session`・`Notification::Manager`・`Dialog` の関数で、名前がそろっていない。1.12.0 でリリース済みで、`Session` は閉じる必要のある所有のオブジェクトを表すので、名前をそろえるためだけには変えない。**次に Windows の C++ API と C ABI を大きく変える版を出すときに、名前をそろえるかを決める。** 決めるときの材料: C++ の利用者からの困りごと、`Session` の「閉じる」約束を `Manager` の名前で誤解させないか、C ABI のハンドルの名前（`ntk_clipboard_session` など）も変わること
 
 ## 6. 段階ごとに壊れる場所
 
