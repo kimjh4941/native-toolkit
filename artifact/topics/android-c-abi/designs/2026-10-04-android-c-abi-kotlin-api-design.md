@@ -262,20 +262,19 @@
 
 ### 6.1 足すファイルと可視性
 
-`android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/` の下。可視性の「RG」は `@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)`（同じ Maven の group の C ABI の AAR からだけ使う）。公開と RG の宣言は付録 A（16 章）。
+`android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/` の下。ファイル名は 1b の実装に合わせた（2026-10-05、1b の実装結果 7 章。小さな型は 1 つのファイルにまとめた）。可視性の「RG」は `@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)`（同じ Maven の group の C ABI の AAR からだけ使う）。公開と RG の宣言は付録 A（16 章）。
 
 | ファイル | 中身 | 可視性 |
 |---|---|---|
 | `common/runtime/LibraryRuntime.kt` | `ensureInitialized`、`isInitialized`、`addOnInitializedListener`、`InitState` | public |
 | `common/runtime/LibraryInitializer.kt` | androidx.startup の Initializer | public（manifest から引く） |
+| `common/runtime/InitializationState.kt` | 初期化の状態と「済んだら呼ぶ」の一覧（UT-01） | internal |
 | `common/runtime/MainPoster.kt` | 1 つの `Handler(main)`、同期メッセージだけで積む | RG |
-| `common/runtime/LibraryExecutors.kt` | ディスクの処理用の 1 本のスレッド | internal |
-| `common/runtime/RequestIds.kt` | 使い回さない 64 ビットの ID（`AtomicLong`、1 から） | RG |
-| `common/runtime/ProcessNonce.kt` | プロセスごとの 64 ビットの乱数（`SecureRandom`、初めて使うときに作る） | internal |
+| `common/runtime/RuntimeSupport.kt` | `RequestIds`（使い回さない 64 ビットの ID。`AtomicLong`、1 から。RG）、`ProcessNonce`（プロセスごとの 64 ビットの乱数。`SecureRandom`、初めて使うときに作る。internal）、`LibraryExecutors`（ディスクの処理用の 1 本のスレッド。internal） | 型ごと |
 | `common/event/EventHub.kt` | `EventHub<T>`、`Listener`、`Registration` | public |
-| `common/domain/UiUnavailableReason.kt`、`CancelReason.kt` | 共通の値 | public |
+| `common/domain/UiReasons.kt` | `UiUnavailableReason`、`CancelReason`（共通の値） | public |
 | `common/presentation/ForegroundActivityTracker.kt` | `ActivityLifecycleCallbacks` | RG |
-| `common/presentation/UiHost.kt`、`UiHostClient.kt` | 前面の `FragmentActivity` を得る、宿主の記録と見張り | internal |
+| `common/presentation/UiHost.kt`、`UiHostCore.kt` | 前面の `FragmentActivity` を得る、宿主の記録と見張り。`UiHostCore.kt` に `UiHostClient` と、状態の表を単体テスト（UT-03）で確かめるための `UiHostCore`・`UiHostEnvironment` を置く | internal |
 | `common/presentation/UiRequestGate.kt` | 要求の ID ごとの「完了済み」の門（main だけ） | internal |
 | `common/presentation/NtkHostActivity.kt` | 透明な宿主 | internal（manifest） |
 | `common/logging/LogRedaction.kt` | `<redacted, length=N>` | RG |
@@ -284,35 +283,31 @@
 | `clipboard/presentation/ClipboardEvents.kt` | `changes: EventHub<Unit>` | internal |
 | `clipboard/AndroidClipboardManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
 | `dialog/AndroidDialogFragment.kt` | **今の場所のまま**。要求の ID を入れる internal の factory を足す（8.8） | public（今と同じ） |
-| `dialog/domain/model/DialogRequest.kt`、`DialogOptions.kt`、`DialogResult.kt`、`DialogValue.kt`、`DialogButton.kt` | 要求と結果 | public |
-| `dialog/domain/error/DialogError.kt`、`DialogDomainError.kt` | 失敗の値と、`suspend` 版が投げる例外 | public |
+| `dialog/domain/model/DialogRequest.kt`、`DialogResult.kt` | 要求と結果（`DialogRequest.kt` に `DialogOptions`・`DialogButton`、`DialogResult.kt` に `DialogValue`） | public |
+| `dialog/domain/error/DialogError.kt` | 失敗の値 `DialogError` と、`suspend` 版が投げる例外 `DialogDomainError` | public |
 | `dialog/application/port/DialogPresenter.kt` | port | public |
-| `dialog/application/usecase/ShowDialogUseCase.kt`、`CancelDialogUseCase.kt` | 1 操作 1 クラス | public |
+| `dialog/application/usecase/DialogUseCases.kt` | `ShowDialogUseCase`、`CancelDialogUseCase`（1 操作 1 クラス） | public |
 | `dialog/presentation/FragmentDialogPresenter.kt` | port の実装 | internal |
 | `dialog/AndroidDialogManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
-| `notification/domain/model/PermissionRequestResult.kt`、`NotificationSettingsTarget.kt`、`NotificationSettingsOpenResult.kt` | 結果と値 | public |
+| `notification/domain/model/NotificationPermissionModels.kt` | `PermissionRequestResult`、`NotificationSettingsTarget`、`NotificationSettingsOpenResult`（結果と値） | public |
 | `notification/domain/error/PermissionRequestDomainError.kt` | `suspend` 版が投げる例外 | public |
-| `notification/application/port/NotificationPermissionPort.kt`、`NotificationSettingsPort.kt` | port | public |
-| `notification/application/usecase/RequestNotificationPermissionUseCase.kt`、`CancelNotificationPermissionRequestUseCase.kt`、`CanScheduleExactAlarmsUseCase.kt`、`OpenNotificationSettingsUseCase.kt` | 1 操作 1 クラス | public |
-| `notification/data/repository/ScheduledNotificationEntry.kt` | (移す) 今の data の中の型に `generation`、`lossy`、`installId`、`bootCount` を足す | internal |
-| `notification/data/repository/InstallId.kt` | インストールごとの印（`noBackupFilesDir`） | internal |
+| `notification/application/port/NotificationPermissionPorts.kt` | `NotificationPermissionPort`、`NotificationSettingsPort` | public |
+| `notification/application/usecase/NotificationPermissionUseCases.kt` | `RequestNotificationPermissionUseCase`、`CancelNotificationPermissionRequestUseCase`、`CanScheduleExactAlarmsUseCase`、`OpenNotificationSettingsUseCase`（1 操作 1 クラス） | public |
 | `notification/data/repository/NotificationRepositoryImpl.kt`、`NotificationSchedulerSupport.kt`、`ScheduledNotificationReceiver.kt`、`ScheduledNotificationBootReceiver.kt`、`NotificationUseCasesFactory.kt` | (直す) 8.6 の対応表のとおり、保存・Alarm の extra・宛先・排他を置き換える | 今と同じ |
 | `notification/application/usecase/NotificationUseCases.kt` | (直す) `isScheduled(context, …)` が新しい保存を直接読む（今と同じく data を直接呼ぶ。8.14） | public（今と同じ） |
 | `notification/presentation/progress/ProgressForegroundServiceIntents.kt`、`ProgressForegroundService.kt`、`notification/presentation/call/CallStyleForegroundService.kt` | (直す) 8.14 | 今と同じ |
-| `notification/data/repository/JsonNotificationScheduleStore.kt` | `AtomicFile` と JSON（data の中だけで使う） | internal |
+| `notification/data/repository/JsonNotificationScheduleStore.kt` | `AtomicFile` と JSON（data の中だけで使う）。今の data の中の型 `ScheduledNotificationEntry` もここに移し、`generation`、`lossy`、`installId`、`bootCount` を足す | internal |
 | `notification/data/repository/NotificationJsonCodec.kt` | command・schedule と JSON | internal |
 | `notification/data/repository/ScheduledAlarmExtras.kt` | Alarm の extra の形（8.6） | internal |
-| `notification/data/repository/ScheduleLock.kt` | 予約の操作の排他 | internal |
-| `notification/data/repository/LegacyScheduleCleaner.kt` | 1.x の破棄 | internal |
+| `notification/data/repository/ScheduleLock.kt` | 予約の操作の排他。インストールごとの印（`noBackupFilesDir`）と起動の回数を返す `ScheduleIdentity`、IT-12・IT-13 の注入の口 `ScheduleTestHooks` も置く | internal |
+| `notification/data/repository/LegacyScheduleCleaner.kt` | 1.x の破棄。状態の移り変わりを `LegacyScheduleDiscard`（UT-05）、端末の操作を `AndroidLegacyScheduleEnvironment` に分ける | internal |
 | `notification/data/repository/AndroidNotificationSettingsGateway.kt` | 設定の画面の port の実装（Context を持つ） | internal |
 | `notification/presentation/resource/NotificationResourceResolver.kt` | 名前の解決 | public |
-| `notification/presentation/event/NotificationEvents.kt` | イベントの口 | internal |
-| `notification/presentation/event/NotificationInteraction.kt`、`NotificationShown.kt` | イベントの型 | public |
-| `notification/presentation/event/NotificationEventReceiver.kt` | manifest の Receiver | internal |
-| `notification/presentation/event/NotificationLaunchActivity.kt` | 見えない Activity | internal |
+| `notification/presentation/event/NotificationEvents.kt` | イベントの口と、イベントの型 `NotificationInteraction`・`NotificationShown`（型は public） | internal（型は public） |
+| `notification/presentation/event/NotificationEventReceivers.kt` | manifest の Receiver `NotificationEventReceiver` と見えない Activity `NotificationLaunchActivity`（完全名は 8.5 の変えない識別子） | internal |
 | `notification/presentation/event/NotificationEventIntents.kt` | PendingIntent の要求を作る（factory） | public |
-| `notification/presentation/permission/FragmentPermissionRequester.kt` | port の実装（会を持つ） | internal |
-| `notification/presentation/permission/PermissionRequestFragment.kt` | 画面の無い Fragment | internal |
+| `notification/presentation/permission/FragmentPermissionRequester.kt` | port の実装と、画面の無い Fragment `PermissionRequestFragment` | internal |
+| `notification/presentation/permission/PermissionSessions.kt` | 権限の要求の会の表（UT-06） | internal |
 | `notification/AndroidNotificationManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
 | `share/domain/model/ShareChooserAction.kt`、`ShareSelection.kt` | 値 | public |
 | `share/application/port/ShareRepository.kt` | (直す) 3 つの関数を既定の実装つきで足す | public（今と同じ） |
@@ -322,14 +317,14 @@
 | `share/AndroidShareManager.kt` | 入口（6.3。機能のパッケージの直下。0.7） | public |
 | `share/presentation/ShareChooserActionReceiver.kt` | 動的 Receiver（プロセスで 1 つ） | internal |
 | `share/data/repository/ShareCallbackCoordinator.kt` | (直す) 要求ごとの印、ロックの外での呼び出し | internal（今と同じ） |
-| `share/data/repository/ShareRepositoryImpl.kt` | (直す) 要求ごとの PendingIntent、型のある Chooser Action | internal（今と同じ） |
+| `share/data/repository/ShareRepositoryImpl.kt` | (直す) 要求ごとの PendingIntent、型のある Chooser Action | public（今と同じ。1.12.0 から public） |
 
 ほかに:
 
 | ファイル | 変更 |
 |---|---|
 | `android/android_library/src/main/AndroidManifest.xml` | `InitializationProvider` の `meta-data`、`NotificationEventReceiver`、`NotificationLaunchActivity`、`NtkHostActivity`（どれも `exported=false`、`<intent-filter>` なし。明示の component で届ける） |
-| `android/android_library/src/main/res/values/themes.xml` | (新) 宿主と見えない Activity のテーマ |
+| `android/android_library/src/main/res/values/ntk_themes.xml` | (新) 宿主と見えない Activity のテーマ（利用者のアプリの `themes.xml` とぶつからない名前） |
 | `android/android_library/consumer-rules.pro` | 8.12 |
 | `android/android_library/build.gradle.kts`、`android/gradle/libs.versions.toml` | `androidx.startup:startup-runtime:1.2.0`（README 8.3） |
 | `agent-rules/coding-rules/android.md` | ログの規則の例外（8.11）、Android での Manager の役と UseCase を置かない口の条件（6.3）。**この設計書の決定と同じ PR** |
@@ -447,6 +442,7 @@
 | 初期化されていない | `client.onUnavailable(NOT_INITIALIZED)` |
 | `currentFragmentActivity()` がある | その場で `client.onReady(activity)` |
 | 起動を待っている宿主の記録がある | その記録の一覧に足す（宿主を 2 つ起動しない） |
+| 前面が `FragmentActivity` だが、状態を保存した後（`supportFragmentManager.isStateSaved`） | `client.onUnavailable(NOT_FOREGROUND)`（宿主を起動しない。1b の実装で足した行、2026-10-05） |
 | `current()` があるが `FragmentActivity` でない | 宿主の記録（印 = `RequestIds.next()`、一覧 = この利用者）を作り、`current()` から `NtkHostActivity` を起動する（extra に印、`ActivityOptions.makeCustomAnimation(…, 0, 0)`）。`startActivity` が投げたら、記録を消し、一覧の `isActive` な利用者に `onUnavailable(HOST_START_FAILED)`。投げなければ 5 秒の見張りを `postDelayed` で積む |
 | `current()` が無い | `client.onUnavailable(NOT_FOREGROUND)` |
 
@@ -459,7 +455,7 @@
 | 見張り（5 秒） | 記録を消し、一覧の `isActive` な利用者に `onUnavailable(NOT_FOREGROUND)` |
 | `startActivity` の例外 | 上の表のとおり |
 
-**宿主が閉じる条件** `finishIfIdle()`: 宿主の `supportFragmentManager` に、タグが `ntk.` で始まる Fragment が 1 つも無ければ `finish()`。呼ぶ所: 宿主の `onCreate` の終わり（作り直しのときは `super.onCreate` が Fragment を戻した後）、**ライブラリの Fragment が宿主から外れるすべての経路**（Fragment の `onDestroy` が、Activity が設定の変化中でなければ、宿主に `MainPoster.post` で `finishIfIdle()` を積む。結果、取り消し、表示の失敗の後の後始末、戻された Fragment が自分を外す場合のどれも、この経路を通る）。`onReady` の中の `showNow` / `commitNow` が投げた場合も、利用者が失敗で完了した後に `finishIfIdle()` を積む。
+**宿主が閉じる条件** `finishIfIdle()`: 宿主の `supportFragmentManager` に、タグが `ntk.` で始まる Fragment が 1 つも無ければ `finish()`。呼ぶ所: 宿主の `onCreate` の終わり（作り直しのときは `super.onCreate` が Fragment を戻した後）、**ライブラリの Fragment が宿主から外れるすべての経路**（Fragment の `onDestroy` が、Activity が設定の変化中でなければ、宿主に `MainPoster.post` で `finishIfIdle()` を積む。結果、取り消し、表示の失敗の後の後始末、戻された Fragment が自分を外す場合のどれも、この経路を通る）。`onReady` の中の `showNow` / `commitNow` が投げた場合も、利用者が失敗で完了した後に `finishIfIdle()` を積む（1b の実装では、Dialog は積み、権限の会は積まない。権限の会の `onReady` は宿主の `onCreate` の中で呼ばれ、その終わりに `finishIfIdle()` が呼ばれるので、閉じ損ねは起きない）。`showNow` / `commitNow` の `IllegalStateException` は、理由を問わず状態の保存とみなす
 
 **Dialog の要求の状態**:
 

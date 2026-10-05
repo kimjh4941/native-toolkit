@@ -69,6 +69,17 @@ Domain → Application → Data
 - ネイティブライブラリ側に Manager がまだ無い機能でも、Unity プラグインへ流さず、ネイティブライブラリの機能の直下に置く
 - 直していない既存の例外: macOS の Clipboard（`mac/MacLibrary/MacLibrary/Clipboard/Manager/MacClipboardManager.swift`）。機能の直下へ移す作業が残っている（2026-10-04 に置き場所を決めたときの記録）。新しいコードでこの形をまねしない
 
+**機能の公開の入口（全 OS 共通）:** 機能ごとに公開の入口を 1 つ持ち、C ABI と枠組みごとのラッパーはその入口だけを呼ぶ。Domain〜Presentation の型や内部のクラスを直接呼ばない（2026-10-05 に決めた）。
+
+| OS | 入口 | 形 |
+|---|---|---|
+| iOS / macOS | `Ios*Manager` / `Mac*Manager`（`shared`） | プロセスに 1 つ |
+| Android | `Android*Manager`（`getInstance`） | プロセスに 1 つ |
+| Windows | C++ API（`NativeToolkit::<機能>`）。`windows.md` の「基本構造」のとおり | 所有するオブジェクト（`Session`・`Manager`）か関数。その下に内部の singleton の `Windows*Manager` を置く |
+
+- 入口の形は、その OS の資源の寿命に合わせる。Windows の公開面は、閉じる必要のある所有のオブジェクトを表すので、名前を `Manager` にそろえない（`Session` を `Manager` と呼ぶと、閉じなくてよいプロセスに 1 つのものに見える）
+- 1.12.0 でリリース済みの Windows の C++ API と C ABI の名前は、名前をそろえるためだけには変えない
+
 判定の自己チェック:
 
 - そのクラスは Unity を使わないネイティブ呼び出し元（native サンプルアプリ、他のネイティブコード）から利用する必要があるか？
