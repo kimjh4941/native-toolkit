@@ -87,6 +87,14 @@ class ManualInitTest {
     }
 
     @Test
+    fun everyOperationIsNotInitializedBeforeInit() {
+        // Part 2, 12.1: before ntk_android_init, every operation that returns an error returns
+        // NOT_INITIALIZED, and an asynchronous one releases its user data at once.
+        NtkTestNative.load()
+        assertEquals("", NtkTestNative.operationsUninitialized())
+    }
+
+    @Test
     fun withoutThePermissionNotificationsAreRefusedNotDroppedSilently() {
         // A fresh install of this flavor never grants the notification permission. Part 2, AP-16:
         // Kotlin would succeed and show nothing; the C ABI says PERMISSION_DENIED first.

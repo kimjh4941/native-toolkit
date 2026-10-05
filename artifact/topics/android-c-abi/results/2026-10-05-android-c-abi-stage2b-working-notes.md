@@ -283,3 +283,59 @@
 | E4: silent を落とす | `Notification.TheRemainingContentSettersReachTheNotification` |
 | E5: チャンネルの lights を落とす | `Notification.TheChannelAlertSettersReachTheChannel` |
 | K8: 前面でないときの権限の要求を C の側で止めず Kotlin に渡す | なし。Kotlin も `Failed(NOT_FOREGROUND)` を返し、C には同じ `(NOT_FOREGROUND, DENIED)` が届く（等価な変異）。C の側の分岐は、Kotlin の前面の判定が変わっても 12.1 の値を返す保険として残す |
+
+## TB-7（2026-10-05）
+
+### 作ったもの
+
+- C: `Notification.cpp` に OP-40〜OP-42（操作と表示の受け手の追加、受け手の解除）と、イベントの読み取り 12 関数。イベントは登録ごとに複製して渡し、受け取った側が free する
+- Kotlin: `NotificationBridge` に受け口（`addInteractionListener`、`addShownListener`）と、操作のイベントの保持
+- テスト:
+  - GoogleTest `NotificationEvent` 9 件（イベントは表示中の通知の `PendingIntent` を送って起こす。シェードの 1 件は UiAutomator で押して払う）
+  - noStartup に「初期化の前の全操作」1 件（Clipboard、Dialog、通知の操作を全部呼ぶ）
+  - 試験の土台: `NotificationInspector.fire`、`UiDriver` のシェードの操作と前面の Activity、試験アプリの起動用の `LaunchTargetActivity`、`Record.detail`
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| 受け口は種類ごとに、最初の C の登録で `EventHub` に受け手を 1 つ足し、外さない。操作のイベントは受け口の列に入れ、ACTIVE な登録へ古い順に配る。ACTIVE な登録が無ければ列に残し（32 件を超えたら古いものから捨てる）、次の登録の挿入の中で配る | AP-21。コールバックの中で唯一の登録を外して足し直しても、残りは列に残って新しい登録へ届く（Y-X2） |
+| 配る先は帳簿の登録のうち C で ACTIVE なものだけ（`Ledger.nativeIsActive`） | 外した登録は解除のメッセージが動くまで帳簿に残る。それを数えると、配っても C が捨てるので、列から消えてイベントを失う |
+| 配っている間に届いたイベントは列の後ろに足し、同じループが配る（再入しない） | 届いた順を保つ |
+| 表示のイベントは保たない | Kotlin の設計書 8.4 と AP-21 |
+| イベントの種類は Kotlin の列挙から明示の写しで C の値にする（`ordinal` を使わない） | Kotlin の並びが変わっても C の値が変わらない |
+| 初期化の前の取り消し（`ntk_dialog_cancel`、`ntk_notification_cancel_permission_request`）は `NONE` | 初期化の前に有効な ID は無いので、「知らない ID は何もしない」（6.2、6.3）に当たる |
+
+### テストで分かったこと
+
+- **JNI の署名の書き間違い**（`nativeInteraction` の int を 3 つと書いた）で、クラスの表づくりが失敗し、全部が `NOT_INITIALIZED` になった。TB-4 と同じ種類の誤り。表づくりは全部か無しかなので、1 か所の誤りで全テストが落ちて見つかる
+- **ランチャーと同じ起動**: タップでアプリを開くと、アプリのタスクが既にあれば、新しい Activity を作らずにそのタスクを前に出す。テストは「後ろにいたアプリが前面に来た」を確かめる
+- **12.1 の未初期化の行の抜け**: TB-4 と TB-6 で、Dialog と通知の操作の「初期化の前は `NOT_INITIALIZED`」のテストが無かった（Clipboard も代表の 3 つだけ）。全部を呼ぶテストを足した
+- **変異が見つけたテストの穴**: 準備の「登録して、すぐ外す」で、登録の挿入が main で動く前に外していた。挿入は行われず受け口の `EventHub` の受け手も足されないので、2 件のテストは受け口ではなく Kotlin の `EventHub` の保持（同じく 32 件）を確かめていた。保持の上限を 33 にする変異（T1）が通って分かった。登録の後に main が追いつくのを待ってから外すように直した（`UsedOnce`）
+- **シェードで払う操作**: タイトルの文字の上を遅く払うと、エミュレーターで閉じる操作として受け取られないことがあった（前の回は通った）。通知の行を画面の端から端まで速く払い、残れば 1 度だけやり直す形にした。直した後、両方の端末で計 7 回流して通った
+- **ブロードキャストの完了を待つ**: `PendingIntent.send` に完了の通知を渡すと順序付きで送られ、受け手（`onReceive` の中で `EventHub` に流す）が終わってから返る。イベントが受け口に着いたことを、時間を待たずに確かめられる
+
+### 後のタスクへ移したこと、確かめていないこと
+
+- 「再入で配っている途中も 32 件を超えない」（12.1 のイベントの行）は、配っている間に届いたイベントも同じ列と同じ上限に入る作りで満たす。端末で再入の最中にイベントを起こすテストは作っていない
+- 通知の権限が無い状態でのイベント（表示できないので起きない）は対象外
+
+### 確かめたこと
+
+- capi のテスト 125 件（startup 106、noStartup 16、noNtkInitializer 3）が Pixel 6a とエミュレータで通る
+- release の `libntk.so` の公開は `ntk_*` 143（TB-6 の 128 に OP-40〜OP-42 の 3 と読み取りの 12）。残りの 12 は TB-8 の Share
+- 公開の 143 関数は、すべてどれかのテストが呼ぶ。契約の照合は FAIL 0
+
+### 変異（Pixel 6a。startup の GoogleTest、初期化の前は noStartup）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| T1: 33 件まで保つ | `NotificationEvent.AtMost32AreKeptAndTheOldestIsDropped`（テストの準備を直した後。直す前は通った） |
+| T2: ACTIVE でない登録にも配る | `NotificationEvent.RemovingAndAddingInTheCallbackKeepsTheRest` |
+| T3: ACTIVE な登録が無いとき保持を捨てる | `AnEventWithNoActiveListenerWaitsForTheNext`、`RemovingAndAddingInTheCallbackKeepsTheRest`、`AtMost32AreKeptAndTheOldestIsDropped` |
+| T4: ACTION と DISMISS の値を入れ替える | `EveryListenerGetsTheEventOnMainUntilRemoved`、`RemovingAndAddingInTheCallbackKeepsTheRest` |
+| T5: 表示の受け手を `EventHub` に足さない | `AShownEventReachesTheListener` |
+| T6: データの値を鍵から読む | `EveryListenerGetsTheEventOnMainUntilRemoved` ほか 4 件 |
+| T7: `listener_remove` が何もしない | `EveryListenerGetsTheEventOnMainUntilRemoved` ほか 3 件 |
+| T8: `EventHub` が保っていたイベントを最初の登録に渡さない | `EventsBeforeTheFirstListenerArriveInItsInsertion` ほか 7 件 |
+| U1: 通知の入口で初期化を確かめない | `ManualInitTest.everyOperationIsNotInitializedBeforeInit` |

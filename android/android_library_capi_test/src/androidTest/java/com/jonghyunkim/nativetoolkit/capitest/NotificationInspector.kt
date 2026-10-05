@@ -4,6 +4,8 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.os.SystemClock
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import androidx.test.platform.app.InstrumentationRegistry
 
 /**
@@ -44,6 +46,26 @@ object NotificationInspector {
     @JvmStatic
     fun resourceId(name: String, type: String): String =
         context.resources.getIdentifier(name, type, context.packageName).toString()
+
+    /**
+     * Sends a PendingIntent of notification [id] as the system would on a tap: [which] is
+     * "content", "delete" or "action:<index>". A broadcast is sent ordered, so this returns once
+     * the library's receiver has handled it (and the event is in its EventHub); false when the
+     * notification or the intent is not there, or after the timeout.
+     */
+    @JvmStatic
+    fun fire(id: Int, tag: String?, which: String): Boolean {
+        val notification = find(id, tag)?.notification ?: return false
+        val intent = when {
+            which == "content" -> notification.contentIntent
+            which == "delete" -> notification.deleteIntent
+            which.startsWith("action:") -> notification.actions?.getOrNull(which.substringAfter(':').toInt())?.actionIntent
+            else -> error("unknown intent $which")
+        } ?: return false
+        val done = CountDownLatch(1)
+        intent.send(context, 0, null, { _, _, _, _, _ -> done.countDown() }, null)
+        return done.await(10, TimeUnit.SECONDS)
+    }
 
     @JvmStatic
     fun field(id: Int, tag: String?, name: String): String? {

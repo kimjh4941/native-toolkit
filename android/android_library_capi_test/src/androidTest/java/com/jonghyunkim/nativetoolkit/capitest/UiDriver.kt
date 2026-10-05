@@ -16,7 +16,8 @@ import java.util.concurrent.TimeUnit
 /**
  * Presses the dialogs the C ABI shows, for the GoogleTest cases (through TestSupport.h) and the
  * Kotlin tests: wait for a text, click it, type into an input, Back, Home, and finish the
- * foreground Activity (a dialog host destroyed from outside).
+ * foreground Activity (a dialog host destroyed from outside). Also opens the notification shade,
+ * swipes a notification away, and tells which Activity of the app is in the foreground.
  */
 object UiDriver {
 
@@ -94,6 +95,45 @@ object UiDriver {
     @JvmStatic
     fun back() {
         device.pressBack()
+    }
+
+    /** Opens the notification shade and waits for [text] in it. */
+    @JvmStatic
+    fun openShade(text: String): Boolean {
+        device.openNotification()
+        return waitText(text)
+    }
+
+    /**
+     * Swipes the notification showing [text] away and waits until it is gone: a fast fling across
+     * the screen at its height (a slow swipe over the text alone is not always taken as a
+     * dismissal), tried twice.
+     */
+    @JvmStatic
+    fun swipeAway(text: String): Boolean {
+        repeat(2) {
+            val target = device.wait(Until.findObject(By.text(text)), TIMEOUT_MS) ?: return false
+            val y = target.visibleCenter.y
+            device.swipe(device.displayWidth / 10, y, device.displayWidth * 9 / 10, y, 5)
+            if (device.wait(Until.gone(By.text(text)), TIMEOUT_MS / 2) == true) return true
+        }
+        return false
+    }
+
+    @JvmStatic
+    fun closeShade() {
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("cmd statusbar collapse").close()
+    }
+
+    /** The simple class name of the app's foreground Activity once one is there, or "" after the timeout. */
+    @JvmStatic
+    fun foregroundActivity(): String {
+        var name = ""
+        waitUntil(TIMEOUT_MS) {
+            name = onMain { ForegroundActivityTracker.current()?.javaClass?.simpleName } ?: ""
+            name.isNotEmpty()
+        }
+        return name
     }
 
     /** Sends the app to the back and waits until no Activity of it is in the foreground. */

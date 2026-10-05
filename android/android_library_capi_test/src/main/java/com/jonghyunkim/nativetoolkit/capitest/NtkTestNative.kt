@@ -68,6 +68,10 @@ object NtkTestNative {
     @JvmStatic
     external fun awaitPermission(count: Int): IntArray
 
+    /** Every operation before initialization; see ntk_test_jni.cpp. Empty when all is as designed. */
+    @JvmStatic
+    external fun operationsUninitialized(): String
+
     /** Runs one GoogleTest case; true when it ran and passed. */
     @JvmStatic
     external fun runCase(name: String): Boolean

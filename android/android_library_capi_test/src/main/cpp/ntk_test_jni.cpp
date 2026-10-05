@@ -277,3 +277,131 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_awaitPermission(JNIEnv
     env->SetIntArrayRegion(result, 0, 2, values);
     return result;
 }
+
+// Every operation of Clipboard, Dialog and notifications before initialization (noStartup; part 2,
+// 12.1 未初期化): the names of those that did not return NOT_INITIALIZED, then of the asynchronous
+// ones whose release did not run once on the calling thread. Empty when all is as designed.
+namespace {
+void IgnoreDialog(void*, uint64_t, ntk_dialog_error, uint32_t, ntk_dialog_result*) {}
+void IgnoreSettings(void*, ntk_notification_error, uint32_t, ntk_notification_settings_result) {}
+void IgnorePermission(void*, uint64_t, ntk_notification_error, uint32_t, ntk_notification_permission_result) {}
+void IgnoreChange(void*) {}
+void IgnoreInteraction(void*, ntk_notification_interaction*) {}
+void IgnoreShown(void*, ntk_notification_shown*) {}
+}  // namespace
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialized(JNIEnv* env, jclass) {
+    std::string failed;
+    auto expect = [&failed](const char* name, int32_t error, int32_t not_initialized) {
+        if (error != not_initialized) failed += std::string(name) + "=" + std::to_string(error) + " ";
+    };
+    auto clipboard = [&expect](const char* name, int32_t error) {
+        expect(name, error, NTK_CLIPBOARD_ERROR_NOT_INITIALIZED);
+    };
+    auto dialog = [&expect](const char* name, int32_t error) { expect(name, error, NTK_DIALOG_ERROR_NOT_INITIALIZED); };
+    auto notification = [&expect](const char* name, int32_t error) {
+        expect(name, error, NTK_NOTIFICATION_ERROR_NOT_INITIALIZED);
+    };
+    auto* recorder = new ntktest::Recorder;  // never freed: see Leaked in TestSupport.h
+    const char* texts[] = {"a", "b"};
+
+    // Clipboard (OP-01 to OP-11).
+    clipboard("copy_text", ntk_clipboard_copy_text("x", nullptr));
+    clipboard("copy_html", ntk_clipboard_copy_html("<b>x</b>", nullptr, nullptr));
+    clipboard("copy_uri", ntk_clipboard_copy_uri("content://x/1", nullptr));
+    clipboard("copy_texts", ntk_clipboard_copy_texts(texts, 2, nullptr));
+    clipboard("clear", ntk_clipboard_clear());
+    ntk_clipboard_content* content = nullptr;
+    clipboard("read", ntk_clipboard_read(&content));
+    int32_t value = 0;
+    clipboard("has_clip", ntk_clipboard_has_clip(&value));
+    ntk_clipboard_description* description = nullptr;
+    clipboard("get_description", ntk_clipboard_get_description(&description));
+    clipboard("start_observing", ntk_clipboard_start_observing());
+    clipboard("stop_observing", ntk_clipboard_stop_observing());
+    ntk_clipboard_listener* clipboard_listener = nullptr;
+    clipboard("add_change_listener",
+              ntk_clipboard_add_change_listener(IgnoreChange, recorder, ntktest::Recorder::Release, &clipboard_listener));
+
+    // Dialog (OP-13 to OP-18).
+    ntk_dialog_alert_request alert{};
+    alert.struct_size = sizeof(alert);
+    dialog("show_alert_async", ntk_dialog_show_alert_async(&alert, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+    ntk_dialog_confirm_request confirm{};
+    confirm.struct_size = sizeof(confirm);
+    dialog("show_confirm_async",
+           ntk_dialog_show_confirm_async(&confirm, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+    ntk_dialog_single_choice_request single{};
+    single.struct_size = sizeof(single);
+    single.items = texts;
+    single.item_count = 2;
+    single.checked_index = -1;
+    dialog("show_single_choice_async",
+           ntk_dialog_show_single_choice_async(&single, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+    ntk_dialog_multi_choice_request multi{};
+    multi.struct_size = sizeof(multi);
+    multi.items = texts;
+    multi.item_count = 2;
+    dialog("show_multi_choice_async",
+           ntk_dialog_show_multi_choice_async(&multi, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+    ntk_dialog_text_input_request text_input{};
+    text_input.struct_size = sizeof(text_input);
+    dialog("show_text_input_async",
+           ntk_dialog_show_text_input_async(&text_input, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+    ntk_dialog_login_request login{};
+    login.struct_size = sizeof(login);
+    dialog("show_login_async", ntk_dialog_show_login_async(&login, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+
+    // Notifications (OP-20 to OP-41).
+    ntk_notification_content* note = nullptr;
+    ntk_notification_content_create(1, "t", "m", &note);
+    ntk_notification_content_set_progress(note, 10, 1, 0);
+    ntk_notification_channel* channel = nullptr;
+    ntk_notification_channel_create("ch", "Channel", 3, &channel);
+    notification("show", ntk_notification_show(note));
+    notification("update", ntk_notification_update(note));
+    notification("remove", ntk_notification_remove(1, nullptr));
+    notification("remove_all", ntk_notification_remove_all());
+    notification("create_channel", ntk_notification_create_channel(channel));
+    notification("delete_channel", ntk_notification_delete_channel("ch"));
+    ntk_notification_schedule_options schedule{};
+    schedule.struct_size = sizeof(schedule);
+    schedule.trigger_at_millis = 4102444800000;  // 2100-01-01
+    notification("schedule", ntk_notification_schedule(note, &schedule));
+    notification("cancel_scheduled", ntk_notification_cancel_scheduled(1, nullptr));
+    notification("cancel_all_scheduled", ntk_notification_cancel_all_scheduled());
+    notification("start_progress", ntk_notification_start_progress(note));
+    notification("update_progress", ntk_notification_update_progress(note));
+    notification("complete_progress", ntk_notification_complete_progress(note));
+    notification("stop_progress", ntk_notification_stop_progress());
+    notification("has_permission", ntk_notification_has_permission(&value));
+    notification("are_enabled", ntk_notification_are_enabled(&value));
+    notification("is_scheduled", ntk_notification_is_scheduled(1, nullptr, &value));
+    notification("can_schedule_exact_alarms", ntk_notification_can_schedule_exact_alarms(&value));
+    notification("open_settings_async",
+                 ntk_notification_open_settings_async(0, IgnoreSettings, recorder, ntktest::Recorder::Release));
+    notification("request_permission",
+                 ntk_notification_request_permission(IgnorePermission, recorder, ntktest::Recorder::Release, nullptr));
+    ntk_notification_listener* listener = nullptr;
+    notification("add_interaction_listener",
+                 ntk_notification_add_interaction_listener(IgnoreInteraction, recorder, ntktest::Recorder::Release, &listener));
+    notification("add_shown_listener",
+                 ntk_notification_add_shown_listener(IgnoreShown, recorder, ntktest::Recorder::Release, &listener));
+    ntk_notification_channel_free(channel);
+    ntk_notification_content_free(note);
+    // The cancels find no request (none can exist yet), so they do nothing and return NONE (6.2,
+    // 6.3); the removals do nothing.
+    expect("dialog_cancel", ntk_dialog_cancel(1), NTK_DIALOG_ERROR_NONE);
+    expect("cancel_permission_request", ntk_notification_cancel_permission_request(1), NTK_NOTIFICATION_ERROR_NONE);
+    ntk_notification_listener_remove(nullptr);
+    ntk_clipboard_listener_remove(nullptr);
+
+    // 1 + 6 + 4 asynchronous calls, each released at once on this thread (part 1, 1.3).
+    std::vector<ntktest::Record> records = recorder->Records();
+    if (records.size() != 11) failed += "releases=" + std::to_string(records.size()) + " ";
+    for (const auto& record : records) {
+        if (record.what != "release" || record.thread != gettid()) failed += "release-off-thread ";
+    }
+    return env->NewStringUTF(failed.c_str());
+}

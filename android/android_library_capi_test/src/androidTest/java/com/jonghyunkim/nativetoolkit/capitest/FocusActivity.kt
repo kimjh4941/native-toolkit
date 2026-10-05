@@ -11,3 +11,11 @@ class FocusActivity : Activity() {
         setContentView(TextView(this).apply { text = "ntk capi test" })
     }
 }
+
+/** The test app's launch Activity: what a notification tap with OPEN_APP opens (part 2, AP-18). */
+class LaunchTargetActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(TextView(this).apply { text = "ntk capi launch target" })
+    }
+}

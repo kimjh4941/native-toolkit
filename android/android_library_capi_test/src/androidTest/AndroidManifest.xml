@@ -6,5 +6,15 @@
         <activity
             android:name="com.jonghyunkim.nativetoolkit.capitest.FocusActivity"
             android:exported="false" />
+        <!-- What getLaunchIntentForPackage finds: a notification tap that opens the app opens it
+             (C ABI design part 2, AP-18). -->
+        <activity
+            android:name="com.jonghyunkim.nativetoolkit.capitest.LaunchTargetActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

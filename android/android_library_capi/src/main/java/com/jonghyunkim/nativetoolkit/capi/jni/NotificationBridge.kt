@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import com.jonghyunkim.nativetoolkit.common.domain.CancelReason
 import com.jonghyunkim.nativetoolkit.common.domain.UiUnavailableReason
+import com.jonghyunkim.nativetoolkit.common.event.EventHub
 import com.jonghyunkim.nativetoolkit.common.presentation.ForegroundActivityTracker
 import com.jonghyunkim.nativetoolkit.common.runtime.MainPoster
 import com.jonghyunkim.nativetoolkit.notification.AndroidNotificationManager
@@ -24,6 +25,8 @@ import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationSetti
 import com.jonghyunkim.nativetoolkit.notification.domain.model.NotificationStyle
 import com.jonghyunkim.nativetoolkit.notification.domain.model.PermissionRequestResult
 import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationEventIntents
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationInteraction
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationShown
 import com.jonghyunkim.nativetoolkit.notification.presentation.resource.NotificationResourceResolver
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -43,6 +46,11 @@ internal object NotificationBridge {
     /** The ledger kinds. */
     const val KIND_PERMISSION = 300
     const val KIND_SETTINGS = 301
+    const val KIND_INTERACTION = 302
+    const val KIND_SHOWN = 303
+
+    /** How many interactions are kept while no C registration is ACTIVE (part 2, AP-21). */
+    private const val RETAINED_CAPACITY = 32
 
     // ntk_notification_error 6 to 15 (part 2, 11.2).
     private const val CANCELED = 6
@@ -62,12 +70,24 @@ internal object NotificationBridge {
     private const val OPENED = 0
     private const val OPENED_FALLBACK = 1
 
+    // ntk_notification_event_kind.
+    private const val EVENT_BODY_TAP = 0
+    private const val EVENT_ACTION = 1
+    private const val EVENT_DISMISS = 2
+
     // ntk_notification_tap.
     private const val TAP_OPEN_APP = 0
     private const val TAP_EVENT_ONLY = 1
 
     /** C permission request id to Kotlin request id. Main thread only. */
     private val permissionIds = HashMap<Long, Long>()
+
+    // The one EventHub listener per kind of AP-21, added with the first C registration and never
+    // removed, and the interactions kept while no C registration is ACTIVE. Main thread only.
+    private var interactionHub: EventHub.Registration? = null
+    private var shownHub: EventHub.Registration? = null
+    private val retained = ArrayDeque<NotificationInteraction>()
+    private var delivering = false
 
     /** A name the app's resources do not have (part 2, 11.2: RESOURCE_NOT_FOUND). */
     private class ResourceMissing(name: String, type: String) : Exception("$type/$name")
@@ -376,6 +396,100 @@ internal object NotificationBridge {
             }
         }
     }
+
+    // --- events (OP-40, OP-41) ---
+
+    /** Accepts an interaction listener: inserts it on the main thread and hands it what was kept. */
+    @JvmStatic
+    fun addInteractionListener(id: Long): Boolean {
+        Log.d(TAG, "[addInteractionListener] id: $id")
+        return MainPoster.post {
+            if (!Ledger.insertIfActive(id, KIND_INTERACTION)) return@post
+            // The first one: EventHub hands over what it kept before any listener, synchronously.
+            if (interactionHub == null) {
+                interactionHub = manager().interactions.addListener { event, _ -> onInteraction(event) }
+            }
+            deliverRetained()
+        }
+    }
+
+    /** Accepts a shown listener. Shown events are not kept (Kotlin API design 8.4). */
+    @JvmStatic
+    fun addShownListener(id: Long): Boolean {
+        Log.d(TAG, "[addShownListener] id: $id")
+        return MainPoster.post {
+            if (!Ledger.insertIfActive(id, KIND_SHOWN)) return@post
+            if (shownHub == null) shownHub = manager().shown.addListener { event, _ -> onShown(event) }
+        }
+    }
+
+    private fun onInteraction(event: NotificationInteraction) {
+        Log.d(TAG, "[onInteraction] event: $event")
+        retained.addLast(event)
+        while (retained.size > RETAINED_CAPACITY) retained.removeFirst()
+        deliverRetained()
+    }
+
+    // Hands the kept interactions, oldest first, to every ACTIVE registration. When a callback
+    // removes the last one (and adds another), the rest stay here for the next insertion (AP-21);
+    // an event arriving during a callback is appended and handed on by the same loop.
+    private fun deliverRetained() {
+        Log.d(TAG, "[deliverRetained] retained: ${retained.size}, delivering: $delivering")
+        if (delivering) return
+        delivering = true
+        try {
+            while (retained.isNotEmpty()) {
+                val ids = activeIds(KIND_INTERACTION)
+                if (ids.isEmpty()) return
+                val event = retained.removeFirst()
+                val kind = when (event.kind) {
+                    NotificationInteraction.Kind.BODY_TAP -> EVENT_BODY_TAP
+                    NotificationInteraction.Kind.ACTION -> EVENT_ACTION
+                    NotificationInteraction.Kind.DISMISS -> EVENT_DISMISS
+                }
+                val keys = event.data.keys.toList()
+                val tag = Utf8.encodeOrNull(event.tag)
+                val actionId = Utf8.encodeOrNull(event.actionId)
+                val keyBytes = Array(keys.size) { Utf8.encode(keys[it]) }
+                val valueBytes = Array(keys.size) { Utf8.encode(event.data.getValue(keys[it])) }
+                for (id in ids) {
+                    nativeInteraction(id, kind, event.notificationId, tag, actionId, keyBytes, valueBytes)
+                }
+            }
+        } finally {
+            delivering = false
+        }
+    }
+
+    private fun onShown(event: NotificationShown) {
+        Log.d(TAG, "[onShown] event: $event")
+        val tag = Utf8.encodeOrNull(event.tag)
+        val channelId = Utf8.encode(event.channelId)
+        for (id in activeIds(KIND_SHOWN)) nativeShown(id, event.notificationId, tag, channelId)
+    }
+
+    // The registrations of a kind that C still delivers to: a removed one stays in the ledger
+    // until its removal message runs, but is no longer ACTIVE.
+    private fun activeIds(kind: Int): List<Long> {
+        Log.d(TAG, "[activeIds] kind: $kind")
+        return Ledger.idsOf(kind).filter { Ledger.nativeIsActive(it) }
+    }
+
+    /** Delivers an interaction to one C registration. Bound by RegisterNatives. */
+    @JvmStatic
+    external fun nativeInteraction(
+        id: Long,
+        kind: Int,
+        notificationId: Int,
+        tag: ByteArray?,
+        actionId: ByteArray?,
+        keys: Array<ByteArray>,
+        values: Array<ByteArray>
+    )
+
+    /** Delivers a shown event to one C registration. Bound by RegisterNatives. */
+    @JvmStatic
+    external fun nativeShown(id: Long, notificationId: Int, tag: ByteArray?, channelId: ByteArray)
 
     @JvmStatic
     external fun nativePermissionDone(id: Long, error: Int, result: Int)

@@ -91,6 +91,26 @@ bool UiWaitText(const char* text) { return CallWithText("waitText", text); }
 bool UiGone(const char* text) { return CallWithText("gone", text); }
 bool UiClick(const char* text) { return CallWithText("click", text); }
 bool UiHome() { return CallBoolean("home"); }
+bool UiOpenShade(const char* text) { return CallWithText("openShade", text); }
+bool UiSwipeAway(const char* text) { return CallWithText("swipeAway", text); }
+
+void UiCloseShade() {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    env->CallStaticVoidMethod(driver, env->GetStaticMethodID(driver, "closeShade", "()V"));
+}
+
+std::string UiForegroundActivity() {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    auto name = static_cast<jstring>(
+        env->CallStaticObjectMethod(driver, env->GetStaticMethodID(driver, "foregroundActivity", "()Ljava/lang/String;")));
+    const char* chars = env->GetStringUTFChars(name, nullptr);
+    std::string result(chars);
+    env->ReleaseStringUTFChars(name, chars);
+    env->DeleteLocalRef(name);
+    return result;
+}
 bool UiFinishForeground() { return CallBoolean("finishForeground"); }
 
 int32_t ActivitiesCreated() {
@@ -167,6 +187,13 @@ bool WaitShown(int32_t id, const char* tag, int64_t ms) {
     jclass inspector = InspectorClass(env);
     jmethodID method = env->GetStaticMethodID(inspector, "waitShown", "(ILjava/lang/String;J)Z");
     return env->CallStaticBooleanMethod(inspector, method, id, Java(env, tag), static_cast<jlong>(ms)) == JNI_TRUE;
+}
+
+bool FireIntent(int32_t id, const char* tag, const char* which) {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    jmethodID method = env->GetStaticMethodID(inspector, "fire", "(ILjava/lang/String;Ljava/lang/String;)Z");
+    return env->CallStaticBooleanMethod(inspector, method, id, Java(env, tag), Java(env, which)) == JNI_TRUE;
 }
 
 bool WaitGone(int32_t id, const char* tag, int64_t ms) {

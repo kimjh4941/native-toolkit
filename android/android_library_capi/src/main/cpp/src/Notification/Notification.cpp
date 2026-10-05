@@ -1,5 +1,8 @@
 #include "Notification/Notification.h"
 
+#include <new>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -15,11 +18,29 @@
 #include "Notification/Builders.h"
 #include "Notification/Encoder.h"
 
+// The events of OP-40 and OP-41. Each registration gets a copy of its own, which it frees.
+struct ntk_notification_interaction {
+    int32_t kind = 0;
+    int32_t notification_id = 0;
+    std::optional<std::string> tag;
+    std::optional<std::string> action_id;
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+};
+
+struct ntk_notification_shown {
+    int32_t notification_id = 0;
+    std::optional<std::string> tag;
+    std::string channel_id;
+};
+
 namespace nativetoolkit::notification {
 namespace {
 
-constexpr int32_t kKindPermission = 300;  // NotificationBridge.KIND_PERMISSION
-constexpr int32_t kKindSettings = 301;    // NotificationBridge.KIND_SETTINGS
+constexpr int32_t kKindPermission = 300;   // NotificationBridge.KIND_PERMISSION
+constexpr int32_t kKindSettings = 301;     // NotificationBridge.KIND_SETTINGS
+constexpr int32_t kKindInteraction = 302;  // NotificationBridge.KIND_INTERACTION
+constexpr int32_t kKindShown = 303;        // NotificationBridge.KIND_SHOWN
 
 jclass g_bridge = nullptr;
 jmethodID g_show = nullptr;
@@ -42,6 +63,8 @@ jmethodID g_can_schedule_exact = nullptr;
 jmethodID g_open_settings = nullptr;
 jmethodID g_request_permission = nullptr;
 jmethodID g_cancel_permission = nullptr;
+jmethodID g_add_interaction_listener = nullptr;
+jmethodID g_add_shown_listener = nullptr;
 
 // --- completions (main thread) ---
 
@@ -67,6 +90,110 @@ void JNICALL NativeSettingsDone(JNIEnv* /*env*/, jclass /*type*/, jlong id, jint
     });
 }
 
+// --- events (main thread) ---
+
+// A Java string as Utf8.encodeOrNull gave it (already valid UTF-8); false on a JNI failure.
+bool ReadText(JNIEnv* env, jbyteArray bytes, std::optional<std::string>* out) {
+    NTK_LOGD("[ReadText] env: %p, bytes: %p", static_cast<void*>(env), static_cast<void*>(bytes));
+    std::string text;
+    bool is_null = false;
+    if (utf8::FromJava(env, bytes, &text, &is_null) != kErrorNone) return false;
+    if (is_null) {
+        out->reset();
+    } else {
+        *out = std::move(text);
+    }
+    return true;
+}
+
+bool ReadTexts(JNIEnv* env, jobjectArray array, std::vector<std::string>* out) {
+    NTK_LOGD("[ReadTexts] env: %p, array: %p", static_cast<void*>(env), static_cast<void*>(array));
+    jsize count = env->GetArrayLength(array);
+    for (jsize i = 0; i < count; ++i) {
+        auto bytes = static_cast<jbyteArray>(env->GetObjectArrayElement(array, i));
+        std::optional<std::string> text;
+        bool read = ReadText(env, bytes, &text);
+        env->DeleteLocalRef(bytes);
+        if (!read || !text) return false;
+        out->push_back(std::move(*text));
+    }
+    return true;
+}
+
+// Calls the listener with a copy it owns; an event that cannot be copied is dropped for it.
+template <class Event, class Callback>
+void DeliverCopy(uint64_t id, const Event& event) noexcept {
+    NTK_LOGD("[DeliverCopy] id: %llu", static_cast<unsigned long long>(id));
+    registry::DeliverOnMain(id, [&event](registry::Registration& registration) {
+        Event* copy = nullptr;
+        try {
+            copy = new Event(event);
+        } catch (...) {
+            NTK_LOGE("[DeliverCopy] out of memory, the event is dropped for id: %llu",
+                     static_cast<unsigned long long>(registration.id));
+            return;
+        }
+        reinterpret_cast<Callback>(registration.callback)(registration.user_data, copy);
+    });
+}
+
+void JNICALL NativeInteraction(JNIEnv* env, jclass /*type*/, jlong id, jint kind, jint notification_id, jbyteArray tag,
+                               jbyteArray action_id, jobjectArray keys, jobjectArray values) {
+    NTK_LOGD("[NativeInteraction] id: %lld, kind: %d, notification_id: %d", static_cast<long long>(id), kind,
+             notification_id);
+    ntk_notification_interaction event;
+    try {
+        event.kind = kind;
+        event.notification_id = notification_id;
+        if (!ReadText(env, tag, &event.tag) || !ReadText(env, action_id, &event.action_id) ||
+            !ReadTexts(env, keys, &event.keys) || !ReadTexts(env, values, &event.values) ||
+            event.keys.size() != event.values.size()) {
+            jni::TakeException(env, "NativeInteraction");
+            NTK_LOGE("[NativeInteraction] the event could not be read, dropped");
+            return;
+        }
+    } catch (...) {
+        NTK_LOGE("[NativeInteraction] out of memory, the event is dropped");
+        return;
+    }
+    DeliverCopy<ntk_notification_interaction, ntk_notification_interaction_fn>(static_cast<uint64_t>(id), event);
+}
+
+void JNICALL NativeShown(JNIEnv* env, jclass /*type*/, jlong id, jint notification_id, jbyteArray tag,
+                         jbyteArray channel_id) {
+    NTK_LOGD("[NativeShown] id: %lld, notification_id: %d", static_cast<long long>(id), notification_id);
+    ntk_notification_shown event;
+    try {
+        event.notification_id = notification_id;
+        std::optional<std::string> channel;
+        if (!ReadText(env, tag, &event.tag) || !ReadText(env, channel_id, &channel) || !channel) {
+            jni::TakeException(env, "NativeShown");
+            NTK_LOGE("[NativeShown] the event could not be read, dropped");
+            return;
+        }
+        event.channel_id = std::move(*channel);
+    } catch (...) {
+        NTK_LOGE("[NativeShown] out of memory, the event is dropped");
+        return;
+    }
+    DeliverCopy<ntk_notification_shown, ntk_notification_shown_fn>(static_cast<uint64_t>(id), event);
+}
+
+// The readers' text: the pointer and its size, or NULL with size 0.
+const char* Text(const std::optional<std::string>& value, size_t* out_size) {
+    if (out_size != nullptr) *out_size = value ? value->size() : 0;
+    return value ? value->c_str() : nullptr;
+}
+
+const char* At(const std::vector<std::string>& values, size_t index, size_t* out_size) {
+    if (index >= values.size()) {
+        if (out_size != nullptr) *out_size = 0;
+        return nullptr;
+    }
+    if (out_size != nullptr) *out_size = values[index].size();
+    return values[index].c_str();
+}
+
 // --- the entry ---
 
 ntk_notification_error Enter(JNIEnv** env) {
@@ -74,6 +201,35 @@ ntk_notification_error Enter(JNIEnv** env) {
     if (!runtime::IsReady()) return NTK_NOTIFICATION_ERROR_NOT_INITIALIZED;
     *env = jni::Env();
     return *env == nullptr ? NTK_NOTIFICATION_ERROR_UNKNOWN : NTK_NOTIFICATION_ERROR_NONE;
+}
+
+// OP-40 and OP-41: registered like ntk_clipboard_add_change_listener; the handle is the id.
+template <class Callback>
+ntk_notification_error AddListener(int32_t kind, jmethodID add, const char* where, Callback callback, void* user_data,
+                                   ntk_release_fn release, ntk_notification_listener** out_listener) {
+    NTK_LOGD("[AddListener] kind: %d, where: %s, callback: %p, user_data: %p, out_listener: %p", kind, where,
+             reinterpret_cast<void*>(callback), user_data, static_cast<void*>(out_listener));
+    if (out_listener != nullptr) *out_listener = nullptr;
+    ntk_notification_error error = NTK_NOTIFICATION_ERROR_NONE;
+    JNIEnv* env = nullptr;
+    if (callback == nullptr || out_listener == nullptr) {
+        error = NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
+    } else {
+        error = Enter(&env);
+    }
+    if (error != NTK_NOTIFICATION_ERROR_NONE) {
+        registry::ReleaseRejected(release, user_data);
+        return error;
+    }
+    jni::LocalFrame frame(env, 4);
+    uint64_t id = 0;
+    error = nativetoolkit::Accept(env, kind, reinterpret_cast<void*>(callback), user_data, release, nullptr,
+                                  [add](JNIEnv* e, jlong registration) {
+                                      return e->CallStaticBooleanMethod(g_bridge, add, registration);
+                                  },
+                                  &id);
+    if (error == NTK_NOTIFICATION_ERROR_NONE) *out_listener = reinterpret_cast<ntk_notification_listener*>(id);
+    return error;
 }
 
 int32_t ToJava(JNIEnv* env, const std::vector<uint8_t>& bytes, jbyteArray* out) {
@@ -177,10 +333,14 @@ classes::ClassSpec ClassSpec() {
             {"openSettings", "(JI)Z", &g_open_settings},
             {"requestPermission", "(J)Z", &g_request_permission},
             {"cancelPermissionRequest", "(J)Z", &g_cancel_permission},
+            {"addInteractionListener", "(J)Z", &g_add_interaction_listener},
+            {"addShownListener", "(J)Z", &g_add_shown_listener},
         },
         {
             {"nativePermissionDone", "(JII)V", reinterpret_cast<void*>(NativePermissionDone)},
             {"nativeSettingsDone", "(JII)V", reinterpret_cast<void*>(NativeSettingsDone)},
+            {"nativeInteraction", "(JII[B[B[[B[[B)V", reinterpret_cast<void*>(NativeInteraction)},
+            {"nativeShown", "(JI[B[B)V", reinterpret_cast<void*>(NativeShown)},
         },
     };
 }
@@ -425,4 +585,110 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_cancel_permission_re
     env->CallStaticBooleanMethod(notification::g_bridge, notification::g_cancel_permission, static_cast<jlong>(request_id));
     jni::TakeException(env, "NotificationBridge.cancelPermissionRequest");
     return NTK_NOTIFICATION_ERROR_NONE;
+}
+
+// --- events (OP-40 to OP-42) -------------------------------------------------------------------
+
+NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_add_interaction_listener(
+    ntk_notification_interaction_fn callback, void* user_data, ntk_release_fn release,
+    ntk_notification_listener** out_listener) {
+    NTK_LOGD("[ntk_notification_add_interaction_listener] callback: %p, user_data: %p, out_listener: %p",
+             reinterpret_cast<void*>(callback), user_data, static_cast<void*>(out_listener));
+    return notification::AddListener(notification::kKindInteraction, notification::g_add_interaction_listener,
+                                     "NotificationBridge.addInteractionListener", callback, user_data, release,
+                                     out_listener);
+}
+
+NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_add_shown_listener(ntk_notification_shown_fn callback,
+                                                                             void* user_data, ntk_release_fn release,
+                                                                             ntk_notification_listener** out_listener) {
+    NTK_LOGD("[ntk_notification_add_shown_listener] callback: %p, user_data: %p, out_listener: %p",
+             reinterpret_cast<void*>(callback), user_data, static_cast<void*>(out_listener));
+    return notification::AddListener(notification::kKindShown, notification::g_add_shown_listener,
+                                     "NotificationBridge.addShownListener", callback, user_data, release,
+                                     out_listener);
+}
+
+NTK_EXPORT void NTK_CALL ntk_notification_listener_remove(ntk_notification_listener* listener) {
+    NTK_LOGD("[ntk_notification_listener_remove] listener: %p", static_cast<void*>(listener));
+    // Removes the registration only; the bridge's one EventHub listener stays (part 2, AP-21).
+    if (listener != nullptr) registry::Cancel(reinterpret_cast<uint64_t>(listener));
+}
+
+// --- event readers -----------------------------------------------------------------------------
+
+NTK_EXPORT ntk_notification_event_kind NTK_CALL
+ntk_notification_interaction_kind(const ntk_notification_interaction* event) {
+    NTK_LOGD("[ntk_notification_interaction_kind] event: %p", static_cast<const void*>(event));
+    return event == nullptr ? 0 : event->kind;
+}
+
+NTK_EXPORT int32_t NTK_CALL ntk_notification_interaction_notification_id(const ntk_notification_interaction* event) {
+    NTK_LOGD("[ntk_notification_interaction_notification_id] event: %p", static_cast<const void*>(event));
+    return event == nullptr ? 0 : event->notification_id;
+}
+
+NTK_EXPORT const char* NTK_CALL ntk_notification_interaction_tag(const ntk_notification_interaction* event,
+                                                               size_t* out_size) {
+    NTK_LOGD("[ntk_notification_interaction_tag] event: %p", static_cast<const void*>(event));
+    // Not a ternary: it would copy the optional, and the pointer would outlive the copy.
+    if (event == nullptr) return notification::Text(std::nullopt, out_size);
+    return notification::Text(event->tag, out_size);
+}
+
+NTK_EXPORT const char* NTK_CALL ntk_notification_interaction_action_id(const ntk_notification_interaction* event,
+                                                                     size_t* out_size) {
+    NTK_LOGD("[ntk_notification_interaction_action_id] event: %p", static_cast<const void*>(event));
+    if (event == nullptr) return notification::Text(std::nullopt, out_size);
+    return notification::Text(event->action_id, out_size);
+}
+
+NTK_EXPORT size_t NTK_CALL ntk_notification_interaction_data_count(const ntk_notification_interaction* event) {
+    NTK_LOGD("[ntk_notification_interaction_data_count] event: %p", static_cast<const void*>(event));
+    return event == nullptr ? 0 : event->keys.size();
+}
+
+NTK_EXPORT const char* NTK_CALL ntk_notification_interaction_data_key_at(const ntk_notification_interaction* event,
+                                                                       size_t index, size_t* out_size) {
+    NTK_LOGD("[ntk_notification_interaction_data_key_at] event: %p, index: %zu", static_cast<const void*>(event),
+             index);
+    static const std::vector<std::string> kNone;
+    return notification::At(event == nullptr ? kNone : event->keys, index, out_size);
+}
+
+NTK_EXPORT const char* NTK_CALL ntk_notification_interaction_data_value_at(const ntk_notification_interaction* event,
+                                                                         size_t index, size_t* out_size) {
+    NTK_LOGD("[ntk_notification_interaction_data_value_at] event: %p, index: %zu", static_cast<const void*>(event),
+             index);
+    static const std::vector<std::string> kNone;
+    return notification::At(event == nullptr ? kNone : event->values, index, out_size);
+}
+
+NTK_EXPORT void NTK_CALL ntk_notification_interaction_free(ntk_notification_interaction* event) {
+    NTK_LOGD("[ntk_notification_interaction_free] event: %p", static_cast<void*>(event));
+    delete event;
+}
+
+NTK_EXPORT int32_t NTK_CALL ntk_notification_shown_notification_id(const ntk_notification_shown* event) {
+    NTK_LOGD("[ntk_notification_shown_notification_id] event: %p", static_cast<const void*>(event));
+    return event == nullptr ? 0 : event->notification_id;
+}
+
+NTK_EXPORT const char* NTK_CALL ntk_notification_shown_tag(const ntk_notification_shown* event, size_t* out_size) {
+    NTK_LOGD("[ntk_notification_shown_tag] event: %p", static_cast<const void*>(event));
+    if (event == nullptr) return notification::Text(std::nullopt, out_size);
+    return notification::Text(event->tag, out_size);
+}
+
+NTK_EXPORT const char* NTK_CALL ntk_notification_shown_channel_id(const ntk_notification_shown* event,
+                                                                size_t* out_size) {
+    NTK_LOGD("[ntk_notification_shown_channel_id] event: %p", static_cast<const void*>(event));
+    if (event == nullptr) return notification::Text(std::nullopt, out_size);
+    if (out_size != nullptr) *out_size = event->channel_id.size();
+    return event->channel_id.c_str();
+}
+
+NTK_EXPORT void NTK_CALL ntk_notification_shown_free(ntk_notification_shown* event) {
+    NTK_LOGD("[ntk_notification_shown_free] event: %p", static_cast<void*>(event));
+    delete event;
 }

@@ -35,6 +35,12 @@ bool UiClick(const char* text);
 bool UiType(int32_t index, const char* text);
 void UiBack();
 bool UiHome();
+// The notification shade: open it and wait for text, swipe the notification showing text away.
+bool UiOpenShade(const char* text);
+bool UiSwipeAway(const char* text);
+void UiCloseShade();
+// The simple class name of the app's foreground Activity once there is one, or "".
+std::string UiForegroundActivity();
 bool UiFinishForeground();
 // How many Activities the app has created since the first call (the first call starts counting).
 int32_t ActivitiesCreated();
@@ -48,6 +54,9 @@ bool WaitGone(int32_t id, const char* tag, int64_t ms = 5000);
 std::string NotificationField(int32_t id, const char* tag, const char* name);
 std::string ChannelField(const char* channel_id, const char* name);
 std::string ResourceId(const char* name, const char* type);
+// Sends a PendingIntent of a shown notification ("content", "delete" or "action:<index>") and
+// returns once the library's receiver has handled it.
+bool FireIntent(int32_t id, const char* tag, const char* which);
 
 // Puts a plain-text clip from Kotlin, given as UTF-16 code units (so it may hold what C cannot).
 void SetClipboardText(const std::u16string& text);
@@ -67,6 +76,7 @@ struct Record {
     int64_t value = 0;
     bool on_main = false;
     pid_t thread = 0;
+    std::string detail{};  // what an event carried, for the cases that compare it
 };
 
 // Collects records from any thread and waits for them.
