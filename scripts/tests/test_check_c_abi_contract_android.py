@@ -12,6 +12,7 @@ Run: python3 -m unittest discover -s scripts/tests
 
 import os
 import pathlib
+import re
 import shutil
 import stat
 import subprocess
@@ -24,6 +25,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "scripts" / "check_c_abi_contract_android.py"
 sys.path.insert(0, str(ROOT / "scripts"))
 import c_abi_contract_common  # noqa: E402
+import check_c_abi_contract_android  # noqa: E402
 
 DESIGN = "artifact/topics/android-c-abi/designs/2026-10-05-android-c-abi-c-abi-design-part2.md"
 README = "artifact/topics/android-c-abi/README.md"
@@ -36,6 +38,7 @@ SHARE = f"{INCLUDE}/Share.h"
 KOTLIN_PACKAGE = f"{KOTLIN}/com/jonghyunkim/nativetoolkit"
 CLIPBOARD_MANAGER = f"{KOTLIN_PACKAGE}/clipboard/AndroidClipboardManager.kt"
 SHARE_ERROR = f"{KOTLIN_PACKAGE}/share/domain/error/ShareDomainError.kt"
+CLIPBOARD_ERROR_CODE = f"{KOTLIN_PACKAGE}/clipboard/domain/error/ClipboardErrorCode.kt"
 
 
 def failures(output):
@@ -102,6 +105,26 @@ class AndroidCAbiContractChecker(unittest.TestCase):
     def test_no_headers_without_design_only_fails(self):
         self.assert_catches("functions", headers=False)
 
+    def test_design_only_once_a_header_exists_fails(self):
+        self.assert_catches("design only", arguments=("--design-only",))
+
+    def test_a_missing_windows_common_h_fails(self):
+        self.assert_catches("common", removed=(WINDOWS_COMMON,))
+
+    def test_missing_kotlin_sources_fail(self):
+        def remove(root):
+            shutil.rmtree(root / KOTLIN)
+            return []
+        self.assert_catches("the Kotlin sources", before=remove)
+
+    def test_an_unknown_argument_is_a_usage_error(self):
+        output, code = self.run_checker(arguments=("--libary", "x"))
+        self.assertEqual(code, 2, output)
+
+    def test_an_option_without_its_value_is_a_usage_error(self):
+        output, code = self.run_checker(arguments=("--library",))
+        self.assertEqual(code, 2, output)
+
     # --- functions ----------------------------------------------------------
 
     def test_a_header_function_8_2_does_not_name(self):
@@ -116,6 +139,10 @@ class AndroidCAbiContractChecker(unittest.TestCase):
         self.assert_catches("functions", (DESIGN, "`ntk_bytes_data`、`ntk_bytes_size`、`ntk_bytes_free` | 3 |",
                                           "`ntk_bytes_data`、`ntk_bytes_size`、`ntk_bytes_free` | 4 |"))
 
+    def test_a_row_whose_8_1_count_is_wrong(self):
+        self.assert_catches("functions", (DESIGN, "| 操作（OP-01〜OP-12） | 8.1 の 12 関数 | 12 |",
+                                          "| 操作（OP-01〜OP-12） | 8.1 の 10 関数 | 12 |"))
+
     def test_a_heading_that_disagrees_with_the_total(self):
         self.assert_catches("functions", (DESIGN, "### 8.2 公開する関数の全体（155）", "### 8.2 公開する関数の全体（150）"))
 
@@ -124,6 +151,19 @@ class AndroidCAbiContractChecker(unittest.TestCase):
     def test_a_parameter_type_that_changed(self):
         self.assert_catches("signatures", (CLIPBOARD, "ntk_clipboard_error NTK_CALL ntk_clipboard_has_clip(int32_t* out_has_clip);",
                                            "ntk_clipboard_error NTK_CALL ntk_clipboard_has_clip(int64_t* out_has_clip);"))
+
+    def test_a_typedef_that_changed(self):
+        self.assert_catches("signatures", (CLIPBOARD, "typedef int32_t ntk_clipboard_error;", "typedef int64_t ntk_clipboard_error;"))
+
+    def test_a_declaration_inside_an_if(self):
+        self.assert_catches("signatures", (CLIPBOARD, "ntk_clipboard_error NTK_CALL ntk_clipboard_clear(void);",
+                                           "#if defined(NTK_EXPERIMENTAL)\nntk_clipboard_error NTK_CALL ntk_clipboard_clear(void);\n#endif"))
+
+    def test_another_packing(self):
+        self.assert_catches("signatures", (CLIPBOARD, "#pragma pack(push, 8)", "#pragma pack(push, 4)"))
+
+    def test_a_struct_outside_the_packing(self):
+        self.assert_catches("signatures", (CLIPBOARD, "#pragma pack(push, 8)\n", ""), (CLIPBOARD, "#pragma pack(pop)\n", ""))
 
     # --- operations and Kotlin ----------------------------------------------
 
@@ -135,6 +175,20 @@ class AndroidCAbiContractChecker(unittest.TestCase):
 
     def test_a_kotlin_entry_that_was_renamed(self):
         self.assert_catches("kotlin", (CLIPBOARD_MANAGER, "fun copyPlainText(", "fun copyPlain("))
+
+    def test_a_kotlin_entry_left_only_in_a_comment(self):
+        self.assert_catches("kotlin", (CLIPBOARD_MANAGER, "    fun copyPlainText(", "    // fun copyPlainText(x: Int) {}\n    fun copyPlain("))
+
+    def test_a_kotlin_entry_on_another_type_of_the_same_file(self):
+        self.assert_catches("kotlin", (CLIPBOARD_MANAGER, "    fun copyPlainText(", "    fun copyPlain("),
+                            (CLIPBOARD_MANAGER, "\nclass AndroidClipboardManager", "\nprivate class Other {\n    fun copyPlainText() {}\n}\n\nclass AndroidClipboardManager"))
+
+    def test_two_kotlin_types_with_the_name(self):
+        def duplicate(root):
+            (root / KOTLIN_PACKAGE / "Duplicate.kt").write_text(
+                "package other\n\nclass AndroidClipboardManager {\n    fun copyPlainText() {}\n}\n", encoding="utf-8")
+            return []
+        self.assert_catches("kotlin", before=duplicate)
 
     # --- behaviours ---------------------------------------------------------
 
@@ -156,6 +210,39 @@ class AndroidCAbiContractChecker(unittest.TestCase):
     def test_a_gap_in_the_ids(self):
         self.assert_catches("behaviours", (DESIGN, "| EV-05 |", "| EV-06 |"))
 
+    def test_the_last_event_row_removed(self):
+        self.assert_catches("behaviours", (DESIGN, "| EV-05 | Share で選ばれたアプリ | 自発のイベント | イベント | SH-02 | OP-53 |\n", ""))
+
+    def test_the_addition_row_removed(self):
+        self.assert_catches("behaviours", (DESIGN, "| PR-01 | 通知の権限の要求（ブリッジに無い。README D-5） | 操作と完了 | 受け付けた後の完了 | - | OP-38、OP-39 |\n", ""))
+
+    def test_a_completion_row_called_an_event(self):
+        self.assert_catches("behaviours", (DESIGN, "| BH-11 | Alert を出す | 操作と完了 | 受け付けた後の完了 |",
+                                           "| BH-11 | Alert を出す | 操作と完了 | イベント |"))
+
+    def test_an_event_row_called_a_registration(self):
+        self.assert_catches("behaviours", (DESIGN, "| EV-01 | クリップボードの変更 | 自発のイベント | イベント |",
+                                           "| EV-01 | クリップボードの変更 | 自発のイベント | 登録と解除 |"))
+
+    def test_a_completion_row_with_a_sync_function(self):
+        self.assert_catches("behaviours", (DESIGN, "| BH-11 | Alert を出す | 操作と完了 | 受け付けた後の完了 | DL-08 | OP-13 |",
+                                           "| BH-11 | Alert を出す | 操作と完了 | 受け付けた後の完了 | DL-08 | OP-05、OP-13 |"))
+
+    def test_a_sync_row_called_posted(self):
+        self.assert_catches("behaviours", (DESIGN, "| BH-01 | テキストをコピーする | 操作 | 同期の結果 |",
+                                           "| BH-01 | テキストをコピーする | 操作 | 受け付けだけ（main に積む） |"))
+
+    def test_a_listener_no_row_names(self):
+        self.assert_catches("behaviours", (DESIGN, "| EV-01 | クリップボードの変更 | 自発のイベント | イベント | CL-04 | OP-11 |",
+                                           "| EV-01 | クリップボードの変更 | 自発のイベント | イベント | CL-04 | OP-53 |"),
+                            (DESIGN, "| CL-04、CL-05 | OP-11、OP-12 |", "| CL-04、CL-05 | OP-53、OP-54 |"))
+
+    def test_a_readme_range_that_disagrees(self):
+        self.assert_catches("behaviours", (README, "RG-01〜RG-06", "RG-01〜RG-07"))
+
+    def test_a_full_width_tilde_still_reads_as_a_range(self):
+        self.assert_passes((DESIGN, "| CL-14、CL-15 | OP-09、OP-10 |", "| CL-14、CL-15 | OP-09～OP-10 |"))
+
     # --- values -------------------------------------------------------------
 
     def test_a_header_value_the_table_disagrees_with(self):
@@ -163,6 +250,17 @@ class AndroidCAbiContractChecker(unittest.TestCase):
 
     def test_a_shared_value_one_feature_moved(self):
         self.assert_catches("0 to 5", (DESIGN, "| 4 | `UNKNOWN` |", "| 4 | `UNKNOWN_ERROR` |"))
+
+    def test_a_table_naming_a_value_twice(self):
+        self.assert_catches("tables of chapter 11", (DESIGN, "| 4 | `NTK_ANDROID_ERROR_IN_PROGRESS` |",
+                                                     "| 4 | `NTK_ANDROID_ERROR_IN_PROGRESS` |\n| 4 | `IN_PROGRESS` |"))
+
+    def test_a_kotlin_enum_order_that_changed(self):
+        self.assert_catches("Kotlin declaration order", (CLIPBOARD_ERROR_CODE, "    EMPTY_ITEMS,", "    EMPTY_ITEMZ,"))
+
+    def test_a_table_naming_a_value_twice_the_same_way(self):
+        self.assert_catches("tables of chapter 11", (DESIGN, "| 4 | `NTK_ANDROID_ERROR_IN_PROGRESS` |",
+                                                     "| 4 | `NTK_ANDROID_ERROR_IN_PROGRESS` |\n| 4 | `NTK_ANDROID_ERROR_IN_PROGRESS` |"))
 
     def test_a_kotlin_order_that_changed(self):
         self.assert_catches("Kotlin declaration order", (SHARE_ERROR, "    data object EmptyIdList : ShareDomainError()\n",
@@ -184,6 +282,23 @@ class AndroidCAbiContractChecker(unittest.TestCase):
                             headers=False, arguments=("--design-only",))
 
     # --- Common.h across the OSes (part 1, 5.2) ----------------------------
+
+    def test_an_android_declaration_that_differs(self):
+        self.assert_catches("common", (COMMON, "size_t         NTK_CALL ntk_bytes_size(const ntk_bytes* b);",
+                                       "uint32_t       NTK_CALL ntk_bytes_size(const ntk_bytes* b);"))
+
+    def test_an_incomplete_type_only_windows_has(self):
+        self.assert_catches("common", (WINDOWS_COMMON, "typedef struct ntk_bytes ntk_bytes;", "typedef struct ntk_bytes ntk_bytes;\ntypedef struct ntk_extra ntk_extra;"))
+
+    def test_a_windows_version_that_is_not_its_parts(self):
+        self.assert_catches("common", (WINDOWS_COMMON, "#define NTK_VERSION 0x020000", "#define NTK_VERSION 0x020001"))
+
+    def test_a_version_part_defined_in_two_branches(self):
+        self.assert_catches("common", (COMMON, "#define NTK_VERSION_PATCH 0\n",
+                                       "#if BAD_ABI\n#define NTK_VERSION_PATCH 0\n#else\n#define NTK_VERSION_PATCH 1\n#endif\n"))
+
+    def test_a_calling_convention_redefined_after_the_block(self):
+        self.assert_catches("common", (COMMON, "#define NTK_VERSION_MAJOR 2", "#undef NTK_CALL\n#define NTK_CALL __attribute__((stdcall))\n#define NTK_VERSION_MAJOR 2"))
 
     def test_a_shared_declaration_that_differs(self):
         self.assert_catches("common", (WINDOWS_COMMON, "size_t      NTK_CALL ntk_string_size(const ntk_string* s);",
@@ -245,9 +360,85 @@ class AndroidCAbiContractChecker(unittest.TestCase):
     def test_a_function_the_library_does_not_export(self):
         self.assert_catches("symbols", before=self.fake_nm(dropped=("ntk_share_file",)))
 
+    def test_versioned_symbols_and_headings_are_read_as_names(self):
+        def prepare(root):
+            arguments = self.fake_nm()(root)
+            listing = root / "symbols.txt"
+            lines = listing.read_text(encoding="utf-8").splitlines()
+            listing.write_text("libntk.so:\n" + "".join(line + "@@LIBNTK_2\n" for line in lines), encoding="utf-8")
+            return arguments
+        output = self.assert_passes(before=prepare)
+        self.assertIn("OK   symbols", output)
+
+    def test_an_nm_that_does_not_exist(self):
+        def prepare(root):
+            arguments = self.fake_nm()(root)
+            arguments[-1] = str(root / "no-nm")
+            return arguments
+        self.assert_catches("symbols", before=prepare)
+
     def test_a_library_that_is_missing(self):
         self.assert_catches("symbols", arguments=("--library", os.devnull + ".missing"))
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HeaderShape(unittest.TestCase):
+    """directive_problems against one header of Appendix A, broken one way at a time."""
+
+    @classmethod
+    def setUpClass(cls):
+        design = (ROOT / DESIGN).read_text(encoding="utf-8")
+        cls.clipboard = c_abi_contract_common.appendix_headers(design)["Clipboard.h"]
+        cls.common = c_abi_contract_common.appendix_headers(design)["Common.h"]
+
+    def problems(self, old, new, text=None, label="Clipboard.h"):
+        text = text or self.clipboard
+        self.assertIn(old, text)
+        return c_abi_contract_common.directive_problems(label, text.replace(old, new, 1))
+
+    def test_the_headers_of_appendix_a_have_the_shape(self):
+        self.assertEqual(c_abi_contract_common.directive_problems("Clipboard.h", self.clipboard), [])
+        self.assertEqual(c_abi_contract_common.directive_problems("Common.h", self.common), [])
+
+    def test_extra_whitespace_in_a_pragma_is_read_not_raised(self):
+        self.assertEqual(self.problems("#pragma pack(push, 8)", "#  pragma  pack( push,8 )"), [])
+
+    def test_a_guard_that_is_never_closed(self):
+        text = self.clipboard.rstrip()
+        self.assertTrue(text.endswith("#endif"))
+        self.assertNotEqual(c_abi_contract_common.directive_problems("Clipboard.h", text[:-len("#endif")]), [])
+
+    def test_no_extern_c(self):
+        text = re.sub(r"#ifdef __cplusplus\n.*?#endif\n", "", self.clipboard, flags=re.S)
+        self.assertNotEqual(c_abi_contract_common.directive_problems("Clipboard.h", text), [])
+
+    def test_a_declaration_after_extern_c_closes(self):
+        text = self.clipboard.rstrip()
+        cut = text.rindex("#endif")
+        text = text[:cut] + "int NTK_CALL ntk_clipboard_late(void);\n" + text[cut:]
+        self.assertTrue(any("outside extern" in p for p in c_abi_contract_common.directive_problems("Clipboard.h", text)))
+
+    def test_a_pop_inside_a_struct(self):
+        problems = self.problems("#pragma pack(pop)\n", "")
+        self.assertNotEqual(problems, [])
+        text = self.clipboard.replace("#pragma pack(pop)\n", "", 1)
+        first_field = re.search(r"typedef struct \w+ \{\n", text).end()
+        text = text[:first_field] + "#pragma pack(pop)\n" + text[first_field:]
+        self.assertTrue(any("inside a struct" in p for p in c_abi_contract_common.directive_problems("Clipboard.h", text)))
+
+
+class KotlinReading(unittest.TestCase):
+
+    def test_enum_entries_over_several_lines(self):
+        source = "enum class E(val value: Int) {\n    A(\n        1\n    ),\n    B(2);\n\n    fun f() {}\n}\n"
+        problems = []
+        order = check_c_abi_contract_android.kotlin_order({"E.kt": source}, "E", problems)
+        self.assertEqual((order, problems), (["A", "B"], []))
+
+    def test_enum_entries_without_a_semicolon(self):
+        problems = []
+        order = check_c_abi_contract_android.kotlin_order({"E.kt": "enum class E {\n    A,\n    B\n}\n"}, "E", problems)
+        self.assertEqual(order, ["A", "B"])

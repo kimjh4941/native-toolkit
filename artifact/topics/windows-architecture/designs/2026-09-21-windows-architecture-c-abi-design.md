@@ -915,7 +915,7 @@ C ABI の `.cpp` はテストプロジェクトに直接コンパイルし、内
 | 名前の規則 | ヘッダーの全関数が 1.1 の形 |
 | ASCII | 公開ヘッダー |
 
-- 照合は `scripts/check_c_abi_contract_windows.py`、壊すと落ちることの自己テストは `scripts/tests/test_check_c_abi_contract_windows.py`（2026-10-05 に OS ごとのファイルに分けて名前を改めた。OS に依らない部分は `scripts/c_abi_contract_common.py`。Android の C ABI の設計書 第 2 部 0.3）（`python -m unittest discover -s scripts/tests`）。両辺をソースから読み、照合の側に一覧を持たない。例外は、C の列挙と C++ の `enum class` の対応表（`MIRRORS`）と、対応する C++ の列挙が無い書き込みのビット（`NOT_MIRRORED`。ビットとして別に照合する）だけ
+- 照合は `scripts/check_c_abi_contract_windows.py`、壊すと落ちることの自己テストは `scripts/tests/test_check_c_abi_contract_windows.py`（`python -m unittest discover -s scripts/tests`。2026-10-05 に OS ごとのファイルに分けて名前を改めた。OS に依らない部分は `scripts/c_abi_contract_common.py`。Android の C ABI の設計書 第 2 部 0.3）。両辺をソースから読み、照合の側に一覧を持たない。例外は、C の列挙と C++ の `enum class` の対応表（`MIRRORS`）と、対応する C++ の列挙が無い書き込みのビット（`NOT_MIRRORED`。ビットとして別に照合する）だけ
 - 読むべきファイルが無いときは、skip ではなく失敗にする（R-30）
 - `dumpbin /exports` の結果が `.def` と一致することを、ビルドの後に確かめる（T-16）
 

@@ -45,19 +45,22 @@ file alone, so a partial rebuild cannot make stale packages look current.
 
 These read both sides of a comparison from source, so neither side can drift
 without the other noticing. They are fast, need no toolchain, and are meant to
-run while writing a design or before a commit. The C ABI and manual example
-checkers are one file per OS; what they share is `c_abi_contract_common.py`
-and `manual_c_examples_common.py`.
+run while writing a design or before a commit; the optional parts of the
+Android ones (`--library`, the compile check) use the NDK's `llvm-nm` and
+`clang` and say SKIP without them. The C ABI and manual example checkers are
+one file per OS; what they share is `c_abi_contract_common.py` and
+`manual_c_examples_common.py`. The cross-OS `Common.h` check lives in the
+Android checker, so run it too after changing the Windows `Common.h`.
 
 | Script | Compares |
 |---|---|
 | `check_design_consistency.py <design.md>` | A design document against itself: counts, ids, tables, heading order |
 | `check_cpp_api_contract.py` | The Windows C++ API design against the public headers and what it cites |
 | `check_c_abi_contract_windows.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A, and the C++ API it mirrors |
-| `check_c_abi_contract_android.py [--design-only] [--library <libntk.so>]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
+| `check_c_abi_contract_android.py [--design-only] [--library <libntk.so> [--nm <llvm-nm>]]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
 | `check_sample_app_inputs.py` | That no sample app screen declares a text input field (`agent-rules/coding-rules/common.md`) |
 | `check_manual_c_examples_windows.py [<version>]` | The manual's Windows C examples against the C ABI: every exported function is shown, every name exists, the three languages carry the same code, and the examples compile as C (MSBuild) |
-| `check_manual_c_examples_android.py [<version>]` | The same for the Android C examples, compiled with the NDK's clang. Says SKIP while no page has an Android C ABI section |
+| `check_manual_c_examples_android.py [<version>] [--require-examples]` | The same for the Android C examples, compiled with the NDK's clang. Says SKIP while no page has an Android C ABI section, unless `--require-examples` is given |
 | `check_windows_dist.py [<release>]` | `dist/<release>/windows/` against the tree: built from the current sources, the same public headers (loose and in both packages), the declared versions in the file names, every `.def` export in the DLL. Run before a release |
 
 ## Test
@@ -89,7 +92,7 @@ breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 68 cases
+python -m unittest discover -s scripts/tests    # 181 cases
 ```
 
 `test_windows.ps1`, by contrast, runs the product's own tests. The two are

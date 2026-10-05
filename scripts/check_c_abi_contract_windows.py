@@ -201,12 +201,13 @@ def check_functions(design, headers, rep):
     rep.check(not problems, f"{name} ({len(exported)} functions)", "; ".join(problems))
 
 
-def check_signatures(design, headers, rep):
+def check_signatures(design, headers, texts, rep):
     appendix = appendix_code(design)
     if appendix is None or not headers:
         rep.check(False, "signatures: the headers declare what Appendix A does", "no Appendix A or no headers")
         return
-    common.check_signatures(declarations(appendix), merged(headers), rep)
+    problems = [p for label, text in texts.items() for p in common.directive_problems(label, text)]
+    common.check_signatures(declarations(appendix), merged(headers), rep, problems)
 
 
 def check_operations(design, rep):
@@ -317,14 +318,15 @@ def main(argv):
 
     rep = Report()
     design = read(DESIGN, rep, "the C ABI design")
-    headers = {}
+    headers, texts = {}, {}
     for label, fragment in HEADERS.items():
         text = read(fragment, rep, f"the public header {label}")
         if text is not None:
+            texts[label] = text
             headers[label] = declarations(text)
     if design is not None:
         check_functions(design, headers, rep)
-        check_signatures(design, headers, rep)
+        check_signatures(design, headers, texts, rep)
         check_operations(design, rep)
         check_values(design, headers, rep)
     check_names(headers, rep)

@@ -58,24 +58,44 @@ def c_blocks(text, os_name):
     return re.findall(r"```c\n(.*?)```", section, re.S)
 
 
+def near_misses(text, os_name):
+    """Headings of the OS chapter that look like '### C ABI' but are not it:
+    with them, a page would read as having no section and pass unchecked."""
+    found = chapter(text, os_name)
+    if found is None:
+        return []
+    return [line for line in found.splitlines()
+            if re.match(r"^#{2,4}\s", line) and re.search(r"(?i)\bc[\s_-]*abi\b", line)
+            and line != "### C ABI"]
+
+
 def pages(root, version, rep, os_name, missing_is_failure=True):
     """{page name: {language: [block, ...]}}, or None when nothing was read.
 
     When no page has the section, missing_is_failure decides between a
-    failure and a SKIP: an OS whose C ABI chapter is not written yet says so."""
+    failure and a SKIP: an OS whose C ABI chapter is not written yet says so.
+    A heading that nearly reads '### C ABI', or a translation with a section
+    its English page lacks, is a failure either way: it would otherwise look
+    like a page with nothing to check."""
     folder = Path(root) / f"{MANUAL}/{version}"
     if not folder.is_dir():
         rep.check(False, "the manual is readable", f"cannot read {MANUAL}/{version}")
         return None
 
-    found = {}
+    found, stray = {}, []
     for path in sorted(folder.glob("*.md")):
         name = path.name
+        text = path.read_text(encoding="utf-8-sig")
+        stray.extend(f"{name}: '{line}'" for line in near_misses(text, os_name))
         if any(name.endswith(f"{suffix}.md") for suffix in LANGUAGES if suffix):
             continue                      # a translation; reached through its English page
         stem = name[:-len(".md")]
-        blocks = c_blocks(path.read_text(encoding="utf-8-sig"), os_name)
+        blocks = c_blocks(text, os_name)
         if blocks is None:
+            for suffix in LANGUAGES:
+                other = folder / f"{stem}{suffix}.md"
+                if suffix and other.exists() and c_blocks(other.read_text(encoding="utf-8-sig"), os_name) is not None:
+                    stray.append(f"{other.name} has a {os_name} C ABI section that {name} lacks")
             continue                      # a page with no C ABI section for this OS
         found[stem] = {"": blocks}
         for suffix in LANGUAGES:
@@ -87,6 +107,8 @@ def pages(root, version, rep, os_name, missing_is_failure=True):
                 continue
             found[stem][suffix] = c_blocks(other.read_text(encoding="utf-8-sig"), os_name)
 
+    if stray:
+        rep.check(False, "the manual is readable", "; ".join(stray))
     if not found:
         article = "an" if os_name[0] in "AEIOU" else "a"
         detail = f"no page under {MANUAL}/{version} has {article} {os_name} C ABI section"
@@ -216,17 +238,22 @@ def split_block(block):
     return "\n".join(head), "\n".join(body)
 
 
-def write_sources(found, work, prelude):
+def write_sources(found, work, prelude, encoding="ascii"):
     """One .c file per English block, each a function wrapped in the prelude.
-    Returns the paths written."""
-    written = []
+    Returns the paths written and the blocks that could not be written in the
+    given encoding (a compiler without /utf-8 reads source as its code page)."""
+    written, problems = [], []
     for stem, languages in sorted(found.items()):
         for index, block in enumerate(languages[""], start=1):
             head, body = split_block(block)
             head = "\n".join(l for l in head.split("\n") if not l.startswith("#include"))
             path = Path(work) / f"{stem}_{index}.c"
-            path.write_text(
-                f"{prelude}\n{head}\n\nstatic void example_{stem}_{index}(void)\n{{\n{body}\n}}\n",
-                encoding="ascii")
+            try:
+                path.write_text(
+                    f"{prelude}\n{head}\n\nstatic void example_{stem}_{index}(void)\n{{\n{body}\n}}\n",
+                    encoding=encoding)
+            except UnicodeEncodeError as error:
+                problems.append(f"{stem} block {index} is not {encoding}: {error.reason} at {error.start}")
+                continue
             written.append(path)
-    return written
+    return written, problems

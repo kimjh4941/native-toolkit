@@ -76,6 +76,10 @@ ID は `AP-n`（第 2 部）。第 1 部の `AC-n` は変えない。
 |---|---|
 | 2a の照合のスクリプトは、1 つのファイルを設定で切り替えるのではなく、**共通の部分を 1 つのモジュールにし、OS ごとの照合を OS ごとのファイルに分ける**。共通: 設計書の表と付録 A の読み取り、C の宣言の解析、報告、OS に依らない照合（関数・8.2・付録 A、エラーの値、名前、ASCII）、2 つの OS の `Common.h` の照合。Windows だけ: `.def`、C++ の API との写し。Android だけ: Kotlin の Manager との照合、10 章、ビルドの後の `llvm-nm`。理由は、OS だけの照合が重ならないこと、Windows のファイルにほとんど手を入れずに「今と同じ結果」を守れること、リポジトリの名前の付け方（`check_windows_dist.py`、`test_android.sh`）と同じこと。解析を OS ごとに写さないのは、片方だけ直してずれるのを避け、`Common.h` を同じ解析器で読むため。TA-2 も同じ形にする | 12.3、13 章の TA-1・TA-2 |
 
+### 0.4 2a の実装レビューを受けた直し（2026-10-05）
+
+2a の照合を強めたところ（`reviews/2026-10-05-android-c-abi-stage2a-review-v1.md`）、10 章の BH-45（Share の選択の待ちを取り消す）が「同期の結果」のままで、第 3 版の AP-17（取り消しは main に積む）と 9 章の OP-51 に合っていなかった。「受け付けだけ（main に積む）」に直した。あわせて、12.1 に system_code と構造体の配置の行を、12.3 に照合の流し方を足し、TB-1・TB-10・TB-11 の中身と完了の条件に照合の流し方を書いた。
+
 ## 1. 設計目的
 
 - 第 1 部の約束（スレッド、寿命、初期化、`release`、前面）の上に、**公開する C の関数・型・エラーの値をすべて決める**
@@ -582,7 +586,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | BH-42 | Direct Share の共有先を登録する | 操作 | 同期の結果 | SH-11 | OP-48 |
 | BH-43 | Direct Share の共有先を消す | 操作 | 同期の結果 | SH-12 | OP-49 |
 | BH-44 | 選ばれたアプリを受ける Share を開く | 操作と完了 | 受け付けた後の完了 | SH-13 | OP-50 |
-| BH-45 | 選択の待ちを取り消す | 操作 | 同期の結果 | SH-14 | OP-51 |
+| BH-45 | 選択の待ちを取り消す | 操作 | 受け付けだけ（main に積む） | SH-14 | OP-51 |
 | EV-01 | クリップボードの変更 | 自発のイベント | イベント | CL-04 | OP-11 |
 | EV-02 | 通知の本文のタップ・アクション・dismiss・カスタムビューのクリック | 自発のイベント | イベント | NT-04 | OP-40 |
 | EV-03 | 予約した通知が出た | 自発のイベント | イベント | NT-06 | OP-41 |
@@ -745,6 +749,8 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | Share の要求の ID（AP-17） | 出力の ID と選択のイベントの ID が同じ。前の要求を待っている間に、空白だけの本文で開いて失敗すると前の要求の選択が届き、Chooser を開けない（`NO_SHARE_TARGET`）で失敗すると前の要求の選択が届かない。2 つのスレッドから続けて開いたとき、古い Chooser の選択は届かず、新しい要求の選択は新しい ID で届く。開いた直後（main で開く処理の後）の取り消しで選択が届かない。`NOT_FOREGROUND` の要求の ID で取り消しても前の待ちが消えない。帳簿に無い印の選択（Kotlin から直接開いた Share）は C に届かない |
 | 入口と完了の分け方（AP-19） | 件数 0、空文字列の本文、空・重複の Chooser Action の ID、`NULL` のアイコンが戻り値で返り、**完了は呼ばれず、`release` だけが呼び出しスレッドで関数が戻る前に 1 回**（第 1 部 1.3）。空白だけの本文は完了で `EMPTY_CONTENT` |
 | Dialog を閉じたとき（AP-13） | 戻るで閉じると `DISMISSED` で、値の読み取りが既定（-1、0 件、`NULL`） |
+| system_code（第 1 部 AC-10） | 失敗しうる関数の後の `ntk_last_system_code()` と、完了の `system_code` が 0（第 1 部 6 章の「公開面」の行。値は実行時にしか分からないので 2a の照合ではなくここで確かめる） |
+| 構造体の配置 | 付録 A の各構造体の `sizeof` と各欄の `offsetof` を、arm64-v8a と x86_64 で `static_assert` する（2a の照合は `#pragma pack(push, 8)` の有無と位置までを見る） |
 
 ### 12.2 端末の上の通しの確かめ
 
@@ -761,6 +767,9 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 - 照らすもの: 8.2 = ヘッダー = 付録 A の関数（合計 155）、宣言の一致（関数、コールバック、構造体、列挙の値、typedef）、10 章のどの振る舞いにも OP がある、11 章の値 = ヘッダー、11.3 と 11.4 の順 = Kotlin の宣言の順、10 章の「C ABI での区分」の数、名前の規則、ASCII、2 つの OS の `Common.h` の一致（第 1 部 5.2）
 - ビルドの後: `llvm-nm -D --defined-only libntk.so` の `ntk_*` = 8.2（AP-15）
 - 照合のスクリプトの自己テストで、各照合を 1 つずつ壊すと落ちることを確かめる
+- 流し方: ヘッダーが無い間（2a）は `--design-only` で付録 A を代わりに照らす。ヘッダーが 1 つでもあれば `--design-only` は失敗するので、TB-1 で 6 つのヘッダーを付録 A からまとめて作り、以後は `--design-only` なしで流す。ビルドの後は、各 ABI の `libntk.so` に `--library` を付けて流す（TB-10、TB-11）。`--library` が無ければ symbols は SKIP と出る
+- 照合は宣言を `#` の行を除いて読むので、ヘッダーに許す前処理の行（インクルードガード、`#include`、`extern "C"` の囲み、`Common.h` の `NTK_CALL` の囲みと `#define`、構造体を囲む `#pragma pack(push, 8)` と `(pop)` の 1 組）のほかは失敗にする（`#if` の中の宣言が無条件に見えるのを防ぐ）
+- Windows の `Common.h` だけを変えたときは、`check_c_abi_contract_windows.py` では落ちない（OS 間の照合は Android の側にある）。Windows の `Common.h` を変えたら、Android の照合も流す
 
 ### 12.4 smoke（`android_library_capi_smoke`）
 
@@ -776,7 +785,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 |---|---|---|---|---|
 | TA-1 | `check_c_abi_contract.py` を、共通のモジュール `c_abi_contract_common.py`（読み取り、解析、報告、OS に依らない照合、OS 間の `Common.h` の照合）と、OS ごとの `check_c_abi_contract_windows.py`（`.def`、C++ の API との写し）・`check_c_abi_contract_android.py`（Kotlin の Manager、10 章、`llvm-nm`）に分ける（0.3）。操作の数は表から導く。自己テストと `scripts/README.md` を新しい名前に合わせる | 1.5日 | - | Windows の照合が今と同じ結果。Android は付録 A とヘッダーの雛形で動く。自己テストで壊すと落ちる |
 | TA-2 | `check_manual_c_examples.py` を TA-1 と同じ形で、共通のモジュールと OS ごとのファイルに分ける（章の見出し、前置き、NDK の clang は OS ごと） | 1.0日 | TA-1 | Windows が今と同じ。Android の例が無いときは SKIP と出す |
-| TB-1 | `android_library_capi` の雛形（第 1 部 5.1、5.4）、`Common.h`・`Android.h`、初期化（第 1 部 5.3） | 1.5日 | - | 第 1 部 6 章の初期化の経路のテスト |
+| TB-1 | `android_library_capi` の雛形（第 1 部 5.1、5.4）、6 つの公開ヘッダー（付録 A からまとめて作る。12.3）、初期化（第 1 部 5.3） | 1.5日 | - | 第 1 部 6 章の初期化の経路のテスト。`check_c_abi_contract_android.py` が `--design-only` なしで通る |
 | TB-2 | 共通の部品（文字列、`struct_size`、出力のハンドル、登録の表と帳簿、前面の判定、エラーの写しの土台） | 1.5日 | TB-1 | 第 1 部 6 章の `release` と完了のテスト |
 | TB-3 | Clipboard（OP-01〜OP-12、読み取りの結果と説明） | 1.0日 | TB-2 | 12.1 の Clipboard の行 |
 | TB-4 | Dialog（OP-13〜OP-19、結果） | 1.5日 | TB-2 | 12.1 の Dialog の行と 12.2 |
@@ -785,8 +794,8 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-7 | 通知のイベント（OP-40〜OP-42） | 1.0日 | TB-6 | 12.1 のイベントの行と 12.2 |
 | TB-8 | Share（OP-43〜OP-54） | 1.5日 | TB-2 | 12.1 の Share の行と 12.2 |
 | TB-9 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-8 | すべての公開の関数 |
-| TB-10 | ビルドスクリプト（capi の AAR、`m2/`）と smoke | 1.5日 | TB-3〜TB-9 | 12.4 と 15.2 の配布物の項目 |
-| TB-11 | `test_android.sh` に C ABI のテスト・smoke・経路ごとのプロセスをつなぐ（第 1 部 C-5） | 0.5日 | TB-10 | 全件が両方の環境で通る |
+| TB-10 | ビルドスクリプト（capi の AAR、`m2/`）と smoke | 1.5日 | TB-3〜TB-9 | 12.4 と 15.2 の配布物の項目。各 ABI の `libntk.so` で `check_c_abi_contract_android.py --library` が通る |
+| TB-11 | `test_android.sh` に C ABI のテスト・smoke・経路ごとのプロセスと、`--library` を付けた契約の照合をつなぐ（第 1 部 C-5） | 0.5日 | TB-10 | 全件が両方の環境で通る |
 | TB-12 | 7 章の文書の直し | 0.5日 | - | 7 章の表のすべての行 |
 | TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-11 | 8.3 と 16 章を渡した |
 

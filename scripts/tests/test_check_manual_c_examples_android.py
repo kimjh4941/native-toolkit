@@ -13,6 +13,7 @@ The compile cases need the NDK's clang and are skipped, saying so, without it.
 Run: python3 -m unittest discover -s scripts/tests
 """
 
+import os
 import pathlib
 import re
 import shutil
@@ -75,9 +76,9 @@ class AndroidManualChecker(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(page(self.functions, comment), encoding="utf-8")
 
-    def run_checker(self, *arguments):
+    def run_checker(self, *arguments, env=None):
         result = subprocess.run([sys.executable, str(CHECKER), VERSION, "--root", str(self.tree), *arguments],
-                                capture_output=True, text=True, encoding="utf-8", errors="replace")
+                                capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
         return result.returncode, result.stdout + result.stderr
 
     def edit(self, fragment, old, new):
@@ -128,6 +129,39 @@ class AndroidManualChecker(unittest.TestCase):
         shutil.rmtree(self.tree / INCLUDE)
         self.assertFails("coverage")
 
+    def test_one_missing_header_fails_rather_than_asking_for_less(self):
+        (self.tree / INCLUDE / "NativeToolkitC" / "Share.h").unlink()
+        self.assertFails("coverage")
+
+    # --- a section that would read as absent -------------------------------
+
+    def test_a_heading_that_nearly_reads_c_abi(self):
+        for suffix in ("", ".ja", ".ko"):
+            self.edit(f"{PAGE}{suffix}.md", "### C ABI", "### C-ABI")
+        self.assertFails("the manual is readable")
+
+    def test_a_translation_with_a_section_english_lacks(self):
+        self.edit(f"{PAGE}.md", "### C ABI\n", "### Native\n")
+        self.assertFails("the manual is readable")
+
+    def test_require_examples_fails_on_a_manual_without_them(self):
+        version = manual_c_examples_common.latest_version(ROOT)
+        shutil.copytree(ROOT / "manual" / version, self.tree / "manual" / version, ignore=shutil.ignore_patterns("images"))
+        result = subprocess.run([sys.executable, str(CHECKER), version, "--root", str(self.tree), "--require-examples"],
+                                capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("FAIL the manual is readable", result.stdout)
+
+    # --- arguments ----------------------------------------------------------
+
+    def test_an_unknown_argument_is_a_usage_error(self):
+        code, output = self.run_checker("--require-compiles")
+        self.assertEqual(code, 2, output)
+
+    def test_an_option_without_its_value_is_a_usage_error(self):
+        code, output = self.run_checker("--clang")
+        self.assertEqual(code, 2, output)
+
     # --- parity -------------------------------------------------------------
 
     def test_a_language_whose_code_differs(self):
@@ -156,13 +190,41 @@ class AndroidManualChecker(unittest.TestCase):
             self.edit(f"{PAGE}{suffix}.md", "ntk_clipboard_copy_text(\"Hello\", NULL)", "ntk_clipboard_copy_text(\"Hello\", NULL, 1)")
         self.assertFails("compile", "--require-compile")
 
-    def test_require_compile_without_clang_fails(self):
-        self.assertFails("compile", "--require-compile", "--clang", str(self.tree / "no-clang"))
+    @unittest.skipUnless(CLANG, "the NDK's clang was not found")
+    def test_an_example_in_utf_8_compiles(self):
+        for suffix in ("", ".ja", ".ko"):
+            self.edit(f"{PAGE}{suffix}.md", "ntk_clipboard_copy_text(\"Hello\"", "ntk_clipboard_copy_text(\"こんにちは\"")
+        code, output = self.run_checker("--require-compile")
+        self.assertEqual(code, 0, output)
 
-    def test_no_clang_skips_without_require_compile(self):
-        code, output = self.run_checker("--clang", str(self.tree / "no-clang"))
+    def test_a_clang_given_that_does_not_exist_fails(self):
+        self.assertFails("compile", "--clang", str(self.tree / "no-clang"))
+
+    def no_ndk(self):
+        empty = self.tree / "no-sdk"
+        empty.mkdir()
+        env = {k: v for k, v in os.environ.items() if k not in ("ANDROID_NDK_HOME", "ANDROID_NDK_ROOT")}
+        env["ANDROID_HOME"] = str(empty)
+        return env
+
+    def test_no_ndk_skips_without_require_compile(self):
+        code, output = self.run_checker(env=self.no_ndk())
         self.assertEqual(code, 0, output)
         self.assertTrue(re.search(r"SKIP compile", output), output)
+
+    def test_no_ndk_fails_with_require_compile(self):
+        code, output = self.run_checker("--require-compile", env=self.no_ndk())
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAIL compile", output)
+
+    # --- writing the examples out -------------------------------------------
+
+    def test_a_block_the_encoding_cannot_hold_is_reported_not_raised(self):
+        found = {"page": {"": ['int x = 0; /* \u2014 */']}}
+        with tempfile.TemporaryDirectory() as work:
+            written, problems = manual_c_examples_common.write_sources(found, work, "", encoding="ascii")
+        self.assertEqual(written, [])
+        self.assertEqual(len(problems), 1, problems)
 
 
 if __name__ == "__main__":

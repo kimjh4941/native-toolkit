@@ -108,6 +108,10 @@ class CAbiContractChecker(unittest.TestCase):
     def test_an_enum_value_that_moved(self):
         self.assert_catches("signatures", (C_CLIPBOARD, "NTK_CLIPBOARD_ERROR_BUSY = 3,", "NTK_CLIPBOARD_ERROR_BUSY = 33,"))
 
+    def test_a_declaration_inside_an_if(self):
+        self.assert_catches("signatures", (C_NOTIFICATION, "ntk_notification_manager* manager, int32_t value);",
+                                           "ntk_notification_manager* manager, int32_t value);\n#if defined(NTK_EXPERIMENTAL)\n#endif"))
+
     # --- operations ---------------------------------------------------------
 
     def test_chapter_9_naming_another_function(self):

@@ -177,7 +177,11 @@ def check_compile(found, rep, require, keep):
 
     work = Path(tempfile.mkdtemp(prefix="manual-c-examples-"))
     try:
-        count = len(common.write_sources(found, work, PRELUDE))
+        sources, unwritable = common.write_sources(found, work, PRELUDE)
+        if unwritable:
+            rep.check(False, name, "; ".join(unwritable))
+            return
+        count = len(sources)
 
         project = work / "manual-c-examples.vcxproj"
         project.write_text(

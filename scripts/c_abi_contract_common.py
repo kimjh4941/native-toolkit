@@ -82,8 +82,8 @@ def declarations(text):
         found["struct"][name] = "; ".join(fields)
     text = re.sub(r"typedef struct (\w+) \{.*?\} \1;", " ", text, flags=re.S)
     for body in re.findall(r"enum \{(.*?)\};", text, re.S):
-        for name, value in re.findall(r"(NTK_\w+)\s*=\s*(\d+)", body):
-            found["value"][name] = int(value)
+        for name, value in re.findall(r"(NTK_\w+)\s*=\s*(-?(?:0[xX][0-9A-Fa-f]+|\d+))", body):
+            found["value"][name] = int(value, 0)
     text = re.sub(r"enum \{.*?\};", " ", text, flags=re.S)
 
     for statement in text.split(";"):
@@ -122,6 +122,99 @@ def macros(text):
         if match and not match.group(1).endswith("_H"):
             found.setdefault(match.group(1), []).append(match.group(2) or "")
     return found
+
+
+NTK_CALL_BLOCK = ["#if defined(_MSC_VER)", "#define NTK_CALL __cdecl", "#else", "#define NTK_CALL", "#endif"]
+PACK_PUSH, PACK_POP = "#pragma pack(push, 8)", "#pragma pack(pop)"
+
+
+def directive_problems(label, text):
+    """Preprocessor lines a public header may not have, and the shape they
+    must give it.
+
+    The declarations are read with every # line dropped, so a declaration
+    inside an #if would read as unconditional, and a header that lost its
+    extern "C" or its include guard would read the same. A header may only
+    have: its include guard, opened first and closed last; #includes; the two
+    #ifdef __cplusplus blocks that open and close extern "C" around every
+    declaration; in Common.h, the NTK_CALL block and #defines; and, when it
+    has structs, one #pragma pack(push, 8) before the first and one
+    #pragma pack(pop) after the last, with no # line inside any struct."""
+    problems = []
+    code = strip_comments(text)
+    directives = []                       # (start, end, normalised line)
+    for match in re.finditer(r"^[ \t]*#.*$", code, re.M):
+        line = re.sub(r"^#\s*", "#", normalise(match.group(0)))
+        directives.append((match.start(), match.end(), line))
+    lines = [line for _, _, line in directives]
+
+    allowed = set()
+    if label == "Common.h":
+        for index in range(len(lines) - len(NTK_CALL_BLOCK) + 1):
+            if lines[index:index + len(NTK_CALL_BLOCK)] == NTK_CALL_BLOCK:
+                allowed = set(range(index, index + len(NTK_CALL_BLOCK)))
+                break
+
+    # The include guard: the first two lines, and its #endif the last.
+    guard = re.fullmatch(r"#ifndef (NATIVETOOLKITC_\w+_H)", lines[0]) if lines else None
+    if not guard or len(lines) < 2 or lines[1] != f"#define {guard.group(1)}":
+        problems.append(f"{label} does not open with its include guard")
+    stack = []
+    for index, line in enumerate(lines):
+        if index in allowed:
+            continue
+        if line.startswith(("#ifndef", "#ifdef", "#if ")):
+            stack.append((index, line))
+            if line not in ("#ifdef __cplusplus",) and index != 0:
+                problems.append(f"{label} has '{line}'")
+        elif line == "#endif":
+            if not stack:
+                problems.append(f"{label} has an #endif that closes nothing")
+                continue
+            opened, _ = stack.pop()
+            if opened == 0 and index != len(lines) - 1:
+                problems.append(f"{label} closes its include guard before its last line")
+        elif index == 1 and guard:
+            continue
+        elif re.fullmatch(r"#include [<\"][\w/.]+[>\"]", line) or line in (PACK_PUSH, PACK_POP):
+            continue
+        elif label == "Common.h" and re.fullmatch(r"#define NTK_\w+ \S+", line):
+            continue
+        else:
+            problems.append(f"{label} has '{line}'")
+    if stack:
+        problems.append(f"{label} leaves {', '.join(line for _, line in stack)} open")
+
+    # extern "C": two #ifdef __cplusplus blocks, the opening and the closing,
+    # with every declaration between them.
+    blocks = list(re.finditer(r"^[ \t]*#\s*ifdef\s+__cplusplus\s*\n(.*?)^[ \t]*#\s*endif", code, re.S | re.M))
+    if [normalise(b.group(1)) for b in blocks] != ['extern "C" {', "}"]:
+        problems.append(f"{label} does not open and close extern \"C\" in two #ifdef __cplusplus blocks")
+    else:
+        outside = list(code)
+        for start, end, _ in directives:
+            outside[start:end] = " " * (end - start)
+        for block in blocks:
+            outside[block.start():block.end()] = " " * (block.end() - block.start())
+        stray = [m.start() for m in re.finditer(r"\S", "".join(outside))]
+        if stray and (stray[0] < blocks[0].end() or stray[-1] > blocks[1].start()):
+            problems.append(f"{label} declares something outside extern \"C\"")
+
+    # #pragma pack around the structs, and no # line inside one.
+    structs = [m.span() for m in re.finditer(r"typedef struct (\w+) \{.*?\} \1;", code, re.S)]
+    pushes = [start for start, _, line in directives if line == PACK_PUSH]
+    pops = [start for start, _, line in directives if line == PACK_POP]
+    if structs:
+        if len(pushes) != 1 or len(pops) != 1:
+            problems.append(f"{label} has {len(pushes)} {PACK_PUSH} and {len(pops)} {PACK_POP} around its structs")
+        elif not pushes[0] < structs[0][0] or not pops[0] > structs[-1][1]:
+            problems.append(f"{label} declares a struct outside {PACK_PUSH} ... (pop)")
+        for start, _, line in directives:
+            if any(a < start < b for a, b in structs):
+                problems.append(f"{label} has '{line}' inside a struct")
+    elif len(pushes) != len(pops) or len(pushes) > 1:
+        problems.append(f"{label} has {len(pushes)} {PACK_PUSH} and {len(pops)} {PACK_POP}")
+    return problems
 
 
 def appendix_code(design):
@@ -173,7 +266,7 @@ def backticked(cell):
 
 def op_range(cell):
     ids = [int(n) for n in re.findall(r"OP-(\d+)", cell)]
-    if ("〜" in cell or "~" in cell) and len(ids) >= 2:
+    if any(mark in cell for mark in ("〜", "～", "~")) and len(ids) >= 2:
         return [f"OP-{n:02d}" for n in range(ids[0], ids[-1] + 1)]
     return [f"OP-{n:02d}" for n in ids]
 
@@ -207,6 +300,8 @@ def section_8_2(design, ops):
         from_ops = re.search(r"8\.1 の (\d+) 関数", cells[2])
         if from_ops:
             row = [ops[op] for op in op_range(cells[1]) if op in ops]
+            if int(from_ops.group(1)) != len(row):
+                problems.append(f"the row '{cells[1]}' says '8.1 の {from_ops.group(1)} 関数' but 8.1 has {len(row)}")
         elif any(t.startswith("_") for t in listed):
             # "_create, _free, ... (each follows ntk_notification_content)"
             prefix = [t for t in listed if t.startswith("ntk_")]
@@ -221,22 +316,28 @@ def section_8_2(design, ops):
 
 def error_table(design, heading):
     """NAME -> value from a chapter 11 table, the name as the table writes it."""
-    values = {}
+    return dict(error_table_rows(design, heading))
+
+
+def error_table_rows(design, heading):
+    """(NAME, value) of every row of a chapter 11 table, a name named twice included."""
+    rows = []
     for cells in table_rows(design, heading):
         if len(cells) >= 2 and cells[0].isdigit():
             for name in backticked(cells[1]):
-                values[name] = int(cells[0])
-    return values
+                rows.append((name, int(cells[0])))
+    return rows
 
 
 # ---------------------------------------------------------------------------
 # The checks every OS runs the same way
 # ---------------------------------------------------------------------------
 
-def check_signatures(expected, actual, rep):
-    """expected: the declarations of Appendix A; actual: those of the headers, merged."""
+def check_signatures(expected, actual, rep, problems=None):
+    """expected: the declarations of Appendix A; actual: those of the headers,
+    merged. problems: what the caller already found (directive_problems)."""
     name = "signatures: the headers declare what Appendix A does"
-    problems = []
+    problems = list(problems or [])
     for kind in expected:
         for item in sorted(set(expected[kind]) | set(actual[kind])):
             want, got = expected[kind].get(item), actual[kind].get(item)
@@ -258,8 +359,12 @@ def error_table_problems(design, values, error_tables):
     whole name or only what follows the prefix."""
     problems = []
     for prefix, heading in sorted(error_tables.items()):
-        table = {(k[len(prefix):] if k.startswith(prefix) else k): v
-                 for k, v in error_table(design, heading).items()}
+        table = {}
+        for written, value in error_table_rows(design, heading):
+            key = written[len(prefix):] if written.startswith(prefix) else written
+            if key in table:
+                problems.append(f"{heading} names {key} twice")
+            table[key] = value
         mine = {k[len(prefix):]: v for k, v in values.items() if k.startswith(prefix)}
         if not table:
             problems.append(f"no table under {heading}")
@@ -270,8 +375,9 @@ def error_table_problems(design, values, error_tables):
     return problems
 
 
-def check_names(headers, feature_of, common_functions, rep):
-    problems = []
+def check_names(headers, feature_of, common_functions, rep,
+                name="names: every function, type and constant follows 1.1"):
+    problems = [] if headers else ["no header was read"]
     for header, decl in headers.items():
         feature = feature_of.get(header)
         for function in decl["function"]:
@@ -293,7 +399,7 @@ def check_names(headers, feature_of, common_functions, rep):
         for constant in decl["value"]:
             if feature and not constant.startswith(f"NTK_{feature.upper()}_"):
                 problems.append(f"{constant} in {header} does not start with NTK_{feature.upper()}_")
-    rep.check(not problems, "names: every function, type and constant follows 1.1", "; ".join(problems))
+    rep.check(not problems, name, "; ".join(problems))
 
 
 def non_ascii_lines(label, data):
@@ -337,6 +443,12 @@ def common_header_problems(windows, android, windows_only):
     version_names = ("NTK_VERSION_MAJOR", "NTK_VERSION_MINOR", "NTK_VERSION_PATCH", "NTK_VERSION")
     for label, text in (("Windows", windows), ("Android", android)):
         defined = macros(text)
+        if defined.get("NTK_CALL") != ["__cdecl", ""]:
+            problems.append(f"the {label} Common.h defines NTK_CALL as {defined.get('NTK_CALL')}, "
+                            "not __cdecl under MSVC and empty otherwise, once each")
+        for twice in version_names:
+            if len(defined.get(twice, [])) > 1:
+                problems.append(f"the {label} Common.h defines {twice} {len(defined[twice])} times")
         try:
             major, minor, patch, whole = (int(defined[n][0], 0) for n in version_names)
         except (KeyError, ValueError):

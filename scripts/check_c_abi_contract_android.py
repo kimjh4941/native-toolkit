@@ -7,14 +7,18 @@ here, so neither can drift without the other noticing:
   functions   the public headers, the table of section 8.2 and Appendix A
               all name the same functions, as many as 8.2 says.
   signatures  every declaration in the headers - function, callback type,
-              struct, enum value and typedef - against Appendix A.
+              struct, enum value and typedef - against Appendix A, and no
+              preprocessor line a header may not have (an #if would hide a
+              declaration from this reading).
   operations  the rows of 8.1 against those of chapter 9, and the C function
               each names against Appendix A.
   kotlin      the Kotlin entry each row of 8.1 calls exists in
               android_library (AP-1).
-  behaviours  every behaviour of chapter 10 has operations of 8.1, as many
-              operations as README chapter 6 counts, and each row's kind
-              agrees with whether its functions take a callback.
+  behaviours  every behaviour of chapter 10 has operations of 8.1, the rows
+              of each kind are as many as README chapter 6 numbers, each
+              row's kind agrees with its functions (a completion callback, a
+              listener, or neither) and with chapter 9, and every function
+              that takes a callback belongs to a row.
   values      the error enumerations against the tables of chapter 11, the
               shared meanings of 0 to 5 (AP-12), and the Kotlin declaration
               order that 11.3 and 11.4 follow.
@@ -26,7 +30,9 @@ here, so neither can drift without the other noticing:
 
 A file that cannot be read fails its check (R-30). Two checks run only when
 asked, and say so: the headers come with stage 2b, so --design-only reads
-Appendix A in their place until then; symbols needs a built library.
+Appendix A in their place until then (and fails once a header exists);
+symbols needs a built library. An argument this script does not know is a
+usage error, so a misspelt option cannot turn a check into a SKIP.
 
 What every OS checks the same way lives in c_abi_contract_common.py.
 
@@ -60,6 +66,8 @@ INCLUDE = "android/android_library_capi/src/main/cpp/include/NativeToolkitC"
 HEADERS = {name: f"{INCLUDE}/{name}" for name in
            ("Common.h", "Android.h", "Clipboard.h", "Dialog.h", "Notification.h", "Share.h")}
 WINDOWS_COMMON = "windows/WindowsLibraryCApi/include/NativeToolkitC/Common.h"
+# The NDK the build is pinned to (part 1, AC-12). Preferred when several are installed.
+NDK_VERSION = "30.0.16248370"
 
 # The prefix every function of a header starts with. Common.h holds what
 # belongs to no feature.
@@ -84,18 +92,20 @@ KOTLIN_ORDER = {
     "### 11.3": ("ClipboardErrorCode", {"UNKNOWN"}),
     "### 11.4": ("ShareDomainError", set()),
 }
-# The kinds of chapter 10 (part 1, chapter 8), and whether a row of that kind
-# has a function that takes a callback and a release.
-KINDS = {
-    "同期の結果": False,
-    "受け付けだけ（main に積む）": False,
-    "受け付けた後の完了": True,
-    "イベント": True,
-    "登録と解除": True,
+# The kinds of chapter 10 (part 1, chapter 8), and which kinds each ID allows.
+SYNC, POSTED, COMPLETION, EVENT, REGISTRATION = (
+    "同期の結果", "受け付けだけ（main に積む）", "受け付けた後の完了", "イベント", "登録と解除")
+KINDS_OF = {
+    "BH": {SYNC, POSTED, COMPLETION},
+    "EV": {EVENT},
+    "RG": {REGISTRATION, POSTED},
+    "PR": {COMPLETION},
 }
-BEHAVIOUR_IDS = ("BH", "EV", "RG", "PR")
 # Constants only the Windows Common.h may define (part 1, 5.2).
 WINDOWS_ONLY = r"^NTK_SYSTEM_CODE_\w+$"
+
+USAGE = ("usage: check_c_abi_contract_android.py [--root <tree>] [--design-only] "
+         "[--library <libntk.so> [--nm <llvm-nm>]]")
 
 
 def at(fragment):
@@ -104,6 +114,28 @@ def at(fragment):
 
 def read(fragment, rep, check_name):
     return common.read(ROOT, fragment, rep, check_name)
+
+
+def find_ndk_tool(name, given=None, search_path=True):
+    """A tool of the NDK's LLVM (clang, llvm-nm), or None. An explicit path is
+    returned as given, for the caller to fail on if it does not exist. Without
+    one: PATH (unless search_path is false, for a tool whose host build would
+    not do, such as clang without the Android sysroot), then ANDROID_NDK_HOME /
+    ANDROID_NDK_ROOT, then the SDK's ndk/ folder, preferring the pinned NDK."""
+    if given:
+        return given
+    found = shutil.which(name) if search_path else None
+    if found:
+        return found
+    roots = [os.environ.get("ANDROID_NDK_HOME"), os.environ.get("ANDROID_NDK_ROOT")]
+    sdk = os.environ.get("ANDROID_HOME") or os.path.expanduser("~/Library/Android/sdk")
+    roots += [f"{sdk}/ndk/{NDK_VERSION}"] + sorted(glob.glob(f"{sdk}/ndk/*"), reverse=True)
+    for home in roots:
+        if home:
+            matches = sorted(glob.glob(f"{home}/toolchains/llvm/prebuilt/*/bin/{name}"))
+            if matches:
+                return matches[-1]
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -123,32 +155,98 @@ def operations(design):
     return table
 
 
+def chapter_9(design):
+    """OP -> its 'C ABI（Bridge）' cell of chapter 9."""
+    return {cells[0]: cells[3] for cells in table_rows(design, "## 9.")
+            if len(cells) > 3 and cells[0].startswith("OP-")}
+
+
 def kotlin_sources():
-    return {path: path.read_text(encoding="utf-8") for path in sorted(at(KOTLIN).rglob("*.kt"))}
+    """path -> text with comments removed: a declaration in a comment is not one."""
+    return {path: common.strip_comments(path.read_text(encoding="utf-8"))
+            for path in sorted(at(KOTLIN).rglob("*.kt"))}
 
 
-def kotlin_type(sources, name):
-    """The text of the file that declares the class, object or interface name."""
-    pattern = re.compile(r"^\s*(?:\w+\s+)*(?:class|object|interface)\s+" + re.escape(name) + r"\b", re.M)
-    for text in sources.values():
-        if pattern.search(text):
-            return text
-    return None
+def kotlin_declarations(sources, name):
+    """(text, index) of every class, object or interface declared as name."""
+    pattern = re.compile(r"^[ \t]*(?:[a-z]+\s+)*(?:class|object|interface)\s+" + re.escape(name) + r"\b", re.M)
+    return [(text, match.start()) for text in sources.values() for match in pattern.finditer(text)]
 
 
-def kotlin_order(sources, name, rep, check_name):
-    """The members of an enum class, or the direct subclasses of a sealed
-    class, in declaration order."""
-    text = kotlin_type(sources, name)
-    if text is None:
-        rep.check(False, check_name, f"no Kotlin declares {name}")
+def members(text, start):
+    """The text at the top level of the body of the declaration at start: the
+    members of that type, with every nested body (functions, nested types)
+    removed."""
+    index, parens = start, 0
+    while index < len(text):
+        char = text[index]
+        if char == "(":
+            parens += 1
+        elif char == ")":
+            parens -= 1
+        elif char == "{" and parens == 0:
+            break
+        elif char == "\n" and parens == 0 and re.match(r"\s*(?:[a-z]+\s+)*(?:class|object|interface|fun|val)\b",
+                                                         text[index + 1:]):
+            return ""                     # a declaration without a body
+        index += 1
+    depth, kept = 0, []
+    for char in text[index:]:
+        if char == "{":
+            depth += 1
+            if depth == 1:
+                continue
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                break
+        if depth == 1:
+            kept.append(char)
+    return "".join(kept)
+
+
+def kotlin_type(sources, name, problems):
+    """The members of the one type declared as name, or None and a problem."""
+    found = kotlin_declarations(sources, name)
+    if not found:
+        problems.append(f"no Kotlin declares {name}")
         return None
-    text = common.strip_comments(text)
-    enum = re.search(r"enum class\s+" + re.escape(name) + r"\b[^{]*\{(.*?);", text, re.S)
-    if enum:
-        return [m for m in re.findall(r"^\s*([A-Z][A-Z0-9_]*)\s*[,(]?\s*$", enum.group(1), re.M)]
-    return re.findall(r"^\s*(?:data\s+)?(?:class|object)\s+(\w+)\b[^\n]*:\s*" + re.escape(name) + r"\(\)",
-                      text, re.M)
+    if len(found) > 1:
+        problems.append(f"{len(found)} Kotlin types are named {name}")
+        return None
+    return members(*found[0])
+
+
+def kotlin_order(sources, name, problems):
+    """The entries of an enum class, or the subclasses of a sealed class
+    declared in its file, in declaration order."""
+    found = kotlin_declarations(sources, name)
+    if len(found) != 1:
+        problems.append(f"{len(found)} Kotlin types are named {name}")
+        return None
+    text, start = found[0]
+    body = members(text, start)
+    if re.search(r"\benum\s+class\s+" + re.escape(name) + r"\b", text):
+        # The entries end at the first ; outside parentheses; each is a name,
+        # perhaps with arguments over several lines.
+        entries, depth, current = [], 0, []
+        for char in body:
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+            if depth == 0 and char in ",;":
+                entries.append("".join(current))
+                current = []
+                if char == ";":
+                    break
+                continue
+            current.append(char)
+        else:
+            entries.append("".join(current))
+        return [m.group(1) for entry in entries for m in [re.match(r"\s*([A-Z][A-Z0-9_]*)\b", entry)] if m]
+    pattern = r"\b(?:data\s+)?(?:class|object)\s+(\w+)\b[^{};]*?:\s*" + re.escape(name) + r"\(\)"
+    return re.findall(pattern, text, re.S)
 
 
 # ---------------------------------------------------------------------------
@@ -189,13 +287,13 @@ def check_functions(design, expected, headers, rep):
 def check_operations(design, expected, rep):
     name = "operations: 8.1, chapter 9 and Appendix A agree"
     ops = operations(design)
-    chapter_9 = {cells[0] for cells in table_rows(design, "## 9.") if cells and cells[0].startswith("OP-")}
+    in_9 = set(chapter_9(design))
     problems = []
     numbers = sorted(int(op[3:]) for op in ops)
     if numbers != list(range(1, len(numbers) + 1)):
         problems.append("the operations of 8.1 are not OP-01 to OP-N without gaps")
-    if set(ops) != chapter_9:
-        problems.append(f"8.1 and chapter 9 list different operations: {', '.join(sorted(set(ops) ^ chapter_9))}")
+    if set(ops) != in_9:
+        problems.append(f"8.1 and chapter 9 list different operations: {', '.join(sorted(set(ops) ^ in_9))}")
     for op, (_, function) in sorted(ops.items()):
         if function not in expected["function"]:
             problems.append(f"{op} names {function}, which Appendix A does not declare")
@@ -212,65 +310,125 @@ def check_kotlin(design, sources, rep):
         if len(parts) < 2:
             problems.append(f"{op}: '{entry}' is not Type.member")
             continue
-        text = kotlin_type(sources, parts[-2])
-        if text is None:
-            problems.append(f"{op}: no Kotlin declares {parts[-2]}")
+        found = []
+        body = kotlin_type(sources, parts[-2], found)
+        if body is None:
+            problems.extend(f"{op}: {p}" for p in found)
             continue
         member = re.escape(parts[-1])
-        if not re.search(r"\b(?:fun(?:\s+<[^>]*>)?|val|var)\s+(?:\w+\.)?" + member + r"\b", text):
+        if not re.search(r"(?:^|\s)(?:fun(?:\s+<[^>]*>)?|val|var)\s+" + member + r"\b", body):
             problems.append(f"{op}: {parts[-2]} has no member {parts[-1]}")
             continue
         compared += 1
     rep.check(not problems and compared > 0, f"{name} ({compared} entries)", "; ".join(problems) or "nothing was compared")
 
 
-def check_behaviours(design, readme, expected, rep):
-    name = "behaviours: chapter 10 maps every behaviour to operations of 8.1"
-    ops = operations(design)
-    rows = [cells for cells in table_rows(design, "## 10.") if cells and re.match(r"^[A-Z]+-\d+$", cells[0])]
-    problems, by_kind = [], {}
-    for prefix in BEHAVIOUR_IDS:
-        numbers = [int(cells[0].split("-")[1]) for cells in rows if cells[0].startswith(prefix + "-")]
-        by_kind[prefix] = len(numbers)
-        if numbers != list(range(1, len(numbers) + 1)):
-            problems.append(f"the {prefix} rows are not {prefix}-01 to {prefix}-N without gaps")
-    for cells in rows:
-        if cells[0].split("-")[0] not in BEHAVIOUR_IDS:
-            problems.append(f"{cells[0]} is not one of {', '.join(BEHAVIOUR_IDS)}")
-            continue
-        if len(cells) < 6:
-            problems.append(f"{cells[0]} has {len(cells)} columns, not 6")
-            continue
-        named = op_range(cells[5])
-        if not named:
-            problems.append(f"{cells[0]} names no operation")
-        missing = [op for op in named if op not in ops]
-        if missing:
-            problems.append(f"{cells[0]} names {', '.join(missing)}, which 8.1 lacks")
-        kind = cells[3]
-        if kind not in KINDS:
-            problems.append(f"{cells[0]}: '{kind}' is none of {', '.join(KINDS)}")
-            continue
-        takes = [op for op in named if op in ops and takes_callback(expected["function"].get(ops[op][1], ""))]
-        if KINDS[kind] and not takes:
-            problems.append(f"{cells[0]} is '{kind}' but none of its functions takes a callback and a release")
-        if not KINDS[kind] and takes:
-            problems.append(f"{cells[0]} is '{kind}' but {', '.join(takes)} takes a callback")
-    total = re.search(r"^\| 計 \| (\d+) \| (\d+) \|", readme or "", re.M)
-    if total is None:
-        problems.append("README chapter 6 has no total row")
-    elif by_kind.get("BH") != int(total.group(2)):
-        problems.append(f"chapter 10 has {by_kind.get('BH')} operations, README chapter 6 counts {total.group(2)}")
-    kinds = {kind: sum(1 for cells in rows if len(cells) > 3 and cells[3] == kind) for kind in KINDS}
-    summary = ", ".join(f"{prefix} {count}" for prefix, count in by_kind.items())
-    derived = ", ".join(f"{kind} {count}" for kind, count in kinds.items())
-    rep.check(not problems and rows, f"{name} ({summary}; {derived})", "; ".join(problems) or "chapter 10 is empty")
-
-
 def takes_callback(signature):
     """Whether a declaration takes a callback of its own and a release."""
     callbacks = set(re.findall(r"\bntk_\w+_fn\b", signature))
     return "ntk_release_fn" in callbacks and len(callbacks) > 1
+
+
+def is_listener(function, signature):
+    return bool(re.fullmatch(r"ntk_\w+_add_\w+_listener", function)) and takes_callback(signature)
+
+
+def readme_ranges(readme):
+    """ID prefix -> how many README chapter 6 numbers ('BH-01〜BH-45', 'PR-01')."""
+    counts = {}
+    for prefix, last in re.findall(r"\b(BH|EV|RG|PR)-01〜(?:BH|EV|RG|PR)-(\d+)", readme or ""):
+        counts[prefix] = int(last)
+    for prefix in re.findall(r"\b(BH|EV|RG|PR)-01\b(?!〜)", readme or ""):
+        counts.setdefault(prefix, 1)
+    return counts
+
+
+def check_behaviours(design, readme, expected, rep):
+    name = "behaviours: chapter 10 maps every behaviour to operations of 8.1"
+    ops = operations(design)
+    cells_9 = chapter_9(design)
+    functions = expected["function"]
+    rows = [cells for cells in table_rows(design, "## 10.") if cells and re.match(r"^[A-Z]+-\d+$", cells[0])]
+    problems, by_prefix, used = [], {}, {COMPLETION: set(), EVENT: set(), REGISTRATION: set()}
+    for prefix in KINDS_OF:
+        numbers = [int(cells[0].split("-")[1]) for cells in rows if cells[0].startswith(prefix + "-")]
+        by_prefix[prefix] = len(numbers)
+        if numbers != list(range(1, len(numbers) + 1)):
+            problems.append(f"the {prefix} rows are not {prefix}-01 to {prefix}-N without gaps")
+    expected_counts = readme_ranges(readme)
+    if set(expected_counts) != set(KINDS_OF):
+        problems.append(f"README chapter 6 does not number every kind: {expected_counts}")
+    for prefix, count in sorted(expected_counts.items()):
+        if by_prefix.get(prefix) != count:
+            problems.append(f"chapter 10 has {by_prefix.get(prefix)} {prefix} rows, README chapter 6 numbers {count}")
+    total = re.search(r"^\| 計 \| (\d+) \| (\d+) \|", readme or "", re.M)
+    if total is None:
+        problems.append("README chapter 6 has no total row")
+    elif by_prefix.get("BH") != int(total.group(2)):
+        problems.append(f"chapter 10 has {by_prefix.get('BH')} operations, README chapter 6 counts {total.group(2)}")
+
+    for cells in rows:
+        prefix = cells[0].split("-")[0]
+        if prefix not in KINDS_OF:
+            problems.append(f"{cells[0]} is not one of {', '.join(KINDS_OF)}")
+            continue
+        if len(cells) < 6:
+            problems.append(f"{cells[0]} has {len(cells)} columns, not 6")
+            continue
+        kind = cells[3]
+        if kind not in KINDS_OF[prefix]:
+            problems.append(f"{cells[0]}: '{kind}' is not a kind a {prefix} row can have")
+            continue
+        named = op_range(cells[5])
+        if not named:
+            problems.append(f"{cells[0]} names no operation")
+            continue
+        missing = [op for op in named if op not in ops]
+        if missing:
+            problems.append(f"{cells[0]} names {', '.join(missing)}, which 8.1 lacks")
+            continue
+        names = {op: ops[op][1] for op in named}
+        listeners = [op for op, f in names.items() if is_listener(f, functions.get(f, ""))]
+        completions = [op for op, f in names.items()
+                       if takes_callback(functions.get(f, "")) and op not in listeners]
+        if kind == SYNC:
+            wrong = [op for op in named if listeners or completions
+                     or not cells_9.get(op, "").startswith("同期") or "main に積む" in cells_9.get(op, "")]
+            if wrong:
+                problems.append(f"{cells[0]} is '{kind}' but {', '.join(wrong)} take a callback or are not 同期 in chapter 9")
+        elif kind == POSTED:
+            wrong = [op for op in named if listeners or completions or "main に積む" not in cells_9.get(op, "")]
+            if wrong:
+                problems.append(f"{cells[0]} is '{kind}' but {', '.join(wrong)} take a callback or chapter 9 does not post them")
+        elif kind == COMPLETION:
+            # The operation and, at most, the function that cancels it (PR-01: OP-38 and OP-39).
+            others = [op for op in named if op not in completions and "_cancel" not in names[op]]
+            if not completions or listeners or others:
+                problems.append(f"{cells[0]} is '{kind}' but its functions are not completions "
+                                f"and their cancels: {', '.join(others or listeners) or 'no completion'}")
+        elif kind == EVENT:
+            if not listeners or len(listeners) != len(named):
+                problems.append(f"{cells[0]} is '{kind}' but not every function adds a listener")
+        elif kind == REGISTRATION:
+            others = [op for op in named if op not in listeners and not names[op].endswith("_listener_remove")]
+            if not listeners or others:
+                problems.append(f"{cells[0]} is '{kind}' but its functions are not a listener and its removal")
+        if kind in used:
+            used[kind] |= set(names.values())
+
+    # Every function that takes a callback belongs to a row of its kind.
+    for function, signature in sorted(functions.items()):
+        if is_listener(function, signature):
+            if function not in used[EVENT] | used[REGISTRATION]:
+                problems.append(f"{function} adds a listener but no event or registration row names it")
+        elif takes_callback(signature) and function not in used[COMPLETION]:
+            problems.append(f"{function} takes a completion callback but no completion row names it")
+
+    kinds = {kind: sum(1 for cells in rows if len(cells) > 3 and cells[3] == kind)
+             for kind in (SYNC, POSTED, COMPLETION, EVENT, REGISTRATION)}
+    summary = ", ".join(f"{prefix} {count}" for prefix, count in by_prefix.items())
+    derived = ", ".join(f"{kind} {count}" for kind, count in kinds.items())
+    rep.check(not problems and rows, f"{name} ({summary}; {derived})", "; ".join(problems) or "chapter 10 is empty")
 
 
 def check_values(design, values, sources, rep):
@@ -295,9 +453,9 @@ def check_values(design, values, sources, rep):
     name = "values: 11.3 and 11.4 follow the Kotlin declaration order"
     problems = []
     for heading, (kotlin_name, elsewhere) in sorted(KOTLIN_ORDER.items()):
-        order = kotlin_order(sources, kotlin_name, rep, name)
+        order = kotlin_order(sources, kotlin_name, problems)
         if order is None:
-            return
+            continue
         rows = [cells for cells in table_rows(design, heading) if len(cells) >= 3 and cells[0].isdigit()]
         cited = [m.group(1) for cells in sorted(rows, key=lambda c: int(c[0]))
                  for m in [re.search(re.escape(kotlin_name) + r"\.(\w+)", cells[2])] if m]
@@ -310,7 +468,7 @@ def check_values(design, values, sources, rep):
 
 
 def check_ascii(texts, rep, label):
-    problems = []
+    problems = [] if texts else ["nothing was read"]
     for header, text in texts.items():
         problems.extend(common.non_ascii_lines(header, text.encode("utf-8")))
     rep.check(not problems, f"ascii: {label} are ASCII only", ", ".join(problems))
@@ -328,20 +486,15 @@ def check_common(android_common, rep):
     rep.check(not problems, name, "; ".join(problems))
 
 
-def find_nm(given):
-    if given:
-        return given
-    found = shutil.which("llvm-nm")
-    if found:
-        return found
-    for home in (os.environ.get("ANDROID_NDK_HOME"), os.environ.get("ANDROID_NDK_ROOT")):
-        if home:
-            matches = sorted(glob.glob(f"{home}/toolchains/llvm/prebuilt/*/bin/llvm-nm"))
-            if matches:
-                return matches[-1]
-    sdk = os.environ.get("ANDROID_HOME") or os.path.expanduser("~/Library/Android/sdk")
-    matches = sorted(glob.glob(f"{sdk}/ndk/*/toolchains/llvm/prebuilt/*/bin/llvm-nm"))
-    return matches[-1] if matches else None
+def exported_symbols(output):
+    """The names in llvm-nm output, without symbol versions (name@@VERSION)."""
+    names = set()
+    for line in output.splitlines():
+        line = line.strip()
+        if not line or line.endswith(":"):
+            continue                      # a blank line or a file heading
+        names.add(line.split()[-1].split("@")[0])
+    return names
 
 
 def check_symbols(library, nm, listed, rep):
@@ -352,15 +505,22 @@ def check_symbols(library, nm, listed, rep):
     if not Path(library).exists():
         rep.check(False, name, f"cannot read {library}")
         return
-    tool = find_nm(nm)
+    tool = find_ndk_tool("llvm-nm", nm)
     if tool is None:
         rep.check(False, name, "no llvm-nm (give --nm or set ANDROID_NDK_HOME)")
         return
-    finished = subprocess.run([tool, "-D", "--defined-only", str(library)], capture_output=True, text=True)
+    if not Path(tool).exists():
+        rep.check(False, name, f"cannot run {tool}")
+        return
+    try:
+        finished = subprocess.run([tool, "-D", "--defined-only", str(library)], capture_output=True, text=True)
+    except OSError as error:
+        rep.check(False, name, f"cannot run {tool}: {error}")
+        return
     if finished.returncode != 0:
         rep.check(False, name, f"{tool} failed: {finished.stderr.strip()}")
         return
-    exported = {line.split()[-1] for line in finished.stdout.splitlines() if line.strip()}
+    exported = exported_symbols(finished.stdout)
     wanted = set(listed) | {"JNI_OnLoad"}
     problems = []
     if exported - wanted:
@@ -370,26 +530,38 @@ def check_symbols(library, nm, listed, rep):
     rep.check(not problems, f"{name} ({len(exported)} symbols)", "; ".join(problems))
 
 
+def parse_arguments(argv):
+    """{option: value} for the options with a value, and the flags; None on a usage error."""
+    with_value = {"--root", "--library", "--nm"}
+    flags = {"--design-only"}
+    parsed, rest = {}, list(argv)
+    while rest:
+        argument = rest.pop(0)
+        if argument in with_value:
+            if not rest or rest[0].startswith("--"):
+                print(f"{argument} needs a value\n{USAGE}", file=sys.stderr)
+                return None
+            parsed[argument] = rest.pop(0)
+        elif argument in flags:
+            parsed[argument] = True
+        else:
+            print(f"unknown argument {argument}\n{USAGE}", file=sys.stderr)
+            return None
+    return parsed
+
+
 def main(argv):
     global ROOT
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    arguments = list(argv[1:])
-
-    def option(flag):
-        if flag not in arguments:
-            return None
-        index = arguments.index(flag)
-        value = arguments[index + 1]
-        del arguments[index:index + 2]
-        return value
-
-    root = option("--root")
-    if root:
-        ROOT = Path(root).resolve()
-    library = option("--library")
-    nm = option("--nm")
-    design_only = "--design-only" in arguments
+    parsed = parse_arguments(argv[1:])
+    if parsed is None:
+        return 2
+    if "--root" in parsed:
+        ROOT = Path(parsed["--root"]).resolve()
+    library = parsed.get("--library")
+    nm = parsed.get("--nm")
+    design_only = parsed.get("--design-only", False)
 
     rep = Report("C ABI contract (Android)")
     design = read(DESIGN, rep, "the C ABI design")
@@ -401,9 +573,15 @@ def main(argv):
         rep.check(False, "Appendix A", "no '### A.N `NativeToolkitC/X.h`' code blocks")
         return 0 if rep.dump() else 1
     expected = merged({h: declarations(code) for h, code in appendix.items()})
+    if not at(KOTLIN).is_dir():
+        rep.check(False, "the Kotlin sources", f"cannot read {KOTLIN}")
 
     texts = None
-    if not design_only:
+    if design_only:
+        present = [label for label, fragment in HEADERS.items() if at(fragment).exists()]
+        rep.check(not present, "design only: no public header exists yet",
+                  f"{', '.join(present)} exist; drop --design-only so they are checked")
+    else:
         texts = {}
         for label, fragment in HEADERS.items():
             text = read(fragment, rep, f"the public header {label}")
@@ -415,7 +593,8 @@ def main(argv):
     if headers is None:
         rep.skip("signatures: the headers declare what Appendix A does", "--design-only")
     else:
-        common.check_signatures(expected, merged(headers), rep)
+        problems = [p for label, text in texts.items() for p in common.directive_problems(label, text)]
+        common.check_signatures(expected, merged(headers), rep, problems)
     check_operations(design, expected, rep)
     sources = kotlin_sources()
     check_kotlin(design, sources, rep)
@@ -423,7 +602,8 @@ def main(argv):
     values = merged(headers)["value"] if headers is not None else expected["value"]
     check_values(design, values, sources, rep)
     named = headers if headers is not None else {h: declarations(c) for h, c in appendix.items()}
-    common.check_names(named, FEATURE_OF, COMMON_FUNCTIONS, rep)
+    common.check_names(named, FEATURE_OF, COMMON_FUNCTIONS, rep,
+                       "names: every function, type and constant follows the naming rules")
     if texts is not None:
         check_ascii(texts, rep, "the public headers")
     else:
