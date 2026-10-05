@@ -276,7 +276,15 @@ artifact/topics/windows-architecture/
 
 1. パッケージ化しないアプリの通知の活性化を、自動テストにする。`results/probes/activationprobe` を土台に、warm（起動中）とコールドスタートの両方を FlaUI で押す。今は手で押して確かめるしかない
 2. 段階 7（CI）。中身はスパイクから始まる: クリップボードと通知の単体テストが GitHub の Windows のランナー（ウィンドウステーション、Windows App SDK のランタイム、Server SKU）で通るか。CI には、ローカルのスクリプトでは不要な `nuget restore` を足す（`packages.config` を使い、`packages/` は Git の管理外のため）
-3. 公開の入口の名前の見直し（2026-10-05 に記録。android-c-abi の段階 1b の後）。どの OS も機能ごとに公開の入口を 1 つ持ち、C ABI はその入口を呼ぶ（`agent-rules/coding-rules/common.md`「機能の公開の入口」）。iOS・macOS・Android の入口は機能ごとの Manager だが、Windows の公開の C++ の口は `Clipboard::Session`・`Notification::Manager`・`Dialog` の関数で、名前がそろっていない。1.12.0 でリリース済みで、`Session` は閉じる必要のある所有のオブジェクトを表すので、名前をそろえるためだけには変えない。**次に Windows の C++ API と C ABI を大きく変える版を出すときに、名前をそろえるかを決める。** 決めるときの材料: C++ の利用者からの困りごと、`Session` の「閉じる」約束を `Manager` の名前で誤解させないか、C ABI のハンドルの名前（`ntk_clipboard_session` など）も変わること
+3. 公開の入口を Manager にするかの検討（2026-10-05 に記録。android-c-abi の段階 1b の後。**要検討、確定していない**）。どの OS も機能ごとに公開の入口を 1 つ持ち、C ABI はその入口を呼ぶ（`agent-rules/coding-rules/common.md`「機能の公開の入口」）。iOS・macOS・Android の入口は機能ごとの Manager だが、Windows の入口は C++ API の `Clipboard::Session`・`Notification::Manager`・`Dialog` の関数で、形がそろっていない。**今のままにするか、Manager に変えるかを決める。** 案と、決めること:
+   - 案 A: 今のまま（C++ API が入口）。1.12.0 でリリース済みの形を変えない
+   - 案 B: C++ API の上に機能ごとの Manager の包みを足し、入口にする。今の口を消さずに足すので互換性は壊れない。ただし次の 3 つを決める必要がある
+     - 誰が、どのスレッドで閉じるか: `Session` は作ったスレッドで `Close()` の成功が要る（デストラクタは放棄。C++ API の設計 S-4）。プロセスに 1 つの Manager が中で持つなら、閉じる時機とスレッドを決める口が要る
+     - イベントを何人に渡すか: 今の `Session` は作るときに受け手を 1 つだけ受け取る。Manager にするなら複数の受け手へ配る仕組み（Android の `EventHub` に当たるもの）が要る
+     - C ABI がどちらを呼ぶか: C++ API のままなら入口が機能ごとに 2 つになる。Manager を呼ぶなら、ハンドル（`ntk_clipboard_session` など）の意味が「所有するもの」から変わる
+   - 案 C: C++ API の名前ごと変える。互換性が壊れるので、Windows の C++ API と C ABI を大きく変える版でだけ選べる。変えるなら、Clipboard の `Session` を、今の `Notification::Manager` と同じ「利用者が作って閉じる所有の `Manager`」にする形（名前と形をそろえる）が C++ の作法に合う
+   - C++ の作法から見た比べ（2026-10-05）: 今の C++ のライブラリは、資源を持つものを所有するオブジェクト（RAII）に、状態の無い操作を関数にするのが普通で、今の C++ API はこの形。プロセスに 1 つの Manager（シングルトン）は、片付けの時機と順番（DLL の終わりにできることが限られる）、テストでの差し替え、見えない依存、スレッドの約束（作ったスレッドで閉じる）の点で好まれない。所有するオブジェクトの上にシングルトンを被せる案 B は、この作法と逆向きになる。一方、Windows のプラットフォームの API（`AppNotificationManager::Default()`、`ToastNotificationManager`、静的な `Clipboard`）では Manager の名前は見慣れたもので、名前だけなら利用者は戸惑わない
+   - 決めるときの材料: C++ の利用者からの困りごと、`Session` の「閉じる」約束を `Manager` の名前で誤解させないか（所有の `Manager` にするなら誤解は小さい）、ほかの OS とそろえる利点の大きさ
 
 ## 6. 段階ごとに壊れる場所
 

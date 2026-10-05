@@ -75,10 +75,10 @@ Domain → Application → Data
 |---|---|---|
 | iOS / macOS | `Ios*Manager` / `Mac*Manager`（`shared`） | プロセスに 1 つ |
 | Android | `Android*Manager`（`getInstance`） | プロセスに 1 つ |
-| Windows | C++ API（`NativeToolkit::<機能>`）。`windows.md` の「基本構造」のとおり | 所有するオブジェクト（`Session`・`Manager`）か関数。その下に内部の singleton の `Windows*Manager` を置く |
+| Windows | 今は C++ API（`NativeToolkit::<機能>`）。`windows.md` の「基本構造」のとおり。**今のままにするか Manager に変えるかは要検討**（下） | 所有するオブジェクト（`Session`・`Manager`）か関数。その下に内部の singleton の `Windows*Manager` を置く |
 
-- 入口の形は、その OS の資源の寿命に合わせる。Windows の公開面は、閉じる必要のある所有のオブジェクトを表すので、名前を `Manager` にそろえない（`Session` を `Manager` と呼ぶと、閉じなくてよいプロセスに 1 つのものに見える）
-- 1.12.0 でリリース済みの Windows の C++ API と C ABI の名前は、名前をそろえるためだけには変えない。そろえるかの見直しは `artifact/topics/windows-architecture/README.md` の 5.3 の 3 に残してある
+- 入口の形は、その OS の資源の寿命に合わせる
+- Windows の入口は確定していない。今のまま C++ API を入口にするか、Manager に変えるか（C++ API の上に Manager の包みを足す案を含む）を `artifact/topics/windows-architecture/README.md` の 5.3 の 3 で検討する。決まるまでは、新しい Windows のコードも今の `windows.md` の形に従う
 
 判定の自己チェック:
 
