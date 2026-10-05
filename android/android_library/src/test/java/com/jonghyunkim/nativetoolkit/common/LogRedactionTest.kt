@@ -1,6 +1,8 @@
 package com.jonghyunkim.nativetoolkit.common
 
 import com.jonghyunkim.nativetoolkit.common.logging.LogRedaction
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
+import com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationInteraction
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
 import com.jonghyunkim.nativetoolkit.share.domain.model.logSafeDescription
 import org.junit.Assert.assertEquals
@@ -39,5 +41,17 @@ class LogRedactionTest {
         // The public data class keeps its generated toString (K-9); only the log sites change.
         val content = ShareContent(text = "hello")
         assertTrue(content.toString().contains("hello"))
+    }
+
+    @Test
+    fun newTypesToString_hideTheValues() {
+        val texts = listOf(
+            DialogValue.Text(sentinel).toString(),
+            DialogValue.Login("user-$sentinel", "pw-$sentinel").toString(),
+            NotificationInteraction(NotificationInteraction.Kind.ACTION, 7, "t", "a", mapOf("key" to sentinel)).toString()
+        )
+        texts.forEach { assertFalse(it, it.contains(sentinel)) }
+        assertTrue(texts[0].contains("length=${sentinel.length}"))
+        assertTrue(texts[2].contains("key"))
     }
 }

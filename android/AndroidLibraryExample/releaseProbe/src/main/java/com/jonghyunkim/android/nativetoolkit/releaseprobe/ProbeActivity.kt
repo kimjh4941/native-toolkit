@@ -269,6 +269,12 @@ class ProbeActivity : Activity() {
         if (fullScreen.intent.data != null || fullScreen.intent.identifier == null) {
             return fail(case, "full-screen intent: data ${fullScreen.intent.data}, identifier ${fullScreen.intent.identifier}")
         }
+        // Request code 0 for every notification: the identifier keeps the PendingIntents apart (IT-20).
+        val other = NotificationEventIntents.fullScreenLaunch(this, COLD_TAP_ID, null)!!
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        if (PendingIntent.getActivity(this, 0, fullScreen.intent, flags) == PendingIntent.getActivity(this, 0, other.intent, flags)) {
+            return fail(case, "full-screen intents of two notifications share a PendingIntent")
+        }
         getSystemService(NotificationManager::class.java).cancelAll()
         val id = if (launchApp) COLD_LAUNCH_ID else COLD_TAP_ID
         val title = if (launchApp) COLD_LAUNCH_TITLE else COLD_TAP_TITLE
@@ -279,7 +285,7 @@ class ProbeActivity : Activity() {
         manager.show(command).onFailure { return fail(case, "show $id: $it") }
         // The launch check runs only in a process started after this one is killed.
         if (launchApp) prefs.edit().putBoolean(PREF_COLD_LAUNCH, true).putLong(PREF_KILLED_AT, System.currentTimeMillis()).commit()
-        pass(case, "posted; full-screen intent has no data")
+        pass(case, "posted; full-screen intents have no data and do not share a PendingIntent")
     }
 
     // The tap reached the library's receiver in a new process with no listener; the first

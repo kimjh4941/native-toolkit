@@ -212,6 +212,25 @@ class AndroidDialogManagerTest {
     }
 
     @Test
+    fun plainActivity_theFirstEndsRightAfterTheSecondArrives_theSecondStays() {
+        launch(PlainActivity::class.java)
+        val first = Capture()
+        val second = Capture()
+        val firstId = manager.show(DialogRequest.Alert(title = "it04-early", message = "m"), first.callback)
+        waitText("it04-early")
+        manager.show(DialogRequest.Confirm(title = "it04-late", message = "m", positiveText = "Late"), second.callback)
+        waitText("Late")
+        // Both dialogs are on the host; the first ends right after the second arrived.
+        manager.cancel(firstId)
+        assertEquals(DialogResult.Canceled(CancelReason.REQUESTED), first.await())
+        Thread.sleep(1_000)
+        assertNotNull("the second dialog closed with the first", device.findObject(By.text("Late")))
+        device.findObject(By.text("Late")).click()
+        assertEquals(DialogResult.Button(DialogButton.POSITIVE, "Late", DialogValue.None), second.await())
+        waitForegroundIs(PlainActivity::class.java)
+    }
+
+    @Test
     fun plainActivity_twoRequestsShareOneHost_andBothComplete() {
         launch(PlainActivity::class.java)
         val first = Capture()
