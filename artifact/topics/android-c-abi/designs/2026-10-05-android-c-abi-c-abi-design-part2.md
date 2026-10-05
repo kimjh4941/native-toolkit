@@ -787,14 +787,14 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TA-2 | `check_manual_c_examples.py` を TA-1 と同じ形で、共通のモジュールと OS ごとのファイルに分ける（章の見出し、前置き、NDK の clang は OS ごと） | 1.0日 | TA-1 | Windows が今と同じ。Android の例が無いときは SKIP と出す |
 | TB-1 | `android_library_capi` の雛形（第 1 部 5.1、5.4）、6 つの公開ヘッダー（付録 A からまとめて作る。12.3）、初期化（第 1 部 5.3） | 1.5日 | - | 第 1 部 6 章の初期化の経路のテスト。`check_c_abi_contract_android.py` が `--design-only` なしで通る |
 | TB-2 | 共通の部品（文字列、`struct_size`、出力のハンドル、登録の表と帳簿、前面の判定、エラーの写しの土台） | 1.5日 | TB-1 | 第 1 部 6 章の `release` と完了のテスト |
-| TB-3 | Clipboard（OP-01〜OP-12、読み取りの結果と説明） | 1.0日 | TB-2 | 12.1 の Clipboard の行 |
-| TB-4 | Dialog（OP-13〜OP-19、結果） | 1.5日 | TB-2 | 12.1 の Dialog の行と 12.2 |
+| TB-3 | Clipboard（OP-01〜OP-12、読み取りの結果と説明） | 1.0日 | TB-2 | 12.1 の Clipboard の行。第 1 部 6 章の「未初期化の `NOT_INITIALIZED`」（TB-1 から移した。TB-1 には操作が無い） |
+| TB-4 | Dialog（OP-13〜OP-19、結果） | 1.5日 | TB-2 | 12.1 の Dialog の行と 12.2。第 1 部 6 章の「手動の経路の後に Dialog が出る」「Activity を渡して後ろへ回すと `NOT_FOREGROUND`」（TB-1 から移した） |
 | TB-5 | 通知のビルダー（内容とチャンネル）と名前の解決 | 1.5日 | TB-2 | 12.1 のビルダーの行 |
 | TB-6 | 通知の操作（OP-20〜OP-39）と Progress の補正 | 1.5日 | TB-5 | 12.1 の写しの表・前面・Progress の行 |
 | TB-7 | 通知のイベント（OP-40〜OP-42） | 1.0日 | TB-6 | 12.1 のイベントの行と 12.2 |
 | TB-8 | Share（OP-43〜OP-54） | 1.5日 | TB-2 | 12.1 の Share の行と 12.2 |
 | TB-9 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-8 | すべての公開の関数 |
-| TB-10 | ビルドスクリプト（capi の AAR、`m2/`）と smoke | 1.5日 | TB-3〜TB-9 | 12.4 と 15.2 の配布物の項目。各 ABI の `libntk.so` で `check_c_abi_contract_android.py --library` が通る |
+| TB-10 | ビルドスクリプト（capi の AAR、`m2/`）と smoke | 1.5日 | TB-3〜TB-9 | 12.4 と 15.2 の配布物の項目。各 ABI の `libntk.so` で `check_c_abi_contract_android.py --library` が通る。第 1 部 6 章の R8 の 2 項目（名前が変わった版で C と Kotlin がどちらも `CLASS_NOT_FOUND`、keep の規則を外した版で表づくりが失敗してもアプリが落ちない）を、smoke に keep の規則を外した版（`optimization.keepRules.ignoreFrom` で AAR の座標を外す）を足して確かめる（TB-1 から移した。プロジェクトの依存には `ignoreFrom` が効かない） |
 | TB-11 | `test_android.sh` に C ABI のテスト・smoke・経路ごとのプロセスと、`--library` を付けた契約の照合をつなぐ（第 1 部 C-5） | 0.5日 | TB-10 | 全件が両方の環境で通る |
 | TB-12 | 7 章の文書の直し | 0.5日 | - | 7 章の表のすべての行 |
 | TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-11 | 8.3 と 16 章を渡した |

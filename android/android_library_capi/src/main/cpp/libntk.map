@@ -1,0 +1,9 @@
+/* Only the C ABI and JNI_OnLoad leave libntk.so (C ABI design part 1, AC-12). Internal names must
+   not start with ntk_, or they would match here. */
+{
+  global:
+    ntk_*;
+    JNI_OnLoad;
+  local:
+    *;
+};

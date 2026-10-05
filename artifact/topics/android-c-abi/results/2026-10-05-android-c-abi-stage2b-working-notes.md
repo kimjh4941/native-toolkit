@@ -1,0 +1,53 @@
+# 段階 2b の作業メモ（2b の実装結果の文書の材料）
+
+実装の途中で、決めたこと・設計から外れたこと・確かめたことを、起きたときに書きためる。2b の実装結果の文書にまとめる。
+
+## TB-1（2026-10-05）
+
+### 作ったもの
+
+- `android/android_library_capi`（Gradle のプロジェクト `:ntk`）: `build.gradle.kts`、`consumer-rules.pro`、manifest（`NtkInitializer`）、`libntk.map`、`CMakeLists.txt`
+- 6 つの公開ヘッダー（付録 A から作った。`check_c_abi_contract_android.py` は `--design-only` なしで通る）
+- `src/Common/`: `Log.h`、`Export.h`、`Jni`（JavaVM、`JNIEnv` の取得と attach・スレッドの終わりでの detach、例外の分類とログ、`LocalFrame`）、`Runtime`（C の状態、2 つの印、表づくりの try-lock、`JNI_OnLoad`、`ntk_android_init`、`ntk_android_is_initialized`、`onKotlinReady`・`nativeState` の native）、`Handles`（`Common.h` の 11 関数と、TB-2 以降が使う作る関数）
+- Kotlin: `capi/jni/NtkRuntime`（`internal object`。C から名前で引く）、`capi/NativeToolkitCApi`（`init`、`isAvailable`、`isInitialized`、`InitResult`）、`capi/NtkInitializer`
+- `android/android_library_capi_test`（`:android_library_capi_test`）: GoogleTest v1.18.0（`FetchContent`）、`libntk_test.so`（JNI の手助け、GoogleTest をケースごとに走らせる口、自分の `JNI_OnLoad`）、`libntk_second.so`（`JNI_OnLoad` を持たない）。flavor 3 つ（`startup`、`noStartup`、`noNtkInitializer`）。Orchestrator でテストごとに別のプロセス
+- `gradle/libs.versions.toml`: `androidx.test` の runner 1.7.0、orchestrator 1.6.1、test-services 1.6.0
+
+### 実装の判断（設計に書いていないこと、設計と違うこと）
+
+| 判断 | 理由 |
+|---|---|
+| `NativeToolkitCApi.init` で Kotlin の `IN_PROGRESS` を `InitResult.IN_PROGRESS` に、`ERROR` を `RETRYABLE_ERROR` にした | 第 1 部 5.3 の表は 2 か所で書き方が違う（状態の表は「`IN_PROGRESS`、`ERROR` なら `RETRYABLE_ERROR`」、`InitResult` の表は `IN_PROGRESS` を「ほかのスレッドが準備している」とする）。意味の合う後者に合わせた。どちらもやり直せる |
+| Kotlin の「クラスがあるか」の確かめで、`NtkRuntime` のメンバー（`ensureInitialized`、`onKotlinReady`、`nativeState`）も名前で引く | 既定の `proguard-android-optimize.txt` は native メソッドを持つクラスの名前を残す。keep の規則が無いと、クラスの名前は残り `ensureInitialized` だけが消えるか名前が変わる。C は `NoSuchMethodError` で `CLASS_NOT_FOUND` になるのに、クラスだけを見る Kotlin は見つけてしまい、第 1 部 6 章の「C と Kotlin が同じ失敗に同じ値」が崩れる |
+| `JNI_OnLoad` を失敗させる仕掛けを、debug ビルドだけに置いた（環境変数 `NTK_TEST_FAIL_JNI_ONLOAD`。`#ifndef NDEBUG`） | 第 1 部 6 章の「`JNI_OnLoad` が失敗した後」の経路は、クラスがあるプロセスでは起こせない。release の `libntk.so` に文字列が無いことを確かめた（debug には 2 つ、release には 0） |
+| 表づくりの try-lock は `std::atomic<bool>` の CAS にした | try だけで取り、待たない（AC-16）。静的なデストラクタも持たない（5.5） |
+| `ntk_android_init` で表づくりに負けた側は、表を使わずに `NtkRuntime.ensureInitialized` を呼ぶ（`EnsureInitializedWithoutTable`） | 第 1 部 5.3 の「負けた側も前面の初期値を積む」。`LibraryRuntime.ensureInitialized` が Activity を積む。結果は勝った側が知らせる |
+| `libntk_test.so` に自分の `JNI_OnLoad` を置いた | 無いと ART が依存先の `libntk.so` の `JNI_OnLoad` を呼ぶ（1a 3.2）。置くことで、`libntk.so` がリンカーだけで開かれた状態（`dlopen` と同じ）を作れる。2 回目の `JNI_OnLoad` は `libntk_second.so` で起こす |
+| 待たせる・壊すための Context（`LatchedContext`、`BrokenContext`）でテストした | `LibraryRuntime` は途中で `getApplicationContext()` を呼ぶので、そこで止めると Kotlin の側を「途中」に、Application でない Context を返すと「失敗」にできる。ライブラリにテストのための口を足さずに済む |
+
+### 後のタスクへ移した第 1 部 6 章の項目
+
+| 項目 | 移した先 | 理由 |
+|---|---|---|
+| R8 で名前が変わった版で、C と Kotlin がどちらも `CLASS_NOT_FOUND`。keep の規則を外した版で、表づくりが失敗し、アプリが落ちず、`System.loadLibrary` が投げず、`is_initialized` が 0、`ntk_android_init` が `CLASS_NOT_FOUND` | TB-10（smoke） | AGP の `optimization.keepRules.ignoreFrom` はプロジェクトの依存（`:ntk`）には効かなかった（`:ntk`、`native-toolkit-android:ntk`、`ntk` のどれでも R8 の設定に規則が残った）。外部の依存（`m2/` の Maven の座標）なら効くはずなので、`m2/` から組む smoke で確かめる |
+| 未初期化のとき、操作が `NOT_INITIALIZED` を返す | TB-3 | TB-1 には操作が無い。`ntk_android_is_initialized` が 0 であることは確かめた |
+| 手動の経路の後に Dialog が出る。Activity を渡して後ろへ回すと `NOT_FOREGROUND` | TB-4 | Dialog が要る |
+
+### 確かめたこと
+
+- `:ntk:assembleRelease` が警告なしで通る。AAR: 公開シンボルは `JNI_OnLoad` と、今ある 13 関数（`Common.h` 11、`Android.h` 2）だけ（arm64-v8a・x86_64）。LOAD の整列は `0x4000`。`DT_NEEDED` は `liblog`、`libnativehelper`、`libm`、`libdl`、`libc`。Prefab の `abi.json` は `"stl": "none"`
+- `check_c_abi_contract_android.py`（`--design-only` なし）: symbols の SKIP のほかは OK
+- 初期化のテスト 19 件（startup 8、noStartup 9、noNtkInitializer 2）が Pixel 6a（API 36）とエミュレータ（API 35）で通る。startup の 2 回目の `JNI_OnLoad` のテストは始めの回数が 1 であることを確かめるので、Orchestrator がテストごとにプロセスを分けていることも確かめられた
+
+### 変異（Pixel 6a、noStartup）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| M1: Kotlin の側が途中のとき「済んだら知らせる」を登録しない | `ntkInitializerReachesReadyWhenLibraryInitializerIsStillInProgress` |
+| M2: Kotlin の側が途中なのに C が `NONE` を返す | `theStateIsNotReadyWhileTheKotlinSideIsInProgress` |
+| M3: native が無いのを Kotlin が `IN_PROGRESS` と読む | `afterAFailedJniOnLoadKotlinNeedsTheCInit` |
+| M4: Kotlin の側の失敗を C が `IN_PROGRESS` と返す | `aFailedKotlinSideCanBeRetried` |
+| M5: `JNI_OnLoad` が失敗で `JNI_ERR` を返す | `afterAFailedJniOnLoadKotlinNeedsTheCInit`（`UNAVAILABLE`） |
+
+- **記録**: 1 回目の M4（`return NTK_ANDROID_ERROR_IN_PROGRESS;`）は、`kKotlinInProgress` が使われなくなり `-Werror` でコンパイルに失敗した。APK は入れ替わらず、前の回（M3）の結果の XML を読んで「落ちた」と数えていた。変異の回し方を、流す前に結果の XML を消し、組み立ての失敗を「流れていない」と出す形に直し、M4 を通る形（三項演算子の両方を `IN_PROGRESS`）で流し直した
+- 落ちなかった変異は無い。`MarkNativeDone` の中の「Kotlin の印が先に立っていたら `READY` にする」は、`RegisterNatives` と `MarkNativeDone` の間に `onKotlinReady` が来る競合でしか通らず、決まった順で起こすテストは無い（第 1 部 6 章の「競合を決まった順で再現する」は TB-9）

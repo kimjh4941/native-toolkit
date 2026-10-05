@@ -17,6 +17,9 @@ orgJson = "20251224"
 startup = "1.2.0"
 # Already on the runtime classpath through androidx.lifecycle; stated for the suspend APIs.
 kotlinxCoroutines = "1.9.0"
+testRunner = "1.7.0"
+testOrchestrator = "1.6.1"
+testServices = "1.6.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -41,6 +44,9 @@ androidx-media = { group = "androidx.media", name = "media", version.ref = "andr
 orgjson = { group = "org.json", name = "json", version.ref = "orgJson" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 androidx-startup-runtime = { group = "androidx.startup", name = "startup-runtime", version.ref = "startup" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
+androidx-test-orchestrator = { group = "androidx.test", name = "orchestrator", version.ref = "testOrchestrator" }
+androidx-test-services = { group = "androidx.test.services", name = "test-services", version.ref = "testServices" }
 # AGP 9 runs the built-in Kotlin with this KGP when it is on the buildscript classpath.
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 
