@@ -14,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jonghyunkim.nativetoolkit.common.event.EventHub
+import com.jonghyunkim.nativetoolkit.common.runtime.ProcessNonce
 import com.jonghyunkim.nativetoolkit.share.data.repository.ShareCallbackCoordinator
 import com.jonghyunkim.nativetoolkit.share.data.repository.ShareRepositoryImpl
 import com.jonghyunkim.nativetoolkit.share.data.repository.ShareResultIntents
@@ -22,6 +23,7 @@ import com.jonghyunkim.nativetoolkit.share.domain.model.ShareChooserAction
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
 import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import com.jonghyunkim.nativetoolkit.share.domain.model.ShareSelection
+import com.jonghyunkim.nativetoolkit.share.presentation.ShareChooserActionReceiver
 import com.jonghyunkim.nativetoolkit.share.presentation.ShareEvents
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -38,7 +40,9 @@ import java.util.concurrent.TimeUnit
 
 // IT-15 and IT-16 of the Kotlin API design (8.9): the share wait and typed chooser actions, plus
 // the share part of IT-20 (the receiver's IntentFilter). The Sharesheet is not shown: a recording
-// Context keeps the chooser Intent, and the test sends what the system would send.
+// Context keeps the chooser Intent, and the test sends what the system would send. The chooser
+// action tests also stand for the bridge's chooser action tests (T-22; the mapping is in the
+// stage 1b implementation result).
 @RunWith(AndroidJUnit4::class)
 class ShareSelectionTest {
 
@@ -263,8 +267,71 @@ class ShareSelectionTest {
         repository.shareTextWithActions(content, listOf(ShareChooserAction("save", "Save", png()), ShareChooserAction("open", "Open", png())), SharePreviewOptions())
         val shown = lastChooserActions()
         assertEquals(listOf("Save", "Open"), shown.map { it.label.toString() })
+        // Every action has its own PendingIntent, although they share request code 0.
         shown[1].action.send()
         assertEquals("open", actions.poll(5, TimeUnit.SECONDS))
+        shown[0].action.send()
+        assertEquals("save", actions.poll(5, TimeUnit.SECONDS))
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 34)
+    fun anIdThatLooksLikeTheSendAction_isAnOrdinaryId() {
+        // The bridge dropped this id, because the id was the Intent action; here it is in the data URI.
+        repository.shareTextWithActions(content, listOf(ShareChooserAction(Intent.ACTION_SEND, "Send", png())), SharePreviewOptions())
+        lastChooserActions().single().action.send()
+        assertEquals(Intent.ACTION_SEND, actions.poll(5, TimeUnit.SECONDS))
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 34)
+    fun aLaunchFailure_throws_andTheActionsOfTheEarlierShareStopWorking() {
+        repository.shareTextWithActions(content, listOf(ShareChooserAction("keep", "Keep", png())), SharePreviewOptions())
+        val keep = lastChooserActions().single()
+        val failing = object : ContextWrapper(context) {
+            override fun getApplicationContext(): Context = context.applicationContext
+            override fun startActivity(intent: Intent) = throw android.content.ActivityNotFoundException()
+        }
+        val error = runCatching {
+            ShareRepositoryImpl(failing).shareTextWithActions(content, listOf(ShareChooserAction("new", "New", png())), SharePreviewOptions())
+        }.exceptionOrNull()
+        assertEquals(ShareDomainError.NoShareTarget, error)
+        // The generation changes before the launch, as the bridge removed its receiver first.
+        keep.action.send()
+        waitMain()
+        assertNull(actions.poll())
+    }
+
+    @Test
+    fun malformedActionIntents_andActionsOfAnEarlierProcess_areDropped() {
+        val generation = ShareChooserActionReceiver.nextGeneration(context)
+        val base = "${ShareChooserActionReceiver.SCHEME_ACTION}://${context.packageName}"
+        fun broadcast(uri: String) = context.sendBroadcast(
+            Intent(ShareChooserActionReceiver.ACTION_CHOOSER_ACTION, android.net.Uri.parse(uri)).setPackage(context.packageName)
+        )
+        broadcast("$base/${ProcessNonce.value}/$generation")
+        broadcast("$base/${ProcessNonce.value}/x/id")
+        broadcast("$base/x/$generation/id")
+        broadcast("$base/${ProcessNonce.value + 1}/$generation/id")
+        waitMain()
+        assertNull(actions.poll())
+        context.sendBroadcast(ShareChooserActionReceiver.intent(context, generation, "x"))
+        assertEquals("x", actions.poll(5, TimeUnit.SECONDS))
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 34)
+    fun anActionWithoutAListener_isNotKeptForALaterListener() {
+        repository.shareTextWithActions(content, listOf(ShareChooserAction("late", "Late", png())), SharePreviewOptions())
+        val late = lastChooserActions().single()
+        instrumentation.runOnMainSync { registrations.forEach { it.remove() } }
+        late.action.send()
+        waitMain()
+        instrumentation.runOnMainSync {
+            registrations += ShareEvents.chooserActions.addListener { id, _ -> actions.add(id) }
+        }
+        waitMain()
+        assertNull(actions.poll())
     }
 
     @Test

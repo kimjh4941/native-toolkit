@@ -5,8 +5,8 @@
 ## 次の作業（2026-10-04 の終わり）
 
 - 済み: T-01〜T-20、T-24（最後のコミットは `65dd0fa3`）
-- T-21 は 2026-10-05 に実装した（下の「T-21」）。利用者の決定は設計書 0.8
-- 次は T-22（ブリッジのテストの書き直し）、T-23（両方の環境での全体の実行、CU-03、実装結果の文書、UI テストの設計書への追記）
+- T-21・T-22 は 2026-10-05 に実装した（下の「T-21」「T-22」）。T-21 の利用者の決定は設計書 0.8
+- 次は T-23（両方の環境での全体の実行、CU-03、実装結果の文書、UI テストの設計書への追記）
 
 ## 書きためたメモ
 
@@ -89,3 +89,28 @@
 - Mutation survived, with the reason: removing the library's consumer rule (`-keep LibraryInitializer { <init>(); }`) does not break IT-22, because androidx.startup 1.1.1's own consumer rule keeps `* extends androidx.startup.Initializer { <init>(); }`. The library's rule is a duplicate; kept as design 8.12 asks (harmless, and safe if startup's rule changes)
 - IT-26 deviations (design 0.8): the later version adds no JSON field (IT-25 covers it); one Bitmap (`largeIconBitmap`) only
 - To T-23: document the new filters `Library` and `Probe` and steps 5b/6b in the UI test design (the script's "README" sections)
+
+## T-22 bridge tests → android_library tests (2026-10-05)
+Mapping made by a subagent from the test bodies and the bridge code; spot-checked against design 8.9 and the code. 85 bridge tests (Example tests excluded): B (stays in the bridge, not rewritten) 63, M (moved logic) 13, D (moved, contract differs by design) 9.
+- B: all of UnityClipboardJsonParserTest (12), UnityNotificationJsonParserTest (4), UnityShareJsonParserTest (21), UnityAndroidNotificationManagerTest (5: JSON checks, message texts, Progress FGS value checks), UnityAndroidShareManagerTest 10 (JSON checks, message texts, the bridge's pendingCallbackContext field, listener-less calls), UnityAndroidClipboardManagerTest 4 + the JSON/message part of 2 (design 2.2 out: JSON parsing, op names, message texts, value corrections; 7 C4: false for hasClip is the C ABI side)
+- M/D with library tests:
+  - Clipboard error classification (read/getDescription unavailable → CLIPBOARD_UNAVAILABLE): ClipboardErrorCodeTest (4; all 7 codes), ManagersTest#clipboard_operationsDelegate_withTheSameResultsAndExceptions
+  - normalizeActionIds blank/duplicate (D, 8.9: throws InvalidChooserAction instead of dropping, and keeps the earlier actions): ShareSelectionUseCasesTest#shareTextWithActions_emptyOrDuplicateId_throwsInvalidChooserAction_withoutOpening, ShareSelectionTest#aRejectedShare_keepsThePreviousActionsWorking, ManagersTest#share_validationExceptionsAreTheUseCases
+  - normalizeActionIds SEND excluded (D, 8.9: the id is in the data URI, not the Intent action): ShareSelectionTest#anIdThatLooksLikeTheSendAction_isAnOrdinaryId (new)
+  - empty list allowed: ShareSelectionUseCasesTest#shareTextWithActions_delegates_emptyActionsAllowed
+  - receiver forwards / dispatch to listener / manager end to end: ShareSelectionTest#aTypedActionArrivesWithItsId, ManagersTest#share_operationsDelegate_andShareTextIsTheUseCaseWithEmptyActions
+  - receiver null action (D: data URI): ShareSelectionTest#malformedActionIntents_andActionsOfAnEarlierProcess_areDropped (new); null Intent: not expressible (non-null parameter)
+  - listener throws (D, 6.2: the library catches): EventHubTest#throwingListener_doesNotStopTheOthers
+  - listener not set → dropped: EventHubTest#nonRetainingHub_dropsEventsWithoutListeners, ShareSelectionTest#anActionWithoutAListener_isNotKeptForALaterListener (new)
+  - multiple actions each delivered: ShareSelectionTest#aTypedActionArrivesWithItsId (now sends both)
+  - consecutive / empty share replaces the registration: ShareSelectionTest#actionsOfAnEarlierShare_doNotArrive_evenAfterAShareWithoutActions
+  - launch failure unregisters: ShareSelectionTest#aLaunchFailure_throws_andTheActionsOfTheEarlierShareStopWorking (new)
+  - unregister by token / stale token / clear listener (D, 8.9: no per-share removal; generations drop old actions): EventHubTest#removedListenerIsNotCalledEvenWithinTheSameEmit, #removeTwice_doesNothing, ShareSelectionTest#aRejectedShare_keepsThePreviousActionsWorking
+  - API 33 and lower register nothing (register_validActionIds lower branch): not run — the test devices are API 35/36 (3.4); the code adds the extra only for API 34+ and actions.isNotEmpty()
+- Resource resolution: the bridge has no test (private ContextResourceResolver); NotificationResourceResolverTest (4). Not tested: finding a drawable/mipmap when no type is given (only the negative form)
+- Tests: ShareSelectionTest 13 → 17 on both envs
+- Mutations (Pixel), each killed by its own new test only: no nonce check (malformed…), the generation rolled back on a launch failure (aLaunchFailure…), every PendingIntent with the last id (aTypedAction…), chooserActions kept until the first listener (anActionWithoutAListener…), the receiver drops the SEND id (anIdThatLooksLike…)
+- Findings to record in the 1b result (not 1b defects; the code follows the design text):
+  - Only shareTextWithActions starts a new generation; plain shareText (ShareTextUseCase) keeps the earlier typed actions alive. The bridge re-registered on every shareText. For stage 2, the C ABI should map a share without actions to shareTextWithActions(content, emptyList()) to keep the bridge's behaviour. Not written in design 6.3/8.9
+  - The id check is isEmpty (design 8.9 "空"); a whitespace-only id is accepted. The bridge dropped blank ids (isNotBlank)
+  - ClipboardErrorCode.of(Throwable) maps an Error to UNKNOWN; the bridge classified only Exception
