@@ -125,6 +125,84 @@ void UiBack() {
     env->CallStaticVoidMethod(driver, env->GetStaticMethodID(driver, "back", "()V"));
 }
 
+namespace {
+
+jclass InspectorClass(JNIEnv* env) {
+    static jclass inspector = nullptr;
+    if (inspector == nullptr) {
+        jclass local = env->FindClass("com/jonghyunkim/nativetoolkit/capitest/NotificationInspector");
+        inspector = static_cast<jclass>(env->NewGlobalRef(local));
+        env->DeleteLocalRef(local);
+    }
+    return inspector;
+}
+
+jstring Java(JNIEnv* env, const char* text) { return text == nullptr ? nullptr : env->NewStringUTF(text); }
+
+std::string Native(JNIEnv* env, jstring value) {
+    if (value == nullptr) return "<null>";
+    const char* chars = env->GetStringUTFChars(value, nullptr);
+    std::string result = chars;
+    env->ReleaseStringUTFChars(value, chars);
+    env->DeleteLocalRef(value);
+    return result;
+}
+
+}  // namespace
+
+void GrantNotifications() {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    env->CallStaticVoidMethod(inspector, env->GetStaticMethodID(inspector, "grantNotifications", "()V"));
+}
+
+void AllowExactAlarms() {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    env->CallStaticVoidMethod(inspector, env->GetStaticMethodID(inspector, "allowExactAlarms", "()V"));
+}
+
+bool WaitShown(int32_t id, const char* tag, int64_t ms) {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    jmethodID method = env->GetStaticMethodID(inspector, "waitShown", "(ILjava/lang/String;J)Z");
+    return env->CallStaticBooleanMethod(inspector, method, id, Java(env, tag), static_cast<jlong>(ms)) == JNI_TRUE;
+}
+
+bool WaitGone(int32_t id, const char* tag, int64_t ms) {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    jmethodID method = env->GetStaticMethodID(inspector, "waitGone", "(ILjava/lang/String;J)Z");
+    return env->CallStaticBooleanMethod(inspector, method, id, Java(env, tag), static_cast<jlong>(ms)) == JNI_TRUE;
+}
+
+std::string NotificationField(int32_t id, const char* tag, const char* name) {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    jmethodID method =
+        env->GetStaticMethodID(inspector, "field", "(ILjava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+    return Native(env, static_cast<jstring>(env->CallStaticObjectMethod(inspector, method, id, Java(env, tag),
+                                                                        Java(env, name))));
+}
+
+std::string ChannelField(const char* channel_id, const char* name) {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    jmethodID method =
+        env->GetStaticMethodID(inspector, "channelField", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+    return Native(env, static_cast<jstring>(env->CallStaticObjectMethod(inspector, method, Java(env, channel_id),
+                                                                        Java(env, name))));
+}
+
+std::string ResourceId(const char* name, const char* type) {
+    JNIEnv* env = Env();
+    jclass inspector = InspectorClass(env);
+    jmethodID method =
+        env->GetStaticMethodID(inspector, "resourceId", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+    return Native(env, static_cast<jstring>(env->CallStaticObjectMethod(inspector, method, Java(env, name),
+                                                                        Java(env, type))));
+}
+
 void SetClipboardText(const std::u16string& text) {
     JNIEnv* env = Env();
     jclass control = env->FindClass("com/jonghyunkim/nativetoolkit/capitest/ClipboardControl");

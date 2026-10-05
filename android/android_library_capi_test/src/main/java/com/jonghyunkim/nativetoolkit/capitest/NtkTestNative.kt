@@ -52,6 +52,22 @@ object NtkTestNative {
     @JvmStatic
     external fun buildersUninitialized(): IntArray
 
+    /** Notifications without the permission; see ntk_test_jni.cpp for the layout. */
+    @JvmStatic
+    external fun notificationsWithoutPermission(): IntArray
+
+    /** `ntk_notification_request_permission`: the request id, or minus the entry's error. */
+    @JvmStatic
+    external fun requestPermission(): Long
+
+    /** `ntk_notification_cancel_permission_request`. */
+    @JvmStatic
+    external fun cancelPermission(id: Long)
+
+    /** The [error, result] of the [count]th permission completion, or [-1, -1]. */
+    @JvmStatic
+    external fun awaitPermission(count: Int): IntArray
+
     /** Runs one GoogleTest case; true when it ran and passed. */
     @JvmStatic
     external fun runCase(name: String): Boolean

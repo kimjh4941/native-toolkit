@@ -6,6 +6,7 @@ add_library(ntk SHARED
     src/Clipboard/Clipboard.cpp
     src/Dialog/Dialog.cpp
     src/Notification/Builders.cpp
+    src/Notification/Notification.cpp
     src/Common/Classes.cpp
     src/Common/Handles.cpp
     src/Common/Jni.cpp

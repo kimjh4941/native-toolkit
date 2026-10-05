@@ -160,6 +160,14 @@ TEST_F(Clipboard, TextRoundTripsWithItsLabel) {
     ASSERT_NE(nullptr, description.description);
     EXPECT_EQ("my label", Str(ntk_clipboard_description_label(description.description, &size), size));
     EXPECT_GE(ntk_clipboard_description_mime_type_count(description.description), 1u);
+    bool described_plain = false;
+    for (size_t i = 0; i < ntk_clipboard_description_mime_type_count(description.description); ++i) {
+        described_plain = described_plain ||
+                          Str(ntk_clipboard_description_mime_type_at(description.description, i, &size), size) ==
+                              "text/plain";
+    }
+    EXPECT_TRUE(described_plain);
+    EXPECT_EQ(nullptr, ntk_clipboard_description_mime_type_at(description.description, 99, nullptr));
     EXPECT_EQ(0, ntk_clipboard_description_is_styled_text(description.description));
 }
 

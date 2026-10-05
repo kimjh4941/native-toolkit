@@ -67,6 +67,20 @@ object UiDriver {
         return true
     }
 
+    /** Clicks the view with resource id [id] (for the system's permission dialog, whatever its language). */
+    @JvmStatic
+    fun clickRes(id: String): Boolean {
+        val target = device.wait(Until.findObject(By.res(id)), TIMEOUT_MS) ?: return false
+        target.click()
+        return true
+    }
+
+    @JvmStatic
+    fun waitRes(id: String): Boolean = device.wait(Until.hasObject(By.res(id)), TIMEOUT_MS) == true
+
+    @JvmStatic
+    fun waitGoneRes(id: String): Boolean = device.wait(Until.gone(By.res(id)), TIMEOUT_MS) == true
+
     /** Types into the [index]th text field of the screen. */
     @JvmStatic
     fun type(index: Int, text: String): Boolean {

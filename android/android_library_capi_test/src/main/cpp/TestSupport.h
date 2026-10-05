@@ -39,6 +39,16 @@ bool UiFinishForeground();
 // How many Activities the app has created since the first call (the first call starts counting).
 int32_t ActivitiesCreated();
 
+// Notifications, through NotificationInspector (androidTest). Fields are strings; "<null>" when the
+// notification or the field is not there.
+void GrantNotifications();
+void AllowExactAlarms();
+bool WaitShown(int32_t id, const char* tag, int64_t ms = 5000);
+bool WaitGone(int32_t id, const char* tag, int64_t ms = 5000);
+std::string NotificationField(int32_t id, const char* tag, const char* name);
+std::string ChannelField(const char* channel_id, const char* name);
+std::string ResourceId(const char* name, const char* type);
+
 // Puts a plain-text clip from Kotlin, given as UTF-16 code units (so it may hold what C cannot).
 void SetClipboardText(const std::u16string& text);
 

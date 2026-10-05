@@ -3,6 +3,7 @@
 #include <android/log.h>
 #include <gtest/gtest.h>
 #include <jni.h>
+#include <ctime>
 #include <unistd.h>
 
 #include <string>
@@ -196,5 +197,83 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_buildersUninitialized(
     ntk_notification_content_free(content);
     jintArray result = env->NewIntArray(4);
     env->SetIntArrayRegion(result, 0, 4, values);
+    return result;
+}
+
+// Notifications without the permission (noStartup, a fresh install that never grants it; part 2,
+// AP-16): [has_permission, are_enabled, show, a past schedule, a future inexact schedule,
+// can_schedule_exact_alarms, a future exact schedule].
+extern "C" JNIEXPORT jintArray JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_notificationsWithoutPermission(JNIEnv* env, jclass) {
+    timespec now{};
+    clock_gettime(CLOCK_REALTIME, &now);
+    int64_t now_ms = static_cast<int64_t>(now.tv_sec) * 1000 + now.tv_nsec / 1000000;
+    ntk_notification_content* content = nullptr;
+    ntk_notification_content_create(301, "Denied", "m", &content);
+    int32_t has = -1;
+    int32_t enabled = -1;
+    int32_t exact = -1;
+    ntk_notification_has_permission(&has);
+    ntk_notification_are_enabled(&enabled);
+    int32_t show = ntk_notification_show(content);
+    ntk_notification_schedule_options schedule{};
+    schedule.struct_size = sizeof(schedule);
+    schedule.trigger_at_millis = now_ms - 1000;
+    int32_t past = ntk_notification_schedule(content, &schedule);
+    schedule.trigger_at_millis = now_ms + 600000;
+    schedule.inexact = 1;
+    int32_t future_inexact = ntk_notification_schedule(content, &schedule);
+    ntk_notification_can_schedule_exact_alarms(&exact);
+    schedule.inexact = 0;
+    int32_t future_exact = ntk_notification_schedule(content, &schedule);
+    ntk_notification_cancel_all_scheduled();
+    ntk_notification_content_free(content);
+    jint values[] = {has, enabled, show, past, future_inexact, exact, future_exact};
+    jintArray result = env->NewIntArray(7);
+    env->SetIntArrayRegion(result, 0, 7, values);
+    return result;
+}
+
+// The permission request for the Kotlin test that presses the system dialog (noNtkInitializer).
+namespace {
+ntktest::Recorder* PermissionRecorder() {
+    static auto* recorder = new ntktest::Recorder;
+    return recorder;
+}
+void OnPermissionResult(void* user_data, uint64_t, ntk_notification_error error, uint32_t,
+                        ntk_notification_permission_result result) {
+    static_cast<ntktest::Recorder*>(user_data)->Add({"done", error, result});
+}
+}  // namespace
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_requestPermission(JNIEnv*, jclass) {
+    uint64_t id = 0;
+    int32_t error = ntk_notification_request_permission(OnPermissionResult, PermissionRecorder(),
+                                                        ntktest::Recorder::Release, &id);
+    return error == 0 ? static_cast<jlong>(id) : -error;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_cancelPermission(JNIEnv*, jclass, jlong id) {
+    ntk_notification_cancel_permission_request(static_cast<uint64_t>(id));
+}
+
+// The [error, result] of the count-th completion, once its release has also run; [-1, -1] on a timeout.
+extern "C" JNIEXPORT jintArray JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_awaitPermission(JNIEnv* env, jclass, jint count) {
+    ntktest::Recorder* recorder = PermissionRecorder();
+    jint values[] = {-1, -1};
+    if (recorder->WaitFor("release", static_cast<size_t>(count), std::chrono::seconds(10))) {
+        int seen = 0;
+        for (const auto& record : recorder->Records()) {
+            if (record.what == "done" && ++seen == count) {
+                values[0] = record.error;
+                values[1] = static_cast<jint>(record.value);
+            }
+        }
+    }
+    jintArray result = env->NewIntArray(2);
+    env->SetIntArrayRegion(result, 0, 2, values);
     return result;
 }

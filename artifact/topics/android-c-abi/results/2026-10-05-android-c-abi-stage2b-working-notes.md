@@ -215,3 +215,71 @@
 | B7: semantic action の上限を 13 まで許す | `NotificationBuilder.AnActionFollowsTheStructSizeRules` |
 
 - 確かめていないこと: チャンネルのビルダーを深く写すこと（ビルダーを解放した後も内容が持つこと）は、解放しても落ちないことまで。写した値が通知に表れることは TB-6 で確かめる
+
+## TB-6（2026-10-05）
+
+### 作ったもの
+
+- C: `src/Notification/Encoder.h`（ビルダーの中身を little-endian のバイト列にする。設定しなかった項目は「無し」の印で、Kotlin の既定値になる）と `Notification.{h,cpp}`（OP-20〜OP-39 の 20 関数。表示、更新、削除、チャンネル、予約、Progress、問い合わせ、設定を開く、権限の要求とその取り消し）
+- Kotlin: `capi/jni/NotificationBridge.kt`（バイト列を読み、名前を引いて `AndroidNotificationCommand` を作る。イベントの Intent を付ける。Kotlin の例外を C のエラーの値にする）
+- テスト:
+  - GoogleTest `Notification` 18 件、`Clipboard` の 1 件に `ntk_clipboard_description_mime_type_at` を足した
+  - noStartup に「権限の無い状態」1 件、noNtkInitializer に「権限のダイアログを押す」1 件（UiAutomator。前面でないときの要求、取り消し、共有、拒否、許可、許可済み）
+  - JVM の `NotificationBridgeTest` 3 件（例外とエラーの値の写し）
+  - 試験用のリソース（`ntk_test_icon`、`ntk_test_custom` の layout）と、表示中の通知とチャンネルを読む `NotificationInspector`
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| ビルダーの中身は、C でバイト列にして 1 回の JNI 呼び出しで渡し、Kotlin で読む | 多くの項目を JNI で 1 つずつ渡すと、呼び出しの数と JNI の署名の誤りが増える |
+| 名前（アイコン、絵、layout、view の ID）は表示の時点で Kotlin が引く。引けなければ `RESOURCE_NOT_FOUND` | 第 2 部 6.3 |
+| Kotlin の例外の写し: リソースが無い → 12、`IOException` → 13、`ForegroundServiceStartNotAllowedException` → `SERVICE_START_NOT_ALLOWED`（14）、ほかは共通の写し（`Errors.common`） | 11 章の表 |
+| AP-16 の事前の確かめ: `show` と `update` は「権限があり、通知が有効」のときだけ。`schedule` は、過ぎた時刻なら権限、未来の正確な予約なら正確なアラームの許可を求め、未来の不正確な予約はどちらも求めない | 過ぎた時刻はすぐ表示されるので権限が要る。未来の正確な予約は Kotlin が黙って不正確にしない |
+| 予約の構造体: `trigger_at_millis` は 1 以上、`alarm_type` は 0 か 1（Unix 時刻）。反転した名前の 3 つの真偽値を Kotlin の exact・allowWhileIdle・persist に戻す | AP-22、E-9 |
+| 権限の要求: 許可済みなら前面かどうかに関わらず `GRANTED`、前面でなければ `NOT_FOREGROUND`、それ以外は Kotlin の要求に渡す。取り消しは `CANCELED` | 12.1 の前面の行 |
+| 完了のエラーが `NONE` でないときも結果の引数に値を渡す（権限は `DENIED`、設定は `OPENED`） | 結果の引数は未定義にしない。呼び出し側はエラーを先に見る |
+
+### テストで分かったこと
+
+- **チャンネルのロック画面の見え方**: 読み返すと -1000 になる。Android が値を上書きするので、確かめる行を外した
+- **Progress の通知**: フォアグラウンドサービスの通知は、表示が最大 10 秒遅れる。待ちを 15 秒にした
+- **後ろからのフォアグラウンドサービスの開始**: 計装の下では許されてしまい、端末のテストでは `SERVICE_START_NOT_ALLOWED` を起こせない。例外の写しは JVM のテストで確かめ、通しの確かめは TB-10 の smoke に移した
+- **権限のダイアログは要求どうしで共有される**（Kotlin の作り）: 前のダイアログが閉じきる前の要求は、そのダイアログの答えを受け取る（エミュレーターで起きた）。テストは共有を確かめる手順にし、次の要求はダイアログが消えてから出す
+- **チャンネルの振動**: 振動の装置が無いエミュレーターでは、振動を有効にしても読み返すと無効になる。lights と vibration は Kotlin の既定が有効なので、テストは無効にして値が届くことを確かめる
+- **silent**: AndroidX は silent の通知を「silent」というグループに入れるが、Android 16 はまとめの無いグループを組み替え、グループが消える。テストは `groupAlertBehavior`（`GROUP_ALERT_SUMMARY`）で確かめる
+- **通知を無効にした状態の `show`**（12.1 の AP-16 の行）: API 33 以降は、設定で通知をオフにすると権限が外れる。「権限はあるのにオフ」の状態は API 32 以下でしか作れず、今の 2 台（API 35、36）では確かめられない
+- **テストが呼んでいない関数**: 公開の 128 関数とテストが呼ぶ関数を突き合わせると、13 関数（Clipboard 1、チャンネル 4、内容 8）がどのテストからも呼ばれていなかった。TB-3 と TB-5 で似た setter を代表だけで済ませたため。すべてテストを足した
+- **利用者の決定**: 「公開の各関数をテストが呼んでいること」の機械の照合は足さない（元の計画どおり。12.1 の入口の行が全関数を求めている）
+
+### 後のタスクへ移したこと
+
+- 後ろからの Progress の 4 つの操作が `SERVICE_START_NOT_ALLOWED`（12.1 の Progress の行）→ TB-10 の smoke
+- タップでアプリが開くことと、イベントが C に届くこと（AP-18）→ TB-7
+
+### 確かめたこと
+
+- capi のテスト 114 件（startup 96、noStartup 15、noNtkInitializer 3） が Pixel 6a とエミュレータで通る
+- JVM のテスト（`:ntk:testDebugUnitTest`）が通る
+- release の `libntk.so` の公開は `ntk_*` 128（TB-5 の 108 に通知の操作 20）
+
+### 変異（Pixel 6a。C と並びは startup の GoogleTest、権限の無い状態は noStartup）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| N1: `alarm_type` 2 を受ける | `Notification.InvalidArgumentsAreRejectedAtTheEntry` |
+| N2: `inexact` を反転しない | `Notification.AnInexactFutureScheduleIsKeptUntilCanceled`、`Notification.AFutureExactScheduleNeedsExactAlarms` |
+| N3: `trigger_at_millis` 0 を受ける | なし。Kotlin も `triggerAtMillis > 0` を求めて同じ `INVALID_PARAMETER` を返すので、外から区別できない（等価な変異） |
+| E1: sub text の欄に ticker を書く | `Notification.TheContentAndItsChannelReachTheNotification` |
+| E2: auto_cancel と ongoing の順を入れ替える | `Notification.TheContentAndItsChannelReachTheNotification` |
+| E3: チャンネルの説明を落とす | `Notification.TheContentAndItsChannelReachTheNotification` |
+| K1: `show` の権限の確かめを外す | `ManualInitTest.withoutThePermissionNotificationsAreRefusedNotDroppedSilently` |
+| K2: 過ぎた時刻の予約の権限の確かめを外す | 同上 |
+| K3: 未来の正確な予約の正確なアラームの確かめを外す | 同上 |
+| K4: 引けない drawable を 0 にする | `Notification.NamesThatDoNotResolveAreResourceNotFound` |
+| K5: dismiss の Intent を常に付ける | `Notification.TheTapAndDismissEventsCanBeTurnedOff` |
+| K6: 後ろから開いた設定を `NONE` にする | `Notification.SettingsOpenFromTheForegroundOnly` |
+| K7: `complete_progress` が完了にしない | `Notification.ProgressIsCorrectedForTheForegroundService` |
+| E4: silent を落とす | `Notification.TheRemainingContentSettersReachTheNotification` |
+| E5: チャンネルの lights を落とす | `Notification.TheChannelAlertSettersReachTheChannel` |
+| K8: 前面でないときの権限の要求を C の側で止めず Kotlin に渡す | なし。Kotlin も `Failed(NOT_FOREGROUND)` を返し、C には同じ `(NOT_FOREGROUND, DENIED)` が届く（等価な変異）。C の側の分岐は、Kotlin の前面の判定が変わっても 12.1 の値を返す保険として残す |

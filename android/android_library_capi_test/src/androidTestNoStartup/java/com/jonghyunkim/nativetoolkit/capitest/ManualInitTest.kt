@@ -87,6 +87,32 @@ class ManualInitTest {
     }
 
     @Test
+    fun withoutThePermissionNotificationsAreRefusedNotDroppedSilently() {
+        // A fresh install of this flavor never grants the notification permission. Part 2, AP-16:
+        // Kotlin would succeed and show nothing; the C ABI says PERMISSION_DENIED first.
+        NtkTestNative.load()
+        assertEquals(AndroidError.NONE, NtkTestNative.init(appContext))
+        val (has, enabled, show, past, futureInexact, exact, futureExact) =
+            NtkTestNative.notificationsWithoutPermission().toList().let { Septuple(it) }
+        assertEquals("the permission must not be granted for this test", 0, has)
+        assertEquals(0, enabled)
+        assertEquals(10, show)            // PERMISSION_DENIED
+        assertEquals(10, past)            // a past time is shown at once, so it needs the permission
+        assertEquals(0, futureInexact)    // a future inexact schedule needs neither
+        if (exact == 0) assertEquals(11, futureExact)  // EXACT_ALARM_NOT_ALLOWED (API 34+ default)
+    }
+
+    private class Septuple(val values: List<Int>) {
+        operator fun component1() = values[0]
+        operator fun component2() = values[1]
+        operator fun component3() = values[2]
+        operator fun component4() = values[3]
+        operator fun component5() = values[4]
+        operator fun component6() = values[5]
+        operator fun component7() = values[6]
+    }
+
+    @Test
     fun theCPathInitializesWithoutJniOnLoad() {
         // libntk.so is opened by the linker only, as with dlopen: JNI_OnLoad has not run, and
         // ntk_android_init must not make it run (it does not call System.loadLibrary).
