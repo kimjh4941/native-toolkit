@@ -3,6 +3,7 @@
 #include "Clipboard/Clipboard.h"
 #include "Dialog/Dialog.h"
 #include "Notification/Notification.h"
+#include "Share/Share.h"
 
 #include "Common/Log.h"
 #include "Common/Registry.h"
@@ -21,6 +22,7 @@ std::vector<ClassSpec> All() {
     specs.push_back(clipboard::ClassSpec());
     specs.push_back(dialog::ClassSpec());
     specs.push_back(notification::ClassSpec());
+    specs.push_back(share::ClassSpec());
 #ifndef NDEBUG
     // Debug builds only: the probe operation of the C ABI tests.
     specs.push_back(probe::ProbeClassSpec());

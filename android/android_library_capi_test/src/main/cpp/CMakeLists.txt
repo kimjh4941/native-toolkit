@@ -27,6 +27,7 @@ add_library(ntk_test SHARED
     tests/NotificationBuilderTest.cpp
     tests/NotificationEventTest.cpp
     tests/NotificationTest.cpp
+    tests/ShareTest.cpp
     tests/ProbeTest.cpp
     tests/RegistryTest.cpp
     tests/StructSizeTest.cpp

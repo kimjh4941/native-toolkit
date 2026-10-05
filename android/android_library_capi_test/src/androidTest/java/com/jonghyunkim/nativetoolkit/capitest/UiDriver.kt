@@ -8,6 +8,8 @@ import android.os.Looper
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.StaleObjectException
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import com.jonghyunkim.nativetoolkit.common.presentation.ForegroundActivityTracker
 import java.util.concurrent.CountDownLatch
@@ -22,6 +24,9 @@ import java.util.concurrent.TimeUnit
 object UiDriver {
 
     private const val TIMEOUT_MS = 10_000L
+
+    /** The Sharesheet's package on API 34 and later. */
+    private const val RESOLVER = "com.android.intentresolver"
 
     private val device: UiDevice
         get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -63,7 +68,11 @@ object UiDriver {
 
     @JvmStatic
     fun click(text: String): Boolean {
-        val target = device.wait(Until.findObject(By.text(text)), TIMEOUT_MS) ?: return false
+        if (device.wait(Until.hasObject(By.text(text)), TIMEOUT_MS) != true) return false
+        // A dialog still animating in can drop a click (seen once on the emulator): wait for the
+        // screen to settle, then find the object again.
+        device.waitForIdle()
+        val target = device.findObject(By.text(text)) ?: return false
         target.click()
         return true
     }
@@ -134,6 +143,61 @@ object UiDriver {
             name.isNotEmpty()
         }
         return name
+    }
+
+    /**
+     * Clicks the Sharesheet entry (an app, a chooser action) showing [text] and waits until the
+     * Sharesheet closes. As the sample's Sharesheet helper: the targets load asynchronously and a
+     * device with many apps lists the test target further down, so it waits, scrolls down and
+     * up, and retries a click that landed while the list moved.
+     */
+    @JvmStatic
+    fun pick(text: String): Boolean {
+        if (!device.wait(Until.hasObject(By.pkg(RESOLVER)), TIMEOUT_MS)) return false
+        repeat(3) { attempt ->
+            if (attempt > 0 && !device.hasObject(By.pkg(RESOLVER))) return true
+            val target = findInSharesheet(text) ?: return false
+            try {
+                target.click()
+            } catch (e: StaleObjectException) {
+                return@repeat
+            }
+            device.waitForIdle()
+            if (device.wait(Until.gone(By.pkg(RESOLVER)), 5_000L) == true) return true
+        }
+        return !device.hasObject(By.pkg(RESOLVER))
+    }
+
+    /** Whether the Sharesheet is on the screen (within the timeout). */
+    @JvmStatic
+    fun sharesheetShown(): Boolean = device.wait(Until.hasObject(By.pkg(RESOLVER)), TIMEOUT_MS) == true
+
+    private fun findInSharesheet(text: String): UiObject2? {
+        device.wait(Until.findObject(By.pkg(RESOLVER).text(text)), 5_000L)?.let { return it }
+        // Swipe up through the middle of the screen: the first swipe expands the sheet, the next
+        // ones scroll its list. Never down: at the top that pulls the sheet closed, and a swipe
+        // from the bottom edge lands on the taskbar.
+        val x = device.displayWidth / 2
+        repeat(8) {
+            if (!device.hasObject(By.pkg(RESOLVER))) return null
+            device.swipe(x, device.displayHeight * 3 / 4, x, device.displayHeight / 4, 20)
+            device.wait(Until.findObject(By.pkg(RESOLVER).text(text)), 1_500L)?.let { return it }
+        }
+        // What the screen shows instead, for the failure's logcat.
+        val shown = device.findObjects(By.textStartsWith("")).mapNotNull { it.text }
+        android.util.Log.e("UiDriver", "[pick] \"$text\" not found; the screen shows: $shown")
+        return null
+    }
+
+    /** Presses Back until an Activity of the app is in the foreground again (a Sharesheet left open). */
+    @JvmStatic
+    fun backToApp(): Boolean {
+        repeat(4) {
+            if (onMain { ForegroundActivityTracker.current() } != null) return true
+            device.pressBack()
+            waitUntil(1_000) { onMain { ForegroundActivityTracker.current() } != null }
+        }
+        return onMain { ForegroundActivityTracker.current() } != null
     }
 
     /** Sends the app to the back and waits until no Activity of it is in the foreground. */

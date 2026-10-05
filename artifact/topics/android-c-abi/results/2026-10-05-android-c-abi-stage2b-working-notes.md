@@ -339,3 +339,58 @@
 | T7: `listener_remove` が何もしない | `EveryListenerGetsTheEventOnMainUntilRemoved` ほか 3 件 |
 | T8: `EventHub` が保っていたイベントを最初の登録に渡さない | `EventsBeforeTheFirstListenerArriveInItsInsertion` ほか 7 件 |
 | U1: 通知の入口で初期化を確かめない | `ManualInitTest.everyOperationIsNotInitializedBeforeInit` |
+
+## TB-8（2026-10-05）
+
+### 作ったもの
+
+- C: `src/Share/Share.{h,cpp}`（OP-43〜OP-54 の 12 関数）。クラスの表と CMake に登録した
+- Kotlin: `capi/jni/ShareBridge.kt`（開く操作、選択の待ちの対、Direct Share、2 つの受け口）
+- テスト:
+  - GoogleTest `Share` 13 件（Sharesheet は UiAutomator で操作し、試験アプリの `ShareTargetActivity`（「NTK target」）を選ぶ）
+  - noStartup の「初期化の前の全操作」に Share の 10 関数と取り消しを足した
+  - 試験の土台: `ShareInspector`（PNG、共有するファイル、Direct Share のショートカット、Kotlin から直接開く Share）、`UiDriver.pick`・`sharesheetShown`・`backToApp`
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| 開く操作は種類 400 で受け付け、main で前面を確かめてから Kotlin を呼び、すぐ帳簿から外す。完了は「開けた（`NONE`）」か失敗の値 | 6.4。Share には取り消しが無い（`CANCELED` が無い） |
+| `ntk_share_text` はアクションが 0 個でも `shareTextWithActions` を呼ぶ | AP-7。前の Share のアクションを止める |
+| 選択の要求の ID は受け付けの登録の ID。Kotlin の印が返ったら、前の対を全部消してから新しい対を入れる。開く処理が失敗したら対は変えない | AP-17。Kotlin は新しい印で前の待ちを置き換える |
+| 取り消しは常に main に積み、main で対を引いて `cancelShareSelection` を呼ぶ。初期化の前は `NONE` | AP-17。開く処理が必ず先に動く。初期化の前に有効な ID は無い |
+| 対の無い印の選択（Kotlin から直接開いた Share、取り消した要求）は捨てる | AP-17 |
+| 入口の検査: 空文字列の本文は `EMPTY_CONTENT`、ファイルと ID の 0 件は `EMPTY_FILE_LIST`・`EMPTY_ID_LIST`（`NULL` で 0 件も）、Chooser Action の空・重複・`NULL` の ID とアイコンの無いものは `INVALID_CHOOSER_ACTION`、Direct Share のアイコンが無いものは `INVALID_ICON` | AP-19、6.4 |
+| Chooser Action の `label` の `NULL` は `""`、Direct Share の `category` の `NULL` は `"android.shortcut.conversation"`、画像の MIME の `NULL` は `"image/*"` | 6.4、8.1 |
+| Share のイベントは保たない | 6.4（`EventHub` も保たない） |
+
+### テストで分かったこと
+
+- **Sharesheet は前面を奪わない**: Android 14 以降の Sharesheet は、半透明の下からのシートで別のタスクにある。下のアプリの Activity は started のままなので、第 1 部 5.8 の判定ではアプリは前面にいる。「Sharesheet が出ている間の要求は `NOT_FOREGROUND`」というテストの前提が誤りだった。前面でない状態は、Sharesheet を残したままアプリの Activity を閉じて作る
+- **続けて 2 つ開くと、Sharesheet は 1 つしか出ない**: 2 つ目の起動が 1 つ目を前に出すことがあり、出るのは古い方だった。古い方での選択は届かない（AP-17 のとおり）。テストは「届いた選択は新しい ID だけ」を確かめる
+- **試験の共有先は一覧の下の方に出る**: Pixel ではアプリが多く、試験アプリの共有先は 16 番目だった。サンプルの UI テストの `Sharesheet` と同じく、待ってからシートを広げて送る。画面の下の端から送るとタスクバーに当たって送れず、上の端で下へ引くとシートが閉じる
+- **Dialog のテストの不安定**: エミュレーターで 1 回、Dialog が出る途中のクリックが落ちた。`UiDriver.click` が画面が落ち着くのを待ってから押すようにした
+- **起こせない失敗**: `NO_SHARE_TARGET` は Chooser の起動が `ActivityNotFoundException` になったときだけで、端末では起こせない（写しは表のとおり）
+
+### 確かめたこと
+
+- capi のテスト 138 件（startup 119、noStartup 16、noNtkInitializer 3）が Pixel 6a とエミュレータで通る
+- release の `libntk.so` の公開は `ntk_*` 155（8.2 と同じ）。`check_c_abi_contract_android.py --library` が symbols まで含めて通る
+- 公開の 155 関数は、すべてどれかのテストが呼ぶ
+
+### 変異（Pixel 6a、startup の Share の GoogleTest）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| S1: アクションが 0 個の Share で `shareText` を呼ぶ（前のアクションを止めない） | `ChooserActionsReachTheListenerAndEndWithTheNextShare` |
+| S2: 前面を確かめない | `FromTheBackEveryOpeningIsNotForeground`、`ANotForegroundRequestLeavesTheEarlierWait` |
+| S3: 新しい印のときに前の対を消さない | なし。Kotlin が古い印の選択を出さない（`ShareCallbackCoordinator.deliver`）ので、残った対は使われない（等価な変異。AP-17 の「害は無い」のとおり） |
+| S4: 対の無い印の選択も配る | `APickOfAShareKotlinOpenedIsNotDelivered` |
+| S5: 取り消しが対も Kotlin の待ちも消さない | `ACanceledWaitGetsNoPick` |
+| S6: 空文字列の本文を入口で通す | `TheEntryChecksReturnAndReleaseOnTheCallingThread` |
+| S7: 重複した Chooser Action の ID を入口で通す | `TheEntryChecksReturnAndReleaseOnTheCallingThread` |
+| S8: `FileNotFound` を `ILLEGAL_FILE_ACCESS` に写す | `FailuresFoundByKotlinComeInTheCompletion` |
+| S9: 選択に C の要求の ID ではなく Kotlin の印を付ける | `ThePickedAppArrivesWithTheRequestId` ほか 3 件 |
+| S10: Chooser Action の受け口を `EventHub` に足さない | `ChooserActionsReachTheListenerAndEndWithTheNextShare` |
+| S11: Direct Share の削除が何もしない | `DirectShareTargetsAreRegisteredAndRemoved` |
+| S12: `ntk_share_listener_remove` が何もしない | `RemovingAListenerKeepsTheWaitAndTheActions` |

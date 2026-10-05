@@ -7,6 +7,7 @@ add_library(ntk SHARED
     src/Dialog/Dialog.cpp
     src/Notification/Builders.cpp
     src/Notification/Notification.cpp
+    src/Share/Share.cpp
     src/Common/Classes.cpp
     src/Common/Handles.cpp
     src/Common/Jni.cpp

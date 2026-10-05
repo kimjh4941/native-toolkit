@@ -93,6 +93,9 @@ bool UiClick(const char* text) { return CallWithText("click", text); }
 bool UiHome() { return CallBoolean("home"); }
 bool UiOpenShade(const char* text) { return CallWithText("openShade", text); }
 bool UiSwipeAway(const char* text) { return CallWithText("swipeAway", text); }
+bool UiPick(const char* text) { return CallWithText("pick", text); }
+bool UiBackToApp() { return CallBoolean("backToApp"); }
+bool UiSharesheetShown() { return CallBoolean("sharesheetShown"); }
 
 void UiCloseShade() {
     JNIEnv* env = Env();
@@ -281,6 +284,60 @@ void Recorder::Event(void* user_data, int64_t value) {
 
 void Recorder::Release(void* user_data) {
     static_cast<Recorder*>(user_data)->Add({"release"});
+}
+
+namespace {
+
+jclass ShareInspectorClass(JNIEnv* env) {
+    static jclass inspector = nullptr;
+    if (inspector == nullptr) {
+        jclass local = env->FindClass("com/jonghyunkim/nativetoolkit/capitest/ShareInspector");
+        inspector = static_cast<jclass>(env->NewGlobalRef(local));
+        env->DeleteLocalRef(local);
+    }
+    return inspector;
+}
+
+}  // namespace
+
+std::vector<uint8_t> PngBytes() {
+    JNIEnv* env = Env();
+    jclass inspector = ShareInspectorClass(env);
+    auto array = static_cast<jbyteArray>(
+        env->CallStaticObjectMethod(inspector, env->GetStaticMethodID(inspector, "pngBytes", "()[B")));
+    std::vector<uint8_t> bytes(static_cast<size_t>(env->GetArrayLength(array)));
+    env->GetByteArrayRegion(array, 0, static_cast<jsize>(bytes.size()), reinterpret_cast<jbyte*>(bytes.data()));
+    env->DeleteLocalRef(array);
+    return bytes;
+}
+
+std::string MakeShareFile(const char* name, bool image) {
+    JNIEnv* env = Env();
+    jclass inspector = ShareInspectorClass(env);
+    jmethodID method = env->GetStaticMethodID(inspector, "makeFile", "(Ljava/lang/String;Z)Ljava/lang/String;");
+    return Native(env, static_cast<jstring>(env->CallStaticObjectMethod(inspector, method, Java(env, name),
+                                                                        image ? JNI_TRUE : JNI_FALSE)));
+}
+
+std::string DynamicShortcutIds() {
+    JNIEnv* env = Env();
+    jclass inspector = ShareInspectorClass(env);
+    jmethodID method = env->GetStaticMethodID(inspector, "dynamicShortcutIds", "()Ljava/lang/String;");
+    return Native(env, static_cast<jstring>(env->CallStaticObjectMethod(inspector, method)));
+}
+
+std::string TestPackage() {
+    JNIEnv* env = Env();
+    jclass inspector = ShareInspectorClass(env);
+    jmethodID method = env->GetStaticMethodID(inspector, "packageName", "()Ljava/lang/String;");
+    return Native(env, static_cast<jstring>(env->CallStaticObjectMethod(inspector, method)));
+}
+
+void ShareFromKotlin(const char* text) {
+    JNIEnv* env = Env();
+    jclass inspector = ShareInspectorClass(env);
+    jmethodID method = env->GetStaticMethodID(inspector, "shareFromKotlin", "(Ljava/lang/String;)V");
+    env->CallStaticVoidMethod(inspector, method, Java(env, text));
 }
 
 }  // namespace ntktest

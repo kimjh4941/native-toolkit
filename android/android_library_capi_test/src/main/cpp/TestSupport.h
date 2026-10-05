@@ -39,6 +39,10 @@ bool UiHome();
 bool UiOpenShade(const char* text);
 bool UiSwipeAway(const char* text);
 void UiCloseShade();
+// Clicks text in a list, scrolling to it; presses Back until the app is in front again.
+bool UiPick(const char* text);
+bool UiSharesheetShown();
+bool UiBackToApp();
 // The simple class name of the app's foreground Activity once there is one, or "".
 std::string UiForegroundActivity();
 bool UiFinishForeground();
@@ -57,6 +61,15 @@ std::string ResourceId(const char* name, const char* type);
 // Sends a PendingIntent of a shown notification ("content", "delete" or "action:<index>") and
 // returns once the library's receiver has handled it.
 bool FireIntent(int32_t id, const char* tag, const char* which);
+
+// Share, through ShareInspector (androidTest): a small PNG, a file in the cache directory (inside
+// the FileProvider paths), the dynamic shortcut IDs joined by "|", the test app's package name,
+// and a Sharesheet for selection opened from Kotlin directly.
+std::vector<uint8_t> PngBytes();
+std::string MakeShareFile(const char* name, bool image);
+std::string DynamicShortcutIds();
+std::string TestPackage();
+void ShareFromKotlin(const char* text);
 
 // Puts a plain-text clip from Kotlin, given as UTF-16 code units (so it may hold what C cannot).
 void SetClipboardText(const std::u16string& text);

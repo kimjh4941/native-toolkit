@@ -13,6 +13,7 @@
 #include <NativeToolkitC/Clipboard.h>
 #include <NativeToolkitC/Dialog.h>
 #include <NativeToolkitC/Notification.h>
+#include <NativeToolkitC/Share.h>
 
 #include "TestSupport.h"
 #include "ntk_debug_probe.h"
@@ -278,7 +279,7 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_awaitPermission(JNIEnv
     return result;
 }
 
-// Every operation of Clipboard, Dialog and notifications before initialization (noStartup; part 2,
+// Every operation of Clipboard, Dialog, notifications and Share before initialization (noStartup; part 2,
 // 12.1 未初期化): the names of those that did not return NOT_INITIALIZED, then of the asynchronous
 // ones whose release did not run once on the calling thread. Empty when all is as designed.
 namespace {
@@ -288,6 +289,9 @@ void IgnorePermission(void*, uint64_t, ntk_notification_error, uint32_t, ntk_not
 void IgnoreChange(void*) {}
 void IgnoreInteraction(void*, ntk_notification_interaction*) {}
 void IgnoreShown(void*, ntk_notification_shown*) {}
+void IgnoreShare(void*, ntk_share_error, uint32_t) {}
+void IgnoreChooserAction(void*, ntk_string*) {}
+void IgnoreSelection(void*, uint64_t, ntk_string*) {}
 }  // namespace
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -390,16 +394,46 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
                  ntk_notification_add_shown_listener(IgnoreShown, recorder, ntktest::Recorder::Release, &listener));
     ntk_notification_channel_free(channel);
     ntk_notification_content_free(note);
+
+    // Share (OP-43 to OP-53).
+    auto share = [&expect](const char* name, int32_t error) { expect(name, error, NTK_SHARE_ERROR_NOT_INITIALIZED); };
+    ntk_share_text_content text{};
+    text.struct_size = sizeof(text);
+    text.text = "x";
+    share("share_text", ntk_share_text(&text, nullptr, 0, IgnoreShare, recorder, ntktest::Recorder::Release));
+    share("share_image", ntk_share_image("/a.png", nullptr, IgnoreShare, recorder, ntktest::Recorder::Release));
+    share("share_images", ntk_share_images(texts, 2, IgnoreShare, recorder, ntktest::Recorder::Release));
+    share("share_file", ntk_share_file("/a", IgnoreShare, recorder, ntktest::Recorder::Release));
+    share("share_files", ntk_share_files(texts, 2, IgnoreShare, recorder, ntktest::Recorder::Release));
+    const uint8_t icon[] = {1};
+    ntk_share_direct_target target{};
+    target.struct_size = sizeof(target);
+    target.id = "t";
+    target.label = "T";
+    target.icon = icon;
+    target.icon_size = 1;
+    share("register_direct_target", ntk_share_register_direct_target(&target));
+    share("remove_direct_targets", ntk_share_remove_direct_targets(texts, 2));
+    share("share_text_for_selection",
+          ntk_share_text_for_selection(&text, IgnoreShare, recorder, ntktest::Recorder::Release, nullptr));
+    ntk_share_listener* share_listener = nullptr;
+    share("add_chooser_action_listener", ntk_share_add_chooser_action_listener(IgnoreChooserAction, recorder,
+                                                                               ntktest::Recorder::Release,
+                                                                               &share_listener));
+    share("add_selection_listener",
+          ntk_share_add_selection_listener(IgnoreSelection, recorder, ntktest::Recorder::Release, &share_listener));
     // The cancels find no request (none can exist yet), so they do nothing and return NONE (6.2,
     // 6.3); the removals do nothing.
     expect("dialog_cancel", ntk_dialog_cancel(1), NTK_DIALOG_ERROR_NONE);
     expect("cancel_permission_request", ntk_notification_cancel_permission_request(1), NTK_NOTIFICATION_ERROR_NONE);
+    expect("share_cancel_selection", ntk_share_cancel_selection(1), NTK_SHARE_ERROR_NONE);
+    ntk_share_listener_remove(nullptr);
     ntk_notification_listener_remove(nullptr);
     ntk_clipboard_listener_remove(nullptr);
 
-    // 1 + 6 + 4 asynchronous calls, each released at once on this thread (part 1, 1.3).
+    // 1 + 6 + 4 + 8 asynchronous calls, each released at once on this thread (part 1, 1.3).
     std::vector<ntktest::Record> records = recorder->Records();
-    if (records.size() != 11) failed += "releases=" + std::to_string(records.size()) + " ";
+    if (records.size() != 19) failed += "releases=" + std::to_string(records.size()) + " ";
     for (const auto& record : records) {
         if (record.what != "release" || record.thread != gettid()) failed += "release-off-thread ";
     }

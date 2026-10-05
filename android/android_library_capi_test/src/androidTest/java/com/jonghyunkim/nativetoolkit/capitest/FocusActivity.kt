@@ -19,3 +19,11 @@ class LaunchTargetActivity : Activity() {
         setContentView(TextView(this).apply { text = "ntk capi launch target" })
     }
 }
+
+/** A share target the Sharesheet lists, for picking an app (part 2, 12.2). It closes at once. */
+class ShareTargetActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        finish()
+    }
+}
