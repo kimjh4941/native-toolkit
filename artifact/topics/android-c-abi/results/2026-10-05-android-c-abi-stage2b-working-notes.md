@@ -133,3 +133,47 @@
 | C5: 受け手を外しても取り消さない | `EveryListenerGetsAChangeUntilItIsRemoved`、`AUriCopyReachesEachListenerExactlyOnce` |
 | C6: 読み取りで U+FFFD に置き換えない | `WhatCCannotHoldIsReadAsTheReplacementCharacter` |
 | C7: `EventHub` の受け手を登録のたびに足す | `AUriCopyReachesEachListenerExactlyOnce` |
+
+## TB-4（2026-10-05）
+
+### 作ったもの
+
+- C: `src/Dialog/Dialog.cpp`（OP-13〜OP-19 と結果の読み取り 10 関数。合わせて 17 関数）。クラスの表に `DialogBridge` を足した
+- Kotlin: `capi.jni.DialogBridge`（main の 1 つのメッセージで、帳簿への挿入（取り消し済みなら何もしない）、前面の判定、`show`。C の要求の ID と Kotlin の要求の ID を main だけで対にする。結果を 11.1 の値に写す。取り消しは登録の表の取り消しの後に、Kotlin の Dialog も閉じる）
+- 表づくりの失敗のログに、クラスとメンバーと JNI の型を出すようにした
+- テスト: GoogleTest `Dialog` 13 件（入口の検査、6 種の結果、`DISMISSED`、取り消し、挿入の前の取り消し、宿主の破棄、後ろから）。noStartup に 2 件（TB-1 から移した「手動の経路の後に Dialog が出る」「Activity を渡して後ろへ回すと `NOT_FOREGROUND`」）。テスト用のモジュールに `UiDriver`（UiAutomator で押す。作られた Activity の数を数える）
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| 要求が `NULL` なら `INVALID_PARAMETER`（`NULL` を既定の Dialog としない） | 単一選択と複数選択は項目が要り、要求そのものが要る。6 種でそろえた |
+| 単一選択の添字は -1（なし）か項目の範囲。項目が 0 個、項目に `NULL` は `INVALID_PARAMETER`（入口） | Kotlin の `require` と同じ条件を入口で見る（AP-19）。Dialog には件数 0 の専用の値が無い |
+| 取り消しは、`registry::Cancel` で CANCEL_REQUESTED と外す処理を積んだ後に、`DialogBridge.cancel` で Kotlin の Dialog を閉じる | 完了は外す処理が `CANCELED` で出す（第 1 部 5.7）。Kotlin の Dialog の結果が後から来ても、登録はもう無いので何も起きない。画面からも消える |
+| 文字列の既定値（`NULL` の title・message・hint は `""`、ボタンと login のヒントは Kotlin の既定の文言）は受け口で当てる | 第 2 部 6.2。Kotlin の既定値は受け口で Kotlin の型から読む（文言を写して持たない） |
+| 結果のハンドルの読み取りは、ハンドルの中の文字列を指す（三項演算子で `optional` の写しを作らない） | 最初の形は `result == nullptr ? std::nullopt : result->text` で、型の違う 2 つの枝から一時的な写しができ、消えたものを指すポインタを返していた。組み立ての前に読んで気づき、`if` で分けた |
+
+### テストで分かったこと
+
+- **JNI の型の 1 文字の誤りで、C ABI 全体が `NOT_INITIALIZED` になった**: `nativeAnswered` の型に `I` が 1 つ多く、`RegisterNatives` が `NoSuchMethodError` で失敗し、表づくりが全部失敗した（全部か何も無いかの作りのとおり）。GoogleTest がほぼ全件落ちて分かった。ログに「RegisterNatives」としか出ず、どのメソッドか分からなかったので、クラス・メンバー・型を出すようにした
+- **D1（取り消した要求でも Dialog を出す）が最初は捕まらなかった**: Dialog は出るが、直後に main で取り消しが来て数 ms で閉じるので、画面の文字を間隔を空けて見るテストでは見逃した。作られた Activity の数を数え、取り消した要求では透明な宿主が 1 度も作られないことを確かめる形にして捕まえた（TB-2 の N5 の確かめ）
+- **変異の回で端末が止まった**: D9（添字の範囲を見逃す）の回で、入口のテストの `ASSERT` が落ちて関数が途中で抜けた後、通ってしまった要求の完了がスタックの消えた記録の置き場を触り、main が 30 分止まった（端末は `FocusActivity` の白い画面のまま。利用者が気づいて知らせた）。テストのプロセスを止めて残りのケースを流させ、回し方が元のソースに戻したことを確かめた。テストの記録の置き場をヒープに置いて解放しない形（`Leaked<T>()`。テストごとに別のプロセスなので溜まらない）にして、D9 が止まらずに 104 秒で落ちることを確かめた
+
+### 確かめたこと
+
+- capi のテスト 81 件（startup 66、noStartup 13、noNtkInitializer 2）が Pixel 6a とエミュレータで通る
+- `check_c_abi_contract_android.py` は symbols の SKIP のほかは OK
+
+### 変異（Pixel 6a、startup の GoogleTest）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| D1: 帳簿への挿入の結果を見ずに Dialog を出す | `Dialog.ARequestCanceledBeforeItsInsertionIsNeverShown`（Activity の数で。最初の形では捕まらなかった） |
+| D3: 宿主の破棄を `CANCELED` に写す | `Dialog.ADestroyedHostCompletesCanceledBySystem` |
+| D4: 取り消しで Kotlin の Dialog を閉じない | `Dialog.CancelCompletesCanceledAndClosesTheDialog` |
+| D6: 複数選択の初期の真偽を渡さない | `Dialog.AMultiChoiceAnswersWithEveryItem` |
+| D7: 「閉じられない」の旗を反転しない | `Dialog.BackDismissesWithNoValues` |
+| D8: 入力の文字とユーザー名を取り違える | `Dialog.ATextInputAnswersWithTheText`、`Dialog.ALoginAnswersWithTheUsernameAndPassword` |
+| D9: 単一選択の添字の範囲を見逃す | `Dialog.InvalidRequestsAreRejectedAtTheEntryAndReleasedHere` |
+
+- 流さなかった変異: D2（受け口の前面の判定を省く）。Kotlin の `UiHost` も前面でなければ同じ `NOT_FOREGROUND` で完了する（Kotlin の設計書 KA-17）ので、結果が変わらない同値の変異

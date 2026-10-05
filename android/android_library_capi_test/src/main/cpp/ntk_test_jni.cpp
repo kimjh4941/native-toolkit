@@ -10,6 +10,7 @@
 
 #include <NativeToolkitC/Android.h>
 #include <NativeToolkitC/Clipboard.h>
+#include <NativeToolkitC/Dialog.h>
 
 #include "TestSupport.h"
 #include "ntk_debug_probe.h"
@@ -138,5 +139,44 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_clipboardUninitialized
                      readers ? 1 : 0};
     jintArray result = env->NewIntArray(7);
     env->SetIntArrayRegion(result, 0, 7, values);
+    return result;
+}
+
+// An alert for the Kotlin tests of the manual paths (noStartup): shown with ntk_dialog_show_alert_async,
+// its completion recorded until awaitAlert reads it.
+namespace {
+ntktest::Recorder* AlertRecorder() {
+    static auto* recorder = new ntktest::Recorder;
+    return recorder;
+}
+void OnAlert(void* user_data, uint64_t, ntk_dialog_error error, uint32_t, ntk_dialog_result* result) {
+    ntk_dialog_result_free(result);
+    static_cast<ntktest::Recorder*>(user_data)->Add({"done", error});
+}
+}  // namespace
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_showAlert(JNIEnv* env, jclass, jstring message) {
+    const char* chars = env->GetStringUTFChars(message, nullptr);
+    ntk_dialog_alert_request request{};
+    request.struct_size = sizeof(request);
+    request.message = chars;
+    int32_t error = ntk_dialog_show_alert_async(&request, OnAlert, AlertRecorder(), ntktest::Recorder::Release, nullptr);
+    env->ReleaseStringUTFChars(message, chars);
+    return error;
+}
+
+// [the completion's error, 1 when the release followed it], or [-1, 0] on a timeout.
+extern "C" JNIEXPORT jintArray JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_awaitAlert(JNIEnv* env, jclass) {
+    ntktest::Recorder* recorder = AlertRecorder();
+    jint values[] = {-1, 0};
+    if (recorder->WaitFor("release", 1, std::chrono::seconds(10))) {
+        std::vector<ntktest::Record> records = recorder->Records();
+        if (!records.empty() && records[0].what == "done") values[0] = records[0].error;
+        values[1] = records.size() == 2 && records[1].what == "release" ? 1 : 0;
+    }
+    jintArray result = env->NewIntArray(2);
+    env->SetIntArrayRegion(result, 0, 2, values);
     return result;
 }

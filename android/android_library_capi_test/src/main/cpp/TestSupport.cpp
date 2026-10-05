@@ -57,6 +57,74 @@ int LedgerSize() {
     return env->CallStaticIntMethod(control, method);
 }
 
+namespace {
+
+jclass UiDriverClass(JNIEnv* env) {
+    static jclass driver = nullptr;
+    if (driver == nullptr) {
+        jclass local = env->FindClass("com/jonghyunkim/nativetoolkit/capitest/UiDriver");
+        driver = static_cast<jclass>(env->NewGlobalRef(local));
+        env->DeleteLocalRef(local);
+    }
+    return driver;
+}
+
+bool CallWithText(const char* method, const char* text) {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    jmethodID id = env->GetStaticMethodID(driver, method, "(Ljava/lang/String;)Z");
+    jstring value = env->NewStringUTF(text);
+    bool result = env->CallStaticBooleanMethod(driver, id, value) == JNI_TRUE;
+    env->DeleteLocalRef(value);
+    return result;
+}
+
+bool CallBoolean(const char* method) {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    return env->CallStaticBooleanMethod(driver, env->GetStaticMethodID(driver, method, "()Z")) == JNI_TRUE;
+}
+
+}  // namespace
+
+bool UiWaitText(const char* text) { return CallWithText("waitText", text); }
+bool UiGone(const char* text) { return CallWithText("gone", text); }
+bool UiClick(const char* text) { return CallWithText("click", text); }
+bool UiHome() { return CallBoolean("home"); }
+bool UiFinishForeground() { return CallBoolean("finishForeground"); }
+
+int32_t ActivitiesCreated() {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    return env->CallStaticIntMethod(driver, env->GetStaticMethodID(driver, "activitiesCreated", "()I"));
+}
+
+bool UiStaysAway(const char* text, int64_t ms) {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    jmethodID id = env->GetStaticMethodID(driver, "staysAway", "(Ljava/lang/String;J)Z");
+    jstring value = env->NewStringUTF(text);
+    bool result = env->CallStaticBooleanMethod(driver, id, value, static_cast<jlong>(ms)) == JNI_TRUE;
+    env->DeleteLocalRef(value);
+    return result;
+}
+
+bool UiType(int32_t index, const char* text) {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    jmethodID id = env->GetStaticMethodID(driver, "type", "(ILjava/lang/String;)Z");
+    jstring value = env->NewStringUTF(text);
+    bool result = env->CallStaticBooleanMethod(driver, id, static_cast<jint>(index), value) == JNI_TRUE;
+    env->DeleteLocalRef(value);
+    return result;
+}
+
+void UiBack() {
+    JNIEnv* env = Env();
+    jclass driver = UiDriverClass(env);
+    env->CallStaticVoidMethod(driver, env->GetStaticMethodID(driver, "back", "()V"));
+}
+
 void SetClipboardText(const std::u16string& text) {
     JNIEnv* env = Env();
     jclass control = env->FindClass("com/jonghyunkim/nativetoolkit/capitest/ClipboardControl");

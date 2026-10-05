@@ -27,8 +27,28 @@ void HoldMain();
 void UnholdMain();
 // The size of capi.jni.Ledger, read on the main thread.
 int LedgerSize();
+// The screen, through UiDriver (androidTest): each returns whether it happened.
+bool UiWaitText(const char* text);
+bool UiStaysAway(const char* text, int64_t ms);
+bool UiGone(const char* text);
+bool UiClick(const char* text);
+bool UiType(int32_t index, const char* text);
+void UiBack();
+bool UiHome();
+bool UiFinishForeground();
+// How many Activities the app has created since the first call (the first call starts counting).
+int32_t ActivitiesCreated();
+
 // Puts a plain-text clip from Kotlin, given as UTF-16 code units (so it may hold what C cannot).
 void SetClipboardText(const std::u16string& text);
+
+// A test's callback state, never freed. A case that fails half-way returns early, and a
+// completion still on its way would then write into a destroyed object and could hang the main
+// thread; each case runs in a process of its own, so nothing piles up.
+template <class T>
+T& Leaked() {
+    return *new T();
+}
 
 // One callback or release, as it happened.
 struct Record {

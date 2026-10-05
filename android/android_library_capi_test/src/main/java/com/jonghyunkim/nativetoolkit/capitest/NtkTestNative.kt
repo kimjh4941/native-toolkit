@@ -40,6 +40,14 @@ object NtkTestNative {
     @JvmStatic
     external fun clipboardUninitialized(): IntArray
 
+    /** `ntk_dialog_show_alert_async` with [message]; returns the entry's error. */
+    @JvmStatic
+    external fun showAlert(message: String): Int
+
+    /** Waits for the alert of [showAlert]: [its error, 1 when release followed], or [-1, 0]. */
+    @JvmStatic
+    external fun awaitAlert(): IntArray
+
     /** Runs one GoogleTest case; true when it ran and passed. */
     @JvmStatic
     external fun runCase(name: String): Boolean

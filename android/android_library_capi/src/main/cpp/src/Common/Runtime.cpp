@@ -123,13 +123,17 @@ Build BuildTable(JNIEnv* env, jobject loader) {
         jni::Failure failure = jni::Failure::kNone;
         jclass local = LoadClass(env, loader, spec.name, &failure);
         if (local == nullptr) return fail(failure);
+        // The failure names the class and the member, so that a wrong signature is found at once:
+        // any one of them leaves the whole C ABI NOT_INITIALIZED.
         for (const classes::StaticMethod& method : spec.methods) {
             *method.out = env->GetStaticMethodID(local, method.name, method.signature);
-            if ((failure = jni::TakeException(env, method.name)) != jni::Failure::kNone) return fail(failure);
+            std::string where = std::string(spec.name) + "." + method.name + method.signature;
+            if ((failure = jni::TakeException(env, where.c_str())) != jni::Failure::kNone) return fail(failure);
         }
-        if (!spec.natives.empty()) {
-            env->RegisterNatives(local, spec.natives.data(), static_cast<jint>(spec.natives.size()));
-            if ((failure = jni::TakeException(env, "RegisterNatives")) != jni::Failure::kNone) return fail(failure);
+        for (const JNINativeMethod& native : spec.natives) {
+            env->RegisterNatives(local, &native, 1);
+            std::string where = std::string("RegisterNatives ") + spec.name + "." + native.name + native.signature;
+            if ((failure = jni::TakeException(env, where.c_str())) != jni::Failure::kNone) return fail(failure);
         }
         auto global = static_cast<jclass>(env->NewGlobalRef(local));
         env->DeleteLocalRef(local);

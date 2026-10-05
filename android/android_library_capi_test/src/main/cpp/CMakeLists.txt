@@ -23,6 +23,7 @@ add_library(ntk_test SHARED
     TestSupport.cpp
     tests/ClipboardTest.cpp
     tests/CommonTest.cpp
+    tests/DialogTest.cpp
     tests/ProbeTest.cpp
     tests/RegistryTest.cpp
     tests/StructSizeTest.cpp

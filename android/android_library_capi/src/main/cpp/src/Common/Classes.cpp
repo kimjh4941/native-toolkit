@@ -1,6 +1,7 @@
 #include "Common/Classes.h"
 
 #include "Clipboard/Clipboard.h"
+#include "Dialog/Dialog.h"
 
 #include "Common/Log.h"
 #include "Common/Registry.h"
@@ -17,6 +18,7 @@ std::vector<ClassSpec> All() {
     specs.push_back(runtime::RuntimeClassSpec());
     specs.push_back(registry::LedgerClassSpec());
     specs.push_back(clipboard::ClassSpec());
+    specs.push_back(dialog::ClassSpec());
 #ifndef NDEBUG
     // Debug builds only: the probe operation of the C ABI tests.
     specs.push_back(probe::ProbeClassSpec());

@@ -1,6 +1,7 @@
 package com.jonghyunkim.nativetoolkit.capitest
 
 import android.system.Os
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi
 import com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi.InitResult
@@ -46,6 +47,36 @@ class ManualInitTest {
         NtkTestNative.load()
         val result = NtkTestNative.clipboardUninitialized().toList()
         assertEquals(listOf(2, 2, 1, 2, 1, 1, 1), result)
+    }
+
+    @Test
+    fun afterTheCPathWithAnActivityADialogShows() {
+        // Design part 1, chapter 6 (moved from TB-1 to TB-4): with Startup removed nothing tracks
+        // Activities until the manual initialization, so the Activity passed in must be taken as
+        // the foreground at once.
+        ActivityScenario.launch(FocusActivity::class.java).use { scenario ->
+            NtkTestNative.load()
+            var activity: FocusActivity? = null
+            scenario.onActivity { activity = it }
+            assertEquals(AndroidError.NONE, NtkTestNative.init(activity))
+            assertEquals(0, NtkTestNative.showAlert("After the manual path"))
+            assertTrue(UiDriver.waitText("After the manual path"))
+            assertTrue(UiDriver.click("OK"))
+            assertEquals(listOf(0, 1), NtkTestNative.awaitAlert().toList())
+        }
+    }
+
+    @Test
+    fun anActivityPassedInAndSentBackIsNotForeground() {
+        ActivityScenario.launch(FocusActivity::class.java).use { scenario ->
+            NtkTestNative.load()
+            var activity: FocusActivity? = null
+            scenario.onActivity { activity = it }
+            assertEquals(AndroidError.NONE, NtkTestNative.init(activity))
+            assertTrue(UiDriver.home())
+            assertEquals(0, NtkTestNative.showAlert("Sent back"))
+            assertEquals(listOf(8, 1), NtkTestNative.awaitAlert().toList()) // NOT_FOREGROUND
+        }
     }
 
     @Test

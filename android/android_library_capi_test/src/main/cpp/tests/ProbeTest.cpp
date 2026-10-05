@@ -12,6 +12,7 @@
 #include "../ntk_debug_probe.h"
 
 using ntktest::Record;
+using ntktest::Leaked;
 using ntktest::Recorder;
 
 namespace {
@@ -40,7 +41,7 @@ std::vector<std::string> Names(const std::vector<Record>& records) {
 }  // namespace
 
 TEST_F(Probe, ARejectedCallReleasesOnTheCallingThreadAndNeverCompletes) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     uint64_t id = 99;
     EXPECT_EQ(kInvalidParameter, ntk_debug_probe_start(nullptr, &recorder, Recorder::Release, &id));
     EXPECT_EQ(0u, id);
@@ -57,7 +58,7 @@ TEST_F(Probe, ARejectedCallReleasesOnTheCallingThreadAndNeverCompletes) {
 }
 
 TEST_F(Probe, AFailedPostReleasesOnTheCallingThreadAndNeverCompletes) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     uint64_t id = 99;
     ntk_debug_probe_fail_next_post();
     EXPECT_EQ(kUnknown, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
@@ -71,7 +72,7 @@ TEST_F(Probe, AFailedPostReleasesOnTheCallingThreadAndNeverCompletes) {
 }
 
 TEST_F(Probe, ACompletionComesOnceOnMainThenTheRelease) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     uint64_t id = 0;
     ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
     EXPECT_NE(0u, id);
@@ -90,7 +91,7 @@ TEST_F(Probe, ACompletionComesOnceOnMainThenTheRelease) {
 }
 
 TEST_F(Probe, FromTheMainThreadTheCompletionComesAfterTheCallReturns) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     ntktest::RunOnMain([&] {
         uint64_t id = 0;
         ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
@@ -103,7 +104,7 @@ TEST_F(Probe, FromTheMainThreadTheCompletionComesAfterTheCallReturns) {
 
 TEST_F(Probe, StartAndFinishRightAwayOffMainCompleteOnce) {
     for (int round = 0; round < 100; ++round) {
-        Recorder recorder;
+        Recorder& recorder = Leaked<Recorder>();
         uint64_t id = 0;
         ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
         ASSERT_EQ(kNone, ntk_debug_probe_finish(id, round));
@@ -115,7 +116,7 @@ TEST_F(Probe, StartAndFinishRightAwayOffMainCompleteOnce) {
 
 TEST_F(Probe, ACancelRightAfterAcceptingCompletesCanceledOnce) {
     for (int round = 0; round < 100; ++round) {
-        Recorder recorder;
+        Recorder& recorder = Leaked<Recorder>();
         uint64_t id = 0;
         ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
         ntk_debug_probe_cancel(id);
@@ -129,7 +130,7 @@ TEST_F(Probe, ACancelRightAfterAcceptingCompletesCanceledOnce) {
 }
 
 TEST_F(Probe, ACancelBeforeTheInsertionRunsCompletesCanceledAndNeverEntersTheLedger) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     uint64_t id = 0;
     ntktest::HoldMain();
     ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
@@ -144,7 +145,7 @@ TEST_F(Probe, ACancelBeforeTheInsertionRunsCompletesCanceledAndNeverEntersTheLed
 
 TEST_F(Probe, AResultAndACancelQueuedTogetherCompleteCanceledOnceInEitherOrder) {
     for (bool cancel_first : {false, true}) {
-        Recorder recorder;
+        Recorder& recorder = Leaked<Recorder>();
         uint64_t id = 0;
         ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
         ntktest::DrainMain();
@@ -163,7 +164,7 @@ TEST_F(Probe, AResultAndACancelQueuedTogetherCompleteCanceledOnceInEitherOrder) 
 }
 
 TEST_F(Probe, ACancelAfterTheResultArrivedChangesNothing) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     uint64_t id = 0;
     ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
     ntk_debug_probe_finish(id, 9);
@@ -177,8 +178,8 @@ TEST_F(Probe, ACancelAfterTheResultArrivedChangesNothing) {
 }
 
 TEST_F(Probe, EveryListenerOfTheKindGetsTheEventOnMain) {
-    Recorder first;
-    Recorder second;
+    Recorder& first = Leaked<Recorder>();
+    Recorder& second = Leaked<Recorder>();
     uint64_t a = 0;
     uint64_t b = 0;
     ASSERT_EQ(kNone, ntk_debug_probe_add_listener(Recorder::Event, &first, Recorder::Release, &a));
@@ -201,7 +202,7 @@ TEST_F(Probe, EveryListenerOfTheKindGetsTheEventOnMain) {
 }
 
 TEST_F(Probe, AddingAndRemovingInOneMainMessageDeliversNothing) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     ntktest::RunOnMain([&] {
         uint64_t handle = 0;
         ASSERT_EQ(kNone, ntk_debug_probe_add_listener(Recorder::Event, &recorder, Recorder::Release, &handle));
@@ -216,7 +217,7 @@ TEST_F(Probe, AddingAndRemovingInOneMainMessageDeliversNothing) {
 
 namespace {
 struct SelfRemoving {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     uint64_t handle = 0;
 };
 void RemoveItself(void* user_data, int64_t value) {
@@ -230,7 +231,7 @@ void ReleaseSelf(void* user_data) {
 }  // namespace
 
 TEST_F(Probe, ARemovalInsideTheCallbackStopsTheDeliveriesAtOnce) {
-    SelfRemoving self;
+    SelfRemoving& self = Leaked<SelfRemoving>();
     ntktest::HoldMain();
     ASSERT_EQ(kNone, ntk_debug_probe_add_listener(RemoveItself, &self, ReleaseSelf, &self.handle));
     ntk_debug_probe_emit(1);
@@ -244,7 +245,7 @@ TEST_F(Probe, ARemovalInsideTheCallbackStopsTheDeliveriesAtOnce) {
 
 TEST_F(Probe, ARemovalRacingDeliveriesReleasesOnceAndDeliversNothingAfter) {
     for (int round = 0; round < 20; ++round) {
-        Recorder recorder;
+        Recorder& recorder = Leaked<Recorder>();
         uint64_t handle = 0;
         ASSERT_EQ(kNone, ntk_debug_probe_add_listener(Recorder::Event, &recorder, Recorder::Release, &handle));
         std::atomic<bool> go{false};

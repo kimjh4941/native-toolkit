@@ -14,6 +14,7 @@
 
 #include "../TestSupport.h"
 
+using ntktest::Leaked;
 using ntktest::Recorder;
 
 namespace {
@@ -113,7 +114,7 @@ TEST_F(Clipboard, OutputsAreClearedAndANullOutputIsRejected) {
     EXPECT_EQ(NTK_CLIPBOARD_ERROR_INVALID_PARAMETER, ntk_clipboard_read(nullptr));
     EXPECT_EQ(NTK_CLIPBOARD_ERROR_INVALID_PARAMETER, ntk_clipboard_has_clip(nullptr));
     EXPECT_EQ(NTK_CLIPBOARD_ERROR_INVALID_PARAMETER, ntk_clipboard_get_description(nullptr));
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     auto* listener = reinterpret_cast<ntk_clipboard_listener*>(0x1234);
     EXPECT_EQ(NTK_CLIPBOARD_ERROR_INVALID_PARAMETER,
               ntk_clipboard_add_change_listener(nullptr, &recorder, Recorder::Release, &listener));
@@ -248,8 +249,8 @@ void Settle() {
 }
 
 TEST_F(Clipboard, EveryListenerGetsAChangeUntilItIsRemoved) {
-    Recorder first;
-    Recorder second;
+    Recorder& first = Leaked<Recorder>();
+    Recorder& second = Leaked<Recorder>();
     ntk_clipboard_listener* a = nullptr;
     ntk_clipboard_listener* b = nullptr;
     ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, ntk_clipboard_start_observing());
@@ -283,9 +284,9 @@ TEST_F(Clipboard, EveryListenerGetsAChangeUntilItIsRemoved) {
 TEST_F(Clipboard, AUriCopyReachesEachListenerExactlyOnce) {
     // A URI clip is not classified, so the system reports it once: each registration gets it
     // once, however many registrations there are (part 2, AP-21: one EventHub listener for all).
-    Recorder first;
-    Recorder second;
-    Recorder third;
+    Recorder& first = Leaked<Recorder>();
+    Recorder& second = Leaked<Recorder>();
+    Recorder& third = Leaked<Recorder>();
     ntk_clipboard_listener* listeners[3] = {};
     Recorder* recorders[3] = {&first, &second, &third};
     ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, ntk_clipboard_start_observing());
@@ -305,7 +306,7 @@ TEST_F(Clipboard, AUriCopyReachesEachListenerExactlyOnce) {
 }
 
 TEST_F(Clipboard, StoppingObservingStopsTheChangesAndStartingTwiceIsAccepted) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     ntk_clipboard_listener* listener = nullptr;
     ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, ntk_clipboard_start_observing());
     ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, ntk_clipboard_start_observing());
@@ -327,7 +328,7 @@ TEST_F(Clipboard, StoppingObservingStopsTheChangesAndStartingTwiceIsAccepted) {
 }
 
 TEST_F(Clipboard, AListenerAloneDoesNotStartObserving) {
-    Recorder recorder;
+    Recorder& recorder = Leaked<Recorder>();
     ntk_clipboard_listener* listener = nullptr;
     ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE,
               ntk_clipboard_add_change_listener(ChangeCounter, &recorder, Recorder::Release, &listener));
