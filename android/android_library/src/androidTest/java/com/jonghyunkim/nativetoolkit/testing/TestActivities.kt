@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import androidx.fragment.app.FragmentActivity
+import com.jonghyunkim.nativetoolkit.notification.presentation.permission.NotificationPermissionHelper
 
 /**
  * A FragmentActivity: library dialogs show directly on it (Kotlin API design 8.3).
@@ -36,5 +37,26 @@ class PlainActivity : Activity() {
 
     private companion object {
         const val TAG = "com.jonghyunkim.nativetoolkit.testing.PlainActivity"
+    }
+}
+
+/**
+ * Creates the 1.x NotificationPermissionHelper in onCreate, as the sample did until stage 1b
+ * (Kotlin API design IT-23): the helper registers its launcher before the Activity starts.
+ */
+class HelperActivity : FragmentActivity() {
+
+    lateinit var helper: NotificationPermissionHelper
+        private set
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "[onCreate] savedInstanceState: $savedInstanceState")
+        super.onCreate(savedInstanceState)
+        helper = NotificationPermissionHelper(this)
+        setContentView(TextView(this).apply { text = "HelperActivity" })
+    }
+
+    private companion object {
+        const val TAG = "com.jonghyunkim.nativetoolkit.testing.HelperActivity"
     }
 }

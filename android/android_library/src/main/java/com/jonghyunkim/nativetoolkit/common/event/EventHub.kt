@@ -37,17 +37,23 @@ class EventHub<T> internal constructor(
     /**
      * A listener's registration.
      */
-    class Registration internal constructor(private val onRemove: (Registration) -> Unit) {
+    class Registration internal constructor(
+        private val checkMain: (String) -> Unit,
+        private val onRemove: (Registration) -> Unit
+    ) {
 
         internal var removed: Boolean = false
             private set
 
         /**
          * Stops delivery to this listener. Calling it twice does nothing. Main thread only.
+         *
+         * @throws IllegalStateException When called off the main thread; the listener stays registered.
          */
         @MainThread
         fun remove() {
             Log.d(TAG, "[remove]")
+            checkMain("EventHub.Registration.remove")
             if (removed) return
             removed = true
             onRemove(this)
@@ -80,7 +86,7 @@ class EventHub<T> internal constructor(
     fun addListener(listener: Listener<T>): Registration {
         Log.d(TAG, "[addListener] listener: $listener")
         checkMain("EventHub.addListener")
-        val registration = Registration { removed -> entries.removeAll { it.registration === removed } }
+        val registration = Registration(checkMain) { removed -> entries.removeAll { it.registration === removed } }
         entries.add(Entry(listener, registration))
         if (!deliveringRetained) deliverRetained()
         return registration

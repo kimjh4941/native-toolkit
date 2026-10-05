@@ -11,6 +11,7 @@ import androidx.test.uiautomator.Until
 import com.jonghyunkim.nativetoolkit.common.domain.CancelReason
 import com.jonghyunkim.nativetoolkit.common.presentation.ForegroundActivityTracker
 import com.jonghyunkim.nativetoolkit.common.runtime.LibraryRuntime
+import com.jonghyunkim.nativetoolkit.dialog.domain.error.DialogDomainError
 import com.jonghyunkim.nativetoolkit.dialog.domain.error.DialogError
 import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogButton
 import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
@@ -28,6 +29,12 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -254,5 +261,31 @@ class AndroidDialogManagerTest {
         waitText("it06-destroyed")
         instrumentation.runOnMainSync { ForegroundActivityTracker.current()?.finish() }
         assertEquals(DialogResult.Canceled(CancelReason.HOST_DESTROYED), capture.await())
+    }
+
+    // --- IT-03: the suspend version ---
+
+    @Test
+    fun suspend_answer_cancelByTheCoroutine_andUnavailable() {
+        launch(TestFragmentActivity::class.java)
+        val scope = CoroutineScope(Dispatchers.Default)
+        val answer = scope.async { manager.show(DialogRequest.Confirm(title = "it03-suspend", message = "m")) }
+        waitText("Yes")
+        device.findObject(By.text("Yes")).click()
+        assertEquals(DialogResult.Button(DialogButton.POSITIVE, "Yes", DialogValue.None), runBlocking { withTimeout(10_000) { answer.await() } })
+
+        // Cancelling the coroutine closes the dialog.
+        val canceled = scope.async { manager.show(DialogRequest.Alert(title = "it03-suspend-cancel", message = "m")) }
+        waitText("it03-suspend-cancel")
+        canceled.cancel()
+        assertTrue("the dialog stayed", device.wait(Until.gone(By.text("it03-suspend-cancel")), 5_000))
+        assertTrue(runCatching { runBlocking { canceled.await() } }.exceptionOrNull() is CancellationException)
+
+        // With no foreground Activity the suspend version throws the domain error.
+        device.pressHome()
+        device.waitForIdle()
+        Thread.sleep(500)
+        val error = runCatching { runBlocking { withTimeout(10_000) { manager.show(DialogRequest.Alert(title = "it03-suspend-bg", message = "m")) } } }.exceptionOrNull()
+        assertEquals(DialogDomainError.Unavailable(DialogError.NOT_FOREGROUND), error)
     }
 }

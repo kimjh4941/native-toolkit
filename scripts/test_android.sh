@@ -51,7 +51,11 @@ RESULTS="${OUT_DIR}/results.jsonl"
 # The library's instrumented tests (android_library/src/androidTest).
 LIB_PKG="com.jonghyunkim.nativetoolkit.test"
 LIB_RUNNER="${LIB_PKG}/androidx.test.runner.AndroidJUnitRunner"
-LIB_PERMISSION_CLASS="com.jonghyunkim.nativetoolkit.notification.NotificationPermissionRequestTest"
+# Classes that need POST_NOTIFICATIONS revoked first (IT-07, IT-23).
+LIB_PERMISSION_CLASSES=(
+  com.jonghyunkim.nativetoolkit.notification.NotificationPermissionRequestTest
+  com.jonghyunkim.nativetoolkit.notification.ExistingPermissionHelperTest
+)
 # The release probe (Kotlin API design 0.8: IT-19, IT-22, IT-26).
 PROBE_PKG="com.jonghyunkim.android.nativetoolkit.releaseprobe"
 
@@ -180,8 +184,8 @@ done
 if [[ -z "${FILTER}" ]]; then
   echo "[instrumented] the sample's template, android_library, unity_android_plugin"
   run_target "${RUNNER}" "example.android.ExampleInstrumentedTest"
-  # The permission request test needs the permission revoked first (step 5b).
-  run_target "${LIB_RUNNER}" "package:com.jonghyunkim.nativetoolkit" "notclass:${LIB_PERMISSION_CLASS}"
+  # The permission request tests need the permission revoked first (step 5b).
+  run_target "${LIB_RUNNER}" "package:com.jonghyunkim.nativetoolkit" "${LIB_PERMISSION_CLASSES[@]/#/notclass:}"
   run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.unity"
   run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.plugin"
 fi
@@ -205,14 +209,16 @@ if [[ -z "${FILTER}" || "${FILTER}" == "HostState" ]]; then
   restore_device
 fi
 
-# --- 5b. The library's permission request test (Kotlin API design IT-07) --------------------
-# Revoking the permission kills the test process, so it is revoked before the class starts.
-# The class denies the first request and allows a later one, so it ends with the permission granted.
+# --- 5b. The library's permission request tests (Kotlin API design IT-07, IT-23) ------------
+# Revoking the permission kills the test process, so it is revoked before each class starts.
+# Each class denies the first request and allows a later one, so it ends with the permission granted.
 if [[ -z "${FILTER}" || "${FILTER}" == "Library" ]]; then
-  echo "[library] ${LIB_PERMISSION_CLASS} (permission revoked)"
-  adb_s shell pm revoke "${LIB_PKG}" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
-  adb_s shell pm clear-permission-flags "${LIB_PKG}" android.permission.POST_NOTIFICATIONS user-set user-fixed >/dev/null 2>&1 || true
-  run_target "${LIB_RUNNER}" "${LIB_PERMISSION_CLASS}"
+  for class in "${LIB_PERMISSION_CLASSES[@]}"; do
+    echo "[library] ${class} (permission revoked)"
+    adb_s shell pm revoke "${LIB_PKG}" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
+    adb_s shell pm clear-permission-flags "${LIB_PKG}" android.permission.POST_NOTIFICATIONS user-set user-fixed >/dev/null 2>&1 || true
+    run_target "${LIB_RUNNER}" "${class}"
+  done
 fi
 
 # --- 6. Host cases (section 3.7) -----------------------------------------------------------
@@ -373,7 +379,7 @@ print("|".join(value("receivedShare." + name) for name in ("action", "mimeType",
   host_cleanup
 fi
 
-# --- 6b. Release probe (Kotlin API design 0.8 and 12: IT-19, IT-22, IT-26) ---------------------
+# --- 6b. Release probe (Kotlin API design 0.8 and 12: IT-01, IT-03, IT-07, IT-10, IT-11, IT-19, IT-22, IT-23, IT-26)
 # A test-only app built with R8 checks itself and logs "RESULT <case> PASS|FAIL <detail>".
 probe_result() {  # <name> <passed|failed> [message]
   python3 -c 'import json,sys; print(json.dumps({"test": "Probe#" + sys.argv[1], "result": sys.argv[2], "message": sys.argv[3]}))' \
@@ -390,7 +396,7 @@ probe_case() {  # <package> <case> <timeout s>; prints "PASS ..." or "FAIL ...",
     [[ -n "${line}" ]] && break
     sleep 2
   done
-  [[ -n "${line}" ]] && echo "${line#*RESULT ${case} }"
+  if [[ -n "${line}" ]]; then echo "${line#*RESULT ${case} }"; fi
 }
 
 probe_record() {  # <name> <outcome from probe_case>
@@ -398,10 +404,66 @@ probe_record() {  # <name> <outcome from probe_case>
   else probe_result "$1" failed "${2:-no result within the time limit}"; fi
 }
 
+probe_wait() {  # <case> <timeout s>; like probe_case for a result the probe logs without being started
+  local case="$1" end=$(( $(date +%s) + $2 )) line=""
+  while (( $(date +%s) < end )); do
+    line="$(adb_s logcat -d -s NtkProbe:I | grep -m1 "RESULT ${case} " || true)"
+    [[ -n "${line}" ]] && break
+    sleep 2
+  done
+  if [[ -n "${line}" ]]; then echo "${line#*RESULT ${case} }"; fi
+}
+
+# The centre of the first view whose text is [text], from a UI dump; nothing when there is none.
+ui_point() {  # <text>
+  adb_s shell uiautomator dump /sdcard/ntk-probe-dump.xml >/dev/null 2>&1 || true
+  adb_s shell cat /sdcard/ntk-probe-dump.xml 2>/dev/null | python3 -c '
+import re, sys
+m = re.search(r"text=\"" + re.escape(sys.argv[1]) + r"\"[^>]*?bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"", sys.stdin.read())
+print("" if not m else f"{(int(m[1]) + int(m[3])) // 2} {(int(m[2]) + int(m[4])) // 2}")' "$1"
+}
+
+ui_has_id() {  # <resource id>; whether a view with that id is on screen
+  adb_s shell uiautomator dump /sdcard/ntk-probe-dump.xml >/dev/null 2>&1 || true
+  adb_s shell cat /sdcard/ntk-probe-dump.xml 2>/dev/null | grep -q "resource-id=\"$1\""
+}
+
+# Kills the probe's process from the background, as the system does when it needs memory.
+probe_kill() {
+  adb_s shell input keyevent KEYCODE_HOME
+  sleep 2
+  adb_s shell am kill "${PROBE_PKG}"
+  sleep 1
+  [[ -z "$(adb_s shell pidof "${PROBE_PKG}" | tr -d '\r')" ]]
+}
+
+# Taps the probe's notification titled [title] in the shade.
+tap_notification() {  # <title>
+  local point=""
+  adb_s shell cmd statusbar expand-notifications
+  for _ in 1 2 3 4 5; do
+    sleep 1
+    point="$(ui_point "$1")"
+    [[ -n "${point}" ]] && break
+  done
+  [[ -n "${point}" ]] || { adb_s shell cmd statusbar collapse; return 1; }
+  adb_s shell input tap ${point}
+  sleep 2
+  adb_s shell cmd statusbar collapse
+}
+
+# Brings the task of the probe's FragmentActivity back, as Recents does: the system recreates the
+# Activity with its saved state, without a new instance.
+probe_resume_task() {
+  adb_s logcat -c
+  # am start warns, with a non-zero status, that it brought the task to the front instead.
+  adb_s shell am start -f 0x10000000 -n "${PROBE_PKG}/${PROBE_PKG}.ProbeFragmentActivity" >/dev/null 2>&1 || true
+}
+
 if [[ -z "${FILTER}" || "${FILTER}" == "Probe" ]]; then
   echo "[probe] building the release probe (R8)"
   (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :releaseProbe:assembleFullRelease :releaseProbe:assembleFullNextRelease \
-    :releaseProbe:assembleNoPermissionsRelease)
+    :releaseProbe:assembleNoPermissionsRelease :releaseProbe:assembleNoStartupRelease)
   PROBE_APK="${ANDROID_DIR}/AndroidLibraryExample/releaseProbe/build/outputs/apk"
   for package in "${PROBE_PKG}" "${PROBE_PKG}.nopermissions"; do adb_s uninstall "${package}" >/dev/null 2>&1 || true; done
 
@@ -418,8 +480,72 @@ if [[ -z "${FILTER}" || "${FILTER}" == "Probe" ]]; then
     adb_s install -r "${PROBE_APK}/fullNext/release/releaseProbe-fullNext-release.apk" >/dev/null
     wait_until_epoch_ms $(( trigger + 15000 ))
     probe_record IT-26_update "$(probe_case "${PROBE_PKG}" verifyAfterUpdate 40)"
+    echo "[probe] IT-01, IT-23 Startup disabled: isScheduled from the store, manual initialization"
+    adb_s install -r "${PROBE_APK}/noStartup/release/releaseProbe-noStartup-release.apk" >/dev/null
+    probe_record IT-01_withoutStartup "$(probe_case "${PROBE_PKG}" withoutStartup 30)"
   else
     probe_record IT-26_update "scheduleForUpdate: ${outcome}"
+    probe_result IT-01_withoutStartup failed "not run: scheduleForUpdate failed"
+  fi
+  adb_s uninstall "${PROBE_PKG}" >/dev/null 2>&1 || true
+
+  echo "[probe] IT-10, IT-11 notification taps after the process was killed"
+  adb_s install "${PROBE_APK}/full/release/releaseProbe-full-release.apk" >/dev/null
+  adb_s shell pm grant "${PROBE_PKG}" android.permission.POST_NOTIFICATIONS
+  # One notification at a time: the system groups two, and a tap on the group only opens the app.
+  outcome="$(probe_case "${PROBE_PKG}" postColdTap 20)"
+  if [[ "${outcome}" != PASS* ]]; then
+    probe_record IT-10_coldStart "postColdTap: ${outcome}"
+  elif probe_kill && tap_notification "Probe cold tap"; then
+    sleep 3
+    probe_record IT-10_coldStart "$(probe_case "${PROBE_PKG}" coldEvents 20)"
+  else
+    probe_result IT-10_coldStart failed "the process stayed or the notification was not found"
+  fi
+  outcome="$(probe_case "${PROBE_PKG}" postColdLaunch 20)"
+  if [[ "${outcome}" != PASS* ]]; then
+    probe_record IT-11_coldLaunch "postColdLaunch: ${outcome}"
+  elif probe_kill; then
+    adb_s logcat -c
+    if tap_notification "Probe cold launch"; then
+      probe_record IT-11_coldLaunch "$(probe_wait coldLaunch 20)"
+    else
+      probe_result IT-11_coldLaunch failed "the notification was not found"
+    fi
+  else
+    probe_result IT-11_coldLaunch failed "the process stayed"
+  fi
+
+  echo "[probe] IT-03 a dialog restored after a process death closes"
+  outcome="$(probe_case "${PROBE_PKG}" dialogBeforeKill 20)"
+  if [[ "${outcome}" == PASS* ]] && probe_kill; then
+    probe_resume_task
+    outcome="$(probe_wait afterKill 20)"
+    [[ "${outcome}" == PASS* && -n "$(ui_point "Probe kill dialog")" ]] && outcome="FAIL the dialog is on screen"
+    probe_record IT-03_afterProcessDeath "${outcome}"
+  else
+    probe_record IT-03_afterProcessDeath "dialogBeforeKill: ${outcome:-the process stayed}"
+  fi
+
+  echo "[probe] IT-07 a permission request restored after a process death does not launch again"
+  adb_s shell pm revoke "${PROBE_PKG}" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
+  adb_s shell pm clear-permission-flags "${PROBE_PKG}" android.permission.POST_NOTIFICATIONS user-set user-fixed >/dev/null 2>&1 || true
+  outcome="$(probe_case "${PROBE_PKG}" permissionBeforeKill 20)"
+  if [[ "${outcome}" == PASS* ]] && ui_has_id "com.android.permissioncontroller:id/permission_deny_button" && probe_kill; then
+    probe_resume_task
+    sleep 3
+    # The system dialog of the dead request may come back with the task; close it once.
+    if ui_has_id "com.android.permissioncontroller:id/permission_deny_button"; then
+      adb_s shell input keyevent KEYCODE_BACK
+    fi
+    outcome="$(probe_wait afterKill 20)"
+    sleep 3
+    if [[ "${outcome}" == PASS* ]] && ui_has_id "com.android.permissioncontroller:id/permission_deny_button"; then
+      outcome="FAIL the restored request showed the permission dialog again"
+    fi
+    probe_record IT-07_afterProcessDeath "${outcome}"
+  else
+    probe_record IT-07_afterProcessDeath "permissionBeforeKill: ${outcome:-the dialog did not show or the process stayed}"
   fi
   adb_s uninstall "${PROBE_PKG}" >/dev/null 2>&1 || true
 

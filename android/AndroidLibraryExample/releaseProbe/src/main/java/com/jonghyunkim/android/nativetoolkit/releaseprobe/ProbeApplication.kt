@@ -7,13 +7,15 @@ import android.util.Log
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * Records which activities were resumed, so that [ProbeActivity] can tell that the library's
- * transparent host was used.
+ * Records which activities were resumed and when the process started, so that the probe can tell
+ * that the library's transparent host was used and that a check runs in a process started after a
+ * kill.
  */
 class ProbeApplication : Application() {
 
     override fun onCreate() {
         Log.d(TAG, "[onCreate]")
+        startedAt = System.currentTimeMillis()
         super.onCreate()
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityResumed(activity: Activity) {
@@ -35,5 +37,9 @@ class ProbeApplication : Application() {
 
         /** The class names of the activities resumed in this process, in order. */
         val resumed = CopyOnWriteArrayList<String>()
+
+        /** When this process started (wall clock). */
+        @Volatile var startedAt = 0L
+            private set
     }
 }

@@ -49,6 +49,8 @@ class AndroidShareManager internal constructor(
      */
     fun shareText(content: ShareContent, preview: SharePreviewOptions = SharePreviewOptions()) {
         Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, preview: $preview")
+        // The deprecated JSON form with no actions is the existing share (Kotlin API design 8.13, IT-27).
+        @Suppress("DEPRECATION")
         useCases.shareText(content, "[]", preview)
     }
 

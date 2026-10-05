@@ -20,6 +20,10 @@ class ShareTextUseCase(private val repository: ShareRepository) {
      * @param content Text content to share.
      * @param chooserActionsJson JSON array of custom chooser actions for API 34+. Defaults to empty.
      */
+    @Deprecated(
+        "The JSON form of chooser actions is kept only for the Unity bridge and is removed in stage 3 before 2.0.0 " +
+            "ships. Use AndroidShareManager.shareText, or ShareTextWithActionsUseCase for typed chooser actions."
+    )
     operator fun invoke(content: ShareContent, chooserActionsJson: String = "[]") {
         Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson")
         if (content.text.isBlank()) throw ShareDomainError.EmptyContent
@@ -37,6 +41,10 @@ class ShareTextUseCase(private val repository: ShareRepository) {
      * @param chooserActionsJson JSON array of custom chooser actions for API 34+.
      * @param preview Rich-preview options.
      */
+    @Deprecated(
+        "The JSON form of chooser actions is kept only for the Unity bridge and is removed in stage 3 before 2.0.0 " +
+            "ships. Use AndroidShareManager.shareText, or ShareTextWithActionsUseCase for typed chooser actions."
+    )
     operator fun invoke(
         content: ShareContent,
         chooserActionsJson: String,

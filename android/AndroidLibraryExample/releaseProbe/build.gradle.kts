@@ -35,6 +35,13 @@ android {
             dimension = "probe"
             applicationIdSuffix = ".nopermissions"
         }
+        // IT-01 and the last check of IT-23: Startup and the package-replaced receiver removed
+        // (src/noStartup/AndroidManifest.xml). Installed over fullNext, so the version code is higher.
+        create("noStartup") {
+            dimension = "probe"
+            versionCode = 3
+            versionName = "3.0.0"
+        }
     }
 
     buildTypes {

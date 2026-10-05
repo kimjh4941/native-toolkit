@@ -17,6 +17,11 @@
             android:name="com.jonghyunkim.nativetoolkit.testing.PlainActivity"
             android:exported="false"
             android:theme="@android:style/Theme.DeviceDefault.Light" />
+        <!-- The 1.x permission helper (IT-23). -->
+        <activity
+            android:name="com.jonghyunkim.nativetoolkit.testing.HelperActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Light" />
     </application>
 
 </manifest>

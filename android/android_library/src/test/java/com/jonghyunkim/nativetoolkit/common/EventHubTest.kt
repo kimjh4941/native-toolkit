@@ -139,4 +139,22 @@ class EventHubTest {
         hub.emit(1)
         assertTrue(got.isEmpty())
     }
+
+    @Test
+    fun removeOffTheMainThread_throws_andTheListenerStaysRegistered() {
+        var onMain = true
+        val hub = EventHub<Int>(EventHub.Retention.None) { name -> check(onMain) { "$name must be called on the main thread" } }
+        val got = mutableListOf<Int>()
+        val registration = hub.addListener { e, _ -> got += e }
+        onMain = false
+        val error = runCatching { registration.remove() }.exceptionOrNull()
+        assertTrue(error is IllegalStateException)
+        assertEquals("EventHub.Registration.remove must be called on the main thread", error?.message)
+        onMain = true
+        hub.emit(1)
+        assertEquals(listOf(1), got)
+        registration.remove()
+        hub.emit(2)
+        assertEquals(listOf(1), got)
+    }
 }

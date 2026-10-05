@@ -22,16 +22,16 @@ object NotificationEventIntents {
     private const val TAG = "com.jonghyunkim.nativetoolkit.notification.presentation.event.NotificationEventIntents"
 
     /** The action of every event intent. Never change it (Kotlin API design 8.5). */
-    const val ACTION_EVENT: String = "com.jonghyunkim.nativetoolkit.notification.action.EVENT"
+    internal const val ACTION_EVENT: String = "com.jonghyunkim.nativetoolkit.notification.action.EVENT"
 
     /** The data URI scheme of event intents. Never change it. */
-    const val SCHEME_EVENT: String = "ntk-notification-event"
+    internal const val SCHEME_EVENT: String = "ntk-notification-event"
 
     /** The extra holding the data map as a JSON object string. Never change it. */
-    const val EXTRA_DATA: String = "com.jonghyunkim.nativetoolkit.notification.extra.DATA"
+    internal const val EXTRA_DATA: String = "com.jonghyunkim.nativetoolkit.notification.extra.DATA"
 
     /** The identifier prefix of full-screen launch intents. Never change it. */
-    const val IDENTIFIER_LAUNCH_PREFIX: String = "ntk-notification-launch/"
+    internal const val IDENTIFIER_LAUNCH_PREFIX: String = "ntk-notification-launch/"
 
     /**
      * A body tap.

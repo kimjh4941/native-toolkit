@@ -2,6 +2,7 @@
 
 - 作成日: 2026-10-03
 - 改訂: 2026-10-03 に別モデル 2 者のレビュー（`reviews/2026-10-03-android-c-abi-ui-test-design-review-v1.md`）を反映した
+- 改訂: 2026-10-05 に段階 1b の内容に合わせた（`results/2026-10-04-android-c-abi-implement-sample-app-result-v1.md` の 5 章）。変えたのは 5.1（testTag とボタンの数）、6 章（1b で足したケース、Manager に替えて変わった期待の文言、6.6 の新設。段階 0c でテストを OS の動作に合わせた期待値も、今のテストに合わせた）、8 章（段 5b・6b と `--filter` の `Library`・`Probe`、結果のフォルダー名）。3.8 には 1b で直したものの扱いを、4 章には 1b で足した基盤の 2 つを書き足した。そのほかの節は段階 0 のときのまま
 - 対象: `artifact/topics/android-c-abi/README.md` の段階 0b 〜 0d
 - 入力:
   - `artifact/topics/android-c-abi/README.md`（7 章 検証方法、7.2 の試験環境）
@@ -150,7 +151,7 @@
 | 動作 | 扱い |
 |---|---|
 | Share のエラーの表示が `❌ null`（`ShareDomainError` が message を持たない） | 起こせる場面が無いので、テストの対象外 |
-| Dialog のログインの結果に、パスワードが平文で出る | 今の動作のまま期待値にする。ログの規則の例外（README 8.6）と合わせて 1b で扱う |
+| Dialog のログインの結果に、パスワードが平文で出る | 今の動作のまま期待値にする。ログの規則の例外（README 8.6）と合わせて 1b で扱う。**1b で直した**: サンプルの結果の表示は入力の長さだけを出し（6.2）、ライブラリのログも伏せる（Kotlin API の設計書 8.11、IT-21） |
 | 「Use 'Open Notification Settings' above」「Use 'Open Exact Alarm Settings' above」の「above」は誤り | 今の文言のまま期待値にする |
 | `✅ Channel created: <id>` は同じクリックの中ですぐ上書きされ、見えない | 期待値にしない |
 | 前景サービスの中での失敗は、状態の表示に出ない（`startService` の成否だけ） | 通知の中身（3.2）で確かめる |
@@ -179,8 +180,8 @@
 | `ShareTargetApp` | 共有先アプリの画面の値を読む、閉じる |
 | `SystemWindows` | 通知の権限のダイアログ、設定の画面の判定と戻り（3.3） |
 | `ViewDialogs` | `DialogFragment` のタイトル・本文・ボタン・項目・入力欄を UiAutomator で操作し、読む。入力欄が伏せ字かは `AccessibilityNodeInfo.isPassword` で読む |
-| `Toasts` | 3.1 の条件で Toast の文言を集め、待つ |
-| `DeviceState` | 権限の許可、正確なアラームと全画面の通知の `allow` |
+| `Toasts` | 3.1 の条件で Toast の文言を集め、待つ。1b で、文言を含む Toast の数を返す `count` を足した（部分一致で数える） |
+| `DeviceState` | 権限の許可、正確なアラームと全画面の通知の `allow`。1b で、受け手の無い間にライブラリが保った通知のイベントを、次のテストに持ち越さないように捨てる `dropKeptNotificationEvents` を足した |
 | `Cleanup` | テストの前後に行う: 進捗の前景サービスの停止（`ProgressForegroundNotifications.stop`）、通話の前景サービスの停止（停止の Intent）、予約の取り消し（ID 1010 と H-xx の ID）、Direct Share のショートカット `sample_1` の削除、`cancelAll()`、サンプルの通知が一覧から無くなるまで待つ、シェードと Sharesheet と共有先アプリを閉じる |
 
 ## 5. サンプルアプリの変更（段階 0b）
@@ -194,10 +195,19 @@
 | メニューのカード | `menu.<画面>` | `menu.dialog`、`menu.notification`、`menu.share`、`menu.clipboard` |
 | ボタン | `<画面>.<ボタンの文言の lowerCamelCase>`（記号と括弧は除く） | `notification.showActionButtonsSample`、`share.shareWithCallback`、`clipboard.copyUriContentViaFileProvider` |
 | 状態の表示 | `<画面>.status` | `dialog.status`、`notification.status` |
+| 通知のイベントの行（段階 1b で追加） | `notification.events` | `notification.events` |
 | 戻るボタン | `<画面>.back` | `share.back` |
 | 受け取りの画面の値 | `receivedShare.<ラベル>` | `receivedShare.action`、`receivedShare.mimeType`、`receivedShare.text`、`receivedShare.streamUris`、`receivedShare.directShareTarget` |
 
-ボタンの数: メニュー 4、Dialog 6、Notification 46、Share 14、Clipboard 16、各画面の戻る 5。
+ボタンの数: メニュー 4、Dialog 9、Notification 48、Share 17、Clipboard 16、各画面の戻る 5。
+
+**段階 1b で数が変わった**（段階 0b は Dialog 6、Notification 46、Share 14）。足したボタンは次のとおり。
+
+| 画面 | 足したボタン（testTag） |
+|---|---|
+| Dialog | `dialog.showConfirmCoroutine`（ShowConfirmDialog (Coroutine)）、`dialog.showCancelableDialog`（ShowCancelableDialog）、`dialog.showAndCancel`（ShowDialog And Cancel (2s)） |
+| Notification | `notification.requestNotificationPermissionCoroutine`（Request Notification Permission (Coroutine)）、`notification.showEventSample`（Show Event Sample (Body Tap)） |
+| Share | `share.shareTextWithInvalidAction`（Share Text with Invalid Action）、`share.shareForSelection`（Share For Selection）、`share.cancelShareSelection`（Cancel Share Selection） |
 
 **見た目も動作も変えない。** testTag は見た目に影響しない。
 
@@ -217,35 +227,44 @@
 |---|---|---|
 | M-01 | メニュー → 各画面（4）→ `← Back to Main` | 各画面の見出し（`Dialog Example` / `Notification Example` / `Share Example` / `Clipboard Example`）が出て、メニュー（`Native Toolkit Example`）に戻る |
 | M-02 | 各画面でシステムの Back | メニューに戻る |
-| M-03 | Dialog の結果を出す → メニュー → Dialog に戻る | 結果の表示が残っている（`rememberSaveable`） |
+| M-03 | Dialog の結果を出す（ShowDialog → `OK`）→ メニュー → Dialog に戻る | 結果の表示 `Result: alert - button: POSITIVE (OK)` が残っている（`rememberSaveable`。文言は段階 1b で変わった。6.2） |
 | M-04 | Notification / Share / Clipboard で状態を変える → メニュー → 戻る | 状態の表示が初期値（Notification は `Explore notification samples. Start by checking the current permission state.`、Share と Clipboard は `Result will be displayed here`）に戻る |
 
 ### 6.2 Dialog（新規。`Dialog`）
 
-結果の表示は `✅` の後に改行して `Result: ...` が続く。下の表は `Result: ` より後ろを書く。
+結果の表示は `✅`（取り消されたときは `❌`）の後に改行して `Result: ...` が続く。下の表は `Result: ` より後ろを書く。
+
+段階 1b で、Dialog の画面は `AndroidDialogManager` を使うようになり、結果の文言が変わった（D-01〜D-15）。入力の値は表示せず、長さだけを出す（D-11、D-14）。D-17〜D-21 は 1b で足した。
 
 | ID | 操作 | 期待 |
 |---|---|---|
-| D-01 | ShowDialog → `OK` | タイトル `Hello from Android`、本文 `This is a native Android dialog!`、ボタン `OK`。結果 `onDialog - buttonText: OK, errorMessage: null` |
-| D-02 | ShowConfirmDialog → `Yes` | タイトル `Confirmation`、本文 `Do you want to proceed with this action?`、ボタン `No` / `Yes`。結果 `onConfirmDialog - buttonText: Yes, errorMessage: null` |
-| D-03 | ShowConfirmDialog → `No` | `onConfirmDialog - buttonText: No, errorMessage: null` |
-| D-04 | ShowSingleChoiceItemDialog → そのまま `OK` | タイトル `Please select one`、項目 `Option 1` / `Option 2` / `Option 3`、`Option 1` が選ばれている。結果 `onSingleChoiceItemDialog - buttonText: OK, checkedItem: 0, errorMessage: null` |
-| D-05 | ShowSingleChoiceItemDialog → `Option 3` → `OK` | `buttonText: OK, checkedItem: 2, errorMessage: null` |
-| D-06 | ShowSingleChoiceItemDialog → `Cancel` | `buttonText: Cancel, checkedItem: null, errorMessage: null` |
-| D-07 | ShowMultiChoiceItemDialog → そのまま `OK` | タイトル `Multiple Selection`、項目 `Option 1`〜`Option 4`、`Option 2` と `Option 4` にチェック。結果 `onMultiChoiceItemDialog - buttonText: OK, checkedItems: [false, true, false, true], errorMessage: null` |
-| D-08 | ShowMultiChoiceItemDialog → `Option 1` にチェック → `OK` | `checkedItems: [true, true, false, true]` |
-| D-09 | ShowMultiChoiceItemDialog → `Cancel` | `buttonText: Cancel, checkedItems: null, errorMessage: null` |
+| D-01 | ShowDialog → `OK` | タイトル `Hello from Android`、本文 `This is a native Android dialog!`、ボタン `OK`。結果 `alert - button: POSITIVE (OK)` |
+| D-02 | ShowConfirmDialog → `Yes` | タイトル `Confirmation`、本文 `Do you want to proceed with this action?`、ボタン `No` / `Yes`。結果 `confirm - button: POSITIVE (Yes)` |
+| D-03 | ShowConfirmDialog → `No` | `confirm - button: NEGATIVE (No)` |
+| D-04 | ShowSingleChoiceItemDialog → そのまま `OK` | タイトル `Please select one`、項目 `Option 1` / `Option 2` / `Option 3`、`Option 1` が選ばれている。結果 `singleChoice - button: POSITIVE (OK), index: 0` |
+| D-05 | ShowSingleChoiceItemDialog → `Option 3` → `OK` | `singleChoice - button: POSITIVE (OK), index: 2` |
+| D-06 | ShowSingleChoiceItemDialog → `Cancel` | `singleChoice - button: NEGATIVE (Cancel)` |
+| D-07 | ShowMultiChoiceItemDialog → そのまま `OK` | タイトル `Multiple Selection`、項目 `Option 1`〜`Option 4`、`Option 2` と `Option 4` にチェック。結果 `multiChoice - button: POSITIVE (OK), checked: [false, true, false, true]` |
+| D-08 | ShowMultiChoiceItemDialog → `Option 1` にチェック → `OK` | `multiChoice - button: POSITIVE (OK), checked: [true, true, false, true]` |
+| D-09 | ShowMultiChoiceItemDialog → `Cancel` | `multiChoice - button: NEGATIVE (Cancel)` |
 | D-10 | ShowTextInputDialog | タイトル `Text Input`、本文 `Please enter your name`、入力欄のヒント `Enter here...`。空の間は `OK` が押せない（`enabled=false`） |
-| D-11 | ShowTextInputDialog → `Alice` → `OK` | `onTextInputDialog - buttonText: OK, inputText: Alice, errorMessage: null` |
-| D-12 | ShowTextInputDialog → `Cancel` | `buttonText: Cancel, inputText: null, errorMessage: null` |
+| D-11 | ShowTextInputDialog → `Alice` → `OK` | `textInput - button: POSITIVE (OK), textLength: 5` |
+| D-12 | ShowTextInputDialog → `Cancel` | `textInput - button: NEGATIVE (Cancel)` |
 | D-13 | ShowLoginDialog | タイトル `Login`、本文 `Please enter your credentials`、ヒント `Username` / `Password`。片方だけ入れた間は `Login` が押せない。パスワードの入力欄が伏せ字（`isPassword`） |
-| D-14 | ShowLoginDialog → `user1` / `pass1` → `Login` | `onLoginDialog - buttonText: Login, username: user1, password: pass1, errorMessage: null` |
-| D-15 | ShowLoginDialog → `Cancel` | `buttonText: Cancel, username: null, password: null, errorMessage: null` |
+| D-14 | ShowLoginDialog → `user1` / `pass1` → `Login` | `login - button: POSITIVE (Login), usernameLength: 5, passwordLength: 5` |
+| D-15 | ShowLoginDialog → `Cancel` | `login - button: NEGATIVE (Cancel)` |
 | D-16 | 各 Dialog を出して Back、Dialog の外側をタップ | どちらでも閉じない（`cancelable=false`、`cancelableOnTouchOutside=false`） |
+| D-17 | ShowConfirmDialog (Coroutine) → `Yes`（`d17_confirmCoroutineYes`） | タイトル `Confirmation`。結果 `confirm - button: POSITIVE (Yes)` |
+| D-18 | ShowCancelableDialog → Back（`d18_cancelableDialogBackIsDismissed`） | タイトル `Cancelable`。結果 `alert - Dismissed`。Dialog が閉じる |
+| D-19 | ShowDialog And Cancel (2s) → 何も押さない（`d19_cancelAfterTwoSecondsClosesTheDialog`） | タイトル `Hello from Android` が出る。結果は `❌` の後に `alert - Canceled: REQUESTED`。Dialog が閉じる |
+| D-20 | ShowConfirmDialog → `MainActivity` を作り直す（`recreate`）→ `Yes`（`d20_resultReachesTheRecreatedScreen`） | 作り直した後も `Confirmation` が出ている。結果 `confirm - button: POSITIVE (Yes)` が作り直した後の画面に出る |
+| D-21 | ShowDialog And Cancel (2s) → `MainActivity` を作り直す（`recreate`）（`d21_cancelSurvivesTheRecreation`） | 作り直した後も取り消しが届き、結果は `❌` の後に `alert - Canceled: REQUESTED`。Dialog が閉じる |
 
 ### 6.3 Notification（新規。`Notification`）
 
 通知の中身は 3.2 で、表示は代表の文言をシェードで確かめる。各テストの前に `Cleanup` をする。
+
+段階 1b で、通知の画面に、状態の表示とは別にライブラリのイベントを出す行（`notification.events`。通し番号つき。初めは `ℹ️ #0 No events yet`）を足した。通知のボタン・deleteIntent・カスタムビューのボタンの結果は、サンプルの Receiver ではなくライブラリのイベントで届くようになった（N-16、N-22、N-24〜N-26、N-28）。状態の表示と Toast の文言は変わらない。
 
 権限と設定（`Notification`）:
 
@@ -266,6 +285,11 @@
 | N-05 | 通知の権限を取り消し | Show Default Style | 状態 `❌ Unable to show notifications. Check permissions or notification settings.`。通知が無い |
 | N-09 | 通知の権限を取り消し | Start Progress FGS 10% / Incoming Call / Schedule Notification (15 sec) | 状態がそれぞれ `❌ Unable to show the progress foreground service. Check permissions or notification settings.` / `❌ Unable to show call notifications. Check permissions or notification settings.` / `❌ Unable to schedule notifications. Check permissions or notification settings.` |
 | N-50 | 正確なアラーム `default` | Schedule Notification (15 sec) | 状態 `❌ Exact alarms are not allowed. Use 'Open Exact Alarm Settings' above to enable them.` |
+| N-10（HostState） | 通知の権限を取り消し | Request Notification Permission (Coroutine) → 許可（`n10_permissionRevoked_requestCoroutineAndAllow`） | 状態 `✅ Notification permission granted (coroutine).` |
+| N-11（HostState） | 通知の権限を取り消し | Request Notification Permission (Coroutine) → 拒否（`n11_permissionRevoked_requestCoroutineAndDeny`） | 状態 `❌ Notification permission is not granted (coroutine).` |
+| N-12（HostState） | 通知の権限を取り消し | Request Notification Permission → ダイアログが出たまま `MainActivity` を作り直す（`recreate`）→ 許可（`n12_permissionRevoked_requestSurvivesTheRecreation`） | 作り直した後の画面の状態（UiAutomator で `notification.status` を読む）に `✅ Notification permission granted.` |
+
+N-10〜N-12（HostState）は段階 1b で足した。番号が style の N-10〜N-12 と重なるが、別のテスト（`NotificationHostStateUiTest`）で、テストの名前で見分ける。
 
 style:
 
@@ -275,10 +299,10 @@ style:
 | N-11 | Show BigText Style → Delete | 状態 `✅ Displayed BigText style notification.`。ID 1002、BigText、`EXTRA_TITLE_BIG` `BigText Style`、`EXTRA_SUMMARY_TEXT` `BigText`、`EXTRA_BIG_TEXT` `This is a BigText notification sample from Native Toolkit Example. Expand the notification to verify the full body text rendering.`。Delete で `🗑️ Deleted BigText Style notification.` |
 | N-12 | Show Inbox Style → Delete | 状態 `✅ Displayed Inbox style notification.`。ID 1003、Inbox、行 `• Permission status checked` / `• Channel created successfully` / `• Immediate notification sent` / `• Scheduled notification ready`、`number=4`、要約 `4 sample events`、`EXTRA_TITLE_BIG` `Inbox Style` |
 | N-13 | Show BigPicture Style → Delete | 状態 `✅ Displayed BigPicture style notification.`。ID 1004、BigPicture、画像（3.2）と大きいアイコンがある、要約 `Launcher image preview`、`EXTRA_TITLE_BIG` `BigPicture Style`。画像の中身は CU-01 |
-| N-14 | Show Messaging Style → Delete | 状態 `✅ Displayed Messaging style notification.`。ID 1005、タイトル `Native Toolkit Team`、`number=3`、Messaging、会話のタイトル `Native Toolkit Example`、グループの会話、メッセージ 3 つ（`Alex` / `Can you verify the notification styles?`、`Jordan` / `Sure, BigText / Inbox / BigPicture / Messaging are ready.`、`You` / `Confirmed. This is the Messaging sample.`） |
+| N-14 | Show Messaging Style → Delete | 状態 `✅ Displayed Messaging style notification.`。ID 1005、タイトル `Native Toolkit Example: You`（API 35/36 はシステムが `<会話のタイトル>: <自分>` に付け直す。段階 0c でテストを合わせた）、`number=3`、Messaging、会話のタイトル `Native Toolkit Example`、グループの会話、メッセージ 3 つ（`Alex` / `Can you verify the notification styles?`、`Jordan` / `Sure, BigText / Inbox / BigPicture / Messaging are ready.`、`You` / `Confirmed. This is the Messaging sample.`） |
 | N-15 | Show Media Style → Delete | 状態 `✅ Displayed Media style notification.`。ID 1006、タイトル `Native Toolkit Player`、Media、ongoing、カテゴリ `transport`、アクション `Previous` / `Play` / `Next`。シェードに `Native Toolkit Player` |
-| N-16 | Show DecoratedCustomView Style → 展開 → `Dismiss` → Delete | 状態 `✅ Displayed DecoratedCustomView style notification.`。ID 1007。シェードに `Expanded custom notification sample`。`Dismiss` で状態 `✅ Action button pressed: Dismiss (id=custom_view_dismiss, notificationId=1007)`、通知は残る。Delete で消え、`🗑️ Deleted DecoratedCustomView Style notification.`。画像は CU-02 |
-| N-17 | Show DecoratedMediaCustomView Style → Delete | 状態 `✅ Displayed DecoratedMediaCustomView style notification.`。ID 1008、ongoing、アクション 3 つ。シェードに `Decorated media custom view sample`。Delete で `🗑️ Deleted DecoratedMediaCustomView Style notification.` |
+| N-16 | Show DecoratedCustomView Style → 展開 → `Dismiss` → Delete | 状態 `✅ Displayed DecoratedCustomView style notification.`。ID 1007、DecoratedCustomView。シェードに `Decorated custom view sample`。`Dismiss` で状態 `✅ Action button pressed: Dismiss (id=custom_view_dismiss, notificationId=1007)`、通知は残る。Delete で消え、`🗑️ Deleted DecoratedCustomView Style notification.`。画像は CU-02 |
+| N-17 | Show DecoratedMediaCustomView Style → Delete | 状態 `✅ Displayed DecoratedMediaCustomView style notification.`。ID 1008、DecoratedMediaCustomView、ongoing、アクション `Previous` / `Play` / `Next`。シェードに `Decorated media custom view sample`。Delete で `🗑️ Deleted DecoratedMediaCustomView Style notification.` |
 
 操作とグループ:
 
@@ -292,7 +316,16 @@ style:
 | N-25 | 同上で `Decline` | `✅ Action button pressed: Decline (id=decline, notificationId=1112)` |
 | N-26 | Show Action Buttons Sample → メニューに戻る → シェードで `Accept` | Toast `Accept action pressed` |
 | N-27 | Show Default Style → `pressHome` → シェードで通知の本文を押す | サンプルのウィンドウが前面に戻り、Notification の画面のまま。通知は消える（autoCancel） |
-| N-28 | Show Media Style → `pressHome` → シェードで `Previous` | サンプルのウィンドウが前面に戻る。通知は残る（ongoing） |
+| N-28 | Show Media Style → `pressHome` → シェードで `Previous` | サンプルのウィンドウが Notification の画面で前面に戻り、状態 `✅ Action button pressed: Previous (id=previous, notificationId=1006)`（段階 1b で足した確かめ）。通知は残る（ongoing） |
+| N-29 | Show Event Sample (Body Tap) → `pressHome` → シェードで本文 `Tap this notification to send a body tap event.` を押す（`n29_eventSampleBodyTapIsReported`。段階 1b で追加） | 状態 `✅ Displayed event sample.`。ID 1120。サンプルのウィンドウが Notification の画面で前面に戻り、イベントの行に `ℹ️ #1 Body tapped (notificationId=1120, tag=null)` |
+
+イベントの届き方（段階 1b で追加。N-60 は `NotificationInteractionUiTest`、N-61・N-62 は `NotificationEventDeliveryUiTest`）:
+
+| ID | 操作 | 期待 |
+|---|---|---|
+| N-60 | Show Action Buttons Sample → シェードで `Accept` を 2 回 → メニューに戻る → Notification に戻る（`n60_eachActionIsDeliveredOnce_andNotReplayedOnReentry`） | イベントの行が `ℹ️ #0 No events yet` → `ℹ️ #1 Action Accept (notificationId=1112)` → `ℹ️ #2 Action Accept (notificationId=1112)`。開き直すと `ℹ️ #0 No events yet` に戻り、1 秒たっても変わらない（前のイベントがもう一度届かない） |
+| N-61 | Show Action Buttons Sample → `MainActivity` を閉じる（`finish`）→ シェードで `Accept` → サンプルを起動し直す（`n61_actionWhileMainActivityIsGone_isToastedOnceAfterTheRelaunch`） | 閉じている間は Toast `Accept action pressed` が出ない（1.5 秒）。起動し直すと、Toast `Accept action pressed` が 1 回だけ出る |
+| N-62 | Show Action Buttons Sample → `MainActivity` を作り直す（`recreate`）→ シェードで `Accept`（`n62_recreatedMainActivity_receivesEachActionOnce`） | 作り直した後のイベントの行が `ℹ️ #0 No events yet` から `ℹ️ #1 Action Accept (notificationId=1112)` になり、1.5 秒たっても変わらない。Toast `Accept action pressed` は出ない（受け手が 1 つだけ） |
 
 進捗:
 
@@ -304,24 +337,24 @@ style:
 | N-33 | Start Progress FGS 10% → Complete Progress FGS | 状態 `✅ Completed progress foreground service. It has been downgraded to a regular notification.`。通知は残り、`FLAG_FOREGROUND_SERVICE` でない。本文 `Background sync completed`、`EXTRA_TITLE_BIG` `Background Sync Completed`、`EXTRA_BIG_TEXT` `The background sync finished successfully. This notification was downgraded from a foreground service to a normal notification.`、進捗 100 |
 | N-34 | N-33 の後に Stop Progress FGS | 完了の通知は残る（3.8） |
 
-通話（ボタンの押し方は 3.9）:
+通話（ボタンの押し方は 3.9）。CallStyle の通知のタイトル（`EXTRA_TITLE`）は発信者の名前 `Native Toolkit Support` になるので、着信・通話中・スクリーニングは本文で見分ける（段階 0c でテストを合わせた）:
 
 | ID | 操作 | 期待 |
 |---|---|---|
-| N-40 | Incoming Call | 状態 `✅ Started foreground service CallStyle sample for Incoming Call.`。ID 1200、カテゴリ `call`、CallStyle、`FLAG_FOREGROUND_SERVICE`、タイトル `Incoming call`、本文 `Native Toolkit Support is calling`、チャンネル `native_toolkit_call_v3` |
-| N-41 | Incoming Call → 応答 | 通知のタイトルが `Call in progress` に変わる |
+| N-40 | Incoming Call | 状態 `✅ Started foreground service CallStyle sample for Incoming Call.`。ID 1200、カテゴリ `call`、CallStyle、`FLAG_FOREGROUND_SERVICE`、タイトル `Native Toolkit Support`、本文 `Native Toolkit Support is calling`、チャンネル `native_toolkit_call_v3` |
+| N-41 | Incoming Call → 応答 | 通知の本文が `Native Toolkit Support connected` に変わる |
 | N-42 | Incoming Call → 拒否 | 通知が消える |
-| N-43 | Ongoing Call → Stop Call Foreground Service | 状態 `✅ Started foreground service CallStyle sample for Ongoing Call.`、タイトル `Call in progress`、本文 `Native Toolkit Support connected`。Stop で消え、状態 `ℹ️ Requested call foreground service sample stop.` |
+| N-43 | Ongoing Call → Stop Call Foreground Service | 状態 `✅ Started foreground service CallStyle sample for Ongoing Call.`、本文 `Native Toolkit Support connected`。Stop で消え、状態 `ℹ️ Requested call foreground service sample stop.` |
 | N-44 | Ongoing Call → 切る | 通知が消える |
-| N-45 | Screening Call | 状態 `✅ Started foreground service CallStyle sample for Screening Call.`、タイトル `Screening call`、本文 `Review this call request from Native Toolkit Support` |
-| N-46 | Screening Call → 応答 | タイトルが `Call in progress` に変わる |
+| N-45 | Screening Call | 状態 `✅ Started foreground service CallStyle sample for Screening Call.`、本文 `Review this call request from Native Toolkit Support` |
+| N-46 | Screening Call → 応答 | 本文が `Native Toolkit Support connected` に変わる |
 | N-47 | Screening Call → 切る | 通知が消える |
 
 予約:
 
 | ID | 操作 | 期待 |
 |---|---|---|
-| N-51 | Schedule Notification (15 sec) | 状態 `✅ Scheduled a high-priority notification for 15 seconds later. (isScheduled=true)`。予約の 10 秒後の時点で ID 1010 が無い（U-3）。予約の時刻の後、25 秒まで待つと出る: タイトル `Native Toolkit`、本文 `Scheduled notification sample`、`EXTRA_TITLE_BIG` `Scheduled BigText`、`EXTRA_BIG_TEXT` `This scheduled notification was queued from Native Toolkit Example.`、カテゴリ `alarm`、チャンネル `native_toolkit_schedule_high`（重要度 4）。出た後の Check Schedule isScheduled は状態 `ℹ️ Schedule Notification is currently not scheduled. (isScheduled=false)` |
+| N-51 | Schedule Notification (15 sec) | 状態 `✅ Scheduled a high-priority notification for 15 seconds later. (isScheduled=true)`。予約の 10 秒後の時点で ID 1010 が無い（U-3）。予約の時刻の後、25 秒まで待つと出る: タイトル `Native Toolkit`、本文 `Scheduled notification sample`、`EXTRA_TITLE_BIG` `Scheduled BigText`、`EXTRA_BIG_TEXT` `This scheduled notification was queued from Native Toolkit Example.`、カテゴリ `alarm`、チャンネル `native_toolkit_schedule_high`（重要度 4）。イベントの行に `ℹ️ #1 Scheduled notification shown (notificationId=1010)`（段階 1b で足した確かめ）。出た後の Check Schedule isScheduled は状態 `ℹ️ Schedule Notification is currently not scheduled. (isScheduled=false)` |
 | N-52 | Schedule → Check Schedule isScheduled | 状態 `ℹ️ Schedule Notification is currently scheduled. (isScheduled=true)` |
 | N-53 | Schedule → Delete Schedule Notification | 状態 `🗑️ Deleted Schedule Notification. Cleared both scheduled and active notifications. (isScheduled=false)`。予約の時刻から 10 秒過ぎても ID 1010 が出ない |
 
@@ -350,6 +383,11 @@ Sharesheet が開いたことは、Sharesheet のウィンドウが出るのを�
 | S-15 | Share with Callback → Back で閉じる → Cancel Pending Callback | 状態 `✅ cancelPendingCallback called` |
 | S-16 | Share Text → `Native Toolkit Example` | サンプルの受け取りの画面に Text `Hello from native-toolkit`（並ばなければ対象外。3.4） |
 | S-17 | Register → Remove Direct Share Target | 状態 `✅ removeDirectShareTargets called`。`ShortcutManager` の動的・キャッシュのショートカットに `sample_1` が無い |
+| S-18 | Share For Selection → 共有先（`s18_selectionEventReportsTheChosenTargetWithItsToken`） | 状態に `waiting for selection...` と `token=<番号>`。共有先: TEXT `Hello with a selection event from native-toolkit`。共有先を閉じた後に `✅ Selected (token=<同じ番号>): com.jonghyunkim.android.nativetoolkit.testsharetarget` |
+| S-19 | Share For Selection → Back で Sharesheet を閉じる → Cancel Share Selection → もう一度 Cancel Share Selection（`s19_selectionDismissedSendsNothing_thenCancel`） | 閉じても状態は `waiting for selection...` のまま（1.5 秒）。1 回目の Cancel で `✅ cancelShareSelection called (token=`、2 回目で `ℹ️ No selection is pending.` |
+| S-20 | Share Text with Invalid Action（`s20_invalidChooserActionIsRejected`） | 状態 `❌ InvalidChooserAction: dup`。1 秒たっても Sharesheet のウィンドウが無い |
+
+S-18〜S-20 は段階 1b で足した。S-04 の Chooser Action は、1b からサンプルの Receiver ではなくライブラリのイベントで届く。Toast の文言は変わらない。
 
 受け取り（`ReceivedShare`。Sharesheet を通さない）:
 
@@ -367,21 +405,31 @@ Sharesheet が開いたことは、Sharesheet のウィンドウが出るのを�
 
 ### 6.5 Clipboard（既存 14 件 + 追加。`Clipboard`）
 
-既存の `ClipboardSampleScreenUiTest` の 14 件はそのまま使う（ボタンを探す方法だけを testTag に変える）。サンプルアプリの設計書の手動確認（23 項目）のうち、既存のテストに無いものを足す。
+既存の `ClipboardSampleScreenUiTest` の 14 件はそのまま使う（ボタンを探す方法だけを testTag に変える）。段階 1b で、エラーの文言の後ろに ` [errorCode=<コード>]` が付くようになり、エラーの 4 件の期待を直した（`❌ EmptyContent: HTML body is empty [errorCode=EMPTY_CONTENT]`、`❌ EmptyItemList: no items to copy [errorCode=EMPTY_ITEMS]`、`❌ InvalidUri` と `[errorCode=INVALID_URI]`、`❌ InvalidUri: http://example.com/x [errorCode=INVALID_URI]`）。サンプルアプリの設計書の手動確認（23 項目）のうち、既存のテストに無いものを足す。
 
 | ID | 操作 | 期待 | 手動確認の項目 |
 |---|---|---|---|
-| C-01 | Copy HTML Text → Read Clipboard | 状態 `✅ copyHtmlText called` の後、`✅ Read: label=, mimeTypes=[text/html], items=[{text=Hello, htmlText=<b>Hello</b>, uri=null, coercedText=Hello}]` | 7 |
+| C-01 | Copy HTML Text → Read Clipboard | 状態 `✅ copyHtmlText called` の後、`✅ Read: label=, mimeTypes=[text/html], items=[{text=Hello, htmlText=<b>Hello</b>, uri=null, coercedText=` で始まり `}]` で終わる（`coercedText` の値は比べない） | 7 |
 | C-02 | Copy Plain Text → Read Clipboard | `✅ Read: label=sample, mimeTypes=[text/plain], items=[{text=Hello from native-toolkit, htmlText=null, uri=null, coercedText=Hello from native-toolkit}]` | 7 |
-| C-03 | Copy Multiple Text → Read Clipboard | items が 3 つで、全文が `{text=first, ...}, {text=second, ...}, {text=third, ...}`（既存のテストは `text=first` だけを見ている） | 6 |
+| C-03 | Copy Multiple Text → Read Clipboard | 状態 `✅ copyMultipleText called (3 items)` の後、Read に `{text=first, htmlText=null, uri=null, coercedText=first}`、`{text=second, htmlText=null, uri=null, coercedText=second}`、`{text=third, htmlText=null, uri=null, coercedText=third}` がすべてある（既存のテストは `text=first` だけを見ている） | 6 |
 | C-04 | Copy Plain Text → Get Description | `✅ label=sample, mimeTypes=[text/plain], isStyledText=false, classificationStatus=` で始まる（分類の値は端末で変わるので比べない） | 8 |
 | C-05 | Copy Sensitive Text → Read Clipboard | 状態 `✅ copySensitive called (preview suppressed on API 33+)`。Read の items に `text=P@ssw0rd-sample` | 11 の一部 |
 | C-06 | Start Observing → `← Back to Main` → Clipboard に戻る → Copy Plain Text | `ℹ️ Clipboard changed` が出ない（再入場で監視が解除されている） | 17 |
 | C-07 | Start Observing → Copy Plain Text を 1 回 | `ℹ️ Clipboard changed (1)` か `(2)`（端末によって 2 回届く）。`(0)` でない | 14、15 の一部 |
 
-C-01 の HTML の `coercedText` は `Hello` と書いたが、`coerceToText` の結果は端末で変わりうるので、段階 0c で両方の環境の値を確かめ、違えば `coercedText` は比べない。
+C-01 の HTML の `coercedText` は、`coerceToText` の結果が端末で変わりうるので、テストは比べない（段階 0 の版では `Hello` と書いていた）。
 
 対象外（U-7）: 外部のアプリへの貼り付け（手動確認の 1・3・5）、他のアプリでのコピー（13・14 の外部の部分）、センシティブの内容がシステムのプレビューに出ないこと（11）、API 32 以下の Toast（12。試験環境は API 35 と 36）。
+
+### 6.6 結果の受け口（段階 1b で追加。`ScreenResultSinkInstrumentedTest`）
+
+Dialog の結果と、通知の権限の callback 版の結果は、`MainActivity` の作り直しをまたいで届くので、サンプルは「今出ている画面」が登録した受け口（`ScreenResultSink`）へ渡す。受け口そのものを、画面を通さずに確かめる（画面を通した確かめは D-20、D-21、N-12（HostState））。カテゴリは無い（8 章）。
+
+| テスト | 操作 | 期待 |
+|---|---|---|
+| `theLaterScreenGetsTheResult_whenTheEarlierOneDetachesAfterIt` | 前の画面が登録 → 次の画面が登録 → 前の画面が外す → 結果を渡す | 結果は次の画面にだけ届く |
+| `theEarlierScreenDetachingFirst_thenTheLaterOneAttaching_alsoWorks` | 前の画面が登録 → 前の画面が外す → 次の画面が登録 → 結果を渡す | 結果は次の画面にだけ届く |
+| `noScreenAttached_dropsTheResult` | 登録してすぐ外す → 結果を渡す | どこにも届かない |
 
 ## 7. 人の確認の手順書
 
@@ -399,14 +447,32 @@ C-01 の HTML の `coercedText` は `Hello` と書いたが、`coerceToText` の
 `scripts/test_android.sh` で次を順に行う。
 
 0. 対象の端末（`--serial`）を確かめ、機種・API・fingerprint を記録する。基準の fingerprint と違えば警告を出す（基準を取り直す合図。README 7.2）
-1. `android/` で単体テストを流す（`:android_library:testReleaseUnitTest`、`:unity_android_plugin:testReleaseUnitTest`、`:app:testDebugUnitTest`）
+1. `android/` で単体テストを流す（`:android_library:testDebugUnitTest`、`:unity_android_plugin:testDebugUnitTest`、`:app:testDebugUnitTest`。ライブラリとブリッジは、段階 0d の後に release から debug の単体テストに替えた）。`--filter` を付けたときは流さない
 2. サンプル（`:app:installDebug`）、サンプルのテスト（`:app:installDebugAndroidTest`）、共有先アプリ（`:testShareTarget:installDebug`）、ライブラリの instrumented テストの APK を入れる
 3. 端末の状態をそろえる（3.5 の表。`pm clear` の後に権限と `appops`、画面、DND、`appops get` の記録）
-4. **テストのクラスごとに** `am instrument -w -r --no-window-animation -e class <クラス> -e notAnnotation <HostState と Host のアノテーション>` を流す。1 つのクラスが落ちても、残りのクラスは流す。ライブラリの instrumented テスト（`android_library` 20 件、`unity_android_plugin` 10 件）も同じく流す
-5. `HostState` のテストを 1 件ずつ流す。各テストの前にスクリプトが状態（通知の権限の取り消し、正確なアラームの `default`）を作り、後に 3 の状態へ戻す。途中で止まっても `trap` で戻す
+4. **テストのクラスごとに** `am instrument -w -r --no-window-animation -e class <クラス> -e notAnnotation <HostState と Host のアノテーション>` を流す。1 つのクラスが落ちても、残りのクラスは流す。`--filter` を付けないときは、ライブラリの instrumented テスト（`android_library` と `unity_android_plugin`）も同じく流す。`android_library` のうち、5b の 2 つのクラスはここでは流さない
+5. `HostState` のテストを 1 件ずつ流す。各テストの前にスクリプトが状態（通知の権限の取り消し、正確なアラームの `default`）を作り、後に 3 の状態へ戻す。途中で止まっても `trap` で戻す。流すテストと状態の組はスクリプトの `HOST_STATE_CASES` に書く（段階 1b で N-10〜N-12（HostState）の 3 行を足した）
+
+   **5b.**（段階 1b で追加）ライブラリの instrumented テストのうち、通知の権限が取り消された状態から始める 2 つのクラス（`NotificationPermissionRequestTest`、`ExistingPermissionHelperTest`。Kotlin API 設計書の IT-07、IT-23）を、クラスごとに流す。取り消すとテストのプロセスが止まるので、各クラスの前にスクリプトがライブラリのテストの APK（`com.jonghyunkim.nativetoolkit.test`）の通知の権限を取り消し（`pm revoke` と `pm clear-permission-flags ... user-set user-fixed`）、それから流す。各クラスは最初の要求を拒否し、後の要求で許可するので、終わると権限は許可に戻っている。結果の名前は 4 と同じく `<クラス>#<メソッド>`
 6. `--include-host` を付けたときだけ、`Host` の H-01〜H-04 を 3.7 のとおり流す
+
+   **6b.**（段階 1b で追加）リリースのプローブ（試験専用のアプリ `android/AndroidLibraryExample/releaseProbe`。`android_library` だけに依存する。Kotlin API 設計書の 0.8）を、R8 を有効にした release で 4 つの flavor（`full`、`fullNext`、`noPermissions`、`noStartup`）に組み、入れ替えながら確かめる。プローブは `--es case <ケース>` で起動され、自分で確かめて、ログ（タグ `NtkProbe`）に `RESULT <ケース> PASS|FAIL <詳細>` を出す。スクリプトはそのログを読み、`Probe#<名前>` の結果として書く（下の表）。決まった時間の内にログが出なければ failed にする
 7. 端末の状態を 3 に戻し、`svc power stayon` を元に戻す（`trap` で、途中で止まっても戻す）
 8. 結果（件数と失敗の一覧）を表示し、基準（`scripts/test_android.baseline.<機種>-<API>.json`）とテストごとに比べ、結果が変わったテスト、増えたテスト、無くなったテストを表示する。`--baseline` を付けたときは、失敗が無ければこの実行の結果を新しい基準として保存する
+
+**リリースのプローブ（6b）の結果:** 上から順に流す。
+
+| 結果の名前 | Kotlin API 設計書の ID | 入れる版 | 確かめること |
+|---|---|---|---|
+| `Probe#IT-22_r8` | IT-22 | `full` | 通知の権限を許可し、正確なアラームを `allow` にする。R8 のもとで、Startup・宿主・見えない Activity・Receiver・予約の発火が動く |
+| `Probe#IT-26_update` | IT-26 | `full` → `adb install -r` で `fullNext`（obfuscation の辞書を変えた版） | `full` で予約を置き、`fullNext` に替えて、予約の時刻の 15 秒後に確かめる。前の版の予約が後の版で発火し、通知の中身（タイトル・本文・大きいアイコン・タップの Intent）が同じ |
+| `Probe#IT-01_withoutStartup` | IT-01、IT-23 | `adb install -r` で `noStartup`（Startup を無効にした版） | 初期化の前に、保存だけから `isScheduled` が真になり、それで初期化されない。手で初期化した後に前面が取れる。`IT-26_update` の予約を置けなかったときは流さず failed にする |
+| `Probe#IT-10_coldStart` | IT-10 | `full`（入れ直す） | 通知を出し、ホームに戻してプロセスを止め（`am kill`）、シェードで通知を押す。受け手の無い間のタップが保たれ、1 人目の受け手に届く。通知を出すときに、全画面の起動の Intent に data が無いことも確かめる（IT-11 も同じ） |
+| `Probe#IT-11_coldLaunch` | IT-11 | `full` | `launchApp = true` の通知で同じことをする。アプリが開き、本文のタップのイベントを受け取る |
+| `Probe#IT-03_afterProcessDeath` | IT-03 | `full` | Dialog を出したままプロセスを止め、タスクを前に戻す（Recents と同じく、保存した状態から作り直される）。戻った Dialog が閉じ、画面に残らない |
+| `Probe#IT-07_afterProcessDeath` | IT-07 | `full` | プローブの通知の権限を取り消して要求を出し、権限のダイアログが出た状態でプロセスを止め、タスクを前に戻す。タスクと一緒に戻ったシステムのダイアログは 1 回だけ Back で閉じる。戻った要求が、権限のダイアログを出し直さない |
+| `Probe#IT-19_permissions` | IT-19 | `noPermissions`（Kotlin API 設計書 8.12 の権限を外した版） | 通知の権限・正確なアラーム・全画面の通知がどれも使えないと返り、権限の要求が `Denied` になる |
+| `Probe#IT-19_manifest` | IT-19 | （端末に入れない） | `full` と `noPermissions` の merge した manifest を `aapt2` で読む。`full` には 7 つの権限と 2 つの前景サービスがある。`noPermissions` には 7 つの権限が無く、前景サービスの権限を外した前景サービスも残っていない |
 
 **`am instrument -r` の結果の読み方:** `INSTRUMENTATION_STATUS_CODE` の 1（開始）・0（成功）・-1（エラー）・-2（失敗）・-3（無視）・-4（前提の不成立）をテストごとに読み、`INSTRUMENTATION_CODE`（最後）、`INSTRUMENTATION_RESULT: shortMsg=Process crashed.`、`INSTRUMENTATION_ABORTED` を見る。次のときはそのクラスを失敗にする: 最後の行が無い、プロセスが落ちた、テストが 0 件、開始したテストに終わりが無い、時間切れ（クラスごとに 15 分）。
 
@@ -414,11 +480,11 @@ C-01 の HTML の `coercedText` は `Hello` と書いたが、`coerceToText` の
 |---|---|
 | `--serial <id>` | 対象の端末。必須（実機とエミュレータの両方がつながっていることがあるため） |
 | `--baseline` | 結果を基準として保存する。**全件を流したときだけ受け付ける**（`--filter`、`--skip-unit` とは併用できず、`--include-host` が必要） |
-| `--filter <カテゴリ>` | UI テストを絞る（`-e annotation`） |
+| `--filter <カテゴリ>` | UI テストを、そのカテゴリのアノテーションを持つクラスに絞る。1、ライブラリの instrumented テスト（4）、5、5b、6、6b は流さない。ただし `HostState` は 5 だけを、`Library` は 5b だけを、`Probe` は 6b だけを流す（`Library` と `Probe` はアノテーションではなく、段を選ぶ値。段階 1b で追加） |
 | `--skip-unit` | 1 を飛ばす |
 | `--include-host` | H-01〜H-04 を流す（再起動を伴う） |
 
-失敗が 1 件でもあるか、端末の状態が戻っていなければ、終了コードは 1。結果のファイルは `android/AndroidLibraryExample/app/build/test_android/<日時>/` に出す（コミットしない）。`dumpsys` の元の出力は保存しない（2 章）。
+失敗が 1 件でもあるか、端末の状態が戻っていなければ、終了コードは 1。結果のファイルは `android/AndroidLibraryExample/app/build/test_android/<日時>-<serial>/` に出す（コミットしない）。`dumpsys` の元の出力は保存しない（2 章）。
 
 テストのカテゴリ（JUnit のアノテーション）:
 
@@ -427,11 +493,15 @@ C-01 の HTML の `coercedText` は `Hello` と書いたが、`coerceToText` の
 | `Navigation` | 6.1 |
 | `Dialog` | 6.2 |
 | `Notification` | 6.3 のうち `HostState` と `Host` 以外 |
-| `HostState` | N-02〜N-05、N-09、N-50（ホストが状態を作る。前処理で通知の権限を許可しない） |
+| `HostState` | N-02〜N-05、N-09、N-50、N-10〜N-12（HostState）（ホストが状態を作る。前処理で通知の権限を許可しない） |
 | `Share` | 6.4 の S-xx |
 | `ReceivedShare` | 6.4 の R-xx |
 | `Clipboard` | 6.5 と既存の 14 件 |
 | `Host` | H-01〜H-03 の 1 段目のクラス（2 段目と H-04 はホストのスクリプトが確かめる） |
+
+カテゴリの無いクラス（`TagInventoryTest`、`ReceivedShareTagInventoryTest`、`ScreenResultSinkInstrumentedTest`、`IncomingShareParserInstrumentedTest`、`MainActivityIncomingShareInstrumentedTest`）は、`--filter` を付けないときだけ流れる。
+
+4 で流す UI テストのクラスは、スクリプトの `UI_CLASSES` に書く。段階 1b で `NotificationEventDeliveryUiTest` と `ScreenResultSinkInstrumentedTest` を足した。
 
 段階 0d で、今のコードで全件が通ることを、API 35（エミュレータ）と API 36（実機）の両方で確かめ、結果を `results/` に記録する。これが 0e〜0h と 1b の判定の基準になる。
 

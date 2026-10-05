@@ -16,6 +16,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- IT-03 and IT-07 after a process death: library fragments on a FragmentActivity. Its own
+             task, so that the script can bring it back with the restored fragment (bringing back
+             the singleTask ProbeActivity clears the Activities above it). -->
+        <activity
+            android:name=".ProbeFragmentActivity"
+            android:exported="true"
+            android:taskAffinity="${applicationId}.fragments"
+            android:theme="@android:style/Theme.Material.Light" />
     </application>
 
 </manifest>
