@@ -88,6 +88,15 @@
 | T-23 の照合で、12 章の IT-21・IT-23 にテストが無く（タスク表のどの行にも割り当てていなかった）、ほかの行にも一部の欠けがあると分かった。IT-21・IT-23 と、利用者から見える動作の欠け（A: IT-01・IT-02 の Startup を無効にした経路と前面、IT-03・IT-07 のプロセスの死の後、IT-10・IT-11 のコールドスタート）を T-23 で書き、検証の穴（B）と記述（C）は安いものだけ埋めて、残りは理由つきで 1b の実装結果に書く（2026-10-05） | 12 章のテストと 1b の実装結果 |
 | 1b の実装レビュー（2026-10-05、`reviews/2026-10-05-android-c-abi-stage1b-implementation-feature-review-v1.md`）で、直さずに残すもの: (1) 12 章の行の一部の欠け（実装結果 5.1 の △ と 5.2。上の決定のとおり、検証の穴と記述は安いものだけ埋めた）。(2) 型のある Chooser Action の受け手で、世代の照合と `emit` の間に新しい Share が世代を上げると、古いアクションが 1 度だけ届きうる（照合の時点を区切りとみなす。届くのは新しい Share を開く操作と同時に古い Chooser のアクションを押したときだけ）。(3) 公開の sealed class `ShareDomainError` に `InvalidChooserAction` を足したので、利用者の網羅的な `when` はコンパイルが通らなくなる（ソースの互換。10 章で決めた足し方で、K-9 の動作の互換には当たらない）。(4) `ShareTextUseCase` の `@Deprecated`（8.13）は、JSON を渡さない `ShareUseCases.shareText(content)` にも警告を出す（同じ関数のため） | 実装結果 5.1・7 章 |
 
+### 0.9 C ABI の設計書 第 2 部を受けた直し（2026-10-05）
+
+第 2 部（`designs/2026-10-05-android-c-abi-c-abi-design-part2.md` の 7 章、TB-12）で決めたことに合わせて、C ABI の側の写しを書いた行を直した。Kotlin の API は変えていない。
+
+| 直した所 | 第 2 部の決定 |
+|---|---|
+| 5.1 の C1 と「共通」の行、7 章の「Clipboard と Share の操作を main で動かす」の行 | Clipboard の読み書きは同期（AP-3）。監視の開始と停止は main に積む（AP-2） |
+| 7 章のキャンセルの戻り・Progress と style の行、8.15 のエラーの写し・Share の要求の ID・C ABI の側で持つもの | `HOST_START_FAILED` と `SHOW_FAILED` は別の値、`CancelReason` は 2 つに分ける（11.1）。Share の ID は C が付ける（AP-17）。style の代わりの値と `Dismissed` の写しは包み（AP-8、AP-13） |
+
 ## 1. 設計目的
 
 - 今は Unity のブリッジ（`unity_android_plugin`）とサンプルの Receiver にしか無いロジックを `android_library` へ移し、**Kotlin の利用者が Kotlin だけで全機能を使えるようにする**（README 1.2、4 章）
@@ -228,7 +237,7 @@
 
 | # | 機能 | ブリッジ・サンプルの中身 | `android_library` に足りないもの |
 |---|---|---|---|
-| C1 | Clipboard | 操作を main で動かし、結果を listener で返す | （C ABI の受け口が行う） |
+| C1 | Clipboard | 操作を main で動かし、結果を listener で返す | （C ABI は読み書きを呼び出しスレッドで同期に呼び、戻り値で返す。C ABI の設計書 第 2 部 AP-3） |
 | C2 | Clipboard | 例外を 7 つのコードにする | コードの分類 |
 | C6 | Clipboard | プロセスで 1 つの監視、listener の例外を捕まえる | `ClipboardChangeMonitor` は 1 つではなく、スレッドに安全でない |
 | D1 | Dialog | Context を `FragmentActivity` に変えて出す | 前面から出す口 |
@@ -243,7 +252,7 @@
 | S2 | Share | Chooser Action の動的 Receiver（世代の token）。次の Share まで登録したまま | Receiver、イベント |
 | S3 | Share | 選ばれたアプリを listener に返す。listener を外すと待ちも消す | 要求の印（全要求が同じ PendingIntent。AC-22） |
 | S4 | Share | Direct Share のアイコンの Base64 を解く | （C ABI はバイト列で渡す） |
-| 共通 | - | Clipboard と Share は main に移して動かす | （C ABI の受け口が行う） |
+| 共通 | - | Clipboard と Share は main に移して動かす | （Share と Clipboard の監視は C ABI の受け口が main に積む。Clipboard の読み書きは同期に呼ぶ。第 2 部 AP-2、AP-3） |
 | サンプル | - | 通知のアクション・dismiss、Chooser Action の Receiver 3 つ | ライブラリのイベントの口 |
 
 ### 5.2 `android_library` の今の不備と、この設計での扱い
@@ -391,7 +400,7 @@
 | Dialog を Context から出す、失敗を返す（D1、D2） | `AndroidDialogManager.show`。失敗は `DialogResult.Failed` | 前面でなければ `Failed(NOT_FOREGROUND)`。Activity でない前面では透明な宿主に出す |
 | Dialog の listener は種類ごとに 1 つで差し替え（D5） | 要求ごとの `onResult` | 包みが 1 つの受け手に集める |
 | 単一選択の `null` を `-1`（D4） | `DialogValue.SingleChoice(index: Int?)` | `-1` は C ABI / 包み |
-| キャンセルの戻りが `"Cancel"`、入力が `""` | `DialogResult.Dismissed` | 包みが今の値に写す |
+| キャンセルの戻りが `"Cancel"`、入力が `""` | `DialogResult.Dismissed` | 包みが今の値に写す（C ABI は値の無い `DISMISSED` を返す。第 2 部 AP-13） |
 | 通知の操作の結果を呼び出しスレッドで同期に返す（N1） | 同期の UseCase（今と同じ） | - |
 | `canScheduleExactAlarms`、設定の画面（N5、N6） | `AndroidNotificationManager` の `canScheduleExactAlarms`、`openSettings` | - |
 | リソース名の解決（N8） | `NotificationResourceResolver` | - |
@@ -399,11 +408,11 @@
 | 全画面の Intent（`id + Int.MAX_VALUE/2`、起動の Intent） | `NotificationEventIntents.fullScreenLaunch` | request code 0、`setIdentifier` で区別（8.5） |
 | request code の式（N11） | data の URI か `setIdentifier` で区別し、request code は 0 | 衝突しない |
 | shown の listener（N15） | `AndroidNotificationManager.shown` | 受け手を複数持てる |
-| Progress の値の補正（N12）、style の代わりの値（N9）、JSON の検査の文言（N16） | 持たない | C ABI / 包み |
+| Progress の値の補正（N12）、style の代わりの値（N9）、JSON の検査の文言（N16） | 持たない | Progress の補正は C ABI（第 2 部 AP-9）。style の代わりの値と文言は包み（C ABI は範囲外をエラーで返す。AP-8） |
 | Chooser Action の Receiver（S2） | `AndroidShareManager` の `shareTextWithActions` と `chooserActions` | action の文字列はライブラリが決める |
 | 選ばれたアプリの listener、listener を外すと待ちも消す（S3） | `AndroidShareManager` の `shareForSelection`、`selections`、`cancelShareSelection(token)` | 選択に印が付く。古い Chooser の選択は届かない |
 | アイコンの Base64（S4） | バイト列（今と同じ） | Base64 は包み |
-| Clipboard と Share の操作を main で動かす | 同期の UseCase（今と同じ） | C ABI の受け口が main に積む |
+| Clipboard と Share の操作を main で動かす | 同期の UseCase（今と同じ） | Share は C ABI の受け口が main に積む。Clipboard の読み書きは呼び出しスレッドで同期に呼ぶ（第 2 部 AP-3）。監視の開始と停止は main に積む（AP-2） |
 
 ## 8. サブ機能別詳細設計
 
@@ -788,10 +797,10 @@ Clipboard の既存のログはすでに伏せている（`logSafeDescription`�
 - **呼ぶ先**（KA-18）: C ABI の受け口は、機能ごとに `AndroidClipboardManager`・`AndroidDialogManager`・`AndroidNotificationManager`・`AndroidShareManager` を呼ぶ（`getInstance` で得る）。第 2 部の対応表は、この Manager の口と C の関数を並べる
 - **前面の判定の受け持ち**（KA-17）: C ABI の受け口は C-4 のとおり、Dialog・権限の要求・Share の Chooser・設定の画面の前に前面を判定し、前面でなければ Kotlin を呼ばずに `NOT_FOREGROUND` で完了する。Dialog と権限は、受け口の判定の後に前面が変わった場合に `UiHost` が同じ `NOT_FOREGROUND` で完了するので、受け口はそれをそのまま写す
 - C ABI は Dialog と権限で callback 版を使う（`suspend` 版は使わない）
-- エラーの写し: `UiUnavailableReason.NOT_INITIALIZED` → `NOT_INITIALIZED`、`NOT_FOREGROUND` → `NOT_FOREGROUND`、`HOST_START_FAILED` と `DialogError.SHOW_FAILED` → `UNKNOWN`、`CancelReason` → `CANCELED`
-- Share: C ABI の Share の要求の ID は、`shareForSelection` が返す印をそのまま使える（使い回さない 64 ビット）。選択のイベントは `ShareEvents.selections` の受け手として足す
+- エラーの写し（第 2 部 11.1。第 2 部で改めた）: `UiUnavailableReason.NOT_INITIALIZED` → `NOT_INITIALIZED`、`NOT_FOREGROUND` → `NOT_FOREGROUND`、`HOST_START_FAILED` → `HOST_START_FAILED`、`DialogError.SHOW_FAILED` → `SHOW_FAILED`、`CancelReason` は `CANCELED` と `CANCELED_BY_SYSTEM` に分ける
+- Share（第 2 部 AP-17。第 2 部で改めた）: `shareForSelection` が返す印は main で前面を確かめた後に初めてできるので、C ABI の要求の ID は C が受け付けの時点で付け、帳簿で印と対にする。選択のイベントは `ShareEvents.selections` の受け手として足す
 - 既存の口の「1b で直さない」不具合（3.3）を、C ABI でどう扱うか（写すか、受け口で避けるか）を対応表に書く
-- Progress の値の補正、style の代わりの値、単一選択の `-1`、Dialog の `Dismissed` の写しは C ABI の側で持つ（7 章）
+- Progress の値の補正と単一選択の `-1` は C ABI の側で、style の代わりの値と Dialog の `Dismissed` の今の値への写しは Unity の包みで持つ（7 章。第 2 部 AP-8、AP-9、AP-13、OP-15。第 2 部で改めた）
 
 ## 9. API 設計の一覧と同期・非同期レイヤー対応表
 

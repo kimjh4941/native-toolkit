@@ -327,7 +327,9 @@ C ABI が置き換えるのは、45 の操作だけでなく、**次の振る舞
 | 登録と解除 | 上のイベントの受け手の登録と解除（今の `set*Listener` / `clear*Listener`）、Clipboard の監視の開始と停止 |
 | 追加 | 通知の権限の要求（今は C# が Unity の `Permission.RequestUserPermission` で済ませている） |
 
-Windows では 47 の操作が 105 の C 関数になった（ハンドルの読み取り関数とビルダーで増える）。Android も 100 前後になる見込みで、Notification のビルダー（通知の項目 30 と style の入れ子）がその半分ほどを占める。
+この集合に ID を付けた表（操作 BH-01〜BH-45、イベント EV-01〜EV-05、登録と解除 RG-01〜RG-06、追加 PR-01）と、それぞれを置き換える C の関数は、C ABI の設計書 第 2 部（`designs/2026-10-05-android-c-abi-c-abi-design-part2.md`）の 10 章にある。2a の機械照合はこの表を読む。
+
+Windows では 47 の操作が 105 の C 関数になった（ハンドルの読み取り関数とビルダーで増える）。Android は 155 の関数になった（第 2 部 8.2）。Notification が 86 で、そのうちビルダー（通知の内容 40、チャンネル 11）が半分ほどを占める。
 
 `android_library` にあるがブリッジが公開していないもの（CallStyle、`getActive`、`createChannels`、`restoreScheduled`、Media の style）は 2.0.0 の C ABI に入れない（D-5）。後から関数を足せば互換を保てる。
 

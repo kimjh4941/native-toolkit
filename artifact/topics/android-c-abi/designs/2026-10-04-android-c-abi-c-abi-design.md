@@ -74,6 +74,15 @@
 | V-C1（反映の漏れ） | 5.7 の取り消しの規則と 6 章のテストが古い契約のままだった（確かめの Codex） | Share の選択の待ちは C の登録ではなく Kotlin の側の印で、取り消しは C の登録の表を通らない、と 5.7 に書き、6 章を直した |
 | V-X（T-X3 の残り）、V-C4 | 印を extra だけに入れると、固定の request code と `FLAG_UPDATE_CURRENT` で上書きされる | 要求ごとに別の PendingIntent（data の URI に印）を作る形に限った（AC-22、K-4） |
 
+### 0.6 第 2 部を受けた直し（2026-10-05）
+
+第 2 部（`designs/2026-10-05-android-c-abi-c-abi-design-part2.md` の 7 章、TB-12）で決めたことに合わせて直した。決定は変えていない。
+
+| 直した所 | 第 2 部の決定 |
+|---|---|
+| 5.8 の表に Progress の前景サービスの行を足した | AP-14 |
+| 5.11 の「通知は `PERMISSION_DENIED`」が受け口の事前の確かめで出る値であることを書き足した | AP-16 |
+
 ## 1. 利用者が最初に知ること
 
 README 3.1 が冒頭に置くよう求める前提と、Windows の設計書 1 章に当たる名前・受け渡し・スレッドの決まり。
@@ -478,6 +487,7 @@ C の状態は `std::atomic<int>` で、遷移はすべて CAS で行う（戻�
 | Clipboard の読み取り | Application | **入力のフォーカス**が要る（Android 10 以降。既定の IME を除く） | 例外にならず、**「空」と同じ結果**になる（OS が `null` を返すため。空のクリップボードと区別できない）。契約に書く |
 | Clipboard の変更の監視 | Application | 入力のフォーカスが要る | フォーカスが無い間の変更は届かない（OS が通知しない）。契約に書く |
 | 通知の表示・更新・消去・予約・チャンネル | Application | 要らない | - |
+| 通知の Progress の前景サービス（開始・更新・完了・停止） | Application | 要らない。ただし後ろからの前景サービスの起動は OS が止めることがある（Android 12 以降） | OS が止めたら `SERVICE_START_NOT_ALLOWED` を戻り値で返す（第 2 部 AP-14） |
 | 通知の権限の問い合わせ | Application | 要らない | - |
 | 通知の権限の要求 | まず Application で「API 32 以下」と「許可済み」を見る | **それ以外（未許可）のときは要る**（もう尋ねられない状態かどうかは、要求を出すまで分からないため） | API 32 以下か許可済みなら、main の上で結果つきで完了する（前面に関係なく）。未許可で前面でないなら `NOT_FOREGROUND` で完了する |
 | Dialog | 前面の Activity（`FragmentActivity` でなければ透明な Activity。D-7） | 要る | `NOT_FOREGROUND` で完了する |
@@ -510,7 +520,7 @@ C の状態は `std::atomic<int>` で、遷移はすべて CAS で行う（戻�
 
 - 失敗しうる関数は、機能のエラーを戻り値で返す（1.1）。受け付けた後の失敗は完了の引数で返す（1.3）
 - `ntk_last_system_code()` は、失敗しうる関数が戻るとき 0 にする。完了の `system_code` も 0（AC-10）
-- 各機能のエラーに、少なくとも次の意味の値を持たせる（値は第 2 部）: `NONE`、`INVALID_PARAMETER`、`NOT_INITIALIZED`（AC-3）、`NOT_SUPPORTED`、`UNKNOWN`。完了つきの操作は `CANCELED`。Activity が要る操作は `NOT_FOREGROUND`、通知は `PERMISSION_DENIED`
+- 各機能のエラーに、少なくとも次の意味の値を持たせる（値は第 2 部）: `NONE`、`INVALID_PARAMETER`、`NOT_INITIALIZED`（AC-3）、`NOT_SUPPORTED`、`UNKNOWN`。完了つきの操作は `CANCELED`。Activity が要る操作は `NOT_FOREGROUND`、通知は `PERMISSION_DENIED`（表示・更新・過ぎた時刻の予約で、Kotlin は権限が無いか通知が無効でも黙って成功で戻るので、受け口が Kotlin を呼ぶ前に確かめて出す値。呼び出し時点の最善の努力。第 2 部 AP-16）
 - C++ の例外はライブラリの入口で捕まえる（`std::bad_alloc` は `OUT_OF_MEMORY` か `UNKNOWN`）。Kotlin の例外は 5.6 のとおり JNI の境界で捕まえる
 - **利用者のコールバックが例外を外へ出すと、プロセスが終わる。** `libntk.so` は libc++abi と unwinder の写しを中に持ち、利用者は別の写しを持つ。NDK はランタイムの写しをまたぐ例外を支えないので、ライブラリは捕まえない。コールバックを呼ぶ包みを `noexcept` にし、例外が届いたら `std::terminate` で確実に止める（壊れたまま走り続けない）。利用者は、コールバックの本体で例外を止める（1.3 の言語ごとの受け方）。Windows の設計書 7.7 の「包みが捕まえて捨てる」は Android では採らない（OS の違いとして `unity-native-plugin` に渡す対応表に書く）
 
