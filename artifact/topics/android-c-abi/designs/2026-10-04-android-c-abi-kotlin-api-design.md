@@ -79,6 +79,13 @@
 |---|---|
 | Manager は Presentation の上の別の層なので、ほかの OS（iOS・Windows はすべて、macOS は Clipboard を除く 3 つ）と同じく、機能のパッケージの直下に置き、層のパッケージと並べる。今後ほかの OS もこの形にそろえる（2026-10-04） | 4 つの Manager を `<機能>/presentation/` から `<機能>/` に移した（6.1、6.3、付録 A）。`common.md` の「層とモジュールの対応」と `android.md` の Manager の節に置き場所を書いた。macOS の Clipboard（`Clipboard/Manager/`）は別の作業として記録した |
 
+### 0.8 1b の実装中の利用者の決定（T-21）
+
+| 決定 | 反映 |
+|---|---|
+| IT-19・IT-22・IT-26 は、サンプルに flavor を足さず、`android_library` だけに依存する試験専用のアプリ（`android/AndroidLibraryExample/releaseProbe`、`testShareTarget` と同じ形のモジュール）で行い、確かめた後も残して `test_android.sh` の段で毎回流す（2026-10-05）。サンプルに flavor を足すと、ビルドの名前・スクリプト・全機能で共通のワークフロー・0d の基準の土台を作り直すことになり、確かめたいもの（ライブラリが利用者の R8・権限なし・更新のもとで壊れないか）より影響が大きいため | 12 章の IT-19・IT-22・IT-26 の行と、`test_android.sh` の段 |
+| IT-26 の「後の版は JSON に欄を 1 つ足す」は行わない（ライブラリの本体に試験のための切り替えが要る。知らない欄を読み飛ばすことは IT-25 で確かめた）。代わりに、前の版と後の版で R8 の名前の付け方（obfuscation の辞書）を変え、ライブラリのクラスの名前が変わっても前の版の予約が後の版で発火して内容が同じことで、保存と Alarm が R8 の名前に頼らないことを確かめる（クラス名が入っていないことの直接の確かめは IT-24）。「複数の `Bitmap`」は、公開の口で `Bitmap` を持つ欄が `largeIconBitmap` だけなので 1 つにする | 同上 |
+
 ## 1. 設計目的
 
 - 今は Unity のブリッジ（`unity_android_plugin`）とサンプルの Receiver にしか無いロジックを `android_library` へ移し、**Kotlin の利用者が Kotlin だけで全機能を使えるようにする**（README 1.2、4 章）
@@ -881,14 +888,14 @@ C ABI のエラーの値への写しは 8.15 と第 2 部。
 | IT-16 | Chooser Action | 型のあるアクションが届く。前の Share のアクションは届かない。アクションの無い Share の後に前のアクションが届かない。検査で投げたときは前のアクションが生きている |
 | IT-17 | Clipboard の監視 | 開始・停止と複数の受け手 |
 | IT-18 | 1.x の破棄（自動） | テストが 1.x の `SharedPreferences` と 1.x の Intent の Alarm（0e の値）を作り、`MY_PACKAGE_REPLACED` の経路と初めて使う経路で破棄し、`dumpsys alarm` に残らないこと、保存が消えること、印、やり直し（途中の失敗の注入） |
-| IT-19 | 権限を外した版 | 8.12 の 4 つを外した flavor で結果が表のとおり。前景サービスの 3 つは merge した manifest の静的な検査 |
+| IT-19 | 権限を外した版 | 試験専用のアプリ（0.8）の、8.12 の 4 つを外した flavor で結果が表のとおり。前景サービスの 3 つは merge した manifest の静的な検査 |
 | IT-20 | PendingIntent の同一性 | 実物の PendingIntent の同一性（tag なし・空の tag・符号化の要る文字、同じ鍵の extra の更新、違う鍵の分離、`setIdentifier`）、Share の `IntentFilter` の照合の正と負 |
 | IT-21 | ログ | 番兵の値（パスワード、Clipboard の本文、Share の本文、通知の `data`）で各操作を行い、アプリの logcat に番兵が出ないこと |
-| IT-22 | R8 | サンプルの release（R8 有効）で、Startup・宿主・見えない Activity・Receiver・予約の発火が動く |
+| IT-22 | R8 | 試験専用のアプリ（0.8）の release（R8 有効）で、Startup・宿主・見えない Activity・Receiver・予約の発火が動く |
 | IT-23 | 既存の口の前後 | `AndroidDialogFragment` の listener の形、`NotificationPermissionHelper`、JSON の `shareText`、`shareWithCallback`、`isScheduled` / `cancelAllScheduled` が 0c の基準と同じ。利用者が自分で実装した `NotificationCommandRepository` を渡した `NotificationUseCases` の `isScheduled(context, ...)` が今と同じくライブラリの保存を引く。Startup を無効にし、初期化もファクトリーも受け手も通さずに、保存だけがある状態で最初に `isScheduled` を呼んで真になる |
 | IT-24 | 変えない識別子と Alarm の extra | 8.5 の変えない識別子の値（受け手のクラス名を含む）。予約した Alarm の PendingIntent の component が変えない識別子のクラス名で、extra が 8.6 の 4 つだけで、ライブラリのクラスの Parcelable が無いこと |
 | IT-25 | codec | command の全部の欄（内容の約 30 欄、style ごと、アクション、CallStyle の 3 つの Intent、カスタムビューの動作、`Bitmap`、`null` と既定の値）を Alarm の extra の形と保存の形の両方で符号化して戻し、等しいこと（`Intent` は `filterEquals` と extra のキーと値。保存の形は `toUri` の表のとおり）。版の規則（版 1 に欄を足した JSON を読める、知らない欄の無視、無い欄の既定の値、知らない版のファイルを名前を変えて残す） |
-| IT-26 | 更新をまたぐ Alarm | 2 つの版のサンプルの APK（R8 有効。後の版は JSON に欄を 1 つ足す）で、前の版で `Intent` と複数の `Bitmap` を持つ予約を置き、`adb install -r` で後の版にし、発火した通知の内容が同じこと |
+| IT-26 | 更新をまたぐ Alarm | 試験専用のアプリ（0.8）の 2 つの版の APK（R8 有効。後の版は obfuscation の辞書を変える）で、前の版で `Intent` と `Bitmap` を持つ予約を置き、`adb install -r` で後の版にし、発火した通知の内容が同じこと |
 | IT-27 | Manager | 4 つの Manager の各口が、委ねる先（UseCase、イベントの持ち主、既存の口）と同じ結果・例外・スレッドになること。`AndroidShareManager.shareText(content, preview)` が `ShareTextUseCase(content, "[]", preview)` と同じ結果になること。`getInstance` がプロセスで 1 つを返し、Activity を持ち続けないこと（`LeakCanary` の代わりに、Activity を閉じた後の弱い参照が消えることで確かめる） |
 
 - 人の確認 CU-03: 1.12.0 のタグから組んだサンプル（同じ applicationId と署名）で予約し、2.0.0 を `adb install -r` で入れ、保存した予約が取り消され、保存しない予約が発火しても何も出ず、新しく予約できる（README 9 章の DoD）

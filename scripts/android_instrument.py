@@ -73,6 +73,7 @@ def main() -> int:
     parser.add_argument("--target", required=True, help="class or class#method, fully qualified (or a package with --package)")
     parser.add_argument("--package", action="store_true", help="treat --target as a package")
     parser.add_argument("--not-annotation", action="append", default=[])
+    parser.add_argument("--not-class", action="append", default=[], help="a fully qualified class to leave out")
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--raw", required=True)
     args = parser.parse_args()
@@ -81,6 +82,8 @@ def main() -> int:
                "-e", "package" if args.package else "class", args.target]
     for annotation in args.not_annotation:
         command += ["-e", "notAnnotation", annotation]
+    if args.not_class:
+        command += ["-e", "notClass", ",".join(args.not_class)]
     command.append(args.runner)
     try:
         output = subprocess.run(command, capture_output=True, text=True, timeout=args.timeout).stdout

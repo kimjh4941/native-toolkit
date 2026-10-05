@@ -3,7 +3,7 @@
 #
 # Follows section 8 of artifact/topics/android-c-abi/designs/2026-10-03-android-c-abi-ui-test-design.md.
 #
-# Usage: scripts/test_android.sh --serial <adb serial> [--skip-unit] [--filter <Category>]
+# Usage: scripts/test_android.sh --serial <adb serial> [--skip-unit] [--filter <Category>|HostState|Library|Probe]
 #          [--include-host] [--baseline]
 #   --include-host  also run H-01 to H-04 (updates the sample and reboots the device twice)
 #   --baseline      save the results as the baseline; needs a full run (--include-host, no
@@ -47,6 +47,13 @@ OUT_DIR="${ANDROID_DIR}/AndroidLibraryExample/app/build/test_android/$(date +%Y%
 mkdir -p "${OUT_DIR}"
 RESULTS="${OUT_DIR}/results.jsonl"
 : > "${RESULTS}"
+
+# The library's instrumented tests (android_library/src/androidTest).
+LIB_PKG="com.jonghyunkim.nativetoolkit.test"
+LIB_RUNNER="${LIB_PKG}/androidx.test.runner.AndroidJUnitRunner"
+LIB_PERMISSION_CLASS="com.jonghyunkim.nativetoolkit.notification.NotificationPermissionRequestTest"
+# The release probe (Kotlin API design 0.8: IT-19, IT-22, IT-26).
+PROBE_PKG="com.jonghyunkim.android.nativetoolkit.releaseprobe"
 
 # Ordinary UI test classes, run one `am instrument` per class (section 8, step 4).
 UI_CLASSES=(
@@ -150,11 +157,14 @@ adb_s shell pm clear "${PKG}" >/dev/null
 restore_device
 adb_s shell appops get "${PKG}" USE_FULL_SCREEN_INTENT > "${OUT_DIR}/appops-full-screen-intent.txt" || true
 
-run_target() {  # <runner> <fully qualified target> [notAnnotation...]; prefix the target with "package:" for a package
+run_target() {  # <runner> <fully qualified target> [notAnnotation | notclass:<class>...]; prefix the target with "package:" for a package
   local runner="$1" target="$2"; shift 2
   local args=()
   if [[ "${target}" == package:* ]]; then target="${target#package:}"; args+=(--package); fi
-  for annotation in "$@"; do args+=(--not-annotation "${annotation}"); done
+  for exclusion in "$@"; do
+    if [[ "${exclusion}" == notclass:* ]]; then args+=(--not-class "${exclusion#notclass:}")
+    else args+=(--not-annotation "${exclusion}"); fi
+  done
   python3 "${ROOT_DIR}/scripts/android_instrument.py" --adb "${ADB}" --serial "${SERIAL}" --runner "${runner}" \
     --target "${target}" --raw "${OUT_DIR}/$(echo "${target}" | tr '#' '_').txt" ${args[@]+"${args[@]}"} >> "${RESULTS}"
 }
@@ -170,7 +180,8 @@ done
 if [[ -z "${FILTER}" ]]; then
   echo "[instrumented] the sample's template, android_library, unity_android_plugin"
   run_target "${RUNNER}" "example.android.ExampleInstrumentedTest"
-  run_target "com.jonghyunkim.nativetoolkit.test/androidx.test.runner.AndroidJUnitRunner" "package:com.jonghyunkim.nativetoolkit"
+  # The permission request test needs the permission revoked first (step 5b).
+  run_target "${LIB_RUNNER}" "package:com.jonghyunkim.nativetoolkit" "notclass:${LIB_PERMISSION_CLASS}"
   run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.unity"
   run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.plugin"
 fi
@@ -192,6 +203,16 @@ if [[ -z "${FILTER}" || "${FILTER}" == "HostState" ]]; then
     run_target "${RUNNER}" "${PKG}.NotificationHostStateUiTest#${method}"
   done
   restore_device
+fi
+
+# --- 5b. The library's permission request test (Kotlin API design IT-07) --------------------
+# Revoking the permission kills the test process, so it is revoked before the class starts.
+# The class denies the first request and allows a later one, so it ends with the permission granted.
+if [[ -z "${FILTER}" || "${FILTER}" == "Library" ]]; then
+  echo "[library] ${LIB_PERMISSION_CLASS} (permission revoked)"
+  adb_s shell pm revoke "${LIB_PKG}" android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true
+  adb_s shell pm clear-permission-flags "${LIB_PKG}" android.permission.POST_NOTIFICATIONS user-set user-fixed >/dev/null 2>&1 || true
+  run_target "${LIB_RUNNER}" "${LIB_PERMISSION_CLASS}"
 fi
 
 # --- 6. Host cases (section 3.7) -----------------------------------------------------------
@@ -350,6 +371,107 @@ print("|".join(value("receivedShare." + name) for name in ("action", "mimeType",
     host_result H-04_coldShare failed "skipped: the device did not come back from H-02 or H-03"
   fi
   host_cleanup
+fi
+
+# --- 6b. Release probe (Kotlin API design 0.8 and 12: IT-19, IT-22, IT-26) ---------------------
+# A test-only app built with R8 checks itself and logs "RESULT <case> PASS|FAIL <detail>".
+probe_result() {  # <name> <passed|failed> [message]
+  python3 -c 'import json,sys; print(json.dumps({"test": "Probe#" + sys.argv[1], "result": sys.argv[2], "message": sys.argv[3]}))' \
+    "$1" "$2" "${3:-}" >> "${RESULTS}"
+  echo "  ${2}${3:+: $3}"
+}
+
+probe_case() {  # <package> <case> <timeout s>; prints "PASS ..." or "FAIL ...", or nothing on timeout
+  local package="$1" case="$2" end=$(( $(date +%s) + $3 )) line=""
+  adb_s logcat -c
+  adb_s shell am start -W -n "${package}/${PROBE_PKG}.ProbeActivity" --es case "${case}" >/dev/null
+  while (( $(date +%s) < end )); do
+    line="$(adb_s logcat -d -s NtkProbe:I | grep -m1 "RESULT ${case} " || true)"
+    [[ -n "${line}" ]] && break
+    sleep 2
+  done
+  [[ -n "${line}" ]] && echo "${line#*RESULT ${case} }"
+}
+
+probe_record() {  # <name> <outcome from probe_case>
+  if [[ "$2" == PASS* ]]; then probe_result "$1" passed "${2#PASS }"
+  else probe_result "$1" failed "${2:-no result within the time limit}"; fi
+}
+
+if [[ -z "${FILTER}" || "${FILTER}" == "Probe" ]]; then
+  echo "[probe] building the release probe (R8)"
+  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :releaseProbe:assembleFullRelease :releaseProbe:assembleFullNextRelease \
+    :releaseProbe:assembleNoPermissionsRelease)
+  PROBE_APK="${ANDROID_DIR}/AndroidLibraryExample/releaseProbe/build/outputs/apk"
+  for package in "${PROBE_PKG}" "${PROBE_PKG}.nopermissions"; do adb_s uninstall "${package}" >/dev/null 2>&1 || true; done
+
+  echo "[probe] IT-22 startup, host, launch activity, receiver and schedule under R8"
+  adb_s install "${PROBE_APK}/full/release/releaseProbe-full-release.apk" >/dev/null
+  adb_s shell pm grant "${PROBE_PKG}" android.permission.POST_NOTIFICATIONS
+  adb_s shell appops set "${PROBE_PKG}" SCHEDULE_EXACT_ALARM allow
+  probe_record IT-22_r8 "$(probe_case "${PROBE_PKG}" r8 150)"
+
+  echo "[probe] IT-26 a schedule of the earlier version fires after install -r of the later one"
+  outcome="$(probe_case "${PROBE_PKG}" scheduleForUpdate 30)"
+  if [[ "${outcome}" == PASS* ]]; then
+    trigger="${outcome##*triggerAt=}"
+    adb_s install -r "${PROBE_APK}/fullNext/release/releaseProbe-fullNext-release.apk" >/dev/null
+    wait_until_epoch_ms $(( trigger + 15000 ))
+    probe_record IT-26_update "$(probe_case "${PROBE_PKG}" verifyAfterUpdate 40)"
+  else
+    probe_record IT-26_update "scheduleForUpdate: ${outcome}"
+  fi
+  adb_s uninstall "${PROBE_PKG}" >/dev/null 2>&1 || true
+
+  echo "[probe] IT-19 the library without its permissions"
+  adb_s install "${PROBE_APK}/noPermissions/release/releaseProbe-noPermissions-release.apk" >/dev/null
+  probe_record IT-19_permissions "$(probe_case "${PROBE_PKG}.nopermissions" permissions 40)"
+  adb_s uninstall "${PROBE_PKG}.nopermissions" >/dev/null 2>&1 || true
+
+  echo "[probe] IT-19 merged manifests: a removed foreground service permission takes its service along"
+  AAPT2="$(ls -d "${ANDROID_HOME:-${HOME}/Library/Android/sdk}"/build-tools/*/aapt2 | sort -V | tail -1)"
+  manifest_problems="$(python3 - "${AAPT2}" "${PROBE_APK}/full/release/releaseProbe-full-release.apk" \
+    "${PROBE_APK}/noPermissions/release/releaseProbe-noPermissions-release.apk" <<'PY'
+import re, subprocess, sys
+aapt2, full, removed = sys.argv[1:4]
+PERMISSIONS = ["POST_NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED", "SCHEDULE_EXACT_ALARM", "USE_FULL_SCREEN_INTENT",
+               "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_DATA_SYNC", "FOREGROUND_SERVICE_SPECIAL_USE"]
+PROGRESS = "com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundService"
+CALL = "com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleForegroundService"
+# The service each foreground service permission is for (Kotlin API design 8.12).
+NEEDS = {"FOREGROUND_SERVICE": [PROGRESS, CALL], "FOREGROUND_SERVICE_DATA_SYNC": [PROGRESS],
+         "FOREGROUND_SERVICE_SPECIAL_USE": [CALL]}
+def read(apk):
+    tree = subprocess.run([aapt2, "dump", "xmltree", "--file", "AndroidManifest.xml", apk],
+                          capture_output=True, text=True, check=True).stdout
+    perms = set(re.findall(r'android\.permission\.([A-Z_]+)" \(Raw', tree))
+    services = set()
+    lines = tree.splitlines()
+    for i, line in enumerate(lines):
+        if line.strip().startswith("E: service"):
+            for follow in lines[i + 1:i + 8]:
+                m = re.search(r':name\(0x[0-9a-f]+\)="([^"]+)"', follow)
+                if m:
+                    services.add(m.group(1)); break
+    return perms, services
+problems = []
+perms, services = read(full)
+for p in PERMISSIONS:
+    if p not in perms: problems.append(f"full: {p} missing")
+for s in (PROGRESS, CALL):
+    if s not in services: problems.append(f"full: {s} missing")
+perms, services = read(removed)
+for p in PERMISSIONS:
+    if p in perms: problems.append(f"noPermissions: {p} still declared")
+for p, needed in NEEDS.items():
+    if p not in perms:
+        for s in needed:
+            if s in services: problems.append(f"noPermissions: {s} kept without {p}")
+print("; ".join(problems))
+PY
+)"
+  if [[ -z "${manifest_problems}" ]]; then probe_result IT-19_manifest passed "merged manifests as design 8.12"
+  else probe_result IT-19_manifest failed "${manifest_problems}"; fi
 fi
 
 # --- 7. Device state -----------------------------------------------------------------------
