@@ -13,9 +13,10 @@
 
 3. 検査を実行する
    - `./scripts/verify_manual.sh <version>` を実行する
-   - あわせて `python scripts/check_manual_c_examples.py <version>` を実行する
-     （マニュアルの C の例を C ABI と照合する。検査 2 はサンプルアプリが C++ のため C の例を見ない）
-     - Visual Studio がある環境では compile も走る。無い環境では SKIP と表示される
+   - あわせて `python scripts/check_manual_c_examples_windows.py <version>` と `python scripts/check_manual_c_examples_android.py <version>` を実行する
+     （マニュアルの C の例を OS ごとの C ABI と照合する。検査 2 はサンプルアプリが C++ や Kotlin のため C の例を見ない）
+     - Windows は Visual Studio がある環境で、Android は NDK の clang がある環境で compile も走る。無い環境では SKIP と表示される
+     - Android は、マニュアルに Android の C ABI の節が無い間（README の段階 4 の前）は SKIP と表示される
    - `--strict` 指定時は `./scripts/verify_manual.sh <version> --strict` を実行する
    - スクリプトが 7 項目を検査し、終了コードで停止項目の有無を返す
 

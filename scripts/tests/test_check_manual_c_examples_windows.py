@@ -1,4 +1,4 @@
-"""Break each check of the manual C example checker and confirm it notices.
+"""Break each check of the manual Windows C example checker and confirm it notices.
 
 Each case copies the files the checker reads into a temporary tree, makes one
 small change there, and asserts that the named check fails. The real tree is
@@ -7,7 +7,7 @@ cannot go quiet because the file it edits has moved on.
 
 The compile check is not exercised here: it needs Visual Studio, and a case
 that silently passes without it would be worse than no case at all. Run
-`python scripts/check_manual_c_examples.py` on Windows for that one.
+`python scripts/check_manual_c_examples_windows.py` on Windows for that one.
 
 Run: python3 -m unittest discover -s scripts/tests
 """
@@ -21,7 +21,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CHECKER = ROOT / "scripts" / "check_manual_c_examples.py"
+CHECKER = ROOT / "scripts" / "check_manual_c_examples_windows.py"
 
 DEF = "windows/WindowsLibraryCApi/WindowsLibraryCApi.def"
 INCLUDE = "windows/WindowsLibraryCApi/include"
