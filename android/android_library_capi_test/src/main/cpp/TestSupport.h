@@ -27,6 +27,8 @@ void HoldMain();
 void UnholdMain();
 // The size of capi.jni.Ledger, read on the main thread.
 int LedgerSize();
+// Puts a plain-text clip from Kotlin, given as UTF-16 code units (so it may hold what C cannot).
+void SetClipboardText(const std::u16string& text);
 
 // One callback or release, as it happened.
 struct Record {

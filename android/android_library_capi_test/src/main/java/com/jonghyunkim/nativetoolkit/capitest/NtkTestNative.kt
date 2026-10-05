@@ -36,6 +36,10 @@ object NtkTestNative {
     @JvmStatic
     external fun probeStartRejected(): IntArray
 
+    /** Clipboard operations before initialization; see ntk_test_jni.cpp for the layout. */
+    @JvmStatic
+    external fun clipboardUninitialized(): IntArray
+
     /** Runs one GoogleTest case; true when it ran and passed. */
     @JvmStatic
     external fun runCase(name: String): Boolean

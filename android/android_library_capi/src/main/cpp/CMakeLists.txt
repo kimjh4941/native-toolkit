@@ -3,6 +3,7 @@ project(ntk CXX)
 
 # libntk.so, the C ABI (C ABI design part 1, 5.1 and 5.4, AC-12).
 add_library(ntk SHARED
+    src/Clipboard/Clipboard.cpp
     src/Common/Classes.cpp
     src/Common/Handles.cpp
     src/Common/Jni.cpp

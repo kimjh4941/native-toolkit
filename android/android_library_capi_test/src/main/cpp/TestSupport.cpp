@@ -57,6 +57,16 @@ int LedgerSize() {
     return env->CallStaticIntMethod(control, method);
 }
 
+void SetClipboardText(const std::u16string& text) {
+    JNIEnv* env = Env();
+    jclass control = env->FindClass("com/jonghyunkim/nativetoolkit/capitest/ClipboardControl");
+    jmethodID method = env->GetStaticMethodID(control, "setText", "(Ljava/lang/String;)V");
+    jstring value = env->NewString(reinterpret_cast<const jchar*>(text.data()), static_cast<jsize>(text.size()));
+    env->CallStaticVoidMethod(control, method, value);
+    env->DeleteLocalRef(value);
+    env->DeleteLocalRef(control);
+}
+
 void Recorder::Add(Record record) {
     record.on_main = OnMain();
     record.thread = gettid();

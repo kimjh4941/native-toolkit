@@ -41,6 +41,14 @@ class ManualInitTest {
     }
 
     @Test
+    fun clipboardOperationsBeforeInitializationAreNotInitialized() {
+        // Design part 1, chapter 6 and part 2, 12.1 (未初期化), moved from TB-1 to TB-3.
+        NtkTestNative.load()
+        val result = NtkTestNative.clipboardUninitialized().toList()
+        assertEquals(listOf(2, 2, 1, 2, 1, 1, 1), result)
+    }
+
+    @Test
     fun theCPathInitializesWithoutJniOnLoad() {
         // libntk.so is opened by the linker only, as with dlopen: JNI_OnLoad has not run, and
         // ntk_android_init must not make it run (it does not call System.loadLibrary).

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <NativeToolkitC/Android.h>
+#include <NativeToolkitC/Clipboard.h>
 
 #include "TestSupport.h"
 #include "ntk_debug_probe.h"
@@ -111,5 +112,31 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_probeStartRejected(JNI
     jint values[] = {error, released_here ? 1 : 0, static_cast<jint>(id)};
     jintArray result = env->NewIntArray(3);
     env->SetIntArrayRegion(result, 0, 3, values);
+    return result;
+}
+
+// Clipboard operations before initialization (noStartup; design part 1, chapter 6 and part 2,
+// 12.1 未初期化): [copy_text, read, read's output cleared, add_change_listener, released on this
+// thread before it returned, its output cleared, the readers and frees of NULL ran].
+extern "C" JNIEXPORT jintArray JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_clipboardUninitialized(JNIEnv* env, jclass) {
+    int32_t copy = ntk_clipboard_copy_text("x", nullptr);
+    auto* content = reinterpret_cast<ntk_clipboard_content*>(0x1);
+    int32_t read = ntk_clipboard_read(&content);
+    ntktest::Recorder recorder;
+    auto* listener = reinterpret_cast<ntk_clipboard_listener*>(0x1);
+    int32_t add = ntk_clipboard_add_change_listener(
+        [](void*) {}, &recorder, ntktest::Recorder::Release, &listener);
+    std::vector<ntktest::Record> records = recorder.Records();
+    bool released_here = records.size() == 1 && records[0].what == "release" && records[0].thread == gettid();
+    size_t size = 99;
+    bool readers = ntk_clipboard_content_item_count(nullptr) == 0 &&
+                   ntk_clipboard_content_label(nullptr, &size) == nullptr && size == 0;
+    ntk_clipboard_content_free(nullptr);
+    ntk_clipboard_listener_remove(nullptr);
+    jint values[] = {copy, read, content == nullptr ? 1 : 0, add, released_here ? 1 : 0, listener == nullptr ? 1 : 0,
+                     readers ? 1 : 0};
+    jintArray result = env->NewIntArray(7);
+    env->SetIntArrayRegion(result, 0, 7, values);
     return result;
 }

@@ -1,6 +1,9 @@
 package com.jonghyunkim.nativetoolkit.capitest
 
+import androidx.test.core.app.ActivityScenario
+import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -19,6 +22,27 @@ class NtkGoogleTest(private val case: String) {
             NtkTestNative.load()
             return NtkTestNative.listCases().toList()
         }
+    }
+
+    private var scenario: ActivityScenario<FocusActivity>? = null
+
+    // The clipboard cases read the clipboard and wait for its change events, which need the
+    // window focus (design part 1, 5.8). Every case gets it; the others do not mind.
+    @Before
+    fun focus() {
+        ClipboardControl.context = appContext
+        val launched = ActivityScenario.launch(FocusActivity::class.java)
+        scenario = launched
+        assertTrue("the test Activity did not get the window focus", waitUntil {
+            var focused = false
+            launched.onActivity { focused = it.hasWindowFocus() }
+            focused
+        })
+    }
+
+    @After
+    fun closeFocus() {
+        scenario?.close()
     }
 
     @Test

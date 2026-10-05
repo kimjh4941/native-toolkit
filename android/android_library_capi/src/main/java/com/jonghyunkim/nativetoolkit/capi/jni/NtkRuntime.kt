@@ -1,5 +1,6 @@
 package com.jonghyunkim.nativetoolkit.capi.jni
 
+import android.app.Application
 import android.content.Context
 import android.util.Log
 import com.jonghyunkim.nativetoolkit.common.runtime.LibraryRuntime
@@ -28,6 +29,19 @@ internal object NtkRuntime {
     /** What [notifyKotlinReady] returns when the natives are not registered yet. */
     const val NATIVES_MISSING = -1
 
+    @Volatile
+    private var appContext: Context? = null
+
+    /**
+     * The application context passed to the initialization, for the bridges to reach the
+     * Managers. Set before the C ABI can become ready, so an operation that passed the
+     * initialization check finds it.
+     */
+    fun context(): Context {
+        Log.d(TAG, "[context]")
+        return checkNotNull(appContext) { "The C ABI is not initialized" }
+    }
+
     /**
      * Runs the Kotlin side once, from any of the three entries of the C ABI. When it is not done
      * yet, LibraryRuntime is asked to tell C once it is, so that the state still reaches READY
@@ -42,10 +56,23 @@ internal object NtkRuntime {
     fun ensureInitialized(context: Context): Int {
         Log.d(TAG, "[ensureInitialized] context: $context")
         val state = LibraryRuntime.ensureInitialized(context)
-        if (state != LibraryRuntime.InitState.DONE) {
-            LibraryRuntime.addOnInitializedListener { notifyKotlinReady() }
+        if (state == LibraryRuntime.InitState.DONE) {
+            keepApplication(context)
+        } else {
+            LibraryRuntime.addOnInitializedListener {
+                keepApplication(context)
+                notifyKotlinReady()
+            }
         }
         return state.ordinal
+    }
+
+    // Keeps the application context once the library is initialized, before C can become READY,
+    // and only a real Application: a Context that failed the initialization must not stay. Read
+    // after LibraryRuntime, which is the one to ask for the application context first.
+    private fun keepApplication(context: Context) {
+        Log.d(TAG, "[keepApplication] context: $context")
+        (context.applicationContext as? Application)?.let { appContext = it }
     }
 
     /**

@@ -92,3 +92,44 @@
 | N9: 外すときに取り消しの完了を呼ばない | `Probe.ACancelRightAfterAccepting...`、`Probe.ACancelBeforeTheInsertion...`、`Probe.AResultAndACancelQueued...` |
 
 - 落ちなかった変異: N5（帳簿への挿入で ACTIVE を確かめない）。試験用の操作は挿入のほかに何も始めないので、取り消しの後に挿入しても、外す処理が帳簿から消して取り消しの完了を出し、結果が同じになる。「取り消しの後に操作を始めない」は、始めると見える機能（Dialog が出ない。TB-4）で確かめる
+
+## TB-3（2026-10-05）
+
+### 作ったもの
+
+- C: `src/Clipboard/Clipboard.cpp`（OP-01〜OP-12 と、読み取りの結果・説明の読み取り 15 関数。合わせて 27 関数）。クラスの表に `ClipboardBridge` を足した
+- Kotlin: `capi.jni.ClipboardBridge`（書き込み・読み取り・問い合わせは呼び出しスレッドで、監視の開始と停止と受け手の挿入は main に積む。例外は 11.3 の値に写す）。`NtkRuntime` に Application の Context を持たせた（受け口が Manager を得るため）
+- テスト: GoogleTest `Clipboard` 13 件。noStartup に「未初期化の Clipboard の操作」1 件（第 1 部 6 章の未初期化の項目。TB-1 から移したもの）。テスト用のモジュールに `FocusActivity`（読み取りと変更のイベントには窓のフォーカスが要る）と `ClipboardControl`（Kotlin からクリップを置く）。GoogleTest の runner は、各ケースの前に `FocusActivity` を開いてフォーカスを待つ
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| 読み取りと説明の結果は、受け口が `Array<Any?>`（UTF-8 のバイト列と配列）で返し、C がヒープに写す | JNI で引くフィールドや型を増やさずに済む。JNI の参照は持たない（第 1 部 5.7） |
+| `NtkRuntime` が持つ Context は、`LibraryRuntime` が DONE を返した後（途中なら済んだときの関数の中）で、`applicationContext` が `Application` のときだけ持つ | 最初は呼ぶ前に持たせたが、(1) 初期化に失敗する Context を持ち続けうる、(2) `LibraryRuntime` より先に `getApplicationContext()` を呼ぶと、初期化のテスト（Kotlin の側が途中の間は READY でない）がそこで止まり、`LibraryRuntime` の外で待つ形になって落ちた。READY になる経路はどれも `NtkRuntime` を通るので、READY の後は Context がある |
+| 監視の開始・停止の main での失敗（`ClipboardManager` が取れない）は logcat に出すだけ | 第 2 部 6.1（戻り値は main への受け付け） |
+| 受け手のハンドルは登録の ID（`reinterpret_cast`） | TB-2 のとおり |
+
+### テストで分かったこと
+
+- **1 回のコピーで変更のイベントが 2 回届くことがある**: 監視の登録は 1 つ（2 回目の開始は「already observing」で無視されている）なのに、テキストのコピーで OS が `onChange` を 8 ms 空けて 2 回呼んだ（Pixel 6a、API 36）。Android 12 以降、テキストの分類（`ClipDescription` の classification）が済むと、変更としてもう一度知らせる。テストは「少なくとも 1 回」と「外した後・止めた後は増えない」（遅れて来る分を待ってから数える）で確かめる形にした。分類の無い URI のクリップでは 1 回なので、「受け手ごとにちょうど 1 回」は URI のコピーで確かめた（`AUriCopyReachesEachListenerExactlyOnce`。`EventHub` の受け手を登録のたびに足す誤りは、これでだけ捕まる）
+- **一度きりの事象**: 3 つの flavor を続けて流した 1 回目、Pixel 6a で 8 分 47 秒かかって startup と noStartup の結果が 0 件になった（ログは残っていなかった）。その後、両方の端末で 3 つを続けて流して全件が通った。TB-11 の全体の実行で再び出ないかを見る
+- libntk の debug のログが多く、logcat の領域から GoogleTest の失敗の行が押し出された。端末の logcat の領域を 16 MB にして読んだ（TB-11 で `test_android.sh` に入れるかを決める）
+
+### 確かめたこと
+
+- capi のテスト 66 件（startup 53、noStartup 11、noNtkInitializer 2）が Pixel 6a とエミュレータで通る
+- release の `libntk.so` の公開は `ntk_*` 40（Common 11、Android 2、Clipboard 27）と `JNI_OnLoad`
+- `check_c_abi_contract_android.py` は symbols の SKIP のほかは OK
+
+### 変異（Pixel 6a、startup の GoogleTest）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| C1: `reserved1` を見逃す | `Clipboard.TheOptionsFollowTheStructSizeRules` |
+| C2: 0 件を `INVALID_PARAMETER` で返す（1 回目の形は `-Werror` で流れず、形を変えた） | `Clipboard.NullAndInvalidUtf8AreRejectedAtTheEntry` |
+| C3: Kotlin の `INVALID_URI` を `UNKNOWN` に写す | `Clipboard.KotlinFailuresMapToTheTable` |
+| C4: 読み取りで text と html を取り違える | `TextRoundTripsWithItsLabel`、`HtmlUriAndSeveralTextsRoundTrip`、`WhatCCannotHoldIsReadAsTheReplacementCharacter` |
+| C5: 受け手を外しても取り消さない | `EveryListenerGetsAChangeUntilItIsRemoved`、`AUriCopyReachesEachListenerExactlyOnce` |
+| C6: 読み取りで U+FFFD に置き換えない | `WhatCCannotHoldIsReadAsTheReplacementCharacter` |
+| C7: `EventHub` の受け手を登録のたびに足す | `AUriCopyReachesEachListenerExactlyOnce` |

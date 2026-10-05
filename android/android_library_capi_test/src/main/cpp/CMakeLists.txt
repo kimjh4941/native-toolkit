@@ -21,6 +21,7 @@ set(NTK_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../../../../android_library_capi/sr
 add_library(ntk_test SHARED
     ntk_test_jni.cpp
     TestSupport.cpp
+    tests/ClipboardTest.cpp
     tests/CommonTest.cpp
     tests/ProbeTest.cpp
     tests/RegistryTest.cpp
