@@ -70,6 +70,12 @@ ID は `AP-n`（第 2 部）。第 1 部の `AC-n` は変えない。
 
 区分 B は、過ぎた時刻の予約（AP-16 に入れた）、AP-17 の取り消しの経路（main に積む）、Progress のサービスの中の失敗が C に届かないこと（6.3、11.2。1 回目の W-X4 で足した `SecurityException` の写しを直した）、importance 5 を受けないこと（6.3）、入口と完了の両方から来る `EMPTY_CONTENT` と Chooser Action のアイコン（AP-19）、11.5 を表にしたこと。細目は `reviews/...-part2-review-v2.md`。
 
+### 0.3 利用者の決定（2026-10-05）
+
+| 決定 | 反映 |
+|---|---|
+| 2a の照合のスクリプトは、1 つのファイルを設定で切り替えるのではなく、**共通の部分を 1 つのモジュールにし、OS ごとの照合を OS ごとのファイルに分ける**。共通: 設計書の表と付録 A の読み取り、C の宣言の解析、報告、OS に依らない照合（関数・8.2・付録 A、エラーの値、名前、ASCII）、2 つの OS の `Common.h` の照合。Windows だけ: `.def`、C++ の API との写し。Android だけ: Kotlin の Manager との照合、10 章、ビルドの後の `llvm-nm`。理由は、OS だけの照合が重ならないこと、Windows のファイルにほとんど手を入れずに「今と同じ結果」を守れること、リポジトリの名前の付け方（`check_windows_dist.py`、`test_android.sh`）と同じこと。解析を OS ごとに写さないのは、片方だけ直してずれるのを避け、`Common.h` を同じ解析器で読むため。TA-2 も同じ形にする | 12.3、13 章の TA-1・TA-2 |
+
 ## 1. 設計目的
 
 - 第 1 部の約束（スレッド、寿命、初期化、`release`、前面）の上に、**公開する C の関数・型・エラーの値をすべて決める**
@@ -751,7 +757,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 ### 12.3 機械照合（2a）
 
-- `check_c_abi_contract.py` を OS ごとの設定で動かす（13 章 TA-1）。Android の入力: 付録 A、8.1、8.2、10 章、11 章、`android/android_library_capi/src/main/cpp/include/NativeToolkitC/*.h`
+- 照合のスクリプトは、共通のモジュール `scripts/c_abi_contract_common.py` と OS ごとの `scripts/check_c_abi_contract_windows.py`・`scripts/check_c_abi_contract_android.py` に分ける（0.3、13 章 TA-1）。Android の入力: 付録 A、8.1、8.2、10 章、11 章、`android/android_library_capi/src/main/cpp/include/NativeToolkitC/*.h`
 - 照らすもの: 8.2 = ヘッダー = 付録 A の関数（合計 155）、宣言の一致（関数、コールバック、構造体、列挙の値、typedef）、10 章のどの振る舞いにも OP がある、11 章の値 = ヘッダー、11.3 と 11.4 の順 = Kotlin の宣言の順、10 章の「C ABI での区分」の数、名前の規則、ASCII、2 つの OS の `Common.h` の一致（第 1 部 5.2）
 - ビルドの後: `llvm-nm -D --defined-only libntk.so` の `ntk_*` = 8.2（AP-15）
 - 照合のスクリプトの自己テストで、各照合を 1 つずつ壊すと落ちることを確かめる
@@ -768,8 +774,8 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 | ID | 内容 | 見積 | 依存 | 完了の条件 |
 |---|---|---|---|---|
-| TA-1 | `check_c_abi_contract.py` を OS ごとの設定にする（パス、機能名、見出し、操作の数を表から導く、写す元を Kotlin にする、Windows だけの照合を OS ごとに分ける）。OS 間の `Common.h` の照合 | 1.5日 | - | Windows の照合が今と同じ結果。Android は付録 A とヘッダーの雛形で動く。自己テストで壊すと落ちる |
-| TA-2 | `check_manual_c_examples.py` を OS ごとにする（章の見出し、前置き、NDK の clang） | 1.0日 | TA-1 | Windows が今と同じ。Android の例が無いときは SKIP と出す |
+| TA-1 | `check_c_abi_contract.py` を、共通のモジュール `c_abi_contract_common.py`（読み取り、解析、報告、OS に依らない照合、OS 間の `Common.h` の照合）と、OS ごとの `check_c_abi_contract_windows.py`（`.def`、C++ の API との写し）・`check_c_abi_contract_android.py`（Kotlin の Manager、10 章、`llvm-nm`）に分ける（0.3）。操作の数は表から導く。自己テストと `scripts/README.md` を新しい名前に合わせる | 1.5日 | - | Windows の照合が今と同じ結果。Android は付録 A とヘッダーの雛形で動く。自己テストで壊すと落ちる |
+| TA-2 | `check_manual_c_examples.py` を TA-1 と同じ形で、共通のモジュールと OS ごとのファイルに分ける（章の見出し、前置き、NDK の clang は OS ごと） | 1.0日 | TA-1 | Windows が今と同じ。Android の例が無いときは SKIP と出す |
 | TB-1 | `android_library_capi` の雛形（第 1 部 5.1、5.4）、`Common.h`・`Android.h`、初期化（第 1 部 5.3） | 1.5日 | - | 第 1 部 6 章の初期化の経路のテスト |
 | TB-2 | 共通の部品（文字列、`struct_size`、出力のハンドル、登録の表と帳簿、前面の判定、エラーの写しの土台） | 1.5日 | TB-1 | 第 1 部 6 章の `release` と完了のテスト |
 | TB-3 | Clipboard（OP-01〜OP-12、読み取りの結果と説明） | 1.0日 | TB-2 | 12.1 の Clipboard の行 |

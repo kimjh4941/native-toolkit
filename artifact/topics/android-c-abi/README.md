@@ -244,7 +244,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 | 0h | サンプルの targetSdk を 36 にする。UI テストを直してよいのはこの段だけで、直した理由を結果に記録する。**完了**（`results/2026-10-04-android-c-abi-stage0h-result.md`。UI テストは直さずに通った。0e〜0h の後の全体の実行で、両方の環境とも 317 件すべて成功し、0d の基準と同じ） | サンプルの targetSdk が 36 になる |
 | 1a | スパイク: NDK のビルド（8.2）。結果で D-4・D-6・D-9・D-10・D-13 を決め、C ABI の設計書を書く。**スパイクは完了**（`results/2026-10-04-android-c-abi-stage1a-spike-result.md`。前提 3 つの直し方を確かめた: Prefab は `c++_static` の共有ライブラリを拒むので `ANDROID_STL=none` + libc++ を手でリンク、`JNI_OnLoad` は 2 回呼ばれうるので冪等に、利用者に伝わる stdlib を 2.2.21 に）。**C ABI の設計書の第 1 部（スレッド・寿命・Context と D-4・D-6・D-8・D-9・D-10・D-13）も決定**（`designs/2026-10-04-android-c-abi-c-abi-design.md`。2 者のレビューを 5 回と、直した所の確かめ）。第 2 部（関数の一覧、対応表、付録 A）は 2b の前に書く | 無し |
 | 1b | Kotlin の API を補完する（4 章）。1.2 のロジックを `android_library` へ移し、イベントを保つ口、予約の保存形式と 1.x のデータの破棄、前面の Activity と透明な Activity を足す。サンプルの Receiver を、移したライブラリの仕組みに置き換える。Dialog を層に分け、notification の依存の向きを直す（4 章）。新しい API（Activity の要らない Dialog と権限の要求、イベントの口）を使う画面をサンプルに足す | 1.x で予約した通知を破棄する（D-11）。Share の結果が古い Chooser の選択を新しい要求に付けて届けうる不具合を直す（C ABI の設計書 AC-22）。それ以外の、ネイティブの利用者から見た動作は変えない。Kotlin の利用者に androidx.startup の依存が入る |
-| 2a | `check_c_abi_contract.py` と `check_manual_c_examples.py` を OS ごとに動くようにする（パス、機能名、操作の数、公開シンボルの読み方、コンパイラを OS ごとの設定にする）。照合の対象に、イベントと完了のコールバック（6 章の振る舞いの集合）を入れる。C ABI の設計で `Common.h` を分けると決めた場合は、Windows の側（ヘッダー、照合、マニュアル）もここで直す（3.3） | 無し（`Common.h` を分ける場合も、Windows の C ABI の名前と値は変えない） |
+| 2a | `check_c_abi_contract.py` と `check_manual_c_examples.py` を OS ごとに動くようにする（共通のモジュールと OS ごとのファイルに分ける。2026-10-05 の利用者の決定、C ABI の設計書 第 2 部 0.3。パス、機能名、操作の数、公開シンボルの読み方、コンパイラを OS ごとの設定にする）。照合の対象に、イベントと完了のコールバック（6 章の振る舞いの集合）を入れる。C ABI の設計で `Common.h` を分けると決めた場合は、Windows の側（ヘッダー、照合、マニュアル）もここで直す（3.3） | 無し（`Common.h` を分ける場合も、Windows の C ABI の名前と値は変えない） |
 | 2b | `android_library_capi` を作り、C ABI を実装する。C ABI のテスト（`android_library_capi_test`）と smoke（`android_library_capi_smoke`）。ビルドスクリプトに capi の AAR と `maven-publish` の Maven リポジトリの生成を足し、smoke はその一時的なリポジトリから解決する（リリースのときに `dist/<版>/android/m2/` へ写す）。**完了の条件に 2a の機械照合を入れる** | C ABI が増える（新しい配布物） |
 | 2c | `unity-native-plugin`（別リポジトリ）を C ABI に移す: AAR のコピー（`PreBuildProcessor` は今、古い 2 つの AAR を必須にしている）、P/Invoke、KGP の適用をやめて実行時の `kotlin-stdlib` 2.2 以上と androidx の依存だけを足す（`PostBuildProcessor` は KGP 2.0.21 を当てており、AGP 9 の Unity ではビルドの失敗の原因になりうる）、Runtime / PlayMode / Player テスト。こちらは対応表を出し、書き換えは向こうで行う。**2c の成功を段階 3 を始める条件にする** | Unity が C ABI を呼ぶ |
 | 3 | `unity_android_plugin` を削除する。ビルドスクリプト、`publish_docs.sh`、`scripts/check_design_consistency.py`、`scripts/README.md`、`dist/`、Dokka、README、`agent-rules/coding-rules/{android,common}.md`、`agent-rules/workflows/`（write-manual、implement-sample-app など）から外す | `unity-android-native-toolkit-*.aar` が無くなる（D-2） |
@@ -554,7 +554,7 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 - [ ] 16 KB のページに合っている（`zipalign -c -P 16` か `llvm-objdump` の LOAD の整列で確かめる）
 - [ ] smoke がビルドの作った Maven リポジトリだけから組め、R8 を有効にした release で動く。POM の座標（`io.github.kimjh4941`）と依存が D-17 と一致する
 - [ ] 依存の一覧がビルドから作られ、マニュアルの一覧と一致する
-- [ ] `check_c_abi_contract.py` と `check_manual_c_examples.py` が Android でも通る
+- [ ] 照合のスクリプト（`check_c_abi_contract_<os>.py` と `check_manual_c_examples` の OS ごとの版）が Android でも通る
 - [ ] `unity-native-plugin` が C ABI を呼ぶ形に移り、Android のテストと Player テストを通している（段階 2c。別リポジトリ）
 - [ ] `unity_android_plugin` がリポジトリに残っていない（モジュール、スクリプト、README、ルール、`dist/` の新しい版）
 - [ ] マニュアルの Android の章に C ABI の節と 2.0.0 の移行ガイドがあり、`android.library.*` が残っておらず、3 言語で一致している
