@@ -1,4 +1,4 @@
-"""Break each check of the C ABI contract checker and confirm it notices.
+"""Break each check of the Windows C ABI contract checker and confirm it notices.
 
 Each case copies the files the checker reads into a temporary tree, makes one
 small change there, and asserts that the named check fails. The real tree is
@@ -16,7 +16,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-CHECKER = ROOT / "scripts" / "check_c_abi_contract.py"
+CHECKER = ROOT / "scripts" / "check_c_abi_contract_windows.py"
 
 DESIGN = "artifact/topics/windows-architecture/designs/2026-09-21-windows-architecture-c-abi-design.md"
 CPP_DESIGN = "artifact/topics/windows-architecture/designs/2026-09-20-windows-architecture-cpp-api-design.md"

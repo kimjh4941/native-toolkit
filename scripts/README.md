@@ -45,13 +45,15 @@ file alone, so a partial rebuild cannot make stale packages look current.
 
 These read both sides of a comparison from source, so neither side can drift
 without the other noticing. They are fast, need no toolchain, and are meant to
-run while writing a design or before a commit.
+run while writing a design or before a commit. The C ABI checkers are one file
+per OS; what they share is `c_abi_contract_common.py`.
 
 | Script | Compares |
 |---|---|
 | `check_design_consistency.py <design.md>` | A design document against itself: counts, ids, tables, heading order |
 | `check_cpp_api_contract.py` | The Windows C++ API design against the public headers and what it cites |
-| `check_c_abi_contract.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A |
+| `check_c_abi_contract_windows.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A, and the C++ API it mirrors |
+| `check_c_abi_contract_android.py [--design-only] [--library <libntk.so>]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
 | `check_sample_app_inputs.py` | That no sample app screen declares a text input field (`agent-rules/coding-rules/common.md`) |
 | `check_manual_c_examples.py [<version>]` | The manual's C examples against the C ABI: every exported function is shown, every name exists, the three languages carry the same code, and the examples compile as C |
 | `check_windows_dist.py [<release>]` | `dist/<release>/windows/` against the tree: built from the current sources, the same public headers (loose and in both packages), the declared versions in the file names, every `.def` export in the DLL. Run before a release |
