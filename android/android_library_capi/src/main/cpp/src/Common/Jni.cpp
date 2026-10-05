@@ -86,7 +86,9 @@ Failure TakeException(JNIEnv* env, const char* where) {
     static const char* const kMissing[] = {
         "java/lang/ClassNotFoundException", "java/lang/NoClassDefFoundError",
         "java/lang/NoSuchMethodError", "java/lang/NoSuchFieldError", nullptr};
-    Failure failure = IsInstanceOfAny(env, error, kMissing) ? Failure::kClassNotFound : Failure::kOther;
+    static const char* const kMemory[] = {"java/lang/OutOfMemoryError", nullptr};
+    Failure failure = IsInstanceOfAny(env, error, kMissing) ? Failure::kClassNotFound
+        : IsInstanceOfAny(env, error, kMemory) ? Failure::kOutOfMemory : Failure::kOther;
 
     // The class name only: an exception message may carry user data (design 5.12).
     jclass type = env->GetObjectClass(error);

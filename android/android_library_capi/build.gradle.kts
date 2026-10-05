@@ -42,6 +42,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    testOptions {
+        // android.util.Log in the code under test returns defaults on the JVM.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 kotlin {
@@ -57,4 +61,5 @@ dependencies {
     implementation(project(":android_library"))
     // NtkInitializer runs at app start after android_library's LibraryInitializer (design 1.4).
     implementation(libs.androidx.startup.runtime)
+    testImplementation(libs.junit)
 }

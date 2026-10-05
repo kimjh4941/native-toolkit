@@ -22,7 +22,8 @@ JNIEnv* Env();
 enum class Failure {
     kNone,           // no exception was pending
     kClassNotFound,  // a class or member is missing: the AAR is not there or R8 renamed it
-    kOther,          // anything else, such as running out of memory
+    kOutOfMemory,    // java.lang.OutOfMemoryError
+    kOther,          // anything else
 };
 
 // Clears a pending exception and logs its class with where; never leaves one pending

@@ -13,12 +13,25 @@ FetchContent_MakeAvailable(googletest)
 
 find_package(ntk REQUIRED CONFIG)
 
+# The shared parts of libntk.so that have no JNI calls of their own to the C ABI's classes are
+# also compiled here, to test them directly (UTF-8, struct_size, the registration table).
+set(NTK_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../../../../android_library_capi/src/main/cpp")
+
 # The GoogleTest cases and the JNI helpers the instrumented tests call.
 add_library(ntk_test SHARED
     ntk_test_jni.cpp
-    tests/CommonTest.cpp)
+    TestSupport.cpp
+    tests/CommonTest.cpp
+    tests/ProbeTest.cpp
+    tests/RegistryTest.cpp
+    tests/StructSizeTest.cpp
+    tests/Utf8Test.cpp
+    "${NTK_SOURCES}/src/Common/Jni.cpp"
+    "${NTK_SOURCES}/src/Common/Registry.cpp"
+    "${NTK_SOURCES}/src/Common/Utf8.cpp")
+target_include_directories(ntk_test PRIVATE "${NTK_SOURCES}/src")
 target_compile_features(ntk_test PRIVATE cxx_std_20)
-target_compile_options(ntk_test PRIVATE -Wall -Wextra -Werror)
+target_compile_options(ntk_test PRIVATE -Wall -Wextra -Werror -fvisibility=hidden)
 target_link_libraries(ntk_test PRIVATE ntk::ntk GTest::gtest log)
 
 # A library that depends on libntk.so and has no JNI_OnLoad of its own, as an app's .so may be:

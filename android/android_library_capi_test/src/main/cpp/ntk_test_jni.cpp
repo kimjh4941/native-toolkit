@@ -3,11 +3,15 @@
 #include <android/log.h>
 #include <gtest/gtest.h>
 #include <jni.h>
+#include <unistd.h>
 
 #include <string>
 #include <vector>
 
 #include <NativeToolkitC/Android.h>
+
+#include "TestSupport.h"
+#include "ntk_debug_probe.h"
 
 #define TEST_LOG(...) __android_log_print(ANDROID_LOG_INFO, "ntk_test", __VA_ARGS__)
 
@@ -41,8 +45,9 @@ void InitGoogleTestOnce(const std::string& filter) {
 // libntk_test.so has a JNI_OnLoad of its own. Without one, ART would find libntk.so's through
 // the dependency and run it (stage 1a 3.2); with it, loading this library leaves libntk.so opened
 // by the linker only, as an app that opens it with dlopen does (design part 1, 1.4).
-JNIEXPORT jint JNI_OnLoad(JavaVM* /*vm*/, void* /*reserved*/) {
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
     TEST_LOG("[JNI_OnLoad] libntk_test.so");
+    ntktest::SetVm(vm);
     return JNI_VERSION_1_6;
 }
 
@@ -92,4 +97,19 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_runCase(JNIEnv* env, j
     const testing::UnitTest* unit = testing::UnitTest::GetInstance();
     TEST_LOG("[runCase] %s ran %d, failed %d", filter.c_str(), unit->test_to_run_count(), failed);
     return unit->test_to_run_count() == 1 && failed == 0 ? JNI_TRUE : JNI_FALSE;
+}
+
+// For the uninitialized case of the probe (noStartup): the error, and whether release ran on the
+// calling thread before the call returned (design part 1, 1.3, 1.4).
+extern "C" JNIEXPORT jintArray JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_probeStartRejected(JNIEnv* env, jclass) {
+    ntktest::Recorder recorder;
+    uint64_t id = 99;
+    int32_t error = ntk_debug_probe_start(ntktest::Recorder::Done, &recorder, ntktest::Recorder::Release, &id);
+    std::vector<ntktest::Record> records = recorder.Records();
+    bool released_here = records.size() == 1 && records[0].what == "release" && records[0].thread == gettid();
+    jint values[] = {error, released_here ? 1 : 0, static_cast<jint>(id)};
+    jintArray result = env->NewIntArray(3);
+    env->SetIntArrayRegion(result, 0, 3, values);
+    return result;
 }

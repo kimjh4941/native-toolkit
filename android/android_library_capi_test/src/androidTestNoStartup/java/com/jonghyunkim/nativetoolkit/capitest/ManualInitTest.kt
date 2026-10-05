@@ -31,6 +31,16 @@ class ManualInitTest {
     }
 
     @Test
+    fun anOperationBeforeInitializationIsRejectedAndReleasedAtOnce() {
+        // The probe operation of debug builds goes through the same entry checks as the features.
+        NtkTestNative.load()
+        val (error, releasedHere, id) = NtkTestNative.probeStartRejected().toList()
+        assertEquals(2, error) // NOT_INITIALIZED (part 2, AP-12)
+        assertEquals(1, releasedHere)
+        assertEquals(0, id)
+    }
+
+    @Test
     fun theCPathInitializesWithoutJniOnLoad() {
         // libntk.so is opened by the linker only, as with dlopen: JNI_OnLoad has not run, and
         // ntk_android_init must not make it run (it does not call System.loadLibrary).

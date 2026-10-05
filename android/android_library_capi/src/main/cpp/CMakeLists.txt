@@ -3,9 +3,17 @@ project(ntk CXX)
 
 # libntk.so, the C ABI (C ABI design part 1, 5.1 and 5.4, AC-12).
 add_library(ntk SHARED
+    src/Common/Classes.cpp
     src/Common/Handles.cpp
     src/Common/Jni.cpp
-    src/Common/Runtime.cpp)
+    src/Common/Registry.cpp
+    src/Common/Runtime.cpp
+    src/Common/Utf8.cpp)
+# Debug builds only: the probe operation of the C ABI tests (src/Debug/Probe.h). A release build
+# has none of it, and Classes.cpp leaves its class out (NDEBUG).
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_sources(ntk PRIVATE src/Debug/Probe.cpp)
+endif()
 target_include_directories(ntk PUBLIC include)
 target_include_directories(ntk PRIVATE src)
 target_compile_features(ntk PRIVATE cxx_std_20)

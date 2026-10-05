@@ -2,6 +2,10 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <string>
+#include <vector>
+
+#include "Common/Classes.h"
 
 #include "Common/Export.h"
 #include "Common/Jni.h"
@@ -12,7 +16,6 @@ namespace nativetoolkit::runtime {
 namespace {
 
 constexpr const char* kRuntimeClass = "com/jonghyunkim/nativetoolkit/capi/jni/NtkRuntime";
-constexpr const char* kRuntimeClassDotted = "com.jonghyunkim.nativetoolkit.capi.jni.NtkRuntime";
 
 // What NtkRuntime.ensureInitialized returns: LibraryRuntime.InitState by ordinal.
 constexpr jint kKotlinDone = 0;
@@ -79,55 +82,64 @@ Build FailureToBuild(jni::Failure failure) {
     return failure == jni::Failure::kClassNotFound ? Build::kClassNotFound : Build::kTransient;
 }
 
-// Loads NtkRuntime through loader, or with FindClass when loader is null (JNI_OnLoad, where
-// FindClass uses the class loader of the code that called System.loadLibrary).
-jclass LoadRuntimeClass(JNIEnv* env, jobject loader, jni::Failure* failure) {
-    NTK_LOGD("[LoadRuntimeClass] env: %p, loader: %p", env, loader);
+// Loads a class (slash form) through loader, or with FindClass when loader is null (JNI_OnLoad,
+// where FindClass uses the class loader of the code that called System.loadLibrary).
+jclass LoadClass(JNIEnv* env, jobject loader, const char* name, jni::Failure* failure) {
+    NTK_LOGD("[LoadClass] env: %p, loader: %p, name: %s", env, loader, name);
     *failure = jni::Failure::kNone;
     if (loader == nullptr) {
-        jclass found = env->FindClass(kRuntimeClass);
-        *failure = jni::TakeException(env, "FindClass NtkRuntime");
-        return found;
+        jclass found = env->FindClass(name);
+        *failure = jni::TakeException(env, "FindClass");
+        return *failure == jni::Failure::kNone ? found : nullptr;
     }
     jclass loader_class = env->FindClass("java/lang/ClassLoader");
     jmethodID load_class = loader_class == nullptr ? nullptr
         : env->GetMethodID(loader_class, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
     if ((*failure = jni::TakeException(env, "ClassLoader.loadClass lookup")) != jni::Failure::kNone) return nullptr;
-    // The class name is ASCII, so NewStringUTF's Modified UTF-8 is the same as UTF-8 (design 5.10).
-    jstring name = env->NewStringUTF(kRuntimeClassDotted);
+    std::string dotted(name);
+    for (char& c : dotted) {
+        if (c == '/') c = '.';
+    }
+    // Class names are ASCII, so NewStringUTF's Modified UTF-8 is the same as UTF-8 (design 5.10).
+    jstring java_name = env->NewStringUTF(dotted.c_str());
     if ((*failure = jni::TakeException(env, "NewStringUTF")) != jni::Failure::kNone) return nullptr;
-    auto found = static_cast<jclass>(env->CallObjectMethod(loader, load_class, name));
-    *failure = jni::TakeException(env, "loadClass NtkRuntime");
+    auto found = static_cast<jclass>(env->CallObjectMethod(loader, load_class, java_name));
+    *failure = jni::TakeException(env, "ClassLoader.loadClass");
     return *failure == jni::Failure::kNone ? found : nullptr;
 }
 
-// Builds the class table and registers the natives. Called with g_building held and the state
-// kUninit; publishes nothing until it has succeeded (the state change does that).
+// Builds the whole class table - every class, method and native of classes::All() - or none of
+// it: on a failure the global references made so far are deleted and nothing is published.
+// Called with g_building held and the state kUninit; the state change publishes the table.
 Build BuildTable(JNIEnv* env, jobject loader) {
     NTK_LOGD("[BuildTable] env: %p, loader: %p", env, loader);
-    jni::Failure failure = jni::Failure::kNone;
-    jclass local = LoadRuntimeClass(env, loader, &failure);
-    if (local == nullptr) return FailureToBuild(failure == jni::Failure::kNone ? jni::Failure::kOther : failure);
-
-    jmethodID ensure = env->GetStaticMethodID(local, "ensureInitialized", "(Landroid/content/Context;)I");
-    if ((failure = jni::TakeException(env, "GetStaticMethodID ensureInitialized")) != jni::Failure::kNone) {
-        return FailureToBuild(failure);
-    }
-    const JNINativeMethod natives[] = {
-        {"onKotlinReady", "()I", reinterpret_cast<void*>(OnKotlinReady)},
-        {"nativeState", "()I", reinterpret_cast<void*>(NativeState)},
+    std::vector<classes::ClassSpec> specs = classes::All();
+    std::vector<jclass> globals;
+    auto fail = [&](jni::Failure failure) {
+        for (jclass global : globals) env->DeleteGlobalRef(global);
+        return FailureToBuild(failure == jni::Failure::kNone ? jni::Failure::kOther : failure);
     };
-    env->RegisterNatives(local, natives, sizeof(natives) / sizeof(natives[0]));
-    if ((failure = jni::TakeException(env, "RegisterNatives NtkRuntime")) != jni::Failure::kNone) {
-        return FailureToBuild(failure);
+    for (const classes::ClassSpec& spec : specs) {
+        jni::Failure failure = jni::Failure::kNone;
+        jclass local = LoadClass(env, loader, spec.name, &failure);
+        if (local == nullptr) return fail(failure);
+        for (const classes::StaticMethod& method : spec.methods) {
+            *method.out = env->GetStaticMethodID(local, method.name, method.signature);
+            if ((failure = jni::TakeException(env, method.name)) != jni::Failure::kNone) return fail(failure);
+        }
+        if (!spec.natives.empty()) {
+            env->RegisterNatives(local, spec.natives.data(), static_cast<jint>(spec.natives.size()));
+            if ((failure = jni::TakeException(env, "RegisterNatives")) != jni::Failure::kNone) return fail(failure);
+        }
+        auto global = static_cast<jclass>(env->NewGlobalRef(local));
+        env->DeleteLocalRef(local);
+        if (global == nullptr) {
+            jni::TakeException(env, "NewGlobalRef");
+            return fail(jni::Failure::kOutOfMemory);
+        }
+        globals.push_back(global);
     }
-    auto global = static_cast<jclass>(env->NewGlobalRef(local));
-    if (global == nullptr) {
-        jni::TakeException(env, "NewGlobalRef NtkRuntime");
-        return Build::kTransient;
-    }
-    g_classes.runtime = global;
-    g_classes.ensure_initialized = ensure;
+    for (size_t i = 0; i < specs.size(); ++i) *specs[i].out = globals[i];
     return Build::kOk;
 }
 
@@ -142,7 +154,7 @@ void EnsureInitializedWithoutTable(JNIEnv* env, jobject context) {
     jobject loader = env->CallObjectMethod(context, get_loader);
     if (jni::TakeException(env, "Context.getClassLoader") != jni::Failure::kNone || loader == nullptr) return;
     jni::Failure failure = jni::Failure::kNone;
-    jclass runtime = LoadRuntimeClass(env, loader, &failure);
+    jclass runtime = LoadClass(env, loader, kRuntimeClass, &failure);
     if (runtime == nullptr) return;
     jmethodID ensure = env->GetStaticMethodID(runtime, "ensureInitialized", "(Landroid/content/Context;)I");
     if (jni::TakeException(env, "GetStaticMethodID ensureInitialized") != jni::Failure::kNone) return;
@@ -232,6 +244,19 @@ bool IsReady() {
 const ClassTable& Classes() {
     NTK_LOGD("[Classes]");
     return g_classes;
+}
+
+classes::ClassSpec RuntimeClassSpec() {
+    NTK_LOGD("[RuntimeClassSpec]");
+    return {
+        kRuntimeClass,
+        &g_classes.runtime,
+        {{"ensureInitialized", "(Landroid/content/Context;)I", &g_classes.ensure_initialized}},
+        {
+            {"onKotlinReady", "()I", reinterpret_cast<void*>(OnKotlinReady)},
+            {"nativeState", "()I", reinterpret_cast<void*>(NativeState)},
+        },
+    };
 }
 
 }  // namespace nativetoolkit::runtime

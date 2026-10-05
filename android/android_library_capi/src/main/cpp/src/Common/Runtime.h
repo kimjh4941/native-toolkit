@@ -4,6 +4,8 @@
 
 #include <jni.h>
 
+#include "Common/Classes.h"
+
 namespace nativetoolkit::runtime {
 
 // The C state (design 5.3). Every change is a compare-and-swap; nothing moves back from kReady.
@@ -28,5 +30,8 @@ struct ClassTable {
 };
 
 const ClassTable& Classes();
+
+// capi.jni.NtkRuntime: ensureInitialized, and the natives onKotlinReady and nativeState.
+classes::ClassSpec RuntimeClassSpec();
 
 }  // namespace nativetoolkit::runtime

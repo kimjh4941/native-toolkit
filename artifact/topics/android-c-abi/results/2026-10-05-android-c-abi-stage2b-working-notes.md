@@ -51,3 +51,44 @@
 
 - **記録**: 1 回目の M4（`return NTK_ANDROID_ERROR_IN_PROGRESS;`）は、`kKotlinInProgress` が使われなくなり `-Werror` でコンパイルに失敗した。APK は入れ替わらず、前の回（M3）の結果の XML を読んで「落ちた」と数えていた。変異の回し方を、流す前に結果の XML を消し、組み立ての失敗を「流れていない」と出す形に直し、M4 を通る形（三項演算子の両方を `IN_PROGRESS`）で流し直した
 - 落ちなかった変異は無い。`MarkNativeDone` の中の「Kotlin の印が先に立っていたら `READY` にする」は、`RegisterNatives` と `MarkNativeDone` の間に `onKotlinReady` が来る競合でしか通らず、決まった順で起こすテストは無い（第 1 部 6 章の「競合を決まった順で再現する」は TB-9）
+
+## TB-2（2026-10-05）
+
+### 作ったもの
+
+- C（`src/Common/`）: `Classes`（機能ごとのクラス・static メソッド・native の表の項目。`Runtime` が全部を作るか、何も作らない）、`Registry`（ID → 登録の表、`TryRelease`、`Cancel`、`CompleteOnMain`、`DeliverOnMain`、帳簿の native）、`Accept`（受け付けの 4 つの手順）、`Utf8`（厳密な UTF-8 の検査、Java のバイト列との往復）、`StructSize`（`struct_size` の規則）、`Errors`（共通の 0〜5）、`Main`（main の判定）。`jni::Failure` に `kOutOfMemory` を足した
+- Kotlin（`capi.jni`）: `Ledger`（帳簿。main だけ）、`Foreground`（前面の判定）、`Utf8`（C へ渡す前に孤立したサロゲートと U+0000 を U+FFFD に）、`Errors`（共通の値と、表に無い例外の写し）
+- debug ビルドだけ: C の `src/Debug/Probe.cpp`（`ntk_debug_probe_*` を公開。CMake は `CMAKE_BUILD_TYPE` が Debug のときだけ組み、`Classes.cpp` は `NDEBUG` で外す）と Kotlin の `src/debug/.../ProbeBridge.kt`
+- テスト: GoogleTest 32 件を足した（`Utf8` 7、`StructSize` 7、`Registry` 5、`Probe` 13）。noStartup に未初期化の 1 件。capi の JVM の単体テスト `Utf8Test` 4 件
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| 試験用の操作とイベント（`ntk_debug_probe_*`、`ProbeBridge`）を debug ビルドだけに置いた | TB-2 にはまだ機能の関数が無いが、完了の条件は第 1 部 6 章の「`release` と完了のテスト」。機能と同じ部品（`Accept`、登録の表、帳簿、main）を通る操作で、受け付け・完了・取り消し・配送・外すのすべてを確かめた。第 1 部 6 章の「テスト専用の口（帳簿の件数、`release` の回数）」もこれで持つ。release の AAR には関数もクラスも無いことを確かめた（`ntk_*` は 13、`ntk_debug` は 0、`ProbeBridge` は 0。debug は 21・8・1） |
+| capi の純粋な部品（`Utf8.cpp`、`Registry.cpp`、`Jni.cpp`、`StructSize.h`）をテスト用の `.so` に直接コンパイルして単体で確かめた | JNI の公開の口を足さずに、境目の値（過長、サロゲート、U+10FFFF の上、`struct_size` の各規則、競合する解放）を直接突ける。テスト用の `.so` は `-fvisibility=hidden` なので、`libntk.so` と名前はぶつからない |
+| 帳簿の操作は `android_library` の `MainPoster`（main の Handler 1 つ）で積む | 第 1 部 5.7 の「1 つの Handler の同期メッセージ」 |
+| 「完了済み」の印は、利用者の完了を呼ぶ前に立てる | コールバックの中から同じ ID を取り消しても、2 回目の完了が起きない |
+| `FindOnMain` は main 以外から呼ばれたら `nullptr` を返してログを出す | 受け付けた後の登録は main だけが解放するので、main 以外から指すと解放済みを触りうる |
+| 表づくりは、全部のクラスを作ってからグローバル参照を公開し、途中の失敗では作ったものを消す | 一部だけの表で `NATIVE_READY` にならない |
+| イベントの登録のハンドルは、TB-3 以降で登録の ID をそのまま使う（試験用の操作では `uint64_t`） | 第 1 部 AC-17 の使い回さない ID。解放した後に古いハンドルで呼ばれても、解放済みの番地を触らない |
+
+### 確かめたこと
+
+- capi の全テストが Pixel 6a とエミュレータで通る（startup 40、noStartup 10、noNtkInitializer 2）。capi の JVM の単体テスト 4 件
+- `check_c_abi_contract_android.py` は symbols の SKIP のほかは OK
+
+### 変異（Pixel 6a、startup。組み立てに失敗した回は「流れていない」と出す回し方で）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| N1: `TryRelease` が状態の CAS を省く | `Registry.TryReleaseCallsReleaseOnceAndOnlyFromTheExpectedState`、`Registry.CancelMovesActiveToCancelRequestedOnce` |
+| N2: 取り消しの要求の後も結果で完了する | `Probe.AResultAndACancelQueuedTogetherCompleteCanceledOnceInEitherOrder` |
+| N3: 配送で ACTIVE を確かめない | `Probe.ARemovalInsideTheCallbackStopsTheDeliveriesAtOnce` |
+| N4: 積めなかったときに `release` しない | `Probe.AFailedPostReleasesOnTheCallingThreadAndNeverCompletes` |
+| N6: 低位のサロゲートだけを拒む（1 回目の形は `-Werror` で流れず、形を変えた） | `Utf8.RejectsSurrogates`、`Utf8.TheEntryRejectsWhatIsNotStrictAndNull` |
+| N7: 知らない部分の 0 以外を見逃す | `StructSize.ANewerStructWithAValueInItsNewPartIsNotSupported` |
+| N8: Kotlin の `Utf8` が孤立したサロゲートを残す（JVM） | `Utf8Test.anUnpairedSurrogateBecomesTheReplacementCharacter` |
+| N9: 外すときに取り消しの完了を呼ばない | `Probe.ACancelRightAfterAccepting...`、`Probe.ACancelBeforeTheInsertion...`、`Probe.AResultAndACancelQueued...` |
+
+- 落ちなかった変異: N5（帳簿への挿入で ACTIVE を確かめない）。試験用の操作は挿入のほかに何も始めないので、取り消しの後に挿入しても、外す処理が帳簿から消して取り消しの完了を出し、結果が同じになる。「取り消しの後に操作を始めない」は、始めると見える機能（Dialog が出ない。TB-4）で確かめる

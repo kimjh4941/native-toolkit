@@ -29,6 +29,13 @@ object NtkTestNative {
     @JvmStatic
     external fun listCases(): Array<String>
 
+    /**
+     * `ntk_debug_probe_start` before initialization: [error, 1 when release ran on this thread
+     * before the call returned, the id written].
+     */
+    @JvmStatic
+    external fun probeStartRejected(): IntArray
+
     /** Runs one GoogleTest case; true when it ran and passed. */
     @JvmStatic
     external fun runCase(name: String): Boolean
