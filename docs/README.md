@@ -36,7 +36,7 @@ Examples:
 
 By default, `publish_docs.sh` generates docs first when possible:
 
-- Android: Dokka (`android_library`, `unity_android_plugin`)
+- Android: Dokka (`android_library`), and Doxygen of the C ABI headers (`android_library_capi`) if `doxygen` is installed
 - iOS: DocC (`ios/generate_docc.sh`)
 - macOS: DocC (`mac/generate_docc.sh`)
 - Windows: Doxygen (if `doxygen` is installed)

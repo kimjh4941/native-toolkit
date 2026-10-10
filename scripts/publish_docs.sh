@@ -25,7 +25,7 @@ Creates/updates:
   (latest is refreshed from the highest version under docs/)
 
 By default, this script tries to generate docs first:
-  - Android: Dokka (android_library)
+  - Android: Dokka (android_library), and Doxygen of the C ABI headers (android_library_capi) if `doxygen` is available
   - iOS: DocC via ios/generate_docc.sh
   - macOS: DocC via mac/generate_docc.sh
   - Windows: Doxygen if `doxygen` is available
@@ -246,6 +246,14 @@ generate_android() {
 
   echo "[build] Android Dokka"
   (cd "$android_root" && ./gradlew -PlibraryVersion="${VERSION}" :android_library:clean :android_library:dokkaGeneratePublicationHtml)
+
+  # The C ABI's headers, as the Windows C ABI's (android_library_capi/docs/html is kept in the tree).
+  if run_if_exists doxygen; then
+    echo "[build] Android C ABI Doxygen"
+    (cd "${android_root}/android_library_capi" && rm -rf docs && doxygen Doxyfile)
+  else
+    echo "[skip] doxygen not found; keeping android_library_capi/docs as it is" >&2
+  fi
 }
 
 generate_ios() {
@@ -319,6 +327,7 @@ mkdir -p "$VERSION_DIR"
 
 # Android
 copy_dir "${ROOT_DIR}/android/android_library/build/dokka/html" "${VERSION_DIR}/android/android_library"
+copy_dir "${ROOT_DIR}/android/android_library_capi/docs/html" "${VERSION_DIR}/android/android_library_capi"
 
 # iOS
 copy_dir "${ROOT_DIR}/ios/Docs/IosLibrary" "${VERSION_DIR}/ios/IosLibrary"

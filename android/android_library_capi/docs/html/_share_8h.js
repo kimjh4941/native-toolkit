@@ -1,0 +1,26 @@
+var _share_8h =
+[
+    [ "ntk_share_text_content", "structntk__share__text__content.html", "structntk__share__text__content" ],
+    [ "ntk_share_chooser_action", "structntk__share__chooser__action.html", "structntk__share__chooser__action" ],
+    [ "ntk_share_direct_target", "structntk__share__direct__target.html", "structntk__share__direct__target" ],
+    [ "ntk_share_chooser_action", "_share_8h.html#a6ccd9a5e57e8438f1aeaa4cc5d2e8d03", null ],
+    [ "ntk_share_chooser_action_fn", "_share_8h.html#a6bb500b6ff3c8cc9481c5c2561681567", null ],
+    [ "ntk_share_direct_target", "_share_8h.html#abea665dcf38226d502eb8c6007312c21", null ],
+    [ "ntk_share_done_fn", "_share_8h.html#a8fc50f133d12265875811d58e0fbac3c", null ],
+    [ "ntk_share_error", "_share_8h.html#ac9e04e7ea59ed0215c5a25ecaabd1713", null ],
+    [ "ntk_share_listener", "_share_8h.html#a8391b73e2b3096c7d1fca72f9aa9e514", null ],
+    [ "ntk_share_selection_fn", "_share_8h.html#a9bf301edb7f04566ba68f7ff32d50c04", null ],
+    [ "ntk_share_text_content", "_share_8h.html#a40643ae976a81b6c3a171a67392d8dab", null ],
+    [ "ntk_share_add_chooser_action_listener", "_share_8h.html#a5a4a054f91a1c2a72134569f772950bb", null ],
+    [ "ntk_share_add_selection_listener", "_share_8h.html#a74da391d01fdb1a34237f264783cb345", null ],
+    [ "ntk_share_cancel_selection", "_share_8h.html#aed12556e9e07cad3cd49c4c5daea0053", null ],
+    [ "ntk_share_file", "_share_8h.html#a8bea31492e1a6d9dbf3b6501ba75b21f", null ],
+    [ "ntk_share_files", "_share_8h.html#a58180294869f01552f4e2755bb2677b5", null ],
+    [ "ntk_share_image", "_share_8h.html#a1eb0a46da496fa8c25be5e48be9ce676", null ],
+    [ "ntk_share_images", "_share_8h.html#a9d9f2fa1d60fe07c474d900be9981a5a", null ],
+    [ "ntk_share_listener_remove", "_share_8h.html#a936dc1b880d117ff990d368b73e0f9ed", null ],
+    [ "ntk_share_register_direct_target", "_share_8h.html#a5f809de653058a2b071069a4ab1bebb9", null ],
+    [ "ntk_share_remove_direct_targets", "_share_8h.html#aa634d72b163548cf084b75892288a9c7", null ],
+    [ "ntk_share_text", "_share_8h.html#a8ca6df01e5d8d323e3fa8f12b525c2b8", null ],
+    [ "ntk_share_text_for_selection", "_share_8h.html#a47404810fbe068ed85a9ff37881bf3ad", null ]
+];
