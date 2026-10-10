@@ -96,6 +96,8 @@ bool UiSwipeAway(const char* text) { return CallWithText("swipeAway", text); }
 bool UiPick(const char* text) { return CallWithText("pick", text); }
 bool UiBackToApp() { return CallBoolean("backToApp"); }
 bool UiSharesheetShown() { return CallBoolean("sharesheetShown"); }
+bool UiPackageGone(const char* package) { return CallWithText("packageGone", package); }
+bool UiClosePackage(const char* package) { return CallWithText("closePackage", package); }
 
 void UiCloseShade() {
     JNIEnv* env = Env();

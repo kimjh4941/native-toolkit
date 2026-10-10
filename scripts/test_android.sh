@@ -3,11 +3,13 @@
 #
 # Follows section 8 of artifact/topics/android-c-abi/designs/2026-10-03-android-c-abi-ui-test-design.md.
 #
-# Usage: scripts/test_android.sh --serial <adb serial> [--skip-unit] [--filter <Category>|HostState|Library|Probe]
-#          [--include-host] [--baseline]
+# Usage: scripts/test_android.sh --serial <adb serial> [--skip-unit] [--filter <Category>|HostState|Library|Probe|CApi]
+#          [--include-host] [--hwasan] [--baseline]
 #   --include-host  also run H-01 to H-04 (updates the sample and reboots the device twice)
+#   --hwasan        also run the C ABI tests built with HWASan (arm64, API 34 or later; C ABI design
+#                   part 1, chapter 6); kept out of the baseline
 #   --baseline      save the results as the baseline; needs a full run (--include-host, no
-#                   --filter, no --skip-unit) without failures
+#                   --filter, no --skip-unit, no --hwasan) without failures
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,9 +23,10 @@ SKIP_UNIT=0
 FILTER=""
 INCLUDE_HOST=0
 SAVE_BASELINE=0
+HWASAN=0
 
 usage() {
-  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -32,14 +35,15 @@ while [[ $# -gt 0 ]]; do
     --skip-unit) SKIP_UNIT=1; shift ;;
     --filter) FILTER="$2"; shift 2 ;;
     --include-host) INCLUDE_HOST=1; shift ;;
+    --hwasan) HWASAN=1; shift ;;
     --baseline) SAVE_BASELINE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
 done
 [[ -n "${SERIAL}" ]] || { echo "Error: --serial is required (a device and an emulator may both be connected)" >&2; exit 2; }
-if [[ "${SAVE_BASELINE}" -eq 1 && ( -n "${FILTER}" || "${SKIP_UNIT}" -eq 1 || "${INCLUDE_HOST}" -eq 0 ) ]]; then
-  echo "Error: --baseline needs a full run: add --include-host and drop --filter and --skip-unit" >&2; exit 2
+if [[ "${SAVE_BASELINE}" -eq 1 && ( -n "${FILTER}" || "${SKIP_UNIT}" -eq 1 || "${INCLUDE_HOST}" -eq 0 || "${HWASAN}" -eq 1 ) ]]; then
+  echo "Error: --baseline needs a full run: add --include-host and drop --filter, --skip-unit and --hwasan" >&2; exit 2
 fi
 
 adb_s() { "${ADB}" -s "${SERIAL}" "$@"; }
@@ -127,12 +131,14 @@ fi
 # --- 1. Unit tests -------------------------------------------------------------------------
 if [[ "${SKIP_UNIT}" -eq 0 && -z "${FILTER}" ]]; then
   echo "[unit] running"
-  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :android_library:testDebugUnitTest :unity_android_plugin:testDebugUnitTest :app:testDebugUnitTest)
+  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :android_library:testDebugUnitTest :unity_android_plugin:testDebugUnitTest :app:testDebugUnitTest \
+    :ntk:testDebugUnitTest)
   python3 - "${ANDROID_DIR}" >> "${RESULTS}" <<'PY'
 import glob, json, sys, xml.etree.ElementTree as ET
 root = sys.argv[1]
 for pattern in ["android_library/build/test-results/testDebugUnitTest/*.xml",
                 "unity_android_plugin/build/test-results/testDebugUnitTest/*.xml",
+                "android_library_capi/build/test-results/testDebugUnitTest/*.xml",
                 "AndroidLibraryExample/app/build/test-results/testDebugUnitTest/*.xml"]:
     for path in glob.glob(f"{root}/{pattern}"):
         for case in ET.parse(path).getroot().iter("testcase"):
@@ -598,6 +604,80 @@ PY
 )"
   if [[ -z "${manifest_problems}" ]]; then probe_result IT-19_manifest passed "merged manifests as design 8.12"
   else probe_result IT-19_manifest failed "${manifest_problems}"; fi
+fi
+
+# --- 6c. The C ABI (C ABI design part 1, chapter 6, C-5; part 2, 12) ------------------------
+# Its own tests in their three processes per path, the contract of the built libntk.so per ABI,
+# and the smoke from the Maven repository (scripts/run_android_capi_smoke.sh). The Gradle tasks are
+# cut off after a time limit: once, the results stopped reaching Gradle and it waited forever.
+capi_result() {  # <name> <passed|failed|skipped> [message]
+  python3 -c 'import json,sys; print(json.dumps({"test": sys.argv[1], "result": sys.argv[2], "message": sys.argv[3]}))' \
+    "$1" "$2" "${3:-}" >> "${RESULTS}"
+  echo "  ${2}${3:+: $3}"
+}
+
+gradle_capped() {  # <seconds> <gradle arguments>; exit status 142 when cut off
+  local seconds="$1"; shift
+  (cd "${ANDROID_DIR}" && ANDROID_SERIAL="${SERIAL}" perl -e 'alarm shift; exec @ARGV' "${seconds}" \
+    ./gradlew --no-daemon -q "$@")
+}
+
+capi_flavors() {  # <prefix> [gradle arguments]: the three flavors of android_library_capi_test
+  local prefix="$1"; shift
+  local flavor lower dir code
+  for flavor in Startup NoStartup NoNtkInitializer; do
+    lower="$(printf '%s' "${flavor:0:1}" | tr '[:upper:]' '[:lower:]')${flavor:1}"
+    dir="${ANDROID_DIR}/android_library_capi_test/build/outputs/androidTest-results/connected/debug/flavors/${lower}"
+    rm -rf "${dir}"
+    echo "[capi] ${prefix} ${lower}"
+    set +e
+    gradle_capped 3600 "$@" ":android_library_capi_test:connected${flavor}DebugAndroidTest" > "${OUT_DIR}/${prefix}-${lower}.log" 2>&1
+    code=$?
+    set -e
+    if [[ "${code}" -eq 142 ]]; then
+      capi_result "${prefix}-${lower}#timeout" failed "cut off after 3600 s"
+    fi
+    python3 "${ROOT_DIR}/scripts/android_capi_results.py" gradle "${prefix}-${lower}" "${dir}" "${code}" >> "${RESULTS}"
+    cp -R "${dir}" "${OUT_DIR}/${prefix}-${lower}" 2>/dev/null || true
+  done
+}
+
+if [[ -z "${FILTER}" || "${FILTER}" == "CApi" ]]; then
+  capi_flavors capi
+
+  echo "[capi] the contract of the release libntk.so"
+  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :ntk:assembleRelease)
+  for abi in arm64-v8a x86_64; do
+    library="${ANDROID_DIR}/android_library_capi/build/intermediates/cmake/release/obj/${abi}/libntk.so"
+    if python3 "${ROOT_DIR}/scripts/check_c_abi_contract_android.py" --library "${library}" > "${OUT_DIR}/capi-contract-${abi}.txt" 2>&1; then
+      capi_result "capi-contract:${abi}" passed
+    else
+      capi_result "capi-contract:${abi}" failed "$(grep -m1 'FAIL' "${OUT_DIR}/capi-contract-${abi}.txt" | sed 's/^ *//')"
+    fi
+  done
+
+  echo "[capi] the smoke from the Maven repository"
+  CAPI_VERSION="$(sed -n 's/^libraryVersion=//p' "${ANDROID_DIR}/gradle.properties")"
+  rm -rf "${ANDROID_DIR}/build/m2"
+  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q -PlibraryVersion="${CAPI_VERSION}" \
+    :android_library:publishReleasePublicationToMavenRepository :ntk:publishReleasePublicationToMavenRepository)
+  set +e
+  "${ROOT_DIR}/scripts/run_android_capi_smoke.sh" --serial "${SERIAL}" --version "${CAPI_VERSION}" > "${OUT_DIR}/capi-smoke.txt" 2>&1
+  set -e
+  python3 "${ROOT_DIR}/scripts/android_capi_results.py" smoke capi-smoke "${OUT_DIR}/capi-smoke.txt" >> "${RESULTS}"
+
+  if [[ "${HWASAN}" -eq 1 ]]; then
+    if [[ "$(adb_s shell getprop ro.product.cpu.abi | tr -d '\r')" != "arm64-v8a" || "${API}" -lt 34 ]]; then
+      capi_result "capi-hwasan#device" skipped "HWASan needs arm64 and API 34 or later"
+    else
+      capi_flavors capi-hwasan -Pntk.hwasan=true
+      if grep -rl "HWAddressSanitizer" "${OUT_DIR}"/capi-hwasan-* > "${OUT_DIR}/capi-hwasan-reports.txt" 2>/dev/null; then
+        capi_result "capi-hwasan#reports" failed "HWASan reported in $(wc -l < "${OUT_DIR}/capi-hwasan-reports.txt" | tr -d ' ') logcat file(s)"
+      else
+        capi_result "capi-hwasan#reports" passed
+      fi
+    fi
+  fi
 fi
 
 # --- 7. Device state -----------------------------------------------------------------------

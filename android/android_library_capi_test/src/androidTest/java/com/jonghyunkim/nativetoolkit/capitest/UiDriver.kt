@@ -186,6 +186,31 @@ object UiDriver {
         return !device.hasObject(By.pkg(RESOLVER))
     }
 
+    /**
+     * Waits for a screen of [pkg] that is about to open, then presses Back until it is gone: a
+     * screen opened by a call that returned before it showed. False when it never showed or stayed.
+     */
+    @JvmStatic
+    fun closePackage(pkg: String): Boolean {
+        if (device.wait(Until.hasObject(By.pkg(pkg)), TIMEOUT_MS) != true) return false
+        repeat(4) {
+            device.pressBack()
+            if (device.wait(Until.gone(By.pkg(pkg)), 2_000L) == true) {
+                device.waitForIdle()
+                return true
+            }
+        }
+        return false
+    }
+
+    /** Waits until no window of [pkg] is on the screen, then for the screen to settle. */
+    @JvmStatic
+    fun packageGone(pkg: String): Boolean {
+        val gone = device.wait(Until.gone(By.pkg(pkg)), TIMEOUT_MS) == true
+        device.waitForIdle()
+        return gone
+    }
+
     /** Whether the Sharesheet is on the screen (within the timeout). */
     @JvmStatic
     fun sharesheetShown(): Boolean = device.wait(Until.hasObject(By.pkg(RESOLVER)), TIMEOUT_MS) == true

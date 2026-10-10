@@ -40,8 +40,13 @@ class NtkGoogleTest(private val case: String) {
         })
     }
 
+    // A case that opened another app's screen (the settings, the Sharesheet) closes it with Back.
+    // The next case must not start while that screen is still closing: once, its task was removed
+    // with the next case's process in it ("remove task"), and that case's result was lost.
     @After
     fun closeFocus() {
+        UiDriver.backToApp()
+        for (pkg in listOf("com.android.settings", "com.android.intentresolver")) UiDriver.packageGone(pkg)
         scenario?.close()
     }
 

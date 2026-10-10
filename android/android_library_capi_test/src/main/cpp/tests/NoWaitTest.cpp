@@ -47,7 +47,7 @@ struct Leftovers {
 
 // Calls every public function once (155: Common 11, Android 2, Clipboard 27, Dialog 17,
 // notifications 86, Share 12), with arguments that reach Kotlin where the function does.
-void CallEverything(JNIEnv* env, jobject context, const std::string& image, const std::vector<uint8_t>& png,
+void CallEverything(JNIEnv* env, jobject context, const std::string& missing, const std::vector<uint8_t>& png,
                     Leftovers* left) {
     // Common.h (11) and Android.h (2).
     ntk_version();
@@ -250,16 +250,18 @@ void CallEverything(JNIEnv* env, jobject context, const std::string& image, cons
     ntk_notification_shown_channel_id(nullptr, nullptr);
     ntk_notification_shown_free(nullptr);
 
-    // Share.h (12).
+    // Share.h (12). The openings reach Kotlin but open no Sharesheet: a blank text (EMPTY_CONTENT)
+    // and a file that is not there (FILE_NOT_FOUND). A Sharesheet left behind, closed with Back,
+    // could take the next case's process down with its task.
     ntk_share_text_content share{};
     share.struct_size = sizeof(share);
-    share.text = "No wait";
+    share.text = "   ";
     ntk_share_chooser_action chooser = {"nw", "No wait", png.data(), png.size()};
     ntk_share_text(&share, &chooser, 1, IgnoreShare, nullptr, nullptr);
-    const char* paths[] = {image.c_str()};
-    ntk_share_image(image.c_str(), nullptr, IgnoreShare, nullptr, nullptr);
+    const char* paths[] = {missing.c_str()};
+    ntk_share_image(missing.c_str(), nullptr, IgnoreShare, nullptr, nullptr);
     ntk_share_images(paths, 1, IgnoreShare, nullptr, nullptr);
-    ntk_share_file(image.c_str(), IgnoreShare, nullptr, nullptr);
+    ntk_share_file(missing.c_str(), IgnoreShare, nullptr, nullptr);
     ntk_share_files(paths, 1, IgnoreShare, nullptr, nullptr);
     ntk_share_direct_target target{};
     target.struct_size = sizeof(target);
@@ -297,16 +299,16 @@ TEST(NoWait, EveryPublicFunctionReturnsWhileTheMainThreadIsHeld) {
     ntktest::GrantNotifications();
     JNIEnv* env = ntktest::Env();
     jobject context = Application(env);
-    std::string image = ntktest::MakeShareFile("ntk_no_wait.png", true);
+    std::string missing = ntktest::MakeShareFile("ntk_no_wait.png", true) + ".missing";
     std::vector<uint8_t> png = ntktest::PngBytes();
     // Never freed: if a call did wait, the thread outlives the case (see Leaked in TestSupport.h).
     auto* left = new Leftovers;
     auto* done = new std::atomic<bool>(false);
 
     ntktest::HoldMain();
-    std::thread caller([context, image, png, left, done] {
+    std::thread caller([context, missing, png, left, done] {
         JNIEnv* thread_env = ntktest::Env();
-        CallEverything(thread_env, context, image, png, left);
+        CallEverything(thread_env, context, missing, png, left);
         done->store(true);
         // Attached by ntktest::Env above, so the C ABI did not attach it: detach before exiting.
         JavaVM* vm = nullptr;
@@ -336,6 +338,9 @@ TEST(NoWait, EveryPublicFunctionReturnsWhileTheMainThreadIsHeld) {
     ntk_notification_remove_all();
     ntk_notification_cancel_all_scheduled();
     ntktest::DrainMain();
+    // The settings screen opened above, which shows after the call returned: wait for it, close
+    // it and wait until it is gone, so that the next case does not start while its task changes.
+    EXPECT_TRUE(ntktest::UiClosePackage("com.android.settings"));
     ntktest::UiBackToApp();
     env->DeleteGlobalRef(context);
 }

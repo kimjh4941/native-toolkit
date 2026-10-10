@@ -42,6 +42,10 @@ void UiCloseShade();
 // Clicks text in a list, scrolling to it; presses Back until the app is in front again.
 bool UiPick(const char* text);
 bool UiSharesheetShown();
+// Waits until no window of the package is on the screen.
+bool UiPackageGone(const char* package);
+// Waits for a screen of the package that is about to open, then closes it with Back.
+bool UiClosePackage(const char* package);
 bool UiBackToApp();
 // The simple class name of the app's foreground Activity once there is one, or "".
 std::string UiForegroundActivity();

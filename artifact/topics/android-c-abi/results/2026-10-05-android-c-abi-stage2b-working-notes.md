@@ -487,3 +487,24 @@
   - エミュレータ（API 35、arm64）: 11 項目が PASS、32 ビットは SKIP（32 ビットの ABI が無い）
 - 配布物の照合（2.0.0 を `dist/` に作って流した）: すべて OK。自己テストは scripts/tests の全 196 件が通る
 - `android_library` の単体テスト 166 件が、Kotlin の版の固定の後も通る
+
+## TB-11（2026-10-10）
+
+### 作ったもの
+
+- `scripts/test_android.sh` に「6c. The C ABI」を足した:
+  - `android_library_capi_test` の 3 つのフレーバー（経路ごとのプロセス）を Gradle の connected のタスクで流し、ケースを 1 件ずつ結果（`capi-<フレーバー>:<クラス>#<名前>`）にする。Gradle の実行は 3600 秒で打ち切る（`perl` の `alarm`。macOS に `timeout` が無い）
+  - release の `libntk.so` を ABI ごとに `check_c_abi_contract_android.py --library` で照らす（`capi-contract:<ABI>`）
+  - `m2/` に発行して `run_android_capi_smoke.sh` を流し、項目ごとに結果にする（`capi-smoke:<項目>`）
+  - `--hwasan`: HWASan のビルドでも 3 つのフレーバーを流し、`HWAddressSanitizer` の報告が無いことを確かめる（arm64、API 34 以上。基準には入れない）
+  - `--filter CApi` で C ABI の分だけを流せる。単体テストに `:ntk:testDebugUnitTest` を足した
+- `scripts/android_capi_results.py`: Gradle の結果の XML と logcat から結果の行を作る。logcat があるのに結果の無いケースは `#resultLost` の失敗にする。smoke の PASS / FAIL / SKIP を結果の行にする
+
+### テストで分かったこと
+
+- **TB-9 から続いた「結果が届かない」の正体**: `Notification.InvalidArgumentsAreRejectedAtTheEntry` の結果が届かないのは、2 回とも同じケースだった。logcat を全部取って再現すると、そのテストのプロセスが「タスクの削除」（`Killing ... remove task`）で止められていた。直前の `NoWait` が開いた設定の画面と Sharesheet を Back で閉じる動きが、次のケースのプロセスが同じタスクで始まった後まで続き、タスクごと消された。ライブラリの不具合ではなく、テストの後片づけの重なり
+- 直し:
+  - `NoWait` の Share は、画面を開かずに Kotlin まで届く引数にした（空白だけの本文は `EMPTY_CONTENT`、無いファイルは `FILE_NOT_FOUND`）。設定の画面は開き、出るのを待ってから Back で閉じ、消えるまで待つ（`UiDriver.closePackage`）
+  - `NtkGoogleTest` の各ケースの後に、アプリを前に戻し、設定の画面と Sharesheet が消えるまで待つ
+  - 直した後、`NoWait` と次のケースを並べて 4 回流し、4 回とも通った（落ちない）
+- **`--filter CApi` の 1 回目（Pixel）**: 上のクラッシュの 1 件のほかは通った（契約の照合 2、smoke 12、noStartup 17、noNtkInitializer 3、startup 119）。`android_capi_results.py` が、届かなかった結果を `#resultLost` として拾えることも確かめた
