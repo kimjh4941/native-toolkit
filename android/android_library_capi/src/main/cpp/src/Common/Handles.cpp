@@ -1,5 +1,7 @@
 #include "Common/Handles.h"
 
+#include <memory>
+
 #include <new>
 
 #include "Common/Export.h"
@@ -20,9 +22,9 @@ ntk_string* MakeString(std::string_view text) {
 ntk_bytes* MakeBytes(const uint8_t* data, size_t size) {
     NTK_LOGD("[MakeBytes] data: %p, size: %zu", data, size);
     try {
-        auto* made = new ntk_bytes{};
+        auto made = std::make_unique<ntk_bytes>();
         if (size > 0) made->bytes.assign(data, data + size);
-        return made;
+        return made.release();
     } catch (const std::bad_alloc&) {
         NTK_LOGE("[MakeBytes] out of memory, size: %zu", size);
         return nullptr;

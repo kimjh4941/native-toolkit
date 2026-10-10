@@ -1,6 +1,7 @@
 #include "Clipboard/Clipboard.h"
 
 #include <climits>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -84,6 +85,22 @@ ntk_clipboard_error ReadOptions(JNIEnv* env, const ntk_clipboard_copy_options* o
     if (read.reserved1 != 0) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
     *sensitive = read.sensitive != 0 ? JNI_TRUE : JNI_FALSE;
     return utf8::ToJavaOrNull(env, read.label, label);
+}
+
+// The arguments' checks, made before the initialization's (part 1, 1.3; review K-C3): a string is
+// NULL (where allowed) or strict UTF-8, and the options follow the struct_size rules.
+bool ValidText(const char* text) {
+    NTK_LOGD("[ValidText] text: %p", static_cast<const void*>(text));
+    size_t length = 0;
+    return text == nullptr || (utf8::Length(text, &length) && utf8::IsStrict(std::string_view(text, length)));
+}
+
+ntk_clipboard_error CheckOptions(const ntk_clipboard_copy_options* options) {
+    NTK_LOGD("[CheckOptions] options: %p", static_cast<const void*>(options));
+    ntk_clipboard_copy_options read{};
+    if (int32_t error = structs::Read(options, &read, true); error != kErrorNone) return error;
+    if (read.reserved1 != 0 || !ValidText(read.label)) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+    return NTK_CLIPBOARD_ERROR_NONE;
 }
 
 // Calls a bridge method that returns the error as an int.
@@ -189,10 +206,12 @@ using nativetoolkit::kErrorNone;
 
 NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_copy_text(const char* text, const ntk_clipboard_copy_options* options) {
     NTK_LOGD("[ntk_clipboard_copy_text] text: %p, options: %p", text, options);
-    if (text == nullptr) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+    if (text == nullptr || !clipboard::ValidText(text)) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+    if (ntk_clipboard_error error = clipboard::CheckOptions(options); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jbyteArray java_text = nullptr;
     jbyteArray label = nullptr;
     jboolean sensitive = JNI_FALSE;
@@ -205,10 +224,14 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_copy_text(const char* text
 NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_copy_html(const char* html, const char* plain_text,
                                                              const ntk_clipboard_copy_options* options) {
     NTK_LOGD("[ntk_clipboard_copy_html] html: %p, plain_text: %p, options: %p", html, plain_text, options);
-    if (html == nullptr) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+    if (html == nullptr || !clipboard::ValidText(html) || !clipboard::ValidText(plain_text)) {
+        return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+    }
+    if (ntk_clipboard_error error = clipboard::CheckOptions(options); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jbyteArray java_html = nullptr;
     jbyteArray java_plain = nullptr;
     jbyteArray label = nullptr;
@@ -224,10 +247,12 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_copy_html(const char* html
 
 NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_copy_uri(const char* uri, const ntk_clipboard_copy_options* options) {
     NTK_LOGD("[ntk_clipboard_copy_uri] uri: %p, options: %p", uri, options);
-    if (uri == nullptr) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+    if (uri == nullptr || !clipboard::ValidText(uri)) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+    if (ntk_clipboard_error error = clipboard::CheckOptions(options); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jbyteArray java_uri = nullptr;
     jbyteArray label = nullptr;
     jboolean sensitive = JNI_FALSE;
@@ -245,11 +270,13 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_copy_texts(const char* con
     if (count == 0) return clipboard::kEmptyItems;
     if (texts == nullptr || count > static_cast<size_t>(INT32_MAX)) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
     for (size_t i = 0; i < count; ++i) {
-        if (texts[i] == nullptr) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
+        if (texts[i] == nullptr || !clipboard::ValidText(texts[i])) return NTK_CLIPBOARD_ERROR_INVALID_PARAMETER;
     }
+    if (ntk_clipboard_error error = clipboard::CheckOptions(options); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jclass byte_array = env->FindClass("[B");
     jobjectArray java_texts = byte_array == nullptr ? nullptr
         : env->NewObjectArray(static_cast<jsize>(count), byte_array, nullptr);
@@ -277,6 +304,7 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_clear(void) {
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jint result = env->CallStaticIntMethod(clipboard::g_bridge, clipboard::g_clear);
     return clipboard::ErrorFromCall(env, result, "ClipboardBridge.clear");
 }
@@ -290,6 +318,7 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_read(ntk_clipboard_content
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jintArray error_box = env->NewIntArray(1);
     if (jni::Failure failure = jni::TakeException(env, "NewIntArray"); failure != jni::Failure::kNone || error_box == nullptr) {
         return nativetoolkit::ErrorOf(failure == jni::Failure::kNone ? jni::Failure::kOutOfMemory : failure);
@@ -302,7 +331,7 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_read(ntk_clipboard_content
     env->GetIntArrayRegion(error_box, 0, 1, &error);
     if (error != NTK_CLIPBOARD_ERROR_NONE || parts == nullptr) return error;
     try {
-        auto* content = new ntk_clipboard_content;
+        auto content = std::make_unique<ntk_clipboard_content>();
         jobject label = env->GetObjectArrayElement(parts, 0);
         jobject mimes = env->GetObjectArrayElement(parts, 1);
         auto items = static_cast<jobjectArray>(env->GetObjectArrayElement(parts, 2));
@@ -319,11 +348,8 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_read(ntk_clipboard_content
             }
             content->items.push_back(std::move(item));
         }
-        if (copy_error != kErrorNone) {
-            delete content;
-            return copy_error;
-        }
-        *out_content = content;
+        if (copy_error != kErrorNone) return copy_error;
+        *out_content = content.release();
         return NTK_CLIPBOARD_ERROR_NONE;
     } catch (const std::bad_alloc&) {
         return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
@@ -337,6 +363,7 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_has_clip(int32_t* out_has_
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jbooleanArray box = env->NewBooleanArray(1);
     if (jni::Failure failure = jni::TakeException(env, "NewBooleanArray"); failure != jni::Failure::kNone || box == nullptr) {
         return nativetoolkit::ErrorOf(failure == jni::Failure::kNone ? jni::Failure::kOutOfMemory : failure);
@@ -357,6 +384,7 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_get_description(ntk_clipbo
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jintArray error_box = env->NewIntArray(1);
     if (jni::Failure failure = jni::TakeException(env, "NewIntArray"); failure != jni::Failure::kNone || error_box == nullptr) {
         return nativetoolkit::ErrorOf(failure == jni::Failure::kNone ? jni::Failure::kOutOfMemory : failure);
@@ -370,7 +398,7 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_get_description(ntk_clipbo
     env->GetIntArrayRegion(error_box, 0, 1, &error);
     if (error != NTK_CLIPBOARD_ERROR_NONE || parts == nullptr) return error;
     try {
-        auto* description = new ntk_clipboard_description;
+        auto description = std::make_unique<ntk_clipboard_description>();
         int32_t copy_error = clipboard::OptionalString(env, env->GetObjectArrayElement(parts, 0), &description->label);
         if (copy_error == kErrorNone) {
             copy_error = clipboard::StringArray(env, env->GetObjectArrayElement(parts, 1), &description->mime_types);
@@ -382,11 +410,8 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_get_description(ntk_clipbo
             description->styled = values[0];
             description->classification = values[1];
         }
-        if (copy_error != kErrorNone) {
-            delete description;
-            return copy_error;
-        }
-        *out_description = description;
+        if (copy_error != kErrorNone) return copy_error;
+        *out_description = description.release();
         return NTK_CLIPBOARD_ERROR_NONE;
     } catch (const std::bad_alloc&) {
         return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
@@ -401,6 +426,7 @@ static ntk_clipboard_error PostObserving(jmethodID method, const char* where) {
     JNIEnv* env = nullptr;
     if (ntk_clipboard_error error = clipboard::Enter(&env); error != NTK_CLIPBOARD_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
     jboolean posted = env->CallStaticBooleanMethod(clipboard::g_bridge, method);
     if (jni::Failure failure = jni::TakeException(env, where); failure != jni::Failure::kNone) {
         return nativetoolkit::ErrorOf(failure);
@@ -452,7 +478,7 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_add_change_listener(ntk_cl
 NTK_EXPORT void NTK_CALL ntk_clipboard_listener_remove(ntk_clipboard_listener* listener) {
     NTK_LOGD("[ntk_clipboard_listener_remove] listener: %p", static_cast<void*>(listener));
     // Removes the registration only; observing goes on (part 2, AP-11).
-    if (listener != nullptr) registry::Cancel(reinterpret_cast<uint64_t>(listener));
+    if (listener != nullptr) registry::Cancel(reinterpret_cast<uint64_t>(listener), {clipboard::kKindChange});
 }
 
 // --- readers (the output handles) ------------------------------------------------------------
@@ -471,8 +497,9 @@ NTK_EXPORT size_t NTK_CALL ntk_clipboard_content_mime_type_count(const ntk_clipb
 NTK_EXPORT const char* NTK_CALL ntk_clipboard_content_mime_type_at(const ntk_clipboard_content* content, size_t index,
                                                                 size_t* out_size) {
     NTK_LOGD("[ntk_clipboard_content_mime_type_at] content: %p, index: %zu", static_cast<const void*>(content), index);
-    static const std::vector<std::string> kNone;
-    return clipboard::At(content == nullptr ? kNone : content->mime_types, index, out_size);
+    // No static empty list: its destructor would run at exit (part 1, 5.5).
+    if (content == nullptr) return clipboard::At({}, index, out_size);
+    return clipboard::At(content->mime_types, index, out_size);
 }
 
 NTK_EXPORT size_t NTK_CALL ntk_clipboard_content_item_count(const ntk_clipboard_content* content) {
@@ -526,8 +553,8 @@ NTK_EXPORT const char* NTK_CALL ntk_clipboard_description_mime_type_at(const ntk
                                                                     size_t index, size_t* out_size) {
     NTK_LOGD("[ntk_clipboard_description_mime_type_at] description: %p, index: %zu",
              static_cast<const void*>(description), index);
-    static const std::vector<std::string> kNone;
-    return clipboard::At(description == nullptr ? kNone : description->mime_types, index, out_size);
+    if (description == nullptr) return clipboard::At({}, index, out_size);
+    return clipboard::At(description->mime_types, index, out_size);
 }
 
 NTK_EXPORT int32_t NTK_CALL ntk_clipboard_description_is_styled_text(const ntk_clipboard_description* description) {

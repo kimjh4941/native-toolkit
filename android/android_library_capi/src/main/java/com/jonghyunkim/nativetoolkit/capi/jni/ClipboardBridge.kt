@@ -186,7 +186,7 @@ internal object ClipboardBridge {
     @JvmStatic
     fun addListener(id: Long): Boolean {
         Log.d(TAG, "[addListener] id: $id")
-        return MainPoster.post {
+        return MainTasks.post("ClipboardBridge.addListener") {
             if (Ledger.insertIfActive(id, KIND_CHANGE)) ensureHubListener()
         }
     }

@@ -47,18 +47,29 @@ TEST(Registry, TryReleaseCallsReleaseOnceAndOnlyFromTheExpectedState) {
     EXPECT_EQ(1, releases.load());
 }
 
-TEST(Registry, CancelMovesActiveToCancelRequestedOnce) {
+TEST(Registry, ACancelWhoseRemovalCannotBePostedLeavesItActive) {
+    // No ledger here, so the removal cannot be posted: the state goes back to ACTIVE, so that a
+    // later cancel or completion can still release it (review K-M2). The posted path, where the
+    // state stays CANCEL_REQUESTED until the main thread removes it, is in ProbeTest.cpp.
     std::atomic<int> releases{0};
     uint64_t id = registry::Add(1, nullptr, &releases, CountRelease, nullptr);
-    // No ledger here, so the removal is not posted; the state still moves.
-    EXPECT_TRUE(registry::Cancel(id));
-    EXPECT_EQ(State::kCancelRequested, registry::StateOf(id));
-    EXPECT_FALSE(registry::Cancel(id));
-    EXPECT_FALSE(registry::TryRelease(id, State::kActive));
-    EXPECT_TRUE(registry::TryRelease(id, State::kCancelRequested));
+    EXPECT_FALSE(registry::Cancel(id, {1}));
+    EXPECT_EQ(State::kActive, registry::StateOf(id));
+    EXPECT_EQ(0, releases.load());
+    EXPECT_TRUE(registry::TryRelease(id, State::kActive));
     EXPECT_EQ(1, releases.load());
-    EXPECT_FALSE(registry::Cancel(id));
-    EXPECT_FALSE(registry::Cancel(0xFFFFFFFFFFFFull));
+    EXPECT_FALSE(registry::Cancel(id, {1}));
+    EXPECT_FALSE(registry::Cancel(0xFFFFFFFFFFFFull, {1}));
+}
+
+TEST(Registry, ACancelOfAnotherKindChangesNothing) {
+    // An id given to the wrong feature's cancel (review K-M7): not touched.
+    std::atomic<int> releases{0};
+    uint64_t id = registry::Add(1, nullptr, &releases, CountRelease, nullptr);
+    EXPECT_FALSE(registry::Cancel(id, {2, 3}));
+    EXPECT_EQ(State::kActive, registry::StateOf(id));
+    EXPECT_TRUE(registry::TryRelease(id, State::kActive));
+    EXPECT_EQ(1, releases.load());
 }
 
 TEST(Registry, RacingReleasesReleaseExactlyOnce) {
@@ -74,15 +85,22 @@ TEST(Registry, RacingReleasesReleaseExactlyOnce) {
                 }
                 if (i % 2 == 0) {
                     if (registry::TryRelease(id, State::kActive)) won.fetch_add(1);
-                } else if (registry::Cancel(id)) {
+                } else if (registry::Cancel(id, {1})) {
                     if (registry::TryRelease(id, State::kCancelRequested)) won.fetch_add(1);
                 }
             });
         }
         go.store(true);
         for (std::thread& thread : threads) thread.join();
-        // Either a direct release won, or the one Cancel that won released from CANCEL_REQUESTED.
-        ASSERT_EQ(1, won.load()) << "round " << round;
+        // This copy of the registry has no ledger, so no Cancel can post its removal: the one that
+        // wins the CAS puts the registration back to ACTIVE (review K-M2), and a direct release
+        // that came while it was CANCEL_REQUESTED has lost. Never twice, never left
+        // CANCEL_REQUESTED; a release from ACTIVE afterwards makes it exactly once.
+        ASSERT_LE(won.load(), 1) << "round " << round;
+        if (won.load() == 0) {
+            ASSERT_EQ(State::kActive, registry::StateOf(id)) << "round " << round;
+            ASSERT_TRUE(registry::TryRelease(id, State::kActive)) << "round " << round;
+        }
         ASSERT_EQ(1, releases.load()) << "round " << round;
         ASSERT_EQ(State::kReleased, registry::StateOf(id));
     }

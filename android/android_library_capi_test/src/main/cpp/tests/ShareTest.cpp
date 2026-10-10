@@ -25,6 +25,7 @@ constexpr const char* kTarget = "NTK target";
 constexpr auto kQuiet = std::chrono::seconds(3);
 
 void OnDone(void* user_data, ntk_share_error error, uint32_t system_code) {
+    EXPECT_EQ(0u, system_code);  // 12.1: the completion's system_code is 0 (part 1, AC-10)
     static_cast<Recorder*>(user_data)->Add({"done", error, system_code});
 }
 
@@ -272,7 +273,7 @@ TEST_F(Share, DirectShareTargetsAreRegisteredAndRemoved) {
 
 TEST_F(Share, ThePickedAppArrivesWithTheRequestId) {
     Recorder& events = Leaked<Recorder>();
-    AddSelection(events);
+    ASSERT_NE(nullptr, AddSelection(events));
     Recorder& done = Leaked<Recorder>();
     uint64_t id = OpenForSelection(done, "Pick me");
     ASSERT_EQ(kNone, DoneError(done));
@@ -285,7 +286,7 @@ TEST_F(Share, ThePickedAppArrivesWithTheRequestId) {
 
 TEST_F(Share, ACanceledWaitGetsNoPick) {
     Recorder& events = Leaked<Recorder>();
-    AddSelection(events);
+    ASSERT_NE(nullptr, AddSelection(events));
     Recorder& done = Leaked<Recorder>();
     uint64_t id = OpenForSelection(done, "Cancel me");
     ASSERT_EQ(kNone, DoneError(done));
@@ -297,7 +298,7 @@ TEST_F(Share, ACanceledWaitGetsNoPick) {
 
 TEST_F(Share, ANotForegroundRequestLeavesTheEarlierWait) {
     Recorder& events = Leaked<Recorder>();
-    AddSelection(events);
+    ASSERT_NE(nullptr, AddSelection(events));
     Recorder& first = Leaked<Recorder>();
     uint64_t id = OpenForSelection(first, "Earlier");
     ASSERT_EQ(kNone, DoneError(first));
@@ -321,7 +322,7 @@ TEST_F(Share, ABlankTextLeavesTheEarlierWait) {
     // Both run on main back to back, before the Sharesheet covers the app: the blank one fails in
     // Kotlin before its token, so the earlier wait stays (AP-17).
     Recorder& events = Leaked<Recorder>();
-    AddSelection(events);
+    ASSERT_NE(nullptr, AddSelection(events));
     Recorder& first = Leaked<Recorder>();
     Recorder& second = Leaked<Recorder>();
     ntktest::HoldMain();
@@ -337,7 +338,7 @@ TEST_F(Share, ABlankTextLeavesTheEarlierWait) {
 
 TEST_F(Share, ALaterOpeningReplacesTheWait) {
     Recorder& events = Leaked<Recorder>();
-    AddSelection(events);
+    ASSERT_NE(nullptr, AddSelection(events));
     Recorder& first = Leaked<Recorder>();
     Recorder& second = Leaked<Recorder>();
     ntktest::HoldMain();
@@ -346,19 +347,25 @@ TEST_F(Share, ALaterOpeningReplacesTheWait) {
     ntktest::UnholdMain();
     ASSERT_EQ(kNone, DoneError(first));
     ASSERT_EQ(kNone, DoneError(second));
-    // Android may show either Sharesheet (the second start can bring the first one back). A pick
-    // in the earlier one is not delivered; one in the later one carries the later ID.
+    // Android may show either Sharesheet (the second start can bring the first one back), so the
+    // test reads which one is up from the shared text in its preview and checks that case:
+    // a pick in the later one carries the later ID; one in the earlier one is not delivered.
+    ASSERT_TRUE(ntktest::UiSharesheetShown());
+    bool later_shown = ntktest::UiWaitText("Later");
+    ASSERT_TRUE(later_shown || ntktest::UiWaitText("Earlier")) << "neither share's text is in the Sharesheet";
     ASSERT_TRUE(ntktest::UiPick(kTarget));
-    events.WaitFor("event", 1, std::chrono::seconds(5));
-    EXPECT_LE(events.Count("event"), 1u);
-    for (const auto& record : events.Records()) {
-        if (record.what == "event") EXPECT_EQ(static_cast<int64_t>(later), record.value);
+    if (later_shown) {
+        ASSERT_TRUE(events.WaitFor("event", 1, std::chrono::seconds(10)));
+        EXPECT_EQ(static_cast<int64_t>(later), events.Records()[0].value);
+        EXPECT_FALSE(events.WaitFor("event", 2, kQuiet));
+    } else {
+        EXPECT_FALSE(events.WaitFor("event", 1, kQuiet));
     }
 }
 
 TEST_F(Share, APickOfAShareKotlinOpenedIsNotDelivered) {
     Recorder& events = Leaked<Recorder>();
-    AddSelection(events);
+    ASSERT_NE(nullptr, AddSelection(events));
     ntktest::DrainMain();
     ntktest::ShareFromKotlin("From Kotlin");
     ASSERT_TRUE(ntktest::UiPick(kTarget));
@@ -370,7 +377,7 @@ TEST_F(Share, APickOfAShareKotlinOpenedIsNotDelivered) {
 TEST_F(Share, ChooserActionsReachTheListenerAndEndWithTheNextShare) {
     std::vector<uint8_t> png = ntktest::PngBytes();
     Recorder& events = Leaked<Recorder>();
-    AddChooser(events);
+    ASSERT_NE(nullptr, AddChooser(events));
     ntk_share_text_content content = Text("With an action");
     ntk_share_chooser_action action = {"act-a", "NTK action A", png.data(), png.size()};
     Recorder& done = Leaked<Recorder>();
@@ -400,12 +407,13 @@ TEST_F(Share, RemovingAListenerKeepsTheWaitAndTheActions) {
     // The selection wait stays when its listener goes; a new listener gets the pick.
     Recorder& removed = Leaked<Recorder>();
     ntk_share_listener* listener = AddSelection(removed);
+    ASSERT_NE(nullptr, listener);
     Recorder& done = Leaked<Recorder>();
     uint64_t id = OpenForSelection(done, "Keep waiting");
     ASSERT_EQ(kNone, DoneError(done));
     ntk_share_listener_remove(listener);
     Recorder& events = Leaked<Recorder>();
-    AddSelection(events);
+    ASSERT_NE(nullptr, AddSelection(events));
     ntktest::DrainMain();
     ASSERT_TRUE(ntktest::UiPick(kTarget));
     ASSERT_TRUE(events.WaitFor("event", 1, std::chrono::seconds(10)));
@@ -417,6 +425,7 @@ TEST_F(Share, RemovingAListenerKeepsTheWaitAndTheActions) {
     std::vector<uint8_t> png = ntktest::PngBytes();
     Recorder& chooser = Leaked<Recorder>();
     ntk_share_listener* chooser_listener = AddChooser(chooser);
+    ASSERT_NE(nullptr, chooser_listener);
     ntk_share_text_content content = Text("Action without a listener");
     ntk_share_chooser_action action = {"act-c", "NTK action C", png.data(), png.size()};
     Recorder& opened = Leaked<Recorder>();

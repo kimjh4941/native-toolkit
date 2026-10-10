@@ -2,6 +2,7 @@ package com.jonghyunkim.nativetoolkit.capitest
 
 import android.app.Activity
 import android.app.Application
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -232,15 +233,38 @@ object UiDriver {
         return null
     }
 
-    /** Presses Back until an Activity of the app is in the foreground again (a Sharesheet left open). */
+    /**
+     * Presses Back until the app is in front again (a Sharesheet or the settings left open). The
+     * Sharesheet is translucent, so the app's Activity under it is still started: in front means
+     * that the active window is the app's as well.
+     */
     @JvmStatic
     fun backToApp(): Boolean {
         repeat(4) {
-            if (onMain { ForegroundActivityTracker.current() } != null) return true
+            if (appInFront()) return true
             device.pressBack()
-            waitUntil(1_000) { onMain { ForegroundActivityTracker.current() } != null }
+            waitUntil(1_000) { appInFront() }
         }
-        return onMain { ForegroundActivityTracker.current() } != null
+        return appInFront()
+    }
+
+    private fun appInFront(): Boolean =
+        onMain { ForegroundActivityTracker.current() } != null && device.currentPackageName == appContext.packageName
+
+    /**
+     * Brings the app to the front again with the window focus: Back first (a screen left open),
+     * then, after Home, the test Activity reordered to the front (the instrumented app may start
+     * an Activity from the back).
+     */
+    @JvmStatic
+    fun toFront(): Boolean {
+        if (!backToApp()) {
+            appContext.startActivity(
+                Intent(appContext, FocusActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+            )
+        }
+        return waitUntil(TIMEOUT_MS) { onMain { ForegroundActivityTracker.current()?.hasWindowFocus() } == true }
     }
 
     /** Sends the app to the back and waits until no Activity of it is in the foreground. */

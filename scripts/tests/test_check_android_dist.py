@@ -10,6 +10,8 @@ build there is nothing real to break, so the cases are skipped.
 Run: python3 -m unittest discover -s scripts/tests
 """
 
+import json
+import os
 import pathlib
 import re
 import shutil
@@ -34,6 +36,9 @@ def built_release():
 
 
 RELEASE = built_release()
+# scripts/test_android.sh sets this after it published android/build/m2: a run without the
+# fixture is then a failure, not a skip that would pass without checking anything.
+REQUIRE_FIXTURE = os.environ.get("NTK_REQUIRE_DIST_FIXTURE") == "1"
 
 
 def failures(output):
@@ -53,9 +58,12 @@ def rewrite_zip(path, name, data):
             archive.writestr(item, value)
 
 
-@unittest.skipIf(RELEASE is None, "no android/build/m2: build the AARs with --m2 (or the publish tasks) first")
+@unittest.skipIf(RELEASE is None and not REQUIRE_FIXTURE,
+                 "no android/build/m2: build the AARs with --m2 (or the publish tasks) first")
 class AndroidDistCheckTest(unittest.TestCase):
     def setUp(self):
+        if RELEASE is None:
+            self.fail("no android/build/m2, and NTK_REQUIRE_DIST_FIXTURE=1 asks for it")
         self.root = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.root)
         shutil.copytree(ROOT / HEADERS, self.root / HEADERS)
@@ -85,10 +93,11 @@ class AndroidDistCheckTest(unittest.TestCase):
         return self.dist / f"android-native-toolkit-capi-{RELEASE}.aar"
 
     def rewrite_capi(self, name, data):
-        """The same change in dist/ and in m2/, so that only the check under test sees it."""
+        """The same change in dist/ and in m2/, so that only the check under test sees it. m2/ gets a
+        copy: the entries carry the time they were written, so two rewrites can differ."""
         rewrite_zip(self.capi_aar(), name, data)
-        rewrite_zip(self.dist / "m2" / GROUP_DIR / "android-native-toolkit-capi" / RELEASE /
-                    f"android-native-toolkit-capi-{RELEASE}.aar", name, data)
+        shutil.copy(self.capi_aar(), self.dist / "m2" / GROUP_DIR / "android-native-toolkit-capi" / RELEASE /
+                    f"android-native-toolkit-capi-{RELEASE}.aar")
 
     def pom(self, artifact):
         return self.dist / "m2" / GROUP_DIR / artifact / RELEASE / f"{artifact}-{RELEASE}.pom"
@@ -181,6 +190,44 @@ class AndroidDistCheckTest(unittest.TestCase):
         changed = re.sub(r'("module": "kotlin-stdlib",\s*"version": \{\s*"requires": ")[^"]+', r"\g<1>2.4.20", text)
         self.assertNotEqual(text, changed, "the case's anchor is gone")
         metadata.write_text(changed, encoding="utf-8")
+        self.assert_only("m2")
+
+    def test_a_library_that_registers_something_for_exit_fails_native(self):
+        # A static with a destructor imports __cxa_atexit. Renaming the import malloc to atexit (same
+        # length) in both copies gives such a library and keeps jni/ and Prefab alike.
+        for path in ("jni/arm64-v8a/libntk.so", "prefab/modules/ntk/libs/android.arm64-v8a/libntk.so"):
+            with zipfile.ZipFile(self.capi_aar()) as archive:
+                library = archive.read(path)
+            self.assertIn(b"\0malloc\0", library, "the case's anchor is gone")
+            self.rewrite_capi(path, library.replace(b"\0malloc\0", b"\0atexit\0"))
+        self.assert_only("native: arm64-v8a")
+
+    def test_an_extra_jni_abi_fails_native(self):
+        # The C ABI is 64-bit only (README D-10), even when Prefab still lists two ABIs.
+        with zipfile.ZipFile(self.capi_aar()) as archive:
+            library = archive.read("jni/arm64-v8a/libntk.so")
+        self.rewrite_capi("jni/armeabi-v7a/libntk.so", library)
+        self.assert_only("native: jni/")
+
+    def test_a_pom_without_kotlin_fails_m2(self):
+        pom = self.pom("android-native-toolkit-capi")
+        text = pom.read_text(encoding="utf-8")
+        changed = re.sub(r"<dependency>\s*<groupId>org\.jetbrains\.kotlin</groupId>.*?</dependency>\s*", "", text, flags=re.S)
+        self.assertNotEqual(text, changed, "the case's anchor is gone")
+        pom.write_text(changed, encoding="utf-8")
+        self.assert_only("m2")
+
+    def test_module_metadata_without_kotlin_fails_m2(self):
+        metadata = self.pom("android-native-toolkit").with_suffix(".module")
+        data = json.loads(metadata.read_text(encoding="utf-8"))
+        removed = 0
+        for variant in data["variants"]:
+            kept = [d for d in variant.get("dependencies", []) if d.get("group") != "org.jetbrains.kotlin"]
+            removed += len(variant.get("dependencies", [])) - len(kept)
+            if "dependencies" in variant:
+                variant["dependencies"] = kept
+        self.assertGreater(removed, 0, "the case's anchor is gone")
+        metadata.write_text(json.dumps(data), encoding="utf-8")
         self.assert_only("m2")
 
     def test_an_aar_in_m2_other_than_the_one_in_dist_fails_m2(self):

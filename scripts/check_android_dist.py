@@ -9,18 +9,23 @@ The rules come from the C ABI design (part 1 chapter 6 "配布物の名前", par
             byte for byte the same
   prefab    the package and module are "ntk" at the release's version; every
             ABI says "stl": "none" and API 31; the ABIs are arm64-v8a and x86_64
-  native    per ABI: jni/ and Prefab hold the same libntk.so (AGP strips the
+  native    jni/ has libntk.so for arm64-v8a and x86_64 only (README D-10); per
+            ABI: jni/ and Prefab hold the same libntk.so (AGP strips the
             jni/ copy and keeps Prefab's for linking and debugging, so they are
             compared stripped), every LOAD segment of both is aligned to 16 KB,
-            libc++_shared.so is not needed, and the exports are the headers'
-            functions and JNI_OnLoad only (AP-15)
+            libc++_shared.so is not needed, nothing is registered to run at
+            exit (no __cxa_atexit or atexit import: a static with a destructor
+            would be torn down under threads still calling the library, design
+            part 1, 5.5), and the exports are the headers' functions and
+            JNI_OnLoad only (AP-15)
   m2        the POMs carry io.github.kimjh4941:android-native-toolkit(-capi) at
             the release's version (README D-17), the AARs there are the ones in
             dist/, the capi POM depends on android-native-toolkit at the same
-            version, and the Kotlin core libraries are at the consumer version of
-            gradle/libs.versions.toml (kotlinConsumer: Kotlin 2.1 and 2.2 users) in
-            the POM and in every variant of the Gradle Module Metadata, which
-            Gradle reads in preference to the POM
+            version, and kotlin-stdlib is there, at the consumer version of
+            gradle/libs.versions.toml (kotlinConsumer: Kotlin 2.1 and 2.2 users),
+            in the POM and in every variant with dependencies of the Gradle Module
+            Metadata, which Gradle reads in preference to the POM. Every other
+            Kotlin core library there is at that version too
 
 A file that cannot be read fails its check: a check that skips because its
 subject is missing reports agreement it never checked.
@@ -59,6 +64,8 @@ HEADERS_IN_TREE = "android/android_library_capi/src/main/cpp/include/NativeToolk
 VERSIONS = "android/gradle/libs.versions.toml"
 ABIS = ["arm64-v8a", "x86_64"]
 PAGE = 0x4000
+# What registers a function to run at exit; a static with a destructor brings in __cxa_atexit.
+EXIT_REGISTRARS = {"__cxa_atexit", "atexit"}
 POM_NS = {"m": "http://maven.apache.org/POM/4.0.0"}
 USAGE = "usage: check_android_dist.py [<release>] [--root <tree>] [--readelf <path>] [--nm <path>] [--strip <path>]"
 
@@ -152,6 +159,13 @@ def needed(readelf, library):
     return re.findall(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]", finished.stdout)
 
 
+def imports(readelf, library):
+    """The names of the undefined dynamic symbols, without their versions."""
+    finished = subprocess.run([readelf, "--dyn-syms", "-W", str(library)], capture_output=True, text=True)
+    return {line.split()[7].split("@")[0] for line in finished.stdout.splitlines()
+            if len(line.split()) >= 8 and line.split()[6] == "UND"}
+
+
 def stripped(strip, data, folder, label):
     """The bytes of a copy stripped of what linking at run time does not need, or None."""
     source = Path(folder) / f"{label}.so"
@@ -165,13 +179,16 @@ def check_native(root, capi, readelf_given, nm_given, strip_given, rep):
     if capi is None:
         rep.check(False, "native: libntk.so of every ABI", "cannot read the capi AAR")
         return
+    jni_abis = sorted(key.split("/")[1] for key in capi if re.fullmatch(r"jni/[^/]+/libntk\.so", key))
+    rep.check(jni_abis == sorted(ABIS), "native: jni/ has libntk.so for arm64-v8a and x86_64 only",
+              f"jni/ has {jni_abis}")
     readelf = find_ndk_tool("llvm-readelf", readelf_given)
     strip = find_ndk_tool("llvm-strip", strip_given)
     listed = sorted({match for path in (root / HEADERS_IN_TREE).glob("*.h")
                      for match in re.findall(r"NTK_CALL\s*\**\s*(ntk_\w+)\s*\(", path.read_text(encoding="utf-8"))})
     with tempfile.TemporaryDirectory() as folder:
         for abi in ABIS:
-            name = f"native: {abi} libntk.so (one copy, 16 KB pages, no libc++_shared)"
+            name = f"native: {abi} libntk.so (one copy, 16 KB pages, no libc++_shared, nothing run at exit)"
             jni = capi.get(f"jni/{abi}/libntk.so")
             prefab = capi.get(f"prefab/modules/ntk/libs/android.{abi}/libntk.so")
             if jni is None or prefab is None:
@@ -200,6 +217,9 @@ def check_native(root, capi, readelf_given, nm_given, strip_given, rep):
                         problems.append(f"{label} LOAD alignments {[hex(value) for value in aligned]}, not 0x4000")
                     if "libc++_shared.so" in needed(readelf, copy):
                         problems.append(f"{label} needs libc++_shared.so")
+                    registrars = sorted(EXIT_REGISTRARS & imports(readelf, copy))
+                    if registrars:
+                        problems.append(f"{label} imports {registrars}: something runs at exit")
             rep.check(not problems, name, "; ".join(problems))
             symbols = Report()
             check_symbols(str(library), nm_given, listed, symbols)
@@ -225,18 +245,20 @@ def pom(path):
     return text(project, "groupId"), text(project, "artifactId"), text(project, "version"), dependencies
 
 
-def module_kotlin(path):
-    """[(variant, artifact, version)] of the Kotlin dependencies in a .module file, or None."""
+def module_dependencies(path):
+    """{variant: [(group, module, version)]} of the variants with dependencies in a .module file,
+    or None when it cannot be read."""
     try:
         metadata = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    found = []
+    found = {}
     for variant in metadata.get("variants", []):
-        for dependency in variant.get("dependencies", []):
-            if dependency.get("group") == "org.jetbrains.kotlin":
-                version = dependency.get("version", {})
-                found.append((variant.get("name"), dependency.get("module"), version.get("requires") or version.get("strictly")))
+        dependencies = variant.get("dependencies", [])
+        if dependencies:
+            found[variant.get("name")] = [
+                (d.get("group"), d.get("module"), d.get("version", {}).get("requires") or d.get("version", {}).get("strictly"))
+                for d in dependencies]
     return found
 
 
@@ -264,16 +286,23 @@ def check_m2(root, dist, release, rep):
             problems.append("the AAR in m2/ is not the one in dist/")
         if kotlin is None:
             problems.append(f"no kotlinConsumer in {VERSIONS}")
+        if not any(g == "org.jetbrains.kotlin" and a == "kotlin-stdlib" for g, a, _ in dependencies):
+            problems.append("the POM has no kotlin-stdlib")
         for dep_group, dep_artifact, dep_version in dependencies:
             if dep_group == "org.jetbrains.kotlin" and dep_version != kotlin:
                 problems.append(f"the POM's {dep_artifact} is {dep_version}, not {kotlin}")
-        in_module = module_kotlin(folder / f"{artifact}-{release}.module")
+        in_module = module_dependencies(folder / f"{artifact}-{release}.module")
         if in_module is None:
             problems.append("cannot read the Gradle Module Metadata")
+        elif not in_module:
+            problems.append("the Gradle Module Metadata has no variant with dependencies")
         else:
-            for variant, module, version in in_module:
-                if version != kotlin:
-                    problems.append(f"the metadata's {module} is {version} in {variant}, not {kotlin}")
+            for variant, listed in sorted(in_module.items()):
+                if not any(g == "org.jetbrains.kotlin" and m == "kotlin-stdlib" for g, m, _ in listed):
+                    problems.append(f"the metadata has no kotlin-stdlib in {variant}")
+                for group, module, version in listed:
+                    if group == "org.jetbrains.kotlin" and version != kotlin:
+                        problems.append(f"the metadata's {module} is {version} in {variant}, not {kotlin}")
         if artifact == CAPI_ARTIFACT and (GROUP, KOTLIN_ARTIFACT, release) not in dependencies:
             problems.append(f"it does not depend on {GROUP}:{KOTLIN_ARTIFACT}:{release}")
         rep.check(not problems, name, "; ".join(problems))

@@ -97,6 +97,8 @@ Failure TakeException(JNIEnv* env, const char* where) {
     jstring name = get_name ? static_cast<jstring>(env->CallObjectMethod(type, get_name)) : nullptr;
     if (env->ExceptionCheck()) env->ExceptionClear();
     const char* chars = name ? env->GetStringUTFChars(name, nullptr) : nullptr;
+    // GetStringUTFChars returns null with an OutOfMemoryError pending: leave none behind.
+    if (env->ExceptionCheck()) env->ExceptionClear();
     NTK_LOGE("[TakeException] where: %s, exception: %s", where, chars ? chars : "?");
     if (chars) env->ReleaseStringUTFChars(name, chars);
     if (name) env->DeleteLocalRef(name);
@@ -109,6 +111,9 @@ Failure TakeException(JNIEnv* env, const char* where) {
 LocalFrame::LocalFrame(JNIEnv* env, jint capacity) : env_(env), pushed_(false) {
     NTK_LOGD("[LocalFrame] env: %p, capacity: %d", env, capacity);
     if (env_ == nullptr) return;
+    // A hint, kept small and positive: callers that loop delete each item's reference, and a
+    // count from the caller's arguments must not overflow it (review K-C8).
+    if (capacity < 1 || capacity > 64) capacity = 64;
     pushed_ = env_->PushLocalFrame(capacity) == JNI_OK;
     if (!pushed_) TakeException(env_, "PushLocalFrame");
 }

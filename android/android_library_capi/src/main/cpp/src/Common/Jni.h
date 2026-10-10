@@ -39,7 +39,8 @@ public:
     LocalFrame(const LocalFrame&) = delete;
     LocalFrame& operator=(const LocalFrame&) = delete;
 
-    // Whether the frame was pushed. When it was not, the entry must not make local references.
+    // Whether the frame was pushed. When it was not, an entry that makes local references returns
+    // OUT_OF_MEMORY (review K-C8); a frame around calls with primitive arguments only needs no check.
     bool ok() const { return pushed_; }
 
 private:

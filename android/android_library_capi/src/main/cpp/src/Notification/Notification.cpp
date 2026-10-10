@@ -260,6 +260,13 @@ ntk_notification_error Result(JNIEnv* env, jint result, const char* where) {
 }
 
 // An optional tag: NULL is no tag; anything else strict UTF-8.
+// NULL or strict UTF-8: checked before the initialization (part 1, 1.3; review K-C3).
+bool ValidText(const char* text) {
+    NTK_LOGD("[ValidText] text: %p", static_cast<const void*>(text));
+    size_t length = 0;
+    return text == nullptr || (utf8::Length(text, &length) && utf8::IsStrict(std::string_view(text, length)));
+}
+
 int32_t Tag(JNIEnv* env, const char* tag, jbyteArray* out) {
     NTK_LOGD("[Tag] env: %p, tag: %p", env, tag);
     return utf8::ToJavaOrNull(env, tag, out);
@@ -272,6 +279,7 @@ ntk_notification_error WithContent(const ntk_notification_content* content, jmet
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbyteArray bytes = nullptr;
     if (int32_t error = ContentBytes(env, content, &bytes); error != kErrorNone) return error;
     return Result(env, env->CallStaticIntMethod(g_bridge, method, bytes), where);
@@ -282,6 +290,7 @@ ntk_notification_error NoArguments(jmethodID method, const char* where) {
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     return Result(env, env->CallStaticIntMethod(g_bridge, method), where);
 }
 
@@ -293,6 +302,7 @@ ntk_notification_error Query(jmethodID method, int32_t* out_value, const char* w
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbooleanArray box = env->NewBooleanArray(1);
     if (jni::Failure failure = jni::TakeException(env, "NewBooleanArray"); failure != jni::Failure::kNone || box == nullptr) {
         return ErrorOf(failure == jni::Failure::kNone ? jni::Failure::kOutOfMemory : failure);
@@ -366,9 +376,11 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_update(const ntk_not
 
 NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_remove(int32_t id, const char* tag) {
     NTK_LOGD("[ntk_notification_remove] id: %d, tag: %p", id, tag);
+    if (!notification::ValidText(tag)) return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = notification::Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbyteArray java_tag = nullptr;
     if (int32_t error = notification::Tag(env, tag, &java_tag); error != kErrorNone) return error;
     return notification::Result(env, env->CallStaticIntMethod(notification::g_bridge, notification::g_remove, id, java_tag),
@@ -388,6 +400,7 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_create_channel(const
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = notification::Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbyteArray bytes = nullptr;
     try {
         if (int32_t error = notification::ToJava(env, notification::EncodeChannel(channel->data), &bytes); error != kErrorNone) {
@@ -402,10 +415,11 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_create_channel(const
 
 NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_delete_channel(const char* channel_id) {
     NTK_LOGD("[ntk_notification_delete_channel] channel_id: %p", channel_id);
-    if (channel_id == nullptr) return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
+    if (channel_id == nullptr || !notification::ValidText(channel_id)) return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = notification::Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbyteArray id = nullptr;
     if (int32_t error = nativetoolkit::utf8::ToJava(env, channel_id, &id); error != kErrorNone) return error;
     return notification::Result(env, env->CallStaticIntMethod(notification::g_bridge, notification::g_delete_channel, id),
@@ -428,6 +442,7 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_schedule(const ntk_n
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = notification::Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbyteArray bytes = nullptr;
     if (int32_t error = notification::ContentBytes(env, content, &bytes); error != kErrorNone) return error;
     // The zero-filled struct is Kotlin's default: exact, while idle, across boot (E-9).
@@ -442,9 +457,11 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_schedule(const ntk_n
 
 NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_cancel_scheduled(int32_t id, const char* tag) {
     NTK_LOGD("[ntk_notification_cancel_scheduled] id: %d, tag: %p", id, tag);
+    if (!notification::ValidText(tag)) return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = notification::Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbyteArray java_tag = nullptr;
     if (int32_t error = notification::Tag(env, tag, &java_tag); error != kErrorNone) return error;
     return notification::Result(
@@ -500,9 +517,11 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_is_scheduled(int32_t
     NTK_LOGD("[ntk_notification_is_scheduled] id: %d, tag: %p, out_value: %p", id, tag, static_cast<void*>(out_value));
     if (out_value == nullptr) return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
     *out_value = 0;
+    if (!notification::ValidText(tag)) return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
     JNIEnv* env = nullptr;
     if (ntk_notification_error error = notification::Enter(&env); error != NTK_NOTIFICATION_ERROR_NONE) return error;
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
     jbyteArray java_tag = nullptr;
     if (int32_t error = notification::Tag(env, tag, &java_tag); error != kErrorNone) return error;
     jbooleanArray box = env->NewBooleanArray(1);
@@ -578,7 +597,7 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_request_permission(n
 NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_cancel_permission_request(uint64_t request_id) {
     NTK_LOGD("[ntk_notification_cancel_permission_request] request_id: %llu", static_cast<unsigned long long>(request_id));
     // As ntk_dialog_cancel: the removal completes it CANCELED, then the Kotlin request is canceled.
-    if (!registry::Cancel(request_id)) return NTK_NOTIFICATION_ERROR_NONE;
+    if (!registry::Cancel(request_id, {notification::kKindPermission})) return NTK_NOTIFICATION_ERROR_NONE;
     JNIEnv* env = jni::Env();
     if (env == nullptr) return NTK_NOTIFICATION_ERROR_NONE;
     jni::LocalFrame frame(env, 4);
@@ -612,7 +631,7 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_add_shown_listener(n
 NTK_EXPORT void NTK_CALL ntk_notification_listener_remove(ntk_notification_listener* listener) {
     NTK_LOGD("[ntk_notification_listener_remove] listener: %p", static_cast<void*>(listener));
     // Removes the registration only; the bridge's one EventHub listener stays (part 2, AP-21).
-    if (listener != nullptr) registry::Cancel(reinterpret_cast<uint64_t>(listener));
+    if (listener != nullptr) registry::Cancel(reinterpret_cast<uint64_t>(listener), {notification::kKindInteraction, notification::kKindShown});
 }
 
 // --- event readers -----------------------------------------------------------------------------
@@ -652,16 +671,17 @@ NTK_EXPORT const char* NTK_CALL ntk_notification_interaction_data_key_at(const n
                                                                        size_t index, size_t* out_size) {
     NTK_LOGD("[ntk_notification_interaction_data_key_at] event: %p, index: %zu", static_cast<const void*>(event),
              index);
-    static const std::vector<std::string> kNone;
-    return notification::At(event == nullptr ? kNone : event->keys, index, out_size);
+    // No static empty list: its destructor would run at exit (part 1, 5.5).
+    if (event == nullptr) return notification::At({}, index, out_size);
+    return notification::At(event->keys, index, out_size);
 }
 
 NTK_EXPORT const char* NTK_CALL ntk_notification_interaction_data_value_at(const ntk_notification_interaction* event,
                                                                          size_t index, size_t* out_size) {
     NTK_LOGD("[ntk_notification_interaction_data_value_at] event: %p, index: %zu", static_cast<const void*>(event),
              index);
-    static const std::vector<std::string> kNone;
-    return notification::At(event == nullptr ? kNone : event->values, index, out_size);
+    if (event == nullptr) return notification::At({}, index, out_size);
+    return notification::At(event->values, index, out_size);
 }
 
 NTK_EXPORT void NTK_CALL ntk_notification_interaction_free(ntk_notification_interaction* event) {

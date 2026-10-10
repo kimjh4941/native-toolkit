@@ -47,6 +47,8 @@ bool UiPackageGone(const char* package);
 // Waits for a screen of the package that is about to open, then closes it with Back.
 bool UiClosePackage(const char* package);
 bool UiBackToApp();
+// Brings the app to the front with the window focus, also after UiHome.
+bool UiToFront();
 // The simple class name of the app's foreground Activity once there is one, or "".
 std::string UiForegroundActivity();
 bool UiFinishForeground();
@@ -74,6 +76,15 @@ std::string MakeShareFile(const char* name, bool image);
 std::string DynamicShortcutIds();
 std::string TestPackage();
 void ShareFromKotlin(const char* text);
+
+// The calling thread and Java: whether it is attached (GetEnv only, never attaching), its
+// java.lang.Thread ID while attached (-1 otherwise), and whether a Java thread of that ID is alive
+// (Thread.getAllStackTraces()).
+bool CurrentThreadAttached();
+int64_t CurrentJavaThreadId();
+bool JavaThreadAlive(int64_t id);
+// Detaches the calling thread if it is attached, as a caller that attached it would.
+void DetachCurrentThread();
 
 // Puts a plain-text clip from Kotlin, given as UTF-16 code units (so it may hold what C cannot).
 void SetClipboardText(const std::u16string& text);

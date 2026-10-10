@@ -221,6 +221,24 @@ TEST_F(Clipboard, ClearLeavesNothingToRead) {
     EXPECT_EQ(nullptr, description);
 }
 
+// --- the foreground (part 1, 5.8 and chapter 6: 前面) ---
+
+TEST_F(Clipboard, FromTheBackAReadIsEmptyAndInFrontItReadsAgain) {
+    // Without the input focus the OS hands out no clip: the read is the same as an empty clipboard.
+    const char* text = "Read me in front";
+    ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, ntk_clipboard_copy_text(text, nullptr));
+    ASSERT_TRUE(ntktest::UiHome());
+    auto* back = reinterpret_cast<ntk_clipboard_content*>(0x1);
+    ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, ntk_clipboard_read(&back));
+    EXPECT_EQ(nullptr, back);
+    ntk_clipboard_content_free(back);
+    ASSERT_TRUE(ntktest::UiToFront());
+    ContentGuard front;
+    ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, ntk_clipboard_read(&front.content));
+    ASSERT_NE(nullptr, front.content);
+    EXPECT_EQ(std::string(text), ItemText(front.content, 0));
+}
+
 TEST_F(Clipboard, WhatCCannotHoldIsReadAsTheReplacementCharacter) {
     // An unpaired surrogate and U+0000 put from Kotlin read as U+FFFD (part 1, AC-19).
     ntktest::SetClipboardText(std::u16string(u"a") + char16_t(0xD800) + u"b" + char16_t(0) + u"c");

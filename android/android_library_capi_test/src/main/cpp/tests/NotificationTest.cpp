@@ -61,11 +61,15 @@ protected:
     }
 };
 
-void OnPermission(void* user_data, uint64_t, ntk_notification_error error, uint32_t, ntk_notification_permission_result result) {
+void OnPermission(void* user_data, uint64_t, ntk_notification_error error, uint32_t system_code,
+                  ntk_notification_permission_result result) {
+    EXPECT_EQ(0u, system_code);  // 12.1: the completion's system_code is 0 (part 1, AC-10)
     static_cast<Recorder*>(user_data)->Add({"done", error, result});
 }
 
-void OnSettings(void* user_data, ntk_notification_error error, uint32_t, ntk_notification_settings_result result) {
+void OnSettings(void* user_data, ntk_notification_error error, uint32_t system_code,
+                ntk_notification_settings_result result) {
+    EXPECT_EQ(0u, system_code);
     static_cast<Recorder*>(user_data)->Add({"done", error, result});
 }
 

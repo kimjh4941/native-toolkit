@@ -118,10 +118,12 @@ jclass LoadClass(JNIEnv* env, jobject loader, const char* name, jni::Failure* fa
 // Builds the whole class table - every class, method and native of classes::All() - or none of
 // it: on a failure the global references made so far are deleted and nothing is published.
 // Called with g_building held and the state kUninit; the state change publishes the table.
-Build BuildTable(JNIEnv* env, jobject loader) {
-    NTK_LOGD("[BuildTable] env: %p, loader: %p", env, loader);
+// BuildTable's work; may throw bad_alloc (the specs, the names for the logs).
+Build BuildTableInto(JNIEnv* env, jobject loader, std::vector<jclass>& globals) {
+    NTK_LOGD("[BuildTableInto] env: %p, loader: %p", env, loader);
     std::vector<classes::ClassSpec> specs = classes::All();
-    std::vector<jclass> globals;
+    // Reserved first, so that keeping a global reference made below cannot throw.
+    globals.reserve(specs.size());
     auto fail = [&](jni::Failure failure) {
         for (jclass global : globals) env->DeleteGlobalRef(global);
         return FailureToBuild(failure == jni::Failure::kNone ? jni::Failure::kOther : failure);
@@ -152,6 +154,22 @@ Build BuildTable(JNIEnv* env, jobject loader) {
     }
     for (size_t i = 0; i < specs.size(); ++i) *specs[i].out = globals[i];
     return Build::kOk;
+}
+
+// Builds the class table, all or nothing. Running out of memory is a failure to retry, with
+// nothing of a half-built table kept, and no C++ exception leaves for JNI_OnLoad or the C entry
+// (part 1, 1.1; review K-C2).
+Build BuildTable(JNIEnv* env, jobject loader) {
+    NTK_LOGD("[BuildTable] env: %p, loader: %p", env, loader);
+    std::vector<jclass> globals;
+    try {
+        return BuildTableInto(env, loader, globals);
+    } catch (...) {
+        if (env->ExceptionCheck()) env->ExceptionClear();
+        for (jclass global : globals) env->DeleteGlobalRef(global);
+        NTK_LOGE("[BuildTable] out of memory; the table is not built");
+        return Build::kTransient;
+    }
 }
 
 // Calls NtkRuntime.ensureInitialized(context) without the class table, for a caller that lost the

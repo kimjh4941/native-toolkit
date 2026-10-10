@@ -37,7 +37,7 @@ ID は `AP-n`（第 2 部）。第 1 部の `AC-n` は変えない。
 | AP-13 | Dialog を閉じたときの値 | 戻るや外側のタップで閉じたときは、結果の種類 `DISMISSED` だけを返し、選択の状態は返さない | Kotlin の `DialogResult.Dismissed` が値を持たない。今のブリッジは閉じたときも選択の状態を返していた。違いは 8.3 に書く |
 | AP-14 | 前面が要る操作 | 第 1 部 5.8 の表に、Progress の前景サービスの行を足す: **前面は判定しない**。後ろからの開始・更新・完了・停止を OS が止めたら（`ServiceStartNotAllowedException` とその子の `ForegroundServiceStartNotAllowedException`・`BackgroundServiceStartNotAllowedException`）`SERVICE_START_NOT_ALLOWED` を返す | 前景サービスの開始は Activity を起動しない。開始は `startForegroundService`、更新・完了・停止は `startService` で、どちらも後ろからは OS が止めうる。例外で分かるので、同期の戻り値で返せる |
 | AP-15 | 2a の照合の入力 | 8.1 の表（操作）、8.2 の表（関数の数と合計）、10 章の表（振る舞いの集合）、11 章の表（エラーの値）、付録 A（宣言）。公開シンボルは、ソースの照合をヘッダー・8.2・付録 A の 3 者で行い、ビルドの後に `llvm-nm -D --defined-only` を別に照らす | version script が `ntk_*` のワイルドカードなので、Windows の `.def` に当たる一覧がソースに無い |
-| AP-16 | Kotlin が黙って成功にする場面（第 2 版、第 3 版で範囲を決めた） | **受け口が Kotlin を呼ぶ前に、呼び出し時点の状態で確かめる**（最善の努力）。通知の表示と更新と、**過ぎた時刻の予約**（Kotlin は Alarm を使わずにすぐ出す）は、`hasPermission()` か `areNotificationsEnabled()` が偽なら `PERMISSION_DENIED`（Kotlin は黙って成功で戻る。`NotificationRepositoryImpl.notify`）。**未来の時刻の正確な予約**（`inexact` が 0）は、`canScheduleExactAlarms()` が偽なら `EXACT_ALARM_NOT_ALLOWED`（Kotlin は黙って不正確な Alarm に下げる。`scheduleAlarm`）。**確かめた後に状態が変わった場合は守らない**: 確かめと Kotlin の呼び出しの間に利用者が通知を切ると、黙って表示されずに `NONE` になりうる（通知の権限（`POST_NOTIFICATIONS`）や正確なアラームの許可（ライブラリが宣言する `SCHEDULE_EXACT_ALARM`）を取り消すとアプリのプロセスが止まるので、残るのは「通知が無効」に変わる場合だけ）。予約した通知が発火した時点で権限が無いときも、黙って出ない（1.x と同じ。8.3 の NT-21） | AP-8 の「黙って変えない」。Kotlin の振る舞いは 1.x からのもので変えない（K-9）。第 1 部 5.11 の「通知は `PERMISSION_DENIED`」はこの値。完全に守るには Kotlin が採った経路を結果で返す必要があり、K-9 に反するので、最善の努力とその限りを契約に書く |
+| AP-16 | Kotlin が黙って成功にする場面（第 2 版、第 3 版で範囲を決めた） | **受け口が Kotlin を呼ぶ前に、呼び出し時点の状態で確かめる**（最善の努力）。通知の表示と更新と、**過ぎた時刻の予約**（Kotlin は Alarm を使わずにすぐ出す）は、`hasPermission()` か `areNotificationsEnabled()` が偽なら `PERMISSION_DENIED`（Kotlin は黙って成功で戻る。`NotificationRepositoryImpl.notify`）。**未来の時刻の正確な予約**（`inexact` が 0）は、`canScheduleExactAlarms()` が偽なら `EXACT_ALARM_NOT_ALLOWED`（Kotlin は黙って不正確な Alarm に下げる。`scheduleAlarm`）。**確かめた後に状態が変わった場合は守らない**: 確かめと Kotlin の呼び出しの間に利用者が通知を切ると、黙って表示されずに `NONE` になりうる（通知の権限（`POST_NOTIFICATIONS`）や正確なアラームの許可（ライブラリが宣言する `SCHEDULE_EXACT_ALARM`）を取り消すとアプリのプロセスが止まるので、残るのは「通知が無効」に変わる場合だけ）。予約した通知が発火した時点で権限が無いときも、黙って出ない（1.x と同じ。8.3 の NT-21）。**数 ms 先の時刻の予約も守らない**: 受け口と Kotlin は「過ぎた時刻か」を別々に時計を読んで決めるので、受け口が未来と見て通知の権限を確かめずに通した予約を、Kotlin が過ぎた時刻と見てすぐ出そうとし、権限が無ければ黙って出ないことがある | AP-8 の「黙って変えない」。Kotlin の振る舞いは 1.x からのもので変えない（K-9）。第 1 部 5.11 の「通知は `PERMISSION_DENIED`」はこの値。完全に守るには Kotlin が採った経路を結果で返す必要があり、K-9 に反するので、最善の努力とその限りを契約に書く |
 | AP-17 | Share の要求の ID（第 2 版、第 3 版で取り消しの経路を決めた） | **C が受け付けの時点で ID を付け、帳簿（main だけが触る）で Kotlin の印（`shareForSelection` が返す値）と対にする**。Kotlin の印は main で前面を確かめた後に初めてできるので、関数が戻る時点では無い（第 1 部 1.3、5.7）。**取り消しは必ず main に積み**、main で帳簿から印を引いて `cancelShareSelection` を呼ぶ（main は積んだ順に処理するので、開く処理は常に取り消しより先に動く）。選択のイベントは印を C の ID に変えて配り、**帳簿に対の無い印（アプリの Kotlin が直接 `shareForSelection` を呼んだものなど）の選択は捨てる**。前面でなくて開かなかった要求は印を持たず、選択も来ず、前の待ちも消さない。**開く処理が失敗したとき、帳簿は変えない**: Kotlin は前の待ちを新しい印で置き換えた後に Chooser を開き、開けなければ新しい印を取り消して投げ直す（`ShareRepositoryImpl.openWithResult`）。C からは印ができた後の失敗かが見えないので、利用者には値で分ける。印を作る前の失敗（`NOT_FOREGROUND`、空白だけの本文の `EMPTY_CONTENT`）では前の要求の待ちが残り、印を作った後の失敗（`NO_SHARE_TARGET`、`UNKNOWN`）では前の要求の選択はもう届かない。後者で帳簿に残った前の対は、選択が来ないだけで害は無い。対は、次の `shareForSelection` が印を得たとき・取り消し・選択のイベントで外す | Dialog と権限の要求と同じ形にする |
 | AP-18 | 通知の本文のタップと dismiss の既定（第 2 版） | **ビルダーの既定は、本文のタップでアプリを開いてタップのイベントを出し、dismiss のイベントも出す**（今のブリッジと同じ）。`_set_tap(content, mode)` で「アプリを開いてイベント」「イベントだけ」「何もしない」を選び、`_set_dismiss_event(content, 0)` で dismiss のイベントを外す | ブリッジはどの通知にも本文のタップ（`launchAppOnTap` の既定は真）と dismiss の Intent を付けていた。Kotlin の `contentIntent` の既定は `null` なので、何も足さなければタップでアプリが開かない |
 | AP-19 | 入口で返す失敗と完了で返す失敗（第 2 版） | **Kotlin を呼ばずに C の入口で決まる検査は、非同期の操作でも戻り値で返す**（`NULL`、不正な UTF-8、`struct_size`、範囲、件数 0（`EMPTY_FILE_LIST`、`EMPTY_ID_LIST`、`EMPTY_ITEMS`）、空文字列の本文（`EMPTY_CONTENT`）、Chooser Action の空の ID・重複した ID・`NULL` か大きさ 0 のアイコン（`INVALID_CHOOSER_ACTION`））。入口で拒んだときは完了を呼ばず、`release` だけを呼び出しスレッドで 1 回呼ぶ（第 1 部 1.3）。Kotlin を呼んで分かる失敗（空白だけの本文の `EMPTY_CONTENT`（Kotlin の `isBlank`）、読めないアイコン、ファイルが無い、前面でない）は完了で返す。**同じ値が入口と完了の両方から来うる**（空文字列は入口、空白だけは完了） | 第 1 部 1.3 の「入口で拒んだとき」。どの値がどちらで来るかを、利用者とテストが決められるようにする |
@@ -79,6 +79,10 @@ ID は `AP-n`（第 2 部）。第 1 部の `AC-n` は変えない。
 ### 0.4 2a の実装レビューを受けた直し（2026-10-05）
 
 2a の照合を強めたところ（`reviews/2026-10-05-android-c-abi-stage2a-review-v1.md`）、10 章の BH-45（Share の選択の待ちを取り消す）が「同期の結果」のままで、第 3 版の AP-17（取り消しは main に積む）と 9 章の OP-51 に合っていなかった。「受け付けだけ（main に積む）」に直した。あわせて、12.1 に system_code と構造体の配置の行を、12.3 に照合の流し方を足し、TB-1・TB-10・TB-11 の中身と完了の条件に照合の流し方を書いた。
+
+### 0.5 2b の実装レビューを受けた直し（2026-10-10）
+
+2b の実装レビュー（`reviews/2026-10-10-android-c-abi-stage2b-review-v1.md`）を受けて、実装に合わせて 3 つを書き足した。11 章に、取り消しの 3 つ（OP-19、OP-39、OP-51）が初期化の前に `NONE` を返す例外と、引数の確かめが初期化の確かめより先であること（第 1 部 1.3 の入口の検査の並び）を書いた。12.1 の未初期化の行にも同じ例外を書いた。AP-16 の限りに、数 ms 先の時刻の予約を足した。
 
 ## 1. 設計目的
 
@@ -606,13 +610,13 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 ## 11. エラー
 
-0〜5 はすべての機能で同じ意味（AP-12）。**Kotlin を呼ばずに入口で決まる失敗は戻り値で、受け付けた後の失敗は完了の引数で返す**（第 1 部 1.3、AP-19）。「Kotlin の結果」は受け口が写す元。節の順は Windows の設計書と同じ（11.1 Dialog、11.2 Notification、11.3 Clipboard）で、Android だけの 11.4 Share と 11.5 初期化を後に置く。
+0〜5 はすべての機能で同じ意味（AP-12）。**Kotlin を呼ばずに入口で決まる失敗は戻り値で、受け付けた後の失敗は完了の引数で返す**（第 1 部 1.3、AP-19）。**入口では引数の確かめ（`NULL`、厳密な UTF-8、長さ、`struct_size`、範囲）を先に、初期化の確かめを後に行う**（第 1 部 1.3 の入口の検査の並び。2b で機能ごとにそろっていなかったのをそろえた）。初期化の前に不正な引数で呼ぶと `INVALID_PARAMETER` になる。「Kotlin の結果」は受け口が写す元。節の順は Windows の設計書と同じ（11.1 Dialog、11.2 Notification、11.3 Clipboard）で、Android だけの 11.4 Share と 11.5 初期化を後に置く。
 
 | 値 | 名前の末尾 | 意味 |
 |---|---|---|
 | 0 | `NONE` | 成功 |
 | 1 | `INVALID_PARAMETER` | `NULL`、不正な UTF-8、長さ、`struct_size` が小さい、範囲外の値、`IllegalArgumentException` |
-| 2 | `NOT_INITIALIZED` | 初期化の前（AC-3）。戻り値が `void` の関数（`_free`、`_listener_remove`）と読み取りとビルダーは除く |
+| 2 | `NOT_INITIALIZED` | 初期化の前（AC-3）。戻り値が `void` の関数（`_free`、`_listener_remove`）と読み取りとビルダーは除く。**取り消しの 3 つ（OP-19、OP-39、OP-51）も除き、初期化の前は何もせずに `NONE` を返す**（取り消す相手がまだ無い。完了の後の取り消しや知らない ID と同じ扱い） |
 | 3 | `NOT_SUPPORTED` | `struct_size` の知らない部分に 0 でない値がある（第 1 部 1.1、Windows の設計書 7.8） |
 | 4 | `UNKNOWN` | 写しの表に無い例外、JNI の失敗（logcat に詳細。AC-10） |
 | 5 | `OUT_OF_MEMORY` | `std::bad_alloc`、`OutOfMemoryError` |
@@ -732,7 +736,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | 観点 | 中身 |
 |---|---|
 | 入口の検査 | 8.2 のすべての関数で、`NULL`、厳密な UTF-8 の 3 種の拒否、長さ、`struct_size`（小さい、上限、知らない部分の 0 と 0 以外）、範囲（6.3 の数値）。出力の引数に入口で `NULL` を書くこと |
-| 未初期化 | 8.1 の OP-01〜OP-54 のうち戻り値がエラーのものが `NOT_INITIALIZED` を返し、ビルダーと読み取りと `_free` と `_listener_remove(NULL)` が動く（第 1 部 6 章の初期化の経路のテストと同じプロセスの分け方） |
+| 未初期化 | 8.1 の OP-01〜OP-54 のうち戻り値がエラーのものが `NOT_INITIALIZED` を返し（取り消しの OP-19、OP-39、OP-51 は `NONE`。11 章）、ビルダーと読み取りと `_free` と `_listener_remove(NULL)` が動く（第 1 部 6 章の初期化の経路のテストと同じプロセスの分け方） |
 | 写しの表 | 11 章の各行を、Kotlin の結果を起こして確かめる（空の内容、0 個の配列、存在しないファイル、読めないアイコン、重複した Chooser Action の ID、権限を外した状態の表示、正確なアラームを拒んだ状態の予約、引けない名前、後ろからの Progress の開始） |
 | 完了 | 非同期の OP のちょうど 1 回、main で来ること、main から呼んだときは戻った後、`release` のちょうど 1 回（第 1 部 6 章の表の項目を、第 2 部の関数で行う） |
 | 前面 | 後ろから呼んだ OP-13〜OP-18、OP-37、OP-38（未許可）、OP-43〜OP-47、OP-50 が `NOT_FOREGROUND` で完了する。OP-38 は許可済みなら後ろからでも `GRANTED` |

@@ -96,6 +96,7 @@ bool UiSwipeAway(const char* text) { return CallWithText("swipeAway", text); }
 bool UiPick(const char* text) { return CallWithText("pick", text); }
 bool UiBackToApp() { return CallBoolean("backToApp"); }
 bool UiSharesheetShown() { return CallBoolean("sharesheetShown"); }
+bool UiToFront() { return CallBoolean("toFront"); }
 bool UiPackageGone(const char* package) { return CallWithText("packageGone", package); }
 bool UiClosePackage(const char* package) { return CallWithText("closePackage", package); }
 
@@ -233,6 +234,54 @@ std::string ResourceId(const char* name, const char* type) {
         env->GetStaticMethodID(inspector, "resourceId", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
     return Native(env, static_cast<jstring>(env->CallStaticObjectMethod(inspector, method, Java(env, name),
                                                                         Java(env, type))));
+}
+
+bool CurrentThreadAttached() {
+    JNIEnv* env = nullptr;
+    return g_vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK;
+}
+
+// java.lang only: a thread the library attached finds classes through the system class loader.
+int64_t CurrentJavaThreadId() {
+    JNIEnv* env = nullptr;
+    if (g_vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) return -1;
+    jclass thread_class = env->FindClass("java/lang/Thread");
+    jobject thread = env->CallStaticObjectMethod(
+        thread_class, env->GetStaticMethodID(thread_class, "currentThread", "()Ljava/lang/Thread;"));
+    jlong id = env->CallLongMethod(thread, env->GetMethodID(thread_class, "getId", "()J"));
+    env->DeleteLocalRef(thread);
+    env->DeleteLocalRef(thread_class);
+    return id;
+}
+
+bool JavaThreadAlive(int64_t id) {
+    JNIEnv* env = Env();
+    jclass thread_class = env->FindClass("java/lang/Thread");
+    jobject traces = env->CallStaticObjectMethod(
+        thread_class, env->GetStaticMethodID(thread_class, "getAllStackTraces", "()Ljava/util/Map;"));
+    jclass map_class = env->FindClass("java/util/Map");
+    jobject keys = env->CallObjectMethod(traces, env->GetMethodID(map_class, "keySet", "()Ljava/util/Set;"));
+    jclass set_class = env->FindClass("java/util/Set");
+    auto threads = static_cast<jobjectArray>(
+        env->CallObjectMethod(keys, env->GetMethodID(set_class, "toArray", "()[Ljava/lang/Object;")));
+    jmethodID get_id = env->GetMethodID(thread_class, "getId", "()J");
+    bool alive = false;
+    for (jsize i = 0, n = env->GetArrayLength(threads); i < n && !alive; ++i) {
+        jobject thread = env->GetObjectArrayElement(threads, i);
+        alive = env->CallLongMethod(thread, get_id) == id;
+        env->DeleteLocalRef(thread);
+    }
+    env->DeleteLocalRef(threads);
+    env->DeleteLocalRef(set_class);
+    env->DeleteLocalRef(keys);
+    env->DeleteLocalRef(map_class);
+    env->DeleteLocalRef(traces);
+    env->DeleteLocalRef(thread_class);
+    return alive;
+}
+
+void DetachCurrentThread() {
+    if (CurrentThreadAttached()) g_vm->DetachCurrentThread();
 }
 
 void SetClipboardText(const std::u16string& text) {

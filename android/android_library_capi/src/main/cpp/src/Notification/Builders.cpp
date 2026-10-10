@@ -1,6 +1,7 @@
 #include "Notification/Builders.h"
 
 #include <climits>
+#include <memory>
 #include <new>
 #include <string_view>
 
@@ -78,12 +79,12 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_content_create(int32
     *out_content = nullptr;
     if (!notification::ValidText(title) || !notification::ValidText(message)) return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
     return Guard("ntk_notification_content_create", [&] {
-        auto* content = new ntk_notification_content;
+        auto content = std::make_unique<ntk_notification_content>();
         content->id = id;
         // A NULL title or message is "" (part 2, 6.3).
         content->title = title == nullptr ? "" : title;
         content->message = message == nullptr ? "" : message;
-        *out_content = content;
+        *out_content = content.release();
         return NTK_NOTIFICATION_ERROR_NONE;
     });
 }
@@ -429,11 +430,11 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_channel_create(const
         return NTK_NOTIFICATION_ERROR_INVALID_PARAMETER;
     }
     return Guard("ntk_notification_channel_create", [&] {
-        auto* channel = new ntk_notification_channel;
+        auto channel = std::make_unique<ntk_notification_channel>();
         channel->data.id = id;
         channel->data.name = name;
         channel->data.importance = importance;
-        *out_channel = channel;
+        *out_channel = channel.release();
         return NTK_NOTIFICATION_ERROR_NONE;
     });
 }

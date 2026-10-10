@@ -153,7 +153,7 @@ internal object DialogBridge {
     @JvmStatic
     fun cancel(id: Long): Boolean {
         Log.d(TAG, "[cancel] id: $id")
-        return MainPoster.post {
+        return MainTasks.post("DialogBridge.cancel") {
             kotlinIds.remove(id)?.let { manager().cancel(it) }
         }
     }

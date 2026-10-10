@@ -243,7 +243,7 @@ internal object ShareBridge {
     @JvmStatic
     fun addChooserActionListener(id: Long): Boolean {
         Log.d(TAG, "[addChooserActionListener] id: $id")
-        return MainPoster.post {
+        return MainTasks.post("ShareBridge.addChooserActionListener") {
             if (!Ledger.insertIfActive(id, KIND_CHOOSER_ACTION)) return@post
             if (chooserHub == null) chooserHub = manager().chooserActions.addListener { event, _ -> onChooserAction(event) }
         }
@@ -252,7 +252,7 @@ internal object ShareBridge {
     @JvmStatic
     fun addSelectionListener(id: Long): Boolean {
         Log.d(TAG, "[addSelectionListener] id: $id")
-        return MainPoster.post {
+        return MainTasks.post("ShareBridge.addSelectionListener") {
             if (!Ledger.insertIfActive(id, KIND_SELECTION)) return@post
             if (selectionHub == null) selectionHub = manager().selections.addListener { event, _ -> onSelection(event) }
         }

@@ -12,6 +12,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 
 #include "Classes.h"
 #include "NativeToolkitC/Common.h"
@@ -56,8 +57,10 @@ void ReleaseRejected(ntk_release_fn release, void* user_data) noexcept;
 
 // Cancels or removes from any thread, without waiting: ACTIVE becomes CANCEL_REQUESTED, and the
 // removal is posted to the main thread. Does nothing for an id that is not ACTIVE (completed,
-// released, unknown). Returns whether it moved the state.
-bool Cancel(uint64_t id) noexcept;
+// released, unknown) or not of one of kinds (an id of another feature's registration, given by
+// mistake). When the removal cannot be posted, the state goes back to ACTIVE, so that nothing is
+// left that would never be released. Returns whether a removal is on its way.
+bool Cancel(uint64_t id, std::initializer_list<int32_t> kinds) noexcept;
 
 // The state of a registration, or kReleased when it is not in the table.
 State StateOf(uint64_t id) noexcept;

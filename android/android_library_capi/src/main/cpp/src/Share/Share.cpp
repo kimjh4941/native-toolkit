@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <initializer_list>
-#include <set>
+#include <cstring>
 #include <string>
 #include <string_view>
 
@@ -151,12 +151,14 @@ int32_t CheckActions(const ntk_share_chooser_action* actions, size_t count) {
     NTK_LOGD("[CheckActions] actions: %p, count: %zu", static_cast<const void*>(actions), count);
     if (count == 0) return NTK_SHARE_ERROR_NONE;
     if (actions == nullptr || count > static_cast<size_t>(INT32_MAX)) return NTK_SHARE_ERROR_INVALID_PARAMETER;
-    std::set<std::string_view> ids;
     for (size_t i = 0; i < count; ++i) {
         const ntk_share_chooser_action& action = actions[i];
         if (!ValidTexts({action.id, action.label})) return NTK_SHARE_ERROR_INVALID_PARAMETER;
-        if (action.id == nullptr || action.id[0] == '\0' || !ids.insert(action.id).second) {
-            return NTK_SHARE_ERROR_INVALID_CHOOSER_ACTION;
+        if (action.id == nullptr || action.id[0] == '\0') return NTK_SHARE_ERROR_INVALID_CHOOSER_ACTION;
+        // A repeated ID, compared with the earlier ones: no container, so no bad_alloc can leave
+        // this C entry (part 1, 1.1). The actions are few.
+        for (size_t j = 0; j < i; ++j) {
+            if (std::strcmp(actions[j].id, action.id) == 0) return NTK_SHARE_ERROR_INVALID_CHOOSER_ACTION;
         }
         if (action.icon == nullptr || action.icon_size == 0) return NTK_SHARE_ERROR_INVALID_CHOOSER_ACTION;
         if (action.icon_size > static_cast<size_t>(INT32_MAX)) return NTK_SHARE_ERROR_INVALID_PARAMETER;
@@ -254,6 +256,7 @@ ntk_share_error AddListener(int32_t kind, jmethodID add, const char* where, Call
     JNIEnv* env = nullptr;
     if (int32_t error = Enter(&env); error != kErrorNone) return Reject(release, user_data, error);
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) return Reject(release, user_data, kErrorOutOfMemory);
     uint64_t id = 0;
     int32_t error = nativetoolkit::Accept(env, kind, reinterpret_cast<void*>(callback), user_data, release, nullptr,
                                           [add](JNIEnv* e, jlong registration) {
@@ -302,6 +305,7 @@ namespace share = nativetoolkit::share;
 namespace jni = nativetoolkit::jni;
 namespace registry = nativetoolkit::registry;
 using nativetoolkit::kErrorNone;
+using nativetoolkit::kErrorOutOfMemory;
 
 // --- opening the Sharesheet (OP-43 to OP-47, OP-50) --------------------------------------------
 
@@ -322,7 +326,8 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_text(const ntk_share_text_content*
     }
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return share::Reject(release, user_data, error);
-    jni::LocalFrame frame(env, static_cast<jint>(16 + 3 * action_count));
+    jni::LocalFrame frame(env, 16);  // the action arrays' items are deleted one by one
+    if (!frame.ok()) return share::Reject(release, user_data, kErrorOutOfMemory);
     share::Java java{env};
     jbyteArray text = java.Text(c.text);
     jbyteArray title = java.Text(c.title);
@@ -359,6 +364,7 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_image(const char* path, const char
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return share::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return share::Reject(release, user_data, kErrorOutOfMemory);
     share::Java java{env};
     jbyteArray path_bytes = java.Text(path);
     jbyteArray mime_bytes = java.Text(mime_type == nullptr ? "image/*" : mime_type);
@@ -382,7 +388,8 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_images(const char* const* paths, s
     }
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return share::Reject(release, user_data, error);
-    jni::LocalFrame frame(env, static_cast<jint>(8 + count));
+    jni::LocalFrame frame(env, 16);  // the items are deleted one by one
+    if (!frame.ok()) return share::Reject(release, user_data, kErrorOutOfMemory);
     share::Java java{env};
     jobjectArray array = java.Texts(paths, count);
     if (java.error != kErrorNone) return share::Reject(release, user_data, java.error);
@@ -403,6 +410,7 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_file(const char* path, ntk_share_d
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return share::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return share::Reject(release, user_data, kErrorOutOfMemory);
     share::Java java{env};
     jbyteArray path_bytes = java.Text(path);
     if (java.error != kErrorNone) return share::Reject(release, user_data, java.error);
@@ -424,7 +432,8 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_files(const char* const* paths, si
     }
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return share::Reject(release, user_data, error);
-    jni::LocalFrame frame(env, static_cast<jint>(8 + count));
+    jni::LocalFrame frame(env, 16);  // the items are deleted one by one
+    if (!frame.ok()) return share::Reject(release, user_data, kErrorOutOfMemory);
     share::Java java{env};
     jobjectArray array = java.Texts(paths, count);
     if (java.error != kErrorNone) return share::Reject(release, user_data, java.error);
@@ -450,6 +459,7 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_text_for_selection(const ntk_share
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return share::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return share::Reject(release, user_data, kErrorOutOfMemory);
     share::Java java{env};
     jbyteArray text = java.Text(c.text);
     jbyteArray title = java.Text(c.title);
@@ -498,6 +508,7 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_register_direct_target(const ntk_s
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) return kErrorOutOfMemory;
     share::Java java{env};
     jbyteArray id = java.Text(t.id);
     jbyteArray label = java.Text(t.label);
@@ -513,7 +524,8 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_remove_direct_targets(const char* 
     if (int32_t error = share::CheckList(ids, count, NTK_SHARE_ERROR_EMPTY_ID_LIST); error != kErrorNone) return error;
     JNIEnv* env = nullptr;
     if (int32_t error = share::Enter(&env); error != kErrorNone) return error;
-    jni::LocalFrame frame(env, static_cast<jint>(8 + count));
+    jni::LocalFrame frame(env, 16);  // the items are deleted one by one
+    if (!frame.ok()) return kErrorOutOfMemory;
     share::Java java{env};
     jobjectArray array = java.Texts(ids, count);
     if (java.error != kErrorNone) return java.error;
@@ -544,5 +556,5 @@ NTK_EXPORT ntk_share_error NTK_CALL ntk_share_add_selection_listener(ntk_share_s
 NTK_EXPORT void NTK_CALL ntk_share_listener_remove(ntk_share_listener* listener) {
     NTK_LOGD("[ntk_share_listener_remove] listener: %p", static_cast<void*>(listener));
     // Removes the registration only: the selection wait and the current actions stay (AP-11).
-    if (listener != nullptr) registry::Cancel(reinterpret_cast<uint64_t>(listener));
+    if (listener != nullptr) registry::Cancel(reinterpret_cast<uint64_t>(listener), {share::kKindChooser, share::kKindSelection});
 }

@@ -508,3 +508,25 @@
   - `NtkGoogleTest` の各ケースの後に、アプリを前に戻し、設定の画面と Sharesheet が消えるまで待つ
   - 直した後、`NoWait` と次のケースを並べて 4 回流し、4 回とも通った（落ちない）
 - **`--filter CApi` の 1 回目（Pixel）**: 上のクラッシュの 1 件のほかは通った（契約の照合 2、smoke 12、noStartup 17、noNtkInitializer 3、startup 119）。`android_capi_results.py` が、届かなかった結果を `#resultLost` として拾えることも確かめた
+
+## レビュー（v1）の対処（2026-10-10）
+
+指摘と対処の一覧は `reviews/2026-10-10-android-c-abi-stage2b-review-v1.md` にある。ここには、対処の中で分かったことと判断を書く。
+
+### 実装の判断
+
+- 取り消しと解除（`Registry::Cancel`）は、その関数の種類の登録だけを動かす（K-M7）。種類が違えば何もせずに `false` を返す。解除のメッセージを main に積めなかったときは、`CANCEL_REQUESTED` を `ACTIVE` に戻して `false` を返す（K-M2）。積めない間に登録が消えていれば（完了が先に来た）、取り消しは済んだものとして `true` を返す
+- 記憶が足りないとき（K-C2 / K-M1）は、`std::set` と `std::vector` を使わない形に変えて、入口で例外が起きる場所そのものを無くした（Share の重複の確かめは `strcmp` の二重ループ、Dialog の複数選択は 1 つずつ設定）。表づくりは `try` / `catch` で囲み、`JNI_FAILURE` にしてやり直せるようにした
+- Kotlin の側の main に積むラムダは、`MainTasks.post` で例外を捕まえてログに出す（K-M3）
+- 後ろに回したアプリを前に戻すときは、シェルの `am start` ではなく、アプリの Context から `FocusActivity` を `REORDER_TO_FRONT` で開く。シェルは公開していない Activity を開けない（`Permission Denial ... not exported`）。アプリ自身の起動は、計装の間は後ろからでも許される（`BAL_ALLOW_PERMISSION`）
+
+### テストで分かったこと
+
+- **`exit` で落ちない（K-C5）は、プロセスを終わらせるテストでは確かめられない**。端末（Pixel 6a、API 36）で、`:ntkexit` という別のプロセスで C ABI を忙しくして（変更の受け手と監視、プローブの受け手、保留中のプローブの操作、C ABI を呼び続ける 4 本のスレッド）から終わらせる形を試した:
+  - Activity のプロセスで C の `exit(0)`: OS の描画のスレッド（`hwuiTask0`）が `FORTIFY: pthread_mutex_lock called on a destroyed mutex` で落ちた
+  - Receiver のプロセスで C の `exit(0)`: ART の `Jit thread pool` が SIGSEGV で落ちた（5 回とも）。C ABI を使わず、`libntk_test.so` を読むだけでも同じだった（3 回とも）
+  - Receiver のプロセスで `System.exit(0)`: 落ちない（ネイティブを読まずに 3 回、読んで 3 回、C ABI を忙しくして 5 回）。ただし、`libntk.so` の `ntk_clipboard_has_clip` に、デストラクタを持つ静的な `std::mutex` を足す変異は、呼ぶスレッドが 1 本で 2 回、4 本で 3 回、どれも生き残った。デストラクタでログを出す静的な変数を置くと、ログは出なかった。`System.exit` は静的なデストラクタを走らせない
+  - bionic の libc++ では、`std::mutex` のデストラクタは trivial ではない（`_LIBCPP_HAS_TRIVIAL_MUTEX_DESTRUCTION` は glibc、Fuchsia、Windows だけ）。変異が生き残ったのは、デストラクタが走らなかったため
+- そこで、5.5 の規則（静的なデストラクタを持つ変数を置かない）そのものを照合にした。配る `libntk.so` が `__cxa_atexit` と `atexit` を import していないこと（`check_android_dist.py`）。上の変異で release の `libntk.so` にこの import が現れることを確かめた。debug の `libntk.so` は `__cxa_atexit` を import するが、これは crtbegin の `atexit` の包みが残っているだけで（debug は使わない部分を削らない）、呼ぶ所は無い。配るのは release なので、照合は release を見る
+- 第 1 部 6 章の「`exit` で落ちない」の行の置き場所を、別のプロセスのテストから配布物の照合に変えた（第 1 部 0.7）
+- `Share.ALaterOpeningReplacesTheWait` は、出ている Sharesheet の本文（「Earlier」か「Later」）で場合を分けた（K-X2）。Pixel では新しい方が出た

@@ -114,6 +114,7 @@ NTK_EXPORT int32_t ntk_debug_probe_start(probe::DoneFn callback, void* user_data
 NTK_EXPORT int32_t ntk_debug_probe_finish(uint64_t id, int64_t value) {
     NTK_LOGD("[ntk_debug_probe_finish] id: %llu, value: %lld", static_cast<unsigned long long>(id),
              static_cast<long long>(value));
+    if (!nativetoolkit::runtime::IsReady()) return nativetoolkit::kErrorNotInitialized;
     JNIEnv* env = jni::Env();
     if (env == nullptr) return kErrorUnknown;
     jni::LocalFrame frame(env, 4);
@@ -125,7 +126,7 @@ NTK_EXPORT int32_t ntk_debug_probe_finish(uint64_t id, int64_t value) {
 
 NTK_EXPORT int32_t ntk_debug_probe_cancel(uint64_t id) {
     NTK_LOGD("[ntk_debug_probe_cancel] id: %llu", static_cast<unsigned long long>(id));
-    registry::Cancel(id);
+    registry::Cancel(id, {probe::kKindOperation});
     return kErrorNone;
 }
 
@@ -145,11 +146,12 @@ NTK_EXPORT int32_t ntk_debug_probe_add_listener(probe::EventFn callback, void* u
 
 NTK_EXPORT void ntk_debug_probe_listener_remove(uint64_t handle) {
     NTK_LOGD("[ntk_debug_probe_listener_remove] handle: %llu", static_cast<unsigned long long>(handle));
-    if (handle != 0) registry::Cancel(handle);
+    if (handle != 0) registry::Cancel(handle, {probe::kKindEvent});
 }
 
 NTK_EXPORT int32_t ntk_debug_probe_emit(int64_t value) {
     NTK_LOGD("[ntk_debug_probe_emit] value: %lld", static_cast<long long>(value));
+    if (!nativetoolkit::runtime::IsReady()) return nativetoolkit::kErrorNotInitialized;
     JNIEnv* env = jni::Env();
     if (env == nullptr) return kErrorUnknown;
     jni::LocalFrame frame(env, 4);

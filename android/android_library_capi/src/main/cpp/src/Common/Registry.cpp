@@ -109,20 +109,33 @@ void ReleaseRejected(ntk_release_fn release, void* user_data) noexcept {
     if (release != nullptr) release(user_data);
 }
 
-bool Cancel(uint64_t id) noexcept {
-    NTK_LOGD("[Cancel] id: %llu", static_cast<unsigned long long>(id));
+bool Cancel(uint64_t id, std::initializer_list<int32_t> kinds) noexcept {
+    NTK_LOGD("[Cancel] id: %llu, kinds: %zu", static_cast<unsigned long long>(id), kinds.size());
     {
         std::lock_guard<std::mutex> lock(TableMutex());
         auto found = Table().find(id);
         if (found == Table().end()) return false;
+        bool expected_kind = false;
+        for (int32_t kind : kinds) expected_kind = expected_kind || found->second->kind == kind;
+        if (!expected_kind) {
+            NTK_LOGW("[Cancel] %llu is a registration of kind %d, not of this function",
+                     static_cast<unsigned long long>(id), found->second->kind);
+            return false;
+        }
         int from = static_cast<int>(State::kActive);
         if (!found->second->state.compare_exchange_strong(from, static_cast<int>(State::kCancelRequested))) return false;
     }
     // From here the registration may be freed by the main thread at any time: only the id is used.
-    // A post that fails means the main thread's looper has ended, which happens only when the
-    // process ends; then nothing is released (design 1.3).
-    if (!PostRemove(id)) NTK_LOGW("[Cancel] could not post the removal of %llu", static_cast<unsigned long long>(id));
-    return true;
+    if (PostRemove(id)) return true;
+    // Not posted (the looper ended, attaching failed, or Kotlin ran out of memory): nothing would
+    // ever release it, so it goes back to ACTIVE for a later cancel or completion. A completion
+    // that ran meanwhile has released it already, and then the cancel is as good as done.
+    NTK_LOGW("[Cancel] could not post the removal of %llu", static_cast<unsigned long long>(id));
+    std::lock_guard<std::mutex> lock(TableMutex());
+    auto found = Table().find(id);
+    if (found == Table().end()) return true;
+    int from = static_cast<int>(State::kCancelRequested);
+    return !found->second->state.compare_exchange_strong(from, static_cast<int>(State::kActive));
 }
 
 State StateOf(uint64_t id) noexcept {

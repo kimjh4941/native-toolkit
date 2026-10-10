@@ -119,7 +119,9 @@ class ManualInitTest {
         assertEquals(10, show)            // PERMISSION_DENIED
         assertEquals(10, past)            // a past time is shown at once, so it needs the permission
         assertEquals(0, futureInexact)    // a future inexact schedule needs neither
-        if (exact == 0) assertEquals(11, futureExact)  // EXACT_ALARM_NOT_ALLOWED (API 34+ default)
+        // EXACT_ALARM_NOT_ALLOWED where exact alarms are refused (the API 34+ default), NONE where
+        // allowed: the permission is not needed for a future time (the helper cancels it after).
+        assertEquals(if (exact == 0) 11 else 0, futureExact)
     }
 
     private class Septuple(val values: List<Int>) {

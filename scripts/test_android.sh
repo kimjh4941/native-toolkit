@@ -666,6 +666,15 @@ if [[ -z "${FILTER}" || "${FILTER}" == "CApi" ]]; then
   set -e
   python3 "${ROOT_DIR}/scripts/android_capi_results.py" smoke capi-smoke "${OUT_DIR}/capi-smoke.txt" >> "${RESULTS}"
 
+  # The distribution checker's self-test breaks the repository just published; without it, the
+  # self-test would skip (and pass) on a machine that never built the AARs.
+  echo "[capi] the distribution checker's self-test"
+  if (cd "${ROOT_DIR}" && NTK_REQUIRE_DIST_FIXTURE=1 python3 -m unittest scripts.tests.test_check_android_dist) > "${OUT_DIR}/capi-dist-selftest.txt" 2>&1; then
+    capi_result "capi-dist-selftest" passed
+  else
+    capi_result "capi-dist-selftest" failed "$(tail -1 "${OUT_DIR}/capi-dist-selftest.txt")"
+  fi
+
   if [[ "${HWASAN}" -eq 1 ]]; then
     if [[ "$(adb_s shell getprop ro.product.cpu.abi | tr -d '\r')" != "arm64-v8a" || "${API}" -lt 34 ]]; then
       capi_result "capi-hwasan#device" skipped "HWASan needs arm64 and API 34 or later"
@@ -689,9 +698,11 @@ adb_s shell appops get "${PKG}" SCHEDULE_EXACT_ALARM | grep -q 'allow' || STATE_
 
 # --- 8. Summary and baseline ---------------------------------------------------------------
 set +e
-python3 - "${RESULTS}" "${BASELINE}" "${SAVE_BASELINE}" "${FINGERPRINT}" "${MODEL}" "${API}" <<'PY'
+FULL_RUN=0
+[[ -z "${FILTER}" && "${SKIP_UNIT}" -eq 0 && "${INCLUDE_HOST}" -eq 1 ]] && FULL_RUN=1
+python3 - "${RESULTS}" "${BASELINE}" "${SAVE_BASELINE}" "${FINGERPRINT}" "${MODEL}" "${API}" "${FULL_RUN}" <<'PY'
 import json, os, sys
-results_path, baseline_path, save, fingerprint, model, api = sys.argv[1:7]
+results_path, baseline_path, save, fingerprint, model, api, full_run = sys.argv[1:8]
 results = [json.loads(line) for line in open(results_path, encoding="utf-8") if line.strip()]
 counts = {}
 for r in results:
@@ -713,9 +724,18 @@ if os.path.exists(baseline_path):
         print(f"  ADDED {t}: {current[t]}")
     for t in removed:
         print(f"  REMOVED {t}: {base[t]}")
+    # In a full run, a test that went away (it never ran, so it never failed) or that passed and
+    # now skips is lost coverage: a failure, unless the baseline is being taken again on purpose.
+    lost = removed + [t for t in changed if base[t] == "passed" and current[t] == "skipped"]
+    if full_run == "1" and save != "1" and lost:
+        print(f"[baseline] FAILED: {len(lost)} test(s) of the baseline did not run or now skip")
+        lost_coverage = True
+    else:
+        lost_coverage = False
 else:
     print(f"[baseline] none for {model}-{api}")
-failed = bool(counts.get("failed"))
+    lost_coverage = False
+failed = bool(counts.get("failed")) or lost_coverage
 if save == "1":
     if failed:
         print("[baseline] not saved: the run has failures")

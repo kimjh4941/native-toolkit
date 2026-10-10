@@ -70,6 +70,10 @@ internal object NotificationBridge {
     private const val OPENED = 0
     private const val OPENED_FALLBACK = 1
 
+    // ntk_notification_settings_target.
+    private const val SETTINGS_NOTIFICATIONS = 0
+    private const val SETTINGS_APP_DETAILS = 1
+
     // ntk_notification_event_kind.
     private const val EVENT_BODY_TAP = 0
     private const val EVENT_ACTION = 1
@@ -323,7 +327,13 @@ internal object NotificationBridge {
                 return@post
             }
             try {
-                when (manager().openSettings(NotificationSettingsTarget.entries[target], activity)) {
+                // An explicit mapping, not the enum's order (review K-C7); C checks 0 to 2 at its entry.
+                val screen = when (target) {
+                    SETTINGS_NOTIFICATIONS -> NotificationSettingsTarget.NOTIFICATIONS
+                    SETTINGS_APP_DETAILS -> NotificationSettingsTarget.APP_DETAILS
+                    else -> NotificationSettingsTarget.EXACT_ALARM
+                }
+                when (manager().openSettings(screen, activity)) {
                     NotificationSettingsOpenResult.OPENED -> nativeSettingsDone(id, Errors.NONE, OPENED)
                     NotificationSettingsOpenResult.OPENED_FALLBACK -> nativeSettingsDone(id, Errors.NONE, OPENED_FALLBACK)
                     NotificationSettingsOpenResult.FAILED -> nativeSettingsDone(id, SETTINGS_NOT_OPENED, OPENED)
@@ -363,7 +373,7 @@ internal object NotificationBridge {
     @JvmStatic
     fun cancelPermissionRequest(id: Long): Boolean {
         Log.d(TAG, "[cancelPermissionRequest] id: $id")
-        return MainPoster.post {
+        return MainTasks.post("NotificationBridge.cancelPermissionRequest") {
             permissionIds.remove(id)?.let { manager().cancelPermissionRequest(it) }
         }
     }
@@ -403,7 +413,7 @@ internal object NotificationBridge {
     @JvmStatic
     fun addInteractionListener(id: Long): Boolean {
         Log.d(TAG, "[addInteractionListener] id: $id")
-        return MainPoster.post {
+        return MainTasks.post("NotificationBridge.addInteractionListener") {
             if (!Ledger.insertIfActive(id, KIND_INTERACTION)) return@post
             // The first one: EventHub hands over what it kept before any listener, synchronously.
             if (interactionHub == null) {
@@ -417,7 +427,7 @@ internal object NotificationBridge {
     @JvmStatic
     fun addShownListener(id: Long): Boolean {
         Log.d(TAG, "[addShownListener] id: $id")
-        return MainPoster.post {
+        return MainTasks.post("NotificationBridge.addShownListener") {
             if (!Ledger.insertIfActive(id, KIND_SHOWN)) return@post
             if (shownHub == null) shownHub = manager().shown.addListener { event, _ -> onShown(event) }
         }

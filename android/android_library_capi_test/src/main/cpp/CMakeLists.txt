@@ -31,7 +31,9 @@ add_library(ntk_test SHARED
     tests/ShareTest.cpp
     tests/ProbeTest.cpp
     tests/RegistryTest.cpp
+    tests/StructLayoutTest.cpp
     tests/StructSizeTest.cpp
+    tests/ThreadTest.cpp
     tests/Utf8Test.cpp
     "${NTK_SOURCES}/src/Common/Jni.cpp"
     "${NTK_SOURCES}/src/Common/Registry.cpp"

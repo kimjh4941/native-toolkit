@@ -55,12 +55,19 @@ void CompleteCanceled(registry::Registration& registration) {
     Call(registration, NTK_DIALOG_ERROR_CANCELED, nullptr);
 }
 
-std::optional<std::string> OptionalText(JNIEnv* env, jbyteArray bytes) {
-    NTK_LOGD("[OptionalText] env: %p, bytes: %p", env, bytes);
+// A text of the answer: none for null. Its error (OUT_OF_MEMORY, a JNI failure) when it cannot be
+// read, so that the answer is not reported as complete without it (review K-X7).
+int32_t ReadText(JNIEnv* env, jbyteArray bytes, std::optional<std::string>* out) {
+    NTK_LOGD("[ReadText] env: %p, bytes: %p", env, bytes);
     std::string text;
     bool is_null = false;
-    if (utf8::FromJava(env, bytes, &text, &is_null) != kErrorNone || is_null) return std::nullopt;
-    return text;
+    if (int32_t error = utf8::FromJava(env, bytes, &text, &is_null); error != kErrorNone) return error;
+    if (is_null) {
+        out->reset();
+    } else {
+        *out = std::move(text);
+    }
+    return kErrorNone;
 }
 
 // DialogBridge.nativeAnswered: a button press or a dismissal, on the main thread.
@@ -77,7 +84,7 @@ void JNICALL NativeAnswered(JNIEnv* env, jclass /*type*/, jlong id, jint answer,
         try {
             result->answer = answer;
             result->button = button;
-            result->button_text = OptionalText(env, button_text);
+            if (int32_t read = ReadText(env, button_text, &result->button_text); read != kErrorNone) error = read;
             result->checked_index = checked_index;
             if (checked != nullptr) {
                 jsize count = env->GetArrayLength(checked);
@@ -85,9 +92,11 @@ void JNICALL NativeAnswered(JNIEnv* env, jclass /*type*/, jlong id, jint answer,
                 env->GetBooleanArrayRegion(checked, 0, count, values.data());
                 for (jboolean value : values) result->checked.push_back(value == JNI_TRUE ? 1 : 0);
             }
-            result->text = OptionalText(env, text);
-            result->username = OptionalText(env, username);
-            result->password = OptionalText(env, password);
+            for (auto [bytes, field] : {std::pair{text, &result->text}, std::pair{username, &result->username},
+                                        std::pair{password, &result->password}}) {
+                if (error != NTK_DIALOG_ERROR_NONE) break;
+                if (int32_t read = ReadText(env, bytes, field); read != kErrorNone) error = read;
+            }
         } catch (const std::bad_alloc&) {
             delete result;
             result = nullptr;
@@ -218,6 +227,7 @@ namespace jni = nativetoolkit::jni;
 namespace registry = nativetoolkit::registry;
 namespace structs = nativetoolkit::structs;
 using nativetoolkit::kErrorNone;
+using nativetoolkit::kErrorOutOfMemory;
 
 // --- the six dialogs (OP-13 to OP-18) --------------------------------------------------------
 
@@ -236,6 +246,7 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_show_alert_async(const ntk_dialo
     JNIEnv* env = nullptr;
     if (int32_t error = dialog::Enter(&env); error != kErrorNone) return dialog::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return dialog::Reject(release, user_data, kErrorOutOfMemory);
     dialog::JavaTexts texts{env};
     jbyteArray title = texts.Of(r.title);
     jbyteArray message = texts.Of(r.message);
@@ -266,6 +277,7 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_show_confirm_async(const ntk_dia
     JNIEnv* env = nullptr;
     if (int32_t error = dialog::Enter(&env); error != kErrorNone) return dialog::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return dialog::Reject(release, user_data, kErrorOutOfMemory);
     dialog::JavaTexts texts{env};
     jbyteArray title = texts.Of(r.title);
     jbyteArray message = texts.Of(r.message);
@@ -300,6 +312,7 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_show_single_choice_async(const n
     JNIEnv* env = nullptr;
     if (int32_t error = dialog::Enter(&env); error != kErrorNone) return dialog::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return dialog::Reject(release, user_data, kErrorOutOfMemory);
     dialog::JavaTexts texts{env};
     jbyteArray title = texts.Of(r.title);
     jbyteArray negative = texts.Of(r.negative_text);
@@ -333,6 +346,7 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_show_multi_choice_async(const nt
     JNIEnv* env = nullptr;
     if (int32_t error = dialog::Enter(&env); error != kErrorNone) return dialog::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return dialog::Reject(release, user_data, kErrorOutOfMemory);
     dialog::JavaTexts texts{env};
     jbyteArray title = texts.Of(r.title);
     jbyteArray negative = texts.Of(r.negative_text);
@@ -341,14 +355,17 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_show_multi_choice_async(const nt
     if (texts.error == kErrorNone) texts.error = dialog::JavaItems(env, r.items, r.item_count, &items);
     jbooleanArray checked = nullptr;
     if (texts.error == kErrorNone) {
-        // NULL is none checked; otherwise item_count values, nonzero for checked.
-        std::vector<jboolean> values(r.item_count, JNI_FALSE);
-        for (size_t i = 0; r.checked != nullptr && i < r.item_count; ++i) values[i] = r.checked[i] != 0 ? JNI_TRUE : JNI_FALSE;
+        // NULL is none checked; otherwise item_count values, nonzero for checked. Set one by one:
+        // no C++ buffer, so no bad_alloc can leave this C entry (part 1, 1.1).
         checked = env->NewBooleanArray(static_cast<jsize>(r.item_count));
         if (jni::Failure failure = jni::TakeException(env, "NewBooleanArray"); failure != jni::Failure::kNone || checked == nullptr) {
             texts.error = nativetoolkit::ErrorOf(failure == jni::Failure::kNone ? jni::Failure::kOutOfMemory : failure);
         } else {
-            env->SetBooleanArrayRegion(checked, 0, static_cast<jsize>(r.item_count), values.data());
+            for (size_t i = 0; r.checked != nullptr && i < r.item_count; ++i) {
+                if (r.checked[i] == 0) continue;
+                const jboolean on = JNI_TRUE;
+                env->SetBooleanArrayRegion(checked, static_cast<jsize>(i), 1, &on);
+            }
         }
     }
     if (texts.error != kErrorNone) return dialog::Reject(release, user_data, texts.error);
@@ -378,6 +395,7 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_show_text_input_async(const ntk_
     JNIEnv* env = nullptr;
     if (int32_t error = dialog::Enter(&env); error != kErrorNone) return dialog::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return dialog::Reject(release, user_data, kErrorOutOfMemory);
     dialog::JavaTexts texts{env};
     jbyteArray title = texts.Of(r.title);
     jbyteArray message = texts.Of(r.message);
@@ -412,6 +430,7 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_show_login_async(const ntk_dialo
     JNIEnv* env = nullptr;
     if (int32_t error = dialog::Enter(&env); error != kErrorNone) return dialog::Reject(release, user_data, error);
     jni::LocalFrame frame(env, 16);
+    if (!frame.ok()) return dialog::Reject(release, user_data, kErrorOutOfMemory);
     dialog::JavaTexts texts{env};
     jbyteArray title = texts.Of(r.title);
     jbyteArray message = texts.Of(r.message);
@@ -438,7 +457,7 @@ NTK_EXPORT ntk_dialog_error NTK_CALL ntk_dialog_cancel(uint64_t request_id) {
     NTK_LOGD("[ntk_dialog_cancel] request_id: %llu", static_cast<unsigned long long>(request_id));
     // CANCEL_REQUESTED and the removal (CANCELED, release) as for any registration; then the
     // Kotlin dialog is closed. Unknown and finished ids do nothing.
-    if (!registry::Cancel(request_id)) return NTK_DIALOG_ERROR_NONE;
+    if (!registry::Cancel(request_id, {dialog::kKindRequest})) return NTK_DIALOG_ERROR_NONE;
     JNIEnv* env = jni::Env();
     if (env == nullptr) return NTK_DIALOG_ERROR_NONE;
     jni::LocalFrame frame(env, 4);
