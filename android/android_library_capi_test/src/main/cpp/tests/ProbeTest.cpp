@@ -177,6 +177,73 @@ TEST_F(Probe, ACancelAfterTheResultArrivedChangesNothing) {
     EXPECT_EQ(9, records[0].value);
 }
 
+// --- a removal that could not be posted (review v2, R-X1): the main thread runs it the next time
+// it enters the C ABI, whichever way; the registration never goes back to ACTIVE ---
+
+TEST_F(Probe, AnUnpostedCancelRunsWhenTheMainThreadNextEnters) {
+    Recorder& recorder = Leaked<Recorder>();
+    uint64_t id = 0;
+    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
+    ntktest::DrainMain();
+    ntk_debug_probe_fail_next_remove_post();
+    ntk_debug_probe_cancel(id);
+    ntktest::DrainMain();
+    EXPECT_EQ(0u, recorder.Records().size());  // nothing reached the main thread yet
+    ntk_debug_probe_finish(id, 5);  // its completion enters the C ABI on main and runs the removal
+    ASSERT_TRUE(recorder.WaitFor("release", 1));
+    ntktest::DrainMain();
+    std::vector<Record> records = recorder.Records();
+    ASSERT_EQ((std::vector<std::string>{"done", "release"}), Names(records));
+    EXPECT_EQ(kCanceled, records[0].error);
+    EXPECT_TRUE(records[1].on_main);
+}
+
+TEST_F(Probe, AResultQueuedBeforeAnUnpostedCancelCompletesCanceledOnce) {
+    Recorder& recorder = Leaked<Recorder>();
+    uint64_t id = 0;
+    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
+    ntktest::DrainMain();
+    ntktest::HoldMain();
+    ntk_debug_probe_finish(id, 7);
+    ntk_debug_probe_fail_next_remove_post();
+    ntk_debug_probe_cancel(id);
+    ntktest::UnholdMain();  // the result finds CANCEL_REQUESTED, never ACTIVE again
+    ASSERT_TRUE(recorder.WaitFor("release", 1));
+    ntktest::DrainMain();
+    std::vector<Record> records = recorder.Records();
+    ASSERT_EQ((std::vector<std::string>{"done", "release"}), Names(records));
+    EXPECT_EQ(kCanceled, records[0].error);
+}
+
+TEST_F(Probe, AnUnpostedCancelBeforeTheInsertionCompletesCanceledAndNeverStarts) {
+    Recorder& recorder = Leaked<Recorder>();
+    uint64_t id = 0;
+    ntktest::HoldMain();
+    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
+    ntk_debug_probe_fail_next_remove_post();
+    ntk_debug_probe_cancel(id);
+    ntktest::UnholdMain();  // the insertion's check runs the removal
+    ASSERT_TRUE(recorder.WaitFor("release", 1));
+    ntktest::DrainMain();
+    std::vector<Record> records = recorder.Records();
+    ASSERT_EQ((std::vector<std::string>{"done", "release"}), Names(records));
+    EXPECT_EQ(kCanceled, records[0].error);
+}
+
+TEST_F(Probe, AnUnpostedListenerRemovalStopsTheEventsAndReleasesOnce) {
+    Recorder& recorder = Leaked<Recorder>();
+    uint64_t handle = 0;
+    ASSERT_EQ(kNone, ntk_debug_probe_add_listener(Recorder::Event, &recorder, Recorder::Release, &handle));
+    ntktest::DrainMain();
+    ntk_debug_probe_fail_next_remove_post();
+    ntk_debug_probe_listener_remove(handle);
+    ASSERT_EQ(kNone, ntk_debug_probe_emit(1));  // the delivery runs the removal first
+    ASSERT_TRUE(recorder.WaitFor("release", 1));
+    ntktest::DrainMain();
+    EXPECT_EQ((std::vector<std::string>{"release"}), Names(recorder.Records()));
+    EXPECT_TRUE(recorder.Records()[0].on_main);
+}
+
 TEST_F(Probe, EveryListenerOfTheKindGetsTheEventOnMain) {
     Recorder& first = Leaked<Recorder>();
     Recorder& second = Leaked<Recorder>();

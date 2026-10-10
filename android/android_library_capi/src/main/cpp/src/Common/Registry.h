@@ -58,9 +58,19 @@ void ReleaseRejected(ntk_release_fn release, void* user_data) noexcept;
 // Cancels or removes from any thread, without waiting: ACTIVE becomes CANCEL_REQUESTED, and the
 // removal is posted to the main thread. Does nothing for an id that is not ACTIVE (completed,
 // released, unknown) or not of one of kinds (an id of another feature's registration, given by
-// mistake). When the removal cannot be posted, the state goes back to ACTIVE, so that nothing is
-// left that would never be released. Returns whether a removal is on its way.
+// mistake). A removal that cannot be posted (attaching or Kotlin failed) is queued instead, and the
+// main thread runs it the next time it enters the C ABI (DrainUnpostedOnMain); the state never goes
+// back to ACTIVE, since the main thread may already have acted on CANCEL_REQUESTED (review v2,
+// R-X1). Returns whether it moved the registration, that is, whether a removal is on its way.
 bool Cancel(uint64_t id, std::initializer_list<int32_t> kinds) noexcept;
+
+// Main thread only: runs the removals that Cancel could not post. Every way the main thread enters
+// the C ABI for a registration calls it first (the removal, the completion, the delivery, the
+// insertion's check). Does nothing when called again from inside a removal it runs.
+void DrainUnpostedOnMain() noexcept;
+
+// Debug probe only: the next removal Cancel posts fails, as if Kotlin could not be called.
+void FailNextRemovePost() noexcept;
 
 // The state of a registration, or kReleased when it is not in the table.
 State StateOf(uint64_t id) noexcept;
@@ -73,6 +83,7 @@ Registration* FindOnMain(uint64_t id) noexcept;
 // completion, and the result is dropped.
 template <class Invoke>
 void CompleteOnMain(uint64_t id, Invoke&& invoke) noexcept {
+    DrainUnpostedOnMain();
     Registration* registration = FindOnMain(id);
     if (registration == nullptr) return;
     auto state = static_cast<State>(registration->state.load());
@@ -82,7 +93,7 @@ void CompleteOnMain(uint64_t id, Invoke&& invoke) noexcept {
             invoke(*registration);
         }
         // Fails when the callback, or another thread meanwhile, asked to cancel: the removal
-        // that the cancel posted releases it.
+        // that the cancel posted (or queued) releases it.
         TryRelease(id, State::kActive);
     } else if (state == State::kCancelRequested) {
         if (!registration->completed && registration->cancel_completion != nullptr) {
@@ -97,6 +108,7 @@ void CompleteOnMain(uint64_t id, Invoke&& invoke) noexcept {
 // 配送 row). A removal from the main thread therefore stops deliveries at once.
 template <class Invoke>
 void DeliverOnMain(uint64_t id, Invoke&& invoke) noexcept {
+    DrainUnpostedOnMain();
     Registration* registration = FindOnMain(id);
     if (registration != nullptr && registration->state.load() == static_cast<int>(State::kActive)) {
         invoke(*registration);

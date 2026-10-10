@@ -462,6 +462,10 @@ NTK_EXPORT ntk_clipboard_error NTK_CALL ntk_clipboard_add_change_listener(ntk_cl
         return error;
     }
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) {
+        registry::ReleaseRejected(release, user_data);
+        return NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY;
+    }
     uint64_t id = 0;
     error = nativetoolkit::Accept(env, clipboard::kKindChange, reinterpret_cast<void*>(callback), user_data, release,
                                   nullptr,

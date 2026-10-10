@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include "../TestSupport.h"
 #include "Common/Registry.h"
 
 namespace registry = nativetoolkit::registry;
@@ -47,18 +48,23 @@ TEST(Registry, TryReleaseCallsReleaseOnceAndOnlyFromTheExpectedState) {
     EXPECT_EQ(1, releases.load());
 }
 
-TEST(Registry, ACancelWhoseRemovalCannotBePostedLeavesItActive) {
-    // No ledger here, so the removal cannot be posted: the state goes back to ACTIVE, so that a
-    // later cancel or completion can still release it (review K-M2). The posted path, where the
-    // state stays CANCEL_REQUESTED until the main thread removes it, is in ProbeTest.cpp.
+TEST(Registry, ACancelWhoseRemovalCannotBePostedRunsWhenTheMainThreadNextEnters) {
+    // No ledger here, so no removal can be posted: it is queued, the state stays CANCEL_REQUESTED
+    // (review v2, R-X1), and the main thread runs it the next time it enters for a registration.
+    // The same with the real ledger and the main thread's other ways in is in ProbeTest.cpp.
     std::atomic<int> releases{0};
     uint64_t id = registry::Add(1, nullptr, &releases, CountRelease, nullptr);
-    EXPECT_FALSE(registry::Cancel(id, {1}));
-    EXPECT_EQ(State::kActive, registry::StateOf(id));
+    EXPECT_TRUE(registry::Cancel(id, {1}));
+    EXPECT_EQ(State::kCancelRequested, registry::StateOf(id));
+    EXPECT_FALSE(registry::Cancel(id, {1}));  // already on its way
     EXPECT_EQ(0, releases.load());
-    EXPECT_TRUE(registry::TryRelease(id, State::kActive));
+    bool delivered = false;
+    ntktest::RunOnMain([&] {
+        registry::DeliverOnMain(id, [&](registry::Registration&) { delivered = true; });
+    });
+    EXPECT_FALSE(delivered);
     EXPECT_EQ(1, releases.load());
-    EXPECT_FALSE(registry::Cancel(id, {1}));
+    EXPECT_EQ(State::kReleased, registry::StateOf(id));
     EXPECT_FALSE(registry::Cancel(0xFFFFFFFFFFFFull, {1}));
 }
 
@@ -92,15 +98,9 @@ TEST(Registry, RacingReleasesReleaseExactlyOnce) {
         }
         go.store(true);
         for (std::thread& thread : threads) thread.join();
-        // This copy of the registry has no ledger, so no Cancel can post its removal: the one that
-        // wins the CAS puts the registration back to ACTIVE (review K-M2), and a direct release
-        // that came while it was CANCEL_REQUESTED has lost. Never twice, never left
-        // CANCEL_REQUESTED; a release from ACTIVE afterwards makes it exactly once.
-        ASSERT_LE(won.load(), 1) << "round " << round;
-        if (won.load() == 0) {
-            ASSERT_EQ(State::kActive, registry::StateOf(id)) << "round " << round;
-            ASSERT_TRUE(registry::TryRelease(id, State::kActive)) << "round " << round;
-        }
+        // Either a direct release won, or the one Cancel that won released from CANCEL_REQUESTED
+        // (its removal is queued, since this copy has no ledger, and finds nothing later).
+        ASSERT_EQ(1, won.load()) << "round " << round;
         ASSERT_EQ(1, releases.load()) << "round " << round;
         ASSERT_EQ(State::kReleased, registry::StateOf(id));
     }

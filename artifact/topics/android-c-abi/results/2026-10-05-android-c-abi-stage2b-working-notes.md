@@ -530,3 +530,20 @@
 - そこで、5.5 の規則（静的なデストラクタを持つ変数を置かない）そのものを照合にした。配る `libntk.so` が `__cxa_atexit` と `atexit` を import していないこと（`check_android_dist.py`）。上の変異で release の `libntk.so` にこの import が現れることを確かめた。debug の `libntk.so` は `__cxa_atexit` を import するが、これは crtbegin の `atexit` の包みが残っているだけで（debug は使わない部分を削らない）、呼ぶ所は無い。配るのは release なので、照合は release を見る
 - 第 1 部 6 章の「`exit` で落ちない」の行の置き場所を、別のプロセスのテストから配布物の照合に変えた（第 1 部 0.7）
 - `Share.ALaterOpeningReplacesTheWait` は、出ている Sharesheet の本文（「Earlier」か「Later」）で場合を分けた（K-X2）。Pixel では新しい方が出た
+
+## レビュー（v2）の対処（2026-10-10）
+
+指摘と対処の一覧は `reviews/2026-10-10-android-c-abi-stage2b-review-v2.md` にある。
+
+### 実装の判断
+
+- **解除を積めなかった取り消しは、ACTIVE に戻さない**。v1 の対処（K-M2）で「戻して `false` を返す」形にしたが、3 本のレビュアーがそれぞれ、main と競うと `release` が呼ばれない道を見つけた。main は CANCEL_REQUESTED を見て完了・開始・配送を見送り、「積まれた解除が解放する」と任せる。そのため、後から ACTIVE に戻すと、誰も解放しなくなる。CANCEL_REQUESTED は「外すことが決まった」印として、一度付けたら外さない。積めなかった解除は列に入れ、main が次に C に入ったとき（`nativeRemove`、`nativeIsActive`、`CompleteOnMain`、`DeliverOnMain`）に流す。流すときは Kotlin の帳簿からも外す（`Ledger.drop`）
+- 列を流す入口に `nativeIsActive`（挿入の確かめ）を入れたのは、挿入の前の取り消しで、その登録が開始されないまま残らないようにするため
+- `applicationContext` が null の Context（Application ができる前）は、Context そのものを持つ。Activity ではないので、K-M8 の心配（Activity を持ち続ける）は無い
+- 照合の「必ずある import」は `__cxa_finalize` にした。crtbegin がどの `.so` にも入れるので、読めたかどうかの印になる
+
+### テストで分かったこと
+
+- 変異「積めなかった解除を流さない」で、結果や完了が先に積まれた 2 件は通った。完了の側（`CompleteOnMain`）が CANCEL_REQUESTED を見て、取り消しの完了と解放を自分でするため。この 2 件が守るのは「ACTIVE に戻さない」ことで、前の形を入れると落ちる
+- ProbeTest の 1 件は、テストの中の 2 回目の取り消しが、前の形の穴を埋めていた（1 回目が ACTIVE に戻した後、2 回目は積めて解放される）。外して、前の形で落ちることを確かめた
+- `DetachOnThreadExit` の `GetEnv` の確かめを外す変異は生き残った。ART は attach していないスレッドの detach に `JNI_ERR` を返すだけで、落ちない

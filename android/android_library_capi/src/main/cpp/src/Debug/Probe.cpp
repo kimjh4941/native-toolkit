@@ -95,6 +95,7 @@ namespace probe = nativetoolkit::probe;
 namespace registry = nativetoolkit::registry;
 namespace jni = nativetoolkit::jni;
 using nativetoolkit::kErrorNone;
+using nativetoolkit::kErrorOutOfMemory;
 using nativetoolkit::kErrorUnknown;
 
 NTK_EXPORT int32_t ntk_debug_probe_start(probe::DoneFn callback, void* user_data, ntk_release_fn release,
@@ -106,6 +107,10 @@ NTK_EXPORT int32_t ntk_debug_probe_start(probe::DoneFn callback, void* user_data
     int32_t error = probe::CheckEntry(reinterpret_cast<void*>(callback), out_id, release, user_data, &env);
     if (error != kErrorNone) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) {
+        registry::ReleaseRejected(release, user_data);
+        return kErrorOutOfMemory;
+    }
     return nativetoolkit::Accept(env, probe::kKindOperation, reinterpret_cast<void*>(callback), user_data, release,
                                  probe::CompleteCanceled,
                                  [](JNIEnv* e, jlong id) { return probe::CallPost(e, probe::g_start, id); }, out_id);
@@ -139,6 +144,10 @@ NTK_EXPORT int32_t ntk_debug_probe_add_listener(probe::EventFn callback, void* u
     int32_t error = probe::CheckEntry(reinterpret_cast<void*>(callback), out_handle, release, user_data, &env);
     if (error != kErrorNone) return error;
     jni::LocalFrame frame(env, 8);
+    if (!frame.ok()) {
+        registry::ReleaseRejected(release, user_data);
+        return kErrorOutOfMemory;
+    }
     return nativetoolkit::Accept(env, probe::kKindEvent, reinterpret_cast<void*>(callback), user_data, release, nullptr,
                                  [](JNIEnv* e, jlong id) { return probe::CallPost(e, probe::g_add_listener, id); },
                                  out_handle);
@@ -163,6 +172,11 @@ NTK_EXPORT int32_t ntk_debug_probe_emit(int64_t value) {
 NTK_EXPORT void ntk_debug_probe_fail_next_post(void) {
     NTK_LOGD("[ntk_debug_probe_fail_next_post]");
     probe::g_fail_next_post.store(true);
+}
+
+NTK_EXPORT void ntk_debug_probe_fail_next_remove_post(void) {
+    NTK_LOGD("[ntk_debug_probe_fail_next_remove_post]");
+    registry::FailNextRemovePost();
 }
 
 NTK_EXPORT size_t ntk_debug_probe_registrations(void) {

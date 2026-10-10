@@ -22,6 +22,9 @@ import unittest
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
+from check_c_abi_contract_android import find_ndk_tool  # noqa: E402
+
 CHECKER = ROOT / "scripts" / "check_android_dist.py"
 M2 = ROOT / "android" / "build" / "m2"
 GROUP_DIR = "io/github/kimjh4941"
@@ -76,13 +79,13 @@ class AndroidDistCheckTest(unittest.TestCase):
                         self.dist / f"{artifact}-{RELEASE}.aar")
         shutil.copytree(ROOT / HEADERS, self.dist / "include" / "NativeToolkitC")
 
-    def run_checker(self):
-        finished = subprocess.run([sys.executable, str(CHECKER), RELEASE, "--root", str(self.root)],
+    def run_checker(self, *extra):
+        finished = subprocess.run([sys.executable, str(CHECKER), RELEASE, "--root", str(self.root), *extra],
                                   capture_output=True, text=True)
         return finished.returncode, finished.stdout + finished.stderr
 
-    def assert_only(self, prefix):
-        code, output = self.run_checker()
+    def assert_only(self, prefix, *extra):
+        code, output = self.run_checker(*extra)
         failed = failures(output)
         self.assertEqual(1, code, output)
         self.assertTrue(failed, output)
@@ -201,6 +204,46 @@ class AndroidDistCheckTest(unittest.TestCase):
             self.assertIn(b"\0malloc\0", library, "the case's anchor is gone")
             self.rewrite_capi(path, library.replace(b"\0malloc\0", b"\0atexit\0"))
         self.assert_only("native: arm64-v8a")
+
+    def test_a_library_that_imports_cxa_atexit_fails_native(self):
+        # The name a static with a destructor really brings in; pthread_once has its length.
+        for path in ("jni/arm64-v8a/libntk.so", "prefab/modules/ntk/libs/android.arm64-v8a/libntk.so"):
+            with zipfile.ZipFile(self.capi_aar()) as archive:
+                library = archive.read(path)
+            self.assertIn(b"\0pthread_once\0", library, "the case's anchor is gone")
+            self.rewrite_capi(path, library.replace(b"\0pthread_once\0", b"\0__cxa_atexit\0"))
+        self.assert_only("native: arm64-v8a")
+
+    def test_a_readelf_that_cannot_list_the_imports_fails_native(self):
+        # Without the import list, "nothing run at exit" would hold for an empty list.
+        real = find_ndk_tool("llvm-readelf")
+        self.assertTrue(real and pathlib.Path(real).exists(), "no llvm-readelf for the case")
+        fake = self.root / "readelf"
+        fake.write_text(f'#!/bin/sh\nfor a in "$@"; do [ "$a" = --dyn-syms ] && exit 1; done\nexec "{real}" "$@"\n',
+                        encoding="utf-8")
+        fake.chmod(0o755)
+        code, output = self.run_checker("--readelf", str(fake))
+        failed = failures(output)
+        self.assertEqual(1, code, output)
+        self.assertTrue(failed, output)
+        for line in failed:
+            self.assertTrue(line.startswith("FAIL native: ") and "--dyn-syms failed" in line, f"unexpected: {line}")
+
+    def test_a_capi_api_variant_without_dependencies_fails_m2(self):
+        # A variant left with no dependencies at all must not drop out of the check.
+        metadata = self.pom("android-native-toolkit-capi").with_suffix(".module")
+        document = json.loads(metadata.read_text(encoding="utf-8"))
+        api = [v for v in document["variants"] if v.get("attributes", {}).get("org.gradle.usage") == "java-api"]
+        self.assertTrue(api and api[0].get("dependencies"), "the case's anchor is gone")
+        api[0]["dependencies"] = []
+        metadata.write_text(json.dumps(document), encoding="utf-8")
+        self.assert_only("m2")
+
+    def test_another_library_in_an_extra_jni_abi_fails_native(self):
+        with zipfile.ZipFile(self.capi_aar()) as archive:
+            library = archive.read("jni/arm64-v8a/libntk.so")
+        self.rewrite_capi("jni/armeabi-v7a/libother.so", library)
+        self.assert_only("native: jni/")
 
     def test_an_extra_jni_abi_fails_native(self):
         # The C ABI is 64-bit only (README D-10), even when Prefab still lists two ABIs.

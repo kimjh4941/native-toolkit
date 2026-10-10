@@ -175,8 +175,8 @@ Build BuildTable(JNIEnv* env, jobject loader) {
 // Calls NtkRuntime.ensureInitialized(context) without the class table, for a caller that lost the
 // race to build it: an Activity passed in is still taken as the foreground (design 5.3). Failures
 // are only logged; the winner reports the result.
-void EnsureInitializedWithoutTable(JNIEnv* env, jobject context) {
-    NTK_LOGD("[EnsureInitializedWithoutTable] env: %p, context: %p", env, context);
+void EnsureInitializedWithoutTableUnguarded(JNIEnv* env, jobject context) {
+    NTK_LOGD("[EnsureInitializedWithoutTableUnguarded] env: %p, context: %p", env, context);
     jclass context_class = env->GetObjectClass(context);
     jmethodID get_loader = env->GetMethodID(context_class, "getClassLoader", "()Ljava/lang/ClassLoader;");
     if (jni::TakeException(env, "Context.getClassLoader lookup") != jni::Failure::kNone) return;
@@ -189,6 +189,18 @@ void EnsureInitializedWithoutTable(JNIEnv* env, jobject context) {
     if (jni::TakeException(env, "GetStaticMethodID ensureInitialized") != jni::Failure::kNone) return;
     env->CallStaticIntMethod(runtime, ensure, context);
     jni::TakeException(env, "NtkRuntime.ensureInitialized");
+}
+
+// LoadClass builds the dotted name in a std::string: out of memory, nothing escapes the C entry
+// (review v2, R-M6).
+void EnsureInitializedWithoutTable(JNIEnv* env, jobject context) noexcept {
+    NTK_LOGD("[EnsureInitializedWithoutTable] env: %p, context: %p", env, context);
+    try {
+        EnsureInitializedWithoutTableUnguarded(env, context);
+    } catch (...) {
+        jni::TakeException(env, "EnsureInitializedWithoutTable");
+        NTK_LOGE("[EnsureInitializedWithoutTable] out of memory; left to the caller that builds the table");
+    }
 }
 
 // The NATIVE_READY column of design 5.3: the class table exists; run the Kotlin side.

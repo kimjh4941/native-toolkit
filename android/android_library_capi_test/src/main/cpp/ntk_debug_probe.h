@@ -25,6 +25,8 @@ int32_t ntk_debug_probe_add_listener(ntk_debug_probe_event_fn callback, void* us
 void ntk_debug_probe_listener_remove(uint64_t handle);
 int32_t ntk_debug_probe_emit(int64_t value);
 void ntk_debug_probe_fail_next_post(void);
+/* The next removal a cancel posts to the main thread fails; the main thread runs it later. */
+void ntk_debug_probe_fail_next_remove_post(void);
 size_t ntk_debug_probe_registrations(void);
 /* Runs hook in JNI_OnLoad and ntk_android_init between building the class table and marking the
    native side done (NULL removes it). */

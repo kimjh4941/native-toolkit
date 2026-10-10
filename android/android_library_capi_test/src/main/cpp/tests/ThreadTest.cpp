@@ -45,7 +45,9 @@ TEST(Thread, AThreadTheLibraryAttachedIsDetachedWhenItEnds) {
 }
 
 TEST(Thread, AThreadDetachedByHandAfterTheLibraryAttachedItEndsQuietly) {
-    // The library's detach at the thread's end finds it detached and leaves it (5.6).
+    // The thread ends quietly although the library's key still marks it as attached (5.6). This
+    // does not show that the library looks before it detaches: ART answers a detach of a thread
+    // that is not attached with JNI_ERR, so the case passes without the look too (review v2, R-C13).
     Seen seen = CallFromANewThread(true);
     ASSERT_EQ(NTK_CLIPBOARD_ERROR_NONE, seen.error);
     ASSERT_TRUE(seen.attached_after);

@@ -222,6 +222,10 @@ ntk_notification_error AddListener(int32_t kind, jmethodID add, const char* wher
         return error;
     }
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) {
+        registry::ReleaseRejected(release, user_data);
+        return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
+    }
     uint64_t id = 0;
     error = nativetoolkit::Accept(env, kind, reinterpret_cast<void*>(callback), user_data, release, nullptr,
                                   [add](JNIEnv* e, jlong registration) {
@@ -558,6 +562,10 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_open_settings_async(
         return error;
     }
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) {
+        registry::ReleaseRejected(release, user_data);
+        return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
+    }
     return nativetoolkit::Accept(env, notification::kKindSettings, reinterpret_cast<void*>(callback), user_data, release,
                                  nullptr,
                                  [target](JNIEnv* e, jlong id) {
@@ -585,6 +593,10 @@ NTK_EXPORT ntk_notification_error NTK_CALL ntk_notification_request_permission(n
         return error;
     }
     jni::LocalFrame frame(env, 4);
+    if (!frame.ok()) {
+        registry::ReleaseRejected(release, user_data);
+        return NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY;
+    }
     return nativetoolkit::Accept(env, notification::kKindPermission, reinterpret_cast<void*>(callback), user_data, release,
                                  notification::PermissionCanceled,
                                  [](JNIEnv* e, jlong id) {

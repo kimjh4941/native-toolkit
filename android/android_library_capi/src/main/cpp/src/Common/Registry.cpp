@@ -3,6 +3,7 @@
 #include <mutex>
 #include <new>
 #include <unordered_map>
+#include <vector>
 
 #include "Common/Jni.h"
 #include "Common/Log.h"
@@ -22,10 +23,19 @@ std::unordered_map<uint64_t, Registration*>& Table() {
     return *table;
 }
 
+// The removals Cancel could not post, guarded by TableMutex. Never destroyed, as the table.
+std::vector<uint64_t>& Unposted() {
+    static auto* unposted = new std::vector<uint64_t>;
+    return *unposted;
+}
+
 std::atomic<uint64_t> g_next_id{1};
+std::atomic<bool> g_fail_next_remove_post{false};
+bool g_draining = false;  // main thread only
 
 jclass g_ledger = nullptr;
 jmethodID g_post_remove = nullptr;  // static boolean postRemove(long)
+jmethodID g_drop = nullptr;         // static void drop(long), main thread only
 
 // The removal of design 5.7 (the 外す row), on the main thread.
 void RemoveOnMain(uint64_t id) noexcept {
@@ -43,17 +53,20 @@ void RemoveOnMain(uint64_t id) noexcept {
 // Ledger.nativeIsActive: whether the insertion should put the id in the ledger and start.
 jboolean JNICALL NativeIsActive(JNIEnv* /*env*/, jclass /*type*/, jlong id) {
     NTK_LOGD("[NativeIsActive] id: %lld", static_cast<long long>(id));
+    DrainUnpostedOnMain();
     return StateOf(static_cast<uint64_t>(id)) == State::kActive ? JNI_TRUE : JNI_FALSE;
 }
 
 // Ledger.nativeRemove: the removal a cancel posted.
 void JNICALL NativeRemove(JNIEnv* /*env*/, jclass /*type*/, jlong id) {
     NTK_LOGD("[NativeRemove] id: %lld", static_cast<long long>(id));
+    DrainUnpostedOnMain();
     RemoveOnMain(static_cast<uint64_t>(id));
 }
 
 bool PostRemove(uint64_t id) noexcept {
     NTK_LOGD("[PostRemove] id: %llu", static_cast<unsigned long long>(id));
+    if (g_fail_next_remove_post.exchange(false)) return false;
     JNIEnv* env = jni::Env();
     if (env == nullptr || g_ledger == nullptr) return false;
     jni::LocalFrame frame(env, 4);
@@ -127,15 +140,48 @@ bool Cancel(uint64_t id, std::initializer_list<int32_t> kinds) noexcept {
     }
     // From here the registration may be freed by the main thread at any time: only the id is used.
     if (PostRemove(id)) return true;
-    // Not posted (the looper ended, attaching failed, or Kotlin ran out of memory): nothing would
-    // ever release it, so it goes back to ACTIVE for a later cancel or completion. A completion
-    // that ran meanwhile has released it already, and then the cancel is as good as done.
-    NTK_LOGW("[Cancel] could not post the removal of %llu", static_cast<unsigned long long>(id));
-    std::lock_guard<std::mutex> lock(TableMutex());
-    auto found = Table().find(id);
-    if (found == Table().end()) return true;
-    int from = static_cast<int>(State::kCancelRequested);
-    return !found->second->state.compare_exchange_strong(from, static_cast<int>(State::kActive));
+    // Not posted (attaching failed, Kotlin ran out of memory, or the looper ended with the process):
+    // the main thread runs it the next time it enters the C ABI. A completion that ran meanwhile
+    // saw CANCEL_REQUESTED and left the release to this removal, so the state stays.
+    NTK_LOGW("[Cancel] could not post the removal of %llu; queued for the main thread",
+             static_cast<unsigned long long>(id));
+    try {
+        std::lock_guard<std::mutex> lock(TableMutex());
+        Unposted().push_back(id);
+    } catch (const std::bad_alloc&) {
+        // Out of memory twice over: the registration stays CANCEL_REQUESTED and is not released.
+        NTK_LOGE("[Cancel] could not queue the removal of %llu", static_cast<unsigned long long>(id));
+    }
+    return true;
+}
+
+void DrainUnpostedOnMain() noexcept {
+    NTK_LOGD("[DrainUnpostedOnMain]");
+    if (!IsMainThread() || g_draining) return;
+    std::vector<uint64_t> ids;
+    {
+        std::lock_guard<std::mutex> lock(TableMutex());
+        if (Unposted().empty()) return;
+        ids.swap(Unposted());
+    }
+    NTK_LOGW("[DrainUnpostedOnMain] running %zu removals that could not be posted", ids.size());
+    g_draining = true;
+    JNIEnv* env = jni::Env();
+    for (uint64_t id : ids) {
+        // Out of the Kotlin ledger as Ledger.postRemove's message would have done; a failure leaves
+        // a stale id there, which delivers nothing (FindOnMain finds no registration).
+        if (env != nullptr && g_ledger != nullptr) {
+            env->CallStaticVoidMethod(g_ledger, g_drop, static_cast<jlong>(id));
+            jni::TakeException(env, "Ledger.drop");
+        }
+        RemoveOnMain(id);
+    }
+    g_draining = false;
+}
+
+void FailNextRemovePost() noexcept {
+    NTK_LOGD("[FailNextRemovePost]");
+    g_fail_next_remove_post.store(true);
 }
 
 State StateOf(uint64_t id) noexcept {
@@ -167,7 +213,7 @@ classes::ClassSpec LedgerClassSpec() {
     return {
         "com/jonghyunkim/nativetoolkit/capi/jni/Ledger",
         &g_ledger,
-        {{"postRemove", "(J)Z", &g_post_remove}},
+        {{"postRemove", "(J)Z", &g_post_remove}, {"drop", "(J)V", &g_drop}},
         {
             {"nativeIsActive", "(J)Z", reinterpret_cast<void*>(NativeIsActive)},
             {"nativeRemove", "(J)V", reinterpret_cast<void*>(NativeRemove)},

@@ -66,21 +66,21 @@ ID の `K-C` は Claude 1（設計との一致）、`K-M` は Claude 2（メモ�
 | ID | 結果 |
 |---|---|
 | K-C1 | `StructLayoutTest.cpp` に、付録 A の 12 の構造体の `sizeof` と各欄の `offsetof` を `static_assert` で書いた（LP64 の値。arm64-v8a と x86_64 の両方で組む）。値を 1 つ変えると組めないことを確かめた |
-| K-X1 | `test_android.sh` の全件の実行で、基準から消えたケースと、通っていたのが SKIP になったケースを失敗にした（`--baseline` では表示だけ）。作った結果で確かめた |
+| K-X1 | `test_android.sh` の全件の実行（`--include-host` あり、`--filter` と `--skip-unit` なし）で、基準から消えたケースと、通っていたのが SKIP になったケースを失敗にした（`--baseline` では表示だけ）。作った結果で確かめた |
 | K-X2 | 表のとおり。Pixel では新しい方の Sharesheet が出た |
 | K-X3、K-X4、K-X5 | 表のとおり。照合の自己テストに 3 件足した（jni/ の余分な ABI、Kotlin の無い POM、Kotlin の無い Module Metadata）。`test_android.sh` は `m2/` に発行した後、自己テストを `NTK_REQUIRE_DIST_FIXTURE=1`（SKIP を許さない）で流し、`capi-dist-selftest` として結果に入れる |
 | K-C2 / K-M1 | 入口で捕まえる形ではなく、入口で例外が起きる場所を無くした（Share の重複の確かめと Dialog の複数選択から `std::set` と `std::vector` を外した）。表づくりは `try` / `catch` で囲み、`JNI_FAILURE` にした |
 | K-C3 | 4 機能とも、引数の確かめを初期化の確かめより先にそろえた（Clipboard の書き込み 4 つ、通知の `remove`・`delete_channel`・`cancel_scheduled`・`is_scheduled`）。第 2 部 11 章に書いた |
 | K-C4 | 第 2 部 11 章の `NOT_INITIALIZED` の行と 12.1 の未初期化の行に、OP-19、OP-39、OP-51 を例外として書いた |
-| K-C5 | 3 行のうち 2 行はテストを足した。detach は `Thread` の 2 件（ライブラリが attach したスレッドが終わると `Thread.getAllStackTraces()` に残らない。利用者が先に detach しても静かに終わる）。前面の Clipboard は `Clipboard.FromTheBackAReadIsEmptyAndInFrontItReadsAgain`。**`exit` は、テストではなく配布物の照合にした**。別のプロセスを終わらせるテストを試したところ、C の `exit` は C ABI と関係なく ART の JIT のスレッドを落とし、`System.exit` は静的なデストラクタを走らせない（変異が生き残る）ので、5.5 の壊れ方を起こせなかった。代わりに、配る `libntk.so` が `__cxa_atexit` と `atexit` を import していないことを `check_android_dist.py` で確かめ、デストラクタを持つ静的な変数の変異で import が現れることを確かめた。第 1 部 6 章の行と 0.7 に書いた |
+| K-C5 | 3 行のうち 2 行はテストを足した。detach は `Thread` の 2 件（ライブラリが attach したスレッドが終わると `Thread.getAllStackTraces()` に残らない。利用者が先に detach しても静かに終わる）。前面の Clipboard は `Clipboard.FromTheBackAReadIsEmptyAndInFrontItReadsAgain`。**`exit` は、テストではなく配布物の照合にした**。別のプロセスを終わらせるテストを試したところ、C の `exit` は C ABI と関係なく ART の JIT のスレッドを落とし、`System.exit` は静的なデストラクタを走らせない（変異が生き残る）ので、5.5 の壊れ方を起こせなかった。代わりに、配る `libntk.so` が `__cxa_atexit` と `atexit` を import していないことを `check_android_dist.py` で確かめ、デストラクタを持つ静的な変数の変異で import が現れることを確かめた。第 1 部 6 章の行と 0.7 に書いた。照合の自己テストにも 1 件足した（`malloc` を `atexit` に書き換えたライブラリが落ちる） |
 | K-C10 | Share の `OnDone`、通知の `OnPermission` と `OnSettings` で `system_code` が 0 であることを確かめる |
-| K-M2 | 表のとおり。積めないうちに完了が先に来て登録が消えていれば、取り消しは済んだとして `true` を返す。`Registry.ACancelWhoseRemovalCannotBePostedLeavesItActive` で確かめる |
+| K-M2 | 「積めなかったら ACTIVE に戻して `false` を返す」形にしたが、2 回目のレビューで main と競うと `release` が呼ばれない道を作ると分かった（v2 の R-X1）。**v2 で、CANCEL_REQUESTED のまま「積めなかった解除」の列に入れ、main が次に C に入ったときに流す形に作り直した** |
 | K-M3 | Kotlin の側の `MainTasks.post` で、積んだラムダの例外を捕まえてログに出す |
 | K-X6 | 許されているときは `NONE` を求める。予約はテストの口が後で消す |
 | K-X7 | 表のとおり |
 | K-X8 | `NtkGoogleTest` の後片づけで、アプリが前に戻ったことと、設定の画面と Sharesheet が消えたことを確かめる。Home で後ろに回したケースの後は Back では戻らないので、アプリの Context から `FocusActivity` を前に出す口（`UiDriver.toFront`）を足した |
 | K-C6、K-C7、K-M4、K-M5、K-M8、K-M9 | 表のとおり |
-| K-C8 / K-M6 | `LocalFrame` は容量を 1〜64 に収める（Share は固定の 16）。フレームを積めなかったとき、文字列や配列を Java に渡す 33 の入口は `OUT_OF_MEMORY` を返す（`Enter` の失敗と同じ形。非同期の入口は `release` を呼び出しスレッドで 1 回）。プリミティブだけを渡す 12 か所（取り消し、受け手の追加、プローブ）はローカル参照を作らないので確かめない。初期化の 2 か所はもとから確かめている。記憶が足りない場面は端末で起こせないので、文法とビルドまでの確かめ |
+| K-C8 / K-M6 | `LocalFrame` は容量を 1〜64 に収める（Share は固定の 16）。フレームを積めなかったとき、文字列や配列を Java に渡す 33 か所（いくつかの入口を受け持つ共通の関数を含む）は `OUT_OF_MEMORY` を返す（`Enter` の失敗と同じ形。非同期の入口は `release` を呼び出しスレッドで 1 回）。v2 の R-C11 で、受け付ける（`Accept` を呼ぶ）入口の残り 6 か所（受け手の追加、設定の画面、権限の要求、プローブ）も確かめる形にそろえた。確かめないのは、プリミティブだけを渡す 6 か所（取り消し 2、`cancel_selection`、プローブの finish と emit、`PostRemove`）。初期化の 2 か所はもとから確かめている。記憶が足りない場面は端末で起こせないので、文法とビルドまでの確かめ |
 | K-C9 | 第 2 部の AP-16 の限りに 1 行書いた |
 | K-M7 | `Registry::Cancel` が種類を受け、違う種類の登録は動かさない。`Registry.ACancelOfAnotherKindChangesNothing` で確かめる |
 
@@ -94,4 +94,4 @@ ID の `K-C` は Claude 1（設計との一致）、`K-M` は Claude 2（メモ�
   - `Registry.RacingReleasesReleaseExactlyOnce`: テストの中の Registry の写しは解除を積めないので、K-M2 の後は、勝った取り消しが ACTIVE に戻り、その間に来た直接の解放が負けて、誰も解放しない回が出る。テストをこの振る舞いに合わせた（2 回は解放しない、CANCEL_REQUESTED のまま残らない、後の 1 回でちょうど 1 回）
   - 照合の自己テスト（`test_an_extra_jni_abi_fails_native`）: dist と m2 の AAR を別々に書き直していて、2 秒の区切りをまたぐと zip の時刻が違った。m2 には dist の AAR を写すようにした
 - 直した後: startup の関係するケース 22 件（Registry、Share、NoWait、Home を使う 2 件）がすべて通り、照合の自己テスト 19 件が 3 回続けて通った
-- 確かめていないこと: エミュレータでの実行と基準の取り直し（2b を閉じるときに、両方の端末の全件の実行で行う）。K-M2 の残り（取り消しが ACTIVE に戻す間に main の完了が見送ると解放されない。積めないのは JNI の失敗か記憶が足りないときだけで、直す前より悪くはない）
+- 確かめていないこと: エミュレータでの実行と基準の取り直し（2b を閉じるときに、両方の端末の全件の実行で行う）。K-M2 の残りとして書いた競合は、2 回目のレビューで「直す前より悪い」場合もあると分かり、v2 で作り直した（v2 の R-X1）

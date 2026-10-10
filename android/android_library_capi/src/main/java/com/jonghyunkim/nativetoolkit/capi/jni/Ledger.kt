@@ -21,7 +21,7 @@ internal object Ledger {
     /**
      * The insertion of design 5.7: puts [id] in the ledger when its C registration is still
      * ACTIVE. A registration whose cancel came first is left out, and the removal the cancel
-     * posted releases it.
+     * posted (or queued in C, when it could not be posted) releases it.
      *
      * @return Whether the id was inserted, which is whether the operation should start.
      */
@@ -65,7 +65,8 @@ internal object Ledger {
      * Posts the removal of design 5.7 (the 外す row) for a registration C has moved to
      * CANCEL_REQUESTED. Called from C on any thread; never waits.
      *
-     * @return Whether it was posted. It fails only when the main looper has ended.
+     * @return Whether it was posted. When it was not (the main looper has ended, or posting
+     *   failed), C queues the removal and runs it on the main thread later, with [drop].
      */
     @JvmStatic
     fun postRemove(id: Long): Boolean {
@@ -74,6 +75,14 @@ internal object Ledger {
             entries.remove(id)
             nativeRemove(id)
         }
+    }
+
+    /** Takes [id] out of the ledger for a removal C runs itself (one that could not be posted). Main thread only. */
+    @JvmStatic
+    fun drop(id: Long) {
+        Log.d(TAG, "[drop] id: $id")
+        checkMain()
+        entries.remove(id)
     }
 
     private fun checkMain() {

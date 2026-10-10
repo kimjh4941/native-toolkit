@@ -9,23 +9,26 @@ The rules come from the C ABI design (part 1 chapter 6 "配布物の名前", par
             byte for byte the same
   prefab    the package and module are "ntk" at the release's version; every
             ABI says "stl": "none" and API 31; the ABIs are arm64-v8a and x86_64
-  native    jni/ has libntk.so for arm64-v8a and x86_64 only (README D-10); per
+  native    jni/ has libntk.so for arm64-v8a and x86_64 and no other .so (README
+            D-10); per
             ABI: jni/ and Prefab hold the same libntk.so (AGP strips the
             jni/ copy and keeps Prefab's for linking and debugging, so they are
             compared stripped), every LOAD segment of both is aligned to 16 KB,
             libc++_shared.so is not needed, nothing is registered to run at
-            exit (no __cxa_atexit or atexit import: a static with a destructor
-            would be torn down under threads still calling the library, design
-            part 1, 5.5), and the exports are the headers' functions and
-            JNI_OnLoad only (AP-15)
+            exit (no __cxa_atexit, atexit or __cxa_thread_atexit(_impl) import,
+            read from an import list that has __cxa_finalize: a static or
+            thread_local with a destructor would be torn down under threads
+            still calling the library, design part 1, 5.5), and the exports are
+            the headers' functions and JNI_OnLoad only (AP-15)
   m2        the POMs carry io.github.kimjh4941:android-native-toolkit(-capi) at
             the release's version (README D-17), the AARs there are the ones in
             dist/, the capi POM depends on android-native-toolkit at the same
             version, and kotlin-stdlib is there, at the consumer version of
             gradle/libs.versions.toml (kotlinConsumer: Kotlin 2.1 and 2.2 users),
-            in the POM and in every variant with dependencies of the Gradle Module
-            Metadata, which Gradle reads in preference to the POM. Every other
-            Kotlin core library there is at that version too
+            in the POM and in every variant of the Gradle Module Metadata that
+            publishes the AAR (with or without dependencies), which Gradle reads
+            in preference to the POM. Every other Kotlin core library there is
+            at that version too
 
 A file that cannot be read fails its check: a check that skips because its
 subject is missing reports agreement it never checked.
@@ -64,8 +67,12 @@ HEADERS_IN_TREE = "android/android_library_capi/src/main/cpp/include/NativeToolk
 VERSIONS = "android/gradle/libs.versions.toml"
 ABIS = ["arm64-v8a", "x86_64"]
 PAGE = 0x4000
-# What registers a function to run at exit; a static with a destructor brings in __cxa_atexit.
-EXIT_REGISTRARS = {"__cxa_atexit", "atexit"}
+# What registers a function to run at exit; a static with a destructor brings in __cxa_atexit, a
+# thread_local with one __cxa_thread_atexit(_impl), which exit runs for the calling thread.
+EXIT_REGISTRARS = {"__cxa_atexit", "atexit", "__cxa_thread_atexit", "__cxa_thread_atexit_impl"}
+# Every shared library imports this (crtbegin's dlclose hook): reading none means the import list
+# was not read.
+ALWAYS_IMPORTED = "__cxa_finalize"
 POM_NS = {"m": "http://maven.apache.org/POM/4.0.0"}
 USAGE = "usage: check_android_dist.py [<release>] [--root <tree>] [--readelf <path>] [--nm <path>] [--strip <path>]"
 
@@ -160,10 +167,13 @@ def needed(readelf, library):
 
 
 def imports(readelf, library):
-    """The names of the undefined dynamic symbols, without their versions."""
+    """The names of the undefined dynamic symbols, without their versions, or an error text."""
     finished = subprocess.run([readelf, "--dyn-syms", "-W", str(library)], capture_output=True, text=True)
-    return {line.split()[7].split("@")[0] for line in finished.stdout.splitlines()
-            if len(line.split()) >= 8 and line.split()[6] == "UND"}
+    if finished.returncode != 0:
+        return f"{readelf} --dyn-syms failed: {finished.stderr.strip()}"
+    names = {line.split()[7].split("@")[0] for line in finished.stdout.splitlines()
+             if len(line.split()) >= 8 and line.split()[6] == "UND"}
+    return names if ALWAYS_IMPORTED in names else f"no {ALWAYS_IMPORTED} among the imports read: they were not read"
 
 
 def stripped(strip, data, folder, label):
@@ -179,9 +189,10 @@ def check_native(root, capi, readelf_given, nm_given, strip_given, rep):
     if capi is None:
         rep.check(False, "native: libntk.so of every ABI", "cannot read the capi AAR")
         return
-    jni_abis = sorted(key.split("/")[1] for key in capi if re.fullmatch(r"jni/[^/]+/libntk\.so", key))
-    rep.check(jni_abis == sorted(ABIS), "native: jni/ has libntk.so for arm64-v8a and x86_64 only",
-              f"jni/ has {jni_abis}")
+    jni_abis = sorted({key.split("/")[1] for key in capi if re.fullmatch(r"jni/[^/]+/[^/]+\.so", key)})
+    libraries = sorted(key for key in capi if re.fullmatch(r"jni/[^/]+/[^/]+\.so", key))
+    rep.check(jni_abis == sorted(ABIS) and libraries == [f"jni/{abi}/libntk.so" for abi in sorted(ABIS)],
+              "native: jni/ has libntk.so for arm64-v8a and x86_64 only", f"jni/ has {libraries}")
     readelf = find_ndk_tool("llvm-readelf", readelf_given)
     strip = find_ndk_tool("llvm-strip", strip_given)
     listed = sorted({match for path in (root / HEADERS_IN_TREE).glob("*.h")
@@ -217,9 +228,11 @@ def check_native(root, capi, readelf_given, nm_given, strip_given, rep):
                         problems.append(f"{label} LOAD alignments {[hex(value) for value in aligned]}, not 0x4000")
                     if "libc++_shared.so" in needed(readelf, copy):
                         problems.append(f"{label} needs libc++_shared.so")
-                    registrars = sorted(EXIT_REGISTRARS & imports(readelf, copy))
-                    if registrars:
-                        problems.append(f"{label} imports {registrars}: something runs at exit")
+                    imported = imports(readelf, copy)
+                    if isinstance(imported, str):
+                        problems.append(imported)
+                    elif EXIT_REGISTRARS & imported:
+                        problems.append(f"{label} imports {sorted(EXIT_REGISTRARS & imported)}: something runs at exit")
             rep.check(not problems, name, "; ".join(problems))
             symbols = Report()
             check_symbols(str(library), nm_given, listed, symbols)
@@ -246,8 +259,8 @@ def pom(path):
 
 
 def module_dependencies(path):
-    """{variant: [(group, module, version)]} of the variants with dependencies in a .module file,
-    or None when it cannot be read."""
+    """{variant: [(group, module, version)]} of the variants of a .module file that publish the AAR
+    (what a consumer resolves), with or without dependencies, or None when it cannot be read."""
     try:
         metadata = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -255,7 +268,7 @@ def module_dependencies(path):
     found = {}
     for variant in metadata.get("variants", []):
         dependencies = variant.get("dependencies", [])
-        if dependencies:
+        if any(str(item.get("name", "")).endswith(".aar") for item in variant.get("files", [])):
             found[variant.get("name")] = [
                 (d.get("group"), d.get("module"), d.get("version", {}).get("requires") or d.get("version", {}).get("strictly"))
                 for d in dependencies]
@@ -295,7 +308,7 @@ def check_m2(root, dist, release, rep):
         if in_module is None:
             problems.append("cannot read the Gradle Module Metadata")
         elif not in_module:
-            problems.append("the Gradle Module Metadata has no variant with dependencies")
+            problems.append("the Gradle Module Metadata has no variant that publishes the AAR")
         else:
             for variant, listed in sorted(in_module.items()):
                 if not any(g == "org.jetbrains.kotlin" and m == "kotlin-stdlib" for g, m, _ in listed):

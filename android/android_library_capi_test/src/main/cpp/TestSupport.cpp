@@ -245,26 +245,54 @@ bool CurrentThreadAttached() {
 int64_t CurrentJavaThreadId() {
     JNIEnv* env = nullptr;
     if (g_vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) return -1;
+    auto failed = [env](const void* value) {
+        if (value != nullptr && !env->ExceptionCheck()) return false;
+        env->ExceptionClear();
+        return true;
+    };
     jclass thread_class = env->FindClass("java/lang/Thread");
-    jobject thread = env->CallStaticObjectMethod(
-        thread_class, env->GetStaticMethodID(thread_class, "currentThread", "()Ljava/lang/Thread;"));
-    jlong id = env->CallLongMethod(thread, env->GetMethodID(thread_class, "getId", "()J"));
+    if (failed(thread_class)) return -1;
+    jmethodID current = env->GetStaticMethodID(thread_class, "currentThread", "()Ljava/lang/Thread;");
+    jmethodID get_id = current == nullptr ? nullptr : env->GetMethodID(thread_class, "getId", "()J");
+    if (failed(get_id)) return -1;
+    jobject thread = env->CallStaticObjectMethod(thread_class, current);
+    if (failed(thread)) return -1;
+    jlong id = env->CallLongMethod(thread, get_id);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        id = -1;
+    }
     env->DeleteLocalRef(thread);
     env->DeleteLocalRef(thread_class);
     return id;
 }
 
+// Answers true when Java cannot be asked, so that a failure here fails the case, not the process:
+// each step is checked before the next JNI call.
 bool JavaThreadAlive(int64_t id) {
     JNIEnv* env = Env();
+    auto failed = [env](const void* value) {
+        if (value != nullptr && !env->ExceptionCheck()) return false;
+        env->ExceptionClear();
+        return true;
+    };
     jclass thread_class = env->FindClass("java/lang/Thread");
-    jobject traces = env->CallStaticObjectMethod(
-        thread_class, env->GetStaticMethodID(thread_class, "getAllStackTraces", "()Ljava/util/Map;"));
+    if (failed(thread_class)) return true;
+    jmethodID all = env->GetStaticMethodID(thread_class, "getAllStackTraces", "()Ljava/util/Map;");
+    jmethodID get_id = all == nullptr ? nullptr : env->GetMethodID(thread_class, "getId", "()J");
+    if (failed(get_id)) return true;
+    jobject traces = env->CallStaticObjectMethod(thread_class, all);
+    if (failed(traces)) return true;
     jclass map_class = env->FindClass("java/util/Map");
-    jobject keys = env->CallObjectMethod(traces, env->GetMethodID(map_class, "keySet", "()Ljava/util/Set;"));
+    jmethodID key_set = map_class == nullptr ? nullptr : env->GetMethodID(map_class, "keySet", "()Ljava/util/Set;");
+    if (failed(key_set)) return true;
+    jobject keys = env->CallObjectMethod(traces, key_set);
+    if (failed(keys)) return true;
     jclass set_class = env->FindClass("java/util/Set");
-    auto threads = static_cast<jobjectArray>(
-        env->CallObjectMethod(keys, env->GetMethodID(set_class, "toArray", "()[Ljava/lang/Object;")));
-    jmethodID get_id = env->GetMethodID(thread_class, "getId", "()J");
+    jmethodID to_array = set_class == nullptr ? nullptr : env->GetMethodID(set_class, "toArray", "()[Ljava/lang/Object;");
+    if (failed(to_array)) return true;
+    auto threads = static_cast<jobjectArray>(env->CallObjectMethod(keys, to_array));
+    if (failed(threads)) return true;
     bool alive = false;
     for (jsize i = 0, n = env->GetArrayLength(threads); i < n && !alive; ++i) {
         jobject thread = env->GetObjectArrayElement(threads, i);

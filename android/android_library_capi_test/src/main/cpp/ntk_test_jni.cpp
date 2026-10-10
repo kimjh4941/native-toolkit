@@ -431,9 +431,26 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
     ntk_notification_listener_remove(nullptr);
     ntk_clipboard_listener_remove(nullptr);
 
-    // 1 + 6 + 4 + 8 asynchronous calls, each released at once on this thread (part 1, 1.3).
+    // The arguments are checked before the initialization (part 2, chapter 11; review v2, R-C2):
+    // what the entry finds wrong comes first, also the entry values of AP-19.
+    expect("copy_text invalid UTF-8", ntk_clipboard_copy_text("\xFF", nullptr), NTK_CLIPBOARD_ERROR_INVALID_PARAMETER);
+    expect("copy_texts none", ntk_clipboard_copy_texts(texts, 0, nullptr), NTK_CLIPBOARD_ERROR_EMPTY_ITEMS);
+    expect("remove invalid tag", ntk_notification_remove(1, "\xFF"), NTK_NOTIFICATION_ERROR_INVALID_PARAMETER);
+    expect("delete_channel invalid id", ntk_notification_delete_channel("\xFF"),
+           NTK_NOTIFICATION_ERROR_INVALID_PARAMETER);
+    expect("is_scheduled no output", ntk_notification_is_scheduled(1, nullptr, nullptr),
+           NTK_NOTIFICATION_ERROR_INVALID_PARAMETER);
+    ntk_dialog_alert_request small{};  // struct_size 0
+    expect("show_alert_async small struct",
+           ntk_dialog_show_alert_async(&small, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr),
+           NTK_DIALOG_ERROR_INVALID_PARAMETER);
+    expect("share_files none", ntk_share_files(texts, 0, IgnoreShare, recorder, ntktest::Recorder::Release),
+           NTK_SHARE_ERROR_EMPTY_FILE_LIST);
+
+    // 1 + 6 + 4 + 8 asynchronous calls, and 2 rejected for their arguments, each released at once
+    // on this thread (part 1, 1.3).
     std::vector<ntktest::Record> records = recorder->Records();
-    if (records.size() != 19) failed += "releases=" + std::to_string(records.size()) + " ";
+    if (records.size() != 21) failed += "releases=" + std::to_string(records.size()) + " ";
     for (const auto& record : records) {
         if (record.what != "release" || record.thread != gettid()) failed += "release-off-thread ";
     }

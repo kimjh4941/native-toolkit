@@ -60,10 +60,12 @@ internal object NtkRuntime {
             keepApplication(context)
         } else {
             // The application context only: context may be an Activity (ntk_android_init), and a
-            // listener that waits long would keep it (review K-M8).
-            val application = context.applicationContext
+            // listener that waits long would keep it (review K-M8). A Context from before the
+            // Application exists has none yet (review v2, R-M7); it is not an Activity, so it is
+            // kept itself, and keepApplication reads its application context once there is one.
+            val keep: Context = context.applicationContext ?: context
             LibraryRuntime.addOnInitializedListener {
-                keepApplication(application)
+                keepApplication(keep)
                 notifyKotlinReady()
             }
         }
