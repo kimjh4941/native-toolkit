@@ -4,7 +4,7 @@
 - 対象: `artifact/topics/android-c-abi/README.md` の段階 2b、C ABI の設計書 第 1 部（`designs/2026-10-04-android-c-abi-c-abi-design.md`）と第 2 部（`designs/2026-10-05-android-c-abi-c-abi-design-part2.md`）の 13 章の TB-1〜TB-12
 - ブランチ: `feature/NTKIT-17`
 - 作業記録: `results/2026-10-05-android-c-abi-stage2b-working-notes.md`（TB ごとの判断、分かったこと、変異の表）
-- 判定: **実装とテストは完了。1〜3 回目のレビュー（`reviews/2026-10-10-android-c-abi-stage2b-review-v1.md`、`-v2.md`、`-v3.md`）の指摘をすべて対処した。基準の取り直しは 2b を閉じるとき**
+- 判定: **完了**（2026-10-10）。1〜3 回目のレビュー（`reviews/2026-10-10-android-c-abi-stage2b-review-v1.md`、`-v2.md`、`-v3.md`）の指摘をすべて対処し、両方の環境の全件の実行で基準を取り直した（4 章）
 
 ## 1. 結論
 
@@ -89,7 +89,16 @@
 
 **3 回目のレビューの対処の後（2026-10-10、Pixel）**: startup の Probe と Registry の 24 件、noStartup の 17 件、noNtkInitializer の 3 件がすべて通った。照合の自己テストは 24 件が通った。release の `libntk.so` の公開は 156、終わりの登録の import は 0。
 
-- 基準から見ると、足したケースは 11 件（`StructLayout` 1、`Thread` 2、`Clipboard` 1、`Registry` 2、`Probe` 5）と `capi-dist-selftest`。消えたケースは 1 件（`Registry.CancelMovesActiveToCancelRequestedOnce`。取り消しの振る舞いが変わったので置き換えた）。基準はまだ取り直していない（8 章）。取り直すまでは、全件の実行（`--include-host` あり、`--filter` と `--skip-unit` なし）がこの 1 件を「消えた」として失敗にする（K-X1）
+**2b を閉じる全件の実行（2026-10-10、`test_android.sh --include-host --baseline`）**:
+
+| 端末 | 結果 | 基準との比べ |
+|---|---|---|
+| Pixel 6a（API 36） | 739 件すべて通る（2 回目。1 回目は下のとおり） | 変わった 0、足した 12、消えた 1。基準を保存した |
+| エミュレータ（API 35、arm64） | 738 件が通り、1 件 SKIP（smoke の 32-bit。前回と同じ） | 変わった 0、足した 12、消えた 1。基準を保存した |
+
+- 足した 12 件はレビューで足したケース（下の 11 件と `capi-dist-selftest`）、消えた 1 件は置き換えた `Registry.CancelMovesActiveToCancelRequestedOnce`
+- Pixel の 1 回目は、startup の最初のケース（`Share.TheEntryChecksReturnAndReleaseOnTheCallingThread`）で、計装のプロセスが開始から 1 ms で落ちた（`Test instrumentation process crashed`）。テストのコード（`@Before` の Activity の起動、GoogleTest の本体）が動く前で、端末のログは残っていなかった。直前は Probe の段（別のアプリの導入とプロセスの終了）と、Gradle によるテストの APK の導入だった。失敗があると基準は保存されないので、Pixel だけ全件を流し直した（2 回目は logcat を取り続けた）。2 回目は再現しなかったので、環境の一回きりの事象と見ている（原因は確かめていない）
+- 基準から見ると、足したケースは 11 件（`StructLayout` 1、`Thread` 2、`Clipboard` 1、`Registry` 2、`Probe` 5）と `capi-dist-selftest`。消えたケースは 1 件（`Registry.CancelMovesActiveToCancelRequestedOnce`。取り消しの振る舞いが変わったので置き換えた）。基準は、上の全件の実行で取り直した
 
 ## 5. 変異
 
@@ -150,6 +159,5 @@ TB-10 の照合のスクリプトは、自己テスト（1 つずつ壊して落
 | 解除を main に積めなかった取り消しの遅れ（レビュー v3 の S-M1） | 登録に印を付け、main が次に C に入ったときに外す（第 1 部 5.7）。どの登録についても main が C に入らなければ、その間 `release` は来ない。積めないのは attach の失敗か記憶が足りないときだけなので、main を C の側から起こす仕組み（eventfd と `ALooper_addFd`）は足していない |
 | スレッドの終わりの detach の前の `GetEnv` の確かめ（第 1 部 5.6） | ART は attach していないスレッドの detach に `JNI_ERR` を返すだけなので、外してもテストは通る。テストが示すのは「利用者が先に detach しても静かに終わる」まで |
 | Share の Chooser Action の重複の確かめが件数の 2 乗 | かかるのは CPU だけ。件数の上限は決めていない |
-| 基準（baseline）の取り直し | レビューで足したケース（11 件と `capi-dist-selftest`）は、まだ基準に無い。2b を閉じるときに、両方の端末の全件の実行で取り直す |
-| エミュレータでのレビューの対処の後の確かめ | 関係するテストは Pixel で流した。エミュレータは基準の取り直しのときに流す |
+| Pixel の全件の実行の 1 回目で、startup の最初のケースの計装のプロセスが落ちた | 2 回目は再現しなかった。原因は確かめていない（4 章）。また起きたら、logcat を取り続けた実行で追う |
 | 結果が Gradle に届かないことの原因（TB-9 で 2 回） | TB-11 で原因（タスクの削除）を見つけて直した。HWASan の 1 回目に Gradle が止まった件も同じ原因と見られるが、確かめていない |
