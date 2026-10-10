@@ -148,7 +148,7 @@ docs/
 
 ```bash
 # Android AAR（全モジュール）
-./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 --m2
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 # iOS XCFramework（全モジュール）
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
