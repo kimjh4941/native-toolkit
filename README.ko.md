@@ -65,9 +65,10 @@
   - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - 문서: Dokka
 
-- `android/unity_android_plugin`
-  - 보조 모듈: C ABI / JNI 브리지 계층
-  - 문서: Dokka
+- `android/android_library_capi` (AAR `android-native-toolkit-capi`의 `libntk.so`)
+  - Kotlin API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
+  - 헤더: `android/android_library_capi/src/main/cpp/include/NativeToolkitC/`
+  - C, C++, C#, Rust 등 다른 언어용. Unity는 P/Invoke로 호출 (`unity-native-plugin`)
 
 ### iOS
 
@@ -109,7 +110,7 @@
 ```text
 android/
   android_library/
-  unity_android_plugin/
+  android_library_capi/
   AndroidLibraryExample/
 
 ios/
@@ -147,7 +148,7 @@ docs/
 
 ```bash
 # Android AAR (전체 모듈)
-./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 --m2
 
 # iOS XCFramework (전체 모듈)
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
@@ -165,7 +166,7 @@ docs/
 
 ```bash
 cd android
-./gradlew :android_library:dokkaGeneratePublicationHtml :unity_android_plugin:dokkaGeneratePublicationHtml
+./gradlew :android_library:dokkaGeneratePublicationHtml
 ```
 
 ### iOS (DocC)

@@ -26,7 +26,6 @@ include(":ntk")
 project(":ntk").projectDir = file("android_library_capi")
 // Tests of the C ABI: GoogleTest in a test .so and the initialization paths (AC-14).
 include(":android_library_capi_test")
-include(":unity_android_plugin")
 include(":app")
 project(":app").projectDir = file("AndroidLibraryExample/app")
 include(":testShareTarget")

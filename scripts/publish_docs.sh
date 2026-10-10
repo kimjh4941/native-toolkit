@@ -25,7 +25,7 @@ Creates/updates:
   (latest is refreshed from the highest version under docs/)
 
 By default, this script tries to generate docs first:
-  - Android: Dokka (android_library, unity_android_plugin)
+  - Android: Dokka (android_library)
   - iOS: DocC via ios/generate_docc.sh
   - macOS: DocC via mac/generate_docc.sh
   - Windows: Doxygen if `doxygen` is available
@@ -245,7 +245,7 @@ generate_android() {
   fi
 
   echo "[build] Android Dokka"
-  (cd "$android_root" && ./gradlew -PlibraryVersion="${VERSION}" :android_library:clean :android_library:dokkaGeneratePublicationHtml :unity_android_plugin:clean :unity_android_plugin:dokkaGeneratePublicationHtml)
+  (cd "$android_root" && ./gradlew -PlibraryVersion="${VERSION}" :android_library:clean :android_library:dokkaGeneratePublicationHtml)
 }
 
 generate_ios() {
@@ -319,7 +319,6 @@ mkdir -p "$VERSION_DIR"
 
 # Android
 copy_dir "${ROOT_DIR}/android/android_library/build/dokka/html" "${VERSION_DIR}/android/android_library"
-copy_dir "${ROOT_DIR}/android/unity_android_plugin/build/dokka/html" "${VERSION_DIR}/android/unity_android_plugin"
 
 # iOS
 copy_dir "${ROOT_DIR}/ios/Docs/IosLibrary" "${VERSION_DIR}/ios/IosLibrary"

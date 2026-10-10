@@ -64,7 +64,7 @@ SOURCE_ROOTS = {
     "windows-clipboard": ["windows/WindowsLibrary", "windows/WindowsLibraryTest",
                           "windows/WindowsLibraryExample", "windows/WindowsLibraryCApi",
                           "windows/WindowsLibraryCApiTest"],
-    "android-clipboard": ["android/android_library", "android/unity_android_plugin",
+    "android-clipboard": ["android/android_library", "android/android_library_capi",
                           "android/AndroidLibraryExample"],
     "ios-clipboard": ["ios/IosLibrary", "ios/UnityIosPlugin", "ios/IosLibraryExample"],
     "macos-clipboard": ["mac/MacLibrary", "mac/UnityMacPlugin", "mac/MacLibraryExample"],

@@ -65,9 +65,10 @@ Example (`1.12.0`):
   - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - Docs: Dokka
 
-- `android/unity_android_plugin`
-  - Optional integration module: C ABI / JNI bridge layer
-  - Docs: Dokka
+- `android/android_library_capi` (`libntk.so` in the AAR `android-native-toolkit-capi`)
+  - The general-purpose C ABI over the Kotlin API: `ntk_*` functions, UTF-8 strings, opaque handles
+  - Headers: `android/android_library_capi/src/main/cpp/include/NativeToolkitC/`
+  - For C, C++, C#, Rust and other languages; Unity calls it through P/Invoke (in `unity-native-plugin`)
 
 ### iOS
 
@@ -109,7 +110,7 @@ Example (`1.12.0`):
 ```text
 android/
   android_library/
-  unity_android_plugin/
+  android_library_capi/
   AndroidLibraryExample/
 
 ios/
@@ -147,7 +148,7 @@ docs/
 
 ```bash
 # Android AAR (all modules)
-./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 --m2
 
 # iOS XCFramework (all modules)
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
@@ -165,7 +166,7 @@ docs/
 
 ```bash
 cd android
-./gradlew :android_library:dokkaGeneratePublicationHtml :unity_android_plugin:dokkaGeneratePublicationHtml
+./gradlew :android_library:dokkaGeneratePublicationHtml
 ```
 
 ### iOS (DocC)

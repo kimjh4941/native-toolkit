@@ -6,16 +6,17 @@
 
 | モジュール | 置くもの | 置いてはいけないもの |
 |---|---|---|
-| `android/android_library` | Domain / Application / Data / Presentation / **Manager**。system Delegate・Listener の所有クラス | Unity 固有の JSON 変換・Unity 向け listener |
-| `android/unity_android_plugin` | **Unity Bridge のみ**（`Unity*Manager`、JSON parser、Unity 向け spec） | system Delegate・Listener の所有。ネイティブ利用者に必要な機能 |
-| `android/AndroidLibraryExample` | ネイティブサンプル。`implementation(project(":android_library"))` のみ | `unity_android_plugin` への依存、`android.unity.*` の import |
+| `android/android_library` | Domain / Application / Data / Presentation / **Manager**。system Delegate・Listener の所有クラス | C ABI の型の変換・寿命の管理、特定の利用者（Unity など）向けの JSON 変換 |
+| `android/android_library_capi` | **C ABI の受け口のみ**（`capi.jni` の `*Bridge`、C の関数、帳簿、前面の判定、例外の捕捉。C ABI の設計書 第 1 部 2 章「C ABI は Kotlin の API の薄い包み」） | 機能のロジック、system Delegate・Listener の所有。Kotlin の利用者にも必要な機能 |
+| `android/AndroidLibraryExample` | ネイティブサンプル。`implementation(project(":android_library"))` のみ | `android_library_capi` への依存（C ABI は `android_library_capi_test` と smoke で確かめる） |
 
-**`Unity*Manager` は Unity Bridge 層であって Manager 層ではない。**
-Manager 層（`Android*Manager`）は `android_library` の機能のパッケージの直下に置く（`common.md` の「Manager の置き場所」）。Manager 層のものを `unity_android_plugin` に置いてはならない。system Listener など、Manager から使う部品でネイティブ利用者にも必要なクラスは、`android_library` の `presentation/` などに配置する。
+Unity 向けの Android の Bridge（`unity_android_plugin`）は 2.0.0 で無くなった。Unity は Windows と同じく C ABI（`android_library_capi`）を P/Invoke で呼ぶ。
 
-**具体例:** Clipboard の変更監視 `ClipboardChangeMonitor`（`ClipboardManager.OnPrimaryClipChangedListener` を所有）は `android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/clipboard/presentation/` に置き、`UnityAndroidClipboardManager` はそこへ委譲するだけにする。
+**C ABI の受け口は Manager 層ではない。** Manager 層（`Android*Manager`）は `android_library` の機能のパッケージの直下に置く（`common.md` の「Manager の置き場所」）。C ABI の受け口は Manager を呼ぶだけで、Manager 層のものや、system Listener など Manager から使う部品を `android_library_capi` に置いてはならない。それらは `android_library` の `presentation/` などに配置する。
 
-**実装前チェック:** 追加するクラスを `unity_android_plugin` に置こうとしたら、「`AndroidLibraryExample` からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
+**具体例:** Clipboard の変更監視 `ClipboardChangeMonitor`（`ClipboardManager.OnPrimaryClipChangedListener` を所有）は `android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/clipboard/presentation/` に置き、C ABI の受け口（`ClipboardBridge`）は `AndroidClipboardManager` を呼ぶだけにする。
+
+**実装前チェック:** 追加するクラスを `android_library_capi` に置こうとしたら、「Kotlin の利用者（`AndroidLibraryExample`）からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
 
 ### Manager（`android_library`）
 

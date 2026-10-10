@@ -49,7 +49,7 @@ private const val CLIPBOARD_FILE_PROVIDER_AUTHORITY_SUFFIX = ".native_toolkit.sh
  * copy (plain text, HTML, URI, multiple text, sensitive text), read, hasClip, getDescription,
  * clear, and clipboard change observation.
  *
- * Uses only `android_library` (native), never `unity_android_plugin`: every operation, including
+ * Uses only `android_library` (native): every operation, including
  * change observation and the error codes, goes through [AndroidClipboardManager].
  *
  * @param modifier Modifier applied to the root layout.

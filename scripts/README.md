@@ -18,7 +18,7 @@ an explicit output path; run one with `--help` (or `-Help`) for its options.
 
 | Script | Platform | Notes |
 |---|---|---|
-| `build_android_library_aar.sh` | Android | `android_library`, `unity_android_plugin` |
+| `build_android_library_aar.sh` | Android | `android_library`, `android_library_capi`（`--m2` で Maven のリポジトリも） |
 | `build_ios_library_xcframework.sh` | iOS | `IosLibrary`, `UnityIosPlugin` |
 | `build_xcode26_library_xcframework.sh` | macOS | What the implement-feature workflow uses. Takes `--minimum-macos` (default 15.0) |
 | `build_xcode16_library_xcframework.sh` | macOS | The earlier variant, named after the Xcode it was written for; no `--minimum-macos` |

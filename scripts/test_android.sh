@@ -131,13 +131,12 @@ fi
 # --- 1. Unit tests -------------------------------------------------------------------------
 if [[ "${SKIP_UNIT}" -eq 0 && -z "${FILTER}" ]]; then
   echo "[unit] running"
-  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :android_library:testDebugUnitTest :unity_android_plugin:testDebugUnitTest :app:testDebugUnitTest \
+  (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :android_library:testDebugUnitTest :app:testDebugUnitTest \
     :ntk:testDebugUnitTest)
   python3 - "${ANDROID_DIR}" >> "${RESULTS}" <<'PY'
 import glob, json, sys, xml.etree.ElementTree as ET
 root = sys.argv[1]
 for pattern in ["android_library/build/test-results/testDebugUnitTest/*.xml",
-                "unity_android_plugin/build/test-results/testDebugUnitTest/*.xml",
                 "android_library_capi/build/test-results/testDebugUnitTest/*.xml",
                 "AndroidLibraryExample/app/build/test-results/testDebugUnitTest/*.xml"]:
     for path in glob.glob(f"{root}/{pattern}"):
@@ -152,12 +151,11 @@ fi
 # --- 2. Build and install ------------------------------------------------------------------
 echo "[install] building"
 (cd "${ANDROID_DIR}" && ./gradlew --no-daemon -q :app:assembleDebug :app:assembleDebugAndroidTest :testShareTarget:assembleDebug \
-  :android_library:assembleDebugAndroidTest :unity_android_plugin:assembleDebugAndroidTest)
+  :android_library:assembleDebugAndroidTest)
 APK_DIR="${ANDROID_DIR}/AndroidLibraryExample/app/build/outputs/apk"
 for apk in "${APK_DIR}/debug/app-debug.apk" "${APK_DIR}/androidTest/debug/app-debug-androidTest.apk" \
            "${ANDROID_DIR}/AndroidLibraryExample/testShareTarget/build/outputs/apk/debug/testShareTarget-debug.apk" \
-           "${ANDROID_DIR}/android_library/build/outputs/apk/androidTest/debug/android_library-debug-androidTest.apk" \
-           "${ANDROID_DIR}/unity_android_plugin/build/outputs/apk/androidTest/debug/unity_android_plugin-debug-androidTest.apk"; do
+           "${ANDROID_DIR}/android_library/build/outputs/apk/androidTest/debug/android_library-debug-androidTest.apk"; do
   adb_s install -r -t "${apk}" >/dev/null
 done
 
@@ -188,12 +186,10 @@ for class in "${UI_CLASSES[@]}"; do
   run_target "${RUNNER}" "${PKG}.${class}" "${INFRA}.CategoryHostState" "${INFRA}.CategoryHost"
 done
 if [[ -z "${FILTER}" ]]; then
-  echo "[instrumented] the sample's template, android_library, unity_android_plugin"
+  echo "[instrumented] the sample's template, android_library"
   run_target "${RUNNER}" "example.android.ExampleInstrumentedTest"
   # The permission request tests need the permission revoked first (step 5b).
   run_target "${LIB_RUNNER}" "package:com.jonghyunkim.nativetoolkit" "${LIB_PERMISSION_CLASSES[@]/#/notclass:}"
-  run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.unity"
-  run_target "android.plugin.test/androidx.test.runner.AndroidJUnitRunner" "package:android.plugin"
 fi
 
 # --- 5. Host-state cases -------------------------------------------------------------------

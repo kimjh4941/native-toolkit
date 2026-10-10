@@ -4,19 +4,19 @@ set -euo pipefail
 # Build one or more Android library module AARs and copy them with distributable names.
 #
 # Usage:
-#   ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--output <path>] [--log-file <path>]
+#   ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--release-version <version>] [--output <path>] [--log-file <path>] [--m2]
 #
 # Examples:
 #   ./scripts/build_android_library_aar.sh --library-version 1.1.0
 #   ./scripts/build_android_library_aar.sh --build-type debug
-#   ./scripts/build_android_library_aar.sh --module unity_android_plugin --library-version 1.1.0
-#   ./scripts/build_android_library_aar.sh --module android_library --module unity_android_plugin --library-version 1.1.0
+#   ./scripts/build_android_library_aar.sh --module android_library_capi --library-version 2.0.0
+#   ./scripts/build_android_library_aar.sh --module android_library --module android_library_capi --library-version 2.0.0
 #   ./scripts/build_android_library_aar.sh --build-type release --output dist/1.1.0/android/android-native-toolkit-1.1.0.aar
 #   ./scripts/build_android_library_aar.sh --build-type release --library-version 1.1.0 --log-file dist/1.1.0/android/build-1.1.0.log
 #   ./scripts/build_android_library_aar.sh -b debug -m android_library -v 1.1.0 -o /tmp/NativeToolkit-debug.aar
 #   ./scripts/build_android_library_aar.sh -b release -m android_library -v 1.3.0 -o dist/1.8.0/android/android-native-toolkit-1.3.0.aar
-#   ./scripts/build_android_library_aar.sh -b release -m unity_android_plugin -v 1.3.0 -o dist/1.8.0/android/unity-android-native-toolkit-1.3.0.aar
 #   ./scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 --m2
+#   ./scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
@@ -29,6 +29,7 @@ MODULES=()
 OUTPUT_PATH=""
 OUTPUT_PATH_SET=false
 LIBRARY_VERSION=""
+RELEASE_VERSION=""
 LOG_PATH=""
 LOG_PATH_SET=false
 PUBLISH_M2=false
@@ -38,29 +39,33 @@ usage() {
 Build one or more Android library module AARs and copy them to target paths.
 
 Usage:
-  ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--output <path>] [--log-file <path>] [--m2]
+  ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--release-version <version>] [--output <path>] [--log-file <path>] [--m2]
 
 Options:
-  -m, --module       Module to build (repeatable). Examples: android_library, android_library_capi,
-                     unity_android_plugin
+  -m, --module       Module to build (repeatable): android_library, android_library_capi
+                     (unity_android_plugin was removed in 2.0.0)
                      Default: android_library
   -b, --build-type   Build type to assemble (debug or release). Default: release
   -v, --library-version
                      Library version to include in default output naming.
                      Example default with version: dist/<version>/android/android-native-toolkit-<version>.aar
+  -r, --release-version
+                     The product release the artifacts go into: dist/<release>/android/ (the AARs keep the
+                     library version in their names, as dist/1.13.0/android/android-native-toolkit-2.0.0.aar).
+                     Default: the library version
   -o, --output       Output AAR path. Relative paths are resolved from repository root.
-                     Default (when omitted): per-module default output path
-                     android_library: dist/<version>/android/android-native-toolkit-<version>.aar
-                     android_library_capi: dist/<version>/android/android-native-toolkit-capi-<version>.aar
-                       (a release build there also copies the C headers to dist/<version>/android/include/)
-                     unity_android_plugin: dist/<version>/android/unity-android-native-toolkit-<version>.aar
+                     Default (when omitted): per-module default output path (<release> is --release-version,
+                     or the library version without it; <version> is the library version)
+                     android_library: dist/<release>/android/android-native-toolkit-<version>.aar
+                     android_library_capi: dist/<release>/android/android-native-toolkit-capi-<version>.aar
+                       (a release build there also copies the C headers to dist/<release>/android/include/)
                      Note: --library-version is required when --output is omitted.
                      Note: --output is allowed only for single-module builds.
   -l, --log-file     Build log file path. Relative paths are resolved from repository root.
                      Default (single module): <output-path-without-extension>.log
-                     Default (multi module):  dist/<version>/android/build-<version>.log
+                     Default (multi module):  dist/<release>/android/build-<version>.log
       --m2           Also publish the modules' Maven publications (POM and Gradle Module Metadata) and
-                     replace dist/<version>/android/m2/ with them (README D-17). Release only; with
+                     replace dist/<release>/android/m2/ with them (README D-17). Release only; with
                      android_library_capi, android_library has to be built too (the capi POM depends on it).
   -h, --help         Show this help message.
 USAGE
@@ -74,9 +79,6 @@ module_output_prefix() {
       ;;
     android_library_capi)
       echo "android-native-toolkit-capi"
-      ;;
-    unity_android_plugin)
-      echo "unity-android-native-toolkit"
       ;;
     *)
       echo "${module}"
@@ -159,6 +161,15 @@ while [[ $# -gt 0 ]]; do
       LIBRARY_VERSION="$2"
       shift 2
       ;;
+    -r|--release-version)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --release-version requires a value." >&2
+        usage
+        exit 1
+      fi
+      RELEASE_VERSION="$2"
+      shift 2
+      ;;
     -l|--log-file)
       if [[ $# -lt 2 ]]; then
         echo "Error: --log-file requires a value." >&2
@@ -213,6 +224,15 @@ if [[ -n "${LIBRARY_VERSION}" ]]; then
   fi
 fi
 
+if [[ -n "${RELEASE_VERSION}" && "${RELEASE_VERSION}" =~ [[:space:]/] ]]; then
+  echo "Error: --release-version must not contain spaces or '/' characters." >&2
+  usage
+  exit 1
+fi
+# The folder under dist/: the product release, which differs from the library version when only some
+# OSes change (dist/1.13.0/android/ holds the 2.0.0 AARs).
+DIST_VERSION="${RELEASE_VERSION:-${LIBRARY_VERSION}}"
+
 if [[ "${OUTPUT_PATH_SET}" == "false" ]]; then
   if [[ -z "${LIBRARY_VERSION}" ]]; then
     echo "Error: --library-version is required when --output is omitted." >&2
@@ -261,9 +281,9 @@ for module in "${MODULES[@]}"; do
   else
     output_prefix="$(module_output_prefix "${module}")"
     if [[ "${BUILD_TYPE}" == "debug" ]]; then
-      MODULE_TARGETS+=("${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}-debug.aar")
+      MODULE_TARGETS+=("${ROOT_DIR}/dist/${DIST_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}-debug.aar")
     else
-      MODULE_TARGETS+=("${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}.aar")
+      MODULE_TARGETS+=("${ROOT_DIR}/dist/${DIST_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}.aar")
     fi
   fi
 done
@@ -272,7 +292,7 @@ if [[ "${LOG_PATH_SET}" == "false" ]]; then
   if [[ ${#MODULES[@]} -eq 1 ]]; then
     BUILD_LOG_TARGET="${MODULE_TARGETS[0]%.*}.log"
   else
-    BUILD_LOG_TARGET="${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/build-${LIBRARY_VERSION}.log"
+    BUILD_LOG_TARGET="${ROOT_DIR}/dist/${DIST_VERSION}/android/build-${LIBRARY_VERSION}.log"
   fi
 elif [[ "${LOG_PATH}" = /* ]]; then
   BUILD_LOG_TARGET="${LOG_PATH}"
@@ -363,7 +383,7 @@ done
 
 # The C headers next to the capi AAR, for binding generators (README D-9).
 if has_module android_library_capi && [[ "${BUILD_TYPE}" == "release" && "${OUTPUT_PATH_SET}" == "false" ]]; then
-  headers_target="${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/include/NativeToolkitC"
+  headers_target="${ROOT_DIR}/dist/${DIST_VERSION}/android/include/NativeToolkitC"
   rm -rf "${headers_target}"
   mkdir -p "${headers_target}"
   cp "${ROOT_DIR}/android/android_library_capi/src/main/cpp/include/NativeToolkitC/"*.h "${headers_target}/"
@@ -371,7 +391,7 @@ if has_module android_library_capi && [[ "${BUILD_TYPE}" == "release" && "${OUTP
 fi
 
 if [[ "${PUBLISH_M2}" == "true" ]]; then
-  m2_target="${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/m2"
+  m2_target="${ROOT_DIR}/dist/${DIST_VERSION}/android/m2"
   if [[ ! -d "${M2_BUILD_DIR}" ]]; then
     echo "Error: the Maven repository was not created at ${M2_BUILD_DIR}" >&2
     exit 1

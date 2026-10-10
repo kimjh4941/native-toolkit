@@ -11,9 +11,9 @@ import androidx.core.content.ContextCompat
  *
  * This class is the single owner of the system listener (common.md: a system Delegate/Listener is
  * owned by exactly one class, never by RepositoryImpl and never by a Unity-Bridge-only class).
- * It lives in the native library so that native consumers — the native sample app, other native
- * callers — can observe clipboard changes without depending on the Unity plugin. The Unity bridge
- * (`UnityAndroidClipboardManager`) delegates to this class rather than owning its own listener.
+ * It lives in the native library so that every consumer — the native sample app, other native
+ * callers, the C ABI (`android_library_capi`) — observes clipboard changes through it, and none owns
+ * a listener of its own.
  *
  * The Data layer (`ClipboardRepositoryImpl`) intentionally holds no listener; it covers only the
  * synchronous copy/read/metadata/clear operations.
