@@ -246,7 +246,7 @@ C ABI の前に、1.2 のロジックを `android_library` へ移し、ネイテ
 | 1b | Kotlin の API を補完する（4 章）。1.2 のロジックを `android_library` へ移し、イベントを保つ口、予約の保存形式と 1.x のデータの破棄、前面の Activity と透明な Activity を足す。サンプルの Receiver を、移したライブラリの仕組みに置き換える。Dialog を層に分け、notification の依存の向きを直す（4 章）。新しい API（Activity の要らない Dialog と権限の要求、イベントの口）を使う画面をサンプルに足す | 1.x で予約した通知を破棄する（D-11）。Share の結果が古い Chooser の選択を新しい要求に付けて届けうる不具合を直す（C ABI の設計書 AC-22）。それ以外の、ネイティブの利用者から見た動作は変えない。Kotlin の利用者に androidx.startup の依存が入る |
 | 2a | `check_c_abi_contract.py` と `check_manual_c_examples.py` を OS ごとに動くようにする（共通のモジュールと OS ごとのファイルに分ける。2026-10-05 の利用者の決定、C ABI の設計書 第 2 部 0.3。パス、機能名、操作の数、公開シンボルの読み方、コンパイラを OS ごとの設定にする）。照合の対象に、イベントと完了のコールバック（6 章の振る舞いの集合）を入れる。C ABI の設計で `Common.h` を分けると決めた場合は、Windows の側（ヘッダー、照合、マニュアル）もここで直す（3.3） | 無し（`Common.h` を分ける場合も、Windows の C ABI の名前と値は変えない） |
 | 2b | `android_library_capi` を作り、C ABI を実装する。C ABI のテスト（`android_library_capi_test`）と smoke（`android_library_capi_smoke`）。ビルドスクリプトに capi の AAR と `maven-publish` の Maven リポジトリの生成を足し、smoke はその一時的なリポジトリから解決する（リリースのときに `dist/<版>/android/m2/` へ写す）。**完了の条件に 2a の機械照合を入れる**。**完了**（2026-10-10。`results/2026-10-10-android-c-abi-stage2b-result.md`。実装のレビューを 3 回通し、両方の環境の全件の実行で基準を取り直した） | C ABI が増える（新しい配布物） |
-| 2c | `unity-native-plugin`（別リポジトリ）を C ABI に移す: AAR のコピー（`PreBuildProcessor` は今、古い 2 つの AAR を必須にしている）、P/Invoke、KGP の適用をやめて実行時の `kotlin-stdlib` 2.2 以上と androidx の依存だけを足す（`PostBuildProcessor` は KGP 2.0.21 を当てており、AGP 9 の Unity ではビルドの失敗の原因になりうる）、Runtime / PlayMode / Player テスト。こちらは対応表を出し、書き換えは向こうで行う。**2c の成功を段階 3 を始める条件にする** | Unity が C ABI を呼ぶ |
+| 2c | `unity-native-plugin`（別リポジトリ）を C ABI に移す: AAR のコピー（`PreBuildProcessor` は今、古い 2 つの AAR を必須にしている）、P/Invoke、KGP の適用をやめて実行時の `kotlin-stdlib` 2.2 以上と androidx の依存だけを足す（`PostBuildProcessor` は KGP 2.0.21 を当てており、AGP 9 の Unity ではビルドの失敗の原因になりうる）、Runtime / PlayMode / Player テスト。こちらは対応表を出し、書き換えは向こうで行う。**2c の成功を段階 3 を始める条件にする**。**申し送りは作成済み**（TC-1。2026-10-10。`results/2026-10-10-android-c-abi-stage2c-handoff.md`。レビューを 2 回通した） | Unity が C ABI を呼ぶ |
 | 3 | `unity_android_plugin` を削除する。ビルドスクリプト、`publish_docs.sh`、`scripts/check_design_consistency.py`、`scripts/README.md`、`dist/`、Dokka、README、`agent-rules/coding-rules/{android,common}.md`、`agent-rules/workflows/`（write-manual、implement-sample-app など）から外す | `unity-android-native-toolkit-*.aar` が無くなる（D-2） |
 | 4 | ドキュメント: マニュアルの Android の章に C ABI の節を足す（3 言語）。既存の Android の章の `android.library.*` を新しいパッケージ名に書き換える（dialog と notification の 3 言語で計 75 か所）。2.0.0 の移行ガイド（パッケージ名、ブリッジの AAR の廃止、1.x で予約した通知の破棄、Unity の動作環境）、言語ごとの導入の手順、依存の一覧、権限の外し方を書く。Doxygen と `docs/` を合わせる | - |
 
@@ -303,7 +303,7 @@ artifact/topics/android-c-abi/
 | `unity-native-plugin` の `PreBuildProcessor` / `PostBuildProcessor` | 古い 2 つの AAR を必須にし、KGP 2.0.21 を当てている | 2c（直す）・3（直していないと組めない） |
 | マニュアル（`manual/<版>/{dialog,notification}.*.md`） | `android.library.*` を 3 言語で計 75 か所参照している | 0e・4 |
 | `unity-native-plugin` の `AndroidNotificationManager.cs`（654 行） | 通知の表示のイベントを `AndroidJavaProxy("android.library.notification.NotificationShownSupport$NotificationShownListener")` で受けている。0e の後にこのリポジトリで作った AAR では、クラス名が変わって受け取れなくなる。Unity の側の基準は 1.12.0 の出荷物の AAR で取る | 0e（壊れる）・2c（C ABI に移して消える） |
-| `unity-native-plugin` の Runtime テスト | 約 60 件は JSON の組み立てと解析のテストで、C ABI では意味を失う。書き換えではなく作り直しになる | 2c |
+| `unity-native-plugin` の Runtime テスト | 約 79 件は JSON の組み立てと解析のテストで（2c の申し送りで数え直した。最初の版は約 60 件と書いた）、C ABI では意味を失う。書き換えではなく作り直しになる | 2c |
 
 ## 6. 公開面の規模
 
@@ -344,7 +344,7 @@ Windows では 47 の操作が 105 の C 関数になった（ハンドルの読
 | サンプルの UI テスト | `AndroidLibraryExample` の androidTest（段階 0c で全機能に広げた。今 125 件: 通常の 115 件、`HostState` 6 件、`Host` の 1 段目 3 件、雛形 1 件）。API 35（エミュレータ）と API 36（実機） | 0e〜0h と 1b の前後で、ネイティブの利用者から見た動作が変わらないこと |
 | 更新のテスト | 1.x のサンプルで予約した後に 2.0.0 へ更新する（0a で確かめる 2 段の手順を使う）。保存した予約（`persistAcrossBoot=true`）は Alarm が取り消され保存データが消えること、保存しなかった予約は発火しても何も表示されずアプリが落ちないこと、新しく予約できることを確かめる | D-11 |
 | 32 ビットのテスト | 64 ビットの端末に `adb install --abi armeabi-v7a` でサンプル（32 ビットの ABI も組んだもの）を入れ、起動して Kotlin の機能が使えることを確かめる（`.so` が無いので C ABI の関数そのものが存在しない。C ABI の利用者の側の扱いは 3.1 のとおりマニュアルの契約にする） | D-10 |
-| Unity | `unity-native-plugin` の Android のテスト（今の Runtime はメソッド 97・展開後 116 ケース、PlayMode はメソッド 12（`[UnityTest]` 11 + `[Test]` 1）。C ABI に合わせて作り直す）と Player テスト | Unity から C ABI を通した動作。別リポジトリで行う（段階 2c） |
+| Unity | `unity-native-plugin` の Android のテスト（今の Runtime はメソッド 97・展開後 116 ケース、PlayMode はメソッド 11（`[UnityTest]`。実機の Player で流す。最初の版の 12 はログの文字列の `[Test]` を数えていた。2c の申し送りで数え直した）。C ABI に合わせて作り直す）と Player テスト | Unity から C ABI を通した動作。別リポジトリで行う（段階 2c） |
 
 件数は、ランナーが報告する展開後の件数で記録する（`test_android.sh` の基準も同じ）。
 
