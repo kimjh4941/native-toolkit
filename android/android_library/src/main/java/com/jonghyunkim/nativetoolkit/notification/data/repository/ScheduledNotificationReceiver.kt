@@ -3,7 +3,6 @@ package com.jonghyunkim.nativetoolkit.notification.data.repository
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.jonghyunkim.nativetoolkit.notification.NotificationShownSupport
 import android.util.Log
 import com.jonghyunkim.nativetoolkit.notification.application.model.AndroidNotificationCommand
 import com.jonghyunkim.nativetoolkit.notification.application.port.NotificationCommandRepository
@@ -32,12 +31,6 @@ internal class ScheduledNotificationReceiver : BroadcastReceiver() {
         repository.send(command)
         removeSaved(appContext, command.content.id, command.content.tag, generation)
 
-        @Suppress("DEPRECATION")
-        NotificationShownSupport.shownListener?.onNotificationShown(
-            command.content.id,
-            command.content.tag,
-            command.content.channel.id
-        )
         NotificationEvents.shown.emit(
             NotificationShown(command.content.id, command.content.tag, command.content.channel.id)
         )

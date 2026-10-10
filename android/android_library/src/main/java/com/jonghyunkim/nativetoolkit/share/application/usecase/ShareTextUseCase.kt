@@ -18,46 +18,33 @@ class ShareTextUseCase(private val repository: ShareRepository) {
      * Validates and executes the share text operation.
      *
      * @param content Text content to share.
-     * @param chooserActionsJson JSON array of custom chooser actions for API 34+. Defaults to empty.
      */
-    @Deprecated(
-        "The JSON form of chooser actions is kept only for the Unity bridge and is removed in stage 3 before 2.0.0 " +
-            "ships. Use AndroidShareManager.shareText, or ShareTextWithActionsUseCase for typed chooser actions."
-    )
-    operator fun invoke(content: ShareContent, chooserActionsJson: String = "[]") {
-        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson")
+    operator fun invoke(content: ShareContent) {
+        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}")
         if (content.text.isBlank()) throw ShareDomainError.EmptyContent
         if (content.mimeType.isBlank()) throw ShareDomainError.InvalidMimeType(content.mimeType)
-        repository.shareText(content, chooserActionsJson)
+        repository.shareText(content)
     }
 
     /**
      * Validates and executes text sharing with rich-preview options.
      *
      * Repositories that do not implement [RichPreviewShareRepository] still share the body without
-     * a rich preview, preserving compatibility with existing repository implementations.
+     * a rich preview, preserving compatibility with existing repository implementations. Custom
+     * chooser actions are shared with [ShareTextWithActionsUseCase].
      *
      * @param content Text content to share.
-     * @param chooserActionsJson JSON array of custom chooser actions for API 34+.
      * @param preview Rich-preview options.
      */
-    @Deprecated(
-        "The JSON form of chooser actions is kept only for the Unity bridge and is removed in stage 3 before 2.0.0 " +
-            "ships. Use AndroidShareManager.shareText, or ShareTextWithActionsUseCase for typed chooser actions."
-    )
-    operator fun invoke(
-        content: ShareContent,
-        chooserActionsJson: String,
-        preview: SharePreviewOptions
-    ) {
-        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson, preview: $preview")
+    operator fun invoke(content: ShareContent, preview: SharePreviewOptions) {
+        Log.d(TAG, "[invoke] content: ${content.logSafeDescription()}, preview: $preview")
         if (content.text.isBlank()) throw ShareDomainError.EmptyContent
         if (content.mimeType.isBlank()) throw ShareDomainError.InvalidMimeType(content.mimeType)
         val richPreviewRepository = repository as? RichPreviewShareRepository
         if (richPreviewRepository != null) {
-            richPreviewRepository.shareText(content, chooserActionsJson, preview)
+            richPreviewRepository.shareText(content, preview)
         } else {
-            repository.shareText(content, chooserActionsJson)
+            repository.shareText(content)
         }
     }
     companion object { private const val TAG = "ShareTextUseCase" }

@@ -21,7 +21,7 @@ import org.junit.Test
 class ShareSelectionUseCasesTest {
 
     private open class OldRepository : ShareRepository {
-        override fun shareText(content: ShareContent, chooserActionsJson: String) = Unit
+        override fun shareText(content: ShareContent) = Unit
         override fun shareImage(filePath: String, mimeType: String) = Unit
         override fun shareImages(filePaths: List<String>) = Unit
         override fun shareFile(filePath: String) = Unit

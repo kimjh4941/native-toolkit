@@ -14,12 +14,10 @@ interface RichPreviewShareRepository : ShareRepository {
      * Shares text or URL content with rich-preview options.
      *
      * @param content Text content to share.
-     * @param chooserActionsJson JSON array of custom chooser action objects.
      * @param preview Rich-preview options.
      */
     fun shareText(
         content: ShareContent,
-        chooserActionsJson: String,
         preview: SharePreviewOptions
     )
 

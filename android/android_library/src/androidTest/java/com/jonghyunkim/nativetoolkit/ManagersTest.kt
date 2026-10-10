@@ -264,11 +264,11 @@ class ManagersTest {
     // --- share ---
 
     private val shareRepository = object : RichPreviewShareRepository {
-        override fun shareText(content: ShareContent, chooserActionsJson: String) {
-            calls += "shareText:$chooserActionsJson"
+        override fun shareText(content: ShareContent) {
+            calls += "shareText"
         }
-        override fun shareText(content: ShareContent, chooserActionsJson: String, preview: SharePreviewOptions) {
-            calls += "shareTextPreview:$chooserActionsJson:${preview.title}"
+        override fun shareText(content: ShareContent, preview: SharePreviewOptions) {
+            calls += "shareTextPreview:${preview.title}"
         }
         override fun shareImage(filePath: String, mimeType: String) {
             calls += "shareImage:$filePath:$mimeType"
@@ -322,7 +322,7 @@ class ManagersTest {
         val content = ShareContent(text = "t")
         val preview = SharePreviewOptions(title = "P")
         manager.shareText(content, preview)
-        ShareUseCases(shareRepository).shareText(content, "[]", preview)
+        ShareUseCases(shareRepository).shareText(content, preview)
         assertEquals(calls[0], calls[1])
         calls.clear()
 

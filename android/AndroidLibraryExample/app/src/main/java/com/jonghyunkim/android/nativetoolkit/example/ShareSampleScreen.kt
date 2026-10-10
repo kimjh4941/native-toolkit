@@ -162,7 +162,7 @@ fun ShareSampleScreen(
                                 )
                                 statusText = "✅ shareText called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}" // ShareDomainError carries no message
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
@@ -181,7 +181,7 @@ fun ShareSampleScreen(
                                 )
                                 statusText = "✅ shareText (URL) called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
@@ -222,7 +222,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "✅ shareText (rich preview) called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -270,7 +270,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "✅ shareText (custom action) called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -329,7 +329,7 @@ fun ShareSampleScreen(
                                 )
                                 statusText = "✅ shareText (subject & title) called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
@@ -373,7 +373,7 @@ fun ShareSampleScreen(
                                             shareManager.shareImage(file.absolutePath, "image/png")
                                             statusText = "✅ shareImage called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -430,7 +430,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "✅ shareImages called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -472,7 +472,7 @@ fun ShareSampleScreen(
                                             shareManager.shareFile(file.absolutePath)
                                             statusText = "✅ shareFile called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -518,7 +518,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "✅ shareFiles called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -575,7 +575,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "✅ registerDirectShareTarget called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -599,7 +599,7 @@ fun ShareSampleScreen(
                                 shareManager.removeDirectShareTargets(listOf("sample_1"))
                                 statusText = "✅ removeDirectShareTargets called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
@@ -638,7 +638,7 @@ fun ShareSampleScreen(
                                 )
                                 statusText = "ℹ️ Sharesheet opened, waiting for result..."
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
@@ -689,7 +689,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "ℹ️ Sharesheet (callback + preview) opened..."
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }

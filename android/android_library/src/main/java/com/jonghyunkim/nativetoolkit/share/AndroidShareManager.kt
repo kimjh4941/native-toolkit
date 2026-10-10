@@ -20,8 +20,8 @@ import com.jonghyunkim.nativetoolkit.share.presentation.ShareEvents
  * The entry point for sharing (Kotlin API design 6.3, 8.9).
  *
  * The existing operations take the same arguments and give the same results and exceptions as
- * [ShareUseCases], except [shareText], which takes typed chooser actions through
- * [shareTextWithActions] instead of JSON. This class only delegates; it keeps no Activity.
+ * [ShareUseCases]; custom chooser actions are typed, through [shareTextWithActions]. This class only
+ * delegates; it keeps no Activity.
  *
  * @param useCases The existing share use cases.
  * @param shareForSelectionUseCase Opens the Sharesheet and reports the pick as an event.
@@ -51,7 +51,7 @@ class AndroidShareManager internal constructor(
         Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, preview: $preview")
         // The deprecated JSON form with no actions is the existing share (Kotlin API design 8.13, IT-27).
         @Suppress("DEPRECATION")
-        useCases.shareText(content, "[]", preview)
+        useCases.shareText(content, preview)
     }
 
     /**

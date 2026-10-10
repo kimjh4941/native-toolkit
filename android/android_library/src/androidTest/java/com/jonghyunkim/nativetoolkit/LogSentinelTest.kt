@@ -110,7 +110,7 @@ class LogSentinelTest {
         // Share: the body (text and subject; 8.11) on every text share path; the Sharesheet is not opened.
         val share = ShareRepositoryImpl(RecordingContext(context))
         val content = ShareContent(text = "share-$sentinel", subject = "subject-$sentinel")
-        share.shareText(content, "[]")
+        share.shareText(content)
         share.shareTextWithActions(content, emptyList(), SharePreviewOptions(title = "preview"))
         share.shareForSelection(content, SharePreviewOptions())
         share.shareWithCallback(content, SharePreviewOptions(), {}, {})

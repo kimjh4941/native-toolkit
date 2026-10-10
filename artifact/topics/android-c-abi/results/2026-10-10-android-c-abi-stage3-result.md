@@ -3,7 +3,7 @@
 - 実施日: 2026-10-10
 - 対象: `artifact/topics/android-c-abi/README.md` の段階 3
 - ブランチ: `feature/NTKIT-17`
-- 判定: **完了**（2026-10-10）。ただし、設計 8.13 で段階 3 に消すと決めた 2 つの口が残っている（5 章）
+- 判定: **完了**（2026-10-10）。設計 8.13 で段階 3 に消すと決めた 2 つの口は、全件の実行の後に消した（5 章）
 
 ## 1. 結論
 
@@ -55,4 +55,9 @@ Unity 向けの Android のブリッジ（`android/unity_android_plugin`。成�
 | `com.jonghyunkim.nativetoolkit.notification.NotificationShownSupport` | `@Deprecated` のまま残っている |
 | `ShareTextUseCase` と `ShareUseCases.shareText` の `chooserActionsJson: String` の形（ポートの `ShareRepository.shareText` と実装を含む） | `@Deprecated` のまま残っている |
 
-全件の実行の途中でライブラリのコードを変えないために、この実行の後に消し、関係するテストだけで確かめる（利用者の方針）。マニュアルは、どちらにも触れていない。
+全件の実行の途中でライブラリのコードを変えないために、この実行の後に消し、関係するテストだけで確かめた（利用者の方針）。マニュアルは、どちらにも触れていない。
+
+- `NotificationShownSupport` を消し、`ScheduledNotificationReceiver` からの呼び出しを外した（`shown` は `NotificationEvents.shown` だけが出す）
+- JSON の形を消した: ポート `ShareRepository.shareText(content)` と `RichPreviewShareRepository.shareText(content, preview)` から `chooserActionsJson` を外し、`ShareTextUseCase` は `invoke(content)` と `invoke(content, preview)` だけにした。`ShareRepositoryImpl` の JSON を解く処理を消した。型のある Chooser Action は、これまでどおり `ShareTextWithActionsUseCase` と `AndroidShareManager.shareTextWithActions`
+- テスト: 偽物と呼び出しを新しい形にした。テストのケースの名前は変えていない。JSON の形だけを確かめていた `ExistingShareApiTest`（計装テスト 2 件、IT-23 の Share の部分）は消した。この 2 件は、次の `--baseline` の全件の実行で基準から外れる（それまでの全件の実行では「消えた」として出る）
+- 確かめ（Pixel）: `android_library` の単体テスト、計装テストの `ManagersTest`・`LogSentinelTest`・`ScheduleFlowTest`（39 件）、C ABI の `Share.*`（13 件）、サンプルの Share の UI テスト（`--filter Share`、20 件）がすべて通った

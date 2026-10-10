@@ -1,6 +1,5 @@
 package com.jonghyunkim.nativetoolkit.share.data.repository
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -18,12 +17,9 @@ import com.jonghyunkim.nativetoolkit.share.presentation.ShareChooserActionReceiv
 import android.net.Uri
 import android.os.Build
 import android.service.chooser.ChooserAction
-import android.util.Base64
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.ShortcutManagerCompat
-import org.json.JSONArray
 import java.io.File
 
 internal const val SHARE_FILE_PROVIDER_AUTHORITY_SUFFIX = ".native_toolkit.share.fileprovider"
@@ -34,20 +30,14 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
 
     private val coordinator by lazy { ShareCallbackCoordinator.get(context) }
 
-    override fun shareText(content: ShareContent, chooserActionsJson: String) {
-        Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson")
-        shareText(content, chooserActionsJson, SharePreviewOptions())
+    override fun shareText(content: ShareContent) {
+        Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}")
+        shareText(content, SharePreviewOptions())
     }
 
-    override fun shareText(
-        content: ShareContent,
-        chooserActionsJson: String,
-        preview: SharePreviewOptions
-    ) {
-        Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, chooserActionsJson: $chooserActionsJson, preview: $preview")
-        val chooserIntent = Intent.createChooser(textShareIntent(content, preview), content.title)
-        addChooserActionsIfSupported(chooserIntent, chooserActionsJson)
-        startActivity(chooserIntent)
+    override fun shareText(content: ShareContent, preview: SharePreviewOptions) {
+        Log.d(TAG, "[shareText] content: ${content.logSafeDescription()}, preview: $preview")
+        startActivity(Intent.createChooser(textShareIntent(content, preview), content.title))
     }
 
     override fun shareTextWithActions(
@@ -263,49 +253,6 @@ class ShareRepositoryImpl(private val context: Context) : RichPreviewShareReposi
         } catch (e: ActivityNotFoundException) {
             throw ShareDomainError.NoShareTarget
         }
-    }
-
-    @SuppressLint("NewApi")
-    private fun addChooserActionsIfSupported(chooserIntent: Intent, chooserActionsJson: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-        if (chooserActionsJson.isBlank() || chooserActionsJson == "[]") return
-        try {
-            buildChooserActions(chooserActionsJson).let { actions ->
-                if (actions.isNotEmpty()) {
-                    chooserIntent.putExtra(
-                        Intent.EXTRA_CHOOSER_CUSTOM_ACTIONS,
-                        actions.toTypedArray<ChooserAction>()
-                    )
-                }
-            }
-        } catch (_: Exception) {
-            Log.w(TAG, "[addChooserActionsIfSupported] failed to parse chooserActionsJson")
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun buildChooserActions(chooserActionsJson: String): List<ChooserAction> {
-        val array = JSONArray(chooserActionsJson)
-        val actions = mutableListOf<ChooserAction>()
-        for (i in 0 until array.length()) {
-            val obj = array.getJSONObject(i)
-            val label = obj.optString("label").takeIf { it.isNotBlank() } ?: continue
-            val iconBase64 = obj.optString("iconBase64").takeIf { it.isNotBlank() } ?: continue
-            val intentAction = obj.optString("intentAction").ifBlank { Intent.ACTION_SEND }
-
-            val iconBytes = runCatching { Base64.decode(iconBase64, Base64.DEFAULT) }.getOrNull() ?: continue
-            val bitmap = BitmapFactory.decodeByteArray(iconBytes, 0, iconBytes.size) ?: continue
-            val icon = android.graphics.drawable.Icon.createWithBitmap(bitmap)
-
-            val actionIntent = PendingIntent.getBroadcast(
-                context,
-                label.hashCode(),
-                Intent(intentAction).setPackage(context.packageName),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            actions.add(ChooserAction.Builder(icon, label, actionIntent).build())
-        }
-        return actions
     }
 
     private companion object {

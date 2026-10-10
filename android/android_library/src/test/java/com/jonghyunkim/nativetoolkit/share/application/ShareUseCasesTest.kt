@@ -55,7 +55,7 @@ class ShareUseCasesTest {
         val repo = FakeShareRepository()
         val content = ShareContent(text = "Hello")
         val preview = SharePreviewOptions(title = "My Title", thumbnailPath = "/path/thumb.jpg")
-        ShareTextUseCase(repo)(content, "[]", preview)
+        ShareTextUseCase(repo)(content, preview)
         assertEquals(content, repo.lastSharedTextContent)
         assertEquals(preview, repo.lastSharedTextPreview)
     }
@@ -234,10 +234,10 @@ class ShareUseCasesTest {
         var lastCallbackPreview: SharePreviewOptions? = null
         var cancelPendingCallbackCalled = false
 
-        override fun shareText(content: ShareContent, chooserActionsJson: String) {
+        override fun shareText(content: ShareContent) {
             lastSharedTextContent = content
         }
-        override fun shareText(content: ShareContent, chooserActionsJson: String, preview: SharePreviewOptions) {
+        override fun shareText(content: ShareContent, preview: SharePreviewOptions) {
             lastSharedTextContent = content
             lastSharedTextPreview = preview
         }

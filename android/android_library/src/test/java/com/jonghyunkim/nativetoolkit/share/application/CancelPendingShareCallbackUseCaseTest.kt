@@ -20,8 +20,8 @@ class CancelPendingShareCallbackUseCaseTest {
     private class FakeCancelRepository : RichPreviewShareRepository {
         var cancelCalled = false
 
-        override fun shareText(content: ShareContent, chooserActionsJson: String) {}
-        override fun shareText(content: ShareContent, chooserActionsJson: String, preview: SharePreviewOptions) {}
+        override fun shareText(content: ShareContent) {}
+        override fun shareText(content: ShareContent, preview: SharePreviewOptions) {}
         override fun shareImage(filePath: String, mimeType: String) {}
         override fun shareImages(filePaths: List<String>) {}
         override fun shareFile(filePath: String) {}

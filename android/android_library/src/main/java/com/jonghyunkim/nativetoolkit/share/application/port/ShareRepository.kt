@@ -7,19 +7,14 @@ import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 
 /**
  * Port for share operations.
- *
- * Note: [shareText] accepts [chooserActionsJson] as a plain String to pass API 34+ ChooserAction
- * data through the UseCase chain without introducing a UI presentation type into the Domain layer.
  */
 interface ShareRepository {
     /**
      * Shares text or URL content via the Android Sharesheet.
      *
      * @param content Text content to share.
-     * @param chooserActionsJson JSON array of custom chooser action objects. Ignored on API < 34.
-     *   Each element: { "label": "...", "iconBase64": "...", "intentAction": "..." }
      */
-    fun shareText(content: ShareContent, chooserActionsJson: String = "[]")
+    fun shareText(content: ShareContent)
 
     /**
      * Shares a single image via the Sharesheet using FileProvider.
