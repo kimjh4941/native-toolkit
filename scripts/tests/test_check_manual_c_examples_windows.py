@@ -118,7 +118,8 @@ class Parity(CheckerCase):
     def test_a_language_missing_a_block(self):
         page = self.tree / f"{MANUAL}/{VERSION}/dialog.ko.md"
         text = page.read_text(encoding="utf-8-sig")
-        start = text.index("```c\n", text.index("### C ABI"))
+        # The Windows section's C ABI; the Android section has one too, earlier in the page.
+        start = text.index("```c\n", text.index("### C ABI", text.index("## Windows")))
         end = text.index("```", start + 5) + 3
         page.write_text(text[:start] + text[end:], encoding="utf-8")
         self.assertFails("parity")

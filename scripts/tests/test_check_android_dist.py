@@ -78,6 +78,11 @@ class AndroidDistCheckTest(unittest.TestCase):
             shutil.copy(self.dist / "m2" / GROUP_DIR / artifact / RELEASE / f"{artifact}-{RELEASE}.aar",
                         self.dist / f"{artifact}-{RELEASE}.aar")
         shutil.copytree(ROOT / HEADERS, self.dist / "include" / "NativeToolkitC")
+        # The manual's dependency list of the latest manual, as the release's manual.
+        manual = sorted((ROOT / "manual").glob("*/index.md"), key=lambda p: [int(x) for x in p.parent.name.split(".")])[-1].parent
+        (self.root / "manual" / RELEASE).mkdir(parents=True)
+        for language in ("index.md", "index.ja.md", "index.ko.md"):
+            shutil.copy(manual / language, self.root / "manual" / RELEASE / language)
 
     def run_checker(self, *extra):
         finished = subprocess.run([sys.executable, str(CHECKER), RELEASE, "--root", str(self.root), *extra],
@@ -91,6 +96,15 @@ class AndroidDistCheckTest(unittest.TestCase):
         self.assertTrue(failed, output)
         for line in failed:
             self.assertTrue(line.startswith(f"FAIL {prefix}"), f"unexpected failure: {line}\n{output}")
+
+    def assert_only_among(self, prefixes):
+        """Only checks named by prefixes fail, and the first of them does."""
+        code, output = self.run_checker()
+        failed = failures(output)
+        self.assertEqual(1, code, output)
+        self.assertTrue(any(line.startswith(f"FAIL {prefixes[0]}") for line in failed), output)
+        for line in failed:
+            self.assertTrue(any(line.startswith(f"FAIL {p}") for p in prefixes), f"unexpected failure: {line}\n{output}")
 
     def capi_aar(self):
         return self.dist / f"android-native-toolkit-capi-{RELEASE}.aar"
@@ -193,7 +207,7 @@ class AndroidDistCheckTest(unittest.TestCase):
         changed = re.sub(r'("module": "kotlin-stdlib",\s*"version": \{\s*"requires": ")[^"]+', r"\g<1>2.4.20", text)
         self.assertNotEqual(text, changed, "the case's anchor is gone")
         metadata.write_text(changed, encoding="utf-8")
-        self.assert_only("m2")
+        self.assert_only_among(("m2", "manual"))  # the manual check reads the same metadata
 
     def test_a_library_that_registers_something_for_exit_fails_native(self):
         # A static with a destructor imports __cxa_atexit. Renaming the import malloc to atexit (same
@@ -253,6 +267,21 @@ class AndroidDistCheckTest(unittest.TestCase):
         self.rewrite_capi("jni/armeabi-v7a/libother.so", library)
         self.assert_only("native: jni/")
 
+    def manual_index(self, language="index.md"):
+        return self.root / "manual" / RELEASE / language
+
+    def test_a_dependency_at_another_version_in_the_manual_fails_manual(self):
+        self.edit(self.manual_index("index.ja.md"), 'androidx.fragment:fragment:1.9.1', 'androidx.fragment:fragment:1.8.0')
+        self.assert_only("manual")
+
+    def test_a_dependency_missing_from_the_manual_fails_manual(self):
+        self.edit(self.manual_index(), '    implementation("androidx.media:media:1.8.0")\n', '')
+        self.assert_only("manual")
+
+    def test_a_manual_without_the_marker_fails_manual(self):
+        self.edit(self.manual_index("index.ko.md"), "<!-- ntk-android-dependencies", "<!-- dependencies")
+        self.assert_only("manual")
+
     def test_an_extra_jni_abi_fails_native(self):
         # The C ABI is 64-bit only (README D-10), even when Prefab still lists two ABIs.
         with zipfile.ZipFile(self.capi_aar()) as archive:
@@ -279,7 +308,7 @@ class AndroidDistCheckTest(unittest.TestCase):
                 variant["dependencies"] = kept
         self.assertGreater(removed, 0, "the case's anchor is gone")
         metadata.write_text(json.dumps(data), encoding="utf-8")
-        self.assert_only("m2")
+        self.assert_only_among(("m2", "manual"))  # the manual check reads the same metadata
 
     def test_an_aar_in_m2_other_than_the_one_in_dist_fails_m2(self):
         aar = self.dist / f"android-native-toolkit-{RELEASE}.aar"

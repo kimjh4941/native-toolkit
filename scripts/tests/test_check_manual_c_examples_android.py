@@ -59,6 +59,9 @@ def failures(output):
     return [line.strip() for line in output.splitlines() if line.strip().startswith("FAIL")]
 
 
+# The last manual whose Android chapter has no C ABI section.
+NO_ANDROID_C_ABI = "1.12.0"
+
 class AndroidManualChecker(unittest.TestCase):
 
     def setUp(self):
@@ -102,9 +105,10 @@ class AndroidManualChecker(unittest.TestCase):
 
     def test_a_manual_without_an_android_c_abi_section_skips(self):
         # The Windows chapter of the real manual has a C ABI section; the
-        # Android chapter must not borrow it.
+        # Android chapter must not borrow it. 1.12.0 is the last manual whose
+        # Android chapter has no C ABI section.
         real = ROOT / "manual"
-        version = manual_c_examples_common.latest_version(ROOT)
+        version = NO_ANDROID_C_ABI
         shutil.copytree(real / version, self.tree / "manual" / version, ignore=shutil.ignore_patterns("images"))
         result = subprocess.run([sys.executable, str(CHECKER), version, "--root", str(self.tree)],
                                 capture_output=True, text=True, encoding="utf-8")
@@ -145,7 +149,7 @@ class AndroidManualChecker(unittest.TestCase):
         self.assertFails("the manual is readable")
 
     def test_require_examples_fails_on_a_manual_without_them(self):
-        version = manual_c_examples_common.latest_version(ROOT)
+        version = NO_ANDROID_C_ABI
         shutil.copytree(ROOT / "manual" / version, self.tree / "manual" / version, ignore=shutil.ignore_patterns("images"))
         result = subprocess.run([sys.executable, str(CHECKER), version, "--root", str(self.tree), "--require-examples"],
                                 capture_output=True, text=True, encoding="utf-8")
