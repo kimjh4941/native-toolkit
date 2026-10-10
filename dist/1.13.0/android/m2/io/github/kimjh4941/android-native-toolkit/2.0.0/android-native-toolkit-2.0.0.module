@@ -1,0 +1,132 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.kimjh4941",
+    "module": "android-native-toolkit",
+    "version": "2.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.7.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.fragment",
+          "module": "fragment",
+          "version": {
+            "requires": "1.9.1"
+          }
+        },
+        {
+          "group": "androidx.startup",
+          "module": "startup-runtime",
+          "version": {
+            "requires": "1.2.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "android-native-toolkit-2.0.0.aar",
+          "url": "android-native-toolkit-2.0.0.aar",
+          "size": 669677,
+          "sha512": "1168749157a00bdb6ee4e33c6aa189a60f5ca51b559cee32800d62e85d8d586a23ab659fe04b63c206f276fc8aa6cfe75d6f1a122e19f7dc27ea3f1c2d0c7326",
+          "sha256": "df3b00adc2660181e0259a476b9e1ed80974492bd51a471dc81fb1cb254ae718",
+          "sha1": "9fc12e396c00af0ebb9f207a816816f35a271fe8",
+          "md5": "9e068bc9492f82a81a23b38ee6dd8d52"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-parcelize-runtime",
+          "version": {
+            "requires": "2.2.21"
+          }
+        },
+        {
+          "group": "androidx.core",
+          "module": "core-ktx",
+          "version": {
+            "requires": "1.18.0"
+          }
+        },
+        {
+          "group": "androidx.media",
+          "module": "media",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.9.0"
+          }
+        },
+        {
+          "group": "androidx.fragment",
+          "module": "fragment",
+          "version": {
+            "requires": "1.9.1"
+          }
+        },
+        {
+          "group": "androidx.startup",
+          "module": "startup-runtime",
+          "version": {
+            "requires": "1.2.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "android-native-toolkit-2.0.0.aar",
+          "url": "android-native-toolkit-2.0.0.aar",
+          "size": 669677,
+          "sha512": "1168749157a00bdb6ee4e33c6aa189a60f5ca51b559cee32800d62e85d8d586a23ab659fe04b63c206f276fc8aa6cfe75d6f1a122e19f7dc27ea3f1c2d0c7326",
+          "sha256": "df3b00adc2660181e0259a476b9e1ed80974492bd51a471dc81fb1cb254ae718",
+          "sha1": "9fc12e396c00af0ebb9f207a816816f35a271fe8",
+          "md5": "9e068bc9492f82a81a23b38ee6dd8d52"
+        }
+      ]
+    }
+  ]
+}

@@ -42,7 +42,7 @@
 
 ### 3.2 配布物
 
-配布物は `dist/<リリース版>/android/` に置く（リリースの段で作る。2c の作業用の作り方は 7 章）。
+配布物は `dist/<リリース版>/android/` に置く。2c で使う `dist/1.13.0/` は作ってある（作り直し方は 7 章）。
 
 | ファイル | 中身 |
 |---|---|
@@ -202,15 +202,16 @@
 - **最初に確かめること**: 4.1 の「同じ実体」（`ntk_android_is_initialized()` が 1）
 - 移す前の結果を基準として記録しておく（Windows の移行と同じ）
 
-## 7. 作業用の配布物の作り方と、このリポジトリの側で確かめていないこと
+## 7. 2c で使う配布物と、このリポジトリの側で確かめていないこと
 
-- 2.0.0 の `dist/` はまだ作っていない（リリースの段で作る）。2c の作業用には、このリポジトリで次を流すと `dist/2.0.0/android/`（2 つの AAR、`m2/`、ヘッダー）ができる:
+- **`dist/1.13.0/` を作ってある**（2026-10-10）。リリースと同じ形で、Android は 2.0.0（`android-native-toolkit-2.0.0.aar`、`android-native-toolkit-capi-2.0.0.aar`、`include/NativeToolkitC/`、`m2/`）、iOS・macOS・Windows は 1.12.0 と同じもの。`check_android_dist.py 1.13.0` が通る。`PreBuildProcessor` がいちばん新しい版として選ぶのはこのフォルダ
+- C ABI を直したときは、このリポジトリで次を流して `dist/1.13.0/android/` を作り直す（`android/gradle.properties` の `libraryVersion` も 2.0.0 にする。リリースの版なのでコミットしてよい）:
 
 ```sh
-scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 --m2
+scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 ```
 
-  モジュールを指定しないと Kotlin の API の AAR だけになる。`-v` は必須（無いとエラーで止まる）。**このコマンドは、追跡しているファイル `android/gradle.properties` の `libraryVersion` を 2.0.0 に書き換える**ので、作業用に流したときはコミットせずに元に戻す
+  モジュールを指定しないと Kotlin の API の AAR だけになる。`-v` は必須（無いとエラーで止まる）。`-r` を付けないと `dist/2.0.0/` にでき、ほかの OS のフォルダが無いのにいちばん新しい版として選ばれてしまう
 - 確かめていないこと:
   - Unity の `DllImport` で読んだ `libntk.so` と `NtkInitializer` の実体が同じこと（4.1）
   - `x86_64` の実機・エミュレータでの実行（手元は arm64 だけ。組めること、公開シンボル、16 KB の整列は照合で確かめた）

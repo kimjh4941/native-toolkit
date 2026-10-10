@@ -3,7 +3,7 @@
 - 実施日: 2026-10-10
 - 対象: `artifact/topics/android-c-abi/README.md` の段階 4
 - ブランチ: `feature/NTKIT-17`
-- 判定: **完了**（2026-10-10）。リリース（`dist/1.13.0` の作成と公開）は、2c の成功を待つ（7 章）
+- 判定: **完了**（2026-10-10）。リリース（README の版、ドキュメントの公開、マージとタグ）は、2c の成功を待つ。`dist/1.13.0` は 2c で使うため先に作った（7 章）
 
 ## 1. 決めたこと（利用者の決定。2026-10-10）
 
@@ -43,7 +43,7 @@
 - `check_manual_c_examples_android.py 1.13.0 --require-examples --require-compile`: 公開の 155 関数がすべて例に出る、名前がヘッダーにある、3 言語でコードが同じ、17 の例が NDK の clang で組める
 - `verify_manual.sh 1.13.0`: アンカー、文体（ja / ko）、機能の一覧は OK。止まる失敗は 2 つで、どちらも今回のものではない
   - 画像の 30 件: macOS の通知の画像と index の Android の画像。1.12.0 にもある既知の別の課題（`manual-integrity`）
-  - 成果物の名前: `dist/1.13.0` がまだ無い（リリースで作る）
+  - 成果物の名前: この時点では `dist/1.13.0` がまだ無かった（後に作って OK になった。7 章）
 - `android.library.*` と `unity-android-native-toolkit` がマニュアルに残るのは、移行の表の「1.x」の側だけ
 - `scripts/tests`: 208 件が通る
 - Doxygen: 警告 0 件
@@ -61,9 +61,13 @@
 
 ## 7. 後に残すこと（リリース、1.13.0）
 
-2.0.0 は「2c（`unity-native-plugin` の移行）の成功」がリリースの条件（README の D-2 の段落と、利用者の決定）。2c の後に次を行う。
+2.0.0 は「2c（`unity-native-plugin` の移行）の成功」がリリースの条件（README の D-2 の段落と、利用者の決定）。
 
-1. `dist/1.13.0/` を作る: Android は `scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2`、ほかの OS は `dist/1.12.0/` から写す（マニュアルのワークフロー）
+`dist/1.13.0/` は、2c で `unity-native-plugin` が試せるように先に作った（2026-10-10、利用者の指摘）。Android は `scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2`、ほかの OS は `dist/1.12.0/` から写した（マニュアルのワークフロー）。`check_android_dist.py 1.13.0` が通り、`verify_manual.sh 1.13.0` の成果物の名前も OK になった（止まる失敗は既知の画像の 30 件だけ）。`android/gradle.properties` の `libraryVersion` も 2.0.0 にした。
+
+2c の後に次を行う。
+
+1. `dist/1.13.0/` を確かめる: 2c で C ABI や Kotlin の API を直したら、同じコマンドで Android を作り直す
 2. `check_android_dist.py 1.13.0` と `verify_manual.sh 1.13.0`（成果物の名前）
 3. ルートの README（3 言語）の「今のリリース」と配布物の一覧を 1.13.0 にする
 4. `publish_docs.sh 1.13.0`（Windows の F-7 と同じく、リリースのときに公開する）
