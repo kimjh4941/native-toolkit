@@ -87,6 +87,18 @@ class ManualInitTest {
     }
 
     @Test
+    fun theKotlinMarkArrivingBeforeTheNativeMarkStillMakesItReady() {
+        // Part 1, 5.3 and chapter 6 (the races in a set order): in JNI_OnLoad, onKotlinReady comes
+        // between building the class table and MarkNativeDone. Nothing calls onKotlinReady again,
+        // so MarkNativeDone, which sets the last mark, has to move the state to READY.
+        NtkTestNative.load()
+        NtkTestNative.kotlinReportsFirst(true)
+        System.loadLibrary("ntk")
+        NtkTestNative.kotlinReportsFirst(false)
+        assertEquals(1, NtkTestNative.isInitialized())
+    }
+
+    @Test
     fun everyOperationIsNotInitializedBeforeInit() {
         // Part 2, 12.1: before ntk_android_init, every operation that returns an error returns
         // NOT_INITIALIZED, and an asynchronous one releases its user data at once.

@@ -28,6 +28,12 @@ target_link_options(ntk PRIVATE
     "-Wl,-z,max-page-size=16384")
 set_target_properties(ntk PROPERTIES LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libntk.map")
 
+if(NTK_HWASAN)
+  # The HWASan test build (build.gradle.kts): libc++ comes from c++_shared.
+  target_link_libraries(ntk PRIVATE log nativehelper)
+  return()
+endif()
+
 # ANDROID_STL=none removes the libc++ headers and libraries; add them back so that libc++ is
 # linked statically and hidden by the version script (stage 1a 3.3). The triple comes from
 # ANDROID_ABI because the newer toolchain file leaves ANDROID_TOOLCHAIN_NAME unset.

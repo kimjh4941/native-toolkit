@@ -439,3 +439,21 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
     }
     return env->NewStringUTF(failed.c_str());
 }
+
+// The Kotlin side reports that it is done after the class table is built but before the native
+// side is marked done (part 1, chapter 6: the races in a set order; 5.3): the hook calls
+// NtkRuntime.onKotlinReady there. noStartup only, before System.loadLibrary("ntk").
+namespace {
+void KotlinReportsFirst() {
+    JNIEnv* env = ntktest::Env();
+    jclass runtime = env->FindClass("com/jonghyunkim/nativetoolkit/capi/jni/NtkRuntime");
+    jmethodID ready = env->GetStaticMethodID(runtime, "onKotlinReady", "()I");
+    env->CallStaticIntMethod(runtime, ready);
+    env->DeleteLocalRef(runtime);
+}
+}  // namespace
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_kotlinReportsFirst(JNIEnv*, jclass, jboolean on) {
+    ntk_debug_runtime_before_native_done(on == JNI_TRUE ? KotlinReportsFirst : nullptr);
+}

@@ -57,22 +57,40 @@ object UiDriver {
     }
 
     @JvmStatic
-    fun waitText(text: String): Boolean = device.wait(Until.hasObject(By.text(text)), TIMEOUT_MS) == true
+    fun waitText(text: String): Boolean {
+        if (device.wait(Until.hasObject(label(text)), TIMEOUT_MS) == true) return true
+        logScreen("waitText", text)
+        return false
+    }
+
+    // A text whatever its case: a dialog button can be shown in capitals (seen in the HWASan
+    // build, whose process wrap.sh starts), and the accessibility text then has them too.
+    private fun label(text: String) =
+        By.text(java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(text), java.util.regex.Pattern.CASE_INSENSITIVE))
+
+    // What the screen shows instead of [text], for the failure's logcat.
+    private fun logScreen(where: String, text: String) {
+        val shown = device.findObjects(By.textStartsWith("")).mapNotNull { "${it.text}(${it.applicationPackage})" }
+        android.util.Log.e("UiDriver", "[$where] \"$text\" not found; the screen shows: $shown")
+    }
 
     /** Whether [text] stays off the screen for [ms]. */
     @JvmStatic
-    fun staysAway(text: String, ms: Long): Boolean = device.wait(Until.hasObject(By.text(text)), ms) != true
+    fun staysAway(text: String, ms: Long): Boolean = device.wait(Until.hasObject(label(text)), ms) != true
 
     @JvmStatic
-    fun gone(text: String): Boolean = device.wait(Until.gone(By.text(text)), TIMEOUT_MS) == true
+    fun gone(text: String): Boolean = device.wait(Until.gone(label(text)), TIMEOUT_MS) == true
 
     @JvmStatic
     fun click(text: String): Boolean {
-        if (device.wait(Until.hasObject(By.text(text)), TIMEOUT_MS) != true) return false
+        if (device.wait(Until.hasObject(label(text)), TIMEOUT_MS) != true) {
+            logScreen("click", text)
+            return false
+        }
         // A dialog still animating in can drop a click (seen once on the emulator): wait for the
         // screen to settle, then find the object again.
         device.waitForIdle()
-        val target = device.findObject(By.text(text)) ?: return false
+        val target = device.findObject(label(text)) ?: return false
         target.click()
         return true
     }

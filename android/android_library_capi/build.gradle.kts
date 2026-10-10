@@ -7,6 +7,11 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
+// Test only: -Pntk.hwasan=true builds libntk.so for arm64 with HWASan (C ABI design part 1,
+// chapter 6). HWASan does not support a static libc++, so this build uses c++_shared and is not
+// the shipped link form; never publish it.
+val hwasan = providers.gradleProperty("ntk.hwasan").orNull == "true"
+
 android {
     namespace = "com.jonghyunkim.nativetoolkit.capi"
     compileSdk = 36
@@ -21,11 +26,17 @@ android {
             minCompileSdk = 36
         }
         // 64-bit only (README D-10).
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        ndk { abiFilters += if (hwasan) listOf("arm64-v8a") else listOf("arm64-v8a", "x86_64") }
         externalNativeBuild {
             // The AAR exposes only a C API, so it declares no STL ("stl": "none" in Prefab) and
             // links libc++ statically inside libntk.so by hand (CMakeLists.txt, stage 1a 3.3).
-            cmake { arguments += listOf("-DANDROID_STL=none") }
+            cmake {
+                arguments += if (hwasan) {
+                    listOf("-DANDROID_STL=c++_shared", "-DANDROID_SANITIZE=hwaddress", "-DNTK_HWASAN=ON")
+                } else {
+                    listOf("-DANDROID_STL=none")
+                }
+            }
         }
     }
     externalNativeBuild {

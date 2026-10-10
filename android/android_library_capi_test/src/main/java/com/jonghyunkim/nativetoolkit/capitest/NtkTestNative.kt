@@ -72,6 +72,10 @@ object NtkTestNative {
     @JvmStatic
     external fun operationsUninitialized(): String
 
+    /** While [on], the Kotlin side reports done right before the native side; see ntk_test_jni.cpp. */
+    @JvmStatic
+    external fun kotlinReportsFirst(on: Boolean)
+
     /** Runs one GoogleTest case; true when it ran and passed. */
     @JvmStatic
     external fun runCase(name: String): Boolean

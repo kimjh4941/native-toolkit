@@ -394,3 +394,51 @@
 | S10: Chooser Action の受け口を `EventHub` に足さない | `ChooserActionsReachTheListenerAndEndWithTheNextShare` |
 | S11: Direct Share の削除が何もしない | `DirectShareTargetsAreRegisteredAndRemoved` |
 | S12: `ntk_share_listener_remove` が何もしない | `RemovingAListenerKeepsTheWaitAndTheActions` |
+
+## TB-9（2026-10-10）
+
+### 作ったもの
+
+- テスト:
+  - GoogleTest `NoWait.EveryPublicFunctionReturnsWhileTheMainThreadIsHeld`: main を止めた状態で、公開の 155 関数を全部、別のスレッドから 1 回ずつ呼び、20 秒の期限内に戻ることを確かめる。Kotlin まで届く引数で呼び、main を放した後に開いた Dialog・Sharesheet・通知などを片づける
+  - noStartup の `theKotlinMarkArrivingBeforeTheNativeMarkStillMakesItReady`: `JNI_OnLoad` の中で、表づくりと `MarkNativeDone` の間に Kotlin の完了の印（`onKotlinReady`）が来る順番を起こし、状態が `READY` になることを確かめる
+- デバッグ専用のフック `ntk_debug_runtime_before_native_done`（`Runtime.cpp`。release には無い）: `JNI_OnLoad` と `ntk_android_init` の、表づくりと `MarkNativeDone` の間で呼ぶ
+- HWASan の試験用ビルド `-Pntk.hwasan=true`: arm64 だけ、libntk と試験のライブラリを `c++_shared` と `-fsanitize=hwaddress` で組み、試験の APK に `wrap.sh`（`LD_HWASAN=1`）を入れる。通常のビルドは変わらない
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| 「main を待たない」は、公開の 155 関数を 1 つのテストで全部呼ぶ。関数の一覧は、release の `libntk.so` の公開とテストの中の呼び出しを突き合わせて確かめた | 第 1 部 6 章（第 2 部の関数の一覧から作る）。待つ関数が 1 つでもあると、main を止めている間は戻らないので期限で分かる |
+| 初期化の競合は `JNI_OnLoad` の経路で起こす | `ntk_android_init` の経路は、`MarkNativeDone` の後に自分で Kotlin を呼んで `READY` に届くので、`MarkNativeDone` の確かめを外しても結果が変わらない（変異で分かった）。`JNI_OnLoad` の後は誰も Kotlin を呼ばないので、ここだけが確かめになる |
+| HWASan のビルドは `c++_shared` を使う、試験だけのビルドにする | HWASan は静的な libc++ に対応しない（NDK の toolchain が拒む）。配る `libntk.so` は `STL=none` と手でリンクした libc++ のまま（AC-12）。このビルドは配らない |
+| CheckJNI は追加の設定をしない | 試験の APK は debuggable なので、ART が自動で `-Xcheck:jni` を有効にする（logcat の `Late-enabling -Xcheck:jni`）。これまでの実行はすべて CheckJNI の下で流れている |
+
+### テストで分かったこと
+
+- **AGP 9 の library モジュールでは `sourceSets` の古い API が使えない**（キャストの失敗）。`wrap.sh` は `androidComponents` の `variant.androidTest.sources.resources` で足した
+- **この Mac のエミュレーターは arm64**（Apple Silicon、`sdk_gphone64_arm64`）。これまでのエミュレーターでの実行も arm64 のライブラリで流れていた（x86_64 は組むが流していない）
+- **HWASan が有効なことの確かめ**: 試験のプロセスの環境に `LD_HWASAN=1` があり、メモリの地図に `libclang_rt.hwasan-aarch64-android.so` と `[anon:hwasan threads]` がある
+- **HWASan のプロセスでは Dialog のボタンが大文字で出る**: `wrap.sh` で起動したプロセスでは、Dialog のボタンが「YES」「NOPE」と表示され、アクセシビリティの文字も大文字になった（通常のビルドでは「Yes」）。`UiDriver` の `waitText`・`click`・`gone`・`staysAway` を、大文字と小文字を区別しない探し方にした。探せなかったときは、画面に出ている文字を logcat に書く
+- **結果が Gradle に届かないことが 2 回あった**（原因は分かっていない）:
+  - HWASan の 1 回目: startup の 120 件が端末ですべて終わった後、Gradle が受け取った結果が 57 件のまま止まった（オーケストレーターを止めて終えた）。2 回目は 120 件すべてを受け取って終わった
+  - 通常のビルドのエミュレーター: 1 件（`Notification.InvalidArgumentsAreRejectedAtTheEntry`）の結果が届かず、119 件で失敗になった。その回の logcat には、そのテストの「開始」と「終了」の 2 行だけがあり、GoogleTest のケースが動いた記録が無い。単独で流すと通り、startup の全体を流し直すと 120 件が届いた
+  - どちらも、テストの失敗ではなく、オーケストレーターから Gradle への結果の受け渡しの不具合に見える。TB-11 で `test_android.sh` につなぐときに、結果の件数がケースの数と合わないことを失敗として扱い、logcat の件数と突き合わせる
+
+### 確かめたこと
+
+- 通常のビルド: capi のテスト 140 件（startup 120、noStartup 17、noNtkInitializer 3） が Pixel 6a とエミュレータで通る
+- HWASan のビルド（Pixel 6a、API 36）: startup 120 件、noStartup 17 件、noNtkInitializer 3 件が通り、`HWAddressSanitizer` の報告は 0 件
+- release の `libntk.so` の公開は `ntk_*` 155 と `JNI_OnLoad` のまま（デバッグ専用のフックは入らない）
+
+### 変異（エミュレータ。main を待たないことは startup、初期化の競合は noStartup）
+
+| 変異 | 落ちたテスト |
+|---|---|
+| W1: `hasClip` が main を待つ | `NoWait.EveryPublicFunctionReturnsWhileTheMainThreadIsHeld` |
+| W2: `hasPermission` が main を待つ | `NoWait.EveryPublicFunctionReturnsWhileTheMainThreadIsHeld` |
+| R1: `MarkNativeDone` が先に立った Kotlin の印を見ない | `ManualInitTest.theKotlinMarkArrivingBeforeTheNativeMarkStillMakesItReady`（`JNI_OnLoad` の経路にした後。`ntk_android_init` の経路のテストでは通ってしまった） |
+
+### 確かめていないこと
+
+- **x86_64 のライブラリは一度も動かしていない**: この Mac のエミュレーターは arm64 で、Pixel 6a も arm64。AAR には x86_64 の `libntk.so` も入る（`abiFilters`）が、組むだけで流していない

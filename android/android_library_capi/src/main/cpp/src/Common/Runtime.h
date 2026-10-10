@@ -34,4 +34,11 @@ const ClassTable& Classes();
 // capi.jni.NtkRuntime: ensureInitialized, and the natives onKotlinReady and nativeState.
 classes::ClassSpec RuntimeClassSpec();
 
+#ifndef NDEBUG
+// Debug builds only: a hook that runs in JNI_OnLoad and ntk_android_init right before
+// MarkNativeDone, for the races in a set order (design part 1, chapter 6).
+void SetBeforeNativeDone(void (*hook)());
+void BeforeNativeDone();
+#endif
+
 }  // namespace nativetoolkit::runtime

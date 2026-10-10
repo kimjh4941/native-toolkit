@@ -8,6 +8,11 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
+// Test only: -Pntk.hwasan=true runs the tests with HWASan on an arm64 device of API 34 or later
+// (C ABI design part 1, chapter 6). Both libraries use c++_shared then, and wrap.sh starts the
+// process with LD_HWASAN=1.
+val hwasan = providers.gradleProperty("ntk.hwasan").orNull == "true"
+
 android {
     namespace = "com.jonghyunkim.nativetoolkit.capitest"
     compileSdk = 36
@@ -18,9 +23,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Each test in a new process, so that every initialization path starts from nothing.
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
-        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        ndk { abiFilters += if (hwasan) listOf("arm64-v8a") else listOf("arm64-v8a", "x86_64") }
         externalNativeBuild {
-            cmake { arguments += listOf("-DANDROID_STL=c++_static") }
+            cmake {
+                arguments += if (hwasan) {
+                    listOf("-DANDROID_STL=c++_shared", "-DANDROID_SANITIZE=hwaddress")
+                } else {
+                    listOf("-DANDROID_STL=c++_static")
+                }
+            }
         }
     }
 
@@ -42,6 +53,8 @@ android {
         }
     }
     buildFeatures { prefab = true }
+    // wrap.sh has to be extracted to run (NDK wrap.sh/hwasan.sh).
+    if (hwasan) packaging { jniLibs { useLegacyPackaging = true } }
     testOptions {
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
@@ -52,6 +65,15 @@ android {
 }
 
 kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }
+
+// The HWASan build puts wrap.sh (LD_HWASAN=1) in the test APK.
+if (hwasan) {
+    androidComponents {
+        onVariants { variant ->
+            variant.androidTest?.sources?.resources?.addStaticSourceDirectory("src/hwasan/resources")
+        }
+    }
+}
 
 dependencies {
     implementation(project(":ntk"))

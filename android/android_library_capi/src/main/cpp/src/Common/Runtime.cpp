@@ -15,6 +15,13 @@
 namespace nativetoolkit::runtime {
 namespace {
 
+#ifndef NDEBUG
+// Debug builds only, for the races in a set order (design part 1, chapter 6): runs in JNI_OnLoad
+// and ntk_android_init between building the class table and MarkNativeDone, where the Kotlin side
+// can report that it is done first. Not in a release build.
+std::atomic<void (*)()> g_before_native_done{nullptr};
+#endif
+
 constexpr const char* kRuntimeClass = "com/jonghyunkim/nativetoolkit/capi/jni/NtkRuntime";
 
 // What NtkRuntime.ensureInitialized returns: LibraryRuntime.InitState by ordinal.
@@ -208,6 +215,9 @@ ntk_android_error Init(JNIEnv* env, jobject context) {
         }
         Build built = failure != jni::Failure::kNone || loader == nullptr ? Build::kTransient : BuildTable(env, loader);
         if (built == Build::kOk) {
+#ifndef NDEBUG
+            BeforeNativeDone();
+#endif
             MarkNativeDone();
         } else if (built == Build::kClassNotFound) {
             // Only the app's own class loader can tell that the classes are not there (design 5.3).
@@ -263,6 +273,18 @@ classes::ClassSpec RuntimeClassSpec() {
     };
 }
 
+#ifndef NDEBUG
+void SetBeforeNativeDone(void (*hook)()) {
+    NTK_LOGD("[SetBeforeNativeDone] hook: %p", reinterpret_cast<void*>(hook));
+    g_before_native_done.store(hook);
+}
+
+void BeforeNativeDone() {
+    NTK_LOGD("[BeforeNativeDone]");
+    if (void (*hook)() = g_before_native_done.load(); hook != nullptr) hook();
+}
+#endif
+
 }  // namespace nativetoolkit::runtime
 
 using nativetoolkit::runtime::State;
@@ -290,6 +312,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
         if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) == JNI_OK) {
             jni::LocalFrame frame(env, 16);
             if (frame.ok() && runtime::BuildTable(env, nullptr) == runtime::Build::kOk) {
+#ifndef NDEBUG
+                runtime::BeforeNativeDone();
+#endif
                 runtime::MarkNativeDone();
             } else {
                 NTK_LOGW("[JNI_OnLoad] the class table is not built; ntk_android_init can build it");
@@ -317,3 +342,11 @@ NTK_EXPORT int32_t NTK_CALL ntk_android_is_initialized(void) {
     NTK_LOGD("[ntk_android_is_initialized]");
     return runtime::IsReady() ? 1 : 0;
 }
+
+#ifndef NDEBUG
+// Debug builds only: see g_before_native_done. Not part of the C ABI.
+NTK_EXPORT void ntk_debug_runtime_before_native_done(void (*hook)(void)) {
+    NTK_LOGD("[ntk_debug_runtime_before_native_done] hook: %p", reinterpret_cast<void*>(hook));
+    runtime::SetBeforeNativeDone(hook);
+}
+#endif
