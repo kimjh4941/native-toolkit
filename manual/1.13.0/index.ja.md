@@ -32,11 +32,13 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows (C++ API): `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg`
-- Windows (C ABI): `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
-- macOS: `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android (Kotlin API): `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`
+- Android (C ABI): `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`、ヘッダーは `dist/1.13.0/android/include/NativeToolkitC/`
+- Android（両方の AAR、POM、Gradle Module Metadata を収めた Maven リポジトリ）: `dist/1.13.0/android/m2/`
+- iOS: `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows (C++ API): `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -45,7 +47,9 @@
 
 # バージョン
 
-## 1.12.0
+## 1.13.0
+
+- Android ライブラリは 2.0.0 になりました。パッケージ名の変更、機能ごとのマネージャー、C ABI を含みます。[Android ライブラリを 2.0.0 へ移行する](#android-ライブラリを-200-へ移行する) を参照してください。
 
 # 対応 OS バージョン
 
@@ -65,9 +69,15 @@
   - マルチ選択ダイアログ
   - 入力ダイアログ
   - ログインダイアログ
+  - コルーチンで結果を待つ
+  - ダイアログのキャンセル
 - 通知機能
+  - 通知の権限（確認、リクエスト、リクエストの取り消し、設定画面を開く）
   - 通知の表示 / 更新 / 取り消し
   - 通知チャンネル管理
+  - インタラクションイベント（タップ、アクション、消去）
+  - 進捗通知
+  - フォアグラウンドサービス通知
   - スケジュール通知
 - シェア機能
   - テキスト / URL シェア
@@ -77,6 +87,7 @@
   - カスタム Chooser Action（Android 14 以降）
   - Direct Share Target
   - コールバック付きシェア
+  - 選択イベント（選ばれたアプリ）
   - 共有コンテンツの受信
 - クリップボード機能
   - コピー（プレーンテキスト・HTML・URI・複数テキスト）
@@ -84,6 +95,8 @@
   - 読み取り / データ有無確認 / メタデータ確認
   - クリア
   - クリップボード変更監視
+
+上の Android の機能は、C ABI（`libntk.so` の `ntk_*` 関数）を通じて C、C++、その他の言語（C#、Rust、Dart など）からも使えます。ただし、共有コンテンツの受信はアプリ自身の Activity で行う処理のため対象外です。C の関数は各機能ページに記載しています。「ライブラリ組み込み方法」の [C ABI](#c-abi) も参照してください。
 
 ## iOS
 
@@ -225,42 +238,189 @@
 
 ### Android
 
-#### 対応プラットフォーム: Android（AAR / ABI 非依存）
+#### 対応プラットフォーム: Android 12（API 31）以降
 
-1. `android-native-toolkit-1.3.0.aar` を `app/libs` に配置します。
-2. `settings.gradle.kts` に AAR を参照するためのリポジトリ設定を追加します。
-3. `app/build.gradle.kts` に AAR を参照するための依存関係を追加します。
-4. Gradle 同期を実行します。
-5. ビルドが通ることを確認します。
-   追加する設定は以下です。
+Android ライブラリは 2 つの AAR で配布します。
+
+| AAR | 対象 | 内容 |
+|---|---|---|
+| `android-native-toolkit-2.0.0.aar` | Kotlin・Java から呼ぶ場合 | Kotlin の API（`com.jonghyunkim.nativetoolkit.*`） |
+| `android-native-toolkit-capi-2.0.0.aar` | C、C++、その他の言語から呼ぶ場合 | C ABI。`libntk.so`（`arm64-v8a`、`x86_64`）、Prefab で提供するそのヘッダー、そこから呼ぶ Kotlin 側を含みます。Kotlin の API の AAR に依存します |
+
+要件:
+
+- `minSdk` 31 以降、`compileSdk` 36 以降
+- Android Gradle Plugin 8.9.1 以降（AndroidX の依存が必要とするため）
+- アプリを Kotlin で書く場合は Kotlin 2.1 以降（ライブラリは実行時に `kotlin-stdlib` 2.2 以降を必要とし、Gradle がこれを解決します）
+
+##### 方法 A: Maven リポジトリ（推奨）
+
+`dist/1.13.0/android/m2/` は、2 つの AAR とその依存情報を収めた Maven リポジトリです。AAR が必要とする AndroidX と Kotlin のライブラリは Gradle が解決します。
+
+1. `dist/1.13.0/android/m2/` をプロジェクトにコピーします（例: `third_party/native-toolkit-m2/`）。
+2. `settings.gradle.kts` にリポジトリとして追加します。
+3. `app/build.gradle.kts` に依存関係を追加します。
+4. Gradle 同期を実行し、ビルドします。
 
 **settings.gradle.kts:**
 
-```gradle
-
+```kotlin
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-
-        // ローカルの AAR ファイルを参照するための設定です。こちらを追加してください。
-        flatDir {
-            dirs("app/libs")
-        }
+        maven { url = uri("third_party/native-toolkit-m2") }
     }
 }
 ```
 
 **app/build.gradle.kts:**
 
-```gradle
-
+```kotlin
 dependencies {
-    // AAR を参照するための依存関係を追加します。こちらを追加してください。
-  implementation(files("libs/android-native-toolkit-1.3.0.aar"))
+    // Kotlin の API です。
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+    // C ABI です。C や他の言語からライブラリを呼ぶ場合に追加します。実行時に Kotlin の API を必要とし、
+    // それを実行時の依存として取り込みます。アプリ自身の Kotlin・Java のコードも Kotlin の API を
+    // 呼ぶ場合は、上の行も残してください。
+    implementation("io.github.kimjh4941:android-native-toolkit-capi:2.0.0")
 }
 ```
+
+##### 方法 B: AAR ファイル
+
+AAR ファイルを自分で配置する場合、Gradle はそれらの依存先を知らないため、下の依存関係もあわせて追加してください。
+
+1. `android-native-toolkit-2.0.0.aar`（C ABI を使う場合は `android-native-toolkit-capi-2.0.0.aar` も）を `app/libs` に配置します。
+2. `app/build.gradle.kts` に AAR と依存関係を追加します。
+
+**app/build.gradle.kts:**
+
+```kotlin
+dependencies {
+    implementation(files("libs/android-native-toolkit-2.0.0.aar"))
+    implementation(files("libs/android-native-toolkit-capi-2.0.0.aar")) // C ABI を使う場合のみ
+
+    // AAR が実行時に必要とするものです。
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
+    implementation("org.jetbrains.kotlin:kotlin-parcelize-runtime:2.2.21")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.fragment:fragment:1.9.1")
+    implementation("androidx.media:media:1.8.0")
+    implementation("androidx.startup:startup-runtime:1.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+}
+```
+
+<!-- ntk-android-dependencies: the list above is checked against the Gradle Module Metadata of the release by scripts/check_android_dist.py -->
+
+##### 初期化
+
+ライブラリは、アプリの起動時に AndroidX App Startup（`androidx.startup.InitializationProvider`。AAR がマージ後のマニフェストに追加します）を通じて自動で初期化されます。呼び出す必要のあるものはありません。
+
+App Startup が先に動かない次の場合は、最初の呼び出しの前に自分で初期化してください。
+
+- アプリが App Startup を無効にしている（またはマージ後のマニフェストからライブラリの initializer を取り除いている）場合
+- アプリの既定のプロセス以外のプロセスからライブラリを呼ぶ場合（App Startup は既定のプロセスでしか動きません）
+- 自前の `ContentProvider` から呼ぶ場合（App Startup のものより先に生成されることがあります）
+
+方法:
+
+- Kotlin の API: 最初の Activity の `onCreate` から、その Activity を渡して `LibraryRuntime.ensureInitialized(activity)`（`com.jonghyunkim.nativetoolkit.common.runtime`）を呼びます。ライブラリはそれ以降、前面の Activity を追跡します。アプリケーションコンテキストだけを渡すと、すでに画面に出ている Activity を取りこぼし、次の Activity が始まるまでダイアログと権限リクエストは「前面にない」として完了します
+- C ABI: C からは `ntk_android_init(env, activity)`、Kotlin からは `NativeToolkitCApi.init(activity)` を呼びます。ダイアログなど前面で動く機能が Activity を見つけられるよう、現在の Activity があれば渡してください。どちらも待ちません。`ntk_android_init` は `NTK_ANDROID_ERROR_IN_PROGRESS`（別のスレッドが初期化中）や `NTK_ANDROID_ERROR_JNI_FAILURE` を、`NativeToolkitCApi.init` は `IN_PROGRESS` や `RETRYABLE_ERROR` を返すことがあります。その場合は後でもう一度呼んでください。C ABI の準備ができているかは `ntk_android_is_initialized()` で確認できます
+
+##### アプリに加わる権限とコンポーネント
+
+Kotlin の API の AAR は通知機能が使う権限を宣言しており、それらはアプリのマニフェストにマージされます。不要なものは `tools:node="remove"` で取り除いてください。
+
+| 権限 | ない場合に動かなくなること | あわせて取り除くもの |
+|---|---|---|
+| `POST_NOTIFICATIONS` | Android 13 以降で通知が表示されません。`hasPermission` は false になり、権限リクエストはすぐに拒否されます | - |
+| `RECEIVE_BOOT_COMPLETED` | 端末の再起動後にスケジュール通知が復元されません | - |
+| `SCHEDULE_EXACT_ALARM` | スケジュールは不正確なアラームを使います（`canScheduleExactAlarms` は false） | - |
+| `USE_FULL_SCREEN_INTENT` | フルスクリーンインテントはヘッドアップ通知として表示されます | - |
+| `FOREGROUND_SERVICE` | 進捗通知と通話スタイルの通知がフォアグラウンドサービスを開始できません | 下の 2 つのサービス。あわせてそれらの API も呼ばないでください |
+| `FOREGROUND_SERVICE_DATA_SYNC` | 進捗通知がフォアグラウンドサービスを開始できません | `com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundService` |
+| `FOREGROUND_SERVICE_SPECIAL_USE` | 通話スタイルの通知がフォアグラウンドサービスを開始できません | `com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleForegroundService` |
+
+**AndroidManifest.xml（アプリ側）:**
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+
+    <application>
+        <service
+            android:name="com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundService"
+            tools:node="remove" />
+    </application>
+</manifest>
+```
+
+##### C ABI
+
+C ABI は、C、C++、その他の言語からライブラリを呼ぶアプリ向けです。Kotlin・Java のアプリは Kotlin の API を直接呼んでください。C ABI を経由しても、JNI の往復が増えるだけです。
+
+- アプリは Kotlin・Java のコードを持つ通常の Android アプリです（`android:hasCode="true"`）。C の関数は JNI を通じて Kotlin の API を呼ぶため、AAR の Kotlin のクラスとマニフェストのエントリがアプリに含まれている必要があります。`libntk.so` だけをコピーしても動きません
+- `libntk.so` は `arm64-v8a` と `x86_64` 向けにだけビルドしています。32 ビットの端末や、32 ビットの ABI だけでビルドしたアプリにはこのライブラリがありません。アプリは起動しますが、`libntk.so` の読み込みに失敗します（たとえば C# では `DllNotFoundException`）。これに対処するか、アプリを 64 ビットの ABI だけでビルドしてください
+- 完了、イベント、受け付けた呼び出しの `release` は Android のメインスレッドで届き、呼び出し元のスレッドではありません。コールバックを登録したスレッドでしか受け取れないランタイムは、C ABI をそのままでは使えません。（入口で拒否された呼び出しは、エラーを返し、戻る前に呼び出し元のスレッドで `release` を呼びます。完了は届きません）
+- ダイアログ、Share、設定画面、まだ許可されていない通知権限のリクエストは、アプリが前面にある必要があります。バックグラウンドから呼ぶと `NOT_FOREGROUND` で完了します
+
+CMake を使う C・C++ では、AAR が Prefab を通じてヘッダーと `libntk.so` を提供します。
+
+**app/build.gradle.kts:**
+
+```kotlin
+android {
+    buildFeatures { prefab = true }
+    defaultConfig {
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        externalNativeBuild {
+            cmake { abiFilters("arm64-v8a", "x86_64") }
+        }
+    }
+}
+```
+
+**CMakeLists.txt:**
+
+```cmake
+find_package(ntk REQUIRED CONFIG)
+target_link_libraries(your_library PRIVATE ntk::ntk)
+```
+
+`ntk::ntk` を使う CMake のビルドは、上のように 64 ビットの ABI に限定してください。Prefab には 32 ビットの ABI 向けの `libntk.so` がありません。Android Gradle Plugin は CMake のビルドが対象とするすべての ABI について Prefab パッケージを検査し、`CXX1210` で停止します。`CMakeLists.txt` の `if()` では回避できません。アプリが独自の 32 ビットのネイティブコードも含む場合は、Prefab を使わない別のモジュールでビルドしてください。
+
+他の言語からは、アプリの起動後に `libntk.so` を名前（`ntk`）で読み込みます。関数、スレッド、エラーは、各機能ページの Android の節にある C ABI の項に記載しています。
+
+C ABI の AAR には R8 のルールが含まれているため、minify を有効にしたリリースビルドでも追加の設定は不要です。アプリが App Startup を無効にし、`NativeToolkitCApi.init` をリフレクションや別のランタイムから呼ぶ場合は、そのクラスを keep してください。`NativeToolkitCApi` は Kotlin の `object` で、`init` は static ではありません。たとえば Unity からは `new AndroidJavaClass("com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi").GetStatic<AndroidJavaObject>("INSTANCE").Call<AndroidJavaObject>("init", activity)` のように呼びます。
+
+```
+-keep class com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi { *; }
+-keep class com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi$InitResult { *; }
+```
+
+##### Android ライブラリを 2.0.0 へ移行する
+
+2.0.0 は 1.x と互換性がありません。1.x 向けに書いたコードは変更が必要です。
+
+| 1.x | 2.0.0 |
+|---|---|
+| パッケージ `android.library.*` | パッケージ `com.jonghyunkim.nativetoolkit.*` |
+| 機能ごとのユースケースとヘルパー | 機能ごとに 1 つのマネージャー: `AndroidDialogManager`、`AndroidNotificationManager`、`AndroidShareManager`、`AndroidClipboardManager`（`getInstance(context)`） |
+| 1.x でスケジュールした通知 | アプリが初めて 2.0.0 で動いたときに **一度だけ破棄されます**（保存形式が変わったため）。もう一度スケジュールしてください |
+| 1.x が表示し、まだ画面に残っている通知 | 更新後はタップやアクションに反応しません（レシーバーの名前が変わったため）。必要なら表示し直してください |
+| 1.x のマニュアルに従ってシェア用に宣言した `FileProvider` | **削除してください。** ライブラリが独自のもの（authority `${applicationId}.native_toolkit.share.fileprovider`）を宣言します。マニフェストで `androidx.core.content.FileProvider` を再度宣言すると、マニフェストのマージで衝突します。独自の provider は `FileProvider` のサブクラスにする必要があります |
+| Unity ブリッジの AAR `unity-android-native-toolkit-*.aar`（`android.unity.*`） | **削除しました。** Unity は Unity パッケージの中で、P/Invoke を通じて C ABI（`android-native-toolkit-capi`）を呼びます。Kotlin・Java のアプリがブリッジを使うことは想定していませんでした |
+| アプリの起動時にライブラリは何も追加しませんでした | AndroidX App Startup（`InitializationProvider`）を追加し、自動で初期化します（上の「初期化」を参照） |
+| 1 つの AAR ファイル | これまでどおりの Kotlin の API の AAR（Kotlin・Java のアプリはこれだけで足ります）に加え、C や他の言語向けの C ABI の AAR と、両方を収めた Maven リポジトリ（上の「方法 A」と「方法 B」を参照） |
+
+操作ごとの変更は、各機能ページの Android の節に記載しています。
+
+**Unity:** 2.0.0 では Unity パッケージが C ABI を呼びます。Unity プロジェクトには、Minimum API Level 31 以降、C ABI のための 64 ビット（ARM64）ビルド、Unity 6000.0.61f1、6000.3.1f1、6000.4.1f1 以降が必要です（AndroidX の依存が Android Gradle Plugin 8.9.1 を必要とするため）。
 
 ### iOS
 

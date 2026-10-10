@@ -13,7 +13,10 @@ Language:
 ## 目次
 
 - [Android](#android)
+  - [AndroidClipboardManager](#androidclipboardmanager)
+    - [スレッドとコールバック](#スレッドとコールバック)
   - [セットアップ](#セットアップ)
+    - [Gradle の依存関係](#gradle-の依存関係)
   - [コピー](#コピー)
     - [プレーンテキストをコピー](#プレーンテキストをコピー)
     - [プレーンテキストをコピー（空文字）](#プレーンテキストをコピー空文字)
@@ -32,6 +35,13 @@ Language:
     - [監視を開始](#監視を開始)
     - [監視を停止](#監視を停止)
   - [エラー処理](#エラー処理)
+  - [C ABI](#c-abi)
+    - [ビルド](#ビルド)
+    - [初期化](#初期化)
+    - [コピーとクリア](#コピーとクリア)
+    - [読み取りと問い合わせ](#読み取りと問い合わせ)
+    - [変更イベント](#変更イベント)
+    - [エラー値](#エラー値)
 - [iOS](#ios)
   - [IosClipboardManager](#iosclipboardmanager)
   - [セットアップ](#セットアップ-1)
@@ -169,7 +179,7 @@ Language:
     - [未固定履歴のクリア](#未固定履歴のクリア)
     - [リクエストのキャンセル](#リクエストのキャンセル)
   - [エラー処理](#エラー処理-3)
-  - [C ABI](#c-abi)
+  - [C ABI](#c-abi-1)
     - [セッション・リスナー・終了](#セッションリスナー終了)
     - [書き込み](#書き込み)
     - [読み取りと検査](#読み取りと検査)
@@ -180,45 +190,101 @@ Language:
 
 ## Android
 
-- ライブラリ: `android-native-toolkit-1.3.0.aar`
+Android 12 (API 31) 以降のシステムクリップボード（`ClipboardManager`）です。Android ライブラリは、1 つの実装を 2 つの公開 API から提供します。サンプルアプリは Kotlin API を使用しています。
+
+| API | 名前 | ヘッダー / パッケージ | 成果物 |
+|---|---|---|---|
+| Kotlin API | `AndroidClipboardManager` | `com.jonghyunkim.nativetoolkit.clipboard` | `android-native-toolkit-2.0.0.aar` |
+| C ABI | `ntk_clipboard_*` | `<NativeToolkitC/Clipboard.h>` | `android-native-toolkit-capi-2.0.0.aar` |
+
 - 最小 SDK: Android 12 (API 31)
 - 機微情報プレビュー抑止: Android 13 (API 33) 以上
-- 対応範囲: コピー・読み取り・メタデータ確認・クリア・クリップボード変更監視を `android_library`（ネイティブ）経由で提供します。いずれの操作も Unity Bridge への依存は不要です。
+- 対応範囲: コピー（プレーンテキスト・HTML・URI・複数テキスト）、機微情報のコピー、読み取り、メタデータの確認、クリア、クリップボード変更の監視です。
+
+Android ライブラリの 2.0.0 では、Kotlin のパッケージが `android.library.*` から `com.jonghyunkim.nativetoolkit.*` に変わり、Unity ブリッジの AAR がなくなりました。1.x 向けに書いたコードはそのままではコンパイルできません。[Android ライブラリを 2.0.0 へ移行する](index.ja.md#android-ライブラリを-200-へ移行する)を参照してください。
+
+### AndroidClipboardManager
+
+`AndroidClipboardManager` はクリップボードの入口です。`getInstance(context)` はプロセスで 1 つのインスタンスを返します。保持するのは Application Context だけなので、どの `Context` を渡しても構いません。
+
+```kotlin
+import com.jonghyunkim.nativetoolkit.clipboard.AndroidClipboardManager
+import com.jonghyunkim.nativetoolkit.clipboard.domain.error.ClipboardDomainError
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipContent
+
+// サンプルアプリと同じくコンポーザブルの中で取得します。それ以外の場所では getInstance を直接呼びます。
+val context = LocalContext.current
+val clipboardManager = remember(context) { AndroidClipboardManager.getInstance(context) }
+```
+
+コピー・読み取り・確認・クリアの操作は同期です。結果を返すか、`ClipboardDomainError` を送出します（[エラー処理](#エラー処理)を参照）。1.x の入口である `ClipboardUseCases(context)` と `ClipboardChangeMonitor` も引き続き公開されていますが、推奨する入口は `AndroidClipboardManager` です。C ABI が呼び出すのもこちらです。
+
+#### スレッドとコールバック
+
+| 操作 | スレッド |
+|---|---|
+| `copyPlainText`、`copyHtmlText`、`copyUri`、`copyMultipleText`、`clear`、`read`、`hasClip`、`getDescription`、`errorCodeOf` | 任意のスレッドです。呼び出したスレッドで実行し、システムの呼び出しが戻った時点で戻ります |
+| `startObserving`、`stopObserving`、`isObserving` | メインスレッド専用です。それ以外のスレッドでは `IllegalStateException` になります |
+| `changes.addListener`、`EventHub.Registration.remove` | メインスレッド専用です。それ以外のスレッドでは `IllegalStateException` になります |
+| `changes` のリスナー | メインスレッドで呼ばれます。リスナーが送出した例外は捕捉してログに出力し、ほかのリスナーはそのまま呼ばれます |
+
+---
 
 ### セットアップ
 
-#### Android ネイティブ（AAR）
+#### Gradle の依存関係
 
-1. `android-native-toolkit-1.3.0.aar` を `app/libs` に配置します。
-2. `app/build.gradle.kts` に依存関係を追加します:
+`dist/1.13.0/android/` には、AAR と、それを POM とともに収めたファイルベースの Maven リポジトリ `m2/` があります。`m2/` からライブラリを解決することを推奨します。Gradle が、ライブラリの依存する androidx ライブラリも合わせて解決するためです。
+
+**settings.gradle.kts:**
 
 ```kotlin
-dependencies {
-    implementation(files("libs/android-native-toolkit-1.3.0.aar"))
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        // dist/1.13.0/android/m2 をプロジェクトにコピーしたもの
+        maven { url = uri("third_party/native-toolkit-m2") }
+    }
 }
 ```
 
-クリップボード操作に追加のマニフェスト設定は不要です。`content://` URI をコピーする場合（[URI をコピー](#uri-をコピー)参照）は、共有したいファイルの URI を解決できる `FileProvider` が別途必要です。AAR 自体は汎用目的の `FileProvider` を宣言していません。
+**app/build.gradle.kts:**
+
+```kotlin
+dependencies {
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+}
+```
+
+代わりに `android-native-toolkit-2.0.0.aar` をファイルとして追加すると、Gradle はその依存関係を知ることができないため、自分で宣言する必要があります。両方の方法の手順、依存関係の一覧、ライブラリがマニフェストに加える権限は[ライブラリ組み込み方法](index.ja.md#ライブラリ組み込み方法)にまとめています。
+
+| 要件 | 値 |
+|---|---|
+| `minSdk` | 31 以上 |
+| `compileSdk` | 36 以上 |
+| Kotlin コンパイラ（Kotlin から呼び出す場合） | 2.1 以上 |
+
+ライブラリは初期化処理を androidx.startup（`InitializationProvider`）に登録します。クリップボードはこれに依存しません。androidx.startup を無効にしたアプリでも、クリップボードの操作はすべて動作します。そのようなアプリは、ほかの機能のために `LibraryRuntime.ensureInitialized(activity)`（`com.jonghyunkim.nativetoolkit.common.runtime`）に現在の Activity を渡してライブラリを初期化します。[ライブラリ組み込み方法](index.ja.md#ライブラリ組み込み方法)を参照してください。
+
+クリップボードに権限とマニフェストの設定は不要です。`content://` URI をコピーする場合（[URI をコピー](#uri-をコピー)を参照）は、そのファイルを提供できる `FileProvider` が必要です。サンプルアプリは、ライブラリが Share 機能のために宣言しているものを流用しています。その authority は `<applicationId>.native_toolkit.share.fileprovider` で、アプリの files・cache・外部 files ディレクトリを提供します。独自のプロバイダーを使いたいアプリは、`FileProvider` のサブクラス（たとえば `class ClipboardFileProvider : FileProvider()`）を独自の authority で宣言します。`androidx.core.content.FileProvider` そのものを改めて宣言すると、マニフェストのマージでライブラリのエントリと衝突します。
 
 ---
 
 ### コピー
 
-`ClipboardUseCases` は `Context` を受け取るファクトリ関数で取得します:
-
-```kotlin
-val clipboardUseCases = ClipboardUseCases(context)
-```
+コピーするたびに、クリップボード全体が 1 つのクリップに置き換わります。どの `ClipContent` も、省略可能な `label`（既定値 `""`）と `isSensitive`（既定値 `false`。[コピー - 機微情報](#コピー---機微情報)を参照）を受け取ります。
 
 #### プレーンテキストをコピー
 
 ```kotlin
 try {
-    clipboardUseCases.copyPlainText(
+    clipboardManager.copyPlainText(
         ClipContent.PlainText(text = "Hello from native-toolkit", label = "sample")
     )
 } catch (e: ClipboardDomainError) {
-    // エラー処理
+    // エラー処理（エラー処理の節を参照）
 }
 ```
 
@@ -231,7 +297,7 @@ try {
 空文字は許容され、例外は発生しません。
 
 ```kotlin
-clipboardUseCases.copyPlainText(ClipContent.PlainText(text = ""))
+clipboardManager.copyPlainText(ClipContent.PlainText(text = ""))
 ```
 
 <p align="center">
@@ -240,8 +306,10 @@ clipboardUseCases.copyPlainText(ClipContent.PlainText(text = ""))
 
 #### HTML テキストをコピー
 
+`htmlText` は空にできません（`ClipboardDomainError.EmptyContent`）。`plainText` は、HTML に対応していないアプリが貼り付けるプレーンテキストの代替です。
+
 ```kotlin
-clipboardUseCases.copyHtmlText(
+clipboardManager.copyHtmlText(
     ClipContent.HtmlText(plainText = "Hello", htmlText = "<b>Hello</b>")
 )
 ```
@@ -252,18 +320,32 @@ clipboardUseCases.copyHtmlText(
 
 #### URI をコピー
 
-`content://`（または `file://`）URI をコピーします。`content` / `file` スキームのみが許容され、それ以外のスキームは `ClipboardDomainError.InvalidUri` を送出します。
+URI の文字列をコピーします。受け付けるのは `content` と `file` のスキームだけです。空の URI やそれ以外のスキームは `ClipboardDomainError.InvalidUri` を送出します。貼り付けたアプリがファイルを読めるように、`FileProvider` の `content://` URI を使ってください。
+
+サンプルアプリは、バックグラウンドスレッドでファイルを書き込んでから、その URI をコピーします。
 
 ```kotlin
-val file = File(context.cacheDir, "clipboard_sample.txt")
-file.writeText("Clipboard sample file content")
-val uri = FileProvider.getUriForFile(
-    context,
-    "${context.packageName}.native_toolkit.share.fileprovider",
-    file
-)
+private fun prepareSampleUri(context: Context): String {
+    val file = File(context.cacheDir, "clipboard_sample.txt")
+    file.writeText("Clipboard sample file content")
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.native_toolkit.share.fileprovider",
+        file
+    )
+    return uri.toString()
+}
 
-clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri.toString()))
+scope.launch(Dispatchers.IO) {
+    val uri = prepareSampleUri(context)
+    withContext(Dispatchers.Main) {
+        try {
+            clipboardManager.copyUri(ClipContent.UriContent(uri = uri))
+        } catch (e: ClipboardDomainError) {
+            // エラー処理（エラー処理の節を参照）
+        }
+    }
+}
 ```
 
 <p align="center">
@@ -272,10 +354,10 @@ clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri.toString()))
 
 #### 複数テキストをコピー
 
-同一形式の複数プレーンテキストアイテムです（1つの `ClipData` に複数アイテムを格納します）。
+複数のプレーンテキストを 1 つのクリップにまとめます（1 つの `ClipData` に、テキストごとに 1 つのアイテムを格納します）。リストは空にできません（`ClipboardDomainError.EmptyItemList`）。
 
 ```kotlin
-clipboardUseCases.copyMultipleText(
+clipboardManager.copyMultipleText(
     ClipContent.MultipleText(texts = listOf("first", "second", "third"))
 )
 ```
@@ -288,7 +370,7 @@ clipboardUseCases.copyMultipleText(
 
 ### コピー - 機微情報
 
-`isSensitive = true` を指定すると、コピーした内容が機微情報（パスワード・ワンタイムコードなど）であることをシステムに示唆できます。
+`isSensitive = true` を指定すると、コピーした内容を機微情報（パスワード、ワンタイムコードなど）として示せます。ライブラリはクリップに `ClipDescription.EXTRA_IS_SENSITIVE` を設定します。
 
 - Android 13 (API 33) 以上では、システム標準のコピー確認 UI が内容のプレビュー表示を抑止します。
 - Android 12L (API 32) 以下ではシステム確認 UI 自体が存在しないため、コピー後に自前でフィードバック（`Toast` など）を表示してください。
@@ -296,7 +378,7 @@ clipboardUseCases.copyMultipleText(
 #### 機微情報テキストをコピー
 
 ```kotlin
-clipboardUseCases.copyPlainText(
+clipboardManager.copyPlainText(
     ClipContent.PlainText(text = "P@ssw0rd-sample", isSensitive = true)
 )
 
@@ -317,14 +399,23 @@ if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
 
 空のクリップボードは**正常系**であり、エラーではありません。`read()` は `null` を返します。
 
+Android 10 以降、クリップボードを読めるのは入力フォーカスを持つアプリ（または既定のキーボード）だけです。フォーカスがないとき、たとえばウィンドウがまだフォーカスを得ていないときは、システムが何も返さず、`read()` はやはり `null` を返します。空のクリップボードとは区別できません。サンプルアプリと同じく、ユーザーの操作に応じて読み取ってください。`ClipboardDomainError.ReadNotAllowed` を送出するのは、システムが `SecurityException` で読み取りを拒否した場合だけです。
+
 ```kotlin
-val result = clipboardUseCases.read()
-if (result != null) {
-    // result.label, result.mimeTypes, result.items（各アイテムの text / htmlText / uri / coercedText）
-} else {
-    // クリップボードは空（正常系）
+try {
+    val result = clipboardManager.read()
+    if (result != null) {
+        // result.label, result.mimeTypes
+        // result.items: 各アイテムの text / htmlText / uri / coercedText
+    } else {
+        // クリップボードが空（正常系）か、アプリに入力フォーカスがない
+    }
+} catch (e: ClipboardDomainError) {
+    // エラー処理（エラー処理の節を参照）
 }
 ```
+
+各 `ClipItemData` には `text`、`htmlText`、`uri` があり、アイテムがそれを持たない場合はそれぞれ `null` です。`coercedText` は、できる範囲でプレーンテキストにした形（テキスト、なければ URI の文字列）です。`coercedText` は `content://` URI を解決してその内容を読むことはしません。
 
 <p align="center">
     <img src="images/android/clipboard/Example_ClipboardSampleScreen_ReadClipboard.png" alt="Example_ClipboardSampleScreen_ReadClipboard" width="400" />
@@ -333,7 +424,7 @@ if (result != null) {
 #### データ有無を確認
 
 ```kotlin
-val hasClip: Boolean = clipboardUseCases.hasClip()
+val hasClip: Boolean = clipboardManager.hasClip()
 ```
 
 <p align="center">
@@ -342,14 +433,14 @@ val hasClip: Boolean = clipboardUseCases.hasClip()
 
 #### メタデータを取得
 
-本体データに触れずメタデータのみ取得します（Android 12+ の「クリップボードから貼り付けました」アクセス通知を回避できます）。こちらもクリップボードが空の場合は `null`（正常系）を返します。
+クリップの本体に触れず、メタデータだけを読み取ります（Android 12 以降の「クリップボードから貼り付けました」というアクセス通知を避けられます）。こちらもクリップボードが空の場合は `null`（正常系）を返します。
 
 ```kotlin
-val info = clipboardUseCases.getDescription()
+val info = clipboardManager.getDescription()
 if (info != null) {
     // info.label, info.mimeTypes
     // info.isStyledText: 書式付き（リッチ）テキストかどうか
-    // info.classificationStatus: ClipDescription.CLASSIFICATION_* の生値。取得不可時は null
+    // info.classificationStatus: ClipDescription.CLASSIFICATION_* の生値。取得できない場合は null
 }
 ```
 
@@ -364,7 +455,7 @@ if (info != null) {
 #### クリップボードをクリア
 
 ```kotlin
-clipboardUseCases.clear()
+clipboardManager.clear()
 ```
 
 <p align="center">
@@ -375,70 +466,342 @@ clipboardUseCases.clear()
 
 ### 変更監視
 
-`ClipboardChangeMonitor` はシステムのクリップボード変更リスナーを所有するクラスで、`android_library`（Unity Bridge ではなくネイティブ側）に配置されているため、ネイティブコードから直接利用できます。
+クリップボードの監視はプロセスに 1 つで、`changes` のすべてのリスナー（と C ABI のリスナー）が共有します。監視とリスナーの登録は別のものです。
 
-監視はアプリが前面にある間のみ確実に動作します（Android 10+ はバックグラウンドでのクリップボード読み取りを制限するためです）。
+- `startObserving()` と `stopObserving()` は、1 つのシステムリスナーを開始・停止します。どちらも、すでにその状態であれば何もしません。状態は `isObserving()` で確認できます。
+- `changes.addListener` はリスナーを追加し、その `EventHub.Registration` を返します。リスナーが変更を受け取るのは監視中だけです。リスナーが 1 つも登録されていない間に届いた変更は破棄されます。
+- リスナーを削除しても監視は止まりません。監視を停止すると、すべてのリスナーに対して止まります。
 
-```kotlin
-val monitor = ClipboardChangeMonitor()
-```
+これらはすべてメインスレッド専用で、リスナーもメインスレッドで呼ばれます。監視が確実に動作するのはアプリが前面にある間だけです。アプリに入力フォーカスがない間、システムは変更を通知しません（Android 10 以降）。
 
 #### 監視を開始
 
-`onChange` はシステムリスナーのコールバックスレッドで呼び出されます。UI 状態を更新する場合は自分でメインスレッドへ橋渡ししてください。
+サンプルアプリでは、監視するのはクリップボード画面だけなので、この画面が監視を所有します。表示されたときにリスナーを追加し、ボタンから監視を開始し、閉じるときにリスナーの削除と監視の停止の両方を行います。
 
 ```kotlin
-monitor.start(context) {
-    // システムリスナーのコールバックスレッドで呼ばれる
-    mainHandler.post {
-        // ここで UI 状態を更新
+// この画面が監視を所有します。表示中は、変更がメインスレッドで届きます。
+DisposableEffect(clipboardManager) {
+    val registration = clipboardManager.changes.addListener { _, _ ->
+        changeCount++
+        statusText = "Clipboard changed ($changeCount)"
+    }
+    onDispose {
+        registration.remove()
+        // この画面が監視の唯一の所有者だからこそ停止します。
+        clipboardManager.stopObserving()
     }
 }
 
-val isObserving: Boolean = monitor.isObserving()
+clipboardManager.startObserving()
+val isObserving: Boolean = clipboardManager.isObserving()
 ```
 
-監視中に `start` を再度呼んでも no-op です（system listener の二重登録は発生しません）。
+リスナーの第 2 引数はそのリスナー自身の `Registration` なので、リスナーは実行中に自分を削除できます。システムの `ClipboardManager` を取得できない場合、`startObserving()` は開始せず、`isObserving()` は `false` のままです。
 
 #### 監視を停止
 
 ```kotlin
-monitor.stop()
+clipboardManager.stopObserving()
 ```
 
-監視中の画面・コンポーネントが破棄されるタイミングで `stop()` を呼び、system listener のリークを防いでください:
-
-```kotlin
-DisposableEffect(monitor) {
-    onDispose { monitor.stop() }
-}
-```
+購読する側は、それぞれ破棄されるときに自分のリスナーを削除します。停止は事情が異なります。監視はプロセスに 1 つなので、`stopObserving()` は `changes` のすべての購読者（と C ABI のリスナー）に対して監視を止めます。上の例のように監視の所有者が 1 つの場合と違い、各購読者の破棄処理から呼ぶと、最初に閉じた画面がほかのすべての画面の監視を止めてしまいます。複数の場所から監視するアプリは、開始と停止を 1 か所に任せます。たとえばアプリ側で参照カウントを持ち、最初の購読者が来たときに `startObserving()` を、最後の購読者が去ったときに `stopObserving()` を呼びます。
 
 ---
 
 ### エラー処理
 
-`ClipboardUseCases` は `ClipboardDomainError` のサブタイプを送出します。
+同期の操作は `ClipboardDomainError` のサブタイプを送出します。`errorCodeOf(error)` は、どの失敗も 7 つの `ClipboardErrorCode` の値のいずれかに分類します。C ABI が返すものと同じ分類です（`ClipboardErrorCode.of(error)` も同じです）。例外を読むだけで、送出される型は変わりません。
 
-| エラー | 原因 | エラーメッセージ |
-|---|---|---|
-| `EmptyContent` | `copyHtmlText` で `htmlText` が空 | `"Clipboard content is empty. Please provide text or HTML."` |
-| `EmptyItemList` | `copyMultipleText` で `texts` リストが空 | `"No items provided for clipboard copy."` |
-| `InvalidUri` | `uri` が空、または scheme が `content`/`file` 以外 | `"Invalid URI: <uri>"` |
-| `ClipboardUnavailable` | システムの `ClipboardManager` を取得できない | `"Clipboard service is unavailable."` |
-| `ReadNotAllowed` | `read()` がシステムに拒否された（`SecurityException`）。アプリが前面にない可能性が高い | `"Clipboard read is not allowed. The app must be in the foreground."` |
+| `ClipboardDomainError` | `ClipboardErrorCode` | 送出する操作 | 原因 |
+|---|---|---|---|
+| `EmptyContent` | `EMPTY_CONTENT` | `copyHtmlText` | `htmlText` が空 |
+| `EmptyItemList` | `EMPTY_ITEMS` | `copyMultipleText` | `texts` が空 |
+| `InvalidUri` | `INVALID_URI` | `copyUri` | `uri` が空、またはスキームが `content` でも `file` でもありません。`uri` プロパティに拒否された値が入ります |
+| `ClipboardUnavailable` | `UNAVAILABLE` | コピー・読み取り・確認・クリアのすべての操作 | システムの `ClipboardManager` を取得できない |
+| `ReadNotAllowed` | `READ_NOT_ALLOWED` | `read` | システムが読み取りを拒否した（`SecurityException`） |
+| （システムからの `SecurityException`） | `SECURITY` | それ以外の操作 | そのまま送出されます |
+| （それ以外） | `UNKNOWN` | - | - |
 
-空のクリップボードはこれらのエラーに**含まれません**: `read()` / `getDescription()` は正常系として `null` を返します。
+空のクリップボードはこれらのエラーに**含まれません**。`read()` と `getDescription()` は正常系として `null` を返します。
+
+サンプルアプリは、エラーの名前にそのコードを添えて表示します。
 
 ```kotlin
 try {
-    clipboardUseCases.copyUri(ClipContent.UriContent(uri = ""))
-} catch (e: ClipboardDomainError.InvalidUri) {
-    // URI が空、または未対応の scheme
+    clipboardManager.copyUri(ClipContent.UriContent(uri = ""))
 } catch (e: ClipboardDomainError) {
-    // その他のドメインエラー
+    statusText = clipboardErrorMessage(e, clipboardManager)
+}
+
+private fun clipboardErrorMessage(e: ClipboardDomainError, manager: AndroidClipboardManager): String {
+    val text = when (e) {
+        is ClipboardDomainError.EmptyContent -> "EmptyContent: HTML body is empty"
+        is ClipboardDomainError.EmptyItemList -> "EmptyItemList: no items to copy"
+        is ClipboardDomainError.InvalidUri -> "InvalidUri: ${e.uri}"
+        is ClipboardDomainError.ClipboardUnavailable -> "ClipboardUnavailable"
+        is ClipboardDomainError.ReadNotAllowed -> "ReadNotAllowed: app must be in foreground"
+    }
+    return "$text [errorCode=${manager.errorCodeOf(e)}]"
 }
 ```
+
+### C ABI
+
+- C から、そして C の関数を呼べる言語（C#、Dart、Rust、Go など）から同じクリップボードを使うための API です。Kotlin と Java のアプリは、代わりに `AndroidClipboardManager` を直接呼びます。
+- どの関数も任意のスレッドから呼べ、メインスレッドを**待ちません**。コピー・クリア・読み取り・問い合わせは呼び出したスレッドで実行し、結果を返します。`ntk_clipboard_start_observing` と `ntk_clipboard_stop_observing` はメインスレッドにポストされます。`NTK_CLIPBOARD_ERROR_NONE` は要求を受け付けたという意味で、監視が始まったという意味ではありません。
+- 変更イベントと、受け付けたリスナーの `release` は **Android のメインスレッド**で呼ばれます。メインスレッドをブロックしないでください。また、コールバックから例外を外に出さないでください。ライブラリまで届いた例外はプロセスを終了させます。
+- 読み取りは、呼び出し側が所有するハンドルで返ります。`ntk_clipboard_content` と `ntk_clipboard_description` があり、それぞれ対応する `_free` で解放します。ハンドルから取り出したポインターは、そのハンドルを解放するまで有効です。リスナーの `user_data` は呼び出し側のもので、`release` が呼ばれた後に解放して構いません。
+- コピーのオプションは `ntk_clipboard_copy_options` 構造体です。`NULL` はラベルなし・機微情報でない、という意味です。
+- C ABI があるのは 64 ビットの ABI（`arm64-v8a`、`x86_64`）だけです。アプリには Kotlin または Java のコードも必要です（C ABI は JNI を通じて Kotlin のライブラリを呼び出します）。また、C ABI を自分で初期化しない限り、アプリの既定のプロセスから呼び出します。
+
+#### ビルド
+
+両方の AAR を追加し、Prefab を有効にして、APK と CMake のビルドの両方を 64 ビットの ABI に限定します。AGP は CMake のビルドが対象とするすべての ABI について Prefab パッケージを確認するため、32 ビットの ABI も対象にした CMake のビルドは CXX1210 で失敗します（マニュアルトップの [C ABI](index.ja.md#c-abi) を参照）。32 ビットのコードも同梱するアプリは、32 ビットの端末には `libntk.so` なしでインストールされます。クラッシュはしませんが、ライブラリの読み込みが失敗し（C# では `DllNotFoundException`、Dart では `DynamicLibrary.open` からの例外）、アプリ側でそれを処理する必要があります。
+
+**app/build.gradle.kts:**
+
+```kotlin
+android {
+    defaultConfig {
+        minSdk = 31
+        // APK に含める ABI です。
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        // CMake のビルドが対象とする ABI です。ここに挙げる ABI はすべて Prefab パッケージに存在する必要があります。
+        externalNativeBuild {
+            cmake { abiFilters("arm64-v8a", "x86_64") }
+        }
+    }
+    externalNativeBuild {
+        cmake { path = file("src/main/cpp/CMakeLists.txt") }
+    }
+    buildFeatures { prefab = true }
+}
+
+dependencies {
+    implementation("io.github.kimjh4941:android-native-toolkit-capi:2.0.0")
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+}
+```
+
+**CMakeLists.txt:**
+
+```cmake
+find_package(ntk REQUIRED CONFIG)
+
+add_library(app SHARED app.c)
+target_link_libraries(app PRIVATE ntk::ntk)
+```
+
+ヘッダーは `NativeToolkitC/Common.h`、`NativeToolkitC/Android.h`、`NativeToolkitC/Clipboard.h` です。AAR は R8 の keep ルールを同梱しています。バインディング生成ツール（ClangSharp、bindgen、ffigen）向けに、同じヘッダーが `dist/1.13.0/android/include/NativeToolkitC/` にもあります。
+
+#### 初期化
+
+既定では呼ぶものはありません。capi の AAR が、アプリの起動時に androidx.startup を通じて C ABI を初期化します。初期化が済むまで、`ntk_clipboard_error` を返すクリップボードの関数はすべて `NTK_CLIPBOARD_ERROR_NOT_INITIALIZED` を返します（引数のエラーが先に報告されます）。読み取り用の関数と `_free` の関数は、初期化に関係なく動作します。
+
+アプリが androidx.startup を無効にしている場合、既定以外のプロセスで動く場合、`libntk.so` を `dlopen` だけで読み込む場合、独自の `ContentProvider`（androidx.startup より先に動くことがあります）から呼び出す場合は、`ntk_android_init` を自分で呼びます。この関数は待たず、何度呼んでも構いません。初期化が済んでいれば `NTK_ANDROID_ERROR_NONE` を返します。
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Android.h>
+
+/* JNI のコードから呼びます。env: 呼び出しスレッドの JNIEnv*。context: 任意の Context
+   （jobject）。ヘッダーが jni.h を必要としないように、どちらも void* で渡します。 */
+static int32_t init_native_toolkit(void* env, void* context)
+{
+    ntk_android_error error = ntk_android_init(env, context);
+    if (error == NTK_ANDROID_ERROR_IN_PROGRESS || error == NTK_ANDROID_ERROR_JNI_FAILURE) {
+        /* まだ準備ができていません。後でもう一度呼びます。 */
+    } else if (error == NTK_ANDROID_ERROR_CLASS_NOT_FOUND) {
+        /* Kotlin のクラスがないか、名前が変わっています（R8）。呼び直しても解決しません。 */
+    }
+    return ntk_android_is_initialized();   /* 初期化済みなら 0 以外 */
+}
+```
+
+Kotlin のコードからは、代わりに `NativeToolkitCApi.init(context)` を呼べます。
+
+#### コピーとクリア
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* プレーンテキストです。NULL のオプションはラベルなし・機微情報でない、です。空文字列も有効です。 */
+ntk_clipboard_error error = ntk_clipboard_copy_text("Hello from native-toolkit", NULL);
+
+/* ラベルや機微情報のフラグを指定する場合は、構造体を 0 で埋めてから struct_size を設定します。 */
+ntk_clipboard_copy_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.label = "sample";
+error = ntk_clipboard_copy_text("Hello from native-toolkit", &options);
+
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.sensitive = 1;
+error = ntk_clipboard_copy_text("P@ssw0rd-sample", &options);
+
+/* HTML とそのプレーンテキストです。空の html は EMPTY_CONTENT、NULL の plain_text は "" です。 */
+error = ntk_clipboard_copy_html("<b>Hello</b>", "Hello", NULL);
+
+/* content:// URI です。空の URI やほかのスキームは INVALID_URI です。 */
+const char* uri = "content://com.example.app.native_toolkit.share.fileprovider/cache/clipboard_sample.txt";
+error = ntk_clipboard_copy_uri(uri, NULL);
+
+/* 複数のテキストを 1 つのクリップにまとめます。count が 0 なら EMPTY_ITEMS です。 */
+const char* texts[3];
+texts[0] = "first";
+texts[1] = "second";
+texts[2] = "third";
+error = ntk_clipboard_copy_texts(texts, 3, NULL);
+
+/* クリップボードを空にします。 */
+error = ntk_clipboard_clear();
+```
+
+#### 読み取りと問い合わせ
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+ntk_clipboard_content* content = NULL;
+ntk_clipboard_error error = ntk_clipboard_read(&content);
+if (error == NTK_CLIPBOARD_ERROR_NONE && content == NULL) {
+    /* 空か、アプリに入力フォーカスがありません。この 2 つは区別できません。 */
+} else if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    const char* label = ntk_clipboard_content_label(content, NULL);   /* ない場合は NULL */
+    size_t mime_count = ntk_clipboard_content_mime_type_count(content);
+    size_t item_count = ntk_clipboard_content_item_count(content);
+    size_t i;
+    for (i = 0; i < mime_count; ++i) {
+        const char* mime_type = ntk_clipboard_content_mime_type_at(content, i, NULL);
+        (void)mime_type;
+    }
+    for (i = 0; i < item_count; ++i) {
+        size_t size = 0;
+        /* アイテムがそれを持たない場合は、それぞれ NULL です。 */
+        const char* text = ntk_clipboard_content_item_text_at(content, i, &size);
+        const char* html = ntk_clipboard_content_item_html_at(content, i, NULL);
+        const char* uri = ntk_clipboard_content_item_uri_at(content, i, NULL);
+        const char* coerced = ntk_clipboard_content_item_coerced_text_at(content, i, NULL);
+        (void)text; (void)html; (void)uri; (void)coerced;
+    }
+    (void)label;
+    ntk_clipboard_content_free(content);
+} else if (error == NTK_CLIPBOARD_ERROR_READ_NOT_ALLOWED) {
+    /* システムが読み取りを拒否しました。 */
+}
+
+/* クリップがあるかどうかです。失敗はエラーとして返り、0 にはなりません。 */
+int32_t has_clip = 0;
+error = ntk_clipboard_has_clip(&has_clip);
+
+/* クリップの本体を読まずに、メタデータを取得します。クリップボードが空なら NULL です。 */
+ntk_clipboard_description* description = NULL;
+error = ntk_clipboard_get_description(&description);
+if (error == NTK_CLIPBOARD_ERROR_NONE && description != NULL) {
+    const char* label = ntk_clipboard_description_label(description, NULL);
+    size_t mime_count = ntk_clipboard_description_mime_type_count(description);
+    const char* first = ntk_clipboard_description_mime_type_at(description, 0, NULL);   /* 範囲外なら NULL */
+    int32_t styled = ntk_clipboard_description_is_styled_text(description);
+    int32_t classification = ntk_clipboard_description_classification_status(description);   /* -1: 報告なし */
+    (void)label; (void)mime_count; (void)first; (void)styled; (void)classification;
+    ntk_clipboard_description_free(description);
+}
+```
+
+`Common.h` は Windows と共通で、`ntk_string`、`ntk_bytes`、`ntk_string_list` のハンドルも宣言しています。Android 2.0.0 には `ntk_bytes` や `ntk_string_list` のハンドルを返す関数はありません。これらの補助関数は共通ヘッダーのために存在し、ほかの読み取り用の関数と同じく `NULL` を受け付けます。
+
+```c
+#include <NativeToolkitC/Common.h>
+
+/* 読み取り用の関数は NULL のハンドルに NULL か 0 を返し、_free は NULL に対して何もしません。 */
+ntk_bytes* bytes = NULL;
+const uint8_t* data = ntk_bytes_data(bytes);       /* NULL */
+size_t byte_count = ntk_bytes_size(bytes);         /* 0 */
+ntk_bytes_free(bytes);
+
+ntk_string_list* list = NULL;
+size_t count = ntk_string_list_count(list);        /* 0 */
+const char* first = ntk_string_list_at(list, 0, NULL);   /* NULL */
+ntk_string_list_free(list);
+
+ntk_string* text = NULL;
+size_t length = ntk_string_size(text);             /* 0 */
+ntk_string_free(text);
+(void)data; (void)byte_count; (void)count; (void)first; (void)length;
+```
+
+#### 変更イベント
+
+リスナーを追加しただけでは監視は始まらず、削除しても監視は止まりません。監視はそれぞれ専用の関数で開始・停止します。監視は Kotlin API が使うものと同じなので、`ntk_clipboard_stop_observing` は Kotlin のリスナーに対しても監視を止めます。`isObserving` にあたる C の関数はありません。
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static void NTK_CALL on_clipboard_changed(void* user_data)
+{
+    /* Android のメインスレッドで呼ばれます。短く済ませ、例外を外に出さないでください。 */
+    (void)user_data;
+}
+
+static void NTK_CALL release_listener_state(void* user_data)
+{
+    /* 必ず 1 回だけ呼ばれます。リスナーを削除した後にメインスレッドで、または失敗した場合は
+       ntk_clipboard_add_change_listener が戻る前に呼ばれます。user_data はここで解放します。 */
+    (void)user_data;
+}
+
+void* state = NULL;   /* 独自の状態です。user_data として渡し返されます */
+ntk_clipboard_listener* listener = NULL;
+ntk_clipboard_error error = ntk_clipboard_add_change_listener(
+    &on_clipboard_changed, state, &release_listener_state, &listener);   /* release は NULL でも構いません */
+
+/* メインスレッドにポストされます。NONE は受け付けたという意味です。再度呼んでも何もしません。 */
+error = ntk_clipboard_start_observing();
+
+/* 後で。remove の後はハンドルが無効になります。メインスレッドで削除した場合、リスナーはそれ以降
+   呼ばれません。別のスレッドから削除した場合は、release が実行されるまで呼び出しが届くことがあります。 */
+ntk_clipboard_listener_remove(listener);
+listener = NULL;
+error = ntk_clipboard_stop_observing();
+```
+
+#### エラー値
+
+`ntk_clipboard_error` は、上の関数のうち、読み取り用の関数、`_free` の関数、`ntk_clipboard_listener_remove` を除くすべての戻り値です。Android では `ntk_last_system_code()` は常に 0 です。引数は初期化より先に確認されるため、C ABI の初期化前でも、不正な引数にはそれぞれのエラーが返ります。
+
+| 値 | 名前 | 条件 | `ClipboardErrorCode` |
+|---|---|---|---|
+| 0 | `NTK_CLIPBOARD_ERROR_NONE` | 成功 | - |
+| 1 | `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER` | `NULL` の引数、不正な UTF-8、2.0.0 のサイズ未満または 4096 を超える `struct_size`、0 以外の予約フィールド | - |
+| 2 | `NTK_CLIPBOARD_ERROR_NOT_INITIALIZED` | C ABI の初期化前に呼ばれた | - |
+| 3 | `NTK_CLIPBOARD_ERROR_NOT_SUPPORTED` | このバージョンが知らない構造体の部分に 0 以外の値がある | - |
+| 4 | `NTK_CLIPBOARD_ERROR_UNKNOWN` | それ以外のすべて。JNI の失敗も含みます（詳細は logcat にあります） | `UNKNOWN` |
+| 5 | `NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY` | メモリの確保に失敗した | - |
+| 6 | `NTK_CLIPBOARD_ERROR_EMPTY_CONTENT` | `ntk_clipboard_copy_html` の `html` が空 | `EMPTY_CONTENT` |
+| 7 | `NTK_CLIPBOARD_ERROR_EMPTY_ITEMS` | `ntk_clipboard_copy_texts` の `count` が 0 | `EMPTY_ITEMS` |
+| 8 | `NTK_CLIPBOARD_ERROR_INVALID_URI` | 空の URI、または `content` と `file` 以外のスキーム | `INVALID_URI` |
+| 9 | `NTK_CLIPBOARD_ERROR_UNAVAILABLE` | システムの `ClipboardManager` を取得できない | `UNAVAILABLE` |
+| 10 | `NTK_CLIPBOARD_ERROR_READ_NOT_ALLOWED` | システムが読み取りを拒否した | `READ_NOT_ALLOWED` |
+| 11 | `NTK_CLIPBOARD_ERROR_SECURITY` | システムからのそれ以外の `SecurityException` | `SECURITY` |
+
+| Kotlin API | C ABI |
+|---|---|
+| `AndroidClipboardManager.getInstance` | なし（関数はグローバルです） |
+| `copyPlainText` / `copyHtmlText` / `copyUri` / `copyMultipleText` | `ntk_clipboard_copy_text` / `_copy_html` / `_copy_uri` / `_copy_texts` |
+| `ClipContent` の `label` と `isSensitive` | `ntk_clipboard_copy_options`（`label`、`sensitive`） |
+| `clear` | `ntk_clipboard_clear` |
+| `read` と `ClipReadResult` | `ntk_clipboard_read` と `ntk_clipboard_content_label` / `_content_mime_type_count` / `_content_mime_type_at` / `_content_item_count` / `_content_item_text_at` / `_content_item_html_at` / `_content_item_uri_at` / `_content_item_coerced_text_at` / `_content_free` |
+| `hasClip` | `ntk_clipboard_has_clip` |
+| `getDescription` と `ClipDescriptionInfo` | `ntk_clipboard_get_description` と `ntk_clipboard_description_label` / `_description_mime_type_count` / `_description_mime_type_at` / `_description_is_styled_text` / `_description_classification_status` / `_description_free` |
+| `startObserving` / `stopObserving` | `ntk_clipboard_start_observing` / `_stop_observing` |
+| `isObserving` | なし |
+| `changes.addListener` / `EventHub.Registration.remove` | `ntk_clipboard_add_change_listener` / `ntk_clipboard_listener_remove` |
+| `errorCodeOf` と `ClipboardErrorCode` | 戻り値の `ntk_clipboard_error` |
 
 ---
 

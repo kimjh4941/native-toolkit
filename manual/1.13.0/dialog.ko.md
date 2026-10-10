@@ -13,7 +13,20 @@
 ## 목차
 
 - [Android](#android)
-  - [AndroidDialogFragment](#androiddialogfragment)
+  - [AndroidDialogManager](#androiddialogmanager)
+    - [기본 다이얼로그](#기본-다이얼로그)
+    - [확인 다이얼로그](#확인-다이얼로그)
+    - [단일 선택 다이얼로그](#단일-선택-다이얼로그)
+    - [다중 선택 다이얼로그](#다중-선택-다이얼로그)
+    - [입력 다이얼로그](#입력-다이얼로그)
+    - [로그인 다이얼로그](#로그인-다이얼로그)
+    - [코루틴으로 기다리기](#코루틴으로-기다리기)
+    - [뒤로 가기나 바깥 탭으로 닫기](#뒤로-가기나-바깥-탭으로-닫기)
+    - [다이얼로그 취소](#다이얼로그-취소)
+  - [C ABI](#c-abi)
+    - [알림 다이얼로그와 확인 다이얼로그](#알림-다이얼로그와-확인-다이얼로그)
+    - [선택 목록 다이얼로그](#선택-목록-다이얼로그)
+    - [입력 다이얼로그와 로그인 다이얼로그](#입력-다이얼로그와-로그인-다이얼로그)
 - [iOS](#ios)
   - [iOSDialogManager](#iosdialogmanager)
 - [Windows](#windows)
@@ -24,7 +37,7 @@
     - [ShowPickFolder - 폴더 선택 다이얼로그](#showpickfolder---폴더-선택-다이얼로그)
     - [ShowPickFolders - 다중 폴더 선택 다이얼로그](#showpickfolders---다중-폴더-선택-다이얼로그)
     - [ShowSaveFile - 저장 다이얼로그](#showsavefile---저장-다이얼로그)
-  - [C ABI](#c-abi)
+  - [C ABI](#c-abi-1)
     - [메시지 박스](#메시지-박스)
     - [파일 선택](#파일-선택)
     - [폴더 선택](#폴더-선택)
@@ -35,50 +48,79 @@
 
 ## Android
 
-### AndroidDialogFragment
+Android 라이브러리는 같은 다이얼로그를 두 가지 공개 API로 제공합니다. 구현은 하나이며, 샘플 앱은 Kotlin API를 사용합니다.
+
+| API | 이름 | 패키지 / 헤더 | AAR(Maven 좌표) |
+|---|---|---|---|
+| Kotlin API | `AndroidDialogManager` | `com.jonghyunkim.nativetoolkit.dialog` | `android-native-toolkit-2.0.0.aar`(`io.github.kimjh4941:android-native-toolkit:2.0.0`) |
+| C ABI | `ntk_dialog_*` | `<NativeToolkitC/Dialog.h>` | `android-native-toolkit-capi-2.0.0.aar`(`io.github.kimjh4941:android-native-toolkit-capi:2.0.0`) |
+
+- 라이브러리에는 minSdk 31과 compileSdk 36이 필요합니다. Kotlin 앱에는 Kotlin 2.1 이상이 필요합니다.
+- 1.x 라이브러리용으로 작성한 코드는 패키지 이름과 API가 바뀌었으므로 수정해야 합니다. [Android 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#android-라이브러리를-200으로-마이그레이션)을 참고해 주세요. `AndroidDialogFragment`와 그 리스너는 `com.jonghyunkim.nativetoolkit.dialog`에서 계속 공개되지만, 새 코드에서는 `AndroidDialogManager`를 사용해 주세요.
+
+### AndroidDialogManager
+
+- `AndroidDialogManager.getInstance(context)`는 프로세스 전체에서 하나인 인스턴스를 반환합니다. `Context`는 어떤 것이든 상관없으며, 보관되지 않습니다.
+- Activity나 `FragmentManager`는 전달하지 않습니다. 다이얼로그는 앱의 포그라운드 Activity에 표시됩니다. 그 Activity가 `FragmentActivity`가 아닌 경우(예: 일반 `ComponentActivity`나 게임의 Activity), 라이브러리가 다이얼로그를 담을 투명한 Activity를 직접 엽니다.
+- 앱이 포그라운드에 있어야 합니다. 백그라운드에서 호출하면 요청은 `DialogResult.Failed(DialogError.NOT_FOREGROUND)`로 끝납니다.
+- 라이브러리는 앱 시작 시 androidx.startup으로 스스로 초기화하므로, 먼저 호출할 것은 없습니다. Startup 이니셜라이저를 제거한 앱은 첫 Activity의 `onCreate`에서 그 Activity를 전달해 `LibraryRuntime.ensureInitialized(activity)`(`com.jonghyunkim.nativetoolkit.common.runtime`)를 호출합니다. 그 전까지 요청은 `DialogResult.Failed(DialogError.NOT_INITIALIZED)`로 끝납니다. 애플리케이션 컨텍스트만 전달하면 라이브러리는 이미 화면에 있는 Activity를 알지 못하므로, 다음 Activity가 시작될 때까지 다이얼로그는 `DialogError.NOT_FOREGROUND`로 끝납니다.
+- `show(request, onResult)`는 어느 스레드에서든 호출할 수 있습니다. 반환값은 `cancel`에 전달하는 요청 ID(`Long`)입니다. `onResult`는 메인 스레드에서 정확히 한 번 호출되며, `show` 안에서 호출되는 일은 없습니다.
+- 다이얼로그는 화면 회전 같은 구성 변경 후에도 유지됩니다. 라이브러리가 다이얼로그를 복원하며, 결과는 같은 `onResult`로 전달됩니다.
+- 잘못된 요청(빈 항목 목록, 항목 수와 크기가 다른 `checked` 목록, 범위를 벗어난 `checkedIndex`)을 전달하면 `show`는 `IllegalArgumentException`을 던집니다.
+
+결과는 다음 네 가지 `DialogResult` 중 하나입니다.
+
+| 결과 | 반환되는 경우 |
+|---|---|
+| `DialogResult.Button(which, text, value)` | 사용자가 버튼을 누른 경우입니다. `which`는 `DialogButton.POSITIVE` 또는 `DialogButton.NEGATIVE`이고, `text`는 그 레이블입니다 |
+| `DialogResult.Dismissed` | 사용자가 뒤로 가기나 바깥 탭으로 다이얼로그를 닫은 경우입니다(`DialogOptions`가 허용한 경우만) |
+| `DialogResult.Canceled(reason)` | 응답 없이 요청이 끝난 경우입니다. `cancel` 후에는 `CancelReason.REQUESTED`, 다이얼로그를 표시하던 Activity가 완전히 소멸된 경우에는 `CancelReason.HOST_DESTROYED`입니다 |
+| `DialogResult.Failed(error)` | 다이얼로그를 표시할 수 없었던 경우입니다. `DialogError.NOT_INITIALIZED`, `NOT_FOREGROUND`, `HOST_START_FAILED`(투명한 Activity가 시작되지 않음), `SHOW_FAILED` 중 하나입니다 |
+
+`Button.value`는 사용자가 입력한 내용을 담습니다. 부정 버튼에서는 항상 `DialogValue.None`입니다. `DialogValue.Text`와 `DialogValue.Login`은 `toString()`에서 내용을 숨기므로, 결과를 출력해도 사용자가 입력한 내용은 로그에 남지 않습니다.
+
+| 요청 | 긍정 버튼의 `value` |
+|---|---|
+| `DialogRequest.Alert`, `DialogRequest.Confirm` | `DialogValue.None` |
+| `DialogRequest.SingleChoice` | `DialogValue.SingleChoice(index)`. 아무것도 선택하지 않은 경우 `index`는 `null`입니다 |
+| `DialogRequest.MultiChoice` | `DialogValue.MultiChoice(checked)`. 항목마다 `Boolean` 하나입니다 |
+| `DialogRequest.TextInput` | `DialogValue.Text(text)` |
+| `DialogRequest.Login` | `DialogValue.Login(username, password)` |
 
 #### 기본 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 버튼 하나를 표시합니다.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
 
-// 제목을 설정합니다. 필수 항목입니다.
-val title = "Hello from Android";
-// 메시지를 설정합니다. 필수 항목입니다.
-val message = "This is a native Android dialog!";
-// 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
-val buttonText = "OK";
-// 다이얼로그 바깥 영역 터치 시 취소 가능 여부를 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelableOnTouchOutside = false;
-// 뒤로가기 키 등으로 다이얼로그를 취소할 수 있는지 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelable = false;
+// Context는 어떤 것이든 상관없습니다. 보관되지 않습니다.
+val manager = AndroidDialogManager.getInstance(context)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    buttonText = buttonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // 다이얼로그 결과를 수신할 리스너를 설정합니다.
-    setDialogListener(object : AndroidDialogFragment.DialogListener {
-        // dialog: 다이얼로그 인스턴스
-        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
-        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
-        override fun onDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onDialog - buttonText: $buttonText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
-        }
-    })
-    // 첫 번째 인수: FragmentManager
-    // 두 번째 인수: 다이얼로그 태그 이름
-    show(supportFragmentManager, "AndroidDialogFragment")
+val request = DialogRequest.Alert(
+    // 제목을 설정합니다. 필수 항목입니다.
+    title = "Hello from Android",
+    // 메시지를 설정합니다. 필수 항목입니다.
+    message = "This is a native Android dialog!",
+    // 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
+    buttonText = "OK",
+    // 뒤로 가기와 바깥 탭으로 다이얼로그를 닫을지 설정합니다. 미설정 시 둘 다 닫힙니다.
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
+
+// cancel()에 전달하는 요청 ID를 반환합니다.
+// 요청이 잘못된 경우 IllegalArgumentException을 던집니다.
+val requestId = manager.show(request) { result ->
+    // 메인 스레드에서 한 번만 호출됩니다.
+    when (result) {
+        is DialogResult.Button -> Log.d(TAG, "button: ${result.which} (${result.text})")
+        DialogResult.Dismissed -> Log.d(TAG, "Dismissed")
+        is DialogResult.Canceled -> Log.d(TAG, "Canceled: ${result.reason}")
+        is DialogResult.Failed -> Log.d(TAG, "Unavailable: ${result.error}")
+    }
 }
 ```
 
@@ -88,49 +130,36 @@ AndroidDialogFragment.newInstance(
 
 #### 확인 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 부정 버튼, 긍정 버튼을 표시합니다.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogButton
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
 
-// 제목을 설정합니다. 필수 항목입니다.
-val title = "Confirmation"
-// 메시지를 설정합니다. 필수 항목입니다.
-val message = "Do you want to proceed with this action?"
-// 부정 버튼 텍스트를 설정합니다. 미설정 시 "No"가 사용됩니다.
-val negativeButtonText = "No"
-// 긍정 버튼 텍스트를 설정합니다. 미설정 시 "Yes"가 사용됩니다.
-val positiveButtonText = "Yes"
-// 다이얼로그 바깥 영역 터치 시 취소 가능 여부를 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelableOnTouchOutside = false
-// 뒤로가기 키 등으로 다이얼로그를 취소할 수 있는지 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelable = false
+val request = DialogRequest.Confirm(
+    // 제목을 설정합니다. 필수 항목입니다.
+    title = "Confirmation",
+    // 메시지를 설정합니다. 필수 항목입니다.
+    message = "Do you want to proceed with this action?",
+    // 부정 버튼 텍스트를 설정합니다. 미설정 시 "No"가 사용됩니다.
+    negativeText = "No",
+    // 긍정 버튼 텍스트를 설정합니다. 미설정 시 "Yes"가 사용됩니다.
+    positiveText = "Yes",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // 확인 다이얼로그 결과를 수신할 리스너를 설정합니다.
-    setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {
-        // dialog: 다이얼로그 인스턴스
-        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
-        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
-        override fun onConfirmDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onConfirmDialog - buttonText: $buttonText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    when (result) {
+        is DialogResult.Button -> {
+            if (result.which == DialogButton.POSITIVE) {
+                // 사용자가 "Yes"를 눌렀습니다.
+            }
         }
-    })
-    // 첫 번째 인수: FragmentManager
-    // 두 번째 인수: 다이얼로그 태그 이름
-    show(supportFragmentManager, "AndroidDialogFragment")
+        else -> Log.d(TAG, "result: $result")
+    }
 }
 ```
 
@@ -140,54 +169,38 @@ AndroidDialogFragment.newInstance(
 
 #### 단일 선택 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 항목 하나를 선택할 수 있는 목록을 표시합니다.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// 제목을 설정합니다. 필수 항목입니다.
-val title = "Please select one"
-// 선택 항목을 설정합니다. 필수 항목입니다.
-val singleChoiceItems = arrayOf("Option 1", "Option 2", "Option 3")
-// 기본 선택 항목 인덱스를 설정합니다. 미설정 시 0이 사용됩니다.
-val checkedItem = 0
-// 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
-val negativeButtonText = "Cancel"
-// 긍정 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
-val positiveButtonText = "OK"
-// 다이얼로그 바깥 영역 터치 시 취소 가능 여부를 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelableOnTouchOutside = false
-// 뒤로가기 키 등으로 다이얼로그를 취소할 수 있는지 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelable = false
+val request = DialogRequest.SingleChoice(
+    // 제목을 설정합니다. 필수 항목입니다.
+    title = "Please select one",
+    // 선택 항목을 설정합니다. 필수 항목이며, 비워 둘 수 없습니다.
+    items = listOf("Option 1", "Option 2", "Option 3"),
+    // 처음에 선택해 둘 항목을 설정합니다. 선택하지 않으려면 null입니다. 미설정 시 0이 사용됩니다.
+    checkedIndex = 0,
+    // 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
+    negativeText = "Cancel",
+    // 긍정 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
+    positiveText = "OK",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    singleChoiceItems = singleChoiceItems,
-    checkedItem = checkedItem,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // 단일 선택 다이얼로그 결과를 수신할 리스너를 설정합니다.
-    setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
-        // dialog: 다이얼로그 인스턴스
-        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
-        // checkedItem: 선택된 항목 인덱스를 가져옵니다. 오류 시 null을 반환합니다.
-        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
-        override fun onSingleChoiceItemDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            checkedItem: Int?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onSingleChoiceItemDialog - buttonText: $buttonText, checkedItem: $checkedItem, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        // 긍정 버튼에서는 DialogValue.SingleChoice, 부정 버튼에서는 DialogValue.None입니다.
+        val value = result.value
+        if (value is DialogValue.SingleChoice) {
+            // 선택된 항목의 인덱스입니다. 아무것도 선택하지 않은 경우 null입니다.
+            Log.d(TAG, "button: ${result.which}, index: ${value.index}")
         }
-    })
-    // 첫 번째 인수: FragmentManager
-    // 두 번째 인수: 다이얼로그 태그 이름
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
@@ -197,54 +210,37 @@ AndroidDialogFragment.newInstance(
 
 #### 다중 선택 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 여러 항목을 선택할 수 있는 목록을 표시합니다.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// 제목을 설정합니다. 필수 항목입니다.
-val title = "Multiple Selection"
-// 선택 항목을 설정합니다. 필수 항목입니다.
-val multiChoiceItems = arrayOf("Option 1", "Option 2", "Option 3", "Option 4")
-// 기본 선택 상태를 설정합니다. 미설정 시 모두 false가 사용됩니다.
-val checkedItems = booleanArrayOf(false, true, false, true)
-// 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
-val negativeButtonText = "Cancel"
-// 긍정 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
-val positiveButtonText = "OK"
-// 다이얼로그 바깥 영역 터치 시 취소 가능 여부를 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelableOnTouchOutside = false
-// 뒤로가기 키 등으로 다이얼로그를 취소할 수 있는지 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelable = false
+val request = DialogRequest.MultiChoice(
+    // 제목을 설정합니다. 필수 항목입니다.
+    title = "Multiple Selection",
+    // 선택 항목을 설정합니다. 필수 항목이며, 비워 둘 수 없습니다.
+    items = listOf("Option 1", "Option 2", "Option 3", "Option 4"),
+    // 처음 선택 상태를 설정합니다. 필수 항목이며, 항목마다 값 하나를 지정합니다.
+    checked = listOf(false, true, false, true),
+    // 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
+    negativeText = "Cancel",
+    // 긍정 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
+    positiveText = "OK",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    multiChoiceItems = multiChoiceItems,
-    checkedItems = checkedItems,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // 다중 선택 다이얼로그 결과를 수신할 리스너를 설정합니다.
-    setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {
-        // dialog: 다이얼로그 인스턴스
-        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
-        // checkedItems: 선택 항목 체크 상태를 가져옵니다. 선택은 true, 미선택은 false이며 오류 시 null을 반환합니다.
-        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
-        override fun onMultiChoiceItemDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            checkedItems: BooleanArray?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onMultiChoiceItemDialog - buttonText: $buttonText, checkedItems: ${checkedItems.contentToString()}, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        val value = result.value
+        if (value is DialogValue.MultiChoice) {
+            // 항목마다 값 하나입니다. 선택된 항목은 true입니다.
+            Log.d(TAG, "button: ${result.which}, checked: ${value.checked}")
         }
-    })
-    // 첫 번째 인수: FragmentManager
-    // 두 번째 인수: 다이얼로그 태그 이름
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
@@ -254,57 +250,39 @@ AndroidDialogFragment.newInstance(
 
 #### 입력 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 입력 필드 하나를 표시합니다.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// 제목을 설정합니다. 필수 항목입니다.
-val title = "Text Input"
-// 메시지를 설정합니다. 필수 항목입니다.
-val message = "Please enter your name"
-// 플레이스홀더를 설정합니다. 미설정 시 빈 문자열이 사용됩니다.
-val hint = "Enter here..."
-// 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
-val negativeButtonText = "Cancel"
-// 긍정 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
-val positiveButtonText = "OK"
-// 입력값이 비어 있을 때 긍정 버튼 활성화 여부를 설정합니다. 미설정 시 false가 사용됩니다.
-val enablePositiveButtonWhenEmpty = false
-// 다이얼로그 바깥 영역 터치 시 취소 가능 여부를 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelableOnTouchOutside = false
-// 뒤로가기 키 등으로 다이얼로그를 취소할 수 있는지 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelable = false
+val request = DialogRequest.TextInput(
+    // 제목을 설정합니다. 필수 항목입니다.
+    title = "Text Input",
+    // 메시지를 설정합니다. 필수 항목입니다.
+    message = "Please enter your name",
+    // 힌트를 설정합니다. 미설정 시 빈 문자열이 사용됩니다.
+    hint = "Enter here...",
+    // 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
+    negativeText = "Cancel",
+    // 긍정 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
+    positiveText = "OK",
+    // 입력 필드가 비어 있을 때 긍정 버튼을 누를 수 있는지 설정합니다. 미설정 시 false가 사용됩니다.
+    enablePositiveWhenEmpty = false,
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    hint = hint,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    enablePositiveButtonWhenEmpty = enablePositiveButtonWhenEmpty,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // 입력 다이얼로그 결과를 수신할 리스너를 설정합니다.
-    setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {
-        // dialog: 다이얼로그 인스턴스
-        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
-        // inputText: 입력 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
-        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
-        override fun onTextInputDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            inputText: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onTextInputDialog - buttonText: $buttonText, inputText: $inputText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        val value = result.value
+        if (value is DialogValue.Text) {
+            // value.text는 사용자가 입력한 문자열입니다. 문자열 자체가 아니라 길이를 로그에 남깁니다.
+            Log.d(TAG, "button: ${result.which}, textLength: ${value.text.length}")
         }
-    })
-    // 첫 번째 인수: FragmentManager
-    // 두 번째 인수: 다이얼로그 태그 이름
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
@@ -314,66 +292,429 @@ AndroidDialogFragment.newInstance(
 
 #### 로그인 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 사용자 이름, 비밀번호 입력 필드를 표시합니다.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// 제목을 설정합니다. 필수 항목입니다.
-val title = "Login"
-// 메시지를 설정합니다. 필수 항목입니다.
-val message = "Please enter your credentials"
-// 사용자명 플레이스홀더를 설정합니다. 미설정 시 "Username"이 사용됩니다.
-val usernameHint = "Username"
-// 비밀번호 플레이스홀더를 설정합니다. 미설정 시 "Password"가 사용됩니다.
-val passwordHint = "Password"
-// 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
-val negativeButtonText = "Cancel"
-// 긍정 버튼 텍스트를 설정합니다. 미설정 시 "Login"이 사용됩니다.
-val positiveButtonText = "Login"
-// 입력값이 비어 있을 때 긍정 버튼 활성화 여부를 설정합니다. 미설정 시 false가 사용됩니다.
-val enablePositiveButtonWhenEmpty = false
-// 다이얼로그 바깥 영역 터치 시 취소 가능 여부를 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelableOnTouchOutside = false
-// 뒤로가기 키 등으로 다이얼로그를 취소할 수 있는지 설정합니다. 미설정 시 true가 사용됩니다.
-val cancelable = false
+val request = DialogRequest.Login(
+    // 제목을 설정합니다. 필수 항목입니다.
+    title = "Login",
+    // 메시지를 설정합니다. 필수 항목입니다.
+    message = "Please enter your credentials",
+    // 사용자 이름 힌트를 설정합니다. 미설정 시 "Username"이 사용됩니다.
+    usernameHint = "Username",
+    // 비밀번호 힌트를 설정합니다. 미설정 시 "Password"가 사용됩니다.
+    passwordHint = "Password",
+    // 부정 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
+    negativeText = "Cancel",
+    // 긍정 버튼 텍스트를 설정합니다. 미설정 시 "Login"이 사용됩니다.
+    positiveText = "Login",
+    // 입력 필드 중 하나라도 비어 있을 때 긍정 버튼을 누를 수 있는지 설정합니다. 미설정 시 false가 사용됩니다.
+    enablePositiveWhenEmpty = false,
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    usernameHint = usernameHint,
-    passwordHint = passwordHint,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    enablePositiveButtonWhenEmpty = enablePositiveButtonWhenEmpty,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // 로그인 다이얼로그 결과를 수신할 리스너를 설정합니다.
-    setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
-        // dialog: 다이얼로그 인스턴스
-        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 null을 반환합니다.
-        // username: 입력한 사용자명을 가져옵니다. 오류 시 null을 반환합니다.
-        // password: 입력한 비밀번호를 가져옵니다. 오류 시 null을 반환합니다.
-        // isSuccessful: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 null을 반환합니다.
-        override fun onLoginDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            username: String?,
-            password: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onLoginDialog - buttonText: $buttonText, username: $username, password: $password, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        val value = result.value
+        if (value is DialogValue.Login) {
+            // value.username과 value.password는 사용자가 입력한 값입니다. 비밀번호는 절대 로그에 남기지 마세요.
+            Log.d(TAG, "usernameLength: ${value.username.length}, passwordLength: ${value.password.length}")
         }
-    })
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
 <p align="center">
     <img src="images/android/dialog/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
 </p>
+
+#### 코루틴으로 기다리기
+
+- 콜백 없는 `show(request)`는 `suspend` 함수입니다. 응답으로 `DialogResult.Button` 또는 `DialogResult.Dismissed`(둘 다 `DialogResult.Answer`)를 반환합니다.
+- 응답 없이 끝난 요청은 `DialogDomainError.Canceled(reason)`를, 표시할 수 없었던 다이얼로그는 `DialogDomainError.Unavailable(error)`를 던집니다.
+- 코루틴을 취소하면 다이얼로그가 닫힙니다. 코루틴을 화면에 묶어 두면(Compose에서는 `rememberCoroutineScope()`) 화면을 떠날 때 다이얼로그도 닫힙니다.
+
+```kotlin
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.error.DialogDomainError
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import kotlinx.coroutines.launch
+
+val manager = AndroidDialogManager.getInstance(context)
+val request = DialogRequest.Confirm(
+    title = "Confirmation",
+    message = "Do you want to proceed with this action?",
+    negativeText = "No",
+    positiveText = "Yes",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
+
+scope.launch {
+    try {
+        when (val answer = manager.show(request)) {
+            is DialogResult.Button -> Log.d(TAG, "button: ${answer.which} (${answer.text})")
+            DialogResult.Dismissed -> Log.d(TAG, "Dismissed")
+        }
+    } catch (e: DialogDomainError.Canceled) {
+        // e.reason은 CancelReason.REQUESTED 또는 CancelReason.HOST_DESTROYED입니다.
+        Log.d(TAG, "Canceled: ${e.reason}")
+    } catch (e: DialogDomainError.Unavailable) {
+        // e.error는 DialogError입니다. 예: NOT_FOREGROUND
+        Log.d(TAG, "Unavailable: ${e.error}")
+    }
+}
+```
+
+#### 뒤로 가기나 바깥 탭으로 닫기
+
+- 인수 없는 `DialogOptions()`에서는 뒤로 가기와 바깥 탭으로 다이얼로그를 닫을 수 있습니다. 이때 결과는 `DialogResult.Dismissed`이며, 값을 담지 않습니다.
+
+```kotlin
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+
+val request = DialogRequest.Alert(
+    title = "Cancelable",
+    message = "Tap outside or press Back.",
+    buttonText = "OK",
+    // cancelable = true, cancelableOnTouchOutside = true입니다.
+    options = DialogOptions()
+)
+
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result == DialogResult.Dismissed) {
+        // 사용자가 뒤로 가기를 누르거나 다이얼로그 바깥을 탭했습니다.
+    }
+}
+```
+
+#### 다이얼로그 취소
+
+- `cancel(requestId)`는 코드에서 다이얼로그를 닫습니다. 아직 결과가 없으면 결과는 `DialogResult.Canceled(CancelReason.REQUESTED)`가 됩니다.
+- `cancel`은 어느 스레드에서든 호출할 수 있습니다. 알 수 없는 ID나 이미 결과가 나온 다이얼로그의 ID는 무시됩니다.
+
+```kotlin
+import android.os.Handler
+import android.os.Looper
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+
+val manager = AndroidDialogManager.getInstance(context)
+// request: 어떤 DialogRequest든 상관없습니다. 예를 들어 기본 다이얼로그의 요청입니다.
+val requestId = manager.show(request) { result ->
+    // cancel()이 먼저 호출된 경우 DialogResult.Canceled(CancelReason.REQUESTED)입니다.
+    Log.d(TAG, "result: $result")
+}
+
+// 2초 후에 다이얼로그를 닫습니다.
+Handler(Looper.getMainLooper()).postDelayed({ manager.cancel(requestId) }, 2_000)
+```
+
+### C ABI
+
+- 같은 다이얼로그를 C에서, 그리고 C 함수를 호출할 수 있는 언어(C#, Dart, Rust 등)에서 사용하기 위한 API입니다. Kotlin이나 Java 앱은 대신 `AndroidDialogManager`를 호출해 주세요. C ABI는 JNI를 통해 그것을 호출하므로 왕복만 늘어납니다.
+- 앱에는 두 AAR을 모두 추가합니다. `android-native-toolkit-capi-2.0.0.aar`에는 `libntk.so`와 헤더가 들어 있으며, 옆에 `android-native-toolkit-2.0.0.aar`가 필요합니다. `libntk.so`는 64비트 ABI(`arm64-v8a`, `x86_64`)용만 있습니다. 32비트로 설치된 앱도 시작은 되지만, `libntk.so`가 없으므로 로드에 실패합니다.
+- 헤더와 `libntk.so`는 Prefab으로 제공됩니다. Prefab을 켜고, 앱의 ABI와 CMake 빌드를 모두 64비트 ABI로 제한해 주세요. 이유는 [설정](index.ko.md#c-abi)에서 설명합니다(`CMakeLists.txt`의 `if()`로는 `CXX1210` 빌드 오류를 피할 수 없습니다. 직접 작성한 32비트 네이티브 코드는 Prefab을 사용하지 않는 별도 모듈에 둡니다).
+
+```kotlin
+android {
+    buildFeatures { prefab = true }
+    defaultConfig {
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        externalNativeBuild {
+            cmake { abiFilters("arm64-v8a", "x86_64") }
+        }
+    }
+}
+```
+
+```cmake
+find_package(ntk REQUIRED CONFIG)
+target_link_libraries(your_library PRIVATE ntk::ntk)
+```
+
+- androidx.startup이 앱 시작 시 라이브러리를 초기화합니다. Startup을 끈 앱, 기본 프로세스가 아닌 프로세스에서 호출하는 앱, `libntk.so`를 `dlopen`으로만 로드하는 앱은 먼저 `ntk_android_init(env, context)`(`<NativeToolkitC/Android.h>`)를 호출합니다. 라이브러리가 초기화될 때까지 `ntk_dialog_show_*_async` 함수는 `NTK_DIALOG_ERROR_NOT_INITIALIZED`를 반환합니다. 인수 검사가 먼저 이루어지므로 잘못된 인수에는 이때도 `NTK_DIALOG_ERROR_INVALID_PARAMETER`가 반환되며, `ntk_dialog_cancel`은 아무것도 하지 않고 `NTK_DIALOG_ERROR_NONE`을 반환합니다. 결과를 읽는 함수와 `ntk_dialog_result_free`는 초기화 여부와 관계없이 동작합니다.
+- 헤더는 순수한 C99이며 `<stddef.h>`와 `<stdint.h>` 외에는 include하지 않습니다. 문자열은 NUL로 끝나는 UTF-8입니다. 버튼이나 힌트 텍스트가 `NULL`이면 Kotlin의 기본값(`"OK"`, `"Cancel"` 등)이 사용되고, 제목이나 메시지의 `NULL`은 빈 문자열이 됩니다.
+- 요청 구조체는 0으로 채우고 `struct_size`에 자신의 `sizeof`를 넣습니다. 0이 기본값입니다. 기본값을 0으로 유지하기 위해 두 플래그는 Kotlin API와 이름의 방향이 반대입니다. `not_cancelable`은 `cancelable`의 반대, `not_cancelable_on_touch_outside`는 `cancelableOnTouchOutside`의 반대입니다.
+- 모든 함수는 어느 스레드에서든 호출할 수 있으며, 메인 스레드를 기다리지 않습니다. 반환값은 요청이 접수되었는지만 나타냅니다. 호출 시점에 거부된 경우(잘못된 인수, `NOT_INITIALIZED`) 콜백은 호출되지 않으며, `release`는 호출이 반환되기 전에 호출한 스레드에서 호출됩니다.
+- 접수된 요청은 Android 메인 스레드에서 정확히 한 번 완료되고, 그 뒤에 `release`가 호출됩니다. 둘 다 요청을 시작한 호출 안에서는 실행되지 않습니다. 메인 스레드가 아닌 곳에서 호출하면 그 호출이 반환되기 전에 완료가 도착할 수 있으므로, 완료와 요청은 `user_data`로 연결해 주세요. 앱이 백그라운드에 있을 때 호출하면 요청은 `NTK_DIALOG_ERROR_NOT_FOREGROUND`로 완료됩니다.
+- 콜백에 전달되는 `ntk_dialog_result`는 받은 쪽이 소유하며, 콜백 안에서 또는 나중에 `ntk_dialog_result_free`로 해제합니다. 오류가 `NTK_DIALOG_ERROR_NONE`이 아니면 `NULL`입니다. Android에서 `system_code`와 `ntk_last_system_code()`는 항상 0입니다.
+- 요청 ID는 `uint64_t`이며 재사용되지 않습니다. `ntk_dialog_cancel`은 어느 스레드에서든 ID를 받으며, 알 수 없는 ID나 이미 완료된 요청은 무시합니다.
+- 콜백에서 메인 스레드를 블로킹하거나 예외를 밖으로 내보내지 마세요. 라이브러리는 예외를 잡지 않으므로 프로세스가 종료됩니다.
+
+#### 알림 다이얼로그와 확인 다이얼로그
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Android.h>
+#include <NativeToolkitC/Dialog.h>
+
+static void NTK_CALL on_dialog_result(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                      uint32_t system_code, ntk_dialog_result* result)
+{
+    /* Android 메인 스레드에서, 접수된 요청마다 한 번 호출됩니다. system_code는 항상 0입니다. */
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        /* result는 NULL입니다. ntk_dialog_cancel 후에는 CANCELED, Activity가 사라진 경우에는
+           CANCELED_BY_SYSTEM, 앱이 백그라운드에 있던 경우에는 NOT_FOREGROUND입니다. */
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON) {
+        ntk_dialog_button button = ntk_dialog_result_button(result);
+        size_t size = 0;
+        const char* label = ntk_dialog_result_button_text(result, &size);
+        (void)button; (void)label;
+    } else {
+        /* NTK_DIALOG_ANSWER_DISMISSED: 뒤로 가기나 바깥 탭입니다. 값을 담지 않습니다. */
+    }
+    /* 결과는 받은 쪽의 것입니다. 여기서 해제하거나, 나중에 어느 스레드에서든 해제합니다. */
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* 정확히 한 번 호출됩니다. 완료 후 메인 스레드에서 호출되거나, 호출이 거부된 경우에는
+       그 호출이 반환되기 전에 호출한 스레드에서 호출됩니다. */
+    (void)user_data;
+}
+
+/* 헤더와 libntk.so는 같은 버전이어야 합니다. */
+if (ntk_version() != NTK_VERSION) {
+    return;
+}
+/* androidx.startup이 앱 시작 시 라이브러리를 초기화합니다. Startup을 끈 앱은
+   먼저 ntk_android_init(env, context)를 호출합니다. */
+if (!ntk_android_is_initialized()) {
+    return;
+}
+
+/* --- 기본 다이얼로그 ------------------------------------------------- */
+ntk_dialog_alert_request alert;
+memset(&alert, 0, sizeof(alert));
+alert.struct_size = (uint32_t)sizeof(alert);
+alert.title = "Hello from Android";
+alert.message = "This is a native Android dialog!";
+alert.button_text = "OK";                    /* NULL이면 "OK" */
+alert.not_cancelable = 1;                    /* 뒤로 가기로 닫히지 않습니다 */
+alert.not_cancelable_on_touch_outside = 1;   /* 바깥 탭으로도 닫히지 않습니다 */
+
+uint64_t request_id = 0;
+ntk_dialog_error error = ntk_dialog_show_alert_async(&alert, &on_dialog_result, NULL,
+                                                     &release_user_data, &request_id);
+if (error != NTK_DIALOG_ERROR_NONE) {
+    /* 거부되었습니다. 콜백은 호출되지 않으며, release_user_data는 이미 실행되었습니다. */
+    return;
+}
+
+/* 나중에, 예를 들어 화면을 닫을 때: 다이얼로그가 닫히고 NTK_DIALOG_ERROR_CANCELED로
+   완료됩니다. 이미 완료된 ID나 알 수 없는 ID에는 아무 일도 일어나지 않습니다. */
+ntk_dialog_cancel(request_id);
+
+/* --- 확인 다이얼로그 ------------------------------------------------- */
+ntk_dialog_confirm_request confirm;
+memset(&confirm, 0, sizeof(confirm));
+confirm.struct_size = (uint32_t)sizeof(confirm);
+confirm.title = "Confirmation";
+confirm.message = "Do you want to proceed with this action?";
+confirm.negative_text = "No";                /* NULL이면 "No" */
+confirm.positive_text = "Yes";               /* NULL이면 "Yes" */
+confirm.not_cancelable = 1;
+confirm.not_cancelable_on_touch_outside = 1;
+
+/* 다이얼로그를 취소하지 않는다면 out_request_id는 NULL이어도 됩니다. */
+error = ntk_dialog_show_confirm_async(&confirm, &on_dialog_result, NULL, &release_user_data, NULL);
+```
+
+#### 선택 목록 다이얼로그
+
+`ntk_dialog_result_checked_index`는 단일 선택의 응답을 읽으며, 아무것도 선택하지 않은 경우 -1입니다. `ntk_dialog_result_checked_count`와 `ntk_dialog_result_checked_at`은 다중 선택의 응답을 읽으며, 선택된 항목에서는 0이 아닌 값입니다. 부정 버튼은 선택을 담지 않습니다.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+static void NTK_CALL on_single_choice(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                      uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        int32_t index = ntk_dialog_result_checked_index(result);   /* -1: 선택 없음 */
+        (void)index;
+    }
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL on_multi_choice(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                     uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        size_t count = ntk_dialog_result_checked_count(result);
+        size_t i;
+        for (i = 0; i < count; ++i) {
+            int32_t checked = ntk_dialog_result_checked_at(result, i);   /* 0이 아니면 선택됨 */
+            (void)checked;
+        }
+    }
+    ntk_dialog_result_free(result);
+}
+
+/* --- 항목 하나 ------------------------------------------------------ */
+const char* const single_items[] = { "Option 1", "Option 2", "Option 3" };
+
+ntk_dialog_single_choice_request single;
+memset(&single, 0, sizeof(single));
+single.struct_size = (uint32_t)sizeof(single);
+single.title = "Please select one";
+single.items = single_items;
+single.item_count = 3;                       /* 0이면 안 됩니다 */
+single.checked_index = 0;                    /* -1: 선택 없음 */
+single.negative_text = "Cancel";             /* NULL이면 "Cancel" */
+single.positive_text = "OK";                 /* NULL이면 "OK" */
+single.not_cancelable = 1;
+single.not_cancelable_on_touch_outside = 1;
+
+/* 해제할 것이 없다면 user_data와 release는 NULL이어도 됩니다. */
+ntk_dialog_error error = ntk_dialog_show_single_choice_async(&single, &on_single_choice, NULL, NULL, NULL);
+
+/* --- 여러 항목 ------------------------------------------------------ */
+const char* const multi_items[] = { "Option 1", "Option 2", "Option 3", "Option 4" };
+const int32_t multi_checked[] = { 0, 1, 0, 1 };
+
+ntk_dialog_multi_choice_request multi;
+memset(&multi, 0, sizeof(multi));
+multi.struct_size = (uint32_t)sizeof(multi);
+multi.title = "Multiple Selection";
+multi.items = multi_items;
+multi.item_count = 4;
+multi.checked = multi_checked;               /* NULL: 선택 없음. 그 외에는 item_count개의 값 */
+multi.negative_text = "Cancel";
+multi.positive_text = "OK";
+multi.not_cancelable = 1;
+multi.not_cancelable_on_touch_outside = 1;
+
+error = ntk_dialog_show_multi_choice_async(&multi, &on_multi_choice, NULL, NULL, NULL);
+```
+
+#### 입력 다이얼로그와 로그인 다이얼로그
+
+텍스트, 사용자 이름, 비밀번호는 결과 내부를 가리키며, 결과를 해제할 때까지 유효합니다.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+static void NTK_CALL on_text_input(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                   uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        size_t size = 0;
+        const char* text = ntk_dialog_result_text(result, &size);   /* UTF-8 */
+        (void)text;
+    }
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL on_login(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                              uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        const char* username = ntk_dialog_result_username(result, NULL);
+        const char* password = ntk_dialog_result_password(result, NULL);   /* 절대 로그에 남기지 마세요 */
+        (void)username; (void)password;
+    }
+    ntk_dialog_result_free(result);
+}
+
+/* --- 텍스트 입력 ---------------------------------------------------- */
+ntk_dialog_text_input_request input;
+memset(&input, 0, sizeof(input));
+input.struct_size = (uint32_t)sizeof(input);
+input.title = "Text Input";
+input.message = "Please enter your name";
+input.hint = "Enter here...";                /* NULL이면 힌트 없음 */
+input.negative_text = "Cancel";              /* NULL이면 "Cancel" */
+input.positive_text = "OK";                  /* NULL이면 "OK" */
+input.enable_positive_when_empty = 0;
+input.not_cancelable = 1;
+input.not_cancelable_on_touch_outside = 1;
+
+ntk_dialog_error error = ntk_dialog_show_text_input_async(&input, &on_text_input, NULL, NULL, NULL);
+
+/* --- 로그인 --------------------------------------------------------- */
+ntk_dialog_login_request login;
+memset(&login, 0, sizeof(login));
+login.struct_size = (uint32_t)sizeof(login);
+login.title = "Login";
+login.message = "Please enter your credentials";
+login.username_hint = "Username";            /* NULL이면 "Username" */
+login.password_hint = "Password";            /* NULL이면 "Password" */
+login.negative_text = "Cancel";              /* NULL이면 "Cancel" */
+login.positive_text = "Login";               /* NULL이면 "Login" */
+login.enable_positive_when_empty = 0;
+login.not_cancelable = 1;
+login.not_cancelable_on_touch_outside = 1;
+
+error = ntk_dialog_show_login_async(&login, &on_login, NULL, NULL, NULL);
+```
+
+| 오류 | 반환 / 완료 | 의미 |
+|---|---|---|
+| `NTK_DIALOG_ERROR_NONE` | 둘 다 | 접수됨, 또는 응답이 있음 |
+| `NTK_DIALOG_ERROR_INVALID_PARAMETER` | 반환(드물게 완료) | `NULL` 콜백이나 요청, 잘못된 UTF-8, 항목 없음, 범위를 벗어난 인덱스, 2.0.0 크기 미만이거나 4096을 넘는 `struct_size`, 0이 아닌 예약 필드입니다. 접수된 뒤 Kotlin API가 `IllegalArgumentException`으로 거부한 요청이 이 오류로 완료될 수도 있습니다 |
+| `NTK_DIALOG_ERROR_NOT_INITIALIZED` | 반환 | 초기화 전에 호출했습니다. 인수 검사가 먼저 이루어지며, `ntk_dialog_cancel`은 `NONE`을 반환합니다 |
+| `NTK_DIALOG_ERROR_NOT_SUPPORTED` | 반환 | 이 라이브러리가 모르는 0이 아닌 필드를 가진, 더 새로운 `struct_size`입니다 |
+| `NTK_DIALOG_ERROR_UNKNOWN` | 둘 다 | 그 밖의 오류입니다(자세한 내용은 logcat에 있습니다) |
+| `NTK_DIALOG_ERROR_OUT_OF_MEMORY` | 둘 다 | 메모리 부족입니다 |
+| `NTK_DIALOG_ERROR_CANCELED` | 완료 | `ntk_dialog_cancel`(`CancelReason.REQUESTED`) |
+| `NTK_DIALOG_ERROR_CANCELED_BY_SYSTEM` | 완료 | 다이얼로그를 표시하던 Activity가 소멸되었습니다(`CancelReason.HOST_DESTROYED`) |
+| `NTK_DIALOG_ERROR_NOT_FOREGROUND` | 완료 | 앱이 포그라운드에 있지 않았습니다(`DialogError.NOT_FOREGROUND`) |
+| `NTK_DIALOG_ERROR_HOST_START_FAILED` | 완료 | 투명한 Activity가 시작되지 않았습니다(`DialogError.HOST_START_FAILED`) |
+| `NTK_DIALOG_ERROR_SHOW_FAILED` | 완료 | 다이얼로그 표시에 실패했습니다(`DialogError.SHOW_FAILED`) |
+
+| Kotlin API | C ABI |
+|---|---|
+| `show(DialogRequest.Alert(...))` | `ntk_dialog_show_alert_async` |
+| `show(DialogRequest.Confirm(...))` | `ntk_dialog_show_confirm_async` |
+| `show(DialogRequest.SingleChoice(...))` | `ntk_dialog_show_single_choice_async` |
+| `show(DialogRequest.MultiChoice(...))` | `ntk_dialog_show_multi_choice_async` |
+| `show(DialogRequest.TextInput(...))` | `ntk_dialog_show_text_input_async` |
+| `show(DialogRequest.Login(...))` | `ntk_dialog_show_login_async` |
+| `cancel(requestId)` | `ntk_dialog_cancel` |
+| `DialogResult.Button` / `DialogResult.Dismissed` | `ntk_dialog_result_answer` |
+| `DialogResult.Button.which` / `text` | `ntk_dialog_result_button`, `ntk_dialog_result_button_text` |
+| `DialogValue` | `ntk_dialog_result_checked_index`, `ntk_dialog_result_checked_count`, `ntk_dialog_result_checked_at`, `ntk_dialog_result_text`, `ntk_dialog_result_username`, `ntk_dialog_result_password` |
+| - | `ntk_dialog_result_free` |
 
 ---
 

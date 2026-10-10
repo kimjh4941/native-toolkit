@@ -13,7 +13,10 @@ Language:
 ## Table of Contents
 
 - [Android](#android)
+  - [AndroidClipboardManager](#androidclipboardmanager)
+    - [Threads and callbacks](#threads-and-callbacks)
   - [Setup](#setup)
+    - [Gradle dependency](#gradle-dependency)
   - [Copy](#copy)
     - [Copy Plain Text](#copy-plain-text)
     - [Copy Plain Text (Empty)](#copy-plain-text-empty)
@@ -32,6 +35,13 @@ Language:
     - [Start Observing](#start-observing)
     - [Stop Observing](#stop-observing)
   - [Error Handling](#error-handling)
+  - [C ABI](#c-abi)
+    - [Building](#building)
+    - [Initialization](#initialization)
+    - [Copying and clearing](#copying-and-clearing)
+    - [Reading and querying](#reading-and-querying)
+    - [Change events](#change-events)
+    - [Error values](#error-values)
 - [iOS](#ios)
   - [IosClipboardManager](#iosclipboardmanager)
   - [Setup](#setup-1)
@@ -174,7 +184,7 @@ Language:
     - [Clear Unpinned History](#clear-unpinned-history)
     - [Cancel Request](#cancel-request)
   - [Error Handling](#error-handling-3)
-  - [C ABI](#c-abi)
+  - [C ABI](#c-abi-1)
     - [The session, its listeners and closing](#the-session-its-listeners-and-closing)
     - [Writing](#writing)
     - [Reading and inspecting](#reading-and-inspecting)
@@ -185,45 +195,101 @@ Language:
 
 ## Android
 
-- Library: `android-native-toolkit-1.3.0.aar`
+The system clipboard (`ClipboardManager`), on Android 12 (API 31) or later. The Android library offers it through two public APIs over one implementation, and the sample app uses the Kotlin API.
+
+| API | Names | Header / package | Artifact |
+|---|---|---|---|
+| Kotlin API | `AndroidClipboardManager` | `com.jonghyunkim.nativetoolkit.clipboard` | `android-native-toolkit-2.0.0.aar` |
+| C ABI | `ntk_clipboard_*` | `<NativeToolkitC/Clipboard.h>` | `android-native-toolkit-capi-2.0.0.aar` |
+
 - Minimum SDK: Android 12 (API 31)
 - Sensitive content preview suppression: Android 13 (API 33)+
-- Scope: copy, read, metadata inspection, clear, and clipboard change observation via `android_library` (native). No Unity Bridge dependency is required for any of these operations.
+- Scope: copy (plain text, HTML, URI, multiple text), sensitive copy, read, metadata inspection, clear, and clipboard change observation.
+
+Version 2.0.0 of the Android library changes the Kotlin package from `android.library.*` to `com.jonghyunkim.nativetoolkit.*` and removes the Unity bridge AAR. Code written against 1.x does not compile unchanged; see [Migrating the Android library to 2.0.0](index.md#migrating-the-android-library-to-200).
+
+### AndroidClipboardManager
+
+`AndroidClipboardManager` is the entry point for the clipboard. `getInstance(context)` returns the one instance of the process; it keeps only the Application Context, so any `Context` will do.
+
+```kotlin
+import com.jonghyunkim.nativetoolkit.clipboard.AndroidClipboardManager
+import com.jonghyunkim.nativetoolkit.clipboard.domain.error.ClipboardDomainError
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipContent
+
+// In a composable, as the sample app does. Elsewhere, call getInstance directly.
+val context = LocalContext.current
+val clipboardManager = remember(context) { AndroidClipboardManager.getInstance(context) }
+```
+
+The copy, read, inspect and clear operations are synchronous: they return their result, or throw a `ClipboardDomainError` (see [Error Handling](#error-handling)). The 1.x entry points `ClipboardUseCases(context)` and `ClipboardChangeMonitor` are still public, but `AndroidClipboardManager` is the recommended entry point, and it is what the C ABI calls.
+
+#### Threads and callbacks
+
+| Operations | Thread |
+|---|---|
+| `copyPlainText`, `copyHtmlText`, `copyUri`, `copyMultipleText`, `clear`, `read`, `hasClip`, `getDescription`, `errorCodeOf` | Any thread. They run on the calling thread and return when the system call returns |
+| `startObserving`, `stopObserving`, `isObserving` | Main thread only. Any other thread gets `IllegalStateException` |
+| `changes.addListener`, `EventHub.Registration.remove` | Main thread only. Any other thread gets `IllegalStateException` |
+| Listeners of `changes` | Called on the main thread. An exception a listener throws is caught and logged, and the other listeners still run |
+
+---
 
 ### Setup
 
-#### Android native (AAR)
+#### Gradle dependency
 
-1. Place `android-native-toolkit-1.3.0.aar` in `app/libs`.
-2. Add dependency in `app/build.gradle.kts`:
+`dist/1.13.0/android/` holds the AAR and a file-based Maven repository, `m2/`, that carries it with its POM. Resolving the library from `m2/` is recommended, because Gradle then also resolves the androidx libraries it depends on.
+
+**settings.gradle.kts:**
 
 ```kotlin
-dependencies {
-    implementation(files("libs/android-native-toolkit-1.3.0.aar"))
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        // dist/1.13.0/android/m2, copied into the project
+        maven { url = uri("third_party/native-toolkit-m2") }
+    }
 }
 ```
 
-No additional manifest configuration is required for clipboard operations. If you plan to copy a `content://` URI (see [Copy URI](#copy-uri)), you need a `FileProvider` that can resolve a URI for the file you want to share; the AAR itself does not declare one for general-purpose use.
+**app/build.gradle.kts:**
+
+```kotlin
+dependencies {
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+}
+```
+
+If you add `android-native-toolkit-2.0.0.aar` as a file instead, Gradle does not learn its dependencies, and you declare them yourself. [Library integration](index.md#library-integration) has both ways step by step, the dependency list and the permissions the library adds to your manifest.
+
+| Requirement | Value |
+|---|---|
+| `minSdk` | 31 or later |
+| `compileSdk` | 36 or later |
+| Kotlin compiler (Kotlin callers) | 2.1 or later |
+
+The library registers its initializer with androidx.startup (`InitializationProvider`). The clipboard does not depend on it: every clipboard operation works even in an app that disables androidx.startup. Such an app initializes the library for its other features with `LibraryRuntime.ensureInitialized(activity)` (`com.jonghyunkim.nativetoolkit.common.runtime`), passing the current Activity; see [Library integration](index.md#library-integration).
+
+No permission and no manifest entry are needed for the clipboard. To copy a `content://` URI (see [Copy URI](#copy-uri)), you need a `FileProvider` that can serve the file. The sample app reuses the one the library declares for the Share feature, whose authority is `<applicationId>.native_toolkit.share.fileprovider` and which serves the app's files, cache and external files directories. An app that wants a provider of its own declares a subclass of `FileProvider` (for example `class ClipboardFileProvider : FileProvider()`) with its own authority: declaring `androidx.core.content.FileProvider` itself again conflicts with the library's entry in the manifest merge.
 
 ---
 
 ### Copy
 
-`ClipboardUseCases` is obtained via a factory function that takes a `Context`:
-
-```kotlin
-val clipboardUseCases = ClipboardUseCases(context)
-```
+Each copy replaces the whole clipboard with one clip. Every `ClipContent` also takes an optional `label` (default `""`) and `isSensitive` (default `false`; see [Copy - Sensitive](#copy---sensitive)).
 
 #### Copy Plain Text
 
 ```kotlin
 try {
-    clipboardUseCases.copyPlainText(
+    clipboardManager.copyPlainText(
         ClipContent.PlainText(text = "Hello from native-toolkit", label = "sample")
     )
 } catch (e: ClipboardDomainError) {
-    // handle error
+    // handle error (see Error Handling)
 }
 ```
 
@@ -236,7 +302,7 @@ try {
 Blank text is allowed and does not throw.
 
 ```kotlin
-clipboardUseCases.copyPlainText(ClipContent.PlainText(text = ""))
+clipboardManager.copyPlainText(ClipContent.PlainText(text = ""))
 ```
 
 <p align="center">
@@ -245,8 +311,10 @@ clipboardUseCases.copyPlainText(ClipContent.PlainText(text = ""))
 
 #### Copy HTML Text
 
+`htmlText` must not be blank (`ClipboardDomainError.EmptyContent`); `plainText` is the plain-text alternative that apps without HTML support paste.
+
 ```kotlin
-clipboardUseCases.copyHtmlText(
+clipboardManager.copyHtmlText(
     ClipContent.HtmlText(plainText = "Hello", htmlText = "<b>Hello</b>")
 )
 ```
@@ -257,18 +325,32 @@ clipboardUseCases.copyHtmlText(
 
 #### Copy URI
 
-Copies a `content://` (or `file://`) URI. Only the `content` and `file` schemes are accepted; other schemes throw `ClipboardDomainError.InvalidUri`.
+Copies a URI string. Only the `content` and `file` schemes are accepted; a blank URI or any other scheme throws `ClipboardDomainError.InvalidUri`. Use a `content://` URI from a `FileProvider`, so that the app that pastes it can read the file.
+
+The sample app writes the file on a background thread, then copies its URI:
 
 ```kotlin
-val file = File(context.cacheDir, "clipboard_sample.txt")
-file.writeText("Clipboard sample file content")
-val uri = FileProvider.getUriForFile(
-    context,
-    "${context.packageName}.native_toolkit.share.fileprovider",
-    file
-)
+private fun prepareSampleUri(context: Context): String {
+    val file = File(context.cacheDir, "clipboard_sample.txt")
+    file.writeText("Clipboard sample file content")
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.native_toolkit.share.fileprovider",
+        file
+    )
+    return uri.toString()
+}
 
-clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri.toString()))
+scope.launch(Dispatchers.IO) {
+    val uri = prepareSampleUri(context)
+    withContext(Dispatchers.Main) {
+        try {
+            clipboardManager.copyUri(ClipContent.UriContent(uri = uri))
+        } catch (e: ClipboardDomainError) {
+            // handle error (see Error Handling)
+        }
+    }
+}
 ```
 
 <p align="center">
@@ -277,10 +359,10 @@ clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri.toString()))
 
 #### Copy Multiple Text
 
-Multiple plain-text items of the same form (a single `ClipData` with several items).
+Several plain-text items in one clip (a single `ClipData` with one item per text). The list must not be empty (`ClipboardDomainError.EmptyItemList`).
 
 ```kotlin
-clipboardUseCases.copyMultipleText(
+clipboardManager.copyMultipleText(
     ClipContent.MultipleText(texts = listOf("first", "second", "third"))
 )
 ```
@@ -293,7 +375,7 @@ clipboardUseCases.copyMultipleText(
 
 ### Copy - Sensitive
 
-Set `isSensitive = true` to hint that the copied content is sensitive (a password, a one-time code, etc.).
+Set `isSensitive = true` to mark the copied content as sensitive (a password, a one-time code, etc.). The library sets `ClipDescription.EXTRA_IS_SENSITIVE` on the clip.
 
 - On Android 13 (API 33) and above, the system's own copy-confirmation UI suppresses the content preview.
 - On Android 12L (API 32) and below, there is no system confirmation UI at all; show your own feedback (for example a `Toast`) after copying.
@@ -301,7 +383,7 @@ Set `isSensitive = true` to hint that the copied content is sensitive (a passwor
 #### Copy Sensitive Text
 
 ```kotlin
-clipboardUseCases.copyPlainText(
+clipboardManager.copyPlainText(
     ClipContent.PlainText(text = "P@ssw0rd-sample", isSensitive = true)
 )
 
@@ -322,14 +404,23 @@ if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
 
 An empty clipboard is a **normal case**, not an error: `read()` returns `null`.
 
+Since Android 10, only the app that has input focus (or the default keyboard) can read the clipboard. Without focus, for example before your window has gained it, the system hands back nothing and `read()` also returns `null`: it cannot be told apart from an empty clipboard. Read in response to a user action, as the sample app does. `ClipboardDomainError.ReadNotAllowed` is thrown only when the system refuses the read with a `SecurityException`.
+
 ```kotlin
-val result = clipboardUseCases.read()
-if (result != null) {
-    // result.label, result.mimeTypes, result.items (text / htmlText / uri / coercedText per item)
-} else {
-    // clipboard is empty (normal)
+try {
+    val result = clipboardManager.read()
+    if (result != null) {
+        // result.label, result.mimeTypes
+        // result.items: text / htmlText / uri / coercedText per item
+    } else {
+        // clipboard is empty (normal), or the app has no input focus
+    }
+} catch (e: ClipboardDomainError) {
+    // handle error (see Error Handling)
 }
 ```
+
+Each `ClipItemData` has `text`, `htmlText` and `uri`, each `null` when the item does not hold it, and `coercedText`, a best-effort plain-text form (the text, otherwise the URI string). `coercedText` does not resolve a `content://` URI into its contents.
 
 <p align="center">
     <img src="images/android/clipboard/Example_ClipboardSampleScreen_ReadClipboard.png" alt="Example_ClipboardSampleScreen_ReadClipboard" width="400" />
@@ -338,7 +429,7 @@ if (result != null) {
 #### Has Clip
 
 ```kotlin
-val hasClip: Boolean = clipboardUseCases.hasClip()
+val hasClip: Boolean = clipboardManager.hasClip()
 ```
 
 <p align="center">
@@ -350,7 +441,7 @@ val hasClip: Boolean = clipboardUseCases.hasClip()
 Reads metadata only, without touching the clip body (avoids the Android 12+ "pasted from clipboard" access notification). Also `null` when the clipboard is empty (normal case).
 
 ```kotlin
-val info = clipboardUseCases.getDescription()
+val info = clipboardManager.getDescription()
 if (info != null) {
     // info.label, info.mimeTypes
     // info.isStyledText: whether the content is styled (rich) text
@@ -369,7 +460,7 @@ if (info != null) {
 #### Clear Clipboard
 
 ```kotlin
-clipboardUseCases.clear()
+clipboardManager.clear()
 ```
 
 <p align="center">
@@ -380,70 +471,342 @@ clipboardUseCases.clear()
 
 ### Observe
 
-`ClipboardChangeMonitor` owns the system clipboard-change listener. It lives in `android_library` (not the Unity Bridge), so it can be used directly from native code.
+There is one clipboard observation per process, shared by every listener of `changes` (and by the C ABI's listeners). Observing and listening are separate:
 
-Observation is only reliable while the app is in the foreground (Android 10+ restricts background clipboard reads).
+- `startObserving()` and `stopObserving()` start and stop the one system listener. Both do nothing when already in that state. `isObserving()` reports the state.
+- `changes.addListener` adds a listener and returns its `EventHub.Registration`. A listener receives changes only while observation runs; changes that arrive while no listener is registered are dropped.
+- Removing a listener does not stop observation, and stopping observation stops it for every listener.
 
-```kotlin
-val monitor = ClipboardChangeMonitor()
-```
+All of these are main-thread only, and listeners are called on the main thread. Observation is only reliable while the app is in the foreground: the system does not report changes while the app lacks input focus (Android 10 and later).
 
 #### Start Observing
 
-`onChange` is called on the system listener's callback thread; marshal to the main thread yourself if you update UI state.
+In the sample app, the Clipboard screen is the only part of the app that observes, so it owns observation: it adds its listener when it is shown, starts observation from a button, and both removes its listener and stops observation when it closes.
 
 ```kotlin
-monitor.start(context) {
-    // Called on the system listener's callback thread.
-    mainHandler.post {
-        // update UI state here
+// This screen owns observation. Changes arrive on the main thread while it is shown.
+DisposableEffect(clipboardManager) {
+    val registration = clipboardManager.changes.addListener { _, _ ->
+        changeCount++
+        statusText = "Clipboard changed ($changeCount)"
+    }
+    onDispose {
+        registration.remove()
+        // Only because this screen is the one owner of observation.
+        clipboardManager.stopObserving()
     }
 }
 
-val isObserving: Boolean = monitor.isObserving()
+clipboardManager.startObserving()
+val isObserving: Boolean = clipboardManager.isObserving()
 ```
 
-A second call to `start` while already observing is a no-op (no duplicate system listener registration).
+The listener's second argument is its own `Registration`, so a listener can remove itself while it runs. If the system `ClipboardManager` cannot be obtained, `startObserving()` does not start and `isObserving()` stays `false`.
 
 #### Stop Observing
 
 ```kotlin
-monitor.stop()
+clipboardManager.stopObserving()
 ```
 
-Call `stop()` when the observing screen/component is torn down to avoid leaking the system listener:
-
-```kotlin
-DisposableEffect(monitor) {
-    onDispose { monitor.stop() }
-}
-```
+Every subscriber removes its own listener when it is torn down. Stopping is different: observation is one per process, so `stopObserving()` stops it for every subscriber of `changes` (and for the C ABI's listeners). Calling it from each subscriber's teardown, as the single-owner example above does, would let the first screen that closes stop observation for all the others. An app that observes from several places gives start and stop one owner, for example a reference count kept by the app that calls `startObserving()` when the first subscriber arrives and `stopObserving()` when the last one leaves.
 
 ---
 
 ### Error Handling
 
-`ClipboardUseCases` throws `ClipboardDomainError` subtypes.
+The synchronous operations throw `ClipboardDomainError` subtypes. `errorCodeOf(error)` classifies any failure into one of seven `ClipboardErrorCode` values, the same classification the C ABI returns (`ClipboardErrorCode.of(error)` does the same). It only reads the exception; the thrown types are unchanged.
 
-| Error | Cause | Error message |
-|---|---|---|
-| `EmptyContent` | `htmlText` is blank in `copyHtmlText` | `"Clipboard content is empty. Please provide text or HTML."` |
-| `EmptyItemList` | `texts` list is empty in `copyMultipleText` | `"No items provided for clipboard copy."` |
-| `InvalidUri` | `uri` is blank, or its scheme is neither `content` nor `file` | `"Invalid URI: <uri>"` |
-| `ClipboardUnavailable` | The system `ClipboardManager` could not be obtained | `"Clipboard service is unavailable."` |
-| `ReadNotAllowed` | `read()` was denied by the system (`SecurityException`); the app is likely not in the foreground | `"Clipboard read is not allowed. The app must be in the foreground."` |
+| `ClipboardDomainError` | `ClipboardErrorCode` | Thrown by | Cause |
+|---|---|---|---|
+| `EmptyContent` | `EMPTY_CONTENT` | `copyHtmlText` | `htmlText` is blank |
+| `EmptyItemList` | `EMPTY_ITEMS` | `copyMultipleText` | `texts` is empty |
+| `InvalidUri` | `INVALID_URI` | `copyUri` | `uri` is blank, or its scheme is neither `content` nor `file`. The `uri` property holds the rejected value |
+| `ClipboardUnavailable` | `UNAVAILABLE` | Every copy, read, inspect and clear operation | The system `ClipboardManager` could not be obtained |
+| `ReadNotAllowed` | `READ_NOT_ALLOWED` | `read` | The system refused the read (`SecurityException`) |
+| (a `SecurityException` from the system) | `SECURITY` | Any other operation | Passed through unchanged |
+| (anything else) | `UNKNOWN` | - | - |
 
 An empty clipboard is **not** one of these errors: `read()` and `getDescription()` return `null` as a normal case.
 
+The sample app names the error and adds its code:
+
 ```kotlin
 try {
-    clipboardUseCases.copyUri(ClipContent.UriContent(uri = ""))
-} catch (e: ClipboardDomainError.InvalidUri) {
-    // Blank or unsupported-scheme URI
+    clipboardManager.copyUri(ClipContent.UriContent(uri = ""))
 } catch (e: ClipboardDomainError) {
-    // Other domain error
+    statusText = clipboardErrorMessage(e, clipboardManager)
+}
+
+private fun clipboardErrorMessage(e: ClipboardDomainError, manager: AndroidClipboardManager): String {
+    val text = when (e) {
+        is ClipboardDomainError.EmptyContent -> "EmptyContent: HTML body is empty"
+        is ClipboardDomainError.EmptyItemList -> "EmptyItemList: no items to copy"
+        is ClipboardDomainError.InvalidUri -> "InvalidUri: ${e.uri}"
+        is ClipboardDomainError.ClipboardUnavailable -> "ClipboardUnavailable"
+        is ClipboardDomainError.ReadNotAllowed -> "ReadNotAllowed: app must be in foreground"
+    }
+    return "$text [errorCode=${manager.errorCodeOf(e)}]"
 }
 ```
+
+### C ABI
+
+- The same clipboard for C, and for any language that can call a C function (C#, Dart, Rust, Go and others). Kotlin and Java apps call `AndroidClipboardManager` directly instead.
+- Every function can be called from any thread and **never waits** for the main thread. Copy, clear, read and the queries run on the calling thread and return their result. `ntk_clipboard_start_observing` and `ntk_clipboard_stop_observing` are posted to the main thread: `NTK_CLIPBOARD_ERROR_NONE` means the request was accepted, not that observation has started.
+- Change events, and the `release` of an accepted listener, are called on the **Android main thread**. Do not block it, and do not let an exception leave a callback: an exception that reaches the library ends the process.
+- Reads hand back handles that the caller owns: `ntk_clipboard_content` and `ntk_clipboard_description`, each freed with its own `_free`. A pointer read from a handle stays valid until that handle is freed. A listener's `user_data` belongs to the caller, who may free it once `release` has been called.
+- Copy options are a `ntk_clipboard_copy_options` struct; `NULL` means no label and not sensitive.
+- The C ABI exists only on 64-bit ABIs (`arm64-v8a`, `x86_64`). The app must also have Kotlin or Java code (the C ABI calls the Kotlin library through JNI), and calls from the app's default process unless it initializes the C ABI itself.
+
+#### Building
+
+Add both AARs, enable Prefab, and limit both the APK and your CMake build to the 64-bit ABIs. AGP checks the Prefab package for every ABI your CMake build targets, so a CMake build that also targets a 32-bit ABI fails with CXX1210 (see [C ABI](index.md#c-abi) in the manual top). An app that also ships 32-bit code installs without `libntk.so` on 32-bit devices; it does not crash, but loading the library fails (`DllNotFoundException` in C#, an exception from `DynamicLibrary.open` in Dart), which the app then has to handle.
+
+**app/build.gradle.kts:**
+
+```kotlin
+android {
+    defaultConfig {
+        minSdk = 31
+        // What the APK carries.
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        // What your CMake build targets: every ABI here must exist in the Prefab package.
+        externalNativeBuild {
+            cmake { abiFilters("arm64-v8a", "x86_64") }
+        }
+    }
+    externalNativeBuild {
+        cmake { path = file("src/main/cpp/CMakeLists.txt") }
+    }
+    buildFeatures { prefab = true }
+}
+
+dependencies {
+    implementation("io.github.kimjh4941:android-native-toolkit-capi:2.0.0")
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+}
+```
+
+**CMakeLists.txt:**
+
+```cmake
+find_package(ntk REQUIRED CONFIG)
+
+add_library(app SHARED app.c)
+target_link_libraries(app PRIVATE ntk::ntk)
+```
+
+The headers are `NativeToolkitC/Common.h`, `NativeToolkitC/Android.h` and `NativeToolkitC/Clipboard.h`. The AAR carries its own R8 keep rules. For a binding generator (ClangSharp, bindgen, ffigen), the same headers are in `dist/1.13.0/android/include/NativeToolkitC/`.
+
+#### Initialization
+
+By default there is nothing to call: the capi AAR initializes the C ABI through androidx.startup when the app starts. Until it has, every clipboard function that returns `ntk_clipboard_error` returns `NTK_CLIPBOARD_ERROR_NOT_INITIALIZED` (argument errors are reported first). The readers and the `_free` functions work regardless.
+
+Call `ntk_android_init` yourself when the app disables androidx.startup, runs in a process other than the default one, loads `libntk.so` with `dlopen` only, or calls from its own `ContentProvider` (which may run before androidx.startup). It never waits and can be called more than once; it returns `NTK_ANDROID_ERROR_NONE` once initialized.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Android.h>
+
+/* Called from your JNI code. env: the JNIEnv* of the calling thread. context: any Context
+   (a jobject). Both are passed as void* so that the header does not need jni.h. */
+static int32_t init_native_toolkit(void* env, void* context)
+{
+    ntk_android_error error = ntk_android_init(env, context);
+    if (error == NTK_ANDROID_ERROR_IN_PROGRESS || error == NTK_ANDROID_ERROR_JNI_FAILURE) {
+        /* Not ready yet: call again later. */
+    } else if (error == NTK_ANDROID_ERROR_CLASS_NOT_FOUND) {
+        /* The Kotlin classes are missing or renamed (R8): calling again does not help. */
+    }
+    return ntk_android_is_initialized();   /* nonzero once initialized */
+}
+```
+
+Kotlin code can call `NativeToolkitCApi.init(context)` instead.
+
+#### Copying and clearing
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+/* Plain text. NULL options: no label, not sensitive. An empty string is valid. */
+ntk_clipboard_error error = ntk_clipboard_copy_text("Hello from native-toolkit", NULL);
+
+/* A label, or the sensitive flag: zero the struct, then set struct_size. */
+ntk_clipboard_copy_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.label = "sample";
+error = ntk_clipboard_copy_text("Hello from native-toolkit", &options);
+
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.sensitive = 1;
+error = ntk_clipboard_copy_text("P@ssw0rd-sample", &options);
+
+/* HTML and its plain text. A blank html is EMPTY_CONTENT; a NULL plain_text is "". */
+error = ntk_clipboard_copy_html("<b>Hello</b>", "Hello", NULL);
+
+/* A content:// URI. A blank URI or another scheme is INVALID_URI. */
+const char* uri = "content://com.example.app.native_toolkit.share.fileprovider/cache/clipboard_sample.txt";
+error = ntk_clipboard_copy_uri(uri, NULL);
+
+/* Several texts in one clip. A count of 0 is EMPTY_ITEMS. */
+const char* texts[3];
+texts[0] = "first";
+texts[1] = "second";
+texts[2] = "third";
+error = ntk_clipboard_copy_texts(texts, 3, NULL);
+
+/* Empty the clipboard. */
+error = ntk_clipboard_clear();
+```
+
+#### Reading and querying
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+ntk_clipboard_content* content = NULL;
+ntk_clipboard_error error = ntk_clipboard_read(&content);
+if (error == NTK_CLIPBOARD_ERROR_NONE && content == NULL) {
+    /* Empty, or the app has no input focus: the two cannot be told apart. */
+} else if (error == NTK_CLIPBOARD_ERROR_NONE) {
+    const char* label = ntk_clipboard_content_label(content, NULL);   /* NULL when there is none */
+    size_t mime_count = ntk_clipboard_content_mime_type_count(content);
+    size_t item_count = ntk_clipboard_content_item_count(content);
+    size_t i;
+    for (i = 0; i < mime_count; ++i) {
+        const char* mime_type = ntk_clipboard_content_mime_type_at(content, i, NULL);
+        (void)mime_type;
+    }
+    for (i = 0; i < item_count; ++i) {
+        size_t size = 0;
+        /* Each is NULL when the item does not hold it. */
+        const char* text = ntk_clipboard_content_item_text_at(content, i, &size);
+        const char* html = ntk_clipboard_content_item_html_at(content, i, NULL);
+        const char* uri = ntk_clipboard_content_item_uri_at(content, i, NULL);
+        const char* coerced = ntk_clipboard_content_item_coerced_text_at(content, i, NULL);
+        (void)text; (void)html; (void)uri; (void)coerced;
+    }
+    (void)label;
+    ntk_clipboard_content_free(content);
+} else if (error == NTK_CLIPBOARD_ERROR_READ_NOT_ALLOWED) {
+    /* The system refused the read. */
+}
+
+/* Whether there is a clip. A failure is returned, not reported as 0. */
+int32_t has_clip = 0;
+error = ntk_clipboard_has_clip(&has_clip);
+
+/* The metadata, without reading the clip body. NULL when the clipboard is empty. */
+ntk_clipboard_description* description = NULL;
+error = ntk_clipboard_get_description(&description);
+if (error == NTK_CLIPBOARD_ERROR_NONE && description != NULL) {
+    const char* label = ntk_clipboard_description_label(description, NULL);
+    size_t mime_count = ntk_clipboard_description_mime_type_count(description);
+    const char* first = ntk_clipboard_description_mime_type_at(description, 0, NULL);   /* NULL when out of range */
+    int32_t styled = ntk_clipboard_description_is_styled_text(description);
+    int32_t classification = ntk_clipboard_description_classification_status(description);   /* -1: not reported */
+    (void)label; (void)mime_count; (void)first; (void)styled; (void)classification;
+    ntk_clipboard_description_free(description);
+}
+```
+
+`Common.h` is shared with Windows and also declares the `ntk_string`, `ntk_bytes` and `ntk_string_list` handles. No Android 2.0.0 function returns an `ntk_bytes` or `ntk_string_list` handle; their helpers exist for the shared header, and like every reader they accept `NULL`:
+
+```c
+#include <NativeToolkitC/Common.h>
+
+/* Readers return NULL or 0 for a NULL handle, and _free does nothing for NULL. */
+ntk_bytes* bytes = NULL;
+const uint8_t* data = ntk_bytes_data(bytes);       /* NULL */
+size_t byte_count = ntk_bytes_size(bytes);         /* 0 */
+ntk_bytes_free(bytes);
+
+ntk_string_list* list = NULL;
+size_t count = ntk_string_list_count(list);        /* 0 */
+const char* first = ntk_string_list_at(list, 0, NULL);   /* NULL */
+ntk_string_list_free(list);
+
+ntk_string* text = NULL;
+size_t length = ntk_string_size(text);             /* 0 */
+ntk_string_free(text);
+(void)data; (void)byte_count; (void)count; (void)first; (void)length;
+```
+
+#### Change events
+
+A listener alone does not start observation, and removing it does not stop observation: start and stop it with their own functions. Observation is the same one the Kotlin API uses, so `ntk_clipboard_stop_observing` also stops it for Kotlin listeners. There is no C function for `isObserving`.
+
+```c
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Clipboard.h>
+
+static void NTK_CALL on_clipboard_changed(void* user_data)
+{
+    /* On the Android main thread. Keep it short and let no exception escape. */
+    (void)user_data;
+}
+
+static void NTK_CALL release_listener_state(void* user_data)
+{
+    /* Called exactly once: on the main thread after the listener is removed, or before
+       ntk_clipboard_add_change_listener returns when it fails. Free user_data here. */
+    (void)user_data;
+}
+
+void* state = NULL;   /* your own state, handed back as user_data */
+ntk_clipboard_listener* listener = NULL;
+ntk_clipboard_error error = ntk_clipboard_add_change_listener(
+    &on_clipboard_changed, state, &release_listener_state, &listener);   /* release may be NULL */
+
+/* Posted to the main thread: NONE means accepted. Calling it again does nothing. */
+error = ntk_clipboard_start_observing();
+
+/* Later. The handle is invalid after remove. Removed on the main thread, the listener gets no
+   further calls; removed from another thread, a call can still arrive until release runs. */
+ntk_clipboard_listener_remove(listener);
+listener = NULL;
+error = ntk_clipboard_stop_observing();
+```
+
+#### Error values
+
+`ntk_clipboard_error` is the return value of every function above except the readers, the `_free` functions and `ntk_clipboard_listener_remove`. `ntk_last_system_code()` is always 0 on Android. Arguments are checked before initialization, so a bad argument gets its own error even before the C ABI is initialized.
+
+| Value | Name | When | `ClipboardErrorCode` |
+|---|---|---|---|
+| 0 | `NTK_CLIPBOARD_ERROR_NONE` | Success | - |
+| 1 | `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER` | A `NULL` argument, invalid UTF-8, a `struct_size` below the 2.0.0 size or above 4096, a nonzero reserved field | - |
+| 2 | `NTK_CLIPBOARD_ERROR_NOT_INITIALIZED` | Called before the C ABI is initialized | - |
+| 3 | `NTK_CLIPBOARD_ERROR_NOT_SUPPORTED` | A nonzero value in the part of a struct this version does not know | - |
+| 4 | `NTK_CLIPBOARD_ERROR_UNKNOWN` | Anything else, including a JNI failure (logcat has the detail) | `UNKNOWN` |
+| 5 | `NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY` | An allocation failed | - |
+| 6 | `NTK_CLIPBOARD_ERROR_EMPTY_CONTENT` | `ntk_clipboard_copy_html` with a blank `html` | `EMPTY_CONTENT` |
+| 7 | `NTK_CLIPBOARD_ERROR_EMPTY_ITEMS` | `ntk_clipboard_copy_texts` with a `count` of 0 | `EMPTY_ITEMS` |
+| 8 | `NTK_CLIPBOARD_ERROR_INVALID_URI` | A blank URI, or a scheme other than `content` and `file` | `INVALID_URI` |
+| 9 | `NTK_CLIPBOARD_ERROR_UNAVAILABLE` | The system `ClipboardManager` could not be obtained | `UNAVAILABLE` |
+| 10 | `NTK_CLIPBOARD_ERROR_READ_NOT_ALLOWED` | The system refused the read | `READ_NOT_ALLOWED` |
+| 11 | `NTK_CLIPBOARD_ERROR_SECURITY` | Another `SecurityException` from the system | `SECURITY` |
+
+| Kotlin API | C ABI |
+|---|---|
+| `AndroidClipboardManager.getInstance` | None: the functions are global |
+| `copyPlainText` / `copyHtmlText` / `copyUri` / `copyMultipleText` | `ntk_clipboard_copy_text` / `_copy_html` / `_copy_uri` / `_copy_texts` |
+| `label` and `isSensitive` of `ClipContent` | `ntk_clipboard_copy_options` (`label`, `sensitive`) |
+| `clear` | `ntk_clipboard_clear` |
+| `read` and `ClipReadResult` | `ntk_clipboard_read` and `ntk_clipboard_content_label` / `_content_mime_type_count` / `_content_mime_type_at` / `_content_item_count` / `_content_item_text_at` / `_content_item_html_at` / `_content_item_uri_at` / `_content_item_coerced_text_at` / `_content_free` |
+| `hasClip` | `ntk_clipboard_has_clip` |
+| `getDescription` and `ClipDescriptionInfo` | `ntk_clipboard_get_description` and `ntk_clipboard_description_label` / `_description_mime_type_count` / `_description_mime_type_at` / `_description_is_styled_text` / `_description_classification_status` / `_description_free` |
+| `startObserving` / `stopObserving` | `ntk_clipboard_start_observing` / `_stop_observing` |
+| `isObserving` | None |
+| `changes.addListener` / `EventHub.Registration.remove` | `ntk_clipboard_add_change_listener` / `ntk_clipboard_listener_remove` |
+| `errorCodeOf` and `ClipboardErrorCode` | The returned `ntk_clipboard_error` |
 
 ---
 

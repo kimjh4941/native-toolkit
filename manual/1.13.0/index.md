@@ -32,11 +32,13 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
-- iOS: `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows (C++ API): `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg`
-- Windows (C ABI): `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
-- macOS: `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android (Kotlin API): `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`
+- Android (C ABI): `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`, headers in `dist/1.13.0/android/include/NativeToolkitC/`
+- Android (Maven repository with both AARs, POMs and Gradle Module Metadata): `dist/1.13.0/android/m2/`
+- iOS: `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows (C++ API): `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -45,7 +47,9 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Version
 
-## 1.12.0
+## 1.13.0
+
+- The Android library is 2.0.0: new package names, per-feature managers and a C ABI. See [Migrating the Android library to 2.0.0](#migrating-the-android-library-to-200).
 
 # Supported OS versions
 
@@ -65,9 +69,15 @@ Markdown files in this directory are published as versioned documents under `doc
   - Multi-choice dialog
   - Text input dialog
   - Login dialog
+  - Waiting for the result with a coroutine
+  - Canceling a dialog
 - Notification features
+  - Notification permission (check, request, cancel a request, open the settings)
   - Show / update / cancel notifications
   - Manage notification channels
+  - Interaction events (taps, actions, dismissals)
+  - Progress notifications
+  - Foreground service notifications
   - Schedule notifications
 - Share features
   - Text / URL share
@@ -77,6 +87,7 @@ Markdown files in this directory are published as versioned documents under `doc
   - Custom Chooser Actions (Android 14+)
   - Direct Share Target
   - Share with callback
+  - Selection event (which app was chosen)
   - Receive incoming shares
 - Clipboard features
   - Copy (plain text, HTML, URI, multiple text)
@@ -84,6 +95,8 @@ Markdown files in this directory are published as versioned documents under `doc
   - Read / has clip / metadata inspection
   - Clear
   - Clipboard change observation
+
+The Android features above are also available from C, C++ and other languages (C#, Rust, Dart and so on) through the C ABI (`ntk_*` functions in `libntk.so`), except receiving incoming shares, which is the app's own Activity work. Each feature page lists the C functions; see also [C ABI](#c-abi) under Library integration.
 
 ## iOS
 
@@ -225,42 +238,189 @@ Markdown files in this directory are published as versioned documents under `doc
 
 ### Android
 
-#### Supported platform: Android (AAR / ABI-independent)
+#### Supported platform: Android 12 (API 31) and later
 
-1. Place `android-native-toolkit-1.3.0.aar` in `app/libs`.
-2. Add repository settings in `settings.gradle.kts` to resolve the AAR.
-3. Add dependency settings in `app/build.gradle.kts` to reference the AAR.
-4. Run Gradle sync.
-5. Verify that the build succeeds.
-   Add the following settings:
+The Android library ships as two AARs:
+
+| AAR | For | Contents |
+|---|---|---|
+| `android-native-toolkit-2.0.0.aar` | Kotlin and Java callers | The Kotlin API (`com.jonghyunkim.nativetoolkit.*`) |
+| `android-native-toolkit-capi-2.0.0.aar` | C, C++ and other languages | The C ABI: `libntk.so` (`arm64-v8a`, `x86_64`), its headers through Prefab, and the Kotlin side it calls. It depends on the Kotlin API AAR |
+
+Requirements:
+
+- `minSdk` 31 or later and `compileSdk` 36 or later
+- Android Gradle Plugin 8.9.1 or later (the AndroidX dependencies require it)
+- Kotlin 2.1 or later if your app is written in Kotlin (the library needs `kotlin-stdlib` 2.2 or later at run time, which Gradle resolves)
+
+##### Option A: the Maven repository (recommended)
+
+`dist/1.13.0/android/m2/` is a Maven repository with both AARs and their dependency information, so Gradle resolves the AndroidX and Kotlin libraries the AARs need.
+
+1. Copy `dist/1.13.0/android/m2/` into your project, for example as `third_party/native-toolkit-m2/`.
+2. Add it as a repository in `settings.gradle.kts`.
+3. Add the dependency in `app/build.gradle.kts`.
+4. Run Gradle sync and build.
 
 **settings.gradle.kts:**
 
-```gradle
-
+```kotlin
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-
-        // Add this to resolve local AAR files.
-        flatDir {
-            dirs("app/libs")
-        }
+        maven { url = uri("third_party/native-toolkit-m2") }
     }
 }
 ```
 
 **app/build.gradle.kts:**
 
-```gradle
-
+```kotlin
 dependencies {
-    // Add this dependency to reference the AAR.
-  implementation(files("libs/android-native-toolkit-1.3.0.aar"))
+    // The Kotlin API.
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+    // The C ABI, if you call the library from C or another language. It needs the Kotlin API at run
+    // time and brings it as a runtime dependency; keep the line above if your own Kotlin or Java code
+    // calls the Kotlin API too.
+    implementation("io.github.kimjh4941:android-native-toolkit-capi:2.0.0")
 }
 ```
+
+##### Option B: the AAR files
+
+If you place the AAR files yourself, Gradle does not know what they depend on, so add the dependencies below as well.
+
+1. Place `android-native-toolkit-2.0.0.aar` (and `android-native-toolkit-capi-2.0.0.aar` for the C ABI) in `app/libs`.
+2. Add the AARs and the dependencies in `app/build.gradle.kts`.
+
+**app/build.gradle.kts:**
+
+```kotlin
+dependencies {
+    implementation(files("libs/android-native-toolkit-2.0.0.aar"))
+    implementation(files("libs/android-native-toolkit-capi-2.0.0.aar")) // C ABI only
+
+    // What the AARs need at run time.
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
+    implementation("org.jetbrains.kotlin:kotlin-parcelize-runtime:2.2.21")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.fragment:fragment:1.9.1")
+    implementation("androidx.media:media:1.8.0")
+    implementation("androidx.startup:startup-runtime:1.2.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+}
+```
+
+<!-- ntk-android-dependencies: the list above is checked against the Gradle Module Metadata of the release by scripts/check_android_dist.py -->
+
+##### Initialization
+
+The library initializes itself when the app starts, through AndroidX App Startup (`androidx.startup.InitializationProvider`, which the AARs add to the merged manifest). Nothing has to be called.
+
+Initialize it yourself before the first call when App Startup does not run first:
+
+- your app disables App Startup (or removes the library's initializer from the merged manifest);
+- you call the library from a process other than the app's default one (App Startup runs in the default process only);
+- you call it from your own `ContentProvider`, which may be created before App Startup's.
+
+How:
+
+- Kotlin API: `LibraryRuntime.ensureInitialized(activity)` (`com.jonghyunkim.nativetoolkit.common.runtime`), from the first Activity's `onCreate`, passing that Activity. The library tracks the foreground Activity from then on; given only the application context, it misses the Activity already on screen, and dialogs and the permission request complete with "not in the foreground" until the next Activity starts
+- C ABI: `ntk_android_init(env, activity)` from C, or `NativeToolkitCApi.init(activity)` from Kotlin. Pass the current Activity if there is one, so that dialogs and other foreground features can find it. Neither waits: `ntk_android_init` may return `NTK_ANDROID_ERROR_IN_PROGRESS` (another thread is initializing) or `NTK_ANDROID_ERROR_JNI_FAILURE`, and `NativeToolkitCApi.init` `IN_PROGRESS` or `RETRYABLE_ERROR`; call it again later. `ntk_android_is_initialized()` tells whether the C ABI is ready
+
+##### Permissions and components added to your app
+
+The Kotlin API AAR declares the permissions its notification features use, and they are merged into your app's manifest. Remove the ones you do not need with `tools:node="remove"`:
+
+| Permission | What stops working without it | Also remove |
+|---|---|---|
+| `POST_NOTIFICATIONS` | Notifications are not shown on Android 13 and later; `hasPermission` is false and a permission request is denied at once | - |
+| `RECEIVE_BOOT_COMPLETED` | Scheduled notifications are not restored after a reboot | - |
+| `SCHEDULE_EXACT_ALARM` | Schedules use inexact alarms (`canScheduleExactAlarms` is false) | - |
+| `USE_FULL_SCREEN_INTENT` | Full-screen intents show as heads-up notifications | - |
+| `FOREGROUND_SERVICE` | Progress and call-style notifications cannot start their foreground services | Both services below, and do not call those APIs |
+| `FOREGROUND_SERVICE_DATA_SYNC` | Progress notifications cannot start their foreground service | `com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundService` |
+| `FOREGROUND_SERVICE_SPECIAL_USE` | Call-style notifications cannot start their foreground service | `com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleForegroundService` |
+
+**AndroidManifest.xml (your app):**
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+
+    <application>
+        <service
+            android:name="com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundService"
+            tools:node="remove" />
+    </application>
+</manifest>
+```
+
+##### C ABI
+
+The C ABI is for apps that call the library from C, C++ or another language. A Kotlin or Java app calls the Kotlin API directly; going through the C ABI would only add a round trip through JNI.
+
+- The app is an ordinary Android app with Kotlin or Java code (`android:hasCode="true"`): the C functions call the Kotlin API through JNI, and the AAR's Kotlin classes and manifest entries must be in the app. Copying `libntk.so` alone does not work
+- `libntk.so` is built for `arm64-v8a` and `x86_64` only. On a 32-bit device, or in an app built only for 32-bit ABIs, the library is not there: the app still starts, but loading `libntk.so` fails (for example `DllNotFoundException` in C#). Handle that, or build your app for 64-bit ABIs only
+- Completions, events and the `release` of an accepted call come on the Android main thread, which is not your thread. A runtime that can only take callbacks on the thread that registered them cannot use the C ABI as is. (A call rejected at the entry returns its error and calls `release` on the calling thread before it returns; it never completes)
+- Dialogs, Share, the settings screens and a notification permission request that has not been granted yet need the app in the foreground; called from the background they complete with `NOT_FOREGROUND`
+
+For C and C++ with CMake, the AAR provides the headers and `libntk.so` through Prefab:
+
+**app/build.gradle.kts:**
+
+```kotlin
+android {
+    buildFeatures { prefab = true }
+    defaultConfig {
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        externalNativeBuild {
+            cmake { abiFilters("arm64-v8a", "x86_64") }
+        }
+    }
+}
+```
+
+**CMakeLists.txt:**
+
+```cmake
+find_package(ntk REQUIRED CONFIG)
+target_link_libraries(your_library PRIVATE ntk::ntk)
+```
+
+Limit the CMake build that uses `ntk::ntk` to the 64-bit ABIs as above. Prefab has no `libntk.so` for 32-bit ABIs, and the Android Gradle Plugin checks the Prefab package for every ABI the CMake build targets and stops with `CXX1210`; an `if()` in `CMakeLists.txt` does not avoid that. If your app also ships 32-bit native code of its own, build it in a separate module that does not use Prefab.
+
+Other languages load `libntk.so` by name (`ntk`) after the app has started. Each feature page's Android section has a C ABI part with the functions, the threads and the errors.
+
+The C ABI ships an R8 rule in its AAR, so minified release builds need nothing more. If your app disables App Startup and calls `NativeToolkitCApi.init` by reflection or from another runtime, keep that class. `NativeToolkitCApi` is a Kotlin `object` and `init` is not static: from Unity, for example, call `new AndroidJavaClass("com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi").GetStatic<AndroidJavaObject>("INSTANCE").Call<AndroidJavaObject>("init", activity)`.
+
+```
+-keep class com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi { *; }
+-keep class com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi$InitResult { *; }
+```
+
+##### Migrating the Android library to 2.0.0
+
+2.0.0 is not compatible with 1.x. Code written against 1.x has to change:
+
+| 1.x | 2.0.0 |
+|---|---|
+| Packages `android.library.*` | Packages `com.jonghyunkim.nativetoolkit.*` |
+| Use cases and helpers per feature | One manager per feature: `AndroidDialogManager`, `AndroidNotificationManager`, `AndroidShareManager`, `AndroidClipboardManager` (`getInstance(context)`) |
+| Notifications scheduled with 1.x | **Discarded once** when the app first runs 2.0.0 (the storage format changed). Schedule them again |
+| Notifications shown by 1.x and still on screen | They no longer respond to taps or actions after the update (the receivers have new names). Show them again if needed |
+| A `FileProvider` declared for sharing, as the 1.x manual told | **Remove it.** The library declares its own (authority `${applicationId}.native_toolkit.share.fileprovider`). Declaring `androidx.core.content.FileProvider` again in your manifest conflicts with it in the manifest merge; a provider of your own has to be a subclass of `FileProvider` |
+| The Unity bridge AAR `unity-android-native-toolkit-*.aar` (`android.unity.*`) | **Removed.** Unity calls the C ABI (`android-native-toolkit-capi`) through P/Invoke, in the Unity package. Kotlin and Java apps were never meant to use the bridge |
+| The library added nothing at app start | It adds AndroidX App Startup (`InitializationProvider`) and initializes itself (see Initialization above) |
+| One AAR file | The Kotlin API AAR as before (Kotlin and Java apps need only this one), plus the C ABI AAR for C and other languages, and a Maven repository with both (see Option A and Option B above) |
+
+The per-operation changes are in each feature page's Android section.
+
+**Unity:** with 2.0.0 the Unity package calls the C ABI. A Unity project needs a Minimum API Level of 31 or later, a 64-bit (ARM64) build for the C ABI, and Unity 6000.0.61f1, 6000.3.1f1, 6000.4.1f1 or later (the AndroidX dependencies need Android Gradle Plugin 8.9.1).
 
 ### iOS
 

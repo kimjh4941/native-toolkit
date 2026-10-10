@@ -13,13 +13,18 @@ Language:
 ## Table of Contents
 
 - [Android](#android)
+  - [AndroidShareManager](#androidsharemanager)
   - [Setup](#setup)
+    - [Add the library](#add-the-library)
+    - [FileProvider](#fileprovider)
+    - [Threads and events](#threads-and-events)
   - [Text Share](#text-share)
     - [Share Text](#share-text)
     - [Share URL](#share-url)
     - [Share Text with Rich Preview](#share-text-with-rich-preview)
     - [Share Text with Custom Chooser Action](#share-text-with-custom-chooser-action)
-    - [Chooser Action Callback](#chooser-action-callback)
+    - [Chooser Action Events](#chooser-action-events)
+    - [Share Text with Invalid Action](#share-text-with-invalid-action)
     - [Share with Subject and Title](#share-with-subject-and-title)
   - [Image Share](#image-share)
   - [Multiple Images](#multiple-images)
@@ -32,8 +37,17 @@ Language:
     - [Basic Callback](#basic-callback)
     - [Callback with Rich Preview](#callback-with-rich-preview)
     - [Cancel Pending Callback](#cancel-pending-callback)
+  - [Selection Event](#selection-event)
+    - [Share For Selection](#share-for-selection)
+    - [Cancel Share Selection](#cancel-share-selection)
   - [Receiving Incoming Shares](#receiving-incoming-shares)
   - [Error Handling](#error-handling)
+  - [C ABI](#c-abi)
+    - [Building](#building)
+    - [Opening the Sharesheet](#opening-the-sharesheet)
+    - [Selection and chooser action events](#selection-and-chooser-action-events)
+    - [Direct Share targets](#direct-share-targets)
+    - [Error values](#error-values)
 - [iOS](#ios)
   - [IosShareManager](#iossharemanager)
   - [Setup](#setup-1)
@@ -75,47 +89,99 @@ Language:
 
 ## Android
 
-- Library: `android-native-toolkit-1.3.0.aar`
-- Minimum SDK: Android 12 (API 31)
-- Custom Chooser Actions: Android 14 (API 34)+
+The Android Sharesheet: text, URLs, images and files, rich previews, custom chooser actions, Direct Share targets, and the app the user picked. Android library 2.0.0 offers them through two public APIs over one implementation, and the sample app (`AndroidLibraryExample`) uses the Kotlin API.
+
+| API | Names | Header / package | Maven coordinates |
+|---|---|---|---|
+| Kotlin API | `AndroidShareManager` | `com.jonghyunkim.nativetoolkit.share` | `io.github.kimjh4941:android-native-toolkit:2.0.0` |
+| C ABI | `ntk_share_*` | `<NativeToolkitC/Share.h>` | `io.github.kimjh4941:android-native-toolkit-capi:2.0.0` |
+
+- Libraries: `android-native-toolkit-2.0.0.aar` (Kotlin API) and `android-native-toolkit-capi-2.0.0.aar` (C ABI)
+- Minimum SDK: Android 12 (API 31). The app compiles with compileSdk 36 or later, and Kotlin code that calls the library needs Kotlin 2.1 or later.
+- Custom chooser actions: Android 14 (API 34)+
+- Coming from 1.x: see [Migrating the Android library to 2.0.0](index.md#migrating-the-android-library-to-200).
+
+The sections below follow the Share screen of the sample app. [C ABI](#c-abi) at the end covers the same operations for C.
+
+---
+
+### AndroidShareManager
+
+`AndroidShareManager` is the entry point for sharing. There is one instance per process, and it keeps only the Application Context, so any Context can be passed to `getInstance`.
+
+```kotlin
+import com.jonghyunkim.nativetoolkit.share.AndroidShareManager
+
+val shareManager = AndroidShareManager.getInstance(activity)
+```
+
+| Member | Description |
+|---|---|
+| `shareText(content, preview)` | Shares text or a URL |
+| `shareTextWithActions(content, actions, preview)` | Shares text with custom chooser actions |
+| `shareImage(filePath, mimeType)` / `shareImages(filePaths)` | Shares one image / several images |
+| `shareFile(filePath)` / `shareFiles(filePaths)` | Shares one file / several files |
+| `registerDirectShareTarget(target, iconBytes)` / `removeDirectShareTargets(ids)` | Adds / removes Direct Share targets |
+| `shareWithCallback(content, preview, onResult, onFinished)` / `cancelPendingCallback()` | Shares text and reports the picked app to a callback / stops waiting |
+| `shareForSelection(content, preview)` / `cancelShareSelection(token)` | Shares text and returns a token; the picked app arrives as a `selections` event / stops waiting |
+| `chooserActions` | `EventHub<String>`: taps on custom chooser actions, as the action ID |
+| `selections` | `EventHub<ShareSelection>`: apps picked in Sharesheets opened by `shareForSelection` |
+
+The model types (`ShareContent`, `SharePreviewOptions`, `ShareChooserAction`, `DirectShareTarget`, `ShareSelection`) are in `com.jonghyunkim.nativetoolkit.share.domain.model`, and `ShareDomainError` is in `com.jonghyunkim.nativetoolkit.share.domain.error`. `preview` defaults to `SharePreviewOptions()` (no preview) wherever it appears.
+
+---
 
 ### Setup
 
-#### Android native (AAR)
+#### Add the library
 
-1. Place `android-native-toolkit-1.3.0.aar` in `app/libs`.
-2. Add dependency in `app/build.gradle.kts`:
+The release ships a Maven repository in `dist/1.13.0/android/m2/`. Copy it into your project, for example as `third_party/native-toolkit-m2/`, and add it to the repositories:
+
+**settings.gradle.kts:**
 
 ```kotlin
-dependencies {
-    implementation(files("libs/android-native-toolkit-1.3.0.aar"))
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("third_party/native-toolkit-m2") }
+    }
 }
 ```
 
-3. Declare a `FileProvider` in `AndroidManifest.xml` for file/image sharing:
+**app/build.gradle.kts:**
 
-```xml
-<provider
-    android:name="androidx.core.content.FileProvider"
-    android:authorities="${applicationId}.fileprovider"
-    android:exported="false"
-    android:grantUriPermissions="true">
-    <meta-data
-        android:name="android.support.FILE_PROVIDER_PATHS"
-        android:resource="@xml/file_paths" />
-</provider>
+```kotlin
+dependencies {
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+}
 ```
 
-4. Create `res/xml/file_paths.xml`:
+The repository carries the POM and Gradle Module Metadata, so Gradle also resolves the androidx libraries the library depends on. The AAR file alone does not carry them; see [Library integration](index.md#library-integration) if you add the AAR file directly.
 
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <cache-path name="share_cache" path="." />
-    <external-cache-path name="share_external_cache" path="." />
-    <files-path name="share_files" path="." />
-</paths>
-```
+#### FileProvider
+
+The AAR declares its own `FileProvider` with the authority `${applicationId}.native_toolkit.share.fileprovider`, and image, file and thumbnail sharing go through it. The app does not declare a `FileProvider` for sharing. It covers these directories:
+
+| Path element | Directory |
+|---|---|
+| `files-path` | `context.filesDir` |
+| `cache-path` | `context.cacheDir` |
+| `external-files-path` | `context.getExternalFilesDir(...)` |
+
+A file anywhere else, including `context.externalCacheDir`, fails with `ShareDomainError.IllegalFileAccess`.
+
+Do not declare `androidx.core.content.FileProvider` in your own manifest: the manifest merger matches providers by `android:name`, so it conflicts with the library's. The 1.x manual told apps to declare it for sharing; remove that declaration when moving to 2.0.0 (see [Migrating the Android library to 2.0.0](index.md#migrating-the-android-library-to-200)). A provider the app needs for its own purposes must be a subclass of `FileProvider` with its own authority; the library does not use it.
+
+#### Threads and events
+
+- The share operations can be called from any thread. The sample prepares files on `Dispatchers.IO` and calls the library on the main thread.
+- `onResult` and `onFinished` of `shareWithCallback`, and the `chooserActions` and `selections` events, are called on the main thread.
+- `addListener` and `EventHub.Registration.remove` are main-thread only; elsewhere they throw `IllegalStateException`.
+- Neither `chooserActions` nor `selections` keeps events: an event that arrives while no listener is registered is dropped. Register the listener before opening the Sharesheet.
+- An exception thrown by an event listener is caught and logged, and the other listeners still run.
+- Sharing does not depend on the library's androidx.startup initializer. An app that disables Startup still calls `LibraryRuntime.ensureInitialized(activity)` for the other features, passing the Activity (see [Initialization](index.md#initialization)).
 
 ---
 
@@ -124,15 +190,14 @@ dependencies {
 #### Share Text
 
 ```kotlin
-val shareUseCases = ShareUseCases(activity)
+val shareManager = AndroidShareManager.getInstance(activity)
 
 try {
-    shareUseCases.shareText(
-        ShareContent(text = "Hello from native-toolkit"),
-        chooserActionsJson = "[]"
+    shareManager.shareText(
+        ShareContent(text = "Hello from native-toolkit")
     )
 } catch (e: ShareDomainError) {
-    // handle error
+    // See Error Handling
 }
 ```
 
@@ -143,12 +208,8 @@ try {
 #### Share URL
 
 ```kotlin
-shareUseCases.shareText(
-    ShareContent(
-        text = "https://developer.android.com/",
-        mimeType = "text/plain"
-    ),
-    chooserActionsJson = "[]"
+shareManager.shareText(
+    ShareContent(text = "https://developer.android.com/", mimeType = "text/plain")
 )
 ```
 
@@ -158,19 +219,18 @@ shareUseCases.shareText(
 
 #### Share Text with Rich Preview
 
-Rich preview requires Android 31+ and a valid thumbnail file path.
+`SharePreviewOptions` adds a title and a thumbnail to the Sharesheet preview. The thumbnail must be a file in one of the [FileProvider](#fileprovider) directories. A thumbnail that is missing or outside them is skipped with a warning in logcat, and the text is still shared.
 
 ```kotlin
 val bmp = BitmapFactory.decodeResource(context.resources, android.R.mipmap.sym_def_app_icon)
 val file = File(context.cacheDir, "share_preview.png")
 file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
 
-shareUseCases.shareText(
+shareManager.shareText(
     ShareContent(
         text = "https://developer.android.com/",
         mimeType = "text/plain"
     ),
-    chooserActionsJson = "[]",
     SharePreviewOptions(
         title = "Introducing content previews",
         thumbnailPath = file.absolutePath
@@ -184,32 +244,29 @@ shareUseCases.shareText(
 
 #### Share Text with Custom Chooser Action
 
-Custom chooser actions require Android 14 (API 34)+. On older devices the `chooserActionsJson` parameter is ignored.
+`shareTextWithActions` adds `ShareChooserAction`s to the Sharesheet. They are shown on Android 14 (API 34) and later; on older versions the text is shared without them, but the actions are still checked.
 
-- `intentAction` must be **unique, non-blank**, and must not be `android.intent.action.SEND`.
-- Recommended namespace: `${applicationId}.share.action.<name>`
+| Field | Description |
+|---|---|
+| `id` | Comes back in the [`chooserActions` event](#chooser-action-events). Must not be empty, and must be unique within one call |
+| `label` | The text shown under the icon |
+| `iconBytes` | An image `BitmapFactory` can decode (PNG, JPEG, WebP) |
+
+Each call makes the actions of earlier calls stop working: a tap on an action of an older Sharesheet is not delivered. A call rejected with `InvalidChooserAction` leaves the earlier actions working. No `BroadcastReceiver` or manifest entry is needed.
 
 ```kotlin
 val bmp = BitmapFactory.decodeResource(context.resources, android.R.drawable.ic_menu_edit)
-val iconBase64 = ByteArrayOutputStream().use { baos ->
+val iconBytes = ByteArrayOutputStream().use { baos ->
     bmp.compress(Bitmap.CompressFormat.PNG, 100, baos)
-    Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+    baos.toByteArray()
 }
 
-val chooserActionsJson = JSONArray().put(
-    JSONObject().apply {
-        put("label", "Custom")
-        put("iconBase64", iconBase64)
-        put("intentAction", "com.example.myapp.share.action.CUSTOM")
-    }
-).toString()
-
-shareUseCases.shareText(
+shareManager.shareTextWithActions(
     ShareContent(
         text = "Shared with a custom chooser action",
         mimeType = "text/plain"
     ),
-    chooserActionsJson = chooserActionsJson
+    listOf(ShareChooserAction(id = "custom", label = "Custom", iconBytes = iconBytes))
 )
 ```
 
@@ -217,55 +274,67 @@ shareUseCases.shareText(
     <img src="images/android/share/Example_ShareSampleScreen_ShareTextWithCustomAction.png" alt="Example_ShareSampleScreen_ShareTextWithCustomAction" width="400" />
 </p>
 
-To receive a callback when the custom action is tapped, see [Chooser Action Callback](#chooser-action-callback).
+#### Chooser Action Events
 
-#### Chooser Action Callback
-
-Declare a `BroadcastReceiver` in `AndroidManifest.xml`. The `android:name` of the `<action>` must match the `intentAction` passed in `chooserActionsJson`.
-
-```xml
-<receiver
-    android:name=".ShareChooserActionReceiver"
-    android:exported="false">
-    <intent-filter>
-        <action android:name="com.example.myapp.share.action.CUSTOM" />
-    </intent-filter>
-</receiver>
-```
-
-Implement the receiver:
+A tap on a custom action arrives through `chooserActions` as the action's `id`, on the main thread. The sample registers the listener for the lifetime of `MainActivity`, so a tap is received whichever screen is shown.
 
 ```kotlin
-class ShareChooserActionReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent?) {
-        if (context != null) {
-            Toast.makeText(context, "Custom chooser action tapped", Toast.LENGTH_SHORT).show()
+class MainActivity : AppCompatActivity() {
+
+    private var chooserActionRegistration: EventHub.Registration? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val appContext = applicationContext
+        val share = AndroidShareManager.getInstance(this)
+        chooserActionRegistration = share.chooserActions.addListener { id, _ ->
+            // id is the ShareChooserAction.id that was tapped ("custom" above)
+            Toast.makeText(appContext, "Custom chooser action tapped", Toast.LENGTH_SHORT).show()
         }
     }
 
-    companion object {
-        const val ACTION_CUSTOM_CHOOSER = "com.example.myapp.share.action.CUSTOM"
+    override fun onDestroy() {
+        chooserActionRegistration?.remove()
+        chooserActionRegistration = null
+        super.onDestroy()
     }
 }
 ```
 
-<p align="center">
-    <img src="images/android/share/Example_ShareSampleScreen_ChooserActionCallback.png" alt="Example_ShareSampleScreen_ChooserActionCallback" width="400" />
-</p>
+`EventHub` is `com.jonghyunkim.nativetoolkit.common.event.EventHub`. The second parameter of the listener is its own `Registration`, which it can remove from inside the listener.
+
+#### Share Text with Invalid Action
+
+Two actions with the same `id` are rejected before the Sharesheet opens, with `ShareDomainError.InvalidChooserAction`. An empty `id`, or an icon that is not a readable image, is rejected the same way.
+
+```kotlin
+val icon = ByteArrayOutputStream().use { out ->
+    Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, out)
+    out.toByteArray()
+}
+
+try {
+    shareManager.shareTextWithActions(
+        ShareContent(text = "This share is rejected"),
+        listOf(ShareChooserAction("dup", "First", icon), ShareChooserAction("dup", "Second", icon))
+    )
+} catch (e: ShareDomainError.InvalidChooserAction) {
+    // e.id == "dup". Nothing opened, and the actions of the previous share still work.
+}
+```
 
 #### Share with Subject and Title
 
-`subject` sets the email subject line. `title` sets the Sharesheet title.
+`subject` is sent as the email subject line (`Intent.EXTRA_SUBJECT`). `title` sets the Sharesheet title.
 
 ```kotlin
-shareUseCases.shareText(
+shareManager.shareText(
     ShareContent(
         text = "Body text shared from native-toolkit",
         title = "Choose an app",
         subject = "Sample subject line",
         mimeType = "text/plain"
-    ),
-    chooserActionsJson = "[]"
+    )
 )
 ```
 
@@ -277,12 +346,14 @@ shareUseCases.shareText(
 
 ### Image Share
 
+The file must be in one of the [FileProvider](#fileprovider) directories.
+
 ```kotlin
 val bmp = BitmapFactory.decodeResource(context.resources, android.R.drawable.ic_menu_share)
 val file = File(context.cacheDir, "share_sample.png")
 file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
 
-shareUseCases.shareImage(file.absolutePath, "image/png")
+shareManager.shareImage(file.absolutePath, "image/png")
 ```
 
 <p align="center">
@@ -293,6 +364,8 @@ shareUseCases.shareImage(file.absolutePath, "image/png")
 
 ### Multiple Images
 
+The MIME type comes from the file extensions: the common type when all images share one, `image/*` otherwise.
+
 ```kotlin
 val bmp = BitmapFactory.decodeResource(context.resources, android.R.drawable.ic_menu_share)
 val file1 = File(context.cacheDir, "share_sample_1.png")
@@ -300,7 +373,7 @@ val file2 = File(context.cacheDir, "share_sample_2.png")
 file1.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
 file2.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
 
-shareUseCases.shareImages(listOf(file1.absolutePath, file2.absolutePath))
+shareManager.shareImages(listOf(file1.absolutePath, file2.absolutePath))
 ```
 
 <p align="center">
@@ -311,11 +384,13 @@ shareUseCases.shareImages(listOf(file1.absolutePath, file2.absolutePath))
 
 ### File Share
 
+The MIME type comes from the file extension (`*/*` for an extension the library does not know).
+
 ```kotlin
 val file = File(context.cacheDir, "share_sample.txt")
     .apply { writeText("Share sample from native-toolkit") }
 
-shareUseCases.shareFile(file.absolutePath)
+shareManager.shareFile(file.absolutePath)
 ```
 
 <p align="center">
@@ -326,13 +401,15 @@ shareUseCases.shareFile(file.absolutePath)
 
 ### Multiple Files
 
+The MIME type is the common type when all files share one, `*/*` otherwise.
+
 ```kotlin
 val file1 = File(context.cacheDir, "share_sample_1.txt")
     .apply { writeText("Share sample 1 from native-toolkit") }
 val file2 = File(context.cacheDir, "share_sample_2.txt")
     .apply { writeText("Share sample 2 from native-toolkit") }
 
-shareUseCases.shareFiles(listOf(file1.absolutePath, file2.absolutePath))
+shareManager.shareFiles(listOf(file1.absolutePath, file2.absolutePath))
 ```
 
 <p align="center">
@@ -343,9 +420,31 @@ shareUseCases.shareFiles(listOf(file1.absolutePath, file2.absolutePath))
 
 ### Direct Share Target
 
-Direct Share Targets appear in the Sharesheet as suggested recipients without requiring the user to select an app first.
+Direct Share targets appear in the Sharesheet as suggested recipients in your app. The library publishes each target as a long-lived dynamic shortcut. For the Sharesheet to show it, the app declares a share target whose category matches the target's `category`, as the sample does. Replace `com.example.app.ShareReceiverActivity` below with your own Activity that is registered in the manifest and receives `ACTION_SEND`:
+
+**AndroidManifest.xml** (inside the `<activity>` that receives shares):
+
+```xml
+<meta-data
+    android:name="android.app.shortcuts"
+    android:resource="@xml/shortcuts" />
+```
+
+**res/xml/shortcuts.xml:**
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="com.example.app.ShareReceiverActivity">
+        <data android:mimeType="text/plain" />
+        <category android:name="android.shortcut.conversation" />
+    </share-target>
+</shortcuts>
+```
 
 #### Register Direct Share Target
+
+`iconBytes` is an image `BitmapFactory` can decode. Registering an `id` again replaces that target.
 
 ```kotlin
 val bmp = BitmapFactory.decodeResource(context.resources, android.R.mipmap.sym_def_app_icon)
@@ -353,7 +452,7 @@ val baos = ByteArrayOutputStream()
 bmp.compress(Bitmap.CompressFormat.PNG, 100, baos)
 val iconBytes = baos.toByteArray()
 
-shareUseCases.registerDirectShareTarget(
+shareManager.registerDirectShareTarget(
     DirectShareTarget(
         id = "sample_1",
         label = "Sample User",
@@ -370,7 +469,7 @@ shareUseCases.registerDirectShareTarget(
 #### Remove Direct Share Target
 
 ```kotlin
-shareUseCases.removeDirectShareTargets(listOf("sample_1"))
+shareManager.removeDirectShareTargets(listOf("sample_1"))
 ```
 
 <p align="center">
@@ -381,24 +480,25 @@ shareUseCases.removeDirectShareTargets(listOf("sample_1"))
 
 ### Share with Callback
 
-`shareWithCallback` opens the Sharesheet and reports the selected app package name via `onResult`. `onFinished` is called when the Sharesheet is dismissed regardless of selection.
+`shareWithCallback` opens the Sharesheet for text and calls `onResult` with the package of the app the user picked, or `null` when Android did not report it. `onFinished` runs once after any result the Sharesheet reports. On Android 15 (API 35) and later that includes Copy and Edit, which call `onFinished` without `onResult`; on earlier versions only a picked app is reported. Closing the Sharesheet without picking reports nothing, so neither callback runs.
+
+The library waits for one result at a time, shared with [`shareForSelection`](#selection-event). Opening another Sharesheet with either function replaces the wait: the replaced callbacks are never called, and a pick in the older Sharesheet is not delivered to the newer one. Exceptions thrown by `onResult` and `onFinished` are not caught by the library.
 
 #### Basic Callback
 
 ```kotlin
-shareUseCases.shareWithCallback(
-    ShareContent(text = "Hello with callback from native-toolkit")
-) { pkg ->
-    // pkg == null if selected but the package was unavailable
-    val status = if (pkg != null) "Selected: $pkg" else "Shared (package unavailable)"
-}
+shareManager.shareWithCallback(
+    ShareContent(text = "Hello with callback from native-toolkit"),
+    onResult = { pkg ->
+        // Called only when an app was picked; pkg == null when Android did not report its package
+        val status = if (pkg != null) "Selected: $pkg" else "Shared (package unavailable)"
+    }
+)
 ```
 
 <p align="center">
     <img src="images/android/share/Example_ShareSampleScreen_ShareWithCallback.png" alt="Example_ShareSampleScreen_ShareWithCallback" width="400" />
 </p>
-
-To cancel the pending receiver before the user selects, call `cancelPendingCallback()`.
 
 #### Callback with Rich Preview
 
@@ -407,7 +507,7 @@ val bmp = BitmapFactory.decodeResource(context.resources, android.R.mipmap.sym_d
 val file = File(context.cacheDir, "callback_preview.png")
 file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
 
-shareUseCases.shareWithCallback(
+shareManager.shareWithCallback(
     ShareContent(
         text = "https://developer.android.com/",
         mimeType = "text/plain"
@@ -420,7 +520,7 @@ shareUseCases.shareWithCallback(
         val status = if (pkg != null) "Selected: $pkg" else "Shared (package unavailable)"
     },
     onFinished = {
-        // Sharesheet dismissed
+        // Runs once after the result is handled
     }
 )
 ```
@@ -431,17 +531,69 @@ shareUseCases.shareWithCallback(
 
 #### Cancel Pending Callback
 
-Cancels the pending `shareWithCallback` BroadcastReceiver. Call this when the current screen is being torn down to avoid leaking the receiver.
+Stops waiting: neither callback runs afterward. Because the wait is shared, it also stops a wait started by `shareForSelection`. Call it when the screen that asked goes away, so that a late pick does not update a screen that no longer exists; the sample does so in the `onDispose` shown in [Selection Event](#selection-event).
 
 ```kotlin
-shareUseCases.cancelPendingCallback()
+shareManager.cancelPendingCallback()
 ```
 
-To cancel automatically when a composable screen is removed:
+---
+
+### Selection Event
+
+`shareForSelection` opens the Sharesheet for text and returns a token (a `Long` that is not reused within the process). The app the user picks arrives through `selections` as a `ShareSelection` carrying that token and the package name (`null` when Android did not report it). Closing the Sharesheet, and results that are not an app (Copy, Edit), send nothing. Only Sharesheets opened by `shareForSelection` produce `selections` events.
+
+The sample registers the listener while its Share screen is shown:
 
 ```kotlin
-DisposableEffect(shareUseCases) {
-    onDispose { shareUseCases.cancelPendingCallback() }
+@Composable
+fun ShareSampleScreen(activity: AppCompatActivity) {
+    val shareManager = remember(activity) { AndroidShareManager.getInstance(activity) }
+    var statusText by remember { mutableStateOf("Result will be displayed here") }
+    // The token of the Sharesheet opened by shareForSelection, while its pick is awaited
+    var selectionToken by remember { mutableStateOf<Long?>(null) }
+
+    DisposableEffect(shareManager) {
+        val registration = shareManager.selections.addListener { selection, _ ->
+            if (selection.token == selectionToken) selectionToken = null
+            statusText = "Selected (token=${selection.token}): ${selection.packageName ?: "(unknown package)"}"
+        }
+        onDispose {
+            registration.remove()
+            shareManager.cancelPendingCallback()
+        }
+    }
+
+    // The buttons below
+}
+```
+
+#### Share For Selection
+
+```kotlin
+try {
+    val token = shareManager.shareForSelection(
+        ShareContent(text = "Hello with a selection event from native-toolkit")
+    )
+    selectionToken = token
+} catch (e: ShareDomainError) {
+    statusText = e.javaClass.simpleName
+}
+```
+
+<p align="center">
+    <img src="images/android/share/Example_ShareSampleScreen_ShareForSelection.png" alt="Example_ShareSampleScreen_ShareForSelection" width="400" />
+</p>
+
+#### Cancel Share Selection
+
+Stops waiting for the pick of `token`. It does nothing when another Sharesheet was opened since.
+
+```kotlin
+val token = selectionToken
+if (token != null) {
+    shareManager.cancelShareSelection(token)
+    selectionToken = null
 }
 ```
 
@@ -449,23 +601,27 @@ DisposableEffect(shareUseCases) {
 
 ### Receiving Incoming Shares
 
-The sample app also demonstrates receiving content shared from other apps via `ACTION_SEND` and `ACTION_SEND_MULTIPLE`.
-
-To receive incoming shares, declare intent filters in `AndroidManifest.xml` on the receiving `Activity` and handle them in `onCreate` / `onNewIntent`:
+The sample app also receives content shared from other apps via `ACTION_SEND` and `ACTION_SEND_MULTIPLE`. This is plain Android and does not use the library. Declare intent filters on the receiving `Activity` and read the Intent in `onCreate` and `onNewIntent`:
 
 ```xml
 <activity
     android:name=".MainActivity"
-    android:launchMode="singleTop">
+    android:exported="true"
+    android:launchMode="singleTask">
     <intent-filter>
         <action android:name="android.intent.action.SEND" />
         <category android:name="android.intent.category.DEFAULT" />
-        <data android:mimeType="text/*" />
+        <data android:mimeType="text/plain" />
     </intent-filter>
     <intent-filter>
         <action android:name="android.intent.action.SEND" />
         <category android:name="android.intent.category.DEFAULT" />
         <data android:mimeType="image/*" />
+    </intent-filter>
+    <intent-filter>
+        <action android:name="android.intent.action.SEND_MULTIPLE" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <data android:mimeType="text/plain" />
     </intent-filter>
     <intent-filter>
         <action android:name="android.intent.action.SEND_MULTIPLE" />
@@ -479,23 +635,24 @@ To receive incoming shares, declare intent filters in `AndroidManifest.xml` on t
 
 ### Error Handling
 
-`ShareUseCases` throws `ShareDomainError` subtypes.
+The operations throw `ShareDomainError` subtypes. They carry no message (`message` is `null`), so tell them apart by type and read their properties.
 
-| Error | Cause | Error message |
+| Error | Thrown by | Cause |
 |---|---|---|
-| `EmptyContent` | `text` is blank | `"Share content is empty. Please provide text or a file path."` |
-| `FileNotFound` | File path does not exist | `"File not found: <path>"` |
-| `IllegalFileAccess` | File is outside accessible directories | `"File cannot be shared: <path>. Ensure the file is in a supported directory."` |
-| `InvalidMimeType` | Unsupported MIME type | `"Invalid MIME type: <mimeType>"` |
-| `NoShareTarget` | No app can handle the share intent | `"No app available to handle this share request."` |
-| `DirectShareRegistrationFailed` | Shortcut registration failed | `"Failed to register Direct Share target: <reason>"` |
-| `EmptyIdList` | `ids` list is empty in removeDirectShareTargets | `"No shortcut IDs provided for removal."` |
-| `EmptyFileList` | `filePaths` list is empty in shareFiles / shareImages | `"No file paths provided for share."` |
-| `InvalidBase64Icon` | Base64 decoding failed for icon | `"Invalid icon data for Direct Share target: <id>"` |
+| `EmptyContent` | `shareText`, `shareTextWithActions`, `shareWithCallback`, `shareForSelection` | `text` is blank |
+| `InvalidMimeType(mimeType)` | `shareText`, `shareTextWithActions`, `shareImage` | The MIME type is blank |
+| `InvalidChooserAction(id)` | `shareTextWithActions` | An action's `id` is empty or repeated, or its icon is not a readable image |
+| `FileNotFound(path)` | `shareImage`, `shareImages`, `shareFile`, `shareFiles` | The file does not exist |
+| `IllegalFileAccess(path)` | `shareImage`, `shareImages`, `shareFile`, `shareFiles` | The file is outside the [FileProvider](#fileprovider) directories |
+| `EmptyFileList` | `shareImages`, `shareFiles` | The list is empty |
+| `NoShareTarget` | Every operation that opens the Sharesheet | No activity can handle the share |
+| `DirectShareRegistrationFailed(reason)` | `registerDirectShareTarget` | Android did not publish the shortcut |
+| `InvalidBase64Icon(id)` | `registerDirectShareTarget` | The icon is not a readable image. The name is kept from 1.x, where the icon was Base64 |
+| `EmptyIdList` | `removeDirectShareTargets` | The list is empty |
 
 ```kotlin
 try {
-    shareUseCases.shareText(ShareContent(text = "Hello"), chooserActionsJson = "[]")
+    shareManager.shareText(ShareContent(text = "Hello"))
 } catch (e: ShareDomainError.NoShareTarget) {
     // No app can handle this share
 } catch (e: ShareDomainError.EmptyContent) {
@@ -504,6 +661,276 @@ try {
     // Other domain error
 }
 ```
+
+---
+
+### C ABI
+
+- The same sharing for C, and for any language that can call a C function in a shared library. Kotlin and Java code calls `AndroidShareManager` instead.
+- `android-native-toolkit-capi-2.0.0.aar` carries `libntk.so` for `arm64-v8a` and `x86_64` only, and the headers `NativeToolkitC/*.h` as a Prefab package. An app installed as 32-bit has no `libntk.so`.
+- The C ABI calls the Kotlin API through JNI, so both AARs and their dependencies are part of the app's Gradle build. androidx.startup initializes the C ABI when the app starts. An app that disables Startup, or calls from a process other than the default one, calls `ntk_android_init(env, context)` (`<NativeToolkitC/Android.h>`) first; until then the operations return `NTK_SHARE_ERROR_NOT_INITIALIZED`.
+- Every function can be called from any thread and never waits for the main thread. Completions, events and accepted `release` calls arrive on the Android main thread. Do not block in them, and do not let an exception leave a callback: the process terminates.
+- Opening the Sharesheet is asynchronous and needs the app in the foreground. The return value says whether the request was accepted. The completion (`ntk_share_done_fn`) then runs once, with `NTK_SHARE_ERROR_NONE` when the Sharesheet opened or the reason it did not; called from the background, that is `NTK_SHARE_ERROR_NOT_FOREGROUND`. The completion says nothing about what the user picks: the chosen app arrives later as a selection event carrying the request ID.
+- Called from a thread other than the main thread, the completion can arrive before the function returns. Match completions to requests with `user_data`.
+- A call rejected on entry (a `NULL` argument, invalid UTF-8, an empty list, an empty text, an empty or repeated chooser action ID) returns the error, never calls the completion, and calls `release` once on the calling thread before returning. An accepted call's `release` runs on the main thread after the completion. `release` may be `NULL`.
+- The library copies every input (strings, arrays, icon bytes) before the call returns.
+- Handles passed to a callback (`ntk_string*`) belong to the receiver, which frees them with `ntk_string_free`, during the callback or later, on any thread.
+- Request IDs are `uint64_t` and never reused within the process.
+- The Direct Share functions are synchronous and do not need the foreground.
+- `ntk_last_system_code()` and every completion's `system_code` are always 0 on Android.
+
+#### Building
+
+**app/build.gradle.kts:**
+
+```kotlin
+android {
+    defaultConfig {
+        // libntk.so exists for these ABIs only. Restrict CMake too: AGP checks the Prefab
+        // package for every ABI CMake builds and fails with CXX1210 when one is missing.
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        externalNativeBuild {
+            cmake { abiFilters("arm64-v8a", "x86_64") }
+        }
+    }
+    buildFeatures { prefab = true }
+}
+
+dependencies {
+    implementation("io.github.kimjh4941:android-native-toolkit-capi:2.0.0")
+    // Declare the Kotlin API too when your own Kotlin or Java code calls it:
+    // the capi POM depends on it for run time only.
+    implementation("io.github.kimjh4941:android-native-toolkit:2.0.0")
+}
+```
+
+**CMakeLists.txt:**
+
+```cmake
+find_package(ntk REQUIRED CONFIG)
+
+add_library(myapp SHARED myapp.c)
+target_link_libraries(myapp PRIVATE ntk::ntk)
+```
+
+See [C ABI](index.md#c-abi) in index.md for the whole setup.
+
+Only when androidx.startup is disabled, or in a process other than the default one:
+
+```c
+#include <NativeToolkitC/Android.h>
+
+/* env: the JNIEnv* of the calling thread. context: any Context (jobject); an Activity is also
+   taken as the current foreground Activity. */
+static void initialize_native_toolkit(void* env, void* context)
+{
+    /* Never waits; safe to call more than once. */
+    ntk_android_error init_error = ntk_android_init(env, context);
+    if (init_error == NTK_ANDROID_ERROR_IN_PROGRESS || init_error == NTK_ANDROID_ERROR_JNI_FAILURE) {
+        /* Call it again later. NTK_ANDROID_ERROR_CLASS_NOT_FOUND does not recover: the AAR's
+           classes are missing (for example removed by R8). */
+    }
+}
+```
+
+#### Opening the Sharesheet
+
+Paths are full paths in the [FileProvider](#fileprovider) directories (files, cache, external files), and the thumbnail follows the same rule. A `NULL` MIME type for `ntk_share_image` means `image/*`.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Share.h>
+
+static void NTK_CALL on_share_done(void* user_data, ntk_share_error error, uint32_t system_code)
+{
+    /* Main thread, exactly once for an accepted call. NONE: the Sharesheet opened. */
+    (void)user_data; (void)system_code;
+    if (error == NTK_SHARE_ERROR_NOT_FOREGROUND) {
+        /* The app was in the background; nothing opened. */
+    }
+}
+
+/* icon_png: PNG, JPEG or WebP bytes. */
+static void open_sharesheets(const char* thumbnail_path, const uint8_t* icon_png, size_t icon_png_size,
+                             const char* image_path_1, const char* image_path_2,
+                             const char* file_path_1, const char* file_path_2)
+{
+    /* Text. Zeroed fields are the defaults: no title, subject or preview, and "text/plain". */
+    ntk_share_text_content content;
+    memset(&content, 0, sizeof(content));
+    content.struct_size = (uint32_t)sizeof(content);
+    content.text = "Hello from native-toolkit";
+
+    ntk_share_error error = ntk_share_text(&content, NULL, 0, &on_share_done, NULL, NULL);
+
+    /* Subject, title and a rich preview. */
+    content.title = "Choose an app";
+    content.subject = "Sample subject line";
+    content.preview_title = "Introducing content previews";
+    content.preview_thumbnail_path = thumbnail_path;
+    error = ntk_share_text(&content, NULL, 0, &on_share_done, NULL, NULL);
+
+    /* Custom chooser actions (shown on API 34 and later). Every ntk_share_text call, even with
+       no actions, makes the actions of earlier Sharesheets stop working. */
+    ntk_share_chooser_action actions[1];
+    actions[0].id = "custom";
+    actions[0].label = "Custom";
+    actions[0].icon = icon_png;
+    actions[0].icon_size = icon_png_size;
+    memset(&content, 0, sizeof(content));
+    content.struct_size = (uint32_t)sizeof(content);
+    content.text = "Shared with a custom chooser action";
+    error = ntk_share_text(&content, actions, 1, &on_share_done, NULL, NULL);
+
+    /* Images and files. */
+    error = ntk_share_image(image_path_1, "image/png", &on_share_done, NULL, NULL);
+
+    const char* images[2];
+    images[0] = image_path_1;
+    images[1] = image_path_2;
+    error = ntk_share_images(images, 2, &on_share_done, NULL, NULL);
+
+    error = ntk_share_file(file_path_1, &on_share_done, NULL, NULL);
+
+    const char* files[2];
+    files[0] = file_path_1;
+    files[1] = file_path_2;
+    error = ntk_share_files(files, 2, &on_share_done, NULL, NULL);
+}
+```
+
+#### Selection and chooser action events
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Share.h>
+
+static void NTK_CALL on_share_done(void* user_data, ntk_share_error error, uint32_t system_code)
+{
+    /* As in "Opening the Sharesheet": NONE when the Sharesheet opened. */
+    (void)user_data; (void)error; (void)system_code;
+}
+
+static void NTK_CALL on_selection(void* user_data, uint64_t request_id, ntk_string* package_name)
+{
+    /* Main thread. package_name is NULL when Android did not report it; the receiver frees it. */
+    (void)user_data; (void)request_id;
+    if (package_name != NULL) {
+        const char* name = ntk_string_data(package_name);   /* valid until ntk_string_free */
+        size_t size = ntk_string_size(package_name);
+        (void)name; (void)size;
+        ntk_string_free(package_name);
+    }
+}
+
+static void NTK_CALL on_chooser_action(void* user_data, ntk_string* action_id)
+{
+    /* Main thread. action_id is the id of the tapped ntk_share_chooser_action. */
+    const char* id = ntk_string_data(action_id);
+    size_t size = ntk_string_size(action_id);
+    (void)user_data; (void)id; (void)size;
+    ntk_string_free(action_id);
+}
+
+/* Register before opening: neither event is kept while no listener is registered. */
+ntk_share_listener* selection_listener = NULL;
+ntk_share_error error = ntk_share_add_selection_listener(&on_selection, NULL, NULL, &selection_listener);
+
+ntk_share_listener* action_listener = NULL;
+error = ntk_share_add_chooser_action_listener(&on_chooser_action, NULL, NULL, &action_listener);
+
+/* Open the Sharesheet; the pick arrives in on_selection with this request ID. */
+ntk_share_text_content content;
+memset(&content, 0, sizeof(content));
+content.struct_size = (uint32_t)sizeof(content);
+content.text = "Hello with a selection event from native-toolkit";
+
+uint64_t request_id = 0;
+error = ntk_share_text_for_selection(&content, &on_share_done, NULL, NULL, &request_id);
+
+/* Stop waiting for the pick. Never waits, and does nothing unless request_id is the request
+   being waited for. It cancels the wait for the pick, not the open (which has no CANCELED). */
+error = ntk_share_cancel_selection(request_id);
+
+/* Removing a listener only removes it: the wait for the pick and the current actions stay.
+   Removed on the main thread, nothing more is delivered; removed elsewhere, events can arrive
+   until its release runs. The handle is invalid afterwards. */
+ntk_share_listener_remove(selection_listener);
+ntk_share_listener_remove(action_listener);
+```
+
+- Only one pick is awaited at a time, as in the Kotlin API: opening another Sharesheet with `ntk_share_text_for_selection` ends the wait for the previous one.
+- A request that failed before the Sharesheet was requested (`NTK_SHARE_ERROR_NOT_FOREGROUND`, or `NTK_SHARE_ERROR_EMPTY_CONTENT` for a text of white space) leaves the previous request's wait in place. A request that failed after (`NTK_SHARE_ERROR_NO_SHARE_TARGET`, `NTK_SHARE_ERROR_UNKNOWN`) has ended it.
+- `out_request_id` may be `NULL`, but then the selection cannot be matched to the request.
+- Selections of Sharesheets that the app's Kotlin code opened with `shareForSelection` are not delivered to C.
+
+#### Direct Share targets
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Share.h>
+
+/* icon_png: PNG, JPEG or WebP bytes. */
+static void update_direct_share_targets(const uint8_t* icon_png, size_t icon_png_size)
+{
+    ntk_share_direct_target target;
+    memset(&target, 0, sizeof(target));
+    target.struct_size = (uint32_t)sizeof(target);
+    target.id = "sample_1";
+    target.label = "Sample User";
+    target.category = NULL;              /* "android.shortcut.conversation" */
+    target.icon = icon_png;              /* NULL or empty: NTK_SHARE_ERROR_INVALID_ICON */
+    target.icon_size = icon_png_size;
+
+    ntk_share_error error = ntk_share_register_direct_target(&target);
+
+    const char* ids[1];
+    ids[0] = "sample_1";
+    error = ntk_share_remove_direct_targets(ids, 1);
+}
+```
+
+The app still declares the share target in `shortcuts.xml`, as in [Direct Share Target](#direct-share-target).
+
+#### Error values
+
+`ntk_share_error`. 0 to 5 mean the same in every feature of the C ABI.
+
+| Code | Name | When | Returned by |
+|---|---|---|---|
+| 0 | `NTK_SHARE_ERROR_NONE` | Success; for an open, the Sharesheet opened | Both |
+| 1 | `NTK_SHARE_ERROR_INVALID_PARAMETER` | A `NULL` argument or callback, invalid UTF-8, a `struct_size` that is too small | Return value |
+| 2 | `NTK_SHARE_ERROR_NOT_INITIALIZED` | Called before initialization. The argument checks come first, and `ntk_share_cancel_selection` returns `NONE` | Return value |
+| 3 | `NTK_SHARE_ERROR_NOT_SUPPORTED` | A nonzero value in the part of a struct this version does not know | Return value |
+| 4 | `NTK_SHARE_ERROR_UNKNOWN` | Anything else; logcat (tag `ntk`) has the detail | Both |
+| 5 | `NTK_SHARE_ERROR_OUT_OF_MEMORY` | An allocation failed | Both |
+| 6 | `NTK_SHARE_ERROR_NOT_FOREGROUND` | The app is not in the foreground; nothing opened | Completion |
+| 7 | `NTK_SHARE_ERROR_EMPTY_CONTENT` | The text is empty (return value) or white space only (completion) | Both |
+| 8 | `NTK_SHARE_ERROR_NO_SHARE_TARGET` | No activity can handle the share | Completion |
+| 9 | `NTK_SHARE_ERROR_FILE_NOT_FOUND` | The file does not exist | Completion |
+| 10 | `NTK_SHARE_ERROR_ILLEGAL_FILE_ACCESS` | The file is outside the FileProvider directories | Completion |
+| 11 | `NTK_SHARE_ERROR_INVALID_MIME_TYPE` | The MIME type is blank | Completion |
+| 12 | `NTK_SHARE_ERROR_DIRECT_SHARE_REGISTRATION_FAILED` | Android did not publish the shortcut | Return value |
+| 13 | `NTK_SHARE_ERROR_EMPTY_ID_LIST` | `ntk_share_remove_direct_targets` with no IDs | Return value |
+| 14 | `NTK_SHARE_ERROR_EMPTY_FILE_LIST` | `ntk_share_images` or `ntk_share_files` with no paths | Return value |
+| 15 | `NTK_SHARE_ERROR_INVALID_ICON` | The Direct Share icon is `NULL`, empty, or not a readable image | Return value |
+| 16 | `NTK_SHARE_ERROR_INVALID_CHOOSER_ACTION` | An empty or repeated action ID, or a `NULL` or empty icon (return value); an icon that is not a readable image (completion). The actions of the previous Sharesheet keep working | Both |
+
+There is no `CANCELED`: the open completes as soon as the Sharesheet opens, and cancelling the wait for the pick is separate from it.
+
+| Kotlin API | C ABI |
+|---|---|
+| `shareText` / `shareTextWithActions` | `ntk_share_text` with `ntk_share_text_content` and `ntk_share_chooser_action` |
+| `shareImage` / `shareImages` / `shareFile` / `shareFiles` | `ntk_share_image` / `_images` / `_file` / `_files` |
+| `registerDirectShareTarget` / `removeDirectShareTargets` | `ntk_share_register_direct_target` with `ntk_share_direct_target` / `ntk_share_remove_direct_targets` |
+| `shareForSelection` / `cancelShareSelection` | `ntk_share_text_for_selection` / `ntk_share_cancel_selection` |
+| `selections.addListener` | `ntk_share_add_selection_listener` |
+| `chooserActions.addListener` | `ntk_share_add_chooser_action_listener` |
+| `EventHub.Registration.remove` | `ntk_share_listener_remove` |
+| `shareWithCallback` / `cancelPendingCallback` | None; use `ntk_share_text_for_selection` |
+| `ShareDomainError` | `ntk_share_error` 7 to 16, in the same order |
 
 ---
 
