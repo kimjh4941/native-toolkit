@@ -74,6 +74,12 @@ kotlin {
     coreLibrariesVersion = libs.versions.kotlinConsumer.get()
 }
 
+// android_library brings the Parcelize runtime at the compiler's version (its own pin does not
+// reach this module's resolution), which would put stdlib 2.4 into this module's metadata.
+configurations.configureEach {
+    resolutionStrategy.force(libs.kotlin.parcelize.runtime)
+}
+
 dependencies {
     implementation(project(":android_library"))
     // NtkInitializer runs at app start after android_library's LibraryInitializer (design 1.4).

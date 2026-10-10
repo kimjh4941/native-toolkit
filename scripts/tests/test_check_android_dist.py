@@ -174,6 +174,15 @@ class AndroidDistCheckTest(unittest.TestCase):
         pom.write_text(changed, encoding="utf-8")
         self.assert_only("m2")
 
+    def test_a_newer_kotlin_stdlib_in_the_module_metadata_fails_m2(self):
+        # Gradle reads the .module file before the POM, so a POM that is right is not enough.
+        metadata = self.pom("android-native-toolkit-capi").with_suffix(".module")
+        text = metadata.read_text(encoding="utf-8")
+        changed = re.sub(r'("module": "kotlin-stdlib",\s*"version": \{\s*"requires": ")[^"]+', r"\g<1>2.4.20", text)
+        self.assertNotEqual(text, changed, "the case's anchor is gone")
+        metadata.write_text(changed, encoding="utf-8")
+        self.assert_only("m2")
+
     def test_an_aar_in_m2_other_than_the_one_in_dist_fails_m2(self):
         aar = self.dist / f"android-native-toolkit-{RELEASE}.aar"
         rewrite_zip(aar, "extra.txt", b"rebuilt after publishing")

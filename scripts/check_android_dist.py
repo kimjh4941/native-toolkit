@@ -18,7 +18,9 @@ The rules come from the C ABI design (part 1 chapter 6 "配布物の名前", par
             the release's version (README D-17), the AARs there are the ones in
             dist/, the capi POM depends on android-native-toolkit at the same
             version, and the Kotlin core libraries are at the consumer version of
-            gradle/libs.versions.toml (kotlinConsumer: Kotlin 2.1 and 2.2 users)
+            gradle/libs.versions.toml (kotlinConsumer: Kotlin 2.1 and 2.2 users) in
+            the POM and in every variant of the Gradle Module Metadata, which
+            Gradle reads in preference to the POM
 
 A file that cannot be read fails its check: a check that skips because its
 subject is missing reports agreement it never checked.
@@ -223,6 +225,21 @@ def pom(path):
     return text(project, "groupId"), text(project, "artifactId"), text(project, "version"), dependencies
 
 
+def module_kotlin(path):
+    """[(variant, artifact, version)] of the Kotlin dependencies in a .module file, or None."""
+    try:
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    found = []
+    for variant in metadata.get("variants", []):
+        for dependency in variant.get("dependencies", []):
+            if dependency.get("group") == "org.jetbrains.kotlin":
+                version = dependency.get("version", {})
+                found.append((variant.get("name"), dependency.get("module"), version.get("requires") or version.get("strictly")))
+    return found
+
+
 def consumer_kotlin(root):
     match = re.search(r'^kotlinConsumer\s*=\s*"([^"]+)"', (root / VERSIONS).read_text(encoding="utf-8"), re.M)
     return match.group(1) if match else None
@@ -249,7 +266,14 @@ def check_m2(root, dist, release, rep):
             problems.append(f"no kotlinConsumer in {VERSIONS}")
         for dep_group, dep_artifact, dep_version in dependencies:
             if dep_group == "org.jetbrains.kotlin" and dep_version != kotlin:
-                problems.append(f"{dep_artifact} is {dep_version}, not {kotlin}")
+                problems.append(f"the POM's {dep_artifact} is {dep_version}, not {kotlin}")
+        in_module = module_kotlin(folder / f"{artifact}-{release}.module")
+        if in_module is None:
+            problems.append("cannot read the Gradle Module Metadata")
+        else:
+            for variant, module, version in in_module:
+                if version != kotlin:
+                    problems.append(f"the metadata's {module} is {version} in {variant}, not {kotlin}")
         if artifact == CAPI_ARTIFACT and (GROUP, KOTLIN_ARTIFACT, release) not in dependencies:
             problems.append(f"it does not depend on {GROUP}:{KOTLIN_ARTIFACT}:{release}")
         rep.check(not problems, name, "; ".join(problems))

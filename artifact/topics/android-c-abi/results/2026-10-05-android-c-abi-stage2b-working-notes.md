@@ -442,3 +442,48 @@
 ### 確かめていないこと
 
 - **x86_64 のライブラリは一度も動かしていない**: この Mac のエミュレーターは arm64 で、Pixel 6a も arm64。AAR には x86_64 の `libntk.so` も入る（`abiFilters`）が、組むだけで流していない
+
+## TB-10（2026-10-10）
+
+### 作ったもの
+
+- 発行（`7bf7f6ab`）: `android_library` と `android_library_capi` に `maven-publish`。座標は `io.github.kimjh4941:android-native-toolkit` と `:android-native-toolkit-capi`（D-17）。POM と Gradle Module Metadata の Kotlin の版を `kotlinConsumer`（2.2.21）に固定（`coreLibrariesVersion`、Parcelize のランタイムの `force`、`versionMapping`）
+- ビルドスクリプト `build_android_library_aar.sh`（同）: `android_library_capi`（Gradle のプロジェクトは `:ntk`）、`dist/<版>/android/include/NativeToolkitC/` へのヘッダーの写し、`--m2`（発行して `dist/<版>/android/m2/` を作り直す）
+- 配布物の照合 `scripts/check_android_dist.py` と自己テスト 15 件（同。Module Metadata の照合と 1 件は後から足した）
+- smoke `android/android_library_capi_smoke/`: `m2/` だけで組む C のアプリ（`android/` のビルドとは別のビルド）。R8 を有効にした release に対する計装テスト。`-Pstl=`（3 通り）、`auto` / `manual` の 2 つの flavor、`-PnoKeep=true`、`-Pabi32=true`（32 ビットの自前のライブラリを `:stub32` から）
+- Kotlin の利用者 `android/android_library_kotlin_consumer/`: AGP 8.10、Gradle 8.13（自分の wrapper）、`-Pkgp=` の KGP で、両方の AAR を使うコードをコンパイルする
+- 実行のスクリプト `scripts/run_android_capi_smoke.sh`: 上の全部を 1 台の端末に流し、項目ごとに PASS / FAIL / SKIP を出す
+
+### 実装の判断
+
+| 判断 | 理由 |
+|---|---|
+| smoke と Kotlin の利用者は、`android/` のビルドに入れない別のビルドにする | 同じビルドにあると、プロジェクトの依存で組めてしまい、配布物（`m2/`）だけで組めることを確かめられない |
+| 後ろからの Progress と 32 ビットは、計装の外で adb から起こし、logcat で読む | 計装の下では後ろからのフォアグラウンドサービスの開始が許される（TB-6）。32 ビットはインストールのしかたそのものを変える |
+| 32 ビットの自前のライブラリは、Prefab を使わない別のモジュール（`:stub32`）で作り、アプリの CMake は 64 ビットだけにする（`externalNativeBuild.cmake.abiFilters`）。APK に入れる ABI（`ndk.abiFilters`）には armeabi-v7a を入れる | 下の「テストで分かったこと」の CXX1210。Unity のような、32 ビットの自前のライブラリを持つアプリと同じ形 |
+| 照合は jni/ と Prefab の `libntk.so` を strip してから比べ、16 KB の整列と依存は両方を見る | AGP は jni/ に入れる方だけを strip する（Prefab の方はリンクとデバッグのために残す） |
+| 照合は POM に加えて Gradle Module Metadata の全 variant の Kotlin の版も見る | Gradle の利用者は POM より Module Metadata を先に読む（下の「テストで分かったこと」） |
+| `dist/<版>/` は作って確かめた後に消し、コミットしない | `dist/` はリリースのときにコミットする運用。smoke は README のとおり、ビルドが作る一時的なリポジトリ `android/build/m2` から組む |
+
+### テストで分かったこと
+
+- **POM が正しくても Module Metadata が違っていた**: capi の Module Metadata の実行時の variant に `kotlin-stdlib` 2.4.20 が書かれ、Kotlin 2.1 / 2.2 の利用者が組めなかった（`The binary version of its metadata is 2.4.0`）。`android_library` の Parcelize のランタイムの固定は、capi が `android_library` を解決するときには効かない。capi にも同じ固定を入れた。最初の照合は POM だけを見ていて見逃したので、Module Metadata を見るようにし、自己テストを足した
+- **capi の POM は `android-native-toolkit` に実行時の依存**: capi の公開の Kotlin の口は `android_library` の型を出さないので正しい。Kotlin の API も使う利用者は、両方を宣言する（README 3 章のとおり。マニュアルに書く）
+- **アプリの CMake が 32 ビットも組むと Prefab で止まる**: AGP は CMake が組む ABI ごとに Prefab のパッケージを確かめ、armeabi-v7a が無いと `CXX1210: No compatible library found [//ntk/ntk]` で止まる。C ABI は 64 ビットだけなので（D-10）、32 ビットも組むアプリは、C ABI を使う CMake の ABI を 64 ビットに絞る必要がある（マニュアルに書く）
+- **手動の経路では Activity を渡す**: Startup を外すと、前面の Activity を追う仕組みはアプリの起動の時点では動いていない。`ntk_android_init` に Application の Context を渡すと、前面の Activity が分からず Dialog が出なかった。Activity を渡すと、それが最初の前面の Activity になる（第 1 部 1.4、K-5。マニュアルに書く）
+- **R8 で縮めた release を計装でテストするとき**: テストはアプリのプロセスで、アプリの側のクラスを使う。androidx.test が使い、アプリが使わない `androidx.tracing` と Kotlin の標準ライブラリの一部が削られて起動で落ちたので、smoke のアプリの規則で残した（C ABI のクラスとは関係しない）
+- **別のビルドは SDK の場所を知らない**: `android/local.properties` は `android/` のビルドだけが読む。smoke と Kotlin の利用者は `ANDROID_HOME` で渡す（実行のスクリプトが入れる）
+- **ビルドスクリプトは `gradle.properties` の `libraryVersion` を書き換える**（前からの動き）。開発中に試したときは戻した
+
+### 確かめていないこと
+
+- **x86_64 で動かすこと**（第 1 部 G-3）: 手元の 2 台は arm64。x86_64 の `libntk.so` は、組めること、公開関数（155 と `JNI_OnLoad`）、16 KB の整列、`libc++_shared` に依存しないことを、配布物の照合で確かめた
+- **`NO_SHARE_TARGET` などの端末で起こせない失敗**（TB-6、TB-8）は smoke でも起こしていない
+
+### 確かめたこと
+
+- `scripts/run_android_capi_smoke.sh`（版 2.0.0、`android/build/m2`）:
+  - Pixel 6a（API 36）: 12 項目すべて PASS（smoke 6、keep の規則なし 2、後ろからの Progress、32 ビット、Kotlin 2.2.21 と 2.1.21）
+  - エミュレータ（API 35、arm64）: 11 項目が PASS、32 ビットは SKIP（32 ビットの ABI が無い）
+- 配布物の照合（2.0.0 を `dist/` に作って流した）: すべて OK。自己テストは scripts/tests の全 196 件が通る
+- `android_library` の単体テスト 166 件が、Kotlin の版の固定の後も通る
