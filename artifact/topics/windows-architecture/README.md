@@ -290,7 +290,8 @@ artifact/topics/windows-architecture/
    - C の見せ方: 今の設定は C++ 向け（`OPTIMIZE_OUTPUT_FOR_C = NO`）なので、C ABI の構造体が「クラス」の一覧に並ぶ。C ABI だけなら `YES` にできる
    - 名前の重なり: どちらにも `Clipboard.h`、`Dialog.h` などがあり、検索と一覧で混ざる
    - OS をまたいでそろえる: Android は C ABI だけを Doxygen にした（`android/android_library_capi/Doxyfile`。Kotlin の API は Dokka。`android-c-abi` の段階 4）。今後の iOS / macOS の C ABI も同じ形にする
-   - 中身: Doxyfile を `WindowsLibrary`（C++ の API）と `WindowsLibraryCApi`（C ABI、`OPTIMIZE_OUTPUT_FOR_C = YES`）の 2 つにし、生成物と `publish_docs.sh` の写し先（`docs/<版>/windows/` の下）も分ける。`doxygen` は Mac でも動く（図には Graphviz が要る）
+   - 中身: Doxyfile を `WindowsLibrary`（C++ の API）と `WindowsLibraryCApi`（C ABI、`OPTIMIZE_OUTPUT_FOR_C = YES`）の 2 つにし、生成物と `publish_docs.sh` の写し先（`docs/<版>/windows/` の下）も分ける。C ABI の側は `CALL_GRAPH` と `CALLER_GRAPH` を `NO` にする（ヘッダーに宣言しか無いので、関数が自分を指すだけの図になる。Android の Doxyfile で確かめた）。インクルードの図は残す
+   - 生成の環境: この Mac に `doxygen`（1.18.0）と Graphviz（16.1.0）を入れた（2026-10-10、Homebrew）。Windows の機械が無くても作れる
 
 ## 6. 段階ごとに壊れる場所
 

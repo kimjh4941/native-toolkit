@@ -1,0 +1,9 @@
+<map id="NativeToolkitC/Dialog.h" name="NativeToolkitC/Dialog.h">
+<area shape="rect" id="Node000001" title="Dialogs. Every dialog is asynchronous: the result arrives in a completion callback on the main thread..." alt="" coords="5,5,165,31"/>
+<area shape="rect" id="Node000002" href="$_common_8h.html" title="What every part of the NativeToolkit C ABI shares: the version, the last system code (always 0 on And..." alt="" coords="42,79,128,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="86,29,88,64,82,63,84,34"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="6,153,74,178"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="80,103,58,141,53,138,75,106"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="98,153,162,178"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="94,103,117,140,112,140,91,107"/>
+</map>
