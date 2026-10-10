@@ -292,6 +292,7 @@ artifact/topics/windows-architecture/
    - OS をまたいでそろえる: Android は C ABI だけを Doxygen にした（`android/android_library_capi/Doxyfile`。Kotlin の API は Dokka。`android-c-abi` の段階 4）。今後の iOS / macOS の C ABI も同じ形にする
    - 中身: Doxyfile を `WindowsLibrary`（C++ の API）と `WindowsLibraryCApi`（C ABI、`OPTIMIZE_OUTPUT_FOR_C = YES`）の 2 つにし、生成物と `publish_docs.sh` の写し先（`docs/<版>/windows/` の下）も分ける。C ABI の側は `CALL_GRAPH` と `CALLER_GRAPH` を `NO` にする（ヘッダーに宣言しか無いので、関数が自分を指すだけの図になる。Android の Doxyfile で確かめた）。インクルードの図は残す
    - 生成の環境: この Mac に `doxygen`（1.18.0）と Graphviz（16.1.0）を入れた（2026-10-10、Homebrew）。Windows の機械が無くても作れる
+   - LaTeX の出力を止める（`GENERATE_LATEX = NO`）。`windows/WindowsLibrary/docs/latex`（160 ファイル、2.1 MB）をリポジトリから消し、6 章の表の「（html / latex）」も直す。LaTeX は PDF の手引き書を作る途中の材料だが、PDF は作っておらず、`publish_docs.sh` も HTML しか公開しない。利用者は HTML のリファレンス（`docs/<版>/` で手元でも読める）とヘッダーのコメントで足りる（利用者の判断。2026-10-10）。PDF が要る場面が出たら、リリースのときに作って添える形にし、途中の材料はリポジトリに入れない
 
 ## 6. 段階ごとに壊れる場所
 
