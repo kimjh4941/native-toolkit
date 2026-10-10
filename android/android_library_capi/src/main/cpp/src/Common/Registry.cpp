@@ -3,7 +3,6 @@
 #include <mutex>
 #include <new>
 #include <unordered_map>
-#include <vector>
 
 #include "Common/Jni.h"
 #include "Common/Log.h"
@@ -12,25 +11,33 @@
 namespace nativetoolkit::registry {
 namespace {
 
-// Never destroyed (design 5.5): the process may end while other threads still use the table.
+// An object made in static storage on first use and never destroyed (design 5.5: the process may
+// end while other threads still use it). Placement new allocates nothing, and the default
+// constructors used here do not allocate either, so the noexcept functions below that reach it
+// first cannot throw (review v3, S-X1).
+template <class T>
+T& NeverDestroyed() {
+    alignas(T) static unsigned char storage[sizeof(T)];
+    static T* object = new (storage) T();
+    return *object;
+}
+
 std::mutex& TableMutex() {
-    static auto* mutex = new std::mutex;
-    return *mutex;
+    return NeverDestroyed<std::mutex>();
 }
 
 std::unordered_map<uint64_t, Registration*>& Table() {
-    static auto* table = new std::unordered_map<uint64_t, Registration*>;
-    return *table;
+    return NeverDestroyed<std::unordered_map<uint64_t, Registration*>>();
 }
 
-// The removals Cancel could not post, guarded by TableMutex. Never destroyed, as the table.
-std::vector<uint64_t>& Unposted() {
-    static auto* unposted = new std::vector<uint64_t>;
-    return *unposted;
-}
+// How many registrations in the table are marked unposted, so that the main thread looks through
+// the table only when there is one.
+std::atomic<size_t> g_unposted{0};
 
 std::atomic<uint64_t> g_next_id{1};
-std::atomic<bool> g_fail_next_remove_post{false};
+#ifndef NDEBUG
+std::atomic<bool> g_fail_next_remove_post{false};  // the debug probe's test hook only
+#endif
 bool g_draining = false;  // main thread only
 
 jclass g_ledger = nullptr;
@@ -66,7 +73,9 @@ void JNICALL NativeRemove(JNIEnv* /*env*/, jclass /*type*/, jlong id) {
 
 bool PostRemove(uint64_t id) noexcept {
     NTK_LOGD("[PostRemove] id: %llu", static_cast<unsigned long long>(id));
+#ifndef NDEBUG
     if (g_fail_next_remove_post.exchange(false)) return false;
+#endif
     JNIEnv* env = jni::Env();
     if (env == nullptr || g_ledger == nullptr) return false;
     jni::LocalFrame frame(env, 4);
@@ -109,6 +118,7 @@ bool TryRelease(uint64_t id, State expected) noexcept {
         int from = static_cast<int>(expected);
         if (!found->second->state.compare_exchange_strong(from, static_cast<int>(State::kReleased))) return false;
         registration = found->second;
+        if (registration->unposted) g_unposted.fetch_sub(1);
         Table().erase(found);
     }
     // Outside the mutex: release is the app's code and may call back into the C ABI.
@@ -143,36 +153,47 @@ bool Cancel(uint64_t id, std::initializer_list<int32_t> kinds) noexcept {
     // Not posted (attaching failed, Kotlin ran out of memory, or the looper ended with the process):
     // the main thread runs it the next time it enters the C ABI. A completion that ran meanwhile
     // saw CANCEL_REQUESTED and left the release to this removal, so the state stays.
-    NTK_LOGW("[Cancel] could not post the removal of %llu; queued for the main thread",
+    NTK_LOGW("[Cancel] could not post the removal of %llu; left for the main thread",
              static_cast<unsigned long long>(id));
-    try {
-        std::lock_guard<std::mutex> lock(TableMutex());
-        Unposted().push_back(id);
-    } catch (const std::bad_alloc&) {
-        // Out of memory twice over: the registration stays CANCEL_REQUESTED and is not released.
-        NTK_LOGE("[Cancel] could not queue the removal of %llu", static_cast<unsigned long long>(id));
+    std::lock_guard<std::mutex> lock(TableMutex());
+    auto found = Table().find(id);
+    if (found != Table().end() && !found->second->unposted) {
+        found->second->unposted = true;
+        g_unposted.fetch_add(1);
     }
     return true;
 }
 
 void DrainUnpostedOnMain() noexcept {
     NTK_LOGD("[DrainUnpostedOnMain]");
-    if (!IsMainThread() || g_draining) return;
-    std::vector<uint64_t> ids;
-    {
-        std::lock_guard<std::mutex> lock(TableMutex());
-        if (Unposted().empty()) return;
-        ids.swap(Unposted());
-    }
-    NTK_LOGW("[DrainUnpostedOnMain] running %zu removals that could not be posted", ids.size());
+    if (!IsMainThread() || g_draining || g_unposted.load() == 0) return;
     g_draining = true;
     JNIEnv* env = jni::Env();
-    for (uint64_t id : ids) {
-        // Out of the Kotlin ledger as Ledger.postRemove's message would have done; a failure leaves
-        // a stale id there, which delivers nothing (FindOnMain finds no registration).
-        if (env != nullptr && g_ledger != nullptr) {
+    for (;;) {
+        uint64_t id = 0;
+        {
+            std::lock_guard<std::mutex> lock(TableMutex());
+            for (auto& [key, registration] : Table()) {
+                if (registration->unposted) {
+                    registration->unposted = false;
+                    g_unposted.fetch_sub(1);
+                    id = key;
+                    break;
+                }
+            }
+        }
+        if (id == 0) break;
+        NTK_LOGW("[DrainUnpostedOnMain] running the removal of %llu that could not be posted",
+                 static_cast<unsigned long long>(id));
+        // Out of the Kotlin ledger as Ledger.postRemove's message would have done. Not with a Java
+        // exception pending (app code of the removal before may have left one; review v3, S-M4): a
+        // stale id there delivers nothing, since FindOnMain finds no registration.
+        if (env != nullptr && g_ledger != nullptr && !env->ExceptionCheck()) {
             env->CallStaticVoidMethod(g_ledger, g_drop, static_cast<jlong>(id));
             jni::TakeException(env, "Ledger.drop");
+        } else if (env != nullptr && env->ExceptionCheck()) {
+            NTK_LOGW("[DrainUnpostedOnMain] a Java exception is pending; %llu stays in the Kotlin ledger",
+                     static_cast<unsigned long long>(id));
         }
         RemoveOnMain(id);
     }
@@ -181,7 +202,9 @@ void DrainUnpostedOnMain() noexcept {
 
 void FailNextRemovePost() noexcept {
     NTK_LOGD("[FailNextRemovePost]");
+#ifndef NDEBUG
     g_fail_next_remove_post.store(true);
+#endif
 }
 
 State StateOf(uint64_t id) noexcept {

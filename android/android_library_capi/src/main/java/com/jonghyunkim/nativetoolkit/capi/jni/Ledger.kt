@@ -77,7 +77,15 @@ internal object Ledger {
         }
     }
 
-    /** Takes [id] out of the ledger for a removal C runs itself (one that could not be posted). Main thread only. */
+    /**
+     * Takes [id] out of the ledger for a removal C runs itself (one that could not be posted). Main
+     * thread only.
+     *
+     * C runs those removals at the start of every native the main thread calls for a registration
+     * ([nativeIsActive], [nativeRemove], the features' completions and events), so app code (a
+     * canceled completion, a release) may run inside any of those calls: the Kotlin that calls them
+     * must not hold an iterator over state that may change meanwhile (review v3, S-M5).
+     */
     @JvmStatic
     fun drop(id: Long) {
         Log.d(TAG, "[drop] id: $id")

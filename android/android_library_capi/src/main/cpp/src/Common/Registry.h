@@ -39,6 +39,7 @@ struct Registration {
     CancelCompletion cancel_completion = nullptr;  // set for an operation with a completion
     std::atomic<int> state{static_cast<int>(State::kActive)};
     bool completed = false;                      // main thread only
+    bool unposted = false;                       // its removal could not be posted; under the table mutex
 };
 
 // Makes an ACTIVE registration and puts it in the table. Returns its id (never 0), or 0 when out
@@ -58,15 +59,20 @@ void ReleaseRejected(ntk_release_fn release, void* user_data) noexcept;
 // Cancels or removes from any thread, without waiting: ACTIVE becomes CANCEL_REQUESTED, and the
 // removal is posted to the main thread. Does nothing for an id that is not ACTIVE (completed,
 // released, unknown) or not of one of kinds (an id of another feature's registration, given by
-// mistake). A removal that cannot be posted (attaching or Kotlin failed) is queued instead, and the
-// main thread runs it the next time it enters the C ABI (DrainUnpostedOnMain); the state never goes
-// back to ACTIVE, since the main thread may already have acted on CANCEL_REQUESTED (review v2,
-// R-X1). Returns whether it moved the registration, that is, whether a removal is on its way.
+// mistake). A removal that cannot be posted (attaching or Kotlin failed) is marked on the
+// registration instead, and the main thread runs it the next time it enters the C ABI
+// (DrainUnpostedOnMain); nothing is allocated for it. The state never goes back to ACTIVE, since the
+// main thread may already have acted on CANCEL_REQUESTED (review v2, R-X1). There is no bound on
+// when that next entry comes: a removal waits for the next completion, event or insertion of any
+// registration (review v3, S-M1). Returns whether it moved the registration, that is, whether a
+// removal is on its way.
 bool Cancel(uint64_t id, std::initializer_list<int32_t> kinds) noexcept;
 
-// Main thread only: runs the removals that Cancel could not post. Every way the main thread enters
-// the C ABI for a registration calls it first (the removal, the completion, the delivery, the
-// insertion's check). Does nothing when called again from inside a removal it runs.
+// Main thread only: runs the removals that Cancel could not post, until none is left (a removal's
+// canceled completion or release may cancel another). Every way the main thread enters the C ABI for
+// a registration calls it first (the removal, the completion, the delivery, the insertion's check),
+// so app code (canceled completions, releases) may run inside those calls (review v3, S-M5). Does
+// nothing when called again from inside a removal it runs.
 void DrainUnpostedOnMain() noexcept;
 
 // Debug probe only: the next removal Cancel posts fails, as if Kotlin could not be called.

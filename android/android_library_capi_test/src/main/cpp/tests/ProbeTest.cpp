@@ -181,21 +181,29 @@ TEST_F(Probe, ACancelAfterTheResultArrivedChangesNothing) {
 // it enters the C ABI, whichever way; the registration never goes back to ACTIVE ---
 
 TEST_F(Probe, AnUnpostedCancelRunsWhenTheMainThreadNextEnters) {
-    Recorder& recorder = Leaked<Recorder>();
+    // The main thread enters for another registration: only the queue can complete the canceled one
+    // (its own completion would complete it by itself; review v3, S-X2).
+    Recorder& canceled = Leaked<Recorder>();
+    Recorder& other = Leaked<Recorder>();
     uint64_t id = 0;
-    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &recorder, Recorder::Release, &id));
+    uint64_t other_id = 0;
+    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &canceled, Recorder::Release, &id));
+    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &other, Recorder::Release, &other_id));
     ntktest::DrainMain();
     ntk_debug_probe_fail_next_remove_post();
     ntk_debug_probe_cancel(id);
     ntktest::DrainMain();
-    EXPECT_EQ(0u, recorder.Records().size());  // nothing reached the main thread yet
-    ntk_debug_probe_finish(id, 5);  // its completion enters the C ABI on main and runs the removal
-    ASSERT_TRUE(recorder.WaitFor("release", 1));
+    EXPECT_EQ(0u, canceled.Records().size());  // nothing reached the main thread yet
+    ntk_debug_probe_finish(other_id, 5);
+    ASSERT_TRUE(other.WaitFor("release", 1));
+    ASSERT_TRUE(canceled.WaitFor("release", 1));
     ntktest::DrainMain();
-    std::vector<Record> records = recorder.Records();
+    std::vector<Record> records = canceled.Records();
     ASSERT_EQ((std::vector<std::string>{"done", "release"}), Names(records));
     EXPECT_EQ(kCanceled, records[0].error);
     EXPECT_TRUE(records[1].on_main);
+    EXPECT_EQ(5, other.Records()[0].value);
+    // TearDown: nothing left in the table, and the queue took the id out of the Kotlin ledger too.
 }
 
 TEST_F(Probe, AResultQueuedBeforeAnUnpostedCancelCompletesCanceledOnce) {
@@ -242,6 +250,49 @@ TEST_F(Probe, AnUnpostedListenerRemovalStopsTheEventsAndReleasesOnce) {
     ntktest::DrainMain();
     EXPECT_EQ((std::vector<std::string>{"release"}), Names(recorder.Records()));
     EXPECT_TRUE(recorder.Records()[0].on_main);
+}
+
+namespace {
+// A registration whose release cancels another one, with that removal failing to post too.
+struct CancelsAnother {
+    Recorder& recorder = Leaked<Recorder>();
+    uint64_t other = 0;
+};
+void DoneInto(void* user_data, int32_t error, int64_t value) {
+    static_cast<CancelsAnother*>(user_data)->recorder.Add({"done", error, value});
+}
+void ReleaseAndCancelAnother(void* user_data) {
+    auto* self = static_cast<CancelsAnother*>(user_data);
+    self->recorder.Add({"release"});
+    ntk_debug_probe_fail_next_remove_post();
+    ntk_debug_probe_cancel(self->other);
+}
+}  // namespace
+
+TEST_F(Probe, AnUnpostedCancelFromInsideAnUnpostedRemovalRunsInTheSameEntry) {
+    // The main thread runs removals until none is left (review v3, S-M3): one left by app code that
+    // ran inside the first does not wait for yet another entry.
+    CancelsAnother& first = Leaked<CancelsAnother>();
+    Recorder& second = Leaked<Recorder>();
+    Recorder& trigger = Leaked<Recorder>();
+    uint64_t first_id = 0;
+    uint64_t trigger_id = 0;
+    ASSERT_EQ(kNone, ntk_debug_probe_start(DoneInto, &first, ReleaseAndCancelAnother, &first_id));
+    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &second, Recorder::Release, &first.other));
+    ASSERT_EQ(kNone, ntk_debug_probe_start(Recorder::Done, &trigger, Recorder::Release, &trigger_id));
+    ntktest::DrainMain();
+    ntk_debug_probe_fail_next_remove_post();
+    ntk_debug_probe_cancel(first_id);
+    ntk_debug_probe_finish(trigger_id, 1);  // the one main entry
+    ASSERT_TRUE(trigger.WaitFor("release", 1));
+    ntktest::DrainMain();
+    std::vector<Record> first_records = first.recorder.Records();
+    std::vector<Record> second_records = second.Records();
+    ASSERT_EQ((std::vector<std::string>{"done", "release"}), Names(first_records));
+    ASSERT_EQ((std::vector<std::string>{"done", "release"}), Names(second_records));
+    EXPECT_EQ(kCanceled, first_records[0].error);
+    EXPECT_EQ(kCanceled, second_records[0].error);
+    EXPECT_TRUE(second_records[1].on_main);
 }
 
 TEST_F(Probe, EveryListenerOfTheKindGetsTheEventOnMain) {

@@ -162,8 +162,13 @@ def load_alignments(readelf, library):
 
 
 def needed(readelf, library):
+    """The libraries the library needs, or an error text. libc.so is always among them, so none
+    means the dynamic section was not read."""
     finished = subprocess.run([readelf, "-dW", str(library)], capture_output=True, text=True)
-    return re.findall(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]", finished.stdout)
+    if finished.returncode != 0:
+        return f"{readelf} -dW failed: {finished.stderr.strip()}"
+    libraries = re.findall(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]", finished.stdout)
+    return libraries if "libc.so" in libraries else "no libc.so among the needed libraries read: they were not read"
 
 
 def imports(readelf, library):
@@ -226,7 +231,10 @@ def check_native(root, capi, readelf_given, nm_given, strip_given, rep):
                         problems.append(aligned)
                     elif not aligned or any(value < PAGE for value in aligned):
                         problems.append(f"{label} LOAD alignments {[hex(value) for value in aligned]}, not 0x4000")
-                    if "libc++_shared.so" in needed(readelf, copy):
+                    libraries = needed(readelf, copy)
+                    if isinstance(libraries, str):
+                        problems.append(libraries)
+                    elif "libc++_shared.so" in libraries:
                         problems.append(f"{label} needs libc++_shared.so")
                     imported = imports(readelf, copy)
                     if isinstance(imported, str):

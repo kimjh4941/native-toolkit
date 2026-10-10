@@ -6,6 +6,7 @@
 #include <ctime>
 #include <unistd.h>
 
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -292,6 +293,17 @@ void IgnoreShown(void*, ntk_notification_shown*) {}
 void IgnoreShare(void*, ntk_share_error, uint32_t) {}
 void IgnoreChooserAction(void*, ntk_string*) {}
 void IgnoreSelection(void*, uint64_t, ntk_string*) {}
+
+struct ReleaseSlot {
+    std::atomic<int> count{0};
+    std::atomic<pid_t> thread{0};
+};
+
+void CountRelease(void* user_data) {
+    auto* slot = static_cast<ReleaseSlot*>(user_data);
+    slot->count.fetch_add(1);
+    slot->thread.store(gettid());
+}
 }  // namespace
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -307,7 +319,13 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
     auto notification = [&expect](const char* name, int32_t error) {
         expect(name, error, NTK_NOTIFICATION_ERROR_NOT_INITIALIZED);
     };
-    auto* recorder = new ntktest::Recorder;  // never freed: see Leaked in TestSupport.h
+    // One counter per asynchronous call, so that each is checked to release exactly once (review v3,
+    // S-X3). Never freed: see Leaked in TestSupport.h.
+    std::vector<ReleaseSlot*> slots;
+    auto slot = [&slots] {
+        slots.push_back(new ReleaseSlot);
+        return slots.back();
+    };
     const char* texts[] = {"a", "b"};
 
     // Clipboard (OP-01 to OP-11).
@@ -326,36 +344,36 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
     clipboard("stop_observing", ntk_clipboard_stop_observing());
     ntk_clipboard_listener* clipboard_listener = nullptr;
     clipboard("add_change_listener",
-              ntk_clipboard_add_change_listener(IgnoreChange, recorder, ntktest::Recorder::Release, &clipboard_listener));
+              ntk_clipboard_add_change_listener(IgnoreChange, slot(), CountRelease, &clipboard_listener));
 
     // Dialog (OP-13 to OP-18).
     ntk_dialog_alert_request alert{};
     alert.struct_size = sizeof(alert);
-    dialog("show_alert_async", ntk_dialog_show_alert_async(&alert, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+    dialog("show_alert_async", ntk_dialog_show_alert_async(&alert, IgnoreDialog, slot(), CountRelease, nullptr));
     ntk_dialog_confirm_request confirm{};
     confirm.struct_size = sizeof(confirm);
     dialog("show_confirm_async",
-           ntk_dialog_show_confirm_async(&confirm, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+           ntk_dialog_show_confirm_async(&confirm, IgnoreDialog, slot(), CountRelease, nullptr));
     ntk_dialog_single_choice_request single{};
     single.struct_size = sizeof(single);
     single.items = texts;
     single.item_count = 2;
     single.checked_index = -1;
     dialog("show_single_choice_async",
-           ntk_dialog_show_single_choice_async(&single, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+           ntk_dialog_show_single_choice_async(&single, IgnoreDialog, slot(), CountRelease, nullptr));
     ntk_dialog_multi_choice_request multi{};
     multi.struct_size = sizeof(multi);
     multi.items = texts;
     multi.item_count = 2;
     dialog("show_multi_choice_async",
-           ntk_dialog_show_multi_choice_async(&multi, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+           ntk_dialog_show_multi_choice_async(&multi, IgnoreDialog, slot(), CountRelease, nullptr));
     ntk_dialog_text_input_request text_input{};
     text_input.struct_size = sizeof(text_input);
     dialog("show_text_input_async",
-           ntk_dialog_show_text_input_async(&text_input, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+           ntk_dialog_show_text_input_async(&text_input, IgnoreDialog, slot(), CountRelease, nullptr));
     ntk_dialog_login_request login{};
     login.struct_size = sizeof(login);
-    dialog("show_login_async", ntk_dialog_show_login_async(&login, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr));
+    dialog("show_login_async", ntk_dialog_show_login_async(&login, IgnoreDialog, slot(), CountRelease, nullptr));
 
     // Notifications (OP-20 to OP-41).
     ntk_notification_content* note = nullptr;
@@ -384,14 +402,14 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
     notification("is_scheduled", ntk_notification_is_scheduled(1, nullptr, &value));
     notification("can_schedule_exact_alarms", ntk_notification_can_schedule_exact_alarms(&value));
     notification("open_settings_async",
-                 ntk_notification_open_settings_async(0, IgnoreSettings, recorder, ntktest::Recorder::Release));
+                 ntk_notification_open_settings_async(0, IgnoreSettings, slot(), CountRelease));
     notification("request_permission",
-                 ntk_notification_request_permission(IgnorePermission, recorder, ntktest::Recorder::Release, nullptr));
+                 ntk_notification_request_permission(IgnorePermission, slot(), CountRelease, nullptr));
     ntk_notification_listener* listener = nullptr;
     notification("add_interaction_listener",
-                 ntk_notification_add_interaction_listener(IgnoreInteraction, recorder, ntktest::Recorder::Release, &listener));
+                 ntk_notification_add_interaction_listener(IgnoreInteraction, slot(), CountRelease, &listener));
     notification("add_shown_listener",
-                 ntk_notification_add_shown_listener(IgnoreShown, recorder, ntktest::Recorder::Release, &listener));
+                 ntk_notification_add_shown_listener(IgnoreShown, slot(), CountRelease, &listener));
     ntk_notification_channel_free(channel);
     ntk_notification_content_free(note);
 
@@ -400,11 +418,11 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
     ntk_share_text_content text{};
     text.struct_size = sizeof(text);
     text.text = "x";
-    share("share_text", ntk_share_text(&text, nullptr, 0, IgnoreShare, recorder, ntktest::Recorder::Release));
-    share("share_image", ntk_share_image("/a.png", nullptr, IgnoreShare, recorder, ntktest::Recorder::Release));
-    share("share_images", ntk_share_images(texts, 2, IgnoreShare, recorder, ntktest::Recorder::Release));
-    share("share_file", ntk_share_file("/a", IgnoreShare, recorder, ntktest::Recorder::Release));
-    share("share_files", ntk_share_files(texts, 2, IgnoreShare, recorder, ntktest::Recorder::Release));
+    share("share_text", ntk_share_text(&text, nullptr, 0, IgnoreShare, slot(), CountRelease));
+    share("share_image", ntk_share_image("/a.png", nullptr, IgnoreShare, slot(), CountRelease));
+    share("share_images", ntk_share_images(texts, 2, IgnoreShare, slot(), CountRelease));
+    share("share_file", ntk_share_file("/a", IgnoreShare, slot(), CountRelease));
+    share("share_files", ntk_share_files(texts, 2, IgnoreShare, slot(), CountRelease));
     const uint8_t icon[] = {1};
     ntk_share_direct_target target{};
     target.struct_size = sizeof(target);
@@ -415,13 +433,13 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
     share("register_direct_target", ntk_share_register_direct_target(&target));
     share("remove_direct_targets", ntk_share_remove_direct_targets(texts, 2));
     share("share_text_for_selection",
-          ntk_share_text_for_selection(&text, IgnoreShare, recorder, ntktest::Recorder::Release, nullptr));
+          ntk_share_text_for_selection(&text, IgnoreShare, slot(), CountRelease, nullptr));
     ntk_share_listener* share_listener = nullptr;
-    share("add_chooser_action_listener", ntk_share_add_chooser_action_listener(IgnoreChooserAction, recorder,
-                                                                               ntktest::Recorder::Release,
+    share("add_chooser_action_listener", ntk_share_add_chooser_action_listener(IgnoreChooserAction, slot(),
+                                                                               CountRelease,
                                                                                &share_listener));
     share("add_selection_listener",
-          ntk_share_add_selection_listener(IgnoreSelection, recorder, ntktest::Recorder::Release, &share_listener));
+          ntk_share_add_selection_listener(IgnoreSelection, slot(), CountRelease, &share_listener));
     // The cancels find no request (none can exist yet), so they do nothing and return NONE (6.2,
     // 6.3); the removals do nothing.
     expect("dialog_cancel", ntk_dialog_cancel(1), NTK_DIALOG_ERROR_NONE);
@@ -442,17 +460,17 @@ Java_com_jonghyunkim_nativetoolkit_capitest_NtkTestNative_operationsUninitialize
            NTK_NOTIFICATION_ERROR_INVALID_PARAMETER);
     ntk_dialog_alert_request small{};  // struct_size 0
     expect("show_alert_async small struct",
-           ntk_dialog_show_alert_async(&small, IgnoreDialog, recorder, ntktest::Recorder::Release, nullptr),
+           ntk_dialog_show_alert_async(&small, IgnoreDialog, slot(), CountRelease, nullptr),
            NTK_DIALOG_ERROR_INVALID_PARAMETER);
-    expect("share_files none", ntk_share_files(texts, 0, IgnoreShare, recorder, ntktest::Recorder::Release),
+    expect("share_files none", ntk_share_files(texts, 0, IgnoreShare, slot(), CountRelease),
            NTK_SHARE_ERROR_EMPTY_FILE_LIST);
 
     // 1 + 6 + 4 + 8 asynchronous calls, and 2 rejected for their arguments, each released at once
     // on this thread (part 1, 1.3).
-    std::vector<ntktest::Record> records = recorder->Records();
-    if (records.size() != 21) failed += "releases=" + std::to_string(records.size()) + " ";
-    for (const auto& record : records) {
-        if (record.what != "release" || record.thread != gettid()) failed += "release-off-thread ";
+    if (slots.size() != 21) failed += "calls=" + std::to_string(slots.size()) + " ";
+    for (size_t i = 0; i < slots.size(); ++i) {
+        if (slots[i]->count.load() != 1) failed += "release#" + std::to_string(i) + "=" + std::to_string(slots[i]->count.load()) + " ";
+        if (slots[i]->thread.load() != gettid()) failed += "release#" + std::to_string(i) + "-off-thread ";
     }
     return env->NewStringUTF(failed.c_str());
 }

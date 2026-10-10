@@ -58,7 +58,7 @@ ID の `R-C` は Claude 1、`R-M` は Claude 2、`R-X` は Codex。区分は 1 �
 
 | ID | 結果 |
 |---|---|
-| R-X1（ほか 7 件） | `Registry::Cancel` は、解除を積めなかったら CANCEL_REQUESTED のまま列に入れて `true` を返す。main の入口（`Ledger.nativeRemove`、`nativeIsActive`、`CompleteOnMain`、`DeliverOnMain`）が先に列を流し、Kotlin の帳簿からも外す（`Ledger.drop`）。列に入れることもできない（記憶が二重に足りない）ときだけ、登録は解放されないまま残る（ログに出す）。プロセスが終わるときは列が流れない（第 1 部 1.3 の「プロセスの終わり」のとおり）。デバッグのプローブに `ntk_debug_probe_fail_next_remove_post` を足し、ProbeTest に 4 件足した。Registry のテスト（ledger の無い写し）は、競合のテストを元の主張（ちょうど 1 回の勝ち）に戻し、積めなかった取り消しが main の次の入口で解放される 1 件に置き換えた |
+| R-X1（ほか 7 件） | （3 回目のレビューで、列を登録の印と件数に変えた。v3 の S-M2、S-X1）`Registry::Cancel` は、解除を積めなかったら CANCEL_REQUESTED のまま列に入れて `true` を返す。main の入口（`Ledger.nativeRemove`、`nativeIsActive`、`CompleteOnMain`、`DeliverOnMain`）が先に列を流し、Kotlin の帳簿からも外す（`Ledger.drop`）。列に入れることもできない（記憶が二重に足りない）ときだけ、登録は解放されないまま残る（ログに出す）。プロセスが終わるときは列が流れない（第 1 部 1.3 の「プロセスの終わり」のとおり）。デバッグのプローブに `ntk_debug_probe_fail_next_remove_post` を足し、ProbeTest に 4 件足した。Registry のテスト（ledger の無い写し）は、競合のテストを元の主張（ちょうど 1 回の勝ち）に戻し、積めなかった取り消しが main の次の入口で解放される 1 件に置き換えた |
 | R-X2 | 表のとおり。必ずある import は `__cxa_finalize`（crtbegin がどの `.so` にも入れる）にした。ログの関数はログの作りに依るため |
 | R-X3、R-X4、R-C8 | 表のとおり。AAR を出す variant は、ファイルに `.aar` を持つもの（API と runtime） |
 | R-M6 | 表のとおり |

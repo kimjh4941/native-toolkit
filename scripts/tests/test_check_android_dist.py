@@ -214,12 +214,12 @@ class AndroidDistCheckTest(unittest.TestCase):
             self.rewrite_capi(path, library.replace(b"\0pthread_once\0", b"\0__cxa_atexit\0"))
         self.assert_only("native: arm64-v8a")
 
-    def test_a_readelf_that_cannot_list_the_imports_fails_native(self):
-        # Without the import list, "nothing run at exit" would hold for an empty list.
+    def assert_readelf_failing_on(self, option):
+        """A readelf that fails for option alone: the checks that need its output fail, not pass."""
         real = find_ndk_tool("llvm-readelf")
         self.assertTrue(real and pathlib.Path(real).exists(), "no llvm-readelf for the case")
         fake = self.root / "readelf"
-        fake.write_text(f'#!/bin/sh\nfor a in "$@"; do [ "$a" = --dyn-syms ] && exit 1; done\nexec "{real}" "$@"\n',
+        fake.write_text(f'#!/bin/sh\nfor a in "$@"; do [ "$a" = {option} ] && exit 1; done\nexec "{real}" "$@"\n',
                         encoding="utf-8")
         fake.chmod(0o755)
         code, output = self.run_checker("--readelf", str(fake))
@@ -227,7 +227,15 @@ class AndroidDistCheckTest(unittest.TestCase):
         self.assertEqual(1, code, output)
         self.assertTrue(failed, output)
         for line in failed:
-            self.assertTrue(line.startswith("FAIL native: ") and "--dyn-syms failed" in line, f"unexpected: {line}")
+            self.assertTrue(line.startswith("FAIL native: ") and f"{option} failed" in line, f"unexpected: {line}")
+
+    def test_a_readelf_that_cannot_list_the_imports_fails_native(self):
+        # Without the import list, "nothing run at exit" would hold for an empty list.
+        self.assert_readelf_failing_on("--dyn-syms")
+
+    def test_a_readelf_that_cannot_list_the_needed_libraries_fails_native(self):
+        # Without the dynamic section, "no libc++_shared.so" would hold for an empty list.
+        self.assert_readelf_failing_on("-dW")
 
     def test_a_capi_api_variant_without_dependencies_fails_m2(self):
         # A variant left with no dependencies at all must not drop out of the check.

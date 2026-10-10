@@ -65,8 +65,13 @@ internal object NtkRuntime {
             // kept itself, and keepApplication reads its application context once there is one.
             val keep: Context = context.applicationContext ?: context
             LibraryRuntime.addOnInitializedListener {
-                keepApplication(keep)
-                notifyKotlinReady()
+                // READY without the Application would fail every operation; then the next
+                // initialization with a full Context finishes (review v3, S-M7).
+                if (keepApplication(keep)) {
+                    notifyKotlinReady()
+                } else {
+                    Log.w(TAG, "[ensureInitialized] no Application from $keep; waiting for the next initialization")
+                }
             }
         }
         return state.ordinal
@@ -75,9 +80,11 @@ internal object NtkRuntime {
     // Keeps the application context once the library is initialized, before C can become READY,
     // and only a real Application: a Context that failed the initialization must not stay. Read
     // after LibraryRuntime, which is the one to ask for the application context first.
-    private fun keepApplication(context: Context) {
+    private fun keepApplication(context: Context): Boolean {
         Log.d(TAG, "[keepApplication] context: $context")
-        (context.applicationContext as? Application)?.let { appContext = it }
+        val application = context.applicationContext as? Application ?: return false
+        appContext = application
+        return true
     }
 
     /**
