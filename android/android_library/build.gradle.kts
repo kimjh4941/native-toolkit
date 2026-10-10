@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.dokka)
+    `maven-publish`
 }
 
 val cliLibraryVersion = gradle.startParameter.projectProperties["libraryVersion"]
@@ -62,6 +63,13 @@ kotlin {
         languageVersion = KotlinVersion.KOTLIN_2_2
         apiVersion = KotlinVersion.KOTLIN_2_2
     }
+    // The POM then asks for the 2.2 core libraries, not the compiler's 2.4 (stage 1a 3.6).
+    coreLibrariesVersion = libs.versions.kotlinConsumer.get()
+}
+
+// The Parcelize plugin adds its own runtime at the compiler's version, which needs stdlib 2.4.
+configurations.configureEach {
+    resolutionStrategy.force(libs.kotlin.parcelize.runtime)
 }
 
 dokka {
@@ -97,4 +105,42 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.uiautomator)
+}
+
+// The Maven publication (README D-17): io.github.kimjh4941:android-native-toolkit. The build script publishes it to
+// android/build/m2 and copies that to dist/<version>/android/m2/.
+android {
+    publishing { singleVariant("release") }
+}
+
+// AGP creates the "release" component late, so the publication is created when it appears.
+components.matching { it.name == "release" }.all {
+    val component = this
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                groupId = "io.github.kimjh4941"
+                artifactId = "android-native-toolkit"
+                version = project.version.toString()
+                from(component)
+                // The resolved versions (after the Kotlin pins above) go into the POM.
+                versionMapping {
+                    usage("java-api") { fromResolutionOf("releaseCompileClasspath") }
+                    usage("java-runtime") { fromResolutionOf("releaseRuntimeClasspath") }
+                }
+                pom {
+                    name.set("Native Toolkit for Android")
+                    description.set("The Kotlin API of Native Toolkit: clipboard, dialogs, notifications and share.")
+                    url.set("https://github.com/kimjh4941/native-toolkit")
+                    licenses {
+                        license {
+                            name.set("Apache License, Version 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                        }
+                    }
+                }
+            }
+        }
+        repositories { maven { url = uri(rootProject.layout.buildDirectory.dir("m2")) } }
+    }
 }
