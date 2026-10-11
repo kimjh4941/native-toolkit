@@ -37,6 +37,7 @@
 
 - `libntk.so`。`DllImport` の名前は `"ntk"`
 - **ABI は `arm64-v8a` と `x86_64` だけ**（README D-10）。`armeabi-v7a`（32 ビット）では `libntk.so` が無く、`DllImport` は `DllNotFoundException` になる。Windows の `EnsureNativeAvailable()` と同じく捕まえて「使えない」とする（2b の smoke で、32 ビットでもアプリが落ちず、Kotlin の API は動くことを確かめた）
+  - **訂正（2026-10-11。2c の報告）**: Unity では、ここに届かない。Unity の `unityLibrary` は GameActivity のために Prefab を有効にしているので、ARMv7 を含めると AGP が capi の AAR の Prefab を ABI ごとに調べ、`configureCMake*[armeabi-v7a]` が `CXX1210` で止まる（`ntk::ntk` を使っていなくても）。2b の smoke は Prefab を使わないモジュールだったので、この形を確かめていなかった。`unity-native-plugin` は 32 ビットと Mono を対象外にし、ARMv7 を含むビルドを Gradle の前に止めた。マニュアル（1.13.0 の index、3 言語）にこの症状を書いた
 - 版: `ntk_version()` が `NTK_VERSION`（`0x020000`）を返す。Windows と同じく、メジャーの 2 を確かめる（第 1 部 AC-11。期待値は OS ごとに持つ）。この値はヘッダーの定数なので、どの版の AAR から組んでも同じになる。取り込んだ AAR の版は、ファイル名か座標で確かめる
 - 公開しているのは `ntk_*` と `JNI_OnLoad` だけ。libc++ は中に隠してあるので、Unity の同梱の NDK（r27c）や IL2CPP の libc++ とぶつからない
 
@@ -187,7 +188,7 @@
 | 依存の版の持ち方 | 包みに版を書く / 取り込む版の `.module` から読む | `.module` から読むか、`.module` と照らすテストを置く |
 | AAR の版の固定 | 今、Android は最新の `dist/` を探して写す | Windows と同じく `VERSION.txt` で、2 つの AAR の完全なファイル名で固定する |
 | 名前空間とフォルダ | 今の `Runtime/<Feature>/Android*.cs` | Windows と同じく `Runtime/Android/<Feature>/`（`unity-native-plugin` の Windows の C ABI のトピックが、Android も移すときにそうすると書いている） |
-| 32 ビット（`armeabi-v7a`）を含む Unity のプロジェクト | C ABI は使えない | `DllNotFoundException` を「使えない」に写し、manager は失敗を返す。ビルドの設定で ARM64 だけにする案内をマニュアルに書く |
+| 32 ビット（`armeabi-v7a`）を含む Unity のプロジェクト | C ABI は使えない | `DllNotFoundException` を「使えない」に写し、manager は失敗を返す。ビルドの設定で ARM64 だけにする案内をマニュアルに書く。**2c で決まった（2026-10-11）: Unity では ARMv7 を含むとビルドが `CXX1210` で止まる（3.1 の訂正）ので、32 ビットと Mono を対象外にし、パッケージが Gradle の前に止める** |
 | `NOT_FOREGROUND` と AP-16 の写し方 | 4.6 の表 | 8.3 の列のとおりに保ち、保てないもの（`NOT_FOREGROUND` など）は移行ガイドに書く（第 1 部 AC-23 の原則） |
 | 公開の JsonBuilder / JsonParser | 残す / 消す | 4.7 |
 

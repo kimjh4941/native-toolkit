@@ -365,7 +365,7 @@ Kotlin API AAR은 알림 기능이 사용하는 권한을 선언하며, 이 권�
 C ABI는 C, C++, 그리고 다른 언어에서 라이브러리를 호출하는 앱을 위한 것입니다. Kotlin, Java 앱은 Kotlin API를 직접 호출해 주세요. C ABI를 거치면 JNI 왕복만 늘어날 뿐입니다.
 
 - 앱은 Kotlin, Java 코드를 가진 일반 Android 앱입니다(`android:hasCode="true"`). C 함수는 JNI를 통해 Kotlin API를 호출하므로, AAR의 Kotlin 클래스와 매니페스트 항목이 앱에 포함되어 있어야 합니다. `libntk.so`만 복사해서는 동작하지 않습니다
-- `libntk.so`는 `arm64-v8a`와 `x86_64`용으로만 빌드되어 있습니다. 32비트 기기나 32비트 ABI만으로 빌드한 앱에는 이 라이브러리가 없습니다. 앱은 시작되지만 `libntk.so` 로드에 실패합니다(예: C#에서는 `DllNotFoundException`). 이를 처리하거나 앱을 64비트 ABI만으로 빌드해 주세요
+- `libntk.so`는 `arm64-v8a`와 `x86_64`용으로만 빌드되어 있습니다. 32비트 기기나 32비트 ABI만으로 빌드한 앱에는 이 라이브러리가 없습니다. 앱은 시작되지만 `libntk.so` 로드에 실패합니다(예: C#에서는 `DllNotFoundException`). 이를 처리하거나 앱을 64비트 ABI만으로 빌드해 주세요. C ABI AAR에 의존하는 모듈에서 Prefab이 활성화되어 있고 32비트 ABI용 네이티브 코드를 빌드하는 경우, 그 코드가 `ntk::ntk`를 사용하지 않더라도 빌드 자체가 `CXX1210`으로 중단됩니다(아래 참조). Unity의 `unityLibrary`는 Prefab을 활성화하므로, ARMv7을 포함한 Unity 빌드는 이렇게 중단됩니다
 - 완료, 이벤트, 수락된 호출의 `release`는 Android 메인 스레드에서 전달되며, 호출한 스레드가 아닙니다. 콜백을 등록한 스레드에서만 콜백을 받을 수 있는 런타임은 C ABI를 그대로 사용할 수 없습니다. (입구에서 거부된 호출은 오류를 반환하고, 반환하기 전에 호출한 스레드에서 `release`를 호출합니다. 완료는 전달되지 않습니다)
 - 다이얼로그, Share, 설정 화면, 아직 허용되지 않은 알림 권한 요청은 앱이 포그라운드에 있어야 합니다. 백그라운드에서 호출하면 `NOT_FOREGROUND`로 완료됩니다
 
