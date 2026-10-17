@@ -83,7 +83,7 @@ class UiApp(private val context: Context, private val device: UiDevice) {
         val end = System.currentTimeMillis() + timeoutMs
         var last: String? = null
         while (System.currentTimeMillis() < end) {
-            last = device.findObject(By.res("$screen.status"))?.text
+            last = readStatus(screen) ?: last
             if (last?.contains(expected) == true) return
             Thread.sleep(200)
         }
@@ -91,7 +91,21 @@ class UiApp(private val context: Context, private val device: UiDevice) {
     }
 
     /** The status text of [screen]. */
-    fun status(screen: String): String = device.findObject(By.res("$screen.status"))?.text.orEmpty()
+    fun status(screen: String): String {
+        repeat(STALE_RETRIES) {
+            readStatus(screen)?.let { return it }
+            Thread.sleep(200)
+        }
+        return ""
+    }
+
+    // The status node can be replaced between finding it and reading its text (the screen
+    // recomposes when the Sharesheet opens, seen on the emulator); that read returns null.
+    private fun readStatus(screen: String): String? = try {
+        device.findObject(By.res("$screen.status"))?.text
+    } catch (e: StaleObjectException) {
+        null
+    }
 
     /** Whether a node with [tag] is on screen. */
     fun exists(tag: String): Boolean = device.hasObject(By.res(tag))
