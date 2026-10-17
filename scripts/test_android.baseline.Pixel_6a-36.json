@@ -461,8 +461,6 @@
     "com.jonghyunkim.nativetoolkit.notification.ScheduleToUriTest#lossySchedule_afterAReboot_showsWhatTheTableKeeps": "passed",
     "com.jonghyunkim.nativetoolkit.notification.ScheduleToUriTest#lossySchedule_beforeAReboot_showsEverything": "passed",
     "com.jonghyunkim.nativetoolkit.notification.ScheduleToUriTest#sourceBoundsAndIdentifier_areKept": "passed",
-    "com.jonghyunkim.nativetoolkit.share.ExistingShareApiTest#emptyOrBrokenJson_opensTheSharesheetWithoutActions": "passed",
-    "com.jonghyunkim.nativetoolkit.share.ExistingShareApiTest#jsonActions_becomeChooserActions_thatBroadcastTheirIntentAction": "passed",
     "com.jonghyunkim.nativetoolkit.share.ShareSelectionTest#aLaunchFailure_throws_andTheActionsOfTheEarlierShareStopWorking": "passed",
     "com.jonghyunkim.nativetoolkit.share.ShareSelectionTest#aNonSelectionResult_sendsNoSelectionEvent": "passed",
     "com.jonghyunkim.nativetoolkit.share.ShareSelectionTest#aPickInTheEarlierSharesheet_isNotDelivered": "passed",

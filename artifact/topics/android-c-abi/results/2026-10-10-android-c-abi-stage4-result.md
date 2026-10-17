@@ -74,3 +74,35 @@
 3. ルートの README（3 言語）の「今のリリース」と配布物の一覧を 1.13.0 にする
 4. `publish_docs.sh 1.13.0`（Windows の F-7 と同じく、リリースのときに公開する）
 5. 段階 3 で消した `ExistingShareApiTest` の 2 件が基準から外れるので、リリースの前の全件の実行を `--baseline` で流す
+
+## 8. リリースの準備（2026-10-17）
+
+2c は完了した（2026-10-17。`unity-native-plugin` の `feature/UNT-13`。README の 2c の行）。利用者の指示で、マニュアルを確かめてもらう前の、リリースの作業の手前までを行った。
+
+| 7 章の手順 | 結果 |
+|---|---|
+| 1. `dist/1.13.0` | 作り直していない。`a7684dee` の後に C ABI と Kotlin の API を直しておらず、`unity-native-plugin` は `a7684dee` の AAR で通しの検証をした（AAR と m2 の `.module` を変えないと伝えた） |
+| 2. 照合 | `check_android_dist.py 1.13.0` と `check_windows_dist.py 1.13.0` が通る。`verify_manual.sh 1.13.0` が止まるのは既知の画像の 30 件だけ（1.12.0 から引き継いだもの。`manual-integrity`） |
+| 3. README | 3 言語の「今のリリース」、例、対応 OS、配布物（Android は 2 つの AAR）、`publish_docs.sh` の例を 1.13.0 にした |
+| 4. docs | `publish_docs.sh 1.13.0 --os all` で作り、`docs/1.13.0` と `docs/latest` を置いた（下の注） |
+| 5. 基準 | Pixel は取り直した。エミュレータは段階 3 の基準のまま（下の表） |
+
+docs の注:
+
+- `--os all` は Windows の Doxygen も Mac の doxygen（1.18.0）で作り直し、`windows/WindowsLibrary/docs` の 219 ファイルが変わり、1011 ファイル（呼び出しの図と LaTeX）が増えた。Windows のヘッダーは前に作った `7ce01411` から変わっていないので、作り直したものを捨て、コミット済みの生成物（Doxygen 1.14.0）を `--skip-build` で写した。`docs/1.13.0/windows` は 1.12.0 と同じ。Windows の docs を Mac で作り直すかは、Windows のリファレンスを分けるタスク（`windows-architecture` 5.3 の 4）で決める
+- iOS と macOS の DocC は作り直した。1.12.0 と 1550 ファイルが違うが、JSON のキーの順と配列の並びが違うだけ（ソースは変わっていない）
+
+全件の実行（`test_android.sh --include-host --baseline`。リリースの前の基準の取り直しのため）:
+
+| 端末 | 回 | 結果 | 基準との比べ |
+|---|---|---|---|
+| Pixel 6a（API 36） | 1 | 650 件すべて通る | 変わった 0、足した 0、消えた 2（段階 3 で消した `ExistingShareApiTest`）。基準を保存した |
+| エミュレータ（API 35、arm64） | 1 | 648 通る、1 失敗、1 SKIP（smoke の 32-bit） | `ShareUiTest#s14_callbackWithRichPreview` が「the Sharesheet did not open」（10 秒で共有シートが開かない）。Share だけを流し直すと 20 件が通った |
+| 〃 | 2 | 途中で止まった | エミュレータが落ちた（その前に IT-03 と IT-07 が失敗。1 回目は通っていた） |
+| 〃 | 3 | 648 通る、1 失敗、1 SKIP | `ShareUiTest#s18_selectionEventReportsTheChosenTargetWithItsToken` が `StaleObjectException`（下） |
+
+どの回も、失敗した 1 件のほかは基準と同じで、消えたのは段階 3 の 2 件だけだった。エミュレータの基準は、利用者の判断で段階 3 のものを残し、次に全件を流すときに取り直す（取り直さなくても、消えた 2 件が「消えた」と出るだけで、ほかの比べ方は変わらない）。
+
+s18 の原因はテストの側にあった。`UiApp.status()` が状態の文字の部品を探してから文字を読む間に、共有シートが開くときの描き直しで部品が置き換わる。`status()` と `waitForStatus()` で、置き換わったら読み直すようにした（`readStatus`）。`UiApp` を使う 4 つのクラスを、エミュレータで確かめた: Share 20 件、Notification 40 件（`NotificationTapUiTest`、`NotificationEventDeliveryUiTest` を含む）、ReceivedShare 6 件がすべて通る。s14 の共有シートが開かない件は、エミュレータが遅いときに起きるとみていて、直していない。
+
+残り: 利用者がマニュアルを確かめた後に、`/release version=1.13.0`（リリースノート、develop と main へのマージ、タグ）。タグの後に `unity-native-plugin` に伝える。

@@ -1,0 +1,5 @@
+<map id="NativeToolkit::Result&lt; T, E &gt;" name="NativeToolkit::Result&lt; T, E &gt;">
+<area shape="rect" id="Node000001" title="Either a value of type T or a failure of type E." alt="" coords="272,29,415,72"/>
+<area shape="rect" id="Node000002" href="$struct_native_toolkit_1_1detail_1_1_copy_control.html" title=" " alt="" coords="5,5,224,96"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="240,48,271,48,271,53,240,53"/>
+</map>

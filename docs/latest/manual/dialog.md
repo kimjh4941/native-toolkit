@@ -13,7 +13,20 @@ Language:
 ## Table of Contents
 
 - [Android](#android)
-  - [AndroidDialogFragment](#androiddialogfragment)
+  - [AndroidDialogManager](#androiddialogmanager)
+    - [Basic dialog](#basic-dialog)
+    - [Confirmation dialog](#confirmation-dialog)
+    - [Single-choice dialog](#single-choice-dialog)
+    - [Multi-choice dialog](#multi-choice-dialog)
+    - [Text input dialog](#text-input-dialog)
+    - [Login dialog](#login-dialog)
+    - [Waiting with a coroutine](#waiting-with-a-coroutine)
+    - [Closing with Back or an outside tap](#closing-with-back-or-an-outside-tap)
+    - [Canceling a dialog](#canceling-a-dialog)
+  - [C ABI](#c-abi)
+    - [Alert and confirmation dialogs](#alert-and-confirmation-dialogs)
+    - [Choice list dialogs](#choice-list-dialogs)
+    - [Text input and login dialogs](#text-input-and-login-dialogs)
 - [iOS](#ios)
   - [iOSDialogManager](#iosdialogmanager)
 - [Windows](#windows)
@@ -24,7 +37,7 @@ Language:
     - [ShowPickFolder - Folder picker dialog](#showpickfolder---folder-picker-dialog)
     - [ShowPickFolders - Multi-folder picker dialog](#showpickfolders---multi-folder-picker-dialog)
     - [ShowSaveFile - Save file dialog](#showsavefile---save-file-dialog)
-  - [C ABI](#c-abi)
+  - [C ABI](#c-abi-1)
     - [Message box](#message-box)
     - [File pickers](#file-pickers)
     - [Folder pickers](#folder-pickers)
@@ -35,50 +48,79 @@ Language:
 
 ## Android
 
-### AndroidDialogFragment
+The Android library offers the same dialogs through two public APIs. Both come from one implementation, and the sample app uses the Kotlin API.
+
+| API | Names | Package / header | AAR (Maven coordinate) |
+|---|---|---|---|
+| Kotlin API | `AndroidDialogManager` | `com.jonghyunkim.nativetoolkit.dialog` | `android-native-toolkit-2.0.0.aar` (`io.github.kimjh4941:android-native-toolkit:2.0.0`) |
+| C ABI | `ntk_dialog_*` | `<NativeToolkitC/Dialog.h>` | `android-native-toolkit-capi-2.0.0.aar` (`io.github.kimjh4941:android-native-toolkit-capi:2.0.0`) |
+
+- The library needs minSdk 31 and compileSdk 36. Kotlin apps need Kotlin 2.1 or later.
+- Code written for the 1.x library has to be updated, because the package name and the API changed: see [Migrating the Android library to 2.0.0](index.md#migrating-the-android-library-to-200). `AndroidDialogFragment` and its listeners are still public in `com.jonghyunkim.nativetoolkit.dialog`, but new code should use `AndroidDialogManager`.
+
+### AndroidDialogManager
+
+- `AndroidDialogManager.getInstance(context)` returns the process-wide instance. Any `Context` will do, and it is not kept.
+- No Activity or `FragmentManager` is passed in. The dialog appears on the foreground Activity of the app. When that Activity is not a `FragmentActivity` (for example a plain `ComponentActivity` or a game's Activity), the library opens a transparent Activity of its own to hold the dialog.
+- The app has to be in the foreground. Called from the background, the request ends with `DialogResult.Failed(DialogError.NOT_FOREGROUND)`.
+- The library initializes itself at app start through androidx.startup, so there is nothing to call first. An app that removes the Startup initializer calls `LibraryRuntime.ensureInitialized(activity)` (`com.jonghyunkim.nativetoolkit.common.runtime`) from its first Activity's `onCreate`, passing that Activity; until then a request ends with `DialogResult.Failed(DialogError.NOT_INITIALIZED)`. Given only the application context, the library misses the Activity already on screen, and dialogs end with `DialogError.NOT_FOREGROUND` until the next Activity starts.
+- `show(request, onResult)` may be called from any thread. It returns the request ID (`Long`) that `cancel` takes. `onResult` is called exactly once, on the main thread, and never inside `show`.
+- A dialog survives a configuration change such as a rotation: the library restores it, and the result is still delivered to the same `onResult`.
+- An invalid request (an empty item list, a `checked` list whose size differs from the items, a `checkedIndex` out of range) makes `show` throw `IllegalArgumentException`.
+
+The result is one of four `DialogResult` values.
+
+| Result | When |
+|---|---|
+| `DialogResult.Button(which, text, value)` | The user pressed a button. `which` is `DialogButton.POSITIVE` or `DialogButton.NEGATIVE`, `text` is its label |
+| `DialogResult.Dismissed` | The user closed the dialog with Back or a tap outside (only when `DialogOptions` allows it) |
+| `DialogResult.Canceled(reason)` | The request ended without an answer. `CancelReason.REQUESTED` after `cancel`, `CancelReason.HOST_DESTROYED` when the Activity showing the dialog was destroyed for good |
+| `DialogResult.Failed(error)` | The dialog could not be shown: `DialogError.NOT_INITIALIZED`, `NOT_FOREGROUND`, `HOST_START_FAILED` (the transparent Activity did not start) or `SHOW_FAILED` |
+
+`Button.value` carries what the user entered. The negative button always gives `DialogValue.None`. `DialogValue.Text` and `DialogValue.Login` hide their contents in `toString()`, so printing a result does not log what the user typed.
+
+| Request | `value` of the positive button |
+|---|---|
+| `DialogRequest.Alert`, `DialogRequest.Confirm` | `DialogValue.None` |
+| `DialogRequest.SingleChoice` | `DialogValue.SingleChoice(index)`. `index` is `null` when nothing is selected |
+| `DialogRequest.MultiChoice` | `DialogValue.MultiChoice(checked)`, one `Boolean` per item |
+| `DialogRequest.TextInput` | `DialogValue.Text(text)` |
+| `DialogRequest.Login` | `DialogValue.Login(username, password)` |
 
 #### Basic dialog
 
-- Displays a dialog.
+- Displays a message with one button.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
 
-// Set the title. This field is required.
-val title = "Hello from Android";
-// Set the message. This field is required.
-val message = "This is a native Android dialog!";
-// Set the button text. If not set, "OK" is used.
-val buttonText = "OK";
-// Set whether tapping outside the dialog can cancel it. If not set, true is used.
-val cancelableOnTouchOutside = false;
-// Set whether the dialog can be canceled with the back key, etc. If not set, true is used.
-val cancelable = false;
+// Any Context. It is not kept.
+val manager = AndroidDialogManager.getInstance(context)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    buttonText = buttonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // Set a listener to receive dialog results.
-    setDialogListener(object : AndroidDialogFragment.DialogListener {
-        // dialog: dialog instance
-        // buttonText: text of the pressed button. Returns null on error.
-        // isSuccessful: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns null on success.
-        override fun onDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onDialog - buttonText: $buttonText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
-        }
-    })
-    // First argument: FragmentManager
-    // Second argument: dialog tag name
-    show(supportFragmentManager, "AndroidDialogFragment")
+val request = DialogRequest.Alert(
+    // Set the title. This field is required.
+    title = "Hello from Android",
+    // Set the message. This field is required.
+    message = "This is a native Android dialog!",
+    // Set the button text. If not set, "OK" is used.
+    buttonText = "OK",
+    // Set whether Back and a tap outside close the dialog. If not set, both do.
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
+
+// Returns the request ID used with cancel().
+// Throws IllegalArgumentException when the request is invalid.
+val requestId = manager.show(request) { result ->
+    // Called once, on the main thread.
+    when (result) {
+        is DialogResult.Button -> Log.d(TAG, "button: ${result.which} (${result.text})")
+        DialogResult.Dismissed -> Log.d(TAG, "Dismissed")
+        is DialogResult.Canceled -> Log.d(TAG, "Canceled: ${result.reason}")
+        is DialogResult.Failed -> Log.d(TAG, "Unavailable: ${result.error}")
+    }
 }
 ```
 
@@ -88,49 +130,36 @@ AndroidDialogFragment.newInstance(
 
 #### Confirmation dialog
 
-- Displays a dialog.
+- Displays a message with a negative and a positive button.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogButton
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
 
-// Set the title. This field is required.
-val title = "Confirmation"
-// Set the message. This field is required.
-val message = "Do you want to proceed with this action?"
-// Set the negative button text. If not set, "No" is used.
-val negativeButtonText = "No"
-// Set the positive button text. If not set, "Yes" is used.
-val positiveButtonText = "Yes"
-// Set whether tapping outside the dialog can cancel it. If not set, true is used.
-val cancelableOnTouchOutside = false
-// Set whether the dialog can be canceled with the back key, etc. If not set, true is used.
-val cancelable = false
+val request = DialogRequest.Confirm(
+    // Set the title. This field is required.
+    title = "Confirmation",
+    // Set the message. This field is required.
+    message = "Do you want to proceed with this action?",
+    // Set the negative button text. If not set, "No" is used.
+    negativeText = "No",
+    // Set the positive button text. If not set, "Yes" is used.
+    positiveText = "Yes",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // Set a listener to receive confirmation dialog results.
-    setConfirmDialogListener(object : AndroidDialogFragment.ConfirmDialogListener {
-        // dialog: dialog instance
-        // buttonText: text of the pressed button. Returns null on error.
-        // isSuccessful: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns null on success.
-        override fun onConfirmDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onConfirmDialog - buttonText: $buttonText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    when (result) {
+        is DialogResult.Button -> {
+            if (result.which == DialogButton.POSITIVE) {
+                // The user pressed "Yes".
+            }
         }
-    })
-    // First argument: FragmentManager
-    // Second argument: dialog tag name
-    show(supportFragmentManager, "AndroidDialogFragment")
+        else -> Log.d(TAG, "result: $result")
+    }
 }
 ```
 
@@ -140,54 +169,38 @@ AndroidDialogFragment.newInstance(
 
 #### Single-choice dialog
 
-- Displays a dialog.
+- Displays a list in which one item can be selected.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// Set the title. This field is required.
-val title = "Please select one"
-// Set choices. This field is required.
-val singleChoiceItems = arrayOf("Option 1", "Option 2", "Option 3")
-// Set the default selected item index. If not set, 0 is used.
-val checkedItem = 0
-// Set the negative button text. If not set, "Cancel" is used.
-val negativeButtonText = "Cancel"
-// Set the positive button text. If not set, "OK" is used.
-val positiveButtonText = "OK"
-// Set whether tapping outside the dialog can cancel it. If not set, true is used.
-val cancelableOnTouchOutside = false
-// Set whether the dialog can be canceled with the back key, etc. If not set, true is used.
-val cancelable = false
+val request = DialogRequest.SingleChoice(
+    // Set the title. This field is required.
+    title = "Please select one",
+    // Set the items. This field is required and must not be empty.
+    items = listOf("Option 1", "Option 2", "Option 3"),
+    // Set the item selected first, or null for none. If not set, 0 is used.
+    checkedIndex = 0,
+    // Set the negative button text. If not set, "Cancel" is used.
+    negativeText = "Cancel",
+    // Set the positive button text. If not set, "OK" is used.
+    positiveText = "OK",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    singleChoiceItems = singleChoiceItems,
-    checkedItem = checkedItem,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // Set a listener to receive single-choice dialog results.
-    setSingleChoiceItemDialogListener(object : AndroidDialogFragment.SingleChoiceItemDialogListener {
-        // dialog: dialog instance
-        // buttonText: text of the pressed button. Returns null on error.
-        // checkedItem: selected item index. Returns null on error.
-        // isSuccessful: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns null on success.
-        override fun onSingleChoiceItemDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            checkedItem: Int?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onSingleChoiceItemDialog - buttonText: $buttonText, checkedItem: $checkedItem, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        // DialogValue.SingleChoice for the positive button, DialogValue.None for the negative one.
+        val value = result.value
+        if (value is DialogValue.SingleChoice) {
+            // The selected index, or null when nothing is selected.
+            Log.d(TAG, "button: ${result.which}, index: ${value.index}")
         }
-    })
-    // First argument: FragmentManager
-    // Second argument: dialog tag name
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
@@ -197,54 +210,37 @@ AndroidDialogFragment.newInstance(
 
 #### Multi-choice dialog
 
-- Displays a dialog.
+- Displays a list in which any number of items can be selected.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// Set the title. This field is required.
-val title = "Multiple Selection"
-// Set choices. This field is required.
-val multiChoiceItems = arrayOf("Option 1", "Option 2", "Option 3", "Option 4")
-// Set the default checked states. If not set, all false is used.
-val checkedItems = booleanArrayOf(false, true, false, true)
-// Set the negative button text. If not set, "Cancel" is used.
-val negativeButtonText = "Cancel"
-// Set the positive button text. If not set, "OK" is used.
-val positiveButtonText = "OK"
-// Set whether tapping outside the dialog can cancel it. If not set, true is used.
-val cancelableOnTouchOutside = false
-// Set whether the dialog can be canceled with the back key, etc. If not set, true is used.
-val cancelable = false
+val request = DialogRequest.MultiChoice(
+    // Set the title. This field is required.
+    title = "Multiple Selection",
+    // Set the items. This field is required and must not be empty.
+    items = listOf("Option 1", "Option 2", "Option 3", "Option 4"),
+    // Set the initial selection. This field is required, with one value per item.
+    checked = listOf(false, true, false, true),
+    // Set the negative button text. If not set, "Cancel" is used.
+    negativeText = "Cancel",
+    // Set the positive button text. If not set, "OK" is used.
+    positiveText = "OK",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    multiChoiceItems = multiChoiceItems,
-    checkedItems = checkedItems,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // Set a listener to receive multi-choice dialog results.
-    setMultiChoiceItemDialogListener(object : AndroidDialogFragment.MultiChoiceItemDialogListener {
-        // dialog: dialog instance
-        // buttonText: text of the pressed button. Returns null on error.
-        // checkedItems: checked states of selected items. true for selected, false for unselected. Returns null on error.
-        // isSuccessful: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns null on success.
-        override fun onMultiChoiceItemDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            checkedItems: BooleanArray?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onMultiChoiceItemDialog - buttonText: $buttonText, checkedItems: ${checkedItems.contentToString()}, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        val value = result.value
+        if (value is DialogValue.MultiChoice) {
+            // One value per item: true for checked.
+            Log.d(TAG, "button: ${result.which}, checked: ${value.checked}")
         }
-    })
-    // First argument: FragmentManager
-    // Second argument: dialog tag name
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
@@ -254,57 +250,39 @@ AndroidDialogFragment.newInstance(
 
 #### Text input dialog
 
-- Displays a dialog.
+- Displays a message with one text field.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// Set the title. This field is required.
-val title = "Text Input"
-// Set the message. This field is required.
-val message = "Please enter your name"
-// Set the placeholder. If not set, an empty string is used.
-val hint = "Enter here..."
-// Set the negative button text. If not set, "Cancel" is used.
-val negativeButtonText = "Cancel"
-// Set the positive button text. If not set, "OK" is used.
-val positiveButtonText = "OK"
-// Set whether the positive button is enabled when input is empty. If not set, false is used.
-val enablePositiveButtonWhenEmpty = false
-// Set whether tapping outside the dialog can cancel it. If not set, true is used.
-val cancelableOnTouchOutside = false
-// Set whether the dialog can be canceled with the back key, etc. If not set, true is used.
-val cancelable = false
+val request = DialogRequest.TextInput(
+    // Set the title. This field is required.
+    title = "Text Input",
+    // Set the message. This field is required.
+    message = "Please enter your name",
+    // Set the hint. If not set, an empty string is used.
+    hint = "Enter here...",
+    // Set the negative button text. If not set, "Cancel" is used.
+    negativeText = "Cancel",
+    // Set the positive button text. If not set, "OK" is used.
+    positiveText = "OK",
+    // Set whether the positive button works while the field is empty. If not set, false is used.
+    enablePositiveWhenEmpty = false,
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    hint = hint,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    enablePositiveButtonWhenEmpty = enablePositiveButtonWhenEmpty,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // Set a listener to receive text input dialog results.
-    setTextInputDialogListener(object : AndroidDialogFragment.TextInputDialogListener {
-        // dialog: dialog instance
-        // buttonText: text of the pressed button. Returns null on error.
-        // inputText: entered text. Returns null on error.
-        // isSuccessful: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns null on success.
-        override fun onTextInputDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            inputText: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onTextInputDialog - buttonText: $buttonText, inputText: $inputText, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        val value = result.value
+        if (value is DialogValue.Text) {
+            // value.text is what the user entered. Log its length, not the text.
+            Log.d(TAG, "button: ${result.which}, textLength: ${value.text.length}")
         }
-    })
-    // First argument: FragmentManager
-    // Second argument: dialog tag name
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
@@ -314,66 +292,429 @@ AndroidDialogFragment.newInstance(
 
 #### Login dialog
 
-- Displays a dialog.
+- Displays a message with a username field and a password field.
 
 ```kotlin
-import android.library.dialog.AndroidDialogFragment
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogValue
 
-// Set the title. This field is required.
-val title = "Login"
-// Set the message. This field is required.
-val message = "Please enter your credentials"
-// Set username placeholder. If not set, "Username" is used.
-val usernameHint = "Username"
-// Set password placeholder. If not set, "Password" is used.
-val passwordHint = "Password"
-// Set the negative button text. If not set, "Cancel" is used.
-val negativeButtonText = "Cancel"
-// Set the positive button text. If not set, "Login" is used.
-val positiveButtonText = "Login"
-// Set whether the positive button is enabled when input is empty. If not set, false is used.
-val enablePositiveButtonWhenEmpty = false
-// Set whether tapping outside the dialog can cancel it. If not set, true is used.
-val cancelableOnTouchOutside = false
-// Set whether the dialog can be canceled with the back key, etc. If not set, true is used.
-val cancelable = false
+val request = DialogRequest.Login(
+    // Set the title. This field is required.
+    title = "Login",
+    // Set the message. This field is required.
+    message = "Please enter your credentials",
+    // Set the username hint. If not set, "Username" is used.
+    usernameHint = "Username",
+    // Set the password hint. If not set, "Password" is used.
+    passwordHint = "Password",
+    // Set the negative button text. If not set, "Cancel" is used.
+    negativeText = "Cancel",
+    // Set the positive button text. If not set, "Login" is used.
+    positiveText = "Login",
+    // Set whether the positive button works while a field is empty. If not set, false is used.
+    enablePositiveWhenEmpty = false,
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
 
-AndroidDialogFragment.newInstance(
-    title = title,
-    message = message,
-    usernameHint = usernameHint,
-    passwordHint = passwordHint,
-    negativeButtonText = negativeButtonText,
-    positiveButtonText = positiveButtonText,
-    enablePositiveButtonWhenEmpty = enablePositiveButtonWhenEmpty,
-    cancelableOnTouchOutside = cancelableOnTouchOutside,
-    cancelable = cancelable
-).apply {
-    // Set a listener to receive login dialog results.
-    setLoginDialogListener(object : AndroidDialogFragment.LoginDialogListener {
-        // dialog: dialog instance
-        // buttonText: text of the pressed button. Returns null on error.
-        // username: entered username. Returns null on error.
-        // password: entered password. Returns null on error.
-        // isSuccessful: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns null on success.
-        override fun onLoginDialog(
-            dialog: AndroidDialogFragment,
-            buttonText: String?,
-            username: String?,
-            password: String?,
-            isSuccessful: Boolean,
-            errorMessage: String?) {
-                Log.d(TAG, "onLoginDialog - buttonText: $buttonText, username: $username, password: $password, isSuccessful: $isSuccessful, errorMessage: $errorMessage")
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result is DialogResult.Button) {
+        val value = result.value
+        if (value is DialogValue.Login) {
+            // value.username and value.password are what the user entered. Never log the password.
+            Log.d(TAG, "usernameLength: ${value.username.length}, passwordLength: ${value.password.length}")
         }
-    })
-    show(supportFragmentManager, "AndroidDialogFragment")
+    }
 }
 ```
 
 <p align="center">
     <img src="images/android/dialog/Example_AndroidDialogFragment_ShowLoginDialog.png" alt="Example_AndroidDialogFragment_ShowLoginDialog" width="400" />
 </p>
+
+#### Waiting with a coroutine
+
+- `show(request)` without a callback is a `suspend` function. It returns the answer, `DialogResult.Button` or `DialogResult.Dismissed` (both are `DialogResult.Answer`).
+- A request that ends without an answer throws `DialogDomainError.Canceled(reason)`, and a dialog that cannot be shown throws `DialogDomainError.Unavailable(error)`.
+- Canceling the coroutine closes the dialog. Tie the coroutine to the screen (in Compose, `rememberCoroutineScope()`), so that leaving the screen closes the dialog too.
+
+```kotlin
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.error.DialogDomainError
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+import kotlinx.coroutines.launch
+
+val manager = AndroidDialogManager.getInstance(context)
+val request = DialogRequest.Confirm(
+    title = "Confirmation",
+    message = "Do you want to proceed with this action?",
+    negativeText = "No",
+    positiveText = "Yes",
+    options = DialogOptions(cancelable = false, cancelableOnTouchOutside = false)
+)
+
+scope.launch {
+    try {
+        when (val answer = manager.show(request)) {
+            is DialogResult.Button -> Log.d(TAG, "button: ${answer.which} (${answer.text})")
+            DialogResult.Dismissed -> Log.d(TAG, "Dismissed")
+        }
+    } catch (e: DialogDomainError.Canceled) {
+        // e.reason is CancelReason.REQUESTED or CancelReason.HOST_DESTROYED.
+        Log.d(TAG, "Canceled: ${e.reason}")
+    } catch (e: DialogDomainError.Unavailable) {
+        // e.error is a DialogError, for example NOT_FOREGROUND.
+        Log.d(TAG, "Unavailable: ${e.error}")
+    }
+}
+```
+
+#### Closing with Back or an outside tap
+
+- `DialogOptions()` with no arguments lets Back and a tap outside close the dialog. The result is then `DialogResult.Dismissed`, which carries no value.
+
+```kotlin
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogOptions
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogRequest
+import com.jonghyunkim.nativetoolkit.dialog.domain.model.DialogResult
+
+val request = DialogRequest.Alert(
+    title = "Cancelable",
+    message = "Tap outside or press Back.",
+    buttonText = "OK",
+    // cancelable = true and cancelableOnTouchOutside = true.
+    options = DialogOptions()
+)
+
+AndroidDialogManager.getInstance(context).show(request) { result ->
+    if (result == DialogResult.Dismissed) {
+        // The user pressed Back or tapped outside the dialog.
+    }
+}
+```
+
+#### Canceling a dialog
+
+- `cancel(requestId)` closes a dialog from code. Its result becomes `DialogResult.Canceled(CancelReason.REQUESTED)`, unless it already has one.
+- `cancel` may be called from any thread. An unknown ID, or the ID of a dialog that already has its result, is ignored.
+
+```kotlin
+import android.os.Handler
+import android.os.Looper
+import com.jonghyunkim.nativetoolkit.dialog.AndroidDialogManager
+
+val manager = AndroidDialogManager.getInstance(context)
+// request: any DialogRequest, for example the one of the basic dialog.
+val requestId = manager.show(request) { result ->
+    // DialogResult.Canceled(CancelReason.REQUESTED) when cancel() came first.
+    Log.d(TAG, "result: $result")
+}
+
+// Close the dialog after 2 seconds.
+Handler(Looper.getMainLooper()).postDelayed({ manager.cancel(requestId) }, 2_000)
+```
+
+### C ABI
+
+- The same dialogs for C, and for any language that can call a C function (C#, Dart, Rust and others). A Kotlin or Java app calls `AndroidDialogManager` instead: the C ABI calls it through JNI, so it would only add a round trip.
+- Add both AARs to the app: `android-native-toolkit-capi-2.0.0.aar` holds `libntk.so` and the headers, and it needs `android-native-toolkit-2.0.0.aar` next to it. `libntk.so` exists for 64-bit ABIs only (`arm64-v8a`, `x86_64`). An app installed as 32-bit still starts, but `libntk.so` is missing, so loading it fails.
+- The headers and `libntk.so` come through Prefab. Turn Prefab on and limit the app's ABIs and its CMake build to the 64-bit ABIs, both of them; [Setup](index.md#c-abi) explains why (an `if()` in `CMakeLists.txt` does not avoid the `CXX1210` build error, and 32-bit native code of your own goes in a separate module without Prefab):
+
+```kotlin
+android {
+    buildFeatures { prefab = true }
+    defaultConfig {
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+        externalNativeBuild {
+            cmake { abiFilters("arm64-v8a", "x86_64") }
+        }
+    }
+}
+```
+
+```cmake
+find_package(ntk REQUIRED CONFIG)
+target_link_libraries(your_library PRIVATE ntk::ntk)
+```
+
+- androidx.startup initializes the library at app start. An app that turns Startup off, calls from a process other than the default one, or loads `libntk.so` only with `dlopen`, calls `ntk_android_init(env, context)` (`<NativeToolkitC/Android.h>`) first. Until the library is initialized, the `ntk_dialog_show_*_async` functions return `NTK_DIALOG_ERROR_NOT_INITIALIZED`. The argument checks come first, so a bad argument still gets `NTK_DIALOG_ERROR_INVALID_PARAMETER`, and `ntk_dialog_cancel` returns `NTK_DIALOG_ERROR_NONE` without doing anything. The result readers and `ntk_dialog_result_free` work regardless.
+- The headers are plain C99 and include nothing but `<stddef.h>` and `<stdint.h>`. Strings are NUL-terminated UTF-8. A `NULL` button or hint text takes the Kotlin default (`"OK"`, `"Cancel"` and so on), a `NULL` title or message is an empty string.
+- A request struct is filled with zeros and given its own `sizeof` in `struct_size`; the zeros are the defaults. That inverts two flag names against the Kotlin API, so that the default stays zero: `not_cancelable` is the opposite of `cancelable`, and `not_cancelable_on_touch_outside` the opposite of `cancelableOnTouchOutside`.
+- Every function may be called from any thread and never waits for the main thread. The return value only says whether the request was accepted. A call rejected on entry (an invalid argument, `NOT_INITIALIZED`) never calls the callback, and calls `release` on the calling thread before it returns.
+- An accepted request completes exactly once, on the Android main thread, and `release` follows. Neither runs inside the call that started the request. Called off the main thread, the completion may arrive before that call returns, so tie a completion to its request through `user_data`. Called while the app is in the background, a request completes with `NTK_DIALOG_ERROR_NOT_FOREGROUND`.
+- The `ntk_dialog_result` handed to the callback is owned by the receiver, which frees it with `ntk_dialog_result_free`, during the callback or later. It is `NULL` unless the error is `NTK_DIALOG_ERROR_NONE`. `system_code` and `ntk_last_system_code()` are always 0 on Android.
+- Request IDs are `uint64_t` and never reused. `ntk_dialog_cancel` takes one from any thread, and ignores an unknown ID or a request that already completed.
+- A callback must not block the main thread or let an exception escape: the library does not catch it, and the process ends.
+
+#### Alert and confirmation dialogs
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Android.h>
+#include <NativeToolkitC/Dialog.h>
+
+static void NTK_CALL on_dialog_result(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                      uint32_t system_code, ntk_dialog_result* result)
+{
+    /* On the Android main thread, once per accepted request. system_code is always 0. */
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        /* result is NULL. CANCELED after ntk_dialog_cancel, CANCELED_BY_SYSTEM when the
+           Activity went away, NOT_FOREGROUND when the app was in the background. */
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON) {
+        ntk_dialog_button button = ntk_dialog_result_button(result);
+        size_t size = 0;
+        const char* label = ntk_dialog_result_button_text(result, &size);
+        (void)button; (void)label;
+    } else {
+        /* NTK_DIALOG_ANSWER_DISMISSED: Back or a tap outside. It carries no value. */
+    }
+    /* The result belongs to the receiver. Free it here, or later on any thread. */
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* Called exactly once: on the main thread after the completion, or on the calling
+       thread before the call returns when the call was rejected. */
+    (void)user_data;
+}
+
+/* The headers and libntk.so have to be the same version. */
+if (ntk_version() != NTK_VERSION) {
+    return;
+}
+/* androidx.startup initializes the library at app start. An app that turned Startup
+   off calls ntk_android_init(env, context) first. */
+if (!ntk_android_is_initialized()) {
+    return;
+}
+
+/* --- Basic dialog --------------------------------------------------- */
+ntk_dialog_alert_request alert;
+memset(&alert, 0, sizeof(alert));
+alert.struct_size = (uint32_t)sizeof(alert);
+alert.title = "Hello from Android";
+alert.message = "This is a native Android dialog!";
+alert.button_text = "OK";                    /* NULL: "OK" */
+alert.not_cancelable = 1;                    /* Back does not close it */
+alert.not_cancelable_on_touch_outside = 1;   /* nor does a tap outside */
+
+uint64_t request_id = 0;
+ntk_dialog_error error = ntk_dialog_show_alert_async(&alert, &on_dialog_result, NULL,
+                                                     &release_user_data, &request_id);
+if (error != NTK_DIALOG_ERROR_NONE) {
+    /* Rejected: the callback is never called, and release_user_data has already run. */
+    return;
+}
+
+/* Later, for example when the screen closes: the dialog closes and completes with
+   NTK_DIALOG_ERROR_CANCELED. A finished or unknown ID does nothing. */
+ntk_dialog_cancel(request_id);
+
+/* --- Confirmation dialog -------------------------------------------- */
+ntk_dialog_confirm_request confirm;
+memset(&confirm, 0, sizeof(confirm));
+confirm.struct_size = (uint32_t)sizeof(confirm);
+confirm.title = "Confirmation";
+confirm.message = "Do you want to proceed with this action?";
+confirm.negative_text = "No";                /* NULL: "No" */
+confirm.positive_text = "Yes";               /* NULL: "Yes" */
+confirm.not_cancelable = 1;
+confirm.not_cancelable_on_touch_outside = 1;
+
+/* out_request_id may be NULL when the dialog is never canceled. */
+error = ntk_dialog_show_confirm_async(&confirm, &on_dialog_result, NULL, &release_user_data, NULL);
+```
+
+#### Choice list dialogs
+
+`ntk_dialog_result_checked_index` reads the single-choice answer and is -1 when nothing is checked; `ntk_dialog_result_checked_count` and `ntk_dialog_result_checked_at` read the multi-choice answer, nonzero for a checked item. The negative button carries no selection.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+static void NTK_CALL on_single_choice(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                      uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        int32_t index = ntk_dialog_result_checked_index(result);   /* -1: none checked */
+        (void)index;
+    }
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL on_multi_choice(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                     uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        size_t count = ntk_dialog_result_checked_count(result);
+        size_t i;
+        for (i = 0; i < count; ++i) {
+            int32_t checked = ntk_dialog_result_checked_at(result, i);   /* nonzero: checked */
+            (void)checked;
+        }
+    }
+    ntk_dialog_result_free(result);
+}
+
+/* --- One item ------------------------------------------------------- */
+const char* const single_items[] = { "Option 1", "Option 2", "Option 3" };
+
+ntk_dialog_single_choice_request single;
+memset(&single, 0, sizeof(single));
+single.struct_size = (uint32_t)sizeof(single);
+single.title = "Please select one";
+single.items = single_items;
+single.item_count = 3;                       /* must not be 0 */
+single.checked_index = 0;                    /* -1: none checked */
+single.negative_text = "Cancel";             /* NULL: "Cancel" */
+single.positive_text = "OK";                 /* NULL: "OK" */
+single.not_cancelable = 1;
+single.not_cancelable_on_touch_outside = 1;
+
+/* user_data and release may be NULL when there is nothing to free. */
+ntk_dialog_error error = ntk_dialog_show_single_choice_async(&single, &on_single_choice, NULL, NULL, NULL);
+
+/* --- Any number of items -------------------------------------------- */
+const char* const multi_items[] = { "Option 1", "Option 2", "Option 3", "Option 4" };
+const int32_t multi_checked[] = { 0, 1, 0, 1 };
+
+ntk_dialog_multi_choice_request multi;
+memset(&multi, 0, sizeof(multi));
+multi.struct_size = (uint32_t)sizeof(multi);
+multi.title = "Multiple Selection";
+multi.items = multi_items;
+multi.item_count = 4;
+multi.checked = multi_checked;               /* NULL: none checked; else item_count values */
+multi.negative_text = "Cancel";
+multi.positive_text = "OK";
+multi.not_cancelable = 1;
+multi.not_cancelable_on_touch_outside = 1;
+
+error = ntk_dialog_show_multi_choice_async(&multi, &on_multi_choice, NULL, NULL, NULL);
+```
+
+#### Text input and login dialogs
+
+The text, the username and the password point into the result and stay valid until it is freed.
+
+```c
+#include <string.h>
+#include <NativeToolkitC/Common.h>
+#include <NativeToolkitC/Dialog.h>
+
+static void NTK_CALL on_text_input(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                   uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        size_t size = 0;
+        const char* text = ntk_dialog_result_text(result, &size);   /* UTF-8 */
+        (void)text;
+    }
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL on_login(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                              uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_answer(result) == NTK_DIALOG_ANSWER_BUTTON
+        && ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        const char* username = ntk_dialog_result_username(result, NULL);
+        const char* password = ntk_dialog_result_password(result, NULL);   /* never log it */
+        (void)username; (void)password;
+    }
+    ntk_dialog_result_free(result);
+}
+
+/* --- Text input ----------------------------------------------------- */
+ntk_dialog_text_input_request input;
+memset(&input, 0, sizeof(input));
+input.struct_size = (uint32_t)sizeof(input);
+input.title = "Text Input";
+input.message = "Please enter your name";
+input.hint = "Enter here...";                /* NULL: no hint */
+input.negative_text = "Cancel";              /* NULL: "Cancel" */
+input.positive_text = "OK";                  /* NULL: "OK" */
+input.enable_positive_when_empty = 0;
+input.not_cancelable = 1;
+input.not_cancelable_on_touch_outside = 1;
+
+ntk_dialog_error error = ntk_dialog_show_text_input_async(&input, &on_text_input, NULL, NULL, NULL);
+
+/* --- Login ---------------------------------------------------------- */
+ntk_dialog_login_request login;
+memset(&login, 0, sizeof(login));
+login.struct_size = (uint32_t)sizeof(login);
+login.title = "Login";
+login.message = "Please enter your credentials";
+login.username_hint = "Username";            /* NULL: "Username" */
+login.password_hint = "Password";            /* NULL: "Password" */
+login.negative_text = "Cancel";              /* NULL: "Cancel" */
+login.positive_text = "Login";               /* NULL: "Login" */
+login.enable_positive_when_empty = 0;
+login.not_cancelable = 1;
+login.not_cancelable_on_touch_outside = 1;
+
+error = ntk_dialog_show_login_async(&login, &on_login, NULL, NULL, NULL);
+```
+
+| Error | Returned or completed | Meaning |
+|---|---|---|
+| `NTK_DIALOG_ERROR_NONE` | Both | Accepted, or answered |
+| `NTK_DIALOG_ERROR_INVALID_PARAMETER` | Returned (rarely completed) | A `NULL` callback or request, invalid UTF-8, no items, an index out of range, a `struct_size` below the 2.0.0 size or above 4096, a nonzero reserved field. It can also complete a request the Kotlin API rejected with `IllegalArgumentException` after it was accepted |
+| `NTK_DIALOG_ERROR_NOT_INITIALIZED` | Returned | Called before initialization. The argument checks come first, and `ntk_dialog_cancel` returns `NONE` |
+| `NTK_DIALOG_ERROR_NOT_SUPPORTED` | Returned | A newer `struct_size` with nonzero fields this library does not know |
+| `NTK_DIALOG_ERROR_UNKNOWN` | Both | Anything else (logcat has the detail) |
+| `NTK_DIALOG_ERROR_OUT_OF_MEMORY` | Both | Out of memory |
+| `NTK_DIALOG_ERROR_CANCELED` | Completed | `ntk_dialog_cancel` (`CancelReason.REQUESTED`) |
+| `NTK_DIALOG_ERROR_CANCELED_BY_SYSTEM` | Completed | The Activity showing the dialog was destroyed (`CancelReason.HOST_DESTROYED`) |
+| `NTK_DIALOG_ERROR_NOT_FOREGROUND` | Completed | The app was not in the foreground (`DialogError.NOT_FOREGROUND`) |
+| `NTK_DIALOG_ERROR_HOST_START_FAILED` | Completed | The transparent Activity did not start (`DialogError.HOST_START_FAILED`) |
+| `NTK_DIALOG_ERROR_SHOW_FAILED` | Completed | Showing the dialog failed (`DialogError.SHOW_FAILED`) |
+
+| Kotlin API | C ABI |
+|---|---|
+| `show(DialogRequest.Alert(...))` | `ntk_dialog_show_alert_async` |
+| `show(DialogRequest.Confirm(...))` | `ntk_dialog_show_confirm_async` |
+| `show(DialogRequest.SingleChoice(...))` | `ntk_dialog_show_single_choice_async` |
+| `show(DialogRequest.MultiChoice(...))` | `ntk_dialog_show_multi_choice_async` |
+| `show(DialogRequest.TextInput(...))` | `ntk_dialog_show_text_input_async` |
+| `show(DialogRequest.Login(...))` | `ntk_dialog_show_login_async` |
+| `cancel(requestId)` | `ntk_dialog_cancel` |
+| `DialogResult.Button` / `DialogResult.Dismissed` | `ntk_dialog_result_answer` |
+| `DialogResult.Button.which` / `text` | `ntk_dialog_result_button`, `ntk_dialog_result_button_text` |
+| `DialogValue` | `ntk_dialog_result_checked_index`, `ntk_dialog_result_checked_count`, `ntk_dialog_result_checked_at`, `ntk_dialog_result_text`, `ntk_dialog_result_username`, `ntk_dialog_result_password` |
+| - | `ntk_dialog_result_free` |
 
 ---
 

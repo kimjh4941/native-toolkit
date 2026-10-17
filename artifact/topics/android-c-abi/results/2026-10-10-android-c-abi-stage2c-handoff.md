@@ -5,6 +5,7 @@
 - 読み手: `unity-native-plugin`（別リポジトリ）で Android の部分を移す人
 - 前提の段: 2b（C ABI の実装）は完了（`results/2026-10-10-android-c-abi-stage2b-result.md`）
 - 2c の成功（Unity が C ABI を呼び、Android のテストと Player テストを通す）が、段階 3（`unity_android_plugin` を消す）を始める条件
+- **結果（2026-10-17）: 2c は完了した**（`unity-native-plugin` の `feature/UNT-13`）。native-toolkit の `a7684dee` の `dist/1.13.0/android` で通しの検証が通った。C ABI の直しの依頼は無かった。分かったことは 3.1 の訂正（32 ビットは `CXX1210` でビルドが止まる）。この後は 1.13.0 のリリース（段階 4 の結果の 7 章）
 
 ## 1. 何が変わるか
 
