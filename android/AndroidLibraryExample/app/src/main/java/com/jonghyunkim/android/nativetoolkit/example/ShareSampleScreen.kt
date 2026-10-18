@@ -2,16 +2,14 @@ package com.jonghyunkim.android.nativetoolkit.example
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.library.share.data.repository.ShareUseCases
-import android.library.share.domain.error.ShareDomainError
-import android.library.share.domain.model.DirectShareTarget
-import android.library.share.domain.model.ShareContent
-import android.library.share.domain.model.SharePreviewOptions
-import android.util.Base64
+import com.jonghyunkim.nativetoolkit.share.AndroidShareManager
+import com.jonghyunkim.nativetoolkit.share.domain.error.ShareDomainError
+import com.jonghyunkim.nativetoolkit.share.domain.model.DirectShareTarget
+import com.jonghyunkim.nativetoolkit.share.domain.model.ShareChooserAction
+import com.jonghyunkim.nativetoolkit.share.domain.model.ShareContent
+import com.jonghyunkim.nativetoolkit.share.domain.model.SharePreviewOptions
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import org.json.JSONArray
-import org.json.JSONObject
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -57,11 +56,12 @@ private const val SHARE_TAG = "ShareSampleScreen"
 /**
  * Share feature sample screen.
  *
- * Demonstrates all share operations provided by the android_library:
- * text, URL, image, multiple images, file, multiple files, Direct Share Target, and share with callback.
+ * Demonstrates all share operations of [AndroidShareManager]: text, URL, image, multiple images,
+ * file, multiple files, Direct Share Target, share with callback, typed chooser actions and the
+ * selection event.
  *
  * @param modifier Modifier applied to the root layout.
- * @param activity Host activity used as the context for [ShareUseCases].
+ * @param activity Host activity used as the context for [AndroidShareManager].
  * @param onBack Called when the user taps the back button.
  */
 @Composable
@@ -74,13 +74,25 @@ fun ShareSampleScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val shareUseCases = remember(activity) { ShareUseCases(activity) }
-
-    DisposableEffect(shareUseCases) {
-        onDispose { shareUseCases.cancelPendingCallback() }
-    }
+    val shareManager = remember(activity) { AndroidShareManager.getInstance(activity) }
 
     var statusText by remember { mutableStateOf("Result will be displayed here") }
+    // The token of the Sharesheet opened by shareForSelection, while its pick is awaited.
+    var selectionToken by remember { mutableStateOf<Long?>(null) }
+
+    // Leaving the screen stops waiting for both shareWithCallback and shareForSelection: the
+    // library keeps one wait (sample app design 4.4).
+    DisposableEffect(shareManager) {
+        val registration = shareManager.selections.addListener { selection, _ ->
+            Log.d(SHARE_TAG, "[onSelection] token: ${selection.token}")
+            if (selection.token == selectionToken) selectionToken = null
+            statusText = "✅ Selected (token=${selection.token}): ${selection.packageName ?: "(unknown package)"}"
+        }
+        onDispose {
+            registration.remove()
+            shareManager.cancelPendingCallback()
+        }
+    }
     val listState = rememberLazyListState()
 
     Column(
@@ -92,7 +104,7 @@ fun ShareSampleScreen(
     ) {
         Button(
             onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("share.back")
         ) {
             Text(text = "← Back to Main")
         }
@@ -111,6 +123,7 @@ fun ShareSampleScreen(
         Text(
             text = statusText,
             modifier = Modifier
+                .testTag("share.status")
                 .fillMaxWidth()
                 .padding(8.dp)
         )
@@ -144,18 +157,17 @@ fun ShareSampleScreen(
                     Button(
                         onClick = {
                             try {
-                                shareUseCases.shareText(
-                                    ShareContent(text = "Hello from native-toolkit"),
-                                    chooserActionsJson = "[]"
+                                shareManager.shareText(
+                                    ShareContent(text = "Hello from native-toolkit")
                                 )
                                 statusText = "✅ shareText called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}" // ShareDomainError carries no message
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareText")
                     ) {
                         Text(text = "Share Text")
                     }
@@ -164,18 +176,17 @@ fun ShareSampleScreen(
                     Button(
                         onClick = {
                             try {
-                                shareUseCases.shareText(
-                                    ShareContent(text = "https://developer.android.com/", mimeType = "text/plain"),
-                                    chooserActionsJson = "[]"
+                                shareManager.shareText(
+                                    ShareContent(text = "https://developer.android.com/", mimeType = "text/plain")
                                 )
                                 statusText = "✅ shareText (URL) called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareUrl")
                     ) {
                         Text(text = "Share URL")
                     }
@@ -199,12 +210,11 @@ fun ShareSampleScreen(
                                     }
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.shareText(
+                                            shareManager.shareText(
                                                 ShareContent(
                                                     text = "https://developer.android.com/",
                                                     mimeType = "text/plain"
                                                 ),
-                                                chooserActionsJson = "[]",
                                                 SharePreviewOptions(
                                                     title = "Introducing content previews",
                                                     thumbnailPath = file.absolutePath
@@ -212,7 +222,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "✅ shareText (rich preview) called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -224,7 +234,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareTextWithRichPreview")
                     ) {
                         Text(text = "Share Text with Rich Preview")
                     }
@@ -244,30 +254,23 @@ fun ShareSampleScreen(
                                         withContext(Dispatchers.Main) { statusText = "❌ Bitmap decode failed" }
                                         return@launch
                                     }
-                                    val iconBase64 = ByteArrayOutputStream().use { baos ->
+                                    val iconBytes = ByteArrayOutputStream().use { baos ->
                                         bmp.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                                        Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+                                        baos.toByteArray()
                                     }
-                                    val chooserActionsJson = JSONArray().put(
-                                        JSONObject().apply {
-                                            put("label", "Custom")
-                                            put("iconBase64", iconBase64)
-                                            put("intentAction", ShareChooserActionReceiver.ACTION_CUSTOM_CHOOSER)
-                                        }
-                                    ).toString()
-                                    Log.d(SHARE_TAG, "[onClick] chooserActionsJson length: ${chooserActionsJson.length}")
+                                    Log.d(SHARE_TAG, "[onClick] icon size: ${iconBytes.size}")
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.shareText(
+                                            shareManager.shareTextWithActions(
                                                 ShareContent(
                                                     text = "Shared with a custom chooser action",
                                                     mimeType = "text/plain"
                                                 ),
-                                                chooserActionsJson = chooserActionsJson
+                                                listOf(ShareChooserAction(id = "custom", label = "Custom", iconBytes = iconBytes))
                                             )
                                             statusText = "✅ shareText (custom action) called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -279,7 +282,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareTextWithCustomAction")
                     ) {
                         Text(text = "Share Text with Custom Action")
                     }
@@ -287,25 +290,51 @@ fun ShareSampleScreen(
                 item {
                     Button(
                         onClick = {
+                            Log.d(SHARE_TAG, "[onClick] Share Text with Invalid Action")
+                            // Two actions with the same ID and a readable icon: rejected for the ID
+                            // alone, before the Sharesheet opens.
+                            val icon = ByteArrayOutputStream().use { out ->
+                                Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, out)
+                                out.toByteArray()
+                            }
+                            statusText = try {
+                                shareManager.shareTextWithActions(
+                                    ShareContent(text = "This share is rejected"),
+                                    listOf(ShareChooserAction("dup", "First", icon), ShareChooserAction("dup", "Second", icon))
+                                )
+                                "❌ Unexpected: the share was not rejected"
+                            } catch (e: ShareDomainError.InvalidChooserAction) {
+                                "❌ InvalidChooserAction: ${e.id}"
+                            } catch (e: Exception) {
+                                "❌ Unexpected: ${e.message}"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareTextWithInvalidAction")
+                    ) {
+                        Text(text = "Share Text with Invalid Action")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
                             Log.d(SHARE_TAG, "[onClick] Share with Subject & Title")
                             try {
-                                shareUseCases.shareText(
+                                shareManager.shareText(
                                     ShareContent(
                                         text = "Body text shared from native-toolkit",
                                         title = "Choose an app",
                                         subject = "Sample subject line",
                                         mimeType = "text/plain"
-                                    ),
-                                    chooserActionsJson = "[]"
+                                    )
                                 )
                                 statusText = "✅ shareText (subject & title) called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareWithSubjectTitle")
                     ) {
                         Text(text = "Share with Subject & Title")
                     }
@@ -341,10 +370,10 @@ fun ShareSampleScreen(
                                     }
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.shareImage(file.absolutePath, "image/png")
+                                            shareManager.shareImage(file.absolutePath, "image/png")
                                             statusText = "✅ shareImage called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -356,7 +385,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareImage")
                     ) {
                         Text(text = "Share Image")
                     }
@@ -396,12 +425,12 @@ fun ShareSampleScreen(
                                     }
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.shareImages(
+                                            shareManager.shareImages(
                                                 listOf(file1.absolutePath, file2.absolutePath)
                                             )
                                             statusText = "✅ shareImages called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -413,7 +442,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareMultipleImages")
                     ) {
                         Text(text = "Share Multiple Images")
                     }
@@ -440,10 +469,10 @@ fun ShareSampleScreen(
                                         .apply { writeText("Share sample from native-toolkit") }
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.shareFile(file.absolutePath)
+                                            shareManager.shareFile(file.absolutePath)
                                             statusText = "✅ shareFile called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -455,7 +484,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareFile")
                     ) {
                         Text(text = "Share File")
                     }
@@ -484,12 +513,12 @@ fun ShareSampleScreen(
                                         .apply { writeText("Share sample 2 from native-toolkit") }
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.shareFiles(
+                                            shareManager.shareFiles(
                                                 listOf(file1.absolutePath, file2.absolutePath)
                                             )
                                             statusText = "✅ shareFiles called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -501,7 +530,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareMultipleFiles")
                     ) {
                         Text(text = "Share Multiple Files")
                     }
@@ -536,7 +565,7 @@ fun ShareSampleScreen(
                                     val iconBytes = baos.toByteArray()
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.registerDirectShareTarget(
+                                            shareManager.registerDirectShareTarget(
                                                 DirectShareTarget(
                                                     id = "sample_1",
                                                     label = "Sample User",
@@ -546,7 +575,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "✅ registerDirectShareTarget called"
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -558,7 +587,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.registerDirectShareTarget")
                     ) {
                         Text(text = "Register Direct Share Target")
                     }
@@ -567,15 +596,15 @@ fun ShareSampleScreen(
                     Button(
                         onClick = {
                             try {
-                                shareUseCases.removeDirectShareTargets(listOf("sample_1"))
+                                shareManager.removeDirectShareTargets(listOf("sample_1"))
                                 statusText = "✅ removeDirectShareTargets called"
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.removeDirectShareTarget")
                     ) {
                         Text(text = "Remove Direct Share Target")
                     }
@@ -596,24 +625,25 @@ fun ShareSampleScreen(
                     Button(
                         onClick = {
                             try {
-                                shareUseCases.shareWithCallback(
-                                    ShareContent(text = "Hello with callback from native-toolkit")
-                                ) { pkg ->
-                                    // onResult fires only on selection; pkg == null means selected but the package was unavailable.
-                                    statusText = if (pkg != null) {
-                                        "✅ Selected: $pkg"
-                                    } else {
-                                        "ℹ️ Shared (package unavailable)"
+                                shareManager.shareWithCallback(
+                                    ShareContent(text = "Hello with callback from native-toolkit"),
+                                    onResult = { pkg ->
+                                        // onResult fires only on selection; pkg == null means selected but the package was unavailable.
+                                        statusText = if (pkg != null) {
+                                            "✅ Selected: $pkg"
+                                        } else {
+                                            "ℹ️ Shared (package unavailable)"
+                                        }
                                     }
-                                }
+                                )
                                 statusText = "ℹ️ Sharesheet opened, waiting for result..."
                             } catch (e: ShareDomainError) {
-                                statusText = "❌ ${e.message}"
+                                statusText = "❌ ${e.javaClass.simpleName}"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareWithCallback")
                     ) {
                         Text(text = "Share with Callback")
                     }
@@ -636,7 +666,7 @@ fun ShareSampleScreen(
                                     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            shareUseCases.shareWithCallback(
+                                            shareManager.shareWithCallback(
                                                 ShareContent(
                                                     text = "https://developer.android.com/",
                                                     mimeType = "text/plain"
@@ -659,7 +689,7 @@ fun ShareSampleScreen(
                                             )
                                             statusText = "ℹ️ Sharesheet (callback + preview) opened..."
                                         } catch (e: ShareDomainError) {
-                                            statusText = "❌ ${e.message}"
+                                            statusText = "❌ ${e.javaClass.simpleName}"
                                         } catch (e: Exception) {
                                             statusText = "❌ Unexpected: ${e.message}"
                                         }
@@ -671,7 +701,7 @@ fun ShareSampleScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareWithCallbackRichPreview")
                     ) {
                         Text(text = "Share with Callback + Rich Preview")
                     }
@@ -681,15 +711,64 @@ fun ShareSampleScreen(
                         onClick = {
                             Log.d(SHARE_TAG, "[onClick] Cancel Pending Callback")
                             try {
-                                shareUseCases.cancelPendingCallback()
+                                shareManager.cancelPendingCallback()
                                 statusText = "✅ cancelPendingCallback called"
                             } catch (e: Exception) {
                                 statusText = "❌ Unexpected: ${e.message}"
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().testTag("share.cancelPendingCallback")
                     ) {
                         Text(text = "Cancel Pending Callback")
+                    }
+                }
+                item {
+                    Text(
+                        text = "Selection Event",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            Log.d(SHARE_TAG, "[onClick] Share For Selection")
+                            statusText = try {
+                                val token = shareManager.shareForSelection(
+                                    ShareContent(text = "Hello with a selection event from native-toolkit")
+                                )
+                                selectionToken = token
+                                "ℹ️ Sharesheet opened (token=$token), waiting for selection..."
+                            } catch (e: ShareDomainError) {
+                                "❌ ${e.javaClass.simpleName}"
+                            } catch (e: Exception) {
+                                "❌ Unexpected: ${e.message}"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("share.shareForSelection")
+                    ) {
+                        Text(text = "Share For Selection")
+                    }
+                }
+                item {
+                    Button(
+                        onClick = {
+                            Log.d(SHARE_TAG, "[onClick] Cancel Share Selection")
+                            val token = selectionToken
+                            statusText = if (token == null) {
+                                "ℹ️ No selection is pending."
+                            } else {
+                                shareManager.cancelShareSelection(token)
+                                selectionToken = null
+                                "✅ cancelShareSelection called (token=$token)"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("share.cancelShareSelection")
+                    ) {
+                        Text(text = "Cancel Share Selection")
                     }
                 }
             }

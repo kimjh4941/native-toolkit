@@ -1,0 +1,7 @@
+{
+  global:
+    ntk_*;
+    JNI_OnLoad;
+  local:
+    *;
+};

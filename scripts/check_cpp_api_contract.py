@@ -7,7 +7,7 @@ has been implemented starts to rot:
 
   ops        the 47 operations of section 8.1 against the public headers, so
              neither list can drift without the other noticing. Whether the C
-             ABI exports its half is check_c_abi_contract.py's to say: the C
+             ABI exports its half is check_c_abi_contract_windows.py's to say: the C
              names of this section are the 1.x ones, which stage 5 retired.
   errors     every error enumeration against the value the C ABI gives it,
              and against the constant the implementation uses internally

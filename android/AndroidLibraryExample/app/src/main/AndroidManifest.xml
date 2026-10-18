@@ -53,21 +53,6 @@
             android:turnScreenOn="true"
             android:theme="@style/Theme.Android" />
 
-        <receiver
-            android:name=".NotificationDeleteReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".NotificationActionReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".ShareChooserActionReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.jonghyunkim.android.nativetoolkit.example.CUSTOM_CHOOSER_ACTION" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>

@@ -20,10 +20,10 @@
 2. 組み込み手順は `docs/<version>/manual/index.ja.md` を参照。
 3. API 仕様は `docs/<version>/`（または `docs/latest/`）の各プラットフォーム資料を参照。
 
-例（`1.12.0`）:
+例（`1.13.0`）:
 
-- マニュアル: `docs/1.12.0/manual/index.ja.md`
-- 公開ドキュメント: `docs/1.12.0/manual/`
+- マニュアル: `docs/1.13.0/manual/index.ja.md`
+- 公開ドキュメント: `docs/1.13.0/manual/`
 
 ## 詳細ドキュメント
 
@@ -33,28 +33,30 @@
 
 ## バージョン
 
-- 現在のリリース: 1.12.0
+- 現在のリリース: 1.13.0
 - 最新公開ドキュメントのバージョン: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 対応 OS（1.12.0）
+## 対応 OS（1.13.0）
 
 - Android 12 以降
 - iOS 18 以降
 - Windows 11 以降
 - macOS 15 以降
 
-## 配布物（1.12.0）
+## 配布物（1.13.0）
 
-- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
+- Android:
+  - `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`（Kotlin API）
+  - `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`（C ABI）
 - iOS:
-  - `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.12.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
 - macOS:
-  - `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.12.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
 - Windows:
-  - `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg`（C++ API）
-  - `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`（C ABI）
+  - `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`（C++ API）
+  - `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`（C ABI）
 
 ## 収録モジュール（概要）
 
@@ -65,9 +67,10 @@
   - 対応: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - Doc: Dokka
 
-- `android/unity_android_plugin`
-  - 補助モジュール: C ABI / JNI ブリッジ層
-  - Doc: Dokka
+- `android/android_library_capi`（AAR `android-native-toolkit-capi` の `libntk.so`）
+  - Kotlin の API の上の汎用の C ABI: `ntk_*` 関数、UTF-8 の文字列、不透明なハンドル
+  - ヘッダ: `android/android_library_capi/src/main/cpp/include/NativeToolkitC/`
+  - C、C++、C#、Rust などの言語向け
 
 ### iOS
 
@@ -102,14 +105,14 @@
 - `windows/WindowsLibraryCApi`（DLL、`NativeToolkitC.dll`）
   - C++ API の上の汎用の C ABI: `ntk_*` 関数、UTF-8 の文字列、不透明なハンドル
   - ヘッダ: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
-  - C#、Rust、Python などの言語向け。Unity は P/Invoke で呼ぶ（`unity-native-plugin`）
+  - C#、Rust、Python などの言語向け
 
 ## リポジトリ構成
 
 ```text
 android/
   android_library/
-  unity_android_plugin/
+  android_library_capi/
   AndroidLibraryExample/
 
 ios/
@@ -147,7 +150,7 @@ docs/
 
 ```bash
 # Android AAR（全モジュール）
-./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 # iOS XCFramework（全モジュール）
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
@@ -164,8 +167,8 @@ docs/
 - Android (Dokka)
 
 ```bash
-cd android/AndroidLibraryExample
-./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
+cd android
+./gradlew :android_library:dokkaGeneratePublicationHtml
 ```
 
 - iOS (DocC)
@@ -194,13 +197,13 @@ doxygen Doxyfile
 `docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
 
 ```bash
-./scripts/publish_docs.sh 1.12.0
+./scripts/publish_docs.sh 1.13.0
 ```
 
 既存の生成物をコピーだけする場合:
 
 ```bash
-./scripts/publish_docs.sh 1.12.0 --skip-build
+./scripts/publish_docs.sh 1.13.0 --skip-build
 ```
 
 manual のコピー元は `manual/<version>/` です。

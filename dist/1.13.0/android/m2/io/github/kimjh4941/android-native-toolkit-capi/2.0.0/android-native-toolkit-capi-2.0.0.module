@@ -1,0 +1,90 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "io.github.kimjh4941",
+    "module": "android-native-toolkit-capi",
+    "version": "2.0.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "9.7.0"
+    }
+  },
+  "variants": [
+    {
+      "name": "releaseVariantReleaseApiPublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "android-native-toolkit-capi-2.0.0.aar",
+          "url": "android-native-toolkit-capi-2.0.0.aar",
+          "size": 2260582,
+          "sha512": "8ed293ddb0c6e90ba8e25a27ab0a52892fafb5faa8c74059920fe60cfc0037166506cc92e936dde1992a60b1c951a482acf973b31ba8932eec1328030c54076e",
+          "sha256": "6e8b6cad21e004b164b75e4fcdc7cd8ac96e61b8da1765cbc8badb4a37885f83",
+          "sha1": "cd4bbb386da3f1e2495df63b500acc1c044310ba",
+          "md5": "c706a8a6df164f813ef96eee3063282f"
+        }
+      ]
+    },
+    {
+      "name": "releaseVariantReleaseRuntimePublication",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.libraryelements": "aar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "io.github.kimjh4941",
+          "module": "android-native-toolkit",
+          "version": {
+            "requires": "2.0.0"
+          }
+        },
+        {
+          "group": "androidx.startup",
+          "module": "startup-runtime",
+          "version": {
+            "requires": "1.2.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.2.21"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "android-native-toolkit-capi-2.0.0.aar",
+          "url": "android-native-toolkit-capi-2.0.0.aar",
+          "size": 2260582,
+          "sha512": "8ed293ddb0c6e90ba8e25a27ab0a52892fafb5faa8c74059920fe60cfc0037166506cc92e936dde1992a60b1c951a482acf973b31ba8932eec1328030c54076e",
+          "sha256": "6e8b6cad21e004b164b75e4fcdc7cd8ac96e61b8da1765cbc8badb4a37885f83",
+          "sha1": "cd4bbb386da3f1e2495df63b500acc1c044310ba",
+          "md5": "c706a8a6df164f813ef96eee3063282f"
+        }
+      ]
+    }
+  ]
+}

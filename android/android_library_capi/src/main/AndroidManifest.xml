@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!-- The automatic initialization of the C ABI (C ABI design part 1, 1.4). It depends on
+             android_library's LibraryInitializer, which is merged into the same provider. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="com.jonghyunkim.nativetoolkit.capi.NtkInitializer"
+                android:value="androidx.startup" />
+        </provider>
+    </application>
+</manifest>

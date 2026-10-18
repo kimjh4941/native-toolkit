@@ -1,0 +1,4 @@
+var searchData=
+[
+  ['error_0',['error',['../class_native_toolkit_1_1_result.html#a54e81884c4db5a7ffa27140457d63010',1,'NativeToolkit::Result::error() &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a34018e137fd48a8ce837e69a9ba5d66e',1,'NativeToolkit::Result::error() const &amp;noexcept'],['../class_native_toolkit_1_1_result.html#a843d8dd69a247114dd6aa8a67b04b8cc',1,'NativeToolkit::Result::error() &amp;&amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#ab582f1340a0b7ec85628da8d16360bfb',1,'NativeToolkit::Result&lt; void, E &gt;::error() &amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#af014088fef928bd62b585e14aa5d956d',1,'NativeToolkit::Result&lt; void, E &gt;::error() const &amp;noexcept'],['../class_native_toolkit_1_1_result_3_01void_00_01_e_01_4.html#ae7741b7b021a83c9729471885267e4b1',1,'NativeToolkit::Result&lt; void, E &gt;::error() &amp;&amp;noexcept']]]
+];

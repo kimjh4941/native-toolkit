@@ -1,41 +1,62 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.content.Intent
-import android.library.notification.presentation.permission.NotificationPermissionHelper
+import com.jonghyunkim.nativetoolkit.common.event.EventHub
+import com.jonghyunkim.nativetoolkit.notification.presentation.permission.NotificationPermissionHelper
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jonghyunkim.android.nativetoolkit.example.ui.theme.AndroidTheme
 
 /** Hosts the native-toolkit sample screens and receives incoming share intents. */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var notificationPermissionHelper: NotificationPermissionHelper
+    private var eventRegistrations: List<EventHub.Registration> = emptyList()
 
     /** Received share content; updated on receipt and observed by Compose to navigate to the received screen. */
     var receivedShare by mutableStateOf<ReceivedShareContent?>(null)
         private set
 
+    // testTagsAsResourceId is still experimental in the Compose version this sample uses.
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "[onCreate] intent: $intent")
         super.onCreate(savedInstanceState)
         notificationPermissionHelper = NotificationPermissionHelper(this)
+        // Events kept by the library while no listener was registered arrive inside this call.
+        eventRegistrations = SampleEvents.register(this)
         title = "Native Toolkit Example"
         enableEdgeToEdge()
         handleIncomingShare(intent)
         setContent {
             AndroidTheme {
-                AppRouter(
-                    activity = this,
-                    permissionHelper = notificationPermissionHelper
-                )
+                // Expose Compose test tags as resource IDs so UiAutomator can find them too.
+                Box(modifier = Modifier.semantics { testTagsAsResourceId = true }) {
+                    AppRouter(
+                        activity = this@MainActivity,
+                        permissionHelper = notificationPermissionHelper
+                    )
+                }
             }
         }
+    }
+
+    override fun onDestroy() {
+        Log.d(TAG, "[onDestroy]")
+        eventRegistrations.forEach { it.remove() }
+        eventRegistrations = emptyList()
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {

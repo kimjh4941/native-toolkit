@@ -20,10 +20,10 @@
 2. 연동 절차는 `docs/<version>/manual/index.ko.md` 를 확인합니다.
 3. API 참조는 `docs/<version>/` 또는 `docs/latest/` 를 사용합니다.
 
-예시 (`1.12.0`):
+예시 (`1.13.0`):
 
-- 매뉴얼: `docs/1.12.0/manual/index.ko.md`
-- 배포 문서: `docs/1.12.0/manual/`
+- 매뉴얼: `docs/1.13.0/manual/index.ko.md`
+- 배포 문서: `docs/1.13.0/manual/`
 
 ## 상세 문서
 
@@ -33,28 +33,30 @@
 
 ## 버전
 
-- 현재 릴리스: 1.12.0
+- 현재 릴리스: 1.13.0
 - 최신 공개 문서 버전: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 지원 OS (1.12.0)
+## 지원 OS (1.13.0)
 
 - Android 12 이상
 - iOS 18 이상
 - Windows 11 이상
 - macOS 15 이상
 
-## 배포 산출물 (1.12.0)
+## 배포 산출물 (1.13.0)
 
-- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
+- Android:
+  - `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`(Kotlin API)
+  - `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`(C ABI)
 - iOS:
-  - `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.12.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
 - macOS:
-  - `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.12.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
 - Windows:
-  - `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg`(C++ API)
-  - `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`(C ABI)
+  - `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`(C++ API)
+  - `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`(C ABI)
 
 ## 포함 모듈(개요)
 
@@ -65,9 +67,10 @@
   - 지원: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - 문서: Dokka
 
-- `android/unity_android_plugin`
-  - 보조 모듈: C ABI / JNI 브리지 계층
-  - 문서: Dokka
+- `android/android_library_capi` (AAR `android-native-toolkit-capi`의 `libntk.so`)
+  - Kotlin API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
+  - 헤더: `android/android_library_capi/src/main/cpp/include/NativeToolkitC/`
+  - C, C++, C#, Rust 등 다른 언어용
 
 ### iOS
 
@@ -102,14 +105,14 @@
 - `windows/WindowsLibraryCApi` (DLL, `NativeToolkitC.dll`)
   - C++ API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
   - 헤더: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
-  - C#, Rust, Python 등 다른 언어용. Unity는 P/Invoke로 호출 (`unity-native-plugin`)
+  - C#, Rust, Python 등 다른 언어용
 
 ## 디렉터리 구조
 
 ```text
 android/
   android_library/
-  unity_android_plugin/
+  android_library_capi/
   AndroidLibraryExample/
 
 ios/
@@ -147,7 +150,7 @@ docs/
 
 ```bash
 # Android AAR (전체 모듈)
-./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 # iOS XCFramework (전체 모듈)
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
@@ -164,8 +167,8 @@ docs/
 ### Android
 
 ```bash
-cd android/AndroidLibraryExample
-./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
+cd android
+./gradlew :android_library:dokkaGeneratePublicationHtml
 ```
 
 ### iOS (DocC)
@@ -194,13 +197,13 @@ doxygen Doxyfile
 `docs/<version>/` 를 생성하고, `docs/latest/` 는 `docs/` 내 가장 높은 버전으로 갱신됩니다.
 
 ```bash
-./scripts/publish_docs.sh 1.12.0
+./scripts/publish_docs.sh 1.13.0
 ```
 
 생성 없이 복사만 할 경우:
 
 ```bash
-./scripts/publish_docs.sh 1.12.0 --skip-build
+./scripts/publish_docs.sh 1.13.0 --skip-build
 ```
 
 manual 복사 원본은 `manual/<version>/` 입니다.

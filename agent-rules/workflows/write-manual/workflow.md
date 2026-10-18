@@ -44,9 +44,9 @@
    - `dist/<version>/` 配下のファイルを確認し、OS ごとの実際のライブラリファイル名（バージョン含む）を把握する
      - 例: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar` → Android ライブラリバージョンは `1.1.0`
      - マニュアルに記載するファイル名・バージョンは必ずこの実態と一致させる
-     - Unity プラグイン AAR（例: `unity-android-native-toolkit-*.aar`）はマニュアルに記載しない。記載対象はネイティブ AAR（`android-native-toolkit-*.aar`）のみとする
+     - Unity プラグインの成果物（例: iOS の `unity-ios-native-toolkit-*.xcframework`）はマニュアルに記載しない。Android の記載対象は、Kotlin の API の AAR（`android-native-toolkit-*.aar`）と C ABI の AAR（`android-native-toolkit-capi-*.aar`。2.0.0 から。Unity 向けではなく汎用の C ABI）とする
      - Setup セクションに「Unity プラグイン（AAR）」の小見出しは設けない
-     - Unity プラグイン（UnityAndroidShareManager 等）に関するセクションはマニュアルに含めない
+     - Unity プラグイン（`UnityIosShareManager` 等）に関するセクションはマニュアルに含めない
 
 4. 結果ファイルと実装の矛盾を検証・修正する（必須）
    - ステップ3で読み込んだ結果ファイルに記載された内容を、実際のソースコードと照合する

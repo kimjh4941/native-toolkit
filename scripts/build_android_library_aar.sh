@@ -4,56 +4,69 @@ set -euo pipefail
 # Build one or more Android library module AARs and copy them with distributable names.
 #
 # Usage:
-#   ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--output <path>] [--log-file <path>]
+#   ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--release-version <version>] [--output <path>] [--log-file <path>] [--m2]
 #
 # Examples:
 #   ./scripts/build_android_library_aar.sh --library-version 1.1.0
 #   ./scripts/build_android_library_aar.sh --build-type debug
-#   ./scripts/build_android_library_aar.sh --module unity_android_plugin --library-version 1.1.0
-#   ./scripts/build_android_library_aar.sh --module android_library --module unity_android_plugin --library-version 1.1.0
+#   ./scripts/build_android_library_aar.sh --module android_library_capi --library-version 2.0.0
+#   ./scripts/build_android_library_aar.sh --module android_library --module android_library_capi --library-version 2.0.0
 #   ./scripts/build_android_library_aar.sh --build-type release --output dist/1.1.0/android/android-native-toolkit-1.1.0.aar
 #   ./scripts/build_android_library_aar.sh --build-type release --library-version 1.1.0 --log-file dist/1.1.0/android/build-1.1.0.log
 #   ./scripts/build_android_library_aar.sh -b debug -m android_library -v 1.1.0 -o /tmp/NativeToolkit-debug.aar
 #   ./scripts/build_android_library_aar.sh -b release -m android_library -v 1.3.0 -o dist/1.8.0/android/android-native-toolkit-1.3.0.aar
-#   ./scripts/build_android_library_aar.sh -b release -m unity_android_plugin -v 1.3.0 -o dist/1.8.0/android/unity-android-native-toolkit-1.3.0.aar
+#   ./scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 --m2
+#   ./scripts/build_android_library_aar.sh -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
 
-ANDROID_EXAMPLE_DIR="${ROOT_DIR}/android/AndroidLibraryExample"
-GRADLE_PROPERTIES_PATH="${ANDROID_EXAMPLE_DIR}/gradle.properties"
+ANDROID_GRADLE_ROOT="${ROOT_DIR}/android"
+GRADLE_PROPERTIES_PATH="${ANDROID_GRADLE_ROOT}/gradle.properties"
 
 BUILD_TYPE="release"
 MODULES=()
 OUTPUT_PATH=""
 OUTPUT_PATH_SET=false
 LIBRARY_VERSION=""
+RELEASE_VERSION=""
 LOG_PATH=""
 LOG_PATH_SET=false
+PUBLISH_M2=false
 
 usage() {
   cat <<'USAGE'
 Build one or more Android library module AARs and copy them to target paths.
 
 Usage:
-  ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--output <path>] [--log-file <path>]
+  ./scripts/build_android_library_aar.sh [--module <name>]... [--build-type <debug|release>] [--library-version <version>] [--release-version <version>] [--output <path>] [--log-file <path>] [--m2]
 
 Options:
-  -m, --module       Module to build (repeatable). Examples: android_library, unity_android_plugin
+  -m, --module       Module to build (repeatable): android_library, android_library_capi
+                     (unity_android_plugin was removed in 2.0.0)
                      Default: android_library
   -b, --build-type   Build type to assemble (debug or release). Default: release
   -v, --library-version
                      Library version to include in default output naming.
                      Example default with version: dist/<version>/android/android-native-toolkit-<version>.aar
+  -r, --release-version
+                     The product release the artifacts go into: dist/<release>/android/ (the AARs keep the
+                     library version in their names, as dist/1.13.0/android/android-native-toolkit-2.0.0.aar).
+                     Default: the library version
   -o, --output       Output AAR path. Relative paths are resolved from repository root.
-                     Default (when omitted): per-module default output path
-                     android_library: dist/<version>/android/android-native-toolkit-<version>.aar
-                     unity_android_plugin: dist/<version>/android/unity-android-native-toolkit-<version>.aar
+                     Default (when omitted): per-module default output path (<release> is --release-version,
+                     or the library version without it; <version> is the library version)
+                     android_library: dist/<release>/android/android-native-toolkit-<version>.aar
+                     android_library_capi: dist/<release>/android/android-native-toolkit-capi-<version>.aar
+                       (a release build there also copies the C headers to dist/<release>/android/include/)
                      Note: --library-version is required when --output is omitted.
                      Note: --output is allowed only for single-module builds.
   -l, --log-file     Build log file path. Relative paths are resolved from repository root.
                      Default (single module): <output-path-without-extension>.log
-                     Default (multi module):  dist/<version>/android/build-<version>.log
+                     Default (multi module):  dist/<release>/android/build-<version>.log
+      --m2           Also publish the modules' Maven publications (POM and Gradle Module Metadata) and
+                     replace dist/<release>/android/m2/ with them (README D-17). Release only; with
+                     android_library_capi, android_library has to be built too (the capi POM depends on it).
   -h, --help         Show this help message.
 USAGE
 }
@@ -64,8 +77,22 @@ module_output_prefix() {
     android_library)
       echo "android-native-toolkit"
       ;;
-    unity_android_plugin)
-      echo "unity-android-native-toolkit"
+    android_library_capi)
+      echo "android-native-toolkit-capi"
+      ;;
+    *)
+      echo "${module}"
+      ;;
+  esac
+}
+
+# The Gradle project of a module directory: android_library_capi is :ntk, so that consumers write
+# find_package(ntk) and ntk::ntk (C ABI design part 1, AC-13). Its AAR is named after the project.
+module_project() {
+  local module=$1
+  case "${module}" in
+    android_library_capi)
+      echo "ntk"
       ;;
     *)
       echo "${module}"
@@ -79,7 +106,7 @@ module_task() {
   if [[ "${BUILD_TYPE}" == "debug" ]]; then
     task_suffix="assembleDebug"
   fi
-  echo ":${module}:${task_suffix}"
+  echo ":$(module_project "${module}"):${task_suffix}"
 }
 
 validate_module() {
@@ -134,6 +161,15 @@ while [[ $# -gt 0 ]]; do
       LIBRARY_VERSION="$2"
       shift 2
       ;;
+    -r|--release-version)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --release-version requires a value." >&2
+        usage
+        exit 1
+      fi
+      RELEASE_VERSION="$2"
+      shift 2
+      ;;
     -l|--log-file)
       if [[ $# -lt 2 ]]; then
         echo "Error: --log-file requires a value." >&2
@@ -143,6 +179,10 @@ while [[ $# -gt 0 ]]; do
       LOG_PATH="$2"
       LOG_PATH_SET=true
       shift 2
+      ;;
+    --m2)
+      PUBLISH_M2=true
+      shift
       ;;
     -h|--help)
       usage
@@ -184,10 +224,40 @@ if [[ -n "${LIBRARY_VERSION}" ]]; then
   fi
 fi
 
+if [[ -n "${RELEASE_VERSION}" && "${RELEASE_VERSION}" =~ [[:space:]/] ]]; then
+  echo "Error: --release-version must not contain spaces or '/' characters." >&2
+  usage
+  exit 1
+fi
+# The folder under dist/: the product release, which differs from the library version when only some
+# OSes change (dist/1.13.0/android/ holds the 2.0.0 AARs).
+DIST_VERSION="${RELEASE_VERSION:-${LIBRARY_VERSION}}"
+
 if [[ "${OUTPUT_PATH_SET}" == "false" ]]; then
   if [[ -z "${LIBRARY_VERSION}" ]]; then
     echo "Error: --library-version is required when --output is omitted." >&2
     usage
+    exit 1
+  fi
+fi
+
+has_module() {
+  local wanted=$1
+  local module
+  for module in "${MODULES[@]}"; do
+    [[ "${module}" == "${wanted}" ]] && return 0
+  done
+  return 1
+}
+
+if [[ "${PUBLISH_M2}" == "true" ]]; then
+  if [[ "${BUILD_TYPE}" != "release" || -z "${LIBRARY_VERSION}" ]]; then
+    echo "Error: --m2 needs --build-type release and --library-version." >&2
+    usage
+    exit 1
+  fi
+  if has_module android_library_capi && ! has_module android_library; then
+    echo "Error: --m2 with android_library_capi needs android_library too (the capi POM depends on it)." >&2
     exit 1
   fi
 fi
@@ -197,7 +267,10 @@ MODULE_SOURCES=()
 MODULE_TARGETS=()
 for module in "${MODULES[@]}"; do
   GRADLE_TASKS+=("$(module_task "${module}")")
-  MODULE_SOURCES+=("${ROOT_DIR}/android/${module}/build/outputs/aar/${module}-${BUILD_TYPE}.aar")
+  if [[ "${PUBLISH_M2}" == "true" ]]; then
+    GRADLE_TASKS+=(":$(module_project "${module}"):publishReleasePublicationToMavenRepository")
+  fi
+  MODULE_SOURCES+=("${ROOT_DIR}/android/${module}/build/outputs/aar/$(module_project "${module}")-${BUILD_TYPE}.aar")
 
   if [[ "${OUTPUT_PATH_SET}" == "true" ]]; then
     if [[ "${OUTPUT_PATH}" = /* ]]; then
@@ -208,9 +281,9 @@ for module in "${MODULES[@]}"; do
   else
     output_prefix="$(module_output_prefix "${module}")"
     if [[ "${BUILD_TYPE}" == "debug" ]]; then
-      MODULE_TARGETS+=("${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}-debug.aar")
+      MODULE_TARGETS+=("${ROOT_DIR}/dist/${DIST_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}-debug.aar")
     else
-      MODULE_TARGETS+=("${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}.aar")
+      MODULE_TARGETS+=("${ROOT_DIR}/dist/${DIST_VERSION}/android/${output_prefix}-${LIBRARY_VERSION}.aar")
     fi
   fi
 done
@@ -219,7 +292,7 @@ if [[ "${LOG_PATH_SET}" == "false" ]]; then
   if [[ ${#MODULES[@]} -eq 1 ]]; then
     BUILD_LOG_TARGET="${MODULE_TARGETS[0]%.*}.log"
   else
-    BUILD_LOG_TARGET="${ROOT_DIR}/dist/${LIBRARY_VERSION}/android/build-${LIBRARY_VERSION}.log"
+    BUILD_LOG_TARGET="${ROOT_DIR}/dist/${DIST_VERSION}/android/build-${LIBRARY_VERSION}.log"
   fi
 elif [[ "${LOG_PATH}" = /* ]]; then
   BUILD_LOG_TARGET="${LOG_PATH}"
@@ -227,8 +300,8 @@ else
   BUILD_LOG_TARGET="${ROOT_DIR}/${LOG_PATH}"
 fi
 
-if [[ ! -x "${ANDROID_EXAMPLE_DIR}/gradlew" ]]; then
-  echo "Error: Gradle wrapper not found at ${ANDROID_EXAMPLE_DIR}/gradlew" >&2
+if [[ ! -x "${ANDROID_GRADLE_ROOT}/gradlew" ]]; then
+  echo "Error: Gradle wrapper not found at ${ANDROID_GRADLE_ROOT}/gradlew" >&2
   exit 1
 fi
 
@@ -281,8 +354,14 @@ if [[ -n "${LIBRARY_VERSION}" ]]; then
   GRADLE_ARGS+=("-PlibraryVersion=${LIBRARY_VERSION}")
 fi
 
+M2_BUILD_DIR="${ANDROID_GRADLE_ROOT}/build/m2"
+if [[ "${PUBLISH_M2}" == "true" ]]; then
+  # Only this build's publications go into the repository.
+  rm -rf "${M2_BUILD_DIR}"
+fi
+
 mkdir -p "$(dirname -- "${BUILD_LOG_TARGET}")"
-(cd "${ANDROID_EXAMPLE_DIR}" && ./gradlew "${GRADLE_ARGS[@]}") 2>&1 | tee "${BUILD_LOG_TARGET}"
+(cd "${ANDROID_GRADLE_ROOT}" && ./gradlew "${GRADLE_ARGS[@]}") 2>&1 | tee "${BUILD_LOG_TARGET}"
 
 for i in "${!MODULES[@]}"; do
   module="${MODULES[$i]}"
@@ -301,3 +380,24 @@ for i in "${!MODULES[@]}"; do
   cp "${aar_source}" "${aar_target}"
   echo "[done] Created ${aar_target}"
 done
+
+# The C headers next to the capi AAR, for binding generators (README D-9).
+if has_module android_library_capi && [[ "${BUILD_TYPE}" == "release" && "${OUTPUT_PATH_SET}" == "false" ]]; then
+  headers_target="${ROOT_DIR}/dist/${DIST_VERSION}/android/include/NativeToolkitC"
+  rm -rf "${headers_target}"
+  mkdir -p "${headers_target}"
+  cp "${ROOT_DIR}/android/android_library_capi/src/main/cpp/include/NativeToolkitC/"*.h "${headers_target}/"
+  echo "[done] Copied the C headers to ${headers_target}"
+fi
+
+if [[ "${PUBLISH_M2}" == "true" ]]; then
+  m2_target="${ROOT_DIR}/dist/${DIST_VERSION}/android/m2"
+  if [[ ! -d "${M2_BUILD_DIR}" ]]; then
+    echo "Error: the Maven repository was not created at ${M2_BUILD_DIR}" >&2
+    exit 1
+  fi
+  rm -rf "${m2_target}"
+  mkdir -p "$(dirname -- "${m2_target}")"
+  cp -R "${M2_BUILD_DIR}" "${m2_target}"
+  echo "[done] Created the Maven repository ${m2_target}"
+fi

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Read by ShareTargetApp in the sample's androidTest. -->
+    <item name="result_action" type="id" />
+    <item name="result_type" type="id" />
+    <item name="result_text" type="id" />
+    <item name="result_subject" type="id" />
+    <item name="result_title" type="id" />
+    <item name="result_streams" type="id" />
+</resources>

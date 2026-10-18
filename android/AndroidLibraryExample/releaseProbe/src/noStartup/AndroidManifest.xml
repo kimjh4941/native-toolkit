@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Startup disabled (Kotlin API design IT-01, IT-23): the library initializes only when the app
+     calls LibraryRuntime.ensureInitialized, and no library receiver runs on the package update. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            tools:node="merge">
+            <meta-data
+                android:name="com.jonghyunkim.nativetoolkit.common.runtime.LibraryInitializer"
+                tools:node="remove" />
+        </provider>
+        <receiver
+            android:name="com.jonghyunkim.nativetoolkit.notification.data.repository.ScheduledNotificationBootReceiver"
+            tools:node="remove" />
+    </application>
+
+</manifest>
