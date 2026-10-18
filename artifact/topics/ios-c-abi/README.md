@@ -2,7 +2,7 @@
 
 - 記録日: 2026-10-18
 - 改訂: 2026-10-18 に別モデル 2 者のレビュー（`reviews/2026-10-18-ios-c-abi-plan-review-v1.md`）を反映した。事実の誤り 3 つ（署名、Dialog の既定の文言、エラーの型）を直し、通知の delegate を早く入れる入口（D-4・D-7）、`release` の同期の場合（D-6）、bundle id（D-12）、署名（D-18）、ブリッジの扱い（D-22）、`unity-native-plugin` に先に頼むこと（5 章）を決め直した。同日に 2 回目のレビュー（`reviews/2026-10-18-ios-c-abi-plan-review-v2.md`）を反映し、delegate を入れる関数を同期の例外にし（D-4・D-6）、呼ぶ範囲を通知の機能全体に広げ、署名の照らし方、bundle id を変える範囲、リリース版を決める時期を直した。3 回目の確認（`reviews/2026-10-18-ios-c-abi-plan-review-v3.md`。Codex）で区分 A が 0 になり、残った 1 件（D-19 の版を決める時期）を直してレビューを終えた
-- 状態: 企画中。D-1〜D-22 は 2026-10-18 に利用者が推奨のとおり決めた（8.1）。次は段階 0a
+- 状態: 進行中。D-1〜D-22 は 2026-10-18 に利用者が推奨のとおり決めた（8.1）。段階 0a（UI テストのスパイク）は完了し、UI テストの設計書も決定した（2026-10-18）。次は段階 0b
 - 分類: 横断課題（アーキテクチャ）。機能追加ではない
 - 進め方: Windows（`windows-architecture`、1.12.0）と Android（`android-c-abi`、1.13.0）と同じ汎用 C ABI を、1 OS ずつ作る。このトピックは iOS の分（D-1）。macOS は iOS が終わってから別のトピックにする
 - 対象: `ios/IosLibrary`、`ios/UnityIosPlugin`（新しい C ABI のモジュールに置き換える）、`ios/IosLibraryExample`、`scripts/build_ios_library_xcframework.sh`、`ios/generate_docc.sh`、`scripts/publish_docs.sh`、配布物 `ios-native-toolkit-*.xcframework` / `unity-ios-native-toolkit-*.xcframework`
@@ -127,7 +127,9 @@ ios/
       Clipboard/  Dialog/  Notification/  Share/ # C の入口（.m）。検査して Swift の受け口を呼ぶだけ（D-10）
       Adapter/                                   # Swift の受け口。IosLibrary を呼んで型を変換するだけ。利用者に見せない（D-10・D-11）
       IosLibraryCApi.exp                         # 公開するシンボル: _ntk_* だけ（D-11）
-  IosLibraryCApiTests/                           # (新) C ABI のテスト（C の関数を XCTest から呼ぶ。ASan / TSan でも流す）
+  IosLibraryCApiTests/                           # (新) C ABI のテスト（C の関数を XCTest から呼ぶ。ASan / TSan でも流す）。
+                                                 # 名前は Xcode の作法（<製品名>Tests）で、iOS の今のテストのターゲットにそろえる
+                                                 # （Windows の WindowsLibraryCApiTest とは単数と複数が違う。2026-10-18、利用者の了承）
   IosLibraryCApiSmoke/                           # (新) dist の 2 つの xcframework だけを使う C / Objective-C のアプリ。Swift のコードを持たない
   IosLibraryExample/                             # ネイティブのサンプル。Swift の API だけを使う
     IosLibraryExampleUITests/                    # 全機能の UI テスト（段階 0c）
@@ -218,7 +220,7 @@ Android と同じく、**ブリッジには手を入れない**（段階 3 で�
 | 段階 | 内容 | 動作の変更 |
 |---|---|---|
 | 0a | スパイク: サンプルの UI テストで扱える項目を確定する（7.2）。XCUITest で、通知のバナーと通知センター（`springboard` の要素）、通知のアクションのボタン、テキスト入力のアクション、**通知からのコールドスタート**（アプリを止め、springboard でタップして起動する）、権限のダイアログ（`addUIInterruptionMonitor` か springboard）、Share のシート（`UIActivityViewController`）、アプリ内の Dialog（`UIAlertController`）、貼り付けの許可のダイアログ、`UIPasteControl` を扱えるか。予約した通知の発火を待てるか。シミュレーターと実機で違うか。scene のある構成と無い構成で、前面の key window の探し方が動くか | 無し |
-| 0b | サンプルの画面に `accessibilityIdentifier` を付ける（Dialog・Notification・Share は 0 個。見た目も動作も変えない） | 無し |
+| 0b | サンプルの画面に `accessibilityIdentifier` を付ける（Dialog・Notification・Share は 0 個。見た目も動作も変えない）。あわせて、通知の画面に「最後に受けたイベント」（タップ・アクション・返信の文字）の表示を足す。今のサンプルは受けても `print` するだけで、UI テストから受け取りを確かめられないため（0a の結果 R-1。サンプルだけの変更で、ライブラリは変えない）。結果の行に更新の回数（`accessibilityValue`。見た目は変わらない）を付け、サンプルの起動の処理で受け手を設定してから `setup()` を呼ぶ順に入れ替える（UI テストの設計書 U-3・U-4） | サンプルの通知の画面に表示が 1 つ増える |
 | 0c | Dialog / Notification / Share の UI テストを足す（Clipboard は 22 件ある）。XCUITest で扱えない項目は、人の確認の手順書にする | 無し |
 | 0d | `scripts/test_ios.sh` を作り（unit・UI テストをまとめて実行。`xcodebuild test` の結果を `.xcresult` から読む）、**今のコードで全件通ることを確かめ、結果を基準として記録する**。基準は 2 つの環境で取り（D-21）、件数はターゲット全体・機能ごと・雛形に分けて持つ。`UnityIosPluginTests` は `test_ios.sh` の基準に入れないが、0e でビルドから外す前に 83 件を一度流し、結果を `results/` に保存する（D-22） | 無し |
 | 0e | 設定をそろえる: `UnityIosPlugin` をワークスペースのビルドと `test_ios.sh` から外す（D-22）。テストのターゲットの最小 iOS を 18.0 に。Xcode 26 の推奨設定（`LastUpgradeCheck`）を反映するが、変わる build setting の差分を全部記録し、`SWIFT_DEFAULT_ACTOR_ISOLATION` と upcoming feature を明示的に固定する。`SWIFT_STRICT_CONCURRENCY=complete` で `IosLibrary` とサンプルの警告を 0 にする（Notification・Dialog・Share の完了を main で返し、handler を `@Sendable` にする）。公開 API の差分（swiftinterface）を保存する。直した所に関係するテストを両方の環境で流す | Notification の操作の結果が main で返る（1.3）。handler の型に `@Sendable` が付く（2.0.0） |
@@ -255,7 +257,7 @@ Android と同じく、**ブリッジには手を入れない**（段階 3 で�
 
 | 設計書 | 書く時期 | 書くこと |
 |---|---|---|
-| UI テスト | 0a の後、0b の前 | 機能ごとのテストケースの一覧と、確かめる内容。XCUITest で扱う項目と人が確かめる項目の分担（0a の結果に基づく） |
+| UI テスト（**決定**: `designs/2026-10-18-ios-c-abi-ui-test-design.md`。別モデル 2 者のレビューを 5 回通し、v5 で打ち切って利用者が決めた。2026-10-18） | 0a の後、0b の前 | 機能ごとのテストケースの一覧と、確かめる内容。XCUITest で扱う項目と人が確かめる項目の分担（0a の結果に基づく）。私物の実機を守る仕組み（3 本柱: ランナーが選ぶ、宣言の正しさの照合、毎回の利用者の許可） |
 | C ABI 第 1 部 | 1a の後、1b の前 | 利用者の前提（3.1）、スレッド、寿命、`release` の状態機械（受け付けた / 拒んだ / 取り消した / 終わった、と失敗の経路を最初から表に入れる。知見 1 章）、通知の delegate とイベントの保ち方（D-7 の項目）、前面の扱い、例外、D-4・D-7・D-10・D-11・D-13 の決定 |
 | Swift の API の補完 | C ABI の第 1 部の後、1b の前 | ネイティブの利用者に公開する Swift の API が変わる。**今のブリッジの約束が新しい API のどこで守られるかの対応表**と、エラーの case の対応表を含める |
 | C ABI 第 2 部 | 1b の後、2b の前 | 全関数の一覧、**今のブリッジの 43 関数と 6 章の振る舞いの集合から新しい関数への対応表**（System API → Repository → UseCase → Manager → Swift の受け口 → C の入口の各行に、actor、コールバックの回数、取り消し、寿命、エラーの対応）、エラーの表、付録 A のヘッダー。章番号は Windows・Android と同じにする（照合が見出しで読むため） |
@@ -328,7 +330,7 @@ Android と同じく、C ABI が置き換えるのは操作だけでなく、**�
 | smoke | `IosLibraryCApiSmoke`: dist の 2 つの xcframework だけを使う C / Objective-C のアプリ。Swift のコードを持たない。Xcode 26.3 と、利用者の下限の Xcode 26.0 の両方で組む（D-16） | 配布物だけで組めて動くこと。Swift の実行環境を足さずに動くこと |
 | 配布物の照合 | `check_ios_dist.py`（7.3） | 公開シンボル、依存、署名、マニフェスト、版 |
 | 本物のホスト | Unity 6000.4.2f1 の書き出した Xcode プロジェクト（release ビルド）に入れて実機で呼ぶ（1a で雛形、2c で本番）。コールドスタートのタップと、Unity の通知パッケージとの共存も確かめる | Unity の組み込み方（UnityFramework へのリンク、埋め込み、`__Internal`、起動の終わりまでの delegate）で動くこと |
-| サンプルの UI テスト | `IosLibraryExampleUITests`（今 25 件: Clipboard 22 件、雛形 3 件。段階 0c で全機能に広げる） | 0e〜0g と 1b の前後で、ネイティブの利用者から見た動作が変わらないこと |
+| サンプルの UI テスト | `IosLibraryExampleUITests`（今 25 件: Clipboard 22 件、雛形 3 件。段階 0c で全機能に広げ、雛形の 3 件を消して 99 件にする。UI テストの設計書） | 0e〜0g と 1b の前後で、ネイティブの利用者から見た動作が変わらないこと |
 | 更新のテスト | 1.13.0 のサンプル（`IosLibrary` 1.3.0）で通知を予約し、category を登録し、通知を表示しておく → 2.0.0 のサンプルを上から入れる → 予約の一覧・取り消し・発火・タップ・アクションを確かめる | 1.x が OS に保存したもの（8.6）が 2.0.0 で壊れないこと |
 | Unity | `unity-native-plugin` の iOS のテスト（作り直す）と実機 | Unity から C ABI を通した動作。別リポジトリで行う（段階 2c） |
 
@@ -342,7 +344,7 @@ Android と同じく、サンプルはブリッジを通らず `IosLibrary` を�
 
 ### 7.2 XCUITest と人の確認の使い分け
 
-`common.md` の UI 自動テストの規則は、OS のシェルの UI・システム設定・権限の初回の同意を「自動化しないもの」にしている。Android の段階 0a は、スパイクで確かめたうえで通知のシェードと権限のダイアログを自動化した。iOS も、**段階 0a で確かめて安定して扱えた項目だけを自動化し、`common.md` の例外として理由を 0a の結果に書く**。扱えない項目は人の確認にし、手順書を用意する（判定があいまいなら失敗とする）。画像の中身と音は、Android と同じく自動化しない見込み。
+`common.md` の UI 自動テストの規則は、OS のシェルの UI・システム設定・権限の初回の同意を「自動化しないもの」にしている。Android の段階 0a は、スパイクで確かめたうえで通知のシェードと権限のダイアログを自動化した。iOS も、**段階 0a で確かめて安定して扱えた項目だけを自動化し、`common.md` の例外として理由を 0a の結果に書く**（例外にした項目の一覧は UI テストの設計書の 2.1）。扱えない項目は人の確認にし、手順書を用意する（判定があいまいなら失敗とする）。画像の中身と音は、Android と同じく自動化しない見込み。
 
 システムの UI は OS の版で見た目と構造が変わるので、UI テストは版を固定した 2 つの環境で流す（D-21）。
 
@@ -350,6 +352,8 @@ Android と同じく、サンプルはブリッジを通らず `IosLibrary` を�
 |---|---|---|
 | 実機 | iPhone XS、iOS 18.7.2（ペアリング済み。今はつながっていない） | 最小 iOS（18）の基準。iOS 26 に上げられない機種なので、18 の実機はこれで固定できる。実機でしか確かめられない項目（通知の配信、権限の移り変わり、バックグラウンドや終了した状態での配信）は、シミュレーターの結果と分けて記録する |
 | シミュレーター | iOS 26.2 のランタイム（機種は 0a で決める） | 今の iOS の基準 |
+
+**実機で UI テストを流すときの運用**（2026-10-18、利用者と決めた）: XCUITest は端末のロックが外れている間しか動かない（始めるときにロックされていると起動できず、途中で自動ロックがかかると以降の操作がすべて失敗する。テストのコードからパスコードのロックは外せない）。そのため、実機で流す間は、利用者が自分で「設定 → 画面表示と明るさ → 自動ロック」を「なし」にし、電源につないでおく。私物の端末の設定なので、こちらからは変えない。流す前に知らせ、終わったら戻してもらう。
 
 iOS 26 の実機は無い。通知の配信やシステムのシートのうち、シミュレーターで再現しないもの（0a で確かめる）は、iOS 26 では確かめられないと結果に書く。実機がつながらない間は、iOS 18.3 のシミュレーターで代わりに流せるが、基準にはしない。
 
@@ -376,7 +380,7 @@ Android の `check_android_dist.py` に当たる。2b で作り、リリース�
 |---|---|---|
 | `ios-arm64` | 実機（iPhone XS、iOS 18.7.2） | C ABI のテスト（ASan）、UI テスト、smoke、Unity |
 | `ios-arm64_x86_64-simulator` の arm64 | シミュレーター（iOS 26.2 / 18.3、Apple Silicon の Mac） | C ABI のテスト（ASan、TSan。同時には使えないので別に流す）、UI テスト、smoke |
-| `ios-arm64_x86_64-simulator` の x86_64 | 手元では動かさない（Apple Silicon の Mac）。Rosetta でシミュレーターを動かせるかは 0a で確かめる | 組めること、公開シンボル、smoke のリンク。動かせなければ結果に「実行していない」と書く |
+| `ios-arm64_x86_64-simulator` の x86_64 | iOS 18.3 のシミュレーターで Rosetta を使って動かす。iOS 26.2 のランタイムは x86_64 のアプリを受け付けない（0a の結果 3.9） | 組めること、公開シンボル、smoke のリンクと、iOS 18.3 での smoke の実行 |
 
 TSan が実機で動かないことは、Xcode の文書で確かめる（未確認）。
 
@@ -408,7 +412,7 @@ TSan が実機で動かないことは、Xcode の文書で確かめる（未確
 | D-18 | プライバシーマニフェストと署名 | マニフェスト / 署名: A 配る framework に署名しない（archive で `CODE_SIGNING_ALLOWED=NO`。利用者がアプリに埋め込むときに自分の証明書で署名する）/ B 今のまま（実機のスライスは個人の Apple Development の証明書、シミュレーターは ad-hoc）/ C 配布用の証明書で xcframework に `codesign --timestamp` する | **マニフェストは入れる**（`IosLibrary` に `PrivacyInfo.xcprivacy`。FileTimestamp の理由は C617.1 の見込みで、アプリのコンテナの中のファイルであることと、アーカイブのプライバシーのレポートで 1b に確かめる。`IosLibraryCApi` は理由の申告が要る API を使わない見込みで、2b で確かめる）。Apple は、理由の申告が要る API を使う SDK はマニフェストを持つよう求めている。**署名は A**。B は配布物に個人の氏名と Team ID を載せ続け、証明書が切れると利用者のビルドが失敗しうる（Apple の文書）。署名が必須なのは「commonly used SDKs」の一覧に入る SDK だけで、このライブラリは入らない。1.x の xcframework そのものも署名していないので、Xcode 15 以降の署名者の検証で、利用者の側に変化は出ない見込み（1a で確かめる）。`check_ios_dist.py` で、実機のスライスに署名が無く、シミュレーターのスライスはリンカーの ad-hoc の署名だけであることを照らす（7.3）。1a で、利用者のアプリの Release のアーカイブの中で 2 つの framework がアプリの証明書で署名し直されていることを確かめる |
 | D-19 | 版 | `IosLibrary` と C ABI の版 | **どちらも 2.0.0**。`UnityIosPlugin` を消すのは破壊的変更で、Swift 6 の注釈・エラーの case・bundle id で `IosLibrary` の公開 API も変わる。Windows・Android も 2.0.0 にした。製品のリリース版は 2b の終わりに決め、`dist/<リリース版>` を作る（2c がその dist で検証するため。5 章） |
 | D-20 | `unity-native-plugin` の移し方 | A: 4 機能を一度に移す / B: 1 機能ずつ | **A**（D-12 の帰結）。1.x の `IosLibrary.framework` と 2.0.0 を同じアプリに入れられないため。2c の申し送りで、Android の包み（`user_data` の表、所有権ごと渡すハンドル、例外の try / catch、構造体の配置のテスト）をそのまま使えることと、通知の `.mm` が要ること（D-4）を示す |
-| D-21 | 試験の環境 | 基準を取る環境 | **実機の iPhone XS（iOS 18.7.2）と、シミュレーターの iOS 26.2 の 2 つ**（Android の Pixel とエミュレータに当たる）。実機は 0d の前につなぐ必要がある。システムの自動更新は切り、版が変わったら基準を取り直す。実機がつながらない間は iOS 18.3 のシミュレーターで代わりに流せるが、基準にはしない |
+| D-21 | 試験の環境 | 基準を取る環境 | **実機の iPhone XS（iOS 18.7.2）と、シミュレーターの iOS 26.2 の 2 つ**（Android の Pixel とエミュレータに当たる）。実機は 0d の前につなぐ必要がある。**実機は利用者の私物**なので、危ない操作（アプリの削除・再インストール、権限のリセット、設定の変更、再起動、クリップボードを書き換える・読むテスト、Share のシートから実在のアプリへ送りうる操作、通知センターや springboard を操作する UI テスト、写真・ファイルへの保存）は、1 回ごとに利用者の許可を得てから行う（2026-10-18、利用者の指示）。システムの自動更新を切るかも利用者に尋ねる。版が変わったら基準を取り直す。実機がつながらない間は iOS 18.3 のシミュレーターで代わりに流せるが、基準にはしない |
 | D-22 | 段階 3 までのブリッジの扱い | A: 0e でワークスペースのビルドと `test_ios.sh` の基準から外し、ソースは 1b の参照のために段階 3 まで残す / B: 段階 3 まで、組めるようにする最小の直しを続ける | **A**。0e〜1b で `IosLibrary` の公開 API が何度も変わり、Swift 5 のままのブリッジを追従させると、直し方によってスレッドなどの動作が変わり、出荷もしない（Unity は `dist/1.13.0` を使う）。外す前（0d の後、0e の前）に、ブリッジのテスト（`UnityIosPluginTests` 83 件）を一度流し、結果を `results/` に保存する（`test_ios.sh` の基準には入れない）。1.x の直しが要るときは、タグ `1.13.0` から別のブランチで行う |
 
 ### 8.2 段階 1a で確かめること
@@ -525,8 +529,8 @@ Unity の iOS は、iOS 27 SDK で組むアプリに scene のライフサイク
 
 - [x] D-1 〜 D-22 を決める（2026-10-18。すべて推奨のとおり）
 - [x] この README のレビューで区分 A が 0 になっている（3 回。`reviews/` の v1〜v3）
-- [ ] 段階 0a のスパイクで、XCUITest と人の確認の分担を確定する（`common.md` の例外にした項目は理由を記録している）
-- [ ] Clipboard / Notification / Share / Dialog のすべてにサンプルの UI テストがあり、通知からのコールドスタートを含む（段階 0c）
+- [x] 段階 0a のスパイクで、XCUITest と人の確認の分担を確定する（`common.md` の例外にした項目は理由を記録している）（`results/2026-10-18-ios-c-abi-stage0a-spike-result.md`。シミュレーター 2 台と実機。分担は UI テストの設計書）
+- [ ] Clipboard / Notification / Share / Dialog のすべてにサンプルの UI テストがあり、通知からのコールドスタート（UI テストの設計書の N30〜N33）を含む（段階 0c）
 - [ ] `scripts/test_ios.sh` があり、今のコードの結果を 2 つの環境で基準として記録している（段階 0d）
 - [ ] `IosLibrary` とサンプルが Swift 6 の言語モードと strict concurrency complete で、警告が 0（段階 0e・0f）。公開 API の差分を記録している
 - [ ] 0e〜0g と 1b の前後で、サンプルの UI テストの結果が変わらない（変えたテストは理由を記録している）
