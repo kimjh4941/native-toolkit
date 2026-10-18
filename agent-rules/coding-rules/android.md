@@ -6,16 +6,38 @@
 
 | モジュール | 置くもの | 置いてはいけないもの |
 |---|---|---|
-| `android/android_library` | Domain / Application / Data / Presentation / **Manager**。system Delegate・Listener の所有クラス | Unity 固有の JSON 変換・Unity 向け listener |
-| `android/unity_android_plugin` | **Unity Bridge のみ**（`Unity*Manager`、JSON parser、Unity 向け spec） | system Delegate・Listener の所有。ネイティブ利用者に必要な機能 |
-| `android/AndroidLibraryExample` | ネイティブサンプル。`implementation(project(":android_library"))` のみ | `unity_android_plugin` への依存、`android.unity.*` の import |
+| `android/android_library` | Domain / Application / Data / Presentation / **Manager**。system Delegate・Listener の所有クラス | C ABI の型の変換・寿命の管理、特定の利用者（Unity など）向けの JSON 変換 |
+| `android/android_library_capi` | **C ABI の受け口のみ**（`capi.jni` の `*Bridge`、C の関数、帳簿、前面の判定、例外の捕捉。C ABI の設計書 第 1 部 2 章「C ABI は Kotlin の API の薄い包み」） | 機能のロジック、system Delegate・Listener の所有。Kotlin の利用者にも必要な機能 |
+| `android/AndroidLibraryExample` | ネイティブサンプル。`implementation(project(":android_library"))` のみ | `android_library_capi` への依存（C ABI は `android_library_capi_test` と smoke で確かめる） |
 
-**`Unity*Manager` は Unity Bridge 層であって Manager 層ではない。**
-`android_library` には現状 `manager/` パッケージが無いが、それは「Manager 層のものを `unity_android_plugin` に置いてよい」という意味ではない。system Listener など、ネイティブ利用者にも必要なクラスは `android_library` の `presentation/` などに配置する。
+Unity 向けの Android の Bridge（`unity_android_plugin`）は 2.0.0 で無くなった。Unity は Windows と同じく C ABI（`android_library_capi`）を P/Invoke で呼ぶ。
 
-**具体例:** Clipboard の変更監視 `ClipboardChangeMonitor`（`ClipboardManager.OnPrimaryClipChangedListener` を所有）は `android/android_library/src/main/java/android/library/clipboard/presentation/` に置き、`UnityAndroidClipboardManager` はそこへ委譲するだけにする。
+**C ABI の受け口は Manager 層ではない。** Manager 層（`Android*Manager`）は `android_library` の機能のパッケージの直下に置く（`common.md` の「Manager の置き場所」）。C ABI の受け口は Manager を呼ぶだけで、Manager 層のものや、system Listener など Manager から使う部品を `android_library_capi` に置いてはならない。それらは `android_library` の `presentation/` などに配置する。
 
-**実装前チェック:** 追加するクラスを `unity_android_plugin` に置こうとしたら、「`AndroidLibraryExample` からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
+**具体例:** Clipboard の変更監視 `ClipboardChangeMonitor`（`ClipboardManager.OnPrimaryClipChangedListener` を所有）は `android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/clipboard/presentation/` に置き、C ABI の受け口（`ClipboardBridge`）は `AndroidClipboardManager` を呼ぶだけにする。
+
+**実装前チェック:** 追加するクラスを `android_library_capi` に置こうとしたら、「Kotlin の利用者（`AndroidLibraryExample`）からこの機能を使う必要があるか」を必ず自問する。必要なら `android_library` へ置く。
+
+### Manager（`android_library`）
+
+ほかの OS（`Ios*Manager`、`Mac*Manager`、`Windows*Manager`）とそろえ、機能ごとの入口 `AndroidClipboardManager`、`AndroidDialogManager`、`AndroidNotificationManager`、`AndroidShareManager` を `android_library` に置く（`artifact/topics/android-c-abi/designs/2026-10-04-android-c-abi-kotlin-api-design.md` 6.3）。
+
+- 置き場所は機能のパッケージの直下（`<機能>/Android*Manager.kt`、パッケージ `com.jonghyunkim.nativetoolkit.<機能>`）。`presentation/` などの層のパッケージには入れない（`common.md` の「Manager の置き場所」）
+- 入口だけの薄い層にする。UseCase と、イベント・監視の持ち主に委ね、ロジックを持たない
+- `class Android*Manager internal constructor(依存)` と `companion object { @JvmStatic fun getInstance(context: Context) }`。持つのは Application の Context だけ（Activity を持ち続けない）
+- テストは internal の constructor で UseCase と port を差し替える
+- C ABI の受け口は、機能ごとにこの Manager を呼ぶ。C 特有の処理（文字列の変換、ハンドル、`release`）は受け口に残す
+- 既存の `*UseCases`（`ClipboardUseCases(context)` など）は既存の入口として残す。data の組み立ての根（`*UseCases(context)`、`NotificationUseCasesFactory`）は、presentation から使ってよい
+
+**UseCase を置かない口の条件:** `common.md` の「Manager は必ず UseCase 経由で Data 層にアクセスする」は、Data 層に届く操作の規則である。次の口は Data 層に届かないので UseCase を置かない。
+
+1. presentation の Delegate の持ち主への受け手の登録・解除と、監視の開始・停止
+2. presentation の PendingIntent の要求の factory
+3. Context の資源の即時の問い合わせ（リソース名の解決など）
+4. 状態を持たない純粋な関数（エラーの分類など）
+5. ライブラリの初期化
+
+**既存の例外:** `NotificationUseCases.isScheduled(context, id, tag)` は、application から data の保存を直接読む（2.0.0 で既存の口の動作を変えないため。`artifact/topics/android-c-abi/README.md` 4 章）。新しく足す口でこの形をまねしない。
 
 ---
 
@@ -49,6 +71,24 @@ Log.e(TAG, "[methodName] param1: $param1, param2: $param2")
 - private utility extension 関数（`JSONObject` 拡張等の軽量ヘルパー）
 - 純粋 UI ユーティリティ（`AlwaysVisibleLazyColumnScrollbar` 等）
 - 既にログがある箇所（重複追加しない）
+
+**秘密の値を伏せる（例外）:**
+
+全パラメータを出す規則の例外として、秘密になりうる値はログに出さない。
+
+| 項目 | 規則 |
+|---|---|
+| 伏せる値 | Clipboard の本文（テキスト、HTML、URI）、Dialog の入力（テキスト、ユーザー名、パスワード）、Share の本文（`text`、`subject`）、通知の `data` の値（キーは出す）、`Intent` の extra の値 |
+| 書き方 | `LogRedaction.redact(value)` で `<redacted, length=N>`（`null` は `null`）にするか、長さ・件数・種類だけを出す。既存の公開の型の `toString()` は変えず、ログの箇所で伏せる。新しい型は `toString()` で伏せてよい |
+| 出してよい値 | 長さ、件数、ID、種類、真偽値、通知のタイトルとメッセージ |
+| 先頭の `Log.d` | 残す。伏せる値を持つ引数は `redact` を通すか、長さだけを出す |
+| C / C++ | `__android_log_print`、タグ `ntk`。同じ値を伏せる |
+
+```kotlin
+fun copyPlainText(content: ClipContent.PlainText) {
+    Log.d(TAG, "[copyPlainText] textLength: ${content.text.length}, label: ${content.label}")
+}
+```
 
 **TAG の定義:**
 

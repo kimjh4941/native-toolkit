@@ -1,1 +1,1 @@
-sourceset_dependencies='{":android_library:dokkaHtml/main":[]}'
+sourceset_dependencies='{":android_library/release":[]}'

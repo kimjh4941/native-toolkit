@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:name=".ProbeApplication"
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        android:theme="@android:style/Theme.Material.Light">
+        <!-- singleTask: the library's launch Activity opens this app again without a case. -->
+        <activity
+            android:name=".ProbeActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- IT-03 and IT-07 after a process death: library fragments on a FragmentActivity. Its own
+             task, so that the script can bring it back with the restored fragment (bringing back
+             the singleTask ProbeActivity clears the Activities above it). -->
+        <activity
+            android:name=".ProbeFragmentActivity"
+            android:exported="true"
+            android:taskAffinity="${applicationId}.fragments"
+            android:theme="@android:style/Theme.Material.Light" />
+    </application>
+
+</manifest>

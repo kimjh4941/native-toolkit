@@ -264,15 +264,35 @@ artifact/topics/windows-architecture/
 
 ### 5.3 残っている作業（2026-10-03 時点）
 
-上から順に行う。
+**1.12.0 はリリース済み**（2026-10-03、Mac で実施）。
 
-1. `feature/NTKIT-16` を develop にマージし、1.12.0 をリリースする（`agent-rules/workflows/release/workflow.md`）。`docs/1.12.0/` はまだ無いので、リリースで `./scripts/publish_docs.sh 1.12.0 --os all` を実行する
-   - **Mac で実行する。** このスクリプトは iOS / macOS の DocC を作り直し（Mac が要る）、作れなかった OS は黙って飛ばしたうえで `docs/latest/` を置き換える。Windows の PC で実行すると、iOS / macOS の文書が無い `docs/1.12.0/` が latest になる。また、Windows の PC は `docs/` を sparse checkout から外しているので、そもそも `docs/` が手元に無い
-   - Windows の文書は、コミット済みの `windows/WindowsLibrary/docs/html` がコピーされる（`7ce01411` で 2026-09-30 のヘッダーまで反映済み）。Mac に `doxygen` があれば、同じヘッダーから作り直される
-   - 判断が要ること: `verify_manual.sh 1.12.0` の停止項目 1 件は、macOS の通知の画像 30 枚が 1.11.0 から欠けていることで、今回の作業で作り込んだものではない。撮り直すには Mac でサンプルを動かす必要がある。推奨は、`artifact/` に記録して続行すること
-2. 確定したコミットかタグと、`windows-native-toolkit-capi-2.0.0.dll` の MD5 を `unity-native-plugin` に伝える。Unity 側はその DLL に差し替える（MD5 が `41ac440bf583e7e209c98a034904e008` なら流し直しは要らない。`results/2026-09-30-windows-cold-start-activation-finding.md` 6.1）
-3. パッケージ化しないアプリの通知の活性化を、自動テストにする。`results/probes/activationprobe` を土台に、warm（起動中）とコールドスタートの両方を FlaUI で押す。今は手で押して確かめるしかない
-4. 段階 7（CI）。中身はスパイクから始まる: クリップボードと通知の単体テストが GitHub の Windows のランナー（ウィンドウステーション、Windows App SDK のランタイム、Server SKU）で通るか。CI には、ローカルのスクリプトでは不要な `nuget restore` を足す（`packages.config` を使い、`packages/` は Git の管理外のため）
+- タグ `1.12.0`（main の `dd327122`）。`feature/NTKIT-16` は PR #28 で develop に、develop は PR #29 で main にマージした
+- `docs/1.12.0/` を公開し、`docs/latest/` は 1.12.0 になった（`29ecc14c`）。GitHub Release `1.12.0` も公開した（添付ファイルは無い。1.11.0 と同じく、成果物は `dist/` から配る）
+- 出荷した `windows-native-toolkit-capi-2.0.0.dll` の MD5 は `41ac440bf583e7e209c98a034904e008` で、`unity-native-plugin` の Player テストを通した DLL と同じ（`results/2026-09-30-windows-cold-start-activation-finding.md` 6.1）。NuGet の `windows-native-toolkit-capi-2.0.0.nupkg` の MD5 は `f61b7aa714f7951fd486322b2552c9bf`
+- `unity-native-plugin`（`unity-native-plugin-57`）に、タグと両方の MD5 を伝え、同梱している古い DLL を差し替えるよう頼んだ（2026-10-03）。流し直しは要らない
+- `verify_manual.sh 1.12.0` の停止項目（macOS の通知の画像 30 枚の参照切れ）は、1.11.0 から引き継いだまま出荷した。`artifact/topics/manual-integrity/README.md` の課題として残る
+
+残りは次の 4 つで、1 と 2 は上から順に行う。3 は時期を決めていない。4 は小さな作業で、次の Windows の作業か、1.13.0 のリリースのときに行う（2026-10-10 に記録）。
+
+1. パッケージ化しないアプリの通知の活性化を、自動テストにする。`results/probes/activationprobe` を土台に、warm（起動中）とコールドスタートの両方を FlaUI で押す。今は手で押して確かめるしかない
+2. 段階 7（CI）。中身はスパイクから始まる: クリップボードと通知の単体テストが GitHub の Windows のランナー（ウィンドウステーション、Windows App SDK のランタイム、Server SKU）で通るか。CI には、ローカルのスクリプトでは不要な `nuget restore` を足す（`packages.config` を使い、`packages/` は Git の管理外のため）
+3. 公開の入口を Manager にするかの検討（2026-10-05 に記録。android-c-abi の段階 1b の後。**要検討、確定していない**）。どの OS も機能ごとに公開の入口を 1 つ持ち、C ABI はその入口を呼ぶ（`agent-rules/coding-rules/common.md`「機能の公開の入口」）。iOS・macOS・Android の入口は機能ごとの Manager だが、Windows の入口は C++ API の `Clipboard::Session`・`Notification::Manager`・`Dialog` の関数で、形がそろっていない。**今のままにするか、Manager に変えるかを決める。** 案と、決めること:
+   - 案 A: 今のまま（C++ API が入口）。1.12.0 でリリース済みの形を変えない
+   - 案 B: C++ API の上に機能ごとの Manager の包みを足し、入口にする。今の口を消さずに足すので互換性は壊れない。ただし次の 3 つを決める必要がある
+     - 誰が、どのスレッドで閉じるか: `Session` は作ったスレッドで `Close()` の成功が要る（デストラクタは放棄。C++ API の設計 S-4）。プロセスに 1 つの Manager が中で持つなら、閉じる時機とスレッドを決める口が要る
+     - イベントを何人に渡すか: 今の `Session` は作るときに受け手を 1 つだけ受け取る。Manager にするなら複数の受け手へ配る仕組み（Android の `EventHub` に当たるもの）が要る
+     - C ABI がどちらを呼ぶか: C++ API のままなら入口が機能ごとに 2 つになる。Manager を呼ぶなら、ハンドル（`ntk_clipboard_session` など）の意味が「所有するもの」から変わる
+   - 案 C: C++ API の名前ごと変える。互換性が壊れるので、Windows の C++ API と C ABI を大きく変える版でだけ選べる。変えるなら、Clipboard の `Session` を、今の `Notification::Manager` と同じ「利用者が作って閉じる所有の `Manager`」にする形（名前と形をそろえる）が C++ の作法に合う
+   - C++ の作法から見た比べ（2026-10-05）: 今の C++ のライブラリは、資源を持つものを所有するオブジェクト（RAII）に、状態の無い操作を関数にするのが普通で、今の C++ API はこの形。プロセスに 1 つの Manager（シングルトン）は、片付けの時機と順番（DLL の終わりにできることが限られる）、テストでの差し替え、見えない依存、スレッドの約束（作ったスレッドで閉じる）の点で好まれない。所有するオブジェクトの上にシングルトンを被せる案 B は、この作法と逆向きになる。一方、Windows のプラットフォームの API（`AppNotificationManager::Default()`、`ToastNotificationManager`、静的な `Clipboard`）では Manager の名前は見慣れたもので、名前だけなら利用者は戸惑わない
+   - 決めるときの材料: C++ の利用者からの困りごと、`Session` の「閉じる」約束を `Manager` の名前で誤解させないか（所有の `Manager` にするなら誤解は小さい）、ほかの OS とそろえる利点の大きさ
+4. API リファレンス（Doxygen）を C++ の API と C ABI に分ける。今は `windows/WindowsLibrary/Doxyfile` が両方のヘッダー（`include` と `../WindowsLibraryCApi/include`）を 1 つのリファレンスにしている。分ける理由:
+   - 配る単位と合わせる: C++ の API と C ABI は別の NuGet パッケージで、利用者はどちらかを取る（段階 6 の F-2）
+   - C の見せ方: 今の設定は C++ 向け（`OPTIMIZE_OUTPUT_FOR_C = NO`）なので、C ABI の構造体が「クラス」の一覧に並ぶ。C ABI だけなら `YES` にできる
+   - 名前の重なり: どちらにも `Clipboard.h`、`Dialog.h` などがあり、検索と一覧で混ざる
+   - OS をまたいでそろえる: Android は C ABI だけを Doxygen にした（`android/android_library_capi/Doxyfile`。Kotlin の API は Dokka。`android-c-abi` の段階 4）。今後の iOS / macOS の C ABI も同じ形にする
+   - 中身: Doxyfile を `WindowsLibrary`（C++ の API）と `WindowsLibraryCApi`（C ABI、`OPTIMIZE_OUTPUT_FOR_C = YES`）の 2 つにし、生成物と `publish_docs.sh` の写し先（`docs/<版>/windows/` の下）も分ける。C ABI の側は `CALL_GRAPH` と `CALLER_GRAPH` を `NO` にする（ヘッダーに宣言しか無いので、関数が自分を指すだけの図になる。Android の Doxyfile で確かめた）。インクルードの図は残す
+   - 生成の環境: この Mac に `doxygen`（1.18.0）と Graphviz（16.1.0）を入れた（2026-10-10、Homebrew）。Windows の機械が無くても作れる
+   - LaTeX の出力を止める（`GENERATE_LATEX = NO`）。`windows/WindowsLibrary/docs/latex`（160 ファイル、2.1 MB）をリポジトリから消し、6 章の表の「（html / latex）」も直す。LaTeX は PDF の手引き書を作る途中の材料だが、PDF は作っておらず、`publish_docs.sh` も HTML しか公開しない。利用者は HTML のリファレンス（`docs/<版>/` で手元でも読める）とヘッダーのコメントで足りる（利用者の判断。2026-10-10）。PDF が要る場面が出たら、リリースのときに作って添える形にし、途中の材料はリポジトリに入れない
 
 ## 6. 段階ごとに壊れる場所
 

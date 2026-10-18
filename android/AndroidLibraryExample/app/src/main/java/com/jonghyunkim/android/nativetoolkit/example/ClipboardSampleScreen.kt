@@ -1,15 +1,12 @@
 package com.jonghyunkim.android.nativetoolkit.example
 
 import android.content.Context
-import android.library.clipboard.data.repository.ClipboardUseCases
-import android.library.clipboard.domain.error.ClipboardDomainError
-import android.library.clipboard.domain.model.ClipContent
-import android.library.clipboard.domain.model.ClipDescriptionInfo
-import android.library.clipboard.domain.model.ClipReadResult
-import android.library.clipboard.presentation.ClipboardChangeMonitor
+import com.jonghyunkim.nativetoolkit.clipboard.AndroidClipboardManager
+import com.jonghyunkim.nativetoolkit.clipboard.domain.error.ClipboardDomainError
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipContent
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipDescriptionInfo
+import com.jonghyunkim.nativetoolkit.clipboard.domain.model.ClipReadResult
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,9 +49,8 @@ private const val CLIPBOARD_FILE_PROVIDER_AUTHORITY_SUFFIX = ".native_toolkit.sh
  * copy (plain text, HTML, URI, multiple text, sensitive text), read, hasClip, getDescription,
  * clear, and clipboard change observation.
  *
- * Uses only `android_library` (native), never `unity_android_plugin` — clipboard change
- * observation goes through [ClipboardChangeMonitor], which lives in the native library so it can
- * be used here without depending on the Unity bridge.
+ * Uses only `android_library` (native): every operation, including
+ * change observation and the error codes, goes through [AndroidClipboardManager].
  *
  * @param modifier Modifier applied to the root layout.
  * @param onBack Called when the user taps the back button.
@@ -67,17 +64,22 @@ fun ClipboardSampleScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val clipboardUseCases = remember(context) { ClipboardUseCases(context) }
-    val monitor = remember { ClipboardChangeMonitor() }
-    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    val clipboardManager = remember(context) { AndroidClipboardManager.getInstance(context) }
 
     var statusText by remember { mutableStateOf("Result will be displayed here") }
     var changeCount by remember { mutableIntStateOf(0) }
 
-    DisposableEffect(monitor) {
+    // Changes arrive on the main thread while this screen is shown; observation stops when it closes.
+    DisposableEffect(clipboardManager) {
+        val registration = clipboardManager.changes.addListener { _, _ ->
+            Log.d(CLIPBOARD_TAG, "[onChange] fired")
+            changeCount++
+            statusText = "ℹ️ Clipboard changed ($changeCount)"
+        }
         onDispose {
             Log.d(CLIPBOARD_TAG, "[onDispose] stopping clipboard observation")
-            monitor.stop()
+            registration.remove()
+            clipboardManager.stopObserving()
         }
     }
 
@@ -90,7 +92,7 @@ fun ClipboardSampleScreen(
     ) {
         Button(
             onClick = onBack,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("clipboard.back")
         ) {
             Text(text = "← Back to Main")
         }
@@ -109,6 +111,7 @@ fun ClipboardSampleScreen(
         Text(
             text = statusText,
             modifier = Modifier
+                .testTag("clipboard.status")
                 .fillMaxWidth()
                 .padding(8.dp)
         )
@@ -135,17 +138,17 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy Plain Text")
                         try {
-                            clipboardUseCases.copyPlainText(
+                            clipboardManager.copyPlainText(
                                 ClipContent.PlainText(text = "Hello from native-toolkit", label = "sample")
                             )
                             statusText = "✅ copyPlainText called"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyPlainText")
                 ) {
                     Text(text = "Copy Plain Text")
                 }
@@ -155,15 +158,15 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy Plain Text (empty)")
                         try {
-                            clipboardUseCases.copyPlainText(ClipContent.PlainText(text = ""))
+                            clipboardManager.copyPlainText(ClipContent.PlainText(text = ""))
                             statusText = "✅ copyPlainText (empty) called"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyPlainTextEmptyAllowed")
                 ) {
                     Text(text = "Copy Plain Text (empty, allowed)")
                 }
@@ -173,17 +176,17 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy HTML Text")
                         try {
-                            clipboardUseCases.copyHtmlText(
+                            clipboardManager.copyHtmlText(
                                 ClipContent.HtmlText(plainText = "Hello", htmlText = "<b>Hello</b>")
                             )
                             statusText = "✅ copyHtmlText called"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyHtmlText")
                 ) {
                     Text(text = "Copy HTML Text")
                 }
@@ -198,10 +201,10 @@ fun ClipboardSampleScreen(
                                 val uri = prepareSampleUri(context)
                                 withContext(Dispatchers.Main) {
                                     try {
-                                        clipboardUseCases.copyUri(ClipContent.UriContent(uri = uri))
+                                        clipboardManager.copyUri(ClipContent.UriContent(uri = uri))
                                         statusText = "✅ copyUri called: $uri"
                                     } catch (e: ClipboardDomainError) {
-                                        statusText = clipboardErrorMessage(e)
+                                        statusText = clipboardErrorMessage(e, clipboardManager)
                                     } catch (e: Exception) {
                                         statusText = "❌ Unexpected: ${e.message}"
                                     }
@@ -213,7 +216,7 @@ fun ClipboardSampleScreen(
                             }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyUriContentViaFileProvider")
                 ) {
                     Text(text = "Copy URI (content:// via FileProvider)")
                 }
@@ -223,17 +226,17 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy Multiple Text")
                         try {
-                            clipboardUseCases.copyMultipleText(
+                            clipboardManager.copyMultipleText(
                                 ClipContent.MultipleText(texts = listOf("first", "second", "third"))
                             )
                             statusText = "✅ copyMultipleText called (3 items)"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyMultipleText")
                 ) {
                     Text(text = "Copy Multiple Text")
                 }
@@ -262,7 +265,7 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy Sensitive Text")
                         try {
-                            clipboardUseCases.copyPlainText(
+                            clipboardManager.copyPlainText(
                                 ClipContent.PlainText(text = "P@ssw0rd-sample", isSensitive = true)
                             )
                             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
@@ -270,12 +273,12 @@ fun ClipboardSampleScreen(
                             }
                             statusText = "✅ copySensitive called (preview suppressed on API 33+)"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copySensitiveText")
                 ) {
                     Text(text = "Copy Sensitive Text")
                 }
@@ -297,19 +300,19 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Read Clipboard")
                         try {
-                            val result = clipboardUseCases.read()
+                            val result = clipboardManager.read()
                             statusText = if (result != null) {
                                 "✅ Read: ${formatReadResult(result)}"
                             } else {
                                 "ℹ️ Clipboard is empty (normal)"
                             }
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.readClipboard")
                 ) {
                     Text(text = "Read Clipboard")
                 }
@@ -319,12 +322,12 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Has Clip")
                         try {
-                            statusText = "✅ hasClip = ${clipboardUseCases.hasClip()}"
+                            statusText = "✅ hasClip = ${clipboardManager.hasClip()}"
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.hasClip")
                 ) {
                     Text(text = "Has Clip")
                 }
@@ -334,19 +337,19 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Get Description")
                         try {
-                            val info = clipboardUseCases.getDescription()
+                            val info = clipboardManager.getDescription()
                             statusText = if (info != null) {
                                 "✅ ${formatDescription(info)}"
                             } else {
                                 "ℹ️ Clipboard is empty (normal)"
                             }
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.getDescription")
                 ) {
                     Text(text = "Get Description")
                 }
@@ -368,13 +371,13 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Clear Clipboard")
                         try {
-                            clipboardUseCases.clear()
+                            clipboardManager.clear()
                             statusText = "✅ clear called"
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.clearClipboard")
                 ) {
                     Text(text = "Clear Clipboard")
                 }
@@ -402,21 +405,14 @@ fun ClipboardSampleScreen(
                 Button(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Start Observing")
-                        monitor.start(context) {
-                            Log.d(CLIPBOARD_TAG, "[onChange] fired")
-                            // Called on the system listener's callback thread; marshal to main.
-                            mainHandler.post {
-                                changeCount++
-                                statusText = "ℹ️ Clipboard changed ($changeCount)"
-                            }
-                        }
-                        statusText = if (monitor.isObserving()) {
+                        clipboardManager.startObserving()
+                        statusText = if (clipboardManager.isObserving()) {
                             "✅ observing started"
                         } else {
                             "❌ failed to start observing"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.startObserving")
                 ) {
                     Text(text = "Start Observing")
                 }
@@ -425,10 +421,10 @@ fun ClipboardSampleScreen(
                 Button(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Stop Observing")
-                        monitor.stop()
+                        clipboardManager.stopObserving()
                         statusText = "✅ observing stopped"
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.stopObserving")
                 ) {
                     Text(text = "Stop Observing")
                 }
@@ -450,17 +446,17 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy HTML (empty) -> EmptyContent")
                         try {
-                            clipboardUseCases.copyHtmlText(
+                            clipboardManager.copyHtmlText(
                                 ClipContent.HtmlText(plainText = "Hello", htmlText = "")
                             )
                             statusText = "✅ copyHtmlText called"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyHtmlEmptyEmptyContent")
                 ) {
                     Text(text = "Copy HTML (empty) → EmptyContent")
                 }
@@ -470,15 +466,15 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy Multiple (empty list) -> EmptyItemList")
                         try {
-                            clipboardUseCases.copyMultipleText(ClipContent.MultipleText(texts = emptyList()))
+                            clipboardManager.copyMultipleText(ClipContent.MultipleText(texts = emptyList()))
                             statusText = "✅ copyMultipleText called"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyMultipleEmptyListEmptyItemList")
                 ) {
                     Text(text = "Copy Multiple (empty list) → EmptyItemList")
                 }
@@ -488,15 +484,15 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy URI (blank) -> InvalidUri")
                         try {
-                            clipboardUseCases.copyUri(ClipContent.UriContent(uri = ""))
+                            clipboardManager.copyUri(ClipContent.UriContent(uri = ""))
                             statusText = "✅ copyUri called"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyUriBlankInvalidUri")
                 ) {
                     Text(text = "Copy URI (blank) → InvalidUri")
                 }
@@ -506,15 +502,15 @@ fun ClipboardSampleScreen(
                     onClick = {
                         Log.d(CLIPBOARD_TAG, "[onClick] Copy URI (http scheme) -> InvalidUri")
                         try {
-                            clipboardUseCases.copyUri(ClipContent.UriContent(uri = "http://example.com/x"))
+                            clipboardManager.copyUri(ClipContent.UriContent(uri = "http://example.com/x"))
                             statusText = "✅ copyUri called"
                         } catch (e: ClipboardDomainError) {
-                            statusText = clipboardErrorMessage(e)
+                            statusText = clipboardErrorMessage(e, clipboardManager)
                         } catch (e: Exception) {
                             statusText = "❌ Unexpected: ${e.message}"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag("clipboard.copyUriHttpSchemeInvalidUri")
                 ) {
                     Text(text = "Copy URI (http scheme) → InvalidUri")
                 }
@@ -538,12 +534,16 @@ private fun prepareSampleUri(context: Context): String {
     return uri.toString()
 }
 
-private fun clipboardErrorMessage(e: ClipboardDomainError): String = when (e) {
-    is ClipboardDomainError.EmptyContent -> "❌ EmptyContent: HTML body is empty"
-    is ClipboardDomainError.EmptyItemList -> "❌ EmptyItemList: no items to copy"
-    is ClipboardDomainError.InvalidUri -> "❌ InvalidUri: ${e.uri}"
-    is ClipboardDomainError.ClipboardUnavailable -> "❌ ClipboardUnavailable"
-    is ClipboardDomainError.ReadNotAllowed -> "❌ ReadNotAllowed: app must be in foreground"
+// The text names the error as before; the code is the one native callers on every platform report.
+private fun clipboardErrorMessage(e: ClipboardDomainError, manager: AndroidClipboardManager): String {
+    val text = when (e) {
+        is ClipboardDomainError.EmptyContent -> "❌ EmptyContent: HTML body is empty"
+        is ClipboardDomainError.EmptyItemList -> "❌ EmptyItemList: no items to copy"
+        is ClipboardDomainError.InvalidUri -> "❌ InvalidUri: ${e.uri}"
+        is ClipboardDomainError.ClipboardUnavailable -> "❌ ClipboardUnavailable"
+        is ClipboardDomainError.ReadNotAllowed -> "❌ ReadNotAllowed: app must be in foreground"
+    }
+    return "$text [errorCode=${manager.errorCodeOf(e)}]"
 }
 
 private fun formatReadResult(result: ClipReadResult): String {

@@ -20,10 +20,10 @@ Other languages:
 2. For integration steps, read `docs/<version>/manual/index.md`.
 3. For API references, use `docs/<version>/` (or `docs/latest/`).
 
-Example (`1.12.0`):
+Example (`1.13.0`):
 
-- Manual: `docs/1.12.0/manual/index.md`
-- Published docs: `docs/1.12.0/manual/`
+- Manual: `docs/1.13.0/manual/index.md`
+- Published docs: `docs/1.13.0/manual/`
 
 ## Detailed Documentation
 
@@ -33,28 +33,30 @@ Example (`1.12.0`):
 
 ## Version
 
-- Current release: 1.12.0
+- Current release: 1.13.0
 - Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## Supported OS (1.12.0)
+## Supported OS (1.13.0)
 
 - Android 12+
 - iOS 18+
 - Windows 11+
 - macOS 15+
 
-## Distributables (1.12.0)
+## Distributables (1.13.0)
 
-- Android: `dist/1.12.0/android/android-native-toolkit-1.3.0.aar`
+- Android:
+  - `dist/1.13.0/android/android-native-toolkit-2.0.0.aar` (Kotlin API)
+  - `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar` (C ABI)
 - iOS:
-  - `dist/1.12.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.12.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
 - macOS:
-  - `dist/1.12.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.12.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.13.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
 - Windows:
-  - `dist/1.12.0/windows/windows-native-toolkit-2.0.0.nupkg` (C++ API)
-  - `dist/1.12.0/windows/windows-native-toolkit-capi-2.0.0.nupkg` (C ABI)
+  - `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg` (C++ API)
+  - `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg` (C ABI)
 
 ## Modules (overview)
 
@@ -65,9 +67,10 @@ Example (`1.12.0`):
   - Variants: Simple / Confirm / Single Choice / Multi Choice / Text Input / Login / Notification / Share / Clipboard
   - Docs: Dokka
 
-- `android/unity_android_plugin`
-  - Optional integration module: C ABI / JNI bridge layer
-  - Docs: Dokka
+- `android/android_library_capi` (`libntk.so` in the AAR `android-native-toolkit-capi`)
+  - The general-purpose C ABI over the Kotlin API: `ntk_*` functions, UTF-8 strings, opaque handles
+  - Headers: `android/android_library_capi/src/main/cpp/include/NativeToolkitC/`
+  - For C, C++, C#, Rust and other languages
 
 ### iOS
 
@@ -102,14 +105,14 @@ Example (`1.12.0`):
 - `windows/WindowsLibraryCApi` (a DLL, `NativeToolkitC.dll`)
   - The general-purpose C ABI over the C++ API: `ntk_*` functions, UTF-8 strings, opaque handles
   - Headers: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
-  - For C#, Rust, Python and other languages; Unity calls it through P/Invoke (in `unity-native-plugin`)
+  - For C#, Rust, Python and other languages
 
 ## Repository layout
 
 ```text
 android/
   android_library/
-  unity_android_plugin/
+  android_library_capi/
   AndroidLibraryExample/
 
 ios/
@@ -147,7 +150,7 @@ docs/
 
 ```bash
 # Android AAR (all modules)
-./scripts/build_android_library_aar.sh -b release -m android_library -m unity_android_plugin -v 1.1.0
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 # iOS XCFramework (all modules)
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
@@ -164,8 +167,8 @@ docs/
 ### Android
 
 ```bash
-cd android/AndroidLibraryExample
-./gradlew :android_library:dokkaHtml :unity_android_plugin:dokkaHtml
+cd android
+./gradlew :android_library:dokkaGeneratePublicationHtml
 ```
 
 ### iOS (DocC)
@@ -194,13 +197,13 @@ doxygen Doxyfile
 Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
 ```bash
-./scripts/publish_docs.sh 1.12.0
+./scripts/publish_docs.sh 1.13.0
 ```
 
 Copy only (skip generation):
 
 ```bash
-./scripts/publish_docs.sh 1.12.0 --skip-build
+./scripts/publish_docs.sh 1.13.0 --skip-build
 ```
 
 Manual source path is `manual/<version>/`.

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>com.jonghyunkim.nativetoolkit.notification.application.usecase</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../index.html" tabindex="1">
+                    android_library
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.13.0        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":android_library/release">release</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":android_library/release"
+                                       data-filter=":android_library/release"/>
+                                <span class="checkbox--icon"></span>
+                                release
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    android_library
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageIds="android_library::com.jonghyunkim.nativetoolkit.notification.application.usecase////PointingToDeclaration//1939333823">
+  <div class="breadcrumbs"><a href="../../index.html">android_library</a><span class="delimiter">/</span><span class="current">com.jonghyunkim.nativetoolkit.notification.application.usecase</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="401162217%2FClasslikes%2F1939333823" anchor-label="AreNotificationsEnabledUseCase" id="401162217%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-are-notifications-enabled-use-case/index.html"><span>Are</span><wbr></wbr><span>Notifications</span><wbr></wbr><span>Enabled</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="401162217%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-are-notifications-enabled-use-case/index.html">AreNotificationsEnabledUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for checking whether app notifications are enabled.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1091519947%2FClasslikes%2F1939333823" anchor-label="BuildNotificationUseCase" id="-1091519947%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-build-notification-use-case/index.html"><span>Build</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1091519947%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-build-notification-use-case/index.html">BuildNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-android-notification-runtime-repository/index.html">AndroidNotificationRuntimeRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for building a notification object.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1959918951%2FClasslikes%2F1939333823" anchor-label="CancelAllNotificationsUseCase" id="-1959918951%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cancel-all-notifications-use-case/index.html"><span>Cancel</span><wbr></wbr><span>All</span><wbr></wbr><span>Notifications</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1959918951%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-cancel-all-notifications-use-case/index.html">CancelAllNotificationsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for canceling all notifications.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-406434018%2FClasslikes%2F1939333823" anchor-label="CancelAllScheduledNotificationsUseCase" id="-406434018%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cancel-all-scheduled-notifications-use-case/index.html"><span>Cancel</span><wbr></wbr><span>All</span><wbr></wbr><span>Scheduled</span><wbr></wbr><span>Notifications</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-406434018%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-cancel-all-scheduled-notifications-use-case/index.html">CancelAllScheduledNotificationsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for canceling all scheduled notifications.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-32173321%2FClasslikes%2F1939333823" anchor-label="CancelNotificationPermissionRequestUseCase" id="-32173321%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cancel-notification-permission-request-use-case/index.html"><span>Cancel</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Permission</span><wbr></wbr><span>Request</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-32173321%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-cancel-notification-permission-request-use-case/index.html">CancelNotificationPermissionRequestUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-permission-port/index.html">NotificationPermissionPort</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Cancels a notification permission request.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-321159491%2FClasslikes%2F1939333823" anchor-label="CancelNotificationUseCase" id="-321159491%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cancel-notification-use-case/index.html"><span>Cancel</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-321159491%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-cancel-notification-use-case/index.html">CancelNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for canceling a specific notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1893164774%2FClasslikes%2F1939333823" anchor-label="CancelScheduledNotificationUseCase" id="-1893164774%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cancel-scheduled-notification-use-case/index.html"><span>Cancel</span><wbr></wbr><span>Scheduled</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1893164774%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-cancel-scheduled-notification-use-case/index.html">CancelScheduledNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for canceling a specific scheduled notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1636035154%2FClasslikes%2F1939333823" anchor-label="CanScheduleExactAlarmsUseCase" id="1636035154%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-can-schedule-exact-alarms-use-case/index.html"><span>Can</span><wbr></wbr><span>Schedule</span><wbr></wbr><span>Exact</span><wbr></wbr><span>Alarms</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1636035154%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-can-schedule-exact-alarms-use-case/index.html">CanScheduleExactAlarmsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-settings-port/index.html">NotificationSettingsPort</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Returns whether the app may schedule exact alarms.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-389789393%2FClasslikes%2F1939333823" anchor-label="CreateNotificationChannelsUseCase" id="-389789393%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-create-notification-channels-use-case/index.html"><span>Create</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Channels</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-389789393%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-create-notification-channels-use-case/index.html">CreateNotificationChannelsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for creating multiple notification channels in a batch.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1988466504%2FClasslikes%2F1939333823" anchor-label="CreateNotificationChannelUseCase" id="-1988466504%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-create-notification-channel-use-case/index.html"><span>Create</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Channel</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1988466504%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-create-notification-channel-use-case/index.html">CreateNotificationChannelUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for creating a notification channel.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="688425897%2FClasslikes%2F1939333823" anchor-label="DeleteNotificationChannelUseCase" id="688425897%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-delete-notification-channel-use-case/index.html"><span>Delete</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Channel</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="688425897%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-delete-notification-channel-use-case/index.html">DeleteNotificationChannelUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for deleting a notification channel.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-398206076%2FClasslikes%2F1939333823" anchor-label="GetActiveNotificationsUseCase" id="-398206076%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-get-active-notifications-use-case/index.html"><span>Get</span><wbr></wbr><span>Active</span><wbr></wbr><span>Notifications</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-398206076%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-get-active-notifications-use-case/index.html">GetActiveNotificationsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for retrieving currently active notifications.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-698331632%2FClasslikes%2F1939333823" anchor-label="HasNotificationPermissionUseCase" id="-698331632%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-has-notification-permission-use-case/index.html"><span>Has</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Permission</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-698331632%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-has-notification-permission-use-case/index.html">HasNotificationPermissionUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for checking notification permission state.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1041512468%2FClasslikes%2F1939333823" anchor-label="NotificationUseCases" id="-1041512468%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-notification-use-cases/index.html"><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Cases</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1041512468%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-notification-use-cases/index.html">NotificationUseCases</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use-case suite for notification features.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1329934160%2FClasslikes%2F1939333823" anchor-label="OpenNotificationSettingsUseCase" id="1329934160%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-open-notification-settings-use-case/index.html"><span>Open</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Settings</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1329934160%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-open-notification-settings-use-case/index.html">OpenNotificationSettingsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-settings-port/index.html">NotificationSettingsPort</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Opens a settings screen of the app.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1076937541%2FClasslikes%2F1939333823" anchor-label="RequestNotificationPermissionUseCase" id="1076937541%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-request-notification-permission-use-case/index.html"><span>Request</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Permission</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1076937541%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-request-notification-permission-use-case/index.html">RequestNotificationPermissionUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-permission-port/index.html">NotificationPermissionPort</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Requests the notification permission.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2017103397%2FClasslikes%2F1939333823" anchor-label="RestoreScheduledNotificationsUseCase" id="2017103397%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-restore-scheduled-notifications-use-case/index.html"><span>Restore</span><wbr></wbr><span>Scheduled</span><wbr></wbr><span>Notifications</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2017103397%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-restore-scheduled-notifications-use-case/index.html">RestoreScheduledNotificationsUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for restoring previously scheduled notifications, mainly after reboot.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1073083430%2FClasslikes%2F1939333823" anchor-label="ScheduleNotificationUseCase" id="-1073083430%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-schedule-notification-use-case/index.html"><span>Schedule</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1073083430%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-schedule-notification-use-case/index.html">ScheduleNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for scheduling a notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-521637312%2FClasslikes%2F1939333823" anchor-label="ShowNotificationUseCase" id="-521637312%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-show-notification-use-case/index.html"><span>Show</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-521637312%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-show-notification-use-case/index.html">ShowNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for showing a notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1169756684%2FClasslikes%2F1939333823" anchor-label="StartForegroundNotificationUseCase" id="1169756684%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-start-foreground-notification-use-case/index.html"><span>Start</span><wbr></wbr><span>Foreground</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1169756684%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-start-foreground-notification-use-case/index.html">StartForegroundNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-android-notification-runtime-repository/index.html">AndroidNotificationRuntimeRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for starting foreground mode and showing a notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="131076264%2FClasslikes%2F1939333823" anchor-label="StopForegroundNotificationUseCase" id="131076264%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-stop-foreground-notification-use-case/index.html"><span>Stop</span><wbr></wbr><span>Foreground</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="131076264%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-stop-foreground-notification-use-case/index.html">StopForegroundNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-android-notification-runtime-repository/index.html">AndroidNotificationRuntimeRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for stopping foreground mode.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1439573679%2FClasslikes%2F1939333823" anchor-label="UpdateForegroundNotificationUseCase" id="1439573679%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-update-foreground-notification-use-case/index.html"><span>Update</span><wbr></wbr><span>Foreground</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1439573679%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-update-foreground-notification-use-case/index.html">UpdateForegroundNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-android-notification-runtime-repository/index.html">AndroidNotificationRuntimeRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for updating a foreground notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1519816332%2FClasslikes%2F1939333823" anchor-label="UpdateNotificationUseCase" id="1519816332%2FClasslikes%2F1939333823" data-filterable-set=":android_library/release"></a>
+          <div class="table-row table-row_content" data-filterable-current=":android_library/release" data-filterable-set=":android_library/release">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-update-notification-use-case/index.html"><span>Update</span><wbr></wbr><span>Notification</span><wbr></wbr><span>Use</span><wbr></wbr><span><span>Case</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1519816332%2FClasslikes%2F1939333823"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":android_library/release"><div class="symbol monospace"><span class="token keyword">class </span><a href="-update-notification-use-case/index.html">UpdateNotificationUseCase</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../com.jonghyunkim.nativetoolkit.notification.application.port/-notification-command-repository/index.html">NotificationCommandRepository</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Use case for updating a notification.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

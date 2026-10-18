@@ -1,0 +1,9 @@
+# Outputs when the probes are built in place.
+build/
+.cxx/
+.gradle/
+.kotlin/
+m2/
+local.properties
+gradle/
+gradlew

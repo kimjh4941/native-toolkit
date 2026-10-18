@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    IT-19 (Kotlin API design 8.12): an app that removes the library's permissions. The foreground
+    service permissions can be removed only together with their <service> elements; the test
+    script checks the merged manifest for that.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" tools:node="remove" />
+
+    <application>
+        <service
+            android:name="com.jonghyunkim.nativetoolkit.notification.presentation.progress.ProgressForegroundService"
+            tools:node="remove" />
+        <service
+            android:name="com.jonghyunkim.nativetoolkit.notification.presentation.call.CallStyleForegroundService"
+            tools:node="remove" />
+    </application>
+
+</manifest>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Gives the test app input focus: reading the clipboard and its change events need it
+             (C ABI design part 1, 5.8). -->
+        <activity
+            android:name="com.jonghyunkim.nativetoolkit.capitest.FocusActivity"
+            android:exported="false" />
+        <!-- What getLaunchIntentForPackage finds: a notification tap that opens the app opens it
+             (C ABI design part 2, AP-18). -->
+        <activity
+            android:name="com.jonghyunkim.nativetoolkit.capitest.LaunchTargetActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- An app the Sharesheet lists, for the selection events (C ABI design part 2, 12.2). -->
+        <activity
+            android:name="com.jonghyunkim.nativetoolkit.capitest.ShareTargetActivity"
+            android:exported="true"
+            android:label="NTK target">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

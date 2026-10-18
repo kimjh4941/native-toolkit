@@ -6,6 +6,22 @@
 
 ---
 
+## ライブラリ本体の依存の範囲
+
+ネイティブライブラリ本体（OS ごとの公開 API と C ABI）は、特定のアプリの枠組み・実行環境に依存しない。どのエンジン・言語・枠組みからでも同じ本体を使えることが、このライブラリの前提である。
+
+| 区分 | 例 | 本体からの依存 |
+|---|---|---|
+| OS と、OS の提供元の標準のライブラリ | Win32 / WinRT、C++/WinRT、Windows App SDK、WebView2、androidx、Foundation / UIKit / AppKit | してよい |
+| アプリの枠組み・実行環境 | Unity、Godot、Unreal、Flutter、React Native、.NET（.NET Framework を含む） | してはならない |
+
+- 枠組みごとの対応（Unity の C#、Godot・Unreal のプラグイン、.NET のラッパーなど）は、本体の外の薄いラッパーにする。ラッパーは C ABI か本体の公開 API を呼ぶだけで、機能のロジックを持たない（持つのは型の変換、スレッドの受け渡し、枠組みへの組み込みだけ）
+- 本体の公開 API は、特定の枠組みの都合を前提にしない。例: Android で前面の Activity を `FragmentActivity` に限らない（Unity の `UnityPlayerActivity` や Flutter の `FlutterActivity` は `FragmentActivity` ではない）
+- OS の提供元のライブラリでも、利用者がランタイムを配る必要があるもの（Windows App SDK、WebView2）は、マニュアルの動作環境に書く
+- 今ある Unity Bridge（下の「Unity Bridge パターン」）はこの原則より前からあるもので、OS ごとの C ABI に置き換えて外していく（Windows と Android は置き換え済み。Android は 2.0.0 で `unity_android_plugin` を消した（`artifact/topics/android-c-abi/`）。iOS / macOS は後のトピック）
+
+---
+
 ## Clean Architecture
 
 ### 層の定義と依存方向
@@ -35,12 +51,35 @@ Domain → Application → Data
 | 層 | 配置モジュール | 例 |
 |---|---|---|
 | Domain / Application / Data / Presentation / **Manager** | **ネイティブライブラリ** | `android/android_library`, `ios/IosLibrary`, `mac/MacLibrary`, `windows/WindowsLibrary` |
-| Unity Bridge | Unity プラグイン | `android/unity_android_plugin`, `ios/UnityIosPlugin` |
+| Unity Bridge | Unity プラグイン | `ios/UnityIosPlugin`, `mac/UnityMacPlugin` |
+| C ABI | ネイティブライブラリの C ABI のモジュール（汎用。Unity もこれを P/Invoke で呼ぶ） | `android/android_library_capi`, `windows/WindowsLibraryCApi` |
 
 **「Manager 層」と `Unity*Manager` クラスを混同しないこと。**
-`UnityAndroidShareManager` / `UnityIosShareManager` などは名前に Manager を含むが **Unity Bridge 層**であり、Manager 層ではない。Manager 層の実体はネイティブライブラリ側の `IosShareManager` / `IosNotificationManager` のようなクラスを指す。
+`UnityIosShareManager` などは名前に Manager を含むが **Unity Bridge 層**であり、Manager 層ではない。Manager 層の実体はネイティブライブラリ側の `IosShareManager` / `IosNotificationManager` のようなクラスを指す。
 
-ネイティブライブラリ側に Manager 層の受け皿が無い場合（例: Android の `android_library`）、Unity プラグインへ流すのではなく、**ネイティブライブラリ内に配置先を作る**（`presentation/` などプラットフォーム API 依存が許される層）。
+**Manager の置き場所（全 OS 共通）:** Manager は機能のフォルダー・パッケージの直下に置き、層のフォルダー（Domain / Application / Data / Presentation）と並べる。Manager は Presentation の上の別の層なので、層のフォルダーの中（`Presentation/` など）にも、`Manager/` のような専用のフォルダーにも入れない。
+
+| OS | 例 |
+|---|---|
+| iOS | `ios/IosLibrary/IosLibrary/Notification/IosNotificationManager.swift` |
+| macOS | `mac/MacLibrary/MacLibrary/Notification/MacNotificationManager.swift` |
+| Windows | `windows/WindowsLibrary/src/Notification/WindowsNotificationManager.cpp` |
+| Android | `android/android_library/src/main/java/com/jonghyunkim/nativetoolkit/notification/AndroidNotificationManager.kt`（パッケージ `com.jonghyunkim.nativetoolkit.notification`） |
+
+- Manager が使う部品（system Delegate・Listener の所有クラス、イベントの持ち主など）は、Presentation などプラットフォーム API 依存が許される層に置く
+- ネイティブライブラリ側に Manager がまだ無い機能でも、Unity プラグインへ流さず、ネイティブライブラリの機能の直下に置く
+- 直していない既存の例外: macOS の Clipboard（`mac/MacLibrary/MacLibrary/Clipboard/Manager/MacClipboardManager.swift`）。機能の直下へ移す作業が残っている（2026-10-04 に置き場所を決めたときの記録）。新しいコードでこの形をまねしない
+
+**機能の公開の入口（全 OS 共通）:** 機能ごとに公開の入口を 1 つ持ち、C ABI と枠組みごとのラッパーはその入口だけを呼ぶ。Domain〜Presentation の型や内部のクラスを直接呼ばない（2026-10-05 に決めた）。
+
+| OS | 入口 | 形 |
+|---|---|---|
+| iOS / macOS | `Ios*Manager` / `Mac*Manager`（`shared`） | プロセスに 1 つ |
+| Android | `Android*Manager`（`getInstance`） | プロセスに 1 つ |
+| Windows | 今は C++ API（`NativeToolkit::<機能>`）。`windows.md` の「基本構造」のとおり。**今のままにするか Manager に変えるかは要検討**（下） | 所有するオブジェクト（`Session`・`Manager`）か関数。その下に内部の singleton の `Windows*Manager` を置く |
+
+- 入口の形は、その OS の資源の寿命に合わせる
+- Windows の入口は確定していない。今のまま C++ API を入口にするか、Manager に変えるか（C++ API の上に Manager の包みを足す案を含む）を `artifact/topics/windows-architecture/README.md` の 5.3 の 3 で検討する。決まるまでは、新しい Windows のコードも今の `windows.md` の形に従う
 
 判定の自己チェック:
 
@@ -159,7 +198,7 @@ research / design では、全サブ機能について次を表で追跡する�
 
 **過去に発生した違反例（再発防止）:**
 
-Android の Clipboard 変更監視で、system listener を所有する `ClipboardChangeMonitor` を `unity_android_plugin`（Unity Bridge 専用モジュール）に配置した。その結果、native サンプルアプリから監視機能を一切利用できず、サンプル側が Unity プラグインへ依存する設計になりかけた。`android_library` の `presentation/` へ移動し、Unity Bridge は委譲のみ行う形に修正した。
+Android の Clipboard 変更監視で、system listener を所有する `ClipboardChangeMonitor` を `unity_android_plugin`（Unity Bridge 専用モジュール。2.0.0 で削除）に配置した。その結果、native サンプルアプリから監視機能を一切利用できず、サンプル側が Unity プラグインへ依存する設計になりかけた。`android_library` の `presentation/` へ移動し、Unity Bridge は委譲のみ行う形に修正した。
 
 Delegate / Listener の配置を決めるときは、**「Unity を使わない呼び出し元がこの機能を使えるか」を必ず確認する。**
 
@@ -285,10 +324,10 @@ typedef void (*NativeJsonCallback)(const char* json);
 typedef void (*NativeStatusCallback)(const char* status);
 ```
 
-### Android Bridge 構成（実装例）
+### Android（2.0.0 から Bridge は無い）
 
-- Kotlin / Java の JNI または Unity の `AndroidJavaObject` 経由で呼び出す
-- Bridge クラスはプラットフォームごとのプロジェクト設定に従う
+- Unity 向けの Bridge（`unity_android_plugin`）は 2.0.0 で消した。Unity は汎用の C ABI（`android_library_capi`）を P/Invoke で呼ぶ
+- C ABI の受け口（`capi.jni`）は Bridge と同じく薄く保ち、Manager を呼ぶだけにする（`android.md` のモジュール配置）
 
 ### macOS / Windows Bridge 構成（実装指針）
 
@@ -304,7 +343,7 @@ typedef void (*NativeStatusCallback)(const char* status);
 
 | サンプルアプリ | 依存してよい | 依存禁止 |
 |---|---|---|
-| `android/AndroidLibraryExample` | `android_library` | `unity_android_plugin` |
+| `android/AndroidLibraryExample` | `android_library` | `android_library_capi`（Android の Unity プラグインは 2.0.0 で削除） |
 | `ios/IosLibraryExample` | `IosLibrary` | `UnityIosPlugin` |
 | `mac/MacLibraryExample` | `MacLibrary` | Unity プラグイン |
 | `windows/WindowsLibraryExample` | `WindowsLibrary` | Unity プラグイン |
