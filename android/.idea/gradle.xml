@@ -11,7 +11,11 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/AndroidLibraryExample/app" />
+            <option value="$PROJECT_DIR$/AndroidLibraryExample/releaseProbe" />
+            <option value="$PROJECT_DIR$/AndroidLibraryExample/testShareTarget" />
             <option value="$PROJECT_DIR$/android_library" />
+            <option value="$PROJECT_DIR$/android_library_capi" />
+            <option value="$PROJECT_DIR$/android_library_capi_test" />
           </set>
         </option>
       </GradleProjectSettings>

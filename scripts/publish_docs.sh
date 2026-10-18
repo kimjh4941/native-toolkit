@@ -211,19 +211,17 @@ resolve_highest_docs_version() {
 
 generate_android() {
   local android_root="${ROOT_DIR}/android"
-  local preferred_java_home="/Applications/Android Studio Panda 1 .app/Contents/jbr/Contents/Home"
-  local preferred_java_home_alt="/Applications/Android Studio Panda 1.app/Contents/jbr/Contents/Home"
   if [[ ! -x "${android_root}/gradlew" ]]; then
     echo "[skip] Android gradlew not found: ${android_root}/gradlew" >&2
     return 0
   fi
 
-  if [[ -d "$preferred_java_home" ]]; then
-    export JAVA_HOME="$preferred_java_home"
-    echo "[info] Using preferred JAVA_HOME: ${JAVA_HOME}"
-  elif [[ -d "$preferred_java_home_alt" ]]; then
-    export JAVA_HOME="$preferred_java_home_alt"
-    echo "[info] Using preferred JAVA_HOME: ${JAVA_HOME}"
+  # The Gradle 9 launcher needs Java 17 or later; gradle/gradle-daemon-jvm.properties then picks the
+  # JDK that runs the build (JetBrains Runtime 21).
+  local java_21_home
+  if java_21_home="$(/usr/libexec/java_home -v 21 2>/dev/null)"; then
+    export JAVA_HOME="$java_21_home"
+    echo "[info] Using JAVA_HOME: ${JAVA_HOME}"
   fi
 
   if [[ -n "${JAVA_HOME:-}" && ! -d "${JAVA_HOME}" ]]; then
