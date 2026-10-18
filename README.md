@@ -105,7 +105,7 @@ Example (`1.13.0`):
 - `windows/WindowsLibraryCApi` (a DLL, `NativeToolkitC.dll`)
   - The general-purpose C ABI over the C++ API: `ntk_*` functions, UTF-8 strings, opaque handles
   - Headers: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
-  - For C#, Rust, Python and other languages; Unity calls it through P/Invoke (in `unity-native-plugin`)
+  - For C#, Rust, Python and other languages
 
 ## Repository layout
 

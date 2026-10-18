@@ -12,7 +12,7 @@
 | M-1 | リリース版は **1.13.0**、Android のライブラリの版は **2.0.0**（`dist/1.13.0/android/android-native-toolkit-2.0.0.aar`） | Windows の F-1 と同じ。製品の版とライブラリの版は前から別で、Android だけの破壊的変更で製品の版を上げない |
 | M-2 | マニュアルは **Kotlin の API を本文、C ABI を各機能の章の節**にし、1.x からの移行は index に書く | Windows の F-3 と同じ。コード例をサンプルと一致させられる |
 | M-3 | C ABI のヘッダーの API リファレンスを、Windows と同じく Doxygen で作り、生成物をリポジトリに入れる | Homebrew で `doxygen` を入れて作った |
-| M-4 | **Unity の記載はこのリポジトリのマニュアルと README に書かず、`unity-native-plugin` のマニュアルに任せる**（2026-10-18） | Unity の使い方は `unity-native-plugin` が書く（そのマニュアル 1.13.0 に Android の要件がある）。1.13.0 の index の Unity の 4 か所（32 ビットの注意の Unity の文、`NativeToolkitCApi.init` の Unity からの呼び方、移行の表のブリッジの AAR の行、Unity の動作環境）、clipboard の「1.x からの変更」のブリッジの AAR の句、README の Android の C ABI の行の Unity の句を消した。`init` の呼び方は Java の例に替えた。iOS と macOS の Unity ブリッジ（このリポジトリの製品）の記載は残す。レビューの M-C4 の対処を取り消した |
+| M-4 | **Unity の記載はこのリポジトリのマニュアルと README に書かず、`unity-native-plugin` のマニュアルに任せる**（2026-10-18） | Unity の使い方は `unity-native-plugin` が書く（そのマニュアル 1.13.0 に Android の要件がある）。1.13.0 の index の Unity の 4 か所（32 ビットの注意の Unity の文、`NativeToolkitCApi.init` の Unity からの呼び方、移行の表のブリッジの AAR の行、Unity の動作環境）、clipboard の「1.x からの変更」のブリッジの AAR の句、README の Android と Windows の C ABI の行の Unity の句を消した（Windows の行は利用者の指示で同じく消した）。`init` の呼び方は Java の例に替えた。iOS と macOS の Unity ブリッジ（このリポジトリの製品）の記載は残す。レビューの M-C4 の対処を取り消した |
 
 ## 2. したこと
 

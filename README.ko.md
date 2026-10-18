@@ -105,7 +105,7 @@
 - `windows/WindowsLibraryCApi` (DLL, `NativeToolkitC.dll`)
   - C++ API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
   - 헤더: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
-  - C#, Rust, Python 등 다른 언어용. Unity는 P/Invoke로 호출 (`unity-native-plugin`)
+  - C#, Rust, Python 등 다른 언어용
 
 ## 디렉터리 구조
 

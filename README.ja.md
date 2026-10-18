@@ -105,7 +105,7 @@
 - `windows/WindowsLibraryCApi`（DLL、`NativeToolkitC.dll`）
   - C++ API の上の汎用の C ABI: `ntk_*` 関数、UTF-8 の文字列、不透明なハンドル
   - ヘッダ: `windows/WindowsLibraryCApi/include/NativeToolkitC/`
-  - C#、Rust、Python などの言語向け。Unity は P/Invoke で呼ぶ（`unity-native-plugin`）
+  - C#、Rust、Python などの言語向け
 
 ## リポジトリ構成
 
