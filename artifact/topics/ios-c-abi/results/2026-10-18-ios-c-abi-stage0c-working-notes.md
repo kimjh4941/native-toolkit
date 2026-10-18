@@ -70,3 +70,78 @@
 - 「何も押さない」監視の対象はクラス名とメソッド名の頭で決めている（`NotificationPermissionUITests`、`ClipboardPasteDenyUITests`、`ClipboardPasteUITests/testCB1_`）。CB1 のメソッド名は `testCB1_` で始める
 - 今の `ClipboardUITests` に `continueAfterFailure = false` が残っている（基底と重複。差分を小さくするため残した）
 - シミュレーターの後始末: 確かめのためにアプリを 2 回削除した。通知の権限は最後に許可に戻した。クリップボードにテストの文字列が残っている
+
+## 7. 後半（2026-10-19）: Notification、Share、Clipboard の新しいテスト
+
+シミュレーター（iPhone 17、iOS 26.2、en）だけ。実機には触れていない。実測に使ったテストは `probes/stage0c/Stage0c2ProbeTests.swift`。
+
+### 7.1 足したテストと結果
+
+| クラス | 件数 | 3 回の結果 | 1 回の時間 |
+|---|---|---|---|
+| `NotificationPermissionUITests`（毎回アプリを削除 → NP2 → 削除 → NP1） | 2 | 3/3 | NP2 約 25 秒、NP1 約 11 秒 |
+| `NotificationUITests` | 23 | 3/3（N11 と N19 は直した後にさらに 3/3） | 1053〜1066 秒 |
+| `NotificationEventUITests` | 7 | 3/3 | 465〜470 秒 |
+| `NotificationColdStartUITests` | 4 | 3/3 | 202〜207 秒 |
+| `ShareUITests` | 16 | 2 回目に S9 が 1 回落ちた。直した後に 3/3、さらに S8・S9 だけを 3/3 | 183〜191 秒 |
+| `ClipboardPasteUITests` | 3 | 3/3 | 約 75 秒 |
+| `ClipboardPasteDenyUITests`（単独で流す） | 1 | 3/3 | 約 23 秒 |
+
+宣言の表は 97 件（新しい 56 件を足した）。列挙の結果と表は、件数・重複・集合ともちょうど一致した。Support を変えたので、`DialogUITests` と `IdentifierInventoryUITests` も流し直し、19/19 が通った。人の確認（computer use）に移したケースは無い（設計どおり HC1・HC4・HC7・HC8 は残る。HC3・HC5・HC6・HC9 はシミュレーターでは要らなかった。実機は確かめていない）。
+
+### 7.2 8.1 の実測（シミュレーター、en）
+
+| 項目 | 結果 |
+|---|---|
+| 広げた通知の要素 | 長押しで identifier `notification-expanded-view` が出る（category が無くても出るので「広げた」印に使える）。アクションのボタンは全画面の BannerNotification（公開されていない型）の中にあるので、そこに範囲を限る。返信の入力欄と Send はその外にあるので springboard 全体から取る（入力欄は placeholder で取る） |
+| 同じ id の更新（N10） | 表示中の通知を UpdateById で更新しても `count: 1, ids: [sample-notification]` のまま |
+| 同じファイルを 2 回添付（N5） | どちらも成功 |
+| 前面のバナーのタップ（N26） | イベントは 0.3 秒以内に来た |
+| 背景で起動したプロセス（N32・N33） | 止めた後に返信や Delete をすると、サンプルは背景で起動したまま（runningBackground）。`activate` の後にイベントが読めた |
+| 設定の App（N3） | 約 0.55 秒で前面に来た |
+| カレンダーの +1 分（N7） | 約 73 秒で発火した（待ちは 90 秒のまま） |
+| ホームのアイコンのバッジ（N34） | `icons["IosLibraryExample"]` の value が、1 で `1 new item`、0 で空 |
+| 位置の予約（N8・N18） | どちらも成功の文言（✅ Registered）を返し、予約の一覧に入った |
+| category の反映（N23・N24） | 削除の後は 3 回とも 3 秒間アクションが無く、登録の後は約 1.1 秒で出た |
+| Share のプレビューの題（S5） | `LP.CaptionBar.TopCaption` で読める。シートが出た時点から `Apple` のまま |
+| 複数の Copy と Save to Files（S6・S9・S10） | どれも `completed=true` |
+| 貼り付けの許可のダイアログ（CB2） | ランナーが新しい内容を書くたびに毎回出る（前に許可したか拒否したか、再起動したか、別の xcodebuild かに関わらない）。一度許可した同じ内容を読み直したときだけ出ない。**CB2 にアプリの削除（`reinstall`）は要らない** |
+| 画像だけの貼り付け（CB4） | `items=1, failures=0`、ダイアログは出ない |
+
+確かめていないもの: 実機の項目、ja のラベル、Universal Clipboard、写真とローカルネットワークの権限のダイアログ。
+
+### 7.3 変異（1 つずつ入れて確かめた。すべて戻した）
+
+| 壊したもの | 落ちたテスト |
+|---|---|
+| `foregroundPresentationOptions` を空にする | N4、N26 |
+| `cancel` を何もしない形にする | N11（最初は生き残ったのでテストを強めた。7.4 の 4） |
+| `removeDelivered` を何もしない形にする | N14 |
+| `didReceive` で、アクションの id の代わりに通知の id を渡す | N25、N27、N28 |
+| `registerCategory` で `setNotificationCategories` を呼ばない | N23 |
+| `ShareSheetPresenter` で completed をいつも true にする | S2、S3 |
+| サンプルの除外のリストを空にする | S12 |
+| `onPaste` で貼り付けの結果を変えない | CB3 |
+| 読み込みの失敗を成功（✅）として表示する | CB2 |
+
+### 7.4 設計とずれたこと（設計書の 8.6 に書いた）
+
+1. 最後のイベントの `userText` は、テキストの無いアクションでサンプルが `-` と表示する（設計の 3.3 は `nil`）。今の動作を期待値にした
+2. N6: ShowTimeInterval(5s) の後、ボタンが離れていてスクロールに約 12 秒かかり、5 秒以内に GetScheduled まで行けない。発火の前の `count: 1` の確かめは N7 に任せ、N6 は背景での発火と発火の後の一覧を確かめる
+3. N13・N20: 5 秒・10 秒の予約では CancelAll の前に 5 秒のほうが発火したので、+1 分のカレンダー（ShowCalendar と ScheduleCalendar）に替え、取り消す前に 2 件あることを読む
+4. N11・N19: 一覧の読み直しの上限を予約の時刻より前にし、窓が終わった後に GetDelivered が空であることも確かめる（バナーを見逃しても、発火していれば落ちる）
+5. CB2: `reinstall` を宣言しない（7.2）
+6. Share: プレビューがあるとナビゲーションバーの名前が題になるので、開いた印に `ActivityListView` を足した。Copy はセルだけを探す。Save to Files の Save は、ピッカーが落ち着いてから押す（動いている間に押すと保存も完了の知らせも無いままシートに戻った。S9 の 1 回の失敗の原因）
+7. 前面にバナーが出ている間のスクロールは、XCTest の既定のハンドラが毎回最大約 7 秒待つ。通知のテストが 1 件 40〜90 秒かかるのはこのため
+8. `SampleApp.remainingAlertCount` は、印を取らずに springboard のアラートの**数だけ**を読む（何も押さず、ラベルも読まない）。Share と CB3 は `systemui` を宣言していないため。信頼する部分の中の、読むだけの例外として認めた（設計書の 6.1）
+9. 0d のランナーへ: xcodebuild の実行の後、シミュレーターは Shutdown になっているので、`simctl uninstall` の前に起動が要る（`simctl bootstatus -b`）
+
+### 7.5 後始末
+
+xcodebuild・simctl・待ちのループで残っているものは無い（こちらでも確かめた）。シミュレーターは Shutdown。シミュレーターには、通知の権限（許可）、登録済みの category、クリップボードのテストの文字列、Files の「このiPhone内」の share-sample の写しが残っている。
+
+### 7.6 残り（0c の終わりまで）
+
+- 実機での確かめ: 0d のランナー（柱 1）ができてから、流すテストの一覧を利用者に見せて許可を得て行う（設計の U-9。ランナー無しに実機で流さない）
+- 信頼する部分（基底と Support）のハッシュの固定と、今の `ClipboardUITests` のファイルのハッシュの固定
+- 0c の結果の文書

@@ -684,3 +684,20 @@ Android の `scripts/test_android.sh` の形に合わせる。**実機で流す�
 | サンプルの起動の処理は、`setup()` で delegate を入れてから受け手を設定している（`IosLibraryExampleApp.swift:14-25`） | 0b で順を入れ替える（U-4。レビュー v2 A-12） |
 | `ClipboardSampleIdentifiers.Action` と既存の UI テストの注記は「50」だが、実物は 52 | 5.1。I1d は実物で照らす |
 | テストのターゲットの最小 iOS が 18.2（本体は 18.0。pbxproj） | 試験の環境（18.7.2、26.2、18.3.1）では影響しない。0e で直す（README 5 章） |
+
+### 8.6 段階 0c で実装に合わせたこと
+
+0c の実装と実測で、この文書と違う形にしたもの。詳しくは `results/2026-10-18-ios-c-abi-stage0c-working-notes.md` の 2 章と 7.4。
+
+| 所 | 実装 |
+|---|---|
+| 基底の入口（6.1） | async の形（`setUp() async throws` / `tearDown() async throws`）は上書きしない。上書きするとランナーが落ちた。子の上書きは閉じた形の規則で止める |
+| 最後のイベントの `userText`（3.3） | テキストの無いアクションでは `-` と表示する（今のサンプルの動作） |
+| N6 | 発火の前の `count: 1` の確かめは N7 に任せる（ボタンが離れていて 5 秒以内に読めない） |
+| N13・N20 | 5 秒・10 秒の予約ではなく +1 分のカレンダーを使い、取り消す前に 2 件あることを読む |
+| N11・N19 | 窓が終わった後に GetDelivered が空であることも確かめる |
+| CB2（U-12） | 貼り付けの許可のダイアログは、ランナーが新しい内容を書くたびに出るので、アプリの削除（`reinstall`）は要らない。宣言しない |
+| Share（S 系） | 開いた印に `ActivityListView`、Copy はセルだけ、Save は Files のピッカーが落ち着いてから押す |
+| springboard のアラートの数（6.1、U-9） | `SampleApp.remainingAlertCount` は、印を取らずに springboard のアラートの数だけを読む。何も押さずラベルも読まないので、信頼する部分の中の読むだけの例外として認める（2026-10-19） |
+| 0d のランナー（6.3） | xcodebuild の後はシミュレーターが Shutdown なので、`simctl uninstall` の前に `simctl bootstatus -b` で起動する |
+
