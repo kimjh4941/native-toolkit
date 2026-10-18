@@ -2,7 +2,7 @@
 
 - 記録日: 2026-10-18
 - 改訂: 2026-10-18 に別モデル 2 者のレビュー（`reviews/2026-10-18-ios-c-abi-plan-review-v1.md`）を反映した。事実の誤り 3 つ（署名、Dialog の既定の文言、エラーの型）を直し、通知の delegate を早く入れる入口（D-4・D-7）、`release` の同期の場合（D-6）、bundle id（D-12）、署名（D-18）、ブリッジの扱い（D-22）、`unity-native-plugin` に先に頼むこと（5 章）を決め直した。同日に 2 回目のレビュー（`reviews/2026-10-18-ios-c-abi-plan-review-v2.md`）を反映し、delegate を入れる関数を同期の例外にし（D-4・D-6）、呼ぶ範囲を通知の機能全体に広げ、署名の照らし方、bundle id を変える範囲、リリース版を決める時期を直した。3 回目の確認（`reviews/2026-10-18-ios-c-abi-plan-review-v3.md`。Codex）で区分 A が 0 になり、残った 1 件（D-19 の版を決める時期）を直してレビューを終えた
-- 状態: 進行中。D-1〜D-22 は 2026-10-18 に利用者が推奨のとおり決めた（8.1）。段階 0a（UI テストのスパイク）は完了し、UI テストの設計書も決定した（2026-10-18）。次は段階 0b
+- 状態: 進行中。D-1〜D-22 は 2026-10-18 に利用者が推奨のとおり決めた（8.1）。段階 0a（UI テストのスパイク）と 0b（サンプルの識別子と最後のイベントの表示）は完了し、UI テストの設計書も決定した（2026-10-18）。次は段階 0c
 - 分類: 横断課題（アーキテクチャ）。機能追加ではない
 - 進め方: Windows（`windows-architecture`、1.12.0）と Android（`android-c-abi`、1.13.0）と同じ汎用 C ABI を、1 OS ずつ作る。このトピックは iOS の分（D-1）。macOS は iOS が終わってから別のトピックにする
 - 対象: `ios/IosLibrary`、`ios/UnityIosPlugin`（新しい C ABI のモジュールに置き換える）、`ios/IosLibraryExample`、`scripts/build_ios_library_xcframework.sh`、`ios/generate_docc.sh`、`scripts/publish_docs.sh`、配布物 `ios-native-toolkit-*.xcframework` / `unity-ios-native-toolkit-*.xcframework`
@@ -220,7 +220,7 @@ Android と同じく、**ブリッジには手を入れない**（段階 3 で�
 | 段階 | 内容 | 動作の変更 |
 |---|---|---|
 | 0a | スパイク: サンプルの UI テストで扱える項目を確定する（7.2）。XCUITest で、通知のバナーと通知センター（`springboard` の要素）、通知のアクションのボタン、テキスト入力のアクション、**通知からのコールドスタート**（アプリを止め、springboard でタップして起動する）、権限のダイアログ（`addUIInterruptionMonitor` か springboard）、Share のシート（`UIActivityViewController`）、アプリ内の Dialog（`UIAlertController`）、貼り付けの許可のダイアログ、`UIPasteControl` を扱えるか。予約した通知の発火を待てるか。シミュレーターと実機で違うか。scene のある構成と無い構成で、前面の key window の探し方が動くか | 無し |
-| 0b | サンプルの画面に `accessibilityIdentifier` を付ける（Dialog・Notification・Share は 0 個。見た目も動作も変えない）。あわせて、通知の画面に「最後に受けたイベント」（タップ・アクション・返信の文字）の表示を足す。今のサンプルは受けても `print` するだけで、UI テストから受け取りを確かめられないため（0a の結果 R-1。サンプルだけの変更で、ライブラリは変えない）。結果の行に更新の回数（`accessibilityValue`。見た目は変わらない）を付け、サンプルの起動の処理で受け手を設定してから `setup()` を呼ぶ順に入れ替える（UI テストの設計書 U-3・U-4） | サンプルの通知の画面に表示が 1 つ増える |
+| 0b | サンプルの画面に `accessibilityIdentifier` を付ける（Dialog・Notification・Share は 0 個。見た目も動作も変えない）。あわせて、通知の画面に「最後に受けたイベント」（タップ・アクション・返信の文字）の表示を足す。今のサンプルは受けても `print` するだけで、UI テストから受け取りを確かめられないため（0a の結果 R-1。サンプルだけの変更で、ライブラリは変えない）。結果の行に更新の回数（`accessibilityValue`。見た目は変わらない）を付け、サンプルの起動の処理で受け手を設定してから `setup()` を呼ぶ順に入れ替える（UI テストの設計書 U-3・U-4）。**完了**（`results/2026-10-18-ios-c-abi-stage0b-result.md`。識別子の数は設計書の 5.1 と一致し、シミュレーターで最後のイベントとコールドスタートを確かめた） | サンプルの通知の画面に表示が 1 つ増える |
 | 0c | Dialog / Notification / Share の UI テストを足す（Clipboard は 22 件ある）。XCUITest で扱えない項目は、人の確認の手順書にする | 無し |
 | 0d | `scripts/test_ios.sh` を作り（unit・UI テストをまとめて実行。`xcodebuild test` の結果を `.xcresult` から読む）、**今のコードで全件通ることを確かめ、結果を基準として記録する**。基準は 2 つの環境で取り（D-21）、件数はターゲット全体・機能ごと・雛形に分けて持つ。`UnityIosPluginTests` は `test_ios.sh` の基準に入れないが、0e でビルドから外す前に 83 件を一度流し、結果を `results/` に保存する（D-22） | 無し |
 | 0e | 設定をそろえる: `UnityIosPlugin` をワークスペースのビルドと `test_ios.sh` から外す（D-22）。テストのターゲットの最小 iOS を 18.0 に。Xcode 26 の推奨設定（`LastUpgradeCheck`）を反映するが、変わる build setting の差分を全部記録し、`SWIFT_DEFAULT_ACTOR_ISOLATION` と upcoming feature を明示的に固定する。`SWIFT_STRICT_CONCURRENCY=complete` で `IosLibrary` とサンプルの警告を 0 にする（Notification・Dialog・Share の完了を main で返し、handler を `@Sendable` にする）。公開 API の差分（swiftinterface）を保存する。直した所に関係するテストを両方の環境で流す | Notification の操作の結果が main で返る（1.3）。handler の型に `@Sendable` が付く（2.0.0） |
@@ -344,7 +344,7 @@ Android と同じく、サンプルはブリッジを通らず `IosLibrary` を�
 
 ### 7.2 XCUITest と人の確認の使い分け
 
-`common.md` の UI 自動テストの規則は、OS のシェルの UI・システム設定・権限の初回の同意を「自動化しないもの」にしている。Android の段階 0a は、スパイクで確かめたうえで通知のシェードと権限のダイアログを自動化した。iOS も、**段階 0a で確かめて安定して扱えた項目だけを自動化し、`common.md` の例外として理由を 0a の結果に書く**（例外にした項目の一覧は UI テストの設計書の 2.1）。扱えない項目は人の確認にし、手順書を用意する（判定があいまいなら失敗とする）。画像の中身と音は、Android と同じく自動化しない見込み。
+`common.md` の UI 自動テストの規則は、OS のシェルの UI・システム設定・権限の初回の同意を「自動化しないもの」にしている。Android の段階 0a は、スパイクで確かめたうえで通知のシェードと権限のダイアログを自動化した。iOS も、**段階 0a で確かめて安定して扱えた項目だけを自動化し、`common.md` の例外として理由を 0a の結果に書く**（例外にした項目の一覧は UI テストの設計書の 2.1）。扱えない項目は、Windows・Android と同じく **computer use（Claude のデスクトップアプリ）で画面を見て確かめ**、手順書を用意する（判定があいまいなら失敗とする。2026-10-18、利用者の確認）。シミュレーターは Simulator.app のウィンドウを見る。実機は Mac の「iPhone ミラーリング」で画面を見るので、私物の画面が写る。実機の項目は 1 回ごとに利用者の許可を得てから行う。通知の音は、Android と同じく対象外にする（どの手段でも確かめられない。`sound` の既定値を単体テストで確かめる）。画像の中身は、Android と同じく自動化せず computer use で見る。
 
 システムの UI は OS の版で見た目と構造が変わるので、UI テストは版を固定した 2 つの環境で流す（D-21）。
 
