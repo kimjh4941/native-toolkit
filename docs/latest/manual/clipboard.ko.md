@@ -212,7 +212,7 @@ Android 12 (API 31) 이상의 시스템 클립보드(`ClipboardManager`)입니�
 - 민감한 콘텐츠 미리보기 억제: Android 13 (API 33) 이상
 - 지원 범위: 복사(일반 텍스트, HTML, URI, 여러 텍스트), 민감 정보 복사, 읽기, 메타데이터 확인, 지우기, 클립보드 변경 감시입니다.
 
-Android 라이브러리 2.0.0에서는 Kotlin 패키지가 `android.library.*`에서 `com.jonghyunkim.nativetoolkit.*`로 바뀌고 Unity 브리지 AAR이 제거되었습니다. 1.x 기준으로 작성한 코드는 그대로는 컴파일되지 않습니다. [Android 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#android-라이브러리를-200으로-마이그레이션)을 참고하세요.
+Android 라이브러리 2.0.0에서는 Kotlin 패키지가 `android.library.*`에서 `com.jonghyunkim.nativetoolkit.*`로 바뀌었습니다. 1.x 기준으로 작성한 코드는 그대로는 컴파일되지 않습니다. [Android 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#android-라이브러리를-200으로-마이그레이션)을 참고하세요.
 
 ### AndroidClipboardManager
 

@@ -201,7 +201,7 @@ Android 12 (API 31) 以降のシステムクリップボード（`ClipboardManag
 - 機微情報プレビュー抑止: Android 13 (API 33) 以上
 - 対応範囲: コピー（プレーンテキスト・HTML・URI・複数テキスト）、機微情報のコピー、読み取り、メタデータの確認、クリア、クリップボード変更の監視です。
 
-Android ライブラリの 2.0.0 では、Kotlin のパッケージが `android.library.*` から `com.jonghyunkim.nativetoolkit.*` に変わり、Unity ブリッジの AAR がなくなりました。1.x 向けに書いたコードはそのままではコンパイルできません。[Android ライブラリを 2.0.0 へ移行する](index.ja.md#android-ライブラリを-200-へ移行する)を参照してください。
+Android ライブラリの 2.0.0 では、Kotlin のパッケージが `android.library.*` から `com.jonghyunkim.nativetoolkit.*` に変わりました。1.x 向けに書いたコードはそのままではコンパイルできません。[Android ライブラリを 2.0.0 へ移行する](index.ja.md#android-ライブラリを-200-へ移行する)を参照してください。
 
 ### AndroidClipboardManager
 

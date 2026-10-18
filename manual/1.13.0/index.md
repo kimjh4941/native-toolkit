@@ -365,7 +365,7 @@ The Kotlin API AAR declares the permissions its notification features use, and t
 The C ABI is for apps that call the library from C, C++ or another language. A Kotlin or Java app calls the Kotlin API directly; going through the C ABI would only add a round trip through JNI.
 
 - The app is an ordinary Android app with Kotlin or Java code (`android:hasCode="true"`): the C functions call the Kotlin API through JNI, and the AAR's Kotlin classes and manifest entries must be in the app. Copying `libntk.so` alone does not work
-- `libntk.so` is built for `arm64-v8a` and `x86_64` only. On a 32-bit device, or in an app built only for 32-bit ABIs, the library is not there: the app still starts, but loading `libntk.so` fails (for example `DllNotFoundException` in C#). Handle that, or build your app for 64-bit ABIs only. If a module that depends on the C ABI AAR has Prefab enabled and builds native code for a 32-bit ABI, the build itself stops with `CXX1210` (see below), even when that code does not use `ntk::ntk`. Unity's `unityLibrary` enables Prefab, so a Unity build that includes ARMv7 stops this way
+- `libntk.so` is built for `arm64-v8a` and `x86_64` only. On a 32-bit device, or in an app built only for 32-bit ABIs, the library is not there: the app still starts, but loading `libntk.so` fails (for example `DllNotFoundException` in C#). Handle that, or build your app for 64-bit ABIs only. If a module that depends on the C ABI AAR has Prefab enabled and builds native code for a 32-bit ABI, the build itself stops with `CXX1210` (see below), even when that code does not use `ntk::ntk`.
 - Completions, events and the `release` of an accepted call come on the Android main thread, which is not your thread. A runtime that can only take callbacks on the thread that registered them cannot use the C ABI as is. (A call rejected at the entry returns its error and calls `release` on the calling thread before it returns; it never completes)
 - Dialogs, Share, the settings screens and a notification permission request that has not been granted yet need the app in the foreground; called from the background they complete with `NOT_FOREGROUND`
 
@@ -396,7 +396,7 @@ Limit the CMake build that uses `ntk::ntk` to the 64-bit ABIs as above. Prefab h
 
 Other languages load `libntk.so` by name (`ntk`) after the app has started. Each feature page's Android section has a C ABI part with the functions, the threads and the errors.
 
-The C ABI ships an R8 rule in its AAR, so minified release builds need nothing more. If your app disables App Startup and calls `NativeToolkitCApi.init` by reflection or from another runtime, keep that class. `NativeToolkitCApi` is a Kotlin `object` and `init` is not static: from Unity, for example, call `new AndroidJavaClass("com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi").GetStatic<AndroidJavaObject>("INSTANCE").Call<AndroidJavaObject>("init", activity)`.
+The C ABI ships an R8 rule in its AAR, so minified release builds need nothing more. If your app disables App Startup and calls `NativeToolkitCApi.init` by reflection or from another runtime, keep that class. `NativeToolkitCApi` is a Kotlin `object` and `init` is not static: call it on the `INSTANCE` field (from Java, `NativeToolkitCApi.INSTANCE.init(activity)`).
 
 ```
 -keep class com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi { *; }
@@ -414,13 +414,10 @@ The C ABI ships an R8 rule in its AAR, so minified release builds need nothing m
 | Notifications scheduled with 1.x | **Discarded once** when the app first runs 2.0.0 (the storage format changed). Schedule them again |
 | Notifications shown by 1.x and still on screen | They no longer respond to taps or actions after the update (the receivers have new names). Show them again if needed |
 | A `FileProvider` declared for sharing, as the 1.x manual told | **Remove it.** The library declares its own (authority `${applicationId}.native_toolkit.share.fileprovider`). Declaring `androidx.core.content.FileProvider` again in your manifest conflicts with it in the manifest merge; a provider of your own has to be a subclass of `FileProvider` |
-| The Unity bridge AAR `unity-android-native-toolkit-*.aar` (`android.unity.*`) | **Removed.** Unity calls the C ABI (`android-native-toolkit-capi`) through P/Invoke, in the Unity package. Kotlin and Java apps were never meant to use the bridge |
 | The library added nothing at app start | It adds AndroidX App Startup (`InitializationProvider`) and initializes itself (see Initialization above) |
 | One AAR file | The Kotlin API AAR as before (Kotlin and Java apps need only this one), plus the C ABI AAR for C and other languages, and a Maven repository with both (see Option A and Option B above) |
 
 The per-operation changes are in each feature page's Android section.
-
-**Unity:** with 2.0.0 the Unity package calls the C ABI. A Unity project needs a Minimum API Level of 31 or later, a 64-bit (ARM64) build for the C ABI, and Unity 6000.0.61f1, 6000.3.1f1, 6000.4.1f1 or later (the AndroidX dependencies need Android Gradle Plugin 8.9.1).
 
 ### iOS
 

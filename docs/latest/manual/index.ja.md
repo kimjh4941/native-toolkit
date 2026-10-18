@@ -365,7 +365,7 @@ Kotlin の API の AAR は通知機能が使う権限を宣言しており、そ
 C ABI は、C、C++、その他の言語からライブラリを呼ぶアプリ向けです。Kotlin・Java のアプリは Kotlin の API を直接呼んでください。C ABI を経由しても、JNI の往復が増えるだけです。
 
 - アプリは Kotlin・Java のコードを持つ通常の Android アプリです（`android:hasCode="true"`）。C の関数は JNI を通じて Kotlin の API を呼ぶため、AAR の Kotlin のクラスとマニフェストのエントリがアプリに含まれている必要があります。`libntk.so` だけをコピーしても動きません
-- `libntk.so` は `arm64-v8a` と `x86_64` 向けにだけビルドしています。32 ビットの端末や、32 ビットの ABI だけでビルドしたアプリにはこのライブラリがありません。アプリは起動しますが、`libntk.so` の読み込みに失敗します（たとえば C# では `DllNotFoundException`）。これに対処するか、アプリを 64 ビットの ABI だけでビルドしてください。C ABI の AAR に依存するモジュールで Prefab が有効で、32 ビットの ABI 向けにネイティブコードをビルドする場合は、そのコードが `ntk::ntk` を使わなくても、ビルド自体が `CXX1210` で停止します（後述）。Unity の `unityLibrary` は Prefab を有効にしているため、ARMv7 を含む Unity のビルドはこの形で停止します
+- `libntk.so` は `arm64-v8a` と `x86_64` 向けにだけビルドしています。32 ビットの端末や、32 ビットの ABI だけでビルドしたアプリにはこのライブラリがありません。アプリは起動しますが、`libntk.so` の読み込みに失敗します（たとえば C# では `DllNotFoundException`）。これに対処するか、アプリを 64 ビットの ABI だけでビルドしてください。C ABI の AAR に依存するモジュールで Prefab が有効で、32 ビットの ABI 向けにネイティブコードをビルドする場合は、そのコードが `ntk::ntk` を使わなくても、ビルド自体が `CXX1210` で停止します（後述）
 - 完了、イベント、受け付けた呼び出しの `release` は Android のメインスレッドで届き、呼び出し元のスレッドではありません。コールバックを登録したスレッドでしか受け取れないランタイムは、C ABI をそのままでは使えません。（入口で拒否された呼び出しは、エラーを返し、戻る前に呼び出し元のスレッドで `release` を呼びます。完了は届きません）
 - ダイアログ、Share、設定画面、まだ許可されていない通知権限のリクエストは、アプリが前面にある必要があります。バックグラウンドから呼ぶと `NOT_FOREGROUND` で完了します
 
@@ -396,7 +396,7 @@ target_link_libraries(your_library PRIVATE ntk::ntk)
 
 他の言語からは、アプリの起動後に `libntk.so` を名前（`ntk`）で読み込みます。関数、スレッド、エラーは、各機能ページの Android の節にある C ABI の項に記載しています。
 
-C ABI の AAR には R8 のルールが含まれているため、minify を有効にしたリリースビルドでも追加の設定は不要です。アプリが App Startup を無効にし、`NativeToolkitCApi.init` をリフレクションや別のランタイムから呼ぶ場合は、そのクラスを keep してください。`NativeToolkitCApi` は Kotlin の `object` で、`init` は static ではありません。たとえば Unity からは `new AndroidJavaClass("com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi").GetStatic<AndroidJavaObject>("INSTANCE").Call<AndroidJavaObject>("init", activity)` のように呼びます。
+C ABI の AAR には R8 のルールが含まれているため、minify を有効にしたリリースビルドでも追加の設定は不要です。アプリが App Startup を無効にし、`NativeToolkitCApi.init` をリフレクションや別のランタイムから呼ぶ場合は、そのクラスを keep してください。`NativeToolkitCApi` は Kotlin の `object` で、`init` は static ではありません。`INSTANCE` フィールドに対して呼んでください（Java からは `NativeToolkitCApi.INSTANCE.init(activity)`）。
 
 ```
 -keep class com.jonghyunkim.nativetoolkit.capi.NativeToolkitCApi { *; }
@@ -414,13 +414,10 @@ C ABI の AAR には R8 のルールが含まれているため、minify を有�
 | 1.x でスケジュールした通知 | アプリが初めて 2.0.0 で動いたときに **一度だけ破棄されます**（保存形式が変わったため）。もう一度スケジュールしてください |
 | 1.x が表示し、まだ画面に残っている通知 | 更新後はタップやアクションに反応しません（レシーバーの名前が変わったため）。必要なら表示し直してください |
 | 1.x のマニュアルに従ってシェア用に宣言した `FileProvider` | **削除してください。** ライブラリが独自のもの（authority `${applicationId}.native_toolkit.share.fileprovider`）を宣言します。マニフェストで `androidx.core.content.FileProvider` を再度宣言すると、マニフェストのマージで衝突します。独自の provider は `FileProvider` のサブクラスにする必要があります |
-| Unity ブリッジの AAR `unity-android-native-toolkit-*.aar`（`android.unity.*`） | **削除しました。** Unity は Unity パッケージの中で、P/Invoke を通じて C ABI（`android-native-toolkit-capi`）を呼びます。Kotlin・Java のアプリがブリッジを使うことは想定していませんでした |
 | アプリの起動時にライブラリは何も追加しませんでした | AndroidX App Startup（`InitializationProvider`）を追加し、自動で初期化します（上の「初期化」を参照） |
 | 1 つの AAR ファイル | これまでどおりの Kotlin の API の AAR（Kotlin・Java のアプリはこれだけで足ります）に加え、C や他の言語向けの C ABI の AAR と、両方を収めた Maven リポジトリ（上の「方法 A」と「方法 B」を参照） |
 
 操作ごとの変更は、各機能ページの Android の節に記載しています。
-
-**Unity:** 2.0.0 では Unity パッケージが C ABI を呼びます。Unity プロジェクトには、Minimum API Level 31 以降、C ABI のための 64 ビット（ARM64）ビルド、Unity 6000.0.61f1、6000.3.1f1、6000.4.1f1 以降が必要です（AndroidX の依存が Android Gradle Plugin 8.9.1 を必要とするため）。
 
 ### iOS
 

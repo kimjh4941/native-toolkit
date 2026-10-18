@@ -206,7 +206,7 @@ The system clipboard (`ClipboardManager`), on Android 12 (API 31) or later. The 
 - Sensitive content preview suppression: Android 13 (API 33)+
 - Scope: copy (plain text, HTML, URI, multiple text), sensitive copy, read, metadata inspection, clear, and clipboard change observation.
 
-Version 2.0.0 of the Android library changes the Kotlin package from `android.library.*` to `com.jonghyunkim.nativetoolkit.*` and removes the Unity bridge AAR. Code written against 1.x does not compile unchanged; see [Migrating the Android library to 2.0.0](index.md#migrating-the-android-library-to-200).
+Version 2.0.0 of the Android library changes the Kotlin package from `android.library.*` to `com.jonghyunkim.nativetoolkit.*`. Code written against 1.x does not compile unchanged; see [Migrating the Android library to 2.0.0](index.md#migrating-the-android-library-to-200).
 
 ### AndroidClipboardManager
 

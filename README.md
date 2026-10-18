@@ -70,7 +70,7 @@ Example (`1.13.0`):
 - `android/android_library_capi` (`libntk.so` in the AAR `android-native-toolkit-capi`)
   - The general-purpose C ABI over the Kotlin API: `ntk_*` functions, UTF-8 strings, opaque handles
   - Headers: `android/android_library_capi/src/main/cpp/include/NativeToolkitC/`
-  - For C, C++, C#, Rust and other languages; Unity calls it through P/Invoke (in `unity-native-plugin`)
+  - For C, C++, C#, Rust and other languages
 
 ### iOS
 

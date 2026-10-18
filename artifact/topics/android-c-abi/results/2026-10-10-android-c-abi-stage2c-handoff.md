@@ -38,7 +38,7 @@
 
 - `libntk.so`。`DllImport` の名前は `"ntk"`
 - **ABI は `arm64-v8a` と `x86_64` だけ**（README D-10）。`armeabi-v7a`（32 ビット）では `libntk.so` が無く、`DllImport` は `DllNotFoundException` になる。Windows の `EnsureNativeAvailable()` と同じく捕まえて「使えない」とする（2b の smoke で、32 ビットでもアプリが落ちず、Kotlin の API は動くことを確かめた）
-  - **訂正（2026-10-11。2c の報告）**: Unity では、ここに届かない。Unity の `unityLibrary` は GameActivity のために Prefab を有効にしているので、ARMv7 を含めると AGP が capi の AAR の Prefab を ABI ごとに調べ、`configureCMake*[armeabi-v7a]` が `CXX1210` で止まる（`ntk::ntk` を使っていなくても）。2b の smoke は Prefab を使わないモジュールだったので、この形を確かめていなかった。`unity-native-plugin` は 32 ビットと Mono を対象外にし、ARMv7 を含むビルドを Gradle の前に止めた。マニュアル（1.13.0 の index、3 言語）にこの症状を書いた
+  - **訂正（2026-10-11。2c の報告）**: Unity では、ここに届かない。Unity の `unityLibrary` は GameActivity のために Prefab を有効にしているので、ARMv7 を含めると AGP が capi の AAR の Prefab を ABI ごとに調べ、`configureCMake*[armeabi-v7a]` が `CXX1210` で止まる（`ntk::ntk` を使っていなくても）。2b の smoke は Prefab を使わないモジュールだったので、この形を確かめていなかった。`unity-native-plugin` は 32 ビットと Mono を対象外にし、ARMv7 を含むビルドを Gradle の前に止めた。マニュアル（1.13.0 の index、3 言語）に、Prefab が有効なモジュールでの一般の症状として書いた（Unity の記載は `unity-native-plugin` のマニュアルに任せる。段階 4 の結果の M-4）
 - 版: `ntk_version()` が `NTK_VERSION`（`0x020000`）を返す。Windows と同じく、メジャーの 2 を確かめる（第 1 部 AC-11。期待値は OS ごとに持つ）。この値はヘッダーの定数なので、どの版の AAR から組んでも同じになる。取り込んだ AAR の版は、ファイル名か座標で確かめる
 - 公開しているのは `ntk_*` と `JNI_OnLoad` だけ。libc++ は中に隠してあるので、Unity の同梱の NDK（r27c）や IL2CPP の libc++ とぶつからない
 

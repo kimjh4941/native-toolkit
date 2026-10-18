@@ -70,7 +70,7 @@
 - `android/android_library_capi` (AAR `android-native-toolkit-capi`의 `libntk.so`)
   - Kotlin API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
   - 헤더: `android/android_library_capi/src/main/cpp/include/NativeToolkitC/`
-  - C, C++, C#, Rust 등 다른 언어용. Unity는 P/Invoke로 호출 (`unity-native-plugin`)
+  - C, C++, C#, Rust 등 다른 언어용
 
 ### iOS
 
