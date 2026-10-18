@@ -108,6 +108,22 @@ enum ShareButton: String, CaseIterable {
     var identifier: String { SampleScreen.share.buttonPrefix + rawValue }
 }
 
+/// The Clipboard buttons the new Clipboard tests press (CB1〜CB4). Pressing any of them needs a
+/// `ClipboardToken`.
+enum ClipboardButton: String, CaseIterable {
+    case useGeneral
+    case loadText
+    case mountPasteControl
+
+    var identifier: String { SampleScreen.clipboard.buttonPrefix + rawValue }
+}
+
+/// The system paste control of the Clipboard screen (exists only after `mountPasteControl`).
+enum ClipboardPasteControl {
+    static let identifier = "clipboard.pasteControl"
+    static let summaryIdentifier = "clipboard.pasteSummary"
+}
+
 /// The identifier inventory of each screen (design 5.1), for I1a〜I1d.
 enum SampleInventory {
 
@@ -202,6 +218,25 @@ enum ResultLine {
     static let initial = "Result will be displayed here"
 }
 
+/// `[getScheduled] count: <n>, ids: [<id>, ...]` / `[getDelivered] ...` of the Notification
+/// screen (U-6).
+struct NotificationList: Equatable {
+    let count: Int
+    let ids: [String]
+
+    /// Parses the full result line for `marker` (`[getScheduled]` or `[getDelivered]`).
+    static func parse(_ text: String, marker: String) -> NotificationList? {
+        let prefix = ResultLine.expected(success: true, "\(marker) count: ")
+        guard text.hasPrefix(prefix) else { return nil }
+        let rest = text.dropFirst(prefix.count)
+        guard let comma = rest.range(of: ", ids: [") else { return nil }
+        guard let count = Int(rest[rest.startIndex..<comma.lowerBound]), rest.hasSuffix("]") else { return nil }
+        let inner = rest[comma.upperBound..<rest.index(before: rest.endIndex)]
+        let ids = inner.isEmpty ? [] : inner.components(separatedBy: ", ")
+        return NotificationList(count: count, ids: ids)
+    }
+}
+
 // MARK: - Inventory snapshot
 
 struct InventoryElement: Equatable {
@@ -251,7 +286,27 @@ struct SampleApp {
         guard app.wait(for: .runningForeground, timeout: Self.launchTimeout) else {
             throw SampleUITestError("the sample did not come to the foreground")
         }
+        try waitForSettledWindow()
         try session.checkInterruption()
+    }
+
+    /// Waits until the zoom-in animation from the home screen has ended: the window is at the
+    /// origin and its frame reads the same twice in a row. Right after `runningForeground` the
+    /// frames are still scaled (stage 0c, iOS 26.2), and a tap lands on a stale point.
+    private func waitForSettledWindow(timeout: TimeInterval = SampleApp.launchTimeout) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        var previous = CGRect.null
+        while true {
+            let frame = app.windows.firstMatch.frame
+            if frame.origin == .zero, frame.width > 0, frame == previous {
+                return
+            }
+            guard Date() < deadline else {
+                throw SampleUITestError("the sample's window did not settle: \(frame)")
+            }
+            previous = frame
+            Thread.sleep(forTimeInterval: 0.25)
+        }
     }
 
     func terminate() throws {
@@ -263,9 +318,17 @@ struct SampleApp {
 
     var isForeground: Bool { app.state == .runningForeground }
 
-    func waitForForeground(timeout: TimeInterval) -> Bool {
-        app.wait(for: .runningForeground, timeout: timeout)
+    /// Waits until the sample is in the foreground (opened by the system, e.g. from a banner) and
+    /// its window has settled. Returns false when it did not come to the foreground.
+    func waitForForeground(timeout: TimeInterval) throws -> Bool {
+        guard app.wait(for: .runningForeground, timeout: timeout) else { return false }
+        try waitForSettledWindow()
+        try session.checkInterruption()
+        return true
     }
+
+    /// The sample's state now (`notRunning`, `runningBackground`, `runningForeground`, ...).
+    var state: XCUIApplication.State { app.state }
 
     // MARK: Navigation
 
@@ -333,6 +396,29 @@ struct SampleApp {
 
     func tap(_ button: ShareButton, _ token: ShareSheetToken) throws {
         try tapButton(button.identifier)
+    }
+
+    func tap(_ button: ClipboardButton, _ token: ClipboardToken) throws {
+        try tapButton(button.identifier)
+    }
+
+    /// Taps a Notification button that needs no token and returns the new result line once
+    /// `updates=<n>` has grown by one (U-3).
+    @discardableResult
+    func press(_ button: NotificationButton) throws -> String {
+        let before = try updateCount(.notification)
+        try tap(button)
+        try waitForUpdateCount(.notification, before + 1)
+        return try resultText(.notification)
+    }
+
+    /// `press(_:)` for the buttons that need a `SystemUIToken`.
+    @discardableResult
+    func press(_ button: NotificationButton, _ token: SystemUIToken) throws -> String {
+        let before = try updateCount(.notification)
+        try tap(button, token)
+        try waitForUpdateCount(.notification, before + 1)
+        return try resultText(.notification)
     }
 
     private func tapButton(_ identifier: String) throws {
@@ -414,6 +500,135 @@ struct SampleApp {
         return try exactlyOne(app.staticTexts.matching(identifier: identifier), identifier).label
     }
 
+    /// The five labels of the last event, in the order sequence, kind, notificationId, actionId,
+    /// userText (design 5.2).
+    func lastEvent() throws -> [String] {
+        try ["sequence", "kind", "notificationId", "actionId", "userText"].map { try lastEventLabel($0) }
+    }
+
+    /// Waits until the last event's sequence is exactly `sequence`, failing at once when it passes.
+    func waitForEventSequence(_ sequence: Int, timeout: TimeInterval = SampleApp.elementTimeout) throws {
+        let expected = "sequence=\(sequence)"
+        let deadline = Date().addingTimeInterval(timeout)
+        var last = try lastEventLabel("sequence")
+        while last != expected {
+            if let value = Int(last.dropFirst("sequence=".count)), value > sequence {
+                throw SampleUITestError("the event sequence passed \(sequence): \(last)")
+            }
+            guard Date() < deadline else {
+                throw SampleUITestError("the event sequence did not reach \(sequence) in \(timeout)s: \(last)")
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+            last = try lastEventLabel("sequence")
+        }
+        try session.checkInterruption()
+    }
+
+    /// Presses `GetScheduled` or `GetDelivered` every 0.5 s until the ids are `expected` as a set
+    /// (10 s at most. U-6). Each reading must have `count:` equal to the number of ids and no
+    /// duplicated id; otherwise it fails at once. Returns the last result line.
+    @discardableResult
+    func waitForNotificationIDs(
+        _ button: NotificationButton,
+        _ expected: Set<String>,
+        timeout: TimeInterval = SampleApp.elementTimeout
+    ) throws -> String {
+        let marker: String
+        switch button {
+        case .getScheduled: marker = "[getScheduled]"
+        case .getDelivered: marker = "[getDelivered]"
+        default: throw SampleUITestError("\(button.identifier) is not a query button")
+        }
+        let deadline = Date().addingTimeInterval(timeout)
+        while true {
+            let text = try press(button)
+            guard let list = NotificationList.parse(text, marker: marker) else {
+                throw SampleUITestError("unexpected \(marker) result: \(text)")
+            }
+            guard list.count == list.ids.count else {
+                throw SampleUITestError("\(marker) count \(list.count) differs from the ids \(list.ids)")
+            }
+            guard Set(list.ids).count == list.ids.count else {
+                throw SampleUITestError("\(marker) has duplicated ids: \(list.ids)")
+            }
+            if Set(list.ids) == expected { return text }
+            guard Date() < deadline else {
+                throw SampleUITestError("\(marker) ids did not become \(expected.sorted()) in \(timeout)s: \(list.ids)")
+            }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+    }
+
+    /// Whether the result line of `screen` is shown (the screen is open).
+    func isShowing(_ screen: SampleScreen) -> Bool {
+        app.staticTexts.matching(identifier: screen.resultIdentifier).count == 1
+    }
+
+    // MARK: Clipboard screen (CB1〜CB4)
+
+    /// The Clipboard result line (`<kind> #<n> [<marker>] <payload>`).
+    func clipboardResult(_ token: ClipboardToken) throws -> String {
+        try resultText(.clipboard)
+    }
+
+    /// The `#<n>` of the Clipboard result line (0 before the first result).
+    func clipboardSequence(_ token: ClipboardToken) throws -> Int {
+        let text = try resultText(.clipboard)
+        guard let hash = text.firstIndex(of: "#") else { return 0 }
+        return Int(text[text.index(after: hash)...].prefix { $0.isNumber }) ?? 0
+    }
+
+    /// Waits until the Clipboard result line has the sequence `sequence` and returns it.
+    @discardableResult
+    func waitForClipboardResult(_ token: ClipboardToken, sequence: Int, timeout: TimeInterval = SampleApp.elementTimeout) throws -> String {
+        let deadline = Date().addingTimeInterval(timeout)
+        var last = try clipboardSequence(token)
+        while last != sequence {
+            if last > sequence {
+                throw SampleUITestError("clipboard.result passed #\(sequence): #\(last)")
+            }
+            guard Date() < deadline else {
+                throw SampleUITestError("clipboard.result did not reach #\(sequence) in \(timeout)s: #\(last)")
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+            last = try clipboardSequence(token)
+        }
+        try session.checkInterruption()
+        return try resultText(.clipboard)
+    }
+
+    /// `Paste result: <summary>` of the Clipboard screen.
+    func pasteSummary(_ token: ClipboardToken) throws -> String {
+        try exactlyOne(app.staticTexts.matching(identifier: ClipboardPasteControl.summaryIdentifier), ClipboardPasteControl.summaryIdentifier).label
+    }
+
+    /// Waits until the paste summary is `expected`.
+    func waitForPasteSummary(_ token: ClipboardToken, _ expected: String, timeout: TimeInterval = SampleApp.elementTimeout) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        var last = try pasteSummary(token)
+        while last != expected {
+            guard Date() < deadline else {
+                throw SampleUITestError("the paste summary did not become \(expected) in \(timeout)s: \(last)")
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+            last = try pasteSummary(token)
+        }
+        try session.checkInterruption()
+    }
+
+    /// Waits for the mounted paste control and taps it.
+    func tapPasteControl(_ token: ClipboardToken) throws {
+        let query = app.buttons.matching(identifier: ClipboardPasteControl.identifier)
+        guard query.firstMatch.waitForExistence(timeout: Self.elementTimeout) else {
+            throw SampleUITestError("the paste control did not appear")
+        }
+        let control = try exactlyOne(query, ClipboardPasteControl.identifier)
+        try scrollUntilHittable(control, ClipboardPasteControl.identifier)
+        control.tap()
+        session.recordPressed(ClipboardPasteControl.identifier)
+        try session.checkInterruption()
+    }
+
     // MARK: Alerts and action sheet of the sample
 
     /// The sample's `UIAlertController` alert with the title `title`.
@@ -428,6 +643,12 @@ struct SampleApp {
 
     /// Number of alerts of the sample's process (U-8 (1)). Labels are not read.
     var appAlertCount: Int { app.alerts.count }
+
+    /// Number of alerts left in the sample and in springboard after an operation that can raise
+    /// system UI (U-8 (1)). Only counts are read: no label, no interaction.
+    var remainingAlertCount: Int {
+        app.alerts.count + XCUIApplication(bundleIdentifier: SystemLabels.springboardBundleIdentifier).alerts.count
+    }
 
     // MARK: Inventory
 
@@ -478,27 +699,42 @@ struct SampleApp {
     // MARK: Scrolling (no inertia, as `ClipboardUITests.scrollStep`)
 
     private static let sweepAttempts = 30
+    /// Steps in a row without movement before a direction is given up. A single drag that starts
+    /// on a button sometimes does not move the content (Notification screen, iOS 26.2).
+    private static let stalledStepsLimit = 2
 
     private func scrollUntilHittable(_ element: XCUIElement, _ name: String) throws {
         if element.isHittable { return }
-        for direction in [true, false] {
+        // Toward the element first: down when it lies below the scroll view's middle.
+        let scrollView = try exactlyOne(app.scrollViews, "scroll view of the screen")
+        let downFirst = element.frame.midY >= scrollView.frame.midY
+        for direction in [downFirst, !downFirst] {
             var previousY = element.frame.origin.y
+            var stalled = 0
             for _ in 0..<Self.sweepAttempts {
-                scrollStep(down: direction)
+                try scrollStep(down: direction)
                 try session.checkInterruption()
                 if element.isHittable { return }
                 let currentY = element.frame.origin.y
-                if abs(currentY - previousY) < 1 { break }
+                if abs(currentY - previousY) < 1 {
+                    stalled += 1
+                    if stalled >= Self.stalledStepsLimit { break }
+                } else {
+                    stalled = 0
+                }
                 previousY = currentY
             }
         }
         throw SampleUITestError("\(name) did not become hittable")
     }
 
-    private func scrollStep(down: Bool) {
-        let offsets: (start: CGFloat, end: CGFloat) = down ? (0.80, 0.50) : (0.50, 0.80)
-        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.start))
-        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.end))
+    /// Drags the screen's only scroll view by about two thirds of its height (a pressed drag, no
+    /// inertia; every button is still hittable in at least one position).
+    private func scrollStep(down: Bool) throws {
+        let scrollView = try exactlyOne(app.scrollViews, "scroll view of the screen")
+        let offsets: (start: CGFloat, end: CGFloat) = down ? (0.85, 0.20) : (0.20, 0.85)
+        let start = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.start))
+        let end = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.end))
         start.press(forDuration: 0.1, thenDragTo: end)
     }
 

@@ -21,6 +21,8 @@ enum SystemLabels {
     /// `“IosLibraryExample” would like to paste from “IosLibraryExampleUITests-Runner”`).
     static let quotedSampleDisplayName = "“IosLibraryExample”"
 
+    static let springboardBundleIdentifier = "com.apple.springboard"
+
     /// Bundle identifier of the sample app.
     static let sampleBundleIdentifier = "com.jonghyunkim.ios.nativetoolkit.example"
 
@@ -45,6 +47,17 @@ enum SystemLabels {
     static let notificationShortLook = "NotificationShortLookView"
     static let popoverDismissRegion = "PopoverDismissRegion"
     static let activityContentView = "UIActivityContentView"
+    /// Elements that mark an open share sheet (see `ShareSheet.waitOpen`).
+    static let shareSheetMarkers = [activityContentView, "ActivityListView"]
+    /// The Files picker (Save to Files): its navigation bar and the browsing root of On My iPhone
+    /// (iOS 26.2).
+    static let filesPickerNavigationBar = "FullDocumentManagerViewControllerNavigationBar"
+    static let localStorageBrowsingRoot = "DOC.browsingRoot Source: com.apple.FileProvider.LocalStorage"
+    /// The share sheet header's title (`LPLinkView` caption, iOS 26.2).
+    static let shareHeaderTitle = "LP.CaptionBar.TopCaption"
+    /// The expanded (long-pressed) notification and its content button (iOS 26.2, stage 0c).
+    static let notificationExpandedView = "notification-expanded-view"
+    static let expandedContent = "ShortLook.Platter.Content.Seamless"
 
     /// Negative buttons the monitor may press on an alert of the sample when the test declares
     /// `systemui` (U-8 (a)).
