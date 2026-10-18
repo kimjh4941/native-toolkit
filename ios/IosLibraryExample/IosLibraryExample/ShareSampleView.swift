@@ -1,11 +1,53 @@
 import SwiftUI
 import IosLibrary
 
+/// Single source of truth for the accessibility identifiers exposed by `ShareSampleView`.
+///
+/// A button's `<name>` is the lowerCamelCase of its title.
+enum ShareSampleIdentifiers {
+
+    static let result = "share.result"
+
+    static func section(_ name: String) -> String { "share.section.\(name)" }
+    static func button(_ name: String) -> String { "share.button.\(name)" }
+
+    enum Section {
+        static let text = "text"
+        static let url = "url"
+        static let image = "image"
+        static let file = "file"
+        static let combination = "combination"
+        static let error = "error"
+    }
+
+    enum ButtonName {
+        static let shareText = "shareText"
+        static let shareURL = "shareURL"
+        static let shareURLWithPreview = "shareURLWithPreview"
+        static let shareImage = "shareImage"
+        static let shareMultipleImages = "shareMultipleImages"
+        static let shareFile = "shareFile"
+        static let shareMultipleFiles = "shareMultipleFiles"
+        static let shareMultiple = "shareMultiple"
+        static let shareWithSubject = "shareWithSubject"
+        static let shareExcludingActivities = "shareExcludingActivities"
+        static let shareEmpty = "shareEmpty"
+        static let shareInvalidURL = "shareInvalidURL"
+        static let shareMissingFile = "shareMissingFile"
+        static let shareMissingImage = "shareMissingImage"
+    }
+}
+
 struct ShareSampleView: View {
 
     private let TAG = "ShareSampleView"
 
+    private typealias ID = ShareSampleIdentifiers
+
     @State private var resultText = "Result will be displayed here"
+    /// Number of result updates, exposed as the result line's `accessibilityValue` so a UI test
+    /// can tell a new result from an identical old one.
+    @State private var resultUpdateCount = 0
 
     var body: some View {
         VStack(spacing: 12) {
@@ -20,10 +62,12 @@ struct ShareSampleView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
                 .padding(.horizontal)
+                .accessibilityIdentifier(ID.result)
+                .accessibilityValue("updates=\(resultUpdateCount)")
 
             ScrollView {
                 VStack(spacing: 16) {
-                    sectionView(title: "Text") {
+                    sectionView(title: "Text", identifier: ID.Section.text) {
                         Button("ShareText") {
                             Task {
                                 await runShare(
@@ -32,9 +76,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareText))
                     }
 
-                    sectionView(title: "URL") {
+                    sectionView(title: "URL", identifier: ID.Section.url) {
                         Button("ShareURL") {
                             Task {
                                 await runShare(
@@ -43,6 +88,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareURL))
 
                         Button("ShareURLWithPreview") {
                             Task {
@@ -55,9 +101,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareURLWithPreview))
                     }
 
-                    sectionView(title: "Image") {
+                    sectionView(title: "Image", identifier: ID.Section.image) {
                         Button("ShareImage") {
                             Task {
                                 guard let imagePath = bundledImagePath() else {
@@ -70,6 +117,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareImage))
 
                         Button("ShareMultipleImages") {
                             Task {
@@ -83,9 +131,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMultipleImages))
                     }
 
-                    sectionView(title: "File") {
+                    sectionView(title: "File", identifier: ID.Section.file) {
                         Button("ShareFile") {
                             Task {
                                 guard let fileURL = prepareSampleFileURL() else {
@@ -98,6 +147,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareFile))
 
                         Button("ShareMultipleFiles") {
                             Task {
@@ -111,9 +161,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMultipleFiles))
                     }
 
-                    sectionView(title: "Combination") {
+                    sectionView(title: "Combination", identifier: ID.Section.combination) {
                         Button("ShareMultiple") {
                             Task {
                                 await runShare(
@@ -125,6 +176,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMultiple))
 
                         Button("ShareWithSubject") {
                             Task {
@@ -137,6 +189,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareWithSubject))
 
                         Button("ShareExcludingActivities") {
                             Task {
@@ -152,14 +205,16 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareExcludingActivities))
                     }
 
-                    sectionView(title: "Error") {
+                    sectionView(title: "Error", identifier: ID.Section.error) {
                         Button("ShareEmpty") {
                             Task {
                                 await runShare(label: "shareEmpty", content: ShareContent(items: []))
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareEmpty))
 
                         Button("ShareInvalidURL") {
                             Task {
@@ -169,6 +224,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareInvalidURL))
 
                         Button("ShareMissingFile") {
                             Task {
@@ -178,6 +234,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMissingFile))
 
                         Button("ShareMissingImage") {
                             Task {
@@ -187,6 +244,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMissingImage))
                     }
                 }
                 .padding(.horizontal)
@@ -198,10 +256,15 @@ struct ShareSampleView: View {
     // MARK: - Section helper
 
     @ViewBuilder
-    private func sectionView<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func sectionView<Content: View>(
+        title: String,
+        identifier: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
+                .accessibilityIdentifier(ID.section(identifier))
             content()
                 .buttonStyle(FullWidthPressableButtonStyle())
         }
@@ -291,6 +354,7 @@ struct ShareSampleView: View {
     private func updateResult(isSuccess: Bool, result: String?) {
         Log.d(TAG, "[updateResult] isSuccess: \(isSuccess), result: \(result ?? "nil")")
         DispatchQueue.main.async {
+            resultUpdateCount += 1
             if isSuccess {
                 resultText = "✅ \nResult: \(result ?? "nil")"
             } else {

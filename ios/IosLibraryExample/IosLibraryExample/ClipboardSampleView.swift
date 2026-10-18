@@ -11,6 +11,8 @@ enum ClipboardSampleIdentifiers {
     static let result = "clipboard.result"
     static let status = "clipboard.status"
     static let pasteSummary = "clipboard.pasteSummary"
+    /// The mounted `UIPasteControl` (the system paste button).
+    static let pasteControl = "clipboard.pasteControl"
 
     static func section(_ name: String) -> String { "clipboard.section.\(name)" }
     static func button(_ action: String) -> String { "clipboard.button.\(action)" }
@@ -1008,12 +1010,16 @@ struct ClipboardPasteControlView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         Log.d(TAG, "[makeUIView] acceptedTypesCount: \(acceptedTypes.count)")
         do {
-            return try IosClipboardManager.shared.makePasteControl(
+            let container = try IosClipboardManager.shared.makePasteControl(
                 acceptedTypes: acceptedTypes,
                 onPaste: onPaste,
                 onPartialFailure: onPartialFailure,
                 onPasteFailure: onPasteFailure
             )
+            // Set on the `UIPasteControl` itself: `.accessibilityIdentifier` on this representable
+            // lands on the surrounding container, not on the paste button a UI test taps.
+            container.control.accessibilityIdentifier = ClipboardSampleIdentifiers.pasteControl
+            return container
         } catch let error as ClipboardError {
             // Changing state synchronously inside `makeUIView` triggers "Modifying state during
             // view update", so the report is deferred to the next main-actor turn.

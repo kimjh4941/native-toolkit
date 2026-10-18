@@ -1,15 +1,80 @@
 import SwiftUI
 import IosLibrary
 
+/// Single source of truth for the accessibility identifiers exposed by `NotificationSampleView`.
+///
+/// A button's `<name>` is the lowerCamelCase of its title without the parenthesised part. Only
+/// `SetBadgeCount(1)` / `SetBadgeCount(0)` keep their digit, because they would otherwise collide.
+enum NotificationSampleIdentifiers {
+
+    static let result = "notification.result"
+
+    static func section(_ name: String) -> String { "notification.section.\(name)" }
+    static func button(_ name: String) -> String { "notification.button.\(name)" }
+    static func lastEvent(_ field: String) -> String { "notification.lastEvent.\(field)" }
+
+    enum Section {
+        static let permission = "permission"
+        static let show = "show"
+        static let updateCancelRemove = "updateCancelRemove"
+        static let schedule = "schedule"
+        static let query = "query"
+        static let badge = "badge"
+        static let category = "category"
+    }
+
+    enum ButtonName {
+        static let requestPermission = "requestPermission"
+        static let hasPermission = "hasPermission"
+        static let authorizationStatus = "authorizationStatus"
+        static let openNotificationSettings = "openNotificationSettings"
+        static let showImmediate = "showImmediate"
+        static let showImmediateWithAttachment = "showImmediateWithAttachment"
+        static let showTimeInterval = "showTimeInterval"
+        static let showCalendar = "showCalendar"
+        static let showLocation = "showLocation"
+        static let updateById = "updateById"
+        static let cancelById = "cancelById"
+        static let cancelAll = "cancelAll"
+        static let removeDeliveredById = "removeDeliveredById"
+        static let removeAllDelivered = "removeAllDelivered"
+        static let scheduleTimeInterval = "scheduleTimeInterval"
+        static let scheduleCalendar = "scheduleCalendar"
+        static let scheduleLocation = "scheduleLocation"
+        static let cancelScheduledById = "cancelScheduledById"
+        static let cancelAllScheduled = "cancelAllScheduled"
+        static let getScheduled = "getScheduled"
+        static let getDelivered = "getDelivered"
+        static let setBadgeCount1 = "setBadgeCount1"
+        static let setBadgeCount0 = "setBadgeCount0"
+        static let registerCategory = "registerCategory"
+        static let removeCategory = "removeCategory"
+    }
+
+    enum LastEventField {
+        static let sequence = "sequence"
+        static let kind = "kind"
+        static let notificationId = "notificationId"
+        static let actionId = "actionId"
+        static let userText = "userText"
+    }
+}
+
 struct NotificationSampleView: View {
 
     private let TAG = "NotificationSampleView"
+
+    private typealias ID = NotificationSampleIdentifiers
 
     private let notificationId = "sample-notification"
     private let scheduledId = "scheduled-notification"
     private let categoryId = "sample-category"
 
     @State private var resultText = "Result will be displayed here"
+    /// Number of result updates, exposed as the result line's `accessibilityValue` so a UI test
+    /// can tell a new result from an identical old one.
+    @State private var resultUpdateCount = 0
+    @StateObject private var eventViewModel = NotificationEventViewModel()
 
     var body: some View {
         VStack(spacing: 12) {
@@ -24,10 +89,14 @@ struct NotificationSampleView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
                 .padding(.horizontal)
+                .accessibilityIdentifier(ID.result)
+                .accessibilityValue("updates=\(resultUpdateCount)")
+
+            lastEventView
 
             ScrollView {
                 VStack(spacing: 16) {
-                    sectionView(title: "Permission") {
+                    sectionView(title: "Permission", identifier: ID.Section.permission) {
                         Button("RequestPermission") {
                             IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
                                 if isSuccess {
@@ -43,6 +112,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.requestPermission))
 
                         Button("HasPermission") {
                             IosNotificationManager.shared.hasPermission { hasPermission in
@@ -52,6 +122,7 @@ struct NotificationSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.hasPermission))
 
                         Button("AuthorizationStatus") {
                             IosNotificationManager.shared.authorizationStatus { status in
@@ -61,6 +132,7 @@ struct NotificationSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.authorizationStatus))
 
                         Button("OpenNotificationSettings") {
                             IosNotificationManager.shared.openNotificationSettings()
@@ -69,9 +141,10 @@ struct NotificationSampleView: View {
                                 result: "[openNotificationSettings] called"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.openNotificationSettings))
                     }
 
-                    sectionView(title: "Show") {
+                    sectionView(title: "Show", identifier: ID.Section.show) {
                         Button("ShowImmediate") {
                             requirePermission {
                                 let content = makeContent(id: notificationId, title: "Immediate Notification", body: "Displayed now")
@@ -83,6 +156,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showImmediate))
 
                         Button("ShowImmediateWithAttachment(AppIcon)") {
                             requirePermission {
@@ -99,6 +173,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showImmediateWithAttachment))
 
                         Button("ShowTimeInterval(5s)") {
                             requirePermission {
@@ -114,6 +189,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showTimeInterval))
 
                         Button("ShowCalendar(+1m)") {
                             requirePermission {
@@ -130,6 +206,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showCalendar))
 
                         Button("ShowLocation(Tokyo Station, onEntry)") {
                             requirePermission {
@@ -154,9 +231,10 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showLocation))
                     }
 
-                    sectionView(title: "Update / Cancel / Remove") {
+                    sectionView(title: "Update / Cancel / Remove", identifier: ID.Section.updateCancelRemove) {
                         Button("UpdateById") {
                             requirePermission {
                                 let content = makeContent(
@@ -176,6 +254,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.updateById))
 
                         Button("CancelById") {
                             IosNotificationManager.shared.cancel(identifier: notificationId)
@@ -184,6 +263,7 @@ struct NotificationSampleView: View {
                                 result: "[cancel] id: \(notificationId)"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.cancelById))
 
                         Button("CancelAll") {
                             IosNotificationManager.shared.cancelAll()
@@ -192,6 +272,7 @@ struct NotificationSampleView: View {
                                 result: "[cancelAll] called"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.cancelAll))
 
                         Button("RemoveDeliveredById") {
                             IosNotificationManager.shared.removeDelivered(identifier: notificationId)
@@ -200,6 +281,7 @@ struct NotificationSampleView: View {
                                 result: "[removeDelivered] id: \(notificationId)"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.removeDeliveredById))
 
                         Button("RemoveAllDelivered") {
                             IosNotificationManager.shared.removeAllDelivered()
@@ -208,9 +290,10 @@ struct NotificationSampleView: View {
                                 result: "[removeAllDelivered] called"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.removeAllDelivered))
                     }
 
-                    sectionView(title: "Schedule") {
+                    sectionView(title: "Schedule", identifier: ID.Section.schedule) {
                         Button("ScheduleTimeInterval(10s)") {
                             requirePermission {
                                 let content = makeContent(id: scheduledId, title: "Scheduled Notification", body: "Scheduled in 10 seconds")
@@ -226,6 +309,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.scheduleTimeInterval))
 
                         Button("ScheduleCalendar(+1m)") {
                             requirePermission {
@@ -243,6 +327,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.scheduleCalendar))
 
                         Button("ScheduleLocation(Tokyo Station, onEntry)") {
                             requirePermission {
@@ -268,6 +353,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.scheduleLocation))
 
                         Button("CancelScheduledById") {
                             IosNotificationManager.shared.cancelScheduled(identifier: scheduledId)
@@ -276,6 +362,7 @@ struct NotificationSampleView: View {
                                 result: "[cancelScheduled] id: \(scheduledId)"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.cancelScheduledById))
 
                         Button("CancelAllScheduled") {
                             IosNotificationManager.shared.cancelAllScheduled()
@@ -284,9 +371,10 @@ struct NotificationSampleView: View {
                                 result: "[cancelAllScheduled] called"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.cancelAllScheduled))
                     }
 
-                    sectionView(title: "Query") {
+                    sectionView(title: "Query", identifier: ID.Section.query) {
                         Button("GetScheduled") {
                             IosNotificationManager.shared.getScheduled { requests in
                                 let ids = requests.map { $0.identifier }.joined(separator: ", ")
@@ -296,6 +384,7 @@ struct NotificationSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.getScheduled))
 
                         Button("GetDelivered") {
                             IosNotificationManager.shared.getDelivered { notifications in
@@ -306,9 +395,10 @@ struct NotificationSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.getDelivered))
                     }
 
-                    sectionView(title: "Badge") {
+                    sectionView(title: "Badge", identifier: ID.Section.badge) {
                         Button("SetBadgeCount(1)") {
                             requirePermission {
                                 IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
@@ -319,6 +409,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.setBadgeCount1))
 
                         Button("SetBadgeCount(0)") {
                             requirePermission {
@@ -330,9 +421,10 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.setBadgeCount0))
                     }
 
-                    sectionView(title: "Category") {
+                    sectionView(title: "Category", identifier: ID.Section.category) {
                         Button("RegisterCategory") {
                             let category = NotificationCategory(
                                 identifier: categoryId,
@@ -364,6 +456,7 @@ struct NotificationSampleView: View {
                                 result: "[registerCategory] Registered. Send a notification and long-press to see the actions (Open, Delete, Reply)."
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.registerCategory))
 
                         Button("RemoveCategory") {
                             IosNotificationManager.shared.removeCategory(identifier: categoryId)
@@ -372,6 +465,7 @@ struct NotificationSampleView: View {
                                 result: "[removeCategory] id: \(categoryId)"
                             )
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.removeCategory))
                     }
                 }
                 .padding(.trailing, 12)
@@ -379,13 +473,43 @@ struct NotificationSampleView: View {
             }
             .padding()
         }
+        .onAppear {
+            // Events that arrived before this screen existed (e.g. a cold start) are kept in the
+            // app-wide store, so re-read it whenever the screen appears.
+            eventViewModel.reload()
+        }
+    }
+
+    /// The last notification event received by this process (tap, action or reply).
+    private var lastEventView: some View {
+        let event = eventViewModel.snapshot
+        return VStack(alignment: .leading, spacing: 2) {
+            Text("sequence=\(event.sequence)")
+                .accessibilityIdentifier(ID.lastEvent(ID.LastEventField.sequence))
+            Text("kind=\(event.kind?.rawValue ?? "none")")
+                .accessibilityIdentifier(ID.lastEvent(ID.LastEventField.kind))
+            Text("notificationId=\(event.notificationId ?? "-")")
+                .accessibilityIdentifier(ID.lastEvent(ID.LastEventField.notificationId))
+            Text("actionId=\(event.actionId ?? "-")")
+                .accessibilityIdentifier(ID.lastEvent(ID.LastEventField.actionId))
+            Text("userText=\(event.userText ?? "-")")
+                .accessibilityIdentifier(ID.lastEvent(ID.LastEventField.userText))
+        }
+        .font(.footnote)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
     }
 
     @ViewBuilder
-    private func sectionView<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func sectionView<Content: View>(
+        title: String,
+        identifier: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
+                .accessibilityIdentifier(ID.section(identifier))
             content()
                 .buttonStyle(FullWidthPressableButtonStyle())
         }
@@ -450,6 +574,7 @@ struct NotificationSampleView: View {
     private func updateResult(isSuccess: Bool, result: String?) {
         Log.d(TAG, "[updateResult] isSuccess: \(isSuccess), result: \(result ?? "nil")")
         DispatchQueue.main.async {
+            resultUpdateCount += 1
             if isSuccess {
                 resultText = "✅ \nResult: \(result ?? "nil")"
             } else {
