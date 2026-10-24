@@ -283,7 +283,10 @@ class SampleUITestCase: XCTestCase {
         } catch {
             firstError = error
         }
-        if session.systemUITokenIssued {
+        // On the device, after the monitor stopped the test at an alert it did not answer, the
+        // springboard cleanup (the home button) is skipped: it could close a private system alert
+        // (stage 0d review R-4).
+        if session.systemUITokenIssued && !(session.isDevice && session.interruption != UITestSession.InterruptionMark.none) {
             do {
                 try NotificationCleanup.springboard(SystemUIToken(session: session))
             } catch {

@@ -42,6 +42,8 @@
     "IdentifierInventoryUITests/testI1b_notificationIdentifiers": [],
     "IdentifierInventoryUITests/testI1c_shareIdentifiers": [],
     "IdentifierInventoryUITests/testI1d_clipboardIdentifiers": ["clipboard"],
+    "NavigationUITests/testM1_menuOpensEachScreenAndBackReturnsToTheMenu": [],
+    "NavigationUITests/testM2_reopenedScreensStartFromTheirInitialState": [],
     "NotificationPermissionUITests/testNP1_allowPermission": ["reinstall", "systemui"],
     "NotificationPermissionUITests/testNP2_denyPermission": ["reinstall", "systemui"],
     "NotificationUITests/testN1_permissionStateIsAuthorized": [],

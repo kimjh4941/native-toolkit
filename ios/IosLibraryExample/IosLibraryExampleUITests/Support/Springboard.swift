@@ -80,8 +80,11 @@ struct Springboard {
     }
 
     /// Waits until no banner of the sample is shown. Returns false when one is still shown.
-    func waitForNoSampleBanner(timeout: TimeInterval) -> Bool {
-        anySampleBanner.firstMatch.waitForNonExistence(timeout: timeout)
+    /// Throws when the interruption monitor marked the test while waiting.
+    func waitForNoSampleBanner(timeout: TimeInterval) throws -> Bool {
+        let gone = anySampleBanner.firstMatch.waitForNonExistence(timeout: timeout)
+        try session.checkInterruption()
+        return gone
     }
 
     func tapBanner(title: String, body: String) throws {
@@ -109,14 +112,22 @@ struct Springboard {
         springboard.descendants(matching: .any).matching(identifier: SystemLabels.notificationExpandedView)
     }
 
-    /// The root that holds the expanded notification and its actions. When the full-screen banner
-    /// element is not found exactly once (for example on an OS version not measured), the whole
-    /// springboard is the scope, and every element is still taken with exactly one match (3.0).
-    private func expandedScope() -> XCUIElement {
+    /// The root that holds the expanded notification and its actions. It must be found exactly
+    /// once, and its expanded view must show exactly one content of the sample's notification
+    /// `<title>` / `<body>`; otherwise nothing is pressed (an OS that is not measured fails instead
+    /// of searching the whole springboard, and a root that shows another notification is not the
+    /// sample's. Stage 0d review R-1, R-21). Taken again before every press.
+    private func expandedScope(title: String, body: String) throws -> XCUIElement {
         let roots = springboard.descendants(matching: .any)
             .matching(NSPredicate(format: "elementType == %lu", Self.bannerNotificationElementType))
             .containing(.any, identifier: SystemLabels.notificationExpandedView)
-        return roots.count == 1 ? roots.element : springboard
+        let root = try exactlyOne(roots, "root of the expanded notification")
+        let view = try exactlyOne(root.descendants(matching: .any).matching(identifier: SystemLabels.notificationExpandedView),
+                                  "expanded view in the root")
+        _ = try exactlyOne(view.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier == %@ AND label ENDSWITH %@", SystemLabels.expandedContent, ", \(title), \(body)"
+        )), "content of the expanded sample notification")
+        return root
     }
 
     /// Long-presses the sample's banner and waits for the expanded view of that notification
@@ -141,20 +152,23 @@ struct Springboard {
 
     /// Waits for and taps an action button (`Open` / `Delete` / `Reply`) of the expanded
     /// notification, with exactly one match inside its scope.
-    func tapAction(_ label: String, timeout: TimeInterval = Springboard.actionTimeout) throws {
-        let query = expandedScope().buttons.matching(identifier: label)
+    func tapAction(_ label: String, title: String, body: String, timeout: TimeInterval = Springboard.actionTimeout) throws {
+        let query = try expandedScope(title: title, body: body).buttons.matching(identifier: label)
         guard query.firstMatch.waitForExistence(timeout: timeout) else {
             throw SampleUITestError("notification action \(label) did not appear")
         }
-        try exactlyOne(query, "notification action \(label)").tap()
+        let button = try exactlyOne(try expandedScope(title: title, body: body).buttons.matching(identifier: label),
+                                    "notification action \(label)")
+        button.tap()
         try session.checkInterruption()
     }
 
     /// Waits until each of `labels` is shown exactly once in the expanded notification's scope.
-    func waitForActions(_ labels: [String], timeout: TimeInterval = Springboard.actionTimeout) throws {
+    func waitForActions(_ labels: [String], title: String, body: String,
+                        timeout: TimeInterval = Springboard.actionTimeout) throws {
         let deadline = Date().addingTimeInterval(timeout)
         for label in labels {
-            let query = expandedScope().buttons.matching(identifier: label)
+            let query = try expandedScope(title: title, body: body).buttons.matching(identifier: label)
             guard query.firstMatch.waitForExistence(timeout: max(0.1, deadline.timeIntervalSinceNow)) else {
                 throw SampleUITestError("notification action \(label) did not appear in \(timeout)s")
             }
@@ -164,24 +178,48 @@ struct Springboard {
     }
 
     /// Number of buttons labeled one of `labels` in the expanded notification's scope (no wait).
-    func actionCount(_ labels: [String]) -> Int {
-        expandedScope().buttons.matching(NSPredicate(format: "label IN %@", labels)).count
+    func actionCount(_ labels: [String], title: String, body: String) throws -> Int {
+        try expandedScope(title: title, body: body).buttons.matching(NSPredicate(format: "label IN %@", labels)).count
     }
 
-    /// Types into the reply text view (a TextView with the sample's placeholder `Type a message`;
-    /// the expanded content has other text views) and taps `Send`.
-    func sendReply(_ text: String, placeholder: String = "Type a message") throws {
-        let fields = springboard.textViews.matching(NSPredicate(format: "placeholderValue == %@", placeholder))
-        guard fields.firstMatch.waitForExistence(timeout: Self.actionTimeout) else {
-            throw SampleUITestError("reply text view did not appear")
+    /// Types into the reply text view and taps `Send`, both inside the reply window of the
+    /// sample's notification `<title>` / `<body>`.
+    ///
+    /// After Reply, the text view and Send are not inside the expanded notification's root: they
+    /// are in a window of their own (measured on the iOS 26.2 simulator in stage 0d; no element of
+    /// it has an identifier). That window is the scope: exactly one springboard window holding a
+    /// text view with the sample's own placeholder (`SystemLabels.sampleReplyPlaceholder`, set by
+    /// the sample's category and used by nothing else), or with the typed text after typing, and
+    /// exactly one text view and one `Send` inside it. The root of the sample's expanded
+    /// notification and the reply window are taken again before typing and before Send; when
+    /// either cannot be shown to be the sample's, nothing is typed or pressed (review R-21).
+    func sendReply(_ text: String, title: String, body: String) throws {
+        let placeholder = SystemLabels.sampleReplyPlaceholder
+        let beforeTyping = NSPredicate(format: "elementType == %lu AND placeholderValue == %@",
+                                       XCUIElement.ElementType.textView.rawValue, placeholder)
+        let afterTyping = NSPredicate(format: "elementType == %lu AND (placeholderValue == %@ OR value == %@)",
+                                      XCUIElement.ElementType.textView.rawValue, placeholder, text)
+        let windows = springboard.windows.containing(beforeTyping)
+        guard windows.firstMatch.waitForExistence(timeout: Self.actionTimeout) else {
+            throw SampleUITestError("reply text view of the sample did not appear")
         }
-        try exactlyOne(fields, "reply text view").typeText(text)
-        try session.checkInterruption()
-        let send = springboard.buttons.matching(identifier: "Send")
+        _ = try expandedScope(title: title, body: body)
+        let scope = try exactlyOne(windows, "reply window")
+        let send = scope.buttons.matching(identifier: "Send")
         guard send.firstMatch.waitForExistence(timeout: Self.actionTimeout) else {
             throw SampleUITestError("Send did not appear")
         }
-        try exactlyOne(send, "Send").tap()
+        _ = try exactlyOne(send, "Send")
+        try exactlyOne(scope.textViews.matching(beforeTyping), "reply text view").typeText(text)
+        try session.checkInterruption()
+        _ = try expandedScope(title: title, body: body)
+        let typed = try exactlyOne(springboard.windows.containing(afterTyping), "reply window")
+        _ = try exactlyOne(typed.textViews.matching(afterTyping), "reply text view")
+        let sendAfterTyping = typed.buttons.matching(identifier: "Send")
+        guard sendAfterTyping.firstMatch.waitForExistence(timeout: Self.actionTimeout) else {
+            throw SampleUITestError("Send did not appear after typing")
+        }
+        try exactlyOne(sendAfterTyping, "Send").tap()
         try session.checkInterruption()
     }
 
@@ -200,10 +238,68 @@ struct Springboard {
         try exactlyOne(springboard.alerts, "springboard alert").label.contains(SystemLabels.quotedSampleDisplayName)
     }
 
-    /// Presses one of `labels` (en / ja) on the only springboard alert; exactly one must match.
+    /// Presses one of `labels` (en / ja) on the only springboard alert, after checking that the
+    /// alert names the sample; exactly one button must match. The label is checked again right
+    /// before the press, and the press is refused when another alert appeared (stage 0d review R-2).
     func tapAlertButton(_ labels: [String]) throws {
+        try tapAlertButton(labels) { $0.contains(SystemLabels.quotedSampleDisplayName) }
+    }
+
+    /// Presses one of `labels` on the paste alert only when `pasteAlertNamesKnownSource` accepts its
+    /// label: content that came from another device (Universal Clipboard) names that device and
+    /// is not allowed (stage 0d review R-3).
+    func tapPasteAlertFromKnownSource(_ labels: [String]) throws {
+        try tapAlertButton(labels, accepting: Self.pasteAlertNamesKnownSource)
+    }
+
+    /// The names quoted with `“` and `”` in `label`, in order. Nil when the quotes do not pair up
+    /// (a quote inside a quote, an opening quote without its closing one, or the reverse).
+    static func quotedNames(in label: String) -> [String]? {
+        var names: [String] = []
+        var current: String?
+        for character in label {
+            switch character {
+            case "“":
+                guard current == nil else { return nil }
+                current = ""
+            case "”":
+                guard let name = current else { return nil }
+                names.append(name)
+                current = nil
+            default:
+                current?.append(character)
+            }
+        }
+        return current == nil ? names : nil
+    }
+
+    /// Whether a paste alert's label is the sample pasting from the test runner or from itself.
+    /// The label quotes exactly two names, the app first and the source second, in both languages:
+    /// en `“IosLibraryExample” would like to paste from “IosLibraryExampleUITests-Runner”` (the
+    /// iOS 26.2 simulator, stage 0c) and ja `“IosLibraryExample”に“IosLibraryExample”からペースト
+    /// しようとしています` (the device, stage 0a 7.2: the source is the sample itself there). Any
+    /// other source (a Mac's name from Universal Clipboard) or any other number of quoted names is
+    /// refused. Mirrored by scripts/tests/test_ios_ui_runner.py (PasteAlert).
+    static func pasteAlertNamesKnownSource(_ label: String) -> Bool {
+        guard let names = quotedNames(in: label), names.count == 2 else { return false }
+        return names[0] == SystemLabels.sampleDisplayName
+            && [SystemLabels.runnerDisplayName, SystemLabels.sampleDisplayName].contains(names[1])
+    }
+
+    private func tapAlertButton(_ labels: [String], accepting accept: (String) -> Bool) throws {
         let alert = try exactlyOne(springboard.alerts, "springboard alert")
-        try exactlyOne(alert.buttons.matching(NSPredicate(format: "label IN %@", labels)), "alert button").tap()
+        let label = alert.label
+        guard accept(label) else {
+            throw SampleUITestError(session.isDevice
+                ? "the springboard alert is not the expected alert of the sample; nothing was pressed"
+                : "the springboard alert is not the expected alert of the sample; nothing was pressed: \(label)")
+        }
+        let button = try exactlyOne(alert.buttons.matching(NSPredicate(format: "label IN %@", labels)), "alert button")
+        // Pressed only while that alert is still the only one and still accepted.
+        guard springboard.alerts.count == 1, accept(alert.label) else {
+            throw SampleUITestError("the springboard alert changed before the press; nothing was pressed")
+        }
+        button.tap()
         try session.checkInterruption()
     }
 

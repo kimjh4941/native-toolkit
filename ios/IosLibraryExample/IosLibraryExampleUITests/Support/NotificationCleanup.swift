@@ -42,7 +42,7 @@ enum NotificationCleanup {
     static func springboard(_ token: SystemUIToken) throws {
         let springboard = Springboard(token)
         try springboard.goHome()
-        guard springboard.waitForNoSampleBanner(timeout: bannerTimeout) else {
+        guard try springboard.waitForNoSampleBanner(timeout: bannerTimeout) else {
             throw SampleUITestError("a banner of the sample was still shown \(bannerTimeout)s after the test")
         }
     }

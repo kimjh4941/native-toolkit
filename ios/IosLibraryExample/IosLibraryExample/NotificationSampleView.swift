@@ -445,7 +445,7 @@ struct NotificationSampleView: View {
                                         identifier: "reply",
                                         title: "Reply",
                                         buttonTitle: "Send",
-                                        textInputPlaceholder: "Type a message"
+                                        textInputPlaceholder: "IosLibraryExample reply"
                                     )
                                 ],
                                 options: [.customDismissAction, .allowAnnouncement]

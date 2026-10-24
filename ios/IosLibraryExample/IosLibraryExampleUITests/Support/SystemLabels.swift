@@ -21,6 +21,15 @@ enum SystemLabels {
     /// `“IosLibraryExample” would like to paste from “IosLibraryExampleUITests-Runner”`).
     static let quotedSampleDisplayName = "“IosLibraryExample”"
 
+    /// Display name of the test runner, the source a paste alert names when the runner wrote the
+    /// pasteboard on the simulator (stage 0c; review R-3).
+    static let runnerDisplayName = "IosLibraryExampleUITests-Runner"
+
+    /// Placeholder of the sample's reply text field (`NotificationSampleView`, category
+    /// `sample-category`). Unique to the sample so that the reply window can be told from any other
+    /// (stage 0d review R-21; changed from `Type a message`).
+    static let sampleReplyPlaceholder = "IosLibraryExample reply"
+
     static let springboardBundleIdentifier = "com.apple.springboard"
 
     /// Bundle identifier of the sample app.

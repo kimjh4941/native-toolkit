@@ -5,3 +5,5 @@
 # Unlike Debug/ or Release/, "xcuserdata" is an Xcode-reserved name, so matching it
 # at any depth is safe: it only ever appears inside .xcworkspace / .xcodeproj.
 xcuserdata/
+# scripts/test_ios.sh writes its DerivedData and results here (UI test design 6.3)
+/IosLibraryExample/build/

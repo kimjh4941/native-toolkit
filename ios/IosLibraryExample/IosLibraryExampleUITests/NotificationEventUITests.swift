@@ -98,7 +98,7 @@ final class NotificationEventUITests: SampleUITestCase {
     @MainActor
     func testN27_openActionBringsTheSample() throws {
         let springboard = try showAndExpand()
-        try springboard.tapAction("Open")
+        try springboard.tapAction("Open", title: Self.title, body: Self.body)
         XCTAssertTrue(try sample.waitForForeground(timeout: 10), "the sample did not come to the foreground")
         try assertSingleEvent(kind: "action", actionId: "open", userText: "-")
     }
@@ -108,7 +108,7 @@ final class NotificationEventUITests: SampleUITestCase {
     @MainActor
     func testN28_deleteActionStaysInBackground() throws {
         let springboard = try showAndExpand()
-        try springboard.tapAction("Delete")
+        try springboard.tapAction("Delete", title: Self.title, body: Self.body)
         sample.observeQuietly(for: 2)
         XCTAssertNotEqual(sample.state, .runningForeground, "the sample came to the foreground after Delete")
         try sample.activate()
@@ -118,8 +118,8 @@ final class NotificationEventUITests: SampleUITestCase {
     @MainActor
     func testN29_replyReportsText() throws {
         let springboard = try showAndExpand()
-        try springboard.tapAction("Reply")
-        try springboard.sendReply("hello reply")
+        try springboard.tapAction("Reply", title: Self.title, body: Self.body)
+        try springboard.sendReply("hello reply", title: Self.title, body: Self.body)
         try sample.activate()
         try assertSingleEvent(kind: "textInput", actionId: "reply", userText: "hello reply")
     }
@@ -153,11 +153,11 @@ final class NotificationEventUITests: SampleUITestCase {
         XCTAssertTrue(try springboard.waitForBanner(title: Self.title, body: Self.body, timeout: 20))
         try springboard.expandBanner(title: Self.title, body: Self.body)
         if present {
-            try springboard.waitForActions(Self.actions)
+            try springboard.waitForActions(Self.actions, title: Self.title, body: Self.body)
         } else {
             sample.observeQuietly(for: 3)
             XCTAssertTrue(springboard.isExpanded, "the expanded notification closed while observing")
-            XCTAssertEqual(springboard.actionCount(Self.actions), 0, "actions shown without the category")
+            XCTAssertEqual(try springboard.actionCount(Self.actions, title: Self.title, body: Self.body), 0, "actions shown without the category")
         }
         try springboard.goHome()
         try sample.activate()

@@ -45,7 +45,7 @@ final class NotificationColdStartUITests: SampleUITestCase {
     func testN31_openActionColdStart() throws {
         let springboard = try showAndTerminate(registerCategory: true)
         try springboard.expandBanner(title: Self.title, body: Self.body)
-        try springboard.tapAction("Open")
+        try springboard.tapAction("Open", title: Self.title, body: Self.body)
         XCTAssertTrue(try sample.waitForForeground(timeout: 15), "the sample did not start")
         try openNotificationFromMenu()
         try assertEvent(kind: "action", actionId: "open", userText: "-")
@@ -55,8 +55,8 @@ final class NotificationColdStartUITests: SampleUITestCase {
     func testN32_replyColdStart() throws {
         let springboard = try showAndTerminate(registerCategory: true)
         try springboard.expandBanner(title: Self.title, body: Self.body)
-        try springboard.tapAction("Reply")
-        try springboard.sendReply("cold reply")
+        try springboard.tapAction("Reply", title: Self.title, body: Self.body)
+        try springboard.sendReply("cold reply", title: Self.title, body: Self.body)
         try sample.activate()
         try openNotificationFromMenu()
         try assertEvent(kind: "textInput", actionId: "reply", userText: "cold reply")
@@ -66,7 +66,7 @@ final class NotificationColdStartUITests: SampleUITestCase {
     func testN33_deleteColdStart() throws {
         let springboard = try showAndTerminate(registerCategory: true)
         try springboard.expandBanner(title: Self.title, body: Self.body)
-        try springboard.tapAction("Delete")
+        try springboard.tapAction("Delete", title: Self.title, body: Self.body)
         try sample.activate()
         try openNotificationFromMenu()
         try assertEvent(kind: "action", actionId: "delete", userText: "-")

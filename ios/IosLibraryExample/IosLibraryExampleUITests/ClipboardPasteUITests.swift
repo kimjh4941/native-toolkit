@@ -40,7 +40,7 @@ final class ClipboardPasteUITests: SampleUITestCase {
         try sample.tap(.loadText, clip)
         XCTAssertTrue(springboard.waitForAlert(), "the paste alert did not appear")
         XCTAssertTrue(try springboard.alertNamesSample(), "the paste alert does not name the sample")
-        try springboard.tapAlertButton(SystemLabels.allowPaste)
+        try springboard.tapPasteAlertFromKnownSource(SystemLabels.allowPaste)
         XCTAssertEqual(
             try sample.waitForClipboardResult(clip, sequence: sequence + 1),
             "✅ #\(sequence + 1) [loadText] textLength=\(text.count)"
