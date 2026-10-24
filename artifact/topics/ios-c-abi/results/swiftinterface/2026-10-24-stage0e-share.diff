@@ -1,0 +1,56 @@
+--- IosLibrary-before-0e-ae1f2a25.swiftinterface	2026-10-24 22:59:27
++++ IosLibrary-after-0e-share.swiftinterface	2026-10-24 23:04:08
+@@ -1,6 +1,6 @@
+ // swift-interface-format-version: 1.0
+ // swift-compiler-version: Apple Swift version 6.2.4 effective-5.10 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
+-// swift-module-flags: -target arm64-apple-ios18.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name IosLibrary
++// swift-module-flags: -target arm64-apple-ios18.0 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-upcoming-feature StrictConcurrency -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name IosLibrary
+ // swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.2.4
+ import CoreLocation
+ import DataDetection
+@@ -854,14 +854,14 @@
+   @objc final public func userNotificationCenter(_ center: UserNotifications.UNUserNotificationCenter, openSettingsFor notification: UserNotifications.UNNotification?)
+   #endif
+ }
+-public protocol ShareRepository {
++public protocol ShareRepository : Swift.Sendable {
+   func present(content: IosLibrary.ShareContent) async throws -> IosLibrary.ShareResult
+ }
+-public struct ShareContentUseCase {
++public struct ShareContentUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.ShareRepository)
+   public func execute(content: IosLibrary.ShareContent) async throws -> IosLibrary.ShareResult
+ }
+-public struct ShareContent {
++public struct ShareContent : Swift.Sendable {
+   public let items: [IosLibrary.ShareItem]
+   public let subject: Swift.String?
+   public let previewTitle: Swift.String?
+@@ -886,23 +886,23 @@
+   }
+   #endif
+ }
+-public enum ShareItem {
++public enum ShareItem : Swift.Sendable {
+   case text(Swift.String)
+   case url(Swift.String)
+   case imageFile(path: Swift.String)
+   case file(path: Swift.String)
+ }
+-public struct ShareResult {
++public struct ShareResult : Swift.Sendable {
+   public let completed: Swift.Bool
+   public let activityType: Swift.String?
+   #if compiler(>=5.3) && $NonescapableTypes
+   public init(completed: Swift.Bool, activityType: Swift.String?)
+   #endif
+ }
+-@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class IosShareManager : ObjectiveC.NSObject {
++@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class IosShareManager : ObjectiveC.NSObject, Swift.Sendable {
+   public static let shared: IosLibrary.IosShareManager
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func share(content: IosLibrary.ShareContent, completion: ((Swift.Bool, Swift.Bool, Swift.String?, Swift.String?) -> Swift.Void)? = nil)
++  final public func share(content: IosLibrary.ShareContent, completion: (@Sendable (Swift.Bool, Swift.Bool, Swift.String?, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   @discardableResult
+   final public func share(content: IosLibrary.ShareContent) async throws -> IosLibrary.ShareResult

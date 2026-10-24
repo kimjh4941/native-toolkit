@@ -6,6 +6,8 @@
 import UIKit
 @testable import IosLibrary
 
+// Main-actor isolated like the `ShareSheetPresenting` requirement, so the mutable test state is Sendable.
+@MainActor
 final class MockShareSheetPresenter: ShareSheetPresenting {
 
     var shouldFail = false

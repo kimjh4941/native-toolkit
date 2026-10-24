@@ -6,7 +6,7 @@
 import Foundation
 
 /// Presents the system share sheet for the given content.
-public struct ShareContentUseCase {
+public struct ShareContentUseCase: Sendable {
     private let TAG = "ShareContentUseCase"
     private let repository: ShareRepository
 

@@ -6,13 +6,18 @@
 import UIKit
 
 /// Contract for presenting a configured `UIActivityViewController` and awaiting its result.
-protocol ShareSheetPresenting {
+///
+/// The requirement is `@MainActor` because presenting is UIKit work. The activity items are not
+/// `Sendable` (`[Any]`), so the caller hands over a fresh array it no longer uses and the compiler
+/// checks that transfer (region-based isolation) instead of an unchecked assertion.
+protocol ShareSheetPresenting: Sendable {
     /// Presents the share sheet with the given activity items and exclusions.
     /// - Parameters:
     ///   - items: Activation items (see `ShareRepositoryImpl.buildActivityItems`).
     ///   - excluded: Activity types to exclude from the sheet.
     /// - Returns: The interaction result.
     /// - Throws: `ShareError` if presentation preconditions fail or the system reports an error.
+    @MainActor
     func present(items: [Any], excluded: [UIActivity.ActivityType]) async throws -> ShareResult
 }
 
@@ -94,6 +99,7 @@ final class ShareSheetPresenter: ShareSheetPresenting {
     }
 
     /// Resolves the top-most presented `UIViewController` suitable for presenting the share sheet.
+    @MainActor
     private func getRootViewController() -> UIViewController? {
         guard let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,

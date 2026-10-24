@@ -7,7 +7,10 @@ import Foundation
 
 /// Defines the contract for presenting the system share sheet.
 /// Implemented by `ShareRepositoryImpl` in the Data layer.
-public protocol ShareRepository {
+///
+/// Conforming types are `Sendable`: `IosShareManager` (a `Sendable` singleton) holds one and calls it
+/// from any thread.
+public protocol ShareRepository: Sendable {
     /// Presents the share sheet for the given content.
     /// - Parameter content: The content to share.
     /// - Returns: The interaction result.

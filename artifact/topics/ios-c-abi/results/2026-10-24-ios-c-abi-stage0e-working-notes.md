@@ -1,0 +1,177 @@
+# 段階 0e の作業の記録（共通の設定と Share）
+
+- 記録日: 2026-10-24
+- 段階: 0e の前半（`README.md` の 5 章の 0e の行、D-14、D-22、8.3）。共通の設定（第 1 部）と Share（第 2 部）。Notification と Dialog はまだ手を付けていない
+- ブランチ: `feature/NTKIT-18`（HEAD `ae1f2a25` の上の未コミットの変更）
+- 環境: Xcode 26.3（17C529）、Swift 6.2.4、シミュレーター iPhone 17（iOS 26.2、`73A3F720-16B5-45F6-A743-E9D853C92424`）だけ。**実機には触れていない**
+- 状態: 第 1 部・第 2 部の実装とシミュレーターでの確かめが済んだ。実機（D-21 のもう 1 つの環境）での確かめと、`LastUpgradeCheck`（2.3）は残っている
+
+## 1. 測り方
+
+| 項目 | 方法 |
+|---|---|
+| 警告の数 | `xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme <IosLibraryExample と IosLibrary> -destination 'platform=iOS Simulator,id=<上の UDID>' -derivedDataPath <scratchpad> SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`。2 つの scheme で、`IosLibrary`・`IosLibraryTests`・サンプル・`IosLibraryExampleTests`・`IosLibraryExampleUITests` の 5 つのターゲットをすべて組む。数え方は `migration` の 4.3 の正規化（位置と診断文の unique 行）を 2 つのログの和集合にかけたもの。変更の前は `SWIFT_STRICT_CONCURRENCY=complete` をコマンドラインで渡し、後はプロジェクトの設定のまま（上書きしない） |
+| build setting の差分 | `xcodebuild -project <p> -target <t> -configuration <Debug/Release> -showBuildSettings` を 5 ターゲット × 2 構成で前と後に取り、`diff` した |
+| 意味が変わらないことの確かめ | 上のビルドのログの `swiftc` の呼び出しから、意味に効く引数（`-swift-version`、`-enable-upcoming-feature`、`-enable-experimental-feature`、`-default-isolation`、`-strict-concurrency`、`-enable-bare-slash-regex`、`-target`）をモジュールごとに抜き出して比べた |
+| 公開 API | `IosLibrary` を Release・`generic/platform=iOS`・`CODE_SIGNING_ALLOWED=NO` で組み、`arm64-apple-ios.swiftinterface` を写した（2.5） |
+
+測ったログと抜き出した一覧は scratchpad に置き、リポジトリには入れていない。
+
+## 2. 第 1 部: 共通の設定
+
+### 2.1 `UnityIosPlugin` をワークスペースから外した（D-22）
+
+- `ios/IosWorkspace.xcworkspace/contents.xcworkspacedata` から `UnityIosPlugin.xcodeproj` の `FileRef` を消した。`xcodebuild -list` の scheme は `IosLibrary` と `IosLibraryExample` の 2 つになった。ソース（`ios/UnityIosPlugin/`）は残した（段階 3 で消す）
+- `scripts/test_ios.sh` と `scripts/ios_ui_runner.py` は、もともと `UnityIosPlugin` を参照していない（`IosLibraryExample` と `IosLibrary` の scheme だけを使い、0d の実行の DerivedData にも `UnityIosPlugin.framework` は無い）。変える所は無かった
+- `scripts/build_ios_library_xcframework.sh` と `ios/generate_docc.sh` は、ワークスペースではなく `-project` で組む（`UnityIosPlugin` には `FRAMEWORK_SEARCH_PATHS` で `IosLibrary` の archive を渡す）。ワークスペースから外しても影響しない。スクリプトは変えていない（リリースの動作を黙って変えない）
+- 第 2 部の後に、スクリプトの `UnityIosPlugin` の組み方（Release・`generic/platform=iOS Simulator`・`BUILD_LIBRARY_FOR_DISTRIBUTION=YES`・`FRAMEWORK_SEARCH_PATHS` に `IosLibrary` の archive）を scratchpad で同じように流し、**`UnityIosPlugin` はまだ組める**ことを確かめた。警告が 1 件増えた（`UnityIosShareManager.swift:56` の「`@Sendable` を期待する所に non-Sendable の `handler` を渡す」）。`.m` の block は C の関数ポインタしか持たないので（`migration` の案 C の監査）、動作は変わらない。ブリッジには手を入れない（README 4 章）。0f で `IosLibrary` の公開 API がさらに変わると、`-m UnityIosPlugin` の組み立ては失敗しうる。1.x の直しはタグ `1.13.0` から行う（D-22）
+- 残るもの: `scripts/README.md`、`ios/generate_docc.sh`、`scripts/publish_docs.sh`、ビルドスクリプトの `UnityIosPlugin` の記述は段階 3 で消す（README 5 章）
+
+### 2.2 テストのターゲットの最小 iOS を 18.0 にした
+
+`IosLibraryTests` と `IosLibraryExampleUITests` は、プロジェクトの階層の 18.2 を継いでいた。`IosLibraryExampleTests` はターゲットに 18.2 を持っていた。2 つの pbxproj の 18.2（プロジェクトの Debug / Release と `IosLibraryExampleTests` の Debug / Release）をすべて 18.0 にした。framework とアプリは前から 18.0 なので変わらない。
+
+### 2.3 Xcode 26 の推奨設定（`LastUpgradeCheck`）は反映していない
+
+`LastUpgradeCheck` / `LastSwiftUpdateCheck` は 1620（Xcode 16.2）のまま、scheme の `LastUpgradeVersion` も 1620 のまま。
+
+理由: 「Update to recommended settings」は Xcode の IDE の機能で、コマンドラインから実行することも、変える項目の一覧を出すこともできない（`xcodebuild` のログにも出ない。調べた範囲で Apple の一覧の文書も無い）。数字だけを上げると、Xcode が何を推奨したかを見ないまま、確かめた印だけを付けることになる。既知の候補の `STRING_CATALOG_GENERATE_SYMBOLS`（Xcode 26 の新しい設定。今は `NO`）は、`IosLibrary` にもサンプルにも `.xcstrings` が無いので、効果が無い。
+
+代わりに、推奨設定で意味が変わりうる設定をプロジェクトの階層で明示的に固定した（2.4）。Xcode で推奨設定を当てても、固定した値は残る。**推奨: 利用者が Xcode でプロジェクトを開いて推奨設定の一覧を見て（変える項目の一覧が出る）、当てた後に 1 章の 3 つ（build setting の差分、`swiftc` の引数、警告の数）を取り直す**。この作業の scratchpad のスクリプトで同じものを取れる。
+
+### 2.4 Swift の設定を固定した
+
+2 つの pbxproj のプロジェクトの階層（Debug / Release）に足した。ターゲットはこれを継ぐ。
+
+| 設定 | 値 | 理由 |
+|---|---|---|
+| `SWIFT_STRICT_CONCURRENCY` | `complete` | 0e の目標（8.3）。5 つのターゲットすべて |
+| `SWIFT_DEFAULT_ACTOR_ISOLATION` | `nonisolated` | Xcode 26 の既定と同じ値。新しい雛形と推奨設定で `MainActor` になると、注釈の無い宣言の隔離が変わる |
+| `SWIFT_APPROACHABLE_CONCURRENCY` | `NO` | 有効にすると 5 つの upcoming feature（下の表の※）がまとめて入る |
+| `SWIFT_UPCOMING_FEATURE_*`（Xcode 26.3 の `Swift.xcspec` にある 18 個すべて） | `NO` | 今の値（Swift 5 では既定が `NO`）を明示した。※は Approachable Concurrency の 5 つ。`NONISOLATED_NONSENDING_BY_DEFAULT` は nonisolated の `async` 関数の実行場所を変える |
+
+固定した upcoming feature: `CONCISE_MAGIC_FILE`、`DEPRECATE_APPLICATION_MAIN`、`DISABLE_OUTWARD_ACTOR_ISOLATION`※、`DYNAMIC_ACTOR_ISOLATION`、`EXISTENTIAL_ANY`、`FORWARD_TRAILING_CLOSURES`、`GLOBAL_ACTOR_ISOLATED_TYPES_USABILITY`※、`GLOBAL_CONCURRENCY`、`IMPLICIT_OPEN_EXISTENTIALS`、`IMPORT_OBJC_FORWARD_DECLS`、`INFER_ISOLATED_CONFORMANCES`※、`INFER_SENDABLE_FROM_CAPTURES`※、`INTERNAL_IMPORTS_BY_DEFAULT`、`ISOLATED_DEFAULT_VALUES`、`MEMBER_IMPORT_VISIBILITY`、`NONFROZEN_ENUM_EXHAUSTIVITY`、`NONISOLATED_NONSENDING_BY_DEFAULT`※、`REGION_BASED_ISOLATION`。
+
+注意（0f）: Swift 6 の言語モードでは、`Swift.xcspec` の条件（`EFFECTIVE_SWIFT_VERSION` が 4 / 4.2 / 5 のときだけ）により、Swift 6 で必ず入る 13 個の固定は効かなくなる（入る）。条件の無い 5 つ（`EXISTENTIAL_ANY`、`INFER_ISOLATED_CONFORMANCES`、`INTERNAL_IMPORTS_BY_DEFAULT`、`MEMBER_IMPORT_VISIBILITY`、`NONISOLATED_NONSENDING_BY_DEFAULT`）と `SWIFT_DEFAULT_ACTOR_ISOLATION` の固定は Swift 6 でも効く。`SWIFT_STRICT_CONCURRENCY=complete` は `swiftc` に `-enable-upcoming-feature StrictConcurrency` を渡す（RegionBasedIsolation の診断もこれで出る。`SWIFT_UPCOMING_FEATURE_REGION_BASED_ISOLATION=NO` は引数を足さないだけ）。
+
+### 2.5 変わった build setting（`-showBuildSettings` の差分の全部）
+
+| ターゲット（Debug / Release とも同じ） | 前 → 後 |
+|---|---|
+| 5 つすべて | `SWIFT_APPROACHABLE_CONCURRENCY`（無し → `NO`）、`SWIFT_DEFAULT_ACTOR_ISOLATION`（無し → `nonisolated`）、`SWIFT_STRICT_CONCURRENCY`（無し → `complete`）、`SWIFT_UPCOMING_FEATURE_*` 18 個（無し → `NO`） |
+| `IosLibraryTests`、`IosLibraryExampleTests`、`IosLibraryExampleUITests` | `IPHONEOS_DEPLOYMENT_TARGET` 18.2 → 18.0、`LLVM_TARGET_TRIPLE_OS_VERSION` ios18.2 → ios18.0 |
+
+「無し」は、設定していないので `-showBuildSettings` に出ていなかったもの（Swift のコンパイラの設定は、値を持つまで一覧に出ない）。ほかの build setting は 10 個の一覧のどれでも変わっていない。
+
+`swiftc` の意味に効く引数の差は、全モジュールで `-enable-upcoming-feature StrictConcurrency` が増えたことと、3 つのテストのターゲットの `-target` が `arm64-apple-ios18.2-simulator` → `arm64-apple-ios18.0-simulator` になったことだけ。固定した設定は引数を 1 つも足していない（今の意味のまま）。`swiftinterface` の `swift-module-flags` にも `-enable-upcoming-feature StrictConcurrency` が入る（2.6 の差分の 1 行目）。
+
+第 1 部だけを当てた状態の警告の集合は、変更の前に `complete` を渡したときの集合（423 件）と 1 行も違わなかった。
+
+### 2.6 公開 API の基準（swiftinterface）
+
+置き場所の提案: `artifact/topics/ios-c-abi/results/swiftinterface/`（README 0e の行の「公開 API の差分（swiftinterface）を保存する」を、段階の結果と同じ所に置く。0f・0g・1b の差分も同じフォルダーに足す）。
+
+| ファイル | 中身 |
+|---|---|
+| `IosLibrary-before-0e-ae1f2a25.swiftinterface` | 0e の前（コミット `ae1f2a25`）の `arm64-apple-ios.swiftinterface`。1.3.0 の公開面の基準 |
+| `IosLibrary-after-0e-share.swiftinterface` | 第 1 部と第 2 部を当てた後 |
+| `2026-10-24-stage0e-share.diff` | 上の 2 つの `diff -u` |
+
+0e が終わったら（Notification・Dialog の後）、`after` を最終の版に差し替え、差分も取り直す。
+
+## 3. 第 2 部: Share
+
+### 3.1 直したもの
+
+`migration` の案 C（completion を main で返し、handler を `@Sendable` にする。unchecked な抜け道を使わない）に沿った。`@unchecked Sendable`、`nonisolated(unsafe)`、`@preconcurrency` は使っていない。
+
+| ファイル | 変更 | 理由（前の警告） |
+|---|---|---|
+| `Share/Domain/Model/ShareContent.swift`、`ShareItem.swift`、`ShareResult.swift` | `Sendable` を付けた | 値型で、中身もすべて `Sendable`。公開の struct / enum は暗黙に `Sendable` にならない。`sending 'content'`、`sending 'result'`、`non-Sendable type 'ShareResult' cannot be returned` |
+| `Share/Application/Port/ShareRepository.swift` | `ShareRepository: Sendable` | `Sendable` の `IosShareManager` が持つ |
+| `Share/Application/UseCase/ShareUseCases.swift` | `ShareContentUseCase: Sendable` | 同上 |
+| `Share/IosShareManager.swift` | `IosShareManager: NSObject, Sendable`。callback 版の `completion` を `(@Sendable (Bool, Bool, String?, String?) -> Void)?` に。DocC にスレッドの節と `@Sendable` の意味を足した | `static let shared` が concurrency-safe でない、`sending 'self'`、`sending 'completion'`。保持するのは `let` の `Sendable` な値だけなので、検査付きの `Sendable` にできる。`shared` に `@MainActor` は付けない（0f の範囲。README 0f の行） |
+| `Share/Presentation/ShareSheetPresenter.swift` | `ShareSheetPresenting: Sendable` にし、要求の `present(items:excluded:)` を `@MainActor` に。`getRootViewController()` を `@MainActor` に | `migration` の 6 章「Share の Presenter は Port 設計の見直しが要る」。要求が nonisolated で実装が `@MainActor` だったので、`[Any]` を渡す所と `ShareResult` を返す所で境界を越えていた。要求を `@MainActor` にし、`ShareRepositoryImpl` が作ったばかりの `[Any]` を渡す形にして、渡してよいことをコンパイラ（region-based isolation）が確かめる。`UIApplication.shared` などの main actor のプロパティの 6 件は、`getRootViewController()` を `@MainActor` にして消えた（呼ぶのは `@MainActor` の `present` だけ） |
+| `Share/Data/Repository/ShareRepositoryImpl.swift` | 保持していた `FileManager` を消し、`FileManager.default` をその場で使う。`init(presenter:fileManager:)` → `init(presenter:)`（internal） | `ShareRepositoryImpl` が `Sendable` になり、`FileManager` は `Sendable` でない（`stored property 'fileManager' ... has non-Sendable type`）。`fileManager` を渡す呼び出し元はテストを含めて無かった。`FileManager.default` はスレッドから安全に使える（Apple の文書） |
+
+継続（`withCheckedThrowingContinuation`）を 1 回だけ再開する仕組みと、`completionWithItemsHandler` から `Task { @MainActor in }` で戻す形は変えていない。
+
+### 3.2 公開 API の変更（2.0.0 の破壊的変更として記録する）
+
+`swiftinterface` の差分（`results/swiftinterface/2026-10-24-stage0e-share.diff`）:
+
+| 宣言 | 前 | 後 | 利用者への影響 |
+|---|---|---|---|
+| `ShareContent`、`ShareItem`、`ShareResult`、`ShareContentUseCase` | 適合無し | `: Sendable` | 足しただけ。ソースは壊れない |
+| `protocol ShareRepository` | 適合無し | `: Sendable` | **破壊的**。利用者が自分で適合させた型は `Sendable` が要る（Swift 5 では警告、Swift 6 ではエラー） |
+| `IosShareManager` | `NSObject` | `NSObject, Sendable` | 足しただけ |
+| `IosShareManager.share(content:completion:)` | `((Bool, Bool, String?, String?) -> Void)?` | `(@Sendable (Bool, Bool, String?, String?) -> Void)?` | **破壊的**（型が変わる）。Swift 5 の minimal では警告も出ない。complete / Swift 6 では、`Sendable` でない値を捕まえた closure が警告 / エラーになる。Objective-C の block の表現は変わらない |
+| `swift-module-flags` | - | `-enable-upcoming-feature StrictConcurrency` が増えた | 第 1 部による。interface から組み直す利用者のコンパイラにも同じ引数が渡る |
+
+動作の変更: 無し。`completion` は前から main で返していた（`Task { @MainActor in }`）。早期に失敗する経路（`items` が空）も同じ `Task` を通るので、どのスレッドから呼んでも main で 1 回だけ返る。テストで確かめた（3.3）。
+
+### 3.3 テスト
+
+| ファイル | 変更 |
+|---|---|
+| `IosLibraryTests/Share/Application/Mock/MockShareRepository.swift`、`Data/Mock/MockShareSheetPresenter.swift` | `@MainActor` を付けた（変えられる状態を持つモックを `Sendable` にするため。`ShareSheetPresenting` の要求と同じ隔離） |
+| `ShareContentUseCaseTests`、`IosShareManagerTests` | スイートに `@MainActor`（モックを同じ actor で扱う） |
+| `ShareRepositoryImplTests` | モックの presenter を使う 1 件に `@MainActor` |
+| `IosShareManagerTests` | 3 件を足した: background のスレッドから呼んで main で返る（成功）、background から空の `items` で呼んで main で失敗が返る（早期の失敗の経路。リポジトリは呼ばれない）、`completion: nil` で trap しない。checked continuation は 2 回目の再開で止まるので、exactly-once も確かめている |
+
+## 4. 警告の数（clean・whole-module・Swift 5 + complete）
+
+| 所 | 0e の前 | 第 1 部の後 | 第 2 部の後 |
+|---|---|---|---|
+| `IosLibrary` / Dialog | 63 | 63 | 63 |
+| `IosLibrary` / Notification | 27 | 27 | 27 |
+| `IosLibrary` / Share | 14 | 14 | **0** |
+| `IosLibrary` / Clipboard | 0 | 0 | 0 |
+| `IosLibraryTests` / Notification | 1 | 1 | 1 |
+| `IosLibraryTests` / Share・Clipboard | 0 | 0 | 0 |
+| サンプル / Notification（`NotificationSampleView.swift:611` の `@unknown default`） | 1 | 1 | 1 |
+| サンプル / Share（`ShareSampleView.swift:280` の `sending 'content'`） | 1 | 1 | **0** |
+| `IosLibraryExampleTests` | 0 | 0 | 0 |
+| `IosLibraryExampleUITests` | 316 | 316 | 316 |
+| 計 | 423 | 423 | 408 |
+
+`IosLibrary` の 104 件（0e の前）は README 0 章の数と一致する。サンプルの Share の 1 件は、`ShareContent` を `Sendable` にして消えた（サンプルのソースは変えていない）。第 2 部で、Share のほかの行は 1 行も増減していない。
+
+**UI テストのターゲットの 316 件**（README の 0 章にも `migration` の 4.2 にも無かった。0e で初めて数えた）: `Support/SampleApp.swift` 146、`Support/Springboard.swift` 89、`Support/ShareSheet.swift` 64、`Support/UnexpectedAlertGuard.swift` 11、`Support/SampleUITestCase.swift` 4、`IosLibraryExampleUITests.swift`（`ClipboardUITests`、凍結）2。ほぼすべてが、iOS 26 の SDK で `@MainActor` の XCUITest の API を nonisolated のテストのコードから呼ぶもの（「main actor-isolated property ... from a nonisolated context」159、「call to main actor-isolated instance method ... in a synchronous nonisolated context」135 など）。**どのファイルも、ランナーが信頼する部分（`TRUSTED_FILES` と `FROZEN_CLIPBOARD_SHA256`）なので、0e では直していない**。直すとハッシュが変わり、0d の設計どおり別のモデルのレビューを通してからハッシュを更新することになる。0f（Swift 6）ではエラーになるので、0f の前に扱いを決める必要がある。
+
+**決定（2026-10-24、利用者）: UI テストのターゲットは例外にする**。`IosLibraryExampleUITests` だけ、ターゲットの階層で `SWIFT_STRICT_CONCURRENCY = minimal` にし、0f でも Swift 5 の言語モードのまま残す。プロジェクトの階層の complete と固定した設定（2.4）は継ぐ。理由: UI テストは配る物に入らない。また、直すと信頼する部分と凍結した `ClipboardUITests` のハッシュが変わり、別のモデルのレビューのやり直し（0d では 3 回）が要る。もう 1 つの案（0f の前に信頼する部分を直し、レビューを通してハッシュを更新する）は採らなかった。直した後の警告は、サンプルの scheme（UI テストまで含む）を clean・whole-module で組んで、UI テストのターゲットが 0 件、`IosLibrary` が 90 件（Dialog 63、Notification 27）、サンプルが 1 件だった。ソースもハッシュも変わらない。
+
+`current-warnings`（0e の前の設定のまま、minimal）は `IosLibrary` 1 件（`allowAnnouncement` の deprecated）とサンプル 1 件（`@unknown default`）。
+
+## 5. 確かめたこと（シミュレーターだけ）
+
+| 確かめ | 結果 |
+|---|---|
+| `IosLibraryTests` 全件（`xcodebuild test -scheme IosLibrary`、`-parallel-testing-enabled NO`） | 189 件すべて成功（0d の基準 186 件 + 3.3 で足した 3 件）。Share は 27 件 |
+| `scripts/test_ios.sh --udid <上の UDID> --feature Share --skip-unit` | 22 件すべて成功（6 章） |
+| `IosLibraryExampleTests`（`-only-testing`。最小 iOS を変えたので） | 10 件すべて成功（0d の基準と同じ件数） |
+| 閉じた形のソースの規則（`ios_ui_runner.py check-sources`） | 通った |
+| 信頼する部分のハッシュ（`ios_ui_runner.py hashes`） | 0d の結果の 2.3 の表と全部同じ。UI テストのフォルダーは変えていない |
+| ランナーの自己テスト（`python3 -m unittest scripts/tests/test_ios_ui_runner.py`） | 132 件すべて成功 |
+| `UnityIosPlugin` がまだ組めるか（2.1） | 組めた |
+
+## 6. `test_ios.sh --feature Share`
+
+結果のフォルダー: `ios/IosLibraryExample/build/test_ios/20261024-230600-iPhone_17-26.2/`（git の外）。
+
+| 項目 | 結果 |
+|---|---|
+| 列挙 | 99 件が `Support/DeviceRequirements.json` と完全に一致 |
+| 選んだテスト | 22 件（`NavigationUITests` 2、`IdentifierInventoryUITests` 4、`ShareUITests` 16）。区分で除いたものは 0 |
+| 結果 | 22 件すべて成功 |
+| 基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）との比べ | changed=0、added=0、removed=0（この実行の外の 273 件は比べていない） |
+
+UI テストのビルドは、プロジェクトの設定（complete）のまま組まれた。実行の後、シミュレーターは Shutdown に戻り、`xcodebuild`・Simulator・テストのプロセスは残っていない。
+
+## 7. 残っていること
+
+- Notification と Dialog（0e の後半）。完了を main で返し、handler を `@Sendable` にする
+- `LastUpgradeCheck`（2.3）。利用者が Xcode の推奨設定の一覧を見て決める
+- 実機（iPhone XS / iOS 18.7.2）で、直した所に関係するテストを流す（README 0e の「両方の環境で流す」）。利用者の許可が要る
+- `IosLibraryTests` の件数が基準の 186 から 189 になったので、`test_ios.sh` の単体テストを含む全件の実行では基準と件数が合わない。0g の後の全件の実行で基準を取り直す（README 0g）
+- README の表（5 章の 0e の行、8.3 の表の `SWIFT_STRICT_CONCURRENCY`・`SWIFT_DEFAULT_ACTOR_ISOLATION`・最小 iOS の行）の更新は、0e を終えたときにまとめて行う

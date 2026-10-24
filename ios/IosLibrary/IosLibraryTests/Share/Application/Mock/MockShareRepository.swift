@@ -6,6 +6,8 @@
 import Foundation
 @testable import IosLibrary
 
+// Main-actor isolated so the mutable test state is Sendable, as `ShareRepository` requires.
+@MainActor
 final class MockShareRepository: ShareRepository {
 
     var shouldFail = false

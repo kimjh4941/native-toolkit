@@ -14,6 +14,10 @@ import Foundation
 /// * Wraps `ShareContentUseCase` and converts errors to a Unity-friendly callback tuple.
 /// * User cancellation is not an error: `completed == false` with `isSuccess == true`.
 ///
+/// ## Threading
+/// The manager is `Sendable` and may be called from any thread. The callback form delivers
+/// `completion` on the main thread exactly once, on every path (including validation failures).
+///
 /// ## Example
 /// ```swift
 /// IosShareManager.shared.share(
@@ -22,7 +26,7 @@ import Foundation
 ///     print(isSuccess, completed, activityType ?? "", errorMessage ?? "")
 /// }
 /// ```
-public final class IosShareManager: NSObject {
+public final class IosShareManager: NSObject, Sendable {
 
     private let TAG = "IosShareManager"
 
@@ -50,8 +54,10 @@ public final class IosShareManager: NSObject {
 
     /// Presents the share sheet for the given content.
     ///
-    /// - Note: `completion` is always invoked on the main thread (main actor), regardless of
-    ///   the calling thread, matching the Unity Bridge's documented threading contract.
+    /// - Note: `completion` is always invoked on the main thread (main actor), exactly once,
+    ///   regardless of the calling thread, matching the Unity Bridge's documented threading
+    ///   contract. It is `@Sendable` because it is carried from the calling thread to the main
+    ///   actor; `@Sendable` does not by itself choose the thread it runs on.
     /// - Note: Intended for the Unity Bridge (C callback interop). Swift callers should prefer
     ///   ``share(content:)-(ShareContent)`` (`async throws`) for typed error handling.
     /// - Parameters:
@@ -63,7 +69,7 @@ public final class IosShareManager: NSObject {
     ///     * `errorMessage`: set only when `isSuccess == false`.
     public func share(
         content: ShareContent,
-        completion: ((Bool, Bool, String?, String?) -> Void)? = nil
+        completion: (@Sendable (Bool, Bool, String?, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "[share] items: \(content.items.count)")
         Task { @MainActor in

@@ -100,6 +100,7 @@ struct ShareRepositoryImplTests {
 
     // MARK: - excludedActivityTypes conversion (via present())
 
+    @MainActor
     @Test func presentConvertsExcludedActivityTypesAndDelegatesToPresenter() async throws {
         let presenter = MockShareSheetPresenter()
         presenter.stubbedResult = ShareResult(completed: true, activityType: "x")

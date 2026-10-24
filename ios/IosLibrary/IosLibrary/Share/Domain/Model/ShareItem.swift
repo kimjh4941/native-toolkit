@@ -6,7 +6,7 @@
 import Foundation
 
 /// A single item to be shared through the system share sheet.
-public enum ShareItem {
+public enum ShareItem: Sendable {
     /// Plain text.
     case text(String)
     /// A web or file URL, held as a raw string. Validated/parsed in the Data layer

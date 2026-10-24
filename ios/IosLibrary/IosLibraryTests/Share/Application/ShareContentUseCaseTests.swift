@@ -6,6 +6,7 @@
 import Testing
 @testable import IosLibrary
 
+@MainActor
 struct ShareContentUseCaseTests {
 
     private func makeContent(items: [ShareItem] = [.text("hello")]) -> ShareContent {

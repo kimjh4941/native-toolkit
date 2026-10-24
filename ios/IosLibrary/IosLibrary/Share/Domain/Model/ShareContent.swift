@@ -6,7 +6,7 @@
 import Foundation
 
 /// The full payload for a share invocation.
-public struct ShareContent {
+public struct ShareContent: Sendable {
     /// Items to share (must be non-empty).
     public let items: [ShareItem]
     /// Optional subject (used by Mail and similar activities).
