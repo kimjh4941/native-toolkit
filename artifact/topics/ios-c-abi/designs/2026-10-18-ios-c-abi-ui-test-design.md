@@ -701,3 +701,21 @@ Android の `scripts/test_android.sh` の形に合わせる。**実機で流す�
 | springboard のアラートの数（6.1、U-9） | `SampleApp.remainingAlertCount` は、印を取らずに springboard のアラートの数だけを読む。何も押さずラベルも読まないので、信頼する部分の中の読むだけの例外として認める（2026-10-19） |
 | 0d のランナー（6.3） | xcodebuild の後はシミュレーターが Shutdown なので、`simctl uninstall` の前に `simctl bootstatus -b` で起動する |
 
+### 8.7 段階 0d で実装に合わせたこと
+
+0d のランナーの実装と実測で、この文書と違う形にしたもの。詳しくは `results/2026-10-24-ios-c-abi-stage0d-working-notes.md` の 3 章と 5 章。
+
+| 所 | 実装 |
+|---|---|
+| `UI_CLASSES`（6.3、3.6） | `NavigationUITests`（M1、M2）は 0c で書かれていなかったので、0d で足した（`UI_CLASSES` の先頭、Common。区分はどちらも `[]`）。全体は 3.6 のとおり 99 件。M2 の `HasPermission` は権限の状態を読むだけで、区分の無いテストは権限を前提にしない（3.0）ので、結果の行は `[hasPermission] true` と `false` のどちらかの全文と比べる |
+| 閉じた形の規則の読み方（6.1、8.2） | swift-syntax ではなく、Python で字句に分けて照らす（コメントと文字列を外し、文字列の補間の中は照らす）。属性と `#` の名前も許すものだけにした |
+| 実機のバイナリの一覧（6.3 の 4） | テストのバンドルの `otool -ov` は相対のメソッドの一覧に selector を出さないので、`otool -l` の `__objc_selrefs` の番地から引く |
+| 信頼する部分のハッシュ（2 章、8.2） | ファイルごとに `scripts/ios_ui_runner.py` に固定した（コミット `8fdb429d` の中身。レビュー v1 の R-1〜R-5 で `Springboard`・`SampleUITestCase`・`NotificationCleanup`・`SystemLabels` を直し、値を更新した） |
+| 段の順（6.3 の 0〜4） | 実機の環境（devicectl）は許可を消費して trap を登録した後に読む。単体テストはシミュレーターのビルドの後に流す |
+| 添付の取り出し（3.7、8.2） | `xcresulttool export attachments`。名前は `ntk-button-coverage-v1_0_<UUID>.json` になる |
+| 返信の欄と Send（6.1 `Springboard`。レビュー v1 R-1、v2 R-21） | 広げた通知の根の外の別の window にある（26.2 のシミュレーターで測った）。根がちょうど 1 つで、その広げた表示がサンプルの題と本文であることを、アクションを押す前・入力の前・Send の前に取り直して確かめる。window は、サンプルにしか無い返信の placeholder（`IosLibraryExample reply`）の欄（入力の後は入力した文字の欄）をちょうど 1 つ持つものに限る。placeholder を変えるため、サンプルの `NotificationSampleView.swift` の 1 か所だけを変えた（0c の「サンプルは変えない」の例外。0b の結果の 5 章）。springboard 全体に戻る道は無い |
+| CB1 の Allow Paste（3.5。レビュー v1 R-3） | ラベルの `“…”` の引用がちょうど 2 つで、1 つ目がサンプル、2 つ目（出どころ）がランナー（`IosLibraryExampleUITests-Runner`。26.2 のシミュレーター、en）かサンプル自身（実機、ja。0a 7.2）のときだけ押す（`Springboard.pasteAlertNamesKnownSource`）。Mac の名前などほかの出どころ（Universal Clipboard）、引用の数の違いでは押さずに失敗する |
+| 許可（6.3。レビュー v1 R-6〜R-9） | 台帳はアカウントのホームの決まった場所だけ（環境変数と `$HOME` では動かない）。行の形を照らし、壊れていれば実機を拒む。許可の一覧は区分・順・除いたもの・知らないキーまで丸ごと比べる。`ios/` にコミットしていない変更（`build/` を除く）があれば実機を拒む |
+| シミュレーターの名指し（6.3 の 6。レビュー v1 R-17） | `--name-each-test` で、実機と同じく 1 件ずつ名指しして流せる |
+| 実機の前の照合（6.3。レビュー v2 R-18〜R-20） | 実機では、`scripts/ios_ui_runner.py` と `scripts/test_ios.sh` もコミット済みで、計画を作ったときと同じであることを求める（2 つの SHA-256 を計画と許可の一覧に入れる）。許可の一覧には計画全体の正規化した SHA-256 を入れ、許可を使った後は読むだけの計画の写しだけを使い、実機のどの呼び出しの前にも（`device_guard` → `device-gate`）計画・台帳・ランナー・木を照らす。xcresult の Test Case の子は `Failure Message` だけを許し、ほかの種類があれば止める |
+

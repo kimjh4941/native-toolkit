@@ -49,3 +49,9 @@
 ## 4. 気になったこと（直していない）
 
 - 最後のイベントの入れ物は、返信の文字（`userText`）を `Log.d` に出す。もとの受け手も同じ値をログに出しており、ログの規則（秘密の値を伏せる）は段階 1b で直す（`README.md` 1.4、8.6）
+
+## 5. 後の段階での変更（0b の範囲の外）
+
+| 日 | 所 | 変更 | 理由 |
+|---|---|---|---|
+| 2026-10-24（段階 0d） | `NotificationSampleView.swift` の category `sample-category` の返信のアクション | `textInputPlaceholder` を `Type a message` から `IosLibraryExample reply` に変えた（この 1 か所だけ） | ランナーのレビュー v2 の R-21。UI テストが返信の欄の window を、サンプルにしか無い placeholder で選べるようにするため（`Type a message` はほかのアプリにもありうる）。0c の「サンプルは変えない」の例外。リリース済みのマニュアル（1.13.0 まで）の通知の章には古い文が残るが、リリース済みの版は書き換えない |
