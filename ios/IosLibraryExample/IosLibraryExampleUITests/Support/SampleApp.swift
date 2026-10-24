@@ -244,14 +244,22 @@ struct InventoryElement: Equatable {
     let frame: CGRect
 }
 
+/// A button of the sample's navigation bar. The label is the sample's own text (the back button
+/// carries the previous screen's title); nothing of the system is read.
+struct NavigationBarButton: Equatable {
+    let identifier: String
+    let label: String
+}
+
 struct InventorySnapshot {
-    /// Every button of the screen, except the navigation bar's back button and the buttons in
+    /// Every button of the screen, except the navigation bar's buttons and the buttons in
     /// `SampleInventory.excludedButtons`. Buttons without an identifier have `""`.
     let buttons: [InventoryElement]
     /// Non-button elements whose identifier starts with the screen's prefix.
     let identifiedNonButtons: [InventoryElement]
-    /// Identifiers of the navigation bar's buttons, excluded from `buttons` (the back button).
-    let navigationBarButtons: [String]
+    /// The navigation bar's buttons, excluded from `buttons` (the test checks it is only the back
+    /// button).
+    let navigationBarButtons: [NavigationBarButton]
     /// Buttons excluded by `SampleInventory.excludedButtons`.
     let excludedListedButtons: Int
 }
@@ -658,7 +666,7 @@ struct SampleApp {
         let root = try app.snapshot()
         var buttons: [InventoryElement] = []
         var nonButtons: [InventoryElement] = []
-        var barButtons: [String] = []
+        var barButtons: [NavigationBarButton] = []
         var listed = 0
         let excluded = Set(SampleInventory.excludedButtons(screen))
 
@@ -666,7 +674,7 @@ struct SampleApp {
             let inBar = inNavigationBar || node.elementType == .navigationBar
             if node.elementType == .button {
                 if inBar {
-                    barButtons.append(node.identifier)
+                    barButtons.append(NavigationBarButton(identifier: node.identifier, label: node.label))
                 } else if excluded.contains(node.identifier) {
                     listed += 1
                 } else {

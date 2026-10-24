@@ -52,8 +52,13 @@ final class IdentifierInventoryUITests: SampleUITestCase {
     private func assertInventory(_ screen: SampleScreen) throws {
         let snapshot = try sample.inventorySnapshot(screen)
 
-        // The navigation bar holds exactly the back button (`BackButton`), excluded explicitly.
-        XCTAssertEqual(snapshot.navigationBarButtons, ["BackButton"], "navigation bar buttons")
+        // The navigation bar holds exactly one button, the back button, excluded explicitly. iOS 26
+        // gives it the identifier `BackButton`; iOS 18 gives it none, so there it is known by its
+        // label, the menu's title (the sample's own text, the same in every language).
+        let bar = snapshot.navigationBarButtons
+        XCTAssertEqual(bar.count, 1, "navigation bar buttons: \(bar.map(\.identifier))")
+        XCTAssertEqual(bar.filter(isBackButton).count, 1,
+                       "the navigation bar button is not the back button: \(bar.map(\.identifier)) (\"\" = no identifier)")
 
         // (1) Every remaining button has an identifier of this screen's buttons.
         let foreign = snapshot.buttons.filter { !$0.identifier.hasPrefix(screen.buttonPrefix) }
@@ -74,6 +79,12 @@ final class IdentifierInventoryUITests: SampleUITestCase {
         XCTAssertEqual(nonButtons.count, expectedNonButtons.count, "number of non-button identifiers")
         XCTAssertEqual(Set(nonButtons).count, nonButtons.count, "duplicated non-button identifiers: \(duplicates(nonButtons))")
         XCTAssertEqual(Set(nonButtons), Set(expectedNonButtons), "non-button identifiers")
+    }
+
+    /// The back button: the identifier `BackButton` (iOS 26), or no identifier and the menu's title
+    /// as its label (iOS 18).
+    private func isBackButton(_ button: NavigationBarButton) -> Bool {
+        button.identifier == "BackButton" || (button.identifier.isEmpty && button.label == "Main Menu")
     }
 
     private func duplicates(_ values: [String]) -> [String] {

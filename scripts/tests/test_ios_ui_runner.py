@@ -1034,16 +1034,115 @@ class ShellGuards(unittest.TestCase):
                  "device_xcodebuild ", 'XCODE="$(xcodebuild -version'))]
         self.assertEqual(calls, [])
 
+    # The run's output folder as the script makes it: a real path (TMPDIR is under /var, a symlink).
+    RUN = 'OUT_DIR="$(cd -P "$TMPDIR" && pwd -P)/run"; mkdir -p "$OUT_DIR"\n'
+
     def test_sim_xcodebuild_refuses_any_other_destination(self):
+        own = '-derivedDataPath "$OUT_DIR/dd-test" -resultBundlePath "$OUT_DIR/0.xcresult"'
         for destination in ("platform=iOS,id=" + FAKE_DEVICE, "generic/platform=iOS", "id=" + FAKE_DEVICE,
                             "platform=iOS Simulator,name=iPhone 17"):
             with self.subTest(destination=destination):
-                finished, log, _ = self.run_bash(f'set +e\nsim_xcodebuild 10 test -destination "{destination}"; '
+                finished, log, _ = self.run_bash(self.RUN + f'set +e\nsim_xcodebuild 10 test {own} -destination "{destination}"; '
                                                  'echo "code=$?"')
                 self.assertIn("code=97", finished.stdout)
                 self.assertEqual(log, "")
-        finished, log, _ = self.run_bash(f'sim_xcodebuild 10 test -destination "platform=iOS Simulator,id={SIMULATOR}"')
+        finished, log, _ = self.run_bash(self.RUN + f'sim_xcodebuild 10 test {own} -destination "platform=iOS Simulator,id={SIMULATOR}"')
         self.assertEqual(log, "called ALLOW=\n")
+
+    def test_every_xcodebuild_names_its_own_paths(self):
+        # Without -derivedDataPath, xcodebuild writes into Xcode's default DerivedData (the first
+        # device run found the simulator enumeration's xcresult there). The simulator's paths must be
+        # inside the run's folder and the device's inside its results folder, each option given once
+        # as `-option <value>`, with no symlink anywhere (review of the fix A-1, A-2).
+        sim = f'-destination "platform=iOS Simulator,id={SIMULATOR}"'
+        dd, rb = '-derivedDataPath "$OUT_DIR/dd-test"', '-resultBundlePath "$OUT_DIR/0.xcresult"'
+        link = 'mkdir -p "$OUT_DIR/real"; ln -s "$OUT_DIR/real" "$OUT_DIR/link"\n'
+        refused = {
+            "no -derivedDataPath": f"test-without-building {sim} {rb}",
+            "no value at the end": f"test-without-building {sim} {rb} -derivedDataPath",
+            "an option as the value": f"test-without-building {sim} -derivedDataPath {rb}",
+            "only the = form": f'test-without-building {sim} -derivedDataPath="$OUT_DIR/dd-test" {rb}',
+            "the = form besides": f'test-without-building {sim} {dd} -derivedDataPath="$HOME/x" {rb}',
+            "another spelling besides": f'test-without-building {sim} {dd} --derivedDataPath "$HOME/x" {rb}',
+            "another case besides": f'test-without-building {sim} {dd} -DerivedDataPath "$HOME/x" {rb}',
+            "given twice": f'test-without-building {sim} {dd} {rb} -derivedDataPath "$OUT_DIR/dd-2"',
+            "the same twice": f"test-without-building {sim} {dd} {dd} {rb}",
+            "the default DerivedData": f'test-without-building {sim} -derivedDataPath "$HOME/Library/Developer/Xcode/DerivedData/x" {rb}',
+            "under BUILD_ROOT but outside the run": f'test-without-building {sim} -derivedDataPath "$BUILD_ROOT/DerivedData-simulator" {rb}',
+            "the run's folder itself": f'test-without-building {sim} -derivedDataPath "$OUT_DIR" {rb}',
+            "a .. component": f'test-without-building {sim} -derivedDataPath "$OUT_DIR/../x" {rb}',
+            "a . component": f'test-without-building {sim} -derivedDataPath "$OUT_DIR/./x" {rb}',
+            "an empty component": f'test-without-building {sim} -derivedDataPath "$OUT_DIR//x" {rb}',
+            "a sibling with the same prefix": f'test-without-building {sim} -derivedDataPath "${{OUT_DIR}}x/dd" {rb}',
+            "a symlink inside the run": link + f'sim_xcodebuild 10 test-without-building {sim} -derivedDataPath "$OUT_DIR/link/dd" {rb}',
+            "a symlink as the folder": link + f'sim_xcodebuild 10 test-without-building {sim} -derivedDataPath "$OUT_DIR/link" {rb}',
+            "a dangling symlink": 'ln -s "$HOME/Library/Developer/Xcode/DerivedData/ntk-not-there" "$OUT_DIR/dangling"\n'
+                                  f'sim_xcodebuild 10 test-without-building {sim} -derivedDataPath "$OUT_DIR/dangling" {rb}',
+            "a run folder under a symlink": 'OUT_DIR="$TMPDIR/run2"; mkdir -p "$OUT_DIR"\n'
+                                            f'sim_xcodebuild 10 test-without-building {sim} {dd} {rb}',
+            "no run folder": f'unset OUT_DIR\nsim_xcodebuild 10 test-without-building {sim} -derivedDataPath "$BUILD_ROOT/x/dd" '
+                             '-resultBundlePath "$BUILD_ROOT/x/0.xcresult"',
+            "a test without -resultBundlePath": f"test-without-building {sim} {dd}",
+            "-resultBundlePath twice": f'test-without-building {sim} {dd} {rb} -resultBundlePath "$OUT_DIR/1.xcresult"',
+            "-resultBundlePath without a value": f"test-without-building {sim} {dd} -resultBundlePath",
+            "-resultBundlePath only in the = form": f'test-without-building {sim} {dd} -resultBundlePath="$OUT_DIR/0.xcresult"',
+            "-resultBundlePath in the = form besides": f'test-without-building {sim} {dd} {rb} -resultBundlePath="$HOME/x"',
+            "-resultBundlePath outside the run": f'test-without-building {sim} {dd} -resultBundlePath "$BUILD_ROOT/0.xcresult"',
+            "-resultBundlePath through a symlink": link + f'sim_xcodebuild 10 test-without-building {sim} {dd} '
+                                                          '-resultBundlePath "$OUT_DIR/link/0.xcresult"',
+            "a build with -resultBundlePath outside": f'build-for-testing {sim} {dd} -resultBundlePath "$BUILD_ROOT/b.xcresult"',
+            "no action": f"-showBuildSettings {sim} {dd}",
+            # A second action must not ride on an allowed one (stage 0d review of the fix: A-3).
+            "a test after a build": f"build-for-testing test {sim} {dd}",
+            "two test actions": f"test test-without-building {sim} {dd} {rb}",
+            "an allowed action with archive": f"build-for-testing archive {sim} {dd}",
+            "another action alone": f"build {sim} {dd}",
+            "clean alone": f"clean {sim} {dd}",
+        }
+        for name, call in refused.items():
+            with self.subTest(refused=name):
+                body = call if "sim_xcodebuild" in call else f"sim_xcodebuild 10 {call}"
+                finished, log, _ = self.run_bash(self.RUN + f'set +e\n{body}; echo "code=$?"')
+                self.assertIn("code=97", finished.stdout, finished.stderr)
+                self.assertEqual(log, "")
+        for name, call in {"a test": f"test-without-building {sim} {dd} {rb}",
+                           "a build": f'build-for-testing {sim} -derivedDataPath "$OUT_DIR/dd-build"',
+                           "the unit test": f'test {sim} -derivedDataPath "$OUT_DIR/dd-build" {rb}'}.items():
+            with self.subTest(accepted=name):
+                finished, log, _ = self.run_bash(self.RUN + f"sim_xcodebuild 10 {call}")
+                self.assertEqual(log, "called ALLOW=\n", finished.stderr)
+        device = f'-destination "platform=iOS,id={FAKE_DEVICE}"'
+        passing = self.RUN + "set +e\nrunner() { return 0; }\nAPPROVAL_CONSUMED=1\nsetup_device_tmp\n"
+        for name, call in {
+            "the build under BUILD_ROOT": f'build-for-testing {device} -derivedDataPath "$BUILD_ROOT/DerivedData-device"',
+            "the build in the run's folder": f'build-for-testing {device} -derivedDataPath "$OUT_DIR/dd-build"',
+            "a test without paths": f"test-without-building {device}",
+            "a test elsewhere": f'test-without-building {device} -derivedDataPath /tmp/dd -resultBundlePath "$DEVICE_TMP/0.xcresult"',
+            "a result bundle in the run's folder": f'test-without-building {device} -derivedDataPath "$DEVICE_TMP/dd-test" '
+                                                   '-resultBundlePath "$OUT_DIR/0.xcresult"',
+            "given twice": f'test-without-building {device} -derivedDataPath "$DEVICE_TMP/dd-test" -derivedDataPath '
+                           '"$DEVICE_TMP/dd-test" -resultBundlePath "$DEVICE_TMP/0.xcresult"',
+        }.items():
+            with self.subTest(device_refused=name):
+                finished, log, _ = self.run_bash(passing + f'device_xcodebuild 10 {call}; echo "code=$?"')
+                self.assertIn("code=97", finished.stdout, finished.stderr)
+                self.assertEqual(log, "")
+        finished, log, _ = self.run_bash(passing + f'device_xcodebuild 10 test-without-building {device} '
+                                         '-derivedDataPath "$DEVICE_TMP/dd-test" -resultBundlePath "$DEVICE_TMP/0.xcresult"\n'
+                                         f'device_xcodebuild 10 build-for-testing {device} -derivedDataPath "$DEVICE_TMP/dd-build"')
+        self.assertEqual(log, "called ALLOW=\ncalled ALLOW=\n", finished.stderr)
+
+    def test_every_xcodebuild_call_of_the_script_names_its_derived_data(self):
+        lines = joined_script()
+        main = lines.index('if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then')
+        calls = [line for line in lines[main:] if line.startswith(("sim_xcodebuild ", "device_xcodebuild "))]
+        self.assertGreaterEqual(len(calls), 6)
+        self.assertEqual([line for line in calls if "-derivedDataPath " not in line], [])
+        tests = [line for line in calls if " test " in line or " test-without-building " in line]
+        self.assertEqual([line for line in tests if "-resultBundlePath " not in line], [])
+        # Both builds are made inside the folder of this run (no build shared between runs).
+        self.assertIn('DD_SIM="${OUT_DIR}/dd-build"', lines)
+        self.assertIn('DD_DEVICE="${DEVICE_TMP}/dd-build"', lines)
 
     def test_capped_fails_when_the_command_cannot_start(self):
         # Review R-13: `exec` failing inside perl used to exit 0.
@@ -1613,8 +1712,44 @@ class EndToEnd(unittest.TestCase):
         approvals = sorted((self.root / "ios" / "IosLibraryExample" / "build" / "test_ios").glob("*-device*/approval.json"))
         return finished, log, approvals[-1]
 
+    def assert_own_derived_data(self, log, stdout):
+        """Every xcodebuild call but -version named its DerivedData (and a test its result bundle)
+        inside this run's folder for the simulator, or the device's results folder for the device,
+        so nothing reached Xcode's default DerivedData or another run's folder."""
+        run = pathlib.Path(next(line[len("[out] "):] for line in stdout.splitlines() if line.startswith("[out] ")))
+        build_root = (self.root / "ios" / "IosLibraryExample" / "build" / "test_ios").resolve()
+        self.assertEqual(run.parent, build_root)
+        device_tmp = str(self.temp.resolve() / "test_ios-device.")
+        calls = [json.loads(line[len("xcodebuild "):line.rindex(" ALLOW=")]) for line in log.splitlines()
+                 if line.startswith("xcodebuild ")]
+        actions = [args for args in calls if args != ["-version"]]
+        self.assertTrue(actions)
+        for args in actions:
+            on_device = (args[args.index("-destination") + 1]).startswith("platform=iOS,")
+            options = ["-derivedDataPath"] + ([] if "build-for-testing" in args else ["-resultBundlePath"])
+            for option in options:
+                self.assertEqual(args.count(option), 1, args)
+                path = args[args.index(option) + 1]
+                if on_device:
+                    self.assertTrue(path.startswith(device_tmp), path)
+                else:
+                    self.assertTrue(path.startswith(str(run) + "/"), path)
+        return actions
+
+    def test_the_simulator_runs_keep_out_of_the_default_derived_data(self):
+        (self.temp / "tests.json").write_text(fixture("xcresult-d1-tests.json"))
+        for extra in (["--dry-run"], ["--feature", "Dialog"]):
+            with self.subTest(extra=extra):
+                finished, log = self.run_script("--udid", SIMULATOR, *extra)
+                actions = self.assert_own_derived_data(log, finished.stdout)
+                self.assertTrue(any("-enumerate-tests" in args for args in actions))
+                if extra == ["--feature", "Dialog"]:
+                    runs = [args for args in actions if "test-without-building" in args and "-enumerate-tests" not in args]
+                    self.assertTrue(runs, finished.stdout + finished.stderr)
+
     def test_the_device_dry_run_never_calls_the_device(self):
         finished, log, approval = self.dry_run("systemui")
+        self.assert_own_derived_data(log, finished.stdout)
         self.assertNotIn("devicectl", log)
         self.assertNotIn("platform=iOS,id", log)
         self.assertIn(f"platform=iOS Simulator,id={SIMULATOR}", log)
@@ -1652,6 +1787,7 @@ class EndToEnd(unittest.TestCase):
         device_runs = [line for line in log.splitlines() if "platform=iOS,id=" + FAKE_DEVICE in line]
         self.assertEqual(len(device_runs), 2)  # the build and the first class, then the stop
         self.assertTrue(all(line.endswith(" ALLOW=") for line in device_runs))
+        self.assert_own_derived_data(log, finished.stdout)
         self.assertEqual(sorted(p.name for p in self.temp.glob("test_ios-device.*")), [])
 
 

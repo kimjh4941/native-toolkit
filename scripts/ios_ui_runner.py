@@ -113,11 +113,12 @@ FROZEN_CLIPBOARD_SHA256 = "4612943da3ec0e32562d86d07d7d134521f1db5fed42e7543db74
 # The trusted part (design 2): the base file and the fixed Support files, pinned per file.
 # Pinned in stage 0d (2026-10-24) from commit 8fdb429d, the end of stage 0c, and updated the same day
 # for review v1 (R-1 to R-5: Springboard, SampleUITestCase, NotificationCleanup, SystemLabels) and v2
-# (R-21: Springboard, SystemLabels).
+# (R-21: Springboard, SystemLabels), and after the first device run for the back button of iOS 18
+# (SampleApp: the navigation bar buttons carry their labels; not yet reviewed by another model).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499",
-    "Support/SampleApp.swift": "d577bc11105b6a49c9a464c2a0e59c22a9c9e91bf4ae43151f7ff9a97fed749b",
+    "Support/SampleApp.swift": "63edf06e72b7a7e881bf1b85427d16add388d3fe502e69f365e493b7c4d9a3d4",
     "Support/Springboard.swift": "427a3b7bddb7aef5f9604c3bc41df8e2516b1989fa872b62cbfddf5549a05be3",
     "Support/ShareSheet.swift": "acbd1a912c9a9489f37847036c5642c72492190cef8abbafa3ba588e7f38b6a8",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",

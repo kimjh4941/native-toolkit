@@ -33,8 +33,6 @@ TESTS_DIR="${IOS_DIR}/IosLibraryExample/IosLibraryExampleUITests"
 SAMPLE_DIR="${IOS_DIR}/IosLibraryExample/IosLibraryExample"
 PBXPROJ="${IOS_DIR}/IosLibraryExample/IosLibraryExample.xcodeproj/project.pbxproj"
 BUILD_ROOT="${IOS_DIR}/IosLibraryExample/build/test_ios"
-DD_SIM="${BUILD_ROOT}/DerivedData-simulator"
-DD_DEVICE="${BUILD_ROOT}/DerivedData-device"
 BUNDLE_ID="com.jonghyunkim.ios.nativetoolkit.example"
 UI_XCTEST="IosLibraryExampleUITests-Runner.app/PlugIns/IosLibraryExampleUITests.xctest/IosLibraryExampleUITests"
 BASELINE_DIR="${NTK_TEST_IOS_BASELINE_DIR:-${ROOT_DIR}/scripts}"
@@ -50,10 +48,79 @@ capped() {  # <seconds> <command...>
   perl -e 'alarm shift; exec @ARGV or die "cannot run $ARGV[0]: $!\n"' "${seconds}" "$@"
 }
 
+# True when <path> is strictly inside <root>, both absolute, with no empty, "." or ".." component and
+# no symlink at any level, and the part that exists is its own real path (`pwd -P`).
+path_inside() {  # <root> <path>
+  local root="$1" path="$2" prefix="" existing="/" part real
+  [[ -n "${root}" && "${root}" == /* && "${path}" == "${root}/"?* ]] || return 1
+  case "${path}/" in *//*|*/./*|*/../*|*$'\n'*) return 1 ;; esac
+  local -a parts
+  IFS=/ read -r -a parts <<< "${path#/}"
+  for part in "${parts[@]}"; do
+    prefix="${prefix}/${part}"
+    [[ -L "${prefix}" ]] && return 1
+    [[ -e "${prefix}" ]] && existing="${prefix}"
+  done
+  real="$(cd -P "${existing}" 2>/dev/null && pwd -P)" || return 1
+  [[ "${real}" == "${existing}" ]]
+}
+
+# Every xcodebuild call but -version names its DerivedData, and a test action its result bundle,
+# inside <root> (the run's output folder for the simulator, the device's results folder for the
+# device), so that nothing lands in Xcode's default DerivedData or in another run's folder. Each
+# option is given exactly once, as the two arguments `-option <value>`; `-option=<value>`, a
+# missing value, a repeat or another spelling is refused. Returns 97 otherwise (first device run,
+# stage 0d review of the fix: A-1, A-2).
+require_own_paths() {  # <root> <xcodebuild arguments...>
+  local root="$1"; shift
+  [[ $# -eq 1 && "$1" == "-version" ]] && return 0
+  local action="" derived="" bundle="" derived_count=0 bundle_count=0 action_count=0 argument lower expect=""
+  for argument in "$@"; do
+    if [[ -n "${expect}" ]]; then
+      # The next argument is the value whatever it is; a missing value or another option is not a
+      # path inside the root, so path_inside refuses it below.
+      if [[ "${expect}" == "-derivedDataPath" ]]; then derived="${argument}"; else bundle="${argument}"; fi
+      expect=""
+      continue
+    fi
+    lower="$(printf '%s' "${argument}" | tr '[:upper:]' '[:lower:]')"
+    case "${argument}" in
+      -derivedDataPath) derived_count=$((derived_count + 1)); expect="${argument}"; continue ;;
+      -resultBundlePath) bundle_count=$((bundle_count + 1)); expect="${argument}"; continue ;;
+      # Every xcodebuild action word is counted, so a second action cannot ride on an allowed one
+      # (stage 0d review of the fix: A-3).
+      build-for-testing|test|test-without-building) action_count=$((action_count + 1)); action="${argument}" ;;
+      build|analyze|archive|clean|install|installsrc|docbuild) action_count=$((action_count + 1)); action="${argument}" ;;
+    esac
+    if [[ "${lower}" == *deriveddatapath* || "${lower}" == *resultbundlepath* ]]; then
+      echo "Error: xcodebuild option in a form this script does not allow: ${argument}" >&2; return 97
+    fi
+  done
+  if [[ "${action_count}" -ne 1 ]]; then
+    echo "Error: xcodebuild needs exactly one action, got ${action_count}" >&2; return 97
+  fi
+  case "${action}" in
+    build-for-testing|test|test-without-building) ;;
+    *) echo "Error: xcodebuild ${action} is not run; only build-for-testing, test or test-without-building" >&2; return 97 ;;
+  esac
+  if [[ "${derived_count}" -ne 1 ]] || ! path_inside "${root}" "${derived}"; then
+    echo "Error: xcodebuild needs exactly one -derivedDataPath inside '${root}', got ${derived_count}: '${derived}'" >&2
+    return 97
+  fi
+  if [[ "${action}" == "build-for-testing" ]]; then
+    [[ "${bundle_count}" -eq 0 ]] && return 0
+  fi
+  if [[ "${bundle_count}" -ne 1 ]] || ! path_inside "${root}" "${bundle}"; then
+    echo "Error: xcodebuild ${action} needs exactly one -resultBundlePath inside '${root}', got ${bundle_count}: '${bundle}'" >&2
+    return 97
+  fi
+}
+
 # Refuses any destination that is not a simulator by UDID (stage 0d review R-10): the device is
 # reached only through device_xcodebuild.
 sim_xcodebuild() {  # <seconds> <xcodebuild arguments...>
   local seconds="$1"; shift
+  require_own_paths "${OUT_DIR:-}" "$@" || return 97
   local previous="" argument
   for argument in "$@"; do
     if [[ "${previous}" == "-destination" && "${argument}" != "platform=iOS Simulator,id="* ]]; then
@@ -90,6 +157,9 @@ cleanup_device_tmp() {
 # trap runs.
 setup_device_tmp() {
   DEVICE_TMP="$(mktemp -d "${TMPDIR:-/tmp}/test_ios-device.XXXXXX")"
+  # Its real path (TMPDIR is under the /var symlink on macOS): xcodebuild paths inside it are
+  # checked for symlinks (require_own_paths).
+  DEVICE_TMP="$(cd -P "${DEVICE_TMP}" && pwd -P)"
   trap cleanup_device_tmp EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
@@ -110,6 +180,7 @@ device_guard() {
 device_xcodebuild() {  # <seconds> <xcodebuild arguments...>
   device_guard || return $?
   local seconds="$1"; shift
+  require_own_paths "${DEVICE_TMP:-}" "$@" || return 97
   capped "${seconds}" env TEST_RUNNER_NTK_DEVICE_ALLOW="${DEVICE_ALLOW}" xcodebuild "$@" < /dev/null
 }
 
@@ -216,6 +287,10 @@ while [[ -e "${OUT_DIR}" ]]; do  # two runs in the same second
   suffix=$((suffix + 1))
 done
 mv "${STAGE_DIR}" "${OUT_DIR}"
+# The real path: every xcodebuild path of the simulator must be inside it, without symlinks.
+OUT_DIR="$(cd -P "${OUT_DIR}" && pwd -P)"
+# The simulator build is made in the run's folder (no build is reused from another run).
+DD_SIM="${OUT_DIR}/dd-build"
 RESULTS="${OUT_DIR}/results.jsonl"
 PLAN="${OUT_DIR}/plan.json"
 : > "${RESULTS}"
@@ -256,7 +331,7 @@ if [[ "${RUN_UNIT}" -eq 1 ]]; then
         > "${OUT_DIR}/unit-${target}.log" 2>&1
     else
       sim_xcodebuild 1800 test-without-building -xctestrun "${XCTESTRUN_SIM}" -destination "platform=iOS Simulator,id=${UDID}" \
-        -parallel-testing-enabled NO -only-testing:"${target}" -resultBundlePath "${bundle}" \
+        -derivedDataPath "${OUT_DIR}/dd-unit" -parallel-testing-enabled NO -only-testing:"${target}" -resultBundlePath "${bundle}" \
         > "${OUT_DIR}/unit-${target}.log" 2>&1
     fi
     code=$?
@@ -272,6 +347,7 @@ fi
 # --- 2b. Enumerate on the simulator and check the declarations ---------------------------------
 echo "[enumerate] simulator ${ENUM_UDID}"
 sim_xcodebuild 600 test-without-building -xctestrun "${XCTESTRUN_SIM}" -destination "platform=iOS Simulator,id=${ENUM_UDID}" \
+  -derivedDataPath "${OUT_DIR}/dd-enumerate" -resultBundlePath "${OUT_DIR}/enumerate.xcresult" \
   -enumerate-tests -test-enumeration-style flat -test-enumeration-format json \
   -test-enumeration-output-path "${OUT_DIR}/enumeration.json" > "${OUT_DIR}/enumerate.log" 2>&1 \
   || { echo "Error: the enumeration failed (${OUT_DIR}/enumerate.log)" >&2; exit 1; }
@@ -299,6 +375,8 @@ if [[ "${KIND}" == "device" ]]; then
   # --- 4. The device: result folder and trap, environment, build, binary inventory -------------
   setup_device_tmp
   RESULT_ROOT="${DEVICE_TMP}"
+  # The device build too is made inside the folder the trap removes.
+  DD_DEVICE="${DEVICE_TMP}/dd-build"
   # From here on only a read-only copy of the approved plan is used; the gate checks its digest
   # before every device call (R-19).
   cp "${PLAN}" "${DEVICE_TMP}/plan.approved.json"
@@ -350,7 +428,8 @@ while IFS=$'\t' read -r -u 3 index stage name timeout uninstall; do
   set +e
   if [[ "${KIND}" == "simulator" ]]; then
     sim_xcodebuild "${timeout}" test-without-building -xctestrun "${XCTESTRUN}" -destination "platform=iOS Simulator,id=${UDID}" \
-      -parallel-testing-enabled NO -resultBundlePath "${bundle}" "${args[@]}" > "${log}" 2>&1
+      -derivedDataPath "${OUT_DIR}/dd-test" -parallel-testing-enabled NO -resultBundlePath "${bundle}" "${args[@]}" \
+      > "${log}" 2>&1
   else
     # The run's own DerivedData and no diagnostics, inside the folder the trap removes (R-12).
     device_xcodebuild "${timeout}" test-without-building -xctestrun "${XCTESTRUN}" -destination "platform=iOS,id=${UDID}" \
