@@ -1,0 +1,42 @@
+{
+  "model": "iPhone XS",
+  "os": "18.7.2",
+  "osBuild": "22H124",
+  "language": "unknown",
+  "xcode": "Xcode 26.3 Build version 17C529",
+  "allowed": [],
+  "counts": {
+    "IosLibraryExampleUITests": {
+      "Common": {
+        "passed": 5
+      },
+      "Dialog": {
+        "passed": 11
+      },
+      "Notification": {
+        "passed": 3
+      }
+    }
+  },
+  "results": {
+    "IosLibraryExampleUITests/DialogUITests/testD10_textInputCancelDropsInput": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD14_eachDialogReportsCompletionAndCallbackOnce": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD1_showAlertOK": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD2_showConfirmDialogYes": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD3_showConfirmDialogNo": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD4_showDestructiveDialogDelete": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD5_showDestructiveDialogCancel": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD6_showActionSheetEachOption": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD7_showActionSheetCancel": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD8_textInputConfirmFollowsInput": "passed",
+    "IosLibraryExampleUITests/DialogUITests/testD9_textInputConfirmReportsInput": "passed",
+    "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1a_dialogIdentifiers": "passed",
+    "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1b_notificationIdentifiers": "passed",
+    "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1c_shareIdentifiers": "passed",
+    "IosLibraryExampleUITests/NavigationUITests/testM1_menuOpensEachScreenAndBackReturnsToTheMenu": "passed",
+    "IosLibraryExampleUITests/NavigationUITests/testM2_reopenedScreensStartFromTheirInitialState": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN1_permissionStateIsAuthorized": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN21_queriesAfterCleanupAreEmpty": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN22_setBadgeCountResults": "passed"
+  }
+}
