@@ -1,0 +1,287 @@
+--- IosLibrary-after-0e-share.swiftinterface	2026-10-24 23:04:08
++++ IosLibrary-after-0e-notification.swiftinterface	2026-10-25 01:09:20
+@@ -8,6 +8,7 @@
+ @_exported import IosLibrary
+ import LinkPresentation
+ import Swift
++import Synchronization
+ import UIKit
+ import UniformTypeIdentifiers
+ import UserNotifications
+@@ -554,7 +555,7 @@
+   #endif
+   @objc deinit
+ }
+-public protocol NotificationRepository {
++public protocol NotificationRepository : Swift.Sendable {
+   #if compiler(>=5.3) && $NonescapableTypes
+   func show(content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger?) async throws
+   #endif
+@@ -577,72 +578,72 @@
+   func registerCategory(_ category: IosLibrary.NotificationCategory) async
+   func removeCategory(identifier: Swift.String) async
+ }
+-public struct RegisterNotificationCategoryUseCase {
++public struct RegisterNotificationCategoryUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute(_ category: IosLibrary.NotificationCategory) async
+ }
+-public struct RemoveNotificationCategoryUseCase {
++public struct RemoveNotificationCategoryUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute(identifier: Swift.String) async
+ }
+-public struct ShowNotificationUseCase {
++public struct ShowNotificationUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   #if compiler(>=5.3) && $NonescapableTypes
+   public func execute(content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger? = nil) async throws
+   #endif
+ }
+-public struct UpdateNotificationUseCase {
++public struct UpdateNotificationUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   #if compiler(>=5.3) && $NonescapableTypes
+   public func execute(identifier: Swift.String, content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger?) async throws
+   #endif
+ }
+-public struct CancelNotificationUseCase {
++public struct CancelNotificationUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute(identifier: Swift.String) async
+ }
+-public struct CancelAllNotificationsUseCase {
++public struct CancelAllNotificationsUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async
+ }
+-public struct RemoveDeliveredNotificationUseCase {
++public struct RemoveDeliveredNotificationUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute(identifier: Swift.String) async
+ }
+-public struct RemoveAllDeliveredNotificationsUseCase {
++public struct RemoveAllDeliveredNotificationsUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async
+ }
+-public struct GetDeliveredNotificationsUseCase {
++public struct GetDeliveredNotificationsUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async -> [IosLibrary.ActiveNotification]
+ }
+-public struct HasNotificationPermissionUseCase {
++public struct HasNotificationPermissionUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async -> Swift.Bool
+ }
+-public struct GetAuthorizationStatusUseCase {
++public struct GetAuthorizationStatusUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async -> IosLibrary.NotificationAuthorizationStatus
+ }
+-public struct ScheduleNotificationUseCase {
++public struct ScheduleNotificationUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute(content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger, identifier: Swift.String) async throws
+ }
+-public struct CancelScheduledNotificationUseCase {
++public struct CancelScheduledNotificationUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute(identifier: Swift.String) async
+ }
+-public struct CancelAllScheduledNotificationsUseCase {
++public struct CancelAllScheduledNotificationsUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async
+ }
+-public struct GetScheduledNotificationsUseCase {
++public struct GetScheduledNotificationsUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async -> [IosLibrary.ScheduledNotification]
+ }
+ final public class NotificationRepositoryImpl : IosLibrary.NotificationRepository {
+-  public init(center: UserNotifications.UNUserNotificationCenter = .current())
++  public init()
+   #if compiler(>=5.3) && $NonescapableTypes
+   final public func show(content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger?) async throws
+   #endif
+@@ -678,7 +679,7 @@
+   public init(identifier: Swift.String, title: Swift.String, subtitle: Swift.String?, body: Swift.String?, categoryIdentifier: Swift.String, date: Foundation.Date, userInfo: [Swift.AnyHashable : Any])
+   #endif
+ }
+-public struct NotificationActionOptions : Swift.OptionSet {
++public struct NotificationActionOptions : Swift.OptionSet, Swift.Sendable {
+   public let rawValue: Swift.UInt
+   public init(rawValue: Swift.UInt)
+   public static let authenticationRequired: IosLibrary.NotificationActionOptions
+@@ -688,7 +689,7 @@
+   public typealias Element = IosLibrary.NotificationActionOptions
+   public typealias RawValue = Swift.UInt
+ }
+-public struct NotificationAction {
++public struct NotificationAction : Swift.Sendable {
+   public let identifier: Swift.String
+   public let title: Swift.String
+   public let sfSymbolName: Swift.String?
+@@ -697,7 +698,7 @@
+   public init(identifier: Swift.String, title: Swift.String, sfSymbolName: Swift.String? = nil, options: IosLibrary.NotificationActionOptions = [])
+   #endif
+ }
+-public struct NotificationAttachment {
++public struct NotificationAttachment : Swift.Sendable {
+   public let identifier: Swift.String
+   public let fileURL: Foundation.URL
+   public init(identifier: Swift.String, fileURL: Foundation.URL)
+@@ -717,19 +718,20 @@
+     get
+   }
+ }
+-public struct NotificationCategory {
++public struct NotificationCategory : Swift.Sendable {
+   public let identifier: Swift.String
+   public let actions: [IosLibrary.NotificationAction]
+   public let textInputActions: [IosLibrary.TextInputNotificationAction]
+   public let options: IosLibrary.NotificationCategoryOptions
+   public init(identifier: Swift.String, actions: [IosLibrary.NotificationAction] = [], textInputActions: [IosLibrary.TextInputNotificationAction] = [], options: IosLibrary.NotificationCategoryOptions = [])
+ }
+-public struct NotificationCategoryOptions : Swift.OptionSet {
++public struct NotificationCategoryOptions : Swift.OptionSet, Swift.Sendable {
+   public let rawValue: Swift.UInt
+   public init(rawValue: Swift.UInt)
+   public static let customDismissAction: IosLibrary.NotificationCategoryOptions
+   public static let allowInCarPlay: IosLibrary.NotificationCategoryOptions
+   public static let hiddenPreviewsShowTitle: IosLibrary.NotificationCategoryOptions
++  @available(*, deprecated, message: "Ignored by the system since iOS 15; it has no effect.")
+   public static let allowAnnouncement: IosLibrary.NotificationCategoryOptions
+   public typealias ArrayLiteralElement = IosLibrary.NotificationCategoryOptions
+   public typealias Element = IosLibrary.NotificationCategoryOptions
+@@ -763,7 +765,7 @@
+   case setBadgeCountFailed(any Swift.Error)
+   case unknown(any Swift.Error)
+ }
+-public enum NotificationInterruptionLevel {
++public enum NotificationInterruptionLevel : Swift.Sendable {
+   case passive
+   case active
+   case timeSensitive
+@@ -774,12 +776,12 @@
+     get
+   }
+ }
+-public enum NotificationSound {
++public enum NotificationSound : Swift.Sendable {
+   case `default`
+   case defaultCritical
+   case named(Swift.String)
+ }
+-public enum NotificationTrigger {
++public enum NotificationTrigger : Swift.Sendable {
+   case timeInterval(Foundation.TimeInterval, repeats: Swift.Bool)
+   case calendar(Foundation.DateComponents, repeats: Swift.Bool)
+   case location(identifier: Swift.String, latitude: Swift.Double, longitude: Swift.Double, radius: Swift.Double, notifyOnEntry: Swift.Bool, notifyOnExit: Swift.Bool)
+@@ -795,53 +797,78 @@
+   public init(identifier: Swift.String, title: Swift.String, subtitle: Swift.String?, body: Swift.String?, categoryIdentifier: Swift.String, userInfo: [Swift.AnyHashable : Any])
+   #endif
+ }
+-public struct TextInputNotificationAction {
++public struct TextInputNotificationAction : Swift.Sendable {
+   public let identifier: Swift.String
+   public let title: Swift.String
+   public let buttonTitle: Swift.String
+   public let textInputPlaceholder: Swift.String
+   public init(identifier: Swift.String, title: Swift.String, buttonTitle: Swift.String, textInputPlaceholder: Swift.String)
+ }
+-@_hasMissingDesignatedInitializers final public class NotificationPermissionHelper {
++@_hasMissingDesignatedInitializers final public class NotificationPermissionHelper : Swift.Sendable {
+   public static let shared: IosLibrary.NotificationPermissionHelper
+   final public func requestPermission(options: UserNotifications.UNAuthorizationOptions = [.alert, .sound, .badge, .providesAppNotificationSettings]) async throws -> Swift.Bool
+   final public func authorizationStatus() async -> IosLibrary.NotificationAuthorizationStatus
+   final public func openNotificationSettings()
+   @objc deinit
+ }
+-public typealias NotificationActionHandler = (_ notificationIdentifier: Swift.String, _ actionIdentifier: Swift.String, _ userInfo: [Swift.AnyHashable : Any]) -> Swift.Void
+-public typealias NotificationTextInputActionHandler = (_ notificationIdentifier: Swift.String, _ actionIdentifier: Swift.String, _ userText: Swift.String, _ userInfo: [Swift.AnyHashable : Any]) -> Swift.Void
+-@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class IosNotificationManager : ObjectiveC.NSObject {
++public typealias NotificationActionHandler = @Sendable (_ notificationIdentifier: Swift.String, _ actionIdentifier: Swift.String, _ userInfo: [Swift.AnyHashable : Any]) -> Swift.Void
++public typealias NotificationTextInputActionHandler = @Sendable (_ notificationIdentifier: Swift.String, _ actionIdentifier: Swift.String, _ userText: Swift.String, _ userInfo: [Swift.AnyHashable : Any]) -> Swift.Void
++@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class IosNotificationManager : ObjectiveC.NSObject, Swift.Sendable {
+   public static let shared: IosLibrary.IosNotificationManager
+-  final public var foregroundPresentationOptions: UserNotifications.UNNotificationPresentationOptions
+-  final public var onActionReceived: IosLibrary.NotificationActionHandler?
+-  final public var onTextInputActionReceived: IosLibrary.NotificationTextInputActionHandler?
++  final public var foregroundPresentationOptions: UserNotifications.UNNotificationPresentationOptions {
++    get
++    set
++  }
++  #if compiler(>=5.3) && $NonescapableTypes
++  final public var onActionReceived: IosLibrary.NotificationActionHandler? {
++    get
++    set
++  }
++  #endif
++  #if compiler(>=5.3) && $NonescapableTypes
++  final public var onTextInputActionReceived: IosLibrary.NotificationTextInputActionHandler? {
++    get
++    set
++  }
++  #endif
+   public static func setup()
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func show(content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger? = nil, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  #if compiler(>=5.3) && $SendingArgsAndResults
++  final public func show(content: sending IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  #else
++  final public func show(content: __owned IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
++  #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func update(identifier: Swift.String, content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger?, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  #if compiler(>=5.3) && $SendingArgsAndResults
++  final public func update(identifier: Swift.String, content: sending IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger?, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  #else
++  final public func update(identifier: Swift.String, content: __owned IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger?, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
++  #endif
+   final public func cancel(identifier: Swift.String)
+   final public func cancelAll()
+   final public func removeDelivered(identifier: Swift.String)
+   final public func removeAllDelivered()
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func schedule(content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger, identifier: Swift.String, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  #if compiler(>=5.3) && $SendingArgsAndResults
++  final public func schedule(content: sending IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger, identifier: Swift.String, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  #else
++  final public func schedule(content: __owned IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger, identifier: Swift.String, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
++  #endif
+   final public func cancelScheduled(identifier: Swift.String)
+   final public func cancelAllScheduled()
+-  final public func getScheduled(completion: @escaping ([IosLibrary.ScheduledNotification]) -> Swift.Void)
+-  final public func getDelivered(completion: @escaping ([IosLibrary.ActiveNotification]) -> Swift.Void)
+-  final public func hasPermission(completion: @escaping (Swift.Bool) -> Swift.Void)
+-  final public func authorizationStatus(completion: @escaping (IosLibrary.NotificationAuthorizationStatus) -> Swift.Void)
++  final public func getScheduled(completion: @escaping @_Concurrency.MainActor @Sendable ([IosLibrary.ScheduledNotification]) -> Swift.Void)
++  final public func getDelivered(completion: @escaping @_Concurrency.MainActor @Sendable ([IosLibrary.ActiveNotification]) -> Swift.Void)
++  final public func hasPermission(completion: @escaping @_Concurrency.MainActor @Sendable (Swift.Bool) -> Swift.Void)
++  final public func authorizationStatus(completion: @escaping @_Concurrency.MainActor @Sendable (IosLibrary.NotificationAuthorizationStatus) -> Swift.Void)
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func requestPermission(options: UserNotifications.UNAuthorizationOptions = [.alert, .sound, .badge], completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func requestPermission(options: UserNotifications.UNAuthorizationOptions = [.alert, .sound, .badge], completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   final public func openNotificationSettings()
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func setBadgeCount(_ count: Swift.Int, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func setBadgeCount(_ count: Swift.Int, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   final public func registerCategory(_ category: IosLibrary.NotificationCategory)
+   final public func removeCategory(identifier: Swift.String)
+@@ -902,7 +929,7 @@
+ @objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class IosShareManager : ObjectiveC.NSObject, Swift.Sendable {
+   public static let shared: IosLibrary.IosShareManager
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func share(content: IosLibrary.ShareContent, completion: (@Sendable (Swift.Bool, Swift.Bool, Swift.String?, Swift.String?) -> Swift.Void)? = nil)
++  final public func share(content: IosLibrary.ShareContent, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.Bool, Swift.String?, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   @discardableResult
+   final public func share(content: IosLibrary.ShareContent) async throws -> IosLibrary.ShareResult

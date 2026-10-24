@@ -4,43 +4,98 @@
 //
 
 import Foundation
+import Synchronization
 import UserNotifications
 @testable import IosLibrary
 
+// `NotificationRepository` is `Sendable` and is called from the manager's tasks, so the mutable
+// test state is kept behind a `Mutex`. `ScheduledNotification` and `ActiveNotification` are not
+// `Sendable` (they hold `userInfo`), so the stubs are factories that build a fresh value per call.
 final class MockNotificationRepository: NotificationRepository {
 
-    var shouldFail = false
-    var stubbedAuthorizationStatus: NotificationAuthorizationStatus = .authorized
-    var stubbedScheduled: [ScheduledNotification] = []
-    var stubbedDelivered: [ActiveNotification] = []
+    private struct State {
+        var shouldFail = false
+        var stubbedAuthorizationStatus: NotificationAuthorizationStatus = .authorized
+        var makeScheduled: @Sendable () -> [ScheduledNotification] = { [] }
+        var makeDelivered: @Sendable () -> [ActiveNotification] = { [] }
 
-    private(set) var showCallCount = 0
-    private(set) var updateCallCount = 0
-    private(set) var scheduleCallCount = 0
-    private(set) var cancelCallCount = 0
-    private(set) var cancelAllCallCount = 0
-    private(set) var removeDeliveredCallCount = 0
-    private(set) var removeAllDeliveredCallCount = 0
-    private(set) var cancelScheduledCallCount = 0
-    private(set) var cancelAllScheduledCallCount = 0
-    private(set) var setBadgeCountCallCount = 0
-    private(set) var registerCategoryCallCount = 0
-    private(set) var removeCategoryCallCount = 0
-    private(set) var openSettingsCallCount = 0
+        var showCallCount = 0
+        var updateCallCount = 0
+        var scheduleCallCount = 0
+        var cancelCallCount = 0
+        var cancelAllCallCount = 0
+        var removeDeliveredCallCount = 0
+        var removeAllDeliveredCallCount = 0
+        var cancelScheduledCallCount = 0
+        var cancelAllScheduledCallCount = 0
+        var setBadgeCountCallCount = 0
+        var registerCategoryCallCount = 0
+        var removeCategoryCallCount = 0
+        var openSettingsCallCount = 0
+    }
+
+    private let state = Mutex(State())
+
+    private func value<Value: Sendable>(_ keyPath: KeyPath<State, Value>) -> Value {
+        state.withLock { $0[keyPath: keyPath] }
+    }
+
+    private func setValue<Value: Sendable>(_ keyPath: WritableKeyPath<State, Value>, _ value: Value) {
+        state.withLock { $0[keyPath: keyPath] = value }
+    }
+
+    /// Counts a call and returns whether the call should fail.
+    private func record(_ keyPath: WritableKeyPath<State, Int>) -> Bool {
+        state.withLock { state in
+            state[keyPath: keyPath] += 1
+            return state.shouldFail
+        }
+    }
+
+    var shouldFail: Bool {
+        get { value(\.shouldFail) }
+        set { setValue(\.shouldFail, newValue) }
+    }
+
+    var stubbedAuthorizationStatus: NotificationAuthorizationStatus {
+        get { value(\.stubbedAuthorizationStatus) }
+        set { setValue(\.stubbedAuthorizationStatus, newValue) }
+    }
+
+    var makeScheduled: @Sendable () -> [ScheduledNotification] {
+        get { value(\.makeScheduled) }
+        set { setValue(\.makeScheduled, newValue) }
+    }
+
+    var makeDelivered: @Sendable () -> [ActiveNotification] {
+        get { value(\.makeDelivered) }
+        set { setValue(\.makeDelivered, newValue) }
+    }
+
+    var showCallCount: Int { value(\.showCallCount) }
+    var updateCallCount: Int { value(\.updateCallCount) }
+    var scheduleCallCount: Int { value(\.scheduleCallCount) }
+    var cancelCallCount: Int { value(\.cancelCallCount) }
+    var cancelAllCallCount: Int { value(\.cancelAllCallCount) }
+    var removeDeliveredCallCount: Int { value(\.removeDeliveredCallCount) }
+    var removeAllDeliveredCallCount: Int { value(\.removeAllDeliveredCallCount) }
+    var cancelScheduledCallCount: Int { value(\.cancelScheduledCallCount) }
+    var cancelAllScheduledCallCount: Int { value(\.cancelAllScheduledCallCount) }
+    var setBadgeCountCallCount: Int { value(\.setBadgeCountCallCount) }
+    var registerCategoryCallCount: Int { value(\.registerCategoryCallCount) }
+    var removeCategoryCallCount: Int { value(\.removeCategoryCallCount) }
+    var openSettingsCallCount: Int { value(\.openSettingsCallCount) }
 
     func show(content: NotificationContent, trigger: NotificationTrigger?) async throws {
-        showCallCount += 1
-        if shouldFail { throw NotificationError.addRequestFailed(TestError.stub) }
+        if record(\.showCallCount) { throw NotificationError.addRequestFailed(TestError.stub) }
     }
 
     func update(identifier: String, content: NotificationContent, trigger: NotificationTrigger?) async throws {
-        updateCallCount += 1
-        if shouldFail { throw NotificationError.addRequestFailed(TestError.stub) }
+        if record(\.updateCallCount) { throw NotificationError.addRequestFailed(TestError.stub) }
     }
 
     func schedule(content: NotificationContent, trigger: NotificationTrigger, identifier: String) async throws {
-        scheduleCallCount += 1
-        if shouldFail { throw NotificationError.addRequestFailed(TestError.stub) }
+        if record(\.scheduleCallCount) { throw NotificationError.addRequestFailed(TestError.stub) }
     }
 
     func requestPermission(options: UNAuthorizationOptions) async throws -> Bool {
@@ -49,40 +104,39 @@ final class MockNotificationRepository: NotificationRepository {
     }
 
     func setBadgeCount(_ count: Int) async throws {
-        setBadgeCountCallCount += 1
-        if shouldFail { throw NotificationError.setBadgeCountFailed(TestError.stub) }
+        if record(\.setBadgeCountCallCount) { throw NotificationError.setBadgeCountFailed(TestError.stub) }
     }
 
     func cancel(identifier: String) async {
-        cancelCallCount += 1
+        _ = record(\.cancelCallCount)
     }
 
     func cancelAll() async {
-        cancelAllCallCount += 1
+        _ = record(\.cancelAllCallCount)
     }
 
     func removeDelivered(identifier: String) async {
-        removeDeliveredCallCount += 1
+        _ = record(\.removeDeliveredCallCount)
     }
 
     func removeAllDelivered() async {
-        removeAllDeliveredCallCount += 1
+        _ = record(\.removeAllDeliveredCallCount)
     }
 
     func cancelScheduled(identifier: String) async {
-        cancelScheduledCallCount += 1
+        _ = record(\.cancelScheduledCallCount)
     }
 
     func cancelAllScheduled() async {
-        cancelAllScheduledCallCount += 1
+        _ = record(\.cancelAllScheduledCallCount)
     }
 
     func getScheduled() async -> [ScheduledNotification] {
-        stubbedScheduled
+        makeScheduled()
     }
 
     func getDelivered() async -> [ActiveNotification] {
-        stubbedDelivered
+        makeDelivered()
     }
 
     func authorizationStatus() async -> NotificationAuthorizationStatus {
@@ -90,15 +144,15 @@ final class MockNotificationRepository: NotificationRepository {
     }
 
     func openNotificationSettings() {
-        openSettingsCallCount += 1
+        _ = record(\.openSettingsCallCount)
     }
 
     func registerCategory(_ category: NotificationCategory) async {
-        registerCategoryCallCount += 1
+        _ = record(\.registerCategoryCallCount)
     }
 
     func removeCategory(identifier: String) async {
-        removeCategoryCallCount += 1
+        _ = record(\.removeCategoryCallCount)
     }
 }
 

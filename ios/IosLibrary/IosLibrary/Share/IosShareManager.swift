@@ -57,7 +57,8 @@ public final class IosShareManager: NSObject, Sendable {
     /// - Note: `completion` is always invoked on the main thread (main actor), exactly once,
     ///   regardless of the calling thread, matching the Unity Bridge's documented threading
     ///   contract. It is `@Sendable` because it is carried from the calling thread to the main
-    ///   actor; `@Sendable` does not by itself choose the thread it runs on.
+    ///   actor, and `@MainActor` to state in the type where it runs (the same as the completions
+    ///   of `IosNotificationManager`).
     /// - Note: Intended for the Unity Bridge (C callback interop). Swift callers should prefer
     ///   ``share(content:)-(ShareContent)`` (`async throws`) for typed error handling.
     /// - Parameters:
@@ -69,7 +70,7 @@ public final class IosShareManager: NSObject, Sendable {
     ///     * `errorMessage`: set only when `isSuccess == false`.
     public func share(
         content: ShareContent,
-        completion: (@Sendable (Bool, Bool, String?, String?) -> Void)? = nil
+        completion: (@MainActor @Sendable (Bool, Bool, String?, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "[share] items: \(content.items.count)")
         Task { @MainActor in

@@ -6,7 +6,7 @@
 import Foundation
 
 /// Returns all notifications currently visible in Notification Center.
-public struct GetDeliveredNotificationsUseCase {
+public struct GetDeliveredNotificationsUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -19,7 +19,7 @@ public struct GetDeliveredNotificationsUseCase {
 }
 
 /// Returns whether the app currently has notification authorization.
-public struct HasNotificationPermissionUseCase {
+public struct HasNotificationPermissionUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -34,7 +34,7 @@ public struct HasNotificationPermissionUseCase {
 }
 
 /// Returns the current notification authorization status.
-public struct GetAuthorizationStatusUseCase {
+public struct GetAuthorizationStatusUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {

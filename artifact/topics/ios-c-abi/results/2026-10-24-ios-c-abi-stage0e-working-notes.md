@@ -1,10 +1,10 @@
-# 段階 0e の作業の記録（共通の設定と Share）
+# 段階 0e の作業の記録（共通の設定、Share、Notification）
 
-- 記録日: 2026-10-24
-- 段階: 0e の前半（`README.md` の 5 章の 0e の行、D-14、D-22、8.3）。共通の設定（第 1 部）と Share（第 2 部）。Notification と Dialog はまだ手を付けていない
-- ブランチ: `feature/NTKIT-18`（HEAD `ae1f2a25` の上の未コミットの変更）
+- 記録日: 2026-10-24（第 3 部は 2026-10-25）
+- 段階: 0e の前半（`README.md` の 5 章の 0e の行、D-14、D-22、8.3）。共通の設定（第 1 部）、Share（第 2 部）、Notification（第 3 部、8 章）。Dialog はまだ手を付けていない
+- ブランチ: `feature/NTKIT-18`（第 1 部・第 2 部は HEAD `ae1f2a25` の上で作り、`6e804fd6`・`8a557bcc` でコミットした。第 3 部は `8a557bcc` の上の未コミットの変更）
 - 環境: Xcode 26.3（17C529）、Swift 6.2.4、シミュレーター iPhone 17（iOS 26.2、`73A3F720-16B5-45F6-A743-E9D853C92424`）だけ。**実機には触れていない**
-- 状態: 第 1 部・第 2 部の実装とシミュレーターでの確かめが済んだ。実機（D-21 のもう 1 つの環境）での確かめと、`LastUpgradeCheck`（2.3）は残っている
+- 状態: 第 1 部〜第 3 部の実装とシミュレーターでの確かめが済んだ。実機（D-21 のもう 1 つの環境）での確かめと、`LastUpgradeCheck`（2.3）は残っている
 
 ## 1. 測り方
 
@@ -175,3 +175,126 @@ UI テストのビルドは、プロジェクトの設定（complete）のまま
 - 実機（iPhone XS / iOS 18.7.2）で、直した所に関係するテストを流す（README 0e の「両方の環境で流す」）。利用者の許可が要る
 - `IosLibraryTests` の件数が基準の 186 から 189 になったので、`test_ios.sh` の単体テストを含む全件の実行では基準と件数が合わない。0g の後の全件の実行で基準を取り直す（README 0g）
 - README の表（5 章の 0e の行、8.3 の表の `SWIFT_STRICT_CONCURRENCY`・`SWIFT_DEFAULT_ACTOR_ISOLATION`・最小 iOS の行）の更新は、0e を終えたときにまとめて行う
+
+## 8. 第 3 部: Notification
+
+`migration` の案 C に沿った（操作の完了を全経路で main に 1 回だけ返し、handler を `@Sendable` にする）。`@unchecked Sendable`、`nonisolated(unsafe)`、`@preconcurrency` は使っていない。`shared` に `@MainActor` は付けていない（0f）。1.4 の不備（`registerCategory` の完了、category の読んで書き戻す競合、static の権限の受け手など）は直していない（1b）。
+
+### 8.1 直したもの
+
+| ファイル | 変更 | 理由（前の警告） |
+|---|---|---|
+| `Notification/Domain/Model/` の `NotificationAction`（と `NotificationActionOptions`）、`NotificationAttachment`、`NotificationCategory`、`NotificationCategoryOptions`、`NotificationInterruptionLevel`、`NotificationSound`、`NotificationTrigger`、`TextInputNotificationAction` | `Sendable` を付けた | 値型で、中身もすべて `Sendable`。2 つの `OptionSet` の static の値 7 件（`static property ... is not concurrency-safe`）。`NotificationCategory` と `NotificationTrigger` は操作の `Task` に渡す |
+| 同 `NotificationContent`、`ScheduledNotification`、`ActiveNotification` | 変えていない（`Sendable` にしない） | `userInfo` が `[String: Any]` / `[AnyHashable: Any]` で、`Sendable` にできない。8.2 |
+| `Application/Port/NotificationRepository.swift` | `NotificationRepository: Sendable` | `Sendable` の manager と use case が持つ |
+| `Application/UseCase/` の 15 個の use case | `: Sendable` | 同上。公開の struct は暗黙に `Sendable` にならない |
+| `Data/Repository/NotificationRepositoryImpl.swift` | 保持していた `center` を消し、操作のたびに `UNUserNotificationCenter.current()` を読む（private の computed property）。`init(center:)` → `init()`。DocC にスレッドの節 | `UNUserNotificationCenter` は今の SDK で `Sendable` でない（ヘッダーにも apinotes にも注釈が無い）。`init` は `NS_UNAVAILABLE` で、アプリが得られる実体は `current()` だけなので、引数で別の center を渡すことはもともとできなかった（テストにも呼び出し元にも使う所が無い）。`init` のログは `[init] center: ...` → `[init]` |
+| `Presentation/Permission/NotificationPermissionHelper.swift` | `: Sendable` | `static let shared`（1 件）。`let` の `Sendable` な repository だけを持つ |
+| `IosNotificationManager.swift` | `NSObject, Sendable`。操作の完了 9 個（`show`、`update`、`schedule`、`requestPermission`、`setBadgeCount`、`getScheduled`、`getDelivered`、`hasPermission`、`authorizationStatus`）を `@MainActor @Sendable` にし、全経路（成功と失敗）で `Task { @MainActor in completion(...) }` を通す。`show`・`update`・`schedule` の `content` を `sending` に。`NotificationActionHandler` と `NotificationTextInputActionHandler` を `@Sendable` に。`foregroundPresentationOptions`・`onActionReceived`・`onTextInputActionReceived` を `Mutex`（`Synchronization`。iOS 18 から）で守る computed property に。DocC にスレッドの節 | `static let shared`（1 件）、`passing closure as a 'sending' parameter`（17 件。分離していないクラスの `self` と、`Sendable` でない完了・`content` を `Task` に渡していた）。変えられる 3 つのプロパティは、アプリが書き、delegate のコールバックが（文書に書かれていないスレッドで）読むので、`Sendable` にするには守りが要る |
+
+delegate のメソッド（`willPresent`・`didReceive`・`openSettingsFor`）の振る舞いは変えていない。`onActionReceived` / `onTextInputActionReceived` は、今までどおり `didReceive` の中で同期的に、system の `completionHandler` の前に呼ぶ（README 0e の行にアクションのスレッドの変更は無いので、main へは移していない）。
+
+### 8.2 型の選び方
+
+- **完了は `@MainActor @Sendable`**（Share は `@Sendable` だけ）。初めに Share と同じ `@Sendable` だけで組むと、サンプルに 30 件の警告が出た。サンプルの完了は SwiftUI の view の中で書かれ、main actor の `updateResult` を呼ぶ（26 件）。`@Sendable` だけの closure は nonisolated になるので、main で呼ばれると分かっていても、利用者が `MainActor.assumeIsolated` などで包み直す必要がある。`@MainActor` を型に付けると、main で返すという約束を型で示し、main actor の側で書いた closure がそのまま main actor の状態を使える。サンプルの完了のコードは 1 行も変えずに 26 件と、`requirePermission` の `action` を捕まえる 1 件が消えた。ライブラリは `Task { @MainActor in }` から呼ぶので、型の約束をコンパイラが確かめる。`@Sendable` の非 isolated な関数値は暗黙に `@MainActor @Sendable` へ変換できるので、渡す側は書き換えなくてよい。**Share との不揃いは残る**（8.9 の提案）
+- **`content` は `sending`**。`NotificationContent` の `userInfo: [String: Any]` を `Sendable` な型（`[String: any Sendable]`）に変えると、Swift 5 の利用者も含めて `[String: Any]` の値を渡すコードが壊れ、JSON から作る値（入れ子の `NSArray`）も入らなくなる。`@unchecked Sendable` は、利用者が `NSMutableArray` などを入れられるので事実に反する。`sending` は Swift 5 の minimal では何も診断せず、complete / Swift 6 では「渡した後に使わない値」であることをコンパイラが確かめる。代わりに、main actor の関数が返した値はそのままでは渡せない（main actor の領域に属する）。サンプルの 9 件はこれで、作る関数の戻り値を `sending` にした（8.5）
+- **結果の配列は `Sendable` にせずに main へ運ぶ**。`getScheduled` / `getDelivered` は nonisolated の `Task` で use case を呼び、その戻り値（引数がすべて `Sendable` なので、どこにも繋がっていない値）を `Task { @MainActor in completion(result) }` に渡す（`Task` の closure は `sending`）。`sending` の `@MainActor` closure を受ける共通の helper を一度作ったが、Swift 6.2.4 の region の検査が「pattern that the region based isolation checker does not understand」を 12 件、結果を運ぶ 2 か所で `passing closure as a 'sending' parameter` を 2 件出したので、各所に `Task { @MainActor in }` を書く形にした
+- **`Mutex`**: 標準ライブラリの `Synchronization` の `Mutex` を使う（iOS 18.0 から。`IosLibrary` の最小 iOS は 18.0）。`swiftinterface` に `import Synchronization` が増える。最小 iOS を 18 より下げる場合は `OSAllocatedUnfairLock`（iOS 16 から）などに替える必要がある
+
+### 8.3 公開 API の変更（2.0.0 の破壊的変更として記録する）
+
+`swiftinterface` の差分: `results/swiftinterface/2026-10-24-stage0e-notification.diff`（`IosLibrary-after-0e-share.swiftinterface` → `IosLibrary-after-0e-notification.swiftinterface`）。出した interface は `swift-frontend -typecheck-module-from-interface` で型検査が通った（ビルドの設定は `-no-verify-emitted-module-interface`）。
+
+| 宣言 | 前 | 後 | 利用者への影響 |
+|---|---|---|---|
+| 8.1 の値型 9 個、use case 15 個、`NotificationPermissionHelper`、`IosNotificationManager` | 適合無し / `NSObject` | `: Sendable` を足した | 足しただけ |
+| `protocol NotificationRepository` | 適合無し | `: Sendable` | **破壊的**。利用者が自分で適合させた型は `Sendable` が要る（Swift 5 + complete では警告、Swift 6 ではエラー） |
+| `NotificationRepositoryImpl.init(center:)` | `init(center: UNUserNotificationCenter = .current())` | `init()` | **破壊的**（ソース）。`NotificationRepositoryImpl()` と書く呼び出しは壊れない。`center:` を書いた呼び出しは消す（渡せる値は `.current()` だけだった） |
+| 操作の完了 9 個 | `((Bool, String?) -> Void)?` など | `(@MainActor @Sendable (Bool, String?) -> Void)?` など | **破壊的**（型が変わる）。Swift 5 の minimal では警告も出ない。complete / Swift 6 では、`Sendable` でない値を捕まえた closure が警告 / エラーになる。closure の本体は main actor に隔離される |
+| `show` / `update` / `schedule` の `content` | `NotificationContent` | `sending NotificationContent` | **破壊的**（complete / Swift 6 のみ）。渡した後に使う値、main actor などに属する値を渡すと警告 / エラー。minimal では変わらない。古いコンパイラ向けの分岐（`__owned`）が interface に出る |
+| `NotificationActionHandler`、`NotificationTextInputActionHandler` | `(...) -> Void` | `@Sendable (...) -> Void` | **破壊的**（型が変わる）。影響は完了と同じ |
+| `foregroundPresentationOptions`、`onActionReceived`、`onTextInputActionReceived` | 保存プロパティ | `{ get set }` の computed property | ソースは変わらない（interface の表現だけ）。どのスレッドから読み書きしてもよくなった |
+| `import Synchronization` | - | 増えた | iOS 18 の SDK で組む利用者には影響しない |
+
+### 8.4 動作の変更
+
+| 変更 | 前 | 後 |
+|---|---|---|
+| 操作の完了のスレッド（README 0e の行、1.3） | 分離していないクラスの `Task {}` から返り、main の保証が無かった（シミュレーターのテストでは 9 個とも main 以外で返った。8.6） | どのスレッドから呼んでも main で 1 回だけ、いつも非同期に返る |
+| `NotificationRepositoryImpl.init` のログ | `[init] center: <UNUserNotificationCenter: 0x...>` | `[init]` |
+
+ほかの動作は変えていない。完了はもともと 1 回だけ、非同期に返っていた（早期に返る経路は `IosLibrary` の Notification には無い。1.3 の「JSON の解析の失敗と `registerCategory` は呼び出し元のスレッドで同期的に返る」はブリッジの話で、ブリッジは変えていない）。`cancel` などの完了の無い操作と、delegate の 3 つのメソッドは前のまま。
+
+### 8.5 サンプル
+
+`NotificationSampleView.swift` だけを変えた。動作は変わらない。
+
+- `makeContent(id:title:body:)` と `makeContentWithAppIconAttachment(id:title:body:)` の戻り値を `sending NotificationContent` にした（9 件の `sending 'content'`）。中で新しく作った値を返しているだけなので、コンパイラが確かめて通る
+- **0e の前からの 1 件（611 行の `@unknown default`）**: `NotificationAuthorizationStatus` は `IosLibrary`（library evolution で組む）の `@frozen` でない公開の enum なので、別のモジュールの `switch` は、後の版で case が増える場合に備えて `@unknown default` が要る（Swift 6 ではエラー）。今の 6 個の case はすべて書かれているので、足した節には今の `IosLibrary` では決して来ない。`@unknown default: return "unknown"`（注釈付き）を足した。**動作に影響しない自明な直しなので直した**。enum を `@frozen` にする直し方は公開 API を変えるので採らなかった
+- 完了の型を `@MainActor @Sendable` にしたことで、完了のコードは変えずに済んだ（8.2）
+
+UI テストのフォルダー、`Support`、`ClipboardUITests` には触れていない。閉じた形のソースの規則は、サンプルのボタンの識別子を読むが、識別子は変えていない。
+
+### 8.6 テスト
+
+| ファイル | 変更 |
+|---|---|
+| `IosLibraryTests/Notification/Application/Mock/MockNotificationRepository.swift` | `NotificationRepository` が `Sendable` になったので、変えられる状態を `Mutex` の中に移した（Share のモックのような `@MainActor` は、同期の要求 `openNotificationSettings()` と、`Sendable` でない戻り値の要求を満たせない）。`ScheduledNotification` / `ActiveNotification` は `Sendable` でないので、スタブは `@Sendable` の factory（`makeScheduled` / `makeDelivered`）にして、呼ぶたびに新しい値を作る |
+| `NotificationQueryUseCasesTests.swift` | スタブを factory に合わせた |
+| `IosNotificationManagerTests.swift` | 0e の前からの 1 件（63 行の `sending 'scheduled'`。`Sendable` でない配列を継続へ渡していた）は、確かめる欄だけを取り出して渡す形にした。11 個を足した: background のスレッドから呼んで、完了が main で 1 回だけ返る（`show`・`update`・`schedule`・`setBadgeCount`・`requestPermission` は成功と失敗の 2 通り、`getScheduled`・`getDelivered`・`hasPermission`・`authorizationStatus`。計 13 ケース）、`completion: nil` で trap しない、delegate の設定を別のスレッドから変えられる |
+
+1 回だけを確かめるため、完了の呼び出しをすべて記録し、最初の呼び出しの後さらに 200 ms 待ってから件数が 1 であることを見る。**足した 9 個のテスト（13 ケース）は、HEAD の `IosNotificationManager.swift` に戻して流すと、13 ケースすべてが main のスレッドの確かめで失敗した**（今の版ではすべて成功）。
+
+### 8.7 警告の数（clean・whole-module・Swift 5 + complete。1 章と同じ測り方）
+
+| 所 | 第 2 部の後（UI テストを minimal にした後） | 第 3 部の後 |
+|---|---|---|
+| `IosLibrary` / Dialog | 63 | 63（行も診断文も同じ） |
+| `IosLibrary` / Notification | 27 | **1**（`allowAnnouncement` の deprecated。8.9） |
+| `IosLibrary` / Share・Clipboard | 0 | 0 |
+| `IosLibraryTests` / Notification | 1 | **0** |
+| サンプル / Notification | 1 | **0** |
+| `IosLibraryExampleTests`、`IosLibraryExampleUITests` | 0 | 0 |
+| 計 | 92 | 64 |
+
+`swiftc` の意味に効く引数は、2 つの scheme とも第 2 部の後と同じだった。
+
+### 8.8 確かめたこと（シミュレーターだけ）
+
+| 確かめ | 結果 |
+|---|---|
+| `IosLibraryTests` 全件（`-parallel-testing-enabled NO`） | 200 件すべて成功（第 2 部の後の 189 件 + 8.6 で足した 11 件。引数付きのテストは 1 件と数える） |
+| `IosLibraryExampleTests`（`-only-testing`） | 10 件すべて成功 |
+| `scripts/test_ios.sh --udid <シミュレーター> --feature Notification --skip-unit` | 列挙 99 件が `Support/DeviceRequirements.json` と完全に一致。42 件を選び（`NotificationPermissionUITests` 2、`NavigationUITests` 2、`IdentifierInventoryUITests` 4、`NotificationUITests` 23、`NotificationEventUITests` 7、`NotificationColdStartUITests` 4。区分で除いたものは 0）、42 件すべて成功。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）と比べて changed=0、added=0、removed=0（この実行の外の 253 件は比べていない）。結果のフォルダーは `ios/IosLibraryExample/build/test_ios/20261024-235044-iPhone_17-26.2/`（git の外） |
+| 閉じた形のソースの規則（`ios_ui_runner.py check-sources`） | 通った |
+| 信頼する部分のハッシュ（`ios_ui_runner.py hashes`） | `TRUSTED_FILES` の 8 個と `FROZEN_CLIPBOARD_SHA256` がピンの値と全部同じ。UI テストのフォルダーと `scripts/` は HEAD から変えていない |
+| `UnityIosPlugin` がまだ組めるか（2.1 と同じ組み方） | 組めた。警告が 6 件増えた（`UnityIosNotificationManager.swift` の「`@Sendable` を期待する所に non-Sendable の `completion` を渡す」。Share の 1 件と同じ種類）。ブリッジには手を入れない（D-22） |
+
+実行の後、シミュレーターは Shutdown に戻り、`xcodebuild`・Simulator・テストのプロセスは残っていない。
+
+### 8.9 残っていること
+
+- 既存のログは全パラメータを出していない（例: `[show] content.id` だけ）。今回は変えていない（1.4・1b のログの規則の直しでまとめて扱う）
+- 実機での確かめ（D-21）。利用者の許可が要る
+- `IosLibraryTests` の件数は 200 件になった（基準は 186 件。7 章と同じく 0g の後に取り直す）
+- swiftinterface の置き方（8.10 で決めた）: 段ごとの版（`IosLibrary-after-0e-share`、`IosLibrary-after-0e-notification`、Dialog の後に `IosLibrary-after-0e-dialog`）と、その前の版との差分を残し、0e の終わりに `IosLibrary-before-0e-ae1f2a25` → 最後の版の通しの差分（`2026-10-24-stage0e.diff`）を足す。2.6 の「`after` を最終の版に差し替える」より、段ごとの差分が後から読める
+
+### 8.10 決めたことと、その反映（2026-10-25、利用者。どれも推奨のとおり）
+
+| 決めたこと | 反映 |
+|---|---|
+| `allowAnnouncement` は案 A | `NotificationRepositoryImpl.makeUNCategory` で `UNNotificationCategoryOptions` に写すのをやめた（注釈を 1 行残した）。公開の `NotificationCategoryOptions.allowAnnouncement` に `@available(*, deprecated, message:)` を付け、DocC に「iOS 15 から OS が無視する。効果は無い」と書いた。値（`1 << 3`）は残すので、使っているコードは警告が出るだけで組める。**2.0.0 の変更として記録する**（登録した category の `options` から bit が消える。OS の振る舞いは変わらない）。これを使っていたテスト（`NotificationContentTests` の `OptionSet` のテスト）は `hiddenPreviewsShowTitle` に、サンプルの `registerCategory` のボタンは `[.customDismissAction]` に替えた（どちらも動作は変わらない。サンプルの UI テストは 8.10 の下の表） |
+| Share の完了も `@MainActor @Sendable` にそろえる | `IosShareManager.share(content:completion:)` の completion を `(@MainActor @Sendable (Bool, Bool, String?, String?) -> Void)?` にした。もとから `Task { @MainActor in }` の中で呼んでいるので、本体は変えていない。Dialog も同じ形にする |
+| swiftinterface の置き方 | 段ごとの版と、その前の版との差分を残す。0e の終わりに通しの差分を足す。この 2 つの反映は、Notification の段の版（`IosLibrary-after-0e-notification.swiftinterface`）と差分を取り直して含めた |
+
+反映の後の確かめ（シミュレーターだけ）:
+
+| 確かめ | 結果 |
+|---|---|
+| 警告の数（2 つの scheme を clean・whole-module で） | `IosLibrary` の Dialog の 63 件だけ。Notification・Share・Clipboard、テスト、サンプル、UI テストは 0 件 |
+| `IosLibraryTests` 全件 | 200 件すべて成功 |
+| `IosLibraryExampleTests` | 10 件すべて成功 |
+| `scripts/test_ios.sh --feature Notification --skip-unit` | 列挙 99 件が一致。42 件を選んで 42 件すべて成功。基準と比べて changed=0、added=0、removed=0（この実行の外の 253 件は比べていない）。`registerCategory` のボタンを含む |
+| swiftinterface | `IosLibrary-after-0e-notification.swiftinterface` を同じ組み方（2.6）で作り直し、`2026-10-24-stage0e-notification.diff` を取り直した。`allowAnnouncement` の `@available(*, deprecated, ...)` と、Share の completion の `@_Concurrency.MainActor @Sendable` が入る |
+
+実行の後、シミュレーターは Shutdown に戻り、`xcodebuild`・テストのプロセスは残っていない。

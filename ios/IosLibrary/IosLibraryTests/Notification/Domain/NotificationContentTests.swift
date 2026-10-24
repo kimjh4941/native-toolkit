@@ -59,7 +59,7 @@ struct NotificationContentTests {
         #expect(opts.contains(.customDismissAction))
         #expect(opts.contains(.allowInCarPlay))
         #expect(!opts.contains(.hiddenPreviewsShowTitle))
-        opts.insert(.allowAnnouncement)
-        #expect(opts.contains(.allowAnnouncement))
+        opts.insert(.hiddenPreviewsShowTitle)
+        #expect(opts.contains(.hiddenPreviewsShowTitle))
     }
 }

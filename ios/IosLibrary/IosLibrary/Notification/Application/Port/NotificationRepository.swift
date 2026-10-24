@@ -8,7 +8,7 @@ import UserNotifications
 
 /// Defines the contract for all notification operations.
 /// Implemented by `NotificationRepositoryImpl` in the Data layer.
-public protocol NotificationRepository {
+public protocol NotificationRepository: Sendable {
 
     // MARK: - Throwing operations (Apple API has error callback)
 

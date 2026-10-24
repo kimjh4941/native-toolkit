@@ -6,7 +6,7 @@
 import Foundation
 
 /// Schedules a notification for future delivery.
-public struct ScheduleNotificationUseCase {
+public struct ScheduleNotificationUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -19,7 +19,7 @@ public struct ScheduleNotificationUseCase {
 }
 
 /// Cancels a specific scheduled notification.
-public struct CancelScheduledNotificationUseCase {
+public struct CancelScheduledNotificationUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -32,7 +32,7 @@ public struct CancelScheduledNotificationUseCase {
 }
 
 /// Cancels all scheduled notifications.
-public struct CancelAllScheduledNotificationsUseCase {
+public struct CancelAllScheduledNotificationsUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -45,7 +45,7 @@ public struct CancelAllScheduledNotificationsUseCase {
 }
 
 /// Returns all pending (scheduled, not yet delivered) notification requests.
-public struct GetScheduledNotificationsUseCase {
+public struct GetScheduledNotificationsUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {

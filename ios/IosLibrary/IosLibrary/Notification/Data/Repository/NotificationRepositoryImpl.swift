@@ -9,16 +9,22 @@ import UserNotifications
 import CoreLocation
 
 /// Concrete implementation of `NotificationRepository` backed by `UNUserNotificationCenter`.
+///
+/// ## Threading
+/// The repository is `Sendable` and may be called from any thread. It holds no mutable state and
+/// does not store the notification center: `UNUserNotificationCenter` is not `Sendable`, and
+/// `UNUserNotificationCenter.current()` is the only instance an app can obtain, so each operation
+/// reads it when it runs.
 public final class NotificationRepositoryImpl: NotificationRepository {
 
     private let TAG = "NotificationRepositoryImpl"
-    private let center: UNUserNotificationCenter
 
-    /// Creates an instance with a custom notification center (for testability).
-    /// - Parameter center: The notification center to use. Defaults to `.current()`.
-    public init(center: UNUserNotificationCenter = .current()) {
-        Log.d(TAG, "[init] center: \(center)")
-        self.center = center
+    /// The app's notification center, read per operation (see the type's Threading section).
+    private var center: UNUserNotificationCenter { .current() }
+
+    /// Creates a repository backed by `UNUserNotificationCenter.current()`.
+    public init() {
+        Log.d(TAG, "[init]")
     }
 
     // MARK: - Throwing operations
@@ -291,7 +297,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         if category.options.contains(.customDismissAction) { unOptions.insert(.customDismissAction) }
         if category.options.contains(.allowInCarPlay) { unOptions.insert(.allowInCarPlay) }
         if category.options.contains(.hiddenPreviewsShowTitle) { unOptions.insert(.hiddenPreviewsShowTitle) }
-        if category.options.contains(.allowAnnouncement) { unOptions.insert(.allowAnnouncement) }
+        // `allowAnnouncement` is not passed on: the system ignores it since iOS 15.
         return UNNotificationCategory(
             identifier: category.identifier,
             actions: allActions,

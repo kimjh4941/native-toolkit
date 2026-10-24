@@ -6,7 +6,7 @@
 import Foundation
 
 /// The condition that triggers a scheduled notification.
-public enum NotificationTrigger {
+public enum NotificationTrigger: Sendable {
     /// Fires after a time interval (in seconds). Set `repeats` to true to repeat.
     case timeInterval(TimeInterval, repeats: Bool)
     /// Fires on a specific calendar date components match.

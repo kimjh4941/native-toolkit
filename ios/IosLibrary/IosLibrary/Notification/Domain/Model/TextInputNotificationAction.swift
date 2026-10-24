@@ -6,7 +6,7 @@
 import Foundation
 
 /// A notification action that presents a text input field (e.g. inline reply).
-public struct TextInputNotificationAction {
+public struct TextInputNotificationAction: Sendable {
     /// A unique identifier for the action.
     public let identifier: String
     /// The title displayed on the action button.

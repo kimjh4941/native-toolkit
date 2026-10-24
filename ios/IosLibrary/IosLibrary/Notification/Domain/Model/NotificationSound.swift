@@ -6,7 +6,7 @@
 import Foundation
 
 /// The sound played when a notification is delivered.
-public enum NotificationSound {
+public enum NotificationSound: Sendable {
     /// The default notification sound.
     case `default`
     /// The default critical alert sound.

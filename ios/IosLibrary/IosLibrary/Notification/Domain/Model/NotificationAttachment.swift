@@ -6,7 +6,7 @@
 import Foundation
 
 /// A media attachment (image, audio, or video) to include in a notification.
-public struct NotificationAttachment {
+public struct NotificationAttachment: Sendable {
     /// A unique identifier for this attachment.
     public let identifier: String
     /// The URL of the attachment file.

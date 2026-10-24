@@ -6,7 +6,7 @@
 import Foundation
 
 /// A group of related notification actions and display options.
-public struct NotificationCategory {
+public struct NotificationCategory: Sendable {
     /// A unique identifier for the category.
     public let identifier: String
     /// Tap-to-dismiss or tap-to-open action buttons.

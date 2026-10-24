@@ -7,7 +7,7 @@ import Foundation
 import UserNotifications
 
 /// Shows an immediate or triggered notification.
-public struct ShowNotificationUseCase {
+public struct ShowNotificationUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -20,7 +20,7 @@ public struct ShowNotificationUseCase {
 }
 
 /// Updates an existing pending notification.
-public struct UpdateNotificationUseCase {
+public struct UpdateNotificationUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -33,7 +33,7 @@ public struct UpdateNotificationUseCase {
 }
 
 /// Cancels a specific pending notification.
-public struct CancelNotificationUseCase {
+public struct CancelNotificationUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -46,7 +46,7 @@ public struct CancelNotificationUseCase {
 }
 
 /// Cancels all pending notifications.
-public struct CancelAllNotificationsUseCase {
+public struct CancelAllNotificationsUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -59,7 +59,7 @@ public struct CancelAllNotificationsUseCase {
 }
 
 /// Removes a specific delivered notification from Notification Center.
-public struct RemoveDeliveredNotificationUseCase {
+public struct RemoveDeliveredNotificationUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -72,7 +72,7 @@ public struct RemoveDeliveredNotificationUseCase {
 }
 
 /// Removes all delivered notifications from Notification Center.
-public struct RemoveAllDeliveredNotificationsUseCase {
+public struct RemoveAllDeliveredNotificationsUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {

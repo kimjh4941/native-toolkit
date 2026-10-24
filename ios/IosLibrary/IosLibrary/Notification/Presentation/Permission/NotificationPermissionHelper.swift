@@ -7,7 +7,10 @@ import Foundation
 import UserNotifications
 
 /// Helper for managing notification authorization.
-public final class NotificationPermissionHelper {
+///
+/// The helper is `Sendable` (it holds only an immutable `Sendable` repository) and may be called
+/// from any thread.
+public final class NotificationPermissionHelper: Sendable {
 
     private let TAG = "NotificationPermissionHelper"
 

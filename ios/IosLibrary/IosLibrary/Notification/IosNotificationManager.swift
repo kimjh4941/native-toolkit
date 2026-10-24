@@ -4,26 +4,32 @@
 //
 
 import Foundation
+import Synchronization
 import UserNotifications
 
 /// Callback invoked when a notification action is tapped.
+///
+/// It is `@Sendable` because the manager stores it and calls it from the
+/// `UNUserNotificationCenterDelegate` callback, whose thread the system does not document.
 /// - Parameters:
 ///   - notificationIdentifier: The identifier of the notification.
 ///   - actionIdentifier: The identifier of the tapped action.
 ///   - userInfo: Custom data from the notification.
-public typealias NotificationActionHandler = (
+public typealias NotificationActionHandler = @Sendable (
     _ notificationIdentifier: String,
     _ actionIdentifier: String,
     _ userInfo: [AnyHashable: Any]
 ) -> Void
 
 /// Callback invoked when a text input notification action is submitted.
+///
+/// It is `@Sendable` for the same reason as ``NotificationActionHandler``.
 /// - Parameters:
 ///   - notificationIdentifier: The identifier of the notification.
 ///   - actionIdentifier: The identifier of the tapped action.
 ///   - userText: The text entered by the user.
 ///   - userInfo: Custom data from the notification.
-public typealias NotificationTextInputActionHandler = (
+public typealias NotificationTextInputActionHandler = @Sendable (
     _ notificationIdentifier: String,
     _ actionIdentifier: String,
     _ userText: String,
@@ -40,6 +46,19 @@ public typealias NotificationTextInputActionHandler = (
 /// * Wraps all use cases and converts errors to `(isSuccess, errorMessage)` for Unity interop.
 /// * Call `setup()` once at app launch (e.g. in `AppDelegate.didFinishLaunching`).
 ///
+/// ## Threading
+/// The manager is `Sendable` and may be called from any thread. Every `completion` of an
+/// operation is invoked on the main thread (main actor), exactly once, on every path, and always
+/// asynchronously (also when the operation is started on the main thread). The completion types are
+/// `@MainActor @Sendable`: `@Sendable` because the closure is carried from the calling thread to
+/// the main actor, and `@MainActor` to state in the type where it runs, so that a closure written
+/// on the main actor (for example in a SwiftUI view) can use main-actor state directly.
+///
+/// ``onActionReceived`` and ``onTextInputActionReceived`` are called synchronously from the
+/// `UNUserNotificationCenterDelegate` callback, before the system's completion handler, on the
+/// thread the system uses for that callback. They, and ``foregroundPresentationOptions``, may be
+/// read and written from any thread.
+///
 /// ## Example
 /// ```swift
 /// IosNotificationManager.setup()
@@ -50,7 +69,7 @@ public typealias NotificationTextInputActionHandler = (
 ///     print(isSuccess, errorMessage ?? "")
 /// }
 /// ```
-public final class IosNotificationManager: NSObject {
+public final class IosNotificationManager: NSObject, Sendable {
 
     private let TAG = "IosNotificationManager"
 
@@ -75,14 +94,32 @@ public final class IosNotificationManager: NSObject {
     private let removeCategoryUseCase: RemoveNotificationCategoryUseCase
     private let permissionHelper: NotificationPermissionHelper
 
+    /// The values the app sets and the delegate callbacks read, possibly on different threads.
+    private struct DelegateSettings {
+        var foregroundPresentationOptions: UNNotificationPresentationOptions = [.banner, .list, .sound, .badge]
+        var onActionReceived: NotificationActionHandler?
+        var onTextInputActionReceived: NotificationTextInputActionHandler?
+    }
+
+    private let delegateSettings = Mutex(DelegateSettings())
+
     /// Presentation options for foreground notifications.
-    public var foregroundPresentationOptions: UNNotificationPresentationOptions = [.banner, .list, .sound, .badge]
+    public var foregroundPresentationOptions: UNNotificationPresentationOptions {
+        get { delegateSettings.withLock { $0.foregroundPresentationOptions } }
+        set { delegateSettings.withLock { $0.foregroundPresentationOptions = newValue } }
+    }
 
     /// Called when a notification action button is tapped.
-    public var onActionReceived: NotificationActionHandler?
+    public var onActionReceived: NotificationActionHandler? {
+        get { delegateSettings.withLock { $0.onActionReceived } }
+        set { delegateSettings.withLock { $0.onActionReceived = newValue } }
+    }
 
     /// Called when a text input notification action is submitted.
-    public var onTextInputActionReceived: NotificationTextInputActionHandler?
+    public var onTextInputActionReceived: NotificationTextInputActionHandler? {
+        get { delegateSettings.withLock { $0.onTextInputActionReceived } }
+        set { delegateSettings.withLock { $0.onTextInputActionReceived = newValue } }
+    }
 
     private override init() {
         Log.d(TAG, "[init]")
@@ -140,38 +177,47 @@ public final class IosNotificationManager: NSObject {
     // MARK: - Public API
 
     /// Immediately delivers a notification.
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once (see the type's Threading
+    ///   section). `content` is `sending` because it is not `Sendable` (its `userInfo` is
+    ///   `[String: Any]`) and is handed to a task; pass a value that is not used afterwards.
     public func show(
-        content: NotificationContent,
+        content: sending NotificationContent,
         trigger: NotificationTrigger? = nil,
-        completion: ((Bool, String?) -> Void)? = nil
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "[show] content.id: \(content.id)")
         Task {
             do {
                 try await showUseCase.execute(content: content, trigger: trigger)
-                completion?(true, nil)
+                Task { @MainActor in completion?(true, nil) }
             } catch {
                 Log.e(TAG, "[show] error: \(error)")
-                completion?(false, error.localizedDescription)
+                let message = error.localizedDescription
+                Task { @MainActor in completion?(false, message) }
             }
         }
     }
 
     /// Updates an existing pending notification.
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
+    ///   for the reason given on ``show(content:trigger:completion:)``.
     public func update(
         identifier: String,
-        content: NotificationContent,
+        content: sending NotificationContent,
         trigger: NotificationTrigger?,
-        completion: ((Bool, String?) -> Void)? = nil
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "[update] identifier: \(identifier)")
         Task {
             do {
                 try await updateUseCase.execute(identifier: identifier, content: content, trigger: trigger)
-                completion?(true, nil)
+                Task { @MainActor in completion?(true, nil) }
             } catch {
                 Log.e(TAG, "[update] error: \(error)")
-                completion?(false, error.localizedDescription)
+                let message = error.localizedDescription
+                Task { @MainActor in completion?(false, message) }
             }
         }
     }
@@ -201,20 +247,24 @@ public final class IosNotificationManager: NSObject {
     }
 
     /// Schedules a notification for future delivery.
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
+    ///   for the reason given on ``show(content:trigger:completion:)``.
     public func schedule(
-        content: NotificationContent,
+        content: sending NotificationContent,
         trigger: NotificationTrigger,
         identifier: String,
-        completion: ((Bool, String?) -> Void)? = nil
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "[schedule] identifier: \(identifier)")
         Task {
             do {
                 try await scheduleUseCase.execute(content: content, trigger: trigger, identifier: identifier)
-                completion?(true, nil)
+                Task { @MainActor in completion?(true, nil) }
             } catch {
                 Log.e(TAG, "[schedule] error: \(error)")
-                completion?(false, error.localizedDescription)
+                let message = error.localizedDescription
+                Task { @MainActor in completion?(false, message) }
             }
         }
     }
@@ -232,54 +282,65 @@ public final class IosNotificationManager: NSObject {
     }
 
     /// Returns all pending (not yet delivered) notification requests.
-    public func getScheduled(completion: @escaping ([ScheduledNotification]) -> Void) {
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once.
+    public func getScheduled(completion: @escaping @MainActor @Sendable ([ScheduledNotification]) -> Void) {
         Log.d(TAG, "[getScheduled]")
         Task {
             let result = await getScheduledUseCase.execute()
-            completion(result)
+            Task { @MainActor in completion(result) }
         }
     }
 
     /// Returns all notifications visible in Notification Center.
-    public func getDelivered(completion: @escaping ([ActiveNotification]) -> Void) {
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once.
+    public func getDelivered(completion: @escaping @MainActor @Sendable ([ActiveNotification]) -> Void) {
         Log.d(TAG, "[getDelivered]")
         Task {
             let result = await getDeliveredUseCase.execute()
-            completion(result)
+            Task { @MainActor in completion(result) }
         }
     }
 
     /// Returns whether the app currently has notification authorization.
-    public func hasPermission(completion: @escaping (Bool) -> Void) {
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once.
+    public func hasPermission(completion: @escaping @MainActor @Sendable (Bool) -> Void) {
         Log.d(TAG, "[hasPermission]")
         Task {
             let result = await hasPermissionUseCase.execute()
-            completion(result)
+            Task { @MainActor in completion(result) }
         }
     }
 
     /// Returns the current notification authorization status.
-    public func authorizationStatus(completion: @escaping (NotificationAuthorizationStatus) -> Void) {
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once.
+    public func authorizationStatus(completion: @escaping @MainActor @Sendable (NotificationAuthorizationStatus) -> Void) {
         Log.d(TAG, "[authorizationStatus]")
         Task {
             let result = await getAuthStatusUseCase.execute()
-            completion(result)
+            Task { @MainActor in completion(result) }
         }
     }
 
     /// Requests authorization to display notifications.
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once.
     public func requestPermission(
         options: UNAuthorizationOptions = [.alert, .sound, .badge],
-        completion: ((Bool, String?) -> Void)? = nil
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "[requestPermission] options: \(options)")
         Task {
             do {
                 let granted = try await permissionHelper.requestPermission(options: options)
-                completion?(granted, nil)
+                Task { @MainActor in completion?(granted, nil) }
             } catch {
                 Log.e(TAG, "[requestPermission] error: \(error)")
-                completion?(false, error.localizedDescription)
+                let message = error.localizedDescription
+                Task { @MainActor in completion?(false, message) }
             }
         }
     }
@@ -291,15 +352,18 @@ public final class IosNotificationManager: NSObject {
     }
 
     /// Sets the app icon badge count.
-    public func setBadgeCount(_ count: Int, completion: ((Bool, String?) -> Void)? = nil) {
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once.
+    public func setBadgeCount(_ count: Int, completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil) {
         Log.d(TAG, "[setBadgeCount] count: \(count)")
         Task {
             do {
                 try await repository.setBadgeCount(count)
-                completion?(true, nil)
+                Task { @MainActor in completion?(true, nil) }
             } catch {
                 Log.e(TAG, "[setBadgeCount] error: \(error)")
-                completion?(false, error.localizedDescription)
+                let message = error.localizedDescription
+                Task { @MainActor in completion?(false, message) }
             }
         }
     }

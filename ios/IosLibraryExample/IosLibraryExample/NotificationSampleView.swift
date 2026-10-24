@@ -448,7 +448,7 @@ struct NotificationSampleView: View {
                                         textInputPlaceholder: "IosLibraryExample reply"
                                     )
                                 ],
-                                options: [.customDismissAction, .allowAnnouncement]
+                                options: [.customDismissAction]
                             )
                             IosNotificationManager.shared.registerCategory(category)
                             self.updateResult(
@@ -517,7 +517,7 @@ struct NotificationSampleView: View {
         .padding(.vertical, 4)
     }
 
-    private func makeContent(id: String, title: String, body: String) -> NotificationContent {
+    private func makeContent(id: String, title: String, body: String) -> sending NotificationContent {
         NotificationContent(
             id: id,
             title: title,
@@ -527,7 +527,7 @@ struct NotificationSampleView: View {
         )
     }
 
-    private func makeContentWithAppIconAttachment(id: String, title: String, body: String) -> NotificationContent {
+    private func makeContentWithAppIconAttachment(id: String, title: String, body: String) -> sending NotificationContent {
         let base = makeContent(id: id, title: title, body: body)
 
         guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else {
@@ -620,6 +620,9 @@ private extension NotificationAuthorizationStatus {
         case .ephemeral:
             return "ephemeral"
         case .unknown:
+            return "unknown"
+        @unknown default:
+            // `IosLibrary` is built for library evolution, so a later version may add cases.
             return "unknown"
         }
     }

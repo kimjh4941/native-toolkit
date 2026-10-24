@@ -6,7 +6,7 @@
 import Foundation
 
 /// Options that modify the behavior of a notification action button.
-public struct NotificationActionOptions: OptionSet {
+public struct NotificationActionOptions: OptionSet, Sendable {
     public let rawValue: UInt
 
     public init(rawValue: UInt) {
@@ -22,7 +22,7 @@ public struct NotificationActionOptions: OptionSet {
 }
 
 /// A tappable button in a notification action area.
-public struct NotificationAction {
+public struct NotificationAction: Sendable {
     /// A unique identifier for the action.
     public let identifier: String
     /// The title displayed on the action button.

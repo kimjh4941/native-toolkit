@@ -6,7 +6,7 @@
 import Foundation
 
 /// Registers a notification category with the notification center.
-public struct RegisterNotificationCategoryUseCase {
+public struct RegisterNotificationCategoryUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {
@@ -19,7 +19,7 @@ public struct RegisterNotificationCategoryUseCase {
 }
 
 /// Removes a registered notification category.
-public struct RemoveNotificationCategoryUseCase {
+public struct RemoveNotificationCategoryUseCase: Sendable {
     private let repository: NotificationRepository
 
     public init(repository: NotificationRepository) {

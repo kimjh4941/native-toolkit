@@ -12,11 +12,14 @@ struct NotificationQueryUseCasesTests {
 
     @Test func getDeliveredReturnsRepositoryResult() async {
         let repo = MockNotificationRepository()
-        let delivered = ActiveNotification(
-            identifier: "n1", title: "Hi", subtitle: nil, body: nil,
-            categoryIdentifier: "", date: Date(), userInfo: [:]
-        )
-        repo.stubbedDelivered = [delivered]
+        repo.makeDelivered = {
+            [
+                ActiveNotification(
+                    identifier: "n1", title: "Hi", subtitle: nil, body: nil,
+                    categoryIdentifier: "", date: Date(), userInfo: [:]
+                )
+            ]
+        }
         let useCase = GetDeliveredNotificationsUseCase(repository: repo)
         let result = await useCase.execute()
         #expect(result.count == 1)
