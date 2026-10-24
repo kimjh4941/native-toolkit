@@ -3,7 +3,7 @@
 - 記録日: 2026-10-24
 - 段階: 0d（`scripts/test_ios.sh`。UI テストの設計書の 6.3）
 - 状態: ランナーと自己テストができた。全件の実行と基準の記録（2 つの環境）はこれから
-- 環境: シミュレーター（iPhone 17、iOS 26.2、en-JP、Xcode 26.3）だけ。**実機には触れていない**（実機の UDID は使わず、実機の扱いは `simctl list` に無い作り物の UDID で確かめた）
+- 環境: シミュレーター（iPhone 17、iOS 26.2、en-JP、Xcode 26.3）だけ。**実機には触れていない**（実機の UDID は使わず、実機の扱いは `simctl list` に無い作り物の UDID で確かめた）。12 章だけは、利用者の許可の下で実機（iPhone XS、iOS 18.7.2）で流した最初の実行の記録
 
 ## 1. 作ったもの
 
@@ -216,3 +216,106 @@ M2 の `HasPermission` の結果の行は、`[hasPermission] true` と `false` �
 | `NotificationColdStartUITests`（4）と N29 | 5/5 |
 
 N32 の 1 回目は、placeholder を変えた後の最初のコールドスタートで、OS に残っていた前の category（`Type a message`）で返信の画面が出たためと見ている（N32 は RegisterCategory の直後にアプリを止めるので、登録の `Task` が終わる前に止まりうる。確かめてはいない）。そのときは押さずに失敗する（安全の側）。実機で最初に流すときも 1 回落ちうる。
+
+## 12. 実機の最初の実行
+
+利用者の許可の下で、実機（iPhone XS、iOS 18.7.2（22H124）、ja、Xcode 26.3）で初めて `scripts/test_ios.sh` を流した（コミット `8b0f906b`）。実機の UDID はここに書かない。
+
+### 12.1 流したものと結果
+
+- `--dry-run`（`--device-allow` なし。区分の無いテストだけ）で 19 件を選び 80 件を除いた一覧を利用者に見せ、許可を得て `--approved` で流した。呼び出しは 4 回（クラスごと）
+- 結果は **16/19**。Navigation 2/2、IdentifierInventory 0/3（I1a〜I1c）、Dialog 11/11、Notification 3/3。I1d は `clipboard` を宣言しているので選ばれていない
+- 実機の環境の言語は `unknown` になり、`Warning: the device's language is unknown, not ja (U-16)` が出た。`devicectl device info details` の JSON に言語が無いため（ランナーは `preferredLanguages` か `language` を探す）。警告だけで止めない。devicectl のほかから言語を読む方法は確かめていない（設計の 8.7）
+
+### 12.2 I1 の失敗の原因
+
+3 件とも `IdentifierInventoryUITests.swift:56: XCTAssertEqual failed: ("[""]") is not equal to ("["BackButton"]") - navigation bar buttons`。ナビゲーションバーの戻るボタンの identifier が、iOS 26.2 のシミュレーターでは `BackButton` で、iOS 18.7.2 では空だった。I1 は identifier の `BackButton` だけで戻るボタンを除いていたので、版の違いで落ちた（サンプルの不具合ではない）。
+
+実機の代わりに、いちばん近い iOS 18.3.1 のシミュレーター（iPhone 16、ja）で確かめた。古い判定（identifier の `BackButton` だけ）に戻すと、実機と同じく identifier が `[""]` で落ちる。新しい判定で通るので、18.3.1 の戻るボタンのラベルは前の画面の題 `Main Menu`（サンプルの `ContentView.swift` の `navigationTitle`。言語で変わらない）。**実機 18.7.2 のラベルは、まだ確かめていない**（次の実機の実行で確かめる）。
+
+### 12.3 後始末（実機の実行の後）
+
+- 許可は消費済み（台帳に 1 行）。流し直すには新しい `--dry-run` と許可が要る
+- 実機の xcresult とログ（一時フォルダー）は、trap で消えた。手元の `build/test_ios/<日時>-device`（`ios/.gitignore` で git の外）に残るのは、計画・列挙・環境・結果の JSON と、シミュレーターのビルドと列挙のログだけ
+- 実機に残したもの: 上書きでインストールされたサンプルとテストのランナーのアプリだけ。ほかに残りうるのは、Dialog の文字の入力（D8〜D10）によるキーボードの学習。区分の無いテストだけなので、通知・クリップボード・Share・権限には触れていない
+- シミュレーターの列挙（`test-without-building -enumerate-tests`）は `-derivedDataPath` を渡していなかったので、xcresult が Xcode の既定の DerivedData（`~/Library/Developer/Xcode/DerivedData/IosLibraryExample-*/Logs/Test`）にできていた。既にあるフォルダーは消していない（12.4 で直した）
+
+### 12.4 直したこと
+
+| 所 | 直したこと |
+|---|---|
+| `IdentifierInventoryUITests.swift`（I1） | ナビゲーションバーのボタンがちょうど 1 つで、それが戻るボタン（identifier が `BackButton`、または identifier が空でラベルが `Main Menu`）であることを求める。ほかのボタンがあれば、数か判定で失敗する。失敗の文には identifier だけを書き、ラベルは書かない |
+| `Support/SampleApp.swift`（信頼する部分） | `InventorySnapshot.navigationBarButtons` を identifier とラベルの組（`NavigationBarButton`）にした。テストのファイルは `XCUIApplication` を持てない（6.1）ので、ラベルを読むにはここを変えるほかなかった。読むのはサンプル自身のナビゲーションバーだけで、何も押さない |
+| `scripts/ios_ui_runner.py` | `TRUSTED_FILES` の `Support/SampleApp.swift` を新しい値にした（12.6） |
+| `scripts/test_ios.sh` | `-version` のほかの xcodebuild の呼び出しは、どれも `-derivedDataPath` をランナーのフォルダー（`BUILD_ROOT` か実機の一時フォルダー）の中に名指す。シミュレーターの列挙は `<実行>/dd-enumerate` と `-resultBundlePath <実行>/enumerate.xcresult`、クラスの実行は `<実行>/dd-test`、`IosLibraryExampleTests` は `<実行>/dd-unit`。`require_own_derived_data` を足し、`sim_xcodebuild` と `device_xcodebuild` は、名指しが無い・外を指す・`..` を含む呼び出しを 97 で拒む（この形は広すぎたので 12.8 で狭めた） |
+| `scripts/tests/test_ios_ui_runner.py` | 3 件を足した（132 件）: 2 つの関数が既定の DerivedData や外の場所を拒むこと、スクリプトのどの xcodebuild の呼び出しも `-derivedDataPath` を持ち、テストの呼び出しは `-resultBundlePath` を持つこと（静的）、シミュレーターの `--dry-run` と `--feature Dialog` を差し替えのコマンドで最後まで流し、記録した xcodebuild の呼び出しがどれもランナーのフォルダーの DerivedData を名指すこと。実機の 2 本の通しのテストにも同じ確かめを足した。宛先のテストは `-derivedDataPath` を付けた形に直した |
+| `scripts/tests/ios_ui_runner_mutations.py` | 変異を 6 つ足した（2 つの関数の確かめを外す、外の場所を受ける、`..` を受ける、列挙とクラスの実行の `-derivedDataPath` を外す） |
+
+### 12.5 確かめたこと（シミュレーターだけ。実機には触れていない）
+
+| 確かめ | 結果 |
+|---|---|
+| 自己テスト（`scripts/tests/test_ios_ui_runner.py`） | 132 件が通った |
+| 変異（`python3 scripts/tests/ios_ui_runner_mutations.py`） | 変異なしの基準は通り、81 個とも捕まった（前の 75 個と、12.4 の 6 個）。本物の台帳は変わっていない |
+| I1 を名指し（`xcodebuild test-without-building -only-testing:IosLibraryExampleUITests/IdentifierInventoryUITests`） | 26.2（iPhone 17、en）4/4、18.3.1（iPhone 16、ja）4/4 |
+| 変異 A: 判定を identifier の `BackButton` だけに戻す（I1a） | 18.3.1 で落ちた（`[""]`。実機と同じ） |
+| 変異 B: サンプルの題を `Main Menu 2` に変える（I1a） | 18.3.1 で落ちた。26.2 は identifier で見分けるので通った |
+| 変異 C: Dialog の画面のナビゲーションバーにボタンを 1 つ足す（I1a） | 18.3.1（`["", ""]`）と 26.2（`["BackButton", ""]`）の両方で、ボタンの数で落ちた |
+| ランナー `--feature Dialog`（26.2） | 21/21（約 7 分）。実行のフォルダーに `dd-enumerate`・`enumerate.xcresult`・`dd-test` ができた |
+| ランナー `--dry-run`（18.3.1） | 99 件が宣言の表と一致、呼び出し 12 回 |
+| Xcode の既定の DerivedData | この作業の前と後で、フォルダーの数（273）が同じで、作業の始めより新しいものは無い（変異 A〜C の xcodebuild もスクラッチの `-derivedDataPath` で流した） |
+
+変異 A〜C は流した後に戻した（サンプルとテストのファイルは 12.4 の形）。
+
+### 12.6 新しいハッシュ（11.4 の値を置き換える）
+
+| ファイル | sha256 |
+|---|---|
+| `Support/SampleApp.swift` | `63edf06e72b7a7e881bf1b85427d16add388d3fe502e69f365e493b7c4d9a3d4` |
+| ほかの 7 つと凍結の `IosLibraryExampleUITests.swift` | 11.4 と同じ |
+
+信頼する部分を変えたので、設計の 2 章のとおり、`SampleApp.swift` の直した所の再レビュー（別のモデル）を通してから実機で流す。
+
+### 12.7 残り
+
+- `SampleApp.swift` の変更の再レビュー（別のモデル）
+- 実機で I1a〜I1c を流し直し、18.7.2 の戻るボタンのラベルが `Main Menu` であることを確かめる（新しい `--dry-run` と許可）
+- 実機の言語の読み方（devicectl に無い）
+
+後始末: xcodebuild・simctl・変異の実行の残りは無い。シミュレーターは 2 台とも Shutdown。既定の DerivedData の既にあるフォルダーは消していない。
+
+### 12.8 直しの確認（Codex）の A-1、A-2 の対応
+
+12.4 の `require_own_derived_data` は、`BUILD_ROOT` の下ならどこでも受け（A-1）、`-derivedDataPath` の重ねた書き方や似た形を拒まなかった（A-2）。`require_own_paths <根> <引数...>` に替えた。
+
+| ID | 直したこと |
+|---|---|
+| A-1 | 根は、`sim_xcodebuild` ではその実行の出力のフォルダー（`OUT_DIR`）、`device_xcodebuild` では実機の一時フォルダー（`DEVICE_TMP`）だけ。シミュレーターのビルド（`DD_SIM`）は `<実行>/dd-build` に、実機のビルド（`DD_DEVICE`）は `<DEVICE_TMP>/dd-build` に移した（前の実行のビルドは使い回さない。実機のビルドの成果物も trap で消える）。`OUT_DIR` と `DEVICE_TMP` は作った直後に実体のパス（`pwd -P`）にする（macOS の `TMPDIR` は symlink の `/var` の下）。値は、根の真下より深い絶対パスで、空・`.`・`..` の段と改行が無く、どの段にも symlink（壊れたものを含む）が無く、あるところまでの実体のパスが値と同じときだけ受ける（`path_inside`） |
+| A-2 | `-derivedDataPath` はちょうど 1 回、`-derivedDataPath <値>` の 2 つの引数だけ。テストの呼び出し（`test`、`test-without-building`）は `-resultBundlePath` も同じ規則でちょうど 1 回。`build-for-testing` は `-resultBundlePath` 無しか、あれば同じ規則。2 回以上、値が無い（値が無いときや次がほかのオプションのときは、それを値として読んで `path_inside` が拒む）、`=` の形、ほかの綴りや大文字小文字の違い（`deriveddatapath`・`resultbundlepath` を含む引数）、知らない動作は 97 |
+
+`BUILD_ROOT` の下に残っている前の `DerivedData-simulator` と `DerivedData-device` は、もう使わないが消していない（git の外）。
+
+確かめたこと（シミュレーターと差し替えたコマンドだけ。実機には触れていない）:
+
+| 確かめ | 結果 |
+|---|---|
+| 自己テスト | 132 件が通った（`test_every_xcodebuild_names_its_own_paths` を表の形にし、拒む 30 通りと受ける 3 通り、実機の拒む 6 通りと受ける 2 通りを確かめる。通しのテストは、シミュレーターの呼び出しがその実行のフォルダー、実機の呼び出しが一時フォルダーの中であること、各オプションが 1 回であることを確かめる） |
+| 変異 | 変異なしの基準は通り、89 個とも捕まった（前の 75 個と、12.4 の 6 個を置き換えた 14 個: 2 つの関数の確かめを外す、シミュレーターが実行の外の `BUILD_ROOT` を使える、実機が `BUILD_ROOT` を使える、実機のビルドが `DEVICE_TMP` の外、シミュレーターのビルドを実行の間で共有、`-derivedDataPath` と `-resultBundlePath` の 2 回、値なし、`=` の形とほかの綴り、symlink、テストに `-resultBundlePath` が無い、列挙とクラスの実行の `-derivedDataPath` を外す）。本物の台帳は変わっていない |
+| ランナー `--feature Dialog`（26.2） | 21/21（約 7 分。ビルドを実行のフォルダーで組み直しても約 20 秒しか延びなかった）。実行のフォルダーに `dd-build`・`dd-enumerate`・`dd-test`・`enumerate.xcresult` ができた |
+| 本物の台帳と既定の DerivedData | 前と後で、台帳の SHA-256 と行数（1 行）が同じ。既定の DerivedData はフォルダーの数（273）が同じで、前より新しいものは無い |
+
+後始末: xcodebuild・simctl・変異の実行の残りは無い。シミュレーターは Shutdown。
+
+### 12.9 動作を 2 つ並べる書き方を拒む（Codex の確かめの A-3）と、次にすること
+
+- 12.8 の直しを Codex に確かめてもらい（A-1・A-2 は直った）、A-3 が出た: `require_own_paths` が xcodebuild の最初の動作しか見ないので、`build-for-testing test -derivedDataPath <中>` のように動作を 2 つ並べると、テストの呼び出しに要る `-resultBundlePath` の確かめをすり抜ける
+- 直し（`scripts/test_ios.sh`）: xcodebuild の動作の言葉（`build-for-testing`・`test`・`test-without-building`・`build`・`analyze`・`archive`・`clean`・`install`・`installsrc`・`docbuild`）をすべて数え、ちょうど 1 つで、しかも許した 3 つのどれかのときだけ通す
+- 確かめ: 自己テストに拒否の 5 通り（ビルドの後のテスト、テストの動作が 2 つ、許した動作と archive、build だけ、clean だけ）を足し、132 件すべてが通った。変異の仕組みは基準が通り、90 個すべてが捕まった（A-3 の変異はまだ一覧に足していない）。本物の台帳と既定の DerivedData（258 個）は前後で同じ
+- Codex のプラグインが使う `codex-cli` が 0.151.0 で、既定のモデル `gpt-6.1-sol` が拒まれていた（`model_not_found`）。利用者の許可で 0.164.0 に更新し、`gpt-6.1-sol` で呼べることを確かめた（セッションの記録の `model` が `gpt-6.1-sol`）。それまでの Codex のレビュー（v1 は `gpt-5.6-sol`、v2 以降は `--model gpt-5.6-sol` を指定）とはモデルが違う
+- A-3 の直しを Codex（`gpt-6.1-sol`、設定のまま）に確かめてもらい、**A=0**。複数の動作の 30 通りが拒まれ、xcodebuild の呼び出し 7 か所に抜け道は無かった
+
+次にすること（2026-10-24 の時点）:
+1. ~~Codex のプラグインの `codex-cli` を更新し、`gpt-6.1-sol` で A-3 の直しを確かめてもらう~~（済み。A=0）
+2. ここまでの変更（I1 の戻るボタン、DerivedData の置き場所、A-3、シミュレーターの基準のファイル `scripts/test_ios.baseline.iPhone_17-26.2.json`）をコミットする（利用者の確認の後）
+3. 実機の 2 回目: 新しい dry-run の一覧を利用者に見せて許可を得る。18.7.2 の戻るボタンのラベルが `Main Menu` かを確かめる
+4. 既定の DerivedData の小さなフォルダー（約 336MB）と、`BUILD_ROOT` の下の古い `DerivedData-simulator` / `DerivedData-device` を消すかを利用者に尋ねる
