@@ -1,0 +1,53 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "73A3F720-16B5-45F6-A743-E9D853C92424",
+      "deviceName" : "iPhone 17",
+      "modelName" : "iPhone 17",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "12s",
+                  "durationInSeconds" : 12.388857007026672,
+                  "name" : "testD1_showAlertOK()",
+                  "nodeIdentifier" : "DialogUITests/testD1_showAlertOK()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD1_showAlertOK",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "DialogUITests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "IosLibraryExampleUITests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests",
+          "nodeType" : "UI test bundle",
+          "result" : "Passed"
+        }
+      ],
+      "name" : "IosLibraryExample",
+      "nodeType" : "Test Plan",
+      "result" : "Passed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

@@ -1,0 +1,345 @@
+{
+  "errors" : [
+
+  ],
+  "values" : [
+    {
+      "disabledTests" : [
+
+      ],
+      "enabledTests" : [
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/appendMarkerLengthIsStable()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/buttonIdentifierIsDerivedFromTheMarker()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/checkForegroundPayloadKeepsTheRealReturnValue()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/checkForegroundPayloadNeverClaimsManagerState()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/detectionFixtureCoversEveryPattern()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/fileFixtureIs64Bytes()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/isolatedDetectionFixturesAreSingleValued()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/m16FixturesHaveDistinctLengths()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/ClipboardSampleViewTests/markersAreDistinct()"
+        },
+        {
+          "identifier" : "IosLibraryExampleTests/IosLibraryExampleTests/example()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardPasteDenyUITests/testCB2_denyPasteFailsLoadText()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardPasteUITests/testCB1_allowPasteLoadsText()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardPasteUITests/testCB3_pasteControlReadsText()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU10a_namedPasteboardSurvivesBackgroundAndDiesOnExplicitRemoval()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU10b_namedPasteboardAfterProcessTermination()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU11_loadFileReturnsTheFixedSizeFixtureAndCleansUp()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU12_firstForegroundCheckReportsTheRealReturnValue()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU13_everyContentKindIsWrittenToThePasteboard()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU14_textUrlAndImageLoadsReturnTheirPayload()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU15_detectionReturnsAResultForTheFixture()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU16_readDataAndMatchingSnapshotReturnTheirSuccessPaths()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU17_uniqueAndGeneralScopeSelection()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU18_appendUrlAndUniversalMarkerGrowTheItemList()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU19_copyOptionFixturesReachThePasteboardAtTheirDesignedLength()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU1_navigatesToClipboardScreenAndShowsSections()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU20_controlOnlyOperationsDoNotOverwriteTheResultLine()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU21_isolatedFixturesForWholeContentPatterns()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU2_copyPlainTextThenReadReportsOneItem()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU3_snapshotReportsAtLeastOneItem()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU4_appendIncreasesItemCount()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU5_observingReportsEventsAndStopsAfterStopObserving()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU6_scopeControlsAreDisabledWhileObserving()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU7_allErrorCasesReportTheirExpectedErrorCode()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU8_namedPasteboardLifecycleEndsUnavailable()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU9_clearEmptiesTheActiveScope()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD10_textInputCancelDropsInput()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD11_loginButtonFollowsBothFields()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD12_loginReportsCredentials()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD13_loginCancel()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD14_eachDialogReportsCompletionAndCallbackOnce()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD15_loginReportsCompletionAndCallbackOnce()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD1_showAlertOK()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD2_showConfirmDialogYes()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD3_showConfirmDialogNo()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD4_showDestructiveDialogDelete()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD5_showDestructiveDialogCancel()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD6_showActionSheetEachOption()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD7_showActionSheetCancel()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD8_textInputConfirmFollowsInput()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD9_textInputConfirmReportsInput()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1a_dialogIdentifiers()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1b_notificationIdentifiers()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1c_shareIdentifiers()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1d_clipboardIdentifiers()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NavigationUITests/testM1_menuOpensEachScreenAndBackReturnsToTheMenu()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NavigationUITests/testM2_reopenedScreensStartFromTheirInitialState()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN30_bannerTapColdStart()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN31_openActionColdStart()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN32_replyColdStart()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN33_deleteColdStart()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN23_registerCategoryAddsActions()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN24_removeCategoryRemovesActions()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN25_bannerTapReportsDefaultAction()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN26_foregroundBannerTapReportsDefaultAction()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN27_openActionBringsTheSample()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN28_deleteActionStaysInBackground()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN29_replyReportsText()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationPermissionUITests/testNP1_allowPermission()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationPermissionUITests/testNP2_denyPermission()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN10_updateDeliveredKeepsOne()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN11_cancelByIdRemovesPending()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN12_cancelByIdKeepsDelivered()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN13_cancelAllRemovesAllPending()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN14_removeDeliveredById()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN15_removeAllDelivered()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN16_scheduleTimeIntervalFires()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN17_scheduleCalendarThenCancelScheduled()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN18_scheduleLocationRegisters()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN19_cancelScheduledById()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN1_permissionStateIsAuthorized()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN20_cancelAllScheduledRemovesAllPending()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN21_queriesAfterCleanupAreEmpty()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN22_setBadgeCountResults()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN2_requestPermissionWhenGrantedShowsNoAlert()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN34_homeIconBadge()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN3_openNotificationSettingsShowsSettings()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN4_showImmediateShowsForegroundBanner()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN5_attachmentCanBeShownTwice()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN6_timeIntervalFiresInBackground()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN7_calendarFiresWithinNinetySeconds()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN8_showLocationRegisters()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN9_updatePendingReplacesIt()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/SampleUITestCase"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS10_shareMultipleCopy()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS11_shareWithSubjectClose()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS12_excludedCopyIsAbsent()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS13_shareEmptyFails()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS14_shareInvalidURLFails()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS15_shareMissingFileFails()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS16_shareMissingImageFails()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS1_shareTextCopy()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS2_shareTextClose()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS3_shareURLDragDown()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS4_shareURLCopy()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS5_shareURLWithPreviewShowsTitle()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS6_shareImageCopy()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS7_shareMultipleImagesClose()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS8_shareFileSaveToFiles()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS9_shareMultipleFilesSaveToFiles()"
+        }
+      ],
+      "testPlan" : "IosLibraryExample"
+    }
+  ]
+}

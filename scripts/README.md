@@ -84,16 +84,43 @@ ClipboardHistoryDestructive, which deletes every unpinned item in the user's
 clipboard history and cannot be undone: ask before running it. `-Baseline`
 needs a full run, so it refuses `-Filter` and `-SkipUnitTests`.
 
+| Script | Runs |
+|---|---|
+| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device. What runs and every check of what ran is in `ios_ui_runner.py` |
+| `test_ios.baseline.<model>-<os>.json` | The recorded outcome of the last full run in each of the two environments, which `--baseline` rewrites |
+
+```bash
+scripts/test_ios.sh --udid <simulator>                       # everything on a simulator
+scripts/test_ios.sh --udid <simulator> --feature Dialog      # one feature's UI tests
+scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --dry-run --device-allow systemui
+scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --devicectl-id <id> \
+  --device-allow systemui --approved <approval.json>         # after the user approved the list
+```
+
+The device is the user's own iPhone (`artifact/topics/ios-c-abi/designs/2026-10-18-ios-c-abi-ui-test-design.md`,
+U-9 and 6.3): a UDID that `xcrun simctl list` does not show is treated as the device,
+`--dry-run` never touches it, and a device run needs an approval list from `--dry-run` that the
+user approved, used once (the IDs are recorded outside the repository in
+`~/Library/Application Support/native-toolkit/test_ios-approvals.log`; nothing moves it), and
+nothing under `ios/` may differ from the commit. `--name-each-test` makes a simulator run name
+every test the way the device does. The hashes of the
+trusted test files are pinned in `ios_ui_runner.py`; change them only after another model has
+reviewed the change.
+
 ## `tests/` is not the test suite
 
-`scripts/tests/` holds the **self-tests of the `check_` scripts**, not tests of
-the product. Each case copies the files a checker reads into a temporary tree,
+`scripts/tests/` holds the **self-tests of the `check_` scripts** and of the
+decisions of `test_ios.sh` (`ios_ui_runner.py`), not tests of the product. Each case copies the files a checker reads into a temporary tree,
 breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 181 cases
+python -m unittest discover -s scripts/tests    # 337 cases
 ```
+
+`tests/ios_ui_runner_mutations.py` is not a unit test: it breaks one decision of the iOS runner
+at a time in a copy (with the copy's approval ledger moved into the copy) and checks that the
+self-tests catch each one.
 
 `test_windows.ps1`, by contrast, runs the product's own tests. The two are
 unrelated despite the similar names.

@@ -1,0 +1,17 @@
+[
+  {
+    "attachments" : [
+      {
+        "configurationName" : "Test Scheme Action",
+        "deviceId" : "73A3F720-16B5-45F6-A743-E9D853C92424",
+        "deviceName" : "iPhone 17",
+        "exportedFileName" : "E99C1AE7-7C96-4F78-B0B7-A820F02D9FDB.json",
+        "isAssociatedWithFailure" : false,
+        "suggestedHumanReadableName" : "ntk-button-coverage-v1_0_5ACCC0F6-E8B3-4AF7-9CF5-4459606808AC.json",
+        "timestamp" : 1792808697.151
+      }
+    ],
+    "testIdentifier" : "DialogUITests/testD1_showAlertOK()",
+    "testIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD1_showAlertOK"
+  }
+]
