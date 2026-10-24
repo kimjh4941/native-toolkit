@@ -7,7 +7,4 @@
    <FileRef
       location = "group:IosLibrary/IosLibrary.xcodeproj">
    </FileRef>
-   <FileRef
-      location = "group:UnityIosPlugin/UnityIosPlugin.xcodeproj">
-   </FileRef>
 </Workspace>
