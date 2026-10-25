@@ -1,10 +1,10 @@
-# 段階 0e の作業の記録（共通の設定、Share、Notification）
+# 段階 0e の作業の記録（共通の設定、Share、Notification、Dialog）
 
-- 記録日: 2026-10-24（第 3 部は 2026-10-25）
-- 段階: 0e の前半（`README.md` の 5 章の 0e の行、D-14、D-22、8.3）。共通の設定（第 1 部）、Share（第 2 部）、Notification（第 3 部、8 章）。Dialog はまだ手を付けていない
-- ブランチ: `feature/NTKIT-18`（第 1 部・第 2 部は HEAD `ae1f2a25` の上で作り、`6e804fd6`・`8a557bcc` でコミットした。第 3 部は `8a557bcc` の上の未コミットの変更）
+- 記録日: 2026-10-24（第 3 部・第 4 部は 2026-10-25）
+- 段階: 0e（`README.md` の 5 章の 0e の行、D-14、D-22、8.3）。共通の設定（第 1 部）、Share（第 2 部）、Notification（第 3 部、8 章）、Dialog（第 4 部、9 章）
+- ブランチ: `feature/NTKIT-18`（第 1 部・第 2 部は HEAD `ae1f2a25` の上で作り、`6e804fd6`・`8a557bcc` でコミットした。第 3 部は `9c27e6e6` でコミットした。第 4 部は `9c27e6e6` の上の未コミットの変更）
 - 環境: Xcode 26.3（17C529）、Swift 6.2.4、シミュレーター iPhone 17（iOS 26.2、`73A3F720-16B5-45F6-A743-E9D853C92424`）だけ。**実機には触れていない**
-- 状態: 第 1 部〜第 3 部の実装とシミュレーターでの確かめが済んだ。実機（D-21 のもう 1 つの環境）での確かめと、`LastUpgradeCheck`（2.3）は残っている
+- 状態: 第 1 部〜第 4 部の実装とシミュレーターでの確かめが済み、`IosLibrary`・サンプル・テストの警告は 0 件になった（9.6）。実機（D-21 のもう 1 つの環境）での確かめと、`LastUpgradeCheck`（2.3）は残っている
 
 ## 1. 測り方
 
@@ -170,7 +170,7 @@ UI テストのビルドは、プロジェクトの設定（complete）のまま
 
 ## 7. 残っていること
 
-- Notification と Dialog（0e の後半）。完了を main で返し、handler を `@Sendable` にする
+- Notification と Dialog（0e の後半）。完了を main で返し、handler を `@Sendable` にする（済み。8 章・9 章）
 - `LastUpgradeCheck`（2.3）。利用者が Xcode の推奨設定の一覧を見て決める
 - 実機（iPhone XS / iOS 18.7.2）で、直した所に関係するテストを流す（README 0e の「両方の環境で流す」）。利用者の許可が要る
 - `IosLibraryTests` の件数が基準の 186 から 189 になったので、`test_ios.sh` の単体テストを含む全件の実行では基準と件数が合わない。0g の後の全件の実行で基準を取り直す（README 0g）
@@ -298,3 +298,125 @@ UI テストのフォルダー、`Support`、`ClipboardUITests` には触れて�
 | swiftinterface | `IosLibrary-after-0e-notification.swiftinterface` を同じ組み方（2.6）で作り直し、`2026-10-24-stage0e-notification.diff` を取り直した。`allowAnnouncement` の `@available(*, deprecated, ...)` と、Share の completion の `@_Concurrency.MainActor @Sendable` が入る |
 
 実行の後、シミュレーターは Shutdown に戻り、`xcodebuild`・テストのプロセスは残っていない。
+
+## 9. 第 4 部: Dialog
+
+`migration` の案 C と 8.10 の決定（Dialog の完了も `@MainActor @Sendable`）に沿った。`@unchecked Sendable`、`nonisolated(unsafe)`、`@preconcurrency` は使っていない。`shared` に `@MainActor` は付けていない（0f）。1b の作業（ブリッジの結果のまとめを `IosLibrary` へ移す、Dialog を層に分ける、1.4 の不備、ログの規則）には手を付けていない（9.8 に見つけたものを書いた）。直したのは `Dialog/IosDialogManager.swift` の 1 ファイルだけで、サンプルは変えていない。
+
+### 9.1 0e の前の警告（63 件）
+
+| 種類 | 件数 | 所 |
+|---|---|---|
+| `UIAlertAction.init` を呼び出し元のスレッドで呼ぶ（main actor の初期化子と、`handler` の closure を渡す `sending`） | 14 | 便利なメソッド 4 つ（`showAlert`・`showConfirmDialog`・`showDestructiveDialog`・`showActionSheet`）が、`UIAlertAction` を main に移る前に作っていた |
+| `getRootViewController()` が UIKit の main actor のプロパティを読む | 7 | `UIApplication.shared`、`connectedScenes`、`activationState`、`windows`、`isKeyWindow`、`rootViewController`、`presentedViewController` |
+| `Sendable` でない完了・ボタンの callback・`textFields` を `DispatchQueue.main.async` と `UIAlertAction` の handler に渡す（capture と `sending`） | 23 | 6 つの `show...` |
+| `Sendable` でない `self` を `DispatchQueue.main.async` に渡す、`static let shared` | 7 | クラスが `Sendable` でない |
+| observer の block（`@Sendable`）から `isEnabled`・`text`・`textFields` を使う | 12 | テキスト入力とログインの、空のときにボタンを止める observer |
+
+### 9.2 直したもの
+
+| 変更 | 理由 |
+|---|---|
+| `IosDialogManager` を `public final class IosDialogManager: NSObject, Sendable` に | 保持するのは `let TAG`（`String`）だけなので、検査付きの `Sendable` にできる。`Sendable` のクラスは `final` が要る。`init` は `private` で、もとから外のモジュールは継承できない（`open` でない）ので、`final` は利用者に影響しない |
+| 完了 7 個とボタンの callback 10 個（`onButton`、`onConfirm` 2、`onCancel` 4、`onDestructive`、`onAction`、`onLogin`）を `(@MainActor @Sendable (...) -> Void)?` に | 8.10 の決定。どれも main で呼ばれる（完了は main の block の中か `present` の完了、ボタンは `UIAlertAction` の handler）。`@Sendable` は呼び出し元のスレッドから main へ運ぶため、`@MainActor` は呼ばれる所を型で示すため |
+| `showDialog` の `textFields` を `[@MainActor @Sendable (UITextField) -> Void]?` に | main へ運び、`addTextField(configurationHandler:)` が main で呼ぶ |
+| `getRootViewController()` を `@MainActor` に | UIKit の状態を読むので main actor でしか正しく動かない。7 件の警告がこれで消えた。**公開 API の変更で、`UnityIosPlugin` の組み立てを壊す**（9.7） |
+| `showDialog` の main の block の中身を `@MainActor private func presentDialog(...)` に移し、便利なメソッド 4 つは、`UIAlertAction` を作る所から main の block（`DispatchQueue.main.async`）の中で行って `presentDialog` を呼ぶ形に | `UIAlertAction` は main actor のクラスで、前は呼び出し元のスレッドで作っていた（14 件）。main へ移るのは前と同じ 1 回だけで、時機は変わらない |
+| observer の block の中を `MainActor.assumeIsolated { }` で包んだ（3 か所） | observer は `queue: .main` で登録しているので、block は main で動く。`assumeIsolated` はそれを実行時に確かめる（main 以外なら止まる）。`Task { @MainActor in }` にすると、ボタンの有効・無効の切り替えが 1 回遅れ、UI テスト（D8・D11）の見る振る舞いが変わりうるので採らなかった。observer を外さない不備（1.4）は直していない |
+| DocC の「Thread Safety」を「Threading」に書き直した | どのスレッドから呼べるか、何が main で返るか、型の意味、`getRootViewController()` は main actor で呼ぶこと、完了が呼ばれない既知の 2 つの経路（9.4）を書いた |
+
+`DispatchQueue.main.async` は `Task { @MainActor in }`（Notification）に替えていない。Swift 6.2.4 は `DispatchQueue.main.async` に渡す closure を main actor に隔離されたものとして扱う（前の警告にも「in an isolated closure」と出ていた）ので、警告は出ない。替えると、main で呼んだときの順序（main の queue に積む順）が変わりうる。サンプルの UI テスト（D14・D15 の 1 回だけの確かめ）は今の順序の上で通っている。
+
+`@MainActor` を型の一部（`shared` 以外のメソッド）に付けるかは次のように決めた。`show...` の 7 つは、今の DocC の「どのスレッドから呼んでもよい」を保ち、C ABI（AC-4〜AC-6）の受け口としても main へ移す役を持つので、nonisolated のままにした。`UIAlertAction`・`UIView`・`UIBarButtonItem` を引数に取るが、どれも main actor のクラスで `Sendable` なので、運ぶことに問題は無い（作るのは呼び出し元の main actor）。UIKit の状態を同期的に返す `getRootViewController()` だけを `@MainActor` にした。
+
+### 9.3 公開 API の変更（2.0.0 の破壊的変更として記録する）
+
+`swiftinterface` の差分: `results/swiftinterface/2026-10-24-stage0e-dialog.diff`（`IosLibrary-after-0e-notification.swiftinterface` → `IosLibrary-after-0e-dialog.swiftinterface`）。2.6 と同じ組み方で作り、`swift-frontend -typecheck-module-from-interface` で型検査が通った。0e の通しの差分は `results/swiftinterface/2026-10-24-stage0e.diff`（`IosLibrary-before-0e-ae1f2a25.swiftinterface` → `IosLibrary-after-0e-dialog.swiftinterface`）。
+
+| 宣言 | 前 | 後 | 利用者への影響 |
+|---|---|---|---|
+| `IosDialogManager` | `public class ...: NSObject` | `final public class ...: NSObject, Sendable` | 足しただけ（`final` は、もとから外のモジュールで継承できないので影響しない）。interface では各メソッドに `final` が付く |
+| `show...` の 7 つの完了 | `((Bool, String?) -> Void)?` | `(@MainActor @Sendable (Bool, String?) -> Void)?` | **破壊的**（型が変わる）。Swift 5 の minimal では警告も出ない。complete / Swift 6 では、`Sendable` でない値を捕まえた closure が警告 / エラーになる。closure の本体は main actor に隔離される |
+| ボタンの callback 10 個 | `((String?, Bool, String?) -> Void)?` など | `(@MainActor @Sendable (String?, Bool, String?) -> Void)?` など | **破壊的**。影響は完了と同じ |
+| `showDialog` の `textFields` | `[(UITextField) -> Void]?` | `[@MainActor @Sendable (UITextField) -> Void]?` | **破壊的**。影響は完了と同じ |
+| `getRootViewController()` | nonisolated | `@MainActor` | **破壊的**（Swift 5 の minimal でも）。main actor でない同期の文脈から呼ぶとエラーになる。`UnityIosPlugin` の 1 か所がこれに当たる（9.7）。SwiftUI の `Button` の action（main actor）から呼ぶサンプルは変わらない |
+
+### 9.4 動作の変更
+
+| 変更 | 前 | 後 |
+|---|---|---|
+| 便利なメソッド 4 つ（`showAlert`・`showConfirmDialog`・`showDestructiveDialog`・`showActionSheet`）の `UIAlertAction` を作るスレッド | 呼び出し元のスレッド（main 以外から呼ぶと、UIKit のオブジェクトを main 以外で作っていた） | main（main へ移る `DispatchQueue.main.async` の中）。main から呼ぶ場合は、見える違いは無い |
+| 同じ 4 つのログ | 自分のログの後に、中で呼ぶ `showDialog` の `showDialog called with ...` が出ていた | `showDialog` を通らないので、その行が出ない。自分の行（`showAlert called with ...` など）と、失敗の `Failed to get root view controller` は前と同じ |
+
+ほかの動作は変えていない。完了とボタンの callback は前から main で、非同期に返っていた（README 1.3 の Dialog の行の「`showActionSheet` は呼び出し元のスレッドで探す」はブリッジの `UnityIosDialogManager` の話で、`IosLibrary` の `showActionSheet` は前から main で探していた）。完了は、呼ばれる経路では前から 1 回だけだった。
+
+**完了が 1 回も呼ばれない経路が 2 つある（前から。直していない）**:
+
+1. `showLoginDialog` で前面の ViewController が見つからないとき、失敗は `onLogin`（`(nil, nil, nil, false, message)`）で返り、`completion` は呼ばれない。1.4 の「失敗の返し方が揃っていない」で、1b で Dialog の結果の型にまとめるときに直す。今の振る舞いをテストで固定した（9.5）
+2. UIKit が表示を断ったとき（見つけた ViewController が window に無い、など）、`present(_:animated:completion:)` の完了が呼ばれないので、`completion` も呼ばれない。シミュレーターで、window に無い ViewController から `present` して確かめた（UIKit が「whose view is not in the window hierarchy」を出し、完了は 1 秒待っても呼ばれなかった。確かめのテストはリポジトリに残していない）。**1.4 に無い不備**。1b のエラーの型を作るときに、表示の後に `presentingViewController` を見るなどで失敗を返す形を決める
+
+どちらも DocC の「Threading」に既知の欠けとして書いた。
+
+### 9.5 テスト
+
+Dialog のテストはどのターゲットにも無かった（README 1.4）。`IosLibraryTests/Dialog/IosDialogManagerTests.swift` を足した（9 件。フォルダーは pbxproj と同期するので、pbxproj は変えていない）。
+
+`IosLibraryTests` はホストのアプリを持たない（`TEST_HOST` が無い）ので、テストのプロセスには前面の `UIWindowScene` が無く、`show...` はどれも「前面の ViewController が見つからない」経路を通る。本物の UI を出さずに確かめられるのはこの経路で、表示した後の経路はサンプルの UI テスト（D1〜D15）が見る。各テストは初めに `getRootViewController()` が `nil` であることを `#require` で確かめ、ホストが付いて本物の UI を出してしまう形では先へ進まない。
+
+| テスト | 確かめること |
+|---|---|
+| `showDialog`・`showAlert`・`showConfirmDialog`・`showDestructiveDialog`・`showActionSheet`・`showTextInputDialog` の 6 件 | background のスレッドから呼んで、`completion` が main で 1 回だけ `(false, "Failed to get root view controller")` で返る。ボタンの callback は呼ばれない |
+| `showLoginDialog` | background から呼んで、`onLogin` が main で 1 回だけ `(nil, nil, nil, false, message)` で返り、`completion` と `onCancel` は呼ばれない（9.4 の 1。今の振る舞いを固定する） |
+| main から呼んだとき | 呼び出しが戻る前には `completion` が呼ばれず、後で main で 1 回だけ返る（いつも非同期） |
+| callback がすべて `nil` | 7 つを background から呼んで trap しない |
+
+1 回だけを確かめるため、呼び出しをすべて記録し、最初の呼び出しの後さらに 200 ms 待つ（8.6 と同じ）。最初の呼び出しを待つ上限は 30 秒にした。シミュレーターを起動した直後の最初の実行で、プロセスで最初の `UIAlertAction` を作るのに main で 5 秒余りかかり、5 秒の上限では `showAlert` の 1 件が落ちたため（2 回目からは 0.2 秒ほど）。
+
+**HEAD（`9c27e6e6`）の `IosDialogManager.swift` に戻して流すと、9 件すべてが通った**（今の版でもすべて通る）。Notification（8.6）と違い、確かめられる経路は HEAD でも main で 1 回だけ返っていたので、このテストは HEAD の不備を捕まえるものではなく、契約を守るための回帰のテストである。0e で変えた振る舞いのうち、`UIAlertAction` を作るスレッド（9.4）は UI を出さないと見えず、型の変更（`@MainActor @Sendable`、`getRootViewController()` の `@MainActor`）はコンパイラが確かめる。
+
+### 9.6 警告の数（clean・whole-module・Swift 5 + complete。1 章と同じ測り方）
+
+| 所 | 第 3 部の後（`9c27e6e6`） | 第 4 部の後 |
+|---|---|---|
+| `IosLibrary` / Dialog | 63 | **0** |
+| `IosLibrary` / Notification・Share・Clipboard | 0 | 0 |
+| `IosLibraryTests`（足した Dialog のテストを含む） | 0 | 0 |
+| サンプル（`IosLibraryExample`） | 0 | 0 |
+| `IosLibraryExampleTests`、`IosLibraryExampleUITests` | 0 | 0 |
+| 計（2 つの scheme の和集合） | 63 | **0** |
+
+`swiftc` の意味に効く引数は、2 つの scheme とも第 3 部の後と同じだった。サンプルは 1 行も変えずに 0 件のまま（完了とボタンの callback は SwiftUI の view の中で書かれ、`@MainActor` の型なので main actor の `updateResult` をそのまま呼べる）。
+
+0e を通した数: 0e の前に `complete` を渡したときは 423 件（`IosLibrary` 104、テスト 1、サンプル 2、UI テスト 316）。0e の後は 0 件（UI テストのターゲットは D-14 の例外で minimal）。
+
+### 9.7 確かめたこと（シミュレーターだけ）
+
+| 確かめ | 結果 |
+|---|---|
+| `IosLibraryTests` 全件（`-parallel-testing-enabled NO`） | 209 件すべて成功（第 3 部の後の 200 件 + 9.5 の 9 件） |
+| `IosLibraryExampleTests`（`-only-testing`） | 10 件すべて成功 |
+| `scripts/test_ios.sh --udid <シミュレーター> --feature Dialog --skip-unit` | 列挙 99 件が `Support/DeviceRequirements.json` と完全に一致。21 件を選び（`NavigationUITests` 2、`IdentifierInventoryUITests` 4、`DialogUITests` 15。区分で除いたものは 0）、21 件すべて成功。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）と比べて changed=0、added=0、removed=0（この実行の外の 274 件は比べていない）。結果のフォルダーは `ios/IosLibraryExample/build/test_ios/20261025-090535-iPhone_17-26.2/`（git の外） |
+| 閉じた形のソースの規則（`ios_ui_runner.py check-sources`） | 通った |
+| 信頼する部分のハッシュ（`ios_ui_runner.py hashes`） | `TRUSTED_FILES` の 8 個と `FROZEN_CLIPBOARD_SHA256` がピンの値と全部同じ。UI テストのフォルダー、`scripts/`、サンプルは HEAD から変えていない |
+| swiftinterface | 9.3 のとおり。型検査が通った |
+| `UnityIosPlugin` がまだ組めるか（2.1 と同じ組み方。シミュレーターのスライス） | **組めなくなった**。エラー 1 件: `UnityIosDialogManager.swift:177`（`showActionSheet` の中）の「call to main actor-isolated instance method 'getRootViewController()' in a synchronous nonisolated context」。警告は第 3 部の後と同じ 9 件（Notification 6、Share 1、`allowAnnouncement` の deprecated 1、`@unknown default` 1）。ブリッジには手を入れていない（D-22） |
+
+実行の後、シミュレーターは Shutdown に戻り、`xcodebuild`・Simulator・テストのプロセスは残っていない。
+
+`UnityIosPlugin` が組めないことの影響: `scripts/build_ios_library_xcframework.sh`（`IosLibrary` の後に `UnityIosPlugin` を組む）と `ios/generate_docc.sh` は、このブランチでは `UnityIosPlugin` の所で失敗する。ワークスペースのビルドと `test_ios.sh` は `UnityIosPlugin` を使わないので影響しない（2.1）。2.1 で見込んでいた「0f で組めなくなりうる」が 0e で起きた形で、D-22 の A（1.x の直しはタグ `1.13.0` から。ブリッジは段階 3 で消す）の範囲にある。
+
+もう 1 つの案として、`getRootViewController()` を nonisolated のままにし、中を `MainActor.assumeIsolated { }` で包む形を試した。`UnityIosPlugin` は第 3 部の後と同じ 9 件の警告で組めた。代わりに、main 以外から呼ぶと実行時に止まる（前は UIKit を main 以外で読んでいた）。型で約束を示せず、0f で `shared` などを `@MainActor` にするときにはブリッジがやはり組めなくなるので、採らなかった（利用者の決定待ち。9.9）。
+
+### 9.8 見つけたもの（直していない。1b などで扱う）
+
+- 9.4 の 2 つの経路（`showLoginDialog` の失敗が `completion` に来ない、UIKit が表示を断ると `completion` が来ない）。後者は 1.4 に無い
+- `showTextInputDialog` と `showLoginDialog` の確定ボタンの handler が `alert` を強く捕まえ、`alert` が action を持つので、循環参照になる。observer（1.4 の「外していない」）も `alert` と action を強く捕まえる。DocC の「Memory」の「Callbacks are not retained after dialog dismissal」は、この 2 つでは正しくない見込み（測っていない）
+- `showDestructiveDialog` のログに `completion` が無い（ログの規則。1.4）
+- `showDialog` の DocC の `actions` は「`UIAlertAction` を渡す」形で、作るのは呼び出し元の main actor になる。C ABI と Swift の API の設計（1b）で、ボタンを値で渡す形にするかを決める
+
+### 9.9 残っていること
+
+- **決めること**: `getRootViewController()` の `@MainActor`（推奨: 今のまま。理由は 9.7）。採ると、段階 3 までこのブランチではリリースのスクリプトと DocC のスクリプトが `UnityIosPlugin` の所で失敗する
+- 実機での確かめ（D-21）。利用者の許可が要る
+- `LastUpgradeCheck`（2.3）
+- README の 0e の行、8.3 の表の更新（7 章）

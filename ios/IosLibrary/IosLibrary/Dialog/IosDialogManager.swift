@@ -20,8 +20,28 @@ import UIKit
 ///   * **isSuccess**: Presentation + user interaction completed (`true`) or a precondition failed (`false`).
 ///   * **errorMessage**: Human readable diagnostic when `isSuccess == false` (else `nil`).
 ///
-/// ## Thread Safety
-/// All public APIs marshal to the main queue before interacting with UIKit. Call them from any thread.
+/// ## Threading
+/// The manager is `Sendable`, and the `show...` methods may be called from any thread: all UIKit
+/// work, including creating the `UIAlertAction`s of the convenience methods, runs on the main
+/// thread (main actor) after the call returns. ``getRootViewController()`` reads UIKit state, so it
+/// is `@MainActor` and must be called on the main actor.
+///
+/// Every `completion` and every button callback (`onButton`, `onConfirm`, `onCancel`,
+/// `onDestructive`, `onAction`, `onLogin`) is invoked on the main thread, asynchronously (also
+/// when the method is called on the main thread), and at most once per call. Their types are
+/// `@MainActor @Sendable`: `@Sendable` because the closure is carried from the calling thread to
+/// the main actor, and `@MainActor` to state in the type where it runs, so that a closure written
+/// on the main actor (for example in a SwiftUI view) can use main-actor state directly. The
+/// `textFields` configuration closures of ``showDialog(title:message:preferredStyle:actions:textFields:sourceView:sourceRect:barButtonItem:permittedArrowDirections:animated:completion:)``
+/// have the same type for the same reason.
+///
+/// `completion` reports the presentation: `(true, nil)` once UIKit has presented the dialog, or
+/// `(false, errorMessage)` when no view controller to present on is found. Known gaps, kept as
+/// they are until the Dialog result type is reworked:
+/// * ``showLoginDialog(title:message:usernamePlaceholder:passwordPlaceholder:loginTitle:cancelTitle:enableLoginWhenEmpty:onLogin:onCancel:completion:)``
+///   reports the failure through `onLogin` and does not invoke `completion`.
+/// * If UIKit declines the presentation (for example because the found view controller is not
+///   in a window), `completion` is not invoked.
 ///
 /// ## Popover / iPad Support
 /// For action sheets or alerts with style `.actionSheet`, popover anchors (`sourceView` / `sourceRect` / `barButtonItem`) are applied when available — falling back to centering inside the root view if none supplied.
@@ -43,7 +63,7 @@ import UIKit
 ///     print("User tapped: \(result ?? "?")")
 /// }
 /// ```
-public class IosDialogManager: NSObject {
+public final class IosDialogManager: NSObject, Sendable {
     
     private let TAG = "IosDialogManager"
     
@@ -79,63 +99,96 @@ public class IosDialogManager: NSObject {
         message: String? = nil,
         preferredStyle: UIAlertController.Style = .alert,
         actions: [UIAlertAction] = [],
-        textFields: [(UITextField) -> Void]? = nil,
+        textFields: [@MainActor @Sendable (UITextField) -> Void]? = nil,
         sourceView: UIView? = nil,
         sourceRect: CGRect? = nil,
         barButtonItem: UIBarButtonItem? = nil,
         permittedArrowDirections: UIPopoverArrowDirection = .any,
         animated: Bool = true,
-        completion: ((Bool, String?) -> Void)? = nil
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), preferredStyle: \(preferredStyle), actions count: \(actions.count), textFields count: \(textFields?.count ?? 0), sourceView: \(sourceView?.description ?? "nil"), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), barButtonItem: \(barButtonItem?.description ?? "nil"), permittedArrowDirections: \(permittedArrowDirections), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
-            guard let rootViewController = self.getRootViewController() else {
-                Log.e(self.TAG, "Failed to get root view controller")
-                completion?(false, "Failed to get root view controller")
-                return
+            self.presentDialog(
+                title: title,
+                message: message,
+                preferredStyle: preferredStyle,
+                actions: actions,
+                textFields: textFields,
+                sourceView: sourceView,
+                sourceRect: sourceRect,
+                barButtonItem: barButtonItem,
+                permittedArrowDirections: permittedArrowDirections,
+                animated: animated,
+                completion: completion
+            )
+        }
+    }
+
+    /// Builds and presents the `UIAlertController` of ``showDialog(title:message:preferredStyle:actions:textFields:sourceView:sourceRect:barButtonItem:permittedArrowDirections:animated:completion:)``
+    /// and of the convenience methods that take fixed actions.
+    ///
+    /// Runs on the main actor; the public methods call it from their `DispatchQueue.main.async` block.
+    @MainActor
+    private func presentDialog(
+        title: String?,
+        message: String?,
+        preferredStyle: UIAlertController.Style = .alert,
+        actions: [UIAlertAction],
+        textFields: [@MainActor @Sendable (UITextField) -> Void]? = nil,
+        sourceView: UIView? = nil,
+        sourceRect: CGRect? = nil,
+        barButtonItem: UIBarButtonItem? = nil,
+        permittedArrowDirections: UIPopoverArrowDirection = .any,
+        animated: Bool = true,
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)?
+    ) {
+        guard let rootViewController = getRootViewController() else {
+            Log.e(TAG, "Failed to get root view controller")
+            completion?(false, "Failed to get root view controller")
+            return
+        }
+
+        let alert = UIAlertController(title: title, message: message, preferredStyle: preferredStyle)
+
+        // Add actions
+        for action in actions {
+            alert.addAction(action)
+        }
+
+        // Add default OK action if no actions provided
+        if actions.isEmpty {
+            let okAction = UIAlertAction(title: "OK", style: .default, handler: nil)
+            alert.addAction(okAction)
+        }
+
+        // Add text fields if provided (only for .alert style)
+        if let textFields = textFields, preferredStyle == .alert {
+            for textFieldConfig in textFields {
+                alert.addTextField(configurationHandler: textFieldConfig)
             }
-            
-            let alert = UIAlertController(title: title, message: message, preferredStyle: preferredStyle)
-            
-            // Add actions
-            for action in actions {
-                alert.addAction(action)
+        }
+
+        // Configure popover presentation for iPad
+        if let popover = alert.popoverPresentationController {
+            if let sourceView = sourceView {
+                popover.sourceView = sourceView
+                popover.sourceRect = sourceRect ?? sourceView.bounds
+            } else if let barButtonItem = barButtonItem {
+                popover.barButtonItem = barButtonItem
+            } else {
+                // Fallback to center of the screen
+                popover.sourceView = rootViewController.view
+                popover.sourceRect = CGRect(x: rootViewController.view.bounds.midX,
+                                            y: rootViewController.view.bounds.midY,
+                                            width: 0, height: 0)
             }
-            
-            // Add default OK action if no actions provided
-            if actions.isEmpty {
-                let okAction = UIAlertAction(title: "OK", style: .default, handler: nil)
-                alert.addAction(okAction)
-            }
-            
-            // Add text fields if provided (only for .alert style)
-            if let textFields = textFields, preferredStyle == .alert {
-                for textFieldConfig in textFields {
-                    alert.addTextField(configurationHandler: textFieldConfig)
-                }
-            }
-            
-            // Configure popover presentation for iPad
-            if let popover = alert.popoverPresentationController {
-                if let sourceView = sourceView {
-                    popover.sourceView = sourceView
-                    popover.sourceRect = sourceRect ?? sourceView.bounds
-                } else if let barButtonItem = barButtonItem {
-                    popover.barButtonItem = barButtonItem
-                } else {
-                    // Fallback to center of the screen
-                    popover.sourceView = rootViewController.view
-                    popover.sourceRect = CGRect(x: rootViewController.view.bounds.midX,
-                                                y: rootViewController.view.bounds.midY,
-                                                width: 0, height: 0)
-                }
-                popover.permittedArrowDirections = permittedArrowDirections
-            }
-            
-            // Present the alert
-            rootViewController.present(alert, animated: animated) {
-                completion?(true, nil)
-            }
+            popover.permittedArrowDirections = permittedArrowDirections
+        }
+
+        // Present the alert
+        rootViewController.present(alert, animated: animated) {
+            completion?(true, nil)
         }
     }
     
@@ -144,6 +197,8 @@ public class IosDialogManager: NSObject {
     /// Iterates through foreground active scenes → key window → presented chain.
     /// Returns `nil` if no active scene or key window is found.
     /// - Returns: The top view controller or `nil`.
+    /// - Note: It reads UIKit state, so it is `@MainActor`: call it on the main actor.
+    @MainActor
     public func getRootViewController() -> UIViewController? {
         guard let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
@@ -173,17 +228,19 @@ public class IosDialogManager: NSObject {
         title: String? = nil,
         message: String? = nil,
         buttonText: String? = "OK",
-        onButton: ((String?, Bool, String?) -> Void)? = nil,
-        completion: ((Bool, String?) -> Void)? = nil
+        onButton: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showAlert called with title: \(title ?? "nil"), message: \(message ?? "nil"), buttonText: \(buttonText ?? "nil"), onButton: \(onButton != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
-        let okAction = UIAlertAction(title: buttonText, style: .default) { _ in
-            onButton?(buttonText, true, nil)
+        DispatchQueue.main.async {
+            let okAction = UIAlertAction(title: buttonText, style: .default) { _ in
+                onButton?(buttonText, true, nil)
+            }
+            self.presentDialog(title: title,
+                               message: message,
+                               actions: [okAction],
+                               completion: completion)
         }
-        showDialog(title: title,
-                   message: message,
-                   actions: [okAction],
-                   completion: completion)
     }
     
     /// Shows a confirm / cancel dialog.
@@ -200,21 +257,23 @@ public class IosDialogManager: NSObject {
         message: String? = nil,
         confirmTitle: String? = "OK",
         cancelTitle: String? = "Cancel",
-        onConfirm: ((String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil,
-        completion: ((Bool, String?) -> Void)? = nil
+        onConfirm: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showConfirmDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
-        let confirmAction = UIAlertAction(title: confirmTitle, style: .default) { _ in
-            onConfirm?(confirmTitle, true, nil)
+        DispatchQueue.main.async {
+            let confirmAction = UIAlertAction(title: confirmTitle, style: .default) { _ in
+                onConfirm?(confirmTitle, true, nil)
+            }
+            let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
+                onCancel?(cancelTitle, true, nil)
+            }
+            self.presentDialog(title: title,
+                               message: message,
+                               actions: [confirmAction, cancelAction],
+                               completion: completion)
         }
-        let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
-            onCancel?(cancelTitle, true, nil)
-        }
-        showDialog(title: title,
-                   message: message,
-                   actions: [confirmAction, cancelAction],
-                   completion: completion)
     }
     
     /// Shows a destructive confirmation dialog (e.g., Delete action) plus cancel.
@@ -232,21 +291,23 @@ public class IosDialogManager: NSObject {
         message: String? = nil,
         destructiveTitle: String? = "Delete",
         cancelTitle: String? = "Cancel",
-        onDestructive: ((String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil,
-        completion: ((Bool, String?) -> Void)? = nil
+        onDestructive: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showDestructiveDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), destructiveTitle: \(destructiveTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onDestructive: \(onDestructive != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
-        let destructiveAction = UIAlertAction(title: destructiveTitle, style: .destructive) { _ in
-            onDestructive?(destructiveTitle, true, nil)
+        DispatchQueue.main.async {
+            let destructiveAction = UIAlertAction(title: destructiveTitle, style: .destructive) { _ in
+                onDestructive?(destructiveTitle, true, nil)
+            }
+            let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
+                onCancel?(cancelTitle, true, nil)
+            }
+            self.presentDialog(title: title,
+                               message: message,
+                               actions: [destructiveAction, cancelAction],
+                               completion: completion)
         }
-        let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
-            onCancel?(cancelTitle, true, nil)
-        }
-        showDialog(title: title,
-                   message: message,
-                   actions: [destructiveAction, cancelAction],
-                   completion: completion)
     }
     
     /// Presents an action sheet with custom actions.
@@ -268,34 +329,35 @@ public class IosDialogManager: NSObject {
         sourceView: UIView,
         sourceRect: CGRect? = nil,
         animated: Bool = true,
-        onAction: ((String?, Bool, String?) -> Void)? = nil,
-        completion: ((Bool, String?) -> Void)? = nil
+        onAction: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showActionSheet called with title: \(title ?? "nil"), message: \(message ?? "nil"), options: \(options), cancelTitle: \(cancelTitle), sourceView: \(sourceView.description), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
-        
-        var actions: [UIAlertAction] = []
-        for option in options {
-            let action = UIAlertAction(title: option, style: .default) { _ in
-                Log.d(self.TAG, "Option selected: \(option)")
-                onAction?(option, true, nil)
+        DispatchQueue.main.async {
+            var actions: [UIAlertAction] = []
+            for option in options {
+                let action = UIAlertAction(title: option, style: .default) { _ in
+                    Log.d(self.TAG, "Option selected: \(option)")
+                    onAction?(option, true, nil)
+                }
+                actions.append(action)
             }
-            actions.append(action)
+
+            let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
+                Log.d(self.TAG, "Cancel button pressed")
+                onAction?(cancelTitle, true, nil)
+            }
+            actions.append(cancelAction)
+
+            self.presentDialog(title: title,
+                               message: message,
+                               preferredStyle: .actionSheet,
+                               actions: actions,
+                               sourceView: sourceView,
+                               sourceRect: sourceRect,
+                               animated: animated,
+                               completion: completion)
         }
-        
-        let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
-            Log.d(self.TAG, "Cancel button pressed")
-            onAction?(cancelTitle, true, nil)
-        }
-        actions.append(cancelAction)
-        
-        showDialog(title: title,
-                   message: message,
-                   preferredStyle: .actionSheet,
-                   actions: actions,
-                   sourceView: sourceView,
-                   sourceRect: sourceRect,
-                   animated: animated,
-                   completion: completion)
     }
     
     /// Shows a single text input dialog with optional validation (disabling confirm while empty).
@@ -317,9 +379,9 @@ public class IosDialogManager: NSObject {
         confirmTitle: String? = "OK",
         cancelTitle: String? = "Cancel",
         enableConfirmWhenEmpty: Bool = true,
-        onConfirm: ((String?, String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil,
-        completion: ((Bool, String?) -> Void)? = nil
+        onConfirm: (@MainActor @Sendable (String?, String?, Bool, String?) -> Void)? = nil,
+        onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showTextInputDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), placeholder: \(placeholder ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableConfirmWhenEmpty: \(enableConfirmWhenEmpty), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
@@ -347,7 +409,11 @@ public class IosDialogManager: NSObject {
                         object: textField,
                         queue: .main
                     ) { _ in
-                        confirmAction.isEnabled = !(textField.text?.isEmpty ?? true)
+                        // The observer is registered with `queue: .main`, so the block runs on the
+                        // main thread; `assumeIsolated` checks that at run time.
+                        MainActor.assumeIsolated {
+                            confirmAction.isEnabled = !(textField.text?.isEmpty ?? true)
+                        }
                     }
                 }
             }
@@ -386,9 +452,9 @@ public class IosDialogManager: NSObject {
         loginTitle: String? = "Login",
         cancelTitle: String? = "Cancel",
         enableLoginWhenEmpty: Bool = true,
-        onLogin: ((String?, String?, String?, Bool, String?) -> Void)? = nil,
-        onCancel: ((String?, Bool, String?) -> Void)? = nil,
-        completion: ((Bool, String?) -> Void)? = nil
+        onLogin: (@MainActor @Sendable (String?, String?, String?, Bool, String?) -> Void)? = nil,
+        onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
+        completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
         Log.d(TAG, "showLoginDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), usernamePlaceholder: \(usernamePlaceholder ?? "nil"), passwordPlaceholder: \(passwordPlaceholder ?? "nil"), loginTitle: \(loginTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableLoginWhenEmpty: \(enableLoginWhenEmpty), onLogin: \(onLogin != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
         DispatchQueue.main.async {
@@ -418,9 +484,12 @@ public class IosDialogManager: NSObject {
                         object: textField,
                         queue: .main
                     ) { _ in
-                        let username = alert.textFields?[0].text
-                        let password = alert.textFields?[1].text
-                        loginAction.isEnabled = !(username?.isEmpty ?? true) && !(password?.isEmpty ?? true)
+                        // Runs on the main thread (`queue: .main`); see `showTextInputDialog`.
+                        MainActor.assumeIsolated {
+                            let username = alert.textFields?[0].text
+                            let password = alert.textFields?[1].text
+                            loginAction.isEnabled = !(username?.isEmpty ?? true) && !(password?.isEmpty ?? true)
+                        }
                     }
                 }
             }
@@ -436,9 +505,12 @@ public class IosDialogManager: NSObject {
                         object: textField,
                         queue: .main
                     ) { _ in
-                        let username = alert.textFields?[0].text
-                        let password = alert.textFields?[1].text
-                        loginAction.isEnabled = !(username?.isEmpty ?? true) && !(password?.isEmpty ?? true)
+                        // Runs on the main thread (`queue: .main`); see `showTextInputDialog`.
+                        MainActor.assumeIsolated {
+                            let username = alert.textFields?[0].text
+                            let password = alert.textFields?[1].text
+                            loginAction.isEnabled = !(username?.isEmpty ?? true) && !(password?.isEmpty ?? true)
+                        }
                     }
                 }
             }

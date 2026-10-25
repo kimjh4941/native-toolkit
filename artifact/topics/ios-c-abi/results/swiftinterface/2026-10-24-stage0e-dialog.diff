@@ -1,0 +1,43 @@
+--- IosLibrary-after-0e-notification.swiftinterface	2026-10-25 01:09:20
++++ IosLibrary-after-0e-dialog.swiftinterface	2026-10-25 09:02:03
+@@ -527,31 +527,31 @@
+   @objc override dynamic public init()
+   @objc deinit
+ }
+-@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers public class IosDialogManager : ObjectiveC.NSObject {
++@objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class IosDialogManager : ObjectiveC.NSObject, Swift.Sendable {
+   public static let shared: IosLibrary.IosDialogManager
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func showDialog(title: Swift.String? = nil, message: Swift.String? = nil, preferredStyle: UIKit.UIAlertController.Style = .alert, actions: [UIKit.UIAlertAction] = [], textFields: [(UIKit.UITextField) -> Swift.Void]? = nil, sourceView: UIKit.UIView? = nil, sourceRect: CoreFoundation.CGRect? = nil, barButtonItem: UIKit.UIBarButtonItem? = nil, permittedArrowDirections: UIKit.UIPopoverArrowDirection = .any, animated: Swift.Bool = true, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func showDialog(title: Swift.String? = nil, message: Swift.String? = nil, preferredStyle: UIKit.UIAlertController.Style = .alert, actions: [UIKit.UIAlertAction] = [], textFields: [@_Concurrency.MainActor @Sendable (UIKit.UITextField) -> Swift.Void]? = nil, sourceView: UIKit.UIView? = nil, sourceRect: CoreFoundation.CGRect? = nil, barButtonItem: UIKit.UIBarButtonItem? = nil, permittedArrowDirections: UIKit.UIPopoverArrowDirection = .any, animated: Swift.Bool = true, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func getRootViewController() -> UIKit.UIViewController?
++  @_Concurrency.MainActor final public func getRootViewController() -> UIKit.UIViewController?
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func showAlert(title: Swift.String? = nil, message: Swift.String? = nil, buttonText: Swift.String? = "OK", onButton: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func showAlert(title: Swift.String? = nil, message: Swift.String? = nil, buttonText: Swift.String? = "OK", onButton: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func showConfirmDialog(title: Swift.String? = nil, message: Swift.String? = nil, confirmTitle: Swift.String? = "OK", cancelTitle: Swift.String? = "Cancel", onConfirm: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func showConfirmDialog(title: Swift.String? = nil, message: Swift.String? = nil, confirmTitle: Swift.String? = "OK", cancelTitle: Swift.String? = "Cancel", onConfirm: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func showDestructiveDialog(title: Swift.String? = nil, message: Swift.String? = nil, destructiveTitle: Swift.String? = "Delete", cancelTitle: Swift.String? = "Cancel", onDestructive: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func showDestructiveDialog(title: Swift.String? = nil, message: Swift.String? = nil, destructiveTitle: Swift.String? = "Delete", cancelTitle: Swift.String? = "Cancel", onDestructive: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func showActionSheet(title: Swift.String? = nil, message: Swift.String? = nil, options: [Swift.String], cancelTitle: Swift.String = "Cancel", sourceView: UIKit.UIView, sourceRect: CoreFoundation.CGRect? = nil, animated: Swift.Bool = true, onAction: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func showActionSheet(title: Swift.String? = nil, message: Swift.String? = nil, options: [Swift.String], cancelTitle: Swift.String = "Cancel", sourceView: UIKit.UIView, sourceRect: CoreFoundation.CGRect? = nil, animated: Swift.Bool = true, onAction: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func showTextInputDialog(title: Swift.String? = nil, message: Swift.String? = nil, placeholder: Swift.String? = nil, confirmTitle: Swift.String? = "OK", cancelTitle: Swift.String? = "Cancel", enableConfirmWhenEmpty: Swift.Bool = true, onConfirm: ((Swift.String?, Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func showTextInputDialog(title: Swift.String? = nil, message: Swift.String? = nil, placeholder: Swift.String? = nil, confirmTitle: Swift.String? = "OK", cancelTitle: Swift.String? = "Cancel", enableConfirmWhenEmpty: Swift.Bool = true, onConfirm: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+-  public func showLoginDialog(title: Swift.String? = nil, message: Swift.String? = nil, usernamePlaceholder: Swift.String? = "Username", passwordPlaceholder: Swift.String? = "Password", loginTitle: Swift.String? = "Login", cancelTitle: Swift.String? = "Cancel", enableLoginWhenEmpty: Swift.Bool = true, onLogin: ((Swift.String?, Swift.String?, Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: ((Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: ((Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  final public func showLoginDialog(title: Swift.String? = nil, message: Swift.String? = nil, usernamePlaceholder: Swift.String? = "Username", passwordPlaceholder: Swift.String? = "Password", loginTitle: Swift.String? = "Login", cancelTitle: Swift.String? = "Cancel", enableLoginWhenEmpty: Swift.Bool = true, onLogin: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.String?, Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, onCancel: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   @objc deinit
+ }
