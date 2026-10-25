@@ -78,7 +78,7 @@
 | `Support/SampleUITestCase.swift` | `f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499` | レビュー v1 の R-4 |
 | `Support/SampleApp.swift` | `63edf06e72b7a7e881bf1b85427d16add388d3fe502e69f365e493b7c4d9a3d4` | 実機の 1 回目の後（I1 の戻るボタン） |
 | `Support/Springboard.swift` | `427a3b7bddb7aef5f9604c3bc41df8e2516b1989fa872b62cbfddf5549a05be3` | レビュー v2 の R-21 |
-| `Support/ShareSheet.swift` | `acbd1a912c9a9489f37847036c5642c72492190cef8abbafa3ba588e7f38b6a8` | 0c の終わり（`8fdb429d`） |
+| `Support/ShareSheet.swift` | `b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329` | 0e の実機の後（S5 の iOS 18 の題名の読み方。`2026-10-24-ios-c-abi-stage0e-working-notes.md` の 10.4。0c の終わりの値は `acbd1a91…`） |
 | `Support/RunnerPasteboard.swift` | `003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc` | 0c の終わり |
 | `Support/UnexpectedAlertGuard.swift` | `5f94e7b007e037cd9ca1393a512332acb3436a9ff2a19cfcaefcf91ea28c6bfa` | 0c の終わり |
 | `Support/NotificationCleanup.swift` | `64a33263710150a505c14adcfeaf0144b8a43172194878ab652182284595f384` | レビュー v1 |

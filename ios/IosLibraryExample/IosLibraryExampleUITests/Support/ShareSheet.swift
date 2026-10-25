@@ -68,14 +68,34 @@ struct ShareSheet {
         return found
     }
 
-    /// Labels of the header's title (`LP.CaptionBar.TopCaption`), read every 0.1 s for `duration`
-    /// seconds from now. Consecutive equal readings are kept once; "" means no title element.
+    /// Labels of the header's title, read every 0.1 s for `duration` seconds from now. Consecutive
+    /// equal readings are kept once; "" means the title could not be told apart (U-2).
+    ///
+    /// iOS 26.2 names the title `LP.CaptionBar.TopCaption` ("" unless exactly one). iOS 18 has no
+    /// such identifier: the header's navigation bar (the one holding the `Close` button) has the
+    /// children title (`Other`), `Close` (`Button`) and subtitle (`Other`), in that order (iOS 18.3
+    /// simulator, stage 0e working notes 10.4). The title is read only from exactly one such bar
+    /// with exactly those two `Other` children; any other shape reads "".
     func observeHeaderTitle(for duration: TimeInterval) -> [String] {
         let caption = app.descendants(matching: .any).matching(identifier: SystemLabels.shareHeaderTitle)
+        let header = app.navigationBars.containing(NSPredicate(
+            format: "elementType == %lu AND label IN %@",
+            XCUIElement.ElementType.button.rawValue,
+            SystemLabels.close
+        ))
+        let isIOS26 = SampleUITestCase.osMajorVersion >= 26
         var seen: [String] = []
         let deadline = Date().addingTimeInterval(duration)
         repeat {
-            let label = caption.count == 1 ? caption.element.label : ""
+            let label: String
+            if isIOS26 {
+                label = caption.count == 1 ? caption.element.label : ""
+            } else if header.count == 1 {
+                let parts = header.element.children(matching: .other)
+                label = parts.count == 2 ? parts.element(boundBy: 0).label : ""
+            } else {
+                label = ""
+            }
             if seen.last != label { seen.append(label) }
             Thread.sleep(forTimeInterval: 0.1)
         } while Date() < deadline

@@ -722,3 +722,10 @@ Android の `scripts/test_android.sh` の形に合わせる。**実機で流す�
 | xcodebuild の DerivedData と結果のバンドル（6.3。実機の最初の実行、その直しの確認 A-1・A-2） | `-version` のほかの xcodebuild の呼び出しは、`-derivedDataPath` を（テストの呼び出しは `-resultBundlePath` も）ちょうど 1 回、`-option <値>` の 2 つの引数の形で渡す。値は、シミュレーターではその実行の出力のフォルダーの中、実機では実機の一時フォルダー（trap が消す）の中だけ。シミュレーターのビルドもその実行のフォルダーで組む（前の実行のビルドは使い回さない）。実機のビルドも一時フォルダーで組む。`sim_xcodebuild` と `device_xcodebuild` は、無い・2 回以上・値が無い・`=` の形やほかの綴り・外を指す・`.`／`..`／空の段・どの段かに symlink がある（壊れた symlink を含む）・実体のパス（`pwd -P`）と違う値を 97 で拒む。それまでは、列挙の xcresult が Xcode の既定の DerivedData にできていた |
 | 実機の言語（U-16、6.3。実機の最初の実行） | `devicectl device info details` の JSON に言語が無いので、実機の環境の言語は `unknown` になり、`Warning: the device's language is unknown, not ja (U-16)` が出る（警告だけで止めない）。devicectl のほかから言語を読む方法は確かめていない |
 
+### 8.8 段階 0e で実装に合わせたこと
+
+詳しくは `results/2026-10-24-ios-c-abi-stage0e-working-notes.md` の 10 章。
+
+| 所 | 実装 |
+|---|---|
+| S5 の見出しの題名（`ShareSheet.observeHeaderTitle`。U-2、U-16） | iOS 26.2 は今までどおり `LP.CaptionBar.TopCaption` がちょうど 1 つのときに読む。iOS 18 にはこの識別子が無いので、`Close` のボタンを持つ見出しのナビゲーションバーがちょうど 1 つで、その直下の `Other` の子がちょうど 2 つ（題名、副題）のときだけ、1 つ目の label を読む。ほかの形は ""（推測しない）。iOS 18.3 のシミュレーターの階層で決め、別のモデル 2 者のレビュー（区分 A は 0）の後にハッシュを更新した |

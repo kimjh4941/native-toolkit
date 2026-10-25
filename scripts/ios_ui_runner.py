@@ -120,7 +120,7 @@ TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499",
     "Support/SampleApp.swift": "63edf06e72b7a7e881bf1b85427d16add388d3fe502e69f365e493b7c4d9a3d4",
     "Support/Springboard.swift": "427a3b7bddb7aef5f9604c3bc41df8e2516b1989fa872b62cbfddf5549a05be3",
-    "Support/ShareSheet.swift": "acbd1a912c9a9489f37847036c5642c72492190cef8abbafa3ba588e7f38b6a8",
+    "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",
     "Support/UnexpectedAlertGuard.swift": "5f94e7b007e037cd9ca1393a512332acb3436a9ff2a19cfcaefcf91ea28c6bfa",
     "Support/NotificationCleanup.swift": "64a33263710150a505c14adcfeaf0144b8a43172194878ab652182284595f384",
