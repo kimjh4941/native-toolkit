@@ -40,14 +40,24 @@ struct Springboard {
 
     /// The sample's banner: identifier `NotificationShortLookView`, the label starts with
     /// `IosLibraryExample, `, contains `, <title>, ` and ends with `, <body>`. Exactly one match.
-    private func bannerQuery(title: String, body: String) -> XCUIElementQuery {
-        springboard.descendants(matching: .any).matching(NSPredicate(
-            format: "identifier == %@ AND label BEGINSWITH[c] %@ AND label CONTAINS %@ AND label ENDSWITH %@",
-            SystemLabels.notificationShortLook,
-            "\(SystemLabels.sampleDisplayName), ",
-            ", \(title), ",
-            ", \(body)"
-        ))
+    ///
+    /// With `hasAttachment`, the label may also have `, <body>, ` followed by more: on the iPhone XS
+    /// (iOS 18.7.2, ja) a banner with an attachment has one more part after the body, whose text
+    /// is not known (stage 0e working notes 11.5). Only banners expected to carry an attachment
+    /// (N5) accept it; every other banner must still end with the body.
+    private func bannerQuery(title: String, body: String, hasAttachment: Bool = false) -> XCUIElementQuery {
+        let ending = hasAttachment
+            ? NSPredicate(format: "label ENDSWITH %@ OR label CONTAINS %@", ", \(body)", ", \(body), ")
+            : NSPredicate(format: "label ENDSWITH %@", ", \(body)")
+        return springboard.descendants(matching: .any).matching(NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(
+                format: "identifier == %@ AND label BEGINSWITH[c] %@ AND label CONTAINS %@",
+                SystemLabels.notificationShortLook,
+                "\(SystemLabels.sampleDisplayName), ",
+                ", \(title), "
+            ),
+            ending,
+        ]))
     }
 
     /// Waits for the sample's banner. Returns false when it did not appear in `timeout`.
@@ -66,9 +76,9 @@ struct Springboard {
     }
 
     /// Waits until the sample's banner `title` / `body` has gone. Returns false when it is still
-    /// shown after `timeout`.
-    func waitForBannerToVanish(title: String, body: String, timeout: TimeInterval) throws -> Bool {
-        let gone = bannerQuery(title: title, body: body).firstMatch.waitForNonExistence(timeout: timeout)
+    /// shown after `timeout`. `hasAttachment` as in `bannerQuery`.
+    func waitForBannerToVanish(title: String, body: String, hasAttachment: Bool = false, timeout: TimeInterval) throws -> Bool {
+        let gone = bannerQuery(title: title, body: body, hasAttachment: hasAttachment).firstMatch.waitForNonExistence(timeout: timeout)
         try session.checkInterruption()
         return gone
     }
@@ -90,7 +100,10 @@ struct Springboard {
     /// its length (`<12>`). Identifiers are written only when known, otherwise as their length.
     /// Reads only. At most four distinct entries of at most six parts each (more parts end in
     /// `…`), so that the runner's 300-character cut of a failure message keeps them in practice.
-    func waitForBannerNotingSampleNotifications(title: String, body: String, timeout: TimeInterval) throws -> (found: Bool, note: String) {
+    /// `hasAttachment` as in `bannerQuery`.
+    func waitForBannerNotingSampleNotifications(
+        title: String, body: String, hasAttachment: Bool, timeout: TimeInterval
+    ) throws -> (found: Bool, note: String) {
         let sampleNamed = springboard.descendants(matching: .any).matching(NSPredicate(
             format: "label BEGINSWITH[c] %@", "\(SystemLabels.sampleDisplayName), "
         ))
@@ -106,9 +119,10 @@ struct Springboard {
         var seen: [String] = []
         let deadline = Date().addingTimeInterval(timeout)
         while true {
-            if bannerQuery(title: title, body: body).count > 0 {
+            let banner = bannerQuery(title: title, body: body, hasAttachment: hasAttachment)
+            if banner.count > 0 {
                 try session.checkInterruption()
-                _ = try exactlyOne(bannerQuery(title: title, body: body), "sample banner")
+                _ = try exactlyOne(banner, "sample banner")
                 return (true, "")
             }
             let remaining = deadline.timeIntervalSinceNow

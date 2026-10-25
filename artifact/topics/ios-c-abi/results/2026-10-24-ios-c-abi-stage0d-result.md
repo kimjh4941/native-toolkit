@@ -77,7 +77,7 @@
 |---|---|---|
 | `Support/SampleUITestCase.swift` | `f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499` | レビュー v1 の R-4 |
 | `Support/SampleApp.swift` | `63edf06e72b7a7e881bf1b85427d16add388d3fe502e69f365e493b7c4d9a3d4` | 実機の 1 回目の後（I1 の戻るボタン） |
-| `Support/Springboard.swift` | `d87dee42f805a7d7daaf20cc46bf242fc0c6fab4538e32e97bac3585bc39d785` | 0g の後の実機の後（N5 の手がかり。`2026-10-24-ios-c-abi-stage0e-working-notes.md` の 11.4。レビュー v2 の R-21 の後の値は `427a3b7b…`） |
+| `Support/Springboard.swift` | `725c9cea8fbf0fd33c6eb971057f3aa374fd307993a71bd6d847fc5ff55d6d15` | N5 の実機の後（画像を添付したバナーの選び方。`2026-10-24-ios-c-abi-stage0e-working-notes.md` の 11.5。前の値は 11.4 の `d87dee42…`、レビュー v2 の R-21 の後の `427a3b7b…`） |
 | `Support/ShareSheet.swift` | `b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329` | 0e の実機の後（S5 の iOS 18 の題名の読み方。`2026-10-24-ios-c-abi-stage0e-working-notes.md` の 10.4。0c の終わりの値は `acbd1a91…`） |
 | `Support/RunnerPasteboard.swift` | `003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc` | 0c の終わり |
 | `Support/UnexpectedAlertGuard.swift` | `5f94e7b007e037cd9ca1393a512332acb3436a9ff2a19cfcaefcf91ea28c6bfa` | 0c の終わり |
