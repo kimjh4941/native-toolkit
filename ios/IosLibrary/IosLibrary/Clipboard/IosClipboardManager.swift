@@ -55,8 +55,9 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     private let useCases: ClipboardUseCases
 
-    private var changedToken: NSObjectProtocol?
-    private var removedToken: NSObjectProtocol?
+    /// Holds the observer tokens and runs the main-actor cleanup when this manager goes away.
+    /// See `ClipboardManagerCleanup` for why the manager itself has no `deinit`.
+    private let cleanup: ClipboardManagerCleanup
     private var observingScope: PasteboardScope?
     private var onEvent: ((ClipboardChangeEvent) -> Void)?
     /// Incremented on every start/stop so a notification block queued for an older subscription
@@ -65,7 +66,9 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     private override init() {
         Log.d(TAG, "[init]")
-        self.useCases = Self.makeUseCases(timeouts: .default, limits: .default)
+        let useCases = Self.makeUseCases(timeouts: .default, limits: .default)
+        self.useCases = useCases
+        self.cleanup = ClipboardManagerCleanup(cancelAllLoads: useCases.cancelAllLoads)
         super.init()
     }
 
@@ -82,6 +85,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     init(useCases: ClipboardUseCases) {
         Log.d(TAG, "[init:test]")
         self.useCases = useCases
+        self.cleanup = ClipboardManagerCleanup(cancelAllLoads: useCases.cancelAllLoads)
         super.init()
     }
 
@@ -96,11 +100,6 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
             contentValidator: ClipboardContentValidator(limits: limits),
             timeouts: timeouts
         )
-    }
-
-    isolated deinit {
-        stopObservingInternal()
-        useCases.cancelAllLoads.execute()
     }
 
     // MARK: - P-1 copy
@@ -341,7 +340,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         observingScope = scope
         self.onEvent = onEvent
 
-        changedToken = NotificationCenter.default.addObserver(
+        cleanup.changedToken = NotificationCenter.default.addObserver(
             forName: UIPasteboard.changedNotification, object: pasteboard, queue: .main
         ) { [weak self] note in
             // `Notification` is not `Sendable`, so its payload is extracted *before* the
@@ -359,7 +358,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
                 )
             }
         }
-        removedToken = NotificationCenter.default.addObserver(
+        cleanup.removedToken = NotificationCenter.default.addObserver(
             forName: UIPasteboard.removedNotification, object: pasteboard, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
@@ -375,10 +374,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     }
 
     private func stopObservingInternal() {
-        if let changedToken { NotificationCenter.default.removeObserver(changedToken) }
-        if let removedToken { NotificationCenter.default.removeObserver(removedToken) }
-        changedToken = nil
-        removedToken = nil
+        cleanup.removeObservers()
         observingScope = nil
         onEvent = nil
         // Invalidate any notification block already queued for the subscription being stopped.
@@ -464,5 +460,36 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
                 completion(false, nil, ClipboardError.unknownErrorCode, ClipboardError.unknownMessage)
             }
         }
+    }
+}
+
+/// Cleanup that must run on the main actor when an `IosClipboardManager` goes away: remove the
+/// change observers and cancel pending loads.
+///
+/// The manager is an `NSObject` subclass. In the Swift 6 language mode, the Objective-C `dealloc`
+/// entry of an `NSObject` subclass with an `isolated deinit` checks that it runs on the main actor
+/// and stops the process otherwise, so an instance released off the main thread would trap
+/// (stage 0f of `ios-c-abi`). This holder is a plain Swift class, whose `isolated deinit` hops to
+/// the main actor instead, so the manager needs no `deinit` and may be released on any thread.
+@MainActor
+private final class ClipboardManagerCleanup {
+    var changedToken: NSObjectProtocol?
+    var removedToken: NSObjectProtocol?
+    private let cancelAllLoads: CancelAllLoadsUseCase
+
+    init(cancelAllLoads: CancelAllLoadsUseCase) {
+        self.cancelAllLoads = cancelAllLoads
+    }
+
+    func removeObservers() {
+        if let changedToken { NotificationCenter.default.removeObserver(changedToken) }
+        if let removedToken { NotificationCenter.default.removeObserver(removedToken) }
+        changedToken = nil
+        removedToken = nil
+    }
+
+    isolated deinit {
+        removeObservers()
+        cancelAllLoads.execute()
     }
 }
