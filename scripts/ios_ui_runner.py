@@ -119,7 +119,7 @@ BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499",
     "Support/SampleApp.swift": "63edf06e72b7a7e881bf1b85427d16add388d3fe502e69f365e493b7c4d9a3d4",
-    "Support/Springboard.swift": "427a3b7bddb7aef5f9604c3bc41df8e2516b1989fa872b62cbfddf5549a05be3",
+    "Support/Springboard.swift": "d87dee42f805a7d7daaf20cc46bf242fc0c6fab4538e32e97bac3585bc39d785",
     "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",
     "Support/UnexpectedAlertGuard.swift": "5f94e7b007e037cd9ca1393a512332acb3436a9ff2a19cfcaefcf91ea28c6bfa",

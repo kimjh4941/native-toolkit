@@ -89,13 +89,15 @@ final class NotificationUITests: SampleUITestCase {
         let title = "Immediate Notification with Attachment"
         let body = "Displayed with app icon attachment"
         XCTAssertEqual(try sample.press(.showImmediateWithAttachment, token), success("[showImmediateWithAttachment] error: nil"))
-        XCTAssertTrue(try springboard.waitForBanner(title: title, body: body, timeout: 10))
+        let first = try springboard.waitForBannerNotingSampleNotifications(title: title, body: body, timeout: 10)
+        XCTAssertTrue(first.found, first.note)
         XCTAssertEqual(try sample.press(.removeAllDelivered), success("[removeAllDelivered] called"))
         try sample.waitForNotificationIDs(.getDelivered, [])
         XCTAssertTrue(try springboard.waitForBannerToVanish(title: title, body: body, timeout: 15), "the first banner stayed")
 
         XCTAssertEqual(try sample.press(.showImmediateWithAttachment, token), success("[showImmediateWithAttachment] error: nil"))
-        XCTAssertTrue(try springboard.waitForBanner(title: title, body: body, timeout: 10))
+        let second = try springboard.waitForBannerNotingSampleNotifications(title: title, body: body, timeout: 10)
+        XCTAssertTrue(second.found, second.note)
         try sample.waitForNotificationIDs(.getDelivered, [Self.sampleId])
     }
 

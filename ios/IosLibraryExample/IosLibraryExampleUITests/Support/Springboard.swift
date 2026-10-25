@@ -7,6 +7,9 @@
 //  `SystemUIToken` (U-9). Trusted Support file.
 //
 //  On the device no hierarchy dump is written and failure messages carry no springboard label.
+//  The one exception, approved by the user for N5, is `waitForBannerNotingSampleNotifications`:
+//  it writes only the sample's name, the expected title and body as `<app>` / `<title>` /
+//  `<body>`, and the length of anything else (stage 0e working notes 11.4).
 //
 
 import XCTest
@@ -77,6 +80,52 @@ struct Springboard {
             SystemLabels.notificationShortLook,
             "\(SystemLabels.sampleDisplayName), "
         ))
+    }
+
+    /// Like `waitForBanner`, and also returns a note of the springboard elements whose label
+    /// starts with `IosLibraryExample, ` seen while waiting, for N5's failure message (the device
+    /// does not find a banner that the user sees; stage 0e working notes 11.4). The note never
+    /// carries other text: each label is split at `, ` and only parts equal to the sample's name,
+    /// `title` or `body` are written (`<app>`, `<title>`, `<body>`); any other part is written as
+    /// its length (`<12>`). Identifiers are written only when known, otherwise as their length.
+    /// Reads only. At most four distinct entries of at most six parts each (more parts end in
+    /// `…`), so that the runner's 300-character cut of a failure message keeps them in practice.
+    func waitForBannerNotingSampleNotifications(title: String, body: String, timeout: TimeInterval) throws -> (found: Bool, note: String) {
+        let sampleNamed = springboard.descendants(matching: .any).matching(NSPredicate(
+            format: "label BEGINSWITH[c] %@", "\(SystemLabels.sampleDisplayName), "
+        ))
+        let knownIdentifiers = [
+            SystemLabels.notificationShortLook, SystemLabels.notificationExpandedView, SystemLabels.expandedContent,
+        ]
+        func masked(_ part: String) -> String {
+            if part.caseInsensitiveCompare(SystemLabels.sampleDisplayName) == .orderedSame { return "<app>" }
+            if part == title { return "<title>" }
+            if part == body { return "<body>" }
+            return "<\(part.count)>"
+        }
+        var seen: [String] = []
+        let deadline = Date().addingTimeInterval(timeout)
+        while true {
+            if bannerQuery(title: title, body: body).count > 0 {
+                try session.checkInterruption()
+                _ = try exactlyOne(bannerQuery(title: title, body: body), "sample banner")
+                return (true, "")
+            }
+            let remaining = deadline.timeIntervalSinceNow
+            if remaining <= 0 { break }
+            for element in sampleNamed.allElementsBoundByIndex where seen.count < 4 {
+                guard let snapshot = try? element.snapshot() else { continue }
+                let identifier = knownIdentifiers.contains(snapshot.identifier)
+                    ? snapshot.identifier : "<\(snapshot.identifier.count)>"
+                let components = snapshot.label.components(separatedBy: ", ")
+                let parts = components.prefix(6).map(masked) + (components.count > 6 ? ["…"] : [])
+                let entry = "\(identifier): \(parts.joined(separator: ", "))"
+                if !seen.contains(entry) { seen.append(entry) }
+            }
+            Thread.sleep(forTimeInterval: min(0.25, max(remaining, 0)))
+        }
+        try session.checkInterruption()
+        return (false, "sample-named elements seen: \(seen.isEmpty ? "none" : seen.joined(separator: " | "))")
     }
 
     /// Waits until no banner of the sample is shown. Returns false when one is still shown.
