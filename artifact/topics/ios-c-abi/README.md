@@ -2,7 +2,7 @@
 
 - 記録日: 2026-10-18
 - 改訂: 2026-10-18 に別モデル 2 者のレビュー（`reviews/2026-10-18-ios-c-abi-plan-review-v1.md`）を反映した。事実の誤り 3 つ（署名、Dialog の既定の文言、エラーの型）を直し、通知の delegate を早く入れる入口（D-4・D-7）、`release` の同期の場合（D-6）、bundle id（D-12）、署名（D-18）、ブリッジの扱い（D-22）、`unity-native-plugin` に先に頼むこと（5 章）を決め直した。同日に 2 回目のレビュー（`reviews/2026-10-18-ios-c-abi-plan-review-v2.md`）を反映し、delegate を入れる関数を同期の例外にし（D-4・D-6）、呼ぶ範囲を通知の機能全体に広げ、署名の照らし方、bundle id を変える範囲、リリース版を決める時期を直した。3 回目の確認（`reviews/2026-10-18-ios-c-abi-plan-review-v3.md`。Codex）で区分 A が 0 になり、残った 1 件（D-19 の版を決める時期）を直してレビューを終えた
-- 状態: 進行中。D-1〜D-22 は 2026-10-18 に利用者が推奨のとおり決めた（8.1）。段階 0a（UI テストのスパイク）と 0b（サンプルの識別子と最後のイベントの表示）は完了し、UI テストの設計書も決定した（2026-10-18）。段階 0c（UI テスト 99 件）と 0d（`scripts/test_ios.sh` と 2 つの環境の基準）も完了した（2026-10-24）。ただし 0c はシミュレーターで完了したもので、実機は区分の無い 19 件だけを流した。区分の要る 80 件の実機の実行と、人の確認の手順書が残る。0e の前に `UnityIosPluginTests` の 83 件を一度流した（D-22）。段階 0e（設定をそろえ、strict concurrency の警告を 423 件から 0 件にした）もシミュレーターで完了した（2026-10-25）。実機での確かめと `LastUpgradeCheck` の反映は残る。次は段階 0f
+- 状態: 進行中。D-1〜D-22 は 2026-10-18 に利用者が推奨のとおり決めた（8.1）。段階 0a（UI テストのスパイク）と 0b（サンプルの識別子と最後のイベントの表示）は完了し、UI テストの設計書も決定した（2026-10-18）。段階 0c（UI テスト 99 件）と 0d（`scripts/test_ios.sh` と 2 つの環境の基準）も完了した（2026-10-24）。ただし 0c はシミュレーターで完了したもので、実機は区分の無い 19 件だけを流した。区分の要る 80 件の実機の実行と、人の確認の手順書が残る。0e の前に `UnityIosPluginTests` の 83 件を一度流した（D-22）。段階 0e（設定をそろえ、strict concurrency の警告を 423 件から 0 件にした）もシミュレーターで完了した（2026-10-25）。実機での確かめと `LastUpgradeCheck` の反映は残る。段階 0f（Swift 6 の言語モード。`IosLibrary`・サンプル・2 つのテストのターゲット）もシミュレーターで完了した（2026-10-25）。0e・0f の実機での確かめは 0g の後の全件の実行でまとめて行う（利用者の決定）。次は段階 0g
 - 分類: 横断課題（アーキテクチャ）。機能追加ではない
 - 進め方: Windows（`windows-architecture`、1.12.0）と Android（`android-c-abi`、1.13.0）と同じ汎用 C ABI を、1 OS ずつ作る。このトピックは iOS の分（D-1）。macOS は iOS が終わってから別のトピックにする
 - 対象: `ios/IosLibrary`、`ios/UnityIosPlugin`（新しい C ABI のモジュールに置き換える）、`ios/IosLibraryExample`、`scripts/build_ios_library_xcframework.sh`、`ios/generate_docc.sh`、`scripts/publish_docs.sh`、配布物 `ios-native-toolkit-*.xcframework` / `unity-ios-native-toolkit-*.xcframework`
@@ -89,7 +89,7 @@ C ABI では 1 つの規則にそろえる（D-6）。
 - 規則: `NotificationError` と `ShareError` が任意の `Error` を持っている（`common.md` の「system の `Error` を Domain に保持しない」に反する）
 - プライバシーマニフェスト: `PrivacyInfo.xcprivacy` が無い。Clipboard の一時ファイル（`ClipboardTemporaryFileStore.swift`）が `.contentModificationDateKey` を使っており、理由の申告が必要な API（`NSPrivacyAccessedAPICategoryFileTimestamp`）に当たる（D-18）
 - 署名と bundle id: 1.1 のとおり、個人の証明書で署名したスライスを配っている。bundle id は持っていない逆 DNS の名前空間（`ios.library.*`、`unity.ios.plugin.*`）で、Android の `android.library` と同じ状況である（D-12、D-18）
-- Swift の並行性: 全ターゲットが Swift 5.0 の言語モードで、strict concurrency を設定していない。complete にすると 110 件の警告が出る（0 章）。`migration` のトピックで決めた案 C（ブリッジの handler に `@Sendable`、main への配送を全経路でそろえる）は Clipboard にだけ入っている（D-14）
+- Swift の並行性: 全ターゲットが Swift 5.0 の言語モードで、strict concurrency を設定していない。complete にすると 110 件の警告が出る（0 章）。`migration` のトピックで決めた案 C（ブリッジの handler に `@Sendable`、main への配送を全経路でそろえる）は Clipboard にだけ入っている（D-14）。0e で complete の警告を 0 にし、0f で Swift 6 の言語モードにした（UI テストのターゲットは D-14 の例外）
 - テスト: Dialog のテストはどのターゲットにも無い。ブリッジの C 関数を呼ぶテストも 0 件（`bridge-testing`）。iOS のテストのスクリプト（`test_android.sh` / `test_windows.ps1` に当たるもの）と基準が無い。サンプルの UI テストは 25 件で、うち 22 件が Clipboard、3 件が雛形（`testExample`、`testLaunchPerformance`、`testLaunch`）。`accessibilityIdentifier` は Clipboard の画面（5 か所）と一覧（1 か所）にしか無い。テストのターゲットだけ最小 iOS が 18.2 で、本体（18.0）とずれている
 - `unity-native-plugin`: iOS の xcframework は `VERSION.txt` で版を固定しておらず、`PreBuildProcessor` が dist の最新版を選ぶ（macOS も同じ）。Windows（1.12.0）と Android（1.13.0）で、新しい dist を置いた時点で向こうのビルドが壊れたのと同じ罠が残っている。さらに、`PreBuildProcessor`・`PostBuildProcessor`・`IosFrameworkPatcher` の 3 か所が `ios-native-toolkit-` の前方一致で xcframework を探すので、`ios-native-toolkit-capi-` の名前を足すと capi の側を `IosLibrary` として選ぶ（並べると `capi-2.0.0` > `2.0.0`）。`PostBuildProcessor` は development ビルドで `-debug.xcframework` しか探さず、見つからないと `LogError` を出すが、ビルドは止めずに埋め込まない。5.2
 
@@ -225,6 +225,9 @@ Android と同じく、**ブリッジには手を入れない**（段階 3 で�
 | 0e | `NotificationRepositoryImpl.init(center:)` が `init()` になる（渡せる値はもともと `.current()` だけ） | 破壊的 |
 | 0e | `IosDialogManager.getRootViewController()` が `@MainActor` になる（nonisolated の同期の文脈からは呼べない） | 破壊的 |
 | 0e | `NotificationCategoryOptions.allowAnnouncement` が deprecated になり、category に写さない（iOS 15 から OS が無視している） | 非推奨 |
+| 0f | `IosLibrary` を Swift 6 の言語モードで組む。`swift-module-flags` が `-swift-version 6` になり、`StrictConcurrency` と `bare-slash-regex` の指定が消える（Swift 6 で必ず入る）。宣言の差分は無い | 追加 |
+| 0f | `shared` に `@MainActor` は付けない（manager は `Sendable` で、どのスレッドからも呼べる。1b で C ABI の受け口と合わせて確かめる） | 変更なし（記録） |
+| 0f | `IosClipboardManager(timeouts:limits:)` で作った manager を main 以外で手放してもよい（後始末は main で 1 回走る） | 動作 |
 | 0e | Notification の操作の完了が main で返る（前は保証が無かった） | 動作 |
 | 0e | 値型・use case・manager に `Sendable` が付く。`IosDialogManager` に `final`。interface に `import Synchronization` と `-enable-upcoming-feature StrictConcurrency` が増える | 追加 |
 
@@ -239,7 +242,7 @@ Android と同じく、**ブリッジには手を入れない**（段階 3 で�
 | 0c | Dialog / Notification / Share の UI テストを足す（Clipboard は 22 件ある）。XCUITest で扱えない項目は、人の確認の手順書にする。**完了（シミュレーター）**（`results/2026-10-24-ios-c-abi-stage0c-result.md`。99 件をシミュレーターで通し、人の確認に移したケースは無い。**実機では区分の無い 19 件だけを流した。区分の要る 80 件の実機の実行と、人の確認の手順書（HC1・HC4・HC7・HC8）は残っている**） | 無し |
 | 0d | `scripts/test_ios.sh` を作り（unit・UI テストをまとめて実行。`xcodebuild test` の結果を `.xcresult` から読む）、**今のコードで全件通ることを確かめ、結果を基準として記録する**。基準は 2 つの環境で取り（D-21）、件数はターゲット全体・機能ごと・雛形に分けて持つ。`UnityIosPluginTests` は `test_ios.sh` の基準に入れないが、0e でビルドから外す前に 83 件を一度流し、結果を `results/` に保存する（D-22）。**完了**（`results/2026-10-24-ios-c-abi-stage0d-result.md`。ランナーは別モデルのレビューを 3 回通して区分 A を 0 にした。基準はシミュレーター（iPhone 17 / 26.2）の 295 件と、実機（iPhone XS / 18.7.2）の区分の無い 19 件。`UnityIosPluginTests` の 83 件は 0e の前に流し、すべて成功した。`results/2026-10-24-ios-c-abi-bridge-tests-before-0e.md`） | 無し |
 | 0e | 設定をそろえる: `UnityIosPlugin` をワークスペースのビルドと `test_ios.sh` から外す（D-22）。テストのターゲットの最小 iOS を 18.0 に。Xcode 26 の推奨設定（`LastUpgradeCheck`）を反映するが、変わる build setting の差分を全部記録し、`SWIFT_DEFAULT_ACTOR_ISOLATION` と upcoming feature を明示的に固定する。`SWIFT_STRICT_CONCURRENCY=complete` で `IosLibrary` とサンプルの警告を 0 にする（Notification・Dialog・Share の完了を main で返し、handler を `@Sendable` にする）。公開 API の差分（swiftinterface）を保存する。直した所に関係するテストを両方の環境で流す。**完了（シミュレーター、2026-10-25）**（`results/2026-10-24-ios-c-abi-stage0e-working-notes.md`）。`UnityIosPlugin` をワークスペースから外し、テストのターゲットの最小 iOS を 18.0 にした。`SWIFT_STRICT_CONCURRENCY=complete`、`SWIFT_DEFAULT_ACTOR_ISOLATION=nonisolated`、upcoming feature 18 個をプロジェクトの階層で固定した。警告は 423 件から 0 件（UI テストのターゲットは D-14 の例外で minimal）。Notification・Dialog・Share の完了と handler を `@MainActor @Sendable` にし、全経路で main に返す。公開 API の差分は `results/swiftinterface/`、2.0.0 の変更は 4.1。**実機での確かめと `LastUpgradeCheck` の反映は残っている**。`UnityIosPlugin` は Dialog の `getRootViewController()` の `@MainActor` で組めなくなった（D-22 の範囲。ビルドスクリプトの既定は `IosLibrary` だけなので影響しない。`-m UnityIosPlugin` と `generate_docc.sh` のブリッジの部分は段階 3 で外す） | Notification の操作の結果が main で返る（1.3）。完了と handler の型に `@MainActor @Sendable` が付く（2.0.0）。`allowAnnouncement` を category に写さない（iOS 15 から OS が無視している）。Dialog の便利なメソッドは `UIAlertAction` を main で作る。ログが 2 か所変わる（作業の記録 8.4・9.4） |
-| 0f | Swift 6 の言語モードにする（`IosLibrary`、サンプル、テスト。UI テストのターゲットは除く。D-14 の例外）。公開 API が変わる所（`shared` の `@MainActor` など）は 2.0.0 の変更として記録する。直した所に関係するテストを流す | Swift の利用者から見た並行性の注釈が変わる（2.0.0） |
+| 0f | Swift 6 の言語モードにする（`IosLibrary`、サンプル、テスト。UI テストのターゲットは除く。D-14 の例外）。公開 API が変わる所（`shared` の `@MainActor` など）は 2.0.0 の変更として記録する。直した所に関係するテストを流す。**完了（シミュレーター、2026-10-25）**（`results/2026-10-25-ios-c-abi-stage0f-working-notes.md`）。4 つのターゲットの `SWIFT_VERSION` を 6.0 にした（UI テストのターゲットは D-14 の例外で Swift 5 + minimal のまま）。エラー・警告は 0 件。0e で固定した設定は、Swift 6 の 4 つのターゲットでは 14 個（upcoming feature 13 個と `SWIFT_STRICT_CONCURRENCY`）が効かなくなるが、Swift 5 の UI テストのターゲットが継ぐので外していない。公開 API の宣言の差分は無く（`swift-module-flags` だけ）、`shared` に `@MainActor` は付けない（作業の記録 5 章）。Swift 6 の実行時の隔離の検査で、`IosClipboardManager` を main 以外で手放すと止まることが分かり、後始末を Swift のクラスの `isolated deinit` に移して直した（作業の記録 4.3） | Swift の利用者から見た並行性の注釈は変わらない（宣言の差分は無い）。`IosClipboardManager` を main 以外で手放しても止まらない（直さないと、Swift 6 で組んだ `IosLibrary` では止まった） |
 | 0g | `IosLibrary` の framework の bundle id を `com.jonghyunkim.nativetoolkit.IosLibrary` に変える（D-12）。サンプルのアプリとテストのターゲットの bundle id は変えない（7 章の更新のテストで、2.0.0 のサンプルが 1.x のサンプルを上書きするため）。`IosLibraryCApi` の bundle id は 2b で作るときに付ける。**0e〜0g の後に全件を両方の環境で流し、0d の基準と同じ結果になることを確かめる**（7 章の区切り） | framework の bundle id が変わる（2.0.0） |
 | 1a | スパイク（8.2）。結果で D-4・D-7・D-9・D-10・D-11・D-13・D-16・D-18 を確かめ、C ABI の設計書の第 1 部（スレッド・寿命・通知の delegate・`release` の状態機械）を書く。**本物の Unity のビルド（6000.4.2f1 の Xcode プロジェクト、release ビルド）に雛形の C ABI を入れて、実機で呼ぶ。コールドスタートのタップと、Unity の通知パッケージとの共存も確かめる**（Android で smoke だけで確かめて申し送りを誤った反省。知見 1 章）。今の `unity-native-plugin` のビルドの処理は `unity-ios-native-toolkit-` を必須にし、前方一致で capi を選ぶので、1a では書き出した Xcode プロジェクトに手で入れる（Unity と同じく UnityFramework にリンクし、アプリに Embed & Sign する。`CodeSignOnCopy` を付ける） | 無し |
 | 1b | Swift の API を補完する（4 章）。1.2 のロジックを `IosLibrary` へ移し、イベントの口、delegate を入れる口と転送、エラーの直し、プライバシーマニフェスト、ログの規則を入れる。1.4 の不備を直す。新しい API を使う画面をサンプルに足す | 1.4 の不備の直し（`registerCategory` の完了など）。通知の delegate を転送する形にする。エラーの case が変わる。それ以外の、ネイティブの利用者から見た動作は変えない |
@@ -305,7 +308,7 @@ artifact/topics/ios-c-abi/
 | `agent-rules/workflows/release/workflow.md` | iOS の配置の手順は無く、dist に全 OS がそろっているかを確かめるだけ。capi とヘッダーの確認が加わる | 2b |
 | `agent-rules/coding-rules/{ios,common}.md`、`scripts/check_design_consistency.py`、`scripts/README.md`、`agent-rules/workflows/`（write-manual、implement-sample-app など） | ブリッジ（`UnityIosPlugin`）を参照している。`ios.md` にログの例外が無い。`common.md` の UI テストの「自動化しないもの」（7.2） | 1b（ログの規則）・3 |
 | `scripts/c_abi_contract_common.py` の `common_header_problems` | Windows と Android の 2 つを決め打ちしている | 2a |
-| `IosLibrary` の公開 API | 0e（`@Sendable`）、0f（`@MainActor` など）、0g（bundle id）、1b（Dialog の結果の型、イベントの口、エラーの case）で変わる。サンプルが追従する。ブリッジは 0e で外す（D-22） | 0e・0f・0g・1b |
+| `IosLibrary` の公開 API | 0e（`@Sendable`）、0f（宣言の変更は無かった。`swift-module-flags` だけ）、0g（bundle id）、1b（Dialog の結果の型、イベントの口、エラーの case）で変わる。サンプルが追従する。ブリッジは 0e で外す（D-22） | 0e・0f・0g・1b |
 | `unity-native-plugin` の `PreBuildProcessor` | iOS と macOS の xcframework を dist の最新版から選ぶ（`VERSION.txt` が無い）。`ios-native-toolkit-` の前方一致（`:477,704`）で capi を選ぶ | 2b で dist を置く前（向こうに固定を頼む） |
 | `unity-native-plugin` の `PostBuildProcessor`・`IosFrameworkPatcher` | 同じ前方一致（`PostBuildProcessor.cs:48,225`、`Tools/iOS/IosFrameworkPatcher.cs:40,130`）。development ビルドで `-debug` が無いと `LogError` を出し、ビルドは止めずに埋め込まない（`PostBuildProcessor.cs:42-53,258-262`） | 2b の前（向こうに直しを頼む）・2c |
 | `unity-native-plugin` の iOS のテスト | EditMode 212 件（Clipboard と Share だけ）のうち、JSON の組み立てと解析のテスト 126 件は C ABI では意味を失う。作り直しになる。PlayMode は 36 件（Clipboard 31、Share 5。Editor で動き、ネイティブは呼ばない）。Dialog と Notification のテストは 0 件 | 2c |
@@ -477,9 +480,9 @@ Unity の iOS は、iOS 27 SDK で組むアプリに scene のライフサイク
 |---|---|---|---|---|
 | Xcode（ビルドする側） | 26.3 | 26.3 のまま | - | D-16 |
 | Xcode（利用者の下限の確かめ） | - | 26.0 を入れる | 1a | D-16 |
-| Swift の言語モード | 5.0 | 6 | 0f | D-14。ブリッジは 0e でビルドから外す（D-22） |
+| Swift の言語モード | 5.0 | 6 | 0f | D-14。ブリッジは 0e でビルドから外す（D-22）。**済み（0f）**。`IosLibrary`、`IosLibraryTests`、サンプル、`IosLibraryExampleTests`。`IosLibraryExampleUITests` は Swift 5（D-14 の例外） |
 | `SWIFT_STRICT_CONCURRENCY` | 未設定（minimal） | complete | 0e | **済み（0e）**。プロジェクトの階層で固定。`IosLibraryExampleUITests` だけ minimal（D-14 の例外）。警告は 0e の前の 423 件（うち `IosLibrary` 104 件）から 0 件 |
-| `SWIFT_DEFAULT_ACTOR_ISOLATION`、upcoming feature | 未設定 | 明示的に固定する | 0e | Xcode 26 の推奨設定で変わると、公開 API の意味が変わりうる。**済み（0e）**。`nonisolated`、`SWIFT_APPROACHABLE_CONCURRENCY=NO`、upcoming feature 18 個を `NO`（作業の記録 2.4）。Swift 6 では 13 個の固定が効かなくなるので、0f で見直す |
+| `SWIFT_DEFAULT_ACTOR_ISOLATION`、upcoming feature | 未設定 | 明示的に固定する | 0e | Xcode 26 の推奨設定で変わると、公開 API の意味が変わりうる。**済み（0e）**。`nonisolated`、`SWIFT_APPROACHABLE_CONCURRENCY=NO`、upcoming feature 18 個を `NO`（作業の記録 2.4）。0f で見直した。Swift 6 の 4 つのターゲットでは 13 個と `SWIFT_STRICT_CONCURRENCY` が効かないが、Swift 5 の UI テストのターゲットのために残した（0f の作業の記録 2.4） |
 | 最小 iOS（framework、サンプル） | 18.0 | 18.0 のまま | - | D-15 |
 | 最小 iOS（テストのターゲット） | 18.2 | 18.0 | 0e | 本体とのずれを直す。**済み（0e）** |
 | `MACH_O_TYPE` | dynamic | dynamic のまま | - | D-9 |
@@ -547,7 +550,7 @@ Unity の iOS は、iOS 27 SDK で組むアプリに scene のライフサイク
 - [x] 段階 0a のスパイクで、XCUITest と人の確認の分担を確定する（`common.md` の例外にした項目は理由を記録している）（`results/2026-10-18-ios-c-abi-stage0a-spike-result.md`。シミュレーター 2 台と実機。分担は UI テストの設計書）
 - [x] Clipboard / Notification / Share / Dialog のすべてにサンプルの UI テストがあり、通知からのコールドスタート（UI テストの設計書の N30〜N33）を含む（段階 0c）（`results/2026-10-24-ios-c-abi-stage0c-result.md`。99 件。シミュレーターで全件が通った。実機は区分の無い 19 件だけ）
 - [x] `scripts/test_ios.sh` があり、今のコードの結果を 2 つの環境で基準として記録している（段階 0d）（`results/2026-10-24-ios-c-abi-stage0d-result.md`。シミュレーターは全件。**実機の基準は区分の無い 19 件だけ**）
-- [ ] `IosLibrary` とサンプルが Swift 6 の言語モードと strict concurrency complete で、警告が 0（段階 0e・0f）。公開 API の差分を記録している
+- [x] `IosLibrary` とサンプルが Swift 6 の言語モードと strict concurrency complete で、警告が 0（段階 0e・0f）。公開 API の差分を記録している（`results/2026-10-25-ios-c-abi-stage0f-working-notes.md`。UI テストのターゲットは D-14 の例外で Swift 5 + minimal）
 - [ ] 0e〜0g と 1b の前後で、サンプルの UI テストの結果が変わらない（変えたテストは理由を記録している）
 - [ ] 段階 1a のスパイクで 8.2 を確かめる。本物の Unity の release ビルドで、雛形を実機で呼び、コールドスタートのタップを受けている
 - [ ] UI テスト・C ABI（2 部）・Swift の API の設計書を書き、別のモデルのレビューを通す
