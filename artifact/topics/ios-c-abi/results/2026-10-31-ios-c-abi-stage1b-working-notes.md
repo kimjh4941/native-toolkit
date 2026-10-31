@@ -2,9 +2,9 @@
 
 - 記録日: 2026-10-31
 - 段階: 1b（`README.md` の 5 章の 1b の行。設計書は `designs/2026-10-31-ios-c-abi-swift-api-design.md`。以下「設計書」）
-- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更）
-- 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）だけ。**実機には触れていない**
-- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）と C2（4〜6 章）
+- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更）
+- 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）だけ。**実機には触れていない**
+- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜8 章）
 
 ## 1. C1 共通（T-01〜T-05）
 
@@ -437,3 +437,220 @@ C2 で足したのは 38 件、名前を替えたのが 2 件（上の 2 つ）�
 残ること:
 
 - `SIMULATOR_ONLY_TESTS` に D23 を入れたのは設計書 13.2（「iPad のシミュレーター」）に従ったため。D23 はアクションシートを出して選ぶだけで、実機でも私物に触れないので、実機の基準に入れたいなら外してよい（外すなら設計書 13.2 と 6.3 の 3 を直す）
+
+## 7. C3 Share（T-10、T-11）
+
+- 状態: ライブラリ・単体テスト・壊して確かめる・サンプル・UI テスト（S17〜S19）・MS-03 の Share の分は済んだ。コミットはしていない
+- 信頼する部分（`Support/SampleApp.swift`）の変更はリポジトリの作業ツリーに入れた（利用者の承認、C3〜C6 は C2 と同じ扱い）。**ハッシュは固定していない**（別のモデルのレビューの後に固定する）。そのため、リポジトリではランナーが「信頼する部分が変わった」と警告し、実機では流れない。UI テストとランナーの自己テストは、ハッシュだけを直した使い捨ての写し（scratchpad）で流した（7.8）
+- 測ったログ・下調べのテスト・変異の差分は scratchpad に置き、リポジトリには入れていない
+
+### 7.1 変えたもの（リポジトリ）
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| Domain（T-10） | `Share/Domain/Model/ShareError.swift` | S-P7: `Error, Sendable, Equatable`（`LocalizedError` は今と同じく extension）。`presentationFailed(Error)` を値の無い `presentationFailed` に、`unknown(Error)` を消し、`notForeground`・`dismissedBySystem`・`activityFailed(FailureDetail)` を足した。文言は英語の固定（7.3）。DocC に case ごとの場面の表 |
+| Domain | `Share/Domain/Model/ShareContent.swift` | internal の `logSummary`（種類ごとの件数、件名と題の有無と長さ、除く活動の件数。中身は出さない） |
+| Application（T-11） | `Share/Application/Port/ShareRepository.swift` | `present(content:presenter:)`（付録 A）。DocC を外の実装者が守れる約束に書き直した（終わったら返す・`ShareError` だけを投げる・ずっと止まったままにしない。`presenter` は外から値を読めない、外から閉じたときの `dismissedBySystem` はライブラリの実装だけ） |
+| Application | `Share/Application/UseCase/ShareUseCases.swift` | `execute(content:presenter:)` を足し、今の `execute(content:)` は `.firstActiveScene` で委ねる（付録 A に無い。8 章の 2） |
+| Data | `Share/Data/Repository/ShareRepositoryImpl.swift` | `present(content:presenter:)`。先頭のログを `logSummary` に |
+| Presentation（T-10） | `Share/Presentation/ShareSheetPresenter.swift` | 作り直した。`PresentationEnvironment` で generic の struct（`AlertDialogPresenter` と同じ形）。要求ごとに `RequestBox` を作り、箱の閉じたときの処理（1 回だけ、main）だけが continuation を再開する。`completionWithItemsHandler` は nonisolated に作り、呼ばれたスレッドでその場で箱を閉じる（シートが先に解放されて見張りに取られないため）。表示は `PresentationProcedure`（`.firstActiveScene` は `requireLegacyStability`、`declineCheck: .releaseWatchOnly`。7.4 の 1）。重複していた `getRootViewController()` と `PresentationUnavailableError` を消した（6.1） |
+| Manager（T-11） | `Share/IosShareManager.swift` | `share(content:presenter:completion:)`（`Result<ShareResult, ShareError>`、既定なし）を足し、`async` 版に `presenter: = .firstActiveScene` を足した。今の callback 版は形を変えず `.firstActiveScene` で同じ芯を通る。DocC に終わり方の表（新しい口と今の口の値）、約束の外、取り消せないこと、2 つの要求の順を約束しないことを書いた |
+| 共通 | `Common/Presentation/PresentationProcedure.swift` | `DeclineCheck`（`rightAfterPresent` が既定、`releaseWatchOnly`）を足した。`present` の完了の closure が見張りを弱く持つようにした（7.4 の 2） |
+| 共通 | `Common/LogRedaction.swift` | `describe` が、関連値が 1 つの `FailureDetail` の case にも domain と code を足す（`ShareError.activityFailed(domain=…, code=…)`） |
+| 共通 | `Common/Domain/PresenterSelection.swift` | DocC の「後のコミット」の注を Share の分だけ直した |
+| テスト | `IosLibraryTests/Share/` の 2 ファイル（新）と 5 ファイル、`Common/LibraryLogPrivacyTests.swift`、`Common/PresentationProcedureTests.swift` | 7.5 |
+| サンプル（SA-14・SA-05） | `IosLibraryExample/ShareSampleView.swift` | 節「Swift API (2.0.0)」（`share.section.swiftAPI`）とボタン 3 つ: `ShareRequestText`（`async` 版、`.foreground`）、`ShareThenDismissFromOutside`（`Result` の callback 版、3 秒後にサンプルが外から `dismiss`。結果の行に `shown=<その時シートが前面か>`）、`ShareAfter3Seconds`（`#if DEBUG`。3 秒後に `Result` の callback 版、結果の行に要求の時点の scene の状態）。結果の行は `[<印>] success completed=…` / `[<印>] failure <case>`。今の 14 のボタンと結果の行は変えていない |
+| UI テスト | `IosLibraryExampleUITests/ShareUITests.swift`、`Support/DeviceRequirements.json` | S17〜S19 と宣言（7.8） |
+| UI テスト（信頼する部分） | `Support/SampleApp.swift` | 7.10 |
+| ランナー | `scripts/ios_ui_runner.py` | `SIMULATOR_ONLY_TESTS` に S18・S19 を足した（7 件）。ハッシュの表は変えていない |
+| ランナーの自己テスト | `scripts/tests/test_ios_ui_runner.py`、`scripts/tests/ios_ui_runner_mutations.py`（S19 を表から落とす変異を 1 件）、`scripts/tests/fixtures/ios_ui_runner/enumeration.json`・`otool-ov-device.txt`・`otool-l-device.txt` | 7.8 |
+| 文書 | `designs/2026-10-18-ios-c-abi-ui-test-design.md` | 5.1 の一覧（Share の節 1・ボタン 3）、U-14 の例外に S18、6.3 の 3 の simulator only を 7 件に |
+| 公開 API | `results/swiftinterface/IosLibrary-after-1b-c3.swiftinterface`、`2026-10-31-stage1b-c3.diff` | 7.6 |
+
+### 7.2 公開 API（付録 A の Share との照合）
+
+| 付録 A | 実装 | 一致 |
+|---|---|---|
+| `public enum ShareError: Error, Sendable, Equatable, LocalizedError`（9 case） | 同じ 9 case。`LocalizedError` は今と同じ extension で付けた（swiftinterface では `extension ShareError : Foundation.LocalizedError`）。`FailureDetail` が `Hashable` でないので自動の `Hashable` は付かない | 一致 |
+| `public protocol ShareRepository: Sendable { func present(content:presenter:) async throws -> ShareResult }` | 同じ | 一致 |
+| `share(content:presenter:completion:)`（`presenter` に既定なし、`@escaping @MainActor @Sendable (Result<ShareResult, ShareError>) -> Void`） | 同じ | 一致 |
+| `@discardableResult share(content:presenter: = .firstActiveScene) async throws -> ShareResult` | 同じ（今の `share(content:)` に既定つきの引数を足した形。今の呼び方は組める） | 一致 |
+| （付録 A に無い） | `ShareContentUseCase.execute(content:presenter:)` を足した（今の `execute(content:)` は残した） | **付録 A に無い追加**（8 章の 2） |
+
+今の口（`share(content:completion:)`、`ShareContent`・`ShareItem`・`ShareResult`、`ShareContentUseCase.init`・`execute(content:)`）の宣言は swiftinterface で変わっていない。公開の記号にはすべて DocC を付けた。`@unchecked Sendable`・`nonisolated(unsafe)`・`@preconcurrency` は足していない（P1-17 の一覧の外は 0 のまま）。
+
+### 7.3 今の利用者から見て変わる動作（3.3 の Share の 3 行の中身）
+
+| 口 | 前 | 後 |
+|---|---|---|
+| `share(content:completion:)` で、表示したシートが handler なしに解放された（外から閉じた、scene が切れて解放された） | 何も来ない | `(false, false, nil, "The share sheet was dismissed without a result.")` が 1 回（約 0.55 秒後。7.7） |
+| `share(content:)` `async` 版の同じ場面 | 戻らない（continuation が漏れる） | `ShareError.dismissedBySystem` を投げる |
+| 落ち着かない（`.firstActiveScene` の今の確かめ） | `(false, false, nil, "Failed to present the share sheet: The root view controller is not in a stable state to present the share sheet..")` | `(false, false, nil, "Failed to present the share sheet.")`、`async` 版は `presentationFailed` |
+| UIKit が表示を断った | 何も来ない（戻らない） | 見張りが `presentationFailed`（解放まで約 0.03〜0.04 秒。7.7） |
+| 活動の失敗（`completionWithItemsHandler` の `error`） | `"Failed to present the share sheet: <system の文>."`、`async` 版は `presentationFailed(error)` | `"The share activity failed."`、`async` 版は `activityFailed(FailureDetail)` |
+| ほかの 5 つの文言（`noValidItems`・`invalidURL`・`imageLoadFailed`・`fileNotFound`・`noRootViewController`） | - | 変わらない（S13〜S16 が全文で比べる） |
+| `ShareError` の case | `presentationFailed(Error)`・`unknown(Error)` | 値の無い `presentationFailed`、`unknown` は無い、3 つ足した（網羅した `switch` は組めなくなる。3.3 の破壊的の行） |
+| `ShareRepository` を自分で実装した利用者 | `present(content:)` | `present(content:presenter:)` が要る（組めなくなる。3.3 の破壊的の行） |
+| handler の結果の届き方 | handler の中で `Task { @MainActor }` に積んでから continuation を再開 | handler の中で箱を閉じ、閉じたときの処理（`DispatchQueue.main.async`）で再開。完了が main で 1 回は変わらない |
+| ログ | 件名を長さだけ、エラーは case の名前（C1） | 先頭のログが種類ごとの件数・件名と題の長さ・除く活動の件数になった。活動の種類は `.private` |
+
+今の UI テスト（S1〜S16）はこれらの場面を作らないので結果は変わらない（7.8）。
+
+### 7.4 設計書からの偏りと理由
+
+| # | 設計書 | 実装 | 理由 |
+|---|---|---|---|
+| 1 | 6.3.3 の段 3 の補い（`present` の直後に `presentingViewController` が `nil` なら断ったとみなす）。「直後に設定されることを MS-01 で確かめ、されなければこの補いを外して見張りだけにする」 | Share は補いを使わない（`PresentationProcedure` に `DeclineCheck` を足し、Share は `.releaseWatchOnly`。Dialog は今のまま `.rightAfterPresent`） | MS-03（7.7）で、`UIActivityViewController` の `presentingViewController` は `present` から戻った後（0.05〜0.9 秒）にしか設定されないと分かった。補いを残すと表示したシートがすべて `presentationFailed` になった（最初の版の単体テストで 14 件が落ちた）。UIKit が断ったシートは約 0.03〜0.04 秒で解放されるので、見張りだけで `presentationFailed` が来る |
+| 2 | 6.3.4「表示する ViewController に、箱を強く持つ小さなオブジェクトを結び付ける」（持ち主は ViewController だけ） | `PresentationProcedure.show` の `present` の完了の closure が見張りを `weak` で持つようにした（C1 の部分） | 前は強く持っていたので、UIKit が完了の closure を持ち続けたまま断ると、ViewController が解放されても見張りが生き残る。Share は補いが無いのでこの経路が開く。偽の UIKit で確かめた（M48） |
+| 3 | 付録 A は `ShareContentUseCase` を変えない。6.1 は UseCase も「`presenter` を渡す」 | `execute(content:presenter:)` を足し、`execute(content:)` を残した | Manager → UseCase → Repository の規則（common.md）で、`presenter` を Repository に届けるには UseCase の口が要る。今の宣言は変えない。付録 A に足すかは利用者に尋ねる（8 章の 2） |
+| 4 | 12 章の SA-14「`share(content:presenter:.foreground)` のボタン、外から閉じるボタン」 | `ShareRequestText` は `async` 版、`ShareThenDismissFromOutside` と `ShareAfter3Seconds` は `Result` の callback 版 | `ios.md` の「新しく足すボタンは `async` 版」。callback 版は C ABI の受け口が使う形（8.9）なので、UI テストで一度は通す（C2 の SA-02〜SA-05 と同じ） |
+| 5 | SA-14 の外から閉じる時機は書いていない。SA-05 は「3 秒後」 | どちらも 3 秒後。結果の行に `shown=` と scene の状態を足した | C2 の 4.4 の 10・6 章の B2 と同じ（UI テストがシートを時間内に捕まえなくてよい。U-14） |
+| 6 | 6.3.4・RK-11「見張りに頼るテストは TSan の回で skip」 | Share の見張りのテストは TSan の回でも skip しない | MS-03（7.7）で、TSan の版でも外から閉じたシートは約 0.55 秒で解放され、`dismissedBySystem` が来た（5 回とも）。同じ回で、`IosLibrary` の手順で出したアラートも約 0.45 秒で解放された（申し送り 1 の雛形とは違う）。C1・C2 の skip は変えていない（8 章の 4） |
+| 7 | 8.2 は `async` 版のエラーの写しを書いていない | `Result` の callback 版は `ShareError` でないエラーを `presentationFailed` に写し、`async` 版は投げられたものをそのまま投げる | `async` 版は今も型の無い `throws` で、そのまま投げるのが今の動作。ライブラリの Repository は `ShareError` しか投げず、Manager に別の Repository を渡せるのは internal の `init(repository:)`（テスト）だけなので、利用者には違いが出ない |
+| 8 | 8.7.1 の privacy | 活動の種類（`activityType`）は `.private` | 利用者が選んだ先（入れているアプリ）を表しうるため。秘密の値の一覧には無いので長さにはしていない |
+| 9 | P1-13 の基点 | iPhone 17 / 26.2 では、ライブラリが付けた基点（表示元の view の中央）を UIKit が表示のときに自分の transition view に替える。単体テストは `present` を呼ぶ時点の基点を照らす | 1b の前の Share も同じ基点を付けていた（見え方は変わらない）。iPad は付けた基点のまま（iPad Pro 11-inch (M4) / 18.3.1 で確かめた） |
+| 10 | 6.2 の「main への積み方」 | Manager の callback 版は今と同じ `Task { @MainActor }` で UseCase を待つ。2 つの共有を続けて求めたときの表示の順は約束しない（DocC に書いた） | port が `async`（付録 A）で、nonisolated の `async` の UseCase と Repository は汎用の executor を通るので、呼んだ順は保てない。Share に順の約束は無い（P1-12 は Dialog の D17）。第 2 部への申し送り（7.11） |
+| 11 | U-14 の例外は D21 だけ | S18 も同じ例外（ホームに移ってから 5 秒の決まった待ち）にし、UI テストの設計書の U-14 に足した | D21 と同じ理由（後ろにいる間は結果の行を読めない）。結果の行に要求の時点の scene の状態（`@background`）が出るので、待ちが足りずに前面で要求しても通らない |
+| 12 | U-9（実機で安全にできない操作は信頼する部分でも閉じる） | 信頼する部分に `session.isDevice` の確かめは足していない | S18・S19 は設計書 13.2 で環境が「シミュレーター」なので `SIMULATOR_ONLY_TESTS` に入れたが、使う操作はサンプルのボタン（`ShareSheetToken`）とホームへの移動（`SystemUIToken`、今の `goHome`）だけで、決まった座標の操作も実在の共有先に触れる操作も無い。C2 の D17・D20・D21・D23 と同じ扱い |
+
+### 7.5 単体テストと壊して確かめたこと
+
+| ID | ファイル | 件数 | 中身 |
+|---|---|---|---|
+| UT-12 | `Share/Presentation/ShareSheetPresenterTests.swift`（新、ホストのアプリ） | 15 | handler の結果（完了・閉じた・活動のエラーは `activityFailed`）、最初の終わりだけ（handler 2 回と外から閉じて解放）、handler は呼ばれたスレッドでその場で箱を閉じる、外から閉じたシートは見張りが `dismissedBySystem`、前面なしは選び方ごとの case（`.firstActiveScene` は `noRootViewController`）、偽の UIKit が断ると `presentationFailed`、本物の UIKit が断ると（既に別のものを出している）見張りが `presentationFailed`、表示の途中（`presentingViewController` がまだ無い）を失敗にしない、`.firstActiveScene` は今の確かめで出さずに失敗し `.foreground` は出す、`.viewController` の ViewController から出す、除く活動がシートに届く、基点（`present` の時点で表示元の view の中央、矢印は `.any`、iPad では表示後も）、`Task` の取り消しで終わらない（表示中と、handler の直後の取り消し） |
+| UT-13 | `Share/Presentation/IosShareManagerPresenterTests.swift`（新） | 12 | 今の口は `.firstActiveScene`、`Result` 版と `async` 版は `presenter` を渡し `async` 版の既定は `.firstActiveScene`、`Result` 版の結果（main、呼び出しの中では来ない）、`ShareError` の全 case がそのまま、項目なしは Repository を呼ばない、`ShareError` でないエラー（`Result` 版は `presentationFailed`、`async` 版はそのまま）、背景のスレッドから呼んでも main、`async` 版は `ShareError` を投げる、今の口の新しい終わり方の文言、本物の Presenter を通して外から閉じたシートが今の口と `Result` 版で 1 回ずつ、今の口で handler の結果の値 |
+| UT-13 | `Share/Presentation/IosShareManagerTests.swift`（今の 8 件） | 8 | 変えずに通る（Mock の Repository の形だけ直した） |
+| UT-13 | `Share/Application/ShareContentUseCaseTests.swift`、`Share/Data/ShareRepositoryImplTests.swift` | +3、+2 | UseCase の `presenter` の受け渡しと既定、項目なし。Repository が `presenter` を Presenter に渡す、変換できない項目では出さない |
+| UT-16 | `Share/Domain/ShareErrorTests.swift` | 9（前は 7。消した 2 件、足した 4 件） | 今の 5 つの文言（4 つは S13〜S16 の基準）、新しい 4 つの固定の文言、活動の失敗の文言に domain と code が出ない、全 case に別々の文言（網羅の `switch` で case の足し忘れを組めなくする）、`Equatable`。消した case の 2 件（`presentationFailed(Error)`・`unknown(Error)` の前置き）は消した |
+| UT-15 | `Common/LibraryLogPrivacyTests.swift` | +1 | Share を Manager の 3 つの口・本物の Repository・本物の Presenter（ホストのアプリ）で、番兵のテキスト・URL・件名・題・除く活動・ファイルのパス・URL を持つエラー・活動のエラーの文で通し、ログに番兵が無い（読めていることを `#require`、活動の失敗の domain と code が出ること） |
+| UT-04 | `Common/PresentationProcedureTests.swift` | +2 | `releaseWatchOnly` では直後に受け取られていなくても失敗にしない、完了を UIKit が持ち続けても断った ViewController の解放で箱が閉じる |
+| LogRedaction | `Common/LibraryLogPrivacyTests.swift` の `LogRedactionTests` | 0（1 件を直した） | `ShareError.presentationFailed(inner)` の確かめを `ShareError.activityFailed(FailureDetail)` の domain と code に替えた |
+
+`IosLibraryTests` は 351 件（C2 の 314 件に 39 件を足し、`ShareErrorTests` の 2 件（`presentationFailedDescriptionContainsUnderlyingMessage`・`unknownDescriptionContainsUnderlyingMessage`。消した case の確かめ）を消した）。
+
+壊して確かめたこと（壊した版で組んで該当のテストを流し、落ちることを見てから戻した。`mutate_c3.py` と差分・ログは scratchpad）:
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M31 | UT-12 | 箱が `dismissedBySystem` で閉じたときに continuation を再開しない（設計書 13.1「見張りで再開しない」） | `aSheetDismissedFromOutsideEndsAsDismissedBySystem`（待ちに上限があり、止まらずに落ちる） |
+| M32 | UT-12 | handler が箱を閉じるのを `DispatchQueue.main.async` に積む（形の変更: その場で閉じない） | `theHandlerClosesTheBoxOnItsOwnThreadAtOnce` |
+| M33 | UT-12 | handler の `error` を見ない | `anActivityErrorEndsTheShareAsActivityFailed` |
+| M34 | UT-12 | Share でも補いを使う（`declineCheck: .rightAfterPresent`） | `aSheetThatIsStillBeingPresentedIsNotFailed` |
+| M35 | UT-12 | `.firstActiveScene` の方針を `presentAnyway` にする | `firstActiveSceneKeepsTheLegacyStabilityCheck` |
+| M36 | UT-12 | 前面なしの写しで `.firstActiveScene` と `.foreground` を取り違える | `withoutAViewControllerEachSelectionReportsItsError` |
+| M37 | UT-12 | 除く活動をシートに渡さない | `theExcludedActivityTypesReachTheSheet` |
+| M38 | UT-12 | 戻る前に `Task.checkCancellation()`（取り消しで終わる） | `cancellingTheTaskDoesNotEndTheShare` |
+| M39 | UT-12 | 形の変更: 手順の前にシートへ別の基点を付ける（間接の 1 段） | `thePopoverIsAnchoredAtTheCentreOfThePresentingView` |
+| M40 | UT-13 | 今の口で `presenter` を変える（`.foreground`。設計書 13.1） | `theFormFromBefore1bUsesFirstActiveScene` |
+| M41 | UT-13 | `Result` 版が `presenter` を捨てる | `theResultFormPassesThePresenterOn` |
+| M42 | UT-13 | `async` 版の既定を `.foreground` にする | `theAsyncFormDefaultsToFirstActiveSceneAndPassesThePresenterOn` |
+| M43 | UT-13 | UseCase の `execute(content:)` が `.foreground` を渡す | `executeWithoutAPresenterUsesFirstActiveScene` |
+| M44 | UT-13 | 今の口の文言を `String(describing:)` にする | `theFormFromBefore1bReportsTheNewEndsWithFixedMessages` |
+| M45 | UT-16 | `presentationFailed` の文言を変える（設計書 13.1「文言を変える」） | `theNewCasesHaveFixedTexts` |
+| M46 | UT-16 | 活動の失敗の文言に domain と code を入れる | `theActivityFailureTextHoldsNoDetail` |
+| M47 | UT-15 | `logSummary` に件名をそのまま入れる | `shareContentThroughTheRealPresenterNeverReachesTheLog` |
+| M48 | UT-04 | `present` の完了が見張りを強く持つ（7.4 の 2 の前の形） | `aDeclinedViewControllerIsWatchedEvenWhileItsCompletionIsKept` |
+| M49 | UT-04 | `declineCheck` を見ずにいつも補いを使う | `withTheReleaseWatchOnlyAPresentationNotTakenAtOnceIsNotFailed` |
+
+19 件とも落ち、戻した版で通ることを確かめた（全件の実行、7.8）。最初の版で気づいたこと: (1) 本物のシートを記録するテストの補助（`SheetRecorder`）がシートを強く持っていたので、見張りが働かず外から閉じたテストが 15 秒待って落ちた。`weak` で持つ形に直した（7.11）。(2) 補いを残した最初の版は、表示したシートがすべて `presentationFailed` になった（7.4 の 1）。
+
+TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2）: `ShareSheetPresenterTests`・`IosShareManagerPresenterTests`・`IosShareManagerTests`・`LibraryLogPrivacyTests`・`RequestBoxTests`・`ReleaseWatchTests`・`PresentationProcedureTests` が成功（Share の見張りのテストは skip せずに通った。7.4 の 6）。TSan の報告は 0 件。C1 の `aRealViewControllerClosesTheBoxWhenFreed` は今のとおり skip。
+
+### 7.6 公開 API（swiftinterface）
+
+- 組み方: C1・C2 と同じ（Release、`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`、Xcode 26.3）。`arm64-apple-ios.swiftinterface` を写した
+- 足したファイル: `IosLibrary-after-1b-c3.swiftinterface`、差分 `2026-10-31-stage1b-c3.diff`（`after-1b-c2` が基準）
+- 差分の中身: `ShareRepository.present(content:)` → `present(content:presenter:)`、`ShareContentUseCase.execute(content:presenter:)` の追加、`ShareError` が `Sendable, Equatable` になり（`==` が出る）`presentationFailed(any Error)`・`unknown(any Error)` が消え `notForeground`・`presentationFailed`・`dismissedBySystem`・`activityFailed(FailureDetail)` が増えた、`IosShareManager.share(content:presenter:completion:)` の追加、`async` の `share(content:)` が `share(content:presenter: = .firstActiveScene)` になった。ほかは変わらない（今の `share(content:completion:)` も同じ行のまま）
+- `swift-frontend -typecheck-module-from-interface`（Xcode 26.3、Swift 6.2.4）で public と private の 2 つとも型検査が通った（出力 0 行）
+
+### 7.7 シミュレーターで測ったこと（C3 に付いた MS-03 の Share の分）
+
+使い捨ての下調べのテスト（ホストのアプリ。scratchpad の `ProbeC3Tests.swift`。リポジトリには入れていない）と、UI テストの間の `log stream`。
+
+| 測ったこと（設計書 14 章の MS-03 の「残り」） | iPhone 17 / 26.2 | iPad Pro 11-inch (M4) / 18.3.1 |
+|---|---|---|
+| `present` の直後の `presentingViewController`（6.3.3 の補い） | 直後は `nil`。animated で 0.08〜0.9 秒後、animated でなければ約 0.05〜0.07 秒後に設定され、完了はその後（0.65〜1.46 秒 / 0.06〜0.08 秒） | 同じ（0.53 秒 / 0.05 秒） → **Share は補いを外し見張りだけ**（7.4 の 1） |
+| 外から閉じたシートの handler と解放 | handler は呼ばれない（申し送り 1 と同じ）。解放は約 0.55〜0.59 秒後。ライブラリの手順で出したシートは 5 回とも 0.56〜0.59 秒で `dismissedBySystem` | 同じ（解放 0.56〜0.58 秒、`dismissedBySystem` 0.55〜0.57 秒、5 回） |
+| UIKit が表示を断ったシート（既に別のものを出している ViewController に出す）の解放（SR-16） | 完了は来ず、約 0.04 秒で解放 | 約 0.03 秒で解放 |
+| handler のスレッド | Copy と閉じる（S1・S2・S17 など）で main（`[completionWithItemsHandler] … isMainThread: true`）。ライブラリはスレッドに頼らない（その場で箱を閉じる） | 測っていない（UI テストは iPhone だけ） |
+| 活動を選んだ間に解放されないか | S8・S9（Save to Files のピッカーを開いて保存）が今の口で `completed=true` のまま通った（見張りが先に閉じれば `(false, …)` になる） | - |
+| scene を切ったときの handler と解放 | - | 2 つ目の scene でシートを出し `requestSceneSessionDestruction` で切ると、handler は来ず、15 秒たっても完了が来なかった（下調べがその scene の window を持ち続けたため、シートが解放されない）。window を手放すとすぐ（約 0.005 秒）`dismissedBySystem` が来た。**システムが scene を切っても表示元が残ればシートは解放されない**: 第 1 部 0.1 の「約束の外」（R4-4）のとおり |
+| TSan の版で解放されない理由 | **TSan の版でも外から閉じたシートは約 0.55〜0.60 秒で解放され、`dismissedBySystem` が来た**（5 回）。同じ回で `IosLibrary` の手順で出したアラートも約 0.45 秒で解放された（3 回）。申し送り 1 の「TSan の版では 15 秒たっても解放されない」は雛形（capi の中の手順）の振る舞いで、`IosLibrary` の手順では再現しなかった。理由（雛形の何が持っていたか）は調べていない | - |
+
+あわせて: iPhone 17 / 26.2 では、ライブラリが付けた基点を UIKit が表示のときに替える（7.4 の 9）。
+
+MS-02 の Share の分（C2 の 4.7 で「まだ」だったもの。写しに置いた使い捨ての UI テスト、iPhone 17 / 26.2）: `ShareAfter3Seconds` を押して Control Center を引き出すと、`foregroundInactive` の間に `.foreground` のシートが出た。Control Center を閉じてもシートは残り、閉じると `[shareAfter3Seconds@foregroundInactive] success completed=false`。**G-6 の 1 つ目（inactive の間も表示できる）は Share でも成り立つ**。
+
+### 7.8 テストの実行と基準との比べ合わせ
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPad Pro 11-inch (M4) / 18.3.1、iPhone 16 / 18.3.1。`-parallel-testing-enabled NO`） | どれも 351/351。skip 0。C2 の 314 件の名前との比べ合わせは、足した 39 件と、消した 2 件（7.5）だけ |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --feature Share`（ハッシュを固定した写し） | 25/25 成功（Navigation 2、IdentifierInventory 4、Share S1〜S19）。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）との比べ合わせは `changed=0, added=3, removed=0`（足したのは S17〜S19）。S1〜S16 は今の期待値のまま通った（今の口の結果の行は変わらない）。I1c は Share の 17 のボタンと節 7 で一致した。信頼する部分の警告なし |
+| ランナーの自己テスト（`python3 -m unittest discover -s scripts/tests -p 'test_ios_ui_runner.py'`） | 写し: 142/142（C2 の 141 + `test_systemui_and_sharesheet_leave_s18_and_s19_out`）。`scripts/tests` の全体も 350 件成功（skip 27）。リポジトリ: 142 件のうち 4 件が落ちる（どれも `SampleApp.swift` のハッシュが固定と違うことによるもの: `SourceRules.test_the_real_tree_passes`、`Commands.test_preflight_refuses_the_device_when_the_trusted_part_changed`、`EndToEnd` の 2 件） |
+| 自己テストの fixture | 列挙（`enumeration.json`）は写しの `--feature Share` の回の列挙（iPhone 17 / 26.2、Xcode 26.3、flat）をそのまま写した。前の fixture との差は S17〜S19 の 3 行だけ（UI テストは 110 件）。実機のバイナリ（`otool-ov-device.txt`・`otool-l-device.txt`）は写しを `generic/platform=iOS`・`CODE_SIGNING_ALLOWED=NO` で組んだ UI テストのバンドルから取った（端末は使っていない）。どれにもローカルのパスは入っていない。数を照らす自己テスト（107 → 110、サンプルのボタン 56 → 59）と simulator only の表のテストを直した |
+| ランナーの変異（`ios_ui_runner_mutations.py --only simulator`、写し） | 足した 1 件（S19 を表から落とす）と既存の simulator only の 6 件がすべて捕まり、変異なしは残った。本物の台帳は変わらない |
+| `scripts/test_ios.sh --dry-run --device-allow systemui,sharesheet,clipboard`（写し。`--udid` はどの端末でもない値、`--enumerate-udid` は iPhone 17 / 26.2。`--baseline` なし） | 実機に触れない（`--dry-run` は計画と許可の一覧を書いた所で `exit 0` し、devicectl と実機の xcodebuild の前に止まることをスクリプトで確かめた。`--devicectl-id` も渡していない）。110 件のうち 94 件を選び 16 件を除いた。**S18（`[sharesheet,systemui]`）と S19（`[sharesheet]`）は `simulator only` で除かれた**（D17・D20〜D23 も同じ）。S17 は選ばれ、S8・S9 は `missing files`。写しには未コミットの変更があるので、実機の回は断ると表示した |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2 は UI テストの前に自分で起動し、終わった後に止めた。iPad Pro 11-inch (M4) / 18.3.1 と iPhone 16 / 18.3.1 は xcodebuild が起動し、終わった後は止まっていた。最後にどれも起動していないことを確かめた |
+
+### 7.9 警告
+
+| 測り方 | 結果 |
+|---|---|
+| 2 つの scheme を `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`）。Xcode 26.3 と 26.6（`DEVELOPER_DIR`） | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+
+### 7.10 信頼する部分の変更とハッシュ
+
+`ios/IosLibraryExample/IosLibraryExampleUITests/Support/`。HEAD（`da620c67`）からの差分。別のモデルの再レビューに出す。
+
+| ファイル | 操作 |
+|---|---|
+| `SampleApp.swift` | (1) `ShareButton` に `shareRequestText`・`shareThenDismissFromOutside`・`shareAfter3Seconds` の 3 つを足した（`shareAfter3Seconds` に Debug のビルドだけの注）。押す口は今の `tap(_ button: ShareButton, _ token: ShareSheetToken)` だけで、`ShareSheetToken` が要る（U-9）。(2) I1c の一覧（`SampleInventory.expectedNonButtons(.share)`）に `share.section.swiftAPI` を足した。**新しい操作・新しい要素の読み方は無い**（識別子を足しただけ） |
+| `Springboard.swift`、`ShareSheet.swift`、ほかの 6 ファイル | 変えていない（S18 は今の `goHome()`、S17 は今の `copy(_:)`、S19 は今の `waitClosed()` を使う） |
+
+守り: S18（`sharesheet`・`systemui`）と S19（`sharesheet`）は `SIMULATOR_ONLY_TESTS` に入れたので、`--device-allow` に何を渡しても実機の一覧に入らない（一覧に `simulator only`）。S17 は `sharesheet`・`clipboard` で、実機では両方を許したときだけ流れる（S1 と同じ Copy だけを押す）。識別子の文字列は信頼する部分の中だけにある（U-17。`ShareUITests.swift` は `ShareButton` の case だけを使う）。信頼する部分に `session.isDevice` の確かめは足していない（7.4 の 12）。
+
+再レビューの後に固定するハッシュ（`python3 scripts/ios_ui_runner.py hashes --tests-dir ios/IosLibraryExample/IosLibraryExampleUITests`。ほかの 7 ファイルと `FROZEN_CLIPBOARD_SHA256` は変わらない）:
+
+| ファイル | 今の固定 | 新しい値 |
+|---|---|---|
+| `Support/SampleApp.swift` | `9f51a947…2b44` | `9b1da32b2c56fa5c82fa6a1ab879157d4cc87bfa584e864d37e640e190a8b9fc` |
+
+### 7.11 後のコミットへの申し送り（C4〜C6）
+
+| 項目 | 内容 |
+|---|---|
+| 補い（C6） | 権限の要求と設定の画面は表示しない口（`requireForeground`）なので補いは関わらない。新しく ViewController を出す口を足すときは、`presentingViewController` が `present` の中で設定されるかを先に測り、されなければ `DeclineCheck.releaseWatchOnly` を渡す |
+| ホストのアプリ（C4〜C6） | 本物の UI を記録するテストの補助は ViewController を `weak` で持つ（`SheetRecorder`）。強く持つと見張りが働かず、外から閉じたテストが止まる（C3 の最初の版でそうなった） |
+| TSan（C7） | `IosLibrary` の手順で出したアラートとシートは TSan の版でも解放された（7.7）。C1・C2 の TSan の skip（`aRealViewControllerClosesTheBoxWhenFreed`、UT-14、`aDialogDismissedFromOutsideCallsNothingButTheNewAPIIsTold`、D20）を外せるかを C7 の全体の TSan の回で確かめる（8 章の 4） |
+| `-only-testing`（C4〜C7） | iOS 18.3 のシミュレーターで `-only-testing` が 0 件になるのは、destination が 2 つの arch に合うため。`-destination 'platform=iOS Simulator,id=<udid>,arch=arm64'` と書けば Swift Testing の suite を選んで流せる（C1 の 1.8 の注を直す情報） |
+| 第 2 部（2a） | Share は 2 つの要求の表示の順を約束しない（7.4 の 10）。C のヘッダーに書く。外から閉じたシートは約 0.55 秒後に `CANCELED_BY_SYSTEM`。表示元の scene が切れても window が残ればシートは解放されず完了しない（約束の外。R4-4） |
+| 信頼する部分（C4〜C6） | C3 は識別子を足しただけ。C4 の Clipboard の新しいボタン（SA-15）は `ClipboardButton` か新しい列挙、C5・C6 の通知は `NotificationButton` に足す |
+
+## 8. 利用者に決めてもらうこと（C3）
+
+**決定（2026-11-01、利用者）: 5 つとも推奨のとおり。** 1 は 9 章の Codex のレビューの後に固定した。2 は付録 A に足した。3 は `DialogPresenting` の DocC に足した。4・5 は C7 で行う
+
+| # | 事柄 | 推奨 |
+|---|---|---|
+| 1 | 信頼する部分（`SampleApp.swift`）の変更（7.10。識別子の 3 つと I1c の 1 つ）と S18・S19 の simulator only を、別のモデルのレビューに出してからハッシュを固定する | **C2 と同じく別のモデル（Codex）に `SampleApp.swift` の差分と `SIMULATOR_ONLY_TESTS`・`DeviceRequirements.json` の 3 行を見せ、通ったら 7.10 の値を固定して C3 のコミットに入れる**。新しい操作が無いので観点は「識別子を足しただけか、区分が正しいか」の 2 つで足りる |
+| 2 | 付録 A に `ShareContentUseCase.execute(content:presenter:)` が無い（7.4 の 3）。`presenter` を Repository に届けるのに要るので足した | **付録 A に足す**（追加で破壊的でない。今の `execute(content:)` は残した）。消すと Manager が Repository を直に呼ぶことになり common.md に反する |
+| 3 | `PresenterSelection` は値を読む公開の口が無いので、公開の port（`ShareRepository`・`DialogPresenting`）を自分で実装する利用者は `presenter` に従えない。Share の port の DocC にはそう書いた（7.1）。Dialog の port の DocC（C2）は「`presenter` が選ぶ ViewController から出す」のまま | **C3 のコミットで `DialogPresenting` の DocC にも同じ 1 文を足す**（公開の API は足さない）。値を読む口（`@MainActor func resolve()` など）が要るとの声があれば 2.0.0 の後に足す |
+| 4 | TSan の版でも `IosLibrary` の手順で出したアラートとシートは解放された（7.7）。C1・C2 は申し送り 1 の結果から見張りに頼るテストを TSan の回で skip している | **C7 の全体の TSan の回で skip を外して流し、通れば外して設計書 6.3.4・RK-11 を直す**。C3 の Share のテストは skip を付けずに TSan で通した |
+| 5 | MS-02 の残り（`foregroundInactive` の間に `UIActivityViewController` を出せるか）は C3 のタスクに無い | **記録だけでよい**（C3 のついでに測った: 7.7 の最後の行）。`foregroundInactive` の間（Control Center を引き出した間）に `.foreground` で `UIActivityViewController` が出た。C7（T-20）で第 1 部の G-6 の記録に Share の分として足す |
+
+## 9. C3 のレビューと直したこと
+
+コードのレビューを 2 者で並行に行った。Claude のサブエージェント（設計との一致と正しさ）は A 0・B 1・C 6。ハッシュを合わせた写しで `--feature Dialog` 29/29（`changed=0, added=8`）と `--feature Share` 25/25（`changed=0, added=3`）を流し、共通の部分の変更が Dialog を壊していないことも確かめた。Codex（設定のモデル。並行・寿命と実機の安全。読むだけ）は A・B・C とも無し: どの終わり方でも完了は 1 回、見張りは `present` の前に付き弱く持っても外れる隙間は無い、Dialog の経路は変わらない、`Task` の取り消しが効かないのは P1-24 のとおり、`SampleApp.swift` の差分は識別子だけ、S17 は今の Copy の操作だけ、区分と simulator only は正しい。
+
+| 指摘 | 直したこと |
+|---|---|
+| B-1: 公開の port `ShareRepository` の DocC が「`ShareError` 以外は Manager が `presentationFailed` で返す」と書く（外の実装は Manager に渡せず、UseCase はそのまま投げ直す。C2 の B1 と同じ種類） | port の DocC を「`ShareContentUseCase` は投げられたものをそのまま投げ直し、呼び出し側は `ShareError` を前提にするので `ShareError` だけを投げる」にし、UseCase の 2 つの Throws を「repository が投げたものをそのまま（ライブラリの repository なら `ShareError`）」に直した |
+| C-1: 付録 A に無い `execute(content:presenter:)` | 8 章の 2 の決定で付録 A に足した。理由に「公開の port が `presenter` を取るので、UseCase に `presenter` の口が無いと外で組み立てても port の引数がいつも `.firstActiveScene` になる」も加わる |
+| C-2: `aSheetThatIsStillBeingPresentedIsNotFailed` は表示の終わりを待ってから見る。`PresentationLog` の上の DocC は `UnstableForLegacyEnvironment` のもの | テストの名前を `aPresentedSheetIsNotFailed` にして注を直した。DocC を正しい型の上に移し、`PresentationLog` には自分の 1 行を付けた |
+| C-3: `everyCaseHasItsOwnDescription` は配列の書き漏らしを捕まえない | 網羅の `switch` で case ごとに番号を返し、配列の番号が 0〜8 をちょうど 1 回ずつ持つことを確かめる形にした |
+| C-4: `LibraryLogPrivacyTests` の Share の注が「外から閉じる」を通るとする | 注を「2 つとも handler で終わり、後の `dismiss` は片付けだけ（外から閉じる経路は通らない）」に直した |
+| C-5: `present` の `onPresented` の注が、見張りを弱く持つようにした後も「見張りが記した後」とする。表示のアニメーションの間に外から閉じられ完了より先に解放されたシートは `presentationFailed` になりうる | `onPresented` の注に「見張りがまだ生きていれば（そこでは弱く持つ）」を足し、`IosShareManager` の DocC の表の `presentationFailed` の行に「表示が終わる前にシートが解放された（アニメーションの間に外から閉じられた）」を足した |
+| C-6: 8 章の 3 | `DialogPresenting` の DocC の「ライブラリの実装だけが行うこと」に、`presenter` は値を読めないので外の実装は自分の方法で選ぶ、を足した |
+
+信頼する部分: Codex のレビューの後、`TRUSTED_FILES` の `Support/SampleApp.swift` を 7.10 の値（`9b1da32b2c56fa5c82fa6a1ab879157d4cc87bfa584e864d37e640e190a8b9fc`）に固定した。固定した後、リポジトリでランナーの自己テスト 142/142、直したファイルに関わる単体テスト（Dialog・Share の 10 の suite と `LibraryLogPrivacyTests`・`PresentationProcedureTests`）138/138 を iPhone 17 / 26.2 で流した。警告は `appintentsmetadataprocessor` の「Metadata extraction skipped」だけ。直したのは DocC・テストの名前と注・1 つのテストの確かめ方なので、UI テストは流し直していない（レビューの写しの 25/25 と 29/29 のまま）

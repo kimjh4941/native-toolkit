@@ -28,11 +28,11 @@ final class ShareRepositoryImpl: ShareRepository {
         self.presenter = presenter
     }
 
-    func present(content: ShareContent) async throws -> ShareResult {
-        logger.log(level: .libraryDebug, "[present] items: \(content.items.count, privacy: .public), subject: \(LogRedaction.redact(content.subject), privacy: .public)")
+    func present(content: ShareContent, presenter selection: PresenterSelection) async throws -> ShareResult {
+        logger.log(level: .libraryDebug, "[present] \(content.logSummary, privacy: .public), presenter: \(selection.logName, privacy: .public)")
         let items = try buildActivityItems(from: content)
         let excluded = content.excludedActivityTypes.map { UIActivity.ActivityType($0) }
-        return try await presenter.present(items: items, excluded: excluded)
+        return try await presenter.present(items: items, excluded: excluded, presenter: selection)
     }
 
     /// Converts `ShareContent` into `UIActivityViewController` activation items.
@@ -41,7 +41,7 @@ final class ShareRepositoryImpl: ShareRepository {
     /// (not appended) by a `ShareItemSource` wrapping it, so the content is shared exactly once.
     /// - Throws: `ShareError` on invalid URL, missing file, or unreadable image.
     func buildActivityItems(from content: ShareContent) throws -> [Any] {
-        logger.log(level: .libraryDebug, "[buildActivityItems] items: \(content.items.count, privacy: .public)")
+        logger.log(level: .libraryDebug, "[buildActivityItems] \(content.logSummary, privacy: .public)")
         var activityItems: [Any] = try content.items.map { try convert($0) }
 
         let hasMetadata = content.subject != nil || content.previewTitle != nil

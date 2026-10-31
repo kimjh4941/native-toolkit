@@ -336,6 +336,15 @@
           "identifier" : "IosLibraryExampleUITests/ShareUITests/testS16_shareMissingImageFails()"
         },
         {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS17_requestShareCopy()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS18_aRequestInTheBackgroundReportsNotForeground()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem()"
+        },
+        {
           "identifier" : "IosLibraryExampleUITests/ShareUITests/testS1_shareTextCopy()"
         },
         {

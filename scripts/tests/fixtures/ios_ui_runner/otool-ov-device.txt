@@ -1,55 +1,55 @@
 IosLibraryExampleUITests.xctest/IosLibraryExampleUITests:
 Contents of (__DATA_CONST,__objc_classlist) section
-00000000000e6370 0xea560 _$s24IosLibraryExampleUITests13UITestSessionCN
-    isa        0xea520 _$s24IosLibraryExampleUITests13UITestSessionCMm
+00000000000ea370 0xee580 _$s24IosLibraryExampleUITests13UITestSessionCN
+    isa        0xee540 _$s24IosLibraryExampleUITests13UITestSessionCMm
     superclass 0x0 _OBJC_CLASS_$__TtCs12_SwiftObject
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe82aa Swift class
+    data       0xec2aa Swift class
         flags          0x80
         instanceStart  16
         instanceSize   81
         reserved       0x0
         ivarLayout     0x0
-        name           0xcc870 _TtC24IosLibraryExampleUITests13UITestSession
+        name           0xcef60 _TtC24IosLibraryExampleUITests13UITestSession
         baseMethods    0x0
         baseProtocols  0x0
-        ivars          0xe81c0 __IVARS__TtC24IosLibraryExampleUITests13UITestSession
+        ivars          0xec1c0 __IVARS__TtC24IosLibraryExampleUITests13UITestSession
             entsize   32
             count     7
-            offset    0xc9d88 _$s24IosLibraryExampleUITests13UITestSessionC8isDeviceSbvpWvd 16
-            name      0xcc89e isDevice
-            type      0xd0060 
+            offset    0xcc418 _$s24IosLibraryExampleUITests13UITestSessionC8isDeviceSbvpWvd 16
+            name      0xcef8e isDevice
+            type      0xd3c20 
             alignment 0
             size      1
-            offset    0xc9d90 _$s24IosLibraryExampleUITests13UITestSessionC7testKeySSvpWvd 24
-            name      0xcc8a7 testKey
-            type      0xd0060 
+            offset    0xcc420 _$s24IosLibraryExampleUITests13UITestSessionC7testKeySSvpWvd 24
+            name      0xcef97 testKey
+            type      0xd3c20 
             alignment 3
             size      16
-            offset    0xc9d98 _$s24IosLibraryExampleUITests13UITestSessionC12interruptionAC16InterruptionMarkOvpWvd 40
-            name      0xcc8af interruption
-            type      0xd0060 
+            offset    0xcc428 _$s24IosLibraryExampleUITests13UITestSessionC12interruptionAC16InterruptionMarkOvpWvd 40
+            name      0xcef9f interruption
+            type      0xd3c20 
             alignment 0
             size      1
-            offset    0xc9da0 _$s24IosLibraryExampleUITests13UITestSessionC18interruptionDetailSSvpWvd 48
-            name      0xcc8c0 interruptionDetail
-            type      0xd0060 
+            offset    0xcc430 _$s24IosLibraryExampleUITests13UITestSessionC18interruptionDetailSSvpWvd 48
+            name      0xcefb0 interruptionDetail
+            type      0xd3c20 
             alignment 3
             size      16
-            offset    0xc9da8 _$s24IosLibraryExampleUITests13UITestSessionC18monitorInvocationsSivpWvd 64
-            name      0xcc8e0 monitorInvocations
-            type      0xd0060 
+            offset    0xcc438 _$s24IosLibraryExampleUITests13UITestSessionC18monitorInvocationsSivpWvd 64
+            name      0xcefd0 monitorInvocations
+            type      0xd3c20 
             alignment 3
             size      8
-            offset    0xc9db0 _$s24IosLibraryExampleUITests13UITestSessionC14pressedButtonsSaySSGvpWvd 72
-            name      0xcc8f3 pressedButtons
-            type      0xd0060 
+            offset    0xcc440 _$s24IosLibraryExampleUITests13UITestSessionC14pressedButtonsSaySSGvpWvd 72
+            name      0xcefe3 pressedButtons
+            type      0xd3c20 
             alignment 3
             size      8
-            offset    0xc9db8 _$s24IosLibraryExampleUITests13UITestSessionC19systemUITokenIssuedSbvpWvd 80
-            name      0xcc910 systemUITokenIssued
-            type      0xd0060 
+            offset    0xcc448 _$s24IosLibraryExampleUITests13UITestSessionC19systemUITokenIssuedSbvpWvd 80
+            name      0xcf000 systemUITokenIssued
+            type      0xd3c20 
             alignment 0
             size      1
         weakIvarLayout 0x0
@@ -59,178 +59,178 @@ Meta Class
     superclass 0x0 _OBJC_METACLASS_$__TtCs12_SwiftObject
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8178 __METACLASS_DATA__TtC24IosLibraryExampleUITests13UITestSession
+    data       0xec178 __METACLASS_DATA__TtC24IosLibraryExampleUITests13UITestSession
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xcc870 _TtC24IosLibraryExampleUITests13UITestSession
+        name           0xcef60 _TtC24IosLibraryExampleUITests13UITestSession
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e6378 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
-    isa        0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea378 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
+    isa        0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     superclass 0x0 _OBJC_CLASS_$_XCTestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8f92 Swift class
+    data       0xecfaa Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  8
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xcc930 _TtC24IosLibraryExampleUITests16SampleUITestCase
-        baseMethods    0xc8b38 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests16SampleUITestCase
+        name           0xcf020 _TtC24IosLibraryExampleUITests16SampleUITestCase
+        baseMethods    0xcb1c8 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests16SampleUITestCase
             entsize 12 (relative)
             count   14
-            name    0x20060 (0xe8ba0)
-            types   0x3e1d (0xcc961) B16@0:8
-            imp     0xfff5f8cc (0x28414) _$s24IosLibraryExampleUITests16SampleUITestCaseC10gatePassedSbvgTo
-            name    0x2005c (0xe8ba8)
-            types   0x3e58 (0xcc9a8) v20@0:8B16
-            imp     0xfff5f988 (0x284dc) _$s24IosLibraryExampleUITests16SampleUITestCaseC10gatePassedSbvsTo
-            name    0x1ff20 (0xe8a78)
-            types   0x51c4 (0xcdd20) v16@0:8
-            imp     0xfff5ff50 (0x28ab0) _$s24IosLibraryExampleUITests16SampleUITestCaseC5setUpyyFTo
-            name    0x1ff1c (0xe8a80)
-            types   0x3e53 (0xcc9bb) v24@0:8@?16
-            imp     0xfff60128 (0x28c94) _$s24IosLibraryExampleUITests16SampleUITestCaseC5setUp10completionyys5Error_pSgc_tFTo
-            name    0x1ff18 (0xe8a88)
-            types   0x51ac (0xcdd20) v16@0:8
-            imp     0xfff602c4 (0x28e3c) _$s24IosLibraryExampleUITests16SampleUITestCaseC8tearDownyyFTo
-            name    0x1ff14 (0xe8a90)
-            types   0x3e3b (0xcc9bb) v24@0:8@?16
-            imp     0xfff60400 (0x28f84) _$s24IosLibraryExampleUITests16SampleUITestCaseC8tearDown10completionyys5Error_pSgc_tFTo
-            name    0x20028 (0xe8bb0)
-            types   0x8218 (0xd0da4) B24@0:8^@16
-            imp     0xfff61e48 (0x2a9d8) _$s24IosLibraryExampleUITests16SampleUITestCaseC14setUpWithErroryyKFTo
-            name    0x20024 (0xe8bb8)
-            types   0x820c (0xd0da4) B24@0:8^@16
-            imp     0xfff624b4 (0x2b050) _$s24IosLibraryExampleUITests16SampleUITestCaseC17tearDownWithErroryyKFTo
-            name    0x20020 (0xe8bc0)
-            types   0x8200 (0xd0da4) B24@0:8^@16
-            imp     0xfff625d8 (0x2b180) _$s24IosLibraryExampleUITests16SampleUITestCaseC14setUpAfterGateyyKFTo
-            name    0x2001c (0xe8bc8)
-            types   0x81f4 (0xd0da4) B24@0:8^@16
-            imp     0xfff626fc (0x2b2b0) _$s24IosLibraryExampleUITests16SampleUITestCaseC17tearDownAfterGateyyKFTo
-            name    0x1ff20 (0xe8ad8)
-            types   0x81f4 (0xd0db0) @24@0:8@16
-            imp     0xfff64b84 (0x2d744) _$s24IosLibraryExampleUITests16SampleUITestCaseC10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1ff1c (0xe8ae0)
-            types   0x7b08 (0xd06d0) @24@0:8:16
-            imp     0xfff64cc4 (0x2d890) _$s24IosLibraryExampleUITests16SampleUITestCaseC8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1ff18 (0xe8ae8)
-            types   0x56ac (0xce280) @16@0:8
-            imp     0xfff64dc8 (0x2d9a0) _$s24IosLibraryExampleUITests16SampleUITestCaseCACycfcTo
-            name    0x1fff4 (0xe8bd0)
-            types   0x5140 (0xcdd20) v16@0:8
-            imp     0xfff64e24 (0x2da08) _$s24IosLibraryExampleUITests16SampleUITestCaseCfETo
+            name    0x219d0 (0xecba0)
+            types   0x3e7d (0xcf051) B16@0:8
+            imp     0xfff5d3cc (0x285a4) _$s24IosLibraryExampleUITests16SampleUITestCaseC10gatePassedSbvgTo
+            name    0x219cc (0xecba8)
+            types   0x3eb8 (0xcf098) v20@0:8B16
+            imp     0xfff5d488 (0x2866c) _$s24IosLibraryExampleUITests16SampleUITestCaseC10gatePassedSbvsTo
+            name    0x21890 (0xeca78)
+            types   0x5224 (0xd0410) v16@0:8
+            imp     0xfff5da50 (0x28c40) _$s24IosLibraryExampleUITests16SampleUITestCaseC5setUpyyFTo
+            name    0x2188c (0xeca80)
+            types   0x3eb3 (0xcf0ab) v24@0:8@?16
+            imp     0xfff5dc28 (0x28e24) _$s24IosLibraryExampleUITests16SampleUITestCaseC5setUp10completionyys5Error_pSgc_tFTo
+            name    0x21888 (0xeca88)
+            types   0x520c (0xd0410) v16@0:8
+            imp     0xfff5ddc4 (0x28fcc) _$s24IosLibraryExampleUITests16SampleUITestCaseC8tearDownyyFTo
+            name    0x21884 (0xeca90)
+            types   0x3e9b (0xcf0ab) v24@0:8@?16
+            imp     0xfff5df00 (0x29114) _$s24IosLibraryExampleUITests16SampleUITestCaseC8tearDown10completionyys5Error_pSgc_tFTo
+            name    0x21998 (0xecbb0)
+            types   0x8278 (0xd3494) B24@0:8^@16
+            imp     0xfff5f948 (0x2ab68) _$s24IosLibraryExampleUITests16SampleUITestCaseC14setUpWithErroryyKFTo
+            name    0x21994 (0xecbb8)
+            types   0x826c (0xd3494) B24@0:8^@16
+            imp     0xfff5ffb4 (0x2b1e0) _$s24IosLibraryExampleUITests16SampleUITestCaseC17tearDownWithErroryyKFTo
+            name    0x21990 (0xecbc0)
+            types   0x8260 (0xd3494) B24@0:8^@16
+            imp     0xfff600d8 (0x2b310) _$s24IosLibraryExampleUITests16SampleUITestCaseC14setUpAfterGateyyKFTo
+            name    0x2198c (0xecbc8)
+            types   0x8254 (0xd3494) B24@0:8^@16
+            imp     0xfff601fc (0x2b440) _$s24IosLibraryExampleUITests16SampleUITestCaseC17tearDownAfterGateyyKFTo
+            name    0x21890 (0xecad8)
+            types   0x8254 (0xd34a0) @24@0:8@16
+            imp     0xfff62684 (0x2d8d4) _$s24IosLibraryExampleUITests16SampleUITestCaseC10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x2188c (0xecae0)
+            types   0x7b68 (0xd2dc0) @24@0:8:16
+            imp     0xfff627c4 (0x2da20) _$s24IosLibraryExampleUITests16SampleUITestCaseC8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x21888 (0xecae8)
+            types   0x56fc (0xd0960) @16@0:8
+            imp     0xfff628c8 (0x2db30) _$s24IosLibraryExampleUITests16SampleUITestCaseCACycfcTo
+            name    0x21964 (0xecbd0)
+            types   0x51a0 (0xd0410) v16@0:8
+            imp     0xfff62924 (0x2db98) _$s24IosLibraryExampleUITests16SampleUITestCaseCfETo
         baseProtocols  0x0
-        ivars          0xe8360 __IVARS__TtC24IosLibraryExampleUITests16SampleUITestCase
+        ivars          0xec360 __IVARS__TtC24IosLibraryExampleUITests16SampleUITestCase
             entsize   32
             count     3
-            offset    0xea4a8 _$s24IosLibraryExampleUITests16SampleUITestCaseC10gatePassedSbvpWvd 8
-            name      0xcc9d1 gatePassed
-            type      0xcc9dc B
+            offset    0xee4c8 _$s24IosLibraryExampleUITests16SampleUITestCaseC10gatePassedSbvpWvd 8
+            name      0xcf0c1 gatePassed
+            type      0xcf0cc B
             alignment 0
             size      1
-            offset    0xea4b0 _$s24IosLibraryExampleUITests16SampleUITestCaseC11testSession33_04B613511F7CB853058D0E6A5FD7A588LLAA0fI0CSgvpWvd 16
-            name      0xcc9de testSession
-            type      0xd0060 
+            offset    0xee4d0 _$s24IosLibraryExampleUITests16SampleUITestCaseC11testSession33_04B613511F7CB853058D0E6A5FD7A588LLAA0fI0CSgvpWvd 16
+            name      0xcf0ce testSession
+            type      0xd3c20 
             alignment 3
             size      8
-            offset    0xea4b8 _$s24IosLibraryExampleUITests16SampleUITestCaseC08launchedE033_04B613511F7CB853058D0E6A5FD7A588LLAA0E3AppVSgvpWvd 24
-            name      0xcc9ea launchedSample
-            type      0xd0060 
+            offset    0xee4d8 _$s24IosLibraryExampleUITests16SampleUITestCaseC08launchedE033_04B613511F7CB853058D0E6A5FD7A588LLAA0E3AppVSgvpWvd 24
+            name      0xcf0da launchedSample
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
-        baseProperties 0xe83c8 __PROPERTIES__TtC24IosLibraryExampleUITests16SampleUITestCase
+        baseProperties 0xec3c8 __PROPERTIES__TtC24IosLibraryExampleUITests16SampleUITestCase
             entsize    16
             count      1
-            name       0xcc9d1 gatePassed
-            attributes 0xcca00 TB,N,VgatePassed
+            name       0xcf0c1 gatePassed
+            attributes 0xcf0f0 TB,N,VgatePassed
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
     superclass 0x0 _OBJC_METACLASS_$_XCTestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8318 __METACLASS_DATA__TtC24IosLibraryExampleUITests16SampleUITestCase
+    data       0xec318 __METACLASS_DATA__TtC24IosLibraryExampleUITests16SampleUITestCase
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xcc930 _TtC24IosLibraryExampleUITests16SampleUITestCase
-        baseMethods    0xc8730 __CLASS_METHODS__TtC24IosLibraryExampleUITests16SampleUITestCase
+        name           0xcf020 _TtC24IosLibraryExampleUITests16SampleUITestCase
+        baseMethods    0xcad98 __CLASS_METHODS__TtC24IosLibraryExampleUITests16SampleUITestCase
             entsize 12 (relative)
             count   4
-            name    0x204a0 (0xe8bd8)
-            types   0x4225 (0xcc961) B16@0:8
-            imp     0xfff5fb90 (0x282d0) _$s24IosLibraryExampleUITests16SampleUITestCaseC8isDeviceSbvgZTo
-            name    0x2049c (0xe8be0)
-            types   0x4221 (0xcc969) q16@0:8
-            imp     0xfff5fbf4 (0x28340) _$s24IosLibraryExampleUITests16SampleUITestCaseC14osMajorVersionSivgZTo
-            name    0x20498 (0xe8be8)
-            types   0x421d (0xcc971) @32@0:8@16^@24
-            imp     0xfff63d3c (0x2c494) _$s24IosLibraryExampleUITests16SampleUITestCaseC17normalizedTestKey8fromNameS2S_tKFZTo
-            name    0x20494 (0xe8bf0)
-            types   0x4220 (0xcc980) B24@0:8@16
-            imp     0xfff643e8 (0x2cb4c) _$s24IosLibraryExampleUITests16SampleUITestCaseC15isWellFormedKeyySbSSFZTo
+            name    0x21e38 (0xecbd8)
+            types   0x42ad (0xcf051) B16@0:8
+            imp     0xfff5d6b8 (0x28460) _$s24IosLibraryExampleUITests16SampleUITestCaseC8isDeviceSbvgZTo
+            name    0x21e34 (0xecbe0)
+            types   0x42a9 (0xcf059) q16@0:8
+            imp     0xfff5d71c (0x284d0) _$s24IosLibraryExampleUITests16SampleUITestCaseC14osMajorVersionSivgZTo
+            name    0x21e30 (0xecbe8)
+            types   0x42a5 (0xcf061) @32@0:8@16^@24
+            imp     0xfff61864 (0x2c624) _$s24IosLibraryExampleUITests16SampleUITestCaseC17normalizedTestKey8fromNameS2S_tKFZTo
+            name    0x21e2c (0xecbf0)
+            types   0x42a8 (0xcf070) B24@0:8@16
+            imp     0xfff61f10 (0x2ccdc) _$s24IosLibraryExampleUITests16SampleUITestCaseC15isWellFormedKeyySbSSFZTo
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
-        baseProperties 0xe82f0 __CLASS_PROPERTIES__TtC24IosLibraryExampleUITests16SampleUITestCase
+        baseProperties 0xec2f0 __CLASS_PROPERTIES__TtC24IosLibraryExampleUITests16SampleUITestCase
             entsize    16
             count      2
-            name       0xcc89e isDevice
-            attributes 0xcc98b TB,N,R
-            name       0xcc992 osMajorVersion
-            attributes 0xcc9a1 Tq,N,R
-00000000000e6380 0xe9160 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
-    isa        0xea768 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+            name       0xcef8e isDevice
+            attributes 0xcf07b TB,N,R
+            name       0xcf082 osMajorVersion
+            attributes 0xcf091 Tq,N,R
+00000000000ea380 0xed178 _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0CN
+    isa        0xee788 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe9102 Swift class
+    data       0xed11a Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xcda70 _TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
-        baseMethods    0xc8ed8 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
+        name           0xd0160 _TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
+        baseMethods    0xcb568 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
             entsize 12 (relative)
             count   7
-            name    0x1fce0 (0xe8bc0)
-            types   0x7ec0 (0xd0da4) B24@0:8^@16
-            imp     0xfff7a548 (0x43430) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C14setUpAfterGateyyKFTo
-            name    0x1fcdc (0xe8bc8)
-            types   0x7eb4 (0xd0da4) B24@0:8^@16
-            imp     0xfff7a6c8 (0x435bc) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C17tearDownAfterGateyyKFTo
-            name    0x1fd00 (0xe8bf8)
-            types   0x7ea8 (0xd0da4) B24@0:8^@16
-            imp     0xfff7c4d4 (0x453d4) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C012testCB2_denyF13FailsLoadTextyyKFTo
-            name    0x1fbd4 (0xe8ad8)
-            types   0x7ea8 (0xd0db0) @24@0:8@16
-            imp     0xfff7c6d0 (0x455dc) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1fbd0 (0xe8ae0)
-            types   0x77bc (0xd06d0) @24@0:8:16
-            imp     0xfff7c7d8 (0x456f0) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1fbcc (0xe8ae8)
-            types   0x5360 (0xce280) @16@0:8
-            imp     0xfff7c8a0 (0x457c4) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0CACycfcTo
-            name    0x1fca8 (0xe8bd0)
-            types   0x4df4 (0xcdd20) v16@0:8
-            imp     0xfff7c92c (0x4585c) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0CfETo
+            name    0x21650 (0xecbc0)
+            types   0x7f20 (0xd3494) B24@0:8^@16
+            imp     0xfff78048 (0x435c0) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C14setUpAfterGateyyKFTo
+            name    0x2164c (0xecbc8)
+            types   0x7f14 (0xd3494) B24@0:8^@16
+            imp     0xfff781c8 (0x4374c) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C17tearDownAfterGateyyKFTo
+            name    0x21670 (0xecbf8)
+            types   0x7f08 (0xd3494) B24@0:8^@16
+            imp     0xfff79fd4 (0x45564) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C012testCB2_denyF13FailsLoadTextyyKFTo
+            name    0x21544 (0xecad8)
+            types   0x7f08 (0xd34a0) @24@0:8@16
+            imp     0xfff7a1d0 (0x4576c) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x21540 (0xecae0)
+            types   0x781c (0xd2dc0) @24@0:8:16
+            imp     0xfff7a2d8 (0x45880) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x2153c (0xecae8)
+            types   0x53b0 (0xd0960) @16@0:8
+            imp     0xfff7a3a0 (0x45954) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0CACycfcTo
+            name    0x21618 (0xecbd0)
+            types   0x4e54 (0xd0410) v16@0:8
+            imp     0xfff7a42c (0x459ec) _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0CfETo
         baseProtocols  0x0
-        ivars          0xe8428 __IVARS__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
+        ivars          0xec428 __IVARS__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
             entsize   32
             count     1
-            offset    0xea760 _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C6sample33_AC1B3D91B8EE6D3CB33A574D4C19CF93LLAA9SampleAppVSgvpWvd 40
+            offset    0xee780 _$s24IosLibraryExampleUITests018ClipboardPasteDenyD0C6sample33_AC1B3D91B8EE6D3CB33A574D4C19CF93LLAA9SampleAppVSgvpWvd 40
             name      0x0 _OBJC_CLASS_$__TtCs12_SwiftObject
             type      0x0 __objc_empty_cache
             alignment 3
@@ -239,547 +239,547 @@ Meta Class
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe83e0 __METACLASS_DATA__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
+    data       0xec3e0 __METACLASS_DATA__TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xcda70 _TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
+        name           0xd0160 _TtC24IosLibraryExampleUITests25ClipboardPasteDenyUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e6388 0xe92d8 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
-    isa        0xea798 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea388 0xed2f0 _$s24IosLibraryExampleUITests014ClipboardPasteD0CN
+    isa        0xee7b8 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe927a Swift class
+    data       0xed292 Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xcdce0 _TtC24IosLibraryExampleUITests21ClipboardPasteUITests
-        baseMethods    0xc8db8 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
+        name           0xd03d0 _TtC24IosLibraryExampleUITests21ClipboardPasteUITests
+        baseMethods    0xcb448 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
             entsize 12 (relative)
             count   9
-            name    0x1fe00 (0xe8bc0)
-            types   0x7fe0 (0xd0da4) B24@0:8^@16
-            imp     0xfff7cd04 (0x45acc) _$s24IosLibraryExampleUITests014ClipboardPasteD0C14setUpAfterGateyyKFTo
-            name    0x1fdfc (0xe8bc8)
-            types   0x7fd4 (0xd0da4) B24@0:8^@16
-            imp     0xfff7ce84 (0x45c58) _$s24IosLibraryExampleUITests014ClipboardPasteD0C17tearDownAfterGateyyKFTo
-            name    0x1fe28 (0xe8c00)
-            types   0x7fc8 (0xd0da4) B24@0:8^@16
-            imp     0xfff7eefc (0x47cdc) _$s24IosLibraryExampleUITests014ClipboardPasteD0C013testCB1_allowF9LoadsTextyyKFTo
-            name    0x1fe24 (0xe8c08)
-            types   0x7fbc (0xd0da4) B24@0:8^@16
-            imp     0xfff7ffd4 (0x48dc0) _$s24IosLibraryExampleUITests014ClipboardPasteD0C29testCB3_pasteControlReadsTextyyKFTo
-            name    0x1fe20 (0xe8c10)
-            types   0x7fb0 (0xd0da4) B24@0:8^@16
-            imp     0xfff80214 (0x4900c) _$s24IosLibraryExampleUITests014ClipboardPasteD0C34testCB4_pasteControlReadsImageOnlyyyKFTo
-            name    0x1fcdc (0xe8ad8)
-            types   0x7fb0 (0xd0db0) @24@0:8@16
-            imp     0xfff80bb4 (0x499b8) _$s24IosLibraryExampleUITests014ClipboardPasteD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1fcd8 (0xe8ae0)
-            types   0x78c4 (0xd06d0) @24@0:8:16
-            imp     0xfff80cbc (0x49acc) _$s24IosLibraryExampleUITests014ClipboardPasteD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1fcd4 (0xe8ae8)
-            types   0x5468 (0xce280) @16@0:8
-            imp     0xfff80d84 (0x49ba0) _$s24IosLibraryExampleUITests014ClipboardPasteD0CACycfcTo
-            name    0x1fdb0 (0xe8bd0)
-            types   0x4efc (0xcdd20) v16@0:8
-            imp     0xfff80e10 (0x49c38) _$s24IosLibraryExampleUITests014ClipboardPasteD0CfETo
+            name    0x21770 (0xecbc0)
+            types   0x8040 (0xd3494) B24@0:8^@16
+            imp     0xfff7a804 (0x45c5c) _$s24IosLibraryExampleUITests014ClipboardPasteD0C14setUpAfterGateyyKFTo
+            name    0x2176c (0xecbc8)
+            types   0x8034 (0xd3494) B24@0:8^@16
+            imp     0xfff7a984 (0x45de8) _$s24IosLibraryExampleUITests014ClipboardPasteD0C17tearDownAfterGateyyKFTo
+            name    0x21798 (0xecc00)
+            types   0x8028 (0xd3494) B24@0:8^@16
+            imp     0xfff7c9fc (0x47e6c) _$s24IosLibraryExampleUITests014ClipboardPasteD0C013testCB1_allowF9LoadsTextyyKFTo
+            name    0x21794 (0xecc08)
+            types   0x801c (0xd3494) B24@0:8^@16
+            imp     0xfff7dad4 (0x48f50) _$s24IosLibraryExampleUITests014ClipboardPasteD0C29testCB3_pasteControlReadsTextyyKFTo
+            name    0x21790 (0xecc10)
+            types   0x8010 (0xd3494) B24@0:8^@16
+            imp     0xfff7dd14 (0x4919c) _$s24IosLibraryExampleUITests014ClipboardPasteD0C34testCB4_pasteControlReadsImageOnlyyyKFTo
+            name    0x2164c (0xecad8)
+            types   0x8010 (0xd34a0) @24@0:8@16
+            imp     0xfff7e6b4 (0x49b48) _$s24IosLibraryExampleUITests014ClipboardPasteD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x21648 (0xecae0)
+            types   0x7924 (0xd2dc0) @24@0:8:16
+            imp     0xfff7e7bc (0x49c5c) _$s24IosLibraryExampleUITests014ClipboardPasteD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x21644 (0xecae8)
+            types   0x54b8 (0xd0960) @16@0:8
+            imp     0xfff7e884 (0x49d30) _$s24IosLibraryExampleUITests014ClipboardPasteD0CACycfcTo
+            name    0x21720 (0xecbd0)
+            types   0x4f5c (0xd0410) v16@0:8
+            imp     0xfff7e910 (0x49dc8) _$s24IosLibraryExampleUITests014ClipboardPasteD0CfETo
         baseProtocols  0x0
-        ivars          0xe8498 __IVARS__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
+        ivars          0xec498 __IVARS__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
             entsize   32
             count     1
-            offset    0xea790 _$s24IosLibraryExampleUITests014ClipboardPasteD0C6sample33_5221E7D53CCDEAC8D6F4D79C413C6BC7LLAA9SampleAppVSgvpWvd 40
-            name      0xce290 sample
-            type      0xd0060 
+            offset    0xee7b0 _$s24IosLibraryExampleUITests014ClipboardPasteD0C6sample33_5221E7D53CCDEAC8D6F4D79C413C6BC7LLAA9SampleAppVSgvpWvd 40
+            name      0xd0970 sample
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8450 __METACLASS_DATA__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
+    data       0xec450 __METACLASS_DATA__TtC24IosLibraryExampleUITests21ClipboardPasteUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xcdce0 _TtC24IosLibraryExampleUITests21ClipboardPasteUITests
+        name           0xd03d0 _TtC24IosLibraryExampleUITests21ClipboardPasteUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e6390 0xe9450 _$s24IosLibraryExampleUITests06DialogD0CN
-    isa        0xea810 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests13DialogUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea390 0xed468 _$s24IosLibraryExampleUITests06DialogD0CN
+    isa        0xee830 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests13DialogUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe93f2 Swift class
+    data       0xed40a Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xce250 _TtC24IosLibraryExampleUITests13DialogUITests
-        baseMethods    0xc8878 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests13DialogUITests
+        name           0xd0930 _TtC24IosLibraryExampleUITests13DialogUITests
+        baseMethods    0xcaf08 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests13DialogUITests
             entsize 12 (relative)
             count   29
-            name    0x20340 (0xe8bc0)
-            types   0x8520 (0xd0da4) B24@0:8^@16
-            imp     0xfff81780 (0x4a008) _$s24IosLibraryExampleUITests06DialogD0C14setUpAfterGateyyKFTo
-            name    0x2033c (0xe8bc8)
-            types   0x8514 (0xd0da4) B24@0:8^@16
-            imp     0xfff81900 (0x4a194) _$s24IosLibraryExampleUITests06DialogD0C17tearDownAfterGateyyKFTo
-            name    0x20380 (0xe8c18)
-            types   0x8508 (0xd0da4) B24@0:8^@16
-            imp     0xfff833e0 (0x4bc80) _$s24IosLibraryExampleUITests06DialogD0C18testD1_showAlertOKyyKFTo
-            name    0x2037c (0xe8c20)
-            types   0x84fc (0xd0da4) B24@0:8^@16
-            imp     0xfff85178 (0x4da24) _$s24IosLibraryExampleUITests06DialogD0C018testD2_showConfirmE3YesyyKFTo
-            name    0x20378 (0xe8c28)
-            types   0x84f0 (0xd0da4) B24@0:8^@16
-            imp     0xfff85f04 (0x4e7bc) _$s24IosLibraryExampleUITests06DialogD0C018testD3_showConfirmE2NoyyKFTo
-            name    0x20374 (0xe8c30)
-            types   0x84e4 (0xd0da4) B24@0:8^@16
-            imp     0xfff875b4 (0x4fe78) _$s24IosLibraryExampleUITests06DialogD0C022testD4_showDestructiveE6DeleteyyKFTo
-            name    0x20370 (0xe8c38)
-            types   0x84d8 (0xd0da4) B24@0:8^@16
-            imp     0xfff88340 (0x50c10) _$s24IosLibraryExampleUITests06DialogD0C022testD5_showDestructiveE6CancelyyKFTo
-            name    0x2036c (0xe8c40)
-            types   0x84cc (0xd0da4) B24@0:8^@16
-            imp     0xfff89fec (0x528c8) _$s24IosLibraryExampleUITests06DialogD0C32testD6_showActionSheetEachOptionyyKFTo
-            name    0x20368 (0xe8c48)
-            types   0x84c0 (0xd0da4) B24@0:8^@16
-            imp     0xfff8b2d8 (0x53bc0) _$s24IosLibraryExampleUITests06DialogD0C28testD7_showActionSheetCancelyyKFTo
-            name    0x20364 (0xe8c50)
-            types   0x84b4 (0xd0da4) B24@0:8^@16
-            imp     0xfff8cd7c (0x55670) _$s24IosLibraryExampleUITests06DialogD0C030testD8_textInputConfirmFollowsI0yyKFTo
-            name    0x20360 (0xe8c58)
-            types   0x84a8 (0xd0da4) B24@0:8^@16
-            imp     0xfff8dbfc (0x564fc) _$s24IosLibraryExampleUITests06DialogD0C030testD9_textInputConfirmReportsI0yyKFTo
-            name    0x2035c (0xe8c60)
-            types   0x849c (0xd0da4) B24@0:8^@16
-            imp     0xfff8ea7c (0x57388) _$s24IosLibraryExampleUITests06DialogD0C028testD10_textInputCancelDropsI0yyKFTo
-            name    0x20358 (0xe8c68)
-            types   0x8490 (0xd0da4) B24@0:8^@16
-            imp     0xfff90a50 (0x59368) _$s24IosLibraryExampleUITests06DialogD0C36testD11_loginButtonFollowsBothFieldsyyKFTo
-            name    0x20354 (0xe8c70)
-            types   0x8484 (0xd0da4) B24@0:8^@16
-            imp     0xfff91a74 (0x5a398) _$s24IosLibraryExampleUITests06DialogD0C31testD12_loginReportsCredentialsyyKFTo
-            name    0x20350 (0xe8c78)
-            types   0x8478 (0xd0da4) B24@0:8^@16
-            imp     0xfff928b0 (0x5b1e0) _$s24IosLibraryExampleUITests06DialogD0C19testD13_loginCancelyyKFTo
-            name    0x2034c (0xe8c80)
-            types   0x846c (0xd0da4) B24@0:8^@16
-            imp     0xfff95088 (0x5d9c4) _$s24IosLibraryExampleUITests06DialogD0C012testD14_eachE32ReportsCompletionAndCallbackOnceyyKFTo
-            name    0x20348 (0xe8c88)
-            types   0x8460 (0xd0da4) B24@0:8^@16
-            imp     0xfff95984 (0x5e2cc) _$s24IosLibraryExampleUITests06DialogD0C45testD15_loginReportsCompletionAndCallbackOnceyyKFTo
-            name    0x20344 (0xe8c90)
-            types   0x8454 (0xd0da4) B24@0:8^@16
-            imp     0xfff99468 (0x61dbc) _$s24IosLibraryExampleUITests06DialogD0C35testD16_requestsReportOneResultEachyyKFTo
-            name    0x20340 (0xe8c98)
-            types   0x8448 (0xd0da4) B24@0:8^@16
-            imp     0xfff9b200 (0x63b60) _$s24IosLibraryExampleUITests06DialogD0C40testD17_twoRequestsInOneTurnAreBothShownyyKFTo
-            name    0x2033c (0xe8ca0)
-            types   0x843c (0xd0da4) B24@0:8^@16
-            imp     0xfff9c270 (0x64bdc) _$s24IosLibraryExampleUITests06DialogD0C026testD18_cancelDismissesTheE0yyKFTo
-            name    0x20338 (0xe8ca8)
-            types   0x8430 (0xd0da4) B24@0:8^@16
-            imp     0xfff9de18 (0x66790) _$s24IosLibraryExampleUITests06DialogD0C016testD19_aCoveredE18StaysWhenCancelledyyKFTo
-            name    0x20334 (0xe8cb0)
-            types   0x8424 (0xd0da4) B24@0:8^@16
-            imp     0xfff9ee2c (0x677b0) _$s24IosLibraryExampleUITests06DialogD0C09testD20_ae27DismissedFromOutsideReportsH8BySystemyyKFTo
-            name    0x20330 (0xe8cb8)
-            types   0x8418 (0xd0da4) B24@0:8^@16
-            imp     0xfff9fcc8 (0x68658) _$s24IosLibraryExampleUITests06DialogD0C51testD21_aRequestInTheBackgroundReportsNotForegroundyyKFTo
-            name    0x2032c (0xe8cc0)
-            types   0x840c (0xd0da4) B24@0:8^@16
-            imp     0xfffa0fc8 (0x69964) _$s24IosLibraryExampleUITests06DialogD0C41testD22_aRequestUnderControlCenterIsShownyyKFTo
-            name    0x20328 (0xe8cc8)
-            types   0x8400 (0xd0da4) B24@0:8^@16
-            imp     0xfffa2700 (0x6b0a8) _$s24IosLibraryExampleUITests06DialogD0C39testD23_actionSheetsPresentWithAnAnchoryyKFTo
-            name    0x2012c (0xe8ad8)
-            types   0x8400 (0xd0db0) @24@0:8@16
-            imp     0xfffa3254 (0x6bc08) _$s24IosLibraryExampleUITests06DialogD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x20128 (0xe8ae0)
-            types   0x7d14 (0xd06d0) @24@0:8:16
-            imp     0xfffa335c (0x6bd1c) _$s24IosLibraryExampleUITests06DialogD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x20124 (0xe8ae8)
-            types   0x58b8 (0xce280) @16@0:8
-            imp     0xfffa3424 (0x6bdf0) _$s24IosLibraryExampleUITests06DialogD0CACycfcTo
-            name    0x20200 (0xe8bd0)
-            types   0x534c (0xcdd20) v16@0:8
-            imp     0xfffa34b0 (0x6be88) _$s24IosLibraryExampleUITests06DialogD0CfETo
+            name    0x21cb0 (0xecbc0)
+            types   0x8580 (0xd3494) B24@0:8^@16
+            imp     0xfff7f280 (0x4a198) _$s24IosLibraryExampleUITests06DialogD0C14setUpAfterGateyyKFTo
+            name    0x21cac (0xecbc8)
+            types   0x8574 (0xd3494) B24@0:8^@16
+            imp     0xfff7f400 (0x4a324) _$s24IosLibraryExampleUITests06DialogD0C17tearDownAfterGateyyKFTo
+            name    0x21cf0 (0xecc18)
+            types   0x8568 (0xd3494) B24@0:8^@16
+            imp     0xfff80ee0 (0x4be10) _$s24IosLibraryExampleUITests06DialogD0C18testD1_showAlertOKyyKFTo
+            name    0x21cec (0xecc20)
+            types   0x855c (0xd3494) B24@0:8^@16
+            imp     0xfff82c78 (0x4dbb4) _$s24IosLibraryExampleUITests06DialogD0C018testD2_showConfirmE3YesyyKFTo
+            name    0x21ce8 (0xecc28)
+            types   0x8550 (0xd3494) B24@0:8^@16
+            imp     0xfff83a04 (0x4e94c) _$s24IosLibraryExampleUITests06DialogD0C018testD3_showConfirmE2NoyyKFTo
+            name    0x21ce4 (0xecc30)
+            types   0x8544 (0xd3494) B24@0:8^@16
+            imp     0xfff850b4 (0x50008) _$s24IosLibraryExampleUITests06DialogD0C022testD4_showDestructiveE6DeleteyyKFTo
+            name    0x21ce0 (0xecc38)
+            types   0x8538 (0xd3494) B24@0:8^@16
+            imp     0xfff85e40 (0x50da0) _$s24IosLibraryExampleUITests06DialogD0C022testD5_showDestructiveE6CancelyyKFTo
+            name    0x21cdc (0xecc40)
+            types   0x852c (0xd3494) B24@0:8^@16
+            imp     0xfff87aec (0x52a58) _$s24IosLibraryExampleUITests06DialogD0C32testD6_showActionSheetEachOptionyyKFTo
+            name    0x21cd8 (0xecc48)
+            types   0x8520 (0xd3494) B24@0:8^@16
+            imp     0xfff88dd8 (0x53d50) _$s24IosLibraryExampleUITests06DialogD0C28testD7_showActionSheetCancelyyKFTo
+            name    0x21cd4 (0xecc50)
+            types   0x8514 (0xd3494) B24@0:8^@16
+            imp     0xfff8a87c (0x55800) _$s24IosLibraryExampleUITests06DialogD0C030testD8_textInputConfirmFollowsI0yyKFTo
+            name    0x21cd0 (0xecc58)
+            types   0x8508 (0xd3494) B24@0:8^@16
+            imp     0xfff8b6fc (0x5668c) _$s24IosLibraryExampleUITests06DialogD0C030testD9_textInputConfirmReportsI0yyKFTo
+            name    0x21ccc (0xecc60)
+            types   0x84fc (0xd3494) B24@0:8^@16
+            imp     0xfff8c57c (0x57518) _$s24IosLibraryExampleUITests06DialogD0C028testD10_textInputCancelDropsI0yyKFTo
+            name    0x21cc8 (0xecc68)
+            types   0x84f0 (0xd3494) B24@0:8^@16
+            imp     0xfff8e550 (0x594f8) _$s24IosLibraryExampleUITests06DialogD0C36testD11_loginButtonFollowsBothFieldsyyKFTo
+            name    0x21cc4 (0xecc70)
+            types   0x84e4 (0xd3494) B24@0:8^@16
+            imp     0xfff8f574 (0x5a528) _$s24IosLibraryExampleUITests06DialogD0C31testD12_loginReportsCredentialsyyKFTo
+            name    0x21cc0 (0xecc78)
+            types   0x84d8 (0xd3494) B24@0:8^@16
+            imp     0xfff903b0 (0x5b370) _$s24IosLibraryExampleUITests06DialogD0C19testD13_loginCancelyyKFTo
+            name    0x21cbc (0xecc80)
+            types   0x84cc (0xd3494) B24@0:8^@16
+            imp     0xfff92b88 (0x5db54) _$s24IosLibraryExampleUITests06DialogD0C012testD14_eachE32ReportsCompletionAndCallbackOnceyyKFTo
+            name    0x21cb8 (0xecc88)
+            types   0x84c0 (0xd3494) B24@0:8^@16
+            imp     0xfff93484 (0x5e45c) _$s24IosLibraryExampleUITests06DialogD0C45testD15_loginReportsCompletionAndCallbackOnceyyKFTo
+            name    0x21cb4 (0xecc90)
+            types   0x84b4 (0xd3494) B24@0:8^@16
+            imp     0xfff96f68 (0x61f4c) _$s24IosLibraryExampleUITests06DialogD0C35testD16_requestsReportOneResultEachyyKFTo
+            name    0x21cb0 (0xecc98)
+            types   0x84a8 (0xd3494) B24@0:8^@16
+            imp     0xfff98d00 (0x63cf0) _$s24IosLibraryExampleUITests06DialogD0C40testD17_twoRequestsInOneTurnAreBothShownyyKFTo
+            name    0x21cac (0xecca0)
+            types   0x849c (0xd3494) B24@0:8^@16
+            imp     0xfff99d70 (0x64d6c) _$s24IosLibraryExampleUITests06DialogD0C026testD18_cancelDismissesTheE0yyKFTo
+            name    0x21ca8 (0xecca8)
+            types   0x8490 (0xd3494) B24@0:8^@16
+            imp     0xfff9b918 (0x66920) _$s24IosLibraryExampleUITests06DialogD0C016testD19_aCoveredE18StaysWhenCancelledyyKFTo
+            name    0x21ca4 (0xeccb0)
+            types   0x8484 (0xd3494) B24@0:8^@16
+            imp     0xfff9c92c (0x67940) _$s24IosLibraryExampleUITests06DialogD0C09testD20_ae27DismissedFromOutsideReportsH8BySystemyyKFTo
+            name    0x21ca0 (0xeccb8)
+            types   0x8478 (0xd3494) B24@0:8^@16
+            imp     0xfff9d7c8 (0x687e8) _$s24IosLibraryExampleUITests06DialogD0C51testD21_aRequestInTheBackgroundReportsNotForegroundyyKFTo
+            name    0x21c9c (0xeccc0)
+            types   0x846c (0xd3494) B24@0:8^@16
+            imp     0xfff9eac8 (0x69af4) _$s24IosLibraryExampleUITests06DialogD0C41testD22_aRequestUnderControlCenterIsShownyyKFTo
+            name    0x21c98 (0xeccc8)
+            types   0x8460 (0xd3494) B24@0:8^@16
+            imp     0xfffa0200 (0x6b238) _$s24IosLibraryExampleUITests06DialogD0C39testD23_actionSheetsPresentWithAnAnchoryyKFTo
+            name    0x21a9c (0xecad8)
+            types   0x8460 (0xd34a0) @24@0:8@16
+            imp     0xfffa0d54 (0x6bd98) _$s24IosLibraryExampleUITests06DialogD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x21a98 (0xecae0)
+            types   0x7d74 (0xd2dc0) @24@0:8:16
+            imp     0xfffa0e5c (0x6beac) _$s24IosLibraryExampleUITests06DialogD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x21a94 (0xecae8)
+            types   0x5908 (0xd0960) @16@0:8
+            imp     0xfffa0f24 (0x6bf80) _$s24IosLibraryExampleUITests06DialogD0CACycfcTo
+            name    0x21b70 (0xecbd0)
+            types   0x53ac (0xd0410) v16@0:8
+            imp     0xfffa0fb0 (0x6c018) _$s24IosLibraryExampleUITests06DialogD0CfETo
         baseProtocols  0x0
-        ivars          0xe8508 __IVARS__TtC24IosLibraryExampleUITests13DialogUITests
+        ivars          0xec508 __IVARS__TtC24IosLibraryExampleUITests13DialogUITests
             entsize   32
             count     1
-            offset    0xea7c0 _$s24IosLibraryExampleUITests06DialogD0C6sample33_92AB7D113E631330D884F151120303D0LLAA9SampleAppVSgvpWvd 40
-            name      0xce290 sample
-            type      0xd0060 
+            offset    0xee7e0 _$s24IosLibraryExampleUITests06DialogD0C6sample33_92AB7D113E631330D884F151120303D0LLAA9SampleAppVSgvpWvd 40
+            name      0xd0970 sample
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe84c0 __METACLASS_DATA__TtC24IosLibraryExampleUITests13DialogUITests
+    data       0xec4c0 __METACLASS_DATA__TtC24IosLibraryExampleUITests13DialogUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xce250 _TtC24IosLibraryExampleUITests13DialogUITests
+        name           0xd0930 _TtC24IosLibraryExampleUITests13DialogUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e6398 0xe95c8 _$s24IosLibraryExampleUITests019IdentifierInventoryD0CN
-    isa        0xea860 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea398 0xed5e0 _$s24IosLibraryExampleUITests019IdentifierInventoryD0CN
+    isa        0xee880 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe956a Swift class
+    data       0xed582 Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xcee90 _TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
-        baseMethods    0xc8f38 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
+        name           0xd1570 _TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
+        baseMethods    0xcb5c8 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
             entsize 12 (relative)
             count   10
-            name    0x1fc80 (0xe8bc0)
-            types   0x7e60 (0xd0da4) B24@0:8^@16
-            imp     0xfffa3188 (0x6c0d0) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C14setUpAfterGateyyKFTo
-            name    0x1fc7c (0xe8bc8)
-            types   0x7e54 (0xd0da4) B24@0:8^@16
-            imp     0xfffa3308 (0x6c25c) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C17tearDownAfterGateyyKFTo
-            name    0x1fd78 (0xe8cd0)
-            types   0x7e48 (0xd0da4) B24@0:8^@16
-            imp     0xfffa4ae0 (0x6da40) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C25testI1a_dialogIdentifiersyyKFTo
-            name    0x1fd74 (0xe8cd8)
-            types   0x7e3c (0xd0da4) B24@0:8^@16
-            imp     0xfffa4de0 (0x6dd4c) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C31testI1b_notificationIdentifiersyyKFTo
-            name    0x1fd70 (0xe8ce0)
-            types   0x7e30 (0xd0da4) B24@0:8^@16
-            imp     0xfffa50e0 (0x6e058) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C24testI1c_shareIdentifiersyyKFTo
-            name    0x1fd6c (0xe8ce8)
-            types   0x7e24 (0xd0da4) B24@0:8^@16
-            imp     0xfffa5460 (0x6e3e4) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C28testI1d_clipboardIdentifiersyyKFTo
-            name    0x1fb50 (0xe8ad8)
-            types   0x7e24 (0xd0db0) @24@0:8@16
-            imp     0xfffa78f4 (0x70884) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1fb4c (0xe8ae0)
-            types   0x7738 (0xd06d0) @24@0:8:16
-            imp     0xfffa79fc (0x70998) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1fb48 (0xe8ae8)
-            types   0x52dc (0xce280) @16@0:8
-            imp     0xfffa7ac4 (0x70a6c) _$s24IosLibraryExampleUITests019IdentifierInventoryD0CACycfcTo
-            name    0x1fc24 (0xe8bd0)
-            types   0x4d70 (0xcdd20) v16@0:8
-            imp     0xfffa7b50 (0x70b04) _$s24IosLibraryExampleUITests019IdentifierInventoryD0CfETo
+            name    0x215f0 (0xecbc0)
+            types   0x7ec0 (0xd3494) B24@0:8^@16
+            imp     0xfffa0c88 (0x6c260) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C14setUpAfterGateyyKFTo
+            name    0x215ec (0xecbc8)
+            types   0x7eb4 (0xd3494) B24@0:8^@16
+            imp     0xfffa0e08 (0x6c3ec) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C17tearDownAfterGateyyKFTo
+            name    0x216e8 (0xeccd0)
+            types   0x7ea8 (0xd3494) B24@0:8^@16
+            imp     0xfffa25e0 (0x6dbd0) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C25testI1a_dialogIdentifiersyyKFTo
+            name    0x216e4 (0xeccd8)
+            types   0x7e9c (0xd3494) B24@0:8^@16
+            imp     0xfffa28e0 (0x6dedc) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C31testI1b_notificationIdentifiersyyKFTo
+            name    0x216e0 (0xecce0)
+            types   0x7e90 (0xd3494) B24@0:8^@16
+            imp     0xfffa2be0 (0x6e1e8) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C24testI1c_shareIdentifiersyyKFTo
+            name    0x216dc (0xecce8)
+            types   0x7e84 (0xd3494) B24@0:8^@16
+            imp     0xfffa2f60 (0x6e574) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C28testI1d_clipboardIdentifiersyyKFTo
+            name    0x214c0 (0xecad8)
+            types   0x7e84 (0xd34a0) @24@0:8@16
+            imp     0xfffa53f4 (0x70a14) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x214bc (0xecae0)
+            types   0x7798 (0xd2dc0) @24@0:8:16
+            imp     0xfffa54fc (0x70b28) _$s24IosLibraryExampleUITests019IdentifierInventoryD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x214b8 (0xecae8)
+            types   0x532c (0xd0960) @16@0:8
+            imp     0xfffa55c4 (0x70bfc) _$s24IosLibraryExampleUITests019IdentifierInventoryD0CACycfcTo
+            name    0x21594 (0xecbd0)
+            types   0x4dd0 (0xd0410) v16@0:8
+            imp     0xfffa5650 (0x70c94) _$s24IosLibraryExampleUITests019IdentifierInventoryD0CfETo
         baseProtocols  0x0
-        ivars          0xe8578 __IVARS__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
+        ivars          0xec578 __IVARS__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
             entsize   32
             count     1
-            offset    0xea838 _$s24IosLibraryExampleUITests019IdentifierInventoryD0C6sample33_EBD98FF126FAC223B0BD74B6C3CF240DLLAA9SampleAppVSgvpWvd 40
-            name      0xce290 sample
-            type      0xd0060 
+            offset    0xee858 _$s24IosLibraryExampleUITests019IdentifierInventoryD0C6sample33_EBD98FF126FAC223B0BD74B6C3CF240DLLAA9SampleAppVSgvpWvd 40
+            name      0xd0970 sample
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8530 __METACLASS_DATA__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
+    data       0xec530 __METACLASS_DATA__TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xcee90 _TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
+        name           0xd1570 _TtC24IosLibraryExampleUITests26IdentifierInventoryUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e63a0 0xe9740 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16ClipboardUITests
-    isa        0xea948 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16ClipboardUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea3a0 0xed758 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16ClipboardUITests
+    isa        0xee968 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16ClipboardUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe96e2 Swift class
+    data       0xed6fa Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   48
         reserved       0x0
         ivarLayout     0x0
-        name           0xcf9b0 _TtC24IosLibraryExampleUITests16ClipboardUITests
-        baseMethods    0xc89e0 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests16ClipboardUITests
+        name           0xd20b0 _TtC24IosLibraryExampleUITests16ClipboardUITests
+        baseMethods    0xcb070 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests16ClipboardUITests
             entsize 12 (relative)
             count   28
-            name    0x201d8 (0xe8bc0)
-            types   0x83b8 (0xd0da4) B24@0:8^@16
-            imp     0xfffa8eb8 (0x718a8) _$s24IosLibraryExampleUITests09ClipboardD0C14setUpAfterGateyyKFTo
-            name    0x201d4 (0xe8bc8)
-            types   0x83ac (0xd0da4) B24@0:8^@16
-            imp     0xfffa9038 (0x71a34) _$s24IosLibraryExampleUITests09ClipboardD0C17tearDownAfterGateyyKFTo
-            name    0x202f0 (0xe8cf0)
-            types   0x83a0 (0xd0da4) B24@0:8^@16
-            imp     0xfffaab64 (0x7356c) _$s24IosLibraryExampleUITests09ClipboardD0C018testU1_navigatesToE22ScreenAndShowsSectionsyyKFTo
-            name    0x202ec (0xe8cf8)
-            types   0x8394 (0xd0da4) B24@0:8^@16
-            imp     0xfffab278 (0x73c8c) _$s24IosLibraryExampleUITests09ClipboardD0C42testU2_copyPlainTextThenReadReportsOneItemyyKFTo
-            name    0x202e8 (0xe8d00)
-            types   0x8388 (0xd0da4) B24@0:8^@16
-            imp     0xfffabf38 (0x74958) _$s24IosLibraryExampleUITests09ClipboardD0C36testU3_snapshotReportsAtLeastOneItemyyKFTo
-            name    0x202e4 (0xe8d08)
-            types   0x837c (0xd0da4) B24@0:8^@16
-            imp     0xfffacf84 (0x759b0) _$s24IosLibraryExampleUITests09ClipboardD0C31testU4_appendIncreasesItemCountyyKFTo
-            name    0x202e0 (0xe8d10)
-            types   0x8370 (0xd0da4) B24@0:8^@16
-            imp     0xfffadeb8 (0x768f0) _$s24IosLibraryExampleUITests09ClipboardD0C55testU5_observingReportsEventsAndStopsAfterStopObservingyyKFTo
-            name    0x202dc (0xe8d18)
-            types   0x8364 (0xd0da4) B24@0:8^@16
-            imp     0xfffaf594 (0x77fd8) _$s24IosLibraryExampleUITests09ClipboardD0C45testU6_scopeControlsAreDisabledWhileObservingyyKFTo
-            name    0x202d8 (0xe8d20)
-            types   0x8358 (0xd0da4) B24@0:8^@16
-            imp     0xfffafd70 (0x787c0) _$s24IosLibraryExampleUITests09ClipboardD0C039testU7_allErrorCasesReportTheirExpectedI4CodeyyKFTo
-            name    0x202d4 (0xe8d28)
-            types   0x834c (0xd0da4) B24@0:8^@16
-            imp     0xfffb02ec (0x78d48) _$s24IosLibraryExampleUITests09ClipboardD0C46testU8_namedPasteboardLifecycleEndsUnavailableyyKFTo
-            name    0x202d0 (0xe8d30)
-            types   0x8340 (0xd0da4) B24@0:8^@16
-            imp     0xfffb06d8 (0x79140) _$s24IosLibraryExampleUITests09ClipboardD0C33testU9_clearEmptiesTheActiveScopeyyKFTo
-            name    0x202cc (0xe8d38)
-            types   0x8334 (0xd0da4) B24@0:8^@16
-            imp     0xfffb22ec (0x7ad60) _$s24IosLibraryExampleUITests09ClipboardD0C66testU10a_namedPasteboardSurvivesBackgroundAndDiesOnExplicitRemovalyyKFTo
-            name    0x202c8 (0xe8d40)
-            types   0x8328 (0xd0da4) B24@0:8^@16
-            imp     0xfffb3540 (0x7bfc0) _$s24IosLibraryExampleUITests09ClipboardD0C47testU10b_namedPasteboardAfterProcessTerminationyyKFTo
-            name    0x202c4 (0xe8d48)
-            types   0x831c (0xd0da4) B24@0:8^@16
-            imp     0xfffb3d40 (0x7c7cc) _$s24IosLibraryExampleUITests09ClipboardD0C53testU11_loadFileReturnsTheFixedSizeFixtureAndCleansUpyyKFTo
-            name    0x202c0 (0xe8d50)
-            types   0x8310 (0xd0da4) B24@0:8^@16
-            imp     0xfffb47bc (0x7d254) _$s24IosLibraryExampleUITests09ClipboardD0C53testU12_firstForegroundCheckReportsTheRealReturnValueyyKFTo
-            name    0x202bc (0xe8d58)
-            types   0x8304 (0xd0da4) B24@0:8^@16
-            imp     0xfffb5094 (0x7db38) _$s24IosLibraryExampleUITests09ClipboardD0C48testU13_everyContentKindIsWrittenToThePasteboardyyKFTo
-            name    0x202b8 (0xe8d60)
-            types   0x82f8 (0xd0da4) B24@0:8^@16
-            imp     0xfffb5cd4 (0x7e784) _$s24IosLibraryExampleUITests09ClipboardD0C46testU14_textUrlAndImageLoadsReturnTheirPayloadyyKFTo
-            name    0x202b4 (0xe8d68)
-            types   0x82ec (0xd0da4) B24@0:8^@16
-            imp     0xfffb6c2c (0x7f6e8) _$s24IosLibraryExampleUITests09ClipboardD0C44testU15_detectionReturnsAResultForTheFixtureyyKFTo
-            name    0x202b0 (0xe8d70)
-            types   0x82e0 (0xd0da4) B24@0:8^@16
-            imp     0xfffb70e4 (0x7fbac) _$s24IosLibraryExampleUITests09ClipboardD0C58testU16_readDataAndMatchingSnapshotReturnTheirSuccessPathsyyKFTo
-            name    0x202ac (0xe8d78)
-            types   0x82d4 (0xd0da4) B24@0:8^@16
-            imp     0xfffb7664 (0x80138) _$s24IosLibraryExampleUITests09ClipboardD0C38testU17_uniqueAndGeneralScopeSelectionyyKFTo
-            name    0x202a8 (0xe8d80)
-            types   0x82c8 (0xd0da4) B24@0:8^@16
-            imp     0xfffb8294 (0x80d74) _$s24IosLibraryExampleUITests09ClipboardD0C50testU18_appendUrlAndUniversalMarkerGrowTheItemListyyKFTo
-            name    0x202a4 (0xe8d88)
-            types   0x82bc (0xd0da4) B24@0:8^@16
-            imp     0xfffb89cc (0x814b8) _$s24IosLibraryExampleUITests09ClipboardD0C65testU19_copyOptionFixturesReachThePasteboardAtTheirDesignedLengthyyKFTo
-            name    0x202a0 (0xe8d90)
-            types   0x82b0 (0xd0da4) B24@0:8^@16
-            imp     0xfffb9aa4 (0x8259c) _$s24IosLibraryExampleUITests09ClipboardD0C56testU20_controlOnlyOperationsDoNotOverwriteTheResultLineyyKFTo
-            name    0x2029c (0xe8d98)
-            types   0x82a4 (0xd0da4) B24@0:8^@16
-            imp     0xfffbaea8 (0x839ac) _$s24IosLibraryExampleUITests09ClipboardD0C47testU21_isolatedFixturesForWholeContentPatternsyyKFTo
-            name    0x1ffd0 (0xe8ad8)
-            types   0x82a4 (0xd0db0) @24@0:8@16
-            imp     0xfffbe478 (0x86f88) _$s24IosLibraryExampleUITests09ClipboardD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1ffcc (0xe8ae0)
-            types   0x7bb8 (0xd06d0) @24@0:8:16
-            imp     0xfffbe57c (0x87098) _$s24IosLibraryExampleUITests09ClipboardD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1ffc8 (0xe8ae8)
-            types   0x575c (0xce280) @16@0:8
-            imp     0xfffbe640 (0x87168) _$s24IosLibraryExampleUITests09ClipboardD0CACycfcTo
-            name    0x200a4 (0xe8bd0)
-            types   0x51f0 (0xcdd20) v16@0:8
-            imp     0xfffbe6fc (0x87230) _$s24IosLibraryExampleUITests09ClipboardD0CfETo
+            name    0x21b48 (0xecbc0)
+            types   0x8418 (0xd3494) B24@0:8^@16
+            imp     0xfffa69b8 (0x71a38) _$s24IosLibraryExampleUITests09ClipboardD0C14setUpAfterGateyyKFTo
+            name    0x21b44 (0xecbc8)
+            types   0x840c (0xd3494) B24@0:8^@16
+            imp     0xfffa6b38 (0x71bc4) _$s24IosLibraryExampleUITests09ClipboardD0C17tearDownAfterGateyyKFTo
+            name    0x21c60 (0xeccf0)
+            types   0x8400 (0xd3494) B24@0:8^@16
+            imp     0xfffa8664 (0x736fc) _$s24IosLibraryExampleUITests09ClipboardD0C018testU1_navigatesToE22ScreenAndShowsSectionsyyKFTo
+            name    0x21c5c (0xeccf8)
+            types   0x83f4 (0xd3494) B24@0:8^@16
+            imp     0xfffa8d78 (0x73e1c) _$s24IosLibraryExampleUITests09ClipboardD0C42testU2_copyPlainTextThenReadReportsOneItemyyKFTo
+            name    0x21c58 (0xecd00)
+            types   0x83e8 (0xd3494) B24@0:8^@16
+            imp     0xfffa9a38 (0x74ae8) _$s24IosLibraryExampleUITests09ClipboardD0C36testU3_snapshotReportsAtLeastOneItemyyKFTo
+            name    0x21c54 (0xecd08)
+            types   0x83dc (0xd3494) B24@0:8^@16
+            imp     0xfffaaa84 (0x75b40) _$s24IosLibraryExampleUITests09ClipboardD0C31testU4_appendIncreasesItemCountyyKFTo
+            name    0x21c50 (0xecd10)
+            types   0x83d0 (0xd3494) B24@0:8^@16
+            imp     0xfffab9b8 (0x76a80) _$s24IosLibraryExampleUITests09ClipboardD0C55testU5_observingReportsEventsAndStopsAfterStopObservingyyKFTo
+            name    0x21c4c (0xecd18)
+            types   0x83c4 (0xd3494) B24@0:8^@16
+            imp     0xfffad094 (0x78168) _$s24IosLibraryExampleUITests09ClipboardD0C45testU6_scopeControlsAreDisabledWhileObservingyyKFTo
+            name    0x21c48 (0xecd20)
+            types   0x83b8 (0xd3494) B24@0:8^@16
+            imp     0xfffad870 (0x78950) _$s24IosLibraryExampleUITests09ClipboardD0C039testU7_allErrorCasesReportTheirExpectedI4CodeyyKFTo
+            name    0x21c44 (0xecd28)
+            types   0x83ac (0xd3494) B24@0:8^@16
+            imp     0xfffaddec (0x78ed8) _$s24IosLibraryExampleUITests09ClipboardD0C46testU8_namedPasteboardLifecycleEndsUnavailableyyKFTo
+            name    0x21c40 (0xecd30)
+            types   0x83a0 (0xd3494) B24@0:8^@16
+            imp     0xfffae1d8 (0x792d0) _$s24IosLibraryExampleUITests09ClipboardD0C33testU9_clearEmptiesTheActiveScopeyyKFTo
+            name    0x21c3c (0xecd38)
+            types   0x8394 (0xd3494) B24@0:8^@16
+            imp     0xfffafdec (0x7aef0) _$s24IosLibraryExampleUITests09ClipboardD0C66testU10a_namedPasteboardSurvivesBackgroundAndDiesOnExplicitRemovalyyKFTo
+            name    0x21c38 (0xecd40)
+            types   0x8388 (0xd3494) B24@0:8^@16
+            imp     0xfffb1040 (0x7c150) _$s24IosLibraryExampleUITests09ClipboardD0C47testU10b_namedPasteboardAfterProcessTerminationyyKFTo
+            name    0x21c34 (0xecd48)
+            types   0x837c (0xd3494) B24@0:8^@16
+            imp     0xfffb1840 (0x7c95c) _$s24IosLibraryExampleUITests09ClipboardD0C53testU11_loadFileReturnsTheFixedSizeFixtureAndCleansUpyyKFTo
+            name    0x21c30 (0xecd50)
+            types   0x8370 (0xd3494) B24@0:8^@16
+            imp     0xfffb22bc (0x7d3e4) _$s24IosLibraryExampleUITests09ClipboardD0C53testU12_firstForegroundCheckReportsTheRealReturnValueyyKFTo
+            name    0x21c2c (0xecd58)
+            types   0x8364 (0xd3494) B24@0:8^@16
+            imp     0xfffb2b94 (0x7dcc8) _$s24IosLibraryExampleUITests09ClipboardD0C48testU13_everyContentKindIsWrittenToThePasteboardyyKFTo
+            name    0x21c28 (0xecd60)
+            types   0x8358 (0xd3494) B24@0:8^@16
+            imp     0xfffb37d4 (0x7e914) _$s24IosLibraryExampleUITests09ClipboardD0C46testU14_textUrlAndImageLoadsReturnTheirPayloadyyKFTo
+            name    0x21c24 (0xecd68)
+            types   0x834c (0xd3494) B24@0:8^@16
+            imp     0xfffb472c (0x7f878) _$s24IosLibraryExampleUITests09ClipboardD0C44testU15_detectionReturnsAResultForTheFixtureyyKFTo
+            name    0x21c20 (0xecd70)
+            types   0x8340 (0xd3494) B24@0:8^@16
+            imp     0xfffb4be4 (0x7fd3c) _$s24IosLibraryExampleUITests09ClipboardD0C58testU16_readDataAndMatchingSnapshotReturnTheirSuccessPathsyyKFTo
+            name    0x21c1c (0xecd78)
+            types   0x8334 (0xd3494) B24@0:8^@16
+            imp     0xfffb5164 (0x802c8) _$s24IosLibraryExampleUITests09ClipboardD0C38testU17_uniqueAndGeneralScopeSelectionyyKFTo
+            name    0x21c18 (0xecd80)
+            types   0x8328 (0xd3494) B24@0:8^@16
+            imp     0xfffb5d94 (0x80f04) _$s24IosLibraryExampleUITests09ClipboardD0C50testU18_appendUrlAndUniversalMarkerGrowTheItemListyyKFTo
+            name    0x21c14 (0xecd88)
+            types   0x831c (0xd3494) B24@0:8^@16
+            imp     0xfffb64cc (0x81648) _$s24IosLibraryExampleUITests09ClipboardD0C65testU19_copyOptionFixturesReachThePasteboardAtTheirDesignedLengthyyKFTo
+            name    0x21c10 (0xecd90)
+            types   0x8310 (0xd3494) B24@0:8^@16
+            imp     0xfffb75a4 (0x8272c) _$s24IosLibraryExampleUITests09ClipboardD0C56testU20_controlOnlyOperationsDoNotOverwriteTheResultLineyyKFTo
+            name    0x21c0c (0xecd98)
+            types   0x8304 (0xd3494) B24@0:8^@16
+            imp     0xfffb89a8 (0x83b3c) _$s24IosLibraryExampleUITests09ClipboardD0C47testU21_isolatedFixturesForWholeContentPatternsyyKFTo
+            name    0x21940 (0xecad8)
+            types   0x8304 (0xd34a0) @24@0:8@16
+            imp     0xfffbbf78 (0x87118) _$s24IosLibraryExampleUITests09ClipboardD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x2193c (0xecae0)
+            types   0x7c18 (0xd2dc0) @24@0:8:16
+            imp     0xfffbc07c (0x87228) _$s24IosLibraryExampleUITests09ClipboardD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x21938 (0xecae8)
+            types   0x57ac (0xd0960) @16@0:8
+            imp     0xfffbc140 (0x872f8) _$s24IosLibraryExampleUITests09ClipboardD0CACycfcTo
+            name    0x21a14 (0xecbd0)
+            types   0x5250 (0xd0410) v16@0:8
+            imp     0xfffbc1fc (0x873c0) _$s24IosLibraryExampleUITests09ClipboardD0CfETo
         baseProtocols  0x0
-        ivars          0xe85e8 __IVARS__TtC24IosLibraryExampleUITests16ClipboardUITests
+        ivars          0xec5e8 __IVARS__TtC24IosLibraryExampleUITests16ClipboardUITests
             entsize   32
             count     1
-            offset    0xea898 _$s24IosLibraryExampleUITests09ClipboardD0C3app33_96F93818C76982B8128AD7E57BE3C0C6LLSo15XCUIApplicationCSgvpWvd 40
-            name      0xcf9ee app
-            type      0xd0060 
+            offset    0xee8b8 _$s24IosLibraryExampleUITests09ClipboardD0C3app33_96F93818C76982B8128AD7E57BE3C0C6LLSo15XCUIApplicationCSgvpWvd 40
+            name      0xd20ee app
+            type      0xd3c20 
             alignment 3
             size      8
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe85a0 __METACLASS_DATA__TtC24IosLibraryExampleUITests16ClipboardUITests
+    data       0xec5a0 __METACLASS_DATA__TtC24IosLibraryExampleUITests16ClipboardUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xcf9b0 _TtC24IosLibraryExampleUITests16ClipboardUITests
-        baseMethods    0xc8710 __CLASS_METHODS__TtC24IosLibraryExampleUITests16ClipboardUITests
+        name           0xd20b0 _TtC24IosLibraryExampleUITests16ClipboardUITests
+        baseMethods    0xcad78 __CLASS_METHODS__TtC24IosLibraryExampleUITests16ClipboardUITests
             entsize 12 (relative)
             count   2
-            name    0x20688 (0xe8da0)
-            types   0x72c5 (0xcf9e1) q24@0:8@16
-            imp     0xfffbc1e4 (0x84904) _$s24IosLibraryExampleUITests09ClipboardD0C13parseSequence4fromSiSS_tFZTo
-            name    0x20684 (0xe8da8)
-            types   0x8688 (0xd0db0) @24@0:8@16
-            imp     0xfffbdc50 (0x8637c) _$s24IosLibraryExampleUITests09ClipboardD0C16detectedPatterns2inSaySSGSS_tFZTo
+            name    0x22020 (0xecda0)
+            types   0x735d (0xd20e1) q24@0:8@16
+            imp     0xfffb9d0c (0x84a94) _$s24IosLibraryExampleUITests09ClipboardD0C13parseSequence4fromSiSS_tFZTo
+            name    0x2201c (0xecda8)
+            types   0x8710 (0xd34a0) @24@0:8@16
+            imp     0xfffbb778 (0x8650c) _$s24IosLibraryExampleUITests09ClipboardD0C16detectedPatterns2inSaySSGSS_tFZTo
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e63a8 0xe98b8 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests17NavigationUITests
-    isa        0xea990 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests17NavigationUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea3a8 0xed8d0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests17NavigationUITests
+    isa        0xee9b0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests17NavigationUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe985a Swift class
+    data       0xed872 Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xd00e0 _TtC24IosLibraryExampleUITests17NavigationUITests
-        baseMethods    0xc8be8 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests17NavigationUITests
+        name           0xd27d0 _TtC24IosLibraryExampleUITests17NavigationUITests
+        baseMethods    0xcb278 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests17NavigationUITests
             entsize 12 (relative)
             count   8
-            name    0x1ffd0 (0xe8bc0)
-            types   0x81b0 (0xd0da4) B24@0:8^@16
-            imp     0xfffbf624 (0x8821c) _$s24IosLibraryExampleUITests010NavigationD0C14setUpAfterGateyyKFTo
-            name    0x1ffcc (0xe8bc8)
-            types   0x81a4 (0xd0da4) B24@0:8^@16
-            imp     0xfffbf7a4 (0x883a8) _$s24IosLibraryExampleUITests010NavigationD0C17tearDownAfterGateyyKFTo
-            name    0x201a8 (0xe8db0)
-            types   0x8198 (0xd0da4) B24@0:8^@16
-            imp     0xfffc11b8 (0x89dc8) _$s24IosLibraryExampleUITests010NavigationD0C49testM1_menuOpensEachScreenAndBackReturnsToTheMenuyyKFTo
-            name    0x201a4 (0xe8db8)
-            types   0x818c (0xd0da4) B24@0:8^@16
-            imp     0xfffc3898 (0x8c4b4) _$s24IosLibraryExampleUITests010NavigationD0C48testM2_reopenedScreensStartFromTheirInitialStateyyKFTo
-            name    0x1feb8 (0xe8ad8)
-            types   0x818c (0xd0db0) @24@0:8@16
-            imp     0xfffc48f0 (0x8d518) _$s24IosLibraryExampleUITests010NavigationD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1feb4 (0xe8ae0)
-            types   0x7aa0 (0xd06d0) @24@0:8:16
-            imp     0xfffc49f8 (0x8d62c) _$s24IosLibraryExampleUITests010NavigationD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1feb0 (0xe8ae8)
-            types   0x5644 (0xce280) @16@0:8
-            imp     0xfffc4ac0 (0x8d700) _$s24IosLibraryExampleUITests010NavigationD0CACycfcTo
-            name    0x1ff8c (0xe8bd0)
-            types   0x50d8 (0xcdd20) v16@0:8
-            imp     0xfffc4b4c (0x8d798) _$s24IosLibraryExampleUITests010NavigationD0CfETo
+            name    0x21940 (0xecbc0)
+            types   0x8210 (0xd3494) B24@0:8^@16
+            imp     0xfffbd124 (0x883ac) _$s24IosLibraryExampleUITests010NavigationD0C14setUpAfterGateyyKFTo
+            name    0x2193c (0xecbc8)
+            types   0x8204 (0xd3494) B24@0:8^@16
+            imp     0xfffbd2a4 (0x88538) _$s24IosLibraryExampleUITests010NavigationD0C17tearDownAfterGateyyKFTo
+            name    0x21b18 (0xecdb0)
+            types   0x81f8 (0xd3494) B24@0:8^@16
+            imp     0xfffbecb8 (0x89f58) _$s24IosLibraryExampleUITests010NavigationD0C49testM1_menuOpensEachScreenAndBackReturnsToTheMenuyyKFTo
+            name    0x21b14 (0xecdb8)
+            types   0x81ec (0xd3494) B24@0:8^@16
+            imp     0xfffc1398 (0x8c644) _$s24IosLibraryExampleUITests010NavigationD0C48testM2_reopenedScreensStartFromTheirInitialStateyyKFTo
+            name    0x21828 (0xecad8)
+            types   0x81ec (0xd34a0) @24@0:8@16
+            imp     0xfffc23f0 (0x8d6a8) _$s24IosLibraryExampleUITests010NavigationD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x21824 (0xecae0)
+            types   0x7b00 (0xd2dc0) @24@0:8:16
+            imp     0xfffc24f8 (0x8d7bc) _$s24IosLibraryExampleUITests010NavigationD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x21820 (0xecae8)
+            types   0x5694 (0xd0960) @16@0:8
+            imp     0xfffc25c0 (0x8d890) _$s24IosLibraryExampleUITests010NavigationD0CACycfcTo
+            name    0x218fc (0xecbd0)
+            types   0x5138 (0xd0410) v16@0:8
+            imp     0xfffc264c (0x8d928) _$s24IosLibraryExampleUITests010NavigationD0CfETo
         baseProtocols  0x0
-        ivars          0xe8658 __IVARS__TtC24IosLibraryExampleUITests17NavigationUITests
+        ivars          0xec658 __IVARS__TtC24IosLibraryExampleUITests17NavigationUITests
             entsize   32
             count     1
-            offset    0xea980 _$s24IosLibraryExampleUITests010NavigationD0C6sample33_B4C37034DF9B6AF12E6A1067F361AA7BLLAA9SampleAppVSgvpWvd 40
+            offset    0xee9a0 _$s24IosLibraryExampleUITests010NavigationD0C6sample33_B4C37034DF9B6AF12E6A1067F361AA7BLLAA9SampleAppVSgvpWvd 40
             name      0x0 _OBJC_METACLASS_$_NSObject
-            type      0xd0060 
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8610 __METACLASS_DATA__TtC24IosLibraryExampleUITests17NavigationUITests
+    data       0xec610 __METACLASS_DATA__TtC24IosLibraryExampleUITests17NavigationUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xd00e0 _TtC24IosLibraryExampleUITests17NavigationUITests
+        name           0xd27d0 _TtC24IosLibraryExampleUITests17NavigationUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e63b0 0xe9a30 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
-    isa        0xea9c0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea3b0 0xeda48 _$s24IosLibraryExampleUITests021NotificationColdStartD0CN
+    isa        0xee9e0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe99d2 Swift class
+    data       0xed9ea Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0480 _TtC24IosLibraryExampleUITests28NotificationColdStartUITests
-        baseMethods    0xc8fb8 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
+        name           0xd2b70 _TtC24IosLibraryExampleUITests28NotificationColdStartUITests
+        baseMethods    0xcb648 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
             entsize 12 (relative)
             count   10
-            name    0x1fc00 (0xe8bc0)
-            types   0x7de0 (0xd0da4) B24@0:8^@16
-            imp     0xfffc5094 (0x8e05c) _$s24IosLibraryExampleUITests021NotificationColdStartD0C14setUpAfterGateyyKFTo
-            name    0x1fbfc (0xe8bc8)
-            types   0x7dd4 (0xd0da4) B24@0:8^@16
-            imp     0xfffc53b8 (0x8e38c) _$s24IosLibraryExampleUITests021NotificationColdStartD0C17tearDownAfterGateyyKFTo
-            name    0x1fde8 (0xe8dc0)
-            types   0x7dc8 (0xd0da4) B24@0:8^@16
-            imp     0xfffc6cd4 (0x8fcb4) _$s24IosLibraryExampleUITests021NotificationColdStartD0C017testN30_bannerTapfG0yyKFTo
-            name    0x1fde4 (0xe8dc8)
-            types   0x7dbc (0xd0da4) B24@0:8^@16
-            imp     0xfffc75c4 (0x905b0) _$s24IosLibraryExampleUITests021NotificationColdStartD0C018testN31_openActionfG0yyKFTo
-            name    0x1fde0 (0xe8dd0)
-            types   0x7db0 (0xd0da4) B24@0:8^@16
-            imp     0xfffc7e00 (0x90df8) _$s24IosLibraryExampleUITests021NotificationColdStartD0C013testN32_replyfG0yyKFTo
-            name    0x1fddc (0xe8dd8)
-            types   0x7da4 (0xd0da4) B24@0:8^@16
-            imp     0xfffc8520 (0x91524) _$s24IosLibraryExampleUITests021NotificationColdStartD0C014testN33_deletefG0yyKFTo
-            name    0x1fad0 (0xe8ad8)
-            types   0x7da4 (0xd0db0) @24@0:8@16
-            imp     0xfffc923c (0x9224c) _$s24IosLibraryExampleUITests021NotificationColdStartD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1facc (0xe8ae0)
-            types   0x76b8 (0xd06d0) @24@0:8:16
-            imp     0xfffc9344 (0x92360) _$s24IosLibraryExampleUITests021NotificationColdStartD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1fac8 (0xe8ae8)
-            types   0x525c (0xce280) @16@0:8
-            imp     0xfffc940c (0x92434) _$s24IosLibraryExampleUITests021NotificationColdStartD0CACycfcTo
-            name    0x1fba4 (0xe8bd0)
-            types   0x4cf0 (0xcdd20) v16@0:8
-            imp     0xfffc9498 (0x924cc) _$s24IosLibraryExampleUITests021NotificationColdStartD0CfETo
+            name    0x21570 (0xecbc0)
+            types   0x7e40 (0xd3494) B24@0:8^@16
+            imp     0xfffc2b94 (0x8e1ec) _$s24IosLibraryExampleUITests021NotificationColdStartD0C14setUpAfterGateyyKFTo
+            name    0x2156c (0xecbc8)
+            types   0x7e34 (0xd3494) B24@0:8^@16
+            imp     0xfffc2eb8 (0x8e51c) _$s24IosLibraryExampleUITests021NotificationColdStartD0C17tearDownAfterGateyyKFTo
+            name    0x21758 (0xecdc0)
+            types   0x7e28 (0xd3494) B24@0:8^@16
+            imp     0xfffc47d4 (0x8fe44) _$s24IosLibraryExampleUITests021NotificationColdStartD0C017testN30_bannerTapfG0yyKFTo
+            name    0x21754 (0xecdc8)
+            types   0x7e1c (0xd3494) B24@0:8^@16
+            imp     0xfffc50c4 (0x90740) _$s24IosLibraryExampleUITests021NotificationColdStartD0C018testN31_openActionfG0yyKFTo
+            name    0x21750 (0xecdd0)
+            types   0x7e10 (0xd3494) B24@0:8^@16
+            imp     0xfffc5900 (0x90f88) _$s24IosLibraryExampleUITests021NotificationColdStartD0C013testN32_replyfG0yyKFTo
+            name    0x2174c (0xecdd8)
+            types   0x7e04 (0xd3494) B24@0:8^@16
+            imp     0xfffc6020 (0x916b4) _$s24IosLibraryExampleUITests021NotificationColdStartD0C014testN33_deletefG0yyKFTo
+            name    0x21440 (0xecad8)
+            types   0x7e04 (0xd34a0) @24@0:8@16
+            imp     0xfffc6d3c (0x923dc) _$s24IosLibraryExampleUITests021NotificationColdStartD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x2143c (0xecae0)
+            types   0x7718 (0xd2dc0) @24@0:8:16
+            imp     0xfffc6e44 (0x924f0) _$s24IosLibraryExampleUITests021NotificationColdStartD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x21438 (0xecae8)
+            types   0x52ac (0xd0960) @16@0:8
+            imp     0xfffc6f0c (0x925c4) _$s24IosLibraryExampleUITests021NotificationColdStartD0CACycfcTo
+            name    0x21514 (0xecbd0)
+            types   0x4d50 (0xd0410) v16@0:8
+            imp     0xfffc6f98 (0x9265c) _$s24IosLibraryExampleUITests021NotificationColdStartD0CfETo
         baseProtocols  0x0
-        ivars          0xe86c8 __IVARS__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
+        ivars          0xec6c8 __IVARS__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
             entsize   32
             count     1
-            offset    0xea9b8 _$s24IosLibraryExampleUITests021NotificationColdStartD0C6sample33_D8931D20D714A35BB9723ED1A62B0CFFLLAA9SampleAppVSgvpWvd 40
-            name      0xce290 sample
+            offset    0xee9d8 _$s24IosLibraryExampleUITests021NotificationColdStartD0C6sample33_D8931D20D714A35BB9723ED1A62B0CFFLLAA9SampleAppVSgvpWvd 40
+            name      0xd0970 sample
             type      0x0 _OBJC_METACLASS_$_NSObject
             alignment 3
             size      16
@@ -787,972 +787,984 @@ Meta Class
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8680 __METACLASS_DATA__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
+    data       0xec680 __METACLASS_DATA__TtC24IosLibraryExampleUITests28NotificationColdStartUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0480 _TtC24IosLibraryExampleUITests28NotificationColdStartUITests
+        name           0xd2b70 _TtC24IosLibraryExampleUITests28NotificationColdStartUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e63b8 0xe9ba8 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests24NotificationEventUITests
-    isa        0xea9f8 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests24NotificationEventUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea3b8 0xedbc0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests24NotificationEventUITests
+    isa        0xeea18 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests24NotificationEventUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe9b4a Swift class
+    data       0xedb62 Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0690 _TtC24IosLibraryExampleUITests24NotificationEventUITests
-        baseMethods    0xc8e30 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests24NotificationEventUITests
+        name           0xd2d80 _TtC24IosLibraryExampleUITests24NotificationEventUITests
+        baseMethods    0xcb4c0 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests24NotificationEventUITests
             entsize 12 (relative)
             count   13
-            name    0x1fd88 (0xe8bc0)
-            types   0x7f68 (0xd0da4) B24@0:8^@16
-            imp     0xfffca0a4 (0x92ee4) _$s24IosLibraryExampleUITests017NotificationEventD0C14setUpAfterGateyyKFTo
-            name    0x1fd84 (0xe8bc8)
-            types   0x7f5c (0xd0da4) B24@0:8^@16
-            imp     0xfffca7fc (0x93648) _$s24IosLibraryExampleUITests017NotificationEventD0C17tearDownAfterGateyyKFTo
-            name    0x1ff90 (0xe8de0)
-            types   0x7f50 (0xd0da4) B24@0:8^@16
-            imp     0xfffcc12c (0x94f84) _$s24IosLibraryExampleUITests017NotificationEventD0C35testN23_registerCategoryAddsActionsyyKFTo
-            name    0x1ff8c (0xe8de8)
-            types   0x7f44 (0xd0da4) B24@0:8^@16
-            imp     0xfffcd40c (0x96270) _$s24IosLibraryExampleUITests017NotificationEventD0C36testN24_removeCategoryRemovesActionsyyKFTo
-            name    0x1ff88 (0xe8df0)
-            types   0x7f38 (0xd0da4) B24@0:8^@16
-            imp     0xfffceeec (0x97d5c) _$s24IosLibraryExampleUITests017NotificationEventD0C37testN25_bannerTapReportsDefaultActionyyKFTo
-            name    0x1ff84 (0xe8df8)
-            types   0x7f2c (0xd0da4) B24@0:8^@16
-            imp     0xfffcf9bc (0x98838) _$s24IosLibraryExampleUITests017NotificationEventD0C47testN26_foregroundBannerTapReportsDefaultActionyyKFTo
-            name    0x1ff80 (0xe8e00)
-            types   0x7f20 (0xd0da4) B24@0:8^@16
-            imp     0xfffd07dc (0x99664) _$s24IosLibraryExampleUITests017NotificationEventD0C33testN27_openActionBringsTheSampleyyKFTo
-            name    0x1ff7c (0xe8e08)
-            types   0x7f14 (0xd0da4) B24@0:8^@16
-            imp     0xfffd125c (0x9a0f0) _$s24IosLibraryExampleUITests017NotificationEventD0C37testN28_deleteActionStaysInBackgroundyyKFTo
-            name    0x1ff78 (0xe8e10)
-            types   0x7f08 (0xd0da4) B24@0:8^@16
-            imp     0xfffd1940 (0x9a7e0) _$s24IosLibraryExampleUITests017NotificationEventD0C24testN29_replyReportsTextyyKFTo
-            name    0x1fc34 (0xe8ad8)
-            types   0x7f08 (0xd0db0) @24@0:8@16
-            imp     0xfffd3080 (0x9bf2c) _$s24IosLibraryExampleUITests017NotificationEventD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1fc30 (0xe8ae0)
-            types   0x781c (0xd06d0) @24@0:8:16
-            imp     0xfffd3188 (0x9c040) _$s24IosLibraryExampleUITests017NotificationEventD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1fc2c (0xe8ae8)
-            types   0x53c0 (0xce280) @16@0:8
-            imp     0xfffd3250 (0x9c114) _$s24IosLibraryExampleUITests017NotificationEventD0CACycfcTo
-            name    0x1fd08 (0xe8bd0)
-            types   0x4e54 (0xcdd20) v16@0:8
-            imp     0xfffd32dc (0x9c1ac) _$s24IosLibraryExampleUITests017NotificationEventD0CfETo
+            name    0x216f8 (0xecbc0)
+            types   0x7fc8 (0xd3494) B24@0:8^@16
+            imp     0xfffc7ba4 (0x93074) _$s24IosLibraryExampleUITests017NotificationEventD0C14setUpAfterGateyyKFTo
+            name    0x216f4 (0xecbc8)
+            types   0x7fbc (0xd3494) B24@0:8^@16
+            imp     0xfffc82fc (0x937d8) _$s24IosLibraryExampleUITests017NotificationEventD0C17tearDownAfterGateyyKFTo
+            name    0x21900 (0xecde0)
+            types   0x7fb0 (0xd3494) B24@0:8^@16
+            imp     0xfffc9c2c (0x95114) _$s24IosLibraryExampleUITests017NotificationEventD0C35testN23_registerCategoryAddsActionsyyKFTo
+            name    0x218fc (0xecde8)
+            types   0x7fa4 (0xd3494) B24@0:8^@16
+            imp     0xfffcaf0c (0x96400) _$s24IosLibraryExampleUITests017NotificationEventD0C36testN24_removeCategoryRemovesActionsyyKFTo
+            name    0x218f8 (0xecdf0)
+            types   0x7f98 (0xd3494) B24@0:8^@16
+            imp     0xfffcc9ec (0x97eec) _$s24IosLibraryExampleUITests017NotificationEventD0C37testN25_bannerTapReportsDefaultActionyyKFTo
+            name    0x218f4 (0xecdf8)
+            types   0x7f8c (0xd3494) B24@0:8^@16
+            imp     0xfffcd4bc (0x989c8) _$s24IosLibraryExampleUITests017NotificationEventD0C47testN26_foregroundBannerTapReportsDefaultActionyyKFTo
+            name    0x218f0 (0xece00)
+            types   0x7f80 (0xd3494) B24@0:8^@16
+            imp     0xfffce2dc (0x997f4) _$s24IosLibraryExampleUITests017NotificationEventD0C33testN27_openActionBringsTheSampleyyKFTo
+            name    0x218ec (0xece08)
+            types   0x7f74 (0xd3494) B24@0:8^@16
+            imp     0xfffced5c (0x9a280) _$s24IosLibraryExampleUITests017NotificationEventD0C37testN28_deleteActionStaysInBackgroundyyKFTo
+            name    0x218e8 (0xece10)
+            types   0x7f68 (0xd3494) B24@0:8^@16
+            imp     0xfffcf440 (0x9a970) _$s24IosLibraryExampleUITests017NotificationEventD0C24testN29_replyReportsTextyyKFTo
+            name    0x215a4 (0xecad8)
+            types   0x7f68 (0xd34a0) @24@0:8@16
+            imp     0xfffd0b80 (0x9c0bc) _$s24IosLibraryExampleUITests017NotificationEventD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x215a0 (0xecae0)
+            types   0x787c (0xd2dc0) @24@0:8:16
+            imp     0xfffd0c88 (0x9c1d0) _$s24IosLibraryExampleUITests017NotificationEventD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x2159c (0xecae8)
+            types   0x5410 (0xd0960) @16@0:8
+            imp     0xfffd0d50 (0x9c2a4) _$s24IosLibraryExampleUITests017NotificationEventD0CACycfcTo
+            name    0x21678 (0xecbd0)
+            types   0x4eb4 (0xd0410) v16@0:8
+            imp     0xfffd0ddc (0x9c33c) _$s24IosLibraryExampleUITests017NotificationEventD0CfETo
         baseProtocols  0x0
-        ivars          0xe8738 __IVARS__TtC24IosLibraryExampleUITests24NotificationEventUITests
+        ivars          0xec738 __IVARS__TtC24IosLibraryExampleUITests24NotificationEventUITests
             entsize   32
             count     1
-            offset    0xea9e8 _$s24IosLibraryExampleUITests017NotificationEventD0C6sample33_E3987F012206146A5AB8B606563ED46FLLAA9SampleAppVSgvpWvd 40
-            name      0xce290 sample
-            type      0xd0060 
+            offset    0xeea08 _$s24IosLibraryExampleUITests017NotificationEventD0C6sample33_E3987F012206146A5AB8B606563ED46FLLAA9SampleAppVSgvpWvd 40
+            name      0xd0970 sample
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe86f0 __METACLASS_DATA__TtC24IosLibraryExampleUITests24NotificationEventUITests
+    data       0xec6f0 __METACLASS_DATA__TtC24IosLibraryExampleUITests24NotificationEventUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0690 _TtC24IosLibraryExampleUITests24NotificationEventUITests
+        name           0xd2d80 _TtC24IosLibraryExampleUITests24NotificationEventUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e63c0 0xe9d20 _$s24IosLibraryExampleUITests022NotificationPermissionD0CN
-    isa        0xeaa28 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea3c0 0xedd38 _$s24IosLibraryExampleUITests022NotificationPermissionD0CN
+    isa        0xeea48 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe9cc2 Swift class
+    data       0xedcda Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0a00 _TtC24IosLibraryExampleUITests29NotificationPermissionUITests
-        baseMethods    0xc9038 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
+        name           0xd30f0 _TtC24IosLibraryExampleUITests29NotificationPermissionUITests
+        baseMethods    0xcb6c8 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
             entsize 12 (relative)
             count   8
-            name    0x1fb80 (0xe8bc0)
-            types   0x7d60 (0xd0da4) B24@0:8^@16
-            imp     0xfffd357c (0x9c5c4) _$s24IosLibraryExampleUITests022NotificationPermissionD0C14setUpAfterGateyyKFTo
-            name    0x1fb7c (0xe8bc8)
-            types   0x7d54 (0xd0da4) B24@0:8^@16
-            imp     0xfffd36fc (0x9c750) _$s24IosLibraryExampleUITests022NotificationPermissionD0C17tearDownAfterGateyyKFTo
-            name    0x1fdc0 (0xe8e18)
-            types   0x7d48 (0xd0da4) B24@0:8^@16
-            imp     0xfffd5720 (0x9e780) _$s24IosLibraryExampleUITests022NotificationPermissionD0C013testNP1_allowF0yyKFTo
-            name    0x1fdbc (0xe8e20)
-            types   0x7d3c (0xd0da4) B24@0:8^@16
-            imp     0xfffd8cbc (0xa1d28) _$s24IosLibraryExampleUITests022NotificationPermissionD0C012testNP2_denyF0yyKFTo
-            name    0x1fa68 (0xe8ad8)
-            types   0x7d3c (0xd0db0) @24@0:8@16
-            imp     0xfffd8eb8 (0xa1f30) _$s24IosLibraryExampleUITests022NotificationPermissionD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1fa64 (0xe8ae0)
-            types   0x7650 (0xd06d0) @24@0:8:16
-            imp     0xfffd8fc0 (0xa2044) _$s24IosLibraryExampleUITests022NotificationPermissionD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1fa60 (0xe8ae8)
-            types   0x51f4 (0xce280) @16@0:8
-            imp     0xfffd9088 (0xa2118) _$s24IosLibraryExampleUITests022NotificationPermissionD0CACycfcTo
-            name    0x1fb3c (0xe8bd0)
-            types   0x4c88 (0xcdd20) v16@0:8
-            imp     0xfffd9114 (0xa21b0) _$s24IosLibraryExampleUITests022NotificationPermissionD0CfETo
+            name    0x214f0 (0xecbc0)
+            types   0x7dc0 (0xd3494) B24@0:8^@16
+            imp     0xfffd107c (0x9c754) _$s24IosLibraryExampleUITests022NotificationPermissionD0C14setUpAfterGateyyKFTo
+            name    0x214ec (0xecbc8)
+            types   0x7db4 (0xd3494) B24@0:8^@16
+            imp     0xfffd11fc (0x9c8e0) _$s24IosLibraryExampleUITests022NotificationPermissionD0C17tearDownAfterGateyyKFTo
+            name    0x21730 (0xece18)
+            types   0x7da8 (0xd3494) B24@0:8^@16
+            imp     0xfffd3220 (0x9e910) _$s24IosLibraryExampleUITests022NotificationPermissionD0C013testNP1_allowF0yyKFTo
+            name    0x2172c (0xece20)
+            types   0x7d9c (0xd3494) B24@0:8^@16
+            imp     0xfffd67bc (0xa1eb8) _$s24IosLibraryExampleUITests022NotificationPermissionD0C012testNP2_denyF0yyKFTo
+            name    0x213d8 (0xecad8)
+            types   0x7d9c (0xd34a0) @24@0:8@16
+            imp     0xfffd69b8 (0xa20c0) _$s24IosLibraryExampleUITests022NotificationPermissionD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x213d4 (0xecae0)
+            types   0x76b0 (0xd2dc0) @24@0:8:16
+            imp     0xfffd6ac0 (0xa21d4) _$s24IosLibraryExampleUITests022NotificationPermissionD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x213d0 (0xecae8)
+            types   0x5244 (0xd0960) @16@0:8
+            imp     0xfffd6b88 (0xa22a8) _$s24IosLibraryExampleUITests022NotificationPermissionD0CACycfcTo
+            name    0x214ac (0xecbd0)
+            types   0x4ce8 (0xd0410) v16@0:8
+            imp     0xfffd6c14 (0xa2340) _$s24IosLibraryExampleUITests022NotificationPermissionD0CfETo
         baseProtocols  0x0
-        ivars          0xe87a8 __IVARS__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
+        ivars          0xec7a8 __IVARS__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
             entsize   32
             count     1
-            offset    0xeaa20 _$s24IosLibraryExampleUITests022NotificationPermissionD0C6sample33_AB41B1A5B9A2A853BA9B0B478C977F95LLAA9SampleAppVSgvpWvd 40
-            name      0xce290 sample
-            type      0xd0060 
+            offset    0xeea40 _$s24IosLibraryExampleUITests022NotificationPermissionD0C6sample33_AB41B1A5B9A2A853BA9B0B478C977F95LLAA9SampleAppVSgvpWvd 40
+            name      0xd0970 sample
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8760 __METACLASS_DATA__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
+    data       0xec760 __METACLASS_DATA__TtC24IosLibraryExampleUITests29NotificationPermissionUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0a00 _TtC24IosLibraryExampleUITests29NotificationPermissionUITests
+        name           0xd30f0 _TtC24IosLibraryExampleUITests29NotificationPermissionUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e63c8 0xe9e98 _$s24IosLibraryExampleUITests012NotificationD0CN
-    isa        0xeaa60 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests19NotificationUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea3c8 0xedeb0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests19NotificationUITests
+    isa        0xeea80 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests19NotificationUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe9e3a Swift class
+    data       0xede52 Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   57
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0d70 _TtC24IosLibraryExampleUITests19NotificationUITests
-        baseMethods    0xc8c50 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests19NotificationUITests
+        name           0xd3460 _TtC24IosLibraryExampleUITests19NotificationUITests
+        baseMethods    0xcb2e0 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests19NotificationUITests
             entsize 12 (relative)
             count   29
-            name    0x1ff68 (0xe8bc0)
-            types   0x8148 (0xd0da4) B24@0:8^@16
-            imp     0xfffd9e34 (0xa2a94) _$s24IosLibraryExampleUITests012NotificationD0C14setUpAfterGateyyKFTo
-            name    0x1ff64 (0xe8bc8)
-            types   0x813c (0xd0da4) B24@0:8^@16
-            imp     0xfffda600 (0xa326c) _$s24IosLibraryExampleUITests012NotificationD0C17tearDownAfterGateyyKFTo
-            name    0x201b8 (0xe8e28)
-            types   0x8130 (0xd0da4) B24@0:8^@16
-            imp     0xfffdae74 (0xa3aec) _$s24IosLibraryExampleUITests012NotificationD0C34testN1_permissionStateIsAuthorizedyyKFTo
-            name    0x201b4 (0xe8e30)
-            types   0x8124 (0xd0da4) B24@0:8^@16
-            imp     0xfffdbeb0 (0xa4b34) _$s24IosLibraryExampleUITests012NotificationD0C47testN2_requestPermissionWhenGrantedShowsNoAlertyyKFTo
-            name    0x201b0 (0xe8e38)
-            types   0x8118 (0xd0da4) B24@0:8^@16
-            imp     0xfffdcde4 (0xa5a74) _$s24IosLibraryExampleUITests012NotificationD0C011testN3_opene13SettingsShowsI0yyKFTo
-            name    0x201ac (0xe8e40)
-            types   0x810c (0xd0da4) B24@0:8^@16
-            imp     0xfffddaa8 (0xa6744) _$s24IosLibraryExampleUITests012NotificationD0C41testN4_showImmediateShowsForegroundBanneryyKFTo
-            name    0x201a8 (0xe8e48)
-            types   0x8100 (0xd0da4) B24@0:8^@16
-            imp     0xfffdf990 (0xa8638) _$s24IosLibraryExampleUITests012NotificationD0C32testN5_attachmentCanBeShownTwiceyyKFTo
-            name    0x201a4 (0xe8e50)
-            types   0x80f4 (0xd0da4) B24@0:8^@16
-            imp     0xfffe0ce4 (0xa9998) _$s24IosLibraryExampleUITests012NotificationD0C36testN6_timeIntervalFiresInBackgroundyyKFTo
-            name    0x201a0 (0xe8e58)
-            types   0x80e8 (0xd0da4) B24@0:8^@16
-            imp     0xfffe1b0c (0xaa7cc) _$s24IosLibraryExampleUITests012NotificationD0C39testN7_calendarFiresWithinNinetySecondsyyKFTo
-            name    0x2019c (0xe8e60)
-            types   0x80dc (0xd0da4) B24@0:8^@16
-            imp     0xfffe2310 (0xaafdc) _$s24IosLibraryExampleUITests012NotificationD0C28testN8_showLocationRegistersyyKFTo
-            name    0x20198 (0xe8e68)
-            types   0x80d0 (0xd0da4) B24@0:8^@16
-            imp     0xfffe3c7c (0xac954) _$s24IosLibraryExampleUITests012NotificationD0C30testN9_updatePendingReplacesItyyKFTo
-            name    0x20194 (0xe8e70)
-            types   0x80c4 (0xd0da4) B24@0:8^@16
-            imp     0xfffe4fb0 (0xadc94) _$s24IosLibraryExampleUITests012NotificationD0C31testN10_updateDeliveredKeepsOneyyKFTo
-            name    0x20190 (0xe8e78)
-            types   0x80b8 (0xd0da4) B24@0:8^@16
-            imp     0xfffe6508 (0xaf1f8) _$s24IosLibraryExampleUITests012NotificationD0C32testN11_cancelByIdRemovesPendingyyKFTo
-            name    0x2018c (0xe8e80)
-            types   0x80ac (0xd0da4) B24@0:8^@16
-            imp     0xfffe7900 (0xb05fc) _$s24IosLibraryExampleUITests012NotificationD0C32testN12_cancelByIdKeepsDeliveredyyKFTo
-            name    0x20188 (0xe8e88)
-            types   0x80a0 (0xd0da4) B24@0:8^@16
-            imp     0xfffe873c (0xb1444) _$s24IosLibraryExampleUITests012NotificationD0C024testN13_cancelAllRemovesI7PendingyyKFTo
-            name    0x20184 (0xe8e90)
-            types   0x8094 (0xd0da4) B24@0:8^@16
-            imp     0xfffe9a10 (0xb2724) _$s24IosLibraryExampleUITests012NotificationD0C27testN14_removeDeliveredByIdyyKFTo
-            name    0x20180 (0xe8e98)
-            types   0x8088 (0xd0da4) B24@0:8^@16
-            imp     0xfffeb0ec (0xb3e0c) _$s24IosLibraryExampleUITests012NotificationD0C26testN15_removeAllDeliveredyyKFTo
-            name    0x2017c (0xe8ea0)
-            types   0x807c (0xd0da4) B24@0:8^@16
-            imp     0xfffec6f0 (0xb541c) _$s24IosLibraryExampleUITests012NotificationD0C33testN16_scheduleTimeIntervalFiresyyKFTo
-            name    0x20178 (0xe8ea8)
-            types   0x8070 (0xd0da4) B24@0:8^@16
-            imp     0xfffed6b0 (0xb63e8) _$s24IosLibraryExampleUITests012NotificationD0C43testN17_scheduleCalendarThenCancelScheduledyyKFTo
-            name    0x20174 (0xe8eb0)
-            types   0x8064 (0xd0da4) B24@0:8^@16
-            imp     0xfffede68 (0xb6bac) _$s24IosLibraryExampleUITests012NotificationD0C33testN18_scheduleLocationRegistersyyKFTo
-            name    0x20170 (0xe8eb8)
-            types   0x8058 (0xd0da4) B24@0:8^@16
-            imp     0xfffef260 (0xb7fb0) _$s24IosLibraryExampleUITests012NotificationD0C27testN19_cancelScheduledByIdyyKFTo
-            name    0x2016c (0xe8ec0)
-            types   0x804c (0xd0da4) B24@0:8^@16
-            imp     0xfffefbb8 (0xb8914) _$s24IosLibraryExampleUITests012NotificationD0C033testN20_cancelAllScheduledRemovesI7PendingyyKFTo
-            name    0x20168 (0xe8ec8)
-            types   0x8040 (0xd0da4) B24@0:8^@16
-            imp     0xffff039c (0xb9104) _$s24IosLibraryExampleUITests012NotificationD0C35testN21_queriesAfterCleanupAreEmptyyyKFTo
-            name    0x20164 (0xe8ed0)
-            types   0x8034 (0xd0da4) B24@0:8^@16
-            imp     0xffff0bac (0xb9920) _$s24IosLibraryExampleUITests012NotificationD0C28testN22_setBadgeCountResultsyyKFTo
-            name    0x20160 (0xe8ed8)
-            types   0x8028 (0xd0da4) B24@0:8^@16
-            imp     0xffff24e4 (0xbb264) _$s24IosLibraryExampleUITests012NotificationD0C21testN34_homeIconBadgeyyKFTo
-            name    0x1fd54 (0xe8ad8)
-            types   0x8028 (0xd0db0) @24@0:8@16
-            imp     0xffff34d4 (0xbc260) _$s24IosLibraryExampleUITests012NotificationD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x1fd50 (0xe8ae0)
-            types   0x793c (0xd06d0) @24@0:8:16
-            imp     0xffff3600 (0xbc398) _$s24IosLibraryExampleUITests012NotificationD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x1fd4c (0xe8ae8)
-            types   0x54e0 (0xce280) @16@0:8
-            imp     0xffff36ec (0xbc490) _$s24IosLibraryExampleUITests012NotificationD0CACycfcTo
-            name    0x1fe28 (0xe8bd0)
-            types   0x4f74 (0xcdd20) v16@0:8
-            imp     0xffff3778 (0xbc528) _$s24IosLibraryExampleUITests012NotificationD0CfETo
+            name    0x218d8 (0xecbc0)
+            types   0x81a8 (0xd3494) B24@0:8^@16
+            imp     0xfffd7934 (0xa2c24) _$s24IosLibraryExampleUITests012NotificationD0C14setUpAfterGateyyKFTo
+            name    0x218d4 (0xecbc8)
+            types   0x819c (0xd3494) B24@0:8^@16
+            imp     0xfffd8100 (0xa33fc) _$s24IosLibraryExampleUITests012NotificationD0C17tearDownAfterGateyyKFTo
+            name    0x21b28 (0xece28)
+            types   0x8190 (0xd3494) B24@0:8^@16
+            imp     0xfffd8974 (0xa3c7c) _$s24IosLibraryExampleUITests012NotificationD0C34testN1_permissionStateIsAuthorizedyyKFTo
+            name    0x21b24 (0xece30)
+            types   0x8184 (0xd3494) B24@0:8^@16
+            imp     0xfffd99b0 (0xa4cc4) _$s24IosLibraryExampleUITests012NotificationD0C47testN2_requestPermissionWhenGrantedShowsNoAlertyyKFTo
+            name    0x21b20 (0xece38)
+            types   0x8178 (0xd3494) B24@0:8^@16
+            imp     0xfffda8e4 (0xa5c04) _$s24IosLibraryExampleUITests012NotificationD0C011testN3_opene13SettingsShowsI0yyKFTo
+            name    0x21b1c (0xece40)
+            types   0x816c (0xd3494) B24@0:8^@16
+            imp     0xfffdb5a8 (0xa68d4) _$s24IosLibraryExampleUITests012NotificationD0C41testN4_showImmediateShowsForegroundBanneryyKFTo
+            name    0x21b18 (0xece48)
+            types   0x8160 (0xd3494) B24@0:8^@16
+            imp     0xfffdd490 (0xa87c8) _$s24IosLibraryExampleUITests012NotificationD0C32testN5_attachmentCanBeShownTwiceyyKFTo
+            name    0x21b14 (0xece50)
+            types   0x8154 (0xd3494) B24@0:8^@16
+            imp     0xfffde7e4 (0xa9b28) _$s24IosLibraryExampleUITests012NotificationD0C36testN6_timeIntervalFiresInBackgroundyyKFTo
+            name    0x21b10 (0xece58)
+            types   0x8148 (0xd3494) B24@0:8^@16
+            imp     0xfffdf60c (0xaa95c) _$s24IosLibraryExampleUITests012NotificationD0C39testN7_calendarFiresWithinNinetySecondsyyKFTo
+            name    0x21b0c (0xece60)
+            types   0x813c (0xd3494) B24@0:8^@16
+            imp     0xfffdfe10 (0xab16c) _$s24IosLibraryExampleUITests012NotificationD0C28testN8_showLocationRegistersyyKFTo
+            name    0x21b08 (0xece68)
+            types   0x8130 (0xd3494) B24@0:8^@16
+            imp     0xfffe177c (0xacae4) _$s24IosLibraryExampleUITests012NotificationD0C30testN9_updatePendingReplacesItyyKFTo
+            name    0x21b04 (0xece70)
+            types   0x8124 (0xd3494) B24@0:8^@16
+            imp     0xfffe2ab0 (0xade24) _$s24IosLibraryExampleUITests012NotificationD0C31testN10_updateDeliveredKeepsOneyyKFTo
+            name    0x21b00 (0xece78)
+            types   0x8118 (0xd3494) B24@0:8^@16
+            imp     0xfffe4008 (0xaf388) _$s24IosLibraryExampleUITests012NotificationD0C32testN11_cancelByIdRemovesPendingyyKFTo
+            name    0x21afc (0xece80)
+            types   0x810c (0xd3494) B24@0:8^@16
+            imp     0xfffe5400 (0xb078c) _$s24IosLibraryExampleUITests012NotificationD0C32testN12_cancelByIdKeepsDeliveredyyKFTo
+            name    0x21af8 (0xece88)
+            types   0x8100 (0xd3494) B24@0:8^@16
+            imp     0xfffe623c (0xb15d4) _$s24IosLibraryExampleUITests012NotificationD0C024testN13_cancelAllRemovesI7PendingyyKFTo
+            name    0x21af4 (0xece90)
+            types   0x80f4 (0xd3494) B24@0:8^@16
+            imp     0xfffe7510 (0xb28b4) _$s24IosLibraryExampleUITests012NotificationD0C27testN14_removeDeliveredByIdyyKFTo
+            name    0x21af0 (0xece98)
+            types   0x80e8 (0xd3494) B24@0:8^@16
+            imp     0xfffe8bec (0xb3f9c) _$s24IosLibraryExampleUITests012NotificationD0C26testN15_removeAllDeliveredyyKFTo
+            name    0x21aec (0xecea0)
+            types   0x80dc (0xd3494) B24@0:8^@16
+            imp     0xfffea1f0 (0xb55ac) _$s24IosLibraryExampleUITests012NotificationD0C33testN16_scheduleTimeIntervalFiresyyKFTo
+            name    0x21ae8 (0xecea8)
+            types   0x80d0 (0xd3494) B24@0:8^@16
+            imp     0xfffeb1b0 (0xb6578) _$s24IosLibraryExampleUITests012NotificationD0C43testN17_scheduleCalendarThenCancelScheduledyyKFTo
+            name    0x21ae4 (0xeceb0)
+            types   0x80c4 (0xd3494) B24@0:8^@16
+            imp     0xfffeb968 (0xb6d3c) _$s24IosLibraryExampleUITests012NotificationD0C33testN18_scheduleLocationRegistersyyKFTo
+            name    0x21ae0 (0xeceb8)
+            types   0x80b8 (0xd3494) B24@0:8^@16
+            imp     0xfffecd60 (0xb8140) _$s24IosLibraryExampleUITests012NotificationD0C27testN19_cancelScheduledByIdyyKFTo
+            name    0x21adc (0xecec0)
+            types   0x80ac (0xd3494) B24@0:8^@16
+            imp     0xfffed6b8 (0xb8aa4) _$s24IosLibraryExampleUITests012NotificationD0C033testN20_cancelAllScheduledRemovesI7PendingyyKFTo
+            name    0x21ad8 (0xecec8)
+            types   0x80a0 (0xd3494) B24@0:8^@16
+            imp     0xfffede9c (0xb9294) _$s24IosLibraryExampleUITests012NotificationD0C35testN21_queriesAfterCleanupAreEmptyyyKFTo
+            name    0x21ad4 (0xeced0)
+            types   0x8094 (0xd3494) B24@0:8^@16
+            imp     0xfffee6ac (0xb9ab0) _$s24IosLibraryExampleUITests012NotificationD0C28testN22_setBadgeCountResultsyyKFTo
+            name    0x21ad0 (0xeced8)
+            types   0x8088 (0xd3494) B24@0:8^@16
+            imp     0xfffeffe4 (0xbb3f4) _$s24IosLibraryExampleUITests012NotificationD0C21testN34_homeIconBadgeyyKFTo
+            name    0x216c4 (0xecad8)
+            types   0x8088 (0xd34a0) @24@0:8@16
+            imp     0xffff0fd4 (0xbc3f0) _$s24IosLibraryExampleUITests012NotificationD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x216c0 (0xecae0)
+            types   0x799c (0xd2dc0) @24@0:8:16
+            imp     0xffff1100 (0xbc528) _$s24IosLibraryExampleUITests012NotificationD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x216bc (0xecae8)
+            types   0x5530 (0xd0960) @16@0:8
+            imp     0xffff11ec (0xbc620) _$s24IosLibraryExampleUITests012NotificationD0CACycfcTo
+            name    0x21798 (0xecbd0)
+            types   0x4fd4 (0xd0410) v16@0:8
+            imp     0xffff1278 (0xbc6b8) _$s24IosLibraryExampleUITests012NotificationD0CfETo
         baseProtocols  0x0
-        ivars          0xe8818 __IVARS__TtC24IosLibraryExampleUITests19NotificationUITests
+        ivars          0xec818 __IVARS__TtC24IosLibraryExampleUITests19NotificationUITests
             entsize   32
             count     2
-            offset    0xeaa50 _$s24IosLibraryExampleUITests012NotificationD0C6sample33_64078C7864169358B492FF581A2F6047LLAA9SampleAppVSgvpWvd 40
+            offset    0xeea70 _$s24IosLibraryExampleUITests012NotificationD0C6sample33_64078C7864169358B492FF581A2F6047LLAA9SampleAppVSgvpWvd 40
             name      0x0 __objc_empty_cache
-            type      0xd0060 
+            type      0xd3c20 
             alignment 3
             size      16
-            offset    0xeaa58 _$s24IosLibraryExampleUITests012NotificationD0C12badgeTouched33_64078C7864169358B492FF581A2F6047LLSbvpWvd 56
-            name      0xd0dbe badgeTouched
-            type      0xd0060 
+            offset    0xeea78 _$s24IosLibraryExampleUITests012NotificationD0C12badgeTouched33_64078C7864169358B492FF581A2F6047LLSbvpWvd 56
+            name      0xd34ae badgeTouched
+            type      0xd3c20 
             alignment 0
             size      1
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe87d0 __METACLASS_DATA__TtC24IosLibraryExampleUITests19NotificationUITests
+    data       0xec7d0 __METACLASS_DATA__TtC24IosLibraryExampleUITests19NotificationUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xd0d70 _TtC24IosLibraryExampleUITests19NotificationUITests
+        name           0xd3460 _TtC24IosLibraryExampleUITests19NotificationUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
-00000000000e63d0 0xea018 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests12ShareUITests
-    isa        0xeaa90 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests12ShareUITests
-    superclass 0xe8ff0 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+00000000000ea3d0 0xee030 _OBJC_CLASS_$__TtC24IosLibraryExampleUITests12ShareUITests
+    isa        0xeeab0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests12ShareUITests
+    superclass 0xed008 _$s24IosLibraryExampleUITests16SampleUITestCaseCN
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe9fba Swift class
+    data       0xedfd2 Swift class
         flags          0x184 RO_HAS_CXX_STRUCTORS
         instanceStart  40
         instanceSize   56
         reserved       0x0
         ivarLayout     0x0
-        name           0xd1810 _TtC24IosLibraryExampleUITests12ShareUITests
-        baseMethods    0xc8768 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests12ShareUITests
+        name           0xd3fe0 _TtC24IosLibraryExampleUITests12ShareUITests
+        baseMethods    0xcadd0 __INSTANCE_METHODS__TtC24IosLibraryExampleUITests12ShareUITests
             entsize 12 (relative)
-            count   22
-            name    0x20450 (0xe8bc0)
-            types   0x8630 (0xd0da4) B24@0:8^@16
-            imp     0xffff4320 (0xbca98) _$s24IosLibraryExampleUITests05ShareD0C14setUpAfterGateyyKFTo
-            name    0x2044c (0xe8bc8)
-            types   0x8624 (0xd0da4) B24@0:8^@16
-            imp     0xffff44a0 (0xbcc24) _$s24IosLibraryExampleUITests05ShareD0C17tearDownAfterGateyyKFTo
-            name    0x20758 (0xe8ee0)
-            types   0x8618 (0xd0da4) B24@0:8^@16
-            imp     0xffff4e90 (0xbd620) _$s24IosLibraryExampleUITests05ShareD0C20testS1_shareTextCopyyyKFTo
-            name    0x20754 (0xe8ee8)
-            types   0x860c (0xd0da4) B24@0:8^@16
-            imp     0xffff505c (0xbd7f8) _$s24IosLibraryExampleUITests05ShareD0C19testS4_shareURLCopyyyKFTo
-            name    0x20750 (0xe8ef0)
-            types   0x8600 (0xd0da4) B24@0:8^@16
-            imp     0xffff5220 (0xbd9c8) _$s24IosLibraryExampleUITests05ShareD0C21testS6_shareImageCopyyyKFTo
-            name    0x2074c (0xe8ef8)
-            types   0x85f4 (0xd0da4) B24@0:8^@16
-            imp     0xffff53e4 (0xbdb98) _$s24IosLibraryExampleUITests05ShareD0C25testS10_shareMultipleCopyyyKFTo
-            name    0x20748 (0xe8f00)
-            types   0x85e8 (0xd0da4) B24@0:8^@16
-            imp     0xffff5b8c (0xbe34c) _$s24IosLibraryExampleUITests05ShareD0C21testS2_shareTextCloseyyKFTo
-            name    0x20744 (0xe8f08)
-            types   0x85dc (0xd0da4) B24@0:8^@16
-            imp     0xffff6bb0 (0xbf37c) _$s24IosLibraryExampleUITests05ShareD0C23testS3_shareURLDragDownyyKFTo
-            name    0x20740 (0xe8f10)
-            types   0x85d0 (0xd0da4) B24@0:8^@16
-            imp     0xffff771c (0xbfef4) _$s24IosLibraryExampleUITests05ShareD0C36testS5_shareURLWithPreviewShowsTitleyyKFTo
-            name    0x2073c (0xe8f18)
-            types   0x85c4 (0xd0da4) B24@0:8^@16
-            imp     0xffff78e0 (0xc00c4) _$s24IosLibraryExampleUITests05ShareD0C31testS7_shareMultipleImagesCloseyyKFTo
-            name    0x20738 (0xe8f20)
-            types   0x85b8 (0xd0da4) B24@0:8^@16
-            imp     0xffff7aa4 (0xc0294) _$s24IosLibraryExampleUITests05ShareD0C29testS11_shareWithSubjectCloseyyKFTo
-            name    0x20734 (0xe8f28)
-            types   0x85ac (0xd0da4) B24@0:8^@16
-            imp     0xffff8254 (0xc0a50) _$s24IosLibraryExampleUITests05ShareD0C28testS12_excludedCopyIsAbsentyyKFTo
-            name    0x20730 (0xe8f30)
-            types   0x85a0 (0xd0da4) B24@0:8^@16
-            imp     0xffff8cd0 (0xc14d8) _$s24IosLibraryExampleUITests05ShareD0C27testS8_shareFileSaveToFilesyyKFTo
-            name    0x2072c (0xe8f38)
-            types   0x8594 (0xd0da4) B24@0:8^@16
-            imp     0xffff8e94 (0xc16a8) _$s24IosLibraryExampleUITests05ShareD0C031testS9_shareMultipleFilesSaveToJ0yyKFTo
-            name    0x20728 (0xe8f40)
-            types   0x8588 (0xd0da4) B24@0:8^@16
-            imp     0xffff966c (0xc1e8c) _$s24IosLibraryExampleUITests05ShareD0C23testS13_shareEmptyFailsyyKFTo
-            name    0x20724 (0xe8f48)
-            types   0x857c (0xd0da4) B24@0:8^@16
-            imp     0xffff9830 (0xc205c) _$s24IosLibraryExampleUITests05ShareD0C28testS14_shareInvalidURLFailsyyKFTo
-            name    0x20720 (0xe8f50)
-            types   0x8570 (0xd0da4) B24@0:8^@16
-            imp     0xffff99f4 (0xc222c) _$s24IosLibraryExampleUITests05ShareD0C29testS15_shareMissingFileFailsyyKFTo
-            name    0x2071c (0xe8f58)
-            types   0x8564 (0xd0da4) B24@0:8^@16
-            imp     0xffff9bb8 (0xc23fc) _$s24IosLibraryExampleUITests05ShareD0C30testS16_shareMissingImageFailsyyKFTo
-            name    0x20290 (0xe8ad8)
-            types   0x8564 (0xd0db0) @24@0:8@16
-            imp     0xffffadb0 (0xc3600) _$s24IosLibraryExampleUITests05ShareD0C10invocationACSo12NSInvocationCSg_tcfcTo
-            name    0x2028c (0xe8ae0)
-            types   0x7e78 (0xd06d0) @24@0:8:16
-            imp     0xffffaeb8 (0xc3714) _$s24IosLibraryExampleUITests05ShareD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
-            name    0x20288 (0xe8ae8)
-            types   0x5a1c (0xce280) @16@0:8
-            imp     0xffffaf80 (0xc37e8) _$s24IosLibraryExampleUITests05ShareD0CACycfcTo
-            name    0x20364 (0xe8bd0)
-            types   0x54b0 (0xcdd20) v16@0:8
-            imp     0xffffb00c (0xc3880) _$s24IosLibraryExampleUITests05ShareD0CfETo
+            count   25
+            name    0x21de8 (0xecbc0)
+            types   0x86b8 (0xd3494) B24@0:8^@16
+            imp     0xffff1e48 (0xbcc28) _$s24IosLibraryExampleUITests05ShareD0C14setUpAfterGateyyKFTo
+            name    0x21de4 (0xecbc8)
+            types   0x86ac (0xd3494) B24@0:8^@16
+            imp     0xffff1fc8 (0xbcdb4) _$s24IosLibraryExampleUITests05ShareD0C17tearDownAfterGateyyKFTo
+            name    0x220f0 (0xecee0)
+            types   0x86a0 (0xd3494) B24@0:8^@16
+            imp     0xffff29b8 (0xbd7b0) _$s24IosLibraryExampleUITests05ShareD0C20testS1_shareTextCopyyyKFTo
+            name    0x220ec (0xecee8)
+            types   0x8694 (0xd3494) B24@0:8^@16
+            imp     0xffff2b84 (0xbd988) _$s24IosLibraryExampleUITests05ShareD0C19testS4_shareURLCopyyyKFTo
+            name    0x220e8 (0xecef0)
+            types   0x8688 (0xd3494) B24@0:8^@16
+            imp     0xffff2d48 (0xbdb58) _$s24IosLibraryExampleUITests05ShareD0C21testS6_shareImageCopyyyKFTo
+            name    0x220e4 (0xecef8)
+            types   0x867c (0xd3494) B24@0:8^@16
+            imp     0xffff2f0c (0xbdd28) _$s24IosLibraryExampleUITests05ShareD0C25testS10_shareMultipleCopyyyKFTo
+            name    0x220e0 (0xecf00)
+            types   0x8670 (0xd3494) B24@0:8^@16
+            imp     0xffff36b4 (0xbe4dc) _$s24IosLibraryExampleUITests05ShareD0C21testS2_shareTextCloseyyKFTo
+            name    0x220dc (0xecf08)
+            types   0x8664 (0xd3494) B24@0:8^@16
+            imp     0xffff46d8 (0xbf50c) _$s24IosLibraryExampleUITests05ShareD0C23testS3_shareURLDragDownyyKFTo
+            name    0x220d8 (0xecf10)
+            types   0x8658 (0xd3494) B24@0:8^@16
+            imp     0xffff5244 (0xc0084) _$s24IosLibraryExampleUITests05ShareD0C36testS5_shareURLWithPreviewShowsTitleyyKFTo
+            name    0x220d4 (0xecf18)
+            types   0x864c (0xd3494) B24@0:8^@16
+            imp     0xffff5408 (0xc0254) _$s24IosLibraryExampleUITests05ShareD0C31testS7_shareMultipleImagesCloseyyKFTo
+            name    0x220d0 (0xecf20)
+            types   0x8640 (0xd3494) B24@0:8^@16
+            imp     0xffff55cc (0xc0424) _$s24IosLibraryExampleUITests05ShareD0C29testS11_shareWithSubjectCloseyyKFTo
+            name    0x220cc (0xecf28)
+            types   0x8634 (0xd3494) B24@0:8^@16
+            imp     0xffff5d7c (0xc0be0) _$s24IosLibraryExampleUITests05ShareD0C28testS12_excludedCopyIsAbsentyyKFTo
+            name    0x220c8 (0xecf30)
+            types   0x8628 (0xd3494) B24@0:8^@16
+            imp     0xffff67f8 (0xc1668) _$s24IosLibraryExampleUITests05ShareD0C27testS8_shareFileSaveToFilesyyKFTo
+            name    0x220c4 (0xecf38)
+            types   0x861c (0xd3494) B24@0:8^@16
+            imp     0xffff69bc (0xc1838) _$s24IosLibraryExampleUITests05ShareD0C031testS9_shareMultipleFilesSaveToJ0yyKFTo
+            name    0x220c0 (0xecf40)
+            types   0x8610 (0xd3494) B24@0:8^@16
+            imp     0xffff7194 (0xc201c) _$s24IosLibraryExampleUITests05ShareD0C23testS13_shareEmptyFailsyyKFTo
+            name    0x220bc (0xecf48)
+            types   0x8604 (0xd3494) B24@0:8^@16
+            imp     0xffff7358 (0xc21ec) _$s24IosLibraryExampleUITests05ShareD0C28testS14_shareInvalidURLFailsyyKFTo
+            name    0x220b8 (0xecf50)
+            types   0x85f8 (0xd3494) B24@0:8^@16
+            imp     0xffff751c (0xc23bc) _$s24IosLibraryExampleUITests05ShareD0C29testS15_shareMissingFileFailsyyKFTo
+            name    0x220b4 (0xecf58)
+            types   0x85ec (0xd3494) B24@0:8^@16
+            imp     0xffff76e0 (0xc258c) _$s24IosLibraryExampleUITests05ShareD0C30testS16_shareMissingImageFailsyyKFTo
+            name    0x220b0 (0xecf60)
+            types   0x85e0 (0xd3494) B24@0:8^@16
+            imp     0xffff81a8 (0xc3060) _$s24IosLibraryExampleUITests05ShareD0C015testS17_requestE4CopyyyKFTo
+            name    0x220ac (0xecf68)
+            types   0x85d4 (0xd3494) B24@0:8^@16
+            imp     0xffff8e04 (0xc3cc8) _$s24IosLibraryExampleUITests05ShareD0C51testS18_aRequestInTheBackgroundReportsNotForegroundyyKFTo
+            name    0x220a8 (0xecf70)
+            types   0x85c8 (0xd3494) B24@0:8^@16
+            imp     0xffff9aa0 (0xc4970) _$s24IosLibraryExampleUITests05ShareD0C041testS19_aSheetDismissedFromOutsideReportsI8BySystemyyKFTo
+            name    0x21c04 (0xecad8)
+            types   0x85c8 (0xd34a0) @24@0:8@16
+            imp     0xffffad88 (0xc5c64) _$s24IosLibraryExampleUITests05ShareD0C10invocationACSo12NSInvocationCSg_tcfcTo
+            name    0x21c00 (0xecae0)
+            types   0x7edc (0xd2dc0) @24@0:8:16
+            imp     0xffffae90 (0xc5d78) _$s24IosLibraryExampleUITests05ShareD0C8selectorAC10ObjectiveC8SelectorV_tcfcTo
+            name    0x21bfc (0xecae8)
+            types   0x5a70 (0xd0960) @16@0:8
+            imp     0xffffaf58 (0xc5e4c) _$s24IosLibraryExampleUITests05ShareD0CACycfcTo
+            name    0x21cd8 (0xecbd0)
+            types   0x5514 (0xd0410) v16@0:8
+            imp     0xffffafe4 (0xc5ee4) _$s24IosLibraryExampleUITests05ShareD0CfETo
         baseProtocols  0x0
-        ivars          0xe88a8 __IVARS__TtC24IosLibraryExampleUITests12ShareUITests
+        ivars          0xec8a8 __IVARS__TtC24IosLibraryExampleUITests12ShareUITests
             entsize   32
             count     1
-            offset    0xeaa88 _$s24IosLibraryExampleUITests05ShareD0C6sample33_0B7438A1848FD20B1133A356C853E78CLLAA9SampleAppVSgvpWvd 40
-            name      0xce290 sample
-            type      0xd0060 
+            offset    0xeeaa8 _$s24IosLibraryExampleUITests05ShareD0C6sample33_0B7438A1848FD20B1133A356C853E78CLLAA9SampleAppVSgvpWvd 40
+            name      0xd0970 sample
+            type      0xd3c20 
             alignment 3
             size      16
         weakIvarLayout 0x0
         baseProperties 0x0
 Meta Class
     isa        0x0 _OBJC_METACLASS_$_NSObject
-    superclass 0xea5f0 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
+    superclass 0xee610 _OBJC_METACLASS_$__TtC24IosLibraryExampleUITests16SampleUITestCase
     cache      0x0 __objc_empty_cache
     vtable     0x0
-    data       0xe8860 __METACLASS_DATA__TtC24IosLibraryExampleUITests12ShareUITests
+    data       0xec860 __METACLASS_DATA__TtC24IosLibraryExampleUITests12ShareUITests
         flags          0x81 RO_META
         instanceStart  40
         instanceSize   40
         reserved       0x0
         ivarLayout     0x0
-        name           0xd1810 _TtC24IosLibraryExampleUITests12ShareUITests
+        name           0xd3fe0 _TtC24IosLibraryExampleUITests12ShareUITests
         baseMethods    0x0
         baseProtocols  0x0
         ivars          0x0
         weakIvarLayout 0x0
         baseProperties 0x0
 Contents of (__DATA_CONST,__objc_protolist) section
-00000000000e63d8 0xea288 __OBJC_PROTOCOL_$_XCUIElementSnapshot
+00000000000ea3d8 0xee2a8 __OBJC_PROTOCOL_$_XCUIElementSnapshot
     isa       0x0
-    name      0xd6e24 XCUIElementSnapshot
-    protocols 0xe8000 __OBJC_$_PROTOCOL_REFS_XCUIElementSnapshot
+    name      0xd9794 XCUIElementSnapshot
+    protocols 0xec000 __OBJC_$_PROTOCOL_REFS_XCUIElementSnapshot
         count    1
-        list[0]  0xea3c0 __OBJC_PROTOCOL_$_XCUIElementAttributes
+        list[0]  0xee3e0 __OBJC_PROTOCOL_$_XCUIElementAttributes
             isa       0x0
-            name      0xd6e38 XCUIElementAttributes
+            name      0xd97a8 XCUIElementAttributes
             protocols 0x0
-            instanceMethods 0xc90a0 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
+            instanceMethods 0xcb730 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
                 entsize 12 (relative)
                 count   12
-                name    0x1f940 (0xe89e8)
-                types   0xdda2 (0xd6e4e) @16@0:8
+                name    0x212b0 (0xec9e8)
+                types   0xe082 (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1f894 (0xe8948)
-                types   0xddc5 (0xd6e7d) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
+                name    0x21204 (0xec948)
+                types   0xe0a5 (0xd97ed) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
                 imp     0x0
-                name    0x1f900 (0xe89c0)
-                types   0xdd8a (0xd6e4e) @16@0:8
+                name    0x21270 (0xec9c0)
+                types   0xe06a (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1fe9c (0xe8f68)
-                types   0xdd7e (0xd6e4e) @16@0:8
+                name    0x21824 (0xecf80)
+                types   0xe05e (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1f8d0 (0xe89a8)
-                types   0xdd72 (0xd6e4e) @16@0:8
+                name    0x21240 (0xec9a8)
+                types   0xe052 (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1f8fc (0xe89e0)
-                types   0xddbc (0xd6ea4) Q16@0:8
+                name    0x2126c (0xec9e0)
+                types   0xe09c (0xd9814) Q16@0:8
                 imp     0x0
-                name    0x1f928 (0xe8a18)
-                types   0xddb8 (0xd6eac) B16@0:8
+                name    0x21298 (0xeca18)
+                types   0xe098 (0xd981c) B16@0:8
                 imp     0x0
-                name    0x1fe74 (0xe8f70)
-                types   0xddb4 (0xd6eb4) q16@0:8
+                name    0x217fc (0xecf88)
+                types   0xe094 (0xd9824) q16@0:8
                 imp     0x0
-                name    0x1fe70 (0xe8f78)
-                types   0xdda8 (0xd6eb4) q16@0:8
+                name    0x217f8 (0xecf90)
+                types   0xe088 (0xd9824) q16@0:8
                 imp     0x0
-                name    0x1f91c (0xe8a30)
-                types   0xdd36 (0xd6e4e) @16@0:8
+                name    0x2128c (0xeca30)
+                types   0xe016 (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1fe60 (0xe8f80)
-                types   0xdd88 (0xd6eac) B16@0:8
+                name    0x217e8 (0xecf98)
+                types   0xe068 (0xd981c) B16@0:8
                 imp     0x0
-                name    0x1fe5c (0xe8f88)
-                types   0xdd7c (0xd6eac) B16@0:8
+                name    0x217e4 (0xecfa0)
+                types   0xe05c (0xd981c) B16@0:8
                 imp     0x0
             classMethods 0x0
             optionalInstanceMethods 0x0
             optionalClassMethods 0x0
-            instanceProperties 0xe8050 __OBJC_$_PROP_LIST_XCUIElementAttributes
+            instanceProperties 0xec050 __OBJC_$_PROP_LIST_XCUIElementAttributes
                 entsize    16
                 count      12
-                name       0xd2940 identifier
-                attributes 0xd268e T@"NSString",R
-                name       0xd28fa frame
-                attributes 0xd255c T{CGRect={CGPoint=dd}{CGSize=dd}},R
-                name       0xd41d9 value
-                attributes 0xd26a5 T@,R
-                name       0xd41c9 title
-                attributes 0xd2519 T@"NSString",R,C
-                name       0xd2a23 label
-                attributes 0xd2519 T@"NSString",R,C
-                name       0xd28c6 elementType
-                attributes 0xd2547 TQ,R
-                name       0xd252a enabled
-                attributes 0xd24c2 TB,R,GisEnabled
-                name       0xd2926 horizontalSizeClass
-                attributes 0xd26d3 Tq,R
-                name       0xd41df verticalSizeClass
-                attributes 0xd26d3 Tq,R
-                name       0xd2b13 placeholderValue
-                attributes 0xd268e T@"NSString",R
-                name       0xd2ba7 selected
-                attributes 0xd26b2 TB,R,GisSelected
-                name       0xd291d hasFocus
-                attributes 0xd2532 TB,R
-    instanceMethods 0xc9138 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementSnapshot
+                name       0xd5176 identifier
+                attributes 0xd4ec4 T@"NSString",R
+                name       0xd5130 frame
+                attributes 0xd4d92 T{CGRect={CGPoint=dd}{CGSize=dd}},R
+                name       0xd6ac4 value
+                attributes 0xd4edb T@,R
+                name       0xd6ab4 title
+                attributes 0xd4d4f T@"NSString",R,C
+                name       0xd5259 label
+                attributes 0xd4d4f T@"NSString",R,C
+                name       0xd50fc elementType
+                attributes 0xd4d7d TQ,R
+                name       0xd4d60 enabled
+                attributes 0xd4cf8 TB,R,GisEnabled
+                name       0xd515c horizontalSizeClass
+                attributes 0xd4f09 Tq,R
+                name       0xd6aca verticalSizeClass
+                attributes 0xd4f09 Tq,R
+                name       0xd5349 placeholderValue
+                attributes 0xd4ec4 T@"NSString",R
+                name       0xd53dd selected
+                attributes 0xd4ee8 TB,R,GisSelected
+                name       0xd5153 hasFocus
+                attributes 0xd4d68 TB,R
+    instanceMethods 0xcb7c8 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementSnapshot
         entsize 12 (relative)
         count   2
-        name    0x1f8b0 (0xe89f0)
-        types   0xdd0a (0xd6e4e) @16@0:8
+        name    0x21220 (0xec9f0)
+        types   0xdfea (0xd97be) @16@0:8
         imp     0x0
-        name    0x1fe14 (0xe8f60)
-        types   0xdcfe (0xd6e4e) @16@0:8
+        name    0x2179c (0xecf78)
+        types   0xdfde (0xd97be) @16@0:8
         imp     0x0
     classMethods 0x0
     optionalInstanceMethods 0x0
     optionalClassMethods 0x0
-    instanceProperties 0xe8018 __OBJC_$_PROP_LIST_XCUIElementSnapshot
+    instanceProperties 0xec018 __OBJC_$_PROP_LIST_XCUIElementSnapshot
         entsize    16
         count      2
-        name       0xd27e3 children
-        attributes 0xd2660 T@"NSArray",R
-        name       0xd2898 dictionaryRepresentation
-        attributes 0xd24fc T@"NSDictionary",R,C
-00000000000e63e0 0xea288 __OBJC_PROTOCOL_$_XCUIElementSnapshot
+        name       0xd5019 children
+        attributes 0xd4e96 T@"NSArray",R
+        name       0xd50ce dictionaryRepresentation
+        attributes 0xd4d32 T@"NSDictionary",R,C
+00000000000ea3e0 0xee2a8 __OBJC_PROTOCOL_$_XCUIElementSnapshot
     isa       0x0
-    name      0xd6e24 XCUIElementSnapshot
-    protocols 0xe8000 __OBJC_$_PROTOCOL_REFS_XCUIElementSnapshot
+    name      0xd9794 XCUIElementSnapshot
+    protocols 0xec000 __OBJC_$_PROTOCOL_REFS_XCUIElementSnapshot
         count    1
-        list[0]  0xea3c0 __OBJC_PROTOCOL_$_XCUIElementAttributes
+        list[0]  0xee3e0 __OBJC_PROTOCOL_$_XCUIElementAttributes
             isa       0x0
-            name      0xd6e38 XCUIElementAttributes
+            name      0xd97a8 XCUIElementAttributes
             protocols 0x0
-            instanceMethods 0xc90a0 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
+            instanceMethods 0xcb730 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
                 entsize 12 (relative)
                 count   12
-                name    0x1f940 (0xe89e8)
-                types   0xdda2 (0xd6e4e) @16@0:8
+                name    0x212b0 (0xec9e8)
+                types   0xe082 (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1f894 (0xe8948)
-                types   0xddc5 (0xd6e7d) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
+                name    0x21204 (0xec948)
+                types   0xe0a5 (0xd97ed) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
                 imp     0x0
-                name    0x1f900 (0xe89c0)
-                types   0xdd8a (0xd6e4e) @16@0:8
+                name    0x21270 (0xec9c0)
+                types   0xe06a (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1fe9c (0xe8f68)
-                types   0xdd7e (0xd6e4e) @16@0:8
+                name    0x21824 (0xecf80)
+                types   0xe05e (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1f8d0 (0xe89a8)
-                types   0xdd72 (0xd6e4e) @16@0:8
+                name    0x21240 (0xec9a8)
+                types   0xe052 (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1f8fc (0xe89e0)
-                types   0xddbc (0xd6ea4) Q16@0:8
+                name    0x2126c (0xec9e0)
+                types   0xe09c (0xd9814) Q16@0:8
                 imp     0x0
-                name    0x1f928 (0xe8a18)
-                types   0xddb8 (0xd6eac) B16@0:8
+                name    0x21298 (0xeca18)
+                types   0xe098 (0xd981c) B16@0:8
                 imp     0x0
-                name    0x1fe74 (0xe8f70)
-                types   0xddb4 (0xd6eb4) q16@0:8
+                name    0x217fc (0xecf88)
+                types   0xe094 (0xd9824) q16@0:8
                 imp     0x0
-                name    0x1fe70 (0xe8f78)
-                types   0xdda8 (0xd6eb4) q16@0:8
+                name    0x217f8 (0xecf90)
+                types   0xe088 (0xd9824) q16@0:8
                 imp     0x0
-                name    0x1f91c (0xe8a30)
-                types   0xdd36 (0xd6e4e) @16@0:8
+                name    0x2128c (0xeca30)
+                types   0xe016 (0xd97be) @16@0:8
                 imp     0x0
-                name    0x1fe60 (0xe8f80)
-                types   0xdd88 (0xd6eac) B16@0:8
+                name    0x217e8 (0xecf98)
+                types   0xe068 (0xd981c) B16@0:8
                 imp     0x0
-                name    0x1fe5c (0xe8f88)
-                types   0xdd7c (0xd6eac) B16@0:8
+                name    0x217e4 (0xecfa0)
+                types   0xe05c (0xd981c) B16@0:8
                 imp     0x0
             classMethods 0x0
             optionalInstanceMethods 0x0
             optionalClassMethods 0x0
-            instanceProperties 0xe8050 __OBJC_$_PROP_LIST_XCUIElementAttributes
+            instanceProperties 0xec050 __OBJC_$_PROP_LIST_XCUIElementAttributes
                 entsize    16
                 count      12
-                name       0xd2940 identifier
-                attributes 0xd268e T@"NSString",R
-                name       0xd28fa frame
-                attributes 0xd255c T{CGRect={CGPoint=dd}{CGSize=dd}},R
-                name       0xd41d9 value
-                attributes 0xd26a5 T@,R
-                name       0xd41c9 title
-                attributes 0xd2519 T@"NSString",R,C
-                name       0xd2a23 label
-                attributes 0xd2519 T@"NSString",R,C
-                name       0xd28c6 elementType
-                attributes 0xd2547 TQ,R
-                name       0xd252a enabled
-                attributes 0xd24c2 TB,R,GisEnabled
-                name       0xd2926 horizontalSizeClass
-                attributes 0xd26d3 Tq,R
-                name       0xd41df verticalSizeClass
-                attributes 0xd26d3 Tq,R
-                name       0xd2b13 placeholderValue
-                attributes 0xd268e T@"NSString",R
-                name       0xd2ba7 selected
-                attributes 0xd26b2 TB,R,GisSelected
-                name       0xd291d hasFocus
-                attributes 0xd2532 TB,R
-    instanceMethods 0xc9138 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementSnapshot
+                name       0xd5176 identifier
+                attributes 0xd4ec4 T@"NSString",R
+                name       0xd5130 frame
+                attributes 0xd4d92 T{CGRect={CGPoint=dd}{CGSize=dd}},R
+                name       0xd6ac4 value
+                attributes 0xd4edb T@,R
+                name       0xd6ab4 title
+                attributes 0xd4d4f T@"NSString",R,C
+                name       0xd5259 label
+                attributes 0xd4d4f T@"NSString",R,C
+                name       0xd50fc elementType
+                attributes 0xd4d7d TQ,R
+                name       0xd4d60 enabled
+                attributes 0xd4cf8 TB,R,GisEnabled
+                name       0xd515c horizontalSizeClass
+                attributes 0xd4f09 Tq,R
+                name       0xd6aca verticalSizeClass
+                attributes 0xd4f09 Tq,R
+                name       0xd5349 placeholderValue
+                attributes 0xd4ec4 T@"NSString",R
+                name       0xd53dd selected
+                attributes 0xd4ee8 TB,R,GisSelected
+                name       0xd5153 hasFocus
+                attributes 0xd4d68 TB,R
+    instanceMethods 0xcb7c8 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementSnapshot
         entsize 12 (relative)
         count   2
-        name    0x1f8b0 (0xe89f0)
-        types   0xdd0a (0xd6e4e) @16@0:8
+        name    0x21220 (0xec9f0)
+        types   0xdfea (0xd97be) @16@0:8
         imp     0x0
-        name    0x1fe14 (0xe8f60)
-        types   0xdcfe (0xd6e4e) @16@0:8
+        name    0x2179c (0xecf78)
+        types   0xdfde (0xd97be) @16@0:8
         imp     0x0
     classMethods 0x0
     optionalInstanceMethods 0x0
     optionalClassMethods 0x0
-    instanceProperties 0xe8018 __OBJC_$_PROP_LIST_XCUIElementSnapshot
+    instanceProperties 0xec018 __OBJC_$_PROP_LIST_XCUIElementSnapshot
         entsize    16
         count      2
-        name       0xd27e3 children
-        attributes 0xd2660 T@"NSArray",R
-        name       0xd2898 dictionaryRepresentation
-        attributes 0xd24fc T@"NSDictionary",R,C
-00000000000e63e8 0xea3c0 __OBJC_PROTOCOL_$_XCUIElementAttributes
+        name       0xd5019 children
+        attributes 0xd4e96 T@"NSArray",R
+        name       0xd50ce dictionaryRepresentation
+        attributes 0xd4d32 T@"NSDictionary",R,C
+00000000000ea3e8 0xee3e0 __OBJC_PROTOCOL_$_XCUIElementAttributes
     isa       0x0
-    name      0xd6e38 XCUIElementAttributes
+    name      0xd97a8 XCUIElementAttributes
     protocols 0x0
-    instanceMethods 0xc90a0 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
+    instanceMethods 0xcb730 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
         entsize 12 (relative)
         count   12
-        name    0x1f940 (0xe89e8)
-        types   0xdda2 (0xd6e4e) @16@0:8
+        name    0x212b0 (0xec9e8)
+        types   0xe082 (0xd97be) @16@0:8
         imp     0x0
-        name    0x1f894 (0xe8948)
-        types   0xddc5 (0xd6e7d) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
+        name    0x21204 (0xec948)
+        types   0xe0a5 (0xd97ed) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
         imp     0x0
-        name    0x1f900 (0xe89c0)
-        types   0xdd8a (0xd6e4e) @16@0:8
+        name    0x21270 (0xec9c0)
+        types   0xe06a (0xd97be) @16@0:8
         imp     0x0
-        name    0x1fe9c (0xe8f68)
-        types   0xdd7e (0xd6e4e) @16@0:8
+        name    0x21824 (0xecf80)
+        types   0xe05e (0xd97be) @16@0:8
         imp     0x0
-        name    0x1f8d0 (0xe89a8)
-        types   0xdd72 (0xd6e4e) @16@0:8
+        name    0x21240 (0xec9a8)
+        types   0xe052 (0xd97be) @16@0:8
         imp     0x0
-        name    0x1f8fc (0xe89e0)
-        types   0xddbc (0xd6ea4) Q16@0:8
+        name    0x2126c (0xec9e0)
+        types   0xe09c (0xd9814) Q16@0:8
         imp     0x0
-        name    0x1f928 (0xe8a18)
-        types   0xddb8 (0xd6eac) B16@0:8
+        name    0x21298 (0xeca18)
+        types   0xe098 (0xd981c) B16@0:8
         imp     0x0
-        name    0x1fe74 (0xe8f70)
-        types   0xddb4 (0xd6eb4) q16@0:8
+        name    0x217fc (0xecf88)
+        types   0xe094 (0xd9824) q16@0:8
         imp     0x0
-        name    0x1fe70 (0xe8f78)
-        types   0xdda8 (0xd6eb4) q16@0:8
+        name    0x217f8 (0xecf90)
+        types   0xe088 (0xd9824) q16@0:8
         imp     0x0
-        name    0x1f91c (0xe8a30)
-        types   0xdd36 (0xd6e4e) @16@0:8
+        name    0x2128c (0xeca30)
+        types   0xe016 (0xd97be) @16@0:8
         imp     0x0
-        name    0x1fe60 (0xe8f80)
-        types   0xdd88 (0xd6eac) B16@0:8
+        name    0x217e8 (0xecf98)
+        types   0xe068 (0xd981c) B16@0:8
         imp     0x0
-        name    0x1fe5c (0xe8f88)
-        types   0xdd7c (0xd6eac) B16@0:8
+        name    0x217e4 (0xecfa0)
+        types   0xe05c (0xd981c) B16@0:8
         imp     0x0
     classMethods 0x0
     optionalInstanceMethods 0x0
     optionalClassMethods 0x0
-    instanceProperties 0xe8050 __OBJC_$_PROP_LIST_XCUIElementAttributes
+    instanceProperties 0xec050 __OBJC_$_PROP_LIST_XCUIElementAttributes
         entsize    16
         count      12
-        name       0xd2940 identifier
-        attributes 0xd268e T@"NSString",R
-        name       0xd28fa frame
-        attributes 0xd255c T{CGRect={CGPoint=dd}{CGSize=dd}},R
-        name       0xd41d9 value
-        attributes 0xd26a5 T@,R
-        name       0xd41c9 title
-        attributes 0xd2519 T@"NSString",R,C
-        name       0xd2a23 label
-        attributes 0xd2519 T@"NSString",R,C
-        name       0xd28c6 elementType
-        attributes 0xd2547 TQ,R
-        name       0xd252a enabled
-        attributes 0xd24c2 TB,R,GisEnabled
-        name       0xd2926 horizontalSizeClass
-        attributes 0xd26d3 Tq,R
-        name       0xd41df verticalSizeClass
-        attributes 0xd26d3 Tq,R
-        name       0xd2b13 placeholderValue
-        attributes 0xd268e T@"NSString",R
-        name       0xd2ba7 selected
-        attributes 0xd26b2 TB,R,GisSelected
-        name       0xd291d hasFocus
-        attributes 0xd2532 TB,R
-00000000000e63f0 0xea3c0 __OBJC_PROTOCOL_$_XCUIElementAttributes
+        name       0xd5176 identifier
+        attributes 0xd4ec4 T@"NSString",R
+        name       0xd5130 frame
+        attributes 0xd4d92 T{CGRect={CGPoint=dd}{CGSize=dd}},R
+        name       0xd6ac4 value
+        attributes 0xd4edb T@,R
+        name       0xd6ab4 title
+        attributes 0xd4d4f T@"NSString",R,C
+        name       0xd5259 label
+        attributes 0xd4d4f T@"NSString",R,C
+        name       0xd50fc elementType
+        attributes 0xd4d7d TQ,R
+        name       0xd4d60 enabled
+        attributes 0xd4cf8 TB,R,GisEnabled
+        name       0xd515c horizontalSizeClass
+        attributes 0xd4f09 Tq,R
+        name       0xd6aca verticalSizeClass
+        attributes 0xd4f09 Tq,R
+        name       0xd5349 placeholderValue
+        attributes 0xd4ec4 T@"NSString",R
+        name       0xd53dd selected
+        attributes 0xd4ee8 TB,R,GisSelected
+        name       0xd5153 hasFocus
+        attributes 0xd4d68 TB,R
+00000000000ea3f0 0xee3e0 __OBJC_PROTOCOL_$_XCUIElementAttributes
     isa       0x0
-    name      0xd6e38 XCUIElementAttributes
+    name      0xd97a8 XCUIElementAttributes
     protocols 0x0
-    instanceMethods 0xc90a0 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
+    instanceMethods 0xcb730 __OBJC_$_PROTOCOL_INSTANCE_METHODS_XCUIElementAttributes
         entsize 12 (relative)
         count   12
-        name    0x1f940 (0xe89e8)
-        types   0xdda2 (0xd6e4e) @16@0:8
+        name    0x212b0 (0xec9e8)
+        types   0xe082 (0xd97be) @16@0:8
         imp     0x0
-        name    0x1f894 (0xe8948)
-        types   0xddc5 (0xd6e7d) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
+        name    0x21204 (0xec948)
+        types   0xe0a5 (0xd97ed) {CGRect={CGPoint=dd}{CGSize=dd}}16@0:8
         imp     0x0
-        name    0x1f900 (0xe89c0)
-        types   0xdd8a (0xd6e4e) @16@0:8
+        name    0x21270 (0xec9c0)
+        types   0xe06a (0xd97be) @16@0:8
         imp     0x0
-        name    0x1fe9c (0xe8f68)
-        types   0xdd7e (0xd6e4e) @16@0:8
+        name    0x21824 (0xecf80)
+        types   0xe05e (0xd97be) @16@0:8
         imp     0x0
-        name    0x1f8d0 (0xe89a8)
-        types   0xdd72 (0xd6e4e) @16@0:8
+        name    0x21240 (0xec9a8)
+        types   0xe052 (0xd97be) @16@0:8
         imp     0x0
-        name    0x1f8fc (0xe89e0)
-        types   0xddbc (0xd6ea4) Q16@0:8
+        name    0x2126c (0xec9e0)
+        types   0xe09c (0xd9814) Q16@0:8
         imp     0x0
-        name    0x1f928 (0xe8a18)
-        types   0xddb8 (0xd6eac) B16@0:8
+        name    0x21298 (0xeca18)
+        types   0xe098 (0xd981c) B16@0:8
         imp     0x0
-        name    0x1fe74 (0xe8f70)
-        types   0xddb4 (0xd6eb4) q16@0:8
+        name    0x217fc (0xecf88)
+        types   0xe094 (0xd9824) q16@0:8
         imp     0x0
-        name    0x1fe70 (0xe8f78)
-        types   0xdda8 (0xd6eb4) q16@0:8
+        name    0x217f8 (0xecf90)
+        types   0xe088 (0xd9824) q16@0:8
         imp     0x0
-        name    0x1f91c (0xe8a30)
-        types   0xdd36 (0xd6e4e) @16@0:8
+        name    0x2128c (0xeca30)
+        types   0xe016 (0xd97be) @16@0:8
         imp     0x0
-        name    0x1fe60 (0xe8f80)
-        types   0xdd88 (0xd6eac) B16@0:8
+        name    0x217e8 (0xecf98)
+        types   0xe068 (0xd981c) B16@0:8
         imp     0x0
-        name    0x1fe5c (0xe8f88)
-        types   0xdd7c (0xd6eac) B16@0:8
+        name    0x217e4 (0xecfa0)
+        types   0xe05c (0xd981c) B16@0:8
         imp     0x0
     classMethods 0x0
     optionalInstanceMethods 0x0
     optionalClassMethods 0x0
-    instanceProperties 0xe8050 __OBJC_$_PROP_LIST_XCUIElementAttributes
+    instanceProperties 0xec050 __OBJC_$_PROP_LIST_XCUIElementAttributes
         entsize    16
         count      12
-        name       0xd2940 identifier
-        attributes 0xd268e T@"NSString",R
-        name       0xd28fa frame
-        attributes 0xd255c T{CGRect={CGPoint=dd}{CGSize=dd}},R
-        name       0xd41d9 value
-        attributes 0xd26a5 T@,R
-        name       0xd41c9 title
-        attributes 0xd2519 T@"NSString",R,C
-        name       0xd2a23 label
-        attributes 0xd2519 T@"NSString",R,C
-        name       0xd28c6 elementType
-        attributes 0xd2547 TQ,R
-        name       0xd252a enabled
-        attributes 0xd24c2 TB,R,GisEnabled
-        name       0xd2926 horizontalSizeClass
-        attributes 0xd26d3 Tq,R
-        name       0xd41df verticalSizeClass
-        attributes 0xd26d3 Tq,R
-        name       0xd2b13 placeholderValue
-        attributes 0xd268e T@"NSString",R
-        name       0xd2ba7 selected
-        attributes 0xd26b2 TB,R,GisSelected
-        name       0xd291d hasFocus
-        attributes 0xd2532 TB,R
+        name       0xd5176 identifier
+        attributes 0xd4ec4 T@"NSString",R
+        name       0xd5130 frame
+        attributes 0xd4d92 T{CGRect={CGPoint=dd}{CGSize=dd}},R
+        name       0xd6ac4 value
+        attributes 0xd4edb T@,R
+        name       0xd6ab4 title
+        attributes 0xd4d4f T@"NSString",R,C
+        name       0xd5259 label
+        attributes 0xd4d4f T@"NSString",R,C
+        name       0xd50fc elementType
+        attributes 0xd4d7d TQ,R
+        name       0xd4d60 enabled
+        attributes 0xd4cf8 TB,R,GisEnabled
+        name       0xd515c horizontalSizeClass
+        attributes 0xd4f09 Tq,R
+        name       0xd6aca verticalSizeClass
+        attributes 0xd4f09 Tq,R
+        name       0xd5349 placeholderValue
+        attributes 0xd4ec4 T@"NSString",R
+        name       0xd53dd selected
+        attributes 0xd4ee8 TB,R,GisSelected
+        name       0xd5153 hasFocus
+        attributes 0xd4d68 TB,R
 Contents of (__DATA,__objc_selrefs) section
-    0xd2a57 name
-    0xd290b generalPasteboard
-    0xd2bf8 setString:
-    0xd27d7 changeCount
-    0xd294b imageWithActions:
-    0xd2bd8 setImage:
-    0xd254c systemBlueColor
-    0xd26aa setFill
-    0xd28e5 fillRect:
-    0xd29db initWithSize:
-    0xd2a29 launch
-    0xd422b waitForState:timeout:
-    0xd25c0 activate
-    0xd263a windows
-    0xd28ef firstMatch
-    0xd28fa frame
-    0xd2c50 sleepForTimeInterval:
-    0xd2ce7 terminate
-    0xd2c79 state
-    0xd24f4 buttons
-    0xd2a30 matchingIdentifier:
-    0xd26d8 tap
-    0xd2c7f staticTexts
-    0xd2832 count
-    0xd269d element
-    0xd41f1 waitForExistenceWithTimeout:
-    0xd2a5c navigationBars
-    0xd2a23 label
-    0xd29fc isHittable
-    0xd2b8a scrollViews
-    0xd41d9 value
-    0xd2af2 otherElements
-    0xd2769 alerts
-    0xd2c66 snapshotWithError:
-    0xd28c6 elementType
-    0xd2940 identifier
-    0xd27e3 children
-    0xd266e coordinateWithNormalizedOffset:
-    0xd2b57 pressForDuration:thenDragToCoordinate:
-    0xd2749 waitForNonExistenceWithTimeout:
-    0xd2770 allElementsBoundByIndex
-    0xd29f2 isEnabled
-    0xd41b4 textFields
-    0xd2b96 secureTextFields
-    0xd2b13 placeholderValue
-    0xd28b1 elementBoundByIndex:
-    0xd41cf typeText:
-    0xd2962 initWithBundleIdentifier:
-    0xd26dc URLForResource:withExtension:
-    0xd24d2 JSONObjectWithData:options:error:
-    0xd2a8c numberOfMatchesInString:options:range:
-    0xd2b7e processInfo
-    0xd2acc operatingSystemVersion
-    0xd2c03 setUp
-    0xd2c27 setUpWithCompletionHandler:
-    0xd2c8b tearDown
-    0xd2cb5 tearDownWithCompletionHandler:
-    0xd2bb0 setContinueAfterFailure:
-    0xd2c43 sharedDevice
-    0xd2537 setOrientation:
-    0xd28d2 environment
-    0xd2838 dataWithJSONObject:options:error:
-    0xd2bef setName:
-    0xd2be2 setLifetime:
-    0xd273a addAttachment:
-    0xd297c initWithInvocation:
-    0xd29c9 initWithSelector:
-    0xd295d init
-    0xd2511 dealloc
-    0xd27a7 attachmentWithData:uniformTypeIdentifier:
-    0xd2990 initWithPattern:options:error:
-    0xd2650 bundleForClass:
-    0xd27d1 cells
-    0xd2a44 matchingPredicate:
-    0xd286b descendantsMatchingType:
-    0xd2802 containingPredicate:
-    0xd27ec childrenMatchingType:
-    0xd2b38 pressButton:
-    0xd2b45 pressForDuration:
-    0xd2817 containingType:identifier:
-    0xd41bf textViews
-    0xd293a icons
-    0xd285a debugDescription
-    0xd2788 andPredicateWithSubpredicates:
-    0xd2609 addUIInterruptionMonitorWithDescription:handler:
-    0xd2ab3 objectForKeyedSubscript:
-    0xd420e waitForExpectations:timeout:
-    0xd28de exists
-    0xd29af initWithPredicate:object:
-    0xd2b24 predicateWithBlock:
-    0xd2900 gatePassed
-    0xd2bc9 setGatePassed:
-    0xd26c3 setUpWithError:
-    0xd2cd4 tearDownWithError:
-    0xd2c09 setUpAfterGateAndReturnError:
-    0xd2c94 tearDownAfterGateAndReturnError:
-    0xd2642 .cxx_destruct
-    0xd29e9 isDevice
-    0xd2ae3 osMajorVersion
-    0xd2a6b normalizedTestKeyFromName:error:
-    0xd2a12 isWellFormedKey:
-    0xd2d1c testCB2_denyPasteFailsLoadTextAndReturnError:
-    0xd2cf1 testCB1_allowPasteLoadsTextAndReturnError:
-    0xd2d4a testCB3_pasteControlReadsTextAndReturnError:
-    0xd2d77 testCB4_pasteControlReadsImageOnlyAndReturnError:
-    0xd2fb2 testD1_showAlertOKAndReturnError:
-    0xd30d2 testD2_showConfirmDialogYesAndReturnError:
-    0xd30fd testD3_showConfirmDialogNoAndReturnError:
-    0xd3127 testD4_showDestructiveDialogDeleteAndReturnError:
-    0xd3159 testD5_showDestructiveDialogCancelAndReturnError:
-    0xd318b testD6_showActionSheetEachOptionAndReturnError:
-    0xd31bb testD7_showActionSheetCancelAndReturnError:
-    0xd31e7 testD8_textInputConfirmFollowsInputAndReturnError:
-    0xd321a testD9_textInputConfirmReportsInputAndReturnError:
-    0xd2da9 testD10_textInputCancelDropsInputAndReturnError:
-    0xd2dda testD11_loginButtonFollowsBothFieldsAndReturnError:
-    0xd2e0e testD12_loginReportsCredentialsAndReturnError:
-    0xd2e3d testD13_loginCancelAndReturnError:
-    0xd2e60 testD14_eachDialogReportsCompletionAndCallbackOnceAndReturnError:
-    0xd2ea2 testD15_loginReportsCompletionAndCallbackOnceAndReturnError:
-    0xd2edf testD16_requestsReportOneResultEachAndReturnError:
-    0xd2f12 testD17_twoRequestsInOneTurnAreBothShownAndReturnError:
-    0xd2f4a testD18_cancelDismissesTheDialogAndReturnError:
-    0xd2f7a testD19_aCoveredDialogStaysWhenCancelledAndReturnError:
-    0xd2fd4 testD20_aDialogDismissedFromOutsideReportsDismissedBySystemAndReturnError:
-    0xd301f testD21_aRequestInTheBackgroundReportsNotForegroundAndReturnError:
-    0xd3062 testD22_aRequestUnderControlCenterIsShownAndReturnError:
-    0xd309b testD23_actionSheetsPresentWithAnAnchorAndReturnError:
-    0xd324d testI1a_dialogIdentifiersAndReturnError:
-    0xd3276 testI1b_notificationIdentifiersAndReturnError:
-    0xd32a5 testI1c_shareIdentifiersAndReturnError:
-    0xd32cd testI1d_clipboardIdentifiersAndReturnError:
-    0xd3f5c testU1_navigatesToClipboardScreenAndShowsSectionsAndReturnError:
-    0xd4024 testU2_copyPlainTextThenReadReportsOneItemAndReturnError:
-    0xd405e testU3_snapshotReportsAtLeastOneItemAndReturnError:
-    0xd4092 testU4_appendIncreasesItemCountAndReturnError:
-    0xd40c1 testU5_observingReportsEventsAndStopsAfterStopObservingAndReturnError:
-    0xd4108 testU6_scopeControlsAreDisabledWhileObservingAndReturnError:
-    0xd25c9 testU7_allErrorCasesReportTheirExpectedErrorCodeAndReturnError:
-    0xd4145 testU8_namedPasteboardLifecycleEndsUnavailableAndReturnError:
-    0xd4183 testU9_clearEmptiesTheActiveScopeAndReturnError:
-    0xd3cb4 testU10a_namedPasteboardSurvivesBackgroundAndDiesOnExplicitRemovalAndReturnError:
-    0xd3d06 testU10b_namedPasteboardAfterProcessTerminationAndReturnError:
-    0xd3d45 testU11_loadFileReturnsTheFixedSizeFixtureAndCleansUpAndReturnError:
-    0xd3d8a testU12_firstForegroundCheckReportsTheRealReturnValueAndReturnError:
-    0xd26fa testU13_everyContentKindIsWrittenToThePasteboardAndReturnError:
-    0xd3dcf testU14_textUrlAndImageLoadsReturnTheirPayloadAndReturnError:
-    0xd3e0d testU15_detectionReturnsAResultForTheFixtureAndReturnError:
-    0xd3e49 testU16_readDataAndMatchingSnapshotReturnTheirSuccessPathsAndReturnError:
-    0xd3e93 testU17_uniqueAndGeneralScopeSelectionAndReturnError:
-    0xd3ec9 testU18_appendUrlAndUniversalMarkerGrowTheItemListAndReturnError:
-    0xd3f0b testU19_copyOptionFixturesReachThePasteboardAtTheirDesignedLengthAndReturnError:
-    0xd3f9d testU20_controlOnlyOperationsDoNotOverwriteTheResultLineAndReturnError:
-    0xd3fe5 testU21_isolatedFixturesForWholeContentPatternsAndReturnError:
-    0xd2b00 parseSequenceFrom:
-    0xd2884 detectedPatternsIn:
-    0xd32f9 testM1_menuOpensEachScreenAndBackReturnsToTheMenuAndReturnError:
-    0xd2580 testM2_reopenedScreensStartFromTheirInitialStateAndReturnError:
-    0xd378c testN30_bannerTapColdStartAndReturnError:
-    0xd37b6 testN31_openActionColdStartAndReturnError:
-    0xd37e1 testN32_replyColdStartAndReturnError:
-    0xd3807 testN33_deleteColdStartAndReturnError:
-    0xd35e4 testN23_registerCategoryAddsActionsAndReturnError:
-    0xd3617 testN24_removeCategoryRemovesActionsAndReturnError:
-    0xd364b testN25_bannerTapReportsDefaultActionAndReturnError:
-    0xd3680 testN26_foregroundBannerTapReportsDefaultActionAndReturnError:
-    0xd36bf testN27_openActionBringsTheSampleAndReturnError:
-    0xd36f0 testN28_deleteActionStaysInBackgroundAndReturnError:
-    0xd3725 testN29_replyReportsTextAndReturnError:
-    0xd39bd testNP1_allowPermissionAndReturnError:
-    0xd39e4 testNP2_denyPermissionAndReturnError:
-    0xd3518 testN1_permissionStateIsAuthorizedAndReturnError:
-    0xd374d testN2_requestPermissionWhenGrantedShowsNoAlertAndReturnError:
-    0xd3853 testN3_openNotificationSettingsShowsSettingsAndReturnError:
-    0xd388f testN4_showImmediateShowsForegroundBannerAndReturnError:
-    0xd38c8 testN5_attachmentCanBeShownTwiceAndReturnError:
-    0xd38f8 testN6_timeIntervalFiresInBackgroundAndReturnError:
-    0xd392c testN7_calendarFiresWithinNinetySecondsAndReturnError:
-    0xd3963 testN8_showLocationRegistersAndReturnError:
-    0xd398f testN9_updatePendingReplacesItAndReturnError:
-    0xd333a testN10_updateDeliveredKeepsOneAndReturnError:
-    0xd3369 testN11_cancelByIdRemovesPendingAndReturnError:
-    0xd3399 testN12_cancelByIdKeepsDeliveredAndReturnError:
-    0xd33c9 testN13_cancelAllRemovesAllPendingAndReturnError:
-    0xd33fb testN14_removeDeliveredByIdAndReturnError:
-    0xd3426 testN15_removeAllDeliveredAndReturnError:
-    0xd3450 testN16_scheduleTimeIntervalFiresAndReturnError:
-    0xd3481 testN17_scheduleCalendarThenCancelScheduledAndReturnError:
-    0xd34bc testN18_scheduleLocationRegistersAndReturnError:
-    0xd34ed testN19_cancelScheduledByIdAndReturnError:
-    0xd354a testN20_cancelAllScheduledRemovesAllPendingAndReturnError:
-    0xd3585 testN21_queriesAfterCleanupAreEmptyAndReturnError:
-    0xd35b8 testN22_setBadgeCountResultsAndReturnError:
-    0xd382e testN34_homeIconBadgeAndReturnError:
-    0xd3b3a testS1_shareTextCopyAndReturnError:
-    0xd3baa testS4_shareURLCopyAndReturnError:
-    0xd3c01 testS6_shareImageCopyAndReturnError:
-    0xd3a0a testS10_shareMultipleCopyAndReturnError:
-    0xd3b5e testS2_shareTextCloseAndReturnError:
-    0xd3b83 testS3_shareURLDragDownAndReturnError:
-    0xd3bcd testS5_shareURLWithPreviewShowsTitleAndReturnError:
-    0xd3c26 testS7_shareMultipleImagesCloseAndReturnError:
-    0xd3a33 testS11_shareWithSubjectCloseAndReturnError:
-    0xd3a60 testS12_excludedCopyIsAbsentAndReturnError:
-    0xd3c55 testS8_shareFileSaveToFilesAndReturnError:
-    0xd3c80 testS9_shareMultipleFilesSaveToFilesAndReturnError:
-    0xd3a8c testS13_shareEmptyFailsAndReturnError:
-    0xd3ab3 testS14_shareInvalidURLFailsAndReturnError:
-    0xd3adf testS15_shareMissingFileFailsAndReturnError:
-    0xd3b0c testS16_shareMissingImageFailsAndReturnError:
-    0xd2898 dictionaryRepresentation
-    0xd41c9 title
-    0xd2926 horizontalSizeClass
-    0xd41df verticalSizeClass
-    0xd2a07 isSelected
-    0xd291d hasFocus
+    0xd528d name
+    0xd5141 generalPasteboard
+    0xd542e setString:
+    0xd500d changeCount
+    0xd5181 imageWithActions:
+    0xd540e setImage:
+    0xd4d82 systemBlueColor
+    0xd4ee0 setFill
+    0xd511b fillRect:
+    0xd5211 initWithSize:
+    0xd525f launch
+    0xd6b16 waitForState:timeout:
+    0xd4df6 activate
+    0xd4e70 windows
+    0xd5125 firstMatch
+    0xd5130 frame
+    0xd5486 sleepForTimeInterval:
+    0xd551d terminate
+    0xd54af state
+    0xd4d2a buttons
+    0xd5266 matchingIdentifier:
+    0xd4f0e tap
+    0xd54b5 staticTexts
+    0xd5068 count
+    0xd4ed3 element
+    0xd6adc waitForExistenceWithTimeout:
+    0xd5292 navigationBars
+    0xd5259 label
+    0xd5232 isHittable
+    0xd53c0 scrollViews
+    0xd6ac4 value
+    0xd5328 otherElements
+    0xd4f9f alerts
+    0xd549c snapshotWithError:
+    0xd50fc elementType
+    0xd5176 identifier
+    0xd5019 children
+    0xd4ea4 coordinateWithNormalizedOffset:
+    0xd538d pressForDuration:thenDragToCoordinate:
+    0xd4f7f waitForNonExistenceWithTimeout:
+    0xd4fa6 allElementsBoundByIndex
+    0xd5228 isEnabled
+    0xd6a9f textFields
+    0xd53cc secureTextFields
+    0xd5349 placeholderValue
+    0xd50e7 elementBoundByIndex:
+    0xd6aba typeText:
+    0xd5198 initWithBundleIdentifier:
+    0xd4f12 URLForResource:withExtension:
+    0xd4d08 JSONObjectWithData:options:error:
+    0xd52c2 numberOfMatchesInString:options:range:
+    0xd53b4 processInfo
+    0xd5302 operatingSystemVersion
+    0xd5439 setUp
+    0xd545d setUpWithCompletionHandler:
+    0xd54c1 tearDown
+    0xd54eb tearDownWithCompletionHandler:
+    0xd53e6 setContinueAfterFailure:
+    0xd5479 sharedDevice
+    0xd4d6d setOrientation:
+    0xd5108 environment
+    0xd506e dataWithJSONObject:options:error:
+    0xd5425 setName:
+    0xd5418 setLifetime:
+    0xd4f70 addAttachment:
+    0xd51b2 initWithInvocation:
+    0xd51ff initWithSelector:
+    0xd5193 init
+    0xd4d47 dealloc
+    0xd4fdd attachmentWithData:uniformTypeIdentifier:
+    0xd51c6 initWithPattern:options:error:
+    0xd4e86 bundleForClass:
+    0xd5007 cells
+    0xd527a matchingPredicate:
+    0xd50a1 descendantsMatchingType:
+    0xd5038 containingPredicate:
+    0xd5022 childrenMatchingType:
+    0xd536e pressButton:
+    0xd537b pressForDuration:
+    0xd504d containingType:identifier:
+    0xd6aaa textViews
+    0xd5170 icons
+    0xd5090 debugDescription
+    0xd4fbe andPredicateWithSubpredicates:
+    0xd4e3f addUIInterruptionMonitorWithDescription:handler:
+    0xd52e9 objectForKeyedSubscript:
+    0xd6af9 waitForExpectations:timeout:
+    0xd5114 exists
+    0xd51e5 initWithPredicate:object:
+    0xd535a predicateWithBlock:
+    0xd5136 gatePassed
+    0xd53ff setGatePassed:
+    0xd4ef9 setUpWithError:
+    0xd550a tearDownWithError:
+    0xd543f setUpAfterGateAndReturnError:
+    0xd54ca tearDownAfterGateAndReturnError:
+    0xd4e78 .cxx_destruct
+    0xd521f isDevice
+    0xd5319 osMajorVersion
+    0xd52a1 normalizedTestKeyFromName:error:
+    0xd5248 isWellFormedKey:
+    0xd5552 testCB2_denyPasteFailsLoadTextAndReturnError:
+    0xd5527 testCB1_allowPasteLoadsTextAndReturnError:
+    0xd5580 testCB3_pasteControlReadsTextAndReturnError:
+    0xd55ad testCB4_pasteControlReadsImageOnlyAndReturnError:
+    0xd57e8 testD1_showAlertOKAndReturnError:
+    0xd5908 testD2_showConfirmDialogYesAndReturnError:
+    0xd5933 testD3_showConfirmDialogNoAndReturnError:
+    0xd595d testD4_showDestructiveDialogDeleteAndReturnError:
+    0xd598f testD5_showDestructiveDialogCancelAndReturnError:
+    0xd59c1 testD6_showActionSheetEachOptionAndReturnError:
+    0xd59f1 testD7_showActionSheetCancelAndReturnError:
+    0xd5a1d testD8_textInputConfirmFollowsInputAndReturnError:
+    0xd5a50 testD9_textInputConfirmReportsInputAndReturnError:
+    0xd55df testD10_textInputCancelDropsInputAndReturnError:
+    0xd5610 testD11_loginButtonFollowsBothFieldsAndReturnError:
+    0xd5644 testD12_loginReportsCredentialsAndReturnError:
+    0xd5673 testD13_loginCancelAndReturnError:
+    0xd5696 testD14_eachDialogReportsCompletionAndCallbackOnceAndReturnError:
+    0xd56d8 testD15_loginReportsCompletionAndCallbackOnceAndReturnError:
+    0xd5715 testD16_requestsReportOneResultEachAndReturnError:
+    0xd5748 testD17_twoRequestsInOneTurnAreBothShownAndReturnError:
+    0xd5780 testD18_cancelDismissesTheDialogAndReturnError:
+    0xd57b0 testD19_aCoveredDialogStaysWhenCancelledAndReturnError:
+    0xd580a testD20_aDialogDismissedFromOutsideReportsDismissedBySystemAndReturnError:
+    0xd5855 testD21_aRequestInTheBackgroundReportsNotForegroundAndReturnError:
+    0xd5898 testD22_aRequestUnderControlCenterIsShownAndReturnError:
+    0xd58d1 testD23_actionSheetsPresentWithAnAnchorAndReturnError:
+    0xd5a83 testI1a_dialogIdentifiersAndReturnError:
+    0xd5aac testI1b_notificationIdentifiersAndReturnError:
+    0xd5adb testI1c_shareIdentifiersAndReturnError:
+    0xd5b03 testI1d_clipboardIdentifiersAndReturnError:
+    0xd6847 testU1_navigatesToClipboardScreenAndShowsSectionsAndReturnError:
+    0xd690f testU2_copyPlainTextThenReadReportsOneItemAndReturnError:
+    0xd6949 testU3_snapshotReportsAtLeastOneItemAndReturnError:
+    0xd697d testU4_appendIncreasesItemCountAndReturnError:
+    0xd69ac testU5_observingReportsEventsAndStopsAfterStopObservingAndReturnError:
+    0xd69f3 testU6_scopeControlsAreDisabledWhileObservingAndReturnError:
+    0xd4dff testU7_allErrorCasesReportTheirExpectedErrorCodeAndReturnError:
+    0xd6a30 testU8_namedPasteboardLifecycleEndsUnavailableAndReturnError:
+    0xd6a6e testU9_clearEmptiesTheActiveScopeAndReturnError:
+    0xd659f testU10a_namedPasteboardSurvivesBackgroundAndDiesOnExplicitRemovalAndReturnError:
+    0xd65f1 testU10b_namedPasteboardAfterProcessTerminationAndReturnError:
+    0xd6630 testU11_loadFileReturnsTheFixedSizeFixtureAndCleansUpAndReturnError:
+    0xd6675 testU12_firstForegroundCheckReportsTheRealReturnValueAndReturnError:
+    0xd4f30 testU13_everyContentKindIsWrittenToThePasteboardAndReturnError:
+    0xd66ba testU14_textUrlAndImageLoadsReturnTheirPayloadAndReturnError:
+    0xd66f8 testU15_detectionReturnsAResultForTheFixtureAndReturnError:
+    0xd6734 testU16_readDataAndMatchingSnapshotReturnTheirSuccessPathsAndReturnError:
+    0xd677e testU17_uniqueAndGeneralScopeSelectionAndReturnError:
+    0xd67b4 testU18_appendUrlAndUniversalMarkerGrowTheItemListAndReturnError:
+    0xd67f6 testU19_copyOptionFixturesReachThePasteboardAtTheirDesignedLengthAndReturnError:
+    0xd6888 testU20_controlOnlyOperationsDoNotOverwriteTheResultLineAndReturnError:
+    0xd68d0 testU21_isolatedFixturesForWholeContentPatternsAndReturnError:
+    0xd5336 parseSequenceFrom:
+    0xd50ba detectedPatternsIn:
+    0xd5b2f testM1_menuOpensEachScreenAndBackReturnsToTheMenuAndReturnError:
+    0xd4db6 testM2_reopenedScreensStartFromTheirInitialStateAndReturnError:
+    0xd5fc2 testN30_bannerTapColdStartAndReturnError:
+    0xd5fec testN31_openActionColdStartAndReturnError:
+    0xd6017 testN32_replyColdStartAndReturnError:
+    0xd603d testN33_deleteColdStartAndReturnError:
+    0xd5e1a testN23_registerCategoryAddsActionsAndReturnError:
+    0xd5e4d testN24_removeCategoryRemovesActionsAndReturnError:
+    0xd5e81 testN25_bannerTapReportsDefaultActionAndReturnError:
+    0xd5eb6 testN26_foregroundBannerTapReportsDefaultActionAndReturnError:
+    0xd5ef5 testN27_openActionBringsTheSampleAndReturnError:
+    0xd5f26 testN28_deleteActionStaysInBackgroundAndReturnError:
+    0xd5f5b testN29_replyReportsTextAndReturnError:
+    0xd61f3 testNP1_allowPermissionAndReturnError:
+    0xd621a testNP2_denyPermissionAndReturnError:
+    0xd5d4e testN1_permissionStateIsAuthorizedAndReturnError:
+    0xd5f83 testN2_requestPermissionWhenGrantedShowsNoAlertAndReturnError:
+    0xd6089 testN3_openNotificationSettingsShowsSettingsAndReturnError:
+    0xd60c5 testN4_showImmediateShowsForegroundBannerAndReturnError:
+    0xd60fe testN5_attachmentCanBeShownTwiceAndReturnError:
+    0xd612e testN6_timeIntervalFiresInBackgroundAndReturnError:
+    0xd6162 testN7_calendarFiresWithinNinetySecondsAndReturnError:
+    0xd6199 testN8_showLocationRegistersAndReturnError:
+    0xd61c5 testN9_updatePendingReplacesItAndReturnError:
+    0xd5b70 testN10_updateDeliveredKeepsOneAndReturnError:
+    0xd5b9f testN11_cancelByIdRemovesPendingAndReturnError:
+    0xd5bcf testN12_cancelByIdKeepsDeliveredAndReturnError:
+    0xd5bff testN13_cancelAllRemovesAllPendingAndReturnError:
+    0xd5c31 testN14_removeDeliveredByIdAndReturnError:
+    0xd5c5c testN15_removeAllDeliveredAndReturnError:
+    0xd5c86 testN16_scheduleTimeIntervalFiresAndReturnError:
+    0xd5cb7 testN17_scheduleCalendarThenCancelScheduledAndReturnError:
+    0xd5cf2 testN18_scheduleLocationRegistersAndReturnError:
+    0xd5d23 testN19_cancelScheduledByIdAndReturnError:
+    0xd5d80 testN20_cancelAllScheduledRemovesAllPendingAndReturnError:
+    0xd5dbb testN21_queriesAfterCleanupAreEmptyAndReturnError:
+    0xd5dee testN22_setBadgeCountResultsAndReturnError:
+    0xd6064 testN34_homeIconBadgeAndReturnError:
+    0xd6425 testS1_shareTextCopyAndReturnError:
+    0xd6495 testS4_shareURLCopyAndReturnError:
+    0xd64ec testS6_shareImageCopyAndReturnError:
+    0xd6240 testS10_shareMultipleCopyAndReturnError:
+    0xd6449 testS2_shareTextCloseAndReturnError:
+    0xd646e testS3_shareURLDragDownAndReturnError:
+    0xd64b8 testS5_shareURLWithPreviewShowsTitleAndReturnError:
+    0xd6511 testS7_shareMultipleImagesCloseAndReturnError:
+    0xd6269 testS11_shareWithSubjectCloseAndReturnError:
+    0xd6296 testS12_excludedCopyIsAbsentAndReturnError:
+    0xd6540 testS8_shareFileSaveToFilesAndReturnError:
+    0xd656b testS9_shareMultipleFilesSaveToFilesAndReturnError:
+    0xd62c2 testS13_shareEmptyFailsAndReturnError:
+    0xd62e9 testS14_shareInvalidURLFailsAndReturnError:
+    0xd6315 testS15_shareMissingFileFailsAndReturnError:
+    0xd6342 testS16_shareMissingImageFailsAndReturnError:
+    0xd6370 testS17_requestShareCopyAndReturnError:
+    0xd6398 testS18_aRequestInTheBackgroundReportsNotForegroundAndReturnError:
+    0xd63db testS19_aSheetDismissedFromOutsideReportsDismissedBySystemAndReturnError:
+    0xd50ce dictionaryRepresentation
+    0xd6ab4 title
+    0xd515c horizontalSizeClass
+    0xd6aca verticalSizeClass
+    0xd523d isSelected
+    0xd5153 hasFocus
 Contents of (__DATA_CONST,__objc_imageinfo) section
     version 0
     flags   0x6020740 Swift 5 or later

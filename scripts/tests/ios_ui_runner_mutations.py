@@ -39,6 +39,7 @@ MUTATIONS = [
     ('pillar 1 selection: all categories -> any category', M, '        if kind == "device" and missing:', '        if kind == "device" and len(missing) == len(categories) and categories:'),
     ('pillar 1 selection: a simulator-only test on the device', M, '        if kind == "device" and key in SIMULATOR_ONLY_TESTS:', '        if False:'),
     ('pillar 1 selection: D22 dropped from the simulator-only set', M, '    "DialogUITests/testD22_aRequestUnderControlCenterIsShown",\n', ''),
+    ('pillar 1 selection: S19 dropped from the simulator-only set', M, '    "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",\n', ''),
     ('pillar 1 plan: a simulator-only leak not checked', M, '        leaked = device_simulator_only_problems(selected)', '        leaked = []'),
     ('pillar 1 naming: a simulator-only name not refused', M, '            if key in SIMULATOR_ONLY_TESTS:\n                problems.append', '            if False:\n                problems.append'),
     ('pillar 2: a renamed simulator-only test passes', M, '    missing = sorted(SIMULATOR_ONLY_TESTS - set(declarations))', '    missing = []'),

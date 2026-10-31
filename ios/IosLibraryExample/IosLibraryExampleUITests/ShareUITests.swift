@@ -5,6 +5,8 @@
 //  S1〜S16 of the UI test design (3.4): the share sheet of `ShareSampleView`. Only Copy, Save to
 //  Files (into On My iPhone) and closing the sheet are pressed; no other share target is touched
 //  (U-13). The result line is compared in full after `updates=<n>` grew by one (U-1, U-3).
+//  S17〜S19 (Swift API design 13.2): the Swift API section (SA-14, SA-05). S18 and S19 run on the
+//  simulator only (scripts/ios_ui_runner.py SIMULATOR_ONLY_TESTS).
 //
 
 import XCTest
@@ -137,6 +139,52 @@ final class ShareUITests: SampleUITestCase {
     @MainActor
     func testS16_shareMissingImageFails() throws {
         try assertError(.shareMissingImage, "[shareMissingImage] errorMessage=Failed to load image at path: /nonexistent/share-missing.png.")
+    }
+
+    // MARK: - Swift API (2.0.0): S17〜S19
+
+    /// S17: `share(content:presenter: .foreground)` (async) → Copy: the result of the new API.
+    @MainActor
+    func testS17_requestShareCopy() throws {
+        let sheet = try open(.shareRequestText)
+        let before = try sample.updateCount(.share)
+        try sheet.copy(try clipboardToken())
+        try assertResult(before, "[shareRequestText] success completed=true, activityType=\(Self.copyActivity)")
+        XCTAssertTrue(try sheet.waitClosed(), "the sheet stayed open")
+        XCTAssertEqual(sample.remainingAlertCount, 0, "alerts left after Copy")
+    }
+
+    /// S18: requested 3 seconds after the tap while the sample is in the background:
+    /// `notForeground` once, and no sheet. The sample notes the scene's state at the request.
+    @MainActor
+    func testS18_aRequestInTheBackgroundReportsNotForeground() throws {
+        let springboard = Springboard(try systemUIToken())
+        let token = try shareSheetToken()
+        let sheet = ShareSheet(token)
+        let before = try sample.updateCount(.share)
+        try sample.tap(.shareAfter3Seconds, token)
+        try springboard.goHome()
+        // A fixed wait (U-14 exception, as D21): the request comes 3 seconds after the tap while the
+        // sample is in the background, where its result line cannot be read.
+        Thread.sleep(forTimeInterval: 5)
+        try sample.activate()
+        try assertResult(before, "[shareAfter3Seconds@background] failure notForeground", success: false)
+        XCTAssertFalse(try sheet.waitOpen(timeout: 2), "a share sheet opened for a request in the background")
+    }
+
+    /// S19: dismissed by the sample from outside the library 3 seconds after the tap: the sheet
+    /// calls no handler, and the release watch reports `dismissedBySystem` once. The sample notes
+    /// that the sheet was shown when it dismissed it (`shown=true`).
+    @MainActor
+    func testS19_aSheetDismissedFromOutsideReportsDismissedBySystem() throws {
+        let token = try shareSheetToken()
+        let sheet = ShareSheet(token)
+        let before = try sample.updateCount(.share)
+        try sample.tap(.shareThenDismissFromOutside, token)
+        try assertResult(before, "[shareThenDismissFromOutside] failure dismissedBySystem shown=true", success: false)
+        XCTAssertTrue(try sheet.waitClosed(), "the sheet stayed open")
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.updateCount(.share), before + 1, "one result only")
     }
 
     // MARK: - Helpers

@@ -9,7 +9,8 @@ caught, next to the near-miss that must pass.
 The fixtures in fixtures/ios_ui_runner/ are copied from real output of Xcode 26.3 on the
 iPhone 17 (iOS 26.2) simulator, stage 0d (2026-10-24); paths are replaced and the simctl lists
 are cut down to four simulators. enumeration.json and otool-*-device.txt were taken again the same
-way in stage 1b C2 (2026-10-31), when D16 to D23 were added (107 UI tests):
+way in stage 1b C2 (2026-10-31), when D16 to D23 were added (107 UI tests), and in stage 1b C3
+(2026-10-31), when S17 to S19 were added (110 UI tests):
   enumeration.json             -enumerate-tests ... -test-enumeration-format json (the full tree)
   otool-ov-device.txt, otool-l-device.txt
                                otool -ov / -l of IosLibraryExampleUITests.xctest built for
@@ -185,7 +186,7 @@ class Enumeration(unittest.TestCase):
 
     def test_the_real_enumeration_matches_the_table(self):
         identifiers = enumeration()
-        self.assertEqual(len(identifiers), 107)
+        self.assertEqual(len(identifiers), 110)
         self.assertNotIn("IosLibraryExampleUITests/SampleUITestCase", identifiers)
         self.assertEqual(r.check_enumeration(identifiers, declarations()), [])
 
@@ -266,7 +267,7 @@ class Selection(unittest.TestCase):
 
     def test_the_simulator_runs_everything(self):
         selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])
-        self.assertEqual((len(selected), excluded), (107, []))
+        self.assertEqual((len(selected), excluded), (110, []))
 
     def test_the_device_runs_only_tests_whose_categories_are_all_allowed(self):
         # Mutation 7 "柱 1（選び方）": "all" turned into "any".
@@ -277,7 +278,7 @@ class Selection(unittest.TestCase):
         self.assertIn(ident("NotificationUITests/testN4_showImmediateShowsForegroundBanner"), selected)
         for identifier in selected:
             self.assertLessEqual(set(self.table[r.key_from_enumeration_id(identifier)]), {"systemui"})
-        self.assertEqual(len(selected) + len(excluded), 107)
+        self.assertEqual(len(selected) + len(excluded), 110)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard"])
         self.assertNotIn(ident("ShareUITests/testS1_shareTextCopy"), selected)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard", "sharesheet"])
@@ -372,6 +373,8 @@ class SimulatorOnly(unittest.TestCase):
             "DialogUITests/testD21_aRequestInTheBackgroundReportsNotForeground",
             self.D22,
             "DialogUITests/testD23_actionSheetsPresentWithAnAnchor",
+            "ShareUITests/testS18_aRequestInTheBackgroundReportsNotForeground",
+            "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",
         })
 
     def test_the_device_never_selects_them_even_with_every_category(self):
@@ -380,9 +383,10 @@ class SimulatorOnly(unittest.TestCase):
         marked = {r.key_from_enumeration_id(i) for i, _, missing in excluded if missing == [r.SIMULATOR_ONLY]}
         self.assertEqual(marked, set(r.SIMULATOR_ONLY_TESTS))
         self.assertEqual(len(excluded), len(r.SIMULATOR_ONLY_TESTS), "every category is allowed: nothing else is excluded")
-        # The near miss: the other new Dialog tests run on the device.
+        # The near miss: the other new Dialog and Share tests run on the device.
         self.assertIn("DialogUITests/testD16_requestsReportOneResultEach", self.keys(selected))
         self.assertIn("DialogUITests/testD18_cancelDismissesTheDialog", self.keys(selected))
+        self.assertIn("ShareUITests/testS17_requestShareCopy", self.keys(selected))
 
     def test_systemui_alone_leaves_d22_out(self):
         selected, excluded = r.select_tests(self.ids, self.table, "device", ["systemui"], "Dialog")
@@ -390,8 +394,19 @@ class SimulatorOnly(unittest.TestCase):
         self.assertEqual({r.key_from_enumeration_id(i): m for i, _, m in excluded}[self.D22], [r.SIMULATOR_ONLY])
         self.assertIn("DialogUITests/testD19_aCoveredDialogStaysWhenCancelled", self.keys(selected))
 
+    def test_systemui_and_sharesheet_leave_s18_and_s19_out(self):
+        selected, excluded = r.select_tests(self.ids, self.table, "device", ["systemui", "sharesheet"], "Share")
+        reasons = {r.key_from_enumeration_id(i): m for i, _, m in excluded}
+        for key in ("ShareUITests/testS18_aRequestInTheBackgroundReportsNotForeground",
+                    "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem"):
+            self.assertNotIn(key, self.keys(selected))
+            self.assertEqual(reasons[key], [r.SIMULATOR_ONLY])
+        # The near miss: S2 needs only sharesheet; S17 also needs clipboard.
+        self.assertIn("ShareUITests/testS2_shareTextClose", self.keys(selected))
+        self.assertEqual(reasons["ShareUITests/testS17_requestShareCopy"], ["clipboard"])
+
     def test_the_simulator_runs_them(self):
-        selected, excluded = r.select_tests(self.ids, self.table, "simulator", [], "Dialog")
+        selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])
         self.assertTrue(r.SIMULATOR_ONLY_TESTS <= self.keys(selected))
         self.assertEqual(excluded, [])
 
@@ -580,7 +595,7 @@ class BinaryInventory(unittest.TestCase):
 
     def test_the_device_build_has_exactly_the_enumerated_tests(self):
         keys = self.keys("device")
-        self.assertEqual(len(keys), 107)
+        self.assertEqual(len(keys), 110)
         self.assertEqual(r.binary_inventory_problems(keys, enumeration()), [])
 
     def test_throwing_tests_are_read_through_and_return_error(self):
@@ -791,10 +806,12 @@ class Coverage(unittest.TestCase):
                                    "notification": (SAMPLE_DIR / "NotificationSampleView.swift").read_text(encoding="utf-8"),
                                    "share": (SAMPLE_DIR / "ShareSampleView.swift").read_text(encoding="utf-8")})
 
-    def test_the_sample_has_56_buttons(self):
-        # 45 until stage 1b C2 added the 11 buttons of the Dialog sample's Swift API section.
+    def test_the_sample_has_59_buttons(self):
+        # 45 until stage 1b C2 added the 11 buttons of the Dialog sample's Swift API section, 56 until
+        # stage 1b C3 added the 3 of the Share sample's.
         buttons = self.buttons()
-        self.assertEqual(len(buttons), 56)
+        self.assertEqual(len(buttons), 59)
+        self.assertIn("share.button.shareAfter3Seconds", buttons)
         self.assertIn("dialog.button.showAlert", buttons)
         self.assertIn("notification.button.setBadgeCount0", buttons)
 

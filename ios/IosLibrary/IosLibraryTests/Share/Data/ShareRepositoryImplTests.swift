@@ -107,8 +107,32 @@ struct ShareRepositoryImplTests {
         let repo = ShareRepositoryImpl(presenter: presenter)
         let content = ShareContent(items: [.text("hello")],
                                    excludedActivityTypes: ["com.apple.UIKit.activity.PostToFacebook"])
-        _ = try await repo.present(content: content)
+        _ = try await repo.present(content: content, presenter: .firstActiveScene)
         #expect(presenter.lastExcluded?.map { $0.rawValue } == ["com.apple.UIKit.activity.PostToFacebook"])
         #expect(presenter.lastItems?.count == 1)
+    }
+
+    // MARK: - presenter (8.2)
+
+    @MainActor
+    @Test func presentPassesThePresenterOn() async throws {
+        let presenter = MockShareSheetPresenter()
+        let repo = ShareRepositoryImpl(presenter: presenter)
+        for (selection, name) in [(PresenterSelection.foreground, "foreground"), (.firstActiveScene, "firstActiveScene"),
+                                  (.viewController { nil }, "viewController")] {
+            _ = try await repo.present(content: ShareContent(items: [.text("hello")]), presenter: selection)
+            #expect(presenter.lastPresenter == name)
+        }
+    }
+
+    /// An item that cannot be converted fails before anything is presented.
+    @MainActor
+    @Test func anInvalidItemFailsWithoutPresenting() async {
+        let presenter = MockShareSheetPresenter()
+        let repo = ShareRepositoryImpl(presenter: presenter)
+        await #expect(throws: ShareError.invalidURL("nope")) {
+            try await repo.present(content: ShareContent(items: [.text("ok"), .url("nope")]), presenter: .foreground)
+        }
+        #expect(presenter.lastItems == nil)
     }
 }

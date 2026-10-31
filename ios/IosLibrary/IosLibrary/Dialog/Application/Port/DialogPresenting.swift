@@ -17,7 +17,9 @@
 /// * Complete a pressed button with `.success(DialogAnswer(button:title:input:))`, and any other
 ///   end with a ``DialogError``.
 ///
-/// What only the library's implementation does: the box is tied to the request and closed by
+/// What only the library's implementation does: `presenter` chooses the view controller to
+/// present from (``PresenterSelection`` has no public members to read its value, so your
+/// implementation chooses by its own means), and the box is tied to the request and closed by
 /// it, so `IosDialogManager.cancel(_:)` dismisses the dialog and ends the request as
 /// ``DialogError/canceled``, and the use case refuses a box that another request already uses
 /// (``DialogError/invalidRequest``). With your own implementation, `cancel(_:)` only closes the

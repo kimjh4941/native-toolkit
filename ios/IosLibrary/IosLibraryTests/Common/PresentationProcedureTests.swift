@@ -233,6 +233,37 @@ struct PresentationProcedureTests {
         #expect(box.outcome?.testName == "presentationFailed")
     }
 
+    /// `releaseWatchOnly` (the share sheet, whose `presentingViewController` UIKit sets later,
+    /// MS-03): not taken at once is not a failure; the release watch decides.
+    @Test func withTheReleaseWatchOnlyAPresentationNotTakenAtOnceIsNotFailed() {
+        let top = FakeViewController("top")
+        environment.foreground = top
+        environment.acceptsPresentation = false
+        PresentationProcedure.present(presented, presenter: .foreground, box: box, firstActiveScenePolicy: .presentAnyway,
+                                      environment: environment, declineCheck: .releaseWatchOnly)
+
+        #expect(presentationNames == ["presented@top"])
+        #expect(!box.isClosed)
+        environment.finishPresentations()
+    }
+
+    /// A declined view controller whose `present` completion UIKit still keeps: freeing the view
+    /// controller closes the box as `presentationFailed` at once. The completion holds the release
+    /// watch weakly; the view controller is its only owner.
+    @Test func aDeclinedViewControllerIsWatchedEvenWhileItsCompletionIsKept() {
+        let top = FakeViewController("top")
+        environment.foreground = top
+        environment.acceptsPresentation = false
+        do {
+            let declined = FakeViewController("declined")
+            PresentationProcedure.present(declined, presenter: .foreground, box: box, firstActiveScenePolicy: .presentAnyway,
+                                          environment: environment, declineCheck: .releaseWatchOnly)
+        }
+        // The fake UIKit still holds the completion (it is never called); the view controller is gone.
+        #expect(environment.pendingPresentCompletions == 1)
+        #expect(box.outcome?.testName == "presentationFailed")
+    }
+
     // MARK: - .firstActiveScene (steps 2 and 3 once)
 
     @Test func firstActiveScenePresentsWithoutWaitingWhenThePolicyIsToPresentAnyway() {

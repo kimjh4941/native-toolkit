@@ -63,6 +63,17 @@ enum PresentationProcedure {
         case requireLegacyStability
     }
 
+    /// How a presentation that UIKit declines is noticed (part 1, 5.13.1). The release watch
+    /// notices it in both cases, once UIKit has let the declined view controller go.
+    enum DeclineCheck {
+        /// Also check `presentingViewController` right after `present` (the supplement of 6.3.3):
+        /// UIKit sets it inside `present` for an alert (MS-01).
+        case rightAfterPresent
+        /// The release watch only: UIKit sets `presentingViewController` of a share sheet only
+        /// later (MS-03, stage 1b C3), so the supplement would fail every share.
+        case releaseWatchOnly
+    }
+
     /// Presents `presented` from the view controller `presenter` selects, following the steps.
     ///
     /// - Parameters:
@@ -72,7 +83,9 @@ enum PresentationProcedure {
     ///   - firstActiveScenePolicy: What `.firstActiveScene` does when not settled.
     ///   - environment: UIKit, or a fake in the tests.
     ///   - animated: Whether `present` animates (the dialog methods that take `animated`).
-    ///   - onPresented: Called in `present`'s completion, after the release watch has noted it.
+    ///   - declineCheck: How a presentation that UIKit declines is noticed.
+    ///   - onPresented: Called in `present`'s completion, after the release watch has noted it
+    ///     (when the watch is still alive: it is held weakly there).
     static func present<Environment: PresentationEnvironment>(
         _ presented: Environment.Node,
         presenter: PresenterSelection,
@@ -80,9 +93,10 @@ enum PresentationProcedure {
         firstActiveScenePolicy: FirstActiveScenePolicy,
         environment: Environment,
         animated: Bool = true,
+        declineCheck: DeclineCheck = .rightAfterPresent,
         onPresented: @escaping @MainActor () -> Void = {}
     ) {
-        logger.log(level: .libraryDebug, "[present] presented: \(String(describing: type(of: presented)), privacy: .public), presenter: \(presenter.logName, privacy: .public), policy: \(String(describing: firstActiveScenePolicy), privacy: .public), animated: \(animated, privacy: .public)")
+        logger.log(level: .libraryDebug, "[present] presented: \(String(describing: type(of: presented)), privacy: .public), presenter: \(presenter.logName, privacy: .public), policy: \(String(describing: firstActiveScenePolicy), privacy: .public), animated: \(animated, privacy: .public), declineCheck: \(String(describing: declineCheck), privacy: .public)")
         // Step 1.
         guard !box.isClosed else {
             logger.log(level: .libraryDebug, "[present] the box is already closed")
@@ -99,9 +113,10 @@ enum PresentationProcedure {
                 box.close(.presentationFailed)
                 return
             }
-            show(presented, on: top, box: box, environment: environment, animated: animated, onPresented: onPresented)
+            show(presented, on: top, box: box, environment: environment, animated: animated, declineCheck: declineCheck, onPresented: onPresented)
         case .foreground:
-            attempt(presented, retried: false, box: box, environment: environment, animated: animated, onPresented: onPresented) {
+            attempt(presented, retried: false, box: box, environment: environment, animated: animated, declineCheck: declineCheck,
+                    onPresented: onPresented) {
                 environment.foregroundTop()
             }
         case .provided(let provider):
@@ -110,7 +125,8 @@ enum PresentationProcedure {
             // environment's view controller type, means no view controller: not in the
             // foreground (`viewController(_:)` only produces `UIViewController?`).
             let provided = provider() as? Environment.Node
-            attempt(presented, retried: false, box: box, environment: environment, animated: animated, onPresented: onPresented) {
+            attempt(presented, retried: false, box: box, environment: environment, animated: animated, declineCheck: declineCheck,
+                    onPresented: onPresented) {
                 provided
             }
         }
@@ -154,6 +170,7 @@ enum PresentationProcedure {
         box: RequestBox,
         environment: Environment,
         animated: Bool,
+        declineCheck: DeclineCheck,
         onPresented: @escaping @MainActor () -> Void,
         locate: @escaping @MainActor () -> Environment.Node?
     ) {
@@ -170,7 +187,7 @@ enum PresentationProcedure {
         }
         // Step 3.
         if environment.isSettled(top) {
-            show(presented, on: top, box: box, environment: environment, animated: animated, onPresented: onPresented)
+            show(presented, on: top, box: box, environment: environment, animated: animated, declineCheck: declineCheck, onPresented: onPresented)
             return
         }
         // Step 6.
@@ -187,7 +204,8 @@ enum PresentationProcedure {
             guard !hasRetried else { return }
             hasRetried = true
             environment.nextTurn {
-                attempt(presented, retried: true, box: box, environment: environment, animated: animated, onPresented: onPresented,
+                attempt(presented, retried: true, box: box, environment: environment, animated: animated, declineCheck: declineCheck,
+                        onPresented: onPresented,
                         locate: locate)
             }
         }
@@ -203,9 +221,10 @@ enum PresentationProcedure {
         box: RequestBox,
         environment: Environment,
         animated: Bool,
+        declineCheck: DeclineCheck,
         onPresented: @escaping @MainActor () -> Void
     ) {
-        logger.log(level: .libraryDebug, "[show] animated: \(animated, privacy: .public)")
+        logger.log(level: .libraryDebug, "[show] animated: \(animated, privacy: .public), declineCheck: \(String(describing: declineCheck), privacy: .public)")
         guard !box.isClosed else {
             logger.log(level: .libraryDebug, "[show] the box is already closed")
             return
@@ -213,14 +232,16 @@ enum PresentationProcedure {
         environment.anchorPopover(of: presented, at: top)
         let watch = ReleaseWatch(box: box)
         watch.attach(to: presented)
-        environment.present(presented, on: top, animated: animated) {
-            watch.markPresented()
+        // Weakly: the presented view controller is the watch's only owner (a declined view
+        // controller whose completion UIKit kept would otherwise keep the watch alive).
+        environment.present(presented, on: top, animated: animated) { [weak watch] in
+            watch?.markPresented()
             onPresented()
         }
-        // The supplement of part 1, 5.13.1: UIKit sets `presentingViewController` inside
-        // `present` when it takes the presentation, and calls no completion when it declines
-        // (MS-01, iOS 26.2 and 18.3).
-        if !environment.isPresentationAccepted(presented) {
+        // The supplement of part 1, 5.13.1: UIKit sets `presentingViewController` of an alert
+        // inside `present` when it takes the presentation, and calls no completion when it
+        // declines (MS-01, iOS 26.2 and 18.3). Not for a share sheet (`releaseWatchOnly`).
+        if declineCheck == .rightAfterPresent, !environment.isPresentationAccepted(presented) {
             logger.error("[show] UIKit did not take the presentation")
             box.close(.presentationFailed)
         }

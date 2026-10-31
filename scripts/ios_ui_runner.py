@@ -85,14 +85,18 @@ CLASS_MINIMUMS = {
 # user's iPhone a drag could land on a control and change a setting (stage 1b C2 review, Codex A).
 # The others are the ones the Swift API design 13.2 runs on the simulator only: D17 and D20 rely on
 # UIKit timings measured on the simulator (MS-01, MS-03), D21 sends the sample to the background
-# with a request pending, D23 is the iPad anchor check. Every key must be declared, so that a
-# renamed test stops the runner instead of leaving this set.
+# with a request pending, D23 is the iPad anchor check; S18 sends the sample to the background with
+# a share request pending, S19 relies on the release of a share sheet dismissed from outside
+# (MS-03; stage 1b C3). Every key must be declared, so that a renamed test stops the runner instead
+# of leaving this set.
 SIMULATOR_ONLY_TESTS = frozenset({
     "DialogUITests/testD17_twoRequestsInOneTurnAreBothShown",
     "DialogUITests/testD20_aDialogDismissedFromOutsideReportsDismissedBySystem",
     "DialogUITests/testD21_aRequestInTheBackgroundReportsNotForeground",
     "DialogUITests/testD22_aRequestUnderControlCenterIsShown",
     "DialogUITests/testD23_actionSheetsPresentWithAnAnchor",
+    "ShareUITests/testS18_aRequestInTheBackgroundReportsNotForeground",
+    "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",
 })
 # What an excluded test of that set shows in place of its missing categories. Not a category, so
 # --device-allow cannot name it.
@@ -136,7 +140,7 @@ FROZEN_CLIPBOARD_SHA256 = "4612943da3ec0e32562d86d07d7d134521f1db5fed42e7543db74
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499",
-    "Support/SampleApp.swift": "9f51a9475348ad661f454fcbaad27078259d3294a19bedd14cc2ec3538cb2b44",
+    "Support/SampleApp.swift": "9b1da32b2c56fa5c82fa6a1ab879157d4cc87bfa584e864d37e640e190a8b9fc",
     "Support/Springboard.swift": "7c642008fdc5a532e1d1bb235702c7526669f5b1023aeae25a579f44e9c0daba",
     "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",

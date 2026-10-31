@@ -1080,6 +1080,9 @@ public enum ShareError: Error, Sendable, Equatable, LocalizedError {
 public protocol ShareRepository: Sendable {                                // changed port
     func present(content: ShareContent, presenter: PresenterSelection) async throws -> ShareResult
 }
+extension ShareContentUseCase {
+    public func execute(content: ShareContent, presenter: PresenterSelection) async throws -> ShareResult   // 1b C3: carries presenter to the port
+}
 extension IosShareManager {
     public func share(content: ShareContent, presenter: PresenterSelection,
                       completion: @escaping @MainActor @Sendable (Result<ShareResult, ShareError>) -> Void)

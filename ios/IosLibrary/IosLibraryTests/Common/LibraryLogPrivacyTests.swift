@@ -52,7 +52,7 @@ struct LibraryLogPrivacyTests {
                 items: [.text("text-\(secret)"), .url("https://example.com/\(secret)")],
                 subject: "subject-\(secret)",
                 previewTitle: "title-\(secret)"
-            ))
+            ), presenter: .foreground)
             let failing = await MainActor.run { () -> MockShareRepository in
                 let mock = MockShareRepository()
                 mock.shouldFail = true
@@ -135,6 +135,54 @@ struct LibraryLogPrivacyTests {
         try #require(messages.contains { $0.contains("[IosDialogManager] [show] answer: primary, input: text(length: ") },
                      "the library's routine messages must be readable, or the test checks nothing")
         try #require(messages.contains { $0.contains("[IosDialogManager] [showLoginDialog] answer: primary, input: login(") })
+        let leaks = messages.filter { $0.contains(secret) }
+        #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
+    }
+
+    /// Share (8.7.2) through the manager's three forms, the library's repository and its real
+    /// presenter on the host app: the text, URL, subject and title of what is shared, a file path,
+    /// and an error that carries a URL. Both sheets end through the handler (completed, and with an
+    /// error); dismissing them afterwards only cleans up (the external dismissal is not covered).
+    @Test func shareContentThroughTheRealPresenterNeverReachesTheLog() async throws {
+        let secret = "sentinel-share-a3f8"
+        let start = Date().addingTimeInterval(-1)
+
+        try await withRaisedLevel {
+            try await withHostWindow { host in
+                let sheets = SheetRecorder()
+                let manager = IosShareManager(repository: ShareRepositoryImpl(presenter: ShareSheetPresenter.recording(into: sheets)))
+                let content = ShareContent(items: [.text("text-\(secret)"), .url("https://example.com/\(secret)")],
+                                           subject: "subject-\(secret)", previewTitle: "title-\(secret)",
+                                           excludedActivityTypes: ["excluded-\(secret)"])
+                let done = MainRecorder<String>()
+
+                manager.share(content: content, presenter: .foreground) { _ in done.record("result") }
+                #expect(await waitUntil { sheets.count == 1 && sheets.last?.presentingViewController != nil && sheets.last?.isBeingPresented == false })
+                sheets.last?.completionWithItemsHandler?(.copyToPasteboard, true, nil, nil)
+                #expect(await waitUntil { done.values.count == 1 })
+                host.root.dismiss(animated: false)
+                #expect(await waitUntil { host.root.presentedViewController == nil })
+
+                manager.share(content: content) { _, _, _, _ in done.record("legacy") }
+                #expect(await waitUntil { sheets.count == 2 && sheets.last?.presentingViewController != nil && sheets.last?.isBeingPresented == false })
+                sheets.last?.completionWithItemsHandler?(nil, false, nil, NSError(domain: "TestShareDomain", code: 5,
+                                                                                 userInfo: [NSLocalizedDescriptionKey: "error-\(secret)"]))
+                #expect(await waitUntil { done.values.count == 2 })
+                host.root.dismiss(animated: false)
+                #expect(await waitUntil { host.root.presentedViewController == nil })
+
+                await #expect(throws: ShareError.invalidURL("not a url \(secret)")) {
+                    try await manager.share(content: ShareContent(items: [.url("not a url \(secret)"), .file(path: "/private/\(secret).txt")]),
+                                            presenter: .foreground)
+                }
+            }
+        }
+
+        let messages = try readLibraryMessages(since: start)
+        try #require(messages.contains { $0.contains("[ShareSheetPresenter] [completionWithItemsHandler] ") },
+                     "the library's routine messages must be readable, or the test checks nothing")
+        try #require(messages.contains { $0.contains("[IosShareManager] [share] error: ShareError.activityFailed(domain=TestShareDomain, code=5)") })
+        try #require(messages.contains { $0.contains("[IosShareManager] [share async] error: ShareError.invalidURL") })
         let leaks = messages.filter { $0.contains(secret) }
         #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
     }
@@ -231,7 +279,7 @@ struct LogRedactionTests {
 
         #expect(described == "NotificationError.addRequestFailed(domain=UNErrorDomain, code=1)")
         #expect(!described.contains("secret"))
-        #expect(LogRedaction.describe(ShareError.presentationFailed(inner)) == "ShareError.presentationFailed(domain=UNErrorDomain, code=1)")
+        #expect(LogRedaction.describe(ShareError.activityFailed(FailureDetail(systemError: inner))) == "ShareError.activityFailed(domain=UNErrorDomain, code=1)")
         // A payload that is not an error is never shown.
         #expect(LogRedaction.describe(ShareError.fileNotFound(path: "/private/secret.txt")) == "ShareError.fileNotFound")
     }

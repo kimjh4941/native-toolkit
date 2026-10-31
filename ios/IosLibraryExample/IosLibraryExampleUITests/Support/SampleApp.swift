@@ -123,6 +123,11 @@ enum ShareButton: String, CaseIterable {
     case shareInvalidURL
     case shareMissingFile
     case shareMissingImage
+    // Swift API (2.0.0) section (1b SA-14, SA-05).
+    case shareRequestText
+    case shareThenDismissFromOutside
+    // `#if DEBUG` in the sample: the UI tests run the Debug build only (see `showAfter3Seconds`).
+    case shareAfter3Seconds
 
     var identifier: String { SampleScreen.share.buttonPrefix + rawValue }
 }
@@ -173,7 +178,7 @@ enum SampleInventory {
                     .map { "notification.lastEvent.\($0)" }
         case .share:
             return [screen.resultIdentifier]
-                + ["text", "url", "image", "file", "combination", "error"].map { "share.section.\($0)" }
+                + ["text", "url", "image", "file", "combination", "error", "swiftAPI"].map { "share.section.\($0)" }
         case .clipboard:
             return [screen.resultIdentifier, "clipboard.status", "clipboard.pasteSummary"]
                 + ["scope", "copy", "copyOptions", "append", "read", "load", "detect", "observe",

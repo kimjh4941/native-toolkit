@@ -1,6 +1,7 @@
 import IosLibrary
 import os
 import SwiftUI
+import UIKit
 
 private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "ShareSampleView")
 
@@ -21,6 +22,7 @@ enum ShareSampleIdentifiers {
         static let file = "file"
         static let combination = "combination"
         static let error = "error"
+        static let swiftAPI = "swiftAPI"
     }
 
     enum ButtonName {
@@ -38,7 +40,19 @@ enum ShareSampleIdentifiers {
         static let shareInvalidURL = "shareInvalidURL"
         static let shareMissingFile = "shareMissingFile"
         static let shareMissingImage = "shareMissingImage"
+        // Swift API (2.0.0): `share(content:presenter:)` and `share(content:presenter:completion:)`.
+        static let shareRequestText = "shareRequestText"
+        static let shareThenDismissFromOutside = "shareThenDismissFromOutside"
+        static let shareAfter3Seconds = "shareAfter3Seconds"
     }
+}
+
+/// What the sample saw at the moment it dismissed a share sheet of the Swift API section, added
+/// to that request's result line (`shown=true`). A UI test then reads it from the result line
+/// instead of having to find the sheet before the timer ends it.
+@MainActor
+final class ShareMoment {
+    var note = ""
 }
 
 struct ShareSampleView: View {
@@ -247,6 +261,67 @@ struct ShareSampleView: View {
                         }
                         .accessibilityIdentifier(ID.button(ID.ButtonName.shareMissingImage))
                     }
+
+                    sectionView(title: "Swift API (2.0.0)", identifier: ID.Section.swiftAPI) {
+                        // `share(content:presenter:)` (async) from the foreground (SA-14).
+                        Button("ShareRequestText") {
+                            logger.debug("[shareRequestText]")
+                            Task {
+                                do {
+                                    let result = try await IosShareManager.shared.share(
+                                        content: ShareContent(items: [.text("Shared through the Swift API")]),
+                                        presenter: .foreground
+                                    )
+                                    report("shareRequestText", .success(result))
+                                } catch let error as ShareError {
+                                    report("shareRequestText", .failure(error))
+                                } catch {
+                                    updateResult(isSuccess: false, result: "[shareRequestText] failure \(error)")
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareRequestText))
+
+                        // Dismissed by the sample from outside the library 3 seconds after the tap (the
+                        // release watch: dismissedBySystem). The result line says whether the sheet was
+                        // shown when it was dismissed (`shown=true`). The callback form, which the C ABI
+                        // uses (SA-14).
+                        Button("ShareThenDismissFromOutside") {
+                            logger.debug("[shareThenDismissFromOutside]")
+                            let moment = ShareMoment()
+                            IosShareManager.shared.share(
+                                content: ShareContent(items: [.text("Dismissed from outside after 3 seconds")]),
+                                presenter: .foreground
+                            ) { result in
+                                report("shareThenDismissFromOutside", result, note: moment.note)
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                moment.note = "shown=\(Self.isSheetShown())"
+                                let top = IosDialogManager.shared.foregroundViewController()
+                                top?.presentingViewController?.dismiss(animated: true)
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareThenDismissFromOutside))
+
+                        #if DEBUG
+                        // Test only: requested 3 seconds later, so that a UI test can move the app to the
+                        // background (notForeground). The scene's state when the request is made is in the
+                        // result line (SA-05).
+                        Button("ShareAfter3Seconds") {
+                            logger.debug("[shareAfter3Seconds]")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                let state = Self.sceneState()
+                                IosShareManager.shared.share(
+                                    content: ShareContent(items: [.text("Requested 3 seconds later")]),
+                                    presenter: .foreground
+                                ) { result in
+                                    report("shareAfter3Seconds@\(state)", result)
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareAfter3Seconds))
+                        #endif
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 24)
@@ -288,6 +363,59 @@ struct ShareSampleView: View {
             logger.error("[runShare][error] label: \(label, privacy: .public), error: \(error, privacy: .private)")
             updateResult(isSuccess: false, result: "[\(label)] errorMessage=\(error.localizedDescription)")
         }
+    }
+
+    /// Writes a result of the Swift API to the result line:
+    /// `[<label>] success completed=true, activityType=<type>`, `[<label>] success completed=false`
+    /// or `[<label>] failure <case>`, followed by ` <note>` when `note` is not empty.
+    private func report(_ label: String, _ result: Result<ShareResult, ShareError>, note: String = "") {
+        let suffix = note.isEmpty ? "" : " \(note)"
+        switch result {
+        case .success(let share):
+            logger.debug("[\(label, privacy: .public)] success completed: \(share.completed, privacy: .public), activityType: \(share.activityType ?? "nil", privacy: .public), note: \(note, privacy: .public)")
+            let detail = share.completed
+                ? "completed=true, activityType=\(share.activityType ?? "nil")"
+                : "completed=false"
+            updateResult(isSuccess: true, result: "[\(label)] success \(detail)\(suffix)")
+        case .failure(let error):
+            logger.debug("[\(label, privacy: .public)] failure: \(Self.caseName(of: error), privacy: .public), note: \(note, privacy: .public)")
+            updateResult(isSuccess: false, result: "[\(label)] failure \(Self.caseName(of: error))\(suffix)")
+        }
+    }
+
+    /// The case of a share error, without the URL or path some cases carry.
+    private static func caseName(of error: ShareError) -> String {
+        switch error {
+        case .noValidItems: return "noValidItems"
+        case .invalidURL: return "invalidURL"
+        case .imageLoadFailed: return "imageLoadFailed"
+        case .fileNotFound: return "fileNotFound"
+        case .noRootViewController: return "noRootViewController"
+        case .notForeground: return "notForeground"
+        case .presentationFailed: return "presentationFailed"
+        case .dismissedBySystem: return "dismissedBySystem"
+        case .activityFailed(let detail): return "activityFailed(domain=\(detail.domain), code=\(detail.code))"
+        @unknown default: return "unknown"
+        }
+    }
+
+    /// Whether the view controller in the foreground is a share sheet.
+    private static func isSheetShown() -> Bool {
+        IosDialogManager.shared.foregroundViewController() is UIActivityViewController
+    }
+
+    /// The activation state of the sample's window scenes (`foregroundActive`, ...).
+    private static func sceneState() -> String {
+        let states = UIApplication.shared.connectedScenes.map { scene -> String in
+            switch scene.activationState {
+            case .foregroundActive: return "foregroundActive"
+            case .foregroundInactive: return "foregroundInactive"
+            case .background: return "background"
+            case .unattached: return "unattached"
+            @unknown default: return "unknown"
+            }
+        }
+        return states.sorted().joined(separator: ",")
     }
 
     // MARK: - Sample data helpers
