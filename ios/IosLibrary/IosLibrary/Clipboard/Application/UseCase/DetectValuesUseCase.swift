@@ -4,13 +4,15 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "DetectValuesUseCase")
 
 /// Detects patterns on the pasteboard and reads their matched values (P-10).
 ///
 /// See `DetectPatternsUseCase` for the cancellation/timeout contract shared with this UseCase.
 @MainActor
 public struct DetectValuesUseCase {
-    private let TAG = "DetectValuesUseCase"
     private let repository: ClipboardRepository
     private let timeouts: ClipboardTimeouts
 
@@ -23,7 +25,7 @@ public struct DetectValuesUseCase {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope
     ) async throws -> ClipboardDetectedValues {
-        Log.d(TAG, "[execute] scope: \(scope.redactedDescription), patternCount: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[execute] scope: \(scope.redactedDescription, privacy: .public), patternCount: \(patterns.count, privacy: .public)")
         guard !patterns.isEmpty else { throw ClipboardError.emptyDetectionPatterns }
         let repository = self.repository
         return try await ClipboardAsyncRaceCoordinator.run(

@@ -4,11 +4,13 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "LoadItemUseCase")
 
 /// Loads a single item from the pasteboard's `NSItemProvider`s asynchronously (P-11).
 @MainActor
 public struct LoadItemUseCase {
-    private let TAG = "LoadItemUseCase"
     private let loader: ClipboardItemLoader
 
     public init(loader: ClipboardItemLoader) {
@@ -21,7 +23,7 @@ public struct LoadItemUseCase {
         scope: PasteboardScope,
         completion: @escaping (Result<ClipboardLoadedItem, ClipboardError>) -> Void
     ) -> any ClipboardLoadToken {
-        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[execute] scope: \(scope.redactedDescription, privacy: .public)")
         return loader.load(request, scope: scope, completion: completion)
     }
 }

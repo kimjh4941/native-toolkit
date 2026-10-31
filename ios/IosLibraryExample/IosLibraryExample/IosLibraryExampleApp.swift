@@ -7,6 +7,9 @@
 
 import SwiftUI
 import IosLibrary
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "IosLibraryExampleApp")
 
 @main
 struct IosLibraryExampleApp: App {
@@ -14,7 +17,7 @@ struct IosLibraryExampleApp: App {
         // Set the receivers before `setup()` installs the notification delegate, so that no
         // response can arrive while they are still unset.
         IosNotificationManager.shared.onActionReceived = { notificationId, actionId, _ in
-            Log.d("IosLibraryExampleApp", "[onActionReceived] notificationId: \(notificationId), actionId: \(actionId)")
+            logger.debug("[onActionReceived] notificationId: \(notificationId, privacy: .public), actionId: \(actionId, privacy: .public)")
             NotificationEventLog.shared.record(
                 kind: .action,
                 notificationId: notificationId,
@@ -24,10 +27,7 @@ struct IosLibraryExampleApp: App {
         }
 
         IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, _ in
-            Log.d(
-                "IosLibraryExampleApp",
-                "[onTextInputActionReceived] notificationId: \(notificationId), actionId: \(actionId), userText: \(userText)"
-            )
+            logger.debug("[onTextInputActionReceived] notificationId: \(notificationId, privacy: .public), actionId: \(actionId, privacy: .public), userTextLength: \(userText.utf8.count, privacy: .public)")
             NotificationEventLog.shared.record(
                 kind: .textInput,
                 notificationId: notificationId,

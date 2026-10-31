@@ -12,8 +12,9 @@ import Foundation
 /// called from another module or from Objective-C.
 ///
 /// Redacted: copied/pasted values, request JSON bodies, Base64 strings, file paths/names, URLs,
-/// system error messages. Never redacted (safe to log as-is): kind, length, count, UTI,
+/// system error messages. Never redacted (safe to log as-is): kind, length, count,
 /// `PasteboardScope` kind, `localOnly`, `errorCode`, and failure detail `domain`/`code`.
+/// A UTI is a value the caller passes in: the library logs it with `privacy: .private`.
 @objc public final class ClipboardRedaction: NSObject {
     @objc public static func text(_ value: String) -> String {
         ClipboardRedactionCore.text(value)

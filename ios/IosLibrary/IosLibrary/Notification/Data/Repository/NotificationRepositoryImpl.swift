@@ -3,10 +3,13 @@
 //  IosLibrary
 //
 
+import CoreLocation
 import Foundation
+import os
 import UIKit
 import UserNotifications
-import CoreLocation
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "NotificationRepositoryImpl")
 
 /// Concrete implementation of `NotificationRepository` backed by `UNUserNotificationCenter`.
 ///
@@ -17,20 +20,18 @@ import CoreLocation
 /// reads it when it runs.
 public final class NotificationRepositoryImpl: NotificationRepository {
 
-    private let TAG = "NotificationRepositoryImpl"
-
     /// The app's notification center, read per operation (see the type's Threading section).
     private var center: UNUserNotificationCenter { .current() }
 
     /// Creates a repository backed by `UNUserNotificationCenter.current()`.
     public init() {
-        Log.d(TAG, "[init]")
+        logger.log(level: .libraryDebug, "[init]")
     }
 
     // MARK: - Throwing operations
 
     public func show(content: NotificationContent, trigger: NotificationTrigger?) async throws {
-        Log.d(TAG, "[show] content.id: \(content.id), trigger: \(String(describing: trigger))")
+        logger.log(level: .libraryDebug, "[show] content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
         let request = UNNotificationRequest(identifier: content.id, content: unContent, trigger: unTrigger)
@@ -42,7 +43,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func update(identifier: String, content: NotificationContent, trigger: NotificationTrigger?) async throws {
-        Log.d(TAG, "[update] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public)")
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
@@ -55,7 +56,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func schedule(content: NotificationContent, trigger: NotificationTrigger, identifier: String) async throws {
-        Log.d(TAG, "[schedule] identifier: \(identifier), trigger: \(trigger)")
+        logger.log(level: .libraryDebug, "[schedule] identifier: \(identifier, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
         let unContent = try makeUNContent(from: content)
         let unTrigger = makeTrigger(from: trigger)
         let request = UNNotificationRequest(identifier: identifier, content: unContent, trigger: unTrigger)
@@ -67,7 +68,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func requestPermission(options: UNAuthorizationOptions) async throws -> Bool {
-        Log.d(TAG, "[requestPermission] options: \(options)")
+        logger.log(level: .libraryDebug, "[requestPermission] options: \(options.rawValue, privacy: .public)")
         do {
             return try await center.requestAuthorization(options: options)
         } catch {
@@ -76,7 +77,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func setBadgeCount(_ count: Int) async throws {
-        Log.d(TAG, "[setBadgeCount] count: \(count)")
+        logger.log(level: .libraryDebug, "[setBadgeCount] count: \(count, privacy: .public)")
         do {
             try await center.setBadgeCount(count)
         } catch {
@@ -87,37 +88,37 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     // MARK: - Non-throwing operations
 
     public func cancel(identifier: String) async {
-        Log.d(TAG, "[cancel] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[cancel] identifier: \(identifier, privacy: .public)")
         removePendingRequests(withIdentifiers: [identifier])
     }
 
     public func cancelAll() async {
-        Log.d(TAG, "[cancelAll]")
+        logger.log(level: .libraryDebug, "[cancelAll]")
         removeAllPendingRequests()
     }
 
     public func removeDelivered(identifier: String) async {
-        Log.d(TAG, "[removeDelivered] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[removeDelivered] identifier: \(identifier, privacy: .public)")
         center.removeDeliveredNotifications(withIdentifiers: [identifier])
     }
 
     public func removeAllDelivered() async {
-        Log.d(TAG, "[removeAllDelivered]")
+        logger.log(level: .libraryDebug, "[removeAllDelivered]")
         center.removeAllDeliveredNotifications()
     }
 
     public func cancelScheduled(identifier: String) async {
-        Log.d(TAG, "[cancelScheduled] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[cancelScheduled] identifier: \(identifier, privacy: .public)")
         removePendingRequests(withIdentifiers: [identifier])
     }
 
     public func cancelAllScheduled() async {
-        Log.d(TAG, "[cancelAllScheduled]")
+        logger.log(level: .libraryDebug, "[cancelAllScheduled]")
         removeAllPendingRequests()
     }
 
     public func getScheduled() async -> [ScheduledNotification] {
-        Log.d(TAG, "[getScheduled]")
+        logger.log(level: .libraryDebug, "[getScheduled]")
         let requests = await center.pendingNotificationRequests()
         return requests.map { request in
             let content = request.content
@@ -133,7 +134,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func getDelivered() async -> [ActiveNotification] {
-        Log.d(TAG, "[getDelivered]")
+        logger.log(level: .libraryDebug, "[getDelivered]")
         let delivered = await center.deliveredNotifications()
         return delivered.map { notification in
             let content = notification.request.content
@@ -150,7 +151,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func authorizationStatus() async -> NotificationAuthorizationStatus {
-        Log.d(TAG, "[authorizationStatus]")
+        logger.log(level: .libraryDebug, "[authorizationStatus]")
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .notDetermined:
@@ -169,7 +170,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func openNotificationSettings() {
-        Log.d(TAG, "[openNotificationSettings]")
+        logger.log(level: .libraryDebug, "[openNotificationSettings]")
         guard let url = URL(string: UIKit.UIApplication.openNotificationSettingsURLString) else { return }
         Task { @MainActor in
             await UIKit.UIApplication.shared.open(url)
@@ -177,14 +178,14 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     }
 
     public func registerCategory(_ category: NotificationCategory) async {
-        Log.d(TAG, "[registerCategory] identifier: \(category.identifier)")
+        logger.log(level: .libraryDebug, "[registerCategory] identifier: \(category.identifier, privacy: .public)")
         var existing = await center.notificationCategories()
         existing.insert(makeUNCategory(from: category))
         center.setNotificationCategories(existing)
     }
 
     public func removeCategory(identifier: String) async {
-        Log.d(TAG, "[removeCategory] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[removeCategory] identifier: \(identifier, privacy: .public)")
         var existing = await center.notificationCategories()
         existing = existing.filter { $0.identifier != identifier }
         center.setNotificationCategories(existing)

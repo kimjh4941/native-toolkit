@@ -1,6 +1,10 @@
 import Combine
 import Foundation
 import IosLibrary
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "NotificationEventLog")
+private let viewModelLogger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "NotificationEventViewModel")
 
 /// The most recent notification event the sample received, plus how many events arrived.
 ///
@@ -47,7 +51,6 @@ final class NotificationEventLog: @unchecked Sendable {
     /// Posted on the main thread after each `record(...)`. Carries no value.
     static let didRecord = Notification.Name("NotificationEventLog.didRecord")
 
-    private let TAG = "NotificationEventLog"
 
     private let lock = NSLock()
     private var current = NotificationEventSnapshot.initial
@@ -60,10 +63,7 @@ final class NotificationEventLog: @unchecked Sendable {
         actionId: String,
         userText: String?
     ) {
-        Log.d(
-            TAG,
-            "[record] kind: \(kind.rawValue), notificationId: \(notificationId), actionId: \(actionId), userText: \(userText ?? "nil")"
-        )
+        logger.debug("[record] kind: \(kind.rawValue, privacy: .public), notificationId: \(notificationId, privacy: .public), actionId: \(actionId, privacy: .public), userTextLength: \(userText?.utf8.count ?? 0, privacy: .public)")
         lock.lock()
         current = NotificationEventSnapshot(
             sequence: current.sequence + 1,
@@ -93,7 +93,6 @@ final class NotificationEventLog: @unchecked Sendable {
 @MainActor
 final class NotificationEventViewModel: ObservableObject {
 
-    private let TAG = "NotificationEventViewModel"
 
     @Published private(set) var snapshot: NotificationEventSnapshot
 
@@ -114,7 +113,7 @@ final class NotificationEventViewModel: ObservableObject {
     }
 
     func reload() {
-        Log.d(TAG, "[reload]")
+        viewModelLogger.debug("[reload]")
         snapshot = log.snapshot()
     }
 }

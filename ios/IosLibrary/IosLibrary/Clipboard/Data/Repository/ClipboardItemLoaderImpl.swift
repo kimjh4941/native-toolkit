@@ -4,8 +4,11 @@
 //
 
 import Foundation
+import os
 import UIKit
 import UniformTypeIdentifiers
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardItemLoaderImpl")
 
 /// `NSItemProvider`-backed implementation of `ClipboardItemLoader`.
 ///
@@ -25,7 +28,6 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader {
         }
     }
 
-    private let TAG = "ClipboardItemLoaderImpl"
     private let resolver: PasteboardResolver
     private let executor: ClipboardProviderLoadExecutor
     private var nextID = 0
@@ -51,7 +53,7 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader {
         scope: PasteboardScope,
         completion: @escaping (Result<ClipboardLoadedItem, ClipboardError>) -> Void
     ) -> any ClipboardLoadToken {
-        Log.d(TAG, "[load] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[load] scope: \(scope.redactedDescription, privacy: .public)")
         let id = nextID
         nextID += 1
         let state = Request(completion: completion)
@@ -81,7 +83,7 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader {
     }
 
     func cancelAll() {
-        Log.d(TAG, "[cancelAll]")
+        logger.log(level: .libraryDebug, "[cancelAll]")
         let pending = requests
         requests.removeAll()
         for (_, state) in pending {
@@ -90,7 +92,7 @@ final class ClipboardItemLoaderImpl: ClipboardItemLoader {
     }
 
     func cancel(id: Int) {
-        Log.d(TAG, "[cancel] id: \(id)")
+        logger.log(level: .libraryDebug, "[cancel] id: \(id, privacy: .public)")
         guard let state = requests.removeValue(forKey: id) else { return }
         deliverCancellation(state)
     }

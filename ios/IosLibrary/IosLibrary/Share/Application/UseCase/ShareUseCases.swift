@@ -4,10 +4,12 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ShareContentUseCase")
 
 /// Presents the system share sheet for the given content.
 public struct ShareContentUseCase: Sendable {
-    private let TAG = "ShareContentUseCase"
     private let repository: ShareRepository
 
     public init(repository: ShareRepository) {
@@ -20,7 +22,7 @@ public struct ShareContentUseCase: Sendable {
     /// - Throws: `ShareError.noValidItems` if `content.items` is empty; otherwise
     ///   whatever `ShareError` the repository throws.
     public func execute(content: ShareContent) async throws -> ShareResult {
-        Log.d(TAG, "[execute] items: \(content.items.count)")
+        logger.log(level: .libraryDebug, "[execute] items: \(content.items.count, privacy: .public)")
         guard !content.items.isEmpty else {
             throw ShareError.noValidItems
         }

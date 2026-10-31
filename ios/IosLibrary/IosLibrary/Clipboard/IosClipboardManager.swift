@@ -4,7 +4,10 @@
 //
 
 import Foundation
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "IosClipboardManager")
 
 /// # IosClipboardManager
 ///
@@ -48,8 +51,6 @@ import UIKit
 @MainActor
 public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
-    private let TAG = "IosClipboardManager"
-
     /// Shared singleton instance.
     public static let shared = IosClipboardManager()
 
@@ -65,7 +66,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     private var observingGeneration: UInt64 = 0
 
     private override init() {
-        Log.d(TAG, "[init]")
+        logger.log(level: .libraryDebug, "[init]")
         let useCases = Self.makeUseCases(timeouts: .default, limits: .default)
         self.useCases = useCases
         self.cleanup = ClipboardManagerCleanup(cancelAllLoads: useCases.cancelAllLoads)
@@ -83,7 +84,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Internal initializer for tests to inject use cases built from mock repositories/loaders.
     init(useCases: ClipboardUseCases) {
-        Log.d(TAG, "[init:test]")
+        logger.log(level: .libraryDebug, "[init:test]")
         self.useCases = useCases
         self.cleanup = ClipboardManagerCleanup(cancelAllLoads: useCases.cancelAllLoads)
         super.init()
@@ -110,7 +111,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: ((Bool, String?, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[copy] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
+        logger.log(level: .libraryDebug, "[copy] scope: \(scope.redactedDescription, privacy: .public), localOnly: \(options.localOnly, privacy: .public)")
         runVoid({ try await self.useCases.copyContent.execute(content, options: options, scope: scope) }, completion: completion)
     }
 
@@ -119,7 +120,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         options: ClipboardCopyOptions = .default,
         scope: PasteboardScope = .general
     ) async throws -> Void {
-        Log.d(TAG, "[copy] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
+        logger.log(level: .libraryDebug, "[copy] scope: \(scope.redactedDescription, privacy: .public), localOnly: \(options.localOnly, privacy: .public)")
         try await useCases.copyContent.execute(content, options: options, scope: scope)
     }
 
@@ -130,12 +131,12 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: ((Bool, String?, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[append] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[append] scope: \(scope.redactedDescription, privacy: .public)")
         runVoid({ try await self.useCases.appendContent.execute(content, scope: scope) }, completion: completion)
     }
 
     public func append(_ content: ClipboardContent, scope: PasteboardScope = .general) async throws -> Void {
-        Log.d(TAG, "[append] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[append] scope: \(scope.redactedDescription, privacy: .public)")
         try await useCases.appendContent.execute(content, scope: scope)
     }
 
@@ -145,12 +146,12 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardReadResult?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[read] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[read] scope: \(scope.redactedDescription, privacy: .public)")
         runValue({ try self.useCases.readContent.execute(scope: scope) }, completion: completion)
     }
 
     public func read(scope: PasteboardScope = .general) async throws -> ClipboardReadResult {
-        Log.d(TAG, "[read] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[read] scope: \(scope.redactedDescription, privacy: .public)")
         return try useCases.readContent.execute(scope: scope)
     }
 
@@ -161,7 +162,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, Data?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[readData] utType: \(utType, privacy: .private), scope: \(scope.redactedDescription, privacy: .public)")
         Task { @MainActor in
             do {
                 let data = try self.useCases.readData.execute(utType: utType, scope: scope)
@@ -175,7 +176,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     }
 
     public func readData(utType: String, scope: PasteboardScope = .general) async throws -> Data? {
-        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[readData] utType: \(utType, privacy: .private), scope: \(scope.redactedDescription, privacy: .public)")
         return try useCases.readData.execute(utType: utType, scope: scope)
     }
 
@@ -186,24 +187,24 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardSnapshot?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[snapshot] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[snapshot] scope: \(scope.redactedDescription, privacy: .public)")
         runValue({ try self.useCases.getSnapshot.execute(matchingTypes: matchingTypes, scope: scope) }, completion: completion)
     }
 
     public func snapshot(matchingTypes: [String]? = nil, scope: PasteboardScope = .general) async throws -> ClipboardSnapshot {
-        Log.d(TAG, "[snapshot] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[snapshot] scope: \(scope.redactedDescription, privacy: .public)")
         return try useCases.getSnapshot.execute(matchingTypes: matchingTypes, scope: scope)
     }
 
     // MARK: - P-6 clear
 
     public func clear(scope: PasteboardScope = .general, completion: ((Bool, String?, String?) -> Void)? = nil) {
-        Log.d(TAG, "[clear] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[clear] scope: \(scope.redactedDescription, privacy: .public)")
         runVoid({ try self.useCases.clearClipboard.execute(scope: scope) }, completion: completion)
     }
 
     public func clear(scope: PasteboardScope = .general) async throws -> Void {
-        Log.d(TAG, "[clear] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[clear] scope: \(scope.redactedDescription, privacy: .public)")
         try useCases.clearClipboard.execute(scope: scope)
     }
 
@@ -213,24 +214,24 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         _ request: PasteboardCreationRequest,
         completion: @escaping (Bool, PasteboardScope?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[createPasteboard] request: \(request.redactedDescription)")
+        logger.log(level: .libraryDebug, "[createPasteboard] request: \(request.redactedDescription, privacy: .public)")
         runValue({ try self.useCases.createPasteboard.execute(request) }, completion: completion)
     }
 
     public func createPasteboard(_ request: PasteboardCreationRequest) async throws -> PasteboardScope {
-        Log.d(TAG, "[createPasteboard] request: \(request.redactedDescription)")
+        logger.log(level: .libraryDebug, "[createPasteboard] request: \(request.redactedDescription, privacy: .public)")
         return try useCases.createPasteboard.execute(request)
     }
 
     // MARK: - P-8 removePasteboard
 
     public func removePasteboard(_ scope: PasteboardScope, completion: ((Bool, String?, String?) -> Void)? = nil) {
-        Log.d(TAG, "[removePasteboard] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[removePasteboard] scope: \(scope.redactedDescription, privacy: .public)")
         runVoid({ try self.useCases.removePasteboard.execute(scope) }, completion: completion)
     }
 
     public func removePasteboard(_ scope: PasteboardScope) async throws -> Void {
-        Log.d(TAG, "[removePasteboard] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[removePasteboard] scope: \(scope.redactedDescription, privacy: .public)")
         try useCases.removePasteboard.execute(scope)
     }
 
@@ -241,7 +242,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, Set<ClipboardDetectionPattern>?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[detectPatterns] scope: \(scope.redactedDescription), count: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[detectPatterns] scope: \(scope.redactedDescription, privacy: .public), count: \(patterns.count, privacy: .public)")
         runValue({ try await self.useCases.detectPatterns.execute(patterns, scope: scope) }, completion: completion)
     }
 
@@ -249,7 +250,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope = .general
     ) async throws -> Set<ClipboardDetectionPattern> {
-        Log.d(TAG, "[detectPatterns] scope: \(scope.redactedDescription), count: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[detectPatterns] scope: \(scope.redactedDescription, privacy: .public), count: \(patterns.count, privacy: .public)")
         return try await useCases.detectPatterns.execute(patterns, scope: scope)
     }
 
@@ -260,7 +261,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardDetectedValues?, String?, String?) -> Void
     ) {
-        Log.d(TAG, "[detectValues] scope: \(scope.redactedDescription), count: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[detectValues] scope: \(scope.redactedDescription, privacy: .public), count: \(patterns.count, privacy: .public)")
         runValue({ try await self.useCases.detectValues.execute(patterns, scope: scope) }, completion: completion)
     }
 
@@ -268,7 +269,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope = .general
     ) async throws -> ClipboardDetectedValues {
-        Log.d(TAG, "[detectValues] scope: \(scope.redactedDescription), count: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[detectValues] scope: \(scope.redactedDescription, privacy: .public), count: \(patterns.count, privacy: .public)")
         return try await useCases.detectValues.execute(patterns, scope: scope)
     }
 
@@ -280,7 +281,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardLoadedItem?, String?, String?) -> Void
     ) -> any ClipboardLoadToken {
-        Log.d(TAG, "[loadItem] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[loadItem] scope: \(scope.redactedDescription, privacy: .public)")
         return useCases.loadItem.execute(request, scope: scope) { result in
             switch result {
             case .success(let item):
@@ -292,7 +293,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     }
 
     public func loadItem(_ request: ClipboardLoadRequest, scope: PasteboardScope = .general) async throws -> ClipboardLoadedItem {
-        Log.d(TAG, "[loadItem] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[loadItem] scope: \(scope.redactedDescription, privacy: .public)")
         let box = ClipboardCancellationBox()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -309,7 +310,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     // MARK: - P-12 cancelAllLoads (synchronous control)
 
     public func cancelAllLoads() {
-        Log.d(TAG, "[cancelAllLoads]")
+        logger.log(level: .libraryDebug, "[cancelAllLoads]")
         useCases.cancelAllLoads.execute()
     }
 
@@ -325,10 +326,10 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         scope: PasteboardScope = .general,
         onEvent: @escaping (ClipboardChangeEvent) -> Void
     ) throws {
-        Log.d(TAG, "[startObserving] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[startObserving] scope: \(scope.redactedDescription, privacy: .public)")
         stopObservingInternal()
         guard let pasteboard = Self.resolvePasteboardForObserving(scope) else {
-            Log.e(TAG, "[startObserving] pasteboard unavailable")
+            logger.error("[startObserving] pasteboard unavailable")
             throw ClipboardError.pasteboardUnavailable(name: Self.scopeName(of: scope))
         }
         useCases.checkForegroundChange.resync(scope: scope)
@@ -369,7 +370,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     }
 
     public func stopObserving() {
-        Log.d(TAG, "[stopObserving]")
+        logger.log(level: .libraryDebug, "[stopObserving]")
         stopObservingInternal()
     }
 
@@ -400,7 +401,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     // MARK: - P-15 checkForegroundChange (synchronous control)
 
     public func checkForegroundChange(scope: PasteboardScope = .general) -> Bool {
-        Log.d(TAG, "[checkForegroundChange] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[checkForegroundChange] scope: \(scope.redactedDescription, privacy: .public)")
         return useCases.checkForegroundChange.execute(scope: scope)
     }
 
@@ -416,7 +417,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         onPartialFailure: (([ClipboardError]) -> Void)? = nil,
         onPasteFailure: ((ClipboardError) -> Void)? = nil
     ) throws -> ClipboardPasteControlContainerView {
-        Log.d(TAG, "[makePasteControl] acceptedTypesCount: \(acceptedTypes.count)")
+        logger.log(level: .libraryDebug, "[makePasteControl] acceptedTypesCount: \(acceptedTypes.count, privacy: .public)")
         let container = try ClipboardPasteControlContainerView(acceptedTypes: acceptedTypes, displayMode: displayMode)
         container.onPaste = onPaste
         container.onPartialFailure = onPartialFailure
@@ -435,10 +436,10 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
                 try await operation()
                 completion?(true, nil, nil)
             } catch let error as ClipboardError {
-                Log.e(TAG, "[runVoid] errorCode: \(error.errorCode)")
+                logger.error("[runVoid] errorCode: \(error.errorCode, privacy: .public)")
                 completion?(false, error.errorCode, error.errorDescription)
             } catch {
-                Log.e(TAG, "[runVoid] unknown error")
+                logger.error("[runVoid] unknown error")
                 completion?(false, ClipboardError.unknownErrorCode, ClipboardError.unknownMessage)
             }
         }
@@ -453,10 +454,10 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
                 let value = try await operation()
                 completion(true, value, nil, nil)
             } catch let error as ClipboardError {
-                Log.e(TAG, "[runValue] errorCode: \(error.errorCode)")
+                logger.error("[runValue] errorCode: \(error.errorCode, privacy: .public)")
                 completion(false, nil, error.errorCode, error.errorDescription)
             } catch {
-                Log.e(TAG, "[runValue] unknown error")
+                logger.error("[runValue] unknown error")
                 completion(false, nil, ClipboardError.unknownErrorCode, ClipboardError.unknownMessage)
             }
         }

@@ -1,5 +1,8 @@
-import SwiftUI
 import IosLibrary
+import os
+import SwiftUI
+
+private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "NotificationSampleView")
 
 /// Single source of truth for the accessibility identifiers exposed by `NotificationSampleView`.
 ///
@@ -61,8 +64,6 @@ enum NotificationSampleIdentifiers {
 }
 
 struct NotificationSampleView: View {
-
-    private let TAG = "NotificationSampleView"
 
     private typealias ID = NotificationSampleIdentifiers
 
@@ -572,7 +573,7 @@ struct NotificationSampleView: View {
     }
 
     private func updateResult(isSuccess: Bool, result: String?) {
-        Log.d(TAG, "[updateResult] isSuccess: \(isSuccess), result: \(result ?? "nil")")
+        logger.debug("[updateResult] isSuccess: \(isSuccess, privacy: .public), result: \(result ?? "nil", privacy: .private)")
         DispatchQueue.main.async {
             resultUpdateCount += 1
             if isSuccess {

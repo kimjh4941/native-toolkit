@@ -9,25 +9,43 @@
 
 ---
 
-## ログ（Log.d / Log.e）
+## ログ（`os.Logger`）
 
-全メソッドの先頭1行目に、全パラメータを含むログを必ず入れる。
+全メソッドの先頭1行目に、全パラメータを含むログを必ず入れる（秘密の値は下の「秘密の値を伏せる」の例外）。
 
-- 通常ログ: `Log.d`
-- エラーログ: `Log.e`
+- `IosLibrary` は `os.Logger` を呼ぶ所で直に呼ぶ（2026-10-31、段階 1b。`artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-swift-api-design.md` の S-P21・8.7）。`Log`（`print`）は deprecated で、ライブラリの中では使わない
+- 通常ログ: `logger.log(level: .libraryDebug, "...")`（`.debug`。Debug ビルドのログのテストの間だけ `.info` に上がる。`OSLogStore` が `.debug` を返さないため。`Common/LogLevel.swift`）
+- エラーログ: `logger.error("...")`。知らせ: `logger.info("...")`
+- サンプル（`IosLibraryExample`）も自分の `os.Logger`（subsystem はサンプルの bundle id）を使う。サンプルは `logger.debug` でよい
 
 ### Swift フォーマット
 
 ```swift
-private let TAG = "FullClassName"
+import os
 
-public func sample(param1: String, param2: Int) {
-    Log.d(TAG, "[sample] param1: \(param1), param2: \(param2)")
+// The file's logger: subsystem is the library's, category is the type name.
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "FullClassName")
+
+public func sample(identifier: String, title: String, password: String, count: Int) {
+    logger.log(level: .libraryDebug, "[sample] identifier: \(identifier, privacy: .public), title: \(title, privacy: .private), password: \(LogRedaction.redact(password), privacy: .public), count: \(count, privacy: .public)")
     // existing logic...
 }
 ```
 
+| 項目 | 規則 |
+|---|---|
+| logger の持ち方 | ファイルの `private let logger`。generic の型・`@MainActor` の型・`nonisolated` の関数・`deinit` からも使える。1 つのファイルに型が複数あれば、型ごとに名前を分ける（`handleLogger` など）。generic でない型の中に置くなら `nonisolated private static let` でもよいが、generic の型はファイルの `private let` だけ |
+| category | 型名の文字列 |
+| privacy | 補間ごとに必ず付ける。関数名・識別子（通知・category・アクションの id、ライブラリが作った id）・件数・長さ・列挙・真偽値・エラーの case・`FailureDetail` は `.public`。そのほかの利用者の値（Dialog の題と本文、ボタンの文言、trigger、UTI など）は `.private` |
+| 秘密の値 | `.private` でも補間に入れない。`LogRedaction.redact(_:)`（`<redacted, length=N>`）か `LogRedaction.length(_:)` を `.public` で入れる |
+| エラー | `\(LogRedaction.describe(error), privacy: .public)`（ライブラリの enum のエラーは `<型>.<case>`、ほかは `NSError` の domain と code）。`localizedDescription` と関連値は出さない |
+| 型の制約 | `OSLogInterpolation` は `CustomStringConvertible` を求めるので、列挙などは `String(describing:)` で包む。closure の中で property を補間するときは `self.` を書く |
+| Release | `#if DEBUG` で消さない（`.debug` は OS が保存しない） |
+| 確かめ | 秘密の値の名前が補間に入っていないかを `grep` で照らし、`LibraryLogPrivacyTests`（UT-15）が番兵の値で読み返す |
+
 ### Objective-C フォーマット
+
+ブリッジ（`ios/UnityIosPlugin`。段階 3 で消す）の Objective-C は、消すまで今の `Log` のまま（D-22。ブリッジには手を入れない）。
 
 ```objective-c
 static NSString *const TAG = @"FullClassName";
@@ -64,7 +82,7 @@ void sample(const char* value) {
 | 出してよい値 | 関数名、長さ、件数、識別子（通知・category・アクションの id）、種類、列挙、真偽値、エラーの case |
 | 先頭のログ | 残す。伏せる値を持つ引数は長さだけを出す |
 | OS の違い | Android（`android.md`）は通知のタイトルとメッセージを出してよい値とするが、iOS は通知の内容をすべて伏せる |
-| ログの出し方 | 段階 1b で `Log` から `os.Logger` に移る（補間ごとに `privacy:` を付ける）。書き方はそのコードと一緒にここに書く |
+| ログの出し方 | `os.Logger` で補間ごとに `privacy:` を付ける（上の「Swift フォーマット」） |
 
 ---
 
@@ -102,6 +120,7 @@ Swift の API を Objective-C から呼び出す際、completion ブロックの
 - サンプルアプリ（`IosLibraryExample`）は `async throws` 版を使う（`Button` の action は同期クロージャのため `Task { await ... }` で橋渡しする）
 - **例外（投げない `async`）**: system の API が失敗を返さない問い合わせ（通知の一覧、権限の状態、category の登録と削除など）のネイティブ版は、投げない `async` にしてよい（2026-10-31）
 - **例外（サンプル）**: 段階 0c の UI テストの基準になっている今のボタンは、callback 版のまま残してよい。新しく足すボタンは `async` 版を使う（2026-10-31）
+- **`PresenterSelection` を取る口**: 画面を出す口（Dialog・Share）と、システムの画面を出しうる口（通知の権限の要求、設定の画面）は `presenter: PresenterSelection` を取る。callback の新しい口は既定を持たず、`async` 版と今の口の拡張は既定 `.firstActiveScene`（今の探し方。待たない。今の動作のまま）にする。探し方と表示の手順は `Common/Presentation/`（`ForegroundLocator`・`PresentationProcedure`）の 1 か所だけに置き、機能の中に `getRootViewController()` を写さない（2026-10-31）
 - **UseCase を置かない口**: Data 層に届かない口は UseCase を置かず、Manager から直に持ち主を呼んでよい。対象は、受け手の登録・解除、要求の取り消し、前面の問い合わせ、通知の delegate を入れる口、状態を持たない純粋な関数（2026-10-31。Android の `android.md` と同じ条件）
 - **例外**: 待機や結果の非同期到着を伴わず即時完了する control 操作（監視の開始・停止、キャンセル、真偽値の即時判定など）および factory 操作（UI コンポーネントの生成など）は、callback 版 / `async throws` 版を設けず同期形式のまま公開してよい。詳細と適用条件は `common.md`「システム API に合わせた同期・非同期設計」の「例外（同期 control / factory API）」を参照する。上記「必ず `async throws` にする」はこの例外に該当しない操作に適用する
 

@@ -4,6 +4,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "IosShareManager")
 
 /// # IosShareManager
 ///
@@ -28,8 +31,6 @@ import Foundation
 /// ```
 public final class IosShareManager: NSObject, Sendable {
 
-    private let TAG = "IosShareManager"
-
     /// Shared singleton instance.
     public static let shared = IosShareManager()
 
@@ -37,7 +38,7 @@ public final class IosShareManager: NSObject, Sendable {
     private let shareUseCase: ShareContentUseCase
 
     private override init() {
-        Log.d(TAG, "[init]")
+        logger.log(level: .libraryDebug, "[init]")
         let repo = ShareRepositoryImpl()
         self.repository = repo
         self.shareUseCase = ShareContentUseCase(repository: repo)
@@ -46,7 +47,7 @@ public final class IosShareManager: NSObject, Sendable {
 
     /// Internal initializer for tests to inject a repository.
     init(repository: ShareRepository) {
-        Log.d(TAG, "[init:test]")
+        logger.log(level: .libraryDebug, "[init:test]")
         self.repository = repository
         self.shareUseCase = ShareContentUseCase(repository: repository)
         super.init()
@@ -72,13 +73,13 @@ public final class IosShareManager: NSObject, Sendable {
         content: ShareContent,
         completion: (@MainActor @Sendable (Bool, Bool, String?, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[share] items: \(content.items.count)")
+        logger.log(level: .libraryDebug, "[share] items: \(content.items.count, privacy: .public)")
         Task { @MainActor in
             do {
                 let result = try await shareUseCase.execute(content: content)
                 completion?(true, result.completed, result.activityType, nil)
             } catch {
-                Log.e(TAG, "[share] error: \(error)")
+                logger.error("[share] error: \(LogRedaction.describe(error), privacy: .public)")
                 completion?(false, false, nil, error.localizedDescription)
             }
         }
@@ -96,7 +97,7 @@ public final class IosShareManager: NSObject, Sendable {
     /// - Throws: `ShareError` on failure before or during presentation.
     @discardableResult
     public func share(content: ShareContent) async throws -> ShareResult {
-        Log.d(TAG, "[share] items: \(content.items.count)")
+        logger.log(level: .libraryDebug, "[share] items: \(content.items.count, privacy: .public)")
         return try await shareUseCase.execute(content: content)
     }
 }

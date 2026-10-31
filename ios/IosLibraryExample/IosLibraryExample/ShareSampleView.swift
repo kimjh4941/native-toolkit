@@ -1,5 +1,8 @@
-import SwiftUI
 import IosLibrary
+import os
+import SwiftUI
+
+private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "ShareSampleView")
 
 /// Single source of truth for the accessibility identifiers exposed by `ShareSampleView`.
 ///
@@ -39,8 +42,6 @@ enum ShareSampleIdentifiers {
 }
 
 struct ShareSampleView: View {
-
-    private let TAG = "ShareSampleView"
 
     private typealias ID = ShareSampleIdentifiers
 
@@ -275,19 +276,16 @@ struct ShareSampleView: View {
     // MARK: - Share execution
 
     private func runShare(label: String, content: ShareContent) async {
-        Log.d(TAG, "[runShare] label: \(label), items: \(content.items.count)")
+        logger.debug("[runShare] label: \(label, privacy: .public), items: \(content.items.count, privacy: .public)")
         do {
             let result = try await IosShareManager.shared.share(content: content)
-            Log.d(
-                TAG,
-                "[runShare][result] label: \(label), completed: \(result.completed), activityType: \(result.activityType ?? "nil")"
-            )
+            logger.debug("[runShare][result] label: \(label, privacy: .public), completed: \(result.completed, privacy: .public), activityType: \(result.activityType ?? "nil", privacy: .public)")
             let detail = result.completed
                 ? "[\(label)] completed=true, activityType=\(result.activityType ?? "nil")"
                 : "[\(label)] completed=false (cancelled)"
             updateResult(isSuccess: true, result: detail)
         } catch {
-            Log.e(TAG, "[runShare][error] label: \(label), error: \(error)")
+            logger.error("[runShare][error] label: \(label, privacy: .public), error: \(error, privacy: .private)")
             updateResult(isSuccess: false, result: "[\(label)] errorMessage=\(error.localizedDescription)")
         }
     }
@@ -313,7 +311,7 @@ struct ShareSampleView: View {
                 try FileManager.default.copyItem(at: sourceURL, to: destURL)
                 paths.append(destURL.path)
             } catch {
-                Log.e(TAG, "[prepareSampleImagePaths] failed: \(error)")
+                logger.error("[prepareSampleImagePaths] failed: \(error, privacy: .private)")
                 return nil
             }
         }
@@ -326,7 +324,7 @@ struct ShareSampleView: View {
             try "Shared from IosLibraryExample.".write(to: url, atomically: true, encoding: .utf8)
             return url
         } catch {
-            Log.e(TAG, "[prepareSampleFileURL] failed: \(error)")
+            logger.error("[prepareSampleFileURL] failed: \(error, privacy: .private)")
             return nil
         }
     }
@@ -342,7 +340,7 @@ struct ShareSampleView: View {
                 try "Shared from IosLibraryExample (\(index)).".write(to: url, atomically: true, encoding: .utf8)
                 urls.append(url)
             } catch {
-                Log.e(TAG, "[prepareSampleFileURLs] failed: \(error)")
+                logger.error("[prepareSampleFileURLs] failed: \(error, privacy: .private)")
                 return nil
             }
         }
@@ -352,7 +350,7 @@ struct ShareSampleView: View {
     // MARK: - Result display
 
     private func updateResult(isSuccess: Bool, result: String?) {
-        Log.d(TAG, "[updateResult] isSuccess: \(isSuccess), result: \(result ?? "nil")")
+        logger.debug("[updateResult] isSuccess: \(isSuccess, privacy: .public), result: \(result ?? "nil", privacy: .private)")
         DispatchQueue.main.async {
             resultUpdateCount += 1
             if isSuccess {

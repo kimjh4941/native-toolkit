@@ -4,6 +4,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "DetectPatternsUseCase")
 
 /// Detects which patterns are present on the pasteboard, without reading matched values (P-9).
 ///
@@ -12,7 +15,6 @@ import Foundation
 /// immediately in either case, and the underlying system call's eventual result is discarded.
 @MainActor
 public struct DetectPatternsUseCase {
-    private let TAG = "DetectPatternsUseCase"
     private let repository: ClipboardRepository
     private let timeouts: ClipboardTimeouts
 
@@ -25,7 +27,7 @@ public struct DetectPatternsUseCase {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope
     ) async throws -> Set<ClipboardDetectionPattern> {
-        Log.d(TAG, "[execute] scope: \(scope.redactedDescription), patternCount: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[execute] scope: \(scope.redactedDescription, privacy: .public), patternCount: \(patterns.count, privacy: .public)")
         guard !patterns.isEmpty else { throw ClipboardError.emptyDetectionPatterns }
         let repository = self.repository
         return try await ClipboardAsyncRaceCoordinator.run(

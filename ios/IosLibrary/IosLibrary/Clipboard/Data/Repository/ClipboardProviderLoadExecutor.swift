@@ -6,6 +6,10 @@
 import Foundation
 import UIKit
 import UniformTypeIdentifiers
+import os
+
+private let handleLogger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardProviderLoadHandle")
+private let executorLogger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardProviderLoadExecutor")
 
 /// A cancellable, exactly-once load of a single `ClipboardLoadRequest` from a single
 /// `NSItemProvider`.
@@ -15,7 +19,6 @@ import UniformTypeIdentifiers
 /// losing/failed path is removed.
 @MainActor
 final class ClipboardProviderLoadHandle {
-    private let TAG = "ClipboardProviderLoadHandle"
     private var completion: ((Result<ClipboardLoadedItem, ClipboardError>) -> Void)?
     private let fileStore: ClipboardTemporaryFileStore
     fileprivate var progress: Progress?
@@ -31,7 +34,7 @@ final class ClipboardProviderLoadHandle {
 
     /// Cancels the load. Delivers `.cancelled` exactly once if it has not already been resolved.
     func cancel() {
-        Log.d(TAG, "[cancel] isPending: \(completion != nil)")
+        handleLogger.log(level: .libraryDebug, "[cancel] isPending: \(self.completion != nil, privacy: .public)")
         finish(.failure(.cancelled), tempFileURL: nil)
     }
 
@@ -76,8 +79,6 @@ final class ClipboardProviderLoadExecutor {
         static let sourceSizeUnverifiable = -3
     }
 
-    private let TAG = "ClipboardProviderLoadExecutor"
-    private static let staticTAG = "ClipboardProviderLoadExecutor"
     private let fileStore: ClipboardTemporaryFileStore
     private let imageCoder: ClipboardImageCoder
     private let limits: ClipboardLimits
@@ -100,8 +101,7 @@ final class ClipboardProviderLoadExecutor {
     /// - Returns: `nil` when the provider advertises nothing the caller accepts.
     static func requestKind(for provider: NSItemProvider, acceptedTypes: [String]) -> ClipboardLoadRequest? {
         // Only counts are logged: a type identifier can be caller-supplied data.
-        Log.d(staticTAG, "[requestKind] acceptedTypeCount: \(acceptedTypes.count), "
-            + "providerTypeCount: \(provider.registeredTypeIdentifiers.count)")
+        executorLogger.log(level: .libraryDebug, "[requestKind] acceptedTypeCount: \(acceptedTypes.count, privacy: .public), providerTypeCount: \(provider.registeredTypeIdentifiers.count, privacy: .public)")
         let acceptedUTTypes = acceptedTypes.compactMap { UTType($0) }
         if acceptedUTTypes.contains(where: { $0.conforms(to: .text) }),
            provider.canLoadObject(ofClass: NSString.self) {
@@ -128,7 +128,7 @@ final class ClipboardProviderLoadExecutor {
         from provider: NSItemProvider,
         completion: @escaping (Result<ClipboardLoadedItem, ClipboardError>) -> Void
     ) -> ClipboardProviderLoadHandle {
-        Log.d(TAG, "[start] request kind resolved, providerLoadTimeout: \(timeouts.providerLoad)")
+        executorLogger.log(level: .libraryDebug, "[start] request kind resolved, providerLoadTimeout: \(self.timeouts.providerLoad, privacy: .public)")
         let handle = ClipboardProviderLoadHandle(fileStore: fileStore, completion: completion)
 
         let seconds = max(timeouts.providerLoad, 0)

@@ -4,11 +4,13 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "CopyContentUseCase")
 
 /// Validates and writes `content` to the clipboard, replacing existing items (P-1).
 @MainActor
 public struct CopyContentUseCase {
-    private let TAG = "CopyContentUseCase"
     private let repository: ClipboardRepository
     private let contentValidator: ClipboardContentValidator
     private let typeValidator: ClipboardTypeIdentifierValidating
@@ -28,7 +30,7 @@ public struct CopyContentUseCase {
         options: ClipboardCopyOptions,
         scope: PasteboardScope
     ) async throws {
-        Log.d(TAG, "[execute] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
+        logger.log(level: .libraryDebug, "[execute] scope: \(scope.redactedDescription, privacy: .public), localOnly: \(options.localOnly, privacy: .public)")
         try contentValidator.validate(content)
         try contentValidator.validateExpirationDate(options.expirationDate)
         try validateTypeIdentifiers(of: content)

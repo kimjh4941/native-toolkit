@@ -3,7 +3,10 @@
 //  IosLibrary
 //
 
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ShareSheetPresenter")
 
 /// Contract for presenting a configured `UIActivityViewController` and awaiting its result.
 ///
@@ -44,18 +47,16 @@ struct PresentationUnavailableError: Error, LocalizedError {
 /// `completionWithItemsHandler` (never from the `present` completion handler).
 final class ShareSheetPresenter: ShareSheetPresenting {
 
-    private let TAG = "ShareSheetPresenter"
-
     @MainActor
     func present(items: [Any], excluded: [UIActivity.ActivityType]) async throws -> ShareResult {
-        Log.d(TAG, "[present] items: \(items.count), excluded: \(excluded.count)")
+        logger.log(level: .libraryDebug, "[present] items: \(items.count, privacy: .public), excluded: \(excluded.count, privacy: .public)")
 
         guard let root = getRootViewController() else {
-            Log.e(TAG, "[present] no root view controller")
+            logger.error("[present] no root view controller")
             throw ShareError.noRootViewController
         }
         guard !root.isBeingDismissed, !root.isBeingPresented, root.presentedViewController == nil else {
-            Log.e(TAG, "[present] root view controller is not in a stable state")
+            logger.error("[present] root view controller is not in a stable state")
             throw ShareError.presentationFailed(PresentationUnavailableError())
         }
 
@@ -104,7 +105,7 @@ final class ShareSheetPresenter: ShareSheetPresenting {
         guard let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
               let window = windowScene.windows.first(where: { $0.isKeyWindow }) else {
-            Log.e(TAG, "[getRootViewController] failed to get window scene or key window")
+            logger.error("[getRootViewController] failed to get window scene or key window")
             return nil
         }
 

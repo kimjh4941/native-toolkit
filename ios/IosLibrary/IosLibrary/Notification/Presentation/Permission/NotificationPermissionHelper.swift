@@ -4,7 +4,10 @@
 //
 
 import Foundation
+import os
 import UserNotifications
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "NotificationPermissionHelper")
 
 /// Helper for managing notification authorization.
 ///
@@ -12,15 +15,13 @@ import UserNotifications
 /// from any thread.
 public final class NotificationPermissionHelper: Sendable {
 
-    private let TAG = "NotificationPermissionHelper"
-
     /// Shared singleton instance.
     public static let shared = NotificationPermissionHelper()
 
     private let repository: NotificationRepository
 
     init(repository: NotificationRepository = NotificationRepositoryImpl()) {
-        Log.d(TAG, "[init]")
+        logger.log(level: .libraryDebug, "[init]")
         self.repository = repository
     }
 
@@ -31,7 +32,7 @@ public final class NotificationPermissionHelper: Sendable {
     /// - Throws: `NotificationError.permissionDenied` if permission was denied,
     ///           or `NotificationError.unknown` for other failures.
     public func requestPermission(options: UNAuthorizationOptions = [.alert, .sound, .badge, .providesAppNotificationSettings]) async throws -> Bool {
-        Log.d(TAG, "[requestPermission] options: \(options)")
+        logger.log(level: .libraryDebug, "[requestPermission] options: \(options.rawValue, privacy: .public)")
         let granted = try await repository.requestPermission(options: options)
         if !granted {
             throw NotificationError.permissionDenied
@@ -41,13 +42,13 @@ public final class NotificationPermissionHelper: Sendable {
 
     /// Returns the current notification authorization status.
     public func authorizationStatus() async -> NotificationAuthorizationStatus {
-        Log.d(TAG, "[authorizationStatus]")
+        logger.log(level: .libraryDebug, "[authorizationStatus]")
         return await repository.authorizationStatus()
     }
 
     /// Opens the app's notification settings page in the Settings app.
     public func openNotificationSettings() {
-        Log.d(TAG, "[openNotificationSettings]")
+        logger.log(level: .libraryDebug, "[openNotificationSettings]")
         repository.openNotificationSettings()
     }
 }

@@ -4,8 +4,11 @@
 //
 
 import Foundation
+import os
 import Synchronization
 import UserNotifications
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "IosNotificationManager")
 
 /// Callback invoked when a notification action is tapped.
 ///
@@ -71,8 +74,6 @@ public typealias NotificationTextInputActionHandler = @Sendable (
 /// ```
 public final class IosNotificationManager: NSObject, Sendable {
 
-    private let TAG = "IosNotificationManager"
-
     /// Shared singleton instance.
     public static let shared = IosNotificationManager()
 
@@ -122,7 +123,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     }
 
     private override init() {
-        Log.d(TAG, "[init]")
+        logger.log(level: .libraryDebug, "[init]")
         let repo = NotificationRepositoryImpl()
         self.repository = repo
         self.showUseCase = ShowNotificationUseCase(repository: repo)
@@ -146,7 +147,7 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Internal initializer for tests to inject a repository and helper.
     init(repository: NotificationRepository, permissionHelper: NotificationPermissionHelper) {
-        Log.d(TAG, "[init:test]")
+        logger.log(level: .libraryDebug, "[init:test]")
         self.repository = repository
         self.showUseCase = ShowNotificationUseCase(repository: repository)
         self.updateUseCase = UpdateNotificationUseCase(repository: repository)
@@ -170,7 +171,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     /// Registers this manager as the `UNUserNotificationCenterDelegate`.
     /// Call once at app launch.
     public static func setup() {
-        Log.d("IosNotificationManager", "[setup]")
+        logger.log(level: .libraryDebug, "[setup]")
         UNUserNotificationCenter.current().delegate = shared
     }
 
@@ -186,13 +187,13 @@ public final class IosNotificationManager: NSObject, Sendable {
         trigger: NotificationTrigger? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[show] content.id: \(content.id)")
+        logger.log(level: .libraryDebug, "[show] content.id: \(content.id, privacy: .public)")
         Task {
             do {
                 try await showUseCase.execute(content: content, trigger: trigger)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
-                Log.e(TAG, "[show] error: \(error)")
+                logger.error("[show] error: \(LogRedaction.describe(error), privacy: .public)")
                 let message = error.localizedDescription
                 Task { @MainActor in completion?(false, message) }
             }
@@ -209,13 +210,13 @@ public final class IosNotificationManager: NSObject, Sendable {
         trigger: NotificationTrigger?,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[update] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public)")
         Task {
             do {
                 try await updateUseCase.execute(identifier: identifier, content: content, trigger: trigger)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
-                Log.e(TAG, "[update] error: \(error)")
+                logger.error("[update] error: \(LogRedaction.describe(error), privacy: .public)")
                 let message = error.localizedDescription
                 Task { @MainActor in completion?(false, message) }
             }
@@ -224,25 +225,25 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Cancels a specific pending notification.
     public func cancel(identifier: String) {
-        Log.d(TAG, "[cancel] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[cancel] identifier: \(identifier, privacy: .public)")
         Task { await cancelUseCase.execute(identifier: identifier) }
     }
 
     /// Cancels all pending notifications.
     public func cancelAll() {
-        Log.d(TAG, "[cancelAll]")
+        logger.log(level: .libraryDebug, "[cancelAll]")
         Task { await cancelAllUseCase.execute() }
     }
 
     /// Removes a specific delivered notification from Notification Center.
     public func removeDelivered(identifier: String) {
-        Log.d(TAG, "[removeDelivered] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[removeDelivered] identifier: \(identifier, privacy: .public)")
         Task { await removeDeliveredUseCase.execute(identifier: identifier) }
     }
 
     /// Removes all delivered notifications from Notification Center.
     public func removeAllDelivered() {
-        Log.d(TAG, "[removeAllDelivered]")
+        logger.log(level: .libraryDebug, "[removeAllDelivered]")
         Task { await removeAllDeliveredUseCase.execute() }
     }
 
@@ -256,13 +257,13 @@ public final class IosNotificationManager: NSObject, Sendable {
         identifier: String,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[schedule] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[schedule] identifier: \(identifier, privacy: .public)")
         Task {
             do {
                 try await scheduleUseCase.execute(content: content, trigger: trigger, identifier: identifier)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
-                Log.e(TAG, "[schedule] error: \(error)")
+                logger.error("[schedule] error: \(LogRedaction.describe(error), privacy: .public)")
                 let message = error.localizedDescription
                 Task { @MainActor in completion?(false, message) }
             }
@@ -271,13 +272,13 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Cancels a specific scheduled notification.
     public func cancelScheduled(identifier: String) {
-        Log.d(TAG, "[cancelScheduled] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[cancelScheduled] identifier: \(identifier, privacy: .public)")
         Task { await cancelScheduledUseCase.execute(identifier: identifier) }
     }
 
     /// Cancels all scheduled notifications.
     public func cancelAllScheduled() {
-        Log.d(TAG, "[cancelAllScheduled]")
+        logger.log(level: .libraryDebug, "[cancelAllScheduled]")
         Task { await cancelAllScheduledUseCase.execute() }
     }
 
@@ -285,7 +286,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func getScheduled(completion: @escaping @MainActor @Sendable ([ScheduledNotification]) -> Void) {
-        Log.d(TAG, "[getScheduled]")
+        logger.log(level: .libraryDebug, "[getScheduled]")
         Task {
             let result = await getScheduledUseCase.execute()
             Task { @MainActor in completion(result) }
@@ -296,7 +297,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func getDelivered(completion: @escaping @MainActor @Sendable ([ActiveNotification]) -> Void) {
-        Log.d(TAG, "[getDelivered]")
+        logger.log(level: .libraryDebug, "[getDelivered]")
         Task {
             let result = await getDeliveredUseCase.execute()
             Task { @MainActor in completion(result) }
@@ -307,7 +308,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func hasPermission(completion: @escaping @MainActor @Sendable (Bool) -> Void) {
-        Log.d(TAG, "[hasPermission]")
+        logger.log(level: .libraryDebug, "[hasPermission]")
         Task {
             let result = await hasPermissionUseCase.execute()
             Task { @MainActor in completion(result) }
@@ -318,7 +319,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func authorizationStatus(completion: @escaping @MainActor @Sendable (NotificationAuthorizationStatus) -> Void) {
-        Log.d(TAG, "[authorizationStatus]")
+        logger.log(level: .libraryDebug, "[authorizationStatus]")
         Task {
             let result = await getAuthStatusUseCase.execute()
             Task { @MainActor in completion(result) }
@@ -332,13 +333,13 @@ public final class IosNotificationManager: NSObject, Sendable {
         options: UNAuthorizationOptions = [.alert, .sound, .badge],
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "[requestPermission] options: \(options)")
+        logger.log(level: .libraryDebug, "[requestPermission] options: \(options.rawValue, privacy: .public)")
         Task {
             do {
                 let granted = try await permissionHelper.requestPermission(options: options)
                 Task { @MainActor in completion?(granted, nil) }
             } catch {
-                Log.e(TAG, "[requestPermission] error: \(error)")
+                logger.error("[requestPermission] error: \(LogRedaction.describe(error), privacy: .public)")
                 let message = error.localizedDescription
                 Task { @MainActor in completion?(false, message) }
             }
@@ -347,7 +348,7 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Opens the app's notification settings page.
     public func openNotificationSettings() {
-        Log.d(TAG, "[openNotificationSettings]")
+        logger.log(level: .libraryDebug, "[openNotificationSettings]")
         repository.openNotificationSettings()
     }
 
@@ -355,13 +356,13 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func setBadgeCount(_ count: Int, completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil) {
-        Log.d(TAG, "[setBadgeCount] count: \(count)")
+        logger.log(level: .libraryDebug, "[setBadgeCount] count: \(count, privacy: .public)")
         Task {
             do {
                 try await repository.setBadgeCount(count)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
-                Log.e(TAG, "[setBadgeCount] error: \(error)")
+                logger.error("[setBadgeCount] error: \(LogRedaction.describe(error), privacy: .public)")
                 let message = error.localizedDescription
                 Task { @MainActor in completion?(false, message) }
             }
@@ -370,13 +371,13 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Registers a notification category.
     public func registerCategory(_ category: NotificationCategory) {
-        Log.d(TAG, "[registerCategory] identifier: \(category.identifier)")
+        logger.log(level: .libraryDebug, "[registerCategory] identifier: \(category.identifier, privacy: .public)")
         Task { await registerCategoryUseCase.execute(category) }
     }
 
     /// Removes a registered notification category.
     public func removeCategory(identifier: String) {
-        Log.d(TAG, "[removeCategory] identifier: \(identifier)")
+        logger.log(level: .libraryDebug, "[removeCategory] identifier: \(identifier, privacy: .public)")
         Task { await removeCategoryUseCase.execute(identifier: identifier) }
     }
 }
@@ -391,7 +392,7 @@ extension IosNotificationManager: UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        Log.d(TAG, "[willPresent] identifier: \(notification.request.identifier)")
+        logger.log(level: .libraryDebug, "[willPresent] identifier: \(notification.request.identifier, privacy: .public)")
         completionHandler(foregroundPresentationOptions)
     }
 
@@ -401,7 +402,7 @@ extension IosNotificationManager: UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        Log.d(TAG, "[didReceive] actionIdentifier: \(response.actionIdentifier), notificationIdentifier: \(response.notification.request.identifier)")
+        logger.log(level: .libraryDebug, "[didReceive] actionIdentifier: \(response.actionIdentifier, privacy: .public), notificationIdentifier: \(response.notification.request.identifier, privacy: .public)")
         let notificationId = response.notification.request.identifier
         let actionId = response.actionIdentifier
         let userInfo = response.notification.request.content.userInfo
@@ -420,7 +421,7 @@ extension IosNotificationManager: UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         openSettingsFor notification: UNNotification?
     ) {
-        Log.d(TAG, "[openSettingsFor] identifier: \(notification?.request.identifier ?? "nil")")
+        logger.log(level: .libraryDebug, "[openSettingsFor] identifier: \(notification?.request.identifier ?? "nil", privacy: .public)")
         openNotificationSettings()
     }
 }

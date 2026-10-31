@@ -3,7 +3,10 @@
 //  IosLibrary
 //
 
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardPasteControlContainerView")
 
 /// A ready-to-place container that strongly retains both a paste button (`control`) and its
 /// receiver (`receiver`), and adds the receiver as a subview so it automatically joins the
@@ -13,7 +16,6 @@ import UIKit
 /// `receiver`. For independent placement, see `PasteControlFactory.makeComponents`.
 @MainActor
 public final class ClipboardPasteControlContainerView: UIView {
-    private let TAG = "ClipboardPasteControlContainerView"
 
     public private(set) var control: UIPasteControl!
     public private(set) var receiver: ClipboardPasteReceiverView!
@@ -32,7 +34,7 @@ public final class ClipboardPasteControlContainerView: UIView {
         displayMode: UIPasteControl.DisplayMode = .iconAndLabel,
         typeValidator: ClipboardTypeIdentifierValidating = ClipboardTypeIdentifierValidator()
     ) throws {
-        Log.d(TAG, "[init] acceptedTypesCount: \(acceptedTypes.count)")
+        logger.log(level: .libraryDebug, "[init] acceptedTypesCount: \(acceptedTypes.count, privacy: .public)")
         guard !acceptedTypes.isEmpty else {
             throw ClipboardError.invalidRequest("acceptedTypes must not be empty")
         }

@@ -4,11 +4,13 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ReadContentUseCase")
 
 /// Reads the clipboard's items synchronously (P-3). An empty clipboard is not an error.
 @MainActor
 public struct ReadContentUseCase {
-    private let TAG = "ReadContentUseCase"
     private let repository: ClipboardRepository
 
     public init(repository: ClipboardRepository) {
@@ -16,7 +18,7 @@ public struct ReadContentUseCase {
     }
 
     public func execute(scope: PasteboardScope) throws -> ClipboardReadResult {
-        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[execute] scope: \(scope.redactedDescription, privacy: .public)")
         return try repository.read(scope: scope)
     }
 }

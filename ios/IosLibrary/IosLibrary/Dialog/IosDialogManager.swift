@@ -4,7 +4,10 @@
 //
 //  Created by Kim Jong Hyun on 2025/04/12.
 //
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "IosDialogManager")
 
 /// # IosDialogManager
 ///
@@ -65,13 +68,12 @@ import UIKit
 /// ```
 public final class IosDialogManager: NSObject, Sendable {
     
-    private let TAG = "IosDialogManager"
     
     /// Shared singleton instance.
     public static let shared = IosDialogManager()
     
     private override init() {
-        Log.d(TAG, "init")
+        logger.log(level: .libraryDebug, "init")
         super.init()
     }
     
@@ -107,7 +109,7 @@ public final class IosDialogManager: NSObject, Sendable {
         animated: Bool = true,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), preferredStyle: \(preferredStyle), actions count: \(actions.count), textFields count: \(textFields?.count ?? 0), sourceView: \(sourceView?.description ?? "nil"), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), barButtonItem: \(barButtonItem?.description ?? "nil"), permittedArrowDirections: \(permittedArrowDirections), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
+        logger.log(level: .libraryDebug, "showDialog called with title: \(title ?? "nil", privacy: .private), message: \(message ?? "nil", privacy: .private), preferredStyle: \(String(describing: preferredStyle), privacy: .public), actions count: \(actions.count, privacy: .public), textFields count: \(textFields?.count ?? 0, privacy: .public), sourceView: \(sourceView?.description ?? "nil", privacy: .private), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil", privacy: .private), barButtonItem: \(barButtonItem?.description ?? "nil", privacy: .private), permittedArrowDirections: \(String(describing: permittedArrowDirections), privacy: .public), animated: \(animated, privacy: .public), completion: \(completion != nil ? "provided" : "nil", privacy: .public)")
         DispatchQueue.main.async {
             self.presentDialog(
                 title: title,
@@ -144,7 +146,7 @@ public final class IosDialogManager: NSObject, Sendable {
         completion: (@MainActor @Sendable (Bool, String?) -> Void)?
     ) {
         guard let rootViewController = getRootViewController() else {
-            Log.e(TAG, "Failed to get root view controller")
+            logger.error("Failed to get root view controller")
             completion?(false, "Failed to get root view controller")
             return
         }
@@ -194,25 +196,15 @@ public final class IosDialogManager: NSObject, Sendable {
     
     /// Resolves the top-most presented `UIViewController` suitable for presenting a dialog.
     ///
-    /// Iterates through foreground active scenes → key window → presented chain.
-    /// Returns `nil` if no active scene or key window is found.
+    /// Takes the first foreground active scene → key window → presented chain (every presented
+    /// view controller, also one being dismissed). Returns `nil` if no active scene or key window
+    /// is found. This is the search of `PresenterSelection.firstActiveScene`.
     /// - Returns: The top view controller or `nil`.
     /// - Note: It reads UIKit state, so it is `@MainActor`: call it on the main actor.
     @MainActor
     public func getRootViewController() -> UIViewController? {
-        guard let windowScene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-              let window = windowScene.windows.first(where: { $0.isKeyWindow }) else {
-            Log.e(TAG, "Failed to get window scene or key window")
-            return nil
-        }
-        
-        var rootViewController = window.rootViewController
-        while let presentedViewController = rootViewController?.presentedViewController {
-            rootViewController = presentedViewController
-        }
-        
-        return rootViewController
+        logger.log(level: .libraryDebug, "[getRootViewController]")
+        return ForegroundLocator.firstActiveScene()
     }
     
     // Convenience methods for common dialog types
@@ -231,7 +223,7 @@ public final class IosDialogManager: NSObject, Sendable {
         onButton: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showAlert called with title: \(title ?? "nil"), message: \(message ?? "nil"), buttonText: \(buttonText ?? "nil"), onButton: \(onButton != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
+        logger.log(level: .libraryDebug, "showAlert called with title: \(title ?? "nil", privacy: .private), message: \(message ?? "nil", privacy: .private), buttonText: \(buttonText ?? "nil", privacy: .private), onButton: \(onButton != nil ? "provided" : "nil", privacy: .public), completion: \(completion != nil ? "provided" : "nil", privacy: .public)")
         DispatchQueue.main.async {
             let okAction = UIAlertAction(title: buttonText, style: .default) { _ in
                 onButton?(buttonText, true, nil)
@@ -261,7 +253,7 @@ public final class IosDialogManager: NSObject, Sendable {
         onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showConfirmDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
+        logger.log(level: .libraryDebug, "showConfirmDialog called with title: \(title ?? "nil", privacy: .private), message: \(message ?? "nil", privacy: .private), confirmTitle: \(confirmTitle ?? "nil", privacy: .private), cancelTitle: \(cancelTitle ?? "nil", privacy: .private), onConfirm: \(onConfirm != nil ? "provided" : "nil", privacy: .public), onCancel: \(onCancel != nil ? "provided" : "nil", privacy: .public), completion: \(completion != nil ? "provided" : "nil", privacy: .public)")
         DispatchQueue.main.async {
             let confirmAction = UIAlertAction(title: confirmTitle, style: .default) { _ in
                 onConfirm?(confirmTitle, true, nil)
@@ -295,7 +287,7 @@ public final class IosDialogManager: NSObject, Sendable {
         onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showDestructiveDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), destructiveTitle: \(destructiveTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), onDestructive: \(onDestructive != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil")")
+        logger.log(level: .libraryDebug, "showDestructiveDialog called with title: \(title ?? "nil", privacy: .private), message: \(message ?? "nil", privacy: .private), destructiveTitle: \(destructiveTitle ?? "nil", privacy: .private), cancelTitle: \(cancelTitle ?? "nil", privacy: .private), onDestructive: \(onDestructive != nil ? "provided" : "nil", privacy: .public), onCancel: \(onCancel != nil ? "provided" : "nil", privacy: .public)")
         DispatchQueue.main.async {
             let destructiveAction = UIAlertAction(title: destructiveTitle, style: .destructive) { _ in
                 onDestructive?(destructiveTitle, true, nil)
@@ -332,19 +324,19 @@ public final class IosDialogManager: NSObject, Sendable {
         onAction: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showActionSheet called with title: \(title ?? "nil"), message: \(message ?? "nil"), options: \(options), cancelTitle: \(cancelTitle), sourceView: \(sourceView.description), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil"), animated: \(animated), completion: \(completion != nil ? "provided" : "nil")")
+        logger.log(level: .libraryDebug, "showActionSheet called with title: \(title ?? "nil", privacy: .private), message: \(message ?? "nil", privacy: .private), options: \(options, privacy: .private), cancelTitle: \(cancelTitle, privacy: .private), sourceView: \(sourceView.description, privacy: .private), sourceRect: \(sourceRect != nil ? NSCoder.string(for: sourceRect!) : "nil", privacy: .private), animated: \(animated, privacy: .public), completion: \(completion != nil ? "provided" : "nil", privacy: .public)")
         DispatchQueue.main.async {
             var actions: [UIAlertAction] = []
             for option in options {
                 let action = UIAlertAction(title: option, style: .default) { _ in
-                    Log.d(self.TAG, "Option selected: \(option)")
+                    logger.log(level: .libraryDebug, "Option selected: \(option, privacy: .private)")
                     onAction?(option, true, nil)
                 }
                 actions.append(action)
             }
 
             let cancelAction = UIAlertAction(title: cancelTitle, style: .cancel) { _ in
-                Log.d(self.TAG, "Cancel button pressed")
+                logger.log(level: .libraryDebug, "Cancel button pressed")
                 onAction?(cancelTitle, true, nil)
             }
             actions.append(cancelAction)
@@ -383,10 +375,10 @@ public final class IosDialogManager: NSObject, Sendable {
         onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showTextInputDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), placeholder: \(placeholder ?? "nil"), confirmTitle: \(confirmTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableConfirmWhenEmpty: \(enableConfirmWhenEmpty), onConfirm: \(onConfirm != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
+        logger.log(level: .libraryDebug, "showTextInputDialog called with title: \(title ?? "nil", privacy: .private), message: \(message ?? "nil", privacy: .private), placeholder: \(placeholder ?? "nil", privacy: .private), confirmTitle: \(confirmTitle ?? "nil", privacy: .private), cancelTitle: \(cancelTitle ?? "nil", privacy: .private), enableConfirmWhenEmpty: \(enableConfirmWhenEmpty, privacy: .public), onConfirm: \(onConfirm != nil ? "provided" : "nil", privacy: .public), onCancel: \(onCancel != nil ? "provided" : "nil", privacy: .public), completion: \(completion != nil ? "provided" : "nil", privacy: .public)")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
-                Log.e(self.TAG, "Failed to get root view controller")
+                logger.error("Failed to get root view controller")
                 completion?(false, "Failed to get root view controller")
                 return
             }
@@ -456,10 +448,10 @@ public final class IosDialogManager: NSObject, Sendable {
         onCancel: (@MainActor @Sendable (String?, Bool, String?) -> Void)? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        Log.d(TAG, "showLoginDialog called with title: \(title ?? "nil"), message: \(message ?? "nil"), usernamePlaceholder: \(usernamePlaceholder ?? "nil"), passwordPlaceholder: \(passwordPlaceholder ?? "nil"), loginTitle: \(loginTitle ?? "nil"), cancelTitle: \(cancelTitle ?? "nil"), enableLoginWhenEmpty: \(enableLoginWhenEmpty), onLogin: \(onLogin != nil ? "provided" : "nil"), onCancel: \(onCancel != nil ? "provided" : "nil"), completion: \(completion != nil ? "provided" : "nil")")
+        logger.log(level: .libraryDebug, "showLoginDialog called with title: \(title ?? "nil", privacy: .private), message: \(message ?? "nil", privacy: .private), usernamePlaceholder: \(usernamePlaceholder ?? "nil", privacy: .private), passwordPlaceholder: \(passwordPlaceholder ?? "nil", privacy: .private), loginTitle: \(loginTitle ?? "nil", privacy: .private), cancelTitle: \(cancelTitle ?? "nil", privacy: .private), enableLoginWhenEmpty: \(enableLoginWhenEmpty, privacy: .public), onLogin: \(onLogin != nil ? "provided" : "nil", privacy: .public), onCancel: \(onCancel != nil ? "provided" : "nil", privacy: .public), completion: \(completion != nil ? "provided" : "nil", privacy: .public)")
         DispatchQueue.main.async {
             guard let rootViewController = self.getRootViewController() else {
-                Log.e(self.TAG, "Failed to get root view controller")
+                logger.error("Failed to get root view controller")
                 onLogin?(nil, nil, nil, false, "Failed to get root view controller")
                 return
             }

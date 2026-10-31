@@ -4,6 +4,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "AppendContentUseCase")
 
 /// Validates and appends `content` to the existing clipboard items (P-2).
 ///
@@ -12,7 +15,6 @@ import Foundation
 /// guaranteed by the system. Sensitive data should use `CopyContentUseCase` instead.
 @MainActor
 public struct AppendContentUseCase {
-    private let TAG = "AppendContentUseCase"
     private let repository: ClipboardRepository
     private let contentValidator: ClipboardContentValidator
     private let typeValidator: ClipboardTypeIdentifierValidating
@@ -28,7 +30,7 @@ public struct AppendContentUseCase {
     }
 
     public func execute(_ content: ClipboardContent, scope: PasteboardScope) async throws {
-        Log.d(TAG, "[execute] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[execute] scope: \(scope.redactedDescription, privacy: .public)")
         try contentValidator.validate(content)
         try validateTypeIdentifiers(of: content)
         try await repository.append(content, scope: scope)

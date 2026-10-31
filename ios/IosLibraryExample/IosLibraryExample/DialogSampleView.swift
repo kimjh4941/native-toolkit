@@ -1,5 +1,8 @@
-import SwiftUI
 import IosLibrary
+import os
+import SwiftUI
+
+private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "DialogSampleView")
 
 /// Single source of truth for the accessibility identifiers exposed by `DialogSampleView`.
 ///
@@ -21,8 +24,6 @@ enum DialogSampleIdentifiers {
 }
 
 struct DialogSampleView: View {
-
-    private let TAG = "DialogSampleView"
 
     private typealias ID = DialogSampleIdentifiers
 
@@ -63,11 +64,11 @@ struct DialogSampleView: View {
                         message: "This is a native iOS dialog!",
                         buttonText: "OK",
                         onButton: { buttonText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showAlert][onButton] buttonText: \(buttonText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showAlert][onButton] buttonText: \(buttonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showAlert][onButton] buttonText: " + (buttonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         completion: { isSuccess, errorMessage in
-                            Log.d(TAG, "[showAlert][completion] isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showAlert][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .completion, isSuccess: isSuccess, result: "[showAlert][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
@@ -85,15 +86,15 @@ struct DialogSampleView: View {
                         confirmTitle: "Yes",
                         cancelTitle: "No",
                         onConfirm: { confirmButtonText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showConfirmDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showConfirmDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showConfirmDialog][onConfirm] confirmButtonText: " + (confirmButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showConfirmDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showConfirmDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showConfirmDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         completion: { isSuccess, errorMessage in
-                            Log.d(TAG, "[showConfirmDialog][completion] isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showConfirmDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .completion, isSuccess: isSuccess, result: "[showConfirmDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
@@ -111,15 +112,15 @@ struct DialogSampleView: View {
                         destructiveTitle: "Delete",
                         cancelTitle: "Cancel",
                         onDestructive: { destructiveButtonText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showDestructiveDialog][onDestructive] destructiveButtonText: \(destructiveButtonText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showDestructiveDialog][onDestructive] destructiveButtonText: \(destructiveButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showDestructiveDialog][onDestructive] destructiveButtonText: " + (destructiveButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showDestructiveDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showDestructiveDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showDestructiveDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         completion: { isSuccess, errorMessage in
-                            Log.d(TAG, "[showDestructiveDialog][completion] isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showDestructiveDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .completion, isSuccess: isSuccess, result: "[showDestructiveDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
@@ -141,11 +142,11 @@ struct DialogSampleView: View {
                             sourceRect: nil,
                             animated: true,
                             onAction: { action, isSuccess, errorMessage in
-                                Log.d(TAG, "[showActionSheet][onAction] action: \(action ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                                logger.debug("[showActionSheet][onAction] action: \(action ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                                 updateResult(kind: .callback, isSuccess: isSuccess, result: "[showActionSheet][onAction] action: " + (action ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                             },
                             completion: { isSuccess, errorMessage in
-                                Log.d(TAG, "[showActionSheet][completion] isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                                logger.debug("[showActionSheet][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                                 updateResult(kind: .completion, isSuccess: isSuccess, result: "[showActionSheet][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                             }
                         )
@@ -166,15 +167,15 @@ struct DialogSampleView: View {
                         cancelTitle: "Cancel",
                         enableConfirmWhenEmpty: false,
                         onConfirm: { confirmButtonText, inputText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showTextInputDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil"), inputText: \(inputText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showTextInputDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil", privacy: .private), inputTextLength: \(inputText?.utf8.count ?? 0, privacy: .public), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showTextInputDialog][onConfirm] confirmButtonText: " + (confirmButtonText ?? "nil") + ", inputText: " + (inputText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showTextInputDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showTextInputDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showTextInputDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         completion: { isSuccess, errorMessage in
-                            Log.d(TAG, "[showTextInputDialog][completion] isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showTextInputDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .completion, isSuccess: isSuccess, result: "[showTextInputDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )
@@ -195,15 +196,15 @@ struct DialogSampleView: View {
                         cancelTitle: "Cancel",
                         enableLoginWhenEmpty: false,
                         onLogin: { loginButtonText, username, password, isSuccess, errorMessage in
-                            Log.d(TAG, "[showLoginDialog][onLogin] loginButtonText: \(loginButtonText ?? "nil"), username: \(username ?? "nil"), password: \(password ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showLoginDialog][onLogin] loginButtonText: \(loginButtonText ?? "nil", privacy: .private), usernameLength: \(username?.utf8.count ?? 0, privacy: .public), passwordLength: \(password?.utf8.count ?? 0, privacy: .public), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showLoginDialog][onLogin] loginButtonText: " + (loginButtonText ?? "nil") + ", username: " + (username ?? "nil") + ", password: " + (password ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            Log.d(TAG, "[showLoginDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil"), isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showLoginDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .callback, isSuccess: isSuccess, result: "[showLoginDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         },
                         completion: { isSuccess, errorMessage in
-                            Log.d(TAG, "[showLoginDialog][completion] isSuccess: \(isSuccess), errorMessage: \(errorMessage ?? "nil")")
+                            logger.debug("[showLoginDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
                             updateResult(kind: .completion, isSuccess: isSuccess, result: "[showLoginDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                         }
                     )

@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 import IosLibrary
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "ClipboardSampleView")
+private let pasteControlLogger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "ClipboardPasteControlView")
 
 /// Single source of truth for the accessibility identifiers exposed by `ClipboardSampleView`.
 ///
@@ -98,7 +102,6 @@ enum ClipboardSampleIdentifiers {
 @MainActor
 struct ClipboardSampleView: View {
 
-    private let TAG = "ClipboardSampleView"
 
     private typealias ID = ClipboardSampleIdentifiers
     private typealias Action = ClipboardSampleIdentifiers.Action
@@ -263,7 +266,7 @@ struct ClipboardSampleView: View {
 
             actionButton("Probe Last Removed Scope", marker: Action.probeRemoved) {
                 guard let removed = lastRemovedScope else {
-                    Log.e(TAG, "[probeRemoved] no pasteboard has been removed yet")
+                    logger.error("[probeRemoved] no pasteboard has been removed yet")
                     updateResult(marker: Action.probeRemoved, kind: .failure, payload: Self.localFailureText)
                     return
                 }
@@ -306,7 +309,7 @@ struct ClipboardSampleView: View {
                 }
                 actionButton("Copy Image File", marker: Action.copyImageFile) {
                     guard let path = Self.bundledImagePath() else {
-                        Log.e(TAG, "[copyImageFile] sample image not found in bundle")
+                        logger.error("[copyImageFile] sample image not found in bundle")
                         updateResult(marker: Action.copyImageFile, kind: .failure, payload: Self.localFailureText)
                         return
                     }
@@ -314,7 +317,7 @@ struct ClipboardSampleView: View {
                 }
                 actionButton("Copy Image Data", marker: Action.copyImageData) {
                     guard let data = Self.bundledImageData() else {
-                        Log.e(TAG, "[copyImageData] sample image not found in bundle")
+                        logger.error("[copyImageData] sample image not found in bundle")
                         updateResult(marker: Action.copyImageData, kind: .failure, payload: Self.localFailureText)
                         return
                     }
@@ -439,11 +442,7 @@ struct ClipboardSampleView: View {
                     // be in — unavailable / resolvable but empty / resolvable with content — which
                     // a screen-less measurement (T-13's long-duration run) has no other way to
                     // tell apart. Counts only; item values are never logged.
-                    Log.d(
-                        TAG,
-                        "[read] scope kind: \(Self.scopeKind(scope)), resolved: true, "
-                            + "numberOfItems: \(result.numberOfItems)"
-                    )
+                    logger.debug("[read] scope kind: \(Self.scopeKind(scope), privacy: .public), resolved: true, numberOfItems: \(result.numberOfItems, privacy: .public)")
                     return Self.describe(result)
                 }
             }
@@ -458,11 +457,7 @@ struct ClipboardSampleView: View {
                 let scope = activeScope
                 run(Action.snapshot) {
                     let snapshot = try await IosClipboardManager.shared.snapshot(scope: scope)
-                    Log.d(
-                        TAG,
-                        "[snapshot] numberOfItems: \(snapshot.numberOfItems), "
-                            + "typeIdentifiers: [\(snapshot.typeIdentifiers.joined(separator: ", "))]"
-                    )
+                    logger.debug("[snapshot] numberOfItems: \(snapshot.numberOfItems, privacy: .public), typeIdentifiers: [\(snapshot.typeIdentifiers.joined(separator: ", "), privacy: .private)]")
                     return Self.describe(snapshot)
                 }
             }
@@ -495,7 +490,7 @@ struct ClipboardSampleView: View {
                 load(Action.loadFile, request: .file(utType: "public.data"))
             }
             actionButton("Cancel All Loads", marker: ControlAction.cancelLoads) {
-                Log.d(TAG, "[cancelAllLoads]")
+                logger.debug("[cancelAllLoads]")
                 IosClipboardManager.shared.cancelAllLoads()
             }
 
@@ -529,7 +524,7 @@ struct ClipboardSampleView: View {
                     // Pattern names are type-level metadata, never the detected values, and are
                     // already on screen. Logging them lets the manual check (§8.1 #13) record which
                     // patterns the OS actually found without transcribing 11 names by hand.
-                    Log.d(TAG, "[detectPatterns] count: \(patterns.count), detected: [\(names)]")
+                    logger.debug("[detectPatterns] count: \(patterns.count, privacy: .public), detected: [\(names, privacy: .public)]")
                     return "count=\(patterns.count), patterns=[\(names)]"
                 }
             }
@@ -543,7 +538,7 @@ struct ClipboardSampleView: View {
                     // Pattern names and counts only. The detected values themselves (addresses,
                     // phone numbers, links) are never logged and never shown.
                     let names = values.detectedPatterns.map(\.rawValue).sorted().joined(separator: ", ")
-                    Log.d(TAG, "[detectValues] count: \(values.detectedPatterns.count), detected: [\(names)]")
+                    logger.debug("[detectValues] count: \(values.detectedPatterns.count, privacy: .public), detected: [\(names, privacy: .public)]")
                     return Self.describe(values)
                 }
             }
@@ -558,7 +553,7 @@ struct ClipboardSampleView: View {
             .disabled(isObserving)
 
             actionButton("Stop Observing", marker: Action.stopObserving) {
-                Log.d(TAG, "[stopObserving]")
+                logger.debug("[stopObserving]")
                 IosClipboardManager.shared.stopObserving()
                 isObserving = false
                 updateResult(marker: Action.stopObserving, kind: .success, payload: "observing=off")
@@ -604,7 +599,7 @@ struct ClipboardSampleView: View {
                 .frame(height: 44)
             } else {
                 actionButton("Mount Paste Control", marker: ControlAction.mountPasteControl) {
-                    Log.d(TAG, "[mountPasteControl]")
+                    logger.debug("[mountPasteControl]")
                     isPasteControlMounted = true
                 }
             }
@@ -706,7 +701,7 @@ struct ClipboardSampleView: View {
         _ content: ClipboardContent,
         options: ClipboardCopyOptions = .default
     ) {
-        Log.d(TAG, "[copy] marker: \(marker), kind: \(kind), localOnly: \(options.localOnly)")
+        logger.debug("[copy] marker: \(marker, privacy: .public), kind: \(kind, privacy: .public), localOnly: \(options.localOnly, privacy: .public)")
         let scope = activeScope
         run(marker) {
             try await IosClipboardManager.shared.copy(content, options: options, scope: scope)
@@ -715,7 +710,7 @@ struct ClipboardSampleView: View {
     }
 
     private func append(_ marker: String, kind: String, _ content: ClipboardContent) {
-        Log.d(TAG, "[append] marker: \(marker), kind: \(kind)")
+        logger.debug("[append] marker: \(marker, privacy: .public), kind: \(kind, privacy: .public)")
         let scope = activeScope
         run(marker) {
             try await IosClipboardManager.shared.append(content, scope: scope)
@@ -724,7 +719,7 @@ struct ClipboardSampleView: View {
     }
 
     private func load(_ marker: String, request: ClipboardLoadRequest) {
-        Log.d(TAG, "[load] marker: \(marker)")
+        logger.debug("[load] marker: \(marker, privacy: .public)")
         let scope = activeScope
         Task { @MainActor in
             do {
@@ -744,7 +739,7 @@ struct ClipboardSampleView: View {
                         payload: consumed.detail
                     )
                 @unknown default:
-                    Log.e(TAG, "[load] unsupported loaded item kind")
+                    logger.error("[load] unsupported loaded item kind")
                     updateResult(marker: marker, kind: .failure, payload: Self.localFailureText)
                 }
             } catch ClipboardError.cancelled {
@@ -756,7 +751,7 @@ struct ClipboardSampleView: View {
     }
 
     private func startObserving() {
-        Log.d(TAG, "[startObserving] scope kind: \(Self.scopeKind(activeScope))")
+        logger.debug("[startObserving] scope kind: \(Self.scopeKind(activeScope), privacy: .public)")
         let scope = activeScope
         do {
             try IosClipboardManager.shared.startObserving(scope: scope) { event in
@@ -764,7 +759,7 @@ struct ClipboardSampleView: View {
                 // isolation here keeps the `@State` mutation on the main actor without a hop.
                 MainActor.assumeIsolated {
                     observedEventCount += 1
-                    Log.d(TAG, "[startObserving][event] kind: \(Self.eventKindLabel(event))")
+                    logger.debug("[startObserving][event] kind: \(Self.eventKindLabel(event), privacy: .public)")
                 }
             }
             isObserving = true
@@ -782,7 +777,7 @@ struct ClipboardSampleView: View {
     }
 
     private func observeUnresolvableNamed() {
-        Log.d(TAG, "[observeUnresolvableNamed]")
+        logger.debug("[observeUnresolvableNamed]")
         let missing = PasteboardScope.named("com.jonghyunkim.nativetoolkit.example.missing-\(UUID().uuidString)")
         do {
             try IosClipboardManager.shared.startObserving(scope: missing) { _ in }
@@ -795,7 +790,7 @@ struct ClipboardSampleView: View {
     }
 
     private func checkForegroundChange() {
-        Log.d(TAG, "[checkForegroundChange] scope kind: \(Self.scopeKind(activeScope))")
+        logger.debug("[checkForegroundChange] scope kind: \(Self.scopeKind(activeScope), privacy: .public)")
         let scope = activeScope
         let isFirstInThisView = !didCheckForegroundInThisView.contains(scope)
         didCheckForegroundInThisView.insert(scope)
@@ -819,7 +814,7 @@ struct ClipboardSampleView: View {
     }
 
     private func makePasteControlWithEmptyTypes() {
-        Log.d(TAG, "[makePasteControlWithEmptyTypes]")
+        logger.debug("[makePasteControlWithEmptyTypes]")
         do {
             _ = try IosClipboardManager.shared.makePasteControl(acceptedTypes: [], onPaste: { _ in })
             updateResult(marker: Action.errEmptyAcceptedTypes, kind: .success, payload: "unexpected success")
@@ -832,14 +827,14 @@ struct ClipboardSampleView: View {
     /// library handed over (the returned URL's parent). The active session directory is owned by
     /// the library and must not be touched. The path is never shown on screen or logged.
     private func consumeLoadedFile(_ url: URL) -> (detail: String, cleanupFailed: Bool) {
-        Log.d(TAG, "[consumeLoadedFile]")
+        logger.debug("[consumeLoadedFile]")
         let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? -1
         let requestDirectory = url.deletingLastPathComponent()
         do {
             try FileManager.default.removeItem(at: requestDirectory)
             return ("fileSize=\(size)", false)
         } catch {
-            Log.e(TAG, "[consumeLoadedFile] cleanup failed")
+            logger.error("[consumeLoadedFile] cleanup failed")
             return ("fileSize=\(size), cleanup=failed", true)
         }
     }
@@ -863,7 +858,7 @@ struct ClipboardSampleView: View {
     }
 
     private func run(_ marker: String, operation: @escaping @MainActor () async throws -> String) {
-        Log.d(TAG, "[run] marker: \(marker)")
+        logger.debug("[run] marker: \(marker, privacy: .public)")
         Task { @MainActor in
             do {
                 let payload = try await operation()
@@ -871,7 +866,7 @@ struct ClipboardSampleView: View {
             } catch {
                 // The error code is logged (never the message, which is fixed text anyway) so a
                 // failure can be classified from the console alone.
-                Log.e(TAG, "[run] marker: \(marker), errorCode: \(Self.errorCode(of: error))")
+                logger.error("[run] marker: \(marker, privacy: .public), errorCode: \(Self.errorCode(of: error), privacy: .public)")
                 updateResult(marker: marker, kind: .failure, payload: Self.failureText(error))
             }
         }
@@ -879,7 +874,7 @@ struct ClipboardSampleView: View {
 
     /// Writes the single result line. The payload is deliberately excluded from the log.
     private func updateResult(marker: String, kind: ResultKind, payload: String) {
-        Log.d(TAG, "[updateResult] seq: \(resultSequence + 1), marker: \(marker), kind: \(kind.name)")
+        logger.debug("[updateResult] seq: \(resultSequence + 1, privacy: .public), marker: \(marker, privacy: .public), kind: \(kind.name, privacy: .public)")
         DispatchQueue.main.async {
             resultSequence += 1
             resultText = "\(kind.rawValue) #\(resultSequence) [\(marker)] \(payload)"
@@ -999,7 +994,6 @@ struct ClipboardSampleView: View {
 /// Hosts the library's `UIPasteControl` container inside SwiftUI.
 struct ClipboardPasteControlView: UIViewRepresentable {
 
-    private let TAG = "ClipboardPasteControlView"
 
     let acceptedTypes: [String]
     let onPaste: ([ClipboardLoadedItem]) -> Void
@@ -1008,7 +1002,7 @@ struct ClipboardPasteControlView: UIViewRepresentable {
     let onCreationFailure: (ClipboardError) -> Void
 
     func makeUIView(context: Context) -> UIView {
-        Log.d(TAG, "[makeUIView] acceptedTypesCount: \(acceptedTypes.count)")
+        pasteControlLogger.debug("[makeUIView] acceptedTypesCount: \(acceptedTypes.count, privacy: .public)")
         do {
             let container = try IosClipboardManager.shared.makePasteControl(
                 acceptedTypes: acceptedTypes,
