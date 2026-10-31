@@ -135,7 +135,31 @@
           "identifier" : "IosLibraryExampleUITests/DialogUITests/testD15_loginReportsCompletionAndCallbackOnce()"
         },
         {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD16_requestsReportOneResultEach()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD17_twoRequestsInOneTurnAreBothShown()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD18_cancelDismissesTheDialog()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD19_aCoveredDialogStaysWhenCancelled()"
+        },
+        {
           "identifier" : "IosLibraryExampleUITests/DialogUITests/testD1_showAlertOK()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD20_aDialogDismissedFromOutsideReportsDismissedBySystem()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD21_aRequestInTheBackgroundReportsNotForeground()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD22_aRequestUnderControlCenterIsShown()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/DialogUITests/testD23_actionSheetsPresentWithAnAnchor()"
         },
         {
           "identifier" : "IosLibraryExampleUITests/DialogUITests/testD2_showConfirmDialogYes()"

@@ -15,10 +15,14 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 /// it to the operation; its manager cancels the request through the box. An operation that is
 /// not given a box creates its own.
 ///
-/// - Note: The operations that take a box and the manager methods that cancel through it (the
-///   dialog manager's `show(_:presenter:requestBox:completion:)` and `cancel(_:)`, the clipboard
-///   manager's `loadItem(_:scope:requestBox:completion:)` and `cancelLoad(_:)`) are added in a
-///   later commit of 2.0.0. Until then nothing in the library takes a `RequestBox`.
+/// The operations that take a box, and the manager methods that cancel through it:
+///
+/// | Operation | Cancel |
+/// |---|---|
+/// | `IosDialogManager.show(_:presenter:requestBox:completion:)` | `IosDialogManager.cancel(_:)` |
+///
+/// - Note: The clipboard manager's `loadItem(_:scope:requestBox:completion:)` and
+///   `cancelLoad(_:)` are added in a later commit of 2.0.0.
 ///
 /// The request ends when the box closes, and only the first close counts: the user's answer,
 /// a cancellation, a failure to present, or the system dismissing the presented UI. Whatever
@@ -62,6 +66,12 @@ public final class RequestBox: Sendable {
     /// How the box was closed, or `nil` while it is open.
     var outcome: RequestBoxOutcome? {
         state.withLock { $0.outcome }
+    }
+
+    /// Whether a request already uses the box (``attach(_:)`` succeeded once). A box that was only
+    /// closed (cancelled before its request started) is not attached.
+    var isAttached: Bool {
+        state.withLock { $0.isAttached }
     }
 
     /// Ties the box to one request: `onClose` runs once, on the main thread, after the box

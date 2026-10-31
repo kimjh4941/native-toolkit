@@ -8,7 +8,8 @@ caught, next to the near-miss that must pass.
 
 The fixtures in fixtures/ios_ui_runner/ are copied from real output of Xcode 26.3 on the
 iPhone 17 (iOS 26.2) simulator, stage 0d (2026-10-24); paths are replaced and the simctl lists
-are cut down to four simulators:
+are cut down to four simulators. enumeration.json and otool-*-device.txt were taken again the same
+way in stage 1b C2 (2026-10-31), when D16 to D23 were added (107 UI tests):
   enumeration.json             -enumerate-tests ... -test-enumeration-format json (the full tree)
   otool-ov-device.txt, otool-l-device.txt
                                otool -ov / -l of IosLibraryExampleUITests.xctest built for
@@ -31,6 +32,8 @@ are cut down to four simulators:
 Run: python3 -m unittest discover -s scripts/tests
 """
 
+import contextlib
+import io
 import json
 import os
 import plistlib
@@ -182,7 +185,7 @@ class Enumeration(unittest.TestCase):
 
     def test_the_real_enumeration_matches_the_table(self):
         identifiers = enumeration()
-        self.assertEqual(len(identifiers), 99)
+        self.assertEqual(len(identifiers), 107)
         self.assertNotIn("IosLibraryExampleUITests/SampleUITestCase", identifiers)
         self.assertEqual(r.check_enumeration(identifiers, declarations()), [])
 
@@ -263,7 +266,7 @@ class Selection(unittest.TestCase):
 
     def test_the_simulator_runs_everything(self):
         selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])
-        self.assertEqual((len(selected), excluded), (99, []))
+        self.assertEqual((len(selected), excluded), (107, []))
 
     def test_the_device_runs_only_tests_whose_categories_are_all_allowed(self):
         # Mutation 7 "柱 1（選び方）": "all" turned into "any".
@@ -274,7 +277,7 @@ class Selection(unittest.TestCase):
         self.assertIn(ident("NotificationUITests/testN4_showImmediateShowsForegroundBanner"), selected)
         for identifier in selected:
             self.assertLessEqual(set(self.table[r.key_from_enumeration_id(identifier)]), {"systemui"})
-        self.assertEqual(len(selected) + len(excluded), 99)
+        self.assertEqual(len(selected) + len(excluded), 107)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard"])
         self.assertNotIn(ident("ShareUITests/testS1_shareTextCopy"), selected)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard", "sharesheet"])
@@ -306,7 +309,7 @@ class Selection(unittest.TestCase):
         self.assertEqual(sim[-1]["stage"], "cb2")
         dialog = next(i for i in sim if i["name"] == "DialogUITests")
         self.assertEqual(dialog["onlyTesting"], ["IosLibraryExampleUITests/DialogUITests"])
-        self.assertEqual(len(dialog["expected"]), 15)
+        self.assertEqual(len(dialog["expected"]), 23)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["systemui", "reinstall"])
         device = r.build_invocations(self.ids, selected, "device")
         self.assertEqual(r.device_names_tests_only(device), [])
@@ -345,6 +348,104 @@ class Selection(unittest.TestCase):
     def test_the_device_permission_stage_needs_reinstall(self):
         selected, _ = r.select_tests(self.ids, self.table, "device", ["systemui"])
         self.assertNotIn("permission", {i["stage"] for i in r.build_invocations(self.ids, selected, "device")})
+
+
+class SimulatorOnly(unittest.TestCase):
+    """Stage 1b C2 review, Codex A: D22 drags fixed coordinates to pull Control Center, which on
+    the user's iPhone could land on a control and change a setting. It, and the tests the Swift
+    API design 13.2 runs on the simulator only, never run on the device, whatever --device-allow
+    says (design 6.3 step 3). The tables are the real declarations, not the fixture."""
+
+    D22 = "DialogUITests/testD22_aRequestUnderControlCenterIsShown"
+
+    def setUp(self):
+        self.table = declarations()
+        self.ids = [ident(k) for k in sorted(self.table)]
+
+    def keys(self, ids):
+        return {r.key_from_enumeration_id(i) for i in ids}
+
+    def test_the_set_is_d22_and_the_simulator_rows_of_the_design(self):
+        self.assertEqual(r.SIMULATOR_ONLY_TESTS, {
+            "DialogUITests/testD17_twoRequestsInOneTurnAreBothShown",
+            "DialogUITests/testD20_aDialogDismissedFromOutsideReportsDismissedBySystem",
+            "DialogUITests/testD21_aRequestInTheBackgroundReportsNotForeground",
+            self.D22,
+            "DialogUITests/testD23_actionSheetsPresentWithAnAnchor",
+        })
+
+    def test_the_device_never_selects_them_even_with_every_category(self):
+        selected, excluded = r.select_tests(self.ids, self.table, "device", list(r.CATEGORIES))
+        self.assertFalse(self.keys(selected) & r.SIMULATOR_ONLY_TESTS)
+        marked = {r.key_from_enumeration_id(i) for i, _, missing in excluded if missing == [r.SIMULATOR_ONLY]}
+        self.assertEqual(marked, set(r.SIMULATOR_ONLY_TESTS))
+        self.assertEqual(len(excluded), len(r.SIMULATOR_ONLY_TESTS), "every category is allowed: nothing else is excluded")
+        # The near miss: the other new Dialog tests run on the device.
+        self.assertIn("DialogUITests/testD16_requestsReportOneResultEach", self.keys(selected))
+        self.assertIn("DialogUITests/testD18_cancelDismissesTheDialog", self.keys(selected))
+
+    def test_systemui_alone_leaves_d22_out(self):
+        selected, excluded = r.select_tests(self.ids, self.table, "device", ["systemui"], "Dialog")
+        self.assertNotIn(self.D22, self.keys(selected))
+        self.assertEqual({r.key_from_enumeration_id(i): m for i, _, m in excluded}[self.D22], [r.SIMULATOR_ONLY])
+        self.assertIn("DialogUITests/testD19_aCoveredDialogStaysWhenCancelled", self.keys(selected))
+
+    def test_the_simulator_runs_them(self):
+        selected, excluded = r.select_tests(self.ids, self.table, "simulator", [], "Dialog")
+        self.assertTrue(r.SIMULATOR_ONLY_TESTS <= self.keys(selected))
+        self.assertEqual(excluded, [])
+
+    def test_simulator_only_is_not_a_category_to_allow(self):
+        with self.assertRaises(r.RunnerError):
+            r.select_tests(self.ids, self.table, "device", [r.SIMULATOR_ONLY])
+
+    def test_a_renamed_simulator_only_test_stops_the_runner(self):
+        self.assertEqual(r.simulator_only_problems(self.table), [])
+        table = dict(self.table)
+        table["DialogUITests/testD22_renamed"] = table.pop(self.D22)
+        ids = [ident(k) for k in sorted(table)]
+        problems = r.check_enumeration(ids, table)
+        self.assertTrue(any("simulator-only tests that are not declared" in p and self.D22 in p for p in problems), problems)
+
+    def test_the_device_plan_refuses_a_selection_that_names_one(self):
+        def leaky(identifiers, declarations, kind, allowed, feature=None):
+            return list(identifiers), []
+        original = r.select_tests
+        r.select_tests = leaky
+        try:
+            with self.assertRaisesRegex(r.RunnerError, "simulator only"):
+                r.make_plan("device", FAKE_DEVICE, SIMULATOR, self.ids, self.table, list(r.CATEGORIES), None, HEAD, "h", [],
+                            False)
+            # The near miss: the simulator plan names every test.
+            r.make_plan("simulator", SIMULATOR, SIMULATOR, self.ids, self.table, [], None, HEAD, "h", [], False)
+        finally:
+            r.select_tests = original
+
+    def test_only_testing_refuses_one_on_the_device(self):
+        with tempfile.TemporaryDirectory() as d:
+            plan_path = pathlib.Path(d) / "plan.json"
+            for kind, refused in (("device", True), ("unknown", True), ("simulator", False)):
+                plan_path.write_text(json.dumps({"kind": kind, "invocations": [
+                    {"name": "DialogUITests", "onlyTesting": [ident("DialogUITests/testD18_cancelDismissesTheDialog"),
+                                                              ident(self.D22)]}]}))
+                finished = cli("only-testing", "--plan", plan_path, "--index", 0)
+                self.assertEqual(finished.returncode != 0, refused, (kind, finished.stdout, finished.stderr))
+                if refused:
+                    self.assertEqual(finished.stdout, "")
+                    self.assertIn("simulator only", finished.stderr)
+
+    def test_the_device_plan_and_its_approval_show_them_as_simulator_only(self):
+        plan = r.make_plan("device", FAKE_DEVICE, SIMULATOR, self.ids, self.table, ["systemui"], "Dialog", HEAD, "h", [], False)
+        names = [n for inv in plan["invocations"] for n in inv["onlyTesting"]]
+        self.assertNotIn(ident(self.D22), names)
+        approval = r.make_approval(plan, created_at="2026-10-31T00:00:00+00:00", approval_id="0" * 32)
+        self.assertNotIn(ident(self.D22), [t["id"] for t in approval["tests"]])
+        self.assertIn({"id": ident(self.D22), "categories": ["systemui"], "missing": [r.SIMULATOR_ONLY]}, approval["excluded"])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            r.print_selection(plan)
+        self.assertIn(f"EXCLUDE {ident(self.D22)}  [systemui] simulator only", out.getvalue())
+        self.assertFalse(r.in_run_scope(f"{r.UI_TARGET}/{self.D22}", plan), "not a lost test of the device baseline")
 
 
 class Plan(unittest.TestCase):
@@ -479,7 +580,7 @@ class BinaryInventory(unittest.TestCase):
 
     def test_the_device_build_has_exactly_the_enumerated_tests(self):
         keys = self.keys("device")
-        self.assertEqual(len(keys), 99)
+        self.assertEqual(len(keys), 107)
         self.assertEqual(r.binary_inventory_problems(keys, enumeration()), [])
 
     def test_throwing_tests_are_read_through_and_return_error(self):
@@ -518,7 +619,9 @@ class Results(unittest.TestCase):
         return {"name": "DialogUITests", "stage": "ui", "timeout": 1800, "onlyTesting": ["x"], "expected": expected}
 
     def dialog_keys(self):
-        return [r.key_from_enumeration_id(i) for i in enumeration() if "/DialogUITests/" in i]
+        # The xcresult-dialog fixtures are the stage 0d run of D1 to D15; D16 to D23 came in 1b C2.
+        keys = [r.key_from_enumeration_id(i) for i in enumeration() if "/DialogUITests/" in i]
+        return [k for k in keys if int(re.match(r"DialogUITests/testD(\d+)_", k).group(1)) <= 15]
 
     def test_the_dialog_run_matches_its_names(self):
         records, stop = r.record_invocation(self.invocation(self.dialog_keys()), fixture("xcresult-dialog-tests.json"),
@@ -688,9 +791,10 @@ class Coverage(unittest.TestCase):
                                    "notification": (SAMPLE_DIR / "NotificationSampleView.swift").read_text(encoding="utf-8"),
                                    "share": (SAMPLE_DIR / "ShareSampleView.swift").read_text(encoding="utf-8")})
 
-    def test_the_sample_has_45_buttons(self):
+    def test_the_sample_has_56_buttons(self):
+        # 45 until stage 1b C2 added the 11 buttons of the Dialog sample's Swift API section.
         buttons = self.buttons()
-        self.assertEqual(len(buttons), 45)
+        self.assertEqual(len(buttons), 56)
         self.assertIn("dialog.button.showAlert", buttons)
         self.assertIn("notification.button.setBadgeCount0", buttons)
 

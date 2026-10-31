@@ -36,6 +36,36 @@ struct Springboard {
         try session.checkInterruption()
     }
 
+    // MARK: Control Center (1b D22). Simulator only
+
+    // Both drags use fixed screen coordinates and check nothing they land on. On the user's
+    // iPhone a drag could start or end on a control of Control Center and change a setting, so
+    // they throw on the device before any gesture (fail closed). The runner never selects D22 for
+    // the device either (SIMULATOR_ONLY_TESTS, UI test design 6.3 step 3).
+
+    /// Pulls Control Center down from the top right corner over the app in the foreground, which
+    /// stays visible and becomes `foregroundInactive`. Throws on the device.
+    func openControlCenter() throws {
+        guard !session.isDevice else {
+            throw SampleUITestError("openControlCenter runs on the simulator only (fixed coordinates); nothing was done")
+        }
+        let start = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.005))
+        let end = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.6))
+        start.press(forDuration: 0.1, thenDragTo: end)
+        try session.checkInterruption()
+    }
+
+    /// Closes Control Center by swiping it up. Throws on the device.
+    func closeControlCenter() throws {
+        guard !session.isDevice else {
+            throw SampleUITestError("closeControlCenter runs on the simulator only (fixed coordinates); nothing was done")
+        }
+        let start = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95))
+        let end = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
+        start.press(forDuration: 0.1, thenDragTo: end)
+        try session.checkInterruption()
+    }
+
     // MARK: Notification banner (design 3.0)
 
     /// The sample's banner: identifier `NotificationShortLookView`, the label starts with

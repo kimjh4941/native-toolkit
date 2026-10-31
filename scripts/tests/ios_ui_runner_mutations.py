@@ -37,6 +37,11 @@ REAL_LEDGER_DIR = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / "Library" / "
 MUTATIONS = [
     ('baseline: no mutation (must survive)', None, None, None),
     ('pillar 1 selection: all categories -> any category', M, '        if kind == "device" and missing:', '        if kind == "device" and len(missing) == len(categories) and categories:'),
+    ('pillar 1 selection: a simulator-only test on the device', M, '        if kind == "device" and key in SIMULATOR_ONLY_TESTS:', '        if False:'),
+    ('pillar 1 selection: D22 dropped from the simulator-only set', M, '    "DialogUITests/testD22_aRequestUnderControlCenterIsShown",\n', ''),
+    ('pillar 1 plan: a simulator-only leak not checked', M, '        leaked = device_simulator_only_problems(selected)', '        leaked = []'),
+    ('pillar 1 naming: a simulator-only name not refused', M, '            if key in SIMULATOR_ONLY_TESTS:\n                problems.append', '            if False:\n                problems.append'),
+    ('pillar 2: a renamed simulator-only test passes', M, '    missing = sorted(SIMULATOR_ONLY_TESTS - set(declarations))', '    missing = []'),
     ('pillar 1 destination: fail open', M, '    return "simulator" if udid in sim_udids else "device"', '    return "simulator"'),
     ('pillar 1 enumeration: on the device', M, '    target = udid if kind == "simulator" else enumerate_udid', '    target = udid'),
     ('pillar 1 naming: an empty -only-testing list', M, '    if not names:\n        raise RunnerError(f"{invocation.get(\'name\')}: refusing', '    if False:\n        raise RunnerError(f"{invocation.get(\'name\')}: refusing'),

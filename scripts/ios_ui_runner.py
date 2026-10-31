@@ -80,6 +80,24 @@ CLASS_MINIMUMS = {
     "NotificationPermissionUITests": {"reinstall", "systemui"},
 }
 
+# Tests that never run on the device, whatever --device-allow says (fail closed; UI test design 6.3
+# step 3). D22 drags fixed screen coordinates to pull Control Center over the sample; on the
+# user's iPhone a drag could land on a control and change a setting (stage 1b C2 review, Codex A).
+# The others are the ones the Swift API design 13.2 runs on the simulator only: D17 and D20 rely on
+# UIKit timings measured on the simulator (MS-01, MS-03), D21 sends the sample to the background
+# with a request pending, D23 is the iPad anchor check. Every key must be declared, so that a
+# renamed test stops the runner instead of leaving this set.
+SIMULATOR_ONLY_TESTS = frozenset({
+    "DialogUITests/testD17_twoRequestsInOneTurnAreBothShown",
+    "DialogUITests/testD20_aDialogDismissedFromOutsideReportsDismissedBySystem",
+    "DialogUITests/testD21_aRequestInTheBackgroundReportsNotForeground",
+    "DialogUITests/testD22_aRequestUnderControlCenterIsShown",
+    "DialogUITests/testD23_actionSheetsPresentWithAnAnchor",
+})
+# What an excluded test of that set shows in place of its missing categories. Not a category, so
+# --device-allow cannot name it.
+SIMULATOR_ONLY = "simulator-only"
+
 # The existing ClipboardUITests, frozen (U-9 (3), U-10). Its file is hashed as a whole; pinned in
 # stage 0d (2026-10-24) from commit 8fdb429d, after 0c removed the templates and changed the base.
 FROZEN_CLIPBOARD_CLASS = "ClipboardUITests"
@@ -118,8 +136,8 @@ FROZEN_CLIPBOARD_SHA256 = "4612943da3ec0e32562d86d07d7d134521f1db5fed42e7543db74
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499",
-    "Support/SampleApp.swift": "63edf06e72b7a7e881bf1b85427d16add388d3fe502e69f365e493b7c4d9a3d4",
-    "Support/Springboard.swift": "725c9cea8fbf0fd33c6eb971057f3aa374fd307993a71bd6d847fc5ff55d6d15",
+    "Support/SampleApp.swift": "9f51a9475348ad661f454fcbaad27078259d3294a19bedd14cc2ec3538cb2b44",
+    "Support/Springboard.swift": "7c642008fdc5a532e1d1bb235702c7526669f5b1023aeae25a579f44e9c0daba",
     "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",
     "Support/UnexpectedAlertGuard.swift": "5f94e7b007e037cd9ca1393a512332acb3436a9ff2a19cfcaefcf91ea28c6bfa",
@@ -387,8 +405,16 @@ def check_enumeration(identifiers, declarations):
         problems.append(f"the enumerated classes differ from UI_CLASSES and the separate stages: "
                         f"not listed {sorted(classes - known_classes)}, not enumerated {sorted(known_classes - classes)}")
     problems += check_class_minimums(declarations)
+    problems += simulator_only_problems(declarations)
     problems += check_frozen_clipboard(keys)
     return problems
+
+
+def simulator_only_problems(declarations):
+    """Every simulator-only test must be declared: a renamed or removed one would otherwise drop out
+    of the set silently, and a new name could run on the device."""
+    missing = sorted(SIMULATOR_ONLY_TESTS - set(declarations))
+    return [f"simulator-only tests that are not declared in {DECLARATIONS_FILE} (renamed?): {missing}"] if missing else []
 
 
 def check_class_minimums(declarations):
@@ -891,7 +917,8 @@ def select_tests(identifiers, declarations, kind, allowed, feature=None):
     """(selected identifiers, excluded [(identifier, categories, missing)]).
 
     The simulator runs every test of the feature. The device runs a test only when every
-    category it declares is allowed."""
+    category it declares is allowed, and never a test of SIMULATOR_ONLY_TESTS (its `missing` is
+    [SIMULATOR_ONLY])."""
     allowed = set(allowed)
     unknown = allowed - set(CATEGORIES)
     if unknown:
@@ -904,6 +931,9 @@ def select_tests(identifiers, declarations, kind, allowed, feature=None):
         if not in_feature(key, feature):
             continue
         categories = declarations[key]
+        if kind == "device" and key in SIMULATOR_ONLY_TESTS:
+            excluded.append((identifier, categories, [SIMULATOR_ONLY]))
+            continue
         missing = [c for c in categories if c not in allowed]
         if kind == "device" and missing:
             excluded.append((identifier, categories, missing))
@@ -980,9 +1010,25 @@ def device_names_tests_only(invocations):
     return problems
 
 
+def device_simulator_only_problems(names):
+    """The -only-testing names of a device run that are simulator-only tests (a second check, right
+    before xcodebuild, of what select_tests excludes)."""
+    problems = []
+    for name in names:
+        if name.count("/") == 2 and name.endswith("()") and name.startswith(UI_TARGET + "/"):
+            key = key_from_enumeration_id(name)
+            if key in SIMULATOR_ONLY_TESTS:
+                problems.append(f"{key} runs on the simulator only; it is never named for the device")
+    return problems
+
+
 def make_plan(kind, udid, enumerate_udid, identifiers, declarations, allowed, feature, head, folder_hash,
               trusted_changes, unit_tests, name_each_test=False, runner_files=None):
     selected, excluded = select_tests(identifiers, declarations, kind, allowed, feature)
+    if kind == "device":
+        leaked = device_simulator_only_problems(selected)
+        if leaked:
+            raise RunnerError("; ".join(leaked))
     if kind == "device" and not selected:
         raise RunnerError("no test is selected for the device; nothing to approve or run (stage 0d review R-15)")
     if kind == "device":
@@ -1547,8 +1593,9 @@ def compare_with_baseline(current, baseline_results, in_scope):
 
 def in_run_scope(test, plan):
     """Whether a baseline test belongs to this run: its feature was run (all of them without
-    --feature), it was not excluded by category on the device, and unit tests count only when
-    they ran. A UI test of a class that no longer exists is in scope of a full run."""
+    --feature), it was not excluded on the device (by category or as simulator only), and unit
+    tests count only when they ran. A UI test of a class that no longer exists is in scope of a
+    full run."""
     target, _, key = test.partition("/")
     if target in UNIT_TARGETS:
         return bool(plan.get("unitTests"))
@@ -1708,13 +1755,15 @@ def cmd_preflight(args):
 
 def print_selection(plan):
     where = "device" if plan["kind"] == "device" else "simulator"
-    print(f"[select] {where}: {len(plan['selected'])} tests to run, {len(plan['excluded'])} excluded by category"
+    print(f"[select] {where}: {len(plan['selected'])} tests to run, {len(plan['excluded'])} excluded"
+          " (by category or as simulator only)"
           + (f" (--device-allow {','.join(plan['deviceAllow']) or '(none)'})" if where == "device" else ""))
     for identifier in plan["selected"]:
         categories = plan["declarations"][key_from_enumeration_id(identifier)]
         print(f"  RUN     {identifier}  [{','.join(categories) or '-'}]")
     for entry in plan["excluded"]:
-        print(f"  EXCLUDE {entry['id']}  [{','.join(entry['categories'])}] missing {','.join(entry['missing'])}")
+        reason = "simulator only" if entry["missing"] == [SIMULATOR_ONLY] else f"missing {','.join(entry['missing'])}"
+        print(f"  EXCLUDE {entry['id']}  [{','.join(entry['categories']) or '-'}] {reason}")
     for invocation in plan["invocations"]:
         print(f"  CALL {invocation['index']}: {invocation['stage']} {invocation['name']} "
               f"({len(invocation['onlyTesting'])} -only-testing, {len(invocation['expected'])} tests"
@@ -1846,7 +1895,12 @@ def cmd_invocations(args):
 
 def cmd_only_testing(args):
     plan = json.loads(_read(args.plan))
-    for argument in only_testing_arguments(plan["invocations"][args.index]):
+    invocation = plan["invocations"][args.index]
+    if plan.get("kind") != "simulator":
+        problems = device_simulator_only_problems(invocation.get("onlyTesting") or [])
+        if problems:
+            return _fail("; ".join(problems))
+    for argument in only_testing_arguments(invocation):
         print(argument)
     return 0
 
@@ -1931,7 +1985,10 @@ def cmd_summary(args):
         if r["result"] == "failed":
             print(f"  FAILED {r['test']}: {r.get('message', '')}")
     for entry in plan["excluded"]:
-        print(f"  EXCLUDED (category) {entry['id']}: missing {','.join(entry['missing'])}")
+        if entry["missing"] == [SIMULATOR_ONLY]:
+            print(f"  EXCLUDED (simulator only) {entry['id']}")
+        else:
+            print(f"  EXCLUDED (category) {entry['id']}: missing {','.join(entry['missing'])}")
     failed = bool(counts.get("failed"))
     current = {r["test"]: r["result"] for r in results if "#" not in r["test"]}
     if plan["kind"] == "device" and args.approved:

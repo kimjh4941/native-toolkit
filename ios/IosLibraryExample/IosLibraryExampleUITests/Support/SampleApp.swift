@@ -37,12 +37,31 @@ enum DialogButton: String, CaseIterable {
     case showActionSheet
     case showTextInputDialog
     case showLoginDialog
+    // Swift API (2.0.0) section (1b SA-01 to SA-05).
+    case showRequestAlert
+    case showRequestConfirm
+    case showRequestDestructive
+    case showRequestActionSheet
+    case showRequestTextInput
+    case showRequestLogin
+    case showTwoInOneTurn
+    case showThenCancel
+    case showCoverThenCancel
+    case showThenDismissFromOutside
+    // `#if DEBUG` in the sample: the UI tests run the Debug build only (scripts/test_ios.sh builds
+    // with the scheme's test action, whose configuration is Debug, for the simulator and the device).
+    case showAfter3Seconds
 
     var identifier: String { SampleScreen.dialog.buttonPrefix + rawValue }
 
     fileprivate var requiredCategory: DeviceCategory? {
-        self == .showLoginDialog ? .credentials : nil
+        self == .showLoginDialog || self == .showRequestLogin ? .credentials : nil
     }
+}
+
+/// The screen the sample presents over a dialog (`showCoverThenCancel`, D19).
+enum DialogCover {
+    static let identifier = "dialog.cover"
 }
 
 enum NotificationButton: String, CaseIterable {
@@ -647,6 +666,11 @@ struct SampleApp {
     /// The sample's action sheet (Sheet on iOS 18, Popover on iOS 26).
     func actionSheet() -> SampleActionSheet {
         SampleActionSheet(app: app, session: session)
+    }
+
+    /// Whether the screen the sample presents over a dialog is shown (D19).
+    var dialogCoverExists: Bool {
+        app.otherElements.matching(identifier: DialogCover.identifier).count == 1
     }
 
     /// Number of alerts of the sample's process (U-8 (1)). Labels are not read.

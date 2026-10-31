@@ -35,8 +35,8 @@ protocol PresentationEnvironment {
     /// Anchors a popover (action sheets and share sheets on iPad) at the centre of `node`'s view
     /// when the presented view controller has a popover without an anchor (P1-13).
     func anchorPopover(of presented: Node, at node: Node)
-    /// `node.present(presented, animated: true, completion:)`.
-    func present(_ presented: Node, on node: Node, completion: @escaping @MainActor () -> Void)
+    /// `node.present(presented, animated: animated, completion:)`.
+    func present(_ presented: Node, on node: Node, animated: Bool, completion: @escaping @MainActor () -> Void)
     /// Whether UIKit took the presentation (`presented.presentingViewController != nil`).
     func isPresentationAccepted(_ presented: Node) -> Bool
 }
@@ -71,6 +71,7 @@ enum PresentationProcedure {
     ///   - box: The request's box. Closed boxes are not presented.
     ///   - firstActiveScenePolicy: What `.firstActiveScene` does when not settled.
     ///   - environment: UIKit, or a fake in the tests.
+    ///   - animated: Whether `present` animates (the dialog methods that take `animated`).
     ///   - onPresented: Called in `present`'s completion, after the release watch has noted it.
     static func present<Environment: PresentationEnvironment>(
         _ presented: Environment.Node,
@@ -78,9 +79,10 @@ enum PresentationProcedure {
         box: RequestBox,
         firstActiveScenePolicy: FirstActiveScenePolicy,
         environment: Environment,
+        animated: Bool = true,
         onPresented: @escaping @MainActor () -> Void = {}
     ) {
-        logger.log(level: .libraryDebug, "[present] presented: \(String(describing: type(of: presented)), privacy: .public), presenter: \(presenter.logName, privacy: .public), policy: \(String(describing: firstActiveScenePolicy), privacy: .public)")
+        logger.log(level: .libraryDebug, "[present] presented: \(String(describing: type(of: presented)), privacy: .public), presenter: \(presenter.logName, privacy: .public), policy: \(String(describing: firstActiveScenePolicy), privacy: .public), animated: \(animated, privacy: .public)")
         // Step 1.
         guard !box.isClosed else {
             logger.log(level: .libraryDebug, "[present] the box is already closed")
@@ -97,9 +99,9 @@ enum PresentationProcedure {
                 box.close(.presentationFailed)
                 return
             }
-            show(presented, on: top, box: box, environment: environment, onPresented: onPresented)
+            show(presented, on: top, box: box, environment: environment, animated: animated, onPresented: onPresented)
         case .foreground:
-            attempt(presented, retried: false, box: box, environment: environment, onPresented: onPresented) {
+            attempt(presented, retried: false, box: box, environment: environment, animated: animated, onPresented: onPresented) {
                 environment.foregroundTop()
             }
         case .provided(let provider):
@@ -108,7 +110,7 @@ enum PresentationProcedure {
             // environment's view controller type, means no view controller: not in the
             // foreground (`viewController(_:)` only produces `UIViewController?`).
             let provided = provider() as? Environment.Node
-            attempt(presented, retried: false, box: box, environment: environment, onPresented: onPresented) {
+            attempt(presented, retried: false, box: box, environment: environment, animated: animated, onPresented: onPresented) {
                 provided
             }
         }
@@ -151,6 +153,7 @@ enum PresentationProcedure {
         retried: Bool,
         box: RequestBox,
         environment: Environment,
+        animated: Bool,
         onPresented: @escaping @MainActor () -> Void,
         locate: @escaping @MainActor () -> Environment.Node?
     ) {
@@ -167,7 +170,7 @@ enum PresentationProcedure {
         }
         // Step 3.
         if environment.isSettled(top) {
-            show(presented, on: top, box: box, environment: environment, onPresented: onPresented)
+            show(presented, on: top, box: box, environment: environment, animated: animated, onPresented: onPresented)
             return
         }
         // Step 6.
@@ -184,7 +187,8 @@ enum PresentationProcedure {
             guard !hasRetried else { return }
             hasRetried = true
             environment.nextTurn {
-                attempt(presented, retried: true, box: box, environment: environment, onPresented: onPresented, locate: locate)
+                attempt(presented, retried: true, box: box, environment: environment, animated: animated, onPresented: onPresented,
+                        locate: locate)
             }
         }
         if !environment.waitForTransition(of: top, then: again) {
@@ -198,9 +202,10 @@ enum PresentationProcedure {
         on top: Environment.Node,
         box: RequestBox,
         environment: Environment,
+        animated: Bool,
         onPresented: @escaping @MainActor () -> Void
     ) {
-        logger.log(level: .libraryDebug, "[show]")
+        logger.log(level: .libraryDebug, "[show] animated: \(animated, privacy: .public)")
         guard !box.isClosed else {
             logger.log(level: .libraryDebug, "[show] the box is already closed")
             return
@@ -208,12 +213,13 @@ enum PresentationProcedure {
         environment.anchorPopover(of: presented, at: top)
         let watch = ReleaseWatch(box: box)
         watch.attach(to: presented)
-        environment.present(presented, on: top) {
+        environment.present(presented, on: top, animated: animated) {
             watch.markPresented()
             onPresented()
         }
         // The supplement of part 1, 5.13.1: UIKit sets `presentingViewController` inside
-        // `present` when it takes the presentation (to be confirmed by MS-01).
+        // `present` when it takes the presentation, and calls no completion when it declines
+        // (MS-01, iOS 26.2 and 18.3).
         if !environment.isPresentationAccepted(presented) {
             logger.error("[show] UIKit did not take the presentation")
             box.close(.presentationFailed)
@@ -289,9 +295,9 @@ struct UIKitPresentationEnvironment: PresentationEnvironment {
         popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
     }
 
-    func present(_ presented: UIViewController, on node: UIViewController, completion: @escaping @MainActor () -> Void) {
-        logger.log(level: .libraryDebug, "[UIKit.present] presented: \(String(describing: type(of: presented)), privacy: .public), node: \(String(describing: type(of: node)), privacy: .public)")
-        node.present(presented, animated: true) {
+    func present(_ presented: UIViewController, on node: UIViewController, animated: Bool, completion: @escaping @MainActor () -> Void) {
+        logger.log(level: .libraryDebug, "[UIKit.present] presented: \(String(describing: type(of: presented)), privacy: .public), node: \(String(describing: type(of: node)), privacy: .public), animated: \(animated, privacy: .public)")
+        node.present(presented, animated: animated) {
             completion()
         }
     }

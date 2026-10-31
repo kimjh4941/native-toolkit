@@ -1012,7 +1012,7 @@ extension IosNotificationManager {
 public struct PresenterSelection: Sendable {
     // internal enum: firstActiveScene, foreground, provided(@MainActor @Sendable () -> AnyObject?)
     public static let firstActiveScene: PresenterSelection   // default: the current search, no waiting
-    public static let foreground: PresenterSelection         // active or inactive scene with the key window (part 1, 5.13)
+    public static let foreground: PresenterSelection         // active or inactive scene with the key window (part 1, 5.13); iPad with 2 active scenes: pass viewController(_:) (1b C2, MS-02)
 }
 extension PresenterSelection {           // Common/Presentation (imports UIKit)
     public static func viewController(_ provider: @escaping @MainActor @Sendable () -> UIViewController?) -> PresenterSelection
@@ -1044,6 +1044,7 @@ public struct DialogAnswer: Sendable, Equatable {
     public let button: Button
     public let title: String?
     public let input: DialogInput?        // nil for the cancel button
+    public init(button: Button, title: String?, input: DialogInput?)   // 1b C2: for your own DialogPresenting
 }
 public enum DialogInput: Sendable, Equatable, CustomStringConvertible {   // description redacts the values
     case text(String)
@@ -1065,6 +1066,7 @@ extension IosDialogManager {
     @discardableResult
     public func show(_ request: DialogRequest, presenter: PresenterSelection = .firstActiveScene, requestBox: RequestBox? = nil,
                      completion: @escaping @MainActor @Sendable (Result<DialogAnswer, DialogError>) -> Void) -> RequestBox
+    @discardableResult                                                    // 1b C2 (ios.md)
     public func show(_ request: DialogRequest, presenter: PresenterSelection = .firstActiveScene) async throws -> DialogAnswer
     public func cancel(_ box: RequestBox)                                  // any thread, does not wait
     @MainActor public func foregroundViewController() -> UIViewController?

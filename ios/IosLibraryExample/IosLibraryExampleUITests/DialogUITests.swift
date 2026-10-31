@@ -6,6 +6,9 @@
 //  compared in full (U-1) after its counts `completion=<n>,callback=<n>` reached the expected
 //  value (U-3).
 //
+//  D16〜D23 of the Swift API design (13.2): the "Swift API (2.0.0)" section, whose results are
+//  counted as callbacks (`[show.<kind>] success ...` / `[show.<kind>] failure <case>`).
+//
 
 import XCTest
 import Foundation
@@ -216,7 +219,8 @@ final class DialogUITests: SampleUITestCase {
         try alert.waitGone()
     }
 
-    /// The password appears in the result line in plain text: the current behaviour (design 8.5).
+    /// The result line shows the username and only the length of the password (1b SA-16; before
+    /// 1b the password was in plain text, UI test design 8.5).
     @MainActor
     func testD12_loginReportsCredentials() throws {
         try sample.tap(.showLoginDialog, try credentialsToken())
@@ -226,7 +230,7 @@ final class DialogUITests: SampleUITestCase {
         try alert.typeText("secret1", intoSecureTextFieldAt: 0)
         try alert.tapButton("Login")
         try sample.waitForDialogCounts(DialogCounts(completion: 1, callback: 1))
-        XCTAssertEqual(try sample.resultText(.dialog), success("[showLoginDialog][onLogin] loginButtonText: Login, username: taro, password: secret1, isSuccess: true, errorMessage: nil"))
+        XCTAssertEqual(try sample.resultText(.dialog), success("[showLoginDialog][onLogin] loginButtonText: Login, username: taro, password: <length=7>, isSuccess: true, errorMessage: nil"))
         try alert.waitGone()
     }
 
@@ -299,10 +303,206 @@ final class DialogUITests: SampleUITestCase {
         }
     }
 
+    // MARK: - Swift API (2.0.0): D16〜D23
+
+    /// D16: the six requests of SA-01 once each; the input is reported by its lengths only.
+    @MainActor
+    func testD16_requestsReportOneResultEach() throws {
+        var callbacks = 0
+        func expectResult(_ body: String, success isSuccess: Bool = true) throws {
+            callbacks += 1
+            try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: callbacks))
+            XCTAssertEqual(try sample.resultText(.dialog), ResultLine.expected(success: isSuccess, body))
+        }
+
+        try sample.tap(.showRequestAlert)
+        var alert = sample.alert("Request Alert")
+        try alert.waitShown()
+        XCTAssertEqual(try alert.buttonLabels(), ["OK"])
+        try alert.tapButton("OK")
+        try expectResult("[show.alert] success button=primary title=OK input=nil")
+        try alert.waitGone()
+
+        for (button, expected) in [("Yes", "button=primary title=Yes"), ("No", "button=cancel title=No")] {
+            try sample.tap(.showRequestConfirm)
+            alert = sample.alert("Request Confirm")
+            try alert.waitShown()
+            try alert.tapButton(button)
+            try expectResult("[show.confirm] success \(expected) input=nil")
+            try alert.waitGone()
+        }
+
+        try sample.tap(.showRequestDestructive)
+        alert = sample.alert("Request Delete")
+        try alert.waitShown()
+        try alert.tapButton("Delete")
+        try expectResult("[show.destructive] success button=destructive title=Delete input=nil")
+        try alert.waitGone()
+
+        try sample.tap(.showRequestActionSheet)
+        let sheet = sample.actionSheet()
+        try sheet.waitShown(option: "Green")
+        try sheet.tapOption("Green")
+        try expectResult("[show.actionSheet] success button=option(1) title=Green input=nil")
+        try sheet.waitGone(option: "Green")
+
+        try sample.tap(.showRequestTextInput)
+        alert = sample.alert("Request Name")
+        try alert.waitShown()
+        XCTAssertFalse(try alert.isButtonEnabled("OK"), "OK must be disabled while empty")
+        try alert.typeText("abc", intoTextFieldAt: 0)
+        try alert.tapButton("OK")
+        try expectResult("[show.textInput] success button=primary title=OK input=text(length: 3)")
+        try alert.waitGone()
+
+        try sample.tap(.showRequestLogin, try credentialsToken())
+        alert = sample.alert("Request Login")
+        try alert.waitShown()
+        try alert.typeText("taro", intoTextFieldAt: 0)
+        try alert.typeText("secret1", intoSecureTextFieldAt: 0)
+        try alert.tapButton("Login")
+        try expectResult("[show.login] success button=primary title=Login input=login(username: length 4, password: length 7)")
+        try alert.waitGone()
+    }
+
+    /// D17: two requests in the same turn are both shown, the second over the first (P1-12), and
+    /// each reports once.
+    @MainActor
+    func testD17_twoRequestsInOneTurnAreBothShown() throws {
+        try sample.tap(.showTwoInOneTurn)
+        let second = sample.alert("Second")
+        try second.waitShown()
+        try second.tapButton("Second OK")
+        try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: 1))
+        XCTAssertEqual(try sample.resultText(.dialog), success("[show.alert] success button=primary title=Second OK input=nil"))
+        try second.waitGone()
+
+        let first = sample.alert("First")
+        try first.waitShown()
+        try first.tapButton("First OK")
+        try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: 2))
+        XCTAssertEqual(try sample.resultText(.dialog), success("[show.alert] success button=primary title=First OK input=nil"))
+        try first.waitGone()
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.dialogCounts(), DialogCounts(completion: 0, callback: 2))
+    }
+
+    /// D18: cancelled 3 seconds after the tap: the dialog goes away and `canceled` comes once. The
+    /// sample notes that the dialog was shown when it cancelled it (`shown=true`), so the test does
+    /// not have to find the dialog before the timer ends it.
+    @MainActor
+    func testD18_cancelDismissesTheDialog() throws {
+        try sample.tap(.showThenCancel)
+        let alert = sample.alert("Cancel Me")
+        try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: 1))
+        XCTAssertEqual(try sample.resultText(.dialog), failure("[show.alert] failure canceled shown=true"), "cancelled while shown")
+        try alert.waitGone()
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.dialogCounts(), DialogCounts(completion: 0, callback: 1))
+    }
+
+    /// D19: cancelled while another screen covers it: both stay, `canceled` comes once, and the
+    /// dialog's button then does nothing (P1-24). The sample notes that the cover was over the
+    /// dialog when it cancelled it (`covered=true`); once the sample has closed the cover, the
+    /// dialog is still there (dismissing the dialog would have taken the cover with it).
+    @MainActor
+    func testD19_aCoveredDialogStaysWhenCancelled() throws {
+        try sample.tap(.showCoverThenCancel)
+        let alert = sample.alert("Covered")
+        try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: 1))
+        XCTAssertEqual(try sample.resultText(.dialog), failure("[show.confirm] failure canceled covered=true"),
+                       "cancelled while the cover was over the dialog")
+
+        // The sample closes the cover 3 seconds after the cancellation.
+        let deadline = Date().addingTimeInterval(8)
+        while sample.dialogCoverExists && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        XCTAssertFalse(sample.dialogCoverExists, "the sample closes the cover")
+        try alert.waitShown()
+        try alert.tapButton("Yes")
+        try alert.waitGone()
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.dialogCounts(), DialogCounts(completion: 0, callback: 1), "the button of a cancelled dialog does nothing")
+        XCTAssertEqual(try sample.resultText(.dialog), failure("[show.confirm] failure canceled covered=true"))
+    }
+
+    /// D20: dismissed by the sample from outside the library: `dismissedBySystem` comes once (the
+    /// release watch). The sample notes that the dialog was shown when it dismissed it.
+    @MainActor
+    func testD20_aDialogDismissedFromOutsideReportsDismissedBySystem() throws {
+        try sample.tap(.showThenDismissFromOutside)
+        let alert = sample.alert("Dismissed From Outside")
+        try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: 1))
+        XCTAssertEqual(try sample.resultText(.dialog), failure("[show.alert] failure dismissedBySystem shown=true"),
+                       "dismissed while shown")
+        try alert.waitGone()
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.dialogCounts(), DialogCounts(completion: 0, callback: 1))
+    }
+
+    /// D21: shown while the sample is in the background: `notForeground` once, and no dialog.
+    @MainActor
+    func testD21_aRequestInTheBackgroundReportsNotForeground() throws {
+        let springboard = Springboard(try systemUIToken())
+        try sample.tap(.showAfter3Seconds)
+        try springboard.goHome()
+        // A fixed wait (U-14 exception): the request comes 3 seconds after the tap while the
+        // sample is in the background, where its result line cannot be read.
+        Thread.sleep(forTimeInterval: 5)
+        try sample.activate()
+        try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: 1))
+        XCTAssertEqual(try sample.resultText(.dialog), failure("[show.alert@background] failure notForeground"))
+        XCTAssertFalse(sample.alert("Delayed").exists, "no dialog")
+    }
+
+    /// D22: shown while Control Center is over the sample (`foregroundInactive`): the dialog is
+    /// shown (G-6, MS-02) and answers once Control Center is closed.
+    @MainActor
+    func testD22_aRequestUnderControlCenterIsShown() throws {
+        let springboard = Springboard(try systemUIToken())
+        try sample.tap(.showAfter3Seconds)
+        try springboard.openControlCenter()
+        let alert = sample.alert("Delayed")
+        // The request comes 3 seconds after the tap.
+        try alert.waitShown(timeout: SampleApp.dialogTimeout + 3)
+        XCTAssertEqual(try sample.dialogCounts(), DialogCounts(completion: 0, callback: 0))
+        try springboard.closeControlCenter()
+        try alert.waitShown()
+        try alert.tapButton("OK")
+        try sample.waitForDialogCounts(DialogCounts(completion: 0, callback: 1))
+        XCTAssertEqual(try sample.resultText(.dialog), success("[show.alert@foregroundInactive] success button=primary title=OK input=nil"),
+                       "requested while Control Center was over the sample")
+    }
+
+    /// D23: both kinds of action sheet present without crashing, with the popover anchored (the
+    /// iPad with iOS 18 raised `NSGenericException` for an action sheet without an anchor; P1-20).
+    @MainActor
+    func testD23_actionSheetsPresentWithAnAnchor() throws {
+        try sample.tap(.showActionSheet)
+        var sheet = sample.actionSheet()
+        try sheet.waitShown(option: "Documents")
+        try sheet.tapOption("Documents")
+        try sample.waitForDialogCounts(DialogCounts(completion: 1, callback: 1))
+        try sheet.waitGone(option: "Documents")
+
+        try sample.tap(.showRequestActionSheet)
+        sheet = sample.actionSheet()
+        try sheet.waitShown(option: "Red")
+        try sheet.tapOption("Red")
+        try sample.waitForDialogCounts(DialogCounts(completion: 1, callback: 2))
+        XCTAssertEqual(try sample.resultText(.dialog), success("[show.actionSheet] success button=option(0) title=Red input=nil"))
+        try sheet.waitGone(option: "Red")
+    }
+
     // MARK: - Helpers
 
     private func success(_ body: String) -> String {
         ResultLine.expected(success: true, body)
+    }
+
+    private func failure(_ body: String) -> String {
+        ResultLine.expected(success: false, body)
     }
 
     /// Runs `operation` and checks that the counts grew by exactly (+1, +1), also after 2 seconds.

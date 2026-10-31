@@ -52,6 +52,7 @@ struct PresentationProcedureTests {
         run(.foreground, onPresented: { presentedCalls += 1 })
 
         #expect(presentationNames == ["presented@top"])
+        #expect(environment.presentationAnimations == [true], "animated by default")
         #expect(environment.anchored.map { "\($0.presented)@\($0.at)" } == ["presented@top"])
         #expect(environment.transitionWaits.isEmpty)
         #expect(!box.isClosed)
@@ -59,6 +60,28 @@ struct PresentationProcedureTests {
         environment.finishPresentations()
         #expect(presentedCalls == 1)
         #expect(!box.isClosed)
+    }
+
+    /// `animated` reaches `present` on every path: `.firstActiveScene`, `.foreground` at once,
+    /// and `.foreground` after the one wait.
+    @Test func theAnimatedArgumentReachesThePresentOfEveryPath() {
+        let top = FakeViewController("top")
+        environment.firstActive = top
+        environment.foreground = top
+        for presenter in [PresenterSelection.firstActiveScene, .foreground] {
+            PresentationProcedure.present(presented, presenter: presenter, box: RequestBox(), firstActiveScenePolicy: .presentAnyway,
+                                          environment: environment, animated: false)
+        }
+        top.isSettled = false
+        top.hasTransition = true
+        PresentationProcedure.present(presented, presenter: .foreground, box: RequestBox(), firstActiveScenePolicy: .presentAnyway,
+                                      environment: environment, animated: false)
+        top.isSettled = true
+        environment.endTransitions()
+        environment.runTurns()
+
+        #expect(environment.presentationAnimations == [false, false, false])
+        #expect(environment.transitionWaits == ["top"], "the third went through the wait")
     }
 
     @Test func aTransitionIsWaitedForOnceAndTheForegroundIsSearchedAgainOnTheNextTurn() {

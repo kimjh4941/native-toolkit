@@ -45,6 +45,8 @@ final class FakePresentationEnvironment: PresentationEnvironment {
     private(set) var transitionWaits: [String] = []
     private(set) var anchored: [(presented: String, at: String)] = []
     private(set) var presentations: [(presented: String, on: String)] = []
+    /// The `animated` argument of each presentation.
+    private(set) var presentationAnimations: [Bool] = []
 
     private var transitionEnds: [@MainActor () -> Void] = []
     private var turns: [@MainActor () -> Void] = []
@@ -95,8 +97,9 @@ final class FakePresentationEnvironment: PresentationEnvironment {
         anchored.append((presented.name, node.name))
     }
 
-    func present(_ presented: FakeViewController, on node: FakeViewController, completion: @escaping @MainActor () -> Void) {
+    func present(_ presented: FakeViewController, on node: FakeViewController, animated: Bool, completion: @escaping @MainActor () -> Void) {
         presentations.append((presented.name, node.name))
+        presentationAnimations.append(animated)
         presentCompletions.append(completion)
     }
 

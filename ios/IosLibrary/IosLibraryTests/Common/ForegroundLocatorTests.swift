@@ -100,13 +100,40 @@ struct ForegroundLocatorTests {
 
     // MARK: - UIKit
 
-    /// The unit tests have no host app, so there is no scene: both searches find nothing, and
-    /// `getRootViewController()` gives what the current search gives. The searches over real
-    /// scenes are covered by the sample's UI tests (Dialog D1 to D15, Share S1 to S16).
-    @Test func withoutScenesBothSearchesFindNothing() {
-        #expect(UIApplication.shared.connectedScenes.isEmpty)
-        #expect(ForegroundLocator.firstActiveScene() == nil)
-        #expect(ForegroundLocator.foreground() == nil)
-        #expect(IosDialogManager.shared.getRootViewController() == nil)
+    /// The host app has one window scene and no window: both searches find nothing, and
+    /// `getRootViewController()` gives what the current search gives.
+    @Test func withoutAKeyWindowBothSearchesFindNothing() async {
+        await withHostScreen {
+            let scenes = UIApplication.shared.connectedScenes
+            #expect(scenes.count == 1)
+            #expect(scenes.first?.activationState == .foregroundActive)
+            let keyWindows = scenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows.filter(\.isKeyWindow) }
+            #expect(keyWindows.isEmpty)
+            #expect(ForegroundLocator.firstActiveScene() == nil)
+            #expect(ForegroundLocator.foreground() == nil)
+            #expect(IosDialogManager.shared.getRootViewController() == nil)
+        }
+    }
+
+    /// Over real scenes: with a key window both searches find its top view controller; while a
+    /// presented view controller is being dismissed, the current search still returns it and the
+    /// foreground stops below it.
+    @Test func overRealScenesTheSearchesDifferOnlyForAViewControllerBeingDismissed() async throws {
+        try await withHostWindow { host in
+            #expect(ForegroundLocator.firstActiveScene() === host.root)
+            #expect(ForegroundLocator.foreground() === host.root)
+
+            let presented = UIViewController()
+            host.root.present(presented, animated: false)
+            #expect(await waitUntil { host.root.presentedViewController === presented && !presented.isBeingPresented })
+            #expect(ForegroundLocator.firstActiveScene() === presented)
+            #expect(ForegroundLocator.foreground() === presented)
+
+            host.root.dismiss(animated: true)
+            try #require(presented.isBeingDismissed)
+            #expect(ForegroundLocator.firstActiveScene() === presented, "the current search follows it")
+            #expect(ForegroundLocator.foreground() === host.root, "the foreground stops below it")
+            #expect(await waitUntil { host.root.presentedViewController == nil })
+        }
     }
 }

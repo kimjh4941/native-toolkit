@@ -106,6 +106,80 @@ struct LibraryLogPrivacyTests {
         #expect(messages.contains { $0.contains("[IosShareManager] [share] error: ShareError.invalidURL") })
     }
 
+    /// Dialog (8.7.2): the values entered in a text input and a login dialog, through the new API
+    /// and the `show...` methods, on real alerts in the host app.
+    @Test func dialogInputsNeverReachTheLog() async throws {
+        // A sentinel of its own: the messages read back can include the previous test's.
+        let secret = "sentinel-dialog-7c41"
+        let start = Date().addingTimeInterval(-1)
+
+        try await withRaisedLevel {
+            try await withHostWindow { _ in
+                let sessions = SessionRecorder()
+                let manager = IosDialogManager(core: AlertDialogPresenter.recording(into: sessions))
+                let done = MainRecorder<String>()
+
+                manager.show(.textInput(title: nil, message: nil), presenter: .foreground) { _ in done.record("text") }
+                try await Self.answer(sessions, count: 1, with: ["text-\(secret)"])
+                manager.show(.login(title: nil, message: nil), presenter: .foreground) { _ in done.record("login") }
+                try await Self.answer(sessions, count: 2, with: ["user-\(secret)", "password-\(secret)"])
+                manager.showTextInputDialog(onConfirm: { _, _, _, _ in done.record("legacy text") })
+                try await Self.answer(sessions, count: 3, with: ["legacy-text-\(secret)"])
+                manager.showLoginDialog(onLogin: { _, _, _, _, _ in done.record("legacy login") })
+                try await Self.answer(sessions, count: 4, with: ["legacy-user-\(secret)", "legacy-password-\(secret)"])
+                #expect(await waitUntil { done.values.count == 4 })
+            }
+        }
+
+        let messages = try readLibraryMessages(since: start)
+        try #require(messages.contains { $0.contains("[IosDialogManager] [show] answer: primary, input: text(length: ") },
+                     "the library's routine messages must be readable, or the test checks nothing")
+        try #require(messages.contains { $0.contains("[IosDialogManager] [showLoginDialog] answer: primary, input: login(") })
+        let leaks = messages.filter { $0.contains(secret) }
+        #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
+    }
+
+    /// Types `values` into the fields of the latest dialog and presses its primary button.
+    @MainActor
+    private static func answer(_ sessions: SessionRecorder, count: Int, with values: [String]) async throws {
+        #expect(await waitUntil { sessions.sessions.count == count && sessions.last?.isPresented == true })
+        let session = try #require(sessions.last)
+        for (field, value) in zip(session.alert?.textFields ?? [], values) {
+            field.text = value
+        }
+        session.press(0)
+        _ = await waitUntil { session.alert == nil || session.alert?.presentingViewController == nil }
+    }
+
+    /// Notification through `NotificationRepositoryImpl` and the host app's real notification
+    /// center (C1 could only reach the manager: the repository needs an app).
+    @Test func notificationContentsThroughTheRealCenterNeverReachTheLog() async throws {
+        let secret = "sentinel-notification-2e93"
+        let start = Date().addingTimeInterval(-1)
+        let identifier = "ut15-\(UUID().uuidString)"
+
+        await withRaisedLevel {
+            let repository = NotificationRepositoryImpl()
+            // An hour away, and removed again: nothing is shown whether or not the host app may
+            // post notifications (without the permission `add` fails, which logs the error path).
+            try? await repository.schedule(content: NotificationContent(
+                id: identifier,
+                title: "title-\(secret)",
+                subtitle: "subtitle-\(secret)",
+                body: "body-\(secret)",
+                userInfo: ["key": "value-\(secret)"]
+            ), trigger: .timeInterval(3600, repeats: false), identifier: identifier)
+            await repository.cancelScheduled(identifier: identifier)
+            _ = await repository.getScheduled()
+        }
+
+        let messages = try readLibraryMessages(since: start)
+        try #require(messages.contains { $0.contains("[NotificationRepositoryImpl] [schedule] identifier: \(identifier)") },
+                     "the repository's messages must be readable, or the test checks nothing")
+        let leaks = messages.filter { $0.contains(secret) }
+        #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
+    }
+
     /// Records whether this environment shows `.private` values in `OSLogStore` (MS-13). Not an
     /// assertion about the library.
     @Test func privateValuesAreVisible() throws {

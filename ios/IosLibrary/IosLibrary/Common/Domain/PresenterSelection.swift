@@ -20,8 +20,10 @@
 /// controller as above but does not wait for it to settle, and ``viewController(_:)`` needs the
 /// returned view controller to be in a window.
 ///
-/// - Note: The operations that take a `PresenterSelection` (dialogs, share sheets, the
-///   notification permission request and settings) are added in later commits of 2.0.0.
+/// The dialog manager's `show(_:presenter:requestBox:completion:)` takes one.
+///
+/// - Note: The share sheet, notification permission request and settings operations that take a
+///   `PresenterSelection` are added in later commits of 2.0.0.
 ///
 /// `foregroundInactive` covers the moments when the app is visible but not active: right after
 /// launch, and while Control Center or Notification Center is pulled over the app.
@@ -53,6 +55,11 @@ public struct PresenterSelection: Sendable {
     ///
     /// This is the default of every operation that takes a presenter, and the way they chose a
     /// view controller before ``PresenterSelection`` existed.
+    ///
+    /// - Important: On an iPad with two of the app's scenes side by side, both scenes can be
+    ///   `foregroundActive` with a key window each. "First" is the order of
+    ///   `UIApplication.connectedScenes`, so the scene this chooses may not be the one the user is
+    ///   looking at. Pass the view controller with ``viewController(_:)`` there.
     public static let firstActiveScene = PresenterSelection(kind: .firstActiveScene)
 
     /// The topmost view controller in the foreground: of the key window of a `foregroundActive`
@@ -63,5 +70,9 @@ public struct PresenterSelection: Sendable {
     /// it is in a transition (being presented or dismissed, or presenting another view
     /// controller), the operation waits once for the transition to end, checks again on the
     /// next turn of the main queue, and fails when it is still not settled.
+    ///
+    /// - Important: On an iPad with two of the app's scenes side by side, both scenes can be
+    ///   `foregroundActive` with a key window each, so the scene this chooses may not be the one
+    ///   the user is looking at. Pass the view controller with ``viewController(_:)`` there.
     public static let foreground = PresenterSelection(kind: .foreground)
 }
