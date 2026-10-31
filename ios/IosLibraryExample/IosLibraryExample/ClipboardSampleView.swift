@@ -92,6 +92,13 @@ enum ClipboardSampleIdentifiers {
         static let cancelLoads = "cancelLoads"
         static let mountPasteControl = "mountPasteControl"
     }
+
+    /// Markers of the "Swift API (2.0.0)" section (stage 1b SA-15): loads through a `RequestBox`
+    /// that `cancelLoad(_:)` cancels.
+    enum SwiftAPIAction {
+        static let loadTextThenCancel = "loadTextThenCancel"
+        static let loadTextWithCancelledBox = "loadTextWithCancelledBox"
+    }
 }
 
 /// Exercises every native `IosClipboardManager` operation (S1〜S11).
@@ -106,6 +113,7 @@ struct ClipboardSampleView: View {
     private typealias ID = ClipboardSampleIdentifiers
     private typealias Action = ClipboardSampleIdentifiers.Action
     private typealias ControlAction = ClipboardSampleIdentifiers.ControlAction
+    private typealias SwiftAPIAction = ClipboardSampleIdentifiers.SwiftAPIAction
 
     // MARK: - Fixtures
 
@@ -208,6 +216,7 @@ struct ClipboardSampleView: View {
                         pasteControlSection
                         clearSection
                         errorSection
+                        swiftAPISection
                     }
                 }
                 .padding(.horizontal)
@@ -693,6 +702,26 @@ struct ClipboardSampleView: View {
         }
     }
 
+    /// Stage 1b SA-15: `loadItem(_:scope:requestBox:completion:)` and `cancelLoad(_:)`, the
+    /// callback form (the only one that takes a box). The result line counts the completions the
+    /// request reported (`calls=<n>`) and says whether the box was closed when `cancelLoad`
+    /// returned (`closedAtCancel=<bool>`), so a UI test reads the state instead of racing a timer.
+    private var swiftAPISection: some View {
+        sectionView(title: "Swift API (2.0.0)", identifier: "swiftAPI") {
+            actionButton("Load Text, Then Cancel at Once", marker: SwiftAPIAction.loadTextThenCancel) {
+                loadThroughBox(SwiftAPIAction.loadTextThenCancel, cancelBeforeLoad: false)
+            }
+            actionButton("Load Text with a Box Cancelled Before", marker: SwiftAPIAction.loadTextWithCancelledBox) {
+                loadThroughBox(SwiftAPIAction.loadTextWithCancelledBox, cancelBeforeLoad: true)
+            }
+
+            Text("Each load has its own RequestBox; cancelLoad closes it at once and the single completion reports CLIPBOARD_CANCELLED.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     // MARK: - Operations
 
     private func copy(
@@ -747,6 +776,39 @@ struct ClipboardSampleView: View {
             } catch {
                 updateResult(marker: marker, kind: .failure, payload: Self.failureText(error))
             }
+        }
+    }
+
+    /// Loads text from the active scope through a new `RequestBox` and cancels the box, right after
+    /// the call (`cancelBeforeLoad == false`) or before it.
+    private func loadThroughBox(_ marker: String, cancelBeforeLoad: Bool) {
+        logger.debug("[loadThroughBox] marker: \(marker, privacy: .public), cancelBeforeLoad: \(cancelBeforeLoad, privacy: .public), scope kind: \(Self.scopeKind(activeScope), privacy: .public)")
+        let manager = IosClipboardManager.shared
+        let box = RequestBox()
+        let record = BoxedLoadRecord()
+        if cancelBeforeLoad {
+            manager.cancelLoad(box)
+            record.closedAtCancel = box.isClosed
+        }
+        manager.loadItem(.text, scope: activeScope, requestBox: box) { isSuccess, item, errorCode, errorMessage in
+            record.calls += 1
+            let state = "calls=\(record.calls), closedAtCancel=\(record.closedAtCancel.map(String.init) ?? "nil")"
+            logger.debug("[loadThroughBox] completion marker: \(marker, privacy: .public), isSuccess: \(isSuccess, privacy: .public), errorCode: \(errorCode ?? "nil", privacy: .public), \(state, privacy: .public)")
+            if isSuccess, case .text(let value)? = item {
+                updateResult(marker: marker, kind: .success, payload: "textLength=\(value.count), \(state)")
+            } else if errorCode == "CLIPBOARD_CANCELLED" {
+                updateResult(marker: marker, kind: .info, payload: "Cancellation completed (CLIPBOARD_CANCELLED), \(state)")
+            } else {
+                updateResult(
+                    marker: marker,
+                    kind: .failure,
+                    payload: "errorCode=\(errorCode ?? "nil"), errorMessage=\(errorMessage ?? "nil"), \(state)"
+                )
+            }
+        }
+        if !cancelBeforeLoad {
+            manager.cancelLoad(box)
+            record.closedAtCancel = box.isClosed
         }
     }
 
@@ -989,6 +1051,14 @@ struct ClipboardSampleView: View {
         Button(title, action: perform)
             .accessibilityIdentifier(ID.button(marker))
     }
+}
+
+/// What one load of the "Swift API (2.0.0)" section saw: the completions it reported, and whether
+/// its box was closed when `cancelLoad` returned.
+@MainActor
+private final class BoxedLoadRecord {
+    var calls = 0
+    var closedAtCancel: Bool?
 }
 
 /// Hosts the library's `UIPasteControl` container inside SwiftUI.

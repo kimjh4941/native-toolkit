@@ -9,8 +9,9 @@ caught, next to the near-miss that must pass.
 The fixtures in fixtures/ios_ui_runner/ are copied from real output of Xcode 26.3 on the
 iPhone 17 (iOS 26.2) simulator, stage 0d (2026-10-24); paths are replaced and the simctl lists
 are cut down to four simulators. enumeration.json and otool-*-device.txt were taken again the same
-way in stage 1b C2 (2026-10-31), when D16 to D23 were added (107 UI tests), and in stage 1b C3
-(2026-10-31), when S17 to S19 were added (110 UI tests):
+way in stage 1b C2 (2026-10-31), when D16 to D23 were added (107 UI tests), in stage 1b C3
+(2026-10-31), when S17 to S19 were added (110 UI tests), and in stage 1b C4 (2026-11-01), when CB5
+and CB6 were added (112 UI tests):
   enumeration.json             -enumerate-tests ... -test-enumeration-format json (the full tree)
   otool-ov-device.txt, otool-l-device.txt
                                otool -ov / -l of IosLibraryExampleUITests.xctest built for
@@ -186,7 +187,7 @@ class Enumeration(unittest.TestCase):
 
     def test_the_real_enumeration_matches_the_table(self):
         identifiers = enumeration()
-        self.assertEqual(len(identifiers), 110)
+        self.assertEqual(len(identifiers), 112)
         self.assertNotIn("IosLibraryExampleUITests/SampleUITestCase", identifiers)
         self.assertEqual(r.check_enumeration(identifiers, declarations()), [])
 
@@ -267,7 +268,7 @@ class Selection(unittest.TestCase):
 
     def test_the_simulator_runs_everything(self):
         selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])
-        self.assertEqual((len(selected), excluded), (110, []))
+        self.assertEqual((len(selected), excluded), (112, []))
 
     def test_the_device_runs_only_tests_whose_categories_are_all_allowed(self):
         # Mutation 7 "柱 1（選び方）": "all" turned into "any".
@@ -278,7 +279,7 @@ class Selection(unittest.TestCase):
         self.assertIn(ident("NotificationUITests/testN4_showImmediateShowsForegroundBanner"), selected)
         for identifier in selected:
             self.assertLessEqual(set(self.table[r.key_from_enumeration_id(identifier)]), {"systemui"})
-        self.assertEqual(len(selected) + len(excluded), 110)
+        self.assertEqual(len(selected) + len(excluded), 112)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard"])
         self.assertNotIn(ident("ShareUITests/testS1_shareTextCopy"), selected)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard", "sharesheet"])
@@ -595,7 +596,7 @@ class BinaryInventory(unittest.TestCase):
 
     def test_the_device_build_has_exactly_the_enumerated_tests(self):
         keys = self.keys("device")
-        self.assertEqual(len(keys), 110)
+        self.assertEqual(len(keys), 112)
         self.assertEqual(r.binary_inventory_problems(keys, enumeration()), [])
 
     def test_throwing_tests_are_read_through_and_return_error(self):

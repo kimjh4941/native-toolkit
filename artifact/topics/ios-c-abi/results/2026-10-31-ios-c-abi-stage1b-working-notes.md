@@ -2,9 +2,9 @@
 
 - 記録日: 2026-10-31
 - 段階: 1b（`README.md` の 5 章の 1b の行。設計書は `designs/2026-10-31-ios-c-abi-swift-api-design.md`。以下「設計書」）
-- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更）
+- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更）
 - 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）だけ。**実機には触れていない**
-- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜8 章）
+- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）
 
 ## 1. C1 共通（T-01〜T-05）
 
@@ -654,3 +654,190 @@ MS-02 の Share の分（C2 の 4.7 で「まだ」だったもの。写しに�
 | C-6: 8 章の 3 | `DialogPresenting` の DocC の「ライブラリの実装だけが行うこと」に、`presenter` は値を読めないので外の実装は自分の方法で選ぶ、を足した |
 
 信頼する部分: Codex のレビューの後、`TRUSTED_FILES` の `Support/SampleApp.swift` を 7.10 の値（`9b1da32b2c56fa5c82fa6a1ab879157d4cc87bfa584e864d37e640e190a8b9fc`）に固定した。固定した後、リポジトリでランナーの自己テスト 142/142、直したファイルに関わる単体テスト（Dialog・Share の 10 の suite と `LibraryLogPrivacyTests`・`PresentationProcedureTests`）138/138 を iPhone 17 / 26.2 で流した。警告は `appintentsmetadataprocessor` の「Metadata extraction skipped」だけ。直したのは DocC・テストの名前と注・1 つのテストの確かめ方なので、UI テストは流し直していない（レビューの写しの 25/25 と 29/29 のまま）
+
+## 10. C4 Clipboard（T-12）
+
+- 状態: ライブラリ・単体テスト（UT-30 と UT-15 の Clipboard の読み込み）・壊して確かめる・サンプル（SA-15）・UI テスト（CB5・CB6）・MS-08 は済んだ。コミットはしていない
+- 信頼する部分（`Support/SampleApp.swift`）の変更は C3 と同じくリポジトリの作業ツリーに入れ、**ハッシュは固定していない**（別のモデルのレビューの後に固定する）。UI テストとランナーの自己テストは、ハッシュだけを直した使い捨ての写し（scratchpad）で流した（10.8）
+- 測ったログ・下調べのサンプルとテスト・変異の差分は scratchpad に置き、リポジトリには入れていない
+- C1〜C3 のレビューで出た指摘（外の実装者が守れる DocC、先頭のログの全引数と伏せ方、DocC の表とコードの経路の一致、取り消しの約束、Swift 6 の `isolated deinit` の罠、壊して確かめる、決まった待ちを使わずサンプルが状態を結果の行に出す、凍結したファイルに触れない、区分の宣言）を最初から当てた
+
+### 10.1 変えたもの（リポジトリ）
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| Manager | `Clipboard/IosClipboardManager.swift` | `loadItem(_:scope:requestBox:completion:)` と `nonisolated cancelLoad(_:)` を足した。箱と 1 つの読み込みを結ぶ private の `ClipboardBoxedLoad`（`@MainActor` の普通の Swift のクラス。利用者の `@Sendable` でない完了を持ち、箱の閉じたときの処理から 1 回だけ呼ぶ）。型の DocC の「Threading」を直し（Unity のブリッジの記述を消し、C ABI の受け口が main に積んで呼ぶ形と、`cancelLoad` だけが nonisolated であることを書いた。設計書 18.1 の 11）、「Cancelling a load」の表（4 つの取り消し方）を足した。今の `loadItem` 2 つと `cancelAllLoads()` に DocC を書き、DocC の無かったほかの公開の口（`copy`・`append`・`read`・`readData`・`snapshot`・`clear`・`createPasteboard`・`removePasteboard`・`detectPatterns`・`detectValues` の各 2 つ、`stopObserving`・`checkForegroundChange`）にも短い DocC を付けた。今の `loadItem` 2 つの先頭のログに `request` の種類と UTI（`.private`）を足した |
+| Data | `Clipboard/Data/File/ClipboardTemporaryFileStore.swift` | internal の `static discardUndelivered(_:fileManager:)`: 取り消しに負けて誰にも渡らなかった `.file` の結果の要求のフォルダを消す。ストアの形（`<temporary>/IosLibraryClipboard/<session>/<request>/<file>`）のときだけ消し、ほかの URL には触れない（10.4 の 1） |
+| ログ | `Clipboard/Common/ClipboardLog.swift` | internal の `ClipboardLoadRequest.logKind`・`logTypeIdentifier` と `Result<ClipboardLoadedItem, ClipboardError>.logKind`（`success(<種類>)` / `failure(<errorCode>)`。読み込んだ値・UTI・ファイルの URL は出さない） |
+| 共通 | `Common/Application/RequestBox.swift` | DocC の表に Clipboard の行を足し、「後のコミットで足す」の注を消した |
+| テスト | `IosLibraryTests/Clipboard/Presentation/IosClipboardManagerRequestBoxTests.swift`（新）、`Common/LibraryLogPrivacyTests.swift` | 10.5 |
+| サンプル（SA-15） | `IosLibraryExample/ClipboardSampleView.swift` | 節「Swift API (2.0.0)」（`clipboard.section.swiftAPI`、画面の最後）とボタン 2 つ: `loadTextThenCancel`（箱で読み、呼んだ直後に `cancelLoad`）、`loadTextWithCancelledBox`（`cancelLoad` してから、その箱で読む）。識別子は `ClipboardSampleIdentifiers.SwiftAPIAction`。結果の行は `<種類> #<n> [<印>] <中身>, calls=<その要求の完了の回数>, closedAtCancel=<cancelLoad から戻った時点で箱が閉じていたか>`。今の 54 のボタンと結果の行は変えていない |
+| UI テスト | `IosLibraryExampleUITests/ClipboardPasteUITests.swift`、`Support/DeviceRequirements.json` | CB5・CB6 と宣言（どちらも `clipboard`。10.8） |
+| UI テスト（信頼する部分） | `Support/SampleApp.swift` | 10.10 |
+| ランナーの自己テスト | `scripts/tests/test_ios_ui_runner.py`、`scripts/tests/fixtures/ios_ui_runner/enumeration.json`・`otool-ov-device.txt`・`otool-l-device.txt` | 数（110 → 112）と冒頭の注、fixture の取り直し（10.8） |
+| 文書 | `designs/2026-10-18-ios-c-abi-ui-test-design.md` | 3.5 に CB5・CB6 の置き場所、5.1 の一覧（Clipboard の節 1・ボタン 2、数）、U-14 の例外に CB5・CB6 |
+| 公開 API | `results/swiftinterface/IosLibrary-after-1b-c4.swiftinterface`、`2026-10-31-stage1b-c4.diff` | 10.6 |
+
+`ios/IosLibrary/IosLibrary.xcodeproj` は変えていない（フォルダーと同期するターゲット）。ランナー（`scripts/ios_ui_runner.py`）の表も変えていない（CB5・CB6 は `ClipboardPasteUITests` に入れたので、クラスの下限 `clipboard` がそのまま効く。`SIMULATOR_ONLY_TESTS` には入れない: 10.4 の 4）。
+
+### 10.2 公開 API（付録 A の Clipboard との照合）
+
+| 付録 A | 実装 | 一致 |
+|---|---|---|
+| `@MainActor public func loadItem(_ request: ClipboardLoadRequest, scope: PasteboardScope = .general, requestBox: RequestBox, completion: @escaping (Bool, ClipboardLoadedItem?, String?, String?) -> Void)` | 同じ（戻り値なし。`@MainActor` のクラスの本体に置いた。付録 A は `extension` と書くが、公開の形は同じ） | 一致 |
+| `nonisolated public func cancelLoad(_ box: RequestBox)`（any thread, does not wait） | 同じ | 一致 |
+
+ほかの公開の変更は無い（10.6 の差分は 2 行だけ）。今の口（`loadItem(_:scope:completion:) -> any ClipboardLoadToken`、`loadItem(_:scope:) async throws`、`cancelAllLoads()`、port の `ClipboardItemLoader`・`ClipboardLoadToken`、`LoadItemUseCase`）の宣言は swiftinterface で 1 文字も変わっていない。公開の記号にはすべて DocC を付けた（10.1 の Manager の行）。`@unchecked Sendable`・`nonisolated(unsafe)`・`@preconcurrency` は足していない（P1-17 の一覧の外は 0 のまま。`IosClipboardManager` の `@unchecked Sendable` と `ClipboardCancellationBox`・`ClipboardTemporaryFileStore` の既存のものは変えていない）。`ClipboardBoxedLoad` は `@MainActor` の普通のクラスで、`deinit` を持たない（0f の `ClipboardManagerCleanup` の形を崩していない。`IosClipboardManager` にも `deinit` を足していない）。
+
+付録 A は今の口が `ClipboardUseCases`（public）から組める port を変えないので、箱は UseCase でなく Manager の層で結んだ（`ios.md` の「UseCase を置かない口」の「要求の取り消し」。読み込み自体は今の `LoadItemUseCase.execute` を通る）。付録 A に足すものは無い。
+
+### 10.3 今の利用者から見て変わる動作
+
+| 口 | 前 | 後 |
+|---|---|---|
+| `loadItem(_:scope:completion:)`（token を返す口） | - | 変わらない（読み込み・完了の時期・token の `cancel()` とも。UT-30 の `theTokenFormIsUnchanged`、今の `loadItemCallbackReturnsSuccessValue`） |
+| `loadItem(_:scope:) async throws` | - | 変わらない（`Task` の取り消しで `ClipboardError.cancelled`。UT-30 の `theAsyncFormIsUnchanged`） |
+| `cancelAllLoads()` | 2 つの形の読み込みを取り消す | 新しい箱の形の読み込みも取り消す（その完了も `CLIPBOARD_CANCELLED` で 1 回、箱は閉じる）。今の 2 つの形の動作は変わらない |
+| ログ | `[loadItem] scope: …` | `[loadItem] request: <種類>, utType: <.private>, scope: …, completion: provided`。`async` 版は `[loadItem async]`。読み込んだ値は前と同じく出さない |
+| DocC | 「Unity のブリッジだけがどのスレッドからも呼べる入口」 | 18.1 の 11 のとおり直した。ほかの口の DocC は足しただけ |
+
+3.3 の表の Clipboard の行（追加: `loadItem(_:scope:requestBox:completion:)`・`cancelLoad(_:)`）のほかに、利用者に見える変更は無い。今の UI テスト（Clipboard の 26 件）は期待値を変えずに通った（10.8）。
+
+### 10.4 設計書からの偏りと理由
+
+| # | 設計書 | 実装 | 理由 |
+|---|---|---|---|
+| 1 | 8.6「遅れて来た結果は閉じた箱に当たって捨てる」 | 捨てる結果が `.file` なら、その要求のフォルダを消す（`discardUndelivered`。ストアの形の URL だけ） | `.file` の結果は受け取った人がファイルを消す約束（今の DocC）。取り消した後に届いた結果は誰にも渡らないので、消さないと一時フォルダに残る。今の口では loader の gate が同じことをする（`ClipboardProviderLoadHandle.finish`）が、箱の形では「箱が閉じた（どのスレッドでも）」と「main で token を止める」の間に結果が着く隙間がある。M56・M57 で確かめた |
+| 2 | 6.3.2 の閉じた理由は Dialog・Share の分も持つ（`notForeground` など） | Clipboard の箱がそれで閉じることは無い（それらで閉じる口は先に箱を付けるので、Clipboard は `invalidRequest` で断る）が、来たら読み込みを止めて `CLIPBOARD_CANCELLED` で返し、`.error` のログを出す | 網羅の `switch` のため。届かない経路なのでテストは無い |
+| 3 | 13.2 は CB5・CB6 のクラスを書いていない | `ClipboardPasteUITests` に足した | UI テストの設計書 U-10・3.5 は「新しい Clipboard のテストは新しいクラス（`ClipboardPasteUITests` など）に書く」とし、凍結した `ClipboardUITests` には足せない。`ClipboardPasteUITests` はクラスの下限（`clipboard`）とランナーの実行の表に既にあり、新しいクラスを作るとランナーの `UI_CLASSES`・`CLASS_MINIMUMS` と自己テストを変えることになる。別のクラスにするかは利用者に尋ねる（11 章の 2） |
+| 4 | 13.2 の環境はどちらも「両方」 | `SIMULATOR_ONLY_TESTS` には入れず、`clipboard` だけを宣言した。信頼する部分に `session.isDevice` の確かめは足していない | 使う操作はサンプルのボタン（`ClipboardToken` が要る）とランナーの一般のクリップボードへの書き込み（今の `RunnerPasteboard`、`requireUnchanged` で確かめる）だけで、決まった座標の操作も私物に触れる操作も無い。CB5 はサンプル自身の文字列を一般のクリップボードに書いて読む（U2・U14 と同じ）。CB6 はランナーが書いた文字列の上で何も読まない。実機では `clipboard` を許したとき（Handoff を切る前提。U-10・6.5）だけ流れる |
+| 5 | SA-15「読み、すぐ cancelLoad するボタン」 | ボタンは箱で読んで同じ main の回の中で `cancelLoad` する。CB5 は先に `copyPlainText`（今のボタン）でサンプル自身の文字列を置く | 読み込みを始めると `NSItemProvider` の読み込みが動くので、ほかのアプリの内容なら貼り付けのダイアログが出うる。サンプル自身の内容にすればダイアログは出ず、取り消しだけを確かめられる。同じ回の中で取り消すので、結果（後の回にしか来ない）との競争は無い（決まった時間との競争をしない。C2 の 6 章の B2） |
+| 6 | CB6「読み込まずに」 | ランナー（ほかのアプリ）が書いた文字列の上で、開始の前に取り消した箱で読み、貼り付けのダイアログが 2 秒出ないことと、完了が 1 回だけであることを見る | 読み込んだかどうかはサンプルから見えない。ほかのアプリの内容を読めばダイアログが出る（CB1 と同じ）ので、出ないことが「読んでいない」の印になる。壊した版（開始の前に閉じた箱でも読む）で CB6 が落ちることを確かめた（10.8） |
+| 7 | 12 章の SA-05「全機能」の 3 秒後のボタンと MS-08 の「SA-05 と CB の操作」 | Clipboard のサンプルには 3 秒後のボタンを足さず、MS-08 は使い捨ての写しにだけ足した下調べのボタンと UI テストで測った（10.7） | 13.2 に Clipboard の後ろにいるときの UI テストが無く、13.3 は「押さないボタンを足さない」。C ABI も Clipboard は後ろにいるかを判定しない（第 1 部 5.13）ので、測るのは記録だけ（14 章）。サンプルに残すかは利用者に尋ねる（11 章の 1） |
+| 8 | 8.6「DocC」 | 18.1 の 11 の直しに加え、DocC の無かった公開の口すべてに DocC を付けた | 「公開の記号には DocC」（`ios.md`）を Manager の全体で満たすため。動作は変えていない |
+| 9 | 3.4・8.6「変更の監視（1 人の受け手）は変えない」 | 変えていない | - |
+
+### 10.5 単体テストと壊して確かめたこと
+
+| ID | ファイル | 件数 | 中身 |
+|---|---|---|---|
+| UT-30 | `Clipboard/Presentation/IosClipboardManagerRequestBoxTests.swift`（新） | 20 | 取り消し: 読み込み中の取り消しは `CLIPBOARD_CANCELLED` が 1 回で、箱は呼び出しの中で閉じ、完了と token の `cancel()` は後の main の回（`aCancelledLoad…`）、取り消しの後に届いた結果を捨てる（`aResultThatArrives…`）、開始の前に取り消した箱は読まない（loader を呼ばない）、結果の後の取り消しは何も変えない（token も止めない）、2 回の取り消しで 1 回、背景のスレッドからの取り消しが main を待たない（main を止めたまま 5 秒以内に戻る）で完了は main、背景のスレッドの取り消しと main の結果の競争 200 回で各 1 回（どちらが勝つかはその回しだい。下調べで 54/146、3/197）。箱: loader が呼び出しの中で結果を返しても完了は呼び出しの中で来ない、使い回しの箱は 2 つ目だけ `CLIPBOARD_INVALID_REQUEST`（呼び出しの中で来ない、最初の要求は続く）、終わった要求の箱も断る、Dialog が使った箱も断る、失敗の `errorCode`。ファイル: 取り消しの後に届いた `.file` は消す、渡したファイルは残す、ストアの形でない URL と浅い URL は消さない。ほかの取り消し方: `cancelAllLoads()` は箱の形も取り消す（今の形は前と同じく loader の呼び出しの中で返る）、`cancelLoad` は今の形の読み込みに触れない、今の token の形と `async` の形は変わらない。本物の loader と一意の pasteboard（`.general` には触れない）で、同じ回に取り消した読み込みは `CLIPBOARD_CANCELLED`、取り消さない読み込みは本文 |
+| UT-15 | `Common/LibraryLogPrivacyTests.swift` | +1 | 本物の Manager と loader と一意の pasteboard で、番兵の本文を箱の形（成功と、すぐ取り消し）・token の形・`async` の形で読み、ライブラリのログに番兵が無い（読めていることを `#require`: `[ClipboardBoxedLoad] [report] result: success(text)` と `failure(CLIPBOARD_CANCELLED)`）。番兵は本文だけに入れた（UTI は `.private` で出してよく、この環境では `.private` も平文で見えるため） |
+
+`IosLibraryTests` は 372 件（C3 の 351 件 + 21）。レビューで UT-30 に 1 件足し、373 件になった（12 章）。
+
+壊して確かめたこと（`mutate_c4.py` で 1 つずつ当てて該当の suite を流し、落ちることを見てから戻した。差分とログは scratchpad）:
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M50 | UT-30 | 取り消しの後に届いた結果を利用者に渡す（設計書 13.1「遅れた結果を通す」） | `aResultThatArrivesAfterTheCancellationIsDropped`、`aFileThatArrivesAfterTheCancellationIsDeleted`、`aCancellationRacingTheResultReportsExactlyOnce` |
+| M51 | UT-30 | `cancelLoad` が箱を後の main の回で閉じる | `aCancelledLoad…`、`aCancellationFromAnotherThread…`、`aBoxCancelledBeforeTheCallReadsNothing`、`aResultThatArrives…`、`aFileThatArrives…` |
+| M52 | UT-30 | 開始の前に閉じた箱でも読む | `aBoxCancelledBeforeTheCallReadsNothing` |
+| M53 | UT-30 | 取り消しで token を止めない | `aCancelledLoad…`、`cancellingTwiceReportsOnce`、`aCancellationFromAnotherThread…`、`aCancellationRacing…` |
+| M54 | UT-30 | 使い回しの箱の失敗を呼び出しの中で返す | `aBoxThatAnotherRequestUsesFailsOnlyTheSecondRequest` |
+| M55 | UT-30 | 使い回しの箱で最初の要求も取り消す | 同上 |
+| M56 | UT-30 | 取り消しの後に届いたファイルを消さない | `aFileThatArrivesAfterTheCancellationIsDeleted` |
+| M57 | UT-30 | ファイルを消す前に、ストアの root の下かだけを見る（形を見ない） | `discardingLeavesAFileOutsideTheStoreAlone`（浅い URL でセッションのフォルダを消した） |
+| M58 | UT-30 | loader の完了の中で、箱を通さずにその場で利用者に渡す | `theCompletionNeverComesInsideTheCall`、`aResultThatArrives…`、`aFileThatArrives…`、`aCancellationRacing…` |
+| M59 | UT-30 | `cancelLoad` が main 以外から呼ばれたら `DispatchQueue.main.sync` で閉じる（main を待つ） | `aCancellationFromAnotherThreadDoesNotWaitAndReportsOnMain`（5 秒の上限で戻り、止まらずに落ちた） |
+| M60 | UT-30 | 今の token の形の失敗の `errorCode` を変える | `theTokenFormIsUnchanged`、`cancelAllLoadsCancelsABoxedLoadToo` |
+| M61 | UT-15 | 完了のログに結果を `.public` で入れる（設計書 13.1「1 か所で値を `.public` で補間する」） | `clipboardLoadsNeverPutTheLoadedTextInTheLog` |
+
+12 件とも落ち、戻した版で通ることを確かめた（全件の実行、10.8）。
+
+TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2）: `IosClipboardManagerRequestBoxTests`・`IosClipboardManagerTests`・`RequestBoxTests`・`LibraryLogPrivacyTests` の 47 件が成功。TSan の報告は 0 件。箱の閉じたときの処理は main に積むだけなので、背景のスレッドの `cancelLoad` で止まらない（SR-3。`aCancellationFromAnotherThread…` と競争のテストを TSan でも流した）。
+
+### 10.6 公開 API（swiftinterface）
+
+- 組み方: C1〜C3 と同じ（Release、`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`、Xcode 26.3）。`arm64-apple-ios.swiftinterface` を写した
+- 足したファイル: `IosLibrary-after-1b-c4.swiftinterface`、差分 `2026-10-31-stage1b-c4.diff`（`after-1b-c3` が基準）
+- 差分の中身: `IosClipboardManager` に `loadItem(_:scope:requestBox:completion:)`（今の token の形と同じ `#if compiler(>=5.3) && $NonescapableTypes` の中）と `nonisolated final public func cancelLoad(_ box: RequestBox)` の 2 つが増えた。ほかは変わらない
+- `swift-frontend -typecheck-module-from-interface`（Xcode 26.3、Swift 6.2.4）で public と private の 2 つとも型検査が通った（出力 0 行）
+
+### 10.7 シミュレーターで測ったこと（C4 に付いた MS-08）
+
+MS-08（後ろにいるときの `UIPasteboard` の読み込み。第 1 部 5.13 の Clipboard の行。記録だけ）。iPhone 17 / 26.2 のシミュレーター。使い捨ての写しにだけ、3 秒後に読むボタン 2 つ（箱の形の `loadItem(.text)` と、同期の `read`。結果の行に要求の時点と完了の時点のアプリの状態、かかった時間）と、下調べの UI テスト（`ProbeMS08UITests`。押して、ホームに移り、8 秒待ち、サンプルを前に戻して結果の行を読む）を足して測った（`apply_ms08_probe.py`。リポジトリには入れていない）。
+
+| # | 読み方 | 一般のクリップボードの中身 | 結果 |
+|---|---|---|---|
+| P1 | `loadItem(_:scope:requestBox:completion:)`（`NSItemProvider`、非同期） | サンプル自身が書いた文字列 | 後ろ（`background`）のまま読めた。貼り付けのダイアログは出ない。完了まで約 60 ms で、完了の時点も `background` |
+| P2 | 同上 | ランナー（ほかのアプリ）が書いた文字列 | **サンプルが後ろにいる間に貼り付けのダイアログが springboard の上に出た**。読み込みはダイアログの答えを待ち、サンプルを前に戻して「Allow Paste」を押すと成功した（要求から約 9 秒、完了の時点は `inactive`） |
+| P3 | `read(scope:completion:)`（同期の `UIPasteboard` の読み出し） | サンプル自身が書いた文字列 | 後ろのまま読めた（約 21 ms）。ダイアログは出ない |
+| P4 | 同上 | ランナーが書いた文字列 | **後ろにいる間に貼り付けのダイアログが出て、サンプルの main スレッドが答えを待って止まった**。XCUITest はサンプルを前に戻せず（`Unable to perform work on main run loop, process main thread busy for 30.0s`）、約 270 秒止まったままテストが落ちた（1 回） |
+
+分かったこと: (1) 後ろにいても、自分の内容は読める（ダイアログなし）。(2) ほかのアプリの内容を読むと、後ろにいてもダイアログが出る。非同期の `loadItem` は答えを待つだけで main を止めない（箱の取り消しで終われる）。**同期の `read` は、答えが出るまで main を止める**（P4。同じく同期に中身を読む `readData` も同じ見込み。測っていない）。これは 1b の前からの今の口の振る舞い（OS の同期の API）で、C4 では変えていない。C4 では `read`・`readData` の DocC に「ダイアログの答えを main で待つ（後ろにいる間も）」を足した。C ABI は Clipboard で後ろにいるかを判定しない（第 1 部 5.13）ので、第 2 部の C の受け口が同期の読み出しを main のブロックの中で呼ぶと、後ろにいる間にほかのアプリの内容でダイアログが出たとき main が止まる（11 章の 5）。前面にいるときも同期の読み出しは答えを待つ見込みだが、C4 では測っていない
+
+### 10.8 テストの実行と基準との比べ合わせ
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1。`-parallel-testing-enabled NO`。18.3 の 2 つは 7.11 の注のとおり `-destination 'platform=iOS Simulator,id=<udid>,arch=arm64'`） | どれも 372/372（C3 の 351 + 21）。skip 0。消した・名前を替えたテストは無い |
+| TSan | 10.5 の末尾 |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --feature Clipboard`（ハッシュを固定した写し） | 34 件: 成功 33、skip 1（Navigation 2、IdentifierInventory 4、Clipboard 21 + skip 1、ClipboardPaste 5、ClipboardPasteDeny 1）。skip は基準と同じ意図した skip（`testU10b_namedPasteboardAfterProcessTermination`。M-08 がこの環境では決まらない）。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）との比べ合わせは `changed=0, added=2, removed=0`（足したのは CB5・CB6）。凍結した `ClipboardUITests` の 22 件と CB1〜CB4 は今の期待値のまま通った。I1d は Clipboard の 56 のボタンと節 12 で一致した。信頼する部分の警告なし |
+| CB5・CB6 の壊して確かめる（写し。ライブラリを壊し、`xcodebuild test -only-testing` で 2 件だけ） | UM1（開始の前に閉じた箱でも読む。M52 と同じ壊し方）: CB5 は通り、**CB6 が落ちた**（完了は `CLIPBOARD_CANCELLED` のまま来たが、貼り付けのダイアログが出た: `an alert appeared: the load read the pasteboard`）。UM2（`cancelLoad` が箱を閉じない）: **CB5 が落ちた**（`✅ #3 [loadTextThenCancel] textLength=28, calls=1, closedAtCancel=false`）、CB6 も落ちた（読み込みが貼り付けのダイアログで止まり、結果の行が来ない）。戻した版は上の `--feature Clipboard` の回で通っている |
+| ランナーの自己テスト（`python3 -m unittest discover -s scripts/tests -p 'test_ios_ui_runner.py'`） | 写し: 142/142。リポジトリ: 142 件のうち 4 件が落ちる（どれも `SampleApp.swift` のハッシュが固定と違うことによるもの: `SourceRules.test_the_real_tree_passes`、`Commands.test_preflight_refuses_the_device_when_the_trusted_part_changed`、`EndToEnd` の 2 件。C3 と同じ）。`scripts/tests` の全体はリポジトリで 350 件のうち同じ 4 件だけが落ちる（写しは Android・Windows のフォルダーを写していないので、その照合のテストが流れない） |
+| 自己テストの fixture | 列挙（`enumeration.json`）は写しの `--feature Clipboard` の回の列挙（iPhone 17 / 26.2、Xcode 26.3、flat）をそのまま写した。前の fixture との差は CB5・CB6 の 2 つの項目だけ（UI テストは 112 件）。実機のバイナリ（`otool-ov-device.txt`・`otool-l-device.txt`）は写しを `generic/platform=iOS`・`CODE_SIGNING_ALLOWED=NO` で組んだ UI テストのバンドルから取った（端末は使っていない。テストのメソッドの差は CB5・CB6 の 4 つの記号だけ）。どれにもローカルのパスは入っていない。数を照らす自己テストを 110 → 112 にした（サンプルのボタンの数 59 は Dialog・Notification・Share だけを数えるので変わらない） |
+| ランナーの変異 | 流していない（ランナー `scripts/ios_ui_runner.py` は変えていない） |
+| `scripts/test_ios.sh --dry-run --device-allow clipboard`（写し。`--udid` はどの端末でもない値、`--enumerate-udid` は iPhone 17 / 26.2。`--baseline` なし。`--devicectl-id` なし） | 先に `test_ios.sh` を読んで、`--dry-run` の `exit 0` より前に呼ぶのは `simctl list`、`xcodebuild -version`、列挙のシミュレーターへの `xcodebuild`、ランナー（`git` だけを呼ぶ）だけで、`devicectl` と実機の `xcodebuild` は呼ばないことを確かめた。消費済みの台帳も変わっていない（更新日時が前のまま）。112 件のうち 47 件を選び 65 件を除いた。**CB5・CB6（`[clipboard]`）は選ばれた**（CB3・CB4・I1d・`ClipboardUITests` の 21 件と同じ）。CB1・CB2 は `missing systemui`、S1 などは `missing sharesheet`、D17・D20〜D23・S18・S19 は `simulator only`。写しには未コミットの変更があるので、実機の回は断ると表示した |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1 は xcodebuild か `test_ios.sh` が起動し、終わった後に止めた（`test_ios.sh` は見つけたときの状態に戻す）。最後にどれも起動していないことを確かめた |
+
+### 10.9 警告
+
+| 測り方 | 結果 |
+|---|---|
+| 2 つの scheme を `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`）。Xcode 26.3 と 26.6（`DEVELOPER_DIR`） | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+| MS-08 の後に `read`・`readData` の DocC だけを直したので、`IosLibrary` の scheme を同じ組み方で両方の Xcode で組み直した | どちらもエラー 0、警告 0 |
+
+### 10.10 信頼する部分の変更とハッシュ
+
+`ios/IosLibraryExample/IosLibraryExampleUITests/Support/`。HEAD（`637b1078`）からの差分。別のモデルの再レビューに出す。
+
+| ファイル | 操作 |
+|---|---|
+| `SampleApp.swift` | (1) `ClipboardButton` に `copyPlainText`（今のボタン。CB5 の準備）、`loadTextThenCancel`・`loadTextWithCancelledBox`（SA-15）の 3 つを足した。押す口は今の `tap(_ button: ClipboardButton, _ token: ClipboardToken)` だけで、`ClipboardToken` が要る（U-9）。(2) I1d の一覧（`SampleInventory.clipboardButtonNames`）に SA-15 の 2 つ、`expectedNonButtons(.clipboard)` に `clipboard.section.swiftAPI` を足した。**新しい操作・新しい要素の読み方は無い**（識別子を足しただけ） |
+| ほかの 7 ファイル、凍結した `IosLibraryExampleUITests.swift` | 変えていない（CB5・CB6 は今の `RunnerPasteboard.write`・`requireUnchanged`、`observeQuietly`、`remainingAlertCount` を使う） |
+
+識別子の文字列は信頼する部分の中だけにある（U-17。`ClipboardPasteUITests.swift` は `ClipboardButton` の case だけを使う）。
+
+再レビューの後に固定するハッシュ（`python3 scripts/ios_ui_runner.py hashes --tests-dir ios/IosLibraryExample/IosLibraryExampleUITests`。ほかの 7 ファイルと `FROZEN_CLIPBOARD_SHA256`（`4612943d…6cf3`）は変わらない）:
+
+| ファイル | 今の固定 | 新しい値 |
+|---|---|---|
+| `Support/SampleApp.swift` | `9b1da32b…b9fc` | `9af74391d9751d5071cc4c5c7058eae57be057ceee6be2fc6440a738ebc3a12e` |
+
+### 10.11 後のコミットへの申し送り（C5〜C7）
+
+| 項目 | 内容 |
+|---|---|
+| 箱の使い方（C5・C6） | 通知の権限の要求と設定の画面は箱を外から受けない（11 章の S-6）。箱を受ける口を足すなら、Clipboard と同じく「付けてから `isClosed` を見て、閉じていれば何も始めない」「付けに失敗したら `invalidRequest` を後の回で」「結果は `box.close(.completed(…))` で閉じ、負けた結果の資源は片付ける」の 3 つ |
+| 利用者の `@Sendable` でない完了（C5・C6） | 箱の閉じたときの処理（`@MainActor @Sendable`）から呼ぶときは、`@MainActor` の普通の Swift のクラスに持たせて捕まえる（`ClipboardBoxedLoad`）。`NSObject` の子にしない（0f の `isolated deinit` の罠） |
+| 第 2 部（2a） | Clipboard の読み込みの C の受け口は、受け付けの時点で `RequestBox()` を作り、main のブロックの中で `loadItem(_:scope:requestBox:completion:)` を呼び、取り消しの関数は `cancelLoad(_:)` を呼ぶ（どのスレッドからでも、積まずに）。ただし `IosClipboardManager.shared` は main の actor でしか読めない（クラスが `@MainActor`）ので、取り消しの関数は main で受け取った Manager の参照を持っておくか、同じモジュールの中なので箱を直接 `close(.canceled)` する（`cancelLoad` がすることはそれだけ。12 章の B-1）。`.file` の結果の所有は受け口が引き継ぐ。取り消しに負けた `.file` はライブラリが消す。後ろにいるときの読み込みは 10.7 の MS-08 のとおり（判定しない） |
+| `-only-testing`（C5〜C7） | 7.11 の注のとおり、iOS 18.3 のシミュレーターは `-destination 'platform=iOS Simulator,id=<udid>,arch=arm64'` で全件を流した（C4 は絞らずに全件） |
+| C7 | MS-08 の結果を第 1 部 5.13 の Clipboard の行と README に写す（T-20） |
+
+## 11. 利用者に決めてもらうこと（C4）
+
+**決定（2026-11-01、利用者）: 5 つとも推奨のとおり。** 1 はサンプルに足さない。2 はこのまま。3 は 12 章の Codex のレビューの後に固定した。4 は設計書 8.6 に「取り消しに負けた `.file`」の行を足した。5 は第 2 部（2a）の C のヘッダーとマニュアル（段階 4）に書き、前面での待ちと実機での振る舞いは C7 か 2a の前に 1 回測る（実機は利用者の許可を得てから）
+
+| # | 事柄 | 推奨 |
+|---|---|---|
+| 1 | SA-05（3 秒後の要求）の Clipboard 版をサンプルに残すか。C4 は使い捨ての写しでだけ足して MS-08 を測った（10.4 の 7） | **残さない**。13.2 に Clipboard の後ろの UI テストが無く、13.3 は押さないボタンを足さない。C ABI も判定しないので記録だけで足りる。もう一度測るときは scratchpad の手順（`apply_ms08_probe.py`）を写しに当てる |
+| 2 | CB5・CB6 を `ClipboardPasteUITests` に入れた（10.4 の 3）。名前は「貼り付け」だが、要求の箱の読み込みのテストも入る | **このままにする**。U-10 の「新しいクラス（`ClipboardPasteUITests` など）」に合い、クラスの下限と実行の表が既に効く。別のクラスにするとランナーの表と自己テストの変更（信頼の外だが守りの本体）が増える |
+| 3 | 信頼する部分（`SampleApp.swift`）の変更（10.10。識別子の 3 つと I1d の 2 か所）と、CB5・CB6 を simulator only にしない判断（10.4 の 4）を、別のモデルのレビューに出してからハッシュを固定する | **C3 と同じく別のモデル（Codex）に `SampleApp.swift` の差分と `DeviceRequirements.json` の 2 行と CB5・CB6 の本体を見せ、通ったら 10.10 の値を固定して C4 のコミットに入れる**。新しい操作は無いので、観点は「識別子を足しただけか」「区分と実機での安全（CB5 は一般のクリップボードを書く、CB6 はランナーの内容の上で読まない）」の 2 つで足りる |
+| 4 | 取り消しに負けた `.file` の結果をライブラリが消す（10.4 の 1。設計書 8.6 に無い） | **消す形のままにし、設計書 8.6 に 1 行足す**。消さないと一時フォルダに残り、利用者は URL を受け取らないので消せない |
+| 5 | MS-08 の P4: 同期の `read` がほかのアプリの内容でダイアログを出すと、答えが出るまで main が止まる（後ろにいる間も）。C ABI の受け口は main のブロックの中で Manager を呼ぶ（P1-4）ので、C から同期の読み出しを呼ぶとゲームの main が止まりうる | **2.0.0 では口を変えず、第 2 部の C の読み出しの関数のヘッダーとマニュアルに「ほかのアプリの内容ではユーザーが答えるまで main が止まる。止めたくなければ非同期の読み込み（`loadItem`）を使う」と書く**。前面での同じ待ちの長さと実機での振る舞いは C7 か 2a の前に 1 回測る（実機は利用者の許可が要る） |
+
+## 12. C4 のレビューと直したこと
+
+コードのレビューを 2 者で並行に行った。Claude のサブエージェント（設計との一致と正しさ）は A 0・B 1・C 5。ハッシュを合わせた写しで `--feature Clipboard` 34 件（成功 33、skip 1 は意図した U10b。`changed=0, added=2, removed=0`）とランナーの自己テスト 142/142 を流し、凍結した `ClipboardUITests` のハッシュが `FROZEN_CLIPBOARD_SHA256` のままであることも確かめた。Codex（設定のモデル。並行・寿命と実機の安全。読むだけ）は指摘無し: 結果・別のスレッドからの `cancelLoad`・`cancelAllLoads`・呼ぶ前に閉じた箱・使い回しの箱のどれでも完了は main に 1 回、負けた `.file` を消す処理は渡したファイルを消さず渡さないファイルを残さない、`@unchecked Sendable`・`nonisolated(unsafe)`・Manager の `deinit` は増えていない、今の 2 つの形は変わらない、`SampleApp.swift` の差分は識別子だけ、CB5 はサンプル自身の文字列を書き CB6 は読まず、どちらも `clipboard` の区分に収まる（simulator only も `isDevice` の守りも要らない）、fixture にローカルのパスと端末の識別子は無い。
+
+| 指摘 | 直したこと |
+|---|---|
+| B-1: 型と `cancelLoad(_:)` の DocC は「どのスレッドからでも」と書くが、`shared` はクラスの `@MainActor` を受け継ぐので、別のスレッドで `IosClipboardManager.shared.cancelLoad(box)` と書くと Swift 6 では組めない（レビューが `swiftc -typecheck -swift-version 6` で確かめた） | 型の Threading と `cancelLoad(_:)` の `- Note:` に「`shared` は main の actor で読む。別のスレッドから取り消すには、main で受け取った Manager（`Sendable`）を持っておき、それに対して呼ぶ」と書いた。付録 A の形（インスタンスの `nonisolated` のメソッド）は変えない。2a への申し送り（10.11）に、取り消しの関数が参照を持つか箱を直接閉じることを足した |
+| C-1: DocC の表の「読み込みの間に Manager が無くなる」の行にテストが無い | UT-30 に `releasingTheManagerDuringABoxedLoadReportsCancelledOnce` を足した（箱の形で読み始め、Manager を手放すと loader の `cancelAll` が 1 回呼ばれ、後の回に `CLIPBOARD_CANCELLED` が 1 回、箱は閉じる） |
+| C-2: テストの loader が `scope` を記録しない（`ClipboardBoxedLoad.start` が `.general` を渡す変異を、`.general` を読む本物の loader のテストでしか捕まえられない） | `PendingClipboardLoader` に `lastScope` を足し、`aFailedLoadReportsItsErrorCode` で `.named("ut30")` を確かめた |
+| C-3: 先頭のログ（`ClipboardBoxedLoad.init(completion:)` にログが無い。`discardUndelivered` が `fileManager` を出さない） | `[init] completion: provided` を足し、`discardUndelivered` の先頭に `fileManager: default/custom` を足した |
+| C-4: `aFileThatArrivesAfterTheCancellationIsDeleted` が実行のたびにセッションのフォルダを一時フォルダに残す | ほかの 2 つと同じく、セッションのフォルダを消す `defer` を足した |
+| C-5: `checkForegroundChange` の「最初の確認は `false`」は `startObserving` の後には当たらない。`cancelLoad` はどの箱でも閉じる（Dialog の箱なら Dialog が終わる） | 「一度も確認も観察もしていない scope の最初の確認は `false`」に直し、`cancelLoad(_:)` に「Clipboard の読み込みの箱だけを渡す。ほかの要求の箱（Dialog など）を渡すとその要求が終わる」の `- Note:` を足した |
+
+信頼する部分: Codex のレビューの後、`TRUSTED_FILES` の `Support/SampleApp.swift` を 10.10 の値（`9af74391d9751d5071cc4c5c7058eae57be057ceee6be2fc6440a738ebc3a12e`）に固定した。固定した後、リポジトリでランナーの自己テスト 142/142、直したファイルに関わる単体テスト（`IosClipboardManagerRequestBoxTests`・`IosClipboardManagerTests`・`LibraryLogPrivacyTests`・`RequestBoxTests`）48/48 を iPhone 17 / 26.2 で Xcode 26.6 の `-parallel-testing-enabled NO` で流した（警告は `appintentsmetadataprocessor` の決まったものだけ）。TSan（`IosClipboardManagerRequestBoxTests`・`IosClipboardManagerTests`・`RequestBoxTests`）は 41/41、報告 0 件。並列のクローンを切らずに流した 1 回は、各 suite が 2 回動き、2 回目の `privateValuesAreVisible`（canary の行がちょうど 1 つ）だけが落ちた。ライブラリの判定ではない記録のためのテストで、直したところとは関わらないので、全件の実行と同じく並列を切って流した結果を採った。直したのは DocC・ログ・テストなので、UI テストは流し直していない（レビューの写しの 34 件のまま）

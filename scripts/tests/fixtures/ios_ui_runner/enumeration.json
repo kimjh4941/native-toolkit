@@ -51,6 +51,12 @@
           "identifier" : "IosLibraryExampleUITests/ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly()"
         },
         {
+          "identifier" : "IosLibraryExampleUITests/ClipboardPasteUITests/testCB5_aLoadCancelledAtOnceReportsCancelledOnce()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/ClipboardPasteUITests/testCB6_aBoxCancelledBeforeTheLoadReadsNothing()"
+        },
+        {
           "identifier" : "IosLibraryExampleUITests/ClipboardUITests/testU10a_namedPasteboardSurvivesBackgroundAndDiesOnExplicitRemoval()"
         },
         {

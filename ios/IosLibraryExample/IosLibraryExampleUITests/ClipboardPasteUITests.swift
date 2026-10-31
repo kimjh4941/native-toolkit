@@ -8,6 +8,11 @@
 //  CB4 use the system paste control, which reads without the alert. The pasteboard's
 //  `changeCount` must not change between the runner's write and the sample's read (U-10).
 //
+//  CB5 and CB6 (Swift API design 13.2, stage 1b C4) load through a `RequestBox` and cancel it
+//  (sample SA-15). CB5 loads the sample's own text, so the started load raises no paste alert.
+//  CB6 cancels the box before the load over the runner's text: a load that read the pasteboard
+//  would raise the paste alert, so no alert means nothing was read.
+//
 
 import XCTest
 import Foundation
@@ -64,6 +69,51 @@ final class ClipboardPasteUITests: SampleUITestCase {
         let pasteboard = RunnerPasteboard(clip)
         let written = pasteboard.writeImageOnly()
         try assertPasteControl(clip, pasteboard, written)
+    }
+
+    /// CB5: Load Text through a box cancelled right after the call: `CLIPBOARD_CANCELLED`, once.
+    /// The box was closed when `cancelLoad` returned (the sample's result line), and no second
+    /// completion and no alert come within 2 seconds (U-14).
+    @MainActor
+    func testCB5_aLoadCancelledAtOnceReportsCancelledOnce() throws {
+        let clip = try clipboardToken()
+        try sample.openClipboard(clip)
+        try useGeneral(clip)
+        let copied = try sample.clipboardSequence(clip) + 1
+        try sample.tap(.copyPlainText, clip)
+        XCTAssertEqual(try sample.waitForClipboardResult(clip, sequence: copied),
+                       "✅ #\(copied) [copyPlainText] copied kind=plainText, scope=general")
+
+        try sample.tap(.loadTextThenCancel, clip)
+        XCTAssertEqual(
+            try sample.waitForClipboardResult(clip, sequence: copied + 1),
+            "ℹ️ #\(copied + 1) [loadTextThenCancel] Cancellation completed (CLIPBOARD_CANCELLED), calls=1, closedAtCancel=true"
+        )
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.clipboardSequence(clip), copied + 1, "a second completion arrived")
+        XCTAssertEqual(sample.remainingAlertCount, 0, "an alert appeared for a cancelled load")
+    }
+
+    /// CB6: Load Text with a box cancelled before the call, over the runner's text:
+    /// `CLIPBOARD_CANCELLED`, once, and no paste alert within 2 seconds (nothing was read. U-14).
+    @MainActor
+    func testCB6_aBoxCancelledBeforeTheLoadReadsNothing() throws {
+        let clip = try clipboardToken()
+        let pasteboard = RunnerPasteboard(clip)
+        let written = pasteboard.write("ntk-cb6-\(Int(Date().timeIntervalSince1970))")
+        try sample.openClipboard(clip)
+        try useGeneral(clip)
+
+        try pasteboard.requireUnchanged(since: written)
+        let sequence = try sample.clipboardSequence(clip)
+        try sample.tap(.loadTextWithCancelledBox, clip)
+        XCTAssertEqual(
+            try sample.waitForClipboardResult(clip, sequence: sequence + 1),
+            "ℹ️ #\(sequence + 1) [loadTextWithCancelledBox] Cancellation completed (CLIPBOARD_CANCELLED), calls=1, closedAtCancel=true"
+        )
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.clipboardSequence(clip), sequence + 1, "a second completion arrived")
+        XCTAssertEqual(sample.remainingAlertCount, 0, "an alert appeared: the load read the pasteboard")
     }
 
     // MARK: - Helpers

@@ -601,6 +601,7 @@ extension IosNotificationManager {
 | 新しい口 | `loadItem(_:scope:requestBox:completion:)`（`@MainActor`。完了は今の 4 つの値の形）。箱を付け、今の読み込みを始め、今の token を箱の「閉じたときの処理」に入れる |
 | 取り消し | `nonisolated public func cancelLoad(_ box: RequestBox)`。箱を取り消しで閉じ、token の `cancel()` を main に積む。完了は `(false, nil, "CLIPBOARD_CANCELLED", <文言>)` で 1 回。遅れて来た結果は閉じた箱に当たって捨てる |
 | 開始の前に閉じた箱 | 読み込まずに `cancelled` で完了する（main で後で） |
+| 取り消しに負けた `.file` | 取り消しの後に届いた `.file` の結果は、ライブラリが一時ファイル（要求のフォルダ）を消す。利用者は URL を受け取らないので消せないため（1b の C4 で決めた） |
 | 今の口 | `loadItem(_:scope:completion:) -> ClipboardLoadToken`、`async` 版、`cancelAllLoads()` は今のまま |
 | DocC | 「Unity のブリッジだけがどのスレッドからも呼べる入口」を、C ABI の受け口が main に積んでから呼ぶ形に直す（第 1 部 11.1 の 8） |
 | 後ろにいるとき | C ABI も判定しない（第 1 部 5.13 の表）。OS の振る舞いを MS-08 で記録する |

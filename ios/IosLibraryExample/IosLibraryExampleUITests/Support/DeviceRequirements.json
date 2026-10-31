@@ -110,6 +110,8 @@
     "ClipboardPasteUITests/testCB1_allowPasteLoadsText": ["clipboard", "systemui"],
     "ClipboardPasteUITests/testCB3_pasteControlReadsText": ["clipboard"],
     "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly": ["clipboard"],
+    "ClipboardPasteUITests/testCB5_aLoadCancelledAtOnceReportsCancelledOnce": ["clipboard"],
+    "ClipboardPasteUITests/testCB6_aBoxCancelledBeforeTheLoadReadsNothing": ["clipboard"],
     "ClipboardPasteDenyUITests/testCB2_denyPasteFailsLoadText": ["clipboard", "systemui"]
   }
 }

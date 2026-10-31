@@ -20,13 +20,11 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 /// | Operation | Cancel |
 /// |---|---|
 /// | `IosDialogManager.show(_:presenter:requestBox:completion:)` | `IosDialogManager.cancel(_:)` |
+/// | `IosClipboardManager.loadItem(_:scope:requestBox:completion:)` | `IosClipboardManager.cancelLoad(_:)` |
 ///
-/// - Note: The clipboard manager's `loadItem(_:scope:requestBox:completion:)` and
-///   `cancelLoad(_:)` are added in a later commit of 2.0.0.
-///
-/// The request ends when the box closes, and only the first close counts: the user's answer,
-/// a cancellation, a failure to present, or the system dismissing the presented UI. Whatever
-/// closes it later is ignored, so the operation's completion is invoked once.
+/// The request ends when the box closes, and only the first close counts: the user's answer or
+/// the loaded item, a cancellation, a failure to present, or the system dismissing the presented
+/// UI. Whatever closes it later is ignored, so the operation's completion is invoked once.
 ///
 /// A box belongs to one request. Passing a box that another request already uses makes the
 /// second request fail at once as an invalid request; the first request is not affected.

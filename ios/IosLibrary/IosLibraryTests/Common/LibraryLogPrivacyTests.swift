@@ -187,6 +187,46 @@ struct LibraryLogPrivacyTests {
         #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
     }
 
+    /// Clipboard loads (stage 1b C4) through the real manager and loader on a unique pasteboard:
+    /// the loaded text is a secret value, reported by every `loadItem` form and by a load
+    /// cancelled through its box. Only the clipboard text carries the sentinel: a type identifier
+    /// is logged `.private` (allowed), and `.private` values are visible here (MS-13).
+    @Test func clipboardLoadsNeverPutTheLoadedTextInTheLog() async throws {
+        let secret = "sentinel-clipboard-load-9b17"
+        let start = Date().addingTimeInterval(-1)
+
+        try await withRaisedLevel {
+            try await Self.loadClipboardText("text-\(secret)")
+        }
+
+        let messages = try readLibraryMessages(since: start)
+        try #require(messages.contains { $0.contains("[ClipboardBoxedLoad] [report] result: success(text)") },
+                     "the library's routine messages must be readable, or the test checks nothing")
+        try #require(messages.contains { $0.contains("[ClipboardBoxedLoad] [report] result: failure(CLIPBOARD_CANCELLED)") })
+        let leaks = messages.filter { $0.contains(secret) }
+        #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
+    }
+
+    /// Copies `text` to a unique pasteboard and loads it with every `loadItem` form, and once
+    /// more through a box that is cancelled at once.
+    @MainActor
+    private static func loadClipboardText(_ text: String) async throws {
+        let manager = IosClipboardManager(timeouts: .default, limits: .default)
+        let scope = try await manager.createPasteboard(.unique)
+        defer { manager.removePasteboard(scope, completion: nil) }
+        try await manager.copy(.plainText(text), scope: scope)
+        let done = MainRecorder<Bool>()
+
+        manager.loadItem(.text, scope: scope, requestBox: RequestBox()) { isSuccess, _, _, _ in done.record(isSuccess) }
+        let cancelled = RequestBox()
+        manager.loadItem(.text, scope: scope, requestBox: cancelled) { isSuccess, _, _, _ in done.record(isSuccess) }
+        manager.cancelLoad(cancelled)
+        manager.loadItem(.text, scope: scope) { isSuccess, _, _, _ in done.record(isSuccess) }
+        #expect(await waitUntil { done.values.count == 3 })
+        #expect(try await manager.loadItem(.text, scope: scope) == .text(text))
+        #expect(done.values.filter { $0 }.count == 2 && done.values.count == 3)
+    }
+
     /// Types `values` into the fields of the latest dialog and presses its primary button.
     @MainActor
     private static func answer(_ sessions: SessionRecorder, count: Int, with values: [String]) async throws {

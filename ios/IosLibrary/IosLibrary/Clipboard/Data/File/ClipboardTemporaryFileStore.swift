@@ -71,6 +71,28 @@ final class ClipboardTemporaryFileStore: @unchecked Sendable {
         try? fileManager.removeItem(at: requestDirectory)
     }
 
+    /// Deletes the request directory of a loaded file that was never delivered (its request was
+    /// cancelled through a `RequestBox` while the load finished), when the file is one this store
+    /// created: `<temporary>/IosLibraryClipboard/<session>/<request>/<file>`. Any other URL is left
+    /// alone. Any thread.
+    ///
+    /// - Returns: `true` when the URL had the store's layout (its directory was then removed, or
+    ///   was already gone).
+    @discardableResult
+    static func discardUndelivered(_ fileURL: URL, fileManager: FileManager = .default) -> Bool {
+        logger.log(level: .libraryDebug, "[discardUndelivered] fileURL: \(ClipboardLog.redactedPath(fileURL.path), privacy: .public), fileManager: \(fileManager === FileManager.default ? "default" : "custom", privacy: .public)")
+        let root = fileManager.temporaryDirectory.appendingPathComponent(rootDirectoryName, isDirectory: true)
+        let requestDirectory = fileURL.deletingLastPathComponent()
+        let sessionsParent = requestDirectory.deletingLastPathComponent().deletingLastPathComponent()
+        guard isContained(fileURL, in: root),
+              sessionsParent.standardizedFileURL.path == root.standardizedFileURL.path else {
+            logger.error("[discardUndelivered] not a file of this store, left alone")
+            return false
+        }
+        try? fileManager.removeItem(at: requestDirectory)
+        return true
+    }
+
     static func safeFileName(sourceURL: URL, suggestedName: String?) -> String {
         let candidates = [sourceURL.pathExtension, (suggestedName as NSString?)?.pathExtension ?? ""]
         let ext = candidates

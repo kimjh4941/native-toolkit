@@ -132,12 +132,16 @@ enum ShareButton: String, CaseIterable {
     var identifier: String { SampleScreen.share.buttonPrefix + rawValue }
 }
 
-/// The Clipboard buttons the new Clipboard tests press (CB1〜CB4). Pressing any of them needs a
+/// The Clipboard buttons the new Clipboard tests press (CB1〜CB6). Pressing any of them needs a
 /// `ClipboardToken`.
 enum ClipboardButton: String, CaseIterable {
     case useGeneral
+    case copyPlainText
     case loadText
     case mountPasteControl
+    // Swift API (2.0.0) section (1b SA-15).
+    case loadTextThenCancel
+    case loadTextWithCancelledBox
 
     var identifier: String { SampleScreen.clipboard.buttonPrefix + rawValue }
 }
@@ -182,7 +186,7 @@ enum SampleInventory {
         case .clipboard:
             return [screen.resultIdentifier, "clipboard.status", "clipboard.pasteSummary"]
                 + ["scope", "copy", "copyOptions", "append", "read", "load", "detect", "observe",
-                   "pasteControl", "clear", "errorCases"].map { "clipboard.section.\($0)" }
+                   "pasteControl", "clear", "errorCases", "swiftAPI"].map { "clipboard.section.\($0)" }
         }
     }
 
@@ -192,7 +196,7 @@ enum SampleInventory {
         screen == .clipboard ? ["clipboard.pasteControl"] : []
     }
 
-    /// `ClipboardSampleIdentifiers.Action` (52) and `ControlAction` (2).
+    /// `ClipboardSampleIdentifiers.Action` (52), `ControlAction` (2) and `SwiftAPIAction` (2, 1b SA-15).
     private static let clipboardButtonNames = [
         "useGeneral", "createNamed", "useFixedNamed", "createUnique", "removeActive", "probeRemoved",
         "copyPlainText", "copyPlainTextEmpty", "copyHtml", "copyURL", "copyImageFile", "copyImageData",
@@ -208,7 +212,8 @@ enum SampleInventory {
         "errMultipleEmpty", "errMultiRepEmpty", "errImageMissing", "errCopyInvalidUTI", "errInvalidURL",
         "errInvalidColor", "errReadInvalidUTI", "errRemoveGeneral", "errObserveMissing", "errEmptyPatterns",
         "errEmptyAcceptedTypes",
-        "cancelLoads", "mountPasteControl"
+        "cancelLoads", "mountPasteControl",
+        "loadTextThenCancel", "loadTextWithCancelledBox"
     ]
 }
 
