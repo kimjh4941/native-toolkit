@@ -8,11 +8,14 @@ All implementation rules are managed in this folder.
 - Common implementation policy (library dependencies / Clean Architecture / TDD / Bridge): ./coding-rules/common.md
 - Android coding rules: ./coding-rules/android.md
 - iOS coding rules (Swift + Objective-C): ./coding-rules/ios.md
+- macOS coding rules: ./coding-rules/mac.md
+- Windows coding rules: ./coding-rules/windows.md
+- Tests on the user's personal iPhone (approval, preparation, privacy): ./device-testing.md
 
 ## Workflows
 
 Canonical workflow definitions shared across all agents (Copilot, Claude, Codex).
-Agent-specific wrappers in `.github/skills/` reference these files.
+Agent-specific wrappers reference these files: `.claude/skills/` (Claude), `.codex/skills/` (Codex) and `.github/skills/` (Copilot).
 
 - Research a feature (企画書作成): ./workflows/research-feature/workflow.md
 - Implement feature (実装・テスト・確認): ./workflows/implement-feature/workflow.md
@@ -23,8 +26,12 @@ Agent-specific wrappers in `.github/skills/` reference these files.
 - Release (リリース): ./workflows/release/workflow.md
 - Review implementation feature (機能実装レビュー): ./workflows/review-implementation-feature/workflow.md
 - Review implementation sample app (サンプルアプリ実装レビュー): ./workflows/review-implementation-sample-app/workflow.md
-- Review and refine (企画書・設計書レビュー): ./workflows/review-and-refine/workflow.md
+- Review document (企画書・設計書レビュー): ./workflows/review-document/workflow.md
 - Commit message (コミットメッセージ生成): ./workflows/commit-msg/workflow.md
+
+## Searching the repository
+
+- `.ignore` keeps `docs/` (generated API references) and `dist/` (built binaries) out of ripgrep-based searches; they are about 93% of the tracked files. Name the path explicitly, or use `rg --no-ignore`, to look inside them.
 
 ## Design documents
 
