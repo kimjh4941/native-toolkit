@@ -4,7 +4,10 @@
   "osBuild": "22H124",
   "language": "unknown",
   "xcode": "Xcode 26.3 Build version 17C529",
-  "allowed": [],
+  "allowed": [
+    "sharesheet",
+    "systemui"
+  ],
   "counts": {
     "IosLibraryExampleUITests": {
       "Common": {
@@ -14,7 +17,10 @@
         "passed": 11
       },
       "Notification": {
-        "passed": 3
+        "passed": 34
+      },
+      "Share": {
+        "passed": 10
       }
     }
   },
@@ -35,8 +41,49 @@
     "IosLibraryExampleUITests/IdentifierInventoryUITests/testI1c_shareIdentifiers": "passed",
     "IosLibraryExampleUITests/NavigationUITests/testM1_menuOpensEachScreenAndBackReturnsToTheMenu": "passed",
     "IosLibraryExampleUITests/NavigationUITests/testM2_reopenedScreensStartFromTheirInitialState": "passed",
+    "IosLibraryExampleUITests/NotificationColdStartUITests/testN30_bannerTapColdStart": "passed",
+    "IosLibraryExampleUITests/NotificationColdStartUITests/testN31_openActionColdStart": "passed",
+    "IosLibraryExampleUITests/NotificationColdStartUITests/testN32_replyColdStart": "passed",
+    "IosLibraryExampleUITests/NotificationColdStartUITests/testN33_deleteColdStart": "passed",
+    "IosLibraryExampleUITests/NotificationEventUITests/testN23_registerCategoryAddsActions": "passed",
+    "IosLibraryExampleUITests/NotificationEventUITests/testN24_removeCategoryRemovesActions": "passed",
+    "IosLibraryExampleUITests/NotificationEventUITests/testN25_bannerTapReportsDefaultAction": "passed",
+    "IosLibraryExampleUITests/NotificationEventUITests/testN26_foregroundBannerTapReportsDefaultAction": "passed",
+    "IosLibraryExampleUITests/NotificationEventUITests/testN27_openActionBringsTheSample": "passed",
+    "IosLibraryExampleUITests/NotificationEventUITests/testN28_deleteActionStaysInBackground": "passed",
+    "IosLibraryExampleUITests/NotificationEventUITests/testN29_replyReportsText": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN10_updateDeliveredKeepsOne": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN11_cancelByIdRemovesPending": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN12_cancelByIdKeepsDelivered": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN13_cancelAllRemovesAllPending": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN14_removeDeliveredById": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN15_removeAllDelivered": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN16_scheduleTimeIntervalFires": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN17_scheduleCalendarThenCancelScheduled": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN18_scheduleLocationRegisters": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN19_cancelScheduledById": "passed",
     "IosLibraryExampleUITests/NotificationUITests/testN1_permissionStateIsAuthorized": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN20_cancelAllScheduledRemovesAllPending": "passed",
     "IosLibraryExampleUITests/NotificationUITests/testN21_queriesAfterCleanupAreEmpty": "passed",
-    "IosLibraryExampleUITests/NotificationUITests/testN22_setBadgeCountResults": "passed"
+    "IosLibraryExampleUITests/NotificationUITests/testN22_setBadgeCountResults": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN2_requestPermissionWhenGrantedShowsNoAlert": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN34_homeIconBadge": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN3_openNotificationSettingsShowsSettings": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN4_showImmediateShowsForegroundBanner": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN5_attachmentCanBeShownTwice": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN6_timeIntervalFiresInBackground": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN7_calendarFiresWithinNinetySeconds": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN8_showLocationRegisters": "passed",
+    "IosLibraryExampleUITests/NotificationUITests/testN9_updatePendingReplacesIt": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS11_shareWithSubjectClose": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS12_excludedCopyIsAbsent": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS13_shareEmptyFails": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS14_shareInvalidURLFails": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS15_shareMissingFileFails": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS16_shareMissingImageFails": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS2_shareTextClose": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS3_shareURLDragDown": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS5_shareURLWithPreviewShowsTitle": "passed",
+    "IosLibraryExampleUITests/ShareUITests/testS7_shareMultipleImagesClose": "passed"
   }
 }
