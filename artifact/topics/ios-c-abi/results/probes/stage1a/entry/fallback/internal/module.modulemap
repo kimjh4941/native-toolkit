@@ -1,0 +1,4 @@
+module NTKCApiFallbackInternal {
+    header "Table.h"
+    export *
+}

@@ -1,0 +1,4 @@
+module NTKCApiInternal {
+    header "ThreadLocal.h"
+    export *
+}
