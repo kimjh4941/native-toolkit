@@ -263,7 +263,7 @@ Android と同じく、**ブリッジには手を入れない**（段階 3 で�
 | 1b | Swift の API を補完する（4 章）。1.2 のロジックを `IosLibrary` へ移し、イベントの口、delegate を入れる口と転送、エラーの直し、プライバシーマニフェスト、ログの規則を入れる。1.4 の不備を直す。新しい API を使う画面をサンプルに足す。**Swift の API の設計書で決めた（2026-10-31）**: 機能ごとのコミットにし、共通 → Dialog → Share → Clipboard → 通知の delegate とイベント → 通知の操作 → 測りの記録と全体の実行、の順に行う（C1〜C7。設計書 15 章、S-P24）。通知（C5・C6）は 2 回目の申し送りの U-3・U-4 の結果の後。1 回目の申し送りで外から閉じた Share のシートに完了が来ないと分かったので、Share にも解放の見張りを足す（設計書 8.2、第 1 部 G-7）。シミュレーターで測ることは設計書 14 章、DoD は 17 章 | 1.4 の不備の直し（`registerCategory` の完了など）。通知の delegate を転送する形にする。エラーの case が変わる。表示の完了が来なかった経路を閉じる（第 1 部 P1-14・P1-15）、同じ回の 2 つ目の Dialog が待って出る（P1-12）、通知の印と予約したキー（P1-9）、`openSettingsFor` のイベント（P1-10）、`presenter` と取り消しの口を足す（既定は変えない。P1-11・P1-24）。それ以外の、ネイティブの利用者から見た動作は変えない |
 | 2a | `check_c_abi_contract_ios.py`、`check_manual_c_examples_ios.py` を足す。`common_header_problems` を N 個の OS に直す。照合の対象に、イベントと完了のコールバック（6 章の振る舞いの集合）を入れる。照合の自己テストで、規則を 1 つずつ壊すと落ちることを確かめる | 無し |
 | 2b | `IosLibraryCApi` を作り、C ABI を実装する。C ABI のテスト（`IosLibraryCApiTests`）と smoke（`IosLibraryCApiSmoke`）、`check_ios_dist.py`（7.3）。ビルドスクリプトに capi の xcframework と `include/` を足し、署名の扱い（D-18）を入れる。**完了の条件に 2a の機械照合を入れる**。**2b の終わりにリリース版を決めて `dist/<リリース版>` を作る**（Android が 2c の前に `dist/1.13.0` を作ったのと同じ。2c はこの dist で検証する）。**dist を置く前に、`unity-native-plugin` に下の 3 つを頼み、済んだことを確かめる**。dist にはいつも全 OS の成果物をそろえる（Android の dist/1.13.0 と同じ） | C ABI が増える（新しい配布物） |
-| 2c | `unity-native-plugin`（別リポジトリ）の iOS を C ABI に移す: P/Invoke、JSON の層の削除、通知の delegate を起動の終わりまでに入れる `.mm`（`AppDelegateListener` / `kUnityWillFinishLaunchingWithOptions` など。1a で、Unity の通知パッケージより必ず後に入る形も比べる。入れるかどうかを利用者が選べる設定を持つ。通知を使わないアプリの delegate を奪わないため）、4 機能を一度に移す（D-20）、EditMode / PlayMode / 実機のテスト。こちらは対応表と申し送りを出し、書き換えは向こうで行う。2c の成功をリリースの条件にする（Android と同じ） | Unity が C ABI を呼ぶ |
+| 2c | `unity-native-plugin`（別リポジトリ）の iOS を C ABI に移す: P/Invoke、JSON の層の削除、通知の delegate を起動の終わりまでに入れる `.mm`（`AppDelegateListener` / `kUnityWillFinishLaunchingWithOptions` など。1a で、Unity の通知パッケージより必ず後に入る形も比べる。入れるかどうかを利用者が選べる設定を持つ。通知を使わないアプリの delegate を奪わないため）、4 機能を一度に移す（D-20）、EditMode / PlayMode / 実機のテスト。こちらは対応表と申し送りを出し、書き換えは向こうで行う。2c の成功をリリースの条件にする（Android と同じ） | Unity が C ABI を呼ぶ **unity-native-plugin の確かめ（2026-10-31）で決めた 2c の項目**: `.mm` は `didFinishLaunching` で `ntk_notification_install` を呼ぶ（H2-2。リンクの順に関わらずパッケージの後に入る）。C# の包みは、パッケージの `AuthorizationRequest` を呼んだ後に `ntk_notification_install` をもう一度呼ぶ（H2-3）。UnityFramework に `UserNotifications.framework` を足す。コールバックの中は必ず try / catch（U-9）。`results/2026-10-31-ios-c-abi-unity-handoff-2-results.md` |
 | 3 | `UnityIosPlugin` を削除する。ビルドスクリプト、`generate_docc.sh`、`publish_docs.sh`、`scripts/check_design_consistency.py`、`scripts/README.md`、README、`agent-rules/coding-rules/{ios,common}.md`、`agent-rules/workflows/` から外す | `unity-ios-native-toolkit-*.xcframework` が無くなる（D-2） |
 | 4 | ドキュメント: マニュアルの iOS の章に C ABI の節を足す（3 言語）。2.0.0 の移行ガイド（ブリッジの廃止、Swift 6 の注釈、エラーの case、通知の delegate を入れる関数と転送、bundle id、プライバシーマニフェスト）、言語ごとの導入の手順を書く。C ABI の Doxygen と、DocC の `IosLibrary` を合わせる。見出しのアンカーのずれ（知見 4 章）を防ぐ見出しの付け方を決める。マニュアルの版は 2b で決めたリリース版にする | - |
 
@@ -489,6 +489,10 @@ TSan が実機で動かないことは、Xcode の文書で確かめる（未確
 
 ほかに分かったこと（第 1 部で扱う）: 転送の包みは、システムの completion が `Sendable` でないので Swift 6 で `@unchecked Sendable` が要る（抜け道の例外として理由を記録する）。main に積んだ処理の中の UIKit の例外は捕まえられずに落ちるので、起こさない検査（共有のシートの基点など）を入口で行い、テストは iOS 18 の iPad でも流す。UTF-8 は、Swift の `String` にしてから U+0000 を U+FFFD に置き換える。XCTest の ASan / TSan はシミュレーターで動く。実機か Unity でしか確かめられないこと（`openSettingsFor` をシステムから呼ばせる、背景のアクションの completion を呼ばない場合、Unity の起動の処理の中で入れる時期、通知のパッケージとの順番、Dialog を出したままゲームが進むか、実機の TSan）は、`unity-native-plugin` の agent への申し送りに入れる。
 
+**unity-native-plugin の 1 回目の確かめ（2026-10-31）**: U-1・U-2 は合格（開発用の署名だけ）、U-5・U-8 は P1-11・P1-12 の推奨どおり、U-9 は C# の例外で落ちる（P1-16 の想定どおり）、U-10 は実機の ASan の報告が 0（ASan の版はアプリを組む Xcode と同じ版でないと動かない）。`results/2026-10-31-ios-c-abi-unity-handoff-1-results.md`。2 回目（通知）は向こうで実機の段階ごとに利用者の許可を得て流す
+
+**unity-native-plugin の 2 回目の確かめ（2026-10-31）**: U-3 は `kUnityWillFinishLaunching` でも `didFinishLaunching` でもコールドスタートのタップに間に合った（1a-13 の関数は足さない）。U-4 はライブラリがパッケージ 2.5.0 の後に入れば共存でき、`didFinishLaunching` ならリンクの順に関わらず後に入る。パッケージは転送せず、C# の `AuthorizationRequest` のたびに delegate を入れ直す。U-6 の背景のアクションは 1 回だけ届き、アプリは止められなかった。U-7 は後ろに移ってから約 3 秒は `willPresent` が呼ばれる。決めたこと: P1-22 を前面に出す応答だけに絞る（H2-1）、Unity は `didFinishLaunching` で入れる（H2-2）、パッケージの入れ直しはホストが入れ直して補う（H2-3）。`results/2026-10-31-ios-c-abi-unity-handoff-2-results.md`。本物の Unity での確かめ（U-1〜U-10）はこれで終わった
+
 ### 8.3 ツールチェーンの版（D-14・D-15・D-16）
 
 2026-10-18 に調べた。利用者が組めなくなる版は使わない、を基準にする。
@@ -582,6 +586,7 @@ Unity の iOS は、iOS 27 SDK で組むアプリに scene のライフサイク
 
 ## 9. DoD
 
+- [ ] 配布用の署名（Distribution のアーカイブと Organizer の Validate App）で、2 つの framework がアプリの証明書で署名し直されることを確かめる（D-18。unity-native-plugin の 1 回目は開発用の署名だけを確かめた。`results/2026-10-31-ios-c-abi-unity-handoff-1-results.md`）
 - [x] D-1 〜 D-22 を決める（2026-10-18。すべて推奨のとおり）
 - [x] この README のレビューで区分 A が 0 になっている（3 回。`reviews/` の v1〜v3）
 - [x] 段階 0a のスパイクで、XCUITest と人の確認の分担を確定する（`common.md` の例外にした項目は理由を記録している）（`results/2026-10-18-ios-c-abi-stage0a-spike-result.md`。シミュレーター 2 台と実機。分担は UI テストの設計書）
