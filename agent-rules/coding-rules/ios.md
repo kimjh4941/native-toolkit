@@ -53,6 +53,19 @@ void sample(const char* value) {
 - 純粋 UI ユーティリティ
 - 既にログがある箇所（重複追加しない）
 
+### 秘密の値を伏せる（例外）
+
+全パラメータを出す規則の例外として、秘密になりうる値はログに出さない（2026-10-31。`artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-swift-api-design.md` の 8.7）。
+
+| 項目 | 規則 |
+|---|---|
+| 伏せる値 | パスワード、Dialog の入力欄の値、通知の返信（`userText`）、通知の内容（`title`、`subtitle`、`body`、userInfo の値。キーは出す）、Share の内容（テキスト、URL、件名、題、ファイルの名前）、クリップボードの本文 |
+| 書き方 | 長さ・有無・件数・種類だけを出す。今の公開の型の `description` は変えず、ログの所で伏せる。新しい型は `description` で伏せてよい。エラーの値が URL やパスを持つときは、case の名前だけを出す |
+| 出してよい値 | 関数名、長さ、件数、識別子（通知・category・アクションの id）、種類、列挙、真偽値、エラーの case |
+| 先頭のログ | 残す。伏せる値を持つ引数は長さだけを出す |
+| OS の違い | Android（`android.md`）は通知のタイトルとメッセージを出してよい値とするが、iOS は通知の内容をすべて伏せる |
+| ログの出し方 | 段階 1b で `Log` から `os.Logger` に移る（補間ごとに `privacy:` を付ける）。書き方はそのコードと一緒にここに書く |
+
 ---
 
 ## Objective-C / Swift ブリッジの型
@@ -87,6 +100,9 @@ Swift の API を Objective-C から呼び出す際、completion ブロックの
 - ネイティブ版（Swift 呼び出し元向け）: `async throws` で UseCase をそのまま公開する薄いラッパーを追加する（`@discardableResult` を付け、戻り値を無視できるようにする）
 - 新規 Manager を作る場合は、両方式を最初から用意する（後から追加ではなく設計時点で決める）
 - サンプルアプリ（`IosLibraryExample`）は `async throws` 版を使う（`Button` の action は同期クロージャのため `Task { await ... }` で橋渡しする）
+- **例外（投げない `async`）**: system の API が失敗を返さない問い合わせ（通知の一覧、権限の状態、category の登録と削除など）のネイティブ版は、投げない `async` にしてよい（2026-10-31）
+- **例外（サンプル）**: 段階 0c の UI テストの基準になっている今のボタンは、callback 版のまま残してよい。新しく足すボタンは `async` 版を使う（2026-10-31）
+- **UseCase を置かない口**: Data 層に届かない口は UseCase を置かず、Manager から直に持ち主を呼んでよい。対象は、受け手の登録・解除、要求の取り消し、前面の問い合わせ、通知の delegate を入れる口、状態を持たない純粋な関数（2026-10-31。Android の `android.md` と同じ条件）
 - **例外**: 待機や結果の非同期到着を伴わず即時完了する control 操作（監視の開始・停止、キャンセル、真偽値の即時判定など）および factory 操作（UI コンポーネントの生成など）は、callback 版 / `async throws` 版を設けず同期形式のまま公開してよい。詳細と適用条件は `common.md`「システム API に合わせた同期・非同期設計」の「例外（同期 control / factory API）」を参照する。上記「必ず `async throws` にする」はこの例外に該当しない操作に適用する
 
 ### `async` の要否（重い処理か軽い処理か）
