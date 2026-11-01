@@ -222,6 +222,15 @@
           "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN33_deleteColdStart()"
         },
         {
+          "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN36_aDelayedListenerReceivesTheKeptLaunchResponse()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN37_launchResponseIsTheTappedNotification()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationColdStartUITests/testN45_legacyReceiversColdStart()"
+        },
+        {
           "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN23_registerCategoryAddsActions()"
         },
         {
@@ -241,6 +250,18 @@
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN29_replyReportsText()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN35_twoListenersReceiveOnceEach()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN41_eachNotificationGoesToItsOwnDelegate()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN43_legacyReceiversReportABannerTap()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN44_legacyReceiversReportAReply()"
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationPermissionUITests/testNP1_allowPermission()"
@@ -295,6 +316,9 @@
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN34_homeIconBadge()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN34b_launchReportsTheInstalledDelegate()"
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN3_openNotificationSettingsShowsSettings()"

@@ -139,8 +139,8 @@ FROZEN_CLIPBOARD_SHA256 = "4612943da3ec0e32562d86d07d7d134521f1db5fed42e7543db74
 # (SampleApp: the navigation bar buttons carry their labels; not yet reviewed by another model).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
-    "Support/SampleUITestCase.swift": "f9ac9bc5b9aac62afae0499e27bc1ab7b64f5e7361229402b8d34591eb461499",
-    "Support/SampleApp.swift": "9af74391d9751d5071cc4c5c7058eae57be057ceee6be2fc6440a738ebc3a12e",
+    "Support/SampleUITestCase.swift": "49bd2c07958fadedbf235c9ab155f0aedbcec4dbebd2260b7034f2e55adfe874",
+    "Support/SampleApp.swift": "1ac8667f119d835d39b9b36bb0e05ff00243b679fc817e8e62bbc1ea5801421e",
     "Support/Springboard.swift": "7c642008fdc5a532e1d1bb235702c7526669f5b1023aeae25a579f44e9c0daba",
     "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",

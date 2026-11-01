@@ -24,6 +24,8 @@ enum NotificationSampleIdentifiers {
         static let query = "query"
         static let badge = "badge"
         static let category = "category"
+        /// Swift API (2.0.0): the event hub, the launch response and the host delegate (1b C5).
+        static let swiftAPI = "swiftAPI"
     }
 
     enum ButtonName {
@@ -52,6 +54,11 @@ enum NotificationSampleIdentifiers {
         static let setBadgeCount0 = "setBadgeCount0"
         static let registerCategory = "registerCategory"
         static let removeCategory = "removeCategory"
+        // Swift API (2.0.0) section (1b SA-06, SA-08, SA-12).
+        static let addSecondListener = "addSecondListener"
+        static let removeSecondListener = "removeSecondListener"
+        static let readLaunchResponse = "readLaunchResponse"
+        static let showHostNotification = "showHostNotification"
     }
 
     enum LastEventField {
@@ -60,6 +67,16 @@ enum NotificationSampleIdentifiers {
         static let notificationId = "notificationId"
         static let actionId = "actionId"
         static let userText = "userText"
+    }
+
+    /// The status lines of the Swift API section (`notification.<name>`; 1b SA-06, SA-11, SA-12, SA-18).
+    static func status(_ name: String) -> String { "notification.\(name)" }
+
+    enum StatusName {
+        static let launchStatus = "launchStatus"
+        static let listenerCounts = "listenerCounts"
+        static let lastSettingsRequest = "lastSettingsRequest"
+        static let hostEvent = "hostEvent"
     }
 }
 
@@ -468,6 +485,34 @@ struct NotificationSampleView: View {
                         }
                         .accessibilityIdentifier(ID.button(ID.ButtonName.removeCategory))
                     }
+
+                    sectionView(title: "Swift API (2.0.0)", identifier: ID.Section.swiftAPI) {
+                        swiftAPIStatusView
+
+                        Button("AddSecondListener") {
+                            self.updateResult(isSuccess: true, result: NotificationEventRouting.shared.addSecondListener())
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.addSecondListener))
+
+                        Button("RemoveSecondListener") {
+                            self.updateResult(isSuccess: true, result: NotificationEventRouting.shared.removeSecondListener())
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.removeSecondListener))
+
+                        Button("ReadLaunchResponse") {
+                            self.updateResult(isSuccess: true, result: NotificationEventRouting.shared.launchResponseLine())
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.readLaunchResponse))
+
+                        Button("ShowHostNotification") {
+                            requirePermission {
+                                SampleHostNotificationDelegate.post { line in
+                                    self.updateResult(isSuccess: true, result: line)
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showHostNotification))
+                    }
                 }
                 .padding(.trailing, 12)
                 .padding(.bottom, 12)
@@ -482,11 +527,18 @@ struct NotificationSampleView: View {
     }
 
     /// The last notification event received by this process (tap, action or reply).
+    ///
+    /// The sequence line's `accessibilityValue` tells the UI tests how the event came and what
+    /// this process read at launch (SA-18; it does not change what is shown).
     private var lastEventView: some View {
         let event = eventViewModel.snapshot
+        let status = eventViewModel.status
+        let route = "path=\(event.path?.rawValue ?? "-"),launch=\(event.isLaunchResponse),delivery=\(event.delivery?.rawValue ?? "-"),"
+            + "mode=\(status.mode.rawValue),source=\(status.source.rawValue)"
         return VStack(alignment: .leading, spacing: 2) {
             Text("sequence=\(event.sequence)")
                 .accessibilityIdentifier(ID.lastEvent(ID.LastEventField.sequence))
+                .accessibilityValue(route)
             Text("kind=\(event.kind?.rawValue ?? "none")")
                 .accessibilityIdentifier(ID.lastEvent(ID.LastEventField.kind))
             Text("notificationId=\(event.notificationId ?? "-")")
@@ -499,6 +551,25 @@ struct NotificationSampleView: View {
         .font(.footnote)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)
+    }
+
+    /// The status lines of the Swift API section.
+    private var swiftAPIStatusView: some View {
+        let status = eventViewModel.status
+        return VStack(alignment: .leading, spacing: 2) {
+            Text("install=\(status.install), isDelegateInstalled=\(status.isDelegateInstalled), mode=\(status.mode.rawValue), "
+                 + "source=\(status.source.rawValue), hostDelegate=\(status.hostDelegate ? "on" : "off")")
+                .accessibilityIdentifier(ID.status(ID.StatusName.launchStatus))
+            Text("first=\(status.firstListenerCount), second=\(status.secondListenerCount), secondListener=\(status.secondListenerState)")
+                .accessibilityIdentifier(ID.status(ID.StatusName.listenerCounts))
+            Text("settingsRequests=\(status.settingsRequestCount), notificationId=\(status.lastSettingsRequestId ?? "-")")
+                .accessibilityIdentifier(ID.status(ID.StatusName.lastSettingsRequest))
+            Text("hostWillPresent=\(status.hostWillPresentCount), hostDidReceive=\(status.hostDidReceiveCount), "
+                 + "notificationId=\(status.hostLastNotificationId ?? "-"), actionId=\(status.hostLastActionId ?? "-")")
+                .accessibilityIdentifier(ID.status(ID.StatusName.hostEvent))
+        }
+        .font(.footnote)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

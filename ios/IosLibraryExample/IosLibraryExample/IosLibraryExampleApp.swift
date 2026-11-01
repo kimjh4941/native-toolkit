@@ -8,40 +8,37 @@
 import SwiftUI
 import IosLibrary
 import os
+import UIKit
 
-private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "IosLibraryExampleApp")
+private let delegateLogger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "SampleAppDelegate")
 
 @main
 struct IosLibraryExampleApp: App {
-    init() {
-        // Set the receivers before `setup()` installs the notification delegate, so that no
-        // response can arrive while they are still unset.
-        IosNotificationManager.shared.onActionReceived = { notificationId, actionId, _ in
-            logger.debug("[onActionReceived] notificationId: \(notificationId, privacy: .public), actionId: \(actionId, privacy: .public)")
-            NotificationEventLog.shared.record(
-                kind: .action,
-                notificationId: notificationId,
-                actionId: actionId,
-                userText: nil
-            )
-        }
-
-        IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, _ in
-            logger.debug("[onTextInputActionReceived] notificationId: \(notificationId, privacy: .public), actionId: \(actionId, privacy: .public), userTextLength: \(userText.utf8.count, privacy: .public)")
-            NotificationEventLog.shared.record(
-                kind: .textInput,
-                notificationId: notificationId,
-                actionId: actionId,
-                userText: userText
-            )
-        }
-
-        IosNotificationManager.setup()
-    }
+    @UIApplicationDelegateAdaptor(SampleAppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
+    }
+}
+
+/// Sets the library's notification delegate up while the launch is in progress.
+///
+/// `App.init` works too (the library takes the app for not active yet while the application object
+/// does not exist; `installDelegate()` DocC). The sample uses the application delegate, the place
+/// a UIKit app uses as well.
+final class SampleAppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        delegateLogger.debug("[didFinishLaunchingWithOptions] launchOptions: \(launchOptions?.count ?? 0, privacy: .public)")
+        // Installs the library's notification delegate and adds the listeners before the launch
+        // returns, so that a response that launched the app reaches the sample (D-7). The test
+        // shape of the launch (SA-18) chooses the path: `installDelegate()` and a listener of
+        // `responses` by default, the deprecated receivers and `setup()`, or a delayed listener.
+        NotificationEventRouting.shared.start()
+        return true
     }
 }

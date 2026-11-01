@@ -90,20 +90,64 @@ enum NotificationButton: String, CaseIterable {
     case setBadgeCount0
     case registerCategory
     case removeCategory
+    // Swift API (2.0.0) section (1b SA-06, SA-08, SA-12).
+    case addSecondListener
+    case removeSecondListener
+    case readLaunchResponse
+    case showHostNotification
 
     var identifier: String { SampleScreen.notification.buttonPrefix + rawValue }
 
     /// Buttons that post a notification or bring up system UI need `systemui` (U-9, 3.3).
+    /// `showHostNotification` posts the sample's own notification without the library (SA-12).
     fileprivate var requiredCategory: DeviceCategory? {
         switch self {
         case .showImmediate, .showImmediateWithAttachment, .showTimeInterval, .showCalendar, .showLocation,
              .scheduleTimeInterval, .scheduleCalendar, .scheduleLocation, .updateById,
-             .requestPermission, .openNotificationSettings:
+             .requestPermission, .openNotificationSettings, .showHostNotification:
             return .systemui
         case .hasPermission, .authorizationStatus, .cancelById, .cancelAll, .removeDeliveredById,
              .removeAllDelivered, .cancelScheduledById, .cancelAllScheduled, .getScheduled, .getDelivered,
-             .setBadgeCount1, .setBadgeCount0, .registerCategory, .removeCategory:
+             .setBadgeCount1, .setBadgeCount0, .registerCategory, .removeCategory,
+             .addSecondListener, .removeSecondListener, .readLaunchResponse:
             return nil
+        }
+    }
+}
+
+/// The status lines of the Notification screen's Swift API section (1b SA-06, SA-11, SA-12, SA-18).
+enum NotificationStatusLine: String, CaseIterable {
+    /// `install=<…>, isDelegateInstalled=<…>, mode=<…>, source=<…>, hostDelegate=<on|off>`.
+    case launchStatus
+    /// `first=<n>, second=<n>, secondListener=<none|added|removed>`.
+    case listenerCounts
+    /// `settingsRequests=<n>, notificationId=<id|->`.
+    case lastSettingsRequest
+    /// `hostWillPresent=<n>, hostDidReceive=<n>, notificationId=<id|->, actionId=<id|->`.
+    case hostEvent
+
+    var identifier: String { "notification.\(rawValue)" }
+}
+
+/// The test shape a UI test launches the sample with (1b SA-18, SA-12). Every launch through
+/// `SampleApp.launch(_:)` passes it as arguments, so the sample's file always holds the shape of
+/// the last launch by a test; a cold start the system makes reads that file.
+enum SampleLaunch: Equatable {
+    /// `-ntkSampleTestMode none`: `installDelegate()` and a listener of `responses` at launch.
+    case standard
+    /// `-ntkSampleTestMode legacyReceivers`: the deprecated receivers and `setup()`.
+    case legacyReceivers
+    /// `-ntkSampleTestMode delayListener`: the listener 3 seconds after launch.
+    case delayListener
+    /// `-ntkSampleTestMode none -ntkSampleHostDelegate`: a host delegate before the library's.
+    case hostDelegate
+
+    var arguments: [String] {
+        switch self {
+        case .standard: return ["-ntkSampleTestMode", "none"]
+        case .legacyReceivers: return ["-ntkSampleTestMode", "legacyReceivers"]
+        case .delayListener: return ["-ntkSampleTestMode", "delayListener"]
+        case .hostDelegate: return ["-ntkSampleTestMode", "none", "-ntkSampleHostDelegate"]
         }
     }
 }
@@ -176,10 +220,11 @@ enum SampleInventory {
             return [screen.resultIdentifier]
         case .notification:
             return [screen.resultIdentifier]
-                + ["permission", "show", "updateCancelRemove", "schedule", "query", "badge", "category"]
+                + ["permission", "show", "updateCancelRemove", "schedule", "query", "badge", "category", "swiftAPI"]
                     .map { "notification.section.\($0)" }
                 + ["sequence", "kind", "notificationId", "actionId", "userText"]
                     .map { "notification.lastEvent.\($0)" }
+                + NotificationStatusLine.allCases.map(\.identifier)
         case .share:
             return [screen.resultIdentifier]
                 + ["text", "url", "image", "file", "combination", "error", "swiftAPI"].map { "share.section.\($0)" }
@@ -310,7 +355,10 @@ struct SampleApp {
 
     // MARK: Lifecycle
 
-    func launch() throws {
+    /// Launches the sample with the test shape `launch` (a new process; the default is the
+    /// standard shape).
+    func launch(_ launch: SampleLaunch = .standard) throws {
+        app.launchArguments = launch.arguments
         app.launch()
         guard app.wait(for: .runningForeground, timeout: Self.launchTimeout) else {
             throw SampleUITestError("the sample did not come to the foreground")
@@ -535,6 +583,32 @@ struct SampleApp {
     func lastEventLabel(_ field: String) throws -> String {
         let identifier = "notification.lastEvent.\(field)"
         return try exactlyOne(app.staticTexts.matching(identifier: identifier), identifier).label
+    }
+
+    /// The `accessibilityValue` of the last event's sequence line (1b SA-18):
+    /// `path=<hub|legacy|->,launch=<true|false>,delivery=<live|held|->,mode=<…>,source=<arguments|file|defaults>`.
+    func lastEventRoute() throws -> String {
+        let identifier = "notification.lastEvent.sequence"
+        return (try exactlyOne(app.staticTexts.matching(identifier: identifier), identifier).value as? String) ?? ""
+    }
+
+    /// The label of a status line of the Notification screen's Swift API section.
+    func statusLine(_ line: NotificationStatusLine) throws -> String {
+        try exactlyOne(app.staticTexts.matching(identifier: line.identifier), line.identifier).label
+    }
+
+    /// Waits until the status line reads `expected` (the sample records the state; no timer).
+    func waitForStatusLine(_ line: NotificationStatusLine, _ expected: String, timeout: TimeInterval = SampleApp.elementTimeout) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        var last = try statusLine(line)
+        while last != expected {
+            guard Date() < deadline else {
+                throw SampleUITestError("\(line.identifier) did not become \(expected) in \(timeout)s: \(last)")
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+            last = try statusLine(line)
+        }
+        try session.checkInterruption()
     }
 
     /// The five labels of the last event, in the order sequence, kind, notificationId, actionId,

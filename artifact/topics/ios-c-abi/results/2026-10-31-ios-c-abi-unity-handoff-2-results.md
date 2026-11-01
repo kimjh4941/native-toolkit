@@ -5,7 +5,7 @@
 - 申し送り: `results/2026-10-31-ios-c-abi-unity-handoff-2.md`（雛形は `results/probes/stage1a/handoff2/`）
 - 環境: Unity 6000.4.2f1、Xcode 26.3、実機 iPhone XS / iOS 18.7.2。実機の段階は、段階ごとに利用者の許可を得て流した。雛形は 2026-10-31 に組んだもの（`ac83ad3b` と未コミットの変更）。Unity の通知パッケージは `com.unity.mobile.notifications` 2.5.0
 - 向こうの手の入れ方: コールドスタートのログを残すため、写した `.mm` の先頭に 2 行（`#import "NtkProbeLog.h"`、`#define NSLog NtkProbeNSLog`）を足した。こちらのソースは変えていない。proxy の `os_log` は、向こうが起動したときだけ `OS_ACTIVITY_DT_MODE=YES` で読んだので、コールドスタートの分は無い
-- 試作のアプリ（`NtkCAbiProbe`）は利用者の iPhone に入ったまま。消すかどうかは利用者が決める
+- 試作のアプリ（`NtkCAbiProbe`）は、利用者の求めで unity-native-plugin の agent が iPhone から消した。2026-11-01 にアプリの一覧（読むだけ）で、端末に無いことを確かめた
 
 ## 結果
 

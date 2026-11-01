@@ -25,4 +25,12 @@ public enum NotificationError: Error {
     /// An unknown error occurred.
     /// - Parameter error: The underlying system error.
     case unknown(Error)
+    /// The userInfo of `show`, `schedule` or `update` uses the key the library reserves for its
+    /// own marker (`com.jonghyunkim.nativetoolkit`). Nothing was added, removed or replaced.
+    case reservedUserInfoKey
+    /// A listener was added to ``IosNotificationManager/responses`` or
+    /// ``IosNotificationManager/settingsRequests``, or ``IosNotificationManager/launchResponse()``
+    /// was called, before ``IosNotificationManager/installDelegate()`` installed the library's
+    /// delegate in this process.
+    case delegateNotInstalled
 }

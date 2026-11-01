@@ -11,6 +11,39 @@ import UserNotifications
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "NotificationRepositoryImpl")
 
+/// The requests part of `UNUserNotificationCenter` the repository uses to add, remove and list
+/// requests. The library's is ``CurrentNotificationRequestCenter``; tests pass a stand-in, because
+/// the test host app has no notification permission and the system keeps no request then.
+protocol NotificationRequestCenter: Sendable {
+    func add(_ request: UNNotificationRequest) async throws
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String])
+    func removeAllPendingNotificationRequests()
+    func pendingNotificationRequests() async -> [UNNotificationRequest]
+}
+
+/// `UNUserNotificationCenter.current()`, read per call (it is not `Sendable`).
+struct CurrentNotificationRequestCenter: NotificationRequestCenter {
+    func add(_ request: UNNotificationRequest) async throws {
+        logger.log(level: .libraryDebug, "[CurrentNotificationRequestCenter.add] identifier: \(request.identifier, privacy: .public)")
+        try await UNUserNotificationCenter.current().add(request)
+    }
+
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+        logger.log(level: .libraryDebug, "[CurrentNotificationRequestCenter.removePendingNotificationRequests] identifiers: \(identifiers, privacy: .public)")
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    func removeAllPendingNotificationRequests() {
+        logger.log(level: .libraryDebug, "[CurrentNotificationRequestCenter.removeAllPendingNotificationRequests]")
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+    }
+
+    func pendingNotificationRequests() async -> [UNNotificationRequest] {
+        logger.log(level: .libraryDebug, "[CurrentNotificationRequestCenter.pendingNotificationRequests]")
+        return await UNUserNotificationCenter.current().pendingNotificationRequests()
+    }
+}
+
 /// Concrete implementation of `NotificationRepository` backed by `UNUserNotificationCenter`.
 ///
 /// ## Threading
@@ -22,34 +55,46 @@ public final class NotificationRepositoryImpl: NotificationRepository {
 
     /// The app's notification center, read per operation (see the type's Threading section).
     private var center: UNUserNotificationCenter { .current() }
+    /// Where requests are added, removed and listed (`center` in the library).
+    private let requestCenter: any NotificationRequestCenter
 
     /// Creates a repository backed by `UNUserNotificationCenter.current()`.
     public init() {
         logger.log(level: .libraryDebug, "[init]")
+        requestCenter = CurrentNotificationRequestCenter()
+    }
+
+    /// For tests: adds, removes and lists the requests through `requestCenter`.
+    init(requestCenter: any NotificationRequestCenter) {
+        logger.log(level: .libraryDebug, "[init] requestCenter: \(String(describing: type(of: requestCenter)), privacy: .public)")
+        self.requestCenter = requestCenter
     }
 
     // MARK: - Throwing operations
 
     public func show(content: NotificationContent, trigger: NotificationTrigger?) async throws {
         logger.log(level: .libraryDebug, "[show] content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
+        try rejectReservedKey(in: content, method: "show")
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
         let request = UNNotificationRequest(identifier: content.id, content: unContent, trigger: unTrigger)
         do {
-            try await center.add(request)
+            try await requestCenter.add(request)
         } catch {
             throw NotificationError.addRequestFailed(error)
         }
     }
 
     public func update(identifier: String, content: NotificationContent, trigger: NotificationTrigger?) async throws {
-        logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public)")
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public), content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
+        // Before anything is removed (design 8.3.3, SR-9).
+        try rejectReservedKey(in: content, method: "update")
+        requestCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
         let request = UNNotificationRequest(identifier: identifier, content: unContent, trigger: unTrigger)
         do {
-            try await center.add(request)
+            try await requestCenter.add(request)
         } catch {
             throw NotificationError.addRequestFailed(error)
         }
@@ -57,11 +102,12 @@ public final class NotificationRepositoryImpl: NotificationRepository {
 
     public func schedule(content: NotificationContent, trigger: NotificationTrigger, identifier: String) async throws {
         logger.log(level: .libraryDebug, "[schedule] identifier: \(identifier, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
+        try rejectReservedKey(in: content, method: "schedule")
         let unContent = try makeUNContent(from: content)
         let unTrigger = makeTrigger(from: trigger)
         let request = UNNotificationRequest(identifier: identifier, content: unContent, trigger: unTrigger)
         do {
-            try await center.add(request)
+            try await requestCenter.add(request)
         } catch {
             throw NotificationError.addRequestFailed(error)
         }
@@ -119,7 +165,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
 
     public func getScheduled() async -> [ScheduledNotification] {
         logger.log(level: .libraryDebug, "[getScheduled]")
-        let requests = await center.pendingNotificationRequests()
+        let requests = await requestCenter.pendingNotificationRequests()
         return requests.map { request in
             let content = request.content
             return ScheduledNotification(
@@ -128,7 +174,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
                 subtitle: content.subtitle.isEmpty ? nil : content.subtitle,
                 body: content.body.isEmpty ? nil : content.body,
                 categoryIdentifier: content.categoryIdentifier,
-                userInfo: content.userInfo
+                userInfo: NotificationMarker.removing(from: content.userInfo)
             )
         }
     }
@@ -137,17 +183,25 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         logger.log(level: .libraryDebug, "[getDelivered]")
         let delivered = await center.deliveredNotifications()
         return delivered.map { notification in
-            let content = notification.request.content
-            return ActiveNotification(
-                identifier: notification.request.identifier,
-                title: content.title,
-                subtitle: content.subtitle.isEmpty ? nil : content.subtitle,
-                body: content.body.isEmpty ? nil : content.body,
-                categoryIdentifier: content.categoryIdentifier,
-                date: notification.date,
-                userInfo: content.userInfo
-            )
+            Self.activeNotification(identifier: notification.request.identifier, date: notification.date,
+                                    content: notification.request.content)
         }
+    }
+
+    /// The delivered notification handed back for `content`: its values, and the userInfo without
+    /// the library's marker (design 8.3.3). Separate from ``getDelivered()`` so that tests can
+    /// check it with a `UNMutableNotificationContent` (they cannot make a `UNNotification`).
+    static func activeNotification(identifier: String, date: Date, content: UNNotificationContent) -> ActiveNotification {
+        logger.log(level: .libraryDebug, "[activeNotification] identifier: \(identifier, privacy: .public), date: \(date.timeIntervalSince1970, privacy: .public), content.userInfoKeys: \(content.userInfo.count, privacy: .public)")
+        return ActiveNotification(
+            identifier: identifier,
+            title: content.title,
+            subtitle: content.subtitle.isEmpty ? nil : content.subtitle,
+            body: content.body.isEmpty ? nil : content.body,
+            categoryIdentifier: content.categoryIdentifier,
+            date: date,
+            userInfo: NotificationMarker.removing(from: content.userInfo)
+        )
     }
 
     public func authorizationStatus() async -> NotificationAuthorizationStatus {
@@ -193,6 +247,15 @@ public final class NotificationRepositoryImpl: NotificationRepository {
 
     // MARK: - Private helpers
 
+    /// Fails with ``NotificationError/reservedUserInfoKey`` when the userInfo uses the library's
+    /// marker key. Called first, before anything is removed or added (design 8.3.3).
+    private func rejectReservedKey(in content: NotificationContent, method: String) throws {
+        logger.log(level: .libraryDebug, "[rejectReservedKey] content.id: \(content.id, privacy: .public), method: \(method, privacy: .public)")
+        guard NotificationMarker.isReserved(in: content.userInfo) else { return }
+        logger.error("[\(method, privacy: .public)] content.id: \(content.id, privacy: .public): the userInfo uses the key the library reserves; nothing was changed")
+        throw NotificationError.reservedUserInfoKey
+    }
+
     private func makeUNContent(from content: NotificationContent) throws -> UNMutableNotificationContent {
         let unContent = UNMutableNotificationContent()
         unContent.title = content.title
@@ -218,17 +281,18 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         if let filterCriteria = content.filterCriteria {
             unContent.filterCriteria = filterCriteria
         }
-        unContent.userInfo = content.userInfo
+        // The marker tells the library's notifications from the others (design 8.3.3, P1-9).
+        unContent.userInfo = NotificationMarker.attaching(to: content.userInfo)
         unContent.attachments = try content.attachments.map { try makeUNAttachment(from: $0) }
         return unContent
     }
 
     private func removePendingRequests(withIdentifiers identifiers: [String]) {
-        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        requestCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
     private func removeAllPendingRequests() {
-        center.removeAllPendingNotificationRequests()
+        requestCenter.removeAllPendingNotificationRequests()
     }
 
     private func makeUNSound(from sound: NotificationSound) -> UNNotificationSound {

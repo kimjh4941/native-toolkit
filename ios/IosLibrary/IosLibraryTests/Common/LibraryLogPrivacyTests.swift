@@ -268,6 +268,72 @@ struct LibraryLogPrivacyTests {
         #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
     }
 
+    /// The notification delegate's path (router, completion wrapper, the manager as the sink, the
+    /// event hub with a listener and without one, the existing receivers and the launch
+    /// response): the reply and the userInfo values never reach the log.
+    @Test @MainActor func notificationResponsesThroughTheDelegateNeverReachTheLog() async throws {
+        let secret = "sentinel-response-7a41"
+        let start = Date().addingTimeInterval(-1)
+        let identifier = "ut15-\(UUID().uuidString)"
+
+        let response = NotificationDelegateResponse(
+            notification: NotificationDelegateNotification(identifier: identifier, date: Date(), isPush: false, hasMarker: true),
+            actionIdentifier: "reply",
+            categoryIdentifier: "category",
+            userText: "reply-\(secret)",
+            userInfo: NotificationDelegateProxy.userInfoValues(of: [
+                "key": "value-\(secret)", "nested": ["inner": "inner-\(secret)"], NotificationMarker.key: NotificationMarker.value,
+            ]),
+            foreground: .whenTheApplicationIsInTheForeground
+        )
+        // A host response (no marker) with the same secrets: forwarded to the previous delegate.
+        let hostIdentifier = "ut15-host-\(UUID().uuidString)"
+        let hostResponse = NotificationDelegateResponse(
+            notification: NotificationDelegateNotification(identifier: hostIdentifier, date: Date(), isPush: false, hasMarker: false),
+            actionIdentifier: "reply",
+            categoryIdentifier: "category",
+            userText: "host-reply-\(secret)",
+            userInfo: NotificationDelegateProxy.userInfoValues(of: ["key": "host-value-\(secret)"]),
+            foreground: .whenTheApplicationIsInTheForeground
+        )
+        do {
+            LibraryLogLevel.raisesDebugToInfo.store(true, ordering: .relaxed)
+            defer { LibraryLogLevel.raisesDebugToInfo.store(false, ordering: .relaxed) }
+            let repository = MockNotificationRepository()
+            let manager = IosNotificationManager(
+                repository: repository,
+                permissionHelper: NotificationPermissionHelper(repository: repository),
+                delegateStatus: NotificationDelegateStatus(isInstalled: { true }, launchResponse: { response })
+            )
+            deprecatedNotification.setReceivers(of: manager, action: nil, textInput: { _, _, _, _ in })
+            let router = NotificationDelegateRouter(sink: manager, isApplicationInForeground: { true })
+            // No listener: the hub keeps the event.
+            router.didReceive(response, previous: nil, completion: {})
+            await drainMainQueue(times: 2)
+            // The listener takes the kept event, then a live one; the forwarded host response never
+            // reaches it.
+            let registration = try? manager.responses.addListener { _, _ in }
+            router.didReceive(response, previous: nil, completion: {})
+            router.didReceive(hostResponse, previous: { handler in handler() }, completion: {})
+            await drainMainQueue(times: 2)
+            registration?.remove()
+            _ = try? manager.launchResponse()
+            manager.deliver(settingsRequestFor: identifier)
+        }
+
+        let messages = try readLibraryMessages(since: start)
+        try #require(messages.contains { $0.contains("[NotificationDelegateRouter] [didReceive] identifier: \(identifier)") },
+                     "the router's messages must be readable, or the test checks nothing")
+        try #require(messages.contains { $0.contains("[IosNotificationManager] [deliver(response:)] identifier: \(identifier)") })
+        try #require(messages.contains { $0.contains("[NotificationEventHub] [deliver] hub: responses, event: NotificationResponseEvent(notificationIdentifier: \(identifier)") })
+        try #require(messages.contains { $0.contains("[NotificationEventHub] [addListener] hub: responses, handing 1 kept events") })
+        try #require(messages.contains { $0.contains("[NotificationResponseEvent] [init] notificationIdentifier: \(identifier)") })
+        try #require(messages.contains { $0.contains("[NotificationDelegateRouter] [didReceive] identifier: \(hostIdentifier), forwarded to the previous delegate") },
+                     "the forwarding path must be taken")
+        let leaks = messages.filter { $0.contains(secret) }
+        #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
+    }
+
     /// Records whether this environment shows `.private` values in `OSLogStore` (MS-13). Not an
     /// assertion about the library.
     @Test func privateValuesAreVisible() throws {

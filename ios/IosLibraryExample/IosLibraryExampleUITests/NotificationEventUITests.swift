@@ -11,6 +11,11 @@
 //  The last event shows `userText=-` for an action without text (the sample prints `-` for nil;
 //  design 3.3 wrote `userText=nil`).
 //
+//  Stage 1b C5 (Swift API design 13.2): N25〜N29 now reach the sample through the library's
+//  `responses` hub (the expectations are unchanged; the route `path=hub` is checked as well),
+//  N35 adds a second listener, N41 launches with a host delegate before the library's, and N43 /
+//  N44 run N25 / N29 on the deprecated receivers (`path=legacy`).
+//
 
 import XCTest
 import Foundation
@@ -124,10 +129,104 @@ final class NotificationEventUITests: SampleUITestCase {
         try assertSingleEvent(kind: "textInput", actionId: "reply", userText: "hello reply")
     }
 
+    // MARK: - Swift API (stage 1b C5)
+
+    /// N35: with a second listener both listeners receive the tap once; after it is removed only
+    /// the first receives the next one.
+    @MainActor
+    func testN35_twoListenersReceiveOnceEach() throws {
+        let token = try systemUIToken()
+        let springboard = Springboard(token)
+        XCTAssertEqual(try sample.press(.addSecondListener), success("[addSecondListener] added"))
+        XCTAssertEqual(try sample.press(.showTimeInterval, token), success("[showTimeInterval] error: nil"))
+        try springboard.goHome()
+        XCTAssertTrue(try springboard.waitForBanner(title: Self.title, body: Self.body, timeout: 20))
+        try springboard.tapBanner(title: Self.title, body: Self.body)
+        XCTAssertTrue(try sample.waitForForeground(timeout: 10), "the sample did not come to the foreground")
+        try assertSingleEvent(kind: "action", actionId: "com.apple.UNNotificationDefaultActionIdentifier", userText: "-")
+        XCTAssertEqual(try sample.statusLine(.listenerCounts), "first=1, second=1, secondListener=added")
+
+        XCTAssertEqual(try sample.press(.removeSecondListener), success("[removeSecondListener] removed"))
+        XCTAssertEqual(try sample.press(.showImmediate, token), success("[showImmediate] error: nil"))
+        XCTAssertTrue(try springboard.waitForBanner(title: "Immediate Notification", body: "Displayed now", timeout: 10))
+        try springboard.tapBanner(title: "Immediate Notification", body: "Displayed now")
+        try sample.waitForEventSequence(2)
+        try sample.waitForStatusLine(.listenerCounts, "first=2, second=1, secondListener=removed")
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.statusLine(.listenerCounts), "first=2, second=1, secondListener=removed", "another event arrived")
+    }
+
+    /// N41: launched with a host delegate set before the library's. The host's notification goes
+    /// to the host delegate only (willPresent and didReceive), the library's to the library's
+    /// listener only.
+    @MainActor
+    func testN41_eachNotificationGoesToItsOwnDelegate() throws {
+        let token = try systemUIToken()
+        let springboard = Springboard(token)
+        sample = try launchSample(.hostDelegate)
+        try sample.open(.notification)
+        XCTAssertEqual(try sample.statusLine(.launchStatus), "install=installed, isDelegateInstalled=true, mode=none, source=arguments, hostDelegate=on")
+
+        XCTAssertEqual(try sample.press(.showHostNotification, token), success("[showHostNotification] error: nil"))
+        XCTAssertTrue(try springboard.waitForBanner(title: "Host Notification", body: "Posted without the library", timeout: 10))
+        try springboard.tapBanner(title: "Host Notification", body: "Posted without the library")
+        try sample.waitForStatusLine(.hostEvent,
+                                     "hostWillPresent=1, hostDidReceive=1, notificationId=sample-host-notification, actionId=com.apple.UNNotificationDefaultActionIdentifier")
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.lastEventLabel("sequence"), "sequence=0", "the host's notification reached the library's listener")
+
+        XCTAssertEqual(try sample.press(.showImmediate, token), success("[showImmediate] error: nil"))
+        XCTAssertTrue(try springboard.waitForBanner(title: "Immediate Notification", body: "Displayed now", timeout: 10))
+        try springboard.tapBanner(title: "Immediate Notification", body: "Displayed now")
+        try assertSingleEvent(kind: "action", actionId: "com.apple.UNNotificationDefaultActionIdentifier", userText: "-")
+        XCTAssertEqual(try sample.statusLine(.hostEvent),
+                       "hostWillPresent=1, hostDidReceive=1, notificationId=sample-host-notification, actionId=com.apple.UNNotificationDefaultActionIdentifier",
+                       "the library's notification reached the host delegate")
+    }
+
+    /// N43: N25 on the deprecated receivers (`legacyReceivers`).
+    @MainActor
+    func testN43_legacyReceiversReportABannerTap() throws {
+        let token = try systemUIToken()
+        let springboard = Springboard(token)
+        sample = try launchSample(.legacyReceivers)
+        try sample.open(.notification)
+        XCTAssertEqual(try sample.press(.showTimeInterval, token), success("[showTimeInterval] error: nil"))
+        try springboard.goHome()
+        XCTAssertTrue(try springboard.waitForBanner(title: Self.title, body: Self.body, timeout: 20))
+        try springboard.tapBanner(title: Self.title, body: Self.body)
+        XCTAssertTrue(try sample.waitForForeground(timeout: 10), "the sample did not come to the foreground")
+        XCTAssertTrue(sample.isShowing(.notification), "the sample is not on the Notification screen")
+        try assertSingleEvent(kind: "action", actionId: "com.apple.UNNotificationDefaultActionIdentifier", userText: "-",
+                              path: "legacy", mode: "legacyReceivers")
+    }
+
+    /// N44: N29 on the deprecated receivers (`legacyReceivers`).
+    @MainActor
+    func testN44_legacyReceiversReportAReply() throws {
+        sample = try launchSample(.legacyReceivers)
+        try sample.open(.notification)
+        let springboard = try showAndExpand()
+        try springboard.tapAction("Reply", title: Self.title, body: Self.body)
+        try springboard.sendReply("hello reply", title: Self.title, body: Self.body)
+        try sample.activate()
+        try assertSingleEvent(kind: "textInput", actionId: "reply", userText: "hello reply", path: "legacy", mode: "legacyReceivers")
+    }
+
     // MARK: - Helpers
 
     private func success(_ body: String) -> String {
         ResultLine.expected(success: true, body)
+    }
+
+    /// `path=…,launch=…,delivery=…,mode=…,source=…` of the last event (1b SA-18) as fields.
+    private func route() throws -> [String: String] {
+        var fields: [String: String] = [:]
+        for part in try sample.lastEventRoute().split(separator: ",") {
+            let pair = part.split(separator: "=", maxSplits: 1)
+            if pair.count == 2 { fields[String(pair[0])] = String(pair[1]) }
+        }
+        return fields
     }
 
     /// RegisterCategory, ShowTimeInterval(5s), home, then long-press the banner until it expands.
@@ -164,12 +263,19 @@ final class NotificationEventUITests: SampleUITestCase {
         try NotificationCleanup.inApp(sample)
     }
 
-    /// The last event is the only one (sequence 1), also 2 seconds later (U-14).
+    /// The last event is the only one (sequence 1), also 2 seconds later (U-14), and came by
+    /// `path` in the shape `mode` (1b SA-18; the hub and the standard shape unless told). Every
+    /// event here arrives after the sample has been active, so none is the launch response (P1-22).
     @MainActor
-    private func assertSingleEvent(kind: String, actionId: String, userText: String) throws {
+    private func assertSingleEvent(kind: String, actionId: String, userText: String,
+                                   path: String = "hub", mode: String = "none") throws {
         try sample.waitForEventSequence(1)
         let expected = ["sequence=1", "kind=\(kind)", "notificationId=sample-notification", "actionId=\(actionId)", "userText=\(userText)"]
         XCTAssertEqual(try sample.lastEvent(), expected)
+        let fields = try route()
+        XCTAssertEqual(fields["path"], path, "route: \(fields)")
+        XCTAssertEqual(fields["mode"], mode, "route: \(fields)")
+        XCTAssertEqual(fields["launch"], "false", "route: \(fields)")
         sample.observeQuietly(for: 2)
         XCTAssertEqual(try sample.lastEventLabel("sequence"), "sequence=1", "another event arrived")
     }

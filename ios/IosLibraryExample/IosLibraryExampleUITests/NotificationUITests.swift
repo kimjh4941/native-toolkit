@@ -2,10 +2,11 @@
 //  NotificationUITests.swift
 //  IosLibraryExampleUITests
 //
-//  N1〜N22 and N34 of the UI test design (3.3): permission state, showing, updating, cancelling,
-//  removing, scheduling, queries and the badge. Lists are read with GetScheduled / GetDelivered and
-//  compared as count, number of ids, no duplicates and the set of ids, polled every 0.5 s for up to
-//  10 s (U-6). Banners are read only through `Springboard` (U-5).
+//  N1〜N22, N34 of the UI test design (3.3) and N34b of the Swift API design (13.2; N34 was
+//  taken): permission state, showing, updating, cancelling, removing, scheduling, queries and the
+//  badge. Lists are read with GetScheduled / GetDelivered and compared as count, number of ids, no
+//  duplicates and the set of ids, polled every 0.5 s for up to 10 s (U-6). Banners are read only
+//  through `Springboard` (U-5).
 //
 
 import XCTest
@@ -342,6 +343,13 @@ final class NotificationUITests: SampleUITestCase {
         badgeTouched = true
         XCTAssertEqual(try sample.press(.setBadgeCount1), success("[setBadgeCount] 1, error: nil"))
         XCTAssertEqual(try sample.press(.setBadgeCount0), success("[setBadgeCount] 0, error: nil"))
+    }
+
+    /// N34b (Swift API design 13.2 N34; the number was taken by the home icon badge): the launch
+    /// installed the library's delegate with `installDelegate()` in the standard shape.
+    @MainActor
+    func testN34b_launchReportsTheInstalledDelegate() throws {
+        XCTAssertEqual(try sample.statusLine(.launchStatus), "install=installed, isDelegateInstalled=true, mode=none, source=arguments, hostDelegate=off")
     }
 
     /// The home screen icon's value: `1 new item` with badge 1 (en; the digit is checked) and empty

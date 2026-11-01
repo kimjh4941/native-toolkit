@@ -225,6 +225,9 @@ class SampleUITestCase: XCTestCase {
 
     private var testSession: UITestSession?
     private var launchedSample: SampleApp?
+    /// Whether this test launched the sample with a shape other than the standard one (the
+    /// sample's file then holds it until the standard shape is launched again).
+    private var launchedAnotherShape = false
 
     // MARK: Entry points (final)
 
@@ -283,6 +286,19 @@ class SampleUITestCase: XCTestCase {
         } catch {
             firstError = error
         }
+        // A launch that does not pass a shape (the frozen ClipboardUITests' own launch, a person
+        // opening the sample) reads the shape the sample last wrote, so a test that launched
+        // another shape launches the standard one again (1b SA-18, SR3-5). Skipped on the device
+        // after the monitor stopped the test at an alert it did not answer (as the springboard
+        // cleanup below).
+        if launchedAnotherShape, let sample = launchedSample,
+           !(session.isDevice && session.interruption != UITestSession.InterruptionMark.none) {
+            do {
+                try sample.launch(.standard)
+            } catch {
+                firstError = firstError ?? error
+            }
+        }
         // On the device, after the monitor stopped the test at an alert it did not answer, the
         // springboard cleanup (the home button) is skipped: it could close a private system alert
         // (stage 0d review R-4).
@@ -311,11 +327,16 @@ class SampleUITestCase: XCTestCase {
 
     // MARK: Sample app
 
-    /// Launches the sample app for this test (a new process for every test. U-15).
-    func launchSample() throws -> SampleApp {
+    /// Launches the sample app for this test (a new process for every test. U-15), with the test
+    /// shape `launch` (1b SA-18; the standard shape by default). A test may call it again to
+    /// launch another shape; the teardown then launches the standard shape once more.
+    func launchSample(_ launch: SampleLaunch = .standard) throws -> SampleApp {
         let session = try requireSession()
         let sample = SampleApp(session: session)
-        try sample.launch()
+        if launch != .standard {
+            launchedAnotherShape = true
+        }
+        try sample.launch(launch)
         launchedSample = sample
         return sample
     }

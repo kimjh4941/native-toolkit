@@ -765,7 +765,7 @@ extension IosNotificationManager {
 | SA-05 | 全機能 | `#if DEBUG` の「3 秒後に出す」（後ろにいるまま操作を起こすテスト専用の口。第 1 部 6 章） | `notForeground`（D21、S18、N42） |
 | SA-06 | Notification | 起動の処理を既定で `installDelegate()` → `responses.addListener` に替える。試験の形 `legacyReceivers`（SA-18）で、今の受け手と `setup()` の経路にする（SR-10、SR2-3）。最後のイベントの表示を今のまま保つ（`NotificationEventLog`）。2 人目の受け手を足す・外すボタンと、受け手ごとの受けた回数 | N25〜N33 が今のまま通る、今の受け手の経路（N43〜N45）、複数の受け手（N35） |
 | SA-07 | Notification | 返信の全文をログに出さない（長さだけ）。最後のイベントの表示は今のまま（UI テストが `userText` を読む） | 8.7.2 |
-| SA-08 | Notification | 試験の形「受け手を遅らせる」（SA-18）で、受け手を足すのを 3 秒遅らせる。起動のきっかけ（`launchResponse()` と `isLaunchResponse`）の表示 | 保ち（N36）、起動のきっかけ（N37） |
+| SA-08 | Notification | 試験の形「受け手を遅らせる」（SA-18）で、受け手を足すのを 5 秒遅らせる（2026-11-01、1b C5 のレビューの UI C-1 で 3 秒から延ばした。システムが起動の中で呼ぶ `didReceive` との間を広げる）。起動のきっかけ（`launchResponse()` と `isLaunchResponse`）の表示 | 保ち（N36）、起動のきっかけ（N37） |
 | SA-09 | Notification | 予約したキーを入れた通知、property list でない userInfo の通知のボタン | P1-9、S-P15（N38） |
 | SA-10 | Notification | `registerCategory(_:completion:)` で、完了の後に結果の行を出すボタン | S-P14（N39） |
 | SA-11 | Notification | `settingsRequests` の最後のイベントの表示 | P1-10（N40。MS-07） |
@@ -775,7 +775,7 @@ extension IosNotificationManager {
 | SA-15 | Clipboard | `loadItem(_:scope:requestBox:completion:)` で読み、すぐ `cancelLoad` するボタンと、開始の前に取り消した箱で読むボタン | P1-24（CB5、CB6） |
 | SA-16 | Dialog | ログインの結果の行でパスワードを出さず長さだけにする（今の口のボタン） | README 1.4（D12 の期待値を変える） |
 | SA-17 | 全体 | サンプルのログを自分の `os.Logger` に替える（`Log` が deprecated になるため。S-P21） | S-P21 |
-| SA-18 | Notification | 試験の形（`none`・`legacyReceivers`・`delayListener`）を起動の引数 `-ntkSampleTestMode <形>` で受け、アプリのコンテナ（Application Support）の小さなファイルに書く。引数の無い起動ではファイルを読む。最後のイベントの表示に、受けた経路（`path=hub` / `path=legacy`）と、そのプロセスが読んだ形を `accessibilityValue` で足す（見た目は変えない）。UI テストの基底は起動のたびに形を明示する（`none` も書いてファイルを直す）。基底を通らない起動（Clipboard のテストの `XCUIApplication().launch()`、人がホームから起動したとき）は前に残した形を読むので、通知のテストは後片付け（`tearDown`）で `none` の形で 1 回起動し直してファイルを戻す（SR3-5）。`UserDefaults` は使わない（サンプルに理由の申告が要る API を増やさない）（SR2-3） | N36、N43〜N45 が狙った経路を通ったこと |
+| SA-18 | Notification | 試験の形（`none`・`legacyReceivers`・`delayListener`）を起動の引数 `-ntkSampleTestMode <形>` で受け、アプリのコンテナ（Application Support）の小さなファイルに書く。引数の無い起動ではファイルを読む。最後のイベントの表示に、受けた経路（`path=hub` / `path=legacy`）と、そのプロセスが読んだ形を `accessibilityValue` で足す（見た目は変えない）。UI テストの基底は起動のたびに形を明示する（`none` も書いてファイルを直す）。基底を通らない起動（Clipboard のテストの `XCUIApplication().launch()`、人がホームから起動したとき）は前に残した形を読むので、通知のテストは後片付け（`tearDown`）で `none` の形で 1 回起動し直してファイルを戻す（SR3-5。実機で監視が答えないアラートで止めた後は起動し直さないので、次に基底を通って起動するまでファイルは標準でない形のまま。2026-11-01、1b C5 のレビュー）。`UserDefaults` は使わない（サンプルに理由の申告が要る API を増やさない）（SR2-3） | N36、N43〜N45 が狙った経路を通ったこと |
 
 ## 13. テストの設計
 
@@ -834,13 +834,13 @@ extension IosNotificationManager {
 | D21 | SA-05 → ホーム | `failure notForeground` が 1 回 | シミュレーター（`systemui`） |
 | D22 | Control Center を引き出した間に `.foreground` の Dialog（SA-05 の遅れを使う） | 出る（G-6。MS-02） | シミュレーター（`systemui`） |
 | D23 | iPad Pro 11-inch (M4) / 18.3 で D6 と SA-01 のアクションシート | 落ちずに出る（基点。P1-20） | iPad のシミュレーター |
-| N34 | 起動 | 結果の行に `installDelegate: installed` | 両方 |
+| N34 | 起動 | 結果の行に `installDelegate: installed`（1b C5: 番号が UI テストの設計書の N34 と重なったので `testN34b_…` にし、今の結果の行の初めの値（M2 などの期待値）を変えないよう、Swift API の節の状態の行 `notification.launchStatus` に出した） | 両方 |
 | N35 | SA-06 で 2 人目を足す → N25 と同じ操作 | 2 人とも 1 回ずつ受ける。外した後は 1 人だけ | 両方（`systemui`） |
 | N36 | 試験の形 `delayListener`（SA-18）で起動して N30 と同じコールドスタート | 受け手を足した後に 1 回だけ届き、`isLaunchResponse=true`。システムが起こしたプロセスが `delayListener` を読んだこと（SA-18 の `accessibilityValue`） | 両方（`systemui`） |
 | N37 | N36 の後 | `launchResponse()` の表示が同じ通知。普通の起動では `nil` | 両方（`systemui`） |
 | N38 | SA-09 | どちらも `❌` と case の名前（`reservedUserInfoKey`、`invalidUserInfo`）。通知は出ない | 両方 |
 | N39 | SA-10 → 完了の後すぐ ShowImmediate → 長押し | 5 秒の予約を使わなくてもアクションが出る（MS-09 で反映を確かめた場合） | 両方（`systemui`） |
-| N40 | 設定の App のサンプルの通知の設定から「アプリ内の通知の設定」を開く | `settingsRequests` の最後のイベントが出る（MS-07 でシステムから呼ばせられた場合。だめなら人の確認 HC10 を足す） | シミュレーター |
+| N40 | 設定の App のサンプルの通知の設定から「アプリ内の通知の設定」を開く | `settingsRequests` の最後のイベントが出る（MS-07 でシステムから呼ばせられた場合。だめなら人の確認 HC10 を足す）。1b C5 の MS-07 で、iOS 26.2 の許可済みのアプリで `.providesAppNotificationSettings` を付けて求め直した形では呼ばせられた（新しく入れたアプリで先に求める形（SR-11）と iOS 18.3 は測っていない。C6 で N40 を足すときに測る）。`.providesAppNotificationSettings` を求める SA-13 のボタンが要るので、C6（T-19）で SA-13 と一緒に足す | シミュレーター |
 | N41 | `-ntkSampleHostDelegate` で起動 → ホストの通知とライブラリの通知を出してタップ | ホストの通知はホストの結果の行だけ、ライブラリの通知はライブラリの最後のイベントだけ | 両方（`systemui`） |
 | N42 | SA-05 → ホーム（権限が未決の新しいインストール、`reinstall`） | `failure notForeground`。ダイアログは出ない | シミュレーター（`systemui`、`reinstall`） |
 | S17 | SA-14 → Copy | `success completed=true` | 両方（`sharesheet`、`clipboard`） |

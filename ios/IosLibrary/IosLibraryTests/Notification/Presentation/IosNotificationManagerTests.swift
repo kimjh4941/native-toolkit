@@ -81,14 +81,14 @@ struct IosNotificationManagerTests {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             DispatchQueue.global().async {
                 manager.foregroundPresentationOptions = [.list]
-                manager.onActionReceived = { _, _, _ in }
+                deprecatedNotification.setReceivers(of: manager, action: { _, _, _ in }, textInput: nil)
                 continuation.resume()
             }
         }
 
         #expect(manager.foregroundPresentationOptions == [.list])
-        #expect(manager.onActionReceived != nil)
-        #expect(manager.onTextInputActionReceived == nil)
+        #expect(deprecatedNotification.receivers(of: manager).action != nil)
+        #expect(deprecatedNotification.receivers(of: manager).textInput == nil)
     }
 
     // MARK: - Delivery on the main thread, exactly once (README 0e, migration plan C)

@@ -6,14 +6,15 @@
 import Foundation
 import os
 import Synchronization
+import UIKit
 import UserNotifications
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "IosNotificationManager")
 
 /// Callback invoked when a notification action is tapped.
 ///
-/// It is `@Sendable` because the manager stores it and calls it from the
-/// `UNUserNotificationCenterDelegate` callback, whose thread the system does not document.
+/// It is `@Sendable` because the manager stores it, may have it set from any thread, and calls
+/// it on the main thread.
 /// - Parameters:
 ///   - notificationIdentifier: The identifier of the notification.
 ///   - actionIdentifier: The identifier of the tapped action.
@@ -45,9 +46,22 @@ public typealias NotificationTextInputActionHandler = @Sendable (
 ///
 /// ## Overview
 /// * Provides a singleton (`shared`) for global access.
-/// * Owns `UNUserNotificationCenterDelegate` to control foreground presentation and action handling.
+/// * ``installDelegate()`` installs the library's `UNUserNotificationCenterDelegate`, which
+///   presents the library's notifications in the foreground and receives the responses to them,
+///   and forwards the other notifications to the delegate that was set before it. Call it on the
+///   main thread at launch, before `application(_:didFinishLaunchingWithOptions:)` returns (or
+///   inside `scene(_:willConnectTo:options:)`; in a SwiftUI app, in `App.init` or in the
+///   `UIApplicationDelegateAdaptor`'s `application(_:didFinishLaunchingWithOptions:)`). The
+///   manager itself is not a `UNUserNotificationCenterDelegate`.
+/// * ``responses`` delivers the responses to the library's notifications (taps, actions, replies,
+///   the custom dismiss action) and ``settingsRequests`` the system's requests to show the app's
+///   notification settings. Each keeps up to 32 events while it has no listener, so a listener
+///   added after launch still receives the response that launched the app.
+///   ``launchResponse()`` returns that response.
+/// * The library marks the notifications it adds with a reserved userInfo key
+///   (`com.jonghyunkim.nativetoolkit`) to tell them from other components' notifications; it
+///   rejects a userInfo that uses the key and removes the key from every userInfo it hands back.
 /// * Wraps all use cases and converts errors to `(isSuccess, errorMessage)` for Unity interop.
-/// * Call `setup()` once at app launch (e.g. in `AppDelegate.didFinishLaunching`).
 ///
 /// ## Threading
 /// The manager is `Sendable` and may be called from any thread. Every `completion` of an
@@ -57,14 +71,23 @@ public typealias NotificationTextInputActionHandler = @Sendable (
 /// the main actor, and `@MainActor` to state in the type where it runs, so that a closure written
 /// on the main actor (for example in a SwiftUI view) can use main-actor state directly.
 ///
-/// ``onActionReceived`` and ``onTextInputActionReceived`` are called synchronously from the
-/// `UNUserNotificationCenterDelegate` callback, before the system's completion handler, on the
-/// thread the system uses for that callback. They, and ``foregroundPresentationOptions``, may be
+/// ``responses`` and ``settingsRequests`` can be read on any thread; their listeners are added,
+/// removed and called on the main actor. ``launchResponse()`` is main actor only.
+/// ``installDelegate()`` does its work on the main thread only; ``isDelegateInstalled`` can be
+/// read on any thread. The deprecated ``onActionReceived`` and ``onTextInputActionReceived`` are
+/// called on the main thread, after the delegate's
+/// `userNotificationCenter(_:didReceive:withCompletionHandler:)` has returned and before the
+/// system's completion handler is called; they, and ``foregroundPresentationOptions``, may be
 /// read and written from any thread.
 ///
 /// ## Example
 /// ```swift
-/// IosNotificationManager.setup()
+/// // In application(_:didFinishLaunchingWithOptions:), on the main thread:
+/// IosNotificationManager.installDelegate()
+/// let registration = try IosNotificationManager.shared.responses.addListener { event, _ in
+///     print(event.notificationIdentifier, event.actionIdentifier)
+/// }
+///
 /// IosNotificationManager.shared.show(
 ///     content: NotificationContent(id: "1", title: "Hello"),
 ///     trigger: nil
@@ -104,22 +127,61 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     private let delegateSettings = Mutex(DelegateSettings())
 
-    /// Presentation options for foreground notifications.
+    /// Whether the library's delegate is installed and the launch response it found (the
+    /// library's installer; tests pass their own).
+    private let delegateStatus: NotificationDelegateStatus
+    private let responseHub: NotificationEventHub<NotificationResponseEvent>
+    private let settingsRequestHub: NotificationEventHub<NotificationSettingsRequest>
+
+    /// Presentation options of the notifications the library presents while the app is in the
+    /// foreground: the library's notifications, and the others when no previous delegate
+    /// implements `userNotificationCenter(_:willPresent:withCompletionHandler:)`.
     public var foregroundPresentationOptions: UNNotificationPresentationOptions {
         get { delegateSettings.withLock { $0.foregroundPresentationOptions } }
         set { delegateSettings.withLock { $0.foregroundPresentationOptions = newValue } }
     }
 
-    /// Called when a notification action button is tapped.
+    /// Called when the user responds to a notification the library handles (a tap on the body, an
+    /// action button, or dismissing it with the custom dismiss action), except a text input action.
+    ///
+    /// The library handles the responses to its notifications, and to the others when no previous
+    /// delegate implements `userNotificationCenter(_:didReceive:withCompletionHandler:)`; the
+    /// other responses go to the previous delegate only. Called on the main thread (see the type's
+    /// Threading section), with the userInfo without the library's own key. Requires
+    /// ``installDelegate()``.
+    ///
+    /// - Important: Deprecated: use ``responses``. This receiver is called for every response in
+    ///   addition to the listeners of ``responses``, so an app that uses both receives each
+    ///   response twice. It is not a listener: setting it does not take the events
+    ///   ``responses`` keeps while it has no listener, and a response that arrives before it is set
+    ///   (at a cold start, for example) is not called again.
+    @available(*, deprecated, message: "Use responses")
     public var onActionReceived: NotificationActionHandler? {
-        get { delegateSettings.withLock { $0.onActionReceived } }
-        set { delegateSettings.withLock { $0.onActionReceived = newValue } }
+        get {
+            logger.log(level: .libraryDebug, "[onActionReceived.get]")
+            return delegateSettings.withLock { $0.onActionReceived }
+        }
+        set {
+            logger.log(level: .libraryDebug, "[onActionReceived.set] newValue: \(newValue == nil ? "nil" : "provided", privacy: .public)")
+            delegateSettings.withLock { $0.onActionReceived = newValue }
+        }
     }
 
-    /// Called when a text input notification action is submitted.
+    /// Called when a text input action is submitted on a notification the library handles (see
+    /// ``onActionReceived``). Called on the main thread. Requires ``installDelegate()``.
+    ///
+    /// - Important: Deprecated: use ``responses`` (the reply is
+    ///   ``NotificationResponseEvent/userText``). The same notes as ``onActionReceived`` apply.
+    @available(*, deprecated, message: "Use responses")
     public var onTextInputActionReceived: NotificationTextInputActionHandler? {
-        get { delegateSettings.withLock { $0.onTextInputActionReceived } }
-        set { delegateSettings.withLock { $0.onTextInputActionReceived = newValue } }
+        get {
+            logger.log(level: .libraryDebug, "[onTextInputActionReceived.get]")
+            return delegateSettings.withLock { $0.onTextInputActionReceived }
+        }
+        set {
+            logger.log(level: .libraryDebug, "[onTextInputActionReceived.set] newValue: \(newValue == nil ? "nil" : "provided", privacy: .public)")
+            delegateSettings.withLock { $0.onTextInputActionReceived = newValue }
+        }
     }
 
     private override init() {
@@ -142,12 +204,21 @@ public final class IosNotificationManager: NSObject, Sendable {
         self.registerCategoryUseCase = RegisterNotificationCategoryUseCase(repository: repo)
         self.removeCategoryUseCase = RemoveNotificationCategoryUseCase(repository: repo)
         self.permissionHelper = NotificationPermissionHelper(repository: repo)
+        let status = NotificationDelegateStatus.library
+        self.delegateStatus = status
+        self.responseHub = NotificationEventHub(name: "responses", isDelegateInstalled: status.isInstalled)
+        self.settingsRequestHub = NotificationEventHub(name: "settingsRequests", isDelegateInstalled: status.isInstalled)
         super.init()
     }
 
-    /// Internal initializer for tests to inject a repository and helper.
-    init(repository: NotificationRepository, permissionHelper: NotificationPermissionHelper) {
-        logger.log(level: .libraryDebug, "[init:test]")
+    /// Internal initializer for tests to inject a repository, a helper and the delegate's status
+    /// (the library's installer by default).
+    init(
+        repository: NotificationRepository,
+        permissionHelper: NotificationPermissionHelper,
+        delegateStatus: NotificationDelegateStatus = .library
+    ) {
+        logger.log(level: .libraryDebug, "[init:test] repository: \(String(describing: type(of: repository)), privacy: .public), permissionHelper: provided, delegateStatus: provided")
         self.repository = repository
         self.showUseCase = ShowNotificationUseCase(repository: repository)
         self.updateUseCase = UpdateNotificationUseCase(repository: repository)
@@ -165,14 +236,23 @@ public final class IosNotificationManager: NSObject, Sendable {
         self.registerCategoryUseCase = RegisterNotificationCategoryUseCase(repository: repository)
         self.removeCategoryUseCase = RemoveNotificationCategoryUseCase(repository: repository)
         self.permissionHelper = permissionHelper
+        self.delegateStatus = delegateStatus
+        self.responseHub = NotificationEventHub(name: "responses", isDelegateInstalled: delegateStatus.isInstalled)
+        self.settingsRequestHub = NotificationEventHub(name: "settingsRequests", isDelegateInstalled: delegateStatus.isInstalled)
         super.init()
     }
 
-    /// Registers this manager as the `UNUserNotificationCenterDelegate`.
-    /// Call once at app launch.
+    /// Installs the library's notification delegate: the same as ``installDelegate()``.
+    ///
+    /// Call it on the main thread at app launch. On another thread it logs an error and installs
+    /// nothing (before 2.0.0 it installed the manager itself as the delegate from any thread).
+    @available(*, deprecated, message: "Use installDelegate()")
     public static func setup() {
         logger.log(level: .libraryDebug, "[setup]")
-        UNUserNotificationCenter.current().delegate = shared
+        let result = installDelegate()
+        if result == .notMainThread {
+            logger.error("[setup] not on the main thread: the delegate was not installed")
+        }
     }
 
     // MARK: - Public API
@@ -382,46 +462,224 @@ public final class IosNotificationManager: NSObject, Sendable {
     }
 }
 
-// MARK: - UNUserNotificationCenterDelegate
+// MARK: - Notification delegate
 
-extension IosNotificationManager: UNUserNotificationCenterDelegate {
+extension IosNotificationManager {
 
-    /// Controls how a notification is presented when the app is in the foreground.
-    public func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
-    ) {
-        logger.log(level: .libraryDebug, "[willPresent] identifier: \(notification.request.identifier, privacy: .public)")
-        completionHandler(foregroundPresentationOptions)
-    }
-
-    /// Handles the user's response to a delivered notification (action tap or default open).
-    public func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
-        logger.log(level: .libraryDebug, "[didReceive] actionIdentifier: \(response.actionIdentifier, privacy: .public), notificationIdentifier: \(response.notification.request.identifier, privacy: .public)")
-        let notificationId = response.notification.request.identifier
-        let actionId = response.actionIdentifier
-        let userInfo = response.notification.request.content.userInfo
-
-        if let textInputResponse = response as? UNTextInputNotificationResponse {
-            onTextInputActionReceived?(notificationId, actionId, textInputResponse.userText, userInfo)
-        } else {
-            onActionReceived?(notificationId, actionId, userInfo)
+    /// Installs the library's `UNUserNotificationCenterDelegate` on
+    /// `UNUserNotificationCenter.current()`, keeping the current delegate as the previous delegate.
+    ///
+    /// The library's delegate presents the library's notifications in the foreground with
+    /// ``foregroundPresentationOptions`` and hands the responses to them to ``responses`` (and the
+    /// system's requests to show the app's notification settings to ``settingsRequests``). A
+    /// notification that is not the library's (another component's, a push, or one a 1.x version
+    /// of the library scheduled) goes to the previous delegate when it implements the delegate
+    /// method, and is handled like the library's when it does not. The previous delegate is held
+    /// weakly, and only one is kept: installing again after another object replaced the library's
+    /// delegate makes that object the previous delegate in place of the earlier one, which is then
+    /// reached only if that object forwards to it.
+    ///
+    /// | Situation | What the call does |
+    /// |---|---|
+    /// | Not on the main thread | Nothing; returns ``NotificationDelegateInstallResult/notMainThread`` at once |
+    /// | The library's delegate is the current delegate | Nothing |
+    /// | First call in the process | Installs it before returning, and starts watching `UNUserNotificationCenter.delegate` and `UIApplication.didBecomeActiveNotification` |
+    /// | Another object replaced the library's delegate since | Installs it again in front of that object, which becomes the only previous delegate (logged) |
+    ///
+    /// When another object replaces `UNUserNotificationCenter.delegate` later, the library logs a
+    /// warning and does not install itself again: call this method again to restore it. A
+    /// response that launches the app is delivered only to the delegate that is set when
+    /// `application(_:didFinishLaunchingWithOptions:)` (or `scene(_:willConnectTo:options:)`)
+    /// returns, so a later call loses it; the call still installs the delegate and logs that this
+    /// may be after launch when the app is already active.
+    ///
+    /// - Important: Do not install the library's delegate again in front of a delegate that
+    ///   forwards to the library asynchronously (calls the library from a later turn, another
+    ///   queue or a task): only a call that comes back synchronously while the library forwards
+    ///   is recognised as a cycle.
+    /// - Important: Call it at launch. In a SwiftUI app, `App.init` and the
+    ///   `UIApplicationDelegateAdaptor`'s `application(_:didFinishLaunchingWithOptions:)` both
+    ///   work. `App.init` (like a call before `UIApplicationMain` in a UIKit `main.swift`) runs
+    ///   before the application object exists: the library then takes the app for not active yet,
+    ///   so the response that launches the app is still found by ``launchResponse()`` and nothing
+    ///   is logged about a late install.
+    /// - Note: Main thread only, synchronous, never waits; it may be called again (idempotent).
+    /// - Returns: ``NotificationDelegateInstallResult/installed``, or
+    ///   ``NotificationDelegateInstallResult/notMainThread`` when called on another thread.
+    @discardableResult
+    public static func installDelegate() -> NotificationDelegateInstallResult {
+        let isMainThread = pthread_main_np() != 0
+        logger.log(level: .libraryDebug, "[installDelegate] isMainThread: \(isMainThread, privacy: .public)")
+        // The thread, not the queue: UIKit and MainActor.assumeIsolated go by the thread, also
+        // inside DispatchQueue(label:).sync on the main thread (part 1, 1.3; MS-06).
+        guard isMainThread else {
+            logger.error("[installDelegate] not on the main thread: nothing was changed")
+            return .notMainThread
         }
-
-        completionHandler()
+        return MainActor.assumeIsolated {
+            delegateInstaller.install(
+                on: { UNUserNotificationCenter.current() },
+                applicationIsActive: NotificationDelegateInstaller.isActive(NotificationDelegateInstaller.sharedApplication())
+            )
+        }
     }
 
-    /// Called when the user taps the notification settings action from the notification interface.
-    public func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        openSettingsFor notification: UNNotification?
-    ) {
-        logger.log(level: .libraryDebug, "[openSettingsFor] identifier: \(notification?.request.identifier ?? "nil", privacy: .public)")
-        openNotificationSettings()
+    /// Whether ``installDelegate()`` (or the deprecated ``setup()``, which calls it) has installed
+    /// the library's delegate in this process. Once `true`, it stays `true`, also when another
+    /// object replaced the delegate later. Any thread.
+    public static var isDelegateInstalled: Bool {
+        logger.log(level: .libraryDebug, "[isDelegateInstalled]")
+        return delegateInstaller.isInstalled
+    }
+
+    /// The library's delegate installer: its proxy is the one `UNUserNotificationCenter` gets, and
+    /// the manager is its sink. Composed here, so that the delegate's types (Presentation) know
+    /// only the sink protocol. Never freed (part 1, 5.14).
+    static let delegateInstaller = NotificationDelegateInstaller(
+        sink: IosNotificationManager.shared,
+        presentationOptions: { IosNotificationManager.shared.foregroundPresentationOptions }
+    )
+}
+
+extension NotificationDelegateStatus {
+    /// The library's installer (``IosNotificationManager/delegateInstaller``), read when called,
+    /// so that creating ``IosNotificationManager/shared`` does not create the installer.
+    static var library: NotificationDelegateStatus {
+        logger.log(level: .libraryDebug, "[NotificationDelegateStatus.library]")
+        return NotificationDelegateStatus(
+            isInstalled: { IosNotificationManager.delegateInstaller.isInstalled },
+            launchResponse: { IosNotificationManager.delegateInstaller.proxy.router.launchResponse }
+        )
+    }
+}
+
+// MARK: - Notification events
+
+extension IosNotificationManager {
+
+    /// The responses to the notifications the library handles: a tap on the body, an action
+    /// button, a text input reply, or the custom dismiss action (design 8.4).
+    ///
+    /// The library handles the responses to its own notifications, and to other notifications
+    /// when the delegate set before ``installDelegate()`` does not implement
+    /// `userNotificationCenter(_:didReceive:withCompletionHandler:)` (see ``installDelegate()``).
+    /// Each response is one ``NotificationResponseEvent``, delivered on the main actor after the
+    /// delegate call has returned and before the library calls the system's completion handler.
+    /// While no listener is added, up to 32 responses are kept and handed to the next listener
+    /// inside its ``NotificationEventHub/addListener(_:)`` call (see ``NotificationEventHub``), so
+    /// a listener added after launch still receives the response that launched the app.
+    ///
+    /// | Situation | ``NotificationEventHub/addListener(_:)`` |
+    /// |---|---|
+    /// | ``installDelegate()`` has not installed the delegate in this process | Throws ``NotificationError/delegateNotInstalled`` |
+    /// | Installed, responses were kept | Adds the listener and hands it the kept responses before returning |
+    /// | Installed, nothing kept | Adds the listener |
+    ///
+    /// - Note: Read it on any thread; add and remove listeners on the main actor. The deprecated
+    ///   ``onActionReceived`` and ``onTextInputActionReceived`` are called in addition to the
+    ///   listeners: use one or the other, or each response arrives twice.
+    public var responses: NotificationEventHub<NotificationResponseEvent> {
+        logger.log(level: .libraryDebug, "[responses]")
+        return responseHub
+    }
+
+    /// The system's requests to show the app's own notification settings
+    /// (`userNotificationCenter(_:openSettingsFor:)`), for the requests the library handles: a
+    /// request for one of the library's notifications always, and a request without a notification
+    /// (from Settings) or for another notification only when the delegate set before
+    /// ``installDelegate()`` does not implement the method (otherwise it goes to that delegate).
+    ///
+    /// The system sends them to an app that asked for
+    /// `UNAuthorizationOptions.providesAppNotificationSettings`. The library does not open
+    /// anything: show your settings screen when a ``NotificationSettingsRequest`` arrives. The hub
+    /// keeps and hands over events like ``responses`` (32 at most), and throws
+    /// ``NotificationError/delegateNotInstalled`` in the same situation.
+    ///
+    /// - Note: Before 2.0.0 the library opened the app's page of the Settings app instead.
+    public var settingsRequests: NotificationEventHub<NotificationSettingsRequest> {
+        logger.log(level: .libraryDebug, "[settingsRequests]")
+        return settingsRequestHub
+    }
+
+    /// The response that launched the app, or `nil` when there is none (yet).
+    ///
+    /// The launch response is the first response of the process that brings the app to the
+    /// foreground (a tap on the body, or an action with the foreground option), when it arrived
+    /// before the app first became active and the library handled it. A response the library
+    /// forwarded to the previous delegate is never the launch response, nor is a background
+    /// action (it is delivered as an ordinary event). The same response is also delivered by
+    /// ``responses`` with ``NotificationResponseEvent/isLaunchResponse`` set, so handle it in one
+    /// place only.
+    ///
+    /// | When | Result |
+    /// |---|---|
+    /// | ``installDelegate()`` has not installed the delegate in this process | Throws ``NotificationError/delegateNotInstalled`` |
+    /// | The delegate was first installed while the app was already active | `nil` |
+    /// | Before the app first becomes active, and before the first response that brings it to the foreground has been handled | `nil` for now; it can become the response later |
+    /// | After that | The launch response, or `nil` for good |
+    ///
+    /// The response does not tell whether a custom action has the foreground option: the library
+    /// decides it from the application state in the main-queue block that delivers the response
+    /// (not `.background`: brings the app to the foreground). On iOS 18.3, when the user opens the
+    /// app within about 0.2 seconds after a background action launched it, that action can be
+    /// taken for the launch response.
+    ///
+    /// - Note: Main actor only.
+    /// - Returns: The launch response with ``NotificationResponseEvent/isLaunchResponse`` set, or
+    ///   `nil`.
+    /// - Throws: ``NotificationError/delegateNotInstalled`` (see the table).
+    @MainActor
+    public func launchResponse() throws(NotificationError) -> NotificationResponseEvent? {
+        logger.log(level: .libraryDebug, "[launchResponse]")
+        guard delegateStatus.isInstalled() else {
+            logger.error("[launchResponse] the library's delegate is not installed; call IosNotificationManager.installDelegate() first")
+            throw .delegateNotInstalled
+        }
+        return delegateStatus.launchResponse().map { Self.event(of: $0, isLaunchResponse: true) }
+    }
+
+    /// The public event of a response the router hands over.
+    static func event(of response: NotificationDelegateResponse, isLaunchResponse: Bool) -> NotificationResponseEvent {
+        logger.log(level: .libraryDebug, "[event(of:)] \(response.logSummary, privacy: .public), isLaunchResponse: \(isLaunchResponse, privacy: .public)")
+        return NotificationResponseEvent(
+            notificationIdentifier: response.notification.identifier,
+            actionIdentifier: response.actionIdentifier,
+            categoryIdentifier: response.categoryIdentifier,
+            userText: response.userText,
+            userInfo: response.userInfo,
+            isLaunchResponse: isLaunchResponse
+        )
+    }
+}
+
+// MARK: - What the delegate hands to the manager
+
+extension IosNotificationManager: NotificationDelegateEventSink {
+
+    /// Hands a response to the listeners of ``responses`` (or keeps it), then to the existing
+    /// receivers (design 8.3.2: the event first, then the deprecated receivers, then the router
+    /// calls the system completion).
+    @MainActor
+    func deliver(response: NotificationDelegateResponse, isLaunchResponse: Bool) {
+        logger.log(level: .libraryDebug, "[deliver(response:)] \(response.logSummary, privacy: .public), isLaunchResponse: \(isLaunchResponse, privacy: .public)")
+        responseHub.deliver(Self.event(of: response, isLaunchResponse: isLaunchResponse))
+        let (onAction, onTextInput) = delegateSettings.withLock { ($0.onActionReceived, $0.onTextInputActionReceived) }
+        guard onAction != nil || onTextInput != nil else { return }
+        // The existing receivers read the userInfo as before: Foundation types (design S-P25).
+        let userInfo = NotificationUserInfoValue.foundationDictionary(response.userInfo)
+        let identifier = response.notification.identifier
+        if let userText = response.userText {
+            onTextInput?(identifier, response.actionIdentifier, userText, userInfo)
+        } else {
+            onAction?(identifier, response.actionIdentifier, userInfo)
+        }
+    }
+
+    /// Hands a settings request to the listeners of ``settingsRequests`` (or keeps it). The
+    /// library opens nothing (design P1-10).
+    @MainActor
+    func deliver(settingsRequestFor notificationIdentifier: String?) {
+        logger.log(level: .libraryDebug, "[deliver(settingsRequestFor:)] notificationIdentifier: \(notificationIdentifier ?? "nil", privacy: .public)")
+        settingsRequestHub.deliver(NotificationSettingsRequest(notificationIdentifier: notificationIdentifier))
     }
 }

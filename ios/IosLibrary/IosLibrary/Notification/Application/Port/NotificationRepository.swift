@@ -8,6 +8,14 @@ import UserNotifications
 
 /// Defines the contract for all notification operations.
 /// Implemented by `NotificationRepositoryImpl` in the Data layer.
+///
+/// Only the library's `NotificationRepositoryImpl` marks the requests it adds as the library's
+/// (with the reserved userInfo key `com.jonghyunkim.nativetoolkit`), rejects a userInfo that uses
+/// that key (``NotificationError/reservedUserInfoKey``), and removes the key from the lists it
+/// returns. A request that an implementation of your own adds is not one of the library's
+/// notifications: when another delegate was set before `IosNotificationManager.installDelegate()`
+/// and implements the delegate method, the library forwards its presentation and its responses
+/// to that delegate instead of handling them.
 public protocol NotificationRepository: Sendable {
 
     // MARK: - Throwing operations (Apple API has error callback)

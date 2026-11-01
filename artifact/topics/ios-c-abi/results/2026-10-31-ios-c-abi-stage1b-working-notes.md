@@ -2,9 +2,9 @@
 
 - 記録日: 2026-10-31
 - 段階: 1b（`README.md` の 5 章の 1b の行。設計書は `designs/2026-10-31-ios-c-abi-swift-api-design.md`。以下「設計書」）
-- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更）
+- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更で、`747897de` でコミットした。C5 は `747897de` の上の未コミットの変更で、前半（T-13・T-14）と後半（T-15・T-16）が入っている。まだコミットしていない）
 - 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）だけ。**実機には触れていない**
-- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）
+- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）、C5（13〜15 章。2026-11-01。前半は 13.1〜13.10 と 14 章、後半は 13.11〜13.21 と 15 章）
 
 ## 1. C1 共通（T-01〜T-05）
 
@@ -841,3 +841,495 @@ MS-08（後ろにいるときの `UIPasteboard` の読み込み。第 1 部 5.13
 | C-5: `checkForegroundChange` の「最初の確認は `false`」は `startObserving` の後には当たらない。`cancelLoad` はどの箱でも閉じる（Dialog の箱なら Dialog が終わる） | 「一度も確認も観察もしていない scope の最初の確認は `false`」に直し、`cancelLoad(_:)` に「Clipboard の読み込みの箱だけを渡す。ほかの要求の箱（Dialog など）を渡すとその要求が終わる」の `- Note:` を足した |
 
 信頼する部分: Codex のレビューの後、`TRUSTED_FILES` の `Support/SampleApp.swift` を 10.10 の値（`9af74391d9751d5071cc4c5c7058eae57be057ceee6be2fc6440a738ebc3a12e`）に固定した。固定した後、リポジトリでランナーの自己テスト 142/142、直したファイルに関わる単体テスト（`IosClipboardManagerRequestBoxTests`・`IosClipboardManagerTests`・`LibraryLogPrivacyTests`・`RequestBoxTests`）48/48 を iPhone 17 / 26.2 で Xcode 26.6 の `-parallel-testing-enabled NO` で流した（警告は `appintentsmetadataprocessor` の決まったものだけ）。TSan（`IosClipboardManagerRequestBoxTests`・`IosClipboardManagerTests`・`RequestBoxTests`）は 41/41、報告 0 件。並列のクローンを切らずに流した 1 回は、各 suite が 2 回動き、2 回目の `privateValuesAreVisible`（canary の行がちょうど 1 つ）だけが落ちた。ライブラリの判定ではない記録のためのテストで、直したところとは関わらないので、全件の実行と同じく並列を切って流した結果を採った。直したのは DocC・ログ・テストなので、UI テストは流し直していない（レビューの写しの 34 件のまま）
+
+## 13. C5 通知の delegate とイベント（T-13〜T-16）
+
+- 状態: 前半（T-13・T-14。13.1〜13.10）: router、`CompletionOnce`、循環の防止、起動のきっかけ、proxy、`installDelegate()`・`isDelegateInstalled`、KVO、`didBecomeActive`、manager の delegate の準拠を外す、UT-19〜UT-22・UT-24、MS-05・MS-06・MS-12 は済んだ。後半（T-15・T-16。13.11〜13.21）: 印、値の木、イベントの口、`responses`・`settingsRequests`・`launchResponse()`、今の受け手と `setup()` の deprecated、UT-17・UT-18・UT-23・UT-25、サンプルの起動の処理と試験の形、UI テスト（N34b、N35〜N37、N41、N43〜N45。N40 は C6）、MS-07・MS-14 は済んだ。前半と後半は別の agent が同じ作業ツリーで作り、C5 は 1 つのコミットにする。**コミットはしていない**
+- 2 回目の申し送りの結果（`results/2026-10-31-ios-c-abi-unity-handoff-2-results.md`）の H2-1（起動のきっかけは前面に出す応答だけ）、H2-3（差し替えは見張ってログに出し、自動では入れ直さない。入れ直せば戻る）、「1a-13 は足さない」を前提にした
+- 測ったログ・下調べの写し（MS-05・MS-12）・変異の差分は scratchpad に置き、リポジトリには入れていない。シミュレーターだけで、実機には触れていない
+- C1〜C4 のレビューで出た指摘（外の実装者が守れる DocC、先頭のログの全引数と伏せ方、DocC の表とコードの経路の一致、スレッドの約束を正確に、`NSObject` の子の `isolated deinit` の罠、P1-17 の一覧の外に `@unchecked Sendable`・`nonisolated(unsafe)` を足さない、壊して確かめる）を最初から当てた
+
+### 13.1 変えたもの（リポジトリ）
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| Presentation（T-13） | `Notification/Presentation/Delegate/NotificationDelegateRouter.swift`（新、internal） | router と、router が受ける小さな値。`NotificationDelegateNotification`（identifier、date、push か、印があるか。`isLibraryNotification` は「push でなく印がある」）、`NotificationDelegateResponse`（通知、action、category、返信、userInfo、前面に出すか `Foreground`）、`NotificationDelegateUserInfo`（userInfo を main へ運ぶ二進の property list。13.4 の 4）、受け手の口 `NotificationDelegateEventSink`（`@MainActor` の `deliver(response:isLaunchResponse:)` と `deliver(settingsRequestFor:)`）。router は 3 つのメソッド（`willPresent` は表示の選択肢を汎用の `Options` で通すだけ）、循環の鍵の集合、起動のきっかけ（`launchResponse`・`isLaunchResponseSettled`・`noteFirstInstall`・`noteDidBecomeActive`）を持つ。状態は 1 つの `Mutex`。UserNotifications を import しない |
+| Presentation（T-13） | `Notification/Presentation/Delegate/CompletionOnce.swift`（新、internal） | system の completion を 1 回だけ通す包み。2 回目からは捨ててログ（`.info`）。呼ばれた後は closure を手放す。`Sendable`（`@unchecked` なし。13.4 の 1） |
+| Presentation（T-14） | `Notification/Presentation/Delegate/NotificationDelegateProxy.swift`（新、internal） | `UNUserNotificationCenterDelegate` を実装する proxy（`NSObject`、nonisolated、`Sendable`）。3 つのメソッドで `UNNotification` から router の値を作り、前の delegate がそのメソッドを持てば（呼ぶたびに `responds(to:)`）呼ぶ closure を渡す。前の delegate は `WeakNotificationDelegate`（同じファイル。`Mutex` の中の heap のオブジェクトが `weak` で持つ。13.4 の 2）。`@objc applicationDidBecomeActive(_:)`、KVO の `observeValue`（差し替えを `.error` で警告し、数を数える。入れ直さない）、`foreground(ofAction:)`（H2-1。13.4 の 3） |
+| Presentation（T-14） | `Notification/Presentation/Delegate/NotificationDelegateInstaller.swift`（新、internal） | 入れる処理と入れた印（`Atomic<Bool>`。S-14）。`NotificationDelegateCenter`（`delegate` を持つ `NSObject`。`UNUserNotificationCenter` が準拠し、テストは偽物）。`static let shared`（proxy と印はプロセスで 1 つ、解放しない）。`@MainActor install(on:applicationIsActive:)`: 今の delegate が proxy なら何もしない、そうでなければ今の delegate を前の delegate にして proxy を入れる（差し替えの後なら `.info` のログ）、初めてなら `noteFirstInstall`・`didBecomeActive` の受け手・center の `delegate` の KVO を登録し印を立てる、`active` なら「起動の後かもしれない」の `.info`。**C5 のレビューの後**（16 章）: `shared` の組み立ては Manager の `IosNotificationManager.delegateInstaller` に移し、入れる順を「前の delegate と router の状態と観察 → `center.delegate` → 印」にし、center は closure で 2 回読む形にした |
+| Domain | `Notification/Domain/Model/NotificationDelegateInstallResult.swift`（新、public） | `installed` / `notMainThread`（付録 A） |
+| Domain | `Notification/Domain/Model/NotificationMarker.swift`（新、internal） | 印のキー `com.jonghyunkim.nativetoolkit`、値 `1`、`isPresent(in:)` だけ。付ける・外す・予約したキーの検査は後半（T-15。13.10） |
+| Manager | `Notification/IosNotificationManager.swift` | `UNUserNotificationCenterDelegate` の extension（3 つの public のメソッド）を消した（S-P9）。`installDelegate()`（static、`@discardableResult`。`pthread_main_np()` で見て、main 以外は何もせず `.notMainThread`、main なら `MainActor.assumeIsolated` の中で installer を呼ぶ）と `isDelegateInstalled`（static、どのスレッドからでも）を足した。`setup()` は `installDelegate()` を呼ぶだけにした（main 以外は `.error` のログを出して何もしない。deprecated は後半）。router の受け手の口に internal で準拠し、`deliver(response:)` で今の受け手（返信があれば `onTextInputActionReceived`、無ければ `onActionReceived`）を main で呼ぶ。`deliver(settingsRequestFor:)` は**今の動作のまま `openNotificationSettings()`**（13.4 の 5）。`import UIKit` を足した。型の DocC（Overview・Threading・例）、`foregroundPresentationOptions`・2 つの受け手・受け手の typealias の DocC を直した |
+| テスト | `IosLibraryTests/Notification/Presentation/Delegate/`（新、5 ファイル）、`Common/LibraryLogPrivacyTests.swift` | 13.6 |
+
+`ios/IosLibrary/IosLibrary.xcodeproj` は変えていない（フォルダーと同期するターゲット）。サンプル・UI テスト・信頼する部分（`scripts/ios_ui_runner.py` の `TRUSTED_FILES`）・ブリッジは変えていない。
+
+### 13.2 層と依存の向き
+
+`common.md` の Clean Architecture（Domain → Application → Data → Presentation → Manager）のとおりに置いた。足したもの・直したものについて、ファイルごとの層と依存は次のとおり。
+
+| ファイル | 層 | 依存するもの | 例外と理由 |
+|---|---|---|---|
+| `Domain/Model/NotificationDelegateInstallResult.swift` | Domain | Foundation だけ | - |
+| `Domain/Model/NotificationMarker.swift` | Domain | Foundation だけ（`[AnyHashable: Any]` を読む） | - |
+| `Presentation/Delegate/CompletionOnce.swift` | Presentation | `os`、`Synchronization` | - |
+| `Presentation/Delegate/NotificationDelegateRouter.swift` | Presentation | Foundation、`os`、`Synchronization`、Domain の `NotificationMarker`（値だけ）、`CompletionOnce`、`LogRedaction` | UserNotifications も UIKit も import しない（S-P20、利用者の指示）。表示の選択肢は汎用の `Options`、前面かどうかは `@MainActor` の closure で受ける |
+| `Presentation/Delegate/NotificationDelegateProxy.swift` | Presentation | UIKit（`Notification` の受け手）、UserNotifications、router、`NotificationMarker` | system の delegate を持つのはこの 1 つのクラスだけ（`common.md` の「Delegate の所有」。manager の準拠は外した） |
+| `Presentation/Delegate/NotificationDelegateInstaller.swift` | Presentation | UIKit、UserNotifications、proxy、router | - （installer・router・proxy は受け手の口 `NotificationDelegateEventSink`（Presentation の protocol）だけを知り、Manager を参照しない。C5 のレビューの B-3 の前は `static let shared` が `IosNotificationManager.shared` を参照する例外があった。16 章） |
+| `IosNotificationManager.swift` | Manager | Presentation の installer と受け手の口、Domain | ライブラリの installer の組み立て（`static let delegateInstaller`。受け手は `IosNotificationManager.shared`）はここに置く。`delegateInstaller` は初めて使うときに作られ、`shared` の初期化は installer を作らない（`NotificationDelegateStatus.library` は呼ぶたびに読む closure）ので、初期化の順に縛られない。`installDelegate()`・`isDelegateInstalled` は UseCase を置かない口（`ios.md` の「通知の delegate を入れる口」と「通知の delegate の状態の読み出し」）。受け手の口の実装も Data 層に届かないので UseCase を置かない |
+
+Application（Port・UseCase）と Data には何も足していない。Domain と Application に platform の型を足していない（`NotificationDelegateInstallResult`・`NotificationMarker` は Foundation だけ）。
+
+### 13.3 公開 API（付録 A の Notification の delegate の分との照合）
+
+| 付録 A | 実装 | 一致 |
+|---|---|---|
+| `public enum NotificationDelegateInstallResult: Sendable { case installed, notMainThread }` | 同じ（`Domain/Model/`） | 一致 |
+| `extension IosNotificationManager { // no longer a UNUserNotificationCenterDelegate` | 準拠を外した。`willPresent`・`didReceive`・`openSettingsFor` の 3 つの public のメソッドが消えた | 一致 |
+| `@discardableResult public static func installDelegate() -> NotificationDelegateInstallResult` | 同じ | 一致 |
+| `public static var isDelegateInstalled: Bool { get }` | 同じ | 一致 |
+| `@available(*, deprecated, message: "Use installDelegate()") public static func setup()` | 形は今のまま、中を `installDelegate()` に替えた。**deprecated は後半**（T-16） | 後半で一致させる |
+| `responses`・`settingsRequests`・`launchResponse()`・`NotificationEventHub`・`NotificationResponseEvent` など | 足していない（後半。T-15） | 後半 |
+
+ほかの公開の変更は無い。`@unchecked Sendable`・`nonisolated(unsafe)`・`@preconcurrency` は足していない（P1-17 の一覧の外は 0 のまま。`CompletionOnce` も一覧に入っているが `@unchecked` は使わなかった。13.4 の 1）。足した型に `deinit` は無い（`NSObject` の子の proxy にも無い）。swiftinterface はまだ取っていない（後半が C5 全体で取る）。
+
+### 13.4 設計書からの偏りと理由
+
+| # | 設計書 | 実装 | 理由 |
+|---|---|---|---|
+| 1 | P1-17 (3)・第 1 部 5.12.4: `CompletionOnce` は `@unchecked Sendable`（SDK の completion が `@Sendable` でない） | `@unchecked` なしの `Sendable`。closure は `@Sendable` で `Mutex` に入れる。proxy の 3 つのメソッドの completion の引数も `@Sendable` と書いた | Swift 6 は delegate のメソッドの completion handler を `@Sendable` として取り込む（`async` の形があるメソッドのため。前の delegate のメソッドに `@Sendable` でない closure を渡すと「`@Sendable` の closure を期待する関数」の警告が出ることを `-emit-sil` で確かめた）。Xcode 26.3 と 26.6 の両方で組めた。一覧で許されていても使わずに済むなら使わない。設計書 5.12.4 のコメントと P1-17 の一覧の (3) は C7 で直す（14 章の 2） |
+| 2 | 8.3.2「proxy は nonisolated、`Sendable`、状態は `Mutex`」 | 前の delegate は、install のたびに作る `WeakNotificationDelegate`（`Sendable`。`Mutex` の中の heap の小さなクラスが `weak` で持つ）を、proxy の `Mutex` に入れ替える | Swift 6.2 の `Mutex` は、`Sendable` でない値を `withLock` の closure から入れられない（引数を `sending` にしても「`inout sending` は task-isolated にできない」で組めない。`-emit-sil` で 5 通り確かめた）。初期化（`sending`）だけが入れられるので、入れ替えるたびに新しい箱を作る。`weak` を `Mutex` の中に直に置くと、`Mutex` の初期化が値を動かし、Objective-C の弱い参照の登録とずれた（テストで `objc_storeWeak` の誤りのログが出てホストが落ちた）ので、heap のオブジェクトに持たせた。`@unchecked` は使っていない |
+| 3 | 8.4.3「router が最初の `didReceive` を見て、最初の `didBecomeActive` より前でライブラリが扱ったなら起動のきっかけ」と H2-1「前面に出す応答だけ」 | 前面に出すかを `NotificationDelegateResponse.Foreground` で表す。本体のタップ（`UNNotificationDefaultActionIdentifier`）は前面、custom dismiss は前面でない、custom のアクションは **router が main に積んだブロックの中で `applicationState != .background` を読んで**決める。届いたときに「まだ active になっていない」かは `didReceive` の中（同期）で取る。プロセスで最初の**前面に出す**応答（転送したものを含む）が、届いたときにまだ active でなく、ライブラリが扱い、循環でなければ起動のきっかけ。背景のアクションは起動のきっかけにならず、「最初」の席も使わない | 応答は custom のアクションの選択肢（`.foreground`）を持たず、コールドスタートの `didReceive` の中では、前面に出す応答でも背景のアクションでも `applicationState` は `background`、scene は `unattached`、`targetScene` は `unattached`、`backgroundTimeRemaining` は最大で、見分けられない（MS-05。13.7）。積んだブロックの時点では、前面に出す応答なら scene が前面に入っていて、背景のアクションなら `background` のまま（26.2）。18.3 は積んだブロックが `didBecomeActive` の後に回るので、「active になる前に届いたか」はブロックの中でなく `didReceive` の中で決める。H2-1 は「最初」の数え方を決めていないので、背景のアクションは席を使わない形にした（14 章の 1） |
+| 4 | S-P11・S-P25: イベントと今の受け手の userInfo は値の木から作る | 前半では値の木が無いので、userInfo を二進の property list（`Data`）にして main へ運び、今の受け手には `PropertyListSerialization` で作り直した辞書（`NSNumber`・`NSString`・`NSDate`・`NSData`・`NSArray`・`NSDictionary`）を渡す。property list にできない値があれば空の辞書（ログ） | `[AnyHashable: Any]` は `Sendable` でなく、proxy から main へ運べない（`@unchecked` の箱は足さない）。system は property list の値しか保存しないので、作り直した辞書は今と同じに読める（UT の `theValuesComeBackWithTheirFoundationTypes`）。値の木は後半（T-15）が入れ替える（13.10） |
+| 5 | P1-10・8.3.2「`openSettingsFor` でライブラリが扱うときは `settingsRequests` のイベントを積む。設定の App は開かない」 | 前半では受け手の口の `deliver(settingsRequestFor:)` が**今の動作のまま** `openNotificationSettings()` を呼ぶ（main で、`openSettingsFor` から戻った後） | イベントの口は後半（T-15）。前半の作業ツリーで今の動作を保つため。後半で置き換える（13.10） |
+| 6 | 6.1・8.3.2「proxy は `IosNotificationManager` の `static let` で強く持つ」 | `IosNotificationManager` の `static let delegateInstaller`（C5 のレビューの後。前は `NotificationDelegateInstaller.shared`）が installer を持ち、installer の `let proxy` が proxy を持つ（どちらも解放しない） | 入れる処理と入れた印と proxy を 1 つの型に置くと、テストが偽の center と自分の installer で、プロセスの印に触れずに全部を確かめられる。組み立ては Manager に置くので、Presentation から Manager への参照は無い（13.2） |
+| 7 | 8.3.1「main 以外: すぐ `.notMainThread`。何も変えない。ログを出す」 | 同じ。`installDelegate()` の main 以外の経路は `.error` のログ。`setup()` も同じ経路で `.error` を足す | - |
+| 8 | 8.3.2「KVO で差し替えをログに出す」 | `observeValue` が `.error` の警告（「差し替えた型、何回目か、`installDelegate()` を呼ぶまでライブラリの通知のコールバックは止まる、自動では入れ直さない」）を出し、`replacementCount` を数える。`nil` にしたのも差し替えとして数える。ライブラリ自身の設定は数えない | H2-3 の「ログに警告を出す」。数はテストが警告を確かめるのに使う（`Atomic`） |
+| 9 | UT-19「前の delegate の振る舞い（無し、実装しない、…）」 | router のテストでは「無し」と「実装しない」は同じ（proxy が closure を渡さない）。「実装しない」の見分けは proxy の `previousDelegate(responding:)` のテストで確かめた | `UNNotification` はテストから作れないので、proxy の 3 つのメソッドは単体テストで呼べない（S-P20 のとおり、UI テストで確かめる。13.10） |
+| 10 | 13.1 UT-21 の壊し方「closure を main actor の文脈で書く」 | 前の delegate に渡す closure は `@Sendable` の型なので、main actor の closure は型で渡せない（組めない）。変異は「渡す closure の中で `MainActor.assumeIsolated` を使う」にした（M64） | 型が守っているので、組める形で同じ前提（main で呼ばれる）を入れた |
+| 11 | 8.3.2「router は純粋な値の型で、呼び出しごとに『ライブラリが扱う』か『前の delegate に渡す』の 2 つの結果のどちらかを返す」 | router は `Mutex` を持つ class（`Sendable`）で、決めるだけでなく、前の delegate への転送、main への積み込み、受け手の口の呼び出し、system の completion（`CompletionOnce`）まで行う（C5 のレビューの C-4 で記録した） | 循環の鍵の集合（5.12.5）と起動のきっかけ（P1-22）は呼び出しをまたぐ状態で、値の型では proxy が状態を持ち、決めた結果を proxy が実行することになる。そうすると UserNotifications を import しない router の単体テスト（S-P20）で、転送・main の順・completion の 1 回（1a-12、UT-19〜UT-22）を確かめられない。proxy には `UNNotification` から値を作ることと、前の delegate を呼ぶ closure を渡すことだけを残した |
+
+### 13.5 今の利用者から見て変わる動作
+
+前半の作業ツリーで、今の Swift の利用者とブリッジの利用者から見て変わるもの。どれも 3.3 の行に入る（入らないものは「3.3 の外」と書いた）。
+
+| 口 | 前 | 後 | 3.3 |
+|---|---|---|---|
+| `IosNotificationManager` の型 | `UNUserNotificationCenterDelegate` に準拠し、3 つの public のメソッドを持つ | 準拠しない。3 つのメソッドが無い（`UNUserNotificationCenter.current().delegate = IosNotificationManager.shared` と書いた利用者のソースは組めなくなる） | 破壊的（S-P9） |
+| `setup()` | どのスレッドからでも manager を delegate に入れる（前の delegate は捨てる） | main なら proxy を入れ、前の delegate に転送する。main 以外は何もせず `.error` のログ | 非推奨・動作（deprecated は後半） |
+| ライブラリの通知でないもの | すべてライブラリが受ける | 前の delegate がそのメソッドを持てば前の delegate に渡り、ライブラリの受け手に届かない。持たなければ今と同じ | 動作。**前半ではライブラリの通知にまだ印が付かない**（T-15）ので、前の delegate がいるアプリでは、ライブラリが出した通知も前の delegate に渡る。後半で印が付くと設計書のとおりになる |
+| `onActionReceived`・`onTextInputActionReceived` | system のスレッドで、`didReceive` の中で同期に | main で、`didReceive` から戻った後、system の completion の前 | 動作（1a-12） |
+| 受け手に渡る userInfo | system の辞書そのもの | 同じ値を Foundation の型で作り直した別の辞書（13.4 の 4）。印はまだ外さない（後半） | 動作（S-P25 の形の先取り） |
+| `openSettingsFor` | 同期に設定の App を開く | main で、戻った後に開く（後半でイベントに替わる） | 3.3 の外（前半だけの形） |
+| 足す口 | - | `installDelegate()`、`isDelegateInstalled`、`NotificationDelegateInstallResult` | 追加 |
+| ログ | `[willPresent]`・`[didReceive]`・`[openSettingsFor]`（manager） | proxy・router・installer・`CompletionOnce` の行。差し替えの警告（`.error`）、起動のきっかけ（`.info`）、2 回目の completion を捨てた（`.info`）、起動の後の入れ（`.info`）。返信と userInfo の値は出さない（長さと鍵の数だけ） | 動作（S-P21） |
+| 入れたときに足すもの | - | 初めて入れたときに `UNUserNotificationCenter` の `delegate` の KVO と `UIApplication.didBecomeActiveNotification` の受け手（解放しない） | 追加（8.3.1） |
+
+ブリッジ（`ios/UnityIosPlugin`）はソースを変えていない。`UnityIosNotificationManager.setup()` は `IosNotificationManager.setup()` を呼ぶので proxy が入り、受け手は main で呼ばれる（Unity の C# はもともと main）。
+
+### 13.6 単体テストと壊して確かめたこと
+
+| ID | ファイル（`IosLibraryTests/Notification/Presentation/Delegate/`） | 件数 | 中身 |
+|---|---|---|---|
+| UT-19 | `NotificationDelegateRouterTests.swift`（`NotificationDelegateRouterTableTests`） | 5（ケースは 35 + 35 + 10 + 2 + 1） | 1a delegate 3 章の表: 3 つのメソッド × 前の delegate の振る舞い（無し、同期、30 ms 後に main、30 ms 後に背景、2 回、捨てる、持ち続ける）× 通知の種類（ライブラリ、ホスト、1.x、印のある push、印の無い push）。どの組み合わせでも system の completion は 1 回以下で、捨てる・持ち続ける以外はちょうど 1 回。ライブラリの通知は前の delegate に渡らない。転送した `willPresent` は前の delegate の選択肢のまま、ライブラリが扱うものはライブラリの選択肢で呼び出しの中で完了。`didReceive` でライブラリが扱うものは呼び出しの中では完了せず、main でイベントを渡した後に completion（順を記録して確かめる）。`openSettingsFor` は転送か main のイベント、通知の無い要求はライブラリの通知でない（R-13）。8 スレッド × 25 回で同じ handler を呼んでも 1 回 |
+| UT-20 | 同（`NotificationDelegateRouterCycleTests`） | 8 | 3 つのメソッドで、転送の中で同期に戻ってきた呼び出しを止め「誰も受けない」で扱う（`willPresent` はライブラリの選択肢、`didReceive` はイベント 1 つと completion 1 回で起動のきっかけにしない、`openSettingsFor` の `nil` はイベント 1 つ）。外側の転送の記録で席が使われなくても（状態を読むたびに変わる偽物）内側は起動のきっかけにならない（M74 の後に足した）。同じ identifier で date の違う配信、同じ配信の別の action は止めない。転送が戻った後は鍵が外れ、次の呼び出しはまた転送する。戻った後に非同期に戻ってくる形（契約の外）は止めないことも書いた |
+| UT-21 | `CompletionOnceTests.swift` | 6 | 1 回目だけ通す、2 回目以降を捨てる（数は数える）、背景のキューから呼んでも止まらずそのスレッドで動く、8 スレッド × 25 回の競争で 1 回（20 回繰り返す）、呼んだ後は closure を手放す、呼ばれずに解放されたら何も呼ばず closure も手放す |
+| UT-22 | 同（`NotificationDelegateRouterLaunchTests`） | 12 | P1-22 と H2-1: active になる前のライブラリの通知のタップは起動のきっかけ（`launchResponse`、`isLaunchResponseSettled`）、誰も受けない通知も同じ、`didBecomeActive` の後は無し、初めて入れたときに active なら無し・inactive なら残る、届いた後でブロックの前に active になっても起動のきっかけ（18.3 の順）、最初の応答を転送したら後のライブラリの応答も無し、2 つ目は無し、背景のアクションは無しで席も使わず次の前面の応答が起動のきっかけ、前面に出すアクションは起動のきっかけ、custom dismiss は無し、転送した背景のアクションも席を使わない |
+| UT-24 | `NotificationDelegateInstallerTests.swift`（`NotificationDelegateInstallerTests`） | 10 | 偽の center で: 初めて入れると proxy・前の delegate・印、delegate が無いときは前の delegate も無し、2 回目は何も変えず前の delegate が proxy 自身にならない、差し替えを数えて自動では入れ直さず、入れ直すと差し替えた側の前に立つ（自分の設定は数えない）、観察は 1 回だけ登録（差し替え 2 回で 2）、`nil` にしたのも差し替え、前の delegate は弱い、初めて入れたときに active なら起動のきっかけは無い、`didBecomeActive` は初めて入れた後から受ける・その前は受けない |
+| UT-24・MS-06・H2-3 | 同（`NotificationDelegateRealCenterTests`。`.serialized`） | 3 | 本物の `UNUserNotificationCenter`（テストのホストのアプリ）で: `Thread` と、そこから `DispatchQueue.global().sync` の中の `installDelegate()`・`setup()` は `.notMainThread` で delegate も印も変えない。MS-06（13.7）。H2-3: 入れた後に別の delegate（パッケージに似せた、転送しない delegate）で差し替えると、`.error` の警告が 1 つ出て（`OSLogStore` で読む）自動では入れ直さず、`installDelegate()` をもう一度呼ぶと proxy が戻り、前の delegate は差し替えた側になる |
+| - | `NotificationDelegateProxyTests.swift`（`NotificationDelegateProxyTests`） | 5 | 前の delegate が 3 つを実装していれば使い、何も実装していなければ使わない（1a の noimpl）、`responds(to:)` は呼ぶたびに見る、`foreground(ofAction:)` の対応、push と印の判定 |
+| - | 同（`NotificationDelegateUserInfoTests`） | 3 | 運んだ userInfo が Foundation の型で戻る（整数・実数・真偽値・文字列・日時・バイト列・配列・辞書・`UInt64.max`）、空は空、property list でない値は空で落ちない |
+| - | 同（`IosNotificationManagerDelegateSinkTests`） | 4 | manager が受け手の口として: タップとアクションは `onActionReceived`、返信（空の返信も）は `onTextInputActionReceived` だけ、どちらも main。受け手が無くても落ちない。設定の要求は前半では今のとおり設定の画面を開く |
+| UT-15 | `Common/LibraryLogPrivacyTests.swift` | +1 | router → manager（受け手の口）→ 今の受け手の経路で、番兵の返信と userInfo の値（入れ子も）がライブラリのログに無い（router と manager の行が読めることを `#require`）。転送の経路も通す |
+
+`IosLibraryTests` は 430 件（C4 の 373 件 + 57）。今のテストは消していない・名前を替えていない（`IosNotificationManagerTests` の 15 件はそのまま通る）。
+
+壊して確かめたこと（`mutate_c5a.py` で 1 つずつ当てて該当の suite を流し、落ちることを見てから戻した。差分とログは scratchpad）:
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M62 | UT-21 | `CompletionOnce` が呼ばれた後も closure を残す（2 回目以降も通す） | `laterCallsAreDropped`、`racingCallsPassOnce`、`theCompletionIsReleasedAfterTheCall` |
+| M63 | UT-21 | 1 回だけ通すが、呼んだ後も closure を持ち続ける | `theCompletionIsReleasedAfterTheCall` |
+| M64 | UT-21（R-4。13.4 の 10） | 前の delegate に渡す closure の中で `MainActor.assumeIsolated` を使う | 背景のキューから呼ぶケースでホストが止まった（`willPresent` の `asyncBackground` の途中で再起動） |
+| M65 | UT-19（1a-7） | `didReceive` でライブラリの通知も前の delegate に渡す | `didReceive`（表） |
+| M66 | UT-19（1a-12） | 印のある push をライブラリの通知とする | `willPresent`・`didReceive`・`openSettings`（表）、`theRouterSeesThePushAndTheMarker` |
+| M67 | UT-19（1a-12） | ライブラリが扱う `didReceive` で、イベントを渡す前に completion を呼ぶ | `didReceive`（表） |
+| M68 | UT-20（設計書 13.1「鍵に `date` を入れない」） | `willPresent` の鍵から date を外す | `theSameIdentifierWithAnotherDateIsForwarded` |
+| M69 | UT-20 | 転送が戻った後に鍵を外さない | `theSameNotificationLaterIsForwardedAgain`、`comingBackAfterTheForwardingCallReturnedIsNotStopped` |
+| M70 | UT-20 | `didReceive` の鍵から action を外す | `anotherActionOfTheSameDeliveryIsForwarded` |
+| M71 | UT-22（設計書 13.1「転送したものを起動のきっかけにする」） | 転送した応答も起動のきっかけになりうる | `aForwardedFirstResponseLeavesNone` |
+| M72 | UT-22 | 「active になる前に届いたか」を main のブロックの中で決める | `becomingActiveBeforeTheMainQueueBlockRunsKeepsIt` |
+| M73 | UT-22（H2-1） | custom のアクションをいつも前面に出す応答とする | `aBackgroundActionIsNotTheLaunchResponse`、`aForwardedBackgroundActionLeavesTheFirstPlace` |
+| M74 | UT-20・UT-22（R4-3） | 循環の内側も起動のきっかけになりうる | **最初は生き残った**（外側の転送の記録が先に席を使うので、ふつうは同じ結果になる）。状態が 2 回の記録の間で変わる形のテスト `theInnerCallOfACycleIsNeverTheLaunchResponse` を足して落ちることを確かめた |
+| M75 | UT-24（設計書 13.1「2 回目に前の delegate を上書き」） | 今の delegate が proxy でも入れ直す | `aSecondInstallKeepsThePreviousDelegate` |
+| M76 | UT-24 | 入れるたびに観察を登録する | `theCenterIsObservedOnlyOnce` |
+| M77 | UT-24（H2-3） | 差し替えを見つけたら KVO の中で自分を入れ直す | `aReplacementIsWatchedAndInstallingAgainRestoresTheProxy` |
+| M78 | UT-24（1a-9） | `installDelegate()` の main の確かめを外す | `offTheMainThreadNothingChanges` でホストが止まった（main 以外の `assumeIsolated`） |
+| M79 | UT-24（P1-22） | 初めて入れたときの `applicationIsActive` を無視する | `aFirstInstallWhileActiveLeavesNoLaunchResponse` |
+| M80 | proxy（第 1 部 5.12.1） | 前の delegate の `responds(to:)` を見ない | `aPreviousDelegateThatImplementsNothingIsNotUsed`、`respondsToIsCheckedOnEveryCall` |
+| M81 | UT-15 | router の先頭のログに返信を生で入れる | `notificationResponsesThroughTheDelegateNeverReachTheLog` |
+| M82 | 受け手の口 | 空の返信を `onActionReceived` に回す | `aReplyReachesOnTextInputActionReceived`（空の返信のケース） |
+| M83 | H2-1 | 本体のタップを custom のアクションと同じ扱いにする | `theForegroundOfAnActionFollowsH21` |
+| M84 | H2-3 | `nil` への差し替えを数えない | `clearingTheDelegateIsAReplacementToo` |
+
+23 件とも落ち（M74 はテストを足した後）、戻した版で通ることを確かめた（13.8 の全件の実行）。
+
+TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2）: `CompletionOnceTests`、router の 3 つの suite、installer の 2 つ、proxy、受け手の口、`IosNotificationManagerTests` の 68 件が成功。TSan の報告は 0 件。最初の回は `thePreviousDelegateIsHeldWeakly` が落ちた（TSan の版は autorelease された参照を長く持つので、弱い参照が `nil` にならない）。テストの中を `autoreleasepool` で包んで直した（ライブラリは変えていない）
+
+### 13.7 シミュレーターで測ったこと（C5 前半に付いた MS-05・MS-06・MS-12）
+
+**MS-05**（scene のアプリでの `didBecomeActive` の順。P1-22）。サンプル（SwiftUI、scene のアプリ）の使い捨ての写し（HEAD の `747897de`。今の受け手が `didReceive` の中で同期に呼ばれる形）に、app と scene の通知とそのときの状態、受け手の中の状態、`App.init` で積んだ `DispatchQueue.main.async` を記録する probe を足し、今の UI テスト（N30・N31・N32・N33・N25・N27・N28）をそのまま流した。2 回目は `didReceive` の中で `targetScene` と `backgroundTimeRemaining` も記録した（N30・N31・N33・N25・N27・N28）。どの回も UI テストは通った。
+
+| 場面 | iPhone 17 / 26.2 | iPhone 16 / 18.3 |
+|---|---|---|
+| コールドスタート、本体のタップ（N30） | `didFinishLaunching`（app は background）→ `scene.willConnect` → **`didReceive`（app は background、scene は unattached）** → 同じ回に `scene.willEnterForeground` → `app.willEnterForeground`（inactive）→ 積んだブロック（inactive）→ `scene.didActivate` → `app.didBecomeActive` | 同じ順。ただし**積んだブロックは `app.didBecomeActive` の後**（active） |
+| コールドスタート、Open（前面に出すアクション。N31） | N30 と同じ（`didReceive` の時点は background・unattached） | N30 と同じ |
+| コールドスタート、Reply・Delete（背景のアクション。N32・N33） | `didReceive`（background・unattached）→ 積んだブロック（app も scene も background）→ テストが前に出したときに `willEnterForeground` | `didReceive`（background・unattached）→ テストが前に出す（4〜164 ms 後）→ 積んだブロック（inactive）。2 回目の N33 は、テストが先に前に出し、`didReceive` の時点で active だった |
+| 背景からのタップ・Open（N25・N27） | `didReceive` の時点で app は inactive、scene は foregroundInactive | 同じ |
+| 背景で Delete（N28） | `didReceive` の時点で app も scene も background | 同じ |
+| `targetScene`（2 回目） | どの応答でも設定されている。コールドスタートでは前面の応答も背景のアクションも `unattached`。背景からのタップ・Open は foregroundInactive、Delete は background | 同じ（2 回目の N33 だけ foregroundActive。上の行） |
+| `backgroundTimeRemaining`（2 回目） | どれも最大 | 同じ |
+
+分かったこと: (1) scene のアプリでも、プロセスで最初の `UIApplication.didBecomeActiveNotification` はコールドスタートの応答の後に来る（P1-22 の前提は成り立つ。scene の通知を見る必要は無い）。(2) コールドスタートの `didReceive` の中では、前面に出す応答と背景のアクションを見分ける値が無い（`applicationState`、scene の状態、`targetScene`、`backgroundTimeRemaining`）。(3) `didReceive` から積んだ main のブロックの時点では、前面に出す応答なら scene が前面に入っている。背景のアクションなら 26.2 では background のまま。**18.3 では積んだブロックが遅れて回り、`didBecomeActive` の後になる**ことがあり、背景のアクションの直後にアプリが前に出されるとブロックの時点では inactive になる。そのため実装は、「active になる前に届いたか」を `didReceive` の中で取り、「前面に出すか」は本体のタップ・dismiss を action の識別子で、custom のアクションだけをブロックの時点の `applicationState` で決める（13.4 の 3）。18.3 で背景のアクションの直後（約 0.2 秒以内）に利用者がアプリを開くと、その背景のアクションを前面の応答と取りうる（14 章の 1）。scene の無いアプリはこの回では測っていない（1a の 2.4 で、scene の無いアプリの前面の起動は `didFinishLaunching` から inactive）
+
+**MS-06**（main スレッドの上の `DispatchQueue(label:).sync` の中の `MainActor.assumeIsolated`。R-23）。`NotificationDelegateRealCenterTests.insideASyncBlockOnTheMainThreadTheInstallGoesThrough`: main スレッドから `DispatchQueue(label:).sync` の中で `pthread_main_np()` は真、`MainActor.assumeIsolated` は止まらず、`installDelegate()` は `.installed` を返して proxy が入った。iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1 の全件の実行（13.8）で通った。第 1 部 1.3 の判定の書き方（`pthread_main_np()`）は変えなくてよい
+
+**MS-12**（`UIApplicationMain` の前の `installDelegate()`。G-9。1 回、iPhone 17 / 26.2）。`IosLibraryTestHost` の使い捨ての写しを `main.swift` で起動する形にし、`UIApplicationMain` の前に `installDelegate()` を呼んだ。結果: 落ちない。main スレッドで、`.installed` を返し、`isDelegateInstalled` は真。`UNUserNotificationCenter.current()` は使え、`didFinishLaunching` と最初の main のブロックでも delegate は proxy のまま、その後の 2 回目の呼び出しは何もしなかった。**ただし `UIApplication.shared` がまだ無いので `applicationState` は 0（`.active`）と読め**、「起動の後かもしれない」の `.info` が誤って出て、初めて入れたときに active とみなすので**起動のきっかけは決まらない**（コールドスタートのタップのイベント自体は届く見込み。測っていない）。DocC は「`UIApplicationMain` の前は対応しない」のまま（第 1 部 1.3.3 の「契約の外」）。マニュアルに「`UIApplicationMain` の前に呼ぶと起動のきっかけが取れない」と書く（段階 4。14 章の 3）
+
+### 13.8 テストの実行と基準との比べ合わせ
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1。`-parallel-testing-enabled NO`。18.3 の 2 つは `-destination 'platform=iOS Simulator,id=<udid>,arch=arm64'`） | どれも 430/430（C4 の 373 + 57）。skip 0。消した・名前を替えたテストは無い |
+| TSan | 13.6 の末尾 |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --feature Notification`（リポジトリのまま。信頼する部分のハッシュは固定のとおり） | 42 件すべて成功（権限の NP2・NP1、Navigation 2、IdentifierInventory 4、Notification 23、NotificationEvent 7、NotificationColdStart 4）。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）との比べ合わせは `changed=0, added=0, removed=0`。N25〜N33（今の受け手の経路、コールドスタートのタップ・Open・Reply・Delete）は proxy と main の受け手で期待値を変えずに通った。信頼する部分の警告なし。この回の後に足したのは 3 つの先頭のログ（`WeakNotificationDelegate.Reference.init`、router の `launchResponse`・`isLaunchResponseSettled`）だけで、その後に全件の単体テストと警告の確かめを流し直した（上の行と 13.9） |
+| MS-05 の写しでの UI テスト | 13.7。HEAD の写しで N30〜N33・N25・N27・N28 を 2 つのシミュレーターで 2 回ずつ流し、どれも通った |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1 は xcodebuild・`simctl`・`test_ios.sh` が起動し、終わった後に止めた。MS-12 で写しの `IosLibraryTestHost` を入れた iPhone 17 からはそれを消した。iPhone 16 / 18.3.1 には MS-05 の写しのサンプル（probe のログ入り）が入ったまま（消すと通知の権限が戻るため。次の UI テストの回が入れ直す）。最後にどれも起動していないことを確かめた |
+
+### 13.9 警告
+
+| 測り方 | 結果 |
+|---|---|
+| 2 つの scheme（`IosLibrary`、`IosLibraryExample`）を `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`）。Xcode 26.3 と 26.6（`DEVELOPER_DIR`） | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+
+`ios/UnityIosPlugin`（ワークスペースの外）は組んでいない（C1 と同じ）。
+
+### 13.10 後半（T-15・T-16）への申し送り
+
+| 項目 | 内容 |
+|---|---|
+| 受け手の口（seam） | `NotificationDelegateEventSink`（router の出口。`@MainActor`）。ライブラリの実体は `IosNotificationManager`（internal の extension、`IosNotificationManager.swift` の末尾）。`deliver(response:isLaunchResponse:)` は main のブロックの中で呼ばれ、戻った後に router が system の completion を呼ぶ（1a-12）。**ここで `responses` の hub に渡す（受け手か保ち）→ 今の受け手、の順にする**（8.3.2）。`deliver(settingsRequestFor:)` は今は `openNotificationSettings()`（今の動作）なので、`settingsRequests` の hub に替え、設定の App を開くのをやめる（P1-10、3.3） |
+| イベントの値 | `NotificationDelegateResponse` に identifier、action、category、返信（`userText`。`nil` 以外はテキスト入力）、userInfo、`Foreground` がある。`NotificationResponseEvent` はこれと `isLaunchResponse` から作れる。userInfo は今 `NotificationDelegateUserInfo`（二進の property list の `Data`）で運ぶ。値の木（`NotificationUserInfoValue`）ができたら、proxy の `value(of: response)` で値の木を作り（印を外して）、`NotificationDelegateUserInfo` を置き換える。今の受け手の辞書は値の木から作る（S-P25）。router のテストの支え（`DelegateTestSupport.swift` の `TestNotificationKind.response`）と `NotificationDelegateUserInfoTests` も合わせて直す |
+| 印 | `NotificationMarker`（`Domain/Model/`）に key・value・`isPresent(in:)` だけを置いた。付ける・外す・予約したキーの検査（8.3.3）はここに足す。**前半では表示・予約・更新が印を付けない**ので、前の delegate がいるとライブラリの通知も転送される（13.5）。印を付けるとそれが直る |
+| `launchResponse()` | router の `launchResponse`（`NotificationDelegateResponse?`）と `isLaunchResponseSettled` を使う。どちらもどのスレッドからでも読める。`NotificationDelegateInstaller.shared.proxy.router` から届く。入れたかは `NotificationDelegateInstaller.shared.isInstalled`（= `isDelegateInstalled`）。起動のきっかけの印は main のブロックの中で決まるので、`didReceive` の直後はまだ `nil` で settled でもない（8.4.3 の「後で値に変わりうる」） |
+| `delegateNotInstalled` のテスト | `NotificationDelegateRealCenterTests` が本物の center に proxy を入れるので、テストのプロセスでは**その後 `isDelegateInstalled` が真のまま**になる（suite の順は決まらない）。hub の「入れていないと `delegateNotInstalled`」のテストは、入れたかを読む口を hub に渡せる形（`NotificationDelegateInstaller` を作って渡すか、closure）にし、プロセスの印に頼らない |
+| `setup()` の deprecated | 中は `installDelegate()` を呼ぶだけ。`@available(*, deprecated, message: "Use installDelegate()")` を付けると、`IosNotificationManagerTests` には呼ぶ所が無いが、`NotificationDelegateRealCenterTests.offTheMainThreadNothingChanges` が `setup()` を呼ぶので、そのテストに deprecated の警告が出る。テストの側で抑える形（`@available(*, deprecated)` を付けた helper から呼ぶ）にするか、呼ぶのをやめる |
+| UI テスト | proxy の 3 つのメソッドは単体テストで呼べない（`UNNotification` を作れない）。サンプルの UI テスト（N25〜N33 は今の受け手の経路、後半の N34〜N45）が確かめる。前半では UI テストを変えていない。今の N25〜N33 は前半の作業ツリーで期待値を変えずに通った（13.8） |
+| 前の delegate の影響（N41） | サンプルにホストの delegate を入れる形（SA-12）では、前半ではライブラリの通知も印が無いのでホストに渡る。N41 は印を付けた後（T-15）でないと通らない |
+| H2-3 | 自動では入れ直さないことと、入れ直せば戻ることは `NotificationDelegateRealCenterTests` と `NotificationDelegateInstallerTests` で確かめた。マニュアル（段階 4）と 2c の包みに「パッケージの `AuthorizationRequest` の後に `installDelegate()` / `ntk_notification_install` をもう一度呼ぶ」と書く |
+| C6 に残す今の不備（直していない） | (1) `IosNotificationManager` が `repository.openNotificationSettings()` と `repository.setBadgeCount` を UseCase なしで直に呼んでいる（`common.md` の Manager → UseCase → Repository に反する。T-17・T-18）。(2) port の `NotificationRepository` が `UNAuthorizationOptions` を使うが、`common.md` が求める例外の note が無い。(3) `Application/UseCase/NotificationDispatchUseCases.swift` が UN の型を使わないのに `import UserNotifications` している |
+
+### 13.11 後半（T-15・T-16）で変えたもの（リポジトリ）
+
+後半は 13.10 の申し送りの上に、前半と同じ作業ツリーで作った。**コミットはしていない**（C5 は前半と合わせて 1 つのコミットにする）。
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| Domain（T-15） | `Notification/Domain/Model/NotificationEvents.swift`（新） | public の `NotificationUserInfoValue`（値の木。S-P11）、`NotificationResponseEvent`（`description` は返信の長さと userInfo の鍵の数だけ）、`NotificationSettingsRequest`（付録 A）。internal の変換: `tree(of:)`（`[AnyHashable: Any]` → 値の木。`String` でない鍵と property list でない値は捨てて数え、ログは件数だけ）、`make(from: NSNumber)`（`CFBoolean` → 実数 → `Int64` → `UInt64` の順。S-P11）、`foundationValue`・`foundationDictionary`（`NSString`・`NSNumber`（真偽値は `CFBoolean`）・`NSDate`・`NSData`・`NSArray`・`NSDictionary` で作り直す。S-P25）。ログの形の internal の protocol `NotificationEventLogSummary` |
+| Domain（T-15） | `Notification/Domain/Model/NotificationMarker.swift` | 付ける（`attaching(to:)`。値は `1`）、外す（`removing(from:)`）、予約したキーの検査（`isReserved(in:)`。値に関わらずキーだけで）を足した（8.3.3）。internal のまま |
+| Domain（T-15） | `Notification/Domain/Model/NotificationError.swift` | `reservedUserInfoKey` と `delegateNotInstalled` の 2 つの case を足した。ほかの S-P7 の直し（`FailureDetail`、`Sendable`・`Equatable`・`LocalizedError`、使わない case を消す）は C6（T-17）のまま（13.15 の 2） |
+| Presentation（T-15） | `Notification/Presentation/Event/NotificationEventHub.swift`（新、public） | `@MainActor` の `NotificationEventHub<Event: Sendable>` と `NotificationEventRegistration`（8.4.2、S-P10）。足す: 入れていなければ `delegateNotInstalled`、保ちがあれば先に外してから、その呼び出しの中で足した受け手に受けた順に渡す。渡す途中で受け手が自分を外したら、残りは並びに残る最も古い受け手へ、無ければ保ちの先頭へ戻す。配る: 並びの写しを取り、外された受け手は呼ばない。受け手が 0 なら 32 件まで保ち、超えたら古いものから捨てる（hub ごとに最初の 1 回だけ `.info`、以後 `.debug`）。外す: その場で、2 回目は何もしない。init は internal で `nonisolated`（「入れたか」を読む closure を受ける。13.10 の申し送り） |
+| Presentation（T-15） | `Notification/Presentation/Delegate/NotificationDelegateRouter.swift` | `NotificationDelegateUserInfo`（二進の property list）を消し、`NotificationDelegateResponse.userInfo` を値の木（`[String: NotificationUserInfoValue]`）にした（13.10） |
+| Presentation（T-15） | `Notification/Presentation/Delegate/NotificationDelegateProxy.swift` | `userInfoValues(of:)`: 届いた userInfo から印を外して値の木にする。`value(of: response)` がそれを使う |
+| Presentation（T-15） | `Notification/Presentation/Delegate/NotificationDelegateInstaller.swift` | internal の `NotificationDelegateStatus`（「入れたか」と「起動のきっかけ」を読む 2 つの closure。`library` は `NotificationDelegateInstaller.shared` を呼ぶたびに読む。テストは自分の closure を渡す。13.10 の申し送り） |
+| Data（T-15） | `Notification/Data/Repository/NotificationRepositoryImpl.swift` | `show`・`schedule`・`update` の**入口の最初**（`update` は今の予約を消す前）に予約したキーを `reservedUserInfoKey` で断る。足す要求の userInfo に印を付ける。`getScheduled`・`getDelivered` の userInfo から印を外す。要求の追加・削除・一覧を internal の `NotificationRequestCenter`（本番は `CurrentNotificationRequestCenter` が呼ぶたびに `UNUserNotificationCenter.current()` を読む）に通し、internal の `init(requestCenter:)` を足した（13.15 の 4） |
+| Application（T-15） | `Notification/Application/Port/NotificationRepository.swift` | DocC だけ: 印を付ける・予約したキーを断る・一覧から外すのはライブラリの `NotificationRepositoryImpl` だけで、自分で実装した port が足した通知はライブラリの通知でない（前の delegate があればそちらへ渡る）と書いた |
+| Manager（T-15・T-16） | `Notification/IosNotificationManager.swift` | `responses`・`settingsRequests`（どのスレッドからでも読める hub）と `@MainActor launchResponse() throws(NotificationError)` を足した。受け手の口の `deliver(response:)` は、hub に渡す（受け手か保ち）→ 今の受け手（値の木から Foundation の型で作り直した辞書）の順。`deliver(settingsRequestFor:)` は `settingsRequests` に渡すだけで、設定の App を開かない（P1-10）。`setup()`・`onActionReceived`・`onTextInputActionReceived` を deprecated にした（S-P8。受け手の getter / setter に先頭のログ）。テストの init に `delegateStatus` を足した（既定は `library`）。型と口の DocC（Overview・Threading・例、`installDelegate()` の SwiftUI の注意。13.15 の 7） |
+| テスト | `IosLibraryTests/Notification/Presentation/Event/NotificationEventHubTests.swift`（新）、`Notification/Domain/NotificationUserInfoValueTests.swift`（新）、`Notification/Data/NotificationRepositoryMarkerTests.swift`（新）、`Notification/Presentation/IosNotificationManagerEventTests.swift`（新）、`Notification/Presentation/Delegate/Support/DeprecatedNotificationCalls.swift`（新）、前半のテストの直し（`DelegateTestSupport.swift`、`NotificationDelegateProxyTests.swift`、`NotificationDelegateInstallerTests.swift`、`IosNotificationManagerTests.swift`、`Common/LibraryLogPrivacyTests.swift`） | 13.16 |
+| サンプル（T-16） | `IosLibraryExample/SampleLaunchConfiguration.swift`（新） | 試験の形（SA-18）: 起動の引数 `-ntkSampleTestMode <none/legacyReceivers/delayListener>` と旗 `-ntkSampleHostDelegate`（SA-12）を読み、Application Support の `ntk-sample-test-mode.txt` に書く。引数の無い起動はファイルを読む。どこから読んだか（`arguments` / `file` / `defaults`）も返す。`UserDefaults` は使わない |
+| サンプル（T-16） | `IosLibraryExample/NotificationEventRouting.swift`（新） | 起動の処理（SA-06・SA-08・SA-11・SA-12・SA-18）: ホストの delegate（`SampleHostNotificationDelegate`。`willPresent` と `didReceive` を実装し、受けた数と最後の識別子を記録）を先に入れる形、`legacyReceivers` は今の受け手 → `setup()`（deprecated の呼び出しは protocol の witness を通して警告を出さない）、ほかは `installDelegate()` → 1 人目の受け手（`delayListener` は 3 秒後。C5 のレビューの UI C-1 で 5 秒後にした。16 章）。`settingsRequests` の受け手はどの形でも足す。1 人目の受け手は最後のイベントを記録し、`addListener` の呼び出しの中で受けたら `delivery=held`。2 人目の受け手の足し外し（SA-06）、`launchResponse()` の結果の行（SA-08）、ライブラリを通さないホストの通知（印なし。SA-12） |
+| サンプル（T-16） | `IosLibraryExample/IosLibraryExampleApp.swift` | 起動の処理を `App.init` から `UIApplicationDelegateAdaptor` の `application(_:didFinishLaunchingWithOptions:)`（`SampleAppDelegate`）に移した（13.15 の 7、13.17 の 3） |
+| サンプル（T-16） | `IosLibraryExample/NotificationEventLog.swift` | 最後のイベントに経路（`hub` / `legacy`）、`isLaunchResponse`、`live` / `held` を足した。状態（`install`、`isDelegateInstalled`、形と読んだ所、ホストの delegate、受け手ごとの数、設定の要求、ホストの受けたもの）を同じ鍵で持つ |
+| サンプル（T-16） | `IosLibraryExample/NotificationSampleView.swift` | 節「Swift API (2.0.0)」（`notification.section.swiftAPI`）と、ボタン 4 つ（`addSecondListener`、`removeSecondListener`、`readLaunchResponse`、`showHostNotification`）、状態の行 4 つ（`notification.launchStatus`・`listenerCounts`・`lastSettingsRequest`・`hostEvent`）。最後のイベントの `notification.lastEvent.sequence` の `accessibilityValue` に `path=…,launch=…,delivery=…,mode=…,source=…`（見た目は変えない）。今の 25 のボタン・結果の行・最後のイベントの 5 行は変えていない。返信の全文はログに出さない（長さだけ。SA-07。前から） |
+| UI テスト | `NotificationUITests.swift`（N34b）、`NotificationEventUITests.swift`（N35、N41、N43、N44。N25〜N29 に経路の確かめ）、`NotificationColdStartUITests.swift`（N36、N37、N45。N30〜N33 に経路の確かめ）、`Support/DeviceRequirements.json`（8 件） | 13.18 |
+| UI テスト（信頼する部分） | `Support/SampleApp.swift`、`Support/SampleUITestCase.swift` | 13.20 |
+| ランナーの自己テスト | `scripts/tests/test_ios_ui_runner.py`、`scripts/tests/fixtures/ios_ui_runner/enumeration.json`・`otool-ov-device.txt`・`otool-l-device.txt` | 数（112 → 120、サンプルのボタン 59 → 63）と冒頭の注、fixture の取り直し（13.18） |
+| 文書 | `designs/2026-10-18-ios-c-abi-ui-test-design.md` | 3.3 に C5 のテストの表と試験の形、5.1 の一覧（Notification の節 1・ボタン 4・状態の行 4、数）、U-14 の例外に N35・N36・N41 |
+| 文書 | `designs/2026-10-31-ios-c-abi-swift-api-design.md` | 13.2 の N34（`testN34b_…` と状態の行にしたこと）と N40（MS-07 の結果と、C6 で SA-13 と一緒に足すこと）に注を足した |
+| 公開 API | `results/swiftinterface/IosLibrary-after-1b-c5.swiftinterface`、`2026-10-31-stage1b-c5.diff` | 13.13 |
+
+`ios/IosLibrary/IosLibrary.xcodeproj` と `ios/IosLibraryExample/IosLibraryExample.xcodeproj` は変えていない（フォルダーと同期するターゲット）。ランナー（`scripts/ios_ui_runner.py`）の表も変えていない（新しいテストは今の 3 つのクラスに入れたので、クラスの下限 `systemui` がそのまま効く。`SIMULATOR_ONLY_TESTS` に足したものは無い: 13.18）。ブリッジ（`ios/UnityIosPlugin`）は変えていない（13.14 の末尾）。
+
+### 13.12 層と依存の向き（後半）
+
+| ファイル | 層 | 依存するもの | 例外と理由 |
+|---|---|---|---|
+| `Domain/Model/NotificationEvents.swift` | Domain | Foundation（`NSNumber`・`CFBoolean` を読む）、`os`、`LogRedaction`（`caseName`） | - |
+| `Domain/Model/NotificationMarker.swift` | Domain | Foundation、`os` | - |
+| `Domain/Model/NotificationError.swift` | Domain | Foundation | - |
+| `Presentation/Event/NotificationEventHub.swift` | Presentation | Foundation、`os`、Domain の `NotificationError`・`NotificationEventLogSummary` | UseCase を置かない（`ios.md` の「受け手の登録・解除」。Data に届かない）。Manager から作り、Manager の口で公開する |
+| `Presentation/Delegate/NotificationDelegateRouter.swift` | Presentation | 前半の依存 + Domain の `NotificationUserInfoValue`（値だけ） | 前半と同じく UserNotifications も UIKit も import しない |
+| `Presentation/Delegate/NotificationDelegateProxy.swift` | Presentation | 前半の依存 + Domain の `NotificationUserInfoValue`・`NotificationMarker.removing` | - |
+| `Presentation/Delegate/NotificationDelegateInstaller.swift` | Presentation | 前半の依存（`NotificationDelegateStatus` は 2 つの closure を持つだけの値） | -（C5 のレビューの B-3 で、`NotificationDelegateStatus.library` と installer の組み立てを `IosNotificationManager.swift` に移した。13.2） |
+| `Data/Repository/NotificationRepositoryImpl.swift` | Data | 今の依存 + Domain の `NotificationMarker` | `NotificationRequestCenter` は Data の中の internal の抽象（`UNNotificationRequest` を持つので Domain・Application には置かない。テストの偽物のため） |
+| `Application/Port/NotificationRepository.swift` | Application | 変えていない（DocC だけ） | - |
+| `IosNotificationManager.swift` | Manager | Presentation の hub・installer・`NotificationDelegateStatus`、Domain の events・marker | `NotificationDelegateStatus.library`（`delegateInstaller` を呼ぶたびに読む）もここに置く（13.2）。`responses`・`settingsRequests`・`launchResponse()` は UseCase を置かない口（受け手の登録と、Data に届かない状態の読み取り。`ios.md` の「通知の delegate の状態の読み出し」は C5 のレビューの C-5 で一覧に足した）。`deliver(response:)` が値の木から今の受け手の辞書を作るのは Domain の変換を呼ぶだけ |
+
+Domain と Application に platform の型を足していない（events・marker・error は Foundation だけ。値の木の変換は `NSNumber` を読むが、Foundation の型）。13.10 の C6 に残す 3 つ（Manager が `openNotificationSettings`・`setBadgeCount` を UseCase なしで呼ぶ、port の `UNAuthorizationOptions` の注、`NotificationDispatchUseCases.swift` の不要な import）は直していない。
+
+### 13.13 公開 API（付録 A の Notification の delegate とイベントの分との照合。C5 全体）
+
+| 付録 A | 実装 | 一致 |
+|---|---|---|
+| `public indirect enum NotificationUserInfoValue: Sendable, Equatable { case string, integer(Int64), unsignedInteger(UInt64), double, bool, date, data, array, dictionary }` | 同じ | 一致 |
+| `public struct NotificationResponseEvent: Sendable, Equatable, CustomStringConvertible`（6 つの `let`） | 同じ。public の init は無い（付録 A にも無い） | 一致 |
+| `public struct NotificationSettingsRequest: Sendable, Equatable { public let notificationIdentifier: String? }` | 同じ | 一致 |
+| `@MainActor public final class NotificationEventHub<Event: Sendable> { addListener(_:) throws(NotificationError) -> NotificationEventRegistration }` | 同じ形に **`@discardableResult`** を足した（13.15 の 1） | ほぼ一致 |
+| `@MainActor public final class NotificationEventRegistration { public func remove() }` | 同じ | 一致 |
+| `public var responses` / `settingsRequests: NotificationEventHub<…> { get }` | 同じ（計算プロパティ。中は private の `let`） | 一致 |
+| `@MainActor public func launchResponse() throws(NotificationError) -> NotificationResponseEvent?` | 同じ | 一致 |
+| `@available(*, deprecated, message: "Use installDelegate()") public static func setup()` | 同じ | 一致（前半の「後半で一致させる」） |
+| `@available(*, deprecated, message: "Use responses") public var onActionReceived` / `onTextInputActionReceived` | 同じ | 一致 |
+| `NotificationError` の `reservedUserInfoKey`・`delegateNotInstalled` | この 2 つだけ足した。付録 A の残り（`Sendable, Equatable, LocalizedError`、`FailureDetail` の case、`invalidUserInfo`・`notForeground`・`openSettingsFailed`、消す case）は C6 | C6 で一致させる |
+| 前半の `NotificationDelegateInstallResult`・`installDelegate()`・`isDelegateInstalled`、準拠を外す | 13.3 のまま | 一致 |
+
+swiftinterface（C4 と同じ組み方: Release、`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`、Xcode 26.3。`arm64-apple-ios.swiftinterface` を写した）: `IosLibrary-after-1b-c5.swiftinterface` と差分 `2026-10-31-stage1b-c5.diff`（`after-1b-c4` が基準。C5 の前半と後半の全体）。差分は、上の表の型と口、`NotificationError` の 2 つの case、`NotificationDelegateInstallResult`、3 つの deprecated、`UNUserNotificationCenterDelegate` の準拠の extension が消えたこと、`NotificationEventHub`・`NotificationEventRegistration` の `Sendable`（main actor の型が暗に持つもの）、それと **`NotificationRepositoryImpl` に `@_hasMissingDesignatedInitializers` が付いた**こと（internal の `init(requestCenter:)` を足したため。`final` のクラスなので継承の初期化子を受け継ぐ利用者はおらず、利用者のソースと ABI に影響は無い）。`addListener` の受け手の型は `@MainActor @Sendable` と出る（main actor の closure の型は Swift 6 で暗に `Sendable`）。`swift-frontend -typecheck-module-from-interface`（Xcode 26.3、Swift 6.2.4、`-F` に framework の置き場）で public と private の 2 つとも型検査が通った（出力 0 行）。
+
+`@unchecked Sendable`・`nonisolated(unsafe)`・`@preconcurrency` はライブラリに足していない（P1-17 の一覧の外は 0 のまま）。テストの偽物 `FakeRequestCenter`（`UNNotificationRequest` が `Sendable` でないため `@unchecked Sendable`、鍵で守る）はテストのコードだけで、前半の `FakeNotificationCenter` と同じ扱い。足した型に `deinit` は無い（hub と登録は `@MainActor` の普通の Swift のクラスで、`NSObject` の子でない。`isolated deinit` も無い）。
+
+### 13.14 今の利用者から見て変わる動作（後半。3.3）
+
+前半の 13.5 に続けて、後半で変わったもの。どれも 3.3 の行に入る。
+
+| 口 | 前 | 後 | 3.3 |
+|---|---|---|---|
+| `show`・`schedule`・`update` | userInfo をそのまま足す | 入口の最初にキー `com.jonghyunkim.nativetoolkit` があれば `reservedUserInfoKey` で失敗し、何も足さず消さない（`update` は今の予約を消す前に）。通れば印を付けて足す。callback 版の `errorMessage` は C6 で固定の文言になるまで OS の言語の汎用の文（`NotificationError` がまだ `LocalizedError` でない） | 動作（P1-9。3.3 の「予約したキーを拒む」） |
+| `getScheduled`・`getDelivered` | userInfo をそのまま返す | 印を外して返す（型は今のまま。`Sendable` と値の木は C6） | 動作（8.3.3） |
+| 前の delegate がいるアプリでのライブラリの通知 | 前半の作業ツリーでは印が無く前の delegate に渡った（13.5） | 印でライブラリの通知と分かり、前の delegate に渡らない（N41） | 動作（設計書のとおりになった） |
+| `openSettingsFor` | 前は設定の App を開いた（前半の作業ツリーは main で、戻った後に開いた） | `settingsRequests` のイベントになる。ライブラリは何も開かない | 動作（P1-10。3.3 の `openSettingsFor`） |
+| 今の受け手に渡る userInfo | 前半: Foundation の型で作り直した辞書、印は付いたまま | 値の木から Foundation の型で作り直した辞書で、印を外す | 動作（3.3 の「印が外れる」） |
+| `setup()`・`onActionReceived`・`onTextInputActionReceived` | - | deprecated（呼ぶ所に警告が出る） | 非推奨（3.3） |
+| `NotificationError` | 7 つの case | `reservedUserInfoKey`・`delegateNotInstalled` が増えた（網羅した `switch` は組めなくなる。ライブラリの外では `@unknown default` が要る形のまま） | 破壊的（3.3 の S-P7 の行。残りは C6） |
+| 足す口 | - | `responses`、`settingsRequests`、`launchResponse()`、`NotificationEventHub`、`NotificationEventRegistration`、`NotificationResponseEvent`、`NotificationSettingsRequest`、`NotificationUserInfoValue` | 追加（3.3） |
+| ログ | - | hub の行（受け手の数、保った数、捨てた数。イベントは識別子・返信の長さ・鍵の数だけ）、`NotificationResponseEvent`・`NotificationSettingsRequest` の init、印の付け外しと予約したキーの行（鍵の数と有無だけ） | 動作（S-P21） |
+
+ブリッジ（`ios/UnityIosPlugin`。ソースは変えていない）: `UnityIosNotificationManager` は `setup()`・`onActionReceived`・`onTextInputActionReceived` を使うので、ブリッジを組むと deprecated の警告が出る（ワークスペースの外で、C1 から組んでいない）。動作は、受け手が main で呼ばれ userInfo から印が外れることのほか、**`openSettingsFor` で設定の App を開かなくなる**（ブリッジは `settingsRequests` を受けない）。ブリッジは段階 3 で消す（D-22）ので直さない。
+
+### 13.15 設計書からの偏りと理由（後半）
+
+| # | 設計書 | 実装 | 理由 |
+|---|---|---|---|
+| 1 | 付録 A の `addListener(_:) throws(NotificationError) -> NotificationEventRegistration` | `@discardableResult` を付けた | C ABI の受け口（5.12.7）とサンプルの設定の要求の受け手のように、足したら外さない使い方では登録を使わない。付けなければ `_ =` が要る。戻り値の形は同じで、付けても互換は壊れない |
+| 2 | S-P7（`NotificationError` の作り直し）は T-17（C6）、T-15 は印とイベントの口 | C5 では T-15 に要る `reservedUserInfoKey`・`delegateNotInstalled` だけを足した | 型つきの throws（`throws(NotificationError)`）と予約したキーの失敗に case が要る。ほかの case と `LocalizedError` は C6 の T-17 がまとめて作り直す（`errorMessage` の固定の文言も C6）。UI テスト N38 も C6 |
+| 3 | 8.4.2「`isDelegateInstalled` が偽なら…」 | hub と `launchResponse()` は「入れたか」を読む closure（`NotificationDelegateStatus`）を通して読む。ライブラリの値は `isDelegateInstalled` と同じ installer の `isInstalled`（C5 のレビューの後は `IosNotificationManager.delegateInstaller`） | 13.10 の申し送り: `NotificationDelegateRealCenterTests` がプロセスの印を立てるので、テストはプロセスの印に頼れない |
+| 4 | UT-17「Mock の repository と router」 | 本物の `NotificationRepositoryImpl` に、要求の追加・削除・一覧の偽物（internal の `NotificationRequestCenter`）を渡して確かめた | 印を付ける・外す・予約したキーの検査は repository の中にあるので、Mock の repository では確かめられない。テストのホストのアプリには通知の権限が無く、本物の center は要求を残さなかった（最初の版で `pendingNotificationRequests()` が空だった）。push の扱いは前半の router のテストのまま |
+| 5 | 13.2 の N34「結果の行に `installDelegate: installed`」 | `testN34b_launchReportsTheInstalledDelegate` で、Swift API の節の `notification.launchStatus` を見る | 番号 N34 は UI テストの設計書のアイコンのバッジ（`testN34_homeIconBadge`）が使っている。結果の行の初めの値は M2 などの今の期待値（`Result will be displayed here`）で、13.3 は変えると書いていない |
+| 6 | SA-06「受け手ごとの受けた回数」、SA-12「ホストの印の通知を受けたら結果の行に出す」、SA-11「`settingsRequests` の最後のイベントの表示」 | 結果の行でなく、Swift API の節の状態の行（`listenerCounts`、`hostEvent`、`lastSettingsRequest`）に出す | 結果の行はボタンの結果で、`updates=<n>` を数える（U-3）。ホストの delegate と hub の受け手はボタンと関わりなく呼ばれるので、別の行にした。識別子は 5.1 の一覧に足した |
+| 7 | 12 章 SA-06「起動の処理を…`installDelegate()` → `responses.addListener` に替える」（場所は書いていない。今の処理は `App.init`） | 起動の処理を `UIApplicationDelegateAdaptor` の `application(_:didFinishLaunchingWithOptions:)` に移した。`installDelegate()` の DocC と型の Overview に「SwiftUI では `App.init` でなくここで呼ぶ」と書いた | SwiftUI の `App.init` の時点では `UIApplication.shared` がまだ無く（`nil`）、`applicationState` が `0`（`.active`）と読める。そのため初めて入れたときに active とみなされ、起動のきっかけが決まらず、誤った「起動の後かもしれない」のログが出た（13.17 の 3。MS-12 と同じ状況）。14 章の 3 の推奨（コードは変えない）に従ってライブラリは変えず、サンプルを直した。直すかは 15 章の 1。**15 章の 1 の決定で、`installDelegate()` が `sharedApplication` の `nil` を「まだ active でない」とみなす確かめを足し、DocC を「`App.init` でもよい」に戻した（16 章）。サンプルは `UIApplicationDelegateAdaptor` のまま（UIKit のアプリと同じ所）** |
+| 8 | 12 章 SA-18「通知のテストは後片付け（`tearDown`）で `none` の形で 1 回起動し直してファイルを戻す」（SR3-5） | 基底の `tearDownWithError` が、そのテストが標準でない形で起動したときだけ、標準の形で起動し直す | 基底を通る起動は毎回形を引数で渡してファイルを書き直すので、標準の形だけで起動したテストの後はファイルがもう `none` になっている |
+| 9 | 13.2 の N40・MS-07 は T-16 | MS-07 は使い捨ての写しで測った（13.17 の 1）。N40 は足していない | 呼ばせるには、アプリが `.providesAppNotificationSettings` を付けて権限を求めている必要がある（13.17 の 1）。そのボタンは SA-13 で C6（T-19）にある（SR-11 は「新しく入れたアプリで SA-13 のボタンから先に求める」）。C5 にだけ別のボタンを足すと C6 で入れ替わる。N40 は C6 で SA-13 と一緒に足す（13.21。15 章の 2） |
+| 10 | 8.4.2「捨てたログはプロセスで最初の 1 回だけ `.info`」 | hub ごとに最初の 1 回 | hub はプロセスで 2 つ（`responses`・`settingsRequests`）だけで、どちらも解放しない。種類ごとに 1 回出すほうが、どちらが溢れたか分かる |
+| 11 | 13.3「N25〜N33 は期待値を変えない」 | 期待値（最後のイベントの 5 行）は変えず、経路が `path=hub`・`mode=none` であることの確かめを足した | SA-18 の「どの経路でイベントを受けたかを結果に出し、テストで確かめる」。足しただけで、今の期待値の比べ方は同じ |
+| 12 | S-P8「今の受け手は…呼ぶ」 | サンプルと単体テストは、deprecated の口を deprecated の印の付いた protocol の witness から呼ぶ（`LegacyNotificationEntries`、テストの `DeprecatedNotificationCalls`） | 今の受け手の経路（N43〜N45、UT-25）を流しながら、2 つの scheme を警告 0 で組むため。Swift には警告を抑える指示が無く、deprecated の文脈から呼べば警告が出ない |
+| 13 | 13.2 の N31〜N33 は起動のきっかけの印を書いていない（C5 のレビューの UI B-1） | N31（Open）はどの OS でも `launch=true` を確かめる。N32・N33（Reply・Delete）は iOS 26 では `launch=false` を確かめ、iOS 18 では値を `XCTContext.runActivity` で残すだけにした（前例は `DialogUITests` の D7）。起動の後の応答（N25〜N29、N35、N41、N43、N44）は共通の確かめで `launch=false` を見る。UI テストの設計書の U-16 と 3.3 に書いた | H2-1 の「前面に出す応答だけ」を UI テストでも見る。背景のアクションは、18.3 では main に積んだブロックがテストが前に出した後に回り（MS-05。13.7）、`launch=true` になりうる。これは 14 章の 1 の決定で残す既知の窓なので、18.3 では落とさずに値を残す。U-16 は測りに基づく OS の分岐を許す |
+| 14 | SA-08「受け手を足すのを 3 秒遅らせる」（N36） | `listenerDelay` を 5 秒にし、SA-08 を 5 秒に直した（C5 のレビューの UI C-1） | N36 はサンプルの決まった遅れと、システムが起動の中で呼ぶ `didReceive` の競争に頼る。`didReceive` は起動の最初の回、最初の `didBecomeActive` より前に来る（MS-05）ので 3 秒でも余裕はあるが、遅いマシンでの余裕を広げるほうが確かなので延ばした（U-14 の例外にする道もあったが、それは待ちの長さを変えないだけで競争は残る）。5 秒の後に届いても、UI テストのイベントの待ち（`waitForEventSequence` の 10 秒。前面に来てメニューから開いた後に始まる）に十分収まる |
+| 15 | 13.2 の N37 は N36 と並べて書いている | N37 は N36 の後に続けて流す前提を持たない。普通の起動（標準の形）で `[launchResponse] nil` を読み、N30 と同じ標準の形の独立したコールドスタートで起動のきっかけを確かめる（C5 のレビューの UI C-7）。UI テストの設計書 3.3 の N37 の行に書いた | テストの順は決まらない（XCTest はクラスの中で名前の順に流すが、`--only-testing` で 1 件だけ流すこともある）。形は基底が起動のたびに明示し、標準でない形の後は後片付けで戻す（13.15 の 8） |
+
+### 13.16 単体テストと壊して確かめたこと（後半）
+
+| ID | ファイル（`IosLibraryTests/Notification/`） | 件数 | 中身 |
+|---|---|---|---|
+| UT-23 | `Presentation/Event/NotificationEventHubTests.swift`（新） | 14 | 受け手が 0 の間に保ち、1 人目に足す呼び出しの中で順に渡す、32 件を超えたら古いものから捨てる、重複も保つ、2 人目には保ちを渡さない、1 人目の中で足した受け手に保ちを 2 度渡さない（「足す前に保ちを外さない」）、渡す途中で自分を外すと残りは最も古い受け手（途中で足したもの）へ、受け手が残らなければ保ちの先頭へ戻す、途中で届いた新しいイベントは残りの後ろ（M88 の後に足した）、全員に 1 回ずつ配る、配る途中で外された受け手は呼ばない、配る途中で足した受け手は次から、`remove` 2 回、全員外すとまた保つ、入れていなければ `delegateNotInstalled` で何も足さず保ちも残す、「入れたか」は呼ぶたびに読む |
+| UT-18（値の木） | `Domain/NotificationUserInfoValueTests.swift`（新、`NotificationUserInfoValueTests`） | 8 | どの種類も自分の case になる（`Int64.min`・`Int64.max`・`Int64.max + 1`・`UInt64.max`、整数の値の実数、真偽値、日時、バイト列、入れ子）、二進の property list を通しても同じ木（XML は日時が秒までなので比べない）、数の見分けの順（S-P11）、property list でない値と `String` でない鍵は捨てて数え（入れ子の中も）、落ちない、Foundation の型で今と同じに読める（`as? Int`・`Int64`・`Double`・`Bool`・`String`・`Date`・`Data`・`[Any]`・`[String: Any]`、`UInt64` は `NSNumber`）、真偽値は `CFBoolean`・ほかも Foundation の型、木 → Foundation → 木で同じ、8 タスク × 25 回の変換が同じ（TSan） |
+| UT-17（印） | 同（`NotificationMarkerTests`） | 4 | キーは値に関わらず予約、付けると値 `1` で他を残す、外すと印だけ消える、`NSString` のキーでも見つかり外れる |
+| UT-17（repository） | `Data/NotificationRepositoryMarkerTests.swift`（新） | 4 | 偽の center で: `schedule` は印を付けて足し `getScheduled` は外して返す、`show`・`update` も付ける（`update` は消してから足す）、`show`・`schedule` は予約したキーを断り center を呼ばない、`update` は予約したキーを今の予約を消す前に断る（center の呼び出しは前の `add` だけ） |
+| UT-25 ほか | `Presentation/IosNotificationManagerEventTests.swift`（新） | 10 | 応答が印の無いイベントになる（起動のきっかけの印つき）、`description`・`String(describing:)`・`String(reflecting:)`・補間に返信と値が出ない、入れていなければ 2 つの hub と `launchResponse()` が `delegateNotInstalled`、**UT-25**: 今の受け手だけがいても hub は保ち、次の受け手が受ける（今の受け手は並びに入らない）、受け手 → 今の受け手の順で 1 回ずつ（テキスト入力も）、router から: 背景のキューの `didReceive` で、受け手が main でイベントを受けた後に system の completion、保った起動のきっかけは足したときに印つきで渡る、`launchResponse()` は router の応答を印つきのイベントにする・無ければ `nil`、`shared` は installer を読む |
+| - | `Presentation/Delegate/NotificationDelegateProxyTests.swift`（`NotificationDelegateUserInfoTests` を値の木に書き直し、`IosNotificationManagerDelegateSinkTests` に 1 件） | 3 + 5 | 印を外して他を残す、空と印だけは空、property list でない値は捨てる。今の受け手は印の無い userInfo を受ける（足した 1 件）、設定の要求はイベントで、設定の画面を開かない（前半の「今のとおり開く」を P1-10 に替えた） |
+| UT-15 | `Common/LibraryLogPrivacyTests.swift`（前半の 1 件を書き直し） | 1 | 番兵の返信と userInfo の値（入れ子と印も）で、受け手の無い hub に保つ → 受け手に渡す → 生で渡す → 転送する、`launchResponse()`、設定の要求、今の受け手を通し、ライブラリのログに番兵が無い（router・manager・hub の 2 行・イベントの init の行が読めることを `#require`） |
+
+前半のテストの直し: `TestNotificationKind.response` の userInfo を値の木に（`DelegateTestSupport.swift`）、`offTheMainThreadNothingChanges` の `setup()` と `delegateSettingsCanBeChangedFromAnotherThread` の受け手を `DeprecatedNotificationCalls` から（13.15 の 12）。消した・名前を替えたテストは無い（前半の `NotificationDelegateUserInfoTests` の 3 件は名前を値の木に合わせて替えた。前半はコミットしていないので今の基準には無い）。
+
+`IosLibraryTests` は 471 件（前半の 430 件 + 41）。
+
+壊して確かめたこと（`mutate_c5b.py` で 1 つずつ当てて該当の suite を流し、落ちることを見てから戻した。差分とログは scratchpad。番号は前半の M84 に続ける）:
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M85 | UT-23（設計書 13.1「足す前に保ちを外さない」） | 保ちを外さずに渡す | `aListenerAddedInsideTheFirstDoesNotGetTheKeptEventsAgain` ほか 4 件 |
+| M86 | UT-23 | 32 件を超えたら新しいほうを捨てる | `atMost32AreKeptAndTheOldestAreDropped` |
+| M87 | UT-23 | 自分を外した後の残りを最も古い受け手に渡さない | `theRestGoToTheOldestRemainingListener` |
+| M88 | UT-23 | 受け手が残らないとき、残りを保ちの後ろに足す | **最初は生き残った**（保ちは渡す前に空にするので、ふつうは前でも後ろでも同じ）。渡す途中で届いたイベントの後ろに回る形のテスト `anEventThatArrivesOnTheWayStaysBehindTheRest` を足して落ちることを確かめた |
+| M89 | UT-23 | 配る前に受け手の closure の写しを取る（外された受け手も呼ぶ） | `aListenerRemovedDuringTheDeliveryIsNotCalled`。**最初の壊し方（`isRemoved` の確かめだけを外す）は生き残った**: 外すと closure の表からも消えるので、同じ守りが 2 つあり、1 つを外しても動作は変わらない（同じ意味の変異）。2 つとも外れる形に替えた |
+| M90 | P1-6 | `addListener` で入れたかを見ない | `withoutTheDelegateAddingThrowsAndAddsNothing`、`theInstalledSourceIsReadOnEveryCall`、`withoutTheDelegateTheHubsAndTheLaunchResponseThrow` |
+| M91 | UT-25（設計書 13.1「今の受け手を並びに入れる」） | 今の受け手がいれば hub に渡さない（今の受け手を受け手と数える） | `theDeprecatedReceiversAreNotListeners`、`theListenerComesBeforeTheDeprecatedReceiver` |
+| M92 | 8.3.2 | 今の受け手を hub より先に呼ぶ | `theListenerComesBeforeTheDeprecatedReceiver` |
+| M93 | UT-18（設計書 13.1「作り直しを Swift の `Int64`・`Bool` にする」） | 整数を Swift の `Int64` で作り直す | `theFoundationFormReadsAsBefore` |
+| M94 | UT-18（S-P11） | 実数を整数と見分けない | `numbersAreToldApartInTheDesignedOrder` ほか 4 件 |
+| M95 | UT-18（S-P11、RK-09） | 真偽値を数と見分けない | 同じ 5 件 |
+| M96 | UT-18 | `Int64.max` を超える整数を `Int64` で読む | 同じ 5 件 |
+| M97 | UT-17（設計書 13.1「消してから検査する」） | `update` が今の予約を消してから検査する | `updateWithTheReservedKeyLeavesThePendingRequest` |
+| M98 | UT-17 | 印を付けない | `whatTheRepositoryAddsIsMarkedAndHandedBackWithoutTheMarker`、`showAndUpdateMarkWhatTheyAdd` |
+| M99 | UT-17 | `getScheduled` が印を外さない | `whatTheRepositoryAddsIsMarkedAndHandedBackWithoutTheMarker` |
+| M100 | 8.3.3 | 応答の userInfo から印を外さない | `theMarkerIsRemovedAndTheOtherValuesKept`、`aResponseBecomesAnEventWithoutTheMarker`、`theExistingReceiversGetTheUserInfoWithoutTheMarker` ほか 2 件 |
+| M101 | P1-10 | 設定の要求で設定の App も開く | `aSettingsRequestIsAnEventAndOpensNothing` |
+| M102 | P1-6 | `launchResponse()` で入れたかを見ない | `withoutTheDelegateTheHubsAndTheLaunchResponseThrow`、`theSharedManagerReadsTheLibraryInstaller` |
+| M103 | S-P12 | `launchResponse()` のイベントに印を付けない | `theLaunchResponseIsTheRoutersResponseAsAnEvent` |
+| M104 | UT-15 | イベントの `description` に返信を入れる | `theEventDescriptionHidesTheReplyAndTheValues`、`notificationResponsesThroughTheDelegateNeverReachTheLog` |
+| M105 | 8.4.1 | イベントの userInfo を空にする | `aResponseBecomesAnEventWithoutTheMarker`、`theLaunchResponseIsTheRoutersResponseAsAnEvent` |
+| M106 | UT-17 | `show` が予約したキーを断らない | `showAndScheduleRejectTheReservedKey` |
+
+22 件とも落ち（M88 はテストを足した後、M89 は壊し方を替えた後）、戻した版で通ることを確かめた（13.18 の全件の実行）。
+
+TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2）: hub、値の木と印、manager のイベント、repository の印、proxy、受け手の口、router の 3 つ、`CompletionOnce`、`IosNotificationManagerTests` の 13 suite・99 件が成功。TSan の報告は 0 件（値の木の変換の並行のテスト、背景のキューの `didReceive` から hub へ渡るテストを含む）。
+
+### 13.17 シミュレーターで測ったこと（C5 後半に付いた MS-07・MS-14 と、SwiftUI の `App.init`）
+
+1. **MS-07**（`openSettingsFor` をシステムから呼ばせられるか。iPhone 17 / 26.2、1 回）。使い捨ての写しのサンプルに `requestPermission(options: [.alert, .sound, .badge, .providesAppNotificationSettings])` を呼ぶ下調べのボタンと、設定の App を辿る下調べの UI テスト（`ProbeMS07UITests`）を足して測った（リポジトリには入れていない）。結果: 許可済みのアプリでもう一度求めるとダイアログは出ずに `granted=true` で戻り、設定の App の「Apps」→「IosLibraryExample」→「Notifications」の一番下に「IosLibraryExample Notification Settings」が出た。押すとサンプルが前に来て、`settingsRequests` にイベントが 1 つ届いた（`notificationId` は `nil`）。サンプルは通知の画面のまま。**呼ばせられる**ので HC10 は要らない。補足: 今のボタン OpenNotificationSettings（`UIApplication.openNotificationSettingsURLString`）では、この回は設定の App の一番上が開き、アプリの通知の画面へは辿らなかった（前から開いていた設定の App の状態による見込み。測っていない）。iOS 18.3 と、新しく入れたアプリで最初に求める形（SR-11）は測っていない
+2. **MS-14**（バナーのタップで `terminate()` の後にシステムがサンプルを起こしたとき、`launchArguments` が渡るか。iPhone 17 / 26.2）。N45（`legacyReceivers`）と N36（`delayListener`）で、システムが起こしたプロセスは**引数を受けず、ファイルから形を読んだ**（`source=file`。N45 は結果の activity に、N36 は最後のイベントの経路に出る）。SA-18 のファイルで足りる
+3. **SwiftUI の `App.init` での `installDelegate()`**（iPhone 17 / 26.2）。最初に `App.init` のまま流すと、N36・N37 の起動のきっかけが `launch=false` になった。統合ログを見ると、`App.init` の中の `installDelegate()` で `[install] the app is already active: this may be after launch …` が出ていた。下調べの版で Objective-C の経路（`UIApplication` の `sharedApplication`）を読むと、その時点で `UIApplication.shared` は `nil` だった。`nil` に送った `applicationState` は `0`（`.active`）と読めるので、初めて入れたときに active とみなし、起動のきっかけを「無し」と決める（MS-12 の `UIApplicationMain` の前と同じこと）。サンプルの起動の処理を `UIApplicationDelegateAdaptor` の `didFinishLaunching` に移すと `applicationIsActive: false` になり、N36・N37 が通った。ライブラリは 14 章の 3 の推奨のまま変えず、DocC に書いた（13.15 の 7、15 章の 1）。**15 章の 1 の決定で、`installDelegate()` は Objective-C の `sharedApplication` が `nil` なら active でないとみなすようにした（16 章）**
+
+### 13.18 UI テストと基準との比べ合わせ
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1。`-parallel-testing-enabled NO`。18.3 の 2 つは 7.11 の注のとおり `arch=arm64`） | どれも 471/471（前半の 430 + 41）。skip 0。消した・名前を替えたテストは無い（13.16） |
+| TSan | 13.16 の末尾 |
+| 新しい UI テストの下調べ（リポジトリの作業ツリーを `xcodebuild test-without-building -only-testing` で直に。iPhone 17 / 26.2） | 1 回目: N34b・N35・N41・N43・N45 は通り、**N36・N37 が落ちた**（起動のきっかけが `launch=false`。13.17 の 3）。サンプルの起動の処理を `didFinishLaunching` に移した後、`NotificationColdStartUITests` の 7 件（N30〜N33・N36・N37・N45）が通った |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --feature Notification`（ハッシュを固定した写し） | 50 件すべて成功（権限の NP2・NP1、Navigation 2、IdentifierInventory 4、Notification 24、NotificationEvent 11、NotificationColdStart 7）。閉じた形のソースの規則が通り、列挙の 120 件が宣言と一致した。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）との比べ合わせは `changed=0, added=8, removed=0`（足したのは N34b・N35・N36・N37・N41・N43・N44・N45）。N25〜N33 は期待値を変えずに `path=hub` で通った。I1b は Notification の 29 のボタンと節 8・状態の行 4 で一致した。信頼する部分の警告なし |
+| ランナーの自己テスト（`python3 -m unittest discover -s scripts/tests -p 'test_ios_ui_runner.py'`） | 写し: 142/142。リポジトリ: 142 件のうち 5 件が落ちる（どれも `SampleApp.swift`・`SampleUITestCase.swift` のハッシュが固定と違うことによるもの: `SourceRules` の 2 件（`test_the_real_tree_passes`・`test_a_trusted_file_that_changes_is_reported`）、`Commands.test_preflight_refuses_the_device_when_the_trusted_part_changed`、`EndToEnd` の 2 件。信頼する部分が 2 ファイル変わった C2 と同じ）。`scripts/tests` の全体はリポジトリで 350 件のうち同じ 5 件だけが落ちる |
+| 自己テストの fixture | 列挙（`enumeration.json`）は写しの `--feature Notification` の回の列挙（iPhone 17 / 26.2、Xcode 26.3、flat）をそのまま写した。前の fixture との差は足した 8 件の項目だけ（UI テストは 120 件）。実機のバイナリ（`otool-ov-device.txt`・`otool-l-device.txt`）は作業ツリーを `generic/platform=iOS`・`CODE_SIGNING_ALLOWED=NO` で組んだ UI テストのバンドルから取った（端末は使っていない。テストのメソッドは 120）。どれにもローカルのパスは入っていない。数を照らす自己テストを 112 → 120、サンプルのボタンの数を 59 → 63 にした |
+| ランナーの変異 | 流していない（ランナー `scripts/ios_ui_runner.py` は変えていない） |
+| `scripts/test_ios.sh --dry-run --device-allow systemui`（写し。`--udid` はどの端末でもない値、`--enumerate-udid` は iPhone 17 / 26.2。`--baseline` なし。`--devicectl-id` なし） | 先に `test_ios.sh` を読み、`--dry-run` の `exit 0` より前に呼ぶのは `simctl list`、`xcodebuild -version`、列挙のシミュレーターへの `xcodebuild`、ランナー（`git` だけを呼ぶ）だけで、`devicectl` と実機の `xcodebuild` は 3 の後にしか無いことを確かめた。消費済みの台帳は変わっていない（更新日時が前のまま）。列挙の 120 件が宣言と一致し、60 件を選び 60 件を除いた。**足した 8 件はどれも選ばれた**（N34b は区分なし、ほかは `[systemui]`）。D17・D20〜D23・S18・S19 は今のまま `simulator only`。写しには未コミットの変更とランナーの差（固定したハッシュ）があるので、実機の回は断ると表示した |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1 は xcodebuild・`simctl`・`test_ios.sh` が起動し、終わった後に止めた。iPhone 17 / 26.2 には、写しの `--feature Notification` の回のサンプルが入っている。iPhone 16 / 18.3.1 の前半の MS-05 の写し（13.8）は入れ直していない（後半では iPhone 16 で UI テストを流していない）。最後にどれも起動していないことを確かめた |
+
+### 13.19 警告
+
+| 測り方 | 結果 |
+|---|---|
+| 2 つの scheme（`IosLibrary`、`IosLibraryExample`）を `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`）。Xcode 26.3 と 26.6（`DEVELOPER_DIR`） | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ）。deprecated の口を呼ぶサンプルとテストにも警告は出ない（13.15 の 12） |
+
+`ios/UnityIosPlugin`（ワークスペースの外）は組んでいない（C1 と同じ。13.14 の末尾のとおり、組めば deprecated の警告が出る）。
+
+### 13.20 信頼する部分の変更とハッシュ
+
+`ios/IosLibraryExample/IosLibraryExampleUITests/Support/`。HEAD（`747897de`）からの差分。C2〜C4 と同じく作業ツリーに入れ、**ハッシュは固定していない**（別のモデルのレビューの後に固定する）。UI テストとランナーの自己テストは、ハッシュだけを直した使い捨ての写しで流した（13.18）。
+
+| ファイル | 操作 |
+|---|---|
+| `SampleApp.swift` | (1) `NotificationButton` に `addSecondListener`・`removeSecondListener`・`readLaunchResponse`（印は要らない。サンプル自身の受け手の足し外しと状態の読み出しだけ）と `showHostNotification`（`systemui`。サンプル自身の通知を出す）を足した。(2) 状態の行の `NotificationStatusLine`（4 つの識別子）と、その label を読む `statusLine(_:)`・待つ `waitForStatusLine(_:_:timeout:)`（0.2 秒おきに読み直す。今の `waitForEventSequence` と同じ形）、最後のイベントの通し番号の行の `accessibilityValue` を読む `lastEventRoute()`。(3) 試験の形の `SampleLaunch`（`standard` / `legacyReceivers` / `delayListener` / `hostDelegate` と、その起動の引数）と、`launch(_:)` が `app.launchArguments` に形を入れてから起動する（既定は `standard`）。(4) I1b の一覧（`expectedNonButtons(.notification)`）に `notification.section.swiftAPI` と 4 つの状態の行。**読むのはサンプル自身の要素の label と value だけ**で、システムの UI の新しい操作・読み出しは無い |
+| `SampleUITestCase.swift` | (1) `launchSample(_ launch: SampleLaunch = .standard)`: 形を渡して起動する。標準でない形で起動したら覚える。(2) `tearDownWithError`: 標準でない形で起動したテストなら、`tearDownAfterGate()` の後に標準の形で起動し直す（SR3-5）。実機で監視が答えないアラートで止めた後は、springboard の片付けと同じく行わない。そのときは形のファイルが標準でない形のまま残り、次に基底を通って起動するとき（どのテストも起動のたびに形を明示して書き直す）に直る。基底を通らない起動（人がホームから開くなど）はそれまで標準でない形を読む（C5 のレビューの UI C-4）。ゲートと印の発行は変えていない |
+| ほかの 6 ファイル、凍結した `IosLibraryExampleUITests.swift` | 変えていない（バナーの操作は今の `Springboard` の口だけ。ホストの通知のバナーもサンプル自身の通知） |
+
+識別子の文字列は信頼する部分の中だけにある（U-17。テストのクラスは `NotificationButton`・`NotificationStatusLine`・`SampleLaunch` の case だけを使う）。
+
+再レビューの後に固定するハッシュ（`python3 scripts/ios_ui_runner.py hashes --tests-dir ios/IosLibraryExample/IosLibraryExampleUITests`。ほかの 6 ファイルと `FROZEN_CLIPBOARD_SHA256`（`4612943d…6cf3`）は変わらない）:
+
+| ファイル | 今の固定 | 新しい値 |
+|---|---|---|
+| `Support/SampleApp.swift` | `9af74391…a12e` | `1ac8667f119d835d39b9b36bb0e05ff00243b679fc817e8e62bbc1ea5801421e` |
+| `Support/SampleUITestCase.swift` | `f9ac9bc5…1499` | `49bd2c07958fadedbf235c9ab155f0aedbcec4dbebd2260b7034f2e55adfe874` |
+
+### 13.21 C6・C7 への申し送り
+
+| 項目 | 内容 |
+|---|---|
+| `NotificationError`（C6、T-17） | C5 は `reservedUserInfoKey`・`delegateNotInstalled` だけを足した。S-P7 の作り直しで、この 2 つの `errorDescription` も固定の英語の文言にする（今は callback 版の `errorMessage` が OS の言語の汎用の文）。`Equatable` にしたら、テストの `if case`（`isReservedKeyError` など）を `==` に直してよい |
+| userInfo の検査（C6、T-17） | 予約したキーの検査は `NotificationRepositoryImpl` の `rejectReservedKey(in:method:)` にあり、`update` は今の予約を消す前に呼ぶ。S-P15 の property list の検査（`invalidUserInfo`）は同じ所に並べる。テストは `NotificationRepositoryMarkerTests` の偽の center（`NotificationRequestCenter`）が使える |
+| 一覧の型（C6、T-17。S-P25） | `getScheduled`・`getDelivered` は今の `[AnyHashable: Any]` のまま印を外している。値の木は `NotificationUserInfoValue.tree(of:)`（捨てた数も返す）と `foundationDictionary(_:)` をそのまま使える。`init` の捨てた件数のログも `tree(of:)` が出す |
+| N40（C6、T-19） | MS-07 のとおり呼ばせられる（13.17 の 1）。SA-13 のボタンで `.providesAppNotificationSettings` を付けて求め、設定の App の「Apps」→ アプリ →「Notifications」→「<アプリ名> Notification Settings」を押し、`notification.lastSettingsRequest` が `settingsRequests=1, notificationId=-` になるのを待つ。設定の App を操作するので、信頼する部分（`Springboard`）に `session.isDevice` で throw する口を足し、`SIMULATOR_ONLY_TESTS` に入れる。ラベルは en と ja を `SystemLabels` に持つ（18.3 の ja のラベルは測っていない） |
+| サンプル（C6） | 起動の処理は `SampleAppDelegate.application(_:didFinishLaunchingWithOptions:)` → `NotificationEventRouting.start()`。新しいボタンは Swift API の節（`notification.section.swiftAPI`）に足し、識別子は `NotificationSampleIdentifiers.ButtonName` と信頼する部分の `NotificationButton` に足す。結果の行の `updates=<n>` は変えていない |
+| 試験の形（C6・C7） | 標準でない形を使う UI テストは `launchSample(.legacyReceivers)` などで起動し直す。後片付けは基底が行う |
+| ブリッジ（段階 3 まで） | `openSettingsFor` で設定の App を開かなくなった（13.14）。Unity の利用者で困る人がいれば、段階 3 の C# の包みで `settingsRequests` の受け口を使う |
+| C7 | MS-07・MS-14 の結果と、SwiftUI の `App.init` の扱い（15 章の 1 の決定）を README・第 1 部・マニュアルの元に写す（T-20）。N34b の番号の付け方を UI テストの設計書と設計書 13.2 の注のとおりに残す |
+| 先頭のログ | 足した関数・init・helper には先頭のログがある（値の木の変換は型の名前と case の名前だけ、印は鍵の数と有無だけ）。C5 のレビュー（C-3）の前は、`NotificationMarker.isPresent(in:)`、router の `State.noteResponse`、proxy の `typeName`、hub の `summary(of:)` にログが無く、`NotificationEventRegistration.init` のログが状態を変えた後にあった（16 章で直した）。例外として残るもの: ログの補間の中だけで使う値（`logSummary` などの計算プロパティ）と、テストの支え。`NotificationRepositoryImpl` の今の private の helper（`makeUNContent` など）には前からログが無い（C5 では足していない） |
+
+## 14. 利用者に決めてもらうこと（C5 前半）
+
+**決定（2026-11-01、利用者）: 1・2 は推奨のとおり、3 は 15 章の 1 の決定に置き換わった。** 1 は H2-1 の見分け方をこのまま残し、18.3 の約 0.2 秒の窓を `launchResponse()` の DocC とマニュアルに書く（DocC は C5 で書いた）。2 は `CompletionOnce` を `@unchecked` なしのまま残し、第 1 部 5.12.4 のコメントと P1-17 の一覧の (3) を C7 で直す。3 は 15 章の 1 で `sharedApplication` の `nil` の確かめを足すことにしたので、「コードは変えない」は取り消した（16 章）
+
+| # | 事柄 | 推奨 |
+|---|---|---|
+| 1 | H2-1 の「前面に出す応答」の見分け方（13.4 の 3、13.7 の MS-05）。本体のタップ・dismiss は識別子で、custom のアクションは main に積んだブロックの時点の `applicationState` で決めた。18.3 では背景のアクションの直後（約 0.2 秒以内）に利用者がアプリを開くと、それを前面の応答と取りうる。あわせて、背景のアクションは「最初」の席を使わない（その後の最初の前面の応答が起動のきっかけになりうる）とした | **この形のままにし、DocC（後半の `launchResponse()`）とマニュアルに「custom のアクションはアプリの状態で見分ける」と書く**。確実にするには、custom のアクションのときに `getNotificationCategories` で `.foreground` を引いてから配る形があるが、イベントと completion を非同期の問い合わせで遅らせ、順も崩しうる。人の操作でその間に開くことはまれ |
+| 2 | `CompletionOnce` を `@unchecked` なしにした（13.4 の 1）。P1-17 (3) と第 1 部 5.12.4 は `@unchecked Sendable` と書いている | **このままにし、C7（T-20）で第 1 部 5.12.4 のコメントと P1-17 の一覧の (3) を「使わずに済んだ（SDK が `@Sendable` で取り込む）」に直す**。一覧の (3) は消さずに「1b では使っていない」と残す（capi が同じ包みを要るかは 2b で見る） |
+| 3 | MS-12: `UIApplicationMain` の前に入れると入るが、起動のきっかけが決まらず、誤った「起動の後かもしれない」のログが出る（13.7） | **コードは変えず、「`UIApplicationMain` の前は対応しない」のまま、マニュアル（段階 4）と C のヘッダー（2a）に「起動のきっかけが取れない」と書く**。直すなら `UIApplication.shared` がまだ無いかを Objective-C の経路で調べる形になり、契約の外のために手を足すことになる |
+
+## 15. 利用者に決めてもらうこと（C5 後半）
+
+**決定（2026-11-01、利用者）: 5 つとも推奨のとおり。** 1 は C5 のレビューの直しで `installDelegate()` に `sharedApplication` の `nil` の確かめを足した（16 章）。2 は N40 を C6（T-19）で SA-13 と一緒に足し、`session.isDevice` で止める口を付けて simulator only にする。3 は N34b のまま。4 は Codex のレビューの後にハッシュを固定した（16 章）。5 は `@discardableResult` を残し、C7 で付録 A に足す
+
+| # | 事柄 | 推奨 |
+|---|---|---|
+| 1 | SwiftUI の `App.init` で `installDelegate()` を呼ぶと、`UIApplication.shared` がまだ無いので active とみなされ、起動のきっかけが決まらず、誤った「起動の後かもしれない」のログが出る（13.17 の 3）。14 章の 3（MS-12）と同じ状況で、C5 はその推奨のとおりライブラリを変えず、DocC に書き、サンプルを `UIApplicationDelegateAdaptor` に移した。ただし `App.init` は SwiftUI のアプリでいちばん書かれやすい所で、イベント自体は届くので気づきにくい。逆の考え（14 章の 3）: この確かめは Objective-C の `nil` への送信（と `UIApplication.shared` が `nil` になる、契約の外の状態）に頼るもので、契約の外のために手を足すことになる | **14 章の 3 を決め直し、ライブラリに「`UIApplication` の `sharedApplication` が `nil` なら active でない（起動の途中）とみなす」確かめを足す**（`installDelegate()` の 1 か所、Objective-C の経路で読むだけ。下調べの版で `App.init` の時点が `nil` で、足すと `applicationIsActive: false` になることを確かめた）。足すなら C6 の最初か C5 のレビューの直しで入れ、DocC の「`App.init` では呼ばない」を「`App.init` でもよい」に戻し、UIKit の `main.swift` の場合（MS-12）も同じく直る。足さないなら今の DocC とサンプルのまま、マニュアル（段階 4）にも書く。逆の考えに対しては、読むのは optional の結果だけで（`nil` に送らない）、`App.init` は契約の外というより SwiftUI のふつうの書き方なので、1 か所の確かめで得るもののほうが大きい |
+| 2 | N40（設定の App から `openSettingsFor`）を C5 に入れず、C6 で SA-13 と一緒に足す（13.15 の 9）。MS-07 で呼ばせられると分かった（13.17 の 1） | **C6（T-19）で足す**。設定の App を操作するので、信頼する部分に `session.isDevice` で止める口を足し、`SIMULATOR_ONLY_TESTS` に入れる。HC10 は足さない |
+| 3 | 設計書 13.2 の N34 の番号が、UI テストの設計書の N34（アイコンのバッジ）と重なった。`testN34b_launchReportsTheInstalledDelegate` にし、結果の行でなく状態の行に出した（13.15 の 5） | **このままにする**（UI テストの設計書 3.3 と設計書 13.2 に注を書いた）。番号を空いている N46 に替えると、設計書の N34〜N45 の並びと合わなくなる |
+| 4 | 信頼する部分（`SampleApp.swift`・`SampleUITestCase.swift`）の変更（13.20）と、足した 8 件の区分（N34b は無し、ほかは `systemui`）と、どれも simulator only にしない判断を、別のモデルのレビューに出してからハッシュを固定する | **C2〜C4 と同じく Codex に差分と 8 件の本体と `DeviceRequirements.json` の 8 行を見せ、通ったら 13.20 の値を固定して C5 のコミットに入れる**。観点は (a) 基底の後片付けの起動し直しがサンプルを起動するだけで、実機で監視が止めた後は行わないこと、(b) 新しい読み出しがサンプル自身の要素だけであること、(c) N41 のホストの通知もサンプル自身の通知で、N36・N37・N45 のコールドスタートは N30〜N33 と同じ操作であること（実機でも私物に触れない） |
+| 5 | 付録 A に無い `@discardableResult` を `addListener` に付けた（13.15 の 1） | **このままにし、C7（T-20）で付録 A に足す** |
+| 5 | `addListener(_:)` に付録 A に無い `@discardableResult` を付けた（13.15 の 1。決定のときに足した行） | **このまま残し、C7 で付録 A に足す**。戻り値の形は同じで、付けても互換は壊れない |
+
+## 16. C5 のレビューと直したこと
+
+コードのレビューを 3 者で並行に行った。Claude のサブエージェント（ライブラリ。設計との一致と正しさ）は A 0・B 4・C 10。Claude のサブエージェント（サンプル・UI テスト・文書）は A 0・B 1・C 7。Codex（設定のモデル。並行・寿命と実機の安全。読むだけ）は P2 が 1 つ（入れる順。下の表の C-7）で、信頼する部分（`Support/SampleApp.swift`・`Support/SampleUITestCase.swift`）の変更は固定してよいとした。その後 `TRUSTED_FILES` を 13.20 の値（`SampleApp.swift` は `1ac8667f…421e`、`SampleUITestCase.swift` は `49bd2c07…e874`）に固定した。15 章の決定（2026-11-01）を受けて、B-4 もこの直しで入れた。
+
+| 指摘 | 直したこと |
+|---|---|
+| C-7（Codex の P2 と同じ）: `install` が `center.delegate = proxy` の後に `noteFirstInstall` と `setPreviousDelegate(current)` を呼ぶ。その間に別のスレッドで delegate のメソッドが呼ばれると、前の delegate が無い・古いまま、起動のきっかけの判定も違う | 順を「前の delegate を proxy に移す → 初めてなら `noteFirstInstall`・`didBecomeActive` の受け手・center の KVO → `center.delegate = proxy` → 印」にした。KVO は代入の前に付け、自分の代入は差し替えに数えない（`observeValue` の `newObject !== self` の確かめに `.debug` の行を足した）。領域の制約（前の delegate を `sending` で渡すと center も使えなくなる）は、`install(on:)` を center そのものでなく `@Sendable () -> any NotificationDelegateCenter` を受ける形にし、1 回目の値から前の delegate を読み、2 回目の値に代入・観察して解いた（呼ぶたびに別の領域の値になる。`@unchecked`・`nonisolated(unsafe)` は使っていない）。テストの偽の center に「delegate の setter の中で呼ばれる closure」を足し、`aCallDuringTheAssignmentSeesThePreparedState`（初めて入れるとき。代入の中の呼び出しが前の delegate に転送でき、active だったことを見て、起動のきっかけにならず、印はまだ立っていない）と `aCallDuringAReinstallSeesTheNewPreviousDelegate`（差し替えの後に入れ直すとき。代入の中で前の delegate はもう差し替えた側）を足した。`theFirstInstallSetsTheProxyAndTheFlag` に `replacementCount == 0` を足した |
+| B-1: `settingsRequests` と `NotificationSettingsRequest` の DocC が「通知の無い要求はいつもライブラリ」と読める（コードは、ライブラリの通知の要求はいつも、通知の無い要求とほかの通知の要求は前の delegate が `openSettingsFor` を実装しないときだけ） | 2 つの DocC をコードのとおりに直した |
+| B-2: 既定の `isApplicationInForeground` が名前もテストも無い closure | `NotificationDelegateProxy.bringsAppToForeground(_ state: UIApplication.State) -> Bool`（`.active`・`.inactive` は真、`.background` は偽）にし、installer の既定はこれを呼ぶ。`theForegroundOfAnActionFollowsH21` で `foreground(ofAction:)` と一緒に確かめる |
+| B-3: Presentation の installer の `shared` が Manager の `IosNotificationManager.shared` を参照する（下の層から上の層） | 組み立て（`static let delegateInstaller`）と `NotificationDelegateStatus.library` を `IosNotificationManager.swift` に移した。installer・router・proxy は受け手の口だけを知る。13.2・13.4 の 6・13.12 の例外の行と理由を直した |
+| B-4（15 章の 1。決定のとおり入れた） | `installDelegate()` は Objective-C のクラスメソッド `sharedApplication` を optional の結果として読み（`NotificationDelegateInstaller.sharedApplication()`。`UIApplication.shared` の非 optional の参照を `nil` のときに読まない）、`nil` なら active でないとみなす（`isActive(_:)`）。`App.init` と UIKit の `main.swift` の `UIApplicationMain` の前（MS-12）で、起動のきっかけが取れ、誤った「起動の後かもしれない」のログが出ない。`installDelegate()` の `- Important:`・`- Note:` と型の Overview を「起動の処理で呼ぶ。`App.init` でもよい（そのときは active でないとみなす）」に直した。サンプルは `UIApplicationDelegateAdaptor` のまま（UIKit のアプリと同じ所。コメントだけ直した）。テスト `withoutTheApplicationObjectTheAppIsNotActiveYet`（`nil` は active でない、テストのホストでは `UIApplication.shared` と同じものが読める、`nil` で入れると起動のきっかけが残る）。使い捨ての写しで `App.init` から呼ぶ形を測った（下の実行の表） |
+| C-1: `LibraryLogPrivacyTests` の転送の呼び出しが印のある応答で、転送されていなかった | 印の無いホストの応答（番兵の返信と値つき）にし、「forwarded to the previous delegate」の行を `#require` した |
+| C-2: `getDelivered` の印の外しにテストが無い。`removeAllPendingRequests` が `NotificationRequestCenter` を通らない | 内容 → 一覧の値の変換を internal の `NotificationRepositoryImpl.activeNotification(identifier:date:content:)` に出し、`UNMutableNotificationContent` で確かめた（`aDeliveredNotificationIsHandedBackWithoutTheMarker`）。`removeAllPendingNotificationRequests()` を seam に足し、`cancelAll`・`cancelAllScheduled` を通した（`cancelAllAndCancelAllScheduledRemoveThroughTheCenter`） |
+| C-3: 先頭のログが無い（`NotificationMarker.isPresent(in:)`、`State.noteResponse`、`typeName`、`summary(of:)`）、`NotificationEventRegistration.init` のログが状態を変えた後。13.21 が「すべてある」と書く | 4 つに先頭のログを足し（`isPresent`・`typeName`・`summary` はほかのログの補間の中からも呼ばれるが、自分のログの中では自分を呼ばないので循環しない。`noteResponse` のログは鍵の中だが、ログはほかのコードを呼ばない）、`init` のログを番号を変える前に移した。13.21 を直した |
+| C-4: router が class で、転送・main への積み込み・受け手の呼び出しまで行う（設計書 8.3.2 は 2 つの結果を返す純粋な値の型） | 13.4 に 11 の行を足した（呼び出しをまたぐ状態があり、転送と completion の順を UserNotifications 無しの単体テストで確かめるため） |
+| C-5: `isDelegateInstalled`・`launchResponse()` が `ios.md` の「UseCase を置かない口」の一覧に無い | `ios.md` の一覧に「通知の delegate の状態の読み出し（`isDelegateInstalled`、`launchResponse()`。2026-11-01）」を足し、13.2・13.12 に書いた |
+| C-6: DocC が、入れ直すと前の delegate が 1 つだけになることを書かない。`isDelegateInstalled` がまだ無い C の入口に触れる | `installDelegate()` の DocC と表に「前の delegate は 1 つだけ。入れ直すと差し替えた側が前の delegate になり、それより前のものはその側が転送するときだけ届く」を足した。`isDelegateInstalled` は「`installDelegate()`（と、それを呼ぶ deprecated の `setup()`）」にした。installer の型の DocC からも C の入口の言及を外した |
+| C-8: proxy の型の DocC の「持つもの」に `presentationOptions` の closure が無い | `@Sendable` の closure を足した |
+| C-9: hub の「最初の捨てだけ `.info`、後は `.debug`」（SR-23）と、install の「already active」の `.info` にテストが無い | `onlyTheFirstDropIsLoggedAtTheInfoLevel`（hub ごとに一意の名前で 3 回捨て、`OSLogStore` に `.info` の 1 行だけ）と `installingWhileActiveLogsThatItMayBeAfterLaunch`（main actor の上で途中に suspend しない 3 つの canary の行の間で、active でない install には行が無く、active の install には `.info` の 1 行）を足した |
+| C-10: `theSharedManagerReadsTheLibraryInstaller` がテストの順で 2 つの枝のどちらかを確かめる。`withoutTheDelegateTheHubsAndTheLaunchResponseThrow` が型だけを見る | 前者は `.serialized` の `NotificationDelegateRealCenterTests` に移し、先に `installDelegate()` を呼んで 1 つの枝（投げない、`launchResponse()` は router の値で `nil`、2 つの hub に足せる）を確かめる形にした。後者は 3 つとも `.delegateNotInstalled` を確かめる |
+| UI B-1: N31〜N33 が起動のきっかけの印を見ない | N31 はどの OS でも `launch=true`、N32・N33 は iOS 26 で `launch=false`、iOS 18 は値を `XCTContext.runActivity` に残す（前例 D7。U-16）。起動の後の応答（N25〜N29、N35、N41、N43、N44）は共通の確かめで `launch=false`。UI テストの設計書の U-16・3.3 と 13.15 の 13 に書いた |
+| UI C-1: N36 はサンプルの 3 秒の `listenerDelay` とシステムの `didReceive` の競争に頼る | 遅れを 5 秒にした（U-14 の例外にしても競争は残るので、余裕を広げるほうを選んだ）。SA-08 と 13.15 の 14 に書いた |
+| UI C-2: アイコンのバッジの注が N34b の上にずれた。冒頭の 5 行目が 150 文字 | 注を `testN34_homeIconBadge` の上に戻し、冒頭を折り返した |
+| UI C-3: サンプルの新しい関数の先頭のログ | `DeprecatedNotificationEntries.setReceivers(action:textInput:)`・`setup()`、`SampleLaunchConfiguration.read(_:)`（`file` の名前）、`SampleHostNotificationDelegate.post(completion:)`（`completion: provided`）、`NotificationEventLog.status()`・`signal()` に足した |
+| UI C-4: 実機で監視が止めた後は後片付けの起動し直しをしないので、形のファイルが次の基底の起動まで標準でない形のまま | 13.20 と SA-18 に 1 行足した |
+| UI C-5: 設計書 13.2 の N40 の「MS-07 で呼ばせられると分かった」が言い過ぎ | 「26.2 の許可済みのアプリで求め直した形で呼ばせられた。新しく入れたアプリで先に求める形（SR-11）と 18.3 は測っていない」にした |
+| UI C-6: 15 章の 1 に 14 章の 3 の反対の理由が無い | 「Objective-C の `nil` への送信と契約の外の状態に頼る、契約の外のために手を足す」を利点の横に置き、それへの答えも書いた |
+| UI C-7: N37 は N36 の後ではなく、標準の形の独立したコールドスタート | 13.15 の 15 と UI テストの設計書 3.3 の N37 の行に書いた |
+
+単体テストは 7 件増えた（`NotificationDelegateInstallerTests` に 4: 代入の中の呼び出し 2、`.info` のログ 1、`sharedApplication` 1。`NotificationEventHubTests` に 1。`NotificationRepositoryMarkerTests` に 2）。`theSharedManagerReadsTheLibraryInstaller` は `IosNotificationManagerEventTests` から `NotificationDelegateRealCenterTests` に移した（C5 はコミットしていないので基準には無い）。`IosLibraryTests` は 478 件。
+
+壊して確かめたこと（`mutate_c5fix.py` で 1 つずつ使い捨ての写しに当てて該当の suite を流し、落ちることを見てから戻した。差分とログは scratchpad。番号は M106 に続ける）:
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M107 | C-7（Codex P2） | 前の delegate を代入の後に移す（直す前の順） | `aCallDuringTheAssignmentSeesThePreparedState`、`aCallDuringAReinstallSeesTheNewPreviousDelegate`（最初の版は代入の後に center から読み直す形で、ほかの 5 件も落ちた。直す前の順そのものに替えて流し直した） |
+| M108 | C-7 | `noteFirstInstall` を代入の後にする | `aCallDuringTheAssignmentSeesThePreparedState` |
+| M109 | C-7 | 印を準備の前に立てる | `aCallDuringTheAssignmentSeesThePreparedState` |
+| M110 | C-7 | proxy 自身の代入も差し替えに数える | `theFirstInstallSetsTheProxyAndTheFlag`、代入の中の 2 件、`aReplacementIsWatchedAndInstallingAgainRestoresTheProxy` ほか |
+| M111 | B-2 | `bringsAppToForeground` が `.active` だけを真にする | `theForegroundOfAnActionFollowsH21` |
+| M112 | B-4 | application object が無いときを active とみなす | `withoutTheApplicationObjectTheAppIsNotActiveYet` |
+| M113 | B-4 | `sharedApplication()` がいつも `nil` | `withoutTheApplicationObjectTheAppIsNotActiveYet` |
+| M114 | C-1 | 転送の行に返信を生で入れる | `notificationResponsesThroughTheDelegateNeverReachTheLog` |
+| M115 | C-2 | `getDelivered` の値が印を外さない | `aDeliveredNotificationIsHandedBackWithoutTheMarker` |
+| M116 | C-2 | 全部消すのを `UNUserNotificationCenter` に直に送る | `cancelAllAndCancelAllScheduledRemoveThroughTheCenter` |
+| M117 | C-9 | hub の捨てをいつも `.info` で出す | `onlyTheFirstDropIsLoggedAtTheInfoLevel` |
+| M118 | C-9 | 最初の捨てを `.debug` で出す | `onlyTheFirstDropIsLoggedAtTheInfoLevel` |
+| M119 | C-9 | 「already active」を `.debug` で出す | `installingWhileActiveLogsThatItMayBeAfterLaunch` |
+| M120 | C-10 | `NotificationDelegateStatus.library` がライブラリの installer を読まない | `theSharedManagerReadsTheLibraryInstaller` |
+| M121 | C-10 | 入れていない hub が別の case を投げる | `withoutTheDelegateTheHubsAndTheLaunchResponseThrow` |
+| M122 | C-10 | 入れていない `launchResponse()` が別の case を投げる | `withoutTheDelegateTheHubsAndTheLaunchResponseThrow` |
+
+16 件とも落ち、戻した版で通ることを確かめた（下の全件の実行）。UI テストの直し（UI B-1 の `launch` の確かめ）は壊して流していない（UI テストの変異はここまでも流していない。下の `--feature Notification` で通ったことだけを確かめた）。
+
+| 実行 | 結果 |
+|---|---|
+| 直しの途中の Notification の suite と `LibraryLogPrivacyTests`（iPhone 17 / 26.2、Xcode 26.6、`-parallel-testing-enabled NO`） | 16 suite・126 件が成功（B-4 の前）。B-4 の後に installer の 2 つの suite 18 件が成功 |
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3。`-parallel-testing-enabled NO`。18.3 の 2 つは `arch=arm64`。Xcode 26.6） | どれも 478/478（471 + 7）。消したテストは無い |
+| TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2） | delegate の 9 suite（installer 2、proxy、userInfo、受け手の口、router 3、`CompletionOnce`）、hub、manager のイベント、repository の印、値の木と印、`IosNotificationManagerTests` の 15 suite・119 件が成功。報告 0 件 |
+| B-4 の下調べ（使い捨ての写しのサンプルで、`NotificationEventRouting.start()` を `App.init` に移し `didFinishLaunching` から外した。`xcodebuild test-without-building -only-testing`。iPhone 17 / 26.2） | N31・N36・N37 が通った（`launch=true`、`[launchResponse] notificationId=sample-notification, …, isLaunchResponse=true`）。13.17 の 3 で `App.init` のまま落ちた N36・N37 が、`sharedApplication` の確かめで通るようになった。リポジトリのサンプルは `UIApplicationDelegateAdaptor` のまま |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --feature Notification`（リポジトリのまま。信頼する部分は固定のハッシュのとおり） | 50 件すべて成功（NP2・NP1、Navigation 2、IdentifierInventory 4、Notification 24、NotificationEvent 11、NotificationColdStart 7）。基準との比べ合わせは `changed=0, added=8, removed=0`（13.18 と同じ 8 件）。N31 の `launch=true`、N32・N33 の `launch=false`（26.2）、N25〜N29 などの `launch=false`、5 秒の N36 が通った |
+| ランナーの自己テスト（`python3 -m unittest discover -s scripts/tests -p 'test_ios_ui_runner.py'`。リポジトリ） | 142/142（固定の後なので、13.18 の 5 件の失敗は無くなった） |
+| 2 つの scheme の `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`。Xcode 26.3 と 26.6） | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+| swiftinterface（13.13 と同じ組み方。Xcode 26.3） | `IosLibrary-after-1b-c5.swiftinterface` と同じ（差 0）。公開面は変わらないので取り直していない |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3 は xcodebuild と `test_ios.sh` が起動し、最後に `simctl shutdown all` で止め、どれも起動していないことを確かめた。iPhone 17 / 26.2 には `test_ios.sh` の回のサンプル（リポジトリの版）が入っている（下調べの写しは `test_ios.sh` の NP2 が消して入れ直した）。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない） |
+
+信頼する部分（`scripts/ios_ui_runner.py` の `TRUSTED_FILES`）は変えていない。直しのどれも信頼する部分の変更を要しなかった。
