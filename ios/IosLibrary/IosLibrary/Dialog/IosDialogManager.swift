@@ -288,7 +288,10 @@ public final class IosDialogManager: NSObject, Sendable {
     ///   - actions: Custom `UIAlertAction`s. If empty, a default OK action is added.
     ///   - textFields: Array of configuration closures (applied only when `preferredStyle == .alert`).
     ///   - sourceView: Anchor view for iPad popover (action sheets / alerts in sheet style).
-    ///   - sourceRect: Specific rect within `sourceView` (defaults to its bounds if nil).
+    ///   - sourceRect: Specific rect within `sourceView`; it matters only for `.actionSheet`.
+    ///     `nil` uses the whole bounds of `sourceView`. On iPad, a large view (for example, one
+    ///     that fills the screen) leaves no room for the popover, which then shows without its
+    ///     options; pass a small rect, close to a point, where the popover should point.
     ///   - barButtonItem: Alternative popover anchor (used when `sourceView` is nil).
     ///   - permittedArrowDirections: Popover arrow directions (iPad).
     ///   - animated: Whether the presentation is animated.
@@ -437,7 +440,10 @@ public final class IosDialogManager: NSObject, Sendable {
     ///   - options: Array of option titles.
     ///   - cancelTitle: Cancel button title (default "Cancel").
     ///   - sourceView: Mandatory for iPad to anchor the popover.
-    ///   - sourceRect: Optional rect inside `sourceView`.
+    ///   - sourceRect: Optional rect inside `sourceView`. `nil` uses the whole bounds of
+    ///     `sourceView`. On iPad, a large view (for example, one that fills the screen) leaves no
+    ///     room for the popover, which then shows without its options; pass a small rect, close
+    ///     to a point, where the popover should point.
     ///   - animated: Animate presentation flag.
     ///   - onAction: `(selectedOption, true, nil)`; the cancel button gives `(cancelTitle, true, nil)`.
     ///   - completion: Called after presentation with `(isSuccess, errorMessage)`; a failure is

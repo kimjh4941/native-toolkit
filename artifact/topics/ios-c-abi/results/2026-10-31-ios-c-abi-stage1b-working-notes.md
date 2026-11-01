@@ -4,7 +4,7 @@
 - 段階: 1b（`README.md` の 5 章の 1b の行。設計書は `designs/2026-10-31-ios-c-abi-swift-api-design.md`。以下「設計書」）
 - ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更で、`747897de` でコミットした。C5 は `747897de` の上の未コミットの変更で、前半（T-13・T-14）と後半（T-15・T-16）が入っており、`b80399eb` でコミットした。C6 は `b80399eb` の上の未コミットの変更で、`97c95c71` でコミットした。C7 は `97c95c71` の上の未コミットの変更で、まだコミットしていない）
 - 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。C5 のレビューの直しと C6 の単体テストは Xcode 26.6 で流した（17.8）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）、C6 の変異の iPhone 16（iOS 26.2）、C7 の測りと変異の iPhone 17 Pro（iOS 26.2）だけ。**実機には触れていない**
-- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）、C5（13〜15 章。2026-11-01。前半は 13.1〜13.10 と 14 章、後半は 13.11〜13.21 と 15 章。16 章は C5 のレビュー）、C6（17〜19 章。2026-11-01）、C7（20〜22 章。22 章は C7 のレビュー。2026-11-01）
+- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）、C5（13〜15 章。2026-11-01。前半は 13.1〜13.10 と 14 章、後半は 13.11〜13.21 と 15 章。16 章は C5 のレビュー）、C6（17〜19 章。2026-11-01）、C7（20〜22 章。22 章は C7 のレビュー。2026-11-01）、1b の後の小さな直し（23 章。21 章の 1・5。2026-11-01）
 
 ## 1. C1 共通（T-01〜T-05）
 
@@ -1908,6 +1908,8 @@ TSan の skip を外した 3 件は、テストそのものは C1・C2 で壊し
 
 ## 21. 利用者に決めてもらうこと（C7）
 
+**決定（2026-11-01、利用者）: 1〜6 は推奨のとおり。** 1 は入口でファイルの有無を確かめる形にし、無ければ `attachmentLoadFailed(identifier:detail:)` で何も足さず消さない。`detail` は `NSCocoaErrorDomain` の `NSFileReadNoSuchFileError`（260）にする（推奨の文の `NSFileNoSuchFileError` でも、OS と同じ `UNErrorDomain` の 100 でもない。23 章）。2 は C7 のコミット `75881825` の後に、シミュレーターの基準を取り直す。1 回目（2026-11-01 21:03〜23:10、`75881825`）は、同じ時間に別のシミュレーターでテストが動いていてホストの負荷が高く（15 分の平均で 47）、UI テストの N9・N32・N33 が失敗したので、ランナーは基準を保存しなかった。ほかに何も動かさずに Notification だけを流し直す（23:11〜23:59、`--feature Notification`）と、N9・N33 は通り、N32 はまた同じ所（`NotificationColdStartUITests.swift:149`、launch が `true`）で失敗した。N32 は 10-24 にも 1 回失敗しており、負荷だけでなく時々落ちる原因がある見込みで、まだ調べていない。基準の取り直しは、N32 を調べた後に残る。3・4・6 は推奨のとおり。5 は DocC に足し（コメントだけ。23 章）、マニュアル（段階 4）にも書く
+
 | # | 事柄 | 推奨 |
 |---|---|---|
 | 1 | 無いファイルの添付（20.4 の 3）。`UNNotificationAttachment` は投げず、`add` が `UNErrorDomain` の 100 で断り、通知は出ない。ライブラリは `addRequestFailed` で返す。`update` では今の予約を消した後に `add` が失敗するので、予約が消えたまま新しい要求も足されない。入口（`makeUNAttachment` の前）でファイルの有無を確かめるか | **確かめる形にする（第 2 部の設計の前の小さなコミットで。入口で `FileManager.fileExists` が偽なら `attachmentLoadFailed(identifier:detail:)` で何も足さず消さない）**。理由: 18 章の 5 で入口の確かめを取らなかった理由（今の利用者で添付なしで出ていた通知が出なくなりうる）は当たらない（今も出ない）。添付の失敗が決まった case になり、`update` が予約を消さない（L-B1 と同じ向き）。C ABI の利用者にも決まった失敗を返せる。逆の考え: 確かめから `add` までの間にファイルが消えれば今と同じ `addRequestFailed` になる（確かめは近道で、守りの全部ではない）。`detail` に入れる domain と code（`NSCocoaErrorDomain` の `NSFileNoSuchFileError` か、OS と同じ `UNErrorDomain` の 100 か）を決める必要があり、1b の「今の動作を変えない」の外の変更になる。変えないなら、今の形（`addRequestFailed`、`update` で予約が消える）を DocC・マニュアルに書く |
@@ -1959,3 +1961,27 @@ C7 の未コミットの変更（文書とテスト）のレビュー（文書�
 | シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2 は xcodebuild が起動し、最後に起動しているものが無いことを確かめた。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない） |
 
 全体の実行（`scripts/test_ios.sh`）は流し直していない（直したのはテストの確かめの細かさとコメントで、関係するテストを両方の版で流したため）。
+
+## 23. 1b の後の小さな直し（21 章の 1・5）
+
+21 章の決定の 1 と 5 を、第 2 部の設計の前の小さな変更にした。5（コメントだけ）と 1（添付の入口の確かめ）は別の変更に分けた。21 章の決定の行は 5 の変更に入れた。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない）
+
+### 23.1 `sourceRect` の DocC（21 章の 5）
+
+| 変えたもの | 中身 |
+|---|---|
+| `ios/IosLibrary/IosLibrary/Dialog/IosDialogManager.swift` の `showDialog(title:message:preferredStyle:actions:textFields:sourceView:sourceRect:barButtonItem:permittedArrowDirections:animated:completion:)` と `showActionSheet(title:message:options:cancelTitle:sourceView:sourceRect:animated:onAction:completion:)` の `sourceRect` の DocC | 「`nil` uses the whole bounds of `sourceView`. On iPad, a large view (for example, one that fills the screen) leaves no room for the popover, which then shows without its options; pass a small rect, close to a point, where the popover should point.」を足した。`showDialog` には「it matters only for `.actionSheet`」も足した（レビューの C5）。コードは変えていない（基点は `AlertDialogPresenter` の `anchor.sourceRect ?? sourceView.bounds` のまま。S-P5）。`sourceRect` を取る今の口はこの 2 つだけで、新しい口の `show(_:presenter:requestBox:completion:)` は基点を view の中央に付ける |
+| 1b の結果 6 章 | `sourceRect` の行の**決定待ち**を外し、DocC に書いたこととマニュアル（段階 4）に書くことにした |
+| 21 章の 6 の決定の反映（C ABI から表示元を渡す口は 2.0.0 では設けない） | README 3.1・8.6、第 1 部の G-6 と 5.13 の前面の定義、1b の結果 5 章・6 章・7 章の iPad の行の「決定待ち」「未決」「第 2 部で決める」を、決まったこと（設けない。C のヘッダーとマニュアルに「複数の window を開ける iPad では、どちらの window に出すかは決まらない」と書く）にした |
+| 1b の結果の冒頭とコミットの表 | C7 を未コミットから `75881825` に直した |
+
+確かめ（23.1 の変更だけを当てた作業ツリー）:
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibrary` の scheme の `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`。Xcode 26.6 と 26.3、`DEVELOPER_DIR`。`ios/IosLibrary` を scratchpad に写して組んだ） | どちらもエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+| 公開 API（1.6 と同じ組み方: Release、`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`、Xcode 26.3。`arm64-apple-ios.swiftinterface`） | `results/swiftinterface/IosLibrary-after-1b-c6.swiftinterface` と 1 文字も違わない（DocC は swiftinterface に入らない）。取り直していない |
+| Dialog の基点と表示のテスト（`IosDialogManagerShownTests`・`AlertDialogPresenterTests`。iPhone 17 Pro / 26.2、Xcode 26.6、`-parallel-testing-enabled NO`、`-only-testing`。iPhone 17 / 26.2 は 21 章の 2 の取り直しで別の作業が使うので触れていない） | 32/32 成功（2 suite）。TSan（`-enableThreadSanitizer YES`）でも 32/32 成功、報告 0 件 |
+| `scripts/check_design_consistency.py`（README、第 1 部、この記録、1b の結果） | 4 つとも FAIL 0（終了の値 0） |
+
+後の項目（この直しの外）: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md:96` の ``IosDialogManager/showActionSheet(title:message:actions:sourceView:sourceRect:animated:completion:)`` は今のコードに無い記号（今の口は `showActionSheet(title:message:options:cancelTitle:sourceView:sourceRect:animated:onAction:completion:)`）。DocC の目次の直しとして後で行う（レビューの C6）

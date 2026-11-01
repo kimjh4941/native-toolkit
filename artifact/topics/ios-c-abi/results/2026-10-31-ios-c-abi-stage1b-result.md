@@ -3,7 +3,7 @@
 - 記録日: 2026-11-01
 - 実施日: 2026-10-31〜2026-11-01
 - 対象: `artifact/topics/ios-c-abi/README.md` の段階 1b、`designs/2026-10-31-ios-c-abi-swift-api-design.md`（以下「設計書」。T-01〜T-23、15 章の C1〜C7）
-- ブランチ: `feature/NTKIT-18`（C1〜C6 は `584ec55c`〜`97c95c71` でコミットした。C7 はその上の未コミットの変更）
+- ブランチ: `feature/NTKIT-18`（C1〜C6 は `584ec55c`〜`97c95c71`、C7 は `75881825` でコミットした。1b の後の小さな直し（記録 23 章）はその上の変更）
 - 判定: **完了（シミュレーター）**。ただし、MS-10 のプライバシーのレポート（利用者が Xcode の Organizer で作る。作業の記録 20.9）と、実機が要る項目（作業の記録 20.10。どれも利用者の許可が要る）が残る
 - 作業の記録: `results/2026-10-31-ios-c-abi-stage1b-working-notes.md`（以下「記録」。コミットごとに 1 章。C7 は 20〜22 章。22 章は C7 のレビュー）
 - レビュー: 設計書は `reviews/2026-10-31-ios-c-abi-swift-api-design-review-v1.md`〜`v3.md`。コードのレビューは C1〜C6 の各コミットの前に行い、記録の 3・6・9・12・16・19 章に指摘と直しを書いた。信頼する部分（UI テストの `Support/`）の変更は、どのコミットでも別のモデル（Codex）のレビューの後にハッシュを固定した
@@ -24,7 +24,7 @@ C7 の作業ツリーで全体を流した（シミュレーター iPhone 17 / 2
 | C4 `747897de` | Clipboard の `loadItem(…requestBox:…)`・`cancelLoad(_:)`、DocC、SA-15、CB5・CB6 | 10〜12 章 |
 | C5 `b80399eb` | 通知の delegate の router・proxy・入れる口・印・イベントの口・起動のきっかけ・今の受け手の deprecated、サンプルの起動の処理と試験の形、N34b・N35〜N37・N41・N43〜N45 | 13〜16 章 |
 | C6 `97c95c71` | 通知のエラー・`async throws` 版・一覧の型の `Sendable`・userInfo の検査・権限と設定の画面の gate・category の列、SA-05・SA-09・SA-10・SA-13、N38〜N40・N42 | 17〜19 章 |
-| C7（未コミット） | 14 章の測りの記録（MS-11・MS-13 の残り・無い添付）、TSan の skip を外す、UT-31 のテストと一覧、ブリッジのテストとの対応の 1 件、README・第 1 部・付録 A の直し、全体の実行、この文書 | 20〜22 章 |
+| C7 `75881825` | 14 章の測りの記録（MS-11・MS-13 の残り・無い添付）、TSan の skip を外す、UT-31 のテストと一覧、ブリッジのテストとの対応の 1 件、README・第 1 部・付録 A の直し、全体の実行、この文書 | 20〜22 章 |
 
 ## 3. 公開 API
 
@@ -52,7 +52,7 @@ C7 の作業ツリーで全体を流した（シミュレーター iPhone 17 / 2
 
 MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 
-- 前面（G-6）: `foregroundInactive` の間も Dialog と Share は出る。iPad の複数の window では key window が 2 つになり、前面の探し方はどちらかを選ぶ。Swift の利用者は表示元を `.viewController(_:)` で渡せる。C ABI は前面を探すだけ（第 1 部 P1-11 の C）で、どちらの window に出すかは決まらない。C に表示元を渡す口を足すかは第 2 部で決める（記録 21 章の 6。第 1 部 5.13、README 3.1）
+- 前面（G-6）: `foregroundInactive` の間も Dialog と Share は出る。iPad の複数の window では key window が 2 つになり、前面の探し方はどちらかを選ぶ。Swift の利用者は表示元を `.viewController(_:)` で渡せる。C ABI は前面を探すだけ（第 1 部 P1-11 の C）で、どちらの window に出すかは決まらない。C に表示元を渡す口は 2.0.0 では設けない（記録 21 章の 6 で決まった。第 1 部 5.13、README 3.1）
 - 解放（G-7）: 外から閉じた Dialog は約 0.4 秒、Share は約 0.55 秒で解放され、見張りが `dismissedBySystem` で閉じる（Share の handler は呼ばれない）。TSan の版でも同じで、C7 で TSan の skip を外した
 - 後ろ（G-7）: 後ろからの `UIApplication.open` は `false`。後ろで未決の権限を求めると OS は見えないままダイアログを出す。後ろの Clipboard は、ほかのアプリの内容でダイアログが出て、同期の読み出しは main を止める
 - 通知: scene のアプリでも最初の `didBecomeActive` はコールドスタートの応答の後。`openSettingsFor` は設定の App のリンクから呼ばせられる（26.2）。category の反映は書き戻しの後の最初の読み直しで読める
@@ -71,7 +71,7 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 | 前の delegate は 1 つだけ。ホスト（Unity の通知パッケージなど）が後から delegate を差し替えたら、`installDelegate()` / `ntk_notification_install` をもう一度呼ぶ（パッケージの `AuthorizationRequest` の後など）。ライブラリは差し替えを `.error` のログで知らせるが、自動では入れ直さない | 記録 13.10 の H2-3 |
 | `launchResponse()`: custom のアクションが前面に出す応答かはアプリの状態で見分ける。iOS 18.3 では背景のアクションの直後（約 0.2 秒以内）にアプリを開くと、それを起動のきっかけと取りうる | 記録 14 章の 1 |
 | 今の受け手（deprecated）とイベントの口を両方使うと同じイベントを 2 度受ける | 設計書 RK-05 |
-| 複数の window を開ける iPad では、Swift の利用者は Dialog・Share・権限の要求に表示元を渡す（`.viewController(_:)`）。前面の探し方は key window が 2 つのときどちらを選ぶか決まらない（C ABI の利用者に表示元を渡す口を設けるかは**決定待ち**。記録 21 章の 6） | 記録 5 章の 2、第 1 部 G-6 |
+| 複数の window を開ける iPad では、Swift の利用者は Dialog・Share・権限の要求に表示元を渡す（`.viewController(_:)`）。前面の探し方は key window が 2 つのときどちらを選ぶか決まらない。C ABI の利用者に表示元を渡す口は 2.0.0 では設けないので、C ABI の利用者にはどちらの window に出すかは決まらない（記録 21 章の 6 で決まった） | 記録 5 章の 2、21 章の 6、第 1 部 G-6 |
 | Clipboard の同期の読み出しは、ほかのアプリの内容なら利用者が貼り付けを許すまで main を止める（後ろにいる間も）。止めたくなければ非同期の読み込みを使う | 記録 11 章の 5、10.7 |
 | 権限の要求の選択肢（`.providesAppNotificationSettings` など）は最初の要求に入れる。`.foreground`・`.viewController` では、決まった後は求め直さない | 記録 18 章の 2 |
 | `cancelAll`・`cancelAllScheduled`・`removeAllDelivered` はホストの通知まで消す | 設計書 3.4（SR-25） |
@@ -79,7 +79,7 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 | 外から閉じた Dialog・Share は約束の内（見張りで `dismissedBySystem`）。ホストが表示中に window や root を差し替える・表示した ViewController を持ち続けると完了が来ないことがある | 第 1 部 0.1、5.13.1 |
 | userInfo は property list の値だけ（`NSNull`・`NSURL` は拒む）。キー `com.jonghyunkim.nativetoolkit` は予約 | 記録 18 章の 6、設計書 8.3.3 |
 | 無いファイルの添付は通知ごと断られる（`add` が断り `addRequestFailed`。`update` では今の予約も消える）。`update` は、添付を作れない（`attachmentLoadFailed`）ときは今の予約を消さない。書き方は**決定待ち**（記録 21 章の 1 で入口で確かめると決まれば変わる） | 記録 20.4 の 3、19 章の L-B1 |
-| **決定待ち**（記録 21 章の 5。推奨は DocC とマニュアルに書く）: Dialog の今の口の `sourceRect` は `nil` なら `sourceView` 全体（iPad の大きな view では選択肢の無い popover になる） | 記録 5 章の 5、21 章の 5 |
+| Dialog の今の口（`showDialog`・`showActionSheet`）の `sourceRect` は `nil` なら `sourceView` の bounds 全体。iPad で画面全体の view を渡すと popover の置き場が無く、選択肢の無い popover になるので、点に近い矩形を渡す（記録 21 章の 5 で決まった。DocC には記録 23.1 で書いた） | 記録 5 章の 5、21 章の 5、23.1 |
 | ライブラリのログは統合ログ（`os.Logger`、subsystem `com.jonghyunkim.nativetoolkit.IosLibrary`）。利用者の値は `.private` で、秘密の値は長さだけ。ふつうのログは `.debug` で Release では保存されない | 設計書 8.7、記録 1.7 |
 
 ## 7. 第 2 部（2a）への申し送り
@@ -93,7 +93,7 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 | userInfo の `null` | C ABI で JSON の `null`（`NSNull`）を落とすか断るかを決める（`IosLibrary` は断る） | 記録 18 章の 6 |
 | 権限の求め直し | `.foreground` で権限が決まっていると求め直さない。ヘッダーに「選択肢は最初の要求に入れる」 | 記録 18 章の 2 |
 | 同期の読み出し | Clipboard の同期の読み出しの関数のヘッダーに、main が止まりうることを書く | 記録 11 章の 5 |
-| iPad の表示元 | C から表示元を渡す口を設けるか（P1-11 の C の決め直しになるので利用者が決める。推奨は設けずにヘッダーに「どちらの window に出すかは決まらない」と書く）、複数の window の iPad での既定の選び方をヘッダーに書く | 記録 5 章の 2、21 章の 6 |
+| iPad の表示元 | C から表示元を渡す口は設けない（記録 21 章の 6 で決まった。P1-11 の C のまま）。ヘッダーに「複数の window を開ける iPad では、どちらの window に出すかは決まらない」と、既定の選び方を書く | 記録 5 章の 2、21 章の 6 |
 | `ntk_notification_install` の時期 | `UIApplicationMain` の前は契約の外。SwiftUI の `App.init` は「まだ active でない」とみなす | 第 1 部 1.3.3、G-9 |
 | 例外 | 利用者のコールバックの中の `NSException` は、巻き戻しを始めずにその場で `abort` した（G-8、MS-11。測ったのは `NSException` の 1 回だけで、C++ の例外は試していない）。ヘッダーの「コールバックは例外を外へ出さない」の根拠 | 第 1 部 5.11、記録 20.4 の 1 |
 | 0 で埋めた構造体の既定 | Dialog の `enableConfirmWhenEmpty` などの向き、通知の `repeats`・`notifyOnEntry`・`notifyOnExit`・`interruptionLevel`、sound（ブリッジの JSON の既定のテストは書き直していない。記録 20.8） | 設計書 8.9、18.1 の 5 |
@@ -105,6 +105,6 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 |---|---|
 | MS-10 のプライバシーのレポート | 利用者が Xcode の Organizer で作る（記録 20.9 の手順）。結果は記録 20.9 の表に書く |
 | 実機の項目（`.private` の見え方、MS-08 の前面と実機、1b の UI テストの実機の回と実機の基準、0c の残りの 39 件と人の確認、配布用の署名） | どれも利用者の許可を得てから（記録 20.10、21 章の 3） |
-| 利用者の決定 | 記録 21 章（無い添付の入口の確かめ、基準の取り直し、実機の回の時期、D23 の simulator only、`sourceRect` の DocC、C ABI から表示元を渡す口） |
+| 利用者の決定 | 記録 21 章は 2026-11-01 に決まった（1〜6 は推奨のとおり。21 章の決定の行）。5（`sourceRect` の DocC）は記録 23.1 で直した。1（無い添付の入口の確かめ）は別の直しで行う。2 の基準の取り直しは、1 回目で N9・N32・N33 が失敗して保存されず、N32 を調べた後に残る（記録 21 章の決定の行） |
 | 更新のテスト（1.13.0 のサンプルから 2.0.0 へ） | 1b の後に別に設計する（設計書 13.4、UI テストの設計書 8.4） |
 | ブリッジ | 変えていない。1b でブリッジは `openSettingsFor` で設定の App を開かなくなり、JSON の `null` を含む userInfo は `invalidUserInfo` で失敗する（段階 3 で消す） |
