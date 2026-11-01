@@ -362,8 +362,7 @@ struct IosDialogManagerShownTests {
 
     /// S-P5, SR-20: a dialog dismissed from outside calls nothing (its methods have no result for
     /// it); the new API reports `dismissedBySystem` (the release watch).
-    @Test(.disabled(if: isThreadSanitizerEnabled, "a dismissed alert is not freed in the TSan build (design 6.3.4)"))
-    func aDialogDismissedFromOutsideCallsNothingButTheNewAPIIsTold() async throws {
+    @Test func aDialogDismissedFromOutsideCallsNothingButTheNewAPIIsTold() async throws {
         try await withHostWindow { host in
             let sessions = SessionRecorder()
             let events = MainRecorder<Event>()

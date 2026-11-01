@@ -127,7 +127,7 @@ README 4.1 の 1b の 3 行（印と予約したキー、`openSettingsFor`、`pr
 | `NotificationError` と `ShareError` の case が変わる（任意の `Error` を持つ case が `FailureDetail` を持つ case になる、`unknown` などを消す、新しい case を足す）。網羅した `switch` は組めなくなる | 破壊的 | S-P7、README 4 章 |
 | `IosNotificationManager` が `UNUserNotificationCenterDelegate` に準拠しなくなる | 破壊的 | S-P9 |
 | `Log` が deprecated になる（中身は今の `print` のまま。見え方は変わらない）。ライブラリは `Log` を使わず `os.Logger` で出す（ライブラリのログの出る所が Xcode のコンソールの `print` から統合ログに変わり、利用者の値は `.private` で伏せて見える） | 非推奨・動作 | S-P21 |
-| `async` 版を足したので、`completion` を書かずに `async` の文脈（`async` の関数と、`await` を含む `Task` などの closure の中）から呼んでいた `setBadgeCount`・`registerCategory`・`removeCategory`・`trigger` を書いた `show`・`update`・`schedule`・`requestPermission` が、`await`（と `try`）を足さないと組めなくなる（`trigger` を書かない `show(content:)` は壊れない）。**1b C6 の注**: 引数の無い `openNotificationSettings()` も同じ（`async` 版の `presenter` に既定 `.firstActiveScene` があるので、`async` の文脈では `async throws` 版に決まる。C6 のテストのソースで組めなくなって分かった。作業の記録 17 章） | 破壊的（ソース） | S-P26 |
+| `async` 版を足したので、`completion` を書かずに `async` の文脈（`async` の関数と、`await` を含む `Task` などの closure の中）から呼んでいた `setBadgeCount`・`registerCategory`・`removeCategory`・`trigger` を書いた `show`・`update`・`schedule`・`requestPermission` が、`await`（と `try`）を足さないと組めなくなる（`trigger` を書かない `show(content:)` は壊れない）。**1b C6 の注**: 引数の無い `openNotificationSettings()` も同じ（`async` 版の `presenter` に既定 `.firstActiveScene` があるので、`async` の文脈では `async throws` 版に決まる。C6 のテストのソースで組めなくなって分かった。作業の記録 17 章）。**1b C7 の注（UT-31。`swiftc -typecheck`、Swift 5 と 6 の両方、Xcode 26.3 と 26.6）**: `async` の関数の中で組めなくなるのは、`setBadgeCount(_:)`（`try await`）、`registerCategory(_:)`・`removeCategory(identifier:)`（`await`）、`show(content:trigger:)`・`update(identifier:content:trigger:)`・`schedule(content:trigger:identifier:)`（`try await`）、`requestPermission()`・`requestPermission(options:)`（`try await`）、`openNotificationSettings()`（`try await`）の 9 つの形。`await` を含む `Task { }` の closure の中も同じ。`await` を含まない `Task { }` の closure、同期の関数、`completion` を書いた形、`trigger` を書かない `show(content:)` は今のまま組める（作業の記録 20 章、1b の結果） | 破壊的（ソース） | S-P26 |
 | public の port の形が変わる: `ShareRepository.present(content:)` が `present(content:presenter:)` に、`NotificationRepository.openNotificationSettings()` が `openNotificationSettings() async -> Bool` になる。port を自分で実装した利用者は組めなくなる | 破壊的 | 8.2、8.5.5、RK-06 |
 | `ScheduledNotification`・`ActiveNotification` が `Sendable` になり、`userInfo` が計算プロパティになる（値の木 `userInfoValues` を足す）。読み方は今と同じ（作り直す辞書は `NSNumber` などの Foundation の型）。`init` に渡した、property list の型でない値と `String` でないキーは捨て、件数をログに出す | 動作・追加 | S-P25 |
 | `NotificationPermissionHelper` が deprecated になる（動作は今のまま） | 非推奨 | S-P27 |
@@ -139,8 +139,9 @@ README 4.1 の 1b の 3 行（印と予約したキー、`openSettingsFor`、`pr
 | Dialog の今の口: ボタンの handler と observer が Dialog を強く持たなくなり、閉じた後に observer が外れる | 動作（直し） | README 1.4 |
 | Share の今の口: 表示した Share のシートが完了の handler なしに解放されたとき（外から閉じた・scene が切れた）、完了が `(false, false, nil, "<固定の文言>")` で 1 回来る（前は来なかった） | 動作 | P1-14、P1-15 |
 | Share の今の口の `errorMessage`: 落ち着かない・UIKit が断ったときは `"Failed to present the share sheet."`（前は後ろに system の `localizedDescription` が付いた）。活動の失敗（`completionWithItemsHandler` の `error`）は新しい固定の文言（前は表示の失敗と同じ文言）。ほかの 5 つの文言は変えない | 動作 | S-P7、SR-21 |
-| `registerCategory`・`removeCategory` が呼んだ順に反映される（前は別々の `Task` で、片方の変更が失われえた） | 動作（直し） | S-P14、README 1.4 |
-| 表示・予約・更新が、userInfo の予約したキーと property list にできない値を拒む | 動作 | P1-9、S-P15 |
+| `registerCategory`・`removeCategory` が呼んだ順に反映される（前は別々の `Task` で、片方の変更が失われえた）。**1b C6 の注**: 同じ識別子の category の登録は置き換える（前は `Set.insert` だけで、中身の違う同じ識別子の category が 2 つ残りえた。作業の記録 18 章の 1 の決定） | 動作（直し） | S-P14、README 1.4 |
+| 表示・予約・更新が、userInfo の予約したキーと property list にできない値を拒む。**1b C6 の注**: `NSNull`・`NSURL` も拒む。C6 の前は `NSNull` を含む userInfo も足せて、`getScheduled` が `NSNull` をそのまま返した（JSON の `null` を `NSNull` にして渡す所は失敗するようになる。作業の記録 18 章の 6 の決定） | 動作 | P1-9、S-P15 |
+| `update` で添付を作れない（`attachmentLoadFailed`）ときは今の予約を消さない（前は消してから内容を作り、予約が消えたままになった）。**1b C7 の注**: 無いファイルの添付は `UNNotificationAttachment` では失敗せず、`add` が断る（`UNErrorDomain` の 100 → `addRequestFailed`）。`update` では今の予約を消した後の `add` で失敗するので、予約は残らない（作業の記録 19 章の L-B1、20.4 の 3、21 章の 1。入口でファイルの有無を確かめるかは決定待ち） | 動作（直し） | SR-9、作業の記録 19 章 |
 | 通知の操作の `errorMessage` が英語の固定の文言になる（前は OS の言語の汎用の文） | 動作 | S-P7 |
 | ログが `os.Logger` になり、秘密の値（パスワード、入力欄、通知の返信と内容、Share の内容）を出さない | 動作 | S-P21、README 1.4 |
 | 足す口: `PresenterSelection`、`RequestBox`、`FailureDetail`、Dialog の `DialogRequest`・`DialogAnswer`・`DialogInput`・`DialogError`・`show`・`cancel`・`foregroundViewController()`、Share の `presenter` を取る口、通知の `installDelegate()`・`isDelegateInstalled`・`responses`・`settingsRequests`・`launchResponse()`・`async throws` 版・`presenter` を取る権限の要求と設定の画面・完了つきの category、Clipboard の `loadItem(_:scope:requestBox:completion:)`・`cancelLoad(_:)` | 追加 | 付録 A |
@@ -357,6 +358,7 @@ README 4.1 の 1b の 3 行（印と予約したキー、`openSettingsFor`、`pr
 - 前提: ライブラリは表示した ViewController を `weak` で持つ。handler と observer は ViewController を強く捕まえない（8.1.4）
 - 申し送り 1 で測ったこと（シミュレーター）: 外から `dismiss` したアラートは、通常と ASan の版では約 0.5 秒で解放され、見張りが `dismissedBySystem` で閉じた。**TSan の版では 15 秒たっても解放されず、完了が来なかった**。外から閉じた Share のシートでは `completionWithItemsHandler` が呼ばれず、見張りの無い雛形では完了が来なかった。したがって **Share にも見張りが要る**（8.2）
 - 残る G-7（MS-03）: 外から閉じた Share の ViewController がいつ解放されるか、UIKit が表示を断った ViewController がいつ解放されるか（SR-16）、TSan の版で解放されないのはなぜか（TSan が何かを持ち続けるのか）。通常の版で解放されない経路が見つかれば、その経路を約束の外に移す（P1-14）。TSan の版の遅れは約束の範囲に入れない（テストの組み方の問題として扱い、見張りに頼るテストは TSan の回で skip し、理由を書く）
+- **1b の結果（MS-03。作業の記録 4.7・7.7・20.5）**: 外から閉じた Share のシートは約 0.55〜0.6 秒、UIKit が断ったシートは約 0.03〜0.04 秒で解放された。**TSan の版でも、`IosLibrary` の手順で出したアラートとシートは通常の版と同じ時間で解放された**（申し送り 1 の「15 秒たっても解放されない」は雛形の手順の振る舞いで、`IosLibrary` の手順では再現しなかった。雛形の何が持っていたかは調べていない）。C3 の Share の見張りのテストは skip せずに TSan で通し、1b C7 で C1・C2 の skip（`aRealViewControllerClosesTheBoxWhenFreed`、UT-14、`aDialogDismissedFromOutsideCallsNothingButTheNewAPIIsTold`）も外して、`IosLibraryTests` の全件を TSan で通した（報告 0 件）。D20・S19 もサンプルを TSan で組んで通した。TSan の回の skip は無くなった
 
 #### 6.3.5 `FailureDetail`（S-P7）
 
@@ -644,7 +646,7 @@ extension IosNotificationManager {
 
 | API の種類 | 使っている所 | 理由 |
 |---|---|---|
-| `NSPrivacyAccessedAPICategoryFileTimestamp` | `Clipboard/Data/File/ClipboardTemporaryFileStore.swift:92,96`（`.contentModificationDateKey`。`FileManager.temporaryDirectory` の下の自分のフォルダ） | `C617.1`（アプリのコンテナの中のファイルの時刻） |
+| `NSPrivacyAccessedAPICategoryFileTimestamp` | `Clipboard/Data/File/ClipboardTemporaryFileStore.swift:92,96`（`.contentModificationDateKey`。`FileManager.temporaryDirectory` の下の自分のフォルダ）。**1b C7 の `grep`（T-21）**: 同じ 2 か所だけで増えていない（行は C4 の追加で 116・120 にずれた。作業の記録 20.8） | `C617.1`（アプリのコンテナの中のファイルの時刻） |
 | `NSPrivacyAccessedAPICategorySystemBootTime` | 無し | - |
 | `NSPrivacyAccessedAPICategoryDiskSpace` | 無し | - |
 | `NSPrivacyAccessedAPICategoryActiveKeyboards` | 無し | - |
@@ -791,7 +793,7 @@ extension IosNotificationManager {
 | UT-02 | `ForegroundLocator` | 今の探し方が今の `getRootViewController()` と同じ結果。新しい定義が `foregroundInactive` と閉じかけの ViewController を扱う（偽の scene の値で） | `isBeingDismissed` の確かめを外す |
 | UT-03 | `RequestBox` | 最初に閉じたものだけ、2 つ目の付けで `invalidRequest`、付ける前の取り消し、8 スレッド × 25 回の閉じる競合（TSan でも流す） | `Mutex` の外で読む |
 | UT-04 | `PresentationProcedure` | 第 1 部 5.13.2 の `presenter` ごとの段（前面なし、落ち着き、待ち 1 回、2 回目の失敗、待つ間の取り消しで出さない、表示しない口は落ち着きを求めない）。UIKit を差し替えられる形にしたもの | 待ちを 2 回にする |
-| UT-05 | `ReleaseWatch` | 解放で 1 回閉じる。`present` の完了の前は `presentationFailed`、後は `dismissedBySystem`。普通の結果を上書きしない。ViewController の解放に頼る組み合わせは TSan の回で skip し、理由を書く（申し送り 1 で TSan の版は解放されなかった） | 箱が閉じていても閉じる |
+| UT-05 | `ReleaseWatch` | 解放で 1 回閉じる。`present` の完了の前は `presentationFailed`、後は `dismissedBySystem`。普通の結果を上書きしない。ViewController の解放に頼る組み合わせは TSan の回で skip し、理由を書く（申し送り 1 で TSan の版は解放されなかった。**1b C7 の注**: `IosLibrary` の手順では TSan の版でも解放されたので skip を外した。6.3.4） | 箱が閉じていても閉じる |
 | UT-06 | `FailureDetail` | `NSError` の domain と code だけを取る | `localizedDescription` を入れる |
 | UT-07 | `ShowDialogUseCase` と `DialogRequest` | 既定の文言、箱の使い回し、port に渡す値（Mock の port） | 既定を変える |
 | UT-08 | `AlertDialogPresenter`（ホストのアプリの上） | 6 種の組み立て（ボタンの数・style・入力欄）、`.primary` の入力、`.cancel` の `input == nil`、アクションシートの基点が必ず設定される | キャンセルで入力を返す |
@@ -817,10 +819,10 @@ extension IosNotificationManager {
 | UT-28 | `NotificationCategoryQueue` | 列に internal の `NotificationCategoryCenter` の偽物を渡す（SR2-10）。8 スレッドからの並行の登録と削除で変更が失われない。同じスレッドから呼んだ順に反映される。1 件の処理の読み取りと書き戻しの間に次の要求が入らない（偽物の `categories()` を止めて、その間に 2 件目を積む）。**処理の途中で積んでも 2 つ目の取り出しが起きない**（起きた `Task` の数を数える）。**終わり際に積んでも残らない**（取り出しが空を見る直前と直後に積む形を、偽物の中の待ち合わせで作る）。完了が反映の後に main で 1 回。Manager の `async` 版を続けて 2 回待つと、呼んだ順に反映される。**main の `Task` を 8 つ続けて起こし、それぞれで `async` 版の登録と削除を呼ぶと、起こした順に反映される（300 回繰り返す）**。C ABI の形（main のブロックの中で callback 版を続けて呼ぶ）でも呼んだ順（SR3-1）。`NotificationRepositoryImpl` を 2 つ作っても同じ列（SR-1、SR-18、SR2-1、SR2-2） | 空を見るのと印を下ろすのを別の `Mutex` の区間にする。`async` 版の `nonisolated(nonsending)` を外す |
 | UT-29 | `async throws` 版の通知の操作 | 委ねる UseCase と同じ結果とエラー | エラーを写し違える |
 | UT-30 | Clipboard の箱 | `cancelLoad` で `cancelled` が 1 回、遅れた結果を捨てる、開始の前の取り消し、背景のスレッドからの取り消し（TSan でも流し、閉じたときの処理が main actor を継がないこと。SR-3） | 遅れた結果を通す |
-| UT-31 | 今の呼び出しの型検査（S-P26） | テストのソースに、`async` の関数の中から今の口を `completion` を書いて呼ぶ形（組める）を置く。`completion` を書かない形が組めないことは、`swiftc -typecheck` に渡す小さなファイルで確かめ、その一覧を 3.3 と移行の手引きに写す（T-21） | `completion` の既定の `nil` を外す |
+| UT-31 | 今の呼び出しの型検査（S-P26） | テストのソースに、`async` の関数の中から今の口を `completion` を書いて呼ぶ形（組める）を置く（**1b C7**: `IosNotificationManagerCallFormTests`。同期の closure の中の `completion` を書かない形も置いた。壊し方の M159・M160 で組めなくなった）。`completion` を書かない形が組めないことは、`swiftc -typecheck` に渡す小さなファイルで確かめ、その一覧を 3.3 と移行の手引きに写す（T-21） | `completion` の既定の `nil` を外す |
 | UT-32 | `Sendable` の結果（S-P25） | main actor の `Task` から、`getScheduled()`・`getDelivered()`・`requestPermission(options:presenter:)` などの `async` 版を待つテストが Swift 6 で組めて通る（SR-2） | 一覧の型の `Sendable` を外す |
 
-- 移すロジックに当たるブリッジのテスト（ブリッジのテストの記録）の扱い: JSON の解析のテスト（Clipboard 26 件、Notification 41 件、Share 7 件）は移すロジックが無いので書き直さない（README 1.2。JSON は捨てる）。`UnityIosClipboardManagerCallbackContractTests` の 9 件（main で 1 回、不正な要求も 1 回）は C ABI のテスト（2b）で置き換える。`parseContentNoSoundDefaultsToDefault` は `NotificationContentTests` に既定の確かめがあるかを見て、無ければ足す。対応を 1b の結果に書く
+- 移すロジックに当たるブリッジのテスト（ブリッジのテストの記録）の扱い: JSON の解析のテスト（Clipboard 26 件、Notification 41 件、Share 7 件）は移すロジックが無いので書き直さない（README 1.2。JSON は捨てる）。`UnityIosClipboardManagerCallbackContractTests` の 9 件（main で 1 回、不正な要求も 1 回）は C ABI のテスト（2b）で置き換える。`parseContentNoSoundDefaultsToDefault` は `NotificationContentTests` に既定の確かめがあるかを見て、無ければ足す。対応を 1b の結果に書く。**1b C7 の注**: 件数はブリッジのテストの記録の表（Clipboard 25、Notification 40、Share 7 と Share のマネージャー 1）と少し違ったので、作業の記録 20.8 は記録の表に合わせた
 
 ### 13.2 UI テスト（`IosLibraryExampleUITests`）
 
@@ -832,7 +834,7 @@ extension IosNotificationManager {
 | D17 | SA-02 | 1 つ目を閉じると（または上に重なって）2 つ目も出て、2 つとも結果の行が 1 回ずつ（G-4 で重なり方を確かめる） | シミュレーター（両方の OS） |
 | D18 | SA-03（1 秒後に取り消し） | Dialog が消え、`failure canceled` が 1 回 | 両方 |
 | D19 | SA-03（上に重ねてから取り消し） | 上の画面は残り、Dialog も残り、`failure canceled` が 1 回。残った Dialog のボタンを押しても結果の行が増えない | 両方 |
-| D20 | SA-04 | `failure dismissedBySystem` が 1 回（申し送り 1 で通常と ASan の版は約 0.5 秒で来た。TSan の回では流さない） | シミュレーター |
+| D20 | SA-04 | `failure dismissedBySystem` が 1 回（申し送り 1 で通常と ASan の版は約 0.5 秒で来た。TSan の回では流さない。**1b C7 の注**: サンプルを TSan で組んだ回でも通った。6.3.4） | シミュレーター |
 | D21 | SA-05 → ホーム | `failure notForeground` が 1 回 | シミュレーター（`systemui`） |
 | D22 | Control Center を引き出した間に `.foreground` の Dialog（SA-05 の遅れを使う） | 出る（G-6。MS-02） | シミュレーター（`systemui`） |
 | D23 | iPad Pro 11-inch (M4) / 18.3 で D6 と SA-01 のアクションシート | 落ちずに出る（基点。P1-20） | iPad のシミュレーター |
@@ -957,7 +959,7 @@ extension IosNotificationManager {
 | RK-08 | `foregroundInactive` の間に表示が出て、後ろに回る途中に Dialog が残る | 表示は残り、戻ったときに選べる（P1-15）。D22 で確かめる |
 | RK-09 | 値の木で userInfo の型（`NSNumber` の真偽値と整数）を取り違える | UT-18。`CFBoolean` を先に見る |
 | RK-10 | category の反映が読み直しで確かめられない | MS-09 の結果で完了の時期を「書き戻した後」にする |
-| RK-11 | 解放の見張りが ViewController の解放の時期に頼り、環境（TSan の版など）で遅れる、来ない | 通常の版で来ない経路は約束の外に移す（P1-14）。TSan の回では見張りに頼るテストを skip し、理由を書く。Dialog は取り消せば来る |
+| RK-11 | 解放の見張りが ViewController の解放の時期に頼り、環境（TSan の版など）で遅れる、来ない | 通常の版で来ない経路は約束の外に移す（P1-14）。TSan の回では見張りに頼るテストを skip し、理由を書く。Dialog は取り消せば来る。**1b の結果**: 通常の版で来ない経路は、scene を切っても表示元の window が残る場合だけ（R4-4 のとおり約束の外）。TSan の版でも解放は遅れず、1b C7 で TSan の skip をすべて外した（6.3.4） |
 | RK-12 | `async` 版の追加で、利用者の `async` の文脈の呼び出しが組めなくなる | 3.3 と移行の手引きに一覧（UT-31）。組めなくなるだけで、黙って意味は変わらない |
 
 ## 17. Definition of Done
@@ -1146,6 +1148,7 @@ extension RemoveNotificationCategoryUseCase {
 @available(*, deprecated, message: "Use IosNotificationManager.requestPermission(options:presenter:)")
 public final class NotificationPermissionHelper: Sendable { /* unchanged members */ }
 @MainActor public final class NotificationEventHub<Event: Sendable> {
+    @discardableResult                                                    // 1b C5 (the work notes 13.15 #1)
     public func addListener(_ listener: @escaping @MainActor (Event, NotificationEventRegistration) -> Void)
         throws(NotificationError) -> NotificationEventRegistration           // delegateNotInstalled
 }
@@ -1169,6 +1172,7 @@ extension IosNotificationManager {                                         // no
     public func authorizationStatus() async -> NotificationAuthorizationStatus
     public func requestPermission(options: UNAuthorizationOptions = [.alert, .sound, .badge], presenter: PresenterSelection,
                                   completion: @escaping @MainActor @Sendable (Result<Bool, NotificationError>) -> Void)
+    @discardableResult                                                    // 1b C6 (ios.md; the work notes 17.4 #5)
     public func requestPermission(options: UNAuthorizationOptions = [.alert, .sound, .badge],
                                   presenter: PresenterSelection = .firstActiveScene) async throws -> Bool
     public func openNotificationSettings(presenter: PresenterSelection,
@@ -1196,5 +1200,5 @@ extension IosClipboardManager {
 ```
 
 - `registerCategory(_:completion:)` と `removeCategory(identifier:completion:)` は、今の `registerCategory(_:)`・`removeCategory(identifier:)` に既定 `nil` の引数を足したもの。同期の文脈の今の呼び方は組めるが、`async` の文脈で `completion` を書かずに呼んでいた所は `async` 版に決まり、`await` が要る（S-P26）
-- **1b C6 の注**: `requestPermission(options:presenter:) async throws -> Bool` には `@discardableResult` を付けた（`ios.md` の「ネイティブ版は `@discardableResult`」）。`RequestNotificationPermissionUseCase.execute(options:)` は `throws(NotificationError)` で、port が `NotificationError` でないものを投げたら `authorizationFailed` に写す。`NotificationCategoryQueue` の internal の `init(center:drainHook:)` と `drainStartCount` はテストのためのもの
+- **1b C6 の注**: `requestPermission(options:presenter:) async throws -> Bool` には `@discardableResult` を付けた（`ios.md` の「ネイティブ版は `@discardableResult`」。1b C7 で上の宣言に足した。C5 の `addListener(_:)` の `@discardableResult` も同じく C7 で足した。作業の記録 15 章の 5、17.11）。`RequestNotificationPermissionUseCase.execute(options:)` は `throws(NotificationError)` で、port が `NotificationError` でないものを投げたら `authorizationFailed` に写す。`NotificationCategoryQueue` の internal の `init(center:drainHook:)` と `drainStartCount` はテストのためのもの
 - `throws(NotificationError)` の型つきの throws は Swift 6 の機能で、利用者の下限の Xcode 26.3（Swift 6.2.4）で読める（swiftinterface を 26.3 で読めることは 1a 入口 3 章で確かめた形に入る。1b で `typecheck-module-from-interface` を流す）

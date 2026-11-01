@@ -356,8 +356,7 @@ struct AlertDialogPresenterTests {
 
     /// The alert, its button handlers and its text-field observers do not keep one another
     /// alive: after the answer and the dismissal the alert is freed and the observers are gone.
-    @Test(.disabled(if: isThreadSanitizerEnabled, "a dismissed alert is not freed in the TSan build (design 6.3.4)"))
-    func theAlertAndItsObserversAreFreedAfterItCloses() async throws {
+    @Test func theAlertAndItsObserversAreFreedAfterItCloses() async throws {
         try await withHostWindow { host in
             for (index, closing) in ["button", "cancel"].enumerated() {
                 let results = MainRecorder<DialogResult>()

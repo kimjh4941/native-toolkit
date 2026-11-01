@@ -124,20 +124,16 @@ struct ReleaseWatchTests {
         #expect(recorder.all.allSatisfy { $0.isMainThread })
     }
 
-    /// With a real view controller. Skipped with the Thread Sanitizer: in hand-off 1 a dismissed
-    /// `UIAlertController` was not freed within 15 s in the TSan build, so a test that waits for
-    /// a view controller to be freed cannot pass there (design 6.3.4, RK-11).
-    @Test(.disabled(if: isThreadSanitizerEnabled, "UIKit view controllers are not freed promptly under TSan (hand-off 1)"))
-    func aRealViewControllerClosesTheBoxWhenFreed() async throws {
+    /// With a real view controller. Also run with the Thread Sanitizer: a view controller that is
+    /// let go is freed at once there too (stage 1b C7; design 6.3.4, RK-11).
+    @Test func aRealViewControllerClosesTheBoxWhenFreed() async {
         let box = RequestBox()
         autoreleasepool {
             var viewController: UIViewController? = UIAlertController(title: "t", message: nil, preferredStyle: .alert)
             ReleaseWatch(box: box).attach(to: viewController!)
             viewController = nil
         }
-        for _ in 0..<100 where !box.isClosed {
-            try await Task.sleep(nanoseconds: 10_000_000)
-        }
+        #expect(await waitUntil(timeout: 5) { box.isClosed })
 
         #expect(box.outcome?.testName == "presentationFailed")
     }

@@ -9,7 +9,7 @@
 | 対象 OS | iOS 18.0 以降（D-15）。スライスは `ios-arm64` と `ios-arm64_x86_64-simulator`（D-11） |
 | 作成日 | 2026-10-31（第 1 版） |
 | 状態 | **決定（2026-10-31、利用者）。P1-1〜P1-24 はすべて推奨のとおり**（P1-10・P1-24 の D-5 の決め直しを含む）。レビューは v1〜v4 の 4 回で、v3 で約束の範囲を絞った。README の直し（11 章）は反映済み |
-| 改訂 | v2: レビュー v1 を反映（R-1〜R-42）。v3: レビュー v2 を反映（R2-1〜R2-18）。**v5（2026-10-31）: レビュー v4（R4-1〜R4-9。A は 0）を反映した。要求の箱を受け付けの時点で作って表示の口に渡す（R4-1）、表示の途中の取り消しは `present` の完了まで閉じるのを待つ（R4-2）、ほかは書き方の直し**。**v4（2026-10-31）: レビュー v3（R3-1〜R3-19）と、その「決定」（利用者、2026-10-31）を反映した。同じ論点の A が 3 回続いたので、仕組みを足すのをやめて約束の範囲を絞った**: 循環の防止は最初の転送の呼び出しの中の同期の戻りだけを止め、それ以外はホストの契約違反とした（P1-21、5.12.5）。表示の完了がちょうど 1 回なのは、ライブラリが受け持つ終わり方と UIKit が知らせる終わり方だけとし、ホストが表示中に画面の構成を変える場合を約束の外にした（1.3、P1-14、5.13.1）。1 秒ごとの階層の見張りは外した。各版で直した所は各レビューの「対応」の列にある |
+| 改訂 | **1b C7 の追記（2026-11-01）: 段階 1b の測りの結果を書き足した（4.4 の G-4・G-6〜G-9、1.3.3 の SwiftUI の `App.init` の行、5.11、5.12.4 と P1-17 の (3)・(4)、5.13 の前面の定義と設定の画面・Clipboard の行、5.13.1、10 章）。P1-n の決定は変えていない（1b の作業の記録 20 章）**。v2: レビュー v1 を反映（R-1〜R-42）。v3: レビュー v2 を反映（R2-1〜R2-18）。**v5（2026-10-31）: レビュー v4（R4-1〜R4-9。A は 0）を反映した。要求の箱を受け付けの時点で作って表示の口に渡す（R4-1）、表示の途中の取り消しは `present` の完了まで閉じるのを待つ（R4-2）、ほかは書き方の直し**。**v4（2026-10-31）: レビュー v3（R3-1〜R3-19）と、その「決定」（利用者、2026-10-31）を反映した。同じ論点の A が 3 回続いたので、仕組みを足すのをやめて約束の範囲を絞った**: 循環の防止は最初の転送の呼び出しの中の同期の戻りだけを止め、それ以外はホストの契約違反とした（P1-21、5.12.5）。表示の完了がちょうど 1 回なのは、ライブラリが受け持つ終わり方と UIKit が知らせる終わり方だけとし、ホストが表示中に画面の構成を変える場合を約束の外にした（1.3、P1-14、5.13.1）。1 秒ごとの階層の見張りは外した。各版で直した所は各レビューの「対応」の列にある |
 | ブランチ | `feature/NTKIT-18`（HEAD `aa8c9922`） |
 | 前段階 | 段階 0a〜0g は完了（実機の `clipboard`・`files`・`reinstall`・`credentials` の 39 件と人の確認の手順書は残る）。段階 1a のシミュレーターの下調べは完了し、13 の決定をした（README 8.2.1） |
 | 元にした文書 | Android の C ABI の設計書 第 1 部（`artifact/topics/android-c-abi/designs/2026-10-04-android-c-abi-c-abi-design.md`。以下「Android 第 1 部」）と第 2 部（`...-c-abi-design-part2.md`。以下「Android 第 2 部」）、そのレビュー（`android-c-abi/reviews/2026-10-04-android-c-abi-c-abi-design-review-v1.md`〜`-v5.md`）、Windows の C ABI の設計書（`artifact/topics/windows-architecture/designs/2026-09-21-windows-architecture-c-abi-design.md`。以下「Windows の設計書」）、1a の作業の記録 2 つ（`results/2026-10-31-ios-c-abi-stage1a-entry-working-notes.md`。以下「1a 入口」、`results/2026-10-31-ios-c-abi-stage1a-delegate-working-notes.md`。以下「1a delegate」）と雛形（`results/probes/stage1a/`）、Android から引き継ぐ知見（`results/2026-10-18-ios-c-abi-android-lessons.md`。以下「知見」）、0e・0f の作業の記録（`results/2026-10-24-ios-c-abi-stage0e-working-notes.md`、`results/2026-10-25-ios-c-abi-stage0f-working-notes.md`）、今の Swift の API（`ios/IosLibrary/IosLibrary/`） |
@@ -128,6 +128,7 @@ Swift のアプリは C ABI を使わず、`IosLibrary` を直接呼ぶ（README
 | 時期 | 振る舞い |
 |---|---|
 | `UIApplicationMain` の前（`+load`、C の constructor、C++ の静的な初期化、`main` の中の `UIApplicationMain` の前） | **契約の外**。`ntk_notification_install` は呼ばない（D-4 で C を採らなかった理由と同じ。`UIApplication` がまだ無い）。main スレッドから呼べば判定（`pthread_main_np`）を通り、`NONE` を返して delegate を設定する見込みだが、`UNUserNotificationCenter.current()` がこの時期に使えるかを含めて確かめていない（G-9。R-40）。ほかの関数は呼べるが、完了は main の run loop が回ってから来る。確かめていない |
+| SwiftUI の `App.init`（1b で足した行） | `UIApplication.shared` がまだ無い（`nil`）。1b の C5 で、`App.init` から入れると `applicationState` が `0`（`.active`）と読め、起動のきっかけが決まらず誤った「起動の後かもしれない」のログが出た。**C5 のレビューの直し（1b の作業の記録 15 章の 1 の決定、16 章の B-4）で、入れる口は Objective-C の `sharedApplication` が `nil` なら「まだ active でない」とみなす**ので、`App.init` から入れてもよい（コールドスタートのタップと起動のきっかけが取れることを N36・N37 の写しで確かめた。iPhone 17 / 26.2）。サンプルは UIKit のアプリと同じ所（`UIApplicationDelegateAdaptor` の `didFinishLaunching`）で入れる。C ABI の `ntk_notification_install` も同じ口を呼ぶので同じ扱い（ヘッダーとマニュアルに書く） |
 | `application(_:willFinishLaunchingWithOptions:)` から `application(_:didFinishLaunchingWithOptions:)` が戻るまで（scene のアプリは `scene(_:willConnectTo:options:)` が戻るまでも） | `ntk_notification_install` を呼ぶ期限（D-4、1a delegate 2.4）。`didFinishLaunchingNotification` の受け手からでも間に合う見込み（応答より先に来ることは測ったが、その受け手から入れてタップが届くかは測っていない推測。U-3 と 1b で確かめる。R-21）。ほかの関数も呼べる。前面が要る操作は、この時期は scene が前面に無い（scene のアプリでは `applicationState` が background）ので、`NOT_FOREGROUND` で完了しうる（P1-11） |
 | 起動の後 | `ntk_notification_install` は成功を返してログを出す（1a-11）。コールドスタートのタップは失う。Unity の C#、Dart はこの時期に始まる（README 0 章、D-4） |
 | 後ろにいる間（background） | 前面が要らない操作は動く。前面が要る操作は `NOT_FOREGROUND` で完了する（5.13）。表示中の Dialog・Share は、後ろに回っても取り消さない（P1-15） |
@@ -246,7 +247,7 @@ ntk_notification_error NTK_CALL ntk_notification_install(void);
 | P1-14 | 表示の完了をちょうど 1 回にする仕組み（README 1.4 の「完了が 1 回も呼ばれない経路」。**v4 で約束の範囲を絞った**。R3-2、レビュー v3 の決定） | A: **約束するのは、ライブラリが受け持つ終わり方（ボタンなどの handler、取り消し、表示の失敗）と、UIKit が知らせる終わり方（Share の `completionWithItemsHandler`、表示した ViewController の解放）だけ**。解放は、要求の箱を持つ小さな見張りを表示する ViewController に関連オブジェクトで結び付けて見つける（外から `dismiss` された Dialog は、ライブラリも handler も持たないので解放される見込み）。ホストが表示中に画面の構成を変える場合は約束の外（0.1）/ B: A から解放の見張りを外す（外から閉じられた Dialog も約束の外になる） | **A（決定）** | 解放の見張りは、ライブラリが ViewController を強く持たないことだけを前提にする小さな仕組みで、ホストが契約を守る範囲では外からの `dismiss` と UIKit が断った表示を閉じられる。v3 の 1 秒ごとの階層の見張りは、移り変わりの一瞬や Share の活動の画面で本当の結果を誤って上書きする危険のほうが大きいので外した（R3-2、R3-5、R3-8）。外からの `dismiss` で解放されることは見込みで、1b で確かめる（G-7）。解放されないと分かれば、その経路は約束の外に移す |
 | P1-15 | 後ろに回ったとき、scene が切れたとき（README 8.6。**v4 で範囲を絞った**） | A: **後ろに回っても取り消さない**（利用者が戻って選んだときに完了する）。**表示した scene が切れたときは、表示した ViewController が解放されれば解放の見張りで `CANCELED_BY_SYSTEM`。解放されなければ約束の外**（システムが切った場合を含む。Share では `user_data` が漏れうる。**v5 で書き足した**。R4-4）/ B: 後ろに回ったら取り消す | **A（決定）** | UIKit は後ろに回っても表示を残すので、戻った利用者はそのまま選べる。B はアプリの切り替えのたびに入力を失う。scene が切れたときの handler と解放は測っていない（G-7） |
 | P1-16 | 利用者のコールバックの例外 | A: **コールバックは例外を外へ出してはならない。出した場合の振る舞いは定めない**（多くはプロセスが終わる）。ライブラリは捕まえない / B: C++ の小さな踏み台で C++ の例外を捕まえる | **A（決定）** | capi は C と Swift だけで書く（D-10）。Swift は C++ の例外も Objective-C の例外も捕まえられない。B は C++ を持ち込むうえ、Objective-C と C# の例外は止められない。1a で、main に積んだブロックの中の捕まえられない UIKit の例外は `SIGABRT` で終わることを確かめた（1a 入口 5.1）。**利用者のコールバックの C++・Objective-C の例外が Swift のフレームを越えるときの振る舞いは測っていない**（G-8。1b で 1 回確かめて記録する。R-24）。Android 第 1 部 5.11 と同じ扱いで、Windows の「包みが捕まえて捨てる」（7.7）とは違う（DF-9） |
-| P1-17 | `@unchecked Sendable` と `nonisolated(unsafe)` を使ってよいもの | A: **使ってよいものを決めて一覧にする**。capi: (1) C のコールバックを main へ運ぶ箱（関数ポインタ、`user_data`、`release`）、(2) 登録（`Registration`。状態は `Atomic`）。`IosLibrary`: (3) system の completion を 1 回だけ通す包み（`CompletionOnce`。5.12.4）、(4) 要求の箱（5.13.1。`Mutex` で守る）と解放の見張り、(5) 関連オブジェクトの鍵（`nonisolated(unsafe) static let`。番地を鍵に使うだけ）。前の delegate に渡す closure は `@unchecked` にしない。それぞれに理由をコメントで書き、TSan のテストを持つ / B: 使わない | **A（決定）** | B はできない。`user_data`（`UnsafeMutableRawPointer`）と、SDK の delegate の completion（`@Sendable` でない）は `Sendable` にならない（1a 入口 2.2、1a delegate 5 章）。`IosLibrary` には前から `@unchecked Sendable` が 5 つと `nonisolated(unsafe)` が 1 つある（Clipboard）。(1) は `user_data` を `UInt(bitPattern:)` で運べば減らせるかもしれないので、2b で試す |
+| P1-17 | `@unchecked Sendable` と `nonisolated(unsafe)` を使ってよいもの | A: **使ってよいものを決めて一覧にする**。capi: (1) C のコールバックを main へ運ぶ箱（関数ポインタ、`user_data`、`release`）、(2) 登録（`Registration`。状態は `Atomic`）。`IosLibrary`: (3) system の completion を 1 回だけ通す包み（`CompletionOnce`。5.12.4。**`@unchecked` は 1b では使っていない**（`CompletionOnce` 自体は使い、`@unchecked` なしの `Sendable`）: SDK が delegate のメソッドの completion を `@Sendable` で取り込むので、`@unchecked` なしの `Sendable` で組めた。capi が同じ包みを要るかは 2b で見る。1b の作業の記録 13.4 の 1・14 章の 2）、(4) 要求の箱（5.13.1。`Mutex` で守る）と解放の見張り（**`@unchecked` は 1b では使っていない**（`RequestBox` と解放の見張り自体は使い、`@unchecked` なしの `Sendable`）: `Mutex` と `Atomic` が `Sendable` なので、`@unchecked` なしで組めた。1b の作業の記録 1.4 の 1）、(5) 関連オブジェクトの鍵（`nonisolated(unsafe) static let`。番地を鍵に使うだけ）。前の delegate に渡す closure は `@unchecked` にしない。それぞれに理由をコメントで書き、TSan のテストを持つ / B: 使わない | **A（決定）** | B はできない。`user_data`（`UnsafeMutableRawPointer`）と、SDK の delegate の completion（`@Sendable` でない）は `Sendable` にならない（1a 入口 2.2、1a delegate 5 章）。`IosLibrary` には前から `@unchecked Sendable` が 5 つと `nonisolated(unsafe)` が 1 つある（Clipboard）。(1) は `user_data` を `UInt(bitPattern:)` で運べば減らせるかもしれないので、2b で試す |
 | P1-18 | C ABI のログ（D-13 の「`os_log` の subsystem とカテゴリ」） | A: **`os.Logger`、subsystem は capi の bundle id（`com.jonghyunkim.nativetoolkit.IosLibraryCApi`）、カテゴリは機能名（`Common`、`Clipboard`、`Dialog`、`Notification`、`Share`）**。関数名・エラーの値・ID・件数は `.public`、利用者の値は `.private`、秘密の値（パスワード、入力欄、通知の返信、クリップボードの本文、通知と Share の内容）は出さない / B: `IosLibrary` の `Log`（`print`）に合わせる | **A（決定）** | `IosLibrary` の `Log` は `internal` で capi から呼べない。`print` は Release でも出て伏せる仕組みが無い（README 1.4）。`os_log` は D-13 の決定。Swift の API の設計書がログの規則（README 8.6）を決めたら、出す項目をそちらに合わせる |
 | P1-19 | 2 つの framework の版と、capi のライブラリの進化 | A: **同じ版の組だけを支える**。capi は `BUILD_LIBRARY_FOR_DISTRIBUTION=NO`（1a の雛形の設定）。`check_ios_dist.py` で 2 つの `CFBundleShortVersionString` が同じことを照らし、capi の最初の呼び出しで `IosLibrary` の版を読み、違えばログに出す（止めない）/ B: capi も `YES` にし、版の違う組も支える | **A（決定）** | capi は Swift の公開面を配らない（1a-2）ので、モジュールの安定性が要らない。版の違う組を支えると、確かめる組み合わせが増える。実行時のログで、利用者が組を混ぜたときに気付ける |
 | P1-20 | メモリとサニタイザーの確かめ方 | A: **C ABI のテストを、シミュレーター（iPhone 17 / 26.2 と iPad Pro 11-inch (M4) / 18.3）で通常・ASan・TSan の 3 通りに流し、`test_ios.sh` につなぐ。実機（iPhone XS）の ASan は区切り（2b の DoD）でだけ、毎回利用者の許可を得て流す。実機の TSan は Xcode の文書で対応を確かめ、端末では試さない** / B: 実機でも毎回流す | **A（決定）** | ASan と TSan はシミュレーターで動き、TSan が実際に報告することも確かめた（1a 入口 5.4）。iPad の iOS 18 は popover の例外が出る唯一の環境（1a 入口 5.1）。実機は利用者の私物で、流すたびに許可が要る（`agent-rules/device-testing.md`、D-21） |
@@ -285,12 +286,12 @@ ntk_notification_error NTK_CALL ntk_notification_install(void);
 | G-1 | Swift の API の補完（イベントの口、転送の delegate の型、Dialog の結果、エラーの case）がまだ無い | C ABI が求める条件を 9.1 に書き、中身は Swift の API の設計書に任せる |
 | G-2 | 本物の Unity での組み込み・起動の順・通知のパッケージとの共存・実機の振る舞いは、まだ誰も確かめていない | `unity-native-plugin` の agent に任せる（1a-4、README 5 章の 1a の行）。確かめることと、結果で変わる決定を 10 章に書く |
 | G-3 | `#include <NativeToolkitC/Common.h>`（Windows・Android と同じ書き方）を iOS の framework で使えるかは確かめていない（1a 入口 4.2・8 章） | 2b の smoke で確かめる。使えなければマニュアルに iOS の書き方（DF-8）を書く |
-| G-4 | `present` の直後の `presentingViewController`（表示の失敗を早く見つける補い）と `transitionCoordinator`、coordinator の completion の中で落ち着いているか（P1-12）、表示の途中（`isBeingPresented`）の `dismiss` が無視されるか（R4-2）、起動の直後の表示（0a の R-9）は確かめていない | 1b のテストで確かめる。`presentingViewController` が直後に設定されないなら補いを外す。`transitionCoordinator` が取れないなら、待ちは main の次の回の確かめ直しだけになる（5.13.2） |
+| G-4 | `present` の直後の `presentingViewController`（表示の失敗を早く見つける補い）と `transitionCoordinator`、coordinator の completion の中で落ち着いているか（P1-12）、表示の途中（`isBeingPresented`）の `dismiss` が無視されるか（R4-2）、起動の直後の表示（0a の R-9）は確かめていない | 1b のテストで確かめる。`presentingViewController` が直後に設定されないなら補いを外す。`transitionCoordinator` が取れないなら、待ちは main の次の回の確かめ直しだけになる（5.13.2）。**1b の結果（MS-01、iPhone 17 / 26.2 と iPhone 16 / 18.3。1b の作業の記録 4.7・7.7・20 章）**: `UIAlertController` は `present` の中で `presentingViewController` が設定され、直後に `transitionCoordinator` があり、その completion の中ではまだ落ち着いていない（段 5 のとおり次の回に確かめる）。同じ回の 2 つの Dialog は 2 つとも出て 2 つ目が上。表示の途中の `dismiss` は無視されず、表示の後に閉じた（`present` の完了で閉じる形は R4-2 の守りとして残した）。**`UIActivityViewController` は `presentingViewController` が `present` から戻った後（0.05〜0.9 秒）にしか設定されない**ので、Share は補いを使わず見張りだけにした（UIKit が断ったシートは約 0.03〜0.04 秒で解放され、見張りが表示の失敗で閉じる） |
 | G-5 | 1a の雛形が `__cxa_atexit` などの終わりの登録を import していないかは見ていない | 2b の `check_ios_dist.py`（README 7.3 の「終わるときの処理」）で照らす |
-| G-6 | P1-11 の定義の前提 2 つ: `foregroundInactive` の間も UIKit が `UIAlertController` と `UIActivityViewController` を表示できる、`isKeyWindow` が真の window がアプリで 1 つ（iPad の複数の window を含む）。測っていない（R-15） | 1b の iPad のシミュレーター（26.2 と 18.3）で確かめる。成り立たなければ口の定義を `foregroundActive` だけにし、P1-11 を直す |
-| G-7 | UIKit の振る舞いで測っていないもの: 外から `dismiss` した Dialog と Share の ViewController が解放されるか（いつか）、そのとき `UIAlertAction` の handler と Share の `completionWithItemsHandler` が呼ばれるか、handler がどのスレッドで呼ばれるか。Share で活動を選んだとき、活動の画面の間に ViewController が解放されないか。scene を切ったときの handler と解放（P1-15）。`UIApplication.open` を後ろから呼んだとき。権限が未決で後ろにいるときの `requestAuthorization`。scene のアプリでの `UIApplication.didBecomeActiveNotification` の順（P1-22） | 1b で確かめて記録する。**外から `dismiss` した Dialog が解放されないと分かれば、その経路を約束の外に移す**（P1-14）。window や root の差し替えは約束の外なので確かめない（記録だけはしてよい） |
-| G-8 | 利用者のコールバックの C++・Objective-C の例外が Swift のフレームを越えるときの振る舞い（R-24） | 1b で 1 回確かめて記録する（P1-16 の契約は変えない） |
-| G-9 | `UIApplicationMain` の前に `ntk_notification_install` を呼んだときの振る舞い（R-40） | 契約の外のまま。1b で 1 回確かめて、マニュアルに書く |
+| G-6 | P1-11 の定義の前提 2 つ: `foregroundInactive` の間も UIKit が `UIAlertController` と `UIActivityViewController` を表示できる、`isKeyWindow` が真の window がアプリで 1 つ（iPad の複数の window を含む）。測っていない（R-15） | 1b の iPad のシミュレーター（26.2 と 18.3）で確かめる。成り立たなければ口の定義を `foregroundActive` だけにし、P1-11 を直す。**1b の結果（MS-02。1b の作業の記録 4.7・7.7、5 章の 2 の決定）**: 1 つ目は成り立つ（Control Center を引き出した間の `foregroundInactive` に、`.foreground` の `UIAlertController` と `UIActivityViewController` がどちらも出て、閉じた後に答えられた。iPhone 17 / 26.2）。**2 つ目は iPad で成り立たない**: iPad Pro 11-inch (M4) / 18.3 で 2 つの scene を並べると両方が `foregroundActive` で key window が 2 つ、iPad (A16) / 26.2 では後ろの scene の key window も残った。`foregroundActive` だけにしても両方 active の崩れ方は直らないので、**定義は今のまま**（active を先に選び、候補が 2 つ以上なら `.info` のログ。どちらを選ぶかは `connectedScenes` の順で決まらない）。**複数の window の iPad では、表示元を `.viewController(_:)` で渡すことを DocC（済み）・マニュアル（段階 4）・C ABI のヘッダー（2a。C から表示元を渡す口があればその説明に）に書く**（5.13 の前面の定義）。C に表示元を渡す口を足すかは未決（1b の作業の記録 21 章の 6） |
+| G-7 | UIKit の振る舞いで測っていないもの: 外から `dismiss` した Dialog と Share の ViewController が解放されるか（いつか）、そのとき `UIAlertAction` の handler と Share の `completionWithItemsHandler` が呼ばれるか、handler がどのスレッドで呼ばれるか。Share で活動を選んだとき、活動の画面の間に ViewController が解放されないか。scene を切ったときの handler と解放（P1-15）。`UIApplication.open` を後ろから呼んだとき。権限が未決で後ろにいるときの `requestAuthorization`。scene のアプリでの `UIApplication.didBecomeActiveNotification` の順（P1-22） | 1b で確かめて記録する。**外から `dismiss` した Dialog が解放されないと分かれば、その経路を約束の外に移す**（P1-14）。window や root の差し替えは約束の外なので確かめない（記録だけはしてよい）。**1b の結果（MS-03〜MS-05。1b の作業の記録 4.7・7.7・13.7・17.7・20 章）**: 外から `dismiss` した Dialog は約 0.41〜0.45 秒、外から閉じた Share のシートは約 0.55〜0.6 秒で解放され、見張りが `CANCELED_BY_SYSTEM` に当たる結果で閉じた（どちらも handler は呼ばれない。Share の `completionWithItemsHandler` も呼ばれない）。UIKit が表示を断ったシートは約 0.03〜0.04 秒で解放。handler は Copy・閉じるで main。活動の画面（Save to Files）の間はシートは解放されない。scene を切っても表示元の window が残ればシートは解放されず完了しない（R4-4 のとおり約束の外）。**TSan の版でも、`IosLibrary` の手順で出したアラートとシートは同じ時間で解放された**（1a の 15 秒の不解放は雛形の手順の振る舞いで、1b の C7 で見張りに頼るテストの TSan の skip を外した）。後ろから `UIApplication.open` を呼ぶと約 15 ms で `false` が返り、設定の App は開かない（`.firstActiveScene` でも 1 回完了する）。権限が未決のまま後ろで `requestAuthorization` を呼ぶと、**アプリが見えていないのにホーム画面の上にダイアログが出て、答えるまで完了しない**（8.5.4 の「未決なら前面を確かめる」の根拠）。scene のアプリでも、最初の `didBecomeActiveNotification` はコールドスタートの応答の後に来る（P1-22 の前提は成り立つ）。iOS 18.3 は `didReceive` から積んだブロックが `didBecomeActive` の後に回りうるので、「active になる前に届いたか」は `didReceive` の中で決める |
+| G-8 | 利用者のコールバックの C++・Objective-C の例外が Swift のフレームを越えるときの振る舞い（R-24） | 1b で 1 回確かめて記録する（P1-16 の契約は変えない）。**1b の結果（MS-11、iPhone 17 Pro / 26.2、1 回。1b の作業の記録 20 章）**: ライブラリが main で呼ぶ利用者の完了（Clipboard の箱の読み込みの取り消し）の中で `NSException` を投げると、捕まえる所が無いので**巻き戻しを始めずに**その場で `std::terminate` → `_objc_terminate` → `abort`（`EXC_CRASH`・`SIGABRT`、「Terminating app due to uncaught exception」）。落ちたスレッドのスタックには利用者の closure とライブラリのフレーム（`ClipboardBoxedLoad.report`）が残ったままで、Swift のフレームは巻き戻されない。C++ の例外は試していない（capi は C と Swift だけで、利用者の C++ の例外も同じく捕まえる所が無ければ terminate の見込み）。P1-16 は変えない |
+| G-9 | `UIApplicationMain` の前に `ntk_notification_install` を呼んだときの振る舞い（R-40） | 契約の外のまま。1b で 1 回確かめて、マニュアルに書く。**1b の結果（MS-12、iPhone 17 / 26.2。1b の作業の記録 13.7・16 章）**: Swift の `installDelegate()` を `UIApplicationMain` の前に呼ぶと、落ちずに main で `.installed` を返し、`UNUserNotificationCenter.current()` も使えて、その後も delegate は proxy のまま。ただしこの時期は `UIApplication.shared` がまだ無く、測った版では `applicationState` が `0`（`.active`）と読めて起動のきっかけが決まらなかった。C5 のレビューの直し（B-4）で、入れる口は Objective-C の `sharedApplication` が `nil` なら「まだ active でない」とみなすようにした（SwiftUI の `App.init` で起動のきっかけが取れることは N36・N37 の写しで確かめた。`UIApplicationMain` の前は同じ経路の見込みだが測り直していない）。契約の外のままにし、マニュアル（段階 4）と C のヘッダー（2a）に書く |
 
 ## 5. 実装アーキテクチャ
 
@@ -563,7 +564,7 @@ iOS で新しく足す値: **`NTK_NOTIFICATION_ERROR_WRONG_THREAD = 16`**（入�
 
 | 種類 | 扱い | 出典 |
 |---|---|---|
-| 利用者のコールバックの例外（C++、Objective-C、Rust の panic、C#） | **外へ出してはならない。出した場合の振る舞いは定めない**。ライブラリは捕まえない（Swift は捕まえられない）。多くは `SIGABRT` で終わる | P1-16、1a 入口 5.1 |
+| 利用者のコールバックの例外（C++、Objective-C、Rust の panic、C#） | **外へ出してはならない。出した場合の振る舞いは定めない**。ライブラリは捕まえない（Swift は捕まえられない）。多くは `SIGABRT` で終わる。1b の G-8（MS-11）で、ライブラリが main で呼ぶ Swift の完了の中の `NSException` は、巻き戻しを始めずにその場で `abort` した（Swift のフレームは巻き戻されない） | P1-16、1a 入口 5.1、1b の作業の記録 20 章 |
 | UIKit・Foundation の `NSException` | **捕まえられない**。main に積んだブロックの中で起きると、`NSSetUncaughtExceptionHandler` を通って `SIGABRT` で終わり、完了も `release` も来ない。iOS 18 では、こちらのブロックが戻った後の UIKit の表示の処理で起きることもある（スタックにライブラリのフレームが無い） | D-10、1a 入口 5.1 |
 | Swift のトラップ | 入力から起こさない（5.3） | 0f 4.1 |
 
@@ -618,12 +619,13 @@ iOS で新しく足す値: **`NTK_NOTIFICATION_ERROR_WRONG_THREAD = 16`**（入�
 
 ```swift
 /// Passes the system's completion handler through at most once; later calls are dropped and logged.
-/// @unchecked Sendable: the SDK's completion type is not @Sendable, and a previous delegate may call it
-/// from any thread (stage 1a saw a global queue). The only mutable state is guarded by the Mutex,
-/// and the wrapped closure is taken out under the lock and called once outside it.
+/// Sendable without @unchecked (stage 1b): Swift 6 imports the delegate methods' completion
+/// handlers as @Sendable, so the wrapped closure is @Sendable and lives in the Mutex. A previous
+/// delegate may call it from any thread (stage 1a saw a global queue); the closure is taken out
+/// under the lock and called once outside it.
 /// The class and `call` are nonisolated; the closure handed to the previous delegate is a
 /// nonisolated @Sendable closure, so calling it off the main thread trips no actor check.
-final class CompletionOnce<Value>: @unchecked Sendable { ... }
+final class CompletionOnce<Value: Sendable>: Sendable { ... }
 ```
 
 | 規則 | 内容 | 出典 |
@@ -632,7 +634,7 @@ final class CompletionOnce<Value>: @unchecked Sendable { ... }
 | どのスレッドから呼ばれてもよい | 前の delegate は completion をほかのスレッドから呼べる（asyncBg）。system はそれを受けた | 1a delegate 3.1・5 章 |
 | **隔離を継がない**（R-4） | 鍵が保つのは「取り出しが 1 回」だけで、どのスレッドから呼べるかは別の前提である。前の delegate に渡す closure と `CompletionOnce` の入口は、**明示的に nonisolated で `@Sendable`** にする。main actor の文脈で closure を書くと main actor を継ぎ、ホストが背景のスレッドから呼んだときに Swift 6 の実行時の隔離の検査で止まる（0f 4.1）。`@unchecked Sendable` はこの検査を外さない。6 章で、背景のキューから呼ぶテストを持つ | 0f 4.1、R-4 |
 | 解放されたとき | 一度も呼ばれずに解放されたら（前の delegate が closure を捨てた）、何もしない。system の completion は呼ばない（1a-8。捨てたときは system が終わりとみなす） | 1a delegate 2.1 の never |
-| `@unchecked Sendable` の理由 | 上のコメントのとおり。`IosLibrary` の `@unchecked Sendable` の一覧（P1-17）に入れ、TSan のテストを持つ | P1-17、1a delegate 5 章 |
+| `@unchecked Sendable` の理由 | 上のコメントのとおり。`IosLibrary` の `@unchecked Sendable` の一覧（P1-17）に入れ、TSan のテストを持つ。**1b の結果**: SDK が completion を `@Sendable` で取り込むので `@unchecked` は要らなかった（P1-17 の (3) は「`@unchecked` は 1b では使っていない」と残す。`CompletionOnce` 自体は使う）。TSan のテストは持つ（UT-21） | P1-17、1a delegate 5 章、1b の作業の記録 13.4 の 1 |
 
 #### 5.12.5 循環の防止（1a-8、P1-21）
 
@@ -689,7 +691,7 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 
 ### 5.13 前面の扱い（README 8.6、P1-11〜P1-15、P1-24）
 
-**前面の定義**（P1-11）: `UIApplication.shared.connectedScenes` の `UIWindowScene` のうち、`activationState` が `foregroundActive` か `foregroundInactive` で、**アプリの key window（`isKeyWindow` が真の window）を持つもの**。その window の `rootViewController` から、`isBeingDismissed` でない `presentedViewController` をたどった最上位を「前面の ViewController」とする。見つからなければ前面でない。scene の無い構成でも UIKit が暗黙に `UIWindowScene` を作るので同じ探し方で動く（0a 3.8）。Unity 6000.4.2f1 は scene を使う（`UnityScene`。0a 3.8）。前提 2 つ（inactive の間も表示できる、key window がアプリで 1 つ）は 1b で確かめる（G-6）。今の public の `getRootViewController()` は残し、この定義の口は別の名前にする。
+**前面の定義**（P1-11）: `UIApplication.shared.connectedScenes` の `UIWindowScene` のうち、`activationState` が `foregroundActive` か `foregroundInactive` で、**アプリの key window（`isKeyWindow` が真の window）を持つもの**。その window の `rootViewController` から、`isBeingDismissed` でない `presentedViewController` をたどった最上位を「前面の ViewController」とする。見つからなければ前面でない。scene の無い構成でも UIKit が暗黙に `UIWindowScene` を作るので同じ探し方で動く（0a 3.8）。Unity 6000.4.2f1 は scene を使う（`UnityScene`。0a 3.8）。前提 2 つ（inactive の間も表示できる、key window がアプリで 1 つ）は 1b で確かめる（G-6）。**1b の結果（G-6）**: 1 つ目は成り立つ（Dialog と Share）。2 つ目は iPad の複数の window で崩れる（両方の scene が active で key window が 2 つ）。定義は変えず、候補が 2 つ以上なら active を先に選んで `.info` のログを出す（どちらを選ぶかは決まらない）。**複数の window を開ける iPad では、Swift の利用者は表示元を `.viewController(_:)` で渡せる**（DocC には書いた。マニュアルは段階 4）。C ABI の受け口は前面を探すだけ（下の「判定する所」、P1-11 の C）なので、どちらの window に出すかは決まらない。このことを C ABI のヘッダー（第 2 部）とマニュアルに書く。C に表示元を渡す口を足すかは第 2 部で決める（足すなら P1-11 の決め直しで、利用者が決める。1b の作業の記録 21 章の 6）。今の public の `getRootViewController()` は残し、この定義の口は別の名前にする。
 
 **判定する所**（P1-11 の C）: `IosLibrary` の表示の口が、`presenter` の値に応じて 5.13.2 の手順で行う。C ABI の受け口は「新しい定義の前面」を選んで渡すだけ。既定（`presenter` を渡さないとき）は今の探し方のままで、待ちも入れない（README 1b の行）。
 
@@ -698,9 +700,9 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 | Dialog（すべて） | 要る | `NOT_FOREGROUND` で完了する |
 | Share | 要る | `NOT_FOREGROUND` で完了する |
 | 通知の権限の要求 | 権限の状態が未決（`notDetermined`）のときだけ要る（システムのダイアログが出るため）。決まっていれば、前面に関係なく今の状態で完了する | 未決で前面でなければ `NOT_FOREGROUND` で完了する |
-| 通知の設定の画面を開く | 要る（`UIApplication.open` は後ろからは開けない見込み。G-7） | `NOT_FOREGROUND` で完了する。今のブリッジは確かめていない（AC-23。第 2 部の対応表に書く） |
+| 通知の設定の画面を開く | 要る（`UIApplication.open` は後ろからは開けない。1b の MS-04 で、後ろから呼ぶと約 15 ms で `false` が返った。G-7） | `NOT_FOREGROUND` で完了する。今のブリッジは確かめていない（AC-23。第 2 部の対応表に書く） |
 | 通知の表示・予約・取り消し・一覧・category・バッジ | 要らない | - |
-| Clipboard | C ABI では判定しない | 後ろでの OS の振る舞いは `IosLibrary` の結果のまま返す（1b で確かめる） |
+| Clipboard | C ABI では判定しない | 後ろでの OS の振る舞いは `IosLibrary` の結果のまま返す。**1b の結果（MS-08、iPhone 17 / 26.2。1b の作業の記録 10.7）**: 後ろにいても、自分が置いた内容はダイアログなしで読める（非同期の読み込み約 60 ms、同期の `read` 約 21 ms）。ほかのアプリの内容を読むと、後ろにいても貼り付けのダイアログがホーム画面の上に出る。非同期の読み込みは答えを待つだけで main を止めない（要求の箱の取り消しで終われる）が、**同期の読み出し（`read`、同じく `readData` の見込み）は答えが出るまで main を止める**（約 270 秒止まった）。C の同期の読み出しの関数のヘッダーとマニュアルに「ほかのアプリの内容では利用者が答えるまで main が止まる。止めたくなければ非同期の読み込みを使う」と書く（2a・段階 4。1b の作業の記録 11 章の 5）。前面での待ちの長さと実機での振る舞いは測っていない（実機は利用者の許可が要る） |
 
 `IosLibrary` に足すもの（README 4.1 と 1b の行に書く）: `presenter` の引数、新しい定義の前面を返す口、要求の箱と解放の見張り（5.13.1）、表示の手順の待ち（5.13.2）、P1-24 の取り消しの口（S-15）。既定の動作は変えない。
 
@@ -728,8 +730,8 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 | ライブラリの取り消し（Dialog。P1-24） | 取り消し | `CANCELED` | する（完了と `release` は来る。画面は上に重なりがあれば閉じない。R4-8） |
 | 表示の前の検査、待ちの失敗（5.13.2） | 表示の手順 | 表示の失敗 | する |
 | UIKit が表示を断った | 解放の見張り（`present` の完了が来ていない）。補いとして `present` の直後の `presentingViewController`（G-4） | 表示の失敗 | する |
-| ホストや別のコードが Dialog を外から `dismiss` した | 解放の見張り（解放される見込み。G-7） | `CANCELED_BY_SYSTEM` | する（G-7 で解放されないと分かれば約束の外に移す） |
-| Share を外から閉じた | `completionWithItemsHandler`（呼ばれる見込み。G-7）か解放の見張り | 結果か `CANCELED_BY_SYSTEM` | する（同上） |
+| ホストや別のコードが Dialog を外から `dismiss` した | 解放の見張り（1b で約 0.4 秒で解放されることを確かめた。G-7） | `CANCELED_BY_SYSTEM` | する |
+| Share を外から閉じた | 解放の見張り（1b で `completionWithItemsHandler` は呼ばれず、約 0.55 秒で解放されることを確かめた。G-7） | `CANCELED_BY_SYSTEM` | する |
 | 表示した scene が切れた | 解放されれば解放の見張り | `CANCELED_BY_SYSTEM` | 解放されるときだけ（P1-15）。システムが切って解放されないときは約束の外（0.1。R4-4） |
 | ホストが表示中に window や `rootViewController` を差し替えた、scene を外した、表示した ViewController や古い表示元を持ち続けた | - | 来ないことがある | **約束の外**（0.1）。Dialog は取り消せば完了と `release` が来る。Share は `user_data` が漏れうる |
 | 後ろに回った | 終わりではない | - | P1-15 |
@@ -938,7 +940,7 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 | U-9 | 1 | C# のコールバックが例外を投げたときの振る舞い（IL2CPP の iOS） | 結果を記録する | P1-16 のマニュアルの書き方（「必ず try / catch」） |
 | U-10 | 1 | 実機の TSan（Xcode の文書で対応を確かめる。端末では試さない）と、実機の ASan（許可を得て） | ASan で報告が 0 | P1-20。README 7.4 の DoD の行 |
 
-こちらで行う確かめ（Unity は要らない。1b）: `openSettingsFor` をシステムから呼ばせること（Xcode で組んだサンプルなら設定の App の一覧に出る見込み。1a delegate 3.4・6 章）、G-4、G-6、G-7、G-8、G-9。
+こちらで行う確かめ（Unity は要らない。1b）: `openSettingsFor` をシステムから呼ばせること（Xcode で組んだサンプルなら設定の App の一覧に出る見込み。1a delegate 3.4・6 章）、G-4、G-6、G-7、G-8、G-9。**1b で済んだ（2026-11-01。結果は 4.4 の G の表と 1b の作業の記録 20 章）**: `openSettingsFor` は iOS 26.2 のシミュレーターで、許可済みのアプリが `.providesAppNotificationSettings` を付けて求め直した形（MS-07）と、新しく入れたアプリが先に求める形（N40）の両方で、設定の App のリンクから呼ばせられた（`settingsRequests` にイベントが 1 つ、通知の識別子は無し）。iOS 18.3 は測っていない
 
 ## 11. 入力の食い違いと、README を直す所
 

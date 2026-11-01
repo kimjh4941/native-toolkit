@@ -2,9 +2,9 @@
 
 - 記録日: 2026-10-31
 - 段階: 1b（`README.md` の 5 章の 1b の行。設計書は `designs/2026-10-31-ios-c-abi-swift-api-design.md`。以下「設計書」）
-- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更で、`747897de` でコミットした。C5 は `747897de` の上の未コミットの変更で、前半（T-13・T-14）と後半（T-15・T-16）が入っており、`b80399eb` でコミットした。C6 は `b80399eb` の上の未コミットの変更で、まだコミットしていない）
-- 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。C5 のレビューの直しと C6 の単体テストは Xcode 26.6 で流した（17.8）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）だけ。**実機には触れていない**
-- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）、C5（13〜15 章。2026-11-01。前半は 13.1〜13.10 と 14 章、後半は 13.11〜13.21 と 15 章。16 章は C5 のレビュー）、C6（17・18 章。2026-11-01）
+- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更で、`747897de` でコミットした。C5 は `747897de` の上の未コミットの変更で、前半（T-13・T-14）と後半（T-15・T-16）が入っており、`b80399eb` でコミットした。C6 は `b80399eb` の上の未コミットの変更で、`97c95c71` でコミットした。C7 は `97c95c71` の上の未コミットの変更で、まだコミットしていない）
+- 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。C5 のレビューの直しと C6 の単体テストは Xcode 26.6 で流した（17.8）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）、C6 の変異の iPhone 16（iOS 26.2）、C7 の測りと変異の iPhone 17 Pro（iOS 26.2）だけ。**実機には触れていない**
+- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）、C5（13〜15 章。2026-11-01。前半は 13.1〜13.10 と 14 章、後半は 13.11〜13.21 と 15 章。16 章は C5 のレビュー）、C6（17〜19 章。2026-11-01）、C7（20〜22 章。22 章は C7 のレビュー。2026-11-01）
 
 ## 1. C1 共通（T-01〜T-05）
 
@@ -1664,3 +1664,298 @@ Domain と Application に platform の型を足していない（`UNAuthorizati
 | シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2（`NSNull` の測り、読み直しの下調べ、UI テスト、TSan、全件）、iPhone 16 / 26.2（変異）、iPhone 16 / 18.3（読み直しの下調べ、全件）、iPad Pro 11-inch (M4) / 18.3（全件）は xcodebuild・`test_ios.sh` が起動し、最後に `simctl shutdown all` で止め、どれも起動していないことを確かめた。通知の権限は iPhone 17 / 26.2 の HEAD の版のサンプルにだけ（下調べの UI テストで Allow を押して）与え、そのサンプルは `test_ios.sh` の NP2 が消して入れ直した。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない） |
 
 信頼する部分は `Support/Springboard.swift` の U-C2 の差分だけを変えた。3 つのファイルの新しい値は 17.10（`SampleApp.swift` と `SystemLabels.swift` は変わらない）。この差分の Codex のレビューの後に、3 つのハッシュをリポジトリで固定した（ランナーの `TRUSTED_FILES` は、UI テストを流した写しと同じになった）。
+
+## 20. C7 測りの記録と全体（T-20・T-21）
+
+- 状態: 14 章の測りの記録（MS-11・MS-13 の残りと、18 章の 5 の無い添付を C7 で測った）、README・第 1 部・付録 A への反映（UI テストの設計書は C5 で書いたまま変えていない）、全体の実行と基準との比べ合わせ、棚卸しの `grep` の流し直し、ブリッジのテストとの対応の記録、UT-31 の組めない形の一覧、Xcode 26.3 での swiftinterface の型検査（3 つのスライス）、1b の結果のファイル（`results/2026-10-31-ios-c-abi-stage1b-result.md`）は済んだ。**コミットはしていない**
+- 残るのは、利用者が Xcode の Organizer で作る MS-10 のプライバシーのレポート（20.9）と、実機が要るもの（20.10。どれも利用者の許可が要り、行っていない）
+- ライブラリのコードは変えていない（swiftinterface は `after-1b-c6` と同じ。20.7）。変えたのはテストと文書だけ
+- 測ったログ・下調べの写し・変異の差分は scratchpad に置き、リポジトリには入れていない。シミュレーターだけで、実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない）
+- 環境: Xcode 26.6（17F113、Swift 6.3.3。`DEVELOPER_DIR` でコマンドごとに選んだ）と Xcode 26.3（17C529、Swift 6.2.4。`xcode-select` のまま）。シミュレーターは iPhone 17 / 26.2、iPhone 17 Pro / 26.2（MS-11・無い添付・変異）、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3
+
+### 20.1 申し送りの当て方（C1〜C6 から C7 へ）
+
+| 申し送り（出どころ） | C7 で行ったこと |
+|---|---|
+| MS-10 のプライバシーのレポート（2 章の 1、1.9） | コマンドラインでは作れないので、利用者が Organizer で作る手順を 20.9 に書いた。結果の行は空のまま |
+| `.private` が伏せて見えること（2 章の 2、MS-13） | 実機が要る。2.0.0 の前の実機の区切りにまとめる決定のまま（20.10）。シミュレーターでは C7 でも平文で見えた（20.4） |
+| G-6 の iPad の複数の window（5 章の 2） | 第 1 部 4.4 の G-6 と 5.13 の前面の定義、README 3.1 に書いた（複数の window の iPad は `.viewController(_:)` で表示元を渡す。マニュアルと C のヘッダーにも書く） |
+| C1・C2 の TSan の skip（7.11、8 章の 4） | 外して全体の TSan の回で流した（20.5）。設計書 6.3.4・RK-11 を直した |
+| MS-02 の Share の分（8 章の 5） | 第 1 部 G-6 に Share の分として書いた |
+| MS-08（10.11、11 章の 5） | 第 1 部 5.13 の Clipboard の行と README 3.1 に書いた。前面での待ちの長さと実機での振る舞いは実機が要る（20.10） |
+| MS-07・MS-14・SwiftUI の `App.init`（13.21 の C7 の行、15 章の 1） | README 4.1（`openSettingsFor` の行、`installDelegate()` の行）、第 1 部 1.3.3（SwiftUI の `App.init` の行を足した）・G-9・10 章、マニュアルの元（1b の結果の 6 章）に書いた。MS-14 はサンプルの試験の形の話なので、UI テストの設計書 3.3（C5 で書いた）のまま（1b の結果は 5 章で 20.3 の表を指すだけで、MS-14 の行は持たない） |
+| N34b の番号（13.21 の C7 の行、15 章の 3） | UI テストの設計書 3.3 と設計書 13.2 の注（C5 で書いた）のまま残した。変えていない |
+| `CompletionOnce`（14 章の 2） | 第 1 部 5.12.4 のコメントと表の行、P1-17 の (3) を「`@unchecked` は 1b では使っていない（`CompletionOnce` 自体は使い、`@unchecked` なしの `Sendable`。SDK が completion を `@Sendable` で取り込む）」に直した。同じく (4) も「`@unchecked` は 1b では使っていない（`RequestBox` と解放の見張り自体は使い、`@unchecked` なしの `Sendable`）」と書いた（1.4 の 1） |
+| H2-1 の 18.3 の約 0.2 秒の窓（14 章の 1）、MS-12（14 章の 3） | マニュアルの元（1b の結果の 6 章）と第 1 部 G-9 |
+| 付録 A の `@discardableResult`（15 章の 5、17.4 の 5、17.11） | `addListener(_:)` と `requestPermission(options:presenter:) async throws -> Bool` の宣言に足した |
+| UT-31（17.11、18 章の 4） | 20.6。`openNotificationSettings()` を一覧に入れ、設計書 3.3 と README 4.1 に写した。UT-31 のテストのソース（組める形）が無かったので足した |
+| README 4.1・移行の手引き（17.11、18 章の 1・6） | README 4.1 と設計書 3.3 に、同じ識別子の category の置き換え、`NSNull`・`NSURL` を拒むこと（C6 の前は通り、`getScheduled` も `NSNull` を返した）、`requestPermission(options:completion:)` の拒否の文言、`update` で添付を作れない（`attachmentLoadFailed`）ときに予約を消さないこと、UT-31 の形を足した（`update` の分は README 4.1 にだけ足し、設計書 3.3 には足していなかった。無いファイルの添付では `add` が失敗して予約が消えることと合わせて、22 章の直しで両方に書いた）。ほかの 17.3 の行（`errorMessage` の固定の文言、一覧の型、port の 2 つの変更、helper の deprecated）は README 4.1 に前からあった |
+| 測り MS-04・MS-09（17.11） | 第 1 部 G-7 と 5.13 の設定の画面の行、README 3.1（MS-04）・4.1（MS-09） |
+| 全体の実行（17.11） | 20.7 |
+| 無い添付（17.11、18 章の 5） | 20.4 で測り、21 章の 1 に挙げた |
+| 第 2 部（2a）への申し送り（7.11、10.11、17.11、18 章の 2） | 1b の結果の 7 章にまとめた |
+| ブリッジ（13.21、17.11） | 変えていない（段階 3 で消す） |
+| ブリッジのテストとの対応（設計書 13.1 の注） | 20.8。`parseContentNoSoundDefaultsToDefault` に当たる確かめが無かったので `NotificationContentTests` に足した |
+| 棚卸しの `grep`（設計書 8.8.2、T-21） | 20.8 |
+| D23 の simulator only（6 章の「残ること」） | 決まっていなかったので 21 章の 4 に挙げた |
+| `sourceRect` の DocC の 1 文（5 章の 5） | 「C3 の Share と合わせて決める」のまま決まっていなかったので 21 章の 5 に挙げた |
+
+### 20.2 変えたもの（リポジトリ）
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| テスト（TSan の skip） | `IosLibraryTests/Common/ReleaseWatchTests.swift`、`Dialog/AlertDialogPresenterTests.swift`、`Dialog/IosDialogManagerShownTests.swift`、`Common/Support/CommonTestSupport.swift` | `aRealViewControllerClosesTheBoxWhenFreed`・`theAlertAndItsObserversAreFreedAfterItCloses`（UT-14）・`aDialogDismissedFromOutsideCallsNothingButTheNewAPIIsTold` の `.disabled(if: isThreadSanitizerEnabled, …)` を外し、使う所の無くなった `isThreadSanitizerEnabled` を消した（20.5） |
+| テスト（ブリッジのテストとの対応） | `IosLibraryTests/Notification/Domain/NotificationContentTests.swift` | `theSoundDefaultsToTheDefaultSound`（音を渡さない内容は `.default`。ブリッジの `parseContentNoSoundDefaultsToDefault` に当たる。M158） |
+| テスト（UT-31） | `IosLibraryTests/Notification/Presentation/IosNotificationManagerCallFormTests.swift`（新） | `async` の関数の中で `completion` を書いた今の 7 つの口と `trigger` を書かない `show(content:)` が callback 版に決まり、完了が main で 1 回ずつ来る。同期の closure の中で `completion` を書かない今の 9 つの形が組めて callback 版に届く（M159・M160） |
+| 文書 | `designs/2026-10-31-ios-c-abi-swift-api-design.md` | 3.3（UT-31 の 9 つの形、category の置き換え、`NSNull`）、6.3.4・RK-11（TSan）、13.1 の UT-31、付録 A の `@discardableResult` 2 つと注 |
+| 文書 | `designs/2026-10-31-ios-c-abi-c-abi-design.md` | 改訂の行、1.3.3（SwiftUI の `App.init` の行）、4.4 の G-4・G-6〜G-9、P1-17 の (3)・(4)、5.11、5.12.4、5.13（前面の定義、設定の画面と Clipboard の行）、5.13.1、10 章 |
+| 文書 | `README.md` | 状態の行、3.1（前面と iPad、Clipboard の同期の読み出し）、4.1（`openSettingsFor`、UT-31、category・userInfo・文言、`installDelegate()`）、5 章の 1b の行、8.6 のプライバシーの行、9 章 |
+| 文書 | `results/2026-10-31-ios-c-abi-stage1b-result.md`（新） | 1b の結果 |
+| 文書 | この記録 | 冒頭の行、20〜22 章 |
+| 文書 | `artifact/README.md` | トピックの一覧の ios-c-abi の行（22 章の直し） |
+
+信頼する部分（`scripts/ios_ui_runner.py` の `TRUSTED_FILES` と固定したハッシュ）、ランナー、サンプル、UI テスト、ライブラリのコードは変えていない。
+
+### 20.3 14 章の測り（MS-01〜MS-14）の記録
+
+| ID | 測った所 | 結果（要点） | 反映した所 |
+|---|---|---|---|
+| MS-01（G-4） | C2（4.7）、C3（7.7） | `UIAlertController` は `present` の中で `presentingViewController` が設定され（補いを残す）、coordinator があり、completion の中ではまだ落ち着いていない。同じ回の 2 つは 2 つとも出て 2 つ目が上。表示の途中の `dismiss` は無視されない。`UIActivityViewController` は戻った後にしか設定されない（Share は補いを外した） | 第 1 部 G-4（C7）。設計書 6.3.3 は C2・C3 で直した |
+| MS-02（G-6） | C2（4.7）、C3（7.7） | inactive の間も Dialog と Share は出る。iPad の 2 つの scene で key window が 2 つ | 第 1 部 G-6・5.13、README 3.1（C7） |
+| MS-03（G-7） | C2（4.7）、C3（7.7）、C7（20.5） | 外から閉じた Dialog 約 0.4 秒・Share 約 0.55 秒で解放、Share の handler は呼ばれない、UIKit が断ったシートは約 0.03 秒、handler は main、scene を切っても window が残れば解放されない。**TSan の版でも同じ**（C7 で全体の TSan の回を通した） | 第 1 部 G-7・5.13.1、設計書 6.3.4・RK-11（C7） |
+| MS-04（G-7） | C6（17.7） | 後ろの `open` は `false`、後ろで未決の権限を求めると見えないままダイアログが出る | 第 1 部 G-7・5.13、README 3.1（C7） |
+| MS-05（G-7・P1-22） | C5（13.7） | scene のアプリでも最初の `didBecomeActive` はコールドスタートの応答の後。18.3 は積んだブロックが遅れる | 第 1 部 G-7（C7）。実装は C5 |
+| MS-06（R-23） | C5（13.7） | main の上の `DispatchQueue(label:).sync` の中で `assumeIsolated` は止まらない | 変わらない（第 1 部 1.3 のまま） |
+| MS-07 | C5（13.17 の 1）、C6（17.7 の 3） | 26.2 で、求め直した形と新しく入れたアプリの形の両方で設定の App のリンクから `settingsRequests` が届く。18.3 は測っていない | README 4.1、第 1 部 10 章（C7） |
+| MS-08 | C4（10.7） | 後ろでも自分の内容は読める。ほかのアプリの内容は後ろでもダイアログ。同期の読み出しは main を止める | 第 1 部 5.13、README 3.1（C7） |
+| MS-09 | C6（17.7 の 1。RK-10 の測り） | 書き戻しの後の最初の読み直しで 60/60 反映（1〜4 ms） | README 4.1（C7）。実装は C6 |
+| MS-10 | C1（1.9） | 署名なしのアーカイブは作れ、中のマニフェストは 8.8.2 のとおり。**レポートは未**（20.9） | - |
+| MS-11（G-8） | C7（20.4） | 利用者の完了の中の `NSException` は巻き戻しを始めずに `abort` | 第 1 部 G-8・5.11（C7） |
+| MS-12（G-9） | C5（13.7、16 章の B-4） | 入るが、測った版では起動のきっかけが決まらなかった。B-4 で `sharedApplication` の `nil` を active でないとみなす | 第 1 部 G-9・1.3.3（C7）、マニュアルの元 |
+| MS-13 | C1（1.7）、C7（20.4） | `OSLogStore` は `.debug` を返さず `.private` を平文で返す。Release の `.debug` は保存されない。`log stream` に `.public` の行が出る。シミュレーターでは `.private` が平文。Xcode の GUI のコンソールは測っていない | 設計書 8.7.1 は C1 のまま（`libraryDebug`。2 章の 3） |
+| MS-14 | C5（13.17 の 2） | システムが起こしたプロセスに `launchArguments` は渡らない。SA-18 のファイルで足りる | UI テストの設計書 3.3（C5） |
+
+### 20.4 C7 で測ったこと
+
+1. **MS-11**（G-8。利用者のコールバックの Objective-C の例外が Swift のフレームを越えるとき。iPhone 17 Pro / 26.2、Xcode 26.6、1 回）。使い捨ての写しのテスト（`ProbeMS11Tests`。リポジトリには入れていない）で、開始の前に取り消した要求の箱で `IosClipboardManager.shared.loadItem(.text, requestBox:completion:)` を呼び、ライブラリが main で呼ぶ完了（`CLIPBOARD_CANCELLED`）の中で `NSException(...).raise()` した。結果: 完了は main で呼ばれ、`raise` の直後に `*** Terminating app due to uncaught exception 'NtkProbeMS11'` と `libc++abi: terminating due to uncaught exception of type NSException` が出て、テストのホストは `EXC_CRASH`（`SIGABRT`、`Abort trap: 6`）で終わった。crash report の落ちたスレッドは `objc_exception_throw` → `__cxa_throw` → `failed_throw` → `std::__terminate` → `_XCTTerminateHandler` → `_objc_terminate` → `abort` で、**その下に利用者の closure とライブラリの `ClipboardBoxedLoad.report(_:)`・`finish` が残っていた**（巻き戻しを始めない。捕まえる所が無いので最初の探索で terminate に入る）。最初に投げた所のスタック（`First throw call stack`）には、ライブラリの `RequestBox.attach` の閉じたときの処理と `MainActor.assumeIsolated`、`_dispatch_main_queue_drain` が並んだ。XCTest の外のアプリでは `_XCTTerminateHandler` が無いだけで同じ経路の見込み。crash report は scratchpad に写し、Mac の `DiagnosticReports` から消した。C++ の例外は試していない（P1-16 の「振る舞いは定めない」は変えない）
+2. **MS-13 の残り**（iPhone 17 Pro / 26.2、サンプルの Debug）。`log stream --level debug`（subsystem `com.jonghyunkim.nativetoolkit.IosLibrary`）を流しながらサンプルを起動すると、`.public` の値を補間した行（`[installDelegate] isMainThread: true` など）が出た（68 行）。Xcode のコンソールの代わりに `OS_ACTIVITY_DT_MODE=YES` を渡して `simctl launch --console-pty` で起動したが、ライブラリの行は標準出力にも標準エラーにも出なかった（Xcode 15 からの GUI のコンソールはデバッガーの経路で統合ログを読むので、コマンドラインでは同じものを作れない）。**Xcode の GUI のコンソールでの見え方は測っていない**（20.9 の手順の任意の 6 で頼む）。C1 の 1.7 で、`xcodebuild` から動かしたテストのプロセスでは `.error` が出力に出たことは確かめている
+3. **無い添付で通知を出す**（18 章の 5。iPhone 17 Pro / 26.2 と iPhone 16 / 18.3、Xcode 26.3）。使い捨ての写しのサンプルから `app-icon-attachment.png` を消し、`ShowImmediateWithAttachment(AppIcon)` が消したファイルのあった所の URL（`Bundle.main.bundleURL` の下）を `NotificationAttachment` に渡すようにした。新しく入れて NP1 で権限を許し、N5 の代わりの下調べの UI テストで押した。結果（両方の OS で同じ）:
+
+| 見たもの | 結果 |
+|---|---|
+| `UNNotificationAttachment(identifier:url:options:)` | 投げない（17.4 の 17 と同じ） |
+| `UNUserNotificationCenter.add` | **失敗する**（`UNErrorDomain`、code `100`。`UNErrorCodeAttachmentInvalidURL`）。ライブラリの `.error` のログは `[show] identifier: sample-notification: the system did not add the request: domain=UNErrorDomain, code=100`（このログの行は scratchpad に残していない。残したのは下のサンプルの結果の行だけ） |
+| ライブラリの結果 | `addRequestFailed(FailureDetail(domain: "UNErrorDomain", code: 100))`。サンプルの結果の行は `❌ [showImmediateWithAttachment] error: Failed to add the notification request.` |
+| 通知 | **出ない**（10 秒待ってもバナーが無い）。`getDelivered` は 0 件 |
+
+分かったこと: 無いファイルの添付は「添付なしで出る」のではなく、OS が要求ごと断り、通知は出ない。ライブラリは `attachmentLoadFailed` ではなく `addRequestFailed` で返す（どちらも 1b の前から同じ経路で、C6 で変わったのは文言が固定になったことだけ）。`update` では、今の予約を消した後の `add` で失敗するので、**今の予約が消えたまま新しい要求も足されない**（17.3 の「`add` 自体の失敗は消した後なので残らない」の場合に当たる）。**`update` のこの結論はコードから導いたもので、測ったのは `show` だけ**（`NotificationRepositoryImpl.update` は検査・内容と trigger を作った後に今の予約を消し、その後に `add` を呼ぶ。無いファイルは内容を作る所では失敗しないので、消した後の `add` で失敗する）。入口でファイルの有無を確かめるかは 21 章の 1（決めていない）。写しは scratchpad に置いた
+
+### 20.5 TSan の skip を外す（7.11、8 章の 4）
+
+C1・C2 で見張りに頼るテストを TSan の回で skip していた 3 件（`ReleaseWatchTests.aRealViewControllerClosesTheBoxWhenFreed`、UT-14 の `AlertDialogPresenterTests.theAlertAndItsObserversAreFreedAfterItCloses`、`IosDialogManagerShownTests.aDialogDismissedFromOutsideCallsNothingButTheNewAPIIsTold`）の `.disabled` を外し、`IosLibraryTests` の全件を TSan で流した。UI テストの D20 と S19 は、サンプルを TSan で組んで `-only-testing` で流した（設計書 13.2 の D20 の「TSan の回では流さない」の確かめ）。
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryTests` の全件を TSan で（`-enableThreadSanitizer YES`、iPhone 17 / 26.2、Xcode 26.6、`-parallel-testing-enabled NO`） | **543/543 成功、skip 0、TSan の報告 0 件**（約 128 秒）。外した 3 件も通った（`aRealViewControllerClosesTheBoxWhenFreed` 0.001 秒、`theAlertAndItsObserversAreFreedAfterItCloses` 1.6 秒、`aDialogDismissedFromOutsideCallsNothingButTheNewAPIIsTold` 1.3 秒） |
+| D20・S19 を TSan で（サンプルの scheme を `-enableThreadSanitizer YES` で組み、`-only-testing` で 2 件。アプリに `libclang_rt.tsan_iossim_dynamic.dylib` が入ったことを確かめた） | 2/2 成功（D20 22 秒、S19 18 秒）。TSan の報告 0 件 |
+
+外せたので、テストから `.disabled(if: isThreadSanitizerEnabled, …)` と `isThreadSanitizerEnabled` を消し、設計書 6.3.4（1b の結果の項）・UT-05・D20・RK-11 を直した。D20 の「TSan の回では流さない」は、`test_ios.sh` が TSan の回を持たないので、設計書の注だけを直した（UI テストのソースに TSan の分岐は無い）。申し送り 1 の雛形で TSan の版が解放しなかった理由は調べていない（`IosLibrary` の手順では起きない）。
+
+### 20.6 UT-31（組めなくなる今の呼び出しの一覧。S-P26、17.4 の 2、18 章の 4）
+
+`swiftc -typecheck` に、`async` の関数の中から今の口を `completion` を書かずに呼ぶ小さなファイル（scratchpad の `forms.swift`）を渡した。`IosLibrary` は C7 の作業ツリーを Xcode 26.6 と 26.3 で組んだもの（シミュレーター、Debug）。Swift 6 と Swift 5 の言語モードで同じ結果だった。
+
+| # | 形（`async` の関数の中） | 結果 | エラー |
+|---|---|---|---|
+| 1 | `manager.setBadgeCount(1)` | 組めない | `call can throw, but it is not marked with 'try'`（`try await` が要る） |
+| 2 | `manager.registerCategory(category)` | 組めない | `expression is 'async' but is not marked with 'await'` |
+| 3 | `manager.removeCategory(identifier:)` | 組めない | 同上 |
+| 4 | `manager.show(content:trigger:)`（`trigger` を書く） | 組めない | `try` が要る |
+| 5 | `manager.update(identifier:content:trigger:)` | 組めない | 同上 |
+| 6 | `manager.schedule(content:trigger:identifier:)` | 組めない | 同上 |
+| 7 | `manager.requestPermission()`（引数なし） | 組めない | 同上（`presenter` の既定で `async throws` 版に決まる） |
+| 8 | `manager.requestPermission(options:)` | 組めない | 同上 |
+| 9 | `manager.openNotificationSettings()`（引数なし） | 組めない | 同上（17.4 の 2） |
+| 10 | `Task { await …; manager.setBadgeCount(1) }`（`await` を含む closure） | 組めない | 1 と同じ |
+| 11 | `Task { manager.setBadgeCount(1) }`（`await` を含まない closure） | 組める | -（closure が `async` にならず、callback 版に決まる） |
+| 12 | `manager.show(content:)`（`trigger` を書かない） | 組める | -（`async` 版に `trigger` の既定が無い） |
+| 13 | `completion` を書いた形（`setBadgeCount`・`registerCategory`・`requestPermission(options:completion:)`・`show`） | 組める | - |
+| 14 | 同期の関数の中の `openNotificationSettings()`・`registerCategory(_:)` | 組める | - |
+| 15 | `getScheduled { … }`（前から `completion` が要る口） | 組める | - |
+
+黙って意味が変わる形は無い（組めるものは今の callback 版に決まる）。この一覧を設計書 3.3 と README 4.1 に写した。Share・Dialog・Clipboard の今の口は、同じ名前の `async` 版を 1b で足していない（Share の `async` 版は前からあり、`presenter` を既定つきで足しただけ）ので、この形の破壊は無い。
+
+UT-31 のテストのソース（設計書 13.1「組める形を置く」）は無かったので `IosNotificationManagerCallFormTests` を足した（20.2）。
+
+### 20.7 全体の実行と基準との比べ合わせ
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1。Xcode 26.6、`-parallel-testing-enabled NO`。18.3 の 2 台は `-destination 'platform=iOS Simulator,id=<udid>,arch=arm64'`） | どれも **543/543 成功**、skip 0（C6 の 540 + C7 の 3）。消した・名前を替えたテストは無い |
+| TSan | 20.5（543/543、報告 0 件。D20・S19 も通った） |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2>`（全体。リポジトリのまま、Xcode 26.3、`--baseline` なし。信頼する部分のハッシュは固定のとおりで、閉じた形のソースの規則も通った） | **678 件: 成功 677、skip 1**（skip は基準と同じ意図した `ClipboardUITests/testU10b_namedPasteboardAfterProcessTermination`。M-08 がこの環境では決まらない）。内訳（`results.jsonl` の 678 行）: `IosLibraryTests` 543/543、`IosLibraryExampleTests` 10/10、UI テスト 124 件（列挙が `DeviceRequirements.json` とちょうど一致し、simulator only を含めて 0 件を除いた。権限 4（NP2 → N42 → N40 → NP1）、Navigation 2、IdentifierInventory 4、Dialog 23、Notification 25、NotificationEvent 12、NotificationColdStart 7、Share 19、Clipboard 21 + skip 1、ClipboardPaste 5、ClipboardPasteDeny 1）、ボタンの網羅の 1 行（`IosLibraryExampleUITests#buttonCoverage`。69 ボタン、102 テスト。成功）で、543 + 10 + 124 + 1 = 678。成功の 677 はボタンの網羅の 1 行を含む（UI テストは 123 件が成功、1 件が skip）。約 1 時間 55 分 |
+| 基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`。0g の後の 320 件）との比べ合わせ | **`changed=0, added=361, removed=4`**。終了の値は 1 で、理由は removed の 4 件（基準で通ったテストが流れなかった）だけ。4 件はどれも 1b で名前を替えた・消したと記録したもの: `IosDialogManagerTests/showLoginDialogFailsThroughOnLoginOnTheMainThreadExactlyOnce`（C2 で `…ThroughCompletion…` に替えた。4.5）、`ShareErrorTests/presentationFailedDescriptionContainsUnderlyingMessage`・`unknownDescriptionContainsUnderlyingMessage`（C3 で消した case の確かめ。7.5）、`NotificationPermissionHelperTests/requestPermissionThrowsPermissionDeniedWhenFailed`（C6 で `…WhenDenied` と port のエラーの件に分けた。17.5）。changed は 0（基準で通ったテストで、結果が変わったものは無い） |
+| 機能ごとの差（UI テスト） | Dialog: 足した 8（D16〜D23）、変えた 0、消した 0（D12 は C2 で期待値を変え、基準の名前のまま通った）。Notification: 足した 12（N34b・N38 は `NotificationUITests`、N35・N39・N41・N43・N44 は `NotificationEventUITests`、N36・N37・N45 は `NotificationColdStartUITests`、N40・N42 は `NotificationPermissionUITests`）、変えた 0、消した 0。Share: 足した 3（S17〜S19）、変えた 0、消した 0。Clipboard: 足した 2（CB5・CB6）、変えた 0、消した 0。共通（Navigation・IdentifierInventory）: 差なし。UI テストの合計は 99 → 124 |
+| 機能ごとの差（単体テスト） | 足した 336（C1〜C7 の単体テスト。`IosLibraryTests` は 211 → 543）、消した 4（上の表）、変えた 0。`IosLibraryExampleTests` は 10 で差なし |
+| ランナーの自己テスト（`python3 -m unittest discover -s scripts/tests -p 'test_ios_ui_runner.py'`。リポジトリ） | 144/144 |
+| `scripts/tests` の全体（`python3 -m unittest discover -s scripts/tests`。リポジトリ） | 352/352（OK） |
+| 2 つの scheme の clean・whole-module のビルド | 20.13（警告 0） |
+| swiftinterface | Xcode 26.3 で C7 の作業ツリーを C1〜C6 と同じ組み方（Release、`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`）で組んだ `arm64-apple-ios.swiftinterface` は `IosLibrary-after-1b-c6.swiftinterface` と 1 文字も違わない（公開面は変わらないので取り直していない）。Xcode 26.6 で組んだ 3 つのスライス（`arm64-apple-ios`、`arm64-apple-ios-simulator`、`x86_64-apple-ios-simulator`）の public と private の 6 つを、Xcode 26.3（Swift 6.2.4）の `swift-frontend -typecheck-module-from-interface`（`-sdk` に各 SDK、`-F` に組んだ framework の置き場）で型検査し、6 つとも終了 0、出力 0 行（型つきの throws の `throws(IosLibrary.NotificationError)` 3 か所と `nonisolated(nonsending)` を含む。SR-15）。型を壊した写し（`NotificationError` を無い型に）では 8 件のエラーで落ちることも確かめた |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2（全件・TSan・UI）、iPhone 17 Pro / 26.2（MS-11・MS-13・無い添付・変異）、iPhone 16 / 18.3.1（単体テスト・無い添付）、iPad Pro 11-inch (M4) / 18.3.1（単体テスト）は xcodebuild・`simctl`・`test_ios.sh` が起動し、最後に `simctl shutdown all` で止め、どれも起動していないことを確かめた。iPhone 17 Pro / 26.2 と iPhone 16 / 18.3.1 には、無い添付の下調べの写しのサンプル（添付のファイルを消した版。通知の権限を許した）が入ったまま（次の UI テストの回が入れ直す）。実機には触れていない |
+
+### 20.8 棚卸しとブリッジのテストとの対応
+
+**理由の申告が要る API の棚卸し**（設計書 8.8.1 の `grep` を C7 の作業ツリーで流し直した。T-21）: ファイルの時刻は `Clipboard/Data/File/ClipboardTemporaryFileStore.swift` の `.contentModificationDateKey` の 2 か所だけで、増えていない（行は C4 の `discardUndelivered` の追加で 116・120 にずれた）。システムの起動からの時間・ディスクの空き・有効なキーボード・`UserDefaults` は 0 件。`PrivacyInfo.xcprivacy` は `plutil -lint` で OK。
+
+**ログの秘密の値の `grep`**（T-02 の照合を流し直した）: 秘密の値の名前を含む補間で `LogRedaction`・長さ・件数を通さないものは、Dialog の題と本文（`.private`。設計書 8.7.2 で出してよい値）と、`NotificationRepositoryImpl.open(_:)` の設定の画面の URL（system の定数の `openNotificationSettingsURLString`。`.public`）だけ。ライブラリに `Log.d` などの呼び出しは 0 件。`print(` は `ios/IosLibrary/IosLibrary` の下に 19 行（`grep -rn 'print('`）: Swift のソースの DocC の例 9 行（`IosNotificationManager.swift` 2、`IosDialogManager.swift` 5、`IosShareManager.swift` 2）、deprecated の `Log` の中身 4 行（`Common/Log.swift:48,56,64,72`。S-P21 で中身は `print` のまま）、`IosLibrary.docc/IosLibrary.md` の例 6 行。ライブラリが自分で出すログに `print` は無い。
+
+**ブリッジのテスト（`results/2026-10-24-ios-c-abi-bridge-tests-before-0e.md` の 83 件）との対応**（設計書 13.1 の注）:
+
+| ブリッジのテスト | 件数 | `IosLibrary` での扱い |
+|---|---|---|
+| `UnityIosClipboardJsonParserTests` | 25 | 書き直さない。JSON の解析と組み立てで、移すロジックが無い（README 1.2。JSON は捨てる） |
+| `UnityIosNotificationJsonParserTests` | 40 | 39 件は書き直さない（同上）。省いた JSON の鍵の既定（`repeats`・`notifyOnEntry`・`notifyOnExit`・`interruptionLevel` など）はブリッジの解析の決まりで、C ABI では 0 で埋めた構造体の意味として第 2 部で決める（設計書 8.9 の「既定の値」）。**`parseContentNoSoundDefaultsToDefault` だけはライブラリの既定（`NotificationContent` の `sound` の既定 `.default`）に当たり、`NotificationContentTests` に確かめが無かった**ので `theSoundDefaultsToTheDefaultSound` を足した（M158） |
+| `UnityIosShareJsonParserTests` | 7 | 書き直さない（JSON） |
+| `UnityIosShareManagerTests` | 1 | 書き直さない。不正な JSON で handler が main で 1 回、はブリッジの入口の約束で、C ABI のテスト（2b）が受け持つ。`IosShareManager` の完了が main で 1 回は UT-13 が守る |
+| `UnityIosClipboardManagerCallbackContractTests` | 9 | C ABI のテスト（2b）で置き換える（main で 1 回、不正な要求も 1 回）。`IosClipboardManager` の完了の約束は今の `IosClipboardManagerTests` と UT-30 が守る |
+| `UnityIosPluginTests.example` | 1 | 空のテンプレート。対応なし |
+
+設計書 13.1 の件数（Clipboard 26、Notification 41、Share 7）は、記録の数（25・40・7 と、Share のマネージャー 1）と少し違う。記録の表のほうに合わせた。
+
+### 20.9 MS-10: 利用者に頼む手順（プライバシーのレポート）
+
+レポートは Xcode の Organizer の「Generate Privacy Report」でしか作れない（1.9）。2 章の 1 の決定のとおり、利用者に 1 回作ってもらう。Mac の上だけの作業で、実機は使わない。
+
+1. ターミナルでリポジトリの直下に移り、署名なしのアーカイブを作る（C1 の 1.9 で警告 0 件で通った形）:
+
+   ```sh
+   DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer xcodebuild archive \
+     -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryExample \
+     -destination 'generic/platform=iOS' \
+     -archivePath ~/Library/Developer/Xcode/Archives/ntk-1b-privacy/IosLibraryExample.xcarchive \
+     CODE_SIGNING_ALLOWED=NO
+   ```
+
+2. 最後に `** ARCHIVE SUCCEEDED **` が出たことを確かめる
+3. Xcode 26.6 を開き、メニューの「Window」→「Organizer」を選び、左の「Archives」で `IosLibraryExample` の今日のアーカイブを選ぶ（一覧に無ければ、Finder で `~/Library/Developer/Xcode/Archives/ntk-1b-privacy/IosLibraryExample.xcarchive` をダブルクリックすると Organizer に足される）
+4. アーカイブの行を Control キーを押しながらクリック（右クリック）し、「Generate Privacy Report」を選ぶ。保存先を聞かれたら、リポジトリの外（デスクトップなど）を選ぶ。PDF ができる
+5. PDF を開き、次を見る: (a) `IosLibrary.framework` の節があるか、(b) その中に「File Timestamp」（ファイルの時刻）と理由「C617.1」があるか、(c) トラッキングと集めるデータが無いか、(d) ほかに出た節（サンプル自身など）とその中身
+6. （任意。MS-13 の残り）同じ Xcode でサンプルの scheme `IosLibraryExample` を iPhone 17（iOS 26.2）のシミュレーターで実行（Run）し、下のデバッグのコンソールに `IosLibrary` の行（例 `[installDelegate] isMainThread: true`）が出るかを見る。Dialog の画面で何かの Dialog を出したときに、その題が平文で見えるか（シミュレーターでは `.private` も平文で見える見込み）も見る
+7. 後片付け: Organizer でそのアーカイブを選んで削除する（または Finder で `ntk-1b-privacy` のフォルダーを消す）。PDF はリポジトリに入れない
+
+知らせてほしいこと: 1 の成否、5 の (a)〜(d)（できれば PDF の `IosLibrary` の部分の文面）、6 を行ったならその結果。結果はこの表に書く。
+
+| 項目 | 結果 |
+|---|---|
+| アーカイブ（手順 1・2） | |
+| レポートを作れたか（手順 4） | |
+| `IosLibrary.framework` の節と FileTimestamp・C617.1（手順 5 の (a)(b)） | |
+| トラッキング・集めるデータ（手順 5 の (c)） | |
+| ほかに出た節（手順 5 の (d)） | |
+| Xcode のコンソール（手順 6、任意） | |
+
+作れなければ、設計書 3.5 の代わりの道（`unity-native-plugin` の agent の Release のアーカイブで確かめる。1a-4）に移る。
+
+### 20.10 実機が要るもの（利用者の許可が要る。C7 では行っていない）
+
+| 項目 | 行うこと | 出どころ |
+|---|---|---|
+| `.private` の見え方（MS-13） | 実機（iPhone XS / 18.7.2）でサンプルを動かし、Mac の Console.app で subsystem `com.jonghyunkim.nativetoolkit.IosLibrary` を見て、Dialog の題などの `.private` の値が `<private>` と伏せて見えることを確かめる | 2 章の 2（2.0.0 の前の実機の区切りにまとめる決定） |
+| MS-08 の前面での待ちと実機での振る舞い | 実機で、前面と後ろで Clipboard の同期の読み出しと非同期の読み込みをほかのアプリの内容で呼び、貼り付けのダイアログと main の止まり方を見る（クリップボードを読む操作なので、毎回の許可が要る） | 11 章の 5（C7 か第 2 部の設計の前に 1 回。11 章の「2a」は第 2 部の設計を指す） |
+| 1b で足した UI テストの実機の回と、実機の基準の取り直し | `scripts/test_ios.sh --dry-run --device-allow …` で選ばれるもの（1b で足した区分の無いもの・`systemui`・`sharesheet`・`clipboard` のテスト。simulator only の 9 件は選ばれない）を流し、0g の実機の基準（60 件）と比べる | 設計書 13.4、`agent-rules/device-testing.md` |
+| 0c からの実機の残り | `clipboard`・`files`・`reinstall`・`credentials` の 39 件と、人の確認の手順書（HC1・HC4・HC7・HC8） | README の状態の行 |
+| 配布用の署名 | Distribution のアーカイブと Organizer の Validate App で、2 つの framework がアプリの証明書で署名し直されることを確かめる（2b の後の dist で） | README 9 章の 1 行目（D-18） |
+
+### 20.11 1b の DoD（設計書 17 章）
+
+| DoD | 状態 |
+|---|---|
+| 6.1 のファイルと可視性、付録 A の宣言があり、8 章の振る舞い、6.2 のスレッド、取り消しの契約と一致している | 済み（C1〜C6 の各章の付録 A との照合。C7 で付録 A に `@discardableResult` を 2 つ足して実装と一致させた） |
+| `PLANNED_SYMBOLS_EXEMPT` の名前を実装と照合した | 済み（各章の公開 API の照合） |
+| 5.1 のロジックがすべて `IosLibrary` にあるか、C ABI / 包みの受け持ちと決めている（7 章） | 済み（C2〜C6。20.8 のブリッジのテストの対応） |
+| 5.2 の README 1.4 の不備が直っているか、3.4 に理由つきで残している | 済み |
+| `ios.md` に 4.2 の 4 つの書き足しがあり、UT-15 が通る | 済み（C1、UT-15 は全件の実行で通る） |
+| `PrivacyInfo.xcprivacy` があり、棚卸しと一致し、アーカイブのプライバシーのレポートで確かめた（MS-10） | **一部**: マニフェストと棚卸しは済み（20.8）。**レポートは利用者の手順待ち（20.9）** |
+| 13 章のテストがシミュレーターで通り、全件が 0g の後の基準と同じ（足したテストと変えた期待値は理由を記録）。足したテストは壊すと落ちることを確かめた | 済み（20.7。単体テストは 3 台と TSan で 543/543、全体の実行は 678 件（`IosLibraryTests` 543、`IosLibraryExampleTests` 10、UI テスト 124、ボタンの網羅の 1 行）のうち 677 成功・意図した skip 1。基準との差は足した 361 と、名前を替えた・消したと記録した 4 件だけで、変わった結果は 0。足したテストは C1〜C7 の各章で壊して確かめた（M1〜M160）） |
+| 14 章の MS-01〜MS-14 を記録し、決まりが変わるものを README と第 1 部に反映した | **一部**: MS-10 のレポートの結果だけが空（20.3・20.9） |
+| 第 1 部 9.1 の S-1〜S-16 を 11 章の表で確かめた | 済み（設計書 11 章。各コミットの照合） |
+| Xcode 26.6 で組んだ `IosLibrary` の swiftinterface を、利用者の下限の Xcode 26.3 で 3 つのスライスとも読めた（型つきの throws を含む） | 済み（20.7） |
+| UT-31 の組めなくなる呼び出しの一覧を 3.3 と移行の手引きの元に写した | 済み（20.6） |
+| README の 4 章・4.1・5 章の 1b の行・8.6・9 章を直した（18.2） | 済み（18.2 は設計の決定のとき、C7 で 1b の結果を足した） |
+
+1b の DoD の外で残るもの: 20.10 の実機の項目、21 章の決定。
+
+### 20.12 壊して確かめたこと（番号は M157 に続ける）
+
+使い捨ての写し（scratchpad）に当てて該当の suite を流し、落ちることを見てから戻した。iPhone 17 Pro / 26.2、Xcode 26.6。
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M158 | ブリッジのテストとの対応（`NotificationContent` の既定） | `sound` の既定を `nil` にする | `theSoundDefaultsToTheDefaultSound`（`Expected .default sound when omitted, got nil`） |
+| M159 | UT-31（設計書 13.1「`completion` の既定の `nil` を外す」） | `setBadgeCount(_:completion:)` の `= nil` を外す | テストのターゲットが組めない（`IosNotificationManagerCallFormTests` の同期の closure の `setBadgeCount(2)` が `async` 版に決まり、`'async' call in a function that does not support concurrency`）。ほかのテストのソースでは捕まらなかった |
+| M160 | UT-31 | `registerCategory(_:completion:)` の `= nil` を外す | 同じく組めない（`registerCategory(self.category)`）。22 章の流し直しでは、C6 の `NotificationCategoryQueueTests` の同期の closure の `registerCategory(category("b"))`（329 行）が先に捕まえた。その呼び出しに `completion: nil` を書いた写しでも `IosNotificationManagerCallFormTests` が捕まえた |
+
+TSan の skip を外した 3 件は、テストそのものは C1・C2 で壊して確かめている（M5・M16〜M18 など）。UI テストの変異は流していない（C5・C6 と同じ）。
+
+### 20.13 警告
+
+| 測り方 | 結果 |
+|---|---|
+| 2 つの scheme（`IosLibrary`、`IosLibraryExample`）を `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`）。Xcode 26.3 と 26.6（`DEVELOPER_DIR`）。C7 のテストを足した後の作業ツリー | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+| `IosLibrary` の Release（Xcode 26.6 の `generic/platform=iOS` と `generic/platform=iOS Simulator`、Xcode 26.3 の `generic/platform=iOS`。`CODE_SIGNING_ALLOWED=NO`） | エラー 0、警告 0 |
+
+`ios/UnityIosPlugin`（ワークスペースの外）は組んでいない（C1 と同じ）。
+
+## 21. 利用者に決めてもらうこと（C7）
+
+| # | 事柄 | 推奨 |
+|---|---|---|
+| 1 | 無いファイルの添付（20.4 の 3）。`UNNotificationAttachment` は投げず、`add` が `UNErrorDomain` の 100 で断り、通知は出ない。ライブラリは `addRequestFailed` で返す。`update` では今の予約を消した後に `add` が失敗するので、予約が消えたまま新しい要求も足されない。入口（`makeUNAttachment` の前）でファイルの有無を確かめるか | **確かめる形にする（第 2 部の設計の前の小さなコミットで。入口で `FileManager.fileExists` が偽なら `attachmentLoadFailed(identifier:detail:)` で何も足さず消さない）**。理由: 18 章の 5 で入口の確かめを取らなかった理由（今の利用者で添付なしで出ていた通知が出なくなりうる）は当たらない（今も出ない）。添付の失敗が決まった case になり、`update` が予約を消さない（L-B1 と同じ向き）。C ABI の利用者にも決まった失敗を返せる。逆の考え: 確かめから `add` までの間にファイルが消えれば今と同じ `addRequestFailed` になる（確かめは近道で、守りの全部ではない）。`detail` に入れる domain と code（`NSCocoaErrorDomain` の `NSFileNoSuchFileError` か、OS と同じ `UNErrorDomain` の 100 か）を決める必要があり、1b の「今の動作を変えない」の外の変更になる。変えないなら、今の形（`addRequestFailed`、`update` で予約が消える）を DocC・マニュアルに書く |
+| 2 | 基準の取り直し。シミュレーターの基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）は 0g の後のもの（320 件）で、1b で足したテストがすべて「足した」に出る。1b で名前を替えた・消した 4 件が「基準で通ったのに流れなかった」になり、全体の実行の `test_ios.sh` は終了の値 1 で終わる（20.7） | **C7 のコミットの後に、そのコミットの作業ツリーで `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --baseline` を 1 回流して取り直す**（シミュレーターだけで、許可は要らない）。2a 以降の差を 1b の後から見られる。逆の考え: 実機の基準（60 件）は取り直せないので、2 つの環境の基準の時点がずれる。実機は 20.10 の実機の回で取り直す |
+| 3 | 20.10 の実機の項目をいつ行うか | **MS-08 の前面と実機の振る舞い、1b の UI テストの実機の回と実機の基準の取り直しを、第 2 部の設計の前に 1 回の実機の回にまとめる**。MS-08 の結果は第 2 部の C のヘッダーの文言に効くため。**`.private` の見え方は、2 章の 2 の決定のとおり 2.0.0 の前の実機の区切り（DoD）の 1 回で見る**（この回に移さない。移すなら 2 章の 2 の決め直しで、利用者が決める）。配布用の署名と 0c の残りの 39 件も、決まっているとおり 2b の後（2.0.0 の前）。どれも始める前に利用者の許可を得る。逆の考え: 実機の回を 2b の後（2.0.0 の前）の 1 回にまとめれば、私物の実機を使う回が 1 回減り、capi のログ（P1-18。2b で初めて出る）の `.private` も同じ回で見られる。ただし MS-08 の結果を第 2 部のヘッダーに入れられず、2b の後に文言を直すことになる |
+| 4 | D23（iPad のアクションシート）が `SIMULATOR_ONLY_TESTS` にある（6 章の「残ること」）。D23 はアクションシートを出して選ぶだけで、実機でも私物に触れない | **このまま（simulator only）にする**。設計書 13.2 の環境が「iPad のシミュレーター」で、実機（iPhone XS / 18.7.2）ではアクションシートが popover にならず確かめの意味が薄い。外すなら設計書 13.2 と UI テストの設計書 6.3 の 3、ランナーの表と自己テストを直す。逆の考え: D23 は私物に触れないので外しても危険は小さく、外せば実機の回でも Dialog のアクションシートを選ぶ確かめが 1 件増える。ただし実機では popover にならないので、確かめるのは iPad の基点でなく選択だけになり、D6（アクションシートの選択。設計書 13.2 の D23 は D6 と SA-01 を iPad で流すもの）と重なる |
+| 5 | Dialog の今の口の `sourceRect` の DocC（5 章の 5）。iPad で `sourceRect` を渡さないと `sourceView` 全体を基点にし、大きな view では選択肢の無い popover になる（1b の前から）。DocC に書くかは「C3 の Share と合わせて決める」のまま決まっていない | **DocC の `sourceRect` の説明に「`nil` は `sourceView` の bounds 全体。iPad で画面全体の view を渡すと置き場が無いので、点に近い矩形を渡す」を足す（第 2 部の設計の前の小さなコミットで。コメントだけ）。マニュアル（段階 4）にも書く**。Share は基点をライブラリが view の中央に付けるので同じ問題は無い（7.4 の 9）。逆の考え: 今の口の動作は変えないので、DocC だけ直しても既存の利用者は気づかない。サンプルは C2 で中央の点に直した |
+| 6 | C ABI から表示元を渡す口（22 章で足した。README 3.1・8.6、第 1 部 G-6、1b の結果 7 章の「iPad の表示元」）。第 1 部の P1-11 の C で「C ABI の受け口は新しい定義の前面を選んで渡すだけ」と決めた。1b の G-6 で、複数の window の iPad では key window が 2 つになり、前面の探し方がどちらの window を選ぶかは決まらないと分かった（5 章の 2）。Swift の利用者は `.viewController(_:)` で表示元を渡せるが、C ABI の利用者には選ぶ手段が無い | **2.0.0 の C ABI には足さない（P1-11 の C のまま）。第 2 部のヘッダーとマニュアル（段階 4）に「複数の window を開ける iPad では、どちらの window に出すかは決まらない」と書く**。理由: C ABI の主な利用者の Unity の iOS のアプリは 1 つの window で動く見込みで（確かめていない）、複数の window を開ける構成は少ない。足すなら `UIViewController` か `UIWindowScene` のポインタを C で受けることになり、寿命（いつまで有効か）と、受けたものがまだ window にあるかの確かめを第 2 部で新しく決める必要がある。要求の構造体は `struct_size` の規則で後から項目を足せる（P1-13 と同じ考え）。逆の考え: 足せば、複数の window の iPad で C ABI の利用者も出す window を選べ、Swift の利用者と同じ道ができる。後から足すと、ヘッダーの「決まらない」の文言と利用者のコードの両方を直すことになる。**足すなら P1-11 の決め直しになり、それは利用者が決める**（口の形は第 2 部の設計で決める） |
+
+## 22. C7 のレビューと直したこと
+
+C7 の未コミットの変更（文書とテスト）のレビュー（文書の観点と、テストのコードの観点。scratchpad の `c7review-docs`・`c7review-tests`）の指摘を直した。指摘はどれも文書の書き方とテストの確かめの細かさで、ライブラリのコード、信頼する部分（`scripts/ios_ui_runner.py` の `TRUSTED_FILES` とハッシュ）、ランナー、サンプル、UI テストは変えていない。21 章の 3 は 2 章の 2 の決定に戻し、C ABI から表示元を渡す口を新しい決定待ち（21 章の 6）に挙げた。
+
+| 指摘 | 直したこと |
+|---|---|
+| 1: 1b の結果 7 章の「例外」の行が、利用者のコールバックの例外は一般に巻き戻さずに `abort` すると読める。測ったのは `NSException` だけ（20.4 の 1。C++ の例外は試していない） | 1b の結果 7 章の行と 5 章の「例外」を、「`NSException` は巻き戻しを始めずにその場で `abort` した（MS-11、1 回。C++ の例外は試していない）」に絞った |
+| 2: README 4.1 と 1b の結果 6 章が、`update` は添付の失敗で予約を残すと読める。無いファイルは `UNNotificationAttachment` でなく `add` で失敗し（`UNErrorDomain` の 100 → `addRequestFailed`）、そのときは今の予約を消した後（`NotificationRepositoryImpl.update`）。設計書 3.3 には `update` の行が無い（20.1 は足したと書いていた） | README 4.1、1b の結果 6 章、設計書 3.3（行を足した）に「添付を作れない（`attachmentLoadFailed`）ときは残る。無いファイルは `add` が断り（`addRequestFailed`）、予約は残らない（21 章の 1）」を書いた。20.1 の行に、設計書 3.3 には足していなかったことを書いた。20.4 の 3 に「`update` の結論はコードから導いた。測ったのは `show` だけ」を足した |
+| 3: 「678 件: 成功 677、skip 1」の内訳が無い | 20.7、20.11、1b の結果 1 章・4 章、README 5 章の 1b の行に、678 = `IosLibraryTests` 543 + `IosLibraryExampleTests` 10 + UI テスト 124 + ボタンの網羅の 1 行（`results.jsonl` の `IosLibraryExampleUITests#buttonCoverage`）で、成功の 677 はこの 1 行を含むことを書いた（数は変えていない） |
+| 4: 1b の結果 6 章（マニュアルに書くと決めたもの）に、決まっていない `sourceRect` の行がある | その行と、無い添付・iPad の表示元の行に**決定待ち**を書き、表の前の文に「決定待ちの行は 21 章の決定で決まる」を足した |
+| 5: README 3.1 と第 1 部 5.13 が「C ABI の利用者も表示元を渡す」と読める。P1-11 の C では C ABI は前面を探すだけで、C の表示元の口は未決（第 1 部 G-6、1b の結果 7 章） | README 3.1 を「C ABI は前面を探すだけ（P1-11 の C）で、複数の window の iPad ではどちらの window に出すかは決まらない。Swift の利用者は `.viewController(_:)` で渡せる。C の口を足すかは第 2 部で決める」にした。第 1 部 5.13 の前面の定義と G-6、1b の結果 5 章・6 章・7 章も同じ向きに直した。21 章の 6（推奨と逆の考え、P1-11 の決め直しは利用者が決めること）と README 8.6 の行を足した |
+| 6: 21 章の 3 が、`.private` の確かめを第 2 部の設計の前の実機の回に移し、2 章の 2 の決定（2.0.0 の前の実機の区切りで 1 回）を黙って変えていた | `.private` は 2 章の 2 のとおり 2.0.0 の前に戻し、移すなら決め直しだと書いた。逆の考え（2b の後の 1 回にまとめれば実機の回が減り、capi のログ（P1-18。2b で初めて出る）も見られる）を足した |
+| 7: 第 1 部 P1-17 の (3)・(4) と 20.1 の「1b では使っていない」が、`CompletionOnce`（`NotificationDelegateRouter.swift` で使う）や要求の箱・解放の見張りを使っていないと読める | 「`@unchecked` は 1b では使っていない（`CompletionOnce` 自体は使い、`@unchecked` なしの `Sendable`）」と、`RequestBox` と解放の見張りの同じ形にした。第 1 部 5.12.4 の表の行も同じ |
+| 8: 20 章の状態の行が、行っていない UI テストの設計書の反映を挙げる | 「UI テストの設計書は C5 で書いたまま変えていない」にした |
+| 9: `artifact/README.md` のトピックの一覧の ios-c-abi の行が 2026-10-31 のまま（次は 2 回目の申し送りと 1b） | 前の段階の終わりと同じく、行の終わりに 1b の完了（シミュレーター）、残り（MS-10 と実機の項目）、次（第 2 部）を足し、日付を 2026-11-01 にした |
+| C1: 20.3 の MS-09 の行の 1 列目に RK の番号を書いたので、`scripts/check_design_consistency.py` がその行を RK の表の行と読み、記録の中の RK の参照を「表に無い」と落とす | RK の番号を 2 列目に移した（「C6（17.7 の 1。RK-10 の測り）」）。下の表のとおり FAIL は 0 |
+| C3: README 5 章と 1b の結果 1 章が、iPad も 26.2 で流したと読める（iPad は 18.3 だけ） | 3 台を「iPhone 17 / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3」と書いた |
+| C4: README 5 章の 1b の行の「TSan）。 公開 API」の余分な空白 | 消した |
+| C5: 第 1 部 5.12.4 の例の `CompletionOnce<Value>: Sendable` がコードと違う | コードのとおり `CompletionOnce<Value: Sendable>: Sendable` にした |
+| C6: 21 章の 1 が、18 章の 5 で逆の考えへの反論だった文を「逆の考え」と呼ぶ | 「18 章の 5 で入口の確かめを取らなかった理由」にした |
+| C7: 21 章の 4 に逆の考えが無い | 外す側の利点（私物に触れない、実機でも 1 件増える）と、取らない理由（実機では popover にならず、D6 と重なる）を足した |
+| C9: 20.8 の「`print(` は DocC の例の 9 か所だけ」が、deprecated の `Log` と `IosLibrary.docc` を数えていない | `grep -rn 'print(' ios/IosLibrary/IosLibrary` で数え直し、19 行（Swift の DocC の例 9、`Common/Log.swift:48,56,64,72` の 4、`IosLibrary.docc/IosLibrary.md` の 6）と書いた |
+| C10: 設計書 13.1 のブリッジのテストの件数（26・41・7）が 20.8 の数と違う | 設計書 13.1 の注に、20.8 は記録の表（25・40・7 と Share のマネージャー 1）に合わせたことを足した |
+| C11: 新しい文の「2a の前」が、README 5 章の 2a（照合のスクリプト）と第 2 部の設計（1b の後、2b の前）のどちらか分からない | 第 2 部の設計を指す所（21 章の 1・3・5、20.10 の MS-08 の行）を「第 2 部の設計の前」にした |
+| C12: C ABI の userInfo の `null` の扱い（第 2 部に回した。18 章の 6）が README 8.6 に無い | README 8.6 に行を足した |
+| C13: 20.1 の MS-14 の行が「1b の結果のまま」と書くが、1b の結果は 20.3 を指すだけ。20.4 の 3 の `UNErrorDomain` の 100 のログの行は scratchpad に残していない | 20.1 を「UI テストの設計書 3.3 のまま（1b の結果は 20.3 の表を指すだけ）」にした。20.4 の 3 の表に、ログの行は残しておらず、残したのはサンプルの結果の行だけと書いた |
+| T-11: `CommonTestSupport.swift` の `import Darwin` が使われていない（C7 で `isThreadSanitizerEnabled` を消した後） | 消した。下の実行と whole-module のビルドで組めた |
+| T-12: `ReleaseWatchTests.aRealViewControllerClosesTheBoxWhenFreed` のコメントが「ライブラリが出したアラートとシートは TSan の版でも解放された」と言うが、このテストは表示しない ViewController を手放すだけ。待ちが 1 秒の自前の繰り返し | コメントを「TSan でも流す。手放した ViewController はそこでもすぐ解放される（1b C7、設計書 6.3.4、RK-11）」にした。待ちをほかの 2 つと同じ `waitUntil(timeout: 5) { box.isClosed }` にした（`try` が要らなくなったので `throws` を外した。名前は同じ） |
+| T-13: `IosNotificationManagerCallFormTests` の 2 つ目のテストが回数をまとめた 1 つの `#expect` だけで、落ちたときにどれか分からない。1 つ目の doc comment が `trigger` を書かない `show(content:)` の意味を書いていない | まとめた待ちの後に、1 つ目と同じく回数ごとの `#expect` を 8 つ足した。1 つ目の doc comment に「`trigger` を書かない `show(content:)` も置き、`async` 版の `trigger` に既定が無いこと（SR2-7）を守る。既定があれば `async` 版に決まり組めなくなる」を足した（名前は同じ） |
+
+単体テストの数は変わらない（543。足した・消した・名前を替えたテストは無い）。
+
+| 実行 | 結果 |
+|---|---|
+| 直したテストと C7 で触れたテスト（`IosNotificationManagerCallFormTests` 2、`NotificationContentTests` 5、TSan の skip を外した 3 件。iPhone 17 / 26.2、Xcode 26.6、`-parallel-testing-enabled NO`、`-only-testing`、DerivedData は scratchpad） | 10/10 成功（5 suite） |
+| 同じ 10 件を TSan で（`-enableThreadSanitizer YES`。テストのホストに `libclang_rt.tsan` が入った） | 10/10 成功、TSan の報告 0 件。外した 3 件は 0.002 秒・2.7 秒・1.3 秒 |
+| `IosLibrary` の scheme の `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`、Xcode 26.6） | エラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+| M159・M160 の流し直し（`ios/IosLibrary` を scratchpad に写し、`completion` の `= nil` を外して `build-for-testing`。リポジトリは変えていない） | M159: テストのターゲットが組めない（`IosNotificationManagerCallFormTests.swift:67` の `setBadgeCount(2)`。ほかのテストのソースでは捕まらない）。M160: 組めない（先に `NotificationCategoryQueueTests.swift:329`、その呼び出しに `completion: nil` を書いた写しでは `IosNotificationManagerCallFormTests.swift:74` の `registerCategory(self.category)`）。20.12 の M160 の行に書き足した |
+| `scripts/check_design_consistency.py`（第 1 部、設計書、README、この記録、1b の結果） | 5 つとも FAIL 0（終了の値 0） |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2 は xcodebuild が起動し、最後に起動しているものが無いことを確かめた。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない） |
+
+全体の実行（`scripts/test_ios.sh`）は流し直していない（直したのはテストの確かめの細かさとコメントで、関係するテストを両方の版で流したため）。

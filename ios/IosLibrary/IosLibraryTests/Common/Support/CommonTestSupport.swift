@@ -3,7 +3,6 @@
 //  IosLibraryTests
 //
 
-import Darwin
 import Foundation
 import Synchronization
 @testable import IosLibrary
@@ -17,11 +16,6 @@ func drainMainQueue(times: Int = 1) async {
         }
     }
 }
-
-/// Whether the test process runs with the Thread Sanitizer. Tests that rely on a view
-/// controller being freed are skipped then: in hand-off 1, a dismissed `UIAlertController` was
-/// not freed within 15 s in the TSan build (design 6.3.4, UT-05).
-let isThreadSanitizerEnabled: Bool = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "__tsan_init") != nil
 
 /// Records the outcomes a request box delivered, with the thread they arrived on.
 final class OutcomeRecorder: Sendable {
