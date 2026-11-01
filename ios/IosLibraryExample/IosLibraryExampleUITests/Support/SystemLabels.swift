@@ -43,6 +43,17 @@ enum SystemLabels {
     static let notNow = ["Not Now", "今はしない"]
     static let cancel = ["Cancel", "キャンセル"]
 
+    // Settings app (N40). Simulator only: the device never runs N40 (`Springboard` throws there and
+    // the runner never selects it), so only the en labels of the iOS 26.2 simulator are kept (stage
+    // 1b C6, measured with MS-07).
+    static let settingsApps = ["Apps"]
+    /// The Notifications row of an app's page: found by its identifier, because its label also
+    /// carries the summary of the settings (`Notifications, Banners, Sounds, Badges`).
+    static let settingsNotificationsIdentifier = "NOTIFICATIONS"
+    /// The row of the sample's notification settings page that sends `openSettingsFor`; Settings
+    /// shows it for an app that asked for `.providesAppNotificationSettings`.
+    static let sampleNotificationSettingsLink = ["\(sampleDisplayName) Notification Settings"]
+
     // Share sheet and Files
     static let copy = ["Copy", "コピー"]
     static let saveToFiles = ["Save to Files", "“ファイル”に保存", "\"ファイル\"に保存"]

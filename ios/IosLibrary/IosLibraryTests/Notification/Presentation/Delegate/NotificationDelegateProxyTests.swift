@@ -117,7 +117,6 @@ struct IosNotificationManagerDelegateSinkTests {
         let repository = MockNotificationRepository()
         let manager = IosNotificationManager(
             repository: repository,
-            permissionHelper: NotificationPermissionHelper(repository: repository),
             delegateStatus: NotificationDelegateStatus(isInstalled: { true }, launchResponse: { nil })
         )
         return (manager, repository)

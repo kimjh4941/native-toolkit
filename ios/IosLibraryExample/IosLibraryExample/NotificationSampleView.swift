@@ -1,6 +1,7 @@
 import IosLibrary
 import os
 import SwiftUI
+import UIKit
 
 private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "NotificationSampleView")
 
@@ -24,7 +25,8 @@ enum NotificationSampleIdentifiers {
         static let query = "query"
         static let badge = "badge"
         static let category = "category"
-        /// Swift API (2.0.0): the event hub, the launch response and the host delegate (1b C5).
+        /// Swift API (2.0.0): the event hub, the launch response and the host delegate (1b C5),
+        /// the operations' typed results, the categories' completion and the presenter (1b C6).
         static let swiftAPI = "swiftAPI"
     }
 
@@ -59,6 +61,13 @@ enum NotificationSampleIdentifiers {
         static let removeSecondListener = "removeSecondListener"
         static let readLaunchResponse = "readLaunchResponse"
         static let showHostNotification = "showHostNotification"
+        // Swift API (2.0.0) section (1b C6: SA-09, SA-10, SA-13, SA-05).
+        static let showReservedKey = "showReservedKey"
+        static let showInvalidUserInfo = "showInvalidUserInfo"
+        static let registerCategoryWithCompletion = "registerCategoryWithCompletion"
+        static let requestPermissionWithAppSettings = "requestPermissionWithAppSettings"
+        static let openNotificationSettingsForeground = "openNotificationSettingsForeground"
+        static let requestPermissionAfter3Seconds = "requestPermissionAfter3Seconds"
     }
 
     enum LastEventField {
@@ -444,31 +453,7 @@ struct NotificationSampleView: View {
 
                     sectionView(title: "Category", identifier: ID.Section.category) {
                         Button("RegisterCategory") {
-                            let category = NotificationCategory(
-                                identifier: categoryId,
-                                actions: [
-                                    NotificationAction(
-                                        identifier: "open",
-                                        title: "Open",
-                                        options: [.foreground]
-                                    ),
-                                    NotificationAction(
-                                        identifier: "delete",
-                                        title: "Delete",
-                                        options: [.destructive]
-                                    )
-                                ],
-                                textInputActions: [
-                                    TextInputNotificationAction(
-                                        identifier: "reply",
-                                        title: "Reply",
-                                        buttonTitle: "Send",
-                                        textInputPlaceholder: "IosLibraryExample reply"
-                                    )
-                                ],
-                                options: [.customDismissAction]
-                            )
-                            IosNotificationManager.shared.registerCategory(category)
+                            IosNotificationManager.shared.registerCategory(makeCategory())
                             self.updateResult(
                                 isSuccess: true,
                                 result: "[registerCategory] Registered. Send a notification and long-press to see the actions (Open, Delete, Reply)."
@@ -512,6 +497,90 @@ struct NotificationSampleView: View {
                             }
                         }
                         .accessibilityIdentifier(ID.button(ID.ButtonName.showHostNotification))
+
+                        // The userInfo checks come first and reach the async form as their cases (SA-09):
+                        // the library's reserved key, and a value that is not a property-list value.
+                        Button("ShowReservedKey") {
+                            logger.debug("[showReservedKey]")
+                            requirePermission {
+                                Task {
+                                    await runShow(label: "showReservedKey", content: makeContent(
+                                        id: notificationId, title: "Reserved Key", body: "Never shown",
+                                        userInfo: ["com.jonghyunkim.nativetoolkit": 1]))
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showReservedKey))
+
+                        Button("ShowInvalidUserInfo") {
+                            logger.debug("[showInvalidUserInfo]")
+                            requirePermission {
+                                Task {
+                                    await runShow(label: "showInvalidUserInfo", content: makeContent(
+                                        id: notificationId, title: "Invalid UserInfo", body: "Never shown",
+                                        userInfo: ["url": URL(string: "https://example.com")!]))
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.showInvalidUserInfo))
+
+                        // The result line is written in the completion, after the category is
+                        // registered (SA-10): a notification posted then shows its actions at once.
+                        Button("RegisterCategoryWithCompletion") {
+                            logger.debug("[registerCategoryWithCompletion]")
+                            IosNotificationManager.shared.registerCategory(makeCategory()) {
+                                self.updateResult(isSuccess: true, result: "[registerCategoryWithCompletion] completed")
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.registerCategoryWithCompletion))
+
+                        // The permission with the app's own notification settings, from the
+                        // foreground (SA-13, the async form): Settings then shows the link that
+                        // sends openSettingsFor.
+                        Button("RequestPermissionWithAppSettings") {
+                            logger.debug("[requestPermissionWithAppSettings]")
+                            Task {
+                                do {
+                                    let granted = try await IosNotificationManager.shared.requestPermission(
+                                        options: [.alert, .sound, .badge, .providesAppNotificationSettings],
+                                        presenter: .foreground
+                                    )
+                                    report("requestPermissionWithAppSettings", Result<Bool, NotificationError>.success(granted))
+                                } catch let error as NotificationError {
+                                    report("requestPermissionWithAppSettings", Result<Bool, NotificationError>.failure(error))
+                                } catch {
+                                    updateResult(isSuccess: false, result: "[requestPermissionWithAppSettings] failure \(error)")
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.requestPermissionWithAppSettings))
+
+                        // The settings page from the foreground, in the callback form the C ABI
+                        // uses (SA-13).
+                        Button("OpenNotificationSettingsForeground") {
+                            logger.debug("[openNotificationSettingsForeground]")
+                            IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) { result in
+                                report("openNotificationSettingsForeground", result.map { "opened" })
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.openNotificationSettingsForeground))
+
+                        #if DEBUG
+                        // Test only: requested 3 seconds later, so that a UI test can move the app to
+                        // the background (notForeground while not determined, no alert. SA-05). The
+                        // scene's state when the request is made is in the result line. The callback
+                        // form, as `shareAfter3Seconds`.
+                        Button("RequestPermissionAfter3Seconds") {
+                            logger.debug("[requestPermissionAfter3Seconds]")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                let state = Self.sceneState()
+                                IosNotificationManager.shared.requestPermission(presenter: .foreground) { result in
+                                    report("requestPermissionAfter3Seconds@\(state)", result)
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.requestPermissionAfter3Seconds))
+                        #endif
                     }
                 }
                 .padding(.trailing, 12)
@@ -589,14 +658,105 @@ struct NotificationSampleView: View {
         .padding(.vertical, 4)
     }
 
-    private func makeContent(id: String, title: String, body: String) -> sending NotificationContent {
-        NotificationContent(
+    private func makeContent(id: String, title: String, body: String, userInfo extra: sending [String: Any] = [:]) -> sending NotificationContent {
+        var userInfo = extra
+        userInfo["source"] = "IosLibraryExample"
+        userInfo["id"] = id
+        return NotificationContent(
             id: id,
             title: title,
             body: body,
             categoryIdentifier: categoryId,
-            userInfo: ["source": "IosLibraryExample", "id": id]
+            userInfo: userInfo
         )
+    }
+
+    /// The sample's category: Open (foreground), Delete (destructive), Reply (text input), with
+    /// the custom dismiss action.
+    private func makeCategory() -> NotificationCategory {
+        NotificationCategory(
+            identifier: categoryId,
+            actions: [
+                NotificationAction(
+                    identifier: "open",
+                    title: "Open",
+                    options: [.foreground]
+                ),
+                NotificationAction(
+                    identifier: "delete",
+                    title: "Delete",
+                    options: [.destructive]
+                )
+            ],
+            textInputActions: [
+                TextInputNotificationAction(
+                    identifier: "reply",
+                    title: "Reply",
+                    buttonTitle: "Send",
+                    textInputPlaceholder: "IosLibraryExample reply"
+                )
+            ],
+            options: [.customDismissAction]
+        )
+    }
+
+    /// Shows `content` with the `async` form and writes `[<label>] success` or
+    /// `[<label>] failure <case>` (Swift API section).
+    private func runShow(label: String, content: sending NotificationContent) async {
+        logger.debug("[runShow] label: \(label, privacy: .public), content.id: \(content.id, privacy: .public)")
+        do {
+            try await IosNotificationManager.shared.show(content: content, trigger: nil)
+            report(label, Result<String, NotificationError>.success("shown"))
+        } catch let error as NotificationError {
+            report(label, Result<String, NotificationError>.failure(error))
+        } catch {
+            updateResult(isSuccess: false, result: "[\(label)] failure \(error)")
+        }
+    }
+
+    /// Writes a typed result of the Swift API to the result line: `[<label>] success <value>` or
+    /// `[<label>] failure <case>`.
+    private func report<Value>(_ label: String, _ result: Result<Value, NotificationError>) {
+        switch result {
+        case .success(let value):
+            logger.debug("[\(label, privacy: .public)] success: \(String(describing: value), privacy: .public)")
+            let detail = (value as? Bool).map { "granted=\($0)" } ?? String(describing: value)
+            updateResult(isSuccess: true, result: "[\(label)] success \(detail)")
+        case .failure(let error):
+            logger.debug("[\(label, privacy: .public)] failure: \(Self.caseName(of: error), privacy: .public)")
+            updateResult(isSuccess: false, result: "[\(label)] failure \(Self.caseName(of: error))")
+        }
+    }
+
+    /// The case of a notification error, with the domain and code of its detail.
+    private static func caseName(of error: NotificationError) -> String {
+        switch error {
+        case .permissionDenied: return "permissionDenied"
+        case .attachmentLoadFailed(_, let detail): return "attachmentLoadFailed(domain=\(detail.domain), code=\(detail.code))"
+        case .addRequestFailed(let detail): return "addRequestFailed(domain=\(detail.domain), code=\(detail.code))"
+        case .setBadgeCountFailed(let detail): return "setBadgeCountFailed(domain=\(detail.domain), code=\(detail.code))"
+        case .authorizationFailed(let detail): return "authorizationFailed(domain=\(detail.domain), code=\(detail.code))"
+        case .reservedUserInfoKey: return "reservedUserInfoKey"
+        case .invalidUserInfo: return "invalidUserInfo"
+        case .notForeground: return "notForeground"
+        case .openSettingsFailed: return "openSettingsFailed"
+        case .delegateNotInstalled: return "delegateNotInstalled"
+        @unknown default: return "unknown"
+        }
+    }
+
+    /// The activation state of the sample's window scenes (`foregroundActive`, ...).
+    private static func sceneState() -> String {
+        let states = UIApplication.shared.connectedScenes.map { scene -> String in
+            switch scene.activationState {
+            case .foregroundActive: return "foregroundActive"
+            case .foregroundInactive: return "foregroundInactive"
+            case .background: return "background"
+            case .unattached: return "unattached"
+            @unknown default: return "unknown"
+            }
+        }
+        return states.sorted().joined(separator: ",")
     }
 
     private func makeContentWithAppIconAttachment(id: String, title: String, body: String) -> sending NotificationContent {

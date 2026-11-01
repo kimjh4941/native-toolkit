@@ -3,7 +3,7 @@
 //  IosLibraryTests
 //
 //  The tests of the deprecated entries (`setup()`, `onActionReceived`, `onTextInputActionReceived`.
-//  Design S-P8) must call them. The calls are made in deprecated witnesses reached through a
+//  Design S-P8; `NotificationPermissionHelper`, S-P27) must call them. The calls are made in deprecated witnesses reached through a
 //  protocol, so that the test target builds without deprecation warnings.
 //
 
@@ -15,6 +15,9 @@ protocol DeprecatedNotificationEntries: Sendable {
     func setup()
     func setReceivers(of manager: IosNotificationManager, action: NotificationActionHandler?, textInput: NotificationTextInputActionHandler?)
     func receivers(of manager: IosNotificationManager) -> (action: NotificationActionHandler?, textInput: NotificationTextInputActionHandler?)
+    func helperRequestPermission(repository: NotificationRepository) async throws -> Bool
+    func helperAuthorizationStatus(repository: NotificationRepository) async -> NotificationAuthorizationStatus
+    func helperOpenNotificationSettings(repository: NotificationRepository)
 }
 
 private struct DeprecatedNotificationCalls: DeprecatedNotificationEntries {
@@ -32,6 +35,21 @@ private struct DeprecatedNotificationCalls: DeprecatedNotificationEntries {
     @available(*, deprecated)
     func receivers(of manager: IosNotificationManager) -> (action: NotificationActionHandler?, textInput: NotificationTextInputActionHandler?) {
         (manager.onActionReceived, manager.onTextInputActionReceived)
+    }
+
+    @available(*, deprecated)
+    func helperRequestPermission(repository: NotificationRepository) async throws -> Bool {
+        try await NotificationPermissionHelper(repository: repository).requestPermission()
+    }
+
+    @available(*, deprecated)
+    func helperAuthorizationStatus(repository: NotificationRepository) async -> NotificationAuthorizationStatus {
+        await NotificationPermissionHelper(repository: repository).authorizationStatus()
+    }
+
+    @available(*, deprecated)
+    func helperOpenNotificationSettings(repository: NotificationRepository) {
+        NotificationPermissionHelper(repository: repository).openNotificationSettings()
     }
 }
 

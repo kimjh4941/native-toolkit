@@ -46,6 +46,15 @@ struct CurrentNotificationRequestCenter: NotificationRequestCenter {
 
 /// Concrete implementation of `NotificationRepository` backed by `UNUserNotificationCenter`.
 ///
+/// `show`, `update` and `schedule` check the userInfo first, before anything is removed or added
+/// (design 8.3.3, 8.5.3, SR-9): the library's reserved key (``NotificationError/reservedUserInfoKey``),
+/// then whether it is a property list (``NotificationError/invalidUserInfo``). `update` also makes
+/// the content (with its attachments) and the trigger before it removes the pending request, so an
+/// `update` rejected by a check or a failed attachment leaves the pending request it would replace
+/// in place. The changes to the categories go through
+/// the one queue of the process (`NotificationCategoryQueue`, design 8.5.6), whichever repository
+/// makes them.
+///
 /// ## Threading
 /// The repository is `Sendable` and may be called from any thread. It holds no mutable state and
 /// does not store the notification center: `UNUserNotificationCenter` is not `Sendable`, and
@@ -57,60 +66,54 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     private var center: UNUserNotificationCenter { .current() }
     /// Where requests are added, removed and listed (`center` in the library).
     private let requestCenter: any NotificationRequestCenter
+    /// Where the changes to the categories are queued (the process's queue in the library).
+    let categoryQueue: NotificationCategoryQueue
 
     /// Creates a repository backed by `UNUserNotificationCenter.current()`.
     public init() {
         logger.log(level: .libraryDebug, "[init]")
         requestCenter = CurrentNotificationRequestCenter()
+        categoryQueue = .shared
     }
 
-    /// For tests: adds, removes and lists the requests through `requestCenter`.
-    init(requestCenter: any NotificationRequestCenter) {
-        logger.log(level: .libraryDebug, "[init] requestCenter: \(String(describing: type(of: requestCenter)), privacy: .public)")
+    /// For tests: adds, removes and lists the requests through `requestCenter`, and queues the
+    /// category changes on `categoryQueue`.
+    init(requestCenter: any NotificationRequestCenter, categoryQueue: NotificationCategoryQueue = .shared) {
+        logger.log(level: .libraryDebug, "[init] requestCenter: \(String(describing: type(of: requestCenter)), privacy: .public), categoryQueue: \(categoryQueue === NotificationCategoryQueue.shared ? "shared" : "provided", privacy: .public)")
         self.requestCenter = requestCenter
+        self.categoryQueue = categoryQueue
     }
 
     // MARK: - Throwing operations
 
     public func show(content: NotificationContent, trigger: NotificationTrigger?) async throws {
         logger.log(level: .libraryDebug, "[show] content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
-        try rejectReservedKey(in: content, method: "show")
+        try checkUserInfo(of: content, method: "show")
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
         let request = UNNotificationRequest(identifier: content.id, content: unContent, trigger: unTrigger)
-        do {
-            try await requestCenter.add(request)
-        } catch {
-            throw NotificationError.addRequestFailed(error)
-        }
+        try await add(request, method: "show")
     }
 
     public func update(identifier: String, content: NotificationContent, trigger: NotificationTrigger?) async throws {
         logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public), content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
-        // Before anything is removed (design 8.3.3, SR-9).
-        try rejectReservedKey(in: content, method: "update")
-        requestCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        // Before anything is removed (design 8.3.3, 8.5.3, SR-9): the checks, then the content
+        // and the trigger, whose attachments can fail (`attachmentLoadFailed`).
+        try checkUserInfo(of: content, method: "update")
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
         let request = UNNotificationRequest(identifier: identifier, content: unContent, trigger: unTrigger)
-        do {
-            try await requestCenter.add(request)
-        } catch {
-            throw NotificationError.addRequestFailed(error)
-        }
+        requestCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        try await add(request, method: "update")
     }
 
     public func schedule(content: NotificationContent, trigger: NotificationTrigger, identifier: String) async throws {
         logger.log(level: .libraryDebug, "[schedule] identifier: \(identifier, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
-        try rejectReservedKey(in: content, method: "schedule")
+        try checkUserInfo(of: content, method: "schedule")
         let unContent = try makeUNContent(from: content)
         let unTrigger = makeTrigger(from: trigger)
         let request = UNNotificationRequest(identifier: identifier, content: unContent, trigger: unTrigger)
-        do {
-            try await requestCenter.add(request)
-        } catch {
-            throw NotificationError.addRequestFailed(error)
-        }
+        try await add(request, method: "schedule")
     }
 
     public func requestPermission(options: UNAuthorizationOptions) async throws -> Bool {
@@ -118,7 +121,9 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         do {
             return try await center.requestAuthorization(options: options)
         } catch {
-            throw NotificationError.unknown(error)
+            let detail = FailureDetail(systemError: error)
+            logger.error("[requestPermission] failed: domain=\(detail.domain, privacy: .public), code=\(detail.code, privacy: .public)")
+            throw NotificationError.authorizationFailed(detail)
         }
     }
 
@@ -127,7 +132,9 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         do {
             try await center.setBadgeCount(count)
         } catch {
-            throw NotificationError.setBadgeCountFailed(error)
+            let detail = FailureDetail(systemError: error)
+            logger.error("[setBadgeCount] failed: domain=\(detail.domain, privacy: .public), code=\(detail.code, privacy: .public)")
+            throw NotificationError.setBadgeCountFailed(detail)
         }
     }
 
@@ -223,37 +230,84 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         }
     }
 
-    public func openNotificationSettings() {
+    /// Opens `UIApplication.openNotificationSettingsURLString` on the main actor and returns
+    /// what `UIApplication.open(_:)` reported.
+    public func openNotificationSettings() async -> Bool {
         logger.log(level: .libraryDebug, "[openNotificationSettings]")
-        guard let url = URL(string: UIKit.UIApplication.openNotificationSettingsURLString) else { return }
-        Task { @MainActor in
-            await UIKit.UIApplication.shared.open(url)
+        guard let url = URL(string: UIKit.UIApplication.openNotificationSettingsURLString) else {
+            logger.error("[openNotificationSettings] the settings URL could not be made")
+            return false
+        }
+        let opened = await Self.open(url)
+        if !opened {
+            logger.error("[openNotificationSettings] the system did not open the settings page")
+        }
+        return opened
+    }
+
+    /// `UIApplication.shared.open(_:)`, which is main actor only.
+    @MainActor
+    private static func open(_ url: URL) async -> Bool {
+        logger.log(level: .libraryDebug, "[open] url: \(url.absoluteString, privacy: .public)")
+        return await UIKit.UIApplication.shared.open(url)
+    }
+
+    /// Queues the registration on the process's category queue and returns once it is applied.
+    public func registerCategory(_ category: NotificationCategory) async {
+        logger.log(level: .libraryDebug, "[registerCategory] identifier: \(category.identifier, privacy: .public)")
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            categoryQueue.enqueue(.register(category)) { continuation.resume() }
         }
     }
 
-    public func registerCategory(_ category: NotificationCategory) async {
-        logger.log(level: .libraryDebug, "[registerCategory] identifier: \(category.identifier, privacy: .public)")
-        var existing = await center.notificationCategories()
-        existing.insert(makeUNCategory(from: category))
-        center.setNotificationCategories(existing)
-    }
-
+    /// Queues the removal on the process's category queue and returns once it is applied.
     public func removeCategory(identifier: String) async {
         logger.log(level: .libraryDebug, "[removeCategory] identifier: \(identifier, privacy: .public)")
-        var existing = await center.notificationCategories()
-        existing = existing.filter { $0.identifier != identifier }
-        center.setNotificationCategories(existing)
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            categoryQueue.enqueue(.remove(identifier: identifier)) { continuation.resume() }
+        }
+    }
+
+    /// Appends the change to the process's category queue inside this call (design S-P28).
+    public func enqueueCategoryChange(_ change: NotificationCategoryChange, completion: @escaping @Sendable () -> Void) {
+        logger.log(level: .libraryDebug, "[enqueueCategoryChange] change: \(change.logSummary, privacy: .public), completion: provided")
+        categoryQueue.enqueue(change, completion: completion)
     }
 
     // MARK: - Private helpers
 
-    /// Fails with ``NotificationError/reservedUserInfoKey`` when the userInfo uses the library's
-    /// marker key. Called first, before anything is removed or added (design 8.3.3).
-    private func rejectReservedKey(in content: NotificationContent, method: String) throws {
-        logger.log(level: .libraryDebug, "[rejectReservedKey] content.id: \(content.id, privacy: .public), method: \(method, privacy: .public)")
-        guard NotificationMarker.isReserved(in: content.userInfo) else { return }
-        logger.error("[\(method, privacy: .public)] content.id: \(content.id, privacy: .public): the userInfo uses the key the library reserves; nothing was changed")
-        throw NotificationError.reservedUserInfoKey
+    /// The checks of the userInfo, first in `show`, `update` and `schedule`, before anything is
+    /// removed or added (design 8.3.3, 8.5.3): the reserved key, then the property list.
+    private func checkUserInfo(of content: NotificationContent, method: String) throws {
+        logger.log(level: .libraryDebug, "[checkUserInfo] content.id: \(content.id, privacy: .public), method: \(method, privacy: .public), userInfoKeys: \(content.userInfo.count, privacy: .public)")
+        if NotificationMarker.isReserved(in: content.userInfo) {
+            logger.error("[\(method, privacy: .public)] content.id: \(content.id, privacy: .public): the userInfo uses the key the library reserves; nothing was changed")
+            throw NotificationError.reservedUserInfoKey
+        }
+        if !Self.isPropertyList(content.userInfo) {
+            logger.error("[\(method, privacy: .public)] content.id: \(content.id, privacy: .public): the userInfo holds a value that is not a property-list value; nothing was changed")
+            throw NotificationError.invalidUserInfo
+        }
+    }
+
+    /// Whether `userInfo` can be written as a binary property list (design S-P15): every value is
+    /// a string, a number, a Boolean, a date, data, or an array or a dictionary (with string
+    /// keys) of those.
+    static func isPropertyList(_ userInfo: [String: Any]) -> Bool {
+        logger.log(level: .libraryDebug, "[isPropertyList] keyCount: \(userInfo.count, privacy: .public)")
+        return PropertyListSerialization.propertyList(userInfo, isValidFor: .binary)
+    }
+
+    /// Adds `request`, reporting a failure as ``NotificationError/addRequestFailed(_:)``.
+    private func add(_ request: UNNotificationRequest, method: String) async throws {
+        logger.log(level: .libraryDebug, "[add] identifier: \(request.identifier, privacy: .public), method: \(method, privacy: .public)")
+        do {
+            try await requestCenter.add(request)
+        } catch {
+            let detail = FailureDetail(systemError: error)
+            logger.error("[\(method, privacy: .public)] identifier: \(request.identifier, privacy: .public): the system did not add the request: domain=\(detail.domain, privacy: .public), code=\(detail.code, privacy: .public)")
+            throw NotificationError.addRequestFailed(detail)
+        }
     }
 
     private func makeUNContent(from content: NotificationContent) throws -> UNMutableNotificationContent {
@@ -316,7 +370,9 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         do {
             return try UNNotificationAttachment(identifier: attachment.identifier, url: attachment.fileURL)
         } catch {
-            throw NotificationError.attachmentLoadFailed(error)
+            let detail = FailureDetail(systemError: error)
+            logger.error("[makeUNAttachment] identifier: \(attachment.identifier, privacy: .public): failed: domain=\(detail.domain, privacy: .public), code=\(detail.code, privacy: .public)")
+            throw NotificationError.attachmentLoadFailed(identifier: attachment.identifier, detail: detail)
         }
     }
 
@@ -333,41 +389,5 @@ public final class NotificationRepositoryImpl: NotificationRepository {
             region.notifyOnExit = notifyOnExit
             return UNLocationNotificationTrigger(region: region, repeats: false)
         }
-    }
-
-    private func makeUNCategory(from category: NotificationCategory) -> UNNotificationCategory {
-        let unActions: [UNNotificationAction] = category.actions.map { action in
-            var options: UNNotificationActionOptions = []
-            if action.options.contains(.authenticationRequired) { options.insert(.authenticationRequired) }
-            if action.options.contains(.destructive) { options.insert(.destructive) }
-            if action.options.contains(.foreground) { options.insert(.foreground) }
-            if let symbolName = action.sfSymbolName {
-                let icon = UNNotificationActionIcon(systemImageName: symbolName)
-                return UNNotificationAction(identifier: action.identifier, title: action.title, options: options, icon: icon)
-            }
-            return UNNotificationAction(identifier: action.identifier, title: action.title, options: options)
-        }
-        let unTextInputActions: [UNTextInputNotificationAction] = category.textInputActions.map { action in
-            return UNTextInputNotificationAction(
-                identifier: action.identifier,
-                title: action.title,
-                options: [],
-                icon: nil,
-                textInputButtonTitle: action.buttonTitle,
-                textInputPlaceholder: action.textInputPlaceholder
-            )
-        }
-        let allActions: [UNNotificationAction] = unActions + unTextInputActions
-        var unOptions: UNNotificationCategoryOptions = []
-        if category.options.contains(.customDismissAction) { unOptions.insert(.customDismissAction) }
-        if category.options.contains(.allowInCarPlay) { unOptions.insert(.allowInCarPlay) }
-        if category.options.contains(.hiddenPreviewsShowTitle) { unOptions.insert(.hiddenPreviewsShowTitle) }
-        // `allowAnnouncement` is not passed on: the system ignores it since iOS 15.
-        return UNNotificationCategory(
-            identifier: category.identifier,
-            actions: allActions,
-            intentIdentifiers: [],
-            options: unOptions
-        )
     }
 }

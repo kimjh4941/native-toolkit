@@ -61,7 +61,19 @@ public typealias NotificationTextInputActionHandler = @Sendable (
 /// * The library marks the notifications it adds with a reserved userInfo key
 ///   (`com.jonghyunkim.nativetoolkit`) to tell them from other components' notifications; it
 ///   rejects a userInfo that uses the key and removes the key from every userInfo it hands back.
-/// * Wraps all use cases and converts errors to `(isSuccess, errorMessage)` for Unity interop.
+/// * Every operation goes through its use case. The operations that complete have a callback
+///   form (the existing `(isSuccess, errorMessage)` forms, whose `errorMessage` is the fixed
+///   English description of a ``NotificationError``) and an `async` form. The `async` forms are
+///   declared `async throws` without a thrown type; the library's repository throws a
+///   ``NotificationError`` (a repository of your own may throw its own errors). The queries and
+///   the categories do not throw.
+/// * ``requestPermission(options:presenter:completion:)`` and
+///   ``openNotificationSettings(presenter:completion:)`` take a ``PresenterSelection``:
+///   `.foreground` (what the C ABI passes) fails with ``NotificationError/notForeground`` instead
+///   of bringing up system UI while the app is not in the foreground.
+/// * ``registerCategory(_:completion:)`` and ``removeCategory(identifier:completion:)`` queue the
+///   change inside the call; the changes take effect in the order of the calls, and the
+///   completion follows the change.
 ///
 /// ## Threading
 /// The manager is `Sendable` and may be called from any thread. Every `completion` of an
@@ -100,7 +112,6 @@ public final class IosNotificationManager: NSObject, Sendable {
     /// Shared singleton instance.
     public static let shared = IosNotificationManager()
 
-    private let repository: NotificationRepository
     private let showUseCase: ShowNotificationUseCase
     private let updateUseCase: UpdateNotificationUseCase
     private let cancelUseCase: CancelNotificationUseCase
@@ -116,7 +127,11 @@ public final class IosNotificationManager: NSObject, Sendable {
     private let getAuthStatusUseCase: GetAuthorizationStatusUseCase
     private let registerCategoryUseCase: RegisterNotificationCategoryUseCase
     private let removeCategoryUseCase: RemoveNotificationCategoryUseCase
-    private let permissionHelper: NotificationPermissionHelper
+    private let setBadgeCountUseCase: SetBadgeCountUseCase
+    private let requestPermissionUseCase: RequestNotificationPermissionUseCase
+    private let openSettingsUseCase: OpenNotificationSettingsUseCase
+    /// The foreground check of the permission request and the settings page (design 8.5.4).
+    private let presentationGate: NotificationPresentationGate
 
     /// The values the app sets and the delegate callbacks read, possibly on different threads.
     private struct DelegateSettings {
@@ -187,7 +202,6 @@ public final class IosNotificationManager: NSObject, Sendable {
     private override init() {
         logger.log(level: .libraryDebug, "[init]")
         let repo = NotificationRepositoryImpl()
-        self.repository = repo
         self.showUseCase = ShowNotificationUseCase(repository: repo)
         self.updateUseCase = UpdateNotificationUseCase(repository: repo)
         self.cancelUseCase = CancelNotificationUseCase(repository: repo)
@@ -203,7 +217,10 @@ public final class IosNotificationManager: NSObject, Sendable {
         self.getAuthStatusUseCase = GetAuthorizationStatusUseCase(repository: repo)
         self.registerCategoryUseCase = RegisterNotificationCategoryUseCase(repository: repo)
         self.removeCategoryUseCase = RemoveNotificationCategoryUseCase(repository: repo)
-        self.permissionHelper = NotificationPermissionHelper(repository: repo)
+        self.setBadgeCountUseCase = SetBadgeCountUseCase(repository: repo)
+        self.requestPermissionUseCase = RequestNotificationPermissionUseCase(repository: repo)
+        self.openSettingsUseCase = OpenNotificationSettingsUseCase(repository: repo)
+        self.presentationGate = NotificationPresentationGate(repository: repo, makeEnvironment: { UIKitPresentationEnvironment() })
         let status = NotificationDelegateStatus.library
         self.delegateStatus = status
         self.responseHub = NotificationEventHub(name: "responses", isDelegateInstalled: status.isInstalled)
@@ -211,15 +228,15 @@ public final class IosNotificationManager: NSObject, Sendable {
         super.init()
     }
 
-    /// Internal initializer for tests to inject a repository, a helper and the delegate's status
-    /// (the library's installer by default).
+    /// Internal initializer for tests to inject a repository, the delegate's status (the library's
+    /// installer by default) and the foreground check of the permission request and the settings
+    /// page (UIKit's by default).
     init(
         repository: NotificationRepository,
-        permissionHelper: NotificationPermissionHelper,
-        delegateStatus: NotificationDelegateStatus = .library
+        delegateStatus: NotificationDelegateStatus = .library,
+        presentationGate: NotificationPresentationGate? = nil
     ) {
-        logger.log(level: .libraryDebug, "[init:test] repository: \(String(describing: type(of: repository)), privacy: .public), permissionHelper: provided, delegateStatus: provided")
-        self.repository = repository
+        logger.log(level: .libraryDebug, "[init:test] repository: \(String(describing: type(of: repository)), privacy: .public), delegateStatus: provided, presentationGate: \(presentationGate == nil ? "UIKit" : "provided", privacy: .public)")
         self.showUseCase = ShowNotificationUseCase(repository: repository)
         self.updateUseCase = UpdateNotificationUseCase(repository: repository)
         self.cancelUseCase = CancelNotificationUseCase(repository: repository)
@@ -235,7 +252,11 @@ public final class IosNotificationManager: NSObject, Sendable {
         self.getAuthStatusUseCase = GetAuthorizationStatusUseCase(repository: repository)
         self.registerCategoryUseCase = RegisterNotificationCategoryUseCase(repository: repository)
         self.removeCategoryUseCase = RemoveNotificationCategoryUseCase(repository: repository)
-        self.permissionHelper = permissionHelper
+        self.setBadgeCountUseCase = SetBadgeCountUseCase(repository: repository)
+        self.requestPermissionUseCase = RequestNotificationPermissionUseCase(repository: repository)
+        self.openSettingsUseCase = OpenNotificationSettingsUseCase(repository: repository)
+        self.presentationGate = presentationGate
+            ?? NotificationPresentationGate(repository: repository, makeEnvironment: { UIKitPresentationEnvironment() })
         self.delegateStatus = delegateStatus
         self.responseHub = NotificationEventHub(name: "responses", isDelegateInstalled: delegateStatus.isInstalled)
         self.settingsRequestHub = NotificationEventHub(name: "settingsRequests", isDelegateInstalled: delegateStatus.isInstalled)
@@ -259,28 +280,50 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Immediately delivers a notification.
     ///
+    /// The userInfo is checked first: ``NotificationError/reservedUserInfoKey`` when it uses the
+    /// library's key, ``NotificationError/invalidUserInfo`` when it holds a value that is not a
+    /// property-list value; nothing is added then.
+    ///
     /// - Note: `completion` is invoked on the main thread, exactly once (see the type's Threading
-    ///   section). `content` is `sending` because it is not `Sendable` (its `userInfo` is
-    ///   `[String: Any]`) and is handed to a task; pass a value that is not used afterwards.
+    ///   section), with `errorMessage` the fixed English description of the ``NotificationError``.
+    ///   `content` is `sending` because it is not `Sendable` (its `userInfo` is `[String: Any]`)
+    ///   and is handed to a task; pass a value that is not used afterwards.
     public func show(
         content: sending NotificationContent,
         trigger: NotificationTrigger? = nil,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        logger.log(level: .libraryDebug, "[show] content.id: \(content.id, privacy: .public)")
+        logger.log(level: .libraryDebug, "[show] content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
         Task {
             do {
                 try await showUseCase.execute(content: content, trigger: trigger)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
                 logger.error("[show] error: \(LogRedaction.describe(error), privacy: .public)")
-                let message = error.localizedDescription
+                let message = Self.errorMessage(of: error)
                 Task { @MainActor in completion?(false, message) }
             }
         }
     }
 
+    /// Immediately delivers a notification, or delivers it when `trigger` fires.
+    ///
+    /// The `async` form of ``show(content:trigger:completion:)``: the same checks, and the error
+    /// the use case reports. `trigger` has no default, so `show(content:)` without a trigger keeps
+    /// calling the callback form.
+    /// - Throws: ``NotificationError`` (or what a repository of your own throws).
+    public func show(content: sending NotificationContent, trigger: NotificationTrigger?) async throws {
+        logger.log(level: .libraryDebug, "[show async] content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
+        try await showUseCase.execute(content: content, trigger: trigger)
+    }
+
     /// Updates an existing pending notification.
+    ///
+    /// The userInfo is checked first, as in ``show(content:trigger:completion:)``, and the library's
+    /// repository makes the content (with its attachments) before it removes the pending request:
+    /// an update rejected by the checks or by an attachment that cannot be made leaves the pending
+    /// request in place. When the system then does not add the new request
+    /// (``NotificationError/addRequestFailed(_:)``), the pending request has already been removed.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
     ///   for the reason given on ``show(content:trigger:completion:)``.
@@ -290,26 +333,40 @@ public final class IosNotificationManager: NSObject, Sendable {
         trigger: NotificationTrigger?,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public)")
+        logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public), content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
         Task {
             do {
                 try await updateUseCase.execute(identifier: identifier, content: content, trigger: trigger)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
                 logger.error("[update] error: \(LogRedaction.describe(error), privacy: .public)")
-                let message = error.localizedDescription
+                let message = Self.errorMessage(of: error)
                 Task { @MainActor in completion?(false, message) }
             }
         }
     }
 
+    /// The `async` form of ``update(identifier:content:trigger:completion:)``.
+    /// - Throws: ``NotificationError`` (or what a repository of your own throws).
+    public func update(identifier: String, content: sending NotificationContent, trigger: NotificationTrigger?) async throws {
+        logger.log(level: .libraryDebug, "[update async] identifier: \(identifier, privacy: .public), content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
+        try await updateUseCase.execute(identifier: identifier, content: content, trigger: trigger)
+    }
+
     /// Cancels a specific pending notification.
+    ///
+    /// The same operation as ``cancelScheduled(identifier:)``: both remove the pending request
+    /// with `identifier` and leave a delivered notification in place (design S-P16).
     public func cancel(identifier: String) {
         logger.log(level: .libraryDebug, "[cancel] identifier: \(identifier, privacy: .public)")
         Task { await cancelUseCase.execute(identifier: identifier) }
     }
 
     /// Cancels all pending notifications.
+    ///
+    /// The same operation as ``cancelAllScheduled()``. It removes every pending request of the
+    /// app, also those another component (a game engine's notification package, for example)
+    /// added (design 3.4).
     public func cancelAll() {
         logger.log(level: .libraryDebug, "[cancelAll]")
         Task { await cancelAllUseCase.execute() }
@@ -321,13 +378,17 @@ public final class IosNotificationManager: NSObject, Sendable {
         Task { await removeDeliveredUseCase.execute(identifier: identifier) }
     }
 
-    /// Removes all delivered notifications from Notification Center.
+    /// Removes all delivered notifications from Notification Center, also those another component
+    /// delivered (design 3.4).
     public func removeAllDelivered() {
         logger.log(level: .libraryDebug, "[removeAllDelivered]")
         Task { await removeAllDeliveredUseCase.execute() }
     }
 
     /// Schedules a notification for future delivery.
+    ///
+    /// The request's identifier is `identifier`; `content.id` is not used (design S-P16). The
+    /// userInfo is checked first, as in ``show(content:trigger:completion:)``.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
     ///   for the reason given on ``show(content:trigger:completion:)``.
@@ -337,26 +398,36 @@ public final class IosNotificationManager: NSObject, Sendable {
         identifier: String,
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        logger.log(level: .libraryDebug, "[schedule] identifier: \(identifier, privacy: .public)")
+        logger.log(level: .libraryDebug, "[schedule] identifier: \(identifier, privacy: .public), content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        if content.id != identifier {
+            logger.log(level: .libraryDebug, "[schedule] content.id differs from identifier; the request uses identifier")
+        }
         Task {
             do {
                 try await scheduleUseCase.execute(content: content, trigger: trigger, identifier: identifier)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
                 logger.error("[schedule] error: \(LogRedaction.describe(error), privacy: .public)")
-                let message = error.localizedDescription
+                let message = Self.errorMessage(of: error)
                 Task { @MainActor in completion?(false, message) }
             }
         }
     }
 
-    /// Cancels a specific scheduled notification.
+    /// The `async` form of ``schedule(content:trigger:identifier:completion:)``.
+    /// - Throws: ``NotificationError`` (or what a repository of your own throws).
+    public func schedule(content: sending NotificationContent, trigger: NotificationTrigger, identifier: String) async throws {
+        logger.log(level: .libraryDebug, "[schedule async] identifier: \(identifier, privacy: .public), content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
+        try await scheduleUseCase.execute(content: content, trigger: trigger, identifier: identifier)
+    }
+
+    /// Cancels a specific scheduled notification: the same operation as ``cancel(identifier:)``.
     public func cancelScheduled(identifier: String) {
         logger.log(level: .libraryDebug, "[cancelScheduled] identifier: \(identifier, privacy: .public)")
         Task { await cancelScheduledUseCase.execute(identifier: identifier) }
     }
 
-    /// Cancels all scheduled notifications.
+    /// Cancels all scheduled notifications: the same operation as ``cancelAll()``.
     public func cancelAllScheduled() {
         logger.log(level: .libraryDebug, "[cancelAllScheduled]")
         Task { await cancelAllScheduledUseCase.execute() }
@@ -366,99 +437,291 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func getScheduled(completion: @escaping @MainActor @Sendable ([ScheduledNotification]) -> Void) {
-        logger.log(level: .libraryDebug, "[getScheduled]")
+        logger.log(level: .libraryDebug, "[getScheduled] completion: provided")
         Task {
             let result = await getScheduledUseCase.execute()
             Task { @MainActor in completion(result) }
         }
     }
 
+    /// Returns all pending (not yet delivered) notification requests; the `async` form of
+    /// ``getScheduled(completion:)``. Does not throw: the system reports no failure.
+    public func getScheduled() async -> [ScheduledNotification] {
+        logger.log(level: .libraryDebug, "[getScheduled async]")
+        return await getScheduledUseCase.execute()
+    }
+
     /// Returns all notifications visible in Notification Center.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func getDelivered(completion: @escaping @MainActor @Sendable ([ActiveNotification]) -> Void) {
-        logger.log(level: .libraryDebug, "[getDelivered]")
+        logger.log(level: .libraryDebug, "[getDelivered] completion: provided")
         Task {
             let result = await getDeliveredUseCase.execute()
             Task { @MainActor in completion(result) }
         }
     }
 
+    /// Returns all notifications visible in Notification Center; the `async` form of
+    /// ``getDelivered(completion:)``. Does not throw.
+    public func getDelivered() async -> [ActiveNotification] {
+        logger.log(level: .libraryDebug, "[getDelivered async]")
+        return await getDeliveredUseCase.execute()
+    }
+
     /// Returns whether the app currently has notification authorization.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func hasPermission(completion: @escaping @MainActor @Sendable (Bool) -> Void) {
-        logger.log(level: .libraryDebug, "[hasPermission]")
+        logger.log(level: .libraryDebug, "[hasPermission] completion: provided")
         Task {
             let result = await hasPermissionUseCase.execute()
             Task { @MainActor in completion(result) }
         }
     }
 
+    /// Returns whether the app currently has notification authorization; the `async` form of
+    /// ``hasPermission(completion:)``. Does not throw.
+    public func hasPermission() async -> Bool {
+        logger.log(level: .libraryDebug, "[hasPermission async]")
+        return await hasPermissionUseCase.execute()
+    }
+
     /// Returns the current notification authorization status.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func authorizationStatus(completion: @escaping @MainActor @Sendable (NotificationAuthorizationStatus) -> Void) {
-        logger.log(level: .libraryDebug, "[authorizationStatus]")
+        logger.log(level: .libraryDebug, "[authorizationStatus] completion: provided")
         Task {
             let result = await getAuthStatusUseCase.execute()
             Task { @MainActor in completion(result) }
         }
     }
 
+    /// Returns the current notification authorization status; the `async` form of
+    /// ``authorizationStatus(completion:)``. Does not throw.
+    public func authorizationStatus() async -> NotificationAuthorizationStatus {
+        logger.log(level: .libraryDebug, "[authorizationStatus async]")
+        return await getAuthStatusUseCase.execute()
+    }
+
     /// Requests authorization to display notifications.
+    ///
+    /// A denial is reported as `(false, <the description of NotificationError.permissionDenied>)`
+    /// and a failed request as `(false, <its description>)`, as before 2.0.0. The app is not
+    /// required to be in the foreground. For a result that tells a denial from a failure, use
+    /// ``requestPermission(options:presenter:completion:)``.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func requestPermission(
         options: UNAuthorizationOptions = [.alert, .sound, .badge],
         completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil
     ) {
-        logger.log(level: .libraryDebug, "[requestPermission] options: \(options.rawValue, privacy: .public)")
+        logger.log(level: .libraryDebug, "[requestPermission] options: \(options.rawValue, privacy: .public), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
         Task {
             do {
-                let granted = try await permissionHelper.requestPermission(options: options)
-                Task { @MainActor in completion?(granted, nil) }
+                let granted = try await requestPermissionUseCase.execute(options: options)
+                // The existing form reports a denial as a failure (design S-P27).
+                let message = granted ? nil : NotificationError.permissionDenied.errorDescription
+                Task { @MainActor in completion?(granted, message) }
             } catch {
                 logger.error("[requestPermission] error: \(LogRedaction.describe(error), privacy: .public)")
-                let message = error.localizedDescription
+                let message = Self.errorMessage(of: error)
                 Task { @MainActor in completion?(false, message) }
             }
         }
     }
 
+    /// Requests authorization to display notifications, checking the foreground first for
+    /// `presenter` (design 8.5.4, S-13).
+    ///
+    /// | `presenter` | What happens |
+    /// |---|---|
+    /// | `.firstActiveScene` | Requests at once, as ``requestPermission(options:completion:)`` |
+    /// | `.foreground`, `.viewController(_:)` | Reads the status first. When it is not `notDetermined`, nothing is requested and the status answers: `authorized`, `provisional` and `ephemeral` are `true`, the others `false`. When it is `notDetermined`, fails with ``NotificationError/notForeground`` while the app is not in the foreground (no alert is shown); otherwise requests |
+    ///
+    /// The result is `.success(true)` when granted, `.success(false)` when denied (a denial is not
+    /// a failure), and ``NotificationError/authorizationFailed(_:)`` when the request itself
+    /// failed. Calls made while another is in progress each get their own completion.
+    ///
+    /// - Important: With `.foreground` or `.viewController(_:)`, an app whose permission is
+    ///   already decided is not asked again, so options added later (for example
+    ///   `.providesAppNotificationSettings`) are not requested. Ask with `.firstActiveScene` for
+    ///   that.
+    /// - Note: `completion` is invoked on the main thread, exactly once, never inside the call.
+    ///   `presenter` has no default, so that a call without it still selects
+    ///   ``requestPermission(options:completion:)``.
+    public func requestPermission(
+        options: UNAuthorizationOptions = [.alert, .sound, .badge],
+        presenter: PresenterSelection,
+        completion: @escaping @MainActor @Sendable (Result<Bool, NotificationError>) -> Void
+    ) {
+        logger.log(level: .libraryDebug, "[requestPermission(presenter:)] options: \(options.rawValue, privacy: .public), presenter: \(presenter.logName, privacy: .public), completion: provided")
+        let gate = presentationGate
+        Task { @MainActor in
+            let result = await gate.requestPermission(options: options, presenter: presenter)
+            completion(result)
+        }
+    }
+
+    /// The `async` form of ``requestPermission(options:presenter:completion:)``.
+    ///
+    /// - Important: Unlike ``requestPermission(options:completion:)``, a denial returns `false`;
+    ///   it does not throw.
+    /// - Returns: `true` when granted, `false` when denied.
+    /// - Throws: ``NotificationError/notForeground`` or ``NotificationError/authorizationFailed(_:)``.
+    @discardableResult
+    public func requestPermission(
+        options: UNAuthorizationOptions = [.alert, .sound, .badge],
+        presenter: PresenterSelection = .firstActiveScene
+    ) async throws -> Bool {
+        logger.log(level: .libraryDebug, "[requestPermission async] options: \(options.rawValue, privacy: .public), presenter: \(presenter.logName, privacy: .public)")
+        return try await presentationGate.requestPermission(options: options, presenter: presenter).get()
+    }
+
     /// Opens the app's notification settings page.
+    ///
+    /// Returns at once, as before 2.0.0: whether the page opened is not reported, and the app is
+    /// not required to be in the foreground. Use ``openNotificationSettings(presenter:completion:)``
+    /// for the result.
     public func openNotificationSettings() {
         logger.log(level: .libraryDebug, "[openNotificationSettings]")
-        repository.openNotificationSettings()
+        let useCase = openSettingsUseCase
+        Task {
+            let opened = await useCase.execute()
+            logger.log(level: .libraryDebug, "[openNotificationSettings] opened: \(opened, privacy: .public)")
+        }
+    }
+
+    /// Opens the app's notification settings page in the Settings app, checking the foreground
+    /// first for `presenter` (design 8.5.5).
+    ///
+    /// | `presenter` | What happens |
+    /// |---|---|
+    /// | `.firstActiveScene` | Opens at once, as ``openNotificationSettings()`` |
+    /// | `.foreground`, `.viewController(_:)` | Fails with ``NotificationError/notForeground`` while the app is not in the foreground; otherwise opens |
+    ///
+    /// The result is `.success(())` when the system opened the page and
+    /// ``NotificationError/openSettingsFailed`` when it did not.
+    ///
+    /// - Note: `completion` is invoked on the main thread, exactly once, never inside the call
+    ///   (usually after the app has moved to the background).
+    public func openNotificationSettings(
+        presenter: PresenterSelection,
+        completion: @escaping @MainActor @Sendable (Result<Void, NotificationError>) -> Void
+    ) {
+        logger.log(level: .libraryDebug, "[openNotificationSettings(presenter:)] presenter: \(presenter.logName, privacy: .public), completion: provided")
+        let gate = presentationGate
+        Task { @MainActor in
+            let result = await gate.openNotificationSettings(presenter: presenter)
+            completion(result)
+        }
+    }
+
+    /// The `async` form of ``openNotificationSettings(presenter:completion:)``.
+    /// - Throws: ``NotificationError/notForeground`` or ``NotificationError/openSettingsFailed``.
+    public func openNotificationSettings(presenter: PresenterSelection = .firstActiveScene) async throws {
+        logger.log(level: .libraryDebug, "[openNotificationSettings async] presenter: \(presenter.logName, privacy: .public)")
+        try await presentationGate.openNotificationSettings(presenter: presenter).get()
     }
 
     /// Sets the app icon badge count.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once.
     public func setBadgeCount(_ count: Int, completion: (@MainActor @Sendable (Bool, String?) -> Void)? = nil) {
-        logger.log(level: .libraryDebug, "[setBadgeCount] count: \(count, privacy: .public)")
+        logger.log(level: .libraryDebug, "[setBadgeCount] count: \(count, privacy: .public), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
         Task {
             do {
-                try await repository.setBadgeCount(count)
+                try await setBadgeCountUseCase.execute(count)
                 Task { @MainActor in completion?(true, nil) }
             } catch {
                 logger.error("[setBadgeCount] error: \(LogRedaction.describe(error), privacy: .public)")
-                let message = error.localizedDescription
+                let message = Self.errorMessage(of: error)
                 Task { @MainActor in completion?(false, message) }
             }
         }
     }
 
+    /// The `async` form of ``setBadgeCount(_:completion:)``.
+    /// - Throws: ``NotificationError/setBadgeCountFailed(_:)`` (or what a repository of your own
+    ///   throws).
+    public func setBadgeCount(_ count: Int) async throws {
+        logger.log(level: .libraryDebug, "[setBadgeCount async] count: \(count, privacy: .public)")
+        try await setBadgeCountUseCase.execute(count)
+    }
+
     /// Registers a notification category.
-    public func registerCategory(_ category: NotificationCategory) {
-        logger.log(level: .libraryDebug, "[registerCategory] identifier: \(category.identifier, privacy: .public)")
-        Task { await registerCategoryUseCase.execute(category) }
+    ///
+    /// The change is queued inside this call: the category changes of the process take effect in
+    /// the order of the calls, one at a time (design 8.5.6). `completion` is invoked on the main
+    /// thread, exactly once, never inside the call, after the category is registered (the system
+    /// shows its actions on a notification posted from then on).
+    ///
+    /// - Note: Before 2.0.0 this method took no `completion`, and two changes could undo each
+    ///   other.
+    public func registerCategory(_ category: NotificationCategory, completion: (@MainActor @Sendable () -> Void)? = nil) {
+        logger.log(level: .libraryDebug, "[registerCategory] identifier: \(category.identifier, privacy: .public), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        registerCategoryUseCase.enqueue(category) {
+            Self.complete(completion, method: "registerCategory")
+        }
+    }
+
+    /// The `async` form of ``registerCategory(_:completion:)``: returns once the category is
+    /// registered. Does not throw.
+    ///
+    /// `nonisolated(nonsending)`: the change is queued on the caller's executor before the first
+    /// suspension, so calls made in order from one task (or from main-actor tasks started in
+    /// order) are applied in that order (design S-P28, SR3-1).
+    nonisolated(nonsending)
+    public func registerCategory(_ category: NotificationCategory) async {
+        logger.log(level: .libraryDebug, "[registerCategory async] identifier: \(category.identifier, privacy: .public)")
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            registerCategoryUseCase.enqueue(category) { continuation.resume() }
+        }
     }
 
     /// Removes a registered notification category.
-    public func removeCategory(identifier: String) {
-        logger.log(level: .libraryDebug, "[removeCategory] identifier: \(identifier, privacy: .public)")
-        Task { await removeCategoryUseCase.execute(identifier: identifier) }
+    ///
+    /// Queued like ``registerCategory(_:completion:)``; `completion` is invoked on the main thread,
+    /// exactly once, after the category is removed.
+    public func removeCategory(identifier: String, completion: (@MainActor @Sendable () -> Void)? = nil) {
+        logger.log(level: .libraryDebug, "[removeCategory] identifier: \(identifier, privacy: .public), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        removeCategoryUseCase.enqueue(identifier: identifier) {
+            Self.complete(completion, method: "removeCategory")
+        }
+    }
+
+    /// The `async` form of ``removeCategory(identifier:completion:)``: returns once the category
+    /// is removed. Does not throw. `nonisolated(nonsending)` as
+    /// ``registerCategory(_:)``.
+    nonisolated(nonsending)
+    public func removeCategory(identifier: String) async {
+        logger.log(level: .libraryDebug, "[removeCategory async] identifier: \(identifier, privacy: .public)")
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            removeCategoryUseCase.enqueue(identifier: identifier) { continuation.resume() }
+        }
+    }
+
+    // MARK: - Helpers
+
+    /// The `errorMessage` of the callback forms: the fixed English description of a
+    /// ``NotificationError`` (design S-P7), or the description of an error a repository of your
+    /// own threw.
+    static func errorMessage(of error: any Error) -> String {
+        logger.log(level: .libraryDebug, "[errorMessage] error: \(LogRedaction.describe(error), privacy: .public)")
+        if let error = error as? NotificationError, let description = error.errorDescription {
+            return description
+        }
+        return error.localizedDescription
+    }
+
+    /// Queues the user's completion of a category change on the main queue (design 8.5.6, SR3-6).
+    private static func complete(_ completion: (@MainActor @Sendable () -> Void)?, method: String) {
+        logger.log(level: .libraryDebug, "[complete] method: \(method, privacy: .public), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        guard let completion else { return }
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { completion() }
+        }
     }
 }
 

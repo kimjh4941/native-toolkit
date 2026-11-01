@@ -95,21 +95,34 @@ enum NotificationButton: String, CaseIterable {
     case removeSecondListener
     case readLaunchResponse
     case showHostNotification
+    // Swift API (2.0.0) section (1b C6: SA-09, SA-10, SA-13, SA-05).
+    case showReservedKey
+    case showInvalidUserInfo
+    case registerCategoryWithCompletion
+    case requestPermissionWithAppSettings
+    case openNotificationSettingsForeground
+    /// Built in Debug only (`#if DEBUG` in the sample, as `shareAfter3Seconds`).
+    case requestPermissionAfter3Seconds
 
     var identifier: String { SampleScreen.notification.buttonPrefix + rawValue }
 
     /// Buttons that post a notification or bring up system UI need `systemui` (U-9, 3.3).
     /// `showHostNotification` posts the sample's own notification without the library (SA-12).
+    /// `showReservedKey` and `showInvalidUserInfo` post nothing when the library rejects their
+    /// userInfo, and a banner when it does not (SA-09); the permission and settings buttons can
+    /// bring up the permission alert or Settings (SA-13, SA-05).
     fileprivate var requiredCategory: DeviceCategory? {
         switch self {
         case .showImmediate, .showImmediateWithAttachment, .showTimeInterval, .showCalendar, .showLocation,
              .scheduleTimeInterval, .scheduleCalendar, .scheduleLocation, .updateById,
-             .requestPermission, .openNotificationSettings, .showHostNotification:
+             .requestPermission, .openNotificationSettings, .showHostNotification,
+             .showReservedKey, .showInvalidUserInfo, .requestPermissionWithAppSettings,
+             .openNotificationSettingsForeground, .requestPermissionAfter3Seconds:
             return .systemui
         case .hasPermission, .authorizationStatus, .cancelById, .cancelAll, .removeDeliveredById,
              .removeAllDelivered, .cancelScheduledById, .cancelAllScheduled, .getScheduled, .getDelivered,
              .setBadgeCount1, .setBadgeCount0, .registerCategory, .removeCategory,
-             .addSecondListener, .removeSecondListener, .readLaunchResponse:
+             .addSecondListener, .removeSecondListener, .readLaunchResponse, .registerCategoryWithCompletion:
             return nil
         }
     }

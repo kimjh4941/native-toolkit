@@ -24,7 +24,6 @@ struct IosNotificationManagerEventTests {
         let repository = MockNotificationRepository()
         return IosNotificationManager(
             repository: repository,
-            permissionHelper: NotificationPermissionHelper(repository: repository),
             delegateStatus: NotificationDelegateStatus(isInstalled: { installed }, launchResponse: { launchResponse })
         )
     }

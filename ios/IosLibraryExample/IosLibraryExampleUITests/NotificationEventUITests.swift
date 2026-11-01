@@ -16,6 +16,10 @@
 //  N35 adds a second listener, N41 launches with a host delegate before the library's, and N43 /
 //  N44 run N25 / N29 on the deprecated receivers (`path=legacy`).
 //
+//  Stage 1b C6: N39 registers the category with the completion form, whose completion follows the
+//  change (the categories are queued in the order of the calls), so an immediate notification
+//  shows the actions without the 5-second notification.
+//
 
 import XCTest
 import Foundation
@@ -71,6 +75,26 @@ final class NotificationEventUITests: SampleUITestCase {
         try assertActions(present: false, springboard)
 
         XCTAssertEqual(try sample.press(.registerCategory), success(Self.registered))
+    }
+
+    /// N39 (Swift API design 13.2, SA-10): RemoveCategory, then the registration with a completion,
+    /// then at once an immediate notification: its banner shows the actions (the registration
+    /// with a completion takes effect, and the removal before it was not reordered after it). It
+    /// cannot catch a completion that comes before the change is applied: a change is applied in
+    /// a few milliseconds (MS-09), long before the banner shows. The unit tests (UT-28) check that
+    /// the completion comes after the change is applied.
+    @MainActor
+    func testN39_aCategoryIsUsableWhenItsCompletionComes() throws {
+        let token = try systemUIToken()
+        let springboard = Springboard(token)
+        XCTAssertEqual(try sample.press(.removeCategory), success("[removeCategory] id: sample-category"))
+        XCTAssertEqual(try sample.press(.registerCategoryWithCompletion), success("[registerCategoryWithCompletion] completed"))
+        XCTAssertEqual(try sample.press(.showImmediate, token), success("[showImmediate] error: nil"))
+        XCTAssertTrue(try springboard.waitForBanner(title: "Immediate Notification", body: "Displayed now", timeout: 10))
+        try springboard.expandBanner(title: "Immediate Notification", body: "Displayed now")
+        try springboard.waitForActions(Self.actions, title: "Immediate Notification", body: "Displayed now")
+        try springboard.goHome()
+        try sample.activate()
     }
 
     // MARK: - Events

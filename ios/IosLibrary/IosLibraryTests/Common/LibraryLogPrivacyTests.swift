@@ -6,16 +6,17 @@
 import Foundation
 import OSLog
 import Testing
+import UserNotifications
 @testable import IosLibrary
 
 /// UT-15: secret values never reach the library's log (design 8.7, `ios.md`).
 ///
 /// Calls the library with sentinel values in the parameters that hold secrets (Share text, URL,
-/// paths, subject and title, the contents of a notification, the clipboard text, an error that
-/// carries a URL), then reads back this process's messages of the library's subsystem with
-/// `OSLogStore` and checks that no sentinel is in any of them. `OSLogStore` does not return
-/// `.debug` messages (MS-13), so the test raises the library's routine messages to `.info`
-/// while it runs (`LibraryLogLevel`, Debug builds only).
+/// paths, subject and title, the contents of a notification and of the notification lists, the
+/// clipboard text, an error that carries a URL), then reads back this process's messages of the
+/// library's subsystem with `OSLogStore` and checks that no sentinel is in any of them.
+/// `OSLogStore` does not return `.debug` messages (MS-13), so the test raises the library's
+/// routine messages to `.info` while it runs (`LibraryLogLevel`, Debug builds only).
 ///
 /// In the simulator's test process `OSLogStore` shows `.private` values in clear (MS-13), so this
 /// also catches a secret interpolated as `.private`. Where `.private` values are redacted, only
@@ -69,8 +70,7 @@ struct LibraryLogPrivacyTests {
             // Notification: the contents and the user info values.
             let notificationRepository = MockNotificationRepository()
             let notificationManager = IosNotificationManager(
-                repository: notificationRepository,
-                permissionHelper: NotificationPermissionHelper(repository: notificationRepository)
+                repository: notificationRepository
             )
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 notificationManager.show(content: NotificationContent(
@@ -81,6 +81,27 @@ struct LibraryLogPrivacyTests {
                     userInfo: ["key": "value-\(secret)"]
                 )) { _, _ in continuation.resume() }
             }
+
+            // Notification: the list types (also a value that is left out) and what the
+            // repository hands back from the system's contents (delivered and pending).
+            let userInfo: [AnyHashable: Any] = [
+                "key": "value-\(secret)", "nested": ["inner": "inner-\(secret)"],
+                "url": URL(string: "https://example.com/\(secret)")!,
+            ]
+            _ = ScheduledNotification(identifier: "scheduled-id", title: "title-\(secret)", subtitle: "subtitle-\(secret)",
+                                      body: "body-\(secret)", categoryIdentifier: "category-id", userInfo: userInfo)
+            _ = ActiveNotification(identifier: "active-id", title: "title-\(secret)", subtitle: "subtitle-\(secret)",
+                                   body: "body-\(secret)", categoryIdentifier: "category-id", date: Date(), userInfo: userInfo)
+            let systemContent = UNMutableNotificationContent()
+            systemContent.title = "title-\(secret)"
+            systemContent.subtitle = "subtitle-\(secret)"
+            systemContent.body = "body-\(secret)"
+            systemContent.userInfo = ["key": "value-\(secret)", "nested": ["inner": "inner-\(secret)"]]
+            _ = NotificationRepositoryImpl.activeNotification(identifier: "delivered-id", date: Date(), content: systemContent)
+            let requestCenter = FakeRequestCenter()
+            try await requestCenter.add(UNNotificationRequest(identifier: "pending-id", content: systemContent, trigger: nil))
+            let scheduled = await NotificationRepositoryImpl(requestCenter: requestCenter).getScheduled()
+            try #require(scheduled.map(\.identifier) == ["pending-id"])
 
             // Clipboard: the copied text.
             await MainActor.run {
@@ -100,6 +121,10 @@ struct LibraryLogPrivacyTests {
                      "the library's routine messages must be readable, or the test checks nothing")
         try #require(messages.contains { $0.contains("[IosShareManager] [share] error: ") })
         try #require(messages.contains { $0.contains("[IosNotificationManager] [show] content.id: notification-id") })
+        try #require(messages.contains { $0.contains("[ScheduledNotification] [init] identifier: scheduled-id") })
+        try #require(messages.contains { $0.contains("[ActiveNotification] [init] identifier: active-id") })
+        try #require(messages.contains { $0.contains("[NotificationRepositoryImpl] [activeNotification] identifier: delivered-id") })
+        try #require(messages.contains { $0.contains("[ScheduledNotification] [init] identifier: pending-id") })
         let leaks = messages.filter { $0.contains(secret) }
         #expect(leaks.isEmpty, "messages with a secret value: \(leaks)")
         // An error that carries a URL is logged by its case name (8.7.2).
@@ -302,7 +327,6 @@ struct LibraryLogPrivacyTests {
             let repository = MockNotificationRepository()
             let manager = IosNotificationManager(
                 repository: repository,
-                permissionHelper: NotificationPermissionHelper(repository: repository),
                 delegateStatus: NotificationDelegateStatus(isInstalled: { true }, launchResponse: { response })
             )
             deprecatedNotification.setReceivers(of: manager, action: nil, textInput: { _, _, _, _ in })
@@ -362,6 +386,7 @@ struct LogRedactionTests {
     private enum SampleError: Error {
         case plain
         case withPath(path: String)
+        case wrapping(any Error)
     }
 
     @Test func redactShowsOnlyTheLength() {
@@ -381,9 +406,10 @@ struct LogRedactionTests {
 
     @Test func describeAddsTheDomainAndCodeOfAnInnerError() {
         let inner = NSError(domain: "UNErrorDomain", code: 1, userInfo: [NSLocalizedDescriptionKey: "secret text"])
-        let described = LogRedaction.describe(NotificationError.addRequestFailed(inner))
+        let described = LogRedaction.describe(SampleError.wrapping(inner))
 
-        #expect(described == "NotificationError.addRequestFailed(domain=UNErrorDomain, code=1)")
+        #expect(described == "SampleError.wrapping(domain=UNErrorDomain, code=1)")
+        #expect(LogRedaction.describe(NotificationError.addRequestFailed(FailureDetail(systemError: inner))) == "NotificationError.addRequestFailed(domain=UNErrorDomain, code=1)")
         #expect(!described.contains("secret"))
         #expect(LogRedaction.describe(ShareError.activityFailed(FailureDetail(systemError: inner))) == "ShareError.activityFailed(domain=UNErrorDomain, code=1)")
         // A payload that is not an error is never shown.

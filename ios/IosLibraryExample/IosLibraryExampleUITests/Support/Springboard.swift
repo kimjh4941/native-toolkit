@@ -3,7 +3,8 @@
 //  IosLibraryExampleUITests
 //
 //  Springboard operations (UI test design 6.1): the sample's notification banner, its actions,
-//  permission and paste alerts, the home screen and the Settings app. Every entry point needs a
+//  permission and paste alerts, the home screen and the Settings app (and, on the simulator
+//  only, the sample's notification settings link in it: N40). Every entry point needs a
 //  `SystemUIToken` (U-9). Trusted Support file.
 //
 //  On the device no hierarchy dump is written and failure messages carry no springboard label.
@@ -396,12 +397,65 @@ struct Springboard {
         try session.checkInterruption()
     }
 
-    // MARK: Settings app (N3)
+    // MARK: Settings app (N3, N40)
 
     var isSettingsForeground: Bool { settings.state == .runningForeground }
 
     func waitForSettingsForeground(timeout: TimeInterval) -> Bool {
         settings.wait(for: .runningForeground, timeout: timeout)
+    }
+
+    // N40 (1b C6). Simulator only: it relaunches Settings and presses rows in it. On the user's
+    // iPhone a press could land on another row and change a setting, so it throws on the device
+    // before anything is done (fail closed). The runner never selects N40 for the device either
+    // (SIMULATOR_ONLY_TESTS).
+
+    /// Relaunches Settings at its top page, then presses Apps, the sample, Notifications and the
+    /// sample's own notification settings link (the system then calls `openSettingsFor` and brings
+    /// the sample to the foreground). Each row is found by its exact label and must be the only
+    /// one. Throws on the device.
+    func openSampleNotificationSettingsLink() throws {
+        guard !session.isDevice else {
+            throw SampleUITestError("openSampleNotificationSettingsLink runs on the simulator only (presses rows of Settings); nothing was done")
+        }
+        settings.terminate()
+        settings.launch()
+        guard settings.wait(for: .runningForeground, timeout: Self.alertTimeout) else {
+            throw SampleUITestError("Settings did not come to the foreground")
+        }
+        try pressSettingsRow(NSPredicate(format: "label IN %@", SystemLabels.settingsApps), "Apps")
+        try pressSettingsRow(NSPredicate(format: "label == %@", SystemLabels.sampleDisplayName), "the sample's row")
+        try pressSettingsRow(NSPredicate(format: "identifier == %@", SystemLabels.settingsNotificationsIdentifier), "Notifications")
+        try pressSettingsRow(NSPredicate(format: "label IN %@", SystemLabels.sampleNotificationSettingsLink),
+                             "the sample's notification settings link")
+    }
+
+    /// Waits up to 2 seconds for the page to show a match, then scrolls Settings up (at most 12
+    /// times) and back down once until exactly one button or cell that matches `predicate` (an
+    /// exact label or identifier) is hittable, then presses it. Simulator only (called by
+    /// `openSampleNotificationSettingsLink`).
+    private func pressSettingsRow(_ predicate: NSPredicate, _ name: String) throws {
+        let rows = settings.buttons.matching(predicate)
+        let cells = settings.cells.matching(predicate)
+        // The page may still be loading after the previous press.
+        _ = settings.descendants(matching: .any).matching(predicate).firstMatch.waitForExistence(timeout: 2)
+        for swipe in 0...13 {
+            let query = rows.count > 0 ? rows : cells
+            if query.count == 1, query.firstMatch.isHittable {
+                query.firstMatch.tap()
+                try session.checkInterruption()
+                return
+            }
+            if query.count > 1 {
+                throw SampleUITestError("\(name): \(query.count) rows in Settings; nothing was pressed")
+            }
+            if swipe < 12 {
+                settings.swipeUp()
+            } else if swipe == 12 {
+                settings.swipeDown()
+            }
+        }
+        throw SampleUITestError("\(name) was not found in Settings")
     }
 
     // MARK: Home screen icon badge (N34)

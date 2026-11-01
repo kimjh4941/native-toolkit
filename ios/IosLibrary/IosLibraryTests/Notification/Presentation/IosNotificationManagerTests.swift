@@ -12,8 +12,7 @@ import UserNotifications
 struct IosNotificationManagerTests {
 
     private func makeManager(repo: MockNotificationRepository) -> IosNotificationManager {
-        let helper = NotificationPermissionHelper(repository: repo)
-        return IosNotificationManager(repository: repo, permissionHelper: helper)
+        IosNotificationManager(repository: repo)
     }
 
     @Test func foregroundPresentationOptionsContainsListByDefault() {
@@ -23,11 +22,18 @@ struct IosNotificationManagerTests {
         #expect(manager.foregroundPresentationOptions.contains(.list))
     }
 
-    @Test func openNotificationSettingsCallsRepository() {
+    @Test func openNotificationSettingsCallsRepository() async throws {
         let repo = MockNotificationRepository()
         let manager = makeManager(repo: repo)
 
-        manager.openNotificationSettings()
+        // In a synchronous closure: in an `async` context the call selects the `async` form
+        // (design S-P26).
+        let openTheExistingForm = { manager.openNotificationSettings() }
+        openTheExistingForm()
+        // The existing form returns at once and opens in a task (its result is not reported).
+        for _ in 0..<500 where repo.openSettingsCallCount == 0 {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
 
         #expect(repo.openSettingsCallCount == 1)
     }
@@ -62,7 +68,6 @@ struct IosNotificationManagerTests {
         }
         let manager = makeManager(repo: repo)
 
-        // `ScheduledNotification` is not `Sendable`, so only the checked fields leave the callback.
         let result = await withCheckedContinuation { continuation in
             manager.getScheduled { scheduled in
                 continuation.resume(returning: scheduled.map { ($0.identifier, $0.body) })

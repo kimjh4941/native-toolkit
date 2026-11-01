@@ -13,57 +13,10 @@ import Testing
 import UserNotifications
 @testable import IosLibrary
 
-/// Keeps the requests added, in order, and what was removed.
-///
-/// `@unchecked Sendable` (test code only): `UNNotificationRequest` is not `Sendable`; every access
-/// to the stored requests is under the lock, and the tests read them after the calls returned.
-private final class FakeRequestCenter: NotificationRequestCenter, @unchecked Sendable {
-    private let lock = NSLock()
-    private var requests: [UNNotificationRequest] = []
-    private var recordedCalls: [String] = []
-
-    var calls: [String] { lock.withLock { recordedCalls } }
-
-    func request(_ identifier: String) -> UNNotificationRequest? {
-        lock.withLock { requests.last { $0.identifier == identifier } }
-    }
-
-    func add(_ request: UNNotificationRequest) async throws {
-        lock.withLock {
-            recordedCalls.append("add \(request.identifier)")
-            requests.removeAll { $0.identifier == request.identifier }
-            requests.append(request)
-        }
-    }
-
-    func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
-        lock.withLock {
-            recordedCalls.append("remove \(identifiers.joined(separator: ","))")
-            requests.removeAll { identifiers.contains($0.identifier) }
-        }
-    }
-
-    func removeAllPendingNotificationRequests() {
-        lock.withLock {
-            recordedCalls.append("removeAll")
-            requests.removeAll()
-        }
-    }
-
-    func pendingNotificationRequests() async -> [UNNotificationRequest] {
-        lock.withLock { requests }
-    }
-}
-
 struct NotificationRepositoryMarkerTests {
 
     private func content(_ identifier: String, userInfo: [String: Any]) -> NotificationContent {
         NotificationContent(id: identifier, title: "UT-17", body: "marker", userInfo: userInfo)
-    }
-
-    private func isReservedKeyError(_ error: any Error) -> Bool {
-        if case NotificationError.reservedUserInfoKey = error { return true }
-        return false
     }
 
     /// What the repository adds carries the marker; `getScheduled` hands it back without.
@@ -102,13 +55,13 @@ struct NotificationRepositoryMarkerTests {
         let center = FakeRequestCenter()
         let repository = NotificationRepositoryImpl(requestCenter: center)
 
-        await #expect(performing: {
+        await #expect(throws: NotificationError.reservedUserInfoKey) {
             try await repository.show(content: content("n", userInfo: [NotificationMarker.key: 1]), trigger: nil)
-        }, throws: isReservedKeyError)
-        await #expect(performing: {
+        }
+        await #expect(throws: NotificationError.reservedUserInfoKey) {
             try await repository.schedule(content: content("n", userInfo: [NotificationMarker.key: "x", "k": "v"]),
                                           trigger: .timeInterval(3600, repeats: false), identifier: "n")
-        }, throws: isReservedKeyError)
+        }
         #expect(center.calls.isEmpty)
     }
 
@@ -118,10 +71,10 @@ struct NotificationRepositoryMarkerTests {
         let repository = NotificationRepositoryImpl(requestCenter: center)
         try await repository.schedule(content: content("u", userInfo: ["before": 1]), trigger: .timeInterval(3600, repeats: false), identifier: "u")
 
-        await #expect(performing: {
+        await #expect(throws: NotificationError.reservedUserInfoKey) {
             try await repository.update(identifier: "u", content: content("u", userInfo: [NotificationMarker.key: 1]),
                                         trigger: .timeInterval(3600, repeats: false))
-        }, throws: isReservedKeyError)
+        }
 
         let kept = try #require(center.request("u"), "update removed the pending request before it rejected the key")
         #expect(kept.content.userInfo["before"] as? Int == 1)

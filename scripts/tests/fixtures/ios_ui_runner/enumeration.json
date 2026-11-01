@@ -255,6 +255,9 @@
           "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN35_twoListenersReceiveOnceEach()"
         },
         {
+          "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN39_aCategoryIsUsableWhenItsCompletionComes()"
+        },
+        {
           "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN41_eachNotificationGoesToItsOwnDelegate()"
         },
         {
@@ -262,6 +265,12 @@
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationEventUITests/testN44_legacyReceiversReportAReply()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationPermissionUITests/testN40_theAppNotificationSettingsLinkSendsASettingsRequest()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationPermissionUITests/testN42_aPermissionRequestInTheBackgroundReportsNotForeground()"
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationPermissionUITests/testNP1_allowPermission()"
@@ -319,6 +328,9 @@
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN34b_launchReportsTheInstalledDelegate()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN38_rejectedUserInfoReportsItsCaseAndPostsNothing()"
         },
         {
           "identifier" : "IosLibraryExampleUITests/NotificationUITests/testN3_openNotificationSettingsShowsSettings()"

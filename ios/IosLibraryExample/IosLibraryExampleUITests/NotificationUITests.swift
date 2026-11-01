@@ -2,9 +2,9 @@
 //  NotificationUITests.swift
 //  IosLibraryExampleUITests
 //
-//  N1〜N22, N34 of the UI test design (3.3) and N34b of the Swift API design (13.2; N34 was
-//  taken): permission state, showing, updating, cancelling, removing, scheduling, queries and the
-//  badge. Lists are read with GetScheduled / GetDelivered and compared as count, number of ids, no
+//  N1〜N22, N34 of the UI test design (3.3) and N34b, N38 of the Swift API design (13.2; N34 was
+//  taken): permission state, showing, updating, cancelling, removing, scheduling, queries, the
+//  badge and the userInfo checks. Lists are read with GetScheduled / GetDelivered and compared as count, number of ids, no
 //  duplicates and the set of ids, polled every 0.5 s for up to 10 s (U-6). Banners are read only
 //  through `Springboard` (U-5).
 //
@@ -352,6 +352,21 @@ final class NotificationUITests: SampleUITestCase {
         XCTAssertEqual(try sample.statusLine(.launchStatus), "install=installed, isDelegateInstalled=true, mode=none, source=arguments, hostDelegate=off")
     }
 
+    /// N38 (Swift API design 13.2, SA-09): the reserved key and a userInfo value that is not a
+    /// property-list value are rejected with their cases through the `async` form; no
+    /// notification is added (none is delivered, and no banner appears for 3 seconds. U-14).
+    @MainActor
+    func testN38_rejectedUserInfoReportsItsCaseAndPostsNothing() throws {
+        let token = try systemUIToken()
+        let springboard = Springboard(token)
+        XCTAssertEqual(try sample.press(.showReservedKey, token), failure("[showReservedKey] failure reservedUserInfoKey"))
+        XCTAssertEqual(try sample.press(.showInvalidUserInfo, token), failure("[showInvalidUserInfo] failure invalidUserInfo"))
+        XCTAssertFalse(try springboard.waitForBanner(title: "Reserved Key", body: "Never shown", timeout: 3), "a banner appeared for the reserved key")
+        XCTAssertFalse(try springboard.waitForBanner(title: "Invalid UserInfo", body: "Never shown", timeout: 1), "a banner appeared for the invalid userInfo")
+        XCTAssertEqual(try sample.waitForNotificationIDs(.getDelivered, []), success("[getDelivered] count: 0, ids: []"))
+        XCTAssertEqual(try sample.waitForNotificationIDs(.getScheduled, []), success("[getScheduled] count: 0, ids: []"))
+    }
+
     /// The home screen icon's value: `1 new item` with badge 1 (en; the digit is checked) and empty
     /// with badge 0 (stage 0c).
     @MainActor
@@ -372,6 +387,10 @@ final class NotificationUITests: SampleUITestCase {
 
     private func success(_ body: String) -> String {
         ResultLine.expected(success: true, body)
+    }
+
+    private func failure(_ body: String) -> String {
+        ResultLine.expected(success: false, body)
     }
 
     /// Seconds left until `start + seconds` (at least 0.1).

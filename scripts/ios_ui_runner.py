@@ -59,8 +59,15 @@ UI_CLASSES = (
     ("ClipboardPasteUITests", "Clipboard"),
 )
 PERMISSION_CLASS = "NotificationPermissionUITests"
-# NP2 (deny) first, then NP1 (allow): the run ends with the permission granted (U-7).
-PERMISSION_ORDER = ("testNP2_denyPermission", "testNP1_allowPermission")
+# NP2 (deny) first and NP1 (allow) last: the run ends with the permission granted (U-7). N42 (a
+# request in the background, nothing requested) and N40 (allow with the app's own settings, then the
+# Settings link) also need a fresh install (stage 1b C6) and run on the simulator only.
+PERMISSION_ORDER = (
+    "testNP2_denyPermission",
+    "testN42_aPermissionRequestInTheBackgroundReportsNotForeground",
+    "testN40_theAppNotificationSettingsLinkSendsASettingsRequest",
+    "testNP1_allowPermission",
+)
 CB2_CLASS = "ClipboardPasteDenyUITests"
 SEPARATE_CLASSES = ((PERMISSION_CLASS, "Notification"), (CB2_CLASS, "Clipboard"))
 FEATURES = ("Dialog", "Notification", "Share", "Clipboard")
@@ -87,8 +94,10 @@ CLASS_MINIMUMS = {
 # UIKit timings measured on the simulator (MS-01, MS-03), D21 sends the sample to the background
 # with a request pending, D23 is the iPad anchor check; S18 sends the sample to the background with
 # a share request pending, S19 relies on the release of a share sheet dismissed from outside
-# (MS-03; stage 1b C3). Every key must be declared, so that a renamed test stops the runner instead
-# of leaving this set.
+# (MS-03; stage 1b C3). N42 sends the sample to the background with a permission request pending
+# (as D21 and S18), and N40 presses rows of the Settings app, where a press on the user's iPhone could
+# change a setting (stage 1b C6; Springboard also throws on the device). Every key must be declared,
+# so that a renamed test stops the runner instead of leaving this set.
 SIMULATOR_ONLY_TESTS = frozenset({
     "DialogUITests/testD17_twoRequestsInOneTurnAreBothShown",
     "DialogUITests/testD20_aDialogDismissedFromOutsideReportsDismissedBySystem",
@@ -97,6 +106,8 @@ SIMULATOR_ONLY_TESTS = frozenset({
     "DialogUITests/testD23_actionSheetsPresentWithAnAnchor",
     "ShareUITests/testS18_aRequestInTheBackgroundReportsNotForeground",
     "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",
+    "NotificationPermissionUITests/testN40_theAppNotificationSettingsLinkSendsASettingsRequest",
+    "NotificationPermissionUITests/testN42_aPermissionRequestInTheBackgroundReportsNotForeground",
 })
 # What an excluded test of that set shows in place of its missing categories. Not a category, so
 # --device-allow cannot name it.
@@ -140,13 +151,13 @@ FROZEN_CLIPBOARD_SHA256 = "4612943da3ec0e32562d86d07d7d134521f1db5fed42e7543db74
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "49bd2c07958fadedbf235c9ab155f0aedbcec4dbebd2260b7034f2e55adfe874",
-    "Support/SampleApp.swift": "1ac8667f119d835d39b9b36bb0e05ff00243b679fc817e8e62bbc1ea5801421e",
-    "Support/Springboard.swift": "7c642008fdc5a532e1d1bb235702c7526669f5b1023aeae25a579f44e9c0daba",
+    "Support/SampleApp.swift": "86734d0cdaae20dc51abddcbe0be36ede0e78358757a128c55eed822dcd78690",
+    "Support/Springboard.swift": "b08dc1ef7a22bccd9c2029a4fc7fff8d09dfd75ff6af92101307885af7f6ce65",
     "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",
     "Support/UnexpectedAlertGuard.swift": "5f94e7b007e037cd9ca1393a512332acb3436a9ff2a19cfcaefcf91ea28c6bfa",
     "Support/NotificationCleanup.swift": "64a33263710150a505c14adcfeaf0144b8a43172194878ab652182284595f384",
-    "Support/SystemLabels.swift": "f8d3e5807ede8eac4a54384338f4307f2d42a05908cf441c86d3b70a9548c0e7",
+    "Support/SystemLabels.swift": "571cb63fea2f83fd65012588d8fc9a2982e2bb65601768f5d75f1916a0003616",
 }
 DECLARATIONS_FILE = "Support/DeviceRequirements.json"
 

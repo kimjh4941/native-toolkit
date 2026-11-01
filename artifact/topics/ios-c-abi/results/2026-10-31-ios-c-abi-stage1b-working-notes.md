@@ -2,9 +2,9 @@
 
 - 記録日: 2026-10-31
 - 段階: 1b（`README.md` の 5 章の 1b の行。設計書は `designs/2026-10-31-ios-c-abi-swift-api-design.md`。以下「設計書」）
-- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更で、`747897de` でコミットした。C5 は `747897de` の上の未コミットの変更で、前半（T-13・T-14）と後半（T-15・T-16）が入っている。まだコミットしていない）
-- 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）だけ。**実機には触れていない**
-- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）、C5（13〜15 章。2026-11-01。前半は 13.1〜13.10 と 14 章、後半は 13.11〜13.21 と 15 章）
+- ブランチ: `feature/NTKIT-18`（C1 は HEAD `f3c289d7` の上の未コミットの変更で、`584ec55c` でコミットした。C2 は `584ec55c` の上の未コミットの変更で、`da620c67` でコミットした。C3 は `da620c67` の上の未コミットの変更で、`637b1078` でコミットした。C4 は `637b1078` の上の未コミットの変更で、`747897de` でコミットした。C5 は `747897de` の上の未コミットの変更で、前半（T-13・T-14）と後半（T-15・T-16）が入っており、`b80399eb` でコミットした。C6 は `b80399eb` の上の未コミットの変更で、まだコミットしていない）
+- 環境: Xcode 26.3（17C529、Swift 6.2.4、`xcode-select` のまま）。C5 のレビューの直しと C6 の単体テストは Xcode 26.6 で流した（17.8）。0 件の警告の確かめだけ Xcode 26.6（17F113、Swift 6.3.3）でも組んだ（`DEVELOPER_DIR` でコマンドごとに選んだ）。シミュレーターは iPhone 17（iOS 26.2）、iPhone 16（iOS 18.3.1）、iPad Pro 11-inch (M4)（iOS 18.3.1）、C2 の MS-02 の iPad (A16)（iOS 26.2）だけ。**実機には触れていない**
+- 章: コミットごとに 1 章（設計書 15.1 の C1〜C7）。この版は C1（1〜3 章）、C2（4〜6 章）、C3（7〜9 章）、C4（10〜12 章。2026-11-01）、C5（13〜15 章。2026-11-01。前半は 13.1〜13.10 と 14 章、後半は 13.11〜13.21 と 15 章。16 章は C5 のレビュー）、C6（17・18 章。2026-11-01）
 
 ## 1. C1 共通（T-01〜T-05）
 
@@ -1333,3 +1333,334 @@ TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2）: hub、値の木と印
 | シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3 は xcodebuild と `test_ios.sh` が起動し、最後に `simctl shutdown all` で止め、どれも起動していないことを確かめた。iPhone 17 / 26.2 には `test_ios.sh` の回のサンプル（リポジトリの版）が入っている（下調べの写しは `test_ios.sh` の NP2 が消して入れ直した）。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない） |
 
 信頼する部分（`scripts/ios_ui_runner.py` の `TRUSTED_FILES`）は変えていない。直しのどれも信頼する部分の変更を要しなかった。
+## 17. C6 通知の操作（T-17〜T-19、T-23）
+
+- 状態: ライブラリ（T-17 のエラー・`async` 版・一覧の型・userInfo の検査、T-18 の権限の要求と設定の画面の gate と 2 つの UseCase、T-23 の category の列）、単体テスト（UT-16 の通知の分、UT-18 の検査と一覧の分、UT-26〜UT-29、UT-32）、壊して確かめる、サンプル（SA-09、SA-10、SA-13、SA-05 の権限の分）、UI テスト（N38、N39、N40、N42）、MS-04・MS-09 は済んだ。**コミットはしていない**
+- 13.10 の「C6 に残す今の不備」の 3 つを直した: (1) Manager は `repository` を持たなくなり、`openNotificationSettings()` は `OpenNotificationSettingsUseCase`、`setBadgeCount` は新しい `SetBadgeCountUseCase` を通る。(2) port の `UNAuthorizationOptions` に理由の注を付けた（型の DocC の `- Note:` と import の行の注）。(3) `NotificationDispatchUseCases.swift` の `import UserNotifications` を外した
+- C5 で足した 2 つの case（`reservedUserInfoKey`・`delegateNotInstalled`）は S-P7 の作り直しに入れ、英語の固定の `errorDescription` を持つ（13.21 の 1 行目）
+- 信頼する部分（`Support/SampleApp.swift`・`Support/Springboard.swift`・`Support/SystemLabels.swift`）の変更はリポジトリの作業ツリーに入れ、**ハッシュは固定していない**。UI テストとランナーの自己テストは、ハッシュだけを直した使い捨ての写し（scratchpad）で流した（17.10）
+- 測ったログ・下調べ（MS-04・MS-09）・変異の差分は scratchpad に置き、リポジトリには入れていない。シミュレーターだけで、実機には触れていない
+- 13.21 の申し送りの 9 行（`NotificationError`、userInfo の検査、一覧の型、N40、サンプル、試験の形、ブリッジ、C7、先頭のログ）のうち C6 の行はすべて当てた。C7 の行と、ブリッジの行（段階 3 まで直さない）は 17.11 に引き継いだ
+
+### 17.1 変えたもの（リポジトリ）
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| Domain（T-17） | `Notification/Domain/Model/NotificationError.swift` | S-P7 の作り直し: `Error, Sendable, Equatable, LocalizedError`。任意の `Error` を持つ case を `FailureDetail` を持つ case に直した（`attachmentLoadFailed(identifier:detail:)`、`addRequestFailed`、`setBadgeCountFailed`、`authorizationFailed`。前の `unknown(Error)` は `authorizationFailed`）。`permissionNotDetermined`・`attachmentInvalidURL`・`unknown` を消し、`invalidUserInfo`・`notForeground`・`openSettingsFailed` を足した。C5 の `reservedUserInfoKey`・`delegateNotInstalled` を含む 10 の case に英語の固定の `errorDescription`（入力の値・識別子・domain を含めない）。型の DocC に case と場面の表 |
+| Domain（T-17） | `Notification/Domain/Model/ScheduledNotification.swift`、`ActiveNotification.swift` | S-P25: `Sendable`。userInfo を値の木 `userInfoValues` で持ち、`userInfo` は値の木から Foundation の型で作り直す計算プロパティ。public の `init` は今の引数のまま、中で `NotificationUserInfoValue.tree(of:)`（property list でない値と `String` でない鍵は捨て、件数だけをログ）。先頭のログ（題・副題・本文は長さだけ） |
+| Domain（T-23） | `Notification/Domain/Model/NotificationCategoryChange.swift`（新、public） | `register(NotificationCategory)` / `remove(identifier:)`（付録 A）と、ログの形 `logSummary`（識別子だけ） |
+| Application（T-17・T-18・T-23） | `Notification/Application/Port/NotificationRepository.swift` | `UNAuthorizationOptions` の理由の注（13.10 の 2）。`openNotificationSettings() async -> Bool`（8.5.5）。`enqueueCategoryChange(_:completion:)` と protocol extension の既定の実装（`Task` で今の `async` の口を呼んで `completion`。順は保たないと DocC に書いた。S-P28）。`registerCategory`・`removeCategory` の DocC に列のこと。印の DocC に `invalidUserInfo` |
+| Application（T-18） | `Notification/Application/UseCase/NotificationPermissionUseCases.swift`（新） | `RequestNotificationPermissionUseCase`（`execute(options:) async throws(NotificationError) -> Bool`。拒否は `false`。port が `NotificationError` でないものを投げたら `authorizationFailed` に写す）、`OpenNotificationSettingsUseCase`（`execute() async -> Bool`）。前面は知らない（SR-17） |
+| Application（13.10 の 1） | `Notification/Application/UseCase/NotificationBadgeUseCases.swift`（新） | `SetBadgeCountUseCase`（設計書 6.1・9 章に無い。17.4 の 1） |
+| Application（T-23） | `Notification/Application/UseCase/NotificationCategoryUseCases.swift` | `enqueue(_:completion:)`・`enqueue(identifier:completion:)`（同期に port へ積む。S-P28）と先頭のログ |
+| Application（13.10 の 3） | `Notification/Application/UseCase/NotificationDispatchUseCases.swift` | 使わない `import UserNotifications` を外した |
+| Application（19 章の L-C1） | `Notification/Application/UseCase/NotificationQueryUseCases.swift`、`NotificationScheduleUseCases.swift` と、上の Dispatch・Category・Badge・Permission の UseCase | どの UseCase も `init` と `execute` の先頭にログ（型ごとの logger。識別子と `content.id` は `.public`、trigger は `.private`） |
+| Data（T-23） | `Notification/Data/Repository/NotificationCategoryQueue.swift`（新、internal） | プロセスで 1 つの FIFO（`static let shared`）。internal の `NotificationCategoryCenter`（`categories() async`・`setCategories(_:)`）と本番の `CurrentNotificationCategoryCenter`。積む: 1 つの `Mutex` の区間で足す・印を見る・起こす権利を取り、区間の外で権利を取ったときだけ 1 つの `Task`。取り出す: 1 つの区間で空なら印を下ろして終わり、空でなければ先頭を外す。1 件の処理は読む → 変える → 書き戻す → 読み直す（足すときは書いた category と識別子・アクションの識別子の並び・options が同じものがあるか、外すときは識別子が無いかを `isReadBack` で確かめる。読めなければ `.error` のログ。19 章の L-C4）→ `completion`。`makeUNCategory(from:)` を repository から移した。テストのための `init(center:drainHook:)` と `drainStartCount` |
+| Data（T-17・T-18・T-23） | `Notification/Data/Repository/NotificationRepositoryImpl.swift` | 入口の最初の `checkUserInfo(of:method:)`（予約したキー → property list。`update` は今の予約を消す前。8.3.3、8.5.3、SR-9）と internal の `isPropertyList(_:)`（`PropertyListSerialization.propertyList(_:isValidFor: .binary)`）。system のエラーを `FailureDetail` に（`add`・バッジ・権限・添付。domain と code を `.error` のログに）。`openNotificationSettings() async -> Bool`（main actor の `UIApplication.open`）。`registerCategory`・`removeCategory` は列に積んで反映を待つ。`enqueueCategoryChange` は列に同期に積む。`categoryQueue`（public の `init()` は `.shared`、テストの `init(requestCenter:categoryQueue:)`）。`update` は検査 → 内容（添付）と trigger → 今の予約を消す → `add` の順（C6 の前は消してから内容を作っていた。19 章の L-B1） |
+| Presentation（T-18） | `Notification/Presentation/Permission/NotificationPresentationGate.swift`（新、internal） | 8.5.4・8.5.5 の表を持つ gate（`Sendable` の struct、2 つの口は `@MainActor`）。`.firstActiveScene` はそのまま UseCase。`.foreground`・`.viewController` は、権限なら先に状態を読み（決まっていれば要求せずに `grants(_:)` で答える）、未決なら `PresentationProcedure.requireForeground` で前面を確かめる。設定の画面は前面を確かめてから開き、開けなければ `openSettingsFailed` |
+| Presentation（T-18） | `Notification/Presentation/Permission/NotificationPermissionHelper.swift` | `@available(*, deprecated, message: "Use IosNotificationManager.requestPermission(options:presenter:)")`（S-P27）。`openNotificationSettings()` は `Task` で port の `async` の口を呼び結果を捨てる。DocC の `.unknown` を `authorizationFailed` に直し、移り先を `- Important:` に書いた |
+| Manager（T-17・T-18・T-23） | `Notification/IosNotificationManager.swift` | `repository` と `permissionHelper` を持たなくなった（13.10 の 1、SR3-4）。テストの `init(repository:delegateStatus:presentationGate:)`。`async throws` 版（`show`・`update`・`schedule`・`setBadgeCount`）と投げない `async` 版（`getScheduled`・`getDelivered`・`hasPermission`・`authorizationStatus`）。callback 版の `errorMessage` は `errorMessage(of:)`（`NotificationError` の固定の文言）。今の `requestPermission(options:completion:)` は UseCase を呼び、拒否は `(false, <permissionDenied の文言>)`。新しい `requestPermission(options:presenter:completion:)`（`Result<Bool, NotificationError>`）と `async throws -> Bool`（`@discardableResult`）、`openNotificationSettings(presenter:completion:)`（`Result<Void, NotificationError>`）と `async throws`。今の `openNotificationSettings()` は UseCase で開いて結果を捨てる。`registerCategory(_:completion:)`・`removeCategory(identifier:completion:)`（`completion` は既定 `nil`。UseCase の同期の `enqueue` に積み、完了を `DispatchQueue.main.async` で 1 回）と `nonisolated(nonsending)` の `async` 版（`withCheckedContinuation` の本体で積む）。S-P16 の DocC（`cancel` と `cancelScheduled` が同じ、`schedule` は `identifier` を使う。違えばログ）、全件の消去がホストの通知も消すこと（3.4）。型の Overview の「Unity の相互運用のために `(isSuccess, errorMessage)`」を直した（設計書 18.1 の 11） |
+| 共通 | `Common/LogRedaction.swift` | DocC の例を `NotificationError.addRequestFailed(FailureDetail)` に直しただけ |
+| テスト | 17.5 | |
+| サンプル（T-19） | `IosLibraryExample/NotificationSampleView.swift` | Swift API の節にボタン 6: `showReservedKey`・`showInvalidUserInfo`（SA-09。`async` 版の `show`）、`registerCategoryWithCompletion`（SA-10。完了で結果の行）、`requestPermissionWithAppSettings`（SA-13。`.providesAppNotificationSettings` を足して `.foreground`、`async` 版）、`openNotificationSettingsForeground`（SA-13。`.foreground`、C ABI が使う callback 版）、`requestPermissionAfter3Seconds`（SA-05。`#if DEBUG`、3 秒後に `.foreground` で求める。結果の行に要求の時点の scene の状態）。結果の行は `[<印>] success <値>` / `failure <case>`。category の組み立てを `makeCategory()` に、`makeContent` に userInfo の足しを出した（今のボタンの userInfo は変わらない）。今の 29 のボタンと結果の行は変えていない |
+| UI テスト | `NotificationUITests.swift`（N38）、`NotificationEventUITests.swift`（N39）、`NotificationPermissionUITests.swift`（N42・N40）、`Support/DeviceRequirements.json`（4 件） | 17.8 |
+| UI テスト（信頼する部分） | `Support/SampleApp.swift`、`Support/Springboard.swift`、`Support/SystemLabels.swift` | 17.10 |
+| ランナー | `scripts/ios_ui_runner.py` | `PERMISSION_ORDER` を NP2 → N42 → N40 → NP1 に、`SIMULATOR_ONLY_TESTS` に N40・N42（17.4 の 8） |
+| ランナーの自己テスト | `scripts/tests/test_ios_ui_runner.py`、`scripts/tests/fixtures/ios_ui_runner/enumeration.json`・`otool-ov-device.txt`・`otool-l-device.txt` | 数（120 → 124、サンプルのボタン 63 → 69）、権限の順の 2 件と N40・N42 の simulator only の 1 件、fixture の取り直し（17.8） |
+| 文書 | `designs/2026-10-18-ios-c-abi-ui-test-design.md` | U-14 の例外（N38・N40・N42）、3.3 に C6 のテストの表と置き場所、「テストに入れないもの」の `openSettingsFor` と文言の行、5.1 の一覧（ボタン 6、数 47 → 53） |
+| 文書 | `designs/2026-10-31-ios-c-abi-swift-api-design.md` | 偏りの注だけ（3.3 の S-P26 の行に `openNotificationSettings()`、6.1 に `NotificationBadgeUseCases.swift`、8.5.4 に gate の形と決まった状態での新しい選択肢、8.5.6 に同じ識別子の置き換えと読み直し、付録 A の後の注） |
+| 公開 API | `results/swiftinterface/IosLibrary-after-1b-c6.swiftinterface`、`2026-10-31-stage1b-c6.diff` | 17.6 |
+
+`ios/IosLibrary/IosLibrary.xcodeproj` と `ios/IosLibraryExample/IosLibraryExample.xcodeproj` は変えていない（フォルダーと同期するターゲット）。ブリッジ（`ios/UnityIosPlugin`）は変えていない（`NotificationError` の case も `NotificationPermissionHelper` も使っていない。`registerCategory(category)` は同期の文脈で今の口に決まる）。`ios.md` は変えていない（UseCase を置かない口を足していない。設定の画面とバッジは UseCase を通した）。
+
+### 17.2 層と依存の向き
+
+| ファイル | 層 | 依存するもの | 例外と理由 |
+|---|---|---|---|
+| `Domain/Model/NotificationError.swift` | Domain | Foundation、`FailureDetail` | - |
+| `Domain/Model/ScheduledNotification.swift`・`ActiveNotification.swift` | Domain | Foundation、`os`、`NotificationUserInfoValue`、`LogRedaction` | - |
+| `Domain/Model/NotificationCategoryChange.swift` | Domain | Foundation、`NotificationCategory` | - |
+| `Application/Port/NotificationRepository.swift` | Application | Foundation、`os`、UserNotifications（`UNAuthorizationOptions` だけ） | `common.md` の許容の例外（薄いビットマスク）。注を付けた（13.10 の 2） |
+| `Application/UseCase/NotificationPermissionUseCases.swift` | Application | 同上（`UNAuthorizationOptions` を port へ渡すだけ） | 同じ例外。import の行に注 |
+| `Application/UseCase/NotificationBadgeUseCases.swift`・`NotificationCategoryUseCases.swift`・`NotificationDispatchUseCases.swift` | Application | Foundation、`os` | - |
+| `Data/Repository/NotificationCategoryQueue.swift` | Data | Foundation、`os`、`Synchronization`、UserNotifications、Domain | `NotificationCategoryCenter` は Data の中の internal の抽象（`UNNotificationCategory` を持つので Domain・Application に置かない） |
+| `Data/Repository/NotificationRepositoryImpl.swift` | Data | 今の依存 + `NotificationCategoryQueue` | - |
+| `Presentation/Permission/NotificationPresentationGate.swift` | Presentation | `os`、UserNotifications（`UNAuthorizationOptions`）、`PresentationProcedure`（Common の Presentation）、Application の 3 つの UseCase | UseCase を呼ぶのは Manager から委ねられた判定のため（設計書 8.5.4 の「判定する所」。SR-17） |
+| `Presentation/Permission/NotificationPermissionHelper.swift` | Presentation | 今のまま（port を直に呼ぶ） | deprecated の今の型で、動作を今のまま残す（S-P27）。新しいコードからは使わない |
+| `IosNotificationManager.swift` | Manager | Application の UseCase、Presentation の gate | Data 層（`NotificationRepositoryImpl`）は `shared` の組み立てにだけ使い、操作は UseCase を通す（13.10 の 1 を直した） |
+
+Domain と Application に platform の型を足していない（`UNAuthorizationOptions` の例外は今のもの）。Manager → UseCase → Repository の経路の外は、13.2・13.12 の UseCase を置かない口（delegate・hub・`launchResponse()`）だけ。
+
+### 17.3 公開 API（付録 A の Notification の操作の分との照合）と、今の利用者から見て変わる動作
+
+| 付録 A | 実装 | 一致 |
+|---|---|---|
+| `public enum NotificationError: Error, Sendable, Equatable, LocalizedError { permissionDenied, attachmentLoadFailed(identifier:detail:), addRequestFailed(FailureDetail), setBadgeCountFailed(FailureDetail), authorizationFailed(FailureDetail), reservedUserInfoKey, invalidUserInfo, notForeground, openSettingsFailed, delegateNotInstalled }` | 同じ（C5 の「C6 で一致させる」） | 一致 |
+| `ScheduledNotification: Sendable`（`userInfoValues`、計算の `userInfo`、今の引数の `init`）と `ActiveNotification` の同じ直し | 同じ | 一致 |
+| `public enum NotificationCategoryChange: Sendable { register(NotificationCategory), remove(identifier: String) }` | 同じ | 一致 |
+| port: `openNotificationSettings() async -> Bool`、`enqueueCategoryChange(_:completion:)` と既定の実装 | 同じ | 一致 |
+| `RegisterNotificationCategoryUseCase.enqueue(_:completion:)`、`RemoveNotificationCategoryUseCase.enqueue(identifier:completion:)` | 同じ | 一致 |
+| `@available(*, deprecated, message: "Use IosNotificationManager.requestPermission(options:presenter:)") NotificationPermissionHelper` | 同じ（中の口は今のまま） | 一致 |
+| `show`・`update`・`schedule`（`content: sending`、`trigger` に既定なし）・`setBadgeCount` の `async throws` | 同じ | 一致 |
+| `getScheduled`・`getDelivered`・`hasPermission`・`authorizationStatus` の `async` | 同じ | 一致 |
+| `requestPermission(options:presenter:completion:)`、`requestPermission(options:presenter:) async throws -> Bool` | 同じ。`async` 版に `@discardableResult` を付けた（17.4 の 5） | ほぼ一致 |
+| `openNotificationSettings(presenter:completion:)`、`openNotificationSettings(presenter:) async throws` | 同じ | 一致 |
+| `registerCategory(_:completion:)`・`removeCategory(identifier:completion:)`（既定 `nil`）、`nonisolated(nonsending)` の `async` 版 2 つ | 同じ | 一致 |
+| （付録 A に無い）`RequestNotificationPermissionUseCase`・`OpenNotificationSettingsUseCase`・`SetBadgeCountUseCase` | public（6.1 の「public」。`SetBadgeCountUseCase` は 17.4 の 1） | 6.1 と一致 |
+
+`@unchecked Sendable`・`nonisolated(unsafe)`・`@preconcurrency` はライブラリに足していない（P1-17 の一覧の外は 0 のまま）。テストの偽物 `FakeRequestCenter`・`FakeCategoryCenter`（`UNNotificationRequest`・`UNNotificationCategory` が `Sendable` でないため `@unchecked Sendable`、鍵で守る）はテストのコードだけ。足した型に `deinit` は無い。
+
+| 口 | 前 | 後 | 3.3 |
+|---|---|---|---|
+| `NotificationError` | 9 の case（C5 の 2 つを含む）。任意の `Error` を持つ。`LocalizedError` でない | 10 の case（17.1）。`Sendable`・`Equatable`・`LocalizedError`。網羅した `switch` は組めなくなる | 破壊的（S-P7） |
+| callback 版の `errorMessage`（`show`・`update`・`schedule`・`setBadgeCount`・`requestPermission`） | OS の言語の汎用の文 | `NotificationError` の英語の固定の文言（例 `Failed to add the notification request.`）。自分で実装した port の他のエラーはそのエラーの説明 | 動作（S-P7） |
+| `requestPermission(options:completion:)` の拒否 | helper が `permissionDenied` を投げ、`(false, <汎用の文>)` | `(false, "Notification permission was denied.")`（値の組は同じ、文言が固定）。要求の失敗は `authorizationFailed` の文言 | 動作（S-P27） |
+| `show`・`schedule`・`update` の userInfo | property list でない値は `add` の中で例外か黙った欠落になりえた。**`NSNull` は通った**（19 章の測り。HEAD `b80399eb` の版で `["k": NSNull(), "a": [1, NSNull()]]` を `schedule` すると `add` は成功し、`getScheduled` は 2 つの `NSNull` をそのまま返した。iPhone 17 / 26.2） | 入口の最初に `invalidUserInfo` で失敗し、何も足さず消さない（`update` は今の予約を消す前）。`NSNull` と `NSURL` も断る（`NSSecureCoding` だが property list の値でない。S-P15） | 動作（S-P15）。`NSNull` は今の利用者に破壊的（JSON の `null` を `NSNull` にするブリッジの利用者を含む。18 章の 6） |
+| `update` で添付を作れないとき | 今の予約を消してから内容を作るので、`attachmentLoadFailed` で予約が消えたままになった（C6 の前からの順） | 内容と trigger を作ってから消すので、予約は残る（`add` 自体の失敗は、消した後なので残らない。Manager の DocC に書いた） | 動作（直し。19 章の L-B1） |
+| `registerCategory`・`removeCategory` | 別々の `Task` で、片方の変更が失われえた。完了なし | 呼んだ時点で列に積み、呼んだ順に 1 件ずつ反映。完了つきの口。同じ識別子の登録は置き換え（17.4 の 3） | 動作（直し）・追加（S-P14） |
+| `ScheduledNotification`・`ActiveNotification` | `userInfo` は格納の辞書（Swift の値も入った） | `Sendable`。`userInfo` は値の木から Foundation の型で作り直す（`as? Int` などは今と同じ）。`init` に渡した property list でない値と `String` でない鍵は捨てる | 動作・追加（S-P25） |
+| `NotificationRepository`（public の port） | `openNotificationSettings()` | `openNotificationSettings() async -> Bool` と `enqueueCategoryChange(_:completion:)`（既定の実装あり） | 破壊的・追加 |
+| `NotificationPermissionHelper` | - | deprecated（呼ぶ所に警告）。動作は今のまま | 非推奨（S-P27） |
+| `async` の文脈で `completion` を書かずに今の口を呼ぶ所 | 組めた | `await`（と `try`）が要る。3.3 の一覧に無かった `openNotificationSettings()`（引数なし）も同じ（17.4 の 2） | 破壊的（ソース。S-P26） |
+| 足す口 | - | 17.1 の Manager の行 | 追加 |
+| ログ | - | 先頭のログに `completion` の有無と trigger（`.private`）。検査・`add`・バッジ・権限・添付の失敗は domain と code を `.error` で。列の積み・取り出し・反映（識別子だけ）。userInfo は鍵の数だけ | 動作（S-P21） |
+
+### 17.4 設計書からの偏りと理由
+
+| # | 設計書 | 実装 | 理由 |
+|---|---|---|---|
+| 1 | 6.1・9 章に Badge の UseCase が無い（9 章は `setBadgeCount` を「今の口と `async throws` 版」とだけ書く） | `SetBadgeCountUseCase`（`Application/UseCase/NotificationBadgeUseCases.swift`、public）を足し、Manager の callback 版・`async` 版はそれを通る | 13.10 の不備の 1（Manager が `repository.setBadgeCount` を直に呼ぶ）を直すため（`common.md` の Manager → UseCase → Repository）。設計書 6.1 に注を足した |
+| 2 | 3.3・S-P26 の「組めなくなる今の呼び出し」の一覧 | 引数の無い `openNotificationSettings()` も、`async` の文脈では `async throws` 版（`presenter` の既定 `.firstActiveScene`）に決まって組めなくなる | 一覧に無かった（C6 のテストのソースで組めなくなって分かった。`IosNotificationManagerTests` は同期の closure から呼ぶ形に直した）。設計書 3.3 に注を足した。UT-31 の一覧（C7、T-21）に入れる（17.11） |
+| 3 | 8.5.6「足すか外す」 | 登録は同じ識別子の category を外してから足す | 今の `registerCategory` は `Set<UNNotificationCategory>.insert` だけで、集合は category 全体（`isEqual`）で比べるので、中身の違う同じ識別子の category が 2 つ残った（どちらが効くかは決まっていない）。UT-28 の `registeringAgainReplacesTheCategory` と M150。設計書 8.5.6 に注。動作の直しなので 18 章の 1 に挙げた |
+| 4 | 6.1「`NotificationPresentationGate`（internal、`@MainActor`）」 | `Sendable` の struct で、2 つの口が `@MainActor`。前面の確かめは作るときに受けた環境（本番は `UIKitPresentationEnvironment`、テストは `FakePresentationEnvironment`）で `PresentationProcedure.requireForeground` を呼ぶ closure | Manager（`Sendable`、`@MainActor` でない）が `let` で持ち、テストの init で差し替えられる形にするため。判定は main actor で行う（設計の意図のまま）。設計書 8.5.4 に注 |
+| 5 | 付録 A の `requestPermission(options:presenter:) async throws -> Bool` | `@discardableResult` を付けた | `ios.md` の「ネイティブ版は `@discardableResult` を付け」。付録 A の後に注（C5 の `addListener` と同じく C7 で付録 A に足す） |
+| 6 | 9 章の `RequestNotificationPermissionUseCase`（形は書いていない） | `execute(options:) async throws(NotificationError) -> Bool`。port が `NotificationError` でないものを投げたら `authorizationFailed(FailureDetail)` に写す | gate と Manager の `Result<Bool, NotificationError>` を型で保つため。自分で実装した port の任意のエラーも 1 つの case になる（10.2 の「1 つの case に 1 つの値」）。deprecated の helper は今のまま投げ直す（S-P27）ので、この違いが「Manager が helper を使わない」ことの単体テストの手がかりになった（17.5 の M141） |
+| 7 | 8.5.6「確認」・RK-10「読み直しで確かめられなければ『書き戻した後』を完了にする」 | 読み直して読めなければ `.error` のログを出すだけで、待ち直さない。完了は書き戻しと読み直しの後。読み直しは、足すときは書いた category と識別子・アクションの識別子の並び・options で比べ、外すときは識別子が無いことを見る（19 章の L-C4。識別子だけでは、置き換えが効かず古い category が残っても通った） | MS-09（17.7）で読み直しはいつも 1 回目で反映を読んだので、待ち直しの手順を足さなかった。比べ方は、本物の center で書いて読み直した category がこの比べ方で 20/20 一致し、`isEqual` でも 20/20 一致した（使い捨ての写しの下調べ。iPhone 17 / 26.2 と iPhone 16 / 18.3。アクションの icon・options、テキスト入力のアクション、category の 3 つの options を含む）。`isEqual` は OS が持つ値（題・icon など）まで比べ、将来の OS で写しの値が変わると誤った `.error` を出しうるので、確かめに要る 3 つだけを比べた |
+| 8 | 13.2 の N40・N42 の環境（シミュレーター、`reinstall`）と置き場所（書いていない） | 2 つとも `NotificationPermissionUITests` に入れ、ランナーの `PERMISSION_ORDER` を NP2 → N42 → N40 → NP1 にした（どれも消してから 1 件ずつ）。`SIMULATOR_ONLY_TESTS` に足した。N40 の設定の App の操作は信頼する部分の `Springboard.openSampleNotificationSettingsLink()` で、`session.isDevice` なら何もせずに投げる | 権限が未決の新しいインストールが要る（N42 は未決のときだけ前面を見る、N40 は SR-11 の「新しく入れたアプリで先に求める」）。権限のクラスはランナーが 1 件ずつ消して流す唯一の所。最後を NP1 にして許可済みで終わる（U-7）。実機では NP1・NP2 だけが今の順で流れる（自己テスト `test_systemui_and_reinstall_leave_n40_and_n42_out`）。HC10 は足さない（15 章の 2 の決定） |
+| 9 | 13.2 の N39「SA-10 → 完了の後すぐ ShowImmediate → 長押し」 | 先に今の RemoveCategory を押してから SA-10。長押しは前面のバナー | category は OS に残るので、消さずに登録すると前から残る category で通ってしまう（N23・N24 と同じ考え）。今の RemoveCategory も同じ列に積むので、登録より後に反映されることは無い。前面のバナーを長押しすると、ホームに移る間のバナーの消え方に頼らない |
+| 10 | 13.2 の N38「通知は出ない」 | 2 つのバナーが 3 秒と 1 秒出ないこと（固定の待ち。U-14 の例外に足した）と、表示済み・予約が 0 件 | 「出ない」ことの確かめなので U-14 の例外の形。0 件の確かめは待ちの後に行う（足されていれば 3 秒の間に表示済みに入る） |
+| 11 | 13.2 の N42「`failure notForeground`。ダイアログは出ない」 | 加えて、AuthorizationStatus が `notDetermined` のまま（何も要求していない）こと | 要求したのに OS がダイアログを出さなかった、と区別するため |
+| 12 | 12 章 SA-13・SA-05 の口の形（書いていない） | `requestPermissionWithAppSettings` は `async` 版、`openNotificationSettingsForeground` と `requestPermissionAfter3Seconds` は C ABI が使う `Result` の callback 版 | `ios.md` の「新しく足すボタンは `async` 版」と、C3 の Share のサンプル（`shareThenDismissFromOutside`・`shareAfter3Seconds` は callback 版）の前例に合わせ、両方の形を UI テストが通るようにした |
+| 13 | UT-28「取り出しが空を見る直前と直後に積む形を、偽物の中の待ち合わせで作る」 | 列に internal の `drainHook`（取り出しの直前と、印を下ろした直後に呼ぶ）を付け、そこで積むテスト（`aChangeEnqueuedAtTheEndOfADrainIsNeverLeft`）。加えて、別のスレッドから 1 件ずつ、取り出しの点で放して積み、取り出しを 0〜3 µs 遅らせる競争（5000 回。`aChangeRacingTheEndOfADrainIsNeverLeft`。取り残しがあれば次が積まれないので止まる） | 偽物の center は取り出しの区間に入れないので、列の側に点を作った。点は区間の外で、本番では `nil`。「空を見るのと印を下ろすのを別の区間にする」変異（M142）を 2 つ目のテストが落とした（最初の 2 つの版は落とせなかった。17.5 の M142） |
+| 14 | 13.1 UT-32 の壊し方「一覧の型の `Sendable` を外す」 | 外すとテストのターゲットが組めない（M152。ライブラリ自体は組める） | 組めないことが守り（Swift 6 の complete）。テストは `Task.detached` と main actor の `Task` で境界を越えさせる |
+| 15 | S-P27・SR3-4「テストは `init(repository:)` で Mock の repository を渡す形に直す」 | テストの init は `init(repository:delegateStatus:presentationGate:)`（後ろの 2 つは既定あり）。`init(repository:)` で書ける | gate の偽物の環境をテストから渡すため |
+| 16 | 8.5.4「`.foreground`・`.viewController`: 先に状態を読む。`notDetermined` でなければ要求せずに今の状態で完了」 | そのとおりにし、そのため許可済みのアプリが `.foreground` で `.providesAppNotificationSettings` を足して求めても求め直さないことを DocC の `- Important:` に書いた（`.firstActiveScene` なら求め直す） | 設計どおりだが、MS-07（13.17 の 1）は許可済みのアプリで求め直してリンクを出した。C ABI の受け口は `.foreground` を渡すので、ゲームが後から選択肢を足せない。18 章の 2 に挙げた |
+| 17 | 13.1 UT-18「添付を作れない」の確かめ方（書いていない） | 単体テストは system が受けない種類のファイル（`.ut18unknown`）で `attachmentLoadFailed`（domain は `UNErrorDomain`）を確かめた | テストのホスト（iOS 26.2）では、無いファイルの URL でも `UNNotificationAttachment(identifier:url:options:)` が投げず、`add` まで進んだ（最初の版のテストで分かった）。今の動作で、C6 では変えていない（17.11） |
+| 18 | 8.3.3・8.5.3・SR-9「消す前に検査する」 | `update` は userInfo の検査に加えて、内容（添付）と trigger も今の予約を消す前に作る | C6 の前からの順の不備の直し（前は消してから `makeUNContent` を呼び、添付を作れないと `attachmentLoadFailed` で予約が消えたままだった）。C6 のレビューの L-B1（19 章）。`updateWithAnAttachmentTheSystemRejectsLeavesThePendingRequest` と M155 |
+
+### 17.5 単体テストと壊して確かめたこと
+
+| ID | ファイル（`IosLibraryTests/Notification/`） | 件数 | 中身 |
+|---|---|---|---|
+| UT-16（通知の分） | `Domain/NotificationErrorTests.swift`（新） | 6 | 10 の case がちょうど 1 回ずつ（網羅の `switch` の番号）、どれも空でない固定の文言で `localizedDescription` も同じ、文言は互いに違う。別の値でも同じ文言で、識別子や domain を含まない。C5 の 2 つの case と `invalidUserInfo` の文言。`Equatable` が値で比べる。ログの形（`LogRedaction.describe`）が case と `FailureDetail` の domain・code だけ。callback 版の `errorMessage` が固定の文言（自分の port の別のエラーはその説明） |
+| UT-18（一覧の分） | `Domain/NotificationListTypesTests.swift`（新） | 5 | system が返す Foundation の型の userInfo（整数・`Int64.min`・`UInt64.max`・実数・真偽値・文字列・日時・バイト列・配列・辞書）で、`ScheduledNotification`・`ActiveNotification` の `userInfo` が `as? Int`・`Int64`・`UInt64`・`Double`・`Bool`・`String`・`Date`・`Data`・`[Any]`・`[String: Any]` で今と同じに読め、真偽値が `CFBoolean` のまま。`userInfoValues` の case。Swift の値で作っても同じ。property list でない値と `String` でない鍵は捨て、入れ子の中も、落ちない。`Task.detached` から main actor へ渡る（`Sendable`） |
+| UT-18（検査の分） | `Data/NotificationRepositoryUserInfoCheckTests.swift`（新） | 7 → 8（19 章） | `isPropertyList` がすべての property list の型を通し、`NSObject`・`NSNull`・`URL`・入れ子の中の値・配列の中の `NSNull`・整数の鍵の辞書を断る。`show`・`schedule` は断って center を呼ばない。**`update` は断ったとき今の予約を消さない**（center の呼び出しは前の `add` だけ。SR-9）。予約したキーが先（両方あれば `reservedUserInfoKey`）。property list は印を付けて通る。`add` の失敗が `addRequestFailed` で domain と code を保つ（3 つの口）。受けない種類の添付は `attachmentLoadFailed` で識別子と `UNErrorDomain`、何も足さない（`anAttachmentOfAFileTypeTheSystemRejectsKeepsItsIdentifierAndTheDetail`。19 章で名前を直した）。**`update` で受けない種類の添付は今の予約を消さない**（center の呼び出しは前の `add` だけ。19 章の L-B1） |
+| UT-28 | `Data/NotificationCategoryQueueTests.swift`（新、`.serialized`） | 14 → 15（19 章） | 1 件: 読む → 書き戻す → 読み直す → 完了。1 つのスレッドから呼んだ順（`+a +b -a +c`）。8 スレッド × 25 回の登録と 13 回の削除で変更が失われず、どの変更も読む・書く・読むが割り込まれない。**処理の途中**（偽物の読み取りを止めている間）に 2 件積んでも取り出しは 1 つのまま、順に反映。**終わり際**: 取り出しの直前に積んだものは同じ取り出しが拾い、印を下ろした直後に積んだものは新しい取り出しを起こす（`drainStartCount` が 2）。別のスレッドから 1 件ずつ取り出しの点に合わせて積む 5000 回（取り出しを 0〜3 µs 遅らせる）で取り残しが無い。同じ識別子は置き換え。`NotificationRepositoryImpl()` を 2 つ作っても `.shared`。repository の `async` の口と `enqueueCategoryChange` が同じ列に順に積む。自分の port は既定の実装（`async` の口を呼んで完了）。Manager: callback 版は呼び出しの中で積み、完了は main で 1 回、反映の後、呼び出しの中では来ない。`async` 版は反映の後に戻る。C ABI の形（main のブロックの中で callback 版を 16 回）は呼んだ順。**main の `Task` を 8 つ続けて起こして `async` 版の登録、次の 8 つで削除、を 300 回繰り返して、ずれが 0 回**。読み直しの比べ方（`isReadBack`）: 書いた category と作り直した写しは通り、古い category・アクションの順の違い・options の違い・別の識別子・空は通らない。外すときは識別子が無いときだけ通る（19 章の L-C4） |
+| UT-28（UseCase） | `Application/NotificationCategoryUseCasesTests.swift` | +1 | 2 つの UseCase の `enqueue` が port に同期に積み、反映の後に完了 |
+| UT-26・UT-27 | `Presentation/Permission/NotificationPresentationGateTests.swift`（新。`NotificationPresentationGateTests` 10 → 11 と `IosNotificationManagerPermissionTests` 5） | 15 → 16（19 章） | gate: `.firstActiveScene` は状態も前面も見ずに要求（許可・拒否）。`.foreground` と `.viewController`（window の外と中）で決まった状態（`authorized`・`provisional`・`ephemeral` は `true`、`denied`・`unknown` は `false`）は要求せず前面も見ない（引数 5 つ × presenter 3 つ。19 章の L-C5 で presenter を足した）。未決で前面でなければ `notForeground` で要求しない。未決で前面なら、落ち着いていなくても要求し、選択肢がそのまま渡る。`.viewController` は window の中のときだけ。失敗は `authorizationFailed`（ライブラリの case はそのまま、ほかは domain と code）。`grants`。設定の画面: `.firstActiveScene` は前面を見ずに開く、前面でなければ（`.foreground`・`.viewController`）開かずに `notForeground`、window の中の `.viewController` は開く（19 章の L-C5）、開けなければ `openSettingsFailed`。Manager: `Result` の 2 つの口の完了は main で 1 回、呼び出しの中では来ない。4 スレッドから重ねた要求はそれぞれ完了。今の `requestPermission(options:completion:)` の拒否は `(false, <permissionDenied の文言>)`。**今の口は helper でなく UseCase を通る**（port が `NotificationError` でないものを投げると `authorizationFailed` の文言。helper ならそのエラーの説明。選択肢がそのまま渡る）。`async` 版: 拒否は `false`、`notForeground`、`openSettingsFailed` |
+| UT-29・UT-32 | `Presentation/IosNotificationManagerAsyncTests.swift`（新） | 6 | `show`・`update`・`schedule`・`setBadgeCount` の `async throws` 版が UseCase を通って成功し、UseCase が投げた値をそのまま投げる。ライブラリの repository の検査（`invalidUserInfo`・`reservedUserInfoKey`）が `async` 版に届き center を呼ばない。4 つの問い合わせの `async` 版の値。callback 版の文言が固定。**UT-32**: main actor の `Task` の中で `getScheduled()`・`getDelivered()`・`requestPermission(options:presenter:)`・`authorizationStatus()` を待ち、結果を持ち出せる（Swift 6 の complete で組める） |
+| - | `Application/NotificationPermissionUseCasesTests.swift`（新） | 4 | 権限の要求の UseCase（許可・拒否・選択肢・状態を読まない、`NotificationError` はそのまま・ほかは `authorizationFailed`）、設定の画面の UseCase（開けたか）、`SetBadgeCountUseCase` |
+| S-P27 | `Presentation/NotificationPermissionHelperTests.swift` | 4 → 5 | deprecated の helper を deprecated の witness（`DeprecatedNotificationCalls`）から呼ぶ形に直した（警告 0）。拒否は今のまま `permissionDenied` を投げる、port のエラーはそのまま、状態、設定の画面は `Task` で port の `async` の口を 1 回呼ぶ |
+| UT-15（19 章の L-B3） | `Common/LibraryLogPrivacyTests.swift` | 0（今のテストに足した） | `secretValuesNeverReachTheLog` に、番兵の題・副題・本文・userInfo の値（入れ子と、捨てられる `URL` を含む）で `ScheduledNotification`・`ActiveNotification` の `init`、`NotificationRepositoryImpl.activeNotification(identifier:date:content:)`、番兵の要求を持つ `FakeRequestCenter` からの `getScheduled` を足した。4 つの先頭のログが読めることを `#require` する |
+| - | 今のテストの直し | - | `MockNotificationRepository`（`FailureDetail` の case、`stubbedGranted`・`requestPermissionError`・`lastRequestedOptions`・`stubbedSettingsOpened`・呼び出しの数、`openNotificationSettings() async -> Bool`）、`IosNotificationManagerTests`（`init(repository:)`、今の `openNotificationSettings()` は同期の closure から呼んで `Task` を待つ）、`NotificationRepositoryMarkerTests`（偽の center を `Data/Support/FakeNotificationCenters.swift` に移し、`if case` を `==` に。13.21 の 1 行目）、`IosNotificationManagerEventTests`・`NotificationDelegateProxyTests`・`LibraryLogPrivacyTests`（helper の引数を外した。`describe` の内側のエラーの確かめはテストの中の enum で） |
+
+`IosLibraryTests` は 537 件（C5 の 478 件 + 59）。19 章の直しで 540 件（+3）。消したテストは無い。名前を替えたのは 1 件: `NotificationPermissionHelperTests.requestPermissionThrowsPermissionDeniedWhenFailed` を `…WhenDenied` にした（Mock の `shouldFail` が拒否でなく port のエラーを投げる形になったので、拒否の件と port のエラーの件 `requestPermissionThrowsWhatTheRepositoryThrew` に分けた）。
+
+壊して確かめたこと（`mutate_c6.py` で 1 つずつ使い捨ての写しに当てて該当の suite を流し、落ちることを見てから戻した。iPhone 16 / 26.2、Xcode 26.6。差分とログは scratchpad。番号は M122 に続ける）:
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M123 | S-P7（エラーの写し） | `add` の失敗を `setBadgeCountFailed` で投げる | `aFailedAddKeepsTheDomainAndTheCode` |
+| M124 | S-P7 | `add` の失敗の `FailureDetail` の code を 0 にする | `aFailedAddKeepsTheDomainAndTheCode` |
+| M125 | S-P7・T-18 | 権限の UseCase が `NotificationError` でないエラーを `permissionDenied` に写す | `aFailedRequestIsAuthorizationFailed`、`requestThrowsANotificationErrorAsItIsAndAnotherAsAuthorizationFailed`、`theExistingRequestGoesThroughTheUseCase` |
+| M126 | UT-16（設計書 13.1「文言を変える」） | `attachmentLoadFailed` の文言に識別子を入れる | `theDescriptionsHoldNoValues` |
+| M127 | S-P7 | callback 版の `errorMessage` を `String(describing:)` にする | `theCallbackMessageIsTheFixedText`、`theCallbackFormsReportTheFixedText` |
+| M128 | 8.5.3（検査の順） | property list の検査を予約したキーより先にする | `theReservedKeyIsCheckedBeforeThePropertyList` |
+| M129 | SR-9（設計書 13.1「消してから検査する」） | `update` が今の予約を消してから検査する | `updateWithAUserInfoThatIsNotAPropertyListLeavesThePendingRequest`、`updateWithTheReservedKeyLeavesThePendingRequest` |
+| M130 | S-P15 | `schedule` が予約したキーだけを見る | `showAndScheduleRejectAUserInfoThatIsNotAPropertyList` |
+| M131 | S-P25（設計書 13.1「作り直しを Swift の値にする」） | 一覧の `userInfo` を値の木の case のまま返す | `aScheduledNotificationReadsAsBefore`、`swiftValuesPassedToInitReadAsBefore`、`theListsCrossToTheMainActor` |
+| M132 | S-P25 | `init` が文字列の値だけを残す | `aScheduledNotificationReadsAsBefore`、`initLeavesOutWhatIsNotAPropertyList` ほか 2 件 |
+| M133 | UT-26（設計書 13.1「未決でなくても前面を求める」の向きの逆） | 決まった状態でも要求する | `aDecidedStatusAnswersWithoutARequest` |
+| M134 | UT-26・S-13 | 未決のとき前面を求めない | `notDeterminedOutsideTheForegroundIsNotForeground`、`theProvidedViewControllerMustBeInAWindow` |
+| M135 | 8.5.4（`.firstActiveScene` は今のまま） | `.firstActiveScene` も前面を確かめる | `theFirstActiveSceneRequestsAtOnce` |
+| M136 | 8.5.4 | `provisional` を許可でないとする | `aDecidedStatusAnswersWithoutARequest`、`theStatusesThatGrant` |
+| M137 | UT-27（設定の画面の gate） | 前面でなくても開く | `outsideTheForegroundTheSettingsPageIsNotOpened` |
+| M138 | UT-27（設計書 13.1「結果を捨てる」） | 開けなくても成功にする | `inTheForegroundTheSettingsPageOpensOrFails` |
+| M139 | 6.2（完了は main） | `Result` の口の完了を背景のキューから呼ぶ（`MainActor.assumeIsolated` の中） | `theResultFormsCompleteOnMainOnceAndNeverInsideTheCall` と `overlappingRequestsEachComplete` でテストのホストが止まった（main 以外の `assumeIsolated`。M78 と同じ落ち方。ほかの 3 件は再起動の後に通った） |
+| M140 | S-P27（今の口の値） | 今の `requestPermission(options:completion:)` の拒否の `errorMessage` を `nil` にする | `theExistingRequestReportsADenialAsAFailure` |
+| M141 | S-P27・SR2-9（helper を中で使わない） | 今の `requestPermission(options:completion:)` を deprecated の helper で行う | `theExistingRequestGoesThroughTheUseCase`（helper は port のエラーをそのまま投げ直すので文言が違う）。組むと `'NotificationPermissionHelper' is deprecated` の警告が出た（17.9 の警告 0 の確かめも落とす） |
+| M142 | UT-28（設計書 13.1「空を見るのと印を下ろすのを別の `Mutex` の区間にする」） | 取り出しが空を見る区間と印を下ろす区間を分ける | **最初は生き残った**（最初の版の `aChangeRacingTheEndOfADrainIsNeverLeft` は別のスレッドの積みが区間の隙間に当たらなかった。セマフォで起こす版も 2 回のうち 1 回は生き残った）。取り出しの点の手前で回して待っているスレッドを放し、取り出しを 0〜3 µs 遅らせて 5000 回当てる形に直し、**3 回とも落ちる**ことを確かめた（取り残しで次の積みが来ず、2 秒で止まる）。直した版は壊さないコードで 5 回繰り返し・TSan・18.3 の 2 台で通った |
+| M143 | 8.5.6（積む） | 積むたびに取り出しを起こす | `aChangeEnqueuedDuringAnotherWaitsAndStartsNoSecondDrain`、`concurrentChangesFromEightThreadsAreAllKept`、`changesFromOneThreadKeepTheirOrder`、`mainActorTasksStartedInARowKeepTheirOrder` ほか 3 件 |
+| M144 | 8.5.6（始めと終わりの順） | 完了を反映の前に呼ぶ | `aChangeCompletesAfterItIsAppliedAndReadBack`、`theCallbackFormsCompleteOnMainAfterTheChange`、`theAsyncFormsReturnAfterTheChange`、`enqueueQueuesOnThePortInsideTheCall` ほか 3 件 |
+| M145 | SR3-1（設計書 13.1「`nonisolated(nonsending)` を外す」） | 2 つの `async` 版の `nonisolated(nonsending)` を外す | `mainActorTasksStartedInARowKeepTheirOrder` |
+| M146 | S-P28 | callback 版の登録を `Task` の中で UseCase の `async` の口で行う（v2 の形） | `callsInsideAMainQueueBlockKeepTheirOrder`、`theCallbackFormsCompleteOnMainAfterTheChange` |
+| M147 | S-P28 | repository が `enqueueCategoryChange` を持たず、port の既定の実装（変更ごとの `Task`）になる | `callsInsideAMainQueueBlockKeepTheirOrder`、`mainActorTasksStartedInARowKeepTheirOrder`、`theRepositoryQueuesItsChanges` |
+| M148 | SR3-6（完了は main） | category の利用者の完了を背景のキューから呼ぶ | `theCallbackFormsCompleteOnMainAfterTheChange` でテストのホストが止まった（main 以外の `assumeIsolated`） |
+| M149 | SR-18 | public の `init()` が repository ごとに列を作る | `everyRepositoryUsesTheQueueOfTheProcess` |
+| M150 | 17.4 の 3 | 登録で同じ識別子の category を外さない（今の `insert` だけ） | `registeringAgainReplacesTheCategory` |
+| M151 | UT-29（設計書 13.1「エラーを写し違える」） | `async` 版の `show` がどのエラーも `addRequestFailed` に包む | `theThrowingFormsThrowWhatTheirUseCasesThrow`、`theUserInfoChecksReachTheAsyncForms` |
+| M152 | UT-32（設計書 13.1「一覧の型の `Sendable` を外す」） | `ScheduledNotification` の `Sendable` を外す | テストのターゲットが組めない（`NotificationListTypesTests` と `IosNotificationManagerAsyncTests` で「`Sendable` に準拠しない」）。ライブラリは組める |
+| M153 | UT-15（設計書 13.1「1 か所で値を `.public` で補間する」） | userInfo の検査の先頭のログに userInfo を `.public` で入れる | `notificationContentsThroughTheRealCenterNeverReachTheLog` |
+| M154 | T-18 | 今の `requestPermission(options:completion:)` が選択肢を捨てて既定で求める | `theExistingRequestGoesThroughTheUseCase` |
+| M155 | 19 章の L-B1（C6 の前の順） | `update` が今の予約を消してから内容を作る | `updateWithAnAttachmentTheSystemRejectsLeavesThePendingRequest` |
+| M156 | 19 章の L-C4（直す前の確かめ） | 読み直しが識別子だけを見る | `theReadBackComparesTheWrittenCategory`（3 件の確かめ） |
+| M157 | 19 章の L-C4 | 読み直しが options を見ない | `theReadBackComparesTheWrittenCategory`（1 件の確かめ） |
+
+32 件とも落ちた（M142 はテストを直した後。M152 は組めない形で落ちる）。19 章の直しの M155〜M157 も 3 件とも落ちた（`mutate_c6fix.py`。iPhone 16 / 26.2、Xcode 26.6）。戻した版で通ることは 17.8 の全件の実行で確かめた（M142 の後に直した `NotificationCategoryQueueTests` は、その suite を 3 台と TSan で流し直した）。UI テストの変異は流していない（C5 と同じ）。
+
+### 17.6 公開 API（swiftinterface）
+
+- 組み方: C4・C5 と同じ（Release、`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`、Xcode 26.3）。`arm64-apple-ios.swiftinterface` を写した
+- 足したファイル: `IosLibrary-after-1b-c6.swiftinterface`、差分 `2026-10-31-stage1b-c6.diff`（`after-1b-c5` が基準）
+- 差分の中身: 17.3 の表のとおり。port の `openNotificationSettings() async -> Swift.Bool` と `enqueueCategoryChange` の要件と既定の実装、3 つの UseCase と 2 つの `enqueue`、`NotificationError` の case と `Sendable, Equatable, LocalizedError`・`errorDescription`・`==`、2 つの一覧の型の `Sendable`・`userInfoValues`・計算の `userInfo`、`NotificationCategoryChange`、`NotificationPermissionHelper` の `@available(*, deprecated, …)`、Manager の `async` 版 10（4 つの操作、4 つの問い合わせ、権限の要求、設定の画面）・`Result` の 2 つの口・`registerCategory`・`removeCategory` の `completion` と `nonisolated(nonsending)` の `async` 版（`#if compiler(>=5.3) && $AsyncExecutionBehaviorAttributes` の中）。今の `registerCategory(_:)`・`removeCategory(identifier:)` の宣言は既定 `nil` の `completion` を足した形に替わった（ソースは組める。ABI の記号は替わる。2.0.0 は破壊的変更の版）
+- `swift-frontend -typecheck-module-from-interface`（Xcode 26.3、Swift 6.2.4、`-F` に framework の置き場）で public と private の 2 つとも型検査が通った（出力 0 行）。`nonisolated(nonsending)` と型つきの throws（`RequestNotificationPermissionUseCase.execute(options:)` の `throws(IosLibrary.NotificationError)`）を含む
+
+### 17.7 シミュレーターで測ったこと（C6 に付いた MS-04・MS-09 と、MS-07 の残り）
+
+1. **MS-09**（`setNotificationCategories` の後の `notificationCategories()` に反映が読めるまで。設計書 8.5.6 の「確認」、RK-10）。使い捨ての写しのテストのホストに下調べのテスト（`ProbeMS09Tests`。リポジトリには入れていない）を足し、本物の `UNUserNotificationCenter` で、(a) 直に: 読む → 1 つ足す（または外す）→ 書き戻す → 反映が読めるまで読み直す、を 30 回 × 足す・外す、(b) ライブラリの列（`NotificationCategoryQueue.shared`）で積んでから完了までの時間と、完了の後に読んだ値、を測った
+
+| 測り | iPhone 17 / 26.2 | iPhone 16 / 18.3 |
+|---|---|---|
+| (a) 1 回目の読み直しで反映が読めた回数 | 60/60 | 60/60 |
+| (a) 書き戻しから反映が読めるまで | 1.1〜3.3 ms（中央 1.3 ms） | 1.2〜4.0 ms（中央 1.5 ms） |
+| (b) 積んでから完了まで（読む・書く・読み直す） | 1.4〜2.9 ms（中央 1.6 ms） | 1.7〜3.4 ms（中央 2.2 ms） |
+| (b) 完了の後に読んだ値が変更どおり | 60/60 | 60/60 |
+
+分かったこと: 書き戻しの後の最初の読み直しで、いつも反映が読めた（両方の OS）。そのため「読み直して確かめてから完了」の形のまま、読めなかったときの待ち直しは足さず、`.error` のログだけにした（17.4 の 7）。完了の後に出した通知でアクションが出ることは N39 で確かめた（26.2）。テストのホストは通知の権限を持たないが、category の読み書きは権限に関わらず動いた
+
+2. **MS-04**（後ろから `UIApplication.open` を呼んだとき、権限が未決で後ろにいるときの `requestAuthorization`。iPhone 17 / 26.2、各 1 回）。使い捨ての写しのサンプルに、3 秒後に `.firstActiveScene`（前面を見ない）で呼ぶ下調べのボタン 2 つと、押してホームに移り 9 秒見てから前に戻す下調べの UI テスト（`ProbeMS04UITests`）を足して測った（リポジトリには入れていない）
+
+| # | 呼び方 | 結果 |
+|---|---|---|
+| P1 | 新しく入れたアプリ（未決）で、後ろから `requestPermission(presenter: .firstActiveScene)`（`requestAuthorization`） | **後ろにいる間に権限のダイアログがホーム画面の上に出た**（ホームに移ってから約 2.7 秒。要求の時点）。完了はダイアログの答えまで来ない（前に戻してから「Don’t Allow」を押して `success granted=false`、要求から約 7.9 秒。完了の時点は `foregroundInactive`） |
+| P2 | 後ろから `openNotificationSettings(presenter: .firstActiveScene)`（`UIApplication.open(openNotificationSettingsURLString)`） | **`UIApplication.open` が約 15 ms で `false` を返し、設定の App は開かなかった**（`failure openSettingsFailed`、完了の時点も `background`） |
+
+分かったこと: (1) 未決のまま後ろで要求すると、OS はアプリが見えていないのにダイアログを出し、答えが出るまで完了しない。8.5.4 の「未決なら前面を確かめる」（`.foreground` で `notForeground`）が要る根拠になる（N42 は `.foreground` で出ないことを確かめた）。(2) 後ろからの `open` は OS が断る（`false`）。`.firstActiveScene` でも `openSettingsFailed` で 1 回完了し、止まらない。`.foreground` は先に `notForeground` で断る（8.5.5 のとおり）。判定（8.5.4・8.5.5）は変えなくてよい。C7（T-20）で第 1 部 G-7 の記録に写す
+
+3. **MS-07 の残り**（13.17 の 1 で測っていなかった「新しく入れたアプリで SA-13 のボタンから先に求める形」。SR-11）: N40 のとおり、iPhone 17 / 26.2 で新しく入れたアプリが `.providesAppNotificationSettings` を足して求めて許可すると、設定の App の通知の画面にリンクが出て、押すと `settingsRequests` にイベントが 1 つ（`notificationId=nil`）届いた。通知の行は label が設定の要約（`Notifications, Banners, Sounds, Badges`）を含むので、識別子 `NOTIFICATIONS` で探す（最初の版の N40 は label で探して見つけられなかった）。iOS 18.3 は測っていない（UI テストは iPhone 17 / 26.2 だけで流した）
+
+### 17.8 テストの実行と基準との比べ合わせ
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3。`-parallel-testing-enabled NO`。18.3 の 2 つは `arch=arm64`。Xcode 26.6） | どれも 537/537（C5 の 478 + 59）。skip 0。消したテストは無い（名前を替えたのは 17.5 の 1 件）。この回の後に M142 のために `aChangeRacingTheEndOfADrainIsNeverLeft` を直したので、`NotificationCategoryQueueTests` だけを 3 台で流し直した（iPhone 17 / 26.2 は 5 回繰り返して 70/70、18.3 の 2 台は 14/14） |
+| TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2、Xcode 26.6） | 列・UseCase・gate・Manager の権限・`async` 版・エラー・一覧の型・userInfo の検査・印・権限の UseCase・helper・`IosNotificationManagerTests`・値の木の 13 suite・94 件が成功。TSan の報告は 0 件（8 スレッドの並行の積み、別のスレッドからの競争、main の `Task` の 300 回を含む）。M142 の後に直した競争のテストを含む `NotificationCategoryQueueTests` は TSan で流し直し、14 件成功・報告 0 件 |
+| 新しい UI テストの下調べ（写しを `xcodebuild test-without-building -only-testing` で直に。iPhone 17 / 26.2） | N38・N39・N42 は 1 回目で通った。**N40 は 1 回目に落ちた**（通知の行を label の `Notifications` で探したが、label は `Notifications, Banners, Sounds, Badges`。写しにだけ hierarchy を書き出す行を足して確かめた）。識別子 `NOTIFICATIONS` で探す形に直して通った（17.7 の 3） |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --feature Notification`（ハッシュを固定した写し。Xcode 26.3、`xcode-select` のまま） | 54 件すべて成功（権限の NP2・N42・N40・NP1、Navigation 2、IdentifierInventory 4、Notification 25、NotificationEvent 12、NotificationColdStart 7）。閉じた形のソースの規則が通り、列挙の 124 件が宣言と一致した。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`。0g の後に取ったもの）との比べ合わせは `changed=0, added=12, removed=0`。**足した 12 件のうち C6 の分は 4 件**（N38・N39・N40・N42）で、残りの 8 件は C5 の分（N34b・N35・N36・N37・N41・N43・N44・N45。基準はまだ取り直していないので C5 の 13.18 と同じく足したものに出る）。今の N1〜N33 と NP1・NP2 は期待値を変えずに通った。I1b は Notification の 35 のボタンと節 8・状態の行 4 で一致した。信頼する部分の警告なし |
+| N40 の流し直し（同じ写し、`-only-testing`、消してから） | この回の後にサンプルの `requestPermissionWithAppSettings` を `async` 版に替えた（17.4 の 12）ので、写しに入れ直して N40 を 1 件だけ流し直し、通った（43.9 秒）。ほかのボタンと UI テストは変えていない |
+| ランナーの自己テスト（`python3 -m unittest discover -s scripts/tests -p 'test_ios_ui_runner.py'`） | 写し: 144/144。リポジトリ: 144 件のうち 5 件が落ちる（どれも信頼する部分の 3 ファイルのハッシュが固定と違うことによるもの: `SourceRules` の 2 件、`Commands.test_preflight_refuses_the_device_when_the_trusted_part_changed`、`EndToEnd` の 2 件。C5 の 13.18 と同じ 5 件）。`scripts/tests` の全体はリポジトリで 352 件のうち同じ 5 件だけが落ちる |
+| 自己テストの fixture | 列挙（`enumeration.json`）は写しの `--feature Notification` の回の列挙（iPhone 17 / 26.2、Xcode 26.3、flat）をそのまま写した。前の fixture との差は足した 4 件の項目だけ（UI テストは 124 件）。実機のバイナリ（`otool-ov-device.txt`・`otool-l-device.txt`）は写しを `generic/platform=iOS`・`CODE_SIGNING_ALLOWED=NO` で組んだ UI テストのバンドルから取った（端末は使っていない。テストのメソッドの差は N38〜N40・N42 の 8 つの記号だけ）。どれにもローカルのパスと端末の識別子は入っていない。数を照らす自己テストを 120 → 124、サンプルのボタンの数を 63 → 69 にし、権限の順の自己テスト 2 件（シミュレーターは `PERMISSION_ORDER` のとおり 4 件を消してから、実機は NP2・NP1 だけをその順で）を足した |
+| ランナーの変異 | 流していない（表の値を足しただけで、判定の関数は変えていない。足した自己テストは、N40・N42 を `SIMULATOR_ONLY_TESTS` から外す・順を入れ替えると落ちる形） |
+| `scripts/test_ios.sh --dry-run` | 流していない（ランナーの判定の関数は変えていない。実機の選び方は自己テスト `test_systemui_and_reinstall_leave_n40_and_n42_out` が本物の宣言で確かめる） |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2（UI テスト・下調べ）、iPhone 16 / 26.2（変異）、iPhone 16 / 18.3・iPad Pro 11-inch (M4) / 18.3（全件と MS-09）は xcodebuild・`simctl`・`test_ios.sh` が起動し、終わった後に止めた。最後に `simctl shutdown all` で止め、どれも起動していないことを確かめた。iPhone 17 / 26.2 には写しのサンプル（MS-04 の下調べの後に入れ直した版）が入っている。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない） |
+
+### 17.9 警告
+
+| 測り方 | 結果 |
+|---|---|
+| 2 つの scheme（`IosLibrary`、`IosLibraryExample`）を `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`）。Xcode 26.3 と 26.6（`DEVELOPER_DIR`） | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+
+`ios/UnityIosPlugin`（ワークスペースの外）は組んでいない（C1 と同じ）。deprecated の helper はライブラリの中で使っていない（使えば警告で分かる。M141 の版では警告が出た）。テストは deprecated の口を deprecated の witness から呼ぶ（13.15 の 12）。
+
+### 17.10 信頼する部分の変更とハッシュ
+
+`ios/IosLibraryExample/IosLibraryExampleUITests/Support/`。HEAD（`b80399eb`）からの差分。C2〜C5 と同じく作業ツリーに入れ、別のモデルのレビューの後に固定する形にした（18 章の 3）。**19 章の Codex の 2 回のレビューの後、下の新しい値で固定した**。UI テストとランナーの自己テストは、ハッシュだけを直した使い捨ての写しで流した（17.8）。差分は patch にして scratchpad に置いた（レビューに渡す）。
+
+| ファイル | 操作 |
+|---|---|
+| `SampleApp.swift` | `NotificationButton` に 6 つ（`showReservedKey`・`showInvalidUserInfo`・`requestPermissionWithAppSettings`・`openNotificationSettingsForeground`・`requestPermissionAfter3Seconds` は `systemui`、`registerCategoryWithCompletion` は区分なし）を足した。`requestPermissionAfter3Seconds` に Debug のビルドだけの注。押す口は今の `tap(_:)`・`tap(_:_:)`・`press` だけ。**新しい操作・新しい要素の読み方は無い**（識別子と区分を足しただけ。I1b は `NotificationButton.allCases` から数えるので一覧の直しは要らない） |
+| `Springboard.swift` | `openSampleNotificationSettingsLink()`（N40）: **実機では何もせずに投げる**（`session.isDevice` の確かめが最初の行。D22 の Control Center の口と同じ守り）。シミュレーターでは設定の App を終わらせて起動し直し（決まった最初の画面から始める）、「Apps」→ サンプルの行 → 通知（識別子 `NOTIFICATIONS`）→「IosLibraryExample Notification Settings」を押す。各行は label か識別子が完全に一致する button か cell がちょうど 1 つで押せるときだけ押し（2 つ以上なら押さずに投げる）、12 回まで上へ送る。押すたびに `checkInterruption()`。ファイルの冒頭の注に N40 を足した。19 章の U-C2 で、行ごとに最初の送りの前に約 2 秒その行を待ち、12 回送っても無ければ 1 回下へ戻してから諦めるようにした（ちょうど 1 つでなければ押さないのは同じ） |
+| `SystemLabels.swift` | 設定の App の `settingsApps`（`Apps`）、`settingsNotificationsIdentifier`（`NOTIFICATIONS`）、`sampleNotificationSettingsLink`（`IosLibraryExample Notification Settings`）。シミュレーター（en、iOS 26.2）だけのものとして注を付けた（実機は N40 を流さないので ja は持たない。13.21 は「en と ja」と書いたが、ja は測れず使う所も無い） |
+| ほかの 5 ファイル、凍結した `IosLibraryExampleUITests.swift` | 変えていない（N38・N39 は今の `waitForBanner`・`expandBanner`・`waitForActions`、N42 は今の `goHome`・`waitForAlert`、N40 は今の `waitForAlert`・`tapAlertButton`・`waitForSettingsForeground` と上の新しい口） |
+
+識別子の文字列は信頼する部分の中だけにある（U-17。テストのクラスは `NotificationButton`・`NotificationStatusLine` の case だけを使う）。`DANGEROUS_NAMES` の新しい出現は無い（設定の App は今の `settings` の `XCUIApplication` を使う）。
+
+再レビューの後に固定するハッシュ（`python3 scripts/ios_ui_runner.py hashes --tests-dir ios/IosLibraryExample/IosLibraryExampleUITests`。ほかの 5 ファイルと `FROZEN_CLIPBOARD_SHA256`（`4612943d…6cf3`）は変わらない）:
+
+| ファイル | 今の固定 | 新しい値 |
+|---|---|---|
+| `Support/SampleApp.swift` | `1ac8667f…421e` | `86734d0cdaae20dc51abddcbe0be36ede0e78358757a128c55eed822dcd78690` |
+| `Support/Springboard.swift` | `7c642008…daba` | `b08dc1ef7a22bccd9c2029a4fc7fff8d09dfd75ff6af92101307885af7f6ce65`（19 章の U-C2 の後。Codex が見た版は `6a0abc87…55a4`） |
+| `Support/SystemLabels.swift` | `f8d3e580…c0e7` | `571cb63fea2f83fd65012588d8fc9a2982e2bb65601768f5d75f1916a0003616` |
+
+### 17.11 C7 への申し送り
+
+| 項目 | 内容 |
+|---|---|
+| UT-31（T-21） | 組めなくなる今の呼び出しの一覧に、引数の無い `openNotificationSettings()` を足す（17.4 の 2）。C6 のテストのソースでは `IosNotificationManagerTests.openNotificationSettingsCallsRepository` が同期の closure から呼んでいる（その形は組める） |
+| 付録 A（T-20） | `requestPermission(options:presenter:) async throws -> Bool` の `@discardableResult`（17.4 の 5）を、C5 の `addListener` と一緒に足す。gate の形（17.4 の 4）と、`SetBadgeCountUseCase`（17.4 の 1）は設計書に注を付けた |
+| README 4.1・移行の手引き（T-20） | 17.3 の後ろの表（`errorMessage` の固定の文言、`requestPermission(options:completion:)` の拒否の文言、`invalidUserInfo`、category の順・完了・置き換え、一覧の型、port の 2 つの変更、helper の deprecated、`openNotificationSettings()` のソースの破壊的変更）。`NSNull` を含む userInfo が `invalidUserInfo` になること（C6 の前は通り、`getScheduled` も `NSNull` を返した。19 章の測り。18 章の 6）。18 章の決定で変わるもの |
+| 第 2 部（2a） | 権限の要求と設定の画面は `Result` の callback 版に `.foreground` を渡す（8.9）。`.foreground` で権限が決まっていると求め直さない（17.4 の 16、18 章の 2）。category は callback 版を main のブロックの中で呼ぶ（UT-28 の `callsInsideAMainQueueBlockKeepTheirOrder` が守る）。`NotificationError` の 10 の case と C の値（10 章）。`attachmentLoadFailed` の識別子は C に渡さない（D-13） |
+| 測り（T-20） | MS-04・MS-09 の結果（17.7）を第 1 部 G-7 と README に写す。MS-07 の新しく入れたアプリで先に求める形（SR-11）は N40 で iOS 26.2 で通った（18.3 は測っていない） |
+| 全体の実行（T-21） | 基準の取り直しでは、権限のクラスが 4 件（NP2・N42・N40・NP1）になり、シミュレーターの全件は 124 件になる |
+| 添付 | 18 章の 5（無いファイルの添付の振る舞いを 1 回測る） |
+| ブリッジ（段階 3 まで） | 変えていない。`UnityIosNotificationManager` は `registerCategory(category)` を同期の文脈で呼ぶので今の口（完了なし）に決まり、組める。13.21 のブリッジの行（`openSettingsFor`）のまま。`UnityIosNotificationJsonParser`（`userInfo` を `JSONSerialization` の結果のまま渡す）は JSON の `null` を `NSNull` にするので、`null` を含む userInfo は C6 から `invalidUserInfo` で失敗する（C6 の前は通った。19 章の測り）。ブリッジはこのトピックで消すので直さない。C ABI で `null` を落とすか断るかは第 2 部（2a）で決める（18 章の 6） |
+
+## 18. 利用者に決めてもらうこと（C6）
+
+**決定（2026-11-01、利用者）: 1・2・4・5・6 は推奨のとおり。** 1 は置き換えのままにし、C7 で README 4.1 に「同じ識別子は置き換える」を足す。2 は設計のままにし、2a の C のヘッダーとマニュアル（段階 4）に書く。3 は 19 章のとおり済み。4 は組めなくなるままにし、C7（T-21）の UT-31 と README 4.1・移行の手引きの元に足す。5 は C7 で実際に通知を出す形で確かめる。6 は拒むままにし（S-P15）、C6 より前は通っていたことを移行の手引きの元に書き、C ABI での null の扱いは 2a で決める
+
+| # | 事柄 | 推奨 |
+|---|---|---|
+| 1 | category の登録が、同じ識別子の category を置き換えるようになった（17.4 の 3）。前は `Set.insert` だけで、中身の違う同じ識別子の category が 2 つ残りえた（どちらが効くかは決まっていない）。設計書 8.5.6 は「足すか外す」とだけ書き、1b の「今の動作を変えない」の外の直しになる | **置き換えのままにし、C7 で README 4.1 の「`registerCategory`・`removeCategory` が呼んだ順に反映される」の行に「同じ識別子は置き換える」を足す**。逆の考え: 今の利用者が同じ識別子で中身を変えて登録し直していた場合、前は古い方が効く見込みもあり、動作が変わる。ただし 2 つ残る状態は OS が定めていない状態で、置き換えがブリッジ（Unity の C#）の利用者の期待とも合う。戻すなら `queue.apply` の 1 行と UT-28 の 1 件（M150 の形）だけ |
+| 2 | `.foreground`・`.viewController` で権限が決まっていると要求しない（8.5.4 のとおり。17.4 の 16）。そのため、許可済みのアプリが後から `.providesAppNotificationSettings` などの選択肢を足しても、C ABI（`.foreground` を渡す）からは求め直せない。MS-07 は許可済みのアプリで求め直してリンクを出せた | **設計のままにし、DocC（済み）と、第 2 部（2a）の C のヘッダー・マニュアル（段階 4）に「選択肢を足すときは最初の要求に入れる。決まった後は求め直さない」と書く**。逆の考え: 決まっているときは `requestAuthorization` を前面の確かめなしで呼んでもダイアログは出ない見込みで、選択肢を足せる。ただし `provisional` のアプリが `.alert` を求めるとダイアログが出うるので、後ろにいるときに出さない（S-13）を守るには、状態ごとに見分ける手順が要り、測りも要る。足すなら 2.0.0 の後に、選択肢の差だけを求める口として |
+| 3 | **済み（2026-11-01）**: Codex が信頼する部分の patch を file:line の根拠つきでレビューし、固定してよいとした（19 章）。19 章の U-C2 で足した `Springboard.swift` の差分（行を待つことと 1 回下へ戻すこと）も Codex が file:line の根拠つきでレビューし、固定してよいとしたので、17.10 の値で固定した（19 章）。以下はもとの事柄: 信頼する部分の変更（17.10。`SampleApp.swift` のボタン 6、`Springboard.swift` の設定の App を操作する口、`SystemLabels.swift` のラベル 3 つ）と、N40・N42 を simulator only にし、権限のクラスの順を NP2 → N42 → N40 → NP1 にしたこと（ランナー） | **C2〜C5 と同じく別のモデル（Codex）に、信頼する部分の patch（scratchpad に置いた）と N38〜N40・N42 の本体、`DeviceRequirements.json` の 4 行、ランナーの 2 つの表の差分を見せ、通ったら 17.10 の値を固定して C6 のコミットに入れる**。観点は (a) `openSampleNotificationSettingsLink()` が実機では何もせずに投げ、どの押す操作よりも前に止まること、(b) 新しいボタンの区分（拒みの 2 つ・権限・設定の画面・3 秒後は `systemui`、完了つきの登録は無し）、(c) 実機で NP1・NP2 の順と消し方が変わらないこと |
+| 4 | 引数の無い `openNotificationSettings()` が、`async` の文脈で組めなくなる（17.4 の 2）。設計書 3.3 の S-P26 の一覧に無かった | **組めなくなるままにし（S-P26 の決定と同じ扱い）、C7（T-21）の UT-31 の一覧と README 4.1・移行の手引きの元に足す**。名前を分けると S-P26 の B を 1 つだけ採ることになり、ほかの口とそろわない |
+| 5 | テストのホスト（iOS 26.2 のシミュレーター）で、無いファイルの URL の添付は `UNNotificationAttachment` が投げず、`add` まで進んだ（17.4 の 17）。`attachmentLoadFailed` になるのは system が受けない種類のファイルなど | **C6 ではライブラリを変えず、C7 で実際に通知を出す形（サンプルの添付を消した写し）で 1 回確かめて記録する**。無い添付で通知がどうなるか（添付なしで出るか、出ないか）が分かってから、入口でファイルの有無を確かめるかを決める。今の動作で、1b の範囲を超える。逆の考え: 今の入口（`makeUNAttachment` の前）でファイルの有無を確かめれば、無いファイルを今すぐ `attachmentLoadFailed` で断れ、C ABI の利用者にも決まった失敗を返せる。ただし、今は無い添付でも `add` まで進むので、今の利用者で（添付なしで）出ていた通知が出なくなりうる（動作の変更）うえ、測らずに決めると OS がどう扱うかを先取りすることになる |
+| 6 | `NSNull`（と `NSURL`）は `NSSecureCoding` だが property list の値でなく、C6 は userInfo の中の `NSNull` を `invalidUserInfo` で断る（S-P15）。C6 の前は通った: HEAD `b80399eb` の版で `["k": NSNull(), "a": [1, NSNull()]]` を `schedule` すると `add` は成功し、`getScheduled` は 2 つの `NSNull` をそのまま返した（iPhone 17 / 26.2、19 章）。今のブリッジ（`UnityIosNotificationJsonParser.swift` の `userInfo`）は JSON の `null` を `NSNull` にするので、`null` を含む userInfo を渡す今の利用者は C6 から失敗する | **S-P15 のとおり断るままにし、README 4.1・移行の手引き（C7）に書く。C ABI で `null` を落とすか断るかは第 2 部（2a）で決める**。逆の考え: `NSNull` を通すか黙って落とせば、今の呼び出しはそのまま動く。ただし値の木（`NotificationUserInfoValue`）に null が無いので、通しても一覧の型で読み戻すときに失われ（`init` が捨てる）、書いた値と読み戻した値が合わない。黙って落とすのは利用者の値を知らせずに捨てることになる。ブリッジ（`ios/UnityIosPlugin`）はこのトピックで消すので、ブリッジのために残す理由も無い |
+
+## 19. C6 のレビューと直したこと
+
+コードのレビューを 3 者で行った。Claude のサブエージェント（ライブラリ。設計との一致と正しさ）は A 0・B 3・C 9。Claude のサブエージェント（サンプル・UI テスト・文書）は A 0・B 1・C 4。Codex（設定のモデル。信頼する部分の patch と N38〜N40・N42 の本体、`DeviceRequirements.json`、ランナーの 2 つの表。読むだけ）は指摘なし。1 回目は理由を書かずに「指摘なし」だけを返したので、file:line の根拠を付けて流し直してもらい、信頼する部分の変更は固定してよいとした（18 章の 3）。直しのうち信頼する部分に触れるのは U-C2（`Support/Springboard.swift`）だけで、その差分も Codex（設定のモデル。読むだけ）が file:line の根拠つきでレビューし、指摘なしで固定してよいとした（送りは押す操作ではないが「何も変えない」とまでは言えない、という注だけ。どれも実機の確かめの後ろにある）。その後に `TRUSTED_FILES` の 3 つのハッシュを 17.10 の値でリポジトリに固定した（UI テストは、同じ値に固定した使い捨ての写しで流した。写しと作業ツリーは同じ）。18 章の 1・2・4・5 と新しい 6 は利用者の決定待ちで、推奨はどれもコードの変更を要しないので、動作は変えていない。
+
+| 指摘 | 直したこと |
+|---|---|
+| L-B1: `NotificationRepositoryImpl.update` が今の予約を消してから `makeUNContent` を呼ぶ。添付を作れない（`attachmentLoadFailed`）と予約が消えたまま | 検査 → 内容（添付）と trigger → 今の予約を消す → `add` の順にした（C6 の前からの順の不備。17.3 と 17.4 の 18）。`updateWithAnAttachmentTheSystemRejectsLeavesThePendingRequest`（`.ut18unknown` の添付で `attachmentLoadFailed`、予約は残り、center の呼び出しは `["add u"]` だけ）と M155。Manager の `update` の DocC と repository の型の DocC を「検査と添付の失敗では予約は残る。`add` 自体の失敗は消した後」に直した |
+| L-B2: `NSNull`・`NSURL` は `NSSecureCoding` だが property list の値でなく、C6 は `invalidUserInfo` で断る。今のブリッジは JSON の `null` を `NSNull` にする | 断るままにした（S-P15）。C6 の前の動作をシミュレーターで 1 回測った（下の表）: HEAD `b80399eb` の版では `add` は成功し、`getScheduled` は `NSNull` をそのまま返した。17.3、17.11 の README・移行の手引きとブリッジの行に書き、18 章の 6 に挙げた |
+| L-B3: UT-15 に、一覧の型（`ScheduledNotification`・`ActiveNotification`）と `activeNotification(identifier:date:content:)` を番兵で作るものが無い | `secretValuesNeverReachTheLog` に、番兵の題・副題・本文・userInfo の値（入れ子と、捨てられる `URL`）で 2 つの `init`、`activeNotification`、番兵の要求を持つ `FakeRequestCenter` からの `getScheduled` を足し、4 つの先頭のログが読めることを `#require` した（17.5） |
+| L-C1: 新しい UseCase（`SetBadgeCountUseCase`、権限の 2 つ）の `init` に先頭のログが無い。Dispatch・Query・Schedule・Category の今の UseCase の `init`・`execute` にも無い | すべての通知の UseCase の `init`（`repository` の型名）と `execute`（識別子・`content.id` は `.public`、trigger は `.private`）に足した。1 つのファイルに型が複数あるので型ごとの logger（`ios.md`）。例外として残したものは無い（17.1） |
+| L-C2: Manager の Overview が「`async` 版は型つきの `NotificationError` を投げる」と読める（`async throws` は型なし） | 「`async` 版は型を書かない `async throws`。ライブラリの repository は `NotificationError` を投げ、自分で実装した repository は自分のエラーを投げうる」にした |
+| L-C3: `RequestNotificationPermissionUseCase` の DocC が前面を決めるのを `IosNotificationManager` とする | `NotificationPresentationGate`（Manager の gate）にした |
+| L-C4: category の列の読み直しが識別子があるかだけを見るので、置き換えが効かず古い category が残っても通る | `NotificationCategoryQueue.isReadBack(_:identifier:in:)` を足し、足すときは書いた category と識別子・アクションの識別子の並び・options が同じものがあるか、外すときは識別子が無いかで確かめる（17.4 の 7）。`theReadBackComparesTheWrittenCategory` と M156・M157。本物の center で比べ方が誤らないことを下調べで確かめた（下の表） |
+| L-C5: gate のテストの決まった状態の確かめが `.foreground` だけ。window の中の `.viewController` で設定の画面が開くテストが無い | `aDecidedStatusAnswersWithoutARequest` を状態 5 × presenter 3（`.foreground`、window の外と中の `.viewController`）にし、`theSettingsPageOpensForAProvidedViewControllerInAWindow` を足した |
+| L-C6: `aMissingAttachmentKeepsItsIdentifierAndTheDetail` は無いファイルでなく system が受けない種類のファイルを確かめる | `anAttachmentOfAFileTypeTheSystemRejectsKeepsItsIdentifierAndTheDetail` にした（ファイルを作る所を L-B1 のテストと共通の関数にした） |
+| L-C7: 18 章の 5 に逆の考えが無い。3 が済んだと書いていない。設計書 8.5.6 の置き換えの注が決定待ちと分からない | 5 に「今の入口でファイルの有無を確かめる」側の利点と、取らない理由を足した。3 を「済み（U-C2 の差分はまだ）」にした。設計書 8.5.6 の注に「18 章の 1 の決定待ち」と、読み直しの比べ方（L-C4）を足した |
+| L-C8: 設計書 6.1 の `NotificationPresentationGate` の行が `@MainActor` の型のまま | 「`Sendable` の struct で、2 つの口が `@MainActor`」の 1b C6 の注を足した |
+| L-C9: `NotificationError` の表の `permissionDenied` の行が、今の `requestPermission(options:completion:)` もこの値を報告すると読める（報告するのは文言だけ） | 「deprecated の helper が投げる。今の `requestPermission(options:completion:)` は文言だけを `false` と一緒に `errorMessage` で報告する」にした |
+| UI B-1: UI テストの設計書が C6 の simulator only・N40 の操作・権限の順を書いていない | 6.3 の 3 を N40・N42 を含む 9 件にし、二重の守りに設定の App のリンクの口を足した。6.1 の `Springboard` の行に N40 の操作（シミュレーターだけ、実機では throw）を足した。2.1 の例外の表に N40 の行（設定の App の中の行を押す。シミュレーターだけ。利用者の決定 2026-11-01、15 章の 2）を足した。U-7 にシミュレーターの NP2 → N42 → N40 → NP1、実機は今の NP2 → NP1 を書いた |
+| UI C-1: N39 は早すぎる完了を捕まえられない（反映は数 ms で、バナーよりずっと前） | テストのコメントと UI テストの設計書 3.3 の N39 の行を直し、「完了は反映の後」を UT-28（`aChangeCompletesAfterItIsAppliedAndReadBack`、M144）の確かめとした |
+| UI C-2（信頼する部分）: `pressSettingsRow` が押した直後に探して上へ送るだけ | 行ごとに、最初の送りの前にその行を約 2 秒待ち（`waitForExistence(timeout: 2)`）、12 回上へ送っても無ければ 1 回下へ戻して見てから諦めるようにした。ちょうど 1 つでなければ押さない（2 つ以上は押さずに投げる）のは同じで、実機で投げる確かめも変えていない。差分は scratchpad の `springboard-delta.patch`（今の作業ツリーからの差分。Codex のレビューに渡す）。新しいハッシュは 17.10 |
+| UI C-3: Swift の API の設計書の T-16・T-19 の行と 13.2 の N40 の行が C6 の後の状態でない | T-19 に SA-05 と N40 を足し、T-16 から N40 を外した（C6 に移した）。13.2 の N40 の「C6 で測る」を 17.7 の 3 の 26.2 の結果にした |
+| UI C-4: サンプルの `requestPermissionWithAppSettings` を `async` 版に替えた後の全体の実行が無い（N40 だけを流し直した） | 直しの後に、ハッシュを固定した使い捨ての写しで `--feature Notification` を 1 回流した（下の表） |
+
+単体テストは 3 件増えた（`NotificationRepositoryUserInfoCheckTests` に 1、`NotificationCategoryQueueTests` に 1、`NotificationPresentationGateTests` に 1。`aDecidedStatusAnswersWithoutARequest` は引数が 5 から 15 になった）。名前を替えたのは 1 件（L-C6）。消したテストは無い。
+
+壊して確かめたこと（`mutate_c6fix.py` で 1 つずつ使い捨ての写しに当てて該当の suite を流し、落ちることを見てから戻した。iPhone 16 / 26.2、Xcode 26.6。差分とログは scratchpad。番号は M154 に続ける。17.5 の表にも足した）:
+
+| # | 対象 | 壊し方 | 落ちたテスト |
+|---|---|---|---|
+| M155 | L-B1 | `update` が今の予約を消してから内容を作る（直す前の順） | `updateWithAnAttachmentTheSystemRejectsLeavesThePendingRequest` |
+| M156 | L-C4 | 読み直しが識別子だけを見る（直す前の確かめ） | `theReadBackComparesTheWrittenCategory`（古い category・順の違い・options の違いの 3 件の確かめ） |
+| M157 | L-C4 | 読み直しが options を見ない | `theReadBackComparesTheWrittenCategory`（options の違いの 1 件） |
+
+3 件とも落ち、戻した版で通ることを確かめた（下の全件の実行）。UI テストの直し（U-C2）は壊して流していない（UI テストの変異はここまでも流していない）。
+
+シミュレーターで測ったこと（使い捨ての写し。リポジトリには入れていない）:
+
+| 測り | 結果 |
+|---|---|
+| L-B2: C6 の前の `NSNull`（HEAD `b80399eb` を写した版のサンプルに下調べのボタンを 1 つ足し、下調べの UI テストで流した。サンプルを消して入れ直し、権限のダイアログで Allow を押してから（通知の権限はこのシミュレーターのサンプルにだけ与えた）、`IosNotificationManager.shared.schedule` で `["k": NSNull(), "a": [1, NSNull()], "s": "plain"]` を 1 時間後に予約し、`getScheduled` で読み戻して消した。iPhone 17 / 26.2、Xcode 26.6） | `add` は成功（`isSuccess=true`、`errorMessage=nil`）。`getScheduled` は 1 件で、userInfo は `k` が `NSNull`、`a` が `[1, NSNull]`（`__NSCFNumber` と `NSNull`）、`s` が文字列。`NSNull` は保存されて、そのまま返った |
+| L-C4: 本物の center での読み直しの比べ方（写しのテストのホストに下調べのテストを足し、`NotificationCategoryQueue.shared` で 2 つの category（アクション無し、および icon・options つきのアクション 2 つとテキスト入力のアクション 1 つ、category の options 3 つ）を毎回アクションを 1 つ替えて 10 回ずつ登録し、本物の center から読んで `isReadBack` と `isEqual` を見た。iPhone 17 / 26.2 と iPhone 16 / 18.3） | どちらの OS も `isReadBack` は 20/20 で真、`isEqual` も 20/20 で真。比べ方が本物の写しで誤った `.error` を出さない |
+
+| 実行 | 結果 |
+|---|---|
+| 直しの途中の suite（userInfo の検査、category の列、gate、Manager の権限、`LibraryLogPrivacyTests`、2 つの UseCase、`async` 版、`IosNotificationManagerTests`。iPhone 17 / 26.2、Xcode 26.6、`-parallel-testing-enabled NO`） | 9 suite・75 件が成功 |
+| `IosLibraryTests` の全件（iPhone 17 / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3。`-parallel-testing-enabled NO`。18.3 の 2 つは `arch=arm64`。Xcode 26.6） | どれも 540/540（537 + 3）。消したテストは無い |
+| TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2、Xcode 26.6） | userInfo の検査、列、gate、Manager の権限、`LibraryLogPrivacyTests`、category と権限の UseCase、`async` 版、`IosNotificationManagerTests`、一覧の型、エラー、印の 12 suite・92 件が成功。TSan の報告は 0 件 |
+| `scripts/test_ios.sh --udid <iPhone 17 / 26.2> --feature Notification`（ハッシュを 17.10 の値に固定した使い捨ての写し。Xcode 26.6。写しは、ランナーの `TRUSTED_FILES` の 3 つのハッシュの行のほかは、作業ツリーの `ios/` と `scripts/` と同じことを流した前と後に確かめた） | 54 件すべて成功（権限の NP2・N42・N40・NP1、Navigation 2、IdentifierInventory 4、Notification 25、NotificationEvent 12、NotificationColdStart 7）。列挙の 124 件が宣言と一致した。基準との比べ合わせは `changed=0, added=12, removed=0`（17.8 と同じ 12 件）。`async` 版の `requestPermissionWithAppSettings` と U-C2 の `pressSettingsRow` で N40 が通った |
+| ランナーの自己テスト（`python3 -m unittest discover -s scripts/tests -p 'test_ios_ui_runner.py'`） | 写し: 144/144。リポジトリ（固定の前）: 144 件のうち 5 件が落ちる（信頼する部分の 3 ファイルのハッシュが固定と違うことによる、17.8 と同じ 5 件）。リポジトリ（固定の後）: 144/144、`scripts/tests` の全体（`python3 -m unittest discover -s scripts/tests`）も 352/352 |
+| 2 つの scheme の `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`。Xcode 26.3 と 26.6） | 4 つともエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+| swiftinterface（17.6 と同じ組み方。Xcode 26.3） | `IosLibrary-after-1b-c6.swiftinterface` と同じ（差 0。足したのはログと internal の `isReadBack` だけ）。取り直していない |
+| シミュレーター | 始める前に起動しているものは無かった。iPhone 17 / 26.2（`NSNull` の測り、読み直しの下調べ、UI テスト、TSan、全件）、iPhone 16 / 26.2（変異）、iPhone 16 / 18.3（読み直しの下調べ、全件）、iPad Pro 11-inch (M4) / 18.3（全件）は xcodebuild・`test_ios.sh` が起動し、最後に `simctl shutdown all` で止め、どれも起動していないことを確かめた。通知の権限は iPhone 17 / 26.2 の HEAD の版のサンプルにだけ（下調べの UI テストで Allow を押して）与え、そのサンプルは `test_ios.sh` の NP2 が消して入れ直した。実機には触れていない（`devicectl` も実機の `xcodebuild` も使っていない） |
+
+信頼する部分は `Support/Springboard.swift` の U-C2 の差分だけを変えた。3 つのファイルの新しい値は 17.10（`SampleApp.swift` と `SystemLabels.swift` は変わらない）。この差分の Codex のレビューの後に、3 つのハッシュをリポジトリで固定した（ランナーの `TRUSTED_FILES` は、UI テストを流した写しと同じになった）。

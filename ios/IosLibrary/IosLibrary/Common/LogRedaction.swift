@@ -46,9 +46,9 @@ enum LogRedaction {
     /// `<Type>.<case>` for an error that is an enum (the library's errors), otherwise the
     /// `NSError` domain and code. Never the localized description, which can hold input values.
     ///
-    /// When the case's only associated value is itself an error (for example
-    /// `addRequestFailed(Error)`) or a ``FailureDetail`` (for example
-    /// `ShareError.activityFailed(FailureDetail)`), its domain and code are added:
+    /// When the case's only associated value is itself an error (an error of your own that wraps
+    /// one) or a ``FailureDetail`` (for example `NotificationError.addRequestFailed(FailureDetail)`
+    /// or `ShareError.activityFailed(FailureDetail)`), its domain and code are added:
     /// `<Type>.<case>(domain=…, code=…)`. Other associated values (URLs, paths) are never shown.
     static func describe(_ error: any Error) -> String {
         let mirror = Mirror(reflecting: error)
