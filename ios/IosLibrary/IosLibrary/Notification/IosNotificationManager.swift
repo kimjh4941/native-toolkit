@@ -282,7 +282,13 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// The userInfo is checked first: ``NotificationError/reservedUserInfoKey`` when it uses the
     /// library's key, ``NotificationError/invalidUserInfo`` when it holds a value that is not a
-    /// property-list value; nothing is added then.
+    /// property-list value; nothing is added then. The library's repository then checks that the
+    /// file of every attachment exists: a file that does not exist (or that the process cannot
+    /// see) is ``NotificationError/attachmentLoadFailed(identifier:detail:)`` with
+    /// `NSCocoaErrorDomain` and `NSFileReadNoSuchFileError`, and nothing is added. Only file URLs
+    /// (`isFileURL`) are checked; any other URL is left to the system as before. A file removed
+    /// after that check makes the system reject the request
+    /// (``NotificationError/addRequestFailed(_:)``).
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once (see the type's Threading
     ///   section), with `errorMessage` the fixed English description of the ``NotificationError``.
@@ -321,9 +327,12 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// The userInfo is checked first, as in ``show(content:trigger:completion:)``, and the library's
     /// repository makes the content (with its attachments) before it removes the pending request:
-    /// an update rejected by the checks or by an attachment that cannot be made leaves the pending
-    /// request in place. When the system then does not add the new request
-    /// (``NotificationError/addRequestFailed(_:)``), the pending request has already been removed.
+    /// an update rejected by the checks or by an attachment that cannot be made (a missing file
+    /// included) leaves the pending request in place. Only file URLs (`isFileURL`) are checked;
+    /// any other URL is left to the system as before (`update` may then have removed the pending
+    /// request when `add` fails). When the system then does not add the new request
+    /// (``NotificationError/addRequestFailed(_:)``, for example because an attachment file was
+    /// removed after the check), the pending request has already been removed.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
     ///   for the reason given on ``show(content:trigger:completion:)``.
@@ -388,7 +397,9 @@ public final class IosNotificationManager: NSObject, Sendable {
     /// Schedules a notification for future delivery.
     ///
     /// The request's identifier is `identifier`; `content.id` is not used (design S-P16). The
-    /// userInfo is checked first, as in ``show(content:trigger:completion:)``.
+    /// userInfo and the attachment files are checked first, as in
+    /// ``show(content:trigger:completion:)``. Only file URLs (`isFileURL`) are checked; any other
+    /// URL is left to the system as before.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
     ///   for the reason given on ``show(content:trigger:completion:)``.

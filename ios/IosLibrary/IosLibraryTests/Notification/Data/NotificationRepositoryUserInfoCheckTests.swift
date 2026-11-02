@@ -123,9 +123,10 @@ struct NotificationRepositoryUserInfoCheckTests {
         return unusable
     }
 
-    /// An attachment that cannot be made (a file type the system rejects; a missing file is not
-    /// reported by the system in the test host) is `attachmentLoadFailed` with its identifier and
-    /// the domain and code; nothing is added.
+    /// An attachment that cannot be made (a file type the system rejects; the system does not
+    /// report a missing file there, which the library checks first:
+    /// `NotificationRepositoryAttachmentCheckTests`) is `attachmentLoadFailed` with its identifier
+    /// and the domain and code; nothing is added.
     @Test func anAttachmentOfAFileTypeTheSystemRejectsKeepsItsIdentifierAndTheDetail() async throws {
         let center = FakeRequestCenter()
         let repository = NotificationRepositoryImpl(requestCenter: center)

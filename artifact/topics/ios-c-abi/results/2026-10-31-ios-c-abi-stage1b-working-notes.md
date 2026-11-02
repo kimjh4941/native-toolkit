@@ -1748,7 +1748,7 @@ Domain と Application に platform の型を足していない（`UNAuthorizati
 | ライブラリの結果 | `addRequestFailed(FailureDetail(domain: "UNErrorDomain", code: 100))`。サンプルの結果の行は `❌ [showImmediateWithAttachment] error: Failed to add the notification request.` |
 | 通知 | **出ない**（10 秒待ってもバナーが無い）。`getDelivered` は 0 件 |
 
-分かったこと: 無いファイルの添付は「添付なしで出る」のではなく、OS が要求ごと断り、通知は出ない。ライブラリは `attachmentLoadFailed` ではなく `addRequestFailed` で返す（どちらも 1b の前から同じ経路で、C6 で変わったのは文言が固定になったことだけ）。`update` では、今の予約を消した後の `add` で失敗するので、**今の予約が消えたまま新しい要求も足されない**（17.3 の「`add` 自体の失敗は消した後なので残らない」の場合に当たる）。**`update` のこの結論はコードから導いたもので、測ったのは `show` だけ**（`NotificationRepositoryImpl.update` は検査・内容と trigger を作った後に今の予約を消し、その後に `add` を呼ぶ。無いファイルは内容を作る所では失敗しないので、消した後の `add` で失敗する）。入口でファイルの有無を確かめるかは 21 章の 1（決めていない）。写しは scratchpad に置いた
+分かったこと: 無いファイルの添付は「添付なしで出る」のではなく、OS が要求ごと断り、通知は出ない。ライブラリは `attachmentLoadFailed` ではなく `addRequestFailed` で返す（どちらも 1b の前から同じ経路で、C6 で変わったのは文言が固定になったことだけ）。`update` では、今の予約を消した後の `add` で失敗するので、**今の予約が消えたまま新しい要求も足されない**（17.3 の「`add` 自体の失敗は消した後なので残らない」の場合に当たる）。**`update` のこの結論はコードから導いたもので、測ったのは `show` だけ**（`NotificationRepositoryImpl.update` は検査・内容と trigger を作った後に今の予約を消し、その後に `add` を呼ぶ。無いファイルは内容を作る所では失敗しないので、消した後の `add` で失敗する）。入口でファイルの有無を確かめるかは 21 章の 1（2026-11-01 に確かめると決まり、23.2 で直した）。写しは scratchpad に置いた
 
 ### 20.5 TSan の skip を外す（7.11、8 章の 4）
 
@@ -1985,3 +1985,47 @@ C7 の未コミットの変更（文書とテスト）のレビュー（文書�
 | `scripts/check_design_consistency.py`（README、第 1 部、この記録、1b の結果） | 4 つとも FAIL 0（終了の値 0） |
 
 後の項目（この直しの外）: `ios/IosLibrary/IosLibrary/IosLibrary.docc/IosLibrary.md:96` の ``IosDialogManager/showActionSheet(title:message:actions:sourceView:sourceRect:animated:completion:)`` は今のコードに無い記号（今の口は `showActionSheet(title:message:options:cancelTitle:sourceView:sourceRect:animated:onAction:completion:)`）。DocC の目次の直しとして後で行う（レビューの C6）
+
+### 23.2 無いファイルの添付を入口で断る（21 章の 1）
+
+| 変えたもの | 中身 |
+|---|---|
+| `ios/IosLibrary/IosLibrary/Notification/Data/Repository/NotificationRepositoryImpl.swift` | `checkAttachmentFilesExist(_:)`（private）を足し、`makeUNContent(from:)` の中で、添付を作る（`makeUNAttachment(from:)` の `map`）直前に呼ぶ。添付ごとに `FileManager.default.fileExists(atPath: fileURL.path)` を見て、無ければ `attachmentLoadFailed(identifier:detail:)`（`detail` は `FailureDetail(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)`、260）を投げる。全部の添付を見てから 1 つ目を作る。`show`・`update`・`schedule` はどれも `makeUNContent` を通るので、3 つとも同じ所で確かめる。`update` は今までどおり「検査 → 内容と trigger を作る（ここで確かめる）→ 今の予約を消す → `add`」の順で、無いファイルでは消さない。`.error` のログは識別子と domain・code だけで、パスは出さない（`ios.md` のエラーの値が URL やパスを持つときの規則）。型の DocC と `update` の行コメントを直した |
+| `IosNotificationManager.swift` の `show(content:trigger:completion:)`・`update(identifier:content:trigger:completion:)`・`schedule(content:trigger:identifier:completion:)` の DocC | `show` に「添付のファイルが無ければ `attachmentLoadFailed`（`NSCocoaErrorDomain`・`NSFileReadNoSuchFileError`）で何も足さない。確かめの後に消えたファイルは `addRequestFailed`」、`update` に「無いファイルも予約を残す。確かめの後に消えたファイルで `add` が断れば予約は消えた後」、`schedule` に「添付のファイルも `show` と同じく先に確かめる」を足した |
+| `NotificationError.swift` の DocC | 表の `attachmentLoadFailed` の行と case の説明に「ファイルが無い（またはプロセスから見えない）」ときと、そのときの `detail`、確かめるのは file URL だけであることを足した |
+| `NotificationAttachment.swift` の DocC | `fileURL` を「The file URL of the attachment file」にした（レビューの B1） |
+| 単体テスト `IosLibraryTests/Notification/Data/NotificationRepositoryAttachmentCheckTests.swift`（足した。UT-18 の添付の分） | 5 件: `everyAttachmentIsCheckedBeforeTheFirstIsMade`（OS が作らない型のある file（`.ut18unknown`。作れば `UNErrorDomain` の 101）を先に、無いファイルを後に置き、無いファイルの識別子と 260 で落ちる。全部を確かめてから 1 つ目を作ることを守る）、`aURLThatIsNotAFileURLIsLeftToTheSystem`（`https://example.com/a.png` は 260 で断らず、テストのホストでは `center.calls == ["add n"]` まで進む。下の偏りを守る）、`showAndScheduleWithAMissingFileFailAndAddNothing`（無いファイルの添付 1 つと、あるファイルの後の無いファイルで、`show`・`schedule` が `attachmentLoadFailed(identifier: "missing", detail: NSCocoaErrorDomain / 260)` で落ち、`FakeRequestCenter` に何も呼ばない）、`updateWithAMissingFileKeepsThePendingRequest`（予約が残り、呼ばれたのは前の `add u` だけ）、`anExistingFileStillGoesThrough`（4×4 の PNG 2 つで `show`・`schedule`・`update` が通り、要求に添付が 2 つ付く。2 つ目の名前は空白・`%20`・日本語を含む「`ut18 画像 %20-<UUID>.png`」で、作って `defer` で消す。`path(percentEncoded: true)` で見ると捕まる） |
+| `NotificationRepositoryUserInfoCheckTests.swift` | 添付のテストの doc comment に、無いファイルはライブラリが先に確かめること（新しいテストのファイル）を足した。テストは変えていない |
+| README 4.1 の 1b の行、設計書 3.3 の `update` の行、1b の結果 5 章・6 章・7 章（エラー）・8 章（利用者の決定） | 無いファイルは入口で `attachmentLoadFailed`、`update` は予約を残す。確かめから `add` までの間に消えたファイルは今までどおり `addRequestFailed`（`update` では予約が消えた後） |
+
+設計からの偏り: 確かめるのは file URL（`isFileURL`）だけにした。file URL でない URL（`https:` など）は今までどおり `UNNotificationAttachment` と `add` に任せる（`fileURL.path` で見ると、ファイルでないものも 260 になり、無いファイルと見分けられなくなるため）。そのため file URL でない添付で `add` が断れば、`update` は今までどおり今の予約を消した後になる（DocC にも書いた）。ディレクトリと通常のファイルでないもの（`fileExists` は真を返す）も今までどおり OS に任せる（コードは変えていない）。プロセスから見えないファイル（security-scoped の URL で `startAccessingSecurityScopedResource` の前、読めない親のディレクトリの下など）も `fileExists` が偽になり 260 になる。これは DocC に「does not exist (or cannot be seen by the process)」の形で書いた（レビューの C4。記録ではなく DocC を選んだのは、利用者が見る所だから）。テストのための差し込み口（`NotificationRequestCenter` のような seam）は足していない。テストは一時ディレクトリの実のファイル（あるもの）と、作っていないパス（無いもの）で足りた（今の UT-18 の添付のテストと同じ形）。
+
+層: 確かめは Data 層（`NotificationRepositoryImpl`）だけで、Domain（`NotificationError` の case は今のまま）・Application（Port と UseCase）・Manager のコードは変えていない。公開 API は変えていない（下の swiftinterface）。
+
+#### 23.2.1 壊して確かめたこと（M161〜M166。番号は 20.12 の M160 に続ける）
+
+`ios/IosLibrary` を scratchpad に写して壊し、下の 4 つの suite を流して、落ちることを見た（作業ツリーは変えていない）。iPhone 17 Pro / 26.2、Xcode 26.6。M161〜M163 はレビューの直し（テスト 2 件を足した）の後に流し直した。
+
+| # | 壊し方 | 落ちたテスト |
+|---|---|---|
+| M161 | 確かめを外す（`makeUNContent` の `checkAttachmentFilesExist` の呼び出しを消す） | `showAndScheduleWithAMissingFileFailAndAddNothing`（`an error was expected but none was thrown`、`center.calls` が `["add n", "add n"]`）、`updateWithAMissingFileKeepsThePendingRequest`（呼び出しが `["add u", "remove u", "add u"]`、残った要求の `before` が `nil`）、`everyAttachmentIsCheckedBeforeTheFirstIsMade`（`unusable` の `UNErrorDomain` の 101 が出た）。テストのホストでは `UNNotificationAttachment` が無いファイルを受け、偽の center の `add` は通るので、投げずに足した |
+| M162 | `show` だけで確かめる（`makeUNContent` から外し、`show` の userInfo の検査の後に置く） | 同じ 2 件（`schedule` が投げずに `add n` を呼んだ。`update` は予約を消して足した） |
+| M163 | `update` で今の予約を確かめの前に消す（`removePendingNotificationRequests` を userInfo の検査の直後、内容を作る前に移す） | `updateWithAMissingFileKeepsThePendingRequest`（`center.request("u")` が `nil`）。今の `updateWithAnAttachmentTheSystemRejectsLeavesThePendingRequest` も落ちた |
+| M164 | パーセントで符号化したパスで見る（`fileURL.path(percentEncoded: true)`） | `anExistingFileStillGoesThrough`（空白・`%20`・日本語の名前のファイルが `attachmentLoadFailed(identifier: "named", detail: NSCocoaErrorDomain / 260)` になった） |
+| M165 | `isFileURL` の絞りを外す（すべての URL を `fileURL.path` で見る） | `aURLThatIsNotAFileURLIsLeftToTheSystem`（`https://example.com/a.png` が 260 で断られ、`center.calls` が `[]`） |
+| M166 | 確かめを `map` の中に移す（`makeUNContent` から外し、`makeUNAttachment(from:)` の先頭で添付 1 つずつ確かめる） | `everyAttachmentIsCheckedBeforeTheFirstIsMade`（先の `unusable` を作って `attachmentLoadFailed(identifier: "unusable", detail: UNErrorDomain / 101)` になり、後の無いファイルまで届かない） |
+
+#### 23.2.2 確かめ（23.1 と 23.2 の変更を当てた作業ツリー）
+
+| 実行 | 結果 |
+|---|---|
+| 通知のリポジトリの 4 つの suite（`NotificationRepositoryAttachmentCheckTests` 5、`NotificationRepositoryUserInfoCheckTests`、`NotificationRepositoryMarkerTests`、`NotificationCategoryQueueTests`）と Dialog の 2 つの suite（`IosDialogManagerShownTests`、`AlertDialogPresenterTests`。23.1 の DocC の口）。iPhone 17 Pro / 26.2、Xcode 26.6、`-parallel-testing-enabled NO`、`-only-testing`、DerivedData は scratchpad | 66/66 成功（6 suite。リポジトリ 34、Dialog 32） |
+| 同じ 66 件を TSan で（`-enableThreadSanitizer YES`。テストのホストに `libclang_rt.tsan_iossim_dynamic.dylib` が入った） | 66/66 成功、TSan の報告 0 件 |
+| `IosLibrary` の scheme の `SWIFT_COMPILATION_MODE=wholemodule clean build-for-testing`（`generic/platform=iOS Simulator`。Xcode 26.6 と 26.3、`DEVELOPER_DIR`） | どちらもエラー 0、警告 0（`appintentsmetadataprocessor` の「Metadata extraction skipped」だけ） |
+| 公開 API（23.1 と同じ組み方） | `IosLibrary-after-1b-c6.swiftinterface` と 1 文字も違わない（足したのは private の関数と DocC だけ）。取り直していない |
+| `scripts/check_design_consistency.py`（README、設計書、この記録、1b の結果） | 4 つとも FAIL 0（終了の値 0） |
+| シミュレーター | iPhone 17 Pro / 26.2 だけを使った（xcodebuild が起動し、終わった後は起動していなかった）。iPhone 17 / 26.2（21 章の 2 の基準の取り直しで別の作業が使う）には触れていない。実機には触れていない |
+
+単体テストは 5 件増える（`IosLibraryTests` の `@Test` は 543 から 548）。全体の実行（`scripts/test_ios.sh`）と基準の取り直しは流していない（21 章の 2 は別の作業）。UI テストは変えていない（信頼する部分と `TRUSTED_FILES` のハッシュも変えていない）。
+
+23.1・23.2 は、この直しのレビュー（文書とコードの観点、Codex）の指摘を直した後の版。23.2 で直したのは、確かめるのが file URL だけであることとプロセスから見えないファイルの DocC（B1・C-1・C4）、テストの 2 件の追加と名前の符号化の確かめ（B2・C-2）、ディレクトリなどの扱い（C1）、拡張子の型の `detail` の変わり方（C2）、ブリッジの `errorMessage`（C3）、設計書 13.1 の UT-18 の行（C7）。DocC の目次の記号（C6）は 23.1 の後の項目に回した

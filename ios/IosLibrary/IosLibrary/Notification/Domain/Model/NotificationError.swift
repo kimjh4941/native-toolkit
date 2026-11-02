@@ -13,7 +13,7 @@ import Foundation
 /// | Case | When |
 /// |---|---|
 /// | ``permissionDenied`` | The user denied the permission. Thrown by the deprecated `NotificationPermissionHelper`; the existing `requestPermission(options:completion:)` reports only its text, as the `errorMessage` with `false`; the other requests report a denial as `false` |
-/// | ``attachmentLoadFailed(identifier:detail:)`` | An attachment of the content could not be created |
+/// | ``attachmentLoadFailed(identifier:detail:)`` | An attachment of the content could not be created, or its file does not exist (or the process cannot see it). Only file URLs (`isFileURL`) are checked for the file; any other URL is left to the system as before |
 /// | ``addRequestFailed(_:)`` | `show`, `update` or `schedule`: the system did not add the request |
 /// | ``setBadgeCountFailed(_:)`` | The system did not set the badge count |
 /// | ``authorizationFailed(_:)`` | The permission request itself failed |
@@ -28,10 +28,14 @@ import Foundation
 public enum NotificationError: Error, Sendable, Equatable, LocalizedError {
     /// The user has denied notification permission.
     case permissionDenied
-    /// An attachment could not be created from its file.
+    /// An attachment could not be created from its file, or the file does not exist (or the
+    /// process cannot see it). Only file URLs (`isFileURL`) are checked for the file; any other
+    /// URL is left to the system as before (`update` may then have removed the pending request
+    /// when `add` fails).
     /// - Parameters:
     ///   - identifier: The attachment's identifier (``NotificationAttachment/identifier``).
-    ///   - detail: The `NSError` domain and code of the system error.
+    ///   - detail: The `NSError` domain and code of the system error. A missing file is
+    ///     `NSCocoaErrorDomain` and `NSFileReadNoSuchFileError`.
     case attachmentLoadFailed(identifier: String, detail: FailureDetail)
     /// Adding the notification request to the system failed.
     /// - Parameter detail: The `NSError` domain and code of the system error.

@@ -48,10 +48,17 @@ struct CurrentNotificationRequestCenter: NotificationRequestCenter {
 ///
 /// `show`, `update` and `schedule` check the userInfo first, before anything is removed or added
 /// (design 8.3.3, 8.5.3, SR-9): the library's reserved key (``NotificationError/reservedUserInfoKey``),
-/// then whether it is a property list (``NotificationError/invalidUserInfo``). `update` also makes
-/// the content (with its attachments) and the trigger before it removes the pending request, so an
-/// `update` rejected by a check or a failed attachment leaves the pending request it would replace
-/// in place. The changes to the categories go through
+/// then whether it is a property list (``NotificationError/invalidUserInfo``). Before any attachment
+/// is made, the file of every attachment must exist: a file that does not exist (or that the
+/// process cannot see) is ``NotificationError/attachmentLoadFailed(identifier:detail:)`` with
+/// `NSCocoaErrorDomain` and `NSFileReadNoSuchFileError` (the system would only reject the whole
+/// request in `add`). Only file URLs (`isFileURL`) are checked; any other URL is left to the system
+/// as before (`update` may then have removed the pending request when `add` fails). `update` also
+/// makes the content (with its attachments) and the trigger before it removes the pending request,
+/// so an `update` rejected by a check or a failed attachment leaves the pending request it would
+/// replace in place. A file removed after the check still fails in `add`
+/// (``NotificationError/addRequestFailed(_:)``), after `update` removed the pending request. The
+/// changes to the categories go through
 /// the one queue of the process (`NotificationCategoryQueue`, design 8.5.6), whichever repository
 /// makes them.
 ///
@@ -98,7 +105,8 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     public func update(identifier: String, content: NotificationContent, trigger: NotificationTrigger?) async throws {
         logger.log(level: .libraryDebug, "[update] identifier: \(identifier, privacy: .public), content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
         // Before anything is removed (design 8.3.3, 8.5.3, SR-9): the checks, then the content
-        // and the trigger, whose attachments can fail (`attachmentLoadFailed`).
+        // and the trigger, whose attachments can fail (`attachmentLoadFailed`, also for a missing
+        // file).
         try checkUserInfo(of: content, method: "update")
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
@@ -337,6 +345,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         }
         // The marker tells the library's notifications from the others (design 8.3.3, P1-9).
         unContent.userInfo = NotificationMarker.attaching(to: content.userInfo)
+        try checkAttachmentFilesExist(content.attachments)
         unContent.attachments = try content.attachments.map { try makeUNAttachment(from: $0) }
         return unContent
     }
@@ -363,6 +372,22 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         case .active: return .active
         case .timeSensitive: return .timeSensitive
         case .critical: return .critical
+        }
+    }
+
+    /// Checks that the file of every attachment exists, before any attachment is made (1b working
+    /// notes, chapters 21 and 23). `UNNotificationAttachment` takes a missing file, and the system
+    /// then rejects the whole request in `add` (`UNErrorDomain` 100), after `update` removed the
+    /// pending request. Only file URLs (`isFileURL`) are checked; the system reports the others as
+    /// before. A file the process cannot see is reported as missing too.
+    private func checkAttachmentFilesExist(_ attachments: [NotificationAttachment]) throws {
+        logger.log(level: .libraryDebug, "[checkAttachmentFilesExist] attachments: \(attachments.count, privacy: .public)")
+        for attachment in attachments where attachment.fileURL.isFileURL {
+            if !FileManager.default.fileExists(atPath: attachment.fileURL.path) {
+                let detail = FailureDetail(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)
+                logger.error("[checkAttachmentFilesExist] identifier: \(attachment.identifier, privacy: .public): the file does not exist; nothing was changed: domain=\(detail.domain, privacy: .public), code=\(detail.code, privacy: .public)")
+                throw NotificationError.attachmentLoadFailed(identifier: attachment.identifier, detail: detail)
+            }
         }
     }
 

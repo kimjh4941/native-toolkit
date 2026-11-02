@@ -44,7 +44,7 @@ C7 の作業ツリーで全体を流した（シミュレーター iPhone 17 / 2
 | 機能ごとの UI テストの差 | Dialog +8（D16〜D23）、Notification +12（N34b・N35〜N45）、Share +3（S17〜S19）、Clipboard +2（CB5・CB6）。変えた結果は 0、消したテストは 0。D12 は期待値を変えた（パスワードを長さだけに。設計書 13.3） |
 | ランナーの自己テスト / `scripts/tests` の全体 | 144/144 / 352/352 |
 | 警告 | 2 つの scheme の clean・whole-module のビルドで、Xcode 26.3 と 26.6 ともエラー 0、警告 0 |
-| 壊して確かめたこと | M1〜M160（記録の各章の表。UI テストの変異は流していない） |
+| 壊して確かめたこと | M1〜M160（記録の各章の表。UI テストの変異は流していない）。1b の後の直し（記録 23 章）で M161〜M166（記録 23.2.1） |
 
 設計書 13.3 の「変える今の期待値」は D12 だけで、ほかの 0c の UI テストは期待値を変えずに通った。N25〜N33 は記録の元をイベントの口に替えて同じ期待値で通り、経路（`path=hub`）の確かめを足した。
 
@@ -57,7 +57,7 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 - 後ろ（G-7）: 後ろからの `UIApplication.open` は `false`。後ろで未決の権限を求めると OS は見えないままダイアログを出す。後ろの Clipboard は、ほかのアプリの内容でダイアログが出て、同期の読み出しは main を止める
 - 通知: scene のアプリでも最初の `didBecomeActive` はコールドスタートの応答の後。`openSettingsFor` は設定の App のリンクから呼ばせられる（26.2）。category の反映は書き戻しの後の最初の読み直しで読める
 - 例外（G-8）: 利用者の完了の中の `NSException` は巻き戻しを始めずにその場で `abort` した（MS-11、1 回。C++ の例外は試していない）
-- 無い添付: `add` が `UNErrorDomain` の 100 で断り、通知は出ない（`addRequestFailed`）。入口で確かめるかは記録 21 章の 1
+- 無い添付: `add` が `UNErrorDomain` の 100 で断り、通知は出ない（`addRequestFailed`）。記録 21 章の 1 の決定で、入口で確かめて `attachmentLoadFailed`（`NSCocoaErrorDomain` の 260）にした（記録 23.2）
 - ログ（MS-13）: シミュレーターでは `.private` も平文で見える。実機の見え方は実機の区切りで見る（記録 2 章の 2）
 - プライバシーのレポート（MS-10）: **未**。利用者の手順は記録 20.9
 
@@ -78,7 +78,7 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 | Share は 2 つの要求の表示の順を約束しない。取り消せない。表示元の scene が切れても window が残ればシートは解放されず完了しない | 記録 7.4 の 10、7.11 |
 | 外から閉じた Dialog・Share は約束の内（見張りで `dismissedBySystem`）。ホストが表示中に window や root を差し替える・表示した ViewController を持ち続けると完了が来ないことがある | 第 1 部 0.1、5.13.1 |
 | userInfo は property list の値だけ（`NSNull`・`NSURL` は拒む）。キー `com.jonghyunkim.nativetoolkit` は予約 | 記録 18 章の 6、設計書 8.3.3 |
-| 無いファイルの添付は通知ごと断られる（`add` が断り `addRequestFailed`。`update` では今の予約も消える）。`update` は、添付を作れない（`attachmentLoadFailed`）ときは今の予約を消さない。書き方は**決定待ち**（記録 21 章の 1 で入口で確かめると決まれば変わる） | 記録 20.4 の 3、19 章の L-B1 |
+| 無いファイルの添付は、入口で `attachmentLoadFailed`（`detail` は `NSCocoaErrorDomain` の `NSFileReadNoSuchFileError`、260）になり、何も足さない。`update` は、添付を作れない（無いファイルを含む）ときは今の予約を消さない。確かめから `add` までの間にファイルが消えれば `addRequestFailed` になり、`update` では今の予約が消えた後になる（記録 21 章の 1 で決まった） | 記録 20.4 の 3、19 章の L-B1、21 章の 1、23.2 |
 | Dialog の今の口（`showDialog`・`showActionSheet`）の `sourceRect` は `nil` なら `sourceView` の bounds 全体。iPad で画面全体の view を渡すと popover の置き場が無く、選択肢の無い popover になるので、点に近い矩形を渡す（記録 21 章の 5 で決まった。DocC には記録 23.1 で書いた） | 記録 5 章の 5、21 章の 5、23.1 |
 | ライブラリのログは統合ログ（`os.Logger`、subsystem `com.jonghyunkim.nativetoolkit.IosLibrary`）。利用者の値は `.private` で、秘密の値は長さだけ。ふつうのログは `.debug` で Release では保存されない | 設計書 8.7、記録 1.7 |
 
@@ -89,7 +89,7 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 | 呼ぶ先と完了の形 | 設計書 8.9 のとおり。Dialog・Share・権限・設定の画面は `Result` の callback 版に `.foreground`、通知の操作は `async throws` 版を main actor の `Task` で、category は callback 版を main のブロックの中で（呼んだ順を保つ。UT-28 の `callsInsideAMainQueueBlockKeepTheirOrder`） | 設計書 8.9、記録 17.11 |
 | Clipboard の取り消し | 受け付けの時点で `RequestBox()` を作り、main のブロックの中で `loadItem(_:scope:requestBox:completion:)`。取り消しの関数は main で受け取った Manager の参照を持つか、同じモジュールの中なので箱を直接閉じる（`shared` は main の actor でしか読めない）。取り消しに負けた `.file` はライブラリが消す | 記録 10.11、12 章の B-1 |
 | Share | 2 つの要求の表示の順を約束しない（ヘッダーに書く）。外から閉じたシートは約 0.55 秒後に `CANCELED_BY_SYSTEM` | 記録 7.11 |
-| エラー | `NotificationError` の 10 の case と C の値（設計書 10 章）。`attachmentLoadFailed` の識別子は C に渡さない（D-13）。`ShareError`・`DialogError` も 10 章 | 記録 17.11 |
+| エラー | `NotificationError` の 10 の case と C の値（設計書 10 章）。`attachmentLoadFailed` の識別子は C に渡さない（D-13）。無いファイルの `attachmentLoadFailed` の `detail` は `NSCocoaErrorDomain` の `NSFileReadNoSuchFileError`（260。記録 23.2）。`ShareError`・`DialogError` も 10 章 | 記録 17.11 |
 | userInfo の `null` | C ABI で JSON の `null`（`NSNull`）を落とすか断るかを決める（`IosLibrary` は断る） | 記録 18 章の 6 |
 | 権限の求め直し | `.foreground` で権限が決まっていると求め直さない。ヘッダーに「選択肢は最初の要求に入れる」 | 記録 18 章の 2 |
 | 同期の読み出し | Clipboard の同期の読み出しの関数のヘッダーに、main が止まりうることを書く | 記録 11 章の 5 |
@@ -105,6 +105,6 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 |---|---|
 | MS-10 のプライバシーのレポート | 利用者が Xcode の Organizer で作る（記録 20.9 の手順）。結果は記録 20.9 の表に書く |
 | 実機の項目（`.private` の見え方、MS-08 の前面と実機、1b の UI テストの実機の回と実機の基準、0c の残りの 39 件と人の確認、配布用の署名） | どれも利用者の許可を得てから（記録 20.10、21 章の 3） |
-| 利用者の決定 | 記録 21 章は 2026-11-01 に決まった（1〜6 は推奨のとおり。21 章の決定の行）。5（`sourceRect` の DocC）は記録 23.1 で直した。1（無い添付の入口の確かめ）は別の直しで行う。2 の基準の取り直しは、1 回目で N9・N32・N33 が失敗して保存されず、N32 を調べた後に残る（記録 21 章の決定の行） |
+| 利用者の決定 | 記録 21 章は 2026-11-01 に決まった（1〜6 は推奨のとおり。21 章の決定の行）。5（`sourceRect` の DocC）は記録 23.1 で直した。1（無い添付の入口の確かめ）は記録 23.2 で直した。2 の基準の取り直しは、1 回目で N9・N32・N33 が失敗して保存されず、N32 を調べた後に残る（記録 21 章の決定の行） |
 | 更新のテスト（1.13.0 のサンプルから 2.0.0 へ） | 1b の後に別に設計する（設計書 13.4、UI テストの設計書 8.4） |
-| ブリッジ | 変えていない。1b でブリッジは `openSettingsFor` で設定の App を開かなくなり、JSON の `null` を含む userInfo は `invalidUserInfo` で失敗する（段階 3 で消す） |
+| ブリッジ | 変えていない。1b でブリッジは `openSettingsFor` で設定の App を開かなくなり、JSON の `null` を含む userInfo は `invalidUserInfo` で失敗する（段階 3 で消す）。1b の後の直し（記録 23.2）で、無いファイルの添付の `errorMessage` が `"Failed to add the notification request."` から `"Failed to create a notification attachment."` に変わり、`update` は今の予約を残すようになる（ブリッジは完了をそのまま渡す。`UnityIosNotificationManager.swift:55,67,78`） |
