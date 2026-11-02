@@ -40,7 +40,7 @@ C7 の作業ツリーで全体を流した（シミュレーター iPhone 17 / 2
 | `IosLibraryTests`（iPhone 17 / 26.2、iPhone 16 / 18.3.1、iPad Pro 11-inch (M4) / 18.3.1。Xcode 26.6） | どれも 543/543（1b の前は 211） |
 | `IosLibraryTests` の TSan（iPhone 17 / 26.2） | 543/543、skip 0、報告 0 件。D20・S19 もサンプルを TSan で組んで通った |
 | `scripts/test_ios.sh`（iPhone 17 / 26.2、Xcode 26.3、全体） | 678 件: 成功 677、skip 1（意図した U10b）。678 = `IosLibraryTests` 543 + `IosLibraryExampleTests` 10 + UI テスト 124（1b の前は 99）+ ボタンの網羅の 1 行（`results.jsonl` の `IosLibraryExampleUITests#buttonCoverage`）。成功の 677 はボタンの網羅の 1 行を含む（記録 20.7） |
-| 0g の後の基準（320 件）との比べ合わせ | `changed=0, added=361, removed=4`。removed の 4 件は名前を替えた・消したテスト（記録 20.7）。このため `test_ios.sh` の終了の値は 1（基準を取り直すまで続く。記録 21 章の 2） |
+| 0g の後の基準（320 件）との比べ合わせ | `changed=0, added=361, removed=4`。removed の 4 件は名前を替えた・消したテスト（記録 20.7）。このため `test_ios.sh` の終了の値は 1 だった。基準は 2026-11-02〜03 に取り直した（682 件。記録 23.3） |
 | 機能ごとの UI テストの差 | Dialog +8（D16〜D23）、Notification +12（N34b・N35〜N45）、Share +3（S17〜S19）、Clipboard +2（CB5・CB6）。変えた結果は 0、消したテストは 0。D12 は期待値を変えた（パスワードを長さだけに。設計書 13.3） |
 | ランナーの自己テスト / `scripts/tests` の全体 | 144/144 / 352/352 |
 | 警告 | 2 つの scheme の clean・whole-module のビルドで、Xcode 26.3 と 26.6 ともエラー 0、警告 0 |
@@ -105,6 +105,6 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 |---|---|
 | MS-10 のプライバシーのレポート | 利用者が Xcode の Organizer で作る（記録 20.9 の手順）。結果は記録 20.9 の表に書く |
 | 実機の項目（`.private` の見え方、MS-08 の前面と実機、1b の UI テストの実機の回と実機の基準、0c の残りの 39 件と人の確認、配布用の署名） | どれも利用者の許可を得てから（記録 20.10、21 章の 3） |
-| 利用者の決定 | 記録 21 章は 2026-11-01 に決まった（1〜6 は推奨のとおり。21 章の決定の行）。5（`sourceRect` の DocC）は記録 23.1 で直した。1（無い添付の入口の確かめ）は記録 23.2 で直した。2 の基準の取り直しは、1 回目で N9・N32・N33 が失敗して保存されず、記録 23.3 の直しの後に残る |
+| 利用者の決定 | 記録 21 章は 2026-11-01 に決まった（1〜6 は推奨のとおり。21 章の決定の行）。5（`sourceRect` の DocC）は記録 23.1 で直した。1（無い添付の入口の確かめ）は記録 23.2 で直した。2 の基準の取り直しは、1 回目で N9・N32・N33 が失敗して保存されず、記録 23.3 の直しの後の 2 回目（`4ea74702`）で全件が通って保存した |
 | 更新のテスト（1.13.0 のサンプルから 2.0.0 へ） | 1b の後に別に設計する（設計書 13.4、UI テストの設計書 8.4） |
 | ブリッジ | 変えていない。1b でブリッジは `openSettingsFor` で設定の App を開かなくなり、JSON の `null` を含む userInfo は `invalidUserInfo` で失敗する（段階 3 で消す）。1b の後の直し（記録 23.2）で、無いファイルの添付の `errorMessage` が `"Failed to add the notification request."` から `"Failed to create a notification attachment."` に変わり、`update` は今の予約を残すようになる（ブリッジは完了をそのまま渡す。`UnityIosNotificationManager.swift:55,67,78`） |
