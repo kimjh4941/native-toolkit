@@ -65,6 +65,7 @@ final class NotificationColdStartUITests: SampleUITestCase {
         try springboard.expandBanner(title: Self.title, body: Self.body)
         try springboard.tapAction("Reply", title: Self.title, body: Self.body)
         try springboard.sendReply("cold reply", title: Self.title, body: Self.body)
+        Thread.sleep(forTimeInterval: Self.backgroundActionSettle)
         try sample.activate()
         try openNotificationFromMenu()
         try assertEvent(kind: "textInput", actionId: "reply", userText: "cold reply")
@@ -76,6 +77,7 @@ final class NotificationColdStartUITests: SampleUITestCase {
         let springboard = try showAndTerminate(registerCategory: true)
         try springboard.expandBanner(title: Self.title, body: Self.body)
         try springboard.tapAction("Delete", title: Self.title, body: Self.body)
+        Thread.sleep(forTimeInterval: Self.backgroundActionSettle)
         try sample.activate()
         try openNotificationFromMenu()
         try assertEvent(kind: "action", actionId: "delete", userText: "-")
@@ -138,10 +140,17 @@ final class NotificationColdStartUITests: SampleUITestCase {
 
     // MARK: - Helpers
 
-    /// A background action (Reply, Delete) is not the launch response (H2-1). On iOS 26 the
-    /// library reads the application state while the app is still in the background, so
-    /// `launch=false`. On iOS 18 the main-queue block can run after the test has brought the app
-    /// to the foreground (MS-05), so the value is only recorded there (U-16).
+    /// How long N32 and N33 wait after a background action before they bring the app forward. The
+    /// state was read about 0.5 s before `didBecomeActive` without this wait, and N32 and N33
+    /// failed with `launch=true` in two full runs (1b working notes, chapter 23.3).
+    private static let backgroundActionSettle: TimeInterval = 3
+
+    /// A background action (Reply, Delete) is not the launch response (H2-1). The library reads
+    /// the application state in a main-queue block, so the value depends on whether that block
+    /// runs before the app comes forward. N32 and N33 wait ``backgroundActionSettle`` before they
+    /// bring it forward. On iOS 26 the block then runs while the app is still in the background,
+    /// so `launch=false`. On iOS 18 the block can run after the test has brought the app to the
+    /// foreground (MS-05), so the value is only recorded there (U-16).
     @MainActor
     private func assertBackgroundActionIsNotTheLaunchResponse(_ action: String) throws {
         let launch = try route()["launch"] ?? "-"
