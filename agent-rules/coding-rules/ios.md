@@ -4,7 +4,7 @@
 
 このルールは以下に適用する。
 
-- Swift 実装（`ios/IosLibrary/`, `ios/UnityIosPlugin/` 配下）
+- Swift 実装（`ios/IosLibrary/`, `ios/IosLibraryCApi/`, `ios/UnityIosPlugin/` 配下）
 - Objective-C 実装（Bridge層 `.h` / `.m`）
 
 ---

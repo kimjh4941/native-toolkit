@@ -52,7 +52,7 @@ Domain → Application → Data
 |---|---|---|
 | Domain / Application / Data / Presentation / **Manager** | **ネイティブライブラリ** | `android/android_library`, `ios/IosLibrary`, `mac/MacLibrary`, `windows/WindowsLibrary` |
 | Unity Bridge | Unity プラグイン | `ios/UnityIosPlugin`, `mac/UnityMacPlugin` |
-| C ABI | ネイティブライブラリの C ABI のモジュール（汎用。Unity もこれを P/Invoke で呼ぶ） | `android/android_library_capi`, `windows/WindowsLibraryCApi` |
+| C ABI | ネイティブライブラリの C ABI のモジュール（汎用。Unity もこれを P/Invoke で呼ぶ） | `android/android_library_capi`, `ios/IosLibraryCApi`, `windows/WindowsLibraryCApi` |
 
 **「Manager 層」と `Unity*Manager` クラスを混同しないこと。**
 `UnityIosShareManager` などは名前に Manager を含むが **Unity Bridge 層**であり、Manager 層ではない。Manager 層の実体はネイティブライブラリ側の `IosShareManager` / `IosNotificationManager` のようなクラスを指す。
@@ -235,7 +235,7 @@ final class MockNotificationRepository: NotificationRepository {
 
 | プラットフォーム    | フレームワーク                      | 備考                   |
 | ------------------- | ----------------------------------- | ---------------------- |
-| iOS 18+ / macOS 15+ | Swift Testing (`@Test` / `#expect`) | XCTest は使わない      |
+| iOS 18+ / macOS 15+ | Swift Testing (`@Test` / `#expect`) | XCTest は使わない（例外: XCUITest の UI テスト、C の関数を呼ぶ `ios/IosLibraryCApiTests`） |
 | Android             | JUnit 4 / 5 + MockK                 | プロジェクト設定に従う |
 | Windows             | xUnit / MSTest / NUnit              | プロジェクト設定に従う |
 
