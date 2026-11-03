@@ -87,7 +87,7 @@ MS-01〜MS-14 の結果と反映した所は記録 20.3 の表。要点:
 | 項目 | 内容 | 出どころ |
 |---|---|---|
 | 呼ぶ先と完了の形 | 設計書 8.9 のとおり。Dialog・Share・権限・設定の画面は `Result` の callback 版に `.foreground`、通知の操作は `async throws` 版を main actor の `Task` で、category は callback 版を main のブロックの中で（呼んだ順を保つ。UT-28 の `callsInsideAMainQueueBlockKeepTheirOrder`） | 設計書 8.9、記録 17.11 |
-| Clipboard の取り消し | 受け付けの時点で `RequestBox()` を作り、main のブロックの中で `loadItem(_:scope:requestBox:completion:)`。取り消しの関数は main で受け取った Manager の参照を持つか、同じモジュールの中なので箱を直接閉じる（`shared` は main の actor でしか読めない）。取り消しに負けた `.file` はライブラリが消す | 記録 10.11、12 章の B-1 |
+| Clipboard の取り消し | 受け付けの時点で `RequestBox()` を作り、main のブロックの中で `loadItem(_:scope:requestBox:completion:)`。取り消しの関数は `IosClipboardManager.cancelLoad(_:)`（`static`。C ABI 第 2 部の P2-12 で足した。`shared` は main の actor でしか読めず、capi は別のモジュールなので箱を直接閉じることもできない）。取り消しに負けた `.file` はライブラリが消す | 記録 10.11、12 章の B-1 |
 | Share | 2 つの要求の表示の順を約束しない（ヘッダーに書く）。外から閉じたシートは約 0.55 秒後に `CANCELED_BY_SYSTEM` | 記録 7.11 |
 | エラー | `NotificationError` の 10 の case と C の値（設計書 10 章）。`attachmentLoadFailed` の識別子は C に渡さない（D-13）。無いファイルの `attachmentLoadFailed` の `detail` は `NSCocoaErrorDomain` の `NSFileReadNoSuchFileError`（260。記録 23.2）。`ShareError`・`DialogError` も 10 章 | 記録 17.11 |
 | userInfo の `null` | C ABI で JSON の `null`（`NSNull`）を落とすか断るかを決める（`IosLibrary` は断る） | 記録 18 章の 6 |

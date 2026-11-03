@@ -20,11 +20,10 @@
 /// controller as above but does not wait for it to settle, and ``viewController(_:)`` needs the
 /// returned view controller to be in a window.
 ///
-/// The dialog manager's `show(_:presenter:requestBox:completion:)` and the share manager's
-/// `share(content:presenter:completion:)` take one (and their `async` forms).
-///
-/// - Note: The notification permission request and settings operations that take a
-///   `PresenterSelection` are added in later commits of 2.0.0.
+/// The dialog manager's `show(_:presenter:requestBox:completion:)`, the share manager's
+/// `share(content:presenter:completion:)` and the notification manager's
+/// `requestPermission(options:presenter:completion:)` and
+/// `openNotificationSettings(presenter:completion:)` take one (and their `async` forms).
 ///
 /// `foregroundInactive` covers the moments when the app is visible but not active: right after
 /// launch, and while Control Center or Notification Center is pulled over the app.

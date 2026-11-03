@@ -811,7 +811,7 @@ MS-08（後ろにいるときの `UIPasteboard` の読み込み。第 1 部 5.13
 |---|---|
 | 箱の使い方（C5・C6） | 通知の権限の要求と設定の画面は箱を外から受けない（11 章の S-6）。箱を受ける口を足すなら、Clipboard と同じく「付けてから `isClosed` を見て、閉じていれば何も始めない」「付けに失敗したら `invalidRequest` を後の回で」「結果は `box.close(.completed(…))` で閉じ、負けた結果の資源は片付ける」の 3 つ |
 | 利用者の `@Sendable` でない完了（C5・C6） | 箱の閉じたときの処理（`@MainActor @Sendable`）から呼ぶときは、`@MainActor` の普通の Swift のクラスに持たせて捕まえる（`ClipboardBoxedLoad`）。`NSObject` の子にしない（0f の `isolated deinit` の罠） |
-| 第 2 部（2a） | Clipboard の読み込みの C の受け口は、受け付けの時点で `RequestBox()` を作り、main のブロックの中で `loadItem(_:scope:requestBox:completion:)` を呼び、取り消しの関数は `cancelLoad(_:)` を呼ぶ（どのスレッドからでも、積まずに）。ただし `IosClipboardManager.shared` は main の actor でしか読めない（クラスが `@MainActor`）ので、取り消しの関数は main で受け取った Manager の参照を持っておくか、同じモジュールの中なので箱を直接 `close(.canceled)` する（`cancelLoad` がすることはそれだけ。12 章の B-1）。`.file` の結果の所有は受け口が引き継ぐ。取り消しに負けた `.file` はライブラリが消す。後ろにいるときの読み込みは 10.7 の MS-08 のとおり（判定しない） |
+| 第 2 部（2a） | Clipboard の読み込みの C の受け口は、受け付けの時点で `RequestBox()` を作り、main のブロックの中で `loadItem(_:scope:requestBox:completion:)` を呼び、取り消しの関数は `cancelLoad(_:)` を呼ぶ（どのスレッドからでも、積まずに）。ただし `IosClipboardManager.shared` は main の actor でしか読めない（クラスが `@MainActor`）ので、取り消しの関数は `static` の `cancelLoad(_:)` を呼ぶ（C ABI 第 2 部の P2-12 で足した。もとの案「参照を持つ、同じモジュールなので箱を閉じる」は成り立たない。capi は別のモジュール）（`cancelLoad` がすることはそれだけ。12 章の B-1）。`.file` の結果の所有は受け口が引き継ぐ。取り消しに負けた `.file` はライブラリが消す。後ろにいるときの読み込みは 10.7 の MS-08 のとおり（判定しない） |
 | `-only-testing`（C5〜C7） | 7.11 の注のとおり、iOS 18.3 のシミュレーターは `-destination 'platform=iOS Simulator,id=<udid>,arch=arm64'` で全件を流した（C4 は絞らずに全件） |
 | C7 | MS-08 の結果を第 1 部 5.13 の Clipboard の行と README に写す（T-20） |
 
@@ -833,7 +833,7 @@ MS-08（後ろにいるときの `UIPasteboard` の読み込み。第 1 部 5.13
 
 | 指摘 | 直したこと |
 |---|---|
-| B-1: 型と `cancelLoad(_:)` の DocC は「どのスレッドからでも」と書くが、`shared` はクラスの `@MainActor` を受け継ぐので、別のスレッドで `IosClipboardManager.shared.cancelLoad(box)` と書くと Swift 6 では組めない（レビューが `swiftc -typecheck -swift-version 6` で確かめた） | 型の Threading と `cancelLoad(_:)` の `- Note:` に「`shared` は main の actor で読む。別のスレッドから取り消すには、main で受け取った Manager（`Sendable`）を持っておき、それに対して呼ぶ」と書いた。付録 A の形（インスタンスの `nonisolated` のメソッド）は変えない。2a への申し送り（10.11）に、取り消しの関数が参照を持つか箱を直接閉じることを足した |
+| B-1: 型と `cancelLoad(_:)` の DocC は「どのスレッドからでも」と書くが、`shared` はクラスの `@MainActor` を受け継ぐので、別のスレッドで `IosClipboardManager.shared.cancelLoad(box)` と書くと Swift 6 では組めない（レビューが `swiftc -typecheck -swift-version 6` で確かめた） | 型の Threading と `cancelLoad(_:)` の `- Note:` に「`shared` は main の actor で読む。別のスレッドから取り消すには、main で受け取った Manager（`Sendable`）を持っておき、それに対して呼ぶ」と書いた。付録 A の形（インスタンスの `nonisolated` のメソッド）は変えない。2a への申し送り（10.11）に、取り消しの関数が参照を持つか箱を直接閉じることを足した。**C ABI 第 2 部の P2-12 で `static` の `cancelLoad(_:)` に決め直した**（箱を直接閉じる案は、`close` が internal で capi が別のモジュールなので成り立たない） |
 | C-1: DocC の表の「読み込みの間に Manager が無くなる」の行にテストが無い | UT-30 に `releasingTheManagerDuringABoxedLoadReportsCancelledOnce` を足した（箱の形で読み始め、Manager を手放すと loader の `cancelAll` が 1 回呼ばれ、後の回に `CLIPBOARD_CANCELLED` が 1 回、箱は閉じる） |
 | C-2: テストの loader が `scope` を記録しない（`ClipboardBoxedLoad.start` が `.general` を渡す変異を、`.general` を読む本物の loader のテストでしか捕まえられない） | `PendingClipboardLoader` に `lastScope` を足し、`aFailedLoadReportsItsErrorCode` で `.named("ut30")` を確かめた |
 | C-3: 先頭のログ（`ClipboardBoxedLoad.init(completion:)` にログが無い。`discardUndelivered` が `fileManager` を出さない） | `[init] completion: provided` を足し、`discardUndelivered` の先頭に `fileManager: default/custom` を足した |
@@ -2120,3 +2120,7 @@ N32・N33 はどちらの回も実機で通った。ただし iOS 18.7.2 の結�
 **見込み（確かめてはいない）**: D〜G は、ホームに移った後に iOS がサンプルを止めて、5 秒後の要求が戻ったときに初めて動いた見込み。手がかりは、F が要求から 42 ms で `inactive` になっていること（戻る瞬間に要求が動いた）と、D・E のダイアログが戻って初めて見えたこと。そうなら、この表は「後ろで動いているアプリが読んだとき」を測っていない。シミュレーター（iOS 26.2、10.7）で後ろの間にダイアログが出たのとの違いが、実機によるのか iOS の版によるのかも分からない。E の `end=background` は、main が止まっていて状態が更新されなかったものかもしれない。
 
 **決定（2026-11-03、利用者）: 時間切れの既定は変えず、文書に書く。** 15 秒の既定を延ばす案は OS が答えないときの待ちも延び、ダイアログの間だけ時計を止める案は OS がダイアログの有無を教えないので作れない見込み。`ClipboardTimeouts` で利用者が時間を変えられる。`loadItem(_:scope:completion:)` と `ClipboardTimeouts.providerLoad` の DocC に足した（コメントだけ）。第 2 部の C の非同期の読み込みの関数のヘッダーとマニュアル（段階 4）にも書く。時間切れの後に遅れて答えても結果が来ないのはコード（`ClipboardProviderLoadHandle.finish` は 1 回だけ）から読んだことで、実機では測っていない。
+
+### 24.5 1b の後の `IosLibrary` の変更（C ABI 第 2 部の TB-0）
+
+2026-11-03 に足した（段階 2 の作業の記録 `results/2026-11-03-ios-c-abi-stage2-working-notes.md`）。**Swift の利用者に見える振る舞いの変更は 1 つ: 今までプロセスが落ちていた `timeInterval`（0 以下、NaN、繰り返しで 60 未満）だけが `NotificationError.invalidTrigger` の失敗になる**（P2-26）。

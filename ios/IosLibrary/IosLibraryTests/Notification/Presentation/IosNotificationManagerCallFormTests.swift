@@ -11,6 +11,7 @@
 //
 
 import Foundation
+import Synchronization
 import Testing
 @testable import IosLibrary
 
@@ -55,6 +56,77 @@ struct IosNotificationManagerCallFormTests {
         #expect(repo.requestPermissionCallCount == 1)
         #expect(repo.registerCategoryCallCount == 1)
         #expect(repo.removeCategoryCallCount == 1)
+    }
+
+    /// C ABI part 2, P2-6: the removal forms report on the main thread, once, after the repository
+    /// call. Written with and without `completion`: removing the `= nil` default breaks this file.
+    @Test func theRemovalFormsCompleteOnTheMainThreadOnceAfterTheRepository() async {
+        let repo = MockNotificationRepository()
+        let manager = IosNotificationManager(repository: repo)
+        let done = MainRecorder<String>()
+
+        manager.removeDelivered(identifier: "a", completion: { done.record("removeDelivered:\(repo.removeDeliveredCallCount)") })
+        manager.removeAllDelivered(completion: { done.record("removeAllDelivered:\(repo.removeAllDeliveredCallCount)") })
+        manager.cancelScheduled(identifier: "a", completion: { done.record("cancelScheduled:\(repo.cancelScheduledCallCount)") })
+        manager.cancelAllScheduled(completion: { done.record("cancelAllScheduled:\(repo.cancelAllScheduledCallCount)") })
+
+        #expect(await waitUntil { done.values.count == 4 })
+        // The number is the repository's count when the completion ran.
+        #expect(Set(done.values) == ["removeDelivered:1", "removeAllDelivered:1", "cancelScheduled:1", "cancelAllScheduled:1"])
+        #expect(done.allOnMainThread)
+        await drainMainQueue(times: 2)
+        #expect(done.values.count == 4)
+    }
+
+    /// Never inside the call, also when called on the main thread.
+    @Test func theRemovalFormsDoNotCompleteInsideTheCall() async {
+        let manager = IosNotificationManager(repository: MockNotificationRepository())
+        let done = MainRecorder<String>()
+
+        manager.removeDelivered(identifier: "a", completion: { done.record("a") })
+        manager.removeAllDelivered(completion: { done.record("b") })
+        manager.cancelScheduled(identifier: "a", completion: { done.record("c") })
+        manager.cancelAllScheduled(completion: { done.record("d") })
+
+        #expect(done.values.isEmpty)
+        #expect(await waitUntil { done.values.count == 4 })
+    }
+
+    /// The completion waits for the repository: with the repository held, none comes.
+    @Test func theRemovalFormsCompleteOnlyAfterTheRepositoryReturned() async {
+        let repo = MockNotificationRepository()
+        let open = Mutex(false)
+        repo.setRemovalGate {
+            while !open.withLock({ $0 }) { try? await Task.sleep(for: .milliseconds(10)) }
+        }
+        let manager = IosNotificationManager(repository: repo)
+        let done = MainRecorder<String>()
+
+        manager.removeDelivered(identifier: "a", completion: { done.record("a") })
+        manager.removeAllDelivered(completion: { done.record("b") })
+        manager.cancelScheduled(identifier: "a", completion: { done.record("c") })
+        manager.cancelAllScheduled(completion: { done.record("d") })
+        try? await Task.sleep(for: .milliseconds(200))
+        await drainMainQueue(times: 2)
+        #expect(done.values.isEmpty)
+
+        open.withLock { $0 = true }
+        #expect(await waitUntil { done.values.count == 4 })
+    }
+
+    @Test func theRemovalFormsWithoutACompletionStillRun() async {
+        let repo = MockNotificationRepository()
+        let manager = IosNotificationManager(repository: repo)
+
+        manager.removeDelivered(identifier: "a")
+        manager.removeAllDelivered()
+        manager.cancelScheduled(identifier: "a")
+        manager.cancelAllScheduled()
+
+        #expect(await waitUntil {
+            repo.removeDeliveredCallCount == 1 && repo.removeAllDeliveredCallCount == 1
+                && repo.cancelScheduledCallCount == 1 && repo.cancelAllScheduledCallCount == 1
+        })
     }
 
     /// In a synchronous closure, the forms without `completion` still select the callback form,

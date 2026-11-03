@@ -1,0 +1,61 @@
+--- artifact/topics/ios-c-abi/results/swiftinterface/IosLibrary-after-1b-c6.swiftinterface	2026-11-01 14:17:58
++++ after-tb0 13:13:45
+@@ -512,6 +512,7 @@
+   @_Concurrency.MainActor final public func loadItem(_ request: IosLibrary.ClipboardLoadRequest, scope: IosLibrary.PasteboardScope = .general, requestBox: IosLibrary.RequestBox, completion: @escaping (Swift.Bool, IosLibrary.ClipboardLoadedItem?, Swift.String?, Swift.String?) -> Swift.Void)
+   #endif
+   nonisolated final public func cancelLoad(_ box: IosLibrary.RequestBox)
++  nonisolated public static func cancelLoad(_ box: IosLibrary.RequestBox)
+   @_Concurrency.MainActor final public func cancelAllLoads()
+   @_Concurrency.MainActor final public func startObserving(scope: IosLibrary.PasteboardScope = .general, onEvent: @escaping (IosLibrary.ClipboardChangeEvent) -> Swift.Void) throws
+   @_Concurrency.MainActor final public func stopObserving()
+@@ -896,6 +897,7 @@
+   case authorizationFailed(IosLibrary.FailureDetail)
+   case reservedUserInfoKey
+   case invalidUserInfo
++  case invalidTrigger
+   case notForeground
+   case openSettingsFailed
+   case delegateNotInstalled
+@@ -955,6 +957,11 @@
+   case calendar(Foundation.DateComponents, repeats: Swift.Bool)
+   case location(identifier: Swift.String, latitude: Swift.Double, longitude: Swift.Double, radius: Swift.Double, notifyOnEntry: Swift.Bool, notifyOnExit: Swift.Bool)
+ }
++extension IosLibrary.NotificationTrigger {
++  public var isValid: Swift.Bool {
++    get
++  }
++}
+ public struct ScheduledNotification : Swift.Sendable {
+   public let identifier: Swift.String
+   public let title: Swift.String
+@@ -1047,9 +1054,13 @@
+   #endif
+   final public func cancel(identifier: Swift.String)
+   final public func cancelAll()
+-  final public func removeDelivered(identifier: Swift.String)
+-  final public func removeAllDelivered()
+   #if compiler(>=5.3) && $NonescapableTypes
++  final public func removeDelivered(identifier: Swift.String, completion: (@_Concurrency.MainActor @Sendable () -> Swift.Void)? = nil)
++  #endif
++  #if compiler(>=5.3) && $NonescapableTypes
++  final public func removeAllDelivered(completion: (@_Concurrency.MainActor @Sendable () -> Swift.Void)? = nil)
++  #endif
++  #if compiler(>=5.3) && $NonescapableTypes
+   #if compiler(>=5.3) && $SendingArgsAndResults
+   final public func schedule(content: sending IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger, identifier: Swift.String, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #else
+@@ -1061,8 +1072,12 @@
+   #else
+   final public func schedule(content: __owned IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger, identifier: Swift.String) async throws
+   #endif
+-  final public func cancelScheduled(identifier: Swift.String)
+-  final public func cancelAllScheduled()
++  #if compiler(>=5.3) && $NonescapableTypes
++  final public func cancelScheduled(identifier: Swift.String, completion: (@_Concurrency.MainActor @Sendable () -> Swift.Void)? = nil)
++  #endif
++  #if compiler(>=5.3) && $NonescapableTypes
++  final public func cancelAllScheduled(completion: (@_Concurrency.MainActor @Sendable () -> Swift.Void)? = nil)
++  #endif
+   final public func getScheduled(completion: @escaping @_Concurrency.MainActor @Sendable ([IosLibrary.ScheduledNotification]) -> Swift.Void)
+   final public func getScheduled() async -> [IosLibrary.ScheduledNotification]
+   final public func getDelivered(completion: @escaping @_Concurrency.MainActor @Sendable ([IosLibrary.ActiveNotification]) -> Swift.Void)

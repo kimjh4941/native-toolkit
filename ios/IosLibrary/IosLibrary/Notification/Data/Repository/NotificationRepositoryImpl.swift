@@ -48,7 +48,8 @@ struct CurrentNotificationRequestCenter: NotificationRequestCenter {
 ///
 /// `show`, `update` and `schedule` check the userInfo first, before anything is removed or added
 /// (design 8.3.3, 8.5.3, SR-9): the library's reserved key (``NotificationError/reservedUserInfoKey``),
-/// then whether it is a property list (``NotificationError/invalidUserInfo``). Before any attachment
+/// then whether it is a property list (``NotificationError/invalidUserInfo``), and then the trigger
+/// (``NotificationTrigger/isValid``, ``NotificationError/invalidTrigger``). Before any attachment
 /// is made, the file of every attachment must exist: a file that does not exist (or that the
 /// process cannot see) is ``NotificationError/attachmentLoadFailed(identifier:detail:)`` with
 /// `NSCocoaErrorDomain` and `NSFileReadNoSuchFileError` (the system would only reject the whole
@@ -96,6 +97,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     public func show(content: NotificationContent, trigger: NotificationTrigger?) async throws {
         logger.log(level: .libraryDebug, "[show] content.id: \(content.id, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
         try checkUserInfo(of: content, method: "show")
+        try checkTrigger(trigger, method: "show")
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
         let request = UNNotificationRequest(identifier: content.id, content: unContent, trigger: unTrigger)
@@ -108,6 +110,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         // and the trigger, whose attachments can fail (`attachmentLoadFailed`, also for a missing
         // file).
         try checkUserInfo(of: content, method: "update")
+        try checkTrigger(trigger, method: "update")
         let unContent = try makeUNContent(from: content)
         let unTrigger = trigger.map { makeTrigger(from: $0) }
         let request = UNNotificationRequest(identifier: identifier, content: unContent, trigger: unTrigger)
@@ -118,6 +121,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
     public func schedule(content: NotificationContent, trigger: NotificationTrigger, identifier: String) async throws {
         logger.log(level: .libraryDebug, "[schedule] identifier: \(identifier, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
         try checkUserInfo(of: content, method: "schedule")
+        try checkTrigger(trigger, method: "schedule")
         let unContent = try makeUNContent(from: content)
         let unTrigger = makeTrigger(from: trigger)
         let request = UNNotificationRequest(identifier: identifier, content: unContent, trigger: unTrigger)
@@ -295,6 +299,16 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         if !Self.isPropertyList(content.userInfo) {
             logger.error("[\(method, privacy: .public)] content.id: \(content.id, privacy: .public): the userInfo holds a value that is not a property-list value; nothing was changed")
             throw NotificationError.invalidUserInfo
+        }
+    }
+
+    /// Rejects a trigger that would make the system raise an exception (C ABI part 2, P2-26). Before
+    /// the attachments are made, so that a rejected request does not use up their files.
+    private func checkTrigger(_ trigger: NotificationTrigger?, method: String) throws {
+        logger.log(level: .libraryDebug, "[checkTrigger] method: \(method, privacy: .public), trigger: \(String(describing: trigger), privacy: .private)")
+        if let trigger, !trigger.isValid {
+            logger.error("[\(method, privacy: .public)] the trigger is not valid")
+            throw NotificationError.invalidTrigger
         }
     }
 

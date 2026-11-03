@@ -78,6 +78,17 @@ struct IosNotificationManagerAsyncTests {
         #expect(center.calls.isEmpty)
     }
 
+    /// The trigger check reaches the `async` forms as its case too (C ABI part 2, P2-26).
+    @Test func theTriggerCheckReachesTheAsyncForms() async {
+        let center = FakeRequestCenter()
+        let manager = IosNotificationManager(repository: NotificationRepositoryImpl(requestCenter: center))
+
+        await #expect(throws: NotificationError.invalidTrigger) {
+            try await manager.show(content: NotificationContent(id: "s", title: "t"), trigger: .timeInterval(0, repeats: false))
+        }
+        #expect(center.calls.isEmpty)
+    }
+
     @Test func theQueriesReturnWhatTheirUseCasesReturn() async {
         let repository = MockNotificationRepository()
         repository.stubbedAuthorizationStatus = .provisional

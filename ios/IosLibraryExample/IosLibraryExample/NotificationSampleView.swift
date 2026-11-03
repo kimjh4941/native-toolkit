@@ -738,6 +738,7 @@ struct NotificationSampleView: View {
         case .authorizationFailed(let detail): return "authorizationFailed(domain=\(detail.domain), code=\(detail.code))"
         case .reservedUserInfoKey: return "reservedUserInfoKey"
         case .invalidUserInfo: return "invalidUserInfo"
+        case .invalidTrigger: return "invalidTrigger"
         case .notForeground: return "notForeground"
         case .openSettingsFailed: return "openSettingsFailed"
         case .delegateNotInstalled: return "delegateNotInstalled"

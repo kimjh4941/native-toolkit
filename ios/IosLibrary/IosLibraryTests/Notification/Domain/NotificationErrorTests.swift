@@ -25,6 +25,7 @@ struct NotificationErrorTests {
         .authorizationFailed(detail),
         .reservedUserInfoKey,
         .invalidUserInfo,
+        .invalidTrigger,
         .notForeground,
         .openSettingsFailed,
         .delegateNotInstalled,
@@ -44,11 +45,12 @@ struct NotificationErrorTests {
         case .notForeground: return 7
         case .openSettingsFailed: return 8
         case .delegateNotInstalled: return 9
+        case .invalidTrigger: return 10
         }
     }
 
     @Test func everyCaseHasItsOwnFixedDescription() {
-        #expect(Self.cases.map(Self.ordinal).sorted() == Array(0..<10))
+        #expect(Self.cases.map(Self.ordinal).sorted() == Array(0..<11))
         for error in Self.cases {
             #expect(error.errorDescription?.isEmpty == false, "\(Self.ordinal(error))")
             // `localizedDescription` is the fixed text too (LocalizedError), not the generic
@@ -79,12 +81,19 @@ struct NotificationErrorTests {
         #expect(NotificationError.invalidUserInfo.errorDescription == "The userInfo holds a value that is not a property-list value.")
     }
 
+    /// C ABI part 2, P2-26.
+    @Test func theTriggerCaseHasItsText() {
+        #expect(NotificationError.invalidTrigger.errorDescription == "The time interval of the trigger is not valid.")
+        #expect(LogRedaction.describe(NotificationError.invalidTrigger) == "NotificationError.invalidTrigger")
+    }
+
     @Test func casesCompareByTheirValues() {
         #expect(NotificationError.addRequestFailed(Self.detail) == .addRequestFailed(FailureDetail(domain: "UNErrorDomain", code: 1)))
         #expect(NotificationError.addRequestFailed(Self.detail) != .addRequestFailed(FailureDetail(domain: "UNErrorDomain", code: 2)))
         #expect(NotificationError.addRequestFailed(Self.detail) != .setBadgeCountFailed(Self.detail))
         #expect(NotificationError.attachmentLoadFailed(identifier: "a", detail: Self.detail) != .attachmentLoadFailed(identifier: "b", detail: Self.detail))
         #expect(NotificationError.reservedUserInfoKey != .invalidUserInfo)
+        #expect(NotificationError.invalidTrigger != .invalidUserInfo)
     }
 
     /// The log shows the case and the detail's domain and code only.

@@ -128,6 +128,16 @@ private func cancelOnAnotherThreadWhileMainIsBlocked(_ manager: IosClipboardMana
     return returned.wait(timeout: .now() + 5) == .success
 }
 
+/// The same with the static form, which needs no manager.
+private func cancelWithTheStaticFormOnAnotherThreadWhileMainIsBlocked(_ box: RequestBox) -> Bool {
+    let returned = DispatchSemaphore(value: 0)
+    Thread.detachNewThread {
+        IosClipboardManager.cancelLoad(box)
+        returned.signal()
+    }
+    return returned.wait(timeout: .now() + 5) == .success
+}
+
 /// Two flags for a race between the main thread and another thread.
 private final class RaceBarrier: Sendable {
     let ready = Atomic<Bool>(false)
@@ -166,6 +176,28 @@ struct IosClipboardManagerRequestBoxTests {
         #expect(completions.calls == [LoadCompletions.cancelled()])
         #expect(loader.tokenCancels == [true])
         #expect(loader.pendingCount == 0)
+    }
+
+    /// C ABI part 2, P2-12: the static form needs no manager, so another thread can call it before
+    /// anything has read `shared`, and it does not wait for the main thread.
+    @Test func theStaticFormClosesTheBoxOnItsOwnThreadWhileMainIsBlocked() async {
+        let box = RequestBox()
+        #expect(cancelWithTheStaticFormOnAnotherThreadWhileMainIsBlocked(box))
+        #expect(box.isClosed)
+    }
+
+    @Test func aLoadCancelledWithTheStaticFormReportsCancelledOnce() async {
+        let loader = PendingClipboardLoader()
+        let manager = makeManager(loader: loader)
+        let box = RequestBox()
+        let completions = LoadCompletions()
+
+        manager.loadItem(.text, scope: .general, requestBox: box, completion: completions.completion)
+        IosClipboardManager.cancelLoad(box)
+        await drainMainQueue()
+
+        #expect(completions.calls == [LoadCompletions.cancelled()])
+        #expect(loader.tokenCancels == [true])
     }
 
     @Test func aResultThatArrivesAfterTheCancellationIsDropped() async {

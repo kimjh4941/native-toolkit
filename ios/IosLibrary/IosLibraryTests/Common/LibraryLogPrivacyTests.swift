@@ -274,7 +274,7 @@ struct LibraryLogPrivacyTests {
         await withRaisedLevel {
             let repository = NotificationRepositoryImpl()
             // An hour away, and removed again: nothing is shown whether or not the host app may
-            // post notifications (without the permission `add` fails, which logs the error path).
+            // post notifications (without the permission `add` succeeds and keeps nothing).
             try? await repository.schedule(content: NotificationContent(
                 id: identifier,
                 title: "title-\(secret)",

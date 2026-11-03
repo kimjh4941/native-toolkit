@@ -15,6 +15,7 @@ final class MockNotificationRepository: NotificationRepository {
 
     private struct State {
         var shouldFail = false
+        var removalGate: (@Sendable () async -> Void)?
         var stubbedAuthorizationStatus: NotificationAuthorizationStatus = .authorized
         var makeScheduled: @Sendable () -> [ScheduledNotification] = { [] }
         var makeDelivered: @Sendable () -> [ActiveNotification] = { [] }
@@ -52,6 +53,9 @@ final class MockNotificationRepository: NotificationRepository {
     private func setValue<Value: Sendable>(_ keyPath: WritableKeyPath<State, Value>, _ value: Value) {
         state.withLock { $0[keyPath: keyPath] = value }
     }
+
+    /// When set, the four removals of delivered and scheduled notifications wait for it first.
+    func setRemovalGate(_ gate: (@Sendable () async -> Void)?) { setValue(\.removalGate, gate) }
 
     /// Counts a call and returns whether the call should fail.
     private func record(_ keyPath: WritableKeyPath<State, Int>) -> Bool {
@@ -148,18 +152,22 @@ final class MockNotificationRepository: NotificationRepository {
     }
 
     func removeDelivered(identifier: String) async {
+        await value(\.removalGate)?()
         _ = record(\.removeDeliveredCallCount)
     }
 
     func removeAllDelivered() async {
+        await value(\.removalGate)?()
         _ = record(\.removeAllDeliveredCallCount)
     }
 
     func cancelScheduled(identifier: String) async {
+        await value(\.removalGate)?()
         _ = record(\.cancelScheduledCallCount)
     }
 
     func cancelAllScheduled() async {
+        await value(\.removalGate)?()
         _ = record(\.cancelAllScheduledCallCount)
     }
 

@@ -13,7 +13,7 @@
 | 前段階 | 第 1 部（`designs/2026-10-31-ios-c-abi-c-abi-design.md`。以下「第 1 部」。スレッド・寿命・通知の delegate・前面・エラーの規則を決めた）、段階 1b（Swift の API の補完。`results/2026-10-31-ios-c-abi-stage1b-result.md`。以下「1b の結果」。作業の記録は `results/2026-10-31-ios-c-abi-stage1b-working-notes.md`。以下「1b の記録」） |
 | 元にした文書 | Swift の API の設計書（`designs/2026-10-31-ios-c-abi-swift-api-design.md`。以下「Swift の設計書」）、Android の C ABI の設計書 第 2 部（`artifact/topics/android-c-abi/designs/2026-10-05-android-c-abi-c-abi-design-part2.md`。以下「Android 第 2 部」）、今のブリッジ（`ios/UnityIosPlugin/`）、公開 API（`results/swiftinterface/IosLibrary-after-1b-c6.swiftinterface`） |
 | レビュー | `reviews/2026-11-03-ios-c-abi-c-abi-design-part2-review-v1.md`（1 回目。Claude 2 本と Codex）、`-v2.md`（2 回目。Claude と Codex）、`-v3.md`（3 回目。A なし） |
-| 測り | 0.2（シミュレーター。M1〜M7） |
+| 測り | 0.2（シミュレーター。M1〜M8） |
 | 章立て | Windows の設計書・Android 第 2 部と同じ番号にする（8.1 の操作、8.2 の関数の全体、11 章のエラー、付録 A）。2a の機械照合が同じ見出しを読むため |
 
 - **`PLANNED_SYMBOLS_EXEMPT`**: この設計書は、まだ書かれていない C ABI の名前（`ntk_*`）と受け口、`IosLibrary` に足す口（7 章）を定める。名前が実装にあるかの照合は 2a の機械照合と 2b の DoD が受け持つ
@@ -50,14 +50,14 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | P2-23 | BOM の無い UTF-16 や UTF-8 のデータ（第 1 部 8 章、5.9） | **推奨: 文字列として読まない**。`ntk_clipboard_read_data_async` はバイト列のまま返し、解釈しない | 型の決めつけはライブラリの外の仕事。今のブリッジも Base64 のバイト列を返す |
 | P2-24 | 読み込みの時間切れの案内 | **決定済み（2026-11-03、利用者。1b の記録 24.4）**: 既定の 15 秒を変えない。`ntk_clipboard_load_item_async` のヘッダーに「時間切れに利用者が答える時間も入る」と書く（付録 A.2）。同期の読み出しのヘッダーに「答えるまで main が止まる」と書く。**同じことは `detect_values_async` の 5 秒にもある**（M3。答えないまま 5 秒で `TIMED_OUT`。ヘッダーに書く） | MS-08 の実機の結果、M3 |
 | P2-25 | 2a の照合の入力（AP-15） | **推奨: Android と同じ**: 8.1、8.2、10 章、11 章、付録 A。`scripts/check_c_abi_contract_ios.py` と `scripts/c_abi_error_numbers.json`（P1-7）を足す。ビルドの後は `nm -gU` で `_ntk_*` を照らす（第 1 部 5.5） | - |
-| P2-26 | 落ちる trigger の守りの置き場所 | **推奨: 落ちる入力だけを `IosLibrary` で守る**。`NotificationTrigger` に `public var isValid: Bool` を足す。**偽になるのは、今プロセスが落ちる入力だけ**: `.timeInterval(t, repeats: r)` は `t > 0 && (!r || t >= 60)`（M5。`NSInternalInconsistencyException`）、`.calendar` と `.location` は常に真。**TB-0 で負の値、59.9 と 60、NaN、無限大を測り**、落ちるものだけが偽になるように式を確かめる。落ちない非有限は C の入力の形の規則に入れ、Swift は変えない。Repository はこれを見て `NotificationError.invalidTrigger`（新しい case）を投げ、受け口は入口で同じ関数を呼び `INVALID_PARAMETER` を返す。**今成功している入力は変えない**（`.calendar` の項目なしは pending 0、`.location` の半径 0 と空の識別子は pending 1。M5）。これらは C の入力の形として受け口の入口で拒む（6 章の基準）ので、Swift と C で結果が違う | 第 1 部 2 章「振る舞いは Swift の API が決める」、P1-2。落ちる入力を受け口にだけ置くと、Swift の利用者は落ちたままになる |
+| P2-26 | 落ちる trigger の守りの置き場所 | **推奨: 落ちる入力だけを `IosLibrary` で守る**。`NotificationTrigger` に `public var isValid: Bool` を足す。**偽になるのは、今プロセスが落ちる入力だけ**: `.timeInterval(t, repeats: r)` は `t > 0 && (!r || t >= 60)`（M5。`NSInternalInconsistencyException`）、`.calendar` と `.location` は常に真。**M8 で負の値、59.9 と 60、NaN、無限大を測り、落ちるものだけが偽になることを確かめた**（NaN は偽、無限大は落ちずに pending に残るので真）。無限大は C の入力の形の規則で入口で拒み、Swift は変えない。Repository はこれを見て `NotificationError.invalidTrigger`（新しい case）を投げ、受け口は入口で同じ関数を呼び `INVALID_PARAMETER` を返す。**今成功している入力は変えない**（`.calendar` の項目なしは pending 0、`.location` の半径 0 と空の識別子は pending 1。M5）。これらは C の入力の形として受け口の入口で拒む（6 章の基準）ので、Swift と C で結果が違う | 第 1 部 2 章「振る舞いは Swift の API が決める」、P1-2。落ちる入力を受け口にだけ置くと、Swift の利用者は落ちたままになる |
 | P2-27 | 権限の要求の選択肢 | **推奨: `ntk_notification_request_permission_async(options, ...)` で受ける**。`options` は `NTK_NOTIFICATION_AUTH_*` の組で、値は `UNAuthorizationOptions` の `rawValue`。0 は既定の `[.alert, .sound, .badge]`。知らないビットは `INVALID_PARAMETER`。**`PROVISIONAL` は 2.0.0 では出さない**: M7 で、OS は `provisional` の後に求めれば通常のダイアログを出すが、`.foreground` の口は `provisional` を許可済みとして求めないので、C からは上げられない。**`openSettingsFor`（OP-43）は `.providesAppNotificationSettings` を求めたアプリにだけ来る**（`IosNotificationManager` の DocC）。**`.foreground` の口は状態が決まった後は OS に求めない**（第 1 部 5.13.2 の表）ので、**既に決まっているアプリ（1.x から上げたアプリを含む）は、この関数では `PROVIDES_APP_SETTINGS` を足せない**。そのときはホストのネイティブのコードが `requestAuthorization` を呼ぶ（16 章） | 選択肢が無いと C だけのアプリでは OP-43 のイベントが決して来ず、P1-10 で足した機能が使えない |
 | P2-28 | `callback` の `NULL` | **推奨: 入口で `INVALID_PARAMETER`**（Windows と同じ）。結果が要らないなら空の関数を渡す。所有権ごと渡すハンドルを誰が解放するかの問題も無くなる。今のブリッジは Clipboard・Notification・Share で受けていたので、包みが空の受け手を渡す（8.3） | 状態機械とハンドルの解放を単純に保つ |
 | P2-29 | 列挙を返す読み取りの `NULL` | **推奨: `NULL` のハンドルには -1 を返す**（`ntk_dialog_result_button`、`ntk_dialog_result_option_index`、`ntk_clipboard_loaded_item_kind`、`ntk_clipboard_change_kind`、`ntk_clipboard_change_scope_kind`、`ntk_notification_interaction_kind`、`ntk_clipboard_snapshot_matching_at`）。ほかの読み取りは第 1 部 5.7 のとおり 0 か `NULL`（5.7 との違いは 7 章） | `NTK_DIALOG_BUTTON_POSITIVE` は 0 で、`_option_index` の 0 は最初の選択肢なので、失敗のときの読み忘れが「肯定」になる |
 
 ### 0.1 利用者に決めてもらったもの
 
-後戻りしにくい順に P2-9（番号）、P2-10・P2-11（どの値を宣言するか）、P2-5・P2-8（関数と構造体の形）、P2-3（名前）。**`IosLibrary` を変えるものは P2-6、P2-12、P2-26**（どれも足すだけで、今の口の動作は変えない）。ほかは Android にそろえたものか、第 1 部から決まるもの。
+後戻りしにくい順に P2-9（番号）、P2-10・P2-11（どの値を宣言するか）、P2-5・P2-8（関数と構造体の形）、P2-3（名前）。**`IosLibrary` を変えるものは P2-6、P2-12、P2-26**（足すだけで、普通の呼び出しの動作は変えない。関数の参照は組めなくなる。Swift の設計書 3.3）。ほかは Android にそろえたものか、第 1 部から決まるもの。
 
 ### 0.2 シミュレーターの測り（2026-11-03）
 
@@ -72,6 +72,7 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | M5 | 空の値と範囲外 | `.timeInterval(0, repeats: false)` と `.timeInterval(30, repeats: true)` は例外でプロセスが落ちる。空の `id` は成功を返して何も残らない。空の category とアクションは登録される。`.calendar` の項目なしは pending 0。`location` の半径 0 と空の識別子は pending 1 | P2-26、6.3 |
 | M6 | 削除の後の `add` の順 | `authorized` で、`cancelAll` の完了から `show`、直接の `removeAll` の直後の `add`、`remove(["z"])` の直後の `add` のどれも、新しい要求が残った（各 OS 20/20）。**観測で、OS の保証は確かめていない** | P2-6 |
 | M7 | `.provisional` | `[.alert, .sound, .badge, .provisional]` は警告なしで `provisional`。その後に `.provisional` なしで求めると警告が出て、`authorized` か `denied` になる | P2-27 |
+| M8 | `timeInterval` の境界 | `(-1, false)`、`(-1, true)`、`(59.9, true)`、`(NaN, false)`、`(NaN, true)`、`(-∞, false)` は例外でプロセスが落ちる。`(60, true)`、`(∞, false)`、`(∞, true)` は pending に残る。`(0.001, false)` と最小の正の値は配信された | P2-26 |
 
 ### 0.3 第 2 版での反映（v1 のレビュー）
 
@@ -400,7 +401,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 
 ## 7. 変える文書とコード
 
-2b の前に直す（13 章の TB-0）。**`IosLibrary` の変更は足すだけで、今の口の動作は変えない**（`results/swiftinterface/` の基準を取り直す）。
+2b の前に直す（13 章の TB-0）。**`IosLibrary` の変更は足すだけで、普通の呼び出しの動作は変えない**（`results/swiftinterface/` の基準を取り直す。関数の参照の破壊は Swift の設計書 3.3）。
 
 | 対象 | 変えること |
 |---|---|
@@ -822,7 +823,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | イベント | **受け口の帳簿をイベントの型に依存しない形で組み、`@testable import` で流す**: 同じ種類に 2 つの登録で両方に届く、解除の後に届かない、保っていたイベントが次の登録に挿入のブロックの中で届く、**保っていたイベントを配っているコールバックの中で唯一の登録を外して新しく足しても、残りが新しい登録に届く**（AP-21）、33 件目で最も古いものを捨てる。**ハンドルの値（`_kind` の 4 種、userInfo、`_is_launch`）は純粋な変換のテストと 12.2 の 1 件ずつ**（`NotificationResponseEvent` の init は internal で、C から作れない） |
 | delegate | `NOT_INITIALIZED`（OP-42、OP-43、OP-45。Swift の口で入れたときは通る。P1-6）、`WRONG_THREAD`、起動のきっかけの取得（`NULL` の後に値に変わりうる。決まった後は 2 回呼んでも同じ。P2-19） |
 | userInfo の JSON（P2-7） | オブジェクトでない、不正な JSON、`1e400`、入れ子の `null`、最上位の予約のキーが setter の戻り値で `INVALID_PARAMETER`。入れ子の同じキーは通る。受け口の予約のキーの写しがライブラリと同じ（`reservedUserInfoKey` が出ないこと）。出力の変換表の全行（`date`・`data`・有限でない `double` が落ちずに決まった形になる。ブリッジの S-11 の場面）。`detect_values` の JSON のゴールデン |
-| trigger（P2-26） | **`IosLibrary` のテスト**: `isValid` の式の各分岐と TB-0 で測った値（負の値、59.9、60、NaN、無限大）、`invalidTrigger`。**C のテスト**: 範囲外の `interval`、`repeats` で 60 未満、`calendar_fields` の 0 と知らないビット、緯度と経度と半径が `INVALID_PARAMETER` で、**プロセスが落ちない** |
+| trigger（P2-26） | **`IosLibrary` のテスト**: `isValid` の式の各分岐と M8 で測った値、`invalidTrigger`。**C のテスト**: 範囲外の `interval`、`repeats` で 60 未満、`calendar_fields` の 0 と知らないビット、緯度と経度と半径が `INVALID_PARAMETER` で、**プロセスが落ちない** |
 | 0 で埋めた構造体 | `struct_size` のほかを 0 で埋めた各構造体（選択肢は `NULL` も）を、**構造体 → Swift の値の写しの関数で直接比べる**（E-9 の反転した名前を含む。`localOnly` や trigger は OS から読めないので完了では確かめられない）。Dialog の文言（P2-22） |
 | ビルダー | 既定値、`NULL` の setter、範囲外の値、空の `id`、`file://` でない添付。**渡した後に変更・解放しても内容が変わらないことは、ビルダー → `NotificationContent` の写しの関数で確かめる**（`IosLibraryCApiTests` のホストには権限が無く、操作は `PERMISSION_DENIED` で止まる） |
 | Clipboard | 9 種の `kind` のラウンドトリップ、`MULTI_REPRESENTATION` の重複の拒否、`read_data` の `NULL`、`get_snapshot` の `has_matching`、`.file` のファイルが `_free` で消えない、監視の開始の `UNAVAILABLE`、登録しただけでは始まらない、解除しても監視は続く（P2-17）（貼り付けの拒否の 4 つの値は 12.2） |

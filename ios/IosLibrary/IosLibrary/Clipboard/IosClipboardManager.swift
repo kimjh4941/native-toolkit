@@ -19,24 +19,23 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 /// This type is `@MainActor`-isolated. Call its members from the main actor (e.g. from SwiftUI /
 /// UIKit code already on main); from a non-main context, use `await MainActor.run { ... }`, or
 /// queue a block on the main queue and call the manager inside it (the C ABI entry points of
-/// 2.0.0 do so, with `MainActor.assumeIsolated`). The one exception is ``cancelLoad(_:)``, which
-/// is `nonisolated`: call it from any thread. ``shared`` itself is read on the main actor, so to
-/// cancel from another thread, keep the manager you got on the main actor (it is `Sendable`) and
-/// call ``cancelLoad(_:)`` on it.
+/// 2.0.0 do so, with `MainActor.assumeIsolated`). The one exception is `cancelLoad(_:)`, which
+/// is `nonisolated`: call it from any thread. ``shared`` itself is read on the main actor, so
+/// from another thread call the static form, `IosClipboardManager.cancelLoad(box)`.
 ///
 /// ## API shape
 /// - P-1〜P-11 (data-bearing operations) offer both a callback form and an `async throws` native
 ///   form. `loadItem` also has a callback form that takes a ``RequestBox``
-///   (``loadItem(_:scope:requestBox:completion:)``), cancelled with ``cancelLoad(_:)``.
+///   (``loadItem(_:scope:requestBox:completion:)``), cancelled with `cancelLoad(_:)`.
 /// - P-12〜P-16 (`cancelAllLoads`, `startObserving`, `stopObserving`, `checkForegroundChange`,
-///   `makePasteControl`) and ``cancelLoad(_:)`` complete synchronously and therefore have a
+///   `makePasteControl`) and `cancelLoad(_:)` complete synchronously and therefore have a
 ///   single, synchronous form only (see `common.md`'s "同期 control / factory API" exception).
 ///
 /// ## Cancelling a load
 ///
 /// | Way | Cancels | Thread | Result of the cancelled load |
 /// |---|---|---|---|
-/// | ``cancelLoad(_:)`` | The load of one ``RequestBox`` (also before it starts) | Any | `CLIPBOARD_CANCELLED`, once |
+/// | `cancelLoad(_:)` | The load of one ``RequestBox`` (also before it starts) | Any | `CLIPBOARD_CANCELLED`, once |
 /// | `cancel()` of the ``ClipboardLoadToken`` that ``loadItem(_:scope:completion:)`` returns | That load | Main actor | `CLIPBOARD_CANCELLED`, once |
 /// | Cancelling the task of the `async` ``loadItem(_:scope:)`` | That load | Any | Throws `ClipboardError.cancelled` |
 /// | ``cancelAllLoads()`` | Every pending load of this manager, of all three forms | Main actor | `CLIPBOARD_CANCELLED` (or `ClipboardError.cancelled`), once each |
@@ -355,7 +354,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     ///     For a `.file` item, you own the file and its parent directory: delete them when done.
     /// - Returns: A token whose `cancel()` (main actor) cancels this load. To cancel from another
     ///   thread, or before the load starts, use ``loadItem(_:scope:requestBox:completion:)`` and
-    ///   ``cancelLoad(_:)`` instead.
+    ///   `cancelLoad(_:)` instead.
     @discardableResult
     public func loadItem(
         _ request: ClipboardLoadRequest,
@@ -401,7 +400,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     // MARK: - P-11 loadItem with a request box (stage 1b, S-P22)
 
     /// Loads the first item of the pasteboard of `scope` that matches `request`, in the request
-    /// of `requestBox`, which ``cancelLoad(_:)`` cancels from any thread.
+    /// of `requestBox`, which `cancelLoad(_:)` cancels from any thread.
     ///
     /// The same load as ``loadItem(_:scope:completion:)``; the box takes the place of the token.
     /// Create the box before the call, so that the request can be cancelled from the moment you
@@ -410,7 +409,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     /// | Completion | When |
     /// |---|---|
     /// | `(true, item, nil, nil)` | The item was loaded |
-    /// | `(false, nil, "CLIPBOARD_CANCELLED", <fixed text>)` | ``cancelLoad(_:)`` closed the box before the result: during the load, or before this call (then nothing is read). Also ``cancelAllLoads()`` or the manager going away during the load |
+    /// | `(false, nil, "CLIPBOARD_CANCELLED", <fixed text>)` | `cancelLoad(_:)` closed the box before the result: during the load, or before this call (then nothing is read). Also ``cancelAllLoads()`` or the manager going away during the load |
     /// | `(false, nil, "CLIPBOARD_INVALID_REQUEST", <fixed text>)` | Another request already uses `requestBox` (a box is used once). That request is not affected, and nothing is read |
     /// | `(false, nil, <errorCode>, <fixed text>)` | The load failed as in ``loadItem(_:scope:completion:)`` (`errorCode` is `ClipboardError.errorCode`) |
     ///
@@ -422,7 +421,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     ///   - request: What to load.
     ///   - scope: The pasteboard to load from.
     ///   - requestBox: A new ``RequestBox`` for this request. Pass the same box to
-    ///     ``cancelLoad(_:)`` to cancel the request.
+    ///     `cancelLoad(_:)` to cancel the request.
     ///   - completion: `(isSuccess, item, errorCode, errorMessage)`, exactly once, on the main
     ///     thread, never inside this call. For a `.file` item, you own the file and its parent
     ///     directory: delete them when done.
@@ -451,14 +450,25 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     /// Any thread, also from inside a completion; never waits for the main thread. The box
     /// stays closed: a cancelled request cannot be started again with it.
     ///
-    /// - Note: ``shared`` is read on the main actor. To call this method from another thread,
-    ///   keep the manager you got on the main actor (it is `Sendable`) and call it on that
-    ///   reference.
+    /// - Note: ``shared`` is read on the main actor. From another thread, call the static form:
+    ///   `IosClipboardManager.cancelLoad(box)`. Both forms do the same.
     /// - Note: This method closes whatever box it is given. Pass only a box of a Clipboard load:
     ///   a box that another library request uses (for example a Dialog's) ends that request.
     /// - Parameter box: The box you passed to ``loadItem(_:scope:requestBox:completion:)``.
     nonisolated public func cancelLoad(_ box: RequestBox) {
         logger.log(level: .libraryDebug, "[cancelLoad] box closed: \(box.isClosed, privacy: .public)")
+        Self.cancelLoad(box)
+    }
+
+    /// Cancels the load of `box`, as the instance form of `cancelLoad(_:)` does, without a manager:
+    /// any thread, also before anything has read ``shared`` on the main actor. Never waits for the
+    /// main thread; the load's completion reports `CLIPBOARD_CANCELLED` on the main thread.
+    ///
+    /// - Note: This method closes whatever box it is given. Pass only a box of a Clipboard load:
+    ///   a box that another library request uses (for example a Dialog's) ends that request.
+    /// - Parameter box: The box you passed to ``loadItem(_:scope:requestBox:completion:)``.
+    nonisolated public static func cancelLoad(_ box: RequestBox) {
+        logger.log(level: .libraryDebug, "[cancelLoad static] box closed: \(box.isClosed, privacy: .public)")
         let closed = box.close(.canceled)
         logger.log(level: .libraryDebug, "[cancelLoad] closed by this call: \(closed, privacy: .public)")
     }

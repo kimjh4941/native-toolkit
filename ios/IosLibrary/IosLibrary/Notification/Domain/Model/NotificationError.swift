@@ -19,6 +19,7 @@ import Foundation
 /// | ``authorizationFailed(_:)`` | The permission request itself failed |
 /// | ``reservedUserInfoKey`` | `show`, `update` or `schedule`: the userInfo uses the library's reserved key |
 /// | ``invalidUserInfo`` | `show`, `update` or `schedule`: the userInfo holds a value that is not a property-list value |
+/// | ``invalidTrigger`` | `show`, `update` or `schedule`: the time interval of the trigger makes the system raise an exception (``NotificationTrigger/isValid``) |
 /// | ``notForeground`` | A permission request (while the permission is not determined) or the settings page with `PresenterSelection.foreground` or `viewController(_:)`: the app is not in the foreground |
 /// | ``openSettingsFailed`` | The system did not open the settings page |
 /// | ``delegateNotInstalled`` | A listener or the launch response before ``IosNotificationManager/installDelegate()`` |
@@ -53,6 +54,10 @@ public enum NotificationError: Error, Sendable, Equatable, LocalizedError {
     /// value (string, number, Boolean, date, data, array or dictionary with string keys).
     /// Nothing was added, removed or replaced.
     case invalidUserInfo
+    /// The trigger of `show`, `schedule` or `update` is not valid (``NotificationTrigger/isValid``):
+    /// the system would raise an exception, which ends the process. Nothing was added, removed or
+    /// replaced.
+    case invalidTrigger
     /// A permission request (while the permission is not determined yet) or the settings page
     /// was asked for with `PresenterSelection.foreground` or `viewController(_:)` while the app
     /// has no view controller in the foreground. No system prompt was shown.
@@ -82,6 +87,8 @@ public enum NotificationError: Error, Sendable, Equatable, LocalizedError {
             return "The userInfo uses the key the library reserves."
         case .invalidUserInfo:
             return "The userInfo holds a value that is not a property-list value."
+        case .invalidTrigger:
+            return "The time interval of the trigger is not valid."
         case .notForeground:
             return "The app is not in the foreground."
         case .openSettingsFailed:

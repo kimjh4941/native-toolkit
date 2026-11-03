@@ -282,13 +282,18 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// The userInfo is checked first: ``NotificationError/reservedUserInfoKey`` when it uses the
     /// library's key, ``NotificationError/invalidUserInfo`` when it holds a value that is not a
-    /// property-list value; nothing is added then. The library's repository then checks that the
-    /// file of every attachment exists: a file that does not exist (or that the process cannot
+    /// property-list value; a trigger that is not valid (``NotificationTrigger/isValid``) is
+    /// ``NotificationError/invalidTrigger``; nothing is added then. The library's repository then
+    /// checks that the file of every attachment exists: a file that does not exist (or that the process cannot
     /// see) is ``NotificationError/attachmentLoadFailed(identifier:detail:)`` with
     /// `NSCocoaErrorDomain` and `NSFileReadNoSuchFileError`, and nothing is added. Only file URLs
     /// (`isFileURL`) are checked; any other URL is left to the system as before. A file removed
     /// after that check makes the system reject the request
     /// (``NotificationError/addRequestFailed(_:)``).
+    ///
+    /// - Important: Without the permission, the system reports success and keeps no pending
+    ///   request; a scheduled one does not fire after the permission is granted later. Check
+    ///   ``authorizationStatus(completion:)`` first when that matters.
     ///
     /// - Note: `completion` is invoked on the main thread, exactly once (see the type's Threading
     ///   section), with `errorMessage` the fixed English description of the ``NotificationError``.
@@ -325,15 +330,17 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Updates an existing pending notification.
     ///
-    /// The userInfo is checked first, as in ``show(content:trigger:completion:)``, and the library's
-    /// repository makes the content (with its attachments) before it removes the pending request:
-    /// an update rejected by the checks or by an attachment that cannot be made (a missing file
+    /// The userInfo and the trigger are checked first, as in ``show(content:trigger:completion:)``,
+    /// and the library's repository makes the content (with its attachments) before it removes the
+    /// pending request: an update rejected by the checks or by an attachment that cannot be made (a missing file
     /// included) leaves the pending request in place. Only file URLs (`isFileURL`) are checked;
     /// any other URL is left to the system as before (`update` may then have removed the pending
     /// request when `add` fails). When the system then does not add the new request
     /// (``NotificationError/addRequestFailed(_:)``, for example because an attachment file was
     /// removed after the check), the pending request has already been removed.
     ///
+    /// - Important: Without the permission, the system reports success and keeps no pending
+    ///   request; see ``show(content:trigger:completion:)``.
     /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
     ///   for the reason given on ``show(content:trigger:completion:)``.
     public func update(
@@ -364,7 +371,7 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Cancels a specific pending notification.
     ///
-    /// The same operation as ``cancelScheduled(identifier:)``: both remove the pending request
+    /// The same operation as ``cancelScheduled(identifier:completion:)``: both remove the pending request
     /// with `identifier` and leave a delivered notification in place (design S-P16).
     public func cancel(identifier: String) {
         logger.log(level: .libraryDebug, "[cancel] identifier: \(identifier, privacy: .public)")
@@ -373,7 +380,7 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Cancels all pending notifications.
     ///
-    /// The same operation as ``cancelAllScheduled()``. It removes every pending request of the
+    /// The same operation as ``cancelAllScheduled(completion:)``. It removes every pending request of the
     /// app, also those another component (a game engine's notification package, for example)
     /// added (design 3.4).
     public func cancelAll() {
@@ -382,25 +389,38 @@ public final class IosNotificationManager: NSObject, Sendable {
     }
 
     /// Removes a specific delivered notification from Notification Center.
-    public func removeDelivered(identifier: String) {
-        logger.log(level: .libraryDebug, "[removeDelivered] identifier: \(identifier, privacy: .public)")
-        Task { await removeDeliveredUseCase.execute(identifier: identifier) }
+    ///
+    /// The removal runs in a task of its own. `completion` is invoked on the main thread, exactly
+    /// once, never inside the call, after the system call has returned. To order this against a
+    /// later operation, start that operation from `completion`; the system itself does not promise
+    /// when the removal shows in its lists.
+    public func removeDelivered(identifier: String, completion: (@MainActor @Sendable () -> Void)? = nil) {
+        logger.log(level: .libraryDebug, "[removeDelivered] identifier: \(identifier, privacy: .public), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        Task {
+            await removeDeliveredUseCase.execute(identifier: identifier)
+            Self.complete(completion, method: "removeDelivered")
+        }
     }
 
     /// Removes all delivered notifications from Notification Center, also those another component
-    /// delivered (design 3.4).
-    public func removeAllDelivered() {
-        logger.log(level: .libraryDebug, "[removeAllDelivered]")
-        Task { await removeAllDeliveredUseCase.execute() }
+    /// delivered (design 3.4). `completion` works as on ``removeDelivered(identifier:completion:)``.
+    public func removeAllDelivered(completion: (@MainActor @Sendable () -> Void)? = nil) {
+        logger.log(level: .libraryDebug, "[removeAllDelivered] completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        Task {
+            await removeAllDeliveredUseCase.execute()
+            Self.complete(completion, method: "removeAllDelivered")
+        }
     }
 
     /// Schedules a notification for future delivery.
     ///
     /// The request's identifier is `identifier`; `content.id` is not used (design S-P16). The
-    /// userInfo and the attachment files are checked first, as in
+    /// userInfo, the trigger and the attachment files are checked first, as in
     /// ``show(content:trigger:completion:)``. Only file URLs (`isFileURL`) are checked; any other
     /// URL is left to the system as before.
     ///
+    /// - Important: Without the permission, the system reports success and keeps no pending
+    ///   request; see ``show(content:trigger:completion:)``.
     /// - Note: `completion` is invoked on the main thread, exactly once. `content` is `sending`
     ///   for the reason given on ``show(content:trigger:completion:)``.
     public func schedule(
@@ -433,15 +453,23 @@ public final class IosNotificationManager: NSObject, Sendable {
     }
 
     /// Cancels a specific scheduled notification: the same operation as ``cancel(identifier:)``.
-    public func cancelScheduled(identifier: String) {
-        logger.log(level: .libraryDebug, "[cancelScheduled] identifier: \(identifier, privacy: .public)")
-        Task { await cancelScheduledUseCase.execute(identifier: identifier) }
+    /// `completion` works as on ``removeDelivered(identifier:completion:)``.
+    public func cancelScheduled(identifier: String, completion: (@MainActor @Sendable () -> Void)? = nil) {
+        logger.log(level: .libraryDebug, "[cancelScheduled] identifier: \(identifier, privacy: .public), completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        Task {
+            await cancelScheduledUseCase.execute(identifier: identifier)
+            Self.complete(completion, method: "cancelScheduled")
+        }
     }
 
-    /// Cancels all scheduled notifications: the same operation as ``cancelAll()``.
-    public func cancelAllScheduled() {
-        logger.log(level: .libraryDebug, "[cancelAllScheduled]")
-        Task { await cancelAllScheduledUseCase.execute() }
+    /// Cancels all scheduled notifications: the same operation as ``cancelAll()``. `completion`
+    /// works as on ``removeDelivered(identifier:completion:)``.
+    public func cancelAllScheduled(completion: (@MainActor @Sendable () -> Void)? = nil) {
+        logger.log(level: .libraryDebug, "[cancelAllScheduled] completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
+        Task {
+            await cancelAllScheduledUseCase.execute()
+            Self.complete(completion, method: "cancelAllScheduled")
+        }
     }
 
     /// Returns all pending (not yet delivered) notification requests.

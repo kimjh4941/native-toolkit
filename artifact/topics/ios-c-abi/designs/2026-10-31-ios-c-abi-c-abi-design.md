@@ -53,7 +53,7 @@ README 3.1 が冒頭に置くよう求める前提と、Windows の設計書 1 �
 |---|---|---|
 | 名前の規則（`ntk_<機能>_<動詞>`、ハンドルは不完全型、列挙は `typedef int32_t` と無名の `enum`、コールバックは `_fn`） | Windows の設計書 1.1、Android 第 1 部 1.1 | 同じ意味の操作は同じ名前（README 3.3）。Dialog と Share の名前は第 2 部の最初に Android と照らす |
 | 受け渡しの 3 方式（出力のハンドル、`struct_size` 付きの構造体、ビルダーのハンドル） | Windows の設計書 1.2、E-5 | どれを使うかは第 2 部 |
-| エラーは戻り値（機能ごとの `int32_t`、0 が成功、欠番は詰めない、0〜5 は共通の意味） | Windows の設計書 7.3、Android 第 2 部 AP-12 | 5.10。Notification に iOS だけの値が 1 つ（`WRONG_THREAD = 16`。P1-7）。Share と Clipboard にも Android に無い値が出る（`CANCELED` など。数は第 2 部）。Dialog は Android と同じ名前の値で足りる見込み |
+| エラーは戻り値（機能ごとの `int32_t`、0 が成功、欠番は詰めない、0〜5 は共通の意味） | Windows の設計書 7.3、Android 第 2 部 AP-12 | 5.10。Notification に iOS だけの値が 5 つ（`WRONG_THREAD = 16`（P1-7）と 17〜20。第 2 部 11.2）。Share と Clipboard にも Android に無い値が出る（Clipboard の `CANCELED` など。**Share に `CANCELED` は無い**。第 2 部 P2-11）。Dialog は Android と同じ名前の値で足りる見込み |
 | 出力引数: **ハンドルの出力は入口で必ず `NULL` を書いてから処理し、成功したときだけハンドルが入る。値の出力（列挙、真偽値、要求の ID）は成功したときだけ書く** | Windows の設計書 7.3 | 5.7 の手順 1、6 章（R-8） |
 | メモリ（`_free` は確保した側、`_free(NULL)` は何もしない、読み取りのポインタは元のハンドルを解放するまで有効） | Windows の設計書 7.4 | **コールバックの引数は Android と同じ所有権ごと渡す形**（AC-18。5.8） |
 | 入力（引数の文字列、配列、構造体とその中のポインタ、ビルダー）は**呼び出しの間だけ**有効であればよい。ライブラリは要るものを呼び出しの中で写す | Windows の設計書 7.4 | iOS では非同期の操作でも、**main に積む前に**深く写す（Swift の `String`・`Data`・値型に変える）。生のポインタを積まない。ビルダーは渡した時点の写しを使い、利用者は戻った後に解放してよい（5.7 の手順 1。R-5） |
@@ -62,7 +62,7 @@ README 3.1 が冒頭に置くよう求める前提と、Windows の設計書 1 �
 | ライブラリはコールバックを呼ぶ間、利用者が触れるロックを持たない | Windows の設計書 7.5.5、Android 第 1 部 K-2 | 5.7 |
 | 文字列は NUL で終わる UTF-8、`NULL` と `""` の区別、不正な UTF-8 は `INVALID_PARAMETER`、出力の不正なサロゲートと U+0000 は U+FFFD | Windows の設計書 7.6、E-7、E-15、E-16、AC-19 | 実装は 5.9（Swift の `String` を通す） |
 | 真偽値は `int32_t`、0 で埋めた構造体が既定値、件数は `size_t` | E-8、E-9、E-17 | iOS は 64 ビットだけなので、`size_t` は 8 バイト（D-11） |
-| `struct_size` の読み方（先頭 8 バイト、詰め物の明示、最小は 2.0.0 の `sizeof`、上限 4096、未知の部分は 0 なら受け付ける、8 バイトの倍数で増やす） | Windows の設計書 7.8 | **1a で確かめたのは `@c @implementation` から読めることだけ**（1a 入口 2.1 の `testStructSize`）。雛形は 7.8 の規則 1（`reserved` が 0 でなければ `INVALID_PARAMETER`）、規則 2 の上限 4096、規則 4（知らない部分が 0 でなければ `NOT_SUPPORTED`）を実装しておらず、後ろを 0xAB で埋めた構造体を受け付けるテストもある。**2b はこれを写さない**。`StructReader` は 7.8 の 5 つの規則のとおりに作り、規則を 1 つずつ壊すと落ちることをテストで確かめる（6 章。R-9） |
+| `struct_size` の読み方（先頭 8 バイト、詰め物の明示、最小は 2.0.0 の `sizeof`、上限 4096、未知の部分は 0 なら受け付ける、8 バイトの倍数で増やす） | Windows の設計書 7.8 | **配列の要素も `struct_size` を持ち、各要素の大きさで進み、同じ配列の大きさは同じ（第 2 部 P2-5）。** **1a で確かめたのは `@c @implementation` から読めることだけ**（1a 入口 2.1 の `testStructSize`）。雛形は 7.8 の規則 1（`reserved` が 0 でなければ `INVALID_PARAMETER`）、規則 2 の上限 4096、規則 4（知らない部分が 0 でなければ `NOT_SUPPORTED`）を実装しておらず、後ろを 0xAB で埋めた構造体を受け付けるテストもある。**2b はこれを写さない**。`StructReader` は 7.8 の 5 つの規則のとおりに作り、規則を 1 つずつ壊すと落ちることをテストで確かめる（6 章。R-9） |
 | 公開ヘッダーは `<stdint.h>` と `<stddef.h>` だけを include、ASCII、C99 と C++、include ガードと `extern "C"`、`#pragma pack(push, 8)` | Windows の設計書 7.2 | 機能のヘッダーが `Common.h` を include する書き方だけが違う（1a-5。5.2） |
 | 64 ビットの要求の ID（使い回さない） | AC-17 | Windows は 32 ビット。iOS は Android に合わせる |
 | Dialog は非同期だけ | AC-7、D-8 | - |
@@ -178,7 +178,7 @@ ntk_notification_error NTK_CALL ntk_notification_install(void);
 ## 2. 設計目的
 
 - `UnityIosPlugin`（Objective-C の `.m` と JSON のブリッジ）に代わる、汎用の C ABI（`IosLibraryCApi`）を作る（README 1.1）
-- C ABI は **`IosLibrary` の Swift の API の薄い包み**にする。振る舞いは Swift の API が決め、C ABI は型の変換、寿命の管理、スレッドの受け渡し、検査だけを受け持つ（README 3 章、Windows の E-2）
+- C ABI は **`IosLibrary` の Swift の API の薄い包み**にする。振る舞いは Swift の API が決め、C ABI は型の変換、寿命の管理、スレッドの受け渡し、検査だけを受け持つ（README 3 章、Windows の E-2）。**例外は通知の権限の事前の確かめ**（第 2 部 P2-10。Android の AP-16 と同じ。Swift の口の今の成功を失敗に変えないために受け口に置く）
 - Windows・Android と同じ規約にし、同じ意味の操作には同じ名前を付ける（README 3.2、3.3、D-3）。ただし iOS の前提（Swift の `@c`、UIKit の main スレッド、通知の delegate、scene）から来る違いは無理にそろえず、4.3 に理由とともに書く
 
 ## 3. スコープ
@@ -453,7 +453,7 @@ Android 第 1 部 5.7 の形を引き継ぐ。iOS では「積めない」経路
 
 | 種類 | 実体 |
 |---|---|
-| 出力のハンドル（`ntk_string`、`ntk_bytes`、`ntk_string_list` など） | `Unmanaged.passRetained` した Swift のオブジェクト。**ハンドルの型ごとにクラスを分ける**（`NTKString`、`NTKBytes`、`NTKStringList`。1a の雛形は `ntk_string` と `ntk_bytes` が同じ `NTKBuffer` だったので、型の確かめが効かなかった。R-30）。`_free` が 1 回 `release` する。`NULL` のハンドルには `NULL` / 0 を返す。**違う型のハンドルを渡すことと、解放した後のハンドルは未定義**（実装は `as?` で確かめて `NULL` / 0 を返すが、約束しない） |
+| 出力のハンドル（`ntk_string`、`ntk_bytes`、`ntk_string_list` など） | `Unmanaged.passRetained` した Swift のオブジェクト。**ハンドルの型ごとにクラスを分ける**（`NTKString`、`NTKBytes`、`NTKStringList`。1a の雛形は `ntk_string` と `ntk_bytes` が同じ `NTKBuffer` だったので、型の確かめが効かなかった。R-30）。`_free` が 1 回 `release` する。`NULL` のハンドルには `NULL` / 0 を返す。**違う型のハンドルを渡すことと、解放した後のハンドルは未定義**（実装は `as?` で確かめて `NULL` / 0 を返すが、約束しない） 列挙と添字を返す読み取りは `NULL` のハンドルに -1（第 2 部 P2-29） |
 | イベントの登録のハンドル | `Registration`（下）を `passRetained` したもの。利用者が 1 つの参照を持ち、解除の関数がそれを手放す |
 | 完了つきの操作 | `Registration`。利用者にはハンドルを渡さない。取り消せる操作は ID の表に入れる |
 | `Registration` | 関数ポインタ、`user_data`、`release`、ID、種類、**状態（`Atomic<UInt8>`: `ACTIVE`、`CANCEL_REQUESTED`、`RELEASED`）**、完了つきの操作なら **main だけが読み書きする「完了済み」の印** |
@@ -478,7 +478,7 @@ Android 第 1 部 5.7 の形を引き継ぐ。iOS では「積めない」経路
 |---|---|---|---|
 | 挿入と開始（受け付けで積んだもの） | イベントの登録なら帳簿の末尾に入れ、保っていたイベント（5.12.7）をこのブロックの中で配る。完了つきの操作なら処理を始める（前面の判定、`IosLibrary` の呼び出し） | 何もしない（後から来る「外す」に任せる） | 何もしない |
 | イベントの配送 | 呼ぶ直前に状態を確かめ、`ACTIVE` なら利用者の関数を呼ぶ | 呼ばない | 何もしない |
-| 完了（`IosLibrary` の完了が main で来た、または前面の判定などで決まった） | 印が無ければ、完了を呼んで印を立てる → `tryRelease(ACTIVE)`。失敗したら（完了を呼ぶ間に取り消された）何もしない（後から来る「外す」が `tryRelease` する） | 印が無ければ、完了を `CANCELED` で呼んで印を立てる（得た結果は捨てる）→ `tryRelease(CANCEL_REQUESTED)` | 何もしない |
+| 完了（`IosLibrary` の完了が main で来た、または前面の判定などで決まった） | 印が無ければ、完了を呼んで印を立てる → `tryRelease(ACTIVE)`。失敗したら（完了を呼ぶ間に取り消された）何もしない（後から来る「外す」が `tryRelease` する） | 印が無ければ、完了を `CANCELED` で呼んで印を立てる（得た結果は捨てる）→ `tryRelease(CANCEL_REQUESTED)` | 何もしない。ただし受け手に渡らなかった `.file` の成功は消す（第 2 部 5.3） |
 | 外す（解除・取り消しで積んだもの） | （起きない。解除は先に状態を `CANCEL_REQUESTED` にしてから積む） | (1) イベントの登録なら帳簿から外す。(2) 完了つきの操作で印が無ければ、完了を `CANCELED` で呼んで印を立てる（`IosLibrary` の要求の取り消しは、取り消しの関数の中で既に頼んである。下の「解除と取り消し」）。(3) **(1)・(2) の後に、種類と印に関わらず必ず `tryRelease(CANCEL_REQUESTED)`**（R-3） | 何もしない |
 
 **解除と取り消し**（どのスレッドからでも）:
@@ -546,7 +546,7 @@ Android 第 1 部 5.7 の形を引き継ぐ。iOS では「積めない」経路
 | 4 | `UNKNOWN` | 対応表に無い `IosLibrary` の失敗。詳細は `os_log`（P1-18） |
 | 5 | `OUT_OF_MEMORY` | 番号だけ残し、返さない（DF-16） |
 
-iOS で新しく足す値: **`NTK_NOTIFICATION_ERROR_WRONG_THREAD = 16`**（入れる関数だけが返す。P1-7）。Notification の 6〜15 は、Android の同じ名前の値に同じ番号を使い、iOS で使わない値（`EXACT_ALARM_NOT_ALLOWED` など）は欠番にする（第 2 部）。
+iOS で新しく足す値: **`NTK_NOTIFICATION_ERROR_WRONG_THREAD = 16`**（入れる関数だけが返す。P1-7）と 17〜20（第 2 部 11.2）。Notification の 6〜15 は、Android の同じ名前の値に同じ番号を使い、iOS で使わない値（`CANCELED`、`CANCELED_BY_SYSTEM`、`EXACT_ALARM_NOT_ALLOWED` など）は欠番にする（第 2 部 P2-10）。
 
 **`IosLibrary` のエラーを写す規則**（対応表そのものは第 2 部）:
 
@@ -708,7 +708,7 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 
 #### 5.13.1 要求の箱と、表示の完了（P1-14）
 
-**要求の箱**: 完了つきの要求ごとに 1 つ持つ、1 回だけ閉じられる箱。Dialog・Share・権限の要求・設定の画面・Clipboard の読み込みのどれも同じ箱を使う（Clipboard の読み込みは ViewController を持たない。R3-7）。
+**要求の箱**: 完了つきの要求ごとに 1 つ持つ、1 回だけ閉じられる箱。Dialog・Share・権限の要求・設定の画面・Clipboard の読み込みのどれも同じ箱を使う（Clipboard の読み込みは ViewController を持たない。R3-7）。**これは `IosLibrary` の中の話で、C から取り消せるのは Dialog と読み込みだけ**（第 2 部 P2-10、P2-11）。
 
 | 規則 | 内容 |
 |---|---|
@@ -798,12 +798,12 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 | 入れる関数 | 同上と 1b のテスト | main から呼ぶと戻る前に delegate が proxy になっている。2 回目は何もしない（前の delegate が proxy 自身にならない）。差し替えの後の入れ直し。main 以外は即 `WRONG_THREAD` で delegate が変わらない。入れる前の受け手の登録が `NOT_INITIALIZED`。**Swift の口で入れた後の C の受け手の登録が `NONE`**（R-12、R-37） |
 | 転送の組み合わせ | 1b の Swift の単体テスト | 1a delegate 3 章の組み合わせの表（メソッド 3 つ × 前の delegate の振る舞い × 通知の種類 × 時期）。**循環**: 3 つのメソッドそれぞれで、最初の転送の呼び出しの中の同期の転送し直しが止まり、「誰も受けない」として扱われる（`didReceive` はイベントを出す）。`openSettingsFor` の `nil`。同じ identifier で `date` の違う配信は循環と見なさない（P1-21）。契約の外の形はテストしない。包みを背景のキューから呼んでも止まらない。`UNUserNotificationCenter` は作れないので、転送の判定と包みを分けて確かめる形を 1b で決める（1a delegate 8 章） |
 | 文字列 | `IosLibraryCApiTests` | BMP の外の文字、対になっていないサロゲートと U+0000 が `EF BF BD` になる（1a 入口 5.3）、出力の途中に NUL が無い |
-| ハンドル | 同上 | `_free(NULL)`、`NULL` のハンドルの読み取りが `NULL` / 0。違う型のハンドルの読み取りは契約では未定義だが、実装が `NULL` / 0 を返すことを確かめる（型ごとにクラスを分けたことの確かめ。R-30） |
+| ハンドル | 同上 | `_free(NULL)`、`NULL` のハンドルの読み取りが `NULL` / 0（**列挙と添字を返す読み取りは -1**。第 2 部 P2-29）。違う型のハンドルの読み取りは契約では未定義だが、実装が `NULL` / 0 を返すことを確かめる（型ごとにクラスを分けたことの確かめ。R-30） |
 | 構造体の配置 | 同上 | `sizeof` / `offsetof` を、ヘッダーの `/* sizeof N */` と照らす（C# の EditMode のテストと同じ値。知見 3 章） |
 | Objective-C のクラス | 同上 | `objc_copyClassNamesForImage` で capi のクラスを挙げ、すべてモジュール名で区切られた Swift のクラスで、`@objc` で名前を固定したクラスが無いこと（5.3） |
 | ヘッダー | 2a | C99・C11・C++・Objective-C でヘッダーだけをコンパイル（`-Wall -Wextra -Werror`）、モジュールの検証、5.5 の照合 |
 | smoke | `IosLibraryCApiSmoke` | dist の 2 つの xcframework だけで組む C / Objective-C のアプリを、Xcode 26.6 と 26.3 で組む（D-16）。`#include <NativeToolkitC/...>` の形（G-3） |
-| 前面 | 1b と 2b の UI テスト | 5.13 の表の操作を前面・後ろ・`foregroundInactive`（Control Center を引き出す間など）で。**後ろにいるまま操作を起こすテスト専用の口**（Android の S-X6 と同じ。サンプルに `#if DEBUG` の口を置く）。iPad の iOS 18.3 のシミュレーターでアクションシートと Share（P1-20）。同じ main の回で 2 つの Dialog を呼ぶと両方出る（P1-12。R-18）。G-6 の 2 つの前提（R-15、R-37） |
+| 前面 | 1b と 2b の UI テスト | 5.13 の表の操作を前面・後ろ・`foregroundInactive`（Control Center を引き出す間など）で。**後ろにいるまま操作を起こすテスト専用の口**（Android の S-X6 と同じ。~~サンプルに `#if DEBUG` の口を置く~~ **C を呼ぶ UI テスト用のアプリに置く**。サンプルは Swift の API だけを使う。第 2 部 TB-2b）。iPad の iOS 18.3 のシミュレーターでアクションシートと Share（P1-20）。同じ main の回で 2 つの Dialog を呼ぶと両方出る（P1-12。R-18）。G-6 の 2 つの前提（R-15、R-37） |
 
 新しく足すテストは、守る対象を壊すと落ちることを確かめる（`common.md` の「検査の書き方」、知見 4 章）。
 
@@ -856,7 +856,7 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 - `out_request_id` に `NULL` を渡してよいか（1a の雛形は `NULL` を許した）、0 で埋めた構造体のときの Dialog の既定の文言（今のライブラリの既定。README 4 章）、Clipboard の監視を `add` / `remove` の登録の形にするか（今のブリッジは開始と停止）（R-34）
 - 今のブリッジの `clipboardCancelLoads`（読み込みの一括の取り消し）を、P1-24 の要求ごとの取り消しに置き換えたことを対応表に書く（Unity の包みが一括を保つ。R-33）
 - P1-24 の取り消しの関数の名前（Dialog は Android の `ntk_dialog_cancel`）と、Clipboard の読み込みの取り消しの名前
-- `scripts/c_abi_error_numbers.json` の機能ごとの番号の表（P1-7）の中身: 同じ名前は Android と同じ番号、iOS だけの値は Android のその機能の最後の番号の次から、Android だけの番号は iOS で欠番。Share と Clipboard に出る、Android に無い値（`CANCELED`、`CANCELED_BY_SYSTEM`、表示の失敗など）の名前と番号（R4-6）
+- `scripts/c_abi_error_numbers.json` の機能ごとの番号の表（P1-7）の中身: 同じ名前は Android と同じ番号、iOS だけの値は Android のその機能の最後の番号の次から、Android だけの番号は iOS で欠番。Clipboard の `CANCELED`、Share の `CANCELED_BY_SYSTEM` と表示の失敗など、Android に無い値の名前と番号（R4-6）
 - 付録 A の全宣言
 
 ## 9. 後に続く文書に任せる条件
@@ -872,7 +872,7 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 | S-3 | ライブラリが作るすべての通知の要求に印を付ける。利用者の userInfo の同じキーを拒む。利用者に返す userInfo から印を外す | P1-9、5.12.2 |
 | S-4 | イベントの口: 複数の受け手、受け手が 0 の間は保つ（件数・期限・順序・重複を決める）、起動のきっかけの通知を P1-22 の規則で別に持つ、イベントは main に積んで配る、`didReceive` の completion は渡すか保つかした後に呼ぶ。C ABI の受け口が、その種類の最初の登録の挿入のブロックの中で保ったものを受け取れる（受け口は受け手を 1 つ足したら外さない。AP-21） | 5.12.7、5.7 |
 | S-5 | 完了つきの操作は、プロセスが生きている限りちょうど 1 回完了する。表示を伴う操作は 5.13.1 の「約束する」の終わり方で（ボタン、取り消し、表示の失敗、UIKit が知らせる終わり方）。`showLoginDialog` の失敗も（README 1.4）。仕組みは要求の箱と解放の見張り。**ホストが表示中に画面の構成を変える場合は約束の外**（0.1）。前提として、確定ボタンの handler と observer の循環参照を直し、ライブラリが表示した ViewController を強く持たない（README 1.4）。外から閉じたときの解放は G-7 で確かめる | 1.3、5.7、5.13.1 |
-| S-6 | Dialog・Share・権限の要求・設定の画面の表示の口に、表示元の決め方を選ぶ引数（`presenter`。既定は今の探し方、新しい定義の前面、渡された ViewController）を**足す**（既定は変えない。P1-11 の C）。要求の箱（S-15）を受け取る引数も足す。新しい定義の前面を返す公開の口は、今の `getRootViewController()` と別の名前にし、意味の違いを DocC に書く。表示の手順（5.13.2。`presenter` ごとの段）は `IosLibrary` の 1 か所に置く。基点（P1-13）。前面でない・表示の失敗・外から閉じられた（`CANCELED_BY_SYSTEM`）を別の case で返す | 5.13 |
+| S-6 | Dialog・Share・権限の要求・設定の画面の表示の口に、表示元の決め方を選ぶ引数（`presenter`。既定は今の探し方、新しい定義の前面、渡された ViewController）を**足す**（既定は変えない。P1-11 の C）。要求の箱（S-15）を受け取る引数も足す。新しい定義の前面を返す公開の口は、今の `getRootViewController()` と別の名前にし、意味の違いを DocC に書く。表示の手順（5.13.2。`presenter` ごとの段）は `IosLibrary` の 1 か所に置く。基点（P1-13）。前面でない・表示の失敗・外から閉じられた（`CANCELED_BY_SYSTEM`）を別の case で返す | 5.13 **箱を取るのは Dialog と読み込みだけ（Swift の設計書 18.1 の 12 の決め直し）** |
 | S-7 | エラーを安定した case にする（任意の `Error` を持たない）。C の値に 1 対 1 で写せる | 5.10 |
 | S-8 | 受け手やコールバックを呼ぶ間、利用者のコールバックから届きうる鍵を持たない | 1.1 |
 | S-9 | C ABI が要る口はすべて公開の API にする（`@_spi` を使わない） | P1-2 |

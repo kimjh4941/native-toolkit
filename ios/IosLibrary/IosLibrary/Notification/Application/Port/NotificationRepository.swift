@@ -22,7 +22,9 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 /// Only the library's `NotificationRepositoryImpl` marks the requests it adds as the library's
 /// (with the reserved userInfo key `com.jonghyunkim.nativetoolkit`), rejects a userInfo that uses
 /// that key (``NotificationError/reservedUserInfoKey``) or holds a value that is not a
-/// property-list value (``NotificationError/invalidUserInfo``), and removes the key from the lists
+/// property-list value (``NotificationError/invalidUserInfo``), rejects a trigger that is not valid
+/// (``NotificationError/invalidTrigger``; check ``NotificationTrigger/isValid`` in an implementation
+/// of your own, or the system raises an exception), and removes the key from the lists
 /// it returns. A request that an implementation of your own adds is not one of the library's
 /// notifications: when another delegate was set before `IosNotificationManager.installDelegate()`
 /// and implements the delegate method, the library forwards its presentation and its responses

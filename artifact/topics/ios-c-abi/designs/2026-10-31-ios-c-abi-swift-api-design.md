@@ -131,6 +131,8 @@ README 4.1 の 1b の 3 行（印と予約したキー、`openSettingsFor`、`pr
 | public の port の形が変わる: `ShareRepository.present(content:)` が `present(content:presenter:)` に、`NotificationRepository.openNotificationSettings()` が `openNotificationSettings() async -> Bool` になる。port を自分で実装した利用者は組めなくなる | 破壊的 | 8.2、8.5.5、RK-06 |
 | `ScheduledNotification`・`ActiveNotification` が `Sendable` になり、`userInfo` が計算プロパティになる（値の木 `userInfoValues` を足す）。読み方は今と同じ（作り直す辞書は `NSNumber` などの Foundation の型）。`init` に渡した、property list の型でない値と `String` でないキーは捨て、件数をログに出す | 動作・追加 | S-P25 |
 | `NotificationPermissionHelper` が deprecated になる（動作は今のまま） | 非推奨 | S-P27 |
+| 落ちていた `timeInterval` が `NotificationError.invalidTrigger` の失敗になる。`NotificationError` に case が増える（2026-11-03。C ABI 第 2 部 P2-26） | 振る舞いの変更 | 第 2 部 P2-26 |
+| `removeDelivered`、`removeAllDelivered`、`cancelScheduled`、`cancelAllScheduled` に既定 `nil` の `completion` が増える（2026-11-03）。普通の呼び出しは組める。**関数の参照（`Button(action: manager.cancelAllScheduled)` など）は組めなくなり、バイナリの互換は無い**（2.0.0 の中なので受け入れる） | 破壊的（関数の参照だけ） | 第 2 部 P2-6 |
 | `NotificationRepository`（public の port）に `enqueueCategoryChange(_:completion:)` を足す。既定の実装があるので、自分で実装した port は組めたまま（その port では category の要求の順を保たない） | 追加 | S-P28 |
 | 通知の delegate を `installDelegate()` で入れ、前の delegate に転送する。ライブラリの通知でないものは、前の delegate がそのメソッドを持てば前の delegate に渡り、ライブラリの受け手（今の受け手を含む）に届かない。持たなければ今と同じくライブラリが受ける | 動作 | D-7、1a-6、1a-7、第 1 部 5.12.3 |
 | 今の受け手（`onActionReceived`・`onTextInputActionReceived`）は、main で、`didReceive` から戻った後に呼ばれる（前は system のスレッドで同期に）。userInfo から印が外れる | 動作 | 1a-12、P1-9、S-P8 |
@@ -153,7 +155,7 @@ README 4.1 の 1b の 3 行（印と予約したキー、`openSettingsFor`、`pr
 |---|---|---|
 | `cancel` と `cancelScheduled`、`cancelAll` と `cancelAllScheduled` が同じ処理。`schedule`・`update` が `content.id` を使わない | 今の UI テストの期待値。意味を変えると 1b の範囲を超える | S-P16。DocC に書く |
 | Clipboard の変更の監視が 1 人の受け手（2 回目の開始で前の受け手が止まる） | README 4 章の表に無い。C ABI の形は第 2 部 | C ABI の受け口が分配できる（S-P22） |
-| 戻り値の無い通知の操作（`cancel*`、`remove*`、`removeDelivered`）に完了を足すか | 第 2 部で決める（README 6 章、8.6）。足すときは `async` 版の追加で互換を壊さない | 第 2 部の後に足す |
+| 戻り値の無い通知の操作（`cancel*`、`remove*`、`removeDelivered`）に完了を足すか | 第 2 部で決めた（P2-6）。既定 `nil` の `completion` を足した（2026-11-03。`registerCategory` と同じ形） | 済み |
 | 新しい口のアクションシートの基点 | S-P6 | 今の `showActionSheet(sourceView:)` |
 | ブリッジのログ・不備 | D-22。段階 3 で消す | - |
 | `cancelAll`・`cancelAllScheduled`・`removeAllDelivered` は、転送を入れた後もホスト（Unity の通知パッケージなど）の通知まで消す（`UNUserNotificationCenter` の全件を消す API のため） | 今の動作で、印で絞ると意味が変わる。C ABI もブリッジの振る舞いを写す | DocC と移行の手引きに書く（SR-25）。印のある通知だけを消す口が要れば、2.0.0 の後に足す |
@@ -380,7 +382,7 @@ README 4.1 の 1b の 3 行（印と予約したキー、`openSettingsFor`、`pr
 | 起動のきっかけ（ブリッジに無い） | `isLaunchResponse` と `launchResponse()` | 追加（D-7） |
 | `openSettingsFor` で設定の App を開く | `settingsRequests` のイベント | 意味を直す（P1-10） |
 | `showNotification`・`updateNotification`・`scheduleNotification` の `(isSuccess, errorMessage)` | 今の callback 版（文言は固定）と `async throws` 版（`NotificationError`） | 型のあるエラーは `async throws` 版 |
-| `cancel*`・`remove*`・`removeNotificationCategory`（戻り値なし） | 今の口（`removeCategory` は完了つきの形も） | 完了を返すかは第 2 部 |
+| `cancel*`・`remove*`・`removeNotificationCategory`（戻り値なし） | 今の口（`removeCategory` は完了つきの形も。`cancelScheduled` など 4 つは第 2 部 P2-6 で完了を足した） | 完了を返す（OP-29〜OP-32、OP-41） |
 | `getScheduledNotifications`・`getDeliveredNotifications` の JSON（ISO 8601 の日時） | 今の `getScheduled`・`getDelivered`（userInfo から印を外す） | JSON と日時の形は C ABI |
 | `requestNotificationPermission` の `(isSuccess, errorMessage)`（拒否も失敗） | `requestPermission(options:presenter:completion:)` の `Result<Bool, NotificationError>` | 拒否は `.success(false)`。前面でないは `notForeground` |
 | `getNotificationAuthorizationStatus` の文字列 | `authorizationStatus(completion:)`（列挙。今と同じ） | 文字列は C ABI |
@@ -696,30 +698,34 @@ extension IosNotificationManager {
 
 ### 10.1 安定した case（S-7、S-P7）
 
+**C の値の名前は C ABI 第 2 部（`designs/2026-11-03-ios-c-abi-c-abi-design-part2.md`）の 11 章で決まり、この表に写した（2026-11-03）。**
+
 | 型 | case | 出る場面 | 写す C の値の名前（番号は第 2 部） |
 |---|---|---|---|
 | `DialogError` | `canceled` | `cancel(_:)` | `CANCELED` |
 | `DialogError` | `dismissedBySystem` | 見張り（外から閉じた、scene が切れた） | `CANCELED_BY_SYSTEM` |
 | `DialogError` | `notForeground` | 前面が無い | `NOT_FOREGROUND` |
-| `DialogError` | `presentationFailed` | 2 回目も落ち着かない、UIKit が断った | 表示の失敗（Android の `SHOW_FAILED` に合わせるかは第 2 部） |
+| `DialogError` | `presentationFailed` | 2 回目も落ち着かない、UIKit が断った | `SHOW_FAILED` |
 | `DialogError` | `invalidRequest` | 使い回した箱 | `INVALID_PARAMETER`（C の受け口は箱を使い回さないので届かない） |
-| `ShareError` | `noValidItems`、`invalidURL(String)`、`imageLoadFailed(path:)`、`fileNotFound(path:)` | 今と同じ | 入力の誤り（受け付けの後に分かるので完了の値。名前は第 2 部） |
+| `ShareError` | `noValidItems` | 今と同じ | `EMPTY_CONTENT`（入口で返す。AP-19） |
+| `ShareError` | `invalidURL(String)`、`imageLoadFailed(path:)`、`fileNotFound(path:)` | 今と同じ | `INVALID_URI`、`IMAGE_LOAD_FAILED`、`FILE_NOT_FOUND`（受け付けの後に分かるので完了の値） |
 | `ShareError` | `noRootViewController` | `.firstActiveScene` で見つからない（今と同じ） | `NOT_FOREGROUND` |
 | `ShareError` | `notForeground` | `.foreground`・`.viewController` で前面が無い | `NOT_FOREGROUND` |
-| `ShareError` | `presentationFailed` | 落ち着かない、UIKit が断った（前は `presentationFailed(Error)`） | 表示の失敗 |
+| `ShareError` | `presentationFailed` | 落ち着かない、UIKit が断った（前は `presentationFailed(Error)`） | `SHOW_FAILED` |
 | `ShareError` | `dismissedBySystem` | 見張り | `CANCELED_BY_SYSTEM` |
-| `ShareError` | `activityFailed(FailureDetail)` | `completionWithItemsHandler` の `error`（前は `presentationFailed(Error)`） | 活動の失敗（名前は第 2 部） |
-| `NotificationError` | `permissionDenied` | 今の `NotificationPermissionHelper.requestPermission`（今と同じ） | `PERMISSION_DENIED` |
-| `NotificationError` | `attachmentLoadFailed(identifier: String, detail: FailureDetail)` | 添付を作れない（前は `attachmentLoadFailed(Error)`） | 添付の失敗（名前は第 2 部） |
-| `NotificationError` | `addRequestFailed(FailureDetail)` | `add` の失敗（前は `addRequestFailed(Error)`） | 要求の失敗（名前は第 2 部） |
+| `ShareError` | `activityFailed(FailureDetail)` | `completionWithItemsHandler` の `error`（前は `presentationFailed(Error)`） | `ACTIVITY_FAILED` |
+| `NotificationError` | `permissionDenied` | 今の `NotificationPermissionHelper.requestPermission`（今と同じ） | C の経路では届かない（`UNKNOWN`）。C の `PERMISSION_DENIED`（10）は受け口の事前の確かめの値（第 2 部 P2-10） |
+| `NotificationError` | `invalidTrigger` | 落ちる `timeInterval`（第 2 部 P2-26。2026-11-03 に足した） | `INVALID_PARAMETER`（入口） |
+| `NotificationError` | `attachmentLoadFailed(identifier: String, detail: FailureDetail)` | 添付を作れない、ファイルが無い（`bb365277`。前は `attachmentLoadFailed(Error)`） | `ATTACHMENT_LOAD_FAILED` |
+| `NotificationError` | `addRequestFailed(FailureDetail)` | `add` の失敗（前は `addRequestFailed(Error)`） | `ADD_REQUEST_FAILED` |
 | `NotificationError` | `setBadgeCountFailed(FailureDetail)` | バッジ（前は `setBadgeCountFailed(Error)`） | バッジの失敗 |
 | `NotificationError` | `authorizationFailed(FailureDetail)` | `requestAuthorization` の失敗（前は `unknown(Error)`） | 権限の要求の失敗 |
 | `NotificationError` | `reservedUserInfoKey` | 印のキー（P1-9） | `INVALID_PARAMETER`（C では入口の戻り値。第 1 部 R-32） |
 | `NotificationError` | `invalidUserInfo` | property list にできない（S-P15） | `INVALID_PARAMETER` |
 | `NotificationError` | `notForeground` | 権限の要求（未決）と設定の画面 | `NOT_FOREGROUND` |
-| `NotificationError` | `openSettingsFailed` | 設定の画面を開けない | 開けない（名前は第 2 部） |
+| `NotificationError` | `openSettingsFailed` | 設定の画面を開けない | `SETTINGS_NOT_OPENED` |
 | `NotificationError` | `delegateNotInstalled` | 受け手の登録と起動のきっかけ（P1-6） | `NOT_INITIALIZED` |
-| `ClipboardError` | 今の 24 case（変えない） | 今と同じ | 1 対 1（第 2 部） |
+| `ClipboardError` | 今の 24 case（変えない） | 今と同じ | 第 2 部 11.3 の表。`invalidRequest` と `unknown` のほかは 1 対 1 |
 
 消す case: `NotificationError.permissionNotDetermined`・`attachmentInvalidURL`（どこからも投げていない。v2 で足した。SR-13）、`NotificationError.unknown(Error)`、`ShareError.unknown(Error)`（どこからも投げていない）。
 
@@ -1100,6 +1106,7 @@ public enum NotificationError: Error, Sendable, Equatable, LocalizedError {
     case permissionDenied
     case attachmentLoadFailed(identifier: String, detail: FailureDetail)
     case addRequestFailed(FailureDetail), setBadgeCountFailed(FailureDetail), authorizationFailed(FailureDetail)
+    case invalidTrigger   // part 2, P2-26
     case reservedUserInfoKey, invalidUserInfo, notForeground, openSettingsFailed, delegateNotInstalled
 }
 public indirect enum NotificationUserInfoValue: Sendable, Equatable {
@@ -1196,6 +1203,7 @@ extension IosClipboardManager {
     @MainActor public func loadItem(_ request: ClipboardLoadRequest, scope: PasteboardScope = .general, requestBox: RequestBox,
                                     completion: @escaping (Bool, ClipboardLoadedItem?, String?, String?) -> Void)
     nonisolated public func cancelLoad(_ box: RequestBox)                   // any thread, does not wait
+    nonisolated public static func cancelLoad(_ box: RequestBox)            // the same without a manager (part 2, P2-12)
 }
 ```
 
