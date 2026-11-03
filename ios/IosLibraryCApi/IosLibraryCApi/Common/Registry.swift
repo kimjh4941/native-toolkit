@@ -70,6 +70,7 @@ final class OwnedResult {
 /// the listeners of two callback types, and the table holds the requests of all features.
 protocol RegistryEntry: AnyObject, Sendable {
     var cancellable: CancellableKind? { get }
+    var requestBox: RequestBox? { get }
 
     /// ACTIVE to CANCEL_REQUESTED, and whether this call did it.
     func requestCancel() -> Bool
@@ -300,6 +301,12 @@ enum Registry {
         reference.release()
     }
 
+    /// The box of a request in the table, for the tests.
+    static func requestBox(id: UInt64) -> RequestBox? {
+        CApiLog.common.debug("[requestBox] id: \(id, privacy: .public)")
+        return table.withLock { $0[id]?.requestBox }
+    }
+
     /// The number of requests in the table, for the tests.
     static var requestCount: Int {
         table.withLock { $0.count }
@@ -329,6 +336,8 @@ final class EventLedger<Event, Callback> {
     private var held: [Event] = []
     private var isDelivering = false
     private var arrivedDuringDelivery: [Event] = []
+    /// Moves when what was not delivered is dropped, so that a delivery in progress stops at its next call.
+    private var discardCount = 0
 
     /// - Parameters:
     ///   - holdLimit: How many events wait for the next registration; 0 keeps none (Clipboard).
@@ -368,6 +377,15 @@ final class EventLedger<Event, Callback> {
             return
         }
         delivering { deliverToActive(event) }
+    }
+
+    /// Drops the events that came and have not reached everyone: those waiting for the delivery in progress,
+    /// and what is left of that delivery. For a source that stopped, when "nothing more comes" has to hold
+    /// from now on. What is held for the next registration stays.
+    func discardUndelivered() {
+        CApiLog.common.debug("[discardUndelivered] waiting: \(self.arrivedDuringDelivery.count, privacy: .public), delivering: \(self.isDelivering, privacy: .public)")
+        arrivedDuringDelivery.removeAll()
+        discardCount += 1
     }
 
     /// The number of registrations in the ledger, for the tests.
@@ -410,8 +428,10 @@ final class EventLedger<Event, Callback> {
     /// registration, through its insertion, changes that.
     private func deliverToActive(_ event: Event) {
         var delivered = false
+        let discards = discardCount
         // `entries` is copied by the loop: a callback may change it. Each state is read right before its call.
         for registration in entries where registration.isActive {
+            guard discards == discardCount else { return }
             delivered = true
             call(registration, with: event)
         }

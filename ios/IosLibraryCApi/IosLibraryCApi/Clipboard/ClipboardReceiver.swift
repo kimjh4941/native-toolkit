@@ -8,25 +8,41 @@ import IosLibrary
 
 /// What the functions of Clipboard.h do (part 2, 5.1, 5.2): the entry's checks and copies in
 /// `ClipboardMapping`, the accepted request to the main thread, the call of the manager, the handle and
-/// the completion. The load and the observation come with TB-4.
+/// the completion.
 enum ClipboardReceiver {
     /// A load closes its box through the manager, from any thread (part 2, 5.3; OP-12, P2-12).
     static let loadCancelKind = CancellableKind(name: "clipboardLoad") { IosClipboardManager.cancelLoad($0) }
 
     /// How a completion of one callback type carries an error, with no value: a handle is NULL and a value 0.
-    private typealias Failure<Callback> = @MainActor @Sendable (Callback, UnsafeMutableRawPointer?, ntk_clipboard_error) -> Void
+    /// The id is the request's; only a load's callback takes it.
+    private typealias Failure<Callback> = @MainActor @Sendable (Callback, UnsafeMutableRawPointer?, UInt64, ntk_clipboard_error) -> Void
 
     private static let none = ntk_clipboard_error(NTK_CLIPBOARD_ERROR_NONE)
     private static let systemCode: UInt32 = 0
 
-    private static let doneFailure: Failure<ntk_clipboard_done_fn> = { $0($1, $2, systemCode) }
-    private static let readFailure: Failure<ntk_clipboard_read_fn> = { $0($1, $2, systemCode, nil) }
-    private static let dataFailure: Failure<ntk_clipboard_data_fn> = { $0($1, $2, systemCode, nil) }
-    private static let snapshotFailure: Failure<ntk_clipboard_snapshot_fn> = { $0($1, $2, systemCode, nil) }
-    private static let nameFailure: Failure<ntk_clipboard_name_fn> = { $0($1, $2, systemCode, nil) }
-    private static let patternsFailure: Failure<ntk_clipboard_patterns_fn> = { $0($1, $2, systemCode, 0) }
-    private static let valuesFailure: Failure<ntk_clipboard_values_fn> = { $0($1, $2, systemCode, nil) }
-    private static let foregroundFailure: Failure<ntk_clipboard_foreground_change_fn> = { $0($1, $2, systemCode, 0) }
+    private static let doneFailure: Failure<ntk_clipboard_done_fn> = { callback, userData, _, error in callback(userData, error, systemCode) }
+    private static let readFailure: Failure<ntk_clipboard_read_fn> = { callback, userData, _, error in callback(userData, error, systemCode, nil) }
+    private static let dataFailure: Failure<ntk_clipboard_data_fn> = { callback, userData, _, error in callback(userData, error, systemCode, nil) }
+    private static let snapshotFailure: Failure<ntk_clipboard_snapshot_fn> = { callback, userData, _, error in callback(userData, error, systemCode, nil) }
+    private static let nameFailure: Failure<ntk_clipboard_name_fn> = { callback, userData, _, error in callback(userData, error, systemCode, nil) }
+    private static let patternsFailure: Failure<ntk_clipboard_patterns_fn> = { callback, userData, _, error in callback(userData, error, systemCode, 0) }
+    private static let valuesFailure: Failure<ntk_clipboard_values_fn> = { callback, userData, _, error in callback(userData, error, systemCode, nil) }
+    private static let foregroundFailure: Failure<ntk_clipboard_foreground_change_fn> = { callback, userData, _, error in callback(userData, error, systemCode, 0) }
+    private static let loadFailure: Failure<ntk_clipboard_load_fn> = { callback, userData, id, error in callback(userData, id, error, systemCode, nil) }
+
+    /// The ledger of the change listeners. Nothing is held for a later registration (part 2, 5.4), and each
+    /// registration gets a handle of its own.
+    static let changeLedger = EventLedger<ClipboardChange, ntk_clipboard_change_fn>(holdLimit: 0) { callback, userData, change in
+        callback(userData, ClipboardHandles.makeChange(change))
+    }
+
+    /// An event from the library. One the C ABI cannot say is logged where it is mapped, and goes nowhere.
+    @MainActor
+    static func receive(_ event: ClipboardChangeEvent) {
+        CApiLog.clipboard.debug("[receive] event: provided")
+        guard let change = ClipboardMapping.change(of: event) else { return }
+        changeLedger.receive(change)
+    }
 
     // MARK: - Accepting
 
@@ -34,7 +50,8 @@ enum ClipboardReceiver {
     /// `release` on this thread. What `input` returns holds no pointer of the caller.
     private static func accept<Input: Sendable, Callback>(
         _ callback: Callback?, _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?,
-        failure: @escaping Failure<Callback>, function: String = #function,
+        failure: @escaping Failure<Callback>, cancellable: CancellableKind? = nil,
+        outRequestID: UnsafeMutablePointer<UInt64>? = nil, function: String = #function,
         input: () throws(ClipboardRejection) -> Input,
         start: @escaping @MainActor @Sendable (Input, Registration<Callback>) -> Void
     ) -> ntk_clipboard_error {
@@ -44,10 +61,9 @@ enum ClipboardReceiver {
         }
         do throws(ClipboardRejection) {
             let value = try input()
-            // Only a load can be cancelled (TB-4), so this form is the state machine's and is not reached.
-            return Registry.accept(callback: callback, userData: userData, release: release,
-                                   canceled: { callback, userData, _ in failure(callback, userData, ntk_clipboard_error(NTK_CLIPBOARD_ERROR_CANCELED)) },
-                                   start: { start(value, $0) })
+            return Registry.accept(callback: callback, userData: userData, release: release, cancellable: cancellable,
+                                   canceled: { callback, userData, id in failure(callback, userData, id, ntk_clipboard_error(NTK_CLIPBOARD_ERROR_CANCELED)) },
+                                   outRequestID: outRequestID, start: { start(value, $0) })
         } catch {
             return Entry.reject(error.value, userData: userData, release: release, function: function)
         }
@@ -65,7 +81,7 @@ enum ClipboardReceiver {
         guard succeeded, let value else {
             let error = ClipboardMapping.error(forCode: errorCode)
             CApiLog.clipboard.error("[finish] function: \(function, privacy: .public), error: \(error, privacy: .public), errorCode: \(errorCode ?? "nil", privacy: .public)")
-            registration.complete { callback, userData, _ in failure(callback, userData, error) }
+            registration.complete { callback, userData, id in failure(callback, userData, id, error) }
             return
         }
         registration.complete { callback, userData, _ in deliver(callback, userData, value) }
@@ -244,7 +260,107 @@ enum ClipboardReceiver {
         })
     }
 
-    // MARK: - The load's result (TB-4)
+    // MARK: - OP-11, OP-12
+
+    static func loadItem(_ kind: ntk_clipboard_item_kind, _ utType: UnsafePointer<CChar>?, _ scope: UnsafePointer<ntk_clipboard_scope>?,
+                         _ callback: ntk_clipboard_load_fn?, _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?,
+                         _ outRequestID: UnsafeMutablePointer<UInt64>?) -> ntk_clipboard_error {
+        CApiLog.clipboard.debug("[loadItem] kind: \(kind, privacy: .public), utType: \(utType == nil ? "nil" : "provided", privacy: .public), scope: \(scope == nil ? "nil" : "provided", privacy: .public), callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public), outRequestID: \(outRequestID == nil ? "nil" : "provided", privacy: .public)")
+        return accept(callback, userData, release, failure: loadFailure, cancellable: loadCancelKind, outRequestID: outRequestID,
+                      input: { () throws(ClipboardRejection) in
+            (try ClipboardMapping.loadRequest(kind: kind, utType: utType), try ClipboardMapping.scope(scope))
+        }, start: { input, registration in
+            // A request that can be cancelled has its box from the moment it is registered.
+            guard let box = registration.requestBox else {
+                CApiLog.clipboard.error("[loadItem] no request box")
+                registration.complete { callback, userData, id in loadFailure(callback, userData, id, ntk_clipboard_error(NTK_CLIPBOARD_ERROR_UNKNOWN)) }
+                return
+            }
+            IosClipboardManager.shared.loadItem(input.0, scope: input.1, requestBox: box) { succeeded, item, errorCode, _ in
+                finishLoad(registration, succeeded: succeeded, item: item, errorCode: errorCode)
+            }
+        })
+    }
+
+    /// A `.file` that does not reach the caller is deleted with its folder, whatever the reason (part 2, 5.3).
+    @MainActor
+    private static func finishLoad(_ registration: Registration<ntk_clipboard_load_fn>, succeeded: Bool, item: ClipboardLoadedItem?, errorCode: String?) {
+        CApiLog.clipboard.debug("[finishLoad] succeeded: \(succeeded, privacy: .public), item: \(item == nil ? "nil" : "provided", privacy: .public), errorCode: \(errorCode ?? "nil", privacy: .public)")
+        guard succeeded, let item else {
+            let error = ClipboardMapping.error(forCode: errorCode)
+            CApiLog.clipboard.error("[finishLoad] error: \(error, privacy: .public), errorCode: \(errorCode ?? "nil", privacy: .public)")
+            registration.complete { callback, userData, id in loadFailure(callback, userData, id, error) }
+            return
+        }
+        var owned: OwnedResult?
+        if case .file(let url) = item {
+            owned = loadedFile(at: url)
+        }
+        registration.complete(result: owned) { callback, userData, id in
+            callback(userData, id, none, systemCode, ClipboardHandles.makeLoadedItem(item))
+        }
+    }
+
+    /// From any thread; does not wait. An id that is unknown or finished does nothing (part 2, 5.3).
+    static func cancelLoad(_ requestID: UInt64) -> ntk_clipboard_error {
+        CApiLog.clipboard.debug("[cancelLoad] requestID: \(requestID, privacy: .public)")
+        Registry.cancel(id: requestID, request: loadCancelKind)
+        return none
+    }
+
+    // MARK: - OP-13, OP-14
+
+    static func startObserving(_ scope: UnsafePointer<ntk_clipboard_scope>?, _ callback: ntk_clipboard_done_fn?,
+                               _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?) -> ntk_clipboard_error {
+        CApiLog.clipboard.debug("[startObserving] scope: \(scope == nil ? "nil" : "provided", privacy: .public), callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
+        return accept(callback, userData, release, failure: doneFailure, input: { () throws(ClipboardRejection) in
+            try ClipboardMapping.scope(scope)
+        }, start: { scope, registration in
+            // A new start stops the previous observation, also when it fails (part 2, 6.1): as with a stop, nothing
+            // of that one comes afterwards. The library's own generation gate says the same for what it has queued.
+            changeLedger.discardUndelivered()
+            do {
+                try IosClipboardManager.shared.startObserving(scope: scope) { receive($0) }
+                finishDone(registration, succeeded: true, errorCode: nil)
+            } catch {
+                finishDone(registration, succeeded: false, errorCode: (error as? ClipboardError)?.errorCode)
+            }
+        })
+    }
+
+    static func stopObserving(_ callback: ntk_clipboard_done_fn?, _ userData: UnsafeMutableRawPointer?,
+                              _ release: ntk_release_fn?) -> ntk_clipboard_error {
+        CApiLog.clipboard.debug("[stopObserving] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
+        return accept(callback, userData, release, failure: doneFailure, input: { () throws(ClipboardRejection) in
+        }, start: { _, registration in
+            IosClipboardManager.shared.stopObserving()
+            // "Queued deliveries do not come either" (part 2, 6.1): what waits for a delivery in progress goes too.
+            changeLedger.discardUndelivered()
+            finishDone(registration, succeeded: true, errorCode: nil)
+        })
+    }
+
+    // MARK: - OP-16, OP-17
+
+    /// Registering does not start observing (P2-16). The output is NULL on every path but acceptance (R-8).
+    static func addChangeListener(_ callback: ntk_clipboard_change_fn?, _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?,
+                                  _ outListener: UnsafeMutablePointer<OpaquePointer?>?) -> ntk_clipboard_error {
+        CApiLog.clipboard.debug("[addChangeListener] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public), outListener: \(outListener == nil ? "nil" : "provided", privacy: .public)")
+        outListener?.pointee = nil
+        guard let callback, let outListener else {
+            CApiLog.clipboard.error("[addChangeListener] rejected: the callback or the output is NULL")
+            return Entry.reject(.invalidParameter, userData: userData, release: release)
+        }
+        return changeLedger.add(callback: callback, userData: userData, release: release, outListener: outListener)
+    }
+
+    /// Observing goes on (P2-17). From any thread; does not wait.
+    static func removeListener(_ listener: OpaquePointer?) {
+        CApiLog.clipboard.debug("[removeListener] listener: \(listener == nil ? "nil" : "provided", privacy: .public)")
+        Registry.removeListener(listener)
+    }
+
+    // MARK: - The load's result
 
     /// The result of a `.file` load: `IosLibrary` gives away the file and its parent folder (part 2, 5.3).
     /// The path may name what the user copied, so it is not logged.

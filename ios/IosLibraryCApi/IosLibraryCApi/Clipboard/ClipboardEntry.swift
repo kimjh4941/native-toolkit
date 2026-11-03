@@ -5,7 +5,7 @@
 
 // The entry points of Clipboard.h (C ABI design part 1, 5.3). Only @c @implementation functions, whose
 // types the compiler checks against the header; what they do is in ClipboardReceiver.swift and
-// ClipboardHandles.swift. The load and the observation come with TB-4.
+// ClipboardHandles.swift.
 
 @c @implementation
 public func ntk_clipboard_copy_async(_ content: UnsafePointer<ntk_clipboard_write_content>?, _ options: UnsafePointer<ntk_clipboard_copy_options>?,
@@ -179,4 +179,114 @@ public func ntk_clipboard_snapshot_matching_at(_ snapshot: OpaquePointer?, _ ind
 @c @implementation
 public func ntk_clipboard_snapshot_free(_ snapshot: OpaquePointer?) {
     Handle.free(snapshot)
+}
+
+@c @implementation
+public func ntk_clipboard_load_item_async(_ kind: ntk_clipboard_item_kind, _ utType: UnsafePointer<CChar>?, _ scope: UnsafePointer<ntk_clipboard_scope>?,
+                                          _ callback: ntk_clipboard_load_fn?, _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?,
+                                          _ outRequestID: UnsafeMutablePointer<UInt64>?) -> ntk_clipboard_error {
+    ClipboardReceiver.loadItem(kind, utType, scope, callback, userData, release, outRequestID)
+}
+
+@c @implementation
+public func ntk_clipboard_cancel_load(_ requestID: UInt64) -> ntk_clipboard_error {
+    ClipboardReceiver.cancelLoad(requestID)
+}
+
+@c @implementation
+public func ntk_clipboard_start_observing_async(_ scope: UnsafePointer<ntk_clipboard_scope>?, _ callback: ntk_clipboard_done_fn?,
+                                                _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?) -> ntk_clipboard_error {
+    ClipboardReceiver.startObserving(scope, callback, userData, release)
+}
+
+@c @implementation
+public func ntk_clipboard_stop_observing_async(_ callback: ntk_clipboard_done_fn?, _ userData: UnsafeMutableRawPointer?,
+                                               _ release: ntk_release_fn?) -> ntk_clipboard_error {
+    ClipboardReceiver.stopObserving(callback, userData, release)
+}
+
+@c @implementation
+public func ntk_clipboard_add_change_listener(_ callback: ntk_clipboard_change_fn?, _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?,
+                                              _ outListener: UnsafeMutablePointer<OpaquePointer?>?) -> ntk_clipboard_error {
+    ClipboardReceiver.addChangeListener(callback, userData, release, outListener)
+}
+
+@c @implementation
+public func ntk_clipboard_listener_remove(_ listener: OpaquePointer?) {
+    ClipboardReceiver.removeListener(listener)
+}
+
+@c @implementation
+public func ntk_clipboard_loaded_item_kind(_ item: OpaquePointer?) -> ntk_clipboard_item_kind {
+    ClipboardHandles.loadedItemKind(item)
+}
+
+@c @implementation
+public func ntk_clipboard_loaded_item_text(_ item: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    ClipboardHandles.loadedItemText(item, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_loaded_item_url(_ item: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    ClipboardHandles.loadedItemUrl(item, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_loaded_item_image_data(_ item: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<UInt8>? {
+    ClipboardHandles.loadedItemImageData(item, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_loaded_item_image_type(_ item: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    ClipboardHandles.loadedItemImageType(item, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_loaded_item_file_path(_ item: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    ClipboardHandles.loadedItemFilePath(item, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_loaded_item_free(_ item: OpaquePointer?) {
+    Handle.free(item)
+}
+
+@c @implementation
+public func ntk_clipboard_change_kind(_ change: OpaquePointer?) -> ntk_clipboard_change_event_kind {
+    ClipboardHandles.changeKind(change)
+}
+
+@c @implementation
+public func ntk_clipboard_change_scope_kind(_ change: OpaquePointer?) -> ntk_clipboard_scope_kind {
+    ClipboardHandles.changeScopeKind(change)
+}
+
+@c @implementation
+public func ntk_clipboard_change_scope_name(_ change: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    ClipboardHandles.changeScopeName(change, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_change_types_added_count(_ change: OpaquePointer?) -> Int {
+    ClipboardHandles.changeTypesAddedCount(change)
+}
+
+@c @implementation
+public func ntk_clipboard_change_types_added_at(_ change: OpaquePointer?, _ index: Int, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    ClipboardHandles.changeTypesAddedAt(change, index, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_change_types_removed_count(_ change: OpaquePointer?) -> Int {
+    ClipboardHandles.changeTypesRemovedCount(change)
+}
+
+@c @implementation
+public func ntk_clipboard_change_types_removed_at(_ change: OpaquePointer?, _ index: Int, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    ClipboardHandles.changeTypesRemovedAt(change, index, outSize)
+}
+
+@c @implementation
+public func ntk_clipboard_change_free(_ change: OpaquePointer?) {
+    Handle.free(change)
 }

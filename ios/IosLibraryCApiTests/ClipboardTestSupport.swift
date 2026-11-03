@@ -21,6 +21,17 @@ final class ClipboardRecorder: @unchecked Sendable {
         let afterReturn: Bool
         let handle: OpaquePointer?
         let value: Int32
+        let requestID: UInt64
+    }
+
+    /// What one event held; the handle is read and freed inside the callback.
+    struct Change: Equatable {
+        let kind: Int32
+        let scopeKind: Int32
+        let scopeName: String?
+        let added: [String]
+        let removed: [String]
+        let onMain: Bool
     }
 
     private let lock = NSLock()
@@ -28,6 +39,25 @@ final class ClipboardRecorder: @unchecked Sendable {
     private var releaseList: [Bool] = []
     private var order: [String] = []
     private var returned = false
+    private var changeList: [Change] = []
+    private var depth = 0
+    private var deepest = 0
+
+    /// Runs inside a load's completion, after it was recorded.
+    var onCompletion: (@Sendable (Completion) -> Void)?
+    /// Runs inside a change's callback, after it was recorded.
+    var onChange: (@Sendable (Change) -> Void)?
+
+    let outListener: UnsafeMutablePointer<OpaquePointer?>
+
+    init() {
+        outListener = .allocate(capacity: 1)
+        outListener.initialize(to: nil)
+    }
+
+    deinit {
+        outListener.deallocate()
+    }
 
     var userData: UnsafeMutableRawPointer { Unmanaged.passUnretained(self).toOpaque() }
 
@@ -38,17 +68,34 @@ final class ClipboardRecorder: @unchecked Sendable {
     var completions: [Completion] { lock.withLock { completionList } }
     var releases: [Bool] { lock.withLock { releaseList } }
     var calls: [String] { lock.withLock { order } }
+    var changes: [Change] { lock.withLock { changeList } }
+    /// How many change callbacks were on the stack at most.
+    var deepestChange: Int { lock.withLock { deepest } }
 
     func markReturned() {
         lock.withLock { returned = true }
     }
 
-    func record(_ error: Int32, _ systemCode: UInt32, handle: OpaquePointer? = nil, value: Int32 = 0) {
+    func record(_ error: Int32, _ systemCode: UInt32, handle: OpaquePointer? = nil, value: Int32 = 0, requestID: UInt64 = 0) {
         let onMain = Thread.isMainThread
-        lock.withLock {
-            completionList.append(Completion(error: error, systemCode: systemCode, onMain: onMain, afterReturn: returned, handle: handle, value: value))
+        let completion = lock.withLock {
+            let completion = Completion(error: error, systemCode: systemCode, onMain: onMain, afterReturn: returned, handle: handle, value: value, requestID: requestID)
+            completionList.append(completion)
             order.append("completion")
+            return completion
         }
+        onCompletion?(completion)
+    }
+
+    func recordChange(_ change: Change) {
+        lock.withLock {
+            changeList.append(change)
+            order.append("change")
+            depth += 1
+            deepest = max(deepest, depth)
+        }
+        onChange?(change)
+        lock.withLock { depth -= 1 }
     }
 
     func recordRelease() {
@@ -76,6 +123,27 @@ func recordChanged(_ userData: UnsafeMutableRawPointer?, _ error: Int32, _ syste
     ClipboardRecorder.from(userData)?.record(error, systemCode, value: changed)
 }
 
+func recordLoad(_ userData: UnsafeMutableRawPointer?, _ requestID: UInt64, _ error: Int32, _ systemCode: UInt32, _ item: OpaquePointer?) {
+    ClipboardRecorder.from(userData)?.record(error, systemCode, handle: item, requestID: requestID)
+}
+
+private func strings(_ count: Int, _ at: (Int) -> UnsafePointer<CChar>?) -> [String] {
+    (0..<count).compactMap { at($0).map { String(cString: $0) } }
+}
+
+/// Reads the handle through C and frees it, as a receiver of the event owns it.
+func recordChange(_ userData: UnsafeMutableRawPointer?, _ change: OpaquePointer?) {
+    let value = ClipboardRecorder.Change(
+        kind: ntk_clipboard_change_kind(change),
+        scopeKind: ntk_clipboard_change_scope_kind(change),
+        scopeName: ntk_clipboard_change_scope_name(change, nil).map { String(cString: $0) },
+        added: strings(ntk_clipboard_change_types_added_count(change)) { ntk_clipboard_change_types_added_at(change, $0, nil) },
+        removed: strings(ntk_clipboard_change_types_removed_count(change)) { ntk_clipboard_change_types_removed_at(change, $0, nil) },
+        onMain: Thread.isMainThread)
+    ntk_clipboard_change_free(change)
+    ClipboardRecorder.from(userData)?.recordChange(value)
+}
+
 func recordRelease(_ userData: UnsafeMutableRawPointer?) {
     ClipboardRecorder.from(userData)?.recordRelease()
 }
@@ -91,6 +159,8 @@ enum ClipboardErrorValue {
     static let invalidURI: Int32 = 8
     static let unavailable: Int32 = 9
     static let emptyPatterns: Int32 = 12
+    static let noMatchingItem: Int32 = 23
+    static let canceled: Int32 = 27
     static let invalidType: Int32 = 13
     static let invalidName: Int32 = 14
     static let invalidColor: Int32 = 15
@@ -251,6 +321,14 @@ class ClipboardTestCase: XCTestCase {
             }
             return ntk_clipboard_copy_async(&value, nil, &scope, recordDone, recorder.userData, recordRelease)
         }?.error
+    }
+
+    /// Runs the main thread for a time, for what must not come, or until `until` is true.
+    func spin(_ seconds: TimeInterval, until: () -> Bool = { false }) {
+        let deadline = Date(timeIntervalSinceNow: seconds)
+        while !until(), Date() < deadline {
+            RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.002))
+        }
     }
 
     func text(_ pointer: UnsafePointer<CChar>?) -> String? {

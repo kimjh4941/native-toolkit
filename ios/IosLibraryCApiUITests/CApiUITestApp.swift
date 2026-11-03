@@ -98,6 +98,18 @@ struct CApiUITestApp {
         return query.element(boundBy: occurrence).label
     }
 
+    /// Whether the line is there now, without waiting.
+    func isDrawnLine(ofRow rowId: String, occurrence: Int) -> Bool {
+        lines(ofRow: rowId).count > occurrence
+    }
+
+    /// Whether a line of this row, later or not, holds `text`, once it is there. A row whose number of lines
+    /// the system decides (a change event) is read with this.
+    func waitForLine(ofRow rowId: String, matching text: String, timeout: TimeInterval = Self.timeout) throws -> Bool {
+        let query = lines(ofRow: rowId).matching(NSPredicate(format: "label CONTAINS %@", text))
+        return query.firstMatch.waitForExistence(timeout: timeout)
+    }
+
     private func lines(ofRow rowId: String) -> XCUIElementQuery {
         app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'result.line.' AND label BEGINSWITH %@", "[\(rowId)@"))
     }

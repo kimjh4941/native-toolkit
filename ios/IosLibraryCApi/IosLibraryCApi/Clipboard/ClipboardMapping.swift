@@ -22,6 +22,15 @@ enum ClipboardRejection: Error, Equatable {
     }
 }
 
+/// What `ntk_clipboard_change` says. The ledger keeps these, and each listener gets a handle of its own.
+struct ClipboardChange: Sendable, Equatable {
+    let kind: ntk_clipboard_change_event_kind
+    let scopeKind: ntk_clipboard_scope_kind
+    let scopeName: String?
+    let typesAdded: [String]
+    let typesRemoved: [String]
+}
+
 /// The pure conversions of Clipboard.h: C values to Swift values (part 2, 6.1) and back, on the calling
 /// thread and before anything is registered. Everything is a deep copy, so that no pointer of the caller
 /// goes to the main thread. Only what the conversion itself needs is checked here; whether the content
@@ -96,6 +105,45 @@ enum ClipboardMapping {
         case .general: return nil
         case .named(let name), .unique(let name): return name
         @unknown default: return nil
+        }
+    }
+
+    /// The kind of a scope in an event. Nil for a scope this version does not know: the C ABI has no value for it.
+    static func scopeKind(of scope: PasteboardScope) -> ntk_clipboard_scope_kind? {
+        CApiLog.clipboard.debug("[scopeKind] scope: provided")
+        switch scope {
+        case .general: return ntk_clipboard_scope_kind(NTK_CLIPBOARD_SCOPE_GENERAL)
+        case .named: return ntk_clipboard_scope_kind(NTK_CLIPBOARD_SCOPE_NAMED)
+        case .unique: return ntk_clipboard_scope_kind(NTK_CLIPBOARD_SCOPE_UNIQUE)
+        @unknown default: return nil
+        }
+    }
+
+    // MARK: - Change events
+
+    /// An event as the C ABI can say it, or nil when it cannot: `changedDetectedOnForeground` has no value and
+    /// `IosLibrary` does not make it (part 2, 6.1), and a case this version does not know has none either.
+    /// Such an event reaches no listener, rather than one as something it is not.
+    static func change(of event: ClipboardChangeEvent) -> ClipboardChange? {
+        CApiLog.clipboard.debug("[change] event: provided")
+        guard let scopeKind = scopeKind(of: event.scope) else {
+            CApiLog.clipboard.error("[change] dropped: a scope this version does not know")
+            return nil
+        }
+        let name = name(of: event.scope)
+        switch event.kind {
+        case .changed(let added, let removed):
+            return ClipboardChange(kind: ntk_clipboard_change_event_kind(NTK_CLIPBOARD_CHANGE_CHANGED), scopeKind: scopeKind, scopeName: name,
+                                   typesAdded: added, typesRemoved: removed)
+        case .removed:
+            return ClipboardChange(kind: ntk_clipboard_change_event_kind(NTK_CLIPBOARD_CHANGE_REMOVED), scopeKind: scopeKind, scopeName: name,
+                                   typesAdded: [], typesRemoved: [])
+        case .changedDetectedOnForeground:
+            CApiLog.clipboard.error("[change] dropped: changedDetectedOnForeground has no value in the C ABI")
+            return nil
+        @unknown default:
+            CApiLog.clipboard.error("[change] dropped: a kind of event this version does not know")
+            return nil
         }
     }
 
@@ -197,6 +245,20 @@ enum ClipboardMapping {
         CApiLog.clipboard.debug("[matchingTypes] types: \(types == nil ? "nil" : "provided", privacy: .public), count: \(count, privacy: .public)")
         let values = try entry { () throws(EntryError) in try CApiString.requiredArray(types, count: count) }
         return values.isEmpty ? nil : values
+    }
+
+    // MARK: - Load
+
+    /// `ntk_clipboard_load_item_async`: `ut_type` is read only for FILE. A type no item has is the library's.
+    static func loadRequest(kind: ntk_clipboard_item_kind, utType: UnsafePointer<CChar>?) throws(ClipboardRejection) -> ClipboardLoadRequest {
+        CApiLog.clipboard.debug("[loadRequest] kind: \(kind, privacy: .public), utType: \(utType == nil ? "nil" : "provided", privacy: .public)")
+        switch Int(kind) {
+        case Int(NTK_CLIPBOARD_ITEM_TEXT): return .text
+        case Int(NTK_CLIPBOARD_ITEM_URL): return .url
+        case Int(NTK_CLIPBOARD_ITEM_IMAGE): return .image
+        case Int(NTK_CLIPBOARD_ITEM_FILE): return .file(utType: try required(utType))
+        default: return try rejected("the item kind is out of range")
+        }
     }
 
     // MARK: - Patterns

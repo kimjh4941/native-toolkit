@@ -1060,3 +1060,180 @@ A の検査を効かなくする変異 1 個（`guard stride > 0 || ...`）を�
 A の変異と 1 回目の 40 個の変異は、この最後のソースより前に流した。1 回目の 40 個は流し直していない（指定どおり）。B2、C3、C4、C5 の新しいテストは変異で確かめていない。`check_design_consistency.py` は第 1 部と第 2 部の直しの後に FAIL なし（`HEAD` の版も同じ）、この記録は 6.2 の 2 つの種類の FAIL のまま。
 
 時間: 03:03〜03:31（約 28 分）。
+
+## 7. TB-4
+
+第 2 部 13 章の TB-4（OP-11〜OP-14、OP-16、OP-17、`loaded_item` 7 と `change` 8 のハンドル）と、TB-3 が 6.6 で残したもの。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。
+
+### 7.1 足したもの
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 入口 | `IosLibraryCApi/IosLibraryCApi/Clipboard/ClipboardEntry.swift` | 21 関数。各 1 行。**`Clipboard.h` の 52 関数がすべて実装された** |
+| 受け口 | `Clipboard/ClipboardReceiver.swift` | `loadItem`、`finishLoad`、`cancelLoad`、`startObserving`、`stopObserving`、`addChangeListener`、`removeListener`、`changeLedger`（`holdLimit: 0`）。`Failure` が要求の ID を取る形になり、`canceled` は読み込みの完了の形で実際に呼ばれる |
+| 写し | `Clipboard/ClipboardMapping.swift` | `loadRequest`、`scopeKind` |
+| ハンドル | `Clipboard/ClipboardHandles.swift` | `ClipboardLoadedItemHandle`、`ClipboardChangeHandle` と 13 の読み取り（ほかに `_free` が 2 つ） |
+| Common（機能の知識なし） | `Common/Registry.swift` | `RegistryEntry` に `requestBox`、テストのための `Registry.requestBox(id:)`（`requestCount` と同じ扱い） |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` から Clipboard の 21 個を外した（**実際に 21 個**。残りは Dialog、Notification、Share の 70 個）。`entries` は 64 of 134 |
+| 行 | `IosLibraryCApiUITestApp/Rows/ClipboardRows.swift` | 8 行足して 28 行。`loadText`、`loadFile`、`loadAndCancel`、`startObserving`、`startObservingNamed`、`stopObserving`、`addListener`、`removeListener`。どの行も `ntk_` を呼び、返った値を書く |
+| テスト | `IosLibraryCApiTests/ClipboardLoadTests.swift`（新規 23）、`ClipboardObservationTests.swift`（新規 19）、`ClipboardHandleTests.swift`（12 足した）、`ClipboardMappingTests.swift`（3 足した）、`ClipboardEntryTests.swift`（3 関数を表に足した）、`ClipboardTestSupport.swift` | 253 → 310 件 |
+| UI テスト | `IosLibraryCApiUITests/CApiRoundTripUITests.swift`（9 件足した）、`CApiUITestApp.swift`（`isDrawnLine`、`waitForLine(ofRow:matching:)`） | クラスは足していない（指定どおり）。15+1 → 24+1 件 |
+
+設計書、公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイル、`scripts/ios_ui_runner.py` は変えていない。**新しいファイルは製品のソースに無いので、5.1 の表も変えていない。**
+
+**`IosLibraryCApiTests` が触れるペーストボードは名前付きだけ**（読み込み、監視とも）。general の読み込みと監視は UI テストだけで、シミュレーターの守りの後。`.file` の一時ファイルは `IosLibrary` の一時フォルダーの中で、テストが消す。
+
+### 7.2 TB-3 の 6.6 から持ってきたものの結果
+
+| 項目 | どこで | 結果 |
+|---|---|---|
+| 本物の `.file` の読み込み（4.5 で TB-4 に送った） | `testLoadingAFileGivesItAwayAndTheFreeLeavesIt`（名前付き）、`testLoadingWhatTheAppWrote`（general） | バイト列が届く。`_free` でファイルもフォルダーも消えない |
+| 12.2 の `load_item_async` の許可と拒否 | `testALoadTheUserAllows`、`testALoadTheUserDenies` | 許可は値、拒否は `LOAD_FAILED`（24） |
+| 12.2 の `read_data_async`、`detect_values_async` の**許可**（15.2） | `testReadDataTheUserAllows`、`testDetectingValuesTheUserAllows` | 値が届く |
+| 取り消した読み込みでダイアログが出ない（12.2） | `testALoadCancelledAtOnceAsksNothing` | `CANCELED`（27）で、ダイアログは 3 秒待っても出ない |
+| 読み込みの時間切れ（12.2） | `testALoadNotAnsweredTimesOut`（17 秒待つ 1 件） | `TIMED_OUT`（28）。その後に答えても 2 回目の完了は無い |
+| C からの取り消し、`CANCEL_REQUESTED`、`CANCELED` | `ClipboardLoadTests` | 最初の main の回の前（読み込みが始まらず、ファイルも作られない）、別のスレッドから main を止めたまま、開始の後、完了の後、知らない ID、2 回目。**`Registry.accept` に渡す `canceled` は読み込みで実際に呼ばれる**（変異「canceled form gives another value」で確かめた）。ほかの操作は同じ 1 行を通るが、取り消せないので呼ばれない |
+
+**イベントの帳簿と完了の本物の道**（4.5 の「本物の道で通していない」の行）:
+
+| 場面 | 本物の道で | テスト、理由 |
+|---|---|---|
+| 配っている途中に届くイベント | **通った**。コールバックの中で `UIPasteboard` に直接書くと、書き込みが戻る前に通知が来る（テストの中の観察者で確かめている）。配っている途中に入れ子にならず、2 つの受け手が同じ順で受ける | `testAChangeArrivingDuringADeliveryComesAfterItForEveryone` |
+| コールバックの中で自分を解除 | **通った**。`release` は戻った後、次の受け手には届く | `testAListenerRemovingItselfDuringItsCallback` |
+| コールバックの間に別のスレッドから解除 | **通った**。解除は待たずに戻る | `testARemovalFromAnotherThreadDuringTheCallback` |
+| コールバックの中で登録 | **通った**。今の変更は受けず、次の変更から | `testAListenerAddedDuringACallbackStartsWithTheNextChange` |
+| 完了のコールバックの中で別の読み込みと取り消し | **通った** | `testALoadStartedInsideTheCompletionOfAnother` |
+| 完了のコールバックの中の取り消し（渡したファイルは消えない） | **通った** | `testACancelInsideTheCallbackLeavesTheFileItWasGiven` |
+| 成功が箱を閉じた後、受け口に届く前の取り消し（`.file` を受け口が消す） | **通った**（決まった順で。自分を積み直すブロックで、箱が閉じた次の回に取り消す） | `testACancelAfterTheLoadsSuccessClosedTheBoxDeletesTheFile` |
+| **同じ登録の完了の入れ子**（コールバックの中で同じ登録の完了が来る） | **通らない**。main のキューのブロックは入れ子に動かない（コールバックの中で run loop を回しても main のキューは進まない。テストの片付けで 6.5 に書いたのと同じ理由）。ライブラリは同じ要求を 2 回完了しない。`RegistryTests` のテスト専用の操作だけ | `testTheCanceledCallbackMayTurnTheRunLoop` は run loop を回しても `release` が重ならず 1 回であることだけを見る |
+| **`RELEASED` の後に届く成功**（「外す」が `onClose` より先に動く順） | **決まった順では通らない**。別のスレッドの取り消しが、箱の鍵を出てから `onClose` を積むまでの間に入る必要がある。`testACancelAgainstTheEndOfALoadLeavesNoFileBehind`（40 回の競合）が踏むかどうかは見ていない。`RegistryTests` だけ | - |
+| 保ち（32 件、次の登録に配る） | **Clipboard では通らない**。`holdLimit: 0`。保たないことだけを確かめた（`testAChangeWithNoListenerIsNotHeld`）。通知（TB-8）で通す | - |
+
+### 7.3 コマンドと結果（レビューの直しの前のソース。最後のソースの結果は 7.9）
+
+Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。コマンドは 6.2 と同じ。04:16〜04:43 に下の順で続けて流し、シミュレーターの仕事は重ねていない。ソースのハッシュ（6.8 と同じ範囲）は流す前と後で同じ（`259f4696a757`）。**流した後に変えたのはこの記録の、この節と 7.8 だけ。**
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 310/310 |
+| 同（iPhone 16 / 18.3） | 310/310 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 310/310。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 310/310。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6） | 25/25（`CApiRoundTripUITests` 24、`CApiFreshInstallUITests` 1）。exit 0 |
+| `--capi-ui`（iPhone 16 / 18.3。Xcode 26.6） | 25/25。exit 0 |
+| framework の Release（`generic/platform=iOS`。組むだけ）`--library --architectures arm64` | `OK symbols`（64 symbols、1 architectures）。capi の警告 0 |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`）`--library --architectures arm64,x86_64` | `OK symbols`（64 symbols、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP 2。`entries` は 64 of 134、70 not implemented yet |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_c_abi_contract_ios.py'` | Ran 278 tests、OK |
+| `python3 scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+
+`testACancelAgainstTheEndOfALoadLeavesNoFileBehind` の競合は両方の結果を踏んでいる（40 回のうち取り消しの勝ちと渡しの勝ち）: 17 Pro は 11 と 29、16 は 13 と 27、TSan は 13 と 27、ASan は 12 と 28。
+
+### 7.4 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3。レビューの直しの前のソース。直しの後の 6 個は 7.9）
+
+29 個（読み込みの入口、ID、取り消し、`canceled` の形、`.file` の持ち主、監視、R-8、解除、保ち、ハンドル、帳簿の配っている途中）。1 個あたり 40〜60 秒。**最初の回で 28 個が落ち、1 個が生き残った。** 生き残りをテストを足して流し直して 30 回。
+
+| 生き残り | 原因 | 直し |
+|---|---|---|
+| `registration.complete(result: owned)` を `result: nil` にする（受け手に渡らなかった `.file` を受け口が消さない） | **本物の道を通るテストが無かった**。40 回の競合は、その回では、受け口が消す順を踏まなかった（箱を取り消しが先に閉じるとライブラリが消す） | `testACancelAfterTheLoadsSuccessClosedTheBoxDeletesTheFile` を足した（自分を積み直すブロックで、箱が閉じた次の回に取り消す。決まった順）。落ちた。変異なしでは通る |
+
+落ちたものの例: `FILE` の型が要らない、`TEXT` が型を読む（読めないポインタで落ちる）、範囲外の `kind`、ID を書かない、取り消せない、`canceled` が別の値、失敗が ID を失う、フォルダーを消さない、別の種類の取り消し、`start` がエラーを失う、イベントが帳簿に届かない、`stop` が何もしない、R-8 の出力が残る、拒んだ登録の `release`、解除が何もしない、変更を保つ、`NULL` の -1（3 つ）、`out_size`、パスが URL、`REMOVED` が `CHANGED` になる、足した型と消した型の入れ替え、名前が無い、渡した印が無い、**配っている途中のイベントをその場で配る**（`testAChangeArrivingDuringADeliveryComesAfterItForEveryone` だけが落とした。本物の道で帳簿を守っている）。
+
+**変異で落ちたプロセスのクラッシュレポート**（`~/Library/Logs/DiagnosticReports/`。記録してから消した。どれも `IosLibraryCApiTestHost`、iPhone 16 のシミュレーター）: `IosLibraryCApiTestHost-2026-11-04-` に続けて `034919.ips`、`035012.ips`、`035054.ips`、`035056.ips`、`040008.ips`、`040057.ips`、`040431.ips`、`040432.ips`、`040439.ips`、`040441.ips`。
+
+この表の変異は、後で直したテストの形（`ClipboardLoadTests` の個数の比べ方を `<=` に）より前のソースで流した。
+
+### 7.5 設計書の読み方（この表は実装の時点のもの。1 と 3 は 7.9 で第 2 部 6.1 に戻した。4 は 7.9 で置き換えた）
+
+| # | 所 | 読み方 | 設計書に戻すか |
+|---|---|---|---|
+| 1 | 6.1 の `load_item_async`「`FILE` は `ut_type` が必須」 | `NULL` と不正な UTF-8 は入口の `INVALID_PARAMETER`。**空文字は入口を通り、`IosLibrary` が持つ項目に無いので完了の `NO_MATCHING_ITEM`（23）**。`read_data_async` の空文字が `INVALID_TYPE` なのと違う（`loadItem` は型を検査しない。ライブラリのまま） | **戻すことを勧める**（6.1 に 1 文） |
+| 2 | 第 1 部 5.7 の値の出力と R-8 | `out_listener` はハンドルなので、すべての道で先に `NULL` を書く。**`out_request_id` は値なので、拒むときは書かない**（第 1 部 5.7 の 2、6 章）。テストは番兵の 77 が残ることを見る。依頼の「出力の初期化」はハンドルの方と読んだ | 不要（第 1 部に書いてある） |
+| 3 | `add_change_listener` の `out_listener` の `NULL` | `INVALID_PARAMETER` で `release` を呼ぶ。第 2 部に文が無い。Android の コールバックと出力のどちらかが `NULL` なら拒む形と同じ | **戻すことを勧める** |
+| 4 | 6.1 の `changedDetectedOnForeground`「値を置かない」 | **レビューで置き換えた（7.9）**: 前の読み方（`CHANGED` で型は空）はやめ、受け手に届けない | 不要 |
+| 5 | C-9 の版の確かめ | `cancel_load` と `listener_remove` は登録を作らないので走らせない（4.6 の 7 と同じ読み方） | 不要 |
+| 6 | `start_observing_async` の `ClipboardError` でない失敗 | `UNKNOWN`。ライブラリは今 `pasteboardUnavailable` だけを投げるので起きない | 不要 |
+| 7 | 第 1 部 5.3 の「P1-1」と `Registry.requestBox(id:)` | テストのための読み取りを Common に足した。機能の知識は無い。`requestCount` と同じ扱い | 不要 |
+
+### 7.6 実装の途中で分かったこと
+
+- **読み込みの時間切れの後もダイアログは残る**: `testALoadNotAnsweredTimesOut` はダイアログを 17 秒置いても閉じないことを前提に押している（押せなければ落ちる）。ヘッダーの「a later answer delivers nothing」のとおり
+- **取り消された読み込みの一時ファイルは、取り消しの完了より後に消えることがある**: 回ごとに数えた最初のテストは、別の UI テストと重ねた回（iPhone 16 / 18.3）で、数が 2 秒より後に戻って落ちた。なぜ 2 秒を超えたかは確かめていない。**テストが示すのは、テストの終わりに 2 秒変わらなくなった時点で、前に無かったパスが残っていないことまで**（7.9）。それより後のことと、テストの外の動作は分からない
+- 同じ `copy_async` で変更のイベントは 1 回とは限らない（テストは個数を決めず、2 つの受け手で同じ列であることを見る）
+- `NSItemProvider` が取り消しのときに `Code=-1000` のログを出す（OS のログ。値には関係しない）
+
+### 7.7 確かめられていないこと
+
+- **実機では何も流していない**（指定どおり。`generic/platform=iOS` は組むだけ）。iPad、x86_64 のスライスのテスト、iPhone 17 / 26.2 は流していない
+- 7.2 の「通らない」2 行。`RELEASED` の後に届く成功を本物の道で踏んだかは分からない
+- `IMAGE`、`URL` の読み込みの貼り付けのダイアログ（`TEXT` だけ）。`FILE` の拒否
+- 開始と同時の取り消し（ダイアログが出ることは約束しない。5.3）は UI テストに無い
+- **ダイアログを出している間の取り消しは TB-10 か DoD に送る**。アプリの行を押せないので今の形では書けない。ヘッダーは `CANCELED` を約束しているが、C からは確かめていない
+- **検出の 5 秒に晒されるテストは 2 件になった**（`testDetectingValuesTheUserDenies`、`testDetectingValuesTheUserAllows`）。今までの回では起きていないが、TB-12 の前に見直す
+- **`testAChangeArrivingDuringADelivery` の前提（書き込みが戻る前に通知が来る）は、シミュレーターの 2 台で確かめただけで、実機では未確認**。同じ前提の 7.9 の 2 件も同じ
+- `UNEXPECTED_TYPE`、`FILE_COPY_FAILED`、`IMAGE_ENCODE_FAILED`、読み込みの `CONTENT_TOO_LARGE` は写しの関数のテストだけ
+- 6.6 の Mac のクリップボードとの同期は引き続き測っていない。設定は変えず、Simulator.app も開かず、`pbcopy`、`pbpaste` も使っていない
+- 第 1 部 6 章の 8 スレッド × 25 回の同時の呼び出しは流していない（TB-10）
+
+### 7.8 時間
+
+03:35〜04:44（約 69 分）。うち変異が約 27 分（03:48〜04:15。別のシミュレーターで UI テストと重ねた回がある。最後の検証とは重ねていない）、`--capi-ui` は 1 回 9〜10 分。目標の 05:15 の中。
+
+### 7.9 レビューの直し
+
+レビューの指摘（Codex と、メインのセッションが読んで確かめたもの）をメインのセッションから受けて直した。
+
+| 指摘 | 直したこと |
+|---|---|
+| A（必ず直す） | 第 2 部 6.1 の「積まれた配送も届かない」が破れていた: 配っている途中に届いた E2 が、`stop_observing_async` の完了の後に配られた。**`EventLedger.discardUndelivered()` を Common に足し**（機能の知識なし、`held` は触らない、Notification は呼ばない）、`stopObserving` が完了の前に呼ぶ。**道は本物で通った**: テストの本体は main のキューのブロックの中でないので、`setItems` で E1 が同期に来て、コールバックが書いて E2 が届き、`stop` を呼んで run loop を回すと完了が来る |
+| A の広げた所 | **配っている途中の E1 の残りの受け手**も落とす（E1 が A に届いた中で止めると、B には届かない）。「完了の後は何も来ない」を保つため。依頼の文は E2 だけなので、要らなければ戻せる（`guard discards == discardCount`） |
+| A の `start` | **`start_observing_async` も同じに落とす**（読み方。「2 回目は前を止める」。ライブラリも世代の印で前の購読の配送を新しい受け手に渡さない。失敗で `UNAVAILABLE` のときも前は止まっているので落とす）。監視は 1 つで、受け手の帳簿も 1 つなので、前の監視のイベントと新しい監視のイベントは区別されない |
+| B-Codex | **C ABI が言えないイベントは受け手に届けない**。`ClipboardMapping.change(of:)` が nil を返し、`ClipboardReceiver.receive` がログを出して捨てる。対象は `changedDetectedOnForeground`、知らない種類、知らない scope。帳簿が持つのは `ClipboardChange`（新しい値の型）で、ハンドルは失敗しない。`scopeKind` は optional になった。**`scopeKind` を使うのはイベントだけ**で、ほかの道は無い |
+| B1 | `temporaryFileCount` をやめ、パスの集合（リクエストのフォルダーとその中のファイル）にした。始めと終わりで、2 秒変わらなくなるまで待ち（30 秒で落ちる）、`後 - 前` が空であることを見る。`testACancelBeforeTheFirstMainTurn` も同じ形にした。その前のテスト（アルファベット順で `testACancelAgainst...`）は終わりに落ち着くのを待つので、遅れたファイルが次のテストの始めの基準に混ざらない。始めの基準も 2 秒待つ |
+| B2 | 第 2 部 6.1 に 1 文ずつ足した: `FILE` の空の `ut_type`、`add_change_listener` の `out_listener` の `NULL`。コードは変えない |
+| C1〜C4 | 7.1 の 23、`ClipboardRows.swift` のコメント、`requestBox(id:)` の先頭のログ、`XCTUnwrap`（`first.changes[0]`、`recorder.changes[0]`） |
+| C5 | `testACancelOfALoadThatStartedEndsWithCanceled` の else に確かめを足した（`NONE`、`FILE`、ファイルが残る、1 回ずつ）。どちらの枝を通ったかを 1 行出す。**下の数えでは else は 1 度も通っていない** |
+| C5 の UI | `testALoadAllowedAfterItTimedOutDeliversNothing` を足した（17 秒待つのでもう 1 件増える。12.2 の「15 秒待つ 1 件だけ」より多い）。時間切れの後の許可でも 2 回目の完了は来ない |
+
+**設計書の直し（B2 の 2 文）は、メインのセッションが、持ち主の「07:20 まで推奨のとおりに進める」という指示の下で採ったもの。持ち主はまだ読んでいない。** A と B-Codex は設計書を変えていない（A は設計書の約束に合わせたコードの直し。`start` の読み方と E1 の残りは、設計書に戻すなら 6.1 の 1 文）。
+
+`ClipboardLoadedItemHandle` の `@unknown default`（`kind` が -1 の `NONE`）は残した。指摘の対象でなく、正しく見える別の値にはならない。呼ぶ側には成功に -1 の種類が見える。
+
+#### 枝の数え
+
+`testACancelOfALoadThatStartedEndsWithCanceled` を `-test-iterations 30` で 1 回（iPhone 17 Pro / 26.2。別のシミュレーターで変異を流している間）: **取り消しの枝が 30 回、else は 0 回**。最後の検証の 4 回（17 Pro、16、TSan、ASan）と直しの直後の 1 回も、すべて取り消しの枝。**合わせて 35 回のうち else は 0 回で、else の確かめは動いたことが無い。**
+
+#### 変異（使い捨ての写し。iPhone 16 / 18.3。テストの最後の形）
+
+6 個。写しを取った後にソースとテストを変えていない（写しと比べて差が無いことを `diff -rq` で確かめた）。**6 個とも落ちた。クラッシュは 0 件**（消したレポートも無い）。
+
+| 変異 | 落としたテスト |
+|---|---|
+| `stopObserving` が落とさない | `testAStopInsideADeliveryDropsWhatWasQueued` |
+| `startObserving` が落とさない | `testASecondStartInsideADeliveryDropsWhatWasQueuedOfTheFirst` |
+| 帳簿が待っているものを残す（`removeAll` を消す） | 上の 2 件と `testDiscardingDropsWhatWaitsForTheDeliveryInProgress` など |
+| 配っている途中を続ける（`guard` を消す） | `testAStopInsideADeliveryDropsWhatWasQueued`、`testDiscardingEndsTheDeliveryInProgressForThoseAfter` |
+| `registration.complete(result: nil)` | `testACancelAfterTheLoadsSuccessClosedTheBoxDeletesTheFile` |
+| `ClipboardProviderLoadHandle.finish` の遅れた `discard` を消す（`ios/IosLibrary`。写しの中だけ） | `testACancelAgainstTheEndOfALoadLeavesNoFileBehind` |
+
+#### 最後のソースの結果
+
+05:08〜05:36 に下の順で続けて流し、シミュレーターの仕事は重ねていない。ソースのハッシュ（6.8 と同じ範囲）は流す前と後で同じ（`fabe31b3cf15`）。**流した後に変えたのはこの記録の、この節と枝の数えの 1 文だけ。** 7.4 の 29 個の変異はこの直しの前のソースで、流し直していない。上の 6 個はこのソースと同じ写しで流した。
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 318/318 |
+| 同（iPhone 16 / 18.3） | 318/318 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 318/318。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 318/318。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6） | 26/26（`CApiRoundTripUITests` 25、`CApiFreshInstallUITests` 1）。rc 0 |
+| `--capi-ui`（iPhone 16 / 18.3。Xcode 26.6） | 26/26。rc 0 |
+| framework の Release（`generic/platform=iOS`。組むだけ）`--library --architectures arm64` | `OK symbols`（64 symbols、1 architectures）。capi の警告 0 |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`）`--library --architectures arm64,x86_64` | `OK symbols`（64 symbols、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 64 of 134 |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_c_abi_contract_ios.py'` | Ran 278 tests、OK |
+| `python3 scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+
+40 回の競合の取り消しの勝ちと渡しの勝ち: 17 Pro は 16 と 24、16 は 15 と 25、TSan は 14 と 26、ASan は 16 と 24。
+
+時間: 04:56〜05:37（約 41 分）。

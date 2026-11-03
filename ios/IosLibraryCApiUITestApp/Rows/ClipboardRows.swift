@@ -82,6 +82,28 @@ private func changeRow(_ userData: UnsafeMutableRawPointer?, _ error: Int32, _ s
     RowCompletion.from(userData).report("\(error) \(systemCode) changed=\(changed)")
 }
 
+/// `.file` belongs to the caller, so the row deletes the file and its folder after saying what it saw.
+private func loadRow(_ userData: UnsafeMutableRawPointer?, _ requestID: UInt64, _ error: Int32, _ systemCode: UInt32, _ item: OpaquePointer?) {
+    defer { ntk_clipboard_loaded_item_free(item) }
+    let value = ntk_clipboard_loaded_item_text(item, nil).map { String(cString: $0) } ?? "NULL"
+    var description = "\(error) \(systemCode) hasId=\(requestID != 0) kind=\(ntk_clipboard_loaded_item_kind(item)) text=\(value)"
+    if let path = ntk_clipboard_loaded_item_file_path(item, nil).map({ String(cString: $0) }) {
+        let bytes = FileManager.default.contents(atPath: path).map { String(decoding: $0, as: UTF8.self) } ?? "NULL"
+        description += " file=\(bytes)"
+        try? FileManager.default.removeItem(at: URL(fileURLWithPath: path).deletingLastPathComponent())
+    }
+    RowCompletion.from(userData).report(description)
+}
+
+private func listenerRow(_ userData: UnsafeMutableRawPointer?, _ change: OpaquePointer?) {
+    defer { ntk_clipboard_change_free(change) }
+    let name = ntk_clipboard_change_scope_name(change, nil).map { String(cString: $0) } ?? "NULL"
+    RowCompletion.from(userData).report("change kind=\(ntk_clipboard_change_kind(change)) scope=\(ntk_clipboard_change_scope_kind(change)) name=\(name) hasAdded=\(ntk_clipboard_change_types_added_count(change) > 0)")
+}
+
+/// The listener of the `addListener` row, until the `removeListener` row.
+@MainActor private var listener: OpaquePointer?
+
 /// What the function returned, when it rejected the call: the completion will not come.
 private func reportRejection(_ error: Int32, _ report: RowReport) {
     logger.debug("[reportRejection] rowId: \(report.rowId, privacy: .public), error: \(error, privacy: .public)")
@@ -123,7 +145,7 @@ private func withContent<Result>(kind: Int, html: String? = nil, _ body: (Unsafe
     }
 }
 
-/// Clipboard.h, the writes and the queries (TB-3). A row is one call. The rows without `Named` use the
+/// Clipboard.h. A row is one call. The rows without `Named` use the
 /// general pasteboard, which is the simulator's: these tests never run on a device.
 enum ClipboardRows {
     private static let url = "https://example.com/ntk"
@@ -170,6 +192,38 @@ enum ClipboardRows {
         },
         CApiRow(id: "clipboard.checkChange") { report in
             reportRejection(ntk_clipboard_check_foreground_change_async(nil, changeRow, RowCompletion.userData(report), releaseRow), report)
+        },
+        // Loading, and cancelling a load.
+        CApiRow(id: "clipboard.loadText") { report in
+            reportRejection(ntk_clipboard_load_item_async(Int32(NTK_CLIPBOARD_ITEM_TEXT), nil, nil, loadRow, RowCompletion.userData(report), releaseRow, nil), report)
+        },
+        CApiRow(id: "clipboard.loadFile") { report in
+            reportRejection(ntk_clipboard_load_item_async(Int32(NTK_CLIPBOARD_ITEM_FILE), plainTextType, nil, loadRow, RowCompletion.userData(report), releaseRow, nil), report)
+        },
+        CApiRow(id: "clipboard.loadAndCancel") { report in
+            var requestID: UInt64 = 0
+            let error = ntk_clipboard_load_item_async(Int32(NTK_CLIPBOARD_ITEM_TEXT), nil, nil, loadRow, RowCompletion.userData(report), releaseRow, &requestID)
+            reportRejection(error, report)
+            reportRejection(ntk_clipboard_cancel_load(requestID), report)
+        },
+        // Observing.
+        CApiRow(id: "clipboard.startObserving") { report in
+            reportRejection(ntk_clipboard_start_observing_async(nil, doneRow, RowCompletion.userData(report), releaseRow), report)
+        },
+        CApiRow(id: "clipboard.startObservingNamed") { report in
+            reportRejection(withNamedScope { ntk_clipboard_start_observing_async($0, doneRow, RowCompletion.userData(report), releaseRow) }, report)
+        },
+        CApiRow(id: "clipboard.stopObserving") { report in
+            reportRejection(ntk_clipboard_stop_observing_async(doneRow, RowCompletion.userData(report), releaseRow), report)
+        },
+        CApiRow(id: "clipboard.addListener") { report in
+            let error = ntk_clipboard_add_change_listener(listenerRow, RowCompletion.userData(report), releaseRow, &listener)
+            report("added \(error) hasHandle=\(listener != nil)")
+        },
+        CApiRow(id: "clipboard.removeListener") { report in
+            ntk_clipboard_listener_remove(listener)
+            listener = nil
+            report("removed")
         },
         // A named pasteboard.
         CApiRow(id: "clipboard.createNamed") { report in

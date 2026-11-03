@@ -221,6 +221,162 @@ final class ClipboardHandleTests: XCTestCase {
         ntk_clipboard_snapshot_free(nil)
     }
 
+    // MARK: - ntk_clipboard_loaded_item
+
+    func testALoadedText() {
+        let handle = ClipboardHandles.makeLoadedItem(.text("a\0b"))
+        defer { ntk_clipboard_loaded_item_free(handle) }
+        XCTAssertEqual(ntk_clipboard_loaded_item_kind(handle), 0)
+        var size = -1
+        XCTAssertEqual(string(ntk_clipboard_loaded_item_text(handle, &size)), "a\u{FFFD}b")
+        XCTAssertEqual(size, 5)
+        assertOnly(handle, except: "text")
+    }
+
+    func testALoadedUrl() {
+        let handle = ClipboardHandles.makeLoadedItem(.url("https://a.example"))
+        defer { ntk_clipboard_loaded_item_free(handle) }
+        XCTAssertEqual(ntk_clipboard_loaded_item_kind(handle), 1)
+        var size = -1
+        XCTAssertEqual(string(ntk_clipboard_loaded_item_url(handle, &size)), "https://a.example")
+        XCTAssertEqual(size, 17)
+        assertOnly(handle, except: "url")
+    }
+
+    func testALoadedImage() {
+        let handle = ClipboardHandles.makeLoadedItem(.imageData(Data([1, 0, 2]), utType: "public.png"))
+        defer { ntk_clipboard_loaded_item_free(handle) }
+        XCTAssertEqual(ntk_clipboard_loaded_item_kind(handle), 2)
+        var size = -1
+        let data = ntk_clipboard_loaded_item_image_data(handle, &size)
+        XCTAssertEqual(size, 3)
+        XCTAssertEqual(data.map { Array(UnsafeBufferPointer(start: $0, count: 3)) }, [1, 0, 2])
+        XCTAssertEqual(string(ntk_clipboard_loaded_item_image_type(handle, &size)), "public.png")
+        XCTAssertEqual(size, 10)
+        assertOnly(handle, except: "image")
+    }
+
+    /// As `ntk_bytes_data`: not NULL for an empty value.
+    func testALoadedImageWithNoBytesIsNotNull() {
+        let handle = ClipboardHandles.makeLoadedItem(.imageData(Data(), utType: "public.png"))
+        defer { ntk_clipboard_loaded_item_free(handle) }
+        var size = -1
+        XCTAssertNotNil(ntk_clipboard_loaded_item_image_data(handle, &size))
+        XCTAssertEqual(size, 0)
+    }
+
+    func testALoadedFile() {
+        let handle = ClipboardHandles.makeLoadedItem(.file(URL(fileURLWithPath: "/a/b/c.png")))
+        defer { ntk_clipboard_loaded_item_free(handle) }
+        XCTAssertEqual(ntk_clipboard_loaded_item_kind(handle), 3)
+        var size = -1
+        XCTAssertEqual(string(ntk_clipboard_loaded_item_file_path(handle, &size)), "/a/b/c.png")
+        XCTAssertEqual(size, 10)
+        assertOnly(handle, except: "file")
+    }
+
+    /// What the kind does not name is NULL with size 0.
+    private func assertOnly(_ handle: OpaquePointer, except: String, file: StaticString = #filePath, line: UInt = #line) {
+        var size = -1
+        if except != "text" {
+            XCTAssertNil(ntk_clipboard_loaded_item_text(handle, &size), file: file, line: line)
+            XCTAssertEqual(size, 0, file: file, line: line)
+            size = -1
+        }
+        if except != "url" {
+            XCTAssertNil(ntk_clipboard_loaded_item_url(handle, &size), file: file, line: line)
+            XCTAssertEqual(size, 0, file: file, line: line)
+            size = -1
+        }
+        if except != "image" {
+            XCTAssertNil(ntk_clipboard_loaded_item_image_data(handle, &size), file: file, line: line)
+            XCTAssertEqual(size, 0, file: file, line: line)
+            size = -1
+            XCTAssertNil(ntk_clipboard_loaded_item_image_type(handle, &size), file: file, line: line)
+            XCTAssertEqual(size, 0, file: file, line: line)
+            size = -1
+        }
+        if except != "file" {
+            XCTAssertNil(ntk_clipboard_loaded_item_file_path(handle, &size), file: file, line: line)
+            XCTAssertEqual(size, 0, file: file, line: line)
+        }
+    }
+
+    func testALoadedItemOfNull() {
+        var size = -1
+        XCTAssertEqual(ntk_clipboard_loaded_item_kind(nil), -1)
+        XCTAssertNil(ntk_clipboard_loaded_item_text(nil, &size))
+        XCTAssertEqual(size, 0)
+        XCTAssertNil(ntk_clipboard_loaded_item_url(nil, nil))
+        XCTAssertNil(ntk_clipboard_loaded_item_image_data(nil, nil))
+        XCTAssertNil(ntk_clipboard_loaded_item_image_type(nil, nil))
+        XCTAssertNil(ntk_clipboard_loaded_item_file_path(nil, nil))
+        ntk_clipboard_loaded_item_free(nil)
+    }
+
+    // MARK: - ntk_clipboard_change
+
+    func testAChange() {
+        let handle = ClipboardMapping.change(of: ClipboardChangeEvent(kind: .changed(typesAdded: ["public.a", "public.b"], typesRemoved: ["public.c"]), scope: .named("a.name"))).map(ClipboardHandles.makeChange)
+        defer { ntk_clipboard_change_free(handle) }
+        XCTAssertEqual(ntk_clipboard_change_kind(handle), 0)
+        XCTAssertEqual(ntk_clipboard_change_scope_kind(handle), 1)
+        var size = -1
+        XCTAssertEqual(string(ntk_clipboard_change_scope_name(handle, &size)), "a.name")
+        XCTAssertEqual(size, 6)
+        XCTAssertEqual(ntk_clipboard_change_types_added_count(handle), 2)
+        XCTAssertEqual(string(ntk_clipboard_change_types_added_at(handle, 1, &size)), "public.b")
+        XCTAssertEqual(size, 8)
+        XCTAssertEqual(ntk_clipboard_change_types_removed_count(handle), 1)
+        XCTAssertEqual(string(ntk_clipboard_change_types_removed_at(handle, 0, &size)), "public.c")
+        XCTAssertEqual(size, 8)
+    }
+
+    func testARemovalOfTheGeneralKindHasNoNameAndNoTypes() {
+        let handle = ClipboardMapping.change(of: ClipboardChangeEvent(kind: .removed, scope: .general)).map(ClipboardHandles.makeChange)
+        defer { ntk_clipboard_change_free(handle) }
+        XCTAssertEqual(ntk_clipboard_change_kind(handle), 1)
+        XCTAssertEqual(ntk_clipboard_change_scope_kind(handle), 0)
+        var size = -1
+        XCTAssertNil(ntk_clipboard_change_scope_name(handle, &size))
+        XCTAssertEqual(size, 0)
+        XCTAssertEqual(ntk_clipboard_change_types_added_count(handle), 0)
+        XCTAssertEqual(ntk_clipboard_change_types_removed_count(handle), 0)
+    }
+
+    func testAUniqueScopeInAChange() {
+        let handle = ClipboardMapping.change(of: ClipboardChangeEvent(kind: .removed, scope: .unique("u"))).map(ClipboardHandles.makeChange)
+        defer { ntk_clipboard_change_free(handle) }
+        XCTAssertEqual(ntk_clipboard_change_scope_kind(handle), 2)
+        XCTAssertEqual(string(ntk_clipboard_change_scope_name(handle, nil)), "u")
+    }
+
+    func testAChangeOutOfRange() {
+        let handle = ClipboardMapping.change(of: ClipboardChangeEvent(kind: .changed(typesAdded: ["public.a"], typesRemoved: ["public.b"]), scope: .general)).map(ClipboardHandles.makeChange)
+        defer { ntk_clipboard_change_free(handle) }
+        for index in [1, tooFar] {
+            var size = -1
+            XCTAssertNil(ntk_clipboard_change_types_added_at(handle, index, &size))
+            XCTAssertEqual(size, 0)
+            size = -1
+            XCTAssertNil(ntk_clipboard_change_types_removed_at(handle, index, &size))
+            XCTAssertEqual(size, 0)
+        }
+    }
+
+    func testAChangeOfNull() {
+        var size = -1
+        XCTAssertEqual(ntk_clipboard_change_kind(nil), -1)
+        XCTAssertEqual(ntk_clipboard_change_scope_kind(nil), -1)
+        XCTAssertNil(ntk_clipboard_change_scope_name(nil, &size))
+        XCTAssertEqual(size, 0)
+        XCTAssertEqual(ntk_clipboard_change_types_added_count(nil), 0)
+        XCTAssertNil(ntk_clipboard_change_types_added_at(nil, 0, nil))
+        XCTAssertEqual(ntk_clipboard_change_types_removed_count(nil), 0)
+        XCTAssertNil(ntk_clipboard_change_types_removed_at(nil, 0, nil))
+        ntk_clipboard_change_free(nil)
+    }
+
     // MARK: - A handle of another type (undefined by the contract; part 1, chapter 6)
 
     func testHandlesOfOtherTypesReadAsNothing() {
@@ -235,6 +391,9 @@ final class ClipboardHandleTests: XCTestCase {
         XCTAssertEqual(ntk_clipboard_snapshot_number_of_items(read), 0)
         XCTAssertEqual(ntk_clipboard_snapshot_matching_at(read, 0), -1)
         XCTAssertNil(ntk_string_data(read))
+        XCTAssertEqual(ntk_clipboard_loaded_item_kind(read), -1)
+        XCTAssertEqual(ntk_clipboard_change_kind(read), -1)
+        XCTAssertEqual(ntk_clipboard_change_types_added_count(snap), 0)
     }
 
     /// A pointer stays valid until the handle is freed, and the handle owns its bytes.

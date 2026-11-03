@@ -26,6 +26,69 @@ final class EventLedgerTests: XCTestCase {
 
     // MARK: - Registering and removing
 
+    // MARK: - Dropping what was not delivered
+
+    func testDiscardingDropsWhatWaitsForTheDeliveryInProgress() {
+        let ledger = makeLedger()
+        let recorder = Recorder()
+        register(recorder, to: ledger)
+        runMainQueue()
+        recorder.onEvent = { event in
+            guard event == 1 else { return }
+            MainActor.assumeIsolated {
+                ledger.receive(2)
+                ledger.discardUndelivered()
+            }
+        }
+
+        ledger.receive(1)
+
+        XCTAssertEqual(recorder.events, [1])
+        Registry.removeListener(recorder.outListener.pointee)
+        runMainQueue()
+    }
+
+    func testDiscardingEndsTheDeliveryInProgressForThoseAfter() {
+        let ledger = makeLedger()
+        let first = Recorder()
+        let second = Recorder()
+        register(first, to: ledger)
+        register(second, to: ledger)
+        runMainQueue()
+        first.onEvent = { event in
+            guard event == 1 else { return }
+            MainActor.assumeIsolated { ledger.discardUndelivered() }
+        }
+
+        ledger.receive(1)
+        XCTAssertEqual(first.events, [1])
+        XCTAssertEqual(second.events, [])
+
+        ledger.receive(3)
+        XCTAssertEqual(first.events, [1, 3], "what comes later is delivered as ever")
+        XCTAssertEqual(second.events, [3])
+        Registry.removeListener(first.outListener.pointee)
+        Registry.removeListener(second.outListener.pointee)
+        runMainQueue()
+    }
+
+    /// Notifications hold events (AP-21), and this is not about those.
+    func testDiscardingLeavesWhatIsHeld() {
+        let ledger = makeLedger()
+        ledger.receive(1)
+        XCTAssertEqual(ledger.heldCount, 1)
+
+        ledger.discardUndelivered()
+        XCTAssertEqual(ledger.heldCount, 1)
+
+        let recorder = Recorder()
+        register(recorder, to: ledger)
+        runMainQueue()
+        XCTAssertEqual(recorder.events, [1])
+        Registry.removeListener(recorder.outListener.pointee)
+        runMainQueue()
+    }
+
     func testNothingRunsInsideAddAndTheHandleIsThere() {
         let firstInsertion = MainHolder<Int>()
         let ledger = makeLedger { firstInsertion.value = (firstInsertion.value ?? 0) + 1 }

@@ -151,6 +151,120 @@ final class CApiRoundTripUITests: CApiUITestCase {
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.readData"), line("readData", "0 0 data=NULL"))
     }
 
+    func testReadDataTheUserAllows() throws {
+        let app = try launchApp(section: .clipboard)
+        writeFromTheRunner()
+        try app.start("clipboard.readData")
+        try answerPaste("Allow Paste")
+        XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.readData"), line("readData", "0 0 data=written-by-the-runner"))
+    }
+
+    func testDetectingValuesTheUserAllows() throws {
+        let app = try launchApp(section: .clipboard)
+        UIPasteboard.general.string = "https://example.com/ntk"
+        try app.start("clipboard.detectValues")
+        try answerPaste("Allow Paste")
+        let values = try app.waitForLine(ofRow: "clipboard.detectValues")
+        XCTAssertTrue(values.hasPrefix(line("detectValues", "0 0 json={")), values)
+        XCTAssertTrue(values.contains("\"probableWebURL\":\"https://example.com/ntk\""), values)
+    }
+
+    func testALoadTheUserAllows() throws {
+        let app = try launchApp(section: .clipboard)
+        writeFromTheRunner()
+        try app.start("clipboard.loadText")
+        try answerPaste("Allow Paste")
+        XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "0 0 hasId=true kind=0 text=written-by-the-runner"))
+    }
+
+    /// M3: unlike a read, a denied load is a failure.
+    func testALoadTheUserDenies() throws {
+        let app = try launchApp(section: .clipboard)
+        writeFromTheRunner()
+        try app.start("clipboard.loadText")
+        try answerPaste("Don’t Allow Paste")
+        XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "\(ClipboardError.loadFailed) 0 hasId=true kind=-1 text=NULL"))
+    }
+
+    /// Cancelled before the first main turn, the load never starts, so the system asks nothing (part 2, 12.2).
+    func testALoadCancelledAtOnceAsksNothing() throws {
+        let app = try launchApp(section: .clipboard)
+        writeFromTheRunner()
+        try app.start("clipboard.loadAndCancel")
+        XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadAndCancel"), line("loadAndCancel", "\(ClipboardError.canceled) 0 hasId=true kind=-1 text=NULL"))
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCTAssertFalse(springboard.alerts.firstMatch.waitForExistence(timeout: 3), "a cancelled load showed the paste alert")
+    }
+
+    /// Part 2, 12.2: the one test that waits the 15 seconds. The timeout includes the time to answer, and a later
+    /// answer delivers nothing.
+    func testALoadNotAnsweredTimesOut() throws {
+        let app = try launchApp(section: .clipboard)
+        writeFromTheRunner()
+        try app.start("clipboard.loadText")
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCTAssertTrue(springboard.alerts.firstMatch.waitForExistence(timeout: 10), "no paste alert")
+        Thread.sleep(forTimeInterval: 17)
+        try answerPaste("Don’t Allow Paste")
+        XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "\(ClipboardError.timedOut) 0 hasId=true kind=-1 text=NULL"))
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "clipboard.loadText", occurrence: 1), "a second completion")
+    }
+
+    /// As above with the other answer: an answer after the timeout delivers nothing, also when it allows.
+    func testALoadAllowedAfterItTimedOutDeliversNothing() throws {
+        let app = try launchApp(section: .clipboard)
+        writeFromTheRunner()
+        try app.start("clipboard.loadText")
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCTAssertTrue(springboard.alerts.firstMatch.waitForExistence(timeout: 10), "no paste alert")
+        Thread.sleep(forTimeInterval: 17)
+        try answerPaste("Allow Paste")
+        XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "\(ClipboardError.timedOut) 0 hasId=true kind=-1 text=NULL"))
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "clipboard.loadText", occurrence: 1), "a second completion")
+    }
+
+    func testLoadingWhatTheAppWrote() throws {
+        let app = try launchApp(section: .clipboard)
+        XCTAssertEqual(try run(app, "copy"), line("copy", "0 0"))
+        XCTAssertEqual(try run(app, "loadText"), line("loadText", "0 0 hasId=true kind=0 text=\(text)"))
+        XCTAssertEqual(try run(app, "loadFile"), line("loadFile", "0 0 hasId=true kind=3 text=NULL file=\(text)"))
+        XCTAssertEqual(try run(app, "clear"), line("clear", "0 0"))
+        XCTAssertEqual(try run(app, "loadText"), line("loadText", "\(ClipboardError.noMatchingItem) 0 hasId=true kind=-1 text=NULL"))
+    }
+
+    /// The general pasteboard is observed here only, on the simulator (the unit tests stay on named ones).
+    func testObservingTheGeneralPasteboard() throws {
+        let app = try launchApp(section: .clipboard)
+        XCTAssertEqual(try run(app, "addListener"), line("addListener", "added 0 hasHandle=true"))
+        XCTAssertEqual(try run(app, "copy"), line("copy", "0 0"))
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "clipboard.addListener", occurrence: 1), "registering started observing")
+
+        XCTAssertEqual(try run(app, "startObserving"), line("startObserving", "0 0"))
+        XCTAssertEqual(try run(app, "copy"), line("copy", "0 0"))
+        let change = try app.waitForLine(ofRow: "clipboard.addListener", occurrence: 1)
+        XCTAssertTrue(change.hasPrefix(line("addListener", "change kind=0 scope=0 name=NULL")), change)
+        XCTAssertEqual(try run(app, "stopObserving"), line("stopObserving", "0 0"))
+        XCTAssertEqual(try run(app, "removeListener"), line("removeListener", "removed"))
+    }
+
+    func testObservingANamedPasteboardToItsRemoval() throws {
+        let app = try launchApp(section: .clipboard)
+        XCTAssertEqual(try run(app, "startObservingNamed"), line("startObservingNamed", "\(ClipboardError.unavailable) 0"), "it is not there yet")
+        XCTAssertEqual(try run(app, "createNamed"), line("createNamed", "0 0 name=com.jonghyunkim.nativetoolkit.capi.ui"))
+        XCTAssertEqual(try run(app, "addListener"), line("addListener", "added 0 hasHandle=true"))
+        XCTAssertEqual(try run(app, "startObservingNamed"), line("startObservingNamed", "0 0"))
+        XCTAssertEqual(try run(app, "copyNamed"), line("copyNamed", "0 0"))
+        let changed = try app.waitForLine(ofRow: "clipboard.addListener", occurrence: 1)
+        XCTAssertTrue(changed.contains("change kind=0 scope=1 name=com.jonghyunkim.nativetoolkit.capi.ui"), changed)
+        XCTAssertEqual(try run(app, "removeNamed"), line("removeNamed", "0 0"))
+        XCTAssertTrue(try app.waitForLine(ofRow: "clipboard.addListener", matching: "change kind=1 scope=1 name=com.jonghyunkim.nativetoolkit.capi.ui"))
+        XCTAssertEqual(try run(app, "stopObserving"), line("stopObserving", "0 0"))
+        XCTAssertEqual(try run(app, "removeListener"), line("removeListener", "removed"))
+    }
+
     func testDetectingValuesTheUserDenies() throws {
         let app = try launchApp(section: .clipboard)
         UIPasteboard.general.string = "https://example.com/ntk"
@@ -173,5 +287,9 @@ private enum ClipboardError {
     static let unavailable = 9
     static let emptyPatterns = 12
     static let cannotRemoveGeneral = 22
+    static let noMatchingItem = 23
+    static let loadFailed = 24
+    static let canceled = 27
+    static let timedOut = 28
     static let detectionFailed = 29
 }

@@ -12,7 +12,7 @@ import XCTest
 /// (`ClipboardTestSupport`).
 final class ClipboardEntryTests: ClipboardTestCase {
 
-    // MARK: - The 11 functions, with a callback or none
+    // MARK: - The functions, with a callback or none
 
     /// A call of one function, and whether to give it its callback.
     private struct Call: @unchecked Sendable {
@@ -22,7 +22,7 @@ final class ClipboardEntryTests: ClipboardTestCase {
         let run: (_ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?, _ withCallback: Bool) -> Int32
     }
 
-    /// Each function with a valid request on `scope`, or with NULL for its callback. Nothing reaches the
+    /// Each function that takes a callback with a valid request on `scope`, or with NULL for its callback. Nothing reaches the
     /// general pasteboard: `scope` is a named one.
     private func calls(scope: ntk_clipboard_scope) -> [Call] {
         let scopePointer = array([scope])
@@ -40,6 +40,9 @@ final class ClipboardEntryTests: ClipboardTestCase {
             Call(name: "detectPatterns") { ntk_clipboard_detect_patterns_async(number, scopePointer, $2 ? recordPatterns : nil, $0, $1) },
             Call(name: "detectValues", free: ntk_string_free) { ntk_clipboard_detect_values_async(number, scopePointer, $2 ? recordHandle : nil, $0, $1) },
             Call(name: "check") { ntk_clipboard_check_foreground_change_async(scopePointer, $2 ? recordChanged : nil, $0, $1) },
+            Call(name: "load", free: ntk_clipboard_loaded_item_free) { ntk_clipboard_load_item_async(0, nil, scopePointer, $2 ? recordLoad : nil, $0, $1, nil) },
+            Call(name: "startObserving") { ntk_clipboard_start_observing_async(scopePointer, $2 ? recordDone : nil, $0, $1) },
+            Call(name: "stopObserving") { ntk_clipboard_stop_observing_async($2 ? recordDone : nil, $0, $1) },
             Call(name: "remove") { ntk_clipboard_remove_pasteboard_async(scopePointer, $2 ? recordDone : nil, $0, $1) },
         ]
     }

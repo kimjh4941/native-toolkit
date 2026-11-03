@@ -182,28 +182,6 @@ LEDGER = "受け口の帳簿"
 # or leaves the headers, so the list shrinks as the entries come. Nothing but
 # --require-complete stops a name being added: it must be empty at TB-10.
 NOT_IMPLEMENTED_YET = (
-    # Clipboard.h
-    "ntk_clipboard_load_item_async",
-    "ntk_clipboard_cancel_load",
-    "ntk_clipboard_start_observing_async",
-    "ntk_clipboard_stop_observing_async",
-    "ntk_clipboard_add_change_listener",
-    "ntk_clipboard_listener_remove",
-    "ntk_clipboard_loaded_item_kind",
-    "ntk_clipboard_loaded_item_text",
-    "ntk_clipboard_loaded_item_url",
-    "ntk_clipboard_loaded_item_image_data",
-    "ntk_clipboard_loaded_item_image_type",
-    "ntk_clipboard_loaded_item_file_path",
-    "ntk_clipboard_loaded_item_free",
-    "ntk_clipboard_change_kind",
-    "ntk_clipboard_change_scope_kind",
-    "ntk_clipboard_change_scope_name",
-    "ntk_clipboard_change_types_added_count",
-    "ntk_clipboard_change_types_added_at",
-    "ntk_clipboard_change_types_removed_count",
-    "ntk_clipboard_change_types_removed_at",
-    "ntk_clipboard_change_free",
     # Dialog.h
     "ntk_dialog_show_alert_async",
     "ntk_dialog_show_confirm_async",

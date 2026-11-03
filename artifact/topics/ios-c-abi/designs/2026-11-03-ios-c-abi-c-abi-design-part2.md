@@ -278,12 +278,12 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 | `remove_pasteboard_async` | 非同期 | general は `CANNOT_REMOVE_GENERAL`。無い名前は成功（今のまま） |
 | `detect_patterns_async(patterns, ...)` | 非同期。完了の値はビットの組 | `patterns` は `NTK_CLIPBOARD_PATTERN_*` の組。0 は `EMPTY_PATTERNS`（入口）、知らないビットは `INVALID_PARAMETER`。5 秒で `TIMED_OUT` |
 | `detect_values_async(patterns, ...)` | 非同期。JSON（P2-8） | 同上。**内容を読むので貼り付けのダイアログが出て、答えないと 5 秒で `TIMED_OUT`、拒否は `DETECTION_FAILED`**（M3。P2-24）。main は止まらない |
-| `load_item_async(kind, ut_type, ...)` | 非同期。出力に要求の ID | `kind` は `TEXT`、`URL`、`IMAGE`、`FILE`。`FILE` は `ut_type` が必須。**時間切れ（15 秒）に利用者が答える時間も入る**（P2-24）。拒否は `LOAD_FAILED`。main は止まらない |
+| `load_item_async(kind, ut_type, ...)` | 非同期。出力に要求の ID | `kind` は `TEXT`、`URL`、`IMAGE`、`FILE`。`FILE` は `ut_type` が必須。**時間切れ（15 秒）に利用者が答える時間も入る**（P2-24）。拒否は `LOAD_FAILED`。main は止まらない `FILE` の空の `ut_type` は入口を通り、`NO_MATCHING_ITEM`（23）で完了する（`read_data_async` の空の型は `INVALID_TYPE`）。 |
 | `cancel_load(id)` | どのスレッドからでも。待たない | 取り消した読み込みは `CANCELED` で完了する（5.3） |
 | `start_observing_async(scope, ...)` | 非同期 | 同時に 1 つ。2 回目は前を止める。**2 回目が `UNAVAILABLE` で失敗すると 1 回目も止まったまま**（今のライブラリの動作。変えない。ヘッダーに書く） |
 | `stop_observing_async(...)` | 非同期 | 失敗しない。監視していなくても `NONE`。積まれた配送も届かない。**別の部品が始めた監視も止まる**（P2-16） |
 | `check_foreground_change_async(scope, ...)` | 非同期。完了の値は 0 か 1 | 前面かどうかを見ない。初回は 0。解決できない pasteboard は 0（今のまま） |
-| `add_change_listener`、`listener_remove` | 第 1 部 5.7 | 登録しただけでは監視は始まらない（P2-16）。保たない |
+| `add_change_listener`、`listener_remove` | 第 1 部 5.7 | 登録しただけでは監視は始まらない（P2-16）。保たない `add_change_listener` の `out_listener` の `NULL` は `INVALID_PARAMETER` で、`release` を呼ぶ。 |
 
 **読み込みの結果**（`ntk_clipboard_loaded_item`）: `_kind` で読むものが決まる。`FILE` は**一時ファイルとその親のフォルダーの持ち主が受け手になる**（`_free` は消さない。今のブリッジと同じ。5.3）。
 

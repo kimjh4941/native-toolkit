@@ -47,6 +47,49 @@ final class ClipboardSnapshotHandle {
     }
 }
 
+/// What an `ntk_clipboard_loaded_item*` points to. Only what `kind` names is there.
+final class ClipboardLoadedItemHandle {
+    let kind: ntk_clipboard_item_kind
+    let text: HandleBuffer?
+    let url: HandleBuffer?
+    let imageData: HandleBuffer?
+    let imageType: HandleBuffer?
+    let filePath: HandleBuffer?
+
+    init(_ item: ClipboardLoadedItem) {
+        switch item {
+        case .text(let value):
+            (kind, text, url, imageData, imageType, filePath) = (ntk_clipboard_item_kind(NTK_CLIPBOARD_ITEM_TEXT), ClipboardHandles.buffer(value), nil, nil, nil, nil)
+        case .url(let value):
+            (kind, text, url, imageData, imageType, filePath) = (ntk_clipboard_item_kind(NTK_CLIPBOARD_ITEM_URL), nil, ClipboardHandles.buffer(value), nil, nil, nil)
+        case .imageData(let data, let utType):
+            (kind, text, url, imageData, imageType, filePath) = (ntk_clipboard_item_kind(NTK_CLIPBOARD_ITEM_IMAGE), nil, nil, HandleBuffer(data), ClipboardHandles.buffer(utType), nil)
+        case .file(let fileURL):
+            (kind, text, url, imageData, imageType, filePath) = (ntk_clipboard_item_kind(NTK_CLIPBOARD_ITEM_FILE), nil, nil, nil, nil, ClipboardHandles.buffer(fileURL.path))
+        @unknown default:
+            CApiLog.clipboard.error("[ClipboardLoadedItemHandle.init] an item this version does not know")
+            (kind, text, url, imageData, imageType, filePath) = (-1, nil, nil, nil, nil, nil)
+        }
+    }
+}
+
+/// What an `ntk_clipboard_change*` points to.
+final class ClipboardChangeHandle {
+    let kind: ntk_clipboard_change_event_kind
+    let scopeKind: ntk_clipboard_scope_kind
+    let scopeName: HandleBuffer?
+    let typesAdded: [HandleBuffer]
+    let typesRemoved: [HandleBuffer]
+
+    init(_ change: ClipboardChange) {
+        kind = change.kind
+        scopeKind = change.scopeKind
+        scopeName = change.scopeName.map(ClipboardHandles.buffer)
+        typesAdded = change.typesAdded.map(ClipboardHandles.buffer)
+        typesRemoved = change.typesRemoved.map(ClipboardHandles.buffer)
+    }
+}
+
 /// The readers of the result handles. A `size_t` arrives as `Int`: an index above `Int.max` is negative here
 /// and out of range like any other. NULL and a handle of another type read as nothing. Reads and frees are
 /// not logged (part 1, 5.15), and the values themselves never are.
@@ -153,6 +196,85 @@ enum ClipboardHandles {
     /// -1 for NULL and out of range: 0 is the first item (P2-29).
     static func snapshotMatchingAt(_ handle: OpaquePointer?, _ index: Int) -> Int64 {
         element(snapshot(handle)?.matching, index).map(Int64.init) ?? -1
+    }
+
+    // MARK: - ntk_clipboard_loaded_item
+
+    static func makeLoadedItem(_ item: ClipboardLoadedItem) -> OpaquePointer {
+        CApiLog.clipboard.debug("[makeLoadedItem] item: provided")
+        return Handle.retained(ClipboardLoadedItemHandle(item))
+    }
+
+    private static func loaded(_ handle: OpaquePointer?) -> ClipboardLoadedItemHandle? {
+        Handle.borrow(handle, as: ClipboardLoadedItemHandle.self)
+    }
+
+    /// -1 for NULL: 0 is TEXT (P2-29).
+    static func loadedItemKind(_ handle: OpaquePointer?) -> ntk_clipboard_item_kind {
+        loaded(handle)?.kind ?? -1
+    }
+
+    static func loadedItemText(_ handle: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        Handle.text(of: loaded(handle)?.text, outSize)
+    }
+
+    static func loadedItemUrl(_ handle: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        Handle.text(of: loaded(handle)?.url, outSize)
+    }
+
+    static func loadedItemImageData(_ handle: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<UInt8>? {
+        let buffer = loaded(handle)?.imageData
+        outSize?.pointee = buffer?.count ?? 0
+        return buffer.map { UnsafePointer($0.storage) }
+    }
+
+    static func loadedItemImageType(_ handle: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        Handle.text(of: loaded(handle)?.imageType, outSize)
+    }
+
+    static func loadedItemFilePath(_ handle: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        Handle.text(of: loaded(handle)?.filePath, outSize)
+    }
+
+    // MARK: - ntk_clipboard_change
+
+    static func makeChange(_ change: ClipboardChange) -> OpaquePointer {
+        CApiLog.clipboard.debug("[makeChange] change: provided")
+        return Handle.retained(ClipboardChangeHandle(change))
+    }
+
+    private static func change(_ handle: OpaquePointer?) -> ClipboardChangeHandle? {
+        Handle.borrow(handle, as: ClipboardChangeHandle.self)
+    }
+
+    /// -1 for NULL (P2-29).
+    static func changeKind(_ handle: OpaquePointer?) -> ntk_clipboard_change_event_kind {
+        change(handle)?.kind ?? -1
+    }
+
+    /// -1 for NULL (P2-29).
+    static func changeScopeKind(_ handle: OpaquePointer?) -> ntk_clipboard_scope_kind {
+        change(handle)?.scopeKind ?? -1
+    }
+
+    static func changeScopeName(_ handle: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        Handle.text(of: change(handle)?.scopeName, outSize)
+    }
+
+    static func changeTypesAddedCount(_ handle: OpaquePointer?) -> Int {
+        change(handle)?.typesAdded.count ?? 0
+    }
+
+    static func changeTypesAddedAt(_ handle: OpaquePointer?, _ index: Int, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        Handle.text(of: element(change(handle)?.typesAdded, index), outSize)
+    }
+
+    static func changeTypesRemovedCount(_ handle: OpaquePointer?) -> Int {
+        change(handle)?.typesRemoved.count ?? 0
+    }
+
+    static func changeTypesRemovedAt(_ handle: OpaquePointer?, _ index: Int, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        Handle.text(of: element(change(handle)?.typesRemoved, index), outSize)
     }
 
     private static func element<Element>(_ array: [Element]?, _ index: Int) -> Element? {

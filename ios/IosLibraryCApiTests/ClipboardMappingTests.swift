@@ -510,6 +510,47 @@ final class ClipboardMappingTests: ClipboardTestCase {
         assertRejected(invalid) { () throws(ClipboardRejection) in try ClipboardMapping.matchingTypes(notUTF8, count: 1) }
     }
 
+    // MARK: - Load
+
+    func testTheKindsToLoad() throws {
+        // Only FILE reads the type.
+        XCTAssertEqual(try ClipboardMapping.loadRequest(kind: 0, utType: unreadable()), .text)
+        XCTAssertEqual(try ClipboardMapping.loadRequest(kind: 1, utType: unreadable()), .url)
+        XCTAssertEqual(try ClipboardMapping.loadRequest(kind: 2, utType: unreadable()), .image)
+        XCTAssertEqual(try ClipboardMapping.loadRequest(kind: 3, utType: c("public.png")), .file(utType: "public.png"))
+        XCTAssertEqual(try ClipboardMapping.loadRequest(kind: 3, utType: c("")), .file(utType: ""), "a type no item has is the library's")
+    }
+
+    func testTheKindsToLoadReject() {
+        for kind: Int32 in [-1, 4] {
+            assertRejected(invalid) { () throws(ClipboardRejection) in try ClipboardMapping.loadRequest(kind: kind, utType: c("public.png")) }
+        }
+        assertRejected(invalid) { () throws(ClipboardRejection) in try ClipboardMapping.loadRequest(kind: 3, utType: nil) }
+        for bytes in invalidUTF8 {
+            assertRejected(invalid) { () throws(ClipboardRejection) in try ClipboardMapping.loadRequest(kind: 3, utType: raw(bytes)) }
+        }
+    }
+
+    func testTheKindOfAScopeInAnEvent() {
+        XCTAssertEqual(ClipboardMapping.scopeKind(of: .general), 0)
+        XCTAssertEqual(ClipboardMapping.scopeKind(of: .named("a")), 1)
+        XCTAssertEqual(ClipboardMapping.scopeKind(of: .unique("a")), 2)
+    }
+
+    func testAChangeEvent() {
+        XCTAssertEqual(ClipboardMapping.change(of: ClipboardChangeEvent(kind: .changed(typesAdded: ["a"], typesRemoved: ["b"]), scope: .named("n"))),
+                       ClipboardChange(kind: 0, scopeKind: 1, scopeName: "n", typesAdded: ["a"], typesRemoved: ["b"]))
+        XCTAssertEqual(ClipboardMapping.change(of: ClipboardChangeEvent(kind: .removed, scope: .unique("u"))),
+                       ClipboardChange(kind: 1, scopeKind: 2, scopeName: "u", typesAdded: [], typesRemoved: []))
+        XCTAssertEqual(ClipboardMapping.change(of: ClipboardChangeEvent(kind: .changed(typesAdded: [], typesRemoved: []), scope: .general)),
+                       ClipboardChange(kind: 0, scopeKind: 0, scopeName: nil, typesAdded: [], typesRemoved: []))
+    }
+
+    /// Part 2, 6.1: no value in C. The `@unknown default` branches cannot be reached from a test.
+    func testAForegroundDetectionHasNoChange() {
+        XCTAssertNil(ClipboardMapping.change(of: ClipboardChangeEvent(kind: .changedDetectedOnForeground, scope: .general)))
+    }
+
     // MARK: - Patterns
 
     /// Written out: the numbers of the header, the raw values of the library.
