@@ -343,7 +343,9 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     /// token that cancels the load.
     ///
     /// The load reads the pasteboard's item providers, so iOS can ask the user to allow the paste
-    /// when another app wrote the content.
+    /// when another app wrote the content. The load's timeout (``ClipboardTimeouts/providerLoad``,
+    /// 15 seconds by default) includes the time the user takes to answer: without an answer by
+    /// then, the load fails with `CLIPBOARD_TIMED_OUT`, and a later answer delivers nothing.
     ///
     /// - Parameters:
     ///   - request: What to load (text, URL, image, or a file of a type identifier).
