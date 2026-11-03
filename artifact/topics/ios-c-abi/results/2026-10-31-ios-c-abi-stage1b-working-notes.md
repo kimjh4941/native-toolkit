@@ -2055,3 +2055,41 @@ C7 の未コミットの変更（文書とテスト）のレビュー（文書�
 **基準の取り直し**（iPhone 17 / 26.2、`4ea74702`、2026-11-02 22:26〜11-03 00:22、1 時間 56 分。ほかのシミュレーターの作業は動かしていない）: 683 件（`IosLibraryTests` 548、`IosLibraryExampleTests` 10、UI テスト 124、ボタンの網羅の 1 行）のうち 682 件が成功し、skip は意図した U10b の 1 件で、N9・N32・N33 も通った。前の基準との比べ合わせは `changed=0, added=366, removed=4` で、足した 366 件は 1b の 361 件（20.7）と 23.2 の 5 件、removed の 4 件は 20.7 で記録した名前を替えた・消したテスト。基準（`scripts/test_ios.baseline.iPhone_17-26.2.json`）は 682 件になった（ボタンの網羅の行は入らない）。ただし、待ちを足す前の C7 の全件の回も N32・N33 は通っていたので、1 回通ったことは直しの効き目の証拠にはならない。また落ちたら、原因の見込みから調べ直す。
 
 **ライブラリの限り**: 背景のアクションの直後に利用者がアプリを前面に出すと、その応答が起動のきっかけ（`isLaunchResponse`）と扱われることがある。iOS 18 だけのことと見ていたが、iOS 26 でも起こりうる。動作は変えない。マニュアル（段階 4）に書く候補として残す。
+
+## 24. 実機の回（21 章の 3）
+
+### 24.1 UI テストの回（`clipboard` を含む 106 件）
+
+利用者に 4 項目を示して許可を得て、`ff2384be` で流した（2026-11-03 04:00〜06:20、2 時間 19 分。iPhone XS / 18.7.2、Xcode 26.3）。`--device-allow systemui,sharesheet,clipboard`、`--baseline`。実機の UDID と devicectl の識別子はどこにも書いていない。実機の `.xcresult` はランナーが消した。`clipboard` を含めると、1b の CB5・CB6 だけでなく 0c の残りのテストも流れる（ランナーは区分で選ぶ）ことを示し、利用者が含めると決めた。
+
+| 区分 | 件数 | 結果 |
+|---|---|---|
+| `clipboard` を含まない（`systemui`・`sharesheet`・区分なし） | 72 | すべて成功（N32・N33 を含む） |
+| `clipboard` を含む | 34 | 成功 30、skip 1（U10b。シミュレーターと同じ、M-08 がこの環境では決まらない）、失敗 3 |
+
+前の実機の基準（60 件）との比べ合わせは `changed=0, added=46, removed=0`。失敗があったので、基準は保存されていない（60 件のまま）。
+
+| 失敗 | 文 |
+|---|---|
+| CB1 | `ClipboardPasteUITests.swift:46`: `the paste alert did not appear`（10 秒） |
+| CB3・CB4 | `SampleApp.swift:735`: `the paste summary did not become Paste result: items=1, failures=0 in 10.0s: Paste result: -` |
+
+### 24.2 切り分け
+
+- 同じ 3 件を iPhone 16 / 18.3 のシミュレーターで流すと、3/3 成功。iOS の版ではなく、実機でだけ起きる
+- CB1・CB3・CB4 を実機で流したのは今回が初めて。0a で合成のタップが受け付けられると確かめたのはシミュレーターだけ（0a の結果）
+- 利用者が実機で手で確かめた（サンプルの Clipboard の画面で、メモなどからコピーした文字列）。Load Text で貼り付けの許可のダイアログが出た。Mount Paste Control の後に貼り付けのコントロールを指で押すと、`Paste result: items=1, failures=0` になった。画像だけの内容（CB4）は手で確かめていない
+
+**見込み（確かめてはいない）**: CB3・CB4 は、実機が貼り付けのコントロールで XCUITest の合成のタップを受け付けない。テストの限りで、ライブラリの不具合ではない。CB1 の原因は分からない。同じ手順の CB2 は同じ回でダイアログが出て通り、手でも出たので、ダイアログが出ないのが実機の常の振る舞いではない。実機の画面の階層は読まない決まり（`agent-rules/device-testing.md`）なので、ログからはこれ以上分からない。
+
+**残すこと**: `clipboard` を許す次の実機の回（2.0.0 の前の区切り）の前に、CB3・CB4 を `SIMULATOR_ONLY_TESTS` に移して人の確認に回すかを決める。CB1 はその回でもう一度見る。
+
+**手順の誤り**: 1 回目の起動は `--skip-unit` と `--baseline` を一緒に渡して、引数の確かめで止まった（実機に触れていない。許可の ID も使っていない）。実機では単体テストは流れないので、`--skip-unit` は要らない。
+
+### 24.3 実機の基準の取り直し（`clipboard` を含まない 72 件）
+
+基準は失敗が無い回でしか保存されず、CB3・CB4 は実機で通らない見込みなので、`clipboard` を外して流した（利用者に 4 項目を示して、改めて許可を得た）。`ff2384be`、2026-11-03 08:48〜09:54、1 時間 6 分。`--device-allow systemui,sharesheet`、`--baseline`。
+
+72 件すべて成功（Navigation 2、IdentifierInventory 3、Dialog 13、Notification 25、NotificationEvent 12、NotificationColdStart 7、Share 10）。前の基準との比べ合わせは `changed=0, added=12, removed=0`。実機の基準（`scripts/test_ios.baseline.iPhone_XS-18.7.2.json`）は 60 件から 72 件になった。許した区分は `systemui`・`sharesheet` で、`clipboard`・`files`・`reinstall`・`credentials` は基準に入らない。2.0.0 の前の区切りで `clipboard` を許すときに広げる。
+
+N32・N33 はどちらの回も実機で通った。ただし iOS 18.7.2 の結果で、23.3 の iOS 26 の見込みの証拠にはならない。
