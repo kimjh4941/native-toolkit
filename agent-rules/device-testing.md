@@ -18,6 +18,8 @@ iOS の実機のテストは、利用者の私物の iPhone で流す。試験�
 
 シミュレーターだけのテスト（`scripts/ios_ui_runner.py` の `SIMULATOR_ONLY_TESTS`。Control Center を決まった座標のドラッグで引き出す D22 など）は、`--device-allow` に何を渡しても実機では流れない（一覧に `simulator only` と出る）。実機で流したくなっても、この表から外さない。外すには、座標に頼らない操作に直し、UI テストの設計書（6.3 の 3）を改めてからにする。
 
+C ABI の UI テスト（`ios/IosLibraryCApiUITests`。`scripts/test_ios.sh --capi-ui`）もシミュレーターだけで、2 つのターゲットは `iphonesimulator` だけを組む。コマンドラインの上書きなら実機向けに組めるが、実機に入れることはこの文書の許可なしには行わない。
+
 ## 1 回ごとに聞く操作
 
 次の操作は、何をするかを示して、その都度許可を得る。

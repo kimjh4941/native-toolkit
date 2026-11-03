@@ -822,7 +822,7 @@ xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -paral
 |---|---|
 | 第 1 部 5.1 の木 | `IosLibraryCApiUITestApp/`、`IosLibraryCApiUITests/` |
 | UI テストの設計書 6.3 | `--capi-ui` は流し方の 1 つで U-9 の 7 つ目の区分ではない |
-| 第 2 部 15.2 | **12.1 の前面の行はシミュレーターの 2 機種で、サニタイザーなし。サニタイザーの網羅は `IosLibraryCApiTests`。これはメインのセッションから持ち主への推奨で、まだ決定ではない** |
+| 第 2 部 15.2 | **12.1 の前面の行はシミュレーターの 2 機種で、サニタイザーなし。サニタイザーの網羅は `IosLibraryCApiTests`。メインのセッションからの推奨で、持ち主が 2026-11-04 に決めた** |
 | 第 2 部 13 章 | TB-5、TB-9 の完了の条件に iPad Pro 11-inch (M4) / 18.3。TB-8 にアプリへ起動の形を伝える口（ファイル。SA-18 と同じ）。作っていない |
 | README 7.4 の `ios-arm64` の行 | 「UI テスト」はサンプルのもの。`IosLibraryCApiUITests` はシミュレーターだけ。実機の行で、その時点で C の UI テストが無かったので、この読みで明らかと判断した |
 
