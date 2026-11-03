@@ -61,8 +61,9 @@ here, so neither can drift without the other noticing:
               the loose copy.
   layout      every struct and field of the headers has its row in the layout
               test, the rows are the _Static_assert they are written as and no
-              #if hides them, and the target does not leave the file out (12.1).
-              compile compiles it for the three slices.
+              #if hides them, every size is a multiple of 8 (rule 5 of part 1, 1.1),
+              and the target does not leave the file out (12.1). compile compiles it
+              for the three slices, which holds the sizes to the compiler.
   settings    the framework target has the settings of part 1, 5.4 in Release;
               Debug differs in the two that @testable import needs and nothing
               else; archiving takes Release.
@@ -947,14 +948,17 @@ def check_compile(names, clang, require, rep):
 def check_layout(structs, rep):
     """The layout test against the struct declarations of the headers. The numbers
     are the test's to compare with the compiler: a row that is not there compares nothing."""
-    name = "layout: every struct and field of the headers is in the layout test (12.1)"
+    name = "layout: every struct and field of the headers is in the layout test, with a size that is a multiple of 8 (12.1)"
     text = read(LAYOUT_TEST, rep, name)
     if text is None:
         return
     code = common.strip_comments(text)
-    sizes = re.findall(r"^\s*LAYOUT_SIZE\((\w+), \d+\);", code, re.M)
+    rows = re.findall(r"^\s*LAYOUT_SIZE\((\w+), (\d+)\);", code, re.M)
+    sizes = [struct for struct, _ in rows]
     fields = re.findall(r"^\s*LAYOUT_FIELD\((\w+), (\w+), \d+\);", code, re.M)
     problems, wanted = [], set()
+    # Rule 5 of part 1, 1.1: `compile` holds the numbers to the compiler, so this holds the structs.
+    problems += [f"{struct}: sizeof {size} is not a multiple of 8" for struct, size in rows if int(size) % 8]
     for struct, body in structs.items():
         for field in body.split("; "):
             match = re.search(r"(\w+)(?:\[\w*\])?$", field)

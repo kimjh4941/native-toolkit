@@ -315,6 +315,8 @@ ios/
         StructReader.swift                  # struct_size の読み方（Windows の設計書 7.8）
         Registry.swift                      # 登録、ID の表、帳簿、tryRelease（5.7）
         MainQueue.swift                     # main への積み方（P1-4）
+        EntryError.swift                    # 入口のエラー（0〜3）と、入口で拒むときの release（5.10、C-3）
+        VersionCheck.swift                  # 最初の呼び出しの版の確かめ（C-9、P1-19）
         CApiLog.swift                       # ログ（P1-18）
       Clipboard/  Dialog/  Notification/  Share/
         <機能>Entry.swift                   # @c @implementation の関数だけ。1 関数 1〜3 行で受け口を呼ぶ（P1-1）
@@ -463,6 +465,8 @@ Android 第 1 部 5.7 の形を引き継ぐ。iOS では「積めない」経路
 
 **`release` を呼ぶのは、1 つの関数 `tryRelease(登録, 期待する状態)` だけ**（AC-6、Android レビュー v2 の S-C2、v3 の T-X10）。この関数は、ID の表の `Mutex` の中で状態を `RELEASED` に CAS し、成功したときだけ ID の表から外し、**`Mutex` の外で** `release(user_data)` を呼ぶ。下の表の「`tryRelease`」はすべてこの関数を呼ぶ。
 
+**`release` はその登録のコールバックと重ならない**（TB-2 のレビュー）。コールバックの中で `tryRelease` の時が来たら（コールバックの中の完了、コールバックが回した run loop の上の「外す」）、状態を変えずに覚えておき、いちばん外のコールバックが戻ったときに、そのときの状態から行う。`release` はちょうど 1 回のまま。コールバックを呼ぶのは完了、`CANCELED`、イベントの配送のすべて。別の登録のコールバックの間は待たない。
+
 **受け付け**（どのスレッドからでも）:
 
 1. ハンドルの出力引数に `NULL` を書く（Windows の設計書 7.3。R-8）
@@ -479,8 +483,8 @@ Android 第 1 部 5.7 の形を引き継ぐ。iOS では「積めない」経路
 |---|---|---|---|
 | 挿入と開始（受け付けで積んだもの） | イベントの登録なら帳簿の末尾に入れ、保っていたイベント（5.12.7）をこのブロックの中で配る。完了つきの操作なら処理を始める（前面の判定、`IosLibrary` の呼び出し） | 何もしない（後から来る「外す」に任せる） | 何もしない |
 | イベントの配送 | 呼ぶ直前に状態を確かめ、`ACTIVE` なら利用者の関数を呼ぶ | 呼ばない | 何もしない |
-| 完了（`IosLibrary` の完了が main で来た、または前面の判定などで決まった） | 印が無ければ、完了を呼んで印を立てる → `tryRelease(ACTIVE)`。失敗したら（完了を呼ぶ間に取り消された）何もしない（後から来る「外す」が `tryRelease` する） | 印が無ければ、完了を `CANCELED` で呼んで印を立てる（得た結果は捨てる）→ `tryRelease(CANCEL_REQUESTED)` | 何もしない。ただし受け手に渡らなかった `.file` の成功は消す（第 2 部 5.3） |
-| 外す（解除・取り消しで積んだもの） | （起きない。解除は先に状態を `CANCEL_REQUESTED` にしてから積む） | (1) イベントの登録なら帳簿から外す。(2) 完了つきの操作で印が無ければ、完了を `CANCELED` で呼んで印を立てる（`IosLibrary` の要求の取り消しは、取り消しの関数の中で既に頼んである。下の「解除と取り消し」）。(3) **(1)・(2) の後に、種類と印に関わらず必ず `tryRelease(CANCEL_REQUESTED)`**（R-3） | 何もしない |
+| 完了（`IosLibrary` の完了が main で来た、または前面の判定などで決まった） | 印が無ければ、印を立ててから完了を呼ぶ → `tryRelease(ACTIVE)`。失敗したら（完了を呼ぶ間に取り消された）何もしない（後から来る「外す」が `tryRelease` する） | 印が無ければ、印を立ててから完了を `CANCELED` で呼ぶ（得た結果は捨てる）→ `tryRelease(CANCEL_REQUESTED)` | 何もしない。ただし受け手に渡らなかった `.file` の成功は消す（第 2 部 5.3） |
+| 外す（解除・取り消しで積んだもの） | （起きない。解除は先に状態を `CANCEL_REQUESTED` にしてから積む） | (1) イベントの登録なら帳簿から外す。(2) 完了つきの操作で印が無ければ、印を立ててから完了を `CANCELED` で呼ぶ（`IosLibrary` の要求の取り消しは、取り消しの関数の中で既に頼んである。下の「解除と取り消し」）。(3) **(1)・(2) の後に、種類と印に関わらず必ず `tryRelease(CANCEL_REQUESTED)`**（R-3） | 何もしない |
 
 **解除と取り消し**（どのスレッドからでも）:
 
@@ -897,7 +901,7 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 | C-6 | `test_ios.sh` に C ABI のテストを 3 通りでつなぐ | 6.1 |
 | C-7 | 2c の Unity の包みは、今のブリッジの受け手の差し替えを、種類ごとに 1 つのハンドルと「今のハンドル」の印で表し、今のハンドルでない配送を捨てる（Android 第 1 部 C-6）。iOS の Unity は main で受けるので、判定は受けたその場でよい | 5.7 |
 | C-8 | 入力は main に積む前に深く写す。出力の `NULL` を入口で書く。ハンドルの型ごとにクラスを分ける | 5.7 |
-| C-9 | 最初の呼び出しで `IosLibrary` の版を読み、capi と違えばログに出す（P1-19） | P1-19 |
+| C-9 | 最初の呼び出しで `IosLibrary` の版を読み、capi と違えばログに出す（P1-19）。走らせるのは、受け付け（完了つきの操作とイベントの登録）、入口の拒否、`ntk_notification_install`。読み取り、`_free`、`ntk_version`、`ntk_last_system_code` は 5.15 の先頭のログの除外と同じく走らせない。ビルダーの setter だけを呼ぶ間も走らない | P1-19 |
 
 ## 10. `unity-native-plugin` の agent に任せる確かめ（1a-4、README 5 章の 1a の行、8.2）
 

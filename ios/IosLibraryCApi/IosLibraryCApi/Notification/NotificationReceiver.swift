@@ -10,6 +10,7 @@ enum NotificationReceiver {
     /// The main-thread check is `installDelegate()`'s own: it goes by the thread and never waits (part 1, 1.4).
     static func install() -> ntk_notification_error {
         CApiLog.notification.debug("[install]")
+        VersionCheck.run()
         return error(for: IosNotificationManager.installDelegate())
     }
 

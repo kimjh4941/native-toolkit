@@ -369,3 +369,229 @@ Codex は Common のコードに A も B も無し。各指摘は実物で確か
 | **C-6**: 新しい case が `UNKNOWN` になる | そのとおり | `install` の行 |
 | **C-7**: `deallocate` を消す変異が落ちない | そのとおり | 直していない。3.6 に書いた（今のテストの形では見られない） |
 | **C-8**: `ios.md` と `common.md` に capi の行が無い、XCTest の記述 | そのとおり | **直していない**。`agent-rules` はこの作業で触らない。持ち主の判断 |
+
+## 4. TB-2
+
+### 4.1 足したもの
+
+| ファイル（`ios/IosLibraryCApi/IosLibraryCApi/`） | 中身 |
+|---|---|
+| `Common/StructReader.swift` | `read`（`NULL` は拒否）、`readIfPresent`（`NULL` は nil）、`readArray`。Windows の設計書 7.8 の規則と P2-5。`struct_size` の 4 バイトを見てから残りを読み、どの読み取りも `struct_size` を越えない。読み取りは位置が揃わなくても落ちない。投げる値は `EntryError` で、機能のエラーに写して `release` を呼ぶのは受け口 |
+| `Common/CApiString.swift`（足した） | `required`、`optional`、`orEmpty`（E-15 の 3 つの `NULL` の意味）。`String(validatingCString:)`。ログは有無だけで中身を出さない |
+| `Common/Registry.swift` | `RegistrationState`、`CancellableRequest`（`.dialog`、`.clipboardLoad`。P1-24 の 2 つと箱の閉じ方）、`OwnedResult`（`.file` の渡した印と削除）、`RegistryEntry`、`Registration<Callback>`、`Registry`（ID の表、`accept`、`tryRelease`、`cancel`、`removeListener`）、`EventLedger<Event, Callback>`（帳簿と保ち） |
+| `Common/MainQueue.swift` | `DispatchQueue.main.async` と `MainActor.assumeIsolated` だけ。待つ形なし |
+| `Common/EntryError.swift` | `EntryError`（1〜3）、`Entry.accepted`（0）、`Entry.reject`（C-3。呼び出しスレッドで `release`）。**第 1 部 5.1 の木に無いファイル**（4.6 の 1） |
+| `Common/VersionCheck.swift` | C-9、P1-19。`Bundle(for: RequestBox.self)` の版とヘッダーの版を比べ、違えば 1 回だけ `.error` のログ。止めない。**第 1 部 5.1 の木に無いファイル** |
+| `Notification/NotificationReceiver.swift` | `install` の 2 行目に `VersionCheck.run()` |
+
+- `@unchecked Sendable` は `Registration` の 1 つだけ（P1-17 の (1)(2)。関数ポインタと `user_data` の箱を別に作らず、第 1 部 5.6 の「または `Registration`」で運ぶ）。`nonisolated(unsafe)` は無い
+- 完了の印 `isCompleted` は `@MainActor` の項目なので、main 以外から触るとコンパイルで止まる。帳簿も `@MainActor` のクラスで、`add` と `init` だけ `nonisolated`
+- `public` は増えていない。プロジェクトは synchronized group なので `project.pbxproj` は変わらない
+
+テストは `ios/IosLibraryCApiTests/` に 100 件（25 → 125 件）:
+
+| ファイル | 件数 | 中身 |
+|---|---|---|
+| `RegistryTests.swift` | 32 | 第 1 部 5.7 の完了、取り消し、順序の表、`.file` の扱い、競合。テストの本体が main にいるので、積んだものは `runMainQueue` まで動かず、`onAnotherThread` は main を止めたまま別のスレッドで呼ぶ |
+| `EventLedgerTests.swift` | 23 | 帳簿、解除、再入、AP-21、32 件の上限、最初の挿入の口、2 つの callback の型 |
+| `StructReaderTests.swift` | 31 | 規則と配列。`GuardedMemory`（`mmap` して後ろのページを `PROT_NONE`）で、構造体の外を読むとプロセスが落ちる形にして、読み取りの範囲を確かめる |
+| `CApiStringInputTests.swift` | 6 | 第 1 部 6 章の 5 つの列と、RFC 3629 が除く 10 の列、そのすぐ隣の正しい値 |
+| `EntryFoundationTests.swift` | 8 | 番号を 4 つのヘッダーと照らす、`MainQueue`、版の確かめ |
+| `RegistryTestSupport.swift` | - | テスト専用の操作とイベント、C の callback、`RaceStart`（競合の両側を同時に始める） |
+
+### 4.2 コマンドと結果
+
+Xcode 26.6 は `DEVELOPER_DIR` で選び、`xcode-select` は 26.3 のまま。
+
+```
+xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -parallel-testing-enabled NO \
+  -destination 'platform=iOS Simulator,id=<UDID>' -derivedDataPath <scratch> [-enableThreadSanitizer YES | -enableAddressSanitizer YES] test
+```
+
+**最後のソースで流した結果**:
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 125/125 |
+| 同（iPhone 16 / 18.3） | 125/125 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 125/125。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 125/125。報告 0 件 |
+| framework の Release（`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`。組むだけ） | 組めた。警告 0。`--library --architectures arm64` は `OK symbols`（12 symbols） |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`） | 組めた。`--library --architectures arm64,x86_64` は `OK symbols`（12 symbols） |
+| `python3 scripts/check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP は `complete` と `symbols`（TB-1 と同じ） |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_c_abi_contract_ios.py'` | Ran 277 tests、OK |
+
+- `git status`、`git diff`: `ios/IosLibrary`、`ios/IosLibraryExample`、UI テスト、`include/NativeToolkitC/` に差なし
+- **競合のテストは両方の結果を踏んでいる**（1 回の実行の数え。測った後で数える行は消した）: 取り消しと完了（300 回）は、完了が勝つのが 7〜12 回、取り消しが勝つのが残り。解除と配送（200 回）は、配られた件数が 0 件の回が約 190、1 件以上の回が残り。1 回目の形は完了が 300/300 で勝っていて、競合になっていなかった。`RaceStart` と待ちのずらしを足して直した
+
+### 4.3 壊して確かめたこと（使い捨ての写し）
+
+写しは `ios/` から `Build`、`Docs`、`UnityIosPlugin`、`IosLibraryExample` を除いたもの（2 MB）で、ワークスペースからもサンプルの行を外した。**変異なしの回が通ることを、流すたびに確かめた**。
+
+**112 個のうち 110 個が落ちた**。1 回目の 110 個は 101 個が落ち、7 個が残り、2 個はこちらの変異の書き間違いでコンパイルが通らなかった。
+
+依頼で挙げられた形:
+
+| 壊し方 | 落ちたテスト（数） |
+|---|---|
+| `tryRelease` の CAS を外す | `testACompletionOfAMarkedActiveRegistrationOnlyReleases` など計 7 |
+| `transition` が比べずに書く | 落ちた |
+| `release` を 2 回呼ぶ | 28 |
+| `tryRelease` が勝っていなくても `release` | 落ちた |
+| 取り消しの CAS を外す | `testACompletionAfterRemovalDoesNothing` など計 9 |
+| 解除の CAS を外す | 11（プロセスも 2 回落ちる） |
+| 取り消しの後の完了が結果を渡す | `testCancelWithTheCompletionQueuedBehindIt…`、`testAResultOfACancelledRequest…` |
+| `RELEASED` の後の完了が結果を渡す | 落ちた |
+| 渡した印を付けない | `testAHandedOverFileStays` など計 4 |
+| 渡した印をコールバックの後に付ける | `testACancelInsideTheCallbackDoesNotDeleteTheFileItWasGiven`（中で印を読む） |
+| `RELEASED` の後の結果を消さない | `testAResultAfterReleased…`、`testASecondResult…` |
+
+ほかの範囲（どれも落ちた）: `tryRelease` のそのほか（`release` なし、表に残す、鍵の中で `release`）、取り消しの 7 つ（箱、外す、別の種類、箱を後で閉じる、機能ごとの閉じ方）、完了の印の 7 つ、ファイルの削除の 6 つ、「外す」の 4 つ、開始の 8 つ、帳簿の 18 個（状態の確かめ、保ち、AP-21 の配り方 3 通り、上限の 31 と 33、最初の挿入、`add`）、`MainQueue` の 3 つ、`StructReader` の 23 個（規則ごと、prototype の形を含む）、文字列の 5 つ、エラーと版の 13 個。
+
+**プロセスが落ちる形で検出したもの**: 鍵の中の `release`、印なしの `CANCELED` の再帰、保たない帳簿での `removeFirst`、保持しないハンドル、`StructReader` の範囲外の読み取り（`GuardedMemory`）、版の確かめの `fatalError`。`DispatchQueue.main.sync`（Q02）は 420 秒で打ち切って検出とした。
+
+**1 回目に残った 7 個と、その扱い**:
+
+| 残った変異 | 原因 | 直し |
+|---|---|---|
+| 指名した `reserved` の最初の 1 つだけ見る | テストの穴 | `testEveryNamedReservedFieldCounts` |
+| 最初の挿入の口を帳簿に入れる前に呼ぶ | 口の中のイベントが保ちに回り、結局届くので同じに見えた | 口の中で届いたことを読む |
+| `Task { @MainActor in }` で積む | 順序も main も同じに見える | `testABlockIsNotATask`（ブロックの中に現在の `Task` が無い） |
+| `accept`、`install` から版の確かめを呼ばない | ログは 1 回なので区別できない | **`VersionCheck.runCount`（テスト用）を足した**。`testEveryFirstCallRunsTheCheck`。`reject`、`add` の同じ変異も足した |
+| 「外す」の状態の確かめを外す | **同じ動きの変異**。`RELEASED` の登録は印が立っているか解除で帳簿から外れた後で、`tryRelease` も失敗する | 第 1 部 5.7 の表の形のまま残した |
+| 保ったイベントを `ACTIVE` な全登録に配る | **今の経路では同じ動きの変異**。保ちが空でなく別の `ACTIVE` な登録が帳簿にいる状態は、ネストした run loop でも作れなかった | 直していない |
+
+直した 5 個と、書き間違いの 2 個、足した 2 個の計 9 個を流し直し、9/9 が落ちた。**全部の回はやり直していない**（4.5）。
+
+**TSan**: 状態を `Atomic` でない素の項目に変える変異を TSan で流すと、`transition` と `currentState` の `data race` が報告され、ホストが止まった（`removeListener` と `receive`、`cancel` と `complete` の 2 通り）。報告が出ることはこれで確かめた。
+
+変異で落としたホストの crash report は、ここに記録してから消した（`~/Library/Logs/DiagnosticReports` の `IosLibraryCApiTestHost-*.ips`、計 27 個と作業の途中の 2 個）。
+
+### 4.4 実装の途中で見つかったこと
+
+| 見つけたこと | 直し |
+|---|---|
+| **`tryRelease(expected: .released)` が `RELEASED` → `RELEASED` の CAS に成功し、`release` を 2 回呼ぶ**。テストで見つけた。受け口は渡さないが、形として塞いだ | 先頭で `false` を返す |
+| 競合のテストが競合していなかった（4.2） | `RaceStart` |
+| テストの 1 つが `Recorder` を保持せず、`user_data` が解放された後を指して落ちた | テストの誤り |
+| `XCTestCase` に `add(_:)` があるので、テストの関数名がぶつかった | テストの関数名を変えた |
+
+### 4.5 確かめられていないこと、かかった時間
+
+- **実機では何も流していない**（指定どおり。`devicectl` も実機の実行先も使っていない）。`generic/platform=iOS` は組むだけ
+- 第 2 部 15.2 の iPhone 17 / 26.2 と iPad Pro 11-inch (M4) / 18.3、x86_64 のスライスのテストは流していない（TB-12）
+- **TB-2 に公開の非同期の関数は無い**。第 1 部 6 章の表は `@testable import` のテスト専用の操作で確かめ、C の関数を通してはいない（TB-3 以降）
+- **本物の `.file` の読み込みは通していない**。ファイルと親のフォルダーはテストが作った。TB-4 で確かめる
+- **「関数が戻る前に main が挿入と完了を処理する」順は決まった形で再現できていない**（第 1 部 5.7 の表の 1 行目）。止める場所が無いので、8 スレッド × 25 回の同時の呼び出しと TSan で見た。`accept` は積んだ後に登録に触れないのがコードの形
+- **`ACTIVE` のまま保ちに回る窓**（`receive` の判定と別のスレッドの CAS の間）は、配ったかを数えて保つ形にしたが、狙って踏むテストは無い
+- `testEveryStructOfTheHeadersIsAMultipleOf8` の 16 個は手書きの一覧。新しい構造体はここに足す必要がある（`common.md` の両辺の導出は満たさない。`layout` の照合に入れるなら別の作業）
+- 版の確かめのログは今のところ毎回出る: `IosLibrary` が 1.3.0、capi が 2.0.0 のため（3.1）。版を上げるとテストの期待値は自動で 0 行に変わるが、その形はまだ流れていない。**「同じ」の分岐は `compare` の単体テストだけ**
+- 入力のバイト列（第 1 部 5.9 の行）は足していない。依頼の範囲にも無く、使う人のいる TB-3 で足す
+- **時間**: 実装とテストより変異が長かった。1 回目の 110 個は 2 台のシミュレーターに分けて約 90 分（19:36〜21:06）、1 個あたり 60〜80 秒。流し直しは約 10 分。全体で約 2 時間半。**個数は依頼より多く、全部の回は 1 回だけ**
+
+### 4.6 設計書が読み切れなかった所と、読み方
+
+ヘッダーが変わる所は無かった。**「設計書と食い違う所は無かった」とここに書いていたのは誤りだった**: `Registry.swift` が Dialog と Clipboard の Manager を呼び、第 2 部 5.1 の表（`Registry.swift` に Manager は無い）と違っていた（レビューの B-1。4.7 で直した）。1、2、7、9 の読み方は 4.7 で設計書に書いた。11 の `.file` の消し方は `Clipboard/` に移した。
+
+| # | 所 | 読み方 |
+|---|---|---|
+| 1 | 第 1 部 5.1 の木に、エラーの土台と版の確かめのファイルが無い | `Common/EntryError.swift`、`Common/VersionCheck.swift` を足した。**木の行を足すかは持ち主の判断**（設計書は変えていない） |
+| 2 | 第 1 部 5.7 の完了の行「完了を呼んで印を立てる」 | **印を呼ぶ前に立てる**。コールバックの中の run loop で「外す」が動いても二重にならない。Android も同じ。第 2 部 5.3 の「渡す前に印」とも合う |
+| 3 | 「`struct_size` の 5 つの規則」が 2 通りある（Windows 7.8 の番号と、第 1 部 6 章の 5 つの場合） | 両方をテストにした。**規則 5 は項目を足す人の規則なので、読み取りでは見ない**（8 の倍数でない `struct_size` も、規則 1〜4 を満たせば受ける。Windows と Android も見ない）。ヘッダーの 16 の構造体が 8 の倍数であることは見る |
+| 4 | 規則 3 と「大きさの小さい呼び出し側」: 2.0.0 では最小が `sizeof` なので起きない | `minimumSize` の引数を持たせ、項目を足した仮の型で確かめた（Windows の CT-07 と同じ考え） |
+| 5 | 規則 1 の途中の `reserved` | 汎用の読み手には分からないので、受け口が `reserved: [\.reserved1]` で名指しする。全部 `uint32_t`。名指しを忘れても止まらないので、**TB-3 以降で 12.1 の `reserved` の行を構造体ごとに確かめる必要がある** |
+| 6 | 配列の `NULL` と件数 0 | 件数 0 は何も読まず `[]`（`NULL` でも）。`EMPTY_*` を返すのは呼ぶ側。`size_t` が `Int.max` を超えた負の値と、掛け算のあふれは `INVALID_PARAMETER`。**あふれない大きな件数は読みに行く**（呼び出し側の誤りで、止める手段が無い） |
+| 7 | 第 1 部 5.7 の「最初の呼び出し」（C-9） | `accept`、`add`、`reject`、`install` の 4 か所。読み取り、`_free`、`ntk_version`、`ntk_last_system_code` は、5.15 の先頭のログの除外と同じに読んで含めない。ビルダーの setter だけを呼ぶ間は走らない（次の受け付けで走る） |
+| 8 | 別の機能の ID（`ntk_dialog_cancel` に読み込みの ID） | 第 1 部は「知らない ID」としか書いていない。Android と同じく**何もしない**とした |
+| 9 | 第 2 部 5.4 の「保ち」に、配っている途中に新しいイベントが来たときの順が書かれていない | **保ちが空でなければ後ろに並べる**（届いた順を保つ。Android の 12.1 の「再入で配っている途中も 32 件を超えない」と合う）。保ったものは次の登録 1 つだけに配る（P2-18） |
+| 10 | `ntk_notification_listener_remove` は 2 つの callback の型の登録を取る | 解除の関数からは型が分からないので、`RegistryEntry` を通す（`as?`）。違うハンドルは約束の外で、`as?` が外れれば何もしない |
+| 11 | `.file` の「親のフォルダーを消す」 | ライブラリの `discardUndelivered` は形を確かめるが `internal`。受け口は `IosClipboardManager` の DocC（「ファイルと親のディレクトリの持ち主」）を頼りに `deletingLastPathComponent()` を消す |
+| 12 | P1-17 の (1) を `UInt(bitPattern:)` で減らせるか（「2b で試す」） | 試していない。`Registration` が運ぶので箱そのものが無く、`@unchecked` は 1 つで済んだ |
+
+### 4.7 レビュー（Codex: 並行と寿命。Claude: 設計との一致と層）と直したこと
+
+レビューの本文は受け取っていない。指摘はメインのセッションの要約で受け、持ち主の側で確かめてあるのは A、イベントの順の経路、B-1 だけと聞いた。**残りも実物で確かめ、誤りだった指摘は無かった**（下の表の「確かめ」）。
+
+| # | 指摘 | 確かめ | 直し |
+|---|---|---|---|
+| 1 | **A（Codex）**: コールバックの中で `release` が動く。入れ子の `complete` が `tryRelease` を呼び、私のテスト（`RegistryTests` の 94 行）がそれを正しいとしていた | そのとおり。`CANCEL_REQUESTED` の枝も、コールバックが回した run loop の上の「外す」も同じ | `Registration.runCallback`（main だけの深さ）を完了、`CANCELED`、イベントの配送のすべてに通す。`tryRelease` は深さが 0 でなければ状態を変えず覚えるだけで、いちばん外が戻ったときに**そのときの状態から**行う。`tryRelease` の中に置いたので、回り道はできない。`Recorder.timeline` に入りと戻りを記録し、`assertReleasedOnceOutsideCallbacks` が重なりと回数を見る |
+| 2 | B（Codex）: 配っている途中に同期に届いたイベントで、B が `[2, 1]` になる | そのとおり（変異 N12 で再現） | `EventLedger` の `arrivedDuringDelivery`。いちばん外の配送の後に、届いた順に、そのとき `ACTIVE` な登録へ。保っているものがあればその後ろ。誰もいなければ保つので、32 件の意味と P2-18 は変わらない |
+| 3 | B（Codex。Claude は C）: `min(size, known)` が項目を途中まで埋める | そのとおり（N21 で再現） | `size < known` なら 8 バイト単位で切り捨てる。`testAFieldCoveredInPartIsZero`。コメントを直した |
+| 4 | B-1: Common が機能を知っている | そのとおり | Common は `CancellableKind`（名前と閉じ方の closure）と `OwnedResult(discard:)` だけ。`DialogReceiver.cancelKind`、`ClipboardReceiver.loadCancelKind`、`ClipboardReceiver.loadedFile(at:)` を第 2 部 5.1 の名前のファイルに置いた。ログのカテゴリ `Clipboard` を足した。4.6 の文を直した |
+| 5 | B-2: `reserved` の既定値で書き忘れが通る | そのとおり | 既定値を消した。`reserved: []` まで書く |
+| 6 | B-3: `tryRelease` が main だけと型に書かれていない | そのとおり | `@MainActor`。呼ぶ所はすべて main で、そのまま組めた |
+| 7 | B-4: 開始の前の取り消しが箱を閉じることを確かめていない。`testTheBoxIsThereBeforeTheFirstMainTurn` は最初の回の後に見ていた | そのとおり | テスト専用の種類で閉じた回数を記録する `testACancelBeforeTheStartClosesTheBox` に置き換えた |
+| 8 | B-5: `RELEASED` の開始、挿入、配送のテストが無い | そのとおり（N26〜N28 は新しいテストでだけ落ちる） | 3 件足した |
+| 9 | B-6: 規則 5 の手書きの一覧 | そのとおり | `layout` が `LAYOUT_SIZE` の数の 8 の倍数を見る。**構造体の集合はヘッダーから、数は `compile` がコンパイラーと比べる**。数の判定に clang は要らないが、clang が無い回（`compile` が SKIP）は表の数が本物かは確かめられない。自己テスト 1 件、変異 1 件。手書きのテストは消した |
+| 10 | B-7: 先頭のログの引数の抜け | そのとおり | 指定の 8 か所を `provided` / `nil` で埋めた |
+| 11 | 小さいもの | そのとおり | テスト名（342 行）、`finished.wait()` を期限つきに（期限切れは失敗）、テストのコメントの日本語、`reserved0Offset`、`VersionCheck.run` のコメント（「main は待たない。同時の呼び出しは最初の読み取りを待つ」） |
+
+**run loop の測り**（iPhone 17 Pro / 26.2、1 回）: メインのセッションの記憶は測りと合っていた。**main キューのブロックの中で回した run loop は、次のブロックを動かさない**（保ったイベントを配るのは挿入のブロックの中なので、そのテストの `runMainQueue` が 10 秒で期限切れになった）。テストの本体から回せば動く（`runMainQueue` が中で確かめる）。18.3 では、ブロックの中の形は測っていない。設計はこれに頼っていない。テストは、動く形の上で深さの経路を確かめ、ブロックの中の形は「戻った後に `release`」として確かめる。
+
+**設計書の文**（持ち主に見せる差分）: 第 1 部 5.1 の木に `EntryError.swift` と `VersionCheck.swift`（機能のファイルは今の `<機能>Receiver.swift` の行に入るので足していない）。5.7 の完了と「外す」の行を「印を立ててから呼ぶ」に、**`release` がコールバックと重ならない規則を 1 段落**。C-9 の行にどの呼び出しが走らせるか。第 2 部 5.4 に配っている途中のイベントの順。`check_design_consistency.py` は 2 つとも exit 0、FAIL 0。
+
+**そのほかに変えたもの**: `scripts/check_c_abi_contract_ios.py`（`layout`）、`scripts/README.md`（件数を 677 に）、`test_no_swift_sources`（**自己テストが 1 件落ちた**: `Dialog/`、`Clipboard/` が増えたので「Swift のソースが無い」にならなくなった。全部の `.swift` を消す形に直した。テストの名前のとおりの状態になった）。
+
+#### 結果（最後のソース）
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 141/141 |
+| 同（iPhone 16 / 18.3） | 141/141 |
+| 同 TSan（17 Pro） | 141/141。報告 0 件 |
+| 同 ASan（17 Pro） | 141/141。報告 0 件 |
+| Release（`generic/platform=iOS`。組むだけ）`--library --architectures arm64` | `OK symbols`（12 symbols） |
+| Release（シミュレーター）`--library --architectures arm64,x86_64` | `OK symbols`（12 symbols） |
+| `python3 scripts/check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP は `complete` と `symbols` |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `check_design_consistency.py`（第 1 部、第 2 部） | どちらも exit 0、FAIL 0 |
+
+テストの増減: `RegistryTests` 38、`EventLedgerTests` 33、`StructReaderTests` 31、`EntryFoundationTests` 8、`CApiStringInputTests` 6、TB-1 の 25。
+
+#### 変異（今回変えた所だけ。30 個）
+
+**28 個が落ちた**。プロセスが落ちた回は無い（crash report は 0 個）。変異なしの回が通ることを、2 台それぞれで確かめた。
+
+| 範囲 | 個数 | 落ちなかったもの |
+|---|---|---|
+| 遅らせた `release`: 外す、遅らせた後に 2 回、呼ばない、`ACTIVE` からだけ、戻るたび、`runCallback` を通さない（3 通り）、入れ子の「外す」を飛ばす（漏れ）、深さが減らない | 11 | N05 |
+| 配送の列: 外す、後入れ先出し、流さない、1 つだけ流す、保ったものの配送を配送と数えない、印が戻らない、列を保ちより先に見る、誰もいないときに捨てる、保ちを追い越す | 9 | N17 |
+| `min(size, known)` | 1 | - |
+| 種類、閉じ方、削除、箱を後で閉じる | 5 | - |
+| `RELEASED` の開始、挿入、配送 | 3 | - |
+| `layout` の 8 の倍数（写しの中の自己テスト） | 1 | - |
+
+| 残った変異 | 扱い |
+|---|---|
+| N05 `callbackDepth == 0` を外す（戻るたび） | **同じ動きの変異**。内側の戻りで `tryRelease` を呼んでも、深さが残っているのでまた覚えるだけ。読みやすさのために条件は残した |
+| N17 `deliverToActive` が保ちを見ない | **判定が余分だった**。流す時点で保ちがあるのは誰も `ACTIVE` でないときで、結局保つ。判定を消した（消した後は変異にならないので流していない） |
+
+**流していないもの**: 前の 112 個と TSan の競合の変異は、今回のソースでは流し直していない（指定どおり）。4.3 の数は前のソースの数で、`complete`、`runRemoval`、`receive` はその後に変わった。
+
+#### やらないと決めたもの（メインのセッションの判断。持ち主にはコミットの前に伝えた。ここに理由を残す）
+
+| 指摘 | 理由 |
+|---|---|
+| ID が `UInt64.max` で一周する | 実際には届かない |
+| 競合の回数に下限を置かない | 片側が 7〜12/300 で、下限を置くと揺れて落ちる。両側は順を決めたテストが確かめる |
+| `VersionCheck.runCount` を残す | `internal` で公開されない。どの関数が走らせるかを見分ける方法がほかに無い |
+| C-6 の揺れの余地（`TestThreads` の 5 秒、`testAMismatch…` を単独で流したとき、版を上げた後の 0 行の期待） | どの回でも落ちていない。版を上げる回（TB-11）で見る |
+| `CApiStringInputTests` の 92 行 | NUL の後ろのバイトが値に入らないことは確かめている。NUL より後ろのメモリに触れないことまでは確かめていないが、読むのは `String(validatingCString:)` で、ここの直しでは変わらない |
+
+#### 確かめられていないこと
+
+- 実機では何も流していない。`generic/platform=iOS` は組むだけ
+- 「ブロックの中の run loop は次のブロックを動かさない」は 26.2 の 1 回だけ
+- **本物の経路で入れ子の `complete` や run loop の上の「外す」を起こしてはいない**。`IosLibrary` の完了はブロックの中から来る見込みで、そこで「外す」が入れ子に動くかは Dialog の handler などが本物になる TB-4、TB-5 で見る
+- 配っている途中の列に上限は無い（配る相手がいる限り捨てない）。コールバックが同期にイベントを起こし続ければ止まらない。今の `IosLibrary` の口がコールバックの中から同期に届くかは確かめていない（TB-8）
+- 時間: この節の作業は約 40 分（21:38〜22:17。うち変異が約 19 分）。目標の 40〜50 分の中
+
+#### 直しの後の確かめ（メインのセッション）
+
+- 実装者とは別に、iPhone 17 Pro / 26.2 の 141/141、`check_c_abi_contract_ios.py` の FAIL 0、その単体テストの OK、`check_design_consistency.py` の 2 つの FAIL 0 を流した。18.3、TSan、ASan、Release、変異は実装者の結果で、流し直していない
+- Claude のレビューは直しの前の 1 回だけ。直しの後は Codex が読んで確かめた（ビルドもテストも流していない）。結果は A、B なし
+- Codex の C（直していない）:
+  - 配送の列に上限が無い。コールバックが同期にイベントを起こし続けると main を占める。そうなる本物の経路は見つかっていない（TB-8 で見る）
+  - `StructReader` の切り捨ては項目ではなく 8 バイト単位。公開の構造体はすべて 8 の倍数（`layout` が見る）なので今は起きない
+  - `EventLedgerTests` の 268、313 行と `RegistryTests` の 545 行は、直しを外しても通る境界のテストで、直しの検出は別のテストが受け持つ（EventLedgerTests の 241 行、RegistryTests の 82、467 行）
+  - テストに無い形: 3 つの登録、配っている途中の挿入、8 の倍数でない大きさ

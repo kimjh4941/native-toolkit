@@ -11,5 +11,6 @@ enum CApiLog {
     private static let subsystem = "com.jonghyunkim.nativetoolkit.IosLibraryCApi"
 
     static let common = Logger(subsystem: subsystem, category: "Common")
+    static let clipboard = Logger(subsystem: subsystem, category: "Clipboard")
     static let notification = Logger(subsystem: subsystem, category: "Notification")
 }

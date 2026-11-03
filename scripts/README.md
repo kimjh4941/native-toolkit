@@ -125,7 +125,7 @@ breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 676 cases
+python -m unittest discover -s scripts/tests    # 677 cases
 ```
 
 `tests/ios_ui_runner_mutations.py` is not a unit test: it breaks one decision of the iOS runner

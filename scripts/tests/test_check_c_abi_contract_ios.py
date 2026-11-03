@@ -785,8 +785,8 @@ class IosCAbiContractChecker(unittest.TestCase):
 
     def test_no_swift_sources(self):
         def remove(root):
-            shutil.rmtree(root / CAPI_SOURCES / "Common")
-            shutil.rmtree(root / CAPI_SOURCES / "Notification")
+            for path in (root / CAPI_SOURCES).rglob("*.swift"):
+                path.unlink()
             return []
         self.assert_catches("entries and public", before=remove)
 
@@ -1097,6 +1097,12 @@ class IosCAbiContractChecker(unittest.TestCase):
         for old, new in cases:
             with self.subTest(new=new):
                 self.assert_catches("layout", (LAYOUT_TEST, old, new))
+
+    def test_a_struct_whose_size_is_not_a_multiple_of_8(self):
+        edit = (LAYOUT_TEST, "LAYOUT_SIZE(ntk_share_item, 24);", "LAYOUT_SIZE(ntk_share_item, 28);")
+        self.assert_catches("layout", edit)
+        output, _ = self.run_checker((edit,), (), True, (), None)
+        self.assertIn("ntk_share_item: sizeof 28 is not a multiple of 8", output)
 
     def test_the_project_leaving_the_layout_test_out(self):
         self.assert_catches("layout", (PBXPROJ, "IosLibraryCApi.exp,", "IosLibraryCApi.exp,\n\t\t\t\tStructLayoutTests.m,"))
