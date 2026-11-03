@@ -22,6 +22,8 @@ here, so neither can drift without the other noticing:
   values      the error enumerations against the tables of chapter 11, the
               shared meanings of 0 to 5 (AP-12), and the Kotlin declaration
               order that 11.3 and 11.4 follow.
+  numbers     the errors of the headers against the table of numbers the OSes
+              share (iOS C ABI design part 1, P1-7). Android.h is not in it.
   names       every function, type and constant follows the naming rules.
   ascii       the public headers are ASCII only.
   common      the Android Common.h against the Windows one (part 1, 5.2).
@@ -101,8 +103,6 @@ KINDS_OF = {
     "RG": {REGISTRATION, POSTED},
     "PR": {COMPLETION},
 }
-# Constants only the Windows Common.h may define (part 1, 5.2).
-WINDOWS_ONLY = r"^NTK_SYSTEM_CODE_\w+$"
 
 USAGE = ("usage: check_c_abi_contract_android.py [--root <tree>] [--design-only] "
          "[--library <libntk.so> [--nm <llvm-nm>]]")
@@ -254,34 +254,8 @@ def kotlin_order(sources, name, problems):
 # ---------------------------------------------------------------------------
 
 def check_functions(design, expected, headers, rep):
-    name = "functions: headers, 8.2 and Appendix A agree"
     ops = {op: c for op, (_, c) in operations(design).items()}
-    in_8_2, total, problems = common.section_8_2(design, ops)
-    listed = set(in_8_2)
-    if len(in_8_2) != len(listed):
-        problems.append("8.2 names a function twice")
-    in_appendix = set(expected["function"])
-    sides = [("Appendix A", in_appendix)]
-    if headers is not None:
-        sides.append(("the headers", set(merged(headers)["function"])))
-    else:
-        name += " (headers skipped: --design-only)"
-    for label, other in sides:
-        if other - listed:
-            problems.append(f"{label} but not 8.2: {', '.join(sorted(other - listed))}")
-        if listed - other:
-            problems.append(f"8.2 but not {label}: {', '.join(sorted(listed - other))}")
-    heading = re.search(r"^### 8\.2 [^\n]*（(\d+)）", design, re.M)
-    if total is None:
-        problems.append("8.2 has no total")
-    elif total != len(listed):
-        problems.append(f"8.2 says {total} in all but names {len(listed)}")
-    if heading and total is not None and int(heading.group(1)) != total:
-        problems.append(f"the heading of 8.2 says {heading.group(1)}, its total {total}")
-    if not listed:
-        problems.append("8.2 names nothing")
-    rep.check(not problems, f"{name} ({len(listed)} functions)", "; ".join(problems))
-    return listed
+    return common.check_functions(design, ops, expected, headers, rep)
 
 
 def check_operations(design, expected, rep):
@@ -321,16 +295,6 @@ def check_kotlin(design, sources, rep):
             continue
         compared += 1
     rep.check(not problems and compared > 0, f"{name} ({compared} entries)", "; ".join(problems) or "nothing was compared")
-
-
-def takes_callback(signature):
-    """Whether a declaration takes a callback of its own and a release."""
-    callbacks = set(re.findall(r"\bntk_\w+_fn\b", signature))
-    return "ntk_release_fn" in callbacks and len(callbacks) > 1
-
-
-def is_listener(function, signature):
-    return bool(re.fullmatch(r"ntk_\w+_add_\w+_listener", function)) and takes_callback(signature)
 
 
 def readme_ranges(readme):
@@ -388,9 +352,9 @@ def check_behaviours(design, readme, expected, rep):
             problems.append(f"{cells[0]} names {', '.join(missing)}, which 8.1 lacks")
             continue
         names = {op: ops[op][1] for op in named}
-        listeners = [op for op, f in names.items() if is_listener(f, functions.get(f, ""))]
+        listeners = [op for op, f in names.items() if common.is_listener(f, functions.get(f, ""))]
         completions = [op for op, f in names.items()
-                       if takes_callback(functions.get(f, "")) and op not in listeners]
+                       if common.takes_callback(functions.get(f, "")) and op not in listeners]
         if kind == SYNC:
             wrong = [op for op in named if listeners or completions
                      or not cells_9.get(op, "").startswith("同期") or "main に積む" in cells_9.get(op, "")]
@@ -418,10 +382,10 @@ def check_behaviours(design, readme, expected, rep):
 
     # Every function that takes a callback belongs to a row of its kind.
     for function, signature in sorted(functions.items()):
-        if is_listener(function, signature):
+        if common.is_listener(function, signature):
             if function not in used[EVENT] | used[REGISTRATION]:
                 problems.append(f"{function} adds a listener but no event or registration row names it")
-        elif takes_callback(signature) and function not in used[COMPLETION]:
+        elif common.takes_callback(signature) and function not in used[COMPLETION]:
             problems.append(f"{function} takes a completion callback but no completion row names it")
 
     kinds = {kind: sum(1 for cells in rows if len(cells) > 3 and cells[3] == kind)
@@ -467,13 +431,6 @@ def check_values(design, values, sources, rep):
     rep.check(not problems, name, "; ".join(problems))
 
 
-def check_ascii(texts, rep, label):
-    problems = [] if texts else ["nothing was read"]
-    for header, text in texts.items():
-        problems.extend(common.non_ascii_lines(header, text.encode("utf-8")))
-    rep.check(not problems, f"ascii: {label} are ASCII only", ", ".join(problems))
-
-
 def check_common(android_common, rep):
     name = "common: the Android Common.h shares the Windows declarations (part 1, 5.2)"
     windows = read(WINDOWS_COMMON, rep, name)
@@ -482,7 +439,7 @@ def check_common(android_common, rep):
     if android_common is None:
         rep.check(False, name, "no Android Common.h")
         return
-    problems = common.common_header_problems(windows, android_common, WINDOWS_ONLY)
+    problems = common.common_header_problems({"Windows": windows, "Android": android_common})
     rep.check(not problems, name, "; ".join(problems))
 
 
@@ -538,6 +495,9 @@ def parse_arguments(argv):
     while rest:
         argument = rest.pop(0)
         if argument in with_value:
+            if argument in parsed:
+                print(f"{argument} given twice\n{USAGE}", file=sys.stderr)
+                return None
             if not rest or rest[0].startswith("--"):
                 print(f"{argument} needs a value\n{USAGE}", file=sys.stderr)
                 return None
@@ -601,13 +561,14 @@ def main(argv):
     check_behaviours(design, readme, expected, rep)
     values = merged(headers)["value"] if headers is not None else expected["value"]
     check_values(design, values, sources, rep)
+    common.check_error_numbers(ROOT, {"Android": values}, rep, other_features=("android",))
     named = headers if headers is not None else {h: declarations(c) for h, c in appendix.items()}
     common.check_names(named, FEATURE_OF, COMMON_FUNCTIONS, rep,
                        "names: every function, type and constant follows the naming rules")
     if texts is not None:
-        check_ascii(texts, rep, "the public headers")
+        common.check_ascii(texts, rep, "the public headers")
     else:
-        check_ascii(appendix, rep, "the headers of Appendix A")
+        common.check_ascii(appendix, rep, "the headers of Appendix A")
     check_common(texts.get("Common.h") if texts is not None else appendix.get("Common.h"), rep)
     check_symbols(library, nm, listed, rep)
     return 0 if rep.dump() else 1

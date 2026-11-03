@@ -32,9 +32,11 @@ def latest_version(root):
 def chapter(text, os_name):
     """The '## <os_name>' chapter, up to the next '## ' heading outside a code block."""
     heading = f"## {os_name}\n"
-    if heading not in text:
+    # A whole line: '### iOS' before the chapter must not be taken for it.
+    match = re.search(rf"^## {re.escape(os_name)}$", text, re.M)
+    if match is None:
         return None
-    rest = text[text.index(heading) + len(heading):]
+    rest = text[match.end() + 1:]
     fenced = False
     offset = 0
     for line in rest.splitlines(keepends=True):
@@ -51,22 +53,28 @@ def c_blocks(text, os_name):
     found = chapter(text, os_name)
     if found is None or "### C ABI\n" not in found:
         return None
-    section = found[found.index("### C ABI\n"):]
+    section = found[found.index("### C ABI\n") + len("### C ABI\n"):]
     end = section.find("\n---\n\n## ")
     if end != -1:
         section = section[:end]
+    # The section ends at the next heading of its level.
+    following = re.search(r"^### ", section, re.M)
+    if following:
+        section = section[:following.start()]
     return re.findall(r"```c\n(.*?)```", section, re.S)
 
 
 def near_misses(text, os_name):
-    """Headings of the OS chapter that look like '### C ABI' but are not it:
-    with them, a page would read as having no section and pass unchecked."""
+    """Headings that look like the OS chapter or its '### C ABI' but are not
+    them: with them, a page would read as having no section and pass unchecked."""
+    misses = [line for line in text.splitlines()
+              if re.match(rf"^##\s+{re.escape(os_name)}\b", line) and line != f"## {os_name}"]
     found = chapter(text, os_name)
     if found is None:
-        return []
-    return [line for line in found.splitlines()
-            if re.match(r"^#{2,4}\s", line) and re.search(r"(?i)\bc[\s_-]*abi\b", line)
-            and line != "### C ABI"]
+        return misses
+    return misses + [line for line in found.splitlines()
+                     if re.match(r"^#{2,4}\s", line) and re.search(r"(?i)\bc[\s_-]*abi\b", line)
+                     and line != "### C ABI"]
 
 
 def pages(root, version, rep, os_name, missing_is_failure=True):
@@ -110,7 +118,7 @@ def pages(root, version, rep, os_name, missing_is_failure=True):
     if stray:
         rep.check(False, "the manual is readable", "; ".join(stray))
     if not found:
-        article = "an" if os_name[0] in "AEIOU" else "a"
+        article = "an" if os_name[0].upper() in "AEIOU" else "a"
         detail = f"no page under {MANUAL}/{version} has {article} {os_name} C ABI section"
         if missing_is_failure:
             rep.check(False, "the manual is readable", detail)
@@ -163,7 +171,8 @@ def declared_names(root, include, rep):
         return None
     names = set()
     for header in headers:
-        text = header.read_text(encoding="utf-8")
+        # A name left only in a comment is not declared.
+        text = re.sub(r"//[^\n]*", " ", re.sub(r"/\*.*?\*/", " ", header.read_text(encoding="utf-8"), flags=re.S))
         names |= set(re.findall(r"\bntk_[a-z_0-9]+", text))
         names |= set(re.findall(r"\bNTK_[A-Z_0-9]+", text))
     return names

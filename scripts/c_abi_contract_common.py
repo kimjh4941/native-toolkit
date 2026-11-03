@@ -6,17 +6,29 @@ design part 2, 0.3). This module holds what does not depend on the OS:
   reading     the report, reading a file so that a missing one fails the check
               that needed it (R-30), C declarations, the design's tables and
               Appendix A.
-  checks      the ones every OS runs the same way: the headers against
-              Appendix A, the error enumerations against the tables of
-              chapter 11, the naming rules, ASCII, and the Common.h of two OSes
-              against each other (Android C ABI design part 1, 5.2).
+  checks      the ones every OS runs the same way: the functions of 8.2, the
+              headers against Appendix A, the error enumerations against the
+              tables of chapter 11 and against the table of numbers the OSes
+              share (iOS C ABI design part 1, P1-7), the naming rules, ASCII,
+              and the Common.h of any number of OSes against each other
+              (Android C ABI design part 1, 5.2).
 
 Every function takes the paths it reads; nothing here knows where an OS keeps
 its files.
 """
 
+import json
 import re
 from pathlib import Path
+
+# One table of numbers per feature, across the OSes that use it (P1-7).
+ERROR_NUMBERS = "scripts/c_abi_error_numbers.json"
+# Constants only one OS's Common.h may define (Android C ABI design part 1, 5.2),
+# as a regular expression per OS. An OS that is not named may define none.
+OS_ONLY_CONSTANTS = {"Windows": r"^NTK_SYSTEM_CODE_\w+$"}
+# The initializers a public header may give an enum value: a number, or a bit
+# written as 1u << N. Anything else is not guessed at: it is left unread.
+ENUM_VALUE = re.compile(r"(NTK_\w+)\s*=\s*(-?(?:0[xX][0-9A-Fa-f]+|\d+))[uU]?(?:\s*<<\s*(\d+))?")
 
 
 class Report:
@@ -71,19 +83,26 @@ def normalise(text):
 
 
 def declarations(text):
-    """Everything a header declares, by kind and name, as normalised text."""
+    """Everything a header declares, by kind and name, as normalised text.
+
+    What fits no kind goes to "unread", so that a declaration this reading
+    does not know cannot pass for one that is not there."""
     text = strip_comments(text)
     text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
     text = text.replace('extern "C" {', " ")
 
-    found = {"function": {}, "callback": {}, "struct": {}, "value": {}, "typedef": {}}
+    found = {"function": {}, "callback": {}, "struct": {}, "value": {}, "typedef": {}, "unread": {}}
     for name, body in re.findall(r"typedef struct (\w+) \{(.*?)\} \1;", text, re.S):
         fields = [normalise(f) for f in body.split(";") if f.strip()]
         found["struct"][name] = "; ".join(fields)
     text = re.sub(r"typedef struct (\w+) \{.*?\} \1;", " ", text, flags=re.S)
     for body in re.findall(r"enum \{(.*?)\};", text, re.S):
-        for name, value in re.findall(r"(NTK_\w+)\s*=\s*(-?(?:0[xX][0-9A-Fa-f]+|\d+))", body):
-            found["value"][name] = int(value, 0)
+        for item in (part.strip() for part in body.split(",")):
+            match = ENUM_VALUE.fullmatch(item)
+            if match:
+                found["value"][match.group(1)] = int(match.group(2), 0) << int(match.group(3) or 0)
+            elif item:
+                found["unread"][normalise(item)] = "enum"
     text = re.sub(r"enum \{.*?\};", " ", text, flags=re.S)
 
     for statement in text.split(";"):
@@ -101,12 +120,14 @@ def declarations(text):
         typedef = re.match(r"^typedef (.+) (\w+)$", statement)
         if typedef:
             found["typedef"][typedef.group(2)] = typedef.group(1)
+            continue
+        found["unread"][statement] = "statement"
     return found
 
 
 def merged(headers):
     """The declarations of several headers as one, by kind."""
-    every = {"function": {}, "callback": {}, "struct": {}, "value": {}, "typedef": {}}
+    every = {"function": {}, "callback": {}, "struct": {}, "value": {}, "typedef": {}, "unread": {}}
     for decl in headers.values():
         for kind, items in decl.items():
             every[kind].update(items)
@@ -128,7 +149,15 @@ NTK_CALL_BLOCK = ["#if defined(_MSC_VER)", "#define NTK_CALL __cdecl", "#else", 
 PACK_PUSH, PACK_POP = "#pragma pack(push, 8)", "#pragma pack(pop)"
 
 
-def directive_problems(label, text):
+def directive_lines(code):
+    """(start, end, normalised line) of every preprocessor line of code without comments."""
+    found = []
+    for match in re.finditer(r"^[ \t]*#.*$", code, re.M):
+        found.append((match.start(), match.end(), re.sub(r"^#\s*", "#", normalise(match.group(0)))))
+    return found
+
+
+def directive_problems(label, text, include_blocks=()):
     """Preprocessor lines a public header may not have, and the shape they
     must give it.
 
@@ -139,13 +168,15 @@ def directive_problems(label, text):
     #ifdef __cplusplus blocks that open and close extern "C" around every
     declaration; in Common.h, the NTK_CALL block and #defines; and, when it
     has structs, one #pragma pack(push, 8) before the first and one
-    #pragma pack(pop) after the last, with no # line inside any struct."""
+    #pragma pack(pop) after the last, with no # line inside any struct.
+
+    include_blocks: conditional includes an OS's headers may have besides these
+    (iOS's two ways of including Common.h, iOS C ABI design part 1, 5.2). Each
+    must stand before extern "C", with nothing but its own lines in it: a
+    declaration inside would be seen by one branch only."""
     problems = []
     code = strip_comments(text)
-    directives = []                       # (start, end, normalised line)
-    for match in re.finditer(r"^[ \t]*#.*$", code, re.M):
-        line = re.sub(r"^#\s*", "#", normalise(match.group(0)))
-        directives.append((match.start(), match.end(), line))
+    directives = directive_lines(code)
     lines = [line for _, _, line in directives]
 
     allowed = set()
@@ -154,6 +185,16 @@ def directive_problems(label, text):
             if lines[index:index + len(NTK_CALL_BLOCK)] == NTK_CALL_BLOCK:
                 allowed = set(range(index, index + len(NTK_CALL_BLOCK)))
                 break
+    for block in include_blocks:
+        for index in range(len(lines) - len(block) + 1):
+            if lines[index:index + len(block)] != list(block):
+                continue
+            allowed |= set(range(index, index + len(block)))
+            span = code[directives[index][0]:directives[index + len(block) - 1][1]]
+            if re.sub(r"^[ \t]*#.*$", "", span, flags=re.M).strip():
+                problems.append(f"{label} has more than its #include lines inside '{block[0]}'")
+            if "#ifdef __cplusplus" in lines[:index]:
+                problems.append(f"{label} has '{block[0]}' inside extern \"C\"")
 
     # The include guard: the first two lines, and its #endif the last.
     guard = re.fullmatch(r"#ifndef (NATIVETOOLKITC_\w+_H)", lines[0]) if lines else None
@@ -265,9 +306,14 @@ def backticked(cell):
 
 
 def op_range(cell):
-    ids = [int(n) for n in re.findall(r"OP-(\d+)", cell)]
-    if any(mark in cell for mark in ("〜", "～", "~")) and len(ids) >= 2:
-        return [f"OP-{n:02d}" for n in range(ids[0], ids[-1] + 1)]
+    """The operations a cell names; each part between 、 is an ID or a range."""
+    ids = []
+    for part in re.split(r"[、,]", cell):
+        numbers = [int(n) for n in re.findall(r"OP-(\d+)", part)]
+        if any(mark in part for mark in ("〜", "～", "~")) and len(numbers) >= 2:
+            ids.extend(range(numbers[0], numbers[-1] + 1))
+        else:
+            ids.extend(numbers)
     return [f"OP-{n:02d}" for n in ids]
 
 
@@ -333,12 +379,56 @@ def error_table_rows(design, heading):
 # The checks every OS runs the same way
 # ---------------------------------------------------------------------------
 
+def check_functions(design, ops, expected, headers, rep):
+    """The functions of 8.2 against Appendix A and, unless headers is None, the
+    headers. ops maps OP -> C function. Returns the functions of 8.2."""
+    name = "functions: headers, 8.2 and Appendix A agree"
+    in_8_2, total, problems = section_8_2(design, ops)
+    listed = set(in_8_2)
+    if len(in_8_2) != len(listed):
+        problems.append("8.2 names a function twice")
+    in_appendix = set(expected["function"])
+    sides = [("Appendix A", in_appendix)]
+    if headers is not None:
+        sides.append(("the headers", set(merged(headers)["function"])))
+    else:
+        name += " (headers skipped: --design-only)"
+    for label, other in sides:
+        if other - listed:
+            problems.append(f"{label} but not 8.2: {', '.join(sorted(other - listed))}")
+        if listed - other:
+            problems.append(f"8.2 but not {label}: {', '.join(sorted(listed - other))}")
+    heading = re.search(r"^### 8\.2 [^\n]*（(\d+)）", design, re.M)
+    if total is None:
+        problems.append("8.2 has no total")
+    elif total != len(listed):
+        problems.append(f"8.2 says {total} in all but names {len(listed)}")
+    if heading and total is not None and int(heading.group(1)) != total:
+        problems.append(f"the heading of 8.2 says {heading.group(1)}, its total {total}")
+    if not listed:
+        problems.append("8.2 names nothing")
+    rep.check(not problems, f"{name} ({len(listed)} functions)", "; ".join(problems))
+    return listed
+
+
+def takes_callback(signature):
+    """Whether a declaration takes a callback of its own and a release."""
+    callbacks = set(re.findall(r"\bntk_\w+_fn\b", signature))
+    return "ntk_release_fn" in callbacks and len(callbacks) > 1
+
+
+def is_listener(function, signature):
+    return bool(re.fullmatch(r"ntk_\w+_add_\w+_listener", function)) and takes_callback(signature)
+
+
 def check_signatures(expected, actual, rep, problems=None):
     """expected: the declarations of Appendix A; actual: those of the headers,
     merged. problems: what the caller already found (directive_problems)."""
     name = "signatures: the headers declare what Appendix A does"
     problems = list(problems or [])
-    for kind in expected:
+    for item in sorted(set(expected["unread"]) | set(actual["unread"])):
+        problems.append(f"'{item}' is not a declaration or an initializer this check can read")
+    for kind in ("function", "callback", "struct", "value", "typedef"):
         for item in sorted(set(expected[kind]) | set(actual[kind])):
             want, got = expected[kind].get(item), actual[kind].get(item)
             if want is None:
@@ -375,6 +465,95 @@ def error_table_problems(design, values, error_tables):
     return problems
 
 
+def error_numbers(text, problems):
+    """feature -> {NAME: number} from the text of the table, its problems added.
+
+    The table holds to P1-7 by its shape: a name appears once in a feature, so
+    it has one number; a number belongs to one name, so no OS can use it for
+    another; and the numbers run from 0 without a hole, because a number no OS
+    ever used belongs to nobody and a later value would not know it was free."""
+    def no_repeats(pairs):
+        names = [name for name, _ in pairs]
+        for name in sorted({n for n in names if names.count(n) > 1}):
+            problems.append(f"the table names {name} twice in one object")
+        return dict(pairs)
+    try:
+        table = json.loads(text, object_pairs_hook=no_repeats)
+    except ValueError as error:
+        problems.append(f"the table is not JSON: {error}")
+        return {}
+    if not isinstance(table, dict) or not table:
+        problems.append("the table has no features")
+        return {}
+    for feature, numbers in table.items():
+        if not re.fullmatch(r"[a-z]+", feature) or not isinstance(numbers, dict) or not numbers:
+            problems.append(f"{feature} is not a feature with names and numbers")
+            table[feature] = {}
+            continue
+        seen = {}
+        for name, number in numbers.items():
+            # bool is an int in Python, and true would read as 1.
+            if not re.fullmatch(r"[A-Z][A-Z0-9_]*", name) or type(number) is not int or number < 0:
+                problems.append(f"{feature}: {name} = {number!r} is not a NAME and a number")
+                continue
+            if number in seen:
+                problems.append(f"{feature}: {number} is both {seen[number]} and {name}")
+            seen[number] = name
+        holes = sorted(set(range(max(seen, default=-1) + 1)) - set(seen))
+        if holes:
+            problems.append(f"{feature}: no name has {', '.join(map(str, holes))}")
+    return table
+
+
+def error_number_problems(table, values_by_os, other_features=(), every_os=False):
+    """Where the headers of the OSes and the table of numbers differ.
+
+    values_by_os maps an OS to its NTK_ constants. Every error of a header must
+    be in the table with the same number; a name of the table an OS lacks is a
+    gap there. every_os says values_by_os holds all the OSes the table is for,
+    so a name none of them declares is stale. other_features are enumerations
+    one OS has by itself (Android.h), which the table is not for."""
+    problems = []
+    declared = {}
+    for os_name, values in values_by_os.items():
+        for constant, number in sorted(values.items()):
+            # The feature is whatever stands before _ERROR_, so that a prefix
+            # the table does not know is reported rather than passed over.
+            match = re.fullmatch(r"NTK_(\w+?)_ERROR_(\w+)", constant)
+            if not match or match.group(1).lower() in other_features:
+                continue
+            feature, name = match.group(1).lower(), match.group(2)
+            declared.setdefault((os_name, feature), set()).add(name)
+            if feature not in table:
+                problems.append(f"{os_name}: {constant} belongs to no feature of the table")
+            elif name not in table[feature]:
+                problems.append(f"{os_name}: {constant} = {number} is not in the table")
+            elif table[feature][name] != number:
+                problems.append(f"{os_name}: {constant} = {number}, the table says {table[feature][name]}")
+        for feature in sorted(table):
+            if (os_name, feature) not in declared:
+                problems.append(f"{os_name}: no header declares an error of {feature}")
+    if every_os:
+        for feature, numbers in sorted(table.items()):
+            everywhere = set().union(*(declared.get((o, feature), set()) for o in values_by_os))
+            for name in sorted(set(numbers) - everywhere):
+                problems.append(f"{feature}: no OS declares {name}, which the table has")
+    return problems
+
+
+def check_error_numbers(root, values_by_os, rep, other_features=(), every_os=False):
+    oses = " and ".join(values_by_os)
+    name = f"numbers: the {oses} errors match {ERROR_NUMBERS} (P1-7)"
+    text = read(root, ERROR_NUMBERS, rep, name)
+    if text is None:
+        return
+    problems = []
+    table = error_numbers(text, problems)
+    problems += error_number_problems(table, values_by_os, other_features, every_os)
+    count = sum(len(numbers) for numbers in table.values())
+    rep.check(not problems and count > 0, f"{name} ({count} names)", "; ".join(problems) or "the table is empty")
+
+
 def check_names(headers, feature_of, common_functions, rep,
                 name="names: every function, type and constant follows 1.1"):
     problems = [] if headers else ["no header was read"]
@@ -407,33 +586,46 @@ def non_ascii_lines(label, data):
             if any(byte > 127 for byte in line)]
 
 
-def common_header_problems(windows, android, windows_only):
-    """Where two Common.h break the rules of Android C ABI design part 1, 5.2.
+def check_ascii(texts, rep, label):
+    problems = [] if texts else ["nothing was read"]
+    for header, text in texts.items():
+        problems.extend(non_ascii_lines(header, text.encode("utf-8")))
+    rep.check(not problems, f"ascii: {label} are ASCII only", ", ".join(problems))
 
-    windows and android are header texts; windows_only is the regular
-    expression of the constants only Windows may define."""
+
+def common_header_problems(headers, os_only=OS_ONLY_CONSTANTS):
+    """Where the Common.h of several OSes break the rules of Android C ABI
+    design part 1, 5.2.
+
+    headers maps an OS to its header text, in any number of two or more;
+    os_only maps an OS to the regular expression of the constants only it may
+    define."""
     problems = []
-    mine, theirs = declarations(windows), declarations(android)
+    if len(headers) < 2:
+        problems.append(f"{len(headers)} Common.h cannot be compared")
+    decls = {label: declarations(text) for label, text in headers.items()}
     # One: the incomplete types, ntk_release_fn and the common functions,
     # the same once whitespace and comments are gone.
     for kind in ("function", "callback", "typedef"):
-        for item in sorted(set(mine[kind]) | set(theirs[kind])):
-            a, b = mine[kind].get(item), theirs[kind].get(item)
-            if a is None:
-                problems.append(f"{kind} {item} is only in the Android Common.h")
-            elif b is None:
-                problems.append(f"{kind} {item} is only in the Windows Common.h")
-            elif a != b:
-                problems.append(f"{kind} {item}: Windows has '{a}', Android '{b}'")
+        for item in sorted(set().union(*(set(decl[kind]) for decl in decls.values()))):
+            having = {label: decl[kind][item] for label, decl in decls.items() if item in decl[kind]}
+            lacking = [label for label in decls if label not in having]
+            if len(having) == 1:
+                problems.append(f"{kind} {item} is only in the {next(iter(having))} Common.h")
+            elif lacking:
+                problems.append(f"{kind} {item} is not in the {' and '.join(lacking)} Common.h")
+            if len(set(having.values())) > 1:
+                written = ", ".join(f"{label} has '{text}'" for label, text in having.items())
+                problems.append(f"{kind} {item}: {written}")
     for kind in ("struct", "value"):
-        for label, decl in (("Windows", mine), ("Android", theirs)):
+        for label, decl in decls.items():
             if decl[kind]:
                 problems.append(f"the {label} Common.h declares {kind}s: {', '.join(sorted(decl[kind]))}")
-    if not mine["function"]:
+    if not all(decl["function"] for decl in decls.values()):
         problems.append("no common function was compared")
 
     # Two: NTK_CALL is __cdecl only under MSVC, and empty everywhere else.
-    for label, text in (("Windows", windows), ("Android", android)):
+    for label, text in headers.items():
         guarded = re.search(r"#if defined\(_MSC_VER\)\s*#define NTK_CALL __cdecl\s*#else\s*#define NTK_CALL[ \t]*\n\s*#endif",
                             strip_comments(text))
         if not guarded:
@@ -441,7 +633,7 @@ def common_header_problems(windows, android, windows_only):
 
     # Three: the version names, and NTK_VERSION computed from the three parts.
     version_names = ("NTK_VERSION_MAJOR", "NTK_VERSION_MINOR", "NTK_VERSION_PATCH", "NTK_VERSION")
-    for label, text in (("Windows", windows), ("Android", android)):
+    for label, text in headers.items():
         defined = macros(text)
         if defined.get("NTK_CALL") != ["__cdecl", ""]:
             problems.append(f"the {label} Common.h defines NTK_CALL as {defined.get('NTK_CALL')}, "
@@ -456,8 +648,8 @@ def common_header_problems(windows, android, windows_only):
             continue
         if whole != (major << 16) | (minor << 8) | patch:
             problems.append(f"the {label} NTK_VERSION {whole:#08x} is not {major}.{minor}.{patch}")
-        # Four: any other constant must be one only Windows may have.
+        # Four: any other constant must be one only this OS may have.
         for macro in sorted(set(defined) - set(version_names) - {"NTK_CALL"}):
-            if label == "Android" or not re.match(windows_only, macro):
+            if label not in os_only or not re.match(os_only[label], macro):
                 problems.append(f"{macro} in the {label} Common.h is neither shared nor allowed for {label} alone")
     return problems

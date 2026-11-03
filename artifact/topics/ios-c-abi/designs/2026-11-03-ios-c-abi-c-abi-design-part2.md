@@ -425,7 +425,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 
 ### 8.1 OP ごとの C 関数
 
-戻り値の型は機能のエラー（`ntk_clipboard_error` / `ntk_dialog_error` / `ntk_notification_error` / `ntk_share_error`）。`_listener_remove` は `void`。完全な宣言は付録 A。「Swift の口」は受け口が呼ぶ Manager の口（P2-1）。完了つきの関数は最後に `callback, user_data, release` を取り、8.1 では `...` と書く。`callback` の `NULL` は `INVALID_PARAMETER`（P2-28）。
+戻り値の型は機能のエラー（`ntk_clipboard_error` / `ntk_dialog_error` / `ntk_notification_error` / `ntk_share_error`）。`_listener_remove` は `void`。完全な宣言は付録 A。「Swift の口」は受け口が呼ぶ Manager の口（P2-1）。「（受け口の帳簿）」の行は OP-16、OP-17、OP-44 だけで、Swift の口を呼ばない（2a が読む）。完了つきの関数は最後に `callback, user_data, release` を取り、8.1 では `...` と書く。`callback` の `NULL` は `INVALID_PARAMETER`（P2-28）。
 
 | OP | Swift の口 | C 関数 | 変換 |
 |---|---|---|---|
@@ -797,11 +797,12 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 ```json
 {
-  "dialog": { "CANCELED": 6, "CANCELED_BY_SYSTEM": 7, "NOT_FOREGROUND": 8, "HOST_START_FAILED": 9, "SHOW_FAILED": 10 },
+  "dialog": { "NONE": 0, "INVALID_PARAMETER": 1, "...": 5, "CANCELED": 6, "CANCELED_BY_SYSTEM": 7, "NOT_FOREGROUND": 8, "HOST_START_FAILED": 9, "SHOW_FAILED": 10 },
   "notification": { "...": "..." }
 }
 ```
 
+- 0〜5 も表に入れる（「表に無い値がヘッダーに無い」を例外なしで照らすため）
 - `iOS` と `Android` の列は持たず、ヘッダーと表を照らす: **どちらの OS のヘッダーの値も表と同じ番号で、表に無い値がヘッダーに無い**。ある OS に無い名前はその OS の欠番になる。Windows は対象外
 - Android が後で値を足すときは、表の最後の次から取る。今の表の最後は Dialog 10、Notification 20、Clipboard 29、Share 21（Android の照合 `check_c_abi_contract_android.py` にも表を足す）。**Android のヘッダーの今の値は変わらない**
 
@@ -872,7 +873,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-0 | 7 章の変更: `IosLibrary` に足す口（P2-6、P2-12、P2-26）と Swift のテスト、文書の直し | 1.0日 | - | 足した口のテスト。`results/swiftinterface/` の基準を取り直した。シミュレーターの基準の差が足したものだけ。7 章の表のすべての行 |
 | TA-1 | `check_c_abi_contract_ios.py`、`c_abi_error_numbers.json`、Android の照合にも表を足す、README 3.3 の照合を OS の数によらない形に直す | 1.0日 | TB-0 | Windows の照合が今と同じ。Android は表の照合が増えるだけ。iOS は付録 A で通る（`--design-only`）。自己テストで壊すと落ちる |
 | TA-2 | `check_manual_c_examples_ios.py` を足す（`manual_c_examples_common.py` の上） | 0.5日 | TA-1 | iOS の例が無いときは SKIP |
-| TB-1 | `IosLibraryCApi` の本番の形（第 1 部 5.1、5.3、5.4）、5 つの公開ヘッダー（付録 A からまとめて作る）、`ntk_notification_install` | 1.0日 | TB-0 | `--design-only` なしで通る。雛形の `ntk_probe_*` が無い |
+| TB-1 | `IosLibraryCApi` の本番の形（第 1 部 5.1、5.3、5.4）、5 つの公開ヘッダー（付録 A からまとめて作る）、`ntk_notification_install` | 1.0日 | TB-0 | `--design-only` なしで通る。雛形の `ntk_probe_*` が無い。**ヘッダーだけのコンパイル（C99、C11、C++、Objective-C。12.3）、第 1 部 5.5 の H = E、E = P、module map の照合を `check_c_abi_contract_ios.py` に足す**（TA-1 は入口のソースが無いので足せなかった） |
 | TB-2 | 共通の部品（`StructReader`（配列の要素を含む）、`CApiString`、`Registration` と ID の表、エラーの土台）、最初の呼び出しの版の確かめ（C-9、P1-19） | 1.5日 | TB-1 | 第 1 部 6 章の `release` と完了のテスト。1a の雛形の `struct_size` の穴（第 1 部 1.1）を写していない |
 | TB-2b | C を呼ぶ UI テスト用のアプリとターゲット（第 1 部 6 章の「テストの口」。サンプルは Swift の API だけを使うので別に作る）。`test_ios.sh` のランナーの区分 | 1.5日 | TB-2 | 12.1 の前面の行と 12.2 を流せる。**権限を未決に戻す方法を確かめた**（`simctl uninstall` で足りるか、足りなければ `erase`） |
 | TB-3 | Clipboard の書き込みと問い合わせ（OP-01〜OP-10、OP-15、結果のハンドル） | 1.5日 | TB-2b | 12.1 の Clipboard の行、写しの関数 |
@@ -883,7 +884,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-8 | 通知のイベント（OP-42〜OP-45） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と 12.2 |
 | TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2 |
 | TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数 |
-| TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が通る |
+| TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`） |
 | TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る |
 | TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-12 | 8.3 と 16 章を渡した |
 
@@ -900,6 +901,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | RP-5 | 読み込みの時間切れに答える時間が入る。15 秒以内に答えないと `TIMED_OUT` | ヘッダーとマニュアルに書く（P2-24）。動作を変える価値があるかは Unity の実利用で見る |
 | RP-6 | 実機でしか分からない失敗がある。CB1 の原因が分からない、CB3・CB4 は合成のタップを受けない見込み（1b の記録 24 章） | **12.2 の貼り付けはシミュレーターで確かめ、実機は 1b の手の確認（ダイアログと許可）に頼る**。`UIPasteControl` は C に出ない（D-5）。CB の扱いは `clipboard` を許す次の実機の回の前に決める |
 | RP-7 | P2-10 の事前の確かめは、確かめた後に状態が変わると守らない。Swift の口は今も成功を返して残らない | 最善の努力とヘッダーに書く。Swift の口の DocC に書く（7 章） |
+| RP-8 | 「出した番号は変えない」を止めるものが無い。`c_abi_error_numbers.json` とヘッダーを一緒に変えると照合は通る | リリースの前に、前の版のタグの表と比べる照合を足すかを決める（2.0.0 が iOS の最初の版なので、今は比べる相手が無い） |
 
 ## 15. Definition of Done
 
@@ -923,7 +925,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 - 7 章の文書の直しを済ませた（TB-0）
 - `unity-native-plugin` に 8.3 と 16 章を渡した
-- マニュアルは README の段階 4（AP-23）。候補: `sourceRect`、マルチウィンドウの iPad、起動のきっかけの限り、読み込みの時間切れ、後ろの貼り付けのダイアログ
+- マニュアルは README の段階 4（AP-23）。`agent-rules/workflows/verify-manual/workflow.md` に `check_manual_c_examples_ios.py` を足すのも段階 4。候補: `sourceRect`、マルチウィンドウの iPad、起動のきっかけの限り、読み込みの時間切れ、後ろの貼り付けのダイアログ
 
 ## 16. `unity-native-plugin` に渡す範囲（README 8.6）
 
@@ -944,7 +946,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 ## 付録 A. 公開ヘッダーの宣言
 
-`#pragma pack(push, 8)` と include ガード、`extern "C"` はすべてのヘッダーにある（第 1 部 5.2）。コメントは要点だけ。2a は宣言（関数、コールバック、構造体の項目、列挙の値、typedef）をこの付録と照らす。
+`#pragma pack(push, 8)` と include ガード、`extern "C"` はすべてのヘッダーにある（第 1 部 5.2）。機能のヘッダーの `Common.h` の取り込みは第 1 部 5.2 の形（`__has_include`）。コメントは要点だけ。2a は宣言（関数、コールバック、構造体の項目、列挙の値、typedef）をこの付録と照らす。
 
 ### A.1 `NativeToolkitC/Common.h`
 
@@ -1021,7 +1023,11 @@ void        NTK_CALL ntk_string_list_free(ntk_string_list* list);
 #ifndef NATIVETOOLKITC_CLIPBOARD_H
 #define NATIVETOOLKITC_CLIPBOARD_H
 
+#if defined(__has_include) && __has_include(<IosLibraryCApi/NativeToolkitC/Common.h>)
+#include <IosLibraryCApi/NativeToolkitC/Common.h>
+#else
 #include "Common.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -1364,7 +1370,11 @@ void        NTK_CALL ntk_clipboard_change_free(ntk_clipboard_change* change);
 #ifndef NATIVETOOLKITC_DIALOG_H
 #define NATIVETOOLKITC_DIALOG_H
 
+#if defined(__has_include) && __has_include(<IosLibraryCApi/NativeToolkitC/Common.h>)
+#include <IosLibraryCApi/NativeToolkitC/Common.h>
+#else
 #include "Common.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -1532,7 +1542,11 @@ void        NTK_CALL ntk_dialog_result_free(ntk_dialog_result* result);
 #ifndef NATIVETOOLKITC_NOTIFICATION_H
 #define NATIVETOOLKITC_NOTIFICATION_H
 
+#if defined(__has_include) && __has_include(<IosLibraryCApi/NativeToolkitC/Common.h>)
+#include <IosLibraryCApi/NativeToolkitC/Common.h>
+#else
 #include "Common.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -1910,7 +1924,11 @@ void        NTK_CALL ntk_notification_list_free(ntk_notification_list* list);
 #ifndef NATIVETOOLKITC_SHARE_H
 #define NATIVETOOLKITC_SHARE_H
 
+#if defined(__has_include) && __has_include(<IosLibraryCApi/NativeToolkitC/Common.h>)
+#include <IosLibraryCApi/NativeToolkitC/Common.h>
+#else
 #include "Common.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

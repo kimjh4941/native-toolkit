@@ -47,20 +47,30 @@ These read both sides of a comparison from source, so neither side can drift
 without the other noticing. They are fast, need no toolchain, and are meant to
 run while writing a design or before a commit; the optional parts of the
 Android ones (`--library`, the compile check) use the NDK's `llvm-nm` and
-`clang` and say SKIP without them. The C ABI and manual example checkers are
-one file per OS; what they share is `c_abi_contract_common.py` and
-`manual_c_examples_common.py`. The cross-OS `Common.h` check lives in the
-Android checker, so run it too after changing the Windows `Common.h`.
+`clang`, those of the iOS ones `nm` and Xcode's `clang`, and they say SKIP
+without them. The C ABI and manual example checkers are one file per OS; what
+they share is `c_abi_contract_common.py` and `manual_c_examples_common.py`. The
+cross-OS `Common.h` check compares all three OSes in the iOS checker and Android
+with Windows in the Android checker, so run both after changing any `Common.h`.
+
+`c_abi_error_numbers.json` holds one table per feature of the C ABI's error
+names and numbers across iOS and Android (`artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-c-abi-design.md`,
+P1-7): the same name has the same number, a number has one name, and a name an
+OS lacks is a gap there. Both checkers compare their headers with it, so run
+both after changing it or an error enumeration. Windows numbers its errors by
+another rule and is not in it; neither is `Android.h`, which no other OS has.
 
 | Script | Compares |
 |---|---|
 | `check_design_consistency.py <design.md>` | A design document against itself: counts, ids, tables, heading order |
 | `check_cpp_api_contract.py` | The Windows C++ API design against the public headers and what it cites |
 | `check_c_abi_contract_windows.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A, and the C++ API it mirrors |
-| `check_c_abi_contract_android.py [--design-only] [--library <libntk.so> [--nm <llvm-nm>]]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
+| `check_c_abi_contract_android.py [--design-only] [--library <libntk.so> [--nm <llvm-nm>]]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, the numbers table, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
+| `check_c_abi_contract_ios.py [--design-only] [--library <binary> [--nm <nm>] [--architectures <a,b>]]` | The iOS C ABI: the public headers (their preprocessor lines too), the design's tables and Appendix A, the Swift entries it calls (in the swiftinterface of TB-0), the behaviours of chapter 10, every case of the Swift errors in the sources and the baseline against chapter 11, the numbers table against the iOS and Android headers, and the `Common.h` of the three OSes. `--design-only` reads Appendix A in place of the headers until TB-1 writes them; `--library` takes one binary and also compares what `nm -arch all -gU` lists with `_ntk_*` of 8.2 in every architecture it has, and `--architectures` says which it must have |
 | `check_sample_app_inputs.py` | That no sample app screen declares a text input field (`agent-rules/coding-rules/common.md`) |
 | `check_manual_c_examples_windows.py [<version>]` | The manual's Windows C examples against the C ABI: every exported function is shown, every name exists, the three languages carry the same code, and the examples compile as C (MSBuild) |
 | `check_manual_c_examples_android.py [<version>] [--require-examples]` | The same for the Android C examples, compiled with the NDK's clang. Says SKIP while no page has an Android C ABI section, unless `--require-examples` is given |
+| `check_manual_c_examples_ios.py [<version>] [--require-examples]` | The same for the iOS C examples, compiled with Xcode's clang against the iOS SDK. Says SKIP while no page has an iOS C ABI section, unless `--require-examples` is given |
 | `check_windows_dist.py [<release>]` | `dist/<release>/windows/` against the tree: built from the current sources, the same public headers (loose and in both packages), the declared versions in the file names, every `.def` export in the DLL. Run before a release |
 
 ## Test
@@ -115,7 +125,7 @@ breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 337 cases
+python -m unittest discover -s scripts/tests    # 614 cases
 ```
 
 `tests/ios_ui_runner_mutations.py` is not a unit test: it breaks one decision of the iOS runner
@@ -135,8 +145,8 @@ unrelated despite the similar names.
 Check 2 of `verify_manual.sh` compares code examples against the sample app,
 which is C++ or Kotlin, so the C examples are outside it.
 `check_manual_c_examples_<os>.py` is what covers those; the compile check needs
-Visual Studio (Windows) or the NDK's clang (Android) and reports SKIP without
-it, unless `--require-compile` is given.
+Visual Studio (Windows), the NDK's clang (Android) or Xcode's clang (iOS) and
+reports SKIP without it, unless `--require-compile` is given.
 
 `publish_docs.sh` also moves `docs/latest/`, so it belongs to a release rather
 than to day-to-day work. The workflows that call these two are

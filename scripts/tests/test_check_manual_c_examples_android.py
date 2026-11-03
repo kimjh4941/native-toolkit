@@ -166,6 +166,10 @@ class AndroidManualChecker(unittest.TestCase):
         code, output = self.run_checker("--clang")
         self.assertEqual(code, 2, output)
 
+    def test_an_option_given_twice_is_a_usage_error(self):
+        code, output = self.run_checker("--clang", "a", "--clang", "b")
+        self.assertEqual(code, 2, output)
+
     # --- parity -------------------------------------------------------------
 
     def test_a_language_whose_code_differs(self):
