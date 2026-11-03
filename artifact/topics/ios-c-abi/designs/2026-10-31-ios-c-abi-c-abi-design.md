@@ -312,6 +312,7 @@ ios/
         CommonEntry.swift                   # Common.h の入口（ntk_version、ntk_last_system_code、ntk_string_* など）
         Handle.swift                        # 出力のハンドル（Unmanaged）と読み取り
         CApiString.swift                    # UTF-8 の入りと出（5.9）
+        CApiBytes.swift                     # 入力のバイト列（5.9）
         StructReader.swift                  # struct_size の読み方（Windows の設計書 7.8）
         Registry.swift                      # 登録、ID の表、帳簿、tryRelease（5.7）
         MainQueue.swift                     # main への積み方（P1-4）
@@ -321,6 +322,10 @@ ios/
       Clipboard/  Dialog/  Notification/  Share/
         <機能>Entry.swift                   # @c @implementation の関数だけ。1 関数 1〜3 行で受け口を呼ぶ（P1-1）
         <機能>Receiver.swift                # 検査・型の変換・IosLibrary の公開 API の呼び出し（P1-1、P1-2）
+      Clipboard/
+        ClipboardMapping.swift              # C の値と Swift の値の純粋な写しと入口の検査（第 2 部 5.1）
+        ClipboardHandles.swift              # 結果のハンドルと読み取り（第 2 部 5.1）
+        ClipboardValuesJson.swift           # detect_values_async の JSON（第 2 部 P2-8）
   IosLibraryCApiTests/                      # C ABI のテスト（XCTest から C の関数を呼ぶ。6 章）
   IosLibraryCApiTestHost/                   # そのホスト。通知の権限を一度も求めない（第 2 部 12.1）
   IosLibraryCApiUITestApp/                  # C を呼ぶ UI テスト用のアプリ。シミュレーターだけ（第 2 部 TB-2b）

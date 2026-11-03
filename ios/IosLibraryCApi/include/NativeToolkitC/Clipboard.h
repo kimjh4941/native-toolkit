@@ -184,7 +184,7 @@ typedef struct ntk_clipboard_write_content {
     uint32_t                   reserved0;
     ntk_clipboard_content_kind kind;
     uint32_t                   reserved1;
-    const char*                text;         /**< PLAIN_TEXT; the plain text of HTML. */
+    const char*                text;         /**< PLAIN_TEXT (required); the plain text of HTML (NULL is ""). */
     const char*                html;         /**< HTML. */
     const char*                url;          /**< URL. */
     const char*                path;         /**< IMAGE_FILE. */

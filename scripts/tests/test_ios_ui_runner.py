@@ -1878,12 +1878,13 @@ import os, sys
 print(sys.argv[-1] + ":")
 # Each file gives part of the C functions, so that the check sees a file left out. Not what a real build
 # does (its executable has none of them); that is the test of the set, not of the shape.
+# FAKE_APP_MORE_SYMBOLS: the C functions of the rows of the features, which grow with each of them.
 if os.environ.get("FAKE_ALL_IN_MAIN"):
-    print("_ntk_last_system_code\n_ntk_notification_install\n_ntk_version")
+    print("_ntk_last_system_code\n_ntk_notification_install\n_ntk_version\n" + os.environ.get("FAKE_APP_MORE_SYMBOLS", ""))
 elif sys.argv[-1].endswith(".debug.dylib"):
     print(os.environ.get("FAKE_APP_SYMBOLS", "_ntk_notification_install\n_ntk_version\n_swift_retain"))
 else:
-    print("_ntk_last_system_code")
+    print("_ntk_last_system_code\n" + os.environ.get("FAKE_APP_MORE_SYMBOLS", ""))
 ''',
     "git": r'''
 import json, os, sys
@@ -2332,9 +2333,18 @@ class CApiUiAppSources(unittest.TestCase):
                 path.unlink()
 
     def test_the_calls_of_the_sources_are_read_from_code(self):
-        self.assertEqual(r.capi_source_calls(CAPI_APP_DIR), {"ntk_version", "ntk_last_system_code", "ntk_notification_install"})
-        (self.app / "Rows" / "Extra.swift").write_text('// ntk_string_free()\nlet s = "ntk_bytes_free()"\n', encoding="utf-8")
-        self.assertEqual(r.capi_source_calls(self.app), {"ntk_version", "ntk_last_system_code", "ntk_notification_install"})
+        # The set grows with the rows of each feature; a comment or a string must not add to it.
+        calls = r.capi_source_calls(CAPI_APP_DIR)
+        self.assertLessEqual({"ntk_version", "ntk_last_system_code", "ntk_notification_install"}, calls)
+        # A function of no real header, so that no row can ever call it.
+        headers = pathlib.Path(self.temp.name) / "headers"
+        shutil.copytree(r.CAPI_HEADERS_DIR, headers)
+        (headers / "Never.h").write_text("void NTK_CALL ntk_never_a_row(void);\n", encoding="utf-8")
+        extra = self.app / "Rows" / "Extra.swift"
+        extra.write_text('// ntk_never_a_row()\nlet s = "ntk_never_a_row()"\n', encoding="utf-8")
+        self.assertEqual(r.capi_source_calls(self.app, headers), calls)
+        extra.write_text("let s = ntk_never_a_row()\n", encoding="utf-8")
+        self.assertEqual(r.capi_source_calls(self.app, headers), calls | {"ntk_never_a_row"})
 
     def test_no_function_in_the_headers_is_a_problem(self):
         self.assertTrue(r.capi_app_source_problems(CAPI_APP_DIR, self.app / "nowhere"))
@@ -2484,6 +2494,8 @@ class CApiUiEndToEnd(unittest.TestCase):
         self.enumeration = self.temp / "capi-enumeration.json"
         self.enumeration.write_text(json.dumps(capi_enumeration(ALL_CAPI)))
         self.env.update(FAKE_CAPI_ENUMERATION=str(self.enumeration), FAKE_CAPI_UDID=SIMULATOR, FAKE_XCODE="26.6")
+        more = r.capi_source_calls(CAPI_APP_DIR) - {"ntk_version", "ntk_last_system_code", "ntk_notification_install"}
+        self.env["FAKE_APP_MORE_SYMBOLS"] = "\n".join(f"_{name}" for name in sorted(more))
 
     def assert_nothing_was_built_or_run(self, log):
         for word in ("build-for-testing", "test-without-building", "devicectl", "uninstall", "platform=iOS,id"):

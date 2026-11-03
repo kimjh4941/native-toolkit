@@ -905,3 +905,158 @@ xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -paral
 - 第 2 部 15.2 の文は、持ち主が 2026-11-04 に「判断が要るものは推奨でいい」と決めたので、推奨のとおり決定とした
 - 実装者とは別に、最後のソースで `--capi-ui`（iPhone 17 Pro / 26.2）の 8/8、`IosLibraryCApiTests` の 141/141、`test_ios_ui_runner.py` の 210 件、`check_c_abi_contract_ios.py` の FAIL 0 を流した。`--capi-ui`（iPhone 16 / 18.3）と変異は実装者の結果で、流し直していない
 - レビューは Claude と Codex が直しの前に 1 回ずつ、Codex が 1 回目の直しの後に読んだ（ビルドも実行もしていない。A なし）。2 回目の直しの後のレビューはしていない
+
+## 6. TB-3
+
+第 2 部 13 章の TB-3（OP-01〜OP-10、OP-15、結果のハンドル）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。
+
+### 6.1 足したもの
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 入口 | `IosLibraryCApi/IosLibraryCApi/Clipboard/ClipboardEntry.swift` | `@c @implementation` だけで 31 関数。各 1 行 |
+| 受け口 | `Clipboard/ClipboardReceiver.swift` | OP ごとの関数。共通の `accept`（callback の `NULL` → 入口の写し → `Registry.accept`）と `finish`（`errorCode` の写し、ハンドルは `deliver` の中で作る） |
+| 写し | `Clipboard/ClipboardMapping.swift` | 純粋な関数: `scope`、`requiredScope`、`creationRequest`、`content`、`options`、`utType`、`matchingTypes`、`patterns`、`bits`、`error(forCode:)`、`ClipboardRejection`（共通の値と `EMPTY_ITEMS`、`EMPTY_PATTERNS`） |
+| ハンドル | `Clipboard/ClipboardHandles.swift` | `ClipboardReadResultHandle`、`ClipboardSnapshotHandle` と 18 の読み取り（ほかに `_free` が 2 つ） |
+| JSON | `Clipboard/ClipboardValuesJson.swift` | P2-8 の形。キーの順は固定、`detectedPatterns` は並べる。有限でない数は `null` |
+| Common（機能の知識なし） | `Common/CApiBytes.swift`（新規）、`CApiString.requiredArray`、`Handle.text(of:_:)`、`Handle.retained`（`private` をやめた） | 第 1 部 5.9 の入力のバイト列（4.5 で TB-3 に送ったもの）。`const char* const*` の配列 |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` から 31 個を外した（91 個が残る） |
+| 行 | `IosLibraryCApiUITestApp/Rows/ClipboardRows.swift`、`CApiRow.swift` の節の一覧 | 20 行。どの行も `ntk_` を呼び、完了の値を書く |
+| テスト | `IosLibraryCApiTests/ClipboardMappingTests.swift`（50）、`ClipboardEntryTests.swift`（42）、`ClipboardHandleTests.swift`（14）、`ClipboardValuesJsonTests.swift`（5）、`CApiStringInputTests.swift`（1 件足した）、`ClipboardTestSupport.swift` | 141 → 253 件（レビューの直しの後。直しの前は 244 件） |
+| UI テスト | `IosLibraryCApiUITests/CApiRoundTripUITests.swift`（8 件足した）、`CApiUITestApp.swift`（`CApiSection.clipboard`） | 7+1 → 15+1 件 |
+| ランナーの自己テスト | `scripts/tests/test_ios_ui_runner.py` | 行が増えると落ちる 2 か所を直した: 偽の `nm` の記号（`FAKE_APP_MORE_SYMBOLS`）と `capi_source_calls` の決め打ちの集合。**`scripts/ios_ui_runner.py` は変えていない** |
+
+公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイルは変えていない。
+
+**`IosLibraryCApiTests` は名前付きのペーストボードだけを使う**（第 2 部 12.2。実機の ASan で流れるため）。`NULL` の scope は写しの関数か、入口で拒まれる呼び出しにしか渡さない。general に触れるのはシミュレーターだけの UI テスト用のアプリで、general を読む行は、その前にアプリか UI テストのランナーが決まった文字列を書いている。Mac のクリップボードを読むコードは足していない（**設計の意図で、確かめた事実ではない**。6.6）。
+
+### 6.2 コマンドと結果（レビューの直しの前のソース。最後のソースの結果は 6.8）
+
+Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。
+
+```
+xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -parallel-testing-enabled NO \
+  -destination 'platform=iOS Simulator,id=<UDID>' -derivedDataPath <scratch> [-enableThreadSanitizer YES | -enableAddressSanitizer YES] test
+scripts/test_ios.sh --udid <UDID> --capi-ui
+```
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 244/244（TB-2b の 141 + 103） |
+| 同（iPhone 16 / 18.3） | 244/244 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 244/244。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 244/244。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2） | 16/16（`CApiRoundTripUITests` 15、`CApiFreshInstallUITests` 1）。exit 0 |
+| `--capi-ui`（iPhone 16 / 18.3） | 16/16。exit 0 |
+| framework の Release（`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`。組むだけ）`--library --architectures arm64` | `OK symbols`（43 symbols、1 architectures）。capi の警告 0 |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`）`--library --architectures arm64,x86_64` | `OK symbols`（43 symbols、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP 2（`complete` と `symbols`）。`entries` は 43 of 134、91 not implemented yet |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_c_abi_contract_ios.py'` | Ran 278 tests、OK |
+| `python3 scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `python3 scripts/check_design_consistency.py`（この記録） | FAIL 2。**どちらも TB-3 の前からある種類**: 770 行の表の列数（TB-2b の行）、OP の表が無い文書で OP の ID を書くこと（前は 151 行、今は 6 章の OP-03〜OP-11 も数える）。この記録は設計書でないので直していない |
+
+最後の 2 回の Release、照合と自己テストは、テストのファイルを 1 つ直す前に流した（6.3 の 256 バイトの直し。製品のソースと `scripts/` はその後変えていない）。
+
+### 6.3 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3）
+
+40 個（`Clipboard/`、`CApiBytes`、`Handle.text` の引数の検査、所有権、ハンドル、写し）。1 個あたり 30〜50 秒。**最初の回で 38 個が落ち、1 個が組めず（変異の書き方の誤り）、1 個が生き残った。** 直した後は全部落ちた。
+
+| 生き残り | 原因 | 直し |
+|---|---|---|
+| `CApiBytes.copied` を `Data(bytesNoCopy:)` にする | **テストが弱かった**: 3 バイトは `Data` が中に持つので写しになる | `testTheInputIsCopiedBeforeItReturns` を 256 バイトにした。落ちた |
+| （組めなかった）`read_data_async` の「データなしは失敗」 | 変異の式の型 | 書き直して流した。`testReadDataGivesNullWhenThereIsNoItemOfTheType` で落ちた |
+
+落ちたものの例: `reserved1` の名指しを消す（scope は `read` と `readIfPresent` で別に、content）、`requiredScope` が `NULL` を受ける、GENERAL が `name` を読む（読めないポインタで落ちる）、GENERAL を作れる、UNIQUE が `name` を読む、空の名前、空のパス、`EMPTY_ITEMS`・`EMPTY_PATTERNS` の入口を消す、重複の型、`not_local_only` の反転、有限でない期限、ビットの表、エラーの表の行、`release` を呼ばない 2 通り、ハンドルを渡さない、`append` が `copy` を呼ぶ、`copy` が選択肢を捨てる、完了の失敗が `NONE`、読み取りの取り違え、`matching_at` の -1、`has_matching`、`out_size` を書かない、U+0000、JSON の有限でない値とキー。
+
+**変異で落ちたプロセスのクラッシュレポート**（`~/Library/Logs/DiagnosticReports/`。記録してから消した。どれも `IosLibraryCApiTestHost`、iPhone 16 のシミュレーター）: `IosLibraryCApiTestHost-2026-11-04-020848.ips`、`-020932.ips`、`-021218.ips`、`-021505.ips`、`-022404.ips`。
+
+### 6.4 設計書が読み切れなかった所と、読み方（この表は実装の時点のもの。設計書の直しは 6.8）
+
+| # | 所 | 読み方 |
+|---|---|---|
+| 1 | 13 章の「結果のハンドル」 | `read_result`（7）と `snapshot`（13）だけ。`loaded_item`（7）と `change`（8）は OP-11、OP-16 が作るので TB-4（依頼の「読み込みと監視は足さない」）。TB-3 は 31 関数で、実装は 43 / 134 |
+| 2 | 6.1 の `HTML` の入口の検査「`NULL`」 | **`html` だけが必須で、`text` の `NULL` は `""`**。Android（`ntk_clipboard_copy_html`）と E-15 に合わせた。`text` が不正な UTF-8 なら拒む |
+| 3 | 6.1 の `create_pasteboard_async` の「`NAMED` は `name` が必須」 | 同じ節の scope の「必須」と同じに読み、**`NULL` と空文字が入口で `INVALID_PARAMETER`**。空白だけは `IosLibrary` の `INVALID_NAME`（完了）。Android と Windows にこの関数は無い |
+| 4 | 12.1「入口と完了の分け方」の `EMPTY_CONTENT` | Clipboard の `EMPTY_CONTENT` は 6.1 と 11.3 のとおり完了で返す（テストもその形）。12.1 の行は Share の `noValidItems` の話と読んだ |
+| 5 | 検査の順（5.10 の並び）は 1 つの関数の引数の間の順を決めていない | `callback` の `NULL`（Android と同じく先）→ 宣言の順の引数。`EMPTY_ITEMS` は `options` より先に返る |
+| 6 | 5.1 の表のファイルは `ClipboardReceiver.swift` だけ | Notification の `NotificationJson.swift` に倣って `ClipboardMapping`、`ClipboardHandles`、`ClipboardValuesJson` に分けた。**5.1 の表と第 1 部 5.1 の木に行を足すかは持ち主の判断**（`Common/CApiBytes.swift` も） |
+| 7 | `Registry.accept` は `canceled` を必ず取る | 取り消せるのは読み込みだけなので、TB-3 の関数では呼ばれない。形だけ `CANCELED` を渡す（テストは無い） |
+| 8 | P2-8 の `number`、`amount` に有限でない値 | `null`（キーを保ち、ほかの値を失わない）。`JSONSerialization.isValidJSONObject` はこれらの値に偽を返す（テスト `testJSONSerializationDoesNotTakeWhatIsNotFinite` で確かめた）。`ClipboardValuesJson.swift` は先にそれを問うので、値を残すと `text(of:)` は nil になり、受け口は `UNKNOWN` で完了する（**ここはコードを読んだ結論で、完了までは流していない**。前の版の「Objective-C の例外で落ちる」は誤りで、このコードでは起きない。1 回目の変異「JSON: not finite passes」は `crash=False` で落ちた） |
+| 9 | `read_result_item_count` と `ClipboardReadResult.numberOfItems` | `items.count`。ライブラリでは同じ値 |
+| 10 | 6.1 の `get_snapshot_async`「`matching_types` が `NULL` か件数 0 なら」 | コードは件数が 1 以上の `NULL` を `INVALID_PARAMETER` で拒む（ヘッダーと第 1 部 5.9 のとおり）。**コードを残し、6.1 の文を「`NULL` は件数 0 のときだけ」に直した**（6.8） |
+
+### 6.5 実装の途中で分かったこと
+
+- **プレーンテキストの型は `public.plain-text` で読む**: 名前付きのペーストボードで `read_data_async` に `public.utf8-plain-text` を渡すと `NULL`（`NONE`）。テストと行は `public.plain-text` にした。マニュアルの候補
+- **URL の `kind` で書くと `detect_patterns` は `probableWebURL` を返さない**（名前付き。0 と `NONE`）。文字列で書くと返す。テストは文字列にした
+- **空の名前付きのペーストボードの `detect_patterns_async`、`detect_values_async` は `DETECTION_FAILED`**（ログで見た。OS の失敗をライブラリが写したもの。テストは固定していない）
+- `async` の `tearDown` の中では main キューが回らない（`runMainQueue` が 10 秒待って落ちた）。テストの片付けは積むだけにした
+- **UI テストのクラスを足すと `test_ios_ui_runner.py` が多数落ちる**（`CAPI_UI_CLASSES` の表と偽の列挙が 2 クラスで決まっている。1 回の試しで 19 件、行の増加ぶんを含む）。`ios_ui_runner.py` を変えず、`CApiRoundTripUITests` に足した。**TB-5 以降でクラスを分けるなら、表と自己テストを直す作業が別に要る**
+- 12.2 の貼り付けのダイアログは TB-3 の完了の条件ではないが、`read_async`・`read_data_async`・`detect_values_async` の拒否の値（M3）は C からしか確かめられないので 4 件を先に足した（許可 1、拒否 3）
+
+### 6.6 確かめられていないこと
+
+- **実機では何も流していない**（指定どおり。`generic/platform=iOS` は組むだけ）。iPad、x86_64 のスライスのテスト、iPhone 17 / 26.2 は流していない
+- 12.1 の Clipboard の行のうち TB-4 のもの（`.file`、監視）。12.2 の `load_item_async` の貼り付け、`read_data_async` と `detect_values_async` の**許可**、取り消し
+- 完了の `CONTENT_TOO_LARGE`、`IMAGE_LOAD_FAILED`、`IMAGE_ENCODE_FAILED`、`TIMED_OUT`（5 秒。答えない）、`UNKNOWN` は写しの関数のテストだけ。C からは起こしていない
+- `not_local_only` と `expiration` が OS に効いたかは読めない（写しの関数と、過去の日時の `INVALID_EXPIRATION` まで）
+- 第 1 部 6 章の 8 スレッド × 25 回の同時の呼び出しは Clipboard の関数では流していない。main を止めて別のスレッドから呼ぶのは 11 関数とも流した（すべての関数の網羅は TB-10）
+- 12.1 の「8.2 の名前がテストのソースに現れる」の照合は 2a に無い（今のところ人の目）
+- **色と画像ファイルは、OS に届いた値を比べていない**: `testACopiedColorShowsInTheColorFlagOfTheSnapshot`、`testACopiedImageFileShowsInTheImageFlagOfTheSnapshot` は `has_colors`、`has_images` の旗だけを見る（前の名前の「ラウンドトリップ」は言い過ぎだったので変えた）。12.1 の「9 種の `kind` のラウンドトリップ」は、この 2 種については旗まで
+- **`testDetectingValuesTheUserDenies` は遅い回に落ちうる**: 検出の期限 5 秒はライブラリの既定（`ClipboardTimeouts.detection`）で、`init(timeouts:)` は C から使えないのでテストが決められない。テストはダイアログを最大 10 秒待つので、ダイアログが 5 秒より後に出ると `TIMED_OUT` になり、期待の `DETECTION_FAILED` と違って落ちる。**直せないので残す**。今までの回では起きていない
+- **`HTML` の `text` の `NULL` は、読み返しでは `""` を確かめられない**: 名前付きのペーストボードに `<b>x</b>` を `text` の `NULL` で書いて `read_async` で読むと、`_item_text_at` は `""` でなく `x` を返した（iPhone 17 Pro / 26.2 で 1 回測った。18.3 では測っていない。HTML の本文から作られた文字列に見えるが、誰が作ったかは確かめていない）。OS の振る舞いなので固定せず、C からのテスト `testCopyingHtmlWithoutPlainTextKeepsTheHtml` は `NONE` と `public.html` の読み返しだけを見る。`""` になることは写しの関数のテスト（`testHtml`）まで。ヘッダーの `NULL is ""` は渡す値の説明で、読み返しの値の約束ではない
+- **Mac のクリップボードとの同期は測っていない**: この Mac の `defaults read com.apple.iphonesimulator PasteboardAutomaticSync` は 1。03:03 の時点で Simulator.app は動いていなかった。UI テストのランナーはシミュレーターの general に書く（`CApiRoundTripUITests.swift` の `writeFromTheRunner` と `testDetectingValuesTheUserDenies`）。流した回が Mac のクリップボードに届くか、Mac のコピーが読む行に届くかは未確認。測るには持ち主の Mac のクリップボードに触れることになるので測らない。設定は変えず、Simulator.app も開かず、`pbcopy`、`pbpaste` も使っていない
+
+### 6.7 時間
+
+01:33〜02:50。うち変異が約 30 分（02:07〜02:39。別のシミュレーターで検証と並べて流した）、`--capi-ui` は 1 回 8 分。目標の 03:30 の中。
+
+### 6.8 レビューの直し
+
+レビューの指摘（Codex と、メインのセッションが読んで確かめたもの）をメインのセッションから受けて直した。
+
+| 指摘 | 直したこと |
+|---|---|
+| A（必ず直す） | `CApiString.requiredArray`: `(size_t)1 << 61` のような件数は `Int` で正になり、配列の外を読んでいた。**要素を読む前に `multipliedReportingOverflow` であふれを拒む**（`StructReader.readArray` と同じログの形）。テスト: `testACountWhoseSizeOverflowsIsRejectedBeforeAnyRead`（1<<60、1<<61、`Int.max`）、C から `testAMatchingTypeCountThatOverflowsIsRejected`、`testATextCountThatOverflowsIsRejected`（戻り値、`release`、完了なし）。どれも最初の要素を読むとプロセスが落ちる形 |
+| B1 | 第 2 部 6.1 の `get_snapshot_async` の文を「`NULL` は件数 0 のときだけ」に直した。コードは変えない（6.4 の 10） |
+| B2 | `ClipboardMappingTests` に足した: 内容の知らない部分（0 と 0 以外）、選択肢の知らない部分（0 と 0 以外）、選択肢の上限 4097 |
+| B3 | 第 2 部 6.1: `number`、`amount` の有限でない値は `null`。`HTML` は `html` だけが必須で `text` の `NULL` は `""`。`Clipboard.h` と付録 A の `text` のコメントに同じことを書いた（コメントだけ） |
+| C1 | 第 2 部 5.1 の表と第 1 部 5.1 の木に `ClipboardMapping`、`ClipboardHandles`、`ClipboardValuesJson`、`CApiBytes` を足した |
+| C2 | 色と画像ファイルのテストの名前を、見ているもの（旗）に変えた。6.6 に記録 |
+| C3 | C からの `HTML` の `text` の `NULL` のテストを足した。**読み返しは `""` でなかった**ので、`NONE` と `public.html` だけを見る。6.6 に記録 |
+| C4 | C から: 空のパス（`INVALID_PARAMETER`）、`MULTI_REPRESENTATION` の件数 0（`EMPTY_ITEMS`）を `copy` と `append` で。戻り値と `release` を見る |
+| C5 | `testTheTextOfTheQueriesIsCopiedBeforeItReturns`: `read_data` の型、`get_snapshot` の型、`create` の名前を、関数が戻った後に壊して解放する |
+| C6 | 6.4 の 8 と `ClipboardValuesJsonTests.swift` の誤った説明（Objective-C の例外で落ちる）を直した。`isValidJSONObject` が偽を返すことはテストで確かめ、`UNKNOWN` になることはコードから読んだ |
+| C7 | `test_ios_ui_runner.py` の確かめを、どのヘッダーにも無い `ntk_never_a_row` に変えた（行が増えても壊れない。実際に呼ぶと数えることも足した）。検出の 5 秒はライブラリの既定でテストが決められないので、6.6 に記録 |
+| C8 | 6.6 に記録し、6.1 の文を設計の意図に直した。測っていない |
+| 注 | 6.1 の「20 の読み取り」を 18 の読み取りと 2 つの `_free` に直した |
+
+**設計書の直し（B1、B3、C1）は、メインのセッションが、持ち主の「07:20 まで推奨のとおりに進める」という指示の下で採ったもの。持ち主はまだ読んでいない。持ち主が決めたものではない。**
+
+#### A の変異（使い捨ての写し。iPhone 16 / 18.3）
+
+A の検査を効かなくする変異 1 個（`guard stride > 0 || ...`）を、3 つのテストで 1 つずつ流した。**3 つとも落ちた**（`EXC_BAD_ACCESS`。落ちた所は 3 つとも `CApiString.validated` ← `required` ← `requiredArray`）。ほかの変異は流していない（新しいテストのうち A のほかは変異で確かめていない）。
+
+クラッシュレポート（記録してから消した）: `IosLibraryCApiTestHost-2026-11-04-030737.ips`、`-030812.ips`、`-030844.ips`。
+
+#### 最後のソースの結果
+
+03:10〜03:30 に、下の順で続けて流した。シミュレーターの仕事は重ねていない。ソースのハッシュ（`ios/` の capi と UI テストの 4 フォルダーと `scripts/` の `.swift`、`.h`、`.m`、`.py`、`.sh`）は流す前と後で同じ。**流した後に変えたのはこの記録の、この表だけ。**
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 253/253 |
+| 同（iPhone 16 / 18.3） | 253/253 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 253/253。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 253/253。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6） | 16/16。exit 0 |
+| `--capi-ui`（iPhone 16 / 18.3。Xcode 26.6） | 16/16。exit 0 |
+| framework の Release（`generic/platform=iOS`。組むだけ）`--library --architectures arm64` | `OK symbols`（43 symbols、1 architectures）。capi の警告 0 |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`）`--library --architectures arm64,x86_64` | `OK symbols`（43 symbols、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP 2。`entries` は 43 of 134、91 not implemented yet |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_c_abi_contract_ios.py'` | Ran 278 tests、OK |
+| `python3 scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+
+A の変異と 1 回目の 40 個の変異は、この最後のソースより前に流した。1 回目の 40 個は流し直していない（指定どおり）。B2、C3、C4、C5 の新しいテストは変異で確かめていない。`check_design_consistency.py` は第 1 部と第 2 部の直しの後に FAIL なし（`HEAD` の版も同じ）、この記録は 6.2 の 2 つの種類の FAIL のまま。
+
+時間: 03:03〜03:31（約 28 分）。

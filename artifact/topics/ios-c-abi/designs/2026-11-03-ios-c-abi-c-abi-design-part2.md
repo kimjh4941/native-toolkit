@@ -173,12 +173,16 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | ファイル | 役 | 呼ぶ Manager |
 |---|---|---|
 | `Clipboard/ClipboardReceiver.swift` | 入力の検査と写し、main に積む、結果のハンドルを作る、`errorCode` の写し（P2-13）、監視の受け手を 1 つ持ち登録に配る | `IosClipboardManager` |
+| `Clipboard/ClipboardMapping.swift` | C の値と Swift の値の純粋な写し（scope、内容、選択肢、型、パターンのビット、`errorCode`）と入口の検査 | - |
+| `Clipboard/ClipboardHandles.swift` | 結果のハンドルのクラスと読み取り | - |
+| `Clipboard/ClipboardValuesJson.swift` | `detect_values_async` の JSON（P2-8） | - |
 | `Dialog/DialogReceiver.swift` | 要求を写して `show(_:presenter:requestBox:completion:)` を呼ぶ。取り消し | `IosDialogManager` |
 | `Notification/NotificationReceiver.swift` | `ntk_notification_install`、権限の事前の確かめ（P2-10）、操作、問い合わせ、イベントの登録と保持（AP-21） | `IosNotificationManager` |
 | `Notification/NotificationContentBuilder.swift` | ビルダーの状態（Swift の値で持つ）と setter の検査 | - |
 | `Notification/NotificationJson.swift` | userInfo の JSON の入出力（P2-7） | - |
 | `Share/ShareReceiver.swift` | 要求を写して `share(content:presenter:completion:)` を呼ぶ | `IosShareManager` |
 | `Common/Registry.swift` | 第 1 部 5.1、5.7 の登録と状態機械。要求の ID の表（ID → `Registration`。`Mutex`）。登録は `RequestBox` を持つ | - |
+| `Common/CApiBytes.swift` | 第 1 部 5.9 の入力のバイト列 | - |
 | `Common/StructReader.swift`、`Common/CApiString.swift` | 第 1 部 5.9（UTF-8 の入出力は `CApiString`）、1.1 の `struct_size` の読み方。配列の要素（P2-5） | - |
 
 ### 5.2 操作の流れ
@@ -253,7 +257,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 | `kind` | 読む項目 | 入口の検査 | `IosLibrary` の検査（完了で返す） |
 |---|---|---|---|
 | `PLAIN_TEXT` | `text` | `NULL` | 64 MiB 超は `CONTENT_TOO_LARGE`（URL と色のほか） |
-| `HTML` | `text`（plain）、`html` | `NULL` | 空白だけの `html` は `EMPTY_CONTENT` |
+| `HTML` | `text`（plain）、`html` | `html` の `NULL`（必須は `html` だけ。`text` の `NULL` は `""`。Android と同じ） | 空白だけの `html` は `EMPTY_CONTENT` |
 | `URL` | `url` | `NULL` | http、https、file の外は `INVALID_URI` |
 | `IMAGE_FILE` | `path` | `NULL`、空文字（P2-9 の (8)） | 無いファイルは `FILE_NOT_FOUND`、読めないのは `IMAGE_LOAD_FAILED` |
 | `IMAGE_DATA` | `data`、`data_size`、`ut_type` | `ut_type` の `NULL`。`data` が `NULL` で大きさが 0 でない | 大きさ 0 は `EMPTY_CONTENT`、`INVALID_TYPE`、`INVALID_IMAGE_DATA` |
@@ -268,7 +272,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 |---|---|---|
 | `copy_async`、`append_async` | 非同期 | `append` は選択肢を取らない（今のライブラリと同じ） |
 | `read_async`、`read_data_async` | 非同期。結果はハンドル / バイト列 | **ほかのアプリの内容では、利用者が答えるまで main が止まる**（MS-08。前面で 44 秒止まり、アプリは終了させられなかった。P2-24）。**拒否は失敗にならない**: `read_async` は `NONE` で項目 1 件（型の一覧は空、文字列は `NULL`）、`read_data_async` は `NONE` で `NULL`（M3） |
-| `get_snapshot_async` | 非同期 | `matching_types` が `NULL` か件数 0 なら、一致の添字は無い（`_has_matching` が 0）。`NULL` の要素は `INVALID_PARAMETER` |
+| `get_snapshot_async` | 非同期 | 件数 0 なら、一致の添字は無い（`_has_matching` が 0。`matching_types` は `NULL` でよい）。件数が 1 以上で `matching_types` が `NULL`、`NULL` の要素は `INVALID_PARAMETER` |
 | `clear_async` | 非同期 | |
 | `create_pasteboard_async(kind, name, ...)` | 非同期 | `NAMED` は `name` が必須。`UNIQUE` は `name` を読まない。`GENERAL` は `INVALID_PARAMETER`。完了の `ntk_string` が以後の `scope.name` |
 | `remove_pasteboard_async` | 非同期 | general は `CANNOT_REMOVE_GENERAL`。無い名前は成功（今のまま） |
@@ -291,13 +295,13 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 |---|---|---|
 | `detectedPatterns` | 文字列の配列（`ClipboardDetectionPattern` の `rawValue`。順は決まらない） | `[]` |
 | `probableWebURL`、`probableWebSearch` | 文字列 | `null` |
-| `number` | 数 | `null` |
+| `number` | 数（有限でない値は `null`） | `null` |
 | `links` | 文字列の配列 | `[]` |
 | `emailAddresses`、`phoneNumbers` | `{value: 文字列, label: 文字列か null}` の配列 | `[]` |
 | `postalAddresses` | `{street, city, state, postalCode, country}`（どれも文字列か `null`）の配列 | `[]` |
 | `calendarEvents` | `{startDate, endDate}`（小数秒つきの ISO 8601 か `null`）、`{startTimeZone, endTimeZone}`（文字列か `null`）、`isAllDay`（真偽）の配列 | `[]` |
 | `flightNumbers` | `{airline, flightNumber}`（文字列）の配列 | `[]` |
-| `moneyAmounts` | `{amount: 数, currency: 文字列}` の配列 | `[]` |
+| `moneyAmounts` | `{amount: 数（有限でない値は `null`）, currency: 文字列}` の配列 | `[]` |
 | `shipmentTrackingNumbers` | `{carrier, trackingNumber}`（文字列）の配列 | `[]` |
 
 ### 6.2 Dialog（`Dialog.h`）
@@ -1210,7 +1214,7 @@ typedef struct ntk_clipboard_write_content {
     uint32_t                   reserved0;
     ntk_clipboard_content_kind kind;
     uint32_t                   reserved1;
-    const char*                text;         /**< PLAIN_TEXT; the plain text of HTML. */
+    const char*                text;         /**< PLAIN_TEXT (required); the plain text of HTML (NULL is ""). */
     const char*                html;         /**< HTML. */
     const char*                url;          /**< URL. */
     const char*                path;         /**< IMAGE_FILE. */

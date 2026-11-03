@@ -110,14 +110,20 @@ enum Handle {
     static func stringListAt(_ handle: OpaquePointer?, _ index: Int,
                              _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
         guard let items = borrow(handle, as: StringListHandle.self)?.items, items.indices.contains(index) else {
-            outSize?.pointee = 0
-            return nil
+            return text(of: nil, outSize)
         }
-        outSize?.pointee = items[index].count
-        return items[index].text
+        return text(of: items[index], outSize)
     }
 
-    private static func retained(_ object: AnyObject) -> OpaquePointer {
-        OpaquePointer(Unmanaged.passRetained(object).toOpaque())
+    /// What a reader with an `out_size` returns for a value of a handle, or for no value (NULL and 0).
+    static func text(of buffer: HandleBuffer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+        outSize?.pointee = buffer?.count ?? 0
+        return buffer?.text
+    }
+
+    /// A handle for `object`, which the caller owns until its `_free`. A feature's handle is a class of its own.
+    static func retained(_ object: AnyObject) -> OpaquePointer {
+        CApiLog.common.debug("[retained] object: provided")
+        return OpaquePointer(Unmanaged.passRetained(object).toOpaque())
     }
 }

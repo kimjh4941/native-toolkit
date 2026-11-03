@@ -92,4 +92,21 @@ final class CApiStringInputTests: XCTestCase {
     func testNothingPastTheTerminatorIsRead() throws {
         XCTAssertEqual(try required([0x61, 0, 0xFF]), "a")
     }
+
+    // MARK: - An array
+
+    /// A count whose size in bytes overflows is positive as an `Int`. The first element stops the process
+    /// when it is read, so this says that no element is.
+    func testACountWhoseSizeOverflowsIsRejectedBeforeAnyRead() {
+        let elements = UnsafeMutablePointer<UnsafePointer<CChar>?>.allocate(capacity: 1)
+        defer { elements.deallocate() }
+        elements.initialize(to: unreadable(CChar.self))
+        for count in [1 << 60, 1 << 61, Int.max] {
+            do throws(EntryError) {
+                XCTFail("accepted: \(try CApiString.requiredArray(elements, count: count))")
+            } catch {
+                XCTAssertEqual(error, .invalidParameter, "\(count)")
+            }
+        }
+    }
 }

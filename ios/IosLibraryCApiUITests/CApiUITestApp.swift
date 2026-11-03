@@ -10,6 +10,7 @@ import XCTest
 enum CApiSection: String {
     case common
     case notification
+    case clipboard
 }
 
 /// How the tests operate `IosLibraryCApiUITestApp`. The identifiers are copies of the app's: the test

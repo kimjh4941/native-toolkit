@@ -31,6 +31,33 @@ enum CApiString {
         return try validated(text)
     }
 
+    /// An array of values that must be there (`const char* const*` and `size_t`). A `count` above `Int.max`
+    /// arrives negative. No element means no read, also for NULL: whether an empty array is allowed is
+    /// the caller's. A NULL element is rejected.
+    static func requiredArray(_ texts: UnsafePointer<UnsafePointer<CChar>?>?, count: Int) throws(EntryError) -> [String] {
+        CApiLog.common.debug("[requiredArray] texts: \(texts == nil ? "nil" : "provided", privacy: .public), count: \(count, privacy: .public)")
+        guard count >= 0 else {
+            CApiLog.common.error("[requiredArray] rejected: count \(count, privacy: .public)")
+            throw .invalidParameter
+        }
+        guard count > 0 else { return [] }
+        guard let texts else {
+            CApiLog.common.error("[requiredArray] rejected: NULL with count \(count, privacy: .public)")
+            throw .invalidParameter
+        }
+        // No array is this long: reading it would walk off the caller's memory.
+        let stride = MemoryLayout<UnsafePointer<CChar>?>.stride
+        guard !count.multipliedReportingOverflow(by: stride).overflow else {
+            CApiLog.common.error("[requiredArray] rejected: count \(count, privacy: .public) with stride \(stride, privacy: .public)")
+            throw .invalidParameter
+        }
+        var values: [String] = []
+        for index in 0..<count {
+            values.append(try required(texts[index]))
+        }
+        return values
+    }
+
     /// The text may be a secret: only the fact that it failed is logged.
     private static func validated(_ text: UnsafePointer<CChar>) throws(EntryError) -> String {
         guard let value = String(validatingCString: text) else {
