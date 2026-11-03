@@ -50,7 +50,7 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | P2-23 | BOM の無い UTF-16 や UTF-8 のデータ（第 1 部 8 章、5.9） | **推奨: 文字列として読まない**。`ntk_clipboard_read_data_async` はバイト列のまま返し、解釈しない | 型の決めつけはライブラリの外の仕事。今のブリッジも Base64 のバイト列を返す |
 | P2-24 | 読み込みの時間切れの案内 | **決定済み（2026-11-03、利用者。1b の記録 24.4）**: 既定の 15 秒を変えない。`ntk_clipboard_load_item_async` のヘッダーに「時間切れに利用者が答える時間も入る」と書く（付録 A.2）。同期の読み出しのヘッダーに「答えるまで main が止まる」と書く。**同じことは `detect_values_async` の 5 秒にもある**（M3。答えないまま 5 秒で `TIMED_OUT`。ヘッダーに書く） | MS-08 の実機の結果、M3 |
 | P2-25 | 2a の照合の入力（AP-15） | **推奨: Android と同じ**: 8.1、8.2、10 章、11 章、付録 A。`scripts/check_c_abi_contract_ios.py` と `scripts/c_abi_error_numbers.json`（P1-7）を足す。ビルドの後は `nm -gU` で `_ntk_*` を照らす（第 1 部 5.5） | - |
-| P2-26 | 落ちる trigger の守りの置き場所 | **推奨: 落ちる入力だけを `IosLibrary` で守る**。`NotificationTrigger` に `public var isValid: Bool` を足す。**偽になるのは、今プロセスが落ちる入力だけ**: `.timeInterval(t, repeats: r)` は `t > 0 && (!r || t >= 60)`（M5。`NSInternalInconsistencyException`）、`.calendar` と `.location` は常に真。**M8 で負の値、59.9 と 60、NaN、無限大を測り、落ちるものだけが偽になることを確かめた**（NaN は偽、無限大は落ちずに pending に残るので真）。無限大は C の入力の形の規則で入口で拒み、Swift は変えない。Repository はこれを見て `NotificationError.invalidTrigger`（新しい case）を投げ、受け口は入口で同じ関数を呼び `INVALID_PARAMETER` を返す。**今成功している入力は変えない**（`.calendar` の項目なしは pending 0、`.location` の半径 0 と空の識別子は pending 1。M5）。これらは C の入力の形として受け口の入口で拒む（6 章の基準）ので、Swift と C で結果が違う | 第 1 部 2 章「振る舞いは Swift の API が決める」、P1-2。落ちる入力を受け口にだけ置くと、Swift の利用者は落ちたままになる |
+| P2-26 | 落ちる trigger の守りの置き場所 | **推奨: 落ちる入力だけを `IosLibrary` で守る**。`NotificationTrigger` に `public var isValid: Bool` を足す。**偽になるのは、今プロセスが落ちる入力だけ**: `.timeInterval(t, repeats: r)` は `t > 0` で、`r` が真なら `t >= 60` も（M5。`NSInternalInconsistencyException`）、`.calendar` と `.location` は常に真。**M8 で負の値、59.9 と 60、NaN、無限大を測り、落ちるものだけが偽になることを確かめた**（NaN は偽、無限大は落ちずに pending に残るので真）。無限大は C の入力の形の規則で入口で拒み、Swift は変えない。Repository はこれを見て `NotificationError.invalidTrigger`（新しい case）を投げ、受け口は入口で同じ関数を呼び `INVALID_PARAMETER` を返す。**今成功している入力は変えない**（`.calendar` の項目なしは pending 0、`.location` の半径 0 と空の識別子は pending 1。M5）。これらは C の入力の形として受け口の入口で拒む（6 章の基準）ので、Swift と C で結果が違う | 第 1 部 2 章「振る舞いは Swift の API が決める」、P1-2。落ちる入力を受け口にだけ置くと、Swift の利用者は落ちたままになる |
 | P2-27 | 権限の要求の選択肢 | **推奨: `ntk_notification_request_permission_async(options, ...)` で受ける**。`options` は `NTK_NOTIFICATION_AUTH_*` の組で、値は `UNAuthorizationOptions` の `rawValue`。0 は既定の `[.alert, .sound, .badge]`。知らないビットは `INVALID_PARAMETER`。**`PROVISIONAL` は 2.0.0 では出さない**: M7 で、OS は `provisional` の後に求めれば通常のダイアログを出すが、`.foreground` の口は `provisional` を許可済みとして求めないので、C からは上げられない。**`openSettingsFor`（OP-43）は `.providesAppNotificationSettings` を求めたアプリにだけ来る**（`IosNotificationManager` の DocC）。**`.foreground` の口は状態が決まった後は OS に求めない**（第 1 部 5.13.2 の表）ので、**既に決まっているアプリ（1.x から上げたアプリを含む）は、この関数では `PROVIDES_APP_SETTINGS` を足せない**。そのときはホストのネイティブのコードが `requestAuthorization` を呼ぶ（16 章） | 選択肢が無いと C だけのアプリでは OP-43 のイベントが決して来ず、P1-10 で足した機能が使えない |
 | P2-28 | `callback` の `NULL` | **推奨: 入口で `INVALID_PARAMETER`**（Windows と同じ）。結果が要らないなら空の関数を渡す。所有権ごと渡すハンドルを誰が解放するかの問題も無くなる。今のブリッジは Clipboard・Notification・Share で受けていたので、包みが空の受け手を渡す（8.3） | 状態機械とハンドルの解放を単純に保つ |
 | P2-29 | 列挙を返す読み取りの `NULL` | **推奨: `NULL` のハンドルには -1 を返す**（`ntk_dialog_result_button`、`ntk_dialog_result_option_index`、`ntk_clipboard_loaded_item_kind`、`ntk_clipboard_change_kind`、`ntk_clipboard_change_scope_kind`、`ntk_notification_interaction_kind`、`ntk_clipboard_snapshot_matching_at`）。ほかの読み取りは第 1 部 5.7 のとおり 0 か `NULL`（5.7 との違いは 7 章） | `NTK_DIALOG_BUTTON_POSITIVE` は 0 で、`_option_index` の 0 は最初の選択肢なので、失敗のときの読み忘れが「肯定」になる |
@@ -565,12 +565,12 @@ AC-23 の列（ブリッジ／C ABI／違いと理由／Unity の包みが保つ
 
 ### 8.4 ブリッジに無く、足すもの
 
-| OP | 理由 |
-|---|---|
-| OP-12、OP-24 | 要求ごとの取り消し（P1-24） |
-| OP-17、OP-44 | 受け手の解除（README 6 章） |
-| OP-43 | `openSettingsFor` のイベント（P1-10） |
-| OP-45 | 起動のきっかけの通知の取得（D-7） |
+| 足すもの | OP | 理由 |
+|---|---|---|
+| 取り消し | OP-12、OP-24 | 要求ごとの取り消し（P1-24） |
+| 解除 | OP-17、OP-44 | 受け手の解除（README 6 章） |
+| 設定の要求 | OP-43 | `openSettingsFor` のイベント（P1-10） |
+| 起動のきっかけ | OP-45 | 起動のきっかけの通知の取得（D-7） |
 
 ## 9. 同期・非同期レイヤー対応表
 
@@ -595,18 +595,32 @@ Repository と UseCase の列は Swift の設計書 9 章の表のとおりで�
 | OP-15 | `UIPasteboard.changeCount`（同期） | 同期 | 非同期 | main | - | `@MainActor` |
 | OP-16 | - | `onEvent`（main） | 登録。同期に戻る | main | `release` | 第 1 部 5.7 |
 | OP-17 | - | - | 解除。同期に戻る | 呼び出しスレッド | `release` は main | 第 1 部 5.7 |
-| OP-18〜OP-23 | `UIViewController.present`（main） | callback（箱） | 非同期。前面が要る | main | ID で取り消す。ハンドルは受け手 | - |
+| OP-18 | `UIViewController.present`（main） | callback（箱） | 非同期。前面が要る | main | ID で取り消す。ハンドルは受け手 | - |
+| OP-19 | `UIViewController.present`（main） | callback（箱） | 非同期。前面が要る | main | ID で取り消す。ハンドルは受け手 | - |
+| OP-20 | `UIViewController.present`（main） | callback（箱） | 非同期。前面が要る | main | ID で取り消す。ハンドルは受け手 | - |
+| OP-21 | `UIViewController.present`（main） | callback（箱） | 非同期。前面が要る | main | ID で取り消す。ハンドルは受け手 | - |
+| OP-22 | `UIViewController.present`（main） | callback（箱） | 非同期。前面が要る | main | ID で取り消す。ハンドルは受け手 | - |
+| OP-23 | `UIViewController.present`（main） | callback（箱） | 非同期。前面が要る | main | ID で取り消す。ハンドルは受け手 | - |
 | OP-24 | - | どのスレッドからでも。その場で箱を閉じる | 同期 | 呼び出しスレッド | - | 待たない（S-15） |
 | OP-25 | `UNUserNotificationCenter.delegate`（main） | 同期 | **同期。main だけ** | main | - | D-4、D-6 |
-| OP-26〜OP-28 | `UNUserNotificationCenter.add`（非同期） | `async throws` | 非同期 | main | 取り消さない | case を受け取る（P2-14） |
-| OP-29〜OP-32 | `removeDelivered*` / `removePending*`（同期、戻り値なし） | 中で `Task`。完了（足す） | 非同期 | main | - | 順序を繋ぐ（P2-6） |
-| OP-33、OP-34 | `getPendingNotificationRequests` / `getDeliveredNotifications`（非同期） | callback（main） | 非同期 | main | ハンドルは受け手 | - |
+| OP-26 | `UNUserNotificationCenter.add`（非同期） | `async throws` | 非同期 | main | 取り消さない | case を受け取る（P2-14） |
+| OP-27 | `UNUserNotificationCenter.add`（非同期） | `async throws` | 非同期 | main | 取り消さない | case を受け取る（P2-14） |
+| OP-28 | `UNUserNotificationCenter.add`（非同期） | `async throws` | 非同期 | main | 取り消さない | case を受け取る（P2-14） |
+| OP-29 | `removeDelivered*` / `removePending*`（同期、戻り値なし） | 中で `Task`。完了（足す） | 非同期 | main | - | 順序を繋ぐ（P2-6） |
+| OP-30 | `removeDelivered*` / `removePending*`（同期、戻り値なし） | 中で `Task`。完了（足す） | 非同期 | main | - | 順序を繋ぐ（P2-6） |
+| OP-31 | `removeDelivered*` / `removePending*`（同期、戻り値なし） | 中で `Task`。完了（足す） | 非同期 | main | - | 順序を繋ぐ（P2-6） |
+| OP-32 | `removeDelivered*` / `removePending*`（同期、戻り値なし） | 中で `Task`。完了（足す） | 非同期 | main | - | 順序を繋ぐ（P2-6） |
+| OP-33 | `getPendingNotificationRequests` / `getDeliveredNotifications`（非同期） | callback（main） | 非同期 | main | ハンドルは受け手 | - |
+| OP-34 | `getPendingNotificationRequests` / `getDeliveredNotifications`（非同期） | callback（main） | 非同期 | main | ハンドルは受け手 | - |
 | OP-35 | `requestAuthorization`（非同期） | callback（`Result`） | 非同期。未決のとき前面が要る | main | 取り消さない | - |
-| OP-36、OP-37 | `getNotificationSettings`（非同期） | callback（main） | 非同期 | main | - | - |
+| OP-36 | `getNotificationSettings`（非同期） | callback（main） | 非同期 | main | - | - |
+| OP-37 | `getNotificationSettings`（非同期） | callback（main） | 非同期 | main | - | - |
 | OP-38 | `UIApplication.open`（main、非同期） | callback（`Result`） | 非同期。前面が要る | main | - | - |
 | OP-39 | `setBadgeCount`（非同期） | `async throws` | 非同期 | main | - | P2-14 |
-| OP-40、OP-41 | `setNotificationCategories`（呼んだ順に積む） | callback | 非同期 | main | - | - |
-| OP-42、OP-43 | `didReceive`、`openSettingsFor` | ハブ（main） | 登録。同期に戻る | main | `release` | AP-21 |
+| OP-40 | `setNotificationCategories`（呼んだ順に積む） | callback | 非同期 | main | - | - |
+| OP-41 | `setNotificationCategories`（呼んだ順に積む） | callback | 非同期 | main | - | - |
+| OP-42 | `didReceive`、`openSettingsFor` | ハブ（main） | 登録。同期に戻る | main | `release` | AP-21 |
+| OP-43 | `didReceive`、`openSettingsFor` | ハブ（main） | 登録。同期に戻る | main | `release` | AP-21 |
 | OP-44 | - | - | 解除。同期に戻る | 呼び出しスレッド | `release` は main | 第 1 部 5.7 |
 | OP-45 | - | 同期（`@MainActor`、`throws`） | 非同期 | main | ハンドルは受け手 | P2-19 |
 | OP-46 | `UIActivityViewController`（main） | callback（`Result`） | 非同期。前面が要る | main | 取り消せない。ハンドルは受け手 | - |
@@ -883,9 +897,9 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-7 | 通知の操作（OP-26〜OP-41）、権限の事前の確かめ | 1.0日 | TB-6、TB-2b | 12.1 の写しの関数・前面・事前の確かめ・権限の要求の選択肢の行、12.2 の「通知の順序と許可の後」の行 |
 | TB-8 | 通知のイベント（OP-42〜OP-45） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と 12.2 |
 | TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2 |
-| TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数 |
-| TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`） |
-| TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る |
+| TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ） |
+| TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`）。**capi の xcframework は Release だけを受ける**（今のビルドのスクリプトの `--configuration debug` を写さない。Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。第 1 部 5.4） |
+| TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る |
 | TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-12 | 8.3 と 16 章を渡した |
 
 合計見積: 17.5 日（TA 1.5、TB 15.5、TC 0.5）。マニュアルの iOS の C ABI の章は README の段階 4 で書く（AP-23）。

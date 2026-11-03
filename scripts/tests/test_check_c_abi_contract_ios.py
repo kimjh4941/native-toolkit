@@ -1,12 +1,13 @@
 """Break each check of the iOS C ABI contract checker and confirm it notices.
 
 Each case copies the files the checker reads into a temporary tree, makes one
-small change there, and asserts that the named check fails. The public headers
-do not exist until TB-1, so the tree gets a skeleton of them written from
-Appendix A as it stands. The real tree is never touched. A case whose own
-anchor text is missing fails too, so a case cannot go quiet because the file it
-edits has moved on, and every case runs against trees checked to have no
-failure before it breaks them, so a name that fails anyway proves nothing.
+small change there, and asserts that the named check fails. The tree's public
+headers are written from Appendix A as it stands, so that the cases do not
+depend on the comments of the real ones; the capi's sources and the layout test
+are the real ones. The real tree is never touched. A case whose own anchor text
+is missing fails too, so a case cannot go quiet because the file it edits has
+moved on, and every case runs against trees checked to have no failure before
+it breaks them, so a name that fails anyway proves nothing.
 
 Run: python3 -m unittest discover -s scripts/tests
 """
@@ -22,6 +23,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+import unittest.mock
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CHECKER = ROOT / "scripts" / "check_c_abi_contract_ios.py"
@@ -46,8 +48,23 @@ SHARE = f"{INCLUDE}/Share.h"
 ANDROID_COMMON = f"{ANDROID_INCLUDE}/Common.h"
 ANDROID_CLIPBOARD = f"{ANDROID_INCLUDE}/Clipboard.h"
 ANDROID_SHARE = f"{ANDROID_INCLUDE}/Share.h"
+CAPI_SOURCES = "ios/IosLibraryCApi/IosLibraryCApi"
+COMMON_ENTRY = f"{CAPI_SOURCES}/Common/CommonEntry.swift"
+NOTIFICATION_ENTRY = f"{CAPI_SOURCES}/Notification/NotificationEntry.swift"
+HANDLE_SWIFT = f"{CAPI_SOURCES}/Common/Handle.swift"
+MODULE_MAP = f"{CAPI_SOURCES}/module.modulemap"
+LAYOUT_TEST = "ios/IosLibraryCApiTests/StructLayoutTests.m"
+PROJECT = "ios/IosLibraryCApi/IosLibraryCApi.xcodeproj"
+PBXPROJ = f"{PROJECT}/project.pbxproj"
+SCHEME = f"{PROJECT}/xcshareddata/xcschemes/IosLibraryCApi.xcscheme"
+RECEIVER = f"{CAPI_SOURCES}/Notification/NotificationReceiver.swift"
+INSTALL_RESULT = "ios/IosLibrary/IosLibrary/Notification/Domain/Model/NotificationDelegateInstallResult.swift"
+NOTIFICATION = f"{INCLUDE}/Notification.h"
+NOT_IMPLEMENTED_YET = check_c_abi_contract_ios.NOT_IMPLEMENTED_YET
 INCLUDE_BLOCK = "\n".join(check_c_abi_contract_ios.COMMON_INCLUDE)
 CLANG = shutil.which("clang")
+# compile says SKIP without Xcode, so what it reports can only be tested with it.
+XCODE = shutil.which("xcrun")
 
 
 def failures(output):
@@ -71,11 +88,11 @@ class IosCAbiContractChecker(unittest.TestCase):
             if failures(output) or code != 0:
                 raise AssertionError(f"the unbroken tree fails with {arguments}: {output}")
 
-    def run_checker(self, edits=(), removed=(), headers=True, arguments=(), before=None):
-        return self.run_tree(edits, removed, headers, arguments, before)
+    def run_checker(self, edits=(), removed=(), headers=True, arguments=(), before=None, env=None):
+        return self.run_tree(edits, removed, headers, arguments, before, env)
 
     @staticmethod
-    def run_tree(edits=(), removed=(), headers=True, arguments=(), before=None):
+    def run_tree(edits=(), removed=(), headers=True, arguments=(), before=None, env=None):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             for fragment in (DESIGN, README, SWIFT, NUMBERS, WINDOWS_COMMON, *SOURCES.values()):
@@ -89,6 +106,12 @@ class IosCAbiContractChecker(unittest.TestCase):
                     path = root / INCLUDE / name
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(code, encoding="utf-8")
+                shutil.copytree(ROOT / CAPI_SOURCES, root / CAPI_SOURCES)
+                shutil.copytree(ROOT / PROJECT, root / PROJECT, ignore=shutil.ignore_patterns("xcuserdata"))
+                (root / INSTALL_RESULT).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(ROOT / INSTALL_RESULT, root / INSTALL_RESULT)
+                (root / LAYOUT_TEST).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(ROOT / LAYOUT_TEST, root / LAYOUT_TEST)
             for fragment in removed:
                 (root / fragment).unlink()
             for fragment, old, new in edits:
@@ -101,7 +124,7 @@ class IosCAbiContractChecker(unittest.TestCase):
             if before:
                 extra += before(root)
             finished = subprocess.run([sys.executable, str(CHECKER), "--root", str(root), *extra],
-                                      capture_output=True, text=True, encoding="utf-8")
+                                      capture_output=True, text=True, encoding="utf-8", env=env)
             return finished.stdout, finished.returncode
 
     def assert_catches(self, name, *edits, removed=(), headers=True, arguments=(), before=None):
@@ -131,10 +154,16 @@ class IosCAbiContractChecker(unittest.TestCase):
         # 46 operations less the three the receiver answers (OP-16, OP-17, OP-44):
         # the rows that say 同上 are compared too.
         self.assertIn("(43 entries)", output)
+        self.assertIn(f"({134 - len(NOT_IMPLEMENTED_YET)} of 134, {len(NOT_IMPLEMENTED_YET)} not implemented yet)", output)
+        for check in ("public", "modulemap", "layout", "settings", "install"):
+            self.assertIn(f"OK   {check}:", output)
+        self.assertIn("SKIP complete", output)
 
     def test_design_only_reads_appendix_a_in_place_of_the_headers(self):
         output = self.assert_passes(headers=False, arguments=("--design-only",))
         self.assertIn("SKIP signatures", output)
+        for check in ("entries", "public", "modulemap", "compile", "layout", "settings", "install"):
+            self.assertIn(f"SKIP {check}:", output)
         self.assertIn("(134 functions)", output)
 
     def test_a_missing_header_fails_rather_than_skips(self):
@@ -149,6 +178,11 @@ class IosCAbiContractChecker(unittest.TestCase):
     def test_no_headers_without_design_only_fails(self):
         self.assert_catches("functions", headers=False)
         self.assert_catches("ascii", headers=False)
+        self.assert_catches("entries and public", headers=False)
+        self.assert_catches("modulemap", headers=False)
+        self.assert_catches("layout", headers=False)
+        if XCODE:
+            self.assert_catches("compile", headers=False)
 
     def test_design_only_once_a_header_exists_fails(self):
         self.assert_catches("design only", arguments=("--design-only",))
@@ -699,6 +733,449 @@ class IosCAbiContractChecker(unittest.TestCase):
     def test_a_missing_android_common_h_fails(self):
         self.assert_catches("common", removed=(ANDROID_COMMON,))
 
+    # --- entries (H = E, less what is not implemented yet) --------------------
+
+    ENTRY_ANCHOR = "@c @implementation\npublic func ntk_notification_install"
+    LISTED = NOT_IMPLEMENTED_YET[0]
+
+    def test_an_entry_for_a_function_still_listed_as_not_implemented(self):
+        self.assert_catches("entries", (NOTIFICATION_ENTRY, self.ENTRY_ANCHOR,
+                                        f"@c @implementation public func {self.LISTED}() {{}}\n{self.ENTRY_ANCHOR}"))
+
+    def test_a_function_with_no_entry_that_is_not_listed(self):
+        self.assert_catches("entries", (COMMON_ENTRY, "@c @implementation\npublic func ntk_bytes_free(_ b: OpaquePointer?) {\n    Handle.free(b)\n}\n", ""))
+
+    def test_a_listed_function_that_left_the_headers(self):
+        output, code = self.run_checker([(SHARE, "void        NTK_CALL ntk_share_result_free(ntk_share_result* result);", "")])
+        line = next((l for l in failures(output) if reports(l, "entries")), "")
+        self.assertIn("ntk_share_result_free is in NOT_IMPLEMENTED_YET but not in the headers", line)
+        self.assertEqual(code, 1)
+
+    def test_an_entry_the_headers_do_not_declare(self):
+        self.assert_catches("entries", (NOTIFICATION_ENTRY, self.ENTRY_ANCHOR,
+                                        f"@c @implementation public func ntk_helper() {{}}\n{self.ENTRY_ANCHOR}"))
+
+    def test_an_entry_that_lost_public_is_not_an_entry(self):
+        self.assert_catches("entries", (COMMON_ENTRY, "public func ntk_version()", "func ntk_version()"))
+
+    def test_an_entry_that_lost_implementation_is_not_an_entry(self):
+        edit = (COMMON_ENTRY, "@c @implementation\npublic func ntk_version()", "@c\npublic func ntk_version()")
+        self.assert_catches("entries", edit)
+        self.assert_catches("public", edit)
+
+    def test_an_entry_on_several_lines_or_elsewhere_in_the_module_is_an_entry(self):
+        self.assert_passes((COMMON_ENTRY, "@c @implementation\npublic func ntk_version()", "@c\n@implementation\npublic\nfunc ntk_version()"))
+        def moved(root):
+            path = root / NOTIFICATION_ENTRY
+            text = path.read_text(encoding="utf-8")
+            target = root / "ios/IosLibraryCApi/Elsewhere/Moved.swift"
+            target.parent.mkdir()
+            target.write_text(text, encoding="utf-8")
+            path.unlink()
+            return []
+        self.assert_passes(before=moved)
+
+    def test_a_comment_or_a_string_is_not_an_entry(self):
+        comment = f"// @c @implementation public func {self.LISTED}() {{}}\n/* @c @implementation public func {self.LISTED}() {{}} */\n"
+        literal = f'let text = "@c @implementation public func {self.LISTED}()"\n'
+        self.assert_passes((NOTIFICATION_ENTRY, self.ENTRY_ANCHOR, comment + literal + self.ENTRY_ANCHOR))
+        # And a commented-out entry is no entry.
+        self.assert_catches("entries", (COMMON_ENTRY, "@c @implementation\npublic func ntk_version() -> UInt32 {\n    UInt32(NTK_VERSION)\n}\n",
+                                        "// @c @implementation\n// public func ntk_version() -> UInt32 {\n"))
+
+    def test_no_swift_sources(self):
+        def remove(root):
+            shutil.rmtree(root / CAPI_SOURCES / "Common")
+            shutil.rmtree(root / CAPI_SOURCES / "Notification")
+            return []
+        self.assert_catches("entries and public", before=remove)
+
+    def test_a_function_listed_twice(self):
+        recorded = []
+        class Recorder:
+            def check(self, condition, name, detail=""):
+                recorded.append((bool(condition), detail))
+        names = ("ntk_b", "ntk_b")
+        with unittest.mock.patch.object(check_c_abi_contract_ios, "NOT_IMPLEMENTED_YET", names):
+            check_c_abi_contract_ios.check_entries({"a": "@c @implementation public func ntk_a() {}"},
+                                                   {"ntk_a": "", "ntk_b": ""}, Recorder())
+        self.assertEqual(recorded, [(False, "NOT_IMPLEMENTED_YET names a function twice")])
+
+    def test_the_list_empties_when_every_function_has_an_entry(self):
+        """What TB-10 ends with: E = H, and nothing else passes."""
+        recorded = []
+        class Recorder:
+            def check(self, condition, name, detail=""):
+                recorded.append(bool(condition))
+        with unittest.mock.patch.object(check_c_abi_contract_ios, "NOT_IMPLEMENTED_YET", ()):
+            sources = {"a": "@c @implementation public func ntk_a() {}"}
+            check_c_abi_contract_ios.check_entries(sources, {"ntk_a": ""}, Recorder())
+            check_c_abi_contract_ios.check_entries(sources, {"ntk_a": "", "ntk_b": ""}, Recorder())
+        self.assertEqual(recorded, [True, False])
+
+    # --- complete --------------------------------------------------------------
+
+    def test_require_complete_fails_while_the_list_is_not_empty(self):
+        self.assert_catches("complete", arguments=("--require-complete",))
+        self.assert_catches("complete", headers=False, arguments=("--design-only", "--require-complete"))
+
+    def test_a_name_added_to_the_list_passes_entries_and_only_complete_stops_it(self):
+        recorded = []
+        class Recorder:
+            def check(self, condition, name, detail=""):
+                recorded.append(("check", bool(condition)))
+            def skip(self, name, reason):
+                recorded.append(("skip", reason))
+        sources = {"a": "@c @implementation public func ntk_a() {}"}
+        functions = {"ntk_a": "", "ntk_b": ""}
+        with unittest.mock.patch.object(check_c_abi_contract_ios, "NOT_IMPLEMENTED_YET", ("ntk_b",)):
+            check_c_abi_contract_ios.check_entries(sources, functions, Recorder())
+            check_c_abi_contract_ios.check_complete(False, Recorder())
+            check_c_abi_contract_ios.check_complete(True, Recorder())
+        self.assertEqual(recorded[0], ("check", True))
+        self.assertEqual(recorded[1][0], "skip")
+        self.assertIn("1 functions", recorded[1][1])
+        self.assertEqual(recorded[2], ("check", False))
+
+    def test_an_empty_list_is_complete_with_or_without_the_flag(self):
+        recorded = []
+        class Recorder:
+            def check(self, condition, name, detail=""):
+                recorded.append(bool(condition))
+            def skip(self, name, reason):
+                recorded.append("skip")
+        with unittest.mock.patch.object(check_c_abi_contract_ios, "NOT_IMPLEMENTED_YET", ()):
+            check_c_abi_contract_ios.check_complete(False, Recorder())
+            check_c_abi_contract_ios.check_complete(True, Recorder())
+        self.assertEqual(recorded, [True, True])
+
+    # --- settings -------------------------------------------------------------
+
+    @staticmethod
+    def both_configurations(old, new):
+        """An edit of every configuration of the framework target, since the two write the same lines."""
+        def prepare(root):
+            path = root / PBXPROJ
+            text = path.read_text(encoding="utf-8")
+            if old not in text:
+                raise AssertionError(f"the test's own anchor is missing: {old}")
+            path.write_text(text.replace(old, new), encoding="utf-8")
+            return []
+        return prepare
+
+    def test_release_with_the_swift_module(self):
+        self.assert_catches("settings", before=self.both_configurations("SWIFT_INSTALL_MODULE = NO;", "SWIFT_INSTALL_MODULE = YES;"))
+
+    def test_release_with_the_debug_export(self):
+        flags = '\t\t\t\tOTHER_LDFLAGS = (\n\t\t\t\t\t"-Wl,-exported_symbol,_$$s14IosLibraryCApi*",\n\t\t\t\t);\n'
+        def prepare(root):
+            path = root / PBXPROJ
+            text = path.read_text(encoding="utf-8")
+            # The second PRODUCT_BUNDLE_IDENTIFIER of the framework's is Release's.
+            anchor = "\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.jonghyunkim.nativetoolkit.IosLibraryCApi;\n"
+            first = text.index(anchor)
+            second = text.index(anchor, first + 1)
+            path.write_text(text[:second] + flags + text[second:], encoding="utf-8")
+            return []
+        self.assert_catches("settings", before=prepare)
+
+    def test_debug_without_what_testable_needs(self):
+        self.assert_catches("settings", (PBXPROJ, "SWIFT_INSTALL_MODULE = YES;", "SWIFT_INSTALL_MODULE = NO;"))
+        self.assert_catches("settings", (PBXPROJ, '"-Wl,-exported_symbol,_$$s14IosLibraryCApi*",', '"-Wl,-exported_symbol,_$$s*",'))
+
+    def test_debug_that_differs_in_anything_else(self):
+        self.assert_catches("settings", (PBXPROJ, "MODULEMAP_FILE = IosLibraryCApi/module.modulemap;", "MODULEMAP_FILE = Other/module.modulemap;"))
+        self.assert_catches("settings", (PBXPROJ, "EXPORTED_SYMBOLS_FILE = IosLibraryCApi/IosLibraryCApi.exp;", ""))
+
+    def test_each_setting_of_part_1_5_4(self):
+        for key, value in check_c_abi_contract_ios.FRAMEWORK_SETTINGS.items():
+            if key == "IPHONEOS_DEPLOYMENT_TARGET":
+                continue
+            with self.subTest(key=key):
+                written = f'"{value}"' if re.search(r"[^\w./]", value) else value
+                self.assert_catches("settings", before=self.both_configurations(f"{key} = {written};", f"{key} = other;"))
+
+    def test_the_deployment_target_comes_from_the_project(self):
+        self.assert_catches("settings", before=self.both_configurations("IPHONEOS_DEPLOYMENT_TARGET = 18.0;", "IPHONEOS_DEPLOYMENT_TARGET = 17.0;"))
+
+    def test_a_setting_by_condition(self):
+        # In both configurations, so that it is not caught as a difference between them.
+        self.assert_catches("settings", before=self.both_configurations(
+            "SWIFT_INSTALL_OBJC_HEADER = NO;", "SWIFT_INSTALL_OBJC_HEADER = NO;\n\t\t\t\t\"SWIFT_INSTALL_MODULE[sdk=iphoneos*]\" = YES;"))
+
+    def test_a_configuration_with_an_xcconfig_is_not_read(self):
+        self.assert_catches("settings", (PBXPROJ, "isa = XCBuildConfiguration;", "isa = XCBuildConfiguration;\n\t\t\tbaseConfigurationReference = AAAAAAAAAAAAAAAAAAAAAAAA;"))
+
+    def test_a_scheme_that_archives_debug(self):
+        self.assert_catches("settings", (SCHEME, '<ArchiveAction\n      buildConfiguration = "Release"', '<ArchiveAction\n      buildConfiguration = "Debug"'))
+
+    def test_a_project_or_a_scheme_that_is_missing(self):
+        self.assert_catches("settings", removed=(PBXPROJ,))
+        self.assert_catches("settings", removed=(SCHEME,))
+
+    def test_a_project_without_the_configurations(self):
+        self.assert_catches("settings", (PBXPROJ, 'list for PBXNativeTarget "IosLibraryCApi" */ = {', 'list for PBXNativeTarget "Other" */ = {'))
+
+    # --- install --------------------------------------------------------------
+
+    def test_a_new_case_of_the_install_result(self):
+        self.assert_catches("install", (INSTALL_RESULT, "    case notMainThread", "    case notMainThread\n    case another"))
+
+    def test_a_case_the_receiver_lost(self):
+        self.assert_catches("install", (RECEIVER, "case .notMainThread:", "case .installed where false:"))
+        # A mention that is not a case of the switch does not map it.
+        self.assert_catches("install", (RECEIVER, "case .notMainThread:", "case .installed where result == .notMainThread:"))
+
+    def test_an_install_result_with_no_cases_read(self):
+        self.assert_catches("install", (INSTALL_RESULT, "public enum NotificationDelegateInstallResult", "public enum Other"))
+
+    def test_an_install_result_that_is_missing(self):
+        self.assert_catches("install", removed=(INSTALL_RESULT,))
+
+    # --- public (E = P) -------------------------------------------------------
+
+    def test_anything_public_that_is_not_an_entry(self):
+        declarations = ("public func helper() {}", "public struct Thing {}", "public enum Thing {}",
+                        "public final class Thing {}", "public let thing = 1", "public var thing = 1",
+                        "public typealias Thing = Int", "public extension Handle {}", "public import Foundation",
+                        "open class Thing {}", "open\nclass Thing {}")
+        for declaration in declarations:
+            with self.subTest(declaration=declaration):
+                self.assert_catches("public", (HANDLE_SWIFT, "enum Handle {", f"{declaration}\nenum Handle {{"))
+
+    def test_a_public_member_of_an_internal_type(self):
+        self.assert_catches("public", (HANDLE_SWIFT, "enum Handle {", "enum Handle {\n    public static func helper() {}"))
+
+    def test_public_in_a_comment_a_string_or_a_method_named_open_passes(self):
+        self.assert_passes((HANDLE_SWIFT, "enum Handle {",
+                            '// public func helper() {}\nenum Other {\n    static let text = "public func helper()"\n'
+                            "    static func open(_ value: Int) {}\n    static func use() { open(1) }\n}\nenum Handle {"))
+
+    # --- modulemap ------------------------------------------------------------
+
+    def test_a_header_the_module_map_does_not_name(self):
+        self.assert_catches("modulemap", (MODULE_MAP, '    header "NativeToolkitC/Share.h"\n', ""))
+
+    def test_a_header_the_folder_does_not_have(self):
+        self.assert_catches("modulemap", (MODULE_MAP, "    export *", '    header "NativeToolkitC/Ios.h"\n    export *'))
+
+    def test_a_new_header_in_the_folder_without_the_module_map(self):
+        def add(root):
+            (root / INCLUDE / "Ios.h").write_text("/* new */\n", encoding="utf-8")
+            return []
+        self.assert_catches("modulemap", before=add)
+
+    def test_a_header_named_twice(self):
+        self.assert_catches("modulemap", (MODULE_MAP, "    export *", '    header "NativeToolkitC/Share.h"\n    export *'))
+
+    def test_a_module_map_of_another_form(self):
+        cases = (("framework module IosLibraryCApi {", "module IosLibraryCApi {"),
+                 ("framework module IosLibraryCApi {", "framework module Other {"),
+                 ('    header "NativeToolkitC/Share.h"', '    private header "NativeToolkitC/Share.h"'),
+                 ('    header "NativeToolkitC/Share.h"', '    textual header "NativeToolkitC/Share.h"'),
+                 ('    header "NativeToolkitC/Share.h"', '    exclude header "NativeToolkitC/Share.h"'),
+                 ('    header "NativeToolkitC/Share.h"', '    header "Share.h"'),
+                 ("    export *\n", ""))
+        for old, new in cases:
+            with self.subTest(new=new):
+                self.assert_catches("modulemap", (MODULE_MAP, old, new))
+
+    def test_a_module_map_that_is_missing(self):
+        self.assert_catches("modulemap", removed=(MODULE_MAP,))
+
+    def test_the_order_and_comments_of_the_module_map_do_not_matter(self):
+        self.assert_passes((MODULE_MAP, '    header "NativeToolkitC/Common.h"\n    header "NativeToolkitC/Clipboard.h"\n',
+                            '    // The first two.\n    header "NativeToolkitC/Clipboard.h"\n    header "NativeToolkitC/Common.h"\n'))
+
+    # --- compile --------------------------------------------------------------
+
+    COMMON_GUARD = "#ifndef NATIVETOOLKITC_COMMON_H"
+
+    def compile_failure(self, *edits, removed=(), arguments=()):
+        output, code = self.run_checker(edits, removed, arguments=arguments)
+        self.assertEqual(code, 1, output)
+        line = next((l for l in failures(output) if reports(l, "compile")), None)
+        self.assertIsNotNone(line, f"compile was not reported: {failures(output)}")
+        return line
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_each_language_is_compiled_with_its_own_standard(self):
+        cases = (("C99", "defined(__STDC_VERSION__) && __STDC_VERSION__ == 199901L"),
+                 ("C11", "defined(__STDC_VERSION__) && __STDC_VERSION__ == 201112L && !defined(__OBJC__)"),
+                 ("C++", "defined(__cplusplus) && __cplusplus == 201103L"),
+                 ("Objective-C", "defined(__OBJC__)"))
+        for language, condition in cases:
+            with self.subTest(language=language):
+                line = self.compile_failure((COMMON, self.COMMON_GUARD, f"#if {condition}\n#error broken\n#endif\n{self.COMMON_GUARD}"))
+                self.assertIn(f"as {language}:", line)
+                for other, _ in cases:
+                    if other != language:
+                        self.assertNotIn(f"as {other}:", line)
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_every_header_is_compiled_alone(self):
+        for header in ("Clipboard.h", "Dialog.h", "Notification.h", "Share.h"):
+            guard = f"#ifndef NATIVETOOLKITC_{header[:-2].upper()}_H"
+            with self.subTest(header=header):
+                line = self.compile_failure((f"{INCLUDE}/{header}", guard, f"#error broken\n{guard}"))
+                self.assertIn(f"{header} (framework) as C99", line)
+                self.assertIn(f"{header} (copy) as C99", line)
+                others = {"Clipboard.h", "Common.h", "Dialog.h", "Notification.h", "Share.h"} - {header}
+                for other in others:
+                    self.assertNotIn(f"{other} (", line)
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_a_header_that_needs_another_it_does_not_include(self):
+        line = self.compile_failure((NOTIFICATION, INCLUDE_BLOCK, ""))
+        self.assertIn("Notification.h", line)
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_each_branch_of_the_include_is_compiled(self):
+        line = self.compile_failure((DIALOG, "#include <IosLibraryCApi/NativeToolkitC/Common.h>", "#include <IosLibraryCApi/NativeToolkitC/Missing.h>"))
+        self.assertIn("Dialog.h (framework)", line)
+        self.assertNotIn("Dialog.h (copy)", line)
+        line = self.compile_failure((DIALOG, '#include "Common.h"', '#include "Missing.h"'))
+        self.assertIn("Dialog.h (copy)", line)
+        self.assertNotIn("Dialog.h (framework)", line)
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_each_warning_flag_is_on(self):
+        cases = (("-Werror", "#warning broken"),
+                 ("-Wall", "static inline int ntk_broken(void) { int unused; return 0; }"),
+                 ("-Wextra", "static inline int ntk_broken(int unused) { return 0; }"),
+                 ("-pedantic", "struct ntk_broken { struct { int x; }; };"))
+        for flag, code in cases:
+            with self.subTest(flag=flag):
+                self.assert_catches("compile", (COMMON, "#define NTK_VERSION_MAJOR 2", f"{code}\n#define NTK_VERSION_MAJOR 2"))
+                self.assertIn(flag, check_c_abi_contract_ios.HEADER_WARNINGS)
+
+    def test_a_clang_that_does_not_exist_fails(self):
+        self.assert_catches("compile", arguments=("--clang", os.devnull + ".missing"))
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_a_clang_that_fails_fails(self):
+        def prepare(root):
+            clang = root / "fake_clang"
+            clang.write_text("#!/bin/sh\necho 'x: error: broken' >&2\nexit 1\n", encoding="utf-8")
+            clang.chmod(clang.stat().st_mode | stat.S_IXUSR)
+            return ["--clang", str(clang)]
+        self.assert_catches("compile", before=prepare)
+
+    def test_a_clang_that_succeeds_is_what_passes(self):
+        """So the failures above come from what the compiler said, not from running one."""
+        def prepare(root):
+            clang = root / "fake_clang"
+            clang.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            clang.chmod(clang.stat().st_mode | stat.S_IXUSR)
+            return ["--clang", str(clang)]
+        self.assert_passes(before=prepare)
+
+    def test_without_xcode_it_says_skip_unless_it_is_required(self):
+        env = {**os.environ, "PATH": ""}
+        output, code = self.run_checker(env=env)
+        self.assertIn("SKIP compile", output)
+        self.assertEqual(code, 0, output)
+        output, code = self.run_checker(arguments=("--require-compile",), env=env)
+        self.assertTrue(any(reports(line, "compile") for line in failures(output)), output)
+        self.assertEqual(code, 1)
+
+    # --- layout ---------------------------------------------------------------
+
+    SLICES = ("arm64-apple-ios18.0", "arm64-apple-ios18.0-simulator", "x86_64-apple-ios18.0-simulator")
+
+    def test_a_struct_without_its_size_row(self):
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_SIZE(ntk_share_item, 24);\n", ""))
+
+    def test_rows_that_cannot_stop_anything(self):
+        macro = '#define LAYOUT_SIZE(type, size) _Static_assert(sizeof(type) == (size), "sizeof(" #type ")")'
+        cases = ((macro, "#define LAYOUT_SIZE(type, size)"),
+                 (macro, macro + "\n#undef LAYOUT_SIZE\n#define LAYOUT_SIZE(type, size)"),
+                 (macro, '#define LAYOUT_SIZE(type, size) _Static_assert(sizeof(type) != 0, "sizeof(" #type ")")'),
+                 ("LAYOUT_SIZE(ntk_share_item, 24);", "#if 0\nLAYOUT_SIZE(ntk_share_item, 24);\n#endif"),
+                 ("LAYOUT_SIZE(ntk_share_item, 24);", "#ifdef NEVER\nLAYOUT_SIZE(ntk_share_item, 24);\n#endif"),
+                 ("#include <stddef.h>", "#include <stddef.h>\n#define offsetof(a, b) 0"))
+        for old, new in cases:
+            with self.subTest(new=new):
+                self.assert_catches("layout", (LAYOUT_TEST, old, new))
+
+    def test_the_project_leaving_the_layout_test_out(self):
+        self.assert_catches("layout", (PBXPROJ, "IosLibraryCApi.exp,", "IosLibraryCApi.exp,\n\t\t\t\tStructLayoutTests.m,"))
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_a_wrong_number_stops_compile_on_every_slice(self):
+        cases = (("LAYOUT_SIZE(ntk_share_item, 24);", "LAYOUT_SIZE(ntk_share_item, 32);"),
+                 ("LAYOUT_FIELD(ntk_share_item, value, 16);", "LAYOUT_FIELD(ntk_share_item, value, 8);"))
+        for old, new in cases:
+            with self.subTest(new=new):
+                line = self.compile_failure((LAYOUT_TEST, old, new))
+                for target in self.SLICES:
+                    self.assertIn(f"StructLayoutTests.m for {target}:", line)
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_each_slice_is_compiled_as_itself(self):
+        """Written with what only one target defines: a label alone would not show which target ran."""
+        cases = (("x86_64-apple-ios18.0-simulator", "defined(__x86_64__)"),
+                 ("arm64-apple-ios18.0-simulator", "defined(__arm64__) && defined(__APPLE_EMBEDDED_SIMULATOR__)"))
+        for target, condition in cases:
+            with self.subTest(target=target):
+                line = self.compile_failure((COMMON, self.COMMON_GUARD, f"#if {condition}\n#error broken\n#endif\n{self.COMMON_GUARD}"))
+                self.assertIn(f"StructLayoutTests.m for {target}:", line)
+                for other in self.SLICES:
+                    if other != target:
+                        self.assertNotIn(f"StructLayoutTests.m for {other}:", line)
+                self.assertNotIn("Common.h (", line)
+
+    @unittest.skipUnless(XCODE, "no Xcode")
+    def test_a_header_that_moves_a_field_stops_compile_on_every_slice(self):
+        line = self.compile_failure((SHARE, "    uint32_t            reserved1;\n", ""))
+        for target in self.SLICES:
+            self.assertIn(f"StructLayoutTests.m for {target}:", line)
+
+    def test_a_field_that_is_an_array_is_read_and_one_that_cannot_be_read_fails(self):
+        recorded = []
+        class Recorder:
+            def check(self, condition, name, detail=""):
+                recorded.append((bool(condition), detail))
+        text = (ROOT / LAYOUT_TEST).read_text(encoding="utf-8")
+        rows = "LAYOUT_SIZE(s, 8);\nLAYOUT_FIELD(s, reserved, 0);\n"
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / LAYOUT_TEST).parent.mkdir(parents=True)
+            (root / LAYOUT_TEST).write_text(text.split("// Clipboard.h")[0] + rows, encoding="utf-8")
+            (root / PBXPROJ).parent.mkdir(parents=True)
+            (root / PBXPROJ).write_text("", encoding="utf-8")
+            with unittest.mock.patch.object(check_c_abi_contract_ios, "ROOT", root):
+                check_c_abi_contract_ios.check_layout({"s": "uint8_t reserved[2]"}, Recorder())
+                check_c_abi_contract_ios.check_layout({"s": "void (*fn)(int)"}, Recorder())
+        self.assertTrue(recorded[0][0], recorded[0])
+        self.assertFalse(recorded[1][0])
+        self.assertIn("cannot read the field", recorded[1][1])
+
+    def test_a_field_without_its_row(self):
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_FIELD(ntk_share_item, value, 16);\n", ""))
+
+    def test_a_commented_out_row_is_no_row(self):
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_SIZE(ntk_share_item, 24);", "// LAYOUT_SIZE(ntk_share_item, 24);"))
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_FIELD(ntk_share_item, value, 16);", "/* LAYOUT_FIELD(ntk_share_item, value, 16); */"))
+
+    def test_a_row_of_nothing_the_headers_declare(self):
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_SIZE(ntk_share_item, 24);", "LAYOUT_SIZE(ntk_share_item, 24);\nLAYOUT_SIZE(ntk_share_old, 24);"))
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_FIELD(ntk_share_item, value, 16);", "LAYOUT_FIELD(ntk_share_item, value, 16);\nLAYOUT_FIELD(ntk_share_item, old, 24);"))
+
+    def test_a_row_twice(self):
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_SIZE(ntk_share_item, 24);", "LAYOUT_SIZE(ntk_share_item, 24);\nLAYOUT_SIZE(ntk_share_item, 32);"))
+        self.assert_catches("layout", (LAYOUT_TEST, "LAYOUT_FIELD(ntk_share_item, value, 16);", "LAYOUT_FIELD(ntk_share_item, value, 16);\nLAYOUT_FIELD(ntk_share_item, value, 16);"))
+
+    def test_a_struct_or_a_field_added_to_the_headers(self):
+        field = "    const char*         value;                   /**< The text, the URL, or the file path. */\n"
+        self.assert_catches("layout", (SHARE, field, field + "    const char*         added;\n"), (DESIGN, field, field + "    const char*         added;\n"))
+        struct = "typedef struct ntk_share_request {"
+        added = "typedef struct ntk_share_added {\n    uint32_t struct_size;\n} ntk_share_added;\n\n"
+        self.assert_catches("layout", (SHARE, struct, added + struct), (DESIGN, struct, added + struct))
+
+    def test_a_layout_test_that_is_missing(self):
+        self.assert_catches("layout", removed=(LAYOUT_TEST,))
+
     # --- symbols ------------------------------------------------------------
 
     # The host's slice, which is all nm lists of a fat binary without -arch all.
@@ -714,7 +1191,7 @@ class IosCAbiContractChecker(unittest.TestCase):
         def prepare(root):
             design = (root / DESIGN).read_text(encoding="utf-8")
             code = c_abi_contract_common.appendix_code(design)
-            names = sorted(set(c_abi_contract_common.declarations(code)["function"]) - set(dropped))
+            names = sorted(set(c_abi_contract_common.declarations(code)["function"]) - set(NOT_IMPLEMENTED_YET) - set(dropped))
             lines = [f"0000000000001000 T _{name}\n" for name in names] + [f"0000000000001000 T {name}\n" for name in extra]
             library = root / "IosLibraryCApi"
             cpu = {"arm64": 0x0100000C, "x86_64": 0x01000007}[thin]
@@ -762,7 +1239,10 @@ class IosCAbiContractChecker(unittest.TestCase):
         self.assert_catches("symbols", before=self.fake_nm(extra=("_$s14IosLibraryCApi4mainyyF",)))
 
     def test_a_function_the_library_does_not_export(self):
-        self.assert_catches("symbols", before=self.fake_nm(dropped=("ntk_share_content_async",)))
+        self.assert_catches("symbols", before=self.fake_nm(dropped=("ntk_notification_install",)))
+
+    def test_a_function_exported_while_it_is_listed_as_not_implemented(self):
+        self.assert_catches("symbols", before=self.fake_nm(extra=(f"_{NOT_IMPLEMENTED_YET[0]}",)))
 
     def test_a_function_one_architecture_does_not_export(self):
         for architectures in (("x86_64", "arm64"), ("arm64", "x86_64")):
@@ -808,7 +1288,7 @@ class IosCAbiContractChecker(unittest.TestCase):
     def real_library(self, root, *slices):
         """A binary of the slices (architecture, whether it exports the functions)."""
         design = (root / DESIGN).read_text(encoding="utf-8")
-        names = c_abi_contract_common.declarations(c_abi_contract_common.appendix_code(design))["function"]
+        names = set(c_abi_contract_common.declarations(c_abi_contract_common.appendix_code(design))["function"]) - set(NOT_IMPLEMENTED_YET)
         full = root / "full.c"
         full.write_text("".join(f"void {name}(void) {{}}\n" for name in sorted(names)), encoding="utf-8")
         bare = root / "bare.c"

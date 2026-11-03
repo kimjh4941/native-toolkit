@@ -43,25 +43,55 @@ here, so neither can drift without the other noticing:
               (P2-3).
   ascii       the public headers are ASCII only.
   common      the Common.h of iOS, Android and Windows (part 1, 5.2).
-  symbols     after a build, the symbols the library exports are the _ntk_*
-              of 8.2 and nothing else, in every architecture it has, and it has
-              those --architectures names (AP-15, part 1, 5.5).
+  entries     H = E of part 1, 5.5: every function of the headers has a
+              @c @implementation public func in the capi's Swift sources, or is
+              in NOT_IMPLEMENTED_YET, never both and never neither, and nothing
+              else has an entry.
+  complete    NOT_IMPLEMENTED_YET is empty, so that H = E itself holds. This is
+              what stops a function hiding in the list: entries takes a name
+              added to it. A SKIP until --require-complete, which TB-10, TB-11
+              and TB-12 ask for.
+  public      E = P of part 1, 5.5: the capi declares nothing public or open
+              but its entries (P1-1).
+  modulemap   the module map has the form of part 1, 5.1 and names exactly the
+              headers of include/NativeToolkitC (part 1, 5.5).
+  compile     every public header compiles alone as C99, C11, C++ and
+              Objective-C with -Wall -Wextra -Werror -pedantic (12.3), through
+              both branches of its include of Common.h: as a framework and as
+              the loose copy.
+  layout      every struct and field of the headers has its row in the layout
+              test, the rows are the _Static_assert they are written as and no
+              #if hides them, and the target does not leave the file out (12.1).
+              compile compiles it for the three slices.
+  settings    the framework target has the settings of part 1, 5.4 in Release;
+              Debug differs in the two that @testable import needs and nothing
+              else; archiving takes Release.
+  install     every case of NotificationDelegateInstallResult has its line in
+              the receiver (part 1, 1.4): the compiler only warns, and a new
+              case would come out as UNKNOWN.
+  symbols     after a build, the symbols the library exports are the _ntk_* of
+              8.2 less NOT_IMPLEMENTED_YET and nothing else, in every
+              architecture it has, and it has those --architectures names
+              (AP-15, part 1, 5.5).
 
-A file that cannot be read fails its check (R-30). Two checks run only when
-asked, and say so: the headers come with TB-1, so --design-only reads Appendix
-A in their place until then (and fails once a header exists); symbols needs a
-built library. An argument this script does not know is a usage error, so a
-misspelt option cannot turn a check into a SKIP.
+A file that cannot be read fails its check (R-30). Four checks run only when
+they can, and say so: --design-only reads Appendix A in place of the headers
+(and fails once a header exists; those that need the headers or the capi's
+sources do not run); symbols needs a built library; compile needs Xcode, whose
+absence --require-compile makes a failure, and a --clang that does not exist
+always fails; complete needs --require-complete. An argument this script does
+not know is a usage error, so a misspelt option cannot turn a check into a SKIP.
 
-Not checked here: what part 1, 5.5 compares with the capi's Swift sources and
-the module map (TB-1) and with the distributable (TB-11); the compile of the
-headers alone (12.3); which behaviour names which of two operations of one
+Not checked here: what part 1, 5.5 compares with the distributable and the
+capi's C sources (TB-11); which behaviour names which of two operations of one
 shape; the argument names 8.1 writes after a C function.
 
 What every OS checks the same way lives in c_abi_contract_common.py.
 
 Usage:
     python3 scripts/check_c_abi_contract_ios.py [--root <tree>] [--design-only]
+                                                [--require-compile] [--require-complete]
+                                                [--clang <clang>]
                                                 [--library <binary> [--nm <nm>]
                                                  [--architectures <a,b>]]
 
@@ -78,6 +108,8 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import c_abi_contract_common as common
@@ -93,6 +125,13 @@ CAPI = "ios/IosLibraryCApi"
 INCLUDE = f"{CAPI}/include/NativeToolkitC"
 ANDROID_INCLUDE = "android/android_library_capi/src/main/cpp/include/NativeToolkitC"
 WINDOWS_COMMON = "windows/WindowsLibraryCApi/include/NativeToolkitC/Common.h"
+MODULE_MAP = f"{CAPI}/IosLibraryCApi/module.modulemap"
+LAYOUT_TEST = "ios/IosLibraryCApiTests/StructLayoutTests.m"
+PROJECT = f"{CAPI}/IosLibraryCApi.xcodeproj"
+PBXPROJ = f"{PROJECT}/project.pbxproj"
+SCHEME = f"{PROJECT}/xcshareddata/xcschemes/IosLibraryCApi.xcscheme"
+RECEIVER = f"{CAPI}/IosLibraryCApi/Notification/NotificationReceiver.swift"
+INSTALL_RESULT = "ios/IosLibrary/IosLibrary/Notification/Domain/Model/NotificationDelegateInstallResult.swift"
 
 # The prefix every function of a header starts with. Common.h holds what
 # belongs to no feature.
@@ -137,7 +176,185 @@ KINDS_OF = {
 # no Swift entry to call.
 LEDGER = "受け口の帳簿"
 
+# The functions of the headers that have no entry yet (H = E can only hold at
+# TB-10, part 2, chapter 13). `entries` fails when a function here gets an entry
+# or leaves the headers, so the list shrinks as the entries come. Nothing but
+# --require-complete stops a name being added: it must be empty at TB-10.
+NOT_IMPLEMENTED_YET = (
+    # Clipboard.h
+    "ntk_clipboard_copy_async",
+    "ntk_clipboard_append_async",
+    "ntk_clipboard_read_async",
+    "ntk_clipboard_read_data_async",
+    "ntk_clipboard_get_snapshot_async",
+    "ntk_clipboard_clear_async",
+    "ntk_clipboard_create_pasteboard_async",
+    "ntk_clipboard_remove_pasteboard_async",
+    "ntk_clipboard_detect_patterns_async",
+    "ntk_clipboard_detect_values_async",
+    "ntk_clipboard_load_item_async",
+    "ntk_clipboard_cancel_load",
+    "ntk_clipboard_start_observing_async",
+    "ntk_clipboard_stop_observing_async",
+    "ntk_clipboard_check_foreground_change_async",
+    "ntk_clipboard_add_change_listener",
+    "ntk_clipboard_listener_remove",
+    "ntk_clipboard_read_result_item_count",
+    "ntk_clipboard_read_result_item_type_count",
+    "ntk_clipboard_read_result_item_type_at",
+    "ntk_clipboard_read_result_item_text_at",
+    "ntk_clipboard_read_result_item_url_at",
+    "ntk_clipboard_read_result_item_image_type_at",
+    "ntk_clipboard_read_result_free",
+    "ntk_clipboard_snapshot_has_strings",
+    "ntk_clipboard_snapshot_has_urls",
+    "ntk_clipboard_snapshot_has_images",
+    "ntk_clipboard_snapshot_has_colors",
+    "ntk_clipboard_snapshot_number_of_items",
+    "ntk_clipboard_snapshot_type_count",
+    "ntk_clipboard_snapshot_type_at",
+    "ntk_clipboard_snapshot_item_type_count",
+    "ntk_clipboard_snapshot_item_type_at",
+    "ntk_clipboard_snapshot_has_matching",
+    "ntk_clipboard_snapshot_matching_count",
+    "ntk_clipboard_snapshot_matching_at",
+    "ntk_clipboard_snapshot_free",
+    "ntk_clipboard_loaded_item_kind",
+    "ntk_clipboard_loaded_item_text",
+    "ntk_clipboard_loaded_item_url",
+    "ntk_clipboard_loaded_item_image_data",
+    "ntk_clipboard_loaded_item_image_type",
+    "ntk_clipboard_loaded_item_file_path",
+    "ntk_clipboard_loaded_item_free",
+    "ntk_clipboard_change_kind",
+    "ntk_clipboard_change_scope_kind",
+    "ntk_clipboard_change_scope_name",
+    "ntk_clipboard_change_types_added_count",
+    "ntk_clipboard_change_types_added_at",
+    "ntk_clipboard_change_types_removed_count",
+    "ntk_clipboard_change_types_removed_at",
+    "ntk_clipboard_change_free",
+    # Dialog.h
+    "ntk_dialog_show_alert_async",
+    "ntk_dialog_show_confirm_async",
+    "ntk_dialog_show_destructive_async",
+    "ntk_dialog_show_action_sheet_async",
+    "ntk_dialog_show_text_input_async",
+    "ntk_dialog_show_login_async",
+    "ntk_dialog_cancel",
+    "ntk_dialog_result_button",
+    "ntk_dialog_result_option_index",
+    "ntk_dialog_result_button_text",
+    "ntk_dialog_result_text",
+    "ntk_dialog_result_username",
+    "ntk_dialog_result_password",
+    "ntk_dialog_result_free",
+    # Notification.h
+    "ntk_notification_show_async",
+    "ntk_notification_update_async",
+    "ntk_notification_schedule_async",
+    "ntk_notification_remove_async",
+    "ntk_notification_remove_all_async",
+    "ntk_notification_cancel_scheduled_async",
+    "ntk_notification_cancel_all_scheduled_async",
+    "ntk_notification_get_scheduled_async",
+    "ntk_notification_get_delivered_async",
+    "ntk_notification_request_permission_async",
+    "ntk_notification_get_authorization_status_async",
+    "ntk_notification_has_permission_async",
+    "ntk_notification_open_settings_async",
+    "ntk_notification_set_badge_count_async",
+    "ntk_notification_register_category_async",
+    "ntk_notification_remove_category_async",
+    "ntk_notification_add_interaction_listener",
+    "ntk_notification_add_settings_request_listener",
+    "ntk_notification_get_launch_response_async",
+    "ntk_notification_listener_remove",
+    "ntk_notification_content_create",
+    "ntk_notification_content_free",
+    "ntk_notification_content_set_subtitle",
+    "ntk_notification_content_set_body",
+    "ntk_notification_content_set_badge",
+    "ntk_notification_content_set_sound",
+    "ntk_notification_content_set_category",
+    "ntk_notification_content_set_interruption_level",
+    "ntk_notification_content_set_thread",
+    "ntk_notification_content_set_target_content",
+    "ntk_notification_content_set_relevance_score",
+    "ntk_notification_content_set_filter_criteria",
+    "ntk_notification_content_set_user_info_json",
+    "ntk_notification_content_add_attachment",
+    "ntk_notification_interaction_kind",
+    "ntk_notification_interaction_notification_id",
+    "ntk_notification_interaction_action_id",
+    "ntk_notification_interaction_category_id",
+    "ntk_notification_interaction_user_text",
+    "ntk_notification_interaction_user_info_json",
+    "ntk_notification_interaction_is_launch",
+    "ntk_notification_interaction_free",
+    "ntk_notification_settings_request_notification_id",
+    "ntk_notification_settings_request_free",
+    "ntk_notification_list_count",
+    "ntk_notification_list_identifier_at",
+    "ntk_notification_list_title_at",
+    "ntk_notification_list_subtitle_at",
+    "ntk_notification_list_body_at",
+    "ntk_notification_list_category_at",
+    "ntk_notification_list_date_millis_at",
+    "ntk_notification_list_free",
+    # Share.h
+    "ntk_share_content_async",
+    "ntk_share_result_completed",
+    "ntk_share_result_activity_type",
+    "ntk_share_result_free",
+)
+
+# How each language compiles the headers (12.3). -pedantic is what makes -std=c99
+# mean something to clang.
+HEADER_LANGUAGES = (("C99", "c", "-std=c99"), ("C11", "c", "-std=c11"),
+                    ("C++", "c++", "-std=c++11"), ("Objective-C", "objective-c", "-std=gnu11"))
+HEADER_WARNINGS = ("-Wall", "-Wextra", "-Werror", "-pedantic")
+# The lowest iOS the library supports (README D-15).
+CLANG_TARGET = "arm64-apple-ios18.0"
+# The slices the layout test is compiled for, with their SDKs (D-11).
+LAYOUT_SLICES = ((CLANG_TARGET, "iphoneos"), ("arm64-apple-ios18.0-simulator", "iphonesimulator"),
+                 ("x86_64-apple-ios18.0-simulator", "iphonesimulator"))
+# Every preprocessor line the layout test may have, so that nothing can make its
+# rows do nothing (#if 0, another #define).
+LAYOUT_DIRECTIVES = (
+    "#include <stddef.h>",
+    "#include <IosLibraryCApi/NativeToolkitC/Clipboard.h>",
+    "#include <IosLibraryCApi/NativeToolkitC/Dialog.h>",
+    "#include <IosLibraryCApi/NativeToolkitC/Notification.h>",
+    "#include <IosLibraryCApi/NativeToolkitC/Share.h>",
+    '#define LAYOUT_SIZE(type, size) _Static_assert(sizeof(type) == (size), "sizeof(" #type ")")',
+    '#define LAYOUT_FIELD(type, field, offset) _Static_assert(offsetof(type, field) == (offset), "offsetof(" #type ", " #field ")")',
+)
+# Part 1, 5.4, as the project writes it. The deployment target and the strict
+# concurrency come from the project's own settings, which the target inherits.
+FRAMEWORK_SETTINGS = {
+    "BUILD_LIBRARY_FOR_DISTRIBUTION": "NO",
+    "DEFINES_MODULE": "YES",
+    "ENABLE_MODULE_VERIFIER": "YES",
+    "EXPORTED_SYMBOLS_FILE": "IosLibraryCApi/IosLibraryCApi.exp",
+    "IPHONEOS_DEPLOYMENT_TARGET": "18.0",
+    "MACH_O_TYPE": "mh_dylib",
+    "MODULEMAP_FILE": "IosLibraryCApi/module.modulemap",
+    "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "c c++ objective-c objective-c++",
+    "PRODUCT_BUNDLE_IDENTIFIER": "com.jonghyunkim.nativetoolkit.IosLibraryCApi",
+    "PUBLIC_HEADERS_FOLDER_PATH": "$(CONTENTS_FOLDER_PATH)/Headers/NativeToolkitC",
+    "SWIFT_INSTALL_MODULE": "NO",
+    "SWIFT_INSTALL_OBJC_HEADER": "NO",
+    "SWIFT_VERSION": "6.0",
+}
+# All that Debug may change, and to what, for @testable import (part 1, 5.4).
+DEBUG_ONLY = {
+    "OTHER_LDFLAGS": ("$(inherited)", "-Wl,-exported_symbol,_$$s14IosLibraryCApi*"),
+    "SWIFT_INSTALL_MODULE": "YES",
+}
+
 USAGE = ("usage: check_c_abi_contract_ios.py [--root <tree>] [--design-only] "
+         "[--require-compile] [--require-complete] [--clang <clang>] "
          "[--library <binary> [--nm <nm>] [--architectures <a,b>]]")
 
 
@@ -580,6 +797,261 @@ def check_common(ios_common, rep):
     rep.check(not problems, name, "; ".join(problems))
 
 
+def capi_swift_code(rep, check_name):
+    """{relative path: code without comments and strings} of the capi's Swift
+    sources, anywhere under the module, or None and a failure when there are none."""
+    paths = sorted(at(CAPI).rglob("*.swift"))
+    if not paths:
+        rep.check(False, check_name, f"no Swift sources under {CAPI}")
+        return None
+    return {str(p.relative_to(ROOT)): swift_code(p.read_text(encoding="utf-8")) for p in paths}
+
+
+ENTRY = re.compile(r"@c\s+@implementation\s+public\s+func\s+(\w+)\s*\(")
+# `open` also names methods (UIApplication.open), so only a declaration counts.
+PUBLIC = re.compile(r"\bpublic\b|\bopen\s+(?:[\w@]+\s+)*?(?:class|func|var|let|subscript|init)\b")
+
+
+def entry_names(sources):
+    """The functions the sources define as entries of the C ABI."""
+    return {name for code in sources.values() for name in ENTRY.findall(code)}
+
+
+def check_entries(sources, functions, rep):
+    """H = E of part 1, 5.5, less what is not implemented yet."""
+    name = "entries: every function of the headers has its entry or is listed as not implemented yet"
+    entries = entry_names(sources)
+    listed, declared = set(NOT_IMPLEMENTED_YET), set(functions)
+    problems = []
+    if len(listed) != len(NOT_IMPLEMENTED_YET):
+        problems.append("NOT_IMPLEMENTED_YET names a function twice")
+    for label, names in (("has an entry but is not in the headers", entries - declared),
+                         ("has an entry and is still in NOT_IMPLEMENTED_YET; take it out", entries & listed),
+                         ("is in the headers, with no entry and not in NOT_IMPLEMENTED_YET", declared - entries - listed),
+                         ("is in NOT_IMPLEMENTED_YET but not in the headers", listed - declared)):
+        problems += [f"{function} {label}" for function in sorted(names)]
+    rep.check(not problems and entries,
+              f"{name} ({len(entries)} of {len(declared)}, {len(listed)} not implemented yet)",
+              "; ".join(problems) or "no entries")
+
+
+def check_complete(require, rep):
+    """H = E itself: what TB-10, TB-11 and TB-12 ask for with --require-complete.
+    Apart from the file, `entries` accepts any name added to the list."""
+    name = "complete: every function of the headers has its entry"
+    missing = len(NOT_IMPLEMENTED_YET)
+    if missing and not require:
+        rep.skip(name, f"{missing} functions are not implemented yet; --require-complete makes that a failure")
+    else:
+        rep.check(not missing, name, f"{missing} functions are not implemented yet, such as {', '.join(NOT_IMPLEMENTED_YET[:3])}")
+
+
+def check_public(sources, rep):
+    """E = P of part 1, 5.5: every public declaration of the capi is an entry."""
+    name = "public: the capi declares nothing public but its entries (P1-1)"
+    problems = []
+    for path, code in sorted(sources.items()):
+        spans = [match.span() for match in ENTRY.finditer(code)]
+        for match in PUBLIC.finditer(code):
+            if not any(start <= match.start() < end for start, end in spans):
+                line = code[match.start():].split("\n", 1)[0].strip()
+                problems.append(f"{path}: '{line}' is public and not an entry")
+    rep.check(not problems, name, "; ".join(problems))
+
+
+def check_module_map(text, header_names, rep):
+    """The module map names the headers there are, in the one form of part 1, 5.1."""
+    name = "modulemap: the module map names the headers of include/NativeToolkitC (part 1, 5.5)"
+    code = re.sub(r"\s+", " ", common.strip_comments(text)).strip()
+    match = re.fullmatch(r'framework module IosLibraryCApi \{((?: header "NativeToolkitC/[\w.]+")+) export \* \}', code)
+    if match is None:
+        rep.check(False, name, f"not the form of part 1, 5.1: {code}")
+        return
+    named = re.findall(r'header "NativeToolkitC/([\w.]+)"', match.group(1))
+    problems = []
+    for label, names in (("the module map names twice", {n for n in named if named.count(n) > 1}),
+                         ("is in the module map but not in include/NativeToolkitC", set(named) - set(header_names)),
+                         ("is in include/NativeToolkitC but not in the module map", set(header_names) - set(named))):
+        problems += [f"{header} {label}" for header in sorted(names)]
+    rep.check(not problems, f"{name} ({len(named)} headers)", "; ".join(problems))
+
+
+def xcrun(*arguments):
+    """What xcrun prints, or None without Xcode."""
+    tool = shutil.which("xcrun")
+    if tool is None:
+        return None
+    result = subprocess.run([tool, *arguments], capture_output=True, text=True)
+    return result.stdout.strip() or None if result.returncode == 0 else None
+
+
+def compile_problems(clang, sdks, names):
+    """Every public header alone, in every language, through both branches of its
+    include of Common.h, and the layout test for every slice. The first error of
+    each that fails."""
+    source = at(INCLUDE)
+    with tempfile.TemporaryDirectory(prefix="c-abi-headers-ios-") as directory:
+        work = Path(directory)
+        headers = work / "IosLibraryCApi.framework" / "Headers" / "NativeToolkitC"
+        headers.mkdir(parents=True)
+        runs = []
+        for header in names:
+            shutil.copy(source / header, headers / header)
+            as_framework = work / f"framework-{header}.tu"
+            as_framework.write_text(f"#include <IosLibraryCApi/NativeToolkitC/{header}>\n", encoding="utf-8")
+            as_copy = work / f"copy-{header}.tu"
+            as_copy.write_text(f'#include "{header}"\n', encoding="utf-8")
+            runs += [(header, "framework", as_framework, ("-F", str(work))), (header, "copy", as_copy, ("-I", str(source)))]
+
+        def run(item):
+            what, target, sdk, language, standard, search, unit = item
+            result = subprocess.run([clang, "-target", target, "-isysroot", sdks[sdk], "-x", language, standard,
+                                     *HEADER_WARNINGS, "-fsyntax-only", *search, str(unit)],
+                                    capture_output=True, text=True)
+            if result.returncode == 0:
+                return None
+            errors = [line for line in result.stderr.splitlines() if "error:" in line]
+            first = errors[0].replace(directory, "") if errors else result.stderr.strip()
+            return f"{what}: {first}"
+
+        items = [(f"{header} ({layout}) as {label}", CLANG_TARGET, "iphoneos", language, standard, search, unit)
+                 for header, layout, unit, search in runs for label, language, standard in HEADER_LANGUAGES]
+        # A missing layout test is the layout check's to report.
+        if at(LAYOUT_TEST).exists():
+            items += [(f"{Path(LAYOUT_TEST).name} for {target}", target, sdk, "objective-c", "-std=gnu11",
+                       ("-F", str(work)), at(LAYOUT_TEST)) for target, sdk in LAYOUT_SLICES]
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            return len(items), [problem for problem in pool.map(run, items) if problem]
+
+
+def check_compile(names, clang, require, rep):
+    name = "compile: the public headers compile alone in every language (12.3)"
+    if clang and not Path(clang).exists():
+        rep.check(False, name, f"cannot run {clang}")
+        return
+    compiler = clang or xcrun("--find", "clang")
+    sdks = {sdk: xcrun("--sdk", sdk, "--show-sdk-path") for sdk in ("iphoneos", "iphonesimulator")}
+    if compiler is None or None in sdks.values():
+        if require:
+            rep.check(False, name, "Xcode's clang and iOS SDK were not found and --require-compile was given")
+        else:
+            rep.skip(name, "Xcode's clang and iOS SDK were not found; install Xcode")
+        return
+    if not names:
+        rep.check(False, name, f"no headers under {INCLUDE}")
+        return
+    count, problems = compile_problems(compiler, sdks, names)
+    rep.check(not problems, f"{name} ({count} compiles)", "; ".join(problems))
+
+
+def check_layout(structs, rep):
+    """The layout test against the struct declarations of the headers. The numbers
+    are the test's to compare with the compiler: a row that is not there compares nothing."""
+    name = "layout: every struct and field of the headers is in the layout test (12.1)"
+    text = read(LAYOUT_TEST, rep, name)
+    if text is None:
+        return
+    code = common.strip_comments(text)
+    sizes = re.findall(r"^\s*LAYOUT_SIZE\((\w+), \d+\);", code, re.M)
+    fields = re.findall(r"^\s*LAYOUT_FIELD\((\w+), (\w+), \d+\);", code, re.M)
+    problems, wanted = [], set()
+    for struct, body in structs.items():
+        for field in body.split("; "):
+            match = re.search(r"(\w+)(?:\[\w*\])?$", field)
+            if match:
+                wanted.add((struct, match.group(1)))
+            else:
+                problems.append(f"{struct}: cannot read the field '{field}'")
+    allowed = [re.sub(r"^#\s*", "#", common.normalise(line)) for line in LAYOUT_DIRECTIVES]
+    if preprocessor_lines(text) != allowed:
+        problems.append(f"the preprocessor lines of the layout test are not {', '.join(LAYOUT_DIRECTIVES)}")
+    project = read(PBXPROJ, rep, name)
+    if project is not None and Path(LAYOUT_TEST).name in project:
+        problems.append(f"the project names {Path(LAYOUT_TEST).name}: it must not leave it out of the target")
+    for label, names in (("has no LAYOUT_SIZE row", set(structs) - set(sizes)),
+                         ("has a LAYOUT_SIZE row and is not in the headers", set(sizes) - set(structs)),
+                         ("has more than one LAYOUT_SIZE row", {s for s in sizes if sizes.count(s) > 1})):
+        problems += [f"{struct} {label}" for struct in sorted(names)]
+    for label, names in (("has no LAYOUT_FIELD row", wanted - set(fields)),
+                         ("has a LAYOUT_FIELD row and is not in the headers", set(fields) - wanted),
+                         ("has more than one LAYOUT_FIELD row", {f for f in fields if fields.count(f) > 1})):
+        problems += [f"{struct}.{field} {label}" for struct, field in sorted(names)]
+    rep.check(not problems and structs, f"{name} ({len(structs)} structs, {len(wanted)} fields)",
+              "; ".join(problems) or "the headers declare no structs")
+
+
+def build_settings(body):
+    """The settings of a buildSettings block: KEY -> text, or a tuple for a list."""
+    settings = {}
+    for key, value in re.findall(r'^\s*("[^"\n]+"|[^\s=]+) = (\(.*?\)|[^;\n]*);', body, re.M | re.S):
+        key = key.strip('"')
+        if value.startswith("("):
+            settings[key] = tuple(item.strip('"') for item in re.findall(r'"[^"]*"|[^\s,]+', value[1:-1]))
+        else:
+            settings[key] = value.strip('"')
+    return settings
+
+
+def project_configurations(text):
+    """(kind, name) of each configuration list -> {configuration: settings}."""
+    blocks = {identifier: (name, build_settings(body)) for identifier, body, name in re.findall(
+        r"(\w{24}) /\* \w+ \*/ = \{\s*isa = XCBuildConfiguration;\s*buildSettings = \{(.*?)\n\t\t\t\};\s*name = (\w+);",
+        text, re.S)}
+    lists = {}
+    for kind, name, members in re.findall(
+            r'/\* Build configuration list for (\w+) "(\w+)" \*/ = \{\s*isa = XCConfigurationList;\s*buildConfigurations = \((.*?)\);',
+            text, re.S):
+        lists[(kind, name)] = dict(blocks[i] for i in re.findall(r"\b\w{24}\b", members) if i in blocks)
+    return lists
+
+
+def check_settings(rep):
+    """The Debug difference of part 1, 5.4 is safe only while it stays in Debug."""
+    name = "settings: the framework target has part 1, 5.4 in Release and Debug differs only for @testable (part 1, 5.4)"
+    text, scheme = read(PBXPROJ, rep, name), read(SCHEME, rep, name)
+    if text is None or scheme is None:
+        return
+    # A configuration with an xcconfig is not one this reading finds, so it fails below.
+    lists = project_configurations(text)
+    target = lists.get(("PBXNativeTarget", "IosLibraryCApi"), {})
+    project = lists.get(("PBXProject", "IosLibraryCApi"), {})
+    if not {"Debug", "Release"} <= set(target) or not {"Debug", "Release"} <= set(project):
+        rep.check(False, name, "the project does not have Debug and Release for the framework target and itself")
+        return
+    problems = []
+    release, debug = target["Release"], target["Debug"]
+    effective = {**project["Release"], **release}
+    for key, value in FRAMEWORK_SETTINGS.items():
+        if effective.get(key) != value:
+            problems.append(f"Release has {key} = {effective.get(key)}, part 1, 5.4 says {value}")
+    conditional = sorted(key for key in {*release, *debug} if "[" in key)
+    if conditional:
+        problems.append(f"settings by condition cannot be compared: {', '.join(conditional)}")
+    differing = {key for key in {*release, *debug} if release.get(key) != debug.get(key)}
+    for key in sorted(differing - set(DEBUG_ONLY)):
+        problems.append(f"{key} differs between Debug and Release")
+    for key, value in DEBUG_ONLY.items():
+        if debug.get(key) != value:
+            problems.append(f"Debug has {key} = {debug.get(key)}, not {value}")
+        if key not in FRAMEWORK_SETTINGS and key in release:
+            problems.append(f"Release has {key}, which is for Debug")
+    if not re.search(r'<ArchiveAction\s+buildConfiguration = "Release"', scheme):
+        problems.append("the scheme does not archive Release")
+    rep.check(not problems, name, "; ".join(problems))
+
+
+def check_install_result(rep):
+    """Every case of the library's result has a line of its own in the receiver."""
+    name = "install: every case of NotificationDelegateInstallResult is mapped (part 1, 1.4)"
+    source, receiver = read(INSTALL_RESULT, rep, name), read(RECEIVER, rep, name)
+    if source is None or receiver is None:
+        return
+    cases = enum_cases(swift_code(source), "NotificationDelegateInstallResult")
+    missing = [case for case in cases if not re.search(rf"\bcase \.{case}\s*:", swift_code(receiver))]
+    rep.check(cases and not missing, f"{name} ({len(cases)} cases)",
+              f"the receiver has no case for {', '.join(missing)}" if cases else "no cases were read")
+
+
 def exported_symbols(output):
     """architecture -> the names in nm output. A fat binary has a heading per
     architecture; any other has one section, named after nothing."""
@@ -609,8 +1081,8 @@ def thin_architecture(library):
     return MACH_O_CPU_TYPES.get(int.from_bytes(header[4:8], "little"))
 
 
-def check_symbols(library, nm, architectures, listed, rep):
-    name = "symbols: the library exports the _ntk_* of 8.2 and nothing else (AP-15)"
+def check_symbols(library, nm, architectures, implemented, rep):
+    name = "symbols: the library exports the _ntk_* of 8.2 less what is not implemented yet, and nothing else (AP-15)"
     if library is None:
         rep.skip(name, "no --library (run after the build)")
         return
@@ -634,7 +1106,7 @@ def check_symbols(library, nm, architectures, listed, rep):
         rep.check(False, name, f"{tool} failed: {finished.stderr.strip()}")
         return
     sections = exported_symbols(finished.stdout)
-    wanted = {f"_{function}" for function in listed}
+    wanted = {f"_{function}" for function in implemented}
     problems = [] if sections else ["nm listed nothing"]
     if architectures is not None:
         has = {thin_architecture(library) if a == "" else a for a in sections}
@@ -643,16 +1115,16 @@ def check_symbols(library, nm, architectures, listed, rep):
     for architecture, exported in sorted(sections.items()):
         where = f"{architecture}: " if architecture else ""
         if exported - wanted:
-            problems.append(f"{where}exported but not in 8.2: {', '.join(sorted(exported - wanted))}")
+            problems.append(f"{where}exported but not an implemented function of 8.2: {', '.join(sorted(exported - wanted))}")
         if wanted - exported:
-            problems.append(f"{where}8.2 but not exported: {', '.join(sorted(wanted - exported))}")
+            problems.append(f"{where}implemented but not exported: {', '.join(sorted(wanted - exported))}")
     rep.check(not problems, f"{name} ({len(wanted)} symbols, {len(sections)} architectures)", "; ".join(problems))
 
 
 def parse_arguments(argv):
     """{option: value} for the options with a value, and the flags; None on a usage error."""
-    with_value = {"--root", "--library", "--nm", "--architectures"}
-    flags = {"--design-only"}
+    with_value = {"--root", "--library", "--nm", "--architectures", "--clang"}
+    flags = {"--design-only", "--require-compile", "--require-complete"}
     parsed, rest = {}, list(argv)
     while rest:
         argument = rest.pop(0)
@@ -743,7 +1215,24 @@ def main(argv):
     else:
         common.check_ascii(appendix, rep, "the headers of Appendix A")
     check_common(texts.get("Common.h") if texts is not None else appendix.get("Common.h"), rep)
-    check_symbols(library, nm, parsed.get("--architectures"), listed, rep)
+    if headers is None:
+        for check in ("entries", "public", "modulemap", "compile", "layout", "settings", "install"):
+            rep.skip(f"{check}: needs the headers and the capi's sources", "--design-only")
+    else:
+        sources = capi_swift_code(rep, "entries and public: the capi's Swift sources")
+        if sources is not None:
+            check_entries(sources, merged(headers)["function"], rep)
+            check_public(sources, rep)
+        present = sorted(path.name for path in at(INCLUDE).glob("*.h"))
+        module_map = read(MODULE_MAP, rep, "modulemap: the module map")
+        if module_map is not None:
+            check_module_map(module_map, present, rep)
+        check_compile(present, parsed.get("--clang"), parsed.get("--require-compile", False), rep)
+        check_layout(merged(headers)["struct"], rep)
+        check_settings(rep)
+        check_install_result(rep)
+    check_complete(parsed.get("--require-complete", False), rep)
+    check_symbols(library, nm, parsed.get("--architectures"), listed - set(NOT_IMPLEMENTED_YET), rep)
     return 0 if rep.dump() else 1
 
 

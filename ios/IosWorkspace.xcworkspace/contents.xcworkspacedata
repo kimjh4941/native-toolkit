@@ -7,4 +7,7 @@
    <FileRef
       location = "group:IosLibrary/IosLibrary.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:IosLibraryCApi/IosLibraryCApi.xcodeproj">
+   </FileRef>
 </Workspace>

@@ -320,6 +320,7 @@ ios/
         <機能>Entry.swift                   # @c @implementation の関数だけ。1 関数 1〜3 行で受け口を呼ぶ（P1-1）
         <機能>Receiver.swift                # 検査・型の変換・IosLibrary の公開 API の呼び出し（P1-1、P1-2）
   IosLibraryCApiTests/                      # C ABI のテスト（XCTest から C の関数を呼ぶ。6 章）
+  IosLibraryCApiTestHost/                   # そのホスト。通知の権限を一度も求めない（第 2 部 12.1）
   IosLibraryCApiSmoke/                      # dist の 2 つの xcframework だけを使う C / Objective-C のアプリ（Swift のコードを持たない）
 ```
 
@@ -395,7 +396,7 @@ public func ntk_clipboard_read_text(_ callback: ntk_clipboard_text_fn?, _ userDa
 | `DEFINES_MODULE`、`MODULEMAP_FILE` | `YES`、`IosLibraryCApi/module.modulemap` | C の利用者の `@import` と、`@c @implementation` の underlying module（1a 入口 4.2） |
 | `PUBLIC_HEADERS_FOLDER_PATH` | `$(CONTENTS_FOLDER_PATH)/Headers/NativeToolkitC` | `Headers/NativeToolkitC/*.h` |
 | `EXPORTED_SYMBOLS_FILE` | `IosLibraryCApi/IosLibraryCApi.exp`（`_ntk_*`） | D-11、1a-2。外すと `_IosLibraryCApiVersionNumber` / `String` が出る（1a 入口 4.1） |
-| `SWIFT_INSTALL_MODULE` | `NO` | 1a-2。配ると Xcode 26.3 の `import IosLibraryCApi` が止まる（1a 入口 3 章）。**利用者の下限を 26.3 にする条件**（D-16） |
+| `SWIFT_INSTALL_MODULE` | `NO`（**Release**。Debug は `YES` と `-exported_symbol,_$s14IosLibraryCApi*`: 第 2 部 12.1 の `@testable import` のため。配るのは Release だけで、TB-11 の `Modules/` の照合が止める。段階 2 の記録 3 章） | 1a-2。配ると Xcode 26.3 の `import IosLibraryCApi` が止まる（1a 入口 3 章）。**利用者の下限を 26.3 にする条件**（D-16） |
 | `SWIFT_INSTALL_OBJC_HEADER` | `NO` | 1a-2。`-Swift.h` を配らない |
 | `BUILD_LIBRARY_FOR_DISTRIBUTION` | `NO` | P1-19 |
 | `ENABLE_MODULE_VERIFIER` | `YES`（C・C++・Objective-C・Objective-C++） | 1a-5 |

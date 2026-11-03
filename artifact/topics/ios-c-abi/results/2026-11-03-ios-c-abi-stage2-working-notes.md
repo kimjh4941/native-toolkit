@@ -186,3 +186,186 @@ Claude と Codex のレビューを受けた。それぞれ実物で確かめて
 - **依頼の範囲の外なので足していないもの**: 第 1 部 5.5 の H = E、E = P、capi の C のソース、module map の並び、`Headers/` と `Modules/`。12.3 のヘッダーだけのコンパイル。12.1 の「8.2 の名前がテストのソースに現れる」（13 章で TB-1、TB-11 に割り振られている分を含む）
 - `check_ios_dist.py` と `test_ios.sh` はまだこの照合を呼ばない（TB-11、TB-12）
 - 指定の外で流したもの: マニュアルの照合の Android と Windows（共通のモジュールを変えたので HEAD と比べるため。読むだけ）。macOS の dylib を clang と `lipo` で組む自己テスト（写しの中で。iOS のプロジェクトは組んでいない）
+
+## 3. TB-1
+
+### 3.1 足したもの
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| ヘッダー | `ios/IosLibraryCApi/include/NativeToolkitC/` の 5 つ | 付録 A のコードブロックをそのまま書き、先頭に `@file` のコメントだけ足した。**コメントを除いた本文が付録 A とバイト単位で同じ**ことを一度比べた（5 つとも一致）。第 1 部 5.2 のとおり、先頭のコメントに `ntk_notification_install` の例外を書いた |
+| 公開の一覧など | `IosLibraryCApi/module.modulemap`、`IosLibraryCApi/IosLibraryCApi.exp` | 第 1 部 5.1 の形（`_ntk_*` の 1 行） |
+| Common | `CommonEntry.swift`、`Handle.swift`、`CApiString.swift`、`CApiLog.swift` | 11 関数。ハンドルは型ごとに別のクラス（違う型の読み取りは `NULL` か 0。R-30）。出力の文字列だけ（入力の `CApiString` は TB-2）。ログのカテゴリは `Common` と `Notification` だけ |
+| Notification | `NotificationEntry.swift`、`NotificationReceiver.swift` | `ntk_notification_install` だけ。`.installed` → `NONE`、`.notMainThread` → `WRONG_THREAD`。`NotificationDelegateInstallResult` は別のモジュールから `@frozen` でないので `@unknown default`（`UNKNOWN` とログ。今は通らない） |
+| プロジェクト | `ios/IosLibraryCApi/IosLibraryCApi.xcodeproj`（scheme は `IosLibraryCApi`）、`IosWorkspace.xcworkspace` に 1 行 | 第 1 部 5.4 の設定。雛形の xcodeproj の gem（1.25.1）は synchronized group を書けないので、`IosLibrary` と同じ形（objectVersion 77、synchronized group、`IosLibrary.framework` を `BUILT_PRODUCTS_DIR` で参照して暗黙の依存）で書いた。生成に使った手元のスクリプトは入れない。入るのは `project.pbxproj` だけ |
+| テスト | `ios/IosLibraryCApiTests/`（`CommonEntryTests.swift`、`NotificationInstallTests.swift`、`StructLayoutTests.m`、`TestThreads.swift`）、`ios/IosLibraryCApiTestHost/` | XCTest 25 件と、配置の `_Static_assert` 147 行（`StructLayoutTests.m`。ビルドで効くので XCTest の件数に入らない。3.7 の C-1）。ホストは権限を求めない専用のアプリ（bundle id は `...IosLibraryCApiTestHost`） |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `entries`、`complete`、`public`、`modulemap`、`compile`、`layout`、`settings`、`install` を足した（3.3）。`NOT_IMPLEMENTED_YET` |
+| 照合の自己テスト | `scripts/tests/test_check_c_abi_contract_ios.py` | 215 → 277 件。雛形の木に capi のソース、プロジェクト、配置のテストを写す |
+| 文書（この作業） | 第 2 部の TB-10、TB-11、TB-12 の行、`scripts/README.md` | `--require-complete`、`--require-compile`、capi の xcframework は Release だけ。照合の説明、件数を 676 に |
+| 文書（別の作業） | 第 1 部 5.1、5.4、第 2 部の P2-26、8.4、9 章 | **この実装ではなく、メインのセッションが直した**。第 1 部は 5.1 の木に `IosLibraryCApiTestHost/`、5.4 に Debug の違い（3.2）。第 2 部の 3 か所は `check_design_consistency.py` の 3 件が消える形（3.6）。理由はここでは確かめていない |
+
+- **実装した関数は 12 個で、依頼の 13 個ではない**: `Common.h` の 11 と `ntk_notification_install`。付録 A の `Common.h` の関数は 11（`ntk_version`、`ntk_last_system_code`、`ntk_string_*` 3、`ntk_bytes_*` 3、`ntk_string_list_*` 3）で、数え違いがあるとすれば依頼の側。一覧は 122 個
+- **`MainQueue.swift` は作っていない**: `ntk_notification_install` は積まず、`installDelegate()` がスレッドを見る。TB-1 で使う所が無いので、使う人のいない関数を足さず TB-2 に送る。`Clipboard/`、`Dialog/`、`Share/` のフォルダーも中身が来るまで無い（git は空のフォルダーを持てない）
+- `IosLibraryCApiTestHost` は、`IosLibraryCApiTests` が synchronized group で、その中に置くとテストのターゲットに入るので、`IosLibraryTestHost` と同じくテストと並べた。実装のときは第 1 部 5.1 の木に無く、今は 5.1 に行がある
+- `MARKETING_VERSION` は 2.0.0、`IosLibrary` は 1.3.0 のまま。P1-19 の「同じ版の組」の確かめは TB-2（C-9）と TB-11 で、版を上げるのはリリースの作業
+
+### 3.2 第 1 部 5.4 の Debug の違い（実装者の提案。持ち主の承認待ち）
+
+**`@testable import IosLibraryCApi` は、第 1 部 5.4 の設定のままでは使えない**。第 2 部 12.1 はこれを前提にしているが、確かめられていなかった。TB-1 でも、公開の関数でハンドルを作る口がまだ無いので `Handle.make*` を呼ぶのに要る。
+
+| 設定 | 起きたこと |
+|---|---|
+| `SWIFT_INSTALL_MODULE=NO` | framework に `.swiftmodule` が無く、`@testable import` は **C の clang モジュールを黙って読んで成功する**。`Handle` が `cannot find 'Handle' in scope` になる |
+| `EXPORTED_SYMBOLS_FILE`（`_ntk_*`） | Swift の内部のシンボルが出ないので、モジュールを見せてもテストがリンクできない |
+
+**Debug だけを次にした（Release は 5.4 の表のとおり）**: `SWIFT_INSTALL_MODULE=YES`、`OTHER_LDFLAGS` に `-Wl,-exported_symbol,_$$s14IosLibraryCApi*`。`-exported_symbols_list` はそのままなので、Debug の公開シンボルは `_ntk_*` に `_$s14IosLibraryCApi*` が足されたものだけ。
+
+**扱い**: この違いは**実装者の提案**で、第 1 部 5.4 の `SWIFT_INSTALL_MODULE` の行に書いてある（メインのセッションが書いた）。**2026-11-03 に持ち主が推奨のとおり決めた**。
+
+**止め**: 5.4 の行は TB-11 の `Modules/` の照合を挙げるが、それはまだ無い。TB-1 では `settings` の照合が、Release の 5.4 の設定と、Debug との差がこの 2 つだけであること、archive が Release であることを見る（3.3）。TB-11 の行に、capi の xcframework は Release だけを受けると書いた（今のビルドのスクリプトは `--configuration debug` を受ける）。
+
+**限り**: `_$s14IosLibraryCApi*` は標準の型の拡張（`$sSS14IosLibraryCApi…E…`）に当たらない。TB-2 以降で `extension String` を内部で足してテストから呼ぶと、テストのリンクで止まる（レビューの指摘。試していない）。
+
+### 3.3 照合に足したこと
+
+| ID | 比べるもの | 落ちる例 |
+|---|---|---|
+| `entries` | H と E（第 1 部 5.5）。`@c @implementation public func` の名前 | `NOT_IMPLEMENTED_YET` にあるのに入口がある、どちらにも無い、一覧にあってヘッダーに無い、入口があってヘッダーに無い、一覧の重なり。**一覧に名前を足す変更は通る** |
+| `complete` | 一覧が空（H = E そのもの） | `--require-complete` のとき、一覧が空でない。旗なしは `SKIP`（`OK` の中に埋めない）。一覧に足して関数を隠す変更を止めるのはこれだけで、TB-10、TB-11、TB-12 が付ける |
+| `public` | E = P。`public` と、宣言の `open` がすべて入口 | 入口でない `public`（内部の型のメンバーを含む）。コメント、文字列、`open` という名前のメソッドは数えない |
+| `modulemap` | 第 1 部 5.1 の形だけを受け、`header` の集合 = `include/NativeToolkitC/*.h` | 抜け、余り、重なり、`private header` など別の形、`export *` なし。順は見ない |
+| `compile` | 各ヘッダー × C99・C11・C++11・Objective-C × framework の枝と写しの枝で 40 回。`-Wall -Wextra -Werror -pedantic`、`arm64-apple-ios18.0`。**配置のテストを 3 つのスライス（実機の arm64、シミュレーターの arm64 と x86_64）で 3 回** | 言語ごと、枝ごと、旗ごとに落ちることを確かめた。Xcode が無ければ SKIP（TA-2 の照合と同じ）、`--require-compile` なら落ちる |
+| `layout` | ヘッダーのすべての構造体と項目に、配置のテストの行がある。`#` の行が決まった 7 行だけ（`#if 0` や別の `#define` で行を無効にできない）。プロジェクトがこのファイルを名指ししない（synchronized group から外せない） | 行の抜け、余り、重なり、コメントにした行、読めない項目。数は `_Static_assert` がコンパイラーと比べる |
+| `settings` | framework の Release が第 1 部 5.4 のとおり（プロジェクトの設定を継ぐものを含む）。Debug との差が 3.2 の 2 つだけ。条件つきの設定なし。archive が Release | `SWIFT_INSTALL_MODULE` を Release で戻す、Release に `-exported_symbol`、Debug の別の差、xcconfig（読めないので落ちる）。`MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS` と 5.4 の署名、ビルドの Xcode は見ていない |
+| `install` | `NotificationDelegateInstallResult` の全 case に、受け口の `case .x:` がある | 新しい case（`@unknown default` があるのでコンパイラーは警告だけで、`UNKNOWN` になる） |
+| `symbols`（変えた） | `_ntk_*` と 8.2 から一覧を引いたもの | 一覧の関数を公開した。**依頼には無いが、変えないと TB-10 まで本物のバイナリで `--library` が必ず落ちる** |
+
+- `-pedantic` は 12.3 に無い。付けないと clang の `-std=c99` の意味がほとんど無く、付けても付録 A は通ったので足した
+- **`--design-only` は本物の木で落ちるようになった**（`.h` があるので。予定どおり）。`entries`、`public`、`modulemap`、`compile`、`layout`、`settings`、`install` はその回では SKIP
+- `signatures` が本物のヘッダーで初めて流れ、最初から通った（345 件の宣言）。**付録 A との食い違いは無い**
+
+### 3.4 コマンドと結果
+
+Xcode 26.6 は `DEVELOPER_DIR` で選び、`xcode-select` は 26.3 のまま。
+
+```
+xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -parallel-testing-enabled NO \
+  -destination 'platform=iOS Simulator,id=<UDID>[,arch=x86_64]' -derivedDataPath <scratch> [-enableThreadSanitizer YES] test
+```
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2、arm64） | 25/25（レビューの直しの後。直す前は配置の 4 件を含む 29/29） |
+| 同（iPhone 16 / 18.3、arm64） | 25/25 |
+| 同（iPhone 16 / 18.3、**x86_64**。Rosetta） | 25/25。配置の表はこのスライスでもビルドで効く |
+| 同 TSan（iPhone 17 Pro / 26.2） | 25/25。報告 0 件。framework は `libclang_rt.tsan_iossim_dynamic` にリンクしている |
+| framework の Release（`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`） | 組めた。arm64 の thin。`Modules/` は `module.modulemap` だけ、`-Swift.h` なし |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`） | 組めた。x86_64 と arm64 の fat。同じ中身 |
+| モジュールの検証 | Debug も Release も走った（`--language c`、`c++`、`objective-c`、`objective-c++`、`--standard c99`、`gnu11`、`c++11`、`gnu++17`） |
+| テストの `build-for-testing`（`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`） | 組めた。流していない（実機は使わない）。配置の表は実機のスライスでここで効く |
+| 公開シンボル（`nm -gU`。Release） | 実機の arm64、シミュレーターの arm64 と x86_64 のどれも次の 12 個だけ: `_ntk_version`、`_ntk_last_system_code`、`_ntk_string_data`、`_ntk_string_size`、`_ntk_string_free`、`_ntk_bytes_data`、`_ntk_bytes_size`、`_ntk_bytes_free`、`_ntk_string_list_count`、`_ntk_string_list_at`、`_ntk_string_list_free`、`_ntk_notification_install` |
+| `check_c_abi_contract_ios.py --library <実機> --architectures arm64` | `OK symbols`（12 symbols、1 architectures）。TA-1 の後で初めて本物の iOS のバイナリに当てた |
+| `check_c_abi_contract_ios.py --library <シミュレーター> --architectures arm64,x86_64` | `OK symbols`（12 symbols、2 architectures） |
+| `python3 scripts/check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP は `complete` と `symbols`。関数 134、宣言 345、入口 12（残り 122）、module map 5、コンパイル 43、構造体 16、項目 131 |
+| `python3 scripts/check_c_abi_contract_ios.py --require-complete` | exit 1。`FAIL complete`（122 個。今は落ちるのが正しい） |
+| `python3 scripts/check_design_consistency.py`（第 2 部） | exit 0。FAIL 0（3.6） |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_c_abi_contract_ios.py'` | Ran 277 tests、OK。116 秒 |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_manual_c_examples_ios.py'` | Ran 33 tests、OK。本物のヘッダーができても変わらない |
+| `check_manual_c_examples_ios.py` | exit 0、`SKIP`（例が無い） |
+
+**既存のものが変わっていないこと**:
+
+| 確かめ | 結果 |
+|---|---|
+| `git status`、`git diff` | `ios/IosLibrary`、`ios/IosLibraryExample` に差なし。スキームのファイルも同じ |
+| `xcodebuild -list -workspace`（26.3） | `IosLibrary`、`IosLibraryCApi`、`IosLibraryCApiTestHost`、`IosLibraryExample`、`IosLibraryTestHost`。足されたのは `IosLibraryCApi*` の 2 つ（`IosLibraryCApiTestHost` は `IosLibraryTestHost` と同じく自動の scheme） |
+| サンプルの `build-for-testing`（26.3 と 26.6、`generic/platform=iOS Simulator`） | 組めた。ログに `IosLibraryCApi` は 0 行 |
+| `IosLibrary` の `build`（26.3） | 組めた。ログに `IosLibraryCApi` は 0 行 |
+| `IosLibraryTests` | 流していない。プロジェクトに触れていない |
+
+### 3.5 壊して確かめたこと（使い捨ての写し）
+
+**照合（1 回目）**: 57 個を、変異なしの回が通る（55 件）ことを確かめてから流した。**57/57 が落ちた**。`entries` の 5 つの判定と読み取り（`public`・`@implementation` なし、コメントを読む、探す場所）、一覧の増減（名前を消す、実装済みの名前を足す、知らない名前を足す）、`public` の 5 つ、`modulemap` の 7 つ、`compile` の 21 個（言語、標準、旗、枝、結果の無視、`--clang`、`--require-compile`）、`layout` の 7 つ、`symbols`、`--design-only`。一覧の増減は、壊さない木を確かめる `setUpClass` で落ちる。形を変えても契約を保つ書き方（複数行の入口、別のフォルダーの入口、module map の順とコメント）は通ることをテストで固定した。
+
+**照合（レビューの直しの後）**: 上の 57 個に新しい 25 個（`complete`、`settings`、`install`、`layout`）を足した 82 個を流し、76 個が落ちて 6 個が残った。テストの穴と余分な判定で、次のとおり塞いだ。**塞いだ後に流し直したのはこの 5 個だけで、全部の回はしていない**（5/5 が落ちた）。
+
+| 残った変異 | 原因 | 直し |
+|---|---|---|
+| 条件つきの設定を許す | テストが片方の構成だけに足していて、構成の差で落ちていた | 両方の構成に足す |
+| xcconfig を許す | 判定が余分だった。xcconfig のある構成は読み取りから外れて、別の判定で落ちる | 判定を消した（残りは 81 個） |
+| case を 1 つも読めなくても通す | テストが無かった | enum の名前を変えるテストを足した |
+| `.x` の言及を case と数える | テストが `case` の行を消すだけだった | `case` でない言及を残すテストを足した |
+| スライスを 1 つにする、全部を実機の target で流す | テストが照合の `LAYOUT_SLICES` を読み、自分と比べていた。名前だけのテストでは target を見ていない | スライスの名前を手で書く。1 つの target でだけ定義される `__x86_64__` と `__APPLE_EMBEDDED_SIMULATOR__` で壊すテストを足した |
+
+また、自己テストを足す途中で本物の穴が 2 つ見つかって直した: `"KEY[sdk=...]"` のキーを読めていなかった、Release の `OTHER_LDFLAGS` を見ていなかった。
+
+**framework と C のテスト**（iPhone 17 Pro / 26.2。変異なしの回が通ることを確かめた）: 33 個に後の 1 個を足して 34 個。下の表はレビューの前の版の結果で、`out_size` と配置の行は、この節の最後の流し直しに置き換わる。
+
+| 壊し方 | 落ちたテスト |
+|---|---|
+| U+0000 を残す、`?` にする | `testStringReplacesU0000WithFFFD`、`testStringListItems` |
+| `NSString` の `data(using:)` を通す（1a で測った失敗の形） | `testStringReplacesUnpairedSurrogatesWithFFFD` ほか |
+| 終端の NUL が無い | `testStringKeepsItsText` ほか 4 つ |
+| 空のバイト列が `NULL`、バイト列を文字列として扱う | `testBytesOfSizeZeroHaveAPointer`、`testBytesAreKeptAsTheyAre` |
+| 違う型を読めるようにする（2 通り） | `testReadingAHandleAsAnotherTypeGivesNullOrZero` |
+| `_free` が何もしない | `testAHandleHoldsItsObjectUntilItsFree` |
+| 失敗でも `out_size` を書く | `testStringListNull` ほか 3 つ |
+| 負の添字を見ない、最後の 1 つ先まで通す | プロセスが落ちる（`Restarting after unexpected exit`）。両方とも検出 |
+| 常に最初の項目、最初の項目の大きさ | `testStringListItems` |
+| `ntk_string_size` が 1 多い | `testStringKeepsItsText` ほか 3 つ |
+| `ntk_last_system_code` が 1 | `testLastSystemCodeIsAlwaysZero` |
+| 版（入口、ヘッダーの `NTK_VERSION`、`MARKETING_VERSION`） | `testVersionIsTheOneOfTheHeader`、`testVersionIsTheOneOfTheFramework` |
+| `notMainThread` を `NONE` に、`WRONG_THREAD` の番号を 17 に、`installed` を `UNKNOWN` に | `testEveryResultOfTheLibraryIsMapped` ほか、`testTheNumbersAreThoseOfTheTable` |
+| 入れない | `testOnTheMainThread…` ほか 4 つ |
+| main 以外: 返しつつ後で入れる / main を待つ | `testOffTheMainThread…`（後者は `testLastSystemCodeIsAlwaysZero` も） |
+| main: 積むだけで返す | `testOnTheMainThread…` ほか |
+| main キューかどうかで判定（`__dispatch_queue_get_label`） | `testInsideASerialQueueOnTheMainThreadItIsTheMainThread` |
+| ヘッダーの項目を大きくする、2 つ入れ替える | `testNotificationStructs`、`testDialogStructs` |
+| ヘッダーの項目（詰め物を含む）を消す（2 通り） | テストが**組めない**（`no member named`）。検出だが XCTest の失敗ではない |
+| 表の `sizeof`、`offsetof` の数 | `testShareStructs`、`testNotificationStructs` |
+| TSan: 読み取りに競合を入れる | `Swift access race`、スタックは `Handle.stringSize` → `ntk_string_size` → `testHandlesAreReadFromManyThreadsAndFreedOnAnother`。ホストが止まる |
+
+- **1 個は最初に残った**: 「`OperationQueue.current != .main` で判定する」は通った。main スレッドの上の `DispatchQueue(label:).sync` の中でも `OperationQueue.current` は main を返すので、キューで判定する変異になっていなかった（同じ動きの変異）。`__dispatch_queue_get_label` に直すと落ちた
+- 変異で落としたホストの crash report（`~/Library/Logs/DiagnosticReports` の `IosLibraryCApiTestHost-*.ips` 4 つ）は、ここに記録してから消した
+
+**レビューの直しの後に流し直した分**（変異なしの回で、テストと実機のスライスのビルドが通ることを確かめた）: 9/9 が落ちた。
+
+| 壊し方 | 落ち方 |
+|---|---|
+| 失敗で `out_size` を書かない、1 を書く | `testStringListNull`、`testStringListEmpty`、`testStringListOutOfRange`、`testReadingAHandleAsAnotherTypeGivesNullOrZero` |
+| 項目があるのに `out_size` を書かない | `testStringListItems` |
+| 入れない（proxy が `nil` のまま） | `testCallAfterTheHostReplaced…` ほか |
+| 表の `sizeof`、`offsetof`（シミュレーター） | ビルドが `static assertion failed` で止まる |
+| 表の `sizeof`（**実機のスライス**。`generic/platform=iOS`） | 同じ。流さずに止まる |
+| ヘッダーの項目を大きくする、2 つ入れ替える | 同じ |
+
+### 3.6 確かめられていないこと、残っているもの
+
+- **実機では何も流していない**（指定どおり）。実機のスライスは組めることと、公開シンボルと、配置の静的な確かめだけ。実機の `IosLibraryCApiTests` は 2b の DoD の区切り（P1-20）
+- **シミュレーターは指定の 2 台**。第 2 部 15.2 の iPhone 17 / 26.2 と iPad Pro 11-inch (M4) / 18.3 では流していない（`test_ios.sh` につなぐ TB-12）。ASan も流していない（依頼は TSan だけ）
+- **Xcode 26.3 では capi を組まない**（`@c` に Swift 6.3 が要る）。ワークスペースに入っていても、サンプルと `IosLibrary` の scheme は capi に触れないことを確かめた。Xcode 26.3 で開いたときの画面は見ていない
+- **ホストが権限を求めないことを守るテストは無い**: 答えなければ状態は `notDetermined` のままで、テストでは区別できない。今はコードに要求が無いこととコメントだけ
+- `check_design_consistency.py` は、TB-1 の実装の時点では第 2 部で 3 件落ちていた（`OP set`、`OP ids ascending`、`markdown table column counts`。HEAD の版でも同じ）。**メインのセッションが第 2 部を直した後の今は FAIL 0**（流して確かめた）
+- C-9（最初の呼び出しの版の確かめ）、`StructReader`、`Registry`、入力の `CApiString`、`MainQueue` は TB-2
+- 第 2 部 12.1 の「8.2 の名前がテストのソースに現れる」、実行時のクラスのテストは足していない
+- **`storage.deallocate()` を消す変異を落とすテストは無い**（レビューの C-7）。`testAHandleHolds…` はハンドルの解放だけを見る。リークは ASan でも普通は出ないので、メモリの回（`leaks` か `malloc_zone_statistics` の差）で見るまで確かめていない
+- 第 1 部 6 章の「ヘッダーの `/* sizeof N */` と照らす」: 付録 A にその形のコメントは無く、第 2 部 12.3 のとおり期待値はテストの中に置いた。数は付録 A から LP64 の規則で計算したもの（コンパイラーの出力を写していない）
+
+### 3.7 レビュー（Claude。A 1、B 3、C 8）と直したこと
+
+Codex は Common のコードに A も B も無し。各指摘は実物で確かめてから直した。**退けたものは無い**（C-8 だけ持ち主の判断に回した）。
+
+| 指摘 | 確かめたこと | 直し |
+|---|---|---|
+| **A-1**: `ntk_string_list_at` が失敗で `out_size` を書かない | **Android（`Common/Handles.cpp`）も Windows（同）も `*out_size = 0`**。Windows のテスト（`CApiCommonTest.cpp`）は 99 から 0 になることを確かめている。Android の Clipboard・Notification の `At` と Windows の Notification の読み取りも同じ形。**私が第 1 部 1.1 の「値の出力は成功したときだけ」を、列挙・真偽値・要求の ID のほかの読み取りにまで広げて読んだ誤り** | 失敗で 0 を書く。逆を固定していた 4 つのテストを反転した。iOS で `out_size` を持つ読み取りは今これだけ。**TB-3 以降の読み取りも同じ形にする**（付録 A の "An index out of range gives NULL or 0"） |
+| **B-1**: 一覧に足せば関数を隠し続けられる | `check_entries` に入口なしの名前を一覧つきで与えて `True` を確かめた | `--require-complete` と `complete` の行。第 2 部の TB-10、TB-11、TB-12 の行。「only shrinks」の文を直した。`check_ios_dist.py` への組み込みと 15.2 の文は TB-11 に任せた |
+| **B-2**: 記録が今の木と違う | そのとおり | 3.1、3.2、3.6 を直した |
+| **B-3**: Debug の止めが TB-11 だけ | Release を `YES` に戻しても何も落ちなかった | `settings`。TB-11 の行に「Release だけ」 |
+| **C-1**: `layout` は行の文字を読むだけで、メソッド名を変えても `#if 0` でも通る | そのとおり。3 つのスライスで `_Static_assert` が通ることを確かめた | 配置のテストを `_Static_assert` にし、XCTest のメソッドを無くした（29 → 25 件）。`#` の行を固定。照合が 3 スライスでコンパイルする。**12.1 の「3 つのスライス」に届いた** |
+| **C-2**: 配列や関数ポインタの項目で traceback | そのとおり | 配列を読み、読めないものは `layout` の FAIL |
+| **C-3**: `--require-compile` を付ける所が無い | そのとおり | TB-12 の行 |
+| **C-4**: `isDelegateInstalled` の比較がほぼ無意味 | 全件の回ではいつも真 | 比較を消した。残りの 1 行に「単独で流すときだけ効く」 |
+| **C-5**: `nil === nil` で通る | そのとおり | `XCTAssertNotNil(proxy)` を 2 か所 |
+| **C-6**: 新しい case が `UNKNOWN` になる | そのとおり | `install` の行 |
+| **C-7**: `deallocate` を消す変異が落ちない | そのとおり | 直していない。3.6 に書いた（今のテストの形では見られない） |
+| **C-8**: `ios.md` と `common.md` に capi の行が無い、XCTest の記述 | そのとおり | **直していない**。`agent-rules` はこの作業で触らない。持ち主の判断 |
