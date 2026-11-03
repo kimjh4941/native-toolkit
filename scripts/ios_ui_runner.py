@@ -209,6 +209,44 @@ LEDGER_LINE = re.compile(r"^[0-9a-f]{32}\t\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\+
 IOS_OUTPUT_PREFIX = "ios/IosLibraryExample/build/"
 
 
+# The UI tests of the C ABI (C ABI design part 2, TB-2b, 12.2; `test_ios.sh --capi-ui`). They run on the
+# simulator only and nothing here reaches the device's stages: no declarations, no approval, no
+# --device-allow. A class of the table runs as a whole, or, when the second value is true, one test per
+# xcodebuild with the app deleted before each (a new install: the notification permission undetermined,
+# stage 2 working notes, chapter 5). In this order, so that what the permission tests leave is what the
+# other classes start from (as the sample's permission stage, U-7). Every enumerated class must be here
+# and every class here must be enumerated.
+CAPI_UI_TARGET = "IosLibraryCApiUITests"
+CAPI_UI_BASE_CLASS = "CApiUITestCase"
+CAPI_UI_APP_TARGET = "IosLibraryCApiUITestApp"
+CAPI_UI_BUNDLE_ID = "com.jonghyunkim.nativetoolkit.IosLibraryCApiUITestApp"
+CAPI_TEST_HOST_TARGET = "IosLibraryCApiTestHost"
+CAPI_TEST_HOST_BUNDLE_ID = "com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost"
+CAPI_UI_CLASSES = (
+    ("CApiFreshInstallUITests", True),
+    ("CApiRoundTripUITests", False),
+)
+# The app calls the library through C only: `IosLibrary` is embedded for the framework's sake, and
+# importing it would compile (TB-2b). A row must not reach the system directly either, or it would
+# report what the C function should have done: these names are what the four features wrap, and the
+# ways to reach a class by its name.
+CAPI_APP_IMPORTS = frozenset({"Foundation", "IosLibraryCApi", "SwiftUI", "UIKit", "os"})
+CAPI_APP_ROW_IMPORTS = frozenset({"Foundation", "IosLibraryCApi", "os"})
+CAPI_APP_ROWS_DIR = "Rows"
+CAPI_APP_FORBIDDEN_NAMES = frozenset({
+    "UIPasteboard", "UIPasteControl", "PasteButton", "UNUserNotificationCenter", "UIAlertController",
+    "UIActivityViewController", "ShareLink", "confirmationDialog", "openSettingsURLString",
+    "NSClassFromString", "objc_getClass", "dlopen", "dlsym",
+})
+# Both targets exist for the simulator only: Xcode and xcodebuild offer no device as a destination for
+# them. A command-line override (`-sdk iphoneos SUPPORTED_PLATFORMS=iphoneos`) can still force a device
+# build; agent-rules/device-testing.md, not this setting, covers that.
+CAPI_SIMULATOR_ONLY_SETTINGS = ("SDKROOT = iphonesimulator;", "SUPPORTED_PLATFORMS = iphonesimulator;")
+CAPI_HEADERS_DIR = pathlib.Path(__file__).resolve().parents[1] / "ios" / "IosLibraryCApi" / "include" / "NativeToolkitC"
+# The one Xcode that compiles `@c @implementation` (26.3 does not know `@c`).
+CAPI_UI_XCODE = "26.6"
+
+
 class RunnerError(Exception):
     """A check failed; the message says which and why."""
 
@@ -1453,7 +1491,7 @@ def ran_exactly_problems(result_keys, expected_keys):
     return problems
 
 
-def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out, expected_device):
+def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out, expected_device, target=UI_TARGET):
     """Results of one UI xcodebuild run as baseline records, and whether a device run must stop
     now: no result bundle, a time-out, a destination other than the requested one, a test case
     whose name cannot be read or that has a shape the runner does not know, a summary that does
@@ -1464,7 +1502,7 @@ def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out
 
     def pseudo(problem, message, stops=True):
         nonlocal stop
-        records.append({"test": f"{UI_TARGET}/{name}#{problem}", "result": "failed", "message": message})
+        records.append({"test": f"{target}/{name}#{problem}", "result": "failed", "message": message})
         stop = stop or stops
 
     if timed_out:
@@ -1486,8 +1524,8 @@ def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out
         except RunnerError as e:
             pseudo("unreadableName", str(e))
             continue
-        if case["bundle"] != UI_TARGET:
-            pseudo("otherBundle", f"{case['node']} is in {case['bundle']}, not in {UI_TARGET}")
+        if case["bundle"] != target:
+            pseudo("otherBundle", f"{case['node']} is in {case['bundle']}, not in {target}")
             continue
         if case["unknownShape"]:
             pseudo("unknownShape", f"{case['node']} has {case['unknownShape']}")
@@ -1501,7 +1539,7 @@ def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out
         pseudo("exitCode", f"xcodebuild exited with {exit_code} although no test failed", stops=False)
     for case, key in pairs:
         outcome, note = classify(key, case["result"], case["skipReason"])
-        records.append({"test": f"{UI_TARGET}/{key}", "result": outcome, "message": note or case["message"],
+        records.append({"test": f"{target}/{key}", "result": outcome, "message": note or case["message"],
                         "raw": case["result"]})
     return records, stop
 
@@ -1656,6 +1694,364 @@ def make_baseline(env, plan, results, xcode):
 
 
 # --- Command line -----------------------------------------------------------------------------
+
+# --- The UI tests of the C ABI (TB-2b) ----------------------------------------------------------
+
+def capi_key_from_enumeration_id(identifier):
+    """`IosLibraryCApiUITests/<Class>/<method>()` -> `<Class>/<method>`."""
+    parts = identifier.split("/")
+    if len(parts) != 3 or parts[0] != CAPI_UI_TARGET or not parts[2].endswith("()"):
+        raise RunnerError(f"unexpected enumeration identifier: {identifier}")
+    return _checked_key(f"{parts[1]}/{parts[2][:-2]}", identifier)
+
+
+def capi_parse_enumeration(text):
+    """The test identifiers of the scheme, in order. The scheme holds this one target, so an entry of
+    any other stops the run, as does a class without methods other than the base."""
+    data = json.loads(text)
+    if data.get("errors"):
+        raise RunnerError(f"the enumeration reported errors: {data['errors']}")
+    values = data.get("values")
+    if not isinstance(values, list) or len(values) != 1:
+        raise RunnerError("the enumeration must have exactly one value (one test plan configuration)")
+    if values[0].get("disabledTests"):
+        raise RunnerError(f"the enumeration lists disabled tests: {values[0]['disabledTests']}")
+    identifiers = []
+    for test in values[0].get("enabledTests", []):
+        identifier = test["identifier"]
+        if identifier == f"{CAPI_UI_TARGET}/{CAPI_UI_BASE_CLASS}":
+            continue
+        capi_key_from_enumeration_id(identifier)
+        identifiers.append(identifier)
+    return identifiers
+
+
+def capi_enumeration_problems(identifiers):
+    problems = []
+    repeated = duplicates(identifiers)
+    if repeated:
+        problems.append(f"the enumeration repeats identifiers: {repeated}")
+    classes = {class_of(capi_key_from_enumeration_id(i)) for i in identifiers}
+    known = {c for c, _ in CAPI_UI_CLASSES}
+    if classes != known:
+        problems.append(f"the enumerated classes differ from CAPI_UI_CLASSES: not listed {sorted(classes - known)}, "
+                        f"not enumerated {sorted(known - classes)}")
+    return problems
+
+
+def capi_make_plan(kind, udid, identifiers):
+    """The xcodebuild runs of `--capi-ui`, in the shape of make_plan's invocations. Refuses anything but
+    a simulator: there is no approval and no selection by category here."""
+    if kind != "simulator":
+        raise RunnerError("the UI tests of the C ABI run on the simulator only (C ABI design part 2, 12.2)")
+    problems = capi_enumeration_problems(identifiers)
+    if problems:
+        raise RunnerError("; ".join(problems))
+    invocations = []
+
+    def add(stage, name, cls, named, expected, uninstall):
+        invocations.append({"index": len(invocations), "stage": stage, "name": name, "class": cls,
+                            "onlyTesting": named, "expected": [capi_key_from_enumeration_id(i) for i in expected],
+                            "timeout": DEFAULT_TIMEOUT_SECONDS, "uninstallBefore": uninstall})
+
+    for cls, fresh in CAPI_UI_CLASSES:
+        tests = [i for i in identifiers if class_of(capi_key_from_enumeration_id(i)) == cls]
+        if fresh:
+            for identifier in tests:
+                add("fresh", capi_key_from_enumeration_id(identifier), cls, [identifier], [identifier], True)
+        else:
+            add("ui", cls, cls, [f"{CAPI_UI_TARGET}/{cls}"], tests, False)
+    return {"schema": 1, "kind": kind, "udid": udid, "target": CAPI_UI_TARGET, "invocations": invocations}
+
+
+def capi_only_testing_arguments(invocation):
+    """Never empty: without -only-testing every test runs, and a fresh test would not be alone."""
+    names = invocation.get("onlyTesting") or []
+    if not names:
+        raise RunnerError(f"{invocation.get('name')}: no -only-testing, so xcodebuild would run every test")
+    for name in names:
+        if not name.startswith(CAPI_UI_TARGET + "/"):
+            raise RunnerError(f"{name}: not a test of {CAPI_UI_TARGET}")
+    return [f"-only-testing:{name}" for name in names]
+
+
+def _target_build_settings(pbxproj_text, target):
+    """The build settings text of each configuration of a target; empty when it cannot be found."""
+    listed = re.search(r'/\* Build configuration list for PBXNativeTarget "' + re.escape(target)
+                       + r'" \*/ = \{.*?buildConfigurations = \((.*?)\);', pbxproj_text, re.S)
+    if not listed:
+        return []
+    blocks = []
+    for identifier in re.findall(r"([0-9A-F]{24}) /\*", listed.group(1)):
+        block = re.search(identifier + r" /\* \w+ \*/ = \{\s*isa = XCBuildConfiguration;\s*buildSettings = \{(.*?)\n\t\t\t\};",
+                          pbxproj_text, re.S)
+        if block:
+            blocks.append(block.group(1))
+    return blocks
+
+
+def capi_project_problems(pbxproj_text, framework_scheme_text):
+    """The app is not the bundle of `IosLibraryCApiTests`' host: the permission its UI tests grant would
+    make the `PERMISSION_DENIED` rows fail (C ABI design part 2, 12.1). And the framework's scheme, the
+    one its unit tests run with (on the private device too, part 2, 12.2), holds no UI test."""
+    problems = []
+
+    def require(target, setting):
+        blocks = _target_build_settings(pbxproj_text, target)
+        if len(blocks) != 2:
+            problems.append(f"project.pbxproj: {target} does not have its two configurations")
+        for block in blocks:
+            if setting not in block:
+                problems.append(f"project.pbxproj: {target} must have {setting}")
+
+    require(CAPI_UI_APP_TARGET, f"PRODUCT_BUNDLE_IDENTIFIER = {CAPI_UI_BUNDLE_ID};")
+    for target in (CAPI_UI_APP_TARGET, CAPI_UI_TARGET):
+        for setting in CAPI_SIMULATOR_ONLY_SETTINGS:
+            require(target, setting)
+        for block in _target_build_settings(pbxproj_text, target):
+            if "DEVELOPMENT_TEAM" in block:
+                problems.append(f"project.pbxproj: {target} must not have a DEVELOPMENT_TEAM")
+            if "[sdk=" in block:
+                problems.append(f"project.pbxproj: {target} must not have settings for one SDK")
+    if "baseConfigurationReference" in pbxproj_text:
+        problems.append("project.pbxproj: an xcconfig could change the settings the targets are checked for")
+    require(CAPI_TEST_HOST_TARGET, f"PRODUCT_BUNDLE_IDENTIFIER = {CAPI_TEST_HOST_BUNDLE_ID};")
+    require(CAPI_UI_TARGET, f"TEST_TARGET_NAME = {CAPI_UI_APP_TARGET};")
+    require("IosLibraryCApiTests", f"/{CAPI_TEST_HOST_TARGET}.app/")
+    if len({CAPI_UI_BUNDLE_ID, CAPI_TEST_HOST_BUNDLE_ID, SAMPLE_BUNDLE_ID}) != 3:
+        problems.append("the app of the UI tests must have a bundle identifier of its own")
+    if CAPI_UI_TARGET in framework_scheme_text or CAPI_UI_APP_TARGET in framework_scheme_text:
+        problems.append(f"the framework's scheme names {CAPI_UI_TARGET} or {CAPI_UI_APP_TARGET}")
+    return problems
+
+
+def capi_header_functions(headers_dir=CAPI_HEADERS_DIR):
+    """The C functions of the public headers (a callback type or a typedef is not one)."""
+    names = set()
+    for path in pathlib.Path(headers_dir).glob("*.h"):
+        names.update(re.findall(r"\bNTK_CALL\s+(ntk_\w+)\s*\(", path.read_text(encoding="utf-8")))
+    return names
+
+
+def _capi_tokens(path, relative, problems):
+    try:
+        return lex(path.read_text(encoding="utf-8"))
+    except LexError as e:
+        problems.append(f"{relative}: cannot be read: {e}")
+        return []
+
+
+def _is_call(tokens, i, functions):
+    """Tokens are code only: a comment is gone, and a string is one token of kind `string`."""
+    following = _at(tokens, i + 1)
+    return (tokens[i].kind == "ident" and tokens[i].text in functions and following is not None
+            and following.kind == "punct" and following.text == "(" and not _word(_at(tokens, i - 1), "func"))
+
+
+def _paren_end(tokens, open_index):
+    depth = 0
+    for j in range(open_index, len(tokens)):
+        if tokens[j].kind == "punct" and tokens[j].text == "(":
+            depth += 1
+        elif tokens[j].kind == "punct" and tokens[j].text == ")":
+            depth -= 1
+            if depth == 0:
+                return j
+    return len(tokens) - 1
+
+
+def _capi_import_problems(relative, tokens, in_rows):
+    problems = []
+    allowed = CAPI_APP_ROW_IMPORTS if in_rows else CAPI_APP_IMPORTS - {"IosLibraryCApi"}
+    for i, token in enumerate(tokens):
+        if not _word(token, "import") or _at(tokens, i - 1) is not None and _at(tokens, i - 1).text == ".":
+            continue
+        before = _at(tokens, i - 1)
+        if before is not None and (before.kind == "attr" or before.text == ")" or _word(before, "internal", "public",
+                                                                                        "package", "private", "fileprivate")):
+            problems.append(f"{relative}:{token.line}: something before an import ({before.text})")
+        j = i + 1
+        if _word(_at(tokens, j), "class", "struct", "enum", "protocol", "typealias", "func", "var", "let"):
+            j += 1
+        module = _at(tokens, j)
+        if module is None or module.text not in allowed:
+            problems.append(f"{relative}:{token.line}: imports {module.text if module else 'nothing'}")
+    return problems
+
+
+def _capi_row_problems(relative, tokens, functions):
+    """Each row's closure makes a real call of a C function. A row that also reports a fixed value
+    (`_ = ntk_version(); report("0x020000")`) is left to a review."""
+    problems = []
+    for i, token in enumerate(tokens):
+        following = _at(tokens, i + 1)
+        if not _word(token, "CApiRow") or following is None or following.text != "(":
+            continue
+        close = _paren_end(tokens, i + 1)
+        opening = _at(tokens, close + 1)
+        if opening is None or opening.text != "{":
+            problems.append(f"{relative}:{token.line}: a row must take its call as a trailing closure")
+            continue
+        first, last = _brace_range(tokens, close + 1)
+        if not any(_is_call(tokens, k, functions) for k in range(first, last)):
+            problems.append(f"{relative}:{token.line}: this row calls no C function")
+    return problems
+
+
+def capi_source_calls(app_dir, headers_dir=CAPI_HEADERS_DIR):
+    """The C functions the sources of the app call."""
+    functions = capi_header_functions(headers_dir)
+    calls, ignored = set(), []
+    for path in pathlib.Path(app_dir).rglob("*.swift"):
+        tokens = _capi_tokens(path, path.name, ignored)
+        calls.update(t.text for k, t in enumerate(tokens) if _is_call(tokens, k, functions))
+    return calls
+
+
+def capi_app_source_problems(app_dir, headers_dir=CAPI_HEADERS_DIR):
+    """The app reaches the library through C only, in `Rows/`, and every row does. Judged on tokens, so
+    a comment or a string neither counts as a call nor hides an import."""
+    root = pathlib.Path(app_dir)
+    functions = capi_header_functions(headers_dir)
+    problems = []
+    if not functions:
+        problems.append(f"no C function found in the headers at {headers_dir}")
+    rows = 0
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        relative = path.relative_to(root).as_posix()
+        if path.name == ".DS_Store":
+            continue
+        if path.suffix != ".swift":
+            problems.append(f"{relative}: the app holds Swift sources only (the checks here read no other language)")
+            continue
+        tokens = _capi_tokens(path, relative, problems)
+        in_rows = relative.startswith(f"{CAPI_APP_ROWS_DIR}/")
+        problems += _capi_import_problems(relative, tokens, in_rows)
+        problems += _capi_row_problems(relative, tokens, functions)
+        for k, token in enumerate(tokens):
+            if token.kind in ("ident", "eident") and token.text in CAPI_APP_FORBIDDEN_NAMES:
+                problems.append(f"{relative}:{token.line}: {token.text} does directly what the C functions are tested for")
+            if _is_call(tokens, k, functions) and not in_rows:
+                problems.append(f"{relative}:{token.line}: calls C outside {CAPI_APP_ROWS_DIR}/")
+            if token.kind == "ident" and token.text.startswith("ntk_") and _word(_at(tokens, k - 1), "func", "let", "var"):
+                problems.append(f"{relative}:{token.line}: declares {token.text}, which would stand in for the C function")
+        if in_rows:
+            rows += sum(1 for k, token in enumerate(tokens) if _word(token, "CApiRow") and _at(tokens, k + 1) is not None
+                        and _at(tokens, k + 1).text == "(")
+    if not rows:
+        problems.append(f"no file of {CAPI_APP_ROWS_DIR}/ has a row")
+    return problems
+
+
+# The guards of the UI tests, token by token from the first token of the function: (file, function,
+# tokens). Comments are gone and nothing can come before them. A string stands for any literal, with no
+# interpolation, so a message cannot carry a label. What this cannot see: whether the code runs.
+_CAPI_ANY_STRING = object()
+_CAPI_REQUIRE = ["try", "Self", ".", "requireSimulator", "(", ")"]
+_CAPI_GUARDS = (
+    ("CApiUITestCase.swift", "requireSimulator",
+     ["if", "!", "targetEnvironment", "(", "simulator", ")", "throw", "CApiUITestError", "(", _CAPI_ANY_STRING, ")", "endif"]),
+    ("CApiUITestCase.swift", "setUpWithError", ["continueAfterFailure", "=", "false"] + _CAPI_REQUIRE),
+    ("CApiUITestCase.swift", "tearDownWithError",
+     _CAPI_REQUIRE + ["if", "springboard", ".", "alerts", ".", "count", ">", "0", "{",
+                      "throw", "CApiUITestError", "(", _CAPI_ANY_STRING, ")", "}"]),
+    ("CApiUITestCase.swift", "launchApp", _CAPI_REQUIRE),
+    ("CApiUITestApp.swift", "launch", ["try", "CApiUITestCase", ".", "requireSimulator", "(", ")"]),
+)
+
+
+def _capi_guard_problem(tokens, file, name, expected):
+    for i, token in enumerate(tokens):
+        if not (_word(token, "func") and _word(_at(tokens, i + 1), name)):
+            continue
+        j = i
+        while j < len(tokens) and tokens[j].text != "{":
+            j += 1
+        body = tokens[j + 1:j + 1 + len(expected)]
+        same = len(body) == len(expected) and all(
+            b.kind == "string" if e is _CAPI_ANY_STRING else b.kind != "string" and b.text == e for b, e in zip(body, expected))
+        return None if same else f"{file}: {name} must start with its guard, which throws"
+    return f"{file}: {name} is gone"
+
+
+def capi_test_source_problems(tests_dir):
+    """The guards of the UI tests that no fake run can see: the base's `final` entry points, the throw
+    of the simulator check and of the alert check, the check before every launch; every test class
+    under that base."""
+    root = pathlib.Path(tests_dir)
+    problems = []
+
+    base = _capi_tokens(root / "CApiUITestCase.swift", "CApiUITestCase.swift", problems)
+    for name in ("setUpWithError", "tearDownWithError"):
+        shapes = [[t.text for t in base[i:i + 4]] for i in range(len(base))]
+        if ["final", "override", "func", name] not in shapes:
+            problems.append(f"CApiUITestCase.swift: {name} must be final")
+    app = _capi_tokens(root / "CApiUITestApp.swift", "CApiUITestApp.swift", problems)
+    for file, name, expected in _CAPI_GUARDS:
+        problem = _capi_guard_problem(base if file == "CApiUITestCase.swift" else app, file, name, expected)
+        if problem:
+            problems.append(problem)
+    for path in sorted(root.rglob("*.swift")):
+        relative = path.relative_to(root).as_posix()
+        if relative == "CApiUITestCase.swift":
+            continue
+        tokens = _capi_tokens(path, relative, problems)
+        for i, token in enumerate(tokens):
+            if _word(token, "override"):
+                problems.append(f"{relative}:{token.line}: override (the base's entry points are final)")
+            if _word(token, "class") and [t.text for t in tokens[i - 1:i]] == ["final"] \
+                    and [t.text for t in tokens[i + 2:i + 4]] == [":", CAPI_UI_BASE_CLASS]:
+                continue
+            if _word(token, "class"):
+                problems.append(f"{relative}:{token.line}: a class must be `final class <Name>: {CAPI_UI_BASE_CLASS}`")
+    return problems
+
+
+def capi_binary_problems(nm_text, otool_text, calls):
+    """The app's own Mach-O files after the build (`nm -u`, `otool -L`): they load the C ABI and not
+    `IosLibrary`, use no Swift symbol of either, and import exactly the C functions the sources call."""
+    problems = []
+    undefined = {line.strip() for line in nm_text.splitlines() if line.strip() and not line.strip().endswith(":")}
+    swift = sorted(s for s in undefined if re.search(r"10IosLibrary|14IosLibraryCApi", s))
+    if swift:
+        problems.append(f"the app uses Swift symbols of the library: {swift[:5]}")
+    imported = {s[1:] for s in undefined if s.startswith("_ntk_")}
+    if imported != set(calls):
+        problems.append(f"the app's C imports differ from its sources: only in the binary {sorted(imported - set(calls))}, "
+                        f"only in the sources {sorted(set(calls) - imported)}")
+    if "IosLibrary.framework/" in otool_text:
+        problems.append("the app loads IosLibrary.framework itself")
+    if "IosLibraryCApi.framework/" not in otool_text:
+        problems.append("the app does not load IosLibraryCApi.framework")
+    return problems
+
+
+def capi_xcode_problem(xcode):
+    """`xcode` is `xcodebuild -version` on one line. None for the Xcode these sources compile with."""
+    if re.match(r"Xcode " + re.escape(CAPI_UI_XCODE) + r"(\.\d+)? ", xcode + " "):
+        return None
+    return (f"--capi-ui needs Xcode {CAPI_UI_XCODE}, not '{xcode}'. Run it as "
+            f"DEVELOPER_DIR=/Applications/Xcode{CAPI_UI_XCODE}.app/Contents/Developer scripts/test_ios.sh --udid <simulator> --capi-ui")
+
+
+def simulator_state(udid, simctl_devices_json):
+    for devices in json.loads(simctl_devices_json)["devices"].values():
+        for device in devices:
+            if device.get("udid") == udid:
+                return device.get("state", "unknown")
+    raise RunnerError(f"{udid} is not in simctl list")
+
+
+def capi_summary_problems(plan, results):
+    """Exactly the tests of the plan ran, and none failed. An intended skip does not exist here."""
+    problems = [f"{r['test']}: {r.get('message', '')}" for r in results if r["result"] != "passed"]
+    expected = sorted(f"{CAPI_UI_TARGET}/{k}" for inv in plan["invocations"] for k in inv["expected"])
+    ran = sorted(r["test"] for r in results if "#" not in r["test"])
+    if ran != expected:
+        problems.append(f"the results are not the planned tests: only ran {sorted(set(ran) - set(expected))}, "
+                        f"did not run {sorted(set(expected) - set(ran))}")
+    return problems
+
 
 def _read(path):
     return pathlib.Path(path).read_text(encoding="utf-8")
@@ -2046,6 +2442,88 @@ def cmd_summary(args):
     return 1 if failed else 0
 
 
+def cmd_capi_bundle_id(args):
+    print(CAPI_UI_BUNDLE_ID)
+    return 0
+
+
+def cmd_capi_check_sources(args):
+    problems = capi_project_problems(_read(args.pbxproj), _read(args.framework_scheme))
+    problems += capi_app_source_problems(args.app_dir, args.headers_dir)
+    problems += capi_test_source_problems(args.tests_dir)
+    for problem in problems:
+        print(f"  FAIL {problem}")
+    if problems:
+        return _fail(f"{len(problems)} problem(s) in the app of the C ABI's UI tests")
+    print("[sources] every row of the app calls C, nothing else reaches the library, and both targets are simulator only")
+    return 0
+
+
+def cmd_capi_check_binary(args):
+    problems = capi_binary_problems(_read(args.nm), _read(args.otool), capi_source_calls(args.app_dir, args.headers_dir))
+    for problem in problems:
+        print(f"  FAIL {problem}")
+    if problems:
+        return _fail(f"{len(problems)} problem(s) in the built app of the C ABI's UI tests")
+    print("[binary] the built app imports exactly the C functions of its sources and nothing of IosLibrary")
+    return 0
+
+
+def cmd_capi_check_xcode(args):
+    problem = capi_xcode_problem(args.xcode)
+    return _fail(problem, 2) if problem else 0
+
+
+def cmd_capi_simulator_state(args):
+    print(simulator_state(args.udid, _read(args.simctl_devices)))
+    return 0
+
+
+def cmd_capi_plan(args):
+    identifiers = capi_parse_enumeration(_read(args.enumeration))
+    plan = capi_make_plan(args.kind, args.udid, identifiers)
+    _write_json(args.plan, plan)
+    print(f"[select] simulator: {len(identifiers)} UI tests of the C ABI")
+    for invocation in plan["invocations"]:
+        print(f"  CALL {invocation['index']}: {invocation['stage']} {invocation['name']} "
+              f"({len(invocation['expected'])} tests{', uninstall first' if invocation['uninstallBefore'] else ''})")
+    return 0
+
+
+def cmd_capi_only_testing(args):
+    plan = json.loads(_read(args.plan))
+    for argument in capi_only_testing_arguments(plan["invocations"][args.index]):
+        print(argument)
+    return 0
+
+
+def cmd_capi_record(args):
+    plan = json.loads(_read(args.plan))
+    invocation = plan["invocations"][args.index]
+    tests_text = _read(args.tests_json) if args.tests_json and pathlib.Path(args.tests_json).is_file() else None
+    summary_text = _read(args.summary_json) if args.summary_json and pathlib.Path(args.summary_json).is_file() else None
+    records, _ = record_invocation(invocation, tests_text, summary_text, args.exit_code, args.timed_out == "1",
+                                   plan["udid"], target=CAPI_UI_TARGET)
+    with open(args.results, "a", encoding="utf-8") as out:
+        for record in records:
+            out.write(json.dumps(record, ensure_ascii=False) + "\n")
+    for record in records:
+        if record["result"] != "passed":
+            print(f"  {record['result'].upper()} {record['test']}: {record['message']}")
+    print(f"  {sum(1 for r in records if r['result'] == 'passed')}/{len(records)} passed")
+    return 0
+
+
+def cmd_capi_summary(args):
+    plan = json.loads(_read(args.plan))
+    results = [json.loads(line) for line in open(args.results, encoding="utf-8") if line.strip()]
+    problems = capi_summary_problems(plan, results)
+    for problem in problems:
+        print(f"  FAILED {problem}")
+    print(f"[summary] {sum(1 for r in results if r['result'] == 'passed')} passed, {len(problems)} problem(s)")
+    return 1 if problems else 0
+
+
 def cmd_hashes(args):
     for relative in sorted(TRUSTED_FILES):
         path = pathlib.Path(args.tests_dir) / relative
@@ -2183,6 +2661,60 @@ def main(argv=None):
     p.add_argument("--save-baseline", action="store_true")
     p.add_argument("--approved", default="")
     p.set_defaults(func=cmd_summary)
+
+    p = sub.add_parser("capi-bundle-id")
+    p.set_defaults(func=cmd_capi_bundle_id)
+
+    p = sub.add_parser("capi-check-sources")
+    p.add_argument("--pbxproj", required=True)
+    p.add_argument("--framework-scheme", required=True)
+    p.add_argument("--app-dir", required=True)
+    p.add_argument("--headers-dir", required=True)
+    p.add_argument("--tests-dir", required=True)
+    p.set_defaults(func=cmd_capi_check_sources)
+
+    p = sub.add_parser("capi-check-binary")
+    p.add_argument("--nm", required=True)
+    p.add_argument("--otool", required=True)
+    p.add_argument("--app-dir", required=True)
+    p.add_argument("--headers-dir", required=True)
+    p.set_defaults(func=cmd_capi_check_binary)
+
+    p = sub.add_parser("capi-check-xcode")
+    p.add_argument("--xcode", required=True)
+    p.set_defaults(func=cmd_capi_check_xcode)
+
+    p = sub.add_parser("capi-simulator-state")
+    p.add_argument("--udid", required=True)
+    p.add_argument("--simctl-devices", required=True)
+    p.set_defaults(func=cmd_capi_simulator_state)
+
+    p = sub.add_parser("capi-plan")
+    p.add_argument("--kind", required=True, choices=["simulator", "device"])
+    p.add_argument("--udid", required=True)
+    p.add_argument("--enumeration", required=True)
+    p.add_argument("--plan", required=True)
+    p.set_defaults(func=cmd_capi_plan)
+
+    p = sub.add_parser("capi-only-testing")
+    p.add_argument("--plan", required=True)
+    p.add_argument("--index", type=int, required=True)
+    p.set_defaults(func=cmd_capi_only_testing)
+
+    p = sub.add_parser("capi-record")
+    p.add_argument("--plan", required=True)
+    p.add_argument("--index", type=int, required=True)
+    p.add_argument("--tests-json")
+    p.add_argument("--summary-json")
+    p.add_argument("--exit-code", type=int, required=True)
+    p.add_argument("--timed-out", default="0")
+    p.add_argument("--results", required=True)
+    p.set_defaults(func=cmd_capi_record)
+
+    p = sub.add_parser("capi-summary")
+    p.add_argument("--plan", required=True)
+    p.add_argument("--results", required=True)
+    p.set_defaults(func=cmd_capi_summary)
 
     p = sub.add_parser("hashes")
     p.add_argument("--tests-dir", required=True)

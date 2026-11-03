@@ -595,3 +595,313 @@ xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -paral
   - `StructReader` の切り捨ては項目ではなく 8 バイト単位。公開の構造体はすべて 8 の倍数（`layout` が見る）なので今は起きない
   - `EventLedgerTests` の 268、313 行と `RegistryTests` の 545 行は、直しを外しても通る境界のテストで、直しの検出は別のテストが受け持つ（EventLedgerTests の 241 行、RegistryTests の 82、467 行）
   - テストに無い形: 3 つの登録、配っている途中の挿入、8 の倍数でない大きさ
+
+## 5. TB-2b
+
+### 5.1 足したもの
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| アプリ | `ios/IosLibraryCApiUITestApp/` | bundle id は `com.jonghyunkim.nativetoolkit.IosLibraryCApiUITestApp`（ホストの `...IosLibraryCApiTestHost` と別。第 2 部 12.1）。SwiftUI と `UIApplicationDelegateAdaptor`（サンプルと同じ形）。iPhone と iPad |
+| 行の形 | `CApiRow.swift`、`Rows/CommonRows.swift`、`Rows/NotificationRows.swift` | 1 回の C の呼び出しが `CApiRow` の値 1 つ。**TB-3 以降は `Rows/` に値を足すだけで、画面の行、2 通りの起こし方、結果の行が付く**。機能が増えるときは節を `CApiRowCatalog.sections` に足す |
+| 2 通りの起こし方 | `RowRunner` | `row.<id>.run`（この main の回）と `row.<id>.runAfterDelay`（3 秒後）。後者が第 1 部 6 章の「後ろにいるまま操作を起こすテスト専用の口」。結果の行が呼んだときの状態を持つ: `[<行>@<シーンの状態>] <値>` |
+| 結果 | `ResultLog.swift`、`RowListView.swift` | `result.count` と `result.line.<n>`。イベントや完了の後からの報告も同じ列に入る。リストでなくスタックなので、画面の外の行も木にある |
+| 起動の中 | `UITestAppMain.swift`、`NotificationRows.runAtLaunch()` | `ntk_notification_install()` を起動の中で呼ぶ（第 1 部 1.4。12.2 のコールドスタートの前提）。`FreshInstallMarker` は削除だけが消す印 |
+| UI テスト | `ios/IosLibraryCApiUITests/` | 7 件。`CApiRoundTripUITests` 6 件、`CApiFreshInstallUITests` 1 件。基底 `CApiUITestCase` は実機なら何もせず失敗する（第 2 の守り）。割り込みの監視は何も押さない |
+| プロジェクト | `IosLibraryCApi.xcodeproj` に 2 つのターゲット、共有の scheme `IosLibraryCApiUITestApp` | **`IosLibraryCApi` の scheme には入れない**（そちらは実機の ASan でも流す。第 2 部 12.2）。テストのターゲットは Swift 5 の言語モードと `minimal`（サンプルの UI テストと同じ。`setUpWithError` から `XCUIApplication` を触るため） |
+| ランナー | `scripts/test_ios.sh --capi-ui`、`scripts/ios_ui_runner.py` の `capi-*` | 5.2 |
+| 自己テスト | `scripts/tests/test_ios_ui_runner.py`（144 → 176 件）、`ios_ui_runner_mutations.py`（`capi-ui:` 13 個）、`scripts/README.md` | 全体の件数を 709 に |
+
+**C を通っていることの確かめ**: アプリの `Rows/` の `import` は `Foundation`、`IosLibraryCApi`、`os`（レビューの指摘で直した。前の版は「`IosLibraryCApi` だけ」と書いていて誤り）。`IosLibrary` は framework のために埋め込むだけで、`import` するとコンパイルは通るので、`capi-check-sources` が止める。組んだアプリの `nm -u` の `_ntk_*` は `_ntk_version`、`_ntk_last_system_code`、`_ntk_notification_install` の 3 つで、`IosLibrary` の Swift のシンボルは 0 個。**この照合が緩かったことと直したことは 5.10**。
+
+**今 TB-2b で書かなかったもの**: springboard の操作（バナー、権限のダイアログを押す、Share のシート）、C のコールバックの包み。どれも使う関数が来る TB-3 以降で足す。権限のダイアログをこのターゲットから押せることは 5.3 の使い捨ての写しで確かめた。
+
+### 5.2 ランナーの区分（`--capi-ui`）
+
+- シミュレーターだけ。実機は 3 か所で止まる: `test_ios.sh` の `KIND` の確かめ（exit 2。build の前）、`capi_make_plan`、`sim_xcodebuild`（元からある）。基底のクラスも止める
+- `--udid` のほかの選択肢を受けない
+- サンプルの段（宣言の表、基準、許可、ボタンの網羅）を通らない。`capi-check-sources` → build → 列挙 → `capi-plan` → 流す → `capi-record` → `capi-summary`
+- `CAPI_UI_CLASSES` の表と列挙のクラスがちょうど同じでなければ流さない。`True` のクラスは 1 件ずつ、アプリを消してから流す。列挙にほかのターゲットがあれば止まる
+- 結果は計画のテストとちょうど同じで、すべて `passed` のときだけ exit 0。skip も失敗
+- **`xcodebuild` を呼ぶ前に毎回シミュレーターを再起動する**（5.4）
+- `capi-check-sources` は、アプリとホストの bundle id、`IosLibraryCApiTests` のホストがホストのままであること、UI テストの対象、`IosLibraryCApi` の scheme に UI テストが無いこと、アプリの `import` を見る
+
+**実機の守りに触れた所**: 緩めたものは無い。`TRUSTED_FILES`、`SIMULATOR_ONLY_TESTS`、許可、台帳、`device_guard`、`select_tests` は変えていない。信頼する部分のハッシュも変わらない（`trusted_part_changes` は空）。今あるコードで変えたのは次だけ。
+
+| 所 | 変更 | 理由 |
+|---|---|---|
+| `record_invocation` | 引数 `target=UI_TARGET` を足した。既定はこれまでと同じ | 同じ判定を別のターゲットに使うため。`cmd_record` は渡さない |
+| `test_ios.sh` の選択肢の解析、`KIND` の後 | `--capi-ui` の受け取りと拒否を足した | 上のとおり |
+| `test_ios.sh` の `check-sources` の前 | `CAPI_UI=1` のときだけの枝を足し、`exit` する | `CAPI_UI=0` のときは通らない |
+| FAKE の `xcodebuild`、`xcrun`（自己テスト） | `FAKE_CAPI_ENUMERATION` のときの枝と、`simctl` の 3 つ | `--capi-ui` を最後まで流すため |
+
+`xcode-select` は使っていない（`test_ios.sh` も使わない）。**`--capi-ui` は `DEVELOPER_DIR` で Xcode 26.6 を選ばないと組めない**（26.3 は `@c` を知らず exit 65。`unknown attribute 'c'`）。
+
+### 5.3 権限を未決に戻す方法（測った）
+
+**`simctl uninstall` で足りる。`erase` は要らない（使っていない）。** TB-2b の完了の条件の確かめ。
+
+使い捨ての写し（`<scratch>/tb2b/perm/`）で、同じ bundle id のアプリに `UNUserNotificationCenter` を直に呼ぶ行と測るテストを足した。**リポジトリには入れていない**（C の権限の関数が無い）。xcodebuild は毎回 `test-without-building`（アプリを入れる手順を通る。上書きされたことそのものは確かめていない）。値は `authorizationStatus` の raw value（0 未決、1 拒否、2 許可）。
+
+| 測ったこと | iPhone 17 Pro / 26.2 | iPhone 16 / 18.3 |
+|---|---|---|
+| 許可（2）→ `uninstall` → 0 | 3/3 | 3/3 |
+| 拒否（1）→ `uninstall` → 0 | 3/3 | 3/3 |
+| 未決から要求するとダイアログが出て押せる（「“IosLibraryCApiUITestApp” Would Like to Send You Notifications」） | 6/6（許可 3、拒否 3） | 6/6 |
+| 対照: 消さずに次の xcodebuild で 2 のまま | 3/3 | 3/3 |
+| 対照: 消さずに `shutdown` と起動の後も 2 のまま | 3/3 | 3/3 |
+| 対照: 消さずに次の xcodebuild で 1 のまま | 3/3 | 3/3 |
+| 入っていないアプリへの `simctl uninstall` | exit 0 | exit 0 |
+
+- 測った値は `uninstall` の直後（待ちなし）の次の xcodebuild の最初の読み取り。全部で 19 回の実行が 1 台ずつ、すべて exit 0。**リセットの回数は 1 台 6 回**
+- 第 2 部 13 章の表の「確かめた」の中身はこの表。段階 0a（26.2 の 1 回）と同じ結果で、18.3 と拒否の場合が新しい
+- `xcodebuild` の後のシミュレーターはこの回では `Booted` のままで、0c の記録（「xcodebuild の後は Shutdown」）とは違った（26.6）。理由は確かめていない。`--capi-ui` は毎回 `bootstatus -b` を呼ぶので、どちらでも動く
+- `simctl privacy reset` は試していない（依頼の範囲にない。0a の記録では効かない）
+
+### 5.4 答えていない権限のダイアログは `uninstall` の後も残る（測って見つけた）
+
+**測りの最後に、ダイアログに答えないまま次の行を押すテスト（`testF`）を 1 回ずつ流した**。監視は何も押さず、テストは `Failed to tap ... Handler claimed to have handled ... but it's still interrupting` で落ちた（押さないことの確かめ）。その後:
+
+| 起きたこと | 確かめ |
+|---|---|
+| ダイアログが `simctl uninstall` と入れ直しの後も画面に残り、**アプリの別の版のテストも同じ文で落ちる** | 17 Pro で `--capi-ui` が 2 passed、5 problem(s)。16 で変異の回も同じ |
+| `simctl shutdown` と起動で消える | 17 Pro で再起動の後に `CApiRoundTripUITests` 6/6 |
+| 再起動は権限を変えない | 5.3 の対照 |
+
+- 持ち主の判断を待たずに、**`--capi-ui` が `xcodebuild` の前に毎回再起動する**形にした（第 2 部の文は変えない）。1 回あたり約 15 秒増える（5.3 の測りの `shutdown` と起動）。止まるのは次の `xcodebuild` と次の回への波及だけ。**再起動は xcodebuild の 1 回ごとなので、1 回で流すクラスの中では、ダイアログを残したテストの後ろのテストは今も一緒に落ちる**（前の版の「同じ回の後ろのテスト」は誤り）。新しいインストールのクラスは 1 件ずつなので波及しない
+- **確かめ**: ダイアログが残ったままの 16 で、直した `--capi-ui` が 7/7
+- 落ちるのは安全な側（誤って通ることは無い）。**残ったダイアログが新しいインストールの権限に効くかは確かめていない**（再起動で消すので、この経路では起きない）
+- サンプルの権限の段（`NotificationPermissionUITests`）にも同じことが起きうる。ランナーの今の動きは変えていない（範囲の外）
+
+### 5.5 コマンドと結果（最後のソース）
+
+```
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <UDID> --capi-ui        # scripts と ios の写しの中で（出力を <scratch> に置くため）
+xcodebuild -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -parallel-testing-enabled NO \
+  -destination 'platform=iOS Simulator,id=<UDID>' -derivedDataPath <scratch> test
+```
+
+| 実行 | 結果 |
+|---|---|
+| `--capi-ui`（iPhone 17 Pro / 26.2） | 7/7。exit 0 |
+| `--capi-ui`（iPhone 16 / 18.3）。ダイアログが残った状態から | 7/7。exit 0 |
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 141/141 |
+| UI テストのターゲットの `build-for-testing`（`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`。組むだけ） | 組めた。流していない |
+| `python3 scripts/check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP は `complete` と `symbols`（TB-2 と同じ） |
+| `test_ios_ui_runner.py` | Ran 176 tests、OK |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| サンプルの `build-for-testing`（26.3、`generic/platform=iOS Simulator`） | 組めた。ログに `IosLibraryCApi` は 0 行 |
+| `xcodebuild -list -workspace`（26.6） | 足されたのは `IosLibraryCApiUITestApp` だけ |
+| `git status`、`git diff` | `ios/IosLibrary`、`ios/IosLibraryExample`、`include/NativeToolkitC/`、capi のソースに差なし |
+
+`check_design_consistency.py` は流していない（設計書を変えていない）。
+
+### 5.6 壊して確かめたこと
+
+**ランナーの 13 個**（`ios_ui_runner_mutations.py --only capi-ui`。変異なしの回は通る。本物の台帳は変わらない）: **13/13 が落ちた**。スクリプトと計画がそれぞれ実機を通す、ほかの選択肢を受ける、計画の削除の印、スクリプトが消さない、サンプルを消す、新しいインストールのテストをまとめて流す、知らないクラス、bundle の照合を外す、定数をホストの bundle id にする、アプリが `import IosLibrary`、要約が止めない、再起動なし。
+
+- 1 回目は 12 個（再起動の前）で、11 個が落ちて「ほかの選択肢」が残った。`--device-allow` などは後ろの判定でも止まる**同じ動きの変異**で、判定が余分だったので消し、残りの選択肢を壊す形に直した
+- 1 回目の変異なしの回が `test_signals_and_exit_remove_the_device_results` で落ちた。**私が `nohup` で起動したので HUP が無視のまま継がれた**のが原因で、`nohup` を外して流し直した（`run_in_background` で通る）。ランナーの問題ではない
+- 再起動を足した後に、変えた所に関わる 4 個（ほかの選択肢、再起動、スクリプトが消さない、サンプルを消す）を流した（4/4 が落ちた）。**残りの 9 個は再起動を足す前のソースの結果で、流し直していない**
+
+**本物のアプリとシミュレーターの 5 個**（使い捨ての写し。iPhone 16 / 18.3。合わせて 18 個で、依頼の目安より 3 個多い）。待ちと C を呼ばない行は、残ったダイアログで別の理由で落ちたので、再起動してから流し直した結果:
+
+| 変異 | 結果 |
+|---|---|
+| アプリの bundle id をホストのものにして `xcodebuild` で直に流す | 落ちた（`Application info provider returned nil`）。`capi-check-sources` は build の前に止める（自己テスト） |
+| スクリプトの削除を外して 2 回流す | 落ちた（`[launch.freshInstall@none] false`。exit 1）。ダイアログが残っていた回で、ほかの 5 件もそのせいで落ちている。この 1 件の文は削除のせい |
+| 3 秒の待ちを 0 にする | 落ちた（`[common.version@foregroundActive]` と `@background` の比較）。後ろで呼んだことを行の状態が見ている |
+| 行の id を重ねる | 落ちた（`matches 2 elements`） |
+| **行が C を呼ばず、決まった文字列を返す（`report("0x020000")`）** | **残った**。UI テストからは見分けられない。`Rows/` のどれかが C を呼ぶことしか照合は見ない。止めるのはレビューで、**行の中身を確かめる形は作っていない** |
+
+**使い捨ての確かめ（変異ではない）**: 行を 60 個足して、画面の外の最後の行を 25 回押し、`result.line.26` を読む → 通った（156 秒。行が多いと 1 回のタップが約 6 秒）。自動のスクロールで届き、結果の列が画面から外れても読める。
+
+変異で落ちたアプリの crash report は 0 個（`~/Library/Logs/DiagnosticReports` に `IosLibraryCApiUI*` なし）。消したものは無い。
+
+### 5.7 設計書が読み切れなかった所と、読み方（設計書は変えていない）
+
+| # | 所 | 読み方。持ち主に見てほしいこと |
+|---|---|---|
+| 1 | 第 2 部 13 章「`test_ios.sh` のランナーの区分」。「区分」は UI テストの設計書 U-9 の 6 つ（`systemui` など）と同じ言葉 | U-9 に 7 つ目を足す話ではなく、**流し方の 1 つ**（`--capi-ui`）と読んだ。U-9 の区分は実機の許可の単位で、このテストは実機で流れない |
+| 2 | 第 1 部 6.1 の最後の行「`test_ios.sh` に C ABI のテストを 3 通りで流す区分を足す（2b の成果物）」と TB-2b、TB-12 | **`IosLibraryCApiTests` の 3 通りは TB-12** のまま（TB-12 の行に書いてある）。TB-2b は UI テストだけ |
+| 3 | 第 2 部 12.1 の「前面」の行は環境を書いていない。12.2 の「上の行はシミュレーターだけ」は 12.2 の話 | 12.1 の前面の行もシミュレーターだけと読んだ（同じアプリで流し、そのアプリの UI テストに実機の守りが無い。P1-20 の実機は ASan と smoke だけ） |
+| 4 | 第 1 部 5.1 の木に `IosLibraryCApiUITestApp/`、`IosLibraryCApiUITests/` が無い | **足すことを勧める**（TB-1 の `IosLibraryCApiTestHost/` と同じ。木の 2 行）。依頼のとおり変えていない |
+| 5 | 第 1 部 6 章、第 2 部 15.2 の iPad Pro 11-inch (M4) / 18.3 | アプリは iPad の設定を持つ（`TARGETED_DEVICE_FAMILY = 1,2`）。指定の 2 台の外なので流していない。アクションシートと Share の行が来る TB-5、TB-9 で要る |
+| 6 | 第 2 部 12.2 の「ランナーが書いた内容」、UI テストの設計書 6.3 の `test_ios.sh` の説明 | ランナーの名前は `IosLibraryCApiUITests-Runner` になる（貼り付けのダイアログの文）。6.3 には `--capi-ui` が無い。文書は `scripts/README.md` だけ直した |
+
+**第 2 部の 13 章の完了の条件「12.1 の前面の行と 12.2 を流せる」の読み方**: 関数がまだ無いので**流した**のではなく、**流す道を 1 本ずつ通した**。
+
+| 行 | 道 | 通したもの |
+|---|---|---|
+| 12.1 前面 | `runAfterDelay` → 後ろで C → `@background` の行 → 戻って読む | `testACallCanBeMadeInTheBackground`（`ntk_version`） |
+| 12.2 コールドスタート | 起動の中の `ntk_notification_install` | `testTheLaunchInstallsTheDelegateThroughC`（通知からの起動は未） |
+| 12.2 権限、許可の後 | 消す → 未決 → 押す → 状態 | 5.3（写しの中。C でなく直の API） |
+| 12.2 Dialog、Share、Clipboard、バナー | 行と結果の行だけ | **未**。C の関数が無い |
+
+### 5.8 確かめられていないこと
+
+- **実機では何も流していない**。基底のクラスの実機の守りは組めることだけで、動いたことは無い
+- `foregroundInactive`（Control Center）の道。`runAfterDelay` で足りるはずだが通していない
+- このアプリから Dialog、Share のシート、バナーを出すこと（C の関数が来る TB-5、TB-7、TB-9 で）。`ForegroundLocator` が見つける画面はサンプルと同じ形のはずだが、**見ていない**
+- コールドスタート（通知のタップからの起動）。`launch.*` の行は `App` の中の順しか見ていない
+- iPad、x86_64、ASan、TSan でのこのアプリ
+- 5.6 の行の中身（C を呼ばない行）
+
+### 5.9 時間
+
+22:53〜23:45 ごろ（約 50 分）。うち権限の測りが約 10 分（23:07〜23:18。2 台を並べて）、変異が約 15 分。**目標の 2 時間の中**。
+
+### 5.10 レビューの直し（Codex: 実機の守りと誤った成功。Claude: 設計と形）
+
+レビューの本文のうち Codex の分は読み、Claude の分はメインのセッションの要約で受けた。指摘は実物で確かめてから直した。
+
+**5.1〜5.9 のうち今は違う所**: UI テストは 8 件（`testOnlyTheNamedSectionIsDrawn` を足した）。5.5 の「`generic/platform=iOS` で組めた」は、今は組めないのが正しい（下の 1）。5.6 の「C を呼ばない行が残る」は、今は照合が止める（下の 2。ただし C も呼ぶ行は残る）。5.3 の測りは再起動なしの順で、今の順の測りは下の 9。5.1 と 5.4 の誤りはその場で直した。
+
+| # | 区分 | 指摘 | 確かめ | 直したこと |
+|---|---|---|---|---|
+| 1 | A | 2 つのターゲットが実機向けに組めて入る | **そのとおり**。`-showdestinations` に `platform:iOS` と `platform:macOS, variant:Designed for [iPad,iPhone]` が出た。Xcode から Test / Run すれば `setUpWithError` の前に入る（入れてはいない） | `SDKROOT`、`SUPPORTED_PLATFORMS` を `iphonesimulator` に。`DEVELOPMENT_TEAM` を消した（無くても組める）。`capi_project_problems` が求める（設定ごと、`[sdk=` と xcconfig も拒む）。`setUpWithError`、`tearDownWithError` を `final`。`launchApp` と `CApiUITestApp.launch` も確かめる。**結果: `-showdestinations` は `platform:iOS Simulator` だけ。`generic/platform=iOS` の build は exit 70（`Unable to find a destination`）** |
+| 2 | A | 7 つの形が 0 件で通る | **そのとおり**（`rev/t.py` で 7/7 が `[]`） | 下の表。`rev/t.py` は 7/7 が問題ありになった |
+| 3 | B | 26.3 で遅く、Xcode の話をせず落ちる | そのとおり | 枝の最初で 26.6 でなければ exit 2、`DEVELOPER_DIR` の形を出す。切り替えない。`xcode-select` に触れない。自己テスト、偽物の build 失敗、README、usage |
+| 4 | B | 1 つの画面に全部の行。60 行で 1 タップ約 6 秒、3 秒の窓が危ない | **半分だけ**。6 秒は私の 5.6 の測りで、変異と並行の負荷の下、かつ番号で読む古い形だった。測り直すと下の表のとおり約 3 秒で、60 行でも `@background` になった（各 1 回）。**ただ、行の数に比例して倍になるのは本当なので直した** | `NTK_CAPI_SECTION` の launchEnvironment で選んだ節だけを描く。指定が無い起動（人、システムが起こしたプロセス）は全部を描く。知らない節は何も描かない |
+| 5 | B | 再起動が、通ったテストの残したダイアログを隠す | そのとおり | 基底の `tearDownWithError` が springboard の alert を見て落とす。文に springboard のラベルを入れない（監視の文からもラベルを消した）。シミュレーターだけ |
+| 6 | B | TB-3、TB-5 が割れる補助 | そのとおり | `start(rowId)`（待たない）、`waitForLine(ofRow:occurrence:timeout:)`、`run` と `runInTheBackground` に `timeout:`。番号で読むテストを移し、`result.count` と番号の口を消した |
+| 7 | B | README に再起動が書いてない | そのとおり | README と usage。既に起動しているときに警告を 1 行。**ロックは無く、走っている間ほかに何も流さないのが決まり**と書いた |
+| 8 | C | `shutdown` の失敗を `|| true` が捨てる | そのとおり（読んで確かめた。失敗は起こしていない。偽物だけ） | `shutdown` の後に状態を読み、`Shutdown` でなければ止める。`bootstatus`、`uninstall` の失敗に文 |
+| 9 | C | 今の順（再起動 → 消す）を測っていない | そのとおり | 下の表 |
+| 10 | C | 型ごとの logger、エラーのパス、5.1、5.4、変異の流し直し | そのとおり | `CApiRow.swift` を 4 つの logger に。`FreshInstallMarker` は domain と code。文を直した。変異は下 |
+
+**2 の直し**: 既にあるランナーの字句解析（`lex`）を使った（`check_c_abi_contract_ios.py` の `strip_comments` は文字列を消すだけで、つなぐと依存が増える）。コメントと文字列は判定に入らない。
+
+| 形 | 今の結果 |
+|---|---|
+| `internal` / `public` / `package import IosLibrary` | 止まる（前に何かある、知らないモジュール） |
+| `import os; import IosLibrary` | 止まる |
+| `@_spi(X) import IosLibrary` | 止まる |
+| すべての行を決まった報告に。`runAtLaunch` だけ残す | 止まる（**行ごとに、閉包の中に本物の呼び出しを求める**。呼び出しはヘッダーの 134 関数の名前に `(` が続くもの） |
+| `ntk_` がコメントだけ | 止まる。文字列、`ntk_x` の括弧なし、型の変換 `ntk_notification_error(0)` も呼び出しに数えない |
+| `Rows/` で `UIPasteboard.general` | 止まる。`Rows/` の `import` は `Foundation`、`IosLibraryCApi`、`os` だけにした |
+| `.m` | 止まる（`.swift` のほかのファイルをすべて拒む）。**TB-7 で添付の固定のファイルをアプリに持つならここを広げる** |
+
+- **直に呼ぶと止める名前**（私の判断）: `UIPasteboard`、`UIPasteControl`、`PasteButton`、`UNUserNotificationCenter`、`UIAlertController`、`UIActivityViewController`、`ShareLink`、`confirmationDialog`、`openSettingsURLString`、`NSClassFromString`、`objc_getClass`、`dlopen`、`dlsym`。SwiftUI の `.alert` は入れていない（ありふれた名前で誤って止める）。**この表は閉じていない**
+- **build の後**: アプリの本体と `.debug.dylib` を `nm -u`、`otool -L` で読み、`10IosLibrary`・`14IosLibraryCApi` の記号なし、`IosLibrary.framework` を載せない、`IosLibraryCApi.framework` を載せる、`_ntk_*` がソースの呼び出しとちょうど同じ、を見る。**アプリの Frameworks の段から `IosLibrary` を外した**（依頼には無い。外しても組めて動き、`otool -L` で見分けられるようになる。埋め込みは残す）
+- **本物の build で確かめた**（使い捨ての写し）: `import IosLibrary` と `IosDialogManager.shared` を足すと、組めて、`capi_binary_problems` が `_$s10IosLibrary...` と `IosLibrary.framework` の 2 件を返した
+- **`_ = ntk_version(); report("0x020000")` のように C も呼ぶ行は、どの照合でも止まらない。レビューの範囲**
+
+**測り（9、4、5。使い捨ての写し。bundle id は同じ。権限は `UNUserNotificationCenter` を直に読む）**
+
+| 測ったこと | iPhone 17 Pro / 26.2 | iPhone 16 / 18.3 |
+|---|---|---|
+| 許可（2）→ 再起動 → 消す → 0 | 0（1 回） | 0（1 回） |
+| 拒否（1）→ 再起動 → 消す → 0 | 0（1 回） | 0（1 回） |
+| 再起動の `simctl list` の状態（`shutdown` の直後） | `Shutdown`（5/5） | `Shutdown`（5/5） |
+| ダイアログを残して通るテスト | `the test left a system alert open; nothing was pressed` で失敗（1 回） | 同じ（1 回） |
+| 1 回の `run`（6 回）: 2 行の節 | 1.49〜1.71 秒 | 1.50〜1.69 秒 |
+| 1 回の `run`（6 回）: 62 行の節 | 2.90〜3.98 秒 | 2.42〜3.04 秒 |
+| 後ろの呼び出し: 2 行の節 | `@background`（1 回） | `@background`（1 回） |
+| 後ろの呼び出し: 62 行の節 | `@background`（1 回） | `@background`（1 回） |
+
+`erase` は今回も使っていない。
+
+**流していないのに直したもの**: 1 の基底の守りの実機の枝（`#if !targetEnvironment(simulator)`）は、ターゲットがシミュレーターだけになったので今はコンパイルされない。`capi_test_source_problems` が文字の上で残っていることを見るだけ。
+
+#### やらないこと（指定どおり。理由）
+
+| 指摘 | 理由 |
+|---|---|
+| C-3 `CAPI_UI_CLASSES` の 3 つ目の値 | TB-7 の話。今は要らない |
+| C-4 期待値の 0 | delegate の確かめは TB-8 |
+| C-6 名前 | 直さない |
+| Codex: `capi-record --results` の任意のパス、`capi-plan --kind` がラベルを信じる | どちらも実機に触れない。普通の流れではスクリプトが渡す |
+| Codex: scheme そのものを照らさない（`testPlan` を見ない） | **依頼に無いので直していない**。スクリプトが scheme を決め打ちし、列挙と結果がターゲットを見る |
+| Codex: `test_the_sample_still_refuses_these_names` が新しいコードなしでも通る | **依頼に無いので残した**。害は無い |
+
+#### 設計書の文（持ち主にコミットのときに見せる。作業ツリーにある）
+
+| 所 | 変更 |
+|---|---|
+| 第 1 部 5.1 の木 | `IosLibraryCApiUITestApp/`、`IosLibraryCApiUITests/` |
+| UI テストの設計書 6.3 | `--capi-ui` は流し方の 1 つで U-9 の 7 つ目の区分ではない |
+| 第 2 部 15.2 | **12.1 の前面の行はシミュレーターの 2 機種で、サニタイザーなし。サニタイザーの網羅は `IosLibraryCApiTests`。これはメインのセッションから持ち主への推奨で、まだ決定ではない** |
+| 第 2 部 13 章 | TB-5、TB-9 の完了の条件に iPad Pro 11-inch (M4) / 18.3。TB-8 にアプリへ起動の形を伝える口（ファイル。SA-18 と同じ）。作っていない |
+| README 7.4 の `ios-arm64` の行 | 「UI テスト」はサンプルのもの。`IosLibraryCApiUITests` はシミュレーターだけ。実機の行で、その時点で C の UI テストが無かったので、この読みで明らかと判断した |
+
+`check_design_consistency.py` は 4 つとも exit 0、FAIL 0。
+
+#### 最後のソースの結果
+
+| 実行 | 結果 |
+|---|---|
+| `--capi-ui`（iPhone 17 Pro / 26.2。`DEVELOPER_DIR` は 26.6） | 8/8。exit 0 |
+| `--capi-ui`（iPhone 16 / 18.3。同じ） | 8/8。exit 0。起動していたので警告が 1 行 |
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 141/141 |
+| `check_c_abi_contract_ios.py` | exit 0。OK 27、FAIL 0、SKIP は `complete` と `symbols` |
+| `test_ios_ui_runner.py` | Ran 204 tests、OK |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `git diff` | `ios/IosLibrary`、`ios/IosLibraryExample`、`include/NativeToolkitC/`、capi のソース、信頼する UI テストのファイルに差なし |
+
+#### 変異（最後のソース。全部）
+
+`ios_ui_runner_mutations.py` の全部の表（137 個と変異なしの回。今までの 95 個と `capi-ui` の 42 個）を 5 並列で流した（00:20〜01:05）。**変異なしの回は通り、136 個が落ち、1 個が残った。`NOT APPLIED` は 0 個**。本物の台帳は変わらない。
+
+| 範囲 | 個数 | 結果 |
+|---|---|---|
+| 今までの表 | 95 | 95 個が落ちた |
+| `capi-ui`（5.6 の 13 個と今回の 29 個） | 42 | 41 個が落ち、1 個が残った |
+
+- **残った 1 個**（`capi-ui simulator only: the tests not checked`。`capi-check-sources` が UI テストのソースを見ない）: 判定の関数のテストはあるが、スクリプトから呼ぶことのテストが無かった。`test_a_test_source_without_its_guard_stops_it_before_the_build` を足し、この 1 個を流し直して落ちた
+- **限り**: このテストを足したのは全部の回の途中（46 個が終わった後）で、足した後に全部は流していない。変えたのはテストのファイルだけで、ランナーとスクリプトは全部の回の間変わっていない。テストが増えれば落ちるものは増えるだけなので、数は下がらない
+- 1 回目の全部の回は途中で止めた。23 個のところで、自分の直しの重なりで `pillar 1 naming: an empty -only-testing list` が `NOT APPLIED` になっていたため（`capi_only_testing_arguments` の文が同じだった）。同じ原因の 2 個（スクリプトの `-derivedDataPath` の行）と合わせて、**今までの変異は変えず、私の新しい行の文と順を変えて**当たるようにした。`capi-ui check: other languages pass` は変異の文を直した
+
+5.6 の本物のアプリの 5 個は、今回は流し直していない（`--capi-ui` の 8 件と上の本物の build の 1 個だけ）。
+
+#### 確かめられていないこと
+
+- 実機では何も流していない。`-showdestinations` の変化は確かめたが、Xcode の画面から実機を選べないことは見ていない
+- iPad、ASan、TSan でのこのアプリ。Dialog、Share、バナー（5.8 のまま）
+- `simctl shutdown` が本当に失敗する場面は起こしていない（偽物だけ）
+- クラスの中でダイアログを残したテストの後ろは一緒に落ちる（5.4）
+
+時間: 23:55〜01:10 ごろ（約 75 分）。目標の 45 分を超えた。多くは全部の変異の 45 分。途中で知らせた。
+
+#### Codex の再チェック（A なし。B を直した）
+
+| # | 指摘 | 確かめ | 直したこと |
+|---|---|---|---|
+| 1 | 知らない `NTK_CAPI_SECTION` で 0 行になり、行を名指ししないテストが通る | そのとおり（`launch.*` の行は描く行によらない。読んで確かめた） | アプリが `[launch.section@none] <節 / all / unknown>` を書く。`CApiUITestApp.launch` が読み、選んだ節でなければ止める。補助は enum `CApiSection` だけを受け、表に無い名前はコンパイルで止まる。enum にあってアプリに無い節は `launch` で止まる。本物の回で、enum に `nosuch` を足して流すと `the app did not draw the section nosuch: [launch.section@none] unknown` で落ちた（使い捨ての写し。18.3、1 回） |
+| 2 | `-f` がファイルを黙って飛ばす | そのとおり | 本体が無ければ止まる。`otool -L` が `@rpath/...debug.dylib` を挙げるのに無ければ止まる。本体だけの形（dylib を使わない）は通る |
+| 3 | `simctl list` に時間の限りが無い。最後の `shutdown` の結果を見ない | そのとおり | `capped 120` と失敗の文。`restore_simulator` は状態を読み、`Shutdown` でなければ警告 1 行で、**通った回を落とさない**。この関数はサンプルのシミュレーターの回にも通る（警告が増えるだけ） |
+| 4 | 取り除いても残る自己テスト | そのとおり | 止める名前をテストに書き出した。ガードの照合を関数の先頭からのトークンの完全一致にした（`throw` が無い、`print` に変わる、前に別の文、`try?`、文字列の補間でラベルを入れる、はどれも止まる）。偽物の `nm`、`otool` がファイルごとに別の答えを返す |
+| 5 | 「whatever starts the build」は誤り | **そのとおり**。`-sdk iphoneos SUPPORTED_PLATFORMS=iphoneos SDKROOT=iphoneos CODE_SIGNING_ALLOWED=NO` の `build` が exit 0 で `Debug-iphoneos` を作った（組むだけ。実機には何も入れていない）。`-destination 'generic/platform=iOS'` だけは同じ上書きでも exit 70 | コメント、基底のコメント、README を「宛先に実機が出ない。上書きで組めはするが、そこは `device-testing.md` の決まりが受け持つ」に直した。**1 の表の「今は組めないのが正しい」は普通の呼び方の話** |
+
+**偽物の `nm` の注意**: 本体にも C の関数を持たせている。本物の本体は持たない。どちらのファイルを読み落としても変わるようにするためで、本物の形ではない。
+
+**ガードの照合で見えないまま残るもの**（トークンの限り）: そのコードが実際に動くこと。実機の枝はコンパイルされない。`requireSimulator` を呼ぶ関数を別に増やして `XCUIApplication` を直に操作すること。`tearDown` の照合は形だけで、ダイアログを見つけることは本物の 1 回（`testG`）しか確かめていない。
+
+#### 残すもの（指定どおり）
+
+| 指摘 | 扱い |
+|---|---|
+| 行から呼ぶ補助がシステムを読む（`UIApplication` など） | レビューの範囲 |
+| 止める名前の表のほかの抜け道 | わざわざ工夫しないと通れないので、これ以上広げない |
+| Xcode の版の文字の変種（`Xcode 26.6 garbage` など） | 直さない |
+| `tearDown` の確かめが 1 回の読み取りだけ（後から出るダイアログは見えない） | 直さない |
+
+#### 再チェックの後の結果
+
+| 実行 | 結果 |
+|---|---|
+| `--capi-ui`（iPhone 17 Pro / 26.2。26.6） | 8/8。exit 0。最初が Shutdown で、終わりも Shutdown（警告なし） |
+| `--capi-ui`（iPhone 16 / 18.3。26.6） | 8/8。exit 0。起動していたので再起動の警告が 1 行 |
+| `test_ios_ui_runner.py` | Ran 210 tests、OK |
+| 変異（ここで変えた所だけ 10 個） | **10/10 が落ちた**。変異なしの回は通る。本物の台帳は変わらない |
+
+`IosLibraryCApiTests`、contract の照合、全部の変異の表はこの直しの後に流していない（指定の範囲の外。capi の本体、ヘッダー、照合のスクリプトは変えていない）。表は 145 個になった。上の 10 個は、足した 8 個（dylib だけ読む、本体が無い、dylib が無い、`list` の時間の限り、最後の警告、2 つのガードの `throw`、`dlopen`）と、スクリプトの文が変わって書き直した 2 個（本体だけ読む、状態の確かめ）。**残りの 135 個はこの直しの前のソースの結果**（`NOT APPLIED` にならないことだけは 146 行すべてで確かめた）。
+
+時間: 01:14〜01:27 ごろ（約 13 分）。
+
+#### 持ち主の決定と、直しの後の確かめ（メインのセッション）
+
+- 第 2 部 15.2 の文は、持ち主が 2026-11-04 に「判断が要るものは推奨でいい」と決めたので、推奨のとおり決定とした
+- 実装者とは別に、最後のソースで `--capi-ui`（iPhone 17 Pro / 26.2）の 8/8、`IosLibraryCApiTests` の 141/141、`test_ios_ui_runner.py` の 210 件、`check_c_abi_contract_ios.py` の FAIL 0 を流した。`--capi-ui`（iPhone 16 / 18.3）と変異は実装者の結果で、流し直していない
+- レビューは Claude と Codex が直しの前に 1 回ずつ、Codex が 1 回目の直しの後に読んだ（ビルドも実行もしていない。A なし）。2 回目の直しの後のレビューはしていない

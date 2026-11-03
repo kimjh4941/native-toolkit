@@ -893,11 +893,11 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-2b | C を呼ぶ UI テスト用のアプリとターゲット（第 1 部 6 章の「テストの口」。サンプルは Swift の API だけを使うので別に作る）。`test_ios.sh` のランナーの区分 | 1.5日 | TB-2 | 12.1 の前面の行と 12.2 を流せる。**権限を未決に戻す方法を確かめた**（`simctl uninstall` で足りるか、足りなければ `erase`） |
 | TB-3 | Clipboard の書き込みと問い合わせ（OP-01〜OP-10、OP-15、結果のハンドル） | 1.5日 | TB-2b | 12.1 の Clipboard の行、写しの関数 |
 | TB-4 | Clipboard の読み込みと監視（OP-11〜OP-14、OP-16、OP-17） | 1.0日 | TB-3 | 12.1 の取り消しとイベントの行 |
-| TB-5 | Dialog（OP-18〜OP-24、結果） | 1.0日 | TB-2b | 12.1 の前面・取り消しの行、12.2 |
+| TB-5 | Dialog（OP-18〜OP-24、結果） | 1.0日 | TB-2b | 12.1 の前面・取り消しの行、12.2。**アクションシートは iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-2b のアプリはまだ iPad で起動していない） |
 | TB-6 | 通知のビルダーと userInfo の JSON、trigger、category | 1.5日 | TB-2 | 12.1 のビルダー・userInfo・trigger の行 |
 | TB-7 | 通知の操作（OP-26〜OP-41）、権限の事前の確かめ | 1.0日 | TB-6、TB-2b | 12.1 の写しの関数・前面・事前の確かめ・権限の要求の選択肢の行、12.2 の「通知の順序と許可の後」の行 |
-| TB-8 | 通知のイベント（OP-42〜OP-45） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と 12.2 |
-| TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2 |
+| TB-8 | 通知のイベント（OP-42〜OP-45）。**TB-2b のアプリに起動の形を伝える口を足す**（システムが起こしたプロセスは起動の引数を受けないので、サンプルの SA-18 と同じくファイルで。コールドスタートの中で受け手を登録するため） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と 12.2 |
+| TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2。**iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-5 と同じ） |
 | TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ） |
 | TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`）。**capi の xcframework は Release だけを受ける**（今のビルドのスクリプトの `--configuration debug` を写さない。Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。第 1 部 5.4） |
 | TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る |
@@ -929,7 +929,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 ### 15.2 品質
 
-- 12.1〜12.4 が通る（シミュレーターは iPhone 17 / 26.2 と iPad Pro 11-inch (M4) / 18.3、通常・ASan・TSan。P1-20）
+- 12.1〜12.4 が通る（シミュレーターは iPhone 17 / 26.2 と iPad Pro 11-inch (M4) / 18.3、通常・ASan・TSan。P1-20）。**12.1 の前面の行は、この 2 つのシミュレーターで、サニタイザーなしで流す**。サニタイザーの網羅は `IosLibraryCApiTests` が受け持つ
 - 第 1 部 6 章のテストが通る
 - 実機（iPhone XS / 18.7.2）の区切りの ASan と smoke を、利用者の許可を得て流した（P1-20）
 - README 7.3 の配布物の照合が通る（`check_ios_dist.py`）

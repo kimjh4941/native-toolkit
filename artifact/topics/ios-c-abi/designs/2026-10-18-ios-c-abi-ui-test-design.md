@@ -485,6 +485,8 @@ U-17 の名前の付け方。識別子は `Button` そのものに付ける（C-
 
 Android の `scripts/test_android.sh` の形に合わせる。**実機で流すテストはこのスクリプトが決める**（U-9 の一段目）。
 
+`--capi-ui` は C ABI の UI テスト（`IosLibraryCApiUITests`。C ABI の設計書の第 2 部 TB-2b）を流す**流し方の 1 つ**で、U-9 の 7 つ目の区分ではない。シミュレーターだけで、この節の段（宣言の表、基準、許可）を通らない。
+
 | オプション | 内容 |
 |---|---|
 | `--udid <id>` | 対象。必須。**`xcrun simctl list -j devices` にある UDID だけをシミュレーターとし、それ以外はすべて実機として扱う**（fail-closed。レビュー v3 B-5）。実機は xcodebuild が受け付けるハードウェアの UDID（`<実機のハードウェアの UDID>`。0a 7.1） |

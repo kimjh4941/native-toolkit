@@ -1740,12 +1740,20 @@ with open(os.environ["FAKE_LOG"], "a") as log:
 def opt(name):
     return args[args.index(name) + 1] if name in args else None
 if args == ["-version"]:
-    print("Xcode 26.3"); print("Build version 17C529"); sys.exit(0)
+    print("Xcode " + os.environ.get("FAKE_XCODE", "26.3")); print("Build version 17C529"); sys.exit(0)
 sdk = "iphoneos" if (opt("-destination") or "").startswith("platform=iOS,") else "iphonesimulator"
 tests = pathlib.Path(os.environ["FAKE_TESTS_DIR"])
+if "build-for-testing" in args and os.environ.get("FAKE_BUILD_FAILS"):
+    print("error: the fake build failed"); sys.exit(65)
 if "build-for-testing" in args:
     products = pathlib.Path(opt("-derivedDataPath")) / "Build" / "Products"
     products.mkdir(parents=True, exist_ok=True)
+    app = products / f"Debug-{sdk}" / "IosLibraryCApiUITestApp.app"
+    app.mkdir(parents=True, exist_ok=True)
+    if not os.environ.get("FAKE_NO_MAIN"):
+        (app / "IosLibraryCApiUITestApp").write_text("stub")
+    if not os.environ.get("FAKE_NO_DYLIB") and not os.environ.get("FAKE_ALL_IN_MAIN"):
+        (app / "IosLibraryCApiUITestApp.debug.dylib").write_text("code")
     (products / f"IosLibraryExample_IosLibraryExample_{sdk}26.2-arm64.xctestrun").write_text("")
     bundle = products / f"Debug-{sdk}" / "IosLibraryExampleUITests-Runner.app" / "PlugIns" / "IosLibraryExampleUITests.xctest"
     bundle.mkdir(parents=True, exist_ok=True)
@@ -1753,6 +1761,9 @@ if "build-for-testing" in args:
     with open(bundle / "Info.plist", "wb") as f:
         plistlib.dump({"CFBundleIdentifier": "x"}, f)
     (bundle / "IosLibraryExampleUITests").write_text("binary")
+    sys.exit(0)
+if "-enumerate-tests" in args and os.environ.get("FAKE_CAPI_ENUMERATION"):
+    shutil.copy(os.environ["FAKE_CAPI_ENUMERATION"], opt("-test-enumeration-output-path"))
     sys.exit(0)
 if "-enumerate-tests" in args:
     table = json.loads((tests / "Support" / "DeviceRequirements.json").read_text())["tests"]
@@ -1762,7 +1773,22 @@ if "-enumerate-tests" in args:
         {"errors": [], "values": [{"enabledTests": enabled, "disabledTests": [], "testPlan": "IosLibraryExample"}]}))
     sys.exit(0)
 if "test-without-building" in args:
-    pathlib.Path(opt("-resultBundlePath")).mkdir(parents=True)
+    bundle = pathlib.Path(opt("-resultBundlePath"))
+    bundle.mkdir(parents=True)
+    if os.environ.get("FAKE_CAPI_ENUMERATION"):
+        enabled = json.loads(pathlib.Path(os.environ["FAKE_CAPI_ENUMERATION"]).read_text())["values"][0]["enabledTests"]
+        names = [a[len("-only-testing:"):] for a in args if a.startswith("-only-testing:")]
+        ran = [e["identifier"] for e in enabled if e["identifier"].endswith("()") and
+               any(e["identifier"] == n or e["identifier"].startswith(n + "/") for n in names)]
+        drop, fail = os.environ.get("FAKE_CAPI_DROP", "?"), os.environ.get("FAKE_CAPI_FAIL", "?")
+        ran = [i for i in ran if drop not in i]
+        cases = [{"nodeType": "Test Case", "nodeIdentifier": i.split("/", 1)[1], "result": "Failed" if fail in i else "Passed",
+                  "children": []} for i in ran]
+        (bundle / "fake-tests.json").write_text(json.dumps({"devices": [{"deviceId": os.environ["FAKE_CAPI_UDID"]}], "testNodes": [
+            {"nodeType": "UI test bundle", "name": "IosLibraryCApiUITests", "children": cases}]}))
+        (bundle / "fake-summary.json").write_text(json.dumps({
+            "totalTestCount": len(cases), "passedTests": sum(c["result"] == "Passed" for c in cases),
+            "failedTests": sum(c["result"] == "Failed" for c in cases)}))
     sys.exit(0)
 sys.exit(98)
 ''',
@@ -1775,8 +1801,34 @@ with open(os.environ["FAKE_LOG"], "a") as log:
         ledger = pathlib.Path(os.environ["FAKE_LEDGER"])
         log.write("devicectl-ledger " + (ledger.read_text() if ledger.exists() else "") .replace("\n", "|") + "\n")
 fixtures = pathlib.Path(os.environ["FAKE_FIXTURES"])
+state_file = pathlib.Path(os.environ.get("FAKE_SIM_STATE_FILE", "/nonexistent"))
+if args[:3] == ["simctl", "list", "-j"] and args[3] == "devices" and state_file.exists():
+    data = json.loads((fixtures / "simctl-devices.json").read_text())
+    for devices in data["devices"].values():
+        for device in devices:
+            if device.get("udid") == os.environ["FAKE_CAPI_UDID"]:
+                device["state"] = state_file.read_text()
+    print(json.dumps(data)); sys.exit(0)
 if args[:3] == ["simctl", "list", "-j"]:
     print((fixtures / ("simctl-devices.json" if args[3] == "devices" else "simctl-runtimes.json")).read_text()); sys.exit(0)
+if args[:2] == ["simctl", "shutdown"] and state_file.exists():
+    count_file = pathlib.Path(str(state_file) + ".shutdowns")
+    count = int(count_file.read_text()) + 1 if count_file.exists() else 1
+    count_file.write_text(str(count))
+    if os.environ.get("FAKE_SHUTDOWN_FAILS") or count >= int(os.environ.get("FAKE_SHUTDOWN_FAILS_FROM", "1000")):
+        sys.exit(1)
+    state_file.write_text("Shutdown")
+if args[:2] == ["simctl", "bootstatus"]:
+    if os.environ.get("FAKE_BOOT_FAILS"):
+        sys.exit(1)
+    if state_file.exists():
+        state_file.write_text("Booted")
+if args[:2] == ["simctl", "uninstall"] and os.environ.get("FAKE_UNINSTALL_FAILS"):
+    sys.exit(1)
+if args[:2] in (["simctl", "shutdown"], ["simctl", "bootstatus"], ["simctl", "uninstall"]):
+    sys.exit(0)
+if args[:1] == ["xcresulttool"] and os.environ.get("FAKE_CAPI_ENUMERATION"):
+    print((pathlib.Path(args[args.index("--path") + 1]) / ("fake-tests.json" if "tests" in args else "fake-summary.json")).read_text()); sys.exit(0)
 if args[:1] == ["xcresulttool"]:
     print(pathlib.Path(os.environ["FAKE_TESTS_JSON" if "tests" in args else "FAKE_SUMMARY_JSON"]).read_text()); sys.exit(0)
 if args[:4] == ["devicectl", "device", "info", "details"]:
@@ -1792,6 +1844,15 @@ import json, os, pathlib, sys
 args = sys.argv[1:]
 with open(os.environ["FAKE_LOG"], "a") as log:
     log.write("otool " + json.dumps(args) + "\n")
+if args[0] == "-L":
+    # Each file answers for itself: leaving either out of the inspection changes the result.
+    print(args[1] + ":")
+    capi = "\t@rpath/IosLibraryCApi.framework/IosLibraryCApi (compatibility version 1.0.0)"
+    if args[1].endswith(".debug.dylib"):
+        print(os.environ.get("FAKE_APP_LOADS", capi))
+    else:
+        print(capi if os.environ.get("FAKE_ALL_IN_MAIN") else "\t@rpath/IosLibraryCApiUITestApp.debug.dylib (compatibility version 0.0.0)")
+    sys.exit(0)
 if args[0] == "-l":
     print("Load command 1\n  sectname __objc_selrefs\n   segname __DATA\n      addr 0x0000000000005000"); sys.exit(0)
 table = json.loads((pathlib.Path(os.environ["FAKE_TESTS_DIR"]) / "Support" / "DeviceRequirements.json").read_text())["tests"]
@@ -1811,6 +1872,18 @@ for n, (cls, methods) in enumerate(sorted(classes.items())):
         print(f"            name    0x3 {method}AndReturnError:")
     print("        baseProtocols  0x0")
 print("Contents of (__DATA,__objc_selrefs) section")
+''',
+    "nm": r'''
+import os, sys
+print(sys.argv[-1] + ":")
+# Each file gives part of the C functions, so that the check sees a file left out. Not what a real build
+# does (its executable has none of them); that is the test of the set, not of the shape.
+if os.environ.get("FAKE_ALL_IN_MAIN"):
+    print("_ntk_last_system_code\n_ntk_notification_install\n_ntk_version")
+elif sys.argv[-1].endswith(".debug.dylib"):
+    print(os.environ.get("FAKE_APP_SYMBOLS", "_ntk_notification_install\n_ntk_version\n_swift_retain"))
+else:
+    print("_ntk_last_system_code")
 ''',
     "git": r'''
 import json, os, sys
@@ -2036,6 +2109,576 @@ def fake_enumeration(table):
     tests = [{"identifier": f"IosLibraryExampleUITests/{key}()"} for key in sorted(table)]
     tests.append({"identifier": "IosLibraryExampleUITests/SampleUITestCase"})
     return {"errors": [], "values": [{"enabledTests": tests, "disabledTests": [], "testPlan": "IosLibraryExample"}]}
+
+
+# --- The UI tests of the C ABI (C ABI design part 2, TB-2b) --------------------------------------
+
+CAPI_PROJECT = ROOT / "ios" / "IosLibraryCApi" / "IosLibraryCApi.xcodeproj"
+CAPI_PBXPROJ = CAPI_PROJECT / "project.pbxproj"
+CAPI_FRAMEWORK_SCHEME = CAPI_PROJECT / "xcshareddata" / "xcschemes" / "IosLibraryCApi.xcscheme"
+CAPI_APP_DIR = ROOT / "ios" / "IosLibraryCApiUITestApp"
+CAPI_TESTS_DIR = ROOT / "ios" / "IosLibraryCApiUITests"
+CAPI_HEADERS = ROOT / "ios" / "IosLibraryCApi" / "include" / "NativeToolkitC"
+FRESH = "IosLibraryCApiUITests/CApiFreshInstallUITests/testFresh()"
+ROUND_A = "IosLibraryCApiUITests/CApiRoundTripUITests/testA()"
+ROUND_B = "IosLibraryCApiUITests/CApiRoundTripUITests/testB()"
+ALL_CAPI = [ROUND_A, FRESH, ROUND_B]
+
+
+def capi_enumeration(identifiers):
+    tests = [{"identifier": i} for i in identifiers] + [{"identifier": "IosLibraryCApiUITests/CApiUITestCase"}]
+    return {"errors": [], "values": [{"enabledTests": tests, "disabledTests": [], "testPlan": "IosLibraryCApiUITestApp"}]}
+
+
+class CApiUiEnumerationAndPlan(unittest.TestCase):
+    def test_the_base_class_is_dropped_and_the_order_kept(self):
+        self.assertEqual(r.capi_parse_enumeration(json.dumps(capi_enumeration(ALL_CAPI))), ALL_CAPI)
+
+    def test_anything_else_stops_the_run(self):
+        for name, identifier in (("the sample's target", "IosLibraryExampleUITests/DialogUITests/testD1()"),
+                                 ("the unit tests", "IosLibraryCApiTests/CommonEntryTests/testX()"),
+                                 ("a class without methods", "IosLibraryCApiUITests/CApiOtherUITests")):
+            with self.subTest(name), self.assertRaises(r.RunnerError):
+                r.capi_parse_enumeration(json.dumps(capi_enumeration(ALL_CAPI + [identifier])))
+        for field, value in (("errors", ["x"]),):
+            with self.subTest(field), self.assertRaises(r.RunnerError):
+                r.capi_parse_enumeration(json.dumps(dict(capi_enumeration(ALL_CAPI), **{field: value})))
+        disabled = capi_enumeration(ALL_CAPI)
+        disabled["values"][0]["disabledTests"] = [{"identifier": FRESH}]
+        with self.assertRaises(r.RunnerError):
+            r.capi_parse_enumeration(json.dumps(disabled))
+
+    def test_the_classes_must_be_those_of_the_table(self):
+        self.assertEqual(r.capi_enumeration_problems(ALL_CAPI), [])
+        self.assertIn("not listed ['CApiOtherUITests']",
+                      r.capi_enumeration_problems(ALL_CAPI + ["IosLibraryCApiUITests/CApiOtherUITests/testX()"])[0])
+        self.assertIn("not enumerated ['CApiFreshInstallUITests']", r.capi_enumeration_problems([ROUND_A])[0])
+        self.assertIn("repeats", r.capi_enumeration_problems(ALL_CAPI + [ROUND_A])[0])
+        self.assertTrue(r.capi_enumeration_problems([]))
+
+    def test_the_device_gets_no_plan(self):
+        with self.assertRaisesRegex(r.RunnerError, "simulator only"):
+            r.capi_make_plan("device", FAKE_DEVICE, ALL_CAPI)
+
+    def test_a_fresh_test_runs_alone_after_a_deletion_and_a_class_runs_whole_without_one(self):
+        plan = r.capi_make_plan("simulator", SIMULATOR, ALL_CAPI + ["IosLibraryCApiUITests/CApiFreshInstallUITests/testFresh2()"])
+        shapes = [(i["stage"], i["onlyTesting"], i["uninstallBefore"]) for i in plan["invocations"]]
+        self.assertEqual(shapes, [
+            ("fresh", [FRESH], True),
+            ("fresh", ["IosLibraryCApiUITests/CApiFreshInstallUITests/testFresh2()"], True),
+            ("ui", ["IosLibraryCApiUITests/CApiRoundTripUITests"], False)])
+        self.assertEqual(plan["invocations"][2]["expected"], ["CApiRoundTripUITests/testA", "CApiRoundTripUITests/testB"])
+        self.assertEqual([i["index"] for i in plan["invocations"]], [0, 1, 2])
+
+    def test_a_plan_with_other_classes_is_refused(self):
+        with self.assertRaises(r.RunnerError):
+            r.capi_make_plan("simulator", SIMULATOR, [ROUND_A])
+
+    def test_the_names_are_never_empty_and_only_of_this_target(self):
+        self.assertEqual(r.capi_only_testing_arguments({"name": "x", "onlyTesting": [FRESH]}), [f"-only-testing:{FRESH}"])
+        for names in ([], None, ["IosLibraryExampleUITests/DialogUITests"], ["IosLibraryCApiTests/CommonEntryTests"]):
+            with self.subTest(names), self.assertRaises(r.RunnerError):
+                r.capi_only_testing_arguments({"name": "x", "onlyTesting": names})
+
+    def test_the_sample_still_refuses_these_names(self):
+        with self.assertRaises(r.RunnerError):
+            r.only_testing_arguments({"name": "x", "onlyTesting": [FRESH]})
+        with self.assertRaises(r.RunnerError):
+            r.key_from_enumeration_id(FRESH)
+
+
+class CApiUiProject(unittest.TestCase):
+    def setUp(self):
+        self.pbxproj = CAPI_PBXPROJ.read_text(encoding="utf-8")
+        self.scheme = CAPI_FRAMEWORK_SCHEME.read_text(encoding="utf-8")
+
+    def test_the_real_project_passes(self):
+        self.assertEqual(r.capi_project_problems(self.pbxproj, self.scheme), [])
+
+    def test_the_app_with_the_bundle_of_the_host_is_refused(self):
+        text = self.pbxproj.replace(r.CAPI_UI_BUNDLE_ID, r.CAPI_TEST_HOST_BUNDLE_ID)
+        self.assertTrue(any("IosLibraryCApiUITestApp must have" in p for p in r.capi_project_problems(text, self.scheme)))
+
+    def test_one_configuration_with_another_bundle_is_refused(self):
+        text = self.pbxproj.replace(f"PRODUCT_BUNDLE_IDENTIFIER = {r.CAPI_UI_BUNDLE_ID};", "PRODUCT_BUNDLE_IDENTIFIER = x;", 1)
+        self.assertEqual(len(r.capi_project_problems(text, self.scheme)), 1)
+
+    def test_the_host_with_the_bundle_of_the_app_is_refused(self):
+        text = self.pbxproj.replace(r.CAPI_TEST_HOST_BUNDLE_ID, r.CAPI_UI_BUNDLE_ID)
+        self.assertTrue(any("IosLibraryCApiTestHost must have" in p for p in r.capi_project_problems(text, self.scheme)))
+
+    def test_the_unit_tests_hosted_by_the_app_are_refused(self):
+        text = self.pbxproj.replace("/IosLibraryCApiTestHost.app/", "/IosLibraryCApiUITestApp.app/")
+        self.assertTrue(any("IosLibraryCApiTests must have" in p for p in r.capi_project_problems(text, self.scheme)))
+
+    def test_the_ui_tests_of_another_app_are_refused(self):
+        text = self.pbxproj.replace("TEST_TARGET_NAME = IosLibraryCApiUITestApp;", "TEST_TARGET_NAME = IosLibraryCApiTestHost;")
+        self.assertTrue(any("IosLibraryCApiUITests must have" in p for p in r.capi_project_problems(text, self.scheme)))
+
+    def test_a_missing_target_is_refused(self):
+        text = self.pbxproj.replace('PBXNativeTarget "IosLibraryCApiUITestApp"', 'PBXNativeTarget "Other"')
+        self.assertTrue(r.capi_project_problems(text, self.scheme))
+
+    def test_the_ui_tests_in_the_framework_scheme_are_refused(self):
+        self.assertTrue(r.capi_project_problems(self.pbxproj, self.scheme + "IosLibraryCApiUITests.xctest"))
+
+    def test_the_targets_must_be_simulator_only(self):
+        for name, old, new in (("SDKROOT", "SDKROOT = iphonesimulator;", "SDKROOT = iphoneos;"),
+                               ("SUPPORTED_PLATFORMS", "SUPPORTED_PLATFORMS = iphonesimulator;", 'SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";'),
+                               ("team", "SUPPORTED_PLATFORMS = iphonesimulator;", "SUPPORTED_PLATFORMS = iphonesimulator;\n\t\t\t\tDEVELOPMENT_TEAM = C9KYBZ33LV;"),
+                               ("one SDK", "SUPPORTED_PLATFORMS = iphonesimulator;", 'SUPPORTED_PLATFORMS = iphonesimulator;\n\t\t\t\t"SUPPORTED_PLATFORMS[sdk=iphoneos*]" = iphoneos;')):
+            with self.subTest(name):
+                self.assertTrue(r.capi_project_problems(self.pbxproj.replace(old, new), self.scheme))
+                # Each configuration of each target counts on its own.
+                self.assertTrue(r.capi_project_problems(self.pbxproj.replace(old, new, 1), self.scheme))
+
+    def test_an_xcconfig_is_refused(self):
+        text = self.pbxproj.replace("isa = XCBuildConfiguration;", "isa = XCBuildConfiguration;\n\t\t\tbaseConfigurationReference = AB;", 1)
+        self.assertTrue(r.capi_project_problems(text, self.scheme))
+
+    def test_the_tests_delete_and_launch_the_same_bundle(self):
+        source = (ROOT / "ios" / "IosLibraryCApiUITests" / "CApiUITestApp.swift").read_text(encoding="utf-8")
+        self.assertIn(f'static let bundleIdentifier = "{r.CAPI_UI_BUNDLE_ID}"', source)
+
+
+class CApiUiAppSources(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.app = pathlib.Path(self.temp.name) / "app"
+        shutil.copytree(CAPI_APP_DIR, self.app, ignore=shutil.ignore_patterns(".DS_Store"))
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_the_real_app_passes(self):
+        self.assertEqual(r.capi_app_source_problems(CAPI_APP_DIR), [])
+
+    def test_the_swift_api_and_internals_are_refused(self):
+        for line in ("import IosLibrary", "@testable import IosLibraryCApi", "import class IosLibrary.IosDialogManager",
+                     "@_exported import IosLibraryCApi", "  import IosLibrary", "internal import IosLibrary",
+                     "public import IosLibrary", "package import IosLibrary", "internal import Foundation",
+                     "import os; import IosLibrary", "@_spi(X) import IosLibrary", "@_spi(X) import Foundation",
+                     "@preconcurrency import IosLibraryCApi", "/* x */ import IosLibrary", "import UIKit", "import SwiftUI",
+                     "import UserNotifications"):
+            with self.subTest(line):
+                path = self.app / "Rows" / "Extra.swift"
+                path.write_text(line + "\n", encoding="utf-8")
+                self.assertTrue(r.capi_app_source_problems(self.app))
+                path.unlink()
+
+    def test_an_import_in_a_comment_or_a_string_does_not_count(self):
+        path = self.app / "Rows" / "Extra.swift"
+        path.write_text('// import IosLibrary\n/* import IosLibrary */\nlet s = "import IosLibrary"\n', encoding="utf-8")
+        self.assertEqual(r.capi_app_source_problems(self.app), [])
+
+    def test_c_outside_the_rows_is_refused(self):
+        (self.app / "Extra.swift").write_text("import IosLibraryCApi\nlet v = ntk_version()\n", encoding="utf-8")
+        self.assertEqual(len(r.capi_app_source_problems(self.app)), 2)
+
+    def rewrite_row(self, old, new, file="CommonRows.swift"):
+        path = self.app / "Rows" / file
+        text = path.read_text(encoding="utf-8")
+        self.assertEqual(text.count(old), 1)
+        path.write_text(text.replace(old, new), encoding="utf-8")
+
+    def test_a_row_without_a_real_call_is_refused_whatever_the_other_rows_do(self):
+        call = "report(String(ntk_last_system_code()))"
+        for name, new in (("fixed", 'report("0")'), ("a comment", 'report("0") // ntk_last_system_code()'),
+                          ("a string", 'report("ntk_last_system_code()")'), ("no parentheses", "report(String(describing: ntk_last_system_code))"),
+                          ("a cast", "report(String(ntk_notification_error(0)))")):
+            with self.subTest(name):
+                self.rewrite_row(call, new)
+                problems = r.capi_app_source_problems(self.app)
+                self.assertEqual(len(problems), 1, problems)
+                self.assertIn("this row calls no C function", problems[0])
+                self.rewrite_row(new, call)
+
+    def test_a_call_inside_an_interpolation_counts(self):
+        self.rewrite_row("report(String(ntk_last_system_code()))", 'report("\\(ntk_last_system_code())")')
+        self.assertEqual(r.capi_app_source_problems(self.app), [])
+
+    def test_a_row_must_have_its_closure_where_it_can_be_read(self):
+        self.rewrite_row('CApiRow(id: "common.lastSystemCode") { report in', 'CApiRow(id: "common.lastSystemCode", call: { report in')
+        self.assertIn("trailing closure", " ".join(r.capi_app_source_problems(self.app)))
+
+    def test_a_local_stand_in_for_a_c_function_is_refused(self):
+        (self.app / "Rows" / "Extra.swift").write_text("func ntk_version() -> UInt32 { 0x020000 }\n", encoding="utf-8")
+        self.assertIn("declares ntk_version", " ".join(r.capi_app_source_problems(self.app)))
+
+    def test_rows_that_are_gone_are_refused(self):
+        for path in (self.app / "Rows").glob("*.swift"):
+            path.write_text("import Foundation\n", encoding="utf-8")
+        self.assertIn("no file of Rows/ has a row", r.capi_app_source_problems(self.app))
+
+    def test_the_system_is_not_reached_directly(self):
+        # Written out: a name dropped from the runner's table must fail here.
+        for name in ("UIPasteboard", "UIPasteControl", "PasteButton", "UNUserNotificationCenter", "UIAlertController",
+                     "UIActivityViewController", "ShareLink", "confirmationDialog", "openSettingsURLString",
+                     "NSClassFromString", "objc_getClass", "dlopen", "dlsym"):
+            with self.subTest(name):
+                path = self.app / "Rows" / "Extra.swift"
+                path.write_text(f"let x = {name}.self\n", encoding="utf-8")
+                self.assertIn(name, " ".join(r.capi_app_source_problems(self.app)))
+                path.unlink()
+        (self.app / "Other.swift").write_text("let x = UIPasteboard.general\n", encoding="utf-8")
+        self.assertIn("UIPasteboard", " ".join(r.capi_app_source_problems(self.app)))
+
+    def test_other_languages_are_refused(self):
+        for name in ("Extra.m", "Rows/Extra.mm", "Extra.c", "Extra.h", "Extra.cpp"):
+            with self.subTest(name):
+                path = self.app / name
+                path.write_text("#import <IosLibrary/IosLibrary.h>\n", encoding="utf-8")
+                self.assertIn("Swift sources only", " ".join(r.capi_app_source_problems(self.app)))
+                path.unlink()
+
+    def test_the_calls_of_the_sources_are_read_from_code(self):
+        self.assertEqual(r.capi_source_calls(CAPI_APP_DIR), {"ntk_version", "ntk_last_system_code", "ntk_notification_install"})
+        (self.app / "Rows" / "Extra.swift").write_text('// ntk_string_free()\nlet s = "ntk_bytes_free()"\n', encoding="utf-8")
+        self.assertEqual(r.capi_source_calls(self.app), {"ntk_version", "ntk_last_system_code", "ntk_notification_install"})
+
+    def test_no_function_in_the_headers_is_a_problem(self):
+        self.assertTrue(r.capi_app_source_problems(CAPI_APP_DIR, self.app / "nowhere"))
+
+
+class CApiUiTestSources(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.tests = pathlib.Path(self.temp.name) / "tests"
+        shutil.copytree(CAPI_TESTS_DIR, self.tests, ignore=shutil.ignore_patterns(".DS_Store"))
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def rewrite(self, file, old, new):
+        path = self.tests / file
+        text = path.read_text(encoding="utf-8")
+        self.assertEqual(text.count(old), 1, old)
+        path.write_text(text.replace(old, new), encoding="utf-8")
+
+    def test_the_real_tests_pass(self):
+        self.assertEqual(r.capi_test_source_problems(CAPI_TESTS_DIR), [])
+
+    def test_each_guard_is_required(self):
+        for name, file, old, new in (
+                ("setUp not final", "CApiUITestCase.swift", "final override func setUpWithError", "override func setUpWithError"),
+                ("tearDown not final", "CApiUITestCase.swift", "final override func tearDownWithError", "override func tearDownWithError"),
+                ("setUp without the guard", "CApiUITestCase.swift", "        continueAfterFailure = false\n        try Self.requireSimulator()\n", "        continueAfterFailure = false\n"),
+                ("launchApp without the guard", "CApiUITestCase.swift", "        try Self.requireSimulator()\n        let app = CApiUITestApp(", "        let app = CApiUITestApp("),
+                ("launch without the guard", "CApiUITestApp.swift", "        try CApiUITestCase.requireSimulator()\n        app.launch()", "        app.launch()"),
+                ("the guard says nothing", "CApiUITestCase.swift", "#if !targetEnvironment(simulator)", "#if false"),
+                ("the guard does not throw", "CApiUITestCase.swift", '        throw CApiUITestError("the UI tests of the C ABI run on the simulator only; nothing was done")\n', ""),
+                ("the guard only prints", "CApiUITestCase.swift", 'throw CApiUITestError("the UI tests of the C ABI', 'print(CApiUITestError("the UI tests of the C ABI'),
+                ("something before the guard", "CApiUITestCase.swift", "        continueAfterFailure = false\n        try Self.requireSimulator()\n", "        continueAfterFailure = false\n        XCUIDevice.shared.orientation = .portrait\n        try Self.requireSimulator()\n"),
+                ("a return before the guard", "CApiUITestApp.swift", "        try CApiUITestCase.requireSimulator()\n        app.launch()", "        if test.interrupted { return }\n        try CApiUITestCase.requireSimulator()\n        app.launch()"),
+                ("the guard is optional", "CApiUITestCase.swift", "        try Self.requireSimulator()\n        let app = CApiUITestApp(", "        try? Self.requireSimulator()\n        let app = CApiUITestApp("),
+                ("no alert check", "CApiUITestCase.swift", "if springboard.alerts.count > 0 {", "if false {"),
+                ("the alert check does not throw", "CApiUITestCase.swift", '            throw CApiUITestError("the test left a system alert open; nothing was pressed")\n', ""),
+                ("the alert check only prints", "CApiUITestCase.swift", 'throw CApiUITestError("the test left', 'print(CApiUITestError("the test left'),
+                ("the alert's label in the message", "CApiUITestCase.swift", '"the test left a system alert open; nothing was pressed"', '"left open: \\(springboard.alerts.firstMatch.label)"')):
+            with self.subTest(name):
+                original = (self.tests / file).read_text(encoding="utf-8")
+                self.rewrite(file, old, new)
+                self.assertTrue(r.capi_test_source_problems(self.tests))
+                (self.tests / file).write_text(original, encoding="utf-8")
+
+    def test_a_class_of_another_shape_is_refused(self):
+        self.rewrite("CApiFreshInstallUITests.swift", "final class CApiFreshInstallUITests: CApiUITestCase", "final class CApiFreshInstallUITests: XCTestCase")
+        self.assertIn("a class must be", " ".join(r.capi_test_source_problems(self.tests)))
+
+    def test_an_override_is_refused(self):
+        (self.tests / "Extra.swift").write_text("struct X { override func y() {} }\n", encoding="utf-8")
+        self.assertIn("override", " ".join(r.capi_test_source_problems(self.tests)))
+
+
+class CApiUiBinary(unittest.TestCase):
+    CALLS = {"ntk_version", "ntk_notification_install"}
+    LOADS = "app:\n\t@rpath/IosLibraryCApi.framework/IosLibraryCApi (compatibility version 1.0.0)\n"
+    SYMBOLS = "app:\n_swift_retain\n_ntk_version\n_ntk_notification_install\n"
+
+    def test_the_sources_and_the_binary_agree(self):
+        self.assertEqual(r.capi_binary_problems(self.SYMBOLS, self.LOADS, self.CALLS), [])
+
+    def test_a_call_only_on_one_side_is_refused(self):
+        self.assertIn("only in the binary ['ntk_string_free']",
+                      r.capi_binary_problems(self.SYMBOLS + "_ntk_string_free\n", self.LOADS, self.CALLS)[0])
+        self.assertIn("only in the sources ['ntk_version']",
+                      r.capi_binary_problems("_ntk_notification_install\n", self.LOADS, self.CALLS)[0])
+
+    def test_anything_of_the_swift_modules_is_refused(self):
+        for symbol in ("_$s10IosLibrary0A13DialogManagerC6sharedACvgZ", "_OBJC_CLASS_$__TtC10IosLibrary16IosDialogManager",
+                       "_$s14IosLibraryCApi6HandleCMa"):
+            with self.subTest(symbol):
+                self.assertIn("Swift symbols", r.capi_binary_problems(self.SYMBOLS + symbol + "\n", self.LOADS, self.CALLS)[0])
+
+    def test_the_app_module_is_not_mistaken_for_the_library(self):
+        self.assertEqual(r.capi_binary_problems(self.SYMBOLS + "_$s23IosLibraryCApiUITestApp0D0VMa\n", self.LOADS, self.CALLS), [])
+
+    def test_the_loads_are_checked(self):
+        self.assertIn("loads IosLibrary.framework", r.capi_binary_problems(
+            self.SYMBOLS, self.LOADS + "\t@rpath/IosLibrary.framework/IosLibrary (compatibility)\n", self.CALLS)[0])
+        self.assertIn("does not load", r.capi_binary_problems(self.SYMBOLS, "app:\n", self.CALLS)[0])
+
+
+class CApiUiXcode(unittest.TestCase):
+    def test_only_the_xcode_of_these_sources_passes(self):
+        for xcode in ("Xcode 26.6 Build version 17F113", "Xcode 26.6.1 Build version 17F200"):
+            self.assertIsNone(r.capi_xcode_problem(xcode))
+        for xcode in ("Xcode 26.3 Build version 17C529", "Xcode 26.60 Build version 1", "Xcode 26 Build version 1", ""):
+            with self.subTest(xcode):
+                self.assertIn("DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer", r.capi_xcode_problem(xcode))
+
+
+class CApiUiResults(unittest.TestCase):
+    def setUp(self):
+        self.plan = r.capi_make_plan("simulator", SIMULATOR, ALL_CAPI)
+        self.keys = ["CApiFreshInstallUITests/testFresh", "CApiRoundTripUITests/testA", "CApiRoundTripUITests/testB"]
+
+    def results(self, keys=None, result="passed"):
+        return [{"test": f"IosLibraryCApiUITests/{k}", "result": result, "message": ""} for k in (keys or self.keys)]
+
+    def test_exactly_the_plan_passes(self):
+        self.assertEqual(r.capi_summary_problems(self.plan, self.results()), [])
+
+    def test_a_failure_a_skip_and_a_pseudo_record_fail(self):
+        for bad in ("failed", "skipped"):
+            with self.subTest(bad):
+                self.assertTrue(r.capi_summary_problems(self.plan, self.results(result=bad)))
+        pseudo = [{"test": "IosLibraryCApiUITests/x#timeout", "result": "failed", "message": "cut off"}]
+        self.assertTrue(r.capi_summary_problems(self.plan, self.results() + pseudo))
+
+    def test_a_missing_or_an_extra_test_fails(self):
+        self.assertIn("did not run", r.capi_summary_problems(self.plan, self.results(self.keys[:2]))[0])
+        self.assertIn("only ran", r.capi_summary_problems(self.plan, self.results(self.keys + ["CApiRoundTripUITests/testC"]))[0])
+        self.assertTrue(r.capi_summary_problems(self.plan, []))
+
+    def test_a_record_checks_this_target_and_the_default_stays_the_sample(self):
+        node = {"devices": [{"deviceId": SIMULATOR}], "testNodes": [{"nodeType": "UI test bundle", "name": "IosLibraryCApiUITests",
+                "children": [{"nodeType": "Test Case", "nodeIdentifier": "CApiFreshInstallUITests/testFresh()", "result": "Passed"}]}]}
+        summary = json.dumps({"totalTestCount": 1, "passedTests": 1})
+        invocation = self.plan["invocations"][0]
+        records, _ = r.record_invocation(invocation, json.dumps(node), summary, 0, False, SIMULATOR, target=r.CAPI_UI_TARGET)
+        self.assertEqual([x["test"] for x in records], ["IosLibraryCApiUITests/CApiFreshInstallUITests/testFresh"])
+        self.assertEqual(records[0]["result"], "passed")
+        records, stop = r.record_invocation(invocation, json.dumps(node), summary, 0, False, SIMULATOR)
+        self.assertTrue(stop)
+        self.assertIn("otherBundle", " ".join(x["test"] for x in records))
+
+
+class CApiUiEndToEnd(unittest.TestCase):
+    """`test_ios.sh --capi-ui` from start to end with the fakes of EndToEnd."""
+
+    setUp_shared = EndToEnd.setUp
+    tearDown = EndToEnd.tearDown
+    run_script = EndToEnd.run_script
+
+    def setUp(self):
+        self.setUp_shared()
+        project = self.root / "ios" / "IosLibraryCApi" / "IosLibraryCApi.xcodeproj"
+        (project / "xcshareddata" / "xcschemes").mkdir(parents=True)
+        shutil.copy(CAPI_PBXPROJ, project / "project.pbxproj")
+        shutil.copy(CAPI_FRAMEWORK_SCHEME, project / "xcshareddata" / "xcschemes" / "IosLibraryCApi.xcscheme")
+        shutil.copytree(CAPI_APP_DIR, self.root / "ios" / "IosLibraryCApiUITestApp", ignore=shutil.ignore_patterns(".DS_Store"))
+        shutil.copytree(CAPI_TESTS_DIR, self.root / "ios" / "IosLibraryCApiUITests", ignore=shutil.ignore_patterns(".DS_Store"))
+        shutil.copytree(CAPI_HEADERS, self.root / "ios" / "IosLibraryCApi" / "include" / "NativeToolkitC")
+        self.project = project
+        self.enumeration = self.temp / "capi-enumeration.json"
+        self.enumeration.write_text(json.dumps(capi_enumeration(ALL_CAPI)))
+        self.env.update(FAKE_CAPI_ENUMERATION=str(self.enumeration), FAKE_CAPI_UDID=SIMULATOR, FAKE_XCODE="26.6")
+
+    def assert_nothing_was_built_or_run(self, log):
+        for word in ("build-for-testing", "test-without-building", "devicectl", "uninstall", "platform=iOS,id"):
+            self.assertNotIn(word, log)
+
+    def test_the_device_is_refused_before_anything_is_built(self):
+        finished, log = self.run_script("--udid", FAKE_DEVICE, "--capi-ui")
+        self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+        self.assertIn("simulator only", finished.stderr)
+        self.assert_nothing_was_built_or_run(log)
+
+    def test_another_xcode_stops_it_before_the_build_and_says_how_to_choose(self):
+        self.env["FAKE_XCODE"] = "26.3"
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+        self.assertIn("DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer", finished.stderr)
+        self.assert_nothing_was_built_or_run(log)
+
+    def test_a_failed_build_stops_it_with_the_log(self):
+        self.env["FAKE_BUILD_FAILS"] = "1"
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+        self.assertIn("the simulator build failed", finished.stderr)
+        self.assertNotIn("test-without-building", log)
+        self.assertNotIn("uninstall", log)
+
+    def test_a_binary_that_differs_from_the_sources_stops_it_before_the_tests(self):
+        for name, env in (("IosLibrary loaded", {"FAKE_APP_LOADS": "\t@rpath/IosLibraryCApi.framework/x\n\t@rpath/IosLibrary.framework/IosLibrary"}),
+                          ("a Swift symbol", {"FAKE_APP_SYMBOLS": "_ntk_notification_install\n_ntk_version\n_$s10IosLibrary0A1XCMa"}),
+                          ("a C function fewer", {"FAKE_APP_SYMBOLS": "_ntk_version"})):
+            with self.subTest(name):
+                self.env.update(env)
+                finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+                for key in env:
+                    del self.env[key]
+                self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+                self.assertNotIn("test-without-building", log)
+                self.assertNotIn("uninstall", log)
+
+    def test_the_executable_and_the_dylib_it_uses_must_be_there(self):
+        for key, word in (("FAKE_NO_MAIN", "no executable"), ("FAKE_NO_DYLIB", "a debug dylib that is not there")):
+            with self.subTest(key):
+                self.env[key] = "1"
+                finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+                del self.env[key]
+                self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+                self.assertIn(word, finished.stderr)
+                self.assertNotIn("test-without-building", log)
+
+    def test_an_executable_without_a_dylib_is_read_alone(self):
+        self.env["FAKE_ALL_IN_MAIN"] = "1"
+        finished, _ = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+
+    def test_both_files_are_read(self):
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        run = pathlib.Path(next(line[len("[out] "):] for line in finished.stdout.splitlines() if line.startswith("[out] ")))
+        symbols = (run / "app-nm.txt").read_text()
+        self.assertIn("_ntk_last_system_code", symbols)
+        self.assertIn("_ntk_version", symbols)
+        loads = (run / "app-otool.txt").read_text()
+        self.assertIn("@rpath/IosLibraryCApiUITestApp.debug.dylib", loads)
+        self.assertIn("@rpath/IosLibraryCApi.framework/", loads)
+
+    def test_a_simulator_query_during_the_restart_has_a_time_limit(self):
+        lines = joined_script()
+        branch = lines[lines.index('if [[ "${CAPI_UI}" -eq 1 ]]; then'):]
+        queries = [line for line in branch if "xcrun simctl" in line]
+        self.assertTrue(queries)
+        for line in queries:
+            if "simctl uninstall" in line:
+                continue
+            self.assertTrue(line.startswith("capped "), line)
+        restore = lines[lines.index("restore_simulator() {"):lines.index('if [[ "${KIND}" == "simulator" ]]; then', lines.index("restore_simulator() {"))]
+        self.assertTrue(any("capped 120 xcrun simctl list" in line for line in restore))
+
+    def test_a_simulator_left_booted_at_the_end_gets_a_warning_and_the_run_still_passes(self):
+        self.state_file("Shutdown")
+        self.env["FAKE_SHUTDOWN_FAILS_FROM"] = "3"  # the two restarts work, the last shutdown does not
+        finished, _ = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertIn("[summary] 3 passed", finished.stdout)
+        self.assertEqual(finished.stderr.count("was shut down before this run and is now Booted"), 1)
+
+    def test_a_simulator_shut_down_at_the_end_gets_no_warning(self):
+        self.state_file("Shutdown")
+        finished, _ = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertNotIn("was shut down before this run", finished.stderr)
+
+    def state_file(self, state):
+        path = self.temp / "sim-state"
+        path.write_text(state)
+        self.env["FAKE_SIM_STATE_FILE"] = str(path)
+
+    def test_a_booted_simulator_gets_one_warning_and_a_shut_down_one_none(self):
+        self.state_file("Booted")
+        finished, _ = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertEqual(finished.stderr.count("Warning: --capi-ui restarts"), 1)
+        self.state_file("Shutdown")
+        finished, _ = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertNotIn("Warning: --capi-ui restarts", finished.stderr)
+
+    def test_a_simulator_that_does_not_shut_down_stops_the_run(self):
+        self.state_file("Booted")
+        self.env["FAKE_SHUTDOWN_FAILS"] = "1"
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+        self.assertIn("did not shut down (state Booted)", finished.stderr)
+        self.assertNotIn("-only-testing", log)
+        self.assertNotIn("uninstall", log)
+
+    def test_a_failed_boot_or_deletion_says_so(self):
+        for key, word in (("FAKE_BOOT_FAILS", "did not boot"), ("FAKE_UNINSTALL_FAILS", "could not delete")):
+            with self.subTest(key):
+                self.env[key] = "1"
+                finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+                del self.env[key]
+                self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+                self.assertIn(word, finished.stderr)
+                self.assertNotIn("-only-testing", log)
+
+    def test_it_takes_no_other_option(self):
+        for extra in (["--feature", "Dialog"], ["--skip-unit"], ["--dry-run"], ["--baseline"], ["--name-each-test"],
+                      ["--device-allow", "systemui"], ["--device-allow", ""], ["--approved", "x"], ["--devicectl-id", "x"],
+                      ["--enumerate-udid", SIMULATOR]):
+            with self.subTest(extra=extra):
+                finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui", *extra)
+                self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+                self.assert_nothing_was_built_or_run(log)
+
+    def test_a_simulator_run_restarts_before_each_call_and_deletes_only_this_app_before_a_fresh_test(self):
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertIn("[summary] 3 passed, 0 problem(s)", finished.stdout)
+        steps = []
+        for line in log.splitlines():
+            if line.startswith(('xcrun ["simctl", "uninstall"', 'xcrun ["simctl", "shutdown"')):
+                steps.append(json.loads(line[len("xcrun "):])[1:])
+            elif line.startswith("xcodebuild ") and "test-without-building" in line and "-enumerate-tests" not in line:
+                steps.append([a for a in json.loads(line[len("xcodebuild "):line.rindex(" ALLOW=")]) if a.startswith("-only-testing:")])
+        self.assertEqual(steps, [["shutdown", SIMULATOR], ["uninstall", SIMULATOR, r.CAPI_UI_BUNDLE_ID], [f"-only-testing:{FRESH}"],
+                                 ["shutdown", SIMULATOR], ["-only-testing:IosLibraryCApiUITests/CApiRoundTripUITests"],
+                                 # The fixture's simulator was shut down, and the run leaves it as it found it.
+                                 ["shutdown", SIMULATOR]])
+        build = next(line for line in log.splitlines() if "build-for-testing" in line)
+        self.assertIn('"-scheme", "IosLibraryCApiUITestApp"', build)
+        self.assertNotIn('"IosLibraryExample"', log)
+        self.assertNotIn("devicectl", log)
+        for line in log.splitlines():
+            if line.startswith("xcodebuild "):
+                self.assertTrue(line.endswith(" ALLOW="), line)
+
+    def test_the_results_decide_the_exit_status(self):
+        for name, env, word in (("failed", {"FAKE_CAPI_FAIL": "testB"}, "FAILED"), ("missing", {"FAKE_CAPI_DROP": "testB"}, "did not run")):
+            with self.subTest(name):
+                self.env.update(env)
+                finished, _ = self.run_script("--udid", SIMULATOR, "--capi-ui")
+                for key in env:
+                    del self.env[key]
+                self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+                self.assertIn(word, finished.stdout)
+
+    def test_a_class_outside_the_table_runs_nothing(self):
+        self.enumeration.write_text(json.dumps(capi_enumeration(ALL_CAPI + ["IosLibraryCApiUITests/CApiOtherUITests/testX()"])))
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 1)
+        self.assertIn("not listed", finished.stderr)
+        self.assertNotIn("-only-testing", log)
+        self.assertNotIn("uninstall", log)
+
+    def test_a_test_source_without_its_guard_stops_it_before_the_build(self):
+        path = self.root / "ios" / "IosLibraryCApiUITests" / "CApiUITestCase.swift"
+        path.write_text(path.read_text(encoding="utf-8").replace("final override func setUpWithError", "override func setUpWithError"), encoding="utf-8")
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 1)
+        self.assertIn("setUpWithError must be final", finished.stdout)
+        self.assert_nothing_was_built_or_run(log)
+
+    def test_the_bundle_of_the_host_stops_it_before_the_build(self):
+        path = self.project / "project.pbxproj"
+        path.write_text(path.read_text(encoding="utf-8").replace(r.CAPI_UI_BUNDLE_ID, r.CAPI_TEST_HOST_BUNDLE_ID), encoding="utf-8")
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 1)
+        self.assert_nothing_was_built_or_run(log)
+
+    def test_a_device_run_never_reaches_the_tests_of_the_c_abi(self):
+        # Without --capi-ui the sample's plan is the only one; its names stay those of the sample.
+        self.env.pop("FAKE_CAPI_ENUMERATION")
+        finished, log = self.run_script("--udid", FAKE_DEVICE, "--enumerate-udid", SIMULATOR, "--dry-run", "--device-allow", "systemui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertNotIn("IosLibraryCApiUI", log + finished.stdout)
 
 
 if __name__ == "__main__":

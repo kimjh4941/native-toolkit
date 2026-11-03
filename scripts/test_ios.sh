@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs the iOS unit tests and the sample's UI tests on one simulator or one device.
+# Runs the iOS unit tests and the sample's UI tests on one simulator or one device, or the C ABI's
+# UI tests on one simulator (--capi-ui).
 #
 # Follows section 6.3 of artifact/topics/ios-c-abi/designs/2026-10-18-ios-c-abi-ui-test-design.md.
 # What runs and every check of what ran is decided in scripts/ios_ui_runner.py; this script runs
@@ -8,6 +9,7 @@
 # Usage: scripts/test_ios.sh --udid <id> [--enumerate-udid <simulator>] [--devicectl-id <id>]
 #          [--feature Dialog|Notification|Share|Clipboard] [--skip-unit] [--device-allow <c,...>]
 #          [--dry-run] [--approved <file>] [--baseline] [--name-each-test]
+#        scripts/test_ios.sh --udid <simulator> --capi-ui
 #   --udid            a simulator listed by `xcrun simctl list`; any other value is the device
 #                     (its hardware UDID)
 #   --enumerate-udid  the simulator that is built for and enumerated (required for the device)
@@ -24,6 +26,10 @@
 #                     the two environments of README D-21)
 #   --name-each-test  on a simulator, names every test with -only-testing as the device does
 #                     (the device always does)
+#   --capi-ui         only the UI tests of the C ABI (IosLibraryCApiUITests, C ABI design part 2,
+#                     TB-2b and 12.2): a simulator only, and it takes no other option but --udid.
+#                     Needs Xcode 26.6 through DEVELOPER_DIR. It restarts that simulator before every
+#                     xcodebuild; nothing else may run on it during the run (there is no lock)
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -202,7 +208,7 @@ elif [[ -n "${NTK_TEST_IOS_SOURCE_ONLY:-}" ]]; then
 fi
 
 usage() {
-  sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 UDID=""
@@ -215,6 +221,7 @@ APPROVED=""
 SAVE_BASELINE=0
 NAME_EACH_TEST=0
 DEVICE_ALLOW_GIVEN=0
+CAPI_UI=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --udid) UDID="$2"; shift 2 ;;
@@ -227,6 +234,7 @@ while [[ $# -gt 0 ]]; do
     --approved) APPROVED="$2"; shift 2 ;;
     --baseline) SAVE_BASELINE=1; shift ;;
     --name-each-test) NAME_EACH_TEST=1; shift ;;
+    --capi-ui) CAPI_UI=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
@@ -240,6 +248,13 @@ if [[ "${SAVE_BASELINE}" -eq 1 && ( -n "${FEATURE}" || "${SKIP_UNIT}" -eq 1 || "
   echo "Error: --baseline needs a full run: drop --feature, --skip-unit and --dry-run" >&2; exit 2
 fi
 
+# --device-allow, --approved and --devicectl-id are refused below: on a simulator as such, on the
+# device because --capi-ui refuses the device.
+if [[ "${CAPI_UI}" -eq 1 && ( -n "${FEATURE}" || "${SKIP_UNIT}" -eq 1 || "${DRY_RUN}" -eq 1 || "${SAVE_BASELINE}" -eq 1 \
+  || "${NAME_EACH_TEST}" -eq 1 || -n "${ENUMERATE_UDID}" ) ]]; then
+  echo "Error: --capi-ui takes no other option but --udid" >&2; exit 2
+fi
+
 STAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "${BUILD_ROOT}"
 STAGE_DIR="$(mktemp -d "${BUILD_ROOT}/${STAMP}-pending.XXXXXX")"
@@ -248,6 +263,9 @@ xcrun simctl list -j runtimes > "${STAGE_DIR}/simctl-runtimes.json"
 
 # --- 0. Destination and environment ---------------------------------------------------------
 KIND="$(runner destination --udid "${UDID}" --simctl-devices "${STAGE_DIR}/simctl-devices.json")"
+if [[ "${CAPI_UI}" -eq 1 && "${KIND}" != "simulator" ]]; then
+  echo "Error: --capi-ui runs on a simulator only; ${UDID} is not one" >&2; exit 2
+fi
 if [[ "${KIND}" == "simulator" ]]; then
   if [[ "${DEVICE_ALLOW_GIVEN}" -eq 1 || -n "${APPROVED}" || -n "${DEVICECTL_ID}" ]]; then
     echo "Error: --device-allow, --approved and --devicectl-id are for the device; ${UDID} is a simulator" >&2; exit 2
@@ -300,10 +318,117 @@ echo "[out] ${OUT_DIR}"
 restore_simulator() {
   if [[ "${INITIAL_SIM_STATE}" == "Shutdown" ]]; then
     capped 120 xcrun simctl shutdown "${UDID}" >/dev/null 2>&1 || true
+    # Says so and never fails the run: this is a trap on EXIT, after the results.
+    local state=unknown
+    if capped 120 xcrun simctl list -j devices > "${OUT_DIR}/simctl-restore.json" 2>/dev/null; then
+      state="$(runner capi-simulator-state --udid "${UDID}" --simctl-devices "${OUT_DIR}/simctl-restore.json" 2>/dev/null)" || state=unknown
+    fi
+    if [[ "${state}" != "Shutdown" ]]; then
+      echo "Warning: ${UDID} was shut down before this run and is now ${state}" >&2
+    fi
   fi
 }
 if [[ "${KIND}" == "simulator" ]]; then
   trap restore_simulator EXIT
+fi
+
+# --- The UI tests of the C ABI: their own project, plan and results; none of the sample's stages -----
+if [[ "${CAPI_UI}" -eq 1 ]]; then
+  runner capi-check-xcode --xcode "${XCODE}"
+  if [[ "${INITIAL_SIM_STATE}" == "Booted" ]]; then
+    echo "Warning: --capi-ui restarts ${UDID}, which is booted, before every xcodebuild; nothing else may run on it during this run" >&2
+  fi
+  CAPI_PROJECT="${IOS_DIR}/IosLibraryCApi/IosLibraryCApi.xcodeproj"
+  CAPI_HEADERS="${IOS_DIR}/IosLibraryCApi/include/NativeToolkitC"
+  CAPI_APP_DIR="${IOS_DIR}/IosLibraryCApiUITestApp"
+  runner capi-check-sources --pbxproj "${CAPI_PROJECT}/project.pbxproj" \
+    --framework-scheme "${CAPI_PROJECT}/xcshareddata/xcschemes/IosLibraryCApi.xcscheme" \
+    --app-dir "${CAPI_APP_DIR}" --headers-dir "${CAPI_HEADERS}" --tests-dir "${IOS_DIR}/IosLibraryCApiUITests"
+  CAPI_BUNDLE_ID="$(runner capi-bundle-id)"
+
+  # Every run starts from a restart: a permission alert that a failed test left open survives the
+  # deletion of its app and stops every later test until the simulator restarts (stage 2 working
+  # notes, 5.4). The restart keeps the permissions, so it does not replace the deletion. simctl
+  # shutdown fails on a simulator already shut down, so the state afterwards is what counts.
+  capi_restart_simulator() {
+    capped 120 xcrun simctl shutdown "${UDID}" > /dev/null 2>&1 || true
+    capped 120 xcrun simctl list -j devices > "${OUT_DIR}/simctl-restart.json" \
+      || { echo "Error: simctl list failed or timed out while restarting ${UDID}" >&2; exit 1; }
+    local state
+    state="$(runner capi-simulator-state --udid "${UDID}" --simctl-devices "${OUT_DIR}/simctl-restart.json")"
+    if [[ "${state}" != "Shutdown" ]]; then
+      echo "Error: ${UDID} did not shut down (state ${state}); a test would start without the restart" >&2; exit 1
+    fi
+    capped 300 xcrun simctl bootstatus "${UDID}" -b > /dev/null \
+      || { echo "Error: ${UDID} did not boot (simctl bootstatus failed)" >&2; exit 1; }
+  }
+
+  echo "[build] simulator ${UDID}"
+  sim_xcodebuild 3600 build-for-testing -workspace "${WORKSPACE}" -scheme IosLibraryCApiUITestApp \
+    -destination "platform=iOS Simulator,id=${UDID}" -derivedDataPath "${DD_SIM}" -quiet \
+    > "${OUT_DIR}/build-simulator.log" 2>&1 || { echo "Error: the simulator build failed (${OUT_DIR}/build-simulator.log)" >&2; exit 1; }
+  XCTESTRUN="$(ls "${DD_SIM}"/Build/Products/*iphonesimulator*.xctestrun)"
+  [[ "$(echo "${XCTESTRUN}" | wc -l | tr -d ' ')" == 1 ]] || { echo "Error: expected one simulator .xctestrun" >&2; exit 1; }
+  CAPI_APP="${DD_SIM}/Build/Products/Debug-iphonesimulator/IosLibraryCApiUITestApp.app"
+  : > "${OUT_DIR}/app-nm.txt"
+  : > "${OUT_DIR}/app-otool.txt"
+  CAPI_MAIN="${CAPI_APP}/IosLibraryCApiUITestApp"
+  CAPI_DYLIB="${CAPI_APP}/IosLibraryCApiUITestApp.debug.dylib"
+  [[ -f "${CAPI_MAIN}" ]] || { echo "Error: the built app has no executable: ${CAPI_MAIN}" >&2; exit 1; }
+  nm -u "${CAPI_MAIN}" >> "${OUT_DIR}/app-nm.txt"
+  otool -L "${CAPI_MAIN}" >> "${OUT_DIR}/app-otool.txt"
+  # The app's own code is in the .debug.dylib of a Debug build, when the executable uses one.
+  if grep -q "@rpath/IosLibraryCApiUITestApp.debug.dylib" "${OUT_DIR}/app-otool.txt" && [[ ! -f "${CAPI_DYLIB}" ]]; then
+    echo "Error: the executable uses a debug dylib that is not there: ${CAPI_DYLIB}" >&2; exit 1
+  fi
+  if [[ -f "${CAPI_DYLIB}" ]]; then
+    nm -u "${CAPI_DYLIB}" >> "${OUT_DIR}/app-nm.txt"
+    otool -L "${CAPI_DYLIB}" >> "${OUT_DIR}/app-otool.txt"
+  fi
+  runner capi-check-binary --nm "${OUT_DIR}/app-nm.txt" --otool "${OUT_DIR}/app-otool.txt" \
+    --app-dir "${CAPI_APP_DIR}" --headers-dir "${CAPI_HEADERS}"
+  echo "[enumerate] simulator ${UDID}"
+  sim_xcodebuild 600 test-without-building -xctestrun "${XCTESTRUN}" -destination "platform=iOS Simulator,id=${UDID}" \
+    -resultBundlePath "${OUT_DIR}/enumerate.xcresult" -derivedDataPath "${OUT_DIR}/dd-enumerate" \
+    -enumerate-tests -test-enumeration-style flat -test-enumeration-format json \
+    -test-enumeration-output-path "${OUT_DIR}/enumeration.json" > "${OUT_DIR}/enumerate.log" 2>&1 \
+    || { echo "Error: the enumeration failed (${OUT_DIR}/enumerate.log)" >&2; exit 1; }
+  runner capi-plan --kind "${KIND}" --udid "${UDID}" --enumeration "${OUT_DIR}/enumeration.json" --plan "${PLAN}"
+  runner invocations --plan "${PLAN}" > "${OUT_DIR}/invocations.tsv"
+  while IFS=$'\t' read -r -u 3 index stage name timeout uninstall; do
+    [[ -n "${index}" ]] || continue
+    echo "[${stage}] ${name}"
+    capi_restart_simulator
+    if [[ "${uninstall}" == 1 ]]; then
+      xcrun simctl uninstall "${UDID}" "${CAPI_BUNDLE_ID}" \
+        || { echo "Error: could not delete ${CAPI_BUNDLE_ID} from ${UDID} (simctl uninstall failed)" >&2; exit 1; }
+    fi
+    runner capi-only-testing --plan "${PLAN}" --index "${index}" > "${OUT_DIR}/only-testing-${index}.txt"
+    args=()
+    while IFS= read -r argument; do args+=("${argument}"); done < "${OUT_DIR}/only-testing-${index}.txt"
+    [[ "${#args[@]}" -gt 0 ]] || { echo "Error: no -only-testing for ${name}; not calling xcodebuild" >&2; exit 1; }
+    safe_name="$(echo "${name}" | tr '/' '_')"
+    bundle="${OUT_DIR}/${index}-${safe_name}.xcresult"
+    set +e
+    sim_xcodebuild "${timeout}" test-without-building -xctestrun "${XCTESTRUN}" -destination "platform=iOS Simulator,id=${UDID}" \
+      -parallel-testing-enabled NO -derivedDataPath "${OUT_DIR}/dd-test" -resultBundlePath "${bundle}" "${args[@]}" \
+      > "${OUT_DIR}/${index}-${safe_name}.log" 2>&1
+    code=$?
+    set -e
+    timed_out=0
+    [[ "${code}" -eq 142 ]] && timed_out=1
+    tests_json="${OUT_DIR}/${index}-tests.json"
+    summary_json="${OUT_DIR}/${index}-summary.json"
+    rm -f "${tests_json}" "${summary_json}"
+    if [[ -d "${bundle}" ]]; then
+      xcrun xcresulttool get test-results tests --path "${bundle}" > "${tests_json}" || rm -f "${tests_json}"
+      xcrun xcresulttool get test-results summary --path "${bundle}" > "${summary_json}" || rm -f "${summary_json}"
+    fi
+    runner capi-record --plan "${PLAN}" --index "${index}" --tests-json "${tests_json}" --summary-json "${summary_json}" \
+      --exit-code "${code}" --timed-out "${timed_out}" --results "${RESULTS}"
+  done 3< "${OUT_DIR}/invocations.tsv"
+  runner capi-summary --plan "${PLAN}" --results "${RESULTS}"
+  exit 0
 fi
 
 runner check-sources --tests-dir "${TESTS_DIR}" --pbxproj "${PBXPROJ}"

@@ -96,12 +96,14 @@ needs a full run, so it refuses `-Filter` and `-SkipUnitTests`.
 
 | Script | Runs |
 |---|---|
-| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device. What runs and every check of what ran is in `ios_ui_runner.py` |
+| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device; with `--capi-ui`, the UI tests of the C ABI on one simulator. What runs and every check of what ran is in `ios_ui_runner.py` |
 | `test_ios.baseline.<model>-<os>.json` | The recorded outcome of the last full run in each of the two environments, which `--baseline` rewrites |
 
 ```bash
 scripts/test_ios.sh --udid <simulator>                       # everything on a simulator
 scripts/test_ios.sh --udid <simulator> --feature Dialog      # one feature's UI tests
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <simulator> --capi-ui           # the UI tests of the C ABI
 scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --dry-run --device-allow systemui
 scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --devicectl-id <id> \
   --device-allow systemui --approved <approval.json>         # after the user approved the list
@@ -117,6 +119,22 @@ every test the way the device does. The hashes of the
 trusted test files are pinned in `ios_ui_runner.py`; change them only after another model has
 reviewed the change.
 
+`--capi-ui` runs `IosLibraryCApiUITests` against `IosLibraryCApiUITestApp`, the app that calls the C
+functions (`artifact/topics/ios-c-abi/designs/2026-11-03-ios-c-abi-c-abi-design-part2.md`, TB-2b and
+12.2). Both targets support the simulator only, so a device is not a destination for them (a
+command-line override can still force a device build; `agent-rules/device-testing.md` covers that). The
+option also refuses the device and every other option, and shares no stage with the sample's tests: no
+declarations, no baseline, no approval. It deletes the app before each test of a class that
+`CAPI_UI_CLASSES` marks as a new install, which is what returns the notification permission to
+undetermined.
+
+It needs Xcode 26.6 (`DEVELOPER_DIR` as above; it stops with exit 2 under another one and never switches
+by itself). **It restarts the given simulator before every xcodebuild**, and warns when that simulator
+was already booted. There is no lock: nothing else may run on that simulator during a run. Before the
+build it checks that every row of the app calls C and that nothing else reaches the library or the
+system directly; after the build, that the app's own Mach-O files import exactly those C functions and
+nothing of `IosLibrary`. A row that calls C and then reports a fixed value is left to a review.
+
 ## `tests/` is not the test suite
 
 `scripts/tests/` holds the **self-tests of the `check_` scripts** and of the
@@ -125,7 +143,7 @@ breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 677 cases
+python -m unittest discover -s scripts/tests    # 743 cases
 ```
 
 `tests/ios_ui_runner_mutations.py` is not a unit test: it breaks one decision of the iOS runner

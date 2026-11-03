@@ -18,6 +18,9 @@
 		CA1C000F2F0A000100A1B2C3 /* IosLibraryCApi.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA1C00102F0A000100A1B2C3 /* IosLibraryCApi.framework */; };
 		CA1C00112F0A000100A1B2C3 /* IosLibraryCApi.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CA1C00102F0A000100A1B2C3 /* IosLibraryCApi.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CA1C00122F0A000100A1B2C3 /* IosLibraryCApi.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA1C00102F0A000100A1B2C3 /* IosLibraryCApi.framework */; };
+		CA1C00412F0A000100A1B2C3 /* IosLibraryCApi.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA1C00102F0A000100A1B2C3 /* IosLibraryCApi.framework */; };
+		CA1C00422F0A000100A1B2C3 /* IosLibrary.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CA1C000C2F0A000100A1B2C3 /* IosLibrary.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CA1C00432F0A000100A1B2C3 /* IosLibraryCApi.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CA1C00102F0A000100A1B2C3 /* IosLibraryCApi.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +45,20 @@
 			remoteGlobalIDString = CA1C00182F0A000100A1B2C3;
 			remoteInfo = IosLibraryCApiTestHost;
 		};
+		CA1C00462F0A000100A1B2C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA1C00142F0A000100A1B2C3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA1C00152F0A000100A1B2C3;
+			remoteInfo = IosLibraryCApi;
+		};
+		CA1C00472F0A000100A1B2C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA1C00142F0A000100A1B2C3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA1C00512F0A000100A1B2C3;
+			remoteInfo = IosLibraryCApiUITestApp;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -53,6 +70,18 @@
 			files = (
 				CA1C000E2F0A000100A1B2C3 /* IosLibrary.framework in Embed Frameworks */,
 				CA1C00112F0A000100A1B2C3 /* IosLibraryCApi.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1C00502F0A000100A1B2C3 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				CA1C00422F0A000100A1B2C3 /* IosLibrary.framework in Embed Frameworks */,
+				CA1C00432F0A000100A1B2C3 /* IosLibraryCApi.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -69,6 +98,8 @@
 		CA1C00102F0A000100A1B2C3 /* IosLibraryCApi.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = IosLibraryCApi.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA1C001A2F0A000100A1B2C3 /* IosLibraryCApiTestHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IosLibraryCApiTestHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA1C001B2F0A000100A1B2C3 /* IosLibraryCApiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IosLibraryCApiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA1C00442F0A000100A1B2C3 /* IosLibraryCApiUITestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IosLibraryCApiUITestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA1C00452F0A000100A1B2C3 /* IosLibraryCApiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IosLibraryCApiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -103,6 +134,18 @@
 			path = ../IosLibraryCApiTestHost;
 			sourceTree = "<group>";
 		};
+		CA1C00482F0A000100A1B2C3 /* IosLibraryCApiUITestApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = IosLibraryCApiUITestApp;
+			path = ../IosLibraryCApiUITestApp;
+			sourceTree = "<group>";
+		};
+		CA1C00492F0A000100A1B2C3 /* IosLibraryCApiUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = IosLibraryCApiUITests;
+			path = ../IosLibraryCApiUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -131,6 +174,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CA1C004A2F0A000100A1B2C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA1C00412F0A000100A1B2C3 /* IosLibraryCApi.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1C004B2F0A000100A1B2C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -141,6 +199,8 @@
 				CA1C001D2F0A000100A1B2C3 /* IosLibraryCApi */,
 				CA1C001E2F0A000100A1B2C3 /* IosLibraryCApiTests */,
 				CA1C001F2F0A000100A1B2C3 /* IosLibraryCApiTestHost */,
+				CA1C00482F0A000100A1B2C3 /* IosLibraryCApiUITestApp */,
+				CA1C00492F0A000100A1B2C3 /* IosLibraryCApiUITests */,
 				CA1C00252F0A000100A1B2C3 /* Frameworks */,
 				CA1C00262F0A000100A1B2C3 /* Products */,
 			);
@@ -173,6 +233,8 @@
 				CA1C00102F0A000100A1B2C3 /* IosLibraryCApi.framework */,
 				CA1C001B2F0A000100A1B2C3 /* IosLibraryCApiTests.xctest */,
 				CA1C001A2F0A000100A1B2C3 /* IosLibraryCApiTestHost.app */,
+				CA1C00442F0A000100A1B2C3 /* IosLibraryCApiUITestApp.app */,
+				CA1C00452F0A000100A1B2C3 /* IosLibraryCApiUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -266,6 +328,53 @@
 			productReference = CA1C001A2F0A000100A1B2C3 /* IosLibraryCApiTestHost.app */;
 			productType = "com.apple.product-type.application";
 		};
+		CA1C00512F0A000100A1B2C3 /* IosLibraryCApiUITestApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA1C00552F0A000100A1B2C3 /* Build configuration list for PBXNativeTarget "IosLibraryCApiUITestApp" */;
+			buildPhases = (
+				CA1C004C2F0A000100A1B2C3 /* Sources */,
+				CA1C004A2F0A000100A1B2C3 /* Frameworks */,
+				CA1C004E2F0A000100A1B2C3 /* Resources */,
+				CA1C00502F0A000100A1B2C3 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA1C00532F0A000100A1B2C3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CA1C00482F0A000100A1B2C3 /* IosLibraryCApiUITestApp */,
+			);
+			name = IosLibraryCApiUITestApp;
+			packageProductDependencies = (
+			);
+			productName = IosLibraryCApiUITestApp;
+			productReference = CA1C00442F0A000100A1B2C3 /* IosLibraryCApiUITestApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CA1C00522F0A000100A1B2C3 /* IosLibraryCApiUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA1C00562F0A000100A1B2C3 /* Build configuration list for PBXNativeTarget "IosLibraryCApiUITests" */;
+			buildPhases = (
+				CA1C004D2F0A000100A1B2C3 /* Sources */,
+				CA1C004B2F0A000100A1B2C3 /* Frameworks */,
+				CA1C004F2F0A000100A1B2C3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA1C00542F0A000100A1B2C3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CA1C00492F0A000100A1B2C3 /* IosLibraryCApiUITests */,
+			);
+			name = IosLibraryCApiUITests;
+			packageProductDependencies = (
+			);
+			productName = IosLibraryCApiUITests;
+			productReference = CA1C00452F0A000100A1B2C3 /* IosLibraryCApiUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -286,6 +395,13 @@
 					CA1C00182F0A000100A1B2C3 = {
 						CreatedOnToolsVersion = 26.6;
 					};
+					CA1C00512F0A000100A1B2C3 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					CA1C00522F0A000100A1B2C3 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = CA1C00512F0A000100A1B2C3;
+					};
 				};
 			};
 			buildConfigurationList = CA1C00352F0A000100A1B2C3 /* Build configuration list for PBXProject "IosLibraryCApi" */;
@@ -305,6 +421,8 @@
 				CA1C00152F0A000100A1B2C3 /* IosLibraryCApi */,
 				CA1C002F2F0A000100A1B2C3 /* IosLibraryCApiTests */,
 				CA1C00182F0A000100A1B2C3 /* IosLibraryCApiTestHost */,
+				CA1C00512F0A000100A1B2C3 /* IosLibraryCApiUITestApp */,
+				CA1C00522F0A000100A1B2C3 /* IosLibraryCApiUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -325,6 +443,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CA1C00322F0A000100A1B2C3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1C004E2F0A000100A1B2C3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1C004F2F0A000100A1B2C3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -355,6 +487,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CA1C004C2F0A000100A1B2C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA1C004D2F0A000100A1B2C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -372,6 +518,16 @@
 			isa = PBXTargetDependency;
 			target = CA1C00182F0A000100A1B2C3 /* IosLibraryCApiTestHost */;
 			targetProxy = CA1C00172F0A000100A1B2C3 /* PBXContainerItemProxy */;
+		};
+		CA1C00532F0A000100A1B2C3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA1C00152F0A000100A1B2C3 /* IosLibraryCApi */;
+			targetProxy = CA1C00462F0A000100A1B2C3 /* PBXContainerItemProxy */;
+		};
+		CA1C00542F0A000100A1B2C3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA1C00512F0A000100A1B2C3 /* IosLibraryCApiUITestApp */;
+			targetProxy = CA1C00472F0A000100A1B2C3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -633,6 +789,90 @@
 			};
 			name = Release;
 		};
+		CA1C00572F0A000100A1B2C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonghyunkim.nativetoolkit.IosLibraryCApiUITestApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphonesimulator;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CA1C00582F0A000100A1B2C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonghyunkim.nativetoolkit.IosLibraryCApiUITestApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphonesimulator;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CA1C00592F0A000100A1B2C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonghyunkim.nativetoolkit.IosLibraryCApiUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphonesimulator;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = IosLibraryCApiUITestApp;
+			};
+			name = Debug;
+		};
+		CA1C005A2F0A000100A1B2C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonghyunkim.nativetoolkit.IosLibraryCApiUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphonesimulator;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = IosLibraryCApiUITestApp;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -668,6 +908,24 @@
 			buildConfigurations = (
 				CA1C003C2F0A000100A1B2C3 /* Debug */,
 				CA1C003D2F0A000100A1B2C3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA1C00552F0A000100A1B2C3 /* Build configuration list for PBXNativeTarget "IosLibraryCApiUITestApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA1C00572F0A000100A1B2C3 /* Debug */,
+				CA1C00582F0A000100A1B2C3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA1C00562F0A000100A1B2C3 /* Build configuration list for PBXNativeTarget "IosLibraryCApiUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA1C00592F0A000100A1B2C3 /* Debug */,
+				CA1C005A2F0A000100A1B2C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

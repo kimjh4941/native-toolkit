@@ -29,8 +29,13 @@ H = "scripts/tests/ios_ui_runner_mutations.py"
 SB = "ios/IosLibraryExample/IosLibraryExampleUITests/Support/Springboard.swift"
 CB = "ios/IosLibraryExample/IosLibraryExampleUITests/ClipboardPasteUITests.swift"
 SAMPLE = "ios/IosLibraryExample/IosLibraryExample/NotificationSampleView.swift"
+ROWS = "ios/IosLibraryCApiUITestApp/Rows/CommonRows.swift"
+BASE = "ios/IosLibraryCApiUITests/CApiUITestCase.swift"
+PBX = "ios/IosLibraryCApi/IosLibraryCApi.xcodeproj/project.pbxproj"
 COPIED = ("scripts", "ios/IosLibraryExample/IosLibraryExampleUITests", "ios/IosLibraryExample/IosLibraryExample",
-          "ios/IosLibraryExample/IosLibraryExample.xcodeproj/project.pbxproj")
+          "ios/IosLibraryExample/IosLibraryExample.xcodeproj/project.pbxproj", "ios/IosLibraryCApiUITestApp",
+          "ios/IosLibraryCApiUITests", "ios/IosLibraryCApi/include/NativeToolkitC", "ios/IosLibraryCApi/IosLibraryCApi.xcodeproj/project.pbxproj",
+          "ios/IosLibraryCApi/IosLibraryCApi.xcodeproj/xcshareddata/xcschemes/IosLibraryCApi.xcscheme")
 LEDGER_HOME = "pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir)"
 REAL_LEDGER_DIR = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / "Library" / "Application Support" / "native-toolkit"
 
@@ -130,6 +135,56 @@ MUTATIONS = [
     ('device run 1: a test without -resultBundlePath', S, '  if [[ "${action}" == "build-for-testing" ]]; then\n    [[ "${bundle_count}" -eq 0 ]] && return 0\n  fi\n', '  [[ "${bundle_count}" -eq 0 ]] && return 0\n'),
     ('device run 1: the enumeration in the default DerivedData', S, '  -derivedDataPath "${OUT_DIR}/dd-enumerate" -resultBundlePath "${OUT_DIR}/enumerate.xcresult" \\\n', ''),
     ('device run 1: the simulator classes in the default DerivedData', S, '      -derivedDataPath "${OUT_DIR}/dd-test" -parallel-testing-enabled NO', '      -parallel-testing-enabled NO'),
+    ('capi-ui: the script lets a device through', S, 'if [[ "${CAPI_UI}" -eq 1 && "${KIND}" != "simulator" ]]; then', 'if false; then'),
+    ('capi-ui: the plan lets a device through', M, '    if kind != "simulator":\n        raise RunnerError("the UI tests of the C ABI', '    if False:\n        raise RunnerError("the UI tests of the C ABI'),
+    ('capi-ui: other options accepted', S, ' || "${SAVE_BASELINE}" -eq 1 \\\n  || "${NAME_EACH_TEST}" -eq 1 || -n "${ENUMERATE_UDID}" ) ]]; then', ' ) ]]; then'),
+    ('capi-ui: no restart before a call', S, '    capi_restart_simulator\n', ''),
+    ('capi-ui: no deletion before a fresh test', M, '                add("fresh", capi_key_from_enumeration_id(identifier), cls, [identifier], [identifier], True)', '                add("fresh", capi_key_from_enumeration_id(identifier), cls, [identifier], [identifier], False)'),
+    ('capi-ui: the script ignores the deletion', S, '      xcrun simctl uninstall "${UDID}" "${CAPI_BUNDLE_ID}" \\\n        || {', '      : \\\n        || {'),
+    ('capi-ui: deletes the sample instead', S, '      xcrun simctl uninstall "${UDID}" "${CAPI_BUNDLE_ID}"', '      xcrun simctl uninstall "${UDID}" "${BUNDLE_ID}"'),
+    ('capi-ui: the fresh tests all in one run', M, '        if fresh:\n            for identifier in tests:', '        if False:\n            for identifier in tests:'),
+    ('capi-ui: unknown classes pass', M, '    if classes != known:\n        problems.append(f"the enumerated classes differ from CAPI_UI_CLASSES', '    if False:\n        problems.append(f"the enumerated classes differ from CAPI_UI_CLASSES'),
+    ('capi-ui: the bundle of the app not checked', M, '    require(CAPI_UI_APP_TARGET, f"PRODUCT_BUNDLE_IDENTIFIER = {CAPI_UI_BUNDLE_ID};")\n', ''),
+    ('capi-ui: the bundle constant is the host', M, 'CAPI_UI_BUNDLE_ID = "com.jonghyunkim.nativetoolkit.IosLibraryCApiUITestApp"', 'CAPI_UI_BUNDLE_ID = "com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost"'),
+    ('capi-ui: the app imports the Swift API', 'ios/IosLibraryCApiUITestApp/Rows/CommonRows.swift', 'import Foundation\n', 'import Foundation\nimport IosLibrary\n'),
+    ('capi-ui: the summary does not stop the script', S, '  runner capi-summary --plan "${PLAN}" --results "${RESULTS}"\n', '  runner capi-summary --plan "${PLAN}" --results "${RESULTS}" || true\n'),
+    ('capi-ui form: internal import IosLibrary', ROWS, 'import Foundation\n', 'import Foundation\ninternal import IosLibrary\n'),
+    ('capi-ui form: public import IosLibrary', ROWS, 'import Foundation\n', 'import Foundation\npublic import IosLibrary\n'),
+    ('capi-ui form: package import IosLibrary', ROWS, 'import Foundation\n', 'import Foundation\npackage import IosLibrary\n'),
+    ('capi-ui form: import os; import IosLibrary', ROWS, 'import Foundation\n', 'import Foundation\nimport os; import IosLibrary\n'),
+    ('capi-ui form: @_spi import IosLibrary', ROWS, 'import Foundation\n', 'import Foundation\n@_spi(X) import IosLibrary\n'),
+    ('capi-ui form: a row with a fixed report', ROWS, 'report(String(ntk_last_system_code()))', 'report("0")'),
+    ('capi-ui form: ntk_ only in a comment', ROWS, 'report(String(ntk_last_system_code()))', 'report("0") // ntk_last_system_code()'),
+    ('capi-ui form: UIPasteboard in a row', ROWS, 'report(String(ntk_last_system_code()))', 'UIPasteboard.general.string = "x"; report(String(ntk_last_system_code()))'),
+    ('capi-ui form: a .m file', 'ios/IosLibraryCApiUITestApp/Extra.m', '', '#import <IosLibrary/IosLibrary.h>\n'),
+    ('capi-ui check: a row is not checked', M, '        problems += _capi_row_problems(relative, tokens, functions)\n', ''),
+    ('capi-ui check: the forbidden names not checked', M, '            if token.kind in ("ident", "eident") and token.text in CAPI_APP_FORBIDDEN_NAMES:', '            if False:'),
+    ('capi-ui check: other languages pass', M, '            problems.append(f"{relative}: the app holds Swift sources only', '            continue\n            problems.append(f"{relative}: the app holds Swift sources only'),
+    ('capi-ui simulator only: SDKROOT and platforms not required', M, '        for setting in CAPI_SIMULATOR_ONLY_SETTINGS:\n            require(target, setting)\n', ''),
+    ('capi-ui simulator only: a team passes', M, '            if "DEVELOPMENT_TEAM" in block:', '            if False:'),
+    ('capi-ui simulator only: setUpWithError not final', BASE, 'final override func setUpWithError', 'override func setUpWithError'),
+    ('capi-ui simulator only: launchApp without the guard', BASE, '        try Self.requireSimulator()\n        let app = CApiUITestApp(', '        let app = CApiUITestApp('),
+    ('capi-ui simulator only: the tests not checked', M, '    problems += capi_test_source_problems(args.tests_dir)\n', ''),
+    ('capi-ui binary: not checked', S, '  runner capi-check-binary --nm', '  : runner capi-check-binary --nm'),
+    ('capi-ui binary: only the main executable read', S, '    nm -u "${CAPI_DYLIB}" >> "${OUT_DIR}/app-nm.txt"\n    otool -L "${CAPI_DYLIB}" >> "${OUT_DIR}/app-otool.txt"\n', '    :\n'),
+    ('capi-ui binary: only the dylib read', S, '  nm -u "${CAPI_MAIN}" >> "${OUT_DIR}/app-nm.txt"\n', ''),
+    ('capi-ui binary: the executable may be missing', S, '  [[ -f "${CAPI_MAIN}" ]] || { echo "Error: the built app has no executable: ${CAPI_MAIN}" >&2; exit 1; }\n  nm -u "${CAPI_MAIN}" >> "${OUT_DIR}/app-nm.txt"\n  otool -L "${CAPI_MAIN}" >> "${OUT_DIR}/app-otool.txt"\n', '  if [[ -f "${CAPI_MAIN}" ]]; then\n    nm -u "${CAPI_MAIN}" >> "${OUT_DIR}/app-nm.txt"\n    otool -L "${CAPI_MAIN}" >> "${OUT_DIR}/app-otool.txt"\n  fi\n'),
+    ('capi-ui binary: the dylib may be missing', S, ' && [[ ! -f "${CAPI_DYLIB}" ]]; then', ' && false; then'),
+    ('capi-ui restart: no time limit on the state query', S, '    capped 120 xcrun simctl list -j devices > "${OUT_DIR}/simctl-restart.json" \\\n', '    xcrun simctl list -j devices > "${OUT_DIR}/simctl-restart.json" \\\n'),
+    ('capi-ui restore: no warning', S, '    if [[ "${state}" != "Shutdown" ]]; then\n      echo "Warning: ${UDID} was shut down', '    if false; then\n      echo "Warning: ${UDID} was shut down'),
+    ('capi-ui guards: the simulator check does not throw', BASE, '        throw CApiUITestError("the UI tests of the C ABI run on the simulator only; nothing was done")\n', ''),
+    ('capi-ui guards: the alert check does not throw', BASE, '            throw CApiUITestError("the test left a system alert open; nothing was pressed")\n', ''),
+    ('capi-ui check: dlopen dropped from the table', M, '"NSClassFromString", "objc_getClass", "dlopen", "dlsym",', '"NSClassFromString", "objc_getClass", "dlsym",'),
+    ('capi-ui binary: Swift symbols pass', M, '    if swift:\n        problems.append', '    if False:\n        problems.append'),
+    ('capi-ui binary: the C set not compared', M, '    if imported != set(calls):', '    if False:'),
+    ('capi-ui binary: IosLibrary may be loaded', M, '    if "IosLibrary.framework/" in otool_text:', '    if False:'),
+    ('capi-ui xcode: not checked', S, '  runner capi-check-xcode --xcode "${XCODE}"\n', ''),
+    ('capi-ui xcode: any version passes', M, '    if re.match(r"Xcode " + re.escape(CAPI_UI_XCODE) + r"(\\.\\d+)? ", xcode + " "):', '    if True:'),
+    ('capi-ui restart: no warning', S, '  if [[ "${INITIAL_SIM_STATE}" == "Booted" ]]; then\n    echo "Warning: --capi-ui', '  if false; then\n    echo "Warning: --capi-ui'),
+    ('capi-ui restart: the state not confirmed', S, '    if [[ "${state}" != "Shutdown" ]]; then\n      echo "Error: ${UDID} did not shut down', '    if false; then\n      echo "Error: ${UDID} did not shut down'),
+    ('capi-ui restart: a failed boot ignored', S, '    capped 300 xcrun simctl bootstatus "${UDID}" -b > /dev/null \\\n      || { echo "Error: ${UDID} did not boot (simctl bootstatus failed)" >&2; exit 1; }', '    capped 300 xcrun simctl bootstatus "${UDID}" -b > /dev/null || true'),
+    ('capi-ui restart: a failed deletion ignored', S, '        || { echo "Error: could not delete ${CAPI_BUNDLE_ID} from ${UDID} (simctl uninstall failed)" >&2; exit 1; }', '        || true'),
+    ('capi-ui build: a failed build ignored', S, '    > "${OUT_DIR}/build-simulator.log" 2>&1 || { echo "Error: the simulator build failed (${OUT_DIR}/build-simulator.log)" >&2; exit 1; }\n  XCTESTRUN="$(ls', '    > "${OUT_DIR}/build-simulator.log" 2>&1 || true\n  XCTESTRUN="$(ls'),
     ('C the harness stops moving the ledger', H, '    code = code.replace(LEDGER_HOME, f"pathlib.Path({str(root)!r})")\n', ''),
 ]
 
@@ -154,8 +209,10 @@ def prepare_copy(root, relative=None, old=None, new=None):
     applied = True
     if relative is not None:
         path = root / relative
-        text = path.read_text(encoding="utf-8")
-        if text.count(old) != 1:
+        text = path.read_text(encoding="utf-8") if path.exists() or old != "" else ""
+        if old == "":
+            path.write_text(new, encoding="utf-8")
+        elif text.count(old) != 1:
             applied = False
         else:
             path.write_text(text.replace(old, new), encoding="utf-8")

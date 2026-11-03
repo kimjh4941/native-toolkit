@@ -323,6 +323,8 @@ ios/
         <機能>Receiver.swift                # 検査・型の変換・IosLibrary の公開 API の呼び出し（P1-1、P1-2）
   IosLibraryCApiTests/                      # C ABI のテスト（XCTest から C の関数を呼ぶ。6 章）
   IosLibraryCApiTestHost/                   # そのホスト。通知の権限を一度も求めない（第 2 部 12.1）
+  IosLibraryCApiUITestApp/                  # C を呼ぶ UI テスト用のアプリ。シミュレーターだけ（第 2 部 TB-2b）
+  IosLibraryCApiUITests/                    # そのアプリの UI テスト（第 2 部 12.1 の前面の行と 12.2）
   IosLibraryCApiSmoke/                      # dist の 2 つの xcframework だけを使う C / Objective-C のアプリ（Swift のコードを持たない）
 ```
 
