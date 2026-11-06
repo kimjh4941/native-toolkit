@@ -36,7 +36,9 @@ final class UITestAppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         logger.debug("[didFinishLaunchingWithOptions] launchOptions: \(launchOptions?.count ?? 0, privacy: .public)")
         RowReport(rowId: "launch.section", sceneState: SceneState.current())(CApiRowCatalog.drawnDescription)
-        NotificationRows.runAtLaunch()
+        let shape = LaunchShape.current
+        RowReport(rowId: "launch.shape", sceneState: SceneState.current())(LaunchShape.line)
+        NotificationRows.runAtLaunch(listening: shape.shape.listensAtLaunch)
         RowReport(rowId: "launch.freshInstall", sceneState: SceneState.current())(String(FreshInstallMarker.consume()))
         return true
     }

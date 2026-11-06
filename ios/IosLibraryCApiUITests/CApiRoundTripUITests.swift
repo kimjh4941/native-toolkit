@@ -597,6 +597,96 @@ final class CApiRoundTripUITests: CApiUITestCase {
         XCTAssertEqual(try app.run("notification.removeAll"), notificationLine("removeAll", done))
         XCTAssertEqual(try waitForList(app, "scheduled", "0 0 count=0 "), notificationLine("scheduled", "0 0 count=0 "))
     }
+
+    // MARK: - Notification.h: the events (part 2, 12.2, "通知のイベント"; TB-8)
+
+    // The event notification of the app ("Event", category `ntk.events` with `Open` and `Reply`) is shown 3 seconds
+    // after the row, so that the test can leave the app first. The app's listener registered inside the launch
+    // writes each event as a `launch.interaction` line (`LaunchShape` in the app).
+
+    private func ensureNotificationPermission(_ app: CApiUITestApp) throws {
+        if try app.run("notification.status") == notificationLine("status", "0 0 status=\(NotificationStatus.notDetermined)") {
+            try app.start("notification.requestPermission")
+            try app.allowNotifications()
+            XCTAssertEqual(try app.waitForLine(ofRow: "notification.requestPermission"), notificationLine("requestPermission", "0 0 granted=1"))
+        }
+        XCTAssertEqual(try app.run("notification.status"), notificationLine("status", "0 0 status=\(NotificationStatus.authorized)"),
+                       "the events need the permission")
+    }
+
+    /// The scheduled and delivered notifications go when the test ends, also when it failed on the way.
+    private func removeTheNotificationsAtTheEnd(_ app: CApiUITestApp) {
+        // The block runs on the test's thread, after the test body, like the body itself.
+        nonisolated(unsafe) let app = app
+        addTeardownBlock {
+            _ = try? app.activate()
+            _ = try? app.run("notification.cancelAll")
+            _ = try? app.run("notification.removeAll")
+        }
+    }
+
+    private func showTheEventSoon(_ app: CApiUITestApp) throws {
+        XCTAssertEqual(try app.run("notification.registerEventCategory"), notificationLine("registerEventCategory", "0 0"))
+        XCTAssertEqual(try app.run("notification.showEventSoon"), notificationLine("showEventSoon", "0 0"))
+    }
+
+    private func interaction(kind: Int, action: String, text: String = "NULL", launch: Int = 0) -> String {
+        "kind=\(kind) id=ntk.event action=\(action) category=ntk.events text=\(text) userInfo={\"k\":1} launch=\(launch)"
+    }
+
+    private let bodyTapAction = "com.apple.UNNotificationDefaultActionIdentifier"
+
+    /// A tap on the banner, the `Open` action and a reply, each reaching the C listener once with its kind.
+    func testNotificationEventsReachTheListenerOfC() throws {
+        let app = try launchApp(section: .notification, listensAtLaunch: true)
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.shape"), "[launch.shape@none] source=environment section=notification listen=1 saved=1")
+        removeTheNotificationsAtTheEnd(app)
+        try ensureNotificationPermission(app)
+
+        try showTheEventSoon(app)
+        try app.pressHome()
+        try app.eventBanner().tap()
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.interaction", timeout: 15),
+                       "[launch.interaction@none] \(interaction(kind: NotificationEventKind.bodyTap, action: bodyTapAction))")
+
+        try showTheEventSoon(app)
+        try app.pressHome()
+        try app.expandEventBanner()
+        try app.tapEventAction("Open")
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.interaction", occurrence: 1, timeout: 15),
+                       "[launch.interaction@none] \(interaction(kind: NotificationEventKind.action, action: "ntk.open"))")
+
+        try showTheEventSoon(app)
+        try app.pressHome()
+        try app.expandEventBanner()
+        try app.tapEventAction("Reply")
+        try app.sendEventReply("hello from C")
+        try app.activate()
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.interaction", occurrence: 2, timeout: 15),
+                       "[launch.interaction@none] \(interaction(kind: NotificationEventKind.textInput, action: "ntk.reply", text: "hello from C"))")
+        XCTAssertFalse(app.isDrawnLine(ofRow: "launch.interaction", occurrence: 3), "one event per response")
+    }
+
+    /// A banner tapped after the app was terminated starts it: the listener registered inside that launch gets
+    /// the tap with `_is_launch`, and `get_launch_response_async` gives the same response, also when asked again
+    /// (P2-19).
+    func testATapThatStartsTheAppReachesCAsTheLaunch() throws {
+        let app = try launchApp(section: .notification, listensAtLaunch: true)
+        // The cold start reads what this launch saved.
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.shape"), "[launch.shape@none] source=environment section=notification listen=1 saved=1")
+        removeTheNotificationsAtTheEnd(app)
+        try ensureNotificationPermission(app)
+        try showTheEventSoon(app)
+        try app.terminate()
+        try app.eventBanner().tap()
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.shape", timeout: 20), "[launch.shape@none] source=file section=notification listen=1 saved=-")
+        let launched = interaction(kind: NotificationEventKind.bodyTap, action: bodyTapAction, launch: 1)
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.interaction", timeout: 15), "[launch.interaction@none] \(launched)")
+        XCTAssertEqual(try app.run("notification.launchResponse"), notificationLine("launchResponse", "0 0 response=\(launched)"))
+        XCTAssertEqual(try app.run("notification.launchResponse"), notificationLine("launchResponse", "0 0 response=\(launched)"))
+        XCTAssertFalse(app.isDrawnLine(ofRow: "launch.interaction", occurrence: 1), "one event for the tap")
+        XCTAssertFalse(app.isDrawnLine(ofRow: "launch.settings", occurrence: 0), "the settings listener was not rejected")
+    }
 }
 
 /// The numbers of `ntk_dialog_button` and `ntk_dialog_error` (`Dialog.h`, `scripts/c_abi_error_numbers.json`).

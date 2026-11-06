@@ -59,9 +59,11 @@ class CApiUITestCase: XCTestCase {
     }
 
     /// Launches the app for this test (a new process for every test), with only `section` drawn.
-    func launchApp(section: CApiSection) throws -> CApiUITestApp {
+    /// With `listensAtLaunch` the app registers its notification listeners inside the launch, also on the cold
+    /// start the system makes from a notification (`LaunchShape` in the app).
+    func launchApp(section: CApiSection, listensAtLaunch: Bool = false) throws -> CApiUITestApp {
         try Self.requireSimulator()
-        let app = CApiUITestApp(test: self, section: section)
+        let app = CApiUITestApp(test: self, section: section, listensAtLaunch: listensAtLaunch)
         try app.launch()
         return app
     }

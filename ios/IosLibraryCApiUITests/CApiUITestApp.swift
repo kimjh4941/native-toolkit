@@ -27,11 +27,13 @@ struct CApiUITestApp {
     let test: CApiUITestCase
     private let section: CApiSection
 
-    /// `section` is the section to draw (`CApiRowCatalog.sectionVariable` in the app).
-    init(test: CApiUITestCase, section: CApiSection) {
+    /// `section` is the section to draw and `listensAtLaunch` whether the notification listeners are registered
+    /// inside the launch (`LaunchShape` in the app, which keeps both for a launch without them).
+    init(test: CApiUITestCase, section: CApiSection, listensAtLaunch: Bool = false) {
         self.test = test
         self.section = section
         app.launchEnvironment["NTK_CAPI_SECTION"] = section.rawValue
+        app.launchEnvironment["NTK_CAPI_LISTEN_AT_LAUNCH"] = listensAtLaunch ? "1" : "0"
     }
 
     /// Stops the test unless the app drew the section, also for a test that reads no row.
@@ -294,6 +296,89 @@ struct CApiUITestApp {
         button.tap()
     }
 
+    // MARK: Notification banners (part 2, 12.2, "通知のイベント"). Simulator only
+
+    // The app's event notification ("Event" / "Tap the event", category `ntk.events`), found as the sample's
+    // `Springboard` finds its own (identifiers measured on the iOS 26.2 simulator in stage 0c). Failure messages
+    // name no springboard label.
+    private static let shortLookIdentifier = "NotificationShortLookView"
+    private static let expandedViewIdentifier = "notification-expanded-view"
+    private static let replyPlaceholder = "IosLibraryCApiUITestApp reply"
+    private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+
+    private var eventBanners: XCUIElementQuery {
+        springboard.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier == %@ AND label CONTAINS %@ AND label ENDSWITH %@", Self.shortLookIdentifier, ", Event, ", ", Tap the event"))
+    }
+
+    func pressHome() throws {
+        XCUIDevice.shared.press(.home)
+        try test.checkInterruption()
+    }
+
+    func activate() throws {
+        app.activate()
+        try test.checkInterruption()
+    }
+
+    /// Waits for the event banner, which must be the only one.
+    func eventBanner(timeout: TimeInterval = 15) throws -> XCUIElement {
+        guard eventBanners.firstMatch.waitForExistence(timeout: timeout) else {
+            throw CApiUITestError("the event banner did not appear")
+        }
+        try test.checkInterruption()
+        guard eventBanners.count == 1 else {
+            throw CApiUITestError("the event banner matches \(eventBanners.count) elements")
+        }
+        return eventBanners.element(boundBy: 0)
+    }
+
+    /// Long-presses the event banner until it shows its actions.
+    func expandEventBanner() throws {
+        try eventBanner().press(forDuration: 1.5)
+        guard springboard.descendants(matching: .any).matching(identifier: Self.expandedViewIdentifier).firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the event notification did not expand")
+        }
+        try test.checkInterruption()
+    }
+
+    /// An action of the expanded event notification: `Open` or `Reply`, the app's own titles.
+    func tapEventAction(_ title: String) throws {
+        let buttons = springboard.buttons.matching(identifier: title)
+        guard buttons.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the action \(title) did not appear")
+        }
+        guard buttons.count == 1 else {
+            throw CApiUITestError("the action \(title) matches \(buttons.count) elements")
+        }
+        buttons.element(boundBy: 0).tap()
+        try test.checkInterruption()
+    }
+
+    /// Types into the reply of the event notification and sends it. The reply window is the one holding a text
+    /// view with the app's own placeholder.
+    func sendEventReply(_ text: String) throws {
+        let textView = NSPredicate(format: "elementType == %lu AND placeholderValue == %@",
+                                   XCUIElement.ElementType.textView.rawValue, Self.replyPlaceholder)
+        let windows = springboard.windows.containing(textView)
+        guard windows.firstMatch.waitForExistence(timeout: Self.timeout), windows.count == 1 else {
+            throw CApiUITestError("the reply window of the event notification did not appear once")
+        }
+        let window = windows.element(boundBy: 0)
+        let views = window.textViews.matching(textView)
+        guard views.count == 1 else {
+            throw CApiUITestError("the reply text view matches \(views.count) elements")
+        }
+        views.element(boundBy: 0).typeText(text)
+        try test.checkInterruption()
+        let send = springboard.buttons.matching(identifier: "Send")
+        guard send.firstMatch.waitForExistence(timeout: Self.timeout), send.count == 1 else {
+            throw CApiUITestError("the send button of the reply did not appear once")
+        }
+        send.element(boundBy: 0).tap()
+        try test.checkInterruption()
+    }
+
     // MARK: Elements
 
     private func tap(_ identifier: String) throws {
@@ -333,4 +418,12 @@ enum NotificationError {
 enum NotificationStatus {
     static let notDetermined = 0
     static let authorized = 2
+}
+
+/// The numbers of `ntk_notification_event_kind` (`Notification.h`).
+enum NotificationEventKind {
+    static let bodyTap = 0
+    static let action = 1
+    static let dismiss = 2
+    static let textInput = 3
 }

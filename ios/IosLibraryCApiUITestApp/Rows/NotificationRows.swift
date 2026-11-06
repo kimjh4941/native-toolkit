@@ -84,11 +84,7 @@ private func withContent<Result>(id: String, title: String, body: String?, _ cal
 
 /// In an hour: the request stays pending for the whole test.
 private func withLaterTrigger<Result>(_ call: (UnsafePointer<ntk_notification_trigger>) -> Result) -> Result {
-    var trigger = ntk_notification_trigger()
-    trigger.struct_size = UInt32(MemoryLayout<ntk_notification_trigger>.size)
-    trigger.kind = Int32(NTK_NOTIFICATION_TRIGGER_TIME_INTERVAL)
-    trigger.interval_seconds = 3600
-    return withUnsafePointer(to: &trigger, call)
+    withTrigger(seconds: 3600, call)
 }
 
 /// The completion of the cancellation adds the next request: the order of part 2, 6.3 (M6).
@@ -98,6 +94,102 @@ private func cancelThenScheduleRow(_ userData: UnsafeMutableRawPointer?, _ error
         withLaterTrigger { ntk_notification_schedule_async("ntk.after", content, $0, doneRow, RowCompletion.userData(report), releaseRow) }
     }
     report("\(error) \(systemCode) schedule=\(scheduled)")
+}
+
+/// `kind=<n> id=<id> action=<id> category=<id> text=<text|NULL> userInfo=<json> launch=<0|1>`. The values are the test's
+/// own: these rows run on the simulator only.
+private func describeInteraction(_ event: OpaquePointer?) -> String {
+    "kind=\(ntk_notification_interaction_kind(event)) id=\(optionalText(ntk_notification_interaction_notification_id(event, nil))) action=\(optionalText(ntk_notification_interaction_action_id(event, nil))) category=\(optionalText(ntk_notification_interaction_category_id(event, nil))) text=\(optionalText(ntk_notification_interaction_user_text(event, nil))) userInfo=\(optionalText(ntk_notification_interaction_user_info_json(event, nil))) launch=\(ntk_notification_interaction_is_launch(event))"
+}
+
+/// An event listener reports each event as a line of its row; `user_data` lives until `release`.
+private func interactionRow(_ userData: UnsafeMutableRawPointer?, _ event: OpaquePointer?) {
+    defer { ntk_notification_interaction_free(event) }
+    RowCompletion.from(userData).report(describeInteraction(event))
+}
+
+private func settingsRequestRow(_ userData: UnsafeMutableRawPointer?, _ request: OpaquePointer?) {
+    defer { ntk_notification_settings_request_free(request) }
+    RowCompletion.from(userData).report("settings id=\(optionalText(ntk_notification_settings_request_notification_id(request, nil)))")
+}
+
+private func launchRow(_ userData: UnsafeMutableRawPointer?, _ error: Int32, _ systemCode: UInt32, _ response: OpaquePointer?) {
+    defer { ntk_notification_interaction_free(response) }
+    RowCompletion.from(userData).report("\(error) \(systemCode) response=\(response == nil ? "NULL" : describeInteraction(response))")
+}
+
+/// The listeners the rows registered, so that a row can remove them. Main thread only.
+@MainActor
+private enum Listeners {
+    static var interaction: OpaquePointer?
+    static var settings: OpaquePointer?
+}
+
+/// The event notification: its category has an action that opens the app, a reply and the custom dismiss action.
+private let eventCategory = "ntk.events"
+
+/// In `seconds`: long enough for a UI test to leave the app or terminate it.
+private func withTrigger<Result>(seconds: Double, _ call: (UnsafePointer<ntk_notification_trigger>) -> Result) -> Result {
+    var trigger = ntk_notification_trigger()
+    trigger.struct_size = UInt32(MemoryLayout<ntk_notification_trigger>.size)
+    trigger.kind = Int32(NTK_NOTIFICATION_TRIGGER_TIME_INTERVAL)
+    trigger.interval_seconds = seconds
+    return withUnsafePointer(to: &trigger, call)
+}
+
+/// The event notification's content, for the call only: the library copies it.
+private func withEventContent<Result>(_ call: (OpaquePointer?) -> Result) -> Result {
+    var content: OpaquePointer?
+    let created = ntk_notification_content_create("ntk.event", "Event", &content)
+    defer { ntk_notification_content_free(content) }
+    logger.debug("[withEventContent] created: \(created, privacy: .public)")
+    _ = ntk_notification_content_set_body(content, "Tap the event")
+    _ = ntk_notification_content_set_category(content, eventCategory)
+    _ = ntk_notification_content_set_user_info_json(content, "{\"k\":1}")
+    return call(content)
+}
+
+/// The category of the event notification: `Open` brings the app forward, `Reply` takes text, and the custom
+/// dismiss action is asked for.
+private func withEventCategory<Result>(_ call: (UnsafePointer<ntk_notification_category>) -> Result) -> Result {
+    eventCategory.withCString { identifier in
+        "ntk.open".withCString { openIdentifier in
+            "Open".withCString { openTitle in
+                "ntk.reply".withCString { replyIdentifier in
+                    "Reply".withCString { replyTitle in
+                        "Send".withCString { button in
+                            "IosLibraryCApiUITestApp reply".withCString { placeholder in
+                                var open = ntk_notification_action()
+                                open.struct_size = UInt32(MemoryLayout<ntk_notification_action>.size)
+                                open.identifier = openIdentifier
+                                open.title = openTitle
+                                open.options = UInt32(NTK_NOTIFICATION_ACTION_FOREGROUND)
+                                var reply = ntk_notification_text_input_action()
+                                reply.struct_size = UInt32(MemoryLayout<ntk_notification_text_input_action>.size)
+                                reply.identifier = replyIdentifier
+                                reply.title = replyTitle
+                                reply.button_title = button
+                                reply.placeholder = placeholder
+                                return withUnsafePointer(to: &open) { actions in
+                                    withUnsafePointer(to: &reply) { replies in
+                                        var category = ntk_notification_category()
+                                        category.struct_size = UInt32(MemoryLayout<ntk_notification_category>.size)
+                                        category.identifier = identifier
+                                        category.options = UInt32(NTK_NOTIFICATION_CATEGORY_CUSTOM_DISMISS_ACTION)
+                                        category.actions = actions
+                                        category.action_count = 1
+                                        category.text_input_actions = replies
+                                        category.text_input_action_count = 1
+                                        return withUnsafePointer(to: &category, call)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Notification.h. The values are the numbers of `ntk_notification_error`.
@@ -110,6 +202,44 @@ enum NotificationRows {
             DispatchQueue.global().async {
                 report(String(ntk_notification_install()))
             }
+        },
+        // Events (OP-42 to OP-45).
+        // A new registration replaces the row's previous one, which is removed first.
+        CApiRow(id: "notification.listen") { report in
+            ntk_notification_listener_remove(Listeners.interaction)
+            Listeners.interaction = nil
+            var listener: OpaquePointer?
+            reportRejection(ntk_notification_add_interaction_listener(interactionRow, RowCompletion.userData(report), releaseRow, &listener), report)
+            Listeners.interaction = listener
+        },
+        CApiRow(id: "notification.unlisten") { report in
+            ntk_notification_listener_remove(Listeners.interaction)
+            Listeners.interaction = nil
+            report("removed")
+        },
+        CApiRow(id: "notification.listenSettings") { report in
+            ntk_notification_listener_remove(Listeners.settings)
+            Listeners.settings = nil
+            var listener: OpaquePointer?
+            reportRejection(ntk_notification_add_settings_request_listener(settingsRequestRow, RowCompletion.userData(report), releaseRow, &listener), report)
+            Listeners.settings = listener
+        },
+        CApiRow(id: "notification.unlistenSettings") { report in
+            ntk_notification_listener_remove(Listeners.settings)
+            Listeners.settings = nil
+            report("removed")
+        },
+        CApiRow(id: "notification.launchResponse") { report in
+            reportRejection(ntk_notification_get_launch_response_async(launchRow, RowCompletion.userData(report), releaseRow), report)
+        },
+        CApiRow(id: "notification.registerEventCategory") { report in
+            reportRejection(withEventCategory { ntk_notification_register_category_async($0, doneRow, RowCompletion.userData(report), releaseRow) },
+                            report)
+        },
+        CApiRow(id: "notification.showEventSoon") { report in
+            reportRejection(withEventContent { content in
+                withTrigger(seconds: 3) { ntk_notification_show_async(content, $0, doneRow, RowCompletion.userData(report), releaseRow) }
+            }, report)
         },
         // Permission (OP-35 to OP-38).
         CApiRow(id: "notification.status") { report in
@@ -223,10 +353,20 @@ enum NotificationRows {
         },
     ])
 
-    /// What a host calls while the launch is in progress (part 1, 1.4).
+    /// What a host calls while the launch is in progress (part 1, 1.4): the install, and with `listening` the two
+    /// event listeners, so that a cold start from a notification reaches C (part 2, TB-8). They are never removed.
     @MainActor
-    static func runAtLaunch() {
-        logger.debug("[runAtLaunch]")
+    static func runAtLaunch(listening: Bool) {
+        logger.debug("[runAtLaunch] listening: \(listening, privacy: .public)")
         RowReport(rowId: "launch.install", sceneState: SceneState.current())(String(ntk_notification_install()))
+        guard listening else { return }
+        let interactions = RowReport(rowId: "launch.interaction", sceneState: SceneState.current())
+        var listener: OpaquePointer?
+        reportRejection(ntk_notification_add_interaction_listener(interactionRow, RowCompletion.userData(interactions), releaseRow, &listener),
+                        interactions)
+        let settings = RowReport(rowId: "launch.settings", sceneState: SceneState.current())
+        var settingsListener: OpaquePointer?
+        reportRejection(ntk_notification_add_settings_request_listener(settingsRequestRow, RowCompletion.userData(settings), releaseRow,
+                                                                        &settingsListener), settings)
     }
 }

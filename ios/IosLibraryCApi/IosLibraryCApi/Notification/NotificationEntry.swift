@@ -217,3 +217,78 @@ public func ntk_notification_list_date_millis_at(_ list: OpaquePointer?, _ index
 public func ntk_notification_list_free(_ list: OpaquePointer?) {
     Handle.free(list)
 }
+
+@c @implementation
+public func ntk_notification_add_interaction_listener(_ callback: ntk_notification_interaction_fn?, _ userData: UnsafeMutableRawPointer?,
+                                                      _ release: ntk_release_fn?,
+                                                      _ outListener: UnsafeMutablePointer<OpaquePointer?>?) -> ntk_notification_error {
+    NotificationReceiver.addInteractionListener(callback, userData, release, outListener)
+}
+
+@c @implementation
+public func ntk_notification_add_settings_request_listener(_ callback: ntk_notification_settings_request_fn?, _ userData: UnsafeMutableRawPointer?,
+                                                           _ release: ntk_release_fn?,
+                                                           _ outListener: UnsafeMutablePointer<OpaquePointer?>?) -> ntk_notification_error {
+    NotificationReceiver.addSettingsRequestListener(callback, userData, release, outListener)
+}
+
+@c @implementation
+public func ntk_notification_get_launch_response_async(_ callback: ntk_notification_launch_fn?, _ userData: UnsafeMutableRawPointer?,
+                                                       _ release: ntk_release_fn?) -> ntk_notification_error {
+    NotificationReceiver.launchResponse(callback, userData, release)
+}
+
+@c @implementation
+public func ntk_notification_listener_remove(_ listener: OpaquePointer?) {
+    NotificationReceiver.removeListener(listener)
+}
+
+@c @implementation
+public func ntk_notification_interaction_kind(_ event: OpaquePointer?) -> ntk_notification_event_kind {
+    NotificationHandles.interactionKind(event)
+}
+
+@c @implementation
+public func ntk_notification_interaction_notification_id(_ event: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    NotificationHandles.interactionNotificationId(event, outSize)
+}
+
+@c @implementation
+public func ntk_notification_interaction_action_id(_ event: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    NotificationHandles.interactionActionId(event, outSize)
+}
+
+@c @implementation
+public func ntk_notification_interaction_category_id(_ event: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    NotificationHandles.interactionCategoryId(event, outSize)
+}
+
+@c @implementation
+public func ntk_notification_interaction_user_text(_ event: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    NotificationHandles.interactionUserText(event, outSize)
+}
+
+@c @implementation
+public func ntk_notification_interaction_user_info_json(_ event: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    NotificationHandles.interactionUserInfoJson(event, outSize)
+}
+
+@c @implementation
+public func ntk_notification_interaction_is_launch(_ event: OpaquePointer?) -> Int32 {
+    NotificationHandles.interactionIsLaunch(event)
+}
+
+@c @implementation
+public func ntk_notification_interaction_free(_ event: OpaquePointer?) {
+    Handle.free(event)
+}
+
+@c @implementation
+public func ntk_notification_settings_request_notification_id(_ request: OpaquePointer?, _ outSize: UnsafeMutablePointer<Int>?) -> UnsafePointer<CChar>? {
+    NotificationHandles.settingsRequestNotificationId(request, outSize)
+}
+
+@c @implementation
+public func ntk_notification_settings_request_free(_ request: OpaquePointer?) {
+    Handle.free(request)
+}

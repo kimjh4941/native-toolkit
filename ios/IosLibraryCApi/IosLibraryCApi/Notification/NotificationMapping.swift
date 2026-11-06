@@ -18,6 +18,20 @@ struct NotificationListEntry: Sendable, Equatable {
     let dateMillis: Int64
 }
 
+/// What an interaction or a launch response becomes for C (part 2, 6.3, "イベントの値"). The userInfo is already
+/// JSON: each registration gets a handle of its own, made from this.
+struct NotificationInteractionValue: Sendable, Equatable {
+    let kind: ntk_notification_event_kind
+    let notificationIdentifier: String
+    let actionIdentifier: String
+    /// "" when the notification has no category.
+    let categoryIdentifier: String
+    /// Only for TEXT_INPUT.
+    let userText: String?
+    let userInfoJson: String
+    let isLaunch: Bool
+}
+
 /// The pure conversions of Notification.h (part 2, 6.3, 11.2): the trigger and the category, on the calling
 /// thread and before anything is registered; the options of a permission request; and the library's results
 /// (the errors, the status, the pre-check of P2-10). Every struct is read with `reserved:` naming all its
@@ -238,5 +252,38 @@ enum NotificationMapping {
             NotificationListEntry(identifier: $0.identifier, title: $0.title, subtitle: $0.subtitle, body: $0.body,
                                   categoryIdentifier: $0.categoryIdentifier, dateMillis: millis(of: $0.date))
         }
+    }
+
+    // MARK: - Events
+
+    /// `TEXT_INPUT` when there is a reply, `BODY_TAP` and `DISMISS` for the system's two identifiers, `ACTION`
+    /// for any other (part 2, 6.3).
+    static func kind(actionIdentifier: String, userText: String?) -> ntk_notification_event_kind {
+        CApiLog.notification.debug("[kind] actionIdentifier length: \(actionIdentifier.utf8.count, privacy: .public), userText: \(userText == nil ? "nil" : "provided", privacy: .public)")
+        if userText != nil {
+            return ntk_notification_event_kind(NTK_NOTIFICATION_EVENT_KIND_TEXT_INPUT)
+        }
+        switch actionIdentifier {
+        case UNNotificationDefaultActionIdentifier: return ntk_notification_event_kind(NTK_NOTIFICATION_EVENT_KIND_BODY_TAP)
+        case UNNotificationDismissActionIdentifier: return ntk_notification_event_kind(NTK_NOTIFICATION_EVENT_KIND_DISMISS)
+        default: return ntk_notification_event_kind(NTK_NOTIFICATION_EVENT_KIND_ACTION)
+        }
+    }
+
+    /// The library has already taken out its marker (part 2, 6.3). A userInfo the JSON writer refused would be
+    /// "{}"; the conversion makes every value writable, so that is not expected and is logged.
+    static func interaction(of event: NotificationResponseEvent) -> NotificationInteractionValue {
+        CApiLog.notification.debug("[interaction] userInfo keys: \(event.userInfo.count, privacy: .public), isLaunch: \(event.isLaunchResponse, privacy: .public)")
+        let json: String
+        if let text = NotificationJson.text(of: event.userInfo) {
+            json = text
+        } else {
+            CApiLog.notification.error("[interaction] the userInfo could not be written as JSON: {}")
+            json = "{}"
+        }
+        return NotificationInteractionValue(kind: kind(actionIdentifier: event.actionIdentifier, userText: event.userText),
+                                            notificationIdentifier: event.notificationIdentifier,
+                                            actionIdentifier: event.actionIdentifier, categoryIdentifier: event.categoryIdentifier,
+                                            userText: event.userText, userInfoJson: json, isLaunch: event.isLaunchResponse)
     }
 }

@@ -1783,3 +1783,183 @@ Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。コマ�
 | `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
 | `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
 
+
+## 11. TB-8
+
+第 2 部 13 章の TB-8（通知のイベント OP-42〜OP-45 と、UI テスト用のアプリに起動の形を伝える口）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。**判断の要るところは、メインのセッションが利用者の指示（「判断が必要な場合、推奨案で、進める。」）のもとで決めた形（推奨案）で進めた。持ち主はまだ読んでいない。**
+
+### 11.1 足したもの
+
+**TB-8 の C の関数は 14 個**: 登録と取得の 4 つ（`add_interaction_listener`、`add_settings_request_listener`、`get_launch_response_async`、`listener_remove`）、`ntk_notification_interaction` の読み取りと解放の 8 つ（`_kind`、`_notification_id`、`_action_id`、`_category_id`、`_user_text`、`_user_info_json`、`_is_launch`、`_free`）、`ntk_notification_settings_request` の 2 つ（`_notification_id`、`_free`）。`NOT_IMPLEMENTED_YET` から 14 個を外し、`entries` は 130 of 134（残りは Share の 4）。
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 入口 | `IosLibraryCApi/IosLibraryCApi/Notification/NotificationEntry.swift` | 14 関数。各 1 行 |
+| 受け口 | `Notification/NotificationReceiver.swift` | `Events`（ライブラリの 2 つのハブと `launchResponse()`、delegate が入っているか。テストが差し替える口）、2 つの帳簿（`EventLedger`、32 件まで保つ）、`receive`、`addListener`（入口の検査の後に `NOT_INITIALIZED`。R-8）、`removeListener`、`finishLaunchResponse` |
+| 写し | `Notification/NotificationMapping.swift` | `NotificationInteractionValue`、`kind(actionIdentifier:userText:)`、`interaction(of:)`（userInfo は TB-6 の `NotificationJson.text(of:)`） |
+| ハンドル | `Notification/NotificationHandles.swift` | `NotificationInteractionHandle`、`NotificationSettingsRequestHandle` と読み取り |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` から 14 個 |
+| テスト | `IosLibraryCApiTests/NotificationEventTests.swift`（新規。16） | 428 → 444 件 |
+| UI テスト用のアプリ | `IosLibraryCApiUITestApp/LaunchShape.swift`（新規）、`CApiRow.swift`、`UITestAppMain.swift`、`Rows/NotificationRows.swift` | 起動の形（下）、起動の中の 2 つの受け手、行 6 個（`listen`、`unlisten`、`listenSettings`、`launchResponse`、`registerEventCategory`、`showEventSoon`） |
+| UI テスト | `IosLibraryCApiUITests/CApiRoundTripUITests.swift`、`CApiUITestApp.swift`、`CApiUITestCase.swift` | テスト 2 件。バナーの操作の補助（`eventBanner`、`expandEventBanner`、`tapEventAction`、`sendEventReply`、`pressHome`、`activate`）。`launchApp(section:listensAtLaunch:)` |
+
+公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイル、`scripts/ios_ui_runner.py` とその表、README、メモリ、設計書は変えていない（新しい受け口のファイルは無い。`LaunchShape.swift` は UI テスト用のアプリのファイルで、5.1 の表と第 1 部の木はアプリのファイルを並べていない）。
+
+**起動の形（`LaunchShape`）**: UI テストは起動の環境に `NTK_CAPI_SECTION` と `NTK_CAPI_LISTEN_AT_LAUNCH`（`1` / `0`）を渡す。アプリはそれを Application Support の `ntk-capi-ui-launch-shape.txt`（`section=…`、`listen=…`）に書き、環境なしで起動されたとき（システムが通知のタップで起こしたコールドスタート）はそのファイルを読む。サンプルの SA-18 と同じ形（ファイルで、`UserDefaults` は使わない）。`listen=1` なら `didFinishLaunching` の中で `ntk_notification_install` の後に 2 つの受け手を登録し、イベントを `launch.interaction` と `launch.settings` の行に書く。どこから読んだかを `launch.shape` の行（`source=environment|file|defaults`）に書く。
+
+**`IosLibraryCApiTests` は通知の中心にもライブラリのハブにも届かない**（TB-1 からある `NotificationInstallTests` の delegate の読み書きは別）。`setUp` で `Events` を「使われたら `XCTFail`。delegate は入っていない」形に差し替え、使うテストは偽物を入れる。イベントは、ライブラリの受け手が呼ぶのと同じ `NotificationReceiver.receive` に渡す。帳簿はプロセスで 1 つずつなので、各テストは先に、前のテストが残して保たれたイベントを受け取って捨てる。記録の物はテストの物が持ち続ける（TB-7 の 10.9 と同じ）。ログには識別子・題・本文・返信・userInfo の値を出さない（有無、長さ、件数、種類の番号だけ）。
+
+### 11.2 12.1 と 12.2 の行
+
+| 行 | どこで | 結果 |
+|---|---|---|
+| 12.1 イベント: 2 つの登録の両方に届く、ハンドルは登録ごと | `testAnInteractionReachesEveryRegistrationWithAHandleOfItsOwn` | 各コールバックが自分のハンドルを解放した後に次が読む（共有なら ASan が見る） |
+| 12.1 イベント: 解除の後に届かない | 同上 | 解除の後の 1 件は届かず、`release` は 1 回 |
+| 12.1 イベント: 保っていたイベントが次の登録の挿入のブロックで届く、33 件目で最も古いものを捨てる | `testWhatComesWithNoRegistrationWaitsForTheNext` | 33 件のうち後の 32 件が、呼び出しの中ではなく挿入で、順に届く |
+| 12.1 イベント: 保ったものを配るコールバックの中で唯一の登録を外して新しく足す（AP-21） | `testReplacingTheRegistrationInsideAHeldEventsCallback` | 残りの 2 件が新しい登録に届く |
+| 12.1 イベント: 設定の要求も次の登録まで保つ（5.4） | `testASettingsRequestWithNoRegistrationWaitsForTheNext` | 登録の無い間の 2 件が、挿入で届く |
+| 12.1 イベント: ライブラリの受け手は最初の挿入で 1 回だけ足す（5.4） | `testTheLibrarysListenerIsAddedOnce` | 2 種類とも 1 回 |
+| 12.1 イベント: ハンドルの値（`_kind` の 4 種、userInfo、`_is_launch`） | `testTheFourKinds`、`testAnInteractionThroughC`、`testASettingsRequestWithAndWithoutANotification` | 返信があれば既定の識別子でも `TEXT_INPUT`。空の返信は `""`。userInfo は JSON。設定の要求の識別子の無いものは `NULL` |
+| 12.1 delegate: `NOT_INITIALIZED`（OP-42、OP-43、OP-45） | `testTheAddsRejectAtTheEntry`、`testTheLaunchResponseRejectsAtTheEntry` | 入口の検査（`NULL` の callback と出力）が先で、`NOT_INITIALIZED` が後。出力は `NULL`、`release` は呼び出しスレッドで戻る前に 1 回 |
+| 12.1 delegate: 起動のきっかけ（P2-19） | `testNoLaunchResponseIsNull`、`testALaunchResponse`、`testALaunchResponseFailure`、UI テスト | `NULL` は `NONE`。値は `_is_launch` 1。失敗は写しのとおり。UI テストで 2 回呼んで同じ |
+| 12.1 出力のハンドル | `testTheReadersOfNothing`、`testRemovingNullDoesNothing` | `NULL` と別の型は `NULL`（`out_size` 0）、`-1`、0。`_free(NULL)` と `_listener_remove(NULL)` は何もしない |
+| 12.2 通知のイベント: `BODY_TAP`、`ACTION`、`TEXT_INPUT` | UI テスト `testNotificationEventsReachTheListenerOfC` | ホームに出てからバナーを押す、長押しして `Open`、長押しして `Reply` で送る。それぞれ C の受け手に 1 回、`_kind` と識別子、category、返信、userInfo（`{"k":1}`）、`_is_launch` 0 で届いた |
+| 12.2 コールドスタートのタップと `_is_launch` | UI テスト `testATapThatStartsTheAppReachesCAsTheLaunch` | アプリを終了してからバナーを押すと、システムが起こしたプロセスがファイルから起動の形を読み（`source=file listen=1`）、起動の中の受け手に `_is_launch` 1 で届いた。`get_launch_response_async` を 2 回呼んで同じ値 |
+
+**しなかったもの（12.2）**: `DISMISS` の UI テストと、`openSettingsFor`（MS-07）の UI テスト。`DISMISS` は通知センターで消す操作が要り、この形の操作はサンプルでも測っていない。`openSettingsFor` は最初の権限の要求に `PROVIDES_APP_SETTINGS` が要り（今の権限のテストは既定の選択肢）、設定の App の中の名前が iOS 26.2 と 18.3 で違う（サンプルは 26.2 の英語だけ）。どちらも写しと帳簿は単体テストで通した（`DISMISS` の種類、設定の要求の識別子の有無）。
+
+### 11.3 コマンドと結果（最後のソース）
+
+05:20〜06:07 に下の順で続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で各実行の前（スクリプトの中）と途中に Simulator.app が閉じていることを確かめた。ソースのハッシュ: **前（TB-7 のコミット `58c53e8b` のツリー）は `cec257ba99d5` / `cb915f7116fc`（TB-7 の 10.9 の最後と同じ）、最後のソースは流す前も後も `37aae231de2d`（メインのセッションと同じ数え方）/ `68605d592cff`（6.8 と同じ範囲）**。**流した後に変えたのはこの記録だけ。**
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 444/444 |
+| 同（iPhone 16 / 18.3） | 444/444 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 444/444。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 444/444。報告 0 件 |
+| `--capi-ui --udid`（iPhone 17 Pro / 26.2。Xcode 26.6） | 51/51。rc 0。新しい 2 件を含む（`20261107-052623-iPhone_17_Pro-26.2`） |
+| 同（iPhone 16 / 18.3） | 51/51。rc 0（`20261107-054502-iPhone_16-18.3.1`） |
+| framework の Release（2 つ）`--library` | `OK symbols`（130 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 130 of 134、4 not implemented yet |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+
+開発の途中に、1 つ前のソース（11.4 のテストを足す前）で `--capi-ui`（iPhone 17 Pro）を 1 回流し、51/51 だった。iPad は流していない。最後の検証の間にシミュレーターの `maild-2026-11-07-054545.ips` が出た（自分のプロセスではないので消していない）。
+
+### 11.4 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3）
+
+24 個。最後の検証の前に流した（依頼のとおり）。`NotificationEventTests` だけを流した。
+
+1 回目（写しはその時のソース `9eaa3f5b6aca` と同じ）: **23 個が落ち、「設定の要求を保たない」（`holdLimit` 0）が生き残った**（設定の要求を保つテストが無かった）。また 2 個（「受け手の登録が `NOT_INITIALIZED` を見ない」「操作を保たない」）でテストのホストが落ちた: 変異で `testReplacingTheRegistrationInsideAHeldEventsCallback` の 2 つ目の登録が作られず、テストが出力の初期値（`0x1` の印）を `_listener_remove` に渡した（テストの側の誤り）。どちらも先に失敗が記録されている。
+
+直したこと: `testASettingsRequestWithNoRegistrationWaitsForTheNext` を足し、`testReplacingTheRegistrationInsideAHeldEventsCallback` の 2 つ目の出力を `NULL` から始めた（テストだけ。受け口は変えていない）。2 回目（写しは最後のソース `37aae231de2d` と同じ。流した後に `diff -rq` で差なし）: 生き残ったものとクラッシュした 2 つの 3 個を流し、**3 個とも落ち、クラッシュは 0 件**。**合わせて 24 個とも落ちた。**
+
+| 区分 | 変異 |
+|---|---|
+| 受け口（13） | 受け手の登録が `NOT_INITIALIZED` を見ない、`NULL` の callback が `NOT_INITIALIZED`、出力を `NULL` にしない、操作を 31 件だけ保つ、操作を保たない、設定の要求を保たない、起動のきっかけが `NOT_INITIALIZED` を見ない、起動のきっかけの失敗が `NONE`、起動のきっかけを捨てる、設定の要求の識別子を捨てる、解除が何もしない、操作の受け手を足さない、設定の受け手を足さない |
+| 写し（7） | 既定の識別子の返信が `BODY_TAP`、`DISMISS` が `ACTION`、`BODY_TAP` が `ACTION`、`_is_launch` を捨てる、category が action の識別子、空の返信が `NULL`、userInfo が常に `{}` |
+| ハンドル（4） | `NULL` の `_kind` が 0、`NULL` の `_is_launch` が 1、返信の無いものが空文字、設定の要求の識別子の無いものが空文字 |
+
+変異が作ったクラッシュレポートは名前を記録してから消した: `IosLibraryCApiTestHost-2026-11-07-045902.ips`、`-050207.ips`。同じ時間帯のシミュレーターの `AccessibilityControlsExtension-2026-11-07-050206.ips`、`-050251.ips`、`-051112.ips` は自分のプロセスではないので消していない。
+
+### 11.5 設計書の読み方（設計書は変えていない）
+
+| # | 所 | 読み方 | 設計書に戻すか |
+|---|---|---|---|
+| 1 | 12.1「delegate」の `NOT_INITIALIZED` | delegate が入っているかは `IosNotificationManager.isDelegateInstalled`（C でも Swift でも入れれば真）。入口の検査（`NULL` の callback と出力）を先に、`NOT_INITIALIZED` を後に（11 章） | 不要 |
+| 2 | 5.4「最初の登録のブロックの中でだけ受け手を 1 つ足し、以後は外さない」 | 種類ごとに 1 回。ライブラリの登録の物は受け口が持ち続ける。足すときにライブラリが拒んだら（delegate が無い等）ログだけ（その種類のイベントはそのプロセスでは来ない） | **戻すことを勧める**（拒まれたときの扱いを一言） |
+| 3 | 保つ数 | 受け口の帳簿も 32 件（ライブラリのハブも 32 件保つが、受け口は最初の登録で受け手を足した後は全部を受ける） | 不要 |
+| 4 | userInfo の JSON | TB-6 の出力の写しのまま。書けなかったときは `{}`（変換が全部の値を書ける形にするので起きない見込み。ログに出す） | 不要 |
+| 5 | `_is_launch` の `NULL` | 0 | 不要 |
+| 6 | 12.2 の `DISMISS` と `openSettingsFor` | 上のとおり UI テストはしていない | **戻すことを勧める**（12.2 の行に「`DISMISS` と `openSettingsFor` は手で、または測った後に」） |
+| 7 | 起動の形のファイル | 13 章の TB-8 の「ファイルで」を `LaunchShape`（環境 → ファイル → 既定）にした。シミュレーターの UI テスト用のアプリだけ | 不要 |
+
+### 11.6 確かめられていないこと
+
+- **実機では何も流していない**（`generic/platform=iOS` は組むだけ）
+- `DISMISS` と `openSettingsFor` の UI テスト（上）
+- 背景のアクションの直後にアプリを前面に出したときに `_is_launch` で来ること（6.3 の注意。測っていない）
+- ライブラリが受け手を拒んだときの動き（起きない見込み。ログだけ）
+- iPad では流していない
+
+### 11.7 時間
+
+04:29〜06:08（約 1 時間 40 分）。うち変異が約 22 分（04:57〜05:20）、最後の検証が約 47 分（05:20〜06:07。`--capi-ui` が 1 回約 18 分）。目標の 06:30 の中。
+
+### 11.9 レビューの直しと決定
+
+レビュー（Claude と Codex。どちらも A なし）をメインのセッションから受けた。**下の決定は、メインのセッションが利用者の指示（「判断が必要な場合、推奨案で、進める。」）のもとで推奨案で決めたもの。持ち主はまだ読んでいない。** 11.1〜11.7 は直す前の記録で、今の形はこの節（依頼の番号に合わせて 11.9 とした。11.8 は無い）。
+
+| 指摘 | 直したこと |
+|---|---|
+| 起動の形のファイルの書き込みの失敗（Codex B1） | 書く前に古いファイルを消し、書けなかったらファイルは無い（次のコールドスタートは既定）。`launch.shape` の行を `source=… section=… listen=… saved=1|0|-` にした（値は section と listen だけ。`saved` は環境から来たときだけ）。コールドスタートの UI テストは、終了させる前に `saved=1` を確かめる |
+| 受け手の登録の行の上書き（Codex B2、Claude C-6） | `notification.listen` と `listenSettings` は前の登録を外してから登録する。`notification.unlistenSettings` を足した。行は消していない |
+| ため置きのあふれの数（Codex C） | **第 1 部と第 2 部を確かめた: 「古いものから捨てる」（第 2 部 5.4）だけで、捨てた数の記録やログは求めていない**（ライブラリのハブは自分の捨てた数をログに出す）。**決定: コードは変えない。足すかは持ち主に判断を仰ぐ** |
+| `DISMISS` と `openSettingsFor`（Claude B-1、提案 6） | 第 2 部 12.2 の「通知のイベント」の行、13 章の TB-10 の行、15.2 の DoD に、**TB-10 が受け持つ**と書いた（TB-9 は Share だけなので、指示のとおり TB-10）。測り方: `DISMISS` はシミュレーターの通知センターでの「消去」を iOS 26.2 で測ってから。`openSettingsFor` はアプリを消した直後のクラスで `PROVIDES_APP_SETTINGS` 付きの要求から始め、設定の App の文言が OS で違うので 26.2 だけ。**持ち主の決定を待つ項目**（TB-10 に入れてよいか） |
+| 提案 2 | 第 2 部 5.4 に「ライブラリが受け手を拒んだらログだけ。その種類はそのプロセスでは来ず、C の登録は `ACTIVE` のまま何も受けない。再試行しない。入口で delegate を確かめるので起きない見込み」を足した |
+| C-1 | `tearDown` で `.library` に戻すのをやめ、失敗で閉じる `Events` のまま残す（後から main で動くブロックもライブラリに届かない。このプロセスでイベントを使うのはこのクラスだけ）。`testARejectionOffTheMainThreadReleasesOnThatThread` の最後で main を流す |
+| C-2 | `NotificationHandles.buffer` を `fileprivate` に戻した |
+| C-3 | `[unowned first, unowned next]` |
+| C-4 | 偽物の起動のきっかけを「`nil` → 値 → 値」と返し、3 回呼ぶテスト（`testTheLaunchResponseCanAppearLaterAndThenStays`。P2-19） |
+| C-5 | コールドスタートの UI テストで、`launch.interaction` が 1 件だけ、`launch.settings` の行が無い（拒まれていない）ことを確かめる |
+| C-7 | 予約と配信済みの片付けを `addTeardownBlock` に移した（失敗して途中で止まっても片付ける）。**割り込みで落ちたときは片付けない**（片付けの行を押すと、押さない方針に反するため。`checkInterruption` が止める） |
+| C-8 | `ensureNotificationPermission` の最後に、状態が `AUTHORIZED` であることを確かめる |
+| C-9 | `finishLaunchResponse` の先頭のログに、成功で値あり・成功で値なし・失敗のどれかだけを足した |
+| C-10 | `withLaterTrigger` を `withTrigger(seconds: 3600)` の 1 行にした |
+| C-11 | 変異に 2 つを足した（下）。あわせて、2 種類のハンドルを取り違えて読むと何も読めないテスト（`testTheEventHandlesAreNotTakenForEachOther`）を足した |
+
+**持ち主の判断待ち**: (1) ため置きのあふれた数を記録・ログに出すか (2) `DISMISS` と `openSettingsFor` の UI テストを TB-10 に入れてよいか。
+
+テストは 444 → 446 件（`NotificationEventTests` 18）。
+
+**変異（直しで足したテストと C-11。2 個。写しは最後のソースと同じ。流した後に `diff -rq` で差なし。iPhone 16 / 18.3）**: **2 個とも落ちた。**
+
+| 変異 | 結果 |
+|---|---|
+| 1 つのハンドルを登録の間で共有する | テストのホストが落ちた（2 つ目の登録が、1 つ目が解放したハンドルを `ntk_notification_interaction_user_info_json` で読み、`EXC_BAD_ACCESS`）。`testAnInteractionReachesEveryRegistrationWithAHandleOfItsOwn` の形が見つけるもの。レポートは名前を記録してから消した: `IosLibraryCApiTestHost-2026-11-07-062212.ips` |
+| 設定の要求の読み取りが操作のハンドルの型で読む | `testTheEventHandlesAreNotTakenForEachOther`、`testASettingsRequestWithAndWithoutANotification`、`testASettingsRequestWithNoRegistrationWaitsForTheNext` で落ちた |
+
+起動の形（`LaunchShape`）と行の上書きは UI テスト用のアプリの中なので、変異ではなく UI テストで確かめた（`saved=1` と `source=file … saved=-`）。同じ時間帯のシミュレーターの `AccessibilityControlsExtension-2026-11-07-062126.ips` は自分のプロセスではないので消していない。
+
+**直した後の最後のソースの結果**（06:23〜07:10。順に続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で各実行の前と途中に Simulator.app が閉じていることを確かめた）。ソースのハッシュ: **直す前（11.3）は `37aae231de2d` / `68605d592cff`、直した後は流す前も後も `2ba9bebbf66d`（メインのセッションと同じ数え方）/ `0f3845838f0f`（6.8 と同じ範囲）**。**流した後に変えたのはこの記録だけ。** 上の 2 個の変異はこの検証の前に、同じソースの写しで流した。
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 446/446 |
+| 同（iPhone 16 / 18.3） | 446/446 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 446/446。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 446/446。報告 0 件 |
+| `--capi-ui --udid`（iPhone 17 Pro / 26.2。Xcode 26.6） | 51/51。rc 0（`20261107-062916-iPhone_17_Pro-26.2`） |
+| 同（iPhone 16 / 18.3） | 51/51。rc 0（`20261107-064811-iPhone_16-18.3.1`） |
+| framework の Release（2 つ）`--library` | `OK symbols`（130 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 130 of 134 |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+
+時間: 06:17〜07:11（約 55 分）。
+
+**読み直しの後の直し**（Claude と Codex の 2 本。どちらも A なし。Claude は B なし、Codex は B 1 件）。**決定は、メインのセッションが利用者の指示（「判断が必要な場合、推奨案で、進める。」）のもとで推奨案で決めたもの。持ち主はまだ読んでいない。**
+
+| 指摘 | 直したこと |
+|---|---|
+| Codex B（`LaunchShape`） | コメントを正確にした: 古いファイルを先に消し、書けなかったらもう一度消す。2 回とも消せなかったときは古いファイルが残りうる。そのときは `saved=0` で、コールドスタートの UI テストは終了させる前に `saved=1` を確かめるので落ちる（`testATapThatStartsTheAppReachesCAsTheLaunch` の 2 つ目の文。`continueAfterFailure` は偽なので、そこで止まる）。コードは変えていない |
+| Codex C | `NotificationEventTests` の `tearDown` で、`events` を明示的に失敗の形に戻してから super を呼ぶ |
+| Claude C-1 | **決定: 偽物を入れる処理は共有の助けに移さない。イベントの入口を使うテストは自分で偽物を入れる。このクラスの後は失敗の形が残る**（`NotificationEventTests` のコメントにも書いた） |
+| Claude C-2 | 上の表の C-7 の行に、割り込みで落ちたときは片付けないことを足した |
+| Claude C-3 | 第 2 部 13 章の TB-8 の行の完了の条件を「12.1 のイベント・delegate の行と、12.2 の『通知のイベント』の行のうち `BODY_TAP`、`ACTION`、`TEXT_INPUT` とコールドスタート（`DISMISS` と `openSettingsFor` は TB-10）」にした |
+| Claude C-4 | 15.2 の項目を「TB-10 で確かめ、通った。`openSettingsFor` は iOS 26.2 のシミュレーターだけ。`DISMISS` を流す OS は 26.2 で測ってから決める」と、終わりの条件として読める形にした |
+| Claude C-5 | 上の表の下に持ち主の判断待ちの 1 行を足した。第 2 部 12.2・13 章（TB-8 と TB-10 の行）・15.2 に「（作業記録 11.9 の確認待ち）」の印を付けた |
+
+**確かめ**（07:15〜07:20。順に流し、各実行の前に `pgrep -x Simulator` で Simulator.app が閉じていることを確かめた）: ソースの差分は `NotificationEventTests.swift` の `tearDown`（テストのコード）と、`LaunchShape.swift` と `NotificationEventTests.swift` のコメントだけ（`LaunchShape.swift` はコメントを除いたコードが直す前と同じ。UI テストとほかのファイルは変えていない）。そのため `--capi-ui` は流していない。ソースのハッシュは、直す前が `2ba9bebbf66d` / `0f3845838f0f`、直した後が流す前も後も `1b79c7f1f8e8` / `4d239028d027`。
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 446/446 |
+| 同（iPhone 16 / 18.3） | 446/446 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 446/446。報告 0 件 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。FAIL 0 |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+

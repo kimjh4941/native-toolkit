@@ -30,18 +30,18 @@ struct CApiRowSection: Identifiable, Sendable {
 
 /// The sections of the app and the ones on the screen.
 enum CApiRowCatalog {
-    /// A UI test names the section it uses in this variable of the launch environment, because the
-    /// cost of every tap grows with what is drawn (working notes 5.10). A launch without it (a person,
-    /// or a process the system starts for a notification) draws them all.
-    static let sectionVariable = "NTK_CAPI_SECTION"
+    /// A UI test names the section it uses in the launch environment (`LaunchShape`), because the cost
+    /// of every tap grows with what is drawn (working notes 5.10). A launch without it (a person, or a
+    /// process the system starts for a notification) takes the section the last launch with it wrote,
+    /// or draws them all.
 
     static let sections = [CommonRows.section, NotificationRows.section, ClipboardRows.section, DialogRows.section]
 
-    static let drawn = drawn(selected: ProcessInfo.processInfo.environment[sectionVariable])
+    static let drawn = drawn(selected: LaunchShape.current.shape.section)
 
     /// What this launch drew, in a result line, because a test may read no row at all: the section,
     /// `all` without a selection, or `unknown`, on which `CApiUITestApp.launch` fails.
-    static let drawnDescription = description(selected: ProcessInfo.processInfo.environment[sectionVariable])
+    static let drawnDescription = description(selected: LaunchShape.current.shape.section)
 
     static func description(selected: String?) -> String {
         catalogLogger.debug("[description] selected: \(selected ?? "nil", privacy: .public)")

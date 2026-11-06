@@ -4,6 +4,7 @@
 //
 
 import IosLibrary
+import Synchronization
 import UserNotifications
 
 /// What the functions of Notification.h do (part 2, 5.1, 5.2, 6.3): the entry's checks and copies in
@@ -363,6 +364,155 @@ enum NotificationReceiver {
             try removalIdentifier(identifier)
         }, start: { identifier, registration in
             IosNotificationManager.shared.removeCategory(identifier: identifier) { finishDone(registration, none) }
+        })
+    }
+
+    // MARK: - OP-42 to OP-45
+
+    /// What the events need of the library. Tests replace it, so that the ledgers and the launch response are
+    /// seen without the library's delegate (part 2, 12.1, "イベント").
+    struct Events: Sendable {
+        /// Read on the calling thread of an entry: the delegate was installed, by C or by Swift (P1-6).
+        var isDelegateInstalled: @Sendable () -> Bool
+        var subscribeInteractions: @MainActor @Sendable (@escaping @MainActor (NotificationResponseEvent) -> Void) throws -> Void
+        var subscribeSettingsRequests: @MainActor @Sendable (@escaping @MainActor (NotificationSettingsRequest) -> Void) throws -> Void
+        var launchResponse: @MainActor @Sendable () throws -> NotificationResponseEvent?
+
+        /// The library's hubs. The registrations are kept for ever: the receiver's one listener of each kind is
+        /// never removed (AP-21).
+        static let library = Events(
+            isDelegateInstalled: { IosNotificationManager.isDelegateInstalled },
+            subscribeInteractions: { receive in
+                subscriptions.append(try IosNotificationManager.shared.responses.addListener { event, _ in receive(event) })
+            },
+            subscribeSettingsRequests: { receive in
+                subscriptions.append(try IosNotificationManager.shared.settingsRequests.addListener { request, _ in receive(request) })
+            },
+            launchResponse: { try IosNotificationManager.shared.launchResponse() })
+
+        @MainActor private static var subscriptions: [NotificationEventRegistration] = []
+    }
+
+    static let events = Mutex<Events>(.library)
+
+    private static var currentEvents: Events {
+        events.withLock { $0 }
+    }
+
+    /// The library's hub keeps up to 32 events itself; this ledger keeps as many while no C registration is
+    /// ACTIVE (part 2, 5.4). The library's listener is added inside the first insertion (AP-21).
+    static let interactionLedger: EventLedger<NotificationInteractionValue, ntk_notification_interaction_fn> = EventLedger(
+        holdLimit: 32,
+        deliver: { callback, userData, value in callback(userData, NotificationHandles.makeInteraction(value)) },
+        onFirstInsertion: { subscribeInteractions() })
+
+    static let settingsRequestLedger: EventLedger<String?, ntk_notification_settings_request_fn> = EventLedger(
+        holdLimit: 32,
+        deliver: { callback, userData, identifier in callback(userData, NotificationHandles.makeSettingsRequest(identifier)) },
+        onFirstInsertion: { subscribeSettingsRequests() })
+
+    @MainActor
+    private static func subscribeInteractions() {
+        CApiLog.notification.debug("[subscribeInteractions]")
+        do {
+            try currentEvents.subscribeInteractions { receive($0) }
+        } catch {
+            CApiLog.notification.error("[subscribeInteractions] the library refused the listener: \(NotificationMapping.error(for: error), privacy: .public)")
+        }
+    }
+
+    @MainActor
+    private static func subscribeSettingsRequests() {
+        CApiLog.notification.debug("[subscribeSettingsRequests]")
+        do {
+            try currentEvents.subscribeSettingsRequests { receive($0) }
+        } catch {
+            CApiLog.notification.error("[subscribeSettingsRequests] the library refused the listener: \(NotificationMapping.error(for: error), privacy: .public)")
+        }
+    }
+
+    /// An interaction from the library, on the main thread.
+    @MainActor
+    static func receive(_ event: NotificationResponseEvent) {
+        CApiLog.notification.debug("[receive] interaction, isLaunch: \(event.isLaunchResponse, privacy: .public)")
+        interactionLedger.receive(NotificationMapping.interaction(of: event))
+    }
+
+    /// A settings request from the library, on the main thread.
+    @MainActor
+    static func receive(_ request: NotificationSettingsRequest) {
+        CApiLog.notification.debug("[receive] settings request, notificationIdentifier: \(request.notificationIdentifier == nil ? "nil" : "provided", privacy: .public)")
+        settingsRequestLedger.receive(request.notificationIdentifier)
+    }
+
+    /// The entry's checks first, NOT_INITIALIZED after (part 2, 11). The output is NULL on every path but
+    /// acceptance (R-8).
+    private static func addListener<Value, Callback>(_ ledger: EventLedger<Value, Callback>, _ callback: Callback?,
+                                                     _ userData: UnsafeMutableRawPointer?, _ release: ntk_release_fn?,
+                                                     _ outListener: UnsafeMutablePointer<OpaquePointer?>?,
+                                                     function: String = #function) -> ntk_notification_error {
+        outListener?.pointee = nil
+        guard let callback, let outListener else {
+            CApiLog.notification.error("[addListener] \(function, privacy: .public): the callback or the output is NULL")
+            return Entry.reject(.invalidParameter, userData: userData, release: release, function: function)
+        }
+        guard currentEvents.isDelegateInstalled() else {
+            CApiLog.notification.error("[addListener] \(function, privacy: .public): NOT_INITIALIZED: the delegate was never installed")
+            return Entry.reject(.notInitialized, userData: userData, release: release, function: function)
+        }
+        return ledger.add(callback: callback, userData: userData, release: release, outListener: outListener)
+    }
+
+    static func addInteractionListener(_ callback: ntk_notification_interaction_fn?, _ userData: UnsafeMutableRawPointer?,
+                                       _ release: ntk_release_fn?, _ outListener: UnsafeMutablePointer<OpaquePointer?>?) -> ntk_notification_error {
+        CApiLog.notification.debug("[addInteractionListener] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public), outListener: \(outListener == nil ? "nil" : "provided", privacy: .public)")
+        return addListener(interactionLedger, callback, userData, release, outListener)
+    }
+
+    static func addSettingsRequestListener(_ callback: ntk_notification_settings_request_fn?, _ userData: UnsafeMutableRawPointer?,
+                                           _ release: ntk_release_fn?, _ outListener: UnsafeMutablePointer<OpaquePointer?>?) -> ntk_notification_error {
+        CApiLog.notification.debug("[addSettingsRequestListener] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public), outListener: \(outListener == nil ? "nil" : "provided", privacy: .public)")
+        return addListener(settingsRequestLedger, callback, userData, release, outListener)
+    }
+
+    /// From any thread; does not wait. NULL does nothing (part 2, 5.4).
+    static func removeListener(_ listener: OpaquePointer?) {
+        CApiLog.notification.debug("[removeListener] listener: \(listener == nil ? "nil" : "provided", privacy: .public)")
+        Registry.removeListener(listener)
+    }
+
+    /// The response is read on the main thread, where `launchResponse()` lives (P2-19). NULL is "none for now".
+    @MainActor
+    static func finishLaunchResponse(_ registration: Registration<ntk_notification_launch_fn>,
+                                     _ result: Result<NotificationResponseEvent?, any Error>) {
+        let summary: String
+        switch result {
+        case .success(let event): summary = event == nil ? "none" : "a response"
+        case .failure: summary = "a failure"
+        }
+        CApiLog.notification.debug("[finishLaunchResponse] id: \(registration.id, privacy: .public), result: \(summary, privacy: .public)")
+        switch result {
+        case .success(let event):
+            let value = event.map(NotificationMapping.interaction(of:))
+            registration.complete { callback, userData, _ in callback(userData, none, systemCode, value.map(NotificationHandles.makeInteraction)) }
+        case .failure(let failure):
+            let error = NotificationMapping.error(for: failure)
+            CApiLog.notification.error("[finishLaunchResponse] error: \(error, privacy: .public)")
+            registration.complete { callback, userData, _ in callback(userData, error, systemCode, nil) }
+        }
+    }
+
+    static func launchResponse(_ callback: ntk_notification_launch_fn?, _ userData: UnsafeMutableRawPointer?,
+                               _ release: ntk_release_fn?) -> ntk_notification_error {
+        CApiLog.notification.debug("[launchResponse] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
+        let launchFailure: Failure<ntk_notification_launch_fn> = { callback, userData, error in callback(userData, error, systemCode, nil) }
+        return accept(callback, userData, release, failure: launchFailure, input: { () throws(EntryError) in
+            guard currentEvents.isDelegateInstalled() else {
+                CApiLog.notification.error("[launchResponse] NOT_INITIALIZED: the delegate was never installed")
+                throw .notInitialized
+            }
+        }, start: { _, registration in
+            finishLaunchResponse(registration, Result { try currentEvents.launchResponse() })
         })
     }
 }

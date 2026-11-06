@@ -183,20 +183,6 @@ LEDGER = "受け口の帳簿"
 # --require-complete stops a name being added: it must be empty at TB-10.
 NOT_IMPLEMENTED_YET = (
     # Notification.h
-    "ntk_notification_add_interaction_listener",
-    "ntk_notification_add_settings_request_listener",
-    "ntk_notification_get_launch_response_async",
-    "ntk_notification_listener_remove",
-    "ntk_notification_interaction_kind",
-    "ntk_notification_interaction_notification_id",
-    "ntk_notification_interaction_action_id",
-    "ntk_notification_interaction_category_id",
-    "ntk_notification_interaction_user_text",
-    "ntk_notification_interaction_user_info_json",
-    "ntk_notification_interaction_is_launch",
-    "ntk_notification_interaction_free",
-    "ntk_notification_settings_request_notification_id",
-    "ntk_notification_settings_request_free",
     # Share.h
     "ntk_share_content_async",
     "ntk_share_result_completed",
