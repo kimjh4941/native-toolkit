@@ -329,6 +329,10 @@ ios/
       Dialog/
         DialogMapping.swift                 # C の値と Swift の値の純粋な写しと入口の検査（第 2 部 5.1）
         DialogHandles.swift                 # 結果のハンドルと読み取り（第 2 部 5.1）
+      Notification/
+        NotificationContentBuilder.swift    # 内容のビルダー（第 2 部 5.1）
+        NotificationJson.swift              # userInfo の JSON の入出力（第 2 部 P2-7）
+        NotificationMapping.swift           # trigger と category の純粋な写しと入口の検査（第 2 部 5.1）
   IosLibraryCApiTests/                      # C ABI のテスト（XCTest から C の関数を呼ぶ。6 章）
   IosLibraryCApiTestHost/                   # そのホスト。通知の権限を一度も求めない（第 2 部 12.1）
   IosLibraryCApiUITestApp/                  # C を呼ぶ UI テスト用のアプリ。シミュレーターだけ（第 2 部 TB-2b）

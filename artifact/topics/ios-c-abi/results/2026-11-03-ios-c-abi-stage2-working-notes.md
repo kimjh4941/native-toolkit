@@ -1447,3 +1447,146 @@ Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。コマ�
 3. 提案 1〜3: **持ち主が採った**。提案 4（第 2 部 6.1 の読み方）: **TB-3、TB-4 の変更として受けた**
 4. TB-5 のコミット: メインのセッション
 5. UI テストのクラスを分けるか: **未決**
+## 9. TB-6
+
+第 2 部 13 章の TB-6（通知のビルダーと userInfo の JSON、trigger、category）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。
+
+### 9.1 足したもの
+
+**TB-6 の C の関数は 14 個**（8.2 の「内容のビルダー」の行と `Notification.h`: `_create`、`_free`、`_set_*` が 11、`_add_attachment`）。trigger と category は構造体で、それを受ける関数（`show_async`、`update_async`、`schedule_async`、`register_category_async`）は TB-7 の OP-26〜OP-41 にある。**TB-6 では trigger と category の写しの関数だけを作り、C の関数は足していない。**
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 入口 | `IosLibraryCApi/IosLibraryCApi/Notification/NotificationEntry.swift` | 14 関数を足した。各 1 行 |
+| ビルダー | `Notification/NotificationContentBuilder.swift` | `NotificationContentValue`（`Sendable` な写し。`makeContent()` が main で `NotificationContent` を作る。5.2）、`NotificationContentBuilder`（ハンドルの中身）、`NotificationContentBuilders`（`create` と setter。拒んだ setter はビルダーを変えない。`snapshot` は TB-7 の操作が取る写し） |
+| JSON | `Notification/NotificationJson.swift` | 入力（`userInfo(_:)`）、`NotificationContent` への写し（`propertyList(of:)`）、出力（`text(of:)`。TB-8 の `_user_info_json` が使う） |
+| 写し | `Notification/NotificationMapping.swift`（新規） | `trigger`（3 種）、`category`（アクションとテキスト入力のアクションの配列） |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` から 14 個を外した。`entries` は 92 of 134（残り 42） |
+| テスト | `IosLibraryCApiTests/NotificationBuilderTests.swift`（15）、`NotificationJsonTests.swift`（14）、`NotificationMappingTests.swift`（13） | 351 → 393 件。`@testable import IosLibrary` でライブラリの予約のキー、`isPropertyList`、`NotificationContent` の既定値と比べる |
+| 設計書 | 第 2 部 5.1 の表、第 1 部 5.1 の木 | `NotificationMapping.swift`（新規）の行と、第 1 部の木に Notification の 3 つのファイル名を足した |
+
+行と UI テストは足していない（TB-6 の完了の条件は 12.1 のビルダー・userInfo・trigger の行で、どれも UNUserNotificationCenter に触れずに確かめられる）。公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイル、`scripts/ios_ui_runner.py` は変えていない。
+
+**`IosLibraryCApiTests` は通知を出さず、権限も求めない**（実機の ASan で流れるため）。中身は `NotificationContentValue` と `makeContent()` で比べる。ログには、題・副題・本文・userInfo の値を出さない（有無、長さ、キーの数だけ）。`id` は識別子として `.public`（`ios.md` の表）。
+
+### 9.2 12.1 の行
+
+| 行 | どこで | 結果 |
+|---|---|---|
+| ビルダー: 既定値 | `testANewBuilderHasTheDefaultsOfTheLibrary` | ライブラリの `NotificationContent(id:title:)` と同じ（`sound` は `.default`） |
+| ビルダー: `NULL` の setter、範囲外の値、空の `id`、`file://` でない添付 | `NotificationBuilderTests` | `NULL` は既定に戻す。拒んだ値はビルダーを変えない。R-8: `create` が拒むと出力は `NULL` |
+| ビルダー: 渡した後に変更・解放しても内容が変わらない | `testTheCopyDoesNotChangeWithTheBuilder` | 写しを取った後に変えて解放しても、写しから作った `NotificationContent` は元のまま |
+| userInfo: オブジェクトでない、不正な JSON、`1e400`、入れ子の `null`、最上位の予約のキー | `NotificationJsonTests`、`testTheUserInfo` | setter の戻り値で `INVALID_PARAMETER`。入れ子の同じキーは通る |
+| userInfo: 予約のキーの写しがライブラリと同じ | `testTheReservedKeyIsTheLibrarys` | `NotificationMarker.key` と同じ |
+| userInfo: 出力の変換表の全行（`date`、`data`、有限でない `double`） | `testEveryKindOfValueOut`、`testWhatIsNotFiniteIsNull` | 決まった形の文字列。落ちない |
+| trigger: `isValid` の各分岐、範囲外の `interval`、`repeats` で 60 未満、`calendar_fields` の 0 と知らないビット、緯度・経度・半径 | `NotificationMappingTests` | 写しの関数で `INVALID_PARAMETER`。**C の関数を通した確かめ（12.1 の「C のテスト」）は TB-7**（受ける関数がそこにある） |
+| 0 で埋めた構造体 | `testAZeroFilledTriggerIsRejected`、`testAZeroFilledCategoryNeedsOnlyItsIdentifier` | trigger は `interval` が 0 で拒まれる。category は識別子だけが要る |
+
+### 9.3 コマンドと結果（最後のソース）
+
+00:26〜00:50 に下の順で続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で Simulator.app が開いていないことを、流す前と途中で確かめた（ずっと閉じていた）。ソースのハッシュは流す前と後で同じ: `1ed2e22c9357`（メインのセッションと同じ数え方。`git status --short -- ios scripts` のファイル）、`e462334fbe0b`（6.8 と同じ範囲）。**流した後に変えたのはこの記録だけ。**
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 393/393 |
+| 同（iPhone 16 / 18.3） | 393/393 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 393/393。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 393/393。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6。行と UI テストは足していないので、ほかを壊していないことの確かめとして 1 回） | 47/47。rc 0 |
+| framework の Release（2 つ）`--library` | `OK symbols`（92 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 92 of 134、42 not implemented yet |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+
+`--capi-ui` の iPhone 16 と iPad は流していない（依頼のとおり）。
+
+### 9.4 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3）
+
+30 個。写しは最後のソースと同じ（流した後に `diff -rq` で差なしを確かめた）。最後の検証の前に流した（依頼の順では 4 番目だが、変異でテストを直すことになれば最後の検証をやり直すことになるため先にした）。**30 個とも落ちた。クラッシュは 0 件**（消したレポートも無い）。
+
+| 区分 | 変異 |
+|---|---|
+| ビルダー（11） | 空の `id`、R-8 の出力が残る、`title` の `NULL`、`badge` の -1 が -1 のまま、`badge` の -2、空の音の名前、`NONE` が既定の音、`TIME_SENSITIVE` が `ACTIVE`、関連度の上限 2、`NULL` の userInfo で戻らない、`file://` でない添付 |
+| JSON（8） | `null` を受ける、予約のキーを受ける、有限でない数を受ける、真偽が数になる、`UInt64` が `Int64` になる、出力の有限でない数が 0、日付の小数秒が無い、データが Base64 でない |
+| trigger と category（11） | 無限大の間隔、`isValid` を見ない、`calendar_fields` の 0、知らない暦のビット、緯度 ±91、半径 0、両方知らせない組、trigger の `reserved1` の名指し、知らない category のビット、アクションの `reserved1` の名指し、時の項目を読まない |
+
+### 9.5 設計書の読み方（5.1 の名前のほか、設計書は変えていない）
+
+| # | 所 | 読み方 | 設計書に戻すか |
+|---|---|---|---|
+| 1 | 13 章の TB-6「通知のビルダーと userInfo の JSON、trigger、category」 | C の関数はビルダーの 14 個。trigger と category は写しの関数だけで、それを受ける関数は TB-7 | **戻すことを勧める**（TB-6 の行に「trigger と category は写しの関数まで。C を通すのは TB-7」） |
+| 2 | 12.1 の trigger の行の「C のテスト」 | TB-7 で `show_async`、`schedule_async` を通して行う | 1 と同じ文で足りる |
+| 3 | 6.3 の `_create(id, title, &out)` の「必須の 2 つ」 | `id` は `NULL` と空文字を拒む（設計書のとおり）。`title` は `NULL` だけを拒み、空文字は通す | 不要 |
+| 4 | `_set_sound` の `NAMED`「`name` が必須」 | `NULL` と空文字を拒む（Clipboard の名前と同じ「必須」の読み方） | 不要 |
+| 5 | `_add_attachment` の `identifier` と URL | `identifier` は `NULL` だけを拒み、空文字は通す（ライブラリが受ける）。URL は 9.9 の D3 で決めた形。**前の版の「空白を含む URL は読めないので `INVALID_PARAMETER`」は誤り**: この SDK の `URL(string:)` は空白を符号化して読むので受ける（9.9 の D4。テストで固定） | 不要 |
+| 6 | 6.3 の category の「`NULL` と空文字の識別子」 | category、アクション、テキスト入力のアクションの識別子のすべてに当てた | **戻すことを勧める**（どれの識別子かを明記） |
+| 7 | userInfo の「不正な JSON」 | `JSONSerialization` の判定のまま。**末尾のカンマ（`{"a":1,}`）は受ける**（測った。テストで固定）。入れ子の深さと大きさの上限は置いていない（深さは 9.9 で macOS で測った） | 9.9 の D2 で第 2 部 6.3 に入った |
+| 8 | userInfo の数 | 真偽は真偽、整数は `Int64`、`Int64` を超える正の整数は `UInt64`、どちらにも入らない整数（`JSONSerialization` が `NSDecimalNumber` で返すもの）と小数は有限な `double`。`1.0` は `double` になる（測った）。**前の版は `NSDecimalNumber` が `Int64` の端に丸められる場合があった**（9.9 の C-2） | 不要 |
+| 9 | 知らない `NotificationUserInfoValue`、`NotificationSound` の case | 入力からは作られない。出力の JSON では `null`。`NotificationContent` への写しでは `NSNull`（ライブラリが `invalidUserInfo` で拒む） | 不要 |
+| 10 | trigger の `CALENDAR` の各項目の範囲 | 見ない（`DateComponents` が受ける）。読むのはビットの立った項目だけ | 不要 |
+| 11 | `CRITICAL` の割り込みの段階と `DEFAULT_CRITICAL` の音 | 入口では受ける。entitlement が要ることは確かめていない | 不要 |
+| 12 | 11.2 のエラーの写し | 操作の完了で使うので TB-7 | 不要 |
+
+### 9.6 実装の途中で分かったこと
+
+- 自分のテストの補助の誤り（`struct_size` を書く前に `struct_size -= 8` をして桁あふれ）で、テストのホストが 2 回落ちた。テストを直した。クラッシュレポートは名前を記録してから消した（`IosLibraryCApiTestHost-2026-11-06-235843.ips`、`-235845.ips`。変異のものではない）
+- `JSONSerialization` は末尾のカンマを受ける（9.5 の 7）
+
+### 9.7 確かめられていないこと
+
+- **実機では何も流していない**（`generic/platform=iOS` は組むだけ）
+- trigger と category を C の関数を通して渡すこと（TB-7）。位置の trigger の権限と Info.plist
+- userInfo の大きさと入れ子の深さの限り
+- 写しを `NotificationContent` にした後、ライブラリが本当に要求を足せるか（権限のある UI テストの側。TB-7）
+- 添付のファイルが無いときの `ATTACHMENT_LOAD_FAILED`、2 回目の操作での失敗（M4。TB-7）
+
+### 9.8 時間
+
+23:53〜00:51（約 58 分）。うち変異が約 25 分（00:01〜00:26）、`--capi-ui` が約 15 分。目標の 02:30 の中。
+
+### 9.9 レビューの直し
+
+レビュー（Codex は指摘なし。Claude は A なし、B 3、C 7）をメインのセッションから受けた。**D1〜D4 は、メインのセッションが持ち主の「推奨のとおりに進める」という指示の下で決めたもの。持ち主はまだ読んでいない。**
+
+| 指摘 | 直したこと |
+|---|---|
+| D1（B-1） | 第 2 部 13 章の TB-6 の行に「trigger と category は写しの関数まで確かめた。C の関数を通す確かめは TB-7」、TB-7 の行に「12.1 の trigger の行の C のテスト（`INVALID_PARAMETER` でプロセスが落ちない）と、AP-19 の範囲外の trigger、category の C のテストが通る」を足した |
+| D2（B-2） | 末尾のカンマは受ける。第 2 部 6.3 の userInfo に「入力は OS の JSON の解析器で読み、それが受けるものは受ける」と、測った例（末尾のカンマ、入れ子の深さ）を書いた。カンマを固定するテストは残し、Foundation の変化に気づくためのものとコメントに書いた |
+| D3（C-1） | 添付の URL は、`file://` で始まる絶対の URL で、ホストが無いか `localhost` のものだけを受ける。`file:abc`、`file:/tmp/a.png`、相対のパス、`file://host/…`、`file://` は入口で `INVALID_PARAMETER`。**スキームの大文字は受ける**（RFC 3986 の 3.1: スキームは大文字と小文字を区別しない。`FILE:///tmp/a.png` を `URL` は `isFileURL` として読む）。それぞれをテストした（`testTheAttachmentURL`） |
+| D4（B-3） | 9.5 の 5 を直した。空白は `URL(string:)` が符号化して受ける（`testASpaceInTheAttachmentURLIsEncoded`。Foundation の変化に気づくため） |
+| C-2 | `Int64` にも `UInt64` にも入らない整数は `double` にした（前は `Int64(exactly:)` で `Int64.min` に丸められた）。`-9223372036854775809` は `double`、`9223372036854775808` は `UInt64` に入るので `unsignedInteger`（6.3 の表のとおり）、`18446744073709551616` は `double` |
+| C-3 | `1.0` は `.double(1.0)` と比べる形にした |
+| C-4 | `testTheCategoryRejects` は値として `INVALID_PARAMETER` を比べる |
+| C-5 | 安いものを足した: テキスト入力のアクションの `NULL` の題、要素の大きさが混ざった配列（アクションとテキスト入力のアクション。P2-5）、5 つの不正な UTF-8 の列を `create` の 2 つ、添付の 2 つ、音の名前、userInfo で（`testEveryStringOfTheBuilderMustBeUTF8`）。**C の関数を通して trigger と category を渡すものは TB-7** |
+| C-6 | 入れ子の深さの測り（下） |
+| C-7 | 先頭のログを足した: `NotificationContentBuilder.init`、`update`、`builder`、`set`、`attachmentURL`、`NotificationJson.value` の 2 つ、`anyValue`、`jsonValue`、`NotificationMapping.dateComponents`、`requiredIdentifier`。値は出さない（`id` は識別子、題は長さ、ほかは有無か型の名前） |
+
+**入れ子の深さの測り（macOS だけ）**: macOS 26.3 の `xcrun swift`（Xcode 26.6）で、`{"a":[[...]]}` の形を `JSONSerialization.jsonObject` に渡した。**最上位のオブジェクトを含めて 513 段まで受け、514 段で拒んだ**（512 段の配列までは受ける）。iOS のシミュレーターと実機では測っていない。同じ回で URL と数の読み方も測った（上の表の値はそれと、シミュレーターの上のテストによる）。
+
+**変異（新しい検査だけ。6 個。使い捨ての写しは最後のソースと同じ。流した後に `diff -rq` で差なしを確かめた。iPhone 16 / 18.3）**: **6 個とも落ちた。クラッシュは 0 件。**
+
+| 変異 | 落としたテスト |
+|---|---|
+| ホストを受ける | `testTheAttachmentURL` |
+| スキームを大文字と小文字で区別する | `testTheAttachmentURL` |
+| `file://` で始まらなくてもよい | `testTheAttachmentURL` |
+| 相対や空のパスを受ける | `testTheAttachmentURL` |
+| `localhost` を拒む | `testTheAttachmentURL` |
+| 大きな整数を `Int64` に丸める（前の形） | `testAnIntegerOutsideTheIntegerTypesIsADouble` |
+
+**最後のソースの結果**（01:06〜01:31。順に続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で流す前と途中に Simulator.app が閉じていることを確かめた）。ソースのハッシュは流す前と後で同じ: `73959bf15ca6`（メインのセッションと同じ数え方）、`a90d15f13cd7`（6.8 と同じ範囲）。**流した後に変えたのはこの記録だけ。** 上の 6 個の変異はこの検証の前に、同じソースの写しで流した。
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 397/397 |
+| 同（iPhone 16 / 18.3） | 397/397 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 397/397。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 397/397。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6） | 47/47。rc 0 |
+| framework の Release（2 つ）`--library` | `OK symbols`（92 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 92 of 134 |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+
+テストは 393 → 397 件（`NotificationBuilderTests` 18、`NotificationJsonTests` 15、`NotificationMappingTests` 13）。時間: 00:57〜01:31（約 34 分）。

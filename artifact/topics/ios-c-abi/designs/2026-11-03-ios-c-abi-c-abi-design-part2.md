@@ -182,6 +182,7 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | `Notification/NotificationReceiver.swift` | `ntk_notification_install`、権限の事前の確かめ（P2-10）、操作、問い合わせ、イベントの登録と保持（AP-21） | `IosNotificationManager` |
 | `Notification/NotificationContentBuilder.swift` | ビルダーの状態（Swift の値で持つ）と setter の検査 | - |
 | `Notification/NotificationJson.swift` | userInfo の JSON の入出力（P2-7） | - |
+| `Notification/NotificationMapping.swift` | trigger と category の構造体の純粋な写しと入口の検査 | - |
 | `Share/ShareReceiver.swift` | 要求を写して `share(content:presenter:completion:)` を呼ぶ | `IosShareManager` |
 | `Common/Registry.swift` | 第 1 部 5.1、5.7 の登録と状態機械。要求の ID の表（ID → `Registration`。`Mutex`）。登録は `RequestBox` を持つ | - |
 | `Common/CApiBytes.swift` | 第 1 部 5.9 の入力のバイト列 | - |
@@ -354,6 +355,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 | JSON の `null` | **`INVALID_PARAMETER`**（入れ子も） | 有限でない数のときだけ出る |
 
 - 最上位が配列などオブジェクトでないものは `INVALID_PARAMETER`
+- **入力は OS の JSON の解析器（`JSONSerialization`）で読み、それが受けるものは受ける**。測った例: 末尾のカンマ（`{"a":1,}`）は受ける。入れ子の深さは、macOS 26.3 で最上位のオブジェクトを含めて 513 段まで受け、514 段で拒んだ（iOS では測っていない）。受け口は深さと大きさの上限を置かない
 - **予約のキー `com.jonghyunkim.nativetoolkit` を拒むのは最上位だけ**（ライブラリと同じ。定数は internal なので受け口に写しを持ち、テストで同じことを確かめる）
 - **入力と出力は対称でない**: 受け取った JSON をそのまま渡すと、`null` を含むときは拒まれる
 
@@ -900,8 +902,8 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-3 | Clipboard の書き込みと問い合わせ（OP-01〜OP-10、OP-15、結果のハンドル） | 1.5日 | TB-2b | 12.1 の Clipboard の行、写しの関数 |
 | TB-4 | Clipboard の読み込みと監視（OP-11〜OP-14、OP-16、OP-17） | 1.0日 | TB-3 | 12.1 の取り消しとイベントの行 |
 | TB-5 | Dialog（OP-18〜OP-24、結果） | 1.0日 | TB-2b | 12.1 の前面・取り消しの行、12.2（「Dialog と権限」の行の権限のダイアログは TB-7）。**アクションシートは iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-2b のアプリはまだ iPad で起動していない）。第 1 部 6 章の `foregroundInactive` を Dialog で確かめた |
-| TB-6 | 通知のビルダーと userInfo の JSON、trigger、category | 1.5日 | TB-2 | 12.1 のビルダー・userInfo・trigger の行 |
-| TB-7 | 通知の操作（OP-26〜OP-41）、権限の事前の確かめ | 1.0日 | TB-6、TB-2b | 12.1 の写しの関数・前面・事前の確かめ・権限の要求の選択肢の行、12.2 の「通知の順序と許可の後」の行。12.2 の「Dialog と権限」の行のうち、C から求めた権限のダイアログを XCUITest で押し、完了の値を確かめた |
+| TB-6 | 通知のビルダーと userInfo の JSON、trigger、category | 1.5日 | TB-2 | 12.1 のビルダー・userInfo・trigger の行。trigger と category は写しの関数まで確かめた。C の関数を通す確かめは TB-7 |
+| TB-7 | 通知の操作（OP-26〜OP-41）、権限の事前の確かめ | 1.0日 | TB-6、TB-2b | 12.1 の写しの関数・前面・事前の確かめ・権限の要求の選択肢の行、12.2 の「通知の順序と許可の後」の行。12.2 の「Dialog と権限」の行のうち、C から求めた権限のダイアログを XCUITest で押し、完了の値を確かめた。12.1 の trigger の行の C のテスト（`INVALID_PARAMETER` でプロセスが落ちない）と、AP-19 の範囲外の trigger、category の C のテストが通る |
 | TB-8 | 通知のイベント（OP-42〜OP-45）。**TB-2b のアプリに起動の形を伝える口を足す**（システムが起こしたプロセスは起動の引数を受けないので、サンプルの SA-18 と同じくファイルで。コールドスタートの中で受け手を登録するため） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と 12.2 |
 | TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2。**iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-5 と同じ） |
 | TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ） |
