@@ -1237,3 +1237,213 @@ Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。コマ�
 40 回の競合の取り消しの勝ちと渡しの勝ち: 17 Pro は 16 と 24、16 は 15 と 25、TSan は 14 と 26、ASan は 16 と 24。
 
 時間: 04:56〜05:37（約 41 分）。
+
+## 8. TB-5
+
+第 2 部 13 章の TB-5（OP-18〜OP-24、結果のハンドル）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。
+
+### 8.1 足したもの
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 入口 | `IosLibraryCApi/IosLibraryCApi/Dialog/DialogEntry.swift` | 14 関数。各 1 行。**`Dialog.h` がすべて実装された** |
+| 受け口 | `Dialog/DialogReceiver.swift` | 6 種の `show`、`cancel`、共通の `show` と `start`（`.foreground` と要求の箱）、`finish` |
+| 写し | `Dialog/DialogMapping.swift` | 6 種の要求、`result(of:)`（`DialogResultValue`）、`error(for:)`。`reserved:` は text input と login が `[\.reserved1]`、ほかは `[]`。知らないボタンと入力は nil で、受け口は `UNKNOWN` で完了する |
+| ハンドル | `Dialog/DialogHandles.swift` | `DialogResultHandle` と 6 つの読み取り（ほかに `_free`） |
+| Common | `Common/CApiLog.swift` | `dialog` の logger（機能の知識なし） |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` から 14 個を外した（**実際に 14 個**。残りは Notification と Share の 56 個）。`entries` は 78 of 134 |
+| 行 | `IosLibraryCApiUITestApp/Rows/DialogRows.swift`、`CApiRow.swift` の節の一覧 | 17 行。どの行も `ntk_` を呼ぶ。文字列は `withCString` の中だけで有効なので、題が出ることが入力の写しの確かめにもなる |
+| テスト | `IosLibraryCApiTests/DialogMappingTests.swift`（15）、`DialogEntryTests.swift`（18） | 318 → 351 件 |
+| UI テスト | `IosLibraryCApiUITests/CApiRoundTripUITests.swift`（21 件足した。**同じファイルの同じクラスの本体に置いた**。extension は `minimal` の下で列挙されるか確かめていないので使っていない）、`CApiUITestApp.swift`（`CApiSection.dialog` と Dialog の操作） | 25+1 → 46+1 件 |
+| 設計書 | 第 2 部 5.1 の表、第 1 部 5.1 の木 | `DialogMapping`、`DialogHandles` の名前だけを足した。ほかは変えていない |
+
+公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイル、`scripts/ios_ui_runner.py` は変えていない。ペーストボード、Mac のクリップボード、シミュレーターの設定には触れていない。
+
+**`IosLibraryCApiTests` は Dialog を出さない**（実機の ASan で流れるので）。受け付けた要求は同じ main の回で取り消す。結果の値は `DialogReceiver.finish` を直に呼んで確かめる。出すのは UI テストだけ。
+
+### 8.2 12.1 と 12.2、4.x から持ってきたもの
+
+| 項目 | どこで | 結果 |
+|---|---|---|
+| 12.1 前面: OP-18〜OP-23 を後ろから呼ぶ | `testEachKindCalledInTheBackgroundIsNotForeground`（6 種、`@background` の行で確かめる） | `NOT_FOREGROUND`（8）。戻っても何も出ない |
+| 12.1 取り消し: 最初の main の回より前 | `testACancelBeforeTheFirstMainTurnCompletesEachKindAsCanceled`（6 種）、`testACancelInTheSameTurnShowsNothing` | `CANCELED`（6）。Dialog は出ない（UI テストで 2 秒見た） |
+| 12.1 取り消し: 出ている Dialog | `testACancelClosesTheDialogOnTheScreen`（別のスレッドから） | 閉じて `CANCELED` が 1 回 |
+| 12.1 取り消し: 上に画面が重なっている | `testACoveredDialogStaysWhenCancelled`（2 つ目の Dialog で覆う） | `CANCELED` が先に来て、覆いは閉じない。覆いを押すと下の Dialog が残っていて、そのボタンは何も報告しない |
+| 12.1 知らない ID、完了の後の ID | `testIdsThatAreNotARunningRequestDoNothing`、`testACancelAfterTheAnswerAndOfAnUnknownIdDoNothing` | `NONE` で何もしない |
+| 12.1 別の機能の ID | `testTheCancelOfTheOtherFeatureDoesNothing` | 効かない（両方向） |
+| 12.2 Dialog を押して値を確かめる | 6 種それぞれの UI テスト | ボタン、ラベル、入力、`_option_index` |
+| 6.2 アクションシートの外側のタップ（「測っていない」） | `testAnActionSheetClosedByATapOutside`（iPhone 17 Pro / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3） | **`NEGATIVE` で、ラベルは取り消しの文言**（8.4。iPhone 16 / 18.3 は検証の後に座標を直して 1 件だけ流した） |
+| P1-12 同じ回の 2 つ | `testTwoRequestsInOneTurnAreBothShown` | 後の方が上に出て、両方答えられる |
+| 完了のコールバックの中で次の Dialog と自分の取り消し（入れ子の本物の道） | `testACompletionMayShowTheNextDialog` | 2 回目の完了は来ず、次の Dialog が出る。呼び出しの中では何も動かない |
+| `foregroundInactive`（第 1 部 6 章） | `testAnAlertRequestedUnderControlCenterIsShown`（D22 の形。シミュレーターだけ。ドラッグの座標はサンプルと同じで、信頼するファイルは変えていない） | 3 台で、Control Center の下で Alert が出て、閉じた後に答えられ、行は `@foregroundInactive` |
+| E-9、P2-22 | `testATextInputThatIsRequired`、`testALoginThatIsRequired`、`testAZeroFilledAlertHasTheTextOfTheLibrary` | 反転した名前と既定の文言 |
+
+**通っていないもの**:
+
+| 場面 | 理由 |
+|---|---|
+| 同じ登録の完了の入れ子 | 7.2 と同じ。main のキューのブロックは入れ子に動かない。`RegistryTests` だけ |
+| `CANCELED_BY_SYSTEM`（外から閉じる）、`SHOW_FAILED` を C から | 行は `UIKit` を `import` できないので外から閉じられない（`capi-check-sources`）。**写しの関数と `finish` を直に呼ぶテストだけ**。1b の Swift の UI テスト（D20）は別にある |
+| 2 回目の取り消しが表示の途中に重なる順 | 決まった順で作れない |
+
+### 8.3 iPad の最初の起動（iPad Pro 11-inch (M4) / 18.3）
+
+**TB-2b のアプリは iPad で起動し、行を押せた。Dialog の UI テストは最初の回（直しの前の形）で 18 件すべて通った。** iPad の行のために変えたものは無い。行の見た目は目で見ていない（押せたことまで）。外側のタップのテスト（B3 の直しの後）の道: **iPhone 17 Pro / 26.2 は `region`、iPhone 16 / 18.3 は `coordinate`、iPad Pro 11-inch (M4) / 18.3 は `region`**。`region` は `Dismiss` が押せないことを、`coordinate` は点がシートのどのボタンの上にも無いことを確かめてから押す。Clipboard の貼り付けのテストは iPad で落ちた（8.7。日本語のシミュレーターのため）。
+
+### 8.4 コマンドと結果（最後のソース）
+
+06:07〜06:57 に指定の順で続けて流し、シミュレーターの仕事は重ねていない。ソースのハッシュ（6.8 と同じ範囲）は流す前と後で同じ（`8947007174e5`）。**iPhone 16 の `--capi-ui` が 1 件落ちた。その後でテストの 1 行を直した**（下）。
+
+| 実行 | 結果 | ソース |
+|---|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 351/351 | `8947007174e5` |
+| 同（iPhone 16 / 18.3） | 351/351 | 同 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 351/351。報告 0 件 | 同 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 351/351。報告 0 件 | 同 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6） | 45/45。rc 0 | 同 |
+| `--capi-ui`（iPhone 16 / 18.3。Xcode 26.6） | **44/45。rc 1**。`testAnActionSheetClosedByATapOutside` が落ちた（`no line 0 of dialog.actionSheet after 10.0 s`） | 同 |
+| `--capi-ui`（iPad Pro 11-inch (M4) / 18.3。Xcode 26.6） | 45/45。rc 0（Clipboard の貼り付けも） | 同 |
+| framework の Release（`generic/platform=iOS`。組むだけ）`--library --architectures arm64` | `OK symbols`（78 symbols、1 architectures）。capi の警告 0 | 同 |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`）`--library --architectures arm64,x86_64` | `OK symbols`（78 symbols、2 architectures）。capi の警告 0 | 同 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 78 of 134、56 not implemented yet | 同 |
+| `python3 -m unittest discover -s scripts/tests -p 'test_check_c_abi_contract_ios.py'` | Ran 278 tests、OK | 同 |
+| `python3 scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK | 同 |
+
+**検証の後の直し（最後のソース。`84a7b339c1c6`）**: `CApiUITestApp.tapOutsideTheSheet` の座標を画面の高さの 0.05 から 0.2 に変えた（UI テストの 1 行だけ。製品のソース、ほかのテストは同じ）。**変更の後に流したのは次だけで、全件は流していない**（検証を 07:05 までに終える指定のため）。
+
+| 実行（`xcodebuild test -only-testing:.../testAnActionSheetClosedByATapOutside`。`--capi-ui` でない） | 結果 |
+|---|---|
+| iPhone 16 / 18.3 | 1/1 |
+| iPhone 17 Pro / 26.2 | 1/1 |
+| iPad Pro 11-inch (M4) / 18.3 | 1/1 |
+| `test_ios_ui_runner.py` の `CApiUiTestSources` | OK |
+
+**これで 6.2 の「外側のタップは `NEGATIVE`」は 3 台で測れた。** iPhone 16 / 18.3 で 0.05 のときに閉じなかった理由（状態バーに当たった見込み）は確かめていない。
+
+時間: 05:41〜07:00（約 79 分）。
+
+### 8.5 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3）
+
+20 個。最初に 18 個を流し（テストはレビューの直しの前の写し）、17 個が落ち、1 個が生き残った。**生き残りと残りの 2 個（`_option_index` の `NULL` が 0、U+0000）は、レビューの直しの後のソース `1ae9b84b3440` で流して 3 個とも落ちた（8.9）。**
+
+| 生き残り | 原因 | 直し |
+|---|---|---|
+| `finish` の失敗の完了が ID を失う（`callback(userData, 0, error, ...)`） | テストが ID を見ていなかった | `completion(of:)` が `registration.id` と比べる形にした。直した後に流して落ちた（8.9） |
+
+落ちたものの例: text input と login の `reserved1` の名指し、反転、既定の文言、`title` の `NULL`、`option` の 0、ボタンの取り違え、パスワード、`NOT_FOREGROUND` の写し、`release` を呼ばない 2 通り、ID を書かない、取り消せない、`canceled` の値、別の機能の取り消し、`_button` の `NULL`。**クラッシュは 0 件で、消したレポートは無い。**
+
+### 8.6 設計書の読み方（5.1 の名前のほか、設計書は変えていない）
+
+| # | 所 | 読み方 | 設計書に戻すか |
+|---|---|---|---|
+| 1 | 6.2 の「アクションシートの外側のタップ…`NEGATIVE` になる見込み（測っていない）」 | 3 台で測って `NEGATIVE`。ラベルは取り消しの文言 | **戻すことを勧める**（「見込み」を「確かめた」に） |
+| 2 | 11.1 の `INVALID_PARAMETER`「`DialogError.invalidRequest`」 | C は箱を使い回さないので届かないが、写しは表のとおり 1 にした | 不要 |
+| 3 | 11.1 の `UNKNOWN`「届かない」 | 知らないボタン、知らない入力、知らない `DialogError` は `UNKNOWN` で完了する（依頼の「正しく見える値にしない」）。テストから踏めない | 不要 |
+| 4 | `button_text` などの空文字 | 空のまま渡す。既定の文言に替えない（E-15） | 不要 |
+| 5 | 第 1 部 5.7 の値の出力 | `out_request_id` は拒むときに書かない（7.5 の 2 と同じ） | 不要 |
+| 6 | 12.2 の「Dialog と権限」 | 権限のダイアログは TB-7 と読み、ここでは Dialog だけ | **戻すことを勧める**（13 章に持ち主が無い。8.9 の提案 2） |
+
+### 8.7 実装の途中で分かったこと
+
+- **パスワードを入れたログインの後に行を押せなかった原因は、システムの「Save Password?」のシート**（レビューの B1。使い捨ての写しの試しのテストで調べた）。iPhone 17 Pro / 26.2 で、ログインの答えから約 0.5〜1 秒後に app の階層に `Sheet`（320×272、画面の中央）が出る。`isHittable` は 15 秒待っても偽のまま。**座標で行を押しても行は動かなかったので、XCTest の判定の誤りではなく、シートが本当に触れなくしている**。パスワード無しのテキスト入力の後は同じ位置の行が押せるので、行の位置やキーボードの領域のせいではない。入力せずに閉じたログインの後も押せる。iPhone 16 / 18.3 と iPad Pro 11-inch (M4) / 18.3 ではシートは出なかった。「Not Now」を押すと低い行がまた押せる（`testALowRowAfterALogin`。3 台で通った）。**これは `IosLibrary` や受け口の欠陥ではなく OS の振る舞いと読んだ**（`ios/IosLibrary` は変えていない）。ただし iOS 26.2 の利用者には、C のログインの Dialog の後にこのシートが出て、答えるまで下の画面に触れない。シートが出ている間に次の Dialog を要求したときにどうなるかは確かめていない。マニュアルの候補
+- **この Mac の iPad Pro 11-inch (M4) / 18.3 のシミュレーターは日本語**だった。Clipboard の貼り付けのテスト（TB-3、TB-4）が iPad で落ちて分かった（アラートの文が日本語で、英語のボタンを探して見つからない。短い探りで `Alert` の行を読んだ）。設定は変えず、`answerPaste` が両方の文言を受ける形にした（文言はサンプルの `SystemLabels` と同じ）。Dialog の文言はテストの文字列か `OK` なので影響を受けなかった
+- `@unknown default` の枝はテストから踏めない
+
+### 8.8 確かめられていないこと
+
+- **実機では何も流していない**（`generic/platform=iOS` は組むだけ）
+- 8.2 の「通っていないもの」の表
+- 入力の秘密がログに出ないことは、読むだけで確かめた（`DialogMapping`、`DialogReceiver`、`DialogHandles` の補間に入力が無い）。番兵の値で読み返すテストは無い
+- 複数のウィンドウの iPad（6.2。マニュアルの候補）
+- `dismissedBySystem` の後に来るはずの 1 回のちょうどさ（C から踏めない）
+
+### 8.9 レビューの直しと、止めた所
+
+レビュー（Codex は指摘なし。Claude は A なし）をメインのセッションから受けた。**持ち主の指示で 07:50 が上限になり、全件の検証は流していない。**
+
+| 指摘 | 状態 |
+|---|---|
+| B1 | 済み。8.7。テストのコメントを直し、`testALowRowAfterALogin` を足した。試しのテストと結果の束は写しごと消した。スクリーンショットは書き出していない |
+| B2 | 済み。`testAnAlertRequestedUnderControlCenterIsShown` が 3 台で通った |
+| B3 | 済み。8.3 に道を記録した |
+| C1〜C8 | 済み。C5 は `noDialogAppears`（`alerts`、`sheets`、ポップオーバーの `Alpha`）で、`testAnActionSheetOption` が 3 台で偽を返すこと（シートを見ること）を確かめた。C7 は「取り消しは何もしない」が誤りだった: 完了の中の取り消しは状態を進めて `release` を「外す」に回す。外から見えるのは 2 回目の完了が来ないことまで |
+| C10 | 済み。直した変異（失敗が ID を失う）と、流していなかった 2 個（`_option_index` の `NULL` が 0、U+0000）を、ハッシュ `1ae9b84b3440` の写しで流した。**3 個とも落ちた**。8.5 のほかの 17 個は、製品のソースは同じで、テストはこの直しの前の形のまま流し直していない |
+
+**どのソースで何を流したか（ハッシュ `1ae9b84b3440`。製品のソース、テストともこの直しの最後の形）**:
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 351/351 |
+| 同（iPhone 16 / 18.3） | 351/351 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 351/351。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 351/351。報告 0 件 |
+| UI テストの一部（`xcodebuild -only-testing`。`--capi-ui` でない）: `testAnAlertRequestedUnderControlCenterIsShown`、`testALowRowAfterALogin`、`testAnActionSheetClosedByATapOutside`、`testAnActionSheetOption`、`testACancelAfterTheAnswerAndOfAnUnknownIdDoNothing` | 3 台とも 5/5 |
+| 同（iPhone 17 Pro だけ）: `testEachKindCalledInTheBackgroundIsNotForeground`、`testACancelInTheSameTurnShowsNothing`、`testAReadTheUserAllows`、`testAReadTheUserDenies` | 4/4 |
+| framework の Release（2 つ）`--library` | `OK symbols`（78 symbols。1 architectures、2 architectures） |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2 |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+
+順序は依頼の全件の検証の順でなく、変更に関係するものを先に流した。流した後に変えたのはこの記録だけ。
+
+**流していないもの**: `--capi-ui` の全件（3 台とも。1 台 12 分以上で 07:40 までに終わらないので始めなかった）。この直しの前の全件は 8.4（`8947007174e5`）とメインのセッションの 07:16 の回（iPhone 16 の 45/45）。
+
+**続きの一覧（順に）**:
+
+1. `--capi-ui` を iPhone 17 Pro、iPhone 16、iPad の順に、`1ae9b84b3440` で流す（47 件。1 台 12〜13 分）
+2. 8.2 の表の残り: `CANCELED_BY_SYSTEM`、`SHOW_FAILED` を C から起こせないこと。シートが出ている間の次の Dialog（8.7）
+3. 持ち主に見てもらう提案（設計書はこの回で変えていない）:
+   - **提案 1、第 2 部 6.2**: 「アクションシートの外側のタップはキャンセルの handler が呼ばれて `NEGATIVE` になる見込み（測っていない。2b の 12.2 で確かめる）」を、「アクションシートの外側のタップはキャンセルの handler が呼ばれて `NEGATIVE` になる（iPhone 17 Pro / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3 で確かめた）」に直す
+   - **提案 2、第 2 部 13 章の TB-7 の行**: 完了の条件に「12.2 の『Dialog と権限』の行のうち、権限のダイアログを C から押して完了の値を確かめること」を足す
+   - **提案 3、`foregroundInactive` の持ち主**: TB-5 で通したので、第 2 部 13 章の TB-5 の行に「第 1 部 6 章の `foregroundInactive` を Dialog で確かめる」を足す。ほかの前面の操作（OP-35、OP-38、OP-46）の持ち主は決まっていない
+   - **提案 4、第 2 部 6.1 の読み方**（7.5 の 1 と 3 は B2 で第 2 部に入っている。持ち主はまだ読んでいない）
+4. TB-5 の承認とコミットは持ち主の判断（メインのセッションが受ける）
+5. `testAnAlertRequestedUnderControlCenterIsShown` と `testALowRowAfterALogin` は `scripts/ios_ui_runner.py` の表を変えずに同じクラスに足した。TB-5 以降でクラスを分けるかは未決
+
+### 8.10 持ち主の決定（2026-11-06）と、シートの直し
+
+**持ち主の決定（2026-11-06。メインのセッションが作業ツリーに入れた）**:
+
+- 8.9 の提案 1〜3 を採った: 第 2 部 6.2（外側のタップは `NEGATIVE`。3 台で確かめた）、13 章の TB-5 の行（第 1 部 6 章の `foregroundInactive` を Dialog で確かめる）、13 章の TB-7 の行（12.2 の「Dialog と権限」の権限のダイアログ）
+- TB-3、TB-4 の変更（7.5 の 1 と 3 が第 2 部 6.1 に入ったものを含む）を、そのまま受けた
+- `agent-rules/device-testing.md` に決まりを足した: UI テストを流す間は Simulator.app を開かない、Mac のクリップボードに触れない（`pbcopy`、`pbpaste`）、`PasteboardAutomaticSync` を変えない
+- 期限まで待たずに進め、判断は推奨のとおり。実機は 2026-11-07 の 09:00 までは使わない
+
+**メインのセッションの 21:51〜22:39 の `--capi-ui`**（ソースのハッシュ `08efd0e8de47`。`git status --short -- ios scripts` のファイルで数えたもの）: iPhone 16 / 18.3 は 47/47、iPad Pro 11-inch (M4) / 18.3 は 47/47、**iPhone 17 Pro / 26.2 は 46/47**。`testALowRowAfterALogin` が `CApiUITestApp.swift:232` の「the sheet after the login did not go away」で落ちた。「Not Now」を押した後、シートが 10 秒経っても消えなかった。
+
+**調べたこと**:
+
+- 落ちた回のログ: シートを見つけてから 0.25 秒後に「Not Now」を押していた。押した後、シートは 10 秒間ずっと在った
+- `-test-iterations 10` で直す前の形を流した（iPhone 17 Pro / 26.2）: **10 回中 1 回失敗**。失敗した回は最初の回で、待ち始めてシートが在ると分かるまで約 2 秒（通った 9 回は約 1 秒）、押したのはその 0.7 秒後だった（通った 9 回は 0.12〜0.14 秒後）。**押すのが早すぎたという仮説は、この回では支持されない**
+- 同じシートが残ったのか、別のシートか、戻ってきたのかは、階層を書き出せず（結果の束からの書き出しが空だった）**確かめられていない**
+- 待ちの長さは理由でない（10 秒）
+
+**直したこと**（`CApiUITestApp.declineTheOfferToSaveThePassword`。テストの補助だけ）: 押す前に、ボタンが押せて、シートが 0.3 秒動かないのを待つ。シートは最初のものの題で絞った問い合わせで追う（別のシートが代わりに数えられない）。消えなければ前と同じく落ちる。低い行を押す確かめもそのまま。**直した後に `-test-iterations 20` で流して 20 回中 0 回の失敗**（シートは 20 回とも出た）。失敗の率が 1/10 なので、20 回の 0 で直ったとは言い切れない。原因が確かめられていないので、**同じ失敗がまた出たら、階層を書き出して原因を見る**
+
+**最後のソースの結果**:
+
+22:53〜23:48 に指定の順で続けて流し、シミュレーターの仕事は重ねていない。ソースのハッシュは流す前と後で同じ: `8aed493f82e5`（メインのセッションと同じ数え方。`git status --short -- ios scripts` のファイル）、`cc2f9cd6b1a1`（6.8 と同じ範囲）。**流した後に変えたのはこの記録だけ。**
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 351/351 |
+| 同（iPhone 16 / 18.3） | 351/351 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 351/351。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 351/351。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6） | 47/47。rc 0 |
+| `--capi-ui`（iPhone 16 / 18.3） | 47/47。rc 0 |
+| `--capi-ui`（iPad Pro 11-inch (M4) / 18.3） | 47/47。rc 0 |
+| framework の Release（2 つ）`--library` | `OK symbols`（78 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 78 of 134 |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+
+変異はこの回では流していない（直したのはテストの補助だけ。8.5 と 8.9 の変異は製品のソースが同じ）。
+
+**8.9 の続きの一覧の状態**:
+
+1. `--capi-ui` の 3 台: **済み**（メインのセッションの 21:51 の回と、上の回）
+2. 8.2 の表の残り（`CANCELED_BY_SYSTEM`、`SHOW_FAILED` を C から、シートが出ている間の次の Dialog）: **済んでいない**
+3. 提案 1〜3: **持ち主が採った**。提案 4（第 2 部 6.1 の読み方）: **TB-3、TB-4 の変更として受けた**
+4. TB-5 のコミット: メインのセッション
+5. UI テストのクラスを分けるか: **未決**

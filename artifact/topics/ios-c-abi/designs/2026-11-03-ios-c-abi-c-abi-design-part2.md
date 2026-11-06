@@ -177,6 +177,8 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | `Clipboard/ClipboardHandles.swift` | 結果のハンドルのクラスと読み取り | - |
 | `Clipboard/ClipboardValuesJson.swift` | `detect_values_async` の JSON（P2-8） | - |
 | `Dialog/DialogReceiver.swift` | 要求を写して `show(_:presenter:requestBox:completion:)` を呼ぶ。取り消し | `IosDialogManager` |
+| `Dialog/DialogMapping.swift` | C の値と Swift の値の純粋な写し（6 種の要求、答え、`DialogError`）と入口の検査 | - |
+| `Dialog/DialogHandles.swift` | 結果のハンドルと読み取り | - |
 | `Notification/NotificationReceiver.swift` | `ntk_notification_install`、権限の事前の確かめ（P2-10）、操作、問い合わせ、イベントの登録と保持（AP-21） | `IosNotificationManager` |
 | `Notification/NotificationContentBuilder.swift` | ビルダーの状態（Swift の値で持つ）と setter の検査 | - |
 | `Notification/NotificationJson.swift` | userInfo の JSON の入出力（P2-7） | - |
@@ -320,7 +322,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 | `NTK_DIALOG_BUTTON_DESTRUCTIVE` | `_button_text` |
 | `NTK_DIALOG_BUTTON_OPTION` | `_button_text`、`_option_index`（0 から。ほかの種類では -1） |
 
-- Android の `POSITIVE` と `NEGATIVE` は同じ意味なので同じ名前にする。**Android の `_answer` と `DISMISSED` は無い**: iOS のアラートは外側のタップで閉じない。アクションシートの外側のタップはキャンセルの handler が呼ばれて `NEGATIVE` になる見込み（測っていない。2b の 12.2 で確かめる）。外から閉じられたときは `CANCELED_BY_SYSTEM`
+- Android の `POSITIVE` と `NEGATIVE` は同じ意味なので同じ名前にする。**Android の `_answer` と `DISMISSED` は無い**: iOS のアラートは外側のタップで閉じない。アクションシートの外側のタップはキャンセルの handler が呼ばれて `NEGATIVE` になる（iPhone 17 Pro / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3 で確かめた。TB-5）。外から閉じられたときは `CANCELED_BY_SYSTEM`
 - **押したボタンを値で返す**（今のブリッジはラベルの文字列だけで、同じ文言を区別できなかった）
 - アクションシートの基点はいつも最上位の ViewController の view の中央（P1-13）。**マルチウィンドウの iPad で利用者の期待と違う位置に出ることがある**（1b の記録 23.1。マニュアルの候補）
 - アクションシートの `option_count` は 0 でもよい（キャンセルだけ）。`options` が `NULL` で件数が 0 でない、`NULL` の要素は `INVALID_PARAMETER`
@@ -897,9 +899,9 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-2b | C を呼ぶ UI テスト用のアプリとターゲット（第 1 部 6 章の「テストの口」。サンプルは Swift の API だけを使うので別に作る）。`test_ios.sh` のランナーの区分 | 1.5日 | TB-2 | 12.1 の前面の行と 12.2 を流せる。**権限を未決に戻す方法を確かめた**（`simctl uninstall` で足りるか、足りなければ `erase`） |
 | TB-3 | Clipboard の書き込みと問い合わせ（OP-01〜OP-10、OP-15、結果のハンドル） | 1.5日 | TB-2b | 12.1 の Clipboard の行、写しの関数 |
 | TB-4 | Clipboard の読み込みと監視（OP-11〜OP-14、OP-16、OP-17） | 1.0日 | TB-3 | 12.1 の取り消しとイベントの行 |
-| TB-5 | Dialog（OP-18〜OP-24、結果） | 1.0日 | TB-2b | 12.1 の前面・取り消しの行、12.2。**アクションシートは iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-2b のアプリはまだ iPad で起動していない） |
+| TB-5 | Dialog（OP-18〜OP-24、結果） | 1.0日 | TB-2b | 12.1 の前面・取り消しの行、12.2（「Dialog と権限」の行の権限のダイアログは TB-7）。**アクションシートは iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-2b のアプリはまだ iPad で起動していない）。第 1 部 6 章の `foregroundInactive` を Dialog で確かめた |
 | TB-6 | 通知のビルダーと userInfo の JSON、trigger、category | 1.5日 | TB-2 | 12.1 のビルダー・userInfo・trigger の行 |
-| TB-7 | 通知の操作（OP-26〜OP-41）、権限の事前の確かめ | 1.0日 | TB-6、TB-2b | 12.1 の写しの関数・前面・事前の確かめ・権限の要求の選択肢の行、12.2 の「通知の順序と許可の後」の行 |
+| TB-7 | 通知の操作（OP-26〜OP-41）、権限の事前の確かめ | 1.0日 | TB-6、TB-2b | 12.1 の写しの関数・前面・事前の確かめ・権限の要求の選択肢の行、12.2 の「通知の順序と許可の後」の行。12.2 の「Dialog と権限」の行のうち、C から求めた権限のダイアログを XCUITest で押し、完了の値を確かめた |
 | TB-8 | 通知のイベント（OP-42〜OP-45）。**TB-2b のアプリに起動の形を伝える口を足す**（システムが起こしたプロセスは起動の引数を受けないので、サンプルの SA-18 と同じくファイルで。コールドスタートの中で受け手を登録するため） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と 12.2 |
 | TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2。**iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-5 と同じ） |
 | TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ） |

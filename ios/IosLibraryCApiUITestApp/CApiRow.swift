@@ -35,7 +35,7 @@ enum CApiRowCatalog {
     /// or a process the system starts for a notification) draws them all.
     static let sectionVariable = "NTK_CAPI_SECTION"
 
-    static let sections = [CommonRows.section, NotificationRows.section, ClipboardRows.section]
+    static let sections = [CommonRows.section, NotificationRows.section, ClipboardRows.section, DialogRows.section]
 
     static let drawn = drawn(selected: ProcessInfo.processInfo.environment[sectionVariable])
 

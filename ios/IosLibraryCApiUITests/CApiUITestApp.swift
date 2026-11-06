@@ -11,6 +11,7 @@ enum CApiSection: String {
     case common
     case notification
     case clipboard
+    case dialog
 }
 
 /// How the tests operate `IosLibraryCApiUITestApp`. The identifiers are copies of the app's: the test
@@ -112,6 +113,172 @@ struct CApiUITestApp {
 
     private func lines(ofRow rowId: String) -> XCUIElementQuery {
         app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'result.line.' AND label BEGINSWITH %@", "[\(rowId)@"))
+    }
+
+    // MARK: Dialogs
+
+    /// The alert with this title, once it is shown. An alert without a title is found by not naming one.
+    func alert(_ title: String?, timeout: TimeInterval = Self.timeout) throws -> XCUIElement {
+        let alert = title.map { app.alerts[$0] } ?? app.alerts.firstMatch
+        guard alert.waitForExistence(timeout: timeout) else {
+            throw CApiUITestError("the alert \(title ?? "without a title") did not appear")
+        }
+        try test.checkInterruption()
+        return alert
+    }
+
+    /// Presses a button of the alert and waits until it is gone.
+    func press(_ button: String, inAlert title: String?) throws {
+        let alert = try alert(title)
+        alert.buttons[button].tap()
+        try test.checkInterruption()
+        guard wait(until: !alert.exists) else {
+            throw CApiUITestError("the alert \(title ?? "without a title") did not go away")
+        }
+    }
+
+    /// Whether an alert with this title is on the screen now.
+    func isAlertShown(_ title: String) -> Bool {
+        app.alerts[title].exists
+    }
+
+    /// Waits until the alert is gone.
+    func waitUntilGone(alert title: String) throws {
+        guard wait(until: !app.alerts[title].exists) else {
+            throw CApiUITestError("the alert \(title) did not go away")
+        }
+    }
+
+    /// Whether no dialog shows up for this long: an alert, a sheet, or an action sheet in a popover, which is not
+    /// a sheet to XCTest and is seen by its first option.
+    func noDialogAppears(for seconds: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        repeat {
+            if app.alerts.firstMatch.exists || app.sheets.firstMatch.exists || app.buttons["Alpha"].exists {
+                return false
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        } while Date() < deadline
+        return true
+    }
+
+    /// Types into the text field at `index` of the alert (`secure` for the secure ones).
+    func type(_ text: String, intoField index: Int, secure: Bool = false, ofAlert title: String) throws {
+        let alert = try alert(title)
+        let field = (secure ? alert.secureTextFields : alert.textFields).element(boundBy: index)
+        field.tap()
+        field.typeText(text)
+        try test.checkInterruption()
+    }
+
+    /// Whether the button of the alert can be pressed.
+    func isEnabled(_ button: String, inAlert title: String) throws -> Bool {
+        try alert(title).buttons[button].isEnabled
+    }
+
+    /// An action sheet is a sheet or a popover, depending on the system and the device: this is its button.
+    func pressSheetButton(_ label: String) throws {
+        let button = app.buttons[label]
+        guard button.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the sheet button \(label) did not appear")
+        }
+        try test.checkInterruption()
+        button.tap()
+        try test.checkInterruption()
+    }
+
+    /// Whether a button with this label is shown now and can be hit.
+    func isButtonHittable(_ label: String) -> Bool {
+        let button = app.buttons[label]
+        return button.waitForExistence(timeout: 2) && button.isHittable
+    }
+
+    /// Taps outside the action sheet and says how: `region` is the popover's dismiss region, whose sheet has no
+    /// `cancel` to press (the sample's D7), and `coordinate` is a point above a sheet, which must be on none of
+    /// its `buttons`. Either way the test cannot have pressed `cancel` by accident.
+    func tapOutsideTheSheet(buttons: [String], cancel: String) throws -> String {
+        let region = app.otherElements["PopoverDismissRegion"]
+        if region.waitForExistence(timeout: 2) {
+            let button = app.buttons[cancel]
+            if button.exists && button.isHittable {
+                throw CApiUITestError("the sheet has a button to press where the region was expected")
+            }
+            region.tap()
+            try test.checkInterruption()
+            return "region"
+        }
+        let offset = CGVector(dx: 0.5, dy: 0.2)
+        let window = app.windows.firstMatch.frame
+        let point = CGPoint(x: window.minX + window.width * offset.dx, y: window.minY + window.height * offset.dy)
+        for label in buttons where app.buttons[label].frame.contains(point) {
+            throw CApiUITestError("the point outside the sheet is on the button \(label)")
+        }
+        app.coordinate(withNormalizedOffset: offset).tap()
+        try test.checkInterruption()
+        return "coordinate"
+    }
+
+    /// Answers the system's offer to save a password (working notes, 8.7) with "not now", if it comes. Whether it did.
+    /// The sheet slides in: a tap while it is still moving can be lost (working notes, 8.10), so the button is tapped
+    /// once it can be hit and the sheet has stopped moving. The sheet is then followed by its own label, so that
+    /// another sheet cannot stand in for it. If it stays, the test fails.
+    func declineTheOfferToSaveThePassword() throws -> Bool {
+        let first = app.sheets.firstMatch
+        guard first.waitForExistence(timeout: 5) else { return false }
+        let sheet = app.sheets.matching(NSPredicate(format: "label == %@", first.label)).firstMatch
+        let button = sheet.buttons["Not Now"]
+        guard button.waitForExistence(timeout: 2) else {
+            throw CApiUITestError("a sheet came after the login, without the button expected")
+        }
+        guard wait(until: button.isHittable && isStill(sheet)) else {
+            throw CApiUITestError("the sheet after the login did not settle")
+        }
+        button.tap()
+        try test.checkInterruption()
+        guard wait(until: !sheet.exists) else {
+            throw CApiUITestError("the sheet after the login did not go away")
+        }
+        return true
+    }
+
+    /// Whether the element is at the same place twice, 0.3 seconds apart.
+    private func isStill(_ element: XCUIElement) -> Bool {
+        let before = element.frame
+        Thread.sleep(forTimeInterval: 0.3)
+        return element.exists && element.frame == before
+    }
+
+    // MARK: Control Center (the sample's Springboard.openControlCenter; simulator only)
+
+    /// Starts the row with the delay and returns without waiting.
+    func startAfterDelay(_ rowId: String) throws {
+        try tap("row.\(rowId).runAfterDelay")
+    }
+
+    func openControlCenter() throws {
+        try CApiUITestCase.requireSimulator()
+        dragOnSpringboard(from: CGVector(dx: 0.95, dy: 0.005), to: CGVector(dx: 0.95, dy: 0.6))
+        try test.checkInterruption()
+    }
+
+    func closeControlCenter() throws {
+        try CApiUITestCase.requireSimulator()
+        dragOnSpringboard(from: CGVector(dx: 0.5, dy: 0.95), to: CGVector(dx: 0.5, dy: 0.2))
+        try test.checkInterruption()
+    }
+
+    private func dragOnSpringboard(from start: CGVector, to end: CGVector) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        springboard.coordinate(withNormalizedOffset: start).press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: end))
+    }
+
+    private func wait(until condition: @autoclosure () -> Bool, timeout: TimeInterval = Self.timeout) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() {
+            guard Date() < deadline else { return false }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return true
     }
 
     // MARK: Elements

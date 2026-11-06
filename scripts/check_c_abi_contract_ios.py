@@ -182,21 +182,6 @@ LEDGER = "受け口の帳簿"
 # or leaves the headers, so the list shrinks as the entries come. Nothing but
 # --require-complete stops a name being added: it must be empty at TB-10.
 NOT_IMPLEMENTED_YET = (
-    # Dialog.h
-    "ntk_dialog_show_alert_async",
-    "ntk_dialog_show_confirm_async",
-    "ntk_dialog_show_destructive_async",
-    "ntk_dialog_show_action_sheet_async",
-    "ntk_dialog_show_text_input_async",
-    "ntk_dialog_show_login_async",
-    "ntk_dialog_cancel",
-    "ntk_dialog_result_button",
-    "ntk_dialog_result_option_index",
-    "ntk_dialog_result_button_text",
-    "ntk_dialog_result_text",
-    "ntk_dialog_result_username",
-    "ntk_dialog_result_password",
-    "ntk_dialog_result_free",
     # Notification.h
     "ntk_notification_show_async",
     "ntk_notification_update_async",

@@ -112,12 +112,25 @@ final class CApiRoundTripUITests: CApiUITestCase {
 
     // MARK: - Content of another app: the runner writes it, and the system asks the user (M3)
 
+    /// The two answers of the paste alert, in the languages of the simulators here (the iPad Pro is in Japanese).
+    private enum PasteAnswer: String {
+        case allow
+        case deny
+
+        var labels: [String] {
+            switch self {
+            case .allow: return ["Allow Paste", "ペーストを許可"]
+            case .deny: return ["Don’t Allow Paste", "ペーストを許可しない"]
+            }
+        }
+    }
+
     /// The app's main thread stops until the answer, so the alert is answered before anything of the app is read.
-    private func answerPaste(_ label: String) throws {
+    private func answerPaste(_ answer: PasteAnswer) throws {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let button = springboard.alerts.firstMatch.buttons[label]
+        let button = springboard.alerts.firstMatch.buttons.matching(NSPredicate(format: "label IN %@", answer.labels)).firstMatch
         guard button.waitForExistence(timeout: 10) else {
-            throw CApiUITestError("no paste alert with \(label)")
+            throw CApiUITestError("no paste alert with the \(answer.rawValue) button")
         }
         button.tap()
     }
@@ -130,7 +143,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let app = try launchApp(section: .clipboard)
         writeFromTheRunner()
         try app.start("clipboard.read")
-        try answerPaste("Allow Paste")
+        try answerPaste(.allow)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.read"), line("read", "0 0 items=1 hasTypes=true text=written-by-the-runner"))
     }
 
@@ -139,7 +152,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let app = try launchApp(section: .clipboard)
         writeFromTheRunner()
         try app.start("clipboard.read")
-        try answerPaste("Don’t Allow Paste")
+        try answerPaste(.deny)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.read"), line("read", "0 0 items=1 hasTypes=false text=NULL"))
     }
 
@@ -147,7 +160,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let app = try launchApp(section: .clipboard)
         writeFromTheRunner()
         try app.start("clipboard.readData")
-        try answerPaste("Don’t Allow Paste")
+        try answerPaste(.deny)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.readData"), line("readData", "0 0 data=NULL"))
     }
 
@@ -155,7 +168,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let app = try launchApp(section: .clipboard)
         writeFromTheRunner()
         try app.start("clipboard.readData")
-        try answerPaste("Allow Paste")
+        try answerPaste(.allow)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.readData"), line("readData", "0 0 data=written-by-the-runner"))
     }
 
@@ -163,7 +176,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let app = try launchApp(section: .clipboard)
         UIPasteboard.general.string = "https://example.com/ntk"
         try app.start("clipboard.detectValues")
-        try answerPaste("Allow Paste")
+        try answerPaste(.allow)
         let values = try app.waitForLine(ofRow: "clipboard.detectValues")
         XCTAssertTrue(values.hasPrefix(line("detectValues", "0 0 json={")), values)
         XCTAssertTrue(values.contains("\"probableWebURL\":\"https://example.com/ntk\""), values)
@@ -173,7 +186,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let app = try launchApp(section: .clipboard)
         writeFromTheRunner()
         try app.start("clipboard.loadText")
-        try answerPaste("Allow Paste")
+        try answerPaste(.allow)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "0 0 hasId=true kind=0 text=written-by-the-runner"))
     }
 
@@ -182,7 +195,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let app = try launchApp(section: .clipboard)
         writeFromTheRunner()
         try app.start("clipboard.loadText")
-        try answerPaste("Don’t Allow Paste")
+        try answerPaste(.deny)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "\(ClipboardError.loadFailed) 0 hasId=true kind=-1 text=NULL"))
     }
 
@@ -205,7 +218,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         XCTAssertTrue(springboard.alerts.firstMatch.waitForExistence(timeout: 10), "no paste alert")
         Thread.sleep(forTimeInterval: 17)
-        try answerPaste("Don’t Allow Paste")
+        try answerPaste(.deny)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "\(ClipboardError.timedOut) 0 hasId=true kind=-1 text=NULL"))
         Thread.sleep(forTimeInterval: 1)
         XCTAssertFalse(app.isDrawnLine(ofRow: "clipboard.loadText", occurrence: 1), "a second completion")
@@ -219,7 +232,7 @@ final class CApiRoundTripUITests: CApiUITestCase {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         XCTAssertTrue(springboard.alerts.firstMatch.waitForExistence(timeout: 10), "no paste alert")
         Thread.sleep(forTimeInterval: 17)
-        try answerPaste("Allow Paste")
+        try answerPaste(.allow)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadText"), line("loadText", "\(ClipboardError.timedOut) 0 hasId=true kind=-1 text=NULL"))
         Thread.sleep(forTimeInterval: 1)
         XCTAssertFalse(app.isDrawnLine(ofRow: "clipboard.loadText", occurrence: 1), "a second completion")
@@ -265,13 +278,264 @@ final class CApiRoundTripUITests: CApiUITestCase {
         XCTAssertEqual(try run(app, "removeListener"), line("removeListener", "removed"))
     }
 
+    // MARK: - Dialog.h (part 2, 12.1 and 12.2; TB-5)
+
+    private func dialogLine(_ row: String, _ value: String, state: String = "foregroundActive") -> String {
+        "[dialog.\(row)@\(state)] \(value)"
+    }
+
+    /// `<button> <option> <label>` of an answer with no input.
+    private func answered(_ button: Int, _ label: String, option: Int = -1, text: String = "NULL", user: String = "NULL", pass: String = "NULL") -> String {
+        "0 0 hasId=true button=\(button) option=\(option) label=\(label) text=\(text) user=\(user) pass=\(pass)"
+    }
+
+    private func failed(_ error: Int) -> String {
+        "\(error) 0 hasId=true button=-1 option=-1 label=NULL text=NULL user=NULL pass=NULL"
+    }
+
+    func testAnAlertThroughC() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.alert")
+        try app.press("Got it", inAlert: "Alert")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.alert"), dialogLine("alert", answered(DialogButton.positive, "Got it")))
+    }
+
+    /// P2-22: a request with NULL for its button has the library's text. The alert is found without naming a title;
+    /// that it has none is not checked here (`DialogMappingTests` compares the value).
+    func testAZeroFilledAlertHasTheTextOfTheLibrary() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.alertDefault")
+        try app.press("OK", inAlert: nil)
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.alertDefault"), dialogLine("alertDefault", answered(DialogButton.positive, "OK")))
+    }
+
+    func testAConfirmThroughC() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.confirm")
+        try app.press("Yes", inAlert: "Confirm")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.confirm"), dialogLine("confirm", answered(DialogButton.positive, "Yes")))
+        try app.start("dialog.confirm")
+        try app.press("No", inAlert: "Confirm")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.confirm", occurrence: 1), dialogLine("confirm", answered(DialogButton.negative, "No")))
+    }
+
+    func testADestructiveThroughC() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.destructive")
+        try app.press("Erase", inAlert: "Destructive")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.destructive"), dialogLine("destructive", answered(DialogButton.destructive, "Erase")))
+        try app.start("dialog.destructive")
+        try app.press("Keep", inAlert: "Destructive")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.destructive", occurrence: 1), dialogLine("destructive", answered(DialogButton.negative, "Keep")))
+    }
+
+    /// Also on the iPad (part 2, 13, TB-5), where it is a popover.
+    func testAnActionSheetOption() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.actionSheet")
+        XCTAssertFalse(app.noDialogAppears(for: 2), "`noDialogAppears` has to see an action sheet as well")
+        try app.pressSheetButton("Beta")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.actionSheet"), dialogLine("actionSheet", answered(DialogButton.option, "Beta", option: 1)))
+        try app.start("dialog.actionSheet")
+        try app.pressSheetButton("Alpha")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.actionSheet", occurrence: 1), dialogLine("actionSheet", answered(DialogButton.option, "Alpha", option: 0)))
+    }
+
+    /// Part 2, 6.2 left this to be measured: the tap outside the sheet.
+    func testAnActionSheetClosedByATapOutside() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.actionSheet")
+        XCTAssertTrue(app.isButtonHittable("Alpha"), "the sheet is not shown")
+        // The notes (8.3) quote which way each simulator took.
+        print("[CApiRoundTripUITests] the tap outside the sheet: \(try app.tapOutsideTheSheet(buttons: ["Alpha", "Beta", "Dismiss"], cancel: "Dismiss"))")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.actionSheet"), dialogLine("actionSheet", answered(DialogButton.negative, "Dismiss")))
+    }
+
+    func testATextInputThroughC() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.textInput")
+        try app.type("typed text", intoField: 0, ofAlert: "Input")
+        try app.press("Send", inAlert: "Input")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.textInput"), dialogLine("textInput", answered(DialogButton.positive, "Send", text: "typed text")))
+        try app.start("dialog.textInput")
+        try app.type("dropped", intoField: 0, ofAlert: "Input")
+        try app.press("Back", inAlert: "Input")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.textInput", occurrence: 1), dialogLine("textInput", answered(DialogButton.negative, "Back")))
+    }
+
+    /// E-9: nonzero in C is the required form.
+    func testATextInputThatIsRequired() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.textInputRequired")
+        XCTAssertFalse(try app.isEnabled("Send", inAlert: "Input"))
+        try app.type("x", intoField: 0, ofAlert: "Input")
+        XCTAssertTrue(try app.isEnabled("Send", inAlert: "Input"))
+        try app.press("Send", inAlert: "Input")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.textInputRequired"), dialogLine("textInputRequired", answered(DialogButton.positive, "Send", text: "x")))
+    }
+
+    func testALoginThroughC() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.login")
+        try app.type("account", intoField: 0, ofAlert: "Sign in")
+        try app.type("hunter2", intoField: 0, secure: true, ofAlert: "Sign in")
+        try app.press("Enter", inAlert: "Sign in")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.login"), dialogLine("login", answered(DialogButton.positive, "Enter", user: "account", pass: "hunter2")))
+    }
+
+    /// A test of its own, because `testALoginThroughC` ends with the system's offer to save the password on the
+    /// screen on iOS 26.2 (stage 2 working notes, 8.7): the next row cannot be pressed until it is answered.
+    func testALoginLeftWithoutAnAnswer() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.login")
+        try app.press("Leave", inAlert: "Sign in")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.login"), dialogLine("login", answered(DialogButton.negative, "Leave")))
+    }
+
+    /// The offer of 8.7, which only iOS 26.2 made here, is the system's: with it answered the low row works again.
+    /// The password is not saved. On a system that does not offer, this is the low row right after a login.
+    func testALowRowAfterALogin() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.login")
+        try app.type("account", intoField: 0, ofAlert: "Sign in")
+        try app.type("hunter2", intoField: 0, secure: true, ofAlert: "Sign in")
+        try app.press("Enter", inAlert: "Sign in")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.login"), dialogLine("login", answered(DialogButton.positive, "Enter", user: "account", pass: "hunter2")))
+        print("[CApiRoundTripUITests] the offer to save the password: \(try app.declineTheOfferToSaveThePassword())")
+        try app.start("dialog.login")
+        try app.press("Leave", inAlert: "Sign in")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.login", occurrence: 1), dialogLine("login", answered(DialogButton.negative, "Leave")))
+    }
+
+    func testALoginThatIsRequired() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.loginRequired")
+        XCTAssertFalse(try app.isEnabled("Enter", inAlert: "Sign in"))
+        try app.type("a", intoField: 0, ofAlert: "Sign in")
+        XCTAssertFalse(try app.isEnabled("Enter", inAlert: "Sign in"), "both are required")
+        try app.type("b", intoField: 0, secure: true, ofAlert: "Sign in")
+        XCTAssertTrue(try app.isEnabled("Enter", inAlert: "Sign in"))
+        try app.press("Leave", inAlert: "Sign in")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.loginRequired"), dialogLine("loginRequired", answered(DialogButton.negative, "Leave")))
+    }
+
+    func testANullRequestIsRejectedAtOnce() throws {
+        let app = try launchApp(section: .dialog)
+        XCTAssertEqual(try app.run("dialog.alertOfNull"), dialogLine("alertOfNull", "rejected 1"))
+    }
+
+    // MARK: Cancelling (OP-24)
+
+    /// Part 2, 5.3: before the first main turn nothing is shown.
+    func testACancelInTheSameTurnShowsNothing() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.alertAndCancel")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.alertAndCancel"), dialogLine("alertAndCancel", failed(DialogError.canceled)))
+        XCTAssertTrue(app.noDialogAppears(for: 2))
+    }
+
+    /// From another thread, with the dialog on the screen: it closes, and CANCELED comes once.
+    func testACancelClosesTheDialogOnTheScreen() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.alertThenCancelLater")
+        _ = try app.alert("Cancelled later")
+        try app.waitUntilGone(alert: "Cancelled later")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.alertThenCancelLater"), dialogLine("alertThenCancelLater", failed(DialogError.canceled)))
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "dialog.alertThenCancelLater", occurrence: 1), "a second completion")
+    }
+
+    /// P1-24: a dialog covered by another screen stays when cancelled, and its button then does nothing.
+    func testACoveredDialogStaysWhenCancelled() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.coveredThenCancel")
+        _ = try app.alert("Cover")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.coveredThenCancel"), dialogLine("coveredThenCancel", failed(DialogError.canceled)))
+        XCTAssertTrue(app.isAlertShown("Cover"), "the cover was closed with the dialog under it")
+        try app.press("Cover OK", inAlert: "Cover")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.coveredThenCancel", occurrence: 1), dialogLine("coveredThenCancel", answered(DialogButton.positive, "Cover OK")))
+        try app.press("Covered OK", inAlert: "Covered")
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "dialog.coveredThenCancel", occurrence: 2), "the button of a cancelled dialog reports nothing")
+    }
+
+    func testACancelAfterTheAnswerAndOfAnUnknownIdDoNothing() throws {
+        let app = try launchApp(section: .dialog)
+        XCTAssertEqual(try app.run("dialog.cancelUnknown"), dialogLine("cancelUnknown", "cancel \(DialogError.none)"))
+        try app.start("dialog.alert")
+        try app.press("Got it", inAlert: "Alert")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.alert"), dialogLine("alert", answered(DialogButton.positive, "Got it")))
+        XCTAssertEqual(try app.run("dialog.cancelLast"), dialogLine("cancelLast", "cancel \(DialogError.none) hadId=true"))
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "dialog.alert", occurrence: 1))
+    }
+
+    // MARK: Two requests (P1-12), and a callback that goes on
+
+    func testTwoRequestsInOneTurnAreBothShown() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.twoInOneTurn")
+        try app.press("Second OK", inAlert: "Second")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.twoInOneTurn"), dialogLine("twoInOneTurn", answered(DialogButton.positive, "Second OK")))
+        try app.press("First OK", inAlert: "First")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.twoInOneTurn", occurrence: 1), dialogLine("twoInOneTurn", answered(DialogButton.positive, "First OK")))
+    }
+
+    /// The completion cancels its own request (nothing happens) and shows the next dialog.
+    func testACompletionMayShowTheNextDialog() throws {
+        let app = try launchApp(section: .dialog)
+        try app.start("dialog.chain")
+        try app.press("Chain OK", inAlert: "Chain")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.chain"), dialogLine("chain", answered(DialogButton.positive, "Chain OK") + " cancel=0 next=0"))
+        try app.press("Chained OK", inAlert: "Chained")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.chain", occurrence: 1), dialogLine("chain", answered(DialogButton.positive, "Chained OK")))
+    }
+
+    // MARK: The foreground (part 2, 12.1)
+
+    /// OP-18 to OP-23 called in the background complete with NOT_FOREGROUND, and nothing is shown after coming back.
+    func testEachKindCalledInTheBackgroundIsNotForeground() throws {
+        let app = try launchApp(section: .dialog)
+        for row in ["alert", "confirm", "destructive", "actionSheet", "textInput", "login"] {
+            XCTAssertEqual(try app.runInTheBackground("dialog.\(row)"), dialogLine(row, failed(DialogError.notForeground), state: "background"))
+            XCTAssertTrue(app.noDialogAppears(for: 1), row)
+        }
+    }
+
+    /// Part 1, chapter 6, on the model of the sample's D22: requested while Control Center is over the app, the
+    /// dialog is shown, and it is answered once Control Center is closed. The state in the line says it was
+    /// really called that way. Simulator only: Control Center is reached by a drag at fixed coordinates.
+    func testAnAlertRequestedUnderControlCenterIsShown() throws {
+        let app = try launchApp(section: .dialog)
+        try app.startAfterDelay("dialog.alert")
+        try app.openControlCenter()
+        _ = try app.alert("Alert", timeout: CApiUITestApp.timeout + CApiUITestApp.backgroundWait)
+        try app.closeControlCenter()
+        try app.press("Got it", inAlert: "Alert")
+        XCTAssertEqual(try app.waitForLine(ofRow: "dialog.alert"), dialogLine("alert", answered(DialogButton.positive, "Got it"), state: "foregroundInactive"))
+    }
+
     func testDetectingValuesTheUserDenies() throws {
         let app = try launchApp(section: .clipboard)
         UIPasteboard.general.string = "https://example.com/ntk"
         try app.start("clipboard.detectValues")
-        try answerPaste("Don’t Allow Paste")
+        try answerPaste(.deny)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.detectValues"), line("detectValues", "\(ClipboardError.detectionFailed) 0 json=NULL"))
     }
+}
+
+/// The numbers of `ntk_dialog_button` and `ntk_dialog_error` (`Dialog.h`, `scripts/c_abi_error_numbers.json`).
+private enum DialogButton {
+    static let positive = 0
+    static let negative = 1
+    static let destructive = 2
+    static let option = 3
+}
+
+private enum DialogError {
+    static let none = 0
+    static let canceled = 6
+    static let notForeground = 8
 }
 
 /// The numbers of `ntk_notification_error` (`Notification.h`, `scripts/c_abi_error_numbers.json`).
