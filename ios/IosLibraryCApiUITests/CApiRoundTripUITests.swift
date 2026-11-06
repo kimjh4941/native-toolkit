@@ -8,7 +8,7 @@ import XCTest
 
 /// The path of the C ABI's UI tests with the functions that exist so far: test -> app -> C function ->
 /// result line -> test, in the foreground and with the call made in the background (TB-2b), and the
-/// Clipboard functions on it (TB-3).
+/// Clipboard functions on it (TB-3), Dialog.h (TB-5) and the operations of Notification.h (TB-7).
 final class CApiRoundTripUITests: CApiUITestCase {
 
     func testTheLaunchInstallsTheDelegateThroughC() throws {
@@ -522,6 +522,81 @@ final class CApiRoundTripUITests: CApiUITestCase {
         try answerPaste(.deny)
         XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.detectValues"), line("detectValues", "\(ClipboardError.detectionFailed) 0 json=NULL"))
     }
+
+    // MARK: - Notification.h: the permission and the order of the operations (part 2, 12.2; TB-7)
+
+    // This class runs after CApiFreshInstallUITests, whose tests run each on a new install
+    // (`CAPI_UI_CLASSES` in `scripts/ios_ui_runner.py`), and keeps the install of the last of them: the
+    // permission is undetermined unless that test allowed it, and the test below asks for it only then. The
+    // permission dialog itself is in CApiFreshInstallUITests.
+
+    /// Reads the row until its line holds `value`: the system updates the lists after the completion.
+    private func waitForList(_ app: CApiUITestApp, _ row: String, _ value: String, timeout: TimeInterval = 10) throws -> String {
+        let deadline = Date().addingTimeInterval(timeout)
+        var last = ""
+        repeat {
+            last = try app.run("notification.\(row)")
+            if last == notificationLine(row, value) {
+                return last
+            }
+            Thread.sleep(forTimeInterval: 0.5)
+        } while Date() < deadline
+        return last
+    }
+
+    /// 12.2, "通知の順序と許可の後": with the permission the three adds stay, `update` replaces the request of its
+    /// identifier, and the request added in the completion of `cancel_all_scheduled_async` stays (M6). A missing
+    /// attachment fails in the completion (M4). The three removals take "" and remove nothing (6.3). Every other
+    /// operation completes once.
+    func testTheNotificationOperationsInOrderAfterThePermission() throws {
+        let app = try launchApp(section: .notification)
+        if try app.run("notification.status") == notificationLine("status", "0 0 status=\(NotificationStatus.notDetermined)") {
+            try app.start("notification.requestPermission")
+            try app.allowNotifications()
+            XCTAssertEqual(try app.waitForLine(ofRow: "notification.requestPermission"), notificationLine("requestPermission", "0 0 granted=1"))
+        }
+        let done = "0 0"
+        XCTAssertEqual(try app.run("notification.cancelAll"), notificationLine("cancelAll", done))
+        XCTAssertEqual(try app.run("notification.removeAll"), notificationLine("removeAll", done))
+        XCTAssertEqual(try app.run("notification.scheduleFirst"), notificationLine("scheduleFirst", done))
+        XCTAssertEqual(try waitForList(app, "scheduled", "0 0 count=1 [ntk.order|First|NULL|NULL||0]"),
+                       notificationLine("scheduled", "0 0 count=1 [ntk.order|First|NULL|NULL||0]"))
+        XCTAssertEqual(try app.run("notification.updateSecond"), notificationLine("updateSecond", done))
+        XCTAssertEqual(try waitForList(app, "scheduled", "0 0 count=1 [ntk.order|Second|NULL|NULL||0]"),
+                       notificationLine("scheduled", "0 0 count=1 [ntk.order|Second|NULL|NULL||0]"))
+        XCTAssertEqual(try app.run("notification.showLater"), notificationLine("showLater", done))
+        let both = "0 0 count=2 [ntk.later|Later|NULL|NULL||0][ntk.order|Second|NULL|NULL||0]"
+        XCTAssertEqual(try waitForList(app, "scheduled", both), notificationLine("scheduled", both))
+        XCTAssertEqual(try app.run("notification.cancelLater"), notificationLine("cancelLater", done))
+        XCTAssertEqual(try waitForList(app, "scheduled", "0 0 count=1 [ntk.order|Second|NULL|NULL||0]"),
+                       notificationLine("scheduled", "0 0 count=1 [ntk.order|Second|NULL|NULL||0]"))
+
+        try app.start("notification.cancelAllThenSchedule")
+        XCTAssertEqual(try app.waitForLine(ofRow: "notification.cancelAllThenSchedule"), notificationLine("cancelAllThenSchedule", "0 0 schedule=0"))
+        XCTAssertEqual(try app.waitForLine(ofRow: "notification.cancelAllThenSchedule", occurrence: 1), notificationLine("cancelAllThenSchedule", done))
+        XCTAssertEqual(try waitForList(app, "scheduled", "0 0 count=1 [ntk.after|After|NULL|NULL||0]"),
+                       notificationLine("scheduled", "0 0 count=1 [ntk.after|After|NULL|NULL||0]"))
+
+        XCTAssertEqual(try app.run("notification.showMissingAttachment"),
+                       notificationLine("showMissingAttachment", "\(NotificationError.attachmentLoadFailed) 0"))
+        XCTAssertEqual(try app.run("notification.showNow"), notificationLine("showNow", done))
+        XCTAssertEqual(try waitForList(app, "delivered", "0 0 count=1 [ntk.now|Now|NULL|Body||set]"),
+                       notificationLine("delivered", "0 0 count=1 [ntk.now|Now|NULL|Body||set]"))
+        XCTAssertEqual(try app.run("notification.removeNow"), notificationLine("removeNow", done))
+        XCTAssertEqual(try waitForList(app, "delivered", "0 0 count=0 "), notificationLine("delivered", "0 0 count=0 "))
+
+        XCTAssertEqual(try app.run("notification.removeEmpty"), notificationLine("removeEmpty", done))
+        XCTAssertEqual(try app.run("notification.cancelScheduledEmpty"), notificationLine("cancelScheduledEmpty", done))
+        XCTAssertEqual(try app.run("notification.removeCategoryEmpty"), notificationLine("removeCategoryEmpty", done))
+        XCTAssertEqual(try waitForList(app, "scheduled", "0 0 count=1 [ntk.after|After|NULL|NULL||0]"),
+                       notificationLine("scheduled", "0 0 count=1 [ntk.after|After|NULL|NULL||0]"), "\"\" removed nothing")
+        XCTAssertEqual(try app.run("notification.badge"), notificationLine("badge", done))
+        XCTAssertEqual(try app.run("notification.registerCategory"), notificationLine("registerCategory", done))
+        XCTAssertEqual(try app.run("notification.removeCategory"), notificationLine("removeCategory", done))
+        XCTAssertEqual(try app.run("notification.cancelAll"), notificationLine("cancelAll", done))
+        XCTAssertEqual(try app.run("notification.removeAll"), notificationLine("removeAll", done))
+        XCTAssertEqual(try waitForList(app, "scheduled", "0 0 count=0 "), notificationLine("scheduled", "0 0 count=0 "))
+    }
 }
 
 /// The numbers of `ntk_dialog_button` and `ntk_dialog_error` (`Dialog.h`, `scripts/c_abi_error_numbers.json`).
@@ -536,12 +611,6 @@ private enum DialogError {
     static let none = 0
     static let canceled = 6
     static let notForeground = 8
-}
-
-/// The numbers of `ntk_notification_error` (`Notification.h`, `scripts/c_abi_error_numbers.json`).
-private enum NotificationError {
-    static let none = 0
-    static let wrongThread = 16
 }
 
 /// The numbers of `ntk_clipboard_error` (`Clipboard.h`, `scripts/c_abi_error_numbers.json`).

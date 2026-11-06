@@ -281,6 +281,19 @@ struct CApiUITestApp {
         return true
     }
 
+    // MARK: Notifications
+
+    /// Presses the allow button of the notification permission alert, in the languages of the simulators here
+    /// (`SystemLabels.allow`). The label is not in the message.
+    func allowNotifications() throws {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let button = springboard.alerts.firstMatch.buttons.matching(NSPredicate(format: "label IN %@", ["Allow", "許可"])).firstMatch
+        guard button.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("no permission alert with the allow button")
+        }
+        button.tap()
+    }
+
     // MARK: Elements
 
     private func tap(_ identifier: String) throws {
@@ -300,4 +313,24 @@ struct CApiUITestApp {
         }
         return matches.element(boundBy: 0)
     }
+}
+
+/// A result line of a row of Notification.h called in `state`.
+func notificationLine(_ row: String, _ value: String, state: String = "foregroundActive") -> String {
+    "[notification.\(row)@\(state)] \(value)"
+}
+
+/// The numbers of `ntk_notification_error` (`Notification.h`, `scripts/c_abi_error_numbers.json`).
+enum NotificationError {
+    static let none = 0
+    static let notForeground = 8
+    static let permissionDenied = 10
+    static let wrongThread = 16
+    static let attachmentLoadFailed = 17
+}
+
+/// The numbers of `ntk_notification_authorization_status` (`Notification.h`).
+enum NotificationStatus {
+    static let notDetermined = 0
+    static let authorized = 2
 }

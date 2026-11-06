@@ -236,14 +236,15 @@ ntk_notification_error NTK_CALL ntk_notification_show_async(const ntk_notificati
                                                             const ntk_notification_trigger* trigger,
                                                             ntk_notification_done_fn callback, void* user_data,
                                                             ntk_release_fn release);
-/** Replaces the pending request of identifier, or adds it. The id of content is not used. trigger may be
-    NULL: deliver now. With NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED the previous request is already gone. */
+/** Replaces the pending request of identifier, or adds it. identifier must not be empty. The id of content is
+    not used. trigger may be NULL: deliver now. With NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED the previous
+    request is already gone. */
 ntk_notification_error NTK_CALL ntk_notification_update_async(const char* identifier,
                                                               const ntk_notification_content* content,
                                                               const ntk_notification_trigger* trigger,
                                                               ntk_notification_done_fn callback, void* user_data,
                                                               ntk_release_fn release);
-/** The id of content is not used. trigger must not be NULL. */
+/** identifier must not be empty. The id of content is not used. trigger must not be NULL. */
 ntk_notification_error NTK_CALL ntk_notification_schedule_async(const char* identifier,
                                                                 const ntk_notification_content* content,
                                                                 const ntk_notification_trigger* trigger,
@@ -251,12 +252,14 @@ ntk_notification_error NTK_CALL ntk_notification_schedule_async(const char* iden
                                                                 ntk_release_fn release);
 
 /* The order against other calls is decided by these completions: add new requests after the callback. */
+/** "" removes nothing and completes with NONE. */
 ntk_notification_error NTK_CALL ntk_notification_remove_async(const char* identifier,
                                                               ntk_notification_done_fn callback, void* user_data,
                                                               ntk_release_fn release);
 /** Also removes what the host app delivered itself. */
 ntk_notification_error NTK_CALL ntk_notification_remove_all_async(ntk_notification_done_fn callback, void* user_data,
                                                                   ntk_release_fn release);
+/** "" removes nothing and completes with NONE. */
 ntk_notification_error NTK_CALL ntk_notification_cancel_scheduled_async(const char* identifier,
                                                                         ntk_notification_done_fn callback,
                                                                         void* user_data, ntk_release_fn release);
@@ -289,6 +292,7 @@ ntk_notification_error NTK_CALL ntk_notification_set_badge_count_async(int32_t c
 ntk_notification_error NTK_CALL ntk_notification_register_category_async(const ntk_notification_category* category,
                                                                          ntk_notification_done_fn callback,
                                                                          void* user_data, ntk_release_fn release);
+/** "" removes nothing and completes with NONE. */
 ntk_notification_error NTK_CALL ntk_notification_remove_category_async(const char* identifier,
                                                                        ntk_notification_done_fn callback,
                                                                        void* user_data, ntk_release_fn release);
@@ -372,10 +376,16 @@ void        NTK_CALL ntk_notification_settings_request_free(ntk_notification_set
 size_t      NTK_CALL ntk_notification_list_count(const ntk_notification_list* list);
 const char* NTK_CALL ntk_notification_list_identifier_at(const ntk_notification_list* list, size_t index,
                                                          size_t* out_size);
+/** May be empty. NULL for a NULL list, a handle of another type or an index out of range; then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_title_at(const ntk_notification_list* list, size_t index, size_t* out_size);
+/** NULL when the notification has none, and for a NULL list, a handle of another type or an index out of range;
+    then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_subtitle_at(const ntk_notification_list* list, size_t index,
                                                        size_t* out_size);
+/** NULL when the notification has none, and for a NULL list, a handle of another type or an index out of range;
+    then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_body_at(const ntk_notification_list* list, size_t index, size_t* out_size);
+/** May be empty. NULL for a NULL list, a handle of another type or an index out of range; then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_category_at(const ntk_notification_list* list, size_t index,
                                                        size_t* out_size);
 /** Unix milliseconds of a delivered notification; 0 for a scheduled one or an index out of range. */

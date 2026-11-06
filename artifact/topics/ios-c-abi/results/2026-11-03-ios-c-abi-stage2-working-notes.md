@@ -1590,3 +1590,196 @@ Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。コマ�
 | `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
 
 テストは 393 → 397 件（`NotificationBuilderTests` 18、`NotificationJsonTests` 15、`NotificationMappingTests` 13）。時間: 00:57〜01:31（約 34 分）。
+
+## 10. TB-7
+
+第 2 部 13 章の TB-7（通知の操作 OP-26〜OP-41 と、権限の事前の確かめ）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。持ち主の不在の間に行った。持ち主の指示は「これから私が話しかけるまでは自動で作業を進める。判断が必要な場合、推奨案で、進める。明日朝9時までには実機は使わないでいい？」。
+
+**10.1〜10.8 は直す前の記録。今の形は 10.9。**
+
+### 10.1 足したもの
+
+**TB-7 の C の関数は 24 個**: 操作が 16（OP-26〜OP-41: `show_async`、`update_async`、`schedule_async`、`remove_async`、`remove_all_async`、`cancel_scheduled_async`、`cancel_all_scheduled_async`、`get_scheduled_async`、`get_delivered_async`、`request_permission_async`、`get_authorization_status_async`、`has_permission_async`、`open_settings_async`、`set_badge_count_async`、`register_category_async`、`remove_category_async`）と、OP-33・OP-34 の完了のハンドル `ntk_notification_list` の読み取りが 8（`_count`、`_identifier_at`、`_title_at`、`_subtitle_at`、`_body_at`、`_category_at`、`_date_millis_at`、`_free`）。
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 入口 | `IosLibraryCApi/IosLibraryCApi/Notification/NotificationEntry.swift` | 24 関数を足した。各 1 行 |
+| 受け口 | `Notification/NotificationReceiver.swift` | 16 の操作。`accept`（`NULL` の callback と入口の検査を拒み、`release` を呼び出しスレッドで）、`add`（P2-10 の事前の確かめと `async throws` の呼び出し。main の `Task`）、`finishDone`・`finishList`・`finishPermission`・`finishSettings`。`show`・`update`・`schedule` の 3 つの呼び出しと状態の読み取りは `Adding`（`@MainActor static var adding`）を通す: テストが差し替える口（12.1「`update_async` が `update` を呼ばないことは、受け口の中の口を差し替えて確かめる」） |
+| 写し | `Notification/NotificationMapping.swift` | `scheduledTrigger`（`NULL` を拒む）、`requiredIdentifier` を内部に開いた、`permissionOptions`（P2-27）、`allowsAdding`（P2-10）、`status(of:)`、`error(for:)`（11.2）、`millis(of:)`、一覧の写し |
+| ハンドル | `Notification/NotificationHandles.swift`（新規） | `NotificationListEntry`（`Sendable`）、`NotificationListHandle`、8 つの読み取り |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` から 24 個を外した。`entries` は 116 of 134（残り 18: TB-8 の通知のイベントと起動の 14、Share の 4） |
+| テスト | `IosLibraryCApiTests/NotificationOperationTests.swift`（新規。27） | 397 → 424 件 |
+| UI テスト | `IosLibraryCApiUITestApp/Rows/NotificationRows.swift`、`IosLibraryCApiUITests/CApiRoundTripUITests.swift` | 行 19 個と、テスト 2 件（`CApiRoundTripUITests` の中。`CApiSection.notification` は前からある） |
+| 設計書 | 第 2 部 5.1 の表、第 1 部 5.1 の木 | `NotificationHandles.swift`（新規）の行だけ |
+
+公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイル、`scripts/ios_ui_runner.py`、README、メモリは変えていない。
+
+**TB-7 のテストは、通知の追加・削除・一覧・バッジ・権限・設定に触れない**（実機の ASan で流れるため。TB-1 からある `NotificationInstallTests` は delegate を読み書きする。10.9 で直した書き方）。呼ぶのは、入口で拒まれるもの（登録の前に戻る）と、`Adding` を差し替えた `show`・`update`・`schedule` だけ。ほかの完了は、テストが作った登録に受け口の `finish*` を直接当てた（TB-5 の `DialogReceiver.finish` と同じ）。ログには題・本文・userInfo・添付の名前・識別子の値を出さない（有無と件数、エラーの番号だけ。`NotificationError` は中身に添付の識別子と OS の文を持つので、`String(describing:)` で出さない）。
+
+### 10.2 12.1 と 12.2 の行
+
+| 行 | どこで | 結果 |
+|---|---|---|
+| 12.1 写しの表（11.2 の全 case） | `testEveryNotificationError` | 11 case と `NotificationError` でない失敗（`UNKNOWN`）を手で書いて比べた |
+| 12.1 権限の事前の確かめ（6 つの状態の全行） | `testTheStatuses`、`testThePreCheckOfEveryStatus` | `authorized`・`provisional`・`ephemeral` だけが通る。C の関数から入り、差し替えた口で 3 つの操作 × 6 状態を通した。拒むときはライブラリを呼ばない |
+| 12.1 `update_async` が `update` を呼ばない | `testAnUpdateWithoutPermissionDoesNotCallTheLibrary` | 差し替えた口で確かめた |
+| 12.1 OP-26〜OP-28 が `PERMISSION_DENIED` で完了 | UI テスト `testAskingForTheNotificationPermissionFromC` | **実際の未決の状態で**、3 つとも 10 で完了し、配信済みにも予約にも何も無い（M2 の「即時の分だけ配信済みに載る」が起きない） |
+| 12.1 権限の要求の選択肢（P2-27） | `testThePermissionOptions`、`testUnknownPermissionBitsAreRejected` | 0 は `[.alert, .sound, .badge]`、各ビットが同じ `rawValue`、`PROVIDES_APP_SETTINGS` が渡る。`1 << 6`、`1 << 7`、`1 << 8`、`1 << 31` は戻り値で `INVALID_PARAMETER` |
+| 12.1 前面 | UI テスト（同上） | 未決で後ろから呼んだ OP-35 と、後ろからの OP-38 が `NOT_FOREGROUND`（8）。決まった後の OP-35 は後ろからでも `granted=1` |
+| 12.1 trigger の C のテスト・AP-19 の範囲外の trigger | `testATriggerOutOfRangeIsTheReturnValue` | `interval` の 0、-1、繰り返しで 59.9 と 30、NaN、±∞、`kind` 3、`calendar_fields` の 0 と知らないビット、緯度 90.5、経度 -180.5、半径 0 を `show`・`update`・`schedule` に渡し、どれも戻り値で 1、`release` が戻る前に 1 回、完了なし。事前の確かめにも届かない。**プロセスは落ちない** |
+| 12.1 category の C のテスト | `testACategoryIsCheckedAtTheEntry` | 識別子の `NULL` と空文字、知らない category とアクションのビット、`reserved1`、`NULL` の構造体が戻り値で 1 |
+| 12.1 入口の検査 | `testANullCallbackIsRejectedByEveryOperation` ほか | 16 の操作の `NULL` の callback（P2-28）、別スレッドの拒否は呼んだスレッドで `release`（main を待たない）、内容の `NULL` と別の型のハンドル、`update`・`schedule` の識別子（`NULL`、空文字、5 つの不正な UTF-8）、削除の識別子（`NULL`、不正な UTF-8）、`schedule` の `NULL` の trigger、構造体の大きさ・`reserved1`・知らない後ろの部分（`NOT_SUPPORTED`）、負のバッジ、`ntk_last_system_code` が 0 |
+| 12.1 出力のハンドル | `testAListThroughC`、`testTheReadersOfNothing`、`testAnEmptyListIsNotNull` | 範囲外の添字・`NULL`・別の型は `NULL`（`out_size` 0）か 0。`_free(NULL)` は何もしない |
+| 12.1 ビルダーの写しを呼んだ時点で取る | `testTheCopyOfTheContentIsTakenAtTheCall` | 戻った後にビルダーを変えて解放しても、操作に渡る値は元のまま |
+| 12.2 Dialog と権限（権限のダイアログ） | UI テスト（同上） | C から求めた権限のダイアログで「許可」を押し、完了が `0 0 granted=1`。状態は 2（`AUTHORIZED`）、`has_permission` は 1 |
+| 12.2 通知の順序と許可の後 | UI テスト `testTheNotificationOperationsInOrderAfterThePermission` | 許可の後に `schedule_async`・`update_async`・`show_async`（trigger つき）が pending に残る。`update_async` が同じ識別子の題を置き換える（1 件のまま）。`cancel_all_scheduled_async` の完了の中の `schedule_async` が残る。即時の `show_async` が配信済みに載り（時刻あり）、`remove_async` で消える。無い添付のファイルは完了で 17。バッジ、category の登録と削除、`cancel_all`、`remove_all` が `0 0` で完了 |
+
+**権限の状態の作り方**（最初の形。10.9 で権限のテストを `CApiFreshInstallUITests` に移し、名前の順には頼らなくなった）: `CApiRoundTripUITests` は `CApiFreshInstallUITests` の後に流れ、その前にランナーがアプリを消している（`CAPI_UI_CLASSES`）。このクラスで権限を求めるのは上の 2 件だけなので、未決から始まる。XCTest はクラスの中を名前の順に流すので、未決を要るテスト（`testAsking…`）が先に、許可を要るテスト（`testThe…`）が後になる。後のテストは、未決なら自分で求めて許可する。権限を戻すのはランナーの削除とシミュレーターの再起動だけで、シミュレーターの設定は変えていない。
+
+### 10.3 コマンドと結果（最後のソース）
+
+02:28〜03:11 に下の順で続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で Simulator.app が開いていないことを、各実行の前（スクリプトの中）と途中で確かめた（ずっと閉じていた）。ソースのハッシュは流す前と後で同じ: `6abab5b93cea`（メインのセッションと同じ数え方。`git status --short -- ios scripts` のファイル）、`c3790b2f81d5`（6.8 と同じ範囲）。**流した後に変えたのはこの記録だけ。**
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 424/424 |
+| 同（iPhone 16 / 18.3） | 424/424 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 424/424。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 424/424。報告 0 件 |
+| `--capi-ui --udid`（iPhone 17 Pro / 26.2。Xcode 26.6 の `DEVELOPER_DIR`） | 49/49。rc 0（新しい 2 件を含む。`20261107-023451-iPhone_17_Pro-26.2`） |
+| 同（iPhone 16 / 18.3） | 49/49。rc 0（`20261107-025127-iPhone_16-18.3.1`） |
+| framework の Release（2 つ）`--library` | `OK symbols`（116 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 116 of 134、18 not implemented yet |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+
+開発の途中に、1 つ前のソース（無い添付の行を足す前）で `--capi-ui`（iPhone 17 Pro）を 1 回流し、49/49 だった。iPad は流していない。
+
+### 10.4 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3）
+
+30 個。写しは最後のソースと同じ（流す前に写し、流した後に `diff -rq` で差なし。ハッシュも同じ）。`NotificationOperationTests` と `NotificationMappingTests` だけを流した。依頼の順では 4 番目だが、最後の検証の前に流した（変異でテストを直すことになれば最後の検証をやり直すことになるため。TB-6 と同じ）。**30 個とも落ちた。**
+
+| 区分 | 変異 |
+|---|---|
+| 受け口（11） | 事前の確かめをしない、`update` が `show` を呼ぶ、`update` と `show` が trigger を捨てる（2）、`schedule` が内容の `id` を使う、投げられた失敗が `NONE`、事前の確かめの拒否が `UNKNOWN`、負のバッジを受ける、`granted` が常に 1、権限の失敗が `NONE`、設定の成功が `UNKNOWN` |
+| 写し（16） | `schedule` が `NULL` の trigger を受ける、空の識別子を受ける、`PROVIDES_APP_SETTINGS` が無い、0 が選択肢なし、`provisional` のビットを受ける、`ephemeral` を通さない、`unknown` を通す、`provisional` と `ephemeral` の取り違え、`.permissionDenied` が 10、`NotificationError` でない失敗が 18、添付の失敗が 18、設定の失敗が 8、バッジの失敗が 18、delegate の未設定が 4、ミリ秒の四捨五入、範囲外の時刻が最大値 |
+| ハンドル（3） | 予約に時刻がある、副題の無いものが空文字、範囲外の添字の時刻が -1 |
+
+**クラッシュ**: 「負のバッジを受ける」と「空の識別子を受ける」の 2 つで、テストのホストが落ちた（変異で受け付けられた要求の完了が、テストの終わった後に解放済みの記録の物に書いた。`ClipboardRecorder.record` の `EXC_BAD_ACCESS`）。どちらも先に失敗が記録されている。変異が作ったレポートは名前を記録してから消した: `IosLibraryCApiTestHost-2026-11-07-021107.ips`、`-021458.ips`、`-021459.ips`。同じ時間帯にシミュレーターの `AccessibilityControlsExtension` のレポート（`-021723.ips`、`-022027.ips`、最後の検証の間に `-023054.ips`）も出たが、自分のプロセスではないので消していない。**この 2 つの変異は、受け付けた要求がシミュレーターの通知の中心に届いた**（バッジの -1 と空の識別子の `update`。使い捨ての写しの上だけ）。
+
+### 10.5 設計書の読み方（5.1 の名前のほか、設計書は変えていない）
+
+| # | 所 | 読み方 | 設計書に戻すか |
+|---|---|---|---|
+| 1 | 12.1「`IosLibraryCApiTests` で OP-26〜OP-28 が `PERMISSION_DENIED` で完了する」 | TB-7 のテストは通知の追加に届かない（依頼）。**差し替えた口で全状態を通し、実際の `PERMISSION_DENIED` は UI テストの未決の状態で確かめた** | **戻すことを勧める**（12.1 の行を「差し替えた口で全状態。実際の未決は 12.2 の UI テスト」に） |
+| 2 | 6.3「削除の関数の識別子は `NULL` だけを拒み、空文字は `NONE`」（category の段落） | `remove_category_async` に加え、`remove_async` と `cancel_scheduled_async` にも当てた | **戻すことを勧める**（3 つの削除の関数に当たると明記） |
+| 3 | 6 章冒頭「C の入力の形の規則」の「空の識別子」 | `update_async` と `schedule_async` の `identifier` は `NULL` と空文字を拒む（`_create` の `id` と同じ。M5） | 戻すことを勧める（6.3 の表に一言） |
+| 4 | 内容のハンドル | `NULL` と別の型のハンドルは `INVALID_PARAMETER` | 不要 |
+| 5 | 一覧の `_subtitle_at`、`_body_at` | 値が無い（ライブラリが空を `nil` にする）ときは `NULL`（`out_size` 0）。題と category は空文字 | **戻すことを勧める**（付録 A の宣言に「無ければ NULL」。公開ヘッダーのコメントなので設計書の決定が要る） |
+| 6 | `_date_millis_at` | 切り捨てのミリ秒。`Int64` に入らない時刻は 0 | 不要 |
+| 7 | 知らない `NotificationAuthorizationStatus` の case | 状態は `UNKNOWN`（5）、事前の確かめは通さない。知らない `NotificationError` は `UNKNOWN`（4） | 不要 |
+| 8 | 取り消し | 通知の操作は取り消せない。登録の「取り消しの完了」は走らないが、走れば `UNKNOWN` を返す形にした（6 と 7 は欠番。P2-10） | 不要 |
+| 9 | OP-35、OP-38 の表示元 | P2-1 のとおり `.foreground` | 不要 |
+| 10 | 12.1 の「前面」の OP-38 | 後ろからの `NOT_FOREGROUND` だけを確かめた。前面で設定の App が開くことは確かめていない（アプリが前面から離れるため。TB-8 の MS-07 の方法で） | 不要（10.7 に記録） |
+| 11 | UI テストの置き場所 | 依頼のとおり `CApiRoundTripUITests` の中。権限の順は名前の順と前のクラスの削除に頼る（10.2） | 戻すかは判断を仰ぐ（`CApiFreshInstallUITests` に置けば名前の順に頼らない） |
+
+### 10.6 実装の途中で分かったこと
+
+- 入口が受け付けた要求の完了は、テストの記録の物より後まで来うる（変異のクラッシュ）。本当のテストは、受け付けるものはすべて終わりまで待つ（`finished`）
+- 未決のまま `show_async` を拒むと、配信済みにも何も載らない（M2 の「即時の分だけ載る」が C の経路では起きない）ことを UI テストで確かめた
+- 前面でのバナーは、行のボタンを押すのを妨げなかった（`show_async` の即時の後に続けて押せた。2 つのシミュレーターで）
+
+### 10.7 確かめられていないこと
+
+- **実機では何も流していない**（`generic/platform=iOS` は組むだけ）
+- 前面での `open_settings_async`（設定の App が開くこと）。`AUTHORIZATION_FAILED`、`SET_BADGE_COUNT_FAILED`、`ADD_REQUEST_FAILED`、`SETTINGS_NOT_OPENED` を C から起こすこと（写しの関数のテストだけ。12.1 のとおり）
+- 権限の拒否（「許可しない」）を押したときの完了（1 回のインストールで 1 つしか選べず、順序のテストが許可を要るため。値は写しの関数で `NONE` と 0）
+- 位置の trigger を実際に足すこと（位置の権限と Info.plist）
+- category が本当に登録されたこと（C から読む口が無い。完了の値だけ）
+- `ephemeral`・`provisional` の実際の状態（差し替えた口だけ）
+- iPad では流していない
+
+### 10.8 時間
+
+01:33〜03:13（約 1 時間 40 分）。うち変異が約 24 分（02:04〜02:28）、最後の検証が約 43 分（02:28〜03:11。`--capi-ui` が 1 回約 16 分）。目標の 04:00 の中。
+
+### 10.9 レビューの直しと決定
+
+レビュー（Claude と Codex。どちらも A なし）をメインのセッションから受けた。**下の決定は、メインのセッションが持ち主の「判断が必要な場合、推奨案で、進める。」という指示の下で推奨案で決めたもの。持ち主はまだ読んでいない。**
+
+| 指摘 | 直したこと |
+|---|---|
+| 記録の物の寿命（Codex B1、Claude C-6） | `NotificationOperationTests` は、C に渡す記録の物をテストの物の配列（`recorders`）に入れて、テストの物が生きている間（XCTest は流し終わるまで持つ）持ち続ける。`completion(of:)` の代わりに同じ形の `completed` を置き、そこでも持ち続ける。`finished` が時間切れになった後に来た完了も、生きている物に書く。`ClipboardTestSupport.swift` は変えていない |
+| 失敗で閉じる既定（Claude B-2、Codex B2） | `setUpWithError` で `Adding` を「呼ばれたら `XCTFail`。状態の読み取りは `.denied` を返す」形にし、`tearDown` で `.manager` に戻す。受け付けを確かめるテストは今どおり `fake()` を入れる。**決定: 16 の操作すべてに口を足す案は採らない。** 削除・バッジ・category・権限・一覧・設定には口が無いので、**入口の検査が退行したときだけ、それらは本当の通知の中心に届きうる。届く先はテストのホスト自身の通知とバッジ**（ホストは権限を求めないので、追加は事前の確かめで止まる） |
+| 削除の空文字（Claude B-1） | `removalIdentifier` を内部に開き、`""` が通り `NULL` が拒まれることを単体テストにした（`testAnEmptyRemovalIdentifierIsAccepted`）。UI テストの行 `removeEmpty`、`cancelScheduledEmpty`、`removeCategoryEmpty` で、3 つが `0 0` で完了し、予約が消えないことを確かめた |
+| ログの識別子（Codex B3、Claude C-1） | C ABI の側の `NotificationContentBuilder.swift` の 4 か所（`makeContent`、`init`、`update`、`create`）で `id` の値を出していたのを、長さにした。受け口と写しは前から有無だけ。**決定: `IosLibrary` の側のログは TB-7 の範囲外として変えない。ライブラリは識別子を `.public` で出す。別の課題として持ち主に判断を仰ぐ** |
+| 記録の言い過ぎ（Claude C-1） | 10.1 を「TB-7 のテストは通知の追加・削除・一覧・バッジ・権限・設定に触れない。TB-1 からある `NotificationInstallTests` は delegate を読み書きする」に直した |
+| 未決のときの配信済み（Claude C-2） | 未決で 3 つを拒んだ後、2 秒待ってから配信済みを読む |
+| 完了の写し（Claude C-3） | `finishStatus` と `finishHasPermission` を受け口の関数に出し、6 つの状態と真偽を単体テストで通した（`testTheStatusCompletions`、`testTheHasPermissionCompletions`） |
+| 判定の集合（Claude C-4） | テストのターゲットは前から `@testable import IosLibrary` できる（設定は変えていない）。`NotificationPresentationGate.grants` と 6 つの状態を 1 行ずつ比べた（`testThePreCheckIsTheLibrarysSet`） |
+| 型の置き場所（Claude C-5） | `NotificationListEntry` を `NotificationMapping.swift` に移した（Dialog の `DialogResultValue` と同じ置き方）。**`error(for: NotificationDelegateInstallResult)` は TB-2 のコードなので動かしていない**（受け口に残る） |
+| UI テストの置き場所（10.5 の 11、Claude B-3） | `testAskingForTheNotificationPermissionFromC` を `CApiFreshInstallUITests` に移した。**ランナーと表は変えていない**（このクラスは前から `CAPI_UI_CLASSES` で「1 件ずつ、前にアプリを消す」クラスで、テストは列挙で拾われる）。名前の順に頼らなくなった。順序のテストは `CApiRoundTripUITests` に残した。このクラスは最後の fresh のテストのインストールを引き継ぐので、そのテストが許可していなければ未決で、そのときだけ自分で求めて許可する。2 つのクラスで使う `notificationLine`、`NotificationError`、`NotificationStatus`、`allowNotifications()` は `CApiUITestApp.swift` に移した |
+| C-7（`["Allow", "許可"]` の重複） | **直さず記録だけ**（決定）。`SystemLabels.allow`（信頼するファイル）と、`CApiUITestApp.allowNotifications()` の 2 か所にある。`PasteAnswer` の貼り付けの名前と同じ扱い |
+
+**設計書に戻したもの**（10.5 の 1・2・3・5。決定）:
+- 第 2 部 12.1「権限の事前の確かめ」の行: 差し替えた口で 6 状態 × OP-26〜OP-28、`update_async` が `update` を呼ばないこと。実際の未決の `PERMISSION_DENIED` と許可の後は 12.2 の UI テスト。同じ表の「ビルダー」の行の括弧書きも合わせた
+- 第 2 部 6.3: `update_async` と `schedule_async` の行に「`identifier` の `NULL` と空文字は `INVALID_PARAMETER`」。削除の行に「`remove_async`、`cancel_scheduled_async`、`remove_category_async` は識別子の `NULL` だけを拒み、空文字を受けて何も消さずに `NONE`（6 章冒頭の規則の例外）」。category の段落の同じ文から表を指した
+- 付録 A と公開ヘッダー `Notification.h` のコメントだけ（宣言は変えていない）: `_subtitle_at`・`_body_at` は「NULL when the notification has none.」、`_title_at`・`_category_at` は「May be empty; NULL only for an index out of range.」（依頼の「never NULL」は範囲外の添字で `NULL` を返す動作と合わないので、範囲外のときだけ `NULL` と書いた）。照合は通る
+
+10.5 の 1・2・3・5 は上で戻した。11 は上の移動で片づいた。
+
+**変異（直しで足したテストだけ。6 個。使い捨ての写しは最後のソースと同じ。流した後に `diff -rq` で差なし。iPhone 16 / 18.3）**: **6 個とも落ちた。クラッシュは 0 件**（前の回の 2 件のクラッシュは、記録の物を持ち続けるようにして無くなった）。
+
+| 変異 | 落としたテスト |
+|---|---|
+| 空の識別子を受ける（閉じた既定あり） | `testTheIdentifiersOfUpdateAndSchedule`、`testACategoryIsCheckedAtTheEntry`。受け付けた `update("")` は閉じた既定に届き、「a call reached the pre-check without a fake」で落ちた（状態は `.denied` を返し、通知の中心には届かない） |
+| 同じ変異で、閉じた既定を `setUp` から外す | 同じテストで落ちた。**この場合は事前の確かめが本当の状態（ホストの `notDetermined`）を読んだ**（ログの `PERMISSION_DENIED: status notDetermined` が 1 件増えた）。追加は止まったが、閉じた既定が無いと中心まで届くことを示す |
+| 削除が空文字を拒む | `testAnEmptyRemovalIdentifierIsAccepted` |
+| 状態の完了が常に `UNKNOWN` | `testTheStatusCompletions` |
+| 権限があるかが反転 | `testTheHasPermissionCompletions` |
+| 事前の確かめが `unknown` を通す | `testThePreCheckIsTheLibrarysSet`、`testThePreCheckOfEveryStatus`、`testTheStatuses` |
+
+`AccessibilityControlsExtension` のレポート（`-032817.ips`）が変異の間にまた出た。自分のプロセスではないので消していない。
+
+**直した後の最後のソースの結果**（03:31〜04:14。順に続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で各実行の前と途中に Simulator.app が閉じていることを確かめた）。ソースのハッシュ: **直す前（10.3）は `6abab5b93cea` / `c3790b2f81d5`、直した後は流す前と後で同じ `a25d4a5a5a57`（メインのセッションと同じ数え方）/ `8ea959cc7c07`（6.8 と同じ範囲）**。**流した後に変えたのはこの記録だけ。** 上の 6 個の変異はこの検証の前に、同じソースの写しで流した。
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 428/428 |
+| 同（iPhone 16 / 18.3） | 428/428 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 428/428。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 428/428。報告 0 件 |
+| `--capi-ui --udid`（iPhone 17 Pro / 26.2。Xcode 26.6） | 49/49。rc 0。`CApiFreshInstallUITests` が 2 件（`testAskingForTheNotificationPermissionFromC` と `testTheRunnerDeletedTheApp`。それぞれ前にアプリを消して 1 件ずつ）、`CApiRoundTripUITests` が 47 件（`20261107-033644-iPhone_17_Pro-26.2`） |
+| 同（iPhone 16 / 18.3） | 49/49。rc 0。同じ分け方（`20261107-035404-iPhone_16-18.3.1`） |
+| framework の Release（2 つ）`--library` | `OK symbols`（116 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2。`entries` は 116 of 134 |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+
+テストは 424 → 428 件（`NotificationOperationTests` 31）。この間にシミュレーターの `AccessibilityControlsExtension-2026-11-07-033308.ips` と `maild-2026-11-07-035448.ips` が出た。自分のプロセスではないので消していない。時間: 03:21〜04:16（約 55 分）。
+
+**読み直しの後の直し（コメントと文書だけ）**: 2 本の読み直し（どちらも A なし。Codex は B もなし）を受けた。**下の決定も、メインのセッションが持ち主の指示の下で推奨案で決めたもの。持ち主はまだ読んでいない。**
+
+| 指摘 | 直したこと |
+|---|---|
+| 公開ヘッダーと付録 A の読み取り（Claude B-1、Codex C1） | `_title_at`・`_category_at` は「May be empty. NULL for a NULL list, a handle of another type or an index out of range; then out_size is 0.」、`_subtitle_at`・`_body_at` は「NULL when the notification has none, and for a NULL list, …; then out_size is 0.」（`Clipboard.h` の読み取りの書き方に揃えた） |
+| ヘッダーの識別子の規則（C-1） | `update_async`・`schedule_async` に「identifier must not be empty.」、3 つの削除の関数に「"" removes nothing and completes with NONE.」。付録 A も同じ文 |
+| 6.3 の例外の理由（C-2） | 「消すものが無いだけで、黙って失うものが無いため」を足した |
+| 12.2 の行（C-3） | 「Dialog と権限」に「未決のうちは OP-26〜OP-28 が `PERMISSION_DENIED` で完了し、何も載らない」、「通知の順序と許可の後」に「空文字の削除 3 つが `NONE` で完了し、予約が残る」 |
+| 10.1〜10.8（C-4） | 10 章の頭に「10.1〜10.8 は直す前の記録。今の形は 10.9」を足した（数字は書き換えていない） |
+| 持ち主の指示の引用（C-5） | 10 章の頭と 10.9 の「」を原文にした |
+| 未決の前提（C-6） | `CApiRoundTripUITests` のコメントと上の表を「最後の fresh のテストが許可していなければ未決。そのときだけ求める」にした。コードは変えていない |
+| `NotificationMapping` の説明（C-7） | 第 2 部 5.1 の表と第 1 部の木を今の中身（trigger と category、権限の選択肢、状態と失敗の写し、一覧の値と `NotificationListEntry`、入口の検査）にした。**決定: `removalIdentifier` は受け口に残し、Mapping に移さない**（記録だけ） |
+
+**確かめ**（04:22〜04:28）: `.swift` と `.h` の差分は `Notification.h` と `CApiRoundTripUITests.swift` のコメントだけ（コメントを除いたコードは直す前の写しと同じ。比べて確かめた）。そのため、シミュレーターのテストは流し直していない（依頼のとおり）。ソースのハッシュは、直す前が `a25d4a5a5a57` / `8ea959cc7c07`、直した後が流す前も後も `cec257ba99d5` / `cb915f7116fc`。
+
+| 実行 | 結果 |
+|---|---|
+| framework の Release（2 つ）`--library` | `OK symbols`（116 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 27、FAIL 0、SKIP 2 |
+| `test_check_c_abi_contract_ios.py` | Ran 278 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+

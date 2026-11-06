@@ -27,7 +27,7 @@ struct NotificationContentValue: Sendable {
 
     /// The library's content, with its defaults for what was not set (part 2, 6.3).
     func makeContent() -> NotificationContent {
-        CApiLog.notification.debug("[makeContent] id: \(id, privacy: .public)")
+        CApiLog.notification.debug("[makeContent] id length: \(id.utf8.count, privacy: .public)")
         return NotificationContent(id: id, title: title, subtitle: subtitle, body: body, badge: badge, sound: sound,
                                    categoryIdentifier: categoryIdentifier, interruptionLevel: interruptionLevel,
                                    threadIdentifier: threadIdentifier, targetContentIdentifier: targetContentIdentifier,
@@ -42,17 +42,17 @@ final class NotificationContentBuilder {
     private(set) var value: NotificationContentValue
 
     init(_ value: NotificationContentValue) {
-        CApiLog.notification.debug("[NotificationContentBuilder.init] id: \(value.id, privacy: .public), title length: \(value.title.utf8.count, privacy: .public)")
+        CApiLog.notification.debug("[NotificationContentBuilder.init] id length: \(value.id.utf8.count, privacy: .public), title length: \(value.title.utf8.count, privacy: .public)")
         self.value = value
     }
 
     func update(_ change: (inout NotificationContentValue) -> Void) {
-        CApiLog.notification.debug("[update] id: \(self.value.id, privacy: .public), change: provided")
+        CApiLog.notification.debug("[update] id length: \(self.value.id.utf8.count, privacy: .public), change: provided")
         change(&value)
     }
 }
 
-/// The builder's functions (part 2, 6.3). The title, subtitle, body and userInfo may be secrets: only whether
+/// The builder's functions (part 2, 6.3). The id, title, subtitle, body and userInfo may be secrets: only whether
 /// they are there and their length are logged.
 enum NotificationContentBuilders {
     private static let none = ntk_notification_error(NTK_NOTIFICATION_ERROR_NONE)
@@ -63,7 +63,7 @@ enum NotificationContentBuilders {
         return Handle.borrow(handle, as: NotificationContentBuilder.self)
     }
 
-    /// The copy an operation takes (TB-7), or nil for NULL and a handle of another type.
+    /// The copy an operation takes on the calling thread, or nil for NULL and a handle of another type.
     static func snapshot(_ handle: OpaquePointer?) -> NotificationContentValue? {
         CApiLog.notification.debug("[snapshot] content: \(handle == nil ? "nil" : "provided", privacy: .public)")
         return builder(handle)?.value
@@ -86,7 +86,7 @@ enum NotificationContentBuilders {
             }
             let text = try CApiString.required(title)
             outContent.pointee = Handle.retained(NotificationContentBuilder(NotificationContentValue(id: identifier, title: text)))
-            CApiLog.notification.debug("[create] id: \(identifier, privacy: .public), title length: \(text.utf8.count, privacy: .public)")
+            CApiLog.notification.debug("[create] id length: \(identifier.utf8.count, privacy: .public), title length: \(text.utf8.count, privacy: .public)")
             return none
         } catch {
             return error.rawValue

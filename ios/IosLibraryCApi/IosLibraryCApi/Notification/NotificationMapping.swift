@@ -5,10 +5,23 @@
 
 import Foundation
 import IosLibrary
+import UserNotifications
 
-/// The pure conversions of the structs of Notification.h (part 2, 6.3): the trigger and the category, on the
-/// calling thread and before anything is registered. The operations that take them come with TB-7. Every struct
-/// is read with `reserved:` naming all its reserved fields but `reserved0`.
+/// One notification of `get_scheduled_async` or `get_delivered_async`: no userInfo and no trigger (D-5).
+struct NotificationListEntry: Sendable, Equatable {
+    let identifier: String
+    let title: String
+    let subtitle: String?
+    let body: String?
+    let categoryIdentifier: String
+    /// 0 for a scheduled notification.
+    let dateMillis: Int64
+}
+
+/// The pure conversions of Notification.h (part 2, 6.3, 11.2): the trigger and the category, on the calling
+/// thread and before anything is registered; the options of a permission request; and the library's results
+/// (the errors, the status, the pre-check of P2-10). Every struct is read with `reserved:` naming all its
+/// reserved fields but `reserved0`.
 enum NotificationMapping {
     private static func rejected<Value>(_ reason: StaticString) throws(EntryError) -> Value {
         CApiLog.notification.error("[rejected] \(reason, privacy: .public)")
@@ -17,11 +30,18 @@ enum NotificationMapping {
 
     // MARK: - Trigger
 
-    /// NULL is nil: "now" for `show` and `update`, rejected by `schedule` (TB-7).
+    /// NULL is nil: "now" for `show` and `update`; `scheduledTrigger` rejects it.
     static func trigger(_ pointer: UnsafePointer<ntk_notification_trigger>?) throws(EntryError) -> NotificationTrigger? {
         CApiLog.notification.debug("[trigger] pointer: \(pointer == nil ? "nil" : "provided", privacy: .public)")
         guard let raw = try StructReader.readIfPresent(pointer, reserved: [\.reserved1]) else { return nil }
         return try trigger(from: raw)
+    }
+
+    /// The trigger of `schedule`, which must be there (part 2, 6.3).
+    static func scheduledTrigger(_ pointer: UnsafePointer<ntk_notification_trigger>?) throws(EntryError) -> NotificationTrigger {
+        CApiLog.notification.debug("[scheduledTrigger] pointer: \(pointer == nil ? "nil" : "provided", privacy: .public)")
+        guard let trigger = try trigger(pointer) else { return try rejected("the trigger of schedule is NULL") }
+        return trigger
     }
 
     /// `kind` decides which fields are read; the others are not.
@@ -100,10 +120,123 @@ enum NotificationMapping {
                                     options: NotificationCategoryOptions(rawValue: UInt(raw.options)))
     }
 
-    private static func requiredIdentifier(_ text: UnsafePointer<CChar>?) throws(EntryError) -> String {
+    /// NULL and "" are rejected: an empty identifier leaves nothing (M5; the rules of the C input, part 2, chapter 6).
+    static func requiredIdentifier(_ text: UnsafePointer<CChar>?) throws(EntryError) -> String {
         CApiLog.notification.debug("[requiredIdentifier] text: \(text == nil ? "nil" : "provided", privacy: .public)")
         let value = try CApiString.required(text)
         guard !value.isEmpty else { return try rejected("an identifier is empty") }
         return value
+    }
+
+    // MARK: - Permission
+
+    /// The bits of `NTK_NOTIFICATION_AUTH_*`, which are the `rawValue`s of `UNAuthorizationOptions` (P2-27).
+    static let permissionBits: UInt32 = UInt32(NTK_NOTIFICATION_AUTH_BADGE) | UInt32(NTK_NOTIFICATION_AUTH_SOUND)
+        | UInt32(NTK_NOTIFICATION_AUTH_ALERT) | UInt32(NTK_NOTIFICATION_AUTH_CAR_PLAY) | UInt32(NTK_NOTIFICATION_AUTH_CRITICAL_ALERT)
+        | UInt32(NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS)
+
+    /// 0 is the library's default, `[.alert, .sound, .badge]`; an unknown bit, `provisional` among them, is rejected (P2-27).
+    static func permissionOptions(_ bits: UInt32) throws(EntryError) -> UNAuthorizationOptions {
+        CApiLog.notification.debug("[permissionOptions] bits: \(bits, privacy: .public)")
+        guard bits & ~permissionBits == 0 else { return try rejected("an unknown permission bit") }
+        guard bits != 0 else { return [.alert, .sound, .badge] }
+        return UNAuthorizationOptions(rawValue: UInt(bits))
+    }
+
+    /// The pre-check of `show`, `update` and `schedule` (P2-10): the statuses that `add` delivers for. `unknown`
+    /// and a status this version does not know are not among them.
+    static func allowsAdding(_ status: NotificationAuthorizationStatus) -> Bool {
+        CApiLog.notification.debug("[allowsAdding] status: \(status.rawValue, privacy: .public)")
+        switch status {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        case .notDetermined, .denied, .unknown:
+            return false
+        @unknown default:
+            CApiLog.notification.error("[allowsAdding] a status this version does not know")
+            return false
+        }
+    }
+
+    /// A status this version does not know is `UNKNOWN`, which the header declares for what cannot be said.
+    static func status(of status: NotificationAuthorizationStatus) -> ntk_notification_authorization_status {
+        CApiLog.notification.debug("[status] status: \(status.rawValue, privacy: .public)")
+        switch status {
+        case .notDetermined: return ntk_notification_authorization_status(NTK_NOTIFICATION_STATUS_NOT_DETERMINED)
+        case .denied: return ntk_notification_authorization_status(NTK_NOTIFICATION_STATUS_DENIED)
+        case .authorized: return ntk_notification_authorization_status(NTK_NOTIFICATION_STATUS_AUTHORIZED)
+        case .provisional: return ntk_notification_authorization_status(NTK_NOTIFICATION_STATUS_PROVISIONAL)
+        case .ephemeral: return ntk_notification_authorization_status(NTK_NOTIFICATION_STATUS_EPHEMERAL)
+        case .unknown: return ntk_notification_authorization_status(NTK_NOTIFICATION_STATUS_UNKNOWN)
+        @unknown default:
+            CApiLog.notification.error("[status] a status this version does not know")
+            return ntk_notification_authorization_status(NTK_NOTIFICATION_STATUS_UNKNOWN)
+        }
+    }
+
+    // MARK: - Errors
+
+    /// 11.2. A failure that is not a `NotificationError` is `UNKNOWN` (P2-14). Only the value is logged: the
+    /// payloads hold an attachment's identifier and the system's text.
+    static func error(for failure: any Error) -> ntk_notification_error {
+        guard let failure = failure as? NotificationError else {
+            CApiLog.notification.error("[error] not a NotificationError: UNKNOWN")
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_UNKNOWN)
+        }
+        let error = error(for: failure)
+        CApiLog.notification.debug("[error] error: \(error, privacy: .public)")
+        return error
+    }
+
+    static func error(for failure: NotificationError) -> ntk_notification_error {
+        switch failure {
+        case .reservedUserInfoKey, .invalidUserInfo, .invalidTrigger:
+            // The entry checks all three: from a completion they are not expected.
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_INVALID_PARAMETER)
+        case .delegateNotInstalled:
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_NOT_INITIALIZED)
+        case .permissionDenied:
+            // Only the deprecated helper throws it; the C ABI's own denial is the pre-check (P2-10).
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_UNKNOWN)
+        case .notForeground:
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_NOT_FOREGROUND)
+        case .openSettingsFailed:
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_SETTINGS_NOT_OPENED)
+        case .attachmentLoadFailed:
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED)
+        case .addRequestFailed:
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED)
+        case .setBadgeCountFailed:
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_SET_BADGE_COUNT_FAILED)
+        case .authorizationFailed:
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_AUTHORIZATION_FAILED)
+        @unknown default:
+            CApiLog.notification.error("[error] a case this version does not know")
+            return ntk_notification_error(NTK_NOTIFICATION_ERROR_UNKNOWN)
+        }
+    }
+
+    // MARK: - Lists
+
+    /// Unix milliseconds, rounded down; 0 for a date that `Int64` cannot hold.
+    static func millis(of date: Date) -> Int64 {
+        let value = (date.timeIntervalSince1970 * 1000).rounded(.down)
+        return Int64(exactly: value) ?? 0
+    }
+
+    static func entries(of notifications: [ScheduledNotification]) -> [NotificationListEntry] {
+        CApiLog.notification.debug("[entries] scheduled count: \(notifications.count, privacy: .public)")
+        return notifications.map {
+            NotificationListEntry(identifier: $0.identifier, title: $0.title, subtitle: $0.subtitle, body: $0.body,
+                                  categoryIdentifier: $0.categoryIdentifier, dateMillis: 0)
+        }
+    }
+
+    static func entries(of notifications: [ActiveNotification]) -> [NotificationListEntry] {
+        CApiLog.notification.debug("[entries] delivered count: \(notifications.count, privacy: .public)")
+        return notifications.map {
+            NotificationListEntry(identifier: $0.identifier, title: $0.title, subtitle: $0.subtitle, body: $0.body,
+                                  categoryIdentifier: $0.categoryIdentifier, dateMillis: millis(of: $0.date))
+        }
     }
 }

@@ -9,7 +9,7 @@ import XCTest
 @testable import IosLibraryCApi
 
 /// The trigger and the category of part 2, 6.3, compared with Swift values directly (12.1, "trigger" and
-/// "0 で埋めた構造体"). The operations that take them come with TB-7: no notification is added here.
+/// "0 で埋めた構造体"). The operations that take them are in NotificationOperationTests: no notification is added here.
 final class NotificationMappingTests: ClipboardTestCase {
     private func assertRejected<Value>(_ expected: EntryError = .invalidParameter, _ name: String = "", file: StaticString = #filePath, line: UInt = #line,
                                        _ body: () throws(EntryError) -> Value) {

@@ -182,7 +182,8 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | `Notification/NotificationReceiver.swift` | `ntk_notification_install`、権限の事前の確かめ（P2-10）、操作、問い合わせ、イベントの登録と保持（AP-21） | `IosNotificationManager` |
 | `Notification/NotificationContentBuilder.swift` | ビルダーの状態（Swift の値で持つ）と setter の検査 | - |
 | `Notification/NotificationJson.swift` | userInfo の JSON の入出力（P2-7） | - |
-| `Notification/NotificationMapping.swift` | trigger と category の構造体の純粋な写しと入口の検査 | - |
+| `Notification/NotificationMapping.swift` | 純粋な写しと入口の検査: trigger と category の構造体、権限の要求の選択肢、権限の状態と失敗の写し（事前の確かめの判定を含む）、一覧の値（`NotificationListEntry`） | - |
+| `Notification/NotificationHandles.swift` | 一覧のハンドルと読み取り | - |
 | `Share/ShareReceiver.swift` | 要求を写して `share(content:presenter:completion:)` を呼ぶ | `IosShareManager` |
 | `Common/Registry.swift` | 第 1 部 5.1、5.7 の登録と状態機械。要求の ID の表（ID → `Registration`。`Mutex`）。登録は `RequestBox` を持つ | - |
 | `Common/CApiBytes.swift` | 第 1 部 5.9 の入力のバイト列 | - |
@@ -367,15 +368,15 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 | `CALENDAR` | `calendar_fields`（`NTK_NOTIFICATION_CALENDAR_*` の組）、`year`〜`second`、`repeats` | `calendar_fields` は 0 でなく（M5。何も残らない）、知らないビットが無い。ビットの立っていない項目は読まない（0 時と未設定を区別するため） |
 | `LOCATION` | `location_identifier`、`latitude`、`longitude`、`radius`、`not_notify_on_entry`、`notify_on_exit` | 識別子の `NULL` と空文字、有限、緯度 ±90、経度 ±180、半径が 0 より大きい、入ると出るの両方が知らせない組（決して来ない見込み。測っていない）。既定は入るときに知らせ、出るときは知らせない（E-9）。**位置の権限と Info.plist の説明が要る**（ヘッダーに書く） |
 
-**category**（`ntk_notification_category`）: `identifier`（必須）、`actions` と `action_count`、`text_input_actions` と `text_input_action_count`、`options`。`NULL` と空文字の識別子、知らないビットは `INVALID_PARAMETER`（今のブリッジは黙って捨てた。P2-15）。ビットの値は `NotificationActionOptions` と `NotificationCategoryOptions` の `rawValue` と同じ。`title`、`button_title`、`placeholder` は `NULL` を拒み、空文字は通す。`action_count` と `text_input_action_count` の 0 は許す（Swift の既定）。削除の関数の識別子は `NULL` だけを拒み、空文字は `NONE`（何も消えない）。
+**category**（`ntk_notification_category`）: `identifier`（必須）、`actions` と `action_count`、`text_input_actions` と `text_input_action_count`、`options`。`NULL` と空文字の識別子、知らないビットは `INVALID_PARAMETER`（今のブリッジは黙って捨てた。P2-15）。ビットの値は `NotificationActionOptions` と `NotificationCategoryOptions` の `rawValue` と同じ。`title`、`button_title`、`placeholder` は `NULL` を拒み、空文字は通す。`action_count` と `text_input_action_count` の 0 は許す（Swift の既定）。削除の関数の識別子は `NULL` だけを拒み、空文字は `NONE`（何も消えない。下の表の削除の行と同じ）。
 
 | 操作 | 形 | 中身 |
 |---|---|---|
 | `install` | 同期。main だけ | 第 1 部 1.4 |
 | `show_async(content, trigger, ...)` | 非同期 | 要求の識別子は `content.id`。`trigger` があれば発火のときに届く。権限が無ければ `PERMISSION_DENIED`（P2-10） |
-| `update_async(identifier, content, trigger, ...)` | 非同期 | pending を消してから足す。無い識別子でも足す。`content.id` は使わない。`trigger` の `NULL` は即時（今のまま）。**`ADD_REQUEST_FAILED` のとき、前の要求はもう無い**。権限が無ければ `PERMISSION_DENIED` で、前の要求は消さない |
-| `schedule_async(identifier, content, trigger, ...)` | 非同期 | `trigger` は必須。`content.id` は使わない。権限が無ければ `PERMISSION_DENIED` |
-| `remove_async`、`remove_all_async`、`cancel_scheduled_async`、`cancel_all_scheduled_async` | 非同期（P2-6）。失敗の値は無い | `remove` は配信済みを、`cancel_scheduled` は予約を消す。**`remove_all` と `cancel_all_scheduled` はホストが自分で出した通知まで消す**（Swift の設計書 8.9）。**続けて通知を足すなら完了の後に**（順序は完了で繋ぐ） |
+| `update_async(identifier, content, trigger, ...)` | 非同期 | pending を消してから足す。無い識別子でも足す。`identifier` の `NULL` と空文字は `INVALID_PARAMETER`。`content.id` は使わない。`trigger` の `NULL` は即時（今のまま）。**`ADD_REQUEST_FAILED` のとき、前の要求はもう無い**。権限が無ければ `PERMISSION_DENIED` で、前の要求は消さない |
+| `schedule_async(identifier, content, trigger, ...)` | 非同期 | `trigger` は必須。`identifier` の `NULL` と空文字は `INVALID_PARAMETER`。`content.id` は使わない。権限が無ければ `PERMISSION_DENIED` |
+| `remove_async`、`remove_all_async`、`cancel_scheduled_async`、`cancel_all_scheduled_async` | 非同期（P2-6）。失敗の値は無い | `remove` は配信済みを、`cancel_scheduled` は予約を消す。**`remove_all` と `cancel_all_scheduled` はホストが自分で出した通知まで消す**（Swift の設計書 8.9）。**続けて通知を足すなら完了の後に**（順序は完了で繋ぐ）。**`remove_async`、`cancel_scheduled_async`、`remove_category_async` の 3 つの削除の関数は、識別子の `NULL` だけを拒み、空文字を受けて何も消さずに `NONE` で完了する**（6 章冒頭の「空の識別子」の規則の例外。消すものが無いだけで、黙って失うものが無いため） |
 | `get_scheduled_async`、`get_delivered_async` | 非同期。`ntk_notification_list` | 識別子・題・副題・本文・category。`get_delivered_async` は時刻も。**userInfo と trigger は返さない**（今のブリッジと同じ。D-5） |
 | `request_permission_async(options, ...)` | 非同期。値は 0 か 1 | P2-27。拒否は `NONE` で 0。`authorized`、`provisional`、`ephemeral` は 1。未決で前面でなければ `NOT_FOREGROUND`。取り消せない |
 | `get_authorization_status_async` | 非同期。値は `ntk_notification_authorization_status` | 失敗しない |
@@ -849,9 +850,9 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | userInfo の JSON（P2-7） | オブジェクトでない、不正な JSON、`1e400`、入れ子の `null`、最上位の予約のキーが setter の戻り値で `INVALID_PARAMETER`。入れ子の同じキーは通る。受け口の予約のキーの写しがライブラリと同じ（`reservedUserInfoKey` が出ないこと）。出力の変換表の全行（`date`・`data`・有限でない `double` が落ちずに決まった形になる。ブリッジの S-11 の場面）。`detect_values` の JSON のゴールデン |
 | trigger（P2-26） | **`IosLibrary` のテスト**: `isValid` の式の各分岐と M8 で測った値、`invalidTrigger`。**C のテスト**: 範囲外の `interval`、`repeats` で 60 未満、`calendar_fields` の 0 と知らないビット、緯度と経度と半径が `INVALID_PARAMETER` で、**プロセスが落ちない** |
 | 0 で埋めた構造体 | `struct_size` のほかを 0 で埋めた各構造体（選択肢は `NULL` も）を、**構造体 → Swift の値の写しの関数で直接比べる**（E-9 の反転した名前を含む。`localOnly` や trigger は OS から読めないので完了では確かめられない）。Dialog の文言（P2-22） |
-| ビルダー | 既定値、`NULL` の setter、範囲外の値、空の `id`、`file://` でない添付。**渡した後に変更・解放しても内容が変わらないことは、ビルダー → `NotificationContent` の写しの関数で確かめる**（`IosLibraryCApiTests` のホストには権限が無く、操作は `PERMISSION_DENIED` で止まる） |
+| ビルダー | 既定値、`NULL` の setter、範囲外の値、空の `id`、`file://` でない添付。**渡した後に変更・解放しても内容が変わらないことは、ビルダー → `NotificationContent` の写しの関数で確かめる**（`IosLibraryCApiTests` は通知の追加に届かない。操作に渡る値は、受け口の中の口を差し替えて確かめる） |
 | Clipboard | 9 種の `kind` のラウンドトリップ、`MULTI_REPRESENTATION` の重複の拒否、`read_data` の `NULL`、`get_snapshot` の `has_matching`、`.file` のファイルが `_free` で消えない、監視の開始の `UNAVAILABLE`、登録しただけでは始まらない、解除しても監視は続く（P2-17）（貼り付けの拒否の 4 つの値は 12.2） |
-| 権限の事前の確かめ（P2-10） | **判定を受け口の純粋な関数にして 6 つの状態の全行を確かめる**（`ephemeral` と `unknown` を含む。`IosLibrary` の internal の判定と同じ集合）。`IosLibraryCApiTests` で OP-26〜OP-28 が `PERMISSION_DENIED` で完了する。**`update_async` が `update` を呼ばないことは、受け口の中の口を差し替えて確かめる**（権限が無いと pending は常に 0 で、前の要求を作れない。M2）。許可の後に通ることは 12.2 |
+| 権限の事前の確かめ（P2-10） | **判定を受け口の純粋な関数にして 6 つの状態の全行を確かめる**（`ephemeral` と `unknown` を含む。`IosLibrary` の internal の判定と同じ集合）。`IosLibraryCApiTests` は、受け口の中の口を差し替えて、6 つの状態 × OP-26〜OP-28 を C の関数から通す（許されない状態は `PERMISSION_DENIED` で完了し、ライブラリを呼ばない）。**`update_async` が `update` を呼ばないことも、この差し替えた口で確かめる**（権限が無いと pending は常に 0 で、前の要求を作れない。M2）。**実際の未決の状態での `PERMISSION_DENIED` と、許可の後に通ることは 12.2 の UI テスト** |
 | 列挙の読み取り（P2-29） | `NULL` のハンドルに -1 を返す（`_option_index`、`_matching_at` を含む） |
 | 権限の要求の選択肢（P2-27） | 知らないビット（`1u << 6`、`1u << 7`、`1u << 8`）が `INVALID_PARAMETER`。ビットの組 → `UNAuthorizationOptions` の写しの関数で、0 が既定の選択肢、`PROVIDES_APP_SETTINGS` が渡る |
 | 順序（P2-6） | 12.2 の「通知の順序と許可の後」の行で確かめる |
@@ -865,8 +866,8 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | 観点 | 中身 |
 |---|---|
 | 通知のイベント | C から出した通知をバナーで押し、操作のイベントが C の受け手に届く（XCUITest。シミュレーター）。`BODY_TAP`、`ACTION`、`TEXT_INPUT`、`DISMISS` を 1 件ずつ。コールドスタートのタップと `_is_launch`。`openSettingsFor`（PR-02）は 1b の MS-07 の方法で |
-| 通知の順序と許可の後 | 許可の後に `show_async`・`update_async`・`schedule_async` が通り pending に残る。`update_async` が前の要求を置き換える。`cancel_all_scheduled_async` の完了の中の `schedule_async` が残る（M6 と同じ確かめ） |
-| Dialog と権限 | C から出した Dialog と権限のダイアログを XCUITest で押し、完了の値を確かめる。アクションシートの外側のタップ（6.2） |
+| 通知の順序と許可の後 | 許可の後に `show_async`・`update_async`・`schedule_async` が通り pending に残る。`update_async` が前の要求を置き換える。`cancel_all_scheduled_async` の完了の中の `schedule_async` が残る（M6 と同じ確かめ）。空文字の識別子の削除 3 つ（`remove_async`、`cancel_scheduled_async`、`remove_category_async`）が `NONE` で完了し、予約が残る |
+| Dialog と権限 | C から出した Dialog と権限のダイアログを XCUITest で押し、完了の値を確かめる。アクションシートの外側のタップ（6.2）。**権限が未決のうちは、OP-26〜OP-28 が `PERMISSION_DENIED` で完了し、配信済みにも予約にも何も載らない** |
 | Share | C から開いたシートで「コピー」を選び、`completed` と `activity_type` を確かめる |
 | Clipboard | C から書いて C で読む。監視のイベント。**ランナーが書いた内容を `load_item_async`、`read_async`、`read_data_async`、`detect_values_async` で読み、貼り付けのダイアログで許可と拒否を押す**（CB1・CB2 の C 版。M3 の値。取り消した読み込みでダイアログが出ないこと）。読み込みの時間切れ（`CLIPBOARD_TIMED_OUT`）は `init(timeouts:)` が C から使えないので、15 秒待つ 1 件だけにする |
 | 実機（iPhone XS / 18.7.2） | **第 1 部 P1-20 のとおり、`IosLibraryCApiTests` の ASan と smoke を 2b の DoD の区切りで流す**（毎回利用者の許可を得る。`agent-rules/device-testing.md`）。12.2 の上の行は**シミュレーターだけ**（springboard、権限のダイアログの操作になり、集中モードで新しいアプリの通知も出ないため）。**実機で流す `IosLibraryCApiTests` の Clipboard の行は名前付きのペーストボードに限る**（general を書き換えると私物のクリップボードを上書きする。`device-testing.md`）。実機で確かめたいものは利用者に別に尋ねる |
@@ -1789,14 +1790,15 @@ ntk_notification_error NTK_CALL ntk_notification_show_async(const ntk_notificati
                                                             const ntk_notification_trigger* trigger,
                                                             ntk_notification_done_fn callback, void* user_data,
                                                             ntk_release_fn release);
-/** Replaces the pending request of identifier, or adds it. The id of content is not used. trigger may be
-    NULL: deliver now. With NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED the previous request is already gone. */
+/** Replaces the pending request of identifier, or adds it. identifier must not be empty. The id of content is
+    not used. trigger may be NULL: deliver now. With NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED the previous
+    request is already gone. */
 ntk_notification_error NTK_CALL ntk_notification_update_async(const char* identifier,
                                                               const ntk_notification_content* content,
                                                               const ntk_notification_trigger* trigger,
                                                               ntk_notification_done_fn callback, void* user_data,
                                                               ntk_release_fn release);
-/** The id of content is not used. trigger must not be NULL. */
+/** identifier must not be empty. The id of content is not used. trigger must not be NULL. */
 ntk_notification_error NTK_CALL ntk_notification_schedule_async(const char* identifier,
                                                                 const ntk_notification_content* content,
                                                                 const ntk_notification_trigger* trigger,
@@ -1804,12 +1806,14 @@ ntk_notification_error NTK_CALL ntk_notification_schedule_async(const char* iden
                                                                 ntk_release_fn release);
 
 /* The order against other calls is decided by these completions: add new requests after the callback. */
+/** "" removes nothing and completes with NONE. */
 ntk_notification_error NTK_CALL ntk_notification_remove_async(const char* identifier,
                                                               ntk_notification_done_fn callback, void* user_data,
                                                               ntk_release_fn release);
 /** Also removes what the host app delivered itself. */
 ntk_notification_error NTK_CALL ntk_notification_remove_all_async(ntk_notification_done_fn callback, void* user_data,
                                                                   ntk_release_fn release);
+/** "" removes nothing and completes with NONE. */
 ntk_notification_error NTK_CALL ntk_notification_cancel_scheduled_async(const char* identifier,
                                                                         ntk_notification_done_fn callback,
                                                                         void* user_data, ntk_release_fn release);
@@ -1842,6 +1846,7 @@ ntk_notification_error NTK_CALL ntk_notification_set_badge_count_async(int32_t c
 ntk_notification_error NTK_CALL ntk_notification_register_category_async(const ntk_notification_category* category,
                                                                          ntk_notification_done_fn callback,
                                                                          void* user_data, ntk_release_fn release);
+/** "" removes nothing and completes with NONE. */
 ntk_notification_error NTK_CALL ntk_notification_remove_category_async(const char* identifier,
                                                                        ntk_notification_done_fn callback,
                                                                        void* user_data, ntk_release_fn release);
@@ -1925,10 +1930,16 @@ void        NTK_CALL ntk_notification_settings_request_free(ntk_notification_set
 size_t      NTK_CALL ntk_notification_list_count(const ntk_notification_list* list);
 const char* NTK_CALL ntk_notification_list_identifier_at(const ntk_notification_list* list, size_t index,
                                                          size_t* out_size);
+/** May be empty. NULL for a NULL list, a handle of another type or an index out of range; then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_title_at(const ntk_notification_list* list, size_t index, size_t* out_size);
+/** NULL when the notification has none, and for a NULL list, a handle of another type or an index out of range;
+    then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_subtitle_at(const ntk_notification_list* list, size_t index,
                                                        size_t* out_size);
+/** NULL when the notification has none, and for a NULL list, a handle of another type or an index out of range;
+    then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_body_at(const ntk_notification_list* list, size_t index, size_t* out_size);
+/** May be empty. NULL for a NULL list, a handle of another type or an index out of range; then out_size is 0. */
 const char* NTK_CALL ntk_notification_list_category_at(const ntk_notification_list* list, size_t index,
                                                        size_t* out_size);
 /** Unix milliseconds of a delivered notification; 0 for a scheduled one or an index out of range. */

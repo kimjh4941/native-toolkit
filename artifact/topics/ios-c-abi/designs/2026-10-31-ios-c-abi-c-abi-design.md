@@ -332,7 +332,8 @@ ios/
       Notification/
         NotificationContentBuilder.swift    # 内容のビルダー（第 2 部 5.1）
         NotificationJson.swift              # userInfo の JSON の入出力（第 2 部 P2-7）
-        NotificationMapping.swift           # trigger と category の純粋な写しと入口の検査（第 2 部 5.1）
+        NotificationMapping.swift           # 純粋な写しと入口の検査: trigger、category、権限の選択肢、状態と失敗、一覧の値（第 2 部 5.1）
+        NotificationHandles.swift           # 一覧のハンドルと読み取り（第 2 部 5.1）
   IosLibraryCApiTests/                      # C ABI のテスト（XCTest から C の関数を呼ぶ。6 章）
   IosLibraryCApiTestHost/                   # そのホスト。通知の権限を一度も求めない（第 2 部 12.1）
   IosLibraryCApiUITestApp/                  # C を呼ぶ UI テスト用のアプリ。シミュレーターだけ（第 2 部 TB-2b）
