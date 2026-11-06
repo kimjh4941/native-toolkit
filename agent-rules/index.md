@@ -10,7 +10,7 @@ All implementation rules are managed in this folder.
 - iOS coding rules (Swift + Objective-C): ./coding-rules/ios.md
 - macOS coding rules: ./coding-rules/mac.md
 - Windows coding rules: ./coding-rules/windows.md
-- Tests on the user's personal iPhone (approval, preparation, privacy): ./device-testing.md
+- Tests on the user's personal iPhone (approval, preparation, privacy), and the Mac clipboard during simulator runs: ./device-testing.md
 
 ## Workflows
 

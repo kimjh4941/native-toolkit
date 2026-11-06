@@ -50,4 +50,15 @@ C ABI の UI テスト（`ios/IosLibraryCApiUITests`。`scripts/test_ios.sh --ca
 - リポジトリは公開している。端末を特定する値（ハードウェアの UDID、devicectl の識別子）は、ファイル・コミット・ログの写しに書かない。伏せ字か環境変数にする
 - 実機の `.xcresult` には私物の画面のスクリーンショットが入る。結果を書き写したら消す。添付を書き出さない（`scripts/test_ios.sh` は実機の結果を一時フォルダーごと消す）
 - 実機では、画面の階層のダンプを出さず、失敗の文に springboard のラベルを書かない。唯一の例外は、利用者が承認した N5 の手がかり（サンプル名・期待した題・本文を `<app>` / `<title>` / `<body>` に置き換え、ほかは文字数だけ。UI テストの設計書の U-8 (3)）
-- シミュレーターはこの決まりの対象外
+- シミュレーターはこの決まりの対象外。ただし次の節の「Mac のクリップボード」は守る
+
+## Mac のクリップボード（シミュレーター）
+
+この Mac では Simulator.app の「Automatically Sync Pasteboard」がオン（`defaults read com.apple.iphonesimulator PasteboardAutomaticSync` が 1）。Simulator.app が開いていると、シミュレーターの general pasteboard への書き込みが利用者の Mac のクリップボードに届き、Mac 側のコピーがシミュレーターに入ることがある。どちらも測っていない（測ると Mac のクリップボードに触れる）。Simulator.app が閉じていれば届かないことも測っていない。
+
+次を 2026-11-06 に利用者が決めた。
+
+- シミュレーターでテストやアプリを動かす間（UI テスト、`IosLibraryCApiTests` などの単体テスト、手で動かすときを含む）、agent は Simulator.app を開かない。`scripts/test_ios.sh` は `xcodebuild` と `simctl` だけを使い、Simulator.app を開かない
+- 流す前に `pgrep -x Simulator` で、Simulator.app が開いていないことを確かめる。開いていたら agent は閉じず、利用者に知らせて閉じてもらうまで流さない
+- UI テストの設計書の U-19 の computer use で Simulator.app を開くときは、その都度利用者の許可を得る
+- この設定を agent から変えない。Mac のクリップボードを読み書きしない（Mac の `pbcopy`、`pbpaste` と、Mac とシミュレーターを同期する `xcrun simctl pbsync` を使わない）。`xcrun simctl pbcopy`、`pbpaste` はシミュレーターの中だけを読み書きするので使ってよい
