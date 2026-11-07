@@ -2991,7 +2991,7 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 #### 回 2（クリップボード）の 4 項目の下書き
 
 1. **流すテストの一覧と区分**（推奨: 2 回の `--feature` に分ける。回 1 で流した 72 件を流し直さず、クリップボードを使う時間を短くするため。代わりに `--device-allow systemui,sharesheet,clipboard --baseline` の全件 104 件を 1 回で流すと、クリップボードを含めた実機の基準を取り直せるが、約 1.5 時間かかる）:
-   - 回 2a: `--feature Clipboard --device-allow clipboard,systemui`（列挙は iPhone 17 / 26.2、Xcode 26.3）で 32 件、5 回の呼び出し。回 1 に無いもの 27 件: `ClipboardUITests` の 22 件（U1〜U9、U10a、U10b、U11〜U21）、`ClipboardPasteUITests` の CB1（持ち主の決定 2: 1 回だけ流し直す）・CB5・CB6、`ClipboardPasteDenyUITests` の CB2（G2-2: 拒んだときの振る舞い。持ち主の決定 3: 自動で押せなければ利用者が「ペーストを許可しない」を押す）、`IdentifierInventoryUITests` の I1d。共通の 5 件（Navigation 2、I1a〜I1c）も流れる。**CB3・CB4 は `simulator only` で除かれる**（人の確認 HC11・HC12 に回す）
+   - 回 2a: `--feature Clipboard --device-allow clipboard,systemui`（列挙は iPhone 17 / 26.2、Xcode 26.3）で 32 件、5 回の呼び出し。回 1 に無いもの 27 件: `ClipboardUITests` の 22 件（U1〜U9、U10a、U10b、U11〜U21）、`ClipboardPasteUITests` の CB1（持ち主の決定 2: 1 回だけ流し直す）・CB5・CB6、`ClipboardPasteDenyUITests` の CB2（非同期の `loadItem` を拒んだときの振る舞い。ランナーが「ペーストを許可しない」を自動で押す。**G2-2 の測りではない**: 17.6 の訂正）、`IdentifierInventoryUITests` の I1d。共通の 5 件（Navigation 2、I1a〜I1c）も流れる。**CB3・CB4 は `simulator only` で除かれる**（人の確認 HC11・HC12 に回す）
    - 回 2b: `--feature Share --device-allow sharesheet,clipboard` で 21 件、3 回の呼び出し。回 1 に無いもの 5 件: S1、S4、S6、S10、S17（共有のシートの「コピー」）。S8・S9（`files`）、S18・S19（simulator only）は除かれる
 2. **端末に起きること**: テストのランナー（別のアプリ）とサンプルが**一般のクリップボードを書き換える・読む**（私物のコピーは上書きされる。残したいものは先に移してもらう）。貼り付けの許可のダイアログに、ランナーが「ペーストを許可」・「ペーストを許可しない」を押す（CB1・CB2）。共有のシートを開いて「コピー」を押す（送る操作はしない）。ホームへの移動（U10a）。`--feature` の回は基準を保存しない。U10b は基準と同じ意図した skip がありうる
 3. **事前にしてもらうこと**: 回 1 の準備に加え、**Handoff を切る**（Mac のコピーが入ると `changeCount` の確かめで止まる）。クリップボードに残したいものを移す。パスコードの入力が出たら入力する
@@ -3029,3 +3029,50 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 
 メインのセッションが 3 回の 4 項目の下書き（流すテストと区分、端末に起きること、利用者の操作、時間）を示し、利用者が「実機の確認内容はそれでいいので、そのまま進めていい」と答えた。**今夜の 3 回だけ**、回ごとの返事を待たずに流す。守り: 各回の `--dry-run` の一覧が下書きと同じ範囲（許す区分、入れるアプリ、件数の見込み）であることをメインのセッションが確かめ、違えば流さずに止めて知らせる。流す前に毎回、許可の ID と始める時刻を利用者に知らせる。回 2a は利用者が「Handoff を切った」と知らせるまで流さない（U-10）。次の機会からは、また回ごとに許可を得る。
 利用者が「Handoff を切ってある」と知らせた（22:09）。回 2a は回 0 の直しのコミットの後に流す（流す間に test_ios.sh が書き換わるのと、シミュレーターの検証と重なるのを避けるため）。
+
+### 17.6 回 2a の結果（2026-11-07 22:12〜23:27）
+
+- 許可 ID `5da7cb9d980461758718d6b0f92f81ee`。`--feature Clipboard --device-allow clipboard,systemui`、列挙は iPhone 17 / 26.2、Xcode 26.3。iPhone XS / iOS 18.7.2。5 回の呼び出し、32 件
+- 結果: 通過 30、skip 1（U10b。回 1 の基準と同じ意図した skip）、失敗 1（CB1）。基準との比べ合わせは `changed=0, added=27, removed=0`（`--feature` の回なので基準は保存しない）
+- **CB1 は流し直しでも失敗した**: `ClipboardPasteUITests.swift:46` の `the paste alert did not appear`（11-03 と同じ）。持ち主の決定 2 のとおり、**原因不明として記録する**。同じ回の CB2 では貼り付けの許可のダイアログが出て、ランナーが「ペーストを許可しない」を押せた
+- CB5・CB6・I1d と `ClipboardUITests` の 21 件（U10b を除く）は通った。CB3・CB4 は `simulator only` で選ばれていない（HC11・HC12 に回す）
+- 実機の `.xcresult` は残っていない（実行のフォルダーに残るのはシミュレーターの列挙の `enumerate.xcresult` だけ）。Simulator.app は開いていない
+- 端末に残るもの: 一般のクリップボードのテストの文字列（私物のコピーは上書きされた）、カテゴリー `sample-category`、キーボードが覚えたかもしれない語（設計 6.3 の 9）
+
+**訂正（G2-2 と CB2）**: 17.3 の下書きで CB2 を G2-2 の測りとしたのは誤り。CB2 は非同期の `loadItem` を拒む場合で、ランナーが自動で「ペーストを許可しない」を押す。G2-2 で測りたいのは**同期の `read`** を拒んだときに返る値で、自動のテストは無い。そこで G2-2 は手での確かめに回す（約 2 分。HC11・HC12・17.4 と一緒に利用者へ渡す）:
+
+1. メモなどで文字列をコピーする
+2. サンプルの Clipboard の画面で「Use General」を押し、「Read / Inspect」の欄の「Read」を押す（`IosClipboardManager.shared.read(scope:)`）
+3. 貼り付けの許可のダイアログで「ペーストを許可しない」を押す
+4. 画面の上の結果の行（`❌` か `✅` で始まる）を文字でこの記録に書く
+
+### 17.7 回 2b の結果（2026-11-07 23:33〜23:40）
+
+- 許可 ID `7b84491cac4df5dd62b7297f41c6d004`。`--feature Share --device-allow sharesheet,clipboard`、列挙は iPhone 17 / 26.2、Xcode 26.3。iPhone XS / iOS 18.7.2。3 回の呼び出し、21 件
+- 結果: **21/21 通過**。回 1 に無かった S1・S4・S6・S10・S17（共有のシートの「コピー」）と I1d が通った。基準との比べ合わせは `changed=0, added=6, removed=0`（基準は保存しない）
+- 除かれたもの: S8・S9（`files` を許していない）、S18・S19（simulator only）
+- 警告: `the device's language is unknown, not ja (U-16)`。テストの判定には響いていない
+- 実機の `.xcresult` は残っていない。Simulator.app は開いていない。見込みの 15〜25 分より短く、7 分で終わった
+
+### 17.8 回 3 の結果（2026-11-07 23:41〜23:45、実機の C ABI）
+
+- 許可 ID `c7503ec122e66dcad20a846e4a92c101`。`--capi-device`、列挙は iPhone 17 / 26.2、Xcode 26.6（17F113）。iPhone XS / iOS 18.7.2。ライブラリ 2.0.0、HEAD `92a51809`
+- 結果: **5 段すべて PASS、問題 0**（`device-identity` の確かめを通った後）
+
+| 段 | 結果 |
+|---|---|
+| `device-unit-asan` | PASS。`IosLibraryCApiTests` の 474 件を ASan つきで実機で流し、流れたテストが列挙の 474 件と 1 件ずつ一致 |
+| `device-dist-build` | PASS（署名なし、実行のフォルダーの中） |
+| `device-smoke-build` | PASS（配布物だけから組み立て、Automatic と `-allowProvisioningUpdates` で署名。17.3 で未確かめとした署名の組み合わせはこれで通った） |
+| `device-smoke-install` | PASS |
+| `device-smoke-run` | PASS。16 の smoke の段がそれぞれ 1 回ずつ通った |
+
+- 端末に残るもの: `com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost` と `com.jonghyunkim.nativetoolkit.IosLibraryCApiSmoke`（決定 8 のとおり消さない。消すときは別の許可）
+- 実機の `.xcresult`・DerivedData・署名のログは一時フォルダーごと消えた（実行のフォルダーに残る `.xcresult` はシミュレーターの列挙の `capi-enumerate.xcresult` だけ）。Simulator.app は開いていない
+- 時間: 見込みの 30〜45 分に対して 4 分。短かった理由は確かめていない（プロファイルを作り直す時間がかからなかった見込みはある）
+
+### 17.9 今夜の 3 回の後に残るもの
+
+- 手での確かめ（利用者）: HC11・HC12（`ios/IosLibraryExample/ComputerUse/`）、G2-2（17.6 の手順）、`.private` のログ（17.4）
+- CB1 は原因不明のまま（17.6）
+- 次の機会からは、実機の回ごとに許可を得る（17.5）
