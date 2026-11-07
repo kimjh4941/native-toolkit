@@ -687,6 +687,51 @@ final class CApiRoundTripUITests: CApiUITestCase {
         XCTAssertFalse(app.isDrawnLine(ofRow: "launch.interaction", occurrence: 1), "one event for the tap")
         XCTAssertFalse(app.isDrawnLine(ofRow: "launch.settings", occurrence: 0), "the settings listener was not rejected")
     }
+
+    // MARK: - Share.h (part 2, 12.1 "前面" and 12.2 "Share"; TB-9)
+
+    // The sheet is opened from C and closed, or its copy action is chosen: nothing is sent to another app.
+
+    private func shareLine(_ row: String, _ value: String, state: String = "foregroundActive") -> String {
+        "[share.\(row)@\(state)] \(value)"
+    }
+
+    /// The sheet opens from C, and closing it completes with NONE and `completed` 0 and no activity.
+    func testTheShareSheetFromC() throws {
+        let app = try launchApp(section: .share)
+        try app.start("share.text")
+        XCTAssertTrue(try app.waitForShareSheet(), "the share sheet did not open")
+        try app.closeShareSheet()
+        XCTAssertEqual(try app.waitForLine(ofRow: "share.text"), shareLine("text", "0 0 result=completed=0,activity=NULL"))
+    }
+
+    /// 12.2, "Share": the copy action of the sheet opened from C completes with `completed` 1 and its activity type.
+    /// The text goes to the simulator's pasteboard only (Simulator.app stays closed; part 2, 12.2, Clipboard).
+    func testCopyingFromTheShareSheetFromC() throws {
+        let app = try launchApp(section: .share)
+        try app.start("share.text")
+        XCTAssertTrue(try app.waitForShareSheet(), "the share sheet did not open")
+        try app.copyInShareSheet()
+        XCTAssertEqual(try app.waitForLine(ofRow: "share.text"),
+                       shareLine("text", "0 0 result=completed=1,activity=com.apple.UIKit.activity.CopyToPasteboard"))
+        XCTAssertTrue(app.noShareSheetAppears(for: 1))
+    }
+
+    /// 12.1, "前面": from the background the share ends with NOT_FOREGROUND and shows nothing.
+    func testAShareFromTheBackgroundIsNotForeground() throws {
+        let app = try launchApp(section: .share)
+        XCTAssertEqual(try app.runInTheBackground("share.text"),
+                       shareLine("text", "\(ShareError.notForeground) 0 result=NULL", state: "background"))
+        XCTAssertTrue(app.noShareSheetAppears(for: 2))
+    }
+
+    /// AP-19: no item is the return value; a file that is not there is the completion, with no sheet.
+    func testShareFailuresComeWhereTheDesignSays() throws {
+        let app = try launchApp(section: .share)
+        XCTAssertEqual(try app.run("share.empty"), shareLine("empty", "rejected \(ShareError.emptyContent)"))
+        XCTAssertEqual(try app.run("share.missingFile"), shareLine("missingFile", "\(ShareError.fileNotFound) 0 result=NULL"))
+        XCTAssertTrue(app.noShareSheetAppears(for: 2))
+    }
 }
 
 /// The numbers of `ntk_dialog_button` and `ntk_dialog_error` (`Dialog.h`, `scripts/c_abi_error_numbers.json`).

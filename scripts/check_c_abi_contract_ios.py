@@ -182,12 +182,6 @@ LEDGER = "受け口の帳簿"
 # or leaves the headers, so the list shrinks as the entries come. Nothing but
 # --require-complete stops a name being added: it must be empty at TB-10.
 NOT_IMPLEMENTED_YET = (
-    # Notification.h
-    # Share.h
-    "ntk_share_content_async",
-    "ntk_share_result_completed",
-    "ntk_share_result_activity_type",
-    "ntk_share_result_free",
 )
 
 # How each language compiles the headers (12.3). -pedantic is what makes -std=c99

@@ -3,6 +3,7 @@
 //  IosLibraryCApiUITests
 //
 
+import UIKit
 import XCTest
 
 /// The sections of the app (`CApiRowCatalog.sections`): a test cannot name another one. One that is
@@ -12,6 +13,7 @@ enum CApiSection: String {
     case notification
     case clipboard
     case dialog
+    case share
 }
 
 /// How the tests operate `IosLibraryCApiUITestApp`. The identifiers are copies of the app's: the test
@@ -302,7 +304,6 @@ struct CApiUITestApp {
     // `Springboard` finds its own (identifiers measured on the iOS 26.2 simulator in stage 0c). Failure messages
     // name no springboard label.
     private static let shortLookIdentifier = "NotificationShortLookView"
-    private static let expandedViewIdentifier = "notification-expanded-view"
     private static let replyPlaceholder = "IosLibraryCApiUITestApp reply"
     private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
 
@@ -333,10 +334,27 @@ struct CApiUITestApp {
         return eventBanners.element(boundBy: 0)
     }
 
-    /// Long-presses the event banner until it shows its actions.
+    /// Long-presses the event notification until it shows its actions; the app's own `Open` action is the mark.
+    /// The banner expands on the iPhones. On the iPad (18.3) it does not (measured in TB-9: a long press of 0.8 to 3
+    /// seconds, a pull down and a swipe leave it as it is), but the same notification in Notification Center does:
+    /// there the banner is left to go, Notification Center is pulled down from the top, and its cell is pressed.
     func expandEventBanner() throws {
-        try eventBanner().press(forDuration: 1.5)
-        guard springboard.descendants(matching: .any).matching(identifier: Self.expandedViewIdentifier).firstMatch.waitForExistence(timeout: Self.timeout) else {
+        let banner = try eventBanner()
+        let open = springboard.buttons.matching(identifier: "Open")
+        banner.press(forDuration: 1.5)
+        if UIDevice.current.userInterfaceIdiom == .pad, !open.firstMatch.waitForExistence(timeout: 3) {
+            guard eventBanners.firstMatch.waitForNonExistence(timeout: 15) else {
+                throw CApiUITestError("the event banner did not go")
+            }
+            springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.0))
+                .press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)))
+            let cells = springboard.buttons.matching(NSPredicate(format: "identifier == %@ AND label ENDSWITH %@", "ListCell", ", Event, Tap the event"))
+            guard cells.firstMatch.waitForExistence(timeout: Self.timeout) else {
+                throw CApiUITestError("the event notification is not in Notification Center")
+            }
+            cells.firstMatch.press(forDuration: 1.5)
+        }
+        guard open.firstMatch.waitForExistence(timeout: Self.timeout) else {
             throw CApiUITestError("the event notification did not expand")
         }
         try test.checkInterruption()
@@ -377,6 +395,58 @@ struct CApiUITestApp {
         }
         send.element(boundBy: 0).tap()
         try test.checkInterruption()
+    }
+
+    // MARK: The share sheet (part 2, 12.2, "Share"). Simulator only
+
+    // The sheet is in the app's tree; it is found and closed as the sample's `ShareSheet` does (identifiers
+    // measured in stage 0a and 0c). Only the copy action is ever chosen (`copyInShareSheet`). Failure messages name
+    // no label of the sheet.
+    private var shareSheetMarkers: XCUIElementQuery {
+        app.descendants(matching: .any).matching(NSPredicate(format: "identifier IN %@", ["UIActivityContentView", "ActivityListView"]))
+    }
+
+    func waitForShareSheet(timeout: TimeInterval = Self.timeout) throws -> Bool {
+        let found = shareSheetMarkers.firstMatch.waitForExistence(timeout: timeout)
+        try test.checkInterruption()
+        return found
+    }
+
+    /// Whether no share sheet shows now, after a moment for one that would come.
+    func noShareSheetAppears(for seconds: TimeInterval) -> Bool {
+        !shareSheetMarkers.firstMatch.waitForExistence(timeout: seconds)
+    }
+
+    /// Chooses the sheet's copy action, which writes the shared text to the simulator's pasteboard (as the
+    /// Clipboard tests do; nothing leaves the simulator). Only the cell is matched: it also holds a title with the same
+    /// label (stage 0c).
+    func copyInShareSheet() throws {
+        let cells = app.cells.matching(NSPredicate(format: "label IN %@", ["Copy", "コピー"]))
+        guard cells.firstMatch.waitForExistence(timeout: Self.timeout), cells.count == 1 else {
+            throw CApiUITestError("the share sheet has \(cells.count) copy actions")
+        }
+        cells.element(boundBy: 0).tap()
+        try test.checkInterruption()
+    }
+
+    /// Closes the sheet without choosing anything: where there is a dismiss region (one on iOS 26.2 and the iPad,
+    /// two on the iPhone 16 / 18.3), a tap near the top left corner of the screen, outside a sheet at the bottom and
+    /// away from a popover anchored at the middle (iPad); otherwise the close button.
+    func closeShareSheet() throws {
+        let regions = app.otherElements.matching(identifier: "PopoverDismissRegion")
+        if regions.count > 0 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.15)).tap()
+        } else {
+            let close = app.buttons.matching(NSPredicate(format: "label IN %@", ["Close", "閉じる"]))
+            guard close.count == 1 else {
+                throw CApiUITestError("the share sheet has \(close.count) close buttons and \(regions.count) dismiss regions")
+            }
+            close.element(boundBy: 0).tap()
+        }
+        try test.checkInterruption()
+        guard shareSheetMarkers.firstMatch.waitForNonExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the share sheet did not close")
+        }
     }
 
     // MARK: Elements
@@ -426,4 +496,11 @@ enum NotificationEventKind {
     static let action = 1
     static let dismiss = 2
     static let textInput = 3
+}
+
+/// The numbers of `ntk_share_error` (`Share.h`).
+enum ShareError {
+    static let notForeground = 6
+    static let emptyContent = 7
+    static let fileNotFound = 9
 }

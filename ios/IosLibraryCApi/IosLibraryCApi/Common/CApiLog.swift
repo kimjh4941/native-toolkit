@@ -14,4 +14,5 @@ enum CApiLog {
     static let clipboard = Logger(subsystem: subsystem, category: "Clipboard")
     static let dialog = Logger(subsystem: subsystem, category: "Dialog")
     static let notification = Logger(subsystem: subsystem, category: "Notification")
+    static let share = Logger(subsystem: subsystem, category: "Share")
 }

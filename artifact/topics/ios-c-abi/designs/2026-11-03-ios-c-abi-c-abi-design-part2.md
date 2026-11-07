@@ -185,6 +185,8 @@ ID は `P2-n`（第 2 部）。第 1 部の `P1-n` は変えない（第 1 部�
 | `Notification/NotificationMapping.swift` | 純粋な写しと入口の検査: trigger と category の構造体、権限の要求の選択肢、権限の状態と失敗の写し（事前の確かめの判定を含む）、一覧の値（`NotificationListEntry`） | - |
 | `Notification/NotificationHandles.swift` | 一覧のハンドルと読み取り | - |
 | `Share/ShareReceiver.swift` | 要求を写して `share(content:presenter:completion:)` を呼ぶ | `IosShareManager` |
+| `Share/ShareMapping.swift` | C の値と Swift の値の純粋な写し（要求、結果、`ShareError`）と入口の検査 | - |
+| `Share/ShareHandles.swift` | 結果のハンドルと読み取り | - |
 | `Common/Registry.swift` | 第 1 部 5.1、5.7 の登録と状態機械。要求の ID の表（ID → `Registration`。`Mutex`）。登録は `RequestBox` を持つ | - |
 | `Common/CApiBytes.swift` | 第 1 部 5.9 の入力のバイト列 | - |
 | `Common/StructReader.swift`、`Common/CApiString.swift` | 第 1 部 5.9（UTF-8 の入出力は `CApiString`）、1.1 の `struct_size` の読み方。配列の要素（P2-5） | - |
@@ -406,6 +408,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 | `ntk_share_content_async(request, ...)` | 非同期 | 前面が要る。取り消せない（P1-24）。完了は `(user_data, error, system_code, result)` |
 
 - `ntk_share_request`: `items` と `item_count`、`subject`、`preview_title`、`excluded_activity_types` と件数（`NULL` で件数が 0 でない、`NULL` の要素は `INVALID_PARAMETER`）。件数 0 は `EMPTY_CONTENT`（入口）。項目の `kind` の範囲外と `value` の `NULL` は `INVALID_PARAMETER`（今のブリッジは未知の `type` を黙って捨てた。P2-15）
+- **空の値（空の文字列、URL、パス）は入口で拒まない**。中身の妥当性（空の文字列、URL の形、ファイルの有無）は `IosLibrary` が完了で返す（AP-19。TB-9）
 - 結果（`ntk_share_result`。`error == NONE` のときだけ渡す）: `_completed`（利用者がシートを閉じたのは 0）、`_activity_type`（選ばれた活動の識別子。無ければ `NULL`）、`_free`
 - 基点は 6.2 と同じ（P1-13）
 - 無いファイルは `FILE_NOT_FOUND`（`file`）、`IMAGE_LOAD_FAILED`（`image`）。今のライブラリの動作

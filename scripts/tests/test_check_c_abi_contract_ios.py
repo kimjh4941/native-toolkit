@@ -91,8 +91,21 @@ class IosCAbiContractChecker(unittest.TestCase):
     def run_checker(self, edits=(), removed=(), headers=True, arguments=(), before=None, env=None):
         return self.run_tree(edits, removed, headers, arguments, before, env)
 
+    def run_checker_listing(self, listed, edits=(), removed=(), headers=True, arguments=(), before=None):
+        """The checker with NOT_IMPLEMENTED_YET set to `listed`. The list is the checker's own and is empty once every
+        function has its entry (TB-9), so what the list does is tried on a copy of the checker beside its module."""
+        with tempfile.TemporaryDirectory() as directory:
+            scripts = pathlib.Path(directory)
+            text = CHECKER.read_text(encoding="utf-8")
+            start = text.index("NOT_IMPLEMENTED_YET = (")
+            end = text.index("\n)", start) + 2
+            names = "".join(f'    "{name}",\n' for name in listed)
+            (scripts / CHECKER.name).write_text(text[:start] + "NOT_IMPLEMENTED_YET = (\n" + names + ")" + text[end:], encoding="utf-8")
+            shutil.copy(CHECKER.parent / "c_abi_contract_common.py", scripts / "c_abi_contract_common.py")
+            return self.run_tree(edits, removed, headers, arguments, before, checker=scripts / CHECKER.name)
+
     @staticmethod
-    def run_tree(edits=(), removed=(), headers=True, arguments=(), before=None, env=None):
+    def run_tree(edits=(), removed=(), headers=True, arguments=(), before=None, env=None, checker=None):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             for fragment in (DESIGN, README, SWIFT, NUMBERS, WINDOWS_COMMON, *SOURCES.values()):
@@ -123,7 +136,7 @@ class IosCAbiContractChecker(unittest.TestCase):
             extra = list(arguments)
             if before:
                 extra += before(root)
-            finished = subprocess.run([sys.executable, str(CHECKER), "--root", str(root), *extra],
+            finished = subprocess.run([sys.executable, str(checker or CHECKER), "--root", str(root), *extra],
                                       capture_output=True, text=True, encoding="utf-8", env=env)
             return finished.stdout, finished.returncode
 
@@ -157,7 +170,8 @@ class IosCAbiContractChecker(unittest.TestCase):
         self.assertIn(f"({134 - len(NOT_IMPLEMENTED_YET)} of 134, {len(NOT_IMPLEMENTED_YET)} not implemented yet)", output)
         for check in ("public", "modulemap", "layout", "settings", "install"):
             self.assertIn(f"OK   {check}:", output)
-        self.assertIn("SKIP complete", output)
+        # Every function has its entry (TB-9): complete holds without the flag too.
+        self.assertIn("OK   complete:", output)
 
     def test_design_only_reads_appendix_a_in_place_of_the_headers(self):
         output = self.assert_passes(headers=False, arguments=("--design-only",))
@@ -736,19 +750,25 @@ class IosCAbiContractChecker(unittest.TestCase):
     # --- entries (H = E, less what is not implemented yet) --------------------
 
     ENTRY_ANCHOR = "@c @implementation\npublic func ntk_notification_install"
-    LISTED = NOT_IMPLEMENTED_YET[0]
+    # A function of the headers, which has its entry.
+    LISTED = "ntk_share_result_free"
 
     def test_an_entry_for_a_function_still_listed_as_not_implemented(self):
-        self.assert_catches("entries", (NOTIFICATION_ENTRY, self.ENTRY_ANCHOR,
-                                        f"@c @implementation public func {self.LISTED}() {{}}\n{self.ENTRY_ANCHOR}"))
+        output, code = self.run_checker_listing([self.LISTED])
+        line = next((l for l in failures(output) if reports(l, "entries")), "")
+        self.assertIn(f"{self.LISTED} has an entry and is still in NOT_IMPLEMENTED_YET", line)
+        self.assertEqual(code, 1)
+
+    def test_the_list_of_what_is_not_implemented_yet_is_empty(self):
+        self.assertEqual(NOT_IMPLEMENTED_YET, ())
 
     def test_a_function_with_no_entry_that_is_not_listed(self):
         self.assert_catches("entries", (COMMON_ENTRY, "@c @implementation\npublic func ntk_bytes_free(_ b: OpaquePointer?) {\n    Handle.free(b)\n}\n", ""))
 
     def test_a_listed_function_that_left_the_headers(self):
-        output, code = self.run_checker([(SHARE, "void        NTK_CALL ntk_share_result_free(ntk_share_result* result);", "")])
-        line = next((l for l in failures(output) if reports(l, "entries")), "")
-        self.assertIn("ntk_share_result_free is in NOT_IMPLEMENTED_YET but not in the headers", line)
+        output, code = self.run_checker_listing(["ntk_share_result_free"], [(SHARE, "void        NTK_CALL ntk_share_result_free(ntk_share_result* result);", "")])
+        lines = [l for l in failures(output) if reports(l, "entries")]
+        self.assertTrue(any("ntk_share_result_free is in NOT_IMPLEMENTED_YET but not in the headers" in l for l in lines), lines)
         self.assertEqual(code, 1)
 
     def test_an_entry_the_headers_do_not_declare(self):
@@ -816,8 +836,28 @@ class IosCAbiContractChecker(unittest.TestCase):
     # --- complete --------------------------------------------------------------
 
     def test_require_complete_fails_while_the_list_is_not_empty(self):
-        self.assert_catches("complete", arguments=("--require-complete",))
-        self.assert_catches("complete", headers=False, arguments=("--design-only", "--require-complete"))
+        for headers, arguments in ((True, ("--require-complete",)), (False, ("--design-only", "--require-complete"))):
+            output, code = self.run_checker_listing([self.LISTED], headers=headers, arguments=arguments)
+            self.assertTrue(any(reports(line, "complete") for line in failures(output)), output)
+            self.assertEqual(code, 1)
+
+    def test_a_listed_function_without_its_entry_or_symbol_only_stops_require_complete(self):
+        """The list's purpose end to end: a function still listed, with no entry and not exported, passes every
+        check (complete is skipped) until --require-complete, which is then the only failure."""
+        entry = (f"{CAPI_SOURCES}/Share/ShareEntry.swift",
+                 "@c @implementation\npublic func ntk_share_result_free(_ result: OpaquePointer?) {\n    Handle.free(result)\n}\n", "")
+        nm = self.fake_nm(dropped=(self.LISTED,))
+        def run(arguments):
+            def prepare(root):
+                return nm(root) + list(arguments)
+            return self.run_checker_listing([self.LISTED], (entry,), before=prepare)
+        output, code = run(())
+        self.assertEqual(code, 0, failures(output))
+        self.assertIn("SKIP complete", output)
+        output, code = run(("--require-complete",))
+        self.assertEqual(code, 1)
+        failed = failures(output)
+        self.assertTrue(failed and all(reports(line, "complete") for line in failed), failed)
 
     def test_a_name_added_to_the_list_passes_entries_and_only_complete_stops_it(self):
         recorded = []
@@ -1248,7 +1288,10 @@ class IosCAbiContractChecker(unittest.TestCase):
         self.assert_catches("symbols", before=self.fake_nm(dropped=("ntk_notification_install",)))
 
     def test_a_function_exported_while_it_is_listed_as_not_implemented(self):
-        self.assert_catches("symbols", before=self.fake_nm(extra=(f"_{NOT_IMPLEMENTED_YET[0]}",)))
+        # fake_nm exports every function of the headers (the module's list is empty), LISTED among them.
+        output, code = self.run_checker_listing([self.LISTED], before=self.fake_nm())
+        self.assertTrue(any(reports(line, "symbols") for line in failures(output)), output)
+        self.assertEqual(code, 1)
 
     def test_a_function_one_architecture_does_not_export(self):
         for architectures in (("x86_64", "arm64"), ("arm64", "x86_64")):

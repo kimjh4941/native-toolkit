@@ -35,7 +35,7 @@ enum CApiRowCatalog {
     /// process the system starts for a notification) takes the section the last launch with it wrote,
     /// or draws them all.
 
-    static let sections = [CommonRows.section, NotificationRows.section, ClipboardRows.section, DialogRows.section]
+    static let sections = [CommonRows.section, NotificationRows.section, ClipboardRows.section, DialogRows.section, ShareRows.section]
 
     static let drawn = drawn(selected: LaunchShape.current.shape.section)
 

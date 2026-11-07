@@ -1963,3 +1963,206 @@ Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。コマ�
 | `python3 scripts/check_c_abi_contract_ios.py` | rc 0。FAIL 0 |
 | `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
 
+
+## 12. TB-9
+
+第 2 部 13 章の TB-9（Share、OP-46 と結果）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。**判断の要るところは、メインのセッションが利用者の指示（「判断が必要な場合、推奨案で、進める。」）のもとで決めた形（推奨案）で進めた。持ち主はまだ読んでいない。**
+
+### 12.1 足したもの
+
+**TB-9 の C の関数は 4 個**: `ntk_share_content_async`、`ntk_share_result_completed`、`ntk_share_result_activity_type`、`ntk_share_result_free`。`NOT_IMPLEMENTED_YET` は空になり、`entries` は 134 of 134。**`--require-complete` を付けても通った**（rc 0。`OK complete: every function of the headers has its entry`。TB-10 の条件なので、最後の検証では付けていない）。
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 入口 | `IosLibraryCApi/IosLibraryCApi/Share/ShareEntry.swift`（新規） | 4 関数。各 1 行 |
+| 受け口 | `Share/ShareReceiver.swift`（新規） | `Sharing`（シートを出す口。テストが差し替える。既定は `IosShareManager.shared.share(content:presenter: .foreground, completion:)`。P2-1）、`share`、`finish`。取り消せない（P1-24）ので登録は箱を持たない |
+| 写し | `Share/ShareMapping.swift`（新規） | `ShareRejection`（共通の値と `EMPTY_CONTENT`）、`content`、`item`、`result(of:)`、`error(for:)`（11.4） |
+| ハンドル | `Share/ShareHandles.swift`（新規） | `ShareResultHandle` と読み取り |
+| ログ | `Common/CApiLog.swift` | `share` の分類を 1 つ足した（ほかの機能と同じ形。Share の知識は入れていない） |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` から 4 個を外し、空にした |
+| 照合の自己テスト | `scripts/tests/test_check_c_abi_contract_ios.py` | 一覧が空になると、一覧の名前を借りていた 4 つの自己テストが動かなくなった（`NOT_IMPLEMENTED_YET[0]` で読み込みが落ちた）。一覧の働きは、一覧を書き換えた照合の写し（`run_checker_listing`。照合のスクリプトと `c_abi_contract_common.py` を一時のフォルダーに写す）で確かめる形にした。壊れていない木では `complete` が旗なしでも OK になることを確かめ、一覧が空であることのテストを 1 つ足した（278 → 279） |
+| テスト | `IosLibraryCApiTests/ShareTests.swift`（新規。14） | 446 → 460 件 |
+| UI テスト用のアプリ | `IosLibraryCApiUITestApp/Rows/ShareRows.swift`（新規）、`CApiRow.swift` | 行 3 個（`share.text`、`share.missingFile`、`share.empty`）。`share` のセクション |
+| UI テスト | `IosLibraryCApiUITests/CApiRoundTripUITests.swift`、`CApiUITestApp.swift` | テスト 3 件。シートの補助（`waitForShareSheet`、`noShareSheetAppears`、`closeShareSheet`）。`CApiSection.share`。TB-8 の `expandEventBanner` の印を直した（12.6） |
+| 設計書 | 第 2 部 5.1 の表、第 1 部 5.1 の木 | `Share/ShareMapping.swift`、`Share/ShareHandles.swift` の行だけ |
+
+公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイル、`scripts/ios_ui_runner.py` とその表、README、メモリは変えていない。
+
+**`IosLibraryCApiTests` は共有のシートを出さない**（実機の ASan で流れるため）。`setUp` で `Sharing` を「呼ばれたら `XCTFail` して `SHOW_FAILED` で終える」形に差し替え、受け付けを確かめるテストは偽物を入れる。`tearDown` は失敗の形に戻し、このクラスの後もそのまま残る（ほかに共有するテストは無い）。記録の物はテストの物が持ち続ける。ログには共有する文字列・URL・パス・題・除く活動の値を出さない（有無、件数、種類の番号だけ）。
+
+**UI テストはシートを開いて閉じるだけ**（依頼）。閉じ方: シートの外の閉じる領域（`PopoverDismissRegion`）があれば（iOS 26.2 と iPad は 1 つ、iPhone 16 / 18.3 は 2 つ）、画面の左上寄り（0.1, 0.15）を押す（下のシートの外で、iPad の中央に付く popover からも離れた所）。無ければ閉じるボタン（`Close` / `閉じる`）。何も選ばない。
+
+### 12.2 12.1 と 12.2 の行
+
+| 行 | どこで | 結果 |
+|---|---|---|
+| 12.1 入口の検査 | `ShareTests` | `NULL` の callback と要求、項目の `NULL` の配列と件数、範囲外の `kind`（4、-1）、`NULL` の値、5 つの不正な UTF-8（値、subject、preview title）、除く活動の `NULL` の配列と `NULL` の要素、構造体の大きさ（要求と項目）、項目の `reserved1`、知らない後ろの部分（`NOT_SUPPORTED`）、収まらない件数。どれも戻り値で、`release` は呼び出しスレッドで戻る前に 1 回、完了なし。別スレッドの拒否は呼んだスレッドで `release` |
+| 12.1 AP-19 の `EMPTY_CONTENT` | `testNoItemIsEmptyContent`、UI テスト | 件数 0 は、配列を読む前に戻り値で 7（読めない配列でも） |
+| 12.1 写しの表 | `testEveryShareError` | 9 case を手で書いて比べた |
+| 12.1 0 で埋めた構造体 | `testAZeroFilledRequestOfEachKind`、`testAFullRequest` | 4 種の項目、subject と preview title の `NULL` は「無い」、空文字は空文字のまま、除く活動 |
+| 12.1 完了 | `testACompletedShare`、`testAClosedSheet`、`testAFailureHasNoResult` | 偽物の口で、完了が main で戻った後に 1 回、`release` 1 回。成功はハンドル（閉じたのは `completed` 0 と活動 `NULL`）、失敗は `NULL` |
+| 12.1 呼んだ時点の写し | `testTheContentIsCopiedAtTheCall` | 戻った後に文字列を書き換えて解放しても、口に渡る値は元のまま |
+| 12.1 出力のハンドル | `testTheReadersOfNothing` | `NULL` と別の型は 0 と `NULL`（`out_size` 0） |
+| 12.1 前面（OP-46） | UI テスト `testAShareFromTheBackgroundIsNotForeground` | 後ろから呼ぶと `NOT_FOREGROUND`（6）で完了し、シートは出ない |
+| 12.2 Share | UI テスト `testTheShareSheetFromC` | C から開いたシートが出て、閉じると `0 0` で `completed` 0、活動 `NULL` |
+| 完了で返る失敗 | UI テスト `testShareFailuresComeWhereTheDesignSays` | 無いファイルは完了で `FILE_NOT_FOUND`（9）、シートは出ない |
+
+**12.2 の「コピー」を選ぶ確かめはしていない**（依頼: シートからほかへ送る操作をしない。「コピー」も押さない）。`completed` 1 と活動の識別子は偽物の口の単体テストだけ。
+
+### 12.3 コマンドと結果（**止めた所までの状態**）
+
+**09:30 の締めで止めた。最後の検証は全部はそろっていない。** 流したものは順に続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で各実行の前と途中に Simulator.app が閉じていることを確かめた。
+
+1 回目の最後の検証（ソース `537e2970c80c` / `761330faf27a`。1 つ目の値は `git status --short -uall` で数えた: 新しいフォルダーがあると `-uall` が無い数え方は `shasum` が失敗するため）:
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 460/460 |
+| 同（iPhone 16 / 18.3） | 460/460 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 460/460。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 460/460。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2） | 54/54。rc 0 |
+| `--capi-ui`（iPhone 16 / 18.3） | 53/54。**`testTheShareSheetFromC` が落ちた**（閉じる領域が 2 つで、閉じるボタンが無い。12.6）。ここで止めて直した |
+
+直した後（UI テストの補助 `closeShareSheet` だけ。ソース `5c6059ec70ad` / `1f1ee27091cc`）:
+
+| 実行 | 結果 |
+|---|---|
+| `--capi-ui`（iPhone 16 / 18.3） | 54/54。rc 0 |
+| `--capi-ui`（iPad Pro 11-inch (M4) / 18.3） | 1 回目はテストのランナーが起動で落ちた（`Failed to create a bundle instance …`。シミュレーターの側のエラーで、テストは 1 件も流れていない）。2 回目は 53/54: **Share の 3 件は通った**。**TB-8 の `testNotificationEventsReachTheListenerOfC` が落ちた**（長押しの後に `Open` のボタンが出ない。12.6） |
+| framework の Release（2 つ）`--library` | `OK symbols`（134 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 28、FAIL 0、SKIP 1。`entries` は 134 of 134、0 not implemented yet。`--require-complete` を付けても rc 0、FAIL 0 |
+| `test_check_c_abi_contract_ios.py` | 1 回目は読み込みで落ちた（`NOT_IMPLEMENTED_YET[0]`）。直した後（ソース `830a0980482c` / `644138d9bdc6`）に Ran 279 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0（最後のソースで流し直した） |
+
+**流していないもの**: 最後のソース（`830a0980482c`）での iPhone 17 Pro の `--capi-ui`（1 回目の 54/54 は閉じ方を直す前のソース。直した閉じ方は iOS 26.2 では「領域がある」の側を通り、押す所が領域の中から画面の左上寄りに変わった）。単体テスト・TSan・ASan は 1 回目のソースで、その後の変更は UI テストの補助と照合の自己テストだけ（受け口と単体テストは変えていない）。
+
+### 12.4 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3）
+
+19 個。最後の検証の前に流した。写しはそのときのソース（`19d38b5a1feb` の数え方。新しいフォルダーで 1 つ目の値は `shasum` が失敗した / `761330faf27a`）と同じ（流した後に `diff -rq` で差なし）。`ShareTests` だけを流した。**19 個とも落ちた。クラッシュは 0 件。**
+
+| 区分 | 変異 |
+|---|---|
+| 写し（15） | 件数 0 が `INVALID_PARAMETER`、URL が文字列、画像がファイル、ファイルが画像、範囲外の `kind` が文字列、`NULL` の値が空文字、項目の `reserved1` を名指ししない、subject を捨てる、preview title が subject、除く活動を捨てる、`.noRootViewController` が `SHOW_FAILED`、`.dismissedBySystem` が `SHOW_FAILED`、`.activityFailed` が `UNKNOWN`、`.invalidURL` が `INVALID_PARAMETER`、`.noValidItems` が `INVALID_PARAMETER` |
+| 受け口（2） | 成功にハンドルが無い、失敗にハンドルがある |
+| ハンドル（2） | `NULL` の `_completed` が 1、活動の識別子を捨てる |
+
+同じ時間帯のシミュレーターの `AccessibilityControlsExtension-2026-11-07-075031.ips` と、検証の間の `-090338.ips` は自分のプロセスではないので消していない。
+
+### 12.5 設計書の読み方（5.1 の名前のほか、設計書は変えていない）
+
+| # | 所 | 読み方 | 設計書に戻すか |
+|---|---|---|---|
+| 1 | 12.2 の Share の行「『コピー』を選び、`completed` と `activity_type` を確かめる」 | 依頼のとおり押さない。閉じて `completed` 0 を確かめた。`completed` 1 は単体テストの偽物だけ | **持ち主の判断待ち**（「コピー」はシミュレーターの pasteboard に入るだけだが、押すかどうか） |
+| 2 | 6.4 の項目の値の検査 | 入口は `NULL` と UTF-8 と `kind` の範囲だけ。空の文字列・URL の形・ファイルの有無はライブラリが完了で返す（AP-19 の基準）。空のパスも入口では拒まない（Clipboard の P2-9 の (8) は Share には書かれていない） | 戻すことを勧める（6.4 に「空の値は入口で拒まない」） |
+| 3 | 11.4 の `.noRootViewController` | `NOT_FOREGROUND`（表のとおり。`.foreground` の口では届かない） | 不要 |
+| 4 | 11.4 の `UNKNOWN` | 知らない case だけ。取り消しの完了（走らない）も `UNKNOWN` | 不要 |
+| 5 | `_completed` の `NULL` | 0 | 不要 |
+| 6 | iPad の閉じ方 | popover の外の領域の左上寄りを押す（6.2 のアクションシートの外側のタップと同じ考え） | 不要 |
+
+### 12.6 実装の途中で分かったこと
+
+- **TB-8 の UI テストが iPad（18.3）で落ちる。直っていない**: 通知の長押しの後に、展開した通知の識別子（`notification-expanded-view`。iOS 26.2 のシミュレーターで測った名前）が無い。印をアプリ自身の `Open` のボタンにしたが、それも出なかった。iPad の 18.3 では長押しで展開しないか、展開の形が違う（測っていない）。TB-8 は iPad では流していなかった（TB-8 の依頼の検証に iPad は無かった）。**持ち主の判断待ち**（12.8）
+- iPad（18.3、日本語）でもシートの開閉と前面の確かめは最初の回から通った
+- **iPhone 16 / 18.3 では閉じる領域が 2 つあり、閉じるボタンは見つからなかった**（最初の閉じ方は「領域が 1 つならそれ、無ければボタン」で、最後の検証の 1 回目で落ちた）。領域があれば画面の左上寄りを押す形にした
+
+### 12.7 確かめられていないこと
+
+- **実機では何も流していない**（`generic/platform=iOS` は組むだけ）
+- 「コピー」などの活動を選んだときの完了（上の 1）。`ACTIVITY_FAILED`、`CANCELED_BY_SYSTEM`、`SHOW_FAILED`、`INVALID_URI`、`IMAGE_LOAD_FAILED` を C から起こすこと（写しの関数のテストだけ）
+- 複数の窓の iPad でどの窓に出るか（ヘッダーのとおり決めていない）
+
+### 12.8 持ち主の判断待ち（TB-9）
+
+**3 つとも 12.10 で決めた（メインのセッションが利用者の指示のもとで推奨案で決めた。持ち主はまだ読んでいない）。**
+
+1. 12.2 の Share の行の「コピー」を選ぶ確かめをするか（12.5 の 1）
+2. 6.4 に「空の値は入口で拒まない」を書くか（12.5 の 2）
+3. TB-8 の通知のイベントの UI テスト（長押しで展開する `ACTION` と `TEXT_INPUT`）を iPad で通すか。通すなら iPad の 18.3 で展開の操作を測る。通さないなら、その 2 つを iPad では飛ばす形にするか（今は落ちる）
+
+### 12.9 時間
+
+07:21〜09:30（約 2 時間 10 分）。目標の 08:45 を過ぎ、遅くとも 09:30 の締めで止めた。
+
+### 12.10 仕上げ: 判断待ちの決定とレビューの直し
+
+**下の決定は、メインのセッションが利用者の指示（「判断が必要な場合、推奨案で、進める。」「実機の区切りまでは自動で進めて」）のもとで推奨案で決めたもの。持ち主はまだ読んでいない。** 12.3〜12.9 は仕上げの前の記録で、今の形はこの節。
+
+**12.8 の判断待ちの決定**:
+
+| # | 決定 | したこと |
+|---|---|---|
+| 1 | 12.2 のとおり「コピー」を選ぶ（シミュレーターの general pasteboard に書くだけ。Clipboard の UI テストと同じ扱い。Simulator.app を閉じたまま、Mac の pbcopy / pbpaste と simctl pbsync は使わない。ほかの活動は選ばない。前の「押さない」は取り消し） | `testCopyingFromTheShareSheetFromC`: シートの `Copy` / `コピー` のセルを押し、完了が `0 0 completed=1 activity=com.apple.UIKit.activity.CopyToPasteboard`。差（12.5 の 1）は無くなった |
+| 2 | 6.4 に「空の値は入口で拒まない」を書く | 第 2 部 6.4 に 1 行足した |
+| 3 | iPad の TB-8 の長押し: 40 分を限りに測って通す | 下のとおり測って通す形にした（`XCTSkip` は使っていない） |
+
+**iPad / 18.3 の長押しを測ったこと**（09:28〜09:36。調査用のテストを一時に足して `test-without-building` で iPad だけに流し、springboard の階層のうち自分の通知の範囲（題・本文・`Open`・`Reply`・展開・バナー）の行だけを出した。**調査用のテストは消した**。ほかに残っていないことを `grep` で確かめた）:
+- バナーの長押し（0.8、1.5、3 秒。バナーとその中のボタンの両方）、下へ引く、左へ払う: どれも展開しない。3 秒の長押しではバナーが消えるだけ
+- **通知センター（画面の上の中央から下へ引く）の中の同じ通知のセル（`ListCell`）を 1.5 秒押すと展開し、`Open` と `Reply` のボタンが出る**
+- そこで `expandEventBanner` は、iPad で 3 秒以内に `Open` が出なければ、バナーが消えるのを待ち、通知センターを開き、セルを長押しする形にした（iPhone は今のまま）。印はアプリ自身の `Open` のボタン
+
+**レビュー（Claude と Codex。ライブラリのコードに A なし）の直し**:
+
+| 指摘 | 直したこと |
+|---|---|
+| A-1 | 調査用の `testProbeTheEventBannerOnTheIPad` を消した（元のファイルに戻した）。`PROBE`・`Probe` が `ios/IosLibraryCApi*` に無いことを確かめた（`scripts/test_android.sh` の Android の `Probe` は別のもの） |
+| B-1 | `testTheStructRulesOfTheRequestAndTheItem`（`NULL`、要求と項目の `reserved0`、4096 を超える大きさ、後ろが 0 なら受ける、0 でなければ `NOT_SUPPORTED`）、`testTheItemsAreSteppedByTheirOwnSize`（P2-5: 要素の大きさで進む、要素の知らない部分、大きさの混ざった配列）、`testAnExcludedTypeMustBeUTF8` |
+| B-2 | `testCountsThatDoNotFit`: 項目と除く活動のそれぞれの件数に -1（`SIZE_MAX`）と `1 << 61` で `INVALID_PARAMETER`（`EMPTY_CONTENT` ではない） |
+| B-3 | `testAnAcceptedShareOffTheMainThreadDoesNotWaitForIt`（DialogEntryTests と同じ形） |
+| Codex C | `testTwoSharesCompletedInTheOtherOrder`: 完了をため置く偽物で 2 つを受け、逆の順で完了させる。結果は別々、完了と `release` は 1 回ずつ、`release` は callback の後 |
+| C-1 | `ShareMapping.content` の実行されない guard を消し、件数をそのまま渡す |
+| C-2 | `item` は `kind` を先に見て、範囲外なら値を読まずに拒む（`testAnItemOfAKindOutOfRangeIsNotRead`: `kind` 4 と読めない値） |
+| C-3 | 照合の自己テストに `test_a_listed_function_without_its_entry_or_symbol_only_stops_require_complete` を足した（一覧に載せた写しで、入口の行を消し、記号を落とした nm: 旗なしは rc 0 で `SKIP complete`、`--require-complete` では落ちるのは `complete` だけ）。`symbols` のテストの重複した `extra` を消した（nm の偽物は、モジュールの一覧が空なので、もとから全部の記号を出す） |
+| C-4 | 「コピー」を行ったので差は無い |
+| C-5 | `testTheActivityTypeOutput`: 空の活動の識別子は `NULL` でなく `""`（`out_size` 0）、U+0000 は U+FFFD |
+| C-6 | TB-8 の iPad の補助（`expandEventBanner`）は上の測りの結果として TB-9 に入れた。落ちたまま残していない |
+
+テストは 460 → 468 件（`ShareTests` 22）。照合の自己テストは 280 件。
+
+**変異（直しで足したテスト。5 個。写しは最後のソースと同じ。流した後に `diff -rq` で差なし。iPhone 16 / 18.3。`ShareTests` だけ）**: **5 個とも落ちた。**
+
+| 変異 | 結果 |
+|---|---|
+| `kind` より先に値を読む | テストのホストが落ちた（`kind` 4 の項目の読めない値を読んだ。`testAnItemOfAKindOutOfRangeIsNotRead` の形が見つけるもの）。レポートは名前を記録してから消した: `IosLibraryCApiTestHost-2026-11-07-094044.ips` |
+| 除く活動を検査せずに読む | `testAnExcludedTypeMustBeUTF8`、`testCountsThatDoNotFit`、`testTheExcludedTypesAreChecked` |
+| 空の活動の識別子が `NULL` | `testTheActivityTypeOutput` |
+| `NULL` の配列なら件数 0 でも読む | `testNoItemIsEmptyContent` |
+| 活動の識別子の U+0000 をそのまま出す | `testTheActivityTypeOutput` |
+
+**最後のソースの結果**（09:44〜10:52。順に続けて流し、シミュレーターの仕事は重ねていない。`pgrep -x Simulator` で各実行の前と途中に Simulator.app が閉じていることを確かめた）。ソースのハッシュ（`git status --short -uall -- ios scripts` で数えた値 / 6.8 と同じ範囲）は流す前も後も **`a11fc464c05d` / `b33a02732d47`**。TB-9 の前は TB-8 のコミット `40232429`。**流した後に変えたのはこの記録だけ。** 上の 5 個の変異はこの検証の前に、同じソースの写しで流した。
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 468/468 |
+| 同（iPhone 16 / 18.3） | 468/468 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 468/468。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 468/468。報告 0 件 |
+| `--capi-ui --udid`（iPhone 17 Pro / 26.2。Xcode 26.6） | 55/55。rc 0（`20261107-095044-iPhone_17_Pro-26.2`） |
+| 同（iPhone 16 / 18.3） | 55/55。rc 0（`20261107-101050-iPhone_16-18.3.1`） |
+| 同（iPad Pro 11-inch (M4) / 18.3、日本語） | 55/55。rc 0（`20261107-102922-iPad_Pro_11-inch_(M4)-18.3.1`）。ランナーの起動の失敗は無く、流し直していない。TB-8 の `testNotificationEventsReachTheListenerOfC` も通った（通知センターから展開） |
+| framework の Release（2 つ）`--library` | `OK symbols`（134 symbols。1 architectures、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 28、FAIL 0、SKIP 1。`entries` は 134 of 134、0 not implemented yet |
+| 同 `--require-complete` | rc 0、FAIL 0。`OK complete: every function of the headers has its entry` |
+| `test_check_c_abi_contract_ios.py` | Ran 280 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+
+この間に出たレポートは、シミュレーターと Mac の `maild`、`nanoprefsyncd`、`remindd`、`proactive_event_tracker` のもので、自分のプロセスではないので消していない（古い Mac の `.diag` がいくつか消えたのは OS の入れ替えで、自分は消していない）。時間: 09:28〜10:55（約 1 時間 30 分）。
+
+### 12.11 2 回目のレビューと、メインのセッションの直し
+
+12.10 のソースを、Claude のサブエージェントと Codex に読むだけで見てもらった（2026-11-07 10:53〜11:05）。どちらも A は 0。直しはメインのセッションが、指摘をコードで確かめてから入れた。**持ち主はまだ読んでいない。**
+
+| 指摘 | 確かめたこと | 扱い |
+|---|---|---|
+| Claude B-1 | 読み出しは NULL のハンドルにも 0 と NULL を返す（`testTheReadersOfNothing`）。逆順完了のテストの先の側は、まさにその値を期待していた | 直した: 2 つのハンドルが違う、error が NONE、ハンドルが NULL でない、release は main で 1 回、を足した |
+| Claude C-1 / Codex C | 記録は callback の入口だけで、「release は callback が戻った後」を観測していなかった | 直した: 各 recorder の `onCompletion`（callback の中）で、release がまだ無いことを確かめる |
+| Claude C-3 | `CApiUITestApp.swift` と `ShareRows.swift` のコメントが「何も選ばない」のままだった | 直した（コメントだけ） |
+| Claude C-2 | 項目の件数 `1 << 61` は、桁あふれの検査が無くても ASan の外では別の理由で拒まれうる | 直さない。-1 と除く活動の側が効いている。読み方は共通の StructReader |
+| Claude C-4 | `closeShareSheet` は閉じる領域を待たずに数える | 直さない。3 機種で起きていない。直すと UI テストを 3 機種で流し直す要がある。落ちたら直す |
+| Claude C-5 | iPad の分岐は、前の回の通知が通知センターに残ると、まとめて表示されて見つからないことがある | 直さない。終わりに通知を消している。落ちたら直す |
+
+直しの後に流したもの: `IosLibraryCApiTests`（iPhone 17 Pro / 26.2）と、UI テストのアプリとターゲットの build-for-testing。UI テストそのものは流し直していない（UI 側の変更はコメントだけ）。iPhone 16、TSan、ASan も流し直していない（変更は単体テストの 1 件だけ）。変異は流していない。
+
+結果（11:00〜11:03）: `IosLibraryCApiTests` は 468/468（直した `testTwoSharesCompletedInTheOtherOrder` も通った）。build-for-testing は rc 0。警告は `appintentsmetadataprocessor` の「AppIntents が無い」の 4 件だけで、コードの警告は 0。照合（`--require-complete`）と第 1 部・第 2 部の設計書の照合は、直しの前の 10:53 にメインのセッションが流して FAIL 0（直しはこれらの対象に触れない）。
