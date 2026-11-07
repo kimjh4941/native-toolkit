@@ -837,7 +837,7 @@ Unity の通知パッケージ（`com.unity.mobile.notifications`）も `kUnityW
 | シミュレーター iPhone 17 / iOS 26.2 | `IosLibraryCApiTests` を通常・ASan・TSan の 3 通り（ASan と TSan は同時に使えないので別に） | 1a で雛形の 10 件が 3 通りとも通った。TSan は実際に報告し、テストのホストを止める（1a 入口 5.4） |
 | シミュレーター iPad Pro 11-inch (M4) / iOS 18.3 | 同上と、アクションシートと Share の UI テスト | popover の例外が出る唯一の環境（1a 入口 5.1） |
 | シミュレーター x86_64（iOS 18.3、Rosetta） | 組めること、公開シンボル、smoke | README 7.4 |
-| 実機 iPhone XS / iOS 18.7.2 | `IosLibraryCApiTests` の ASan と smoke を、2b の DoD の区切りでだけ。**流す前に毎回利用者の許可を得る** | 未実施（`agent-rules/device-testing.md`） |
+| 実機 iPhone XS / iOS 18.7.2 | `IosLibraryCApiTests` の ASan と smoke を、2b の DoD の区切りでだけ。**流す前に毎回利用者の許可を得る** | 未実施（`agent-rules/device-testing.md`）。流す経路は `scripts/test_ios.sh --capi-device`（`--dry-run` の許可の一覧と 1 回限りの `--approved`。段階 2 の作業の記録 17 章の回 0。推奨案。持ち主の確認待ち） |
 | 実機の TSan | 端末では試さない。Xcode の文書で対応を確かめて記録する | 未確認（README 7.4） |
 
 - framework もテストと同じプロジェクトでソースから組むので、サニタイザーは capi の中も計測する（1a 入口 5.4）。`IosLibrary` も同じワークスペースで組めば計測される

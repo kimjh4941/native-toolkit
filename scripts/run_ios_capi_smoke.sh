@@ -7,6 +7,8 @@ set -euo pipefail
 # Usage:
 #   DEVELOPER_DIR=<Xcode>/Contents/Developer ./scripts/run_ios_capi_smoke.sh --dist <folder> --work <new folder>
 #       [--udid <simulator>] [--device-build] [--archs <archs>]
+#   NTK_SMOKE_DEVELOPMENT_TEAM=<team> ... --dist <folder> --work <new folder> --signed-device-build
+#       --plan <approved plan> --approved <approval list>
 #
 #   --dist          the folder with ios-native-toolkit-<v>.xcframework and ios-native-toolkit-capi-<v>.xcframework
 #                   (scripts/build_ios_library_xcframework.sh --output-dir, or dist/<release>/ios)
@@ -16,6 +18,14 @@ set -euo pipefail
 #   --device-build  also build for generic/platform=iOS without signing (CODE_SIGNING_ALLOWED=NO). It is
 #                   never installed: a device run needs the user's approval (agent-rules/device-testing.md)
 #   --archs         the simulator architectures to build (default: the Release default, arm64 and x86_64)
+#   --signed-device-build
+#                   build for generic/platform=iOS signed (Automatic, NTK_SMOKE_DEVELOPMENT_TEAM,
+#                   -allowProvisioningUpdates) and never install it: only scripts/test_ios.sh --capi-device
+#                   installs it, after the user's approval. Takes neither --udid nor --device-build; the
+#                   team is never printed or written by this script (its value comes from the environment).
+#                   It signs only when --plan and --approved pass the gate of ios_capi_runner.py device-gate (an
+#                   approval consumed in the ledger for this plan, the runner and the tree as approved), and
+#                   builds without XCODE_XCCONFIG_FILE, TOOLCHAINS and the TEST_RUNNER_ variables
 #
 # What it checks: the app builds from the two xcframeworks alone; it embeds exactly IosLibrary.framework
 # and IosLibraryCApi.framework and no Swift library, and its own binary needs no Swift library and
@@ -36,10 +46,13 @@ DIST=""
 WORK=""
 UDID=""
 DEVICE_BUILD=0
+SIGNED_DEVICE_BUILD=0
 ARCHS=""
+PLAN=""
+APPROVED=""
 
 usage() {
-  sed -n '4,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '4,36p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -48,6 +61,9 @@ while [[ $# -gt 0 ]]; do
     --work) WORK="${2:?--work needs a value}"; shift 2 ;;
     --udid) UDID="${2:?--udid needs a value}"; shift 2 ;;
     --device-build) DEVICE_BUILD=1; shift ;;
+    --signed-device-build) SIGNED_DEVICE_BUILD=1; shift ;;
+    --plan) PLAN="${2:?--plan needs a value}"; shift 2 ;;
+    --approved) APPROVED="${2:?--approved needs a value}"; shift 2 ;;
     --archs) ARCHS="${2:?--archs needs a value}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Error: unknown argument: $1" >&2; usage; exit 2 ;;
@@ -56,6 +72,27 @@ done
 if [[ -z "${DIST}" || -z "${WORK}" ]]; then
   echo "Error: --dist and --work are required." >&2
   usage
+  exit 2
+fi
+if [[ "${SIGNED_DEVICE_BUILD}" == "1" ]]; then
+  if [[ "${DEVICE_BUILD}" == "1" || -n "${UDID}" ]]; then
+    echo "Error: --signed-device-build takes neither --device-build nor --udid." >&2
+    exit 2
+  fi
+  if [[ ! "${NTK_SMOKE_DEVELOPMENT_TEAM:-}" =~ ^[A-Z0-9]{10}$ ]]; then
+    echo "Error: --signed-device-build needs NTK_SMOKE_DEVELOPMENT_TEAM (ten letters and digits)." >&2
+    exit 2
+  fi
+  # Signing (and -allowProvisioningUpdates) only for an approved --capi-device run: the same gate as every step
+  # of test_ios.sh --capi-device that reaches the device or signs.
+  if [[ -z "${PLAN}" || -z "${APPROVED}" ]] \
+      || ! python3 "${ROOT_DIR}/scripts/ios_capi_runner.py" device-gate --plan "${PLAN}" --approved "${APPROVED}" \
+           --repo "${ROOT_DIR}" > /dev/null; then
+    echo "Error: --signed-device-build signs only with --plan and --approved of an approved, consumed --capi-device run (scripts/test_ios.sh --capi-device)." >&2
+    exit 2
+  fi
+elif [[ -n "${PLAN}" || -n "${APPROVED}" ]]; then
+  echo "Error: --plan and --approved are for --signed-device-build." >&2
   exit 2
 fi
 if [[ -z "${DEVELOPER_DIR:-}" ]]; then
@@ -175,6 +212,28 @@ if [[ "${DEVICE_BUILD}" == "1" ]]; then
   else
     record FAIL "device build" "see ${WORK}/logs/build-device.log"
     grep -E 'error:' "${WORK}/logs/build-device.log" | head -10 >&2 || true
+  fi
+fi
+
+if [[ "${SIGNED_DEVICE_BUILD}" == "1" ]]; then
+  echo "[smoke] building for the device, signed (not installed)"
+  clean_env=(env -u XCODE_XCCONFIG_FILE -u TOOLCHAINS)
+  for name in $(compgen -e); do
+    [[ "${name}" == TEST_RUNNER_* ]] && clean_env+=(-u "${name}")
+  done
+  if "${clean_env[@]}" xcodebuild build -project "${PROJECT_COPY}/${APP}.xcodeproj" -scheme "${APP}" -configuration Release \
+      -destination "generic/platform=iOS" -derivedDataPath "${WORK}/dd-device" -allowProvisioningUpdates \
+      CODE_SIGN_STYLE=Automatic "DEVELOPMENT_TEAM=${NTK_SMOKE_DEVELOPMENT_TEAM}" "CODE_SIGN_IDENTITY=Apple Development" \
+      > "${WORK}/logs/build-device-signed.log" 2>&1; then
+    if archs="$(lipo -archs "${WORK}/dd-device/Build/Products/Release-iphoneos/${APP}.app/${APP}")"; then
+      record PASS "device build (signed)" "${archs}"
+    else
+      record FAIL "device build (signed)" "lipo -archs failed"
+    fi
+    check_app device "${WORK}/dd-device/Build/Products/Release-iphoneos/${APP}.app"
+  else
+    # The log names the signing identity; it stays in WORK and is not printed.
+    record FAIL "device build (signed)" "see ${WORK}/logs/build-device-signed.log"
   fi
 fi
 

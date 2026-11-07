@@ -108,6 +108,8 @@ SIMULATOR_ONLY_TESTS = frozenset({
     "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",
     "NotificationPermissionUITests/testN40_theAppNotificationSettingsLinkSendsASettingsRequest",
     "NotificationPermissionUITests/testN42_aPermissionRequestInTheBackgroundReportsNotForeground",
+    "ClipboardPasteUITests/testCB3_pasteControlReadsText",  # the paste control: a person on the device (HC11; stage 2, 17.1)
+    "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly",  # the same, an image only (HC12)
 })
 # What an excluded test of that set shows in place of its missing categories. Not a category, so
 # --device-allow cannot name it.

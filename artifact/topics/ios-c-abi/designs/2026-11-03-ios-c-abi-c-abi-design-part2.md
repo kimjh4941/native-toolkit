@@ -892,6 +892,8 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 **TB-11 の形**（推奨案で進めた。持ち主の確認待ち。作業記録 14 章）: `ios/IosLibraryCApiSmoke` を `scripts/run_ios_capi_smoke.sh` が新しい作業フォルダーに写し、2 つの xcframework だけを置いて組む（リポジトリのほかに届かない）。アプリが埋め込むのは 2 つの framework だけで、Swift の dylib を持たず、自分では `IosLibrary` の Swift のシンボルを import しない。Clipboard は**名前付きのペーストボード**で書いて読む（general に触れないので、実機の区切りでも私物のクリップボードを上書きしない）。Dialog は人の操作を置かず、**表示の 1.5 秒後に `ntk_dialog_cancel` で `CANCELED` の完了まで**通す。各要求の完了と `release` が main で 1 回ずつ来ることも数える。実機向けは署名なしで組むところまで（入れない）。
 
+**実機の形**（2026-11-07、段階 2 の作業の記録 17 章の回 0。推奨案。持ち主の確認待ち）: `scripts/test_ios.sh --udid <実機> --capi-device` が、`run_ios_capi_smoke.sh --signed-device-build` で smoke を実機向けに署名して組み（Automatic、チームは `ios/IosLibraryCApi/IosLibraryCApi.xcodeproj` の値をコマンドラインで渡し、ファイルに書かない。`-allowProvisioningUpdates`）、`xcrun devicectl device install app` で入れ、`devicectl device process launch --console --terminate-existing` で起動して `SMOKE` の行を読む。判定はアプリ自身の `SMOKE` の行だけ（16 段の `SMOKE PASS` がそれぞれちょうど 1 回、`SMOKE FAIL` と `SMOKE RESULT FAIL` が無い、`SMOKE RESULT PASS failures=0` がちょうど 1 行）。署名つきの組み立ては、消費済みの許可の関門を通らなければスクリプト自身が止まる。smoke は実機に残る（消すのは毎回の許可が要る操作なので、許可の一覧に「残る」と書く）
+
 ### 12.5 変異
 
 足した検査は、契約を保ったまま形を変える変異で壊して落ちることを確かめる（`common.md`「検査の書き方」）。
@@ -946,7 +948,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 - 12.1〜12.4 が通る（シミュレーターは iPhone 17 / 26.2 と iPad Pro 11-inch (M4) / 18.3、通常・ASan・TSan。P1-20）。**12.1 の前面の行は、この 2 つのシミュレーターで、サニタイザーなしで流す**。サニタイザーの網羅は `IosLibraryCApiTests` が受け持つ
 - 第 1 部 6 章のテストが通る
-- 実機（iPhone XS / 18.7.2）の区切りの ASan と smoke を、利用者の許可を得て流した（P1-20）
+- 実機（iPhone XS / 18.7.2）の区切りの ASan と smoke を、利用者の許可を得て流した（P1-20。経路は `scripts/test_ios.sh --capi-device`。作業の記録 17 章の回 0）
 - README 7.3 の配布物の照合が通る（`check_ios_dist.py`）
 - 2a の機械照合が通り、照合の自己テストが壊すと落ちる
 - 足した検査は変異で落ちることを確かめた

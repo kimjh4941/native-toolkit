@@ -628,11 +628,13 @@ echo "$?" > "$WORK/status"''')
         self.assertNotEqual(files.get("status"), "0", finished.stderr)
 
     def test_the_build_and_the_smoke_use_it(self):
-        text = (ROOT / "scripts" / "test_ios.sh").read_text(encoding="utf-8")
+        text = (ROOT / "scripts" / "test_ios.sh").read_text(encoding="utf-8").replace("\\\n", " ")
+        # --capi and --capi-device each call both scripts once.
         for script in ("build_ios_library_xcframework.sh", "run_ios_capi_smoke.sh"):
             lines = [line.strip() for line in text.splitlines() if f'"${{ROOT_DIR}}/scripts/{script}"' in line]
-            self.assertEqual(len(lines), 1, script)
-            self.assertTrue(lines[0].startswith("capped_group 3600 "), lines[0])
+            self.assertEqual(len(lines), 2, script)
+            for line in lines:
+                self.assertTrue(line.startswith("capped_group 3600 "), line)
 
 
 class Commands(unittest.TestCase):
@@ -652,6 +654,548 @@ class Commands(unittest.TestCase):
                                       capture_output=True, text=True)
             self.assertEqual(finished.returncode, 1)
             self.assertIn("recorded 0 times", finished.stdout)
+
+
+# --- --capi-device (stage 2 working notes, 17.1 decision 4; 17.3 review) ----------------------------------------
+
+FAKE_TEAM = "ABCDE12345"  # not a real team; only in the copy's project
+FAKE_DEVICECTL_ID = "DCID-0000"
+FAKE_UNIT_TESTS = ("CApiStringInputTests/testA()", "ClipboardEntryTests/testB()", "ThreadContractTests/testC()")
+SMOKE_LINES = ["SMOKE PASS " + (s.replace("callbacks: ", "callbacks: ", 1) + ": ok") for s in c.SMOKE_STEPS]
+DEVICE_FAKES = {
+    "xcodebuild": r'''
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ["FAKE_LOG"], "a") as log:
+    seen = ",".join(n for n in sorted(os.environ) if n in ("XCODE_XCCONFIG_FILE", "TOOLCHAINS") or n.startswith("TEST_RUNNER_"))
+    log.write("xcodebuild " + json.dumps(args) + " ALLOW=" + os.environ.get("TEST_RUNNER_NTK_DEVICE_ALLOW", "") + "\n")
+    log.write("xcodebuild-env " + seen + "\n")
+    ledger = pathlib.Path(os.environ["FAKE_LEDGER"])
+    log.write("xcodebuild-ledger " + (ledger.read_text() if ledger.exists() else "").replace("\n", "|") + "\n")
+def opt(name):
+    return args[args.index(name) + 1] if name in args else None
+tests = json.loads(os.environ["FAKE_UNIT_TESTS"])
+if args == ["-version"]:
+    print("Xcode " + os.environ.get("FAKE_XCODE", "26.6")); print("Build version 17F31"); sys.exit(0)
+if "build-for-testing" in args:
+    products = pathlib.Path(opt("-derivedDataPath")) / "Build" / "Products"
+    products.mkdir(parents=True, exist_ok=True)
+    (products / "IosLibraryCApi_iphonesimulator26.2-arm64.xctestrun").write_text("")
+    sys.exit(0)
+if "-enumerate-tests" in args:
+    enabled = [{"identifier": "IosLibraryCApiTests/" + t} for t in tests] + [{"identifier": "IosLibraryCApiTests/ThreadContractTests"}]
+    pathlib.Path(opt("-test-enumeration-output-path")).write_text(json.dumps({"errors": [], "values": [{"enabledTests": enabled}]}))
+    sys.exit(0)
+if "test" in args and opt("-scheme") == "IosLibraryCApi" and (opt("-destination") or "").startswith("platform=iOS,id="):
+    products = pathlib.Path(opt("-derivedDataPath")) / "Build" / "Products" / "Debug-iphoneos"
+    runtime = os.environ.get("FAKE_DEVICE_RUNTIME", "@rpath/libclang_rt.asan_ios_dynamic.dylib")
+    for framework in ("IosLibraryCApi", "IosLibrary"):
+        folder = products / (framework + ".framework")
+        folder.mkdir(parents=True, exist_ok=True)
+        lines = ["\t/usr/lib/libSystem.B.dylib (compatibility version 1.0.0)"]
+        if runtime and "-enableAddressSanitizer" in args:
+            lines.append("\t" + runtime + " (compatibility version 0.0.0)")
+        (folder / framework).write_text("\n".join(lines) + "\n")
+    bundle = pathlib.Path(opt("-resultBundlePath"))
+    bundle.mkdir(parents=True)
+    ran = [t for t in tests if t != os.environ.get("FAKE_DROP_TEST")]
+    failed = 1 if os.environ.get("FAKE_UNIT_FAIL") == "asan" else 0
+    cases = [{"nodeType": "Test Case", "nodeIdentifier": t, "result": "Failed" if failed and i == 0 else "Passed"}
+             for i, t in enumerate(ran)]
+    (bundle / "fake-tests.json").write_text(json.dumps({"testNodes": [{"nodeType": "Unit test bundle", "children": cases}]}))
+    (bundle / "fake-summary.json").write_text(json.dumps({
+        "result": "Failed" if failed else "Passed", "totalTestCount": len(ran), "passedTests": len(ran) - failed,
+        "failedTests": failed, "skippedTests": 0, "expectedFailures": 0}))
+    output = "Test Suite 'All tests' started\n"
+    if os.environ.get("FAKE_SANITIZER_REPORT") == "asan":
+        output += "==4242==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010 at /private/secret/path.c\n"
+    (bundle / "fake-action.json").write_text(json.dumps({"emittedOutput": output}))
+    print(output)
+    sys.exit(65 if failed else 0)
+sys.exit(98)
+''',
+    "xcrun": r'''
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ["FAKE_LOG"], "a") as log:
+    log.write("xcrun " + json.dumps(args) + "\n")
+    if args[:1] == ["devicectl"]:
+        ledger = pathlib.Path(os.environ["FAKE_LEDGER"])
+        log.write("devicectl-ledger " + (ledger.read_text() if ledger.exists() else "").replace("\n", "|") + "\n")
+fixtures = pathlib.Path(os.environ["FAKE_FIXTURES"])
+if args[:3] == ["simctl", "list", "-j"]:
+    print((fixtures / ("simctl-devices.json" if args[3] == "devices" else "simctl-runtimes.json")).read_text()); sys.exit(0)
+if args[:2] == ["simctl", "shutdown"]:
+    sys.exit(0)
+if args[:1] == ["xcresulttool"]:
+    bundle = pathlib.Path(args[args.index("--path") + 1])
+    name = "fake-action.json" if args[1:3] == ["get", "log"] else "fake-tests.json" if "tests" in args else "fake-summary.json"
+    print((bundle / name).read_text()); sys.exit(0)
+if args[:4] == ["devicectl", "device", "info", "details"]:
+    out = args[args.index("--json-output") + 1]
+    pathlib.Path(out).write_text(json.dumps({"result": {
+        "hardwareProperties": {"udid": os.environ.get("FAKE_INFO_UDID", os.environ["FAKE_DEVICE"]), "marketingName": "iPhone XS"},
+        "deviceProperties": {"osVersionNumber": "18.7.2", "name": "Some Owner's iPhone"}}}))
+    print("Some Owner's iPhone details written")
+    sys.exit(0)
+if args[:4] == ["devicectl", "device", "install", "app"]:
+    print("App installed on Some Owner's iPhone")
+    sys.exit(1 if os.environ.get("FAKE_INSTALL_FAILS") else 0)
+if args[:4] == ["devicectl", "device", "process", "launch"]:
+    print("Launched application on Some Owner's iPhone")
+    lines = json.loads(os.environ["FAKE_SMOKE_LINES"])
+    run = os.environ.get("FAKE_SMOKE_RUN", "pass")
+    if run == "missing-step":
+        lines = [l for l in lines if not l.startswith("SMOKE PASS dialog cancel:")]
+    if run == "repeated-step":
+        lines = lines + [lines[0]]
+    print("\n".join(lines))
+    if run == "fail":
+        print("SMOKE FAIL dialog: completion 3")
+        print("SMOKE RESULT FAIL failures=1")
+    elif run == "result-fail":
+        print("SMOKE RESULT FAIL failures=1")
+    elif run != "no-result":
+        print("SMOKE RESULT PASS failures=0")
+    sys.exit(0)
+sys.exit(99)
+''',
+}
+DEVICE_SMOKE_STAND_IN = r'''
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ["FAKE_LOG"], "a") as log:
+    seen = ",".join(n for n in sorted(os.environ) if n in ("XCODE_XCCONFIG_FILE", "TOOLCHAINS") or n.startswith("TEST_RUNNER_"))
+    log.write("smoke " + json.dumps(args) + " ENV=" + seen + " TEAM=" + os.environ.get("NTK_SMOKE_DEVELOPMENT_TEAM", "") + "\n")
+work = pathlib.Path(args[args.index("--work") + 1])
+app = work / "dd-device" / "Build" / "Products" / "Release-iphoneos" / "IosLibraryCApiSmoke.app"
+print("== iOS C ABI smoke (Xcode 26.6, library 2.0.0)")
+print("  PASS simulator build: arm64 x86_64")
+if os.environ.get("FAKE_SIGNED_BUILD_FAILS"):
+    print("  FAIL device build (signed): see the log"); sys.exit(1)
+app.mkdir(parents=True)
+for line in ("device build (signed): arm64", "device embeds: IosLibrary.framework IosLibraryCApi.framework",
+             "device needs no Swift library", "device imports nothing of IosLibrary"):
+    print("  PASS " + line)
+'''
+
+
+class CApiDeviceEndToEnd(unittest.TestCase):
+    """`test_ios.sh --capi-device` from start to end with fakes: nothing reaches a device."""
+
+    setUp_shared = base.EndToEnd.setUp
+    tearDown = base.EndToEnd.tearDown
+    run_script = base.EndToEnd.run_script
+
+    def setUp(self):
+        self.setUp_shared()
+        bin_dir = self.temp / "bin"
+        for name, body in dict(CAPI_FAKES, **DEVICE_FAKES).items():
+            (bin_dir / name).write_text(f"#!{sys.executable}\n{body}")
+            (bin_dir / name).chmod(0o755)
+        # The real smoke script stays in the copy under another name, for the direct calls of its gate.
+        shutil.copy(self.root / "scripts" / "run_ios_capi_smoke.sh", self.root / "scripts" / "real_run_ios_capi_smoke.sh")
+        for name, body in dict(STAND_INS, **{"run_ios_capi_smoke.sh": DEVICE_SMOKE_STAND_IN}).items():
+            path = self.root / "scripts" / name
+            path.write_text(f"#!{sys.executable}\n{body}")
+            path.chmod(0o755)
+        shutil.copytree(base.CAPI_HEADERS, self.root / "ios" / "IosLibraryCApi" / "include" / "NativeToolkitC")
+        project = self.root / "ios" / "IosLibraryCApi" / "IosLibraryCApi.xcodeproj"
+        project.mkdir(parents=True)
+        (project / "project.pbxproj").write_text(
+            "".join(f"\t\t\t\tDEVELOPMENT_TEAM = {FAKE_TEAM};\n" for _ in range(6)) + "\t\t\t\tDEVELOPMENT_TEAM = \"\";\n")
+        self.env.pop("FAKE_XCODE", None)
+        self.env["FAKE_UNIT_TESTS"] = json.dumps(FAKE_UNIT_TESTS)
+        self.env["FAKE_SMOKE_LINES"] = json.dumps(SMOKE_LINES)
+        self.build_root = self.root / "ios" / "IosLibraryExample" / "build" / "test_ios"
+
+    def dry_run(self):
+        finished, log = self.run_script("--udid", FAKE_DEVICE, "--enumerate-udid", SIMULATOR, "--capi-device", "--dry-run")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        approvals = sorted(self.build_root.glob("*-capi-device*/approval.json"))
+        return finished, log, approvals[-1]
+
+    def run_approved(self, approval):
+        return self.run_script("--udid", FAKE_DEVICE, "--enumerate-udid", SIMULATOR, "--capi-device", "--approved",
+                               str(approval), "--devicectl-id", FAKE_DEVICECTL_ID)
+
+    def device_lines(self, log):
+        return [line for line in log.splitlines() if "platform=iOS,id" in line or line.startswith('xcrun ["devicectl"')
+                or "--signed-device-build" in line]
+
+    def assert_no_device(self, log):
+        self.assertEqual(self.device_lines(log), [])
+        for word in ("build-script", "smoke "):
+            self.assertNotIn(word, log)
+
+    def assert_no_udid(self, finished):
+        # Review B-1: the hardware UDID is never printed, nor the device's name.
+        self.assertNotIn(FAKE_DEVICE, finished.stdout + finished.stderr)
+        self.assertNotIn("Some Owner", finished.stdout + finished.stderr)
+
+    def test_the_dry_run_writes_the_list_and_never_reaches_the_device(self):
+        finished, log, approval = self.dry_run()
+        self.assert_no_device(log)
+        self.assert_no_udid(finished)
+        self.assertNotIn("devicectl", log)
+        sims = [json.loads(line[len("xcodebuild "):line.rindex(" ALLOW=")]) for line in log.splitlines()
+                if line.startswith("xcodebuild [")]
+        self.assertEqual(sims[0], ["-version"])
+        for args in sims[1:]:
+            self.assertEqual(args[args.index("-destination") + 1], f"platform=iOS Simulator,id={SIMULATOR}")
+        data = json.loads(approval.read_text())
+        self.assertEqual(data["kind"], "capi-device")
+        self.assertEqual(data["udid"], FAKE_DEVICE)
+        self.assertEqual(data["expectedTests"], sorted(FAKE_UNIT_TESTS))
+        self.assertEqual([a["step"] for a in data["actions"]], ["device-identity"] + list(c.DEVICE_STEPS))
+        self.assertEqual([a["bundleId"] for a in data["leftOnDevice"]],
+                         ["com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost", c.SMOKE_BUNDLE_ID])
+        for word in ("approval ID", "LEFT ON THE DEVICE", "REMOVAL", "SIGNING", "DEVICE device-smoke-run",
+                     "DEVICE device-identity", "mac    device-smoke-build", "EXPECTED TESTS: 3 of IosLibraryCApiTests"):
+            self.assertIn(word, finished.stdout)
+        self.assertNotIn(FAKE_TEAM, finished.stdout + approval.read_text())
+        self.assertFalse(self.ledger.exists(), "a dry run consumed nothing")
+        self.assertEqual(sorted(p.name for p in self.temp.glob("test_ios-device.*")), [])
+
+    def test_without_an_approval_or_with_other_options_nothing_runs(self):
+        for extra in ([], ["--approved", "x"], ["--devicectl-id", "x"], ["--approved", "", "--devicectl-id", "x"],
+                      ["--dry-run", "--approved", "x"], ["--dry-run", "--devicectl-id", "x"], ["--dry-run", "--capi"],
+                      ["--dry-run", "--capi-ui"], ["--dry-run", "--feature", "Dialog"], ["--dry-run", "--device-allow", ""],
+                      ["--dry-run", "--skip-unit"], ["--dry-run", "--baseline"]):
+            with self.subTest(extra=extra):
+                finished, log = self.run_script("--udid", FAKE_DEVICE, "--enumerate-udid", SIMULATOR, "--capi-device", *extra)
+                self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+                self.assert_no_device(log)
+                self.assertNotIn("simctl", log)
+        finished, log = self.run_script("--udid", FAKE_DEVICE, "--capi-device", "--dry-run")
+        self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+        self.assertIn("needs --enumerate-udid", finished.stderr)
+        finished, log = self.run_script("--udid", SIMULATOR, "--enumerate-udid", SIMULATOR, "--capi-device", "--dry-run")
+        self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+        self.assertIn("device only", finished.stderr)
+        self.assert_no_device(log)
+        for env, word in (({"FAKE_XCODE": "26.3"}, "--capi-device needs Xcode 26.6"),
+                          ({"FAKE_SIMULATOR_APP_OPEN": "1"}, "Simulator.app is open")):
+            with self.subTest(env=env):
+                self.env.update(env)
+                finished, log = self.run_script("--udid", FAKE_DEVICE, "--enumerate-udid", SIMULATOR, "--capi-device", "--dry-run")
+                for key in env:
+                    del self.env[key]
+                self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+                self.assertIn(word, finished.stderr)
+                self.assertFalse(list(self.build_root.glob("*-capi-device*/approval.json")))
+
+    def test_an_approved_run_passes_and_leaves_nothing_of_the_device(self):
+        _, _, approval = self.dry_run()
+        approval_id = json.loads(approval.read_text())["approvalId"]
+        # Review B5: nothing from outside the list reaches the device's builds.
+        self.env.update({"XCODE_XCCONFIG_FILE": "/tmp/evil.xcconfig", "TOOLCHAINS": "evil", "TEST_RUNNER_DYLD_INSERT": "x"})
+        finished, log = self.run_approved(approval)
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        self.assertIn(f"[summary] {len(c.DEVICE_STEPS)} passed, 0 problem(s) (the device)", finished.stdout)
+        self.assert_no_udid(finished)
+        lines = log.splitlines()
+        device_tmp = str(self.temp.resolve() / "test_ios-device.")
+        test_index = next(i for i, line in enumerate(lines) if line.startswith("xcodebuild [") and "platform=iOS,id=" in line)
+        test = json.loads(lines[test_index][len("xcodebuild "):lines[test_index].rindex(" ALLOW=")])
+        self.assertEqual(test[test.index("-destination") + 1], f"platform=iOS,id={FAKE_DEVICE}")
+        for word in ("-allowProvisioningUpdates", "-enableAddressSanitizer", "-only-testing:IosLibraryCApiTests"):
+            self.assertIn(word, test)
+        self.assertEqual(test[test.index("-collect-test-diagnostics") + 1], "never")
+        for option in ("-derivedDataPath", "-resultBundlePath"):
+            self.assertTrue(test[test.index(option) + 1].startswith(device_tmp), test)
+        self.assertEqual(lines[test_index + 1], "xcodebuild-env ")
+        self.assertIn(approval_id, lines[test_index + 2])
+        smoke = next(line for line in lines if line.startswith("smoke "))
+        self.assertIn("--signed-device-build", smoke)
+        self.assertNotIn("--udid", smoke)
+        self.assertIn(" ENV= TEAM=" + FAKE_TEAM, smoke)
+        devicectl = [json.loads(line[len("xcrun "):]) for line in lines if line.startswith('xcrun ["devicectl"')]
+        self.assertEqual([d[:4] for d in devicectl], [["devicectl", "device", "info", "details"],
+                                                       ["devicectl", "device", "install", "app"],
+                                                       ["devicectl", "device", "process", "launch"]])
+        for call in devicectl:
+            self.assertEqual(call[call.index("--device") + 1], FAKE_DEVICECTL_ID)
+        self.assertIn("--console", devicectl[2])
+        self.assertEqual(devicectl[2][-1], c.SMOKE_BUNDLE_ID)
+        self.assertIn(approval_id, next(line for line in lines if line.startswith("devicectl-ledger ")))
+        order = [line.split(" ")[0] for line in lines if line.split(" ")[0] in ("build-script", "smoke")
+                 or ("platform=iOS,id" in line and line.startswith("xcodebuild [")) or line.startswith('xcrun ["devicectl"')]
+        self.assertEqual(order, ["xcrun", "xcodebuild", "build-script", "smoke", "xcrun", "xcrun"])
+        self.assertEqual(sorted(p.name for p in self.temp.glob("test_ios-device.*")), [])
+        run = sorted(self.build_root.glob("*-capi-device*"))[-1]
+        written = "".join(p.read_text(errors="replace") for p in run.rglob("*") if p.is_file() and p.name != "plan.json"
+                          and p.name != "approval.json" and not p.name.startswith("simctl-"))
+        self.assertNotIn(FAKE_TEAM, written + finished.stdout + finished.stderr)
+        self.assertNotIn("Some Owner", written)
+
+    def test_another_device_reaches_nothing_but_the_read(self):
+        # Review A: the devicectl identifier must name the --udid device.
+        _, _, approval = self.dry_run()
+        self.env["FAKE_INFO_UDID"] = "99999999-8888-7777-6666-555555555555"
+        finished, log = self.run_approved(approval)
+        self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+        self.assertIn("is not the device of the approved list", finished.stderr)
+        self.assert_no_udid(finished)
+        self.assertNotIn("99999999", finished.stdout + finished.stderr)
+        devicectl = [line for line in log.splitlines() if line.startswith('xcrun ["devicectl"')]
+        self.assertEqual(len(devicectl), 1)
+        self.assertIn('"info", "details"', devicectl[0])
+        self.assertFalse([line for line in log.splitlines() if "platform=iOS,id" in line])
+        for word in ("build-script", "smoke "):
+            self.assertNotIn(word, log)
+        self.assertEqual(sorted(p.name for p in self.temp.glob("test_ios-device.*")), [])
+
+    def test_an_approval_runs_once_and_a_changed_list_is_refused(self):
+        _, _, approval = self.dry_run()
+        finished, _ = self.run_approved(approval)
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        finished, log = self.run_approved(approval)
+        self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+        self.assertIn("already used", finished.stderr)
+        self.assert_no_device(log)
+        for field, value in (("leftOnDevice", []), ("expectedTests", list(FAKE_UNIT_TESTS[:2]))):
+            with self.subTest(field=field):
+                _, _, approval = self.dry_run()
+                data = json.loads(approval.read_text())
+                data[field] = value
+                approval.write_text(json.dumps(data))
+                finished, log = self.run_approved(approval)
+                self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+                self.assertIn(f"{field} differs", finished.stdout)
+                self.assert_no_device(log)
+                self.assertNotIn(data["approvalId"], self.ledger.read_text())
+
+    def test_the_signed_smoke_build_needs_the_consumed_approval_of_this_run(self):
+        # Review A (Codex): run_ios_capi_smoke.sh --signed-device-build called directly signs only through the gate.
+        _, _, approval = self.dry_run()
+        plan = approval.parent / "plan.json"
+        real = self.root / "scripts" / "real_run_ios_capi_smoke.sh"
+        env = dict(self.env, NTK_SMOKE_DEVELOPMENT_TEAM=FAKE_TEAM, DEVELOPER_DIR="/nonexistent")
+
+        def call(*extra):
+            with tempfile.TemporaryDirectory() as directory:
+                return subprocess.run(["bash", str(real), "--dist", directory, "--work", str(pathlib.Path(directory) / "w"),
+                                       "--signed-device-build", *extra], capture_output=True, text=True, env=env, timeout=120)
+        for extra in ([], ["--plan", str(plan)], ["--plan", str(plan), "--approved", str(approval)]):
+            with self.subTest(extra=extra):
+                finished = call(*extra)
+                self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+                self.assertIn("signs only with --plan and --approved", finished.stderr)
+        # The near miss: once the approval is consumed (an approved run), the same call passes the gate and goes
+        # on to the next check (no xcframework in the empty --dist).
+        finished, _ = self.run_approved(approval)
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        finished = call("--plan", str(plan), "--approved", str(approval))
+        self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+        self.assertIn("ios-native-toolkit-capi-<version>.xcframework", finished.stderr)
+        with tempfile.TemporaryDirectory() as directory:
+            finished = subprocess.run(["bash", str(real), "--dist", directory, "--work", str(pathlib.Path(directory) / "w"),
+                                       "--plan", str(plan)], capture_output=True, text=True, env=env, timeout=60)
+        self.assertEqual(finished.returncode, 2)
+        self.assertIn("--plan and --approved are for --signed-device-build", finished.stderr)
+
+    def test_each_failure_fails_the_run(self):
+        cases = (
+            ("an ASan report in a run that passed", {"FAKE_SANITIZER_REPORT": "asan"}, "AddressSanitizer ERROR x1", 3),
+            ("a failed test", {"FAKE_UNIT_FAIL": "asan"}, "FAIL device-unit-asan", 3),
+            ("a test that did not run", {"FAKE_DROP_TEST": FAKE_UNIT_TESTS[1]}, "1 expected test(s) did not run", 3),
+            ("the simulator's runtime", {"FAKE_DEVICE_RUNTIME": "@rpath/libclang_rt.asan_iossim_dynamic.dylib"},
+             "FAIL device-unit-asan", 3),
+            ("no runtime", {"FAKE_DEVICE_RUNTIME": ""}, "no sanitizer runtime", 3),
+            ("the distributable", {"FAKE_DIST_BUILD_FAILS": "1"}, "FAIL device-smoke-build: not run", 1),
+            ("the signed build", {"FAKE_SIGNED_BUILD_FAILS": "1"}, "FAIL device-smoke-install: not run", 1),
+            ("the install", {"FAKE_INSTALL_FAILS": "1"}, "FAIL device-smoke-run: not run", 2),
+            ("a SMOKE FAIL", {"FAKE_SMOKE_RUN": "fail"}, "SMOKE FAIL line(s)", 3),
+            ("a SMOKE RESULT FAIL", {"FAKE_SMOKE_RUN": "result-fail"}, "a SMOKE RESULT FAIL line", 3),
+            ("no result line", {"FAKE_SMOKE_RUN": "no-result"}, "no single 'SMOKE RESULT PASS failures=0' line", 3),
+            ("a missing step", {"FAKE_SMOKE_RUN": "missing-step"}, "1 smoke step(s) without SMOKE PASS: dialog cancel", 3),
+            ("a repeated step", {"FAKE_SMOKE_RUN": "repeated-step"}, "passed more than once: version", 3),
+        )
+        for name, env, word, devicectl_calls in cases:
+            with self.subTest(name):
+                _, _, approval = self.dry_run()
+                self.env.update(env)
+                finished, log = self.run_approved(approval)
+                for key in env:
+                    del self.env[key]
+                self.assertEqual(finished.returncode, 1, finished.stdout + finished.stderr)
+                self.assertIn(word, finished.stdout)
+                self.assertNotIn("/private/secret/path.c", finished.stdout + finished.stderr)
+                self.assertNotIn("Some Owner", finished.stdout + finished.stderr)
+                self.assertEqual(len([l for l in log.splitlines() if l.startswith('xcrun ["devicectl"')]), devicectl_calls)
+                self.assertEqual(sorted(p.name for p in self.temp.glob("test_ios-device.*")), [])
+                run = sorted(self.build_root.glob("*-capi-device*"))[-1]
+                self.assertNotIn("/private/secret/path.c", (run / "results.jsonl").read_text())
+
+
+class DeviceDecisions(unittest.TestCase):
+    def make_repo(self, directory):
+        repo = directory / "repo"
+        for relative in c.DEVICE_RUNNER_FILES:
+            (repo / relative).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(ROOT / relative, repo / relative)
+        (repo / "ios").mkdir()
+        (repo / "ios" / "A.swift").write_text("a\n")
+        base.git(repo, "init", "-q")
+        base.git(repo, "add", "-A")
+        base.git(repo, "commit", "-q", "-m", "init")
+        return repo
+
+    def plan(self, repo):
+        return c.make_device_plan(FAKE_DEVICE, base.git(repo, "rev-parse", "HEAD"), "Xcode 26.6 Build version 17F31",
+                                  "2.0.0", c.device_runner_file_hashes(repo), sorted(FAKE_UNIT_TESTS))
+
+    def test_the_signing_team_is_one_value_and_never_more(self):
+        self.assertEqual(c.signing_team(f"DEVELOPMENT_TEAM = {FAKE_TEAM};\n\tDEVELOPMENT_TEAM = \"\";\n"), FAKE_TEAM)
+        for text in ("", "DEVELOPMENT_TEAM = \"\";\n", f"DEVELOPMENT_TEAM = {FAKE_TEAM};\nDEVELOPMENT_TEAM = ZZZZZ99999;\n",
+                     "DEVELOPMENT_TEAM = abc;\n"):
+            with self.subTest(text=text), self.assertRaises(c.RunnerError):
+                c.signing_team(text)
+        self.assertEqual(c.signing_team((ROOT / c.TEAM_PBXPROJ).read_text()), c.signing_team((ROOT / c.TEAM_PBXPROJ).read_text()))
+
+    def test_an_approval_must_be_the_list_of_this_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = self.make_repo(pathlib.Path(directory))
+            plan = self.plan(repo)
+            approval = c.make_device_approval(plan)
+            self.assertEqual(c.device_approval_problems(approval, plan), [])
+            for field, value in (("udid", "other"), ("head", "0" * 40), ("xcode", "Xcode 26.3"), ("libraryVersion", "2.0.1"),
+                                 ("actions", []), ("leftOnDevice", []), ("removal", "x"), ("signing", "x"), ("notTouched", []),
+                                 ("runnerFiles", {}), ("expectedTests", []), ("planDigest", "0" * 64), ("approvalId", "x"), ("createdAt", "now")):
+                with self.subTest(field=field):
+                    changed = dict(approval, **{field: value})
+                    self.assertTrue(c.device_approval_problems(changed, plan), field)
+            self.assertTrue(c.device_approval_problems(dict(approval, extra=1), plan))
+            self.assertTrue(c.device_approval_problems({k: v for k, v in approval.items() if k != "signing"}, plan))
+            self.assertTrue(c.device_approval_problems(dict(approval, kind="device"), plan))
+
+    def test_the_gate_needs_the_consumed_id_the_same_plan_runner_and_tree(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = pathlib.Path(directory)
+            repo = self.make_repo(directory)
+            plan = self.plan(repo)
+            approval = c.make_device_approval(plan)
+            ledger = directory / "ledger.log"
+            head = base.git(repo, "rev-parse", "HEAD")
+            self.assertIn("the approval was not consumed in the ledger", c.device_gate_problems(plan, approval, repo, head, ledger))
+            base.r.consume_approval(ledger, approval["approvalId"], FAKE_DEVICE)
+            self.assertEqual(c.device_gate_problems(plan, approval, repo, head, ledger), [])
+            self.assertIn("the plan differs from the approved one",
+                          c.device_gate_problems(dict(plan, udid="other"), approval, repo, head, ledger))
+            (repo / "ios" / "A.swift").write_text("b\n")
+            self.assertTrue(any("uncommitted changes under ios/" in p for p in c.device_gate_problems(plan, approval, repo, head, ledger)))
+            base.git(repo, "checkout", "--", "ios/A.swift")
+            runner = repo / "scripts" / "run_ios_capi_smoke.sh"
+            runner.write_text(runner.read_text() + "\n# changed\n")
+            problems = c.device_gate_problems(plan, approval, repo, head, ledger)
+            self.assertIn("scripts/run_ios_capi_smoke.sh differs from the commit", problems)
+            self.assertIn("the runner files differ from the ones the approved plan was made with", problems)
+            self.assertTrue(c.device_gate_problems(plan, approval, repo, "0" * 40, ledger))
+
+    def test_the_device_runtime_is_the_ios_one(self):
+        device = "\t@rpath/libclang_rt.asan_ios_dynamic.dylib (compatibility version 0.0.0)"
+        simulator = ASAN_LINE
+        listing = {f: SYSTEM_LINE + "\n" + device for f in c.FRAMEWORKS}
+        self.assertEqual(c.runtime_problems("asan", listing, c.DEVICE_SANITIZER_RUNTIME), [])
+        self.assertTrue(c.runtime_problems("asan", {f: SYSTEM_LINE + "\n" + simulator for f in c.FRAMEWORKS},
+                                           c.DEVICE_SANITIZER_RUNTIME))
+        self.assertTrue(c.runtime_problems("asan", listing))  # the simulator's check refuses the device's runtime
+
+    def test_the_smoke_run_counts_only_its_own_lines(self):
+        # Review B7: each of the 16 steps exactly once, no FAIL, one PASS result.
+        good = "Launched on Some Owner's iPhone\n" + "\n".join(SMOKE_LINES) + "\nSMOKE RESULT PASS failures=0\n"
+        self.assertEqual(len(c.SMOKE_STEPS), 16)
+        self.assertEqual(c.device_report_problems("device-smoke-run", good), [])
+        for text in ("SMOKE PASS version: x\nSMOKE RESULT PASS failures=0\n", good.replace(SMOKE_LINES[3] + "\n", ""),
+                     good + SMOKE_LINES[0] + "\n", good + "SMOKE FAIL b\n", good + "SMOKE RESULT FAIL failures=1\n",
+                     good + "SMOKE PASS something new: x\n", good + "SMOKE RESULT PASS failures=0\n",
+                     good.replace("SMOKE RESULT PASS failures=0\n", ""), ""):
+            with self.subTest(text=text[-60:]):
+                self.assertTrue(c.device_report_problems("device-smoke-run", text))
+        record = c.device_step_record("device-smoke-run", 0, False, None, "")
+        self.assertEqual(record["status"], "FAIL")
+        with tempfile.TemporaryDirectory() as directory:
+            log = pathlib.Path(directory) / "run.log"
+            log.write_text(good)
+            record = c.device_step_record("device-smoke-run", 0, False, str(log), "")
+            self.assertEqual(record, {"step": "device-smoke-run", "status": "PASS",
+                                      "detail": "the 16 smoke steps passed once each"})
+            self.assertEqual(c.device_step_record("device-smoke-run", 142, True, str(log), "")["status"], "FAIL")
+
+    def test_the_device_summary_needs_every_step_once(self):
+        records = [{"step": s, "status": "PASS"} for s in c.DEVICE_STEPS]
+        self.assertTrue(c.device_summary(records)[1])
+        self.assertFalse(c.device_summary(records[:-1])[1])
+        self.assertFalse(c.device_summary(records + records[-1:])[1])
+        self.assertFalse(c.device_summary(records + [{"step": "smoke", "status": "PASS"}])[1])
+        self.assertFalse(c.device_summary(records[:-1] + [{"step": "device-smoke-run", "status": "FAIL"}])[1])
+
+    def test_the_smoke_steps_are_the_ones_the_app_prints(self):
+        source = (ROOT / "ios" / "IosLibraryCApiSmoke" / "IosLibraryCApiSmoke" / "Smoke.c").read_text()
+        source += (ROOT / "ios" / "IosLibraryCApiSmoke" / "IosLibraryCApiSmoke" / "main.m").read_text()
+        for step in c.SMOKE_STEPS:
+            name = step.split(": ")[-1]
+            self.assertIn(f'"{name}"', source, step)
+
+    def test_the_expected_tests_come_from_the_enumeration_and_must_all_run_once_and_pass(self):
+        enumeration = json.dumps({"errors": [], "values": [{"enabledTests": [
+            {"identifier": "IosLibraryCApiTests/B/testB()"}, {"identifier": "IosLibraryCApiTests/A/testA()"},
+            {"identifier": "IosLibraryCApiTests/A"}, {"identifier": "OtherTests/C/testC()"}]}]})
+        self.assertEqual(c.unit_test_ids(enumeration), ["A/testA()", "B/testB()"])
+        for broken in (json.dumps({"errors": ["x"], "values": []}), json.dumps({"errors": [], "values": []})):
+            with self.assertRaises(c.RunnerError):
+                c.unit_test_ids(broken)
+
+        def tests(*cases):
+            return json.dumps({"testNodes": [{"nodeType": "Unit test bundle", "children": [
+                {"nodeType": "Test Case", "nodeIdentifier": i, "result": r} for i, r in cases]}]})
+        expected = ["A/testA()", "B/testB()"]
+        self.assertEqual(c.expected_tests_problems(expected, tests(("A/testA()", "Passed"), ("B/testB()", "Passed"))), [])
+        for name, text in (("missing", tests(("A/testA()", "Passed"))),
+                           ("extra", tests(("A/testA()", "Passed"), ("B/testB()", "Passed"), ("C/testC()", "Passed"))),
+                           ("twice", tests(("A/testA()", "Passed"), ("B/testB()", "Passed"), ("B/testB()", "Passed"))),
+                           ("skipped", tests(("A/testA()", "Passed"), ("B/testB()", "Skipped"))),
+                           ("not json", "{")):
+            with self.subTest(name):
+                self.assertTrue(c.expected_tests_problems(expected, text))
+        self.assertTrue(c.expected_tests_problems([], tests(("A/testA()", "Passed"))))
+
+    def test_a_report_is_named_by_its_kinds_never_its_lines(self):
+        kinds = c.report_kinds(["==1==ERROR: AddressSanitizer: heap-use-after-free at /Users/someone/x.c",
+                                "SUMMARY: AddressSanitizer: heap-use-after-free /Users/someone/x.c:3",
+                                "/Users/someone/y.c:4:2: runtime error: signed overflow"])
+        self.assertEqual(kinds, "AddressSanitizer ERROR x1, AddressSanitizer SUMMARY x1, UBSan runtime error x1")
+        self.assertNotIn("/Users", kinds)
+
+
+class SignedSmokeBuild(unittest.TestCase):
+    """run_ios_capi_smoke.sh --signed-device-build: refused without a team, without the approval of a
+    --capi-device run, and with --udid or --device-build (the gate itself is CApiDeviceEndToEnd's)."""
+
+    def run_smoke(self, *args, team=None):
+        env = {k: v for k, v in os.environ.items() if k != "NTK_SMOKE_DEVELOPMENT_TEAM"}
+        if team is not None:
+            env["NTK_SMOKE_DEVELOPMENT_TEAM"] = team
+        env["DEVELOPER_DIR"] = "/nonexistent"
+        with tempfile.TemporaryDirectory() as directory:
+            return subprocess.run(["bash", str(ROOT / "scripts" / "run_ios_capi_smoke.sh"), "--dist", directory,
+                                   "--work", str(pathlib.Path(directory) / "work"), *args],
+                                  capture_output=True, text=True, env=env, timeout=60)
+
+    def test_the_refusals(self):
+        for args, team, word in ((["--signed-device-build"], None, "needs NTK_SMOKE_DEVELOPMENT_TEAM"),
+                                 (["--signed-device-build"], "abc", "needs NTK_SMOKE_DEVELOPMENT_TEAM"),
+                                 (["--signed-device-build", "--udid", SIMULATOR], FAKE_TEAM, "neither --device-build nor --udid"),
+                                 (["--signed-device-build", "--device-build"], FAKE_TEAM, "neither --device-build nor --udid"),
+                                 (["--signed-device-build"], FAKE_TEAM, "signs only with --plan and --approved"),
+                                 (["--signed-device-build", "--plan", "/nonexistent", "--approved", "/nonexistent"], FAKE_TEAM,
+                                  "signs only with --plan and --approved")):
+            with self.subTest(args=args, team=team):
+                finished = self.run_smoke(*args, team=team)
+                self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+                self.assertIn(word, finished.stderr)
+                self.assertNotIn(FAKE_TEAM, finished.stdout + finished.stderr)
 
 
 if __name__ == "__main__":

@@ -108,7 +108,7 @@ needs a full run, so it refuses `-Filter` and `-SkipUnitTests`.
 
 | Script | Runs |
 |---|---|
-| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device; with `--capi-ui`, the UI tests of the C ABI on one simulator; with `--capi`, the other checks of the C ABI on one simulator. What runs and every check of what ran is in `ios_ui_runner.py`, and for `--capi` in `ios_capi_runner.py` |
+| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device; with `--capi-ui`, the UI tests of the C ABI on one simulator; with `--capi`, the other checks of the C ABI on one simulator; with `--capi-device`, the C ABI's ASan and smoke on the device, after the user approved the list. What runs and every check of what ran is in `ios_ui_runner.py`, and for `--capi` and `--capi-device` in `ios_capi_runner.py` |
 | `test_ios.baseline.<model>-<os>.json` | The recorded outcome of the last full run in each of the two environments, which `--baseline` rewrites |
 
 ```bash
@@ -121,6 +121,10 @@ DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
 scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --dry-run --device-allow systemui
 scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --devicectl-id <id> \
   --device-allow systemui --approved <approval.json>         # after the user approved the list
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --capi-device --dry-run   # the list to approve
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --capi-device --approved <approval.json> --devicectl-id <id>
 ```
 
 The device is the user's own iPhone (`artifact/topics/ios-c-abi/designs/2026-10-18-ios-c-abi-ui-test-design.md`,
@@ -170,10 +174,27 @@ reaches the device: the device's ASan and smoke run only at a stage's end with t
 26.3 (D-16) is `run_ios_capi_smoke.sh` on its own, as below. The archives use Xcode's default DerivedData,
 as the build script always has.
 
+`--capi-device` is the device's side of the same checks (stage 2 working notes, 17): it first checks with a
+read-only `devicectl device info details` that `--devicectl-id` names the `--udid` device, then runs
+`IosLibraryCApiTests` with ASan on the device (`-allowProvisioningUpdates`, the device's
+`libclang_rt.asan_ios_dynamic` runtime, the same reading of the summary and the logs, and exactly the tests
+that `--enumerate-udid`'s simulator enumerated for the approval list; a sanitizer's report is recorded by its
+kinds and counts only), then the distributable built unsigned in the run's folder, the
+smoke built from it signed for the device (`run_ios_capi_smoke.sh --signed-device-build`, with the team of
+the C ABI's own project passed on the command line and written nowhere), installed with `devicectl device
+install app` and launched with `devicectl device process launch --console`; only the app's own `SMOKE` lines
+are read, and each of its 16 steps must pass exactly once. Every xcodebuild of the path runs without
+`XCODE_XCCONFIG_FILE`, `TOOLCHAINS` and the `TEST_RUNNER_` variables; the hardware UDID is never printed. It takes `--udid`, `--enumerate-udid` and either `--dry-run` alone, which writes the approval list (what reaches the
+device, what is signed, the two apps left installed) and never reaches the device or signs, or `--approved`
+with `--devicectl-id`, which checks the list, the runner files and the tree against the commit, consumes the
+approval's ID in the same ledger as the sample's device runs, and checks again before each step that reaches
+the device or signs. The device's result bundles and logs stay in a temporary folder that the run removes.
+Neither app is removed afterwards (that needs its own approval).
+
 | Script | Runs |
 |---|---|
 | `run_android_capi_smoke.sh` | The Android C ABI smoke (`android/android_library_capi_smoke`) on one device, against a Maven repository the build wrote |
-| `run_ios_capi_smoke.sh` | The iOS C ABI smoke (`ios/IosLibraryCApiSmoke`, a C and Objective-C app with no Swift) built from the two xcframeworks of a build alone, with the Xcode `DEVELOPER_DIR` names (26.6 builds the library; 26.3 is the users' lowest). It copies the smoke and the xcframeworks into a new `--work` folder and builds there, checks what the app embeds and imports, and with `--udid` runs it on a simulator: `ntk_notification_install`, a named pasteboard written and read, a dialog shown and cancelled to its completion. `--device-build` also builds for a device, unsigned, and never installs it |
+| `run_ios_capi_smoke.sh` | The iOS C ABI smoke (`ios/IosLibraryCApiSmoke`, a C and Objective-C app with no Swift) built from the two xcframeworks of a build alone, with the Xcode `DEVELOPER_DIR` names (26.6 builds the library; 26.3 is the users' lowest). It copies the smoke and the xcframeworks into a new `--work` folder and builds there, checks what the app embeds and imports, and with `--udid` runs it on a simulator: `ntk_notification_install`, a named pasteboard written and read, a dialog shown and cancelled to its completion. `--device-build` also builds for a device, unsigned, and never installs it; `--signed-device-build` (with `NTK_SMOKE_DEVELOPMENT_TEAM`, for `test_ios.sh --capi-device` only) builds it signed, only with `--plan` and `--approved` of a consumed approval (the same gate), and never installs it either |
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode26.3.app/Contents/Developer \
@@ -191,7 +212,7 @@ breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 834 cases
+python -m unittest discover -s scripts/tests    # 856 cases
 ```
 
 `test_check_android_dist.py` and `test_check_ios_dist.py` break copies of a real build, so they

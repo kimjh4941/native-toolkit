@@ -2810,3 +2810,222 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 | B-14 設計書の注記 | 第 2 部 16 章（JSON の文言と 126 / 212）と 8.3 の DL-05 に注記を足した。推奨案。持ち主の確認待ち |
 | C 1・2・3・4・5・7・8・10・11・12・13 | 直した（Claude C の本文は届いておらず、メインのセッションの短い説明から読み取った）: capi が必ず選ばれること（辞書順）、`ntk_clipboard_patterns` をビットの組に、`ntk_clipboard_load_fn` の `request_id`、`ntk_notification_event_kind` と `NTK_NOTIFICATION_EVENT_KIND_*`、`is_launch` を `Notification.h` のコメントのとおりに、3.3 の配布物の名前、Unity が window を差し替えるかは確かめていないと書いた、Unity 6000.4.2f1 と「どこで止まるかは確かめていない」、`[UnityTest]` で数えた、7.2 に 16.4 と 14.7 の 2、16 章と README 8.6 に 126 / 212 |
 | C 6・9 | 任意。入れていない（Claude C の本文はこのセッションに届いておらず、短い説明だけでは中身が分からなかった） |
+
+## 17. 2.0.0 の前の実機の区切り
+
+### 17.1 持ち主の決定（2026-11-07 18:45 ごろ、利用者。7 項目すべて推奨案）
+
+| # | 項目 | 決定 |
+|---|---|---|
+| 1 | CB3・CB4（貼り付けのコントロール。実機で合成のタップを受け付けない見込み） | `scripts/ios_ui_runner.py` の `SIMULATOR_ONLY_TESTS` に移し、実機は人の確認の手順に回す。**信頼するファイルの変更を、この 2 件を足す範囲で許可された** |
+| 2 | CB1（実機で貼り付けの許可のダイアログが出なかった） | クリップボードの回で 1 回だけ流し直す。また出なければ原因不明として記録する |
+| 3 | G2-2（実機で貼り付けを拒んだときの振る舞い） | クリップボードの回で測る。「ペーストを許可しない」を自動で押せなければ利用者が押す |
+| 4 | 実機の C ABI の ASan と smoke | `--approved` を必須にした実機の経路を、実機なしで作る（回 0）。その後、4 項目を示して許可を得る |
+| 5 | 実機の全件の基準 | 2 回に分ける: クリップボードなしの基準（回 1）と、クリップボードの回（回 2） |
+| 6 | `.private` のログの見え方 | 利用者が Mac の Console.app でサンプルのログだけを絞り込んで見る（手順を渡す） |
+| 7 | 配布用の署名（Distribution のアーカイブと Validate App） | この区切りでは行わない。2b の締めに利用者が行う |
+
+順は、回 1（利用者がいる間に先に流す）→ 回 0 → 回 2 → 回 3、手で 6。回は重ねない。
+
+### 17.2 回 1: クリップボードなしの全件の基準
+
+`--dry-run`（18:50〜18:51。`--device-allow systemui,sharesheet`、列挙は iPhone 17 / 26.2、Xcode は既定の 26.3（11-03 の基準と同じ））で 72 件が選ばれ、許可の ID `503fd32f75afde5cd22efd5a91a09f56` を得た。読むだけの `devicectl device info details` で開発用の接続（DDI と tunnel）を確かめた。利用者に 4 項目を示し、「この ID で流してよい」と許可を得た（18:5x）。`--approved` と `--baseline` で流した。結果は下に書く。
+
+**1 回目（18:53〜18:56）は 0 件で止まった**: 最初のクラス（NavigationUITests）で、ランナー（`IosLibraryExampleUITests-Runner`）が実機で起動の段階で失敗した（結果の文は「encountered an error」だけ。0 of 1 results could be read）。ランナーは決まりのとおり実機の実行を止め、許可の ID `503fd32f…` は使い切った。実機の `.xcresult` は決まりで消え、画面の階層とログは読まないので、詳しい理由はログからは分からない。利用者が端末を見ると**パスコードの入力が出ていた**（iOS 17 以降の、自動操作を有効にするときのもの、と見ている）。利用者が入力した。
+
+**2 回目**: 新しい `--dry-run`（19:01〜19:02、同じ 72 件）で許可の ID `9af47baa6aaff59058611931787926ee` を得て、利用者に 4 項目（パスコードの表示が出たら入力してもらうことを足した）を示し、許可を得た。19:0x に流し始めた。
+
+**2 回目の結果（19:03〜20:09、1 時間 6 分）**: 72 件すべて成功（Navigation 2、IdentifierInventory 3、Dialog 13、Notification 25、NotificationEvent 12、NotificationColdStart 7、Share 10）。基準との比べ合わせは `changed=0, added=0, removed=0`。基準のファイル（`scripts/test_ios.baseline.iPhone_XS-18.7.2.json`）は書き直されたが中身は同じ（git の差分 0）。Xcode 26.3、iOS 18.7.2。実機の `.xcresult` はランナーが消し、残ったのはシミュレーターの列挙の結果だけ。端末に残るもの（ランナーの表示）: カテゴリー `sample-category`、キーボードが覚えたかもしれない語。段階 2 の C ABI の変更（TB-3〜TB-12）の後も、サンプルの実機の振る舞いは 11-03 と同じだった。
+
+### 17.3 回 0: 実機を使わない準備（持ち主の決定 1・4・6）
+
+2026-11-07 20:11〜。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。**判断の要るところは、メインのセッションが利用者の指示のもとで推奨案で決めたもの。持ち主はまだ読んでいない。** 実機は一切使っていない（`xcrun devicectl` は読むだけのものも呼んでいない。実機向けの署名つきのビルドもしていない。キーチェーンと証明書に触れていない）。`agent-rules/` は変えていない。
+
+#### 決めたこと（推奨案。持ち主の確認待ち）
+
+| # | 決定 | 理由 |
+|---|---|---|
+| 1 | CB3・CB4 を `scripts/ios_ui_runner.py` の `SIMULATOR_ONLY_TESTS` に足した（2 行だけ。各行の終わりに理由の短い注）。実機は人の確認 **HC11（テキスト）・HC12（画像だけ）** にし、手順書を `ios/IosLibraryExample/ComputerUse/HC-11-paste-control-text.md`・`HC-12-paste-control-image-only.md` に置いた（UI テストの設計書 4 章の置き場所。iOS の手順書はこれが最初）。HC10 は使われなかった番号なので飛ばした（設計書 3.3 の 1b C6 の段落） | 持ち主の決定 1。番号は設計書 4 章の表に続けた |
+| 2 | 実機の C ABI は**新しい旗 `--capi-device`**（`--capi` を実機の UDID でも受ける形にはしない）。`--udid <実機>` と、`--dry-run` だけ、または `--approved <file>` と `--devicectl-id <id>` の組だけを受け、ほかの旗は値によらず何も始める前に exit 2。シミュレーターの UDID は exit 2。Xcode 26.6（`DEVELOPER_DIR`） | `--capi` の約束（シミュレーターだけ、ほかの旗を値によらず拒む、`simctl` も呼ばずに止まる。15.9・15.11）と、その自己テストと 15.7 の 8 の規則の候補の文をそのまま保てる。実機の実行が旗の名前ではっきり分かれる |
+| 3 | 守りは**サンプルの実機の経路と同じ仕組み**: `--dry-run` は許可の一覧（`approval.json`。流すもの、実機に届くかどうか、触れないもの、入れて残るアプリ、消さないこと、署名、結果の扱い、HEAD、Xcode、ライブラリの版、ランナーのファイル 5 本のハッシュ）と ID を書いて止まる。`--approved` は今の実行が書く一覧とちょうど同じか（ID と時刻を除く全部の項目）、ランナーの 5 本（`test_ios.sh`、`ios_capi_runner.py`、`ios_ui_runner.py`、`run_ios_capi_smoke.sh`、`build_ios_library_xcframework.sh`）がコミットどおりで一覧のハッシュと同じか、HEAD が同じで `ios/` に未コミットの変更が無いかを照らし、**サンプルと同じ台帳**（`~/Library/Application Support/native-toolkit/test_ios-approvals.log`）に ID を書いて使い切る（同じ ID は 2 回目に拒む）。その後に後片付けの trap を張り、実機に届く・署名する各段の前に `device-gate`（承認した計画の digest、台帳の ID、ランナー、木）を照らし直す。拒まれたら止まる | 規則（`device-testing.md`）の「`--dry-run` で一覧、`--approved` で照らす、ID は 1 回」と同じ形。台帳と ID の作りは `ios_ui_runner.py` の関数をそのまま使った（このファイルは変えていない） |
+| 4 | 流れ: (1) `IosLibraryCApiTests` を ASan で実機に（`xcodebuild test -scheme IosLibraryCApi -destination platform=iOS,id=<UDID> -allowProvisioningUpdates -collect-test-diagnostics never -parallel-testing-enabled NO -only-testing:IosLibraryCApiTests -enableAddressSanitizer YES`）→ (2) 配布物を署名なしで実行のフォルダーに組む → (3) smoke を配布物だけから実機向けに署名して組む → (4) `xcrun devicectl device install app` → (5) `xcrun devicectl device process launch --console --terminate-existing com.jonghyunkim.nativetoolkit.IosLibraryCApiSmoke`。TSan は流さない（第 1 部 6.1 のとおり端末では試さない） | P1-20 と第 2 部 15.2 の「実機の区切りの ASan と smoke」。`--console` は「アプリの標準の出力を devicectl につなぎ、終わるまで待つ」（CoreDevice の devicectl の文字列で確かめた。devicectl は呼んでいない）。smoke は 60 秒の見張りで自分で終わる |
+| 5 | 判定は `ios_capi_runner.py` の作りを流用（レビューの後に強めた。下の「レビューと直し」）: 単体テストは結果の要約（全件 PASS、skip 0、expectedFailures 0、件数 > 0）と、期待するテストの集合にちょうど一致すること、xcodebuild のログと action のログにサニタイザーの報告が無いこと、両 framework が**実機の ASan のランタイム（`libclang_rt.asan_ios_dynamic.dylib`）だけ**を読み込むこと（シミュレーターのもの `*_iossim_*` は落とす）。smoke の組み立ては `device build (signed)`・`device embeds`・`device needs no Swift library`・`device imports nothing of IosLibrary` の PASS と FAIL 0。実行は**アプリ自身の `SMOKE` の行だけ**を数える（`SMOKE PASS` 1 行以上、`SMOKE FAIL` 0、`SMOKE RESULT PASS failures=0` がちょうど 1 行）。devicectl の行は端末の名前を含みうるので記録に写さない。5 段がちょうど 1 回ずつ PASS で成功 | 15.1 の 5・6 と同じ考え。件数は 3 通りの比べ合わせが無いので「> 0 と全件 PASS」まで（下の「確かめられていないこと」） |
+| 6 | 実機の結果（`.xcresult`、DerivedData、smoke の作業フォルダーと署名つきのビルドのログ、devicectl の出力）は、サンプルの経路と同じ `DEVICE_TMP`（`mktemp -d`）に置き、trap が消す。単体テストの `.xcresult` は要約と action のログを読んだ直後にも消す。添付は書き出さない。`results.jsonl` には判定だけ | `device-testing.md` の「実機の `.xcresult` は書き写したら消す」。署名のログには証明書の名前とチームが出るので、リポジトリの下に残さない |
+| 7 | 署名: **既存のサンプルの実機の経路と同じ仕組み**（プロジェクトが持つ Automatic の署名と `-allowProvisioningUpdates`）。`IosLibraryCApiTests` とそのホストは `IosLibraryCApi.xcodeproj` が既にチームを持つのでそのまま。smoke のプロジェクトはチームを持たない（TB-11 の 14.1 の 10）ので、`run_ios_capi_smoke.sh --signed-device-build` が `CODE_SIGN_STYLE=Automatic`、`DEVELOPMENT_TEAM=<環境変数 NTK_SMOKE_DEVELOPMENT_TEAM>`、`CODE_SIGN_IDENTITY=Apple Development`、`-allowProvisioningUpdates` をコマンドラインで渡す。値は `test_ios.sh` が実行の時に `IosLibraryCApi.xcodeproj` から読み（`ios_capi_runner.py device-team`。値がちょうど 1 種類でなければ止まる）、ファイルにも出力にも書かない。smoke のプロジェクトは変えていない | Team ID・氏名・証明書の名前をファイルに書かない（公開リポジトリ）。`--signed-device-build` は入れない（入れるのは承認の後の `test_ios.sh` だけ）。`--device-build`・`--udid` との併用と、環境変数が 10 桁の英大文字・数字でないときは exit 2 |
+| 8 | 端末に残るもの: テストのホスト `com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost` と smoke `com.jonghyunkim.nativetoolkit.IosLibraryCApiSmoke`。**既定では消さず、一覧に残ると書く**（アプリの削除は毎回の許可が要る操作）。`-allowProvisioningUpdates` で、2 つの bundle id が利用者の開発者のアカウントに登録され、開発用のプロファイルが作られうることも一覧に書いた | 指示のとおり |
+
+#### 変えたファイル
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| ランナー（信頼するファイル） | `scripts/ios_ui_runner.py` | `SIMULATOR_ONLY_TESTS` に CB3・CB4 の 2 行だけ（持ち主が許した範囲）。ほかの行は変えていない（`git diff` で +2 行） |
+| ランナー | `scripts/test_ios.sh` | `--capi-device`（使い方、引数の検査、実機の経路）。既存の経路（サンプル、`--capi`、`--capi-ui`）の動きは変えていない。`--capi-device` のときだけ、列挙のシミュレーターを求める検査と `enumeration-destination` を飛ばす |
+| 判定 | `scripts/ios_capi_runner.py` | `device-plan`、`device-approve`、`device-gate`、`device-team`、`device-unit-record`、`device-step-record`、`device-summary`。`check-xcode --device`。`unit_record` と `runtime_problems` に実機の形を足した（シミュレーターの動きは同じ） |
+| smoke | `scripts/run_ios_capi_smoke.sh` | `--signed-device-build` |
+| 自己テスト | `scripts/tests/test_ios_ui_runner.py` | 集合の一致に CB3・CB4。`clipboard` と `systemui` を許しても CB3・CB4 が除かれ、CB1・CB2・CB5・CB6 は選ばれ、実機の名指しに CB3・CB4 が無いこと。`ShellGuards` の 2 件（実機に届く呼び出しは守りの関数だけ、`--dry-run` の `exit 0` → 承認 → 消費 → trap → 実機の順）を、サンプルと `--capi-device` の 2 つの経路の両方に効く形に広げ（守りの関数がまず関門を呼ぶことも照らす）、`--capi-device` の 3 つの関数が承認と trap の前に拒むことを source して確かめる 1 件を足した。全体の 1 回目でこの 2 件が新しい経路に反応したので、`--capi-device` の守りの関数を `device_xcodebuild` と同じく source の境より前に移した |
+| 自己テスト | `scripts/tests/test_ios_capi_runner.py` | `CApiDeviceEndToEnd`（偽物の xcodebuild・xcrun・devicectl と、写しの中だけの架空のチーム）、`DeviceDecisions`、`SignedSmokeBuild`。`TimeLimit` の 1 件を「2 つの経路の両方が `capped_group 3600` で呼ぶ」形に直した |
+| 文書 | `scripts/README.md` | `--capi-device` と `--signed-device-build` |
+| 人の確認 | `ios/IosLibraryExample/ComputerUse/HC-11-paste-control-text.md`、`HC-12-paste-control-image-only.md`（新規） | 決定 1 |
+| 設計書 | UI テストの設計書（改訂の行、3.5 の CB3・CB4 の行、4 章の HC11・HC12、6.3 の 3 の一覧） | 決定 1 |
+| 設計書 | 第 1 部 6.1 の実機の行、第 2 部 12.4（実機の形）と 15.2 | 経路の印（推奨案） |
+
+信頼する `Support/` の 5 つ、基準の JSON、公開ヘッダー、`ios/IosLibrary`、`agent-rules/` は変えていない。`android/.idea` には触れていない。`dist/` には何も作っていない。
+
+#### 検証（最後のソース。1 つずつ順に、重ねていない）
+
+ソースのハッシュ（`git status --short -uall -- ios scripts | cut -c4- | sort | xargs shasum -a 256 | shasum -a 256 | cut -c1-12`）は、始める前 `e3b0c44298fc`（`7107f058` のまま）、終わりに **`7d78c615c50d`**。下のシミュレーターの 3 本は、`ShellGuards` の直し（守りの関数の置き場所を移した）の後のソースで流し直したもの（1 回目の 20:35〜20:44 も同じ結果）。その後に変えたのは `scripts/README.md` の件数の数字とこの記録だけ。各実行の前に `pgrep -x Simulator` が状態 1 を返すことを確かめた。Simulator.app は開いていない。Mac の `pbcopy`・`pbpaste`・`simctl pbsync` は使っていない。終わりに 4 台（iPhone 17、17 Pro、16、iPad）とも停止していた。3 本は、`xcrun` と `xcodebuild` を PATH の先頭の記録用の包み（devicectl、実機の id を名指す実行先、`-allowProvisioningUpdates`、`DEVELOPMENT_TEAM=` を拒んで記録する）の下で流した。
+
+| 実行 | 結果 |
+|---|---|
+| A: サンプルの `--dry-run`（どの端末でもない UDID、`--enumerate-udid` iPhone 17 / 26.2、`--device-allow systemui,sharesheet,clipboard`、Xcode 26.3。20:53〜20:54） | rc 0。104 件が選ばれ 20 件が除かれた。**CB3・CB4 は `simulator only`**。同じ列挙と宣言で、コミット（`7107f058`）の `ios_ui_runner.py` の選び方と比べると、違いは CB3・CB4 の 2 件だけ（106 → 104。ほかの選ばれ方と除かれ方の理由は同じ）。包みの記録は `simctl list` 2 回、`xcodebuild -version`、列挙のシミュレーターの build-for-testing と列挙だけで、devicectl と実機の xcodebuild は 0 件 |
+| B: `--capi-device --dry-run`（どの端末でもない UDID、Xcode 26.6。20:54） | rc 0。許可の一覧（5 段、触れないもの、残る 2 つのアプリ、消さないこと、署名、結果の扱い）と ID を書いて止まった。包みの記録は `simctl list` 2 回と `xcodebuild -version` だけ（devicectl、実機の xcodebuild、署名つきのビルド、配布物のビルド、smoke は 0 件）。一時フォルダー（`test_ios-device.*`）は作られない。出力と一覧に Team ID は無い。ランナーとクリップボードの手順書が未コミットであることを大文字で知らせた（コミットの前なので期待どおり） |
+| C: `--capi`（iPhone 17 Pro / 26.2、Xcode 26.6。20:54〜21:01） | rc 0、`[summary] 8 passed, 0 problem(s)`。474/474 × 3。前と同じ。包みの記録に実機の行は 0 件 |
+| `scripts/tests` 全体（`/usr/bin/python3` 3.9、`NTK_IOS_DIST` は C の配布物、`NTK_REQUIRE_DIST_FIXTURE=1`。21:02〜21:09） | **Ran 850、OK**（836 + 14。1 回目は `ShellGuards` の 2 件が新しい経路に反応して落ち、上の表のとおり直した） |
+| ランナーの自己テスト（`test_ios_ui_runner.py`、`test_ios_capi_runner.py`） | 全体の中で OK（`ShellGuards` 12 件、`CApiDeviceEndToEnd` 5 件、`DeviceDecisions` 6 件、`SignedSmokeBuild` 1 件を含む） |
+| 設計書の照合（`check_design_consistency.py`。第 1 部、第 2 部、UI テストの設計書） | 3 つとも rc 0、FAIL 0 |
+
+#### 変異（使い捨ての写し。`--capi-device` の自己テストの 3 クラスを流した。21:09〜21:15）
+
+| # | 変異 | 結果 |
+|---|---|---|
+| M0 | 変異なし（対照） | OK |
+| M1 | `--capi-device` の引数の検査を外す（`--approved` なしでも先へ進む） | 落ちた（`test_without_an_approval_or_with_other_options_nothing_runs`。その後ろの `device-approve` が空の一覧を拒むので、実機の段には届かなかった） |
+| M2 | 使った許可の ID をもう一度受け入れる（台帳の「既に使った」を握りつぶす） | 落ちた（`test_an_approval_runs_once_and_a_changed_list_is_refused`） |
+| M3 | 実機の単体テストのサニタイザーの報告を見ない | 落ちた（`test_each_failure_fails_the_run` の ASan の報告） |
+| M4 | `--dry-run` が一覧を書いた後も止まらない | 落ちた（4 件） |
+| M5 | 関門がランナーのファイルを照らさない | 落ちた（`test_the_gate_needs_the_consumed_id_the_same_plan_runner_and_tree`） |
+| M6 | smoke の実行が `SMOKE RESULT` の行なしで通る | 落ちた（2 件） |
+
+#### 時間
+
+20:11〜21:20（約 1 時間 10 分）。目標の 21:40 の中。シミュレーターの 3 本は 2 回（各約 9 分）、全体の自己テストは 2 回（各約 7 分）、変異は約 6 分。
+
+#### レビュー（Claude と Codex）と直し（21:27〜）
+
+17.3 の最初の形（ハッシュ `7d78c615c50d`）を Claude と Codex が読んだ。**指摘はメインのセッションが確かめた。持ち主はまだ読んでいない。** 直しは実装者のサブエージェントが入れた。
+
+| 指摘 | 直し |
+|---|---|
+| A（両方）端末の取り違え: `--devicectl-id` が `--udid` の端末かを照らしていない | 承認を消費し trap を張った後、実機に届く最初の段より前に、関門を通してから読むだけの `devicectl device info details --device <id> --json-output <DEVICE_TMP の中>` を呼び、`ios_capi_runner.py device-identity` が `ui.device_environment` でハードウェアの UDID と計画の `udid` を比べる。違えば止まり、JSON の中身は出さない。一覧に「`device-identity`（読むだけ）」の段として書いた。自己テスト `test_another_device_reaches_nothing_but_the_read`（devicectl は info の 1 回だけ、実機の xcodebuild・配布物・smoke は 0 回、出力に UDID と端末名が無い） |
+| A（Codex）`run_ios_capi_smoke.sh --signed-device-build` を直に呼ぶと許可なしに署名する | `--signed-device-build` は `--plan` と `--approved` を求め、署名と `-allowProvisioningUpdates` の前に `ios_capi_runner.py device-gate`（台帳で消費済みの ID、計画の digest、ランナーの 5 本、木）を通らなければ exit 2。`--signed-device-build` のほかで `--plan`・`--approved` を渡すと exit 2。自己テスト `test_the_signed_smoke_build_needs_the_consumed_approval_of_this_run`（未消費の許可・計画だけ・何も無しで拒み、承認の後なら関門を通って次の検査まで進む近い外れ）と `SignedSmokeBuild`。残り: 同じ消費済みの許可を持つ人が、その実行の後に直に呼ぶと署名はできる（実機には届かない。関門は `device-gate` と同じ照らしまで） |
+| A→B 出力と結果の写し | 実機のサニタイザーの報告は、結果（`results.jsonl`・要約・コンソール）に種類と件数だけを書く（例 `AddressSanitizer ERROR x1`。`report_kinds`）。xcodebuild・devicectl・署名のログは `DEVICE_TMP` の中だけで、標準出力に流していないことを読んで確かめた（`device info details` の出力も `DEVICE_TMP` へ。smoke の署名つきの組み立ての失敗はログの場所だけを書く）。`print_device_plan` はハードウェアの UDID を出さない（「the device given by --udid」）。自己テストで、偽の UDID・端末名・報告の中の偽のパスが出力と `results.jsonl` に無いことを確かめる。`plan.json`・`approval.json`・台帳の UDID はサンプルと同じ作りのまま（指示のとおり） |
+| B（Codex B5）外の設定の上書き | 実機の経路の xcodebuild（単体テスト、配布物、smoke の署名つきの組み立て）は `XCODE_XCCONFIG_FILE`、`TOOLCHAINS`、`TEST_RUNNER_` で始まる全部の変数を取り除いて呼ぶ（`capi_device_env`。smoke のスクリプトも自分で取り除く）。自己テスト: 3 つを設定して承認ありの経路を流し、実機の xcodebuild と smoke に届かないこと |
+| B（Codex B6 / Claude C-4）件数 | `--capi-device` に `--enumerate-udid <シミュレーター>` を必須にし、`--dry-run`（と `--approved` の計画づくり）でシミュレーターに `IosLibraryCApiTests` を組んで列挙し（Simulator.app が閉じていることを確かめ、停止していたシミュレーターは停止に戻す）、`expectedTests`（`Class/test()` の並び）を計画と一覧に入れた。実機の結果の `xcresulttool get test-results tests` の集合が、期待とちょうど同じで、各 1 回、すべて Passed でなければ落とす。自己テスト（1 件欠けると落ちる、余分・2 回・skip・JSON でない） |
+| B（Codex B7）smoke の段 | 今の smoke の 16 段（version、notification install・listener、clipboard の 4、dialog show・cancel・dialog、callbacks の 6）が `SMOKE PASS` でそれぞれちょうど 1 回、`SMOKE FAIL` と `SMOKE RESULT FAIL` が無く、`SMOKE RESULT PASS failures=0` がちょうど 1 行。名前の表は smoke のソースに出ることを自己テストで照らす。偽物の出力も 16 段にした |
+| B（Claude B-2）HC12 の手段 | Safari の長押しを消し、写真の App かスクリーンショットの編集画面の「コピー」にした。押す前に「Use General」→「Snapshot」（型と件数だけを読み、貼り付けの許可のダイアログを出さない）で `hasStrings=false, hasURLs=false, hasImages=true` と、`typeIdentifiers` に `public.plain-text`・`public.url` が無いことを確かめる手順を足した |
+| C（Codex C8） | `test_ios_capi_runner.py` の `unittest.main()` を末尾へ |
+| C（Claude C-2） | 実機の単体テストの段を `capped_group` に（自分のプロセスグループ、時間切れでグループごと KILL） |
+| C（Claude C-3） | HC11・HC12 で押す前に `Paste result: -` を確かめる |
+| C（Claude C-5） | `test_ios.sh` のインラインの `python3 -c` を `ios_capi_runner.py last-status` に移した |
+| C（Claude C-6） | `ShellGuards` に「`--signed-device-build` の行の直前が `capi_device_gate_or_stop`、その行が `CAPI_DEVICE_ENV` と `--plan`・`--approved` を持つ、読むだけの `device info details` の直前も関門、その後に `device-identity`、その後に単体テスト」「smoke のスクリプトの関門が `-allowProvisioningUpdates` より前」の検査を足した |
+
+#### 直しの後の最後の検証（最後のソース。1 つずつ順に、重ねていない）
+
+ソースのハッシュ（同じ式）は、直しの前 `7d78c615c50d`、検証の始め `70e11ba209ba`、**終わり `b1b15e55d54f`**（違いは、全体の自己テストの後に `scripts/README.md` の件数の数字を 856 に直したことだけ）。各実行の前に `pgrep -x Simulator` が状態 1。Simulator.app は開いていない。Mac のクリップボードには触れていない。終わりに 4 台とも停止。実機・devicectl・署名つきのビルド・キーチェーンには触れていない。A・B・C は前と同じ記録用の包みの下で流した。
+
+| 実行 | 結果 |
+|---|---|
+| A: サンプルの `--dry-run`（どの端末でもない UDID、iPhone 17 / 26.2、`--device-allow systemui,sharesheet,clipboard`、Xcode 26.3。21:35〜21:37） | rc 0。104 件。CB3・CB4 は `simulator only`。devicectl と実機の xcodebuild は 0 件 |
+| B: `--capi-device --dry-run`（どの端末でもない UDID、`--enumerate-udid` iPhone 17 Pro / 26.2、Xcode 26.6。21:37〜21:38） | rc 0。シミュレーターで組んで列挙し、`expectedTests` 474 件を一覧に入れた。その集合は `--capi` の実際の結果の 474 件とちょうど同じ（`expected_tests_problems` が空）。出力に偽の UDID は 0 回。包みの記録はシミュレーターの build-for-testing と列挙と `simctl shutdown`（停止に戻す）だけで、devicectl と実機の xcodebuild は 0 件 |
+| C: `--capi`（iPhone 17 Pro / 26.2。21:38〜21:46） | rc 0、8 passed |
+| `scripts/tests` 全体（3.9。21:46〜21:54） | **Ran 856、OK** |
+| 設計書の照合（3 つ） | どれも FAIL 0 |
+| Team ID の照合（変えたファイルすべてに、`IosLibraryCApi.xcodeproj` の値を出さずに grep） | 今回の差分には 0。当たったのは `test_ios_ui_runner.py` の既存の 1 行（コミット済みの 1b のテスト。今回は足していない） |
+
+**直しを効かせた変異**（使い捨ての写し。`CApiDeviceEndToEnd`、`DeviceDecisions`、`SignedSmokeBuild`、`ShellGuards`。対照の N0 は OK）
+
+| # | 変異 | 結果 |
+|---|---|---|
+| N1 | 端末の確かめをしない（違う端末を受け入れる） | 落ちた（`test_another_device_reaches_nothing_but_the_read`） |
+| N2 | smoke のスクリプトの関門を外す（直の呼び出しで署名する） | 落ちた（3 件）。**1 回目の変異は作り方の誤り（`false && [[ … ]] \|\| ! 関門` で関門が残った）で生き残ったので、関門の呼び出しそのものを外して作り直した** |
+| N3 | 流れなかったテストを受け入れる | 落ちた（2 件） |
+| N4 | 欠けた smoke の段を受け入れる | 落ちた（2 件） |
+| N5 | `XCODE_XCCONFIG_FILE` を実機の xcodebuild に通す | 落ちた（`test_an_approved_run_passes_and_leaves_nothing_of_the_device`） |
+| N6 | 計画の表示にハードウェアの UDID を出す | 落ちた（3 件） |
+
+直しと検証の時間: 21:27〜22:10（約 45 分）。目標の 22:30 の中。
+
+#### 確かめられていないこと
+
+- **実機では何も流していない**。`--capi-device` の承認ありの経路は、偽物の xcodebuild・xcrun（devicectl）と写しの中だけの台帳・架空のチームで端から端まで流しただけ（自己テスト）。本物の実機で次のことは確かめていない: Xcode 26.6 の `xcodebuild test` が iPhone XS / 18.7.2 に ASan つきのホストを入れて流せるか（26.6 が 18.7.2 の端末に対応するか、開発用の接続が要る）、実機の ASan のランタイムの名前が `libclang_rt.asan_ios_dynamic.dylib` か（シミュレーターの `_iossim_` からの類推。違えば `device-unit-asan` が「別のランタイム」で落ちるので、黙って通ることはない）、ASan の下で `ThreadContractTests` などの時間の上限（25〜30 秒）が A12 で足りるか、`OSLogStore` を読む `testAMismatchIsLoggedOnceAndStopsNothing` が実機で通るか
+- smoke の署名つきの組み立て（`--signed-device-build`）は一度も流していない（キーチェーンに触れない指示のため）。Automatic と `generic/platform=iOS` と `-allowProvisioningUpdates` で開発用のプロファイルが作れるか、`CODE_SIGN_IDENTITY=Apple Development` の上書きがプロジェクトの `"-"` と衝突しないか、埋め込みの 2 つの framework が署名し直されるかは、回 3 で初めて分かる
+- `devicectl device process launch --console` の出力にアプリの標準出力（`printf` の `SMOKE` の行）がそのまま届くか、アプリが `exit()` で終わったときの devicectl の終了の状態。`--console` と `--terminate-existing` があることは、CoreDevice の devicectl のバイナリの文字列で確かめただけ（呼んでいない）。届かなければ `device-smoke-run` が「SMOKE PASS が無い」で落ちる（黙って通らない）
+- ~~実機の単体テストの件数は「> 0 と全件 PASS」まで~~ → レビューの直しで、シミュレーターの列挙の集合（`expectedTests`）と照らす形にした。実機の `xcresulttool get test-results tests` の識別子がシミュレーターの列挙と同じ形（`Class/test()`）になることは、シミュレーターの結果で確かめただけ
+- `device-identity` が読む `devicectl device info details` の JSON の形（`result.hardwareProperties.udid`）は、サンプルの経路が 17.2 の回 1 まで使ってきたものと同じ読み方（`ui.device_environment`）で、今回は偽物でだけ流した
+- 回 3 の時間（下の見込みは推定）
+- HC11・HC12 の手順は書いただけで、まだ行っていない。HC12（画像だけ）は 1b でも手で確かめていない
+
+#### 持ち主の判断待ち
+
+1. 決定 1 の HC の番号（HC11・HC12。HC10 を飛ばした）と手順書の置き場所
+2. 決定 2（`--capi` を広げず、新しい旗 `--capi-device` にした）
+3. 決定 5 の判定（レビューの後: 期待するテストの集合をシミュレーターの列挙から取ること、smoke の 16 段をそれぞれ 1 回）と、smoke の実行を `SMOKE` の行だけで判定すること
+4. 決定 7（smoke のチームを `IosLibraryCApi.xcodeproj` から読み、コマンドラインで渡す）。代わりに smoke のプロジェクトにチームを書く形は、公開リポジトリに Team ID を足すので採らなかった（ほかのプロジェクトは既にチームを持っている）
+5. 決定 8（2 つのアプリを消さずに残す）。消したいときは回 3 の後に、別の許可で `devicectl device uninstall app` を行う
+6. 下の `device-testing.md` の文の案を入れるか
+7. 回 2 の分け方（下の 4 項目の下書き）
+
+#### `agent-rules/device-testing.md` に足す文の案（ファイルは変えていない。規則の変更は持ち主の判断）
+
+19 行の段落（シミュレーターだけのテスト）の例に足す:
+
+> （…D22 など。2026-11-07 から、実機で合成のタップを受け付けないシステムの貼り付けのコントロールを押す CB3・CB4 も入れた。実機では人の確認 HC11・HC12（`ios/IosLibraryExample/ComputerUse/`）で確かめる）
+
+21 行の後に新しい段落:
+
+> C ABI の単体テストと smoke の実機の経路は `scripts/test_ios.sh --udid <実機> --capi-device` だけにする。`--capi` はシミュレーターだけで、実機の UDID を拒む。`--capi-device` も `--dry-run` で許可の一覧（ASan つきの `IosLibraryCApiTests`、署名して入れる smoke、端末に残る 2 つのアプリ、触れないもの）を書き、`--approved` と `--devicectl-id` でそれを照らしてから実機に触れる。許可の ID はサンプルの経路と同じ台帳で 1 回使うと使えなくなる。入れたテストのホスト（`com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost`）と smoke（`com.jonghyunkim.nativetoolkit.IosLibraryCApiSmoke`）は消さずに残る。消すのは「1 回ごとに聞く操作」のアプリの削除として、別に許可を得る。
+
+#### 回 3（実機の C ABI）の 4 項目の下書き
+
+1. **流すものと区分**: `DEVELOPER_DIR=<Xcode 26.6> scripts/test_ios.sh --udid <実機の UDID> --enumerate-udid <iPhone 17 Pro / 26.2> --capi-device --dry-run` の一覧と許可の ID（`--dry-run` はシミュレーターで `IosLibraryCApiTests` を組んで列挙し、期待するテストの集合（今は 474 件）を一覧に入れる。実機には触れない）。6 段: `device-identity`（実機。読むだけの `devicectl device info details` で、`--devicectl-id` の端末が `--udid` の端末か確かめる。違えば何もせず止まる）→ `device-unit-asan`（実機。期待する 474 件がちょうど 1 回ずつ流れて通ること）→ `device-dist-build`（Mac だけ。署名なし）→ `device-smoke-build`（Mac だけ。署名する）→ `device-smoke-install`（実機）→ `device-smoke-run`（実機）。サンプルの UI テストは流さない。**流す前に回 0 の変更がコミットされていること**（ランナーの 5 本と `ios/` が未コミットだと、`--approved` が拒む。`--dry-run` も大文字で知らせる）
+2. **端末に起きること**:
+   - 入れるアプリ: テストのホスト `com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost`（窓を持たない。xcodebuild が入れて、その中で単体テストを流す）と smoke `com.jonghyunkim.nativetoolkit.IosLibraryCApiSmoke`
+   - 署名: どちらも利用者の開発用の証明書で Automatic に署名する（`-allowProvisioningUpdates`）。2 つの bundle id が開発者のアカウントに登録され、開発用のプロファイルが作られうる（サンプルの実機のビルドと同じ仕組み）
+   - 画面: 単体テストの間は何も出ない見込み（ダイアログの要求は始まる前に取り消す。ホストは窓を持たない）。smoke は窓を開き、約 1.5 秒アラート（題 `IosLibraryCApiSmoke`）を出して自分で取り消し、60 秒までに自分で終わる。**その間は画面に触れない**（アラートを押すと smoke が落ちる）
+   - 触れないもの: 一般のクリップボード（テストもアプリも自分の名前付きのペーストボードだけ。貼り付けの許可のダイアログは出ない見込み）、通知の許可・通知・バッジ（`ntk_notification_install` は delegate を入れるだけ）、共有のシートとほかのアプリ、写真、ファイル、設定
+   - 残るもの: 2 つのアプリが入ったまま残る（消さない。消すときは別に許可を得る）。アプリの中の一時ファイルは各テストが消す
+   - Mac に残るもの: 実行のフォルダー（`ios/IosLibraryExample/build/test_ios/<時刻>-capi-device/`。git が無視する）に判定の `results.jsonl` と、署名なしの配布物。実機の `.xcresult` と署名のログは一時フォルダーごと消える
+3. **事前にしてもらうこと**: ロックを解除し自動ロックを「なし」に、給電、集中モード（通知の割り込みを防ぐ）。iOS 17 以降の自動操作のパスコードの入力が出たら入力する（17.2 の 1 回目）。流す直前に読むだけの `devicectl device info details` で開発用の接続を確かめる
+4. **時間の見込み**: 30〜45 分（シミュレーターでの列挙の組み立て 3〜5 分（`--dry-run` と `--approved` の両方で）、実機向けの Debug の組み立てと ASan の 474 件で 15〜25 分、配布物の組み立て 3〜5 分、smoke の組み立てと署名 2〜5 分、入れて流すのに 2 分）。初めての `-allowProvisioningUpdates` でプロファイルを作る分が足されうる
+
+#### 回 2（クリップボード）の 4 項目の下書き
+
+1. **流すテストの一覧と区分**（推奨: 2 回の `--feature` に分ける。回 1 で流した 72 件を流し直さず、クリップボードを使う時間を短くするため。代わりに `--device-allow systemui,sharesheet,clipboard --baseline` の全件 104 件を 1 回で流すと、クリップボードを含めた実機の基準を取り直せるが、約 1.5 時間かかる）:
+   - 回 2a: `--feature Clipboard --device-allow clipboard,systemui`（列挙は iPhone 17 / 26.2、Xcode 26.3）で 32 件、5 回の呼び出し。回 1 に無いもの 27 件: `ClipboardUITests` の 22 件（U1〜U9、U10a、U10b、U11〜U21）、`ClipboardPasteUITests` の CB1（持ち主の決定 2: 1 回だけ流し直す）・CB5・CB6、`ClipboardPasteDenyUITests` の CB2（G2-2: 拒んだときの振る舞い。持ち主の決定 3: 自動で押せなければ利用者が「ペーストを許可しない」を押す）、`IdentifierInventoryUITests` の I1d。共通の 5 件（Navigation 2、I1a〜I1c）も流れる。**CB3・CB4 は `simulator only` で除かれる**（人の確認 HC11・HC12 に回す）
+   - 回 2b: `--feature Share --device-allow sharesheet,clipboard` で 21 件、3 回の呼び出し。回 1 に無いもの 5 件: S1、S4、S6、S10、S17（共有のシートの「コピー」）。S8・S9（`files`）、S18・S19（simulator only）は除かれる
+2. **端末に起きること**: テストのランナー（別のアプリ）とサンプルが**一般のクリップボードを書き換える・読む**（私物のコピーは上書きされる。残したいものは先に移してもらう）。貼り付けの許可のダイアログに、ランナーが「ペーストを許可」・「ペーストを許可しない」を押す（CB1・CB2）。共有のシートを開いて「コピー」を押す（送る操作はしない）。ホームへの移動（U10a）。`--feature` の回は基準を保存しない。U10b は基準と同じ意図した skip がありうる
+3. **事前にしてもらうこと**: 回 1 の準備に加え、**Handoff を切る**（Mac のコピーが入ると `changeCount` の確かめで止まる）。クリップボードに残したいものを移す。パスコードの入力が出たら入力する
+4. **時間の見込み**: 回 2a 40〜60 分（`ClipboardUITests` の上限は 75 分）、回 2b 15〜25 分。HC11・HC12 は回 2 の後に利用者が手で 5 分ほど
+
+### 17.4 `.private` のログの見え方の手順（持ち主の決定 6）
+
+ライブラリの秘密になりうる値（Dialog の題・本文・ボタンの文言、通知の trigger、Clipboard の型、共有先の種類など）は `privacy: .private` で書き、**すべて `.debug` の水準**で出す（`logger.log(level: .libraryDebug, …)`。`ios/IosLibrary/IosLibrary/Common/LogLevel.swift`）。値そのもの（クリップボードの中身、通知の題と本文、入力された文字）はそもそもログに書かず、長さだけを `.public` で書く。シミュレーターでは `.private` が平文で見え、伏せて見えることを確かめられない（1b の作業の記録の MS-13）ので、実機で見る。
+
+- subsystem（ライブラリ）: `com.jonghyunkim.nativetoolkit.IosLibrary`。category は型の名前（例: `IosDialogManager`、`AlertDialogPresenter`、`IosNotificationManager`、`IosClipboardManager`、`ShareSheetPresenter`）
+- subsystem（サンプル）: `com.jonghyunkim.ios.nativetoolkit.example`（category は画面の名前。例: `DialogSampleView`、`ShareSampleView`）
+- C ABI の subsystem `com.jonghyunkim.nativetoolkit.IosLibraryCApi` はサンプルからは出ない（サンプルは Swift の API だけを使う）
+
+**手順**（利用者が行う。agent は画面を見ない）:
+
+1. 実機にサンプル（回 1 で入った Debug のもの）が入っていることを確かめる。**サンプルはホーム画面から起動する**（Xcode から起動してデバッガーがつながっていると、`.private` の値が平文で出ることがある）
+2. Mac で Console.app を開き、左の一覧で iPhone を選び、「開始」（ストリーミング）を押す
+3. メニューの「アクション」で「情報メッセージを含める」と「デバッグメッセージを含める」をオンにする（`.debug` の行はこれが無いと出ず、保存もされないので、操作の間ずっと流しておく）
+4. 検索の欄に `subsystem:com.jonghyunkim.nativetoolkit.IosLibrary` と入れる（サンプルの行も見るなら、`subsystem:com.jonghyunkim.ios.nativetoolkit.example` を足すか、プロセス `IosLibraryExample` で絞る）
+5. サンプルで次を押し、出た行を見る
+
+| 操作（サンプル） | 出る行（category） | 期待する見え方 |
+|---|---|---|
+| Dialog → ShowAlert（題 `Hello from iOS`） | `showAlert called with title: …`（`IosDialogManager`）、`[presentLegacy]`・`[makeAlert]`（`AlertDialogPresenter`） | `title: <private>`、`message: <private>`、`buttonText: <private>`。`style`・件数は見える。`Hello from iOS` の文字が出たら失敗 |
+| Notification → ShowTimeInterval(5s)（権限が要る） | `[show] content.id: … trigger: …`（`IosNotificationManager`） | `content.id` は見え、`trigger: <private>`。通知の題・本文は `length=N` の形でだけ出る |
+| Clipboard → Read Data (public.png) | `[readData] utType: … scope: …`（`IosClipboardManager`） | `utType: <private>`、`scope: general` などは見える。**クリップボードを読む操作なので、私物のコピーを読んでよいときだけ押す**（読んだ中身はログに出ない） |
+| Share → ShareText → 共有のシートで閉じる | `[completionWithItemsHandler] activityType: …`（`ShareSheetPresenter`） | `activityType: <private>`、`completed`・件数は見える。送る操作はしない |
+
+6. 「デバッグメッセージを含める」をオフにしたまま確かめられる行が 1 つある: Share → ShareMissingFile で、サンプルの `[runShare][error] label: shareMissingFile, error: <private>`（`ShareSampleView`、エラーの水準）
+7. 終わったらストリーミングを止める。結果（日付、端末と iOS、見た行で `<private>` だったか）を、スクリーンショットではなく文字でこの記録に書く（スクリーンショットはほかのアプリのログが写りうる）
+
+**判定**: 上の表の `.private` の値がすべて `<private>` で、サンプルの文言（`Hello from iOS` など）が平文で出ていなければ合格。1 つでも平文なら失敗として記録する。注意: サンプルの `ShareSampleView` は共有先の種類を自分の行（`.public`、`.debug`）で平文で出す（ライブラリの行では伏せている）。これはサンプルの書き方で、ライブラリの不備ではない。
+
+### 17.5 回 2a・回 2b・回 3 の前もっての許可（2026-11-07 夜、利用者）
+
+メインのセッションが 3 回の 4 項目の下書き（流すテストと区分、端末に起きること、利用者の操作、時間）を示し、利用者が「実機の確認内容はそれでいいので、そのまま進めていい」と答えた。**今夜の 3 回だけ**、回ごとの返事を待たずに流す。守り: 各回の `--dry-run` の一覧が下書きと同じ範囲（許す区分、入れるアプリ、件数の見込み）であることをメインのセッションが確かめ、違えば流さずに止めて知らせる。流す前に毎回、許可の ID と始める時刻を利用者に知らせる。回 2a は利用者が「Handoff を切った」と知らせるまで流さない（U-10）。次の機会からは、また回ごとに許可を得る。
+利用者が「Handoff を切ってある」と知らせた（22:09）。回 2a は回 0 の直しのコミットの後に流す（流す間に test_ios.sh が書き換わるのと、シミュレーターの検証と重なるのを避けるため）。

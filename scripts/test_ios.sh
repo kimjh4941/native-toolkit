@@ -11,6 +11,8 @@
 #          [--dry-run] [--approved <file>] [--baseline] [--name-each-test]
 #        scripts/test_ios.sh --udid <simulator> --capi-ui
 #        scripts/test_ios.sh --udid <simulator> --capi
+#        scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --capi-device
+#          (--dry-run | --approved <file> --devicectl-id <id>)
 #   --udid            a simulator listed by `xcrun simctl list`; any other value is the device
 #                     (its hardware UDID)
 #   --enumerate-udid  the simulator that is built for and enumerated (required for the device)
@@ -39,6 +41,13 @@
 #                     --library on each slice, --require-compile and --require-complete, and the smoke
 #                     (run_ios_capi_smoke.sh, with its unsigned device build that is never installed).
 #                     Every step runs and the summary decides; scripts/ios_capi_runner.py reads them
+#   --capi-device     the device's checks of the C ABI (stage 2 working notes, 17; part 1, 6 P1-20; part 2,
+#                     15.2): IosLibraryCApiTests with ASan on the device, then the smoke built from the
+#                     distributable, signed, installed and launched on the device. The device only, Xcode
+#                     26.6, and the same guards as the sample's device runs: --dry-run writes the approval
+#                     list (with the tests that --enumerate-udid's simulator enumerates) and never reaches the
+#                     device; --approved (with --devicectl-id, which must name the --udid device) runs it once.
+#                     The test host and the smoke stay installed (removing an app needs its own approval)
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -224,6 +233,44 @@ device_devicectl() {  # <devicectl arguments...>
   capped 300 xcrun devicectl "$@" < /dev/null
 }
 
+# --- The device for --capi-device: the same flags, trap and folder as above; its own gate, as its approved
+# plan is ios_capi_runner.py's (stage 2 working notes, 17.3).
+capi_device_guard() {
+  if [[ "${DEVICE_TRAP_READY}" != 1 || "${APPROVAL_CONSUMED}" != 1 ]]; then
+    echo "Error: refusing to touch the device before the approval is consumed and the cleanup trap is set" >&2
+    return 97
+  fi
+  python3 "${ROOT_DIR}/scripts/ios_capi_runner.py" device-gate --plan "${PLAN}" --approved "${APPROVED}" --repo "${ROOT_DIR}" || return 97
+}
+# Before each step that reaches the device or signs, outside the step's redirection so that a refusal is
+# seen: a changed plan, runner or tree stops the run (the trap removes the device's folder).
+capi_device_gate_or_stop() {
+  capi_device_guard || { echo "Error: the device gate refused; nothing more reaches the device" >&2; exit 1; }
+}
+# The environment of every xcodebuild on the device path: nothing from outside the approved list may change the
+# build or the tests (an xcconfig over the projects' settings, another toolchain, a TEST_RUNNER_ variable, which
+# reaches the test host). Sets CAPI_DEVICE_ENV to an `env -u ...` prefix (ios_capi_runner.py DEVICE_ENV_REMOVED).
+capi_device_env() {
+  local name
+  CAPI_DEVICE_ENV=(env -u XCODE_XCCONFIG_FILE -u TOOLCHAINS -u NTK_DEVICE_ALLOW)
+  for name in $(compgen -e); do
+    [[ "${name}" == TEST_RUNNER_* ]] && CAPI_DEVICE_ENV+=(-u "${name}")
+  done
+  return 0
+}
+capi_device_xcodebuild() {  # <seconds> <xcodebuild arguments...>: in its own group, so a cut-off kills it
+  capi_device_guard || return $?
+  local seconds="$1"; shift
+  require_own_paths "${DEVICE_TMP:-}" "$@" || return 97
+  capi_device_env
+  capped_group "${seconds}" "${CAPI_DEVICE_ENV[@]}" xcodebuild "$@"
+}
+capi_device_devicectl() {  # <seconds> <devicectl arguments...>: in its own group, so a cut-off kills it
+  capi_device_guard || return $?
+  local seconds="$1"; shift
+  capped_group "${seconds}" xcrun devicectl "$@"
+}
+
 # The self-tests (scripts/tests/test_ios_ui_runner.py) source the functions above and stop here.
 # The variable works only when the file is sourced; a run with it set is refused, so a value left
 # in the environment cannot turn a run into a silent exit 0.
@@ -237,7 +284,7 @@ elif [[ -n "${NTK_TEST_IOS_SOURCE_ONLY:-}" ]]; then
 fi
 
 usage() {
-  sed -n '2,41p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,50p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 UDID=""
@@ -252,6 +299,7 @@ NAME_EACH_TEST=0
 DEVICE_ALLOW_GIVEN=0
 CAPI_UI=0
 CAPI=0
+CAPI_DEVICE=0
 # Every option given but --udid, --capi and --capi-ui, whatever its value: --capi and --capi-ui refuse
 # them even when the value is empty (TB-12 review B).
 OTHER_OPTIONS=""
@@ -280,6 +328,7 @@ while [[ $# -gt 0 ]]; do
     --name-each-test) NAME_EACH_TEST=1; shift ;;
     --capi-ui) CAPI_UI=1; shift ;;
     --capi) CAPI=1; shift ;;
+    --capi-device) CAPI_DEVICE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
@@ -301,6 +350,30 @@ fi
 if [[ "${CAPI}" -eq 1 && -n "${OTHER_OPTIONS}" ]]; then
   echo "Error: --capi takes no other option but --udid (given:${OTHER_OPTIONS})" >&2; exit 2
 fi
+# --capi-device takes --udid, --enumerate-udid and either --dry-run alone or --approved with --devicectl-id; any
+# other option, given with any value, is refused before anything runs.
+if [[ "${CAPI_DEVICE}" -eq 1 ]]; then
+  capi_device_given=" "
+  for word in ${OTHER_OPTIONS}; do
+    case "${word}" in
+      --capi-device) ;;
+      --enumerate-udid) ;;
+      --dry-run|--approved|--devicectl-id) capi_device_given="${capi_device_given}${word} " ;;
+      *) echo "Error: --capi-device takes --udid, --enumerate-udid and --dry-run, or --approved and --devicectl-id (given:${OTHER_OPTIONS})" >&2; exit 2 ;;
+    esac
+  done
+  if [[ -z "${ENUMERATE_UDID}" ]]; then
+    echo "Error: --capi-device needs --enumerate-udid <simulator>: the expected tests are its enumeration" >&2; exit 2
+  fi
+  if [[ "${capi_device_given}" == *" --dry-run "* ]]; then
+    if [[ "${capi_device_given}" != " --dry-run " ]]; then
+      echo "Error: --capi-device --dry-run takes neither --approved nor --devicectl-id" >&2; exit 2
+    fi
+  elif [[ "${capi_device_given}" != *" --approved "* || "${capi_device_given}" != *" --devicectl-id "* \
+          || -z "${APPROVED}" || -z "${DEVICECTL_ID}" ]]; then
+    echo "Error: --capi-device runs on the device only with --approved <file> and --devicectl-id <id> (run --dry-run first and ask the user)" >&2; exit 2
+  fi
+fi
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "${BUILD_ROOT}"
@@ -318,10 +391,15 @@ fi
 if [[ "${CAPI}" -eq 1 && "${KIND}" != "simulator" ]]; then
   echo "Error: --capi runs on a simulator only; ${UDID} is not one" >&2; exit 2
 fi
+if [[ "${CAPI_DEVICE}" -eq 1 && "${KIND}" == "simulator" ]]; then
+  echo "Error: --capi-device runs on the device only; ${UDID} is a simulator (use --capi)" >&2; exit 2
+fi
 if [[ "${KIND}" == "simulator" ]]; then
   if [[ "${DEVICE_ALLOW_GIVEN}" -eq 1 || -n "${APPROVED}" || -n "${DEVICECTL_ID}" ]]; then
     echo "Error: --device-allow, --approved and --devicectl-id are for the device; ${UDID} is a simulator" >&2; exit 2
   fi
+elif [[ "${CAPI_DEVICE}" -eq 1 ]]; then
+  :  # checked above: --enumerate-udid, and --dry-run alone or --approved with --devicectl-id
 else
   [[ -n "${ENUMERATE_UDID}" ]] || { echo "Error: ${UDID} is not a simulator, so it is the device: --enumerate-udid is required" >&2; exit 2; }
   if [[ "${DRY_RUN}" -eq 1 ]]; then
@@ -348,6 +426,7 @@ for ds in json.load(open(sys.argv[1]))["devices"].values():
         if d["udid"] == sys.argv[2]: print(d["state"])' "${STAGE_DIR}/simctl-devices.json" "${UDID}")"
 else
   LABEL="device"
+  [[ "${CAPI_DEVICE}" -eq 1 ]] && LABEL="capi-device"
   INITIAL_SIM_STATE=""
 fi
 OUT_DIR="${BUILD_ROOT}/${STAMP}-${LABEL}"
@@ -612,6 +691,174 @@ if [[ "${CAPI}" -eq 1 ]]; then
   fi
 
   capi_runner summary --results "${RESULTS}"
+  exit 0
+fi
+
+# --- The device's checks of the C ABI (--capi-device; stage 2 working notes, 17.1 decision 4; part 1, 6 P1-20;
+# part 2, 15.2). The same guards as the sample's device runs: --dry-run writes the approval list and stops
+# before anything reaches the device or signs; --approved checks it and consumes its ID before the cleanup trap
+# is set and the device is touched; device-gate checks the approved plan again before each call that reaches
+# the device or signs. The device's result bundles, DerivedData and logs stay in DEVICE_TMP, which the trap
+# removes; only the judgements go to results.jsonl.
+if [[ "${CAPI_DEVICE}" -eq 1 ]]; then
+  capi_runner() { python3 "${ROOT_DIR}/scripts/ios_capi_runner.py" "$@"; }
+  capi_runner check-xcode --xcode "${XCODE}" --device
+  capi_runner device-team --repo "${ROOT_DIR}" --check
+  CAPI_VERSION="$(capi_runner version --common-h "${IOS_DIR}/IosLibraryCApi/include/NativeToolkitC/Common.h")"
+
+  # The expected tests: IosLibraryCApiTests enumerated on the simulator (never the device), in this run's folder.
+  status=0
+  pgrep -x Simulator > /dev/null || status=$?
+  if [[ "${status}" -ne 1 ]]; then
+    echo "Error: Simulator.app is open, or pgrep failed (status ${status}); close it and run again (agent-rules/device-testing.md)" >&2; exit 2
+  fi
+  ENUM_INITIAL_STATE="$(runner capi-simulator-state --udid "${ENUM_UDID}" --simctl-devices "${OUT_DIR}/simctl-devices.json")"
+  restore_enumeration_simulator() {
+    if [[ "${ENUM_INITIAL_STATE}" == "Shutdown" ]]; then
+      capped 120 xcrun simctl shutdown "${ENUM_UDID}" > /dev/null 2>&1 || true
+    fi
+  }
+  echo "[capi-device] enumerate IosLibraryCApiTests on the simulator ${ENUM_UDID}"
+  sim_xcodebuild 3600 build-for-testing -workspace "${WORKSPACE}" -scheme IosLibraryCApi \
+    -destination "platform=iOS Simulator,id=${ENUM_UDID}" -derivedDataPath "${OUT_DIR}/dd-enumerate-build" -quiet \
+    > "${OUT_DIR}/capi-enumerate-build.log" 2>&1 \
+    || { restore_enumeration_simulator; echo "Error: the simulator build failed (${OUT_DIR}/capi-enumerate-build.log)" >&2; exit 1; }
+  CAPI_XCTESTRUN="$(ls "${OUT_DIR}"/dd-enumerate-build/Build/Products/*iphonesimulator*.xctestrun)"
+  [[ "$(echo "${CAPI_XCTESTRUN}" | wc -l | tr -d ' ')" == 1 ]] \
+    || { restore_enumeration_simulator; echo "Error: expected one simulator .xctestrun" >&2; exit 1; }
+  sim_xcodebuild 600 test-without-building -xctestrun "${CAPI_XCTESTRUN}" -destination "platform=iOS Simulator,id=${ENUM_UDID}" \
+    -derivedDataPath "${OUT_DIR}/dd-enumerate" -resultBundlePath "${OUT_DIR}/capi-enumerate.xcresult" \
+    -only-testing:IosLibraryCApiTests -enumerate-tests -test-enumeration-style flat -test-enumeration-format json \
+    -test-enumeration-output-path "${OUT_DIR}/capi-enumeration.json" > "${OUT_DIR}/capi-enumerate.log" 2>&1 \
+    || { restore_enumeration_simulator; echo "Error: the enumeration failed (${OUT_DIR}/capi-enumerate.log)" >&2; exit 1; }
+  restore_enumeration_simulator
+
+  plan_args=(--udid "${UDID}" --head "$(git -C "${ROOT_DIR}" rev-parse HEAD)" --xcode "${XCODE}" --version "${CAPI_VERSION}"
+    --repo "${ROOT_DIR}" --plan "${PLAN}" --enumeration "${OUT_DIR}/capi-enumeration.json")
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    capi_runner device-plan "${plan_args[@]}" --dry-run --approval-out "${OUT_DIR}/approval.json"
+    echo "[dry-run] stopped before anything reached the device or was signed"
+    exit 0
+  fi
+  capi_runner device-plan "${plan_args[@]}"
+  capi_runner device-approve --plan "${PLAN}" --approved "${APPROVED}" --repo "${ROOT_DIR}" \
+    --head "$(git -C "${ROOT_DIR}" rev-parse HEAD)"
+  APPROVAL_CONSUMED=1
+  setup_device_tmp
+  cp "${PLAN}" "${DEVICE_TMP}/plan.approved.json"
+  chmod 0444 "${DEVICE_TMP}/plan.approved.json"
+  PLAN="${DEVICE_TMP}/plan.approved.json"
+
+  echo "[capi-device] library ${CAPI_VERSION}; results in ${RESULTS}"
+
+  # 0. The device that --devicectl-id names must be the approved one (reads only; its details are not printed).
+  capi_device_gate_or_stop
+  set +e
+  capi_device_devicectl 300 device info details --device "${DEVICECTL_ID}" --json-output "${DEVICE_TMP}/devicectl-info.json" \
+    > "${DEVICE_TMP}/devicectl-info.log" 2>&1
+  code=$?
+  set -e
+  if [[ "${code}" -ne 0 ]]; then
+    echo "Error: devicectl device info details failed (status ${code}); nothing else reaches the device" >&2; exit 1
+  fi
+  capi_runner device-identity --plan "${PLAN}" --devicectl-json "${DEVICE_TMP}/devicectl-info.json" || exit 1
+
+  # 1. IosLibraryCApiTests with ASan on the device.
+  echo "[capi-device] IosLibraryCApiTests with ASan"
+  dd="${DEVICE_TMP}/dd-capi-asan"
+  bundle="${DEVICE_TMP}/capi-unit-asan.xcresult"
+  log="${DEVICE_TMP}/capi-unit-asan.log"
+  capi_device_gate_or_stop
+  set +e
+  capi_device_xcodebuild 3600 test -workspace "${WORKSPACE}" -scheme IosLibraryCApi -destination "platform=iOS,id=${UDID}" \
+    -allowProvisioningUpdates -derivedDataPath "${dd}" -collect-test-diagnostics never -parallel-testing-enabled NO \
+    -only-testing:IosLibraryCApiTests -resultBundlePath "${bundle}" -enableAddressSanitizer YES > "${log}" 2>&1
+  code=$?
+  set -e
+  summary_json="${DEVICE_TMP}/capi-unit-asan-summary.json"
+  action_log="${DEVICE_TMP}/capi-unit-asan-action.json"
+  tests_json="${DEVICE_TMP}/capi-unit-asan-tests.json"
+  if [[ -d "${bundle}" ]]; then
+    xcrun xcresulttool get test-results tests --path "${bundle}" > "${tests_json}" || rm -f "${tests_json}"
+    xcrun xcresulttool get test-results summary --path "${bundle}" > "${summary_json}" || rm -f "${summary_json}"
+    xcrun xcresulttool get log --type action --path "${bundle}" > "${action_log}" || rm -f "${action_log}"
+  fi
+  otool_args=()
+  for framework in IosLibraryCApi IosLibrary; do
+    binary="${dd}/Build/Products/Debug-iphoneos/${framework}.framework/${framework}"
+    listing="${DEVICE_TMP}/capi-unit-asan-otool-${framework}.txt"
+    if [[ -f "${binary}" ]] && otool -L "${binary}" > "${listing}"; then
+      otool_args+=(--otool "${framework}" "${listing}")
+    fi
+  done
+  capi_runner device-unit-record --plan "${PLAN}" --tests-json "${tests_json}" --exit-code "${code}" --timed-out "$([[ "${code}" -eq 142 ]] && echo 1 || echo 0)" \
+    --summary-json "${summary_json}" --log "test log" "${log}" --log "action log" "${action_log}" \
+    ${otool_args[@]+"${otool_args[@]}"} --results "${RESULTS}"
+  rm -rf "${bundle:?}"
+
+  # 2. The distributable, unsigned, in this run's folder (nothing reaches the device).
+  echo "[capi-device] build the distributable ${CAPI_VERSION}"
+  CAPI_DIST="${OUT_DIR}/capi-dist"
+  capi_device_env
+  set +e
+  capped_group 3600 "${CAPI_DEVICE_ENV[@]}" "${ROOT_DIR}/scripts/build_ios_library_xcframework.sh" -m IosLibrary -m IosLibraryCApi -v "${CAPI_VERSION}" \
+    --output-dir "${CAPI_DIST}" --build-dir "${OUT_DIR}/capi-dist-build" --keep-project-versions \
+    > "${OUT_DIR}/capi-dist-build.log" 2>&1
+  code=$?
+  set -e
+  capi_runner device-step-record --step device-dist-build --exit-code "${code}" \
+    --timed-out "$([[ "${code}" -eq 142 ]] && echo 1 || echo 0)" --log "${OUT_DIR}/capi-dist-build.log" --results "${RESULTS}"
+
+  # 3. The smoke from the distributable alone, signed for the device with the team of the C ABI's project.
+  SMOKE_APP="${DEVICE_TMP}/capi-smoke/dd-device/Build/Products/Release-iphoneos/IosLibraryCApiSmoke.app"
+  smoke_built=0
+  if [[ "${code}" -ne 0 ]]; then
+    capi_runner device-step-record --step device-smoke-build --not-run "the distributable was not built" --results "${RESULTS}"
+  else
+    echo "[capi-device] build the smoke for the device (signed)"
+    capi_device_env
+    capi_device_gate_or_stop
+    set +e
+    capped_group 3600 "${CAPI_DEVICE_ENV[@]}" NTK_SMOKE_DEVELOPMENT_TEAM="$(capi_runner device-team --repo "${ROOT_DIR}")" "${ROOT_DIR}/scripts/run_ios_capi_smoke.sh" --dist "${CAPI_DIST}" --work "${DEVICE_TMP}/capi-smoke" --signed-device-build --plan "${PLAN}" --approved "${APPROVED}" > "${DEVICE_TMP}/capi-smoke-build.log" 2>&1
+    code=$?
+    set -e
+    capi_runner device-step-record --step device-smoke-build --exit-code "${code}" \
+      --timed-out "$([[ "${code}" -eq 142 ]] && echo 1 || echo 0)" --log "${DEVICE_TMP}/capi-smoke-build.log" --results "${RESULTS}"
+    if [[ "$(capi_runner last-status --results "${RESULTS}")" == PASS && -d "${SMOKE_APP}" ]]; then
+      smoke_built=1
+    fi
+  fi
+
+  # 4-5. Install the smoke and launch it with its console attached; it prints SMOKE lines and ends itself.
+  if [[ "${smoke_built}" -ne 1 ]]; then
+    capi_runner device-step-record --step device-smoke-install --not-run "the smoke was not built" --results "${RESULTS}"
+    capi_runner device-step-record --step device-smoke-run --not-run "the smoke was not built" --results "${RESULTS}"
+  else
+    echo "[capi-device] install the smoke"
+    capi_device_gate_or_stop
+    set +e
+    capi_device_devicectl 300 device install app --device "${DEVICECTL_ID}" "${SMOKE_APP}" > "${DEVICE_TMP}/smoke-install.log" 2>&1
+    code=$?
+    set -e
+    capi_runner device-step-record --step device-smoke-install --exit-code "${code}" \
+      --timed-out "$([[ "${code}" -eq 142 ]] && echo 1 || echo 0)" --log "${DEVICE_TMP}/smoke-install.log" --results "${RESULTS}"
+    if [[ "${code}" -ne 0 ]]; then
+      capi_runner device-step-record --step device-smoke-run --not-run "the smoke was not installed" --results "${RESULTS}"
+    else
+      echo "[capi-device] launch the smoke (do not touch the screen)"
+      capi_device_gate_or_stop
+      set +e
+      capi_device_devicectl 180 device process launch --device "${DEVICECTL_ID}" --console --terminate-existing \
+        com.jonghyunkim.nativetoolkit.IosLibraryCApiSmoke > "${DEVICE_TMP}/smoke-run.log" 2>&1
+      code=$?
+      set -e
+      capi_runner device-step-record --step device-smoke-run --exit-code "${code}" \
+        --timed-out "$([[ "${code}" -eq 142 ]] && echo 1 || echo 0)" --log "${DEVICE_TMP}/smoke-run.log" --results "${RESULTS}"
+    fi
+  fi
+
+  echo "[capi-device] left on the device (not removed): com.jonghyunkim.nativetoolkit.IosLibraryCApiTestHost, com.jonghyunkim.nativetoolkit.IosLibraryCApiSmoke"
+  capi_runner device-summary --results "${RESULTS}"
   exit 0
 fi
 

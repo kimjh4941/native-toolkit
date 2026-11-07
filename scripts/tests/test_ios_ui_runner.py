@@ -365,6 +365,8 @@ class SimulatorOnly(unittest.TestCase):
     D22 = "DialogUITests/testD22_aRequestUnderControlCenterIsShown"
     N40 = "NotificationPermissionUITests/testN40_theAppNotificationSettingsLinkSendsASettingsRequest"
     N42 = "NotificationPermissionUITests/testN42_aPermissionRequestInTheBackgroundReportsNotForeground"
+    CB3 = "ClipboardPasteUITests/testCB3_pasteControlReadsText"
+    CB4 = "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly"
 
     def setUp(self):
         self.table = declarations()
@@ -384,6 +386,8 @@ class SimulatorOnly(unittest.TestCase):
             "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",
             self.N40,
             self.N42,
+            self.CB3,
+            self.CB4,
         })
 
     def test_the_device_never_selects_them_even_with_every_category(self):
@@ -439,6 +443,24 @@ class SimulatorOnly(unittest.TestCase):
         # The near miss: S2 needs only sharesheet; S17 also needs clipboard.
         self.assertIn("ShareUITests/testS2_shareTextClose", self.keys(selected))
         self.assertEqual(reasons["ShareUITests/testS17_requestShareCopy"], ["clipboard"])
+
+    def test_clipboard_and_systemui_leave_cb3_and_cb4_out(self):
+        # Stage 2, 17.1 decision 1: the system paste control does not take a synthesized tap on the
+        # device, so CB3 and CB4 run on the simulator only and a person checks them on the device
+        # (HC11, HC12). CB1, CB2, CB5 and CB6 still run on the device with clipboard.
+        selected, excluded = r.select_tests(self.ids, self.table, "device", ["clipboard", "systemui"], "Clipboard")
+        reasons = {r.key_from_enumeration_id(i): m for i, _, m in excluded}
+        for key in (self.CB3, self.CB4):
+            self.assertNotIn(key, self.keys(selected))
+            self.assertEqual(reasons[key], [r.SIMULATOR_ONLY])
+        for near in ("ClipboardPasteUITests/testCB1_allowPasteLoadsText",
+                     "ClipboardPasteUITests/testCB5_aLoadCancelledAtOnceReportsCancelledOnce",
+                     "ClipboardPasteUITests/testCB6_aBoxCancelledBeforeTheLoadReadsNothing",
+                     "ClipboardPasteDenyUITests/testCB2_denyPasteFailsLoadText"):
+            self.assertIn(near, self.keys(selected), near)
+        device = r.build_invocations(self.ids, selected, "device", "Clipboard", True)
+        named = [a for inv in device for a in inv["onlyTesting"]]
+        self.assertFalse([n for n in named if "testCB3_" in n or "testCB4_" in n], named)
 
     def test_the_simulator_runs_them(self):
         selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])
@@ -1171,27 +1193,79 @@ class ShellGuards(unittest.TestCase):
         def first(predicate):
             return next(i for i, line in enumerate(lines) if i > main and predicate(line))
 
-        dry_run_exit = first(lambda line: "stopped before running any test" in line)
-        approve = first(lambda line: line.startswith("runner approve "))
-        consumed = first(lambda line: line == "APPROVAL_CONSUMED=1")
-        trap = first(lambda line: line == "setup_device_tmp")
-        device = first(lambda line: line.startswith(("device_xcodebuild ", "device_devicectl ")))
-        self.assertLess(dry_run_exit, approve)
-        self.assertLess(approve, consumed)
-        self.assertLess(consumed, trap)
-        self.assertLess(trap, device)
+        # The sample's device flow, and --capi-device's (stage 2 working notes, 17.3), each in its own order.
+        flows = (("stopped before running any test", "runner approve ", ("device_xcodebuild ", "device_devicectl ")),
+                 ("stopped before anything reached the device or was signed", "capi_runner device-approve ",
+                  ("capi_device_xcodebuild ", "capi_device_devicectl ", "capi_device_gate_or_stop")))
+        for dry_run_text, approve_prefix, device_prefixes in flows:
+            with self.subTest(approve=approve_prefix):
+                dry_run_exit = first(lambda line: dry_run_text in line)
+                self.assertEqual(lines[dry_run_exit + 1], "exit 0")
+                approve = first(lambda line: line.startswith(approve_prefix))
+                consumed = next(i for i, line in enumerate(lines) if i > approve and line == "APPROVAL_CONSUMED=1")
+                trap = next(i for i, line in enumerate(lines) if i > consumed and line == "setup_device_tmp")
+                device = first(lambda line: line.startswith(device_prefixes))
+                self.assertLess(dry_run_exit, approve)
+                self.assertEqual(consumed, approve + 1)
+                self.assertLess(consumed, trap)
+                self.assertLess(trap, device)
 
     def test_the_device_is_reached_only_through_the_guarded_functions(self):
         # Review R-10: lines are joined first, so a destination on a continuation line counts.
         lines = joined_script()
         main = lines.index('if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then')
         body = [line for line in lines[main:] if line and not line.startswith("#")]
-        self.assertFalse([line for line in body if "platform=iOS,id" in line and not line.startswith("device_xcodebuild ")])
+        # --capi-device (stage 2 working notes, 17.3) has its own guarded functions, defined above too.
+        self.assertFalse([line for line in body if "platform=iOS,id" in line
+                          and not line.startswith(("device_xcodebuild ", "capi_device_xcodebuild "))])
         self.assertFalse([line for line in body if re.search(r"(^|[;&|(]\s*|xcrun\s+)devicectl\b", line)
-                          and not line.startswith("device_devicectl ")])
+                          and not line.startswith(("device_devicectl ", "capi_device_devicectl "))])
         calls = [line for line in body if "xcodebuild " in line and not line.startswith(("sim_xcodebuild ",
-                 "device_xcodebuild ", 'XCODE="$(xcodebuild -version'))]
+                 "device_xcodebuild ", "capi_device_xcodebuild ", 'XCODE="$(xcodebuild -version'))]
         self.assertEqual(calls, [])
+        # Each guarded function checks its gate first.
+        for name, guard in (("device_xcodebuild", "device_guard"), ("device_devicectl", "device_guard"),
+                            ("capi_device_xcodebuild", "capi_device_guard"), ("capi_device_devicectl", "capi_device_guard")):
+            start = lines.index(next(line for line in lines if line.startswith(name + "() {")))
+            self.assertEqual(lines[start + 1], f"{guard} || return $?", name)
+
+    def test_the_signed_smoke_build_and_the_device_read_come_right_after_the_gate(self):
+        # Review C-6: the signing build of --capi-device and its first read of the device each follow the gate
+        # (and the environment's cleanup) directly; the smoke script checks the gate again itself.
+        lines = joined_script()
+        signed = [i for i, line in enumerate(lines) if "--signed-device-build" in line and not line.startswith("#")]
+        self.assertEqual(len(signed), 1)
+        self.assertEqual(lines[signed[0] - 2:signed[0]], ["capi_device_gate_or_stop", "set +e"])
+        self.assertTrue(lines[signed[0]].startswith('capped_group 3600 "${CAPI_DEVICE_ENV[@]}" '), lines[signed[0]])
+        self.assertIn('--plan "${PLAN}" --approved "${APPROVED}"', lines[signed[0]])
+        read = next(i for i, line in enumerate(lines) if line.startswith("capi_device_devicectl 300 device info details"))
+        self.assertEqual(lines[read - 2:read], ["capi_device_gate_or_stop", "set +e"])
+        identity = next(i for i, line in enumerate(lines) if line.startswith("capi_runner device-identity "))
+        unit = next(i for i, line in enumerate(lines) if line.startswith("capi_device_xcodebuild "))
+        self.assertLess(read, identity)
+        self.assertLess(identity, unit)
+        smoke = (SCRIPT.parent / "run_ios_capi_smoke.sh").read_text(encoding="utf-8")
+        gate = smoke.index("ios_capi_runner.py\" device-gate")
+        self.assertLess(gate, smoke.index("-allowProvisioningUpdates", gate))
+
+    def test_the_capi_device_functions_refuse_before_the_approval_and_the_trap(self):
+        # --capi-device (stage 2 working notes, 17.3): its gate is made to pass here, so only the flags refuse.
+        passing = "set +e\npython3() { return 0; }\n"
+        for call in ("capi_device_xcodebuild 10 -version", "capi_device_devicectl 10 list devices", "capi_device_guard"):
+            for flags in ("", "APPROVAL_CONSUMED=1\n", "DEVICE_TRAP_READY=1\n"):
+                with self.subTest(call=call, flags=flags):
+                    finished, log, _ = self.run_bash(passing + flags + call + '; echo "code=$?"')
+                    self.assertIn("code=97", finished.stdout)
+                    self.assertEqual(log, "")
+        # The near miss: with both flags and a passing gate, the call goes through.
+        finished, log, _ = self.run_bash(passing + "APPROVAL_CONSUMED=1\nDEVICE_TRAP_READY=1\n"
+                                         'capi_device_devicectl 10 list devices; echo "code=$?"')
+        self.assertIn("xcrun devicectl list devices", log)
+        # A refusing gate stops it even with both flags.
+        finished, log, _ = self.run_bash("set +e\npython3() { return 1; }\nAPPROVAL_CONSUMED=1\nDEVICE_TRAP_READY=1\n"
+                                         'capi_device_devicectl 10 list devices; echo "code=$?"')
+        self.assertIn("code=97", finished.stdout)
+        self.assertEqual(log, "")
 
     # The run's output folder as the script makes it: a real path (TMPDIR is under /var, a symlink).
     RUN = 'OUT_DIR="$(cd -P "$TMPDIR" && pwd -P)/run"; mkdir -p "$OUT_DIR"\n'
