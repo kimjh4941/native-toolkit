@@ -397,6 +397,95 @@ struct CApiUITestApp {
         try test.checkInterruption()
     }
 
+    /// Clears the event notification in Notification Center (12.2, DISMISS; TB-10): the banner is left to go,
+    /// Notification Center is pulled down from the top, the notification's cell is swiped left and its clear button
+    /// pressed. The cell is the one TB-9 measured on the iPad (`ListCell`, label ending with the title and body).
+    /// Measured in TB-10: on the iPhones (26.2, 18.3) `swipeLeft` shows the button; on the iPad (18.3) it leaves the
+    /// cell (the cell is gone and no button shows), and a short drag from its right part to its middle shows it.
+    func clearEventInNotificationCenter() throws {
+        _ = try eventBanner()
+        guard eventBanners.firstMatch.waitForNonExistence(timeout: 15) else {
+            throw CApiUITestError("the event banner did not go")
+        }
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.0))
+            .press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)))
+        let cells = springboard.buttons.matching(NSPredicate(format: "identifier == %@ AND label ENDSWITH %@", "ListCell", ", Event, Tap the event"))
+        guard cells.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the event notification is not in Notification Center")
+        }
+        guard cells.count == 1 else {
+            throw CApiUITestError("the event notification matches \(cells.count) cells")
+        }
+        try test.checkInterruption()
+        let cell = cells.element(boundBy: 0)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            cell.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
+                .press(forDuration: 0.1, thenDragTo: cell.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)))
+        } else {
+            cell.swipeLeft()
+        }
+        let clear = springboard.buttons.matching(NSPredicate(format: "label IN %@", ["Clear", "消去"]))
+        guard clear.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the clear button of the event notification did not appear")
+        }
+        guard clear.count == 1 else {
+            throw CApiUITestError("the clear button matches \(clear.count) elements")
+        }
+        clear.element(boundBy: 0).tap()
+        try test.checkInterruption()
+        guard cells.firstMatch.waitForNonExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the event notification is still in Notification Center")
+        }
+    }
+
+    // MARK: The Settings app (part 2, 12.2, openSettingsFor; TB-10). Simulator only, iOS 26.2 (en)
+
+    // Found as the sample's `Springboard.openSampleNotificationSettingsLink` finds the sample's (N40, measured with
+    // MS-07 on the iOS 26.2 simulator, en). The app's name is its product name.
+    private static let displayName = "IosLibraryCApiUITestApp"
+    private let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+
+    /// Relaunches Settings at its top page and presses Apps, the app, Notifications and the app's own notification
+    /// settings link; the system then calls `openSettingsFor` and brings the app forward. Each row is found by its
+    /// exact label or identifier and must be the only one.
+    func openTheAppsNotificationSettingsLink() throws {
+        settings.terminate()
+        settings.launch()
+        guard settings.wait(for: .runningForeground, timeout: Self.timeout) else {
+            throw CApiUITestError("Settings did not come to the foreground")
+        }
+        try test.checkInterruption()
+        try pressSettingsRow(NSPredicate(format: "label == %@", "Apps"), "Apps")
+        try pressSettingsRow(NSPredicate(format: "label == %@", Self.displayName), "the app's row")
+        try pressSettingsRow(NSPredicate(format: "identifier == %@", "NOTIFICATIONS"), "Notifications")
+        try pressSettingsRow(NSPredicate(format: "label == %@", "\(Self.displayName) Notification Settings"), "the app's notification settings link")
+    }
+
+    /// As the sample's `pressSettingsRow`: waits up to 2 seconds for a match, then scrolls up (at most 12 times) and
+    /// back down once until exactly one hittable button or cell matches, and presses it.
+    private func pressSettingsRow(_ predicate: NSPredicate, _ name: String) throws {
+        let rows = settings.buttons.matching(predicate)
+        let cells = settings.cells.matching(predicate)
+        _ = settings.descendants(matching: .any).matching(predicate).firstMatch.waitForExistence(timeout: 2)
+        for swipe in 0...13 {
+            let query = rows.count > 0 ? rows : cells
+            if query.count == 1, query.firstMatch.isHittable {
+                query.firstMatch.tap()
+                try test.checkInterruption()
+                return
+            }
+            if query.count > 1 {
+                throw CApiUITestError("\(name): \(query.count) rows in Settings; nothing was pressed")
+            }
+            if swipe < 12 {
+                settings.swipeUp()
+            } else if swipe == 12 {
+                settings.swipeDown()
+            }
+        }
+        throw CApiUITestError("\(name) was not found in Settings")
+    }
+
     // MARK: The share sheet (part 2, 12.2, "Share"). Simulator only
 
     // The sheet is in the app's tree; it is found and closed as the sample's `ShareSheet` does (identifiers

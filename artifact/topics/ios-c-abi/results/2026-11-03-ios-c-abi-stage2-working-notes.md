@@ -2166,3 +2166,162 @@ Xcode 26.6 は `DEVELOPER_DIR`。`xcode-select` は触っていない。コマ�
 直しの後に流したもの: `IosLibraryCApiTests`（iPhone 17 Pro / 26.2）と、UI テストのアプリとターゲットの build-for-testing。UI テストそのものは流し直していない（UI 側の変更はコメントだけ）。iPhone 16、TSan、ASan も流し直していない（変更は単体テストの 1 件だけ）。変異は流していない。
 
 結果（11:00〜11:03）: `IosLibraryCApiTests` は 468/468（直した `testTwoSharesCompletedInTheOtherOrder` も通った）。build-for-testing は rc 0。警告は `appintentsmetadataprocessor` の「AppIntents が無い」の 4 件だけで、コードの警告は 0。照合（`--require-complete`）と第 1 部・第 2 部の設計書の照合は、直しの前の 10:53 にメインのセッションが流して FAIL 0（直しはこれらの対象に触れない）。
+
+## 13. TB-10
+
+第 2 部 13 章の TB-10（main を待たないことのテスト、競合の再現のテスト、`NOT_IMPLEMENTED_YET` と H = E、12.2 の「通知のイベント」の残りの `DISMISS` と `openSettingsFor`）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。**判断の要るところは、メインのセッションが利用者の指示（「判断が必要な場合、推奨案で、進める。」）のもとで決めた形（推奨案）で進めた。持ち主はまだ読んでいない。**
+
+### 13.1 決めたこと（推奨案。持ち主の確認待ち）
+
+| # | 決定 | 誰が | 理由 |
+|---|---|---|---|
+| 1 | `DISMISS` と `openSettingsFor` の UI テストを TB-10 に入れる（11.9 の確認待ちの (2)） | メインのセッション | 12.2 の行と 15.2 の DoD を TB-10 で閉じるため。設計書の「（作業記録 11.9 の確認待ち）」の印は「推奨案で進めた。持ち主の確認待ち」の形に直した（第 2 部 12.2・13 章の TB-8 と TB-10 の行・15.2） |
+| 2 | `EventLedger` のあふれた数の記録・ログは入れない（11.9 の確認待ちの (1)） | メインのセッション | 持ち主の判断待ちのまま |
+| 3 | **通知の受け口に差し替えの口 `NotificationReceiver.Operations` を足した**（OP-29〜OP-41 のうち `show`・`update`・`schedule` 以外の 13 操作が呼ぶライブラリの口。既定は `.manager` で、今までと同じ `IosNotificationManager` の callback の口を呼ぶ） | 実装者（推奨案） | この 13 操作は受け口から直に `IosNotificationManager` を呼んでいて、C から受け付けると単体テストから本物の通知の中心に届く。差し替えの口が無いと「受け付けたものは完了と `release` が後で main で 1 回ずつ」を 13 操作では確かめられない（入口で拒む形だけになる）。TB-7 の `Adding`、TB-8 の `Events`、TB-9 の `Sharing` と同じ形（受け口の中の closure の束。Ports & Adapters の形ではない）。`getScheduled`・`getDelivered` は写し（`NotificationMapping.entries`）を `.manager` の中に移し、受け口は `[NotificationListEntry]` を受ける。`IosLibraryCApiTests` は `setUp` で失敗で閉じる形を入れる（`FailClosed`。`NotificationOperationTests` にも足した） |
+| 4 | `openSettingsFor` の UI テストは、iOS 26.2 では設定の App を辿って確かめ、**ほかの OS では `PROVIDES_APP_SETTINGS` 付きの要求が `granted=1` で通るところで終える** | 実装者（推奨案） | 指示は「26.2 だけ」。ランナーは skip を失敗と数える（`capi-summary`。「An intended skip does not exist here」）ので `XCTSkip` は使えず、`scripts/ios_ui_runner.py` は変えない約束なので、OS を見て早く戻る形にした。テストのコメントに書いた |
+| 5 | `DISMISS` は 3 台とも流す | 実装者（推奨案。測った結果） | 26.2 で測って通った後、iPhone 16 / 18.3 と iPad / 18.3（日本語）でも測った。iPhone はセルの `swipeLeft` で「Clear」が出る。iPad は `swipeLeft` でセルが消え（ボタンは出ない）、セルの右寄りから中ほどまでの短いドラッグで「オプション」と「消去」が出た（13.4） |
+| 6 | 作業記録 7.7（1171 行）の「ダイアログを出している間の取り消し」を UI テストにした | 実装者（推奨案） | 書ける形があった: アプリの行が読み込みを始め、4 秒後に別のスレッドから取り消す（`clipboard.loadThenCancelLater`）。UI テストは貼り付けのダイアログが出たのを確かめ、取り消しの後に「許可」を押し、完了が `CANCELED` の 1 回だけであることを見る（取り消しが効いていなければ（状態が `CANCEL_REQUESTED` に変わらなければ）、許可で `NONE` と本文が来る。箱を閉じたかどうかは見分けない。第 1 部 5.7 の「完了」の行）。DoD に送るものは無い |
+| 7 | 新しい単体テストのクラスの名前を `ThreadContractTests` にした | 実装者 | `NotificationEventTests` の `testTheLibrarysListenerIsAddedOnce` が、プロセスで最初の挿入の回数を数えている。XCTest はクラスを名前の順に流すので、それより後に流れる名前にした（クラスのコメントに書いた） |
+
+### 13.2 足したもの
+
+| 区分 | ファイル（`ios/`） | 中身 |
+|---|---|---|
+| 受け口 | `IosLibraryCApi/IosLibraryCApi/Notification/NotificationReceiver.swift` | `Operations`（13.1 の 3）と `operations`。13 操作の `start` はこの口を呼ぶ。`set_badge_count` は口を `Task` の前に読む（`Adding` と同じ） |
+| テスト | `IosLibraryCApiTests/ThreadContractTests.swift`（新規。6） | `FailClosed`（4 つの口の失敗で閉じる形）、`NotificationOperationsFake`。テストは 13.3 |
+| テスト | `IosLibraryCApiTests/NotificationOperationTests.swift` | `setUp` で `operations` も失敗で閉じる（1 行） |
+| UI テスト用のアプリ | `IosLibraryCApiUITestApp/Rows/NotificationRows.swift`、`Rows/ClipboardRows.swift` | 行 2 個: `notification.requestPermissionWithAppSettings`（`ALERT`・`SOUND`・`BADGE`・`PROVIDES_APP_SETTINGS`）、`clipboard.loadThenCancelLater`（読み込みを始め、4 秒後に別のスレッドから `ntk_clipboard_cancel_load`） |
+| UI テスト | `IosLibraryCApiUITests/CApiRoundTripUITests.swift`、`CApiFreshInstallUITests.swift`、`CApiUITestApp.swift` | テスト 3 件（13.3）。補助: `clearEventInNotificationCenter`（通知センターのセルの「消去」）、`openTheAppsNotificationSettingsLink` と `pressSettingsRow`（サンプルの N40 の `Springboard.openSampleNotificationSettingsLink` と同じ辿り方を写した。信頼するファイルは変えていない） |
+| 設計書 | 第 2 部 12.1 の「main を待たない」の行、12.2 の「通知のイベント」の行、13 章の TB-8 と TB-10 の行、15.2 | 13.1 の 1・3〜5 の印と、差し替えの口の一言 |
+
+公開ヘッダー、`ios/IosLibrary`、信頼する UI テストのファイル（`ios/IosLibraryExample/IosLibraryExampleUITests/Support/` の 5 つ）、`scripts/ios_ui_runner.py` とその表、`scripts/check_c_abi_contract_ios.py`、README、メモリは変えていない。`android/.idea` には触れていない。
+
+**`IosLibraryCApiTests` は通知の中心にも共有のシートにも届かない**: `ThreadContractTests` は `setUp` で `Adding`・`Operations`・`Events`・`Sharing` を失敗で閉じる形にし、受け付けを確かめるテストは、すぐに完了する偽物を入れる。Dialog は受け付けと同じ呼び出しの中で取り消す（最初の main の回より前なので出ない。`DialogEntryTests` と同じ）。Clipboard は名前付きのペーストボードだけ。`tearDown` は閉じる形に戻し、このクラスの後もそのまま残る。記録の物はテストの物が持ち続ける。
+
+### 13.3 12.1・第 1 部 6 章・12.2 の行
+
+| 行 | どこで | 中身 |
+|---|---|---|
+| 第 1 部 6 章「main を待たない」・12.1「main を待たない」 | `testNoFunctionWaitsForTheMainThread` | **134 関数すべて**を、main を止めた状態（テストの本体が main で、別のスレッドを期限 5 秒で待つ）で別のスレッドから呼ぶ。どれも期限内に期待の値で戻り（`ntk_notification_install` は `WRONG_THREAD`、ほかは `NONE` か同期の読み取り）、呼び出しの中では何も来ない。受け付ける 40 個（完了つきの非同期の 38 関数と、受け付けと同じ呼び出しの中で取り消す `ntk_dialog_cancel`・`ntk_clipboard_cancel_load`）は、main が動いた後に完了 1 回、`release` 1 回が main で来る（`finished`）。受け手の 5 個（追加と解除を同じ呼び出しの中で。`_listener_remove` の 2 つを含む）は `release` だけが main で 1 回。残りの 89 個（`ntk_notification_install` と、ビルダー・読み取り・解放など同期の 88 個）は後から何も来ない。読み取りと解放は `make*` で作った本物のハンドルに対して呼ぶ |
+| 表が 134 関数を網羅すること | `testTheTableIsEveryFunction` | 表の名前が 134 個、重複なし、どれも `dlsym(RTLD_DEFAULT, …)` で引ける公開の関数。2a の照合が H = E = S を保つので、134 個の別々の公開の関数ならヘッダーの全関数（名前と呼び出しの一致は目で見た） |
+| 第 1 部 6 章「スレッド」（8 スレッド × 25 回） | `testEightThreadsTimesTwentyFiveCalls` | main を止めた状態で 8 スレッドが 25 回ずつ、8 種類（Dialog の表示と取り消し、Clipboard の読み込み、変更の確かめ、通知の表示、予約の一覧、Share、通知の受け手の追加と解除、Clipboard の受け手の追加と解除）を同時に呼ぶ。200 件すべて `NONE` で戻り、呼び出しの中では何も来ない。完了つきの 150 件は完了 1 回と `release` 1 回が main で、受け手の 50 件は `release` 1 回が main で。要求の ID（Dialog と読み込みの 50 件）は重複しない |
+| 5.7「main 以外の取り消しと、main の完了が重なる」 | `testCancelsFromEightThreadsAgainstTheMainThreadsCompletions` | 名前付きのペーストボードに書いた本文の読み込みを main から 200 件受け付け、8 スレッドが 25 件ずつ取り消す間に main が読み込みを進める。どれも完了は 1 回（`NONE` と本文、または `CANCELED` とハンドル `NULL`）で `release` 1 回。取り消しが先に勝ったものが 1 件以上ある |
+| 第 1 部 6 章「競合を決まった順で再現する」 | `testADeliveryQueuedBeforeARemovalOffTheMainThreadIsNotDelivered` | C の関数で: 唯一の登録を入れた後、main を止めたまま、配送を積む → 別のスレッドから解除 → もう 1 つ配送を積む → main を放す。外した登録には 2 つとも届かず（配る直前の状態が `CANCEL_REQUESTED`）、`release` は main で 1 回。2 つは保たれ、次の登録に順に届く |
+| 5.7 の解除と配送の競合 | `testRemovalOffTheMainThreadAgainstDeliveriesThroughC` | `EventLedgerTests` の 200 回の競合を C の関数（`ntk_notification_add_interaction_listener`、`ntk_notification_listener_remove`）と受け口の `receive` で。`release` は main で 1 回、`release` の後は届かず、届いたものは順に先頭から、届かなかったものは次の登録に順に届く |
+| 12.2「通知のイベント」`DISMISS` | UI テスト `testClearingTheNotificationReachesCAsDismiss` | 起動の中で受け手を登録し、`CUSTOM_DISMISS_ACTION` の category の通知を出し、ホームに出て、バナーが消えるのを待ち、通知センターを上から引き出し、セルを払って「消去」を押す。C の受け手に `kind=2`、`action=com.apple.UNNotificationDismissActionIdentifier`、category・userInfo・`launch=0` で 1 回だけ届いた |
+| 12.2「通知のイベント」`openSettingsFor` | UI テスト `testTheSettingsLinkReachesCAsASettingsRequest`（`CApiFreshInstallUITests`。アプリを消した直後） | 未決の状態から `PROVIDES_APP_SETTINGS` 付きで求めて許可し `granted=1`。26.2 では設定の App の「Apps」→ アプリ →「Notifications」→「IosLibraryCApiUITestApp Notification Settings」を押すと、起動の中で登録した設定の受け手に `settings id=NULL` が 1 回だけ届き、操作のイベントは来ない |
+| 作業記録 7.7「ダイアログを出している間の取り消し」 | UI テスト `testALoadCancelledWhileThePasteAlertIsUp` | 13.1 の 6 |
+| TB-10 の完了の条件の照合 | `check_c_abi_contract_ios.py` | `NOT_IMPLEMENTED_YET` は空のまま（TB-9 で空にした）。`entries` は 134 of 134。`--require-complete` でも通る。第 1 部 5.5 の H = E がそのまま成り立つ（`complete` が OK） |
+
+テストは 468 → 474 件（`ThreadContractTests` 6）。UI テストは 55 → 58 件（`CApiRoundTripUITests` 2、`CApiFreshInstallUITests` 1）。
+
+### 13.4 測ったこと（シミュレーター。`scripts/test_ios.sh` の外で `test-without-building` を 1 件ずつ。各回の前に `pgrep -x Simulator` で Simulator.app が閉じていることを確かめた）
+
+| 何を | どこで | 結果 |
+|---|---|---|
+| `DISMISS`（通知センターのセルの「消去」） | iPhone 17 Pro / 26.2 | 最初の形（バナーが消えるのを待つ → 画面の上の中央から 0.7 まで引き下ろす → `ListCell` のセルを `swipeLeft` →「Clear」を押す）で通った。C の受け手に `kind=2` が 1 回 |
+| 同 | iPhone 16 / 18.3 | 同じ形で通った |
+| 同 | iPad Pro 11-inch (M4) / 18.3（日本語） | `swipeLeft` の後にセルが無くなり、「消去」が出ずに落ちた（払いが表紙の画面の別のページへ移したか、払い切ったかは確かめていない）。調べのコード（自分の通知の行の近くの要素だけを出す。測った後に消した。`PROBE` が `ios/IosLibraryCApi*` に無いことを `grep` で確かめた）で、**セルの右寄り（0.9）から中ほど（0.55）への短いドラッグで「オプション」と「消去」（`swipe-action-button-identifier`）が出る**ことを確かめ、その形で通った |
+| `openSettingsFor`（設定の App のリンク） | iPhone 17 Pro / 26.2（新しく入れたアプリ） | 「Apps」→「IosLibraryCApiUITestApp」→ `NOTIFICATIONS` →「IosLibraryCApiUITestApp Notification Settings」で、アプリが前に来て設定の受け手に `settings id=NULL` が 1 回。18.3 では辿っていない（13.1 の 4） |
+| 読み込みの取り消し（貼り付けのダイアログの間） | 3 台 | どれも `CANCELED` の 1 回だけ。**取り消しの後もダイアログは残った**（3 台とも `up`。26.2 は最後の検証の `--capi-ui` のログで確かめた） |
+
+### 13.5 壊して確かめたこと（使い捨ての写し。iPhone 16 / 18.3。`ThreadContractTests` だけ）
+
+7 個。最後の検証の前に流した。写しは最後のソースと同じ（流した後に `diff -rq` で差なし）。まず変異なしの写しで 6/6 が通ることを確かめた（M0）。**7 個とも落ちた。クラッシュは 0 件**（テストのホストのクラッシュレポートは出ていない）。M3 と M6 は最初の形が組めなかった（M3 は `import` が無いファイル、M6 は main actor の関数を別のスレッドから呼んだ）ので、組める形に直して流し直した。
+
+| # | 変異 | 落ちたテスト |
+|---|---|---|
+| M1 | `ntk_notification_remove_async` が main 以外では `DispatchQueue.main.sync` で main を待つ | `testNoFunctionWaitsForTheMainThread`（`ntk_notification_remove_async did not return in time`） |
+| M2 | `ntk_share_content_async` が main 以外では main に積んだブロックをセマフォで待つ | `testNoFunctionWaitsForTheMainThread`、`testEightThreadsTimesTwentyFiveCalls`（25 秒で戻らない） |
+| M3 | 読み取りの `ntk_dialog_result_button` が main 以外では main を待つ | `testNoFunctionWaitsForTheMainThread`（`ntk_dialog_result_button did not return in time`） |
+| M4 | 受け付けた `ntk_notification_set_badge_count_async` が完了しない | `testNoFunctionWaitsForTheMainThread`（完了と `release` が来ない） |
+| M5 | 帳簿が解除を頼まれた登録（`CANCEL_REQUESTED`）にも配る | `testADeliveryQueuedBeforeARemovalOffTheMainThreadIsNotDelivered`（200 回の競合のテストは落ちない: 解除の後に配られたものも「先頭から順に」に収まるため。決まった順の方が見つける） |
+| M6 | main 以外からの受け手の解除が、外すことも `release` もしない | `testNoFunctionWaitsForTheMainThread`、`testEightThreadsTimesTwentyFiveCalls`、`testADeliveryQueuedBeforeARemovalOffTheMainThreadIsNotDelivered`、`testRemovalOffTheMainThreadAgainstDeliveriesThroughC` |
+| M7 | main 以外からの `ntk_clipboard_cancel_load` が何もしない | `testCancelsFromEightThreadsAgainstTheMainThreadsCompletions`（取り消しが 1 件も勝たない） |
+
+UI テストの 3 件は変異にしていない（アプリの行と UI テストの中なので、13.4 の測りと 3 台の `--capi-ui` で確かめた）。`Operations.manager` の配線（13 操作が本物の口を呼ぶこと）は単体テストでは偽物に置き換わるので、`--capi-ui` の通知の行（`removeNow`、`delivered`、`badge`、`registerCategory` など）と、今回の `requestPermissionWithAppSettings` が受け持つ。
+
+### 13.6 コマンドと結果（最後のソース）
+
+11:41〜13:01 に下の順で続けて流し、シミュレーターの仕事は重ねていない（変異は 11:30〜11:41 に、検証の前に流した）。各実行の前（スクリプトの中）と後に `pgrep -x Simulator` で Simulator.app が閉じていることを確かめた。使い終えたシミュレーターは `xcrun simctl shutdown` した。ソースのハッシュ（`git status --short -uall -- ios scripts | cut -c4- | sort | xargs shasum -a 256 | shasum -a 256 | cut -c1-12`）は**流す前も後も `e5f7aa4de844`**。TB-10 の前は TB-9 のコミット `356c8c71`。**流した後に変えたのはこの記録だけ。**
+
+```
+xcodebuild test -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -destination 'platform=iOS Simulator,id=<UDID>' \
+  -parallel-testing-enabled NO -only-testing:IosLibraryCApiTests [-enableThreadSanitizer YES | -enableAddressSanitizer YES]
+scripts/test_ios.sh --udid <UDID> --capi-ui
+```
+
+| 実行 | 結果 |
+|---|---|
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2） | 474/474 |
+| 同（iPhone 16 / 18.3） | 474/474 |
+| 同 TSan（iPhone 17 Pro / 26.2） | 474/474。報告 0 件 |
+| 同 ASan（iPhone 17 Pro / 26.2） | 474/474。報告 0 件 |
+| `--capi-ui`（iPhone 17 Pro / 26.2。Xcode 26.6） | 58/58。rc 0（`20261107-114953-iPhone_17_Pro-26.2`） |
+| 同（iPhone 16 / 18.3） | 1 回目は `CApiFreshInstallUITests` の 3 件が通り、`CApiRoundTripUITests` はテストのランナーが起動で落ちて 1 件も流れなかった（`Failed to create a bundle instance …`。12.3 の iPad の 1 回目と同じシミュレーターの側のエラー）。**推奨案で 1 回だけ流し直し、58/58。rc 0**（`20261107-123727-iPhone_16-18.3.1`） |
+| 同（iPad Pro 11-inch (M4) / 18.3、日本語） | 58/58。rc 0（`20261107-121648-iPad_Pro_11-inch_(M4)-18.3.1`）。流し直していない |
+| framework の Release（`generic/platform=iOS`、`CODE_SIGNING_ALLOWED=NO`）`--library --architectures arm64` | `OK symbols`（134 symbols、1 architectures）。capi の警告 0 |
+| framework の Release（`generic/platform=iOS Simulator`、`ARCHS='arm64 x86_64'`）`--library --architectures arm64,x86_64` | `OK symbols`（134 symbols、2 architectures）。capi の警告 0 |
+| `python3 scripts/check_c_abi_contract_ios.py` | rc 0。OK 28、FAIL 0、SKIP 1（`symbols`。`--library` なし）。`entries` は 134 of 134、0 not implemented yet |
+| 同 `--require-complete` | rc 0、FAIL 0。`OK complete: every function of the headers has its entry` |
+| `test_check_c_abi_contract_ios.py` | Ran 280 tests、OK |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 2 部、第 1 部） | どちらも rc 0、FAIL 0 |
+
+単体テストのビルドの警告: 新しく足したものは 0（`ThreadContractTests` と `NotificationOperationTests` の main actor の 2 件は `MainActor.assumeIsolated` で直した）。前からある 3 件（`NotificationEventTests.swift:130`、`NotificationOperationTests.swift:59` の 2 件。`setUpWithError` から main actor の静的な値に触れる）は変えていない。検証の間に出たクラッシュレポートは、シミュレーターと Mac の `AccessibilityControlsExtension`、`maild`、`remindd` のもので、自分のプロセスではないので消していない。変異でもテストのホストのクラッシュレポートは出なかった。
+
+### 13.7 確かめられていないこと
+
+- **実機では何も流していない**（指示のとおり。`xcrun devicectl` も使っていない）。15.2 の実機の ASan と smoke は DoD の区切りで、持ち主の許可が要る
+- `openSettingsFor` の設定の App を辿る操作は iOS 26.2（英語）だけ。18.3 と日本語の iPad では要求（`granted=1`）までしか見ていない（13.1 の 4）
+- iPad の `swipeLeft` でセルが消えた理由（表紙の画面のページの移動か、払い切りか）。その時に `DISMISS` が届いたかも見ていない
+- `DISMISS` は「消去」の 1 つの経路だけ。通知センターの「すべて消去」、ロック画面からの消去、バナーを上へ払う操作は測っていない
+- 単体テストの「main を待たない」は、期限 5 秒の間に戻るかで見る。待つ時間に上限のある待ち（数秒で諦める待ち）が入っても、5 秒より短ければ見つけない
+- 8 スレッド × 25 回は 1 回の実行で、繰り返していない。競合の 200 回（解除と配送）と 200 件（取り消しと完了）は、それぞれ 1 回の実行
+- 名前と呼び出しの一致（表の `name` と、その closure が呼ぶ関数）は目で見た。`testTheTableIsEveryFunction` は名前の側だけを照らす
+- Mac のクリップボードとの同期は引き続き測っていない（6.6）。Simulator.app は開かず、Mac の `pbcopy`・`pbpaste` と `simctl pbsync` は使っていない。UI テストのランナーは前と同じくシミュレーターの general に書く（今回の `testALoadCancelledWhileThePasteAlertIsUp` も）
+
+### 13.8 持ち主の判断待ち
+
+1. 13.1 の 1（`DISMISS` と `openSettingsFor` の UI テストを TB-10 に入れた）。11.9 の (2)
+2. 13.1 の 2（ため置きのあふれた数の記録・ログ。入れていない）。11.9 の (1)
+3. 13.1 の 3（受け口に `Operations` を足した。製品のコードの変更）
+4. 13.1 の 4（`openSettingsFor` は 26.2 だけ辿り、ほかの OS は要求で終える形。ランナーが skip を数えられれば `XCTSkip` にする手もあるが、ランナーは変えていない）
+5. 13.1 の 5・6（`DISMISS` を 3 台で流す、貼り付けのダイアログの間の取り消しを UI テストにした）
+
+### 13.9 時間
+
+11:04〜13:03（約 2 時間）。うち変異が約 11 分（11:30〜11:41。M3 と M6 の組み直しを含む）、最後の検証が約 80 分（11:41〜13:01。`--capi-ui` は 1 回約 20 分で、iPhone 16 の流し直しを含めて 4 回）。目標の 13:45 の中。
+
+### 13.10 レビューと、メインのセッションの直し
+
+13.6 のソース（`e5f7aa4de844`）を、Claude のサブエージェントと Codex に読むだけで見てもらった（2026-11-07 13:03〜13:10）。どちらも A は 0。直しはメインのセッションが、指摘をコードで確かめてから入れた。**持ち主はまだ読んでいない。**
+
+| 指摘 | 確かめたこと | 扱い |
+|---|---|---|
+| Codex B1 / Claude C-1 | 取り消しのスレッドは、main が読み込みを始める前に 200 件すべてを取り消せた。その場合も `canceled > 0` は通り、競合は起きていない | 直した: 取り消しのスレッドは、読み込みより先に main に積んだ合図を待ってから始める。`NONE` と `CANCELED` の件数を出力する |
+| Codex B2 | 20 秒で待ちを抜けた後、取り消しのスレッドが終わったかを見ていなかった | 直した: 終わったことを確かめる |
+| Codex B3 / Claude B-1 | 判定が `majorVersion == 26` だけで、26.2 に限っていなかった | 直した: 26.2 に限り、ほかの OS では辿らなかったことを 1 行出力する |
+| Claude B-2 | 第 2 部 12.1「main を待たない」の行だけ、持ち主の確認待ちの印が無かった | 直した |
+| Claude B-3 | 13.1 の 6 の括弧の中は誤り。第 1 部 5.7 の「完了」の行（`CANCEL_REQUESTED` なら箱を閉じたかに関わらず `CANCELED`） | 直した |
+| Claude C-2 | 8×25 の各スレッドは作られた順にすぐ走り、重ならないことがある | 直した: 8 スレッドが揃ってから一斉に始める |
+| Codex C / Claude C-4 | 表の網羅のテストが作ったハンドルを解放しない | 直さない。テストの中だけの漏れ |
+| Claude C-3 | 「待たない」の期限は 5 秒で、それより短く待つ形は見つけない | 直さない（13.7 に書いた） |
+| Claude C-5 | `FailClosed` が `ThreadContractTests.swift` にあり、`NotificationOperationTests` から使う。tearDown の戻し方が揃っていない | 直さない。動きは正しい。補助のファイルへの移動は後で |
+| Claude C-6〜C-9 | 設定を辿る補助にシミュレーターだけの守りが無い（ターゲットがシミュレーター専用なので今は害なし）、クラスのコメント、`NotificationEventTests` のコメントが古い、11.9 と 13.3 の参照 | 直さない。動きに関わらない |
+
+直しの後に流したものは下に書く。
+
+**取り消しと完了の競合の直しは 1 回で済まなかった**: 合図を待ってから始める形にしても、`canceled=200 loaded=0` のままだった（17 Pro、16、TSan の 3 回とも）。読み込みの完了は main が積んだ後もしばらく来ないため、取り消しが 25 ms ほどで全部先に着いていた。1 回ごとの間を 2 ms にしても 200/0 で、10 ms（1 スレッドで約 250 ms）にして初めて両方が出た。両方が出る割合は機械の速さで変わるので、テストは `canceled > 0` だけを確かめ、件数は出力する（`loaded > 0` は確かめない）。
+
+**直しの後の結果**（メインのセッション。13:12〜13:44。1 台ずつ順に。各実行の前に `pgrep -x Simulator` で閉じていることを確かめた）
+
+| 実行 | ソース | 結果 |
+|---|---|---|
+| `IosLibraryCApiTests`（17 Pro / 26.2） | 最後（`2c0525e90a59`） | 474/474。canceled=124 loaded=76 |
+| 同（16 / 18.3） | 最後 | 474/474。canceled=156 loaded=44 |
+| 同 TSan（17 Pro） | 最後 | 474/474、報告 0。canceled=138 loaded=62 |
+| `--capi-ui`（17 Pro） | 間を 10 ms にする前（`fb83f51ed667`。違いは単体テストの 1 行だけ） | 58/58 |
+| 照合 `--require-complete`、設計書の照合（第 1 部・第 2 部） | 最後 | rc 0、FAIL 0 |
+
+流し直していないもの: ASan、`--capi-ui` の iPhone 16 と iPad（UI 側の変更は 26.2 の判定を狭めて 1 行出すだけで、18.3 では前も辿らずに終えていた）、変異。

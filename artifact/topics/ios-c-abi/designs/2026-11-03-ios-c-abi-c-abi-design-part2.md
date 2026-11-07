@@ -846,7 +846,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | 入口と完了の分け方（AP-19） | 件数 0 の `EMPTY_ITEMS`・`EMPTY_PATTERNS`・`EMPTY_CONTENT`、空のパス、範囲外の trigger が戻り値で返り、**完了は呼ばれず、`release` だけが呼び出しスレッドで関数が戻る前に 1 回** |
 | 写しの表 | **写しは受け口の純粋な関数にして `@testable import IosLibraryCApi` で確かめる**: 各エラーの型の全 case の値を手で書いて比べる（case の増減は 2a の照合が止める。12.3）。`ClipboardError` は `errorCode` を通して 11.3 と比べる（P2-13。別のモジュールからの `switch` は `@unknown default` が要り、止めない）。**実際に起こせるものだけを C から通す**（空の内容、無いファイル、前面でない）。`.addRequestFailed` など起こせないものは写しの関数のテストだけ |
 | 完了 | 非同期の OP のちょうど 1 回、main で来ること、main から呼んだときは戻った後、`release` のちょうど 1 回（第 1 部 6 章の表の項目を、第 2 部の関数で行う） |
-| main を待たない | main を止めた状態で、`ntk_notification_install` のほかの全関数が待たずに戻る（第 1 部 6 章） |
+| main を待たない | main を止めた状態で、`ntk_notification_install` のほかの全関数が待たずに戻る（第 1 部 6 章）。**受け付けたものは完了と `release` が後で main で 1 回ずつ来る。通知の中心と共有のシートに届かないよう、受け口の中の口（`Adding`、`Operations`、`Events`、`Sharing`）を偽物に差し替えて流す**（TB-10 で `Operations` を足した。推奨案で進めた。持ち主の確認待ち。作業記録 13 章） |
 | 前面 | **UI テスト用のアプリ（TB-2b）で流す**。後ろから呼んだ OP-18〜OP-23、OP-35（未決）、OP-38、OP-46 が `NOT_FOREGROUND` で完了する。OP-35 は決まっていれば後ろからでも値で完了する |
 | 取り消し | OP-24: `CANCELED` で完了し閉じる。上に画面が重なっていれば閉じない。**受け付けの後、最初の main の処理の前の取り消し（main を止めて行う）で、Dialog が出ず、読み込みが始まらず、完了と `release` が来る**。OP-12: `CANCELED`、main 以外から呼んでその場で閉じる（P2-12）。**箱が閉じたのが開始の確かめより前なら、貼り付けのダイアログが出ない**（12.2 で確かめる。開始と同時の取り消しは約束しない。5.3）。`.file` の成功を C が捨てたときと、`RELEASED` の後に届いたときにファイルとフォルダーが消える。渡した後の取り消しでは消えない。知らない ID と完了の後の ID は `NONE` で何もしない |
 | イベント | **受け口の帳簿をイベントの型に依存しない形で組み、`@testable import` で流す**: 同じ種類に 2 つの登録で両方に届く、解除の後に届かない、保っていたイベントが次の登録に挿入のブロックの中で届く、**保っていたイベントを配っているコールバックの中で唯一の登録を外して新しく足しても、残りが新しい登録に届く**（AP-21）、33 件目で最も古いものを捨てる。**ハンドルの値（`_kind` の 4 種、userInfo、`_is_launch`）は純粋な変換のテストと 12.2 の 1 件ずつ**（`NotificationResponseEvent` の init は internal で、C から作れない） |
@@ -869,7 +869,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 | 観点 | 中身 |
 |---|---|
-| 通知のイベント | C から出した通知をバナーで押し、操作のイベントが C の受け手に届く（XCUITest。シミュレーター）。`BODY_TAP`、`ACTION`、`TEXT_INPUT`、`DISMISS` を 1 件ずつ。コールドスタートのタップと `_is_launch`。`openSettingsFor`（PR-02）は 1b の MS-07 の方法で。**TB-8 は `BODY_TAP`、`ACTION`、`TEXT_INPUT` とコールドスタートまで。`DISMISS` と `openSettingsFor` は TB-10 が受け持つ**（作業記録 11.9 の確認待ち。`DISMISS` はシミュレーターの通知センターでの「消去」を iOS 26.2 で測ってから。`openSettingsFor` はアプリを消した直後のクラスで `PROVIDES_APP_SETTINGS` 付きの要求から始め、設定の App の文言が OS で違うので iOS 26.2 だけ） |
+| 通知のイベント | C から出した通知をバナーで押し、操作のイベントが C の受け手に届く（XCUITest。シミュレーター）。`BODY_TAP`、`ACTION`、`TEXT_INPUT`、`DISMISS` を 1 件ずつ。コールドスタートのタップと `_is_launch`。`openSettingsFor`（PR-02）は 1b の MS-07 の方法で。**TB-8 は `BODY_TAP`、`ACTION`、`TEXT_INPUT` とコールドスタートまで。`DISMISS` と `openSettingsFor` は TB-10 が受け持つ**（作業記録 11.9 の確認待ちだったものを、推奨案で TB-10 に入れて進めた。**持ち主の確認待ち**。作業記録 13 章。`DISMISS` は通知センターのセルの「消去」で、iOS 26.2 で測った後に 3 台（iPhone 17 Pro / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3）とも流す。`openSettingsFor` はアプリを消した直後のクラスで `PROVIDES_APP_SETTINGS` 付きの要求から始め、設定の App を辿るのは iOS 26.2 だけ（ほかの OS では要求の確かめで終わる。ランナーは skip を失敗と数えるため） |
 | 通知の順序と許可の後 | 許可の後に `show_async`・`update_async`・`schedule_async` が通り pending に残る。`update_async` が前の要求を置き換える。`cancel_all_scheduled_async` の完了の中の `schedule_async` が残る（M6 と同じ確かめ）。空文字の識別子の削除 3 つ（`remove_async`、`cancel_scheduled_async`、`remove_category_async`）が `NONE` で完了し、予約が残る |
 | Dialog と権限 | C から出した Dialog と権限のダイアログを XCUITest で押し、完了の値を確かめる。アクションシートの外側のタップ（6.2）。**権限が未決のうちは、OP-26〜OP-28 が `PERMISSION_DENIED` で完了し、配信済みにも予約にも何も載らない** |
 | Share | C から開いたシートで「コピー」を選び、`completed` と `activity_type` を確かめる |
@@ -909,9 +909,9 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-5 | Dialog（OP-18〜OP-24、結果） | 1.0日 | TB-2b | 12.1 の前面・取り消しの行、12.2（「Dialog と権限」の行の権限のダイアログは TB-7）。**アクションシートは iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-2b のアプリはまだ iPad で起動していない）。第 1 部 6 章の `foregroundInactive` を Dialog で確かめた |
 | TB-6 | 通知のビルダーと userInfo の JSON、trigger、category | 1.5日 | TB-2 | 12.1 のビルダー・userInfo・trigger の行。trigger と category は写しの関数まで確かめた。C の関数を通す確かめは TB-7 |
 | TB-7 | 通知の操作（OP-26〜OP-41）、権限の事前の確かめ | 1.0日 | TB-6、TB-2b | 12.1 の写しの関数・前面・事前の確かめ・権限の要求の選択肢の行、12.2 の「通知の順序と許可の後」の行。12.2 の「Dialog と権限」の行のうち、C から求めた権限のダイアログを XCUITest で押し、完了の値を確かめた。12.1 の trigger の行の C のテスト（`INVALID_PARAMETER` でプロセスが落ちない）と、AP-19 の範囲外の trigger、category の C のテストが通る |
-| TB-8 | 通知のイベント（OP-42〜OP-45）。**TB-2b のアプリに起動の形を伝える口を足す**（システムが起こしたプロセスは起動の引数を受けないので、サンプルの SA-18 と同じくファイルで。コールドスタートの中で受け手を登録するため） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と、12.2 の「通知のイベント」の行のうち `BODY_TAP`、`ACTION`、`TEXT_INPUT` とコールドスタート（`DISMISS` と `openSettingsFor` は TB-10。作業記録 11.9 の確認待ち） |
+| TB-8 | 通知のイベント（OP-42〜OP-45）。**TB-2b のアプリに起動の形を伝える口を足す**（システムが起こしたプロセスは起動の引数を受けないので、サンプルの SA-18 と同じくファイルで。コールドスタートの中で受け手を登録するため） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と、12.2 の「通知のイベント」の行のうち `BODY_TAP`、`ACTION`、`TEXT_INPUT` とコールドスタート（`DISMISS` と `openSettingsFor` は TB-10。作業記録 11.9 の確認待ちだったものを推奨案で TB-10 に入れた。持ち主の確認待ち） |
 | TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2。**iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-5 と同じ） |
-| TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ）。**12.2 の「通知のイベント」の行の残り（`DISMISS` と `openSettingsFor` の UI テスト。TB-8 から送った。測り方は 12.2 の行。作業記録 11.9 の確認待ち）** |
+| TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ）。**12.2 の「通知のイベント」の行の残り（`DISMISS` と `openSettingsFor` の UI テスト。TB-8 から送った。測り方は 12.2 の行。作業記録 11.9 の確認待ちだったものを推奨案で進めた。持ち主の確認待ち。作業記録 13 章）** |
 | TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`）。**capi の xcframework は Release だけを受ける**（今のビルドのスクリプトの `--configuration debug` を写さない。Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。第 1 部 5.4） |
 | TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る |
 | TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-12 | 8.3 と 16 章を渡した |
@@ -948,7 +948,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 - README 7.3 の配布物の照合が通る（`check_ios_dist.py`）
 - 2a の機械照合が通り、照合の自己テストが壊すと落ちる
 - 足した検査は変異で落ちることを確かめた
-- 12.2 の「通知のイベント」の `DISMISS` と `openSettingsFor` を、TB-10 でシミュレーターの UI テストとして確かめ、通った（TB-8 から送った）。**`openSettingsFor` は iOS 26.2 のシミュレーターだけ。`DISMISS` を流す OS は、26.2 で測ってから決める**（作業記録 11.9 の確認待ち）
+- 12.2 の「通知のイベント」の `DISMISS` と `openSettingsFor` を、TB-10 でシミュレーターの UI テストとして確かめ、通った（TB-8 から送った）。**`openSettingsFor` が設定の App を辿るのは iOS 26.2 のシミュレーターだけ。`DISMISS` は 26.2 で測った後に、15.2 の 2 台と iPhone 16 / 18.3 で流す**（作業記録 11.9 の確認待ちだったものを推奨案で進めた。持ち主の確認待ち。作業記録 13 章）
 
 ### 15.3 構成と文書
 

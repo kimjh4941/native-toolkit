@@ -34,6 +34,45 @@ enum NotificationReceiver {
 
     @MainActor static var adding = Adding.manager
 
+    /// The library calls of the other operations (OP-29 to OP-41, P2-1). Tests replace them, so that an accepted
+    /// call is completed without the notification center (part 2, 12.1 "main を待たない"; TB-10).
+    struct Operations: Sendable {
+        typealias Done = @MainActor @Sendable () -> Void
+        var removeDelivered: @MainActor @Sendable (String, @escaping Done) -> Void
+        var removeAllDelivered: @MainActor @Sendable (@escaping Done) -> Void
+        var cancelScheduled: @MainActor @Sendable (String, @escaping Done) -> Void
+        var cancelAllScheduled: @MainActor @Sendable (@escaping Done) -> Void
+        var getScheduled: @MainActor @Sendable (@escaping @MainActor @Sendable ([NotificationListEntry]) -> Void) -> Void
+        var getDelivered: @MainActor @Sendable (@escaping @MainActor @Sendable ([NotificationListEntry]) -> Void) -> Void
+        var requestPermission: @MainActor @Sendable (UInt, @escaping @MainActor @Sendable (Result<Bool, NotificationError>) -> Void) -> Void
+        var authorizationStatus: @MainActor @Sendable (@escaping @MainActor @Sendable (NotificationAuthorizationStatus) -> Void) -> Void
+        var hasPermission: @MainActor @Sendable (@escaping @MainActor @Sendable (Bool) -> Void) -> Void
+        var openSettings: @MainActor @Sendable (@escaping @MainActor @Sendable (Result<Void, NotificationError>) -> Void) -> Void
+        var setBadgeCount: @MainActor @Sendable (Int) async throws -> Void
+        var registerCategory: @MainActor @Sendable (NotificationCategory, @escaping Done) -> Void
+        var removeCategory: @MainActor @Sendable (String, @escaping Done) -> Void
+
+        /// The manager's callback forms, with the `.foreground` presenter where one is taken (P2-1).
+        static let manager = Operations(
+            removeDelivered: { identifier, done in IosNotificationManager.shared.removeDelivered(identifier: identifier) { done() } },
+            removeAllDelivered: { done in IosNotificationManager.shared.removeAllDelivered { done() } },
+            cancelScheduled: { identifier, done in IosNotificationManager.shared.cancelScheduled(identifier: identifier) { done() } },
+            cancelAllScheduled: { done in IosNotificationManager.shared.cancelAllScheduled { done() } },
+            getScheduled: { done in IosNotificationManager.shared.getScheduled { done(NotificationMapping.entries(of: $0)) } },
+            getDelivered: { done in IosNotificationManager.shared.getDelivered { done(NotificationMapping.entries(of: $0)) } },
+            requestPermission: { rawOptions, done in
+                IosNotificationManager.shared.requestPermission(options: .init(rawValue: rawOptions), presenter: .foreground) { done($0) }
+            },
+            authorizationStatus: { done in IosNotificationManager.shared.authorizationStatus { done($0) } },
+            hasPermission: { done in IosNotificationManager.shared.hasPermission { done($0) } },
+            openSettings: { done in IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) { done($0) } },
+            setBadgeCount: { count in try await IosNotificationManager.shared.setBadgeCount(count) },
+            registerCategory: { category, done in IosNotificationManager.shared.registerCategory(category) { done() } },
+            removeCategory: { identifier, done in IosNotificationManager.shared.removeCategory(identifier: identifier) { done() } })
+    }
+
+    @MainActor static var operations = Operations.manager
+
     private static let none = ntk_notification_error(NTK_NOTIFICATION_ERROR_NONE)
     private static let unknown = ntk_notification_error(NTK_NOTIFICATION_ERROR_UNKNOWN)
     private static let systemCode: UInt32 = 0
@@ -185,7 +224,7 @@ enum NotificationReceiver {
         return accept(callback, userData, release, failure: doneFailure, input: { () throws(EntryError) in
             try removalIdentifier(identifier)
         }, start: { identifier, registration in
-            IosNotificationManager.shared.removeDelivered(identifier: identifier) { finishDone(registration, none) }
+            operations.removeDelivered(identifier) { finishDone(registration, none) }
         })
     }
 
@@ -193,7 +232,7 @@ enum NotificationReceiver {
                           _ release: ntk_release_fn?) -> ntk_notification_error {
         CApiLog.notification.debug("[removeAll] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
         return accept(callback, userData, release, failure: doneFailure, input: { () throws(EntryError) in () }, start: { _, registration in
-            IosNotificationManager.shared.removeAllDelivered { finishDone(registration, none) }
+            operations.removeAllDelivered { finishDone(registration, none) }
         })
     }
 
@@ -203,7 +242,7 @@ enum NotificationReceiver {
         return accept(callback, userData, release, failure: doneFailure, input: { () throws(EntryError) in
             try removalIdentifier(identifier)
         }, start: { identifier, registration in
-            IosNotificationManager.shared.cancelScheduled(identifier: identifier) { finishDone(registration, none) }
+            operations.cancelScheduled(identifier) { finishDone(registration, none) }
         })
     }
 
@@ -211,7 +250,7 @@ enum NotificationReceiver {
                                    _ release: ntk_release_fn?) -> ntk_notification_error {
         CApiLog.notification.debug("[cancelAllScheduled] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
         return accept(callback, userData, release, failure: doneFailure, input: { () throws(EntryError) in () }, start: { _, registration in
-            IosNotificationManager.shared.cancelAllScheduled { finishDone(registration, none) }
+            operations.cancelAllScheduled { finishDone(registration, none) }
         })
     }
 
@@ -228,7 +267,7 @@ enum NotificationReceiver {
                              _ release: ntk_release_fn?) -> ntk_notification_error {
         CApiLog.notification.debug("[getScheduled] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
         return accept(callback, userData, release, failure: listFailure, input: { () throws(EntryError) in () }, start: { _, registration in
-            IosNotificationManager.shared.getScheduled { finishList(registration, NotificationMapping.entries(of: $0)) }
+            operations.getScheduled { finishList(registration, $0) }
         })
     }
 
@@ -236,7 +275,7 @@ enum NotificationReceiver {
                              _ release: ntk_release_fn?) -> ntk_notification_error {
         CApiLog.notification.debug("[getDelivered] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
         return accept(callback, userData, release, failure: listFailure, input: { () throws(EntryError) in () }, start: { _, registration in
-            IosNotificationManager.shared.getDelivered { finishList(registration, NotificationMapping.entries(of: $0)) }
+            operations.getDelivered { finishList(registration, $0) }
         })
     }
 
@@ -264,9 +303,7 @@ enum NotificationReceiver {
         return accept(callback, userData, release, failure: permissionFailure, input: { () throws(EntryError) in
             try NotificationMapping.permissionOptions(options).rawValue
         }, start: { rawOptions, registration in
-            IosNotificationManager.shared.requestPermission(options: .init(rawValue: rawOptions), presenter: .foreground) {
-                finishPermission(registration, $0)
-            }
+            operations.requestPermission(rawOptions) { finishPermission(registration, $0) }
         })
     }
 
@@ -288,7 +325,7 @@ enum NotificationReceiver {
                                     _ release: ntk_release_fn?) -> ntk_notification_error {
         CApiLog.notification.debug("[authorizationStatus] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
         return accept(callback, userData, release, failure: statusFailure, input: { () throws(EntryError) in () }, start: { _, registration in
-            IosNotificationManager.shared.authorizationStatus { finishStatus(registration, $0) }
+            operations.authorizationStatus { finishStatus(registration, $0) }
         })
     }
 
@@ -297,7 +334,7 @@ enum NotificationReceiver {
                               _ release: ntk_release_fn?) -> ntk_notification_error {
         CApiLog.notification.debug("[hasPermission] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
         return accept(callback, userData, release, failure: permissionFailure, input: { () throws(EntryError) in () }, start: { _, registration in
-            IosNotificationManager.shared.hasPermission { finishHasPermission(registration, $0) }
+            operations.hasPermission { finishHasPermission(registration, $0) }
         })
     }
 
@@ -318,7 +355,7 @@ enum NotificationReceiver {
                              _ release: ntk_release_fn?) -> ntk_notification_error {
         CApiLog.notification.debug("[openSettings] callback: \(callback == nil ? "nil" : "provided", privacy: .public), userData: \(String(describing: userData), privacy: .private), release: \(release == nil ? "nil" : "provided", privacy: .public)")
         return accept(callback, userData, release, failure: doneFailure, input: { () throws(EntryError) in () }, start: { _, registration in
-            IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) { finishSettings(registration, $0) }
+            operations.openSettings { finishSettings(registration, $0) }
         })
     }
 
@@ -332,9 +369,10 @@ enum NotificationReceiver {
             }
             return Int(count)
         }, start: { count, registration in
+            let calls = operations
             Task { @MainActor in
                 do {
-                    try await IosNotificationManager.shared.setBadgeCount(count)
+                    try await calls.setBadgeCount(count)
                     finishDone(registration, none)
                 } catch {
                     finishDone(registration, NotificationMapping.error(for: error))
@@ -353,7 +391,7 @@ enum NotificationReceiver {
         return accept(callback, userData, release, failure: doneFailure, input: { () throws(EntryError) in
             try NotificationMapping.category(category)
         }, start: { category, registration in
-            IosNotificationManager.shared.registerCategory(category) { finishDone(registration, none) }
+            operations.registerCategory(category) { finishDone(registration, none) }
         })
     }
 
@@ -363,7 +401,7 @@ enum NotificationReceiver {
         return accept(callback, userData, release, failure: doneFailure, input: { () throws(EntryError) in
             try removalIdentifier(identifier)
         }, start: { identifier, registration in
-            IosNotificationManager.shared.removeCategory(identifier: identifier) { finishDone(registration, none) }
+            operations.removeCategory(identifier) { finishDone(registration, none) }
         })
     }
 

@@ -57,6 +57,7 @@ final class NotificationOperationTests: ClipboardTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         NotificationReceiver.adding = Self.failing
+        MainActor.assumeIsolated { NotificationReceiver.operations = FailClosed.operations }
     }
 
     override func tearDown() async throws {

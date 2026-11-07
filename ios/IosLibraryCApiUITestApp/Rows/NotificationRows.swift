@@ -251,6 +251,12 @@ enum NotificationRows {
         CApiRow(id: "notification.requestPermission") { report in
             reportRejection(ntk_notification_request_permission_async(0, permissionRow, RowCompletion.userData(report), releaseRow), report)
         },
+        // The first request of a new install with the app's own notification settings (12.2, openSettingsFor; TB-10).
+        CApiRow(id: "notification.requestPermissionWithAppSettings") { report in
+            let options = UInt32(NTK_NOTIFICATION_AUTH_ALERT) | UInt32(NTK_NOTIFICATION_AUTH_SOUND) | UInt32(NTK_NOTIFICATION_AUTH_BADGE)
+                | UInt32(NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS)
+            reportRejection(ntk_notification_request_permission_async(options, permissionRow, RowCompletion.userData(report), releaseRow), report)
+        },
         CApiRow(id: "notification.openSettings") { report in
             reportRejection(ntk_notification_open_settings_async(doneRow, RowCompletion.userData(report), releaseRow), report)
         },

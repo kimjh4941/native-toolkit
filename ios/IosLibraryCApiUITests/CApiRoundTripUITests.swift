@@ -209,6 +209,28 @@ final class CApiRoundTripUITests: CApiUITestCase {
         XCTAssertFalse(springboard.alerts.firstMatch.waitForExistence(timeout: 3), "a cancelled load showed the paste alert")
     }
 
+    /// TB-10 (stage 2 working notes, 7.7): a load cancelled from another thread while the paste alert is up completes
+    /// with CANCELED, and a later answer delivers nothing. The alert is answered before the app is read (as above);
+    /// whether the system keeps it after the cancel is the system's, so it is answered only if it is still up.
+    func testALoadCancelledWhileThePasteAlertIsUp() throws {
+        let app = try launchApp(section: .clipboard)
+        writeFromTheRunner()
+        try app.start("clipboard.loadThenCancelLater")
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCTAssertTrue(springboard.alerts.firstMatch.waitForExistence(timeout: 3), "no paste alert before the cancel")
+        // The row cancels 4 seconds after it started.
+        Thread.sleep(forTimeInterval: 6)
+        let stillUp = springboard.alerts.firstMatch.exists
+        print("[TB-10] the paste alert after the cancel: \(stillUp ? "up" : "gone")")
+        if stillUp {
+            try answerPaste(.allow)
+        }
+        XCTAssertEqual(try app.waitForLine(ofRow: "clipboard.loadThenCancelLater"),
+                       line("loadThenCancelLater", "\(ClipboardError.canceled) 0 hasId=true kind=-1 text=NULL"))
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "clipboard.loadThenCancelLater", occurrence: 1), "a second completion")
+    }
+
     /// Part 2, 12.2: the one test that waits the 15 seconds. The timeout includes the time to answer, and a later
     /// answer delivers nothing.
     func testALoadNotAnsweredTimesOut() throws {
@@ -665,6 +687,24 @@ final class CApiRoundTripUITests: CApiUITestCase {
         XCTAssertEqual(try app.waitForLine(ofRow: "launch.interaction", occurrence: 2, timeout: 15),
                        "[launch.interaction@none] \(interaction(kind: NotificationEventKind.textInput, action: "ntk.reply", text: "hello from C"))")
         XCTAssertFalse(app.isDrawnLine(ofRow: "launch.interaction", occurrence: 3), "one event per response")
+    }
+
+    /// 12.2 "通知のイベント" (TB-10): clearing the event notification in Notification Center reaches the C listener once as
+    /// DISMISS, with the system's dismiss action identifier (the category asks for the custom dismiss action).
+    func testClearingTheNotificationReachesCAsDismiss() throws {
+        let app = try launchApp(section: .notification, listensAtLaunch: true)
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.shape"), "[launch.shape@none] source=environment section=notification listen=1 saved=1")
+        removeTheNotificationsAtTheEnd(app)
+        try ensureNotificationPermission(app)
+        try showTheEventSoon(app)
+        try app.pressHome()
+        try app.clearEventInNotificationCenter()
+        try app.pressHome()
+        try app.activate()
+        XCTAssertEqual(try app.waitForLine(ofRow: "launch.interaction", timeout: 15),
+                       "[launch.interaction@none] \(interaction(kind: NotificationEventKind.dismiss, action: "com.apple.UNNotificationDismissActionIdentifier"))")
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertFalse(app.isDrawnLine(ofRow: "launch.interaction", occurrence: 1), "one event for the clear")
     }
 
     /// A banner tapped after the app was terminated starts it: the listener registered inside that launch gets

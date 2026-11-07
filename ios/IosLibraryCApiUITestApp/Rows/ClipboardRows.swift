@@ -206,6 +206,16 @@ enum ClipboardRows {
             reportRejection(error, report)
             reportRejection(ntk_clipboard_cancel_load(requestID), report)
         },
+        // Cancelled from another thread 4 seconds later, while the paste alert is up (TB-10).
+        CApiRow(id: "clipboard.loadThenCancelLater") { report in
+            var requestID: UInt64 = 0
+            let error = ntk_clipboard_load_item_async(Int32(NTK_CLIPBOARD_ITEM_TEXT), nil, nil, loadRow, RowCompletion.userData(report), releaseRow, &requestID)
+            reportRejection(error, report)
+            let id = requestID
+            DispatchQueue.global().asyncAfter(deadline: .now() + 4) {
+                reportRejection(ntk_clipboard_cancel_load(id), report)
+            }
+        },
         // Observing.
         CApiRow(id: "clipboard.startObserving") { report in
             reportRejection(ntk_clipboard_start_observing_async(nil, doneRow, RowCompletion.userData(report), releaseRow), report)
