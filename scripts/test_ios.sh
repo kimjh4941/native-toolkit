@@ -10,6 +10,7 @@
 #          [--feature Dialog|Notification|Share|Clipboard] [--skip-unit] [--device-allow <c,...>]
 #          [--dry-run] [--approved <file>] [--baseline] [--name-each-test]
 #        scripts/test_ios.sh --udid <simulator> --capi-ui
+#        scripts/test_ios.sh --udid <simulator> --capi
 #   --udid            a simulator listed by `xcrun simctl list`; any other value is the device
 #                     (its hardware UDID)
 #   --enumerate-udid  the simulator that is built for and enumerated (required for the device)
@@ -30,6 +31,14 @@
 #                     TB-2b and 12.2): a simulator only, and it takes no other option but --udid.
 #                     Needs Xcode 26.6 through DEVELOPER_DIR. It restarts that simulator before every
 #                     xcodebuild; nothing else may run on it during the run (there is no lock)
+#   --capi            only the checks of the C ABI (C ABI design part 1, C-6; part 2, TB-12): a
+#                     simulator only, and it takes no other option but --udid. Needs Xcode 26.6
+#                     through DEVELOPER_DIR and Simulator.app closed. IosLibraryCApiTests without a
+#                     sanitizer, with ASan and with TSan; a build of the distributable inside the
+#                     run's folder (never dist/), check_ios_dist.py, check_c_abi_contract_ios.py with
+#                     --library on each slice, --require-compile and --require-complete, and the smoke
+#                     (run_ios_capi_smoke.sh, with its unsigned device build that is never installed).
+#                     Every step runs and the summary decides; scripts/ios_capi_runner.py reads them
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -52,6 +61,26 @@ runner() { python3 "${ROOT_DIR}/scripts/ios_ui_runner.py" "$@"; }
 capped() {  # <seconds> <command...>
   local seconds="$1"; shift
   perl -e 'alarm shift; exec @ARGV or die "cannot run $ARGV[0]: $!\n"' "${seconds}" "$@"
+}
+
+# Runs a command in its own process group with a time limit. When the time is up, the whole group (the
+# command and what it started, such as xcodebuild or simctl under a script) is killed, the command is
+# reaped, and the exit status is 142; an interrupt (INT, TERM, HUP) kills the group the same way, as the
+# terminal's Ctrl-C reaches only its foreground group; otherwise the command's own status. stdin is /dev/null, as the group
+# is not the terminal's foreground group. The same form as scripts/run_ios_capi_smoke.sh (TB-12 review B).
+capped_group() {  # <seconds> <command...>
+  local seconds="$1"; shift
+  perl -e 'my $seconds = shift; die "time limit: $seconds\n" unless $seconds =~ /^[1-9][0-9]*$/;
+           my $pid = fork; die "fork: $!\n" unless defined $pid;
+           if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+           setpgrp($pid, $pid);
+           $SIG{ALRM} = sub { kill "KILL", -$pid; waitpid($pid, 0); exit 142; };
+           my %number = (HUP => 1, INT => 2, TERM => 15);
+           for my $name (keys %number) {
+             $SIG{$name} = sub { kill "KILL", -$pid; waitpid($pid, 0); exit 128 + $number{$name}; };
+           }
+           alarm $seconds; waitpid($pid, 0); alarm 0;
+           exit(($? & 127) ? 128 + ($? & 127) : $? >> 8);' "${seconds}" "$@" < /dev/null
 }
 
 # True when <path> is strictly inside <root>, both absolute, with no empty, "." or ".." component and
@@ -208,7 +237,7 @@ elif [[ -n "${NTK_TEST_IOS_SOURCE_ONLY:-}" ]]; then
 fi
 
 usage() {
-  sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,41p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 UDID=""
@@ -222,19 +251,35 @@ SAVE_BASELINE=0
 NAME_EACH_TEST=0
 DEVICE_ALLOW_GIVEN=0
 CAPI_UI=0
+CAPI=0
+# Every option given but --udid, --capi and --capi-ui, whatever its value: --capi and --capi-ui refuse
+# them even when the value is empty (TB-12 review B).
+OTHER_OPTIONS=""
+# An option that takes a value must have one that is not itself an option: `--udid --dry-run --udid <id>`
+# would otherwise take --dry-run as the first value and hide it from the checks below.
+needs_value() {  # <option> [<value>...]
+  if [[ $# -lt 2 || "$2" == -* ]]; then
+    echo "Error: $1 needs a value" >&2; exit 2
+  fi
+}
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --udid) UDID="$2"; shift 2 ;;
-    --enumerate-udid) ENUMERATE_UDID="$2"; shift 2 ;;
-    --devicectl-id) DEVICECTL_ID="$2"; shift 2 ;;
-    --feature) FEATURE="$2"; shift 2 ;;
+    --udid|--capi|--capi-ui|-h|--help) ;;
+    *) OTHER_OPTIONS="${OTHER_OPTIONS} $1" ;;
+  esac
+  case "$1" in
+    --udid) needs_value "$@"; UDID="$2"; shift 2 ;;
+    --enumerate-udid) needs_value "$@"; ENUMERATE_UDID="$2"; shift 2 ;;
+    --devicectl-id) needs_value "$@"; DEVICECTL_ID="$2"; shift 2 ;;
+    --feature) needs_value "$@"; FEATURE="$2"; shift 2 ;;
     --skip-unit) SKIP_UNIT=1; shift ;;
-    --device-allow) DEVICE_ALLOW="$2"; DEVICE_ALLOW_GIVEN=1; shift 2 ;;
+    --device-allow) needs_value "$@"; DEVICE_ALLOW="$2"; DEVICE_ALLOW_GIVEN=1; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
-    --approved) APPROVED="$2"; shift 2 ;;
+    --approved) needs_value "$@"; APPROVED="$2"; shift 2 ;;
     --baseline) SAVE_BASELINE=1; shift ;;
     --name-each-test) NAME_EACH_TEST=1; shift ;;
     --capi-ui) CAPI_UI=1; shift ;;
+    --capi) CAPI=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
   esac
@@ -248,11 +293,13 @@ if [[ "${SAVE_BASELINE}" -eq 1 && ( -n "${FEATURE}" || "${SKIP_UNIT}" -eq 1 || "
   echo "Error: --baseline needs a full run: drop --feature, --skip-unit and --dry-run" >&2; exit 2
 fi
 
-# --device-allow, --approved and --devicectl-id are refused below: on a simulator as such, on the
-# device because --capi-ui refuses the device.
-if [[ "${CAPI_UI}" -eq 1 && ( -n "${FEATURE}" || "${SKIP_UNIT}" -eq 1 || "${DRY_RUN}" -eq 1 || "${SAVE_BASELINE}" -eq 1 \
-  || "${NAME_EACH_TEST}" -eq 1 || -n "${ENUMERATE_UDID}" ) ]]; then
-  echo "Error: --capi-ui takes no other option but --udid" >&2; exit 2
+# Whether an option was given, not its value: an empty --feature, --enumerate-udid, --approved or
+# --devicectl-id is refused too.
+if [[ "${CAPI_UI}" -eq 1 && ( -n "${OTHER_OPTIONS}" || "${CAPI}" -eq 1 ) ]]; then
+  echo "Error: --capi-ui takes no other option but --udid (given:${OTHER_OPTIONS}$([[ "${CAPI}" -eq 1 ]] && echo " --capi"))" >&2; exit 2
+fi
+if [[ "${CAPI}" -eq 1 && -n "${OTHER_OPTIONS}" ]]; then
+  echo "Error: --capi takes no other option but --udid (given:${OTHER_OPTIONS})" >&2; exit 2
 fi
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -265,6 +312,11 @@ xcrun simctl list -j runtimes > "${STAGE_DIR}/simctl-runtimes.json"
 KIND="$(runner destination --udid "${UDID}" --simctl-devices "${STAGE_DIR}/simctl-devices.json")"
 if [[ "${CAPI_UI}" -eq 1 && "${KIND}" != "simulator" ]]; then
   echo "Error: --capi-ui runs on a simulator only; ${UDID} is not one" >&2; exit 2
+fi
+# The device's ASan and smoke run only at the stage's end, each time with the user's approval
+# (agent-rules/device-testing.md, P1-20); this option never reaches it.
+if [[ "${CAPI}" -eq 1 && "${KIND}" != "simulator" ]]; then
+  echo "Error: --capi runs on a simulator only; ${UDID} is not one" >&2; exit 2
 fi
 if [[ "${KIND}" == "simulator" ]]; then
   if [[ "${DEVICE_ALLOW_GIVEN}" -eq 1 || -n "${APPROVED}" || -n "${DEVICECTL_ID}" ]]; then
@@ -428,6 +480,138 @@ if [[ "${CAPI_UI}" -eq 1 ]]; then
       --exit-code "${code}" --timed-out "${timed_out}" --results "${RESULTS}"
   done 3< "${OUT_DIR}/invocations.tsv"
   runner capi-summary --plan "${PLAN}" --results "${RESULTS}"
+  exit 0
+fi
+
+# --- The checks of the C ABI (part 1, C-6 and 6.1; part 2, TB-12): every step runs and is recorded,
+# and the summary decides the exit status. None of the sample's stages; nothing reaches the device.
+if [[ "${CAPI}" -eq 1 ]]; then
+  capi_runner() { python3 "${ROOT_DIR}/scripts/ios_capi_runner.py" "$@"; }
+  capi_runner check-xcode --xcode "${XCODE}"
+  # Simulator.app syncs the simulator's pasteboard with the Mac's (agent-rules/device-testing.md). It is
+  # never opened or closed here; an open one stops the run before each step that uses the simulator.
+  capi_require_no_simulator_app() {
+    local status=0
+    pgrep -x Simulator > /dev/null || status=$?
+    if [[ "${status}" -eq 0 ]]; then
+      echo "Error: Simulator.app is open; close it and run again (agent-rules/device-testing.md)" >&2; exit 2
+    elif [[ "${status}" -ne 1 ]]; then
+      # Only "no process matched" (1) says that it is closed.
+      echo "Error: pgrep failed (status ${status}); cannot tell whether Simulator.app is open" >&2; exit 2
+    fi
+  }
+  capi_require_no_simulator_app
+  CAPI_VERSION="$(capi_runner version --common-h "${IOS_DIR}/IosLibraryCApi/include/NativeToolkitC/Common.h")"
+  CAPI_DIST="${OUT_DIR}/capi-dist"
+  echo "[capi] library ${CAPI_VERSION}; results in ${RESULTS}"
+
+  # 1. IosLibraryCApiTests without a sanitizer, with ASan and with TSan (they cannot be combined), each
+  # in its own DerivedData so that the framework each loads is the one built for it.
+  for variant in normal asan tsan; do
+    echo "[capi-unit] ${variant}"
+    capi_require_no_simulator_app
+    sanitizer=()
+    case "${variant}" in
+      asan) sanitizer=(-enableAddressSanitizer YES) ;;
+      tsan) sanitizer=(-enableThreadSanitizer YES) ;;
+    esac
+    dd="${OUT_DIR}/dd-capi-${variant}"
+    bundle="${OUT_DIR}/capi-unit-${variant}.xcresult"
+    log="${OUT_DIR}/capi-unit-${variant}.log"
+    set +e
+    sim_xcodebuild 3600 test -workspace "${WORKSPACE}" -scheme IosLibraryCApi -destination "platform=iOS Simulator,id=${UDID}" \
+      -derivedDataPath "${dd}" -parallel-testing-enabled NO -only-testing:IosLibraryCApiTests -resultBundlePath "${bundle}" \
+      ${sanitizer[@]+"${sanitizer[@]}"} > "${log}" 2>&1
+    code=$?
+    set -e
+    timed_out=0
+    [[ "${code}" -eq 142 ]] && timed_out=1
+    summary_json="${OUT_DIR}/capi-unit-${variant}-summary.json"
+    # The test host's standard error (where a sanitizer reports) is in the xcodebuild log and in the
+    # bundle's action log; the bundle of a test run has no console log.
+    action_log="${OUT_DIR}/capi-unit-${variant}-action.json"
+    rm -f "${summary_json}" "${action_log}"
+    if [[ -d "${bundle}" ]]; then
+      xcrun xcresulttool get test-results summary --path "${bundle}" > "${summary_json}" || rm -f "${summary_json}"
+      xcrun xcresulttool get log --type action --path "${bundle}" > "${action_log}" || rm -f "${action_log}"
+    fi
+    # What each framework loads says whether the variant's sanitizer measured it (part 1, 6.1).
+    otool_args=()
+    for framework in IosLibraryCApi IosLibrary; do
+      binary="${dd}/Build/Products/Debug-iphonesimulator/${framework}.framework/${framework}"
+      listing="${OUT_DIR}/capi-unit-${variant}-otool-${framework}.txt"
+      if [[ -f "${binary}" ]] && otool -L "${binary}" > "${listing}"; then
+        otool_args+=(--otool "${framework}" "${listing}")
+      fi
+    done
+    capi_runner unit-record --variant "${variant}" --exit-code "${code}" --timed-out "${timed_out}" \
+      --summary-json "${summary_json}" --log "test log" "${log}" --log "action log" "${action_log}" \
+      ${otool_args[@]+"${otool_args[@]}"} --results "${RESULTS}"
+  done
+
+  # 2. The distributable, built inside this run's folder (never dist/) without touching the projects.
+  echo "[capi-dist] build ${CAPI_VERSION} into ${CAPI_DIST}"
+  set +e
+  capped_group 3600 "${ROOT_DIR}/scripts/build_ios_library_xcframework.sh" -m IosLibrary -m IosLibraryCApi -v "${CAPI_VERSION}" \
+    --output-dir "${CAPI_DIST}" --build-dir "${OUT_DIR}/capi-dist-build" --keep-project-versions \
+    > "${OUT_DIR}/capi-dist-build.log" 2>&1
+  code=$?
+  set -e
+  dist_built=0
+  [[ "${code}" -eq 0 ]] && dist_built=1
+  capi_runner step-record --step dist-build --exit-code "${code}" --timed-out "$([[ "${code}" -eq 142 ]] && echo 1 || echo 0)" \
+    --log "${OUT_DIR}/capi-dist-build.log" --results "${RESULTS}"
+
+  # 3. The distributable's own check, then the contract against each slice of the capi (README 7.3).
+  if [[ "${dist_built}" -eq 1 ]]; then
+    echo "[capi-dist] check_ios_dist.py"
+    set +e
+    python3 "${ROOT_DIR}/scripts/check_ios_dist.py" --dist "${CAPI_DIST}" > "${OUT_DIR}/capi-dist-check.log" 2>&1
+    code=$?
+    set -e
+    capi_runner step-record --step dist-check --exit-code "${code}" --log "${OUT_DIR}/capi-dist-check.log" --results "${RESULTS}"
+  else
+    capi_runner step-record --step dist-check --not-run "the distributable was not built" --results "${RESULTS}"
+  fi
+  for entry in "ios-arm64:arm64" "ios-arm64_x86_64-simulator:arm64,x86_64"; do
+    slice="${entry%%:*}"
+    archs="${entry#*:}"
+    binary="${CAPI_DIST}/ios-native-toolkit-capi-${CAPI_VERSION}.xcframework/${slice}/IosLibraryCApi.framework/IosLibraryCApi"
+    if [[ "${dist_built}" -ne 1 ]]; then
+      capi_runner step-record --step "contract-${slice}" --not-run "the distributable was not built" --results "${RESULTS}"
+      continue
+    fi
+    if [[ ! -f "${binary}" ]]; then
+      capi_runner step-record --step "contract-${slice}" --not-run "no ${binary}" --results "${RESULTS}"
+      continue
+    fi
+    echo "[capi-contract] ${slice} (${archs})"
+    set +e
+    python3 "${ROOT_DIR}/scripts/check_c_abi_contract_ios.py" --require-compile --require-complete --library "${binary}" \
+      --architectures "${archs}" > "${OUT_DIR}/capi-contract-${slice}.log" 2>&1
+    code=$?
+    set -e
+    capi_runner step-record --step "contract-${slice}" --exit-code "${code}" --log "${OUT_DIR}/capi-contract-${slice}.log" \
+      --results "${RESULTS}"
+  done
+
+  # 4. The smoke from the two xcframeworks alone, on this simulator; its device build is unsigned and
+  # never installed (part 2, 12.4).
+  if [[ "${dist_built}" -eq 1 ]]; then
+    echo "[capi-smoke] ${UDID}"
+    capi_require_no_simulator_app
+    set +e
+    capped_group 3600 "${ROOT_DIR}/scripts/run_ios_capi_smoke.sh" --dist "${CAPI_DIST}" --work "${OUT_DIR}/capi-smoke" \
+      --udid "${UDID}" --device-build > "${OUT_DIR}/capi-smoke.log" 2>&1
+    code=$?
+    set -e
+    capi_runner step-record --step smoke --exit-code "${code}" --timed-out "$([[ "${code}" -eq 142 ]] && echo 1 || echo 0)" \
+      --log "${OUT_DIR}/capi-smoke.log" --results "${RESULTS}"
+  else
+    capi_runner step-record --step smoke --not-run "the distributable was not built" --results "${RESULTS}"
+  fi
+
+  capi_runner summary --results "${RESULTS}"
   exit 0
 fi
 

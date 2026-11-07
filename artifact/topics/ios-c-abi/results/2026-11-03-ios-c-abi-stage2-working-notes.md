@@ -2547,3 +2547,196 @@ C のソースでは `#include <sys/statvfs.h>` が DiskSpace の使用と数え
 | 設計書の照合（第 1 部・第 2 部） | どちらも FAIL 0 |
 
 流し直していないもの: 照合の 3 つのスライスの `--library`（照合のスクリプトは今回変えていない。14.10 で通った）、`IosLibraryCApiTests`（Swift のソースは TB-11 で変えていない）、Xcode 26.6 × iPad と 26.3 × 17 Pro の smoke の組み合わせ。直しの後の 3 回目のレビューはしていない。
+
+## 15. TB-12
+
+第 2 部 13 章の TB-12（`test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ。第 1 部 C-6、6.1、P1-20）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。**判断の要るところは、メインのセッションが利用者の指示のもとで推奨案で決めたもの。持ち主はまだ読んでいない。**
+
+### 15.1 決めたこと（推奨案。持ち主の確認待ち）
+
+| # | 決定 | 理由 |
+|---|---|---|
+| 1 | **新しい旗 `--capi`** にし、既定の流れ（サンプルの単体テストと UI テスト）と `--baseline` には入れない。`--capi-ui` と同じ形: `--udid` のほかの旗を取らない（`--capi-ui` との併用も拒む）、シミュレーターだけ（実機の UDID は何も組む前に exit 2）、Xcode 26.6（`DEVELOPER_DIR`。違えば exit 2） | 既定の流れの全件は基準（`test_ios.baseline.*.json`）と比べるもので、足すと全件の形と時間が変わる。基準の取り直しは段階 2 の区切りの仕事。C ABI の UI テストも別の旗（`--capi-ui`）なので揃えた。`@c @implementation` は Xcode 26.4 以降が要る |
+| 2 | 流れ: `IosLibraryCApiTests` の通常・ASan・TSan（`-enableAddressSanitizer YES` / `-enableThreadSanitizer YES`。回ごとに別の DerivedData）→ 配布物のビルド（`-m IosLibrary -m IosLibraryCApi -v <木の Common.h の版> --output-dir <実行のフォルダー>/capi-dist --build-dir … --keep-project-versions`）→ `check_ios_dist.py --dist` → 照合 `--require-compile --require-complete --library <capi のスライス> --architectures`（`ios-arm64` は `arm64`、シミュレーターは fat で `arm64,x86_64`）→ smoke（`--udid` と `--device-build`） | 配布物は `ios/IosLibraryExample/build/test_ios/<実行>/`（`ios/.gitignore` が外す）に作り、`dist/` と pbxproj に触れない。版を `Common.h` から読むのは、`check_ios_dist.py` が版 = `Common.h` を照らすため。TB-11 の `lipo -thin` で分けた 2 回は入れない（fat の 1 回で両方のアーキテクチャを照らす） |
+| 3 | **各段は失敗しても先へ進み、要約が決める**。配布物のビルドが落ちたら、それが要る 4 段は「not run」の FAIL。8 段がちょうど 1 回ずつ記録されなければ失敗 | 1 回で全部の結果が見える。段が黙って抜けた形も失敗にする |
+| 4 | 判定は新しい `scripts/ios_capi_runner.py` に置いた（`ios_ui_runner.py` は信頼するファイルで変えない約束。Xcode の版の値 `CAPI_UI_XCODE` だけを読む） | `capi-check-xcode` の文言は `--capi-ui` を名指すので、`--capi` 用に同じ判定を置いた |
+| 5 | 単体テストの各回が通る条件: 結果の要約で全件 PASS、skip 0、expectedFailures 0、件数 > 0 / `IosLibraryCApi` と `IosLibrary` の両 framework が**その回のサニタイザーのランタイムだけ**を読み込む（`otool -L`。通常の回は無し）/ xcodebuild のログと **xcresult の action のログ**にサニタイザーの報告の行（`ERROR: AddressSanitizer` など compiler-rt の形と UBSan の `runtime error:`）が無い / 3 回の件数が同じ | 旗が黙って効かない形と、テストは通ったが報告が出た形を止める。最初は xcresult の console のログを読む形にしたが、テストの xcresult には console のログが無かった（1 回目の実行。`content-availability` は `build` と `action` だけ）。テストのホストの標準エラーは xcodebuild のログと action のログの両方に出ていた（`IosLibraryCApiTestHost[…]` の行。action のログに 345 行）。今のソースのログで誤検出 0 |
+| 6 | 照合の報告に `SKIP` が 1 行でもあれば、`OK   symbols` の行が無ければ FAIL。`check_ios_dist.py` は `FAIL` の行が無く `OK` の行があること。smoke は `simulator build`・`device build`・`simulator run` の PASS があり FAIL が無いこと。どれも終了の状態に加えて | 旗が落ちて照合が SKIP で通る形、smoke がシミュレーターで流れずに組むだけで通る形を止める |
+| 7 | Simulator.app が開いていれば、`--capi` の始めと、シミュレーターを使う各段（3 回の単体テストと smoke）の前に exit 2 で止める。開かない・閉じない。`--capi-ui` には足していない（今の動きのまま） | `agent-rules/device-testing.md` の Mac のクリップボード。smoke のスクリプトも自分で確かめる |
+| 8 | smoke は Xcode 26.6 の 1 回だけ。26.3（D-16）は `run_ios_capi_smoke.sh` を単独で流す（`scripts/README.md` に書いた） | `--capi` は Xcode 26.6 が要る（単体テストのため）。旗を増やさない |
+| 9 | 配布物の archive は、ビルドのスクリプトの今の動きのまま Xcode の既定の DerivedData を使う（`test_ios.sh` が自分で呼ぶ xcodebuild は実行のフォルダーの DerivedData） | ビルドのスクリプトは変えない（TB-11 で決めた形） |
+| 10 | 実機: `--capi` は実機を拒む。実機の `--dry-run` と `--approved` の経路は変えていない（新しい段はその経路に無い）。実機の ASan と smoke は 2b の区切りで利用者の許可を得て流す（12.2 の行のまま） | 指示の 5 |
+
+### 15.2 足したもの・変えたもの
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| ランナー | `scripts/test_ios.sh` | 旗 `--capi`、その検査（ほかの旗・実機・Xcode・Simulator.app）、15.1 の 2 の段。usage。既存の段（サンプル、`--capi-ui`、実機の守り）は変えていない |
+| 判定 | `scripts/ios_capi_runner.py`（新規） | `version`、`check-xcode`、`unit-record`、`step-record`、`summary`。`/usr/bin/python3`（3.9）で動く |
+| 自己テスト | `scripts/tests/test_ios_capi_runner.py`（新規。この時点で 25 件。15.9 の直しの後は 31 件） | 純粋な関数（版、Xcode、報告の形、ランタイム、要約、各段の報告）と、偽物のツールと 4 つのスクリプトの代役で `test_ios.sh --capi` を端から端まで流すもの（旗と順と引数、実機・ほかの旗・Xcode・Simulator.app の拒否、14 通りの失敗、配布物のビルドの失敗、サンプルの実機の `--dry-run` と シミュレーターの `--dry-run` が新しい段に届かない） |
+| 文書 | `scripts/README.md` | `--capi` の行・例・説明、自己テストの件数（828） |
+| 設計書 | 第 2 部 12.1 の冒頭、13 章の TB-12 の行 | 15.1 の形の印（推奨案。持ち主の確認待ち） |
+
+信頼するファイル（UI テストの `Support/` の 5 つ、`scripts/ios_ui_runner.py`）、公開ヘッダー、`ios/` のすべて、基準の JSON、第 1 部、README は変えていない。`android/.idea` には触れていない。`dist/` には何も作っていない。
+
+### 15.3 TB-12 の完了の条件
+
+| 条件 | 結果（15.4） |
+|---|---|
+| 3 通りの `IosLibraryCApiTests` が `test_ios.sh` から流れて通る | 17 Pro / 26.2 で 474 / 474 / 474、報告 0 |
+| smoke | 9 PASS、16 段階（シミュレーターと実機向けの組み立て、シミュレーターの実行） |
+| `--library` と `--require-compile`、`--require-complete` を付けた照合 | 2 つのスライスとも OK 30、FAIL 0、SKIP 0、134 symbols |
+| 配布物の照合 | `check_ios_dist.py` OK 18、FAIL 0 |
+| 既存の流れを壊さない | 15.4 の `--capi-ui`、自己テスト、実機の `--dry-run` |
+| 実機で何も新しく流れない | `--capi` は実機を拒む。実機の `--dry-run` の一覧に新しいものが無い（15.4） |
+
+**前の節から TB-12 に送られた項目の受け方**（15.9 のレビューの B-1 で足した。「全件が通る」は下の機種の結果）:
+
+| 送られた項目 | どこから | 流したもの（15.10） | 流していないもの・受ける区切り |
+|---|---|---|---|
+| 第 2 部 15.2 のシミュレーター 2 台で 3 通り | 3.5（345 行）、4.4（482 行） | `--capi` を iPhone 17 Pro / 26.2 と iPad Pro 11-inch (M4) / 18.3（日本語）で。どちらも 8 段が通った | **iPhone 17（Pro でない）/ 26.2 は流していない。段階 2 は一貫して 17 Pro / 26.2 で流してきたので、17 Pro で代えた**（推奨案。持ち主の確認待ち。15.7）。新しいシミュレーターは作っていない |
+| x86_64 のスライスのテスト | 4.4（482 行）、7.7 | `IosLibraryCApiTests` の通常の 1 回を x86_64 で。**iOS 26.2 には x86_64 の実行先が無い**（17 Pro に `arch=x86_64` を渡すと xcodebuild が rc 70 で、x86_64 の実行先として 18.3.1 のシミュレーターだけを挙げた。README 7.4 のとおり）ので、iPhone 16 / 18.3 で流した。**473/474**。落ちたのは `EntryFoundationTests/testAMismatchIsLoggedOnceAndStopsNothing` で、単独でも 2 回とも落ちた（15.9） | ASan・TSan の x86_64、x86_64 の smoke（smoke の x86_64 は TB-11 の 14.4 で 1 回）。`--capi` には入れていない（ランナーは arm64 の実行先だけ） |
+| 検出の 5 秒に晒される UI テスト 2 件 | 7.7（1172 行） | 見直した（15.9）。15.10 の `--capi-ui` でどちらも通った | 直していない（`ios/` を変えない回。理由は 15.9） |
+
+### 15.4 コマンドと結果（最後のソース）
+
+最後のソース（ハッシュ `git status --short -uall -- ios scripts | cut -c4- | sort | xargs shasum -a 256 | shasum -a 256 | cut -c1-12`）は **`1d3921dd9a7f`で、流す前も後も同じ**（TB-12 の前は `e3b0c44298fc`。TB-11 のコミット `1a4b959e` のまま）。流したのは iPhone 17 Pro / 26.2 の 1 台だけで、実行を重ねていない（iPhone 16 / 18.3 と iPad は使っていない）。各実行の前に `pgrep -x Simulator` で Simulator.app が閉じていることを確かめた（`--capi` は自分でも確かめる）。Simulator.app は開いていない。Mac の `pbcopy`・`pbpaste` と `simctl pbsync` は使っていない。終わりに確かめると、3 台（使った 17 Pro と、使っていない iPhone 16・iPad）とも停止していた。`dist/` と pbxproj は変わっていない。実機と `xcrun devicectl` は使っていない。**流した後に変えたのはこの記録だけ。**
+
+```
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer scripts/test_ios.sh --udid <17 Pro> --capi
+DEVELOPER_DIR=… scripts/test_ios.sh --udid <17 Pro> --capi-ui
+DEVELOPER_DIR=… scripts/test_ios.sh --udid 11111111-2222-3333-4444-555555555555 --capi
+DEVELOPER_DIR=… scripts/test_ios.sh --udid 11111111-2222-3333-4444-555555555555 --enumerate-udid <17 Pro> --dry-run --device-allow systemui
+NTK_IOS_DIST=<--capi の実行のフォルダー>/capi-dist NTK_REQUIRE_DIST_FIXTURE=1 /usr/bin/python3 -m unittest discover -s scripts/tests
+```
+
+| 実行 | 結果 |
+|---|---|
+| `--capi`（17 Pro / 26.2。16:01〜16:09、約 8 分） | rc 0、`[summary] 8 passed, 0 problem(s)`。通常・ASan・TSan とも 474/474、報告 0（両 framework が ASan の回は `libclang_rt.asan_iossim_dynamic`、TSan の回は `libclang_rt.tsan_iossim_dynamic` だけを読み込み、通常の回は無し）。配布物のビルド rc 0、`check_ios_dist.py` OK 18・FAIL 0、照合は `ios-arm64`（`arm64`）とシミュレーター（`arm64,x86_64`）の両方で OK 30・FAIL 0・SKIP 0・134 symbols、smoke 9 PASS・0 FAIL・16 段階（シミュレーターは x86_64 と arm64、実機向けは arm64 で署名なし） |
+| 同、1 回目（15:51〜15:58。直す前の判定） | rc 1。単体テストの 3 回は 474/474 で通っていたが、無い console のログを求めて FAIL。ほかの 5 段は PASS（15.1 の 5 の直しのきっかけ） |
+| `--capi-ui`（17 Pro / 26.2。16:10〜16:33、約 23 分） | rc 0、58 passed、0 problem（前と同じ。fresh 3 件と `CApiRoundTripUITests` 55 件） |
+| `--capi` に実機の形の UDID | rc 2（`--capi runs on a simulator only`）。何も組まない |
+| 実機の `--dry-run`（実在しない UDID、`--device-allow systemui`。実機に触れない） | rc 0、テストを流す前に止まった。一覧はサンプルの UI テストの 6 回・62 件だけで、`approval.json`・`plan.json`・出力に `capi`・`sanitizer`・`smoke`・`IosLibraryCApi` は 0 件。runner のファイルがコミットと違う警告（`SCRIPTS/TEST_IOS.SH DIFFERS FROM THE COMMIT`）はコミットの前なので期待どおり |
+| `test_ios_capi_runner.py` と `test_ios_ui_runner.py`（3.9） | Ran 235、OK（25 + 210） |
+| `scripts/tests` 全体（3.9、`NTK_IOS_DIST` と `NTK_REQUIRE_DIST_FIXTURE=1`） | Ran 828、OK（skip 0） |
+| 照合（旗なし） | rc 0 |
+| 設計書の照合（第 1 部・第 2 部） | どちらも rc 0、FAIL 0 |
+
+16:34 に Mac に `maild-2026-11-07-163405.ips` が出た（シミュレーターの中の mail のデーモン。自分のプロセスではないので消していない。11 章の記録と同じ種類）。
+
+### 15.5 壊して確かめたこと（使い捨ての写し）
+
+リポジトリの追跡ファイル（`dist/` と `docs/` を除く）をスクラッチに写し、写しの `test_ios.sh --capi` を本物のまま流した（17 Pro / 26.2。16:33〜16:37。1 つずつ順に）。時間を省くため、写しでは xcodebuild の単体テストの回を、15.4 の最後の実行が残した本物の xcresult・ログ・組んだ framework を写して返す差し替え（PATH の先頭）にし、ビルドのスクリプトは同じ実行の配布物を写す代役、smoke は M3 のほかは同じ実行の smoke の報告を返す代役にした。`ios_capi_runner.py`、`check_ios_dist.py`、`check_c_abi_contract_ios.py` と、M3 の smoke は本物。
+
+| # | 変異 | 結果 |
+|---|---|---|
+| M0 | 変異なし（仕掛けの対照） | rc 0、8 passed |
+| M1 | ASan の回の出力に、テストが通ったまま ASan の報告の 2 行（`==…==ERROR: AddressSanitizer: heap-use-after-free …`、`SUMMARY: AddressSanitizer: …`）を足す | rc 1。`unit-asan` だけが FAIL（`2 sanitizer report line(s) in the test log`） |
+| M2 | 写しの照合の `NOT_IMPLEMENTED_YET` に `ntk_share_result_free` を足す | rc 1。照合の 2 段が FAIL（`entries`、`complete`、`symbols` の 3 FAIL） |
+| M3 | 本物の smoke を `NTK_SMOKE_LAUNCH_SECONDS=1` で流す | rc 1。`smoke` だけが FAIL（`the launch ended with status 142`、`no PASS simulator run`） |
+| M4 | TSan の回に、通常の回の組み立て（TSan のランタイム無し。テストは 474/474 で通る）を返す（旗が黙って効かない形） | rc 1。`unit-tsan` だけが FAIL（両 framework が `no sanitizer runtime`） |
+| M5 | 配布物の `include/NativeToolkitC/Common.h` に 1 行足す | rc 1。`dist-check` だけが FAIL（`headers`） |
+
+最初の M0 と M2 は、駆動のスクリプトの誤り（`env … true bash …` で `true` を実行していた）でランナーが流れず rc 0 だったので、直して流し直した（上の表はその結果）。自己テスト（15.2）でも、14 通りの失敗と配布物のビルドの失敗、実機・ほかの旗・Xcode・Simulator.app の拒否を偽物のツールで確かめた。
+
+### 15.6 確かめられていないこと
+
+- **実機では何も流していない**（指示のとおり）。実機の ASan と smoke は 2b の区切りで、利用者の許可を得て流す。`--capi` は実機を拒むので、その回の流し方（実機向けの `IosLibraryCApiTests` の ASan と、署名して入れる smoke）はその区切りで決める
+- **本物のサニタイザーの報告で落ちることは見ていない**（M1 は報告の行を偽った）。報告がホストの標準エラーに出て、それが xcodebuild のログと action のログに入ることは、ホストの普通の出力（`IosLibraryCApiTestHost[…]` の行）で確かめただけ。TSan の報告がホストを止めること（4.3）は、テストの失敗としても落ちる
+- ~~`--capi` は iPhone 17 Pro / 26.2 だけで流した~~ → 15.10 で iPad Pro 11-inch (M4) / 18.3 でも流した。iPhone 17（Pro でない）/ 26.2 は流していない（17 Pro で代えた。15.7）
+- x86_64 は通常の 1 回だけで、1 件が落ちる（15.9）。x86_64 の ASan・TSan は流していない
+- smoke の Xcode 26.3 の回（D-16）は `--capi` に入れていない（15.1 の 8。TB-11 で単独で流した）
+- 配布物の archive が Xcode の既定の DerivedData を使うこと（15.1 の 9）は変えていない
+- `--capi` の時間の上限は、単体テストの各回と配布物のビルドと smoke が 3600 秒。照合と `check_ios_dist.py` には上限を付けていない
+- 変異の仕掛け（15.5）はスクラッチにだけあり、コミットしない
+
+### 15.7 持ち主の判断待ち
+
+1. 15.1 の 1（新しい旗 `--capi`。既定の流れと `--baseline` に入れない）
+2. 15.1 の 3（失敗しても先へ進み、要約が決める）
+3. 15.1 の 5・6（各回・各段が通る条件。とくにサニタイザーのランタイムを `otool -L` で確かめること、照合の SKIP を失敗とすること）
+4. 15.1 の 7（`--capi` だけが Simulator.app を確かめる。`--capi-ui` にも足すか）
+5. 15.1 の 8（26.3 の smoke を `--capi` に入れない）
+6. **第 2 部 15.2 の iPhone 17 / 26.2 を iPhone 17 Pro / 26.2 で代えること**（推奨案。段階 2 は一貫して 17 Pro / 26.2 で流してきた。新しいシミュレーターは使わない）
+7. **x86_64 で落ちる `testAMismatchIsLoggedOnceAndStopsNothing` の扱い**（15.9。ライブラリはその行を出しているが、x86_64 では `OSLogStore` が 0 件を返す。推奨: x86_64 ではこのテストの `OSLogStore` の読み取りを確かめから外すか、テストの側で読み方を変える。`ios/` の変更なので次の回）
+8. **`agent-rules/device-testing.md` に `--capi` を書き足すか**（15.9 の C-g。規則のファイルの変更なので持ち主の判断。候補の文: 「`scripts/test_ios.sh --capi` もシミュレーターだけで、実機の UDID を拒む。実機の `IosLibraryCApiTests` の ASan と smoke は区切りでだけ、この文書の許可を得て流す」）
+9. 検出の 5 秒の 2 件を直さずに残すこと（15.9）
+10. `--capi-ui` の旗の拒否を、値ではなく旗が渡されたかで見る形に変えたこと（今までの動きの変更。15.9）
+
+### 15.8 時間
+
+15:45〜16:42（約 1 時間）。うち最後の本番の実行が約 8 分、`--capi-ui` が約 23 分、変異が約 4 分、自己テストの全体が約 7 分（変異と重ねた。変異はシミュレーターをほとんど使わず、M3 だけが使う）。目標の 17:15 の中。
+
+### 15.9 レビューと直し
+
+15.4 のソース（`1d3921dd9a7f`）を Claude のサブエージェントと Codex が読んだ（2026-11-07。どちらも A は 0）。**指摘はメインのセッションがコードで確かめた。持ち主はまだ読んでいない。** 直しは実装者のサブエージェントが入れた（16:49〜）。
+
+| 指摘 | 確かめたこと・直し | 扱い |
+|---|---|---|
+| Codex B（報告の形が狭い） | `AddressSanitizer:DEADLYSIGNAL`、`…Sanitizer: CHECK failed:`、`FATAL: …Sanitizer`、`ThreadSanitizer: reported N warnings`（N ≥ 1。`0` と `01` は拾わない）を足した（4 種のサニタイザーの名前で）。自己テストに 8 つの形と、拾わない行を足した。変異 M6a・M6b（15.10） | 直した |
+| Codex B（`capped` で子が残る） | 新しい 2 段（配布物のビルドと smoke）を `capped_group` に替えた: 子を自分のプロセスグループにし、時間切れでグループごと KILL、子を回収して 142、stdin は `/dev/null`（`run_ios_capi_smoke.sh` の perl と同じ形）。既存の `capped` の使い方は変えていない。自己テスト `TimeLimit` 4 件（子と孫が残らない、自分の終了の状態、stdin、上限の値の検査、2 段がこれを使う）。**最初の形の自己テストは子の `sleep` が出力のパイプを持ったままで、`subprocess.run` が 30 秒待ってから生死を見ていたため、直接の子だけを KILL する変異（M7）を落とせなかった**。子の出力を `/dev/null` に向け、`capped_group` が戻った直後に bash の中で生死を記録する形に直し、M7 が落ちることを確かめた | 直した |
+| Codex B（値で拒んでいた） | 引数を読むときに `--udid`・`--capi`・`--capi-ui`・`-h` のほかの旗が渡されたことを `OTHER_OPTIONS` に記録し、`--capi` と `--capi-ui` は値によらず拒む（どの旗かを文に出す）。**`--capi-ui` の今までの動きの変更**: `--feature ""`、`--enumerate-udid ""` が通り、`--approved ""`・`--devicectl-id ""` は後ろの検査も値で見るので通っていた（`--device-allow ""` は後ろで拒まれていた）。今は引数の検査で止まり、`simctl` も呼ばない。自己テスト 10 通り（2 つの旗 × 空の値の 5 つ）。変異 M8。`scripts/tests/ios_ui_runner_mutations.py` の「capi-ui: other options accepted」の行を新しい条件に合わせた | 直した |
+| Claude B-1（送られた項目を受けていない） | 15.3 の表に受け方を書いた。`--capi` を iPad Pro 11-inch (M4) / 18.3 で、x86_64 の `IosLibraryCApiTests` を iPhone 16 / 18.3 で流した（17 Pro / 26.2 には x86_64 の実行先が無い）。iPhone 17 / 26.2 は 17 Pro で代えた（15.7 の 6） | 直した |
+| 〃 x86_64 で落ちた 1 件 | `EntryFoundationTests/testAMismatchIsLoggedOnceAndStopsNothing` が 473/474 の 1 件（期待 1 に 0、`[]`）。**単独で 2 回流しても落ちた**。ホストの標準エラーには `[VersionCheck] IosLibrary is 1.3.0 and IosLibraryCApi is 2.0.0: …` の行が出ているので、ライブラリは行を出している。テストが読む `OSLogStore(scope: .currentProcessIdentifier)` が x86_64（Rosetta）では 0 件を返すと読んだ（arm64 の 18.3 の iPad では同じテストが通る）。**ライブラリの欠陥ではなく、テストの読み方の環境の限り**。`ios/` を変えない回なので直していない | 持ち主の判断待ち（15.7 の 7） |
+| 〃 検出の 5 秒の 2 件 | `testDetectingValuesTheUserAllows` と `…Denies` は、要求から 5 秒（ライブラリの既定 `ClipboardTimeouts.detection`。C から `init(timeouts:)` を使えない）の中で貼り付けのダイアログに答える必要があり、`answerPaste` はダイアログを最大 10 秒待つ。15.4 の `--capi-ui` ではどちらも全体で約 7 秒（アプリの起動を含む）で通り、今までの回で落ちたことは無い。直すには、テストが期限を決める口か、ライブラリの既定を変える必要があり、どちらも TB-12 の外（`ios/` を変えない）。落ちたときは完了の値が `TIMED_OUT` の番号で出るので原因は読める | 直さない（15.7 の 9） |
+| Claude C-a | dist-check の報告の `SKIP` も FAIL に。自己テスト 1 件 | 直した |
+| Claude C-c | `pgrep` の終了の状態が 1 のときだけ「閉じている」。0 は開いている、2 以上は `pgrep failed` でどちらも exit 2。自己テスト 2 件（状態 2 と 3） | 直した |
+| Claude C-d | usage の `--udid` の行の桁が 1 つずれていた（最初の編集で空白を 1 つ落とした）。戻した | 直した |
+| Claude C-e | 「12 通り」を実数の 14 通りに | 直した |
+| Claude C-f | 15.4 の「1 台だけ」と「3 台とも停止」を、使った台と終わりの状態に分けて書き直した | 直した |
+| Claude C-b（action のログの「first:」の表示） | action のログは JSON で、出力が 1 つの文字列の中に入るので、報告の行の「first:」が長い JSON の行の先頭 200 文字になる。見つけることには関わらない（検出は行の中を探す） | 直さない |
+| Claude C-g（`agent-rules/device-testing.md` に `--capi` を書く） | 規則のファイルの変更は持ち主の判断 | 直さない。15.7 の 8 に候補の文を書いた |
+
+### 15.10 直しの後の最後の検証
+
+最後のソースのハッシュ（15.4 と同じ式）は **`67994778ecda`で、流す前も後も同じ**（直しの前は `1d3921dd9a7f`）。下の 17 Pro の `--capi` だけは、その直前のソース `6b10d3e356cb` で流した（違いは自己テストの `TimeLimit` の 1 件の直しだけで、ランナーが読むファイル（`test_ios.sh`、`ios_capi_runner.py`、つなぐ 4 つのスクリプト）は同じ）。シミュレーターは 1 台ずつ順に使い（17 Pro、iPad、iPhone 16 の x86_64、17 Pro）、重ねていない。各実行の前に `pgrep -x Simulator` が状態 1（閉じている）を返すことを確かめた。Simulator.app は開いていない。Mac の `pbcopy`・`pbpaste` と `simctl pbsync` は使っていない。終わりに確かめると、3 台とも停止していた。実機と `xcrun devicectl` は使っていない。`dist/` と pbxproj は変わっていない。**流した後に変えたのはこの記録だけ。**
+
+| 実行 | 結果 |
+|---|---|
+| `--capi`（iPhone 17 Pro / 26.2。16:53〜17:01） | rc 0、8 passed。474/474 × 3、報告 0、各回のランタイムは期待どおり。`check_ios_dist.py` OK 18・FAIL 0・SKIP 0、照合は 2 スライスとも OK 30・FAIL 0・SKIP 0、smoke 9 PASS・16 段階 |
+| `--capi`（iPad Pro 11-inch (M4) / 18.3、日本語。17:01〜17:08） | rc 0、8 passed。474/474 × 3、報告 0（ASan と TSan の回は両 framework がそれぞれのランタイムを読み込む）。`check_ios_dist.py` OK 18、照合は 2 スライスとも OK 30・SKIP 0、smoke 9 PASS・16 段階（iPad の上で実行） |
+| `IosLibraryCApiTests` x86_64（`xcodebuild test … arch=x86_64`。DerivedData と結果はスクラッチ） | 17 Pro / 26.2: rc 70（x86_64 の実行先が無い）。iPhone 16 / 18.3: 473/474、framework は `x86_64`。落ちた 1 件は 15.9 |
+| 同、落ちた 1 件だけ（iPhone 16 / 18.3、x86_64） | 2 回とも落ちた（ホストの標準エラーには `[VersionCheck]` の行が出る） |
+| 旗の拒否を本物のランナーで（`--capi` と `--capi-ui` のそれぞれに、`--feature ""`、`--enumerate-udid ""`、`--approved ""`、`--devicectl-id ""`、`--device-allow ""`、`--dry-run`、`--skip-unit`、`--feature Dialog`。`--capi --capi-ui`。実機の形の UDID に `--capi`） | 18 通りとも rc 2（どの旗かを文に出す）。何も組まない。実機の拒否は今までどおり作業フォルダーを作った後なので、`*-pending.*` のフォルダーが 2 つ残った（git が無視する場所） |
+| `--capi-ui`（17 Pro。17:13〜17:36） | rc 0、58 passed（前と同じ） |
+| 実機の `--dry-run`（実在しない UDID、`--device-allow systemui`） | rc 0。サンプルの 6 回・62 件だけで、`approval.json`・`plan.json`・出力に `capi`・`sanitizer`・`smoke` は 0 件 |
+| ランナーの自己テスト（`test_ios_capi_runner.py` 31 件、`test_ios_ui_runner.py` 210 件。3.9） | どちらも OK |
+| `scripts/tests` 全体（3.9、`NTK_IOS_DIST` は 17 Pro の最後の実行の配布物、`NTK_REQUIRE_DIST_FIXTURE=1`） | Ran 834、OK（skip 0） |
+| 設計書の照合（第 1 部・第 2 部） | どちらも rc 0、FAIL 0 |
+
+**変異**（15.5 と同じ写しと差し替え。同じ回の対照の M0 は rc 0・8 passed）:
+
+| # | 変異 | 結果 |
+|---|---|---|
+| M6a | ASan の回の出力に `AddressSanitizer:DEADLYSIGNAL` だけを足す（ERROR・SUMMARY の行なし） | rc 1。`unit-asan` だけが FAIL |
+| M6b | TSan の回の出力に `ThreadSanitizer: reported 2 warnings` だけを足す | rc 1。`unit-tsan` だけが FAIL |
+| M7 | `capped_group` の時間切れで、グループではなく直接の子だけを KILL する | 自己テスト `TimeLimit` が落ちた（`the child is still running`）。最初の形の自己テストは落とせなかった（15.9） |
+| M8 | `--capi` の拒否を値で見る形に戻す | 自己テストの空の値の 5 通りが落ちた |
+
+M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行の成果物を写して返す差し替え）、M7・M8 は写しの自己テストで流した。
+
+直しと最後の検証の時間: 16:49〜17:45（約 1 時間。`--capi-ui` が約 23 分）。
+
+### 15.11 直しの再レビュー（Codex だけ）と、メインのセッションの直し
+
+15.10 のソース（`67994778ecda`）を、Codex にだけ読むだけで見てもらった（2026-11-07 17:47〜17:52）。Claude の再レビューはしていない。A は 0。指摘はメインのセッションが確かめてから扱いを決めた。**持ち主はまだ読んでいない。**
+
+| 指摘 | 確かめたこと | 扱い |
+|---|---|---|
+| B1 中断のシグナル | `capped_group` の perl は ALRM だけを受けていた。端末の Ctrl-C は前面のグループに届くので、別のグループにした xcodebuild などに届かず残る | 直した: INT・TERM・HUP でもグループごと KILL し、子を回収して 128 + 番号で終える。自己テスト 1 件（perl に TERM を送り、状態 143 で子が残らない）。ハンドラーを外す変異でこのテストが落ちることを確かめた |
+| B2 入れ子のグループ | smoke の中の `simctl launch` は smoke のスクリプトがさらに別のグループにする。外側の 3600 秒が来ると内側の監視の perl は消えるが、その simctl は残りうる | 直さない。smoke のビルドに 1 時間近くかかったときだけ起きる。内側には 120 秒の時間切れがある。候補として残す |
+| B3 TSan の FATAL の形 | Xcode 26.6 の TSan のランタイムに `FATAL: Memory layout is incompatible with TSan.` がある。今の形はこれを拾わない。この形で止まるとテストが流れず、件数などの別の条件でも落ちる見込み | 直した: この形を足した。自己テストに 1 行足した |
+| B4 値に旗を飲み込む | `--udid --dry-run --udid <id> --capi` で最初の `--udid` が `--dry-run` を値として取り、拒む仕掛けをすり抜けた（前からある読み方） | 直した: 値を取る 6 つの旗は、値が無いか `-` で始まるなら exit 2。自己テスト 1 件（`--capi` と `--capi-ui` の 3 通りずつと、値の無い旗） |
+
+直しの後の結果は下に書く。
+
+**直しの後の結果**（メインのセッション。17:55〜18:09。最後のソース `8b32359281e9`、流す前と後で同じ）
+
+| 実行 | 結果 |
+|---|---|
+| `scripts/tests` 全体（`/usr/bin/python3` 3.9、`NTK_IOS_DIST` つき） | 836 件 OK |
+| `test_ios.sh --capi`（`DEVELOPER_DIR` なし。既定の Xcode は 26.3） | rc 2 で止まり、何も組まない（26.6 だけを受ける守りのとおり） |
+| `DEVELOPER_DIR=<Xcode 26.6> test_ios.sh --capi`（17 Pro / 26.2） | rc 0、8 passed（474 × 3、dist-check、照合 2 スライス、smoke）。終わった後に xcodebuild・`simctl launch` は残っていない |
+| 設計書の照合（第 1 部・第 2 部） | どちらも FAIL 0 |
+
+流し直していないもの: iPad の `--capi`、`--capi-ui`（引数の読み方の変更は自己テストが受け持つ）、x86_64 の単体テスト。直しの後の 2 回目の再レビューはしていない。

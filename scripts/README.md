@@ -108,7 +108,7 @@ needs a full run, so it refuses `-Filter` and `-SkipUnitTests`.
 
 | Script | Runs |
 |---|---|
-| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device; with `--capi-ui`, the UI tests of the C ABI on one simulator. What runs and every check of what ran is in `ios_ui_runner.py` |
+| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device; with `--capi-ui`, the UI tests of the C ABI on one simulator; with `--capi`, the other checks of the C ABI on one simulator. What runs and every check of what ran is in `ios_ui_runner.py`, and for `--capi` in `ios_capi_runner.py` |
 | `test_ios.baseline.<model>-<os>.json` | The recorded outcome of the last full run in each of the two environments, which `--baseline` rewrites |
 
 ```bash
@@ -116,6 +116,8 @@ scripts/test_ios.sh --udid <simulator>                       # everything on a s
 scripts/test_ios.sh --udid <simulator> --feature Dialog      # one feature's UI tests
 DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
   scripts/test_ios.sh --udid <simulator> --capi-ui           # the UI tests of the C ABI
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <simulator> --capi              # the other checks of the C ABI
 scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --dry-run --device-allow systemui
 scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --devicectl-id <id> \
   --device-allow systemui --approved <approval.json>         # after the user approved the list
@@ -147,6 +149,27 @@ build it checks that every row of the app calls C and that nothing else reaches 
 system directly; after the build, that the app's own Mach-O files import exactly those C functions and
 nothing of `IosLibrary`. A row that calls C and then reports a fixed value is left to a review.
 
+`--capi` runs the other checks of the C ABI on one simulator (`artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-c-abi-design.md`,
+C-6 and 6.1; part 2, TB-12): `IosLibraryCApiTests` without a sanitizer, with ASan and with TSan, each
+in its own DerivedData; a build of the distributable (`build_ios_library_xcframework.sh -m IosLibrary -m
+IosLibraryCApi --output-dir --build-dir --keep-project-versions`, with the version of the tree's
+`Common.h`) inside the run's folder, never `dist/`; `check_ios_dist.py --dist` on it;
+`check_c_abi_contract_ios.py --require-compile --require-complete --library` on the capi of each slice
+(`ios-arm64` with `arm64`, the simulator with `arm64,x86_64`); and `run_ios_capi_smoke.sh --udid
+--device-build` on it. Every step runs (those that need the build say "not run" when it failed), and the
+summary fails the run when a step failed or did not run once. A variant of the unit tests passes only when
+every test passed and none was skipped, each framework loads that variant's sanitizer runtime and no
+other (`otool -L`), and neither the xcodebuild log nor the result bundle's action log has a sanitizer's
+report; the three variants must run the same number of tests (a SKIP in either checker's report fails
+its step too). Like `--capi-ui` it takes no other option but `--udid` (an option given with an empty value
+counts; `--capi-ui` refuses those too), refuses the device and needs Xcode 26.6; it also stops while
+Simulator.app is open or `pgrep` cannot tell. The build and the smoke run in their own process group under a
+one-hour limit, and the whole group is killed when it is up. It never
+reaches the device: the device's ASan and smoke run only at a stage's end with the user's approval
+(`agent-rules/device-testing.md`). The smoke runs with the Xcode that builds the library; its run with
+26.3 (D-16) is `run_ios_capi_smoke.sh` on its own, as below. The archives use Xcode's default DerivedData,
+as the build script always has.
+
 | Script | Runs |
 |---|---|
 | `run_android_capi_smoke.sh` | The Android C ABI smoke (`android/android_library_capi_smoke`) on one device, against a Maven repository the build wrote |
@@ -163,12 +186,12 @@ a simulator it found shut down.
 ## `tests/` is not the test suite
 
 `scripts/tests/` holds the **self-tests of the `check_` scripts** and of the
-decisions of `test_ios.sh` (`ios_ui_runner.py`), not tests of the product. Each case copies the files a checker reads into a temporary tree,
+decisions of `test_ios.sh` (`ios_ui_runner.py`, and `ios_capi_runner.py` for `--capi`), not tests of the product. Each case copies the files a checker reads into a temporary tree,
 breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 800 cases
+python -m unittest discover -s scripts/tests    # 834 cases
 ```
 
 `test_check_android_dist.py` and `test_check_ios_dist.py` break copies of a real build, so they

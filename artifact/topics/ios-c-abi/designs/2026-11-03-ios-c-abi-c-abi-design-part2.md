@@ -838,7 +838,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 ### 12.1 C ABI のテスト（`IosLibraryCApiTests`。XCTest から C の関数を呼ぶ。README 7 章）
 
-通常・ASan・TSan の 3 通りで流す（P1-20）。**`IosLibraryCApiTests` のホストは権限を一度も求めない専用のアプリで、TB-2b の UI テスト用のアプリと bundle を分ける**（同じにすると、12.2 が許可を押した後に `PERMISSION_DENIED` の行が落ちる）。
+通常・ASan・TSan の 3 通りで流す（P1-20。`scripts/test_ios.sh --capi`。TB-12）。**`IosLibraryCApiTests` のホストは権限を一度も求めない専用のアプリで、TB-2b の UI テスト用のアプリと bundle を分ける**（同じにすると、12.2 が許可を押した後に `PERMISSION_DENIED` の行が落ちる）。
 
 | 観点 | 中身 |
 |---|---|
@@ -915,7 +915,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2。**iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-5 と同じ） |
 | TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ）。**12.2 の「通知のイベント」の行の残り（`DISMISS` と `openSettingsFor` の UI テスト。TB-8 から送った。測り方は 12.2 の行。作業記録 11.9 の確認待ちだったものを推奨案で進めた。持ち主の確認待ち。作業記録 13 章）** |
 | TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`）。**capi の xcframework は Release だけを受ける**（今のビルドのスクリプトの `--configuration debug` を写さない。Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。第 1 部 5.4）。**照らす所**: 配布物（`-Swift.h`・`.swiftmodule` を含む README 7.3）は `check_ios_dist.py`、C のソースの `ntk_` は `check_c_abi_contract_ios.py` の `csources`（ソースだけで照らせるため。推奨案で進めた。持ち主の確認待ち。作業記録 14 章） |
-| TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る |
+| TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る（**`--capi` の 8 段が iPhone 17 Pro / 26.2 と iPad Pro 11-inch (M4) / 18.3 で通った。15.2 の iPhone 17 / 26.2 は 17 Pro で代えた**（推奨案。持ち主の確認待ち）。x86_64 の `IosLibraryCApiTests` は iPhone 16 / 18.3 で 473/474 で、`OSLogStore` を読む 1 件が x86_64 だけで落ちる（持ち主の判断待ち。作業記録 15.9）。実機は 2b の区切り）。**TB-12 の形**（推奨案で進めた。持ち主の確認待ち。作業記録 15 章）: 新しい旗 `--capi`（`--capi-ui` と同じく `--udid` のほかを取らず、シミュレーターだけ、Xcode 26.6。既定の流れと `--baseline` には入れない）。3 通りの `IosLibraryCApiTests`、実行のフォルダーの中に組む配布物（`dist/` には作らない）、`check_ios_dist.py`、2 つのスライスの照合、smoke（実機向けは署名なしで組むだけ）を順に流し、要約が決める。判定は `scripts/ios_capi_runner.py`（各回が全件通り skip 0、各 framework がその回のサニタイザーのランタイムだけを読み込む、xcodebuild のログと xcresult の action のログにサニタイザーの報告が無い、3 通りの件数が同じ）。実機は旗が拒む（実機の ASan と smoke は 12.2 の行のとおり区切りで許可を得て） |
 | TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-12 | 8.3 と 16 章を渡した |
 
 合計見積: 17.5 日（TA 1.5、TB 15.5、TC 0.5）。マニュアルの iOS の C ABI の章は README の段階 4 で書く（AP-23）。

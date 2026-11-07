@@ -137,7 +137,7 @@ MUTATIONS = [
     ('device run 1: the simulator classes in the default DerivedData', S, '      -derivedDataPath "${OUT_DIR}/dd-test" -parallel-testing-enabled NO', '      -parallel-testing-enabled NO'),
     ('capi-ui: the script lets a device through', S, 'if [[ "${CAPI_UI}" -eq 1 && "${KIND}" != "simulator" ]]; then', 'if false; then'),
     ('capi-ui: the plan lets a device through', M, '    if kind != "simulator":\n        raise RunnerError("the UI tests of the C ABI', '    if False:\n        raise RunnerError("the UI tests of the C ABI'),
-    ('capi-ui: other options accepted', S, ' || "${SAVE_BASELINE}" -eq 1 \\\n  || "${NAME_EACH_TEST}" -eq 1 || -n "${ENUMERATE_UDID}" ) ]]; then', ' ) ]]; then'),
+    ('capi-ui: other options accepted', S, 'if [[ "${CAPI_UI}" -eq 1 && ( -n "${OTHER_OPTIONS}" || "${CAPI}" -eq 1 ) ]]; then', 'if false; then'),
     ('capi-ui: no restart before a call', S, '    capi_restart_simulator\n', ''),
     ('capi-ui: no deletion before a fresh test', M, '                add("fresh", capi_key_from_enumeration_id(identifier), cls, [identifier], [identifier], True)', '                add("fresh", capi_key_from_enumeration_id(identifier), cls, [identifier], [identifier], False)'),
     ('capi-ui: the script ignores the deletion', S, '      xcrun simctl uninstall "${UDID}" "${CAPI_BUNDLE_ID}" \\\n        || {', '      : \\\n        || {'),
