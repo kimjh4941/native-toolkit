@@ -53,6 +53,11 @@ here, so neither can drift without the other noticing:
               and TB-12 ask for.
   public      E = P of part 1, 5.5: the capi declares nothing public or open
               but its entries (P1-1).
+  csources    part 1, 5.5: the capi's C sources, if it has any (part 1, 5.1
+              allows them for what @c cannot write), define no ntk_ function
+              and name no ntk_ that the public headers do not declare: their
+              own names start with ntkc_, and an ntk_ of theirs would be
+              exported by the list of IosLibraryCApi.exp.
   modulemap   the module map has the form of part 1, 5.1 and names exactly the
               headers of include/NativeToolkitC (part 1, 5.5).
   compile     every public header compiles alone as C99, C11, C++ and
@@ -83,9 +88,10 @@ absence --require-compile makes a failure, and a --clang that does not exist
 always fails; complete needs --require-complete. An argument this script does
 not know is a usage error, so a misspelt option cannot turn a check into a SKIP.
 
-Not checked here: what part 1, 5.5 compares with the distributable and the
-capi's C sources (TB-11); which behaviour names which of two operations of one
-shape; the argument names 8.1 writes after a C function.
+Not checked here: what part 1, 5.5 compares with the distributable (no -Swift.h
+and no Swift module: scripts/check_ios_dist.py, TB-11); which behaviour names
+which of two operations of one shape; the argument names 8.1 writes after a C
+function.
 
 What every OS checks the same way lives in c_abi_contract_common.py.
 
@@ -734,6 +740,30 @@ def check_public(sources, rep):
     rep.check(not problems, name, "; ".join(problems))
 
 
+# A C source of the capi, and how it would define a function: a return type from the head of a line,
+# on that line or the ones before the name, then the name, its parameters and a body (a call inside
+# `if (...) {` does not start a line with a type).
+C_SOURCE_SUFFIXES = (".c", ".h", ".m", ".mm", ".cc", ".cpp")
+C_DEFINITION = re.compile(r"^[ \t]*(?:\w+[\s*]+)+(ntk_\w+)\s*\([^;{}]*\)\s*\{", re.M)
+
+
+def check_c_sources(texts, rep):
+    """Part 1, 5.5: the capi's C sources define nothing that starts with ntk_."""
+    name = "csources: the capi's C sources define no ntk_ function and name no ntk_ the headers lack (part 1, 5.5)"
+    known = {token for text in texts.values() for token in re.findall(r"\bntk_\w+", common.strip_comments(text))}
+    paths = sorted(path for path in at(CAPI).rglob("*") if path.suffix in C_SOURCE_SUFFIXES
+                   and at(INCLUDE) not in path.parents and not any(part.endswith(".xcodeproj") for part in path.parts))
+    problems = []
+    for path in paths:
+        code = common.strip_comments(path.read_text(encoding="utf-8"))
+        relative = path.relative_to(ROOT)
+        for function in sorted(set(C_DEFINITION.findall(code))):
+            problems.append(f"{relative} defines {function}")
+        for token in sorted(set(re.findall(r"\bntk_\w+", code)) - known):
+            problems.append(f"{relative} names {token}, which no public header declares (internal names start with ntkc_)")
+    rep.check(not problems, f"{name} ({len(paths)} C sources)", "; ".join(problems))
+
+
 def check_module_map(text, header_names, rep):
     """The module map names the headers there are, in the one form of part 1, 5.1."""
     name = "modulemap: the module map names the headers of include/NativeToolkitC (part 1, 5.5)"
@@ -1094,13 +1124,14 @@ def main(argv):
         common.check_ascii(appendix, rep, "the headers of Appendix A")
     check_common(texts.get("Common.h") if texts is not None else appendix.get("Common.h"), rep)
     if headers is None:
-        for check in ("entries", "public", "modulemap", "compile", "layout", "settings", "install"):
+        for check in ("entries", "public", "csources", "modulemap", "compile", "layout", "settings", "install"):
             rep.skip(f"{check}: needs the headers and the capi's sources", "--design-only")
     else:
         sources = capi_swift_code(rep, "entries and public: the capi's Swift sources")
         if sources is not None:
             check_entries(sources, merged(headers)["function"], rep)
             check_public(sources, rep)
+        check_c_sources(texts, rep)
         present = sorted(path.name for path in at(INCLUDE).glob("*.h"))
         module_map = read(MODULE_MAP, rep, "modulemap: the module map")
         if module_map is not None:

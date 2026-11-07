@@ -890,6 +890,8 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 
 配布物の 2 つの xcframework だけで組む C / Objective-C のアプリが、Xcode 26.6 と 26.3 の両方で組め、`ntk_notification_install`・Clipboard の書き込みと読み取り・Dialog（完了まで）を通す（README 7 章、D-16）。
 
+**TB-11 の形**（推奨案で進めた。持ち主の確認待ち。作業記録 14 章）: `ios/IosLibraryCApiSmoke` を `scripts/run_ios_capi_smoke.sh` が新しい作業フォルダーに写し、2 つの xcframework だけを置いて組む（リポジトリのほかに届かない）。アプリが埋め込むのは 2 つの framework だけで、Swift の dylib を持たず、自分では `IosLibrary` の Swift のシンボルを import しない。Clipboard は**名前付きのペーストボード**で書いて読む（general に触れないので、実機の区切りでも私物のクリップボードを上書きしない）。Dialog は人の操作を置かず、**表示の 1.5 秒後に `ntk_dialog_cancel` で `CANCELED` の完了まで**通す。各要求の完了と `release` が main で 1 回ずつ来ることも数える。実機向けは署名なしで組むところまで（入れない）。
+
 ### 12.5 変異
 
 足した検査は、契約を保ったまま形を変える変異で壊して落ちることを確かめる（`common.md`「検査の書き方」）。
@@ -912,7 +914,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-8 | 通知のイベント（OP-42〜OP-45）。**TB-2b のアプリに起動の形を伝える口を足す**（システムが起こしたプロセスは起動の引数を受けないので、サンプルの SA-18 と同じくファイルで。コールドスタートの中で受け手を登録するため） | 1.0日 | TB-7 | 12.1 のイベント・delegate の行と、12.2 の「通知のイベント」の行のうち `BODY_TAP`、`ACTION`、`TEXT_INPUT` とコールドスタート（`DISMISS` と `openSettingsFor` は TB-10。作業記録 11.9 の確認待ちだったものを推奨案で TB-10 に入れた。持ち主の確認待ち） |
 | TB-9 | Share（OP-46、結果） | 0.5日 | TB-2b | 12.1 の前面の行と 12.2。**iPad Pro 11-inch (M4) / 18.3 でも通す**（TB-5 と同じ） |
 | TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ）。**12.2 の「通知のイベント」の行の残り（`DISMISS` と `openSettingsFor` の UI テスト。TB-8 から送った。測り方は 12.2 の行。作業記録 11.9 の確認待ちだったものを推奨案で進めた。持ち主の確認待ち。作業記録 13 章）** |
-| TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`）。**capi の xcframework は Release だけを受ける**（今のビルドのスクリプトの `--configuration debug` を写さない。Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。第 1 部 5.4） |
+| TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`）。**capi の xcframework は Release だけを受ける**（今のビルドのスクリプトの `--configuration debug` を写さない。Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。第 1 部 5.4）。**照らす所**: 配布物（`-Swift.h`・`.swiftmodule` を含む README 7.3）は `check_ios_dist.py`、C のソースの `ntk_` は `check_c_abi_contract_ios.py` の `csources`（ソースだけで照らせるため。推奨案で進めた。持ち主の確認待ち。作業記録 14 章） |
 | TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る |
 | TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-12 | 8.3 と 16 章を渡した |
 

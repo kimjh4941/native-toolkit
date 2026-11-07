@@ -2325,3 +2325,225 @@ scripts/test_ios.sh --udid <UDID> --capi-ui
 | 照合 `--require-complete`、設計書の照合（第 1 部・第 2 部） | 最後 | rc 0、FAIL 0 |
 
 流し直していないもの: ASan、`--capi-ui` の iPhone 16 と iPad（UI 側の変更は 26.2 の判定を狭めて 1 行出すだけで、18.3 では前も辿らずに終えていた）、変異。
+
+## 14. TB-11
+
+第 2 部 13 章の TB-11（dist、`check_ios_dist.py`、smoke。第 1 部 C-5）。実装者のサブエージェントの記録。コミットはメインのセッションがレビューの後に行う。**判断の要るところは、メインのセッションが利用者の指示のもとで推奨案で決めたもの。持ち主はまだ読んでいない。**
+
+### 14.1 決めたこと（推奨案。持ち主の確認待ち）
+
+| # | 決定 | 理由 |
+|---|---|---|
+| 1 | **出力は `dist/` に作らない**。ビルドのスクリプトに `--output-dir <folder>`（2 つの xcframework と `include/NativeToolkitC/` をそこへ）、`--build-dir <folder>`（中間の archive）、`--keep-project-versions`（`project.pbxproj` の `MARKETING_VERSION`・`CURRENT_PROJECT_VERSION` を書かず、ビルド番号も上げない）を足し、検証はすべてスクラッチに出した | 版と `dist/<release>/` を決めるのは 2b の締め（利用者）。今のスクリプトは Release で pbxproj を書き換えるので、旗なしで流すと `ios/` が変わる |
+| 2 | capi の xcframework は**同じ実行で組んだ `IosLibrary` の archive に対して組む**（`FRAMEWORK_SEARCH_PATHS`。`UnityIosPlugin` と同じ形）。capi のプロジェクトだけを組む | 配る `IosLibrary`（library evolution）と同じものにリンクするため。workspace の暗黙の依存だと、その場で組んだ別の `IosLibrary` を見る |
+| 3 | **capi は Release だけ**: `-m IosLibraryCApi` に `--configuration debug` を渡すとスクリプトが止める。`BUILD_LIBRARY_FOR_DISTRIBUTION=YES` を capi には渡さない（プロジェクトの `NO` のまま。P1-19） | TB-11 の行（Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。14.5 の M1 で確かめた） |
+| 4 | **すべてのモジュールを `CODE_SIGNING_ALLOWED=NO` で archive する**（`IosLibrary` と、もう組まない `UnityIosPlugin` も） | D-18 の A。今の `IosLibrary` のプロジェクトは Automatic の署名で、旗なしの実機の archive は個人の証明書で署名する |
+| 5 | `include/NativeToolkitC/` は、capi の xcframework の隣にスクリプトが木のヘッダーを写す | README 3 章の配布物の表。`check_ios_dist.py` が木・`include/`・framework の `Headers/` を照らす |
+| 6 | `check_ios_dist.py` は README 7.3 の表の 10 項目に、**`modules`（framework の `module.modulemap` = 木）、`IosLibrary` の swiftinterface が全アーキテクチャにあること、`LC_BUILD_VERSION` の platform と minos、版 = 木の `Common.h` の `NTK_VERSION_*`、`_tlv_atexit`（Darwin の `thread_local` の後始末）、framework に `_CodeSignature/` が無いこと**を足した。README 7.3 の表は変えていない | どれも配布物だけで決まり、壊れても今の 10 項目では見えない形があった（`_CodeSignature/` は封をした framework、minos は `Info.plist` と食い違いうる） |
+| 7 | プライバシーマニフェストの「宣言した理由とソースが使う API の一致」は、**Swift の API の設計書 8.8.1 の棚卸しの 5 種を正規表現で探し（コメントを除く）、宣言した種類の集合と比べる**。理由の値（C617.1）はソースから決まらないので、空でないことだけを見る。capi は使う API が無く、マニフェストを持たない（持つなら使う種類と一致を求める） | D-18 の「`IosLibraryCApi` は理由の申告が要る API を使わない見込みで、2b で確かめる」。0 件だった |
+| 8 | **第 1 部 5.5 の「C のソースの `ntk_`」は `check_c_abi_contract_ios.py` の新しい `csources` で照らす**（`-Swift.h` と `.swiftmodule` は配布物の照合）。C のソースがあれば、`ntk_` の関数を定義せず、ヘッダーに無い `ntk_` の名前を使わない | ソースだけで照らせ、ビルドの前に流せる。capi は今 C のソースを持たない（0 件で OK） |
+| 9 | smoke の形（第 2 部 12.4 に書いた）: `scripts/run_ios_capi_smoke.sh` が `ios/IosLibraryCApiSmoke` と 2 つの xcframework だけを新しい作業フォルダーに写して組む。Clipboard は**名前付きのペーストボード**、Dialog は**表示の 1.5 秒後に `ntk_dialog_cancel` で `CANCELED` の完了まで**。各要求の完了と `release` が main で 1 回ずつ来ることも数える。アプリは結果を `SMOKE ...` の行に書いて自分で終わり、スクリプトは `simctl launch --console-pty` で読む（1a の雛形と同じ読み方） | 「配布物だけで組む」を、リポジトリに届かない場所で組むことで示す。general のペーストボードを使わないので、実機の区切りでも私物のクリップボードを上書きしない。Dialog の完了を人の操作なしで通す |
+| 10 | smoke のプロジェクトは `xcodeproj` の gem（1.25.1）で作った（`objectVersion = 63`。gem は 77 を知らない）。生成器はコミットしていない。シミュレーター向けは `CODE_SIGN_IDENTITY = "-"`（ad-hoc。鍵を使わない）、`DEVELOPMENT_TEAM` は空、実機向けはスクリプトが `CODE_SIGNING_ALLOWED=NO` を渡す。`GCC_TREAT_WARNINGS_AS_ERRORS = YES` と `-Wall -Wextra` で、利用者の側でヘッダーが警告を出さないことも見る | Team ID をファイルに書かない。個人の証明書に触れない |
+| 11 | smoke の xcframework は作業フォルダーの `Frameworks/IosLibrary.xcframework`・`IosLibraryCApi.xcframework`（決まった名前）に置く。リポジトリの `ios/IosLibraryCApiSmoke/Frameworks/` は `.gitignore` で外した | プロジェクトが版の付いた名前を持たないように |
+| 12 | README 7.4 の x86_64 の行（iOS 18.3 のシミュレーターで Rosetta で smoke を流す）を、`--archs x86_64` で 1 回試した（14.4） | 指示の範囲の外だが、スクリプトの旗 1 つで足りた |
+
+### 14.2 足したもの・変えたもの
+
+| 区分 | ファイル | 中身 |
+|---|---|---|
+| ビルド | `scripts/build_ios_library_xcframework.sh` | 14.1 の 1〜5 |
+| 照合 | `scripts/check_ios_dist.py`（新規） | 14.1 の 6・7。項目は `files`、`slices`、`symbols`、`swift`、`modules`、`dependencies`、`exit`、`install`、`version`、`privacy`、`signature`、`headers`（18 行）。`symbols` は `check_c_abi_contract_ios.check_symbols` を使う |
+| 自己テスト | `scripts/tests/test_check_ios_dist.py`（新規） | 組んだ配布物（`NTK_IOS_DIST`、無ければ `dist/<release>/ios/`）を一時フォルダーに写し、1 つ壊して、その項目だけが落ちることを確かめる。codesign の出力の読み方と、理由の要る API の見つけ方は純粋な関数のテスト（署名をしない） |
+| 照合 | `scripts/check_c_abi_contract_ios.py` | `csources`（14.1 の 8）。docstring の「Not checked here」を直した |
+| 自己テスト | `scripts/tests/test_check_c_abi_contract_ios.py` | `csources` の 5 件 |
+| smoke | `ios/IosLibraryCApiSmoke/`（新規）: `IosLibraryCApiSmoke.xcodeproj`、`IosLibraryCApiSmoke/main.m`、`Smoke.c`、`Smoke.h`、`.gitignore` | 14.1 の 9〜11。C の側は `#include <IosLibraryCApi/NativeToolkitC/...>`、Objective-C の側は `@import IosLibraryCApi;` でヘッダーを読む |
+| smoke | `scripts/run_ios_capi_smoke.sh`（新規） | 組む・アプリの中身を照らす（埋め込みは 2 つの framework だけ、アプリ自身は Swift の dylib を要さず `IosLibrary` の Swift のシンボルを import しない）・`--udid` で流す・`--device-build` で実機向けに署名なしで組む（入れない） |
+| 文書 | `scripts/README.md` | 14.2 のスクリプトの説明、`run_` の接頭辞、自己テストの件数 |
+| 設計書 | 第 2 部 12.4、13 章の TB-11 の行 | 14.1 の 8・9 の印 |
+
+公開ヘッダー、`ios/IosLibrary`、`ios/IosLibraryCApi` のソースとプロジェクト、信頼する UI テストのファイル、`scripts/ios_ui_runner.py`、README、第 1 部は変えていない。`android/.idea` には触れていない。`dist/` には何も作っていない。
+
+### 14.3 12.4・15.2・TB-11 の完了の条件
+
+| 条件 | どこで | 結果（14.4） |
+|---|---|---|
+| 12.4: 配布物の 2 つの xcframework だけで組む C / Objective-C のアプリ | `ios/IosLibraryCApiSmoke`、`run_ios_capi_smoke.sh`（作業フォルダーに smoke の源と 2 つの xcframework だけを写して組む） | Swift のコードを持たず、埋め込みは `IosLibrary.framework`・`IosLibraryCApi.framework` だけ、アプリ自身は `libswift*` を要さない |
+| 12.4: Xcode 26.6 と 26.3 の両方で組める | 同 | シミュレーター（arm64・x86_64）と実機向け（arm64、署名なし）を両方の Xcode で。警告 0 |
+| 12.4: `ntk_notification_install`・Clipboard の書き込みと読み取り・Dialog（完了まで） | 同 `--udid`（シミュレーター） | iPhone 17 Pro / 26.2 と iPad Pro 11-inch (M4) / 18.3 で、両方の Xcode で通った。各要求の完了と `release` が main で 1 回ずつ |
+| 15.2: README 7.3 の配布物の照合が通る | `check_ios_dist.py --dist` | 18 項目 OK |
+| TB-11: 3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る | `check_c_abi_contract_ios.py`。実機 arm64、シミュレーターの fat（arm64,x86_64）と、`lipo -thin` で分けた arm64・x86_64 の 4 回 | 4 回とも rc 0、134 symbols |
+| TB-11: 第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`） | `check_ios_dist.py` の `swift`、`check_c_abi_contract_ios.py` の `csources` | どちらも OK。壊すと落ちる（自己テストと 14.5） |
+| TB-11: capi の xcframework は Release だけ | ビルドのスクリプト | `-m IosLibraryCApi -c debug` は止まる。Debug の capi を混ぜると `swift` と `symbols` が落ちる（14.5 の M1） |
+
+### 14.4 コマンドと結果（最後のソース）
+
+14:13〜14:29 に下の順で 1 つずつ流し、重ねていない（スクラッチのスクリプト 1 本で順に）。シミュレーターの各実行の前に `pgrep -x Simulator` で Simulator.app が閉じていることを確かめた（smoke はスクリプトの中でも確かめる）。Simulator.app は開いていない。Mac の `pbcopy`・`pbpaste` と `simctl pbsync` は使っていない（smoke のクリップボードは名前付きのペーストボードだけ）。使い終えたシミュレーターは停止に戻した（smoke のスクリプトは自分で起動したものを `shutdown` する）。出力はすべてスクラッチで、`dist/` と `ios/Build/` には何も作っていない。ソースのハッシュ（`git status --short -uall -- ios scripts | cut -c4- | sort | xargs shasum -a 256 | shasum -a 256 | cut -c1-12`）は**流す前も後も `03b8a145a9cd`**（TB-11 の前は `e3b0c44298fc`。TB-10 のコミット `42d0ac54` のまま）。`project.pbxproj` は書き換わっていない。**流した後に変えたのはこの記録だけ。**
+
+```
+DEVELOPER_DIR=<Xcode 26.6> scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.0 \
+  --output-dir <scratch>/dist2 --build-dir <scratch>/build2 --keep-project-versions
+python3 scripts/check_ios_dist.py --dist <scratch>/dist2
+NTK_IOS_DIST=<scratch>/dist2 NTK_REQUIRE_DIST_FIXTURE=1 python3 -m unittest scripts/tests/test_check_ios_dist.py
+python3 scripts/check_c_abi_contract_ios.py --require-compile --require-complete --library <binary> --architectures <archs>
+DEVELOPER_DIR=<Xcode 26.6 | 26.3> scripts/run_ios_capi_smoke.sh --dist <scratch>/dist2 --work <new folder> --udid <UDID> --device-build
+xcodebuild test -workspace ios/IosWorkspace.xcworkspace -scheme IosLibraryCApi -destination 'platform=iOS Simulator,id=<UDID>' \
+  -parallel-testing-enabled NO -only-testing:IosLibraryCApiTests
+```
+
+| 実行 | 結果 |
+|---|---|
+| ビルド（Xcode 26.6。2 つの xcframework と `include/NativeToolkitC/`） | rc 0。約 1 分（前の組み立てが残っていた）。capi の警告 0 |
+| 同 `-m IosLibraryCApi -c debug` | rc 1（`Error: IosLibraryCApi is built in release only.`） |
+| `check_ios_dist.py --dist` | rc 0。OK 18、FAIL 0 |
+| `test_check_ios_dist.py` | Ran 31 tests、OK |
+| 照合 `--library`（`ios-arm64`、`--architectures arm64`） | rc 0。OK 30、FAIL 0、SKIP 0。134 symbols、1 architectures |
+| 同（`ios-arm64_x86_64-simulator` の fat、`arm64,x86_64`） | rc 0。OK 30。134 symbols、2 architectures |
+| 同（`lipo -thin` の arm64、`arm64`） | rc 0。OK 30。134 symbols |
+| 同（`lipo -thin` の x86_64、`x86_64`） | rc 0。OK 30。134 symbols |
+| 照合（旗なし） | rc 0。OK 29、FAIL 0、SKIP 1（`symbols`。`--library` なし）。`csources` は 0 C sources で OK |
+| `test_check_c_abi_contract_ios.py` | Ran 285 tests、OK（280 + `csources` の 5） |
+| smoke（Xcode 26.6、iPhone 17 Pro / 26.2） | rc 0。9 PASS、0 FAIL（シミュレーターと実機向けの組み立て・中身、16 段階の実行） |
+| smoke（Xcode 26.6、iPad Pro 11-inch (M4) / 18.3、日本語） | rc 0。9 PASS、0 FAIL |
+| smoke（Xcode 26.3、iPhone 17 Pro / 26.2） | rc 0。9 PASS、0 FAIL |
+| smoke（Xcode 26.3、iPad Pro 11-inch (M4) / 18.3、日本語） | rc 0。9 PASS、0 FAIL |
+| `IosLibraryCApiTests`（iPhone 17 Pro / 26.2、Xcode 26.6） | 474/474 |
+| `IosLibrary` だけをビルドのスクリプトで（今の使い方。`-m IosLibrary`） | rc 0。`ios-native-toolkit-2.0.0.xcframework` |
+| `scripts/tests/test_ios_ui_runner.py` | Ran 210 tests、OK |
+| `check_design_consistency.py`（第 1 部、第 2 部） | どちらも rc 0、FAIL 0 |
+| `python3 -m unittest discover -s scripts/tests`（`NTK_IOS_DIST` つき） | Ran 781 tests、OK |
+
+最後の検証の前（13:51〜14:06）に流したもの: 同じ手順の 1 回目（`dist1`）、smoke の x86_64 だけ（`--archs x86_64`、iPhone 16 / 18.3、Xcode 26.6。16 段階 PASS。README 7.4 の x86_64 の行）、14.5 の変異。
+
+### 14.5 壊して確かめたこと（使い捨ての写し）
+
+**自己テスト**（`test_check_ios_dist.py`）: 組んだ配布物の写しを 1 つずつ壊す 26 件と、codesign の出力・理由の要る API の見つけ方の純粋な関数の 5 件（レビューの直しの後は 32 件と 10 件。14.9）。どれも名前の項目だけが落ちる（`assert_only_among`。x86_64 を抜いたときなど、続いて落ちてよい項目を名前で挙げる）。最初の形では、x86_64 を抜くとアーキテクチャごとの項目がすべて「その arch が無い」で落ちたので、アーキテクチャごとの項目はバイナリが持つものを回し、集合の食い違いは `slices` だけが言う形に直した。
+
+**実際に誤った設定で組んだもの**（14:04〜14:06。Xcode 26.6 で capi を archive し、`dist1` の写しのスライスと差し替えて `check_ios_dist.py --dist` を流した）。6 個とも狙った項目で落ちた（rc 1）。
+
+| # | 変異 | 落ちた項目 |
+|---|---|---|
+| M1 | capi を Debug で archive（`ios-arm64`） | `symbols`（`_$s14IosLibraryCApi…` を出す）、`swift`（`Modules/IosLibraryCApi.swiftmodule`） |
+| M2 | Release で `EXPORTED_SYMBOLS_FILE=`（公開の一覧を外した） | `symbols`（`_IosLibraryCApiVersionNumber`、`_IosLibraryCApiVersionString`。1a 入口 4.1 と同じ） |
+| M3 | Release で `SWIFT_INSTALL_MODULE=YES`（第 1 部 5.5 の「戻した」） | `swift` |
+| M4 | シミュレーターを `ARCHS=arm64` で archive | `slices`、`symbols`（x86_64 が無い） |
+| M5 | `IosLibrary` を 1.x の `dist/1.9.0/ios/ios-native-toolkit-1.3.0.xcframework` に差し替え（名前は 2.0.0） | `version`（1.3.0、`ios.library.IosLibrary`）、`privacy`（マニフェストが無い）、`signature`（署名と `_CodeSignature/` がある。名前と Team ID は出力に出さない） |
+| M6 | `include/NativeToolkitC/` を Android のヘッダーに差し替え | `headers` |
+
+`SWIFT_INSTALL_OBJC_HEADER=YES` でも組んでみたが、**ビルドそのものが止まった**（モジュールの検証が `IosLibraryCApi-Swift.h` を module map に見つけられない）ので、配布物にならない。`-Swift.h` が入った形は自己テストの `test_a_swift_header_in_the_capi` が受け持つ。
+
+`csources` は自己テストの 5 件（ヘッダーの関数を C で定義、内部の `ntk_` の変数・関数・マクロ、フォルダーの外の `.m`、`ntkc_` の名前で通ること）。smoke そのものを壊す変異は流していない（14.6）。
+
+### 14.6 確かめられていないこと
+
+- **実機では何も流していない**（指示のとおり。`xcrun devicectl` も使っていない）。smoke の実機向けは署名なしで組んだだけで、入れていない。15.2 の実機の smoke は 2b の DoD の区切りで、持ち主の許可を得て流す（そのときは署名が要る。`--device-build` は署名しないので、実機に入れる手順はその区切りで決める）
+- smoke の Dialog は、完了が `CANCELED`（表示を求めた 1.5 秒後の取り消し）で来たことまでで、**画面に出たことは見ていない**（UI を読まない。出せなければ `NOT_FOREGROUND` か `SHOW_FAILED` で完了するので、それが来ないことは確かめた）
+- smoke を壊したときに落ちること（変異）は流していない。アプリの判定は `SMOKE PASS` の行と `SMOKE RESULT PASS failures=0` で、どれかの段階が FAIL を書けばスクリプトが落ちる
+- 利用者のアプリの Release のアーカイブでの署名し直し（1a-4。`unity-native-plugin` の agent）、アーカイブのプライバシーのレポート（MS-10）
+- `check_ios_dist.py` の `<release>` の形（`dist/<release>/ios/` を読む）は、`dist/` に何も作っていないので流していない。流したのは `--dist` の形だけ
+- ビルドのスクリプトを旗なし（リリースの形）で capi に流したとき、`IosLibraryCApi.xcodeproj` の版とビルド番号を書き換える。書き換えた後に `check_c_abi_contract_ios.py` の `settings`（Debug と Release の違い）が通るかは流していない（両方の構成に同じ値を書くので通る見込み）
+- x86_64 だけの smoke（README 7.4）は、iPhone 16 / 18.3 で Xcode 26.6 の 1 回だけ（14:05。最後の検証には入れていない）
+- `test_ios.sh` へのつなぎ（smoke、`--library` と `--require-compile`、`--require-complete`）は TB-12。リリースの手順（`agent-rules/workflows/release/`）に `-m IosLibraryCApi` と `check_ios_dist.py` を足すことも、ここではしていない
+
+### 14.7 持ち主の判断待ち
+
+1. 14.1 の 1（出力先の旗 3 つ。リリースの時は旗なしで `dist/<release>/ios/` に出し、pbxproj を書く今の動きのまま）
+2. 14.1 の 4（`IosLibrary` と `UnityIosPlugin` も署名しない。1.x の `ios-native-toolkit-1.3.0.xcframework` は、包みには署名が無く、中の framework は実機のスライスが個人の証明書、シミュレーターが ad-hoc で署名されていた（D-18 の B の「今のまま」のとおり。読むだけの `codesign -dv` で種類だけを見た。14.5 の M5））
+3. 14.1 の 6（README 7.3 の表に無い項目を足した。表に書き足すか）
+4. 14.1 の 8（`csources` を契約の照合に置いた）
+5. 14.1 の 9（smoke の Dialog を取り消しで完了させる、Clipboard を名前付きのペーストボードにする）
+6. 14.1 の 10（smoke のプロジェクトを gem で作り、生成器を置かない）
+
+### 14.8 時間
+
+13:46〜14:31（約 45 分）。うち最後の検証が約 16 分（14:13〜14:29）、変異が約 3 分。目標の 16:30 の中。
+
+### 14.9 レビューと直し
+
+14.4 のソース（`03b8a145a9cd`）を Claude のサブエージェントと Codex が読んだ（2026-11-07）。**指摘はメインのセッションがコードで確かめた。持ち主はまだ読んでいない。** 直しは実装者のサブエージェントが入れた（14:42〜）。
+
+| 指摘 | 確かめたこと | 扱い |
+|---|---|---|
+| Codex A | `--output-dir ios/IosLibraryCApi` だと `include/NativeToolkitC` の写し先が木の公開ヘッダーと同じになり、`rm -rf` で消す | 直した: 写し先を実パス（シンボリックリンクを解く。まだ無い部分に `.` と `..` があれば止める）にし、木のヘッダーと同じ・その中・それを含むなら止める。xcodebuild の前に 1 回、消す直前にもう 1 回。自己テスト `test_build_ios_library_xcframework.py`（7 件。写しの木で、相対・`-o`・シンボリックリンク・`..`・木を含む出力先。止まり、ヘッダーが残ること） |
+| Claude B1 | `check_ios_dist.py` の f 文字列の中の同じ引用符の入れ子は 3.12 から。`/usr/bin/python3`（3.9.6）で SyntaxError | 直した。新しい・変えた `.py` 5 つを `/usr/bin/python3 -c "import ast; ..."` で読めることを確かめ、`check_ios_dist.py` と `test_check_ios_dist.py` を 3.9 で流した（14.10） |
+| Claude B2 | 署名の項目を実物で壊す自己テストが無い（`_CodeSignature/` を置くだけ） | 直した: 写しのバイナリに `codesign -s - -f`（ad-hoc。鍵も証明書も使わない）。実機のスライスと、シミュレーターをリンカー以外の ad-hoc で署名し直した形。どちらも `signature` だけが落ちる |
+| Codex B2 / Claude C1 | `FRAMEWORK_SEARCH_PATHS` が空白を含むパスで割れる | 直した: 値の中を `"..."` で囲む |
+| Codex B3 / Claude C9 | smoke のスクリプトで `nm`・`otool`・`lipo` の失敗が「見つからない」に読める。`simctl boot` の失敗で要約が出ない | 直した: 各ツールの終了の状態を先に見る。シミュレーターの部分を関数にし、`list`・`boot`・`bootstatus`・`install` の失敗を FAIL として記録して要約まで進む |
+| Codex B4 | 起動の終了の状態を `|| true` で捨てていた | 直した: 0 以外（時間切れは 142）は PASS の行があっても FAIL。`NTK_SMOKE_LAUNCH_SECONDS` で時間を短くでき、14.10 の変異で確かめた。**最初の形（`perl -e 'alarm; exec'`）は変異で効かなかった**: `simctl launch` は SIGALRM を自分で受けて状態 0 で終わる（結果の行が無いので別の枝で FAIL にはなった）。perl が子を fork して待ち、時間切れなら子を KILL して 142 で終える形に直した |
+| Codex B6 | 文字列の中の API 名を使用と数え、文字列の中の `//` の後を消していた | 直した: 簡単な字句処理（`code_only`。コメント（Swift の入れ子の `/* */` を含む）と文字列・文字のリテラルの中を空白にし、文字列の補間の中はコードとして残す）。自己テスト 4 件と、照合を通す 1 件 |
+| Codex B7 | 理由が空でないかだけを見ていた | 直した: 種類ごとに Apple の承認された理由（5 種の表 `APPROVED_REASONS`）の中か、配列か、文字列か、知らない種類でないか。純粋な関数のテスト 7 通りと、木と両スライスを同じに変えて理由だけを違えた 1 件 |
+| Codex B8 | ヘッダーの比較が直下のファイルだけ | 直した: 相対パスで再帰的に比べ、フォルダーも数える。片方だけのサブフォルダー（ファイル入り・空）の 2 件 |
+| Codex B9 / Claude C6 | `csources` が戻り値の型を前の行に書く定義を見逃す | 直した: 型と名前の間の改行を許す。自己テスト 1 件（2 つの形） |
+| Codex B10 | `Smoke.c` で、誤って main 以外に来た完了・`release` が同期なしに数を書く | 直した: スレッドを先に確かめ、main 以外なら `SMOKE FAIL` を書いてその場で `_exit(1)`。数は `atomic_int` |
+| Codex B11 | `NTK_IOS_DIST` を明示したのに無いと skip で全体 OK | 直した: 明示したときは無ければ失敗（未指定の skip とは別）。無い場所を指して 32 件が失敗することを確かめた |
+| Claude C7 | smoke の pbxproj に gem が足した存在しない `iPhoneOS14.0.sdk` の Foundation の参照 | 直した: その参照と空の group を消した（`xcodebuild -list` で読めること、両 Xcode で組めることを確かめた） |
+| Claude C8 | `read_done` が `result` の NULL を守らない | 直した |
+| Claude C11 | 14.5 の「純粋な関数の 7 件」 | 直した（実際は 5 件。直しの後は 10 件） |
+| Claude C3 | `-m IosLibraryCApi` だけのときは capi だけが包まれる | usage に一言書いた（動きは変えていない） |
+| Codex B5 | シミュレーターの arm64 の署名なしを許している | **直さない**: README 7.3 は「ad-hoc の署名だけを許す」で、署名なしを禁じていない。C として扱う |
+| Claude C2 | `--output-dir` と `-c debug` で名前に `-debug` が付かない | **直さない**: capi は Debug を拒むので、Debug は IosLibrary だけ。リリースの形（旗なし）は今のまま `-debug` を付ける |
+| Claude C4 | 足した項目の壊す確かめの残り | **直さない**（今回 B2・B6〜B8 の分を足した） |
+| Claude C5 | 包み（xcframework）の `_CodeSignature` を名指しで照らさない | **直さない**: 包みに署名する手順が無い |
+| Claude C10 | 借りた項目（`symbols`）の名前の書き換えが文言に頼る | **直さない**: 書き換えが効かなくても行は `symbols:` で始まるので、判定と自己テストの `assert_only_among` は変わらない（文言が元の照合のものになるだけ） |
+| Claude C12 | `android/.idea` の変更 | **直さない**: コミットに入れない。メインのセッションが扱う |
+
+
+### 14.10 直しの後の最後の検証
+
+15:02〜15:20 に 14.4 と同じ一式を 1 つずつ順に流した（スクラッチのスクリプト 1 本。各シミュレーターの実行の前に `pgrep -x Simulator`。Simulator.app は開いていない。3 台とも停止に戻した）。ハッシュは**流す前も後も `853adb6da871`**、`project.pbxproj` は書き換わっていない。**流した後に変えたのはこの記録だけ。** 14:49 に始めた 1 回目は、自己テストの件数を README に入れ忘れたのと、V2 で時間切れの扱いの誤り（14.9 の Codex B4 の行）が分かったので途中で止め、直してから最初から流し直した。
+
+| 実行 | 結果 |
+|---|---|
+| ビルド（Xcode 26.6）、`-c debug` の capi の拒否 | rc 0、capi の警告 0。拒否は rc 1 |
+| `check_ios_dist.py --dist`（3.12 と `/usr/bin/python3` 3.9.6） | どちらも rc 0、18 OK、FAIL 0 |
+| `test_check_ios_dist.py`（`NTK_IOS_DIST`、`NTK_REQUIRE_DIST_FIXTURE=1`。3.12 と 3.9） | どちらも Ran 42、OK（skip 0） |
+| `test_build_ios_library_xcframework.py`（3.9） | Ran 7、OK |
+| 照合 `--require-compile --require-complete --library`（実機 arm64、シミュレーターの fat、thin の arm64・x86_64） | 4 回とも rc 0、30 OK、FAIL 0、SKIP 0、134 symbols |
+| 照合（旗なし）、`test_check_c_abi_contract_ios.py` | rc 0、29 OK、SKIP 1。Ran 286、OK |
+| smoke（Xcode 26.6 と 26.3 × iPhone 17 Pro / 26.2 と iPad Pro 11-inch (M4) / 18.3） | 4 回とも rc 0、9 PASS、0 FAIL、16 段階。実機向けの組み立ても 4 回とも通過 |
+| `IosLibraryCApiTests`（17 Pro） | 474/474 |
+| `IosLibrary` だけのビルド | rc 0 |
+| `test_ios_ui_runner.py` | Ran 210、OK |
+| 設計書の照合（第 1 部・第 2 部） | どちらも rc 0、FAIL 0 |
+| `scripts/tests` 全体 | Ran 800、OK |
+
+直しを効かせた変異（使い捨ての写し）。4 個とも rc 1 で狙ったところが落ちた。
+
+| # | 変異 | 結果 |
+|---|---|---|
+| V1 | 写しの木でビルドのスクリプトを `--output-dir ios/IosLibraryCApi` で流す（Codex A） | xcodebuild の前に止まり（`[archive]` 0 行）、写しのヘッダー 5 つが残った |
+| V2 | smoke の起動の時間を 1 秒にする（Codex B4） | `the launch ended with status 142` で FAIL |
+| V3 | capi のソースに `"https://example.com"; ... UserDefaults.standard`（Codex B6） | `privacy`（capi）だけが落ちた |
+| V4 | `include/NativeToolkitC/extra/Other.h` を足す（Codex B8） | `headers` だけが落ちた |
+
+B2（実物の署名）、B7（理由のコード）、B11（明示した fixture が無い）、B9（`csources` の改行）は自己テストで確かめた（14.9）。
+
+### 14.11 2 回目のレビュー（直しの再レビュー）と、メインのセッションの直し
+
+14.10 のソース（`853adb6da871`）を、Claude のサブエージェントと Codex に読むだけで見てもらった（2026-11-07 15:25〜15:40）。指摘はメインのセッションが確かめてから直した。**持ち主はまだ読んでいない。**
+
+| 指摘 | 確かめたこと | 扱い |
+|---|---|---|
+| Codex A / Claude B-1 | ヘッダーの守りは文字列で比べていた。bash の組み込みの `pwd -P` は打った大文字小文字のまま返す（`/bin/bash -c 'cd ios/iosLibraryCApi/include && pwd -P'` は小文字のまま。`/bin/pwd -P` と zsh は正しい形）。APFS（区別しない）で `--output-dir ios/iosLibraryCApi` は守りを通り、木のヘッダーを消せた | 直した: 写し先と元の、すでにある祖先を `-ef`（デバイスと inode）で比べる。`cd -P` で `..` も物理で解く（Claude C-1）。自己テストに大文字小文字の違う 2 件を足した（区別する FS では skip）。比べ方を文字列に戻す変異で、この件だけが落ちることを確かめた（木のヘッダーは消えていない） |
+| Codex B（生の文字列）/ Claude C-4 | 字句処理は `#"..."#` を知らず、中の `"` で文字列を閉じ、`\#(...)` の補間を文字列として消していた。今の `ios/IosLibrary` と capi のソースに生の文字列は無い | 直した: 文字列の状態に「複数行か」と `#` の数を持ち、閉じ・エスケープ・補間をその数で見る。`#if` などの `#` はコード。自己テスト 1 件（7 通り） |
+| Codex B（孫のプロセス）/ Claude C-3 | 時間切れの KILL は直接の子だけに向いていた。秒数が数でないと `alarm 0` で時間切れが効かない。`waitpid` と `exit` の間の alarm | 直した: 子を自分のプロセスグループにし、時間切れでグループごと KILL。`waitpid` の後に `alarm 0`。秒数は正の整数だけ。stdin は `/dev/null`（端末の前面のグループでないため）。時間切れなどで状態が 0 でなければ `simctl terminate` でアプリも止める |
+| Claude C-5 | 再帰の比較で `.DS_Store` があると正しい配布物の `headers` が落ちる | 直した: 両側で `.DS_Store` を除く。自己テスト 1 件 |
+| Codex C（`uint32_t (ntk_version)(void)` の形）、Claude C-2（`-o` で xcframework の出力そのものの `rm -rf`。元からの動き）、Claude C-6（14.9 の B5 の行に「x86_64 はリンカーが署名しないので無署名を禁じると正しい配布物を落とす」を足すとよい） | 確かめた | 直さない。C のソースは 0 件。C-2 は今回の後退ではなく、どのモジュールでも元からある（後で `XCFRAMEWORK_TARGET` にも同じ照らしをかける候補）。C-6 の理由はここに書いた |
+
+C のソースでは `#include <sys/statvfs.h>` が DiskSpace の使用と数えられる（Claude C-4 の補足）。今は C のソースが 0 件。
+
+直しの後の結果は下に書く。
+
+**直しの後の結果**（メインのセッション。15:31〜15:44。最後のソース `5d732a52a41e`、流す前と後で同じ。シミュレーターは 1 台ずつ、各回の前に `pgrep -x Simulator` で閉じていることを確かめた）
+
+| 実行 | 結果 |
+|---|---|
+| ビルド（Xcode 26.6、2 つの xcframework、出力はスクラッチ。pbxproj は変わらない） | rc 0、capi の警告 0 |
+| `check_ios_dist.py --dist`（3.12 と `/usr/bin/python3` 3.9.6） | どちらも rc 0、18 OK、FAIL 0 |
+| `test_check_ios_dist.py`（3.9。`NTK_IOS_DIST` と `NTK_REQUIRE_DIST_FIXTURE=1`） | 44 件 OK、skip 0 |
+| ヘッダーの守りの自己テスト（3.9） | 8 件 OK |
+| smoke（Xcode 26.6 × 17 Pro / 26.2、26.3 × iPad / 18.3。実機向けのビルドつき） | どちらも rc 0、9 PASS、0 FAIL、16 段階 |
+| 変異: smoke の起動の時間を 1 秒に | rc 1、状態 142 で FAIL。`simctl launch` は残っていない |
+| `scripts/tests` 全体（`NTK_IOS_DIST` つき） | 803 件 OK |
+| 設計書の照合（第 1 部・第 2 部） | どちらも FAIL 0 |
+
+流し直していないもの: 照合の 3 つのスライスの `--library`（照合のスクリプトは今回変えていない。14.10 で通った）、`IosLibraryCApiTests`（Swift のソースは TB-11 で変えていない）、Xcode 26.6 × iPad と 26.3 × 17 Pro の smoke の組み合わせ。直しの後の 3 回目のレビューはしていない。

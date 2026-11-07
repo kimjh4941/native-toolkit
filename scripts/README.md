@@ -8,6 +8,7 @@ name says what it does, which is the grouping: there are no subfolders for it.
 | `build_` | Produces a distributable from source, under `dist/<release>/<os>/` |
 | `check_` | Compares two things that must agree and fails when they do not |
 | `test_` | Runs a platform's test suites |
+| `run_` | Builds and runs a C ABI smoke against a build of the distributable |
 | `publish_`, `verify_` | The documentation site, and the manual before a release |
 
 ## Build
@@ -19,10 +20,20 @@ an explicit output path; run one with `--help` (or `-Help`) for its options.
 | Script | Platform | Notes |
 |---|---|---|
 | `build_android_library_aar.sh` | Android | `android_library`, `android_library_capi`（`--m2` で Maven のリポジトリも） |
-| `build_ios_library_xcframework.sh` | iOS | `IosLibrary`, `UnityIosPlugin` |
+| `build_ios_library_xcframework.sh` | iOS | `IosLibrary`, `IosLibraryCApi` (Release only; builds `IosLibrary` first and copies the public headers to `include/NativeToolkitC/`), `UnityIosPlugin`. Nothing it archives is signed (`CODE_SIGNING_ALLOWED=NO`, README D-18). `--output-dir`, `--build-dir` and `--keep-project-versions` build outside `dist/` without touching the projects |
 | `build_xcode26_library_xcframework.sh` | macOS | What the implement-feature workflow uses. Takes `--minimum-macos` (default 15.0) |
 | `build_xcode16_library_xcframework.sh` | macOS | The earlier variant, named after the Xcode it was written for; no `--minimum-macos` |
 | `build_windows_library_dll.ps1` | Windows | Builds both modules and, with `-Package`, packs the two NuGet packages. See `agent-rules/coding-rules/windows.md` ("配布") |
+
+For iOS, a build that is not a release goes outside `dist/` and leaves the
+projects' version numbers alone; check it with `check_ios_dist.py --dist`:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  ./scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.0 \
+  --output-dir /tmp/ntk-ios --build-dir /tmp/ntk-ios-build --keep-project-versions
+python3 scripts/check_ios_dist.py --dist /tmp/ntk-ios
+```
 
 The Windows script is the one that differs most, because Windows ships two
 artifacts from one source tree:
@@ -66,11 +77,12 @@ another rule and is not in it; neither is `Android.h`, which no other OS has.
 | `check_cpp_api_contract.py` | The Windows C++ API design against the public headers and what it cites |
 | `check_c_abi_contract_windows.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A, and the C++ API it mirrors |
 | `check_c_abi_contract_android.py [--design-only] [--library <libntk.so> [--nm <llvm-nm>]]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, the numbers table, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
-| `check_c_abi_contract_ios.py [--design-only] [--require-compile] [--require-complete] [--clang <clang>] [--library <binary> [--nm <nm>] [--architectures <a,b>]]` | The iOS C ABI: the public headers (their preprocessor lines too), the design's tables and Appendix A, the Swift entries it calls (in the swiftinterface of TB-0), the behaviours of chapter 10, every case of the Swift errors in the sources and the baseline against chapter 11, the numbers table against the iOS and Android headers, and the `Common.h` of the three OSes. It also compares the capi's Swift sources with the headers (every function has its `@c @implementation` entry or is in `NOT_IMPLEMENTED_YET`; nothing else is `public`), the module map with the header folder, the layout test with the structs, the framework target's settings with part 1, 5.4, and compiles each header alone as C99, C11, C++ and Objective-C and the layout test for the three slices. `--design-only` reads Appendix A in place of the headers, and fails now that they exist; `--library` takes one binary and also compares what `nm -arch all -gU` lists with the implemented `_ntk_*` of 8.2 in every architecture it has, and `--architectures` says which it must have; `--require-compile` makes a missing Xcode a failure rather than a SKIP; `--require-complete` makes a non-empty `NOT_IMPLEMENTED_YET` a failure, which TB-10, TB-11 and TB-12 ask for: only that stops a function hiding in the list |
+| `check_c_abi_contract_ios.py [--design-only] [--require-compile] [--require-complete] [--clang <clang>] [--library <binary> [--nm <nm>] [--architectures <a,b>]]` | The iOS C ABI: the public headers (their preprocessor lines too), the design's tables and Appendix A, the Swift entries it calls (in the swiftinterface of TB-0), the behaviours of chapter 10, every case of the Swift errors in the sources and the baseline against chapter 11, the numbers table against the iOS and Android headers, and the `Common.h` of the three OSes. It also compares the capi's Swift sources with the headers (every function has its `@c @implementation` entry or is in `NOT_IMPLEMENTED_YET`; nothing else is `public`), the module map with the header folder, the layout test with the structs, the framework target's settings with part 1, 5.4, and compiles each header alone as C99, C11, C++ and Objective-C and the layout test for the three slices. `--design-only` reads Appendix A in place of the headers, and fails now that they exist; `--library` takes one binary and also compares what `nm -arch all -gU` lists with the implemented `_ntk_*` of 8.2 in every architecture it has, and `--architectures` says which it must have; `--require-compile` makes a missing Xcode a failure rather than a SKIP; `--require-complete` makes a non-empty `NOT_IMPLEMENTED_YET` a failure, which TB-10, TB-11 and TB-12 ask for: only that stops a function hiding in the list. The capi's C sources, if it has any, may define no `ntk_` function and name no `ntk_` the headers lack (`csources`). What the distributable ships is `check_ios_dist.py`'s |
 | `check_sample_app_inputs.py` | That no sample app screen declares a text input field (`agent-rules/coding-rules/common.md`) |
 | `check_manual_c_examples_windows.py [<version>]` | The manual's Windows C examples against the C ABI: every exported function is shown, every name exists, the three languages carry the same code, and the examples compile as C (MSBuild) |
 | `check_manual_c_examples_android.py [<version>] [--require-examples]` | The same for the Android C examples, compiled with the NDK's clang. Says SKIP while no page has an Android C ABI section, unless `--require-examples` is given |
 | `check_manual_c_examples_ios.py [<version>] [--require-examples]` | The same for the iOS C examples, compiled with Xcode's clang against the iOS SDK. Says SKIP while no page has an iOS C ABI section, unless `--require-examples` is given |
+| `check_ios_dist.py [<release> \| --dist <folder>]` | The iOS distributable (README 7.3 of `artifact/topics/ios-c-abi/`): both xcframeworks with the slices `ios-arm64` and `ios-arm64_x86_64-simulator`; per architecture, the capi exports exactly the functions of the tree's headers, needs only `@rpath/IosLibrary.framework`, the OS and `/usr/lib/swift/`, and neither framework imports what runs at exit; the install names; the versions, minimum iOS and bundle ids; no Swift module, interface or `-Swift.h` in the capi; the module map, the headers (loose and in the framework) and `IosLibrary`'s privacy manifest against the tree and the required-reason APIs its sources use; no signature but the simulator linker's ad-hoc one. `--dist` takes a build outside `dist/`. Run before a release |
 | `check_windows_dist.py [<release>]` | `dist/<release>/windows/` against the tree: built from the current sources, the same public headers (loose and in both packages), the declared versions in the file names, every `.def` export in the DLL. Run before a release |
 
 ## Test
@@ -135,6 +147,19 @@ build it checks that every row of the app calls C and that nothing else reaches 
 system directly; after the build, that the app's own Mach-O files import exactly those C functions and
 nothing of `IosLibrary`. A row that calls C and then reports a fixed value is left to a review.
 
+| Script | Runs |
+|---|---|
+| `run_android_capi_smoke.sh` | The Android C ABI smoke (`android/android_library_capi_smoke`) on one device, against a Maven repository the build wrote |
+| `run_ios_capi_smoke.sh` | The iOS C ABI smoke (`ios/IosLibraryCApiSmoke`, a C and Objective-C app with no Swift) built from the two xcframeworks of a build alone, with the Xcode `DEVELOPER_DIR` names (26.6 builds the library; 26.3 is the users' lowest). It copies the smoke and the xcframeworks into a new `--work` folder and builds there, checks what the app embeds and imports, and with `--udid` runs it on a simulator: `ntk_notification_install`, a named pasteboard written and read, a dialog shown and cancelled to its completion. `--device-build` also builds for a device, unsigned, and never installs it |
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode26.3.app/Contents/Developer \
+  scripts/run_ios_capi_smoke.sh --dist /tmp/ntk-ios --work /tmp/ntk-smoke-1 --udid <simulator> --device-build
+```
+
+It does not run while Simulator.app is open (`agent-rules/device-testing.md`), and boots and shuts down
+a simulator it found shut down.
+
 ## `tests/` is not the test suite
 
 `scripts/tests/` holds the **self-tests of the `check_` scripts** and of the
@@ -143,8 +168,12 @@ breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 743 cases
+python -m unittest discover -s scripts/tests    # 800 cases
 ```
+
+`test_check_android_dist.py` and `test_check_ios_dist.py` break copies of a real build, so they
+skip without one: the iOS one reads the folder `NTK_IOS_DIST` names (a build's `--output-dir`) or
+the highest `dist/<release>/ios/`, and `NTK_REQUIRE_DIST_FIXTURE=1` turns the skip into a failure.
 
 `tests/ios_ui_runner_mutations.py` is not a unit test: it breaks one decision of the iOS runner
 at a time in a copy (with the copy's approval ledger moved into the copy) and checks that the

@@ -991,6 +991,46 @@ class IosCAbiContractChecker(unittest.TestCase):
                             '// public func helper() {}\nenum Other {\n    static let text = "public func helper()"\n'
                             "    static func open(_ value: Int) {}\n    static func use() { open(1) }\n}\nenum Handle {"))
 
+    # --- csources (part 1, 5.5) ---------------------------------------------------
+
+    @staticmethod
+    def c_source(text, name="Common/Helper.c"):
+        def write(root):
+            path = root / CAPI_SOURCES / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+            return []
+        return write
+
+    def test_no_c_sources_pass(self):
+        self.assertIn("(0 C sources)", self.assert_passes())
+
+    def test_a_c_source_that_defines_a_function_of_the_headers(self):
+        self.assert_catches("csources", before=self.c_source(
+            "#include <IosLibraryCApi/NativeToolkitC/Common.h>\nuint32_t NTK_CALL ntk_version(void) {\n    return 0;\n}\n"))
+
+    def test_a_c_source_that_defines_a_function_with_its_type_on_the_line_before(self):
+        for text in ("uint32_t NTK_CALL\nntk_version(void)\n{\n    return 0;\n}\n",
+                     "const char*\nntk_string_data(const ntk_string* s) { return 0; }\n"):
+            with self.subTest(text=text):
+                self.assert_catches("csources", before=self.c_source(text))
+
+    def test_a_c_source_with_an_internal_ntk_name(self):
+        for text in ("static int ntk_internal_count;\n", "void ntk_internal_helper(void);\n",
+                     "#define ntk_internal_value 1\n"):
+            with self.subTest(text=text):
+                self.assert_catches("csources", before=self.c_source(text))
+
+    def test_a_c_source_beside_the_headers_is_read_too(self):
+        self.assert_catches("csources", before=self.c_source("static void ntk_hidden(void) {}\n", "../internal/Hidden.m"))
+
+    def test_a_c_source_with_ntkc_names_that_calls_the_headers_passes(self):
+        output = self.assert_passes(before=self.c_source(
+            "/* ntk_not_code in a comment */\n#include <IosLibraryCApi/NativeToolkitC/Common.h>\n"
+            "static int ntkc_count;\nint ntkc_helper(void) {\n    if (ntk_version()) {\n        return ntkc_count;\n    }\n"
+            "    return NTK_VERSION_MAJOR;\n}\n"))
+        self.assertIn("(1 C sources)", output)
+
     # --- modulemap ------------------------------------------------------------
 
     def test_a_header_the_module_map_does_not_name(self):
