@@ -2740,3 +2740,73 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 | 設計書の照合（第 1 部・第 2 部） | どちらも FAIL 0 |
 
 流し直していないもの: iPad の `--capi`、`--capi-ui`（引数の読み方の変更は自己テストが受け持つ）、x86_64 の単体テスト。直しの後の 2 回目の再レビューはしていない。
+
+## 16. TC-1
+
+段階 2c の申し送りを書いた（第 2 部 13 章の TC-1、15.3 の「`unity-native-plugin` に 8.3 と 16 章を渡した」）。**レビュー待ち**。コミットはメインのセッションがレビューの後に行う。
+
+### 16.1 書いたもの
+
+- `results/2026-11-07-ios-c-abi-stage2c-handoff.md`。章立ては Android の申し送り（`android-c-abi/results/2026-10-10-android-c-abi-stage2c-handoff.md`）に合わせた: 1 何が変わるか、2 まず見るもの、3 配布物と組み込み（framework とヘッダー、配布物、Unity の Xcode のプロジェクトへの入れ方、`.mm`、版と設定）、4 C# の包みで気をつけること（スレッド、`user_data`・要求の ID・`release`、C# の宣言、差し替え型の受け手、振る舞いを保つ包みの仕事、雛形との違い、JSON、16 章の各行の受け先）、5 2c で決めること、6 テスト、7 2c で使う配布物と確かめていないこと、8 問い合わせ
+- 第 2 部 13 章の TC-1 の行と 15.3 の行に、申し送りのパスと「レビュー待ち」を書き足した
+- 照らした実物: 公開ヘッダー（134 関数。申し送りに書いた `ntk_*`・`NTK_*` の名前は、意図して書いた雛形の名前（`ntk_probe_*`、`NTK_HANDOFF2_INSTALL_AT`）のほかはすべてヘッダーにあることを `grep` で確かめた）、`build_ios_library_xcframework.sh` の旗と出力の名前、`check_ios_dist.py` のスライスと署名の項目、`StructLayoutTests.m`、smoke、1a の 2 回の結果の写し
+
+### 16.2 EditMode の JSON のテストの数え方
+
+- `unity-native-plugin` を**読むだけ**で数えた（ファイルを変えず、Unity もビルドも動かさず、git は `log`・`ls-files`・`status`・`branch --show-current` だけ）。HEAD は `1c246a3`（`feature/UNT-14`、2026-10-31）。未コミットの変更は 2 つで、テストのファイルではない
+- EditMode のテストのフォルダーは `Packages/com.jonghyunkim.nativetoolkit/Tests/Runtime/`（asmdef の `includePlatforms: ["Editor"]`）。そのうち `Ios*.cs` の 10 ファイルを、ファイルごとに `grep -cE '^\s*\[Test(\]|,|\()'` で数えた。`[TestCase]`・`[TestCaseSource]`・`[UnityTest]`・`[Ignore]`・`[Explicit]` は 0 件
+- **JSON は 126 件**（`IosClipboardJsonParserTests` 46、`IosClipboardJsonReaderTests` 34、`IosClipboardJsonBuilderTests` 30、`IosShareJsonBuilderTests` 16）。第 1 部の時点の 126 件と同じ。**iOS の EditMode の全体は 212 件**。Notification と Dialog の EditMode のテストは無い。PlayMode の iOS は 36 件（Clipboard 31、Share 5）
+- 数えたのはサブエージェント（読むだけ）で、メインの回で同じ `grep` を 10 ファイルに流して一致を確かめた
+
+### 16.3 実物と照らして分かったこと
+
+| 所 | 内容 | 扱い |
+|---|---|---|
+| 第 2 部 8.3 の DL-05 | 「`enable_confirm_when_empty` は反転した名前」とあるが、その名前はヘッダーにもブリッジにも無い。ブリッジは `enableConfirmWhenEmpty` / `enableLoginWhenEmpty`（`UnityIosDialogManager.swift`）、C は `confirm_disabled_when_empty` / `login_disabled_when_empty`（P2-22、付録 A、ヘッダー） | 申し送りの 4.5 には実物の名前で書いた。レビューの後、8.3 の DL-05 に注記を足した（16.7。推奨案。持ち主の確認待ち） |
+| 第 2 部 8.3 と 16 章の JSON の文言 | Clipboard と Share の今の公開の API は型のある payload を受け、型のある結果を返す（JSON はブリッジとの内部）。Notification だけが公開の API で JSON の文字列を受け、返す | 申し送りの 4.7 に、Clipboard と Share では 4.7 を優先すると書いた（Android の申し送りのレビュー H2-C3 と同じ）。レビューの後、16 章にも注記を足した（16.7） |
+| 16 章の「2 回目の申し送りの雛形との違い」 | ヘッダーと雛形（`results/probes/stage1a/handoff2/capi/include/NativeToolkitC/`）を照らし、合っていた（雛形の 6・7 は今は無い、`ntk_probe_*` は無い、受け手は 2 つに分かれた） | 申し送りの 4.6 に、雛形の名前と今の名前の対応を足した |
+| 雛形の `.mm` | `NtkHandoff2Installer.mm` の既定は `NTK_HANDOFF2_INSTALL_AT 1`（`kUnityWillFinishLaunching`）で、H2-2 の決まり（`didFinishLaunching`）と違う | 申し送りの 3.4 に書いた |
+| `unity-native-plugin` のビルドの処理（`1c246a3`） | README 5 章の「2b の前に頼むこと」の 3 つ（iOS の `VERSION.txt`、3 か所の完全一致、`PostBuildProcessor` の `-debug` の代わり）は入っていないように見える（`Plugins/iOS/VERSION.txt` が無く、前方一致のまま。`PostBuildProcessor` の development ビルドは `-debug` の名前だけを受ける） | 申し送りの 3.3 と 7.1 に「2c の最初に済んだかを確かめる」と書いた。dist を置く前の条件（README 5 章の 2b の行）なので、2b の締めでも確かめる |
+
+### 16.4 確かめられていないこと
+
+- 申し送りの記述のうち、`unity-native-plugin` の側の事実（公開の API の形、ビルドの処理、テストの数）は `1c246a3` を読んだもので、向こうの作業中のブランチの先は見ていない
+- Unity の Test Runner に出る件数（ソースの属性を数えただけ）
+- 申し送りの 3.3 の Xcode のプロジェクトへの入れ方は、1a の使い捨てのプロジェクトの形の写しで、`unity-native-plugin` のパッケージを通した形は誰も確かめていない
+- 7.2 の表（実機で何も流していない、署名、`dist/<release>` の形、x86_64 の 1 件、iPhone 17 を 17 Pro で代えたことなど）は 14.6・15.6 の写し
+
+### 16.5 持ち主の判断待ち
+
+1. 申し送りのレビュー（サブエージェントと Codex）
+2. 16.3 の 8.3 の DL-05 と 16 章の JSON の文言: **推奨案で設計書に注記した**（直さず注記にした。Android の H2-C3 と同じ扱い）。持ち主の確認待ち
+3. 申し送りの 5 章の推奨（`.mm` は既定で入れて外す設定を持つ、など）は推奨案で、決めるのは 2c
+
+### 16.6 時間
+
+18:10〜18:20。目標の 19:00 の中。
+
+### 16.7 レビューと直し
+
+申し送りを Claude（区分 A〜C）と Codex に見てもらい、メインのセッションが主な指摘を実物で確かめた（`ntk_clipboard_values_fn` が JSON の `ntk_string*` を返すこと、smoke に Share が無いこと、iOS の `DllImport` が 43 本、asmdef の `defineConstraints`、capi の `@c` とビルドのスクリプトが `xcode-select`（26.3）を使うこと、Share の `NOT_FOREGROUND` が Android でも 6）。**持ち主はまだ読んでいない。** 直しは 18:33〜18:40。
+
+| 指摘 | 扱い |
+|---|---|
+| Codex A: 「Clipboard の JSON は無くなる」「JSON が残るのは Notification と userInfo だけ」「126 件は意味を失う」は誤り。`ntk_clipboard_detect_values_async` は JSON を返す（CL-10） | 直した: 1 章、4.7 に `DetectValues` を例外として書き、解析が残ること、`ntk_string_free`、検出値の解析のテストを移すことを書いた。126 件の行き先を 6.3 にテストごとに分けた（名前からの目安: 移す・残る 28、書き直す 98） |
+| Codex B・Claude B-6: smoke の説明 | 直した: 版、Clipboard、Dialog、Notification（登録してすぐ外す。イベント 0 回、`release` 1 回）。Share は呼ばない |
+| Codex B: `DllImport` 44 行 | 直した: 43 本で 8.3 と一致（44 はコメントの行を含めた数） |
+| Codex C: Parser / Reader は `internal` | 直した: 4.7 と 5 章で、公開の Builder の互換と、内部の Parser / Reader の存廃を分けた |
+| Codex C・Claude B-3: 入口で拒んだとき、一括の取り消し | 直した: 「main に積んで（今と同じく次の `Update` で）今のコールバックを呼ぶ」 |
+| B-1 ID の凡例 | 足した（2 章）。章は実物で確かめた（D-n は README 8.1、P1-n は第 1 部 4.2、C-n は第 1 部 9.2、U-n は第 1 部 10 章、P2-n は第 2 部 0 章、RP-n は 14 章、AC・AP・E は Android と Windows の設計書） |
+| B-2 Android の包みの手本 | 足した（2 章。`AndroidNativeToolkitCApi.cs`、`AndroidNativeCallbackQueue.cs`、`Android*CApiTests.cs` の写せる所と違う所） |
+| B-4 CL-02・CL-08・CL-09 | 4.7 の Clipboard の行に足した |
+| B-5 通知のビルダーの setter のエラー、`_free`、添付の 2 回目 | 4.5 に行を足した（`Notification.h` のコメントで確かめた） |
+| B-7 「Android と同じ名前でも値が違う」 | 直した: iOS だけの名前、Android だけの名前（Notification の 6・7・9・11〜14）、Windows と値が違う例（Dialog の `CANCELED` 2 / 6、Notification の `INVALID_PARAMETER` 7 / 1、Clipboard の `CANCELED` 15 / 27）。3 つのヘッダーで確かめた |
+| B-8 Clipboard の読み出し | 直した: `ntk_clipboard_read_async`・`_read_data_async` は非同期の名前だが main を止める（ヘッダーのコメント） |
+| B-9 ビルドの処理の事実 | 直した: asmdef の `defineConstraints`、`PostBuildProcessor` の決め打ちの道、手動のメニュー、`.meta` に埋め込みの設定が無いこと。推奨の PBXProject の形は条件の付いた asmdef の外に置く |
+| B-10 `DEVELOPER_DIR` | 7.1 のコマンドに入れ、26.3 では capi を組めないと書いた |
+| B-11 PlayMode の分け方 | 6.2 で Editor の PlayMode と iOS の Player の PlayMode に分けた |
+| B-12 実機は私物 | 6.2 の実機の行と 7.2 に書いた |
+| B-13 Distribution と Validate App | 7.2 に「誰がいつ行うかは持ち主の決定待ち」と書いた |
+| B-14 設計書の注記 | 第 2 部 16 章（JSON の文言と 126 / 212）と 8.3 の DL-05 に注記を足した。推奨案。持ち主の確認待ち |
+| C 1・2・3・4・5・7・8・10・11・12・13 | 直した（Claude C の本文は届いておらず、メインのセッションの短い説明から読み取った）: capi が必ず選ばれること（辞書順）、`ntk_clipboard_patterns` をビットの組に、`ntk_clipboard_load_fn` の `request_id`、`ntk_notification_event_kind` と `NTK_NOTIFICATION_EVENT_KIND_*`、`is_launch` を `Notification.h` のコメントのとおりに、3.3 の配布物の名前、Unity が window を差し替えるかは確かめていないと書いた、Unity 6000.4.2f1 と「どこで止まるかは確かめていない」、`[UnityTest]` で数えた、7.2 に 16.4 と 14.7 の 2、16 章と README 8.6 に 126 / 212 |
+| C 6・9 | 任意。入れていない（Claude C の本文はこのセッションに届いておらず、短い説明だけでは中身が分からなかった） |

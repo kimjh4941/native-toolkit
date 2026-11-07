@@ -552,7 +552,7 @@ AC-23 の列（ブリッジ／C ABI／違いと理由／Unity の包みが保つ
 | DL-02 | `showConfirmDialog` | OP-19 | 同上 | 同上 |
 | DL-03 | `showDestructiveDialog` | OP-20 | 同上 | 同上 |
 | DL-04 | `showActionSheet` | OP-21 | 同上。添字を返す。`NULL` の文言は既定か「無い」（今は空文字になる）。**今は入口の中で失敗が返る経路があったが、無くなる**。基点は view の中央（P1-13。今は `sourceRect` が無く、iPad で選択肢なしで出るおそれがあった） | 同上。今の空文字の見た目は保たない |
-| DL-05 | `showTextInputDialog` | OP-22 | 同上。`enable_confirm_when_empty` は反転した名前（P2-22） | 同上。真偽を反転して渡す |
+| DL-05 | `showTextInputDialog` | OP-22 | 同上。`enable_confirm_when_empty` は反転した名前（P2-22）。**注記（2026-11-07、TC-1）: 実物の名前は、ブリッジが `enableConfirmWhenEmpty` / `enableLoginWhenEmpty`、C が `confirm_disabled_when_empty` / `login_disabled_when_empty`（DL-06 も同じ）** | 同上。真偽を反転して渡す |
 | DL-06 | `showLoginDialog` | OP-23 | 同上。パスワードをログに出さない | 同上 |
 | NT-01 | `notificationSetup` | OP-25 | **main 以外ではエラーを返す**（今は黙って何もしない）。戻り値を見られる | `.mm` が起動の中で呼ぶ（第 1 部 1.4）。C# からは呼ばない |
 | NT-02 | `showNotification` | OP-26 | **不正な trigger は `INVALID_PARAMETER`**（今は即時に出す。P2-15）。**範囲外の `timeInterval` で落ちない**（P2-26）。今は通って C ではエラーになる値: 空の `id`、負の `badge`、0〜1 の外の `relevanceScore`、`file://` でない添付、項目の無い calendar、範囲外の location と空の識別子、入ると出るの両方が知らせない組、オブジェクトでない `userInfo`。予約のキーは setter で返す。**権限が無ければ `PERMISSION_DENIED`**（今は黙って成功。P2-10） | JSON を解いてビルダーと構造体に写す。エラーを今の失敗のコールバックに写す（P2-15）。`PERMISSION_DENIED` は今の成功に写すかを 2c で決める（今は `notDetermined` の即時の分だけ配信済みに載るので、完全には同じにならない） |
@@ -916,7 +916,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | TB-10 | main を待たないことのテスト、競合の再現のテスト（第 1 部 6 章） | 1.0日 | TB-3〜TB-9 | すべての公開の関数。**`check_c_abi_contract_ios.py` の未実装の一覧（`NOT_IMPLEMENTED_YET`）が空で、第 1 部 5.5 の H = E がそのまま成り立つ**（TB-1 の照合は「E は H の部分集合、残りはこの一覧」。実装が増えるたびに一覧が減る）。**`--require-complete` を付けて通る**（一覧に名前を足す変更を止めるのはこの旗だけ）。**12.2 の「通知のイベント」の行の残り（`DISMISS` と `openSettingsFor` の UI テスト。TB-8 から送った。測り方は 12.2 の行。作業記録 11.9 の確認待ちだったものを推奨案で進めた。持ち主の確認待ち。作業記録 13 章）** |
 | TB-11 | dist、`check_ios_dist.py`、smoke（第 1 部 C-5） | 1.5日 | TB-3〜TB-10 | 12.4 と 15.2 の配布物の項目。3 つのスライスで `--library` が `--architectures` と `--require-complete` つきで通る。第 1 部 5.5 の残り（`-Swift.h`、`.swiftmodule`、C のソースの `ntk_`）。**capi の xcframework は Release だけを受ける**（今のビルドのスクリプトの `--configuration debug` を写さない。Debug には `.swiftmodule` と `_$s14IosLibraryCApi*` が入る。第 1 部 5.4）。**照らす所**: 配布物（`-Swift.h`・`.swiftmodule` を含む README 7.3）は `check_ios_dist.py`、C のソースの `ntk_` は `check_c_abi_contract_ios.py` の `csources`（ソースだけで照らせるため。推奨案で進めた。持ち主の確認待ち。作業記録 14 章） |
 | TB-12 | `test_ios.sh` に C ABI のテスト 3 通り、smoke、`--library` と `--require-compile`、`--require-complete` を付けた照合をつなぐ（第 1 部 C-6） | 0.5日 | TB-11 | 全件が通る（**`--capi` の 8 段が iPhone 17 Pro / 26.2 と iPad Pro 11-inch (M4) / 18.3 で通った。15.2 の iPhone 17 / 26.2 は 17 Pro で代えた**（推奨案。持ち主の確認待ち）。x86_64 の `IosLibraryCApiTests` は iPhone 16 / 18.3 で 473/474 で、`OSLogStore` を読む 1 件が x86_64 だけで落ちる（持ち主の判断待ち。作業記録 15.9）。実機は 2b の区切り）。**TB-12 の形**（推奨案で進めた。持ち主の確認待ち。作業記録 15 章）: 新しい旗 `--capi`（`--capi-ui` と同じく `--udid` のほかを取らず、シミュレーターだけ、Xcode 26.6。既定の流れと `--baseline` には入れない）。3 通りの `IosLibraryCApiTests`、実行のフォルダーの中に組む配布物（`dist/` には作らない）、`check_ios_dist.py`、2 つのスライスの照合、smoke（実機向けは署名なしで組むだけ）を順に流し、要約が決める。判定は `scripts/ios_capi_runner.py`（各回が全件通り skip 0、各 framework がその回のサニタイザーのランタイムだけを読み込む、xcodebuild のログと xcresult の action のログにサニタイザーの報告が無い、3 通りの件数が同じ）。実機は旗が拒む（実機の ASan と smoke は 12.2 の行のとおり区切りで許可を得て） |
-| TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-12 | 8.3 と 16 章を渡した |
+| TC-1 | `unity-native-plugin` に渡す対応表と移行の手引き（16 章） | 0.5日 | TB-12 | 8.3 と 16 章を渡した。**申し送り: `results/2026-11-07-ios-c-abi-stage2c-handoff.md`（2026-11-07 に書いた。レビュー待ち）**。EditMode の JSON のテストは `unity-native-plugin` の `1c246a3` で 126 件（iOS の EditMode は 212 件。数え方は申し送りの 6.1。作業記録 16 章） |
 
 合計見積: 17.5 日（TA 1.5、TB 15.5、TC 0.5）。マニュアルの iOS の C ABI の章は README の段階 4 で書く（AP-23）。
 
@@ -955,7 +955,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 ### 15.3 構成と文書
 
 - 7 章の文書の直しを済ませた（TB-0）
-- `unity-native-plugin` に 8.3 と 16 章を渡した
+- `unity-native-plugin` に 8.3 と 16 章を渡した（申し送り: `results/2026-11-07-ios-c-abi-stage2c-handoff.md`。2026-11-07 に書いた。**レビュー待ち**）
 - マニュアルは README の段階 4（AP-23）。`agent-rules/workflows/verify-manual/workflow.md` に `check_manual_c_examples_ios.py` を足すのも段階 4。候補: `sourceRect`、マルチウィンドウの iPad、起動のきっかけの限り、読み込みの時間切れ、後ろの貼り付けのダイアログ
 
 ## 16. `unity-native-plugin` に渡す範囲（README 8.6）
@@ -963,7 +963,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | 項目 | 渡すもの |
 |---|---|
 | 対応表 | 8.3（43 関数。Unity の包みが保つことの列） |
-| EditMode の JSON のテスト | 第 1 部の時点の数は 126 件（知見 3 章、README 8.6）。**実物はこのリポジトリの外なので、2c の申し送りで数える**（G2-3）。**JSON を解く処理は包みに残る**ので、包みの JSON の解析と、解析した値から C の関数を呼ぶところをテストにする。基準は 8.3 の「Unity の包みが保つこと」の列 |
+| EditMode の JSON のテスト | 第 1 部の時点の数は 126 件（知見 3 章、README 8.6）。**実物はこのリポジトリの外なので、2c の申し送りで数える**（G2-3）。**数えた（2026-11-07、TC-1）: `unity-native-plugin` の `1c246a3` で JSON 126 件、iOS の EditMode 212 件**（申し送り 6.1）。**JSON を解く処理は包みに残る**（**注記（2026-11-07、TC-1）: Clipboard と Share の公開の API は型のある payload を受けるので、この 2 つでは申し送り 4.7 を優先する。C でも JSON なのは Clipboard の `DetectValues`（CL-10）だけで、その解析は残る**。Android の申し送りのレビュー H2-C3 と同じ扱い）ので、包みの JSON の解析と、解析した値から C の関数を呼ぶところをテストにする。基準は 8.3 の「Unity の包みが保つこと」の列 |
 | コールバックの例外 | 利用者のコールバックの例外の振る舞いは定めない（P1-16）。包みの `[MonoPInvokeCallback]` の本体を `try` / `catch` で囲む |
 | 差し替え型の受け手 | C-7（種類ごとに 1 つのハンドルと「今のハンドル」の印） |
 | 解除の副作用 | P2-17 |
