@@ -20,6 +20,8 @@ iOS の実機のテストは、利用者の私物の iPhone で流す。試験�
 
 C ABI の UI テスト（`ios/IosLibraryCApiUITests`。`scripts/test_ios.sh --capi-ui`）もシミュレーターだけで、2 つのターゲットは `iphonesimulator` だけを組む。コマンドラインの上書きなら実機向けに組めるが、実機に入れることはこの文書の許可なしには行わない。
 
+C ABI の確かめ（`scripts/test_ios.sh --capi`）もシミュレーターだけで、実機の UDID を拒む。実機での `IosLibraryCApiTests` の ASan と smoke は `--capi-device` で流し、区切りのときだけ、この文書の許可（`--dry-run` の一覧と `--approved`）を得て行う。`--capi-device` が実機に入れる 2 つのアプリ（テストのホストと smoke）は消さずに残る。消すときは、そのたびに聞く。
+
 ## 1 回ごとに聞く操作
 
 次の操作は、何をするかを示して、その都度許可を得る。

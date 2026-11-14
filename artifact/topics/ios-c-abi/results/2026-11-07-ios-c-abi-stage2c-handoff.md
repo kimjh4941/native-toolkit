@@ -1,9 +1,9 @@
 # 段階 2c の申し送り: `unity-native-plugin` の iOS を C ABI に移す
 
-- 作成日: 2026-11-07（レビュー待ち）
+- 作成日: 2026-11-07。改訂: 2026-11-14（別モデル 2 者のレビューを反映し、11-07〜11-14 の実機の区切りの結果と持ち主の決定を足した。作業記録 17 章）
 - 対象: `artifact/topics/ios-c-abi/README.md` の段階 2c、C ABI の設計書 第 2 部（`designs/2026-11-03-ios-c-abi-c-abi-design-part2.md`。以下「第 2 部」）13 章の TC-1
 - 読み手: `unity-native-plugin`（別リポジトリ）で iOS の部分を移す人と agent（C# の P/Invoke の包み、`.mm`、Unity の iOS のビルドを扱う。このリポジトリの設計書は読んでいない前提で書いた）
-- 前提の段: 2b（C ABI の実装）は、シミュレーターでの実装とテスト（TB-0〜TB-12）まで済んだ。**実機の区切りと、版と `dist/<リリース版>` を決める 2b の締めはまだ**（7 章）
+- 前提の段: 2b（C ABI の実装）は、シミュレーターでの実装とテストに加え、2.0.0 の前の実機の区切り（2026-11-07〜11-14。実機での `IosLibraryCApiTests` の ASan と smoke を含む）まで済んだ。**版と `dist/<リリース版>` を決める 2b の締めはまだ**（7 章）
 - 照らした実物: このリポジトリの `c7f2702f`（`feature/NTKIT-18`）の公開ヘッダー `ios/IosLibraryCApi/include/NativeToolkitC/*.h`（134 関数）、`scripts/build_ios_library_xcframework.sh`、`scripts/check_ios_dist.py`。`unity-native-plugin` は `1c246a3`（`feature/UNT-14`、2026-10-31）を読むだけで見た
 - 2c の成功（Unity が C ABI を呼び、EditMode・PlayMode・実機のテストを通す）が、2.0.0 を出す条件（README 5 章。Android と同じ）
 
@@ -14,7 +14,7 @@
 | | 今（1.x） | 2.0.0 |
 |---|---|---|
 | 呼ぶもの | ブリッジの 43 関数（`showDialog`、`clipboardCopy`、`notificationSetup` など。`DllImport("__Internal")`。iOS の 4 つの manager の `DllImport` の宣言は 43 本で、8.3 と一致する） | `ntk_*`（134 関数。同じく `DllImport("__Internal")`） |
-| 結果の返り方 | `const char*`（JSON か文言）。コールバックの間だけ有効。`user_data` は無い | C の関数ポインタのコールバック（`[MonoPInvokeCallback]`）、構造体、**所有権ごと渡すハンドル**（`ntk_*_free` で解放）。すべてのコールバックに `void* user_data` と `ntk_release_fn release` |
+| 結果の返り方 | `const char*`（JSON か文言）。コールバックの間だけ有効。`user_data` は無い | C の関数ポインタのコールバック（`[MonoPInvokeCallback]`）、構造体、**所有権ごと渡すハンドル**（`ntk_*_free` で解放）。コールバックを登録する関数はすべて `void* user_data` と `ntk_release_fn release` を受け、コールバックは `user_data` を受ける（`release` はコールバックの引数ではない） |
 | JSON の層 | C# とブリッジの間は JSON（`IosClipboardJsonBuilder` / `Parser` / `Reader`、`IosShareJsonBuilder`、`IosNotificationJsonBuilder`） | C の関数は構造体・ビルダー・ハンドルで受け渡す。**JSON が残るのは、Notification の公開の API、userInfo の JSON の文字列、Clipboard の `ntk_clipboard_detect_values_async` の結果（`ntk_clipboard_values_fn` の `ntk_string* values_json`。8.3 の CL-10）の 3 つ**（4.7） |
 | リスナー | `setNotificationActionReceivedCallback` などの差し替え（static の上書き） | 足す・外す（`ntk_*_add_*_listener` / `ntk_*_listener_remove`）。差し替えは包みが保つ（4.4） |
 | 通知の delegate | C# の `IosNotificationManager.Initialize()`（`Awake` から）が `notificationSetup` を呼ぶ | **`.mm` が起動の中（`didFinishLaunching`）で `ntk_notification_install` を呼ぶ**。C# からは呼ばない（例外は 4.5 の H2-3 の入れ直し） |
@@ -35,9 +35,9 @@
 | 6 | 通知の delegate を入れる関数と、Unity の通知パッケージとの共存 | 第 1 部 1.4、5.12（5.12.7 コールドスタート、5.12.8 共存）。Unity での確かめの結果は `results/2026-10-31-ios-c-abi-unity-handoff-2-results.md`（H2-1〜H2-3） |
 | 7 | 関数の一覧と OP ごとの対応 | 第 2 部 8.1（46 操作）と 8.2（134 関数） |
 | 8 | 同期・非同期と完了のスレッド | 第 2 部 9 章 |
-| 9 | エラーの値と、`IosLibrary` のエラーからの写し | 第 2 部 11 章。4 つの機能のエラーは 0〜5 が同じ意味（`NONE`、`INVALID_PARAMETER`、`NOT_INITIALIZED`、`NOT_SUPPORTED`、`UNKNOWN`、`OUT_OF_MEMORY`）。6 から上は機能ごとに違う（例: `NTK_DIALOG_ERROR_NOT_FOREGROUND` は 8、`NTK_SHARE_ERROR_NOT_FOREGROUND` は 6。どちらも Android と同じ値）。**iOS だけの名前がある**（Notification の 16〜20、`NTK_CLIPBOARD_ERROR_CANCELED` など）。**Android にあって iOS に無い名前もある**（Notification の 6・7・9・11〜14）。**Windows とは同じ名前で値が違うものがある**（4.3） |
+| 9 | エラーの値と、`IosLibrary` のエラーからの写し | 第 2 部 11 章。4 つの機能のエラーは 0〜5 が同じ意味（`NONE`、`INVALID_PARAMETER`、`NOT_INITIALIZED`、`NOT_SUPPORTED`、`UNKNOWN`、`OUT_OF_MEMORY`）。6 から上は機能ごとに違う（例: `NTK_DIALOG_ERROR_NOT_FOREGROUND` は 8、`NTK_SHARE_ERROR_NOT_FOREGROUND` は 6。どちらも Android と同じ値）。**iOS だけの名前がある**（Notification の 16〜20、`NTK_CLIPBOARD_ERROR_CANCELED` など）。**Android にあって iOS に無い名前もある**（Notification の 6・7・9・11〜14、Dialog の 9、Clipboard の 10・11、Share の 8・10〜16。逆に iOS だけの名前は Clipboard の 12〜29、Share の 17〜21 など。4.3）。**Windows とは同じ名前で値が違うものがある**（4.3） |
 | 10 | 構造体の配置の正（`sizeof` と `offsetof`） | `ios/IosLibraryCApiTests/StructLayoutTests.m`（すべての構造体とフィールド。`_Static_assert` で、3 つのスライスで組むときに確かめている） |
-| 11 | C から呼ぶ手本 | `ios/IosLibraryCApiSmoke/IosLibraryCApiSmoke/Smoke.c`（`ntk_version` の確かめ、Clipboard（名前付きのペーストボードの作成・書き込み・読み取り・削除）、Dialog（表示して `ntk_dialog_cancel`）、Notification（受け手を登録してすぐ外す。イベントは 0 回、`release` は 1 回）を C から呼び、完了と `release` が main で 1 回ずつ来ることを数える。**Share は呼ばない**）。雛形の `.mm` は `results/probes/stage1a/handoff2/unity/NtkHandoff2Installer.mm`（3.4 の注意を読んでから使う） |
+| 11 | C から呼ぶ手本 | `ios/IosLibraryCApiSmoke/IosLibraryCApiSmoke/Smoke.c`（`ntk_version` の確かめ、Clipboard（名前付きのペーストボードの作成・書き込み・読み取り・削除）、Dialog（表示して `ntk_dialog_cancel`）、Notification（`main.m` の起動の中で `ntk_notification_install` を呼び、受け手を登録してすぐ外す。イベントは 0 回、`release` は 1 回）を C から呼び、完了と `release` が main で 1 回ずつ来ることを数える。**Share は呼ばない**）。雛形の `.mm` は `results/probes/stage1a/handoff2/unity/NtkHandoff2Installer.mm`（3.4 の注意を読んでから使う） |
 
 **`unity-native-plugin` の中の手本**（README D-20: Android の包みをそのまま使えることを示す）:
 
@@ -60,10 +60,16 @@
 | OP-n | 第 2 部 8.1 |
 | CL-n、DL-n、NT-n、SH-n | 第 2 部 8.3 |
 | RP-n | 第 2 部 14 章 |
+| TB-n、TC-n | 第 2 部 13 章（2b と 2c の作業の区切り。TB は 2b の実装、TC-1 はこの申し送り） |
+| MS-n | `ios-c-abi/results/2026-10-31-ios-c-abi-stage1b-result.md`（段階 1b の手での確かめ） |
+| 作業記録 n.n | `ios-c-abi/results/2026-11-03-ios-c-abi-stage2-working-notes.md`（段階 2 の作業の記録）の節 |
+| H2-C3 | Android の 2c の申し送りのレビュー（`android-c-abi/reviews/2026-10-10-android-c-abi-stage2c-handoff-review-v1.md`） |
 | AC-n | Android の C ABI の第 1 部（`android-c-abi/designs/2026-10-04-android-c-abi-c-abi-design.md`） |
 | AP-n | Android の C ABI の第 2 部（`android-c-abi/designs/2026-10-05-android-c-abi-c-abi-design-part2.md`） |
 | E-n | Windows の C ABI の設計書（`windows-architecture/designs/2026-09-21-windows-architecture-c-abi-design.md`） |
 | 知見 | `ios-c-abi/results/2026-10-18-ios-c-abi-android-lessons.md`（Android の移行から学んだこと） |
+
+段の名前（`ios-c-abi/README.md` の 5 章）: 1a は Unity での下調べ、1b は Swift の API の補完、2a は機械照合、2b は C ABI の実装、2c はこの移行（`unity-native-plugin`）、段階 3 はブリッジ（`UnityIosPlugin`）を消すこと、段階 4 はマニュアル。
 
 ## 3. 配布物と組み込み
 
@@ -136,11 +142,13 @@
 - **完了、イベント、受け付けた後の `release` は、すべて iOS の main スレッドで来る**（main キューに積んだブロックの中。第 1 部 1.3）
 - **iOS の Unity の C# は main スレッドで動く**（`CADisplayLink`。README 0 章）。Android（UnityMain と Android の main が別）と違い、**受けたスレッドがそのまま Unity のスレッドで、受け渡しは要らない**（第 1 部 1.3.4）。ただし、コールバックは Unity のフレームの外（main の run loop の別のブロック）で来る。Android と同じ「受けて積む」形のままでも動くので、Android と共通の作りにするなら、そのままでよい
 - C の関数はどのスレッドから呼んでもよく、**決して main を待たない**。例外は `ntk_notification_install`（main だけ）
-- **main から呼ぶと、完了と `release` は必ず関数が戻った後に来る**（main から呼ばれても積むため。第 1 部 1.3）。Unity の C# は main から呼ぶので、Unity では「戻った後」になる。**ただし契約は Android と同じで、出力引数（要求の ID など）が見える前に完了が来うると考える**（main 以外のスレッド、たとえば `Task.Run` の中から呼ぶと、戻る前に来うる。R-11）。対応付けは `user_data` で行う（4.2）
+- **main から呼ぶと、受け付けた後の完了と `release` は必ず関数が戻った後に来る**（main から呼ばれても積むため。第 1 部 1.3。入口で拒んだときの `release` は 4.2 のとおり戻る前に来る）。Unity の C# は main から呼ぶので、Unity では「戻った後」になる。**ただし契約は Android と同じで、出力引数（要求の ID など）が見える前に完了が来うると考える**（main 以外のスレッド、たとえば `Task.Run` の中から呼ぶと、戻る前に来うる。R-11）。対応付けは `user_data` で行う（4.2）
 - **どのスレッドでも、完了や `release` を同期で待たない**。main で待つと、main に積まれた完了が来ないので必ず止まる（第 1 部 1.3「なぜ main を待たないか」）
 - **コールバックの中で main を長く塞がない**（ネットワーク、大きなファイル。起動の間なら OS の watchdog に止められうる。第 1 部 1.3.2）
 - **`ntk_clipboard_read_async`・`ntk_clipboard_read_data_async` は非同期の名前だが、貼り付けの許可を待つ間 main を止める**（`Clipboard.h` のコメント。ほかのアプリが置いた内容なら OS が貼り付けの許可のダイアログを出し、答えるまで main が止まる。実機 iOS 18.7.2 で 44 秒。README 3.1、RP-4）。今のブリッジの `clipboardRead` も同じなので、包みが今の `Read` を保つ限り、止まる場面は今と同じ。止めたくない利用者には `LoadItem`（`ntk_clipboard_load_item_async`）を案内する
+- **貼り付けを拒んだときの値**（`Clipboard.h`。第 2 部 6.1）: `ntk_clipboard_read_async` は失敗にならず、`NONE` で項目 1 件（型の一覧は空、文字列は無し。実機 iOS 18.7.2 でも同じ。作業記録 17.10）。`ntk_clipboard_read_data_async` は `NONE` で `NULL`。`ntk_clipboard_load_item_async` は `NTK_CLIPBOARD_ERROR_LOAD_FAILED`、`ntk_clipboard_detect_values_async` は `NTK_CLIPBOARD_ERROR_DETECTION_FAILED`。**時間切れ（`LoadItem` は 15 秒、`DetectValues` は 5 秒）には、利用者がダイアログに答える時間も入る**（`NTK_CLIPBOARD_ERROR_TIMED_OUT`。その後の答えは何も届けない）
 - Dialog と Share を出している間もゲームのフレームは進む（U-5。今と同じ）
+- **同じハンドルを複数のスレッドで同時に使わない**: 通知のビルダー（`ntk_notification_content`）はスレッドセーフでなく、1 つのスレッドで作る（`Notification.h`）。出力のハンドルは読み取りどうしは同時でよいが、読み取りと同じハンドルの `_free` を重ねない。リスナーの解除は、同じハンドルのほかの呼び出しと重ねない（第 1 部 1.3.1）
 
 ### 4.2 `user_data`、要求の ID、`release`
 
@@ -152,7 +160,7 @@
 そこで:
 
 - **登録ごとに別の `user_data` を渡す**。包みが作る整数のキー（連番を `IntPtr` にしたもの）を、**呼ぶ前に**表へ入れて渡すか、`GCHandle` を渡す
-- コールバックの中で、`user_data` から要求の物を引く。**完了つきの操作では、完了を呼んだ直後に同じ main のブロックの中で `release` が来る**（第 1 部 5.7）ので、キーのまま後のフレームに積んで後で引くと、もう消えている。後に回すなら、引いた物を積む
+- コールバックの中で、`user_data` から要求の物を引く。**完了つきの操作では、完了を呼んだ直後に同じ main のブロックの中で `release` が来る**（第 1 部 5.7。例外: 完了の中で同じ要求を取り消すと、`release` は取り消しの処理の後に来る。どちらでも完了 1 回、`release` 1 回。第 1 部 5.7 の R-3）ので、キーのまま後のフレームに積んで後で引くと、もう消えている。後に回すなら、引いた物を積む
 - `user_data` の片付け（表から消す、`GCHandle.Free`）は **`release` の中だけ**で行う。`release` は `release != NULL` なら登録ごとに**ちょうど 1 回**、次のどれかで来る:
   - 完了つきの操作を受け付けた後: 完了の直後に main で
   - イベントの登録を受け付けた後: `_listener_remove` の後に main で（外さなければ来ない）。main から外すと、その場で以後の配送が止まり、`release` はその後に来る。main 以外から外すと、`release` が来るまで配送が来うる（第 1 部 1.3）
@@ -161,8 +169,11 @@
 - `release` の後は、その `user_data` で配送は来ない
 - **入口で拒んだときの `release` は呼び出しの中で同期に来る**ので、`release` が取るロックを持ったまま `ntk_*` を呼ばない（第 1 部 1.3.2）
 - **要求の ID は 64 ビット（`uint64_t`）**。C# では、コールバックの引数（`ntk_dialog_result_fn` と `ntk_clipboard_load_fn` の `request_id`）、出力（`out ulong`）、取り消しの引数（`ntk_dialog_cancel`、`ntk_clipboard_cancel_load`）、表のキーをすべて `ulong` にする。Windows の宣言（`uint`）を写さない。`out_request_id` は NULL でもよい（取り消せなくなるだけ）。完了の後の取り消しと、知らない ID の取り消しは何もしない
+- **Dialog も、完了と `release` が来ないことがある**: ホストが表示中に window や root の ViewController を差し替えたとき、またはシステムが scene を切ったのにダイアログが生き続けるとき（`Dialog.h` の `ntk_dialog_result_fn`）。**`ntk_dialog_cancel(request_id)` で取り消すと要求が終わり、完了（`CANCELED`）と `release` が来る**（画面が閉じるとは限らない。別の画面に覆われたダイアログは残る）。そのため包みは `out_request_id` を保ち、回収が要るとき（`OnDestroy`、シーンの切り替えなど）に取り消す
 - **Share は取り消せない**。ホストが表示中に window や root の ViewController を差し替えると、完了も `release` も来ないことがあり、その `user_data` は漏れうる（第 1 部 1.3 の「ちょうど 1 回の完了」、0.1 の契約）。Unity が表示中に window や root を差し替えるかは、このリポジトリでは確かめていない（1a の U-5 では Dialog と Share の完了と `release` が 1 回ずつ来た）
-- **コールバックが受け取ったハンドル（`ntk_dialog_result*`、`ntk_share_result*`、`ntk_clipboard_change*`、`ntk_notification_interaction*`、`ntk_notification_list*`、`ntk_string*` など）は、所有権ごと渡される**。使い終わったら、対応する `ntk_*_free` で解放する（第 1 部 5.8、AC-18）。**ブリッジの「コールバックの間だけ有効な `const char*`」とも、Windows の「借りるポインタ」とも逆**。読み取りの関数が返す `const char*` は、元のハンドルを解放するまで有効（`size_t* out_size` で長さも取れる）
+- **コールバックが受け取ったハンドル（`ntk_dialog_result*`、`ntk_share_result*`、`ntk_clipboard_change*`、`ntk_notification_interaction*`、`ntk_notification_list*`、`ntk_string*` など）は、所有権ごと渡される**。使い終わったら、対応する `ntk_*_free` で解放する（第 1 部 5.8、AC-18）。**ブリッジの「コールバックの間だけ有効な `const char*`」とも、Windows の「借りるポインタ」とも逆**。読み取りの関数が返す `const char*` は、元のハンドルを解放するまで有効（多くの読み取りの関数は `size_t* out_size` で長さも返す。`ntk_string` の長さは `ntk_string_size` で取る）
+- **`ntk_clipboard_loaded_item_file_path` のファイルとその親のフォルダーは、受け手のもの**。使い終わったら包みが消す。`ntk_clipboard_loaded_item_free` は消さない（`Clipboard.h`）。`LoadItem(File)` を包むときに消し忘れると、一時ファイルが残り続ける
+- **入力（引数の文字列、配列、構造体とその中のポインタ、ビルダー）は、呼び出しの間だけ生かせばよい**。ライブラリは非同期の操作でも、関数が戻る前に要るものを写す（第 1 部 1.1）。C# の UTF-8 のバッファーや `GCHandle.Alloc(..., Pinned)` の構造体は、関数が戻った直後に解放してよい。ビルダーも、渡した関数が戻った後に `_free` してよい（完了を待たなくてよい）
 - **`callback` に `NULL` を渡すと `INVALID_PARAMETER`**（P2-28）。今のブリッジは Clipboard・Notification・Share で `NULL` を受けて結果を捨てていたので、結果が要らない呼び出しには包みが空の受け手を渡す
 - **利用者のコールバックの例外**: C ABI は例外の振る舞いを定めない（第 1 部 P1-16）。Unity の IL2CPP の iOS では、C# のコールバックが例外を投げると `libc++abi: terminating due to uncaught exception of type Il2CppExceptionWrapper` でプロセスが止まり、`release` は来ない（U-9。実機とシミュレーター）。**すべての `[MonoPInvokeCallback]` の本体を `try` / `catch` で囲む**（`release` の受け手も）
 - デリゲートは `static readonly` に置いてプロセスの間保ち、`[MonoPInvokeCallback]` の static のメソッドにする（今の iOS の包みと同じ）
@@ -188,13 +199,14 @@
 - 包みは**種類ごとに 1 つのハンドルと「今のハンドル」の印**を持つ。差し替えでは、古いハンドルを `_listener_remove` で外してから新しいものを足し、印を新しいものにする。**配送を受けたら、それが今のハンドルへの配送でなければ捨てる**。判定のために、登録ごとに別の `user_data`（4.2）が要る。iOS の Unity は main で受けるので、判定は受けたその場でよい（C-7）
 - Notification: 今の 2 つの受け手（アクションとテキスト入力）は、C では **1 つの `ntk_notification_add_interaction_listener`** にまとまり、`ntk_notification_interaction_kind` が返す `ntk_notification_event_kind` で分かれる（`NTK_NOTIFICATION_EVENT_KIND_BODY_TAP` = 0、`_ACTION` = 1、`_DISMISS` = 2、`_TEXT_INPUT` = 3。NULL には -1。P2-18）。`TEXT_INPUT` でないものを今の `NotificationActionReceived` へ、`TEXT_INPUT` を `NotificationTextInputActionReceived` へ写す（8.3 の NT-20・NT-21）。今の `IosNotificationManager.Initialize()` は公開で「やり直すときに呼ぶ」とあるので、2 回目の `Initialize()` は差し替えとして扱う
 - Clipboard: 開始（`ntk_clipboard_start_observing_async`）と受け手（`ntk_clipboard_add_change_listener`）が分かれた（P2-16）。今の `StartObserving` は「登録して開始する。前の登録を外す」（8.3 の CL-13）
+- **外した後のハンドルは無効で、同じハンドルを 2 回外すのは未定義**（解放した後のオブジェクトに触れうる。`Clipboard.h`、第 1 部 1.3.1、5.7）。差し替えと `OnDestroy` の両方で同じ `IntPtr` を外さないよう、外したらすぐ `IntPtr.Zero` にする。`user_data` の片付けは `release` で行う（4.2）
 - 2 回目の差し替えの後に前の受け手へ届かないことを、Unity のテストで確かめる
 
 ### 4.5 振る舞いを保つための包みの仕事（第 2 部 16 章、8.3）
 
 | 事柄 | 包みがすること |
 |---|---|
-| 解除の副作用（P2-17） | `ntk_*_listener_remove` は登録を外すだけで、監視は止めない。今の `clipboardStopObserving` の振る舞いは `ntk_clipboard_stop_observing_async`（CL-14）で保つ。受け手を外すだけの場面（差し替え、`OnDestroy` など）で監視も止めたいなら、包みが続けて止める |
+| 解除の副作用（P2-17） | `ntk_*_listener_remove` は登録を外すだけで、監視は止めない。今の `clipboardStopObserving` の振る舞いは `ntk_clipboard_stop_observing_async`（CL-14）で保つ。受け手を外すだけの場面（差し替え、`OnDestroy` など）で監視も止めたいなら、包みが続けて止める。**`ntk_clipboard_stop_observing_async` は、別の部品が始めた監視も止める**（第 2 部 6.1）。通知の `ntk_notification_remove_all_async` と `ntk_notification_cancel_all_scheduled_async` は、ホストが自分で出した通知まで消す。消した後に通知を足すなら、消す操作の完了を待ってから足す（順序は完了で繋ぐ。第 2 部 6.3） |
 | `NOT_FOREGROUND` | **Dialog（DL-01〜DL-06）・Share（SH-01）・通知の設定の画面（NT-15）・未決の権限の要求（NT-13）を、アプリが後ろにいるときに呼ぶと、完了が `NOT_FOREGROUND` で来る**。今は Dialog と Share は `.firstActiveScene` で探して失敗の文言、設定の画面は OS が黙って止める。今の失敗のコールバックに写すか、新しいエラーとして出すかは 5 章。起動の途中（`didFinishLaunching` まで）は scene が前面に無いので、ここで呼んでも `NOT_FOREGROUND` になりうる |
 | 値の補正と代わりの値（P2-15） | **C ABI も包みも補正を持たない**。エラーを今の失敗のコールバックに写し、2.0.0 の破壊的変更として移行ガイドに書く。今は通って C ではエラーになる値は 8.3 の NT-02 の一覧（不正な trigger、空の `id`、負の `badge`、0〜1 の外の `relevanceScore`、`file://` でない添付、項目の無い calendar、範囲外の location と空の識別子、入ると出るの両方が知らせない組、オブジェクトでない `userInfo`。範囲外の `timeInterval` は今はプロセスが落ち、C では `INVALID_PARAMETER`）。Base64 と文字列の列挙（Clipboard のパターンの文字列 → `NTK_CLIPBOARD_PATTERN_*` のビット、認可の状態の列挙 → 今の文字列など）は包みが写す |
 | 回数が変わるコールバック | Dialog は外から閉じたとき（scene が切れて ViewController が解放された）に `CANCELED_BY_SYSTEM` で来る（今は 0 回）。`registerNotificationCategory`（NT-17）は書き込みと 1 回の読み返しの後に来る（今は入口の中で成功）。`hasNotificationPermission`（NT-19）は重ねても要求ごとに 1 回来る（今は static の上書きで前の受け手に来ない）。**入口で拒むと完了は来ない**: 今のブリッジは不正な要求も必ずコールバックに返していた。包みは戻り値が `NONE` でなければ、**main に積んで（今と同じく次の `Update` で）今のコールバックを失敗で呼ぶ**（8.3 の「どの行にも共通する違い」。そのときも `release` は呼び出しの中で来る） |
@@ -221,7 +233,7 @@
 | 機能 | 今の公開の API | 2.0.0 |
 |---|---|---|
 | Notification | `ShowNotification(string contentJson, string? triggerJson, ...)`、`ScheduleNotification`、`UpdateNotification`、`RegisterCategory(string categoryJson, ...)` が JSON の文字列を受け、`GetScheduledNotifications` / `GetDeliveredNotifications` が JSON の文字列を返す。`IosNotificationJsonBuilder` は payload から JSON を作る補助 | **公開の JSON を解く処理は包みに残り**、解いた値をビルダー（`ntk_notification_content_create` と `_set_*`）と構造体（`ntk_notification_trigger`、`ntk_notification_category`）に写す。一覧はハンドル（`ntk_notification_list_*`）から今の JSON を作る（NT-11・NT-12。日時は Unix ミリ秒から小数秒なしの ISO 8601）。userInfo だけは C でも JSON の文字列（`ntk_notification_content_set_user_info_json`、`ntk_notification_interaction_user_info_json`） |
-| Clipboard | `Copy(IosClipboardContent, IosPasteboardScope?, IosClipboardCopyOptions?, ...)` など型のある payload を受け、型のある結果（`IosClipboardReadResult` など）を返す。JSON はブリッジとの内部のやりとり（`IosClipboardJsonBuilder` で作り、`IosClipboardJsonParser` / `IosClipboardJsonReader` で解く） | 書き込みは payload から C の構造体（`ntk_clipboard_write_content` など）へ直接写す。読み取りの JSON の解析は、C のハンドルの読み取り（`ntk_clipboard_read_result_*`、`ntk_clipboard_snapshot_*`、`ntk_clipboard_loaded_item_*`、`ntk_clipboard_change_*`）に置き換わる。**例外は `DetectValues`**: `ntk_clipboard_detect_values_async` の完了（`ntk_clipboard_values_fn`）は JSON の文字列（`ntk_string* values_json`。封筒の無いオブジェクト。8.3 の CL-10、P2-8）を返すので、**JSON から `IosClipboardDetectedValues` への解析は残る**（今の `IosClipboardJsonParser.ParseDetectedValuesResult` の中身。封筒を付けるか、封筒なしで解くように直す）。受けた `ntk_string*` は `ntk_string_free` で解放する。ほかに包みが写すもの: **CL-02**（`Append` に `options` が無い。C の `ntk_clipboard_append_async` は `options` の引数を持たない）、**CL-08**（`RemovePasteboard` の scope は省けない。C も省略を受けない）、**CL-09**（パターンの列挙を `ntk_clipboard_patterns` のビットに写す。未知の値は `INVALID_REQUEST`） |
+| Clipboard | `Copy(IosClipboardContent, IosPasteboardScope?, IosClipboardCopyOptions?, ...)` など型のある payload を受け、型のある結果（`IosClipboardReadResult` など）を返す。JSON はブリッジとの内部のやりとり（`IosClipboardJsonBuilder` で作り、`IosClipboardJsonParser` / `IosClipboardJsonReader` で解く） | 書き込みは payload から C の構造体（`ntk_clipboard_write_content` など）へ直接写す。読み取りの JSON の解析は、C のハンドルの読み取り（`ntk_clipboard_read_result_*`、`ntk_clipboard_snapshot_*`、`ntk_clipboard_loaded_item_*`、`ntk_clipboard_change_*`）に置き換わる。**例外は `DetectValues`**: `ntk_clipboard_detect_values_async` の完了（`ntk_clipboard_values_fn`）は JSON の文字列（`ntk_string* values_json`。封筒の無いオブジェクト。8.3 の CL-10、P2-8）を返すので、**JSON から `IosClipboardDetectedValues` への解析は残る**（今の `IosClipboardJsonParser.ParseDetectedValuesResult` の中身。封筒を付けるか、封筒なしで解くように直す）。受けた `ntk_string*` は `ntk_string_free` で解放する。ほかに包みが写すもの: **CL-02**（`Append` に `options` が無い。C の `ntk_clipboard_append_async` は `options` の引数を持たない）、**CL-08**（`RemovePasteboard` の scope は省けない。C も省略を受けない。第 2 部 8.3 の CL-08 の「省略を general にして `CANNOT_REMOVE_GENERAL`」は、公開の API で scope を省ける場合の行。`1c246a3` の C# は省けない形と読んだが、向こうの今のブランチは確かめていない）、**CL-09**（パターンの列挙を `ntk_clipboard_patterns` のビットに写す。未知の値は `INVALID_REQUEST`） |
 | Share | `Share(IosShareContentPayload?, ...)`。`IosShareJsonBuilder` で JSON にしてブリッジに渡す | payload から `ntk_share_request` と `ntk_share_item` の配列へ直接写す |
 | Dialog | 引数そのまま（JSON は無い） | 構造体（`ntk_dialog_*_request`）に写す |
 
@@ -327,23 +339,23 @@ scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.
 python3 scripts/check_ios_dist.py --dist <出力先>
 ```
 
-  **capi は `@c @implementation`（Swift 6.3、Xcode 26.4 以上）を使うので、Xcode 26.3 では組めない**。スクリプトは `DEVELOPER_DIR` が無ければ `xcode-select` の Xcode を使い、この手元の既定は 26.3 なので、`DEVELOPER_DIR` で 26.6 を指す（道は手元の置き場所に合わせる）。`--output-dir` には 2 つの xcframework と `include/NativeToolkitC/` ができる。`--output-dir` を付けないと `dist/<-v の版>/ios/`（`dist/2.0.0/ios/`）にでき、`--keep-project-versions` を付けないと `ios/` のプロジェクトの版とビルド番号を書き換える。リリースの形（`dist/<リリース版>/ios/` に出す旗の組）は 2b の締めで決める（作業記録 14.7 の 1。持ち主の確認待ち）
+  **capi は `@c @implementation`（Swift 6.3、Xcode 26.4 以上）を使うので、Xcode 26.3 では組めない**。スクリプトは `DEVELOPER_DIR` が無ければ `xcode-select` の Xcode を使い、この手元の既定は 26.3 なので、`DEVELOPER_DIR` で 26.6 を指す（道は手元の置き場所に合わせる）。`--output-dir` には 2 つの xcframework と `include/NativeToolkitC/` ができる。`--output-dir` を付けないと `dist/<-v の版>/ios/`（`dist/2.0.0/ios/`）にでき、`--keep-project-versions` を付けないと `ios/` のプロジェクトの版とビルド番号を書き換える。リリースの形は、旗なしで `dist/<リリース版>/ios/` に出す今の動きのまま（作業記録 14.7 の 1。2026-11-14 に持ち主が追認）
 
 ### 7.2 確かめていないこと（2c に効くもの）
 
 | 事柄 | 状態 |
 |---|---|
-| **実機** | **実機は持ち主の私物で、流す前に毎回許可を得る**（`agent-rules/device-testing.md`）。**段階 2 の C ABI は、実機では何も流していない**。実機の ASan と smoke は 2b の区切りで、持ち主の許可を得て流す（第 2 部 15.2）。実機で通ったのは 1a の雛形（U-1〜U-10、iPhone XS / 18.7.2）だけ |
-| 署名 | 実機向けの smoke は署名なしで組んだだけ。署名して入れる手順は 2b の区切りで決める。配布用の署名（Distribution のアーカイブ、Validate App）は 1a でも確かめていない（U-2 は開発用の署名だけ）。Release のアーカイブでの署名し直し（1a-4）は `unity-native-plugin` の agent に任せた確かめ。アーカイブのプライバシーのレポート（MS-10）も未 |
+| **実機** | **実機は持ち主の私物で、流す前に毎回許可を得る**（`agent-rules/device-testing.md`）。2026-11-07 に、持ち主の許可を得て `scripts/test_ios.sh --capi-device` で流した（iPhone XS / iOS 18.7.2、Xcode 26.6、`92a51809`。作業記録 17.8）: `IosLibraryCApiTests` の 474 件を ASan つきで実機で流してすべて通り、配布物だけから組んだ smoke を署名して入れ、16 の段がそれぞれ 1 回ずつ通った。サンプルの UI テストの実機の回（クリップボードと Share を含む）と、手での確かめ（貼り付けのコントロール、拒んだときの値、`.private` のログ）も 11-07〜11-14 に済んだ（17.2〜17.10）。**Unity から C ABI を呼んで実機で通すことは、まだ誰もしていない**（2c） |
+| 署名 | **署名なしの 2 つの framework（`IosLibrary` と capi）を埋め込んだアプリを、開発用の署名（Automatic、`-allowProvisioningUpdates`）で組み、実機に入れて動かせた**（smoke。作業記録 17.8）。配布用の署名（Distribution のアーカイブ、Validate App）は 1a でも確かめていない（U-2 は開発用の署名だけ）。Release のアーカイブでの署名し直し（1a-4）は `unity-native-plugin` の agent に任せた確かめ。アーカイブのプライバシーのレポート（MS-10。持ち主が Xcode の Organizer で作る）も未 |
 | `dist/<リリース版>` の形 | `check_ios_dist.py` は `--dist`（任意のフォルダー）の形だけを流した。`<release>` の形（`dist/<release>/ios/` を読む）は流していない |
-| x86_64 | `IosLibraryCApiTests` は iPhone 16 / 18.3 の x86_64 で 473/474。`OSLogStore` を読む 1 件（`testAMismatchIsLoggedOnceAndStopsNothing`）が x86_64 だけで落ちる（ライブラリはログを出しているが、x86_64 では `OSLogStore` が 0 件を返す。持ち主の判断待ち。作業記録 15.9）。x86_64 の ASan・TSan は流していない。Unity の x86_64 のシミュレーターでの実行は確かめていない |
-| シミュレーターの機種 | 第 2 部 15.2 の iPhone 17 / 26.2 は iPhone 17 Pro / 26.2 で代えた（持ち主の確認待ち）。iPad Pro 11-inch (M4) / 18.3 でも流した |
-| 通知の `DISMISS` と `openSettingsFor` | UI テストは TB-10 で推奨案で進めた（持ち主の確認待ち）。`openSettingsFor` が設定の App を辿るのは iOS 26.2 のシミュレーターだけ |
+| x86_64 | `IosLibraryCApiTests` は iPhone 16 / 18.3 の x86_64 で 473/474。`OSLogStore` を読む 1 件（`testAMismatchIsLoggedOnceAndStopsNothing`）が x86_64 だけで落ちる（ライブラリはログを出しているが、x86_64 では `OSLogStore` が 0 件を返す。作業記録 15.9）。2026-11-14 に持ち主の決定で、x86_64 ではこのテストのログの読み取りを確かめから外した（ライブラリは変えていない。作業記録 17.12）。x86_64 の ASan・TSan は流していない。Unity の x86_64 のシミュレーターでの実行は確かめていない |
+| シミュレーターの機種 | 第 2 部 15.2 の iPhone 17 / 26.2 は iPhone 17 Pro / 26.2 で代えた（2026-11-14 に持ち主が追認）。iPad Pro 11-inch (M4) / 18.3 でも流した |
+| 通知の `DISMISS` と `openSettingsFor` | UI テストは TB-10 で推奨案で進めた（2026-11-14 に持ち主が追認）。`openSettingsFor` が設定の App を辿るのは iOS 26.2 のシミュレーターだけ |
 | 本物のサニタイザーの報告で落ちること | 見ていない（報告の形を偽って確かめた） |
 | smoke の Dialog | 完了が `CANCELED`（表示の 1.5 秒後の取り消し）で来たことまでで、画面に出たことは見ていない |
 | 起動の早い時期 | `UIApplicationMain` の前に `ntk_notification_install` を呼んだときは契約の外で、確かめていない（第 1 部 1.3.3）。`.mm` は `+load` で登録だけをし、呼ぶのは `didFinishLaunching` にする |
-| Distribution のアーカイブと Validate App | README 9 章の DoD の項目。**誰がいつ行うか（`unity-native-plugin` の agent か、2b の締めか、リリースの前か）は持ち主の決定待ち** |
-| 配る `IosLibrary`（と、もう組まない `UnityIosPlugin`）を署名しないこと | 推奨案で進めた。持ち主の確認待ち（作業記録 14.7 の 2）。1.x の配布物の中の framework は署名されていた |
+| Distribution のアーカイブと Validate App | README 9 章の DoD の項目。**2b の締めに持ち主が行う**（2026-11-07 の持ち主の決定。作業記録 17.1 の 7）。まだ行っていない |
+| 配る `IosLibrary`（と、もう組まない `UnityIosPlugin`）を署名しないこと | 推奨案で進め、2026-11-14 に持ち主が追認した（作業記録 14.7 の 2）。1.x の配布物の中の framework は署名されていた |
 | `unity-native-plugin` の側の事実 | この文書の `unity-native-plugin` の記述（公開の API の形、ビルドの処理、テストの数）は `1c246a3` を読んだもので、向こうの作業中のブランチの先は見ていない。Unity の Test Runner に出る件数は確かめていない（ソースの属性を数えただけ）。3.3 の入れ方は 1a の使い捨てのプロジェクトの写しで、`unity-native-plugin` のパッケージを通した形は誰も確かめていない（作業記録 16.4） |
 | 複数の window の iPad | 前面の探し方はどちらかの window を選び、どちらに出るかは決まらない（README 3.1、P1-11 の C）。C ABI に表示元を渡す口は無い |
 
