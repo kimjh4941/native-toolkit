@@ -3150,3 +3150,14 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 | C | CL-08 の「省略を general に」の前提 | Claude | 4.7 に前提を書いた |
 
 関数名・列挙の値・エラーの値・134 という関数の数には、2 者とも食い違いを見つけなかった。指摘はどれもヘッダーと設計書の実物で確かめてから直した。直した後、引いた節の番号（第 1 部 5.7、第 2 部 6.1・6.3、README 5 章）も実物で照らした。
+
+### 17.13 2b の締めの決定（2026-11-14、利用者）
+
+| # | 項目 | 決定 |
+|---|---|---|
+| 1 | 製品のリリース版 | **1.14.0**（`dist/1.14.0`）。1.13.0 の次。`IosLibrary` と capi は D-19 のとおり 2.0.0 |
+| 2 | `dist/1.14.0` の中身 | iOS は `ios-native-toolkit-2.0.0.xcframework`、`ios-native-toolkit-capi-2.0.0.xcframework`、`include/NativeToolkitC/`（ブリッジは入れない。D-20）。Android・Windows・macOS は 1.13.0 と同じもの（1.13.0 の後に変わったのは Android の Gradle の JDK の設定だけで、ソースは変わっていない） |
+| 3 | `unity-native-plugin` の 3 つ（README 5 章） | 利用者の指示で、メインのセッションが `unity-native-plugin` のセッションに頼んだ（2026-11-14 10:3x）。頼んだ時点で、`unity-native-plugin` の `feature/UNT-14` は `1c246a3` のままで、`Plugins/iOS/VERSION.txt` は無かった（読むだけで確かめた）。済んだと知らせが来たら、読むだけで確かめてから `dist/1.14.0` を作る |
+| 4 | 配布用の署名・Validate App・プライバシーのレポート | 利用者が `dist/1.14.0` を作った後に行う（配る xcframework そのもので確かめるため）。手順書は `results/2026-11-14-ios-c-abi-distribution-signing-procedure.md`（smoke のアーカイブを使う。1b の MS-10 もここで行う） |
+
+手順書のレビュー（別モデル 2 者を並べて。観点は「書いたとおりに進めて動くか、コマンドは正しいか」の 1 つ）: 区分 A は 2 者とも同じ 1 件（`codesign` の出し方では `Authority=` と `TeamIdentifier=` がそろって出ない。`-dv` は `Authority=` を出さず、`-dvv` でも `head -2` では `TeamIdentifier=` が落ちる。アプリ自身の Team も出していなかった）。B は、smoke の署名の ID が `-` のまま自動の署名とぶつかる、書き出し先は Xcode が作る空白入りのフォルダー、名前と Team ID を書かないことが任意のままだった、smoke はアイコンが無く Validate App が D-18 と関係の無いエラーで落ちる見込み、Xcode が聞かずに証明書とプロファイルを作りうる・Ad Hoc に登録の端末が要る、App Store Connect の記録を作る画面が出うる。C は、`--device-build` で先に確かめる、`IosLibraryCApi` の節は出ない見込み、DerivedData と App ID の後片付け、有料の Program が要る、レポートに節が出ないときはマニフェストを直接見る。どれも実物（pbxproj、スクリプト、システムの Calculator.app での `codesign`）で確かめてから直した。Validate App は smoke では行わず、2c の Unity のアプリで行うことを既定にした。直した `codesign` の形は Calculator.app で流して出力を確かめた。
