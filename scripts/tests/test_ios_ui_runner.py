@@ -365,6 +365,7 @@ class SimulatorOnly(unittest.TestCase):
     D22 = "DialogUITests/testD22_aRequestUnderControlCenterIsShown"
     N40 = "NotificationPermissionUITests/testN40_theAppNotificationSettingsLinkSendsASettingsRequest"
     N42 = "NotificationPermissionUITests/testN42_aPermissionRequestInTheBackgroundReportsNotForeground"
+    CB1 = "ClipboardPasteUITests/testCB1_allowPasteLoadsText"
     CB3 = "ClipboardPasteUITests/testCB3_pasteControlReadsText"
     CB4 = "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly"
 
@@ -386,6 +387,7 @@ class SimulatorOnly(unittest.TestCase):
             "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",
             self.N40,
             self.N42,
+            self.CB1,
             self.CB3,
             self.CB4,
         })
@@ -444,23 +446,23 @@ class SimulatorOnly(unittest.TestCase):
         self.assertIn("ShareUITests/testS2_shareTextClose", self.keys(selected))
         self.assertEqual(reasons["ShareUITests/testS17_requestShareCopy"], ["clipboard"])
 
-    def test_clipboard_and_systemui_leave_cb3_and_cb4_out(self):
+    def test_clipboard_and_systemui_leave_cb1_cb3_and_cb4_out(self):
         # Stage 2, 17.1 decision 1: the system paste control does not take a synthesized tap on the
         # device, so CB3 and CB4 run on the simulator only and a person checks them on the device
-        # (HC11, HC12). CB1, CB2, CB5 and CB6 still run on the device with clipboard.
+        # (HC11, HC12). Stage 2, 17.11: CB1 saw no paste alert on the device twice, cause unknown,
+        # so it joins them (HC13). CB2, CB5 and CB6 still run on the device with clipboard.
         selected, excluded = r.select_tests(self.ids, self.table, "device", ["clipboard", "systemui"], "Clipboard")
         reasons = {r.key_from_enumeration_id(i): m for i, _, m in excluded}
-        for key in (self.CB3, self.CB4):
+        for key in (self.CB1, self.CB3, self.CB4):
             self.assertNotIn(key, self.keys(selected))
             self.assertEqual(reasons[key], [r.SIMULATOR_ONLY])
-        for near in ("ClipboardPasteUITests/testCB1_allowPasteLoadsText",
-                     "ClipboardPasteUITests/testCB5_aLoadCancelledAtOnceReportsCancelledOnce",
+        for near in ("ClipboardPasteUITests/testCB5_aLoadCancelledAtOnceReportsCancelledOnce",
                      "ClipboardPasteUITests/testCB6_aBoxCancelledBeforeTheLoadReadsNothing",
                      "ClipboardPasteDenyUITests/testCB2_denyPasteFailsLoadText"):
             self.assertIn(near, self.keys(selected), near)
         device = r.build_invocations(self.ids, selected, "device", "Clipboard", True)
         named = [a for inv in device for a in inv["onlyTesting"]]
-        self.assertFalse([n for n in named if "testCB3_" in n or "testCB4_" in n], named)
+        self.assertFalse([n for n in named if "testCB1_" in n or "testCB3_" in n or "testCB4_" in n], named)
 
     def test_the_simulator_runs_them(self):
         selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])

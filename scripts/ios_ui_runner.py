@@ -108,6 +108,7 @@ SIMULATOR_ONLY_TESTS = frozenset({
     "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem",
     "NotificationPermissionUITests/testN40_theAppNotificationSettingsLinkSendsASettingsRequest",
     "NotificationPermissionUITests/testN42_aPermissionRequestInTheBackgroundReportsNotForeground",
+    "ClipboardPasteUITests/testCB1_allowPasteLoadsText",  # no paste alert on the device, cause unknown: a person (HC13; stage 2, 17.11)
     "ClipboardPasteUITests/testCB3_pasteControlReadsText",  # the paste control: a person on the device (HC11; stage 2, 17.1)
     "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly",  # the same, an image only (HC12)
 })

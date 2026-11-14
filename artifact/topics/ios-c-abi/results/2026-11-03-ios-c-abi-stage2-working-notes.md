@@ -3091,3 +3091,21 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 
 - G2-2: 実機でも、拒否は `read` の失敗にならず、項目 1 件（型の一覧は空、文字列は無し、URL は無し）を返す。第 2 部の M3（70 行）と `read_async` の記述（「拒否は失敗にならない」）のとおり。第 2 部の G2-2 の行（143 行）に実機の結果を足した
 - 結果の行は `✅` から始まる（サンプルは `read` を成功として表す）
+
+### 17.11 CB1 を実機で流さない（2026-11-14、持ち主の決定）
+
+- メインのセッションが 3 案を示し（A: `SIMULATOR_ONLY_TESTS` に移して人の確認 HC13 に回す、B: 実機で原因を調べる、C: 今のまま残す）、利用者が A（推奨）を選んだ。**信頼するファイル `scripts/ios_ui_runner.py` の変更を、CB1 の 1 行を足す範囲で許可された**
+- 理由: CB1 は実機で貼り付けの許可のダイアログが 2 回とも出なかった（11-03 は段階 1b の作業の記録 24.1、11-07 は 17.6）。同じ回の CB2 では出ている。実機の画面の階層は読まない決まりで、ログから原因を絞れない。「許可したら読める」ライブラリの振る舞いは 1b の MS-08 で実機で手で確かめてあり、HC13 はほかのアプリでコピーした内容を読むという実際の使い方をそのまま見る
+- 変えたもの:
+
+| ファイル | 変更 |
+|---|---|
+| `scripts/ios_ui_runner.py` | `SIMULATOR_ONLY_TESTS` に `ClipboardPasteUITests/testCB1_allowPasteLoadsText` の 1 行（12 件になった） |
+| `scripts/tests/test_ios_ui_runner.py` | 集合の一致に CB1。`clipboard` と `systemui` を許しても CB1・CB3・CB4 が除かれ、CB2・CB5・CB6 は選ばれ、実機の名指しに CB1・CB3・CB4 が無いこと |
+| `designs/2026-10-18-ios-c-abi-ui-test-design.md` | 改訂の行、3.5 の CB1 の環境、4 章に HC13、6.3 の 3 の件数（11 → 12） |
+| `ios/IosLibraryExample/ComputerUse/HC-13-allow-paste-load-text.md` | 新しい手順書 |
+
+- 確かめ: `scripts/tests/test_ios_ui_runner.py` の 213 件が Python 3.12.8 と 3.9.6 の両方で通った
+- 次にクリップボードを許す実機の回を流すと、回 2a の形（`--feature Clipboard --device-allow clipboard,systemui`）は 31 件になる（CB1 が `simulator only` で除かれる）
+- HC13 は次の実機の区切りで利用者が行う（今回の区切りでは行っていない）
+- レビュー（2 者、並べて）: Codex は HC13 のダイアログの名前の確かめ（コピー元のアプリの名前も出る）を 1 件（B）。Claude のサブエージェントは HC13 の読み込みの時間切れ 15 秒（B）、README に HC13 の残りが無い（B）、設計書 8 章の 2 行の CB1（C）、17.11 の出典（C）の 4 件。どれも確かめて正しかったので直した。Codex の 1 回目は頼む文の書き方の誤りで動かず、頼み直した
