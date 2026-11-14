@@ -3161,3 +3161,24 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 | 4 | 配布用の署名・Validate App・プライバシーのレポート | 利用者が `dist/1.14.0` を作った後に行う（配る xcframework そのもので確かめるため）。手順書は `results/2026-11-14-ios-c-abi-distribution-signing-procedure.md`（smoke のアーカイブを使う。1b の MS-10 もここで行う） |
 
 手順書のレビュー（別モデル 2 者を並べて。観点は「書いたとおりに進めて動くか、コマンドは正しいか」の 1 つ）: 区分 A は 2 者とも同じ 1 件（`codesign` の出し方では `Authority=` と `TeamIdentifier=` がそろって出ない。`-dv` は `Authority=` を出さず、`-dvv` でも `head -2` では `TeamIdentifier=` が落ちる。アプリ自身の Team も出していなかった）。B は、smoke の署名の ID が `-` のまま自動の署名とぶつかる、書き出し先は Xcode が作る空白入りのフォルダー、名前と Team ID を書かないことが任意のままだった、smoke はアイコンが無く Validate App が D-18 と関係の無いエラーで落ちる見込み、Xcode が聞かずに証明書とプロファイルを作りうる・Ad Hoc に登録の端末が要る、App Store Connect の記録を作る画面が出うる。C は、`--device-build` で先に確かめる、`IosLibraryCApi` の節は出ない見込み、DerivedData と App ID の後片付け、有料の Program が要る、レポートに節が出ないときはマニフェストを直接見る。どれも実物（pbxproj、スクリプト、システムの Calculator.app での `codesign`）で確かめてから直した。Validate App は smoke では行わず、2c の Unity のアプリで行うことを既定にした。直した `codesign` の形は Calculator.app で流して出力を確かめた。
+
+### 17.14 `unity-native-plugin` の 3 つの確かめと、`dist/1.14.0`（2026-11-14）
+
+**`unity-native-plugin` の 3 つ**: 向こうのセッションが `95905d1`（`feature/UNT-14`。`1c246a3` の上。push はまだ）で入れたと知らせてきた。メインのセッションが読むだけで確かめた:
+
+| 頼んだこと | 結果 |
+|---|---|
+| 1. `VERSION.txt` で固定 | iOS は `Plugins/iOS/VERSION.txt`（`dist_version` と、完全な名前の一覧 `xcframeworks`）。1.14.0 の名前への書き換えは、2c で xcframework と同じコミットで行う。**macOS は入れていない**（向こうの利用者が、iOS の作業なので外すと決めた） |
+| 2. 完全一致 | iOS の `PreBuildProcessor`・`PostBuildProcessor`・`IosFrameworkPatcher` は `IosXcframeworkPin` で `VERSION.txt` の名前を読む。書かれた名前が無ければ `BuildFailedException`。前方一致の探索は macOS の道（`FindXcframeworkName`）にだけ残る |
+| 3. `-debug` が無ければ release | `IosXcframeworkPin` が `-debug` があればそれを、無ければ release を選ぶ（Pre と Post の両方） |
+
+向こうの知らせでは、EditMode 1418/1419（skip 1 は Windows だけのテスト。足した `IosXcframeworkPinTests` 22 件を含む）と、偽の dist（2.0.0、2.0.0-debug、capi-2.0.0）での iOS の書き出しで、`IosLibrary` の枠に capi が選ばれないことを確かめた。メインのセッションは向こうのテストを流していない。あわせて、`PostBuildProcessor` が development を Build Settings のチェックで決めていた既存の食い違いも直した（macOS には残る）。
+
+**macOS の固定が無いこと**: `dist/1.14.0/mac` は 1.13.0 と同じ 1.3.0 の 2 つで capi が無いので、前方一致でも選び間違いは起きない。利用者が受け入れ、macOS の固定は macOS の C ABI のトピックに回した。
+
+**`dist/1.14.0`**（利用者の許可の後）:
+
+- iOS: `DEVELOPER_DIR=<Xcode 26.6> scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios`（リリースの組み立てなので `--keep-project-versions` を付けない）。`ios-native-toolkit-2.0.0.xcframework`、`ios-native-toolkit-capi-2.0.0.xcframework`、`include/NativeToolkitC/`。プロジェクトの版が書き換わった: `IosLibrary` の `MARKETING_VERSION` 1.3.0 → 2.0.0、ビルド番号 17 → 18、capi のビルド番号 1 → 2（D-19、14.7 の 1）
+- Android・macOS・Windows: `dist/1.13.0` から `ditto` で写した（`diff -rq` で同じ）。写す前に、1.13.0 の成果物が今のソースと合うことを確かめた（Windows はソースのハッシュが一致、Android は FAIL 0）
+- 確かめ: `check_ios_dist.py 1.14.0` は全項目 OK（FAIL・SKIP 0）。`check_windows_dist.py 1.14.0` は全項目 OK。`check_android_dist.py 1.14.0` はマニュアルの照合の 1 項目だけが FAIL（`manual/1.14.0/index*.md` がまだ無い。段階 4 とリリースで作る）。ほかは OK
+- 次: 利用者が手順書（`results/2026-11-14-ios-c-abi-distribution-signing-procedure.md`）で配布用の署名とプライバシーのレポートを行う。2c で `unity-native-plugin` が `dist/1.14.0` を使う
