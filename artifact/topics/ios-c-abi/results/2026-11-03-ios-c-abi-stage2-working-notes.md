@@ -3182,3 +3182,12 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 - Android・macOS・Windows: `dist/1.13.0` から `ditto` で写した（`diff -rq` で同じ）。写す前に、1.13.0 の成果物が今のソースと合うことを確かめた（Windows はソースのハッシュが一致、Android は FAIL 0）
 - 確かめ: `check_ios_dist.py 1.14.0` は全項目 OK（FAIL・SKIP 0）。`check_windows_dist.py 1.14.0` は全項目 OK。`check_android_dist.py 1.14.0` はマニュアルの照合の 1 項目だけが FAIL（`manual/1.14.0/index*.md` がまだ無い。段階 4 とリリースで作る）。ほかは OK
 - 次: 利用者が手順書（`results/2026-11-14-ios-c-abi-distribution-signing-procedure.md`）で配布用の署名とプライバシーのレポートを行う。2c で `unity-native-plugin` が `dist/1.14.0` を使う
+
+### 17.15 配布用の署名とプライバシーのレポートの結果（2026-11-14、利用者）
+
+手順書（`results/2026-11-14-ios-c-abi-distribution-signing-procedure.md`）の 6 章に結果を書いた。要約:
+
+- アーカイブ: `dist/1.14.0` の 2 つの xcframework を埋め込んだ smoke の写しで、Xcode 26.6 の Archive が通った。最初に利用者がリポジトリの中の `ios/IosLibraryCApiSmoke/` を開き、「There is no XCFramework found」で止まり、署名の設定と Team ID がリポジトリの `project.pbxproj` に入った。利用者の了承を得て `git checkout` で戻し（コミットはしていない）、手順書に開き間違えないための注意を足した
+- プライバシーのレポート（1b の MS-10）: PDF は白紙。アーカイブの中の `IosLibrary` のマニフェストを `plutil` で見て、FileTimestamp と C617.1、トラッキング無し、集めるデータ無しを確かめた
+- 署名し直し（D-18）: 利用者のチームは Personal Team で、Program に登録していないので、配布用の書き出し（Release Testing）と Validate App は進めなかった。利用者は代わりの確かめ（アーカイブの中の `codesign`）を選んだ。アプリと 2 つの framework が同じ開発用の証明書（Apple Development、同じ Team）で署名され、`--verify --deep --strict` も通った。**署名なしで配る framework を、アプリの側が組むときに署名し直すことは確かめた。配布用の証明書での確かめと Validate App は、Program の登録が要るので残る**（README 9 章の DoD のその項目は開いたまま）
+- 後片付けは利用者が行う（手順書の 5 章）

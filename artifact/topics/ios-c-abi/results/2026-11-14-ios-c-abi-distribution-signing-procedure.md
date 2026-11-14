@@ -4,7 +4,7 @@
 - 対象: `artifact/topics/ios-c-abi/README.md` の 9 章（DoD）の 2 項目
   - 配布用の署名（Distribution のアーカイブと Organizer の Validate App）で、2 つの framework がアプリの証明書で署名し直されることを確かめる（D-18）
   - `IosLibrary` のプライバシーマニフェストが、使っている理由の申告が要る API と一致する（アーカイブのプライバシーのレポートで確かめる。段階 1b の MS-10。1b の作業の記録 20.9）
-- 行う人: 利用者（段階 2 の作業の記録 17.1 の決定 7）。Mac と Xcode と利用者の開発者のアカウントだけを使い、**実機は使わない**。配布用の書き出しには有料の Apple Developer Program のチームが要る（無料の Personal Team ではできない）
+- 行う人: 利用者（段階 2 の作業の記録 17.1 の決定 7）。Mac と Xcode と利用者の開発者のアカウントだけを使い、**実機は使わない**。配布用の書き出しには有料の Apple Developer Program のチームが要る（無料の Personal Team ではできない。2026-11-14 の時点で、利用者のチームは Personal Team だった。6 章）
 - **公開のリポジトリに書かないもの**: 利用者の名前、Team ID、証明書の名前。知らせてもらうのは「Apple Distribution で始まるか」「同じか」だけで、agent も表にそれ以外を書かない
 - 行う時期: `dist/1.14.0` を作った後（17.13）。配る xcframework そのもので確かめるため
 - agent は Xcode の画面を見ない。結果は文字で知らせてもらう
@@ -25,7 +25,7 @@ scripts/run_ios_capi_smoke.sh --dist dist/1.14.0/ios --work ~/Desktop/ntk-2b-sig
 
 ## 1. アーカイブを作る
 
-1. Xcode 26.6 で `~/Desktop/ntk-2b-signing/IosLibraryCApiSmoke/IosLibraryCApiSmoke.xcodeproj` を開く
+1. Xcode 26.6 の「File」→「Open」で `~/Desktop/ntk-2b-signing/IosLibraryCApiSmoke/IosLibraryCApiSmoke.xcodeproj` を開く。**リポジトリの中の `ios/IosLibraryCApiSmoke/` を開かない**（同じ名前で、`Frameworks/` が無いので「There is no XCFramework found」で止まり、署名の設定と Team ID がリポジトリのファイルに入る。2026-11-14 に一度起きた）。「最近使った項目」から開かず、開いた後に左のプロジェクトを右クリック →「Show in Finder」で `ntk-2b-signing` の中であることを確かめる
 2. 左でプロジェクトを選び、ターゲット `IosLibraryCApiSmoke` の「Signing & Capabilities」で、「Automatically manage signing」をオンにし、Team に自分のチームを選ぶ（プロジェクトは手動の署名で、Team は空。写しの中だけが変わる）
 3. 同じターゲットの「Build Settings」で「Code Signing Identity」を探し、Debug と Release のどちらも「Sign to Run Locally」（`-`）になっていれば「Apple Development」に変える。変えないと「automatically signed, but code signing identity - has been manually specified」の類のエラーになる見込み（プロジェクトの既定は `-`。2026-11-07 の実機の回では、組み立ての旗で同じ上書きをして通った。段階 2 の作業の記録 17.8）
 4. 上の実行先で「Any iOS Device (arm64)」を選ぶ
@@ -85,9 +85,9 @@ scripts/run_ios_capi_smoke.sh --dist dist/1.14.0/ios --work ~/Desktop/ntk-2b-sig
 
 | 項目 | 結果 |
 |---|---|
-| アーカイブ（1） | |
-| プライバシーのレポート（2 の (a)〜(d)） | |
-| 署名し直し（3 の 5） | |
-| Validate App（4。smoke で行った場合だけ） | |
+| アーカイブ（1） | 2026-11-14 11:27、Xcode 26.6、`dist/1.14.0` の写し。通った（開発用の署名。チームは無料の Personal Team） |
+| プライバシーのレポート（2 の (a)〜(d)） | PDF は白紙（集めるデータもトラッキングも無いので、表に載せるものが無いと見ている。理由の申告が要る API はレポートの表に出ない作りと見ているが、Apple の文書では確かめていない）。2 の 3 の `plutil` で、アーカイブの中の `IosLibrary.framework/PrivacyInfo.xcprivacy` が `NSPrivacyAccessedAPICategoryFileTimestamp` と `C617.1`、`NSPrivacyTracking` が false、集めるデータとトラッキングのドメインが空であることを確かめた。`IosLibraryCApi` と smoke はマニフェストを持たない |
+| 署名し直し（3 の 5） | **3 章は進めなかった**: 「Release Testing」で「Team "…(Personal Team)" is not enrolled in the Apple Developer Program」。利用者のチームは Program に登録していない。代わりに、アーカイブの中（`Products/Applications/IosLibraryCApiSmoke.app`）で同じ `codesign` を流した: アプリと 2 つの framework の 3 つとも `Authority=Apple Development:`、`TeamIdentifier=` の行の要約が 3 つとも同じ、`valid on disk` と `satisfies its Designated Requirement`。**署名なしの 2 つの framework が、アーカイブのときにアプリと同じ開発用の証明書で署名し直された**。配布用の証明書（Apple Distribution）での確かめは、Program の登録が要るので残る |
+| Validate App（4。smoke で行った場合だけ） | 行っていない（Program の登録が要る。smoke はアイコンも無い） |
 
 作れない・進めないところがあれば、その場で止めて、出た文面を知らせる。
