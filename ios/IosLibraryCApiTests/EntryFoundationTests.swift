@@ -122,6 +122,10 @@ final class EntryFoundationTests: XCTestCase {
         XCTAssertEqual(recorder.completions.count, 1)
         XCTAssertEqual(Entry.reject(.invalidParameter, userData: nil, release: nil), 1)
 
+        #if arch(x86_64)
+        // On an x86_64 simulator OSLogStore returns no entries although the line is logged, so the line is
+        // read on arm64 only (stage 2 working notes 15.9; the owner's decision in 17.12).
+        #else
         let store = try OSLogStore(scope: .currentProcessIdentifier)
         let lines = try store.getEntries(at: store.position(date: Date(timeIntervalSinceNow: -3600)))
             .compactMap { $0 as? OSLogEntryLog }
@@ -133,6 +137,7 @@ final class EntryFoundationTests: XCTestCase {
             XCTAssertTrue(line.contains(VersionCheck.libraryVersion ?? "?"), line)
             XCTAssertTrue(line.contains(VersionCheck.capiVersion), line)
         }
+        #endif
     }
 
 }

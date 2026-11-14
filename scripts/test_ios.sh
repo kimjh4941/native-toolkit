@@ -31,8 +31,9 @@
 #                     (the device always does)
 #   --capi-ui         only the UI tests of the C ABI (IosLibraryCApiUITests, C ABI design part 2,
 #                     TB-2b and 12.2): a simulator only, and it takes no other option but --udid.
-#                     Needs Xcode 26.6 through DEVELOPER_DIR. It restarts that simulator before every
-#                     xcodebuild; nothing else may run on it during the run (there is no lock)
+#                     Needs Xcode 26.6 through DEVELOPER_DIR and Simulator.app closed. It restarts
+#                     that simulator before every xcodebuild; nothing else may run on it during the
+#                     run (there is no lock)
 #   --capi            only the checks of the C ABI (C ABI design part 1, C-6; part 2, TB-12): a
 #                     simulator only, and it takes no other option but --udid. Needs Xcode 26.6
 #                     through DEVELOPER_DIR and Simulator.app closed. IosLibraryCApiTests without a
@@ -463,9 +464,23 @@ if [[ "${KIND}" == "simulator" ]]; then
   trap restore_simulator EXIT
 fi
 
+# Simulator.app syncs the simulator's pasteboard with the Mac's (agent-rules/device-testing.md). --capi and
+# --capi-ui never open or close it; an open one stops the run before each step that uses the simulator.
+capi_require_no_simulator_app() {
+  local status=0
+  pgrep -x Simulator > /dev/null || status=$?
+  if [[ "${status}" -eq 0 ]]; then
+    echo "Error: Simulator.app is open; close it and run again (agent-rules/device-testing.md)" >&2; exit 2
+  elif [[ "${status}" -ne 1 ]]; then
+    # Only "no process matched" (1) says that it is closed.
+    echo "Error: pgrep failed (status ${status}); cannot tell whether Simulator.app is open" >&2; exit 2
+  fi
+}
+
 # --- The UI tests of the C ABI: their own project, plan and results; none of the sample's stages -----
 if [[ "${CAPI_UI}" -eq 1 ]]; then
   runner capi-check-xcode --xcode "${XCODE}"
+  capi_require_no_simulator_app
   if [[ "${INITIAL_SIM_STATE}" == "Booted" ]]; then
     echo "Warning: --capi-ui restarts ${UDID}, which is booted, before every xcodebuild; nothing else may run on it during this run" >&2
   fi
@@ -482,6 +497,7 @@ if [[ "${CAPI_UI}" -eq 1 ]]; then
   # notes, 5.4). The restart keeps the permissions, so it does not replace the deletion. simctl
   # shutdown fails on a simulator already shut down, so the state afterwards is what counts.
   capi_restart_simulator() {
+    capi_require_no_simulator_app
     capped 120 xcrun simctl shutdown "${UDID}" > /dev/null 2>&1 || true
     capped 120 xcrun simctl list -j devices > "${OUT_DIR}/simctl-restart.json" \
       || { echo "Error: simctl list failed or timed out while restarting ${UDID}" >&2; exit 1; }
@@ -567,18 +583,6 @@ fi
 if [[ "${CAPI}" -eq 1 ]]; then
   capi_runner() { python3 "${ROOT_DIR}/scripts/ios_capi_runner.py" "$@"; }
   capi_runner check-xcode --xcode "${XCODE}"
-  # Simulator.app syncs the simulator's pasteboard with the Mac's (agent-rules/device-testing.md). It is
-  # never opened or closed here; an open one stops the run before each step that uses the simulator.
-  capi_require_no_simulator_app() {
-    local status=0
-    pgrep -x Simulator > /dev/null || status=$?
-    if [[ "${status}" -eq 0 ]]; then
-      echo "Error: Simulator.app is open; close it and run again (agent-rules/device-testing.md)" >&2; exit 2
-    elif [[ "${status}" -ne 1 ]]; then
-      # Only "no process matched" (1) says that it is closed.
-      echo "Error: pgrep failed (status ${status}); cannot tell whether Simulator.app is open" >&2; exit 2
-    fi
-  }
   capi_require_no_simulator_app
   CAPI_VERSION="$(capi_runner version --common-h "${IOS_DIR}/IosLibraryCApi/include/NativeToolkitC/Common.h")"
   CAPI_DIST="${OUT_DIR}/capi-dist"

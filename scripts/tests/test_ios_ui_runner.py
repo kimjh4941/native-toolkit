@@ -1971,6 +1971,13 @@ if "rev-parse" in args:
     print(os.environ["FAKE_HEAD"])
 sys.exit(0)
 ''',
+    # Simulator.app: closed (no match, status 1) unless FAKE_SIMULATOR_APP_OPEN is set.
+    "pgrep": r'''
+import json, os, sys
+with open(os.environ["FAKE_LOG"], "a") as log:
+    log.write("pgrep " + json.dumps(sys.argv[1:]) + "\n")
+sys.exit(0 if os.environ.get("FAKE_SIMULATOR_APP_OPEN") else 1)
+''',
 }
 
 
@@ -2589,6 +2596,26 @@ class CApiUiEndToEnd(unittest.TestCase):
         self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
         self.assertIn("DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer", finished.stderr)
         self.assert_nothing_was_built_or_run(log)
+
+    def test_an_open_simulator_app_stops_it_before_the_build(self):
+        # Stage 2, 17.12 (owner's decision on 15.7, item 4): --capi-ui checks Simulator.app as --capi does.
+        self.env["FAKE_SIMULATOR_APP_OPEN"] = "1"
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 2, finished.stdout + finished.stderr)
+        self.assertIn("Simulator.app is open", finished.stderr)
+        self.assert_nothing_was_built_or_run(log)
+
+    def test_simulator_app_is_checked_before_every_restart(self):
+        finished, log = self.run_script("--udid", SIMULATOR, "--capi-ui")
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        lines = log.splitlines()
+        # A restart is a shutdown, simctl list and bootstatus (the trap's last shutdown boots nothing).
+        shutdowns = [i for i, line in enumerate(lines) if "simctl" in line and "shutdown" in line
+                     and i + 2 < len(lines) and "bootstatus" in lines[i + 2]]
+        self.assertEqual(len(shutdowns), sum("bootstatus" in x for x in lines), log)
+        self.assertTrue(shutdowns, log)
+        for index in shutdowns:
+            self.assertTrue(lines[index - 1].startswith("pgrep "), lines[index - 1])
 
     def test_a_failed_build_stops_it_with_the_log(self):
         self.env["FAKE_BUILD_FAILS"] = "1"

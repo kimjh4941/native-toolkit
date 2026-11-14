@@ -139,6 +139,8 @@ MUTATIONS = [
     ('capi-ui: the plan lets a device through', M, '    if kind != "simulator":\n        raise RunnerError("the UI tests of the C ABI', '    if False:\n        raise RunnerError("the UI tests of the C ABI'),
     ('capi-ui: other options accepted', S, 'if [[ "${CAPI_UI}" -eq 1 && ( -n "${OTHER_OPTIONS}" || "${CAPI}" -eq 1 ) ]]; then', 'if false; then'),
     ('capi-ui: no restart before a call', S, '    capi_restart_simulator\n', ''),
+    ('capi-ui: Simulator.app not checked at the start', S, '  runner capi-check-xcode --xcode "${XCODE}"\n  capi_require_no_simulator_app\n', '  runner capi-check-xcode --xcode "${XCODE}"\n'),
+    ('capi-ui: Simulator.app not checked before a restart', S, '  capi_restart_simulator() {\n    capi_require_no_simulator_app\n', '  capi_restart_simulator() {\n'),
     ('capi-ui: no deletion before a fresh test', M, '                add("fresh", capi_key_from_enumeration_id(identifier), cls, [identifier], [identifier], True)', '                add("fresh", capi_key_from_enumeration_id(identifier), cls, [identifier], [identifier], False)'),
     ('capi-ui: the script ignores the deletion', S, '      xcrun simctl uninstall "${UDID}" "${CAPI_BUNDLE_ID}" \\\n        || {', '      : \\\n        || {'),
     ('capi-ui: deletes the sample instead', S, '      xcrun simctl uninstall "${UDID}" "${CAPI_BUNDLE_ID}"', '      xcrun simctl uninstall "${UDID}" "${BUNDLE_ID}"'),
