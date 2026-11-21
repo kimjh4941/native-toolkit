@@ -114,4 +114,43 @@ struct NotificationRepositoryMarkerTests {
         #expect(await center.pendingNotificationRequests().isEmpty)
         #expect(center.calls == ["add a", "removeAll", "add b", "removeAll"])
     }
+
+    /// A request 1.x left behind has no marker (S-P17; the upgrade test design, U-8): it is listed
+    /// with its userInfo as it is and is cancelled by its identifier. The userInfo is the 1.13.0
+    /// sample's.
+    @Test func aLegacyRequestWithoutTheMarkerIsListedAsItIsAndCancelled() async throws {
+        let center = FakeRequestCenter()
+        let repository = NotificationRepositoryImpl(requestCenter: center)
+        let content = UNMutableNotificationContent()
+        content.title = "Scheduled Location"
+        content.categoryIdentifier = "sample-category"
+        content.userInfo = ["source": "IosLibraryExample", "id": "scheduled-notification"]
+        try await center.add(UNNotificationRequest(identifier: "scheduled-notification", content: content, trigger: nil))
+
+        let scheduled = try #require(await repository.getScheduled().first { $0.identifier == "scheduled-notification" })
+        #expect(scheduled.categoryIdentifier == "sample-category")
+        #expect(scheduled.userInfo["source"] as? String == "IosLibraryExample")
+        #expect(scheduled.userInfo["id"] as? String == "scheduled-notification")
+        #expect(scheduled.userInfo.count == 2)
+
+        await repository.cancelScheduled(identifier: "scheduled-notification")
+        #expect(await repository.getScheduled().isEmpty)
+    }
+
+    /// A notification 1.x delivered has no marker either: it is handed back with its userInfo as it is.
+    @Test func aLegacyDeliveredNotificationWithoutTheMarkerIsHandedBackAsItIs() {
+        let content = UNMutableNotificationContent()
+        content.title = "Immediate Notification"
+        content.categoryIdentifier = "sample-category"
+        content.userInfo = ["source": "IosLibraryExample", "id": "sample-notification"]
+
+        let delivered = NotificationRepositoryImpl.activeNotification(identifier: "sample-notification",
+                                                                      date: Date(timeIntervalSince1970: 1_000), content: content)
+
+        #expect(delivered.identifier == "sample-notification")
+        #expect(delivered.categoryIdentifier == "sample-category")
+        #expect(delivered.userInfo["source"] as? String == "IosLibraryExample")
+        #expect(delivered.userInfo["id"] as? String == "sample-notification")
+        #expect(delivered.userInfo.count == 2)
+    }
 }
