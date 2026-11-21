@@ -56,7 +56,7 @@
 | 項目 | 前提 |
 |---|---|
 | 守る相手 | エージェントと開発者の**うっかりした誤り**（宣言の付け忘れ、区分の書き誤り、補助を使わない直書き、継承や `#if` での思わぬ動き、許可の使い回し）。**わざと守りを破るコードは対象外**とする |
-| 信頼する部分 | 基底のファイル（`Support/SampleUITestCase.swift`）と `Support/` の決まったファイル（`SampleApp.swift`、`Springboard.swift`、`ShareSheet.swift`、`RunnerPasteboard.swift`、`UnexpectedAlertGuard.swift`、`NotificationCleanup.swift`、`SystemLabels.swift`。印の発行、アプリの操作、springboard と Share のシートの操作、監視）は「信頼する部分」とし、**中身をハッシュでランナーに固定する**。変わったら、ランナーは実機で流さず、許可を求める一覧（`--dry-run`）に「信頼する部分が変わった」と示す。信頼する部分を変えるときは、別のモデルのレビューを通してからハッシュを更新する（6.3 の 2。レビュー v5 A-23） |
+| 信頼する部分 | 基底のファイル（`Support/SampleUITestCase.swift`）と `Support/` の決まったファイル（`SampleApp.swift`、`Springboard.swift`、`ShareSheet.swift`、`RunnerPasteboard.swift`、`UnexpectedAlertGuard.swift`、`NotificationCleanup.swift`、`SystemLabels.swift`、更新のテストの `LegacySampleApp.swift`（2026-11-21）。印の発行、アプリの操作、springboard と Share のシートの操作、監視）は「信頼する部分」とし、**中身をハッシュでランナーに固定する**。変わったら、ランナーは実機で流さず、許可を求める一覧（`--dry-run`）に「信頼する部分が変わった」と示す。信頼する部分を変えるときは、別のモデルのレビューを通してからハッシュを更新する（6.3 の 2。レビュー v5 A-23） |
 | 最終の守り | 実機で流すたびに、流すテストの名前と区分の一覧を利用者に見せて許可を得る。許可は 1 回かぎりで、使い回せない（U-9 の柱 3。レビュー v5 A-24） |
 
 この前提の下で、閉じた形のソースの規則（6.1）は信頼する部分の外のファイル（テストのクラス）を対象にし、信頼する部分の中身はハッシュの固定とレビューで守る。
@@ -459,7 +459,7 @@ U-17 の名前の付け方。識別子は `Button` そのものに付ける（C-
 | `class func` / `static` の上書き | 基底のファイルの外では、`class func`・`class var`・`static` の `override` を禁じる（`class func setUp()` / `tearDown()`、`defaultTestSuite` などの入口を塞ぐ）。上書きでない `static func`（今の `ClipboardUITests` の `parseSequence` など）は許す |
 | `#if` | テストのターゲットのすべてのファイルで禁じる（実機とシミュレーターでテストの集合や中身が変わるのを防ぐ。シミュレーターか実機かの分岐は、基底のファイルの 1 か所だけで `#if targetEnvironment(simulator)` を許し、ほかでは基底の `isDevice` を読む。レビュー v4 A-20） |
 | `import` | `XCTest` と `Foundation` だけ（`import Testing` も禁じる。Swift Testing のテストは列挙と名指しの形が違うため）。`Support/` の決まったファイルは、要るなら `UIKit` も許す |
-| 危ない型の名前 | `XCUIApplication`、`XCUIDevice`、`UIPasteboard`、`addUIInterruptionMonitor` は、`Support/` の決まったファイル（`SampleApp.swift`、`Springboard.swift`、`ShareSheet.swift`、`RunnerPasteboard.swift`、`UnexpectedAlertGuard.swift`、`SampleUITestCase.swift`）の中だけ。例外は、ハッシュで固定した `IosLibraryExampleUITests.swift`（`ClipboardUITests`）の中の今の出現（`XCUIApplication` が 2 回、`XCUIDevice` が 1 回。雛形を消した後の数）だけで、ファイル・回数で照らす |
+| 危ない型の名前 | `XCUIApplication`、`XCUIDevice`、`UIPasteboard`、`addUIInterruptionMonitor` は、`Support/` の決まったファイル（`SampleApp.swift`、`Springboard.swift`、`ShareSheet.swift`、`RunnerPasteboard.swift`、`UnexpectedAlertGuard.swift`、`SampleUITestCase.swift`、更新のテストの `LegacySampleApp.swift`（2026-11-21））の中だけ。例外は、ハッシュで固定した `IosLibraryExampleUITests.swift`（`ClipboardUITests`）の中の今の出現（`XCUIApplication` が 2 回、`XCUIDevice` が 1 回。雛形を消した後の数）だけで、ファイル・回数で照らす |
 | 識別子の文字列 | 信頼する部分の外で、`"share.button.`・`"menu.`・`"clipboard.` などの識別子の文字列を書かない。例外は、ハッシュで固定した `IosLibraryExampleUITests.swift` の中の `ClipboardID` の範囲全体（雛形を消した後の 16〜24 行。`"menu.clipboard"`、`"clipboard.result"` など。ファイルをハッシュで固定するので、範囲を広げても中身は変わらない。レビュー v5 C-13） |
 | バンドルを読み込んだ時点で走るもの | `NSPrincipalClass`（ソースと、テストのターゲットの Info.plist と build setting）、`XCTestObservationCenter`、`+load` を禁じる。テストのターゲットのフォルダーに `.m` / `.c` / `.mm` を置かせない |
 
@@ -708,7 +708,7 @@ Android の `scripts/test_android.sh` の形に合わせる。**実機で流す�
 ### 8.4 後回しにすること
 
 - 通知センターの経路の自動化（U-5）。区切りのときに HC4 で確かめる
-- 更新のテスト（1.13.0 のサンプルから 2.0.0 へ。README 7 章）。この文書の範囲外で、1b の後に別に設計する
+- 更新のテスト（1.13.0 のサンプルから 2.0.0 へ。README 7 章）。この文書の範囲外で、1b の後に別に設計する → **設計して作った（2026-11-21。`designs/2026-11-21-ios-c-abi-upgrade-test-design.md`）**。`UpgradeUITests` はランナーの普段の計画に入らず（`SCRIPT_ONLY_CLASSES`）、`scripts/test_ios_upgrade.sh` だけがシミュレーターで流す
 - iPad、位置の発火、件名、`openSettingsFor`
 - ライブラリの単体テストを機能で絞ること（`feature-scoped-testing`）
 - iOS の CI（README 8.4）

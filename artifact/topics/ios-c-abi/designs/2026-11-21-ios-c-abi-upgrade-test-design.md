@@ -1,7 +1,7 @@
 # 更新のテストの設計（1.13.0 のサンプルから 2.0.0 へ）
 
 - 日付: 2026-11-21
-- 状態: **v3**。v1 のレビュー（`reviews/2026-11-21-ios-c-abi-upgrade-test-design-review-v1.md`。C-n・K-n）と v2 のレビュー（同 `-review-v2.md`。C2-n・K2-n）の指摘を入れた。v2 で測っていなかった前提（上書きの後の位置の条件と許可、印のファイル、前面での展開と 1.x の入力欄での返信）は v3 の前に測った（8 章）。利用者の指示（2026-11-21「推奨案でいい」）で推奨案のまま実装に進み、実装のレビューで設計との一致も見てもらう
+- 状態: **v3（実装済み）**。実装と結果は 9 章。v1 のレビュー（`reviews/2026-11-21-ios-c-abi-upgrade-test-design-review-v1.md`。C-n・K-n）と v2 のレビュー（同 `-review-v2.md`。C2-n・K2-n）の指摘を入れた。v2 で測っていなかった前提（上書きの後の位置の条件と許可、印のファイル、前面での展開と 1.x の入力欄での返信）は v3 の前に測った（8 章）。利用者の指示（2026-11-21「推奨案でいい」）で推奨案のまま実装に進み、実装のレビューで設計との一致も見てもらう
 - 対象: README 7 章の「更新のテスト」と 9 章の DoD「1.x（1.13.0 のサンプル）から 2.0.0 への更新のテストで、予約した通知・category・表示中の通知が壊れない」。UI テストの設計書 8.4 で「1b の後に別に設計する」とした
 - 期待値の元: Swift の API の設計書 S-P17 と 8.5.6（1.x の通知には何もしない。予約・表示中のものは `identifier` で取り消せ、一覧に印の無い userInfo のまま出る）と 5.12.3（印の無い通知と応答は、前の delegate が無ければライブラリが扱う）。README D-12（サンプルのアプリの bundle id は変えない）
 
@@ -28,7 +28,7 @@
 | U-4 | 入った版の確かめ | **(1) スクリプトが写しの `.xctestrun` を読み、UI テストの target の替えた鍵に `__TESTROOT__` が 1 つも残っていないことを確かめる（K2-8）。(2) 前半の後に `IosLibrary.framework` の `CFBundleIdentifier` が `ios.library.IosLibrary`（版 1.3.0）、後半の後に `com.jonghyunkim.nativetoolkit.IosLibrary`（2.0.0）であることを確かめる。(3) 前半のテストは、1.x の通知の画面を開いた後で、2.0.0 にしか無い識別子（`notification.` で始まるもの）が 0 個であることを確かめる**（K-1） | 差し替えが効かずに 2.0.0 → 2.0.0 になると、文字で押す前半も 2.0.0 で動き、全部通ってしまう。(2) はアプリの中の framework を見るだけで、実際に読まれたものは (1) で守る |
 | U-5 | 発火のさせ方 | **予約は位置の条件（1.x の `ScheduleLocation(Tokyo Station, onEntry)`）。前半の前に `simctl privacy grant location <bundle id>` で位置の許可を与え、位置を大阪に置く。後半のテストは用意ができたら、スクリプトが `TEST_RUNNER_NTK_UPGRADE_SIGNAL` で渡したファイルに自分の段の名前（`UB2` など）を書く。スクリプトは後半の `xcodebuild` を背後で始め、そのファイルに段の名前が書かれるのを最長 180 秒待ち、来たら位置を東京駅へ動かす。来る前に `xcodebuild` が終わった、または 180 秒を過ぎたら、`xcodebuild` を止めて FAIL**（K-2、C-3、C2-1、K2-4） | 1.x のカレンダーの予約は押した 60 秒後ちょうどに発火し、間に後半の準備が入るので間に合わない。位置の条件なら発火の時刻をスクリプトが決められる。シミュレーターのプロセスは Mac のファイルを書けるので、出力のバッファに頼らない（8 章で、書いてから約 1 秒で見えた） |
 | U-6 | 組の分け方 | **3 つの組（A・B・C）。組ごとにアプリを消し、位置の許可を与え直してから始める。前半が落ちたら、その組の後半は流さずに FAIL** | 1.x のサンプルは予約の ID が 1 つ（`scheduled-notification`）で、予約のボタンは互いに置き換える。組を分けると、前の組の残りが次の組の期待値を変えない |
-| U-7 | ランナーへの組み込み | **新しい表 `SCRIPT_ONLY_CLASSES = (("UpgradeUITests", "Notification"),)` を設ける。`check_enumeration` の既知のクラスと機能の表には含め、`select_tests` は理由 `UPGRADE_SCRIPT_ONLY` を付けて `excluded` に入れる**（シミュレーターでも）。`print_selection`・`cmd_summary` がその理由を出す。`CLASS_MINIMUMS` に `{"reinstall", "systemui"}`。`DeviceRequirements.json` に 6 つを `["reinstall", "systemui"]`、`SIMULATOR_ONLY_TESTS` にも入れる（K-3、C-2、K2-7） | `SEPARATE_CLASSES` は「普段の計画の中で別の段として流すクラス」なので混ぜない。`UI_CLASSES` に入れると、普段の実行で 6 件が skip になり、ランナーは意図しない skip を失敗にする。外した理由が計画と要約に出る |
+| U-7 | ランナーへの組み込み | **新しい表 `SCRIPT_ONLY_CLASSES = (("UpgradeUITests", "Notification"),)` を設ける。`check_enumeration` の既知のクラスと機能の表には含め、`select_tests` は理由 `SCRIPT_ONLY`（`"script-only"`。実装の名前）を付けて `excluded` に入れる**（シミュレーターでも）。`print_selection`・`cmd_summary` がその理由を出す。`CLASS_MINIMUMS` に `{"reinstall", "systemui"}`。`DeviceRequirements.json` に 6 つを `["reinstall", "systemui"]` で宣言する。`SIMULATOR_ONLY_TESTS` には入れない（実装で変えた: その表は「シミュレーターでは選ばれる」ことを自己テストが求める。`SCRIPT_ONLY` の除外は実機でも働き、スクリプトはシミュレーターしか受けない）（K-3、C-2、K2-7） | `SEPARATE_CLASSES` は「普段の計画の中で別の段として流すクラス」なので混ぜない。`UI_CLASSES` に入れると、普段の実行で 6 件が skip になり、ランナーは意図しない skip を失敗にする。外した理由が計画と要約に出る |
 | U-8 | 一覧の userInfo | **単体テストで見る**: 印の無い要求（1.x の形）を偽の通知の中心に置き、`getScheduled` と、配られた通知の変換が userInfo をそのまま返すこと（`source`・`id` が残り、2 つだけ）、`cancelScheduled` で消えることを確かめる（C-4、K-13）。**作った（`NotificationRepositoryMarkerTests` の 2 件。`removing` が `source` も消す変異で 2 件とも落ちた）** | サンプルの一覧は ID と件数しか出さない。サンプルを変えずに済む |
 | U-9 | 1.x のボタンの押し方 | **ボタンの文字で押す**。押す口と結果の読み方は信頼する部分の新しいファイル `Support/LegacySampleApp.swift` に置く。テストのセッションは `SampleUITestCase` の `SystemUIToken` から受け、システムの UI を出すボタン（`RequestPermission`・`Show*`・`Schedule*`）はそのトークンを求める（今の `SampleApp` と同じ規則。K-5、K2-5） | 1.13.0 のサンプルにはアクセシビリティの識別子が無い（0b の前）。`XCUIApplication` を使うコードは信頼する部分に置く（6.1） |
 | U-10 | 普段の実行での止め方 | **テストは環境変数 `NTK_UPGRADE_STEP` が自分の段の名前（`UA1` など）のときだけ動き、それ以外は `XCTSkip`**。`xcodebuild` には `TEST_RUNNER_NTK_UPGRADE_STEP` で渡す。`test_ios.sh` は `NTK_UPGRADE_STEP`・`TEST_RUNNER_NTK_UPGRADE_STEP`・`SIMCTL_CHILD_NTK_UPGRADE_STEP` と `*_NTK_UPGRADE_SIGNAL` を外して `xcodebuild` を呼ぶ（K-14、K2-9） | U-7 で普段は選ばれないが、手で `-only-testing` したときにも勝手に動かないように重ねる |
@@ -131,7 +131,7 @@
 | `IosLibraryExampleUITests/Support/LegacySampleApp.swift`（新。信頼する部分） | 1.x のサンプルの起動と前面の確かめ、ボタンを文字で押す口、結果の行を読む口、2.0.0 の識別子を数える口 |
 | `Support/Springboard.swift`・`SystemLabels.swift`・`UnexpectedAlertGuard.swift`（信頼する部分） | U-11 |
 | `Support/DeviceRequirements.json` | 6 つに `["reinstall", "systemui"]` |
-| `scripts/ios_ui_runner.py` | `SCRIPT_ONLY_CLASSES` と除外の理由、`SIMULATOR_ONLY_TESTS`、`CLASS_MINIMUMS`、`TRUSTED_FILES` のハッシュ、`DANGEROUS_NAME_FILES`、`upgrade-judge` |
+| `scripts/ios_ui_runner.py` | `SCRIPT_ONLY_CLASSES` と除外の理由（`SIMULATOR_ONLY_TESTS` には入れなかった。U-7）、`UPGRADE_STEPS` と宣言の照合（`upgrade-check`）、写しの `.xctestrun`（`upgrade-xctestrun`）、`CLASS_MINIMUMS`、`TRUSTED_FILES` のハッシュ、`DANGEROUS_NAME_FILES`、`upgrade-judge` |
 | `scripts/tests/test_ios_ui_runner.py` とフィクスチャ | 件数（125 → 131）、一覧とバイナリの取り直し、除外の理由、`upgrade-judge` の自己テスト |
 | `scripts/test_ios.sh` | U-10 の変数を外す |
 | `scripts/test_ios_upgrade.sh`（新）と `scripts/README.md` | 6 章 |
@@ -154,3 +154,37 @@
 | 印の無い 1.x の通知が 2.0.0 の前面でバナーとして出て、長押しで広がり、1.x の入力欄で返信できること（K2-1、K2-2） | **できた**。前面でバナーが出て（約 17 秒後。東京駅へ動かしてから数秒）、長押しで `Open`・`Reply`・`Delete` が出た。`Reply` で入力欄の文字が `Type a message` の欄が出て、送ると最後のイベントは `kind=textInput`、`notificationId=scheduled-notification`、`actionId=reply`、`userText` は入れた文字、`path=hub` |
 
 確かめは使い捨てのテストのファイル（コミットしない）で行い、後に消した。シミュレーターからサンプルを消し、位置の許可を戻し、位置を消して止めた。
+
+## 9. 実装と結果（2026-11-21）
+
+### 9.1 流した結果
+
+`scripts/test_ios_upgrade.sh --udid <iPhone 17 Pro / 26.2>`（Xcode 26.3）で、組 A・B・C の 6 段がすべて `PASS`（20:27 に始めた回）。前半の後の `IosLibrary.framework` は `ios.library.IosLibrary` の 1.3.0、後半の後は `com.jonghyunkim.nativetoolkit.IosLibrary` で、この回で組んだ版と一致した。片付けの後、ワークツリー・位置・位置の許可・サンプルは残っていなかった。
+
+### 9.2 変異（5 章）
+
+最終のコードに対して、使い捨ての写しで 1 つずつ入れて流した（スクリプトの変異はスクリプトの写し、ライブラリとサンプルの変異はファイルを書き換えて流した後に戻した。終わった後の `git status` は空）。時間のため、各変異は落ちるはずの組のうち 1 つで流した。すべて狙った箇所で落ち、組み立ての失敗で落ちたものは無い。
+
+| ID | 流した組 | 落ちた箇所 |
+|---|---|---|
+| UM1 | A | UA2 の許可の確かめ（`authorized` でない） |
+| UM2 | A | UA2 の許可の確かめ（消したので `authorized` でない） |
+| UM3 | A | UA1 の「1.x のサンプルか」（2.0.0 の識別子が 53 個）。後半は流れない |
+| UM4 | A | UA2 が skip し、判定が `Passed` 1 件でないとして FAIL |
+| UM5 | A | UA2 の最初の確かめ（予約が一覧に無い） |
+| UM5b | B | UB2 の最初の確かめ（同じ）。印を書く前に終わったことも FAIL |
+| UM6 | A | UA2 の表示中の一覧（空） |
+| UM7a | A | UA2 の取り消しの後の予約の一覧（残っている） |
+| UM7b | A | UA2 の削除の後の表示中の一覧（残っている） |
+| UM8 | B | UB2 のイベントの待ち（`sequence=0` のまま） |
+| UM9 | C | UC2 の前面のバナーの待ち（出ない） |
+| UM10 | C | UC2 の 1.x の category のアクションの待ち（`Open` が出ない） |
+| UM11 | — | `legacy_xctestrun_problems` の自己テスト（探し先を替えない写しを問題として返す） |
+
+判定の自己テスト（`upgrade-judge`。結果無し・時間切れ・skip・2 件・別の名前・端末違い・終了コード）と、段の表と宣言の照合の自己テストも入れた。ランナーの自己テストは 228 件すべて通る。
+
+### 9.3 レビューと設計からのずれ
+
+- 実装のレビュー（`reviews/2026-11-21-ios-c-abi-upgrade-test-implementation-review-v1.md`。Codex と Claude のサブエージェント）の指摘は、K3-9 の遅れ（前景の待ちの間にスクリプトだけへ TERM が来たとき）のほかはすべて直した。信頼する部分のハッシュは直した後の内容で固定した
+- 6 つのテストは `SIMULATOR_ONLY_TESTS` に入れなかった（7 章の表と違う。U-7 に理由）。シミュレーターだけに限ることは、`SCRIPT_ONLY_CLASSES` の除外、`UpgradeStep.require()` が実機で失敗すること、スクリプトがシミュレーターの UDID だけを受けることで守る
+- 中断の止め方は、背後の `xcodebuild` も `test_ios.sh` と同じ perl の組（プロセスグループ）で起動し、TERM で組全体を止める（C3-1）
