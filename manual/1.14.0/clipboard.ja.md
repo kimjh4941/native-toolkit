@@ -234,7 +234,7 @@ val clipboardManager = remember(context) { AndroidClipboardManager.getInstance(c
 
 #### Gradle の依存関係
 
-`dist/1.13.0/android/` には、AAR と、それを POM とともに収めたファイルベースの Maven リポジトリ `m2/` があります。`m2/` からライブラリを解決することを推奨します。Gradle が、ライブラリの依存する androidx ライブラリも合わせて解決するためです。
+`dist/1.14.0/android/` には、AAR と、それを POM とともに収めたファイルベースの Maven リポジトリ `m2/` があります。`m2/` からライブラリを解決することを推奨します。Gradle が、ライブラリの依存する androidx ライブラリも合わせて解決するためです。
 
 **settings.gradle.kts:**
 
@@ -244,7 +244,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // dist/1.13.0/android/m2 をプロジェクトにコピーしたもの
+        // dist/1.14.0/android/m2 をプロジェクトにコピーしたもの
         maven { url = uri("third_party/native-toolkit-m2") }
     }
 }
@@ -592,7 +592,7 @@ add_library(app SHARED app.c)
 target_link_libraries(app PRIVATE ntk::ntk)
 ```
 
-ヘッダーは `NativeToolkitC/Common.h`、`NativeToolkitC/Android.h`、`NativeToolkitC/Clipboard.h` です。AAR は R8 の keep ルールを同梱しています。バインディング生成ツール（ClangSharp、bindgen、ffigen）向けに、同じヘッダーが `dist/1.13.0/android/include/NativeToolkitC/` にもあります。
+ヘッダーは `NativeToolkitC/Common.h`、`NativeToolkitC/Android.h`、`NativeToolkitC/Clipboard.h` です。AAR は R8 の keep ルールを同梱しています。バインディング生成ツール（ClangSharp、bindgen、ffigen）向けに、同じヘッダーが `dist/1.14.0/android/include/NativeToolkitC/` にもあります。
 
 #### 初期化
 

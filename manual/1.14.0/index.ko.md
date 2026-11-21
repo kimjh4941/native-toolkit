@@ -32,13 +32,13 @@
 
 # 배포 산출물 위치 (`dist/<version>/`)
 
-- Android (Kotlin API): `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`
-- Android (C ABI): `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`, 헤더는 `dist/1.13.0/android/include/NativeToolkitC/`
-- Android (두 AAR, POM, Gradle Module Metadata를 담은 Maven 저장소): `dist/1.13.0/android/m2/`
-- iOS: `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows (C++ API): `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`
-- Windows (C ABI): `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
-- macOS: `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android (Kotlin API): `dist/1.14.0/android/android-native-toolkit-2.0.0.aar`
+- Android (C ABI): `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar`, 헤더는 `dist/1.14.0/android/include/NativeToolkitC/`
+- Android (두 AAR, POM, Gradle Module Metadata를 담은 Maven 저장소): `dist/1.14.0/android/m2/`
+- iOS: `dist/1.14.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows (C++ API): `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -255,9 +255,9 @@ Android 라이브러리는 두 개의 AAR로 배포합니다.
 
 ##### 방법 A: Maven 저장소(권장)
 
-`dist/1.13.0/android/m2/`는 두 AAR과 그 의존성 정보를 담은 Maven 저장소입니다. AAR이 필요로 하는 AndroidX와 Kotlin 라이브러리는 Gradle이 해결합니다.
+`dist/1.14.0/android/m2/`는 두 AAR과 그 의존성 정보를 담은 Maven 저장소입니다. AAR이 필요로 하는 AndroidX와 Kotlin 라이브러리는 Gradle이 해결합니다.
 
-1. `dist/1.13.0/android/m2/`를 프로젝트에 복사합니다(예: `third_party/native-toolkit-m2/`).
+1. `dist/1.14.0/android/m2/`를 프로젝트에 복사합니다(예: `third_party/native-toolkit-m2/`).
 2. `settings.gradle.kts`에 저장소로 추가합니다.
 3. `app/build.gradle.kts`에 의존성을 추가합니다.
 4. Gradle 동기화를 실행하고 빌드합니다.

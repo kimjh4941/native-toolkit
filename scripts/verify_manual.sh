@@ -17,6 +17,8 @@ set -euo pipefail
 #   4. artifact filenames   BLOCKING  named artifacts exist under dist/<version>/
 #   5. prose style          warning   ja is です・ます体, ko is 합니다体
 #   6. language parity      warning   the three languages carry the same images/headings
+#   7. index feature list   BLOCKING  every OS a page covers is in the index feature list
+#   8. anchors in sections  BLOCKING  a TOC link under an OS item points into that OS's section
 #
 # Exit codes:
 #   0  no blocking failure (warnings may still be present)
@@ -35,7 +37,7 @@ Usage:
   --strict    Treat warnings as blocking too.
   --quiet     Print the summary only; suppress per-finding detail.
 
-Checks 1, 3 and 4 are blocking; 2, 5 and 6 are warnings unless --strict is given.
+Checks 1, 3, 4, 7 and 8 are blocking; the others are warnings unless --strict is given.
 USAGE
 }
 
@@ -316,6 +318,52 @@ def check_anchors():
     return findings
 
 
+def check_toc_sections():
+    """Every table-of-contents link nested under an OS item points to a heading
+    of that OS's '## ' section. Headings such as '### C ABI' repeat across the
+    OS sections and GitHub numbers the repeats in document order (c-abi,
+    c-abi-1, ...), so a section added before another shifts the other's anchors:
+    the link still resolves, but to the wrong OS (ios-c-abi README, stage 4)."""
+    findings = []
+    for p in sorted(MANUAL.glob("*.md")):
+        text = p.read_text()
+        counts, section_of, top = {}, {}, set()
+        section = None
+        for line, in_code in strip_code_blocks(text):
+            if in_code:
+                continue
+            m = re.match(r"^(#{1,6}) (.+)$", line)
+            if not m:
+                continue
+            anchor = anchor_of(m.group(2), counts)
+            if len(m.group(1)) == 1:
+                section = None
+            elif len(m.group(1)) == 2:
+                section = anchor
+                top.add(anchor)
+            section_of[anchor] = section
+        in_toc, owner = False, None
+        for line, in_code in strip_code_blocks(text):
+            if in_code:
+                continue
+            if re.match(r"^#{1,6} ", line):
+                in_toc = line.strip().lower() in ("## table of contents", "## contents")
+                owner = None
+                continue
+            if not in_toc:
+                continue
+            m = re.match(r"^(\s*)[-*] \[[^\]]*\]\(#([^)]+)\)", line)
+            if not m:
+                continue
+            if not m.group(1):
+                owner = m.group(2) if m.group(2) in top else None
+                continue
+            if owner is not None and m.group(2) in section_of and section_of[m.group(2)] != owner:
+                findings.append(f"{p.name} -> #{m.group(2)} is listed under #{owner} "
+                                f"but is a heading of #{section_of[m.group(2)]}")
+    return findings
+
+
 # --- 4. artifact filenames (BLOCKING) ----------------------------------------
 
 def check_artifacts():
@@ -491,6 +539,7 @@ CHECKS = [
     ("prose style (ja/ko)", "warning", lambda: (check_prose_style(), [])),
     ("language parity", "warning", lambda: (check_language_parity(), [])),
     ("index feature list", "BLOCKING", lambda: (check_index_feature_list(), [])),
+    ("anchors in OS sections", "BLOCKING", lambda: (check_toc_sections(), [])),
 ]
 
 print(f"Verifying manual/{VERSION}\n")

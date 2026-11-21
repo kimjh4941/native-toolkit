@@ -245,7 +245,7 @@ val clipboardManager = remember(context) { AndroidClipboardManager.getInstance(c
 
 #### Gradle 의존성
 
-`dist/1.13.0/android/`에는 AAR과, 이를 POM과 함께 담은 파일 기반 Maven 저장소 `m2/`가 있습니다. `m2/`에서 라이브러리를 해석하는 방법을 권장합니다. Gradle이 라이브러리가 의존하는 androidx 라이브러리도 함께 해석하기 때문입니다.
+`dist/1.14.0/android/`에는 AAR과, 이를 POM과 함께 담은 파일 기반 Maven 저장소 `m2/`가 있습니다. `m2/`에서 라이브러리를 해석하는 방법을 권장합니다. Gradle이 라이브러리가 의존하는 androidx 라이브러리도 함께 해석하기 때문입니다.
 
 **settings.gradle.kts:**
 
@@ -255,7 +255,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // dist/1.13.0/android/m2를 프로젝트에 복사한 것
+        // dist/1.14.0/android/m2를 프로젝트에 복사한 것
         maven { url = uri("third_party/native-toolkit-m2") }
     }
 }
@@ -603,7 +603,7 @@ add_library(app SHARED app.c)
 target_link_libraries(app PRIVATE ntk::ntk)
 ```
 
-헤더는 `NativeToolkitC/Common.h`, `NativeToolkitC/Android.h`, `NativeToolkitC/Clipboard.h`입니다. AAR에는 자체 R8 keep 규칙이 포함되어 있습니다. 바인딩 생성 도구(ClangSharp, bindgen, ffigen)를 위해 같은 헤더가 `dist/1.13.0/android/include/NativeToolkitC/`에도 있습니다.
+헤더는 `NativeToolkitC/Common.h`, `NativeToolkitC/Android.h`, `NativeToolkitC/Clipboard.h`입니다. AAR에는 자체 R8 keep 규칙이 포함되어 있습니다. 바인딩 생성 도구(ClangSharp, bindgen, ffigen)를 위해 같은 헤더가 `dist/1.14.0/android/include/NativeToolkitC/`에도 있습니다.
 
 #### 초기화
 

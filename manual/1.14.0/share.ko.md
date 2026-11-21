@@ -135,7 +135,7 @@ val shareManager = AndroidShareManager.getInstance(activity)
 
 #### 라이브러리 추가
 
-릴리스에는 `dist/1.13.0/android/m2/`에 Maven 저장소가 포함되어 있습니다. 이를 프로젝트에, 예를 들어 `third_party/native-toolkit-m2/`로 복사하고 저장소에 추가합니다.
+릴리스에는 `dist/1.14.0/android/m2/`에 Maven 저장소가 포함되어 있습니다. 이를 프로젝트에, 예를 들어 `third_party/native-toolkit-m2/`로 복사하고 저장소에 추가합니다.
 
 **settings.gradle.kts:**
 

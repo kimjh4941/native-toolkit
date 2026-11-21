@@ -135,7 +135,7 @@ val shareManager = AndroidShareManager.getInstance(activity)
 
 #### ライブラリの追加
 
-リリースには `dist/1.13.0/android/m2/` に Maven リポジトリが含まれています。これをプロジェクトに、たとえば `third_party/native-toolkit-m2/` としてコピーし、リポジトリに追加します。
+リリースには `dist/1.14.0/android/m2/` に Maven リポジトリが含まれています。これをプロジェクトに、たとえば `third_party/native-toolkit-m2/` としてコピーし、リポジトリに追加します。
 
 **settings.gradle.kts:**
 

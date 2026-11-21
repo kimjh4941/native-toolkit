@@ -51,8 +51,11 @@ Language:
 - [iOS](#ios)
   - [IosShareManager](#iossharemanager)
   - [Setup](#setup-1)
+    - [Add the library](#add-the-library-1)
+    - [Threads and presenting](#threads-and-presenting)
   - [Text Share](#text-share-1)
     - [Share Text](#share-text-1)
+  - [URL Share](#url-share)
     - [Share URL](#share-url-1)
     - [Share URL with Preview](#share-url-with-preview)
   - [Image Share](#image-share-1)
@@ -66,6 +69,15 @@ Language:
     - [Share with Subject](#share-with-subject)
     - [Exclude Activity Types](#exclude-activity-types)
   - [Error Handling](#error-handling-1)
+  - [Presenter and Result](#presenter-and-result)
+    - [Share from the Foreground](#share-from-the-foreground)
+    - [Result Callback](#result-callback)
+    - [Two Shares in One Turn](#two-shares-in-one-turn)
+  - [C ABI](#c-abi-1)
+    - [Building](#building-1)
+    - [Sharing content](#sharing-content)
+    - [One share sheet at a time](#one-share-sheet-at-a-time)
+    - [Error values](#error-values-1)
 - [macOS](#macos)
   - [MacShareManager](#macsharemanager)
   - [Setup](#setup-2)
@@ -135,7 +147,7 @@ The model types (`ShareContent`, `SharePreviewOptions`, `ShareChooserAction`, `D
 
 #### Add the library
 
-The release ships a Maven repository in `dist/1.13.0/android/m2/`. Copy it into your project, for example as `third_party/native-toolkit-m2/`, and add it to the repositories:
+The release ships a Maven repository in `dist/1.14.0/android/m2/`. Copy it into your project, for example as `third_party/native-toolkit-m2/`, and add it to the repositories:
 
 **settings.gradle.kts:**
 
@@ -936,57 +948,80 @@ There is no `CANCELED`: the open completes as soon as the Sharesheet opens, and 
 
 ## iOS
 
-- Library: `ios-native-toolkit-1.3.0.xcframework`
-- Minimum Deployment Target: iOS 18
-- Scope: sending only (presenting the system share sheet via `UIActivityViewController`). Receiving incoming shares (Share Extension) is not included.
+The system share sheet (`UIActivityViewController`): text, URLs, images and files, alone or mixed in one share, with a subject, a link preview title, and activity types to leave out. iOS library 2.0.0 offers it through two public APIs over one implementation, and the sample app (`IosLibraryExample`) uses the Swift API.
+
+| API | Names | Module / header | Artifact |
+|---|---|---|---|
+| Swift API | `IosShareManager` | `import IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_share_*` | `<NativeToolkitC/Share.h>` | `ios-native-toolkit-capi-2.0.0.xcframework` |
+
+- Artifacts: `dist/1.14.0/ios/` holds both xcframeworks and the C headers (`include/NativeToolkitC/*.h`).
+- Minimum iOS: 18.0. Swift code that calls the library is built with Xcode 26.3 or later.
+- Scope: sending only. Receiving shares (a Share Extension) is not included.
+- Coming from 1.x: see [Migrating the iOS library to 2.0.0](index.md#migrating-the-ios-library-to-200). For sharing, the cases of `ShareError` changed (see [Error Handling](#error-handling-1)), the completions are `@MainActor @Sendable`, `share` takes a `presenter` (see [Presenter and Result](#presenter-and-result)), and a share sheet is no longer shown on top of another one (see [Two Shares in One Turn](#two-shares-in-one-turn)). An app that implements `ShareRepository` itself now makes it `Sendable` and implements `present(content:presenter:)` in place of `present(content:)`.
+
+The sections below follow the Share screen of the sample app. [C ABI](#c-abi-1) at the end covers the same operation for C.
+
+---
 
 ### IosShareManager
 
-`IosShareManager` is a singleton class that presents the system share sheet on iOS.
+`IosShareManager.shared` is the entry point for sharing. The manager is `Sendable`, so it can be called from any thread.
+
+```swift
+import IosLibrary
+
+let shareManager = IosShareManager.shared
+```
+
+| Member | Description |
+|---|---|
+| `share(content:presenter:) async throws -> ShareResult` | Presents the share sheet and returns how it ended. `presenter` defaults to `.firstActiveScene` |
+| `share(content:presenter:completion:)` | The same, reporting a `Result<ShareResult, ShareError>` to `completion`. `presenter` has no default |
+| `share(content:completion:)` | The 1.x callback form, `(isSuccess, completed, activityType, errorMessage)`. It always uses `.firstActiveScene` |
+
+The model types are in the `IosLibrary` module:
+
+| Type | Contents |
+|---|---|
+| `ShareContent` | `items` (`[ShareItem]`, not empty), `subject`, `previewTitle`, `excludedActivityTypes` (raw identifiers). Everything but `items` has a default |
+| `ShareItem` | `.text(String)`, `.url(String)`, `.imageFile(path:)`, `.file(path:)` |
+| `ShareResult` | `completed` (`false` when the user closed the sheet) and `activityType` (the raw identifier of the chosen activity, or `nil`) |
+| `ShareError` | See [Error Handling](#error-handling-1) |
+| `PresenterSelection` | How the view controller to present from is chosen. See [Presenter and Result](#presenter-and-result) |
 
 <p align="center">
     <img src="images/ios/share/Example_IosShareManager.png" alt="Example_IosShareManager" width="400" />
 </p>
 
+---
+
 ### Setup
 
-1. Add `ios-native-toolkit-1.3.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
-2. Import the library where you present the share sheet:
+#### Add the library
+
+1. Add `ios-native-toolkit-2.0.0.xcframework` to the Xcode project and set it to "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content.
+2. Import the module where you share:
 
 ```swift
 import IosLibrary
 ```
 
-No additional initialization is required.
+Sharing needs no initialization.
 
-`IosShareManager.share` offers two calling styles:
+#### Threads and presenting
 
-- `async throws` (preferred for native Swift callers): returns a typed `ShareResult` and throws `ShareError` on failure.
-- Callback (used by the Unity Bridge, also available in Swift): `(isSuccess, completed, activityType, errorMessage)`.
+- `share` can be called from any thread. The completion of each callback form runs on the main thread, exactly once, never inside the call, on every path (validation failures included). The `async` form returns when the sheet ends.
+- A share cannot be cancelled. Cancelling the `Task` that awaits it does not end it: the call returns when the sheet ends.
+- The user closing the sheet is not an error: the result has `completed == false`.
+- The sheet is presented from the view controller that `presenter` chooses (see [Presenter and Result](#presenter-and-result)). On an iPad it is a popover anchored at the center of that view controller's view. There is no parameter for the anchor; to choose where the sheet appears, pass the view controller with `.viewController(_:)`.
+- A share sheet is never shown on top of another share sheet. See [Two Shares in One Turn](#two-shares-in-one-turn).
+- Do not call `share` while a view controller your app presented itself (for example its own `UIActivityViewController`) is still being presented, before that `present` call's completion has run. UIKit may then decline the library's sheet and keep it, and the share never ends. Wait for your own `present` completion before you share.
+- The result is not guaranteed when the app replaces the window, its root view controller or the scene while the sheet is shown, or keeps the presented `UIActivityViewController` alive, nor when the system disconnects the sheet's scene but the sheet is not freed.
 
-```swift
-// async throws (recommended for Swift callers)
-Task {
-    do {
-        let result = try await IosShareManager.shared.share(
-            content: ShareContent(items: [.text("Hello")])
-        )
-        // result.completed == false means the user cancelled (not an error)
-        print(result.completed, result.activityType ?? "nil")
-    } catch {
-        print(error.localizedDescription)
-    }
-}
+The examples below use `share(content:)` (the `async` form with the default presenter), as the sample does. SwiftUI `Button` actions are synchronous, so each call runs in a `Task`.
 
-// callback (equivalent)
-IosShareManager.shared.share(
-    content: ShareContent(items: [.text("Hello")])
-) { isSuccess, completed, activityType, errorMessage in
-    print(isSuccess, completed, activityType ?? "nil", errorMessage ?? "nil")
-}
-```
-
-The examples below use the `async throws` style. Because SwiftUI `Button` actions are synchronous, each call is wrapped in `Task { ... }`.
+---
 
 ### Text Share
 
@@ -994,10 +1029,16 @@ The examples below use the `async throws` style. Because SwiftUI `Button` action
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.text("Shared from IosLibraryExample")])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Shared from IosLibraryExample")])
+        )
+        // completed == false: the user closed the sheet
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        // See Error Handling
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1005,16 +1046,24 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareText.png" alt="Example_IosShareManager_ShareText" width="400" />
 </p>
 
+---
+
+### URL Share
+
 #### Share URL
 
-A URL is passed as a raw string. It is validated in the library: only `http`, `https`, and `file` schemes with a valid host are accepted (otherwise `ShareError.invalidURL` is thrown).
+A URL is passed as a string and checked by the library after white space at both ends is removed: `http` and `https` need a host, and `file` must be a file URL. Any other string, an empty one included, fails with `ShareError.invalidURL`.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.url("https://www.apple.com")])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.url("https://www.apple.com")])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1024,17 +1073,21 @@ Task {
 
 #### Share URL with Preview
 
-Set `previewTitle` to show a rich link preview in the share sheet header immediately, without waiting for a network fetch.
+`previewTitle` gives the share sheet's header a title at once, without waiting for the link to be fetched. It applies to the first item; when that item is a URL, the preview also carries the URL.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(
-            items: [.url("https://www.apple.com")],
-            previewTitle: "Apple"
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(
+                items: [.url("https://www.apple.com")],
+                previewTitle: "Apple"
+            )
         )
-    )
-    print(result.completed, result.activityType ?? "nil")
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1042,11 +1095,13 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareURLWithPreview.png" alt="Example_IosShareManager_ShareURLWithPreview" width="400" />
 </p>
 
+---
+
 ### Image Share
 
 #### Share Image
 
-Pass the local file path of an image with `.imageFile(path:)`. The library loads it as a `UIImage` (throws `ShareError.imageLoadFailed` if it cannot be read).
+`.imageFile(path:)` takes the full path of a local image file. The library loads it as a `UIImage` and fails with `ShareError.imageLoadFailed` when it cannot.
 
 ```swift
 guard let imagePath = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png")?.path else {
@@ -1054,10 +1109,14 @@ guard let imagePath = Bundle.main.url(forResource: "app-icon-attachment", withEx
 }
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.imageFile(path: imagePath)])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.imageFile(path: imagePath)])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1067,16 +1126,20 @@ Task {
 
 #### Share Multiple Images
 
-`ShareContent.items` accepts multiple entries, so several images can be shared at once.
+`items` takes several entries, so several images are shared at once. The sample copies its bundled image to two files in the temporary directory.
 
 ```swift
-let imagePaths: [String] = /* local image file paths */
+let imagePaths: [String] = /* full paths of local image files */
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1084,21 +1147,27 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareMultipleImages.png" alt="Example_IosShareManager_ShareMultipleImages" width="400" />
 </p>
 
+---
+
 ### File Share
 
 #### Share File
 
-Pass the local file path with `.file(path:)`. The library checks that the file exists (throws `ShareError.fileNotFound` otherwise).
+`.file(path:)` takes the full path of a local file. The library checks that the file exists (otherwise `ShareError.fileNotFound`) and shares it as a file URL.
 
 ```swift
 let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
-try "Shared from IosLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.file(path: fileURL.path)])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        try "Shared from IosLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.file(path: fileURL.path)])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1112,10 +1181,14 @@ Task {
 let fileURLs: [URL] = /* local file URLs */
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1123,21 +1196,27 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareMultipleFiles.png" alt="Example_IosShareManager_ShareMultipleFiles" width="400" />
 </p>
 
+---
+
 ### Combined Content
 
 #### Share Multiple Items
 
-Mix different item types (text, URL, image, file) in a single share.
+Items of different kinds (text, URL, image, file) can be mixed in one share.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [
-            .text("Check this out"),
-            .url("https://www.apple.com")
-        ])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [
+                .text("Check this out"),
+                .url("https://www.apple.com")
+            ])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1147,17 +1226,21 @@ Task {
 
 #### Share with Subject
 
-`subject` is used by activities that support it (for example, the subject line in Mail).
+`subject` is used by the activities that support one, such as the subject line in Mail. Like `previewTitle`, it is attached to the first item.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(
-            items: [.text("Body text")],
-            subject: "Sample Subject"
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(
+                items: [.text("Body text")],
+                subject: "Sample Subject"
+            )
         )
-    )
-    print(result.completed, result.activityType ?? "nil")
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1167,20 +1250,24 @@ Task {
 
 #### Exclude Activity Types
 
-Pass raw activity type identifiers in `excludedActivityTypes` to hide them from the share sheet.
+`excludedActivityTypes` takes raw activity type identifiers and hides those activities from the sheet.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(
-            items: [.url("https://www.apple.com")],
-            excludedActivityTypes: [
-                "com.apple.UIKit.activity.CopyToPasteboard",
-                "com.apple.UIKit.activity.PostToFacebook"
-            ]
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(
+                items: [.url("https://www.apple.com")],
+                excludedActivityTypes: [
+                    "com.apple.UIKit.activity.CopyToPasteboard",
+                    "com.apple.UIKit.activity.PostToFacebook"
+                ]
+            )
         )
-    )
-    print(result.completed, result.activityType ?? "nil")
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1188,41 +1275,62 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareExcludingActivities.png" alt="Example_IosShareManager_ShareExcludingActivities" width="400" />
 </p>
 
+---
+
 ### Error Handling
 
-The `async throws` API throws `ShareError` on failure. User cancellation is not an error: it is reported as `ShareResult.completed == false`.
+The `async` form throws `ShareError`, and `share(content:presenter:completion:)` reports it as `.failure`. The user closing the sheet is not an error (`completed == false`). Every case is stable: none carries an arbitrary system `Error`.
 
-| Error | Cause | Error message |
+| Error | When | Description (`localizedDescription`) |
 |---|---|---|
-| `noValidItems` | `items` is empty | `"No shareable items were provided."` |
-| `invalidURL(String)` | URL string is not a valid `http`/`https`/`file` URL | `"Invalid URL: <value>."` |
-| `imageLoadFailed(path:)` | Image at the path could not be loaded | `"Failed to load image at path: <path>."` |
-| `fileNotFound(path:)` | File at the path does not exist | `"File not found at path: <path>."` |
-| `noRootViewController` | No root view controller available to present | `"No root view controller available to present the share sheet."` |
-| `presentationFailed(Error)` | Presentation failed or the system reported an error | `"Failed to present the share sheet: <detail>."` |
-| `unknown(Error)` | An unexpected error occurred | `"An unknown error occurred: <detail>."` |
+| `noValidItems` | `items` is empty | `No shareable items were provided.` |
+| `invalidURL(String)` | A `.url` item is not a valid `http`, `https` or `file` URL | `Invalid URL: <value>.` |
+| `imageLoadFailed(path:)` | The image of an `.imageFile` item cannot be loaded | `Failed to load image at path: <path>.` |
+| `fileNotFound(path:)` | The file of a `.file` item does not exist | `File not found at path: <path>.` |
+| `noRootViewController` | `.firstActiveScene` found no view controller to present from | `No root view controller available to present the share sheet.` |
+| `notForeground` | `.foreground` or `.viewController(_:)` found no view controller in the foreground | `The app has no view controller in the foreground to present the share sheet.` |
+| `presentationFailed` | The sheet was not shown: the view controller to present from was not settled, UIKit declined the presentation, the sheet was freed before it finished appearing, or the foreground is a share sheet (see [Two Shares in One Turn](#two-shares-in-one-turn)) | `Failed to present the share sheet.` |
+| `dismissedBySystem` | The sheet went away without reporting a result: dismissed from outside the library, or its scene was disconnected and the sheet freed | `The share sheet was dismissed without a result.` |
+| `activityFailed(FailureDetail)` | The chosen activity reported an error. `FailureDetail` holds its `NSError` `domain` and `code` | `The share activity failed.` |
+
+No sheet is shown for the first four. The descriptions are fixed English sentences; those of `invalidURL`, `imageLoadFailed` and `fileNotFound` contain the URL or path that was passed in.
+
+Changes from 1.x: `presentationFailed` no longer carries an `Error`, `unknown(Error)` is gone, and `notForeground`, `dismissedBySystem` and `activityFailed` are new. A `switch` written for the 1.x cases no longer compiles. Write an `@unknown default` branch, since cases can be added.
+
+The Error section of the sample shares an empty list, an invalid URL, a missing file and a missing image:
 
 ```swift
 Task {
     do {
-        let result = try await IosShareManager.shared.share(
-            content: ShareContent(items: [.text("Hello")])
+        _ = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.url("not a valid url")])
         )
-        if result.completed {
-            // Shared successfully via result.activityType
-        } else {
-            // User cancelled
-        }
     } catch let error as ShareError {
-        // Typed error (e.g. .noValidItems, .invalidURL, .fileNotFound)
-        print(error.localizedDescription)
+        switch error {
+        case .noValidItems, .invalidURL, .imageLoadFailed, .fileNotFound:
+            // The content cannot be shared; no sheet was shown
+            break
+        case .noRootViewController, .notForeground:
+            // No view controller to present from
+            break
+        case .presentationFailed:
+            // The sheet was not shown
+            break
+        case .dismissedBySystem:
+            // The sheet went away without a result
+            break
+        case .activityFailed(let detail):
+            print(detail.domain, detail.code)
+        @unknown default:
+            break
+        }
     } catch {
-        // Other error
+        // share(content:presenter:) throws only ShareError
     }
 }
 ```
 
-When using the callback API, failures are delivered as `isSuccess == false` with a non-nil `errorMessage`:
+`share(content:completion:)` reports a failure as `isSuccess == false`, `completed == false`, `activityType == nil`, and the description above as `errorMessage`. Unlike 1.x, its completion also comes once when the sheet is dismissed from outside the library (`"The share sheet was dismissed without a result."`).
 
 ```swift
 IosShareManager.shared.share(
@@ -1231,6 +1339,256 @@ IosShareManager.shared.share(
     // isSuccess == false, errorMessage == "No shareable items were provided."
 }
 ```
+
+---
+
+### Presenter and Result
+
+`PresenterSelection` decides which view controller the sheet is presented from:
+
+| Value | View controller | Before presenting |
+|---|---|---|
+| `.firstActiveScene` (default of the `async` form; always used by `share(content:completion:)`) | The topmost presented view controller of the key window of the first `foregroundActive` window scene | Searched once, with no waiting. Fails with `noRootViewController` when none is found, and with `presentationFailed` when that view controller is being presented or dismissed or is presenting something |
+| `.foreground` | The topmost view controller that is not being dismissed, of the key window of a `foregroundActive` or `foregroundInactive` window scene | Fails with `notForeground` when none is found. When that view controller is in a transition, waits once for the transition to end, checks again, and fails with `presentationFailed` when it is still not settled |
+| `.viewController(_:)` | The one the closure returns. The closure is called once, on the main thread, when the sheet is about to be presented | Fails with `notForeground` when the closure returns `nil`; otherwise the same single wait as `.foreground` |
+
+`foregroundInactive` covers the moments when the app is visible but not active: right after launch, and while Control Center or Notification Center is pulled over the app. On an iPad with two of the app's windows side by side, both can be active, so `.firstActiveScene` and `.foreground` may choose the window the user is not looking at; pass the view controller with `.viewController(_:)` there:
+
+```swift
+// In a view controller: present from this view controller while it is alive.
+let presenter: PresenterSelection = .viewController { [weak self] in self }
+```
+
+The closure is kept until the sheet has been presented, so capture the view controller weakly.
+
+#### Share from the Foreground
+
+```swift
+Task {
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Shared through the Swift API")]),
+            presenter: .foreground
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch let error as ShareError {
+        // notForeground when the app is in the background
+        print(error)
+    } catch {
+        // share(content:presenter:) throws only ShareError
+    }
+}
+```
+
+#### Result Callback
+
+`share(content:presenter:completion:)` reports the same result to a completion on the main thread. The sample dismisses the sheet from outside the library 3 seconds after the tap; the completion then comes once with `.dismissedBySystem`.
+
+```swift
+IosShareManager.shared.share(
+    content: ShareContent(items: [.text("Dismissed from outside after 3 seconds")]),
+    presenter: .foreground
+) { result in
+    switch result {
+    case .success(let share):
+        print(share.completed, share.activityType ?? "nil")
+    case .failure(.dismissedBySystem):
+        // The sheet went away without reporting a result
+        break
+    case .failure(let error):
+        print(error)
+    }
+}
+
+DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+    let top = IosDialogManager.shared.foregroundViewController()
+    top?.presentingViewController?.dismiss(animated: true)
+}
+```
+
+#### Two Shares in One Turn
+
+A share sheet is never shown on top of another share sheet. This is what happens when shares overlap:
+
+- Two shares requested in the same turn of the main queue: one sheet is shown, and the other share waits until that sheet has finished appearing (at most 10 seconds) and then ends with `presentationFailed`. Which of the two is shown is not decided; it is not always the first call. Each completion comes exactly once. (In 1.x, one of the two completions never came.)
+- A share requested while the foreground is a share sheet, the library's or the app's own, ends with `presentationFailed`.
+- `.firstActiveScene` does not wait: a share requested while a share sheet of the library is still appearing in the same window ends at once with `presentationFailed`.
+- When a share sheet of the library takes more than 10 seconds to finish appearing (for example because the app went to the background meanwhile), the shares waiting for it end with `presentationFailed`, and the library's later presentations in that window (shares, and dialogs shown through the `presenter` API) end with `presentationFailed` at once until that sheet has finished appearing or has been freed. The same applies after the case to avoid in [Threads and presenting](#threads-and-presenting), where UIKit keeps a declined sheet.
+
+```swift
+for number in 1...2 {
+    IosShareManager.shared.share(
+        content: ShareContent(items: [.text("Share \(number) of two in one turn")]),
+        presenter: .foreground
+    ) { result in
+        // One of the two ends with .failure(.presentationFailed)
+        print(number, result)
+    }
+}
+```
+
+---
+
+### C ABI
+
+- The same sharing for C, and for any language that can call a C function in a framework. Swift code calls `IosShareManager` instead.
+- `ios-native-toolkit-capi-2.0.0.xcframework` (framework `IosLibraryCApi`) carries the C ABI and its headers `NativeToolkitC/*.h`. It calls the Swift API, so the app embeds both xcframeworks of the same release. The requirements and the steps to add them are in [Supported platform: iOS](index.md#supported-platform-ios-device-arm64--simulator-arm64-x86_64), and the rules common to every feature in [C ABI](index.md#c-abi-1), on the manual top.
+- Android's `Share.h` has a function per kind of content. iOS has one function, `ntk_share_content_async`, that takes an array of mixed items, as the Swift API does, and returns the result as a handle.
+- Every function can be called from any thread and never waits for the main thread. The callback and an accepted call's `release` run on the main queue, never inside the function when it is called on the main thread; called from another thread, the callback can arrive before the function returns. Match callbacks to requests with `user_data`. Do not block in callbacks, and do not let an exception leave one.
+- `NTK_SHARE_ERROR_NONE` from `ntk_share_content_async` means the request was accepted; the callback then comes once, followed by `release`. Any other value means it was rejected: no callback, and `release` has already run on the calling thread, so do not free `user_data` yourself. A `NULL` callback is rejected; `release` may be `NULL`.
+- The library copies the request (the strings, the items and the excluded types) before the call returns. Strings are NUL-terminated UTF-8, and invalid UTF-8 is rejected with `NTK_SHARE_ERROR_INVALID_PARAMETER`.
+- A zero-filled struct with `struct_size` set is the default of every field. In `ntk_share_request` that is no subject, no preview title and nothing excluded (`excluded_activity_types` may then be `NULL`), and also no items, which the call rejects with `NTK_SHARE_ERROR_EMPTY_CONTENT`: set `items` and `item_count`. In `ntk_share_item` it is `NTK_SHARE_ITEM_TEXT` with a `NULL` `value`, which is rejected with `NTK_SHARE_ERROR_INVALID_PARAMETER`: every item needs its `value`. The reserved fields must be 0. Every element of the item array has the same `struct_size`.
+- Sharing needs the foreground. The C ABI presents from the foreground view controller, as `.foreground` does in Swift; from the background, the callback gets `NTK_SHARE_ERROR_NOT_FOREGROUND`. The C ABI cannot choose the view controller: on an iPad that shows several of the app's windows side by side, which window shows the sheet is not decided. On an iPad the sheet is a popover anchored at the center of the presenting view.
+- A share cannot be cancelled; there is no cancel function and no `CANCELED` value. The callback and `release` (and with them `user_data`) are held until the sheet ends. If the host replaces its window or root view controller while the sheet is shown, or the system disconnects the scene and the sheet is kept, they may never come, and `user_data` leaks.
+- The result handle (`ntk_share_result*`) belongs to the receiver, who frees it with `ntk_share_result_free`, during the callback or later, on any thread. The string from `ntk_share_result_activity_type` is valid until the handle is freed. `ntk_share_result_free(NULL)` does nothing.
+- `ntk_last_system_code()` and the callback's `system_code` are always 0 on iOS.
+
+#### Building
+
+1. Add `ios-native-toolkit-2.0.0.xcframework` and `ios-native-toolkit-capi-2.0.0.xcframework` to the app target and set both to "Embed & Sign".
+2. Include the header from the framework, `#include <IosLibraryCApi/NativeToolkitC/Share.h>`, or add `dist/1.14.0/ios/include` to Header Search Paths and write `#include <NativeToolkitC/Share.h>`. `Share.h` includes `Common.h` itself.
+
+#### Sharing content
+
+```c
+static void NTK_CALL on_share_result(void* user_data, ntk_share_error error, uint32_t system_code,
+                                     ntk_share_result* result)
+{
+    /* Main thread, exactly once for an accepted call. result is NULL unless error is NONE. */
+    (void)user_data; (void)system_code;   /* system_code is always 0 on iOS */
+    if (error == NTK_SHARE_ERROR_NONE) {
+        if (ntk_share_result_completed(result)) {
+            size_t size = 0;
+            const char* activity = ntk_share_result_activity_type(result, &size);   /* NULL when unknown */
+            (void)activity;
+        } else {
+            /* The user closed the sheet. Not an error. */
+        }
+        ntk_share_result_free(result);   /* here or later, on any thread */
+        return;
+    }
+    switch (error) {
+    case NTK_SHARE_ERROR_NOT_FOREGROUND:    /* the app was in the background; nothing was shown */
+    case NTK_SHARE_ERROR_SHOW_FAILED:       /* the sheet was not shown */
+        break;
+    case NTK_SHARE_ERROR_INVALID_URI:
+    case NTK_SHARE_ERROR_FILE_NOT_FOUND:
+    case NTK_SHARE_ERROR_IMAGE_LOAD_FAILED: /* an item cannot be shared; nothing was shown */
+        break;
+    case NTK_SHARE_ERROR_CANCELED_BY_SYSTEM: /* the sheet went away without a result */
+    case NTK_SHARE_ERROR_ACTIVITY_FAILED:    /* the chosen activity reported an error */
+        break;
+    default:
+        break;
+    }
+}
+
+static void NTK_CALL on_share_release(void* user_data)
+{
+    /* Once: after the callback on the main thread, or on the calling thread when the call
+       is rejected. Free user_data here. */
+    (void)user_data;
+}
+
+/* Text and a URL in one share, with a subject, a preview title and an excluded activity. */
+static ntk_share_error share_text_and_url(void* user_data)
+{
+    ntk_share_item items[2];
+    memset(items, 0, sizeof(items));
+    items[0].struct_size = (uint32_t)sizeof(items[0]);
+    items[0].kind = NTK_SHARE_ITEM_TEXT;
+    items[0].value = "Check this out";
+    items[1].struct_size = (uint32_t)sizeof(items[1]);
+    items[1].kind = NTK_SHARE_ITEM_URL;
+    items[1].value = "https://www.apple.com";
+
+    const char* excluded[1];
+    excluded[0] = "com.apple.UIKit.activity.PostToFacebook";
+
+    /* Zeroed fields are the defaults: no subject, no preview title, nothing excluded. */
+    ntk_share_request request;
+    memset(&request, 0, sizeof(request));
+    request.struct_size = (uint32_t)sizeof(request);
+    request.items = items;
+    request.item_count = 2;
+    request.subject = "Sample Subject";      /* attached to the first item, as in Swift */
+    request.preview_title = "Apple";
+    request.excluded_activity_types = excluded;
+    request.excluded_activity_type_count = 1;
+
+    /* The library copies the request before returning: items may go out of scope. */
+    return ntk_share_content_async(&request, &on_share_result, user_data, &on_share_release);
+}
+
+/* An image and a file, by full path. */
+static ntk_share_error share_image_and_file(const char* image_path, const char* file_path, void* user_data)
+{
+    ntk_share_item items[2];
+    memset(items, 0, sizeof(items));
+    items[0].struct_size = (uint32_t)sizeof(items[0]);
+    items[0].kind = NTK_SHARE_ITEM_IMAGE_FILE;
+    items[0].value = image_path;
+    items[1].struct_size = (uint32_t)sizeof(items[1]);
+    items[1].kind = NTK_SHARE_ITEM_FILE;
+    items[1].value = file_path;
+
+    ntk_share_request request;
+    memset(&request, 0, sizeof(request));
+    request.struct_size = (uint32_t)sizeof(request);
+    request.items = items;
+    request.item_count = 2;
+
+    ntk_share_error error = ntk_share_content_async(&request, &on_share_result, user_data, &on_share_release);
+    if (error != NTK_SHARE_ERROR_NONE) {
+        /* Rejected: no callback, and on_share_release has already run. */
+    }
+    return error;
+}
+```
+
+- An item's `value` is the text, the URL, or the full path. Empty strings are not rejected at the call. An empty or blank text is shared as it is, as the Swift API does (unlike Android, where an empty text is `NTK_SHARE_ERROR_EMPTY_CONTENT`). A URL or a path is checked by the library, which reports `NTK_SHARE_ERROR_INVALID_URI`, `NTK_SHARE_ERROR_FILE_NOT_FOUND` or `NTK_SHARE_ERROR_IMAGE_LOAD_FAILED` in the callback, an empty one included, as the Swift API does.
+- `item_count` 0 returns `NTK_SHARE_ERROR_EMPTY_CONTENT`. An item `kind` out of range, a `NULL` `value`, a `NULL` array with a nonzero count, and a `NULL` excluded type return `NTK_SHARE_ERROR_INVALID_PARAMETER`.
+
+#### One share sheet at a time
+
+The rules of [Two Shares in One Turn](#two-shares-in-one-turn) apply to C:
+
+- Of two `ntk_share_content_async` calls in the same turn of the main queue, one shows its sheet; the other waits until that sheet has finished appearing (at most 10 seconds), and its callback gets `NTK_SHARE_ERROR_SHOW_FAILED`. Which one is shown is not decided, and the order of the callbacks of several shares is not promised. Each accepted call gets its callback and `release` once.
+- A call made while the foreground is a share sheet gets `NTK_SHARE_ERROR_SHOW_FAILED`.
+- Do not call `ntk_share_content_async` while a view controller the host presented itself (for example its own `UIActivityViewController`) is still being presented, before that `present` call's completion has run. UIKit may then decline the library's sheet and keep it, and the callback and `release` may never come. Call it after the host's `present` completion.
+- When a share sheet takes more than 10 seconds to finish appearing, the waiting call gets `NTK_SHARE_ERROR_SHOW_FAILED`, and later shares in that window get `NTK_SHARE_ERROR_SHOW_FAILED` until that sheet has finished appearing or has been freed.
+
+#### Error values
+
+`ntk_share_error`. 0 to 5 mean the same in every feature of the C ABI. The numbers that are missing (8, 10 to 16) are values of Android's `Share.h` that iOS does not use.
+
+| Code | Name | When | Returned by |
+|---|---|---|---|
+| 0 | `NTK_SHARE_ERROR_NONE` | Accepted (return value); the sheet ended with a result (callback) | Both |
+| 1 | `NTK_SHARE_ERROR_INVALID_PARAMETER` | A `NULL` request or callback, invalid UTF-8, a `struct_size` that is too small or above 4096, a nonzero reserved field, items of different sizes, an item `kind` out of range, a `NULL` value | Return value |
+| 2 | `NTK_SHARE_ERROR_NOT_INITIALIZED` | Not returned on iOS | - |
+| 3 | `NTK_SHARE_ERROR_NOT_SUPPORTED` | A nonzero value in the part of a struct this version does not know | Return value |
+| 4 | `NTK_SHARE_ERROR_UNKNOWN` | A `ShareError` case the C ABI does not know. Not returned while both xcframeworks are of the same release | Callback |
+| 5 | `NTK_SHARE_ERROR_OUT_OF_MEMORY` | Not returned on iOS | - |
+| 6 | `NTK_SHARE_ERROR_NOT_FOREGROUND` | The app has no view controller in the foreground; nothing was shown | Callback |
+| 7 | `NTK_SHARE_ERROR_EMPTY_CONTENT` | `item_count` is 0 | Return value |
+| 9 | `NTK_SHARE_ERROR_FILE_NOT_FOUND` | The file of an `NTK_SHARE_ITEM_FILE` item does not exist | Callback |
+| 17 | `NTK_SHARE_ERROR_INVALID_URI` | An `NTK_SHARE_ITEM_URL` item is not a valid `http`, `https` or `file` URL | Callback |
+| 18 | `NTK_SHARE_ERROR_IMAGE_LOAD_FAILED` | The image of an `NTK_SHARE_ITEM_IMAGE_FILE` item cannot be loaded | Callback |
+| 19 | `NTK_SHARE_ERROR_SHOW_FAILED` | The sheet was not shown: the foreground view controller was not settled, UIKit declined, or the foreground is a share sheet | Callback |
+| 20 | `NTK_SHARE_ERROR_CANCELED_BY_SYSTEM` | The sheet went away without a result: dismissed from outside the library, or its scene was disconnected and the sheet freed | Callback |
+| 21 | `NTK_SHARE_ERROR_ACTIVITY_FAILED` | The chosen activity reported an error. Its domain and code are not passed to C | Callback |
+
+There is no `CANCELED`: a share cannot be cancelled, and the user closing the sheet is `NTK_SHARE_ERROR_NONE` with `ntk_share_result_completed` returning 0.
+
+| Swift API | C ABI |
+|---|---|
+| `share(content:presenter: .foreground, completion:)` | `ntk_share_content_async` with `ntk_share_request` |
+| `ShareItem` `.text` / `.url` / `.imageFile(path:)` / `.file(path:)` | `ntk_share_item` with `NTK_SHARE_ITEM_TEXT` / `_URL` / `_IMAGE_FILE` / `_FILE` |
+| `ShareContent.subject` / `previewTitle` / `excludedActivityTypes` | `subject` / `preview_title` / `excluded_activity_types` and `excluded_activity_type_count` |
+| `ShareResult.completed` / `activityType` | `ntk_share_result_completed` / `ntk_share_result_activity_type`, then `ntk_share_result_free` |
+| `ShareError` | `ntk_share_error`: `noRootViewController` and `notForeground` are 6, `noValidItems` is 7, `fileNotFound` 9, `invalidURL` 17, `imageLoadFailed` 18, `presentationFailed` 19, `dismissedBySystem` 20, `activityFailed` 21 |
+| `PresenterSelection` | None; the C ABI always presents from the foreground |
 
 ---
 

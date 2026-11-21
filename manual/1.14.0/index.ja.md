@@ -32,13 +32,13 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android (Kotlin API): `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`
-- Android (C ABI): `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`、ヘッダーは `dist/1.13.0/android/include/NativeToolkitC/`
-- Android（両方の AAR、POM、Gradle Module Metadata を収めた Maven リポジトリ）: `dist/1.13.0/android/m2/`
-- iOS: `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows (C++ API): `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`
-- Windows (C ABI): `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
-- macOS: `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android (Kotlin API): `dist/1.14.0/android/android-native-toolkit-2.0.0.aar`
+- Android (C ABI): `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar`、ヘッダーは `dist/1.14.0/android/include/NativeToolkitC/`
+- Android（両方の AAR、POM、Gradle Module Metadata を収めた Maven リポジトリ）: `dist/1.14.0/android/m2/`
+- iOS: `dist/1.14.0/ios/ios-native-toolkit-1.3.0.xcframework`
+- Windows (C++ API): `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -255,9 +255,9 @@ Android ライブラリは 2 つの AAR で配布します。
 
 ##### 方法 A: Maven リポジトリ（推奨）
 
-`dist/1.13.0/android/m2/` は、2 つの AAR とその依存情報を収めた Maven リポジトリです。AAR が必要とする AndroidX と Kotlin のライブラリは Gradle が解決します。
+`dist/1.14.0/android/m2/` は、2 つの AAR とその依存情報を収めた Maven リポジトリです。AAR が必要とする AndroidX と Kotlin のライブラリは Gradle が解決します。
 
-1. `dist/1.13.0/android/m2/` をプロジェクトにコピーします（例: `third_party/native-toolkit-m2/`）。
+1. `dist/1.14.0/android/m2/` をプロジェクトにコピーします（例: `third_party/native-toolkit-m2/`）。
 2. `settings.gradle.kts` にリポジトリとして追加します。
 3. `app/build.gradle.kts` に依存関係を追加します。
 4. Gradle 同期を実行し、ビルドします。

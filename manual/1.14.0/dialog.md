@@ -28,16 +28,29 @@ Language:
     - [Choice list dialogs](#choice-list-dialogs)
     - [Text input and login dialogs](#text-input-and-login-dialogs)
 - [iOS](#ios)
-  - [iOSDialogManager](#iosdialogmanager)
+  - [IosDialogManager](#iosdialogmanager)
+    - [Basic dialog](#basic-dialog-1)
+    - [Confirmation dialog](#confirmation-dialog-1)
+    - [Destructive dialog](#destructive-dialog)
+    - [Action sheet](#action-sheet)
+    - [Text input dialog](#text-input-dialog-1)
+    - [Login dialog](#login-dialog-1)
+    - [One request, one result](#one-request-one-result)
+    - [Choosing the view controller](#choosing-the-view-controller)
+    - [Canceling a dialog](#canceling-a-dialog-1)
+  - [C ABI](#c-abi-1)
+    - [Alert, confirmation and destructive dialogs](#alert-confirmation-and-destructive-dialogs)
+    - [Action sheets](#action-sheets)
+    - [Text input and login dialogs](#text-input-and-login-dialogs-1)
 - [Windows](#windows)
   - [NativeToolkit::Dialog](#nativetoolkitdialog)
-    - [ShowAlert - Basic dialog](#showalert---basic-dialog-1)
+    - [ShowAlert - Basic dialog](#showalert---basic-dialog)
     - [ShowOpenFile - File picker dialog](#showopenfile---file-picker-dialog)
     - [ShowOpenFiles - Multi-file picker dialog](#showopenfiles---multi-file-picker-dialog)
     - [ShowPickFolder - Folder picker dialog](#showpickfolder---folder-picker-dialog)
     - [ShowPickFolders - Multi-folder picker dialog](#showpickfolders---multi-folder-picker-dialog)
     - [ShowSaveFile - Save file dialog](#showsavefile---save-file-dialog)
-  - [C ABI](#c-abi-1)
+  - [C ABI](#c-abi-2)
     - [Message box](#message-box)
     - [File pickers](#file-pickers)
     - [Folder pickers](#folder-pickers)
@@ -720,30 +733,65 @@ error = ntk_dialog_show_login_async(&login, &on_login, NULL, NULL, NULL);
 
 ## iOS
 
-### iOSDialogManager
+The iOS library offers the dialogs through two public APIs. Both come from one implementation, and the sample app uses the Swift API.
 
-#### ShowAlert - Basic dialog
+| API | Names | Module / header | XCFramework |
+|---|---|---|---|
+| Swift API | `IosDialogManager` | `IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_dialog_*` | `<NativeToolkitC/Dialog.h>` | `ios-native-toolkit-capi-2.0.0.xcframework`, embedded together with `ios-native-toolkit-2.0.0.xcframework` |
 
-- Displays a dialog.
+- The library needs iOS 18.0 or later. An app that uses the Swift API is built with Xcode 26.3 or later.
+- iOS has a destructive dialog and an action sheet, which Android does not have. Android's single-choice and multi-choice dialogs have no iOS counterpart. An iOS alert does not close when the user taps outside it, so there is no "dismissed" answer as on Android.
+- Code written for the 1.x library has to be updated: see [Migrating the iOS library to 2.0.0](index.md#migrating-the-ios-library-to-200). For dialogs, the `show...` methods keep their names, parameters and defaults, but:
+  - Their callbacks are `@MainActor @Sendable` and are called on the main thread.
+  - A failure is reported only through `completion`. `showLoginDialog` no longer calls `onLogin` with `isSuccess == false`, and when UIKit declines the presentation, `completion(false, "Failed to present the dialog")` is called once.
+  - `getRootViewController()` is `@MainActor`: a synchronous nonisolated context cannot call it.
+  - New in 2.0.0: `show(_:presenter:requestBox:completion:)` and its `async` form, which report one result per request, `cancel(_:)`, `foregroundViewController()`, and the types `DialogRequest`, `DialogAnswer`, `DialogInput`, `DialogError`, `PresenterSelection` and `RequestBox`.
+
+### IosDialogManager
+
+- `IosDialogManager.shared` is the process-wide instance. Every method except `getRootViewController()` and `foregroundViewController()` may be called from any thread; those two read UIKit state and are `@MainActor`.
+- There are two ways to show a dialog, and the sample screen shows both, in this order:
+  - One `show...` method per kind (`showAlert`, `showConfirmDialog`, `showDestructiveDialog`, `showActionSheet`, `showTextInputDialog`, `showLoginDialog`). This is the 1.x API. A button callback reports the pressed button, and `completion` reports whether the dialog was presented. `showDialog(...)` with your own `UIAlertAction`s is also still there.
+  - `show(_:presenter:requestBox:completion:)` takes a `DialogRequest` and reports one `Result<DialogAnswer, DialogError>`: the pressed button, or why the request ended without one. It can be canceled, and it can be told which view controller to present from.
+- Every callback is called on the main thread, at most once, and never inside the call that showed the dialog, also when that call was made on the main thread. The callback types are `@MainActor @Sendable`, so a closure written in a SwiftUI view can use the view's state directly.
+- A dialog needs a window scene in the foreground. The library keeps a presented dialog weakly and drops the callbacks when the request ends. Avoid capturing large objects strongly in the closures.
+
+The `show...` methods report as follows.
+
+| Callback | When |
+|---|---|
+| The button callback (`onButton`, `onConfirm`, `onCancel`, `onDestructive`, `onAction`, `onLogin`) | The user pressed that button. It receives the button's text (and, for text input and login, what was entered), `isSuccess == true` and `errorMessage == nil` |
+| `completion(true, nil)` | UIKit presented the dialog |
+| `completion(false, "Failed to get root view controller")` | No view controller to present from was found |
+| `completion(false, "Failed to present the dialog")` | UIKit declined the presentation, for example because the view controller found was already presenting another one |
+
+- When the dialog goes away without a button being pressed (other code dismissed it, or its scene was disconnected), none of these is called: the `show...` methods have no result for it. `show(_:presenter:requestBox:completion:)` reports it as `DialogError.dismissedBySystem`.
+- The `show...` methods present from the topmost view controller of the key window of the first `foregroundActive` scene, and do not wait. A second dialog requested while the first one is still being presented is likely to fail with `"Failed to present the dialog"`. To show it over the first one, use `show(_:presenter:requestBox:completion:)` with `presenter: .foreground` (see [Choosing the view controller](#choosing-the-view-controller)).
+
+#### Basic dialog
+
+- Displays a message with one button.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showAlert(
-    // Set the title.
+    // Set the title. If not set, no title is shown.
     title: "Hello from iOS",
-    // Set the message.
+    // Set the message. If not set, no message is shown.
     message: "This is a native iOS dialog!",
     // Set the button text. If not set, "OK" is used.
     buttonText: "OK",
-    // Set event for button tap.
+    // Called on the main thread when the button is pressed.
     onButton: { buttonText, isSuccess, errorMessage in
-        // buttonText: text of the pressed button. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // buttonText: the button's text ("OK"). isSuccess is true and errorMessage is nil.
     },
-    // Set event for dialog completion.
+    // Called once, on the main thread, when the dialog was presented or could not be.
     completion: { isSuccess, errorMessage in
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // isSuccess: true once the dialog is presented.
+        // errorMessage: nil on success, otherwise "Failed to get root view controller"
+        // or "Failed to present the dialog".
     }
 )
 ```
@@ -752,36 +800,33 @@ IosDialogManager.shared.showAlert(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
 </p>
 
-#### ShowConfirmDialog - Confirmation dialog
+#### Confirmation dialog
 
-- Displays a dialog.
+- Displays a message with a confirm button and a cancel button.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showConfirmDialog(
-    // Set the title.
+    // Set the title. If not set, no title is shown.
     title: "Confirm Action",
-    // Set the message.
+    // Set the message. If not set, no message is shown.
     message: "Are you sure you want to proceed?",
-    // Set confirmation button text. If not set, "OK" is used.
+    // Set the confirm button text. If not set, "OK" is used.
     confirmTitle: "Yes",
-    // Set cancel button text. If not set, "Cancel" is used.
+    // Set the cancel button text. If not set, "Cancel" is used.
     cancelTitle: "No",
-    // Set event for confirmation button tap.
+    // Called when the confirm button is pressed.
     onConfirm: { confirmButtonText, isSuccess, errorMessage in
-        // confirmButtonText: text of the pressed button. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // confirmButtonText: "Yes".
     },
-    // Set event for cancel button tap.
+    // Called when the cancel button is pressed.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: text of the pressed button. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // cancelButtonText: "No".
     },
-    // Set event for dialog completion.
+    // Called once when the dialog was presented or could not be.
     completion: { isSuccess, errorMessage in
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // As for showAlert.
     }
 )
 ```
@@ -790,36 +835,33 @@ IosDialogManager.shared.showConfirmDialog(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
 </p>
 
-#### ShowDestructiveDialog - Destructive dialog
+#### Destructive dialog
 
-- Displays a dialog.
+- Displays a message with a destructive button, shown in red, and a cancel button. iOS only.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showDestructiveDialog(
-    // Set the title.
+    // Set the title. If not set, no title is shown.
     title: "Delete File",
-    // Set the message.
+    // Set the message. If not set, no message is shown.
     message: "This action cannot be undone. Are you sure?",
-    // Set destructive action button text. If not set, "Delete" is used.
+    // Set the destructive button text. If not set, "Delete" is used.
     destructiveTitle: "Delete",
-    // Set cancel button text. If not set, "Cancel" is used.
+    // Set the cancel button text. If not set, "Cancel" is used.
     cancelTitle: "Cancel",
-    // Set event for destructive action button tap.
+    // Called when the destructive button is pressed.
     onDestructive: { destructiveButtonText, isSuccess, errorMessage in
-        // destructiveButtonText: text of the pressed button. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // destructiveButtonText: "Delete".
     },
-    // Set event for cancel button tap.
+    // Called when the cancel button is pressed.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: text of the pressed button. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // cancelButtonText: "Cancel".
     },
-    // Set event for dialog completion.
+    // Called once when the dialog was presented or could not be.
     completion: { isSuccess, errorMessage in
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // As for showAlert.
     }
 )
 ```
@@ -828,36 +870,40 @@ IosDialogManager.shared.showDestructiveDialog(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
 </p>
 
-#### ShowActionSheet - Action sheet
+#### Action sheet
 
-- Displays an action sheet.
+- Displays a list of options and a cancel button. iOS only.
+- On iPad the action sheet is a popover anchored in `sourceView`. `sourceRect` is the rectangle in `sourceView` the popover points at; `nil` uses the whole bounds of `sourceView`. When `sourceView` is large (for example the whole screen), the popover has no room and shows without its options, so pass a small rectangle, as the sample does with the centre point.
+- On iPad, and on iPhone with iOS 26, a tap outside the action sheet chooses the cancel button: `onAction` receives `cancelTitle`.
+- `getRootViewController()` is `@MainActor`. A SwiftUI button action runs on the main actor, so it can call it directly.
 
 ```swift
+import IosLibrary
+import UIKit
+
 if let rootVC = IosDialogManager.shared.getRootViewController() {
     IosDialogManager.shared.showActionSheet(
-        // Set the title.
+        // Set the title. If not set, no title is shown.
         title: "Please select",
-        // Set the message.
+        // Set the message. If not set, no message is shown.
         message: "Please choose an option",
-        // Set options. This field is required.
+        // Set the options. This field is required.
         options: ["Camera", "Photo Library", "Documents"],
-        // Set cancel button text. If not set, "Cancel" is used.
+        // Set the cancel button text. If not set, "Cancel" is used.
         cancelTitle: "Cancel",
-        // Set the source view for presenting the action sheet. This field is required.
+        // Set the view the iPad popover is anchored in. This field is required.
         sourceView: rootVC.view,
-        // Set the source rectangle of the presenting view.
-        sourceRect: nil,
-        // Set whether to animate presentation. If not set, true is used.
+        // A point at the centre: with the whole view (nil), the iPad popover has no room for its options.
+        sourceRect: CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0),
+        // Set whether to animate the presentation. If not set, true is used.
         animated: true,
-        // Set event for action button tap.
+        // Called when an option or the cancel button is chosen.
         onAction: { action, isSuccess, errorMessage in
-            // action: selected item. Returns nil on error.
-            // isSuccess: success flag for dialog display. Returns true on success.
-            // errorMessage: error detail if an error occurs. Returns nil on success.
+            // action: the chosen option ("Camera", ...), or "Cancel" for the cancel button.
         },
+        // Called once when the action sheet was presented or could not be.
         completion: { isSuccess, errorMessage in
-            // isSuccess: success flag for dialog display. Returns true on success.
-            // errorMessage: error detail if an error occurs. Returns nil on success.
+            // As for showAlert.
         }
     )
 }
@@ -867,42 +913,37 @@ if let rootVC = IosDialogManager.shared.getRootViewController() {
     <img src="images/ios/dialog/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
 </p>
 
-#### ShowTextInputDialog - Text input dialog
+#### Text input dialog
 
-- Displays a dialog.
+- Displays a message with one text field.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showTextInputDialog(
-    // Set the title.
+    // Set the title. If not set, no title is shown.
     title: "Enter Name",
-    // Set the message.
+    // Set the message. If not set, no message is shown.
     message: "Please enter your name",
-    // Set the placeholder.
+    // Set the placeholder. If not set, no placeholder is shown.
     placeholder: "Your name here",
-    // Set confirmation button text. If not set, "OK" is used.
+    // Set the confirm button text. If not set, "OK" is used.
     confirmTitle: "OK",
-    // Set cancel button text. If not set, "Cancel" is used.
+    // Set the cancel button text. If not set, "Cancel" is used.
     cancelTitle: "Cancel",
-    // Set whether confirm button is enabled when input is empty. If not set, true is used.
+    // Set whether the confirm button works while the field is empty. If not set, true is used.
     enableConfirmWhenEmpty: false,
-    // Set event for confirm button tap.
+    // Called when the confirm button is pressed.
     onConfirm: { confirmButtonText, inputText, isSuccess, errorMessage in
-        // confirmButtonText: text of the pressed button. Returns nil on error.
-        // inputText: entered text. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // inputText: what the user entered. Log its length, not the text.
     },
-    // Set event for cancel button tap.
+    // Called when the cancel button is pressed. What was entered is not passed.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: text of the pressed button. Returns nil on error.
-        // inputText: entered text. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // cancelButtonText: "Cancel".
     },
-    // Set event for dialog completion.
+    // Called once when the dialog was presented or could not be.
     completion: { isSuccess, errorMessage in
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // As for showAlert.
     }
 )
 ```
@@ -911,44 +952,39 @@ IosDialogManager.shared.showTextInputDialog(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
 </p>
 
-#### ShowLoginDialog - Login dialog
+#### Login dialog
 
-- Displays a dialog.
+- Displays a message with a username field and a password field (secure entry).
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showLoginDialog(
-    // Set the title.
+    // Set the title. If not set, no title is shown.
     title: "Login Required",
-    // Set the message.
+    // Set the message. If not set, no message is shown.
     message: "Please enter your credentials",
-    // Set username placeholder. If not set, "Username" is used.
+    // Set the username placeholder. If not set, "Username" is used.
     usernamePlaceholder: "Username",
-    // Set password placeholder. If not set, "Password" is used.
+    // Set the password placeholder. If not set, "Password" is used.
     passwordPlaceholder: "Password",
-    // Set login button text. If not set, "Login" is used.
+    // Set the login button text. If not set, "Login" is used.
     loginTitle: "Login",
-    // Set cancel button text. If not set, "Cancel" is used.
+    // Set the cancel button text. If not set, "Cancel" is used.
     cancelTitle: "Cancel",
-    // Set whether login button is enabled when input is empty. If not set, true is used.
+    // Set whether the login button works while a field is empty. If not set, true is used.
     enableLoginWhenEmpty: false,
-    // Set event for login button tap.
+    // Called only when the login button is pressed. A failure goes to completion.
     onLogin: { loginButtonText, username, password, isSuccess, errorMessage in
-        // loginButtonText: text of the pressed button. Returns nil on error.
-        // username: entered username. Returns nil on error.
-        // password: entered password. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // username and password: what the user entered. Never log the password.
     },
-    // Set event for cancel button tap.
+    // Called when the cancel button is pressed.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: text of the pressed button. Returns nil on error.
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // cancelButtonText: "Cancel".
     },
-    // Set event for dialog completion.
+    // Called once when the dialog was presented or could not be.
     completion: { isSuccess, errorMessage in
-        // isSuccess: success flag for dialog display. Returns true on success.
-        // errorMessage: error detail if an error occurs. Returns nil on success.
+        // As for showAlert.
     }
 )
 ```
@@ -956,6 +992,386 @@ IosDialogManager.shared.showLoginDialog(
 <p align="center">
     <img src="images/ios/dialog/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
 </p>
+
+#### One request, one result
+
+- `show(_:presenter:requestBox:completion:)` shows one `DialogRequest` and calls `completion` exactly once, on the main thread, with `Result<DialogAnswer, DialogError>`. It returns the request's `RequestBox`, which `cancel(_:)` takes.
+- `show(_:presenter:)` without a completion is `async throws`. It returns the `DialogAnswer` and throws a `DialogError`. When the task is canceled, the request is canceled and the call throws `CancellationError` (unless a button was pressed before).
+- The defaults of a request are those of the `show...` methods. `nil` for a title, a message or a placeholder shows none.
+
+| Request (`DialogRequest`) | Buttons (`DialogAnswer.Button`) | `DialogAnswer.input` |
+|---|---|---|
+| `.alert(title:message:buttonTitle:)` | `.primary` | `nil` |
+| `.confirm(title:message:confirmTitle:cancelTitle:)` | `.primary`, `.cancel` | `nil` |
+| `.destructive(title:message:destructiveTitle:cancelTitle:)` | `.destructive`, `.cancel` | `nil` |
+| `.actionSheet(title:message:options:cancelTitle:)` | `.option(index:)`, `.cancel` | `nil` |
+| `.textInput(title:message:placeholder:confirmTitle:cancelTitle:enableConfirmWhenEmpty:)` | `.primary`, `.cancel` | `.text(text)` for `.primary`, `nil` for `.cancel` |
+| `.login(title:message:usernamePlaceholder:passwordPlaceholder:loginTitle:cancelTitle:enableLoginWhenEmpty:)` | `.primary`, `.cancel` | `.login(username:password:)` for `.primary`, `nil` for `.cancel` |
+
+- `DialogAnswer.title` is the text of the pressed button, as given in the request (for `.option(index:)`, the option's text). `.option(index:)` is the index in `options`.
+- `DialogInput` shows only the lengths of what was entered in its `description` (`text(length: 5)`), so printing an answer does not log what the user typed.
+- An action sheet shown with `show` is anchored, on iPad, at the centre of the view of the view controller it is presented from. To choose the anchor, use `showActionSheet`.
+- `DialogAnswer.Button`, `DialogInput` and `DialogError` can gain cases in a later version. Write an `@unknown default` branch when you switch over them, as the sample does.
+
+```swift
+import IosLibrary
+
+// The six kinds, with the sample's texts.
+let alert: DialogRequest = .alert(title: "Request Alert", message: "Shown by show(_:presenter:)")
+let confirm: DialogRequest = .confirm(title: "Request Confirm", message: "Proceed?", confirmTitle: "Yes", cancelTitle: "No")
+let destructive: DialogRequest = .destructive(title: "Request Delete", message: "This cannot be undone.")
+let actionSheet: DialogRequest = .actionSheet(title: "Request Sheet", message: "Choose a color", options: ["Red", "Green", "Blue"])
+let textInput: DialogRequest = .textInput(title: "Request Name", message: "Enter your name", placeholder: "Your name here",
+                                          enableConfirmWhenEmpty: false)
+let login: DialogRequest = .login(title: "Request Login", message: "Enter your credentials", enableLoginWhenEmpty: false)
+
+Task {
+    do {
+        let answer = try await IosDialogManager.shared.show(confirm, presenter: .foreground)
+        switch answer.button {
+        case .primary:
+            // The confirm button ("Yes"). For .textInput and .login, answer.input holds what was entered.
+            break
+        case .cancel:
+            // The cancel button ("No").
+            break
+        case .destructive:
+            break
+        case .option(let index):
+            // The option at index in options.
+            _ = index
+        @unknown default:
+            break
+        }
+        if case .text(let text)? = answer.input {
+            // What the user entered in a text input dialog. Log its length, not the text.
+            _ = text.utf8.count
+        }
+        if case .login(let username, let password)? = answer.input {
+            // Never log the password.
+            _ = (username, password)
+        }
+    } catch let error as DialogError {
+        // .notForeground, .presentationFailed or .dismissedBySystem (see the table below).
+        print(error)
+    } catch {
+        // CancellationError: the task was canceled, and the dialog was closed.
+    }
+}
+```
+
+The request ends without an answer in these cases.
+
+| `DialogError` | When |
+|---|---|
+| `.canceled` | `cancel(_:)` ended the request. The `async` form throws `CancellationError` instead |
+| `.notForeground` | No view controller to present from was found: the app has no window scene in the foreground, or the `.viewController(_:)` closure returned `nil` |
+| `.presentationFailed` | The view controller to present from was still in a transition after waiting once, UIKit declined the presentation, or a share sheet of this library in the same window did not finish appearing within 10 seconds |
+| `.dismissedBySystem` | The dialog went away without a button being pressed: other code dismissed it, or its scene was disconnected and the dialog was freed |
+| `.invalidRequest` | The `RequestBox` passed in is already used by another request. The first request is not affected |
+
+- The result is not guaranteed when the app replaces the window, its root view controller or the scene while the dialog is shown, or keeps the presented alert alive, nor when the dialog's scene is disconnected but the dialog is not freed. Cancel the request then to get its result.
+- `errorDescription` of `DialogError` is a fixed English sentence, for logs. Do not show it to users as it is.
+
+#### Choosing the view controller
+
+- `presenter` decides which view controller the dialog is presented from. It is a `PresenterSelection`.
+
+| `presenter` | View controller | Waiting |
+|---|---|---|
+| `.firstActiveScene` (default) | The topmost presented view controller of the key window of the first `foregroundActive` scene. The `show...` methods always use it | None. A dialog requested while another one is being presented is likely to end with `.presentationFailed` |
+| `.foreground` | The topmost view controller that is not being dismissed, of the key window of a `foregroundActive` or `foregroundInactive` scene (`foregroundInactive`: right after launch, or while Control Center is pulled over the app) | When that view controller is in a transition, the request waits once for the transition to end. Two requests made one after the other are both shown, the second over the first |
+| `.viewController(_:)` | The one the closure returns. The closure is called once, on the main thread, when the dialog is about to be presented | As for `.foreground` |
+
+- On an iPad that shows two windows of the app side by side, both scenes can be `foregroundActive`, and `.firstActiveScene` and `.foreground` may choose the window the user is not looking at. Pass the view controller with `.viewController(_:)` there.
+- `foregroundViewController()` returns the view controller `.foreground` would choose, and `getRootViewController()` the one of `.firstActiveScene`. Both are `@MainActor`.
+
+The sample shows two alerts in the same turn of the main queue with `.foreground`; the second one appears over the first one.
+
+```swift
+import IosLibrary
+
+for (title, button) in [("First", "First OK"), ("Second", "Second OK")] {
+    IosDialogManager.shared.show(.alert(title: title, message: nil, buttonTitle: button),
+                                 presenter: .foreground) { result in
+        switch result {
+        case .success(let answer):
+            // answer.title is "First OK" or "Second OK".
+            print(answer.button)
+        case .failure(let error):
+            print(error)
+        }
+    }
+}
+```
+
+In a view controller of your own, pass the view controller and capture it weakly:
+
+```swift
+import IosLibrary
+import UIKit
+
+final class SettingsViewController: UIViewController {
+    func confirmReset() {
+        IosDialogManager.shared.show(.confirm(title: "Confirm Action", message: "Are you sure you want to proceed?"),
+                                     presenter: .viewController { [weak self] in self }) { result in
+            if case .success(let answer) = result, answer.button == .primary {
+                // The user pressed "OK".
+            }
+        }
+    }
+}
+```
+
+#### Canceling a dialog
+
+- `cancel(_:)` takes the box `show(_:presenter:requestBox:completion:)` returned. The request ends at once with `.failure(.canceled)` (the completion follows on the main thread), and the dialog is closed. A request that already ended is not changed.
+- `cancel(_:)` may be called from any thread and does not wait.
+- When another view controller is presented over the dialog, the dialog is not closed (that would close the view controller over it too). It stays until that view controller goes away, and its buttons then do nothing. The request has already ended with `.canceled`.
+- To hold the box before the request starts, create it with `RequestBox()` and pass it as `requestBox`. A box canceled before its request starts makes the request end at once as `.canceled` without showing anything. A box belongs to one request: passing it to a second request ends that request with `.invalidRequest`.
+- With the `async` form, cancel the `Task` instead. It throws `CancellationError`.
+
+```swift
+import IosLibrary
+
+let box = IosDialogManager.shared.show(.alert(title: "Cancel Me", message: "Cancelled after 3 seconds"),
+                                       presenter: .foreground) { result in
+    // .failure(.canceled) when cancel(_:) came before a button was pressed.
+    print(result)
+}
+
+// Close the dialog after 3 seconds.
+DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+    IosDialogManager.shared.cancel(box)
+}
+```
+
+### C ABI
+
+- The same dialogs for C, and for any language that can call a C function (C#, Dart, Rust and others). A Swift app calls `IosDialogManager` instead.
+- Embed `ios-native-toolkit-capi-2.0.0.xcframework` and `ios-native-toolkit-2.0.0.xcframework`, both with **Embed & Sign** and both of the same version: the C ABI calls the Swift API. Include `<IosLibraryCApi/NativeToolkitC/Dialog.h>`, or `<NativeToolkitC/Dialog.h>` with `dist/1.14.0/ios/include` on the header search path. The requirements and the steps to add them are in [Supported platform: iOS](index.md#supported-platform-ios-device-arm64--simulator-arm64-x86_64), and the rules common to every feature in [C ABI](index.md#c-abi-1), on the manual top.
+- The headers are plain C99 and include nothing but `<stddef.h>` and `<stdint.h>`. Strings are NUL-terminated UTF-8 and are checked strictly: invalid UTF-8 is rejected. A `NULL` title, message or `placeholder` shows none; any other `NULL` text takes the Swift default (`"OK"`, `"Cancel"`, `"Delete"`, `"Username"`, `"Password"`, `"Login"`).
+- A request struct is filled with zeros and given its own `sizeof` in `struct_size`; the zeros are the defaults, and the `reserved` fields have to stay 0. So that the default stays zero, two flag names are the inverse of the Swift API: `confirm_disabled_when_empty` is the opposite of `enableConfirmWhenEmpty`, and `login_disabled_when_empty` the opposite of `enableLoginWhenEmpty`. Booleans are `int32_t`.
+- The C ABI is asynchronous only. Every function may be called from any thread and never waits for the main thread. The return value only says whether the request was accepted. A call rejected on entry never calls the callback, and calls `release` (when it is not `NULL`) on the calling thread before it returns.
+- An accepted request completes exactly once, on the main thread (the main queue), and `release` follows, exactly once. Neither runs inside the call that started the request. Called off the main thread, the completion may arrive before that call returns, before `out_request_id` is visible, so tie a completion to its request through `user_data`.
+- A dialog needs a window scene in the foreground (`foregroundActive` or `foregroundInactive`, with a key window). Called while the app is in the background, a request completes with `NTK_DIALOG_ERROR_NOT_FOREGROUND`. The C ABI presents from the foreground view controller as the Swift API's `.foreground` does, so a request made while another dialog is appearing waits for it and is shown over it.
+- On an iPad that shows several windows of the app side by side, which window the dialog appears on is not decided. The C ABI has no way to pass a view controller; the Swift API's `.viewController(_:)` has one. On iPad an action sheet is a popover anchored at the centre of the view it is presented from, and the C ABI cannot choose another anchor.
+- The `ntk_dialog_result` handed to the callback is owned by the receiver, which frees it with `ntk_dialog_result_free`, during the callback or later, on any thread. It is `NULL` unless the error is `NTK_DIALOG_ERROR_NONE`. The readers return pointers into the result that stay valid until it is freed; `out_size` may be `NULL`. `ntk_dialog_result_free(NULL)` does nothing. `system_code` and `ntk_last_system_code()` are always 0 on iOS.
+- Request IDs are `uint64_t` and never reused. `ntk_dialog_cancel` takes one from any thread, does not wait, and returns `NTK_DIALOG_ERROR_NONE`. It ignores an unknown ID or a request that already completed. A dialog covered by another screen stays until that screen goes away (its buttons then do nothing), but its request still completes with `NTK_DIALOG_ERROR_CANCELED`.
+- The callback and `release` may not come when the app replaces its window or root view controller while the dialog is shown, or when the system disconnects the scene and the dialog is not freed. `ntk_dialog_cancel` ends the request then.
+- A callback must not block the main thread for long or let an exception escape (C++, Objective-C, a Rust panic, a C# exception).
+- There is no "dismissed" answer as on Android. A tap outside an action sheet (on iPad, and on iPhone with iOS 26) is the cancel button, `NTK_DIALOG_BUTTON_NEGATIVE`. A dialog closed by other code completes with `NTK_DIALOG_ERROR_CANCELED_BY_SYSTEM`.
+
+#### Alert, confirmation and destructive dialogs
+
+`ntk_dialog_result_button` tells which button was pressed, and `ntk_dialog_result_button_text` gives its text. The button values can grow in a later version: write a `default` branch.
+
+```c
+static void NTK_CALL on_dialog_result(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                      uint32_t system_code, ntk_dialog_result* result)
+{
+    /* On the main thread, once per accepted request. system_code is always 0 on iOS. */
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        /* result is NULL. CANCELED after ntk_dialog_cancel, CANCELED_BY_SYSTEM when other code
+           closed the dialog, NOT_FOREGROUND when no scene was in the foreground,
+           SHOW_FAILED when the dialog could not be presented. */
+        return;
+    }
+    size_t size = 0;
+    const char* label = ntk_dialog_result_button_text(result, &size);   /* "OK", "Yes", "Delete"... */
+    switch (ntk_dialog_result_button(result)) {
+    case NTK_DIALOG_BUTTON_POSITIVE:      /* the alert's button, or the confirm button */
+        break;
+    case NTK_DIALOG_BUTTON_NEGATIVE:      /* the cancel button */
+        break;
+    case NTK_DIALOG_BUTTON_DESTRUCTIVE:   /* the destructive button */
+        break;
+    default:
+        break;
+    }
+    (void)label;
+    /* The result belongs to the receiver. Free it here, or later on any thread. */
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* Called exactly once: on the main thread after the completion, or on the calling
+       thread before the call returns when the call was rejected. */
+    (void)user_data;
+}
+
+/* --- Basic dialog --------------------------------------------------- */
+ntk_dialog_alert_request alert;
+memset(&alert, 0, sizeof(alert));
+alert.struct_size = (uint32_t)sizeof(alert);
+alert.title = "Hello from iOS";                   /* NULL: no title */
+alert.message = "This is a native iOS dialog!";   /* NULL: no message */
+alert.button_text = "OK";                         /* NULL: "OK" */
+
+uint64_t request_id = 0;
+ntk_dialog_error error = ntk_dialog_show_alert_async(&alert, &on_dialog_result, NULL,
+                                                     &release_user_data, &request_id);
+if (error != NTK_DIALOG_ERROR_NONE) {
+    /* Rejected: the callback is never called, and release_user_data has already run. */
+    return;
+}
+
+/* Later, from any thread: the dialog closes and completes with
+   NTK_DIALOG_ERROR_CANCELED. A finished or unknown ID does nothing. */
+ntk_dialog_cancel(request_id);
+
+/* --- Confirmation dialog -------------------------------------------- */
+ntk_dialog_confirm_request confirm;
+memset(&confirm, 0, sizeof(confirm));
+confirm.struct_size = (uint32_t)sizeof(confirm);
+confirm.title = "Confirm Action";
+confirm.message = "Are you sure you want to proceed?";
+confirm.confirm_text = "Yes";                     /* NULL: "OK" */
+confirm.cancel_text = "No";                       /* NULL: "Cancel" */
+
+/* out_request_id may be NULL; the request then cannot be canceled. */
+error = ntk_dialog_show_confirm_async(&confirm, &on_dialog_result, NULL, &release_user_data, NULL);
+
+/* --- Destructive dialog --------------------------------------------- */
+ntk_dialog_destructive_request destructive;
+memset(&destructive, 0, sizeof(destructive));
+destructive.struct_size = (uint32_t)sizeof(destructive);
+destructive.title = "Delete File";
+destructive.message = "This action cannot be undone. Are you sure?";
+destructive.destructive_text = "Delete";          /* NULL: "Delete" */
+destructive.cancel_text = "Cancel";               /* NULL: "Cancel" */
+
+/* user_data and release may be NULL when there is nothing to free. */
+error = ntk_dialog_show_destructive_async(&destructive, &on_dialog_result, NULL, NULL, NULL);
+```
+
+#### Action sheets
+
+`ntk_dialog_result_option_index` is the index of the chosen option from 0, and -1 for any other button. `option_count` may be 0, which leaves only the cancel button; `options` must not be `NULL` when the count is not 0, and no option may be `NULL`.
+
+```c
+static void NTK_CALL on_action_sheet(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                     uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_OPTION) {
+        int64_t index = ntk_dialog_result_option_index(result);          /* 0 for "Camera" */
+        const char* option = ntk_dialog_result_button_text(result, NULL);
+        (void)index; (void)option;
+    } else {
+        /* NTK_DIALOG_BUTTON_NEGATIVE: the cancel button, or a tap outside the action sheet. */
+    }
+    ntk_dialog_result_free(result);
+}
+
+const char* const options[] = { "Camera", "Photo Library", "Documents" };
+
+ntk_dialog_action_sheet_request sheet;
+memset(&sheet, 0, sizeof(sheet));
+sheet.struct_size = (uint32_t)sizeof(sheet);
+sheet.title = "Please select";
+sheet.message = "Please choose an option";
+sheet.options = options;
+sheet.option_count = 3;
+sheet.cancel_text = "Cancel";                     /* NULL: "Cancel" */
+
+ntk_dialog_error error = ntk_dialog_show_action_sheet_async(&sheet, &on_action_sheet, NULL, NULL, NULL);
+```
+
+#### Text input and login dialogs
+
+The text, the username and the password are read only for `NTK_DIALOG_BUTTON_POSITIVE`; for the cancel button the readers return `NULL`. They point into the result and stay valid until it is freed.
+
+```c
+static void NTK_CALL on_text_input(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                   uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        size_t size = 0;
+        const char* text = ntk_dialog_result_text(result, &size);   /* UTF-8; log its size, not the text */
+        (void)text;
+    }
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL on_login(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                              uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        const char* username = ntk_dialog_result_username(result, NULL);
+        const char* password = ntk_dialog_result_password(result, NULL);   /* never log it */
+        (void)username; (void)password;
+    }
+    ntk_dialog_result_free(result);
+}
+
+/* --- Text input ----------------------------------------------------- */
+ntk_dialog_text_input_request input;
+memset(&input, 0, sizeof(input));
+input.struct_size = (uint32_t)sizeof(input);
+input.title = "Enter Name";
+input.message = "Please enter your name";
+input.placeholder = "Your name here";             /* NULL: no placeholder */
+input.confirm_text = "OK";                        /* NULL: "OK" */
+input.cancel_text = "Cancel";                     /* NULL: "Cancel" */
+input.confirm_disabled_when_empty = 1;            /* 0: the confirm button works while empty */
+
+ntk_dialog_error error = ntk_dialog_show_text_input_async(&input, &on_text_input, NULL, NULL, NULL);
+
+/* --- Login ---------------------------------------------------------- */
+ntk_dialog_login_request login;
+memset(&login, 0, sizeof(login));
+login.struct_size = (uint32_t)sizeof(login);
+login.title = "Login Required";
+login.message = "Please enter your credentials";
+login.username_placeholder = "Username";          /* NULL: "Username" */
+login.password_placeholder = "Password";          /* NULL: "Password" */
+login.login_text = "Login";                       /* NULL: "Login" */
+login.cancel_text = "Cancel";                     /* NULL: "Cancel" */
+login.login_disabled_when_empty = 1;              /* 0: the login button works while empty */
+
+error = ntk_dialog_show_login_async(&login, &on_login, NULL, NULL, NULL);
+```
+
+| Error | Returned or completed | Meaning |
+|---|---|---|
+| `NTK_DIALOG_ERROR_NONE` | Both | Accepted, or answered |
+| `NTK_DIALOG_ERROR_INVALID_PARAMETER` | Returned | A `NULL` callback or request, invalid UTF-8, a `struct_size` below the 2.0.0 size or above 4096, a nonzero reserved field, `NULL` options with a nonzero count, or a `NULL` option |
+| `NTK_DIALOG_ERROR_NOT_SUPPORTED` | Returned | A newer `struct_size` with nonzero fields this library does not know |
+| `NTK_DIALOG_ERROR_UNKNOWN` | Completed | Not expected in 2.0.0. The log has the detail |
+| `NTK_DIALOG_ERROR_CANCELED` | Completed | `ntk_dialog_cancel` (`DialogError.canceled`) |
+| `NTK_DIALOG_ERROR_CANCELED_BY_SYSTEM` | Completed | The dialog went away without a button being pressed: other code dismissed it, or its scene was disconnected and the dialog was freed (`DialogError.dismissedBySystem`) |
+| `NTK_DIALOG_ERROR_NOT_FOREGROUND` | Completed | No window scene in the foreground (`DialogError.notForeground`) |
+| `NTK_DIALOG_ERROR_SHOW_FAILED` | Completed | The view controller was still in a transition after waiting once, UIKit declined the presentation, or a share sheet in the same window did not finish appearing within 10 seconds (`DialogError.presentationFailed`) |
+
+`NTK_DIALOG_ERROR_NOT_INITIALIZED` and `NTK_DIALOG_ERROR_OUT_OF_MEMORY` are declared for all platforms but never returned on iOS.
+
+| Swift API | C ABI |
+|---|---|
+| `show(.alert(...))` | `ntk_dialog_show_alert_async` |
+| `show(.confirm(...))` | `ntk_dialog_show_confirm_async` |
+| `show(.destructive(...))` | `ntk_dialog_show_destructive_async` |
+| `show(.actionSheet(...))` | `ntk_dialog_show_action_sheet_async` |
+| `show(.textInput(...))` | `ntk_dialog_show_text_input_async` |
+| `show(.login(...))` | `ntk_dialog_show_login_async` |
+| `cancel(_:)` | `ntk_dialog_cancel` |
+| `DialogAnswer.button` | `ntk_dialog_result_button`, `ntk_dialog_result_option_index` |
+| `DialogAnswer.title` | `ntk_dialog_result_button_text` |
+| `DialogAnswer.input` | `ntk_dialog_result_text`, `ntk_dialog_result_username`, `ntk_dialog_result_password` |
+| - | `ntk_dialog_result_free` |
 
 ---
 
