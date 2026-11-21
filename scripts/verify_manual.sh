@@ -347,7 +347,7 @@ def check_toc_sections():
             if in_code:
                 continue
             if re.match(r"^#{1,6} ", line):
-                in_toc = line.strip().lower() in ("## table of contents", "## contents")
+                in_toc = line.strip().lower() in ("## table of contents", "## contents", "## 目次", "## 목차")
                 owner = None
                 continue
             if not in_toc:

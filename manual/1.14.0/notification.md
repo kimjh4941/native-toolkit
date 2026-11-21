@@ -1704,7 +1704,7 @@ Add `ios-native-toolkit-2.0.0.xcframework` to the app target (Embed & Sign) and 
 - **Before the launch ends.** Call it before `application(_:didFinishLaunchingWithOptions:)` returns, or inside `scene(_:willConnectTo:options:)`. In a SwiftUI app, `App.init` and the `UIApplicationDelegateAdaptor`'s `application(_:didFinishLaunchingWithOptions:)` both work. The system hands the response that launched the app (a tap at a cold start) only to the delegate that is set when the launch returns: installed later, the library still works but loses that response.
 - **Without it,** the library's notifications are not presented while the app is in the foreground, and no event arrives: `responses.addListener`, `settingsRequests.addListener` and `launchResponse()` throw `NotificationError.delegateNotInstalled`.
 - **The delegate set before it** (your own, or another component's) becomes the previous delegate, and receives the notifications that are not the library's (see [Other Notifications and the Previous Delegate](#other-notifications-and-the-previous-delegate)). Set your own delegate before calling `installDelegate()`. The library holds the previous delegate weakly, as `UNUserNotificationCenter` holds its delegate: keep a strong reference to it in your app, or it is released and the notifications it should receive are handled by the library.
-- **Do not replace `UNUserNotificationCenter.current().delegate` afterwards.** The library only logs a warning, and its events and foreground presentation stop. Calling `installDelegate()` again restores them, with the object that replaced it as the only previous delegate; the tap of a cold start is lost when this happens after the launch. Do not call it again in front of a delegate that forwards to the library asynchronously.
+- **Do not replace `UNUserNotificationCenter.current().delegate` afterwards.** The library only logs a warning, and its events and foreground presentation stop. Calling `installDelegate()` again restores them, with the object that replaced it as the only previous delegate; the tap of a cold start is lost when this happens after the launch. If the object that replaced it forwards to the library asynchronously, do not call `installDelegate()` again: that is outside the contract.
 - `IosNotificationManager.isDelegateInstalled` tells whether the delegate has been installed in this process.
 
 The sample app installs it from its application delegate:
@@ -2213,7 +2213,8 @@ Task {
         // .reservedUserInfoKey here. A value such as URL(string: "https://example.com")!
         // fails with .invalidUserInfo.
     } catch {
-        // Only a repository of your own throws other errors.
+        // Not reached here: IosNotificationManager throws NotificationError only. The clause is
+        // untyped because the use cases also accept a NotificationRepository of your own.
     }
 }
 ```

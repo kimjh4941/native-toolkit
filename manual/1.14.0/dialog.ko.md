@@ -28,16 +28,29 @@
     - [선택 목록 다이얼로그](#선택-목록-다이얼로그)
     - [입력 다이얼로그와 로그인 다이얼로그](#입력-다이얼로그와-로그인-다이얼로그)
 - [iOS](#ios)
-  - [iOSDialogManager](#iosdialogmanager)
+  - [IosDialogManager](#iosdialogmanager)
+    - [기본 다이얼로그](#기본-다이얼로그-1)
+    - [확인 다이얼로그](#확인-다이얼로그-1)
+    - [파괴적 다이얼로그](#파괴적-다이얼로그)
+    - [액션 시트](#액션-시트)
+    - [입력 다이얼로그](#입력-다이얼로그-1)
+    - [로그인 다이얼로그](#로그인-다이얼로그-1)
+    - [하나의 요청에 하나의 결과](#하나의-요청에-하나의-결과)
+    - [표시할 뷰 컨트롤러 선택](#표시할-뷰-컨트롤러-선택)
+    - [다이얼로그 취소](#다이얼로그-취소-1)
+  - [C ABI](#c-abi-1)
+    - [알림, 확인, 파괴적 다이얼로그](#알림-확인-파괴적-다이얼로그)
+    - [액션 시트](#액션-시트-1)
+    - [입력 다이얼로그와 로그인 다이얼로그](#입력-다이얼로그와-로그인-다이얼로그-1)
 - [Windows](#windows)
   - [NativeToolkit::Dialog](#nativetoolkitdialog)
-    - [ShowAlert - 기본 다이얼로그](#showalert---기본-다이얼로그-1)
+    - [ShowAlert - 기본 다이얼로그](#showalert---기본-다이얼로그)
     - [ShowOpenFile - 파일 선택 다이얼로그](#showopenfile---파일-선택-다이얼로그)
     - [ShowOpenFiles - 다중 파일 선택 다이얼로그](#showopenfiles---다중-파일-선택-다이얼로그)
     - [ShowPickFolder - 폴더 선택 다이얼로그](#showpickfolder---폴더-선택-다이얼로그)
     - [ShowPickFolders - 다중 폴더 선택 다이얼로그](#showpickfolders---다중-폴더-선택-다이얼로그)
     - [ShowSaveFile - 저장 다이얼로그](#showsavefile---저장-다이얼로그)
-  - [C ABI](#c-abi-1)
+  - [C ABI](#c-abi-2)
     - [메시지 박스](#메시지-박스)
     - [파일 선택](#파일-선택)
     - [폴더 선택](#폴더-선택)
@@ -720,30 +733,65 @@ error = ntk_dialog_show_login_async(&login, &on_login, NULL, NULL, NULL);
 
 ## iOS
 
-### iOSDialogManager
+iOS 라이브러리는 다이얼로그를 두 가지 공개 API로 제공합니다. 구현은 하나이며, 샘플 앱은 Swift API를 사용합니다.
 
-#### ShowAlert - 기본 다이얼로그
+| API | 이름 | 모듈 / 헤더 | XCFramework |
+|---|---|---|---|
+| Swift API | `IosDialogManager` | `IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_dialog_*` | `<NativeToolkitC/Dialog.h>` | `ios-native-toolkit-capi-2.0.0.xcframework`(`ios-native-toolkit-2.0.0.xcframework`와 함께 임베드합니다) |
 
-- 다이얼로그를 표시합니다.
+- 라이브러리에는 iOS 18.0 이상이 필요합니다. Swift API를 사용하는 앱은 Xcode 26.3 이상으로 빌드합니다.
+- iOS에는 Android에 없는 파괴적 다이얼로그와 액션 시트가 있습니다. Android의 단일 선택 다이얼로그와 다중 선택 다이얼로그에 해당하는 것은 iOS에 없습니다. iOS의 알림은 바깥을 탭해도 닫히지 않으므로, Android와 같은 "닫힘" 응답은 없습니다.
+- 1.x 라이브러리용으로 작성한 코드는 수정해야 합니다. [iOS 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#ios-라이브러리를-200으로-마이그레이션)을 참고해 주세요. 다이얼로그의 경우 `show...` 메서드의 이름, 인수, 기본값은 그대로이지만 다음이 바뀌었습니다.
+  - 콜백은 `@MainActor @Sendable`이며 메인 스레드에서 호출됩니다.
+  - 실패는 `completion`으로만 보고됩니다. `showLoginDialog`가 `isSuccess == false`로 `onLogin`을 호출하는 일은 더 이상 없습니다. UIKit이 표시를 거부하면 `completion(false, "Failed to present the dialog")`가 한 번 호출됩니다.
+  - `getRootViewController()`는 `@MainActor`입니다. 동기 nonisolated 컨텍스트에서는 호출할 수 없습니다.
+  - 2.0.0에서 추가된 것: 요청마다 하나의 결과를 보고하는 `show(_:presenter:requestBox:completion:)`와 그 `async` 버전, `cancel(_:)`, `foregroundViewController()`, 그리고 `DialogRequest`, `DialogAnswer`, `DialogInput`, `DialogError`, `PresenterSelection`, `RequestBox` 타입입니다.
+
+### IosDialogManager
+
+- `IosDialogManager.shared`는 프로세스 전체에서 하나인 인스턴스입니다. `getRootViewController()`와 `foregroundViewController()` 외의 메서드는 어느 스레드에서든 호출할 수 있습니다. 이 두 메서드는 UIKit 상태를 읽으므로 `@MainActor`입니다.
+- 다이얼로그를 표시하는 방법은 두 가지이며, 샘플 화면은 둘 다 이 순서로 보여 줍니다.
+  - 종류마다 하나인 `show...` 메서드(`showAlert`, `showConfirmDialog`, `showDestructiveDialog`, `showActionSheet`, `showTextInputDialog`, `showLoginDialog`). 1.x의 API입니다. 버튼 콜백이 눌린 버튼을 보고하고, `completion`이 다이얼로그를 표시했는지를 보고합니다. 직접 만든 `UIAlertAction`을 전달하는 `showDialog(...)`도 계속 사용할 수 있습니다.
+  - `show(_:presenter:requestBox:completion:)`는 `DialogRequest`를 받아 하나의 `Result<DialogAnswer, DialogError>`를 보고합니다. 눌린 버튼, 또는 버튼이 눌리지 않은 채 요청이 끝난 이유입니다. 취소할 수 있으며, 어느 뷰 컨트롤러에서 표시할지도 지정할 수 있습니다.
+- 모든 콜백은 메인 스레드에서 최대 한 번 호출되며, 다이얼로그를 표시한 호출 안에서 호출되는 일은 없습니다. 그 호출을 메인 스레드에서 한 경우에도 마찬가지입니다. 콜백 타입은 `@MainActor @Sendable`이므로, SwiftUI 뷰 안에서 작성한 클로저에서 뷰의 상태를 직접 사용할 수 있습니다.
+- 다이얼로그를 표시하려면 포그라운드에 있는 윈도 씬이 필요합니다. 라이브러리는 표시된 다이얼로그를 약한 참조로 보관하며, 요청이 끝나면 콜백을 놓습니다. 큰 객체를 클로저에서 강하게 캡처하지 않도록 해 주세요.
+
+`show...` 메서드는 다음과 같이 보고합니다.
+
+| 콜백 | 호출되는 경우 |
+|---|---|
+| 버튼 콜백(`onButton`, `onConfirm`, `onCancel`, `onDestructive`, `onAction`, `onLogin`) | 사용자가 그 버튼을 누른 경우입니다. 버튼 텍스트(입력 다이얼로그와 로그인 다이얼로그에서는 입력된 내용도), `isSuccess == true`, `errorMessage == nil`을 받습니다 |
+| `completion(true, nil)` | UIKit이 다이얼로그를 표시한 경우입니다 |
+| `completion(false, "Failed to get root view controller")` | 표시할 뷰 컨트롤러를 찾지 못한 경우입니다 |
+| `completion(false, "Failed to present the dialog")` | UIKit이 표시를 거부한 경우입니다. 예를 들어 찾은 뷰 컨트롤러가 이미 다른 것을 표시하고 있던 경우입니다 |
+
+- 버튼이 눌리지 않은 채 다이얼로그가 사라진 경우(다른 코드가 닫았거나, 씬의 연결이 끊긴 경우)에는 어느 것도 호출되지 않습니다. `show...` 메서드에는 이 경우의 결과가 없습니다. `show(_:presenter:requestBox:completion:)`는 이를 `DialogError.dismissedBySystem`으로 보고합니다.
+- `show...` 메서드는 첫 번째 `foregroundActive` 씬의 키 윈도에서 가장 위에 있는 뷰 컨트롤러로부터 표시하며, 기다리지 않습니다. 첫 번째 다이얼로그가 표시되는 도중에 두 번째를 요청하면 `"Failed to present the dialog"`로 실패할 가능성이 높습니다. 첫 번째 위에 표시하려면 `show(_:presenter:requestBox:completion:)`를 `presenter: .foreground`로 사용해 주세요([표시할 뷰 컨트롤러 선택](#표시할-뷰-컨트롤러-선택) 참고).
+
+#### 기본 다이얼로그
+
+- 메시지와 버튼 하나를 표시합니다.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showAlert(
-    // 제목을 설정합니다.
+    // 제목을 설정합니다. 미설정 시 제목이 표시되지 않습니다.
     title: "Hello from iOS",
-    // 메시지를 설정합니다.
+    // 메시지를 설정합니다. 미설정 시 메시지가 표시되지 않습니다.
     message: "This is a native iOS dialog!",
     // 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
     buttonText: "OK",
-    // 버튼 탭 이벤트를 설정합니다.
+    // 버튼을 누르면 메인 스레드에서 호출됩니다.
     onButton: { buttonText, isSuccess, errorMessage in
-        // buttonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // buttonText: 버튼 텍스트("OK")입니다. isSuccess는 true, errorMessage는 nil입니다.
     },
-    // 다이얼로그 완료 이벤트를 설정합니다.
+    // 다이얼로그를 표시했거나 표시하지 못했을 때 메인 스레드에서 한 번 호출됩니다.
     completion: { isSuccess, errorMessage in
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // isSuccess: 다이얼로그가 표시되면 true입니다.
+        // errorMessage: 성공 시 nil, 그 외에는 "Failed to get root view controller"
+        // 또는 "Failed to present the dialog"입니다.
     }
 )
 ```
@@ -752,36 +800,33 @@ IosDialogManager.shared.showAlert(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowAlert.png" alt="Example_IosDialogManager_ShowAlert" width="400" />
 </p>
 
-#### ShowConfirmDialog - 확인 다이얼로그
+#### 확인 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 확인 버튼, 취소 버튼을 표시합니다.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showConfirmDialog(
-    // 제목을 설정합니다.
+    // 제목을 설정합니다. 미설정 시 제목이 표시되지 않습니다.
     title: "Confirm Action",
-    // 메시지를 설정합니다.
+    // 메시지를 설정합니다. 미설정 시 메시지가 표시되지 않습니다.
     message: "Are you sure you want to proceed?",
     // 확인 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
     confirmTitle: "Yes",
     // 취소 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
     cancelTitle: "No",
-    // 확인 버튼 탭 이벤트를 설정합니다.
+    // 확인 버튼을 누르면 호출됩니다.
     onConfirm: { confirmButtonText, isSuccess, errorMessage in
-        // confirmButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // confirmButtonText: "Yes"입니다.
     },
-    // 취소 버튼 탭 이벤트를 설정합니다.
+    // 취소 버튼을 누르면 호출됩니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: "No"입니다.
     },
-    // 다이얼로그 완료 이벤트를 설정합니다.
+    // 다이얼로그를 표시했거나 표시하지 못했을 때 한 번 호출됩니다.
     completion: { isSuccess, errorMessage in
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // showAlert와 같습니다.
     }
 )
 ```
@@ -790,36 +835,33 @@ IosDialogManager.shared.showConfirmDialog(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowConfirmDialog.png" alt="Example_IosDialogManager_ShowConfirmDialog" width="400" />
 </p>
 
-#### ShowDestructiveDialog - 파괴적 다이얼로그
+#### 파괴적 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 빨간색으로 표시되는 파괴적 버튼, 취소 버튼을 표시합니다. iOS 전용입니다.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showDestructiveDialog(
-    // 제목을 설정합니다.
+    // 제목을 설정합니다. 미설정 시 제목이 표시되지 않습니다.
     title: "Delete File",
-    // 메시지를 설정합니다.
+    // 메시지를 설정합니다. 미설정 시 메시지가 표시되지 않습니다.
     message: "This action cannot be undone. Are you sure?",
-    // 파괴적 작업 버튼 텍스트를 설정합니다. 미설정 시 "Delete"가 사용됩니다.
+    // 파괴적 버튼 텍스트를 설정합니다. 미설정 시 "Delete"가 사용됩니다.
     destructiveTitle: "Delete",
     // 취소 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
     cancelTitle: "Cancel",
-    // 파괴적 작업 버튼 탭 이벤트를 설정합니다.
+    // 파괴적 버튼을 누르면 호출됩니다.
     onDestructive: { destructiveButtonText, isSuccess, errorMessage in
-        // destructiveButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // destructiveButtonText: "Delete"입니다.
     },
-    // 취소 버튼 탭 이벤트를 설정합니다.
+    // 취소 버튼을 누르면 호출됩니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: "Cancel"입니다.
     },
-    // 다이얼로그 완료 이벤트를 설정합니다.
+    // 다이얼로그를 표시했거나 표시하지 못했을 때 한 번 호출됩니다.
     completion: { isSuccess, errorMessage in
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // showAlert와 같습니다.
     }
 )
 ```
@@ -828,36 +870,40 @@ IosDialogManager.shared.showDestructiveDialog(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowDestructiveDialog.png" alt="Example_IosDialogManager_ShowDestructiveDialog" width="400" />
 </p>
 
-#### ShowActionSheet - 액션 시트
+#### 액션 시트
 
-- 액션 시트를 표시합니다.
+- 선택지 목록과 취소 버튼을 표시합니다. iOS 전용입니다.
+- iPad에서 액션 시트는 `sourceView` 안에 고정된 팝오버가 됩니다. `sourceRect`는 팝오버가 가리키는 `sourceView` 안의 사각형이며, `nil`이면 `sourceView`의 경계 전체가 사용됩니다. `sourceView`가 크면(예: 화면 전체) 팝오버가 놓일 공간이 없어 선택지 없이 표시되므로, 샘플이 중심점을 전달하듯이 작은 사각형을 전달해 주세요.
+- iPad와 iOS 26의 iPhone에서는 액션 시트 바깥을 탭하면 취소 버튼을 선택한 것이 됩니다. `onAction`은 `cancelTitle`을 받습니다.
+- `getRootViewController()`는 `@MainActor`입니다. SwiftUI 버튼의 액션은 메인 액터에서 실행되므로 직접 호출할 수 있습니다.
 
 ```swift
+import IosLibrary
+import UIKit
+
 if let rootVC = IosDialogManager.shared.getRootViewController() {
     IosDialogManager.shared.showActionSheet(
-        // 제목을 설정합니다.
+        // 제목을 설정합니다. 미설정 시 제목이 표시되지 않습니다.
         title: "Please select",
-        // 메시지를 설정합니다.
+        // 메시지를 설정합니다. 미설정 시 메시지가 표시되지 않습니다.
         message: "Please choose an option",
-        // 옵션을 설정합니다. 필수 항목입니다.
+        // 선택지를 설정합니다. 필수 항목입니다.
         options: ["Camera", "Photo Library", "Documents"],
         // 취소 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
         cancelTitle: "Cancel",
-        // 액션 시트를 표시할 sourceView를 설정합니다. 필수 항목입니다.
+        // iPad 팝오버를 고정할 뷰를 설정합니다. 필수 항목입니다.
         sourceView: rootVC.view,
-        // 표시 기준 뷰의 sourceRect를 설정합니다.
-        sourceRect: nil,
-        // 애니메이션 표시 여부를 설정합니다. 미설정 시 true가 사용됩니다.
+        // 중심점입니다. 뷰 전체(nil)로는 iPad 팝오버에 선택지를 놓을 공간이 없습니다.
+        sourceRect: CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0),
+        // 애니메이션으로 표시할지 설정합니다. 미설정 시 true가 사용됩니다.
         animated: true,
-        // 액션 버튼 탭 이벤트를 설정합니다.
+        // 선택지나 취소 버튼을 선택하면 호출됩니다.
         onAction: { action, isSuccess, errorMessage in
-            // action: 선택된 항목을 가져옵니다. 오류 시 nil을 반환합니다.
-            // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-            // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+            // action: 선택한 선택지("Camera" 등), 또는 취소 버튼의 경우 "Cancel"입니다.
         },
+        // 액션 시트를 표시했거나 표시하지 못했을 때 한 번 호출됩니다.
         completion: { isSuccess, errorMessage in
-            // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-            // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+            // showAlert와 같습니다.
         }
     )
 }
@@ -867,42 +913,37 @@ if let rootVC = IosDialogManager.shared.getRootViewController() {
     <img src="images/ios/dialog/Example_IosDialogManager_ShowActionSheet.png" alt="Example_IosDialogManager_ShowActionSheet" width="400" />
 </p>
 
-#### ShowTextInputDialog - 입력 다이얼로그
+#### 입력 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 텍스트 필드 하나를 표시합니다.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showTextInputDialog(
-    // 제목을 설정합니다.
+    // 제목을 설정합니다. 미설정 시 제목이 표시되지 않습니다.
     title: "Enter Name",
-    // 메시지를 설정합니다.
+    // 메시지를 설정합니다. 미설정 시 메시지가 표시되지 않습니다.
     message: "Please enter your name",
-    // 플레이스홀더를 설정합니다.
+    // 플레이스홀더를 설정합니다. 미설정 시 플레이스홀더가 표시되지 않습니다.
     placeholder: "Your name here",
     // 확인 버튼 텍스트를 설정합니다. 미설정 시 "OK"가 사용됩니다.
     confirmTitle: "OK",
     // 취소 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
     cancelTitle: "Cancel",
-    // 입력값이 비어 있을 때 확인 버튼 활성화 여부를 설정합니다. 미설정 시 true가 사용됩니다.
+    // 필드가 비어 있어도 확인 버튼이 동작할지 설정합니다. 미설정 시 true가 사용됩니다.
     enableConfirmWhenEmpty: false,
-    // 확인 버튼 탭 이벤트를 설정합니다.
+    // 확인 버튼을 누르면 호출됩니다.
     onConfirm: { confirmButtonText, inputText, isSuccess, errorMessage in
-        // confirmButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // inputText: 입력 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // inputText: 사용자가 입력한 내용입니다. 로그에는 텍스트가 아니라 길이를 남겨 주세요.
     },
-    // 취소 버튼 탭 이벤트를 설정합니다.
+    // 취소 버튼을 누르면 호출됩니다. 입력된 내용은 전달되지 않습니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // inputText: 입력 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: "Cancel"입니다.
     },
-    // 다이얼로그 완료 이벤트를 설정합니다.
+    // 다이얼로그를 표시했거나 표시하지 못했을 때 한 번 호출됩니다.
     completion: { isSuccess, errorMessage in
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // showAlert와 같습니다.
     }
 )
 ```
@@ -911,17 +952,19 @@ IosDialogManager.shared.showTextInputDialog(
     <img src="images/ios/dialog/Example_IosDialogManager_ShowTextInputDialog.png" alt="Example_IosDialogManager_ShowTextInputDialog" width="400" />
 </p>
 
-#### ShowLoginDialog - 로그인 다이얼로그
+#### 로그인 다이얼로그
 
-- 다이얼로그를 표시합니다.
+- 메시지와 사용자 이름 필드, 비밀번호 필드(보안 입력)를 표시합니다.
 
 ```swift
+import IosLibrary
+
 IosDialogManager.shared.showLoginDialog(
-    // 제목을 설정합니다.
+    // 제목을 설정합니다. 미설정 시 제목이 표시되지 않습니다.
     title: "Login Required",
-    // 메시지를 설정합니다.
+    // 메시지를 설정합니다. 미설정 시 메시지가 표시되지 않습니다.
     message: "Please enter your credentials",
-    // 사용자명 플레이스홀더를 설정합니다. 미설정 시 "Username"이 사용됩니다.
+    // 사용자 이름 플레이스홀더를 설정합니다. 미설정 시 "Username"이 사용됩니다.
     usernamePlaceholder: "Username",
     // 비밀번호 플레이스홀더를 설정합니다. 미설정 시 "Password"가 사용됩니다.
     passwordPlaceholder: "Password",
@@ -929,26 +972,19 @@ IosDialogManager.shared.showLoginDialog(
     loginTitle: "Login",
     // 취소 버튼 텍스트를 설정합니다. 미설정 시 "Cancel"이 사용됩니다.
     cancelTitle: "Cancel",
-    // 입력값이 비어 있을 때 로그인 버튼 활성화 여부를 설정합니다. 미설정 시 true가 사용됩니다.
+    // 필드가 비어 있어도 로그인 버튼이 동작할지 설정합니다. 미설정 시 true가 사용됩니다.
     enableLoginWhenEmpty: false,
-    // 로그인 버튼 탭 이벤트를 설정합니다.
+    // 로그인 버튼을 눌렀을 때만 호출됩니다. 실패는 completion으로 전달됩니다.
     onLogin: { loginButtonText, username, password, isSuccess, errorMessage in
-        // loginButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // username: 입력한 사용자명을 가져옵니다. 오류 시 nil을 반환합니다.
-        // password: 입력한 비밀번호를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // username과 password: 사용자가 입력한 내용입니다. 비밀번호는 절대 로그에 남기지 마세요.
     },
-    // 취소 버튼 탭 이벤트를 설정합니다.
+    // 취소 버튼을 누르면 호출됩니다.
     onCancel: { cancelButtonText, isSuccess, errorMessage in
-        // cancelButtonText: 눌린 버튼 텍스트를 가져옵니다. 오류 시 nil을 반환합니다.
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // cancelButtonText: "Cancel"입니다.
     },
-    // 다이얼로그 완료 이벤트를 설정합니다.
+    // 다이얼로그를 표시했거나 표시하지 못했을 때 한 번 호출됩니다.
     completion: { isSuccess, errorMessage in
-        // isSuccess: 다이얼로그 표시 성공 플래그를 가져옵니다. 성공 시 true를 반환합니다.
-        // errorMessage: 오류가 발생한 경우 오류 내용을 가져옵니다. 성공 시 nil을 반환합니다.
+        // showAlert와 같습니다.
     }
 )
 ```
@@ -956,6 +992,386 @@ IosDialogManager.shared.showLoginDialog(
 <p align="center">
     <img src="images/ios/dialog/Example_IosDialogManager_ShowLoginDialog.png" alt="Example_IosDialogManager_ShowLoginDialog" width="400" />
 </p>
+
+#### 하나의 요청에 하나의 결과
+
+- `show(_:presenter:requestBox:completion:)`는 하나의 `DialogRequest`를 표시하고, `completion`을 메인 스레드에서 정확히 한 번 `Result<DialogAnswer, DialogError>`와 함께 호출합니다. 반환값은 그 요청의 `RequestBox`이며, `cancel(_:)`에 전달합니다.
+- completion이 없는 `show(_:presenter:)`는 `async throws`입니다. `DialogAnswer`를 반환하고 `DialogError`를 던집니다. 태스크가 취소되면 요청도 취소되고, 호출은 `CancellationError`를 던집니다(그 전에 버튼이 눌린 경우는 제외).
+- 요청의 기본값은 `show...` 메서드와 같습니다. 제목, 메시지, 플레이스홀더에 `nil`을 전달하면 표시되지 않습니다.
+
+| 요청(`DialogRequest`) | 버튼(`DialogAnswer.Button`) | `DialogAnswer.input` |
+|---|---|---|
+| `.alert(title:message:buttonTitle:)` | `.primary` | `nil` |
+| `.confirm(title:message:confirmTitle:cancelTitle:)` | `.primary`, `.cancel` | `nil` |
+| `.destructive(title:message:destructiveTitle:cancelTitle:)` | `.destructive`, `.cancel` | `nil` |
+| `.actionSheet(title:message:options:cancelTitle:)` | `.option(index:)`, `.cancel` | `nil` |
+| `.textInput(title:message:placeholder:confirmTitle:cancelTitle:enableConfirmWhenEmpty:)` | `.primary`, `.cancel` | `.primary`에서는 `.text(text)`, `.cancel`에서는 `nil` |
+| `.login(title:message:usernamePlaceholder:passwordPlaceholder:loginTitle:cancelTitle:enableLoginWhenEmpty:)` | `.primary`, `.cancel` | `.primary`에서는 `.login(username:password:)`, `.cancel`에서는 `nil` |
+
+- `DialogAnswer.title`은 눌린 버튼의 텍스트로, 요청에서 지정한 그대로입니다(`.option(index:)`에서는 선택지의 텍스트입니다). `.option(index:)`는 `options` 안의 인덱스입니다.
+- `DialogInput`의 `description`은 입력된 내용의 길이만 보여 줍니다(`text(length: 5)`). 따라서 응답을 출력해도 사용자가 입력한 내용은 로그에 남지 않습니다.
+- `show`로 표시한 액션 시트는 iPad에서 표시하는 뷰 컨트롤러의 뷰 중심에 고정됩니다. 고정 위치를 선택하려면 `showActionSheet`를 사용해 주세요.
+- `DialogAnswer.Button`, `DialogInput`, `DialogError`에는 이후 버전에서 케이스가 추가될 수 있습니다. 샘플처럼 switch에서는 `@unknown default` 분기를 작성해 주세요.
+
+```swift
+import IosLibrary
+
+// 여섯 가지 요청입니다. 텍스트는 샘플의 것입니다.
+let alert: DialogRequest = .alert(title: "Request Alert", message: "Shown by show(_:presenter:)")
+let confirm: DialogRequest = .confirm(title: "Request Confirm", message: "Proceed?", confirmTitle: "Yes", cancelTitle: "No")
+let destructive: DialogRequest = .destructive(title: "Request Delete", message: "This cannot be undone.")
+let actionSheet: DialogRequest = .actionSheet(title: "Request Sheet", message: "Choose a color", options: ["Red", "Green", "Blue"])
+let textInput: DialogRequest = .textInput(title: "Request Name", message: "Enter your name", placeholder: "Your name here",
+                                          enableConfirmWhenEmpty: false)
+let login: DialogRequest = .login(title: "Request Login", message: "Enter your credentials", enableLoginWhenEmpty: false)
+
+Task {
+    do {
+        let answer = try await IosDialogManager.shared.show(confirm, presenter: .foreground)
+        switch answer.button {
+        case .primary:
+            // 확인 버튼("Yes")입니다. .textInput과 .login에서는 answer.input에 입력된 내용이 들어 있습니다.
+            break
+        case .cancel:
+            // 취소 버튼("No")입니다.
+            break
+        case .destructive:
+            break
+        case .option(let index):
+            // options의 index 번째 선택지입니다.
+            _ = index
+        @unknown default:
+            break
+        }
+        if case .text(let text)? = answer.input {
+            // 사용자가 입력 다이얼로그에 입력한 내용입니다. 로그에는 텍스트가 아니라 길이를 남겨 주세요.
+            _ = text.utf8.count
+        }
+        if case .login(let username, let password)? = answer.input {
+            // 비밀번호는 절대 로그에 남기지 마세요.
+            _ = (username, password)
+        }
+    } catch let error as DialogError {
+        // .notForeground, .presentationFailed, .dismissedBySystem 중 하나입니다(아래 표 참고).
+        print(error)
+    } catch {
+        // CancellationError: 태스크가 취소되었고, 다이얼로그는 닫혔습니다.
+    }
+}
+```
+
+다음 경우에는 요청이 응답 없이 끝납니다.
+
+| `DialogError` | 반환되는 경우 |
+|---|---|
+| `.canceled` | `cancel(_:)`이 요청을 끝낸 경우입니다. `async` 버전은 대신 `CancellationError`를 던집니다 |
+| `.notForeground` | 표시할 뷰 컨트롤러를 찾지 못한 경우입니다. 앱의 포그라운드에 윈도 씬이 없거나, `.viewController(_:)` 클로저가 `nil`을 반환했습니다 |
+| `.presentationFailed` | 한 번 기다린 뒤에도 표시할 뷰 컨트롤러가 전환 중이었거나, UIKit이 표시를 거부했거나, 같은 윈도에서 이 라이브러리의 공유 시트가 10초 안에 표시를 마치지 않은 경우입니다 |
+| `.dismissedBySystem` | 버튼이 눌리지 않은 채 다이얼로그가 사라진 경우입니다. 다른 코드가 닫았거나, 씬의 연결이 끊겨 다이얼로그가 해제되었습니다 |
+| `.invalidRequest` | 전달한 `RequestBox`가 이미 다른 요청에서 사용되고 있는 경우입니다. 첫 번째 요청에는 영향이 없습니다 |
+
+- 다이얼로그가 표시된 동안 앱이 윈도, 그 루트 뷰 컨트롤러, 또는 씬을 교체하거나, 표시된 알림을 계속 붙잡고 있으면 결과가 보장되지 않습니다. 다이얼로그의 씬 연결이 끊겼는데 다이얼로그가 해제되지 않은 경우도 마찬가지입니다. 이때는 요청을 취소해서 결과를 받아 주세요.
+- `DialogError`의 `errorDescription`은 로그용의 고정된 영어 문장입니다. 그대로 사용자에게 보여 주지 마세요.
+
+#### 표시할 뷰 컨트롤러 선택
+
+- `presenter`는 다이얼로그를 어느 뷰 컨트롤러에서 표시할지 정합니다. 타입은 `PresenterSelection`입니다.
+
+| `presenter` | 뷰 컨트롤러 | 대기 |
+|---|---|---|
+| `.firstActiveScene`(기본값) | 첫 번째 `foregroundActive` 씬의 키 윈도에서 가장 위에 표시된 뷰 컨트롤러입니다. `show...` 메서드는 항상 이것을 사용합니다 | 기다리지 않습니다. 다른 다이얼로그가 표시되는 도중에 요청한 다이얼로그는 `.presentationFailed`로 끝날 가능성이 높습니다 |
+| `.foreground` | `foregroundActive` 또는 `foregroundInactive` 씬의 키 윈도에서, 닫히는 중이 아닌 가장 위의 뷰 컨트롤러입니다(`foregroundInactive`는 시작 직후나, 앱 위로 제어 센터를 내린 동안입니다) | 그 뷰 컨트롤러가 전환 중이면 요청은 전환이 끝나기를 한 번 기다립니다. 연달아 한 두 요청은 모두 표시되며, 두 번째가 첫 번째 위에 표시됩니다 |
+| `.viewController(_:)` | 클로저가 반환하는 뷰 컨트롤러입니다. 클로저는 다이얼로그를 표시하기 직전에 메인 스레드에서 한 번 호출됩니다 | `.foreground`와 같습니다 |
+
+- 앱의 윈도 두 개를 나란히 표시하는 iPad에서는 두 씬이 모두 `foregroundActive`일 수 있으며, `.firstActiveScene`과 `.foreground`는 사용자가 보고 있지 않은 윈도를 선택할 수 있습니다. 이때는 `.viewController(_:)`로 뷰 컨트롤러를 전달해 주세요.
+- `foregroundViewController()`는 `.foreground`가 선택할 뷰 컨트롤러를, `getRootViewController()`는 `.firstActiveScene`의 뷰 컨트롤러를 반환합니다. 둘 다 `@MainActor`입니다.
+
+샘플은 메인 큐의 같은 차례에서 `.foreground`로 두 개의 알림을 표시합니다. 두 번째가 첫 번째 위에 표시됩니다.
+
+```swift
+import IosLibrary
+
+for (title, button) in [("First", "First OK"), ("Second", "Second OK")] {
+    IosDialogManager.shared.show(.alert(title: title, message: nil, buttonTitle: button),
+                                 presenter: .foreground) { result in
+        switch result {
+        case .success(let answer):
+            // answer.title은 "First OK" 또는 "Second OK"입니다.
+            print(answer.button)
+        case .failure(let error):
+            print(error)
+        }
+    }
+}
+```
+
+직접 만든 뷰 컨트롤러에서는 그 뷰 컨트롤러를 전달하고, 약한 참조로 캡처합니다.
+
+```swift
+import IosLibrary
+import UIKit
+
+final class SettingsViewController: UIViewController {
+    func confirmReset() {
+        IosDialogManager.shared.show(.confirm(title: "Confirm Action", message: "Are you sure you want to proceed?"),
+                                     presenter: .viewController { [weak self] in self }) { result in
+            if case .success(let answer) = result, answer.button == .primary {
+                // 사용자가 "OK"를 눌렀습니다.
+            }
+        }
+    }
+}
+```
+
+#### 다이얼로그 취소
+
+- `cancel(_:)`은 `show(_:presenter:requestBox:completion:)`가 반환한 박스를 받습니다. 요청은 즉시 `.failure(.canceled)`로 끝나며(completion은 그 뒤에 메인 스레드에서 호출됩니다), 다이얼로그는 닫힙니다. 이미 끝난 요청은 바뀌지 않습니다.
+- `cancel(_:)`은 어느 스레드에서든 호출할 수 있으며, 기다리지 않습니다.
+- 다이얼로그 위에 다른 뷰 컨트롤러가 표시되어 있으면 다이얼로그는 닫히지 않습니다(닫으면 그 위의 뷰 컨트롤러도 닫히기 때문입니다). 다이얼로그는 그 뷰 컨트롤러가 사라질 때까지 남으며, 그 뒤에는 버튼을 눌러도 아무 일도 일어나지 않습니다. 요청은 이미 `.canceled`로 끝났습니다.
+- 요청을 시작하기 전에 박스를 가지고 있으려면 `RequestBox()`로 만들어 `requestBox`에 전달합니다. 요청이 시작되기 전에 취소된 박스를 전달하면, 요청은 아무것도 표시하지 않고 즉시 `.canceled`로 끝납니다. 박스는 하나의 요청에 속합니다. 두 번째 요청에 전달하면 그 요청은 `.invalidRequest`로 끝납니다.
+- `async` 버전에서는 대신 `Task`를 취소합니다. `CancellationError`가 던져집니다.
+
+```swift
+import IosLibrary
+
+let box = IosDialogManager.shared.show(.alert(title: "Cancel Me", message: "Cancelled after 3 seconds"),
+                                       presenter: .foreground) { result in
+    // 버튼을 누르기 전에 cancel(_:)이 호출된 경우 .failure(.canceled)입니다.
+    print(result)
+}
+
+// 3초 후에 다이얼로그를 닫습니다.
+DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+    IosDialogManager.shared.cancel(box)
+}
+```
+
+### C ABI
+
+- 같은 다이얼로그를 C에서, 그리고 C 함수를 호출할 수 있는 언어(C#, Dart, Rust 등)에서 사용하기 위한 API입니다. Swift 앱은 대신 `IosDialogManager`를 호출해 주세요.
+- `ios-native-toolkit-capi-2.0.0.xcframework`와 `ios-native-toolkit-2.0.0.xcframework`를 둘 다 **Embed & Sign**으로, 같은 버전으로 임베드합니다. C ABI가 Swift API를 호출하기 때문입니다. `<IosLibraryCApi/NativeToolkitC/Dialog.h>`를 include하거나, `dist/1.14.0/ios/include`를 헤더 검색 경로에 추가하고 `<NativeToolkitC/Dialog.h>`를 include합니다. 요구 사항과 추가 절차는 매뉴얼 상단의 [지원 플랫폼: iOS](index.ko.md#지원-플랫폼-ios실기기-arm64--simulator-arm64-x86_64)에, 모든 기능에 공통인 규칙은 같은 매뉴얼 상단의 [C ABI](index.ko.md#c-abi-1)에 있습니다.
+- 헤더는 순수한 C99이며 `<stddef.h>`와 `<stdint.h>` 외에는 include하지 않습니다. 문자열은 NUL로 끝나는 UTF-8이며 엄격하게 검사됩니다. 잘못된 UTF-8은 거부됩니다. 제목, 메시지, `placeholder`가 `NULL`이면 표시되지 않습니다. 그 밖의 텍스트가 `NULL`이면 Swift의 기본값(`"OK"`, `"Cancel"`, `"Delete"`, `"Username"`, `"Password"`, `"Login"`)이 사용됩니다.
+- 요청 구조체는 0으로 채우고 `struct_size`에 자신의 `sizeof`를 넣습니다. 0이 기본값이며, `reserved` 필드는 0으로 두어야 합니다. 기본값을 0으로 유지하기 위해 두 플래그는 Swift API와 이름의 방향이 반대입니다. `confirm_disabled_when_empty`는 `enableConfirmWhenEmpty`의 반대, `login_disabled_when_empty`는 `enableLoginWhenEmpty`의 반대입니다. 불리언은 `int32_t`입니다.
+- C ABI는 비동기만 제공합니다. 모든 함수는 어느 스레드에서든 호출할 수 있으며, 메인 스레드를 기다리지 않습니다. 반환값은 요청이 접수되었는지만 나타냅니다. 호출 시점에 거부된 경우 콜백은 호출되지 않으며, `release`(`NULL`이 아닌 경우)는 호출이 반환되기 전에 호출한 스레드에서 호출됩니다.
+- 접수된 요청은 메인 스레드(메인 큐)에서 정확히 한 번 완료되고, 그 뒤에 `release`가 정확히 한 번 호출됩니다. 둘 다 요청을 시작한 호출 안에서는 실행되지 않습니다. 메인 스레드가 아닌 곳에서 호출하면 그 호출이 반환되기 전, `out_request_id`가 보이기 전에 완료가 도착할 수 있으므로, 완료와 요청은 `user_data`로 연결해 주세요.
+- 다이얼로그를 표시하려면 포그라운드에 있는 윈도 씬(키 윈도가 있는 `foregroundActive` 또는 `foregroundInactive`)이 필요합니다. 앱이 백그라운드에 있을 때 호출하면 요청은 `NTK_DIALOG_ERROR_NOT_FOREGROUND`로 완료됩니다. C ABI는 Swift API의 `.foreground`처럼 포그라운드의 뷰 컨트롤러에서 표시하므로, 다른 다이얼로그가 표시되는 도중에 한 요청은 그 표시를 기다린 뒤 그 위에 표시됩니다.
+- 앱의 윈도 여러 개를 나란히 표시하는 iPad에서는 다이얼로그가 어느 윈도에 표시될지 정해져 있지 않습니다. C ABI에는 뷰 컨트롤러를 전달하는 방법이 없습니다. Swift API의 `.viewController(_:)`에는 있습니다. iPad에서 액션 시트는 표시하는 뷰의 중심에 고정된 팝오버이며, C ABI에서는 다른 위치를 선택할 수 없습니다.
+- 콜백에 전달되는 `ntk_dialog_result`는 받은 쪽이 소유하며, 콜백 안에서 또는 나중에 어느 스레드에서든 `ntk_dialog_result_free`로 해제합니다. 오류가 `NTK_DIALOG_ERROR_NONE`이 아니면 `NULL`입니다. 결과를 읽는 함수는 결과 내부를 가리키는 포인터를 반환하며, 이 포인터는 결과를 해제할 때까지 유효합니다. `out_size`는 `NULL`이어도 됩니다. `ntk_dialog_result_free(NULL)`은 아무것도 하지 않습니다. iOS에서 `system_code`와 `ntk_last_system_code()`는 항상 0입니다.
+- 요청 ID는 `uint64_t`이며 재사용되지 않습니다. `ntk_dialog_cancel`은 어느 스레드에서든 ID를 받으며, 기다리지 않고 `NTK_DIALOG_ERROR_NONE`을 반환합니다. 알 수 없는 ID나 이미 완료된 요청은 무시합니다. 다른 화면에 가려진 다이얼로그는 그 화면이 사라질 때까지 남지만(그 뒤에는 버튼을 눌러도 아무 일도 일어나지 않습니다), 요청은 `NTK_DIALOG_ERROR_CANCELED`로 완료됩니다.
+- 다이얼로그가 표시된 동안 앱이 윈도나 루트 뷰 컨트롤러를 교체하거나, 시스템이 씬의 연결을 끊었는데 다이얼로그가 해제되지 않으면 콜백과 `release`가 오지 않을 수 있습니다. 이때는 `ntk_dialog_cancel`로 요청을 끝냅니다.
+- 콜백에서 메인 스레드를 오래 블로킹하거나, 예외(C++, Objective-C, Rust의 panic, C#의 예외)를 밖으로 내보내지 마세요.
+- Android와 같은 "닫힘" 응답은 없습니다. 액션 시트 바깥 탭(iPad와 iOS 26의 iPhone)은 취소 버튼, 즉 `NTK_DIALOG_BUTTON_NEGATIVE`입니다. 다른 코드가 닫은 다이얼로그는 `NTK_DIALOG_ERROR_CANCELED_BY_SYSTEM`으로 완료됩니다.
+
+#### 알림, 확인, 파괴적 다이얼로그
+
+`ntk_dialog_result_button`은 눌린 버튼을 알려 주고, `ntk_dialog_result_button_text`는 그 텍스트를 반환합니다. 버튼 값은 이후 버전에서 늘어날 수 있으므로 `default` 분기를 작성해 주세요.
+
+```c
+static void NTK_CALL on_dialog_result(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                      uint32_t system_code, ntk_dialog_result* result)
+{
+    /* 메인 스레드에서, 접수된 요청마다 한 번 호출됩니다. iOS에서 system_code는 항상 0입니다. */
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        /* result는 NULL입니다. ntk_dialog_cancel 후에는 CANCELED, 다른 코드가 다이얼로그를
+           닫은 경우에는 CANCELED_BY_SYSTEM, 포그라운드에 씬이 없던 경우에는 NOT_FOREGROUND,
+           다이얼로그를 표시하지 못한 경우에는 SHOW_FAILED입니다. */
+        return;
+    }
+    size_t size = 0;
+    const char* label = ntk_dialog_result_button_text(result, &size);   /* "OK", "Yes", "Delete" 등 */
+    switch (ntk_dialog_result_button(result)) {
+    case NTK_DIALOG_BUTTON_POSITIVE:      /* 알림의 버튼, 또는 확인 버튼 */
+        break;
+    case NTK_DIALOG_BUTTON_NEGATIVE:      /* 취소 버튼 */
+        break;
+    case NTK_DIALOG_BUTTON_DESTRUCTIVE:   /* 파괴적 버튼 */
+        break;
+    default:
+        break;
+    }
+    (void)label;
+    /* 결과는 받은 쪽의 것입니다. 여기서 해제하거나, 나중에 어느 스레드에서든 해제합니다. */
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* 정확히 한 번 호출됩니다. 완료 후 메인 스레드에서 호출되거나, 호출이 거부된 경우에는
+       그 호출이 반환되기 전에 호출한 스레드에서 호출됩니다. */
+    (void)user_data;
+}
+
+/* --- 기본 다이얼로그 ------------------------------------------------- */
+ntk_dialog_alert_request alert;
+memset(&alert, 0, sizeof(alert));
+alert.struct_size = (uint32_t)sizeof(alert);
+alert.title = "Hello from iOS";                   /* NULL이면 제목 없음 */
+alert.message = "This is a native iOS dialog!";   /* NULL이면 메시지 없음 */
+alert.button_text = "OK";                         /* NULL이면 "OK" */
+
+uint64_t request_id = 0;
+ntk_dialog_error error = ntk_dialog_show_alert_async(&alert, &on_dialog_result, NULL,
+                                                     &release_user_data, &request_id);
+if (error != NTK_DIALOG_ERROR_NONE) {
+    /* 거부되었습니다. 콜백은 호출되지 않으며, release_user_data는 이미 실행되었습니다. */
+    return;
+}
+
+/* 나중에, 어느 스레드에서든: 다이얼로그가 닫히고 NTK_DIALOG_ERROR_CANCELED로
+   완료됩니다. 이미 완료된 ID나 알 수 없는 ID에는 아무 일도 일어나지 않습니다. */
+ntk_dialog_cancel(request_id);
+
+/* --- 확인 다이얼로그 ------------------------------------------------- */
+ntk_dialog_confirm_request confirm;
+memset(&confirm, 0, sizeof(confirm));
+confirm.struct_size = (uint32_t)sizeof(confirm);
+confirm.title = "Confirm Action";
+confirm.message = "Are you sure you want to proceed?";
+confirm.confirm_text = "Yes";                     /* NULL이면 "OK" */
+confirm.cancel_text = "No";                       /* NULL이면 "Cancel" */
+
+/* out_request_id는 NULL이어도 됩니다. 이때 요청은 취소할 수 없습니다. */
+error = ntk_dialog_show_confirm_async(&confirm, &on_dialog_result, NULL, &release_user_data, NULL);
+
+/* --- 파괴적 다이얼로그 ----------------------------------------------- */
+ntk_dialog_destructive_request destructive;
+memset(&destructive, 0, sizeof(destructive));
+destructive.struct_size = (uint32_t)sizeof(destructive);
+destructive.title = "Delete File";
+destructive.message = "This action cannot be undone. Are you sure?";
+destructive.destructive_text = "Delete";          /* NULL이면 "Delete" */
+destructive.cancel_text = "Cancel";               /* NULL이면 "Cancel" */
+
+/* 해제할 것이 없으면 user_data와 release는 NULL이어도 됩니다. */
+error = ntk_dialog_show_destructive_async(&destructive, &on_dialog_result, NULL, NULL, NULL);
+```
+
+#### 액션 시트
+
+`ntk_dialog_result_option_index`는 선택한 선택지의 0부터 시작하는 인덱스이며, 다른 버튼에서는 -1입니다. `option_count`는 0이어도 되며, 이때는 취소 버튼만 남습니다. 개수가 0이 아니면 `options`는 `NULL`일 수 없고, 어떤 선택지도 `NULL`일 수 없습니다.
+
+```c
+static void NTK_CALL on_action_sheet(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                     uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_OPTION) {
+        int64_t index = ntk_dialog_result_option_index(result);          /* "Camera"는 0 */
+        const char* option = ntk_dialog_result_button_text(result, NULL);
+        (void)index; (void)option;
+    } else {
+        /* NTK_DIALOG_BUTTON_NEGATIVE: 취소 버튼, 또는 액션 시트 바깥 탭입니다. */
+    }
+    ntk_dialog_result_free(result);
+}
+
+const char* const options[] = { "Camera", "Photo Library", "Documents" };
+
+ntk_dialog_action_sheet_request sheet;
+memset(&sheet, 0, sizeof(sheet));
+sheet.struct_size = (uint32_t)sizeof(sheet);
+sheet.title = "Please select";
+sheet.message = "Please choose an option";
+sheet.options = options;
+sheet.option_count = 3;
+sheet.cancel_text = "Cancel";                     /* NULL이면 "Cancel" */
+
+ntk_dialog_error error = ntk_dialog_show_action_sheet_async(&sheet, &on_action_sheet, NULL, NULL, NULL);
+```
+
+#### 입력 다이얼로그와 로그인 다이얼로그
+
+텍스트, 사용자 이름, 비밀번호는 `NTK_DIALOG_BUTTON_POSITIVE`일 때만 읽을 수 있습니다. 취소 버튼에서는 읽는 함수가 `NULL`을 반환합니다. 이 값들은 결과 내부를 가리키며, 결과를 해제할 때까지 유효합니다.
+
+```c
+static void NTK_CALL on_text_input(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                                   uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        size_t size = 0;
+        const char* text = ntk_dialog_result_text(result, &size);   /* UTF-8. 로그에는 텍스트가 아니라 size를 남겨 주세요 */
+        (void)text;
+    }
+    ntk_dialog_result_free(result);
+}
+
+static void NTK_CALL on_login(void* user_data, uint64_t request_id, ntk_dialog_error error,
+                              uint32_t system_code, ntk_dialog_result* result)
+{
+    (void)user_data; (void)request_id; (void)system_code;
+    if (error != NTK_DIALOG_ERROR_NONE) {
+        return;
+    }
+    if (ntk_dialog_result_button(result) == NTK_DIALOG_BUTTON_POSITIVE) {
+        const char* username = ntk_dialog_result_username(result, NULL);
+        const char* password = ntk_dialog_result_password(result, NULL);   /* 절대 로그에 남기지 마세요 */
+        (void)username; (void)password;
+    }
+    ntk_dialog_result_free(result);
+}
+
+/* --- 텍스트 입력 ---------------------------------------------------- */
+ntk_dialog_text_input_request input;
+memset(&input, 0, sizeof(input));
+input.struct_size = (uint32_t)sizeof(input);
+input.title = "Enter Name";
+input.message = "Please enter your name";
+input.placeholder = "Your name here";             /* NULL이면 플레이스홀더 없음 */
+input.confirm_text = "OK";                        /* NULL이면 "OK" */
+input.cancel_text = "Cancel";                     /* NULL이면 "Cancel" */
+input.confirm_disabled_when_empty = 1;            /* 0이면 비어 있어도 확인 버튼이 동작 */
+
+ntk_dialog_error error = ntk_dialog_show_text_input_async(&input, &on_text_input, NULL, NULL, NULL);
+
+/* --- 로그인 --------------------------------------------------------- */
+ntk_dialog_login_request login;
+memset(&login, 0, sizeof(login));
+login.struct_size = (uint32_t)sizeof(login);
+login.title = "Login Required";
+login.message = "Please enter your credentials";
+login.username_placeholder = "Username";          /* NULL이면 "Username" */
+login.password_placeholder = "Password";          /* NULL이면 "Password" */
+login.login_text = "Login";                       /* NULL이면 "Login" */
+login.cancel_text = "Cancel";                     /* NULL이면 "Cancel" */
+login.login_disabled_when_empty = 1;              /* 0이면 비어 있어도 로그인 버튼이 동작 */
+
+error = ntk_dialog_show_login_async(&login, &on_login, NULL, NULL, NULL);
+```
+
+| 오류 | 반환 / 완료 | 의미 |
+|---|---|---|
+| `NTK_DIALOG_ERROR_NONE` | 둘 다 | 접수됨, 또는 응답이 있음 |
+| `NTK_DIALOG_ERROR_INVALID_PARAMETER` | 반환 | `NULL` 콜백이나 요청, 잘못된 UTF-8, 2.0.0 크기 미만이거나 4096을 넘는 `struct_size`, 0이 아닌 예약 필드, 개수가 0이 아닌데 `NULL`인 `options`, 또는 `NULL`인 선택지입니다 |
+| `NTK_DIALOG_ERROR_NOT_SUPPORTED` | 반환 | 이 라이브러리가 모르는 0이 아닌 필드를 가진, 더 새로운 `struct_size`입니다 |
+| `NTK_DIALOG_ERROR_UNKNOWN` | 완료 | 2.0.0에서는 발생하지 않을 것으로 예상됩니다. 자세한 내용은 로그에 있습니다 |
+| `NTK_DIALOG_ERROR_CANCELED` | 완료 | `ntk_dialog_cancel`(`DialogError.canceled`) |
+| `NTK_DIALOG_ERROR_CANCELED_BY_SYSTEM` | 완료 | 버튼이 눌리지 않은 채 다이얼로그가 사라졌습니다. 다른 코드가 닫았거나, 씬의 연결이 끊겨 다이얼로그가 해제되었습니다(`DialogError.dismissedBySystem`) |
+| `NTK_DIALOG_ERROR_NOT_FOREGROUND` | 완료 | 포그라운드에 윈도 씬이 없었습니다(`DialogError.notForeground`) |
+| `NTK_DIALOG_ERROR_SHOW_FAILED` | 완료 | 한 번 기다린 뒤에도 뷰 컨트롤러가 전환 중이었거나, UIKit이 표시를 거부했거나, 같은 윈도의 공유 시트가 10초 안에 표시를 마치지 않았습니다(`DialogError.presentationFailed`) |
+
+`NTK_DIALOG_ERROR_NOT_INITIALIZED`와 `NTK_DIALOG_ERROR_OUT_OF_MEMORY`는 모든 플랫폼용으로 선언되어 있지만, iOS에서는 반환되지 않습니다.
+
+| Swift API | C ABI |
+|---|---|
+| `show(.alert(...))` | `ntk_dialog_show_alert_async` |
+| `show(.confirm(...))` | `ntk_dialog_show_confirm_async` |
+| `show(.destructive(...))` | `ntk_dialog_show_destructive_async` |
+| `show(.actionSheet(...))` | `ntk_dialog_show_action_sheet_async` |
+| `show(.textInput(...))` | `ntk_dialog_show_text_input_async` |
+| `show(.login(...))` | `ntk_dialog_show_login_async` |
+| `cancel(_:)` | `ntk_dialog_cancel` |
+| `DialogAnswer.button` | `ntk_dialog_result_button`, `ntk_dialog_result_option_index` |
+| `DialogAnswer.title` | `ntk_dialog_result_button_text` |
+| `DialogAnswer.input` | `ntk_dialog_result_text`, `ntk_dialog_result_username`, `ntk_dialog_result_password` |
+| - | `ntk_dialog_result_free` |
 
 ---
 

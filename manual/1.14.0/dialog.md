@@ -873,7 +873,7 @@ IosDialogManager.shared.showDestructiveDialog(
 #### Action sheet
 
 - Displays a list of options and a cancel button. iOS only.
-- On iPad the action sheet is a popover anchored in `sourceView`. `sourceRect` is the rectangle in `sourceView` the popover points at; `nil` uses the whole bounds of `sourceView`. When `sourceView` is large (for example the whole screen), the popover has no room and shows without its options, so pass a small rectangle, as the sample does with the centre point.
+- On iPad the action sheet is a popover anchored in `sourceView`. `sourceRect` is the rectangle in `sourceView` the popover points at; `nil` uses the whole bounds of `sourceView`. When `sourceView` is large (for example the whole screen), the popover has no room and shows without its options, so pass a small rectangle, as the sample does with the center point.
 - On iPad, and on iPhone with iOS 26, a tap outside the action sheet chooses the cancel button: `onAction` receives `cancelTitle`.
 - `getRootViewController()` is `@MainActor`. A SwiftUI button action runs on the main actor, so it can call it directly.
 
@@ -893,7 +893,7 @@ if let rootVC = IosDialogManager.shared.getRootViewController() {
         cancelTitle: "Cancel",
         // Set the view the iPad popover is anchored in. This field is required.
         sourceView: rootVC.view,
-        // A point at the centre: with the whole view (nil), the iPad popover has no room for its options.
+        // A point at the center: with the whole view (nil), the iPad popover has no room for its options.
         sourceRect: CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0),
         // Set whether to animate the presentation. If not set, true is used.
         animated: true,
@@ -1010,7 +1010,7 @@ IosDialogManager.shared.showLoginDialog(
 
 - `DialogAnswer.title` is the text of the pressed button, as given in the request (for `.option(index:)`, the option's text). `.option(index:)` is the index in `options`.
 - `DialogInput` shows only the lengths of what was entered in its `description` (`text(length: 5)`), so printing an answer does not log what the user typed.
-- An action sheet shown with `show` is anchored, on iPad, at the centre of the view of the view controller it is presented from. To choose the anchor, use `showActionSheet`.
+- An action sheet shown with `show` is anchored, on iPad, at the center of the view of the view controller it is presented from. To choose the anchor, use `showActionSheet`.
 - `DialogAnswer.Button`, `DialogInput` and `DialogError` can gain cases in a later version. Write an `@unknown default` branch when you switch over them, as the sample does.
 
 ```swift
@@ -1155,7 +1155,7 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
 - The C ABI is asynchronous only. Every function may be called from any thread and never waits for the main thread. The return value only says whether the request was accepted. A call rejected on entry never calls the callback, and calls `release` (when it is not `NULL`) on the calling thread before it returns.
 - An accepted request completes exactly once, on the main thread (the main queue), and `release` follows, exactly once. Neither runs inside the call that started the request. Called off the main thread, the completion may arrive before that call returns, before `out_request_id` is visible, so tie a completion to its request through `user_data`.
 - A dialog needs a window scene in the foreground (`foregroundActive` or `foregroundInactive`, with a key window). Called while the app is in the background, a request completes with `NTK_DIALOG_ERROR_NOT_FOREGROUND`. The C ABI presents from the foreground view controller as the Swift API's `.foreground` does, so a request made while another dialog is appearing waits for it and is shown over it.
-- On an iPad that shows several windows of the app side by side, which window the dialog appears on is not decided. The C ABI has no way to pass a view controller; the Swift API's `.viewController(_:)` has one. On iPad an action sheet is a popover anchored at the centre of the view it is presented from, and the C ABI cannot choose another anchor.
+- On an iPad that shows several windows of the app side by side, which window the dialog appears on is not decided. The C ABI has no way to pass a view controller; the Swift API's `.viewController(_:)` has one. On iPad an action sheet is a popover anchored at the center of the view it is presented from, and the C ABI cannot choose another anchor.
 - The `ntk_dialog_result` handed to the callback is owned by the receiver, which frees it with `ntk_dialog_result_free`, during the callback or later, on any thread. It is `NULL` unless the error is `NTK_DIALOG_ERROR_NONE`. The readers return pointers into the result that stay valid until it is freed; `out_size` may be `NULL`. `ntk_dialog_result_free(NULL)` does nothing. `system_code` and `ntk_last_system_code()` are always 0 on iOS.
 - Request IDs are `uint64_t` and never reused. `ntk_dialog_cancel` takes one from any thread, does not wait, and returns `NTK_DIALOG_ERROR_NONE`. It ignores an unknown ID or a request that already completed. A dialog covered by another screen stays until that screen goes away (its buttons then do nothing), but its request still completes with `NTK_DIALOG_ERROR_CANCELED`.
 - The callback and `release` may not come when the app replaces its window or root view controller while the dialog is shown, or when the system disconnects the scene and the dialog is not freed. `ntk_dialog_cancel` ends the request then.

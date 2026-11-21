@@ -1583,7 +1583,7 @@ There is no `CANCELED`: a share cannot be cancelled, and the user closing the sh
 
 | Swift API | C ABI |
 |---|---|
-| `share(content:presenter: .foreground, completion:)` | `ntk_share_content_async` with `ntk_share_request` |
+| `share(content:presenter:completion:)` (`.foreground`) | `ntk_share_content_async` with `ntk_share_request` |
 | `ShareItem` `.text` / `.url` / `.imageFile(path:)` / `.file(path:)` | `ntk_share_item` with `NTK_SHARE_ITEM_TEXT` / `_URL` / `_IMAGE_FILE` / `_FILE` |
 | `ShareContent.subject` / `previewTitle` / `excludedActivityTypes` | `subject` / `preview_title` / `excluded_activity_types` and `excluded_activity_type_count` |
 | `ShareResult.completed` / `activityType` | `ntk_share_result_completed` / `ntk_share_result_activity_type`, then `ntk_share_result_free` |
