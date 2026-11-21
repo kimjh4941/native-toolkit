@@ -3240,3 +3240,5 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 - 確かめ: `check_ios_dist.py 1.14.0` は全項目 OK（FAIL・SKIP 0）。`check_c_abi_contract_ios.py --require-compile --require-complete --library` は両方のスライスで rc 0。`run_ios_capi_smoke.sh --dist dist/1.14.0/ios --device-build --udid <iPhone 17 Pro / 26.2>`（Xcode 26.6）は、シミュレーターの 16 段と、実機向けの組み立て（署名なし。入れていない）が通った
 - 確かめていないこと: 17.15 のアーカイブ（利用者の開発用の署名での `codesign` とプライバシーのレポート）は、作り直した dist では行っていない。署名の状態（`ios-arm64` は署名なし）とマニフェストは `check_ios_dist.py` で前と同じと確かめた
 - `unity-native-plugin` に、同じ名前のまま中身が変わったことと、SH-13 の確かめ（`XCTExpectFailure` を外す。実機は向こうが利用者の許可を得て）、実機での `present` から完了までの時間（D-3 の 10 秒の見直しのため）を頼む
+
+**`unity-native-plugin` での確かめ**（2026-11-21、向こうのセッションの知らせ。メインのセッションは向こうのテストを流していない）: 作り直した `dist/1.14.0`（`56d5e0e2`）を写し直し（向こうの `756b6d5`）、SH-13 のテストの `XCTExpectFailure` を外して、どちらの呼び出しが失敗しても通る書き方にした（`8007c0d`。マニュアルも）。シミュレーター iPhone 16 / 18.3 で、ゲート（EditMode 1592、Editor PlayMode 391、Player 114、Notification のサンプル 8。失敗 0）とハーネスの UI テスト 64 件が通った。SH-13 は、シートが 1 枚だけ出て、もう片方が表示の失敗で終わり、どちらも結果がちょうど 1 回（`ShareCompleted` も失敗と成功が 1 回ずつ）。実機の確かめと、`present` から完了までの時間の測り（D-3）は、向こうの利用者の許可の後。README の DoD の SH-13 の項目は、実機の結果まで開いたまま
