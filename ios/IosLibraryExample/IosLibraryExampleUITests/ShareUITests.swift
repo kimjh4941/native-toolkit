@@ -187,6 +187,34 @@ final class ShareUITests: SampleUITestCase {
         XCTAssertEqual(try sample.updateCount(.share), before + 1, "one result only")
     }
 
+    /// S20 (SH-13): two shares in the same main turn. One sheet is shown and the other share waits
+    /// for it, then fails rather than being presented on it (D-2); which one is shown is not
+    /// decided. The sample writes a line as each share ends: the failure comes first, when the
+    /// sheet's `present` completes (so the line may change while the sheet opens: `open(_:)` is not
+    /// used), and the shown share ends when its sheet is closed.
+    @MainActor
+    func testS20_twoSharesInOneTurnEachEndOnce() throws {
+        let token = try shareSheetToken()
+        let sheet = ShareSheet(token)
+        let before = try sample.updateCount(.share)
+        try sample.tap(.shareTwiceInOneTurn, token)
+        XCTAssertTrue(try sheet.waitOpen(), "the share sheet did not open")
+        try sample.waitForUpdateCount(.share, before + 1, timeout: 15)
+        let first = ["1=presentationFailed 2=pending", "1=pending 2=presentationFailed"]
+            .map { ResultLine.expected(success: true, "[shareTwiceInOneTurn] \($0)") }
+        let failedLine = try sample.resultText(.share)
+        XCTAssertTrue(first.contains(failedLine), "one share failed while the other's sheet was open: \(failedLine)")
+        try sheet.close()
+        try sample.waitForUpdateCount(.share, before + 2, timeout: 15)
+        let shownFirst = failedLine.contains("1=pending")
+        XCTAssertEqual(try sample.resultText(.share), ResultLine.expected(
+            success: true,
+            "[shareTwiceInOneTurn] \(shownFirst ? "1=notCompleted 2=presentationFailed" : "1=presentationFailed 2=notCompleted")"))
+        XCTAssertTrue(try sheet.waitClosed(), "a sheet stayed open")
+        sample.observeQuietly(for: 2)
+        XCTAssertEqual(try sample.updateCount(.share), before + 2, "one end for each share")
+    }
+
     // MARK: - Helpers
 
     /// Presses `button` and waits for the sheet. Opening the sheet does not change the result

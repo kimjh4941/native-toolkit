@@ -183,6 +183,7 @@ enum ShareButton: String, CaseIterable {
     // Swift API (2.0.0) section (1b SA-14, SA-05).
     case shareRequestText
     case shareThenDismissFromOutside
+    case shareTwiceInOneTurn
     // `#if DEBUG` in the sample: the UI tests run the Debug build only (see `showAfter3Seconds`).
     case shareAfter3Seconds
 

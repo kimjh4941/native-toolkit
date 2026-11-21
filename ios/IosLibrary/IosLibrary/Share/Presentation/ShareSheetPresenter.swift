@@ -39,11 +39,14 @@ protocol ShareSheetPresenting: Sendable {
 /// | `completionWithItemsHandler` with an error | ``ShareError/activityFailed(_:)`` |
 /// | The procedure: no view controller | ``ShareError/noRootViewController`` (`.firstActiveScene`) or ``ShareError/notForeground`` |
 /// | The procedure: not settled, or UIKit declined the presentation | ``ShareError/presentationFailed`` |
+/// | The procedure: the foreground is a share sheet, or a share sheet of this library is still being presented in the window (SH-13) | ``ShareError/presentationFailed`` |
 /// | The release watch: the sheet was freed without the handler | ``ShareError/dismissedBySystem`` (after `present`'s completion) or ``ShareError/presentationFailed`` |
 ///
 /// `.firstActiveScene` keeps the checks the share sheet made before 1b
 /// (`FirstActiveScenePolicy.requireLegacyStability`): it fails when the found view controller is
-/// being presented or dismissed or is presenting something, and never waits.
+/// being presented or dismissed or is presenting something, and never waits. It also fails when
+/// the found view controller is a share sheet, or when a share sheet of this library is still
+/// appearing in its window (SH-13).
 ///
 /// ## Continuation Safety
 /// The continuation is resumed exactly once, on the main actor, by the box's close handler (which

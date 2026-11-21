@@ -28,14 +28,16 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 /// | ``ShareError/noValidItems``, ``ShareError/invalidURL(_:)``, ``ShareError/imageLoadFailed(path:)``, ``ShareError/fileNotFound(path:)`` | `(false, false, nil, <description>)` | The content could not be shared; no sheet is shown |
 /// | ``ShareError/noRootViewController`` | the same | ``PresenterSelection/firstActiveScene`` found no view controller to present from |
 /// | ``ShareError/notForeground`` | (not used) | ``PresenterSelection/foreground`` or ``PresenterSelection/viewController(_:)`` found no view controller in the foreground |
-/// | ``ShareError/presentationFailed`` | `(false, false, nil, "Failed to present the share sheet.")` | The view controller was not settled (``PresenterSelection/firstActiveScene``: being presented or dismissed, or presenting something; the others: still so after waiting once), UIKit declined the presentation, or the sheet was freed before its presentation finished (dismissed from outside during the animation) |
+/// | ``ShareError/presentationFailed`` | `(false, false, nil, "Failed to present the share sheet.")` | The view controller was not settled (``PresenterSelection/firstActiveScene``: being presented or dismissed, or presenting something; the others: still so after waiting once), UIKit declined the presentation, or the sheet was freed before its presentation finished (dismissed from outside during the animation). Also when the foreground is a share sheet (a share sheet is never shown on another one), which is how one of two shares requested in the same main-queue turn ends, once the other's sheet is shown (which one is shown is not decided) |
 /// | ``ShareError/dismissedBySystem`` | `(false, false, nil, "The share sheet was dismissed without a result.")` | The sheet went away without reporting a result: dismissed from outside the library, or its scene was disconnected and the sheet freed |
 /// | ``ShareError/activityFailed(_:)`` | `(false, false, nil, "The share activity failed.")` | The chosen activity reported an error |
 ///
 /// The result is not guaranteed when the app changes the window, its root view controller or the
 /// scene while the sheet is shown, or keeps the presented `UIActivityViewController` alive, nor
-/// when the sheet's scene is disconnected but the sheet is not freed. A share cannot be
-/// cancelled.
+/// when the sheet's scene is disconnected but the sheet is not freed. Nor when the app shares
+/// while a view controller it presented itself (for example its own `UIActivityViewController`)
+/// is still being presented, before that `present` completes: UIKit may decline and keep the
+/// sheet. A share cannot be cancelled.
 ///
 /// ## Threading
 /// The manager is `Sendable` and may be called from any thread. Each completion is invoked on the
@@ -116,8 +118,12 @@ public final class IosShareManager: NSObject, Sendable {
     ///
     /// With ``PresenterSelection/foreground`` or ``PresenterSelection/viewController(_:)``, a share
     /// requested while a view controller is in a transition waits once for that transition, and
-    /// fails with ``ShareError/presentationFailed`` when it is still not settled. With
-    /// ``PresenterSelection/firstActiveScene`` nothing waits.
+    /// fails with ``ShareError/presentationFailed`` when it is still not settled. A share
+    /// requested while a share sheet of this library is appearing in the same window waits until
+    /// that sheet has appeared (at most 10 seconds), and then fails with
+    /// ``ShareError/presentationFailed``, since a share sheet is never presented on another one.
+    /// With ``PresenterSelection/firstActiveScene`` nothing waits: such a sheet fails the share
+    /// at once.
     ///
     /// `presenter` has no default, so that a call without it stays
     /// ``share(content:completion:)``.

@@ -43,6 +43,7 @@ enum ShareSampleIdentifiers {
         // Swift API (2.0.0): `share(content:presenter:)` and `share(content:presenter:completion:)`.
         static let shareRequestText = "shareRequestText"
         static let shareThenDismissFromOutside = "shareThenDismissFromOutside"
+        static let shareTwiceInOneTurn = "shareTwiceInOneTurn"
         static let shareAfter3Seconds = "shareAfter3Seconds"
     }
 }
@@ -53,6 +54,12 @@ enum ShareSampleIdentifiers {
 @MainActor
 final class ShareMoment {
     var note = ""
+}
+
+/// The results of the two shares of `ShareTwiceInOneTurn`, by request number, until both arrive.
+@MainActor
+final class SharePair {
+    var results: [Int: String] = [:]
 }
 
 struct ShareSampleView: View {
@@ -303,6 +310,26 @@ struct ShareSampleView: View {
                         }
                         .accessibilityIdentifier(ID.button(ID.ButtonName.shareThenDismissFromOutside))
 
+                        // Two shares in the same main-queue turn (SH-13). Each must end once: the result
+                        // line is written as each one ends, with every request's result so far
+                        // (`pending` until it ends).
+                        Button("ShareTwiceInOneTurn") {
+                            logger.debug("[shareTwiceInOneTurn]")
+                            let pair = SharePair()
+                            for number in 1...2 {
+                                IosShareManager.shared.share(
+                                    content: ShareContent(items: [.text("Share \(number) of two in one turn")]),
+                                    presenter: .foreground
+                                ) { result in
+                                    pair.results[number] = Self.summary(of: result)
+                                    logger.debug("[shareTwiceInOneTurn] number: \(number, privacy: .public), results: \(pair.results.count, privacy: .public)")
+                                    let line = (1...2).map { "\($0)=\(pair.results[$0] ?? "pending")" }.joined(separator: " ")
+                                    updateResult(isSuccess: true, result: "[shareTwiceInOneTurn] \(line)")
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareTwiceInOneTurn))
+
                         #if DEBUG
                         // Test only: requested 3 seconds later, so that a UI test can move the app to the
                         // background (notForeground). The scene's state when the request is made is in the
@@ -380,6 +407,14 @@ struct ShareSampleView: View {
         case .failure(let error):
             logger.debug("[\(label, privacy: .public)] failure: \(Self.caseName(of: error), privacy: .public), note: \(note, privacy: .public)")
             updateResult(isSuccess: false, result: "[\(label)] failure \(Self.caseName(of: error))\(suffix)")
+        }
+    }
+
+    /// A short form of one share's result for a line with several results.
+    private static func summary(of result: Result<ShareResult, ShareError>) -> String {
+        switch result {
+        case .success(let share): return share.completed ? "completed" : "notCompleted"
+        case .failure(let error): return caseName(of: error)
         }
     }
 

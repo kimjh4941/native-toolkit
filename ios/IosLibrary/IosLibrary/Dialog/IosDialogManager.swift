@@ -134,7 +134,7 @@ public final class IosDialogManager: NSObject, Sendable {
     /// | `.success(answer)` | A button was pressed (``DialogAnswer``) |
     /// | ``DialogError/canceled`` | ``cancel(_:)`` closed the request. The `async` form throws `CancellationError` instead |
     /// | ``DialogError/notForeground`` | `presenter` found no view controller to present from |
-    /// | ``DialogError/presentationFailed`` | The view controller was still not settled after waiting once, or UIKit declined the presentation |
+    /// | ``DialogError/presentationFailed`` | The view controller was still not settled after waiting once, UIKit declined the presentation, or a share sheet of this library in the same window did not finish appearing within 10 seconds |
     /// | ``DialogError/dismissedBySystem`` | The dialog went away without a button being pressed (dismissed from outside, or its scene was disconnected and the dialog freed) |
     /// | ``DialogError/invalidRequest`` | `requestBox` is already used by another request. The returned box is that box, so passing it to ``cancel(_:)`` cancels the first request |
     ///
@@ -142,7 +142,11 @@ public final class IosDialogManager: NSObject, Sendable {
     /// request made while another dialog is in a transition waits once for that transition. A
     /// dialog being presented stays, and the new one is presented over it; a dialog being
     /// dismissed goes away, and the new one is presented from the view controller below it. Two
-    /// requests made one after the other are both shown. With the default
+    /// requests made one after the other are both shown. A request made while a share sheet of
+    /// this library is appearing in the same window waits until it has appeared (at most 10
+    /// seconds) and is presented over it; when it has not appeared by then, the request ends with
+    /// ``DialogError/presentationFailed``, and so does every request on that window until it
+    /// has (UIKit would decline them). With the default
     /// ``PresenterSelection/firstActiveScene`` nothing waits: a request made while another dialog
     /// is being presented is likely to end with ``DialogError/presentationFailed`` (UIKit declines
     /// it).

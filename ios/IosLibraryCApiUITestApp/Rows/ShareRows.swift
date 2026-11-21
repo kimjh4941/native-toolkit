@@ -12,14 +12,18 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 /// What a C completion reports through: `user_data` is this object, retained until `release`.
 private final class RowCompletion {
     let report: RowReport
+    /// The request's number when a row makes several requests: its lines start with it, and its
+    /// release is reported too.
+    let number: Int?
 
-    init(_ report: RowReport) {
+    init(_ report: RowReport, number: Int?) {
         self.report = report
+        self.number = number
     }
 
-    static func userData(_ report: RowReport) -> UnsafeMutableRawPointer {
-        logger.debug("[userData] rowId: \(report.rowId, privacy: .public)")
-        return Unmanaged.passRetained(RowCompletion(report)).toOpaque()
+    static func userData(_ report: RowReport, number: Int? = nil) -> UnsafeMutableRawPointer {
+        logger.debug("[userData] rowId: \(report.rowId, privacy: .public), number: \(number.map(String.init) ?? "nil", privacy: .public)")
+        return Unmanaged.passRetained(RowCompletion(report, number: number)).toOpaque()
     }
 
     static func from(_ userData: UnsafeMutableRawPointer?) -> RowCompletion {
@@ -28,6 +32,10 @@ private final class RowCompletion {
 }
 
 private func releaseRow(_ userData: UnsafeMutableRawPointer?) {
+    let completion = RowCompletion.from(userData)
+    if let number = completion.number {
+        completion.report("\(number) released main=\(Thread.isMainThread ? 1 : 0)")
+    }
     Unmanaged<RowCompletion>.fromOpaque(userData!).release()
 }
 
@@ -43,7 +51,12 @@ private func resultRow(_ userData: UnsafeMutableRawPointer?, _ error: Int32, _ s
     defer { ntk_share_result_free(result) }
     let activity = ntk_share_result_activity_type(result, nil).map { String(cString: $0) } ?? "NULL"
     let value = result == nil ? "NULL" : "completed=\(ntk_share_result_completed(result)),activity=\(activity)"
-    RowCompletion.from(userData).report("\(error) \(systemCode) result=\(value)")
+    let completion = RowCompletion.from(userData)
+    if let number = completion.number {
+        completion.report("\(number) \(error) \(systemCode) result=\(value) main=\(Thread.isMainThread ? 1 : 0)")
+    } else {
+        completion.report("\(error) \(systemCode) result=\(value)")
+    }
 }
 
 /// A request of one item, for the call only: the library copies it.
@@ -73,6 +86,14 @@ enum ShareRows {
             reportRejection(withRequest(kind: Int32(NTK_SHARE_ITEM_TEXT), value: "ntk-capi-share-text") {
                 ntk_share_content_async($0, resultRow, RowCompletion.userData(report), releaseRow)
             }, report)
+        },
+        // Two shares in this main turn (SH-13): each completes and is released once, on main.
+        CApiRow(id: "share.twice") { report in
+            for number in 1...2 {
+                reportRejection(withRequest(kind: Int32(NTK_SHARE_ITEM_TEXT), value: "ntk-capi-share-twice-\(number)") {
+                    ntk_share_content_async($0, resultRow, RowCompletion.userData(report, number: number), releaseRow)
+                }, report)
+            }
         },
         CApiRow(id: "share.missingFile") { report in
             reportRejection(withRequest(kind: Int32(NTK_SHARE_ITEM_FILE), value: "/nonexistent/ntk-capi-share.txt") {

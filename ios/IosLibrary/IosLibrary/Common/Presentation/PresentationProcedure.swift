@@ -39,6 +39,39 @@ protocol PresentationEnvironment {
     func present(_ presented: Node, on node: Node, animated: Bool, completion: @escaping @MainActor () -> Void)
     /// Whether UIKit took the presentation (`presented.presentingViewController != nil`).
     func isPresentationAccepted(_ presented: Node) -> Bool
+    /// The records of the share sheets still being presented (SH-13). Every request must see the
+    /// same instance: UIKit's is ``PresentationRecords/shared``.
+    var records: PresentationRecords { get }
+    /// The window `node` is in, as the scope of a record (`nil` when it is in none).
+    func window(of node: Node) -> AnyObject?
+    /// Whether `node` is a share sheet (`UIActivityViewController`): a share sheet is never
+    /// presented on one (SH-13, D-2).
+    func isShareSheet(_ node: Node) -> Bool
+    /// Runs `body` on the main queue after `seconds`.
+    func after(seconds: Double, _ body: @escaping @MainActor () -> Void)
+}
+
+/// The UIKit parts of ``PresentationEnvironment`` that the environments over UIKit (the real one
+/// and the tests' wrappers of it) share.
+extension PresentationEnvironment where Node == UIViewController {
+    var records: PresentationRecords { PresentationRecords.shared }
+
+    func window(of node: UIViewController) -> AnyObject? {
+        logger.log(level: .libraryDebug, "[UIKit.window] node: \(String(describing: type(of: node)), privacy: .public)")
+        return node.viewIfLoaded?.window
+    }
+
+    func isShareSheet(_ node: UIViewController) -> Bool {
+        logger.log(level: .libraryDebug, "[UIKit.isShareSheet] node: \(String(describing: type(of: node)), privacy: .public)")
+        return node is UIActivityViewController
+    }
+
+    func after(seconds: Double, _ body: @escaping @MainActor () -> Void) {
+        logger.log(level: .libraryDebug, "[UIKit.after] seconds: \(seconds, privacy: .public)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+            MainActor.assumeIsolated { body() }
+        }
+    }
 }
 
 /// The steps of the C ABI design part 1, 5.13.2, for each ``PresenterSelection``.
@@ -52,6 +85,12 @@ protocol PresentationEnvironment {
 /// Every failure closes the request box (``RequestBoxOutcome/notForeground`` or
 /// ``RequestBoxOutcome/presentationFailed``); a closed box stops the steps, so a request
 /// cancelled while waiting is never presented. Presenting attaches a ``ReleaseWatch``.
+///
+/// A share sheet (`releaseWatchOnly`) is recorded in ``PresentationRecords`` until its `present`
+/// completes: UIKit shows nothing of it before then and declines (and keeps) a sheet presented on
+/// the same view controller meanwhile (SH-13). A request on the same window counts as not settled
+/// until the record ends, and waits for it in step 4. A share sheet is never presented on a share
+/// sheet.
 @MainActor
 enum PresentationProcedure {
     /// What a presenting operation does when `.firstActiveScene` finds a view controller that is
@@ -73,6 +112,10 @@ enum PresentationProcedure {
         /// later (MS-03, stage 1b C3), so the supplement would fail every share.
         case releaseWatchOnly
     }
+
+    /// How long a share sheet's record holds the requests on its window, and so the longest a
+    /// request waits for a pending sheet (SH-13, D-3): seconds.
+    static let pendingSheetLimit: Double = 10
 
     /// Presents `presented` from the view controller `presenter` selects, following the steps.
     ///
@@ -108,7 +151,16 @@ enum PresentationProcedure {
                 box.close(.notForeground)
                 return
             }
-            if firstActiveScenePolicy == .requireLegacyStability, !environment.isStableForLegacyPresentation(top) {
+            if declineCheck == .releaseWatchOnly, environment.isShareSheet(top) {
+                logger.error("[present] a share sheet is not presented on a share sheet")
+                box.close(.presentationFailed)
+                return
+            }
+            // A share sheet of the library still pending on the window counts as not stable:
+            // UIKit would decline (and keep) a sheet presented now (SH-13).
+            if firstActiveScenePolicy == .requireLegacyStability,
+               !environment.isStableForLegacyPresentation(top)
+                || environment.records.state(in: environment.window(of: top)) != .clear {
                 logger.error("[present] the view controller is not in a stable state")
                 box.close(.presentationFailed)
                 return
@@ -185,20 +237,40 @@ enum PresentationProcedure {
             box.close(.notForeground)
             return
         }
-        // Step 3.
-        if environment.isSettled(top) {
+        // A share sheet is not presented on a share sheet (SH-13, D-2): on iOS 18, the lower sheet
+        // dismissed from outside while the upper one is being presented on it keeps both alive,
+        // and neither share would end. This is the usual end of a second share made in the same
+        // turn as a first one: it waited for the first, which is now the foreground.
+        if declineCheck == .releaseWatchOnly, environment.isShareSheet(top) {
+            logger.error("[attempt] a share sheet is not presented on a share sheet")
+            box.close(.presentationFailed)
+            return
+        }
+        // Step 3: settled, and no share sheet of the library pending on the same window (UIKit
+        // shows nothing of a sheet it is still preparing. SH-13).
+        let window = environment.window(of: top)
+        let sheets = environment.records.state(in: window)
+        // A sheet that outlived its lifetime may still be in UIKit's hands: nothing can be
+        // presented on its window until it clears, so the request fails at once.
+        guard sheets != .stuck else {
+            logger.error("[attempt] a share sheet of the window is stuck")
+            box.close(.presentationFailed)
+            return
+        }
+        let sheetPending = sheets == .pending
+        if environment.isSettled(top), !sheetPending {
             show(presented, on: top, box: box, environment: environment, animated: animated, declineCheck: declineCheck, onPresented: onPresented)
             return
         }
         // Step 6.
         guard !retried else {
-            logger.error("[attempt] still not settled after waiting once")
+            logger.error("[attempt] still not settled after waiting once, sheetPending: \(sheetPending, privacy: .public)")
             box.close(.presentationFailed)
             return
         }
-        // Steps 4 and 5: wait once for the transition (if any), then check again on the next
-        // turn of the main queue. `again` runs once even if UIKit both declines the wait and
-        // calls the completion.
+        // Steps 4 and 5: wait once for the pending sheet or the transition (if any), then check
+        // again on the next turn of the main queue. `again` runs once even if UIKit both declines
+        // the wait and calls the completion, or the sheet and the time limit both end the wait.
         var hasRetried = false
         let again: @MainActor () -> Void = {
             guard !hasRetried else { return }
@@ -209,7 +281,28 @@ enum PresentationProcedure {
                         locate: locate)
             }
         }
-        if !environment.waitForTransition(of: top, then: again) {
+        if sheetPending {
+            waitForPendingSheet(in: window, environment: environment, again: again)
+        } else if !environment.waitForTransition(of: top, then: again) {
+            again()
+        }
+    }
+
+    /// Step 4 for a pending share sheet: waits until a sheet of `window` is cleared or expires, then
+    /// checks again (`again`). After an expiry the check finds the record stuck and fails the
+    /// request: the expired sheet may still be pending in UIKit (SH-13, 4.3). The wait needs no
+    /// clock of its own: the record it waits for started earlier and expires within
+    /// ``pendingSheetLimit``. Only the records hold `again` (and with it the request), and they drop
+    /// it once it is woken.
+    private static func waitForPendingSheet<Environment: PresentationEnvironment>(
+        in window: AnyObject?,
+        environment: Environment,
+        again: @escaping @MainActor () -> Void
+    ) {
+        logger.log(level: .libraryDebug, "[waitForPendingSheet] hasWindow: \(window != nil, privacy: .public)")
+        let records = environment.records
+        records.wait(records.makeID(), in: window) { end in
+            logger.log(level: .libraryDebug, "[waitForPendingSheet] woken: \(String(describing: end), privacy: .public)")
             again()
         }
     }
@@ -230,12 +323,33 @@ enum PresentationProcedure {
             return
         }
         environment.anchorPopover(of: presented, at: top)
-        let watch = ReleaseWatch(box: box)
+        // A share sheet is recorded until `present` completes, it is freed, or its record expires
+        // (SH-13). An alert is not: UIKit shows it on the presenting view controller at once.
+        let records = environment.records
+        let record: PresentationRecords.ID? = declineCheck == .releaseWatchOnly ? records.makeID() : nil
+        var onRelease: (@Sendable () -> Void)?
+        if let record {
+            onRelease = { [weak records] in
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated { records?.end(record, .cleared) }
+                }
+            }
+        }
+        let watch = ReleaseWatch(box: box, onRelease: onRelease)
         watch.attach(to: presented)
+        if let record {
+            records.begin(record, presented: presented, window: environment.window(of: top))
+            environment.after(seconds: pendingSheetLimit) { [weak records] in
+                records?.end(record, .expired)
+            }
+        }
         // Weakly: the presented view controller is the watch's only owner (a declined view
-        // controller whose completion UIKit kept would otherwise keep the watch alive).
-        environment.present(presented, on: top, animated: animated) { [weak watch] in
+        // controller whose completion UIKit kept would otherwise keep the watch, the records and
+        // the requests waiting in them alive). `onPresented` comes even when the box is closed:
+        // the request and the presentation end apart (R4-2).
+        environment.present(presented, on: top, animated: animated) { [weak watch, weak records] in
             watch?.markPresented()
+            if let record { records?.end(record, .cleared) }
             onPresented()
         }
         // The supplement of part 1, 5.13.1: UIKit sets `presentingViewController` of an alert

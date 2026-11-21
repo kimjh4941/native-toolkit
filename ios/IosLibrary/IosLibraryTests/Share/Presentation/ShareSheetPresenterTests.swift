@@ -347,6 +347,30 @@ struct ShareSheetPresenterTests {
         }
     }
 
+    /// SH-13: two shares started in the same main-queue turn. UIKit presents a share sheet only
+    /// after its remote scene is ready, and until then nothing on the presenting view controller
+    /// shows it; a second sheet presented then is declined and is not freed. Each share must still
+    /// end exactly once: the second waits for the first sheet, then fails rather than being
+    /// presented on it (D-2), and the first ends when it is closed.
+    @Test func twoSharesInOneTurnEachEndOnce() async throws {
+        try await withHostWindow { host in
+            let results = MainRecorder<Result<ShareResult, ShareError>>()
+            let presenter = ShareSheetPresenter<UIKitPresentationEnvironment>()
+            _ = start(presenter, into: results)
+            _ = start(presenter, into: results)
+            #expect(await waitUntil(timeout: 10) { results.values.count == 1 }, "the second share ended")
+            #expect(results.names == [failed(.presentationFailed)])
+            // Not held here: the first sheet must be freed for its release watch to end it.
+            #expect(host.root.presentedViewController is UIActivityViewController, "the first sheet is shown")
+            #expect(host.root.presentedViewController?.presentedViewController == nil, "nothing on the first sheet")
+
+            host.root.dismiss(animated: false)
+            #expect(await waitUntil(timeout: 10) { results.values.count == 2 }, "the first share ended")
+            try await Task.sleep(nanoseconds: 500_000_000)
+            #expect(results.names == [failed(.presentationFailed), failed(.dismissedBySystem)])
+        }
+    }
+
     /// A presented sheet, whose `presentingViewController` is set only some time after `present`,
     /// is not taken for a declined one (the supplement of 6.3.3 is not used for the share sheet).
     @Test func aPresentedSheetIsNotFailed() async throws {

@@ -119,6 +119,7 @@
     "ShareUITests/testS17_requestShareCopy": ["sharesheet", "clipboard"],
     "ShareUITests/testS18_aRequestInTheBackgroundReportsNotForeground": ["sharesheet", "systemui"],
     "ShareUITests/testS19_aSheetDismissedFromOutsideReportsDismissedBySystem": ["sharesheet"],
+    "ShareUITests/testS20_twoSharesInOneTurnEachEndOnce": ["sharesheet"],
     "ClipboardPasteUITests/testCB1_allowPasteLoadsText": ["clipboard", "systemui"],
     "ClipboardPasteUITests/testCB3_pasteControlReadsText": ["clipboard"],
     "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly": ["clipboard"],

@@ -12,7 +12,7 @@ import Foundation
 /// | ``canceled`` | `IosDialogManager.cancel(_:)` closed the request |
 /// | ``dismissedBySystem`` | The dialog went away without a button being pressed (dismissed from outside, or its scene was disconnected and the dialog freed) |
 /// | ``notForeground`` | No view controller to present from was found |
-/// | ``presentationFailed`` | The view controller to present from was still not settled after waiting once, or UIKit declined the presentation |
+/// | ``presentationFailed`` | The view controller to present from was still not settled after waiting once, UIKit declined the presentation, or a share sheet of the library in the same window did not finish appearing within 10 seconds |
 /// | ``invalidRequest`` | The ``RequestBox`` passed in is already used by another request |
 ///
 /// The texts of `errorDescription` are fixed English sentences.

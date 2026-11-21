@@ -757,6 +757,31 @@ final class CApiRoundTripUITests: CApiUITestCase {
         XCTAssertTrue(app.noShareSheetAppears(for: 1))
     }
 
+    /// SH-13: two shares from C in one main turn. One sheet is shown and the other share waits for
+    /// it, then fails with SHOW_FAILED rather than being presented on it (D-2); which of the two is
+    /// shown is not decided (each call reaches the procedure through its own task). Closing the
+    /// sheet completes the other. Each request completes once and is released once, on main, also
+    /// once the records' lifetime has passed.
+    func testTwoSharesFromCInOneTurnEachCompleteOnce() throws {
+        let app = try launchApp(section: .share)
+        let started = Date()
+        try app.start("share.twice")
+        XCTAssertTrue(try app.waitForShareSheet(), "the share sheet did not open")
+        let failedLine = try app.waitForLine(ofRow: "share.twice", occurrence: 0)
+        let failed = ["1", "2"].first { failedLine == shareLine("twice", "\($0) \(ShareError.showFailed) 0 result=NULL main=1") }
+        let shown = failed == "1" ? "2" : "1"
+        XCTAssertNotNil(failed, "one share failed first: \(failedLine)")
+        XCTAssertEqual(try app.waitForLine(ofRow: "share.twice", occurrence: 1), shareLine("twice", "\(failed ?? "?") released main=1"))
+        try app.closeShareSheet()
+        XCTAssertEqual(try app.waitForLine(ofRow: "share.twice", occurrence: 2),
+                       shareLine("twice", "\(shown) 0 0 result=completed=0,activity=NULL main=1"))
+        XCTAssertEqual(try app.waitForLine(ofRow: "share.twice", occurrence: 3), shareLine("twice", "\(shown) released main=1"))
+        XCTAssertTrue(app.noShareSheetAppears(for: 2))
+        // Past the records' lifetime (10 seconds from the start), nothing more comes.
+        Thread.sleep(forTimeInterval: max(0, 12 - Date().timeIntervalSince(started)))
+        XCTAssertFalse(app.isDrawnLine(ofRow: "share.twice", occurrence: 4), "one completion and one release each")
+    }
+
     /// 12.1, "前面": from the background the share ends with NOT_FOREGROUND and shows nothing.
     func testAShareFromTheBackgroundIsNotForeground() throws {
         let app = try launchApp(section: .share)

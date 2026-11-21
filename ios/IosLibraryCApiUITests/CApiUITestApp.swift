@@ -592,4 +592,5 @@ enum ShareError {
     static let notForeground = 6
     static let emptyContent = 7
     static let fileNotFound = 9
+    static let showFailed = 19
 }
