@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClearClipboardUseCase")
 
-/// Clears all items on the pasteboard (P-6).
+/// Clears all items on the pasteboard.
 @MainActor
 public struct ClearClipboardUseCase {
     private let repository: ClipboardRepository

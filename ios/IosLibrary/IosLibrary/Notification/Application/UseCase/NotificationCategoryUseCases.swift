@@ -24,7 +24,7 @@ public struct RegisterNotificationCategoryUseCase: Sendable {
     }
 
     /// Queues the registration and returns at once; `completion` is called once it is applied
-    /// (``NotificationRepository/enqueueCategoryChange(_:completion:)``, design S-P28).
+    /// (``NotificationRepository/enqueueCategoryChange(_:completion:)``).
     /// - Parameters:
     ///   - category: The category to register.
     ///   - completion: Called once, on any thread, after the category is registered.
@@ -49,7 +49,7 @@ public struct RemoveNotificationCategoryUseCase: Sendable {
     }
 
     /// Queues the removal and returns at once; `completion` is called once it is applied
-    /// (``NotificationRepository/enqueueCategoryChange(_:completion:)``, design S-P28).
+    /// (``NotificationRepository/enqueueCategoryChange(_:completion:)``).
     /// - Parameters:
     ///   - identifier: The identifier of the category to remove.
     ///   - completion: Called once, on any thread, after the category is removed.

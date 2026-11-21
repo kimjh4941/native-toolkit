@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "CopyContentUseCase")
 
-/// Validates and writes `content` to the clipboard, replacing existing items (P-1).
+/// Validates and writes `content` to the clipboard, replacing existing items.
 @MainActor
 public struct CopyContentUseCase {
     private let repository: ClipboardRepository

@@ -91,9 +91,10 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 ///     }
 /// }
 ///
-/// IosDialogManager.shared.showAlert(title: "Notice", message: "Operation finished") { result, success, error in
-///     guard success else { print(error ?? "Unknown"); return }
-///     print("User tapped: \(result ?? "?")")
+/// IosDialogManager.shared.showAlert(title: "Notice", message: "Operation finished") { buttonText, _, _ in
+///     print("User tapped: \(buttonText ?? "?")")
+/// } completion: { isSuccess, errorMessage in
+///     if !isSuccess { print(errorMessage ?? "Unknown") }
 /// }
 /// ```
 public final class IosDialogManager: NSObject, Sendable {

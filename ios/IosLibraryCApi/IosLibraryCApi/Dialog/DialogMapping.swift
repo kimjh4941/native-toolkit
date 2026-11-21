@@ -18,7 +18,8 @@ struct DialogResultValue: Sendable, Equatable {
 
 /// The pure conversions of Dialog.h (part 2, 6.2; P2-22): C values to Swift values on the calling thread,
 /// before anything is registered, and back. Every struct is read with `reserved:` naming all its reserved
-/// fields but `reserved0`. A NULL title, message or placeholder is "none", and a NULL button text the
+/// fields but `reserved0`. A NULL title or message is "none", a NULL placeholder is "none" for the text
+/// input and the library's own text ("Username", "Password") for the login, and a NULL button text the
 /// library's own text.
 enum DialogMapping {
     static func alert(_ pointer: UnsafePointer<ntk_dialog_alert_request>?) throws(EntryError) -> DialogRequest {

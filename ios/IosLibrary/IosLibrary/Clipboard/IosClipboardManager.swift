@@ -24,12 +24,14 @@ private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary
 /// from another thread call the static form, `IosClipboardManager.cancelLoad(box)`.
 ///
 /// ## API shape
-/// - P-1〜P-11 (data-bearing operations) offer both a callback form and an `async throws` native
-///   form. `loadItem` also has a callback form that takes a ``RequestBox``
-///   (``loadItem(_:scope:requestBox:completion:)``), cancelled with `cancelLoad(_:)`.
-/// - P-12〜P-16 (`cancelAllLoads`, `startObserving`, `stopObserving`, `checkForegroundChange`,
-///   `makePasteControl`) and `cancelLoad(_:)` complete synchronously and therefore have a
-///   single, synchronous form only (see `common.md`'s "同期 control / factory API" exception).
+/// - The operations that carry data (`copy`, `append`, `read`, `readData`, `snapshot`, `clear`,
+///   `createPasteboard`, `removePasteboard`, `detectPatterns`, `detectValues` and `loadItem`)
+///   offer both a callback form and an `async throws` form. `loadItem` also has a callback form
+///   that takes a ``RequestBox`` (``loadItem(_:scope:requestBox:completion:)``), cancelled with
+///   `cancelLoad(_:)`.
+/// - `cancelAllLoads`, `startObserving`, `stopObserving`, `checkForegroundChange`,
+///   `makePasteControl` and `cancelLoad(_:)` complete synchronously and therefore have a single,
+///   synchronous form only.
 ///
 /// ## Cancelling a load
 ///
@@ -118,7 +120,11 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     // MARK: - P-1 copy
 
     /// Replaces the contents of the pasteboard of `scope` with `content`, with `options`.
-    /// - Parameter completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
+    /// - Parameters:
+    ///   - content: The content to write.
+    ///   - options: The privacy options of the copy (``ClipboardCopyOptions/default`` by default).
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
     public func copy(
         _ content: ClipboardContent,
         options: ClipboardCopyOptions = .default,
@@ -144,7 +150,10 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Adds `content` as a new item after the items of the pasteboard of `scope` (no copy options:
     /// see "append vs copy" above).
-    /// - Parameter completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
+    /// - Parameters:
+    ///   - content: The content to add.
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
     public func append(
         _ content: ClipboardContent,
         scope: PasteboardScope = .general,
@@ -166,9 +175,11 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     /// Reads the items of the pasteboard of `scope` synchronously (the text, URL and type
     /// identifiers of each item). iOS can ask the user to allow the paste when another app wrote
     /// the content; the read then waits for the answer on the main thread, also while the app is in
-    /// the background (measured on the iOS 26.2 simulator, stage 1b MS-08). To read without blocking,
+    /// the background (measured on the iOS 26.2 simulator). To read without blocking,
     /// use `loadItem`.
-    /// - Parameter completion: `(isSuccess, result, errorCode, errorMessage)` on the main actor, once.
+    /// - Parameters:
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, result, errorCode, errorMessage)` on the main actor, once.
     public func read(
         scope: PasteboardScope = .general,
         completion: @escaping (Bool, ClipboardReadResult?, String?, String?) -> Void
@@ -188,7 +199,10 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Reads the data of type `utType` from the pasteboard of `scope` (`nil` when no item has it).
     /// Like ``read(scope:completion:)``, it can wait on the main thread for the user to allow the paste.
-    /// - Parameter completion: `(isSuccess, data, errorCode, errorMessage)` on the main actor, once.
+    /// - Parameters:
+    ///   - utType: The uniform type identifier of the data to read.
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, data, errorCode, errorMessage)` on the main actor, once.
     public func readData(
         utType: String,
         scope: PasteboardScope = .general,
@@ -218,7 +232,11 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Reads the metadata of the pasteboard of `scope` (counts, kinds and type identifiers; no
     /// contents), and the indexes of the items that have one of `matchingTypes`.
-    /// - Parameter completion: `(isSuccess, snapshot, errorCode, errorMessage)` on the main actor, once.
+    /// - Parameters:
+    ///   - matchingTypes: Type identifiers to match the items against. When `nil` or empty, no
+    ///     matching is done (`matchingItemIndexes` is `nil`).
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, snapshot, errorCode, errorMessage)` on the main actor, once.
     public func snapshot(
         matchingTypes: [String]? = nil,
         scope: PasteboardScope = .general,
@@ -238,7 +256,9 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
     // MARK: - P-6 clear
 
     /// Removes every item of the pasteboard of `scope`.
-    /// - Parameter completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
+    /// - Parameters:
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
     public func clear(scope: PasteboardScope = .general, completion: ((Bool, String?, String?) -> Void)? = nil) {
         logger.log(level: .libraryDebug, "[clear] scope: \(scope.redactedDescription, privacy: .public)")
         runVoid({ try self.useCases.clearClipboard.execute(scope: scope) }, completion: completion)
@@ -255,7 +275,9 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Creates (or opens) a named pasteboard, or creates a unique one, and returns its scope (see
     /// "Named pasteboard lifetime" above).
-    /// - Parameter completion: `(isSuccess, scope, errorCode, errorMessage)` on the main actor, once.
+    /// - Parameters:
+    ///   - request: The named pasteboard to create or open, or a request for a unique one.
+    ///   - completion: `(isSuccess, scope, errorCode, errorMessage)` on the main actor, once.
     public func createPasteboard(
         _ request: PasteboardCreationRequest,
         completion: @escaping (Bool, PasteboardScope?, String?, String?) -> Void
@@ -275,7 +297,9 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Removes a named or unique pasteboard and its contents (the general pasteboard cannot be
     /// removed).
-    /// - Parameter completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
+    /// - Parameters:
+    ///   - scope: The named or unique pasteboard to remove.
+    ///   - completion: `(isSuccess, errorCode, errorMessage)` on the main actor, once (see "Errors" above). Optional.
     public func removePasteboard(_ scope: PasteboardScope, completion: ((Bool, String?, String?) -> Void)? = nil) {
         logger.log(level: .libraryDebug, "[removePasteboard] scope: \(scope.redactedDescription, privacy: .public)")
         runVoid({ try self.useCases.removePasteboard.execute(scope) }, completion: completion)
@@ -292,7 +316,10 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Reports which of `patterns` the pasteboard of `scope` probably holds, without reading its
     /// contents (no paste prompt).
-    /// - Parameter completion: `(isSuccess, patterns, errorCode, errorMessage)` on the main actor, once.
+    /// - Parameters:
+    ///   - patterns: The patterns to look for.
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, patterns, errorCode, errorMessage)` on the main actor, once.
     public func detectPatterns(
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope = .general,
@@ -316,7 +343,10 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
 
     /// Detects the values of `patterns` in the pasteboard of `scope` (reads the contents: iOS can
     /// ask the user to allow the paste).
-    /// - Parameter completion: `(isSuccess, values, errorCode, errorMessage)` on the main actor, once.
+    /// - Parameters:
+    ///   - patterns: The patterns whose values to detect.
+    ///   - scope: The pasteboard to use (the general pasteboard by default).
+    ///   - completion: `(isSuccess, values, errorCode, errorMessage)` on the main actor, once.
     public func detectValues(
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope = .general,

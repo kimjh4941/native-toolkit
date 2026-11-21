@@ -16,7 +16,7 @@ import Foundation
 /// | ``invalidURL(_:)``, ``imageLoadFailed(path:)``, ``fileNotFound(path:)`` | An item could not be converted |
 /// | ``noRootViewController`` | `PresenterSelection.firstActiveScene` found no view controller to present from |
 /// | ``notForeground`` | `PresenterSelection.foreground` or `viewController(_:)` found no view controller in the foreground |
-/// | ``presentationFailed`` | The view controller to present from was not settled (after the one wait of `.foreground` and `.viewController(_:)`), or UIKit declined the presentation |
+/// | ``presentationFailed`` | The view controller to present from was not settled (after the one wait of `.foreground` and `.viewController(_:)`), UIKit declined the presentation, or the sheet was freed before it finished appearing (dismissed from outside during the animation). Also when the foreground is a share sheet (a share sheet is never shown on another one), and when a share sheet of this library is still appearing in the same window: `.firstActiveScene` fails at once, and `.foreground` and `.viewController(_:)` wait for it and fail when it has not finished appearing within 10 seconds |
 /// | ``dismissedBySystem`` | The share sheet went away without reporting a result (dismissed from outside, or its scene was disconnected and the sheet freed) |
 /// | ``activityFailed(_:)`` | The sheet ended with an error from the chosen activity |
 ///
@@ -40,8 +40,9 @@ public enum ShareError: Error, Sendable, Equatable {
     /// No view controller in the foreground to present the sheet from (`PresenterSelection.foreground`
     /// or `PresenterSelection.viewController(_:)`).
     case notForeground
-    /// The sheet was not presented: the view controller to present from was not settled, or UIKit
-    /// declined the presentation.
+    /// The sheet was not presented: the view controller to present from was not settled, UIKit
+    /// declined the presentation, the sheet was freed before it finished appearing, the foreground
+    /// is a share sheet, or a share sheet of this library was still appearing in the same window.
     case presentationFailed
     /// The presented sheet went away without reporting a result (dismissed from outside the
     /// library, or its scene was disconnected and the sheet freed).

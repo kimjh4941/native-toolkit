@@ -9,7 +9,7 @@ import os
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "CheckForegroundChangeUseCase")
 
 /// Detects clipboard changes by comparing `changeCount` on foreground return, reconciled with
-/// `changedNotification` delivery via `ClipboardChangeTracker` (P-15).
+/// `changedNotification` delivery via `ClipboardChangeTracker`.
 ///
 /// One tracker is kept per `PasteboardScope` so that observing multiple scopes does not cross
 /// contaminate their baselines.

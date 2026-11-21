@@ -179,6 +179,13 @@ cd ios
 ./generate_docc.sh
 ```
 
+- iOS C ABI (Doxygen)
+
+```bash
+cd ios/IosLibraryCApi
+doxygen Doxyfile
+```
+
 - macOS (DocC)
 
 ```bash

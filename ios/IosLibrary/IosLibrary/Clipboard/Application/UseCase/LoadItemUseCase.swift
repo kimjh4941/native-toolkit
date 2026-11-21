@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "LoadItemUseCase")
 
-/// Loads a single item from the pasteboard's `NSItemProvider`s asynchronously (P-11).
+/// Loads a single item from the pasteboard's `NSItemProvider`s asynchronously.
 @MainActor
 public struct LoadItemUseCase {
     private let loader: ClipboardItemLoader

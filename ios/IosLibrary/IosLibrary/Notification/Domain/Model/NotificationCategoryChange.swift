@@ -6,7 +6,7 @@
 import Foundation
 
 /// One change to the app's notification categories, as queued by
-/// ``NotificationRepository/enqueueCategoryChange(_:completion:)`` (design S-P28).
+/// ``NotificationRepository/enqueueCategoryChange(_:completion:)``.
 public enum NotificationCategoryChange: Sendable {
     /// Adds the category, replacing a registered category with the same identifier.
     case register(NotificationCategory)

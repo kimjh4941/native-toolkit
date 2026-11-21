@@ -9,8 +9,7 @@ import os
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "NotificationEventHub")
 private let registrationLogger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "NotificationEventRegistration")
 
-/// The listeners of one kind of notification event, and the events kept while there are none
-/// (design 8.4, S-P10).
+/// The listeners of one kind of notification event, and the events kept while there are none.
 ///
 /// The library's hubs are ``IosNotificationManager/responses`` and
 /// ``IosNotificationManager/settingsRequests``; you cannot create one.

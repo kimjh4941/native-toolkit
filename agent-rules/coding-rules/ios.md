@@ -122,7 +122,7 @@ Manager の公開 API（ネイティブ版）は上記のとおり必ず `async 
 
 ### C（C ABI の公開ヘッダ）
 
-公開ヘッダ（`include/NativeToolkitC/`）は ASCII だけで書く（`scripts/check_c_abi_contract_ios.py` が照らす）。ファイルの頭は `/** @file ... @brief ... */`。宣言の説明は、1 つずつの `/** */` か、関係する宣言の前にまとめた `/* */` で書く（今のヘッダの形）。段階 4 で Doxygen の API リファレンスを作るときに、Doxygen が拾う形に揃える（`/* */` は拾われない）。
+公開ヘッダ（`include/NativeToolkitC/`）は ASCII だけで書く（`scripts/check_c_abi_contract_ios.py` が照らす）。ファイルの頭は `/** @file ... @brief ... */`。宣言の説明は Doxygen が拾う形で書く: 関数・typedef・構造体・列挙は 1 つずつの `/** */`、構造体の項目は `/**< */`。関係する宣言にまとめて掛かる説明は Doxygen のメンバーグループ（`/** @name ... */ /** @{ */ ... /** @} */`）に置き、中の関数にもそれぞれ `/** */` を付ける（`/* */` は Doxygen に拾われない）。Doxygen（`ios/IosLibraryCApi/Doxyfile`）は警告 0 件を保つ。
 
 **対象（必須。1 つずつかまとめての説明のどちらかがあること）:**
 

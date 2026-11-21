@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "RemovePasteboardUseCase")
 
-/// Invalidates a named pasteboard (P-8). Removing `.general` is rejected: the system silently
+/// Invalidates a named pasteboard. Removing `.general` is rejected: the system silently
 /// ignores such a request, which would otherwise hide caller mistakes.
 @MainActor
 public struct RemovePasteboardUseCase {

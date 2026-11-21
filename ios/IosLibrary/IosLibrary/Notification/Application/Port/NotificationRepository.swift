@@ -118,7 +118,7 @@ public protocol NotificationRepository: Sendable {
     func removeCategory(identifier: String) async
 
     /// Queues a change to the categories and returns at once; `completion` is called once the
-    /// change is applied (design S-P28).
+    /// change is applied.
     ///
     /// The library's repository puts every change of the process in one first-in first-out
     /// queue, synchronously inside this call, and applies one change at a time (read the

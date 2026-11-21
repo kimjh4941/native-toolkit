@@ -372,7 +372,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     /// Cancels a specific pending notification.
     ///
     /// The same operation as ``cancelScheduled(identifier:completion:)``: both remove the pending request
-    /// with `identifier` and leave a delivered notification in place (design S-P16).
+    /// with `identifier` and leave a delivered notification in place.
     public func cancel(identifier: String) {
         logger.log(level: .libraryDebug, "[cancel] identifier: \(identifier, privacy: .public)")
         Task { await cancelUseCase.execute(identifier: identifier) }
@@ -382,7 +382,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// The same operation as ``cancelAllScheduled(completion:)``. It removes every pending request of the
     /// app, also those another component (a game engine's notification package, for example)
-    /// added (design 3.4).
+    /// added.
     public func cancelAll() {
         logger.log(level: .libraryDebug, "[cancelAll]")
         Task { await cancelAllUseCase.execute() }
@@ -403,7 +403,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     }
 
     /// Removes all delivered notifications from Notification Center, also those another component
-    /// delivered (design 3.4). `completion` works as on ``removeDelivered(identifier:completion:)``.
+    /// delivered. `completion` works as on ``removeDelivered(identifier:completion:)``.
     public func removeAllDelivered(completion: (@MainActor @Sendable () -> Void)? = nil) {
         logger.log(level: .libraryDebug, "[removeAllDelivered] completion: \(completion == nil ? "nil" : "provided", privacy: .public)")
         Task {
@@ -414,7 +414,7 @@ public final class IosNotificationManager: NSObject, Sendable {
 
     /// Schedules a notification for future delivery.
     ///
-    /// The request's identifier is `identifier`; `content.id` is not used (design S-P16). The
+    /// The request's identifier is `identifier`; `content.id` is not used. The
     /// userInfo, the trigger and the attachment files are checked first, as in
     /// ``show(content:trigger:completion:)``. Only file URLs (`isFileURL`) are checked; any other
     /// URL is left to the system as before.
@@ -572,7 +572,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     }
 
     /// Requests authorization to display notifications, checking the foreground first for
-    /// `presenter` (design 8.5.4, S-13).
+    /// `presenter`.
     ///
     /// | `presenter` | What happens |
     /// |---|---|
@@ -633,7 +633,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     }
 
     /// Opens the app's notification settings page in the Settings app, checking the foreground
-    /// first for `presenter` (design 8.5.5).
+    /// first for `presenter`.
     ///
     /// | `presenter` | What happens |
     /// |---|---|
@@ -692,7 +692,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     /// Registers a notification category.
     ///
     /// The change is queued inside this call: the category changes of the process take effect in
-    /// the order of the calls, one at a time (design 8.5.6). `completion` is invoked on the main
+    /// the order of the calls, one at a time. `completion` is invoked on the main
     /// thread, exactly once, never inside the call, after the category is registered (the system
     /// shows its actions on a notification posted from then on).
     ///
@@ -710,7 +710,7 @@ public final class IosNotificationManager: NSObject, Sendable {
     ///
     /// `nonisolated(nonsending)`: the change is queued on the caller's executor before the first
     /// suspension, so calls made in order from one task (or from main-actor tasks started in
-    /// order) are applied in that order (design S-P28, SR3-1).
+    /// order) are applied in that order.
     nonisolated(nonsending)
     public func registerCategory(_ category: NotificationCategory) async {
         logger.log(level: .libraryDebug, "[registerCategory async] identifier: \(category.identifier, privacy: .public)")
@@ -860,7 +860,7 @@ extension NotificationDelegateStatus {
 extension IosNotificationManager {
 
     /// The responses to the notifications the library handles: a tap on the body, an action
-    /// button, a text input reply, or the custom dismiss action (design 8.4).
+    /// button, a text input reply, or the custom dismiss action.
     ///
     /// The library handles the responses to its own notifications, and to other notifications
     /// when the delegate set before ``installDelegate()`` does not implement

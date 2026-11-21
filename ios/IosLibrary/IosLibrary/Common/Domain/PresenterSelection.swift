@@ -10,9 +10,15 @@
 ///
 /// | Value | View controller | Checks before presenting |
 /// |---|---|---|
-/// | ``firstActiveScene`` (default) | The topmost presented view controller of the key window of the first `foregroundActive` window scene | Searched once, no waiting: the behavior of each operation before this type existed. A dialog is presented whatever the state of that view controller; a share sheet fails when that view controller is being presented or dismissed or is presenting something |
+/// | ``firstActiveScene`` (default) | The topmost presented view controller of the key window of the first `foregroundActive` window scene | Searched once, no waiting: the behavior of each operation before this type existed. A dialog is presented whatever the state of that view controller; a share sheet fails at once when that view controller is being presented or dismissed, is presenting something, or is itself a share sheet, or while a share sheet of this library is still appearing in its window |
 /// | ``foreground`` | The topmost presented view controller that is not being dismissed, of the key window of a `foregroundActive` or `foregroundInactive` window scene | When none is found the operation fails as not in the foreground. When that view controller is in a transition, the operation waits once for the transition to end and checks again; it fails when it is still not settled |
 /// | ``viewController(_:)`` | The one the closure returns, called once on the main thread | When the closure returns `nil`, the operation fails as not in the foreground. Otherwise the same single wait as ``foreground`` |
+///
+/// With ``foreground`` and ``viewController(_:)``, a share sheet of this library that is still
+/// appearing in the same window counts as not settled: a dialog or a share sheet waits for it (this is
+/// the single wait), and fails when it has not finished appearing within 10 seconds. A share sheet
+/// is never presented on a share sheet: a share fails when the view controller found is one,
+/// whatever the value.
 ///
 /// An operation that does not present a view controller itself but may show a system prompt
 /// (requesting the notification permission, opening the settings) only checks that the app is

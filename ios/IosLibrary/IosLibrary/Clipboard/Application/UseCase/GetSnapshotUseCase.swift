@@ -9,7 +9,7 @@ import os
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "GetSnapshotUseCase")
 
 /// Reads clipboard metadata using only system APIs documented to avoid user
-/// notifications/prompts (P-5).
+/// notifications/prompts.
 @MainActor
 public struct GetSnapshotUseCase {
     private let repository: ClipboardRepository

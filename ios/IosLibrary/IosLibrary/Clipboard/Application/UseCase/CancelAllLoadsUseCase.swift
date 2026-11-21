@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "CancelAllLoadsUseCase")
 
-/// Cancels every pending `loadItem` request (P-12).
+/// Cancels every pending `loadItem` request.
 @MainActor
 public struct CancelAllLoadsUseCase {
     private let loader: ClipboardItemLoader

@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "DetectPatternsUseCase")
 
-/// Detects which patterns are present on the pasteboard, without reading matched values (P-9).
+/// Detects which patterns are present on the pasteboard, without reading matched values.
 ///
 /// `detectedPatterns(for:)` has no cancellation token, so this UseCase races it against Task
 /// cancellation and a timeout via `ClipboardAsyncRaceCoordinator`; the caller is resumed

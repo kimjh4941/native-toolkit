@@ -15,7 +15,7 @@ private let openSettingsLogger = Logger(subsystem: "com.jonghyunkim.nativetoolki
 /// Requests authorization to display notifications and tells whether it was granted.
 ///
 /// A denial is `false`, not an error. Whether the app must be in the foreground first is not
-/// decided here (design 8.5.4, SR-17): the presentation gate of `IosNotificationManager`
+/// decided here: the presentation gate of `IosNotificationManager`
 /// (`NotificationPresentationGate`) decides it before calling this.
 public struct RequestNotificationPermissionUseCase: Sendable {
     private let repository: NotificationRepository
@@ -44,7 +44,7 @@ public struct RequestNotificationPermissionUseCase: Sendable {
 
 /// Opens the app's notification settings page in the Settings app and tells whether it opened.
 ///
-/// Whether the app must be in the foreground first is not decided here (design 8.5.5, SR-17).
+/// Whether the app must be in the foreground first is not decided here.
 public struct OpenNotificationSettingsUseCase: Sendable {
     private let repository: NotificationRepository
 

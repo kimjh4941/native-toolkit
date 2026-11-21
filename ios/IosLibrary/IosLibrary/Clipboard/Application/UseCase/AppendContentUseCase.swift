@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "AppendContentUseCase")
 
-/// Validates and appends `content` to the existing clipboard items (P-2).
+/// Validates and appends `content` to the existing clipboard items.
 ///
 /// Cannot carry privacy options: `UIPasteboard.addItems(_:)` has no options overload, and
 /// whether privacy options set by a prior `copy` are inherited by the newly appended item is not

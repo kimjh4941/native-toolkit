@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "DetectValuesUseCase")
 
-/// Detects patterns on the pasteboard and reads their matched values (P-10).
+/// Detects patterns on the pasteboard and reads their matched values.
 ///
 /// See `DetectPatternsUseCase` for the cancellation/timeout contract shared with this UseCase.
 @MainActor

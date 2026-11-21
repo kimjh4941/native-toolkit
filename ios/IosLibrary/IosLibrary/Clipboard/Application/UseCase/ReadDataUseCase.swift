@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ReadDataUseCase")
 
-/// Reads the raw `Data` for a given uniform type identifier (P-4).
+/// Reads the raw `Data` for a given uniform type identifier.
 @MainActor
 public struct ReadDataUseCase {
     private let repository: ClipboardRepository

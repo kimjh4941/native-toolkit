@@ -20,7 +20,8 @@ enum SampleTestMode: String, CaseIterable, Sendable {
     case none
     /// The deprecated path: `onActionReceived` / `onTextInputActionReceived`, then `setup()`.
     case legacyReceivers
-    /// `installDelegate()`, then the listener of `responses` 3 seconds later (the hub keeps what
+    /// `installDelegate()`, then the listener of `responses` 5 seconds later (`listenerDelay` of
+    /// `NotificationEventRouting`; the hub keeps what
     /// arrives before).
     case delayListener
 }

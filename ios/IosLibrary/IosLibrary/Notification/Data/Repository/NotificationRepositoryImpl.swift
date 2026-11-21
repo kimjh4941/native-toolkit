@@ -46,8 +46,8 @@ struct CurrentNotificationRequestCenter: NotificationRequestCenter {
 
 /// Concrete implementation of `NotificationRepository` backed by `UNUserNotificationCenter`.
 ///
-/// `show`, `update` and `schedule` check the userInfo first, before anything is removed or added
-/// (design 8.3.3, 8.5.3, SR-9): the library's reserved key (``NotificationError/reservedUserInfoKey``),
+/// `show`, `update` and `schedule` check the userInfo first, before anything is removed or added:
+/// the library's reserved key (``NotificationError/reservedUserInfoKey``),
 /// then whether it is a property list (``NotificationError/invalidUserInfo``), and then the trigger
 /// (``NotificationTrigger/isValid``, ``NotificationError/invalidTrigger``). Before any attachment
 /// is made, the file of every attachment must exist: a file that does not exist (or that the
@@ -60,7 +60,7 @@ struct CurrentNotificationRequestCenter: NotificationRequestCenter {
 /// replace in place. A file removed after the check still fails in `add`
 /// (``NotificationError/addRequestFailed(_:)``), after `update` removed the pending request. The
 /// changes to the categories go through
-/// the one queue of the process (`NotificationCategoryQueue`, design 8.5.6), whichever repository
+/// the one queue of the process (`NotificationCategoryQueue`), whichever repository
 /// makes them.
 ///
 /// ## Threading
@@ -280,7 +280,7 @@ public final class NotificationRepositoryImpl: NotificationRepository {
         }
     }
 
-    /// Appends the change to the process's category queue inside this call (design S-P28).
+    /// Appends the change to the process's category queue inside this call.
     public func enqueueCategoryChange(_ change: NotificationCategoryChange, completion: @escaping @Sendable () -> Void) {
         logger.log(level: .libraryDebug, "[enqueueCategoryChange] change: \(change.logSummary, privacy: .public), completion: provided")
         categoryQueue.enqueue(change, completion: completion)

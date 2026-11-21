@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ReadContentUseCase")
 
-/// Reads the clipboard's items synchronously (P-3). An empty clipboard is not an error.
+/// Reads the clipboard's items synchronously. An empty clipboard is not an error.
 @MainActor
 public struct ReadContentUseCase {
     private let repository: ClipboardRepository

@@ -8,7 +8,7 @@ import os
 
 private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "CreatePasteboardUseCase")
 
-/// Creates (or resolves an existing) named pasteboard, or a new unique-named pasteboard (P-7).
+/// Creates (or resolves an existing) named pasteboard, or a new unique-named pasteboard.
 @MainActor
 public struct CreatePasteboardUseCase {
     private let repository: ClipboardRepository
