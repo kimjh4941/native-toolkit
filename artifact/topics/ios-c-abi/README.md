@@ -598,7 +598,7 @@ Unity の iOS は、iOS 27 SDK で組むアプリに scene のライフサイク
 - [x] Clipboard / Notification / Share / Dialog のすべてにサンプルの UI テストがあり、通知からのコールドスタート（UI テストの設計書の N30〜N33）を含む（段階 0c）（`results/2026-10-24-ios-c-abi-stage0c-result.md`。99 件。シミュレーターで全件が通った。実機は区分の無い 19 件だけ）
 - [x] `scripts/test_ios.sh` があり、今のコードの結果を 2 つの環境で基準として記録している（段階 0d）（`results/2026-10-24-ios-c-abi-stage0d-result.md`。シミュレーターは全件。**実機の基準は区分の無い 19 件だけ**）
 - [x] `IosLibrary` とサンプルが Swift 6 の言語モードと strict concurrency complete で、警告が 0（段階 0e・0f）。公開 API の差分を記録している（`results/2026-10-25-ios-c-abi-stage0f-working-notes.md`。UI テストのターゲットは D-14 の例外で Swift 5 + minimal）
-- [ ] 同じ main の回に続けて呼んだ Share の 2 つ目にも完了がちょうど 1 回来る（SH-13。`unity-native-plugin` の報告、2026-11-15）。単体テスト・S20・C ABI の `share.twice`、作り直した `dist/1.14.0` での `unity-native-plugin` の SH-13（実機は向こうが許可を得て）
+- [x] 同じ main の回に続けて呼んだ Share の 2 つ目にも完了がちょうど 1 回来る（SH-13。`unity-native-plugin` の報告、2026-11-15）。単体テスト・S20・C ABI の `share.twice`、作り直した `dist/1.14.0` での `unity-native-plugin` の SH-13（実機は向こうが許可を得て）（2026-11-21: こちらの確かめと、`unity-native-plugin` のシミュレーターと実機の UI テストがすべて通った。作業記録 17.16。実機の `present` から完了までの時間は後で知らせてもらう）
 - [ ] 0e〜0g と 1b の前後で、サンプルの UI テストの結果が変わらない（変えたテストは理由を記録している）
 - [ ] 段階 1a のスパイクで 8.2 を確かめる。本物の Unity の release ビルドで、雛形を実機で呼び、コールドスタートのタップを受けている
 - [ ] UI テスト・C ABI（2 部）・Swift の API の設計書を書き、別のモデルのレビューを通す（UI テスト、C ABI の第 1 部、Swift の API は済み。第 2 部が残る）
