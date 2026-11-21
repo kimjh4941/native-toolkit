@@ -3232,3 +3232,11 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 | `--capi-ui`（Xcode 26.6） | 59 件が通った（`share.twice` を含む） |
 | `--capi`（Xcode 26.6） | 単体 474 件（通常・ASan・TSan）、dist の組み立てと確かめ、両方のスライスの約束、smoke の 8 項目が通った |
 | `check_design_consistency.py`（4 つの設計書）と `check_c_abi_contract_ios.py` | FAIL 0 |
+
+**`dist/1.14.0` の作り直し**（2026-11-21。持ち主の決定 1。版の名前は 1.14.0 と 2.0.0 のまま）:
+
+- iOS だけ: `DEVELOPER_DIR=<Xcode 26.6> scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios`（17.14 と同じ）。ビルド番号が上がった: `IosLibrary` 18 → 19、capi 2 → 3（`project.pbxproj` も同じコミット）。Android・macOS・Windows は変えていない
+- 中身: 2 つの xcframework の両方のスライスに `PresentationRecords` が入った（`nm`）。`include/NativeToolkitC/Share.h` と capi の `Headers/` は、`ntk_share_result_fn` の説明だけが変わった
+- 確かめ: `check_ios_dist.py 1.14.0` は全項目 OK（FAIL・SKIP 0）。`check_c_abi_contract_ios.py --require-compile --require-complete --library` は両方のスライスで rc 0。`run_ios_capi_smoke.sh --dist dist/1.14.0/ios --device-build --udid <iPhone 17 Pro / 26.2>`（Xcode 26.6）は、シミュレーターの 16 段と、実機向けの組み立て（署名なし。入れていない）が通った
+- 確かめていないこと: 17.15 のアーカイブ（利用者の開発用の署名での `codesign` とプライバシーのレポート）は、作り直した dist では行っていない。署名の状態（`ios-arm64` は署名なし）とマニフェストは `check_ios_dist.py` で前と同じと確かめた
+- `unity-native-plugin` に、同じ名前のまま中身が変わったことと、SH-13 の確かめ（`XCTExpectFailure` を外す。実機は向こうが利用者の許可を得て）、実機での `present` から完了までの時間（D-3 の 10 秒の見直しのため）を頼む
