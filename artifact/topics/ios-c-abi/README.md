@@ -591,7 +591,7 @@ Unity の iOS は、iOS 27 SDK で組むアプリに scene のライフサイク
 
 ## 9. DoD
 
-- [ ] 配布用の署名（Distribution のアーカイブと Organizer の Validate App）で、2 つの framework がアプリの証明書で署名し直されることを確かめる（D-18。unity-native-plugin の 1 回目は開発用の署名だけを確かめた。`results/2026-10-31-ios-c-abi-unity-handoff-1-results.md`）（2026-11-14: `dist/1.14.0` の smoke のアーカイブで、開発用の証明書での署名し直しは確かめた。配布用は Apple Developer Program の登録が要るので未。段階 2 の作業の記録 17.15）
+- [x] 配布用の署名（Distribution のアーカイブと Organizer の Validate App）で、2 つの framework がアプリの証明書で署名し直されることを確かめる（D-18。unity-native-plugin の 1 回目は開発用の署名だけを確かめた。`results/2026-10-31-ios-c-abi-unity-handoff-1-results.md`）（2026-11-14: `dist/1.14.0` の smoke のアーカイブで、開発用の証明書での署名し直しは確かめた。配布用は Apple Developer Program の登録が要るので未。段階 2 の作業の記録 17.15）（**2026-11-21: 持ち主の決定で行わない**。開発用の証明書での署名し直しまでを確かめとする）
 - [x] D-1 〜 D-22 を決める（2026-10-18。すべて推奨のとおり）
 - [x] この README のレビューで区分 A が 0 になっている（3 回。`reviews/` の v1〜v3）
 - [x] 段階 0a のスパイクで、XCUITest と人の確認の分担を確定する（`common.md` の例外にした項目は理由を記録している）（`results/2026-10-18-ios-c-abi-stage0a-spike-result.md`。シミュレーター 2 台と実機。分担は UI テストの設計書）
@@ -599,21 +599,21 @@ Unity の iOS は、iOS 27 SDK で組むアプリに scene のライフサイク
 - [x] `scripts/test_ios.sh` があり、今のコードの結果を 2 つの環境で基準として記録している（段階 0d）（`results/2026-10-24-ios-c-abi-stage0d-result.md`。シミュレーターは全件。**実機の基準は区分の無い 19 件だけ**）
 - [x] `IosLibrary` とサンプルが Swift 6 の言語モードと strict concurrency complete で、警告が 0（段階 0e・0f）。公開 API の差分を記録している（`results/2026-10-25-ios-c-abi-stage0f-working-notes.md`。UI テストのターゲットは D-14 の例外で Swift 5 + minimal）
 - [x] 同じ main の回に続けて呼んだ Share の 2 つ目にも完了がちょうど 1 回来る（SH-13。`unity-native-plugin` の報告、2026-11-15）。単体テスト・S20・C ABI の `share.twice`、作り直した `dist/1.14.0` での `unity-native-plugin` の SH-13（実機は向こうが許可を得て）（2026-11-21: こちらの確かめと、`unity-native-plugin` のシミュレーターと実機の UI テストがすべて通った。作業記録 17.16。実機の `present` から完了までの時間は後で知らせてもらう）
-- [ ] 0e〜0g と 1b の前後で、サンプルの UI テストの結果が変わらない（変えたテストは理由を記録している）
-- [ ] 段階 1a のスパイクで 8.2 を確かめる。本物の Unity の release ビルドで、雛形を実機で呼び、コールドスタートのタップを受けている
-- [ ] UI テスト・C ABI（2 部）・Swift の API の設計書を書き、別のモデルのレビューを通す（UI テスト、C ABI の第 1 部、Swift の API は済み。第 2 部が残る）
+- [x] 0e〜0g と 1b の前後で、サンプルの UI テストの結果が変わらない（変えたテストは理由を記録している）（2026-11-21 に照らした。0g: 0d の基準との差は足した単体テスト 25 件だけ（5 章の 0g の行）。実機の 60 件はすべて通り、前の 19 件は `changed=0`（`results/2026-10-24-ios-c-abi-stage0e-working-notes.md` 11.8）。1b: `changed=0, added=361, removed=4`（`results/2026-10-31-ios-c-abi-stage1b-result.md`。消えた 4 件の理由は 1b の作業の記録 20.7）、実機は `changed=0, added=12`（同 24.3）。直したテストの理由は 0e の作業の記録 10.4・11.5）
+- [x] 段階 1a のスパイクで 8.2 を確かめる。本物の Unity の release ビルドで、雛形を実機で呼び、コールドスタートのタップを受けている（2026-11-21 に照らした。Release の構成（`results/2026-10-31-ios-c-abi-unity-handoff-1.md`）で U-1・U-2 が実機（iPhone XS）で合格、U-3 でコールドスタートのタップが `launch=1` で 1 回届いた（`results/2026-10-31-ios-c-abi-unity-handoff-2-results.md`））
+- [x] UI テスト・C ABI（2 部）・Swift の API の設計書を書き、別のモデルのレビューを通す（UI テスト、C ABI の第 1 部、Swift の API は済み。第 2 部も済んだ: `reviews/2026-11-03-*-part2-review-v1〜v3`（Codex と Claude）、v3 は A なし、2026-11-03 に利用者が決定）
 - [x] 1.2 のロジックがすべて `IosLibrary` にあり（Swift の API の設計書 17 章の DoD）、ブリッジのテストのうち移すロジックに当たるものを書き直して通している（段階 1b）（`results/2026-10-31-ios-c-abi-stage1b-result.md`。ブリッジのテストとの対応は作業の記録 20.8。設計書 17 章の DoD のうち MS-10 のレポートだけが残る）
-- [ ] ログに秘密の値が出ない（`ios.md` に規則があり、テストで確かめる）（1b で規則と UT-15・`grep` の照合は済んだ。`.private` が実機で伏せて見えることは、2.0.0 の前の実機の区切りで見る）
+- [x] ログに秘密の値が出ない（`ios.md` に規則があり、テストで確かめる）（1b で規則と UT-15・`grep` の照合は済んだ。`.private` が実機で伏せて見えることは、2.0.0 の前の実機の区切りで見る→済み）（2026-11-14: `.private` が実機で伏せて見えることも合格（段階 2 の作業の記録 17.10））
 - [x] `IosLibrary` にプライバシーマニフェストがあり、使っている理由の申告が要る API と一致する（アーカイブのプライバシーのレポートで確かめる）（マニフェストと棚卸しは 1b で済んだ。2026-11-14 に `dist/1.14.0` の smoke のアーカイブで、レポートは白紙（集めるデータもトラッキングも無い）、アーカイブの中のマニフェストが FileTimestamp・C617.1 で、`check_ios_dist.py` の privacy の項目とも一致した。段階 2 の作業の記録 17.15）
-- [ ] 通知の delegate が前の delegate に転送し、ホストの通知が壊れない。起動の終わりまでに入れる関数でコールドスタートのタップが届く（段階 1b のテストと 1a / 2c の Unity）
-- [ ] 1.x（1.13.0 のサンプル）から 2.0.0 への更新のテストで、予約した通知・category・表示中の通知が壊れない
-- [ ] `IosLibraryCApi` が 6 章の振る舞いの集合をすべて公開している（2a の機械照合）
-- [ ] `check_ios_dist.py` の全項目（7.3）が通る。公開シンボルが `ntk_*` だけで、capi が Swift のモジュール・interface・ヘッダーを配らず、署名とマニフェストが D-18 のとおり
-- [ ] 通知の delegate を入れる関数が、main から呼ぶと戻る前に delegate を設定し終え、main 以外からは同期のエラーを返す（D-4・D-6）
-- [ ] smoke が dist の 2 つの xcframework だけで組めて、実機とシミュレーターで動く。利用者の下限の Xcode 26.3 でも組める（D-16）
-- [ ] 照合のスクリプト（`check_c_abi_contract_ios.py`、`check_manual_c_examples_ios.py`、`check_ios_dist.py`）が通り、Windows・Android の照合も通る。照合の自己テストが、規則を 1 つずつ壊すと落ちる
-- [ ] C ABI のテストが 7.4 の組み合わせ（ASan はシミュレーターと、区切りで許可を得て実機。TSan はシミュレーター。第 1 部 6.1）で通る。足したテストは、守る対象を壊すと落ちることを確かめている
-- [ ] `unity-native-plugin` が 2b で dist を置く前に、版の固定・完全一致の探索・development ビルドの埋め込みの 3 つを入れ、2c で C ABI を呼ぶ形に移り、iOS のテストと実機の確認を通している（別リポジトリ）
+- [x] 通知の delegate が前の delegate に転送し、ホストの通知が壊れない。起動の終わりまでに入れる関数でコールドスタートのタップが届く（段階 1b のテストと 1a / 2c の Unity）（2026-11-21 に照らした。1b の `NotificationDelegateRealCenterTests` と UT-19〜24・H2-3（1b の作業の記録）、1a の U-3・U-4、2c の `unity-native-plugin` の起動時のタップ（向こうの `artifact/ios/notification/results/2026-11-15-ios-notification-cabi-implementation-result-v1.md` の NU-8））
+- [ ] 1.x（1.13.0 のサンプル）から 2.0.0 への更新のテストで、予約した通知・category・表示中の通知が壊れない（2026-11-21: まだ。設計を `designs/2026-11-21-ios-c-abi-upgrade-test-design.md` で始めた）
+- [x] `IosLibraryCApi` が 6 章の振る舞いの集合をすべて公開している（2a の機械照合）（段階 2 の作業の記録 2.3 で BH 37・EV 3・RG 6・PR 3 を照合して FAIL 0。作り直した `dist/1.14.0` でも `check_c_abi_contract_ios.py --require-compile --require-complete --library` が両方のスライスで通り、134 of 134（同 17.16））
+- [x] `check_ios_dist.py` の全項目（7.3）が通る。公開シンボルが `ntk_*` だけで、capi が Swift のモジュール・interface・ヘッダーを配らず、署名とマニフェストが D-18 のとおり（作り直した `dist/1.14.0` で FAIL・SKIP 0（段階 2 の作業の記録 17.16））
+- [x] 通知の delegate を入れる関数が、main から呼ぶと戻る前に delegate を設定し終え、main 以外からは同期のエラーを返す（D-4・D-6）（1b の作業の記録の MS-12 と `.notMainThread` のテスト、段階 2 の作業の記録 の 134 関数を main を止めて呼ぶテスト（install は `WRONG_THREAD`）、`--capi-ui` の `testTheLaunchInstallsTheDelegateThroughC`）
+- [x] smoke が dist の 2 つの xcframework だけで組めて、実機とシミュレーターで動く。利用者の下限の Xcode 26.3 でも組める（D-16）（実機: 11-07 の回 3 で 16 段（段階 2 の作業の記録 17.8。作り直す前の dist）。作り直した `dist/1.14.0` では、2026-11-21 に Xcode 26.6 と 26.3 の両方で、シミュレーターの実行と実機向けの組み立て（署名なし）が通った（段階 2 の作業の記録 17.16、DoD の照らし合わせ））
+- [ ] 照合のスクリプト（`check_c_abi_contract_ios.py`、`check_manual_c_examples_ios.py`、`check_ios_dist.py`）が通り、Windows・Android の照合も通る。照合の自己テストが、規則を 1 つずつ壊すと落ちる（2026-11-21: `check_c_abi_contract_ios.py`・`check_ios_dist.py` は作り直した dist で通る。Android と Windows の C ABI の照合（FAIL 0）、`check_manual_c_examples_android.py 1.14.0 --require-examples` と Windows（コンパイルは Windows でしか流せず SKIP）も通った。照合の自己テストの変異は 段階 2 の作業の記録 2.6 と 14.5。`scripts/tests` 859 件が通る。**残り: `check_manual_c_examples_ios.py` は段階 4 のマニュアルの後**）
+- [x] C ABI のテストが 7.4 の組み合わせ（ASan はシミュレーターと、区切りで許可を得て実機。TSan はシミュレーター。第 1 部 6.1）で通る。足したテストは、守る対象を壊すと落ちることを確かめている（シミュレーターの通常・ASan・TSan の 474 件は 2026-11-21 の `--capi` で通過。実機の ASan 474 件は 11-07 の回 3（段階 2 の作業の記録 17.8。SH-13 の直しの前）。足したテストの変異は各 TB の記録と SH-13 の 11＋16 通り）
+- [x] `unity-native-plugin` が 2b で dist を置く前に、版の固定・完全一致の探索・development ビルドの埋め込みの 3 つを入れ、2c で C ABI を呼ぶ形に移り、iOS のテストと実機の確認を通している（別リポジトリ）（3 つは 段階 2 の作業の記録 17.14、2c とシミュレーター・実機のテストは 17.16）
 - [x] `UnityIosPlugin` がリポジトリに残っていない（プロジェクト、スクリプト、README、ルール、`dist/` の新しい版）（段階 3）（2026-11-21。出し済みの `dist/`・`docs/` と README の 1.13.0 の配布物の行は残す。ブリッジのために公開した `ClipboardRedaction` は持ち主の判断で、推奨は 2.0.0 では残す。`results/2026-11-21-ios-c-abi-stage3-result.md` の 5 章）
 - [ ] マニュアルの iOS の章に C ABI の節と 2.0.0 の移行ガイドがあり、3 言語で一致している（段階 4）
 
