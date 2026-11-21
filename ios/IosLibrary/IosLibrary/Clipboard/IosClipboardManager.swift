@@ -583,7 +583,7 @@ public final class IosClipboardManager: NSObject, @unchecked Sendable {
         return useCases.checkForegroundChange.execute(scope: scope)
     }
 
-    // MARK: - P-16 makePasteControl (synchronous factory; not exposed to the Unity Bridge)
+    // MARK: - P-16 makePasteControl (synchronous factory; not exposed to the C ABI)
 
     /// Creates a ready-to-place `UIPasteControl` + receiver container.
     /// - Throws: `ClipboardError.invalidRequest` if `acceptedTypes` is empty, or

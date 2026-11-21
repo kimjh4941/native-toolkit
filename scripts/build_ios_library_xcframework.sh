@@ -11,11 +11,10 @@ set -euo pipefail
 #   ./scripts/build_ios_library_xcframework.sh
 #   ./scripts/build_ios_library_xcframework.sh --configuration debug
 #   ./scripts/build_ios_library_xcframework.sh --library-version 1.2.0
-#   ./scripts/build_ios_library_xcframework.sh --module IosLibrary --module UnityIosPlugin --library-version 1.2.0
+#   ./scripts/build_ios_library_xcframework.sh --module IosLibrary --module IosLibraryCApi --library-version 2.0.0
 #   ./scripts/build_ios_library_xcframework.sh --configuration release --output dist/1.6.0/ios/ios-native-toolkit-1.2.0.xcframework
 #   ./scripts/build_ios_library_xcframework.sh -c debug -v 1.2.0 -o /tmp/NativeToolkit-debug.xcframework
 #   ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -v 1.3.0 -o dist/1.9.0/ios/ios-native-toolkit-1.3.0.xcframework
-#   ./scripts/build_ios_library_xcframework.sh -c release -m UnityIosPlugin -v 1.3.0 -o dist/1.9.0/ios/unity-ios-native-toolkit-1.3.0.xcframework
 #   ./scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir /tmp/ntk-ios \
 #       --build-dir /tmp/ntk-ios-build --keep-project-versions
 #
@@ -47,7 +46,7 @@ Usage:
                                              [--output <path> | --output-dir <folder>] [--build-dir <folder>] [--keep-project-versions]
 
 Options:
-  -m, --module         Module to build (repeatable). Examples: IosLibrary, IosLibraryCApi, UnityIosPlugin
+  -m, --module         Module to build (repeatable): IosLibrary or IosLibraryCApi
                        Default: IosLibrary
                        IosLibraryCApi builds IosLibrary first (as a dependency when it is not asked for)
                        and is release only. Its public headers go to include/NativeToolkitC/ in the
@@ -61,7 +60,6 @@ Options:
   -o, --output         Output XCFramework path. Relative paths are resolved from repository root.
                        Default (when omitted): per-module default output path
                        IosLibrary:     dist/<version>/ios/ios-native-toolkit-<version>.xcframework
-                       UnityIosPlugin: dist/<version>/ios/unity-ios-native-toolkit-<version>.xcframework
                        IosLibraryCApi: dist/<version>/ios/ios-native-toolkit-capi-<version>.xcframework
                        Note: --library-version is required when --output is omitted.
                        Note: --output is allowed only for single-module builds.
@@ -82,7 +80,6 @@ resolve_xcframework_output_name() {
   case "${module}" in
     IosLibrary)     echo "ios-native-toolkit" ;;
     IosLibraryCApi) echo "ios-native-toolkit-capi" ;;
-    UnityIosPlugin) echo "unity-ios-native-toolkit" ;;
     *)              echo "${module}" ;;
   esac
 }
@@ -183,6 +180,12 @@ if [[ -n "${OUTPUT_DIR}" && -z "${LIBRARY_VERSION}" ]]; then
 fi
 
 for _m in "${MODULES[@]}"; do
+  # Checked before anything is built: the build order below keeps only the modules it knows, so an
+  # unknown one (such as UnityIosPlugin, removed in 2.0.0) would otherwise be dropped silently.
+  if [[ "${_m}" != "IosLibrary" && "${_m}" != "IosLibraryCApi" ]]; then
+    echo "Error: Unknown module '${_m}'. Valid modules: IosLibrary, IosLibraryCApi" >&2
+    exit 1
+  fi
   if [[ "${_m}" == "IosLibraryCApi" && "${CONFIGURATION}" != "release" ]]; then
     # Debug installs the capi's Swift module and exports its Swift symbols for @testable import
     # (C ABI design part 1, 5.4); only Release may ship.
@@ -373,22 +376,22 @@ update_pbxproj_versions() {
   mv "${tmp_file}" "${pbxproj_path}"
 }
 
-# UnityIosPlugin and IosLibraryCApi depend on IosLibrary — ensure IosLibrary is always built first.
-# If either is requested but IosLibrary is not, add IosLibrary as implicit dep.
+# IosLibraryCApi depends on IosLibrary — ensure IosLibrary is always built first.
+# If it is requested but IosLibrary is not, add IosLibrary as implicit dep.
 _IMPLICIT_MODULES=()
 _has_dependent=false
 _has_IosLibrary=false
 for _m in "${MODULES[@]}"; do
-  [[ "${_m}" == "UnityIosPlugin" || "${_m}" == "IosLibraryCApi" ]] && _has_dependent=true
+  [[ "${_m}" == "IosLibraryCApi" ]] && _has_dependent=true
   [[ "${_m}" == "IosLibrary" ]] && _has_IosLibrary=true
 done
 if [[ "${_has_dependent}" == "true" && "${_has_IosLibrary}" == "false" ]]; then
   _IMPLICIT_MODULES+=("IosLibrary")
 fi
 
-# Canonical build order: IosLibrary always before IosLibraryCApi and UnityIosPlugin.
+# Canonical build order: IosLibrary always before IosLibraryCApi.
 BUILD_MODULES=()
-for _ord_m in IosLibrary IosLibraryCApi UnityIosPlugin; do
+for _ord_m in IosLibrary IosLibraryCApi; do
   _found_m=false
   for _cm in ${_IMPLICIT_MODULES[@]+"${_IMPLICIT_MODULES[@]}"} "${MODULES[@]}"; do
     [[ "${_cm}" == "${_ord_m}" ]] && _found_m=true && break
@@ -396,7 +399,7 @@ for _ord_m in IosLibrary IosLibraryCApi UnityIosPlugin; do
   [[ "${_found_m}" == "true" ]] && BUILD_MODULES+=("${_ord_m}")
 done
 
-# Track IosLibrary archive paths so UnityIosPlugin can use them as FRAMEWORK_SEARCH_PATHS.
+# Track IosLibrary archive paths so IosLibraryCApi can use them as FRAMEWORK_SEARCH_PATHS.
 _IOSLIB_DEVICE_ARCHIVE=""
 _IOSLIB_SIM_ARCHIVE=""
 
@@ -414,14 +417,8 @@ for MODULE in "${BUILD_MODULES[@]}"; do
       MODULE_FRAMEWORK="IosLibraryCApi"
       MODULE_BUILD_ROOT="${ROOT_DIR}/ios/Build/IosLibraryCApi"
       ;;
-    UnityIosPlugin)
-      MODULE_PROJECT_PATH="${ROOT_DIR}/ios/UnityIosPlugin/UnityIosPlugin.xcodeproj"
-      MODULE_SCHEME="UnityIosPlugin"
-      MODULE_FRAMEWORK="UnityIosPlugin"
-      MODULE_BUILD_ROOT="${ROOT_DIR}/ios/Build/UnityIosPlugin"
-      ;;
     *)
-      echo "Error: Unknown module '${MODULE}'. Valid modules: IosLibrary, IosLibraryCApi, UnityIosPlugin" >&2
+      echo "Error: Unknown module '${MODULE}'. Valid modules: IosLibrary, IosLibraryCApi" >&2
       exit 1
       ;;
   esac
@@ -464,7 +461,7 @@ for MODULE in "${BUILD_MODULES[@]}"; do
   # one a workspace build would put in its build products.
   _device_build_settings=("${MODULE_XCODE_EXTRA_SETTINGS[@]}")
   _sim_build_settings=("${MODULE_XCODE_EXTRA_SETTINGS[@]}")
-  if [[ ( "${MODULE}" == "UnityIosPlugin" || "${MODULE}" == "IosLibraryCApi" ) && -n "${_IOSLIB_DEVICE_ARCHIVE}" ]]; then
+  if [[ "${MODULE}" == "IosLibraryCApi" && -n "${_IOSLIB_DEVICE_ARCHIVE}" ]]; then
     # Quoted inside the value: Xcode splits a list setting at spaces.
     _device_build_settings+=("FRAMEWORK_SEARCH_PATHS=\"${_IOSLIB_DEVICE_ARCHIVE}/Products/Library/Frameworks\"")
     _sim_build_settings+=("FRAMEWORK_SEARCH_PATHS=\"${_IOSLIB_SIM_ARCHIVE}/Products/Library/Frameworks\"")
@@ -501,7 +498,7 @@ for MODULE in "${BUILD_MODULES[@]}"; do
     ${_distribution_setting[@]+"${_distribution_setting[@]}"} \
     "${_sim_build_settings[@]}"
 
-  # Record IosLibrary archive paths for use as dependency by UnityIosPlugin.
+  # Record IosLibrary archive paths for use as dependency by IosLibraryCApi.
   if [[ "${MODULE}" == "IosLibrary" ]]; then
     _IOSLIB_DEVICE_ARCHIVE="${MODULE_DEVICE_ARCHIVE_PATH}"
     _IOSLIB_SIM_ARCHIVE="${MODULE_SIM_ARCHIVE_PATH}"

@@ -7,7 +7,7 @@ All implementation rules are managed in this folder.
 
 - Common implementation policy (library dependencies / Clean Architecture / TDD / Bridge): ./coding-rules/common.md
 - Android coding rules: ./coding-rules/android.md
-- iOS coding rules (Swift + Objective-C): ./coding-rules/ios.md
+- iOS coding rules (Swift + the C ABI headers): ./coding-rules/ios.md
 - macOS coding rules: ./coding-rules/mac.md
 - Windows coding rules: ./coding-rules/windows.md
 - Tests on the user's personal iPhone (approval, preparation, privacy), and the Mac clipboard during simulator runs: ./device-testing.md

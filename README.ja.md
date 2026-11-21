@@ -79,9 +79,10 @@
   - 対応: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share / Clipboard
   - Doc: DocC
 
-- `ios/UnityIosPlugin`
-  - 補助モジュール: Swift + Objective-C/C ブリッジ（C ABI）
-  - Doc: DocC
+- `ios/IosLibraryCApi`（XCFramework `ios-native-toolkit-capi` の `IosLibraryCApi.framework`）
+  - Swift の API の上の汎用の C ABI: `ntk_*` 関数、UTF-8 の文字列、不透明なハンドル
+  - ヘッダ: `ios/IosLibraryCApi/include/NativeToolkitC/`
+  - C、C++、C#、Rust などの言語向け
 
 ### macOS
 
@@ -117,7 +118,7 @@ android/
 
 ios/
   IosLibrary/
-  UnityIosPlugin/
+  IosLibraryCApi/
   IosLibraryExample/
   generate_docc.sh
 
@@ -153,7 +154,7 @@ docs/
 ./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 # iOS XCFramework（全モジュール）
-./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
 
 # macOS XCFramework（全モジュール）
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0

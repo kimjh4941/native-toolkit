@@ -329,7 +329,6 @@ copy_dir "${ROOT_DIR}/android/android_library_capi/docs/html" "${VERSION_DIR}/an
 
 # iOS
 copy_dir "${ROOT_DIR}/ios/Docs/IosLibrary" "${VERSION_DIR}/ios/IosLibrary"
-copy_dir "${ROOT_DIR}/ios/Docs/UnityIosPlugin" "${VERSION_DIR}/ios/UnityIosPlugin"
 
 # macOS
 copy_dir "${ROOT_DIR}/mac/Docs/MacLibrary" "${VERSION_DIR}/mac/MacLibrary"

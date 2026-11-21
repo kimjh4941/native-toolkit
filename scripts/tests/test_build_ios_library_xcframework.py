@@ -1,10 +1,12 @@
-"""The iOS build script refuses an output that would delete the tree's public headers.
+"""The iOS build script refuses an output that would delete the tree's public headers, and an unknown module.
 
 IosLibraryCApi's loose headers are copied to include/NativeToolkitC next to its
 xcframework, after removing what is there. Each case copies the script and the
 headers into a temporary tree, runs the script there with an output that is or
 holds the headers (directly, relatively, through a symbolic link or with ..),
 and asserts that it stops before building and that the headers are still there.
+ModuleCheckTest does the same with a module name the script does not know
+(UnityIosPlugin, removed in 2.0.0), which it must refuse rather than skip.
 The real tree is never touched, and nothing is built.
 
 Run: python3 -m unittest discover -s scripts/tests
@@ -22,7 +24,9 @@ SCRIPT = "scripts/build_ios_library_xcframework.sh"
 HEADERS = "ios/IosLibraryCApi/include/NativeToolkitC"
 
 
-class HeadersGuardTest(unittest.TestCase):
+class ScriptTreeCase(unittest.TestCase):
+    """A temporary tree with the script and the headers, and the refusal check."""
+
     def setUp(self):
         self.base = pathlib.Path(tempfile.mkdtemp()).resolve()
         self.addCleanup(shutil.rmtree, self.base)
@@ -44,6 +48,9 @@ class HeadersGuardTest(unittest.TestCase):
         self.assertNotIn("[archive]", finished.stdout)
         self.assertEqual(before, sorted(path.name for path in (tree / HEADERS).iterdir()))
         self.assertTrue(before)
+
+
+class HeadersGuardTest(ScriptTreeCase):
 
     def test_the_capi_folder_as_the_output(self):
         self.refuses(self.tree, "-m", "IosLibraryCApi", "--output-dir", str(self.tree / "ios/IosLibraryCApi"))
@@ -80,6 +87,16 @@ class HeadersGuardTest(unittest.TestCase):
         tree = out / "include" / "NativeToolkitC" / "repo"
         self.make_tree(tree)
         self.refuses(tree, "-m", "IosLibraryCApi", "--output-dir", str(out))
+
+
+
+class ModuleCheckTest(ScriptTreeCase):
+    # Each case also asserts that nothing was archived and that the headers are untouched (refuses).
+
+    def test_the_removed_bridge_module(self):
+        # UnityIosPlugin was removed in 2.0.0: naming it stops the build instead of building nothing for it.
+        self.refuses(self.tree, "-m", "IosLibrary", "-m", "UnityIosPlugin",
+                     message="Unknown module 'UnityIosPlugin'. Valid modules: IosLibrary, IosLibraryCApi")
 
 
 if __name__ == "__main__":

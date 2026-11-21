@@ -79,9 +79,10 @@ Example (`1.13.0`):
   - Variants: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share / Clipboard
   - Docs: DocC (`.docc`)
 
-- `ios/UnityIosPlugin`
-  - Optional integration module: Swift facade + Objective-C/C bridge (C ABI)
-  - Docs: DocC (`.docc`)
+- `ios/IosLibraryCApi` (`IosLibraryCApi.framework` in the XCFramework `ios-native-toolkit-capi`)
+  - The general-purpose C ABI over the Swift API: `ntk_*` functions, UTF-8 strings, opaque handles
+  - Headers: `ios/IosLibraryCApi/include/NativeToolkitC/`
+  - For C, C++, C#, Rust and other languages
 
 ### macOS
 
@@ -117,7 +118,7 @@ android/
 
 ios/
   IosLibrary/
-  UnityIosPlugin/
+  IosLibraryCApi/
   IosLibraryExample/
   generate_docc.sh
 
@@ -153,7 +154,7 @@ docs/
 ./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
 
 # iOS XCFramework (all modules)
-./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
 
 # macOS XCFramework (all modules)
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0

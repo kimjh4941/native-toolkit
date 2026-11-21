@@ -74,8 +74,8 @@ Public APIs can be called from any thread; presentation is dispatched to the mai
 - **isSuccess** – False only for infrastructure failures
 - **errorMessage** – Diagnostic message when `isSuccess == false`
 
-## Unity Integration
-A separate module *UnityIosPlugin* provides a C / Objective‑C bridge and Swift façade so Unity (C#) can invoke these dialogs. See that module for P/Invoke signatures.
+## C ABI
+The separate framework *IosLibraryCApi* (the XCFramework `ios-native-toolkit-capi`) exposes these features as a C ABI: `ntk_*` functions declared in the `NativeToolkitC` headers, for C, C++, C# (Unity included), Rust and other languages.
 
 ## Versioning
 Follow semantic versioning. Backwards compatible additions (new methods / parameters with defaults) increment the minor version; breaking changes increment the major version.
@@ -129,8 +129,8 @@ let pasteView = try IosClipboardManager.shared.makePasteControl(
 
 ### Threading
 `IosClipboardManager` is `@MainActor`-isolated. Call it from the main actor; from a non-main
-context use `await MainActor.run { ... }`. The Unity Bridge façade (`UnityIosClipboardManager`) is
-the one entry point designed for arbitrary-thread calls — it hops to the main actor internally.
+context use `await MainActor.run { ... }`. The C ABI (*IosLibraryCApi*) is the entry point designed
+for arbitrary-thread calls — it hops to the main actor internally.
 
 ### Privacy: prompts and notifications
 `read` / `readData` / `loadItem` pull data from the pasteboard and may trigger an iOS 16+
@@ -185,4 +185,4 @@ is available for advanced cases where the button and its receiver must be placed
 that case **you** are responsible for retaining and placing the receiver.
 
 ## See Also
-- Unity bridge module: *UnityIosPlugin* (symbol wrappers for C#)
+- C ABI: *IosLibraryCApi* (the `NativeToolkitC` headers)

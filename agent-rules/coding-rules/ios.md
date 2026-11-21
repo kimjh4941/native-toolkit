@@ -4,8 +4,12 @@
 
 このルールは以下に適用する。
 
-- Swift 実装（`ios/IosLibrary/`, `ios/IosLibraryCApi/`, `ios/IosLibraryCApiUITestApp/`, `ios/UnityIosPlugin/` 配下）
-- Objective-C 実装（Bridge層 `.h` / `.m`）
+- Swift 実装（`ios/IosLibrary/`, `ios/IosLibraryCApi/`, `ios/IosLibraryCApiUITestApp/` 配下）
+- C ABI の公開ヘッダ（`ios/IosLibraryCApi/include/NativeToolkitC/`）
+
+2.0.0 から iOS のライブラリ（`IosLibrary`、`IosLibraryCApi`）に Objective-C は無い（Unity 向けの Bridge `UnityIosPlugin` は 2.0.0 で消した。C の入口は Swift の `@c @implementation` で書く。README D-10）。Unity は C ABI（`IosLibraryCApi`）を P/Invoke で呼ぶ。テストと smoke の C / Objective-C（`ios/IosLibraryCApiTests/*.m`、`ios/IosLibraryCApiSmoke/`）には、この文書のうち「コメントと言語ポリシー」だけを当てる。
+
+**C ABI の置き方:** `IosLibraryCApi` は `IosLibrary` の Swift の API の薄い包みにする（C ABI の設計書の第 1 部 2 章）。`@c @implementation` の入口は、機能ごとの受け口（`<機能>Receiver` など）を呼ぶだけにする。受け口が受け持つのは型の変換、寿命（ハンドルと `release`）、スレッドの受け渡し、検査だけで、機能のロジックと system の delegate の持ち主（通知の delegate の proxy など）は `IosLibrary` に置く。
 
 ---
 
@@ -43,29 +47,17 @@ public func sample(identifier: String, title: String, password: String, count: I
 | Release | `#if DEBUG` で消さない（`.debug` は OS が保存しない） |
 | 確かめ | 秘密の値の名前が補間に入っていないかを `grep` で照らし、`LibraryLogPrivacyTests`（UT-15）が番兵の値で読み返す |
 
-### Objective-C フォーマット
-
-ブリッジ（`ios/UnityIosPlugin`。段階 3 で消す）の Objective-C は、消すまで今の `Log` のまま（D-22。ブリッジには手を入れない）。
-
-```objective-c
-static NSString *const TAG = @"FullClassName";
-
-void sample(const char* value) {
-    [Log d:TAG :[NSString stringWithFormat:@"[sample] value: %s", value]];
-    // existing logic...
-}
-```
-
 ### 対象
 
 - `public` / `internal` Swift関数
 - `override` Swift関数
 - `@objc` 公開関数
-- Objective-C の公開関数（Bridge C API 含む）
+- C ABI の受け口（入口から呼ばれる関数）。出し方は C ABI の設計書の第 1 部 5.15: `CApiLog`（subsystem `com.jonghyunkim.nativetoolkit.IosLibraryCApi`、category は機能名）
 - 通知機能コード内のローカル関数
 
 ### 除外
 
+- C ABI の `@c @implementation` の入口（受け口を呼ぶだけ。ログは受け口の先頭で出す）と、第 1 部 5.15（R-35）が除くもの: よく呼ぶハンドルの読み取り（`ntk_string_data` など）、`_free`、`ntk_version`、`ntk_last_system_code`
 - data model / enum / protocol 宣言
 - private utility extension 関数
 - 純粋 UI ユーティリティ
@@ -86,35 +78,11 @@ void sample(const char* value) {
 
 ---
 
-## Objective-C / Swift ブリッジの型
-
-Swift の API を Objective-C から呼び出す際、completion ブロックの引数型を必ず Swift 側の型と合わせる。
-
-| Swift 側の型 | ObjC ブロック引数で使う型 |
-|---|---|
-| `Bool` | `BOOL`（`bool` は不可） |
-| `Int` | `NSInteger` |
-| `String?` | `NSString * _Nullable` |
-
-**NG 例（コンパイルエラーになる）:**
-```objective-c
-[manager doSomethingWithCompletion:^(bool isSuccess, NSInteger errorCode, NSString* errorMessage) {
-```
-
-**OK 例:**
-```objective-c
-[manager doSomethingWithCompletion:^(BOOL isSuccess, NSInteger errorCode, NSString* errorMessage) {
-```
-
-`bool`（C の `_Bool`）と `BOOL`（`signed char`）はブロックシグネチャ上で別型扱いされ、コンパイルエラーになる。
-
----
-
 ## Manager の公開 API（callback 版 + async throws 版）
 
 方針は `common.md`「Manager の公開 API 方式」を参照。iOS では次の形で実装する。
 
-- callback 版（Bridge 向け）: 既存どおり `(Bool, ..., String?) -> Void` 形式を維持する
+- callback 版（callback で受ける呼び出し元向け。C ABI の Clipboard・Dialog・Share の受け口も使う。通知の受け口は `async` 版を main の `Task` から呼ぶ）: 既存どおり `(Bool, ..., String?) -> Void` 形式を維持する
 - ネイティブ版（Swift 呼び出し元向け）: `async throws` で UseCase をそのまま公開する薄いラッパーを追加する（`@discardableResult` を付け、戻り値を無視できるようにする）
 - 新規 Manager を作る場合は、両方式を最初から用意する（後から追加ではなく設計時点で決める）
 - サンプルアプリ（`IosLibraryExample`）は `async throws` 版を使う（`Button` の action は同期クロージャのため `Task { await ... }` で橋渡しする）
@@ -134,7 +102,7 @@ Manager の公開 API（ネイティブ版）は上記のとおり必ず `async 
 
 ---
 
-## コメント（DocC / HeaderDoc）
+## コメント（DocC / C のヘッダ）
 
 ### Swift
 
@@ -152,19 +120,19 @@ Manager の公開 API（ネイティブ版）は上記のとおり必ず `async 
 - `override` 関数
 - 自明な getter / setter
 
-### Objective-C
+### C（C ABI の公開ヘッダ）
 
-公開ヘッダの関数・型には HeaderDoc 形式のコメントを付ける。
+公開ヘッダ（`include/NativeToolkitC/`）は ASCII だけで書く（`scripts/check_c_abi_contract_ios.py` が照らす）。ファイルの頭は `/** @file ... @brief ... */`。宣言の説明は、1 つずつの `/** */` か、関係する宣言の前にまとめた `/* */` で書く（今のヘッダの形）。段階 4 で Doxygen の API リファレンスを作るときに、Doxygen が拾う形に揃える（`/* */` は拾われない）。
 
-**対象（必須）:**
+**対象（必須。1 つずつかまとめての説明のどちらかがあること）:**
 
-- `.h` の公開関数宣言
-- callback typedef
+- 公開関数の宣言
+- callback typedef と構造体
 - 非自明な公開定数
 
 ---
 
 ## コメントと言語ポリシー
 
-- コメント本文（DocC、HeaderDoc、行コメント、ブロックコメント）は英語で記述する
+- コメント本文（DocC、C のヘッダのコメント、行コメント、ブロックコメント）は英語で記述する
 - ユーザー向けメッセージ文言（UIテキスト、statusText、Toast、Dialog文言）は英語で記述する
