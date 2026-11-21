@@ -287,8 +287,14 @@ struct Springboard {
     /// exactly one text view and one `Send` inside it. The root of the sample's expanded
     /// notification and the reply window are taken again before typing and before Send; when
     /// either cannot be shown to be the sample's, nothing is typed or pressed (review R-21).
-    func sendReply(_ text: String, title: String, body: String) throws {
-        let placeholder = SystemLabels.sampleReplyPlaceholder
+    /// `placeholder` is the sample's own by default; the upgrade test passes the 1.13.0 sample's
+    /// (`SystemLabels.legacySampleReplyPlaceholder`, upgrade test design U-11), which is not unique
+    /// to the sample, so another one is allowed on the simulator only.
+    func sendReply(_ text: String, title: String, body: String,
+                   placeholder: String = SystemLabels.sampleReplyPlaceholder) throws {
+        guard !session.isDevice || placeholder == SystemLabels.sampleReplyPlaceholder else {
+            throw SampleUITestError("a reply field other than the sample's own is for the simulator only")
+        }
         let beforeTyping = NSPredicate(format: "elementType == %lu AND placeholderValue == %@",
                                        XCUIElement.ElementType.textView.rawValue, placeholder)
         let afterTyping = NSPredicate(format: "elementType == %lu AND (placeholderValue == %@ OR value == %@)",

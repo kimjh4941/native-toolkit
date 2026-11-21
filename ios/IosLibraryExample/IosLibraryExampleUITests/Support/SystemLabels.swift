@@ -30,6 +30,12 @@ enum SystemLabels {
     /// (stage 0d review R-21; changed from `Type a message`).
     static let sampleReplyPlaceholder = "IosLibraryExample reply"
 
+    /// Placeholder of the 1.13.0 sample's reply text field (its category `sample-category`), for
+    /// the upgrade test only (upgrade test design U-11). Not unique to the sample, so it is used
+    /// only through `Springboard.sendReply`, which takes the reply window together with the
+    /// sample's expanded notification.
+    static let legacySampleReplyPlaceholder = "Type a message"
+
     static let springboardBundleIdentifier = "com.apple.springboard"
 
     /// Bundle identifier of the sample app.

@@ -23,8 +23,11 @@ enum UnexpectedAlertGuard {
         case standard
     }
 
-    /// Tests whose monitor presses nothing: the permission classes and CB1 / CB2.
-    private static let pressNothingClasses: Set<String> = ["NotificationPermissionUITests", "ClipboardPasteDenyUITests"]
+    /// Tests whose monitor presses nothing: the permission classes, CB1 / CB2, and the upgrade test
+    /// (each half installs the 1.x sample afresh and allows the permission alert explicitly. Upgrade
+    /// test design U-11).
+    private static let pressNothingClasses: Set<String> = ["NotificationPermissionUITests", "ClipboardPasteDenyUITests",
+                                                           "UpgradeUITests"]
     private static let pressNothingMethodPrefixes: [(className: String, methodPrefix: String)] = [
         ("ClipboardPasteUITests", "testCB1_")
     ]

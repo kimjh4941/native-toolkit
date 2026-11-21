@@ -13,8 +13,9 @@ way in stage 1b C2 (2026-10-31), when D16 to D23 were added (107 UI tests), in s
 (2026-10-31), when S17 to S19 were added (110 UI tests), in stage 1b C4 (2026-11-01), when CB5
 and CB6 were added (112 UI tests), in stage 1b C5 (2026-11-01), when N34b, N35 to N37, N41 and
 N43 to N45 were added (120 UI tests), in stage 1b C6 (2026-11-01), when N38 to N40 and N42 were
-added (124 UI tests), and for SH-13 (2026-11-21), when S20 was added (125 UI tests; enumeration.json
-is the run's own output with Xcode 26.3, otool from a build with CODE_SIGNING_ALLOWED=NO):
+added (124 UI tests), for SH-13 (2026-11-21), when S20 was added (125 UI tests; enumeration.json
+is the run's own output with Xcode 26.3, otool from a build with CODE_SIGNING_ALLOWED=NO), and for the
+upgrade test (2026-11-21), when the six UpgradeUITests were added (131 UI tests, taken the same way):
   enumeration.json             -enumerate-tests ... -test-enumeration-format json (the full tree)
   otool-ov-device.txt, otool-l-device.txt
                                otool -ov / -l of IosLibraryExampleUITests.xctest built for
@@ -190,7 +191,7 @@ class Enumeration(unittest.TestCase):
 
     def test_the_real_enumeration_matches_the_table(self):
         identifiers = enumeration()
-        self.assertEqual(len(identifiers), 125)
+        self.assertEqual(len(identifiers), 131)
         self.assertNotIn("IosLibraryExampleUITests/SampleUITestCase", identifiers)
         self.assertEqual(r.check_enumeration(identifiers, declarations()), [])
 
@@ -271,7 +272,10 @@ class Selection(unittest.TestCase):
 
     def test_the_simulator_runs_everything(self):
         selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])
-        self.assertEqual((len(selected), excluded), (125, []))
+        self.assertEqual(len(selected), 125)
+        # The upgrade test is never selected (the upgrade test design, U-7).
+        self.assertEqual([(r.class_of(r.key_from_enumeration_id(i)), missing) for i, _, missing in excluded],
+                         [("UpgradeUITests", [r.SCRIPT_ONLY])] * 6)
 
     def test_the_device_runs_only_tests_whose_categories_are_all_allowed(self):
         # Mutation 7 "柱 1（選び方）": "all" turned into "any".
@@ -282,7 +286,7 @@ class Selection(unittest.TestCase):
         self.assertIn(ident("NotificationUITests/testN4_showImmediateShowsForegroundBanner"), selected)
         for identifier in selected:
             self.assertLessEqual(set(self.table[r.key_from_enumeration_id(identifier)]), {"systemui"})
-        self.assertEqual(len(selected) + len(excluded), 125)
+        self.assertEqual(len(selected) + len(excluded), 131)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard"])
         self.assertNotIn(ident("ShareUITests/testS1_shareTextCopy"), selected)
         selected, _ = r.select_tests(self.ids, self.table, "device", ["clipboard", "sharesheet"])
@@ -398,7 +402,9 @@ class SimulatorOnly(unittest.TestCase):
         self.assertFalse(self.keys(selected) & r.SIMULATOR_ONLY_TESTS)
         marked = {r.key_from_enumeration_id(i) for i, _, missing in excluded if missing == [r.SIMULATOR_ONLY]}
         self.assertEqual(marked, set(r.SIMULATOR_ONLY_TESTS))
-        self.assertEqual(len(excluded), len(r.SIMULATOR_ONLY_TESTS), "every category is allowed: nothing else is excluded")
+        others = [(r.class_of(r.key_from_enumeration_id(i)), missing) for i, _, missing in excluded if missing != [r.SIMULATOR_ONLY]]
+        # Every category is allowed: nothing else is excluded but the script-only upgrade test (U-7).
+        self.assertEqual(others, [("UpgradeUITests", [r.SCRIPT_ONLY])] * 6)
         # The near miss: the other new Dialog and Share tests run on the device.
         self.assertIn("DialogUITests/testD16_requestsReportOneResultEach", self.keys(selected))
         self.assertIn("DialogUITests/testD18_cancelDismissesTheDialog", self.keys(selected))
@@ -468,7 +474,8 @@ class SimulatorOnly(unittest.TestCase):
     def test_the_simulator_runs_them(self):
         selected, excluded = r.select_tests(self.ids, self.table, "simulator", [])
         self.assertTrue(r.SIMULATOR_ONLY_TESTS <= self.keys(selected))
-        self.assertEqual(excluded, [])
+        self.assertEqual({missing[0] for _, _, missing in excluded}, {r.SCRIPT_ONLY})
+        self.assertEqual(len(excluded), 6)
 
     def test_simulator_only_is_not_a_category_to_allow(self):
         with self.assertRaises(r.RunnerError):
@@ -484,7 +491,8 @@ class SimulatorOnly(unittest.TestCase):
 
     def test_the_device_plan_refuses_a_selection_that_names_one(self):
         def leaky(identifiers, declarations, kind, allowed, feature=None):
-            return list(identifiers), []
+            # Every test but the script-only upgrade test, which no plan runs (U-7).
+            return [i for i in identifiers if r.class_of(r.key_from_enumeration_id(i)) != r.UPGRADE_CLASS], []
         original = r.select_tests
         r.select_tests = leaky
         try:
@@ -655,7 +663,7 @@ class BinaryInventory(unittest.TestCase):
 
     def test_the_device_build_has_exactly_the_enumerated_tests(self):
         keys = self.keys("device")
-        self.assertEqual(len(keys), 125)
+        self.assertEqual(len(keys), 131)
         self.assertEqual(r.binary_inventory_problems(keys, enumeration()), [])
 
     def test_throwing_tests_are_read_through_and_return_error(self):
@@ -2797,6 +2805,174 @@ class CApiUiEndToEnd(unittest.TestCase):
         finished, log = self.run_script("--udid", FAKE_DEVICE, "--enumerate-udid", SIMULATOR, "--dry-run", "--device-allow", "systemui")
         self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
         self.assertNotIn("IosLibraryCApiUI", log + finished.stdout)
+
+
+class UpgradeTest(unittest.TestCase):
+    """The upgrade test's parts of the runner (the upgrade test design, U-4, U-7, chapter 4)."""
+
+    STEP_KEY = "UpgradeUITests/testUA1_legacySchedulesAndShows"
+
+    def results(self, mutate=None, summary_total=1):
+        text = fixture("xcresult-d1-tests.json").replace("DialogUITests/testD1_showAlertOK", self.STEP_KEY) \
+            .replace("testD1_showAlertOK", "testUA1_legacySchedulesAndShows").replace("DialogUITests", "UpgradeUITests")
+        data = json.loads(text)
+        if mutate:
+            mutate(data["testNodes"][0]["children"][0]["children"][0]["children"])
+        summary = json.loads(fixture("xcresult-d1-summary.json"))
+        summary["totalTestCount"] = summary_total
+        return json.dumps(data), json.dumps(summary)
+
+    def test_one_passed_result_from_the_simulator_passes(self):
+        tests, summary = self.results()
+        self.assertEqual(r.upgrade_verdict("UA1", tests, summary, 0, False, SIMULATOR), [])
+
+    def test_every_other_shape_fails(self):
+        tests, summary = self.results()
+        # Mutation of C2-4: a Passed result with a non-zero exit code.
+        self.assertTrue(r.upgrade_verdict("UA1", tests, summary, 65, False, SIMULATOR))
+        self.assertTrue(r.upgrade_verdict("UA1", tests, summary, 0, True, SIMULATOR))
+        self.assertTrue(r.upgrade_verdict("UA1", tests, summary, 0, False, FAKE_DEVICE))
+        self.assertTrue(r.upgrade_verdict("UA2", tests, summary, 0, False, SIMULATOR))  # another name
+        self.assertTrue(r.upgrade_verdict("UA1", None, None, 65, False, SIMULATOR))  # no result bundle
+
+        def skipped(cases):
+            cases[0]["result"] = "Skipped"
+        tests, summary = self.results(skipped)
+        self.assertTrue(r.upgrade_verdict("UA1", tests, summary, 0, False, SIMULATOR))
+
+        def nothing(cases):
+            cases.clear()
+        tests, summary = self.results(nothing, 0)
+        self.assertTrue(r.upgrade_verdict("UA1", tests, summary, 0, False, SIMULATOR))
+
+        def two(cases):
+            cases.append(dict(cases[0], name="testUA2_upgradedListsAndCancels()",
+                              nodeIdentifier="UpgradeUITests/testUA2_upgradedListsAndCancels()"))
+        tests, summary = self.results(two, 2)
+        self.assertTrue(r.upgrade_verdict("UA1", tests, summary, 0, False, SIMULATOR))
+
+    def test_an_unknown_step_is_refused(self):
+        with self.assertRaises(r.RunnerError):
+            r.upgrade_step_key("UD1")
+
+    @staticmethod
+    def xctestrun():
+        root = "__TESTROOT__/Debug-iphonesimulator"
+        return plistlib.dumps({"TestConfigurations": [{"TestTargets": [
+            {"BlueprintName": r.UI_TARGET, "UITargetAppPath": f"{root}/IosLibraryExample.app",
+             "DependentProductPaths": [f"{root}/IosLibraryExample.app", f"{root}/IosLibraryExampleUITests-Runner.app"],
+             "UITargetAppEnvironmentVariables": dict({key: root for key in r.UPGRADE_SEARCH_KEYS},
+                                                     XCODE_SCHEME_NAME="IosLibraryExample")},
+            {"BlueprintName": "IosLibraryExampleTests", "TestHostPath": f"{root}/IosLibraryExample.app"},
+        ]}]})
+
+    def test_the_legacy_xctestrun_points_only_the_target_app_at_the_1x_build(self):
+        legacy = pathlib.Path("/tmp/legacy/Debug-iphonesimulator")
+        data, problems = r.legacy_xctestrun(self.xctestrun(), legacy)
+        self.assertEqual(problems, [])
+        targets = plistlib.loads(data)["TestConfigurations"][0]["TestTargets"]
+        ui = targets[0]
+        self.assertEqual(ui["UITargetAppPath"], f"{legacy}/IosLibraryExample.app")
+        self.assertEqual(ui["DependentProductPaths"],
+                         ["__TESTROOT__/Debug-iphonesimulator/IosLibraryExampleUITests-Runner.app", f"{legacy}/IosLibraryExample.app"])
+        self.assertTrue(all(ui["UITargetAppEnvironmentVariables"][key] == str(legacy) for key in r.UPGRADE_SEARCH_KEYS))
+        self.assertEqual(targets[1]["TestHostPath"], "__TESTROOT__/Debug-iphonesimulator/IosLibraryExample.app")
+
+    def test_a_search_path_left_at_the_current_build_is_a_problem(self):
+        # UM11: the framework search paths not swapped (review C-1, K2-8).
+        legacy = pathlib.Path("/tmp/legacy/Debug-iphonesimulator")
+        target = plistlib.loads(self.xctestrun())["TestConfigurations"][0]["TestTargets"][0]
+        target["UITargetAppPath"] = f"{legacy}/IosLibraryExample.app"
+        target["DependentProductPaths"] = [f"{legacy}/IosLibraryExample.app"]
+        problems = r.legacy_xctestrun_problems(target, legacy)
+        self.assertTrue(any("DYLD_FRAMEWORK_PATH" in problem for problem in problems), problems)
+        for key in r.UPGRADE_SEARCH_KEYS:
+            target["UITargetAppEnvironmentVariables"][key] = str(legacy)
+        self.assertEqual(r.legacy_xctestrun_problems(target, legacy), [])
+        target["UITargetAppEnvironmentVariables"]["DYLD_FALLBACK_FRAMEWORK_PATH"] = "__TESTROOT__/Debug-iphonesimulator"
+        self.assertTrue(r.legacy_xctestrun_problems(target, legacy))
+
+    def test_the_legacy_xctestrun_must_sit_next_to_the_original(self):
+        with tempfile.TemporaryDirectory() as d:
+            source = pathlib.Path(d) / "a.xctestrun"
+            source.write_bytes(self.xctestrun())
+            (pathlib.Path(d) / "other").mkdir()
+            finished = cli("upgrade-xctestrun", "--source", source, "--legacy-products", d,
+                           "--out", pathlib.Path(d) / "other" / "b.xctestrun")
+            self.assertEqual(finished.returncode, 1)
+            self.assertFalse((pathlib.Path(d) / "other" / "b.xctestrun").exists())
+            finished = cli("upgrade-xctestrun", "--source", source, "--legacy-products", d, "--out", pathlib.Path(d) / "b.xctestrun")
+            self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+
+    def test_a_normal_run_never_selects_the_upgrade_class(self):
+        ids = enumeration()
+        upgrade = [i for i in ids if r.class_of(r.key_from_enumeration_id(i)) == "UpgradeUITests"]
+        self.assertEqual(len(upgrade), 6)
+        for kind, allowed in (("simulator", []), ("device", list(r.CATEGORIES))):
+            selected, excluded = r.select_tests(ids, declarations(), kind, allowed)
+            self.assertFalse(set(upgrade) & set(selected), kind)
+            self.assertEqual(sorted(i for i, _, missing in excluded if missing == [r.SCRIPT_ONLY]), sorted(upgrade), kind)
+            invocations = r.build_invocations(ids, selected, kind)
+            named = {k for inv in invocations for k in inv["expected"]}
+            self.assertFalse({r.key_from_enumeration_id(i) for i in upgrade} & named, kind)
+
+    def test_the_steps_are_exactly_the_enumerated_upgrade_tests(self):
+        # Both sides from the source (review K3-4): the enumeration and the step table.
+        enumerated = {r.key_from_enumeration_id(i) for i in enumeration()
+                      if r.class_of(r.key_from_enumeration_id(i)) == r.UPGRADE_CLASS}
+        self.assertEqual(enumerated, {r.upgrade_step_key(step) for step, _ in r.UPGRADE_STEPS})
+
+    def test_an_upgrade_test_no_step_runs_fails_the_upgrade_check(self):
+        with tempfile.TemporaryDirectory() as d:
+            tests = pathlib.Path(d) / "tests"
+            shutil.copytree(TESTS_DIR, tests)
+            path = tests / r.DECLARATIONS_FILE
+            text = path.read_text(encoding="utf-8")
+            anchor = '"UpgradeUITests/testUA1_legacySchedulesAndShows": ["reinstall", "systemui"],'
+            self.assertIn(anchor, text)
+            path.write_text(text.replace(anchor, anchor + '\n    "UpgradeUITests/testUD1_extra": ["reinstall", "systemui"],'),
+                            encoding="utf-8")
+            problems = r.upgrade_source_problems(tests, PBXPROJ.read_text(encoding="utf-8"))
+            self.assertTrue(any("testUD1_extra" in problem for problem in problems), problems)
+
+    def test_the_plan_prints_why_the_upgrade_tests_are_excluded(self):
+        plan = r.make_plan("simulator", SIMULATOR, SIMULATOR, enumeration(), declarations(), [], None, HEAD, "h", [], False)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            r.print_selection(plan)
+        lines = [line for line in out.getvalue().splitlines() if "UpgradeUITests" in line]
+        self.assertEqual(len(lines), 6)
+        self.assertTrue(all("EXCLUDE" in line and "script only" in line for line in lines), lines)
+
+    def test_the_judge_command_fails_without_a_result_or_after_the_time_limit(self):
+        tests, summary = self.results()
+        with tempfile.TemporaryDirectory() as d:
+            t_path, s_path = pathlib.Path(d) / "t.json", pathlib.Path(d) / "s.json"
+            t_path.write_text(tests)
+            s_path.write_text(summary)
+            ok = cli("upgrade-judge", "--step", "UA1", "--tests-json", t_path, "--summary-json", s_path,
+                     "--exit-code", "0", "--udid", SIMULATOR)
+            self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
+            missing = cli("upgrade-judge", "--step", "UA1", "--tests-json", pathlib.Path(d) / "none.json",
+                          "--summary-json", s_path, "--exit-code", "0", "--udid", SIMULATOR)
+            self.assertEqual(missing.returncode, 1)
+            late = cli("upgrade-judge", "--step", "UA1", "--tests-json", t_path, "--summary-json", s_path,
+                       "--exit-code", "0", "--timed-out", "1", "--udid", SIMULATOR)
+            self.assertEqual(late.returncode, 1)
+
+    def test_the_real_tree_passes_the_upgrade_check(self):
+        self.assertEqual(r.upgrade_source_problems(TESTS_DIR, PBXPROJ.read_text(encoding="utf-8")), [])
+
+    def test_an_undeclared_step_fails_the_upgrade_check(self):
+        with tempfile.TemporaryDirectory() as d:
+            tests = pathlib.Path(d) / "tests"
+            shutil.copytree(TESTS_DIR, tests)
+            path = tests / r.DECLARATIONS_FILE
+            path.write_text(path.read_text(encoding="utf-8").replace('"UpgradeUITests/testUB2_upgradedReceivesTheTapInTheBackground": ["reinstall", "systemui"]',
+                                                                     '"UpgradeUITests/testUB2_upgradedReceivesTheTapInTheBackground": ["systemui"]'),
+                            encoding="utf-8")
+            problems = r.upgrade_source_problems(tests, PBXPROJ.read_text(encoding="utf-8"))
+            self.assertTrue(any("testUB2" in problem for problem in problems), problems)
 
 
 if __name__ == "__main__":

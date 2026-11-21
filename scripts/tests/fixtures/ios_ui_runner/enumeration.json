@@ -415,6 +415,24 @@
         },
         {
           "identifier" : "IosLibraryExampleUITests/ShareUITests/testS9_shareMultipleFilesSaveToFiles()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/UpgradeUITests/testUA1_legacySchedulesAndShows()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/UpgradeUITests/testUA2_upgradedListsAndCancels()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/UpgradeUITests/testUB1_legacySchedulesALocationNotification()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/UpgradeUITests/testUB2_upgradedReceivesTheTapInTheBackground()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/UpgradeUITests/testUC1_legacyRegistersTheCategoryAndSchedules()"
+        },
+        {
+          "identifier" : "IosLibraryExampleUITests/UpgradeUITests/testUC2_upgradedRepliesThroughTheLegacyCategoryInTheForeground()"
         }
       ],
       "testPlan" : "IosLibraryExample"

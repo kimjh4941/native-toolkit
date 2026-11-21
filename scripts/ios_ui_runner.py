@@ -70,6 +70,19 @@ PERMISSION_ORDER = (
 )
 CB2_CLASS = "ClipboardPasteDenyUITests"
 SEPARATE_CLASSES = ((PERMISSION_CLASS, "Notification"), (CB2_CLASS, "Clipboard"))
+# Classes only a script of their own runs (the upgrade test design, U-7): enumerated and declared like
+# the others, never selected by a normal run (excluded with SCRIPT_ONLY). scripts/test_ios_upgrade.sh
+# runs UpgradeUITests one half per xcodebuild call.
+UPGRADE_CLASS = "UpgradeUITests"
+SCRIPT_ONLY_CLASSES = ((UPGRADE_CLASS, "Notification"),)
+UPGRADE_STEPS = (
+    ("UA1", "testUA1_legacySchedulesAndShows"),
+    ("UA2", "testUA2_upgradedListsAndCancels"),
+    ("UB1", "testUB1_legacySchedulesALocationNotification"),
+    ("UB2", "testUB2_upgradedReceivesTheTapInTheBackground"),
+    ("UC1", "testUC1_legacyRegistersTheCategoryAndSchedules"),
+    ("UC2", "testUC2_upgradedRepliesThroughTheLegacyCategoryInTheForeground"),
+)
 FEATURES = ("Dialog", "Notification", "Share", "Clipboard")
 COMMON_FEATURE = "Common"
 
@@ -81,6 +94,7 @@ CLASS_MINIMUMS = {
     "ClipboardUITests": {"clipboard"},
     "ClipboardPasteUITests": {"clipboard"},
     "ClipboardPasteDenyUITests": {"clipboard", "systemui"},
+    UPGRADE_CLASS: {"reinstall", "systemui"},
     "ShareUITests": {"sharesheet"},
     "NotificationEventUITests": {"systemui"},
     "NotificationColdStartUITests": {"systemui"},
@@ -112,9 +126,13 @@ SIMULATOR_ONLY_TESTS = frozenset({
     "ClipboardPasteUITests/testCB3_pasteControlReadsText",  # the paste control: a person on the device (HC11; stage 2, 17.1)
     "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly",  # the same, an image only (HC12)
 })
+# The upgrade test is not in that set: select_tests never selects a SCRIPT_ONLY_CLASSES test, on the
+# simulator or the device, and scripts/test_ios_upgrade.sh takes a simulator only (its design, U-1, U-7).
 # What an excluded test of that set shows in place of its missing categories. Not a category, so
 # --device-allow cannot name it.
 SIMULATOR_ONLY = "simulator-only"
+# What a test of SCRIPT_ONLY_CLASSES shows in place of its missing categories, on the simulator too.
+SCRIPT_ONLY = "script-only"
 
 # The existing ClipboardUITests, frozen (U-9 (3), U-10). Its file is hashed as a whole; pinned in
 # stage 0d (2026-10-24) from commit 8fdb429d, after 0c removed the templates and changed the base.
@@ -153,16 +171,20 @@ FROZEN_CLIPBOARD_SHA256 = "4612943da3ec0e32562d86d07d7d134521f1db5fed42e7543db74
 # (SampleApp: the navigation bar buttons carry their labels; not yet reviewed by another model).
 # SampleApp was pinned again for SH-13 (2026-11-21: ShareButton.shareTwiceInOneTurn, one case; the
 # change was in the SH-13 implementation review by Codex and a Claude subagent).
+# The upgrade test (2026-11-21, its design U-11) added LegacySampleApp and changed Springboard
+# (sendReply takes the placeholder), SystemLabels (the 1.13.0 placeholder) and UnexpectedAlertGuard
+# (UpgradeUITests presses nothing); pinned after the implementation review by Codex and a Claude subagent.
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "49bd2c07958fadedbf235c9ab155f0aedbcec4dbebd2260b7034f2e55adfe874",
     "Support/SampleApp.swift": "f215d6a47c18f8c98a0f693c32c315319a8893d3869f1016f0e25f9341dd048c",
-    "Support/Springboard.swift": "b08dc1ef7a22bccd9c2029a4fc7fff8d09dfd75ff6af92101307885af7f6ce65",
+    "Support/Springboard.swift": "d85512954e2c1980106ac4a684729ca7c80a67e93481ecf7ee0b522415d14f6a",
     "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",
-    "Support/UnexpectedAlertGuard.swift": "5f94e7b007e037cd9ca1393a512332acb3436a9ff2a19cfcaefcf91ea28c6bfa",
+    "Support/UnexpectedAlertGuard.swift": "07055c13068b684b12481f21bb9766e8501bc69d7b3715ce18b30c9abc865a20",
     "Support/NotificationCleanup.swift": "64a33263710150a505c14adcfeaf0144b8a43172194878ab652182284595f384",
-    "Support/SystemLabels.swift": "571cb63fea2f83fd65012588d8fc9a2982e2bb65601768f5d75f1916a0003616",
+    "Support/SystemLabels.swift": "34652e71b4d8bc1a3f4353b90b9d2085710660a6a067f74270338ba14e1761a1",
+    "Support/LegacySampleApp.swift": "aa7ee63183579713c351ea949ce92963b94ee196951961f41d46b8766c24c27e",
 }
 DECLARATIONS_FILE = "Support/DeviceRequirements.json"
 
@@ -171,6 +193,7 @@ DANGEROUS_NAMES = ("XCUIApplication", "XCUIDevice", "UIPasteboard", "addUIInterr
 DANGEROUS_NAME_FILES = (
     "Support/SampleApp.swift", "Support/Springboard.swift", "Support/ShareSheet.swift",
     "Support/RunnerPasteboard.swift", "Support/UnexpectedAlertGuard.swift", "Support/SampleUITestCase.swift",
+    "Support/LegacySampleApp.swift",
 )
 # The frozen file's known occurrences, checked by count (6.1).
 FROZEN_DANGEROUS_COUNTS = {"XCUIApplication": 2, "XCUIDevice": 1, "UIPasteboard": 0, "addUIInterruptionMonitor": 0}
@@ -457,7 +480,7 @@ def check_enumeration(identifiers, declarations):
         problems.append(f"tests without a declaration in {DECLARATIONS_FILE}: {missing}")
     if extra:
         problems.append(f"declarations without a test: {extra}")
-    known_classes = {c for c, _ in UI_CLASSES} | {c for c, _ in SEPARATE_CLASSES}
+    known_classes = {c for c, _ in UI_CLASSES + SEPARATE_CLASSES + SCRIPT_ONLY_CLASSES}
     classes = {class_of(k) for k in keys}
     if classes != known_classes:
         problems.append(f"the enumerated classes differ from UI_CLASSES and the separate stages: "
@@ -961,7 +984,7 @@ def pbxproj_problems(pbxproj_text):
 # --- Selection (6.3 step 3) and the plan ------------------------------------------------------
 
 def feature_of_class(name):
-    for c, feature in UI_CLASSES + SEPARATE_CLASSES:
+    for c, feature in UI_CLASSES + SEPARATE_CLASSES + SCRIPT_ONLY_CLASSES:
         if c == name:
             return feature
     raise RunnerError(f"unknown class {name}")
@@ -976,7 +999,7 @@ def select_tests(identifiers, declarations, kind, allowed, feature=None):
 
     The simulator runs every test of the feature. The device runs a test only when every
     category it declares is allowed, and never a test of SIMULATOR_ONLY_TESTS (its `missing` is
-    [SIMULATOR_ONLY])."""
+    [SIMULATOR_ONLY]). Neither runs a test of SCRIPT_ONLY_CLASSES (its `missing` is [SCRIPT_ONLY])."""
     allowed = set(allowed)
     unknown = allowed - set(CATEGORIES)
     if unknown:
@@ -989,6 +1012,9 @@ def select_tests(identifiers, declarations, kind, allowed, feature=None):
         if not in_feature(key, feature):
             continue
         categories = declarations[key]
+        if class_of(key) in {c for c, _ in SCRIPT_ONLY_CLASSES}:
+            excluded.append((identifier, categories, [SCRIPT_ONLY]))
+            continue
         if kind == "device" and key in SIMULATOR_ONLY_TESTS:
             excluded.append((identifier, categories, [SIMULATOR_ONLY]))
             continue
@@ -2172,13 +2198,14 @@ def cmd_preflight(args):
 def print_selection(plan):
     where = "device" if plan["kind"] == "device" else "simulator"
     print(f"[select] {where}: {len(plan['selected'])} tests to run, {len(plan['excluded'])} excluded"
-          " (by category or as simulator only)"
+          " (by category, as simulator only or as script only)"
           + (f" (--device-allow {','.join(plan['deviceAllow']) or '(none)'})" if where == "device" else ""))
     for identifier in plan["selected"]:
         categories = plan["declarations"][key_from_enumeration_id(identifier)]
         print(f"  RUN     {identifier}  [{','.join(categories) or '-'}]")
     for entry in plan["excluded"]:
-        reason = "simulator only" if entry["missing"] == [SIMULATOR_ONLY] else f"missing {','.join(entry['missing'])}"
+        reason = {(SIMULATOR_ONLY,): "simulator only", (SCRIPT_ONLY,): "script only (scripts/test_ios_upgrade.sh)"}.get(
+            tuple(entry["missing"]), f"missing {','.join(entry['missing'])}")
         print(f"  EXCLUDE {entry['id']}  [{','.join(entry['categories']) or '-'}] {reason}")
     for invocation in plan["invocations"]:
         print(f"  CALL {invocation['index']}: {invocation['stage']} {invocation['name']} "
@@ -2403,6 +2430,8 @@ def cmd_summary(args):
     for entry in plan["excluded"]:
         if entry["missing"] == [SIMULATOR_ONLY]:
             print(f"  EXCLUDED (simulator only) {entry['id']}")
+        elif entry["missing"] == [SCRIPT_ONLY]:
+            print(f"  EXCLUDED (script only) {entry['id']}")
         else:
             print(f"  EXCLUDED (category) {entry['id']}: missing {','.join(entry['missing'])}")
     failed = bool(counts.get("failed"))
@@ -2537,6 +2566,160 @@ def cmd_hashes(args):
     return 0
 
 
+# --- The upgrade test (the upgrade test design, scripts/test_ios_upgrade.sh) ---------------------
+
+UPGRADE_TARGET_APP = "IosLibraryExample.app"
+# The target app's framework search paths in the xctestrun (U-2): left pointing at the current
+# build, the 1.x sample would load IosLibrary 2.0.0 (measured; review C-1).
+UPGRADE_SEARCH_KEYS = ("DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "__XPC_DYLD_FRAMEWORK_PATH",
+                       "__XPC_DYLD_LIBRARY_PATH", "__XCODE_BUILT_PRODUCTS_DIR_PATHS")
+UPGRADE_TIMEOUT_SECONDS = 10 * 60
+
+
+def upgrade_step_key(step):
+    """`UpgradeUITests/<method>` of a step name (`UA1` ... `UC2`)."""
+    for name, method in UPGRADE_STEPS:
+        if name == step:
+            return f"{UPGRADE_CLASS}/{method}"
+    raise RunnerError(f"unknown upgrade step {step!r}")
+
+
+def _ui_test_targets(data):
+    found = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            if node.get("BlueprintName") == UI_TARGET:
+                found.append(node)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+    walk(data)
+    return found
+
+
+def legacy_xctestrun_problems(target, legacy_products):
+    """What is wrong with the UI test target of a 1.x xctestrun (U-4 (1)): the target app, the
+    dependent app and every search path must be the 1.x build's, and no search path may be left at
+    __TESTROOT__ (the current build)."""
+    legacy = str(legacy_products)
+    app = f"{legacy}/{UPGRADE_TARGET_APP}"
+    problems = []
+    if target.get("UITargetAppPath") != app:
+        problems.append(f"UITargetAppPath is {target.get('UITargetAppPath')!r}, not the 1.x app")
+    apps = [path for path in target.get("DependentProductPaths", []) if path.endswith("/" + UPGRADE_TARGET_APP)]
+    if apps != [app]:
+        problems.append(f"DependentProductPaths hold {apps}, not exactly the 1.x app")
+    env = target.get("UITargetAppEnvironmentVariables")
+    if not isinstance(env, dict):
+        return problems + ["the UI test target has no UITargetAppEnvironmentVariables"]
+    for key in UPGRADE_SEARCH_KEYS:
+        if env.get(key) != legacy:
+            problems.append(f"{key} is {env.get(key)!r}, not the 1.x build")
+    for key, value in sorted(env.items()):
+        if "__TESTROOT__" in str(value) and ("DYLD" in key or "PATH" in key):
+            problems.append(f"{key} still points at the current build: {value}")
+    return problems
+
+
+def legacy_xctestrun(source_bytes, legacy_products):
+    """The xctestrun of the 1.x half (U-2) from the normal one, and its problems (an empty list
+    passes). The copy must sit next to the original: its other paths are relative to __TESTROOT__."""
+    data = plistlib.loads(source_bytes)
+    targets = _ui_test_targets(data)
+    if len(targets) != 1:
+        raise RunnerError(f"the xctestrun has {len(targets)} entries for {UI_TARGET}, not one")
+    target = targets[0]
+    legacy = str(legacy_products)
+    app = f"{legacy}/{UPGRADE_TARGET_APP}"
+    target["UITargetAppPath"] = app
+    target["DependentProductPaths"] = [path for path in target.get("DependentProductPaths", [])
+                                       if not path.endswith("/" + UPGRADE_TARGET_APP)] + [app]
+    env = target.get("UITargetAppEnvironmentVariables")
+    if isinstance(env, dict):
+        for key in UPGRADE_SEARCH_KEYS:
+            env[key] = legacy
+    return plistlib.dumps(data), legacy_xctestrun_problems(target, legacy_products)
+
+
+def upgrade_source_problems(tests_dir, pbxproj_text):
+    """Before the upgrade test builds: the closed source rules, the frozen file, the trusted part's
+    hashes, and the declarations of the six steps (K-5)."""
+    problems = check_test_folder(tests_dir, pbxproj_text)
+    problems += frozen_file_problems(tests_dir)
+    problems += [f"the trusted part changed: {relative} (sha256 {actual}, pinned {pinned})"
+                 for relative, pinned, actual in trusted_part_changes(tests_dir)]
+    declarations_path = pathlib.Path(tests_dir) / DECLARATIONS_FILE
+    try:
+        declarations = parse_declarations(declarations_path.read_text(encoding="utf-8"))
+    except (OSError, RunnerError) as e:
+        return problems + [f"{DECLARATIONS_FILE}: {e}"]
+    for step, _ in UPGRADE_STEPS:
+        key = upgrade_step_key(step)
+        if sorted(declarations.get(key, [])) != sorted(CLASS_MINIMUMS[UPGRADE_CLASS]):
+            problems.append(f"{key} is not declared as {sorted(CLASS_MINIMUMS[UPGRADE_CLASS])} in {DECLARATIONS_FILE}")
+    # Both ways (review K3-4): a test of the class that no step names would never run anywhere.
+    declared = {key for key in declarations if class_of(key) == UPGRADE_CLASS}
+    stray = sorted(declared - {upgrade_step_key(step) for step, _ in UPGRADE_STEPS})
+    if stray:
+        problems.append(f"{UPGRADE_CLASS} tests that no step of UPGRADE_STEPS runs: {stray}")
+    return problems
+
+
+def upgrade_verdict(step, tests_text, summary_text, exit_code, timed_out, udid):
+    """The problems of one half (the design, chapter 4; an empty list passes): the checks of
+    `record_invocation` (result bundle, time-out, destination, summary, readable names, known shapes,
+    exactly the named test), a zero exit code, and exactly one result, the named test, Passed."""
+    key = upgrade_step_key(step)
+    invocation = {"name": key, "expected": [key], "timeout": UPGRADE_TIMEOUT_SECONDS}
+    records, _ = record_invocation(invocation, tests_text, summary_text, exit_code, timed_out, udid)
+    problems = [f"{r['test']}: {r['message']}" for r in records if r["result"] != "passed"]
+    if exit_code != 0:
+        problems.append(f"xcodebuild exited with {exit_code}")
+    tests = [r for r in records if "#" not in r["test"]]
+    if len(tests) != 1 or tests[0]["test"] != f"{UI_TARGET}/{key}" or tests[0].get("raw") != "Passed":
+        problems.append(f"not exactly one Passed result for {key}: "
+                        f"{[(r['test'], r.get('raw', r['result'])) for r in tests]}")
+    return problems
+
+
+def cmd_upgrade_check(args):
+    problems = upgrade_source_problems(args.tests_dir, _read(args.pbxproj))
+    for problem in problems:
+        print(f"  FAIL {problem}")
+    if problems:
+        return _fail(f"{len(problems)} problem(s) before the upgrade test")
+    print("[upgrade] the sources, the trusted part and the declarations pass")
+    return 0
+
+
+def cmd_upgrade_xctestrun(args):
+    source = pathlib.Path(args.source)
+    out = pathlib.Path(args.out)
+    if out.parent.resolve() != source.parent.resolve():
+        return _fail("the 1.x xctestrun must sit next to the original (its paths are relative to __TESTROOT__)")
+    data, problems = legacy_xctestrun(source.read_bytes(), pathlib.Path(args.legacy_products).resolve())
+    for problem in problems:
+        print(f"  FAIL {problem}")
+    if problems:
+        return _fail("the 1.x xctestrun is not right")
+    out.write_bytes(data)
+    print(f"[upgrade] wrote {out.name}")
+    return 0
+
+
+def cmd_upgrade_judge(args):
+    tests_text = _read(args.tests_json) if args.tests_json and pathlib.Path(args.tests_json).is_file() else None
+    summary_text = _read(args.summary_json) if args.summary_json and pathlib.Path(args.summary_json).is_file() else None
+    problems = upgrade_verdict(args.step, tests_text, summary_text, args.exit_code, args.timed_out == "1", args.udid)
+    for problem in problems:
+        print(f"  FAIL {problem}")
+    print(f"[upgrade] {args.step}: {'FAIL' if problems else 'PASS'}")
+    return 1 if problems else 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -2643,6 +2826,26 @@ def main(argv=None):
     p.add_argument("--timed-out", default="0")
     p.add_argument("--results", required=True)
     p.set_defaults(func=cmd_record)
+
+    p = sub.add_parser("upgrade-check")
+    p.add_argument("--tests-dir", required=True)
+    p.add_argument("--pbxproj", required=True)
+    p.set_defaults(func=cmd_upgrade_check)
+
+    p = sub.add_parser("upgrade-xctestrun")
+    p.add_argument("--source", required=True)
+    p.add_argument("--legacy-products", required=True)
+    p.add_argument("--out", required=True)
+    p.set_defaults(func=cmd_upgrade_xctestrun)
+
+    p = sub.add_parser("upgrade-judge")
+    p.add_argument("--step", required=True, choices=[name for name, _ in UPGRADE_STEPS])
+    p.add_argument("--tests-json")
+    p.add_argument("--summary-json")
+    p.add_argument("--exit-code", type=int, required=True)
+    p.add_argument("--timed-out", default="0")
+    p.add_argument("--udid", required=True)
+    p.set_defaults(func=cmd_upgrade_judge)
 
     p = sub.add_parser("unit-record")
     p.add_argument("--target", required=True, choices=list(UNIT_TARGETS))

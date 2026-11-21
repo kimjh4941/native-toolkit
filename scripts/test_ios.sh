@@ -64,6 +64,9 @@ BASELINE_DIR="${NTK_TEST_IOS_BASELINE_DIR:-${ROOT_DIR}/scripts}"
 
 # What a test may touch on the device reaches it only through the device xcodebuild (U-9).
 unset TEST_RUNNER_NTK_DEVICE_ALLOW NTK_DEVICE_ALLOW
+# The upgrade test's step and signal (scripts/test_ios_upgrade.sh only; the upgrade test design U-10).
+unset NTK_UPGRADE_STEP TEST_RUNNER_NTK_UPGRADE_STEP SIMCTL_CHILD_NTK_UPGRADE_STEP \
+  NTK_UPGRADE_SIGNAL TEST_RUNNER_NTK_UPGRADE_SIGNAL SIMCTL_CHILD_NTK_UPGRADE_SIGNAL
 
 runner() { python3 "${ROOT_DIR}/scripts/ios_ui_runner.py" "$@"; }
 

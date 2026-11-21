@@ -109,11 +109,13 @@ needs a full run, so it refuses `-Filter` and `-SkipUnitTests`.
 | Script | Runs |
 |---|---|
 | `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device; with `--capi-ui`, the UI tests of the C ABI on one simulator; with `--capi`, the other checks of the C ABI on one simulator; with `--capi-device`, the C ABI's ASan and smoke on the device, after the user approved the list. What runs and every check of what ran is in `ios_ui_runner.py`, and for `--capi` and `--capi-device` in `ios_capi_runner.py` |
+| `test_ios_upgrade.sh` | The upgrade test on one simulator only: the 1.13.0 sample (built from the tag in a temporary git worktree) leaves scheduled and delivered notifications, a category and the permission; 2.0.0 is installed over it and `UpgradeUITests` checks them (three groups; `artifact/topics/ios-c-abi/designs/2026-11-21-ios-c-abi-upgrade-test-design.md`). A normal `test_ios.sh` run never selects that class. It changes the simulator's location and the sample's location permission, and puts them back |
 | `test_ios.baseline.<model>-<os>.json` | The recorded outcome of the last full run in each of the two environments, which `--baseline` rewrites |
 
 ```bash
 scripts/test_ios.sh --udid <simulator>                       # everything on a simulator
 scripts/test_ios.sh --udid <simulator> --feature Dialog      # one feature's UI tests
+scripts/test_ios_upgrade.sh --udid <simulator>               # the upgrade from the 1.13.0 sample (--group A|B|C)
 DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
   scripts/test_ios.sh --udid <simulator> --capi-ui           # the UI tests of the C ABI
 DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \

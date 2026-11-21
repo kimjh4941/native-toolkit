@@ -125,6 +125,12 @@
     "ClipboardPasteUITests/testCB4_pasteControlReadsImageOnly": ["clipboard"],
     "ClipboardPasteUITests/testCB5_aLoadCancelledAtOnceReportsCancelledOnce": ["clipboard"],
     "ClipboardPasteUITests/testCB6_aBoxCancelledBeforeTheLoadReadsNothing": ["clipboard"],
-    "ClipboardPasteDenyUITests/testCB2_denyPasteFailsLoadText": ["clipboard", "systemui"]
+    "ClipboardPasteDenyUITests/testCB2_denyPasteFailsLoadText": ["clipboard", "systemui"],
+    "UpgradeUITests/testUA1_legacySchedulesAndShows": ["reinstall", "systemui"],
+    "UpgradeUITests/testUA2_upgradedListsAndCancels": ["reinstall", "systemui"],
+    "UpgradeUITests/testUB1_legacySchedulesALocationNotification": ["reinstall", "systemui"],
+    "UpgradeUITests/testUB2_upgradedReceivesTheTapInTheBackground": ["reinstall", "systemui"],
+    "UpgradeUITests/testUC1_legacyRegistersTheCategoryAndSchedules": ["reinstall", "systemui"],
+    "UpgradeUITests/testUC2_upgradedRepliesThroughTheLegacyCategoryInTheForeground": ["reinstall", "systemui"]
   }
 }
