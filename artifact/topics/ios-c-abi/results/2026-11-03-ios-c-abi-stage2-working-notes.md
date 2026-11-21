@@ -3191,3 +3191,44 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 - プライバシーのレポート（1b の MS-10）: PDF は白紙。アーカイブの中の `IosLibrary` のマニフェストを `plutil` で見て、FileTimestamp と C617.1、トラッキング無し、集めるデータ無しを確かめた
 - 署名し直し（D-18）: 利用者のチームは Personal Team で、Program に登録していないので、配布用の書き出し（Release Testing）と Validate App は進めなかった。利用者は代わりの確かめ（アーカイブの中の `codesign`）を選んだ。アプリと 2 つの framework が同じ開発用の証明書（Apple Development、同じ Team）で署名され、`--verify --deep --strict` も通った。**署名なしで配る framework を、アプリの側が組むときに署名し直すことは確かめた。配布用の証明書での確かめと Validate App は、Program の登録が要るので残る**（README 9 章の DoD のその項目は開いたまま）
 - 後片付けは利用者が行う（手順書の 5 章）
+
+### 17.16 SH-13: 同じ回に続けて呼んだ Share の 2 つ目の完了が来ない（2026-11-15 報告、2026-11-21 直し）
+
+**報告**（`unity-native-plugin` のセッション、2026-11-15）: `dist/1.14.0` で `ntk_share_content_async` を main の同じ回に 2 回呼ぶと、2 回とも受け付けられ、シートは 1 枚だけ出て、2 つ目の callback が来ない（シミュレーター iPhone 16 / 18.3 と実機 iPhone XS / 18.7.2。向こうの記録は `artifact/ios/share/results/2026-11-15-ios-share-cabi-implementation-result-v1.md` の 2 章）。原因は、UIKit が共有のシートを出し終えるまで表示元に何も示さないので 2 つ目が「落ち着いている」と判定されて出され、UIKit に断られたシートが解放されず見張りが働かないこと（コードで確かめた）。
+
+**持ち主の決定（2026-11-21）**:
+
+1. 不具合として扱い、2.0.0 のリリースの前に直して `dist/1.14.0` を作り直す
+2. D-1: ホストが自分で出した表示の `present` の完了の前に、同じ window に Share を呼ぶのは約束の外（ヘッダーとマニュアルに書く）。設計メモ v2 の「寿命の時点で受け取られていないシートを表示の失敗にする」は、出るのが遅れただけのシートを失敗にして誤った結果を返しうる（2 回目のレビューの 2 者の指摘）ので入れない
+3. D-2: Share は共有のシートの上に重ねない（MS-S2 で UIKit は重ねて受け取ったが、MS-S8 で iOS 18.3 では重ねる途中に下のシートを外から閉じると 2 つとも完了しなかったため、決め直した）
+4. D-3: 記録の寿命は 10 秒
+5. 寿命を過ぎた記録は消さずに「行き詰まり」として残し、シートが出終わるか解放されるまで、同じ window の要求を表示の失敗にする（実装のレビューの Codex の指摘 1。消すと、10 秒を超えて出るシートの上に後の要求が出て、SH-13 と同じく完了しない）
+
+**設計**: `designs/2026-11-21-ios-c-abi-share-same-turn-design.md`（v3。レビュー `reviews/2026-11-21-ios-c-abi-share-same-turn-design-review-v1.md`・`-v2.md`。どちらも Claude のサブエージェントと Codex）。実装で v3 から変えた所と、測り・変異のテストの結果はメモの 10 章。
+
+**実装**:
+
+- `PresentationRecords`（新）: ライブラリが出した共有のシートを、`present` の完了か解放まで、表示元の window（`weak`）ごとに記録する。寿命（10 秒）を過ぎた記録は行き詰まりとして残る。待つ要求の一覧
+- `PresentationProcedure`: 段 3 で同じ window の記録を見る、段 4 で記録の終わりを待つ、起きた要求は 1 回やり直し、記録が行き詰まりなら表示の失敗、Share は前面が共有のシートなら表示の失敗。環境に `records`・`window(of:)`・`after(seconds:_:)`・`isShareSheet(_:)`
+- `ReleaseWatch`: 解放を知らせる `onRelease`（不変の `@Sendable` の closure）
+- DocC（`IosShareManager`、`ShareSheetPresenter`、`PresentationProcedure`、`IosDialogManager.show`、`DialogError`）、`Share.h` の `ntk_share_result_fn` の説明
+- サンプル: `ShareTwiceInOneTurn`。C ABI のテストのアプリ: `share.twice`
+
+**テスト**:
+
+- 単体テスト: `PresentationProcedurePendingSheetTests`（新、24 件。偽の環境）、`ShareSheetPresenterTests.twoSharesInOneTurnEachEndOnce`（本物の UIKit。直す前は 2 つ目が来ず赤、MS-S1）。関係する 12 のスイート 158 件が iPhone 17 Pro / 26.2 と iPhone 16 / 18.3 で通った。iPad Pro 11-inch (M4) / 18.3 でも Share と記録の 36 件が通った（記録を残す形にする前）
+- 変異: 最初の 11 通り（メモ 10.3）で残った 1 通り（待つ要求の上限の時計）は働かない仕組みだったので外した。記録を残す形にした後の 16 通りは 10.3 の追記
+- UI テスト: S20（`--feature Share`、iPhone 17 Pro / 26.2。Share の 20 件と共通の 6 件の 26 件が通った。固定の待ちを外す前）。C ABI の `share.twice`（`--capi-ui`）は、最初の回で、1 つ目の呼び出しが `SHOW_FAILED` になって落ちた。どちらが表示されるかは決まらない（Share の口は呼び出しごとに `Task` で手順に入る）ので、テストと文書を「どちらか一方」に直した
+- 測り: MS-S1〜S8（メモ 10.1）
+- 実装のレビュー: `reviews/2026-11-21-ios-c-abi-share-same-turn-implementation-review-v1.md`（Codex と Claude のサブエージェント。重い指摘は Codex の 1 つで、決定 5 のとおり直した）
+
+**最後の確かめ**（最後のソース。iPhone 17 Pro / 26.2。1 つずつ順に、重ねていない。実機は使っていない）:
+
+| 確かめ | 結果 |
+|---|---|
+| `IosLibraryTests` の全件 | 587 件が通り、1 件が落ちた（`NotificationDelegateRouterTests.comingBackAfterTheForwardingCallReturnedIsNotStopped`。SH-13 と関係しない通知のテストで、`settle()` の 150 ms の待ちによる揺れ）。そのスイートだけを 3 回流し、3 回とも通った |
+| `--feature Share` | 1 回目は S20 が落ちた。テストの誤り: 共通の `open(_:)` は「シートが開く間に結果の行が変わらない」を確かめるが、S20 ではもう一方の Share がシートの `present` の完了で失敗するので、行が変わるのが正しい。S20 は `open(_:)` を使わない形に直し、流し直して 26 件が通った |
+| `--feature Dialog` | 1 回目は D8（文字入力の Dialog）が「alert Enter Name did not appear」で落ちた（Share のシートは関わらない）。流し直して 29 件が通った |
+| `--capi-ui`（Xcode 26.6） | 59 件が通った（`share.twice` を含む） |
+| `--capi`（Xcode 26.6） | 単体 474 件（通常・ASan・TSan）、dist の組み立てと確かめ、両方のスライスの約束、smoke の 8 項目が通った |
+| `check_design_consistency.py`（4 つの設計書）と `check_c_abi_contract_ios.py` | FAIL 0 |

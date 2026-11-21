@@ -577,6 +577,8 @@ TSan（`-enableThreadSanitizer YES`、iPhone 17 / 26.2）: `ShareSheetPresenterT
 | scene を切ったときの handler と解放 | - | 2 つ目の scene でシートを出し `requestSceneSessionDestruction` で切ると、handler は来ず、15 秒たっても完了が来なかった（下調べがその scene の window を持ち続けたため、シートが解放されない）。window を手放すとすぐ（約 0.005 秒）`dismissedBySystem` が来た。**システムが scene を切っても表示元が残ればシートは解放されない**: 第 1 部 0.1 の「約束の外」（R4-4）のとおり |
 | TSan の版で解放されない理由 | **TSan の版でも外から閉じたシートは約 0.55〜0.60 秒で解放され、`dismissedBySystem` が来た**（5 回）。同じ回で `IosLibrary` の手順で出したアラートも約 0.45 秒で解放された（3 回）。申し送り 1 の「TSan の版では 15 秒たっても解放されない」は雛形（capi の中の手順）の振る舞いで、`IosLibrary` の手順では再現しなかった。理由（雛形の何が持っていたか）は調べていない | - |
 
+**注（2026-11-21、SH-13）**: 上の「UIKit が表示を断ったシート」は、既に別のものを出している ViewController に出した場面だけを測った。共有のシートの遅れた表示（リモートの scene の用意）の最中に同じ表示元へ出したシートは、断られても解放されず、見張りで閉じられなかった（`unity-native-plugin` の SH-13。直し方と測りは `designs/2026-11-21-ios-c-abi-share-same-turn-design.md`）
+
 あわせて: iPhone 17 / 26.2 では、ライブラリが付けた基点を UIKit が表示のときに替える（7.4 の 9）。
 
 MS-02 の Share の分（C2 の 4.7 で「まだ」だったもの。写しに置いた使い捨ての UI テスト、iPhone 17 / 26.2）: `ShareAfter3Seconds` を押して Control Center を引き出すと、`foregroundInactive` の間に `.foreground` のシートが出た。Control Center を閉じてもシートは残り、閉じると `[shareAfter3Seconds@foregroundInactive] success completed=false`。**G-6 の 1 つ目（inactive の間も表示できる）は Share でも成り立つ**。

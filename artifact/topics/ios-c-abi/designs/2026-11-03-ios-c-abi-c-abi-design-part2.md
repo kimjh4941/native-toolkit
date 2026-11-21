@@ -412,6 +412,7 @@ C の入口（第 1 部 5.7 の手順 1〜3: 出力の NULL、struct_size、NULL
 - 結果（`ntk_share_result`。`error == NONE` のときだけ渡す）: `_completed`（利用者がシートを閉じたのは 0）、`_activity_type`（選ばれた活動の識別子。無ければ `NULL`）、`_free`
 - 基点は 6.2 と同じ（P1-13）
 - 無いファイルは `FILE_NOT_FOUND`（`file`）、`IMAGE_LOAD_FAILED`（`image`）。今のライブラリの動作
+- **同じ回の 2 つ目と、共有のシートの上（SH-13、2026-11-21。`designs/2026-11-21-ios-c-abi-share-same-turn-design.md`）**: 共有のシートの上には出さない。前面が共有のシートのときは `SHOW_FAILED` で完了する。同じ main の回に続けて呼んだ 2 つは、どちらか一方のシートが出て、もう一方はそのシートが出るのを待ってから `SHOW_FAILED` で完了する（どちらが出るかは決まらない。入口は呼び出しごとに `Task` で手順に入るので、手順に着く順が呼んだ順とは限らない。2026-11-21 の `--capi-ui` で 1 つ目が `SHOW_FAILED` になった）。ホストが自分で出した表示の `present` の完了の前に呼ぶと、完了も `release` も来ないことがある（約束の外。第 1 部 0.1）。ヘッダーの `ntk_share_result_fn` の説明に書いた
 
 ## 7. 変える文書とコード
 
@@ -872,7 +873,7 @@ README 6 章の振る舞いの集合に ID を付け、C ABI の OP に対応さ
 | 通知のイベント | C から出した通知をバナーで押し、操作のイベントが C の受け手に届く（XCUITest。シミュレーター）。`BODY_TAP`、`ACTION`、`TEXT_INPUT`、`DISMISS` を 1 件ずつ。コールドスタートのタップと `_is_launch`。`openSettingsFor`（PR-02）は 1b の MS-07 の方法で。**TB-8 は `BODY_TAP`、`ACTION`、`TEXT_INPUT` とコールドスタートまで。`DISMISS` と `openSettingsFor` は TB-10 が受け持つ**（作業記録 11.9 の確認待ちだったものを、推奨案で TB-10 に入れて進めた。**持ち主の確認待ち**。作業記録 13 章。`DISMISS` は通知センターのセルの「消去」で、iOS 26.2 で測った後に 3 台（iPhone 17 Pro / 26.2、iPhone 16 / 18.3、iPad Pro 11-inch (M4) / 18.3）とも流す。`openSettingsFor` はアプリを消した直後のクラスで `PROVIDES_APP_SETTINGS` 付きの要求から始め、設定の App を辿るのは iOS 26.2 だけ（ほかの OS では要求の確かめで終わる。ランナーは skip を失敗と数えるため） |
 | 通知の順序と許可の後 | 許可の後に `show_async`・`update_async`・`schedule_async` が通り pending に残る。`update_async` が前の要求を置き換える。`cancel_all_scheduled_async` の完了の中の `schedule_async` が残る（M6 と同じ確かめ）。空文字の識別子の削除 3 つ（`remove_async`、`cancel_scheduled_async`、`remove_category_async`）が `NONE` で完了し、予約が残る |
 | Dialog と権限 | C から出した Dialog と権限のダイアログを XCUITest で押し、完了の値を確かめる。アクションシートの外側のタップ（6.2）。**権限が未決のうちは、OP-26〜OP-28 が `PERMISSION_DENIED` で完了し、配信済みにも予約にも何も載らない** |
-| Share | C から開いたシートで「コピー」を選び、`completed` と `activity_type` を確かめる |
+| Share | C から開いたシートで「コピー」を選び、`completed` と `activity_type` を確かめる。**同じ main の回に 2 回呼ぶ（`share.twice`。SH-13、2026-11-21）: 一方が `SHOW_FAILED`、もう一方がシートを閉じた結果で（どちらかは決まらない）、それぞれ完了と `release` が 1 回ずつ main で来る** |
 | Clipboard | C から書いて C で読む。監視のイベント。**ランナーが書いた内容を `load_item_async`、`read_async`、`read_data_async`、`detect_values_async` で読み、貼り付けのダイアログで許可と拒否を押す**（CB1・CB2 の C 版。M3 の値。取り消した読み込みでダイアログが出ないこと）。読み込みの時間切れ（`CLIPBOARD_TIMED_OUT`）は `init(timeouts:)` が C から使えないので、15 秒待つ 1 件だけにする |
 | 実機（iPhone XS / 18.7.2） | **第 1 部 P1-20 のとおり、`IosLibraryCApiTests` の ASan と smoke を 2b の DoD の区切りで流す**（毎回利用者の許可を得る。`agent-rules/device-testing.md`）。12.2 の上の行は**シミュレーターだけ**（springboard、権限のダイアログの操作になり、集中モードで新しいアプリの通知も出ないため）。**実機で流す `IosLibraryCApiTests` の Clipboard の行は名前付きのペーストボードに限る**（general を書き換えると私物のクリップボードを上書きする。`device-testing.md`）。実機で確かめたいものは利用者に別に尋ねる |
 
@@ -2024,7 +2025,13 @@ typedef struct ntk_share_result ntk_share_result;
 /** result is NULL unless error is NTK_SHARE_ERROR_NONE. A share cannot be cancelled, so the callback and release,
     and with them user_data, can be held for as long as a host that replaced its window or root view controller,
     or a scene the system disconnected, keeps the sheet alive. On an iPad with several windows, which one shows
-    the sheet is not decided. The order of the callbacks of several shares is not promised. */
+    the sheet is not decided. The order of the callbacks of several shares is not promised.
+    A share sheet is never shown on top of another share sheet: a share made while the foreground is a
+    share sheet ends with NTK_SHARE_ERROR_SHOW_FAILED. So does one of two shares made one right after
+    the other (which one is not decided): it waits until the other's sheet has appeared, at most 10
+    seconds, and then fails. Do not call this while a view controller the host presented itself (for
+    example its own UIActivityViewController) is still being presented, before that present's
+    completion: UIKit may then decline and keep the sheet, and the callback and release may never come. */
 typedef void (NTK_CALL *ntk_share_result_fn)(void* user_data, ntk_share_error error, uint32_t system_code,
                                              ntk_share_result* result);
 
