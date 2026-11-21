@@ -151,10 +151,12 @@ FROZEN_CLIPBOARD_SHA256 = "4612943da3ec0e32562d86d07d7d134521f1db5fed42e7543db74
 # for review v1 (R-1 to R-5: Springboard, SampleUITestCase, NotificationCleanup, SystemLabels) and v2
 # (R-21: Springboard, SystemLabels), and after the first device run for the back button of iOS 18
 # (SampleApp: the navigation bar buttons carry their labels; not yet reviewed by another model).
+# SampleApp was pinned again for SH-13 (2026-11-21: ShareButton.shareTwiceInOneTurn, one case; the
+# change was in the SH-13 implementation review by Codex and a Claude subagent).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/SampleUITestCase.swift": "49bd2c07958fadedbf235c9ab155f0aedbcec4dbebd2260b7034f2e55adfe874",
-    "Support/SampleApp.swift": "86734d0cdaae20dc51abddcbe0be36ede0e78358757a128c55eed822dcd78690",
+    "Support/SampleApp.swift": "f215d6a47c18f8c98a0f693c32c315319a8893d3869f1016f0e25f9341dd048c",
     "Support/Springboard.swift": "b08dc1ef7a22bccd9c2029a4fc7fff8d09dfd75ff6af92101307885af7f6ce65",
     "Support/ShareSheet.swift": "b32c3595080dfca93d415e6e70010373edd8cf9471fa41f4e024ef8893f69329",
     "Support/RunnerPasteboard.swift": "003e15590840c3c174f0b181dbacca06b661b476dea0898d7456a3688e4a9bbc",

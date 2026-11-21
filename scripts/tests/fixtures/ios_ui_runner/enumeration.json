@@ -390,6 +390,9 @@
           "identifier" : "IosLibraryExampleUITests/ShareUITests/testS1_shareTextCopy()"
         },
         {
+          "identifier" : "IosLibraryExampleUITests/ShareUITests/testS20_twoSharesInOneTurnEachEndOnce()"
+        },
+        {
           "identifier" : "IosLibraryExampleUITests/ShareUITests/testS2_shareTextClose()"
         },
         {
