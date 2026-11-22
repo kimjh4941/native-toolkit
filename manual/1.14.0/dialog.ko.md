@@ -1060,6 +1060,10 @@ Task {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowRequestConfirm.png" alt="Example_IosDialogManager_ShowRequestConfirm" width="400" />
+</p>
+
 다음 경우에는 요청이 응답 없이 끝납니다.
 
 | `DialogError` | 반환되는 경우 |
@@ -1105,6 +1109,10 @@ for (title, button) in [("First", "First OK"), ("Second", "Second OK")] {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowTwoInOneTurn.png" alt="Example_IosDialogManager_ShowTwoInOneTurn" width="400" />
+</p>
+
 직접 만든 뷰 컨트롤러에서는 그 뷰 컨트롤러를 전달하고, 약한 참조로 캡처합니다.
 
 ```swift
@@ -1145,6 +1153,10 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
     IosDialogManager.shared.cancel(box)
 }
 ```
+
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowThenCancel.png" alt="Example_IosDialogManager_ShowThenCancel" width="400" />
+</p>
 
 ### C ABI
 

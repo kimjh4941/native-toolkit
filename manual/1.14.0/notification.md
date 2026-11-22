@@ -1673,6 +1673,10 @@ The C ABI is described in [C ABI](#c-abi-1) at the end of this section. Coming f
 - Without the notification permission, the system reports success for `show`, `update` and `schedule` and keeps nothing: no pending request remains, and a notification scheduled before the permission was granted does not fire later. Check `authorizationStatus` or `hasPermission` first; the sample app checks `hasPermission` before each of these calls. The C ABI does this check itself (see [C ABI](#c-abi-1)).
 - `setup()`, `onActionReceived`, `onTextInputActionReceived` and `NotificationPermissionHelper` remain with their behavior but are deprecated. This page uses their replacements.
 
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
+</p>
+
 ---
 
 ### Changes from 1.x
@@ -2117,6 +2121,10 @@ IosNotificationManager.shared.registerCategory(category) {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RegisterCategoryWithCompletion.png" alt="Example_IosNotificationManager_RegisterCategoryWithCompletion" width="400" />
+</p>
+
 #### Remove Category
 
 ```swift
@@ -2250,6 +2258,10 @@ IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) {
     // .failure(.openSettingsFailed). Usually comes after the app has moved to the background.
 }
 ```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RequestPermissionWithAppSettings.png" alt="Example_IosNotificationManager_RequestPermissionWithAppSettings" width="400" />
+</p>
 
 - The system sends a request to show the app's own notification settings (`settingsRequests`) only to an app that asked for `.providesAppNotificationSettings`: Settings then shows a link to the app's settings in its notification page.
 - With `.foreground` or `.viewController(_:)`, an app whose permission is already decided is not asked again, so an option added later, such as `.providesAppNotificationSettings`, is not requested. Put every option in the first request, or ask with `.firstActiveScene`.

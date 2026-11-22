@@ -1380,6 +1380,10 @@ Task {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareRequestText.png" alt="Example_IosShareManager_ShareRequestText" width="400" />
+</p>
+
 #### 結果のコールバック
 
 `share(content:presenter:completion:)` は、同じ結果をメインスレッドで完了ハンドラーに通知します。サンプルはタップの 3 秒後にライブラリの外からシートを閉じます。その場合、完了ハンドラーは `.dismissedBySystem` で 1 回呼ばれます。
@@ -1406,6 +1410,10 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareThenDismissFromOutside.png" alt="Example_IosShareManager_ShareThenDismissFromOutside" width="400" />
+</p>
+
 #### 同じターンでの 2 つの共有
 
 共有シートが別の共有シートの上に表示されることはありません。共有が重なった場合は次のようになります。
@@ -1426,6 +1434,10 @@ for number in 1...2 {
     }
 }
 ```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareTwiceInOneTurn.png" alt="Example_IosShareManager_ShareTwiceInOneTurn" width="400" />
+</p>
 
 ---
 

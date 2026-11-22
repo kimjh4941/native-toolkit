@@ -1673,6 +1673,10 @@ C ABI는 이 섹션 끝의 [C ABI](#c-abi-1)에서 설명합니다. 1.x에서 �
 - 알림 권한이 없으면 시스템은 `show`, `update`, `schedule`에 성공을 보고하지만 아무것도 보관하지 않습니다. 대기 중인 요청은 남지 않으며, 권한이 허용되기 전에 예약한 알림이 나중에 발생하지도 않습니다. 먼저 `authorizationStatus` 또는 `hasPermission`을 확인해 주십시오. 샘플 앱은 이 호출들 전에 매번 `hasPermission`을 확인합니다. C ABI는 이 확인을 스스로 합니다([C ABI](#c-abi-1) 참조).
 - `setup()`, `onActionReceived`, `onTextInputActionReceived`, `NotificationPermissionHelper`는 동작이 그대로 남아 있지만 사용 중단(deprecated)되었습니다. 이 페이지에서는 각각을 대신하는 API를 사용합니다.
 
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
+</p>
+
 ---
 
 ### 1.x에서 바뀐 점
@@ -2117,6 +2121,10 @@ IosNotificationManager.shared.registerCategory(category) {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RegisterCategoryWithCompletion.png" alt="Example_IosNotificationManager_RegisterCategoryWithCompletion" width="400" />
+</p>
+
 #### 카테고리 삭제
 
 ```swift
@@ -2250,6 +2258,10 @@ IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) {
     // .failure(.openSettingsFailed). 보통 앱이 백그라운드로 옮겨진 뒤에 옵니다.
 }
 ```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RequestPermissionWithAppSettings.png" alt="Example_IosNotificationManager_RequestPermissionWithAppSettings" width="400" />
+</p>
 
 - 시스템이 앱 자체의 알림 설정을 표시하라는 요청(`settingsRequests`)을 보내는 것은 `.providesAppNotificationSettings`를 요청한 앱뿐입니다. 이때 설정 앱은 알림 페이지에 앱 설정으로 가는 링크를 표시합니다.
 - `.foreground`나 `.viewController(_:)`에서는 권한이 이미 정해진 앱에 다시 요청하지 않으므로, 나중에 추가한 옵션(`.providesAppNotificationSettings` 등)은 요청되지 않습니다. 모든 옵션을 첫 요청에 넣거나 `.firstActiveScene`으로 요청해 주십시오.

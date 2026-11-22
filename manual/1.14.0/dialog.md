@@ -1060,6 +1060,10 @@ Task {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowRequestConfirm.png" alt="Example_IosDialogManager_ShowRequestConfirm" width="400" />
+</p>
+
 The request ends without an answer in these cases.
 
 | `DialogError` | When |
@@ -1105,6 +1109,10 @@ for (title, button) in [("First", "First OK"), ("Second", "Second OK")] {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowTwoInOneTurn.png" alt="Example_IosDialogManager_ShowTwoInOneTurn" width="400" />
+</p>
+
 In a view controller of your own, pass the view controller and capture it weakly:
 
 ```swift
@@ -1145,6 +1153,10 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
     IosDialogManager.shared.cancel(box)
 }
 ```
+
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowThenCancel.png" alt="Example_IosDialogManager_ShowThenCancel" width="400" />
+</p>
 
 ### C ABI
 

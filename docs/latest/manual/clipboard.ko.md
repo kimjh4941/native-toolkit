@@ -1788,6 +1788,10 @@ manager.cancelLoad(box)
 // 여기서 box.isClosed는 true입니다. 완료 핸들러는 나중에 메인 스레드에서 CLIPBOARD_CANCELLED를 한 번 보고합니다.
 ```
 
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextThenCancel.png" alt="Example_IosClipboardManager_LoadTextThenCancel" width="400" />
+</p>
+
 `shared`를 읽을 수 없는 스레드에서는 박스를 보관해 두고 정적 형식을 호출합니다.
 
 ```swift
@@ -1805,6 +1809,10 @@ manager.loadItem(.text, scope: scope, requestBox: box) { isSuccess, item, errorC
     // isSuccess == false, errorCode == "CLIPBOARD_CANCELLED"
 }
 ```
+
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextWithCancelledBox.png" alt="Example_IosClipboardManager_LoadTextWithCancelledBox" width="400" />
+</p>
 
 ---
 

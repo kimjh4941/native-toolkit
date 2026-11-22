@@ -1380,6 +1380,10 @@ Task {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareRequestText.png" alt="Example_IosShareManager_ShareRequestText" width="400" />
+</p>
+
 #### 결과 콜백
 
 `share(content:presenter:completion:)`는 같은 결과를 메인 스레드에서 완료 핸들러로 알립니다. 샘플은 탭하고 3초 뒤에 라이브러리 밖에서 시트를 닫습니다. 그러면 완료 핸들러가 `.dismissedBySystem`으로 한 번 호출됩니다.
@@ -1406,6 +1410,10 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareThenDismissFromOutside.png" alt="Example_IosShareManager_ShareThenDismissFromOutside" width="400" />
+</p>
+
 #### 같은 턴에서 두 번 공유
 
 공유 시트가 다른 공유 시트 위에 표시되는 일은 없습니다. 공유가 겹치면 다음과 같이 됩니다.
@@ -1426,6 +1434,10 @@ for number in 1...2 {
     }
 }
 ```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareTwiceInOneTurn.png" alt="Example_IosShareManager_ShareTwiceInOneTurn" width="400" />
+</p>
 
 ---
 

@@ -1060,6 +1060,10 @@ Task {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowRequestConfirm.png" alt="Example_IosDialogManager_ShowRequestConfirm" width="400" />
+</p>
+
 次の場合、リクエストは応答がないまま終わります。
 
 | `DialogError` | 返る場面 |
@@ -1105,6 +1109,10 @@ for (title, button) in [("First", "First OK"), ("Second", "Second OK")] {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowTwoInOneTurn.png" alt="Example_IosDialogManager_ShowTwoInOneTurn" width="400" />
+</p>
+
 独自のビューコントローラーでは、そのビューコントローラーを渡し、弱参照でキャプチャします。
 
 ```swift
@@ -1145,6 +1153,10 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
     IosDialogManager.shared.cancel(box)
 }
 ```
+
+<p align="center">
+    <img src="images/ios/dialog/Example_IosDialogManager_ShowThenCancel.png" alt="Example_IosDialogManager_ShowThenCancel" width="400" />
+</p>
 
 ### C ABI
 

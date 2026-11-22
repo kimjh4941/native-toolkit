@@ -1777,6 +1777,10 @@ manager.cancelLoad(box)
 // ここで box.isClosed は true です。完了ハンドラーは後でメインスレッドで 1 回だけ CLIPBOARD_CANCELLED を報告します。
 ```
 
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextThenCancel.png" alt="Example_IosClipboardManager_LoadTextThenCancel" width="400" />
+</p>
+
 `shared` を読めないスレッドからは、ボックスを保持しておき、静的な形式を呼びます。
 
 ```swift
@@ -1794,6 +1798,10 @@ manager.loadItem(.text, scope: scope, requestBox: box) { isSuccess, item, errorC
     // isSuccess == false、errorCode == "CLIPBOARD_CANCELLED"
 }
 ```
+
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextWithCancelledBox.png" alt="Example_IosClipboardManager_LoadTextWithCancelledBox" width="400" />
+</p>
 
 ---
 

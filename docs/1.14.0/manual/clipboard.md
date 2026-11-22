@@ -1782,6 +1782,10 @@ manager.cancelLoad(box)
 // box.isClosed is true here. The completion reports CLIPBOARD_CANCELLED once, later, on the main thread.
 ```
 
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextThenCancel.png" alt="Example_IosClipboardManager_LoadTextThenCancel" width="400" />
+</p>
+
 From a thread where `shared` cannot be read, keep the box and call the static form:
 
 ```swift
@@ -1799,6 +1803,10 @@ manager.loadItem(.text, scope: scope, requestBox: box) { isSuccess, item, errorC
     // isSuccess == false, errorCode == "CLIPBOARD_CANCELLED"
 }
 ```
+
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextWithCancelledBox.png" alt="Example_IosClipboardManager_LoadTextWithCancelledBox" width="400" />
+</p>
 
 ---
 

@@ -1380,6 +1380,10 @@ Task {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareRequestText.png" alt="Example_IosShareManager_ShareRequestText" width="400" />
+</p>
+
 #### Result Callback
 
 `share(content:presenter:completion:)` reports the same result to a completion on the main thread. The sample dismisses the sheet from outside the library 3 seconds after the tap; the completion then comes once with `.dismissedBySystem`.
@@ -1406,6 +1410,10 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
 }
 ```
 
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareThenDismissFromOutside.png" alt="Example_IosShareManager_ShareThenDismissFromOutside" width="400" />
+</p>
+
 #### Two Shares in One Turn
 
 A share sheet is never shown on top of another share sheet. This is what happens when shares overlap:
@@ -1426,6 +1434,10 @@ for number in 1...2 {
     }
 }
 ```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareTwiceInOneTurn.png" alt="Example_IosShareManager_ShareTwiceInOneTurn" width="400" />
+</p>
 
 ---
 
