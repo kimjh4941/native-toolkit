@@ -3254,3 +3254,13 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 **続きの知らせ**（2026-11-22 未明）: 向こうは `dist/1.14.0` を段階 4 の作り直し（`68ca7674`。IosLibrary 20、capi 4）に写し（向こうの `1b3c424`）、その版でシミュレーターの回を流している。共有のシートの件の補足: (1) `XCUIElement` の `snapshot()` で読むと `UIActivityContentView` の枠の上端が 0 になる（要素から読むと 480）。`ActivityListView` の枠はどちらでも 480 なので、シートの上端はそこから読む。(2) 1 回のプロセスで最初の共有シートだけ、押しても閉じないことがある（5 秒残れば 1 回だけ押し直す）。これで iOS 26.2 でサンプルの画面の 46 件と、ハーネスの SH1・SH5・SH13・ID8・ID12 が通った（SH-13 はシートまで 1.04 秒、失敗の行まで 2.13 秒）。(3) 通知の opt-out（`NATIVETOOLKIT_IOS_SKIP_NOTIFICATION_INSTALL`）をシミュレーターで確かめた: 起動では delegate を入れず、後の `Initialize()` で `ntk_notification_install` が入り、受け手の登録は入れる前が `NOT_INITIALIZED`、後が `NONE`。こちらの C ABI の UI テストは左上寄りを固定の割合で押すので (1) の影響は受けない。(2) はこちらでは見ていない（こちらの Share の UI テストは通っている）
 
 **実機の結果**（2026-11-22、向こうの別のセッション。`dist` は `68ca7674`、iPhone XS / iOS 18.7.2、向こうの HEAD `a764789`）: 実機のゲート（Player 112 件、Notification のサンプル 8 件）と実機の UI テスト 25 件がすべて成功（SH-13 は押してから失敗の行まで 2.56 秒。上限の値で、前回は 2.51 秒）。I-17（git の URL で入れた使い捨てのアプリ）は実機で起動し、`ntk_version` は `0x020000`、delegate は proxy。シミュレーターでは Release のアーカイブの署名し直し（2 つの framework がアプリと同じ開発用の証明書、版 2.0.0）、Android のビルド、Mobile Notifications 2.5.0 との共存（`AuthorizationRequest` で delegate が `UnityNotificationManager` に替わり、`Initialize()` で proxy に戻る。ライブラリのログは「the delegate was replaced by UnityNotificationManager; installing the proxy again in front of it」）も成功。ライブラリの側の問題は無い。**向こうの残りはリリースの手順だけ**
+
+### 17.17 HC13: 貼り付けの許可を押して読む（CB1 の実機。2026-11-22、利用者）
+
+リリースの前に行うと利用者が決めた（2026-11-22）。
+
+- 端末: iPhone XS / iOS 18.7.2。2.0.0 のサンプル（HEAD `27dafd6b`、`IosLibrary` 2.0.0 ビルド 20）を、利用者の許可を得て Debug で組み、`devicectl` で上から入れた（アプリは消していない。端末の設定は変えていない。こちらは画面もクリップボードも読んでいない）
+- 手順（UI テストの設計書 4 章、`ios/IosLibraryExample/ComputerUse/HC-13-allow-paste-load-text.md`）: 利用者がメモで `ntk-hc13` をコピー → Clipboard → Use General → Load Text → 貼り付けの許可のダイアログで「ペーストを許可」
+- 結果: **合格**。ダイアログが出て、結果の行は `✅ [loadText] textLength=8`
+- これで、CB1 を実機で自動で流さないと決めた（17.11）分の実機の確かめが済んだ。自動の CB1 で実機にダイアログが出なかった原因は分からないまま（人が操作すると出る）
+

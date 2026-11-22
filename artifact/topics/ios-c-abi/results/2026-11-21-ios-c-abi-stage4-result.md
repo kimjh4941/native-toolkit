@@ -59,6 +59,6 @@
   - Dialog: 2.0.0 の要求のダイアログ（Request Alert ほか 6 つ）と、同じターンに 2 つを重ねる例
   - Notification: 2.0.0 の画面の全体（1.x の `Example_IosNotificationManager.png` は外した）、「Swift API (2.0.0)」の節
   - Share: `ShareRequestText`。`Example_IosShareManager.png` は画面の上だけなので、撮り直してもよい
-- HC13（Clipboard の CB1 の人の確認）: 次の実機の区切りで利用者が行う
+- ~~HC13（Clipboard の CB1 の人の確認）~~: 2026-11-22 に利用者が行い合格（段階 2 の作業の記録 17.17）
 - リリース（README 5.3）: ルートの README（3 言語）の版と配布物の一覧、`publish_docs.sh 1.14.0`、PR とマージとタグ
 - 範囲外で見つけたもの（直していない）: 1.13.0 以前のマニュアルの目次のずれ（検査 8 が見つける）、macOS の Share の例のリテラル
