@@ -305,6 +305,22 @@ artifact/topics/android-c-abi/
 | `unity-native-plugin` の `AndroidNotificationManager.cs`（654 行） | 通知の表示のイベントを `AndroidJavaProxy("android.library.notification.NotificationShownSupport$NotificationShownListener")` で受けている。0e の後にこのリポジトリで作った AAR では、クラス名が変わって受け取れなくなる。Unity の側の基準は 1.12.0 の出荷物の AAR で取る | 0e（壊れる）・2c（C ABI に移して消える） |
 | `unity-native-plugin` の Runtime テスト | 約 79 件は JSON の組み立てと解析のテストで（2c の申し送りで数え直した。最初の版は約 60 件と書いた）、C ABI では意味を失う。書き換えではなく作り直しになる | 2c |
 
+### 5.3 リリース（1.13.0）
+
+**1.13.0 はリリース済み**（2026-10-18、Mac で実施）。Android のライブラリの版は 2.0.0。
+
+- タグ `1.13.0`（main の `b507c42c`）。`feature/NTKIT-17` は PR #30 で develop に、develop は PR #31 で main にマージした（どちらも `--merge`）。GitHub Release `1.13.0` も公開した（添付ファイルは無い。成果物は `dist/` から配る）
+- `docs/1.13.0/` を公開し、`docs/latest/` は 1.13.0 になった（`7941b6c2`、マニュアルは `a9b1e329` で写し直した）
+- 出荷した AAR の MD5: `android-native-toolkit-2.0.0.aar` は `9e068bc9492f82a81a23b38ee6dd8d52`、`android-native-toolkit-capi-2.0.0.aar` は `c706a8a6df164f813ef96eee3063282f`。`unity-native-plugin` が通しの検証をした `a7684dee` の AAR と同じ
+- `unity-native-plugin`（`unity-native-plugin-05`）に、タグ、Release、AAR と m2 の `.module` が `a7684dee` から変わっていないこと（差分 0 行）、両方の MD5 を伝えた（2026-10-18）。向こうは S4-5（版を 1.13.0 にしてリリースノートを書く）に進む
+- Unity の記載は、このリポジトリのマニュアルと README から消し、`unity-native-plugin` のマニュアルに任せた（段階 4 の結果の M-4）
+- `verify_manual.sh 1.13.0` の停止項目（画像の参照切れ 30 件）は、1.12.0 から引き継いだまま出荷した（`manual-integrity`）
+
+小さな残り（段階 4 の結果 8 章）:
+
+1. エミュレータ（API 35）の基準は段階 3 のまま。次に全件を流すときに `--baseline` で取り直す
+2. エミュレータで時々、`ShareUiTest` の s14 が「the Sharesheet did not open」で失敗する（遅いときに 10 秒で開かない）。直していない
+
 ## 6. 公開面の規模
 
 今のブリッジの公開面（調査の結果）:
@@ -466,6 +482,8 @@ Windows では、移行前のサンプルが C ABI を呼んでいたので、�
 | Kotlin | 2.0.21 | 2.4.20、`languageVersion = apiVersion = 2.2` | 0f | 既定（2.4）のままだと、Kotlin でコンパイルする利用者に 2.3 以上を求める。2.2 に下げれば 2.1 以上で使える。`apiVersion` 2.2 は実行時に `kotlin-stdlib` 2.2 以上を求める。`m2/` の POM で伝わるが、`unity-native-plugin` が固定で足している stdlib 2.0.21 は 2c で外すか 2.2 以上にしてもらう。**1a の結果（2026-10-04）**: KGP 2.4.20 の既定では POM の stdlib と Parcelize のランタイムが 2.4.20 になり、Kotlin 2.2・2.1 の利用者は組めない。2b で `coreLibrariesVersion = "2.2.21"`、Parcelize のランタイムの 2.2.21 への固定、POM への解決後の版の書き込み（`versionMapping`）を入れる（1a の結果 3.6） |
 | Dokka | 2.0.0 | 2.2.0 | 0f | 2.1.0 から Dokka Gradle Plugin v2 が既定。`publish_docs.sh` の `dokkaHtml` を直す |
 | Java / JVM の target | 11 | 17 | 0f | 公式の例は 17。Unity 6 も Flutter も JDK 17 が前提で、D8 が変換するので利用者への影響はほぼ無い |
+| Gradle を動かす JDK とコンパイルする JDK | Android Studio Panda 1 の JBR 21（`~/.gradle/gradle.properties` の `org.gradle.java.home` とスクリプトのパスで指定） | JetBrains Runtime 21（`gradle/gradle-daemon-jvm.properties` の Daemon JVM criteria と、各モジュールの `java { toolchain }`。foojay の resolver を足した） | 2026-10-18 | Android Studio の版や名前に結び付けないため（Panda 1 を消すと壊れた）。Google の推奨（toolchain を必ず指定する）に合わせた。出力は 17 のまま。`android/` と smoke のビルドに入れた。consumer のビルド（Gradle 8.13）は古い道具の利用者を再現するので入れず、起動用の `JAVA_HOME` で動く。スクリプトは `/usr/libexec/java_home -v 21` で起動用の JDK を選ぶ。1.13.0 の 2 つの AAR を組み直すと `dist/1.13.0` と同じバイト列になり、単体テスト（174 件）、C ABI の段（165 件。smoke と Kotlin 2.2.21 / 2.1.21 の利用者を含む）、Dokka（`docs/1.13.0` と同じ）を確かめた |
+| Android Studio | Panda 1（2025.3.1） | Quail 2（2026.1.2）以降。確かめたのは Rabbit 1（2026.2.1） | 2026-10-18 | AGP 9.3.1 を開くには Quail 2 以降が要る（Panda 1 は AGP 9.0 まで。公式の対応表 https://developer.android.com/build/releases/about-agp ）。0f で AGP を上げたときに、Android Studio の対応を確かめていなかった（記録の漏れ）。2026-10-18 に、利用者が Rabbit 1 で開いてサンプルが動くことを確かめた |
 | compileSdk | 35 | 36 | 0g | **37 にしない**。AGP 9 は既定で利用者に同じ compileSdk 以上を求める（AAR の `minCompileSdk`）。37 は Flutter の既定と Unity 6000.4 の上限を超える。`aarMetadata.minCompileSdk = 36` を明示する |
 | core-ktx | 1.15.0 | 1.18.0 | 0g | **1.19 にしない**（利用者に compileSdk 37 と AGP 9.1.0 を求める） |
 | appcompat | 1.7.0 と 1.6.1 | 1.8.0 にそろえる（外せるなら外す） | 0g | 使っているのは `AppCompatResources` の 1 か所だけ |

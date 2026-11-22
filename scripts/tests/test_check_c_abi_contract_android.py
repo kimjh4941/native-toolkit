@@ -32,6 +32,7 @@ README = "artifact/topics/android-c-abi/README.md"
 KOTLIN = "android/android_library/src/main/java"
 INCLUDE = "android/android_library_capi/src/main/cpp/include/NativeToolkitC"
 WINDOWS_COMMON = "windows/WindowsLibraryCApi/include/NativeToolkitC/Common.h"
+NUMBERS = "scripts/c_abi_error_numbers.json"
 COMMON = f"{INCLUDE}/Common.h"
 CLIPBOARD = f"{INCLUDE}/Clipboard.h"
 SHARE = f"{INCLUDE}/Share.h"
@@ -47,10 +48,19 @@ def failures(output):
 
 class AndroidCAbiContractChecker(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        # Red before anything is broken would make every assert_catches of that
+        # check pass whatever it breaks.
+        for arguments, headers in (((), True), (("--design-only",), False)):
+            output, code = cls().run_checker(headers=headers, arguments=arguments)
+            if failures(output) or code != 0:
+                raise AssertionError(f"the unbroken tree fails with {arguments}: {output}")
+
     def run_checker(self, edits=(), removed=(), headers=True, arguments=(), before=None):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
-            for fragment in (DESIGN, README, WINDOWS_COMMON):
+            for fragment in (DESIGN, README, WINDOWS_COMMON, NUMBERS):
                 destination = root / fragment
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(ROOT / fragment, destination)
@@ -125,6 +135,10 @@ class AndroidCAbiContractChecker(unittest.TestCase):
         output, code = self.run_checker(arguments=("--library",))
         self.assertEqual(code, 2, output)
 
+    def test_an_option_given_twice_is_a_usage_error(self):
+        output, code = self.run_checker(arguments=("--library", "a", "--library", "b"))
+        self.assertEqual(code, 2, output)
+
     # --- functions ----------------------------------------------------------
 
     def test_a_header_function_8_2_does_not_name(self):
@@ -158,6 +172,13 @@ class AndroidCAbiContractChecker(unittest.TestCase):
     def test_a_declaration_inside_an_if(self):
         self.assert_catches("signatures", (CLIPBOARD, "ntk_clipboard_error NTK_CALL ntk_clipboard_clear(void);",
                                            "#if defined(NTK_EXPERIMENTAL)\nntk_clipboard_error NTK_CALL ntk_clipboard_clear(void);\n#endif"))
+
+    def test_an_initializer_outside_the_grammar(self):
+        # 3 in C. Reading the 1u << 1 of it would say 2, which the table agrees with.
+        self.assert_catches("signatures", (f"{INCLUDE}/Dialog.h", "NTK_DIALOG_ERROR_NOT_INITIALIZED = 2", "NTK_DIALOG_ERROR_NOT_INITIALIZED = 1u << 1 | 1"))
+
+    def test_a_declaration_of_no_kind(self):
+        self.assert_catches("signatures", (SHARE, "#ifdef __cplusplus\n}", "ntk_share_error ntk_share_undesigned(void);\n#ifdef __cplusplus\n}"))
 
     def test_another_packing(self):
         self.assert_catches("signatures", (CLIPBOARD, "#pragma pack(push, 8)", "#pragma pack(push, 4)"))
@@ -265,6 +286,37 @@ class AndroidCAbiContractChecker(unittest.TestCase):
     def test_a_kotlin_order_that_changed(self):
         self.assert_catches("Kotlin declaration order", (SHARE_ERROR, "    data object EmptyIdList : ShareDomainError()\n",
                                                          "    data object EmptyIdListMoved : ShareDomainError()\n"))
+
+    # --- the table of numbers the OSes share (iOS part 1, P1-7) --------------
+
+    def test_a_header_number_the_table_disagrees_with(self):
+        self.assert_catches("numbers", (NUMBERS, '"NO_SHARE_TARGET": 8', '"NO_SHARE_TARGET": 18'))
+
+    def test_a_header_value_the_table_lacks(self):
+        self.assert_catches("numbers", (NUMBERS, '    "INVALID_CHOOSER_ACTION": 16,\n', ""))
+
+    def test_a_new_android_value_taking_a_number_ios_uses(self):
+        self.assert_catches("numbers", (SHARE, "NTK_SHARE_ERROR_INVALID_CHOOSER_ACTION = 16",
+                                        "NTK_SHARE_ERROR_INVALID_CHOOSER_ACTION = 16,\n    NTK_SHARE_ERROR_NEW = 17"))
+
+    def test_the_numbers_of_appendix_a_are_compared_under_design_only(self):
+        self.assert_catches("numbers", (NUMBERS, '"NO_SHARE_TARGET": 8', '"NO_SHARE_TARGET": 18'),
+                            headers=False, arguments=("--design-only",))
+
+    def test_a_missing_table_fails(self):
+        self.assert_catches("numbers", removed=(NUMBERS,))
+
+    def test_a_table_that_gives_a_number_two_names(self):
+        self.assert_catches("numbers", (NUMBERS, '"NO_SHARE_TARGET": 8', '"NO_SHARE_TARGET": 8,\n    "OTHER_TARGET": 8'))
+
+    def test_a_name_only_ios_has_is_a_gap_here(self):
+        output = self.assert_passes()
+        self.assertIn("OK   numbers", output)
+        self.assertIn('"WRONG_THREAD"', (ROOT / NUMBERS).read_text(encoding="utf-8"))
+
+    def test_android_h_is_not_in_the_table(self):
+        self.assertNotIn("android", (ROOT / NUMBERS).read_text(encoding="utf-8"))
+        self.assert_passes()
 
     # --- names and ASCII ----------------------------------------------------
 

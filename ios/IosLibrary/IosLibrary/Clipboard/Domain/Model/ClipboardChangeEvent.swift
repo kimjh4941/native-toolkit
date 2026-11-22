@@ -10,8 +10,13 @@ public struct ClipboardChangeEvent: Equatable, Sendable {
     public enum Kind: Equatable, Sendable {
         /// `UIPasteboard.changedNotification` was received.
         case changed(typesAdded: [String], typesRemoved: [String])
-        /// A change was detected by comparing `changeCount` on foreground return, without a
+        /// A change detected by comparing `changeCount` on foreground return, without a
         /// corresponding notification.
+        ///
+        /// Not delivered in 2.0.0: ``IosClipboardManager/startObserving(scope:onEvent:)`` reports
+        /// only ``changed(typesAdded:typesRemoved:)`` and ``removed``. Call
+        /// ``IosClipboardManager/checkForegroundChange(scope:)`` on foreground return instead; it
+        /// returns whether the pasteboard changed. The case is kept for source compatibility.
         case changedDetectedOnForeground
         /// `UIPasteboard.removedNotification` was received (named pasteboards only).
         case removed

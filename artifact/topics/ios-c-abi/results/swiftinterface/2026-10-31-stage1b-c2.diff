@@ -1,0 +1,99 @@
+--- IosLibrary-after-1b-c1.swiftinterface	2026-10-31 17:06:53
++++ IosLibrary-after-1b-c2.swiftinterface	2026-10-31 22:06:53
+@@ -548,16 +548,87 @@
+   @objc public static func e(_ tag: Swift.String, _ message: Swift.String)
+   @objc override dynamic public init()
+   @objc deinit
++}
++public protocol DialogPresenting : Swift.Sendable {
++  #if compiler(>=5.3) && $NonescapableTypes
++  func present(_ request: IosLibrary.DialogRequest, presenter: IosLibrary.PresenterSelection, box: IosLibrary.RequestBox, completion: @escaping @_Concurrency.MainActor @Sendable (Swift.Result<IosLibrary.DialogAnswer, IosLibrary.DialogError>) -> Swift.Void)
++  #endif
++}
++public struct ShowDialogUseCase : Swift.Sendable {
++  public init(presenter: any IosLibrary.DialogPresenting)
++  #if compiler(>=5.3) && $NonescapableTypes
++  public func execute(_ request: IosLibrary.DialogRequest, presenter: IosLibrary.PresenterSelection, box: IosLibrary.RequestBox, completion: @escaping @_Concurrency.MainActor @Sendable (Swift.Result<IosLibrary.DialogAnswer, IosLibrary.DialogError>) -> Swift.Void)
++  #endif
++}
++public struct DialogAnswer : Swift.Sendable, Swift.Equatable {
++  public enum Button : Swift.Sendable, Swift.Equatable {
++    case primary
++    case cancel
++    case destructive
++    case option(index: Swift.Int)
++    public static func == (a: IosLibrary.DialogAnswer.Button, b: IosLibrary.DialogAnswer.Button) -> Swift.Bool
++  }
++  public let button: IosLibrary.DialogAnswer.Button
++  public let title: Swift.String?
++  public let input: IosLibrary.DialogInput?
++  #if compiler(>=5.3) && $NonescapableTypes
++  public init(button: IosLibrary.DialogAnswer.Button, title: Swift.String?, input: IosLibrary.DialogInput?)
++  #endif
++  public static func == (a: IosLibrary.DialogAnswer, b: IosLibrary.DialogAnswer) -> Swift.Bool
++}
++public enum DialogError : Swift.Error, Swift.Sendable, Swift.Equatable, Foundation.LocalizedError {
++  case canceled
++  case dismissedBySystem
++  case notForeground
++  case presentationFailed
++  case invalidRequest
++  #if compiler(>=5.3) && $NonescapableTypes
++  public var errorDescription: Swift.String? {
++    get
++  }
++  #endif
++  public static func == (a: IosLibrary.DialogError, b: IosLibrary.DialogError) -> Swift.Bool
++  public func hash(into hasher: inout Swift.Hasher)
++  public var hashValue: Swift.Int {
++    get
++  }
+ }
++public enum DialogInput : Swift.Sendable, Swift.Equatable, Swift.CustomStringConvertible {
++  case text(Swift.String)
++  case login(username: Swift.String, password: Swift.String)
++  public var description: Swift.String {
++    get
++  }
++  public static func == (a: IosLibrary.DialogInput, b: IosLibrary.DialogInput) -> Swift.Bool
++}
++public enum DialogRequest : Swift.Sendable, Swift.Equatable {
++  case alert(title: Swift.String?, message: Swift.String?, buttonTitle: Swift.String = "OK")
++  case confirm(title: Swift.String?, message: Swift.String?, confirmTitle: Swift.String = "OK", cancelTitle: Swift.String = "Cancel")
++  case destructive(title: Swift.String?, message: Swift.String?, destructiveTitle: Swift.String = "Delete", cancelTitle: Swift.String = "Cancel")
++  case actionSheet(title: Swift.String?, message: Swift.String?, options: [Swift.String], cancelTitle: Swift.String = "Cancel")
++  case textInput(title: Swift.String?, message: Swift.String?, placeholder: Swift.String? = nil, confirmTitle: Swift.String = "OK", cancelTitle: Swift.String = "Cancel", enableConfirmWhenEmpty: Swift.Bool = true)
++  case login(title: Swift.String?, message: Swift.String?, usernamePlaceholder: Swift.String = "Username", passwordPlaceholder: Swift.String = "Password", loginTitle: Swift.String = "Login", cancelTitle: Swift.String = "Cancel", enableLoginWhenEmpty: Swift.Bool = true)
++  public static func == (a: IosLibrary.DialogRequest, b: IosLibrary.DialogRequest) -> Swift.Bool
++}
+ @objc @_inheritsConvenienceInitializers @_hasMissingDesignatedInitializers final public class IosDialogManager : ObjectiveC.NSObject, Swift.Sendable {
+   public static let shared: IosLibrary.IosDialogManager
+   #if compiler(>=5.3) && $NonescapableTypes
+-  final public func showDialog(title: Swift.String? = nil, message: Swift.String? = nil, preferredStyle: UIKit.UIAlertController.Style = .alert, actions: [UIKit.UIAlertAction] = [], textFields: [@_Concurrency.MainActor @Sendable (UIKit.UITextField) -> Swift.Void]? = nil, sourceView: UIKit.UIView? = nil, sourceRect: CoreFoundation.CGRect? = nil, barButtonItem: UIKit.UIBarButtonItem? = nil, permittedArrowDirections: UIKit.UIPopoverArrowDirection = .any, animated: Swift.Bool = true, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  @discardableResult
++  final public func show(_ request: IosLibrary.DialogRequest, presenter: IosLibrary.PresenterSelection = .firstActiveScene, requestBox: IosLibrary.RequestBox? = nil, completion: @escaping @_Concurrency.MainActor @Sendable (Swift.Result<IosLibrary.DialogAnswer, IosLibrary.DialogError>) -> Swift.Void) -> IosLibrary.RequestBox
+   #endif
++  @discardableResult
++  final public func show(_ request: IosLibrary.DialogRequest, presenter: IosLibrary.PresenterSelection = .firstActiveScene) async throws -> IosLibrary.DialogAnswer
++  final public func cancel(_ box: IosLibrary.RequestBox)
+   #if compiler(>=5.3) && $NonescapableTypes
+   @_Concurrency.MainActor final public func getRootViewController() -> UIKit.UIViewController?
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
++  @_Concurrency.MainActor final public func foregroundViewController() -> UIKit.UIViewController?
++  #endif
++  #if compiler(>=5.3) && $NonescapableTypes
++  final public func showDialog(title: Swift.String? = nil, message: Swift.String? = nil, preferredStyle: UIKit.UIAlertController.Style = .alert, actions: [UIKit.UIAlertAction] = [], textFields: [@_Concurrency.MainActor @Sendable (UIKit.UITextField) -> Swift.Void]? = nil, sourceView: UIKit.UIView? = nil, sourceRect: CoreFoundation.CGRect? = nil, barButtonItem: UIKit.UIBarButtonItem? = nil, permittedArrowDirections: UIKit.UIPopoverArrowDirection = .any, animated: Swift.Bool = true, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
++  #endif
++  #if compiler(>=5.3) && $NonescapableTypes
+   final public func showAlert(title: Swift.String? = nil, message: Swift.String? = nil, buttonText: Swift.String? = "OK", onButton: (@_Concurrency.MainActor @Sendable (Swift.String?, Swift.Bool, Swift.String?) -> Swift.Void)? = nil, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.String?) -> Swift.Void)? = nil)
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
+@@ -978,6 +1049,7 @@
+ extension IosLibrary.ClipboardOperationKind : Swift.Hashable {}
+ extension IosLibrary.ClipboardOperationKind : Swift.RawRepresentable {}
+ extension IosLibrary.PasteControlFactory : Swift.Sendable {}
++extension IosLibrary.DialogError : Swift.Hashable {}
+ extension IosLibrary.NotificationAuthorizationStatus : Swift.Equatable {}
+ extension IosLibrary.NotificationAuthorizationStatus : Swift.Hashable {}
+ extension IosLibrary.NotificationAuthorizationStatus : Swift.RawRepresentable {}

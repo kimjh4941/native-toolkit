@@ -4,7 +4,10 @@
 //
 
 import Foundation
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ShareRepositoryImpl")
 
 /// Concrete implementation of `ShareRepository` backed by `UIActivityViewController`.
 ///
@@ -13,25 +16,23 @@ import UIKit
 ///   `IosShareManager` constructs and stores this behind the public `ShareRepository` protocol.
 final class ShareRepositoryImpl: ShareRepository {
 
-    private let TAG = "ShareRepositoryImpl"
     private let presenter: ShareSheetPresenting
-    private let fileManager: FileManager
 
-    /// Creates an instance with a custom presenter and file manager (for testability).
-    /// - Parameters:
-    ///   - presenter: The share sheet presenter to use. Defaults to `ShareSheetPresenter()`.
-    ///   - fileManager: The file manager used for file-existence checks. Defaults to `.default`.
-    init(presenter: ShareSheetPresenting = ShareSheetPresenter(), fileManager: FileManager = .default) {
-        Log.d(TAG, "[init] presenter: \(presenter), fileManager: \(fileManager)")
+    /// Creates an instance with a custom presenter (for testability).
+    ///
+    /// File-existence checks use `FileManager.default`, which is thread-safe. It is not stored:
+    /// `FileManager` is not `Sendable`, and this class must be (`ShareRepository: Sendable`).
+    /// - Parameter presenter: The share sheet presenter to use. Defaults to `ShareSheetPresenter()`.
+    init(presenter: ShareSheetPresenting = ShareSheetPresenter()) {
+        logger.log(level: .libraryDebug, "[init] presenter: \(String(describing: type(of: presenter)), privacy: .public)")
         self.presenter = presenter
-        self.fileManager = fileManager
     }
 
-    func present(content: ShareContent) async throws -> ShareResult {
-        Log.d(TAG, "[present] items: \(content.items.count), subject: \(content.subject ?? "nil")")
+    func present(content: ShareContent, presenter selection: PresenterSelection) async throws -> ShareResult {
+        logger.log(level: .libraryDebug, "[present] \(content.logSummary, privacy: .public), presenter: \(selection.logName, privacy: .public)")
         let items = try buildActivityItems(from: content)
         let excluded = content.excludedActivityTypes.map { UIActivity.ActivityType($0) }
-        return try await presenter.present(items: items, excluded: excluded)
+        return try await presenter.present(items: items, excluded: excluded, presenter: selection)
     }
 
     /// Converts `ShareContent` into `UIActivityViewController` activation items.
@@ -40,7 +41,7 @@ final class ShareRepositoryImpl: ShareRepository {
     /// (not appended) by a `ShareItemSource` wrapping it, so the content is shared exactly once.
     /// - Throws: `ShareError` on invalid URL, missing file, or unreadable image.
     func buildActivityItems(from content: ShareContent) throws -> [Any] {
-        Log.d(TAG, "[buildActivityItems] items: \(content.items.count)")
+        logger.log(level: .libraryDebug, "[buildActivityItems] \(content.logSummary, privacy: .public)")
         var activityItems: [Any] = try content.items.map { try convert($0) }
 
         let hasMetadata = content.subject != nil || content.previewTitle != nil
@@ -64,7 +65,7 @@ final class ShareRepositoryImpl: ShareRepository {
             }
             return image
         case .file(let path):
-            guard fileManager.fileExists(atPath: path) else {
+            guard FileManager.default.fileExists(atPath: path) else {
                 throw ShareError.fileNotFound(path: path)
             }
             return URL(fileURLWithPath: path)

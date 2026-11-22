@@ -11,6 +11,11 @@ pluginManagement {
     }
 }
 
+// Finds or downloads the JDK of the toolchains and gradle/gradle-daemon-jvm.properties.
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {

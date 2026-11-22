@@ -10,8 +10,8 @@ import Foundation
 /// Every member is `@MainActor`-isolated because the implementation touches `UIPasteboard`.
 /// `copy` / `append` are `async throws` because their content enum may carry an image, which is
 /// encoded/decoded on a background executor before the (synchronous) pasteboard write; non-image
-/// content is written in the same actor turn without a background hop (see the design's
-/// "System API に合わせた同期・非同期設計" section). All other members mirror synchronous
+/// content is written in the same actor turn without a background hop. All other members mirror
+/// synchronous
 /// `UIPasteboard` APIs and remain synchronous.
 ///
 /// Note: Clipboard change observation (`changedNotification` / `removedNotification`) is
@@ -40,8 +40,10 @@ public protocol ClipboardRepository: AnyObject, Sendable {
     func readData(utType: String, scope: PasteboardScope) throws -> Data?
 
     /// Reads metadata only, using system APIs documented to avoid user notifications/prompts.
-    /// - Parameter matchingTypes: When non-nil, also computes `matchingItemIndexes` via
-    ///   `itemSet(withPasteboardTypes:)`.
+    /// - Parameters:
+    ///   - matchingTypes: When non-nil, also computes `matchingItemIndexes` via
+    ///     `itemSet(withPasteboardTypes:)`.
+    ///   - scope: The pasteboard to read.
     func snapshot(matchingTypes: [String]?, scope: PasteboardScope) throws -> ClipboardSnapshot
 
     /// Clears all items (`items = []`).

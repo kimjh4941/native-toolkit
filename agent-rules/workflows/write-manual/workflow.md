@@ -33,6 +33,10 @@
          - `*-sample-app-result*.md`
        - 入力がない場合は `artifact/*/<feature>/designs/` 配下の `*-implementation*.md` も候補に含める
        - 同一ドキュメントの改訂版がある場合は最も大きいバージョンのみを候補にする
+       - リリースで 1 つの OS の API が機能をまたいで変わる場合（例: 1.13.0 の Android 2.0.0、1.14.0 の iOS 2.0.0）は、トピックのフォルダ `artifact/topics/<topic>/designs/` と `artifact/topics/<topic>/results/` もソースの候補にする
+         - 例: `artifact/topics/ios-c-abi/` の Swift の API の設計書（`*-swift-api-design.md`）、C ABI の設計書の第 1 部・第 2 部（`*-c-abi-design.md`・`*-c-abi-design-part2.md`）、段階の結果（`*-stage<n>-result.md`・`*-working-notes.md`）
+         - トピックの `README.md` で、どの段階が済み、どの記録が今の状態かを先に確かめる
+         - 後の記録（日付の新しい設計書・結果、決め直し）が前の記録より優先する。機能のフォルダの古い設計書・結果と食い違う場合も、トピックの後の記録に合わせる
        - 複数ファイルを選択した場合は全て読み込んで内容を統合する
 
 3. ソースファイルを読み込み、前提情報を抽出する（必須）
@@ -44,9 +48,9 @@
    - `dist/<version>/` 配下のファイルを確認し、OS ごとの実際のライブラリファイル名（バージョン含む）を把握する
      - 例: `dist/1.3.0/android/android-native-toolkit-1.1.0.aar` → Android ライブラリバージョンは `1.1.0`
      - マニュアルに記載するファイル名・バージョンは必ずこの実態と一致させる
-     - Unity プラグインの成果物（例: iOS の `unity-ios-native-toolkit-*.xcframework`）はマニュアルに記載しない。Android の記載対象は、Kotlin の API の AAR（`android-native-toolkit-*.aar`）と C ABI の AAR（`android-native-toolkit-capi-*.aar`。2.0.0 から。Unity 向けではなく汎用の C ABI）とする
+     - Unity プラグインの成果物（例: macOS の `unity-mac-native-toolkit-*.xcframework`）はマニュアルに記載しない。Android の記載対象は、Kotlin の API の AAR（`android-native-toolkit-*.aar`）と C ABI の AAR（`android-native-toolkit-capi-*.aar`。2.0.0 から。Unity 向けではなく汎用の C ABI）とする。iOS の記載対象は、Swift の API の XCFramework（`ios-native-toolkit-*.xcframework`）と C ABI の XCFramework（`ios-native-toolkit-capi-*.xcframework` と `include/NativeToolkitC/`。2.0.0 から。同じく汎用の C ABI）とする
      - Setup セクションに「Unity プラグイン（AAR）」の小見出しは設けない
-     - Unity プラグイン（`UnityIosShareManager` 等）に関するセクションはマニュアルに含めない
+     - Unity プラグイン（`UnityMacShareManager` 等）に関するセクションはマニュアルに含めない
 
 4. 結果ファイルと実装の矛盾を検証・修正する（必須）
    - ステップ3で読み込んだ結果ファイルに記載された内容を、実際のソースコードと照合する
@@ -117,6 +121,10 @@
      - 「〜한다.」「〜된다.」のような한다体（plain form）は使用しない
      - 既存の韓国語マニュアル（例: `share.ko.md`）の文体を基準に合わせる
      - 生成後、한다体の文末（「〜한다.」「〜된다.」「〜없다.」「〜있다.」など）が残っていないか確認する
+   - 見出しのアンカー（OS の節をまたいで同じ見出しがある場合）:
+     - `### C ABI`・`### Setup` などは OS の節ごとに同じ名前のまま付ける（C の例の照合は `### C ABI` だけを C ABI の節と読む）。GitHub は同じ見出しに文書の順で `-1`・`-2` を付けるので、前の OS に節を足すと、後ろの OS の目次のリンクの番号がずれる
+     - 節を足したり消したりしたら、後ろの OS の目次のリンクの番号も直す
+     - `scripts/verify_manual.sh` の「anchors in OS sections」（止める項目）が、目次で OS の項目の下にあるリンクが、その OS の `## ` の節の中の見出しを指しているかを見る
    - 既存ファイルがある場合はユーザーに上書き確認を行い、承認なしで上書きしない
 
 7. `manual/<version>/index.md` を更新する（必須）

@@ -1,0 +1,9 @@
+var searchData=
+[
+  ['text_0',['text',['../structntk__clipboard__write__content.html#a1ae0baf313bb4c27a271125de48f93d4',1,'ntk_clipboard_write_content']]],
+  ['text_5fcount_1',['text_count',['../structntk__clipboard__write__content.html#ac982af57d28a283c02a718a9392b5d4c',1,'ntk_clipboard_write_content']]],
+  ['text_5finput_5faction_5fcount_2',['text_input_action_count',['../structntk__notification__category.html#ad15972aeeee81168ce52b7c2aebc38ef',1,'ntk_notification_category']]],
+  ['text_5finput_5factions_3',['text_input_actions',['../structntk__notification__category.html#a81b51b6daebf7dfdb4424949af09eda4',1,'ntk_notification_category']]],
+  ['texts_4',['texts',['../structntk__clipboard__write__content.html#a31eb1f606374b540c82cdafd70ca50df',1,'ntk_clipboard_write_content']]],
+  ['title_5',['title',['../structntk__dialog__alert__request.html#a6987f115439869643f8b390be3c0cdb2',1,'ntk_dialog_alert_request::title'],['../structntk__dialog__confirm__request.html#a6b11a88b54eaba74c5174cadc8da56cd',1,'ntk_dialog_confirm_request::title'],['../structntk__dialog__destructive__request.html#a5f42c37b51cdb7d25c050206ade097a9',1,'ntk_dialog_destructive_request::title'],['../structntk__dialog__action__sheet__request.html#aedb764ea002d0b547e019d8c0b060437',1,'ntk_dialog_action_sheet_request::title'],['../structntk__dialog__text__input__request.html#a2abbfb6a3951de6f77b633d54fa0cf5b',1,'ntk_dialog_text_input_request::title'],['../structntk__dialog__login__request.html#a4d96d4897ee8e328a1b6c3a62c25972c',1,'ntk_dialog_login_request::title'],['../structntk__notification__action.html#a3879c63f534baf93848b805f044ff0d3',1,'ntk_notification_action::title'],['../structntk__notification__text__input__action.html#a311debc53d16c174f44502a01e7a6485',1,'ntk_notification_text_input_action::title']]]
+];

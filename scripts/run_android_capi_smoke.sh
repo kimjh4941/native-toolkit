@@ -61,13 +61,11 @@ if [[ ! -d "${REPO}/io/github/kimjh4941/android-native-toolkit-capi/${VERSION}" 
   exit 1
 fi
 
-for java_home in "/Applications/Android Studio Panda 1 .app/Contents/jbr/Contents/Home" \
-                 "/Applications/Android Studio.app/Contents/jbr/Contents/Home"; do
-  if [[ -d "${java_home}" ]]; then
-    export JAVA_HOME="${java_home}"
-    break
-  fi
-done
+# The Gradle 9 launcher needs Java 17 or later; gradle/gradle-daemon-jvm.properties then picks the
+# JDK that runs the build (JetBrains Runtime 21).
+if java_21_home="$(/usr/libexec/java_home -v 21 2>/dev/null)"; then
+  export JAVA_HOME="${java_21_home}"
+fi
 # The smoke is a build of its own, without android/local.properties.
 export ANDROID_HOME="${ANDROID_HOME:-${HOME}/Library/Android/sdk}"
 export ANDROID_SERIAL="${SERIAL}"

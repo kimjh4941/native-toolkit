@@ -3,7 +3,10 @@
 //  IosLibrary
 //
 
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardPasteReceiverView")
 
 /// A `UIResponder` that accepts pasted `NSItemProvider`s via `UIPasteControl` (or the standard
 /// edit menu). Not intended to be instantiated directly by callers — obtain one via
@@ -14,7 +17,6 @@ import UIKit
 ///   it as a subview.
 @MainActor
 public final class ClipboardPasteReceiverView: UIView {
-    private let TAG = "ClipboardPasteReceiverView"
     private let loader: PasteItemProviderLoader
 
     /// Called once when one or more providers loaded successfully.
@@ -49,7 +51,7 @@ public final class ClipboardPasteReceiverView: UIView {
     }
 
     public override func paste(itemProviders: [NSItemProvider]) {
-        Log.d(TAG, "[paste] providerCount: \(itemProviders.count)")
+        logger.log(level: .libraryDebug, "[paste] providerCount: \(itemProviders.count, privacy: .public)")
         loader.load(providers: itemProviders, acceptedTypes: acceptedTypes) { [weak self] result in
             guard let self else { return }
             // U-90: cancellation is caller-initiated (a new paste, or this view being torn down),
@@ -71,7 +73,7 @@ public final class ClipboardPasteReceiverView: UIView {
     /// Cancels any in-flight paste load without invoking `onPaste` / `onPartialFailure` /
     /// `onPasteFailure` (cancellation is caller-initiated and must not surface as a UI callback).
     func cancelPendingLoad() {
-        Log.d(TAG, "[cancelPendingLoad]")
+        logger.log(level: .libraryDebug, "[cancelPendingLoad]")
         loader.cancelAll()
     }
 }

@@ -108,6 +108,12 @@ class CAbiContractChecker(unittest.TestCase):
     def test_an_enum_value_that_moved(self):
         self.assert_catches("signatures", (C_CLIPBOARD, "NTK_CLIPBOARD_ERROR_BUSY = 3,", "NTK_CLIPBOARD_ERROR_BUSY = 33,"))
 
+    def test_an_initializer_outside_the_grammar(self):
+        self.assert_catches("signatures", (C_CLIPBOARD, "NTK_CLIPBOARD_ERROR_BUSY = 3,", "NTK_CLIPBOARD_ERROR_BUSY = 1u << 1 | 1,"))
+
+    def test_a_declaration_of_no_kind(self):
+        self.assert_catches("signatures", (C_CLIPBOARD, "NTK_CLIPBOARD_ERROR_BUSY = 3,", "NTK_CLIPBOARD_ERROR_BUSY = 3,\n    OTHER_THING = 4,"))
+
     def test_a_declaration_inside_an_if(self):
         self.assert_catches("signatures", (C_NOTIFICATION, "ntk_notification_manager* manager, int32_t value);",
                                            "ntk_notification_manager* manager, int32_t value);\n#if defined(NTK_EXPERIMENTAL)\n#endif"))

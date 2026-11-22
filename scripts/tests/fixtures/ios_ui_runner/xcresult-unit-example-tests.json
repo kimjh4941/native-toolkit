@@ -1,0 +1,122 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "73A3F720-16B5-45F6-A743-E9D853C92424",
+      "deviceName" : "iPhone 17",
+      "modelName" : "iPhone 17",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "name" : "The real return value is reported, never overwritten to false",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/checkForegroundPayloadKeepsTheRealReturnValue()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/checkForegroundPayloadKeepsTheRealReturnValue()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "The note never asserts the manager's internal baseline state",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/checkForegroundPayloadNeverClaimsManagerState()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/checkForegroundPayloadNeverClaimsManagerState()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "M-16 tells its three fixtures apart by character length alone",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/m16FixturesHaveDistinctLengths()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/m16FixturesHaveDistinctLengths()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "The append marker stays 24 characters across invocations",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/appendMarkerLengthIsStable()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/appendMarkerLengthIsStable()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "U-11 asserts fileSize=64, so the fixture must be exactly 64 bytes",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/fileFixtureIs64Bytes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/fileFixtureIs64Bytes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "The isolated fixtures contain nothing but their own pattern",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/isolatedDetectionFixturesAreSingleValued()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/isolatedDetectionFixturesAreSingleValued()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "The detection fixture carries the inputs for all 11 patterns",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/detectionFixtureCoversEveryPattern()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/detectionFixtureCoversEveryPattern()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "Button identifiers are derived from the marker, so the two cannot drift apart",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/buttonIdentifierIsDerivedFromTheMarker()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/buttonIdentifierIsDerivedFromTheMarker()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "All 52 result markers and 2 control markers are distinct",
+                  "nodeIdentifier" : "ClipboardSampleViewTests/markersAreDistinct()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests/markersAreDistinct()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardSampleViewTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/ClipboardSampleViewTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "example()",
+                  "nodeIdentifier" : "IosLibraryExampleTests/example()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/IosLibraryExampleTests/example()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "IosLibraryExampleTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests/IosLibraryExampleTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "IosLibraryExampleTests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleTests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Passed"
+        }
+      ],
+      "name" : "IosLibraryExample",
+      "nodeType" : "Test Plan",
+      "result" : "Passed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

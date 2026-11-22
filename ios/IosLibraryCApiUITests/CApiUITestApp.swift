@@ -1,0 +1,596 @@
+//
+//  CApiUITestApp.swift
+//  IosLibraryCApiUITests
+//
+
+import UIKit
+import XCTest
+
+/// The sections of the app (`CApiRowCatalog.sections`): a test cannot name another one. One that is
+/// here and not in the app fails at `launch`.
+enum CApiSection: String {
+    case common
+    case notification
+    case clipboard
+    case dialog
+    case share
+}
+
+/// How the tests operate `IosLibraryCApiUITestApp`. The identifiers are copies of the app's: the test
+/// bundle is a separate process and cannot reference them.
+struct CApiUITestApp {
+    /// Also in `scripts/ios_ui_runner.py` (`CAPI_UI_BUNDLE_ID`), which deletes the app by it.
+    static let bundleIdentifier = "com.jonghyunkim.nativetoolkit.IosLibraryCApiUITestApp"
+    /// The app's `RowRunner.delay`, and a margin for the call to run.
+    static let backgroundWait: TimeInterval = 5
+    static let timeout: TimeInterval = 10
+
+    private let app = XCUIApplication(bundleIdentifier: bundleIdentifier)
+    let test: CApiUITestCase
+    private let section: CApiSection
+
+    /// `section` is the section to draw and `listensAtLaunch` whether the notification listeners are registered
+    /// inside the launch (`LaunchShape` in the app, which keeps both for a launch without them).
+    init(test: CApiUITestCase, section: CApiSection, listensAtLaunch: Bool = false) {
+        self.test = test
+        self.section = section
+        app.launchEnvironment["NTK_CAPI_SECTION"] = section.rawValue
+        app.launchEnvironment["NTK_CAPI_LISTEN_AT_LAUNCH"] = listensAtLaunch ? "1" : "0"
+    }
+
+    /// Stops the test unless the app drew the section, also for a test that reads no row.
+    func launch() throws {
+        try CApiUITestCase.requireSimulator()
+        app.launch()
+        try test.checkInterruption()
+        let drawn = try waitForLine(ofRow: "launch.section")
+        guard drawn == "[launch.section@none] \(section.rawValue)" else {
+            throw CApiUITestError("the app did not draw the section \(section.rawValue): \(drawn)")
+        }
+    }
+
+    func terminate() throws {
+        app.terminate()
+        try test.checkInterruption()
+    }
+
+    // MARK: Rows
+
+    /// Presses the row's Run button and returns without waiting for a line.
+    func start(_ rowId: String) throws {
+        try tap("row.\(rowId).run")
+    }
+
+    /// Runs the row and returns the line this call wrote. For a row that writes one line per call.
+    func run(_ rowId: String, timeout: TimeInterval = Self.timeout) throws -> String {
+        let before = lines(ofRow: rowId).count
+        try start(rowId)
+        return try waitForLine(ofRow: rowId, occurrence: before, timeout: timeout)
+    }
+
+    /// Starts the row with the delay, goes to the home screen so that the call is made in the
+    /// background, comes back and returns the line it wrote. A fixed wait: the result line cannot be
+    /// read while the app is in the background.
+    func runInTheBackground(_ rowId: String, timeout: TimeInterval = Self.timeout) throws -> String {
+        let before = lines(ofRow: rowId).count
+        try tap("row.\(rowId).runAfterDelay")
+        XCUIDevice.shared.press(.home)
+        Thread.sleep(forTimeInterval: Self.backgroundWait)
+        app.activate()
+        try test.checkInterruption()
+        return try waitForLine(ofRow: rowId, occurrence: before, timeout: timeout)
+    }
+
+    /// Whether the row is drawn. Only the section of this launch is (`CApiRowCatalog.drawn`).
+    func isDrawn(_ rowId: String) -> Bool {
+        app.buttons["row.\(rowId).run"].waitForExistence(timeout: 2)
+    }
+
+    // MARK: Result lines
+
+    /// The line number `occurrence` (from 0) of this row, once it is there. A row that reports later
+    /// (a C completion, a C event) is read with this after `start`.
+    func waitForLine(ofRow rowId: String, occurrence: Int = 0, timeout: TimeInterval = Self.timeout) throws -> String {
+        let query = lines(ofRow: rowId)
+        let deadline = Date().addingTimeInterval(timeout)
+        while query.count <= occurrence {
+            try test.checkInterruption()
+            guard Date() < deadline else {
+                throw CApiUITestError("no line \(occurrence) of \(rowId) after \(timeout) s (\(query.count) lines)")
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return query.element(boundBy: occurrence).label
+    }
+
+    /// Whether the line is there now, without waiting.
+    func isDrawnLine(ofRow rowId: String, occurrence: Int) -> Bool {
+        lines(ofRow: rowId).count > occurrence
+    }
+
+    /// Whether a line of this row, later or not, holds `text`, once it is there. A row whose number of lines
+    /// the system decides (a change event) is read with this.
+    func waitForLine(ofRow rowId: String, matching text: String, timeout: TimeInterval = Self.timeout) throws -> Bool {
+        let query = lines(ofRow: rowId).matching(NSPredicate(format: "label CONTAINS %@", text))
+        return query.firstMatch.waitForExistence(timeout: timeout)
+    }
+
+    private func lines(ofRow rowId: String) -> XCUIElementQuery {
+        app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH 'result.line.' AND label BEGINSWITH %@", "[\(rowId)@"))
+    }
+
+    // MARK: Dialogs
+
+    /// The alert with this title, once it is shown. An alert without a title is found by not naming one.
+    func alert(_ title: String?, timeout: TimeInterval = Self.timeout) throws -> XCUIElement {
+        let alert = title.map { app.alerts[$0] } ?? app.alerts.firstMatch
+        guard alert.waitForExistence(timeout: timeout) else {
+            throw CApiUITestError("the alert \(title ?? "without a title") did not appear")
+        }
+        try test.checkInterruption()
+        return alert
+    }
+
+    /// Presses a button of the alert and waits until it is gone.
+    func press(_ button: String, inAlert title: String?) throws {
+        let alert = try alert(title)
+        alert.buttons[button].tap()
+        try test.checkInterruption()
+        guard wait(until: !alert.exists) else {
+            throw CApiUITestError("the alert \(title ?? "without a title") did not go away")
+        }
+    }
+
+    /// Whether an alert with this title is on the screen now.
+    func isAlertShown(_ title: String) -> Bool {
+        app.alerts[title].exists
+    }
+
+    /// Waits until the alert is gone.
+    func waitUntilGone(alert title: String) throws {
+        guard wait(until: !app.alerts[title].exists) else {
+            throw CApiUITestError("the alert \(title) did not go away")
+        }
+    }
+
+    /// Whether no dialog shows up for this long: an alert, a sheet, or an action sheet in a popover, which is not
+    /// a sheet to XCTest and is seen by its first option.
+    func noDialogAppears(for seconds: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(seconds)
+        repeat {
+            if app.alerts.firstMatch.exists || app.sheets.firstMatch.exists || app.buttons["Alpha"].exists {
+                return false
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        } while Date() < deadline
+        return true
+    }
+
+    /// Types into the text field at `index` of the alert (`secure` for the secure ones).
+    func type(_ text: String, intoField index: Int, secure: Bool = false, ofAlert title: String) throws {
+        let alert = try alert(title)
+        let field = (secure ? alert.secureTextFields : alert.textFields).element(boundBy: index)
+        field.tap()
+        field.typeText(text)
+        try test.checkInterruption()
+    }
+
+    /// Whether the button of the alert can be pressed.
+    func isEnabled(_ button: String, inAlert title: String) throws -> Bool {
+        try alert(title).buttons[button].isEnabled
+    }
+
+    /// An action sheet is a sheet or a popover, depending on the system and the device: this is its button.
+    func pressSheetButton(_ label: String) throws {
+        let button = app.buttons[label]
+        guard button.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the sheet button \(label) did not appear")
+        }
+        try test.checkInterruption()
+        button.tap()
+        try test.checkInterruption()
+    }
+
+    /// Whether a button with this label is shown now and can be hit.
+    func isButtonHittable(_ label: String) -> Bool {
+        let button = app.buttons[label]
+        return button.waitForExistence(timeout: 2) && button.isHittable
+    }
+
+    /// Taps outside the action sheet and says how: `region` is the popover's dismiss region, whose sheet has no
+    /// `cancel` to press (the sample's D7), and `coordinate` is a point above a sheet, which must be on none of
+    /// its `buttons`. Either way the test cannot have pressed `cancel` by accident.
+    func tapOutsideTheSheet(buttons: [String], cancel: String) throws -> String {
+        let region = app.otherElements["PopoverDismissRegion"]
+        if region.waitForExistence(timeout: 2) {
+            let button = app.buttons[cancel]
+            if button.exists && button.isHittable {
+                throw CApiUITestError("the sheet has a button to press where the region was expected")
+            }
+            region.tap()
+            try test.checkInterruption()
+            return "region"
+        }
+        let offset = CGVector(dx: 0.5, dy: 0.2)
+        let window = app.windows.firstMatch.frame
+        let point = CGPoint(x: window.minX + window.width * offset.dx, y: window.minY + window.height * offset.dy)
+        for label in buttons where app.buttons[label].frame.contains(point) {
+            throw CApiUITestError("the point outside the sheet is on the button \(label)")
+        }
+        app.coordinate(withNormalizedOffset: offset).tap()
+        try test.checkInterruption()
+        return "coordinate"
+    }
+
+    /// Answers the system's offer to save a password (working notes, 8.7) with "not now", if it comes. Whether it did.
+    /// The sheet slides in: a tap while it is still moving can be lost (working notes, 8.10), so the button is tapped
+    /// once it can be hit and the sheet has stopped moving. The sheet is then followed by its own label, so that
+    /// another sheet cannot stand in for it. If it stays, the test fails.
+    func declineTheOfferToSaveThePassword() throws -> Bool {
+        let first = app.sheets.firstMatch
+        guard first.waitForExistence(timeout: 5) else { return false }
+        let sheet = app.sheets.matching(NSPredicate(format: "label == %@", first.label)).firstMatch
+        let button = sheet.buttons["Not Now"]
+        guard button.waitForExistence(timeout: 2) else {
+            throw CApiUITestError("a sheet came after the login, without the button expected")
+        }
+        guard wait(until: button.isHittable && isStill(sheet)) else {
+            throw CApiUITestError("the sheet after the login did not settle")
+        }
+        button.tap()
+        try test.checkInterruption()
+        guard wait(until: !sheet.exists) else {
+            throw CApiUITestError("the sheet after the login did not go away")
+        }
+        return true
+    }
+
+    /// Whether the element is at the same place twice, 0.3 seconds apart.
+    private func isStill(_ element: XCUIElement) -> Bool {
+        let before = element.frame
+        Thread.sleep(forTimeInterval: 0.3)
+        return element.exists && element.frame == before
+    }
+
+    // MARK: Control Center (the sample's Springboard.openControlCenter; simulator only)
+
+    /// Starts the row with the delay and returns without waiting.
+    func startAfterDelay(_ rowId: String) throws {
+        try tap("row.\(rowId).runAfterDelay")
+    }
+
+    func openControlCenter() throws {
+        try CApiUITestCase.requireSimulator()
+        dragOnSpringboard(from: CGVector(dx: 0.95, dy: 0.005), to: CGVector(dx: 0.95, dy: 0.6))
+        try test.checkInterruption()
+    }
+
+    func closeControlCenter() throws {
+        try CApiUITestCase.requireSimulator()
+        dragOnSpringboard(from: CGVector(dx: 0.5, dy: 0.95), to: CGVector(dx: 0.5, dy: 0.2))
+        try test.checkInterruption()
+    }
+
+    private func dragOnSpringboard(from start: CGVector, to end: CGVector) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        springboard.coordinate(withNormalizedOffset: start).press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: end))
+    }
+
+    private func wait(until condition: @autoclosure () -> Bool, timeout: TimeInterval = Self.timeout) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() {
+            guard Date() < deadline else { return false }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return true
+    }
+
+    // MARK: Notifications
+
+    /// Presses the allow button of the notification permission alert, in the languages of the simulators here
+    /// (`SystemLabels.allow`). The label is not in the message.
+    func allowNotifications() throws {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let button = springboard.alerts.firstMatch.buttons.matching(NSPredicate(format: "label IN %@", ["Allow", "許可"])).firstMatch
+        guard button.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("no permission alert with the allow button")
+        }
+        button.tap()
+    }
+
+    // MARK: Notification banners (part 2, 12.2, "通知のイベント"). Simulator only
+
+    // The app's event notification ("Event" / "Tap the event", category `ntk.events`), found as the sample's
+    // `Springboard` finds its own (identifiers measured on the iOS 26.2 simulator in stage 0c). Failure messages
+    // name no springboard label.
+    private static let shortLookIdentifier = "NotificationShortLookView"
+    private static let replyPlaceholder = "IosLibraryCApiUITestApp reply"
+    private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+
+    private var eventBanners: XCUIElementQuery {
+        springboard.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier == %@ AND label CONTAINS %@ AND label ENDSWITH %@", Self.shortLookIdentifier, ", Event, ", ", Tap the event"))
+    }
+
+    func pressHome() throws {
+        XCUIDevice.shared.press(.home)
+        try test.checkInterruption()
+    }
+
+    func activate() throws {
+        app.activate()
+        try test.checkInterruption()
+    }
+
+    /// Waits for the event banner, which must be the only one.
+    func eventBanner(timeout: TimeInterval = 15) throws -> XCUIElement {
+        guard eventBanners.firstMatch.waitForExistence(timeout: timeout) else {
+            throw CApiUITestError("the event banner did not appear")
+        }
+        try test.checkInterruption()
+        guard eventBanners.count == 1 else {
+            throw CApiUITestError("the event banner matches \(eventBanners.count) elements")
+        }
+        return eventBanners.element(boundBy: 0)
+    }
+
+    /// Long-presses the event notification until it shows its actions; the app's own `Open` action is the mark.
+    /// The banner expands on the iPhones. On the iPad (18.3) it does not (measured in TB-9: a long press of 0.8 to 3
+    /// seconds, a pull down and a swipe leave it as it is), but the same notification in Notification Center does:
+    /// there the banner is left to go, Notification Center is pulled down from the top, and its cell is pressed.
+    func expandEventBanner() throws {
+        let banner = try eventBanner()
+        let open = springboard.buttons.matching(identifier: "Open")
+        banner.press(forDuration: 1.5)
+        if UIDevice.current.userInterfaceIdiom == .pad, !open.firstMatch.waitForExistence(timeout: 3) {
+            guard eventBanners.firstMatch.waitForNonExistence(timeout: 15) else {
+                throw CApiUITestError("the event banner did not go")
+            }
+            springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.0))
+                .press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)))
+            let cells = springboard.buttons.matching(NSPredicate(format: "identifier == %@ AND label ENDSWITH %@", "ListCell", ", Event, Tap the event"))
+            guard cells.firstMatch.waitForExistence(timeout: Self.timeout) else {
+                throw CApiUITestError("the event notification is not in Notification Center")
+            }
+            cells.firstMatch.press(forDuration: 1.5)
+        }
+        guard open.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the event notification did not expand")
+        }
+        try test.checkInterruption()
+    }
+
+    /// An action of the expanded event notification: `Open` or `Reply`, the app's own titles.
+    func tapEventAction(_ title: String) throws {
+        let buttons = springboard.buttons.matching(identifier: title)
+        guard buttons.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the action \(title) did not appear")
+        }
+        guard buttons.count == 1 else {
+            throw CApiUITestError("the action \(title) matches \(buttons.count) elements")
+        }
+        buttons.element(boundBy: 0).tap()
+        try test.checkInterruption()
+    }
+
+    /// Types into the reply of the event notification and sends it. The reply window is the one holding a text
+    /// view with the app's own placeholder.
+    func sendEventReply(_ text: String) throws {
+        let textView = NSPredicate(format: "elementType == %lu AND placeholderValue == %@",
+                                   XCUIElement.ElementType.textView.rawValue, Self.replyPlaceholder)
+        let windows = springboard.windows.containing(textView)
+        guard windows.firstMatch.waitForExistence(timeout: Self.timeout), windows.count == 1 else {
+            throw CApiUITestError("the reply window of the event notification did not appear once")
+        }
+        let window = windows.element(boundBy: 0)
+        let views = window.textViews.matching(textView)
+        guard views.count == 1 else {
+            throw CApiUITestError("the reply text view matches \(views.count) elements")
+        }
+        views.element(boundBy: 0).typeText(text)
+        try test.checkInterruption()
+        let send = springboard.buttons.matching(identifier: "Send")
+        guard send.firstMatch.waitForExistence(timeout: Self.timeout), send.count == 1 else {
+            throw CApiUITestError("the send button of the reply did not appear once")
+        }
+        send.element(boundBy: 0).tap()
+        try test.checkInterruption()
+    }
+
+    /// Clears the event notification in Notification Center (12.2, DISMISS; TB-10): the banner is left to go,
+    /// Notification Center is pulled down from the top, the notification's cell is swiped left and its clear button
+    /// pressed. The cell is the one TB-9 measured on the iPad (`ListCell`, label ending with the title and body).
+    /// Measured in TB-10: on the iPhones (26.2, 18.3) `swipeLeft` shows the button; on the iPad (18.3) it leaves the
+    /// cell (the cell is gone and no button shows), and a short drag from its right part to its middle shows it.
+    func clearEventInNotificationCenter() throws {
+        _ = try eventBanner()
+        guard eventBanners.firstMatch.waitForNonExistence(timeout: 15) else {
+            throw CApiUITestError("the event banner did not go")
+        }
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.0))
+            .press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7)))
+        let cells = springboard.buttons.matching(NSPredicate(format: "identifier == %@ AND label ENDSWITH %@", "ListCell", ", Event, Tap the event"))
+        guard cells.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the event notification is not in Notification Center")
+        }
+        guard cells.count == 1 else {
+            throw CApiUITestError("the event notification matches \(cells.count) cells")
+        }
+        try test.checkInterruption()
+        let cell = cells.element(boundBy: 0)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            cell.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
+                .press(forDuration: 0.1, thenDragTo: cell.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)))
+        } else {
+            cell.swipeLeft()
+        }
+        let clear = springboard.buttons.matching(NSPredicate(format: "label IN %@", ["Clear", "消去"]))
+        guard clear.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the clear button of the event notification did not appear")
+        }
+        guard clear.count == 1 else {
+            throw CApiUITestError("the clear button matches \(clear.count) elements")
+        }
+        clear.element(boundBy: 0).tap()
+        try test.checkInterruption()
+        guard cells.firstMatch.waitForNonExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the event notification is still in Notification Center")
+        }
+    }
+
+    // MARK: The Settings app (part 2, 12.2, openSettingsFor; TB-10). Simulator only, iOS 26.2 (en)
+
+    // Found as the sample's `Springboard.openSampleNotificationSettingsLink` finds the sample's (N40, measured with
+    // MS-07 on the iOS 26.2 simulator, en). The app's name is its product name.
+    private static let displayName = "IosLibraryCApiUITestApp"
+    private let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+
+    /// Relaunches Settings at its top page and presses Apps, the app, Notifications and the app's own notification
+    /// settings link; the system then calls `openSettingsFor` and brings the app forward. Each row is found by its
+    /// exact label or identifier and must be the only one.
+    func openTheAppsNotificationSettingsLink() throws {
+        settings.terminate()
+        settings.launch()
+        guard settings.wait(for: .runningForeground, timeout: Self.timeout) else {
+            throw CApiUITestError("Settings did not come to the foreground")
+        }
+        try test.checkInterruption()
+        try pressSettingsRow(NSPredicate(format: "label == %@", "Apps"), "Apps")
+        try pressSettingsRow(NSPredicate(format: "label == %@", Self.displayName), "the app's row")
+        try pressSettingsRow(NSPredicate(format: "identifier == %@", "NOTIFICATIONS"), "Notifications")
+        try pressSettingsRow(NSPredicate(format: "label == %@", "\(Self.displayName) Notification Settings"), "the app's notification settings link")
+    }
+
+    /// As the sample's `pressSettingsRow`: waits up to 2 seconds for a match, then scrolls up (at most 12 times) and
+    /// back down once until exactly one hittable button or cell matches, and presses it.
+    private func pressSettingsRow(_ predicate: NSPredicate, _ name: String) throws {
+        let rows = settings.buttons.matching(predicate)
+        let cells = settings.cells.matching(predicate)
+        _ = settings.descendants(matching: .any).matching(predicate).firstMatch.waitForExistence(timeout: 2)
+        for swipe in 0...13 {
+            let query = rows.count > 0 ? rows : cells
+            if query.count == 1, query.firstMatch.isHittable {
+                query.firstMatch.tap()
+                try test.checkInterruption()
+                return
+            }
+            if query.count > 1 {
+                throw CApiUITestError("\(name): \(query.count) rows in Settings; nothing was pressed")
+            }
+            if swipe < 12 {
+                settings.swipeUp()
+            } else if swipe == 12 {
+                settings.swipeDown()
+            }
+        }
+        throw CApiUITestError("\(name) was not found in Settings")
+    }
+
+    // MARK: The share sheet (part 2, 12.2, "Share"). Simulator only
+
+    // The sheet is in the app's tree; it is found and closed as the sample's `ShareSheet` does (identifiers
+    // measured in stage 0a and 0c). Only the copy action is ever chosen (`copyInShareSheet`). Failure messages name
+    // no label of the sheet.
+    private var shareSheetMarkers: XCUIElementQuery {
+        app.descendants(matching: .any).matching(NSPredicate(format: "identifier IN %@", ["UIActivityContentView", "ActivityListView"]))
+    }
+
+    func waitForShareSheet(timeout: TimeInterval = Self.timeout) throws -> Bool {
+        let found = shareSheetMarkers.firstMatch.waitForExistence(timeout: timeout)
+        try test.checkInterruption()
+        return found
+    }
+
+    /// Whether no share sheet shows now, after a moment for one that would come.
+    func noShareSheetAppears(for seconds: TimeInterval) -> Bool {
+        !shareSheetMarkers.firstMatch.waitForExistence(timeout: seconds)
+    }
+
+    /// Chooses the sheet's copy action, which writes the shared text to the simulator's pasteboard (as the
+    /// Clipboard tests do; nothing leaves the simulator). Only the cell is matched: it also holds a title with the same
+    /// label (stage 0c).
+    func copyInShareSheet() throws {
+        let cells = app.cells.matching(NSPredicate(format: "label IN %@", ["Copy", "コピー"]))
+        guard cells.firstMatch.waitForExistence(timeout: Self.timeout), cells.count == 1 else {
+            throw CApiUITestError("the share sheet has \(cells.count) copy actions")
+        }
+        cells.element(boundBy: 0).tap()
+        try test.checkInterruption()
+    }
+
+    /// Closes the sheet without choosing anything: where there is a dismiss region (one on iOS 26.2 and the iPad,
+    /// two on the iPhone 16 / 18.3), a tap near the top left corner of the screen, outside a sheet at the bottom and
+    /// away from a popover anchored at the middle (iPad); otherwise the close button.
+    func closeShareSheet() throws {
+        let regions = app.otherElements.matching(identifier: "PopoverDismissRegion")
+        if regions.count > 0 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.15)).tap()
+        } else {
+            let close = app.buttons.matching(NSPredicate(format: "label IN %@", ["Close", "閉じる"]))
+            guard close.count == 1 else {
+                throw CApiUITestError("the share sheet has \(close.count) close buttons and \(regions.count) dismiss regions")
+            }
+            close.element(boundBy: 0).tap()
+        }
+        try test.checkInterruption()
+        guard shareSheetMarkers.firstMatch.waitForNonExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("the share sheet did not close")
+        }
+    }
+
+    // MARK: Elements
+
+    private func tap(_ identifier: String) throws {
+        try one(app.buttons, identifier).tap()
+        try test.checkInterruption()
+    }
+
+    /// The one element with the identifier. Two rows with one id, or none, stop the test.
+    private func one(_ query: XCUIElementQuery, _ identifier: String) throws -> XCUIElement {
+        let matches = query.matching(identifier: identifier)
+        guard matches.firstMatch.waitForExistence(timeout: Self.timeout) else {
+            throw CApiUITestError("\(identifier) did not appear")
+        }
+        try test.checkInterruption()
+        guard matches.count == 1 else {
+            throw CApiUITestError("\(identifier) matches \(matches.count) elements")
+        }
+        return matches.element(boundBy: 0)
+    }
+}
+
+/// A result line of a row of Notification.h called in `state`.
+func notificationLine(_ row: String, _ value: String, state: String = "foregroundActive") -> String {
+    "[notification.\(row)@\(state)] \(value)"
+}
+
+/// The numbers of `ntk_notification_error` (`Notification.h`, `scripts/c_abi_error_numbers.json`).
+enum NotificationError {
+    static let none = 0
+    static let notForeground = 8
+    static let permissionDenied = 10
+    static let wrongThread = 16
+    static let attachmentLoadFailed = 17
+}
+
+/// The numbers of `ntk_notification_authorization_status` (`Notification.h`).
+enum NotificationStatus {
+    static let notDetermined = 0
+    static let authorized = 2
+}
+
+/// The numbers of `ntk_notification_event_kind` (`Notification.h`).
+enum NotificationEventKind {
+    static let bodyTap = 0
+    static let action = 1
+    static let dismiss = 2
+    static let textInput = 3
+}
+
+/// The numbers of `ntk_share_error` (`Share.h`).
+enum ShareError {
+    static let notForeground = 6
+    static let emptyContent = 7
+    static let fileNotFound = 9
+    static let showFailed = 19
+}

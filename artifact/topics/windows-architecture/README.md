@@ -104,6 +104,8 @@ C++ API のフォルダは `WindowsLibrary/` のまま `WindowsLibraryCore/` に
 
 他の 3 OS のプラグイン（`unity_android_plugin` / `UnityIosPlugin` / `UnityMacPlugin`）も、コードは Unity に依存していない（`UnitySendMessage` などの Unity 固有 API の使用は 0 件）。それでも名前を残すのは、既に配布していて、変えると `unity-native-plugin` への破壊的変更になるからである。
 
+（2026-11-22 の追記: その後、`unity_android_plugin` は Android 2.0.0（製品 1.13.0）で、`UnityIosPlugin` は iOS 2.0.0（製品 1.14.0）で削除し、それぞれ汎用の C ABI（`android_library_capi`、`IosLibraryCApi`）に置き換えた（`artifact/topics/android-c-abi/`、`artifact/topics/ios-c-abi/`）。名前を残しているのは `UnityMacPlugin` だけ）
+
 Windows だけ名前を変えるのは、次の 2 つが理由である。
 
 - `UnityWindowsPlugin` は一度も配布していない（ビルドスクリプトで `Packable = $false`、`dist/` に成果物が無い）。名前を変えても外部に影響しない
@@ -289,7 +291,7 @@ artifact/topics/windows-architecture/
    - 配る単位と合わせる: C++ の API と C ABI は別の NuGet パッケージで、利用者はどちらかを取る（段階 6 の F-2）
    - C の見せ方: 今の設定は C++ 向け（`OPTIMIZE_OUTPUT_FOR_C = NO`）なので、C ABI の構造体が「クラス」の一覧に並ぶ。C ABI だけなら `YES` にできる
    - 名前の重なり: どちらにも `Clipboard.h`、`Dialog.h` などがあり、検索と一覧で混ざる
-   - OS をまたいでそろえる: Android は C ABI だけを Doxygen にした（`android/android_library_capi/Doxyfile`。Kotlin の API は Dokka。`android-c-abi` の段階 4）。今後の iOS / macOS の C ABI も同じ形にする
+   - OS をまたいでそろえる: Android は C ABI だけを Doxygen にした（`android/android_library_capi/Doxyfile`。Kotlin の API は Dokka。`android-c-abi` の段階 4）。今後の iOS / macOS の C ABI も同じ形にする（2026-11-22 の追記: iOS も C ABI だけを Doxygen にした。`ios/IosLibraryCApi/Doxyfile`、Swift の API は DocC。`ios-c-abi` の段階 4。`publish_docs.sh` は `docs/<版>/ios/IosLibraryCApi/` に写す。Windows を分ける作業はまだ残る）
    - 中身: Doxyfile を `WindowsLibrary`（C++ の API）と `WindowsLibraryCApi`（C ABI、`OPTIMIZE_OUTPUT_FOR_C = YES`）の 2 つにし、生成物と `publish_docs.sh` の写し先（`docs/<版>/windows/` の下）も分ける。C ABI の側は `CALL_GRAPH` と `CALLER_GRAPH` を `NO` にする（ヘッダーに宣言しか無いので、関数が自分を指すだけの図になる。Android の Doxyfile で確かめた）。インクルードの図は残す
    - 生成の環境: この Mac に `doxygen`（1.18.0）と Graphviz（16.1.0）を入れた（2026-10-10、Homebrew）。Windows の機械が無くても作れる
    - LaTeX の出力を止める（`GENERATE_LATEX = NO`）。`windows/WindowsLibrary/docs/latex`（160 ファイル、2.1 MB）をリポジトリから消し、6 章の表の「（html / latex）」も直す。LaTeX は PDF の手引き書を作る途中の材料だが、PDF は作っておらず、`publish_docs.sh` も HTML しか公開しない。利用者は HTML のリファレンス（`docs/<版>/` で手元でも読める）とヘッダーのコメントで足りる（利用者の判断。2026-10-10）。PDF が要る場面が出たら、リリースのときに作って添える形にし、途中の材料はリポジトリに入れない

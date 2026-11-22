@@ -66,7 +66,7 @@ SOURCE_ROOTS = {
                           "windows/WindowsLibraryCApiTest"],
     "android-clipboard": ["android/android_library", "android/android_library_capi",
                           "android/AndroidLibraryExample"],
-    "ios-clipboard": ["ios/IosLibrary", "ios/UnityIosPlugin", "ios/IosLibraryExample"],
+    "ios-clipboard": ["ios/IosLibrary", "ios/IosLibraryCApi", "ios/IosLibraryExample"],
     "macos-clipboard": ["mac/MacLibrary", "mac/UnityMacPlugin", "mac/MacLibraryExample"],
 }
 

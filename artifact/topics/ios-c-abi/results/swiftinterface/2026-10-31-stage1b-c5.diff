@@ -1,0 +1,138 @@
+--- IosLibrary-after-1b-c4.swiftinterface	2026-11-01 01:35:03
++++ IosLibrary-after-1b-c5.swiftinterface	2026-11-01 08:58:08
+@@ -739,7 +739,7 @@
+   public init(repository: any IosLibrary.NotificationRepository)
+   public func execute() async -> [IosLibrary.ScheduledNotification]
+ }
+-final public class NotificationRepositoryImpl : IosLibrary.NotificationRepository {
++@_hasMissingDesignatedInitializers final public class NotificationRepositoryImpl : IosLibrary.NotificationRepository {
+   public init()
+   #if compiler(>=5.3) && $NonescapableTypes
+   final public func show(content: IosLibrary.NotificationContent, trigger: IosLibrary.NotificationTrigger?) async throws
+@@ -853,6 +853,15 @@
+   public init(id: Swift.String, title: Swift.String, subtitle: Swift.String? = nil, body: Swift.String? = nil, badge: Swift.Int? = nil, sound: IosLibrary.NotificationSound? = .default, categoryIdentifier: Swift.String? = nil, interruptionLevel: IosLibrary.NotificationInterruptionLevel? = nil, threadIdentifier: Swift.String? = nil, targetContentIdentifier: Swift.String? = nil, relevanceScore: Swift.Double? = nil, filterCriteria: Swift.String? = nil, userInfo: [Swift.String : Any] = [:], attachments: [IosLibrary.NotificationAttachment] = [])
+   #endif
+ }
++public enum NotificationDelegateInstallResult : Swift.Sendable {
++  case installed
++  case notMainThread
++  public static func == (a: IosLibrary.NotificationDelegateInstallResult, b: IosLibrary.NotificationDelegateInstallResult) -> Swift.Bool
++  public func hash(into hasher: inout Swift.Hasher)
++  public var hashValue: Swift.Int {
++    get
++  }
++}
+ public enum NotificationError : Swift.Error {
+   case permissionDenied
+   case permissionNotDetermined
+@@ -861,6 +870,36 @@
+   case addRequestFailed(any Swift.Error)
+   case setBadgeCountFailed(any Swift.Error)
+   case unknown(any Swift.Error)
++  case reservedUserInfoKey
++  case delegateNotInstalled
++}
++indirect public enum NotificationUserInfoValue : Swift.Sendable, Swift.Equatable {
++  case string(Swift.String)
++  case integer(Swift.Int64)
++  case unsignedInteger(Swift.UInt64)
++  case double(Swift.Double)
++  case bool(Swift.Bool)
++  case date(Foundation.Date)
++  case data(Foundation.Data)
++  case array([IosLibrary.NotificationUserInfoValue])
++  case dictionary([Swift.String : IosLibrary.NotificationUserInfoValue])
++  public static func == (a: IosLibrary.NotificationUserInfoValue, b: IosLibrary.NotificationUserInfoValue) -> Swift.Bool
++}
++public struct NotificationResponseEvent : Swift.Sendable, Swift.Equatable, Swift.CustomStringConvertible {
++  public let notificationIdentifier: Swift.String
++  public let actionIdentifier: Swift.String
++  public let categoryIdentifier: Swift.String
++  public let userText: Swift.String?
++  public let userInfo: [Swift.String : IosLibrary.NotificationUserInfoValue]
++  public let isLaunchResponse: Swift.Bool
++  public var description: Swift.String {
++    get
++  }
++  public static func == (a: IosLibrary.NotificationResponseEvent, b: IosLibrary.NotificationResponseEvent) -> Swift.Bool
++}
++public struct NotificationSettingsRequest : Swift.Sendable, Swift.Equatable {
++  public let notificationIdentifier: Swift.String?
++  public static func == (a: IosLibrary.NotificationSettingsRequest, b: IosLibrary.NotificationSettingsRequest) -> Swift.Bool
+ }
+ public enum NotificationInterruptionLevel : Swift.Sendable {
+   case passive
+@@ -901,6 +940,15 @@
+   public let textInputPlaceholder: Swift.String
+   public init(identifier: Swift.String, title: Swift.String, buttonTitle: Swift.String, textInputPlaceholder: Swift.String)
+ }
++@_hasMissingDesignatedInitializers @_Concurrency.MainActor final public class NotificationEventHub<Event> where Event : Swift.Sendable {
++  @discardableResult
++  @_Concurrency.MainActor final public func addListener(_ listener: @escaping @_Concurrency.MainActor @Sendable (Event, IosLibrary.NotificationEventRegistration) -> Swift.Void) throws(IosLibrary.NotificationError) -> IosLibrary.NotificationEventRegistration
++  @objc deinit
++}
++@_hasMissingDesignatedInitializers @_Concurrency.MainActor final public class NotificationEventRegistration {
++  @_Concurrency.MainActor final public func remove()
++  @objc deinit
++}
+ @_hasMissingDesignatedInitializers final public class NotificationPermissionHelper : Swift.Sendable {
+   public static let shared: IosLibrary.NotificationPermissionHelper
+   final public func requestPermission(options: UserNotifications.UNAuthorizationOptions = [.alert, .sound, .badge, .providesAppNotificationSettings]) async throws -> Swift.Bool
+@@ -917,17 +965,20 @@
+     set
+   }
+   #if compiler(>=5.3) && $NonescapableTypes
++  @available(*, deprecated, message: "Use responses")
+   final public var onActionReceived: IosLibrary.NotificationActionHandler? {
+     get
+     set
+   }
+   #endif
+   #if compiler(>=5.3) && $NonescapableTypes
++  @available(*, deprecated, message: "Use responses")
+   final public var onTextInputActionReceived: IosLibrary.NotificationTextInputActionHandler? {
+     get
+     set
+   }
+   #endif
++  @available(*, deprecated, message: "Use installDelegate()")
+   public static func setup()
+   #if compiler(>=5.3) && $NonescapableTypes
+   #if compiler(>=5.3) && $SendingArgsAndResults
+@@ -971,11 +1022,22 @@
+   final public func removeCategory(identifier: Swift.String)
+   @objc deinit
+ }
+-extension IosLibrary.IosNotificationManager : UserNotifications.UNUserNotificationCenterDelegate {
+-  @objc final public func userNotificationCenter(_ center: UserNotifications.UNUserNotificationCenter, willPresent notification: UserNotifications.UNNotification, withCompletionHandler completionHandler: @escaping (UserNotifications.UNNotificationPresentationOptions) -> Swift.Void)
+-  @objc final public func userNotificationCenter(_ center: UserNotifications.UNUserNotificationCenter, didReceive response: UserNotifications.UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Swift.Void)
++extension IosLibrary.IosNotificationManager {
++  @discardableResult
++  public static func installDelegate() -> IosLibrary.NotificationDelegateInstallResult
++  public static var isDelegateInstalled: Swift.Bool {
++    get
++  }
++}
++extension IosLibrary.IosNotificationManager {
++  final public var responses: IosLibrary.NotificationEventHub<IosLibrary.NotificationResponseEvent> {
++    get
++  }
++  final public var settingsRequests: IosLibrary.NotificationEventHub<IosLibrary.NotificationSettingsRequest> {
++    get
++  }
+   #if compiler(>=5.3) && $NonescapableTypes
+-  @objc final public func userNotificationCenter(_ center: UserNotifications.UNUserNotificationCenter, openSettingsFor notification: UserNotifications.UNNotification?)
++  @_Concurrency.MainActor final public func launchResponse() throws(IosLibrary.NotificationError) -> IosLibrary.NotificationResponseEvent?
+   #endif
+ }
+ public protocol ShareRepository : Swift.Sendable {
+@@ -1064,5 +1126,9 @@
+ extension IosLibrary.NotificationAuthorizationStatus : Swift.Equatable {}
+ extension IosLibrary.NotificationAuthorizationStatus : Swift.Hashable {}
+ extension IosLibrary.NotificationAuthorizationStatus : Swift.RawRepresentable {}
++extension IosLibrary.NotificationDelegateInstallResult : Swift.Equatable {}
++extension IosLibrary.NotificationDelegateInstallResult : Swift.Hashable {}
+ extension IosLibrary.NotificationInterruptionLevel : Swift.Equatable {}
+ extension IosLibrary.NotificationInterruptionLevel : Swift.Hashable {}
++extension IosLibrary.NotificationEventHub : Swift.Sendable {}
++extension IosLibrary.NotificationEventRegistration : Swift.Sendable {}

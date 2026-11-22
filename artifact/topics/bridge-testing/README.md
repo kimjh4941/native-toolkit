@@ -4,6 +4,14 @@
 - 分類: 横断課題（機能単位でも 1 チケット単位でもない）
 - 関連: 設計書 `2026-08-02-ios-clipboard-design-v4.md` の T-11b（I-08 / I-09）
 
+> **2026-11-22 の追記（iOS）:** iOS の Objective-C ブリッジ（`UnityIos*ManagerBridge.m`）と `ios/UnityIosPlugin` は、
+> iOS 2.0.0（製品 1.14.0）で削除した（`artifact/topics/ios-c-abi/` の段階 3）。Unity から呼ばれる境界は、
+> 汎用の C ABI `IosLibraryCApi`（`ntk_*` の 134 関数）に置き換わった。この境界は `IosLibraryCApiTests`
+> （C ABI の関数を直接呼ぶ。NULL のハンドラ、文字列の寿命、コールバックのスレッドを含む。シミュレーターで通常・ASan・TSan）と
+> `IosLibraryCApiUITests` で確かめる。実行は `scripts/test_ios.sh --capi` と `--capi-ui`（`artifact/topics/ios-c-abi/README.md` の 7 章）。
+> このため、下の iOS の現状・図・優先度・DoD は当時の記録として残す。iOS の分はこのトピックでは閉じた。
+> macOS の Objective-C ブリッジ（`mac/UnityMacPlugin`）は残っていて、このトピックの対象として残る。
+
 ## 何が問題か
 
 Unity から呼ばれる **Objective-C ブリッジ（`.m`）を通るテストが、iOS の 4 機能すべてに存在しない。**
@@ -37,6 +45,9 @@ Clipboard 実装時に発見した。Clipboard 固有ではなく、**リポジ�
 ## 他プラットフォーム
 
 **未調査。** Android の JNI 層、Windows の C API 層にも同じ穴がある可能性がある。着手時にまず確認すること。
+
+（2026-11-22 の追記: Windows は 1.12.0 で `WindowsLibraryCApi` とそのテスト（`windows-architecture`）、Android は 1.13.0 で
+`android_library_capi` とそのテスト（`android-c-abi`）に置き換わった。どちらも Unity 専用のブリッジは無くなった）
 
 ## 責任分界
 

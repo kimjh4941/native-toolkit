@@ -7,9 +7,9 @@ import Foundation
 
 /// Diagnostic detail for a normalized system failure.
 ///
-/// `debugMessage` is diagnostic-only: it is never surfaced in a public error message,
-/// Bridge JSON, or log output. Only `domain` and `code` may be exposed as optional
-/// diagnostic details.
+/// `debugMessage` is diagnostic-only: it is never surfaced in a public error message, in the
+/// C ABI, or in log output. Only `domain` and `code` may be exposed as optional diagnostic
+/// details.
 public struct ClipboardFailureDetail: Equatable, Sendable {
     public let domain: String
     public let code: Int

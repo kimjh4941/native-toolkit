@@ -47,8 +47,8 @@ from check_c_abi_contract_android import find_ndk_tool
 ROOT = Path(__file__).resolve().parent.parent
 
 INCLUDE = "android/android_library_capi/src/main/cpp/include"
-# Every public header: coverage asks for each function of each, so a header
-# that is missing has to fail rather than shrink what is asked for.
+# The public headers that must be there: coverage asks for each function of
+# each, so a header that is missing has to fail rather than shrink what is asked for.
 HEADERS = ("Common.h", "Android.h", "Clipboard.h", "Dialog.h", "Notification.h", "Share.h")
 MANUAL = common.MANUAL
 OS_NAME = "Android"
@@ -90,9 +90,11 @@ def exported(rep):
         rep.check(False, "coverage: every exported function appears in an example",
                   f"cannot read {', '.join(f'{INCLUDE}/NativeToolkitC/{h}' for h in missing)}")
         return None
+    # Every header there is, not only the ones this script knows of: a new one
+    # must add to what is asked for.
     names = set()
-    for header in HEADERS:
-        names |= set(declarations(at(f"{INCLUDE}/NativeToolkitC/{header}").read_text(encoding="utf-8"))["function"])
+    for path in sorted(at(f"{INCLUDE}/NativeToolkitC").glob("*.h")):
+        names |= set(declarations(path.read_text(encoding="utf-8"))["function"])
     return names
 
 
@@ -151,6 +153,9 @@ def parse_arguments(argv):
     while rest:
         argument = rest.pop(0)
         if argument in with_value:
+            if argument in parsed:
+                print(f"{argument} given twice\n{USAGE}", file=sys.stderr)
+                return None
             if not rest or rest[0].startswith("--"):
                 print(f"{argument} needs a value\n{USAGE}", file=sys.stderr)
                 return None

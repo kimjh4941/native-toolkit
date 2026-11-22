@@ -32,13 +32,14 @@
 
 # 配布物の場所（`dist/<version>/`）
 
-- Android (Kotlin API): `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`
-- Android (C ABI): `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`、ヘッダーは `dist/1.13.0/android/include/NativeToolkitC/`
-- Android（両方の AAR、POM、Gradle Module Metadata を収めた Maven リポジトリ）: `dist/1.13.0/android/m2/`
-- iOS: `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows (C++ API): `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`
-- Windows (C ABI): `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
-- macOS: `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android (Kotlin API): `dist/1.14.0/android/android-native-toolkit-2.0.0.aar`
+- Android (C ABI): `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar`、ヘッダーは `dist/1.14.0/android/include/NativeToolkitC/`
+- Android（両方の AAR、POM、Gradle Module Metadata を収めた Maven リポジトリ）: `dist/1.14.0/android/m2/`
+- iOS (Swift API): `dist/1.14.0/ios/ios-native-toolkit-2.0.0.xcframework`
+- iOS (C ABI): `dist/1.14.0/ios/ios-native-toolkit-capi-2.0.0.xcframework`、ヘッダーは `dist/1.14.0/ios/include/NativeToolkitC/` にもあります
+- Windows (C++ API): `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -46,6 +47,10 @@
 - パッケージには Android / iOS / Windows / macOS 向けのネイティブプラグインとサンプルが含まれ、各プラットフォームのネイティブ機能をシングルトン API で利用できます。
 
 # バージョン
+
+## 1.14.0
+
+- iOS ライブラリは 2.0.0 になりました。Swift 6 の並行処理のアノテーション、新しいエラーケース、起動時に設定する通知の delegate、通知イベント、リクエストのキャンセル、C ABI を含みます。[iOS ライブラリを 2.0.0 へ移行する](#ios-ライブラリを-200-へ移行する) を参照してください。
 
 ## 1.13.0
 
@@ -107,28 +112,36 @@
   - アクションシート
   - 入力ダイアログ
   - ログインダイアログ
+  - 1 つのリクエストに 1 つの結果（`DialogRequest`、async）
+  - 表示に使うビューコントローラーの指定（presenter）
+  - ダイアログのキャンセル
 - 通知機能
-  - パーミッション
-  - 通知の表示 / 更新 / 取り消し
-  - スケジュール通知
+  - 起動時に設定する delegate（以前の delegate への転送）
+  - パーミッション（確認、リクエスト、許可状態、設定画面を開く）
+  - 通知の表示 / 更新 / 取り消し / 削除
+  - スケジュール通知（時間間隔、カレンダー、位置）
   - 添付ファイル付き通知
   - バッジ
   - カテゴリとアクション
+  - 通知イベント（タップ、アクション、テキスト入力、設定アプリからのリンク）と、アプリを起動した通知
 - 共有機能
   - テキスト / URL 共有
   - リッチプレビュー
   - 画像 / ファイル共有（単一・複数）
   - 組み合わせコンテンツ（件名、アクティビティタイプの除外）
+  - presenter と結果（シートがどのように閉じられたか）
 - クリップボード機能
   - コピー（プレーンテキスト、HTML、URL、画像ファイル / データ、色、カスタムデータ、複数テキスト、複数表現）
   - コピーオプション（localOnly、有効期限）
   - 追記
   - 読み取り / データ読み取り / メタデータのスナップショット
   - 名前付き・ユニークペーストボードのライフサイクル
-  - 非同期ロード（テキスト / URL / 画像 / ファイル）
+  - 非同期ロード（テキスト / URL / 画像 / ファイル）と、個々のロードのキャンセル
   - パターン検出（11 種類）
   - クリップボード変更監視
   - システムペーストボタン（UIPasteControl）
+
+上の iOS の機能は、C ABI（`ios-native-toolkit-capi-2.0.0.xcframework` の `ntk_*` 関数）を通じて C、C++、Objective-C、その他の言語からも使えます。ただし、システムペーストボタン、クリップボードのロードの一括キャンセル、クリップボードのタイムアウトと上限の独自指定、表示に使うビューコントローラーの指定（C ABI は前面にあるものを使います）、通知のフォアグラウンド表示オプション、仮の通知許可（provisional）、年・月・日・時・分・秒以外の日付要素を使うカレンダートリガー、一覧で取得した通知の `userInfo` は対象外です。C の関数は各機能ページに記載しています。「ライブラリ組み込み方法」の [C ABI](#c-abi-1) も参照してください。
 
 ## Windows
 
@@ -255,9 +268,9 @@ Android ライブラリは 2 つの AAR で配布します。
 
 ##### 方法 A: Maven リポジトリ（推奨）
 
-`dist/1.13.0/android/m2/` は、2 つの AAR とその依存情報を収めた Maven リポジトリです。AAR が必要とする AndroidX と Kotlin のライブラリは Gradle が解決します。
+`dist/1.14.0/android/m2/` は、2 つの AAR とその依存情報を収めた Maven リポジトリです。AAR が必要とする AndroidX と Kotlin のライブラリは Gradle が解決します。
 
-1. `dist/1.13.0/android/m2/` をプロジェクトにコピーします（例: `third_party/native-toolkit-m2/`）。
+1. `dist/1.14.0/android/m2/` をプロジェクトにコピーします（例: `third_party/native-toolkit-m2/`）。
 2. `settings.gradle.kts` にリポジトリとして追加します。
 3. `app/build.gradle.kts` に依存関係を追加します。
 4. Gradle 同期を実行し、ビルドします。
@@ -423,15 +436,86 @@ C ABI の AAR には R8 のルールが含まれているため、minify を有�
 
 #### 対応プラットフォーム: iOS（実機: arm64 / Simulator: arm64, x86_64）
 
-1. `ios-native-toolkit-1.3.0.xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。
-2. Xcode 26.2 で対象プロジェクトを開き、**Project Navigator** でアプリのターゲットを選択します。
+iOS ライブラリは 2 つの XCFramework で配布します。
+
+| XCFramework | 対象 | 内容 |
+|---|---|---|
+| `ios-native-toolkit-2.0.0.xcframework` | Swift から呼ぶ場合 | Swift の API（`IosLibrary.framework`、モジュール `IosLibrary`）とそのプライバシーマニフェスト |
+| `ios-native-toolkit-capi-2.0.0.xcframework` | C、C++、Objective-C、その他の言語から呼ぶ場合 | C ABI（`IosLibraryCApi.framework`、ヘッダー `NativeToolkitC/`）。Swift の API を呼ぶため、上の XCFramework に依存します。両方を埋め込んでください |
+
+`dist/1.14.0/ios/include/NativeToolkitC/` には、C ABI の XCFramework と同じヘッダーを収めています。ヘッダーからバインディングを生成するツール向けです。
+
+要件:
+
+- アプリの最小デプロイメントターゲットが iOS 18.0 以降
+- アプリが Swift の API を使う場合は Xcode 26.3 以降（Xcode がライブラリの Swift インターフェースを読み込むため）。C ABI だけを使うアプリは、どの Xcode 26 でもビルドできます
+- ライブラリは UIKit のアプリの中で動きます。App Extension とコマンドラインツールには対応していません
+- 2 つのフレームワークはどちらも動的フレームワークで、署名されていません。**Embed & Sign** にすると、Xcode がアプリの証明書で署名します
+
+手順:
+
+1. `ios-native-toolkit-2.0.0.xcframework` を、作成した Xcode プロジェクト直下の `Frameworks` フォルダ（なければ作成）にコピーします。C ABI を使う場合は `ios-native-toolkit-capi-2.0.0.xcframework` も同じ場所にコピーします。
+2. Xcode 26.3 以降（C ABI だけを使うアプリは任意の Xcode 26）で対象プロジェクトを開き、**Project Navigator** でアプリのターゲットを選択します。
 3. **General** タブを開き、**Frameworks, Libraries, and Embedded Content** の **+** を押します。
-4. **Add Other...** → **Add Files...** を選択し、`Frameworks/ios-native-toolkit-1.3.0.xcframework` を追加します。
-5. 追加後、`ios-native-toolkit-1.3.0.xcframework` の Embed 設定を **Embed & Sign** に変更します。
-6. 同じターゲットの **Build Settings** を開き、`Framework Search Paths` に `$(PROJECT_DIR)/Frameworks` を追加します。（通常は non-recursive）
-7. **Signing & Capabilities** で Team が正しく設定されていることを確認します。
-8. **Product** → **Clean Build Folder** を実行してから、**Run** でビルド・起動します。
-9. エラーなく起動できれば組み込み完了です。
+4. **Add Other...** → **Add Files...** を選択し、`Frameworks/` から XCFramework（または 2 つの XCFramework）を追加します。
+5. それぞれの XCFramework の Embed 設定を **Embed & Sign** に変更します。ここで追加した XCFramework のフレームワークとヘッダーは Xcode が自分で見つけるため、`Framework Search Paths` に追加する必要はありません。
+6. **Signing & Capabilities** で Team が正しく設定されていることを確認します。
+7. **Product** → **Clean Build Folder** を実行してから、**Run** でビルド・起動します。
+8. エラーなく起動できれば組み込み完了です。
+
+##### プライバシーマニフェスト
+
+`IosLibrary.framework` にはプライバシーマニフェスト（`PrivacyInfo.xcprivacy`）が含まれています。ファイルのタイムスタンプの API を理由 `C617.1` で宣言しており、収集するデータとトラッキングはありません。アーカイブ時に、Xcode がこれをアプリのプライバシーレポートにまとめます。
+
+##### 通知の delegate
+
+通知イベント（タップ、アクション、テキスト入力、設定アプリからのリンク）と、アプリが前面にあるときに表示する通知には、ライブラリの `UNUserNotificationCenter` delegate が必要です。起動が終わる前に、メインスレッドで `application(_:didFinishLaunchingWithOptions:)` の中から設定してください（SwiftUI のアプリは `App.init` で設定できます）。
+
+- Swift の API: `IosNotificationManager.installDelegate()`
+- C ABI: アプリのネイティブコードから `ntk_notification_install()` を呼びます。起動後に自身のコードを動かし始めるランタイム（ゲームエンジンのスクリプト、Dart の isolate など）からでは遅すぎます。アプリを起動したタップが失われます
+
+ライブラリは、それまで設定されていた delegate を保持し、そこへ転送します。ライブラリが作成していない通知は、その delegate がメソッドを実装していればそちらに渡ります。その後に別の `UNUserNotificationCenter` delegate を設定しないでください。設定すると、ライブラリがイベントを受け取れなくなります。[通知機能](notification.ja.md) の iOS の節を参照してください。
+
+##### C ABI
+
+C ABI は、C、C++、Objective-C、その他の言語からライブラリを呼ぶアプリ向けです。Swift のアプリは Swift の API を直接呼んでください。
+
+- ヘッダーは、フレームワークから `#include <IosLibraryCApi/NativeToolkitC/Notification.h>` のように取り込むか、`dist/1.14.0/ios/include` をヘッダー検索パスに加えて `#include <NativeToolkitC/Notification.h>` と書きます。モジュールを有効にした Objective-C では `@import IosLibraryCApi;` と書けます
+- どの関数も任意のスレッドから呼べます（`ntk_notification_install` だけはメインスレッド限定です）。また、どの関数もメインスレッドを待ちません。完了、イベント、受け付けた呼び出しの `release` はメインキューで非同期に届きます。これはランタイムが作成したスレッドではないことがあります。Dart では `NativeCallable.isolateLocal` ではなく `NativeCallable.listener` を使ってください。（入口で拒否された呼び出しは、エラーを返し、戻る前に呼び出し元のスレッドで `release` を呼びます）
+- ダイアログ、Share、通知の設定画面、まだ応答されていない通知権限のリクエストは、前面にあるシーンを必要とします。アプリがバックグラウンドにあるときに呼ぶと `NOT_FOREGROUND` で完了します。アプリの複数のウィンドウを並べて表示している iPad では、どのウィンドウに表示されるかは決まっていません。Swift の API では、そのために presenter を指定できます
+- 他のアプリがクリップボードに置いた内容を読み取ると（`ntk_clipboard_read_async`、`ntk_clipboard_read_data_async`）、iOS がユーザーにペーストの許可を求めることがあり、ユーザーが応答するまでアプリのメインスレッドが止まります。メインスレッドを止めたくない場合は `ntk_clipboard_load_item_async` を使ってください。これはメインスレッドを止めず、`ntk_clipboard_cancel_load` でキャンセルできます
+- 文字列は NUL 終端の UTF-8 です。iOS では `ntk_last_system_code()` は常に 0 です
+
+関数、スレッド、エラーは、各機能ページの iOS の節にある C ABI の項に記載しています。
+
+##### iOS ライブラリを 2.0.0 へ移行する
+
+2.0.0 は 1.x とソース互換性がありません。モジュール名は `IosLibrary` のままなので、`import IosLibrary` は変わりません。1.x 向けに書いたコードは、次のものを使っている箇所で変更が必要です。
+
+| 1.x | 2.0.0 |
+|---|---|
+| フレームワークのバンドル ID `ios.library.IosLibrary` | `com.jonghyunkim.nativetoolkit.IosLibrary` |
+| 隔離（isolation）のない完了ハンドラー | Dialog、Share、Notification の完了と、ダイアログのボタンのコールバックと `textFields` は `@MainActor @Sendable` で、メインスレッドで届きます。`NotificationActionHandler` と `NotificationTextInputActionHandler` は `@Sendable` です。Clipboard の完了は変わりません。ライブラリは Swift 6 の言語モードでビルドしています |
+| 独自に実装した `ShareRepository` と `NotificationRepository` | どちらのプロトコルも `Sendable` を要求します。`ShareRepository.present(content:)` は `present(content:presenter:)` に、`NotificationRepository.openNotificationSettings()` は `async -> Bool` になります。1.x のシグネチャの実装はコンパイルできなくなります。`NotificationRepository` には `enqueueCategoryChange(_:completion:)` が加わります（デフォルト実装があります） |
+| `NotificationRepositoryImpl(center:)` | `NotificationRepositoryImpl()`（渡せた値は `.current()` だけでした） |
+| どのコンテキストからも呼べた `IosDialogManager.getRootViewController()` | `@MainActor` です。同期の nonisolated なコンテキストからは呼べません |
+| 通知の `show`、`update`、`schedule` の `content` | 引数は `sending` です。Swift 6 の言語モード（または complete の並行性チェック）では、呼び出し後も使い続ける content はコンパイルできません。呼び出しごとに新しい `NotificationContent` を作ってください |
+| 任意の `Error` を持つ `NotificationError` と `ShareError` のケース | `FailureDetail` を持つケースになり、一部のケースは削除され、一部は追加されました。これらに対する網羅的な `switch` はコンパイルできなくなります。ダイアログは `DialogError` を報告します |
+| `IosNotificationManager.setup()` | 起動が終わる前に `IosNotificationManager.installDelegate()`（上の「通知の delegate」を参照）。`setup()` は非推奨です |
+| `onActionReceived`、`onTextInputActionReceived` | `IosNotificationManager.shared.responses.addListener`。複数のリスナーを登録でき、イベントはリスナーが登録されるまで保持されます。`launchResponse()` はアプリを起動した通知を返します。2 つのプロパティは非推奨です |
+| `IosNotificationManager` が `UNUserNotificationCenterDelegate` に準拠 | 準拠しません。ライブラリの delegate は内部のものです |
+| `userNotificationCenter(_:openSettingsFor:)`（設定アプリにある、アプリの通知設定へのリンク）で設定アプリを開いていました | ライブラリは何も開きません。リクエストはイベントとして `IosNotificationManager.shared.settingsRequests` に届くので、アプリ独自の設定画面を表示してください |
+| `async` のコンテキストからの、完了ハンドラーのない呼び出し | 同じ名前の `async` 版が加わったため、そうした呼び出しには `await`（と `try`）が必要です |
+| 任意の `userInfo` の値 | 値はプロパティリストの型である必要があります（`NSNull` と `NSURL` は拒否されます）。キー `com.jonghyunkim.nativetoolkit` は予約済みです。ライブラリは自身の通知にこのキーを加え、返す `userInfo` からは取り除きます |
+| 登録済みの識別子でカテゴリを登録すると、両方が残ることがありました | 新しいカテゴリが古いものを置き換えます |
+| `Log` | 非推奨です。ライブラリは `os.Logger` でログを出し、秘密の値は非公開にします |
+| `NotificationPermissionHelper`、`NotificationCategoryOptions.allowAnnouncement` | 非推奨です。`NotificationPermissionHelper` の代わりに `IosNotificationManager.requestPermission(options:presenter:)` を使ってください。`allowAnnouncement` は効果がありません（iOS 15 以降、iOS が無視します） |
+| 通知の操作、表示に失敗したダイアログや共有シート、失敗した共有アクティビティの `errorMessage` | 固定の英語の文です（例: `"Notification permission was denied."`）。文ではなく、エラーケースかエラーコードで分岐してください |
+| Swift の API のみ | 2 つ目の XCFramework にある C ABI（上の「C ABI」を参照） |
+
+1.x がスケジュールまたは表示した通知と、1.x が登録したカテゴリは、更新後も残ります。一覧に含まれ、識別子で取り消しや削除ができます。それらのタップとアクションは、以前の delegate が処理しない場合、ライブラリのリスナーに届きます。
+
+2.0.0 では、ダイアログ、Share、通知権限のリクエスト、通知の設定画面に presenter 引数が加わりました。また、ダイアログや非同期のクリップボードのロードをキャンセルするためのリクエストボックスと、`DialogRequest` を受け取る `IosDialogManager.show(_:)` が加わりました。操作ごとの変更は、各機能ページの iOS の節に記載しています。
 
 ### Windows
 

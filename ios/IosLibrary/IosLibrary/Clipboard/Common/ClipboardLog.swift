@@ -41,3 +41,35 @@ extension PasteboardCreationRequest {
         }
     }
 }
+
+extension ClipboardLoadRequest {
+    /// The kind of the request (`text`, `url`, `image`, `file`), without the type identifier.
+    var logKind: String {
+        switch self {
+        case .text: return "text"
+        case .url: return "url"
+        case .image: return "image"
+        case .file: return "file"
+        }
+    }
+
+    /// The type identifier of a `.file` request (caller-supplied: log it `.private`), `-` otherwise.
+    var logTypeIdentifier: String {
+        if case .file(let utType) = self { return utType }
+        return "-"
+    }
+}
+
+extension Result where Success == ClipboardLoadedItem, Failure == ClipboardError {
+    /// `success(<kind>)` or `failure(<errorCode>)`: never the loaded value, its type identifier or
+    /// its file URL.
+    var logKind: String {
+        switch self {
+        case .success(.text): return "success(text)"
+        case .success(.url): return "success(url)"
+        case .success(.imageData): return "success(imageData)"
+        case .success(.file): return "success(file)"
+        case .failure(let error): return "failure(\(error.errorCode))"
+        }
+    }
+}

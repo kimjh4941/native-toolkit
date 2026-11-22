@@ -53,7 +53,10 @@
     - [알림 오류](#알림-오류)
 - [iOS](#ios)
   - [IosNotificationManager](#iosnotificationmanager)
+  - [1.x에서 바뀐 점](#1x에서-바뀐-점-1)
   - [설정](#설정-1)
+    - [delegate 설치](#delegate-설치)
+    - [실행 시 리스너 등록](#실행-시-리스너-등록)
   - [권한](#권한-1)
     - [알림 권한 요청](#알림-권한-요청)
     - [권한 확인](#권한-확인)
@@ -65,18 +68,29 @@
     - [시간 간격 트리거](#시간-간격-트리거)
     - [캘린더 트리거](#캘린더-트리거)
     - [위치 정보 트리거](#위치-정보-트리거)
-  - [첨부 파일](#첨부-파일)
-  - [알림 업데이트](#알림-업데이트)
-  - [알림 취소 / 삭제](#알림-취소--삭제)
+  - [업데이트, 취소, 삭제](#업데이트-취소-삭제)
   - [예약 알림](#예약-알림-1)
-    - [예약 취소](#예약-취소)
+    - [예약 취소](#예약-취소-1)
   - [조회](#조회)
   - [배지](#배지)
   - [카테고리와 액션](#카테고리와-액션)
     - [카테고리 등록](#카테고리-등록)
-    - [카테고리를 알림에 연결](#카테고리를-알림에-연결)
     - [카테고리 삭제](#카테고리-삭제)
-    - [액션 수신 콜백](#액션-수신-콜백)
+  - [알림 이벤트](#알림-이벤트)
+    - [리스너 추가와 제거](#리스너-추가와-제거)
+    - [실행 시 응답](#실행-시-응답)
+    - [다른 알림과 이전 delegate](#다른-알림과-이전-delegate)
+  - [오류와 async 형식](#오류와-async-형식)
+    - [userInfo 확인](#userinfo-확인)
+    - [포어그라운드에서의 권한과 설정](#포어그라운드에서의-권한과-설정)
+    - [오류 케이스](#오류-케이스)
+  - [C ABI](#c-abi-1)
+    - [delegate 설치와 이벤트 수신](#delegate-설치와-이벤트-수신)
+    - [권한과 설정](#권한과-설정)
+    - [내용 빌더, 표시, 예약](#내용-빌더-표시-예약)
+    - [삭제와 목록](#삭제와-목록)
+    - [배지와 카테고리](#배지와-카테고리)
+    - [오류 값과 Swift API](#오류-값과-swift-api)
 - [Windows](#windows)
   - [NativeToolkit::Notification](#nativetoolkitnotification)
   - [설정](#설정-2)
@@ -106,19 +120,19 @@
     - [전체 삭제](#전체-삭제)
   - [활성화 핸들러](#활성화-핸들러)
   - [오류 코드](#오류-코드)
-  - [C ABI](#c-abi-1)
+  - [C ABI](#c-abi-2)
     - [런타임, 매니저, 활성화](#런타임-매니저-활성화)
     - [내용 구성, 표시, 예약](#내용-구성-표시-예약)
     - [진행률, 배지, OS 설정](#진행률-배지-os-설정)
     - [목록과 삭제](#목록과-삭제)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
-  - [설정](#설정-2)
+  - [설정](#설정-3)
   - [권한](#권한-2)
     - [권한 요청](#권한-요청)
     - [권한 확인](#권한-확인-1)
     - [인증 상태 가져오기](#인증-상태-가져오기-1)
-    - [알림 설정 열기](#알림-설정-열기-1)
+    - [알림 설정 열기](#알림-설정-열기-2)
     - [알림 권한 초기화 (macOS 26.3)](#알림-권한-초기화-macos-263)
   - [알림 표시](#알림-표시-2)
     - [즉시 표시](#즉시-표시-1)
@@ -138,7 +152,7 @@
   - [조회](#조회-1)
     - [예약된 알림 조회](#예약된-알림-조회)
     - [전달된 알림 조회](#전달된-알림-조회)
-  - [배지](#배지-1)
+  - [배지](#배지-2)
   - [카테고리](#카테고리)
     - [카테고리 등록](#카테고리-등록-1)
     - [카테고리 삭제](#카테고리-삭제-1)
@@ -1640,23 +1654,137 @@ C ABI에 없는 것: `createChannels`, `getActive`, `restoreScheduled`, Media·D
 
 ## iOS
 
+iOS 18.0 이상의 로컬 알림입니다. iOS 라이브러리 2.0.0은 하나의 구현 위에 두 가지 공개 API를 제공하며, 샘플 앱은 Swift API를 사용합니다.
+
+| API | 이름 | 모듈 / 헤더 | 산출물 |
+|---|---|---|---|
+| Swift API | `IosNotificationManager` | `import IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_notification_*` | `<NativeToolkitC/Notification.h>` | `ios-native-toolkit-capi-2.0.0.xcframework`(`ios-native-toolkit-2.0.0.xcframework`와 함께 사용) |
+
+C ABI는 이 섹션 끝의 [C ABI](#c-abi-1)에서 설명합니다. 1.x에서 옮겨 오는 경우 [1.x에서 바뀐 점](#1x에서-바뀐-점-1)과 [iOS 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#ios-라이브러리를-200으로-마이그레이션)을 읽어 주십시오.
+
 ### IosNotificationManager
 
-`IosNotificationManager`는 iOS 로컬 알림의 모든 작업을 제공하는 싱글톤 클래스입니다.
+- `IosNotificationManager.shared`는 프로세스에 하나뿐인 매니저입니다. `Sendable`이며, 따로 적혀 있지 않은 한 모든 메서드는 어느 스레드에서든 호출할 수 있습니다.
+- 이벤트(탭, 액션 버튼, 답장)와 앱이 포어그라운드에 있는 동안의 알림 표시는 시스템의 알림 delegate를 통해 전달됩니다. 따라서 앱 실행 시 `IosNotificationManager.installDelegate()`가 필요합니다([설정](#설정-1) 참조). 표시, 예약, 목록, 삭제, 배지, 카테고리, 권한은 delegate 없이도 동작합니다.
+- 모든 `completion`은 메인 스레드에서 정확히 한 번 호출되며, 호출 안에서 호출되는 일은 없습니다. completion 타입은 `@MainActor @Sendable`이므로 SwiftUI 뷰에 작성한 클로저에서 뷰의 상태를 그대로 사용할 수 있습니다.
+- 각 작업은 `(isSuccess, errorMessage)`와 같은 1.x의 콜백 형식을 유지합니다. `errorMessage`는 `NotificationError`의 고정된 영어 설명입니다. 각 작업에는 같은 이름의 `async` 형식도 있습니다. `show`, `update`, `schedule`, `setBadgeCount`, `requestPermission(options:presenter:)`, `openNotificationSettings(presenter:)`는 `async throws`입니다. `getScheduled`, `getDelivered`, `hasPermission`, `authorizationStatus`, `registerCategory`, `removeCategory`는 `async`이며 오류를 던지지 않습니다.
+- 라이브러리는 자신이 추가하는 모든 알림의 userInfo에 키 `com.jonghyunkim.nativetoolkit`을 넣어 자신의 알림을 다른 알림과 구별합니다. 이 키를 사용하는 앱의 userInfo는 거부되며(`reservedUserInfoKey`), 라이브러리가 돌려주는 모든 userInfo에서 이 키는 제거됩니다.
+- 알림 권한이 없으면 시스템은 `show`, `update`, `schedule`에 성공을 보고하지만 아무것도 보관하지 않습니다. 대기 중인 요청은 남지 않으며, 권한이 허용되기 전에 예약한 알림이 나중에 발생하지도 않습니다. 먼저 `authorizationStatus` 또는 `hasPermission`을 확인해 주십시오. 샘플 앱은 이 호출들 전에 매번 `hasPermission`을 확인합니다. C ABI는 이 확인을 스스로 합니다([C ABI](#c-abi-1) 참조).
+- `setup()`, `onActionReceived`, `onTextInputActionReceived`, `NotificationPermissionHelper`는 동작이 그대로 남아 있지만 사용 중단(deprecated)되었습니다. 이 페이지에서는 각각을 대신하는 API를 사용합니다.
 
 <p align="center">
     <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
 </p>
 
+---
+
+### 1.x에서 바뀐 점
+
+| 1.x | 2.0.0 |
+|---|---|
+| `IosNotificationManager.setup()` | 메인 스레드에서, 실행이 끝나기 전에 `IosNotificationManager.installDelegate()`를 호출합니다. `setup()`은 사용 중단되었으며 이를 호출합니다. 다른 스레드에서는 아무것도 설치하지 않습니다 |
+| 매니저가 `UNUserNotificationCenterDelegate`였고 앱의 delegate를 대체했음 | 내부 delegate가 그보다 먼저 설정된 delegate를 보관하고, 라이브러리의 것이 아닌 알림을 그 delegate로 전달합니다([다른 알림과 이전 delegate](#다른-알림과-이전-delegate) 참조) |
+| `onActionReceived` / `onTextInputActionReceived` | `responses`의 리스너([알림 이벤트](#알림-이벤트) 참조). 기존 리시버도 리스너와 함께 호출됩니다. 둘 중 하나만 사용해 주십시오 |
+| `openSettingsFor`가 설정 앱의 앱 페이지를 열었음 | 요청은 `settingsRequests`로 전달됩니다. 라이브러리는 아무것도 열지 않습니다 |
+| 어떤 userInfo든 그대로 전달되었음 | 키 `com.jonghyunkim.nativetoolkit`은 예약되어 있으며, 모든 값은 속성 목록(property list) 값이어야 합니다([userInfo 확인](#userinfo-확인) 참조) |
+| `NotificationError`의 케이스가 시스템 `Error`를 가지고 있었음 | 안정된 케이스가 되었습니다. 시스템 실패는 `FailureDetail`(도메인과 코드)을 가집니다. `attachmentLoadFailed(_:)`는 `attachmentLoadFailed(identifier:detail:)`가 되었고, `addRequestFailed(_:)`와 `setBadgeCountFailed(_:)`는 `FailureDetail`을 가집니다. 삭제: `permissionNotDetermined`, `attachmentInvalidURL`, `unknown(_:)`. 추가: `authorizationFailed(_:)`, `reservedUserInfoKey`, `invalidUserInfo`, `invalidTrigger`, `notForeground`, `openSettingsFailed`, `delegateNotInstalled`([오류 케이스](#오류-케이스) 참조) |
+| `registerCategory(_:)`가 카테고리가 등록되기 전에 반환되었음 | 변경은 호출 순서대로 적용되며, 같은 식별자의 카테고리는 대체됩니다. 선택적인 `completion`은 변경 후에 옵니다 |
+| 1.x가 예약하거나 표시한 알림 | 이전처럼 목록에 나오고 취소할 수 있으며, userInfo도 바뀌지 않습니다. 탭은 `responses`로 전달됩니다. 단, `installDelegate()` 전에 설정된 delegate가 `didReceive`를 구현하고 있으면 그 delegate로 전달됩니다 |
+
+iOS 라이브러리 2.0.0의 그 밖의 변경(`async` 컨텍스트에서 `await`가 필요해지는 호출 등)은 [iOS 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#ios-라이브러리를-200으로-마이그레이션)에 있습니다.
+
+---
+
 ### 설정
 
-앱 실행 시（예: `AppDelegate.application(_:didFinishLaunchingWithOptions:)`）에 `setup()`을 한 번 호출합니다.
+`ios-native-toolkit-2.0.0.xcframework`를 앱 타깃에 추가하고(Embed & Sign) `import IosLibrary`를 작성합니다. Xcode 26.3 이상으로 빌드해 주십시오.
+
+#### delegate 설치
+
+`installDelegate()`는 라이브러리의 `UNUserNotificationCenter` delegate를 설치합니다. 라이브러리는 앱이 포어그라운드에 있는 동안 자신의 알림을 표시하고 사용자의 응답을 받기 위해 이 delegate가 필요합니다.
+
+- **메인 스레드 전용입니다.** 다른 스레드에서는 `.notMainThread`를 반환하고 아무것도 바꾸지 않습니다. 동기식이며 기다리지 않고, `.installed`를 반환합니다(delegate가 이미 설치되어 있던 경우도 마찬가지입니다).
+- **실행이 끝나기 전에 호출합니다.** `application(_:didFinishLaunchingWithOptions:)`가 반환되기 전이나 `scene(_:willConnectTo:options:)` 안에서 호출해 주십시오. SwiftUI 앱에서는 `App.init`과 `UIApplicationDelegateAdaptor`의 `application(_:didFinishLaunchingWithOptions:)` 모두 사용할 수 있습니다. 시스템은 앱을 실행한 응답(콜드 스타트 시의 탭)을 실행 처리가 반환되는 시점에 설정된 delegate에만 전달합니다. 나중에 설치해도 라이브러리는 동작하지만 그 응답은 잃게 됩니다.
+- **설치하지 않으면** 앱이 포어그라운드에 있는 동안 라이브러리의 알림이 표시되지 않고, 이벤트도 전달되지 않습니다. `responses.addListener`, `settingsRequests.addListener`, `launchResponse()`는 `NotificationError.delegateNotInstalled`를 던집니다.
+- **그보다 먼저 설정된 delegate**(앱 자신의 것이나 다른 컴포넌트의 것)는 이전 delegate가 되며, 라이브러리의 것이 아닌 알림을 받습니다([다른 알림과 이전 delegate](#다른-알림과-이전-delegate) 참조). 앱 자신의 delegate는 `installDelegate()`를 호출하기 전에 설정해 주십시오. `UNUserNotificationCenter`가 delegate를 보관하는 것과 마찬가지로 라이브러리는 이전 delegate를 약한 참조로 보관합니다. 앱에서 그 delegate에 대한 강한 참조를 유지해 주십시오. 유지하지 않으면 해제되며, 그 delegate가 받아야 할 알림은 라이브러리가 처리합니다.
+- **나중에 `UNUserNotificationCenter.current().delegate`를 바꾸지 마십시오.** 라이브러리는 경고를 로그에 남길 뿐이며, 이벤트와 포어그라운드 표시는 멈춥니다. `installDelegate()`를 다시 호출하면 복구되며, 바꾼 객체가 유일한 이전 delegate가 됩니다. 이 일이 실행 후에 일어나면 콜드 스타트 시의 탭은 잃게 됩니다. 바꾼 객체가 라이브러리로 비동기로 전달하는 경우에는 `installDelegate()`를 다시 호출하지 마십시오(약속의 범위 밖입니다).
+- `IosNotificationManager.isDelegateInstalled`는 이 프로세스에서 delegate가 설치되었는지를 알려 줍니다.
+
+샘플 앱은 애플리케이션 delegate에서 설치합니다.
 
 ```swift
 import IosLibrary
+import SwiftUI
+import UIKit
 
-IosNotificationManager.setup()
+@main
+struct MyApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    private var responseRegistration: NotificationEventRegistration?
+    private var settingsRegistration: NotificationEventRegistration?
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        // 메인 스레드에서, 실행 처리가 반환되기 전에 호출합니다.
+        IosNotificationManager.installDelegate()   // .installed. 메인 스레드가 아니면 .notMainThread
+        // 앱을 실행한 응답이 리스너에 전달되도록 리스너도 여기서 추가합니다.
+        addListeners()
+        return true
+    }
+}
 ```
+
+#### 실행 시 리스너 등록
+
+`responses`는 본문 탭, 액션 버튼, 텍스트 입력 답장, 사용자 지정 닫기 액션(`.customDismissAction`을 가진 카테고리)에 대해 `NotificationResponseEvent`를 전달합니다. `settingsRequests`는 시스템이 앱 자체의 알림 설정을 표시하도록 요청할 때 `NotificationSettingsRequest`를 전달합니다([포어그라운드에서의 권한과 설정](#포어그라운드에서의-권한과-설정) 참조).
+
+```swift
+extension AppDelegate {
+    func addListeners() {
+        do {
+            responseRegistration = try IosNotificationManager.shared.responses.addListener { event, _ in
+                // event.notificationIdentifier, event.actionIdentifier, event.categoryIdentifier,
+                // event.userText(답장 또는 nil), event.userInfo, event.isLaunchResponse
+                if event.userText != nil {
+                    // 텍스트 입력 답장.
+                } else if event.actionIdentifier == UNNotificationDefaultActionIdentifier {
+                    // 본문 탭.
+                } else if event.actionIdentifier == UNNotificationDismissActionIdentifier {
+                    // 닫힘(.customDismissAction을 가진 카테고리).
+                } else {
+                    // 액션 버튼: 샘플의 카테고리에서는 "open" 또는 "delete".
+                }
+            }
+            settingsRegistration = try IosNotificationManager.shared.settingsRequests.addListener { request, _ in
+                // 앱 자체의 알림 설정 화면을 표시합니다.
+                // 설정 앱에서 온 요청이면 request.notificationIdentifier는 nil입니다.
+            }
+        } catch {
+            // NotificationError.delegateNotInstalled: installDelegate()가 delegate를 설치하지 않았습니다.
+        }
+    }
+}
+```
+
+`UNNotificationDefaultActionIdentifier`와 `UNNotificationDismissActionIdentifier`는 `import UserNotifications`로 사용할 수 있습니다.
+
+- 리스너의 추가와 제거는 메인 액터에서 합니다. 리스너는 메인 액터에서 호출됩니다. 호출되는 시점은 시스템의 delegate 호출이 반환된 뒤, 라이브러리가 시스템의 완료 핸들러를 호출하기 전입니다.
+- 모든 리스너가 모든 이벤트를 받습니다. 허브에 리스너가 없는 동안 허브는 최대 32개의 이벤트를 보관하며(오래된 것부터 버리고, 프로세스가 살아 있는 동안 보관합니다), 다음 리스너에게 `addListener` 안에서 도착한 순서대로 전달합니다. 따라서 실행 시 추가한 리스너는 앱을 실행한 탭을 받습니다.
+- `event.userInfo`는 라이브러리의 키를 뺀 `[String: NotificationUserInfoValue]` 트리입니다. 이벤트의 설명(description)에는 답장의 길이와 userInfo 키의 개수만 표시됩니다.
+
+---
 
 ### 권한
 
@@ -1667,7 +1795,8 @@ IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
     if isSuccess {
         // 허용됨
     } else {
-        // 거부됨. 설정에서 수동으로 활성화 필요
+        // 거부됨. errorMessage는 "Notification permission was denied."입니다. 대화상자는
+        // 다시 표시되지 않으며, 사용자가 설정 앱에서 알림을 켭니다.
     }
 }
 ```
@@ -1676,11 +1805,13 @@ IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
     <img src="images/ios/notification/Example_IosNotificationManager_RequestPermission.png" alt="Example_IosNotificationManager_RequestPermission" width="400" />
 </p>
 
+이 형식은 1.x와 마찬가지로 앱이 포어그라운드에 있는지 확인하지 않고 `[.alert, .sound, .badge]`를 요청합니다. 거부와 실패를 구별하는 결과가 필요하거나 포어그라운드를 확인하려면 [포어그라운드에서의 권한과 설정](#포어그라운드에서의-권한과-설정)을 참조해 주십시오.
+
 #### 권한 확인
 
 ```swift
 IosNotificationManager.shared.hasPermission { hasPermission in
-    print(hasPermission) // true / false
+    // authorized와 provisional이면 true, 그 밖에는(ephemeral 포함) false
 }
 ```
 
@@ -1689,7 +1820,6 @@ IosNotificationManager.shared.hasPermission { hasPermission in
 ```swift
 IosNotificationManager.shared.authorizationStatus { status in
     // .notDetermined / .denied / .authorized / .provisional / .ephemeral / .unknown
-    print(status)
 }
 ```
 
@@ -1699,9 +1829,13 @@ IosNotificationManager.shared.authorizationStatus { status in
 IosNotificationManager.shared.openNotificationSettings()
 ```
 
+설정 앱에서 앱의 알림 설정 페이지를 열며, 열렸는지는 보고하지 않습니다. 보고가 필요하면 `openNotificationSettings(presenter:completion:)`를 사용합니다.
+
+---
+
 ### 알림 표시
 
-`NotificationContent`를 생성하고 `show()`를 호출합니다.
+`NotificationContent`를 만들고 `show(content:trigger:completion:)`를 호출합니다. 트리거가 없으면 알림은 바로 전달됩니다. 요청의 식별자는 `content.id`이며, 같은 식별자의 새 요청은 이전 요청을 대체합니다.
 
 #### 즉시 표시
 
@@ -1715,7 +1849,7 @@ let content = NotificationContent(
 )
 
 IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // errorMessage는 nil이거나 NotificationError의 고정된 영어 텍스트
 }
 ```
 
@@ -1723,10 +1857,11 @@ IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage i
     <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediate.png" alt="Example_IosNotificationManager_ShowImmediate" width="400" />
 </p>
 
+`content`는 `sending` 매개변수입니다. 호출 후에 사용하지 않는 값을 전달해 주십시오.
+
 #### 첨부 파일 포함 즉시 표시
 
-앱에 포함된 이미지 파일을 첨부하여 알림을 표시합니다.
-알림을 길게 누르면（확장 표시） 썸네일이 표시됩니다.
+앱에 번들로 포함한 이미지 파일을 첨부합니다. 알림을 펼치면(길게 누르면) 보입니다.
 
 ```swift
 guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
@@ -1742,7 +1877,7 @@ let content = NotificationContent(
 )
 
 IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // 존재하지 않는 파일은 attachmentLoadFailed로 실패하며, 아무것도 추가되지 않습니다.
 }
 ```
 
@@ -1750,37 +1885,63 @@ IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage i
     <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediateWithAttachment.png" alt="Example_IosNotificationManager_ShowImmediateWithAttachment" width="400" />
 </p>
 
+이미지, 오디오, 동영상을 첨부할 수 있습니다. 라이브러리는 요청을 추가하기 전에 파일 URL의 파일이 존재하는지 확인합니다.
+
 #### 시간 간격 트리거
 
 ```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "5s Notification",
+    body: "Will be shown after 5 seconds",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
 IosNotificationManager.shared.show(
     content: content,
     trigger: .timeInterval(5.0, repeats: false)
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
+간격은 0보다 커야 하며, 반복할 때는 60초 이상이어야 합니다. 그 밖의 간격은 `invalidTrigger`로 실패하고 아무것도 추가되지 않습니다(그대로 전달하면 시스템이 프로세스를 종료시키기 때문입니다). `NotificationTrigger.isValid`로 미리 확인할 수 있습니다.
+
 #### 캘린더 트리거
 
+샘플 앱은 지금부터 1분 뒤에 알림을 발생시킵니다.
+
 ```swift
-var components = DateComponents()
-components.hour = 9
-components.minute = 0
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Calendar Notification",
+    body: "Will be shown in one minute",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: nextDate)
 
 IosNotificationManager.shared.show(
     content: content,
-    trigger: .calendar(components, repeats: true)
+    trigger: .calendar(components, repeats: false)
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
 #### 위치 정보 트리거
 
-위치 정보 알림은 CoreLocation을 사용합니다. `Info.plist`에 위치 정보 사용 설명을 추가하세요.
-
 ```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Location Notification",
+    body: "You arrived at Tokyo Station",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
 IosNotificationManager.shared.show(
     content: content,
     trigger: .location(
@@ -1792,76 +1953,62 @@ IosNotificationManager.shared.show(
         notifyOnExit: false
     )
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // 등록됨. 기기가 영역에 들어가면 알림이 발생합니다.
 }
 ```
 
-### 첨부 파일
+위치 트리거에는 위치 권한과 `Info.plist`의 위치 사용 설명이 필요합니다. 라이브러리는 위치 권한을 요청하지 않습니다.
 
-`NotificationAttachment`를 사용하여 알림에 이미지, 오디오, 동영상을 첨부할 수 있습니다.
-알림을 길게 누르면（확장 표시） 썸네일이 표시됩니다.
+---
 
-```swift
-guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
-
-let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
-let content = NotificationContent(
-    id: "sample-notification",
-    title: "이미지가 있는 알림",
-    body: "확장하여 이미지를 확인하세요",
-    attachments: [attachment]
-)
-
-IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
-}
-```
-
-### 알림 업데이트
-
-보류 중인 알림의 내용이나 트리거를 업데이트합니다.
+### 업데이트, 취소, 삭제
 
 ```swift
-let updatedContent = NotificationContent(
+let updated = NotificationContent(
     id: "sample-notification",
-    title: "업데이트된 제목",
-    body: "내용이 변경되었습니다"
+    title: "Updated Notification",
+    body: "This content was updated",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
 )
 
 IosNotificationManager.shared.update(
     identifier: "sample-notification",
-    content: updatedContent,
+    content: updated,
     trigger: nil
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
-```
 
-### 알림 취소 / 삭제
-
-```swift
-// 특정 보류 중인 알림 취소
+// 대기 중인(예약된) 알림 취소
 IosNotificationManager.shared.cancel(identifier: "sample-notification")
 
-// 보류 중인 알림 모두 취소
+// 대기 중인 알림 전체 취소
 IosNotificationManager.shared.cancelAll()
 
-// 알림 센터에서 특정 배달된 알림 삭제
+// 전달된 알림을 알림 센터에서 삭제
 IosNotificationManager.shared.removeDelivered(identifier: "sample-notification")
 
-// 알림 센터에서 배달된 알림 모두 삭제
+// 전달된 알림을 알림 센터에서 전체 삭제
 IosNotificationManager.shared.removeAllDelivered()
 ```
 
-### 예약 알림
+- `update`는 `identifier`의 대기 중인 요청을 삭제하고, 새 내용을 그 식별자로 추가합니다(대기 중인 것이 없었던 경우도 마찬가지입니다). `content.id`는 사용되지 않습니다. 검사에서 거부된 내용(userInfo, 트리거, 존재하지 않는 첨부 파일)이면 대기 중인 요청은 그대로 남습니다. 검사 후 시스템이 새 요청을 추가하지 않은 경우(`addRequestFailed`)에는 이전 요청이 이미 사라진 상태입니다.
+- `cancel`과 `cancelScheduled`는 같은 작업입니다. 대기 중인 요청을 삭제하며, 전달된 알림은 그대로 둡니다. `cancelAll`과 `cancelAllScheduled`도 같습니다.
+- `cancelAll`, `cancelAllScheduled`, `removeAllDelivered`는 앱의 다른 부분(다른 컴포넌트나 앱 자신의 코드)이 추가한 것도 삭제합니다.
+- 삭제는 비동기로 실행됩니다. `removeDelivered`, `removeAllDelivered`, `cancelScheduled`, `cancelAllScheduled`는 선택적인 `completion`을 받습니다. 삭제 후에 알림을 추가하려면 그 `completion`에서 추가해 주십시오.
 
-특정 ID로 미래 알림을 예약합니다.
+---
+
+### 예약 알림
 
 ```swift
 let content = NotificationContent(
     id: "scheduled-notification",
-    title: "예약 알림",
-    body: "10초 후에 표시됩니다"
+    title: "Scheduled Notification",
+    body: "Scheduled in 10 seconds",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "scheduled-notification"]
 )
 
 IosNotificationManager.shared.schedule(
@@ -1869,50 +2016,61 @@ IosNotificationManager.shared.schedule(
     trigger: .timeInterval(10.0, repeats: false),
     identifier: "scheduled-notification"
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
+
+트리거는 필수이며, [알림 표시](#알림-표시)에서 보인 세 가지 중 어느 것이든 사용할 수 있습니다. 요청의 식별자는 `identifier`이며, `content.id`는 사용되지 않습니다.
 
 #### 예약 취소
 
 ```swift
-// 특정 예약 알림 취소
+// 특정 예약 취소
 IosNotificationManager.shared.cancelScheduled(identifier: "scheduled-notification")
 
-// 모든 예약 알림 취소
+// 모든 예약 취소
 IosNotificationManager.shared.cancelAllScheduled()
 ```
+
+---
 
 ### 조회
 
 ```swift
-// 보류 중인（미배달） 알림 목록 가져오기
+// 대기 중인(아직 전달되지 않은) 알림 요청
 IosNotificationManager.shared.getScheduled { requests in
-    requests.forEach { print($0.identifier) }
+    let ids = requests.map { $0.identifier }.joined(separator: ", ")
 }
 
-// 배달된 알림 목록 가져오기
+// 알림 센터에 표시된 알림
 IosNotificationManager.shared.getDelivered { notifications in
-    notifications.forEach { print($0.identifier) }
+    let ids = notifications.map { $0.identifier }.joined(separator: ", ")
 }
 ```
+
+`ScheduledNotification`과 `ActiveNotification`은 식별자, 제목, 부제목, 본문, 카테고리 식별자를 가집니다(`ActiveNotification`은 전달 시각 `date`도 가집니다). 라이브러리의 키를 뺀 userInfo는 트리로 `userInfoValues`에 있으며, `userInfo`는 여기에서 1.x와 같이 읽을 수 있는 Foundation 딕셔너리를 만듭니다.
+
+---
 
 ### 배지
 
 ```swift
-// 배지 수 설정（0으로 초기화）
+// 배지 수 설정
 IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 
+// 0이면 배지를 지움
 IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
+---
+
 ### 카테고리와 액션
 
-알림에 액션 버튼이나 텍스트 입력을 추가합니다.
+카테고리는 `categoryIdentifier`로 그 카테고리를 지정한 알림에 액션 버튼과 텍스트 입력을 추가합니다.
 
 #### 카테고리 등록
 
@@ -1922,42 +2080,50 @@ let category = NotificationCategory(
     actions: [
         NotificationAction(
             identifier: "open",
-            title: "열기",
+            title: "Open",
             options: [.foreground]
         ),
         NotificationAction(
             identifier: "delete",
-            title: "삭제",
+            title: "Delete",
             options: [.destructive]
         )
     ],
     textInputActions: [
         TextInputNotificationAction(
             identifier: "reply",
-            title: "답장",
-            buttonTitle: "보내기",
-            textInputPlaceholder: "메시지를 입력하세요"
+            title: "Reply",
+            buttonTitle: "Send",
+            textInputPlaceholder: "IosLibraryExample reply"
         )
     ],
-    options: [.customDismissAction, .allowAnnouncement]
+    options: [.customDismissAction]
 )
 
 IosNotificationManager.shared.registerCategory(category)
 ```
 
-#### 카테고리를 알림에 연결
+`categoryIdentifier: "sample-category"`를 지정한 알림을 표시하고 길게 누르면 액션이 보입니다.
 
-`NotificationContent`의 `categoryIdentifier`에 카테고리 ID를 지정합니다.
-알림을 길게 누르면 액션 버튼이 표시됩니다.
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
+</p>
+
+- 액션 탭과 답장은 이벤트로 전달됩니다([실행 시 리스너 등록](#실행-시-리스너-등록) 참조). `actionIdentifier`는 `"open"`, `"delete"`, `"reply"` 중 하나이며, 답장은 `userText`를 가집니다.
+- 카테고리 변경은 호출 순서대로 하나씩 적용됩니다. 카테고리를 등록하면 같은 식별자의 카테고리가 대체됩니다.
+- `NotificationCategoryOptions.allowAnnouncement`는 사용 중단되었으며 효과가 없습니다(iOS 15부터 시스템이 무시합니다).
+
+등록 직후에 그 카테고리를 사용하는 알림을 보내려면, 카테고리가 등록된 뒤에 호출되는 `completion`에서 보내 주십시오.
 
 ```swift
-let content = NotificationContent(
-    id: "sample-notification",
-    title: "액션이 있는 알림",
-    body: "길게 눌러 액션을 확인하세요",
-    categoryIdentifier: "sample-category"
-)
+IosNotificationManager.shared.registerCategory(category) {
+    // 등록됨. 이제부터 보내는 알림에는 액션이 표시됩니다.
+}
 ```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RegisterCategoryWithCompletion.png" alt="Example_IosNotificationManager_RegisterCategoryWithCompletion" width="400" />
+</p>
 
 #### 카테고리 삭제
 
@@ -1965,23 +2131,583 @@ let content = NotificationContent(
 IosNotificationManager.shared.removeCategory(identifier: "sample-category")
 ```
 
-<p align="center">
-    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
-</p>
+`removeCategory`도 선택적인 `completion`을 받습니다.
 
-#### 액션 수신 콜백
+---
+
+### 알림 이벤트
+
+샘플 앱의 "Swift API (2.0.0)" 섹션에서 이벤트 허브를 시험할 수 있습니다. 리스너 자체는 실행 시 추가합니다([실행 시 리스너 등록](#실행-시-리스너-등록) 참조).
+
+#### 리스너 추가와 제거
+
+허브에는 리스너를 몇 개든 등록할 수 있습니다. 나중에 리스너를 제거하려면 `NotificationEventRegistration`을 보관해 주십시오. 버려도 리스너는 제거되지 않습니다.
 
 ```swift
-// 액션 버튼 탭을 수신
-IosNotificationManager.shared.onActionReceived = { notificationId, actionId, userInfo in
-    print("notification: \(notificationId), action: \(actionId)")
+// 메인 액터에서.
+do {
+    secondRegistration = try IosNotificationManager.shared.responses.addListener { event, registration in
+        // 첫 번째 리스너와 마찬가지로 모든 응답에서 호출됩니다.
+        // 여기서 registration.remove()를 호출하면 이 리스너를 그 안에서 멈출 수 있습니다.
+    }
+} catch {
+    // NotificationError.delegateNotInstalled
 }
 
-// 텍스트 입력 액션 제출을 수신
-IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, userInfo in
-    print("notification: \(notificationId), action: \(actionId), text: \(userText)")
+// 나중에:
+secondRegistration?.remove()   // 바로 제거됩니다. 두 번째 호출은 아무것도 하지 않습니다
+secondRegistration = nil
+```
+
+보관된 이벤트는 리스너가 없는 동안 처음 추가된 리스너에게 한 번만 전달됩니다. 다른 리스너가 등록되어 있는 동안 추가한 리스너는 추가된 뒤에 도착한 이벤트만 받습니다.
+
+#### 실행 시 응답
+
+`launchResponse()`는 앱을 실행한 응답을 `isLaunchResponse`를 설정해 반환하며, 없으면 `nil`을 반환합니다.
+
+```swift
+// 메인 액터에서.
+do {
+    if let event = try IosNotificationManager.shared.launchResponse() {
+        // event.notificationIdentifier, event.actionIdentifier, event.isLaunchResponse == true
+    } else {
+        // (아직) 없음
+    }
+} catch {
+    // NotificationError.delegateNotInstalled
 }
 ```
+
+- 실행 시 응답이란 앱을 포어그라운드로 가져오는, 프로세스의 첫 번째 응답(본문 탭 또는 `.foreground`를 가진 액션) 중 앱이 처음 활성화되기 전에 도착하여 라이브러리가 처리한 것입니다. 이전 delegate로 전달된 응답은 실행 시 응답이 되지 않습니다.
+- 앱이 처음 활성화될 때까지는 `nil`이 나중에 응답으로 바뀔 수 있습니다. 그 뒤로는 결과가 바뀌지 않습니다. 앱이 이미 활성화된 상태에서 delegate가 처음 설치된 경우에는 `nil`입니다.
+- 같은 응답은 `isLaunchResponse`가 설정된 상태로 `responses`의 리스너에도 전달됩니다. 처리는 한 곳에서만 해 주십시오. 확실한 쪽은 리스너입니다.
+- 백그라운드 액션으로 앱이 실행된 직후 사용자가 앱을 포어그라운드로 가져오면, 그 액션이 실행 시 응답으로 취급될 수 있습니다.
+
+#### 다른 알림과 이전 delegate
+
+라이브러리는 자신의 알림(userInfo에 라이브러리의 키가 있는 것)을 직접 처리하며, 이전 delegate에 보여 주지 않습니다. 키가 없는 알림(앱 자신의 것, 다른 컴포넌트의 것, 푸시 알림, 라이브러리의 1.x가 추가한 것)은 이전 delegate가 해당 delegate 메서드를 구현하고 있으면 그 delegate로 갑니다. 구현하지 않았으면 라이브러리가 자신의 알림과 같이 처리합니다.
+
+| delegate 메서드 | 이전 delegate가 구현함 | 이전 delegate가 없거나 구현하지 않음 |
+|---|---|---|
+| `willPresent` | 표시 방법은 이전 delegate가 정합니다 | `foregroundPresentationOptions`(기본값 `[.banner, .list, .sound, .badge]`)로 표시됩니다 |
+| `didReceive` | 이전 delegate로 갑니다. 라이브러리 이벤트는 없습니다 | `responses`로 전달됩니다 |
+| `openSettingsFor` | 이전 delegate로 갑니다(설정 앱에서 온 요청도 마찬가지입니다) | `settingsRequests`로 전달됩니다 |
+
+따라서 자체 delegate가 없는 앱에서는 업데이트 전에 1.x가 예약한 알림과 앱 자신의 알림이 1.x와 마찬가지로 포어그라운드에서 표시되고, 그 탭은 `responses`로 전달됩니다. 자체 delegate가 `didReceive`를 구현하는 앱에서는 그 탭이 그 delegate로 갑니다.
+
+`IosNotificationManager.shared.foregroundPresentationOptions`는 라이브러리가 처리하는 알림을 앱이 포어그라운드에 있는 동안 어떻게 표시할지 설정합니다.
+
+---
+
+### 오류와 async 형식
+
+#### userInfo 확인
+
+`show`, `update`, `schedule`은 먼저 userInfo를 확인합니다. 예약된 키를 사용하거나 속성 목록 값(문자열, 숫자, 불리언, 날짜, 데이터, 배열, 문자열 키 딕셔너리)이 아닌 값을 담고 있으면 아무것도 추가하지 않습니다(`update`는 아무것도 삭제하지 않습니다). 샘플 앱은 `async` 형식으로 이를 보여 줍니다.
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Reserved Key",
+    body: "Never shown",
+    categoryIdentifier: "sample-category",
+    userInfo: ["com.jonghyunkim.nativetoolkit": 1]
+)
+
+Task {
+    do {
+        try await IosNotificationManager.shared.show(content: content, trigger: nil)
+    } catch let error as NotificationError {
+        // 여기서는 .reservedUserInfoKey. URL(string: "https://example.com")! 같은 값은
+        // .invalidUserInfo로 실패합니다.
+    } catch {
+        // 여기에는 오지 않습니다. IosNotificationManager가 던지는 것은 NotificationError뿐입니다. 형식을
+        // 지정하지 않은 throws인 것은 유스케이스가 앱 자체의 NotificationRepository도 받기 때문입니다.
+    }
+}
+```
+
+`async` 형식은 던지는 오류의 타입을 지정하지 않고 `async throws`로 선언되어 있지만, 라이브러리가 던지는 것은 `NotificationError`뿐입니다. 트리거 없이 `async` 형식을 선택하려면 `trigger: nil`을 작성합니다. `show(content:)`만 쓰면 콜백 형식이 됩니다.
+
+#### 포어그라운드에서의 권한과 설정
+
+`requestPermission(options:presenter:completion:)`과 `openNotificationSettings(presenter:completion:)`는 `PresenterSelection`을 받으며, 타입이 있는 결과를 보고합니다.
+
+| `presenter` | `requestPermission` | `openNotificationSettings` |
+|---|---|---|
+| `.firstActiveScene` | 1.x 형식과 마찬가지로 바로 요청합니다 | 1.x 형식과 마찬가지로 바로 엽니다 |
+| `.foreground`, `.viewController(_:)` | 먼저 상태를 읽습니다. 상태가 정해져 있으면 아무것도 요청하지 않고 그 상태로 응답합니다(`authorized`, `provisional`, `ephemeral`은 `true`). `notDetermined`이면 앱이 포어그라운드에 없는 동안에는 `notForeground`로 실패하고(대화상자는 표시되지 않습니다), 그 밖에는 요청합니다 | 앱이 포어그라운드에 없는 동안에는 `notForeground`로 실패하고, 그 밖에는 엽니다 |
+
+```swift
+// async 형식: 허용되면 true, 거부되면 false(거부는 오류가 아닙니다).
+Task {
+    do {
+        let granted = try await IosNotificationManager.shared.requestPermission(
+            options: [.alert, .sound, .badge, .providesAppNotificationSettings],
+            presenter: .foreground
+        )
+    } catch let error as NotificationError {
+        // .notForeground, 또는 요청 자체가 실패했을 때는 .authorizationFailed(detail)
+    } catch {
+    }
+}
+
+// C ABI가 사용하는 것과 같은 콜백 형식.
+IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) { result in
+    // 시스템이 페이지를 열면 .success(()). 그 밖에는 .failure(.notForeground) 또는
+    // .failure(.openSettingsFailed). 보통 앱이 백그라운드로 옮겨진 뒤에 옵니다.
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RequestPermissionWithAppSettings.png" alt="Example_IosNotificationManager_RequestPermissionWithAppSettings" width="400" />
+</p>
+
+- 시스템이 앱 자체의 알림 설정을 표시하라는 요청(`settingsRequests`)을 보내는 것은 `.providesAppNotificationSettings`를 요청한 앱뿐입니다. 이때 설정 앱은 알림 페이지에 앱 설정으로 가는 링크를 표시합니다.
+- `.foreground`나 `.viewController(_:)`에서는 권한이 이미 정해진 앱에 다시 요청하지 않으므로, 나중에 추가한 옵션(`.providesAppNotificationSettings` 등)은 요청되지 않습니다. 모든 옵션을 첫 요청에 넣거나 `.firstActiveScene`으로 요청해 주십시오.
+- `.viewController { [weak self] in self }`는 포어그라운드 씬을 찾는 대신 앱의 뷰 컨트롤러를 확인합니다.
+
+#### 오류 케이스
+
+`NotificationError`의 케이스입니다. `errorDescription`은 고정된 영어 문장이며, 콜백 형식의 `errorMessage`로도 전달됩니다.
+
+| 케이스 | 조건 |
+|---|---|
+| `permissionDenied` | `requestPermission`의 1.x 콜백 형식이 거부를 이 텍스트로 보고합니다. 던지는 것은 사용 중단된 `NotificationPermissionHelper`뿐입니다 |
+| `attachmentLoadFailed(identifier:detail:)` | 첨부 파일을 만들 수 없었거나 그 파일이 존재하지 않음(`NSCocoaErrorDomain`, `NSFileReadNoSuchFileError`) |
+| `addRequestFailed(_:)` | 시스템이 요청을 추가하지 않음(`show`, `update`, `schedule`) |
+| `setBadgeCountFailed(_:)` | 시스템이 배지 수를 설정하지 않음 |
+| `authorizationFailed(_:)` | 권한 요청 자체가 실패함(거부가 아님) |
+| `reservedUserInfoKey` | userInfo가 키 `com.jonghyunkim.nativetoolkit`을 사용함 |
+| `invalidUserInfo` | userInfo에 속성 목록 값이 아닌 값이 있음 |
+| `invalidTrigger` | 시간 간격이 0 이하이거나, 반복 시 60 미만 |
+| `notForeground` | 앱이 포어그라운드에 없는 동안의 `.foreground` 또는 `.viewController(_:)` |
+| `openSettingsFailed` | 시스템이 설정 페이지를 열지 않음 |
+| `delegateNotInstalled` | `installDelegate()` 전의 리스너 또는 `launchResponse()` |
+
+`FailureDetail`은 시스템이 보고한 `NSError`의 도메인과 코드를 가집니다. 라이브러리는 라이브러리 에볼루션을 켜고 빌드되어 케이스가 추가될 수 있습니다. `NotificationError`에 대한 `switch`에는 `@unknown default`를 작성해 주십시오.
+
+---
+
+### C ABI
+
+- C에서, 그리고 C 라이브러리를 호출할 수 있는 언어(C#, Rust, Dart, Go 등)에서 같은 알림을 사용하기 위한 API입니다. 함수는 `ios-native-toolkit-capi-2.0.0.xcframework`의 `IosLibraryCApi.framework`에 있으며, Swift API를 호출합니다. `ios-native-toolkit-capi-2.0.0.xcframework`와 `ios-native-toolkit-2.0.0.xcframework`를 모두 앱 타깃에 추가해 주십시오(Embed & Sign). 헤더는 `<NativeToolkitC/Common.h>`와 `<NativeToolkitC/Notification.h>`입니다(프레임워크에서는 `<IosLibraryCApi/NativeToolkitC/Notification.h>`. `dist/1.14.0/ios/include/NativeToolkitC/`에도 있습니다). Objective-C는 `@import IosLibraryCApi;`로 프레임워크의 모듈을 가져올 수 있습니다. 요건과 XCFramework를 추가하는 절차는 매뉴얼 상단의 [지원 플랫폼: iOS](index.ko.md#지원-플랫폼-ios실기기-arm64--simulator-arm64-x86_64)에, 모든 기능에 공통되는 규칙은 마찬가지로 매뉴얼 상단의 [C ABI](index.ko.md#c-abi-1)에 있습니다.
+- **delegate.** 이벤트와 포어그라운드 표시에는 `ntk_notification_install`이 필요합니다. [delegate 설치](#delegate-설치)의 `installDelegate()`와 마찬가지로, 호스트의 네이티브 코드(애플리케이션 delegate, 또는 `scene:willConnectToSession:options:`의 씬 delegate)가 실행이 끝나기 전에 메인 스레드에서 호출합니다. 메인 스레드에서 호출해야 하는 함수는 이것뿐입니다. 다른 스레드에서는 바로 `NTK_NOTIFICATION_ERROR_WRONG_THREAD`를 반환하고 아무것도 하지 않습니다. `UIApplicationMain` 전에 호출하는 것은 계약 범위 밖입니다. C ABI와 Swift API는 같은 delegate를 설치하므로 어느 쪽을 호출해도, 둘 다 호출해도 됩니다. 설치될 때까지 두 `_add_*_listener` 함수와 `ntk_notification_get_launch_response_async`는 `NTK_NOTIFICATION_ERROR_NOT_INITIALIZED`를 반환합니다. 다른 함수는 동작합니다. 이전 delegate의 규칙은 [다른 알림과 이전 delegate](#다른-알림과-이전-delegate)와 같습니다.
+- **스레드.** 그 밖의 모든 함수는 어느 스레드에서든 호출할 수 있으며, 메인 스레드를 기다리는 함수는 없습니다. 완료, 이벤트, 받아들여진 호출의 `release`는 메인 스레드에서 호출되며, 호출을 메인 스레드에서 한 경우 그 호출 안에서 호출되는 일은 없습니다. 다른 스레드에서 호출하면 완료가 함수가 반환되기 전에 올 수 있으므로 완료는 `user_data`로 대응시켜 주십시오.
+- **`release`.** 콜백을 받는 함수가 `NTK_NOTIFICATION_ERROR_NONE`을 반환하면 받아들여졌다는 뜻입니다. 그러면 콜백은 프로세스가 살아 있는 동안 정확히 한 번 오고, 그 뒤에 `release`(`NULL`이 아니면)가 옵니다. 그 밖의 값은 거부를 뜻합니다. 콜백은 호출되지 않으며, `release`는 함수가 반환되기 전에 호출한 스레드에서 이미 호출되었습니다. `NULL` 콜백은 거부됩니다.
+- **내용 빌더**(`ntk_notification_content`)는 Swift API의 기본값(기본 사운드, 배지 없음)에서 시작하고, 세터가 받은 것을 복사합니다. 스레드 안전하지 않습니다. 세터에 `NULL` 문자열을 전달하면 기본값으로 돌아갑니다. 작업은 내용을 복사하므로 호출이 반환된 뒤에 내용을 해제하거나 바꿔도 됩니다. `_free(NULL)`은 아무것도 하지 않습니다.
+- **구조체.** 0으로 채우고 `struct_size`에 구조체의 `sizeof`를 설정한 것이 기본값이며, `reserved` 필드는 0이어야 합니다. `ntk_notification_trigger`에서 0은 반복하지 않는 `TIME_INTERVAL` 트리거로, 영역에 들어갈 때 알리고(`not_notify_on_entry`가 0) 나갈 때는 알리지 않습니다(`notify_on_exit`가 0). 다만 `interval_seconds`의 0은 거부되므로 사용하는 종류의 필드를 설정해 주십시오. `ntk_notification_action`에서 0은 SF Symbol 없음, 옵션 없음입니다. `ntk_notification_category`에서는 옵션 없음, 액션 없음, 텍스트 입력 액션 없음입니다. 식별자와 제목, 텍스트 입력 액션의 버튼 제목과 플레이스홀더는 필수입니다. `NULL`은 거부되지만 제목은 빈 문자열이어도 됩니다. 범위를 벗어난 값, 알 수 없는 비트, 필요한 곳의 빈 식별자, 잘못된 `struct_size`는 `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER`를 반환합니다. 불리언은 `int32_t`입니다.
+- **문자열**은 NUL로 끝나는 UTF-8이며 엄격하게 확인됩니다. 잘못된 UTF-8은 `INVALID_PARAMETER`입니다. 반환되는 텍스트는 UTF-8이며, 잘못된 서로게이트와 U+0000은 U+FFFD로 바뀌고, 핸들이 해제될 때까지 유효합니다. `out_size`는 `NULL`이어도 됩니다.
+- **권한 확인.** Swift API와 달리 `ntk_notification_show_async`, `_update_async`, `_schedule_async`는 먼저 권한을 읽습니다. 상태가 authorized, provisional, ephemeral 중 어느 것도 아니면 `NTK_NOTIFICATION_ERROR_PERMISSION_DENIED`로 완료되며 아무것도 추가하지 않습니다. 확인 직후에 바뀐 상태는 잡지 못합니다.
+- **포어그라운드.** `ntk_notification_request_permission_async`(상태가 정해지지 않은 동안)와 `ntk_notification_open_settings_async`는 앱이 포어그라운드에 있어야 합니다. 백그라운드에서 호출하면 받아들여진 뒤 `NTK_NOTIFICATION_ERROR_NOT_FOREGROUND`로 완료됩니다. 이 함수들은 [포어그라운드에서의 권한과 설정](#포어그라운드에서의-권한과-설정)의 `.foreground` 형식과 같이 동작합니다.
+- **`system_code`**와 `ntk_last_system_code()`는 iOS에서 항상 0입니다.
+- **콜백은 예외를 던지면 안 됩니다**(C++나 C#의 예외, Rust의 panic이 콜백 밖으로 나가면 안 됩니다). 또한 메인 스레드를 오래 막으면 안 됩니다. 열거형은 값이 늘어날 수 있으므로 `default` 분기를 작성해 주십시오.
+
+#### delegate 설치와 이벤트 수신
+
+```c
+static void NTK_CALL on_interaction(void* user_data, ntk_notification_interaction* event)
+{
+    /* 메인 스레드에서 호출됩니다. 이벤트는 받는 쪽의 것입니다. 지금이든 나중이든 해제합니다. */
+    ntk_notification_event_kind kind = ntk_notification_interaction_kind(event);
+    size_t id_size = 0;
+    const char* notification_id = ntk_notification_interaction_notification_id(event, &id_size);
+    const char* action_id = ntk_notification_interaction_action_id(event, NULL);
+    const char* category_id = ntk_notification_interaction_category_id(event, NULL);   /* 카테고리가 없으면 "" */
+    const char* user_text = ntk_notification_interaction_user_text(event, NULL);       /* TEXT_INPUT이 아니면 NULL */
+    const char* user_info = ntk_notification_interaction_user_info_json(event, NULL);  /* JSON 객체 */
+    int32_t launched_the_app = ntk_notification_interaction_is_launch(event);
+    switch (kind) {
+    case NTK_NOTIFICATION_EVENT_KIND_BODY_TAP:
+        break;   /* action_id는 시스템의 기본 액션 식별자 */
+    case NTK_NOTIFICATION_EVENT_KIND_ACTION:
+        break;   /* 카테고리의 버튼: "open" 또는 "delete" */
+    case NTK_NOTIFICATION_EVENT_KIND_DISMISS:
+        break;   /* 닫힘(CUSTOM_DISMISS_ACTION을 가진 카테고리) */
+    case NTK_NOTIFICATION_EVENT_KIND_TEXT_INPUT:
+        break;   /* 답장: user_text(빈 답장이면 "") */
+    default:
+        break;
+    }
+    (void)user_data; (void)notification_id; (void)action_id; (void)category_id;
+    (void)user_text; (void)user_info; (void)launched_the_app;
+    ntk_notification_interaction_free(event);
+}
+
+static void NTK_CALL on_settings_request(void* user_data, ntk_notification_settings_request* request)
+{
+    /* 시스템이 앱 자체의 알림 설정을 표시하도록 요청함. */
+    const char* notification_id = ntk_notification_settings_request_notification_id(request, NULL);
+    if (notification_id == NULL) {
+        /* 설정 앱에서 온 요청. */
+    }
+    (void)user_data;
+    ntk_notification_settings_request_free(request);
+}
+
+static void NTK_CALL on_launch_response(void* user_data, ntk_notification_error error, uint32_t system_code,
+                                        ntk_notification_interaction* response)
+{
+    /* 지금은 없으면 NULL. 앱이 처음 활성화될 때까지는 나중에 나타날 수 있습니다. */
+    if (error == NTK_NOTIFICATION_ERROR_NONE && response != NULL) {
+        /* 같은 응답은 is_launch가 설정된 상태로 인터랙션 리스너에도 전달됩니다. */
+    }
+    (void)user_data; (void)system_code;
+    ntk_notification_interaction_free(response);   /* NULL이면 아무것도 하지 않습니다 */
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* 받아들여진 등록마다 마지막 콜백 뒤에 정확히 한 번 호출됩니다. */
+    (void)user_data;
+}
+
+/* 호스트의 실행 코드에서, 메인 스레드에서 호출합니다: application:willFinishLaunchingWithOptions:,
+   또는 반환되기 전의 application:didFinishLaunchingWithOptions:. */
+ntk_notification_error error = ntk_notification_install();
+if (error == NTK_NOTIFICATION_ERROR_WRONG_THREAD) {
+    return;   /* 메인 스레드가 아님. 아무것도 설치되지 않았습니다. */
+}
+
+/* 리스너도 실행 중에 추가합니다. 리스너가 없는 동안 도착한 최대 32개의 이벤트(앱을
+   실행한 탭 포함)는 다음에 추가된 리스너에게 전달됩니다. */
+ntk_notification_listener* interactions = NULL;
+error = ntk_notification_add_interaction_listener(&on_interaction, NULL, &release_user_data, &interactions);
+ntk_notification_listener* settings_requests = NULL;
+error = ntk_notification_add_settings_request_listener(&on_settings_request, NULL, &release_user_data,
+                                                       &settings_requests);
+if (error == NTK_NOTIFICATION_ERROR_NOT_INITIALIZED) {
+    /* ntk_notification_install이 delegate를 설치하지 않았음. */
+}
+
+/* 아직 리스너를 등록할 수 없는 곳에서는 대신 실행 시 응답을 요청합니다. */
+error = ntk_notification_get_launch_response_async(&on_launch_response, NULL, &release_user_data);
+
+/* 더 이상 필요 없는 경우. 메인 스레드에서라면 이후 이벤트는 콜백에 전달되지 않습니다. 다른
+   스레드에서라면 release_user_data까지 이벤트가 올 수 있습니다. 핸들은 이제 무효입니다. */
+ntk_notification_listener_remove(interactions);
+ntk_notification_listener_remove(settings_requests);
+```
+
+`action_id`는 원래의 식별자입니다. 카테고리 액션의 식별자이거나, `BODY_TAP`과 `DISMISS`에서는 시스템의 `com.apple.UNNotificationDefaultActionIdentifier`와 `com.apple.UNNotificationDismissActionIdentifier`입니다. userInfo JSON은 날짜를 ISO 8601 문자열로, 데이터를 Base64로, 유한하지 않은 값을 `null`로 담습니다. 라이브러리의 키는 제거됩니다.
+
+#### 권한과 설정
+
+```c
+static void NTK_CALL on_permission(void* user_data, ntk_notification_error error, uint32_t system_code,
+                                   int32_t granted)
+{
+    if (error == NTK_NOTIFICATION_ERROR_NONE) {
+        /* granted는 1 또는 0. 거부는 NONE에 0입니다. */
+    } else if (error == NTK_NOTIFICATION_ERROR_NOT_FOREGROUND) {
+        /* 아직 정해지지 않았고 앱이 포어그라운드에 없었음. 아무것도 표시되지 않았습니다. */
+    } else if (error == NTK_NOTIFICATION_ERROR_AUTHORIZATION_FAILED) {
+        /* 요청 자체가 실패함. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL on_status(void* user_data, ntk_notification_error error, uint32_t system_code,
+                               ntk_notification_authorization_status status)
+{
+    switch (status) {
+    case NTK_NOTIFICATION_STATUS_NOT_DETERMINED:
+    case NTK_NOTIFICATION_STATUS_DENIED:
+    case NTK_NOTIFICATION_STATUS_AUTHORIZED:
+    case NTK_NOTIFICATION_STATUS_PROVISIONAL:
+    case NTK_NOTIFICATION_STATUS_EPHEMERAL:
+    case NTK_NOTIFICATION_STATUS_UNKNOWN:
+    default:
+        break;
+    }
+    (void)user_data; (void)error; (void)system_code;
+}
+
+static void NTK_CALL on_settings_opened(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_SETTINGS_NOT_OPENED) {
+        /* 시스템이 페이지를 열지 않음. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 0은 ALERT, SOUND, BADGE를 요청합니다. 모든 옵션을 첫 요청에 넣어 주십시오. 상태가
+   정해지면 시스템에 다시 요청하지 않으며, 요청은 현재 상태를 보고합니다
+   (authorized, provisional, ephemeral은 1). */
+uint32_t options = NTK_NOTIFICATION_AUTH_ALERT | NTK_NOTIFICATION_AUTH_SOUND | NTK_NOTIFICATION_AUTH_BADGE
+                 | NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS;
+ntk_notification_error error = ntk_notification_request_permission_async(options, &on_permission, NULL,
+                                                                         &release_user_data);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    /* 거부됨(알 수 없는 비트). on_permission은 호출되지 않으며, release_user_data는 이미 호출되었습니다. */
+}
+
+/* authorized와 provisional이면 1, 그 밖에는(ephemeral 포함) 0. */
+error = ntk_notification_has_permission_async(&on_permission, NULL, &release_user_data);
+error = ntk_notification_get_authorization_status_async(&on_status, NULL, &release_user_data);
+
+/* 설정 앱의 앱 페이지. 포어그라운드가 필요합니다. */
+error = ntk_notification_open_settings_async(&on_settings_opened, NULL, &release_user_data);
+
+uint32_t system_code = ntk_last_system_code();   /* iOS에서는 항상 0 */
+```
+
+설정 요청 리스너가 요청을 받는 것은 앱이 `NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS`를 요청한 경우뿐입니다. 상태가 이미 정해진 앱(1.x에서 업데이트한 앱 등)은 이 함수로 이 옵션을 추가할 수 없습니다. 그런 경우 앱의 네이티브 코드가 `UNUserNotificationCenter`의 `requestAuthorization`을 직접 호출합니다.
+
+#### 내용 빌더, 표시, 예약
+
+```c
+static void NTK_CALL on_done(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_PERMISSION_DENIED) {
+        /* 권한이 없음. 아무것도 추가되지 않았습니다(update는 아무것도 삭제하지 않았습니다). */
+    } else if (error == NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED) {
+        /* 첨부 파일을 만들 수 없었거나 그 파일이 존재하지 않음. */
+    } else if (error == NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED) {
+        /* 시스템이 요청을 추가하지 않음. update 후에는 이전 요청이 사라진 상태입니다. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 내용: id(비어 있지 않은 것)와 제목은 필수입니다. */
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create("sample-notification", "Immediate Notification", &content)
+        != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+ntk_notification_content_set_body(content, "Displayed now");
+ntk_notification_content_set_subtitle(content, NULL);               /* NULL: 기본값(없음) */
+ntk_notification_content_set_category(content, "sample-category");
+/* null도 키 "com.jonghyunkim.nativetoolkit"도 포함하지 않는 JSON 객체. */
+ntk_notification_content_set_user_info_json(content, "{\"source\":\"IosLibraryExample\",\"id\":\"sample-notification\"}");
+ntk_notification_content_set_badge(content, -1);                    /* 0 이상. -1: 설정하지 않음 */
+ntk_notification_content_set_sound(content, NTK_NOTIFICATION_SOUND_DEFAULT, NULL);  /* NAMED는 이름을 받습니다 */
+ntk_notification_content_set_interruption_level(content, NTK_NOTIFICATION_INTERRUPTION_ACTIVE);
+ntk_notification_content_set_thread(content, NULL);
+ntk_notification_content_set_target_content(content, NULL);
+ntk_notification_content_set_relevance_score(content, 0.5);         /* 0.0~1.0 */
+ntk_notification_content_set_filter_criteria(content, NULL);
+
+/* 지금: 트리거 없음. 요청의 식별자는 내용의 id입니다. */
+ntk_notification_error error = ntk_notification_show_async(content, NULL, &on_done, NULL, &release_user_data);
+
+/* 5초 뒤. 0보다 크고, 반복할 때는 60 이상. */
+ntk_notification_trigger trigger;
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_TIME_INTERVAL;
+trigger.interval_seconds = 5.0;
+error = ntk_notification_show_async(content, &trigger, &on_done, NULL, &release_user_data);
+
+/* 매일 9:00. 비트가 설정된 필드만 읽습니다. */
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_CALENDAR;
+trigger.calendar_fields = NTK_NOTIFICATION_CALENDAR_HOUR | NTK_NOTIFICATION_CALENDAR_MINUTE;
+trigger.hour = 9;
+trigger.minute = 0;
+trigger.repeats = 1;
+/* schedule: 식별자는 첫 번째 인수이며(내용의 id는 사용되지 않습니다), 트리거는 필수입니다. */
+error = ntk_notification_schedule_async("scheduled-notification", content, &trigger, &on_done, NULL,
+                                        &release_user_data);
+
+/* 영역에 들어갈 때. 위치 권한과 Info.plist의 설명 문구가 필요합니다. */
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_LOCATION;
+trigger.location_identifier = "tokyo-station";
+trigger.latitude = 35.6812;
+trigger.longitude = 139.7671;
+trigger.radius = 100.0;
+trigger.not_notify_on_entry = 0;   /* 0: 들어갈 때 알림 */
+trigger.notify_on_exit = 0;
+/* 다른 식별자를 사용합니다. 같은 식별자의 요청은 대기 중인 요청(위의 캘린더 요청)을 대체합니다. */
+error = ntk_notification_schedule_async("scheduled-location", content, &trigger, &on_done, NULL,
+                                        &release_user_data);
+ntk_notification_content_free(content);
+
+/* 대기 중인 요청 "sample-notification"을 대체합니다(없으면 추가합니다). NULL 트리거는 지금. */
+ntk_notification_content* updated = NULL;
+if (ntk_notification_content_create("sample-notification", "Updated Notification", &updated)
+        == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_set_body(updated, "This content was updated");
+    error = ntk_notification_update_async("sample-notification", updated, NULL, &on_done, NULL,
+                                          &release_user_data);
+    ntk_notification_content_free(updated);
+}
+
+/* 첨부 파일: file:// URL. 알림이 추가될 때 시스템이 파일을 옮기므로, 첨부 파일을
+   가진 빌더는 한 번의 작업에만 쓸 수 있습니다. 두 번째 작업은
+   ATTACHMENT_LOAD_FAILED로 실패합니다. */
+ntk_notification_content* with_image = NULL;
+if (ntk_notification_content_create("sample-notification", "Immediate Notification with Attachment", &with_image)
+        == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_add_attachment(with_image, "app-icon", "file:///path/to/app-icon-attachment.png");
+    error = ntk_notification_show_async(with_image, NULL, &on_done, NULL, &release_user_data);
+    ntk_notification_content_free(with_image);
+}
+```
+
+Swift API의 검사는 입구에서의 확인이 됩니다. 예약된 키, JSON `null`, 범위를 벗어난 시간 간격, 필드가 없는 캘린더 트리거, 잘못된 위치, `file://`이 아닌 첨부 파일 URL은 `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER`를 반환합니다. 존재하지 않는 파일은 `NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED`로 완료됩니다.
+
+#### 삭제와 목록
+
+```c
+static void NTK_CALL on_list(void* user_data, ntk_notification_error error, uint32_t system_code,
+                             ntk_notification_list* list)
+{
+    /* error가 NONE이 아니면 list는 NULL. 목록은 받는 쪽의 것입니다. 해제합니다. */
+    size_t count = (error == NTK_NOTIFICATION_ERROR_NONE) ? ntk_notification_list_count(list) : 0;
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* identifier = ntk_notification_list_identifier_at(list, i, NULL);
+        const char* title = ntk_notification_list_title_at(list, i, NULL);        /* ""일 수 있음 */
+        const char* subtitle = ntk_notification_list_subtitle_at(list, i, NULL);  /* NULL: 없음 */
+        const char* body = ntk_notification_list_body_at(list, i, NULL);          /* NULL: 없음 */
+        const char* category = ntk_notification_list_category_at(list, i, NULL);  /* ""일 수 있음 */
+        int64_t delivered_at = ntk_notification_list_date_millis_at(list, i);     /* 예약된 알림이면 0 */
+        (void)identifier; (void)title; (void)subtitle; (void)body; (void)category; (void)delivered_at;
+    }
+    (void)user_data; (void)system_code;
+    ntk_notification_list_free(list);
+}
+
+static void NTK_CALL on_removed(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    /* 삭제에는 실패 값이 없습니다. 삭제 후에 요청을 추가하려면 여기서 추가합니다. */
+    (void)user_data; (void)error; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 대기 중인 요청과 전달된 알림. userInfo와 트리거는 포함하지 않습니다. */
+ntk_notification_error error = ntk_notification_get_scheduled_async(&on_list, NULL, &release_user_data);
+error = ntk_notification_get_delivered_async(&on_list, NULL, &release_user_data);
+
+/* ""는 아무것도 삭제하지 않고 NONE으로 완료됩니다. */
+error = ntk_notification_cancel_scheduled_async("scheduled-notification", &on_removed, NULL, &release_user_data);
+error = ntk_notification_remove_async("sample-notification", &on_removed, NULL, &release_user_data);
+
+/* 이 함수들은 호스트 앱이 직접 예약하거나 전달한 것도 삭제합니다. */
+error = ntk_notification_cancel_all_scheduled_async(&on_removed, NULL, &release_user_data);
+error = ntk_notification_remove_all_async(&on_removed, NULL, &release_user_data);
+```
+
+#### 배지와 카테고리
+
+```c
+static void NTK_CALL on_done(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_SET_BADGE_COUNT_FAILED) {
+        /* 시스템이 배지 수를 설정하지 않음. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 0이면 배지를 지움. 음수는 INVALID_PARAMETER. */
+ntk_notification_error error = ntk_notification_set_badge_count_async(1, &on_done, NULL, &release_user_data);
+
+/* 샘플의 카테고리: Open(포어그라운드), Delete(파괴적), Reply(텍스트 입력)와
+   사용자 지정 닫기 액션. 배열의 모든 요소는 같은 struct_size를 가집니다. */
+ntk_notification_action actions[2];
+memset(actions, 0, sizeof actions);
+actions[0].struct_size = (uint32_t)sizeof actions[0];
+actions[0].identifier = "open";
+actions[0].title = "Open";
+actions[0].options = NTK_NOTIFICATION_ACTION_FOREGROUND;
+actions[1].struct_size = (uint32_t)sizeof actions[1];
+actions[1].identifier = "delete";
+actions[1].title = "Delete";
+actions[1].sf_symbol_name = NULL;                 /* SF Symbol 이름 또는 NULL */
+actions[1].options = NTK_NOTIFICATION_ACTION_DESTRUCTIVE;
+
+ntk_notification_text_input_action reply;
+memset(&reply, 0, sizeof reply);
+reply.struct_size = (uint32_t)sizeof reply;
+reply.identifier = "reply";
+reply.title = "Reply";
+reply.button_title = "Send";
+reply.placeholder = "IosLibraryExample reply";
+
+ntk_notification_category category;
+memset(&category, 0, sizeof category);
+category.struct_size = (uint32_t)sizeof category;
+category.identifier = "sample-category";
+category.options = NTK_NOTIFICATION_CATEGORY_CUSTOM_DISMISS_ACTION;
+category.actions = actions;
+category.action_count = 2;
+category.text_input_actions = &reply;
+category.text_input_action_count = 1;
+
+/* 호출 순서대로 적용되며, 같은 식별자의 카테고리를 대체합니다. 콜백은 등록된 뒤에
+   옵니다. 그 카테고리를 사용하는 알림은 거기서 보냅니다. */
+error = ntk_notification_register_category_async(&category, &on_done, NULL, &release_user_data);
+
+/* ""는 아무것도 삭제하지 않고 NONE으로 완료됩니다. */
+error = ntk_notification_remove_category_async("sample-category", &on_done, NULL, &release_user_data);
+```
+
+`NTK_NOTIFICATION_CATEGORY_ALLOW_ANNOUNCEMENT`는 받아들여지지만, Swift API의 `allowAnnouncement`와 마찬가지로 효과가 없습니다.
+
+#### 오류 값과 Swift API
+
+`ntk_notification_error`입니다. 값 0~5는 iOS C ABI의 모든 기능에서 같은 의미입니다. 표에 없는 번호는 iOS에서 선언되지 않습니다.
+
+| 값 | 이름 | 조건 |
+|---|---|---|
+| 0 | `NTK_NOTIFICATION_ERROR_NONE` | 성공. 콜백을 받는 함수에서는 받아들여짐 |
+| 1 | `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER` | 잘못된 인수: `NULL`, 잘못된 UTF-8, 빈 식별자, 범위를 벗어난 값, 알 수 없는 비트, 잘못된 `struct_size` 또는 0이 아닌 `reserved`, JSON `null` 또는 예약된 키, `file://`이 아닌 첨부 파일 URL, 잘못된 트리거 |
+| 2 | `NTK_NOTIFICATION_ERROR_NOT_INITIALIZED` | `ntk_notification_install`(또는 `installDelegate()`) 전의 리스너 또는 실행 시 응답 |
+| 3 | `NTK_NOTIFICATION_ERROR_NOT_SUPPORTED` | 이 버전이 모르는 부분에 구조체가 0이 아닌 값을 가지고 있음 |
+| 4 | `NTK_NOTIFICATION_ERROR_UNKNOWN` | 그 밖의 실패(자세한 내용은 로그에 있음) |
+| 5 | `NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY` | 모든 OS에서 선언됨. iOS에서는 반환되지 않음 |
+| 8 | `NTK_NOTIFICATION_ERROR_NOT_FOREGROUND` | 앱이 포어그라운드에 없는 동안의 권한 요청(정해지지 않은 동안) 또는 설정 페이지 |
+| 10 | `NTK_NOTIFICATION_ERROR_PERMISSION_DENIED` | 권한이 없는 상태에서의 `show`, `update`, `schedule` |
+| 15 | `NTK_NOTIFICATION_ERROR_SETTINGS_NOT_OPENED` | 시스템이 설정 페이지를 열지 않음 |
+| 16 | `NTK_NOTIFICATION_ERROR_WRONG_THREAD` | 메인 스레드가 아닌 곳에서의 `ntk_notification_install`(그 반환값으로만) |
+| 17 | `NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED` | 첨부 파일을 만들 수 없었거나 그 파일이 존재하지 않음 |
+| 18 | `NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED` | 시스템이 요청을 추가하지 않음 |
+| 19 | `NTK_NOTIFICATION_ERROR_SET_BADGE_COUNT_FAILED` | 시스템이 배지 수를 설정하지 않음 |
+| 20 | `NTK_NOTIFICATION_ERROR_AUTHORIZATION_FAILED` | 권한 요청 자체가 실패함(거부가 아님) |
+
+| Swift API | C ABI |
+|---|---|
+| `IosNotificationManager.shared` | -(함수는 매니저가 필요 없습니다) |
+| `installDelegate()` / `isDelegateInstalled` | `ntk_notification_install` / - |
+| `NotificationContent` | `ntk_notification_content_create`와 그 세터 |
+| `NotificationTrigger` | `ntk_notification_trigger` |
+| `show` / `update` / `schedule` | `ntk_notification_show_async` / `_update_async` / `_schedule_async` |
+| `cancel`, `cancelScheduled` / `cancelAll`, `cancelAllScheduled` | `ntk_notification_cancel_scheduled_async` / `_cancel_all_scheduled_async` |
+| `removeDelivered` / `removeAllDelivered` | `ntk_notification_remove_async` / `_remove_all_async` |
+| `getScheduled` / `getDelivered` | `ntk_notification_get_scheduled_async` / `_get_delivered_async`(userInfo 없음) |
+| `hasPermission` / `authorizationStatus` | `ntk_notification_has_permission_async` / `_get_authorization_status_async` |
+| `requestPermission(options:presenter: .foreground)` | `ntk_notification_request_permission_async` |
+| `openNotificationSettings(presenter: .foreground)` | `ntk_notification_open_settings_async` |
+| `setBadgeCount` | `ntk_notification_set_badge_count_async` |
+| `registerCategory` / `removeCategory` | `ntk_notification_register_category_async` / `_remove_category_async` |
+| `responses` / `settingsRequests` | `ntk_notification_add_interaction_listener` / `_add_settings_request_listener` |
+| `NotificationEventRegistration.remove()` | `ntk_notification_listener_remove` |
+| `launchResponse()` | `ntk_notification_get_launch_response_async` |
+
+C ABI에 없는 것: `foregroundPresentationOptions`, 권한 옵션 `.provisional`(그리고 `NTK_NOTIFICATION_AUTH_*` 비트에 없는 그 밖의 `UNAuthorizationOptions`), 연·월·일·시·분·초 이외의 `DateComponents` 필드(`weekday`나 `timeZone` 등)를 사용하는 캘린더 트리거, 권한 요청과 설정 페이지의 1.x 콜백 형식, `.firstActiveScene`과 `.viewController(_:)`, 목록으로 얻은 알림의 userInfo, 사용 중단된 리시버입니다.
 
 ---
 

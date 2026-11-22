@@ -2,10 +2,12 @@
 
 ネイティブアプリから利用できる、クロスプラットフォームのネイティブ機能ツールキットです。
 
-- Android: `DialogFragment` + 通知 + シェア + クリップボードベースのネイティブ API
-- iOS: `UIAlertController` + 通知 + シェア + クリップボードベースのネイティブ API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + 通知 + シェア + クリップボードベースのネイティブ API
-- Windows: Win32 共通ダイアログ、トースト通知、クリップボードの C++ API と、その上の C ABI
+- Android: Kotlin の API と、その上の C ABI
+- iOS: Swift の API と、その上の C ABI
+- macOS: Swift の API
+- Windows: C++ の API と、その上の C ABI
+
+OS ごとの機能の一覧は、マニュアル（`docs/<version>/manual/index.ja.md`）を参照。
 
 > 目的: ネイティブアプリから、各 OS の標準機能を一貫した呼び方で利用できるようにする。
 
@@ -20,10 +22,10 @@
 2. 組み込み手順は `docs/<version>/manual/index.ja.md` を参照。
 3. API 仕様は `docs/<version>/`（または `docs/latest/`）の各プラットフォーム資料を参照。
 
-例（`1.13.0`）:
+例（`1.14.0`）:
 
-- マニュアル: `docs/1.13.0/manual/index.ja.md`
-- 公開ドキュメント: `docs/1.13.0/manual/`
+- マニュアル: `docs/1.14.0/manual/index.ja.md`
+- 公開ドキュメント: `docs/1.14.0/manual/`
 
 ## 詳細ドキュメント
 
@@ -33,30 +35,30 @@
 
 ## バージョン
 
-- 現在のリリース: 1.13.0
+- 現在のリリース: 1.14.0
 - 最新公開ドキュメントのバージョン: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 対応 OS（1.13.0）
+## 対応 OS（1.14.0）
 
 - Android 12 以降
 - iOS 18 以降
 - Windows 11 以降
 - macOS 15 以降
 
-## 配布物（1.13.0）
+## 配布物（1.14.0）
 
 - Android:
-  - `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`（Kotlin API）
-  - `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`（C ABI）
+  - `dist/1.14.0/android/android-native-toolkit-2.0.0.aar`（Kotlin API）
+  - `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar`（C ABI）
 - iOS:
-  - `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/ios/ios-native-toolkit-2.0.0.xcframework`（Swift API）
+  - `dist/1.14.0/ios/ios-native-toolkit-capi-2.0.0.xcframework`（C ABI）、ヘッダーは `dist/1.14.0/ios/include/NativeToolkitC/`
 - macOS:
-  - `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
 - Windows:
-  - `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`（C++ API）
-  - `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`（C ABI）
+  - `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg`（C++ API）
+  - `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`（C ABI）
 
 ## 収録モジュール（概要）
 
@@ -79,9 +81,11 @@
   - 対応: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share / Clipboard
   - Doc: DocC
 
-- `ios/UnityIosPlugin`
-  - 補助モジュール: Swift + Objective-C/C ブリッジ（C ABI）
-  - Doc: DocC
+- `ios/IosLibraryCApi`（XCFramework `ios-native-toolkit-capi` の `IosLibraryCApi.framework`）
+  - Swift の API の上の汎用の C ABI: `ntk_*` 関数、UTF-8 の文字列、不透明なハンドル
+  - ヘッダ: `ios/IosLibraryCApi/include/NativeToolkitC/`
+  - Doc: Doxygen（`ios/IosLibraryCApi/Doxyfile`）
+  - C、C++、C#、Rust などの言語向け
 
 ### macOS
 
@@ -116,8 +120,9 @@ android/
   AndroidLibraryExample/
 
 ios/
+  IosWorkspace.xcworkspace  # 下の 3 つのプロジェクトを開く
   IosLibrary/
-  UnityIosPlugin/
+  IosLibraryCApi/
   IosLibraryExample/
   generate_docc.sh
 
@@ -143,17 +148,18 @@ docs/
 ## 必要環境
 
 - Android: JDK 11 / Android SDK / Android Studio
-- iOS / macOS: Xcode
+- iOS: ソースからライブラリをビルドするには Xcode 26.4 以降（Swift 6.3）が必要です（1.14.0 は Xcode 26.6 でビルドしています）。ビルド済みの framework を使うアプリはマニュアルを参照してください（Xcode 26.3 以降。C ABI だけを使うアプリは Xcode 26 のどれでも可）
+- macOS: Xcode
 - Windows: Visual Studio 2022（C++）、必要に応じて Doxygen
 
 ## ビルド（配布物作成）
 
 ```bash
 # Android AAR（全モジュール）
-./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.14.0 --m2
 
-# iOS XCFramework（全モジュール）
-./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
+# iOS XCFramework（全モジュール）。Xcode 26.4 以降が必要。DEVELOPER_DIR=/Applications/<Xcode>.app/Contents/Developer で選択
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
 
 # macOS XCFramework（全モジュール）
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
@@ -178,6 +184,13 @@ cd ios
 ./generate_docc.sh
 ```
 
+- iOS C ABI (Doxygen)
+
+```bash
+cd ios/IosLibraryCApi
+doxygen Doxyfile
+```
+
 - macOS (DocC)
 
 ```bash
@@ -197,13 +210,13 @@ doxygen Doxyfile
 `docs/<version>/` を作成し、`docs/latest/` は `docs/` 配下の最大バージョンで更新されます。
 
 ```bash
-./scripts/publish_docs.sh 1.13.0
+./scripts/publish_docs.sh 1.14.0
 ```
 
 既存の生成物をコピーだけする場合:
 
 ```bash
-./scripts/publish_docs.sh 1.13.0 --skip-build
+./scripts/publish_docs.sh 1.14.0 --skip-build
 ```
 
 manual のコピー元は `manual/<version>/` です。

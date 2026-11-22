@@ -12,14 +12,6 @@ IOSLIBRARY_DESTINATION="generic/platform=iOS"
 IOSLIBRARY_OUTPUT_PATH="$PWD/Docs/IosLibrary"
 IOSLIBRARY_HOSTING_BASE_PATH="IosLibrary"
 
-# Define variables for UnityIosPlugin
-UNITYIOSPLUGIN_BUILD_PATH="Build/UnityIosPlugin"
-UNITYIOSPLUGIN_PROJECT_PATH="UnityIosPlugin/UnityIosPlugin.xcodeproj"
-UNITYIOSPLUGIN_SCHEME="UnityIosPlugin"
-UNITYIOSPLUGIN_DESTINATION="generic/platform=iOS"
-UNITYIOSPLUGIN_OUTPUT_PATH="$PWD/Docs/UnityIosPlugin"
-UNITYIOSPLUGIN_HOSTING_BASE_PATH="UnityIosPlugin"
-
 clean_docc() {
     local build_path=$1
     local output_path=$2
@@ -37,21 +29,6 @@ clean_docc() {
     fi
 }
 
-build_project() {
-    local project=$1
-    local scheme=$2
-    local destination=$3
-    local derived_data_path=$4
-
-    echo "Building project $project (scheme: $scheme) ..."
-    BUILD_LIBRARY_FOR_DISTRIBUTION=NO xcodebuild build \
-      -project "$project" \
-      -scheme "$scheme" \
-      -destination "$destination" \
-      -derivedDataPath "$derived_data_path" \
-      -sdk iphoneos
-}
-
 generate_docc() {
     local project=$1
     local scheme=$2
@@ -61,13 +38,6 @@ generate_docc() {
     local hosting_base_path=$6
 
     echo "Running xcodebuild docbuild for $scheme..."
-    # If building UnityIosPlugin, ensure IosLibrary is built first so the module is available
-    if [ "$scheme" = "$UNITYIOSPLUGIN_SCHEME" ]; then
-        if [ -n "$IOSLIBRARY_PROJECT_PATH" ]; then
-            build_project "$IOSLIBRARY_PROJECT_PATH" "$IOSLIBRARY_SCHEME" "$IOSLIBRARY_DESTINATION" "$derived_data_path"
-        fi
-    fi
-
     # Run docbuild for the target
     BUILD_LIBRARY_FOR_DISTRIBUTION=NO xcodebuild docbuild \
       -project "$project" \
@@ -99,9 +69,5 @@ generate_docc() {
 # Generate DocC for IosLibrary (build + docbuild)
 clean_docc "$IOSLIBRARY_BUILD_PATH" "$IOSLIBRARY_OUTPUT_PATH"
 generate_docc "$IOSLIBRARY_PROJECT_PATH" "$IOSLIBRARY_SCHEME" "$IOSLIBRARY_DESTINATION" "$IOSLIBRARY_BUILD_PATH" "$IOSLIBRARY_OUTPUT_PATH" "$IOSLIBRARY_HOSTING_BASE_PATH"
-
-# Generate DocC for UnityIosPlugin (build IosLibrary first if needed, then docbuild)
-clean_docc "$UNITYIOSPLUGIN_BUILD_PATH" "$UNITYIOSPLUGIN_OUTPUT_PATH"
-generate_docc "$UNITYIOSPLUGIN_PROJECT_PATH" "$UNITYIOSPLUGIN_SCHEME" "$UNITYIOSPLUGIN_DESTINATION" "$UNITYIOSPLUGIN_BUILD_PATH" "$UNITYIOSPLUGIN_OUTPUT_PATH" "$UNITYIOSPLUGIN_HOSTING_BASE_PATH"
 
 echo "DocC generation completed."

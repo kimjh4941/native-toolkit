@@ -1,0 +1,51 @@
+--- IosLibrary-before-1b-f3c289d7.swiftinterface	2026-10-31 17:07:38
++++ IosLibrary-after-1b-c1.swiftinterface	2026-10-31 17:06:53
+@@ -7,6 +7,7 @@
+ import Foundation
+ @_exported import IosLibrary
+ import LinkPresentation
++import ObjectiveC
+ import Swift
+ import Synchronization
+ import UIKit
+@@ -15,6 +16,7 @@
+ import _Concurrency
+ import _StringProcessing
+ import _SwiftConcurrencyShims
++import os
+ public protocol ClipboardClock : Swift.Sendable {
+   func now() -> Foundation.Date
+ }
+@@ -515,7 +517,31 @@
+   #endif
+   @objc deinit
+ }
+-@objc @_inheritsConvenienceInitializers @objcMembers public class Log : ObjectiveC.NSObject {
++final public class RequestBox : Swift.Sendable {
++  public init()
++  final public var isClosed: Swift.Bool {
++    get
++  }
++  @objc deinit
++}
++public struct FailureDetail : Swift.Sendable, Swift.Equatable {
++  public let domain: Swift.String
++  public let code: Swift.Int
++  public init(domain: Swift.String, code: Swift.Int)
++  public init(systemError: any Swift.Error)
++  public static func == (a: IosLibrary.FailureDetail, b: IosLibrary.FailureDetail) -> Swift.Bool
++}
++public struct PresenterSelection : Swift.Sendable {
++  public static let firstActiveScene: IosLibrary.PresenterSelection
++  public static let foreground: IosLibrary.PresenterSelection
++}
++extension IosLibrary.PresenterSelection {
++  #if compiler(>=5.3) && $NonescapableTypes
++  public static func viewController(_ provider: @escaping @_Concurrency.MainActor @Sendable () -> UIKit.UIViewController?) -> IosLibrary.PresenterSelection
++  #endif
++}
++@objc @_inheritsConvenienceInitializers @available(*, deprecated, message: "Use os.Logger")
++@objcMembers public class Log : ObjectiveC.NSObject {
+   @objc public static func d(_ tag: Swift.String, _ message: Swift.String)
+   @objc public static func i(_ tag: Swift.String, _ message: Swift.String)
+   @objc public static func w(_ tag: Swift.String, _ message: Swift.String)

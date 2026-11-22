@@ -334,15 +334,11 @@ update_library_version_property() {
   mv "${tmp_file}" "${properties_path}"
 }
 
-PREFERRED_JAVA_HOME="/Applications/Android Studio Panda 1 .app/Contents/jbr/Contents/Home"
-PREFERRED_JAVA_HOME_ALT="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-
-if [[ -d "${PREFERRED_JAVA_HOME}" ]]; then
-  export JAVA_HOME="${PREFERRED_JAVA_HOME}"
-  echo "[info] Using preferred JAVA_HOME: ${JAVA_HOME}"
-elif [[ -d "${PREFERRED_JAVA_HOME_ALT}" ]]; then
-  export JAVA_HOME="${PREFERRED_JAVA_HOME_ALT}"
-  echo "[info] Using fallback JAVA_HOME: ${JAVA_HOME}"
+# The Gradle 9 launcher needs Java 17 or later; gradle/gradle-daemon-jvm.properties then picks the
+# JDK that runs the build (JetBrains Runtime 21).
+if JAVA_21_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null)"; then
+  export JAVA_HOME="${JAVA_21_HOME}"
+  echo "[info] Using JAVA_HOME: ${JAVA_HOME}"
 fi
 
 echo "[build] Building modules (${MODULES[*]}) ${BUILD_TYPE} AAR"

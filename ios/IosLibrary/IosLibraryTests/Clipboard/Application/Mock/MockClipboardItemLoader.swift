@@ -45,7 +45,11 @@ final class MockClipboardItemLoader: ClipboardItemLoader {
         pendingCompletion = nil
     }
 
+    /// `Thread.isMainThread` for each `cancelAll()` call, in call order.
+    private(set) var cancelAllOnMainThread: [Bool] = []
+
     func cancelAll() {
         cancelAllCallCount += 1
+        cancelAllOnMainThread.append(Thread.isMainThread)
     }
 }

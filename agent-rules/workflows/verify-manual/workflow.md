@@ -13,12 +13,13 @@
 
 3. 検査を実行する
    - `./scripts/verify_manual.sh <version>` を実行する
-   - あわせて `python scripts/check_manual_c_examples_windows.py <version>` と `python scripts/check_manual_c_examples_android.py <version>` を実行する
+   - あわせて `python scripts/check_manual_c_examples_windows.py <version>`、`python scripts/check_manual_c_examples_android.py <version>`、`python scripts/check_manual_c_examples_ios.py <version>` を実行する
      （マニュアルの C の例を OS ごとの C ABI と照合する。検査 2 はサンプルアプリが C++ や Kotlin のため C の例を見ない）
      - Windows は Visual Studio がある環境で、Android は NDK の clang がある環境で compile も走る。無い環境では SKIP と表示される
      - Android は、マニュアルに Android の C ABI の節が無い間（README の段階 4 の前）は SKIP と表示される。Android の C ABI を載せる版（2.0.0 以降）では `--require-examples` を付け、節が無ければ失敗にする
+     - iOS も同じ。iOS の C ABI を載せる版（マニュアル 1.14.0、iOS のライブラリ 2.0.0 以降）では `--require-examples` を付ける。compile は Xcode の clang と iOS の SDK で走る
    - `--strict` 指定時は `./scripts/verify_manual.sh <version> --strict` を実行する
-   - スクリプトが 7 項目を検査し、終了コードで停止項目の有無を返す
+   - スクリプトが 8 項目を検査し、終了コードで停止項目の有無を返す
 
    | # | 検査 | 区分 | 内容 |
    |---|---|---|---|
@@ -29,6 +30,7 @@
    | 5 | 文体 | 警告 | 日本語が です・ます体、韓国語が 합니다体 か |
    | 6 | 言語差分 | 警告 | 3 言語で画像・見出し数が揃っているか |
    | 7 | index 機能一覧 | 停止 | 各ページが書いている OS が index の機能一覧に載っているか |
+   | 8 | OS の節のアンカー | 停止 | 目次で OS の項目の下にあるリンクが、その OS の `## ` の節の中の見出しを指しているか（同じ見出しが OS ごとにあると、前の OS に節を足したときに後ろの番号 `-1`・`-2` がずれる） |
 
 4. 結果を解釈してユーザーに提示する
    - スクリプトの出力をそのまま貼るのではなく、次の観点で整理する:

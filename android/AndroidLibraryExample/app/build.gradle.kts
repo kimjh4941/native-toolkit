@@ -35,6 +35,9 @@ android {
     }
 }
 
+// Compile with JDK 21, the JDK that runs Gradle; the output stays Java 17 (compileOptions).
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)

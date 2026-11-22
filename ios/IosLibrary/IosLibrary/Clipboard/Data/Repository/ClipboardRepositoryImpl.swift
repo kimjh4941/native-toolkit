@@ -4,7 +4,10 @@
 //
 
 import Foundation
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardRepositoryImpl")
 
 /// `UIPasteboard`-backed implementation of `ClipboardRepository`.
 ///
@@ -14,7 +17,6 @@ import UIKit
 /// converted and written within the same actor turn.
 @MainActor
 final class ClipboardRepositoryImpl: ClipboardRepository {
-    private let TAG = "ClipboardRepositoryImpl"
     private let resolver: PasteboardResolver
     private let imageCoder: ClipboardImageCoder
     private let detectionMapper: ClipboardDetectionMapper
@@ -37,17 +39,17 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     }
 
     func createPasteboard(_ request: PasteboardCreationRequest) throws -> PasteboardScope {
-        Log.d(TAG, "[createPasteboard] request: \(request.redactedDescription)")
+        logger.log(level: .libraryDebug, "[createPasteboard] request: \(request.redactedDescription, privacy: .public)")
         return try resolver.createPasteboard(request)
     }
 
     func removePasteboard(_ scope: PasteboardScope) throws {
-        Log.d(TAG, "[removePasteboard] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[removePasteboard] scope: \(scope.redactedDescription, privacy: .public)")
         try resolver.removePasteboard(scope)
     }
 
     func copy(_ content: ClipboardContent, options: ClipboardCopyOptions, scope: PasteboardScope) async throws {
-        Log.d(TAG, "[copy] scope: \(scope.redactedDescription), localOnly: \(options.localOnly)")
+        logger.log(level: .libraryDebug, "[copy] scope: \(scope.redactedDescription, privacy: .public), localOnly: \(options.localOnly, privacy: .public)")
         let items = try await makeItems(from: content)
         try checkCancellation()
         let pasteboard = try resolver.resolve(scope)
@@ -59,7 +61,7 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     }
 
     func append(_ content: ClipboardContent, scope: PasteboardScope) async throws {
-        Log.d(TAG, "[append] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[append] scope: \(scope.redactedDescription, privacy: .public)")
         let items = try await makeItems(from: content)
         try checkCancellation()
         let pasteboard = try resolver.resolve(scope)
@@ -67,20 +69,20 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     }
 
     func read(scope: PasteboardScope) throws -> ClipboardReadResult {
-        Log.d(TAG, "[read] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[read] scope: \(scope.redactedDescription, privacy: .public)")
         let pasteboard = try resolver.resolve(scope)
         let items = pasteboard.items
         return ClipboardReadResult(items: items.map(ClipboardMappers.toItemData), numberOfItems: items.count)
     }
 
     func readData(utType: String, scope: PasteboardScope) throws -> Data? {
-        Log.d(TAG, "[readData] utType: \(utType), scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[readData] utType: \(utType, privacy: .private), scope: \(scope.redactedDescription, privacy: .public)")
         let pasteboard = try resolver.resolve(scope)
         return pasteboard.data(forPasteboardType: utType)
     }
 
     func snapshot(matchingTypes: [String]?, scope: PasteboardScope) throws -> ClipboardSnapshot {
-        Log.d(TAG, "[snapshot] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[snapshot] scope: \(scope.redactedDescription, privacy: .public)")
         let pasteboard = try resolver.resolve(scope)
         var matchingIndexes: [Int]?
         if let matchingTypes, !matchingTypes.isEmpty {
@@ -99,13 +101,13 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
     }
 
     func clear(scope: PasteboardScope) throws {
-        Log.d(TAG, "[clear] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[clear] scope: \(scope.redactedDescription, privacy: .public)")
         let pasteboard = try resolver.resolve(scope)
         pasteboard.items = []
     }
 
     func changeCount(scope: PasteboardScope) throws -> Int {
-        Log.d(TAG, "[changeCount] scope: \(scope.redactedDescription)")
+        logger.log(level: .libraryDebug, "[changeCount] scope: \(scope.redactedDescription, privacy: .public)")
         let pasteboard = try resolver.resolve(scope)
         return pasteboard.changeCount
     }
@@ -114,7 +116,7 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope
     ) async throws -> Set<ClipboardDetectionPattern> {
-        Log.d(TAG, "[detectPatterns] scope: \(scope.redactedDescription), count: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[detectPatterns] scope: \(scope.redactedDescription, privacy: .public), count: \(patterns.count, privacy: .public)")
         let pasteboard = try resolver.resolve(scope)
         let keyPaths = detectionMapper.keyPaths(for: patterns)
         do {
@@ -129,7 +131,7 @@ final class ClipboardRepositoryImpl: ClipboardRepository {
         _ patterns: Set<ClipboardDetectionPattern>,
         scope: PasteboardScope
     ) async throws -> ClipboardDetectedValues {
-        Log.d(TAG, "[detectValues] scope: \(scope.redactedDescription), count: \(patterns.count)")
+        logger.log(level: .libraryDebug, "[detectValues] scope: \(scope.redactedDescription, privacy: .public), count: \(patterns.count, privacy: .public)")
         let pasteboard = try resolver.resolve(scope)
         let keyPaths = detectionMapper.keyPaths(for: patterns)
         do {

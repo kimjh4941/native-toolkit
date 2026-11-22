@@ -106,4 +106,4 @@ docs の注:
 
 s18 の原因はテストの側にあった。`UiApp.status()` が状態の文字の部品を探してから文字を読む間に、共有シートが開くときの描き直しで部品が置き換わる。`status()` と `waitForStatus()` で、置き換わったら読み直すようにした（`readStatus`）。`UiApp` を使う 4 つのクラスを、エミュレータで確かめた: Share 20 件、Notification 40 件（`NotificationTapUiTest`、`NotificationEventDeliveryUiTest` を含む）、ReceivedShare 6 件がすべて通る。s14 の共有シートが開かない件は、エミュレータが遅いときに起きるとみていて、直していない。
 
-残り: 利用者がマニュアルを確かめた後に、`/release version=1.13.0`（リリースノート、develop と main へのマージ、タグ）。タグの後に `unity-native-plugin` に伝える。
+リリース（2026-10-18）: 利用者がマニュアルを確かめた後に `/release version=1.13.0` を流し、タグ `1.13.0`（`b507c42c`）を打って `unity-native-plugin` に伝えた（README 5.3）。

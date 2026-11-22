@@ -1,0 +1,13 @@
+--- IosLibrary-after-1b-c3.swiftinterface	2026-11-01 00:17:06
++++ IosLibrary-after-1b-c4.swiftinterface	2026-11-01 01:35:03
+@@ -508,6 +508,10 @@
+   @_Concurrency.MainActor final public func loadItem(_ request: IosLibrary.ClipboardLoadRequest, scope: IosLibrary.PasteboardScope = .general, completion: @escaping (Swift.Bool, IosLibrary.ClipboardLoadedItem?, Swift.String?, Swift.String?) -> Swift.Void) -> any IosLibrary.ClipboardLoadToken
+   #endif
+   @_Concurrency.MainActor final public func loadItem(_ request: IosLibrary.ClipboardLoadRequest, scope: IosLibrary.PasteboardScope = .general) async throws -> IosLibrary.ClipboardLoadedItem
++  #if compiler(>=5.3) && $NonescapableTypes
++  @_Concurrency.MainActor final public func loadItem(_ request: IosLibrary.ClipboardLoadRequest, scope: IosLibrary.PasteboardScope = .general, requestBox: IosLibrary.RequestBox, completion: @escaping (Swift.Bool, IosLibrary.ClipboardLoadedItem?, Swift.String?, Swift.String?) -> Swift.Void)
++  #endif
++  nonisolated final public func cancelLoad(_ box: IosLibrary.RequestBox)
+   @_Concurrency.MainActor final public func cancelAllLoads()
+   @_Concurrency.MainActor final public func startObserving(scope: IosLibrary.PasteboardScope = .general, onEvent: @escaping (IosLibrary.ClipboardChangeEvent) -> Swift.Void) throws
+   @_Concurrency.MainActor final public func stopObserving()

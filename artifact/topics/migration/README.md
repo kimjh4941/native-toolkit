@@ -5,6 +5,12 @@
 各プラットフォームの言語モード・ツールチェーン移行を管理するインデックス。
 個別の企画書・設計書・実装結果は各トピックのフォルダに置く。
 
+> **2026-11-22 の追記（iOS）:** iOS の Swift 6 への移行は `ios-c-abi` の段階 0e（strict concurrency complete、警告 0）と
+> 0f（Swift 6 の言語モード）で済んだ（`artifact/topics/ios-c-abi/README.md` の 5 章・8.3）。`UnityIosPlugin` は
+> iOS 2.0.0（製品 1.14.0）で削除され、C ABI の `IosLibraryCApi` に置き換わった（同トピックの段階 3）。
+> このため、下の iOS の件数・`UnityIosPlugin` の計測コマンド・Bridge の記述は当時の記録として残す。
+> macOS（`MacLibrary` / `UnityMacPlugin`。Swift 5.0 のまま）はこのファイルの対象として残る。
+
 > **現在の状態: baseline 未固定。** 本ファイルに記載する診断件数はすべて**暫定観測値**であり、
 > baseline ではない。`artifact/baselines/` と `scripts/check_baseline.sh` が揃った時点で
 > 「baseline 固定済み」へ移行し、本文中の件数はすべて生成ファイルへの参照に置き換える。
@@ -42,8 +48,8 @@ Clipboard タスク（NTKIT-14）で、設計 DoD に次の 2 条件が同時に
 
 | トピック | 対象 | 現在 | 移行先 | baseline 状態 | チケット |
 |---|---|---|---|---|---|
-| `swift6-migration` / **Bridge callback actor-boundary** | ios / macos の Unity Bridge | `nonisolated` + `Task { @MainActor }` | **案 C 決定済み**（6 章）。Clipboard へ適用済み、他 3 機能は未適用 | - | 未採番 |
-| `swift6-migration` | ios / macos | Swift 5.0 言語モード | Swift 6 | 暫定観測値のみ（4.2） | 未採番 |
+| `swift6-migration` / **Bridge callback actor-boundary** | ios / macos の Unity Bridge | `nonisolated` + `Task { @MainActor }` | **案 C 決定済み**（6 章）。Clipboard へ適用済み、他 3 機能は未適用（2026-11-22: iOS の Bridge は iOS 2.0.0 で削除。残りは macOS） | - | 未採番 |
+| `swift6-migration` | ios / macos | Swift 5.0 言語モード（2026-11-22: iOS は `ios-c-abi` の段階 0e・0f で Swift 6 + strict concurrency complete に移行済み。残りは macOS） | Swift 6 | 暫定観測値のみ（4.2） | 未採番（iOS は NTKIT-18） |
 | `android-toolchain-migration` | android | Kotlin 2.0.21 / AGP 8.9.1 | **`android-c-abi` に統合**（2026-10-03。移行先は `artifact/topics/android-c-abi/README.md` 8.3: Kotlin 2.4.20、AGP 9.3.1、compileSdk 36） | 同トピックの段階 0f〜0h | NTKIT-17 |
 | `windows-toolchain-migration` | windows | C++17（`stdcpp17`）/ Toolset v143 | **未決定** | 未着手（7 章） | 未採番 |
 
@@ -280,6 +286,10 @@ iOS 側には Clipboard の Unity Bridge が含まれ（案 C 適用済みで 0 
 - Android / Windows（全系統）
 
 ### 4.3 計測コマンド
+
+> **2026-11-22 の追記:** 下の iOS のコマンドは当時の記録。`UnityIosPlugin` の scheme は iOS 2.0.0 で削除したので
+> もう流せない。iOS は段階 0f から Swift 6 の言語モードで、今の確かめは `scripts/test_ios.sh`
+> （`artifact/topics/ios-c-abi/README.md` の 7 章）。
 
 **swift5-concurrency-readiness（推奨・全体像用）**
 

@@ -64,6 +64,9 @@ android {
     }
 }
 
+// Compile with JDK 21, the JDK that runs Gradle; the output stays Java 17 (compileOptions).
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
 kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }
 
 // The HWASan build puts wrap.sh (LD_HWASAN=1) in the test APK.

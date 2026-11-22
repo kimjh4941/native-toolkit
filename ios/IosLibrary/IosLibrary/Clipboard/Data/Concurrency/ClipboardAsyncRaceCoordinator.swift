@@ -4,6 +4,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardAsyncRaceCoordinator")
 
 /// Gives a caller-facing cancellation/timeout contract to non-cooperative `async throws` system
 /// APIs (`detectedPatterns(for:)` / `detectedValues(for:)`) that have no cancellation token.
@@ -20,7 +23,6 @@ import Foundation
 /// latched in `pendingResult` and replayed the moment the continuation attaches, so an early
 /// cancellation is never lost.
 final class ClipboardAsyncRaceCoordinator<Value: Sendable>: @unchecked Sendable {
-    private static var TAG: String { "ClipboardAsyncRaceCoordinator" }
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Value, Error>?
     private var pendingResult: Result<Value, Error>?
@@ -30,7 +32,7 @@ final class ClipboardAsyncRaceCoordinator<Value: Sendable>: @unchecked Sendable 
     /// Attaches the caller's continuation. `internal` rather than `private` so the three-way race
     /// gate (U-111) can be driven directly from tests in a deterministic arrival order.
     func attach(_ continuation: CheckedContinuation<Value, Error>) {
-        Log.d(Self.TAG, "[attach]")
+        logger.log(level: .libraryDebug, "[attach]")
         lock.lock()
         if let pendingResult {
             // A winner already arrived before we could attach; replay it immediately.
@@ -59,7 +61,7 @@ final class ClipboardAsyncRaceCoordinator<Value: Sendable>: @unchecked Sendable 
     /// - Returns: `true` only for the arrival that won the race and was delivered.
     @discardableResult
     func resolve(_ result: Result<Value, Error>) -> Bool {
-        Log.d(Self.TAG, "[resolve] isSuccess: \((try? result.get()) != nil)")
+        logger.log(level: .libraryDebug, "[resolve] isSuccess: \((try? result.get()) != nil, privacy: .public)")
         lock.lock()
         guard !resolved else {
             lock.unlock()
@@ -91,7 +93,7 @@ final class ClipboardAsyncRaceCoordinator<Value: Sendable>: @unchecked Sendable 
         operationKind: ClipboardOperationKind,
         operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
-        Log.d(TAG, "[run] timeout: \(timeout), operationKind: \(operationKind)")
+        logger.log(level: .libraryDebug, "[run] timeout: \(timeout, privacy: .public), operationKind: \(String(describing: operationKind), privacy: .public)")
         let coordinator = ClipboardAsyncRaceCoordinator()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Value, Error>) in
