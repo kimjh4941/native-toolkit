@@ -3189,7 +3189,7 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 
 - アーカイブ: `dist/1.14.0` の 2 つの xcframework を埋め込んだ smoke の写しで、Xcode 26.6 の Archive が通った。最初に利用者がリポジトリの中の `ios/IosLibraryCApiSmoke/` を開き、「There is no XCFramework found」で止まり、署名の設定と Team ID がリポジトリの `project.pbxproj` に入った。利用者の了承を得て `git checkout` で戻し（コミットはしていない）、手順書に開き間違えないための注意を足した
 - プライバシーのレポート（1b の MS-10）: PDF は白紙。アーカイブの中の `IosLibrary` のマニフェストを `plutil` で見て、FileTimestamp と C617.1、トラッキング無し、集めるデータ無しを確かめた
-- 署名し直し（D-18）: 利用者のチームは Personal Team で、Program に登録していないので、配布用の書き出し（Release Testing）と Validate App は進めなかった。利用者は代わりの確かめ（アーカイブの中の `codesign`）を選んだ。アプリと 2 つの framework が同じ開発用の証明書（Apple Development、同じ Team）で署名され、`--verify --deep --strict` も通った。**署名なしで配る framework を、アプリの側が組むときに署名し直すことは確かめた。配布用の証明書での確かめと Validate App は、Program の登録が要るので残る**（README 9 章の DoD のその項目は開いたまま）
+- 署名し直し（D-18）: 利用者のチームは Personal Team で、Program に登録していないので、配布用の書き出し（Release Testing）と Validate App は進めなかった。利用者は代わりの確かめ（アーカイブの中の `codesign`）を選んだ。アプリと 2 つの framework が同じ開発用の証明書（Apple Development、同じ Team）で署名され、`--verify --deep --strict` も通った。**署名なしで配る framework を、アプリの側が組むときに署名し直すことは確かめた。配布用の証明書での確かめと Validate App は、Program の登録が要るので残る**（README 9 章の DoD のその項目は開いたまま）。**後の経過**: 2026-11-21 に利用者が配布用の署名はしないと決め、DoD はその決定で閉じた（17.18）
 - 後片付けは利用者が行う（手順書の 5 章）
 
 ### 17.16 SH-13: 同じ回に続けて呼んだ Share の 2 つ目の完了が来ない（2026-11-15 報告、2026-11-21 直し）
@@ -3264,3 +3264,15 @@ M6a・M6b は写しの本物の `test_ios.sh --capi`（17 Pro の最後の実行
 - 結果: **合格**。ダイアログが出て、結果の行は `✅ [loadText] textLength=8`
 - これで、CB1 を実機で自動で流さないと決めた（17.11）分の実機の確かめが済んだ。自動の CB1 で実機にダイアログが出なかった原因は分からないまま（人が操作すると出る）
 
+
+### 17.18 リリースの前の締め（2026-11-22）
+
+利用者の指示（「4番まで実施して」と、リリースの前に記録の漏れを確かめて残すこと）で行った。結果の表は段階 4 の結果の 6 章、リリースの後に残す項目は `results/2026-11-22-ios-c-abi-closing.md`。
+
+- 全件（iPhone 17 / 26.2）は 725 件が通り、U10b の 1 件が skip（環境で決まらない M-08）。17.16 で揺れた `NotificationDelegateRouterTests.comingBackAfterTheForwardingCallReturnedIsNotStopped` と D8 も、この回では通った（`65872e23`）
+- `--capi` は 8 項目が通った。`--capi-ui` の 1 回目は `testALoadAllowedAfterItTimedOutDeliversNothing` が後始末の検査（貼り付けのアラートが残った）で落ち、単独 3 回と通しの 2 回目（59/59）は通った。テストは変えていない
+- サンプル: iPhone は縦だけ（iPad は 4 方向。`3a7d1a4c`）、Dialog の画面はタイトルと結果を固定してボタンだけをスクロール（`0cd39f39`）。マニュアルの写真 11 枚（`f93439f4`、Dialog の 3 枚は `0cd39f39` で撮り直し）
+- ルートの README（3 言語）を 1.14.0 にし、`docs/1.14.0` と `docs/latest` を公開の形にした（`d4091ca1`）。冒頭の OS ごとの行を API の形の説明にした（`f0a0867b`）
+- **17.3 の「持ち主の判断待ち」7 項目の閉じ方**: 1（HC の番号と置き場所）は 17.10・17.11 で使った形のまま。2・3・4・7 は 17.5 の許可で実機の回に使った（それ以上の追認の記録は無い）。2（`--capi-device`）は 15.7 の決定（17.12）で `device-testing.md` に入った。5（2 つのアプリを残す）も `device-testing.md` の「消さずに残る」に入った。6 の 1 文目（CB3・CB4 を simulator only にして実機は HC11・HC12）は入っていなかったので、CB1・HC13 も含めて `agent-rules/device-testing.md` の simulator only の段落に足した（2026-11-22。推奨案）
+- **配布用の署名と Validate App**: 2026-11-21 に利用者が配布用の署名はしないと決め、README 9 章の DoD はその決定で閉じた。17.15 の「残る」はこれで閉じた
+- 古くなった記述（README の状態の行、0c・0e・1b の行、8.6 の MS-10、P2-6・P2-7 の決定の印、DoD の注、結果と設計の「未」）は、後の経過を書き足した。書き足していない日付の記録の対応は、終わりの記録の 2 章

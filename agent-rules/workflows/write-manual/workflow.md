@@ -33,6 +33,10 @@
          - `*-sample-app-result*.md`
        - 入力がない場合は `artifact/*/<feature>/designs/` 配下の `*-implementation*.md` も候補に含める
        - 同一ドキュメントの改訂版がある場合は最も大きいバージョンのみを候補にする
+       - リリースで 1 つの OS の API が機能をまたいで変わる場合（例: 1.13.0 の Android 2.0.0、1.14.0 の iOS 2.0.0）は、トピックのフォルダ `artifact/topics/<topic>/designs/` と `artifact/topics/<topic>/results/` もソースの候補にする
+         - 例: `artifact/topics/ios-c-abi/` の Swift の API の設計書（`*-swift-api-design.md`）、C ABI の設計書の第 1 部・第 2 部（`*-c-abi-design.md`・`*-c-abi-design-part2.md`）、段階の結果（`*-stage<n>-result.md`・`*-working-notes.md`）
+         - トピックの `README.md` で、どの段階が済み、どの記録が今の状態かを先に確かめる
+         - 後の記録（日付の新しい設計書・結果、決め直し）が前の記録より優先する。機能のフォルダの古い設計書・結果と食い違う場合も、トピックの後の記録に合わせる
        - 複数ファイルを選択した場合は全て読み込んで内容を統合する
 
 3. ソースファイルを読み込み、前提情報を抽出する（必須）

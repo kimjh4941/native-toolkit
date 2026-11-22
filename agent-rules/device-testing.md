@@ -16,7 +16,7 @@ iOS の実機のテストは、利用者の私物の iPhone で流す。試験�
 
 `scripts/test_ios.sh` は `--dry-run` で許可の一覧を書き、`--approved` でそれを照らしてから実機に触れる。許可の ID は 1 回使うと使えなくなる。止まった後の流し直しにも、新しい `--dry-run` と許可が要る。
 
-シミュレーターだけのテスト（`scripts/ios_ui_runner.py` の `SIMULATOR_ONLY_TESTS`。Control Center を決まった座標のドラッグで引き出す D22 など）は、`--device-allow` に何を渡しても実機では流れない（一覧に `simulator only` と出る）。実機で流したくなっても、この表から外さない。外すには、座標に頼らない操作に直し、UI テストの設計書（6.3 の 3）を改めてからにする。
+シミュレーターだけのテスト（`scripts/ios_ui_runner.py` の `SIMULATOR_ONLY_TESTS`。Control Center を決まった座標のドラッグで引き出す D22 など）は、`--device-allow` に何を渡しても実機では流れない（一覧に `simulator only` と出る）。貼り付けのコントロールを押す CB3・CB4（実機の自動の実行で失敗した。合成のタップを受け付けない見込みで、確かめていない）と、実機で貼り付けのアラートが出なかった CB1 もここに入れ、実機では人の確認 HC11・HC12・HC13（`ios/IosLibraryExample/ComputerUse/`）で確かめる。実機で流したくなっても、この表から外さない。外すには、座標に頼らない操作に直し、UI テストの設計書（6.3 の 3）を改めてからにする。
 
 C ABI の UI テスト（`ios/IosLibraryCApiUITests`。`scripts/test_ios.sh --capi-ui`）もシミュレーターだけで、2 つのターゲットは `iphonesimulator` だけを組む。コマンドラインの上書きなら実機向けに組めるが、実機に入れることはこの文書の許可なしには行わない。
 

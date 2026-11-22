@@ -233,10 +233,11 @@ unrelated despite the similar names.
 | Script | Does |
 |---|---|
 | `publish_docs.sh <version> [--skip-build] [--os <targets>]` | Generates each platform's API reference, copies it and `manual/<version>/` to `docs/<version>/`, and refreshes `docs/latest/` |
-| `verify_manual.sh <version> [--strict]` | Seven checks over `manual/<version>/`: image references, sample conformance, anchors, artifact names, prose style, language parity, the index feature list |
+| `verify_manual.sh <version> [--strict]` | Eight checks over `manual/<version>/`: image references, sample conformance, anchors, artifact names, prose style, language parity, the index feature list, anchors in OS sections (a table-of-contents link under an OS item points into that OS's section) |
 
 Check 2 of `verify_manual.sh` compares code examples against the sample app,
-which is C++ or Kotlin, so the C examples are outside it.
+which is Swift (iOS, macOS), Kotlin (Android) or C++ (Windows), so the C examples
+are outside it.
 `check_manual_c_examples_<os>.py` is what covers those; the compile check needs
 Visual Studio (Windows), the NDK's clang (Android) or Xcode's clang (iOS) and
 reports SKIP without it, unless `--require-compile` is given.

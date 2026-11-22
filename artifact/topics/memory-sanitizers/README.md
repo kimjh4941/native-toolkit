@@ -2,8 +2,15 @@
 
 - 記録日: 2026-10-10
 - 分類: テスト債務（横断課題）
-- 状態: 未着手
-- 関連: [android-c-abi](../android-c-abi/README.md)（Android は段階 2b の TB-9 で HWASan を入れた）、[bridge-testing](../bridge-testing/README.md)（iOS / macOS の橋渡しの層のテストの穴）
+- 状態: 未着手（Windows・macOS）。iOS は `ios-c-abi` で済んだ（2026-11-22 の追記。下の「iOS の今の状態」）
+- 関連: [android-c-abi](../android-c-abi/README.md)（Android は段階 2b の TB-9 で HWASan を入れた）、[bridge-testing](../bridge-testing/README.md)（iOS / macOS の橋渡しの層のテストの穴）、[ios-c-abi](../ios-c-abi/README.md)（iOS は C ABI のテストに ASan・TSan を入れた）
+
+## iOS の今の状態（2026-11-22 の追記）
+
+iOS の Unity の橋渡し（`ios/UnityIosPlugin`）は iOS 2.0.0（製品 1.14.0）で削除し、汎用の C ABI `IosLibraryCApi` に置き換えた。
+その C ABI のテスト `IosLibraryCApiTests`（474 件）を、シミュレーターでは通常・ASan・TSan で（`scripts/test_ios.sh --capi`。2026-11-21 に通過）、
+実機では ASan で（区切りで利用者の許可を得て。2026-11-07 に通過。SH-13 の直しの前）流している（`artifact/topics/ios-c-abi/README.md` の 7.4 と 9 章の DoD）。
+TSan は実機では動かない。下の表と方針の iOS の行は当時の記録として残す。残りは Windows と macOS。
 
 ## 何が問題か
 
@@ -19,7 +26,7 @@ Android の TB-4 では、テストの側の use-after-free（早く終わった
 |---|---|---|---|---|
 | Windows | C ABI（`WindowsLibraryCApi`）と C++ の実装。コールバック、`release`、スレッドの受け渡し | Android の C ABI と同じ作りなので高い | MSVC の AddressSanitizer（`/fsanitize=address`）。`WindowsLibraryCApiTest` に構成を 1 つ足す | 高 |
 | macOS | ほとんどが Swift（131 ファイル）。Unity 向けの Objective-C と C の橋渡し（`.m` 10、`.mm` 6、`.c` 3） | Swift の部分は低い。橋渡しの層は C の関数ポインタとポインタを扱うのでありうる | Xcode の Address Sanitizer（テストの scheme の設定、または `xcodebuild -enableAddressSanitizer YES`）。Swift の並行処理には Thread Sanitizer も | 中 |
-| iOS | macOS と同じ形（Swift 144、`.m` 7、`.mm` 3、`.c` 3） | 同上 | 同上 | 中 |
+| iOS | macOS と同じ形（Swift 144、`.m` 7、`.mm` 3、`.c` 3） | 同上 | 同上 | 中（2026-11-22: 済み。C ABI のテストを ASan・TSan で流す。上の「iOS の今の状態」） |
 
 HWASan（ハードウェアを使う版）は arm64 の Android と Linux 向けで、Windows・Apple の OS には無い。これらでは ASan（AddressSanitizer）を使う。見つける誤りの種類はほぼ同じで、メモリと速度の負担が HWASan より大きい。
 
@@ -27,10 +34,10 @@ HWASan（ハードウェアを使う版）は arm64 の Android と Linux 向け
 
 - 毎回のテストではなく、**リリースの前と、登録・解放・スレッド・コールバックのまわりを変えたとき**に流す。テストのスクリプトに「サニタイザーを有効にして流す」を選べる口を足す（Android は `test_android.sh` に、TB-11 で足す）
 - 配る成果物には入れない。試験用のビルドだけで有効にする
-- iOS / macOS は、橋渡しの層を通るテストがまだ無い（[bridge-testing](../bridge-testing/README.md)）。サニタイザーは、通るテストがあって初めて効くので、bridge-testing と合わせて進める
+- iOS / macOS は、橋渡しの層を通るテストがまだ無い（[bridge-testing](../bridge-testing/README.md)）。サニタイザーは、通るテストがあって初めて効くので、bridge-testing と合わせて進める（2026-11-22: iOS は C ABI のテストで済んだ。残りは macOS）
 - 着手の順は Windows → macOS / iOS
 
 ## 着手するときに確かめること
 
 - Windows: MSVC の ASan と、テストの枠組み・`WindowsLibraryCApi` のリンクの形（静的な CRT か動的か）との相性
-- iOS / macOS: Unity の橋渡しが、将来 C ABI（Android・Windows と同じもの）に置き換わる予定か。置き換わるなら、サニタイザーはその C ABI のテストに入れる（`android-c-abi` の README のとおり、iOS / macOS の C ABI は Android の後に別のトピックにする）
+- iOS / macOS: Unity の橋渡しが、将来 C ABI（Android・Windows と同じもの）に置き換わる予定か。置き換わるなら、サニタイザーはその C ABI のテストに入れる（`android-c-abi` の README のとおり、iOS / macOS の C ABI は Android の後に別のトピックにする）（2026-11-22: iOS は置き換わり、サニタイザーは `IosLibraryCApiTests` に入れた。macOS は iOS の後に別のトピックにする）

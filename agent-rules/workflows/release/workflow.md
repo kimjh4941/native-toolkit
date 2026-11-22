@@ -39,6 +39,8 @@ squash は使用しない。
 | ブランチ | `git branch --show-current` が `feature/` または `release/` 系であること |
 | 未コミット変更 | `git status --porcelain` の出力が空であること |
 | dist | `dist/<version>/` が存在し、android / ios / mac / windows の各アーティファクトが揃っていること |
+| dist 整合（Android） | `python3 scripts/check_android_dist.py <version>` が FAIL 0 件で終了すること（`dist/<version>/android/` の 2 つの AAR・`include/NativeToolkitC/`・`m2/` を見る。ヘッダーが今のソースと同じか、`libntk.so` の ABI・16 KB の整列・公開する関数、POM と Module Metadata の版と依存、マニュアルの依存の一覧が合っているか。NDK のツールは PATH・`ANDROID_NDK_HOME`・SDK の `ndk/` から探す。見つからなければ `--readelf` / `--nm` / `--strip` で渡す） |
+| dist 整合（iOS） | `python3 scripts/check_ios_dist.py <version>` が FAIL 0 件で終了すること（`dist/<version>/ios/` の 2 つの xcframework と `include/NativeToolkitC/` を見る。スライス、capi が公開する関数が今のヘッダーと同じか、依存・install name・版・最小 iOS・bundle id、capi が Swift のモジュールを配らないこと、プライバシーマニフェスト、署名が無いこと。`artifact/topics/ios-c-abi/README.md` の 7.3） |
 | dist 整合（Windows） | `python3 scripts/check_windows_dist.py <version>` が FAIL 0 件で終了すること（`dist/<version>/windows/` が今のソースから作られたか、ヘッダー・版番号付きのファイル名・DLL の関数名が合っているかを見る。`source` が ❌ なら `build_windows_library_dll.ps1` の全体ビルドで作り直す） |
 | manual | `manual/<version>/` に `*.md`, `*.ja.md`, `*.ko.md` の各マニュアルが存在すること |
 | docs | `docs/<version>/` が存在すること |

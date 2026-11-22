@@ -2,7 +2,7 @@
 
 - 記録日: 2026-10-10
 - 分類: テスト基盤（横断課題）
-- 状態: 未着手
+- 状態: 未着手（2026-11-22 の追記: iOS には `scripts/test_ios.sh --feature` ができた。下の「今あるもの」）
 - 関連: [feature-split-distribution](../feature-split-distribution/README.md)（機能ごとの配布物。境目が同じ）、[android-c-abi](../android-c-abi/README.md)（2b のレビューの対処で、関係するテストだけを流して確かめた）
 
 ## 何が問題か
@@ -15,7 +15,8 @@
 |---|---|---|---|
 | Android | `scripts/test_android.sh` | `--filter <Category>`（サンプルの UI テストのカテゴリ）、`HostState`・`Library`・`Probe`・`CApi`（決まった区分）。Gradle の `tests_regex` は手で渡す | C ABI の GoogleTest の名前（`Clipboard.*`、`Share.*` など）、サンプルの UI テストのカテゴリの印、Kotlin の単体テストのパッケージ（`...clipboard` など） |
 | Windows | `scripts/test_windows.ps1` | `-Filter`（dotnet test のフィルター。例: `TestCategory=Notification`） | UI テストの `TestCategory` |
-| iOS / macOS | 共通のスクリプトは無い（`xcodebuild test -scheme ...` を手で流す） | `xcodebuild` の `-only-testing:` | テストのクラス |
+| iOS（2026-11-22 の追記。`ios-c-abi` の段階 0d で作った） | `scripts/test_ios.sh` | `--feature Dialog\|Notification\|Share\|Clipboard`（サンプルの UI テストのうちその機能のクラスと共通のクラス。単体テストは流さない）、`--skip-unit`。C ABI のテストは `--capi`・`--capi-ui` で全件だけ（機能では絞れない）。ほかは `xcodebuild` の `-only-testing:` を手で渡す | サンプルの UI テストのクラス、C ABI のテストのクラス（`ClipboardEntryTests`、`DialogEntryTests` など） |
+| macOS | 共通のスクリプトは無い（`xcodebuild test -scheme ...` を手で流す） | `xcodebuild` の `-only-testing:` | テストのクラス |
 
 ## 足すもの（案）
 
@@ -29,7 +30,7 @@
 ## 対応方針（案）
 
 - 対応表は、機能の一覧（Clipboard、Dialog、Notification、Share など）を全 OS で同じにして、OS ごとにパスとテストの名前の形だけを持つ
-- 着手は Android と Windows から（スクリプトがあり、テストの名前が機能ごとに分かれている）。iOS / macOS は、テストのスクリプトを作るところからになるので、C ABI 化（[feature-split-distribution](../feature-split-distribution/README.md) と同じく、ほかの OS の C ABI 化が先）と合わせる
+- 着手は Android と Windows から（スクリプトがあり、テストの名前が機能ごとに分かれている）。iOS / macOS は、テストのスクリプトを作るところからになるので、C ABI 化（[feature-split-distribution](../feature-split-distribution/README.md) と同じく、ほかの OS の C ABI 化が先）と合わせる（2026-11-22: iOS はスクリプトと UI テストの `--feature` ができた。残りは iOS の単体テストと C ABI のテストを機能で絞ること、macOS）
 - 機能ごとの配布物（feature-split-distribution）と境目（共通部分と機能ごと）が同じなので、対応表はそちらと共有できる形にする
 
 ## 着手するときに確かめること

@@ -3,7 +3,7 @@
 - 作成日: 2026-11-07。改訂: 2026-11-14（別モデル 2 者のレビューを反映し、11-07〜11-14 の実機の区切りの結果と持ち主の決定を足した。作業記録 17 章）
 - 対象: `artifact/topics/ios-c-abi/README.md` の段階 2c、C ABI の設計書 第 2 部（`designs/2026-11-03-ios-c-abi-c-abi-design-part2.md`。以下「第 2 部」）13 章の TC-1
 - 読み手: `unity-native-plugin`（別リポジトリ）で iOS の部分を移す人と agent（C# の P/Invoke の包み、`.mm`、Unity の iOS のビルドを扱う。このリポジトリの設計書は読んでいない前提で書いた）
-- 前提の段: 2b（C ABI の実装）は、シミュレーターでの実装とテストに加え、2.0.0 の前の実機の区切り（2026-11-07〜11-14。実機での `IosLibraryCApiTests` の ASan と smoke を含む）まで済んだ。**版と `dist/<リリース版>` を決める 2b の締めはまだ**（7 章）
+- 前提の段: 2b（C ABI の実装）は、シミュレーターでの実装とテストに加え、2.0.0 の前の実機の区切り（2026-11-07〜11-14。実機での `IosLibraryCApiTests` の ASan と smoke を含む）まで済んだ。**版と `dist/<リリース版>` を決める 2b の締めはまだ**（7 章）。**後の経過**: 2026-11-14 にリリース版を 1.14.0 に決め、`dist/1.14.0` を作った（段階 2 の作業の記録 17.13・17.14）。配布用の署名は行わないと利用者が決めた（2026-11-21。README 9 章）
 - 照らした実物: このリポジトリの `c7f2702f`（`feature/NTKIT-18`）の公開ヘッダー `ios/IosLibraryCApi/include/NativeToolkitC/*.h`（134 関数）、`scripts/build_ios_library_xcframework.sh`、`scripts/check_ios_dist.py`。`unity-native-plugin` は `1c246a3`（`feature/UNT-14`、2026-10-31）を読むだけで見た
 - 2c の成功（Unity が C ABI を呼び、EditMode・PlayMode・実機のテストを通す）が、2.0.0 を出す条件（README 5 章。Android と同じ）
 

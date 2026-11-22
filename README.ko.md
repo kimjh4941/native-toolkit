@@ -148,7 +148,8 @@ docs/
 ## 필요 환경
 
 - Android: JDK 11 / Android SDK / Android Studio
-- iOS / macOS: Xcode
+- iOS: 소스에서 라이브러리를 빌드하려면 Xcode 26.4 이상(Swift 6.3)이 필요합니다(1.14.0은 Xcode 26.6으로 빌드). 빌드된 framework를 사용하는 앱은 매뉴얼을 참고하세요(Xcode 26.3 이상. C ABI만 사용하는 앱은 Xcode 26이면 모두 가능)
+- macOS: Xcode
 - Windows: Visual Studio 2022(C++), 문서 생성 시 Doxygen
 
 ## 빌드(배포 산출물)
@@ -157,7 +158,7 @@ docs/
 # Android AAR (전체 모듈)
 ./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.14.0 --m2
 
-# iOS XCFramework (전체 모듈)
+# iOS XCFramework (전체 모듈). Xcode 26.4 이상이 필요하며 DEVELOPER_DIR=/Applications/<Xcode>.app/Contents/Developer 로 선택
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
 
 # macOS XCFramework (전체 모듈)

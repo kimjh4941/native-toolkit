@@ -8,6 +8,14 @@
 - 使用言語: Swift（Bridge の一部は Objective-C）
 - 対象モジュール: `ios/IosLibrary`（Domain 〜 Manager）、`ios/UnityIosPlugin`（Unity Bridge のみ）
 
+> **2026-11-22 の追記: Objective-C ブリッジと `ios/UnityIosPlugin` の部分は古い**
+>
+> iOS 2.0.0（製品 1.14.0）で `ios/UnityIosPlugin` とその Objective-C ブリッジを削除し、汎用の C ABI `IosLibraryCApi` に置き換えた。Swift の API も 2.0.0 で変わった。この設計書のブリッジ（Unity Bridge、`.m`、JSON の受け渡し）に関する部分は、次に置き換わっている。本文は当時の記録として残す。
+>
+> - Swift の API: `artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-swift-api-design.md`
+> - C ABI: `artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-c-abi-design.md`（第 1 部）と `artifact/topics/ios-c-abi/designs/2026-11-03-ios-c-abi-c-abi-design-part2.md`（第 2 部）
+> - 利用者向けの説明: `manual/1.14.0/`（iOS の章、C ABI の節、2.0.0 への移行）
+
 > **正誤（2026-08-15 追記）: 名前付きペーストボードの「非永続」記述は実測と一致しない**
 >
 > 本書は名前付き / ユニークペーストボードを「非永続（作成アプリの実行中のみ存在）」として

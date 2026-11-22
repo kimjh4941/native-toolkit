@@ -8,15 +8,16 @@ set -euo pipefail
 #                                              [--output <path> | --output-dir <folder>] [--build-dir <folder>] [--keep-project-versions]
 #
 # Examples:
-#   ./scripts/build_ios_library_xcframework.sh
-#   ./scripts/build_ios_library_xcframework.sh --configuration debug
-#   ./scripts/build_ios_library_xcframework.sh --library-version 1.2.0
+#   ./scripts/build_ios_library_xcframework.sh --library-version 2.0.0
+#   ./scripts/build_ios_library_xcframework.sh --configuration debug --library-version 2.0.0
 #   ./scripts/build_ios_library_xcframework.sh --module IosLibrary --module IosLibraryCApi --library-version 2.0.0
-#   ./scripts/build_ios_library_xcframework.sh --configuration release --output dist/1.6.0/ios/ios-native-toolkit-1.2.0.xcframework
-#   ./scripts/build_ios_library_xcframework.sh -c debug -v 1.2.0 -o /tmp/NativeToolkit-debug.xcframework
-#   ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -v 1.3.0 -o dist/1.9.0/ios/ios-native-toolkit-1.3.0.xcframework
+#   ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
+#   ./scripts/build_ios_library_xcframework.sh -c debug -m IosLibrary -v 2.0.0 -o /tmp/NativeToolkit-debug.xcframework
 #   ./scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir /tmp/ntk-ios \
 #       --build-dir /tmp/ntk-ios-build --keep-project-versions
+#
+# Needs Xcode 26.4 or later (Swift 6.3; IosLibraryCApi uses @c @implementation, ios-c-abi README D-10 and
+# D-16; 1.14.0 was built with Xcode 26.6). Select it with DEVELOPER_DIR=/Applications/<Xcode>.app/Contents/Developer.
 #
 # Every framework is archived with CODE_SIGNING_ALLOWED=NO: the distributable frameworks are not
 # signed; the app that embeds them signs them (artifact/topics/ios-c-abi/README.md, D-18).

@@ -148,7 +148,8 @@ docs/
 ## Requirements
 
 - Android: JDK 11 / Android SDK / Android Studio
-- iOS / macOS: Xcode
+- iOS: Xcode 26.4 or later (Swift 6.3) to build the libraries from source (1.14.0 was built with Xcode 26.6). Apps that use the prebuilt frameworks: see the manual (Xcode 26.3 or later; any Xcode 26 when the app uses only the C ABI)
+- macOS: Xcode
 - Windows: Visual Studio 2022 (C++), Doxygen when generating docs
 
 ## Build (distributables)
@@ -157,7 +158,7 @@ docs/
 # Android AAR (all modules)
 ./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.14.0 --m2
 
-# iOS XCFramework (all modules)
+# iOS XCFramework (all modules). Needs Xcode 26.4 or later; select it with DEVELOPER_DIR=/Applications/<Xcode>.app/Contents/Developer
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
 
 # macOS XCFramework (all modules)

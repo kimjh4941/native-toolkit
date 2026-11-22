@@ -3,7 +3,7 @@
 - 実施日: 2026-11-21
 - 対象: `artifact/topics/ios-c-abi/README.md` の段階 4
 - ブランチ: `feature/NTKIT-18`
-- 判定: **完了**（2026-11-21）。リリース（ルートの README の版、ドキュメントの公開、マージとタグ）は、利用者の指示（「2.0.0 のリリース以外の作業を推奨順で」）で行っていない。新しい画面の写真は利用者に残す（5 章）
+- 判定: **完了**（2026-11-21）。リリース（ルートの README の版、ドキュメントの公開、マージとタグ）は、利用者の指示（「2.0.0 のリリース以外の作業を推奨順で」）で行っていない。新しい画面の写真は利用者に残す（5 章。→2026-11-22 に撮った。6 章）。2026-11-22 にルートの README（3 言語）と `docs/1.14.0` を先に直した（`d4091ca1`）ので、残りは PR・マージ・タグ
 
 ## 1. 決めたこと（利用者の指示「判断が要る場合は推奨案で」による）
 
@@ -60,7 +60,7 @@
   - Notification: `Example_IosNotificationManager.png`（2.0.0 の画面の上に撮り直し、`### IosNotificationManager` に戻した）、`RegisterCategoryWithCompletion`、`RequestPermissionWithAppSettings`
   - Share: `ShareRequestText`、`ShareThenDismissFromOutside`、`ShareTwiceInOneTurn`
 - ~~HC13（Clipboard の CB1 の人の確認）~~: 2026-11-22 に利用者が行い合格（段階 2 の作業の記録 17.17）
-- リリース（README 5.3）: ルートの README（3 言語）の版と配布物の一覧、`publish_docs.sh 1.14.0`、PR とマージとタグ
+- リリース（README 5 章の「2.0.0 を出す条件と戻り先」）: ~~ルートの README（3 言語）の版と配布物の一覧、`publish_docs.sh 1.14.0`~~（2026-11-22 に済み。`d4091ca1`）、PR とマージとタグ
 - 範囲外で見つけたもの（直していない）: 1.13.0 以前のマニュアルの目次のずれ（検査 8 が見つける）、macOS の Share の例のリテラル
 
 ## 6. リリースの前の確かめ（2026-11-22）
@@ -73,4 +73,4 @@
 | 2 | マニュアルの写真（5 章） | 11 枚を 3 言語に入れた。`verify_manual.sh` は前と同じ（画像の 30 件だけ）、C の例の照合も OK | `f93439f4` |
 | 3 | サンプルを iPhone で縦だけにした（iPad は 4 方向のまま。Android と同じく画面とテストは縦が前提） | `--feature Dialog`（画面の移動・識別子・Dialog の 29 件）が通り、組んだ Info.plist の iPhone は Portrait だけ | `3a7d1a4c` |
 | 4 | C ABI（Xcode 26.6） | `--capi` は 8 項目すべて通った（ASan・TSan、配布物の組み直しと検査、両スライスの契約、smoke）。`--capi-ui` の 1 回目は 59 件のうち 1 件（`testALoadAllowedAfterItTimedOutDeliversNothing`）が後始末の検査で落ちた（「Allow Paste」を押した 2.9 秒後にまだアラートがあった。本体の確かめは通っている）。シミュレーターを起動し直してこの 1 件を 3 回流すと 3 回とも通り、通しの 2 回目は 59 件すべて通った。これまでの 40 回を超える実行でこの 1 件だけが落ちたことはないので、アラートの閉じる遅れによる揺れと見て、テストは変えていない | — |
-| 5 | Dialog の画面を、ほかの 3 画面と同じく、タイトルと結果の箱を上に固定してボタンだけをスクロールする形にした（利用者の指示。見た目は変えていないので、1.x の写真は上の位置のままで使える） | `--feature Dialog` の 29 件が通った。今日撮った Dialog の写真 3 枚（`ShowRequestConfirm`・`ShowTwoInOneTurn`・`ShowThenCancel`）を新しい画面で撮り直した | 次のコミット |
+| 5 | Dialog の画面を、ほかの 3 画面と同じく、タイトルと結果の箱を上に固定してボタンだけをスクロールする形にした（利用者の指示。見た目は変えていないので、1.x の写真は上の位置のままで使える） | `--feature Dialog` の 29 件が通った。今日撮った Dialog の写真 3 枚（`ShowRequestConfirm`・`ShowTwoInOneTurn`・`ShowThenCancel`）を新しい画面で撮り直した | `0cd39f39` |
