@@ -5,7 +5,8 @@
 //  Checks the pure rules of the Support files without launching anything (`common.md`: a rule that
 //  decides is cut out as a pure function and broken directly). The overlay rule (design 5.0), the
 //  result rule (U-3), the gate's host and allowance (U-9), the test key, the declaration table and
-//  the fixture path (U-11).
+//  the fixture path (U-11), and the Notification rules (5.0 for Notification Center, U-6, U-14 (c),
+//  4.3).
 //
 
 import XCTest
@@ -199,5 +200,140 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertThrowsError(try PanelFixture.parse("/tmp/ntk-uitest-abc"))
         XCTAssertThrowsError(try PanelFixture.parse("/private/tmp/ntk-uitest-abc/sub"))
         XCTAssertThrowsError(try PanelFixture.parse("/Users/someone"))
+    }
+
+    // MARK: - Overlay rule for Notification Center (5.0)
+
+    private static let center = SystemLabels.notificationCenterBundleIdentifier
+    private static let root = CGRect(x: 664, y: 103, width: 344, height: 73)
+    private static var rootPoint: CGPoint { CGPoint(x: root.midX, y: root.midY) }
+    /// Notification Center's full-display window: on 15.8.3 the banners are drawn in it.
+    private static let centerFull = window(11, center, layer: 23, display)
+
+    private func bannerVerdict(_ windows: [ScreenWindow], point: CGPoint = rootPoint) -> OverlayVerdict {
+        NotificationOverlayRule.verdict(point: point, kind: .banner(rootFrame: Self.root), windows: windows,
+                                        displays: [Self.display])
+    }
+
+    /// The design's self-test of "another window of the same owner" (7): (1) one window holds the root
+    /// and is frontmost: press; (2) another window of the owner covers only the point; (3) two windows
+    /// hold the root; (4) the owner or the window is missing: no press.
+    func testNotificationOverlayPressesOnlyTheOneWindowThatHoldsTheRoot() {
+        let automation = Self.window(10, "com.apple.dt.AutomationModeUI", layer: 1000, Self.display)
+        let dock = Self.window(12, "com.apple.dock", layer: 20, Self.display)
+        // (1)
+        XCTAssertEqual(bannerVerdict([automation, Self.centerFull, dock, Self.sampleWindow]), .clear)
+        // (2)
+        let menu = Self.window(11, Self.center, layer: 101, CGRect(x: 820, y: 130, width: 80, height: 54))
+        XCTAssertEqual(bannerVerdict([menu, Self.centerFull, Self.sampleWindow]), .blocked)
+        // (3)
+        let bannerWindow = Self.window(11, Self.center, layer: 23, CGRect(x: 650, y: 90, width: 370, height: 100))
+        XCTAssertEqual(bannerVerdict([bannerWindow, Self.centerFull]), .blocked)
+        XCTAssertEqual(bannerVerdict([bannerWindow]), .clear)
+        // (4)
+        XCTAssertEqual(bannerVerdict([Self.window(11, nil, layer: 23, Self.display)]), .blocked)
+        XCTAssertEqual(bannerVerdict([automation, dock]), .noWindow)
+        // Another app in front of the point, and a point outside the root.
+        let other = Self.window(30, "com.example.other", CGRect(x: 700, y: 120, width: 200, height: 40))
+        XCTAssertEqual(bannerVerdict([other, Self.centerFull]), .blocked)
+        XCTAssertEqual(bannerVerdict([Self.centerFull], point: CGPoint(x: 500, y: 500)), .blocked)
+    }
+
+    func testNotificationOverlayPressesAMenuItemOnlyOnNotificationCenter() {
+        let menu = Self.window(11, Self.center, layer: 101, CGRect(x: 918, y: 171, width: 80, height: 54))
+        let item = CGPoint(x: 958, y: 187)
+        func verdict(_ windows: [ScreenWindow]) -> OverlayVerdict {
+            NotificationOverlayRule.verdict(point: item, kind: .menuItem, windows: windows, displays: [Self.display])
+        }
+        XCTAssertEqual(verdict([menu, Self.centerFull, Self.sampleWindow]), .clear)
+        let other = Self.window(30, "com.example.other", CGRect(x: 900, y: 160, width: 100, height: 100))
+        XCTAssertEqual(verdict([other, menu, Self.centerFull]), .blocked)
+        XCTAssertEqual(verdict([Self.window(31, nil, layer: 101, CGRect(x: 918, y: 171, width: 80, height: 54))]), .blocked)
+    }
+
+    /// A banner is drawn inside Notification Center's full-display window on 15.8.3, so the window
+    /// rule cannot see it over a sample button; the banner list's frame can.
+    func testOverlayStopsAtABannerListOverThePoint() {
+        let windows = Self.passiveFront + [Self.sampleWindow]
+        let over = CGRect(x: 80, y: 280, width: 300, height: 100)
+        XCTAssertEqual(OverlayRule.verdict(point: Self.point, elementFrame: Self.button, windows: windows,
+                                           displays: [Self.display], allowedPIDs: [Self.samplePID],
+                                           notificationAreas: [over]), .notificationCenter)
+        let aside = CGRect(x: 664, y: 40, width: 344, height: 136)
+        XCTAssertEqual(OverlayRule.verdict(point: Self.point, elementFrame: Self.button, windows: windows,
+                                           displays: [Self.display], allowedPIDs: [Self.samplePID],
+                                           notificationAreas: [aside]), .clear)
+    }
+
+    // MARK: - Notification rules
+
+    func testBannerAnchorComparesTheWholeLabel() {
+        let anchor = BannerAnchor.immediate
+        XCTAssertTrue(anchor.matches("MacLibraryExample, Immediate Notification, MacLibraryExample, Displayed now"))
+        XCTAssertFalse(anchor.matches("MacLibraryExample, Immediate Notification, MacLibraryExample, Displayed now, stacked"))
+        XCTAssertFalse(anchor.matches("Other, Immediate Notification, MacLibraryExample, Displayed now"))
+        XCTAssertFalse(BannerAnchor(title: "Immediate", body: "Displayed now")
+            .matches("MacLibraryExample, Immediate Notification, MacLibraryExample, Displayed now"))
+        XCTAssertTrue(anchor.label.hasPrefix(BannerAnchor.anyRootPrefix))
+    }
+
+    func testLastEventMatchesEveryField() {
+        let value = "#1 kind=textInput notificationId=mac-sample-notification-1795377411 actionId=reply userText=hello reply userInfo=id:mac-sample-notification-1795377411,source:MacLibraryExample"
+        guard let event = LastEvent.parse(value) else {
+            return XCTFail("the sample's shape did not parse")
+        }
+        XCTAssertEqual(event.userText, "hello reply")
+        let expected = ExpectedEvent(sequence: 1, kind: "textInput", notificationId: .immediate, actionId: "reply",
+                                     userText: "hello reply")
+        XCTAssertTrue(expected.matches(event))
+        XCTAssertFalse(ExpectedEvent(sequence: 2, kind: "textInput", notificationId: .immediate, actionId: "reply",
+                                     userText: "hello reply").matches(event))
+        XCTAssertFalse(ExpectedEvent(sequence: 1, kind: "action", notificationId: .immediate, actionId: "reply",
+                                     userText: "hello reply").matches(event))
+        XCTAssertFalse(ExpectedEvent(sequence: 1, kind: "textInput", notificationId: .exact("mac-sample-notification"),
+                                     actionId: "reply", userText: "hello reply").matches(event))
+        // The user info must carry the same id.
+        let other = LastEvent.parse(value.replacingOccurrences(of: "userInfo=id:mac-sample-notification-1795377411",
+                                                               with: "userInfo=id:mac-sample-notification-1"))
+        XCTAssertNotNil(other)
+        XCTAssertFalse(expected.matches(other!))
+        XCTAssertNil(LastEvent.parse("#1 kind=action notificationId=x"))
+        XCTAssertEqual(LastEvent.parse("#0 " + LastEvent.initialText)?.kind, "none")
+    }
+
+    func testNotificationListParsesOnlyTheExactShape() {
+        XCTAssertEqual(NotificationIDList.parse("[getScheduled] count=0, ids=[]", label: "getScheduled"),
+                       NotificationIDList(count: 0, ids: []))
+        let two = NotificationIDList.parse("[getDelivered] count=2, ids=[mac-sample-scheduled, mac-sample-notification-12]",
+                                           label: "getDelivered")
+        XCTAssertEqual(two?.ids, ["mac-sample-scheduled", "mac-sample-notification-12"])
+        XCTAssertEqual(two?.hasExactly(["mac-sample-scheduled"], immediate: 1), true)
+        XCTAssertEqual(two?.hasExactly(["mac-sample-scheduled"]), false)
+        XCTAssertNil(NotificationIDList.parse("[getScheduled] count=2, ids=[a]", label: "getScheduled"))
+        XCTAssertNil(NotificationIDList.parse("[getScheduled] count=2, ids=[a, a]", label: "getScheduled"))
+        XCTAssertNil(NotificationIDList.parse("[getScheduled] count=1, ids=[a]", label: "getDelivered"))
+        XCTAssertNil(NotificationIDList.parse("[getScheduled] count=1, ids=[a] ", label: "getScheduled"))
+        XCTAssertNil(NotificationIDList.parse("[getScheduled] count=x, ids=[]", label: "getScheduled"))
+    }
+
+    func testSecondsWindowWaitsUntilFiveToThirty() {
+        let cases: [(Double, Double)] = [(30.0, 35), (30.5, 34.5), (31, 34), (59, 6), (4.9, 0.1), (5, 0), (28.9, 0),
+                                        (29.0, 36), (29.9, 35.1), (0, 5)]
+        for (second, delay) in cases {
+            XCTAssertEqual(SecondsWindow.delay(fromSecond: second), delay, accuracy: 0.0001, "second \(second)")
+            XCTAssertLessThanOrEqual(SecondsWindow.delay(fromSecond: second), SecondsWindow.deadline)
+            XCTAssertTrue(SecondsWindow.contains(second: (second + SecondsWindow.delay(fromSecond: second))
+                .truncatingRemainder(dividingBy: 60)))
+        }
+        XCTAssertFalse(SecondsWindow.contains(second: 30))
+        XCTAssertFalse(SecondsWindow.contains(second: 4.99))
+    }
+
+    func testLaunchCopyIsTwelveHexDigits() {
+        XCTAssertTrue(LaunchCopy.isWellFormed("copy=0123456789ab"))
+        XCTAssertFalse(LaunchCopy.isWellFormed("copy=0123456789a"))
+        XCTAssertFalse(LaunchCopy.isWellFormed("copy=0123456789abc"))
+        XCTAssertFalse(LaunchCopy.isWellFormed("copy=0123456789AB"))
+        XCTAssertFalse(LaunchCopy.isWellFormed(""))
     }
 }

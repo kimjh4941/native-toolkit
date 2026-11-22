@@ -52,8 +52,8 @@ enum DialogButton: String, CaseIterable {
     var resultMarker: String { "\(rawValue) - " }
 }
 
-/// `NotificationSampleIdentifiers.ButtonName`. Only the buttons that need no token are pressed
-/// from here; the rest wait for the Notification stage of 0c.
+/// `NotificationSampleIdentifiers.ButtonName`. The buttons that need no token are pressed with
+/// `tap(_:)`; the rest only through the token-taking entry points.
 enum NotificationButton: String, CaseIterable {
     case requestPermission = "RequestPermission"
     case hasPermission = "HasPermission"
@@ -99,7 +99,21 @@ enum NotificationButton: String, CaseIterable {
         }
     }
 
-    var resultMarker: String { "[\(rawValue.prefix(1).lowercased() + rawValue.dropFirst())] " }
+    /// The label the sample puts in brackets. Four buttons use a label other than their name
+    /// (`NotificationSampleView`).
+    var resultMarker: String {
+        switch self {
+        case .removeDeliveredById: return "[removeDelivered] "
+        case .cancelScheduledById: return "[cancelScheduled] "
+        case .setBadgeCount1: return "[setBadgeCount(1)] "
+        case .setBadgeCount0: return "[setBadgeCount(0)] "
+        default: return "[\(rawValue.prefix(1).lowercased() + rawValue.dropFirst())] "
+        }
+    }
+
+    /// The text the sample shows instead of the operation's result when the permission is not
+    /// granted (`runWithPermission`); it carries no bracketed label.
+    static let notGrantedText = "Notification permission is not granted. Please request permission first."
 }
 
 /// `ShareSampleIdentifiers.ButtonName`.
@@ -286,9 +300,14 @@ enum OverlayRule {
         return false
     }
 
-    /// `windows` are front to back (`CGWindowListCopyWindowInfo` order).
+    /// `windows` are front to back (`CGWindowListCopyWindowInfo` order). `notificationAreas` are the
+    /// frames of Notification Center's banner list (`AXNotificationListItems`): on the 15.8.3 VM the
+    /// banners have no window of their own and are drawn inside Notification Center's full-display
+    /// window, which the window rule passes over (stage 0c 2.3), so a banner over the point is found
+    /// only through them.
     static func verdict(point: CGPoint, elementFrame: CGRect, windows: [ScreenWindow],
-                        displays: [CGRect], allowedPIDs: Set<Int32>) -> OverlayVerdict {
+                        displays: [CGRect], allowedPIDs: Set<Int32>,
+                        notificationAreas: [CGRect] = []) -> OverlayVerdict {
         let active = windows.filter { !isPassive($0, displays: displays) }
         guard let hitIndex = active.firstIndex(where: { $0.bounds.contains(point) }) else {
             return .noWindow
@@ -300,7 +319,10 @@ enum OverlayRule {
         let notificationInFront = active[..<hitIndex].contains {
             $0.owner == SystemLabels.notificationCenterBundleIdentifier && $0.bounds.intersects(elementFrame)
         }
-        return notificationInFront ? .notificationCenter : .clear
+        if notificationInFront || notificationAreas.contains(where: { $0.contains(point) }) {
+            return .notificationCenter
+        }
+        return .clear
     }
 }
 
@@ -340,6 +362,32 @@ enum OverlayCheck {
         var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
         guard CGGetActiveDisplayList(count, &ids, &count) == .success else { return [] }
         return ids.prefix(Int(count)).map { CGDisplayBounds($0) }
+    }
+
+    /// Frames of Notification Center's banner list (identifier `AXNotificationListItems`; no label
+    /// is read). Empty when Notification Center does not run. Read from one snapshot: resolving the
+    /// elements one by one failed the test when a banner went between the count and the frame
+    /// (stage 0c 2.3). Throws when the tree cannot be read.
+    static func notificationAreas() throws -> [CGRect] {
+        guard !pids(of: SystemLabels.notificationCenterBundleIdentifier).isEmpty else { return [] }
+        let center = XCUIApplication(bundleIdentifier: SystemLabels.notificationCenterBundleIdentifier)
+        let root: XCUIElementSnapshot
+        do {
+            root = try center.snapshot()
+        } catch {
+            throw SampleUITestError(.overlay, "Notification Center's tree could not be read")
+        }
+        var frames: [CGRect] = []
+        func visit(_ node: XCUIElementSnapshot) {
+            if node.identifier == SystemLabels.notificationListIdentifier, node.frame.width > 0, node.frame.height > 0 {
+                frames.append(node.frame)
+            }
+            for child in node.children {
+                visit(child)
+            }
+        }
+        visit(root)
+        return frames
     }
 
     /// Processes of `bundleIdentifier` that run now.
@@ -396,6 +444,10 @@ final class SampleApp {
     /// How long a Notification Center window may cover an element before the press fails (5.0).
     static let notificationOverlayTimeout: TimeInterval = 10
 
+    /// When the last guarded click was sent (after the checks). The cold start's T0 is the click of
+    /// ShowTimeInterval, not the start of its scrolling and checks (NC1〜NC3).
+    private(set) var lastClickAt: Date?
+
     init(session: UITestSession) {
         self.session = session
     }
@@ -403,6 +455,16 @@ final class SampleApp {
     /// The sample's `XCUIApplication`, for the other trusted Support files (`Panels`, `SharePicker`,
     /// `SampleAlert`). Test classes do not use it (closed source rule, design 6.1).
     var supportRoot: XCUIApplication { app }
+
+    /// Moves the pointer onto the result line of `screen` (the sample's window), for example off a
+    /// banner it hovered (a banner under the pointer does not hide itself. Stage 0c 2.3). Not a click.
+    func hoverOnResult(_ screen: SampleScreen) throws {
+        let element = try exactlyOne(app.staticTexts.matching(identifier: screen.resultIdentifier),
+                                     screen.resultIdentifier, step: .resultShape)
+        try checkBeforePress(element, .sampleWindow, name: "hover on \(screen.resultIdentifier)")
+        element.hover()
+        try session.checkInterruption()
+    }
 
     // MARK: Lifecycle
 
@@ -430,6 +492,45 @@ final class SampleApp {
     }
 
     var state: XCUIApplication.State { app.state }
+
+    /// Waits until the sample is in `state` (no press).
+    func waitForState(_ state: XCUIApplication.State, timeout: TimeInterval, step: StepCode) throws {
+        guard app.wait(for: state, timeout: timeout) else {
+            throw SampleUITestError(step, "the sample did not become \(state.rawValue) in \(timeout)s (now \(app.state.rawValue))")
+        }
+        try session.checkInterruption()
+    }
+
+    /// Brings the running sample to the front (U-15, N3, N24). Not a press: no element is clicked.
+    func activate() throws {
+        guard app.state == .runningBackground || app.state == .runningForeground else {
+            throw SampleUITestError(.notForeground, "the sample is not running (\(app.state.rawValue))")
+        }
+        app.activate()
+        try waitForState(.runningForeground, timeout: Self.launchTimeout, step: .notForeground)
+    }
+
+    /// Stops the sample for a cold start (NC1〜NC3): `terminate()` and wait for `notRunning`.
+    /// Returns the time it became `notRunning`.
+    func terminateForColdStart(_ token: ColdStartToken) throws -> Date {
+        app.terminate()
+        try waitForState(.notRunning, timeout: Self.launchTimeout, step: .coldStart)
+        return Date()
+    }
+
+    /// After a notification woke the sample: waits for the foreground without `launch()` (that
+    /// would replace the woken process) and checks that the window lies on a display (U-15; the woken
+    /// process did not get `-ApplePersistenceIgnoreState`).
+    func adoptWokenProcess(_ token: ColdStartToken, timeout: TimeInterval) throws {
+        try waitForState(.runningForeground, timeout: timeout, step: .coldStart)
+        _ = try samplePID()
+        let window = try waitForExactlyOne(app.windows, "window of the woken sample", timeout: Self.launchTimeout,
+                                           step: .coldStart)
+        let frame = window.frame
+        guard OverlayCheck.displays().contains(where: { $0.contains(frame) }) else {
+            throw SampleUITestError(.coldStart, "the woken sample's window is not inside a display: \(frame)")
+        }
+    }
 
     /// The process of the sample: exactly one must run.
     func samplePID() throws -> Int32 {
@@ -492,6 +593,31 @@ final class SampleApp {
     func tap(_ button: NotificationButton) throws {
         guard button.requiredCategory == nil else {
             throw SampleUITestError(.gate, "\(button.identifier) needs a token")
+        }
+        try tapButton(button.identifier)
+    }
+
+    /// Show*, Schedule*, UpdateById and RequestPermission (`notification`).
+    func tap(_ button: NotificationButton, _ token: NotificationToken) throws {
+        guard button.requiredCategory == .notification else {
+            throw SampleUITestError(.gate, "\(button.identifier) is not a notification button")
+        }
+        try tapButton(button.identifier)
+    }
+
+    /// OpenNotificationSettings (`settings`).
+    func tap(_ button: NotificationButton, _ token: SettingsToken) throws {
+        guard button.requiredCategory == .settings else {
+            throw SampleUITestError(.gate, "\(button.identifier) is not the settings button")
+        }
+        try tapButton(button.identifier)
+    }
+
+    /// SetBadgeCount(1) and SetBadgeCount(0): `badge`, and `notification` because they can ask for
+    /// permission (`runWithPermission`. Design 3.3).
+    func tap(_ button: NotificationButton, _ token: BadgeToken, _ notification: NotificationToken) throws {
+        guard button.requiredCategory == .badge else {
+            throw SampleUITestError(.gate, "\(button.identifier) is not a badge button")
         }
         try tapButton(button.identifier)
     }
@@ -573,6 +699,28 @@ final class SampleApp {
         try session.checkInterruption()
     }
 
+    /// The value of `notification.lastEvent` (design 4.3), parsed.
+    func lastEvent() throws -> LastEvent {
+        let element = try exactlyOne(app.staticTexts.matching(identifier: "notification.lastEvent"),
+                                     "notification.lastEvent", step: .lastEvent)
+        let value = (element.value as? String) ?? ""
+        guard let event = LastEvent.parse(value) else {
+            throw SampleUITestError(.lastEvent, "notification.lastEvent is not #<n> kind=...: \(value)")
+        }
+        return event
+    }
+
+    /// The value of `notification.launchCopy` (`copy=<12 hex digits>`. U-21).
+    func launchCopy() throws -> String {
+        let element = try exactlyOne(app.staticTexts.matching(identifier: "notification.launchCopy"),
+                                     "notification.launchCopy", step: .launchCopy)
+        let value = (element.value as? String) ?? ""
+        guard LaunchCopy.isWellFormed(value) else {
+            throw SampleUITestError(.launchCopy, "notification.launchCopy is not copy=<12 hex>: \(value)")
+        }
+        return value
+    }
+
     /// The value of `dialog.resultHistory` (D5).
     func dialogResultHistory() throws -> String {
         let element = try exactlyOne(app.staticTexts.matching(identifier: "dialog.resultHistory"),
@@ -597,6 +745,7 @@ final class SampleApp {
             try scrollIntoViewIfNeeded(element, name: name)
         }
         try checkBeforePress(element, target, name: name)
+        lastClickAt = Date()
         if modifiers.isEmpty {
             element.click()
         } else {
@@ -678,7 +827,7 @@ final class SampleApp {
         }
         return OverlayRule.verdict(point: CGPoint(x: frame.midX, y: frame.midY), elementFrame: frame,
                                    windows: try OverlayCheck.readWindows(), displays: OverlayCheck.displays(),
-                                   allowedPIDs: allowed)
+                                   allowedPIDs: allowed, notificationAreas: try OverlayCheck.notificationAreas())
     }
 
     // MARK: Scrolling

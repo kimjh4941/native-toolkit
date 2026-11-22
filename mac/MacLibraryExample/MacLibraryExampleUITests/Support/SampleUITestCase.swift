@@ -356,6 +356,22 @@ class SampleUITestCase: XCTestCase {
         try requireSession().host
     }
 
+    /// Whether this test declares `category` (read only; it gives no token).
+    func declares(_ category: DeviceCategory) throws -> Bool {
+        let session = try requireSession()
+        return try DeviceRequirements.categories(for: session.testKey).contains(category)
+    }
+
+    /// The copy of the sample the runner built (`TEST_RUNNER_NTK_EXPECTED_COPY`, received as
+    /// `NTK_EXPECTED_COPY`): `copy=<12 hex>` of the real path of the app it built (U-21, NC1〜NC3).
+    func expectedLaunchCopy(_ token: ColdStartToken) throws -> String {
+        let value = ProcessInfo.processInfo.environment["NTK_EXPECTED_COPY"] ?? ""
+        guard LaunchCopy.isWellFormed(value) else {
+            throw SampleUITestError(.launchCopy, "NTK_EXPECTED_COPY is missing or not copy=<12 hex>")
+        }
+        return value
+    }
+
     // MARK: Tokens
 
     func notificationToken() throws -> NotificationToken {

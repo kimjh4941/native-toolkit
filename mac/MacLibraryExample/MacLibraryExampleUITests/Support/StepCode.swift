@@ -57,4 +57,31 @@ enum StepCode: String, CaseIterable {
     case interrupted
     /// The identifier inventory did not match (I1).
     case inventory
+    /// A precondition of the test does not hold (the text also carries `NTK-PRECONDITION:<name>`).
+    case precondition
+    /// The sample's banner root was not found exactly once, was replaced, or appeared when it
+    /// should not (U-2, U-5).
+    case notificationRoot
+    /// The root's `Options`, the menu it opened or an item of that menu was not found exactly once.
+    case notificationAction
+    /// The reply field in the root was not found exactly once or had no keyboard focus.
+    case notificationReply
+    /// The sample was not in the state the scenario needs before a press in Notification Center.
+    case notificationState
+    /// The permission prompt did not appear, appeared when it should not, or its menu was not found.
+    case permissionPrompt
+    /// The list of `GetScheduled` / `GetDelivered` had another shape or did not reach the expected ids.
+    case notificationList
+    /// The clock did not reach the window of seconds before the deadline (U-14 (c)).
+    case secondsWindow
+    /// System Settings did not come to the front or did not stop.
+    case settings
+    /// A step of the cold start failed (stop, wake, timing).
+    case coldStart
+    /// `notification.lastEvent` had another shape or value.
+    case lastEvent
+    /// `notification.launchCopy` had another shape or value, or the runner gave no expected copy.
+    case launchCopy
+    /// Finder did not come to the front.
+    case finder
 }
