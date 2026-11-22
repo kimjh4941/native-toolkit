@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['ntk_5fclipboard_5fcopy_5foptions_0',['ntk_clipboard_copy_options',['../structntk__clipboard__copy__options.html',1,'']]],
+  ['ntk_5fclipboard_5frepresentation_1',['ntk_clipboard_representation',['../structntk__clipboard__representation.html',1,'']]],
+  ['ntk_5fclipboard_5fscope_2',['ntk_clipboard_scope',['../structntk__clipboard__scope.html',1,'']]],
+  ['ntk_5fclipboard_5fwrite_5fcontent_3',['ntk_clipboard_write_content',['../structntk__clipboard__write__content.html',1,'']]],
+  ['ntk_5fdialog_5faction_5fsheet_5frequest_4',['ntk_dialog_action_sheet_request',['../structntk__dialog__action__sheet__request.html',1,'']]],
+  ['ntk_5fdialog_5falert_5frequest_5',['ntk_dialog_alert_request',['../structntk__dialog__alert__request.html',1,'']]],
+  ['ntk_5fdialog_5fconfirm_5frequest_6',['ntk_dialog_confirm_request',['../structntk__dialog__confirm__request.html',1,'']]],
+  ['ntk_5fdialog_5fdestructive_5frequest_7',['ntk_dialog_destructive_request',['../structntk__dialog__destructive__request.html',1,'']]],
+  ['ntk_5fdialog_5flogin_5frequest_8',['ntk_dialog_login_request',['../structntk__dialog__login__request.html',1,'']]],
+  ['ntk_5fdialog_5ftext_5finput_5frequest_9',['ntk_dialog_text_input_request',['../structntk__dialog__text__input__request.html',1,'']]],
+  ['ntk_5fnotification_5faction_10',['ntk_notification_action',['../structntk__notification__action.html',1,'']]],
+  ['ntk_5fnotification_5fcategory_11',['ntk_notification_category',['../structntk__notification__category.html',1,'']]],
+  ['ntk_5fnotification_5ftext_5finput_5faction_12',['ntk_notification_text_input_action',['../structntk__notification__text__input__action.html',1,'']]],
+  ['ntk_5fnotification_5ftrigger_13',['ntk_notification_trigger',['../structntk__notification__trigger.html',1,'']]],
+  ['ntk_5fshare_5fitem_14',['ntk_share_item',['../structntk__share__item.html',1,'']]],
+  ['ntk_5fshare_5frequest_15',['ntk_share_request',['../structntk__share__request.html',1,'']]]
+];

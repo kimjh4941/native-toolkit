@@ -1,0 +1,50 @@
+--- IosLibrary-after-1b-c2.swiftinterface	2026-10-31 22:06:53
++++ IosLibrary-after-1b-c3.swiftinterface	2026-11-01 00:17:06
+@@ -975,11 +975,12 @@
+   #endif
+ }
+ public protocol ShareRepository : Swift.Sendable {
+-  func present(content: IosLibrary.ShareContent) async throws -> IosLibrary.ShareResult
++  func present(content: IosLibrary.ShareContent, presenter: IosLibrary.PresenterSelection) async throws -> IosLibrary.ShareResult
+ }
+ public struct ShareContentUseCase : Swift.Sendable {
+   public init(repository: any IosLibrary.ShareRepository)
+   public func execute(content: IosLibrary.ShareContent) async throws -> IosLibrary.ShareResult
++  public func execute(content: IosLibrary.ShareContent, presenter: IosLibrary.PresenterSelection) async throws -> IosLibrary.ShareResult
+ }
+ public struct ShareContent : Swift.Sendable {
+   public let items: [IosLibrary.ShareItem]
+@@ -990,14 +991,17 @@
+   public init(items: [IosLibrary.ShareItem], subject: Swift.String? = nil, previewTitle: Swift.String? = nil, excludedActivityTypes: [Swift.String] = [])
+   #endif
+ }
+-public enum ShareError : Swift.Error {
++public enum ShareError : Swift.Error, Swift.Sendable, Swift.Equatable {
+   case noValidItems
+   case invalidURL(Swift.String)
+   case imageLoadFailed(path: Swift.String)
+   case fileNotFound(path: Swift.String)
+   case noRootViewController
+-  case presentationFailed(any Swift.Error)
+-  case unknown(any Swift.Error)
++  case notForeground
++  case presentationFailed
++  case dismissedBySystem
++  case activityFailed(IosLibrary.FailureDetail)
++  public static func == (a: IosLibrary.ShareError, b: IosLibrary.ShareError) -> Swift.Bool
+ }
+ extension IosLibrary.ShareError : Foundation.LocalizedError {
+   #if compiler(>=5.3) && $NonescapableTypes
+@@ -1024,8 +1028,11 @@
+   #if compiler(>=5.3) && $NonescapableTypes
+   final public func share(content: IosLibrary.ShareContent, completion: (@_Concurrency.MainActor @Sendable (Swift.Bool, Swift.Bool, Swift.String?, Swift.String?) -> Swift.Void)? = nil)
+   #endif
++  #if compiler(>=5.3) && $NonescapableTypes
++  final public func share(content: IosLibrary.ShareContent, presenter: IosLibrary.PresenterSelection, completion: @escaping @_Concurrency.MainActor @Sendable (Swift.Result<IosLibrary.ShareResult, IosLibrary.ShareError>) -> Swift.Void)
++  #endif
+   @discardableResult
+-  final public func share(content: IosLibrary.ShareContent) async throws -> IosLibrary.ShareResult
++  final public func share(content: IosLibrary.ShareContent, presenter: IosLibrary.PresenterSelection = .firstActiveScene) async throws -> IosLibrary.ShareResult
+   @objc deinit
+ }
+ extension IosLibrary.AppendContentUseCase : Swift.Sendable {}

@@ -2,10 +2,12 @@
 
 A cross-platform toolkit that bundles native platform features for native apps.
 
-- Android: `DialogFragment` + notification + share + clipboard-based native API
-- iOS: `UIAlertController` + notification + share + clipboard-based native API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + notification + share + clipboard-based native API
-- Windows: Win32 common dialogs, toast notifications and clipboard as a C++ API, with a C ABI over it
+- Android: a Kotlin API, with a C ABI over it
+- iOS: a Swift API, with a C ABI over it
+- macOS: a Swift API
+- Windows: a C++ API, with a C ABI over it
+
+The features of each OS are listed in the manual (`docs/<version>/manual/index.md`).
 
 > Goal: make it easy for native apps to use each OS's standard features with a consistent calling pattern.
 
@@ -20,10 +22,10 @@ Other languages:
 2. For integration steps, read `docs/<version>/manual/index.md`.
 3. For API references, use `docs/<version>/` (or `docs/latest/`).
 
-Example (`1.13.0`):
+Example (`1.14.0`):
 
-- Manual: `docs/1.13.0/manual/index.md`
-- Published docs: `docs/1.13.0/manual/`
+- Manual: `docs/1.14.0/manual/index.md`
+- Published docs: `docs/1.14.0/manual/`
 
 ## Detailed Documentation
 
@@ -33,30 +35,30 @@ Example (`1.13.0`):
 
 ## Version
 
-- Current release: 1.13.0
+- Current release: 1.14.0
 - Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## Supported OS (1.13.0)
+## Supported OS (1.14.0)
 
 - Android 12+
 - iOS 18+
 - Windows 11+
 - macOS 15+
 
-## Distributables (1.13.0)
+## Distributables (1.14.0)
 
 - Android:
-  - `dist/1.13.0/android/android-native-toolkit-2.0.0.aar` (Kotlin API)
-  - `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar` (C ABI)
+  - `dist/1.14.0/android/android-native-toolkit-2.0.0.aar` (Kotlin API)
+  - `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar` (C ABI)
 - iOS:
-  - `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/ios/ios-native-toolkit-2.0.0.xcframework` (Swift API)
+  - `dist/1.14.0/ios/ios-native-toolkit-capi-2.0.0.xcframework` (C ABI), headers in `dist/1.14.0/ios/include/NativeToolkitC/`
 - macOS:
-  - `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
 - Windows:
-  - `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg` (C++ API)
-  - `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg` (C ABI)
+  - `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg` (C++ API)
+  - `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg` (C ABI)
 
 ## Modules (overview)
 
@@ -79,9 +81,11 @@ Example (`1.13.0`):
   - Variants: Alert / Confirm / Destructive / ActionSheet / TextInput / Login / Notification / Share / Clipboard
   - Docs: DocC (`.docc`)
 
-- `ios/UnityIosPlugin`
-  - Optional integration module: Swift facade + Objective-C/C bridge (C ABI)
-  - Docs: DocC (`.docc`)
+- `ios/IosLibraryCApi` (`IosLibraryCApi.framework` in the XCFramework `ios-native-toolkit-capi`)
+  - The general-purpose C ABI over the Swift API: `ntk_*` functions, UTF-8 strings, opaque handles
+  - Headers: `ios/IosLibraryCApi/include/NativeToolkitC/`
+  - Docs: Doxygen (`ios/IosLibraryCApi/Doxyfile`)
+  - For C, C++, C#, Rust and other languages
 
 ### macOS
 
@@ -116,8 +120,9 @@ android/
   AndroidLibraryExample/
 
 ios/
+  IosWorkspace.xcworkspace  # opens the three projects below
   IosLibrary/
-  UnityIosPlugin/
+  IosLibraryCApi/
   IosLibraryExample/
   generate_docc.sh
 
@@ -143,17 +148,18 @@ docs/
 ## Requirements
 
 - Android: JDK 11 / Android SDK / Android Studio
-- iOS / macOS: Xcode
+- iOS: Xcode 26.4 or later (Swift 6.3) to build the libraries from source (1.14.0 was built with Xcode 26.6). Apps that use the prebuilt frameworks: see the manual (Xcode 26.3 or later; any Xcode 26 when the app uses only the C ABI)
+- macOS: Xcode
 - Windows: Visual Studio 2022 (C++), Doxygen when generating docs
 
 ## Build (distributables)
 
 ```bash
 # Android AAR (all modules)
-./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.14.0 --m2
 
-# iOS XCFramework (all modules)
-./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m UnityIosPlugin -v 1.1.0
+# iOS XCFramework (all modules). Needs Xcode 26.4 or later; select it with DEVELOPER_DIR=/Applications/<Xcode>.app/Contents/Developer
+./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
 
 # macOS XCFramework (all modules)
 ./scripts/build_xcode26_library_xcframework.sh -c release -m MacLibrary -m UnityMacPlugin -v 1.1.0 --minimum-macos 15.0
@@ -178,6 +184,13 @@ cd ios
 ./generate_docc.sh
 ```
 
+### iOS C ABI (Doxygen)
+
+```bash
+cd ios/IosLibraryCApi
+doxygen Doxyfile
+```
+
 ### macOS (DocC)
 
 ```bash
@@ -197,13 +210,13 @@ doxygen Doxyfile
 Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
 ```bash
-./scripts/publish_docs.sh 1.13.0
+./scripts/publish_docs.sh 1.14.0
 ```
 
 Copy only (skip generation):
 
 ```bash
-./scripts/publish_docs.sh 1.13.0 --skip-build
+./scripts/publish_docs.sh 1.14.0 --skip-build
 ```
 
 Manual source path is `manual/<version>/`.

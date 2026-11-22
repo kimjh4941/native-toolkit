@@ -5,6 +5,7 @@
 
 import Testing
 import Foundation
+import Synchronization
 import UIKit
 @testable import IosLibrary
 
@@ -146,6 +147,55 @@ struct IosClipboardManagerTests {
         let manager = makeManager(loader: loader)
         manager.cancelAllLoads()
         #expect(loader.cancelAllCallCount == 1)
+    }
+
+    /// Releasing the last reference on the main thread runs the cleanup (cancel pending loads)
+    /// before the release returns, as the former `isolated deinit` of the manager did.
+    @Test func releasingOnMainCancelsLoadsSynchronously() throws {
+        let loader = MockClipboardItemLoader()
+        weak var weakManager: IosClipboardManager?
+        do {
+            let manager = makeManager(loader: loader)
+            try manager.startObserving { _ in }
+            weakManager = manager
+        }
+        #expect(weakManager == nil)
+        #expect(loader.cancelAllOnMainThread == [true])
+    }
+
+    /// Stage 0f (Swift 6): an `NSObject` subclass with an `isolated deinit` traps when its last
+    /// reference is released off the main thread. The manager is `Sendable` and has a public
+    /// initializer, so this must not trap; the cleanup must still run once, on the main thread.
+    @Test func releasingOffMainDoesNotTrapAndCancelsLoadsOnMain() async throws {
+        let loader = MockClipboardItemLoader()
+        let holder = ManagerHolder()
+        weak var weakManager: IosClipboardManager?
+        do {
+            let manager = makeManager(loader: loader)
+            try manager.startObserving { _ in }
+            weakManager = manager
+            holder.manager.withLock { $0 = manager }
+        }
+        let releasedOnMain = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            Thread {
+                holder.manager.withLock { $0 = nil }
+                continuation.resume(returning: Thread.isMainThread)
+            }.start()
+        }
+        #expect(releasedOnMain == false)
+        #expect(weakManager == nil)
+
+        let deadline = Date().addingTimeInterval(5)
+        while loader.cancelAllCallCount == 0, Date() < deadline {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
+        try await Task.sleep(nanoseconds: 200_000_000)
+        #expect(loader.cancelAllOnMainThread == [true])
+    }
+
+    /// Carries the only strong reference to a manager to another thread.
+    private final class ManagerHolder: Sendable {
+        let manager = Mutex<IosClipboardManager?>(nil)
     }
 
     @Test func checkForegroundChangeIsSynchronous() {

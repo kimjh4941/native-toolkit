@@ -1,0 +1,5 @@
+framework module IosLibraryCApi {
+    header "NativeToolkitC/Common.h"
+    header "NativeToolkitC/Probe.h"
+    export *
+}

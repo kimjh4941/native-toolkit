@@ -44,10 +44,10 @@ Language:
     - [Error values](#error-values)
 - [iOS](#ios)
   - [IosClipboardManager](#iosclipboardmanager)
-  - [Setup](#setup-1)
     - [Threading](#threading)
     - [Two calling styles](#two-calling-styles)
     - [Defaults](#defaults)
+  - [Setup](#setup-1)
   - [Scope](#scope)
     - [Use General](#use-general)
     - [Create Named Pasteboard](#create-named-pasteboard)
@@ -98,6 +98,19 @@ Language:
     - [Make Paste Control](#make-paste-control)
   - [Clear](#clear-1)
   - [Error Handling](#error-handling-1)
+  - [Cancel One Load (RequestBox)](#cancel-one-load-requestbox)
+    - [Load Text, Then Cancel at Once](#load-text-then-cancel-at-once)
+    - [Load Text with a Box Cancelled Before](#load-text-with-a-box-cancelled-before)
+  - [C ABI](#c-abi-1)
+    - [Building](#building-1)
+    - [Pasteboards](#pasteboards)
+    - [Copying](#copying)
+    - [Copy options, appending and clearing](#copy-options-appending-and-clearing)
+    - [Reading](#reading)
+    - [Loading and cancelling](#loading-and-cancelling)
+    - [Detecting](#detecting)
+    - [Change events](#change-events-1)
+    - [Error values](#error-values-1)
 - [macOS](#macos)
   - [MacClipboardManager](#macclipboardmanager)
   - [Setup](#setup-2)
@@ -122,9 +135,9 @@ Language:
     - [Append keeps the privacy of what it appends to](#append-keeps-the-privacy-of-what-it-appends-to)
     - [Append with lost ownership (error 1511)](#append-with-lost-ownership-error-1511)
   - [Read / Inspect](#read--inspect-2)
-    - [Read](#read)
+    - [Read](#read-1)
     - [Read Data for one type](#read-data-for-one-type)
-    - [Snapshot](#snapshot)
+    - [Snapshot](#snapshot-1)
     - [Snapshot with a type filter](#snapshot-with-a-type-filter)
     - [Snapshot with an empty filter (error 1512)](#snapshot-with-an-empty-filter-error-1512)
     - [Access Behavior](#access-behavior)
@@ -134,7 +147,7 @@ Language:
     - [Detect Metadata](#detect-metadata)
     - [Detect with no patterns (error 1503)](#detect-with-no-patterns-error-1503)
   - [Observe](#observe-2)
-    - [Start Observing](#start-observing-1)
+    - [Start Observing](#start-observing-2)
     - [Invalid interval (error 1523)](#invalid-interval-error-1523)
     - [Stop Observing](#stop-observing-2)
     - [Check Foreground Change](#check-foreground-change-1)
@@ -184,7 +197,7 @@ Language:
     - [Clear Unpinned History](#clear-unpinned-history)
     - [Cancel Request](#cancel-request)
   - [Error Handling](#error-handling-3)
-  - [C ABI](#c-abi-1)
+  - [C ABI](#c-abi-2)
     - [The session, its listeners and closing](#the-session-its-listeners-and-closing)
     - [Writing](#writing)
     - [Reading and inspecting](#reading-and-inspecting)
@@ -239,7 +252,7 @@ The copy, read, inspect and clear operations are synchronous: they return their 
 
 #### Gradle dependency
 
-`dist/1.13.0/android/` holds the AAR and a file-based Maven repository, `m2/`, that carries it with its POM. Resolving the library from `m2/` is recommended, because Gradle then also resolves the androidx libraries it depends on.
+`dist/1.14.0/android/` holds the AAR and a file-based Maven repository, `m2/`, that carries it with its POM. Resolving the library from `m2/` is recommended, because Gradle then also resolves the androidx libraries it depends on.
 
 **settings.gradle.kts:**
 
@@ -249,7 +262,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // dist/1.13.0/android/m2, copied into the project
+        // dist/1.14.0/android/m2, copied into the project
         maven { url = uri("third_party/native-toolkit-m2") }
     }
 }
@@ -597,7 +610,7 @@ add_library(app SHARED app.c)
 target_link_libraries(app PRIVATE ntk::ntk)
 ```
 
-The headers are `NativeToolkitC/Common.h`, `NativeToolkitC/Android.h` and `NativeToolkitC/Clipboard.h`. The AAR carries its own R8 keep rules. For a binding generator (ClangSharp, bindgen, ffigen), the same headers are in `dist/1.13.0/android/include/NativeToolkitC/`.
+The headers are `NativeToolkitC/Common.h`, `NativeToolkitC/Android.h` and `NativeToolkitC/Clipboard.h`. The AAR carries its own R8 keep rules. For a binding generator (ClangSharp, bindgen, ffigen), the same headers are in `dist/1.14.0/android/include/NativeToolkitC/`.
 
 #### Initialization
 
@@ -812,55 +825,67 @@ error = ntk_clipboard_stop_observing();
 
 ## iOS
 
-- Library: `ios-native-toolkit-1.3.0.xcframework`
-- Minimum Deployment Target: iOS 18
-- Scope: copy / append, synchronous read, metadata snapshot, named and unique pasteboard lifecycle, asynchronous `NSItemProvider` loading, pattern detection, change observation, and a ready-to-place `UIPasteControl` paste button.
+The system pasteboard (`UIPasteboard`), on iOS 18.0 or later. The iOS library offers it through two public APIs over one implementation, and the sample app uses the Swift API.
+
+| API | Names | Module / header | Artifact |
+|---|---|---|---|
+| Swift API | `IosClipboardManager` | `import IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_clipboard_*` | `<IosLibraryCApi/NativeToolkitC/Clipboard.h>` | `ios-native-toolkit-capi-2.0.0.xcframework`, together with `ios-native-toolkit-2.0.0.xcframework` |
+
+- Minimum deployment target: iOS 18.0
+- Xcode: 26.3 or later to build against the Swift API
+- Scope: copy and append, synchronous read, metadata snapshot, named and unique pasteboards, asynchronous `NSItemProvider` loading with per-request cancellation, pattern detection, change observation, and a ready-to-place `UIPasteControl` paste button (Swift API only).
+
+Version 2.0.0 of the iOS library keeps the module name `IosLibrary`, and the clipboard declarations of 1.x are unchanged. It adds a load that a `RequestBox` cancels from any thread (see [Cancel One Load (RequestBox)](#cancel-one-load-requestbox)). What changes for the other features and for the app as a whole is in [Migrating the iOS library to 2.0.0](index.md#migrating-the-ios-library-to-200).
 
 ### IosClipboardManager
 
-`IosClipboardManager` is a singleton class that wraps `UIPasteboard`.
-
-### Setup
-
-1. Add `ios-native-toolkit-1.3.0.xcframework` to your Xcode project (drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content).
-2. Import the library where you use the clipboard:
+`IosClipboardManager` is the entry point for the clipboard, and `IosClipboardManager.shared` is the instance for ordinary use.
 
 ```swift
 import IosLibrary
-```
 
-No additional initialization and no `Info.plist` entry are required.
+let manager = IosClipboardManager.shared
+```
 
 #### Threading
 
-`IosClipboardManager` is `@MainActor`-isolated. Call it from the main actor (SwiftUI / UIKit code is already there); from a non-main context, use `await MainActor.run { ... }`.
+| Members | Thread |
+|---|---|
+| `shared` and every operation | Main actor. SwiftUI and UIKit code already runs there; from another context, use `await MainActor.run { ... }`. The pasteboard itself is used on the main thread |
+| `cancelLoad(_:)` | Any thread, and it never waits for the main thread. Where `shared` cannot be read (off the main actor), call the static form `IosClipboardManager.cancelLoad(box)` |
+| Completions of the callback form | Main actor, once |
+| `onEvent` of `startObserving` | Main thread |
+| Releasing a manager made with `init(timeouts:limits:)` | Any thread. Its cleanup (removing the observers, cancelling its loads) runs once on the main actor |
+
+`read` and `readData` can stop the main thread while iOS asks the user to allow the paste; see [Read](#read).
 
 #### Two calling styles
 
 Every data-bearing operation offers both forms:
 
-- `async throws` (preferred for native Swift callers): returns a typed value and throws `ClipboardError` on failure.
+- `async throws` (preferred for Swift callers): returns a typed value and throws `ClipboardError` on failure.
 - Callback: `(isSuccess, value?, errorCode?, errorMessage?)`, or `(isSuccess, errorCode?, errorMessage?)` for operations without a return value.
 
 ```swift
 // async throws (recommended for Swift callers)
 Task {
     do {
-        try await IosClipboardManager.shared.copy(.plainText("Hello"))
+        try await IosClipboardManager.shared.copy(.plainText("Hello from IosLibraryExample"))
     } catch let error as ClipboardError {
         print(error.errorCode, error.errorDescription ?? "nil")
     }
 }
 
 // callback (equivalent)
-IosClipboardManager.shared.copy(.plainText("Hello")) { isSuccess, errorCode, errorMessage in
+IosClipboardManager.shared.copy(.plainText("Hello from IosLibraryExample")) { isSuccess, errorCode, errorMessage in
     print(isSuccess, errorCode ?? "nil", errorMessage ?? "nil")
 }
 ```
 
-`cancelAllLoads`, `startObserving`, `stopObserving`, `checkForegroundChange`, and `makePasteControl` complete synchronously and therefore have a single, synchronous form only.
+`cancelAllLoads`, `cancelLoad(_:)`, `startObserving`, `stopObserving`, `checkForegroundChange` and `makePasteControl` complete synchronously, so they have a single, synchronous form only.
 
-The examples below use the `async throws` style. Because SwiftUI `Button` actions are synchronous, each call is wrapped in `Task { ... }`.
+The examples below use the `async throws` style, as the sample app does. Because SwiftUI `Button` actions are synchronous, each call is wrapped in `Task { ... }`.
 
 #### Defaults
 
@@ -873,7 +898,20 @@ The examples below use the `async throws` style. Because SwiftUI `Button` action
 | Provider load timeout | 15 seconds |
 | Image encode timeout | 10 seconds |
 
-Use `IosClipboardManager(timeouts:limits:)` to build an instance with different values; prefer `shared` for ordinary use.
+`IosClipboardManager(timeouts:limits:)` builds an instance with other values, from a `ClipboardTimeouts` and a `ClipboardLimits`; both initializers return `nil` unless every value is greater than zero (and every timeout is finite). Such an instance has its own loads, observation and change-count baselines. Prefer `shared` for ordinary use; the C ABI always uses `shared`.
+
+---
+
+### Setup
+
+1. Add `ios-native-toolkit-2.0.0.xcframework` to your Xcode project: drag it into the project and set "Embed & Sign" in the target's Frameworks, Libraries, and Embedded Content.
+2. Import the library where you use the clipboard:
+
+```swift
+import IosLibrary
+```
+
+No initialization and no `Info.plist` entry are required for the clipboard. The framework carries its own privacy manifest (`PrivacyInfo.xcprivacy`).
 
 ---
 
@@ -891,7 +929,7 @@ public enum PasteboardScope {
 
 #### Use General
 
-`.general` is the default, so it can also simply be omitted.
+`.general` is the default, so it can also be omitted.
 
 ```swift
 let scope: PasteboardScope = .general
@@ -899,7 +937,7 @@ let scope: PasteboardScope = .general
 
 #### Create Named Pasteboard
 
-`createPasteboard(.named(_:))` resolves an existing pasteboard of that name, or creates it if none exists. It returns the resulting `PasteboardScope`, which is what later calls should be given.
+`createPasteboard(.named(_:))` resolves an existing pasteboard of that name, or creates it if none exists. It returns the resulting `PasteboardScope`, which is what later calls should be given. A blank name fails with `CLIPBOARD_INVALID_NAME`.
 
 ```swift
 Task {
@@ -924,7 +962,7 @@ let scope = PasteboardScope.named("com.jonghyunkim.nativetoolkit.example.sample"
 
 #### Create Unique Pasteboard
 
-`.unique` asks the system to generate the name. The generated name comes back in the returned scope, so it must be kept if the pasteboard is to be used again.
+`.unique` asks the system to generate the name. The generated name comes back in the returned scope, so keep it if the pasteboard is to be used again.
 
 ```swift
 Task {
@@ -945,7 +983,7 @@ Task {
 }
 ```
 
-Removing `.general` throws `ClipboardError.cannotRemoveGeneralPasteboard`.
+Removing `.general` throws `ClipboardError.cannotRemoveGeneralPasteboard`. Removing a name that does not exist succeeds. After the removal, every operation on that scope fails with `CLIPBOARD_UNAVAILABLE` (the sample app's "Probe Last Removed Scope" button reads a removed scope to show it).
 
 <p align="center">
     <img src="images/ios/clipboard/Example_IosClipboardManager_RemovePasteboard.png" alt="Example_IosClipboardManager_RemovePasteboard" width="400" />
@@ -955,7 +993,7 @@ Removing `.general` throws `ClipboardError.cannotRemoveGeneralPasteboard`.
 
 A pasteboard created via `createPasteboard(.named(_:))` or `.unique` is not meant to persist, but its contents are **not guaranteed to be discarded when the creating app quits** either. Measured on iOS 18.7.2: after force-quitting the app and relaunching it, a named pasteboard written before the quit was still readable. The system does not specify when such a pasteboard is reclaimed.
 
-Use these scopes only to hand data between live apps, and **delete sensitive data explicitly with `removePasteboard(_:)`** — do not rely on app termination to discard it. A force-quit does not run `deinit`, so no cleanup the library could perform on teardown would help here.
+Use these scopes only to hand data between live apps, and **delete sensitive data explicitly with `removePasteboard(_:)`**. Do not rely on app termination to discard it: a force-quit does not run `deinit`, so no cleanup the library could perform on teardown would help here.
 
 For sharing that must outlive the creating app by design, use an App Group shared container instead; that is outside this library's scope.
 
@@ -1027,7 +1065,7 @@ Task {
 
 #### Copy Image File
 
-Loads an image from a file path. A missing path throws `ClipboardError.fileNotFound`; a file that is not a decodable image throws `ClipboardError.imageLoadFailed`.
+Loads an image from a file path. A missing path throws `ClipboardError.fileNotFound`; a file that is not a decodable image throws `ClipboardError.imageLoadFailed`. The image is decoded and encoded off the main actor before the pasteboard is written.
 
 ```swift
 Task {
@@ -1202,7 +1240,7 @@ Task {
 
 ### Append
 
-`append` adds an item without replacing what is already on the pasteboard.
+`append` adds an item after the items already on the pasteboard, without replacing them.
 
 #### Append Plain Text
 
@@ -1238,7 +1276,7 @@ Task {
 
 #### Read
 
-Reads the pasteboard synchronously. Large payloads (image bytes) are not included in the result; only the uniform type identifier is reported. An empty pasteboard is a **normal case**, not an error: `numberOfItems` is `0`.
+Reads the pasteboard synchronously: the type identifiers, text and URL of each item. Large payloads (image bytes) are not included in the result; only the uniform type identifier is reported. An empty pasteboard is a **normal case**, not an error: `numberOfItems` is `0`.
 
 ```swift
 Task {
@@ -1254,9 +1292,15 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_Read.png" alt="Example_IosClipboardManager_Read" width="400" />
 </p>
 
+**`read` can stop the main thread.** When another app wrote the content, iOS asks the user to allow the paste, and `read` waits for the answer on the main thread: the app does not respond until the user answers. Measured on a device (iOS 18.7.2), the main thread stopped for 44 seconds, until the user answered, and the system did not end the app; on the iOS 26.2 simulator the prompt also appeared while the app was in the background. Content your own app wrote is read without a prompt.
+
+- Call `read` and `readData` only where the main thread may wait, for example in response to a tap that asks for a paste.
+- To read without stopping the main thread, use [`loadItem`](#load-async). Its wait for the answer can be cancelled, from any thread, with a request box (see [Cancel One Load (RequestBox)](#cancel-one-load-requestbox)).
+- A denied paste is not an error: `read` returns one item with no type identifiers and no text, and `readData` returns `nil`.
+
 #### Read Data
 
-Returns the raw bytes registered under one uniform type identifier, or `nil` when no item matches.
+Returns the raw bytes registered under one uniform type identifier, or `nil` when no item matches. Like `read`, it can wait on the main thread for the user to allow the paste.
 
 ```swift
 Task {
@@ -1271,7 +1315,7 @@ Task {
 
 #### Snapshot
 
-Reads metadata only, without touching the body. Prefer it for pre-checks: it is built exclusively from APIs Apple documents as triggering neither the iOS 16+ permission prompt nor the iOS 14+ access notification.
+Reads metadata only, without touching the body. Prefer it for pre-checks: it is built exclusively from APIs Apple documents as triggering neither the iOS 16+ permission prompt nor the iOS 14+ access notification. `typeIdentifiers` holds the types of the first item, and `allTypeIdentifiers` the types of every item, in pasteboard order.
 
 ```swift
 Task {
@@ -1310,15 +1354,21 @@ Task {
 
 #### Privacy: prompts and notifications
 
-`read` / `readData` / `loadItem` pull data from the pasteboard and may trigger an iOS 16+ permission prompt and/or an iOS 14+ access notification, at the system's discretion. Use `snapshot` for pre-checks.
+`read` / `readData` / `loadItem` / `detectValues` pull data from the pasteboard and may trigger the iOS 16+ permission prompt and/or the iOS 14+ access notification, at the system's discretion. Use `snapshot` and `detectPatterns` for pre-checks.
 
-`UIPasteControl` (via `makePasteControl`) avoids the iOS 16+ permission prompt, but Apple does not document it as avoiding the iOS 14+ access notification as well — verify on-device for your target OS versions before relying on either being silent.
+| Operation | When the user is asked to allow the paste |
+|---|---|
+| `read`, `readData` | Waits for the answer on the main thread. A denied paste returns an empty item / `nil` |
+| `loadItem` | Does not stop the main thread. The 15-second timeout includes the time to answer (`CLIPBOARD_TIMED_OUT`, and a later answer delivers nothing). A denied paste is `CLIPBOARD_LOAD_FAILED` |
+| `detectValues` | Does not stop the main thread. The 5-second timeout includes the time to answer (`CLIPBOARD_TIMED_OUT`). A denied paste is `CLIPBOARD_DETECTION_FAILED` |
+
+`UIPasteControl` (via `makePasteControl`) avoids the iOS 16+ permission prompt, but Apple does not document it as avoiding the iOS 14+ access notification as well. Verify on a device for your target OS versions before relying on either being silent.
 
 ---
 
 ### Load (async)
 
-`loadItem` resolves an item through `NSItemProvider`, which can convert between representations and decode images off the main thread. Use it when `read` alone is not enough.
+`loadItem` resolves the first matching item through `NSItemProvider`, which can convert between representations and decode images off the main thread. Use it when `read` alone is not enough, or when the main thread must not wait for the paste prompt (see [Privacy: prompts and notifications](#privacy-prompts-and-notifications)).
 
 #### Load Text
 
@@ -1369,7 +1419,7 @@ Task {
 
 #### Load File
 
-Copies the item to a temporary file and hands over the URL. **The caller owns the returned URL and its parent directory** and must delete it once done; undelivered files (failure, cancellation, timeout) are cleaned up internally.
+Copies the item to a temporary file and hands over the URL. **The caller owns the returned URL and its parent directory** and must delete them once done; undelivered files (failure, cancellation, timeout) are cleaned up internally.
 
 ```swift
 Task {
@@ -1390,15 +1440,24 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_LoadFile.png" alt="Example_IosClipboardManager_LoadFile" width="400" />
 </p>
 
+The library's enums, `ClipboardLoadedItem` among them, are not frozen: a `switch` over one needs an `@unknown default` branch, as the sample app has.
+
 #### Cancel All Loads
 
-Cancels every pending load. A cancelled load throws `ClipboardError.cancelled` (`CLIPBOARD_CANCELLED`) in the `async throws` form, or reports `isSuccess == false` with that code in the callback form; callers may treat it as a normal, ignorable outcome.
+A cancelled load throws `ClipboardError.cancelled` (`CLIPBOARD_CANCELLED`) in the `async throws` form, or reports `isSuccess == false` with that code in the callback form; callers may treat it as a normal, ignorable outcome. There are four ways to cancel:
+
+| Way | Cancels | Thread |
+|---|---|---|
+| `cancelAllLoads()` | Every pending load of this manager, of all three `loadItem` forms. Loads started later are not cancelled | Main actor |
+| `cancel()` of the `ClipboardLoadToken` that the callback form returns | That load | Main actor |
+| Cancelling the task that awaits the `async` form | That load | Any |
+| `cancelLoad(_:)` with the `RequestBox` of `loadItem(_:scope:requestBox:completion:)` | That load, also before it starts | Any |
 
 ```swift
 IosClipboardManager.shared.cancelAllLoads()
 ```
 
-The callback form returns a `ClipboardLoadToken` so a single load can be cancelled on its own:
+The callback form returns a `ClipboardLoadToken`, so a single load can be cancelled on its own:
 
 ```swift
 let token = IosClipboardManager.shared.loadItem(.image, scope: scope) { isSuccess, item, errorCode, errorMessage in
@@ -1407,11 +1466,13 @@ let token = IosClipboardManager.shared.loadItem(.image, scope: scope) { isSucces
 token.cancel()
 ```
 
+To cancel from another thread, or before the load starts, use a request box: see [Cancel One Load (RequestBox)](#cancel-one-load-requestbox).
+
 ---
 
 ### Detect
 
-Data detection reports what the pasteboard *contains* without reading (and thus without prompting for) the body.
+Data detection reports what the pasteboard *contains*. `detectPatterns` does so without reading (and thus without prompting for) the body.
 
 ```swift
 public enum ClipboardDetectionPattern: String, CaseIterable {
@@ -1419,6 +1480,8 @@ public enum ClipboardDetectionPattern: String, CaseIterable {
     case postalAddress, calendarEvent, flightNumber, moneyAmount, shipmentTrackingNumber
 }
 ```
+
+The sample app's Detect section first has two buttons that copy a value on its own ("Copy Number Fixture (42 only)", "Copy Search Fixture (phrase only)"); see [number and probableWebSearch classify the whole clipboard](#number-and-probablewebsearch-classify-the-whole-clipboard).
 
 #### Detect Patterns
 
@@ -1440,7 +1503,7 @@ Task {
 
 #### Detect Values
 
-Returns the detected values themselves. This does read the content, so treat it like `read` with respect to privacy.
+Returns the detected values themselves. This does read the content, so iOS can ask the user to allow the paste (see [Privacy: prompts and notifications](#privacy-prompts-and-notifications)); it does not stop the main thread.
 
 ```swift
 Task {
@@ -1464,8 +1527,13 @@ Task {
 `number` and `probableWebSearch` describe the clipboard **as a whole** rather than extracting occurrences from it. A paragraph that merely mentions a number is neither a number nor a search phrase, so those two patterns do not appear for mixed content. Copy the value on its own to exercise them:
 
 ```swift
-try await IosClipboardManager.shared.copy(.plainText("42"), scope: scope)                 // number
-try await IosClipboardManager.shared.copy(.plainText("swift concurrency"), scope: scope)  // probableWebSearch
+Task {
+    try await IosClipboardManager.shared.copy(.plainText("42"), scope: scope)                 // number
+}
+// or
+Task {
+    try await IosClipboardManager.shared.copy(.plainText("swift concurrency"), scope: scope)  // probableWebSearch
+}
 ```
 
 #### Detection has no cancellation token
@@ -1478,7 +1546,7 @@ try await IosClipboardManager.shared.copy(.plainText("swift concurrency"), scope
 
 #### Start Observing
 
-Starts observing changes for one scope. A second call (for the same or a different scope) first stops the previous observation, so there is never more than one active subscription.
+Starts observing changes for one scope. A second call (for the same or a different scope) first stops the previous observation, so there is never more than one active subscription per manager. If the new scope cannot be resolved, `startObserving` throws `pasteboardUnavailable`, and the previous observation has already stopped.
 
 Events are delivered on the main thread.
 
@@ -1488,29 +1556,38 @@ do {
         switch event.kind {
         case .changed(let typesAdded, let typesRemoved):
             print(typesAdded, typesRemoved)
-        case .changedDetectedOnForeground:
-            // detected by comparing changeCount on foreground return
-            break
         case .removed:
             // the named pasteboard itself was removed
+            break
+        case .changedDetectedOnForeground:
+            // not delivered by 2.0.0: use checkForegroundChange
+            break
+        @unknown default:
             break
         }
     }
 } catch let error as ClipboardError {
     // pasteboardUnavailable: the scope could not be resolved; observation was not started
     print(error.errorCode)
+} catch {
+    // startObserving is declared `throws`, so the catch has to be exhaustive; the library throws only ClipboardError
+    print(error.localizedDescription)
 }
 ```
 
-`UIPasteboard.changedNotification` is only posted for changes made by **this app while it is in the foreground**. A change made by another app, or while this app was backgrounded, produces no notification — use `checkForegroundChange` for that case.
+`UIPasteboard.changedNotification` is only posted for changes made by **this app while it is in the foreground**. A change made by another app, or while this app was backgrounded, produces no notification; use `checkForegroundChange` for that case.
+
+The observation of `IosClipboardManager.shared` is the one the C ABI starts and stops too: in an app that uses both, starting it from either side replaces the other's.
 
 #### Stop Observing
+
+Stops the observation; no event is delivered after this call, also one already queued. Does nothing when not observing.
 
 ```swift
 IosClipboardManager.shared.stopObserving()
 ```
 
-Call it when the observing screen is torn down:
+Call it when the observing screen is torn down, as the sample app does:
 
 ```swift
 .onDisappear {
@@ -1520,23 +1597,23 @@ Call it when the observing screen is torn down:
 
 #### Check Foreground Change
 
-Compares the pasteboard's `changeCount` against the last value this manager recorded and returns whether it moved. Call it when the app returns to the foreground to catch the changes that produce no notification.
+Compares the pasteboard's `changeCount` against the last value this manager recorded and returns whether it moved. It reads no contents. Call it when the app returns to the foreground to catch the changes that produce no notification.
 
 ```swift
 let changed = IosClipboardManager.shared.checkForegroundChange(scope: scope)
 ```
 
-The first call for a scope establishes the baseline and therefore returns `false`. The baseline is also updated by `startObserving` and by receiving a change notification. The `Bool` return value cannot distinguish "resolved and unchanged" from "unresolvable" — use `snapshot` if that difference matters.
+The first call for a scope establishes the baseline and therefore returns `false`. The baseline is also updated by `startObserving` and by receiving a change notification. The `Bool` return value cannot distinguish "resolved and unchanged" from "unresolvable"; use `snapshot` if that difference matters.
 
 ---
 
 ### Paste Control
 
-`UIPasteControl` is the system paste button. Because the user's tap is itself the consent, it avoids the iOS 16+ permission prompt.
+`UIPasteControl` is the system paste button. Because the user's tap is itself the consent, it avoids the iOS 16+ permission prompt. The paste control has no C ABI.
 
 #### Make Paste Control
 
-`makePasteControl` returns a single ready-to-place view whose internal receiver joins the responder chain automatically. Add it to your hierarchy as-is.
+`makePasteControl` returns a single ready-to-place view, a `ClipboardPasteControlContainerView`, whose internal receiver joins the responder chain automatically. Add it to your hierarchy as-is; its `control` property is the `UIPasteControl` itself.
 
 `acceptedTypes` must not be empty (`ClipboardError.invalidRequest`) and every entry must be a valid uniform type identifier (`ClipboardError.invalidTypeIdentifier`).
 
@@ -1559,7 +1636,7 @@ let pasteView = try IosClipboardManager.shared.makePasteControl(
 
 `displayMode` defaults to `.iconAndLabel`. Pass `.iconOnly`, `.labelOnly`, or `.arrowAndLabel` to change the button's appearance; the paste behaviour is the same in every mode.
 
-In SwiftUI, wrap it with `UIViewRepresentable`:
+In SwiftUI, wrap it with your own `UIViewRepresentable`, as the sample app does:
 
 ```swift
 struct ClipboardPasteControlView: UIViewRepresentable {
@@ -1571,12 +1648,13 @@ struct ClipboardPasteControlView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UIView {
         do {
-            return try IosClipboardManager.shared.makePasteControl(
+            let container = try IosClipboardManager.shared.makePasteControl(
                 acceptedTypes: acceptedTypes,
                 onPaste: onPaste,
                 onPartialFailure: onPartialFailure,
                 onPasteFailure: onPasteFailure
             )
+            return container
         } catch let error as ClipboardError {
             // Reporting synchronously inside makeUIView triggers "Modifying state during view
             // update", so defer it to the next main-actor turn.
@@ -1624,7 +1702,7 @@ Task {
 
 The `async throws` form throws `ClipboardError`. The callback form reports the same failure as `errorCode` / `errorMessage`; on success both are `nil`.
 
-`errorMessage` is a fixed, English, per-case string that **never embeds the input value**, so it is safe to log.
+`errorMessage` is a fixed, English, per-case string that **never embeds the input value**, so it is safe to log. `diagnosticDetail` carries a domain and a numeric code, and only for the cases that hold a `ClipboardFailureDetail`.
 
 | `errorCode` | Case | Cause | Error message |
 |---|---|---|---|
@@ -1637,7 +1715,7 @@ The `async throws` form throws `ClipboardError`. The callback form reports the s
 | `CLIPBOARD_INVALID_COLOR` | `invalidColor` | An RGBA component is not finite or is outside `0.0...1.0` | `"Color components must be finite and within 0.0...1.0."` |
 | `CLIPBOARD_INVALID_IMAGE_DATA` | `invalidImageData` | The supplied bytes could not be decoded as an image | `"The provided image data could not be decoded."` |
 | `CLIPBOARD_INVALID_EXPIRATION` | `invalidExpirationDate` | `expirationDate` is not in the future | `"expirationDate must be in the future."` |
-| `CLIPBOARD_INVALID_REQUEST` | `invalidRequest` | Request is malformed (e.g. empty `acceptedTypes`) | `"The request is invalid."` |
+| `CLIPBOARD_INVALID_REQUEST` | `invalidRequest` | Request is malformed (empty `acceptedTypes`, or a `RequestBox` that another request already uses) | `"The request is invalid."` |
 | `CLIPBOARD_CONTENT_TOO_LARGE` | `contentTooLarge` | Payload exceeds the configured size limit (64 MiB by default) | `"The clipboard content exceeds the configured size limit."` |
 | `CLIPBOARD_FILE_NOT_FOUND` | `fileNotFound` | `.imageFile(path:)` points at a path that does not exist | `"The requested file was not found."` |
 | `CLIPBOARD_IMAGE_LOAD_FAILED` | `imageLoadFailed` | The file exists but is not a decodable image | `"Failed to load the image."` |
@@ -1645,12 +1723,12 @@ The `async throws` form throws `ClipboardError`. The callback form reports the s
 | `CLIPBOARD_UNAVAILABLE` | `pasteboardUnavailable` | The named / unique pasteboard could not be resolved | `"The requested pasteboard is unavailable."` |
 | `CLIPBOARD_CANNOT_REMOVE_GENERAL` | `cannotRemoveGeneralPasteboard` | `removePasteboard(.general)` was called | `"The general pasteboard cannot be removed."` |
 | `CLIPBOARD_NO_MATCHING_ITEM` | `noMatchingItem` | No item carries the requested type | `"No clipboard item matches the requested type."` |
-| `CLIPBOARD_LOAD_FAILED` | `providerLoadFailed` | `NSItemProvider` failed to load the item | `"Failed to load the clipboard item."` |
+| `CLIPBOARD_LOAD_FAILED` | `providerLoadFailed` | `NSItemProvider` failed to load the item, or the user denied the paste | `"Failed to load the clipboard item."` |
 | `CLIPBOARD_UNEXPECTED_TYPE` | `unexpectedType` | The item could not be converted to the requested type | `"The clipboard item could not be converted to the requested type."` |
 | `CLIPBOARD_FILE_COPY_FAILED` | `fileCopyFailed` | Copying the pasted file to a temporary location failed | `"Failed to copy the pasted file."` |
 | `CLIPBOARD_CANCELLED` | `cancelled` | The load was cancelled by the caller | `"The clipboard load was cancelled."` |
-| `CLIPBOARD_TIMED_OUT` | `timedOut` | The operation exceeded its timeout | `"The clipboard operation timed out."` |
-| `CLIPBOARD_DETECTION_FAILED` | `detectionFailed` | The data detection system reported a failure | `"Pattern detection failed."` |
+| `CLIPBOARD_TIMED_OUT` | `timedOut` | The operation exceeded its timeout, including the time the user takes to answer the paste prompt | `"The clipboard operation timed out."` |
+| `CLIPBOARD_DETECTION_FAILED` | `detectionFailed` | The data detection system reported a failure, or the user denied the paste in `detectValues` | `"Pattern detection failed."` |
 | `CLIPBOARD_UNKNOWN` | `unknown` | An unclassified system error | `"An unknown error occurred."` |
 
 An empty clipboard is **not** one of these errors: `read` returns `numberOfItems == 0` and `readData` returns `nil` as normal cases.
@@ -1666,6 +1744,623 @@ Task {
     }
 }
 ```
+
+The sample app's Error Cases section triggers `CLIPBOARD_EMPTY_ITEMS`, `CLIPBOARD_FILE_NOT_FOUND`, `CLIPBOARD_INVALID_TYPE`, `CLIPBOARD_INVALID_URL`, `CLIPBOARD_INVALID_COLOR`, `CLIPBOARD_CANNOT_REMOVE_GENERAL`, `CLIPBOARD_UNAVAILABLE` (observing a named pasteboard that does not exist), `CLIPBOARD_EMPTY_PATTERNS` and `CLIPBOARD_INVALID_REQUEST` (a paste control with no accepted types).
+
+---
+
+### Cancel One Load (RequestBox)
+
+`loadItem(_:scope:requestBox:completion:)` is the same load as the callback form, made in the request of a `RequestBox` that you create before the call. `cancelLoad(_:)` cancels that request from any thread, also before the load starts, and never waits for the main thread. The completion comes exactly once, on the main thread, never inside the call.
+
+| Completion | When |
+|---|---|
+| `(true, item, nil, nil)` | The item was loaded |
+| `(false, nil, "CLIPBOARD_CANCELLED", <fixed text>)` | `cancelLoad(_:)` closed the box before the result: during the load, or before the call (then nothing is read). Also `cancelAllLoads()` |
+| `(false, nil, "CLIPBOARD_INVALID_REQUEST", <fixed text>)` | Another request already uses the box (a box is used once). That request is not affected, and nothing is read |
+| `(false, nil, <errorCode>, <fixed text>)` | The load failed, as in the other forms |
+
+The first of the result and the cancellation closes the box, and only it is reported. A result that arrives after the cancellation is dropped, and a `.file` item dropped so is deleted. A cancellation after the result changes nothing. `box.isClosed` tells whether the request has ended; the completion may still be on its way to the main thread when it becomes `true`.
+
+`cancelLoad(_:)` closes whatever box it is given: pass only the box of a Clipboard load (a box that a Dialog request uses would end that request).
+
+#### Load Text, Then Cancel at Once
+
+```swift
+let manager = IosClipboardManager.shared
+let box = RequestBox()
+manager.loadItem(.text, scope: scope, requestBox: box) { isSuccess, item, errorCode, errorMessage in
+    if isSuccess, case .text(let value)? = item {
+        print(value.count)
+    } else if errorCode == "CLIPBOARD_CANCELLED" {
+        // cancelled: a normal outcome
+    } else {
+        print(errorCode ?? "nil", errorMessage ?? "nil")
+    }
+}
+manager.cancelLoad(box)
+// box.isClosed is true here. The completion reports CLIPBOARD_CANCELLED once, later, on the main thread.
+```
+
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextThenCancel.png" alt="Example_IosClipboardManager_LoadTextThenCancel" width="400" />
+</p>
+
+From a thread where `shared` cannot be read, keep the box and call the static form:
+
+```swift
+IosClipboardManager.cancelLoad(box)
+```
+
+#### Load Text with a Box Cancelled Before
+
+A box cancelled before the call stays closed: the load reads nothing and reports `CLIPBOARD_CANCELLED`.
+
+```swift
+let box = RequestBox()
+manager.cancelLoad(box)
+manager.loadItem(.text, scope: scope, requestBox: box) { isSuccess, item, errorCode, errorMessage in
+    // isSuccess == false, errorCode == "CLIPBOARD_CANCELLED"
+}
+```
+
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextWithCancelledBox.png" alt="Example_IosClipboardManager_LoadTextWithCancelledBox" width="400" />
+</p>
+
+---
+
+### C ABI
+
+- The same clipboard for C, and for any language that can call a C function (C#, Dart, Rust and others). Swift apps call `IosClipboardManager` directly instead. The C ABI calls `IosClipboardManager.shared`, with its default timeouts and limits.
+- Every function can be called from any thread and **never waits** for the main thread. The pasteboard is used on the main thread, so every operation is asynchronous (`_async`): the function checks its arguments, queues the request on the main queue and returns. `NTK_CLIPBOARD_ERROR_NONE` means accepted, and the callback then comes **exactly once, on the main thread**. `ntk_clipboard_cancel_load`, `ntk_clipboard_add_change_listener`, `ntk_clipboard_listener_remove`, the readers and the `_free` functions run on the calling thread.
+- Called on the main thread, a callback comes after the function returns. Called on another thread, it can come before the function returns, before an output such as the request ID is visible: match results through `user_data`.
+- Any other return value means rejected: no callback, and `release` (when not `NULL`) has already been called on your thread. A `NULL` callback is rejected. After an accepted call, `release` is called once on the main thread after the callback; free `user_data` there. A change listener has no single callback: its `release` is called once on the main thread after `ntk_clipboard_listener_remove`, never while the listener is registered, so free its `user_data` there and not when the remove returns.
+- Inputs (strings, arrays, structs and the pointers in them) need to be valid only during the call: the library copies what it needs before the function returns.
+- A handle that a callback receives (`ntk_clipboard_read_result`, `ntk_clipboard_snapshot`, `ntk_clipboard_loaded_item`, `ntk_clipboard_change`, `ntk_string`, `ntk_bytes`) belongs to the receiver, who frees it with its own `_free`; it is `NULL` unless the error is `NTK_CLIPBOARD_ERROR_NONE`. A pointer read from a handle stays valid until that handle is freed. `_free(NULL)` does nothing.
+- Strings are NUL-terminated UTF-8. Invalid UTF-8 in an argument is `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER`; in text that comes back, invalid surrogates and U+0000 become U+FFFD. Booleans are `int32_t`. Fill a struct with zeros, set `struct_size`, then set the fields you need: zero is the default of every field, and the reserved fields must stay 0.
+- `system_code` in every callback, and `ntk_last_system_code()`, are always 0 on iOS.
+- Callbacks run on the main thread: do not block it for long, and do not let an exception (C++, Objective-C, C#) leave a callback.
+- The clipboard needs no foreground scene: the functions do not check it. Reading content another app wrote can show the paste prompt as with the Swift API (see [Privacy: prompts and notifications](#privacy-prompts-and-notifications)).
+- Not in the C ABI: the paste control, `cancelAllLoads` (cancel each request by its ID), and custom timeouts and limits. The `.changedDetectedOnForeground` event has no C value either, but nothing is lost: the Swift API does not deliver it in 2.0.0 (use `ntk_clipboard_check_foreground_change_async`, as Swift code uses `checkForegroundChange`).
+
+#### Building
+
+Add both xcframeworks to the app target and set both to "Embed & Sign": `IosLibraryCApi.framework` depends on `IosLibrary.framework`, and the two are one pair of the same version. The app does not need Swift code of its own. Any Xcode 26 builds a C-only app; the minimum deployment target is iOS 18.0. Call the functions from the app's process (a UIKit app), not from an app extension.
+
+Include `<IosLibraryCApi/NativeToolkitC/Clipboard.h>`; it includes `Common.h`. The headers are C99, ASCII, and include only `<stddef.h>` and `<stdint.h>`. For a binding generator (ClangSharp, bindgen, ffigen), the same headers are in `dist/1.14.0/ios/include/NativeToolkitC/`. The clipboard has no initialization function. The examples below leave out the `#include` lines.
+
+```c
+/* The library and the headers must be the same version. */
+uint32_t version = ntk_version();   /* (MAJOR << 16) | (MINOR << 8) | PATCH: 0x020000 for 2.0.0 */
+if (version != NTK_VERSION) {
+    /* The embedded frameworks are not the ones these headers describe. */
+}
+
+/* Always 0 on iOS, as is the system_code of every callback. */
+uint32_t system_code = ntk_last_system_code();
+(void)system_code;
+```
+
+`Common.h` also declares `ntk_string_list`, the list handle that the Windows C ABI returns (`Common.h` is the same on every OS). No iOS function returns one in 2.0.0; code shared across the OSes reads it the same way:
+
+```c
+/* Reads and frees a string list (not returned by any iOS function in 2.0.0). */
+static void read_string_list(ntk_string_list* list)
+{
+    size_t count = ntk_string_list_count(list);           /* 0 for NULL */
+    for (size_t i = 0; i < count; i++) {
+        size_t length = 0;
+        const char* text = ntk_string_list_at(list, i, &length);
+        (void)text; (void)length;
+    }
+    ntk_string_list_free(list);                           /* does nothing for NULL */
+}
+```
+
+#### Pasteboards
+
+`NULL` for a scope is the general pasteboard. A named or unique pasteboard is given by an `ntk_clipboard_scope` whose `name` is required.
+
+```c
+static void NTK_CALL on_pasteboard_created(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                           ntk_string* name)
+{
+    /* On the main thread. name is NULL unless error is NONE. */
+    if (error == NTK_CLIPBOARD_ERROR_NONE) {
+        const char* text = ntk_string_data(name);   /* the name to put in ntk_clipboard_scope */
+        size_t length = ntk_string_size(name);      /* in bytes, without the terminator */
+        /* Copy it if you need it later: it is valid until ntk_string_free. */
+        (void)text; (void)length;
+    }
+    ntk_string_free(name);                          /* does nothing for NULL */
+}
+
+static void NTK_CALL on_pasteboard_removed(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* CANNOT_REMOVE_GENERAL for the general pasteboard. A name that does not exist is removed without error. */
+}
+
+static void NTK_CALL release_request(void* user_data)
+{
+    /* Once: on the main thread after the callback, or on your thread before a rejected call returns.
+       Free user_data here. */
+}
+
+/* A named pasteboard: created, or opened when it exists. A NULL or empty name is INVALID_PARAMETER. */
+ntk_clipboard_error error = ntk_clipboard_create_pasteboard_async(
+    NTK_CLIPBOARD_SCOPE_NAMED, "com.jonghyunkim.nativetoolkit.example.sample",
+    &on_pasteboard_created, NULL, &release_request);
+
+/* A unique pasteboard: the system makes the name, and the callback receives it. name is not read. */
+error = ntk_clipboard_create_pasteboard_async(NTK_CLIPBOARD_SCOPE_UNIQUE, NULL,
+                                              &on_pasteboard_created, NULL, &release_request);
+
+/* Later calls name the pasteboard with a scope. */
+ntk_clipboard_scope scope;
+memset(&scope, 0, sizeof(scope));
+scope.struct_size = (uint32_t)sizeof(scope);
+scope.kind = NTK_CLIPBOARD_SCOPE_NAMED;   /* or UNIQUE, with the name the callback gave */
+scope.name = "com.jonghyunkim.nativetoolkit.example.sample";
+
+/* Removing takes a scope, never NULL. */
+error = ntk_clipboard_remove_pasteboard_async(&scope, &on_pasteboard_removed, NULL, &release_request);
+```
+
+#### Copying
+
+`ntk_clipboard_write_content` holds one content: `kind` decides which fields are read, and the others are not. The checks of the content itself (the URL scheme, the color range, the file, the type identifier) are the library's and come in the callback.
+
+```c
+static void NTK_CALL on_written(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* On the main thread. INVALID_URI, INVALID_COLOR, FILE_NOT_FOUND, IMAGE_LOAD_FAILED,
+       INVALID_IMAGE_DATA, INVALID_TYPE, EMPTY_CONTENT, CONTENT_TOO_LARGE, UNAVAILABLE come here. */
+}
+
+static void reset_content(ntk_clipboard_write_content* content, ntk_clipboard_content_kind kind)
+{
+    memset(content, 0, sizeof(*content));
+    content->struct_size = (uint32_t)sizeof(*content);
+    content->kind = kind;
+}
+
+/* path: a file in the app's bundle or container. NULL or "" is INVALID_PARAMETER. */
+static void copy_image_file(const char* path)
+{
+    ntk_clipboard_write_content content;
+    reset_content(&content, NTK_CLIPBOARD_CONTENT_IMAGE_FILE);
+    content.path = path;
+    (void)ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+}
+
+/* png, png_size: the bytes of a PNG image. */
+static void copy_image_data(const uint8_t* png, size_t png_size)
+{
+    ntk_clipboard_write_content content;
+    reset_content(&content, NTK_CLIPBOARD_CONTENT_IMAGE_DATA);
+    content.data = png;
+    content.data_size = png_size;      /* 0 is EMPTY_CONTENT */
+    content.ut_type = "public.png";
+    (void)ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+}
+
+/* Plain text into the general pasteboard (scope NULL). An empty string is valid.
+   NULL options: local to this device, no expiration. release may be NULL. */
+ntk_clipboard_write_content content;
+reset_content(&content, NTK_CLIPBOARD_CONTENT_PLAIN_TEXT);
+content.text = "Hello from IosLibraryExample";
+ntk_clipboard_error error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* HTML and its plain text, in one item. A blank html is EMPTY_CONTENT; a NULL text is "". */
+reset_content(&content, NTK_CLIPBOARD_CONTENT_HTML);
+content.text = "plain body";
+content.html = "<b>html body</b>";
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* A URL: http, https or file; anything else is INVALID_URI. */
+reset_content(&content, NTK_CLIPBOARD_CONTENT_URL);
+content.url = "https://www.apple.com";
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* A color: each component 0.0 to 1.0. alpha is required: a zero-filled struct is transparent. */
+reset_content(&content, NTK_CLIPBOARD_CONTENT_COLOR);
+content.red = 0.2;
+content.green = 0.4;
+content.blue = 0.8;
+content.alpha = 1.0;
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* Bytes under a type of your own. */
+const uint8_t custom[2] = {0xCA, 0xFE};
+reset_content(&content, NTK_CLIPBOARD_CONTENT_CUSTOM_DATA);
+content.data = custom;
+content.data_size = sizeof(custom);
+content.ut_type = "com.jonghyunkim.nativetoolkit.example.custom";
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* Several plain-text items. A count of 0 is EMPTY_ITEMS, returned at once. */
+const char* const texts[3] = {"first", "second", "third"};
+reset_content(&content, NTK_CLIPBOARD_CONTENT_MULTIPLE_TEXT);
+content.texts = texts;
+content.text_count = 3;
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* One item with several representations. Every element has the same struct_size; the same ut_type
+   twice is INVALID_PARAMETER. */
+const char* body = "multi representation";
+ntk_clipboard_representation representations[2];
+memset(representations, 0, sizeof(representations));
+representations[0].struct_size = (uint32_t)sizeof(representations[0]);
+representations[0].ut_type = "public.plain-text";
+representations[0].data = (const uint8_t*)body;
+representations[0].data_size = strlen(body);
+representations[1] = representations[0];
+representations[1].ut_type = "public.utf8-plain-text";
+reset_content(&content, NTK_CLIPBOARD_CONTENT_MULTI_REPRESENTATION);
+content.representations = representations;
+content.representation_count = 2;
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+```
+
+#### Copy options, appending and clearing
+
+`ntk_clipboard_copy_options` is the C form of `ClipboardCopyOptions`. `NULL`, or a zero-filled struct, is the default: local to this device, no expiration. Its field is `not_local_only`, so that zero keeps the default.
+
+```c
+static void NTK_CALL on_written(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* INVALID_EXPIRATION: the expiration is not in the future. */
+}
+
+/* now_unix_seconds: the current time, for example from time(NULL). */
+static void copy_expiring(const ntk_clipboard_scope* scope, double now_unix_seconds)
+{
+    ntk_clipboard_write_content content;
+    memset(&content, 0, sizeof(content));
+    content.struct_size = (uint32_t)sizeof(content);
+    content.kind = NTK_CLIPBOARD_CONTENT_PLAIN_TEXT;
+    content.text = "expiring body";
+
+    ntk_clipboard_copy_options options;
+    memset(&options, 0, sizeof(options));
+    options.struct_size = (uint32_t)sizeof(options);
+    options.has_expiration = 1;                                 /* expiration_unix_seconds is read */
+    options.expiration_unix_seconds = now_unix_seconds + 30.0;  /* not finite: INVALID_PARAMETER */
+    (void)ntk_clipboard_copy_async(&content, &options, scope, &on_written, NULL, NULL);
+}
+
+ntk_clipboard_write_content content;
+memset(&content, 0, sizeof(content));
+content.struct_size = (uint32_t)sizeof(content);
+content.kind = NTK_CLIPBOARD_CONTENT_PLAIN_TEXT;
+content.text = "LOCALONLY-BODY";
+
+/* Allow Handoff to carry the item to the user's other devices. */
+ntk_clipboard_copy_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.not_local_only = 1;
+ntk_clipboard_error error = ntk_clipboard_copy_async(&content, &options, NULL, &on_written, NULL, NULL);
+
+/* Append: a new item after the existing ones. It takes no options; use copy for sensitive data. */
+content.text = "appended item";
+error = ntk_clipboard_append_async(&content, NULL, &on_written, NULL, NULL);
+
+/* Remove every item. The pasteboard itself remains. */
+error = ntk_clipboard_clear_async(NULL, &on_written, NULL, NULL);
+```
+
+#### Reading
+
+**`ntk_clipboard_read_async` and `ntk_clipboard_read_data_async` stop the main thread** while iOS asks the user to allow the paste of content another app wrote, whichever thread you call them from (see [Read](#read)). A denied paste is not a failure: the read gives one item with no types and no text, and the data read gives `NULL`. To avoid the wait, use [`ntk_clipboard_load_item_async`](#loading-and-cancelling). `ntk_clipboard_get_snapshot_async` reads metadata only.
+
+```c
+static void NTK_CALL on_read(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                             ntk_clipboard_read_result* result)
+{
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;                                    /* result is NULL */
+    }
+    size_t item_count = ntk_clipboard_read_result_item_count(result);   /* 0: empty, not an error */
+    size_t item;
+    for (item = 0; item < item_count; ++item) {
+        size_t type_count = ntk_clipboard_read_result_item_type_count(result, item);
+        size_t index;
+        for (index = 0; index < type_count; ++index) {
+            const char* type = ntk_clipboard_read_result_item_type_at(result, item, index, NULL);
+            (void)type;
+        }
+        size_t text_size = 0;
+        /* Each is NULL when the item does not hold it. Image bytes are not read: only their type. */
+        const char* text = ntk_clipboard_read_result_item_text_at(result, item, &text_size);
+        const char* url = ntk_clipboard_read_result_item_url_at(result, item, NULL);
+        const char* image_type = ntk_clipboard_read_result_item_image_type_at(result, item, NULL);
+        (void)text; (void)url; (void)image_type;
+    }
+    ntk_clipboard_read_result_free(result);
+}
+
+static void NTK_CALL on_read_data(void* user_data, ntk_clipboard_error error, uint32_t system_code, ntk_bytes* data)
+{
+    /* data is NULL when no item has the type, and when the user denied the paste. */
+    if (error == NTK_CLIPBOARD_ERROR_NONE && data != NULL) {
+        const uint8_t* bytes = ntk_bytes_data(data);   /* never NULL for a handle, also for 0 bytes */
+        size_t size = ntk_bytes_size(data);
+        (void)bytes; (void)size;
+    }
+    ntk_bytes_free(data);
+}
+
+static void NTK_CALL on_snapshot(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                 ntk_clipboard_snapshot* snapshot)
+{
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;
+    }
+    int32_t has_strings = ntk_clipboard_snapshot_has_strings(snapshot);
+    int32_t has_urls = ntk_clipboard_snapshot_has_urls(snapshot);
+    int32_t has_images = ntk_clipboard_snapshot_has_images(snapshot);
+    int32_t has_colors = ntk_clipboard_snapshot_has_colors(snapshot);
+    size_t number_of_items = ntk_clipboard_snapshot_number_of_items(snapshot);
+    /* The types of the first item. */
+    size_t type_count = ntk_clipboard_snapshot_type_count(snapshot);
+    const char* first_type = ntk_clipboard_snapshot_type_at(snapshot, 0, NULL);   /* NULL when out of range */
+    /* The types of each item. */
+    size_t item_type_count = ntk_clipboard_snapshot_item_type_count(snapshot, 0);
+    const char* item_type = ntk_clipboard_snapshot_item_type_at(snapshot, 0, 0, NULL);
+    if (ntk_clipboard_snapshot_has_matching(snapshot)) {
+        size_t count = ntk_clipboard_snapshot_matching_count(snapshot);
+        size_t i;
+        for (i = 0; i < count; ++i) {
+            int64_t matching_item = ntk_clipboard_snapshot_matching_at(snapshot, i);   /* -1 when out of range */
+            (void)matching_item;
+        }
+    }
+    (void)has_strings; (void)has_urls; (void)has_images; (void)has_colors; (void)number_of_items;
+    (void)type_count; (void)first_type; (void)item_type_count; (void)item_type;
+    ntk_clipboard_snapshot_free(snapshot);
+}
+
+/* Call where the main thread may wait, for example after the user asked for a paste. */
+ntk_clipboard_error error = ntk_clipboard_read_async(NULL, &on_read, NULL, NULL);
+error = ntk_clipboard_read_data_async("public.png", NULL, &on_read_data, NULL, NULL);
+
+/* Metadata only. With no types, matching_types may be NULL and has_matching is 0. */
+error = ntk_clipboard_get_snapshot_async(NULL, 0, NULL, &on_snapshot, NULL, NULL);
+const char* const matching_types[1] = {"public.plain-text"};
+error = ntk_clipboard_get_snapshot_async(matching_types, 1, NULL, &on_snapshot, NULL, NULL);
+```
+
+#### Loading and cancelling
+
+`ntk_clipboard_load_item_async` does not stop the main thread. Its 15-second timeout includes the time the user takes to answer the paste prompt (`NTK_CLIPBOARD_ERROR_TIMED_OUT`, and a later answer delivers nothing); a denied paste is `NTK_CLIPBOARD_ERROR_LOAD_FAILED`. The request ID it writes cancels the load from any thread with `ntk_clipboard_cancel_load`; the load then ends with `NTK_CLIPBOARD_ERROR_CANCELED`. Cancelled before the load has started, nothing is read; cancelled as it starts, the paste prompt can still appear.
+
+```c
+static void NTK_CALL on_loaded(void* user_data, uint64_t request_id, ntk_clipboard_error error,
+                               uint32_t system_code, ntk_clipboard_loaded_item* item)
+{
+    if (error == NTK_CLIPBOARD_ERROR_CANCELED) {
+        return;                     /* cancelled: a normal outcome */
+    }
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;                     /* TIMED_OUT, LOAD_FAILED, NO_MATCHING_ITEM, ...; item is NULL */
+    }
+    size_t size = 0;
+    switch (ntk_clipboard_loaded_item_kind(item)) {
+    case NTK_CLIPBOARD_ITEM_TEXT: {
+        const char* text = ntk_clipboard_loaded_item_text(item, &size);
+        (void)text;
+        break;
+    }
+    case NTK_CLIPBOARD_ITEM_URL: {
+        const char* url = ntk_clipboard_loaded_item_url(item, &size);
+        (void)url;
+        break;
+    }
+    case NTK_CLIPBOARD_ITEM_IMAGE: {
+        const uint8_t* png = ntk_clipboard_loaded_item_image_data(item, &size);
+        const char* type = ntk_clipboard_loaded_item_image_type(item, NULL);   /* always "public.png" */
+        (void)png; (void)type;
+        break;
+    }
+    case NTK_CLIPBOARD_ITEM_FILE: {
+        /* You own the file and its parent directory: delete both when done. _free does not. */
+        const char* path = ntk_clipboard_loaded_item_file_path(item, NULL);
+        (void)path;
+        break;
+    }
+    default:
+        break;                      /* a kind of a later version */
+    }
+    ntk_clipboard_loaded_item_free(item);
+}
+
+uint64_t request_id = 0;
+ntk_clipboard_error error = ntk_clipboard_load_item_async(NTK_CLIPBOARD_ITEM_TEXT, NULL, NULL,
+                                                          &on_loaded, NULL, NULL, &request_id);
+/* Any thread, any time. An unknown or finished request_id does nothing; it returns NONE. */
+error = ntk_clipboard_cancel_load(request_id);
+
+/* A file of one type: ut_type is required for FILE and not read for the other kinds.
+   A NULL out_request_id is allowed; the load then cannot be cancelled. */
+error = ntk_clipboard_load_item_async(NTK_CLIPBOARD_ITEM_FILE, "public.data", NULL,
+                                      &on_loaded, NULL, NULL, NULL);
+error = ntk_clipboard_load_item_async(NTK_CLIPBOARD_ITEM_IMAGE, NULL, NULL, &on_loaded, NULL, NULL, NULL);
+```
+
+#### Detecting
+
+The patterns are a bit set of `NTK_CLIPBOARD_PATTERN_*`. 0 is `NTK_CLIPBOARD_ERROR_EMPTY_PATTERNS` and an unknown bit is `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER`, both returned at once. `ntk_clipboard_detect_values_async` reads the content: the 5-second timeout includes the time to answer the paste prompt, and a denied paste is `NTK_CLIPBOARD_ERROR_DETECTION_FAILED`. Its values come as a UTF-8 JSON object. The form is part of the ABI: every key below is always there, whatever patterns were requested or found, and a later version may add keys but does not change these. A value that was not found is `null` or `[]`, as the last column says.
+
+| Key | Type | Not found |
+|---|---|---|
+| `detectedPatterns` | Array of strings: the `rawValue`s of `ClipboardDetectionPattern` (`"probableWebURL"`, `"emailAddress"` and so on), in no promised order | `[]` |
+| `probableWebURL`, `probableWebSearch` | String | `null` |
+| `number` | Number; `null` for a value that is not finite | `null` |
+| `links` | Array of strings | `[]` |
+| `emailAddresses`, `phoneNumbers` | Array of objects `{"value": string, "label": string or null}` | `[]` |
+| `postalAddresses` | Array of objects `{"street", "city", "state", "postalCode", "country"}`, each a string or `null` | `[]` |
+| `calendarEvents` | Array of objects: `"startDate"` and `"endDate"` (ISO 8601 in UTC with fractional seconds, such as `"2027-03-03T10:00:00.000Z"`, or `null`), `"startTimeZone"` and `"endTimeZone"` (a time zone identifier or `null`), `"isAllDay"` (`true` or `false`) | `[]` |
+| `flightNumbers` | Array of objects `{"airline": string, "flightNumber": string}` | `[]` |
+| `moneyAmounts` | Array of objects `{"amount": number, "currency": string}`; `amount` is `null` when it is not finite | `[]` |
+| `shipmentTrackingNumbers` | Array of objects `{"carrier": string, "trackingNumber": string}` | `[]` |
+
+As in other returned text, U+0000 in a string becomes U+FFFD.
+
+```c
+static void NTK_CALL on_patterns(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                 ntk_clipboard_patterns patterns)
+{
+    if (error == NTK_CLIPBOARD_ERROR_NONE && (patterns & NTK_CLIPBOARD_PATTERN_PROBABLE_WEB_URL) != 0) {
+        /* The pasteboard probably holds a web URL. */
+    }
+}
+
+static void NTK_CALL on_values(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                               ntk_string* values_json)
+{
+    if (error == NTK_CLIPBOARD_ERROR_NONE) {
+        const char* json = ntk_string_data(values_json);   /* parse it with your JSON library */
+        (void)json;
+    }
+    ntk_string_free(values_json);
+}
+
+ntk_clipboard_patterns all = NTK_CLIPBOARD_PATTERN_PROBABLE_WEB_URL | NTK_CLIPBOARD_PATTERN_PROBABLE_WEB_SEARCH |
+                             NTK_CLIPBOARD_PATTERN_NUMBER | NTK_CLIPBOARD_PATTERN_LINK |
+                             NTK_CLIPBOARD_PATTERN_EMAIL_ADDRESS | NTK_CLIPBOARD_PATTERN_PHONE_NUMBER |
+                             NTK_CLIPBOARD_PATTERN_POSTAL_ADDRESS | NTK_CLIPBOARD_PATTERN_CALENDAR_EVENT |
+                             NTK_CLIPBOARD_PATTERN_FLIGHT_NUMBER | NTK_CLIPBOARD_PATTERN_MONEY_AMOUNT |
+                             NTK_CLIPBOARD_PATTERN_SHIPMENT_TRACKING_NUMBER;
+/* Without reading the content: no paste prompt. */
+ntk_clipboard_error error = ntk_clipboard_detect_patterns_async(all, NULL, &on_patterns, NULL, NULL);
+error = ntk_clipboard_detect_values_async(all, NULL, &on_values, NULL, NULL);
+```
+
+#### Change events
+
+Listening and observing are separate. A listener alone does not start observation, and removing it does not stop observation: start and stop it with their own functions. Only one pasteboard is observed at a time, and a start replaces the previous one; when it fails with `NTK_CLIPBOARD_ERROR_UNAVAILABLE`, the previous one has already stopped. `ntk_clipboard_stop_observing_async` stops observation for everyone in the process, also when another component (or Swift code using `IosClipboardManager.shared`) started it. Events are not kept for a listener that registers later.
+
+As with the Swift API, iOS reports only changes this app makes while it is in the foreground. `ntk_clipboard_check_foreground_change_async` compares the change count with the last check (it does not look at the foreground itself); the first check of a pasteboard gives 0, and so does a pasteboard that cannot be resolved.
+
+```c
+static void NTK_CALL on_clipboard_changed(void* user_data, ntk_clipboard_change* change)
+{
+    /* On the main thread. You own change. */
+    if (ntk_clipboard_change_kind(change) == NTK_CLIPBOARD_CHANGE_CHANGED) {
+        size_t added = ntk_clipboard_change_types_added_count(change);
+        size_t removed = ntk_clipboard_change_types_removed_count(change);
+        size_t i;
+        for (i = 0; i < added; ++i) {
+            const char* type = ntk_clipboard_change_types_added_at(change, i, NULL);
+            (void)type;
+        }
+        for (i = 0; i < removed; ++i) {
+            const char* type = ntk_clipboard_change_types_removed_at(change, i, NULL);
+            (void)type;
+        }
+    } else if (ntk_clipboard_change_kind(change) == NTK_CLIPBOARD_CHANGE_REMOVED) {
+        /* The observed named pasteboard was removed. */
+    }
+    ntk_clipboard_scope_kind scope_kind = ntk_clipboard_change_scope_kind(change);
+    const char* scope_name = ntk_clipboard_change_scope_name(change, NULL);   /* NULL for the general pasteboard */
+    (void)scope_kind; (void)scope_name;
+    ntk_clipboard_change_free(change);
+}
+
+static void NTK_CALL release_listener_state(void* user_data)
+{
+    /* Once: on the main thread after the listener is removed, or on your thread when adding it fails.
+       Free user_data here. */
+}
+
+static void NTK_CALL on_observing(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* Start: UNAVAILABLE when the scope cannot be resolved. Stop: always NONE. */
+}
+
+static void NTK_CALL on_foreground_change(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                          int32_t changed)
+{
+    /* changed is nonzero when the pasteboard changed since the last check. */
+}
+
+void* state = NULL;   /* your own state, handed back as user_data */
+ntk_clipboard_listener* listener = NULL;
+ntk_clipboard_error error = ntk_clipboard_add_change_listener(&on_clipboard_changed, state,
+                                                              &release_listener_state, &listener);
+error = ntk_clipboard_start_observing_async(NULL, &on_observing, NULL, NULL);
+
+/* When the app returns to the foreground. */
+error = ntk_clipboard_check_foreground_change_async(NULL, &on_foreground_change, NULL, NULL);
+
+/* Later. The handle is invalid after remove; NULL does nothing. Removed on the main thread, the listener
+   gets no further events; removed from another thread, an event can still come until release runs. */
+ntk_clipboard_listener_remove(listener);
+listener = NULL;
+error = ntk_clipboard_stop_observing_async(&on_observing, NULL, NULL);
+```
+
+#### Error values
+
+`ntk_clipboard_error` is the return value of every function above except the readers, the `_free` functions and `ntk_clipboard_listener_remove`, and the `error` of every callback. A value can come from either place: the return value says whether the call was accepted, and the callback says how the accepted operation ended. Write a `default` branch: the values can grow.
+
+| Value | Name | Where | When | Swift `errorCode` |
+|---|---|---|---|---|
+| 0 | `NTK_CLIPBOARD_ERROR_NONE` | Both | Accepted / succeeded | - |
+| 1 | `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER` | Return | A `NULL` callback or required argument, invalid UTF-8, a `struct_size` below the 2.0.0 size or above 4096, a nonzero reserved field, a kind or pattern bit out of range, a `NULL` or empty pasteboard name or image path, the same `ut_type` twice in the representations, an expiration that is not finite, `GENERAL` to create, a `NULL` scope to remove, a `NULL` `out_listener` | `CLIPBOARD_INVALID_REQUEST` cannot come from C |
+| 2 | `NTK_CLIPBOARD_ERROR_NOT_INITIALIZED` | - | Not returned on iOS | - |
+| 3 | `NTK_CLIPBOARD_ERROR_NOT_SUPPORTED` | Return | A nonzero value in the part of a struct this version does not know | - |
+| 4 | `NTK_CLIPBOARD_ERROR_UNKNOWN` | Callback | An unclassified failure | `CLIPBOARD_UNKNOWN` |
+| 5 | `NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY` | - | Not returned on iOS | - |
+| 6 | `NTK_CLIPBOARD_ERROR_EMPTY_CONTENT` | Callback | A blank `html`, or 0 bytes of image data, custom data or a representation | `CLIPBOARD_EMPTY_CONTENT` |
+| 7 | `NTK_CLIPBOARD_ERROR_EMPTY_ITEMS` | Return | A `text_count` or `representation_count` of 0 | `CLIPBOARD_EMPTY_ITEMS` |
+| 8 | `NTK_CLIPBOARD_ERROR_INVALID_URI` | Callback | A blank URL, or a scheme other than `http`, `https` and `file` | `CLIPBOARD_INVALID_URL` |
+| 9 | `NTK_CLIPBOARD_ERROR_UNAVAILABLE` | Callback | The named or unique pasteboard cannot be resolved | `CLIPBOARD_UNAVAILABLE` |
+| 12 | `NTK_CLIPBOARD_ERROR_EMPTY_PATTERNS` | Return | `patterns` is 0 | `CLIPBOARD_EMPTY_PATTERNS` |
+| 13 | `NTK_CLIPBOARD_ERROR_INVALID_TYPE` | Callback | A uniform type identifier that is not valid | `CLIPBOARD_INVALID_TYPE` |
+| 14 | `NTK_CLIPBOARD_ERROR_INVALID_NAME` | Callback | A pasteboard name that is blank or otherwise unusable | `CLIPBOARD_INVALID_NAME` |
+| 15 | `NTK_CLIPBOARD_ERROR_INVALID_COLOR` | Callback | A color component outside 0.0 to 1.0, or not finite | `CLIPBOARD_INVALID_COLOR` |
+| 16 | `NTK_CLIPBOARD_ERROR_INVALID_IMAGE_DATA` | Callback | Image data that cannot be decoded | `CLIPBOARD_INVALID_IMAGE_DATA` |
+| 17 | `NTK_CLIPBOARD_ERROR_INVALID_EXPIRATION` | Callback | An expiration that is not in the future | `CLIPBOARD_INVALID_EXPIRATION` |
+| 18 | `NTK_CLIPBOARD_ERROR_CONTENT_TOO_LARGE` | Callback | More than 64 MiB | `CLIPBOARD_CONTENT_TOO_LARGE` |
+| 19 | `NTK_CLIPBOARD_ERROR_FILE_NOT_FOUND` | Callback | The image file does not exist | `CLIPBOARD_FILE_NOT_FOUND` |
+| 20 | `NTK_CLIPBOARD_ERROR_IMAGE_LOAD_FAILED` | Callback | The image file cannot be read as an image | `CLIPBOARD_IMAGE_LOAD_FAILED` |
+| 21 | `NTK_CLIPBOARD_ERROR_IMAGE_ENCODE_FAILED` | Callback | A loaded image could not be re-encoded as PNG | `CLIPBOARD_IMAGE_ENCODE_FAILED` |
+| 22 | `NTK_CLIPBOARD_ERROR_CANNOT_REMOVE_GENERAL` | Callback | The general pasteboard was given to remove | `CLIPBOARD_CANNOT_REMOVE_GENERAL` |
+| 23 | `NTK_CLIPBOARD_ERROR_NO_MATCHING_ITEM` | Callback | No item has the requested kind or type (also `FILE` with an empty `ut_type`) | `CLIPBOARD_NO_MATCHING_ITEM` |
+| 24 | `NTK_CLIPBOARD_ERROR_LOAD_FAILED` | Callback | The load failed, also when the user denied the paste | `CLIPBOARD_LOAD_FAILED` |
+| 25 | `NTK_CLIPBOARD_ERROR_UNEXPECTED_TYPE` | Callback | The item could not be converted to the requested kind | `CLIPBOARD_UNEXPECTED_TYPE` |
+| 26 | `NTK_CLIPBOARD_ERROR_FILE_COPY_FAILED` | Callback | The loaded file could not be copied to a temporary location | `CLIPBOARD_FILE_COPY_FAILED` |
+| 27 | `NTK_CLIPBOARD_ERROR_CANCELED` | Callback | `ntk_clipboard_cancel_load` | `CLIPBOARD_CANCELLED` (the C name has one L) |
+| 28 | `NTK_CLIPBOARD_ERROR_TIMED_OUT` | Callback | Detection (5 seconds) or a load (15 seconds) took too long, including the time to answer the paste prompt | `CLIPBOARD_TIMED_OUT` |
+| 29 | `NTK_CLIPBOARD_ERROR_DETECTION_FAILED` | Callback | Detection failed, also when the user denied the paste in `ntk_clipboard_detect_values_async` | `CLIPBOARD_DETECTION_FAILED` |
+
+10 and 11 are not used on iOS (Android's `READ_NOT_ALLOWED` and `SECURITY`). The values with the same name have the same number on Android.
+
+| Swift API | C ABI |
+|---|---|
+| `IosClipboardManager.shared` | None: the functions are global and use `shared` |
+| `PasteboardScope` | `ntk_clipboard_scope` (`NULL` is `.general`) |
+| `createPasteboard` / `removePasteboard` | `ntk_clipboard_create_pasteboard_async` (the name comes as an `ntk_string`) / `ntk_clipboard_remove_pasteboard_async` |
+| `copy` / `append` / `clear` | `ntk_clipboard_copy_async` / `_append_async` / `_clear_async` |
+| `ClipboardContent` | `ntk_clipboard_write_content` (`kind` and its fields) and `ntk_clipboard_representation` |
+| `ClipboardCopyOptions` | `ntk_clipboard_copy_options` (`not_local_only`, `has_expiration`, `expiration_unix_seconds`) |
+| `read` and `ClipboardReadResult` | `ntk_clipboard_read_async` and `ntk_clipboard_read_result_item_count` / `_item_type_count` / `_item_type_at` / `_item_text_at` / `_item_url_at` / `_item_image_type_at` / `_free` |
+| `readData` | `ntk_clipboard_read_data_async` and `ntk_bytes_data` / `ntk_bytes_size` / `ntk_bytes_free` |
+| `snapshot` and `ClipboardSnapshot` | `ntk_clipboard_get_snapshot_async` and `ntk_clipboard_snapshot_*` (`typeIdentifiers`: `_type_count` / `_type_at`; `allTypeIdentifiers`: `_item_type_count` / `_item_type_at`; `matchingItemIndexes`: `_has_matching` / `_matching_count` / `_matching_at`) |
+| `loadItem(_:scope:requestBox:completion:)` / `cancelLoad(_:)` | `ntk_clipboard_load_item_async` (the request ID) / `ntk_clipboard_cancel_load` |
+| `ClipboardLoadedItem` | `ntk_clipboard_loaded_item_kind` / `_text` / `_url` / `_image_data` / `_image_type` / `_file_path` / `_free` |
+| `cancelAllLoads` | None: cancel each request |
+| `detectPatterns` | `ntk_clipboard_detect_patterns_async` with the `NTK_CLIPBOARD_PATTERN_*` bits |
+| `detectValues` and `ClipboardDetectedValues` | `ntk_clipboard_detect_values_async` and a JSON object |
+| `startObserving` / `stopObserving` | `ntk_clipboard_start_observing_async` / `_stop_observing_async` |
+| `onEvent` and `ClipboardChangeEvent` | `ntk_clipboard_add_change_listener` / `ntk_clipboard_listener_remove` and `ntk_clipboard_change_kind` / `_scope_kind` / `_scope_name` / `_types_added_count` / `_types_added_at` / `_types_removed_count` / `_types_removed_at` / `_free` |
+| `checkForegroundChange` | `ntk_clipboard_check_foreground_change_async` |
+| `makePasteControl`, `PasteControlFactory` | None |
+| `init(timeouts:limits:)` | None: the defaults of `shared` |
+| `ClipboardError.errorCode` | The `ntk_clipboard_error` (table above) |
 
 ---
 

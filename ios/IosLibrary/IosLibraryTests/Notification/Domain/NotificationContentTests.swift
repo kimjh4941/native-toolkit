@@ -19,6 +19,16 @@ struct NotificationContentTests {
         #expect(content.attachments.isEmpty)
     }
 
+    /// A content made without a sound plays the default sound. The bridge test
+    /// `parseContentNoSoundDefaultsToDefault` checked the same default through the JSON parser
+    /// (design 13.1, the record of how the bridge tests map; stage 1b C7).
+    @Test func theSoundDefaultsToTheDefaultSound() {
+        let content = NotificationContent(id: "test-id", title: "Hello")
+        if case .default = content.sound { } else {
+            Issue.record("Expected .default sound when omitted, got \(String(describing: content.sound))")
+        }
+    }
+
     @Test func initializesWithAllFields() {
         let attachment = NotificationAttachment(identifier: "att1", fileURL: URL(string: "file:///test.png")!)
         let content = NotificationContent(
@@ -59,7 +69,7 @@ struct NotificationContentTests {
         #expect(opts.contains(.customDismissAction))
         #expect(opts.contains(.allowInCarPlay))
         #expect(!opts.contains(.hiddenPreviewsShowTitle))
-        opts.insert(.allowAnnouncement)
-        #expect(opts.contains(.allowAnnouncement))
+        opts.insert(.hiddenPreviewsShowTitle)
+        #expect(opts.contains(.hiddenPreviewsShowTitle))
     }
 }

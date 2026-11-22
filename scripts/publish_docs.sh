@@ -26,7 +26,7 @@ Creates/updates:
 
 By default, this script tries to generate docs first:
   - Android: Dokka (android_library), and Doxygen of the C ABI headers (android_library_capi) if `doxygen` is available
-  - iOS: DocC via ios/generate_docc.sh
+  - iOS: DocC via ios/generate_docc.sh (IosLibrary), and Doxygen of the C ABI headers (IosLibraryCApi) if `doxygen` is available
   - macOS: DocC via mac/generate_docc.sh
   - Windows: Doxygen if `doxygen` is available
 
@@ -262,6 +262,14 @@ generate_ios() {
   fi
   echo "[build] iOS DocC"
   (cd "${ROOT_DIR}/ios" && ./generate_docc.sh)
+
+  # The C ABI's headers, as the Android C ABI's (IosLibraryCApi/docs/html is kept in the tree).
+  if run_if_exists doxygen; then
+    echo "[build] iOS C ABI Doxygen"
+    (cd "${ROOT_DIR}/ios/IosLibraryCApi" && rm -rf docs && doxygen Doxyfile)
+  else
+    echo "[skip] doxygen not found; keeping IosLibraryCApi/docs as it is" >&2
+  fi
 }
 
 generate_mac() {
@@ -329,7 +337,7 @@ copy_dir "${ROOT_DIR}/android/android_library_capi/docs/html" "${VERSION_DIR}/an
 
 # iOS
 copy_dir "${ROOT_DIR}/ios/Docs/IosLibrary" "${VERSION_DIR}/ios/IosLibrary"
-copy_dir "${ROOT_DIR}/ios/Docs/UnityIosPlugin" "${VERSION_DIR}/ios/UnityIosPlugin"
+copy_dir "${ROOT_DIR}/ios/IosLibraryCApi/docs/html" "${VERSION_DIR}/ios/IosLibraryCApi"
 
 # macOS
 copy_dir "${ROOT_DIR}/mac/Docs/MacLibrary" "${VERSION_DIR}/mac/MacLibrary"

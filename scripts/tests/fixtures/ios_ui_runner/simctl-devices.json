@@ -1,0 +1,54 @@
+{
+  "devices": {
+    "com.apple.CoreSimulator.SimRuntime.iOS-26-2": [
+      {
+        "lastBootedAt": "2026-08-15T01:41:11Z",
+        "dataPath": "~/Library/Developer/CoreSimulator/Devices/E4EBFC08-4BD5-44C7-8A62-D63D48B71C47/data",
+        "dataPathSize": 1840328704,
+        "logPath": "~/Library/Developer/CoreSimulator/Devices/E4EBFC08-4BD5-44C7-8A62-D63D48B71C47",
+        "udid": "E4EBFC08-4BD5-44C7-8A62-D63D48B71C47",
+        "isAvailable": true,
+        "logPathSize": 372736,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
+        "state": "Shutdown",
+        "name": "iPhone 17 Pro"
+      },
+      {
+        "lastBootedAt": "2026-10-24T02:20:02Z",
+        "dataPath": "~/Library/Developer/CoreSimulator/Devices/73A3F720-16B5-45F6-A743-E9D853C92424/data",
+        "dataPathSize": 3716354048,
+        "logPath": "~/Library/Developer/CoreSimulator/Devices/73A3F720-16B5-45F6-A743-E9D853C92424",
+        "udid": "73A3F720-16B5-45F6-A743-E9D853C92424",
+        "isAvailable": true,
+        "logPathSize": 544768,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17",
+        "state": "Shutdown",
+        "name": "iPhone 17"
+      },
+      {
+        "dataPath": "~/Library/Developer/CoreSimulator/Devices/3C89774D-8F20-4188-ADB8-4A1747120C31/data",
+        "dataPathSize": 18337792,
+        "logPath": "~/Library/Developer/CoreSimulator/Devices/3C89774D-8F20-4188-ADB8-4A1747120C31",
+        "udid": "3C89774D-8F20-4188-ADB8-4A1747120C31",
+        "isAvailable": true,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16",
+        "state": "Shutdown",
+        "name": "iPhone 16"
+      }
+    ],
+    "com.apple.CoreSimulator.SimRuntime.iOS-18-3": [
+      {
+        "lastBootedAt": "2026-10-18T06:22:58Z",
+        "dataPath": "~/Library/Developer/CoreSimulator/Devices/E6446C0D-63C7-4C9D-9849-5CFD7566050D/data",
+        "dataPathSize": 2356682752,
+        "logPath": "~/Library/Developer/CoreSimulator/Devices/E6446C0D-63C7-4C9D-9849-5CFD7566050D",
+        "udid": "E6446C0D-63C7-4C9D-9849-5CFD7566050D",
+        "isAvailable": true,
+        "logPathSize": 557056,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-16",
+        "state": "Shutdown",
+        "name": "iPhone 16"
+      }
+    ]
+  }
+}

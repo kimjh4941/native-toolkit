@@ -51,9 +51,12 @@ Language:
 - [iOS](#ios)
   - [IosShareManager](#iossharemanager)
   - [설정](#설정-1)
+    - [라이브러리 추가](#라이브러리-추가-1)
+    - [스레드와 표시](#스레드와-표시)
   - [텍스트 공유](#텍스트-공유-2)
     - [텍스트 공유](#텍스트-공유-3)
-    - [URL 공유](#url-공유-1)
+  - [URL 공유](#url-공유-1)
+    - [URL 공유](#url-공유-2)
     - [프리뷰 포함 URL 공유](#프리뷰-포함-url-공유)
   - [이미지 공유](#이미지-공유-1)
     - [이미지 공유](#이미지-공유-2)
@@ -66,12 +69,21 @@ Language:
     - [제목(Subject) 포함 공유](#제목subject-포함-공유)
     - [액티비티 타입 제외](#액티비티-타입-제외)
   - [에러 처리](#에러-처리-1)
+  - [프레젠터와 결과](#프레젠터와-결과)
+    - [포그라운드에서 공유](#포그라운드에서-공유)
+    - [결과 콜백](#결과-콜백)
+    - [같은 턴에서 두 번 공유](#같은-턴에서-두-번-공유)
+  - [C ABI](#c-abi-1)
+    - [빌드](#빌드-1)
+    - [콘텐츠 공유](#콘텐츠-공유)
+    - [한 번에 하나의 공유 시트](#한-번에-하나의-공유-시트)
+    - [에러 값](#에러-값-1)
 - [macOS](#macos)
   - [MacShareManager](#macsharemanager)
   - [설정](#설정-2)
   - [피커 - 기본](#피커---기본)
     - [텍스트 공유](#텍스트-공유-4)
-    - [URL 공유](#url-공유-2)
+    - [URL 공유](#url-공유-3)
     - [이미지 공유](#이미지-공유-3)
     - [파일 공유](#파일-공유-3)
   - [피커 - 여러 항목](#피커---여러-항목)
@@ -135,7 +147,7 @@ val shareManager = AndroidShareManager.getInstance(activity)
 
 #### 라이브러리 추가
 
-릴리스에는 `dist/1.13.0/android/m2/`에 Maven 저장소가 포함되어 있습니다. 이를 프로젝트에, 예를 들어 `third_party/native-toolkit-m2/`로 복사하고 저장소에 추가합니다.
+릴리스에는 `dist/1.14.0/android/m2/`에 Maven 저장소가 포함되어 있습니다. 이를 프로젝트에, 예를 들어 `third_party/native-toolkit-m2/`로 복사하고 저장소에 추가합니다.
 
 **settings.gradle.kts:**
 
@@ -936,57 +948,80 @@ static void update_direct_share_targets(const uint8_t* icon_png, size_t icon_png
 
 ## iOS
 
-- 라이브러리: `ios-native-toolkit-1.3.0.xcframework`
-- 최소 배포 타깃: iOS 18
-- 지원 범위: 전송 전용(`UIActivityViewController` 기반 시스템 공유 시트 표시). 수신(Share Extension)은 포함되지 않습니다.
+시스템 공유 시트(`UIActivityViewController`)입니다. 텍스트·URL·이미지·파일을 단독으로 또는 한 번의 공유에 섞어서 공유할 수 있으며, 제목(Subject), 링크 프리뷰의 제목, 제외할 액티비티 타입을 지정할 수 있습니다. iOS 라이브러리 2.0.0은 하나의 구현을 두 가지 공개 API로 제공합니다. 샘플 앱(`IosLibraryExample`)은 Swift API를 사용합니다.
+
+| API | 이름 | 모듈 / 헤더 | 산출물 |
+|---|---|---|---|
+| Swift API | `IosShareManager` | `import IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_share_*` | `<NativeToolkitC/Share.h>` | `ios-native-toolkit-capi-2.0.0.xcframework` |
+
+- 산출물: `dist/1.14.0/ios/`에 두 xcframework와 C 헤더(`include/NativeToolkitC/*.h`)가 있습니다.
+- 최소 iOS: 18.0입니다. 라이브러리를 호출하는 Swift 코드는 Xcode 26.3 이상으로 빌드합니다.
+- 지원 범위: 전송 전용입니다. 공유 수신(Share Extension)은 포함되지 않습니다.
+- 1.x에서 마이그레이션하는 경우: [iOS 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#ios-라이브러리를-200으로-마이그레이션)을 참조하십시오. 공유와 관련해서는 `ShareError`의 케이스가 바뀌었고([에러 처리](#에러-처리-1) 참조), 완료 핸들러는 `@MainActor @Sendable`이 되었으며, `share`는 `presenter`를 받고([프레젠터와 결과](#프레젠터와-결과) 참조), 공유 시트가 다른 공유 시트 위에 표시되지 않게 되었습니다([같은 턴에서 두 번 공유](#같은-턴에서-두-번-공유) 참조). `ShareRepository`를 직접 구현한 앱은 이를 `Sendable`로 만들고, `present(content:)` 대신 `present(content:presenter:)`를 구현합니다.
+
+아래 섹션은 샘플 앱의 Share 화면 순서를 따릅니다. 마지막의 [C ABI](#c-abi-1)에서는 같은 작업을 C에서 수행하는 방법을 설명합니다.
+
+---
 
 ### IosShareManager
 
-`IosShareManager` 는 iOS에서 시스템 공유 시트를 표시하는 싱글턴 클래스입니다.
+`IosShareManager.shared`는 공유의 진입점입니다. 매니저는 `Sendable`이므로 어느 스레드에서나 호출할 수 있습니다.
+
+```swift
+import IosLibrary
+
+let shareManager = IosShareManager.shared
+```
+
+| 멤버 | 설명 |
+|---|---|
+| `share(content:presenter:) async throws -> ShareResult` | 공유 시트를 표시하고 어떻게 끝났는지를 반환합니다. `presenter`의 기본값은 `.firstActiveScene`입니다 |
+| `share(content:presenter:completion:)` | 같은 작업이며, `Result<ShareResult, ShareError>`를 `completion`에 알립니다. `presenter`에는 기본값이 없습니다 |
+| `share(content:completion:)` | 1.x의 콜백 형식으로, `(isSuccess, completed, activityType, errorMessage)`를 알립니다. 항상 `.firstActiveScene`을 사용합니다 |
+
+모델 타입은 `IosLibrary` 모듈에 있습니다.
+
+| 타입 | 내용 |
+|---|---|
+| `ShareContent` | `items`(`[ShareItem]`, 비어 있으면 안 됨), `subject`, `previewTitle`, `excludedActivityTypes`(원시 식별자). `items` 외에는 모두 기본값이 있습니다 |
+| `ShareItem` | `.text(String)`, `.url(String)`, `.imageFile(path:)`, `.file(path:)` |
+| `ShareResult` | `completed`(사용자가 시트를 닫은 경우 `false`)와 `activityType`(선택된 액티비티의 원시 식별자 또는 `nil`) |
+| `ShareError` | [에러 처리](#에러-처리-1)를 참조하십시오 |
+| `PresenterSelection` | 표시할 뷰 컨트롤러를 고르는 방법입니다. [프레젠터와 결과](#프레젠터와-결과)를 참조하십시오 |
 
 <p align="center">
     <img src="images/ios/share/Example_IosShareManager.png" alt="Example_IosShareManager" width="400" />
 </p>
 
+---
+
 ### 설정
 
-1. `ios-native-toolkit-1.3.0.xcframework` 를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그한 뒤 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정).
-2. 공유 시트를 표시하는 파일에서 라이브러리를 임포트합니다.
+#### 라이브러리 추가
+
+1. `ios-native-toolkit-2.0.0.xcframework`를 Xcode 프로젝트에 추가하고, 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정합니다.
+2. 공유하는 파일에서 모듈을 임포트합니다.
 
 ```swift
 import IosLibrary
 ```
 
-추가 초기화는 필요하지 않습니다.
+공유에는 초기화가 필요하지 않습니다.
 
-`IosShareManager.share` 는 두 가지 호출 방식을 제공합니다.
+#### 스레드와 표시
 
-- `async throws`(네이티브 Swift 호출자에 권장): 타입이 지정된 `ShareResult` 를 반환하고, 실패 시 `ShareError` 를 throw합니다.
-- 콜백(Unity Bridge에서 사용, Swift에서도 사용 가능): `(isSuccess, completed, activityType, errorMessage)`.
+- `share`는 어느 스레드에서나 호출할 수 있습니다. 각 콜백 형식의 완료 핸들러는 모든 경로(검증 실패 포함)에서 메인 스레드에서 정확히 한 번 실행되며, 호출 안에서 실행되는 일은 없습니다. `async` 형식은 시트가 끝나면 반환됩니다.
+- 공유는 취소할 수 없습니다. 공유를 기다리는 `Task`를 취소해도 공유는 끝나지 않으며, 호출은 시트가 끝날 때 반환됩니다.
+- 사용자가 시트를 닫는 것은 에러가 아닙니다. 결과는 `completed == false`가 됩니다.
+- 시트는 `presenter`가 고른 뷰 컨트롤러에서 표시됩니다([프레젠터와 결과](#프레젠터와-결과) 참조). iPad에서는 그 뷰 컨트롤러의 뷰 중앙을 기준으로 하는 팝오버가 됩니다. 기준 위치를 지정하는 파라미터는 없습니다. 시트가 나타날 위치를 고르려면 `.viewController(_:)`로 뷰 컨트롤러를 전달하십시오.
+- 공유 시트가 다른 공유 시트 위에 표시되는 일은 없습니다. [같은 턴에서 두 번 공유](#같은-턴에서-두-번-공유)를 참조하십시오.
+- 앱이 직접 표시한 뷰 컨트롤러(예: 앱 자체의 `UIActivityViewController`)가 아직 표시되는 중이고 그 `present` 호출의 완료 핸들러가 실행되기 전에는 `share`를 호출하지 마십시오. UIKit이 라이브러리의 시트 표시를 거부하고도 시트를 붙잡아 둘 수 있으며, 그러면 공유가 끝나지 않습니다. 공유하기 전에 자신의 `present` 완료 핸들러를 기다리십시오.
+- 시트가 표시된 동안 앱이 윈도우, 그 루트 뷰 컨트롤러 또는 씬을 교체하거나, 표시된 `UIActivityViewController`를 계속 붙잡아 두는 경우, 그리고 시스템이 시트의 씬을 연결 해제했지만 시트가 해제되지 않은 경우에는 결과가 보장되지 않습니다.
 
-```swift
-// async throws(Swift 호출자에 권장)
-Task {
-    do {
-        let result = try await IosShareManager.shared.share(
-            content: ShareContent(items: [.text("Hello")])
-        )
-        // result.completed == false 는 사용자가 취소했음을 의미합니다(에러 아님)
-        print(result.completed, result.activityType ?? "nil")
-    } catch {
-        print(error.localizedDescription)
-    }
-}
+아래 예제는 샘플과 마찬가지로 `share(content:)`(기본 presenter를 사용하는 `async` 형식)를 사용합니다. SwiftUI `Button`의 액션은 동기이므로 각 호출은 `Task` 안에서 실행합니다.
 
-// 콜백(동일)
-IosShareManager.shared.share(
-    content: ShareContent(items: [.text("Hello")])
-) { isSuccess, completed, activityType, errorMessage in
-    print(isSuccess, completed, activityType ?? "nil", errorMessage ?? "nil")
-}
-```
-
-아래 예제는 `async throws` 방식을 사용합니다. SwiftUI의 `Button` 액션은 동기 클로저이므로 각 호출을 `Task { ... }` 로 감쌉니다.
+---
 
 ### 텍스트 공유
 
@@ -994,10 +1029,16 @@ IosShareManager.shared.share(
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.text("Shared from IosLibraryExample")])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Shared from IosLibraryExample")])
+        )
+        // completed == false: 사용자가 시트를 닫았습니다
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        // 에러 처리 참조
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1005,16 +1046,24 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareText.png" alt="Example_IosShareManager_ShareText" width="400" />
 </p>
 
+---
+
+### URL 공유
+
 #### URL 공유
 
-URL은 문자열로 전달합니다. 라이브러리에서 검증되며, `http` / `https` / `file` 스킴이면서 유효한 호스트를 가진 URL만 허용됩니다(그 외에는 `ShareError.invalidURL` 이 throw됩니다).
+URL은 문자열로 전달하며, 양 끝의 공백을 제거한 뒤 라이브러리가 검증합니다. `http`와 `https`에는 호스트가 필요하고, `file`은 파일 URL이어야 합니다. 그 밖의 문자열은 빈 문자열을 포함하여 `ShareError.invalidURL`로 실패합니다.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.url("https://www.apple.com")])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.url("https://www.apple.com")])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1024,17 +1073,21 @@ Task {
 
 #### 프리뷰 포함 URL 공유
 
-`previewTitle` 을 지정하면 네트워크 조회를 기다리지 않고 공유 시트 헤더에 리치 링크 프리뷰를 즉시 표시할 수 있습니다.
+`previewTitle`을 지정하면 링크를 가져오기를 기다리지 않고 공유 시트의 헤더에 바로 제목이 표시됩니다. 이 제목은 첫 번째 항목에 적용됩니다. 그 항목이 URL이면 프리뷰에 URL도 포함됩니다.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(
-            items: [.url("https://www.apple.com")],
-            previewTitle: "Apple"
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(
+                items: [.url("https://www.apple.com")],
+                previewTitle: "Apple"
+            )
         )
-    )
-    print(result.completed, result.activityType ?? "nil")
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1042,11 +1095,13 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareURLWithPreview.png" alt="Example_IosShareManager_ShareURLWithPreview" width="400" />
 </p>
 
+---
+
 ### 이미지 공유
 
 #### 이미지 공유
 
-`.imageFile(path:)` 에 로컬 이미지의 파일 경로를 전달합니다. 라이브러리는 이를 `UIImage` 로 로드합니다(읽을 수 없으면 `ShareError.imageLoadFailed` 를 throw).
+`.imageFile(path:)`에는 로컬 이미지 파일의 전체 경로를 전달합니다. 라이브러리는 이를 `UIImage`로 로드하며, 로드할 수 없으면 `ShareError.imageLoadFailed`로 실패합니다.
 
 ```swift
 guard let imagePath = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png")?.path else {
@@ -1054,10 +1109,14 @@ guard let imagePath = Bundle.main.url(forResource: "app-icon-attachment", withEx
 }
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.imageFile(path: imagePath)])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.imageFile(path: imagePath)])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1067,16 +1126,20 @@ Task {
 
 #### 여러 이미지 공유
 
-`ShareContent.items` 는 여러 요소를 받으므로 여러 이미지를 한 번에 공유할 수 있습니다.
+`items`는 여러 요소를 받으므로 여러 이미지를 한 번에 공유할 수 있습니다. 샘플은 번들에 포함된 이미지를 임시 디렉터리의 파일 두 개로 복사하여 사용합니다.
 
 ```swift
-let imagePaths: [String] = /* 로컬 이미지 파일 경로 */
+let imagePaths: [String] = /* 로컬 이미지 파일의 전체 경로 */
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: imagePaths.map { .imageFile(path: $0) })
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1084,21 +1147,27 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareMultipleImages.png" alt="Example_IosShareManager_ShareMultipleImages" width="400" />
 </p>
 
+---
+
 ### 파일 공유
 
 #### 파일 공유
 
-`.file(path:)` 에 로컬 파일 경로를 전달합니다. 라이브러리는 파일 존재 여부를 확인합니다(없으면 `ShareError.fileNotFound` 를 throw).
+`.file(path:)`에는 로컬 파일의 전체 경로를 전달합니다. 라이브러리는 파일이 존재하는지 확인하고(존재하지 않으면 `ShareError.fileNotFound`) 파일 URL로 공유합니다.
 
 ```swift
 let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("share-sample.txt")
-try "Shared from IosLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [.file(path: fileURL.path)])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        try "Shared from IosLibraryExample.".write(to: fileURL, atomically: true, encoding: .utf8)
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.file(path: fileURL.path)])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1112,16 +1181,22 @@ Task {
 let fileURLs: [URL] = /* 로컬 파일 URL */
 
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: fileURLs.map { .file(path: $0.path) })
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
 <p align="center">
     <img src="images/ios/share/Example_IosShareManager_ShareMultipleFiles.png" alt="Example_IosShareManager_ShareMultipleFiles" width="400" />
 </p>
+
+---
 
 ### 결합 콘텐츠
 
@@ -1131,13 +1206,17 @@ Task {
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(items: [
-            .text("Check this out"),
-            .url("https://www.apple.com")
-        ])
-    )
-    print(result.completed, result.activityType ?? "nil")
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [
+                .text("Check this out"),
+                .url("https://www.apple.com")
+            ])
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1147,17 +1226,21 @@ Task {
 
 #### 제목(Subject) 포함 공유
 
-`subject` 는 이를 지원하는 액티비티(예: Mail의 제목 줄)에서 사용됩니다.
+`subject`는 제목을 지원하는 액티비티(예: Mail의 제목란)에서 사용됩니다. `previewTitle`과 마찬가지로 첫 번째 항목에 붙습니다.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(
-            items: [.text("Body text")],
-            subject: "Sample Subject"
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(
+                items: [.text("Body text")],
+                subject: "Sample Subject"
+            )
         )
-    )
-    print(result.completed, result.activityType ?? "nil")
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1167,20 +1250,24 @@ Task {
 
 #### 액티비티 타입 제외
 
-`excludedActivityTypes` 에 원시 액티비티 타입 식별자를 전달하면 공유 시트에서 숨길 수 있습니다.
+`excludedActivityTypes`에 원시 액티비티 타입 식별자를 전달하면 해당 액티비티가 시트에 표시되지 않습니다.
 
 ```swift
 Task {
-    let result = try await IosShareManager.shared.share(
-        content: ShareContent(
-            items: [.url("https://www.apple.com")],
-            excludedActivityTypes: [
-                "com.apple.UIKit.activity.CopyToPasteboard",
-                "com.apple.UIKit.activity.PostToFacebook"
-            ]
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(
+                items: [.url("https://www.apple.com")],
+                excludedActivityTypes: [
+                    "com.apple.UIKit.activity.CopyToPasteboard",
+                    "com.apple.UIKit.activity.PostToFacebook"
+                ]
+            )
         )
-    )
-    print(result.completed, result.activityType ?? "nil")
+        print(result.completed, result.activityType ?? "nil")
+    } catch {
+        print(error.localizedDescription)
+    }
 }
 ```
 
@@ -1188,41 +1275,62 @@ Task {
     <img src="images/ios/share/Example_IosShareManager_ShareExcludingActivities.png" alt="Example_IosShareManager_ShareExcludingActivities" width="400" />
 </p>
 
+---
+
 ### 에러 처리
 
-`async throws` API는 실패 시 `ShareError` 를 throw합니다. 사용자의 취소는 에러가 아니며 `ShareResult.completed == false` 로 통지됩니다.
+`async` 형식은 `ShareError`를 던지고, `share(content:presenter:completion:)`는 이를 `.failure`로 알립니다. 사용자가 시트를 닫는 것은 에러가 아닙니다(`completed == false`). 모든 케이스는 안정적이며, 임의의 시스템 `Error`를 담는 케이스는 없습니다.
 
-| 에러 | 원인 | 에러 메시지 |
+| 에러 | 발생하는 경우 | 설명(`localizedDescription`) |
 |---|---|---|
-| `noValidItems` | `items` 가 비어 있음 | `"No shareable items were provided."` |
-| `invalidURL(String)` | URL 문자열이 유효한 `http`/`https`/`file` URL이 아님 | `"Invalid URL: <value>."` |
-| `imageLoadFailed(path:)` | 해당 경로의 이미지를 로드할 수 없음 | `"Failed to load image at path: <path>."` |
-| `fileNotFound(path:)` | 해당 경로의 파일이 존재하지 않음 | `"File not found at path: <path>."` |
-| `noRootViewController` | 표시할 루트 뷰 컨트롤러가 없음 | `"No root view controller available to present the share sheet."` |
-| `presentationFailed(Error)` | 표시 실패 또는 시스템 에러 | `"Failed to present the share sheet: <detail>."` |
-| `unknown(Error)` | 예기치 않은 에러 | `"An unknown error occurred: <detail>."` |
+| `noValidItems` | `items`가 비어 있습니다 | `No shareable items were provided.` |
+| `invalidURL(String)` | `.url` 항목이 유효한 `http`, `https`, `file` URL이 아닙니다 | `Invalid URL: <value>.` |
+| `imageLoadFailed(path:)` | `.imageFile` 항목의 이미지를 로드할 수 없습니다 | `Failed to load image at path: <path>.` |
+| `fileNotFound(path:)` | `.file` 항목의 파일이 존재하지 않습니다 | `File not found at path: <path>.` |
+| `noRootViewController` | `.firstActiveScene`이 표시할 뷰 컨트롤러를 찾지 못했습니다 | `No root view controller available to present the share sheet.` |
+| `notForeground` | `.foreground` 또는 `.viewController(_:)`가 포그라운드의 뷰 컨트롤러를 찾지 못했습니다 | `The app has no view controller in the foreground to present the share sheet.` |
+| `presentationFailed` | 시트가 표시되지 않았습니다. 표시할 뷰 컨트롤러가 안정되지 않았거나, UIKit이 표시를 거부했거나, 표시가 끝나기 전에 시트가 해제되었거나, 포그라운드가 공유 시트인 경우입니다([같은 턴에서 두 번 공유](#같은-턴에서-두-번-공유) 참조) | `Failed to present the share sheet.` |
+| `dismissedBySystem` | 시트가 결과를 알리지 않고 사라졌습니다. 라이브러리 밖에서 닫혔거나, 씬이 연결 해제되어 시트가 해제된 경우입니다 | `The share sheet was dismissed without a result.` |
+| `activityFailed(FailureDetail)` | 선택된 액티비티가 에러를 보고했습니다. `FailureDetail`은 그 `NSError`의 `domain`과 `code`를 담습니다 | `The share activity failed.` |
+
+처음 네 가지에서는 시트가 표시되지 않습니다. 설명은 고정된 영어 문장이며, `invalidURL`, `imageLoadFailed`, `fileNotFound`의 설명에는 전달된 URL 또는 경로가 포함됩니다.
+
+1.x와 달라진 점: `presentationFailed`는 더 이상 `Error`를 담지 않고, `unknown(Error)`는 없어졌으며, `notForeground`, `dismissedBySystem`, `activityFailed`가 새로 추가되었습니다. 1.x 케이스에 맞춰 작성한 `switch`는 더 이상 컴파일되지 않습니다. 케이스가 추가될 수 있으므로 `@unknown default` 분기를 작성하십시오.
+
+샘플의 Error 섹션은 빈 목록, 잘못된 URL, 존재하지 않는 파일, 존재하지 않는 이미지를 공유합니다.
 
 ```swift
 Task {
     do {
-        let result = try await IosShareManager.shared.share(
-            content: ShareContent(items: [.text("Hello")])
+        _ = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.url("not a valid url")])
         )
-        if result.completed {
-            // result.activityType 를 통해 공유 성공
-        } else {
-            // 사용자가 취소
-        }
     } catch let error as ShareError {
-        // 타입이 지정된 에러(예: .noValidItems, .invalidURL, .fileNotFound)
-        print(error.localizedDescription)
+        switch error {
+        case .noValidItems, .invalidURL, .imageLoadFailed, .fileNotFound:
+            // 콘텐츠를 공유할 수 없습니다. 시트는 표시되지 않았습니다
+            break
+        case .noRootViewController, .notForeground:
+            // 표시할 뷰 컨트롤러가 없습니다
+            break
+        case .presentationFailed:
+            // 시트가 표시되지 않았습니다
+            break
+        case .dismissedBySystem:
+            // 시트가 결과 없이 사라졌습니다
+            break
+        case .activityFailed(let detail):
+            print(detail.domain, detail.code)
+        @unknown default:
+            break
+        }
     } catch {
-        // 기타 에러
+        // share(content:presenter:)는 ShareError만 던집니다
     }
 }
 ```
 
-콜백 API를 사용하는 경우, 실패는 `isSuccess == false` 와 nil이 아닌 `errorMessage` 로 전달됩니다.
+`share(content:completion:)`는 실패를 `isSuccess == false`, `completed == false`, `activityType == nil`과, `errorMessage`로서 위의 설명으로 알립니다. 1.x와 달리 시트가 라이브러리 밖에서 닫힌 경우에도 완료 핸들러가 한 번 호출됩니다(`"The share sheet was dismissed without a result."`).
 
 ```swift
 IosShareManager.shared.share(
@@ -1231,6 +1339,268 @@ IosShareManager.shared.share(
     // isSuccess == false, errorMessage == "No shareable items were provided."
 }
 ```
+
+---
+
+### 프레젠터와 결과
+
+`PresenterSelection`은 시트를 어느 뷰 컨트롤러에서 표시할지 결정합니다.
+
+| 값 | 뷰 컨트롤러 | 표시하기 전 |
+|---|---|---|
+| `.firstActiveScene`(`async` 형식의 기본값이며, `share(content:completion:)`는 항상 이것을 사용) | 첫 번째 `foregroundActive` 윈도우 씬의 키 윈도우에서 가장 위에 표시된 뷰 컨트롤러 | 기다리지 않고 한 번만 찾습니다. 찾지 못하면 `noRootViewController`로, 그 뷰 컨트롤러가 표시되거나 닫히는 중이거나 무언가를 표시하고 있으면 `presentationFailed`로 실패합니다 |
+| `.foreground` | `foregroundActive` 또는 `foregroundInactive` 윈도우 씬의 키 윈도우에서, 닫히는 중이 아닌 가장 위의 뷰 컨트롤러 | 찾지 못하면 `notForeground`로 실패합니다. 그 뷰 컨트롤러가 전환 중이면 전환이 끝나기를 한 번 기다린 뒤 다시 확인하고, 여전히 안정되지 않았으면 `presentationFailed`로 실패합니다 |
+| `.viewController(_:)` | 클로저가 반환하는 뷰 컨트롤러. 클로저는 시트를 표시하기 직전에 메인 스레드에서 한 번 호출됩니다 | 클로저가 `nil`을 반환하면 `notForeground`로 실패합니다. 그렇지 않으면 `.foreground`와 같이 한 번만 기다립니다 |
+
+`foregroundInactive`는 앱이 보이지만 활성 상태가 아닌 순간을 가리킵니다. 실행 직후, 그리고 제어 센터나 알림 센터가 앱 위로 내려와 있는 동안입니다. iPad에서 앱의 윈도우 두 개를 나란히 표시하면 둘 다 활성 상태일 수 있으므로, `.firstActiveScene`과 `.foreground`가 사용자가 보고 있지 않은 윈도우를 고를 수 있습니다. 그런 경우에는 `.viewController(_:)`로 뷰 컨트롤러를 전달하십시오.
+
+```swift
+// 뷰 컨트롤러 안에서: 이 뷰 컨트롤러가 살아 있는 동안 여기에서 표시합니다.
+let presenter: PresenterSelection = .viewController { [weak self] in self }
+```
+
+클로저는 시트가 표시될 때까지 보관되므로 뷰 컨트롤러는 약한 참조로 캡처하십시오.
+
+#### 포그라운드에서 공유
+
+```swift
+Task {
+    do {
+        let result = try await IosShareManager.shared.share(
+            content: ShareContent(items: [.text("Shared through the Swift API")]),
+            presenter: .foreground
+        )
+        print(result.completed, result.activityType ?? "nil")
+    } catch let error as ShareError {
+        // 앱이 백그라운드에 있으면 notForeground
+        print(error)
+    } catch {
+        // share(content:presenter:)는 ShareError만 던집니다
+    }
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareRequestText.png" alt="Example_IosShareManager_ShareRequestText" width="400" />
+</p>
+
+#### 결과 콜백
+
+`share(content:presenter:completion:)`는 같은 결과를 메인 스레드에서 완료 핸들러로 알립니다. 샘플은 탭하고 3초 뒤에 라이브러리 밖에서 시트를 닫습니다. 그러면 완료 핸들러가 `.dismissedBySystem`으로 한 번 호출됩니다.
+
+```swift
+IosShareManager.shared.share(
+    content: ShareContent(items: [.text("Dismissed from outside after 3 seconds")]),
+    presenter: .foreground
+) { result in
+    switch result {
+    case .success(let share):
+        print(share.completed, share.activityType ?? "nil")
+    case .failure(.dismissedBySystem):
+        // 시트가 결과를 알리지 않고 사라졌습니다
+        break
+    case .failure(let error):
+        print(error)
+    }
+}
+
+DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+    let top = IosDialogManager.shared.foregroundViewController()
+    top?.presentingViewController?.dismiss(animated: true)
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareThenDismissFromOutside.png" alt="Example_IosShareManager_ShareThenDismissFromOutside" width="400" />
+</p>
+
+#### 같은 턴에서 두 번 공유
+
+공유 시트가 다른 공유 시트 위에 표시되는 일은 없습니다. 공유가 겹치면 다음과 같이 됩니다.
+
+- 메인 큐의 같은 턴에서 두 공유를 요청한 경우: 시트 하나가 표시되고, 다른 공유는 그 시트의 표시가 끝날 때까지(최대 10초) 기다린 뒤 `presentationFailed`로 끝납니다. 둘 중 어느 쪽이 표시될지는 정해져 있지 않으며, 항상 첫 번째 호출인 것은 아닙니다. 완료 핸들러는 각각 정확히 한 번 호출됩니다(1.x에서는 둘 중 하나의 완료 핸들러가 호출되지 않았습니다).
+- 포그라운드가 공유 시트(라이브러리의 것이든 앱 자체의 것이든)일 때 요청한 공유는 `presentationFailed`로 끝납니다.
+- `.firstActiveScene`은 기다리지 않습니다. 같은 윈도우에서 라이브러리의 공유 시트가 아직 나타나는 중일 때 요청한 공유는 즉시 `presentationFailed`로 끝납니다.
+- 라이브러리의 공유 시트가 표시를 마치는 데 10초보다 오래 걸리면(예: 그 사이에 앱이 백그라운드로 이동한 경우), 그 시트를 기다리는 공유는 `presentationFailed`로 끝나며, 그 윈도우에서 라이브러리의 이후 표시(공유, 그리고 `presenter` API로 표시하는 다이얼로그)는 그 시트가 표시를 마치거나 해제될 때까지 즉시 `presentationFailed`로 끝납니다. [스레드와 표시](#스레드와-표시)에서 피하도록 설명한, UIKit이 거부한 시트를 붙잡아 두는 경우 이후에도 마찬가지입니다.
+
+```swift
+for number in 1...2 {
+    IosShareManager.shared.share(
+        content: ShareContent(items: [.text("Share \(number) of two in one turn")]),
+        presenter: .foreground
+    ) { result in
+        // 둘 중 하나는 .failure(.presentationFailed)로 끝납니다
+        print(number, result)
+    }
+}
+```
+
+<p align="center">
+    <img src="images/ios/share/Example_IosShareManager_ShareTwiceInOneTurn.png" alt="Example_IosShareManager_ShareTwiceInOneTurn" width="400" />
+</p>
+
+---
+
+### C ABI
+
+- C에서, 그리고 프레임워크의 C 함수를 호출할 수 있는 언어에서 같은 공유를 사용하기 위한 API입니다. Swift 코드는 대신 `IosShareManager`를 호출합니다.
+- `ios-native-toolkit-capi-2.0.0.xcframework`(프레임워크 `IosLibraryCApi`)에는 C ABI와 그 헤더 `NativeToolkitC/*.h`가 포함됩니다. C ABI는 Swift API를 호출하므로, 앱에는 같은 릴리스의 두 xcframework를 모두 포함합니다. 요구 사항과 추가 절차는 매뉴얼 홈의 [지원 플랫폼: iOS](index.ko.md#지원-플랫폼-ios실기기-arm64--simulator-arm64-x86_64)에, 모든 기능에 공통인 규칙은 [C ABI](index.ko.md#c-abi-1)에 있습니다.
+- Android의 `Share.h`에는 콘텐츠 종류마다 함수가 있습니다. iOS에는 Swift API와 마찬가지로 여러 종류가 섞인 항목 배열을 받아 결과를 핸들로 반환하는 함수 `ntk_share_content_async` 하나가 있습니다.
+- 모든 함수는 어느 스레드에서나 호출할 수 있으며 메인 스레드를 기다리지 않습니다. 콜백과 수락된 호출의 `release`는 메인 큐에서 실행되며, 메인 스레드에서 호출한 경우 함수 안에서 실행되는 일은 없습니다. 다른 스레드에서 호출하면 함수가 반환되기 전에 콜백이 도착할 수 있습니다. 콜백과 요청은 `user_data`로 대응시키십시오. 콜백 안에서 블로킹하지 말고, 콜백 밖으로 예외가 나가지 않게 하십시오.
+- `ntk_share_content_async`의 `NTK_SHARE_ERROR_NONE`은 요청이 수락되었음을 뜻합니다. 그 후 콜백이 한 번 호출되고, 이어서 `release`가 호출됩니다. 그 밖의 값은 거부를 뜻합니다. 콜백은 호출되지 않으며, `release`는 호출한 스레드에서 이미 실행되었으므로 `user_data`를 직접 해제하지 마십시오. `NULL` 콜백은 거부됩니다. `release`는 `NULL`이어도 됩니다.
+- 라이브러리는 요청(문자열, 항목, 제외할 타입)을 호출이 반환되기 전에 복사합니다. 문자열은 NUL로 끝나는 UTF-8이며, 잘못된 UTF-8은 `NTK_SHARE_ERROR_INVALID_PARAMETER`로 거부됩니다.
+- 0으로 채우고 `struct_size`를 설정한 구조체는 모든 필드가 기본값입니다. `ntk_share_request`에서는 제목 없음, 프리뷰 제목 없음, 제외 없음(이때 `excluded_activity_types`는 `NULL`이어도 됩니다)이며 항목도 없으므로, 호출은 `NTK_SHARE_ERROR_EMPTY_CONTENT`로 거부됩니다. `items`와 `item_count`를 설정하십시오. `ntk_share_item`에서는 `value`가 `NULL`인 `NTK_SHARE_ITEM_TEXT`가 되며, 이는 `NTK_SHARE_ERROR_INVALID_PARAMETER`로 거부됩니다. 모든 항목에 `value`가 필요합니다. 예약 필드는 0이어야 합니다. 항목 배열의 모든 요소는 같은 `struct_size`를 가집니다.
+- 공유에는 포그라운드가 필요합니다. C ABI는 Swift의 `.foreground`와 마찬가지로 포그라운드의 뷰 컨트롤러에서 표시합니다. 백그라운드에서는 콜백에 `NTK_SHARE_ERROR_NOT_FOREGROUND`가 전달됩니다. C ABI는 뷰 컨트롤러를 고를 수 없습니다. 앱의 윈도우 여러 개를 나란히 표시하는 iPad에서는 어느 윈도우에 시트가 표시될지 정해져 있지 않습니다. iPad에서 시트는 표시하는 뷰의 중앙을 기준으로 하는 팝오버가 됩니다.
+- 공유는 취소할 수 없습니다. 취소 함수도 `CANCELED` 값도 없습니다. 콜백과 `release`(그리고 그와 함께 `user_data`)는 시트가 끝날 때까지 보관됩니다. 시트가 표시된 동안 호스트가 윈도우나 루트 뷰 컨트롤러를 교체하거나, 시스템이 씬을 연결 해제했는데 시트가 남아 있는 경우에는 이들이 호출되지 않을 수 있으며, `user_data`는 누수됩니다.
+- 결과 핸들(`ntk_share_result*`)은 받는 쪽의 것입니다. 받는 쪽이 콜백 안에서든 나중에든, 어느 스레드에서든 `ntk_share_result_free`로 해제합니다. `ntk_share_result_activity_type`이 반환하는 문자열은 핸들을 해제할 때까지 유효합니다. `ntk_share_result_free(NULL)`은 아무것도 하지 않습니다.
+- iOS에서 `ntk_last_system_code()`와 콜백의 `system_code`는 항상 0입니다.
+
+#### 빌드
+
+1. `ios-native-toolkit-2.0.0.xcframework`와 `ios-native-toolkit-capi-2.0.0.xcframework`를 앱 타깃에 추가하고 둘 다 "Embed & Sign"으로 설정합니다.
+2. 프레임워크에서 헤더를 `#include <IosLibraryCApi/NativeToolkitC/Share.h>`로 포함하거나, `dist/1.14.0/ios/include`를 Header Search Paths에 추가하고 `#include <NativeToolkitC/Share.h>`라고 작성합니다. `Share.h`는 `Common.h`를 직접 포함합니다.
+
+#### 콘텐츠 공유
+
+```c
+static void NTK_CALL on_share_result(void* user_data, ntk_share_error error, uint32_t system_code,
+                                     ntk_share_result* result)
+{
+    /* 메인 스레드에서, 수락된 호출마다 정확히 한 번 호출됩니다. error가 NONE이 아니면 result는 NULL입니다. */
+    (void)user_data; (void)system_code;   /* iOS에서 system_code는 항상 0입니다 */
+    if (error == NTK_SHARE_ERROR_NONE) {
+        if (ntk_share_result_completed(result)) {
+            size_t size = 0;
+            const char* activity = ntk_share_result_activity_type(result, &size);   /* 알 수 없으면 NULL입니다 */
+            (void)activity;
+        } else {
+            /* 사용자가 시트를 닫았습니다. 에러가 아닙니다. */
+        }
+        ntk_share_result_free(result);   /* 여기서든 나중에든, 어느 스레드에서든 됩니다 */
+        return;
+    }
+    switch (error) {
+    case NTK_SHARE_ERROR_NOT_FOREGROUND:    /* 앱이 백그라운드에 있었습니다. 아무것도 표시되지 않았습니다 */
+    case NTK_SHARE_ERROR_SHOW_FAILED:       /* 시트가 표시되지 않았습니다 */
+        break;
+    case NTK_SHARE_ERROR_INVALID_URI:
+    case NTK_SHARE_ERROR_FILE_NOT_FOUND:
+    case NTK_SHARE_ERROR_IMAGE_LOAD_FAILED: /* 공유할 수 없는 항목이 있습니다. 아무것도 표시되지 않았습니다 */
+        break;
+    case NTK_SHARE_ERROR_CANCELED_BY_SYSTEM: /* 시트가 결과 없이 사라졌습니다 */
+    case NTK_SHARE_ERROR_ACTIVITY_FAILED:    /* 선택된 액티비티가 에러를 보고했습니다 */
+        break;
+    default:
+        break;
+    }
+}
+
+static void NTK_CALL on_share_release(void* user_data)
+{
+    /* 한 번 호출됩니다. 메인 스레드에서 콜백 뒤에, 또는 호출이 거부된 경우 호출한 스레드에서
+       호출됩니다. user_data는 여기서 해제합니다. */
+    (void)user_data;
+}
+
+/* 텍스트와 URL을 한 번의 공유로. 제목, 프리뷰 제목, 제외할 액티비티를 지정합니다. */
+static ntk_share_error share_text_and_url(void* user_data)
+{
+    ntk_share_item items[2];
+    memset(items, 0, sizeof(items));
+    items[0].struct_size = (uint32_t)sizeof(items[0]);
+    items[0].kind = NTK_SHARE_ITEM_TEXT;
+    items[0].value = "Check this out";
+    items[1].struct_size = (uint32_t)sizeof(items[1]);
+    items[1].kind = NTK_SHARE_ITEM_URL;
+    items[1].value = "https://www.apple.com";
+
+    const char* excluded[1];
+    excluded[0] = "com.apple.UIKit.activity.PostToFacebook";
+
+    /* 0인 필드는 기본값입니다. 제목 없음, 프리뷰 제목 없음, 제외 없음입니다. */
+    ntk_share_request request;
+    memset(&request, 0, sizeof(request));
+    request.struct_size = (uint32_t)sizeof(request);
+    request.items = items;
+    request.item_count = 2;
+    request.subject = "Sample Subject";      /* Swift와 마찬가지로 첫 번째 항목에 붙습니다 */
+    request.preview_title = "Apple";
+    request.excluded_activity_types = excluded;
+    request.excluded_activity_type_count = 1;
+
+    /* 라이브러리는 반환하기 전에 요청을 복사합니다. items가 범위를 벗어나도 됩니다. */
+    return ntk_share_content_async(&request, &on_share_result, user_data, &on_share_release);
+}
+
+/* 이미지와 파일을 전체 경로로. */
+static ntk_share_error share_image_and_file(const char* image_path, const char* file_path, void* user_data)
+{
+    ntk_share_item items[2];
+    memset(items, 0, sizeof(items));
+    items[0].struct_size = (uint32_t)sizeof(items[0]);
+    items[0].kind = NTK_SHARE_ITEM_IMAGE_FILE;
+    items[0].value = image_path;
+    items[1].struct_size = (uint32_t)sizeof(items[1]);
+    items[1].kind = NTK_SHARE_ITEM_FILE;
+    items[1].value = file_path;
+
+    ntk_share_request request;
+    memset(&request, 0, sizeof(request));
+    request.struct_size = (uint32_t)sizeof(request);
+    request.items = items;
+    request.item_count = 2;
+
+    ntk_share_error error = ntk_share_content_async(&request, &on_share_result, user_data, &on_share_release);
+    if (error != NTK_SHARE_ERROR_NONE) {
+        /* 거부되었습니다. 콜백은 호출되지 않으며, on_share_release는 이미 실행되었습니다. */
+    }
+    return error;
+}
+```
+
+- 항목의 `value`는 텍스트, URL 또는 전체 경로입니다. 빈 문자열은 호출 시점에 거부되지 않습니다. 비어 있거나 공백뿐인 텍스트는 Swift API와 마찬가지로 그대로 공유됩니다(빈 텍스트가 `NTK_SHARE_ERROR_EMPTY_CONTENT`가 되는 Android와는 다릅니다). URL이나 경로는 라이브러리가 검증하며, 빈 것을 포함하여 Swift API와 마찬가지로 `NTK_SHARE_ERROR_INVALID_URI`, `NTK_SHARE_ERROR_FILE_NOT_FOUND` 또는 `NTK_SHARE_ERROR_IMAGE_LOAD_FAILED`를 콜백으로 알립니다.
+- `item_count`가 0이면 `NTK_SHARE_ERROR_EMPTY_CONTENT`를 반환합니다. 범위를 벗어난 항목 `kind`, `NULL`인 `value`, 개수가 0이 아닌데 `NULL`인 배열, `NULL`인 제외 타입은 `NTK_SHARE_ERROR_INVALID_PARAMETER`를 반환합니다.
+
+#### 한 번에 하나의 공유 시트
+
+[같은 턴에서 두 번 공유](#같은-턴에서-두-번-공유)의 규칙은 C에도 적용됩니다.
+
+- 메인 큐의 같은 턴에서 `ntk_share_content_async`를 두 번 호출하면, 한쪽이 시트를 표시하고 다른 쪽은 그 시트의 표시가 끝날 때까지(최대 10초) 기다린 뒤 콜백에 `NTK_SHARE_ERROR_SHOW_FAILED`가 전달됩니다. 어느 쪽이 표시될지는 정해져 있지 않으며, 여러 공유의 콜백 순서도 보장되지 않습니다. 수락된 각 호출에는 콜백과 `release`가 한 번씩 전달됩니다.
+- 포그라운드가 공유 시트일 때의 호출에는 `NTK_SHARE_ERROR_SHOW_FAILED`가 전달됩니다.
+- 호스트가 직접 표시한 뷰 컨트롤러(예: 호스트 자체의 `UIActivityViewController`)가 아직 표시되는 중이고 그 `present` 호출의 완료 핸들러가 실행되기 전에는 `ntk_share_content_async`를 호출하지 마십시오. UIKit이 라이브러리의 시트 표시를 거부하고도 시트를 붙잡아 둘 수 있으며, 그러면 콜백과 `release`가 호출되지 않을 수 있습니다. 호스트의 `present` 완료 핸들러 이후에 호출하십시오.
+- 공유 시트가 표시를 마치는 데 10초보다 오래 걸리면, 기다리던 호출에는 `NTK_SHARE_ERROR_SHOW_FAILED`가 전달되고, 그 윈도우의 이후 공유에도 그 시트가 표시를 마치거나 해제될 때까지 `NTK_SHARE_ERROR_SHOW_FAILED`가 전달됩니다.
+
+#### 에러 값
+
+`ntk_share_error`입니다. 0부터 5까지는 C ABI의 모든 기능에서 같은 의미입니다. 빠진 번호(8, 10부터 16까지)는 iOS가 사용하지 않는 Android `Share.h`의 값입니다.
+
+| 코드 | 이름 | 발생하는 경우 | 반환 방법 |
+|---|---|---|---|
+| 0 | `NTK_SHARE_ERROR_NONE` | 수락되었습니다(반환값). 시트가 결과와 함께 끝났습니다(콜백) | 둘 다 |
+| 1 | `NTK_SHARE_ERROR_INVALID_PARAMETER` | `NULL` 요청이나 콜백, 잘못된 UTF-8, 너무 작거나 4096을 넘는 `struct_size`, 0이 아닌 예약 필드, 크기가 서로 다른 항목, 범위를 벗어난 항목 `kind`, `NULL` 값 | 반환값 |
+| 2 | `NTK_SHARE_ERROR_NOT_INITIALIZED` | iOS에서는 반환되지 않습니다 | - |
+| 3 | `NTK_SHARE_ERROR_NOT_SUPPORTED` | 구조체 중 이 버전이 모르는 부분에 0이 아닌 값이 있습니다 | 반환값 |
+| 4 | `NTK_SHARE_ERROR_UNKNOWN` | C ABI가 모르는 `ShareError` 케이스입니다. 두 xcframework가 같은 릴리스인 동안에는 반환되지 않습니다 | 콜백 |
+| 5 | `NTK_SHARE_ERROR_OUT_OF_MEMORY` | iOS에서는 반환되지 않습니다 | - |
+| 6 | `NTK_SHARE_ERROR_NOT_FOREGROUND` | 앱에 포그라운드의 뷰 컨트롤러가 없습니다. 아무것도 표시되지 않았습니다 | 콜백 |
+| 7 | `NTK_SHARE_ERROR_EMPTY_CONTENT` | `item_count`가 0입니다 | 반환값 |
+| 9 | `NTK_SHARE_ERROR_FILE_NOT_FOUND` | `NTK_SHARE_ITEM_FILE` 항목의 파일이 존재하지 않습니다 | 콜백 |
+| 17 | `NTK_SHARE_ERROR_INVALID_URI` | `NTK_SHARE_ITEM_URL` 항목이 유효한 `http`, `https`, `file` URL이 아닙니다 | 콜백 |
+| 18 | `NTK_SHARE_ERROR_IMAGE_LOAD_FAILED` | `NTK_SHARE_ITEM_IMAGE_FILE` 항목의 이미지를 로드할 수 없습니다 | 콜백 |
+| 19 | `NTK_SHARE_ERROR_SHOW_FAILED` | 시트가 표시되지 않았습니다. 포그라운드의 뷰 컨트롤러가 안정되지 않았거나, UIKit이 거부했거나, 포그라운드가 공유 시트인 경우입니다 | 콜백 |
+| 20 | `NTK_SHARE_ERROR_CANCELED_BY_SYSTEM` | 시트가 결과 없이 사라졌습니다. 라이브러리 밖에서 닫혔거나, 씬이 연결 해제되어 시트가 해제된 경우입니다 | 콜백 |
+| 21 | `NTK_SHARE_ERROR_ACTIVITY_FAILED` | 선택된 액티비티가 에러를 보고했습니다. 그 domain과 code는 C에 전달되지 않습니다 | 콜백 |
+
+`CANCELED`는 없습니다. 공유는 취소할 수 없으며, 사용자가 시트를 닫은 경우는 `NTK_SHARE_ERROR_NONE`이고 `ntk_share_result_completed`가 0을 반환합니다.
+
+| Swift API | C ABI |
+|---|---|
+| `share(content:presenter:completion:)`(`.foreground`) | `ntk_share_content_async`(`ntk_share_request`) |
+| `ShareItem`의 `.text` / `.url` / `.imageFile(path:)` / `.file(path:)` | `ntk_share_item`(`NTK_SHARE_ITEM_TEXT` / `_URL` / `_IMAGE_FILE` / `_FILE`) |
+| `ShareContent.subject` / `previewTitle` / `excludedActivityTypes` | `subject` / `preview_title` / `excluded_activity_types`와 `excluded_activity_type_count` |
+| `ShareResult.completed` / `activityType` | `ntk_share_result_completed` / `ntk_share_result_activity_type`, 그 뒤 `ntk_share_result_free` |
+| `ShareError` | `ntk_share_error`: `noRootViewController`와 `notForeground`는 6, `noValidItems`는 7, `fileNotFound`는 9, `invalidURL`은 17, `imageLoadFailed`는 18, `presentationFailed`는 19, `dismissedBySystem`은 20, `activityFailed`는 21 |
+| `PresenterSelection` | 없습니다. C ABI는 항상 포그라운드에서 표시합니다 |
 
 ---
 

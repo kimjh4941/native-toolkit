@@ -4,6 +4,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "ClipboardTemporaryFileStore")
 
 /// Manages request-scoped temporary directories under
 /// `<NSTemporaryDirectory()>/IosLibraryClipboard/<sessionID>/<requestID>/<UUID>.<ext>`.
@@ -22,7 +25,6 @@ final class ClipboardTemporaryFileStore: @unchecked Sendable {
     // shared mutable state check.
     nonisolated(unsafe) private static var didRunStartupCleanup = false
 
-    private let TAG = "ClipboardTemporaryFileStore"
     private let fileManager: FileManager
     let sessionID: String
     let rootDirectory: URL
@@ -34,7 +36,7 @@ final class ClipboardTemporaryFileStore: @unchecked Sendable {
         self.rootDirectory = fileManager.temporaryDirectory
             .appendingPathComponent(Self.rootDirectoryName, isDirectory: true)
         self.sessionDirectory = rootDirectory.appendingPathComponent(sessionID, isDirectory: true)
-        Log.d(TAG, "[init] sessionID: \(sessionID)")
+        logger.log(level: .libraryDebug, "[init] sessionID: \(sessionID, privacy: .public)")
         Self.runStartupCleanupOnce(fileManager: fileManager, rootDirectory: rootDirectory, activeSessionID: sessionID)
     }
 
@@ -67,6 +69,28 @@ final class ClipboardTemporaryFileStore: @unchecked Sendable {
     func discard(_ fileURL: URL) {
         let requestDirectory = fileURL.deletingLastPathComponent()
         try? fileManager.removeItem(at: requestDirectory)
+    }
+
+    /// Deletes the request directory of a loaded file that was never delivered (its request was
+    /// cancelled through a `RequestBox` while the load finished), when the file is one this store
+    /// created: `<temporary>/IosLibraryClipboard/<session>/<request>/<file>`. Any other URL is left
+    /// alone. Any thread.
+    ///
+    /// - Returns: `true` when the URL had the store's layout (its directory was then removed, or
+    ///   was already gone).
+    @discardableResult
+    static func discardUndelivered(_ fileURL: URL, fileManager: FileManager = .default) -> Bool {
+        logger.log(level: .libraryDebug, "[discardUndelivered] fileURL: \(ClipboardLog.redactedPath(fileURL.path), privacy: .public), fileManager: \(fileManager === FileManager.default ? "default" : "custom", privacy: .public)")
+        let root = fileManager.temporaryDirectory.appendingPathComponent(rootDirectoryName, isDirectory: true)
+        let requestDirectory = fileURL.deletingLastPathComponent()
+        let sessionsParent = requestDirectory.deletingLastPathComponent().deletingLastPathComponent()
+        guard isContained(fileURL, in: root),
+              sessionsParent.standardizedFileURL.path == root.standardizedFileURL.path else {
+            logger.error("[discardUndelivered] not a file of this store, left alone")
+            return false
+        }
+        try? fileManager.removeItem(at: requestDirectory)
+        return true
     }
 
     static func safeFileName(sourceURL: URL, suggestedName: String?) -> String {

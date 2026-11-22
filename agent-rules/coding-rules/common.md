@@ -18,7 +18,7 @@
 - 枠組みごとの対応（Unity の C#、Godot・Unreal のプラグイン、.NET のラッパーなど）は、本体の外の薄いラッパーにする。ラッパーは C ABI か本体の公開 API を呼ぶだけで、機能のロジックを持たない（持つのは型の変換、スレッドの受け渡し、枠組みへの組み込みだけ）
 - 本体の公開 API は、特定の枠組みの都合を前提にしない。例: Android で前面の Activity を `FragmentActivity` に限らない（Unity の `UnityPlayerActivity` や Flutter の `FlutterActivity` は `FragmentActivity` ではない）
 - OS の提供元のライブラリでも、利用者がランタイムを配る必要があるもの（Windows App SDK、WebView2）は、マニュアルの動作環境に書く
-- 今ある Unity Bridge（下の「Unity Bridge パターン」）はこの原則より前からあるもので、OS ごとの C ABI に置き換えて外していく（Windows と Android は置き換え済み。Android は 2.0.0 で `unity_android_plugin` を消した（`artifact/topics/android-c-abi/`）。iOS / macOS は後のトピック）
+- 今ある Unity Bridge（下の「Unity Bridge パターン」）はこの原則より前からあるもので、OS ごとの C ABI に置き換えて外していく（Windows、Android、iOS は置き換え済み。Android は 2.0.0 で `unity_android_plugin` を（`artifact/topics/android-c-abi/`）、iOS は 2.0.0 で `UnityIosPlugin` を消した（`artifact/topics/ios-c-abi/`）。macOS は後のトピック）
 
 ---
 
@@ -51,11 +51,11 @@ Domain → Application → Data
 | 層 | 配置モジュール | 例 |
 |---|---|---|
 | Domain / Application / Data / Presentation / **Manager** | **ネイティブライブラリ** | `android/android_library`, `ios/IosLibrary`, `mac/MacLibrary`, `windows/WindowsLibrary` |
-| Unity Bridge | Unity プラグイン | `ios/UnityIosPlugin`, `mac/UnityMacPlugin` |
-| C ABI | ネイティブライブラリの C ABI のモジュール（汎用。Unity もこれを P/Invoke で呼ぶ） | `android/android_library_capi`, `windows/WindowsLibraryCApi` |
+| Unity Bridge | Unity プラグイン | `mac/UnityMacPlugin` |
+| C ABI | ネイティブライブラリの C ABI のモジュール（汎用。Unity もこれを P/Invoke で呼ぶ） | `android/android_library_capi`, `ios/IosLibraryCApi`, `windows/WindowsLibraryCApi` |
 
 **「Manager 層」と `Unity*Manager` クラスを混同しないこと。**
-`UnityIosShareManager` などは名前に Manager を含むが **Unity Bridge 層**であり、Manager 層ではない。Manager 層の実体はネイティブライブラリ側の `IosShareManager` / `IosNotificationManager` のようなクラスを指す。
+`UnityMacShareManager` などは名前に Manager を含むが **Unity Bridge 層**であり、Manager 層ではない。Manager 層の実体はネイティブライブラリ側の `IosShareManager` / `IosNotificationManager` のようなクラスを指す。
 
 **Manager の置き場所（全 OS 共通）:** Manager は機能のフォルダー・パッケージの直下に置き、層のフォルダー（Domain / Application / Data / Presentation）と並べる。Manager は Presentation の上の別の層なので、層のフォルダーの中（`Presentation/` など）にも、`Manager/` のような専用のフォルダーにも入れない。
 
@@ -235,7 +235,7 @@ final class MockNotificationRepository: NotificationRepository {
 
 | プラットフォーム    | フレームワーク                      | 備考                   |
 | ------------------- | ----------------------------------- | ---------------------- |
-| iOS 18+ / macOS 15+ | Swift Testing (`@Test` / `#expect`) | XCTest は使わない      |
+| iOS 18+ / macOS 15+ | Swift Testing (`@Test` / `#expect`) | XCTest は使わない（例外: XCUITest の UI テスト、C の関数を呼ぶ `ios/IosLibraryCApiTests`） |
 | Android             | JUnit 4 / 5 + MockK                 | プロジェクト設定に従う |
 | Windows             | xUnit / MSTest / NUnit              | プロジェクト設定に従う |
 
@@ -311,18 +311,23 @@ mutant を作れない」は、変異検査を省く理由にならない。
 - 複雑なデータは JSON 文字列で渡す
 - Bridge 層の実装詳細は OS ごとに異なってよいが、責務分離の原則は共通とする
 
-### iOS Bridge 構成（実装例）
+### Swift と Objective-C の Bridge 構成（実装例。今は macOS の `UnityMacPlugin`）
 
 - Swift facade: `@objcMembers public class XxxManager: NSObject` — singleton、Manager に委譲
 - Obj-C ヘッダ (`.h`): callback typedef と `extern "C"` 関数宣言
 - Obj-C 実装 (`.m`): 各 C 関数から Swift singleton を呼び出す
 
 ```c
-// callback typedefs（iOS C-Bridge 実装例）
+// callback typedefs（C-Bridge の実装例）
 typedef void (*NativeCallback)(bool isSuccess, const char* errorMessage);
 typedef void (*NativeJsonCallback)(const char* json);
 typedef void (*NativeStatusCallback)(const char* status);
 ```
+
+### iOS（2.0.0 から Bridge は無い）
+
+- Unity 向けの Bridge（`UnityIosPlugin`）は 2.0.0 で消した。Unity は汎用の C ABI（`IosLibraryCApi`）を P/Invoke で呼ぶ
+- C ABI の受け口は Bridge と同じく薄く保ち、Manager を呼ぶだけにする（`ios.md` の「C ABI の置き方」）
 
 ### Android（2.0.0 から Bridge は無い）
 
@@ -344,7 +349,7 @@ typedef void (*NativeStatusCallback)(const char* status);
 | サンプルアプリ | 依存してよい | 依存禁止 |
 |---|---|---|
 | `android/AndroidLibraryExample` | `android_library` | `android_library_capi`（Android の Unity プラグインは 2.0.0 で削除） |
-| `ios/IosLibraryExample` | `IosLibrary` | `UnityIosPlugin` |
+| `ios/IosLibraryExample` | `IosLibrary` | `IosLibraryCApi`（iOS の Unity プラグインは 2.0.0 で削除） |
 | `mac/MacLibraryExample` | `MacLibrary` | Unity プラグイン |
 | `windows/WindowsLibraryExample` | `WindowsLibrary` | Unity プラグイン |
 

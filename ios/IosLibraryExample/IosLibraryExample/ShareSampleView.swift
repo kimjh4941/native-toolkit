@@ -1,11 +1,75 @@
-import SwiftUI
 import IosLibrary
+import os
+import SwiftUI
+import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.ios.nativetoolkit.example", category: "ShareSampleView")
+
+/// Single source of truth for the accessibility identifiers exposed by `ShareSampleView`.
+///
+/// A button's `<name>` is the lowerCamelCase of its title.
+enum ShareSampleIdentifiers {
+
+    static let result = "share.result"
+
+    static func section(_ name: String) -> String { "share.section.\(name)" }
+    static func button(_ name: String) -> String { "share.button.\(name)" }
+
+    enum Section {
+        static let text = "text"
+        static let url = "url"
+        static let image = "image"
+        static let file = "file"
+        static let combination = "combination"
+        static let error = "error"
+        static let swiftAPI = "swiftAPI"
+    }
+
+    enum ButtonName {
+        static let shareText = "shareText"
+        static let shareURL = "shareURL"
+        static let shareURLWithPreview = "shareURLWithPreview"
+        static let shareImage = "shareImage"
+        static let shareMultipleImages = "shareMultipleImages"
+        static let shareFile = "shareFile"
+        static let shareMultipleFiles = "shareMultipleFiles"
+        static let shareMultiple = "shareMultiple"
+        static let shareWithSubject = "shareWithSubject"
+        static let shareExcludingActivities = "shareExcludingActivities"
+        static let shareEmpty = "shareEmpty"
+        static let shareInvalidURL = "shareInvalidURL"
+        static let shareMissingFile = "shareMissingFile"
+        static let shareMissingImage = "shareMissingImage"
+        // Swift API (2.0.0): `share(content:presenter:)` and `share(content:presenter:completion:)`.
+        static let shareRequestText = "shareRequestText"
+        static let shareThenDismissFromOutside = "shareThenDismissFromOutside"
+        static let shareTwiceInOneTurn = "shareTwiceInOneTurn"
+        static let shareAfter3Seconds = "shareAfter3Seconds"
+    }
+}
+
+/// What the sample saw at the moment it dismissed a share sheet of the Swift API section, added
+/// to that request's result line (`shown=true`). A UI test then reads it from the result line
+/// instead of having to find the sheet before the timer ends it.
+@MainActor
+final class ShareMoment {
+    var note = ""
+}
+
+/// The results of the two shares of `ShareTwiceInOneTurn`, by request number, until both arrive.
+@MainActor
+final class SharePair {
+    var results: [Int: String] = [:]
+}
 
 struct ShareSampleView: View {
 
-    private let TAG = "ShareSampleView"
+    private typealias ID = ShareSampleIdentifiers
 
     @State private var resultText = "Result will be displayed here"
+    /// Number of result updates, exposed as the result line's `accessibilityValue` so a UI test
+    /// can tell a new result from an identical old one.
+    @State private var resultUpdateCount = 0
 
     var body: some View {
         VStack(spacing: 12) {
@@ -20,10 +84,12 @@ struct ShareSampleView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
                 .padding(.horizontal)
+                .accessibilityIdentifier(ID.result)
+                .accessibilityValue("updates=\(resultUpdateCount)")
 
             ScrollView {
                 VStack(spacing: 16) {
-                    sectionView(title: "Text") {
+                    sectionView(title: "Text", identifier: ID.Section.text) {
                         Button("ShareText") {
                             Task {
                                 await runShare(
@@ -32,9 +98,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareText))
                     }
 
-                    sectionView(title: "URL") {
+                    sectionView(title: "URL", identifier: ID.Section.url) {
                         Button("ShareURL") {
                             Task {
                                 await runShare(
@@ -43,6 +110,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareURL))
 
                         Button("ShareURLWithPreview") {
                             Task {
@@ -55,9 +123,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareURLWithPreview))
                     }
 
-                    sectionView(title: "Image") {
+                    sectionView(title: "Image", identifier: ID.Section.image) {
                         Button("ShareImage") {
                             Task {
                                 guard let imagePath = bundledImagePath() else {
@@ -70,6 +139,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareImage))
 
                         Button("ShareMultipleImages") {
                             Task {
@@ -83,9 +153,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMultipleImages))
                     }
 
-                    sectionView(title: "File") {
+                    sectionView(title: "File", identifier: ID.Section.file) {
                         Button("ShareFile") {
                             Task {
                                 guard let fileURL = prepareSampleFileURL() else {
@@ -98,6 +169,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareFile))
 
                         Button("ShareMultipleFiles") {
                             Task {
@@ -111,9 +183,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMultipleFiles))
                     }
 
-                    sectionView(title: "Combination") {
+                    sectionView(title: "Combination", identifier: ID.Section.combination) {
                         Button("ShareMultiple") {
                             Task {
                                 await runShare(
@@ -125,6 +198,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMultiple))
 
                         Button("ShareWithSubject") {
                             Task {
@@ -137,6 +211,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareWithSubject))
 
                         Button("ShareExcludingActivities") {
                             Task {
@@ -152,14 +227,16 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareExcludingActivities))
                     }
 
-                    sectionView(title: "Error") {
+                    sectionView(title: "Error", identifier: ID.Section.error) {
                         Button("ShareEmpty") {
                             Task {
                                 await runShare(label: "shareEmpty", content: ShareContent(items: []))
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareEmpty))
 
                         Button("ShareInvalidURL") {
                             Task {
@@ -169,6 +246,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareInvalidURL))
 
                         Button("ShareMissingFile") {
                             Task {
@@ -178,6 +256,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMissingFile))
 
                         Button("ShareMissingImage") {
                             Task {
@@ -187,6 +266,88 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareMissingImage))
+                    }
+
+                    sectionView(title: "Swift API (2.0.0)", identifier: ID.Section.swiftAPI) {
+                        // `share(content:presenter:)` (async) from the foreground (SA-14).
+                        Button("ShareRequestText") {
+                            logger.debug("[shareRequestText]")
+                            Task {
+                                do {
+                                    let result = try await IosShareManager.shared.share(
+                                        content: ShareContent(items: [.text("Shared through the Swift API")]),
+                                        presenter: .foreground
+                                    )
+                                    report("shareRequestText", .success(result))
+                                } catch let error as ShareError {
+                                    report("shareRequestText", .failure(error))
+                                } catch {
+                                    updateResult(isSuccess: false, result: "[shareRequestText] failure \(error)")
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareRequestText))
+
+                        // Dismissed by the sample from outside the library 3 seconds after the tap (the
+                        // release watch: dismissedBySystem). The result line says whether the sheet was
+                        // shown when it was dismissed (`shown=true`). The callback form, which the C ABI
+                        // uses (SA-14).
+                        Button("ShareThenDismissFromOutside") {
+                            logger.debug("[shareThenDismissFromOutside]")
+                            let moment = ShareMoment()
+                            IosShareManager.shared.share(
+                                content: ShareContent(items: [.text("Dismissed from outside after 3 seconds")]),
+                                presenter: .foreground
+                            ) { result in
+                                report("shareThenDismissFromOutside", result, note: moment.note)
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                moment.note = "shown=\(Self.isSheetShown())"
+                                let top = IosDialogManager.shared.foregroundViewController()
+                                top?.presentingViewController?.dismiss(animated: true)
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareThenDismissFromOutside))
+
+                        // Two shares in the same main-queue turn (SH-13). Each must end once: the result
+                        // line is written as each one ends, with every request's result so far
+                        // (`pending` until it ends).
+                        Button("ShareTwiceInOneTurn") {
+                            logger.debug("[shareTwiceInOneTurn]")
+                            let pair = SharePair()
+                            for number in 1...2 {
+                                IosShareManager.shared.share(
+                                    content: ShareContent(items: [.text("Share \(number) of two in one turn")]),
+                                    presenter: .foreground
+                                ) { result in
+                                    pair.results[number] = Self.summary(of: result)
+                                    logger.debug("[shareTwiceInOneTurn] number: \(number, privacy: .public), results: \(pair.results.count, privacy: .public)")
+                                    let line = (1...2).map { "\($0)=\(pair.results[$0] ?? "pending")" }.joined(separator: " ")
+                                    updateResult(isSuccess: true, result: "[shareTwiceInOneTurn] \(line)")
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareTwiceInOneTurn))
+
+                        #if DEBUG
+                        // Test only: requested 3 seconds later, so that a UI test can move the app to the
+                        // background (notForeground). The scene's state when the request is made is in the
+                        // result line (SA-05).
+                        Button("ShareAfter3Seconds") {
+                            logger.debug("[shareAfter3Seconds]")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                let state = Self.sceneState()
+                                IosShareManager.shared.share(
+                                    content: ShareContent(items: [.text("Requested 3 seconds later")]),
+                                    presenter: .foreground
+                                ) { result in
+                                    report("shareAfter3Seconds@\(state)", result)
+                                }
+                            }
+                        }
+                        .accessibilityIdentifier(ID.button(ID.ButtonName.shareAfter3Seconds))
+                        #endif
                     }
                 }
                 .padding(.horizontal)
@@ -198,10 +359,15 @@ struct ShareSampleView: View {
     // MARK: - Section helper
 
     @ViewBuilder
-    private func sectionView<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func sectionView<Content: View>(
+        title: String,
+        identifier: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
+                .accessibilityIdentifier(ID.section(identifier))
             content()
                 .buttonStyle(FullWidthPressableButtonStyle())
         }
@@ -212,21 +378,79 @@ struct ShareSampleView: View {
     // MARK: - Share execution
 
     private func runShare(label: String, content: ShareContent) async {
-        Log.d(TAG, "[runShare] label: \(label), items: \(content.items.count)")
+        logger.debug("[runShare] label: \(label, privacy: .public), items: \(content.items.count, privacy: .public)")
         do {
             let result = try await IosShareManager.shared.share(content: content)
-            Log.d(
-                TAG,
-                "[runShare][result] label: \(label), completed: \(result.completed), activityType: \(result.activityType ?? "nil")"
-            )
+            logger.debug("[runShare][result] label: \(label, privacy: .public), completed: \(result.completed, privacy: .public), activityType: \(result.activityType ?? "nil", privacy: .public)")
             let detail = result.completed
                 ? "[\(label)] completed=true, activityType=\(result.activityType ?? "nil")"
                 : "[\(label)] completed=false (cancelled)"
             updateResult(isSuccess: true, result: detail)
         } catch {
-            Log.e(TAG, "[runShare][error] label: \(label), error: \(error)")
+            logger.error("[runShare][error] label: \(label, privacy: .public), error: \(error, privacy: .private)")
             updateResult(isSuccess: false, result: "[\(label)] errorMessage=\(error.localizedDescription)")
         }
+    }
+
+    /// Writes a result of the Swift API to the result line:
+    /// `[<label>] success completed=true, activityType=<type>`, `[<label>] success completed=false`
+    /// or `[<label>] failure <case>`, followed by ` <note>` when `note` is not empty.
+    private func report(_ label: String, _ result: Result<ShareResult, ShareError>, note: String = "") {
+        let suffix = note.isEmpty ? "" : " \(note)"
+        switch result {
+        case .success(let share):
+            logger.debug("[\(label, privacy: .public)] success completed: \(share.completed, privacy: .public), activityType: \(share.activityType ?? "nil", privacy: .public), note: \(note, privacy: .public)")
+            let detail = share.completed
+                ? "completed=true, activityType=\(share.activityType ?? "nil")"
+                : "completed=false"
+            updateResult(isSuccess: true, result: "[\(label)] success \(detail)\(suffix)")
+        case .failure(let error):
+            logger.debug("[\(label, privacy: .public)] failure: \(Self.caseName(of: error), privacy: .public), note: \(note, privacy: .public)")
+            updateResult(isSuccess: false, result: "[\(label)] failure \(Self.caseName(of: error))\(suffix)")
+        }
+    }
+
+    /// A short form of one share's result for a line with several results.
+    private static func summary(of result: Result<ShareResult, ShareError>) -> String {
+        switch result {
+        case .success(let share): return share.completed ? "completed" : "notCompleted"
+        case .failure(let error): return caseName(of: error)
+        }
+    }
+
+    /// The case of a share error, without the URL or path some cases carry.
+    private static func caseName(of error: ShareError) -> String {
+        switch error {
+        case .noValidItems: return "noValidItems"
+        case .invalidURL: return "invalidURL"
+        case .imageLoadFailed: return "imageLoadFailed"
+        case .fileNotFound: return "fileNotFound"
+        case .noRootViewController: return "noRootViewController"
+        case .notForeground: return "notForeground"
+        case .presentationFailed: return "presentationFailed"
+        case .dismissedBySystem: return "dismissedBySystem"
+        case .activityFailed(let detail): return "activityFailed(domain=\(detail.domain), code=\(detail.code))"
+        @unknown default: return "unknown"
+        }
+    }
+
+    /// Whether the view controller in the foreground is a share sheet.
+    private static func isSheetShown() -> Bool {
+        IosDialogManager.shared.foregroundViewController() is UIActivityViewController
+    }
+
+    /// The activation state of the sample's window scenes (`foregroundActive`, ...).
+    private static func sceneState() -> String {
+        let states = UIApplication.shared.connectedScenes.map { scene -> String in
+            switch scene.activationState {
+            case .foregroundActive: return "foregroundActive"
+            case .foregroundInactive: return "foregroundInactive"
+            case .background: return "background"
+            case .unattached: return "unattached"
+            @unknown default: return "unknown"
+            }
+        }
+        return states.sorted().joined(separator: ",")
     }
 
     // MARK: - Sample data helpers
@@ -250,7 +474,7 @@ struct ShareSampleView: View {
                 try FileManager.default.copyItem(at: sourceURL, to: destURL)
                 paths.append(destURL.path)
             } catch {
-                Log.e(TAG, "[prepareSampleImagePaths] failed: \(error)")
+                logger.error("[prepareSampleImagePaths] failed: \(error, privacy: .private)")
                 return nil
             }
         }
@@ -263,7 +487,7 @@ struct ShareSampleView: View {
             try "Shared from IosLibraryExample.".write(to: url, atomically: true, encoding: .utf8)
             return url
         } catch {
-            Log.e(TAG, "[prepareSampleFileURL] failed: \(error)")
+            logger.error("[prepareSampleFileURL] failed: \(error, privacy: .private)")
             return nil
         }
     }
@@ -279,7 +503,7 @@ struct ShareSampleView: View {
                 try "Shared from IosLibraryExample (\(index)).".write(to: url, atomically: true, encoding: .utf8)
                 urls.append(url)
             } catch {
-                Log.e(TAG, "[prepareSampleFileURLs] failed: \(error)")
+                logger.error("[prepareSampleFileURLs] failed: \(error, privacy: .private)")
                 return nil
             }
         }
@@ -289,8 +513,9 @@ struct ShareSampleView: View {
     // MARK: - Result display
 
     private func updateResult(isSuccess: Bool, result: String?) {
-        Log.d(TAG, "[updateResult] isSuccess: \(isSuccess), result: \(result ?? "nil")")
+        logger.debug("[updateResult] isSuccess: \(isSuccess, privacy: .public), result: \(result ?? "nil", privacy: .private)")
         DispatchQueue.main.async {
+            resultUpdateCount += 1
             if isSuccess {
                 resultText = "✅ \nResult: \(result ?? "nil")"
             } else {

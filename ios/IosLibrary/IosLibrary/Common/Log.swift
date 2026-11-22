@@ -9,13 +9,15 @@
 import Foundation
 
 /// # Log
-/// Lightweight logging utility providing uniform console output for different severity levels.
+/// Lightweight logging utility that prints tagged messages with a severity prefix.
 ///
-/// ## Overview
-/// The `Log` class offers static helpers (`d`, `i`, `w`, `e`) that print tagged messages
-/// prefixed with a severity indicator. It is intentionally minimal so it can be replaced or
-/// redirected later (e.g. to OSLog, unified logging, or remote analytics) without touching
-/// call sites.
+/// - Important: Deprecated. `IosLibrary` itself no longer uses `Log`: it logs through
+///   `os.Logger` (subsystem `com.jonghyunkim.nativetoolkit.IosLibrary`, one category per type),
+///   with a privacy level for every interpolated value, so that values are redacted in the
+///   unified log unless they are safe to show. Use your own `os.Logger` instead.
+///   `Log` is kept so that existing callers still build, and it behaves as before: every call
+///   is a `print`, in Debug and in Release builds, and nothing is redacted. Do not pass secret
+///   values (passwords, input text, message contents) to it.
 ///
 /// ## Thread Safety
 /// Methods are static and perform a simple `print`, which is thread-safe for individual lines.
@@ -27,13 +29,15 @@ import Foundation
 /// - `w` – Warning (recoverable or suspicious conditions)
 /// - `e` – Error (failures requiring attention)
 ///
-/// ## Example
+/// ## Migration
 /// ```swift
-/// Log.d("Networking", "Request started")
-/// Log.i("Auth", "User signed in")
-/// Log.w("Cache", "Entry expired, refetching")
-/// Log.e("DB", "Migration failed")
+/// import os
+///
+/// private let logger = Logger(subsystem: "com.example.app", category: "Networking")
+///
+/// logger.debug("Request started, id: \(requestID, privacy: .public)")
 /// ```
+@available(*, deprecated, message: "Use os.Logger")
 @objcMembers
 public class Log: NSObject {
     /// Logs a debug (verbose) message.

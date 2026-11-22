@@ -6,7 +6,7 @@
 import Foundation
 
 /// The interruption level of a notification, controlling how it breaks through Focus modes.
-public enum NotificationInterruptionLevel {
+public enum NotificationInterruptionLevel: Sendable {
     /// Adds to the notification list without lighting the screen or playing a sound.
     case passive
     /// Lights the screen and plays a sound (default behavior).

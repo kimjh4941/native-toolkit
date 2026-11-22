@@ -4,7 +4,10 @@
 //
 
 import Foundation
+import os
 import UIKit
+
+private let logger = Logger(subsystem: "com.jonghyunkim.nativetoolkit.IosLibrary", category: "PasteItemProviderLoader")
 
 /// Aggregates loading an explicit `[NSItemProvider]` array handed over by
 /// `UIResponder.paste(itemProviders:)`.
@@ -56,7 +59,6 @@ final class PasteItemProviderLoader {
         }
     }
 
-    private let TAG = "PasteItemProviderLoader"
     private let executor: ClipboardProviderLoadExecutor
     private let fileStore: ClipboardTemporaryFileStore
     private var currentSession: Session?
@@ -81,7 +83,7 @@ final class PasteItemProviderLoader {
     /// nobody would be left to discard the produced file. `isolated deinit` is required because
     /// `cancelAll` touches main-actor state.
     isolated deinit {
-        Log.d(TAG, "[deinit] hasPendingSession: \(currentSession != nil)")
+        logger.log(level: .libraryDebug, "[deinit] hasPendingSession: \(self.currentSession != nil, privacy: .public)")
         cancelAll()
     }
 
@@ -92,7 +94,7 @@ final class PasteItemProviderLoader {
         acceptedTypes: [String],
         completion: @escaping (AggregateResult) -> Void
     ) {
-        Log.d(TAG, "[load] providerCount: \(providers.count), acceptedTypeCount: \(acceptedTypes.count)")
+        logger.log(level: .libraryDebug, "[load] providerCount: \(providers.count, privacy: .public), acceptedTypeCount: \(acceptedTypes.count, privacy: .public)")
         cancelAll()
         guard !providers.isEmpty else {
             // U-83: an empty provider array is neither a success nor a per-provider failure. The
@@ -121,7 +123,7 @@ final class PasteItemProviderLoader {
     /// with `.cancelled` (D-4 / U-84); suppressing the *UI* callback (U-90) is the owning view's
     /// job, driven by `AggregateResult.isCancelled`. Any file already produced is removed.
     func cancelAll() {
-        Log.d(TAG, "[cancelAll] hasPendingSession: \(currentSession != nil)")
+        logger.log(level: .libraryDebug, "[cancelAll] hasPendingSession: \(self.currentSession != nil, privacy: .public)")
         guard let session = currentSession else { return }
         session.isCancelled = true
         currentSession = nil

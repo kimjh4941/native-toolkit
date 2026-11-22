@@ -53,7 +53,10 @@ Language:
     - [Notification errors](#notification-errors)
 - [iOS](#ios)
   - [IosNotificationManager](#iosnotificationmanager)
+  - [Changes from 1.x](#changes-from-1x-1)
   - [Setup](#setup-1)
+    - [Installing the Delegate](#installing-the-delegate)
+    - [Listening at Launch](#listening-at-launch)
   - [Permission](#permission-1)
     - [Request Notification Permission](#request-notification-permission)
     - [Check Permission](#check-permission)
@@ -65,18 +68,29 @@ Language:
     - [Time Interval Trigger](#time-interval-trigger)
     - [Calendar Trigger](#calendar-trigger)
     - [Location Trigger](#location-trigger)
-  - [Attachment](#attachment)
-  - [Update Notification](#update-notification)
-  - [Cancel / Remove Notification](#cancel--remove-notification)
+  - [Update, Cancel and Remove](#update-cancel-and-remove)
   - [Scheduled Notifications](#scheduled-notifications-1)
     - [Cancel Scheduled](#cancel-scheduled)
   - [Query](#query)
   - [Badge](#badge)
   - [Category and Actions](#category-and-actions)
     - [Register Category](#register-category)
-    - [Attach Category to Notification](#attach-category-to-notification)
     - [Remove Category](#remove-category)
-    - [Action Received Callbacks](#action-received-callbacks)
+  - [Notification Events](#notification-events)
+    - [Adding and Removing Listeners](#adding-and-removing-listeners)
+    - [Launch Response](#launch-response)
+    - [Other Notifications and the Previous Delegate](#other-notifications-and-the-previous-delegate)
+  - [Errors and async Forms](#errors-and-async-forms)
+    - [userInfo Checks](#userinfo-checks)
+    - [Permission and Settings From the Foreground](#permission-and-settings-from-the-foreground)
+    - [Error Cases](#error-cases)
+  - [C ABI](#c-abi-1)
+    - [Installing the delegate and receiving events](#installing-the-delegate-and-receiving-events)
+    - [The permission and settings](#the-permission-and-settings)
+    - [The content builder, showing and scheduling](#the-content-builder-showing-and-scheduling)
+    - [Removing and listing](#removing-and-listing)
+    - [The badge and categories](#the-badge-and-categories)
+    - [Error values and the Swift API](#error-values-and-the-swift-api)
 - [Windows](#windows)
   - [NativeToolkit::Notification](#nativetoolkitnotification)
   - [Setup](#setup-2)
@@ -106,19 +120,19 @@ Language:
     - [Remove All](#remove-all)
   - [Activation handler](#activation-handler)
   - [Error Codes](#error-codes)
-  - [C ABI](#c-abi-1)
+  - [C ABI](#c-abi-2)
     - [The runtime, the manager and activations](#the-runtime-the-manager-and-activations)
     - [Building the content, showing and scheduling](#building-the-content-showing-and-scheduling)
     - [Progress, badge and the OS settings](#progress-badge-and-the-os-settings)
     - [Listing and removing](#listing-and-removing)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
-  - [Setup](#setup-2)
+  - [Setup](#setup-3)
   - [Permission](#permission-2)
     - [Request Permission](#request-permission)
     - [Check Permission](#check-permission-1)
     - [Get Authorization Status](#get-authorization-status-1)
-    - [Open Notification Settings](#open-notification-settings-1)
+    - [Open Notification Settings](#open-notification-settings-2)
     - [Reset Notification Permission (macOS 26.3)](#reset-notification-permission-macos-263)
   - [Show Notification](#show-notification-2)
     - [Immediate](#immediate-1)
@@ -138,11 +152,11 @@ Language:
   - [Query](#query-1)
     - [Get Scheduled](#get-scheduled)
     - [Get Delivered](#get-delivered)
-  - [Badge](#badge-1)
+  - [Badge](#badge-2)
   - [Category](#category)
     - [Register Category](#register-category-1)
     - [Remove Category](#remove-category-1)
-  - [Error Codes](#error-codes)
+  - [Error Codes](#error-codes-1)
 
 ---
 
@@ -1640,23 +1654,137 @@ Not in the C ABI: `createChannels`, `getActive`, `restoreScheduled`, the Media, 
 
 ## iOS
 
+Local notifications on iOS 18.0 and later. The iOS library 2.0.0 offers them through two public APIs over one implementation, and the sample app uses the Swift API.
+
+| API | Names | Module / header | Artifact |
+|---|---|---|---|
+| Swift API | `IosNotificationManager` | `import IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_notification_*` | `<NativeToolkitC/Notification.h>` | `ios-native-toolkit-capi-2.0.0.xcframework` (with `ios-native-toolkit-2.0.0.xcframework`) |
+
+The C ABI is described in [C ABI](#c-abi-1) at the end of this section. Coming from 1.x, read [Changes from 1.x](#changes-from-1x-1) and [Migrating the iOS library to 2.0.0](index.md#migrating-the-ios-library-to-200).
+
 ### IosNotificationManager
 
-`IosNotificationManager` is a singleton class that provides all local notification operations on iOS.
+- `IosNotificationManager.shared` is the one manager of the process. It is `Sendable`, and every method may be called from any thread unless noted.
+- Events (taps, action buttons, replies) and the presentation of notifications while the app is in the foreground come through the system's notification delegate, so they need `IosNotificationManager.installDelegate()` at launch (see [Setup](#setup-1)). Showing, scheduling, listing, removing, the badge, categories and the permission work without it.
+- Every `completion` is called on the main thread, exactly once, and never inside the call. The completion types are `@MainActor @Sendable`, so a closure written in a SwiftUI view can use the view's state directly.
+- The operations keep their 1.x callback forms, such as `(isSuccess, errorMessage)`, where `errorMessage` is the fixed English description of a `NotificationError`. Each also has an `async` form of the same name: `show`, `update`, `schedule`, `setBadgeCount`, `requestPermission(options:presenter:)` and `openNotificationSettings(presenter:)` are `async throws`; `getScheduled`, `getDelivered`, `hasPermission`, `authorizationStatus`, `registerCategory` and `removeCategory` are `async` and do not throw.
+- The library adds the userInfo key `com.jonghyunkim.nativetoolkit` to every notification it adds, to tell its notifications from others. A userInfo of yours that uses the key is rejected (`reservedUserInfoKey`), and the key is removed from every userInfo the library hands back.
+- Without the notification permission, the system reports success for `show`, `update` and `schedule` and keeps nothing: no pending request remains, and a notification scheduled before the permission was granted does not fire later. Check `authorizationStatus` or `hasPermission` first; the sample app checks `hasPermission` before each of these calls. The C ABI does this check itself (see [C ABI](#c-abi-1)).
+- `setup()`, `onActionReceived`, `onTextInputActionReceived` and `NotificationPermissionHelper` remain with their behavior but are deprecated. This page uses their replacements.
 
 <p align="center">
     <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
 </p>
 
+---
+
+### Changes from 1.x
+
+| 1.x | 2.0.0 |
+|---|---|
+| `IosNotificationManager.setup()` | `IosNotificationManager.installDelegate()` on the main thread, before the launch ends. `setup()` is deprecated and calls it; on another thread it installs nothing |
+| The manager was the `UNUserNotificationCenterDelegate` and replaced the app's delegate | An internal delegate that keeps the delegate set before it and forwards to it the notifications that are not the library's (see [Other Notifications and the Previous Delegate](#other-notifications-and-the-previous-delegate)) |
+| `onActionReceived` / `onTextInputActionReceived` | Listeners of `responses` (see [Notification Events](#notification-events)). The old receivers are still called, in addition to the listeners: use one or the other |
+| `openSettingsFor` opened the app's page of the Settings app | The request is delivered to `settingsRequests`; the library opens nothing |
+| Any userInfo was passed on | The key `com.jonghyunkim.nativetoolkit` is reserved, and every value must be a property-list value (see [userInfo Checks](#userinfo-checks)) |
+| `NotificationError` cases carried a system `Error` | Stable cases; a system failure carries a `FailureDetail` (domain and code): `attachmentLoadFailed(_:)` became `attachmentLoadFailed(identifier:detail:)`, and `addRequestFailed(_:)` and `setBadgeCountFailed(_:)` carry a `FailureDetail`. Removed: `permissionNotDetermined`, `attachmentInvalidURL` and `unknown(_:)`. Added: `authorizationFailed(_:)`, `reservedUserInfoKey`, `invalidUserInfo`, `invalidTrigger`, `notForeground`, `openSettingsFailed` and `delegateNotInstalled` (see [Error Cases](#error-cases)) |
+| `registerCategory(_:)` returned before the category was registered | Changes are applied in the order of the calls, a category with the same identifier is replaced, and an optional `completion` comes after the change |
+| Notifications scheduled or shown by 1.x | Listed and cancelled as before, with their userInfo unchanged. Their taps reach `responses` unless the delegate set before `installDelegate()` implements `didReceive`; then they go to that delegate |
+
+The other 2.0.0 changes of the iOS library, such as the calls that need `await` in an `async` context, are in [Migrating the iOS library to 2.0.0](index.md#migrating-the-ios-library-to-200).
+
+---
+
 ### Setup
 
-Call `setup()` once at app launch (e.g. in `AppDelegate.application(_:didFinishLaunchingWithOptions:)`).
+Add `ios-native-toolkit-2.0.0.xcframework` to the app target (Embed & Sign) and `import IosLibrary`. Build with Xcode 26.3 or later.
+
+#### Installing the Delegate
+
+`installDelegate()` installs the library's `UNUserNotificationCenter` delegate. The library needs it to present its notifications while the app is in the foreground and to receive the user's responses.
+
+- **Main thread only.** On another thread it returns `.notMainThread` and changes nothing. It is synchronous, never waits, and returns `.installed` (also when the delegate was already installed).
+- **Before the launch ends.** Call it before `application(_:didFinishLaunchingWithOptions:)` returns, or inside `scene(_:willConnectTo:options:)`. In a SwiftUI app, `App.init` and the `UIApplicationDelegateAdaptor`'s `application(_:didFinishLaunchingWithOptions:)` both work. The system hands the response that launched the app (a tap at a cold start) only to the delegate that is set when the launch returns: installed later, the library still works but loses that response.
+- **Without it,** the library's notifications are not presented while the app is in the foreground, and no event arrives: `responses.addListener`, `settingsRequests.addListener` and `launchResponse()` throw `NotificationError.delegateNotInstalled`.
+- **The delegate set before it** (your own, or another component's) becomes the previous delegate, and receives the notifications that are not the library's (see [Other Notifications and the Previous Delegate](#other-notifications-and-the-previous-delegate)). Set your own delegate before calling `installDelegate()`. The library holds the previous delegate weakly, as `UNUserNotificationCenter` holds its delegate: keep a strong reference to it in your app, or it is released and the notifications it should receive are handled by the library.
+- **Do not replace `UNUserNotificationCenter.current().delegate` afterwards.** The library only logs a warning, and its events and foreground presentation stop. Calling `installDelegate()` again restores them, with the object that replaced it as the only previous delegate; the tap of a cold start is lost when this happens after the launch. If the object that replaced it forwards to the library asynchronously, do not call `installDelegate()` again: that is outside the contract.
+- `IosNotificationManager.isDelegateInstalled` tells whether the delegate has been installed in this process.
+
+The sample app installs it from its application delegate:
 
 ```swift
 import IosLibrary
+import SwiftUI
+import UIKit
 
-IosNotificationManager.setup()
+@main
+struct MyApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    private var responseRegistration: NotificationEventRegistration?
+    private var settingsRegistration: NotificationEventRegistration?
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        // On the main thread, before the launch returns.
+        IosNotificationManager.installDelegate()   // .installed; .notMainThread off the main thread
+        // Add the listeners here too, so that the response that launched the app reaches them.
+        addListeners()
+        return true
+    }
+}
 ```
+
+#### Listening at Launch
+
+`responses` delivers `NotificationResponseEvent` for a tap on the body, an action button, a text input reply, and the custom dismiss action (a category with `.customDismissAction`). `settingsRequests` delivers `NotificationSettingsRequest` when the system asks the app to show its own notification settings (see [Permission and Settings From the Foreground](#permission-and-settings-from-the-foreground)).
+
+```swift
+extension AppDelegate {
+    func addListeners() {
+        do {
+            responseRegistration = try IosNotificationManager.shared.responses.addListener { event, _ in
+                // event.notificationIdentifier, event.actionIdentifier, event.categoryIdentifier,
+                // event.userText (a reply, or nil), event.userInfo, event.isLaunchResponse
+                if event.userText != nil {
+                    // A text input reply.
+                } else if event.actionIdentifier == UNNotificationDefaultActionIdentifier {
+                    // A tap on the body.
+                } else if event.actionIdentifier == UNNotificationDismissActionIdentifier {
+                    // Dismissed, for a category with .customDismissAction.
+                } else {
+                    // An action button: "open" or "delete" in the sample's category.
+                }
+            }
+            settingsRegistration = try IosNotificationManager.shared.settingsRequests.addListener { request, _ in
+                // Show your own notification settings screen.
+                // request.notificationIdentifier is nil when the request came from the Settings app.
+            }
+        } catch {
+            // NotificationError.delegateNotInstalled: installDelegate() has not installed the delegate.
+        }
+    }
+}
+```
+
+`UNNotificationDefaultActionIdentifier` and `UNNotificationDismissActionIdentifier` come from `import UserNotifications`.
+
+- Add and remove listeners on the main actor. Listeners are called on the main actor, after the system's delegate call has returned and before the library calls the system's completion handler.
+- Every listener receives every event. While a hub has no listener, it keeps up to 32 events (dropping the oldest, for the life of the process) and hands them to the next listener inside `addListener`, in the order they arrived. A listener added at launch therefore receives the tap that launched the app.
+- `event.userInfo` is a `[String: NotificationUserInfoValue]` tree without the library's key. The description of an event shows only the length of the reply and the number of userInfo keys.
+
+---
 
 ### Permission
 
@@ -1667,7 +1795,8 @@ IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
     if isSuccess {
         // Granted
     } else {
-        // Denied. User must enable manually in Settings.
+        // Denied: errorMessage is "Notification permission was denied." The dialog will not
+        // appear again; the user enables notifications in Settings.
     }
 }
 ```
@@ -1676,11 +1805,13 @@ IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
     <img src="images/ios/notification/Example_IosNotificationManager_RequestPermission.png" alt="Example_IosNotificationManager_RequestPermission" width="400" />
 </p>
 
+This form asks for `[.alert, .sound, .badge]` without checking whether the app is in the foreground, as in 1.x. For a result that tells a denial from a failure, or with a check of the foreground, see [Permission and Settings From the Foreground](#permission-and-settings-from-the-foreground).
+
 #### Check Permission
 
 ```swift
 IosNotificationManager.shared.hasPermission { hasPermission in
-    print(hasPermission) // true / false
+    // true for authorized and provisional; false otherwise (ephemeral included)
 }
 ```
 
@@ -1689,7 +1820,6 @@ IosNotificationManager.shared.hasPermission { hasPermission in
 ```swift
 IosNotificationManager.shared.authorizationStatus { status in
     // .notDetermined / .denied / .authorized / .provisional / .ephemeral / .unknown
-    print(status)
 }
 ```
 
@@ -1699,9 +1829,13 @@ IosNotificationManager.shared.authorizationStatus { status in
 IosNotificationManager.shared.openNotificationSettings()
 ```
 
+This opens the app's notification settings page in the Settings app and does not report whether it opened. `openNotificationSettings(presenter:completion:)` reports it.
+
+---
+
 ### Show Notification
 
-Create a `NotificationContent` and call `show()`.
+Create a `NotificationContent` and call `show(content:trigger:completion:)`. Without a trigger the notification is delivered now. The request's identifier is `content.id`, and a new request with the same identifier replaces the old one.
 
 #### Immediate
 
@@ -1715,7 +1849,7 @@ let content = NotificationContent(
 )
 
 IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // errorMessage is nil, or the fixed English text of a NotificationError
 }
 ```
 
@@ -1723,10 +1857,11 @@ IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage i
     <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediate.png" alt="Example_IosNotificationManager_ShowImmediate" width="400" />
 </p>
 
+`content` is a `sending` parameter: pass a value that is not used after the call.
+
 #### Immediate with Attachment
 
-Show a notification with an image file bundled in the app.
-Expand the notification (long-press) to see the attachment thumbnail.
+An image file bundled in the app is attached. Expand the notification (long-press) to see it.
 
 ```swift
 guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
@@ -1742,7 +1877,7 @@ let content = NotificationContent(
 )
 
 IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // A file that does not exist fails with attachmentLoadFailed, and nothing is added.
 }
 ```
 
@@ -1750,37 +1885,63 @@ IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage i
     <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediateWithAttachment.png" alt="Example_IosNotificationManager_ShowImmediateWithAttachment" width="400" />
 </p>
 
+Images, audio and video can be attached. The library checks that the file of a file URL exists before it adds the request.
+
 #### Time Interval Trigger
 
 ```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "5s Notification",
+    body: "Will be shown after 5 seconds",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
 IosNotificationManager.shared.show(
     content: content,
     trigger: .timeInterval(5.0, repeats: false)
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
+The interval must be above 0, and 60 seconds or more when it repeats; any other interval fails with `invalidTrigger` and nothing is added (the system would end the process). `NotificationTrigger.isValid` tells it in advance.
+
 #### Calendar Trigger
 
+The sample app fires one minute from now:
+
 ```swift
-var components = DateComponents()
-components.hour = 9
-components.minute = 0
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Calendar Notification",
+    body: "Will be shown in one minute",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: nextDate)
 
 IosNotificationManager.shared.show(
     content: content,
-    trigger: .calendar(components, repeats: true)
+    trigger: .calendar(components, repeats: false)
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
 #### Location Trigger
 
-Location notifications use CoreLocation. Add a location usage description to `Info.plist`.
-
 ```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Location Notification",
+    body: "You arrived at Tokyo Station",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
 IosNotificationManager.shared.show(
     content: content,
     trigger: .location(
@@ -1792,76 +1953,62 @@ IosNotificationManager.shared.show(
         notifyOnExit: false
     )
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // Registered: the notification fires when the device enters the region.
 }
 ```
 
-### Attachment
+A location trigger needs the location permission and a location usage description in `Info.plist`. The library does not ask for the location permission.
 
-Use `NotificationAttachment` to attach images, audio, or video to a notification.
-The attachment thumbnail is shown when the notification is expanded (long-press).
+---
 
-```swift
-guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
-
-let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
-let content = NotificationContent(
-    id: "sample-notification",
-    title: "Notification with Image",
-    body: "Expand to see the image",
-    attachments: [attachment]
-)
-
-IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
-}
-```
-
-### Update Notification
-
-Update the content or trigger of a pending notification.
+### Update, Cancel and Remove
 
 ```swift
-let updatedContent = NotificationContent(
+let updated = NotificationContent(
     id: "sample-notification",
-    title: "Updated Title",
-    body: "Content has changed"
+    title: "Updated Notification",
+    body: "This content was updated",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
 )
 
 IosNotificationManager.shared.update(
     identifier: "sample-notification",
-    content: updatedContent,
+    content: updated,
     trigger: nil
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
-```
 
-### Cancel / Remove Notification
-
-```swift
-// Cancel a specific pending notification
+// Cancel a pending (scheduled) notification
 IosNotificationManager.shared.cancel(identifier: "sample-notification")
 
 // Cancel all pending notifications
 IosNotificationManager.shared.cancelAll()
 
-// Remove a specific delivered notification from Notification Center
+// Remove a delivered notification from Notification Center
 IosNotificationManager.shared.removeDelivered(identifier: "sample-notification")
 
 // Remove all delivered notifications from Notification Center
 IosNotificationManager.shared.removeAllDelivered()
 ```
 
-### Scheduled Notifications
+- `update` removes the pending request with `identifier` and adds the new content under that identifier (also when nothing was pending); `content.id` is not used. A content rejected by the checks (the userInfo, the trigger, a missing attachment file) leaves the pending request in place. When the system then does not add the new request (`addRequestFailed`), the old one is already gone.
+- `cancel` and `cancelScheduled` are the same operation: they remove the pending request and leave a delivered notification in place. `cancelAll` and `cancelAllScheduled` are the same too.
+- `cancelAll`, `cancelAllScheduled` and `removeAllDelivered` also remove what other parts of the app (another component, or your own code) added.
+- The removals run asynchronously. `removeDelivered`, `removeAllDelivered`, `cancelScheduled` and `cancelAllScheduled` take an optional `completion`: to add a notification after a removal, start it from that completion.
 
-Schedule a notification for future delivery with a specific identifier.
+---
+
+### Scheduled Notifications
 
 ```swift
 let content = NotificationContent(
     id: "scheduled-notification",
     title: "Scheduled Notification",
-    body: "Displayed after 10 seconds"
+    body: "Scheduled in 10 seconds",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "scheduled-notification"]
 )
 
 IosNotificationManager.shared.schedule(
@@ -1869,9 +2016,11 @@ IosNotificationManager.shared.schedule(
     trigger: .timeInterval(10.0, repeats: false),
     identifier: "scheduled-notification"
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
+
+The trigger is required and may be any of the three kinds shown in [Show Notification](#show-notification). The request's identifier is `identifier`; `content.id` is not used.
 
 #### Cancel Scheduled
 
@@ -1883,36 +2032,45 @@ IosNotificationManager.shared.cancelScheduled(identifier: "scheduled-notificatio
 IosNotificationManager.shared.cancelAllScheduled()
 ```
 
+---
+
 ### Query
 
 ```swift
-// Get all pending (not yet delivered) notification requests
+// Pending (not yet delivered) notification requests
 IosNotificationManager.shared.getScheduled { requests in
-    requests.forEach { print($0.identifier) }
+    let ids = requests.map { $0.identifier }.joined(separator: ", ")
 }
 
-// Get all notifications visible in Notification Center
+// Notifications shown in Notification Center
 IosNotificationManager.shared.getDelivered { notifications in
-    notifications.forEach { print($0.identifier) }
+    let ids = notifications.map { $0.identifier }.joined(separator: ", ")
 }
 ```
+
+`ScheduledNotification` and `ActiveNotification` carry the identifier, title, subtitle, body and category identifier (`ActiveNotification` also the delivery `date`). Their userInfo, without the library's key, is in `userInfoValues` as a tree, and `userInfo` builds a Foundation dictionary from it that reads as in 1.x.
+
+---
 
 ### Badge
 
 ```swift
-// Set badge count (use 0 to clear)
+// Set the badge count
 IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 
+// 0 clears the badge
 IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
+---
+
 ### Category and Actions
 
-Add action buttons or text input to notifications.
+A category adds action buttons and text input to the notifications that name it in `categoryIdentifier`.
 
 #### Register Category
 
@@ -1936,28 +2094,36 @@ let category = NotificationCategory(
             identifier: "reply",
             title: "Reply",
             buttonTitle: "Send",
-            textInputPlaceholder: "Type a message"
+            textInputPlaceholder: "IosLibraryExample reply"
         )
     ],
-    options: [.customDismissAction, .allowAnnouncement]
+    options: [.customDismissAction]
 )
 
 IosNotificationManager.shared.registerCategory(category)
 ```
 
-#### Attach Category to Notification
+Show a notification with `categoryIdentifier: "sample-category"` and long-press it to see the actions:
 
-Set the `categoryIdentifier` in `NotificationContent`.
-Long-press the notification to see the action buttons.
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
+</p>
+
+- The taps on the actions and the replies arrive as events (see [Listening at Launch](#listening-at-launch)): `actionIdentifier` is `"open"`, `"delete"` or `"reply"`, and a reply carries `userText`.
+- Category changes are applied one at a time, in the order of the calls. Registering a category replaces the one with the same identifier.
+- `NotificationCategoryOptions.allowAnnouncement` is deprecated and has no effect (the system ignores it since iOS 15).
+
+To post a notification that uses the category right after registering it, start it from the `completion`, which comes once the category is registered:
 
 ```swift
-let content = NotificationContent(
-    id: "sample-notification",
-    title: "Notification with Actions",
-    body: "Long-press to see actions",
-    categoryIdentifier: "sample-category"
-)
+IosNotificationManager.shared.registerCategory(category) {
+    // Registered: a notification posted from now on shows the actions.
+}
 ```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RegisterCategoryWithCompletion.png" alt="Example_IosNotificationManager_RegisterCategoryWithCompletion" width="400" />
+</p>
 
 #### Remove Category
 
@@ -1965,23 +2131,583 @@ let content = NotificationContent(
 IosNotificationManager.shared.removeCategory(identifier: "sample-category")
 ```
 
-<p align="center">
-    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
-</p>
+`removeCategory` also takes an optional `completion`.
 
-#### Action Received Callbacks
+---
+
+### Notification Events
+
+The sample app's "Swift API (2.0.0)" section exercises the event hubs. The listeners themselves are added at launch (see [Listening at Launch](#listening-at-launch)).
+
+#### Adding and Removing Listeners
+
+A hub has any number of listeners. Keep the `NotificationEventRegistration` to remove the listener later: dropping it does not remove the listener.
 
 ```swift
-// Receive action button taps
-IosNotificationManager.shared.onActionReceived = { notificationId, actionId, userInfo in
-    print("notification: \(notificationId), action: \(actionId)")
+// On the main actor.
+do {
+    secondRegistration = try IosNotificationManager.shared.responses.addListener { event, registration in
+        // Called for every response, as the first listener is.
+        // registration.remove() here stops this listener from inside it.
+    }
+} catch {
+    // NotificationError.delegateNotInstalled
 }
 
-// Receive text input action submissions
-IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, userInfo in
-    print("notification: \(notificationId), action: \(actionId), text: \(userText)")
+// Later:
+secondRegistration?.remove()   // at once; a second call does nothing
+secondRegistration = nil
+```
+
+Kept events go to the first listener added while there was none, once. A listener added while others are registered receives only the events that arrive after it.
+
+#### Launch Response
+
+`launchResponse()` returns the response that launched the app, with `isLaunchResponse` set, or `nil`:
+
+```swift
+// On the main actor.
+do {
+    if let event = try IosNotificationManager.shared.launchResponse() {
+        // event.notificationIdentifier, event.actionIdentifier, event.isLaunchResponse == true
+    } else {
+        // None (yet)
+    }
+} catch {
+    // NotificationError.delegateNotInstalled
 }
 ```
+
+- The launch response is the first response of the process that brings the app to the foreground (a tap on the body, or an action with `.foreground`), when it arrived before the app first became active and the library handled it. A response forwarded to the previous delegate is never the launch response.
+- Before the app first becomes active, `nil` may still turn into the response. After that, the result does not change. When the delegate was first installed while the app was already active, it is `nil`.
+- The same response is also delivered to the `responses` listeners with `isLaunchResponse` set. Handle it in one place only; the listener is the reliable one.
+- When the user brings the app to the foreground right after a background action launched it, that action can count as the launch response.
+
+#### Other Notifications and the Previous Delegate
+
+The library handles its own notifications (those with its key in the userInfo) and never shows them to the previous delegate. A notification without the key (one of your own, another component's, a push notification, or one 1.x of the library added) goes to the previous delegate when that delegate implements the delegate method; otherwise the library handles it like its own:
+
+| Delegate method | The previous delegate implements it | No previous delegate, or it does not implement it |
+|---|---|---|
+| `willPresent` | The previous delegate decides how it is presented | Presented with `foregroundPresentationOptions` (default `[.banner, .list, .sound, .badge]`) |
+| `didReceive` | Goes to the previous delegate; no library event | Delivered to `responses` |
+| `openSettingsFor` | Goes to the previous delegate (also a request from the Settings app) | Delivered to `settingsRequests` |
+
+So in an app without a delegate of its own, notifications that 1.x scheduled before the update, and the app's own notifications, are presented in the foreground and their taps reach `responses`, as in 1.x. In an app whose own delegate implements `didReceive`, their taps go to that delegate.
+
+`IosNotificationManager.shared.foregroundPresentationOptions` sets how the notifications the library handles are presented while the app is in the foreground.
+
+---
+
+### Errors and async Forms
+
+#### userInfo Checks
+
+`show`, `update` and `schedule` check the userInfo first and add nothing (and `update` removes nothing) when it uses the reserved key or holds a value that is not a property-list value (string, number, Boolean, date, data, array, or dictionary with string keys). The sample app shows this with the `async` form:
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Reserved Key",
+    body: "Never shown",
+    categoryIdentifier: "sample-category",
+    userInfo: ["com.jonghyunkim.nativetoolkit": 1]
+)
+
+Task {
+    do {
+        try await IosNotificationManager.shared.show(content: content, trigger: nil)
+    } catch let error as NotificationError {
+        // .reservedUserInfoKey here. A value such as URL(string: "https://example.com")!
+        // fails with .invalidUserInfo.
+    } catch {
+        // Not reached here: IosNotificationManager throws NotificationError only. The clause is
+        // untyped because the use cases also accept a NotificationRepository of your own.
+    }
+}
+```
+
+The `async` forms are declared `async throws` without a thrown type; the library throws only `NotificationError`. Without a trigger, write `trigger: nil` to select the `async` form: `show(content:)` alone is the callback form.
+
+#### Permission and Settings From the Foreground
+
+`requestPermission(options:presenter:completion:)` and `openNotificationSettings(presenter:completion:)` take a `PresenterSelection` and report a typed result:
+
+| `presenter` | `requestPermission` | `openNotificationSettings` |
+|---|---|---|
+| `.firstActiveScene` | Asks at once, as the 1.x form | Opens at once, as the 1.x form |
+| `.foreground`, `.viewController(_:)` | Reads the status first. When it is decided, nothing is asked and the status answers (`authorized`, `provisional` and `ephemeral` are `true`). When it is `notDetermined`, fails with `notForeground` while the app is not in the foreground (no dialog is shown), and asks otherwise | Fails with `notForeground` while the app is not in the foreground, and opens otherwise |
+
+```swift
+// The async form: true when granted, false when denied (a denial is not an error).
+Task {
+    do {
+        let granted = try await IosNotificationManager.shared.requestPermission(
+            options: [.alert, .sound, .badge, .providesAppNotificationSettings],
+            presenter: .foreground
+        )
+    } catch let error as NotificationError {
+        // .notForeground, or .authorizationFailed(detail) when the request itself failed
+    } catch {
+    }
+}
+
+// The callback form, as the C ABI uses it.
+IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) { result in
+    // .success(()) when the system opened the page; .failure(.notForeground) or
+    // .failure(.openSettingsFailed). Usually comes after the app has moved to the background.
+}
+```
+
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_RequestPermissionWithAppSettings.png" alt="Example_IosNotificationManager_RequestPermissionWithAppSettings" width="400" />
+</p>
+
+- The system sends a request to show the app's own notification settings (`settingsRequests`) only to an app that asked for `.providesAppNotificationSettings`: Settings then shows a link to the app's settings in its notification page.
+- With `.foreground` or `.viewController(_:)`, an app whose permission is already decided is not asked again, so an option added later, such as `.providesAppNotificationSettings`, is not requested. Put every option in the first request, or ask with `.firstActiveScene`.
+- `.viewController { [weak self] in self }` checks a view controller of yours instead of looking for the foreground scene.
+
+#### Error Cases
+
+`NotificationError` (its `errorDescription` is a fixed English sentence, also given as the `errorMessage` of the callback forms):
+
+| Case | When |
+|---|---|
+| `permissionDenied` | The 1.x callback form of `requestPermission` reports a denial with its text. Thrown only by the deprecated `NotificationPermissionHelper` |
+| `attachmentLoadFailed(identifier:detail:)` | An attachment could not be made, or its file does not exist (`NSCocoaErrorDomain`, `NSFileReadNoSuchFileError`) |
+| `addRequestFailed(_:)` | The system did not add the request (`show`, `update`, `schedule`) |
+| `setBadgeCountFailed(_:)` | The system did not set the badge count |
+| `authorizationFailed(_:)` | The permission request itself failed (not a denial) |
+| `reservedUserInfoKey` | The userInfo uses the key `com.jonghyunkim.nativetoolkit` |
+| `invalidUserInfo` | The userInfo holds a value that is not a property-list value |
+| `invalidTrigger` | A time interval not above 0, or below 60 when repeating |
+| `notForeground` | `.foreground` or `.viewController(_:)` while the app is not in the foreground |
+| `openSettingsFailed` | The system did not open the settings page |
+| `delegateNotInstalled` | A listener or `launchResponse()` before `installDelegate()` |
+
+`FailureDetail` carries the `NSError` domain and code that the system reported. The library is built for library evolution and cases can be added: write `@unknown default` in a `switch` over `NotificationError`.
+
+---
+
+### C ABI
+
+- The same notifications for C, and for any language that can call a C library (C#, Rust, Dart, Go and others). The functions are in `IosLibraryCApi.framework` in `ios-native-toolkit-capi-2.0.0.xcframework`, which calls the Swift API: add both `ios-native-toolkit-capi-2.0.0.xcframework` and `ios-native-toolkit-2.0.0.xcframework` to the app target (Embed & Sign). The headers are `<NativeToolkitC/Common.h>` and `<NativeToolkitC/Notification.h>` (from the framework, `<IosLibraryCApi/NativeToolkitC/Notification.h>`; also in `dist/1.14.0/ios/include/NativeToolkitC/`), and Objective-C can import the framework's module with `@import IosLibraryCApi;`. The requirements and the steps to add the XCFrameworks are in [Supported platform: iOS](index.md#supported-platform-ios-device-arm64--simulator-arm64-x86_64), and the rules common to every feature in [C ABI](index.md#c-abi-1), on the manual top.
+- **The delegate.** Events and the foreground presentation need `ntk_notification_install`, called by the host's native code (the application delegate, or the scene delegate in `scene:willConnectToSession:options:`) on the main thread before the launch ends, as `installDelegate()` in [Installing the Delegate](#installing-the-delegate). It is the only function that must be called on the main thread: elsewhere it returns `NTK_NOTIFICATION_ERROR_WRONG_THREAD` at once and does nothing. Calling it before `UIApplicationMain` is outside the contract. The C ABI and the Swift API install the same delegate, so either may be called, or both. Until it has been installed, the two `_add_*_listener` functions and `ntk_notification_get_launch_response_async` return `NTK_NOTIFICATION_ERROR_NOT_INITIALIZED`; the other functions work. The rules for the previous delegate are those of [Other Notifications and the Previous Delegate](#other-notifications-and-the-previous-delegate).
+- **Threads.** Every other function may be called from any thread, and none waits for the main thread. Completions, events and the `release` of an accepted call are called on the main thread, never inside the call when it was made on the main thread. Called from another thread, a completion may come before the function returns, so match completions by `user_data`.
+- **`release`.** `NTK_NOTIFICATION_ERROR_NONE` from a function with a callback means accepted: the callback then comes exactly once while the process lives, and `release` (when not `NULL`) after it. Any other value means rejected: the callback is not called, and `release` has already been called on your thread before the function returned. A `NULL` callback is rejected.
+- **The content builder** (`ntk_notification_content`) starts from the Swift API's defaults (the default sound, no badge), copies what its setters receive, and is not thread-safe. A `NULL` string in a setter restores the default. The operations copy the content, so it may be freed or changed after the call returns. `_free(NULL)` does nothing.
+- **Structs.** A zero-filled struct with `struct_size` set to `sizeof` the struct is the default, and the `reserved` fields must be 0. In `ntk_notification_trigger`, zero is a `TIME_INTERVAL` trigger that does not repeat, notifies on entering a region (`not_notify_on_entry` 0) and not on leaving it (`notify_on_exit` 0); its `interval_seconds` of 0 is rejected, so set the fields of the kind you use. In `ntk_notification_action`, zero is no SF Symbol and no options; in `ntk_notification_category`, no options, no actions and no text input actions. The identifiers and titles, and the button title and placeholder of a text input action, are required: `NULL` is rejected, and a title may be an empty string. A value out of range, an unknown bit, an empty identifier where one is required, or a bad `struct_size` returns `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER`. Booleans are `int32_t`.
+- **Strings** are NUL-terminated UTF-8 and checked strictly: invalid UTF-8 is `INVALID_PARAMETER`. Returned text is UTF-8, with invalid surrogates and U+0000 replaced by U+FFFD, and stays valid until its handle is freed. `out_size` may be `NULL`.
+- **Permission check.** Unlike the Swift API, `ntk_notification_show_async`, `_update_async` and `_schedule_async` read the permission first: when the status is not authorized, provisional or ephemeral, they complete with `NTK_NOTIFICATION_ERROR_PERMISSION_DENIED` and add nothing. A status that changes right after the check is not caught.
+- **Foreground.** `ntk_notification_request_permission_async` (while the status is not determined) and `ntk_notification_open_settings_async` need the app in the foreground: from the background they are accepted and complete with `NTK_NOTIFICATION_ERROR_NOT_FOREGROUND`. They work as the `.foreground` forms of [Permission and Settings From the Foreground](#permission-and-settings-from-the-foreground).
+- **`system_code`** and `ntk_last_system_code()` are always 0 on iOS.
+- **Callbacks must not throw** (a C++ or C# exception, or a Rust panic, must not leave a callback) and must not block the main thread for long. Enumerations can grow: write a `default` branch.
+
+#### Installing the delegate and receiving events
+
+```c
+static void NTK_CALL on_interaction(void* user_data, ntk_notification_interaction* event)
+{
+    /* On the main thread. The event is yours: free it, now or later. */
+    ntk_notification_event_kind kind = ntk_notification_interaction_kind(event);
+    size_t id_size = 0;
+    const char* notification_id = ntk_notification_interaction_notification_id(event, &id_size);
+    const char* action_id = ntk_notification_interaction_action_id(event, NULL);
+    const char* category_id = ntk_notification_interaction_category_id(event, NULL);   /* "" without one */
+    const char* user_text = ntk_notification_interaction_user_text(event, NULL);       /* NULL unless TEXT_INPUT */
+    const char* user_info = ntk_notification_interaction_user_info_json(event, NULL);  /* a JSON object */
+    int32_t launched_the_app = ntk_notification_interaction_is_launch(event);
+    switch (kind) {
+    case NTK_NOTIFICATION_EVENT_KIND_BODY_TAP:
+        break;   /* action_id is the system's default action identifier */
+    case NTK_NOTIFICATION_EVENT_KIND_ACTION:
+        break;   /* a button of the category: "open" or "delete" */
+    case NTK_NOTIFICATION_EVENT_KIND_DISMISS:
+        break;   /* dismissed, for a category with CUSTOM_DISMISS_ACTION */
+    case NTK_NOTIFICATION_EVENT_KIND_TEXT_INPUT:
+        break;   /* a reply: user_text ("" for an empty reply) */
+    default:
+        break;
+    }
+    (void)user_data; (void)notification_id; (void)action_id; (void)category_id;
+    (void)user_text; (void)user_info; (void)launched_the_app;
+    ntk_notification_interaction_free(event);
+}
+
+static void NTK_CALL on_settings_request(void* user_data, ntk_notification_settings_request* request)
+{
+    /* The system asked the app to show its own notification settings. */
+    const char* notification_id = ntk_notification_settings_request_notification_id(request, NULL);
+    if (notification_id == NULL) {
+        /* The request came from the Settings app. */
+    }
+    (void)user_data;
+    ntk_notification_settings_request_free(request);
+}
+
+static void NTK_CALL on_launch_response(void* user_data, ntk_notification_error error, uint32_t system_code,
+                                        ntk_notification_interaction* response)
+{
+    /* NULL when there is none for now: until the app first becomes active it can appear later. */
+    if (error == NTK_NOTIFICATION_ERROR_NONE && response != NULL) {
+        /* The same response also reaches the interaction listener, with is_launch set. */
+    }
+    (void)user_data; (void)system_code;
+    ntk_notification_interaction_free(response);   /* does nothing for NULL */
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* Called exactly once per accepted registration, after its last callback. */
+    (void)user_data;
+}
+
+/* The host's launch code, on the main thread: application:willFinishLaunchingWithOptions:, or
+   application:didFinishLaunchingWithOptions: before it returns. */
+ntk_notification_error error = ntk_notification_install();
+if (error == NTK_NOTIFICATION_ERROR_WRONG_THREAD) {
+    return;   /* Not on the main thread: nothing was installed. */
+}
+
+/* Add the listeners during the launch too: up to 32 events that came while there was no
+   listener, the tap that launched the app among them, go to the next listener added. */
+ntk_notification_listener* interactions = NULL;
+error = ntk_notification_add_interaction_listener(&on_interaction, NULL, &release_user_data, &interactions);
+ntk_notification_listener* settings_requests = NULL;
+error = ntk_notification_add_settings_request_listener(&on_settings_request, NULL, &release_user_data,
+                                                       &settings_requests);
+if (error == NTK_NOTIFICATION_ERROR_NOT_INITIALIZED) {
+    /* ntk_notification_install has not installed the delegate. */
+}
+
+/* Where a listener cannot be registered yet, ask for the launch response instead. */
+error = ntk_notification_get_launch_response_async(&on_launch_response, NULL, &release_user_data);
+
+/* No longer interested. From the main thread no event reaches the callback afterwards; from
+   another thread events may still come until release_user_data. The handle is invalid now. */
+ntk_notification_listener_remove(interactions);
+ntk_notification_listener_remove(settings_requests);
+```
+
+`action_id` is the raw identifier: the category's action, or the system's `com.apple.UNNotificationDefaultActionIdentifier` and `com.apple.UNNotificationDismissActionIdentifier` for `BODY_TAP` and `DISMISS`. The userInfo JSON carries dates as ISO 8601 strings, data as Base64, and values that are not finite as `null`; the library's key is removed.
+
+#### The permission and settings
+
+```c
+static void NTK_CALL on_permission(void* user_data, ntk_notification_error error, uint32_t system_code,
+                                   int32_t granted)
+{
+    if (error == NTK_NOTIFICATION_ERROR_NONE) {
+        /* granted is 1 or 0: a denial is NONE with 0. */
+    } else if (error == NTK_NOTIFICATION_ERROR_NOT_FOREGROUND) {
+        /* Not determined yet, and the app was not in the foreground: nothing was shown. */
+    } else if (error == NTK_NOTIFICATION_ERROR_AUTHORIZATION_FAILED) {
+        /* The request itself failed. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL on_status(void* user_data, ntk_notification_error error, uint32_t system_code,
+                               ntk_notification_authorization_status status)
+{
+    switch (status) {
+    case NTK_NOTIFICATION_STATUS_NOT_DETERMINED:
+    case NTK_NOTIFICATION_STATUS_DENIED:
+    case NTK_NOTIFICATION_STATUS_AUTHORIZED:
+    case NTK_NOTIFICATION_STATUS_PROVISIONAL:
+    case NTK_NOTIFICATION_STATUS_EPHEMERAL:
+    case NTK_NOTIFICATION_STATUS_UNKNOWN:
+    default:
+        break;
+    }
+    (void)user_data; (void)error; (void)system_code;
+}
+
+static void NTK_CALL on_settings_opened(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_SETTINGS_NOT_OPENED) {
+        /* The system did not open the page. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 0 asks for ALERT, SOUND and BADGE. Put every option in the first request: once the status is
+   decided, the system is not asked again and the request reports the current status
+   (authorized, provisional and ephemeral are 1). */
+uint32_t options = NTK_NOTIFICATION_AUTH_ALERT | NTK_NOTIFICATION_AUTH_SOUND | NTK_NOTIFICATION_AUTH_BADGE
+                 | NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS;
+ntk_notification_error error = ntk_notification_request_permission_async(options, &on_permission, NULL,
+                                                                         &release_user_data);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    /* Rejected (an unknown bit): on_permission is not called, release_user_data already was. */
+}
+
+/* 1 for authorized and provisional, 0 otherwise (ephemeral included). */
+error = ntk_notification_has_permission_async(&on_permission, NULL, &release_user_data);
+error = ntk_notification_get_authorization_status_async(&on_status, NULL, &release_user_data);
+
+/* The app's page of the Settings app; needs the foreground. */
+error = ntk_notification_open_settings_async(&on_settings_opened, NULL, &release_user_data);
+
+uint32_t system_code = ntk_last_system_code();   /* always 0 on iOS */
+```
+
+The settings request listener receives requests only when the app asked for `NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS`. An app whose status is already decided (an app updated from 1.x, for example) cannot add it with this function: its native code calls `requestAuthorization` of `UNUserNotificationCenter` itself.
+
+#### The content builder, showing and scheduling
+
+```c
+static void NTK_CALL on_done(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_PERMISSION_DENIED) {
+        /* No permission: nothing was added (and update removed nothing). */
+    } else if (error == NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED) {
+        /* An attachment could not be made, or its file does not exist. */
+    } else if (error == NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED) {
+        /* The system did not add the request; after update, the previous one is gone. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* The content: the id (not empty) and the title are required. */
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create("sample-notification", "Immediate Notification", &content)
+        != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+ntk_notification_content_set_body(content, "Displayed now");
+ntk_notification_content_set_subtitle(content, NULL);               /* NULL: the default (none) */
+ntk_notification_content_set_category(content, "sample-category");
+/* A JSON object without null and without the key "com.jonghyunkim.nativetoolkit". */
+ntk_notification_content_set_user_info_json(content, "{\"source\":\"IosLibraryExample\",\"id\":\"sample-notification\"}");
+ntk_notification_content_set_badge(content, -1);                    /* 0 or more; -1: not set */
+ntk_notification_content_set_sound(content, NTK_NOTIFICATION_SOUND_DEFAULT, NULL);  /* NAMED takes a name */
+ntk_notification_content_set_interruption_level(content, NTK_NOTIFICATION_INTERRUPTION_ACTIVE);
+ntk_notification_content_set_thread(content, NULL);
+ntk_notification_content_set_target_content(content, NULL);
+ntk_notification_content_set_relevance_score(content, 0.5);         /* 0.0 to 1.0 */
+ntk_notification_content_set_filter_criteria(content, NULL);
+
+/* Now: no trigger. The request's identifier is the content's id. */
+ntk_notification_error error = ntk_notification_show_async(content, NULL, &on_done, NULL, &release_user_data);
+
+/* In 5 seconds. Above 0; 60 or more when repeating. */
+ntk_notification_trigger trigger;
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_TIME_INTERVAL;
+trigger.interval_seconds = 5.0;
+error = ntk_notification_show_async(content, &trigger, &on_done, NULL, &release_user_data);
+
+/* Every day at 9:00. Only the fields whose bits are set are read. */
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_CALENDAR;
+trigger.calendar_fields = NTK_NOTIFICATION_CALENDAR_HOUR | NTK_NOTIFICATION_CALENDAR_MINUTE;
+trigger.hour = 9;
+trigger.minute = 0;
+trigger.repeats = 1;
+/* schedule: the identifier is the first argument (the content's id is not used), the trigger is required. */
+error = ntk_notification_schedule_async("scheduled-notification", content, &trigger, &on_done, NULL,
+                                        &release_user_data);
+
+/* On entering the region. Needs the location permission and its Info.plist text. */
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_LOCATION;
+trigger.location_identifier = "tokyo-station";
+trigger.latitude = 35.6812;
+trigger.longitude = 139.7671;
+trigger.radius = 100.0;
+trigger.not_notify_on_entry = 0;   /* 0: notify when entering */
+trigger.notify_on_exit = 0;
+/* Another identifier: a request with the same identifier replaces the pending one (the calendar one above). */
+error = ntk_notification_schedule_async("scheduled-location", content, &trigger, &on_done, NULL,
+                                        &release_user_data);
+ntk_notification_content_free(content);
+
+/* Replace the pending request "sample-notification" (or add it); NULL trigger: now. */
+ntk_notification_content* updated = NULL;
+if (ntk_notification_content_create("sample-notification", "Updated Notification", &updated)
+        == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_set_body(updated, "This content was updated");
+    error = ntk_notification_update_async("sample-notification", updated, NULL, &on_done, NULL,
+                                          &release_user_data);
+    ntk_notification_content_free(updated);
+}
+
+/* An attachment: a file:// URL. The system moves the file when the notification is added, so
+   a builder with an attachment serves one operation; a second one fails with
+   ATTACHMENT_LOAD_FAILED. */
+ntk_notification_content* with_image = NULL;
+if (ntk_notification_content_create("sample-notification", "Immediate Notification with Attachment", &with_image)
+        == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_add_attachment(with_image, "app-icon", "file:///path/to/app-icon-attachment.png");
+    error = ntk_notification_show_async(with_image, NULL, &on_done, NULL, &release_user_data);
+    ntk_notification_content_free(with_image);
+}
+```
+
+The checks of the Swift API become entry checks: the reserved key, a JSON `null`, a time interval out of range, a calendar trigger without fields, an invalid location, and an attachment URL that is not `file://` return `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER`. A file that does not exist completes with `NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED`.
+
+#### Removing and listing
+
+```c
+static void NTK_CALL on_list(void* user_data, ntk_notification_error error, uint32_t system_code,
+                             ntk_notification_list* list)
+{
+    /* list is NULL unless error is NONE. The list is yours: free it. */
+    size_t count = (error == NTK_NOTIFICATION_ERROR_NONE) ? ntk_notification_list_count(list) : 0;
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* identifier = ntk_notification_list_identifier_at(list, i, NULL);
+        const char* title = ntk_notification_list_title_at(list, i, NULL);        /* may be "" */
+        const char* subtitle = ntk_notification_list_subtitle_at(list, i, NULL);  /* NULL: none */
+        const char* body = ntk_notification_list_body_at(list, i, NULL);          /* NULL: none */
+        const char* category = ntk_notification_list_category_at(list, i, NULL);  /* may be "" */
+        int64_t delivered_at = ntk_notification_list_date_millis_at(list, i);     /* 0 when scheduled */
+        (void)identifier; (void)title; (void)subtitle; (void)body; (void)category; (void)delivered_at;
+    }
+    (void)user_data; (void)system_code;
+    ntk_notification_list_free(list);
+}
+
+static void NTK_CALL on_removed(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    /* Removals have no failure value. To add a request after a removal, add it from here. */
+    (void)user_data; (void)error; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* Pending requests and delivered notifications: no userInfo, no trigger. */
+ntk_notification_error error = ntk_notification_get_scheduled_async(&on_list, NULL, &release_user_data);
+error = ntk_notification_get_delivered_async(&on_list, NULL, &release_user_data);
+
+/* "" removes nothing and completes with NONE. */
+error = ntk_notification_cancel_scheduled_async("scheduled-notification", &on_removed, NULL, &release_user_data);
+error = ntk_notification_remove_async("sample-notification", &on_removed, NULL, &release_user_data);
+
+/* These also remove what the host app scheduled or delivered itself. */
+error = ntk_notification_cancel_all_scheduled_async(&on_removed, NULL, &release_user_data);
+error = ntk_notification_remove_all_async(&on_removed, NULL, &release_user_data);
+```
+
+#### The badge and categories
+
+```c
+static void NTK_CALL on_done(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_SET_BADGE_COUNT_FAILED) {
+        /* The system did not set the badge count. */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 0 clears the badge; a negative count is INVALID_PARAMETER. */
+ntk_notification_error error = ntk_notification_set_badge_count_async(1, &on_done, NULL, &release_user_data);
+
+/* The sample's category: Open (foreground), Delete (destructive), Reply (text input), and the
+   custom dismiss action. Every element of an array has the same struct_size. */
+ntk_notification_action actions[2];
+memset(actions, 0, sizeof actions);
+actions[0].struct_size = (uint32_t)sizeof actions[0];
+actions[0].identifier = "open";
+actions[0].title = "Open";
+actions[0].options = NTK_NOTIFICATION_ACTION_FOREGROUND;
+actions[1].struct_size = (uint32_t)sizeof actions[1];
+actions[1].identifier = "delete";
+actions[1].title = "Delete";
+actions[1].sf_symbol_name = NULL;                 /* an SF Symbol name, or NULL */
+actions[1].options = NTK_NOTIFICATION_ACTION_DESTRUCTIVE;
+
+ntk_notification_text_input_action reply;
+memset(&reply, 0, sizeof reply);
+reply.struct_size = (uint32_t)sizeof reply;
+reply.identifier = "reply";
+reply.title = "Reply";
+reply.button_title = "Send";
+reply.placeholder = "IosLibraryExample reply";
+
+ntk_notification_category category;
+memset(&category, 0, sizeof category);
+category.struct_size = (uint32_t)sizeof category;
+category.identifier = "sample-category";
+category.options = NTK_NOTIFICATION_CATEGORY_CUSTOM_DISMISS_ACTION;
+category.actions = actions;
+category.action_count = 2;
+category.text_input_actions = &reply;
+category.text_input_action_count = 1;
+
+/* Applied in the order of the calls, replacing a category with the same identifier. The
+   callback comes once it is registered: post the notifications that use it from there. */
+error = ntk_notification_register_category_async(&category, &on_done, NULL, &release_user_data);
+
+/* "" removes nothing and completes with NONE. */
+error = ntk_notification_remove_category_async("sample-category", &on_done, NULL, &release_user_data);
+```
+
+`NTK_NOTIFICATION_CATEGORY_ALLOW_ANNOUNCEMENT` is accepted and has no effect, as `allowAnnouncement` in the Swift API.
+
+#### Error values and the Swift API
+
+`ntk_notification_error`. Values 0 to 5 mean the same in every feature of the iOS C ABI. The numbers that are not listed are not declared on iOS.
+
+| Value | Name | When |
+|---|---|---|
+| 0 | `NTK_NOTIFICATION_ERROR_NONE` | Success; from a function with a callback, accepted |
+| 1 | `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER` | A bad argument: `NULL`, invalid UTF-8, an empty identifier, a value out of range, an unknown bit, a wrong `struct_size` or nonzero `reserved`, a JSON `null` or the reserved key, an attachment URL that is not `file://`, an invalid trigger |
+| 2 | `NTK_NOTIFICATION_ERROR_NOT_INITIALIZED` | A listener or the launch response before `ntk_notification_install` (or `installDelegate()`) |
+| 3 | `NTK_NOTIFICATION_ERROR_NOT_SUPPORTED` | A struct carries nonzero values in a part this version does not know |
+| 4 | `NTK_NOTIFICATION_ERROR_UNKNOWN` | Any other failure (the detail is in the log) |
+| 5 | `NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY` | Declared for every OS; not returned on iOS |
+| 8 | `NTK_NOTIFICATION_ERROR_NOT_FOREGROUND` | The permission request (while not determined) or the settings page while the app was not in the foreground |
+| 10 | `NTK_NOTIFICATION_ERROR_PERMISSION_DENIED` | `show`, `update` or `schedule` without the permission |
+| 15 | `NTK_NOTIFICATION_ERROR_SETTINGS_NOT_OPENED` | The system did not open the settings page |
+| 16 | `NTK_NOTIFICATION_ERROR_WRONG_THREAD` | `ntk_notification_install` off the main thread (its return value only) |
+| 17 | `NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED` | An attachment could not be made, or its file does not exist |
+| 18 | `NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED` | The system did not add the request |
+| 19 | `NTK_NOTIFICATION_ERROR_SET_BADGE_COUNT_FAILED` | The system did not set the badge count |
+| 20 | `NTK_NOTIFICATION_ERROR_AUTHORIZATION_FAILED` | The permission request itself failed (not a denial) |
+
+| Swift API | C ABI |
+|---|---|
+| `IosNotificationManager.shared` | - (the functions need no manager) |
+| `installDelegate()` / `isDelegateInstalled` | `ntk_notification_install` / - |
+| `NotificationContent` | `ntk_notification_content_create` and its setters |
+| `NotificationTrigger` | `ntk_notification_trigger` |
+| `show` / `update` / `schedule` | `ntk_notification_show_async` / `_update_async` / `_schedule_async` |
+| `cancel`, `cancelScheduled` / `cancelAll`, `cancelAllScheduled` | `ntk_notification_cancel_scheduled_async` / `_cancel_all_scheduled_async` |
+| `removeDelivered` / `removeAllDelivered` | `ntk_notification_remove_async` / `_remove_all_async` |
+| `getScheduled` / `getDelivered` | `ntk_notification_get_scheduled_async` / `_get_delivered_async` (without the userInfo) |
+| `hasPermission` / `authorizationStatus` | `ntk_notification_has_permission_async` / `_get_authorization_status_async` |
+| `requestPermission(options:presenter: .foreground)` | `ntk_notification_request_permission_async` |
+| `openNotificationSettings(presenter: .foreground)` | `ntk_notification_open_settings_async` |
+| `setBadgeCount` | `ntk_notification_set_badge_count_async` |
+| `registerCategory` / `removeCategory` | `ntk_notification_register_category_async` / `_remove_category_async` |
+| `responses` / `settingsRequests` | `ntk_notification_add_interaction_listener` / `_add_settings_request_listener` |
+| `NotificationEventRegistration.remove()` | `ntk_notification_listener_remove` |
+| `launchResponse()` | `ntk_notification_get_launch_response_async` |
+
+Not in the C ABI: `foregroundPresentationOptions`, the `.provisional` authorization option (and the other `UNAuthorizationOptions` beyond the `NTK_NOTIFICATION_AUTH_*` bits), calendar triggers with `DateComponents` fields other than year, month, day, hour, minute and second (such as `weekday` or `timeZone`), the 1.x callback forms of the permission request and the settings page, `.firstActiveScene` and `.viewController(_:)`, the userInfo of the listed notifications, and the deprecated receivers.
 
 ---
 

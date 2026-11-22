@@ -1,0 +1,9 @@
+# Search ignore file for ripgrep and the tools built on it (agents' code search).
+# It does not affect git: these folders stay tracked and published.
+#
+# docs/ (generated API references, one full copy per release) and dist/ (built binaries per
+# release) are about 93% of the tracked files, so a repository-wide search mostly hits copies
+# of generated output. To look inside them, name the path explicitly (read the file, `ls`,
+# `find`) or run `rg --no-ignore`.
+/docs/
+/dist/

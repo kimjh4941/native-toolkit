@@ -8,6 +8,7 @@ name says what it does, which is the grouping: there are no subfolders for it.
 | `build_` | Produces a distributable from source, under `dist/<release>/<os>/` |
 | `check_` | Compares two things that must agree and fails when they do not |
 | `test_` | Runs a platform's test suites |
+| `run_` | Builds and runs a C ABI smoke against a build of the distributable |
 | `publish_`, `verify_` | The documentation site, and the manual before a release |
 
 ## Build
@@ -19,10 +20,20 @@ an explicit output path; run one with `--help` (or `-Help`) for its options.
 | Script | Platform | Notes |
 |---|---|---|
 | `build_android_library_aar.sh` | Android | `android_library`, `android_library_capi`（`--m2` で Maven のリポジトリも） |
-| `build_ios_library_xcframework.sh` | iOS | `IosLibrary`, `UnityIosPlugin` |
+| `build_ios_library_xcframework.sh` | iOS | `IosLibrary`, `IosLibraryCApi` (Release only; builds `IosLibrary` first and copies the public headers to `include/NativeToolkitC/`); any other module name is refused (`UnityIosPlugin` was removed in 2.0.0). Nothing it archives is signed (`CODE_SIGNING_ALLOWED=NO`, README D-18). `--output-dir`, `--build-dir` and `--keep-project-versions` build outside `dist/` without touching the projects |
 | `build_xcode26_library_xcframework.sh` | macOS | What the implement-feature workflow uses. Takes `--minimum-macos` (default 15.0) |
 | `build_xcode16_library_xcframework.sh` | macOS | The earlier variant, named after the Xcode it was written for; no `--minimum-macos` |
 | `build_windows_library_dll.ps1` | Windows | Builds both modules and, with `-Package`, packs the two NuGet packages. See `agent-rules/coding-rules/windows.md` ("配布") |
+
+For iOS, a build that is not a release goes outside `dist/` and leaves the
+projects' version numbers alone; check it with `check_ios_dist.py --dist`:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  ./scripts/build_ios_library_xcframework.sh -m IosLibrary -m IosLibraryCApi -v 2.0.0 \
+  --output-dir /tmp/ntk-ios --build-dir /tmp/ntk-ios-build --keep-project-versions
+python3 scripts/check_ios_dist.py --dist /tmp/ntk-ios
+```
 
 The Windows script is the one that differs most, because Windows ships two
 artifacts from one source tree:
@@ -47,20 +58,31 @@ These read both sides of a comparison from source, so neither side can drift
 without the other noticing. They are fast, need no toolchain, and are meant to
 run while writing a design or before a commit; the optional parts of the
 Android ones (`--library`, the compile check) use the NDK's `llvm-nm` and
-`clang` and say SKIP without them. The C ABI and manual example checkers are
-one file per OS; what they share is `c_abi_contract_common.py` and
-`manual_c_examples_common.py`. The cross-OS `Common.h` check lives in the
-Android checker, so run it too after changing the Windows `Common.h`.
+`clang`, those of the iOS ones `nm` and Xcode's `clang`, and they say SKIP
+without them. The C ABI and manual example checkers are one file per OS; what
+they share is `c_abi_contract_common.py` and `manual_c_examples_common.py`. The
+cross-OS `Common.h` check compares all three OSes in the iOS checker and Android
+with Windows in the Android checker, so run both after changing any `Common.h`.
+
+`c_abi_error_numbers.json` holds one table per feature of the C ABI's error
+names and numbers across iOS and Android (`artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-c-abi-design.md`,
+P1-7): the same name has the same number, a number has one name, and a name an
+OS lacks is a gap there. Both checkers compare their headers with it, so run
+both after changing it or an error enumeration. Windows numbers its errors by
+another rule and is not in it; neither is `Android.h`, which no other OS has.
 
 | Script | Compares |
 |---|---|
 | `check_design_consistency.py <design.md>` | A design document against itself: counts, ids, tables, heading order |
 | `check_cpp_api_contract.py` | The Windows C++ API design against the public headers and what it cites |
 | `check_c_abi_contract_windows.py` | The Windows C ABI: the `.def`, the public headers, the design's tables and Appendix A, and the C++ API it mirrors |
-| `check_c_abi_contract_android.py [--design-only] [--library <libntk.so> [--nm <llvm-nm>]]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
+| `check_c_abi_contract_android.py [--design-only] [--library <libntk.so> [--nm <llvm-nm>]]` | The Android C ABI: the public headers, the design's tables and Appendix A, the Kotlin entries it calls, the behaviours of chapter 10, the numbers table, and its `Common.h` against the Windows one. `--design-only` reads Appendix A in place of the headers until stage 2b writes them; `--library` also compares the symbols `libntk.so` exports |
+| `check_c_abi_contract_ios.py [--design-only] [--require-compile] [--require-complete] [--clang <clang>] [--library <binary> [--nm <nm>] [--architectures <a,b>]]` | The iOS C ABI: the public headers (their preprocessor lines too), the design's tables and Appendix A, the Swift entries it calls (in the swiftinterface of TB-0), the behaviours of chapter 10, every case of the Swift errors in the sources and the baseline against chapter 11, the numbers table against the iOS and Android headers, and the `Common.h` of the three OSes. It also compares the capi's Swift sources with the headers (every function has its `@c @implementation` entry or is in `NOT_IMPLEMENTED_YET`; nothing else is `public`), the module map with the header folder, the layout test with the structs, the framework target's settings with part 1, 5.4, and compiles each header alone as C99, C11, C++ and Objective-C and the layout test for the three slices. `--design-only` reads Appendix A in place of the headers, and fails now that they exist; `--library` takes one binary and also compares what `nm -arch all -gU` lists with the implemented `_ntk_*` of 8.2 in every architecture it has, and `--architectures` says which it must have; `--require-compile` makes a missing Xcode a failure rather than a SKIP; `--require-complete` makes a non-empty `NOT_IMPLEMENTED_YET` a failure, which TB-10, TB-11 and TB-12 ask for: only that stops a function hiding in the list. The capi's C sources, if it has any, may define no `ntk_` function and name no `ntk_` the headers lack (`csources`). What the distributable ships is `check_ios_dist.py`'s |
 | `check_sample_app_inputs.py` | That no sample app screen declares a text input field (`agent-rules/coding-rules/common.md`) |
 | `check_manual_c_examples_windows.py [<version>]` | The manual's Windows C examples against the C ABI: every exported function is shown, every name exists, the three languages carry the same code, and the examples compile as C (MSBuild) |
 | `check_manual_c_examples_android.py [<version>] [--require-examples]` | The same for the Android C examples, compiled with the NDK's clang. Says SKIP while no page has an Android C ABI section, unless `--require-examples` is given |
+| `check_manual_c_examples_ios.py [<version>] [--require-examples]` | The same for the iOS C examples, compiled with Xcode's clang against the iOS SDK. Says SKIP while no page has an iOS C ABI section, unless `--require-examples` is given |
+| `check_ios_dist.py [<release> \| --dist <folder>]` | The iOS distributable (README 7.3 of `artifact/topics/ios-c-abi/`): both xcframeworks with the slices `ios-arm64` and `ios-arm64_x86_64-simulator`; per architecture, the capi exports exactly the functions of the tree's headers, needs only `@rpath/IosLibrary.framework`, the OS and `/usr/lib/swift/`, and neither framework imports what runs at exit; the install names; the versions, minimum iOS and bundle ids; no Swift module, interface or `-Swift.h` in the capi; the module map, the headers (loose and in the framework) and `IosLibrary`'s privacy manifest against the tree and the required-reason APIs its sources use; no signature but the simulator linker's ad-hoc one. `--dist` takes a build outside `dist/`. Run before a release |
 | `check_windows_dist.py [<release>]` | `dist/<release>/windows/` against the tree: built from the current sources, the same public headers (loose and in both packages), the declared versions in the file names, every `.def` export in the DLL. Run before a release |
 
 ## Test
@@ -84,16 +106,124 @@ ClipboardHistoryDestructive, which deletes every unpinned item in the user's
 clipboard history and cannot be undone: ask before running it. `-Baseline`
 needs a full run, so it refuses `-Filter` and `-SkipUnitTests`.
 
+| Script | Runs |
+|---|---|
+| `test_ios.sh` | The iOS unit tests (simulator only) and the sample's UI tests on one simulator or the device; with `--capi-ui`, the UI tests of the C ABI on one simulator; with `--capi`, the other checks of the C ABI on one simulator; with `--capi-device`, the C ABI's ASan and smoke on the device, after the user approved the list. What runs and every check of what ran is in `ios_ui_runner.py`, and for `--capi` and `--capi-device` in `ios_capi_runner.py` |
+| `test_ios_upgrade.sh` | The upgrade test on one simulator only: the 1.13.0 sample (built from the tag in a temporary git worktree) leaves scheduled and delivered notifications, a category and the permission; 2.0.0 is installed over it and `UpgradeUITests` checks them (three groups; `artifact/topics/ios-c-abi/designs/2026-11-21-ios-c-abi-upgrade-test-design.md`). A normal `test_ios.sh` run never selects that class. It changes the simulator's location and the sample's location permission, and puts them back |
+| `test_ios.baseline.<model>-<os>.json` | The recorded outcome of the last full run in each of the two environments, which `--baseline` rewrites |
+
+```bash
+scripts/test_ios.sh --udid <simulator>                       # everything on a simulator
+scripts/test_ios.sh --udid <simulator> --feature Dialog      # one feature's UI tests
+scripts/test_ios_upgrade.sh --udid <simulator>               # the upgrade from the 1.13.0 sample (--group A|B|C)
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <simulator> --capi-ui           # the UI tests of the C ABI
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <simulator> --capi              # the other checks of the C ABI
+scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --dry-run --device-allow systemui
+scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --devicectl-id <id> \
+  --device-allow systemui --approved <approval.json>         # after the user approved the list
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --capi-device --dry-run   # the list to approve
+DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer \
+  scripts/test_ios.sh --udid <device> --enumerate-udid <simulator> --capi-device --approved <approval.json> --devicectl-id <id>
+```
+
+The device is the user's own iPhone (`artifact/topics/ios-c-abi/designs/2026-10-18-ios-c-abi-ui-test-design.md`,
+U-9 and 6.3): a UDID that `xcrun simctl list` does not show is treated as the device,
+`--dry-run` never touches it, and a device run needs an approval list from `--dry-run` that the
+user approved, used once (the IDs are recorded outside the repository in
+`~/Library/Application Support/native-toolkit/test_ios-approvals.log`; nothing moves it), and
+nothing under `ios/` may differ from the commit. `--name-each-test` makes a simulator run name
+every test the way the device does. The hashes of the
+trusted test files are pinned in `ios_ui_runner.py`; change them only after another model has
+reviewed the change.
+
+`--capi-ui` runs `IosLibraryCApiUITests` against `IosLibraryCApiUITestApp`, the app that calls the C
+functions (`artifact/topics/ios-c-abi/designs/2026-11-03-ios-c-abi-c-abi-design-part2.md`, TB-2b and
+12.2). Both targets support the simulator only, so a device is not a destination for them (a
+command-line override can still force a device build; `agent-rules/device-testing.md` covers that). The
+option also refuses the device and every other option, and shares no stage with the sample's tests: no
+declarations, no baseline, no approval. It deletes the app before each test of a class that
+`CAPI_UI_CLASSES` marks as a new install, which is what returns the notification permission to
+undetermined.
+
+It needs Xcode 26.6 (`DEVELOPER_DIR` as above; it stops with exit 2 under another one and never switches
+by itself). **It restarts the given simulator before every xcodebuild**, and warns when that simulator
+was already booted. There is no lock: nothing else may run on that simulator during a run. Before the
+build it checks that every row of the app calls C and that nothing else reaches the library or the
+system directly; after the build, that the app's own Mach-O files import exactly those C functions and
+nothing of `IosLibrary`. A row that calls C and then reports a fixed value is left to a review.
+
+`--capi` runs the other checks of the C ABI on one simulator (`artifact/topics/ios-c-abi/designs/2026-10-31-ios-c-abi-c-abi-design.md`,
+C-6 and 6.1; part 2, TB-12): `IosLibraryCApiTests` without a sanitizer, with ASan and with TSan, each
+in its own DerivedData; a build of the distributable (`build_ios_library_xcframework.sh -m IosLibrary -m
+IosLibraryCApi --output-dir --build-dir --keep-project-versions`, with the version of the tree's
+`Common.h`) inside the run's folder, never `dist/`; `check_ios_dist.py --dist` on it;
+`check_c_abi_contract_ios.py --require-compile --require-complete --library` on the capi of each slice
+(`ios-arm64` with `arm64`, the simulator with `arm64,x86_64`); and `run_ios_capi_smoke.sh --udid
+--device-build` on it. Every step runs (those that need the build say "not run" when it failed), and the
+summary fails the run when a step failed or did not run once. A variant of the unit tests passes only when
+every test passed and none was skipped, each framework loads that variant's sanitizer runtime and no
+other (`otool -L`), and neither the xcodebuild log nor the result bundle's action log has a sanitizer's
+report; the three variants must run the same number of tests (a SKIP in either checker's report fails
+its step too). Like `--capi-ui` it takes no other option but `--udid` (an option given with an empty value
+counts; `--capi-ui` refuses those too), refuses the device and needs Xcode 26.6; it also stops while
+Simulator.app is open or `pgrep` cannot tell. The build and the smoke run in their own process group under a
+one-hour limit, and the whole group is killed when it is up. It never
+reaches the device: the device's ASan and smoke run only at a stage's end with the user's approval
+(`agent-rules/device-testing.md`). The smoke runs with the Xcode that builds the library; its run with
+26.3 (D-16) is `run_ios_capi_smoke.sh` on its own, as below. The archives use Xcode's default DerivedData,
+as the build script always has.
+
+`--capi-device` is the device's side of the same checks (stage 2 working notes, 17): it first checks with a
+read-only `devicectl device info details` that `--devicectl-id` names the `--udid` device, then runs
+`IosLibraryCApiTests` with ASan on the device (`-allowProvisioningUpdates`, the device's
+`libclang_rt.asan_ios_dynamic` runtime, the same reading of the summary and the logs, and exactly the tests
+that `--enumerate-udid`'s simulator enumerated for the approval list; a sanitizer's report is recorded by its
+kinds and counts only), then the distributable built unsigned in the run's folder, the
+smoke built from it signed for the device (`run_ios_capi_smoke.sh --signed-device-build`, with the team of
+the C ABI's own project passed on the command line and written nowhere), installed with `devicectl device
+install app` and launched with `devicectl device process launch --console`; only the app's own `SMOKE` lines
+are read, and each of its 16 steps must pass exactly once. Every xcodebuild of the path runs without
+`XCODE_XCCONFIG_FILE`, `TOOLCHAINS` and the `TEST_RUNNER_` variables; the hardware UDID is never printed. It takes `--udid`, `--enumerate-udid` and either `--dry-run` alone, which writes the approval list (what reaches the
+device, what is signed, the two apps left installed) and never reaches the device or signs, or `--approved`
+with `--devicectl-id`, which checks the list, the runner files and the tree against the commit, consumes the
+approval's ID in the same ledger as the sample's device runs, and checks again before each step that reaches
+the device or signs. The device's result bundles and logs stay in a temporary folder that the run removes.
+Neither app is removed afterwards (that needs its own approval).
+
+| Script | Runs |
+|---|---|
+| `run_android_capi_smoke.sh` | The Android C ABI smoke (`android/android_library_capi_smoke`) on one device, against a Maven repository the build wrote |
+| `run_ios_capi_smoke.sh` | The iOS C ABI smoke (`ios/IosLibraryCApiSmoke`, a C and Objective-C app with no Swift) built from the two xcframeworks of a build alone, with the Xcode `DEVELOPER_DIR` names (26.6 builds the library; 26.3 is the users' lowest). It copies the smoke and the xcframeworks into a new `--work` folder and builds there, checks what the app embeds and imports, and with `--udid` runs it on a simulator: `ntk_notification_install`, a named pasteboard written and read, a dialog shown and cancelled to its completion. `--device-build` also builds for a device, unsigned, and never installs it; `--signed-device-build` (with `NTK_SMOKE_DEVELOPMENT_TEAM`, for `test_ios.sh --capi-device` only) builds it signed, only with `--plan` and `--approved` of a consumed approval (the same gate), and never installs it either |
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode26.3.app/Contents/Developer \
+  scripts/run_ios_capi_smoke.sh --dist /tmp/ntk-ios --work /tmp/ntk-smoke-1 --udid <simulator> --device-build
+```
+
+It does not run while Simulator.app is open (`agent-rules/device-testing.md`), and boots and shuts down
+a simulator it found shut down.
+
 ## `tests/` is not the test suite
 
-`scripts/tests/` holds the **self-tests of the `check_` scripts**, not tests of
-the product. Each case copies the files a checker reads into a temporary tree,
+`scripts/tests/` holds the **self-tests of the `check_` scripts** and of the
+decisions of `test_ios.sh` (`ios_ui_runner.py`, and `ios_capi_runner.py` for `--capi`), not tests of the product. Each case copies the files a checker reads into a temporary tree,
 breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 
 ```bash
-python -m unittest discover -s scripts/tests    # 181 cases
+python -m unittest discover -s scripts/tests    # 856 cases
 ```
+
+`test_check_android_dist.py` and `test_check_ios_dist.py` break copies of a real build, so they
+skip without one: the iOS one reads the folder `NTK_IOS_DIST` names (a build's `--output-dir`) or
+the highest `dist/<release>/ios/`, and `NTK_REQUIRE_DIST_FIXTURE=1` turns the skip into a failure.
+
+`tests/ios_ui_runner_mutations.py` is not a unit test: it breaks one decision of the iOS runner
+at a time in a copy (with the copy's approval ledger moved into the copy) and checks that the
+self-tests catch each one.
 
 `test_windows.ps1`, by contrast, runs the product's own tests. The two are
 unrelated despite the similar names.
@@ -103,13 +233,14 @@ unrelated despite the similar names.
 | Script | Does |
 |---|---|
 | `publish_docs.sh <version> [--skip-build] [--os <targets>]` | Generates each platform's API reference, copies it and `manual/<version>/` to `docs/<version>/`, and refreshes `docs/latest/` |
-| `verify_manual.sh <version> [--strict]` | Seven checks over `manual/<version>/`: image references, sample conformance, anchors, artifact names, prose style, language parity, the index feature list |
+| `verify_manual.sh <version> [--strict]` | Eight checks over `manual/<version>/`: image references, sample conformance, anchors, artifact names, prose style, language parity, the index feature list, anchors in OS sections (a table-of-contents link under an OS item points into that OS's section) |
 
 Check 2 of `verify_manual.sh` compares code examples against the sample app,
-which is C++ or Kotlin, so the C examples are outside it.
+which is Swift (iOS, macOS), Kotlin (Android) or C++ (Windows), so the C examples
+are outside it.
 `check_manual_c_examples_<os>.py` is what covers those; the compile check needs
-Visual Studio (Windows) or the NDK's clang (Android) and reports SKIP without
-it, unless `--require-compile` is given.
+Visual Studio (Windows), the NDK's clang (Android) or Xcode's clang (iOS) and
+reports SKIP without it, unless `--require-compile` is given.
 
 `publish_docs.sh` also moves `docs/latest/`, so it belongs to a release rather
 than to day-to-day work. The workflows that call these two are

@@ -1,0 +1,179 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "73A3F720-16B5-45F6-A743-E9D853C92424",
+      "deviceName" : "iPhone 17",
+      "modelName" : "iPhone 17",
+      "osBuildNumber" : "23C54",
+      "osVersion" : "26.2",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "12s",
+                  "durationInSeconds" : 12.622732043266296,
+                  "name" : "testD10_textInputCancelDropsInput()",
+                  "nodeIdentifier" : "DialogUITests/testD10_textInputCancelDropsInput()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD10_textInputCancelDropsInput",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "14s",
+                  "durationInSeconds" : 14.276924967765808,
+                  "name" : "testD11_loginButtonFollowsBothFields()",
+                  "nodeIdentifier" : "DialogUITests/testD11_loginButtonFollowsBothFields()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD11_loginButtonFollowsBothFields",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "13s",
+                  "durationInSeconds" : 13.401571035385132,
+                  "name" : "testD12_loginReportsCredentials()",
+                  "nodeIdentifier" : "DialogUITests/testD12_loginReportsCredentials()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD12_loginReportsCredentials",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.57109797000885,
+                  "name" : "testD13_loginCancel()",
+                  "nodeIdentifier" : "DialogUITests/testD13_loginCancel()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD13_loginCancel",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "35s",
+                  "durationInSeconds" : 35.24514901638031,
+                  "name" : "testD14_eachDialogReportsCompletionAndCallbackOnce()",
+                  "nodeIdentifier" : "DialogUITests/testD14_eachDialogReportsCompletionAndCallbackOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD14_eachDialogReportsCompletionAndCallbackOnce",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "15s",
+                  "durationInSeconds" : 15.278894066810608,
+                  "name" : "testD15_loginReportsCompletionAndCallbackOnce()",
+                  "nodeIdentifier" : "DialogUITests/testD15_loginReportsCompletionAndCallbackOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD15_loginReportsCompletionAndCallbackOnce",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.761498928070068,
+                  "name" : "testD1_showAlertOK()",
+                  "nodeIdentifier" : "DialogUITests/testD1_showAlertOK()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD1_showAlertOK",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.856451988220215,
+                  "name" : "testD2_showConfirmDialogYes()",
+                  "nodeIdentifier" : "DialogUITests/testD2_showConfirmDialogYes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD2_showConfirmDialogYes",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.504135012626648,
+                  "name" : "testD3_showConfirmDialogNo()",
+                  "nodeIdentifier" : "DialogUITests/testD3_showConfirmDialogNo()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD3_showConfirmDialogNo",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.755836009979248,
+                  "name" : "testD4_showDestructiveDialogDelete()",
+                  "nodeIdentifier" : "DialogUITests/testD4_showDestructiveDialogDelete()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD4_showDestructiveDialogDelete",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.566344976425171,
+                  "name" : "testD5_showDestructiveDialogCancel()",
+                  "nodeIdentifier" : "DialogUITests/testD5_showDestructiveDialogCancel()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD5_showDestructiveDialogCancel",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "16s",
+                  "durationInSeconds" : 16.358448028564453,
+                  "name" : "testD6_showActionSheetEachOption()",
+                  "nodeIdentifier" : "DialogUITests/testD6_showActionSheetEachOption()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD6_showActionSheetEachOption",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.448353052139282,
+                  "name" : "testD7_showActionSheetCancel()",
+                  "nodeIdentifier" : "DialogUITests/testD7_showActionSheetCancel()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD7_showActionSheetCancel",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "12s",
+                  "durationInSeconds" : 12.320457935333252,
+                  "name" : "testD8_textInputConfirmFollowsInput()",
+                  "nodeIdentifier" : "DialogUITests/testD8_textInputConfirmFollowsInput()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD8_textInputConfirmFollowsInput",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "11s",
+                  "durationInSeconds" : 11.242543935775757,
+                  "name" : "testD9_textInputConfirmReportsInput()",
+                  "nodeIdentifier" : "DialogUITests/testD9_textInputConfirmReportsInput()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests/testD9_textInputConfirmReportsInput",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "DialogUITests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests/DialogUITests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "IosLibraryExampleUITests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/IosLibraryExample/IosLibraryExampleUITests",
+          "nodeType" : "UI test bundle",
+          "result" : "Passed"
+        }
+      ],
+      "name" : "IosLibraryExample",
+      "nodeType" : "Test Plan",
+      "result" : "Passed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+# The two xcframeworks the smoke links, staged here (or in the copy that
+# scripts/run_ios_capi_smoke.sh builds) from a build of the distributable.
+/Frameworks

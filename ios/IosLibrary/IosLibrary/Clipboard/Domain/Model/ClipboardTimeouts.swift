@@ -10,9 +10,11 @@ import Foundation
 /// Each timeout is owned by the layer that starts the corresponding operation and is measured
 /// from the moment the underlying system API call is issued.
 public struct ClipboardTimeouts: Equatable, Sendable {
-    /// Timeout for `detectedPatterns(for:)` / `detectedValues(for:)` (P-9 / P-10).
+    /// Timeout for the system's `detectedPatterns(for:)` / `detectedValues(for:)` (pattern and
+    /// value detection).
     public let detection: TimeInterval
-    /// Timeout for a single `NSItemProvider` load (P-11 / P-16), per provider.
+    /// Timeout for a single `NSItemProvider` load (`loadItem` and the paste control), per provider. It includes the
+    /// time the user takes to answer the system's prompt to allow the paste.
     public let providerLoad: TimeInterval
     /// Timeout for background image encode/decode.
     public let imageCoding: TimeInterval

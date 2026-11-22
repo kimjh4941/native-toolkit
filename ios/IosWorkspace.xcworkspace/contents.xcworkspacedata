@@ -8,6 +8,6 @@
       location = "group:IosLibrary/IosLibrary.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:UnityIosPlugin/UnityIosPlugin.xcodeproj">
+      location = "group:IosLibraryCApi/IosLibraryCApi.xcodeproj">
    </FileRef>
 </Workspace>

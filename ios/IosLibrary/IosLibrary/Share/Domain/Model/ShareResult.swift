@@ -6,7 +6,7 @@
 import Foundation
 
 /// The outcome of a share sheet interaction.
-public struct ShareResult {
+public struct ShareResult: Sendable {
     /// true if the user completed an activity; false if cancelled.
     public let completed: Bool
     /// The selected activity's raw identifier, or nil (cancelled / unknown).

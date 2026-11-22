@@ -68,7 +68,8 @@
      - NavigationStack + NavigationLink での画面遷移
      - sectionView での機能グルーピングと一貫したボタンスタイル
      - `requirePermission` と `updateResult` の共通化
-     - App 起動時セットアップ（`IosNotificationManager.setup()` と action handler 登録）
+     - App 起動時セットアップ（iOS 2.0.0 の形）: 起動の終わりまでに（`application(_:didFinishLaunchingWithOptions:)` から、main で）`IosNotificationManager.installDelegate()` で delegate を入れ、`IosNotificationManager.shared.responses`・`settingsRequests` などのイベントを `addListener` で受ける（サンプルでは `SampleAppDelegate` と `NotificationEventRouting.swift`）
+     - `setup()` と `onActionReceived` / `onTextInputActionReceived` の受け手は 2.0.0 で非推奨。新しいサンプルの設計では使わず、互換の確かめ（サンプルの `legacyReceivers` の起動モード）でだけ扱う
    - macOS 固有で確認するポイント（Windows の主参照）:
      - `NavigationStack` + メニューカード（`menuCard`）でのメインメニュー -> サンプル画面遷移
      - `sectionView` 相当の機能カテゴリ別グルーピングと `updateResult`（✅/❌）の共通化

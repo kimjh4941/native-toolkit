@@ -44,10 +44,10 @@ Language:
     - [에러 값](#에러-값)
 - [iOS](#ios)
   - [IosClipboardManager](#iosclipboardmanager)
-  - [설정](#설정-1)
     - [스레드](#스레드)
     - [두 가지 호출 방식](#두-가지-호출-방식)
     - [기본값](#기본값)
+  - [설정](#설정-1)
   - [스코프](#스코프)
     - [일반 페이스트보드 사용](#일반-페이스트보드-사용)
     - [이름 있는 페이스트보드 생성](#이름-있는-페이스트보드-생성)
@@ -67,8 +67,8 @@ Language:
     - [여러 텍스트 복사](#여러-텍스트-복사-1)
     - [다중 표현 복사](#다중-표현-복사)
   - [복사 옵션](#복사-옵션)
-    - [localOnly 를 지정해 복사](#localonly-를-지정해-복사)
-    - [expirationDate 를 지정해 복사](#expirationdate-를-지정해-복사)
+    - [localOnly를 지정해 복사](#localonly를-지정해-복사)
+    - [expirationDate를 지정해 복사](#expirationdate를-지정해-복사)
   - [추가](#추가)
     - [일반 텍스트 추가](#일반-텍스트-추가)
     - [URL 추가](#url-추가)
@@ -88,7 +88,7 @@ Language:
   - [감지](#감지)
     - [패턴 감지](#패턴-감지)
     - [값 감지](#값-감지)
-    - [number 와 probableWebSearch 는 클립보드 전체를 분류합니다](#number-와-probablewebsearch-는-클립보드-전체를-분류합니다)
+    - [number와 probableWebSearch는 클립보드 전체를 분류합니다](#number와-probablewebsearch는-클립보드-전체를-분류합니다)
     - [감지에는 취소 토큰이 없습니다](#감지에는-취소-토큰이-없습니다)
   - [변경 감시](#변경-감시-1)
     - [감시 시작](#감시-시작-1)
@@ -98,6 +98,19 @@ Language:
     - [붙여넣기 컨트롤 생성](#붙여넣기-컨트롤-생성)
   - [지우기](#지우기-1)
   - [에러 처리](#에러-처리-1)
+  - [로드 하나 취소(RequestBox)](#로드-하나-취소requestbox)
+    - [텍스트를 로드한 뒤 바로 취소](#텍스트를-로드한-뒤-바로-취소)
+    - [미리 취소한 박스로 텍스트 로드](#미리-취소한-박스로-텍스트-로드)
+  - [C ABI](#c-abi-1)
+    - [빌드](#빌드-1)
+    - [페이스트보드](#페이스트보드)
+    - [복사하기](#복사하기)
+    - [복사 옵션, 추가, 지우기](#복사-옵션-추가-지우기)
+    - [읽어 오기](#읽어-오기)
+    - [로드와 취소](#로드와-취소)
+    - [감지하기](#감지하기)
+    - [변경 이벤트](#변경-이벤트-1)
+    - [에러 값](#에러-값-1)
 - [macOS](#macos)
   - [MacClipboardManager](#macclipboardmanager)
   - [설정](#설정-2)
@@ -190,7 +203,7 @@ Language:
     - [고정되지 않은 히스토리 지우기](#고정되지-않은-히스토리-지우기)
     - [요청 취소](#요청-취소)
   - [에러 처리](#에러-처리-3)
-  - [C ABI](#c-abi-1)
+  - [C ABI](#c-abi-2)
     - [세션, 리스너, 종료](#세션-리스너-종료)
     - [쓰기](#쓰기)
     - [읽기와 검사](#읽기와-검사)
@@ -245,7 +258,7 @@ val clipboardManager = remember(context) { AndroidClipboardManager.getInstance(c
 
 #### Gradle 의존성
 
-`dist/1.13.0/android/`에는 AAR과, 이를 POM과 함께 담은 파일 기반 Maven 저장소 `m2/`가 있습니다. `m2/`에서 라이브러리를 해석하는 방법을 권장합니다. Gradle이 라이브러리가 의존하는 androidx 라이브러리도 함께 해석하기 때문입니다.
+`dist/1.14.0/android/`에는 AAR과, 이를 POM과 함께 담은 파일 기반 Maven 저장소 `m2/`가 있습니다. `m2/`에서 라이브러리를 해석하는 방법을 권장합니다. Gradle이 라이브러리가 의존하는 androidx 라이브러리도 함께 해석하기 때문입니다.
 
 **settings.gradle.kts:**
 
@@ -255,7 +268,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // dist/1.13.0/android/m2를 프로젝트에 복사한 것
+        // dist/1.14.0/android/m2를 프로젝트에 복사한 것
         maven { url = uri("third_party/native-toolkit-m2") }
     }
 }
@@ -603,7 +616,7 @@ add_library(app SHARED app.c)
 target_link_libraries(app PRIVATE ntk::ntk)
 ```
 
-헤더는 `NativeToolkitC/Common.h`, `NativeToolkitC/Android.h`, `NativeToolkitC/Clipboard.h`입니다. AAR에는 자체 R8 keep 규칙이 포함되어 있습니다. 바인딩 생성 도구(ClangSharp, bindgen, ffigen)를 위해 같은 헤더가 `dist/1.13.0/android/include/NativeToolkitC/`에도 있습니다.
+헤더는 `NativeToolkitC/Common.h`, `NativeToolkitC/Android.h`, `NativeToolkitC/Clipboard.h`입니다. AAR에는 자체 R8 keep 규칙이 포함되어 있습니다. 바인딩 생성 도구(ClangSharp, bindgen, ffigen)를 위해 같은 헤더가 `dist/1.14.0/android/include/NativeToolkitC/`에도 있습니다.
 
 #### 초기화
 
@@ -818,55 +831,67 @@ error = ntk_clipboard_stop_observing();
 
 ## iOS
 
-- 라이브러리: `ios-native-toolkit-1.3.0.xcframework`
-- 최소 배포 타깃: iOS 18
-- 지원 범위: 복사 / 추가, 동기 읽기, 메타데이터 스냅샷, 이름 있는 페이스트보드와 고유 페이스트보드의 수명 주기, `NSItemProvider` 기반 비동기 로드, 패턴 감지, 변경 감시, 그리고 배치만 하면 바로 동작하는 `UIPasteControl` 붙여넣기 버튼을 제공합니다.
+iOS 18.0 이상의 시스템 페이스트보드(`UIPasteboard`)입니다. iOS 라이브러리는 하나의 구현을 두 가지 공개 API로 제공합니다. 샘플 앱은 Swift API를 사용합니다.
+
+| API | 이름 | 모듈 / 헤더 | 산출물 |
+|---|---|---|---|
+| Swift API | `IosClipboardManager` | `import IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_clipboard_*` | `<IosLibraryCApi/NativeToolkitC/Clipboard.h>` | `ios-native-toolkit-capi-2.0.0.xcframework`(`ios-native-toolkit-2.0.0.xcframework`와 함께 사용) |
+
+- 최소 배포 타깃: iOS 18.0
+- Xcode: Swift API로 빌드하려면 26.3 이상
+- 지원 범위: 복사와 추가, 동기 읽기, 메타데이터 스냅샷, 이름 있는 페이스트보드와 고유 페이스트보드, 요청 단위로 취소할 수 있는 `NSItemProvider` 기반 비동기 로드, 패턴 감지, 변경 감시, 배치만 하면 바로 동작하는 `UIPasteControl` 붙여넣기 버튼(Swift API 전용)입니다.
+
+iOS 라이브러리 2.0.0에서도 모듈 이름은 `IosLibrary` 그대로이며, 1.x의 클립보드 선언도 바뀌지 않았습니다. `RequestBox`로 어느 스레드에서든 취소할 수 있는 로드가 추가되었습니다([로드 하나 취소(RequestBox)](#로드-하나-취소requestbox) 참고). 다른 기능과 앱 전체에서 달라지는 점은 [iOS 라이브러리를 2.0.0으로 마이그레이션](index.ko.md#ios-라이브러리를-200으로-마이그레이션)에 정리되어 있습니다.
 
 ### IosClipboardManager
 
-`IosClipboardManager` 는 `UIPasteboard` 를 감싸는 싱글턴 클래스입니다.
-
-### 설정
-
-1. `ios-native-toolkit-1.3.0.xcframework` 를 Xcode 프로젝트에 추가합니다(프로젝트로 드래그한 뒤 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정).
-2. 클립보드를 사용하는 파일에서 라이브러리를 임포트합니다.
+`IosClipboardManager`는 클립보드의 진입점이며, 일반적인 용도에는 `IosClipboardManager.shared` 인스턴스를 사용합니다.
 
 ```swift
 import IosLibrary
-```
 
-추가 초기화나 `Info.plist` 설정은 필요하지 않습니다.
+let manager = IosClipboardManager.shared
+```
 
 #### 스레드
 
-`IosClipboardManager` 는 `@MainActor` 로 격리되어 있습니다. 메인 액터에서 호출하십시오(SwiftUI / UIKit 코드는 이미 메인 액터에 있습니다). 메인 액터가 아닌 곳에서 호출할 때는 `await MainActor.run { ... }` 을 사용합니다.
+| 멤버 | 스레드 |
+|---|---|
+| `shared`와 모든 작업 | 메인 액터입니다. SwiftUI와 UIKit 코드는 이미 메인 액터에서 실행됩니다. 다른 컨텍스트에서는 `await MainActor.run { ... }`을 사용합니다. 페이스트보드 자체는 메인 스레드에서 사용됩니다 |
+| `cancelLoad(_:)` | 모든 스레드에서 호출할 수 있으며, 메인 스레드를 기다리지 않습니다. `shared`를 읽을 수 없는 곳(메인 액터 밖)에서는 정적 형식인 `IosClipboardManager.cancelLoad(box)`를 호출합니다 |
+| 콜백 형식의 완료 핸들러 | 메인 액터에서 한 번 호출됩니다 |
+| `startObserving`의 `onEvent` | 메인 스레드에서 호출됩니다 |
+| `init(timeouts:limits:)`로 만든 매니저의 해제 | 모든 스레드에서 할 수 있습니다. 정리 작업(옵저버 제거, 해당 로드 취소)은 메인 액터에서 한 번 실행됩니다 |
+
+`read`와 `readData`는 iOS가 사용자에게 붙여넣기 허용을 묻는 동안 메인 스레드를 멈출 수 있습니다. [읽기](#읽기)를 참고하세요.
 
 #### 두 가지 호출 방식
 
 값을 다루는 모든 작업은 다음 두 가지 형식을 제공합니다.
 
-- `async throws`(네이티브 Swift 호출자에게 권장): 타입이 지정된 값을 반환하며, 실패 시 `ClipboardError` 를 throw 합니다.
-- 콜백: `(isSuccess, value?, errorCode?, errorMessage?)`. 반환값이 없는 작업은 `(isSuccess, errorCode?, errorMessage?)` 입니다.
+- `async throws`(Swift 호출자에게 권장): 타입이 지정된 값을 반환하며, 실패 시 `ClipboardError`를 throw 합니다.
+- 콜백: `(isSuccess, value?, errorCode?, errorMessage?)`. 반환값이 없는 작업은 `(isSuccess, errorCode?, errorMessage?)`입니다.
 
 ```swift
 // async throws(Swift 호출자에게 권장)
 Task {
     do {
-        try await IosClipboardManager.shared.copy(.plainText("Hello"))
+        try await IosClipboardManager.shared.copy(.plainText("Hello from IosLibraryExample"))
     } catch let error as ClipboardError {
         print(error.errorCode, error.errorDescription ?? "nil")
     }
 }
 
 // 콜백(동일한 동작)
-IosClipboardManager.shared.copy(.plainText("Hello")) { isSuccess, errorCode, errorMessage in
+IosClipboardManager.shared.copy(.plainText("Hello from IosLibraryExample")) { isSuccess, errorCode, errorMessage in
     print(isSuccess, errorCode ?? "nil", errorMessage ?? "nil")
 }
 ```
 
-`cancelAllLoads` / `startObserving` / `stopObserving` / `checkForegroundChange` / `makePasteControl` 은 동기적으로 완료되므로 동기 형식만 제공합니다.
+`cancelAllLoads`, `cancelLoad(_:)`, `startObserving`, `stopObserving`, `checkForegroundChange`, `makePasteControl`은 동기적으로 완료되므로 동기 형식만 제공합니다.
 
-아래 예제는 `async throws` 형식을 사용합니다. SwiftUI 의 `Button` 액션은 동기이므로 각 호출을 `Task { ... }` 로 감쌉니다.
+아래 예제는 샘플 앱과 마찬가지로 `async throws` 형식을 사용합니다. SwiftUI의 `Button` 액션은 동기이므로 각 호출을 `Task { ... }`로 감쌉니다.
 
 #### 기본값
 
@@ -879,13 +904,26 @@ IosClipboardManager.shared.copy(.plainText("Hello")) { isSuccess, errorCode, err
 | 프로바이더 로드 타임아웃 | 15초 |
 | 이미지 인코딩 타임아웃 | 10초 |
 
-다른 값을 사용하려면 `IosClipboardManager(timeouts:limits:)` 로 인스턴스를 생성합니다. 일반적인 용도에는 `shared` 를 사용하십시오.
+`IosClipboardManager(timeouts:limits:)`는 `ClipboardTimeouts`와 `ClipboardLimits`로 다른 값을 가진 인스턴스를 생성합니다. 두 이니셜라이저 모두 모든 값이 0보다 크지 않으면(타임아웃은 유한하지 않은 경우도 포함) `nil`을 반환합니다. 이렇게 만든 인스턴스는 로드, 감시, 변경 횟수 기준값을 각각 따로 가집니다. 일반적인 용도에는 `shared`를 사용하세요. C ABI는 항상 `shared`를 사용합니다.
+
+---
+
+### 설정
+
+1. `ios-native-toolkit-2.0.0.xcframework`를 Xcode 프로젝트에 추가합니다. 프로젝트로 드래그한 뒤 타깃의 Frameworks, Libraries, and Embedded Content에서 "Embed & Sign"으로 설정합니다.
+2. 클립보드를 사용하는 파일에서 라이브러리를 임포트합니다.
+
+```swift
+import IosLibrary
+```
+
+클립보드에는 초기화도 `Info.plist` 설정도 필요하지 않습니다. 프레임워크에는 자체 개인정보 보호 매니페스트(`PrivacyInfo.xcprivacy`)가 포함되어 있습니다.
 
 ---
 
 ### 스코프
 
-모든 작업은 `scope: PasteboardScope` 매개변수를 받으며 기본값은 `.general` 입니다. 일반 페이스트보드는 모든 앱과 공유되고 실행을 넘어 유지됩니다. 이름 있는 페이스트보드와 고유 페이스트보드는 실행 중인 앱 사이에서 데이터를 주고받기 위한 것입니다.
+모든 작업은 `scope: PasteboardScope` 매개변수를 받으며 기본값은 `.general`입니다. 일반 페이스트보드는 모든 앱과 공유되고 실행을 넘어 유지됩니다. 이름 있는 페이스트보드와 고유 페이스트보드는 실행 중인 앱 사이에서 데이터를 주고받기 위한 것입니다.
 
 ```swift
 public enum PasteboardScope {
@@ -897,7 +935,7 @@ public enum PasteboardScope {
 
 #### 일반 페이스트보드 사용
 
-`.general` 은 기본값이므로 생략할 수도 있습니다.
+`.general`은 기본값이므로 생략할 수도 있습니다.
 
 ```swift
 let scope: PasteboardScope = .general
@@ -905,7 +943,7 @@ let scope: PasteboardScope = .general
 
 #### 이름 있는 페이스트보드 생성
 
-`createPasteboard(.named(_:))` 는 해당 이름의 페이스트보드가 있으면 해석하고, 없으면 생성합니다. 반환된 `PasteboardScope` 를 이후 호출에 전달하십시오.
+`createPasteboard(.named(_:))`는 해당 이름의 페이스트보드가 있으면 해석하고, 없으면 생성합니다. 반환된 `PasteboardScope`를 이후 호출에 전달하세요. 빈 이름은 `CLIPBOARD_INVALID_NAME`으로 실패합니다.
 
 ```swift
 Task {
@@ -922,7 +960,7 @@ Task {
 
 #### 이름만 참조(생성하지 않음)
 
-생성하지 않고 이름만 참조할 수도 있지만, 무언가가 생성하기 전까지는 해당 이름에 대한 모든 작업이 `CLIPBOARD_UNAVAILABLE` 로 실패합니다.
+생성하지 않고 이름만 참조할 수도 있지만, 무언가가 생성하기 전까지는 해당 이름에 대한 모든 작업이 `CLIPBOARD_UNAVAILABLE`로 실패합니다.
 
 ```swift
 let scope = PasteboardScope.named("com.jonghyunkim.nativetoolkit.example.sample")
@@ -930,7 +968,7 @@ let scope = PasteboardScope.named("com.jonghyunkim.nativetoolkit.example.sample"
 
 #### 고유 페이스트보드 생성
 
-`.unique` 는 이름 생성을 시스템에 맡깁니다. 생성된 이름은 반환된 스코프에 담겨 오므로, 그 페이스트보드를 다시 사용하려면 보관해야 합니다.
+`.unique`는 이름 생성을 시스템에 맡깁니다. 생성된 이름은 반환된 스코프에 담겨 오므로, 그 페이스트보드를 다시 사용하려면 보관해 두세요.
 
 ```swift
 Task {
@@ -951,7 +989,7 @@ Task {
 }
 ```
 
-`.general` 을 삭제하려고 하면 `ClipboardError.cannotRemoveGeneralPasteboard` 를 throw 합니다.
+`.general`을 삭제하려고 하면 `ClipboardError.cannotRemoveGeneralPasteboard`를 throw 합니다. 존재하지 않는 이름을 삭제하면 성공합니다. 삭제한 뒤에는 그 스코프에 대한 모든 작업이 `CLIPBOARD_UNAVAILABLE`로 실패합니다(샘플 앱의 "Probe Last Removed Scope" 버튼은 삭제한 스코프를 읽어 이를 보여 줍니다).
 
 <p align="center">
     <img src="images/ios/clipboard/Example_IosClipboardManager_RemovePasteboard.png" alt="Example_IosClipboardManager_RemovePasteboard" width="400" />
@@ -959,17 +997,17 @@ Task {
 
 #### 이름 있는 / 고유 페이스트보드는 영속 저장소가 아닙니다
 
-`createPasteboard(.named(_:))` 나 `.unique` 로 만든 페이스트보드는 영속을 의도한 것이 아니지만, **생성한 앱이 종료될 때 내용이 폐기된다는 보장도 없습니다**. iOS 18.7.2 에서 측정한 결과, 앱을 강제 종료한 뒤 다시 실행해도 종료 전에 기록한 이름 있는 페이스트보드를 읽을 수 있었습니다. 시스템은 그러한 페이스트보드가 언제 회수되는지 규정하지 않습니다.
+`createPasteboard(.named(_:))`나 `.unique`로 만든 페이스트보드는 영속을 의도한 것이 아니지만, **생성한 앱이 종료될 때 내용이 폐기된다는 보장도 없습니다**. iOS 18.7.2에서 측정한 결과, 앱을 강제 종료한 뒤 다시 실행해도 종료 전에 기록한 이름 있는 페이스트보드를 읽을 수 있었습니다. 시스템은 그러한 페이스트보드가 언제 회수되는지 규정하지 않습니다.
 
-이 스코프들은 실행 중인 앱 사이에서 데이터를 주고받는 용도로만 사용하고, **민감한 데이터는 `removePasteboard(_:)` 로 명시적으로 삭제하십시오**. 앱 종료에 폐기를 의존하지 마십시오. 강제 종료에서는 `deinit` 이 실행되지 않으므로, 라이브러리가 종료 시점에 정리를 수행하더라도 이 상황에는 도움이 되지 않습니다.
+이 스코프들은 실행 중인 앱 사이에서 데이터를 주고받는 용도로만 사용하고, **민감한 데이터는 `removePasteboard(_:)`로 명시적으로 삭제하세요**. 앱 종료에 폐기를 의존하지 마세요. 강제 종료에서는 `deinit`이 실행되지 않으므로, 라이브러리가 종료 시점에 정리를 수행하더라도 이 상황에는 도움이 되지 않습니다.
 
-설계상 생성한 앱보다 오래 유지되어야 하는 공유에는 App Group 공유 컨테이너를 사용하십시오. 이는 본 라이브러리의 범위를 벗어납니다.
+설계상 생성한 앱보다 오래 유지되어야 하는 공유에는 App Group 공유 컨테이너를 사용하세요. 이는 본 라이브러리의 범위를 벗어납니다.
 
 ---
 
 ### 복사
 
-`copy` 는 페이스트보드의 내용을 교체합니다. `ClipboardContent` 가 지원하는 모든 형식을 표현합니다.
+`copy`는 페이스트보드의 내용을 교체합니다. `ClipboardContent`가 지원하는 모든 형식을 표현합니다.
 
 #### 일반 텍스트 복사
 
@@ -1002,7 +1040,7 @@ Task {
 
 #### HTML 텍스트 복사
 
-두 가지 표현을 가진 하나의 항목으로 기록되므로, HTML 을 처리하지 못하는 앱도 일반 텍스트 대체값을 얻을 수 있습니다.
+두 가지 표현을 가진 하나의 항목으로 기록되므로, HTML을 처리하지 못하는 앱도 일반 텍스트 대체값을 얻을 수 있습니다.
 
 ```swift
 Task {
@@ -1019,7 +1057,7 @@ Task {
 
 #### URL 복사
 
-URL 은 문자열로 전달하며 라이브러리 내부에서 검증합니다. `http` / `https` / `file` 스킴만 허용하고, 그 외에는 `ClipboardError.invalidURL` 을 throw 합니다.
+URL은 문자열로 전달하며 라이브러리 내부에서 검증합니다. `http` / `https` / `file` 스킴만 허용하고, 그 외에는 `ClipboardError.invalidURL`을 throw 합니다.
 
 ```swift
 Task {
@@ -1033,7 +1071,7 @@ Task {
 
 #### 이미지 파일 복사
 
-파일 경로에서 이미지를 읽어들입니다. 경로가 없으면 `ClipboardError.fileNotFound`, 이미지로 디코딩할 수 없으면 `ClipboardError.imageLoadFailed` 를 throw 합니다.
+파일 경로에서 이미지를 읽어들입니다. 경로가 없으면 `ClipboardError.fileNotFound`, 이미지로 디코딩할 수 없으면 `ClipboardError.imageLoadFailed`를 throw 합니다. 이미지는 페이스트보드에 기록하기 전에 메인 액터 밖에서 디코딩하고 인코딩합니다.
 
 ```swift
 Task {
@@ -1048,7 +1086,7 @@ Task {
 
 #### 이미지 데이터 복사
 
-이미지 바이트를 알려진 이미지 UTI 와 함께 명시적으로 기록합니다. 이미지로 디코딩할 수 없는 데이터는 `ClipboardError.invalidImageData` 를 throw 합니다.
+이미지 바이트를 알려진 이미지 UTI와 함께 명시적으로 기록합니다. 이미지로 디코딩할 수 없는 데이터는 `ClipboardError.invalidImageData`를 throw 합니다.
 
 ```swift
 Task {
@@ -1067,7 +1105,7 @@ Task {
 
 #### 색상 복사
 
-RGBA 각 성분은 유한한 값이면서 `0.0...1.0` 범위여야 합니다. 범위를 벗어나면 `ClipboardError.invalidColor` 를 throw 합니다.
+RGBA 각 성분은 유한한 값이면서 `0.0...1.0` 범위여야 합니다. 범위를 벗어나면 `ClipboardError.invalidColor`를 throw 합니다.
 
 ```swift
 Task {
@@ -1084,7 +1122,7 @@ Task {
 
 #### 커스텀 데이터 복사
 
-앱이 정의한 UTI 로 임의의 바이트를 기록합니다. UTI 는 구문이 검증되며, 잘못된 경우 `ClipboardError.invalidTypeIdentifier` 를 throw 합니다.
+앱이 정의한 UTI로 임의의 바이트를 기록합니다. UTI는 구문이 검증되며, 잘못된 경우 `ClipboardError.invalidTypeIdentifier`를 throw 합니다.
 
 ```swift
 Task {
@@ -1099,7 +1137,7 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_CopyCustomData.png" alt="Example_IosClipboardManager_CopyCustomData" width="400" />
 </p>
 
-앱의 `Info.plist` 에 선언하지 않은 커스텀 UTI 는 `public.data` 에 적합하지 않으므로, `public.data` 로 파일을 로드할 때 찾을 수 없습니다. 범용 파일로 로드하려면 `public.data` 자체를 지정하십시오.
+앱의 `Info.plist`에 선언하지 않은 커스텀 UTI는 `public.data`에 적합하지 않으므로, `public.data`로 파일을 로드할 때 찾을 수 없습니다. 범용 파일로 로드하려면 `public.data` 자체를 지정하세요.
 
 ```swift
 Task {
@@ -1116,7 +1154,7 @@ Task {
 
 #### 여러 텍스트 복사
 
-같은 형식의 일반 텍스트를 여러 개 기록합니다. 빈 배열은 `ClipboardError.emptyItemList` 를 throw 합니다.
+같은 형식의 일반 텍스트를 여러 개 기록합니다. 빈 배열은 `ClipboardError.emptyItemList`를 throw 합니다.
 
 ```swift
 Task {
@@ -1133,7 +1171,7 @@ Task {
 
 #### 다중 표현 복사
 
-하나의 항목에 여러 표현을 UTI 를 키로 담습니다. 받는 앱이 해석할 수 있는 표현을 선택합니다. 빈 딕셔너리는 `ClipboardError.emptyItemList` 를 throw 합니다.
+하나의 항목에 여러 표현을 UTI를 키로 담습니다. 받는 앱이 해석할 수 있는 표현을 선택합니다. 빈 딕셔너리는 `ClipboardError.emptyItemList`를 throw 합니다.
 
 ```swift
 Task {
@@ -1155,7 +1193,7 @@ Task {
 
 ### 복사 옵션
 
-`ClipboardCopyOptions` 는 `copy` 의 개인정보 설정을 담습니다. 기본값은 `localOnly: true` 이고 만료 시각은 없습니다.
+`ClipboardCopyOptions`는 `copy`의 개인정보 설정을 담습니다. 기본값은 `localOnly: true`이고 만료 시각은 없습니다.
 
 ```swift
 public struct ClipboardCopyOptions {
@@ -1165,9 +1203,9 @@ public struct ClipboardCopyOptions {
 }
 ```
 
-#### localOnly 를 지정해 복사
+#### localOnly를 지정해 복사
 
-`localOnly: true` 는 유니버설 클립보드를 통해 근처 기기로 항목을 전달하지 말 것을 시스템에 요청합니다. 기기 간 전송을 의도할 때만 `false` 로 설정하십시오.
+`localOnly: true`는 유니버설 클립보드를 통해 근처 기기로 항목을 전달하지 말 것을 시스템에 요청합니다. 기기 간 전송을 의도할 때만 `false`로 설정하세요.
 
 ```swift
 Task {
@@ -1183,9 +1221,9 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_CopyLocalOnly.png" alt="Example_IosClipboardManager_CopyLocalOnly" width="400" />
 </p>
 
-#### expirationDate 를 지정해 복사
+#### expirationDate를 지정해 복사
 
-지정하는 시각은 미래여야 하며, 그렇지 않으면 `ClipboardError.invalidExpirationDate` 를 throw 합니다.
+지정하는 시각은 미래여야 하며, 그렇지 않으면 `ClipboardError.invalidExpirationDate`를 throw 합니다.
 
 ```swift
 Task {
@@ -1208,7 +1246,7 @@ Task {
 
 ### 추가
 
-`append` 는 이미 페이스트보드에 있는 내용을 교체하지 않고 항목을 추가합니다.
+`append`는 이미 페이스트보드에 있는 항목을 교체하지 않고 그 뒤에 항목을 추가합니다.
 
 #### 일반 텍스트 추가
 
@@ -1236,7 +1274,7 @@ Task {
 
 #### 추가는 개인정보 옵션을 이어받지 않습니다
 
-`append` 는 `ClipboardCopyOptions` 를 받을 수 없으며, 직전 `copy` 에서 지정한 `localOnly` / `expirationDate` 가 추가된 항목에 적용된다는 보장도 없습니다. **민감한 데이터에는 반드시 `copy(_:options:)` 를 사용하십시오.**
+`append`는 `ClipboardCopyOptions`를 받을 수 없으며, 직전 `copy`에서 지정한 `localOnly` / `expirationDate`가 추가된 항목에 적용된다는 보장도 없습니다. **민감한 데이터에는 반드시 `copy(_:options:)`를 사용하세요.**
 
 ---
 
@@ -1244,7 +1282,7 @@ Task {
 
 #### 읽기
 
-페이스트보드를 동기적으로 읽습니다. 큰 페이로드(이미지 바이트)는 결과에 포함되지 않고 UTI 만 보고됩니다. 빈 페이스트보드는 에러가 아니라 **정상 상태**이며 `numberOfItems` 가 `0` 이 됩니다.
+페이스트보드를 동기적으로 읽습니다. 각 항목의 타입 식별자, 텍스트, URL을 읽습니다. 큰 페이로드(이미지 바이트)는 결과에 포함되지 않고 UTI만 보고됩니다. 빈 페이스트보드는 에러가 아니라 **정상 상태**이며 `numberOfItems`가 `0`이 됩니다.
 
 ```swift
 Task {
@@ -1260,9 +1298,15 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_Read.png" alt="Example_IosClipboardManager_Read" width="400" />
 </p>
 
+**`read`는 메인 스레드를 멈출 수 있습니다.** 다른 앱이 기록한 내용이면 iOS가 사용자에게 붙여넣기 허용을 묻고, `read`는 메인 스레드에서 그 응답을 기다립니다. 사용자가 응답할 때까지 앱은 반응하지 않습니다. 실기기(iOS 18.7.2)에서 측정한 결과, 사용자가 응답할 때까지 44초 동안 메인 스레드가 멈췄고 시스템은 앱을 종료하지 않았습니다. iOS 26.2 시뮬레이터에서는 앱이 백그라운드에 있는 동안에도 권한 요청이 표시되었습니다. 자신의 앱이 기록한 내용은 권한 요청 없이 읽습니다.
+
+- `read`와 `readData`는 메인 스레드가 기다려도 되는 곳에서만 호출하세요. 예를 들어 붙여넣기를 요청하는 탭에 대한 응답입니다.
+- 메인 스레드를 멈추지 않고 읽으려면 [`loadItem`](#비동기-로드)을 사용하세요. 응답을 기다리는 동안 요청 박스로 어느 스레드에서든 취소할 수 있습니다([로드 하나 취소(RequestBox)](#로드-하나-취소requestbox) 참고).
+- 거부된 붙여넣기는 에러가 아닙니다. `read`는 타입 식별자도 텍스트도 없는 항목 하나를 반환하고, `readData`는 `nil`을 반환합니다.
+
 #### 데이터 읽기
 
-지정한 UTI 로 등록된 바이트를 반환합니다. 일치하는 항목이 없으면 `nil` 을 반환합니다.
+지정한 UTI로 등록된 바이트를 반환합니다. 일치하는 항목이 없으면 `nil`을 반환합니다. `read`와 마찬가지로, 사용자가 붙여넣기를 허용할 때까지 메인 스레드에서 기다릴 수 있습니다.
 
 ```swift
 Task {
@@ -1277,7 +1321,7 @@ Task {
 
 #### 스냅샷
 
-본문을 건드리지 않고 메타데이터만 읽습니다. 사전 확인에는 이 API 를 사용하십시오. iOS 16 이상의 권한 요청과 iOS 14 이상의 접근 알림 중 어느 것도 발생시키지 않는다고 Apple 이 명시한 API 만으로 구성되어 있습니다.
+본문을 건드리지 않고 메타데이터만 읽습니다. 사전 확인에는 이 API를 사용하세요. iOS 16 이상의 권한 요청과 iOS 14 이상의 접근 알림 중 어느 것도 발생시키지 않는다고 Apple이 명시한 API만으로 구성되어 있습니다. `typeIdentifiers`는 첫 번째 항목의 타입을, `allTypeIdentifiers`는 모든 항목의 타입을 페이스트보드 순서대로 담습니다.
 
 ```swift
 Task {
@@ -1285,7 +1329,7 @@ Task {
     // snapshot.hasStrings, snapshot.hasURLs, snapshot.hasImages, snapshot.hasColors
     // snapshot.numberOfItems, snapshot.typeIdentifiers, snapshot.allTypeIdentifiers
     if snapshot.hasStrings {
-        // 붙여넣기 UI 를 표시합니다
+        // 붙여넣기 UI를 표시합니다
     }
 }
 ```
@@ -1294,11 +1338,11 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_Snapshot.png" alt="Example_IosClipboardManager_Snapshot" width="400" />
 </p>
 
-`hasStrings` 로는 특정 타입에 대한 붙여넣기가 성공할지 판단할 수 없습니다. 예를 들어 `public.vcard` 는 `public.plain-text` 의 하위 타입이 아니라 형제 타입이므로, `hasStrings` 를 만족해도 일반 텍스트로는 로드할 수 없습니다. 허용할 타입을 명시적으로 선언하십시오([붙여넣기 컨트롤](#붙여넣기-컨트롤) 참고).
+`hasStrings`로는 특정 타입에 대한 붙여넣기가 성공할지 판단할 수 없습니다. 예를 들어 `public.vcard`는 `public.plain-text`의 하위 타입이 아니라 형제 타입이므로, `hasStrings`를 만족해도 일반 텍스트로는 로드할 수 없습니다. 허용할 타입을 명시적으로 선언하세요([붙여넣기 컨트롤](#붙여넣기-컨트롤) 참고).
 
 #### 스냅샷(타입 지정)
 
-`matchingTypes` 를 전달하면 해당 타입을 가진 항목의 인덱스도 알 수 있습니다. `matchingTypes` 를 지정하지 않으면 `matchingItemIndexes` 는 `nil` 입니다.
+`matchingTypes`를 전달하면 해당 타입을 가진 항목의 인덱스도 알 수 있습니다. `matchingTypes`를 지정하지 않으면 `matchingItemIndexes`는 `nil`입니다.
 
 ```swift
 Task {
@@ -1316,15 +1360,21 @@ Task {
 
 #### 개인정보: 권한 요청과 접근 알림
 
-`read` / `readData` / `loadItem` 은 페이스트보드에서 데이터를 가져오므로, 시스템의 판단에 따라 iOS 16 이상의 권한 요청이나 iOS 14 이상의 접근 알림이 표시될 수 있습니다. 사전 확인에는 `snapshot` 을 사용하십시오.
+`read` / `readData` / `loadItem` / `detectValues`는 페이스트보드에서 데이터를 가져오므로, 시스템의 판단에 따라 iOS 16 이상의 권한 요청이나 iOS 14 이상의 접근 알림이 표시될 수 있습니다. 사전 확인에는 `snapshot`과 `detectPatterns`를 사용하세요.
 
-`UIPasteControl`(`makePasteControl` 경유)은 iOS 16 이상의 권한 요청을 피하지만, iOS 14 이상의 접근 알림까지 피한다고 Apple 이 명시하지는 않았습니다. 어느 쪽이든 표시되지 않는다고 전제하기 전에 대상 OS 버전의 실기기에서 확인하십시오.
+| 작업 | 사용자에게 붙여넣기 허용을 물을 때 |
+|---|---|
+| `read`, `readData` | 메인 스레드에서 응답을 기다립니다. 거부된 붙여넣기는 빈 항목 / `nil`을 반환합니다 |
+| `loadItem` | 메인 스레드를 멈추지 않습니다. 15초 타임아웃에는 응답하는 시간도 포함됩니다(`CLIPBOARD_TIMED_OUT`. 그 뒤의 응답으로는 아무것도 전달되지 않습니다). 거부된 붙여넣기는 `CLIPBOARD_LOAD_FAILED`입니다 |
+| `detectValues` | 메인 스레드를 멈추지 않습니다. 5초 타임아웃에는 응답하는 시간도 포함됩니다(`CLIPBOARD_TIMED_OUT`). 거부된 붙여넣기는 `CLIPBOARD_DETECTION_FAILED`입니다 |
+
+`UIPasteControl`(`makePasteControl` 경유)은 iOS 16 이상의 권한 요청을 피하지만, iOS 14 이상의 접근 알림까지 피한다고 Apple이 명시하지는 않았습니다. 어느 쪽이든 표시되지 않는다고 전제하기 전에 대상 OS 버전의 실기기에서 확인하세요.
 
 ---
 
 ### 비동기 로드
 
-`loadItem` 은 `NSItemProvider` 를 통해 항목을 해석합니다. 표현 간 변환이나 메인 스레드 밖에서의 이미지 디코딩이 가능합니다. `read` 만으로 부족할 때 사용하십시오.
+`loadItem`은 처음으로 일치하는 항목을 `NSItemProvider`를 통해 해석합니다. 표현 간 변환이나 메인 스레드 밖에서의 이미지 디코딩이 가능합니다. `read`만으로 부족하거나, 메인 스레드가 붙여넣기 권한 요청을 기다리면 안 될 때 사용하세요([개인정보: 권한 요청과 접근 알림](#개인정보-권한-요청과-접근-알림) 참고).
 
 #### 텍스트 로드
 
@@ -1358,7 +1408,7 @@ Task {
 
 #### 이미지 로드
 
-이미지는 백그라운드 executor 에서 PNG 로 다시 인코딩되므로, 반환되는 UTI 는 항상 `public.png` 입니다.
+이미지는 백그라운드 executor에서 PNG로 다시 인코딩되므로, 반환되는 UTI는 항상 `public.png`입니다.
 
 ```swift
 Task {
@@ -1375,7 +1425,7 @@ Task {
 
 #### 파일 로드
 
-항목을 임시 파일로 복사하고 그 URL 을 넘겨줍니다. **반환된 URL 과 그 상위 디렉터리의 소유권은 호출자에게 넘어가므로**, 사용이 끝나면 삭제해야 합니다. 전달되지 못한 파일(실패, 취소, 타임아웃)은 라이브러리 내부에서 정리합니다.
+항목을 임시 파일로 복사하고 그 URL을 넘겨줍니다. **반환된 URL과 그 상위 디렉터리의 소유권은 호출자에게 넘어가므로**, 사용이 끝나면 둘 다 삭제해야 합니다. 전달되지 못한 파일(실패, 취소, 타임아웃)은 라이브러리 내부에서 정리합니다.
 
 ```swift
 Task {
@@ -1396,15 +1446,24 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_LoadFile.png" alt="Example_IosClipboardManager_LoadFile" width="400" />
 </p>
 
+`ClipboardLoadedItem`을 비롯한 라이브러리의 열거형은 frozen이 아닙니다. 샘플 앱처럼 열거형에 대한 `switch`에는 `@unknown default` 분기가 필요합니다.
+
 #### 모든 로드 취소
 
-대기 중인 로드를 모두 취소합니다. 취소된 로드는 `async throws` 형식에서 `ClipboardError.cancelled`(`CLIPBOARD_CANCELLED`)를 throw 하고, 콜백 형식에서는 같은 코드와 함께 `isSuccess == false` 를 보고합니다. 호출자는 이를 무시해도 되는 정상적인 결과로 다룰 수 있습니다.
+취소된 로드는 `async throws` 형식에서 `ClipboardError.cancelled`(`CLIPBOARD_CANCELLED`)를 throw 하고, 콜백 형식에서는 같은 코드와 함께 `isSuccess == false`를 보고합니다. 호출자는 이를 무시해도 되는 정상적인 결과로 다룰 수 있습니다. 취소하는 방법은 네 가지입니다.
+
+| 방법 | 취소 대상 | 스레드 |
+|---|---|---|
+| `cancelAllLoads()` | 이 매니저의 대기 중인 모든 로드(`loadItem`의 세 가지 형식 모두). 나중에 시작한 로드는 취소되지 않습니다 | 메인 액터 |
+| 콜백 형식이 반환하는 `ClipboardLoadToken`의 `cancel()` | 해당 로드 | 메인 액터 |
+| `async` 형식을 기다리는 태스크의 취소 | 해당 로드 | 모든 스레드 |
+| `loadItem(_:scope:requestBox:completion:)`의 `RequestBox`를 전달한 `cancelLoad(_:)` | 해당 로드. 시작하기 전에도 취소할 수 있습니다 | 모든 스레드 |
 
 ```swift
 IosClipboardManager.shared.cancelAllLoads()
 ```
 
-콜백 형식은 `ClipboardLoadToken` 을 반환하므로 개별 로드만 취소할 수도 있습니다.
+콜백 형식은 `ClipboardLoadToken`을 반환하므로 개별 로드만 취소할 수도 있습니다.
 
 ```swift
 let token = IosClipboardManager.shared.loadItem(.image, scope: scope) { isSuccess, item, errorCode, errorMessage in
@@ -1413,11 +1472,13 @@ let token = IosClipboardManager.shared.loadItem(.image, scope: scope) { isSucces
 token.cancel()
 ```
 
+다른 스레드에서, 또는 로드가 시작되기 전에 취소하려면 요청 박스를 사용하세요. [로드 하나 취소(RequestBox)](#로드-하나-취소requestbox)를 참고하세요.
+
 ---
 
 ### 감지
 
-데이터 감지는 본문을 읽지 않고(따라서 권한 요청 없이) 페이스트보드가 무엇을 담고 있는지 보고합니다.
+데이터 감지는 페이스트보드가 무엇을 *담고 있는지* 보고합니다. `detectPatterns`는 본문을 읽지 않고(따라서 권한 요청 없이) 이를 수행합니다.
 
 ```swift
 public enum ClipboardDetectionPattern: String, CaseIterable {
@@ -1426,9 +1487,11 @@ public enum ClipboardDetectionPattern: String, CaseIterable {
 }
 ```
 
+샘플 앱의 Detect 섹션 맨 앞에는 값만 단독으로 복사하는 버튼 두 개("Copy Number Fixture (42 only)", "Copy Search Fixture (phrase only)")가 있습니다. [number와 probableWebSearch는 클립보드 전체를 분류합니다](#number와-probablewebsearch는-클립보드-전체를-분류합니다)를 참고하세요.
+
 #### 패턴 감지
 
-요청한 패턴 중 발견된 것을 반환합니다. 빈 패턴 집합을 전달하면 `ClipboardError.emptyDetectionPatterns` 를 throw 합니다.
+요청한 패턴 중 발견된 것을 반환합니다. 빈 패턴 집합을 전달하면 `ClipboardError.emptyDetectionPatterns`를 throw 합니다.
 
 ```swift
 Task {
@@ -1446,7 +1509,7 @@ Task {
 
 #### 값 감지
 
-감지된 값 자체를 반환합니다. 이 작업은 내용을 읽으므로 개인정보 측면에서는 `read` 와 동일하게 다루십시오.
+감지된 값 자체를 반환합니다. 이 작업은 내용을 읽으므로 iOS가 사용자에게 붙여넣기 허용을 물을 수 있습니다([개인정보: 권한 요청과 접근 알림](#개인정보-권한-요청과-접근-알림) 참고). 메인 스레드는 멈추지 않습니다.
 
 ```swift
 Task {
@@ -1465,18 +1528,23 @@ Task {
     <img src="images/ios/clipboard/Example_IosClipboardManager_DetectValues.png" alt="Example_IosClipboardManager_DetectValues" width="400" />
 </p>
 
-#### number 와 probableWebSearch 는 클립보드 전체를 분류합니다
+#### number와 probableWebSearch는 클립보드 전체를 분류합니다
 
-`number` 와 `probableWebSearch` 는 내용에서 등장 위치를 추출하는 것이 아니라 클립보드 **전체**를 분류합니다. 숫자를 언급하기만 한 문단은 숫자도 검색어도 아니므로, 혼합된 내용에서는 이 두 패턴이 감지되지 않습니다. 확인하려면 값만 단독으로 복사하십시오.
+`number`와 `probableWebSearch`는 내용에서 등장 위치를 추출하는 것이 아니라 클립보드 **전체**를 분류합니다. 숫자를 언급하기만 한 문단은 숫자도 검색어도 아니므로, 혼합된 내용에서는 이 두 패턴이 감지되지 않습니다. 확인하려면 값만 단독으로 복사하세요.
 
 ```swift
-try await IosClipboardManager.shared.copy(.plainText("42"), scope: scope)                 // number
-try await IosClipboardManager.shared.copy(.plainText("swift concurrency"), scope: scope)  // probableWebSearch
+Task {
+    try await IosClipboardManager.shared.copy(.plainText("42"), scope: scope)                 // number
+}
+// 또는
+Task {
+    try await IosClipboardManager.shared.copy(.plainText("swift concurrency"), scope: scope)  // probableWebSearch
+}
 ```
 
 #### 감지에는 취소 토큰이 없습니다
 
-`detectPatterns` / `detectValues` 는 `UIPasteboard` 의 `async` 감지 API 를 감싸고 있으며, 이 API 는 취소를 지원하지 않습니다. Task 취소나 내부의 5초 타임아웃은 즉시 호출자에게 제어를 돌려주지만, 그 뒤에서 시스템 호출이 계속 실행될 수 있습니다. 그 결과는 폐기됩니다.
+`detectPatterns` / `detectValues`는 `UIPasteboard`의 `async` 감지 API를 감싸고 있으며, 이 API는 취소를 지원하지 않습니다. Task 취소나 내부의 5초 타임아웃은 즉시 호출자에게 제어를 돌려주지만, 그 뒤에서 시스템 호출이 계속 실행될 수 있습니다. 그 결과는 폐기됩니다.
 
 ---
 
@@ -1484,7 +1552,7 @@ try await IosClipboardManager.shared.copy(.plainText("swift concurrency"), scope
 
 #### 감시 시작
 
-하나의 스코프에 대해 변경 감시를 시작합니다. 두 번째 호출은(같은 스코프든 다른 스코프든) 먼저 이전 감시를 중지하므로, 동시에 유효한 구독은 항상 하나뿐입니다.
+하나의 스코프에 대해 변경 감시를 시작합니다. 두 번째 호출은(같은 스코프든 다른 스코프든) 먼저 이전 감시를 중지하므로, 매니저 하나에서 동시에 유효한 구독은 항상 하나뿐입니다. 새 스코프를 해석할 수 없으면 `startObserving`은 `pasteboardUnavailable`을 throw 하며, 이때 이전 감시는 이미 중지된 상태입니다.
 
 이벤트는 메인 스레드에서 전달됩니다.
 
@@ -1494,29 +1562,38 @@ do {
         switch event.kind {
         case .changed(let typesAdded, let typesRemoved):
             print(typesAdded, typesRemoved)
-        case .changedDetectedOnForeground:
-            // 포그라운드 복귀 시 changeCount 비교로 감지된 변경
-            break
         case .removed:
             // 이름 있는 페이스트보드 자체가 삭제됨
+            break
+        case .changedDetectedOnForeground:
+            // 2.0.0에서는 전달되지 않습니다. checkForegroundChange를 사용합니다
+            break
+        @unknown default:
             break
         }
     }
 } catch let error as ClipboardError {
     // pasteboardUnavailable: 스코프를 해석할 수 없어 감시가 시작되지 않았습니다
     print(error.errorCode)
+} catch {
+    // startObserving은 `throws`로 선언되어 있으므로 catch가 모든 경우를 다뤄야 합니다. 라이브러리는 ClipboardError만 throw 합니다
+    print(error.localizedDescription)
 }
 ```
 
-`UIPasteboard.changedNotification` 은 **이 앱이 포그라운드에 있는 동안 이 앱이 수행한 변경**에 대해서만 전달됩니다. 다른 앱의 변경이나 백그라운드 중의 변경에는 알림이 발생하지 않으므로, 그 경우에는 `checkForegroundChange` 를 사용하십시오.
+`UIPasteboard.changedNotification`은 **이 앱이 포그라운드에 있는 동안 이 앱이 수행한 변경**에 대해서만 전달됩니다. 다른 앱의 변경이나 백그라운드 중의 변경에는 알림이 발생하지 않으므로, 그 경우에는 `checkForegroundChange`를 사용하세요.
+
+`IosClipboardManager.shared`의 감시는 C ABI가 시작하고 중지하는 감시와 같은 것입니다. 둘 다 사용하는 앱에서는 어느 쪽에서 시작하든 다른 쪽의 감시를 대체합니다.
 
 #### 감시 중지
+
+감시를 중지합니다. 이 호출 뒤에는 이미 대기열에 있는 이벤트를 포함해 어떤 이벤트도 전달되지 않습니다. 감시 중이 아니면 아무것도 하지 않습니다.
 
 ```swift
 IosClipboardManager.shared.stopObserving()
 ```
 
-감시하는 화면을 해제할 때 호출하십시오.
+샘플 앱처럼 감시하는 화면을 해제할 때 호출하세요.
 
 ```swift
 .onDisappear {
@@ -1526,25 +1603,25 @@ IosClipboardManager.shared.stopObserving()
 
 #### 포그라운드 복귀 시 변경 확인
 
-페이스트보드의 `changeCount` 를 이 매니저가 마지막으로 기록한 값과 비교해 변했는지 반환합니다. 알림이 발생하지 않는 변경을 잡기 위해, 앱이 포그라운드로 복귀했을 때 호출하십시오.
+페이스트보드의 `changeCount`를 이 매니저가 마지막으로 기록한 값과 비교해 변했는지 반환합니다. 내용은 읽지 않습니다. 알림이 발생하지 않는 변경을 잡기 위해, 앱이 포그라운드로 복귀했을 때 호출하세요.
 
 ```swift
 let changed = IosClipboardManager.shared.checkForegroundChange(scope: scope)
 ```
 
-특정 스코프에 대한 첫 호출은 기준값을 확립하므로 항상 `false` 를 반환합니다. 기준값은 `startObserving` 이나 변경 알림 수신으로도 갱신됩니다. 반환되는 `Bool` 로는 "해석되었고 변경이 없음"과 "해석할 수 없음"을 구분할 수 없습니다. 그 차이가 필요하면 `snapshot` 을 사용하십시오.
+특정 스코프에 대한 첫 호출은 기준값을 확립하므로 항상 `false`를 반환합니다. 기준값은 `startObserving`이나 변경 알림 수신으로도 갱신됩니다. 반환되는 `Bool`로는 "해석되었고 변경이 없음"과 "해석할 수 없음"을 구분할 수 없습니다. 그 차이가 필요하면 `snapshot`을 사용하세요.
 
 ---
 
 ### 붙여넣기 컨트롤
 
-`UIPasteControl` 은 시스템 붙여넣기 버튼입니다. 사용자의 탭 자체가 동의에 해당하므로 iOS 16 이상의 권한 요청을 피할 수 있습니다.
+`UIPasteControl`은 시스템 붙여넣기 버튼입니다. 사용자의 탭 자체가 동의에 해당하므로 iOS 16 이상의 권한 요청을 피할 수 있습니다. 붙여넣기 컨트롤에는 C ABI가 없습니다.
 
 #### 붙여넣기 컨트롤 생성
 
-`makePasteControl` 은 배치만 하면 바로 동작하는 하나의 뷰를 반환합니다. 내부 리시버가 자동으로 리스폰더 체인에 참여하므로, 반환된 뷰를 그대로 뷰 계층에 추가하십시오.
+`makePasteControl`은 배치만 하면 바로 동작하는 하나의 뷰(`ClipboardPasteControlContainerView`)를 반환합니다. 내부 리시버가 자동으로 리스폰더 체인에 참여하므로, 반환된 뷰를 그대로 뷰 계층에 추가하세요. 그 `control` 속성이 `UIPasteControl` 자체입니다.
 
-`acceptedTypes` 는 비어 있을 수 없으며(`ClipboardError.invalidRequest`), 각 요소는 유효한 UTI 여야 합니다(`ClipboardError.invalidTypeIdentifier`).
+`acceptedTypes`는 비어 있을 수 없으며(`ClipboardError.invalidRequest`), 각 요소는 유효한 UTI여야 합니다(`ClipboardError.invalidTypeIdentifier`).
 
 ```swift
 let pasteView = try IosClipboardManager.shared.makePasteControl(
@@ -1563,9 +1640,9 @@ let pasteView = try IosClipboardManager.shared.makePasteControl(
 )
 ```
 
-`displayMode` 의 기본값은 `.iconAndLabel` 입니다. 버튼의 모양을 바꾸려면 `.iconOnly` / `.labelOnly` / `.arrowAndLabel` 을 지정합니다. 붙여넣기 동작은 어느 모드에서나 동일합니다.
+`displayMode`의 기본값은 `.iconAndLabel`입니다. 버튼의 모양을 바꾸려면 `.iconOnly` / `.labelOnly` / `.arrowAndLabel`을 지정합니다. 붙여넣기 동작은 어느 모드에서나 동일합니다.
 
-SwiftUI 에서는 `UIViewRepresentable` 로 감쌉니다.
+SwiftUI에서는 샘플 앱처럼 직접 만든 `UIViewRepresentable`로 감쌉니다.
 
 ```swift
 struct ClipboardPasteControlView: UIViewRepresentable {
@@ -1577,14 +1654,15 @@ struct ClipboardPasteControlView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UIView {
         do {
-            return try IosClipboardManager.shared.makePasteControl(
+            let container = try IosClipboardManager.shared.makePasteControl(
                 acceptedTypes: acceptedTypes,
                 onPaste: onPaste,
                 onPartialFailure: onPartialFailure,
                 onPasteFailure: onPasteFailure
             )
+            return container
         } catch let error as ClipboardError {
-            // makeUIView 안에서 동기적으로 보고하면 "Modifying state during view update" 가
+            // makeUIView 안에서 동기적으로 보고하면 "Modifying state during view update"가
             // 발생하므로, 다음 메인 액터 턴으로 미룹니다.
             Task { @MainActor in onCreationFailure(error) }
             return UIView()
@@ -1602,11 +1680,11 @@ struct ClipboardPasteControlView: UIViewRepresentable {
     <img src="images/ios/clipboard/Example_IosClipboardManager_PasteControl.png" alt="Example_IosClipboardManager_PasteControl" width="400" />
 </p>
 
-붙여넣기 버튼은 다른 곳에서 사용하는 `scope` 와 무관하게 항상 시스템 일반 페이스트보드를 대상으로 합니다.
+붙여넣기 버튼은 다른 곳에서 사용하는 `scope`와 무관하게 항상 시스템 일반 페이스트보드를 대상으로 합니다.
 
-대기 중인 붙여넣기가 취소된 경우(새 붙여넣기가 발생하거나 뷰가 해제된 경우) `onPaste` / `onPartialFailure` / `onPasteFailure` 는 **호출되지 않습니다**. 취소는 호출자가 시작한 것이며 붙여넣기 결과로 전달하지 않습니다.
+대기 중인 붙여넣기가 취소된 경우(새 붙여넣기가 발생하거나 뷰가 해제된 경우) `onPaste` / `onPartialFailure` / `onPasteFailure`는 **호출되지 않습니다**. 취소는 호출자가 시작한 것이며 붙여넣기 결과로 전달하지 않습니다.
 
-버튼과 리시버를 각각 따로 배치해야 하는 고급 사례에는 `PasteControlFactory.makeComponents` 를 사용할 수 있습니다. 그 경우 리시버의 보유와 배치는 **호출자의 책임**입니다.
+버튼과 리시버를 각각 따로 배치해야 하는 고급 사례에는 `PasteControlFactory.makeComponents`를 사용할 수 있습니다. 그 경우 리시버의 보유와 배치는 **호출자의 책임**입니다.
 
 ---
 
@@ -1628,38 +1706,38 @@ Task {
 
 ### 에러 처리
 
-`async throws` 형식은 `ClipboardError` 를 throw 합니다. 콜백 형식은 같은 실패를 `errorCode` / `errorMessage` 로 보고하며, 성공 시에는 둘 다 `nil` 입니다.
+`async throws` 형식은 `ClipboardError`를 throw 합니다. 콜백 형식은 같은 실패를 `errorCode` / `errorMessage`로 보고하며, 성공 시에는 둘 다 `nil`입니다.
 
-`errorMessage` 는 케이스별로 고정된 영어 문자열이며 **입력값을 포함하지 않습니다**. 그대로 로그에 남겨도 안전합니다.
+`errorMessage`는 케이스별로 고정된 영어 문자열이며 **입력값을 포함하지 않습니다**. 그대로 로그에 남겨도 안전합니다. `diagnosticDetail`은 도메인과 숫자 코드를 담으며, `ClipboardFailureDetail`을 가진 케이스에서만 설정됩니다.
 
 | `errorCode` | 케이스 | 원인 | 에러 메시지 |
 |---|---|---|---|
-| `CLIPBOARD_EMPTY_CONTENT` | `emptyContent` | 텍스트도 HTML 도 없는 콘텐츠 | `"Clipboard content is empty. Please provide text or HTML."` |
+| `CLIPBOARD_EMPTY_CONTENT` | `emptyContent` | 텍스트도 HTML도 없는 콘텐츠 | `"Clipboard content is empty. Please provide text or HTML."` |
 | `CLIPBOARD_EMPTY_ITEMS` | `emptyItemList` | `.multipleText([])` 또는 `.multiRepresentation([:])` | `"No items provided for clipboard copy."` |
 | `CLIPBOARD_EMPTY_PATTERNS` | `emptyDetectionPatterns` | 빈 패턴 집합으로 감지를 호출 | `"No detection patterns were specified."` |
-| `CLIPBOARD_INVALID_URL` | `invalidURL` | URL 이 비었거나 스킴이 `http` / `https` / `file` 이 아님 | `"The URL is invalid."` |
+| `CLIPBOARD_INVALID_URL` | `invalidURL` | URL이 비었거나 스킴이 `http` / `https` / `file`이 아님 | `"The URL is invalid."` |
 | `CLIPBOARD_INVALID_TYPE` | `invalidTypeIdentifier` | UTI 구문이 올바르지 않음 | `"The uniform type identifier is invalid."` |
 | `CLIPBOARD_INVALID_NAME` | `invalidPasteboardName` | 페이스트보드 이름이 비었거나 사용할 수 없음 | `"The pasteboard name is invalid."` |
 | `CLIPBOARD_INVALID_COLOR` | `invalidColor` | RGBA 성분이 유한하지 않거나 `0.0...1.0` 범위를 벗어남 | `"Color components must be finite and within 0.0...1.0."` |
 | `CLIPBOARD_INVALID_IMAGE_DATA` | `invalidImageData` | 전달된 바이트를 이미지로 디코딩할 수 없음 | `"The provided image data could not be decoded."` |
-| `CLIPBOARD_INVALID_EXPIRATION` | `invalidExpirationDate` | `expirationDate` 가 미래가 아님 | `"expirationDate must be in the future."` |
-| `CLIPBOARD_INVALID_REQUEST` | `invalidRequest` | 요청이 올바르지 않음(`acceptedTypes` 가 비어 있는 등) | `"The request is invalid."` |
+| `CLIPBOARD_INVALID_EXPIRATION` | `invalidExpirationDate` | `expirationDate`가 미래가 아님 | `"expirationDate must be in the future."` |
+| `CLIPBOARD_INVALID_REQUEST` | `invalidRequest` | 요청이 올바르지 않음(`acceptedTypes`가 비어 있거나, 다른 요청이 이미 사용 중인 `RequestBox`) | `"The request is invalid."` |
 | `CLIPBOARD_CONTENT_TOO_LARGE` | `contentTooLarge` | 페이로드가 설정된 크기 상한(기본 64 MiB)을 초과 | `"The clipboard content exceeds the configured size limit."` |
-| `CLIPBOARD_FILE_NOT_FOUND` | `fileNotFound` | `.imageFile(path:)` 의 경로가 존재하지 않음 | `"The requested file was not found."` |
+| `CLIPBOARD_FILE_NOT_FOUND` | `fileNotFound` | `.imageFile(path:)`의 경로가 존재하지 않음 | `"The requested file was not found."` |
 | `CLIPBOARD_IMAGE_LOAD_FAILED` | `imageLoadFailed` | 파일은 있으나 이미지로 디코딩할 수 없음 | `"Failed to load the image."` |
-| `CLIPBOARD_IMAGE_ENCODE_FAILED` | `imageEncodingFailed` | 붙여넣은 이미지를 PNG 로 다시 인코딩할 수 없음 | `"Failed to encode the pasted image."` |
+| `CLIPBOARD_IMAGE_ENCODE_FAILED` | `imageEncodingFailed` | 붙여넣은 이미지를 PNG로 다시 인코딩할 수 없음 | `"Failed to encode the pasted image."` |
 | `CLIPBOARD_UNAVAILABLE` | `pasteboardUnavailable` | 이름 있는 / 고유 페이스트보드를 해석할 수 없음 | `"The requested pasteboard is unavailable."` |
-| `CLIPBOARD_CANNOT_REMOVE_GENERAL` | `cannotRemoveGeneralPasteboard` | `removePasteboard(.general)` 을 호출 | `"The general pasteboard cannot be removed."` |
+| `CLIPBOARD_CANNOT_REMOVE_GENERAL` | `cannotRemoveGeneralPasteboard` | `removePasteboard(.general)`을 호출 | `"The general pasteboard cannot be removed."` |
 | `CLIPBOARD_NO_MATCHING_ITEM` | `noMatchingItem` | 요청한 타입을 가진 항목이 없음 | `"No clipboard item matches the requested type."` |
-| `CLIPBOARD_LOAD_FAILED` | `providerLoadFailed` | `NSItemProvider` 가 항목 로드에 실패 | `"Failed to load the clipboard item."` |
+| `CLIPBOARD_LOAD_FAILED` | `providerLoadFailed` | `NSItemProvider`가 항목 로드에 실패했거나, 사용자가 붙여넣기를 거부함 | `"Failed to load the clipboard item."` |
 | `CLIPBOARD_UNEXPECTED_TYPE` | `unexpectedType` | 항목을 요청한 타입으로 변환할 수 없음 | `"The clipboard item could not be converted to the requested type."` |
 | `CLIPBOARD_FILE_COPY_FAILED` | `fileCopyFailed` | 붙여넣은 파일을 임시 위치로 복사하지 못함 | `"Failed to copy the pasted file."` |
 | `CLIPBOARD_CANCELLED` | `cancelled` | 호출자가 로드를 취소함 | `"The clipboard load was cancelled."` |
-| `CLIPBOARD_TIMED_OUT` | `timedOut` | 작업이 타임아웃됨 | `"The clipboard operation timed out."` |
-| `CLIPBOARD_DETECTION_FAILED` | `detectionFailed` | 데이터 감지 시스템이 실패를 보고 | `"Pattern detection failed."` |
+| `CLIPBOARD_TIMED_OUT` | `timedOut` | 작업이 타임아웃됨(사용자가 붙여넣기 권한 요청에 응답하는 시간 포함) | `"The clipboard operation timed out."` |
+| `CLIPBOARD_DETECTION_FAILED` | `detectionFailed` | 데이터 감지 시스템이 실패를 보고했거나, `detectValues`에서 사용자가 붙여넣기를 거부함 | `"Pattern detection failed."` |
 | `CLIPBOARD_UNKNOWN` | `unknown` | 분류되지 않은 시스템 에러 | `"An unknown error occurred."` |
 
-빈 클립보드는 이 에러들에 **해당하지 않습니다**. `read` 는 `numberOfItems == 0` 을, `readData` 는 `nil` 을 반환하며 둘 다 정상 상태입니다.
+빈 클립보드는 이 에러들에 **해당하지 않습니다**. `read`는 `numberOfItems == 0`을, `readData`는 `nil`을 반환하며 둘 다 정상 상태입니다.
 
 ```swift
 Task {
@@ -1672,6 +1750,623 @@ Task {
     }
 }
 ```
+
+샘플 앱의 Error Cases 섹션은 `CLIPBOARD_EMPTY_ITEMS`, `CLIPBOARD_FILE_NOT_FOUND`, `CLIPBOARD_INVALID_TYPE`, `CLIPBOARD_INVALID_URL`, `CLIPBOARD_INVALID_COLOR`, `CLIPBOARD_CANNOT_REMOVE_GENERAL`, `CLIPBOARD_UNAVAILABLE`(존재하지 않는 이름 있는 페이스트보드 감시), `CLIPBOARD_EMPTY_PATTERNS`, `CLIPBOARD_INVALID_REQUEST`(허용 타입이 없는 붙여넣기 컨트롤)를 발생시킵니다.
+
+---
+
+### 로드 하나 취소(RequestBox)
+
+`loadItem(_:scope:requestBox:completion:)`은 콜백 형식과 같은 로드를, 호출 전에 만든 `RequestBox`의 요청으로 수행합니다. `cancelLoad(_:)`는 그 요청을 어느 스레드에서든 취소합니다. 로드가 시작되기 전에도 취소할 수 있으며, 메인 스레드를 기다리지 않습니다. 완료 핸들러는 메인 스레드에서 정확히 한 번 호출되며, 호출 안에서 호출되는 일은 없습니다.
+
+| 완료 핸들러 | 조건 |
+|---|---|
+| `(true, item, nil, nil)` | 항목을 로드함 |
+| `(false, nil, "CLIPBOARD_CANCELLED", <고정 문자열>)` | 결과보다 먼저 `cancelLoad(_:)`가 박스를 닫음. 로드 중인 경우와 호출 전인 경우(이때는 아무것도 읽지 않습니다)가 있습니다. `cancelAllLoads()`도 같습니다 |
+| `(false, nil, "CLIPBOARD_INVALID_REQUEST", <고정 문자열>)` | 다른 요청이 이미 그 박스를 사용 중(박스는 한 번만 사용할 수 있습니다). 그 요청에는 영향이 없으며 아무것도 읽지 않습니다 |
+| `(false, nil, <errorCode>, <고정 문자열>)` | 다른 형식과 마찬가지로 로드가 실패함 |
+
+결과와 취소 중 먼저 온 쪽이 박스를 닫으며, 그쪽만 보고됩니다. 취소 뒤에 도착한 결과는 폐기되고, 이렇게 폐기된 `.file` 항목은 삭제됩니다. 결과 뒤의 취소는 아무것도 바꾸지 않습니다. `box.isClosed`는 요청이 끝났는지 알려 줍니다. 이 값이 `true`가 된 시점에 완료 핸들러가 아직 메인 스레드로 가는 중일 수 있습니다.
+
+`cancelLoad(_:)`는 전달된 박스를 무엇이든 닫습니다. Clipboard 로드의 박스만 전달하세요(Dialog 요청이 사용하는 박스를 전달하면 그 요청이 끝납니다).
+
+#### 텍스트를 로드한 뒤 바로 취소
+
+```swift
+let manager = IosClipboardManager.shared
+let box = RequestBox()
+manager.loadItem(.text, scope: scope, requestBox: box) { isSuccess, item, errorCode, errorMessage in
+    if isSuccess, case .text(let value)? = item {
+        print(value.count)
+    } else if errorCode == "CLIPBOARD_CANCELLED" {
+        // 취소: 정상적인 결과입니다
+    } else {
+        print(errorCode ?? "nil", errorMessage ?? "nil")
+    }
+}
+manager.cancelLoad(box)
+// 여기서 box.isClosed는 true입니다. 완료 핸들러는 나중에 메인 스레드에서 CLIPBOARD_CANCELLED를 한 번 보고합니다.
+```
+
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextThenCancel.png" alt="Example_IosClipboardManager_LoadTextThenCancel" width="400" />
+</p>
+
+`shared`를 읽을 수 없는 스레드에서는 박스를 보관해 두고 정적 형식을 호출합니다.
+
+```swift
+IosClipboardManager.cancelLoad(box)
+```
+
+#### 미리 취소한 박스로 텍스트 로드
+
+호출 전에 취소한 박스는 닫힌 상태로 남습니다. 로드는 아무것도 읽지 않고 `CLIPBOARD_CANCELLED`를 보고합니다.
+
+```swift
+let box = RequestBox()
+manager.cancelLoad(box)
+manager.loadItem(.text, scope: scope, requestBox: box) { isSuccess, item, errorCode, errorMessage in
+    // isSuccess == false, errorCode == "CLIPBOARD_CANCELLED"
+}
+```
+
+<p align="center">
+    <img src="images/ios/clipboard/Example_IosClipboardManager_LoadTextWithCancelledBox.png" alt="Example_IosClipboardManager_LoadTextWithCancelledBox" width="400" />
+</p>
+
+---
+
+### C ABI
+
+- C, 그리고 C 함수를 호출할 수 있는 언어(C#, Dart, Rust 등)에서 같은 클립보드를 사용하기 위한 API입니다. Swift 앱은 대신 `IosClipboardManager`를 직접 호출합니다. C ABI는 기본 타임아웃과 상한을 가진 `IosClipboardManager.shared`를 호출합니다.
+- 모든 함수는 어느 스레드에서든 호출할 수 있으며 메인 스레드를 **기다리지 않습니다**. 페이스트보드는 메인 스레드에서 사용되므로 모든 작업은 비동기(`_async`)입니다. 함수는 인수를 확인하고 요청을 메인 큐에 넣은 뒤 반환합니다. `NTK_CLIPBOARD_ERROR_NONE`은 수락되었다는 뜻이며, 그 뒤 콜백이 **메인 스레드에서 정확히 한 번** 호출됩니다. `ntk_clipboard_cancel_load`, `ntk_clipboard_add_change_listener`, `ntk_clipboard_listener_remove`, 읽기용 함수, `_free` 함수는 호출한 스레드에서 실행됩니다.
+- 메인 스레드에서 호출하면 콜백은 함수가 반환된 뒤에 호출됩니다. 다른 스레드에서 호출하면 함수가 반환되기 전, 즉 요청 ID 같은 출력이 보이기 전에 호출될 수 있습니다. 결과를 대응시킬 때는 `user_data`를 사용하세요.
+- 그 밖의 반환 값은 거부되었다는 뜻입니다. 콜백은 호출되지 않으며, `release`(`NULL`이 아닌 경우)는 이미 호출한 스레드에서 호출된 상태입니다. `NULL` 콜백은 거부됩니다. 수락된 호출에서는 `release`가 콜백 뒤에 메인 스레드에서 한 번 호출되며, `user_data`는 거기서 해제합니다. 변경 리스너에는 한 번뿐인 콜백이 없습니다. 그 `release`는 `ntk_clipboard_listener_remove` 뒤에 메인 스레드에서 한 번 호출되며, 리스너가 등록되어 있는 동안에는 호출되지 않습니다. 따라서 `user_data`는 remove가 반환될 때가 아니라 거기서 해제합니다.
+- 입력(문자열, 배열, 구조체와 그 안의 포인터)은 호출하는 동안에만 유효하면 됩니다. 라이브러리는 필요한 것을 함수가 반환되기 전에 복사합니다.
+- 콜백이 받는 핸들(`ntk_clipboard_read_result`, `ntk_clipboard_snapshot`, `ntk_clipboard_loaded_item`, `ntk_clipboard_change`, `ntk_string`, `ntk_bytes`)은 받는 쪽의 것이며, 각각 대응하는 `_free`로 해제합니다. 에러가 `NTK_CLIPBOARD_ERROR_NONE`이 아니면 `NULL`입니다. 핸들에서 꺼낸 포인터는 그 핸들을 해제할 때까지 유효합니다. `_free(NULL)`은 아무것도 하지 않습니다.
+- 문자열은 NUL로 끝나는 UTF-8입니다. 인수의 잘못된 UTF-8은 `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER`입니다. 반환되는 텍스트에서는 잘못된 서로게이트와 U+0000이 U+FFFD가 됩니다. 불리언은 `int32_t`입니다. 구조체는 0으로 채우고 `struct_size`를 설정한 뒤 필요한 필드를 설정합니다. 모든 필드의 기본값은 0이며, 예약 필드는 0으로 두어야 합니다.
+- 모든 콜백의 `system_code`와 `ntk_last_system_code()`는 iOS에서 항상 0입니다.
+- 콜백은 메인 스레드에서 실행됩니다. 메인 스레드를 오래 블록하지 말고, 콜백에서 예외(C++, Objective-C, C#)가 밖으로 나가지 않게 하세요.
+- 클립보드는 포그라운드 씬을 필요로 하지 않으며, 함수도 이를 확인하지 않습니다. 다른 앱이 기록한 내용을 읽으면 Swift API와 마찬가지로 붙여넣기 권한 요청이 표시될 수 있습니다([개인정보: 권한 요청과 접근 알림](#개인정보-권한-요청과-접근-알림) 참고).
+- C ABI에 없는 것: 붙여넣기 컨트롤, `cancelAllLoads`(요청마다 ID로 취소합니다), 사용자 지정 타임아웃과 상한입니다. `.changedDetectedOnForeground` 이벤트에도 대응하는 C 값이 없지만 잃는 것은 없습니다. 2.0.0의 Swift API는 이 이벤트를 전달하지 않기 때문입니다(Swift 코드가 `checkForegroundChange`를 사용하듯이 `ntk_clipboard_check_foreground_change_async`를 사용합니다).
+
+#### 빌드
+
+두 xcframework를 모두 앱 타깃에 추가하고 둘 다 "Embed & Sign"으로 설정합니다. `IosLibraryCApi.framework`는 `IosLibrary.framework`에 의존하며, 둘은 같은 버전의 한 쌍입니다. 앱 자체에는 Swift 코드가 필요하지 않습니다. C로만 작성한 앱은 어떤 Xcode 26으로도 빌드할 수 있으며, 최소 배포 타깃은 iOS 18.0입니다. 함수는 앱 확장이 아니라 앱의 프로세스(UIKit 앱)에서 호출합니다.
+
+`<IosLibraryCApi/NativeToolkitC/Clipboard.h>`를 포함합니다. 이 헤더가 `Common.h`를 포함합니다. 헤더는 C99이고 ASCII로만 작성되어 있으며, `<stddef.h>`와 `<stdint.h>`만 포함합니다. 바인딩 생성 도구(ClangSharp, bindgen, ffigen)를 위해 같은 헤더가 `dist/1.14.0/ios/include/NativeToolkitC/`에도 있습니다. 클립보드에는 초기화 함수가 없습니다. 아래 예제에서는 `#include` 줄을 생략합니다.
+
+```c
+/* 라이브러리와 헤더는 같은 버전이어야 합니다. */
+uint32_t version = ntk_version();   /* (MAJOR << 16) | (MINOR << 8) | PATCH: 2.0.0이면 0x020000 */
+if (version != NTK_VERSION) {
+    /* 포함한 프레임워크가 이 헤더가 설명하는 것과 다릅니다. */
+}
+
+/* 모든 콜백의 system_code와 마찬가지로 iOS에서는 항상 0입니다. */
+uint32_t system_code = ntk_last_system_code();
+(void)system_code;
+```
+
+`Common.h`는 Windows C ABI가 반환하는 리스트 핸들 `ntk_string_list`도 선언합니다(`Common.h`는 모든 OS에서 같습니다). 2.0.0의 iOS 함수 중 이를 반환하는 것은 없습니다. 여러 OS에서 공유하는 코드는 같은 방법으로 이를 읽습니다.
+
+```c
+/* 문자열 리스트를 읽고 해제합니다(2.0.0의 iOS 함수는 이를 반환하지 않습니다). */
+static void read_string_list(ntk_string_list* list)
+{
+    size_t count = ntk_string_list_count(list);           /* NULL이면 0 */
+    for (size_t i = 0; i < count; i++) {
+        size_t length = 0;
+        const char* text = ntk_string_list_at(list, i, &length);
+        (void)text; (void)length;
+    }
+    ntk_string_list_free(list);                           /* NULL에 대해서는 아무것도 하지 않습니다 */
+}
+```
+
+#### 페이스트보드
+
+스코프의 `NULL`은 일반 페이스트보드입니다. 이름 있는 페이스트보드와 고유 페이스트보드는 `ntk_clipboard_scope`로 지정하며, 그 `name`은 필수입니다.
+
+```c
+static void NTK_CALL on_pasteboard_created(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                           ntk_string* name)
+{
+    /* 메인 스레드에서 호출됩니다. error가 NONE이 아니면 name은 NULL입니다. */
+    if (error == NTK_CLIPBOARD_ERROR_NONE) {
+        const char* text = ntk_string_data(name);   /* ntk_clipboard_scope에 넣을 이름 */
+        size_t length = ntk_string_size(name);      /* 종료 문자를 뺀 바이트 수 */
+        /* 나중에 필요하면 복사하세요. ntk_string_free까지 유효합니다. */
+        (void)text; (void)length;
+    }
+    ntk_string_free(name);                          /* NULL에 대해서는 아무것도 하지 않습니다 */
+}
+
+static void NTK_CALL on_pasteboard_removed(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* 일반 페이스트보드이면 CANNOT_REMOVE_GENERAL입니다. 존재하지 않는 이름은 에러 없이 삭제됩니다. */
+}
+
+static void NTK_CALL release_request(void* user_data)
+{
+    /* 한 번 호출됩니다. 콜백 뒤에 메인 스레드에서, 또는 거부된 호출이 반환되기 전에 호출한 스레드에서
+       호출됩니다. user_data는 여기서 해제합니다. */
+}
+
+/* 이름 있는 페이스트보드입니다. 생성하거나, 있으면 엽니다. NULL이나 빈 이름은 INVALID_PARAMETER입니다. */
+ntk_clipboard_error error = ntk_clipboard_create_pasteboard_async(
+    NTK_CLIPBOARD_SCOPE_NAMED, "com.jonghyunkim.nativetoolkit.example.sample",
+    &on_pasteboard_created, NULL, &release_request);
+
+/* 고유 페이스트보드입니다. 이름은 시스템이 만들고 콜백이 받습니다. name은 읽지 않습니다. */
+error = ntk_clipboard_create_pasteboard_async(NTK_CLIPBOARD_SCOPE_UNIQUE, NULL,
+                                              &on_pasteboard_created, NULL, &release_request);
+
+/* 이후 호출에서는 스코프로 페이스트보드를 지정합니다. */
+ntk_clipboard_scope scope;
+memset(&scope, 0, sizeof(scope));
+scope.struct_size = (uint32_t)sizeof(scope);
+scope.kind = NTK_CLIPBOARD_SCOPE_NAMED;   /* 또는 UNIQUE. 이름은 콜백이 준 것 */
+scope.name = "com.jonghyunkim.nativetoolkit.example.sample";
+
+/* 삭제에는 스코프를 전달합니다. NULL은 안 됩니다. */
+error = ntk_clipboard_remove_pasteboard_async(&scope, &on_pasteboard_removed, NULL, &release_request);
+```
+
+#### 복사하기
+
+`ntk_clipboard_write_content`는 하나의 내용을 담습니다. `kind`에 따라 읽는 필드가 정해지며, 나머지 필드는 읽지 않습니다. 내용 자체의 확인(URL 스킴, 색상 범위, 파일, 타입 식별자)은 라이브러리가 수행하며, 결과는 콜백으로 전달됩니다.
+
+```c
+static void NTK_CALL on_written(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* 메인 스레드에서 호출됩니다. INVALID_URI, INVALID_COLOR, FILE_NOT_FOUND, IMAGE_LOAD_FAILED,
+       INVALID_IMAGE_DATA, INVALID_TYPE, EMPTY_CONTENT, CONTENT_TOO_LARGE, UNAVAILABLE은 여기로 옵니다. */
+}
+
+static void reset_content(ntk_clipboard_write_content* content, ntk_clipboard_content_kind kind)
+{
+    memset(content, 0, sizeof(*content));
+    content->struct_size = (uint32_t)sizeof(*content);
+    content->kind = kind;
+}
+
+/* path: 앱 번들 또는 컨테이너 안의 파일. NULL이나 ""는 INVALID_PARAMETER입니다. */
+static void copy_image_file(const char* path)
+{
+    ntk_clipboard_write_content content;
+    reset_content(&content, NTK_CLIPBOARD_CONTENT_IMAGE_FILE);
+    content.path = path;
+    (void)ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+}
+
+/* png, png_size: PNG 이미지의 바이트. */
+static void copy_image_data(const uint8_t* png, size_t png_size)
+{
+    ntk_clipboard_write_content content;
+    reset_content(&content, NTK_CLIPBOARD_CONTENT_IMAGE_DATA);
+    content.data = png;
+    content.data_size = png_size;      /* 0은 EMPTY_CONTENT */
+    content.ut_type = "public.png";
+    (void)ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+}
+
+/* 일반 페이스트보드(스코프 NULL)에 일반 텍스트를 넣습니다. 빈 문자열도 유효합니다.
+   NULL 옵션은 이 기기 전용, 만료 없음입니다. release는 NULL이어도 됩니다. */
+ntk_clipboard_write_content content;
+reset_content(&content, NTK_CLIPBOARD_CONTENT_PLAIN_TEXT);
+content.text = "Hello from IosLibraryExample";
+ntk_clipboard_error error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* HTML과 그 일반 텍스트를 하나의 항목으로 넣습니다. 빈 html은 EMPTY_CONTENT, NULL text는 ""입니다. */
+reset_content(&content, NTK_CLIPBOARD_CONTENT_HTML);
+content.text = "plain body";
+content.html = "<b>html body</b>";
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* URL입니다. http, https, file 중 하나이며, 그 밖에는 INVALID_URI입니다. */
+reset_content(&content, NTK_CLIPBOARD_CONTENT_URL);
+content.url = "https://www.apple.com";
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* 색상입니다. 각 성분은 0.0에서 1.0입니다. alpha는 필수이며, 0으로 채운 구조체는 투명합니다. */
+reset_content(&content, NTK_CLIPBOARD_CONTENT_COLOR);
+content.red = 0.2;
+content.green = 0.4;
+content.blue = 0.8;
+content.alpha = 1.0;
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* 자체 타입의 바이트입니다. */
+const uint8_t custom[2] = {0xCA, 0xFE};
+reset_content(&content, NTK_CLIPBOARD_CONTENT_CUSTOM_DATA);
+content.data = custom;
+content.data_size = sizeof(custom);
+content.ut_type = "com.jonghyunkim.nativetoolkit.example.custom";
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* 여러 일반 텍스트 항목입니다. count가 0이면 EMPTY_ITEMS이며 바로 반환됩니다. */
+const char* const texts[3] = {"first", "second", "third"};
+reset_content(&content, NTK_CLIPBOARD_CONTENT_MULTIPLE_TEXT);
+content.texts = texts;
+content.text_count = 3;
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+
+/* 여러 표현을 가진 하나의 항목입니다. 모든 요소의 struct_size는 같습니다. 같은 ut_type이 두 번 있으면
+   INVALID_PARAMETER입니다. */
+const char* body = "multi representation";
+ntk_clipboard_representation representations[2];
+memset(representations, 0, sizeof(representations));
+representations[0].struct_size = (uint32_t)sizeof(representations[0]);
+representations[0].ut_type = "public.plain-text";
+representations[0].data = (const uint8_t*)body;
+representations[0].data_size = strlen(body);
+representations[1] = representations[0];
+representations[1].ut_type = "public.utf8-plain-text";
+reset_content(&content, NTK_CLIPBOARD_CONTENT_MULTI_REPRESENTATION);
+content.representations = representations;
+content.representation_count = 2;
+error = ntk_clipboard_copy_async(&content, NULL, NULL, &on_written, NULL, NULL);
+```
+
+#### 복사 옵션, 추가, 지우기
+
+`ntk_clipboard_copy_options`는 `ClipboardCopyOptions`의 C 형식입니다. `NULL` 또는 0으로 채운 구조체가 기본값이며, 이 기기 전용, 만료 없음입니다. 필드가 `not_local_only`이므로 0이면 기본값이 유지됩니다.
+
+```c
+static void NTK_CALL on_written(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* INVALID_EXPIRATION: 만료 시각이 미래가 아닙니다. */
+}
+
+/* now_unix_seconds: 현재 시각. 예를 들어 time(NULL)에서 가져옵니다. */
+static void copy_expiring(const ntk_clipboard_scope* scope, double now_unix_seconds)
+{
+    ntk_clipboard_write_content content;
+    memset(&content, 0, sizeof(content));
+    content.struct_size = (uint32_t)sizeof(content);
+    content.kind = NTK_CLIPBOARD_CONTENT_PLAIN_TEXT;
+    content.text = "expiring body";
+
+    ntk_clipboard_copy_options options;
+    memset(&options, 0, sizeof(options));
+    options.struct_size = (uint32_t)sizeof(options);
+    options.has_expiration = 1;                                 /* expiration_unix_seconds를 읽습니다 */
+    options.expiration_unix_seconds = now_unix_seconds + 30.0;  /* 유한하지 않으면 INVALID_PARAMETER */
+    (void)ntk_clipboard_copy_async(&content, &options, scope, &on_written, NULL, NULL);
+}
+
+ntk_clipboard_write_content content;
+memset(&content, 0, sizeof(content));
+content.struct_size = (uint32_t)sizeof(content);
+content.kind = NTK_CLIPBOARD_CONTENT_PLAIN_TEXT;
+content.text = "LOCALONLY-BODY";
+
+/* Handoff가 항목을 사용자의 다른 기기로 옮기도록 허용합니다. */
+ntk_clipboard_copy_options options;
+memset(&options, 0, sizeof(options));
+options.struct_size = (uint32_t)sizeof(options);
+options.not_local_only = 1;
+ntk_clipboard_error error = ntk_clipboard_copy_async(&content, &options, NULL, &on_written, NULL, NULL);
+
+/* 추가: 기존 항목 뒤에 새 항목을 넣습니다. 옵션을 받지 않으므로 민감한 데이터에는 copy를 사용합니다. */
+content.text = "appended item";
+error = ntk_clipboard_append_async(&content, NULL, &on_written, NULL, NULL);
+
+/* 모든 항목을 삭제합니다. 페이스트보드 자체는 남습니다. */
+error = ntk_clipboard_clear_async(NULL, &on_written, NULL, NULL);
+```
+
+#### 읽어 오기
+
+**`ntk_clipboard_read_async`와 `ntk_clipboard_read_data_async`는 어느 스레드에서 호출하든, 다른 앱이 기록한 내용의 붙여넣기 허용을 iOS가 사용자에게 묻는 동안 메인 스레드를 멈춥니다**([읽기](#읽기) 참고). 거부된 붙여넣기는 실패가 아닙니다. 읽기는 타입도 텍스트도 없는 항목 하나를 주고, 데이터 읽기는 `NULL`을 줍니다. 이 대기를 피하려면 [`ntk_clipboard_load_item_async`](#로드와-취소)를 사용하세요. `ntk_clipboard_get_snapshot_async`는 메타데이터만 읽습니다.
+
+```c
+static void NTK_CALL on_read(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                             ntk_clipboard_read_result* result)
+{
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;                                    /* result는 NULL입니다 */
+    }
+    size_t item_count = ntk_clipboard_read_result_item_count(result);   /* 0: 비어 있음. 에러가 아닙니다 */
+    size_t item;
+    for (item = 0; item < item_count; ++item) {
+        size_t type_count = ntk_clipboard_read_result_item_type_count(result, item);
+        size_t index;
+        for (index = 0; index < type_count; ++index) {
+            const char* type = ntk_clipboard_read_result_item_type_at(result, item, index, NULL);
+            (void)type;
+        }
+        size_t text_size = 0;
+        /* 항목에 없으면 각각 NULL입니다. 이미지 바이트는 읽지 않고 타입만 줍니다. */
+        const char* text = ntk_clipboard_read_result_item_text_at(result, item, &text_size);
+        const char* url = ntk_clipboard_read_result_item_url_at(result, item, NULL);
+        const char* image_type = ntk_clipboard_read_result_item_image_type_at(result, item, NULL);
+        (void)text; (void)url; (void)image_type;
+    }
+    ntk_clipboard_read_result_free(result);
+}
+
+static void NTK_CALL on_read_data(void* user_data, ntk_clipboard_error error, uint32_t system_code, ntk_bytes* data)
+{
+    /* 그 타입을 가진 항목이 없을 때와 사용자가 붙여넣기를 거부했을 때 data는 NULL입니다. */
+    if (error == NTK_CLIPBOARD_ERROR_NONE && data != NULL) {
+        const uint8_t* bytes = ntk_bytes_data(data);   /* 핸들이면 NULL이 아닙니다. 0바이트여도 마찬가지입니다 */
+        size_t size = ntk_bytes_size(data);
+        (void)bytes; (void)size;
+    }
+    ntk_bytes_free(data);
+}
+
+static void NTK_CALL on_snapshot(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                 ntk_clipboard_snapshot* snapshot)
+{
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;
+    }
+    int32_t has_strings = ntk_clipboard_snapshot_has_strings(snapshot);
+    int32_t has_urls = ntk_clipboard_snapshot_has_urls(snapshot);
+    int32_t has_images = ntk_clipboard_snapshot_has_images(snapshot);
+    int32_t has_colors = ntk_clipboard_snapshot_has_colors(snapshot);
+    size_t number_of_items = ntk_clipboard_snapshot_number_of_items(snapshot);
+    /* 첫 번째 항목의 타입입니다. */
+    size_t type_count = ntk_clipboard_snapshot_type_count(snapshot);
+    const char* first_type = ntk_clipboard_snapshot_type_at(snapshot, 0, NULL);   /* 범위를 벗어나면 NULL */
+    /* 각 항목의 타입입니다. */
+    size_t item_type_count = ntk_clipboard_snapshot_item_type_count(snapshot, 0);
+    const char* item_type = ntk_clipboard_snapshot_item_type_at(snapshot, 0, 0, NULL);
+    if (ntk_clipboard_snapshot_has_matching(snapshot)) {
+        size_t count = ntk_clipboard_snapshot_matching_count(snapshot);
+        size_t i;
+        for (i = 0; i < count; ++i) {
+            int64_t matching_item = ntk_clipboard_snapshot_matching_at(snapshot, i);   /* 범위를 벗어나면 -1 */
+            (void)matching_item;
+        }
+    }
+    (void)has_strings; (void)has_urls; (void)has_images; (void)has_colors; (void)number_of_items;
+    (void)type_count; (void)first_type; (void)item_type_count; (void)item_type;
+    ntk_clipboard_snapshot_free(snapshot);
+}
+
+/* 메인 스레드가 기다려도 되는 곳에서 호출합니다. 예를 들어 사용자가 붙여넣기를 요청한 뒤입니다. */
+ntk_clipboard_error error = ntk_clipboard_read_async(NULL, &on_read, NULL, NULL);
+error = ntk_clipboard_read_data_async("public.png", NULL, &on_read_data, NULL, NULL);
+
+/* 메타데이터만 읽습니다. 타입을 지정하지 않으면 matching_types는 NULL이어도 되고, has_matching은 0입니다. */
+error = ntk_clipboard_get_snapshot_async(NULL, 0, NULL, &on_snapshot, NULL, NULL);
+const char* const matching_types[1] = {"public.plain-text"};
+error = ntk_clipboard_get_snapshot_async(matching_types, 1, NULL, &on_snapshot, NULL, NULL);
+```
+
+#### 로드와 취소
+
+`ntk_clipboard_load_item_async`는 메인 스레드를 멈추지 않습니다. 15초 타임아웃에는 사용자가 붙여넣기 권한 요청에 응답하는 시간도 포함됩니다(`NTK_CLIPBOARD_ERROR_TIMED_OUT`. 그 뒤의 응답으로는 아무것도 전달되지 않습니다). 거부된 붙여넣기는 `NTK_CLIPBOARD_ERROR_LOAD_FAILED`입니다. 이 함수가 기록하는 요청 ID를 `ntk_clipboard_cancel_load`에 전달하면 어느 스레드에서든 로드를 취소할 수 있으며, 로드는 `NTK_CLIPBOARD_ERROR_CANCELED`로 끝납니다. 로드가 시작되기 전에 취소하면 아무것도 읽지 않습니다. 시작과 동시에 취소하면 붙여넣기 권한 요청이 표시될 수 있습니다.
+
+```c
+static void NTK_CALL on_loaded(void* user_data, uint64_t request_id, ntk_clipboard_error error,
+                               uint32_t system_code, ntk_clipboard_loaded_item* item)
+{
+    if (error == NTK_CLIPBOARD_ERROR_CANCELED) {
+        return;                     /* 취소: 정상적인 결과입니다 */
+    }
+    if (error != NTK_CLIPBOARD_ERROR_NONE) {
+        return;                     /* TIMED_OUT, LOAD_FAILED, NO_MATCHING_ITEM 등. item은 NULL입니다 */
+    }
+    size_t size = 0;
+    switch (ntk_clipboard_loaded_item_kind(item)) {
+    case NTK_CLIPBOARD_ITEM_TEXT: {
+        const char* text = ntk_clipboard_loaded_item_text(item, &size);
+        (void)text;
+        break;
+    }
+    case NTK_CLIPBOARD_ITEM_URL: {
+        const char* url = ntk_clipboard_loaded_item_url(item, &size);
+        (void)url;
+        break;
+    }
+    case NTK_CLIPBOARD_ITEM_IMAGE: {
+        const uint8_t* png = ntk_clipboard_loaded_item_image_data(item, &size);
+        const char* type = ntk_clipboard_loaded_item_image_type(item, NULL);   /* 항상 "public.png" */
+        (void)png; (void)type;
+        break;
+    }
+    case NTK_CLIPBOARD_ITEM_FILE: {
+        /* 파일과 그 상위 디렉터리는 호출자의 것입니다. 사용이 끝나면 둘 다 삭제합니다. _free는 삭제하지 않습니다. */
+        const char* path = ntk_clipboard_loaded_item_file_path(item, NULL);
+        (void)path;
+        break;
+    }
+    default:
+        break;                      /* 이후 버전의 종류 */
+    }
+    ntk_clipboard_loaded_item_free(item);
+}
+
+uint64_t request_id = 0;
+ntk_clipboard_error error = ntk_clipboard_load_item_async(NTK_CLIPBOARD_ITEM_TEXT, NULL, NULL,
+                                                          &on_loaded, NULL, NULL, &request_id);
+/* 어느 스레드에서든 언제든 호출할 수 있습니다. 알 수 없거나 끝난 request_id에는 아무것도 하지 않고 NONE을 반환합니다. */
+error = ntk_clipboard_cancel_load(request_id);
+
+/* 한 가지 타입의 파일입니다. ut_type은 FILE에서는 필수이고 다른 종류에서는 읽지 않습니다.
+   out_request_id는 NULL이어도 됩니다. 그 경우 로드를 취소할 수 없습니다. */
+error = ntk_clipboard_load_item_async(NTK_CLIPBOARD_ITEM_FILE, "public.data", NULL,
+                                      &on_loaded, NULL, NULL, NULL);
+error = ntk_clipboard_load_item_async(NTK_CLIPBOARD_ITEM_IMAGE, NULL, NULL, &on_loaded, NULL, NULL, NULL);
+```
+
+#### 감지하기
+
+패턴은 `NTK_CLIPBOARD_PATTERN_*` 비트의 집합입니다. 0은 `NTK_CLIPBOARD_ERROR_EMPTY_PATTERNS`, 알 수 없는 비트는 `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER`이며 둘 다 바로 반환됩니다. `ntk_clipboard_detect_values_async`는 내용을 읽습니다. 5초 타임아웃에는 붙여넣기 권한 요청에 응답하는 시간도 포함되며, 거부된 붙여넣기는 `NTK_CLIPBOARD_ERROR_DETECTION_FAILED`입니다. 값은 UTF-8 JSON 객체로 전달됩니다. 이 형식은 ABI의 일부입니다. 요청하거나 발견된 패턴과 관계없이 아래의 키는 항상 모두 있으며, 이후 버전에서 키가 추가될 수는 있어도 이 키들은 바뀌지 않습니다. 발견되지 않은 값은 마지막 열과 같이 `null` 또는 `[]`입니다.
+
+| 키 | 타입 | 발견되지 않은 경우 |
+|---|---|---|
+| `detectedPatterns` | 문자열 배열. `ClipboardDetectionPattern`의 `rawValue`(`"probableWebURL"`, `"emailAddress"` 등)이며, 순서는 보장되지 않습니다 | `[]` |
+| `probableWebURL`, `probableWebSearch` | 문자열 | `null` |
+| `number` | 숫자. 유한하지 않은 값은 `null` | `null` |
+| `links` | 문자열 배열 | `[]` |
+| `emailAddresses`, `phoneNumbers` | 객체 `{"value": string, "label": string or null}`의 배열 | `[]` |
+| `postalAddresses` | 객체 `{"street", "city", "state", "postalCode", "country"}`의 배열. 각각 문자열 또는 `null` | `[]` |
+| `calendarEvents` | 객체의 배열. `"startDate"`와 `"endDate"`(소수 초를 포함한 UTC의 ISO 8601, 예: `"2027-03-03T10:00:00.000Z"`, 또는 `null`), `"startTimeZone"`과 `"endTimeZone"`(시간대 식별자 또는 `null`), `"isAllDay"`(`true` 또는 `false`) | `[]` |
+| `flightNumbers` | 객체 `{"airline": string, "flightNumber": string}`의 배열 | `[]` |
+| `moneyAmounts` | 객체 `{"amount": number, "currency": string}`의 배열. `amount`가 유한하지 않으면 `null` | `[]` |
+| `shipmentTrackingNumbers` | 객체 `{"carrier": string, "trackingNumber": string}`의 배열 | `[]` |
+
+다른 반환 텍스트와 마찬가지로 문자열 안의 U+0000은 U+FFFD가 됩니다.
+
+```c
+static void NTK_CALL on_patterns(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                 ntk_clipboard_patterns patterns)
+{
+    if (error == NTK_CLIPBOARD_ERROR_NONE && (patterns & NTK_CLIPBOARD_PATTERN_PROBABLE_WEB_URL) != 0) {
+        /* 페이스트보드에 웹 URL이 있을 가능성이 높습니다. */
+    }
+}
+
+static void NTK_CALL on_values(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                               ntk_string* values_json)
+{
+    if (error == NTK_CLIPBOARD_ERROR_NONE) {
+        const char* json = ntk_string_data(values_json);   /* JSON 라이브러리로 파싱합니다 */
+        (void)json;
+    }
+    ntk_string_free(values_json);
+}
+
+ntk_clipboard_patterns all = NTK_CLIPBOARD_PATTERN_PROBABLE_WEB_URL | NTK_CLIPBOARD_PATTERN_PROBABLE_WEB_SEARCH |
+                             NTK_CLIPBOARD_PATTERN_NUMBER | NTK_CLIPBOARD_PATTERN_LINK |
+                             NTK_CLIPBOARD_PATTERN_EMAIL_ADDRESS | NTK_CLIPBOARD_PATTERN_PHONE_NUMBER |
+                             NTK_CLIPBOARD_PATTERN_POSTAL_ADDRESS | NTK_CLIPBOARD_PATTERN_CALENDAR_EVENT |
+                             NTK_CLIPBOARD_PATTERN_FLIGHT_NUMBER | NTK_CLIPBOARD_PATTERN_MONEY_AMOUNT |
+                             NTK_CLIPBOARD_PATTERN_SHIPMENT_TRACKING_NUMBER;
+/* 내용을 읽지 않습니다. 붙여넣기 권한 요청이 표시되지 않습니다. */
+ntk_clipboard_error error = ntk_clipboard_detect_patterns_async(all, NULL, &on_patterns, NULL, NULL);
+error = ntk_clipboard_detect_values_async(all, NULL, &on_values, NULL, NULL);
+```
+
+#### 변경 이벤트
+
+리스너 등록과 감시는 별개입니다. 리스너를 추가하는 것만으로는 감시가 시작되지 않으며, 제거해도 감시는 멈추지 않습니다. 감시는 각각 전용 함수로 시작하고 중지합니다. 한 번에 감시하는 페이스트보드는 하나뿐이며, 시작하면 이전 감시를 대체합니다. `NTK_CLIPBOARD_ERROR_UNAVAILABLE`로 실패한 경우에도 이전 감시는 이미 중지된 상태입니다. `ntk_clipboard_stop_observing_async`는 다른 컴포넌트(또는 `IosClipboardManager.shared`를 사용하는 Swift 코드)가 시작한 감시라도 프로세스의 모든 사용자에 대해 감시를 멈춥니다. 나중에 등록하는 리스너를 위해 이벤트가 보관되지는 않습니다.
+
+Swift API와 마찬가지로 iOS는 이 앱이 포그라운드에 있는 동안 수행한 변경만 알립니다. `ntk_clipboard_check_foreground_change_async`는 변경 횟수를 마지막 확인과 비교합니다(포그라운드 여부는 직접 확인하지 않습니다). 페이스트보드에 대한 첫 확인은 0을 주며, 해석할 수 없는 페이스트보드도 0을 줍니다.
+
+```c
+static void NTK_CALL on_clipboard_changed(void* user_data, ntk_clipboard_change* change)
+{
+    /* 메인 스레드에서 호출됩니다. change는 호출자의 것입니다. */
+    if (ntk_clipboard_change_kind(change) == NTK_CLIPBOARD_CHANGE_CHANGED) {
+        size_t added = ntk_clipboard_change_types_added_count(change);
+        size_t removed = ntk_clipboard_change_types_removed_count(change);
+        size_t i;
+        for (i = 0; i < added; ++i) {
+            const char* type = ntk_clipboard_change_types_added_at(change, i, NULL);
+            (void)type;
+        }
+        for (i = 0; i < removed; ++i) {
+            const char* type = ntk_clipboard_change_types_removed_at(change, i, NULL);
+            (void)type;
+        }
+    } else if (ntk_clipboard_change_kind(change) == NTK_CLIPBOARD_CHANGE_REMOVED) {
+        /* 감시하던 이름 있는 페이스트보드가 삭제되었습니다. */
+    }
+    ntk_clipboard_scope_kind scope_kind = ntk_clipboard_change_scope_kind(change);
+    const char* scope_name = ntk_clipboard_change_scope_name(change, NULL);   /* 일반 페이스트보드이면 NULL */
+    (void)scope_kind; (void)scope_name;
+    ntk_clipboard_change_free(change);
+}
+
+static void NTK_CALL release_listener_state(void* user_data)
+{
+    /* 한 번 호출됩니다. 리스너를 제거한 뒤 메인 스레드에서, 또는 추가에 실패했을 때 호출한 스레드에서
+       호출됩니다. user_data는 여기서 해제합니다. */
+}
+
+static void NTK_CALL on_observing(void* user_data, ntk_clipboard_error error, uint32_t system_code)
+{
+    /* 시작: 스코프를 해석할 수 없으면 UNAVAILABLE입니다. 중지: 항상 NONE입니다. */
+}
+
+static void NTK_CALL on_foreground_change(void* user_data, ntk_clipboard_error error, uint32_t system_code,
+                                          int32_t changed)
+{
+    /* 마지막 확인 이후 페이스트보드가 바뀌었으면 changed는 0이 아닌 값입니다. */
+}
+
+void* state = NULL;   /* 자체 상태이며 user_data로 다시 전달됩니다 */
+ntk_clipboard_listener* listener = NULL;
+ntk_clipboard_error error = ntk_clipboard_add_change_listener(&on_clipboard_changed, state,
+                                                              &release_listener_state, &listener);
+error = ntk_clipboard_start_observing_async(NULL, &on_observing, NULL, NULL);
+
+/* 앱이 포그라운드로 돌아왔을 때 호출합니다. */
+error = ntk_clipboard_check_foreground_change_async(NULL, &on_foreground_change, NULL, NULL);
+
+/* 나중에. remove 뒤에는 핸들이 무효입니다. NULL에는 아무것도 하지 않습니다. 메인 스레드에서 제거하면
+   리스너에 더 이상 이벤트가 오지 않습니다. 다른 스레드에서 제거하면 release가 실행될 때까지 이벤트가 올 수 있습니다. */
+ntk_clipboard_listener_remove(listener);
+listener = NULL;
+error = ntk_clipboard_stop_observing_async(&on_observing, NULL, NULL);
+```
+
+#### 에러 값
+
+`ntk_clipboard_error`는 위 함수 중 읽기용 함수, `_free` 함수, `ntk_clipboard_listener_remove`를 제외한 모든 함수의 반환 값이자, 모든 콜백의 `error`입니다. 값은 어느 쪽에서든 올 수 있습니다. 반환 값은 호출이 수락되었는지를, 콜백은 수락된 작업이 어떻게 끝났는지를 알려 줍니다. 값은 늘어날 수 있으므로 `default` 분기를 작성하세요.
+
+| 값 | 이름 | 위치 | 조건 | Swift `errorCode` |
+|---|---|---|---|---|
+| 0 | `NTK_CLIPBOARD_ERROR_NONE` | 둘 다 | 수락됨 / 성공 | - |
+| 1 | `NTK_CLIPBOARD_ERROR_INVALID_PARAMETER` | 반환 값 | `NULL` 콜백이나 필수 인수, 잘못된 UTF-8, 2.0.0 크기보다 작거나 4096보다 큰 `struct_size`, 0이 아닌 예약 필드, 범위를 벗어난 종류나 패턴 비트, `NULL`이거나 빈 페이스트보드 이름이나 이미지 경로, 표현에서 두 번 나오는 같은 `ut_type`, 유한하지 않은 만료 시각, 생성에 전달한 `GENERAL`, 삭제에 전달한 `NULL` 스코프, `NULL` `out_listener` | `CLIPBOARD_INVALID_REQUEST`는 C에서 발생하지 않습니다 |
+| 2 | `NTK_CLIPBOARD_ERROR_NOT_INITIALIZED` | - | iOS에서는 반환되지 않음 | - |
+| 3 | `NTK_CLIPBOARD_ERROR_NOT_SUPPORTED` | 반환 값 | 이 버전이 모르는 구조체 부분에 0이 아닌 값이 있음 | - |
+| 4 | `NTK_CLIPBOARD_ERROR_UNKNOWN` | 콜백 | 분류되지 않은 실패 | `CLIPBOARD_UNKNOWN` |
+| 5 | `NTK_CLIPBOARD_ERROR_OUT_OF_MEMORY` | - | iOS에서는 반환되지 않음 | - |
+| 6 | `NTK_CLIPBOARD_ERROR_EMPTY_CONTENT` | 콜백 | 빈 `html`, 또는 0바이트의 이미지 데이터, 커스텀 데이터, 표현 | `CLIPBOARD_EMPTY_CONTENT` |
+| 7 | `NTK_CLIPBOARD_ERROR_EMPTY_ITEMS` | 반환 값 | `text_count` 또는 `representation_count`가 0 | `CLIPBOARD_EMPTY_ITEMS` |
+| 8 | `NTK_CLIPBOARD_ERROR_INVALID_URI` | 콜백 | 빈 URL, 또는 `http`, `https`, `file` 이외의 스킴 | `CLIPBOARD_INVALID_URL` |
+| 9 | `NTK_CLIPBOARD_ERROR_UNAVAILABLE` | 콜백 | 이름 있는 페이스트보드나 고유 페이스트보드를 해석할 수 없음 | `CLIPBOARD_UNAVAILABLE` |
+| 12 | `NTK_CLIPBOARD_ERROR_EMPTY_PATTERNS` | 반환 값 | `patterns`가 0 | `CLIPBOARD_EMPTY_PATTERNS` |
+| 13 | `NTK_CLIPBOARD_ERROR_INVALID_TYPE` | 콜백 | 유효하지 않은 UTI | `CLIPBOARD_INVALID_TYPE` |
+| 14 | `NTK_CLIPBOARD_ERROR_INVALID_NAME` | 콜백 | 페이스트보드 이름이 비었거나 그 밖의 이유로 사용할 수 없음 | `CLIPBOARD_INVALID_NAME` |
+| 15 | `NTK_CLIPBOARD_ERROR_INVALID_COLOR` | 콜백 | 색상 성분이 0.0에서 1.0 범위를 벗어나거나 유한하지 않음 | `CLIPBOARD_INVALID_COLOR` |
+| 16 | `NTK_CLIPBOARD_ERROR_INVALID_IMAGE_DATA` | 콜백 | 디코딩할 수 없는 이미지 데이터 | `CLIPBOARD_INVALID_IMAGE_DATA` |
+| 17 | `NTK_CLIPBOARD_ERROR_INVALID_EXPIRATION` | 콜백 | 미래가 아닌 만료 시각 | `CLIPBOARD_INVALID_EXPIRATION` |
+| 18 | `NTK_CLIPBOARD_ERROR_CONTENT_TOO_LARGE` | 콜백 | 64 MiB 초과 | `CLIPBOARD_CONTENT_TOO_LARGE` |
+| 19 | `NTK_CLIPBOARD_ERROR_FILE_NOT_FOUND` | 콜백 | 이미지 파일이 존재하지 않음 | `CLIPBOARD_FILE_NOT_FOUND` |
+| 20 | `NTK_CLIPBOARD_ERROR_IMAGE_LOAD_FAILED` | 콜백 | 이미지 파일을 이미지로 읽을 수 없음 | `CLIPBOARD_IMAGE_LOAD_FAILED` |
+| 21 | `NTK_CLIPBOARD_ERROR_IMAGE_ENCODE_FAILED` | 콜백 | 로드한 이미지를 PNG로 다시 인코딩할 수 없었음 | `CLIPBOARD_IMAGE_ENCODE_FAILED` |
+| 22 | `NTK_CLIPBOARD_ERROR_CANNOT_REMOVE_GENERAL` | 콜백 | 일반 페이스트보드를 삭제하도록 전달함 | `CLIPBOARD_CANNOT_REMOVE_GENERAL` |
+| 23 | `NTK_CLIPBOARD_ERROR_NO_MATCHING_ITEM` | 콜백 | 요청한 종류나 타입을 가진 항목이 없음(`ut_type`이 빈 `FILE`도 포함) | `CLIPBOARD_NO_MATCHING_ITEM` |
+| 24 | `NTK_CLIPBOARD_ERROR_LOAD_FAILED` | 콜백 | 로드가 실패함. 사용자가 붙여넣기를 거부한 경우도 포함합니다 | `CLIPBOARD_LOAD_FAILED` |
+| 25 | `NTK_CLIPBOARD_ERROR_UNEXPECTED_TYPE` | 콜백 | 항목을 요청한 종류로 변환할 수 없었음 | `CLIPBOARD_UNEXPECTED_TYPE` |
+| 26 | `NTK_CLIPBOARD_ERROR_FILE_COPY_FAILED` | 콜백 | 로드한 파일을 임시 위치로 복사할 수 없었음 | `CLIPBOARD_FILE_COPY_FAILED` |
+| 27 | `NTK_CLIPBOARD_ERROR_CANCELED` | 콜백 | `ntk_clipboard_cancel_load` | `CLIPBOARD_CANCELLED`(C 이름은 L이 하나입니다) |
+| 28 | `NTK_CLIPBOARD_ERROR_TIMED_OUT` | 콜백 | 감지(5초)나 로드(15초)가 너무 오래 걸림. 붙여넣기 권한 요청에 응답하는 시간도 포함합니다 | `CLIPBOARD_TIMED_OUT` |
+| 29 | `NTK_CLIPBOARD_ERROR_DETECTION_FAILED` | 콜백 | 감지가 실패함. `ntk_clipboard_detect_values_async`에서 사용자가 붙여넣기를 거부한 경우도 포함합니다 | `CLIPBOARD_DETECTION_FAILED` |
+
+10과 11은 iOS에서 사용되지 않습니다(Android의 `READ_NOT_ALLOWED`와 `SECURITY`입니다). 이름이 같은 값은 Android에서도 번호가 같습니다.
+
+| Swift API | C ABI |
+|---|---|
+| `IosClipboardManager.shared` | 없음(함수는 전역이며 `shared`를 사용합니다) |
+| `PasteboardScope` | `ntk_clipboard_scope`(`NULL`은 `.general`) |
+| `createPasteboard` / `removePasteboard` | `ntk_clipboard_create_pasteboard_async`(이름은 `ntk_string`으로 전달됩니다) / `ntk_clipboard_remove_pasteboard_async` |
+| `copy` / `append` / `clear` | `ntk_clipboard_copy_async` / `_append_async` / `_clear_async` |
+| `ClipboardContent` | `ntk_clipboard_write_content`(`kind`와 그 필드)와 `ntk_clipboard_representation` |
+| `ClipboardCopyOptions` | `ntk_clipboard_copy_options`(`not_local_only`, `has_expiration`, `expiration_unix_seconds`) |
+| `read`와 `ClipboardReadResult` | `ntk_clipboard_read_async`와 `ntk_clipboard_read_result_item_count` / `_item_type_count` / `_item_type_at` / `_item_text_at` / `_item_url_at` / `_item_image_type_at` / `_free` |
+| `readData` | `ntk_clipboard_read_data_async`와 `ntk_bytes_data` / `ntk_bytes_size` / `ntk_bytes_free` |
+| `snapshot`과 `ClipboardSnapshot` | `ntk_clipboard_get_snapshot_async`와 `ntk_clipboard_snapshot_*`(`typeIdentifiers`: `_type_count` / `_type_at`, `allTypeIdentifiers`: `_item_type_count` / `_item_type_at`, `matchingItemIndexes`: `_has_matching` / `_matching_count` / `_matching_at`) |
+| `loadItem(_:scope:requestBox:completion:)` / `cancelLoad(_:)` | `ntk_clipboard_load_item_async`(요청 ID) / `ntk_clipboard_cancel_load` |
+| `ClipboardLoadedItem` | `ntk_clipboard_loaded_item_kind` / `_text` / `_url` / `_image_data` / `_image_type` / `_file_path` / `_free` |
+| `cancelAllLoads` | 없음(요청마다 취소합니다) |
+| `detectPatterns` | `ntk_clipboard_detect_patterns_async`와 `NTK_CLIPBOARD_PATTERN_*` 비트 |
+| `detectValues`와 `ClipboardDetectedValues` | `ntk_clipboard_detect_values_async`와 JSON 객체 |
+| `startObserving` / `stopObserving` | `ntk_clipboard_start_observing_async` / `_stop_observing_async` |
+| `onEvent`와 `ClipboardChangeEvent` | `ntk_clipboard_add_change_listener` / `ntk_clipboard_listener_remove`와 `ntk_clipboard_change_kind` / `_scope_kind` / `_scope_name` / `_types_added_count` / `_types_added_at` / `_types_removed_count` / `_types_removed_at` / `_free` |
+| `checkForegroundChange` | `ntk_clipboard_check_foreground_change_async` |
+| `makePasteControl`, `PasteControlFactory` | 없음 |
+| `init(timeouts:limits:)` | 없음(`shared`의 기본값을 사용합니다) |
+| `ClipboardError.errorCode` | `ntk_clipboard_error`(위 표) |
 
 ---
 
