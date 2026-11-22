@@ -10,3 +10,4 @@
 | `1a9-unity-handoff/` | 1a-9 の申し送り（`../2026-11-23-macos-c-abi-unity-handoff-1a9.md`）で `unity-native-plugin` に渡す雛形の 2 つの xcframework（`NtkProbeMac` は `MacLibrary` の代わり、`NtkProbeMacCApi` は C ABI の代わり）と、Unity の書き出しに入れる `unity/Main.cpp`・`unity/NtkProbeMac.cs` | `DEVELOPER_DIR=<Xcode 26.6>/Contents/Developer ./build.sh <出力のフォルダー>`（xcodeproj gem が要る）。画面を使わない確かめは `smoke/run.sh <出力のフォルダー>`（区分 1。この Mac で流してよい） |
 
 `0a-`・`1a6-`・`1a7-` は画面にアラートやピッカー（`0a-` は通知も）を出すので、`agent-rules/device-testing.md` の区分 3 に当たる。この Mac では流さず、条件を満たす VM の中で流す。
+| `1a6b-panels-nesting-cancel/` | 1a-6 の続き: ファイルのパネルの A と A'、同じ回の 2 つ目の Dialog（何もしない場合と待たせる場合）、ホストのモーダルがあるときに自分のモーダルだけを取り消せるか | 1a-6 と同じ（VM で流す） |

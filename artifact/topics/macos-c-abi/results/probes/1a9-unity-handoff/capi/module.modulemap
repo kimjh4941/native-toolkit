@@ -1,0 +1,9 @@
+framework module NtkProbeMacCApi {
+    header "NativeToolkitC/Common.h"
+    header "NativeToolkitC/Probe.h"
+    header "NativeToolkitC/Dialog.h"
+    header "NativeToolkitC/Share.h"
+    header "NativeToolkitC/Notification.h"
+    header "NativeToolkitC/ProbeNotification.h"
+    export *
+}
