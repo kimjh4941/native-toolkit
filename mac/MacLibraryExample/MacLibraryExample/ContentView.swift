@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+/// Single source of truth for the accessibility identifiers of the main menu cards.
+enum MenuIdentifiers {
+    static let dialog = "menu.dialog"
+    static let notification = "menu.notification"
+    static let share = "menu.share"
+    static let clipboard = "menu.clipboard"
+}
+
 struct ContentView: View {
 
     var body: some View {
@@ -27,6 +35,7 @@ struct ContentView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(MenuIdentifiers.dialog)
 
                     NavigationLink {
                         NotificationSampleView()
@@ -37,6 +46,7 @@ struct ContentView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(MenuIdentifiers.notification)
 
                     NavigationLink {
                         ShareSampleView()
@@ -47,6 +57,7 @@ struct ContentView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(MenuIdentifiers.share)
 
                     NavigationLink {
                         ClipboardSampleView()
@@ -57,6 +68,7 @@ struct ContentView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(MenuIdentifiers.clipboard)
 
                     Spacer(minLength: 0)
                 }

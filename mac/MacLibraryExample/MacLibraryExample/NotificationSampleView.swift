@@ -9,7 +9,61 @@ import SwiftUI
 import MacLibrary
 import Foundation
 
+/// Single source of truth for the accessibility identifiers exposed by `NotificationSampleView`.
+///
+/// A button's name is its title without the part in parentheses, starting with a capital
+/// letter (the rule of the Clipboard screen's `clipboard.button.<name>`). Only the badge buttons
+/// keep their number.
+enum NotificationSampleIdentifiers {
+
+    static let result = "notification.result"
+    /// The last event the app received (`NotificationEventSnapshot.displayValue`).
+    static let lastEvent = "notification.lastEvent"
+    /// Which copy of the sample is running (`SampleLaunchCopy`).
+    static let launchCopy = "notification.launchCopy"
+
+    static func section(_ name: Section) -> String { "notification.section.\(name.rawValue)" }
+    static func button(_ name: ButtonName) -> String { "notification.button.\(name.rawValue)" }
+
+    enum Section: String, CaseIterable {
+        case permission
+        case show
+        case updateCancelRemove
+        case schedule
+        case query
+        case badge
+        case category
+    }
+
+    enum ButtonName: String, CaseIterable {
+        case requestPermission = "RequestPermission"
+        case hasPermission = "HasPermission"
+        case authorizationStatus = "AuthorizationStatus"
+        case openNotificationSettings = "OpenNotificationSettings"
+        case showImmediate = "ShowImmediate"
+        case showTimeInterval = "ShowTimeInterval"
+        case showCalendar = "ShowCalendar"
+        case updateById = "UpdateById"
+        case cancelById = "CancelById"
+        case cancelAll = "CancelAll"
+        case removeDeliveredById = "RemoveDeliveredById"
+        case removeAllDelivered = "RemoveAllDelivered"
+        case scheduleTimeInterval = "ScheduleTimeInterval"
+        case scheduleCalendar = "ScheduleCalendar"
+        case cancelScheduledById = "CancelScheduledById"
+        case cancelAllScheduled = "CancelAllScheduled"
+        case getScheduled = "GetScheduled"
+        case getDelivered = "GetDelivered"
+        case setBadgeCount1 = "SetBadgeCount1"
+        case setBadgeCount0 = "SetBadgeCount0"
+        case registerCategory = "RegisterCategory"
+        case removeCategory = "RemoveCategory"
+    }
+}
+
 struct NotificationSampleView: View {
+
+    private typealias ID = NotificationSampleIdentifiers
 
     private let TAG = "NotificationSampleView"
 
@@ -18,6 +72,9 @@ struct NotificationSampleView: View {
     private let categoryId = "mac-sample-category"
 
     @State private var resultText = "Result will be displayed here"
+    /// Counts the results the screen has shown, so a test can tell a new one from a repeat.
+    @State private var resultSequence = 0
+    @StateObject private var eventModel = NotificationEventViewModel()
 
     var body: some View {
         VStack(spacing: 12) {
@@ -32,10 +89,28 @@ struct NotificationSampleView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
                 .padding(.horizontal)
+                .accessibilityIdentifier(ID.result)
+                // The number travels with the text, so a test reads both from one value.
+                .accessibilityValue("#\(resultSequence) \(resultText)")
+
+            Text(eventModel.snapshot.displayValue)
+                .font(.caption)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+                .accessibilityIdentifier(ID.lastEvent)
+                .accessibilityValue(eventModel.snapshot.displayValue)
+
+            Text(SampleLaunchCopy.value)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+                .accessibilityIdentifier(ID.launchCopy)
+                .accessibilityValue(SampleLaunchCopy.value)
 
             ScrollView {
                 VStack(spacing: 16) {
-                    sectionView(title: "Permission") {
+                    sectionView(title: "Permission", identifier: .permission) {
                         Button("RequestPermission") {
                             Log.d(TAG, "[RequestPermission] called")
                             MacNotificationManager.shared.requestPermission { result in
@@ -51,6 +126,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.requestPermission))
 
                         Button("HasPermission") {
                             Log.d(TAG, "[HasPermission] called")
@@ -64,6 +140,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.hasPermission))
 
                         Button("AuthorizationStatus") {
                             Log.d(TAG, "[AuthorizationStatus] called")
@@ -76,6 +153,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.authorizationStatus))
 
                         Button("OpenNotificationSettings") {
                             Log.d(TAG, "[OpenNotificationSettings] called")
@@ -83,9 +161,10 @@ struct NotificationSampleView: View {
                                 handleResult(operation: "openNotificationSettings", result: result)
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.openNotificationSettings))
                     }
 
-                    sectionView(title: "Show") {
+                    sectionView(title: "Show", identifier: .show) {
                         Button("ShowImmediate") {
                             runWithPermission(operation: "showImmediate") {
                                 let immediateId = "\(notificationId)-\(Int(Date().timeIntervalSince1970))"
@@ -96,6 +175,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.showImmediate))
 
                         Button("ShowTimeInterval(10s)") {
                             runWithPermission(operation: "showTimeInterval") {
@@ -109,6 +189,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.showTimeInterval))
 
                         Button("ShowCalendar(+1m)") {
                             runWithPermission(operation: "showCalendar") {
@@ -123,9 +204,10 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.showCalendar))
                     }
 
-                    sectionView(title: "Update / Cancel / Remove") {
+                    sectionView(title: "Update / Cancel / Remove", identifier: .updateCancelRemove) {
                         Button("UpdateById") {
                             runWithPermission(operation: "updateById") {
                                 let content = makeContent(id: notificationId, title: "Updated Notification", body: "This content was updated")
@@ -139,33 +221,38 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.updateById))
 
                         Button("CancelById") {
                             Log.d(TAG, "[CancelById] called id: \(notificationId)")
                             MacNotificationManager.shared.cancelScheduled(identifier: notificationId)
                             updateResult(isSuccess: true, result: "[cancelById] id=\(notificationId)")
                         }
+                        .accessibilityIdentifier(ID.button(.cancelById))
 
                         Button("CancelAll") {
                             Log.d(TAG, "[CancelAll] called")
                             MacNotificationManager.shared.cancelAllScheduled()
                             updateResult(isSuccess: true, result: "[cancelAll] called")
                         }
+                        .accessibilityIdentifier(ID.button(.cancelAll))
 
                         Button("RemoveDeliveredById") {
                             Log.d(TAG, "[RemoveDeliveredById] called id: \(notificationId)")
                             MacNotificationManager.shared.removeDelivered(identifier: notificationId)
                             updateResult(isSuccess: true, result: "[removeDelivered] id=\(notificationId)")
                         }
+                        .accessibilityIdentifier(ID.button(.removeDeliveredById))
 
                         Button("RemoveAllDelivered") {
                             Log.d(TAG, "[RemoveAllDelivered] called")
                             MacNotificationManager.shared.removeAllDelivered()
                             updateResult(isSuccess: true, result: "[removeAllDelivered] called")
                         }
+                        .accessibilityIdentifier(ID.button(.removeAllDelivered))
                     }
 
-                    sectionView(title: "Schedule") {
+                    sectionView(title: "Schedule", identifier: .schedule) {
                         Button("ScheduleTimeInterval(10s)") {
                             runWithPermission(operation: "scheduleTimeInterval") {
                                 let content = makeContent(id: scheduledId, title: "Scheduled Notification", body: "Scheduled in 10 seconds")
@@ -178,6 +265,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.scheduleTimeInterval))
 
                         Button("ScheduleCalendar(+1m)") {
                             runWithPermission(operation: "scheduleCalendar") {
@@ -192,21 +280,24 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.scheduleCalendar))
 
                         Button("CancelScheduledById") {
                             Log.d(TAG, "[CancelScheduledById] called id: \(scheduledId)")
                             MacNotificationManager.shared.cancelScheduled(identifier: scheduledId)
                             updateResult(isSuccess: true, result: "[cancelScheduled] id=\(scheduledId)")
                         }
+                        .accessibilityIdentifier(ID.button(.cancelScheduledById))
 
                         Button("CancelAllScheduled") {
                             Log.d(TAG, "[CancelAllScheduled] called")
                             MacNotificationManager.shared.cancelAllScheduled()
                             updateResult(isSuccess: true, result: "[cancelAllScheduled] called")
                         }
+                        .accessibilityIdentifier(ID.button(.cancelAllScheduled))
                     }
 
-                    sectionView(title: "Query") {
+                    sectionView(title: "Query", identifier: .query) {
                         Button("GetScheduled") {
                             Log.d(TAG, "[GetScheduled] called")
                             MacNotificationManager.shared.getScheduled { result in
@@ -219,6 +310,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.getScheduled))
 
                         Button("GetDelivered") {
                             Log.d(TAG, "[GetDelivered] called")
@@ -232,9 +324,10 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.getDelivered))
                     }
 
-                    sectionView(title: "Badge") {
+                    sectionView(title: "Badge", identifier: .badge) {
                         Button("SetBadgeCount(1)") {
                             runWithPermission(operation: "setBadgeCount(1)") {
                                 Log.d(TAG, "[SetBadgeCount] called count: 1")
@@ -243,6 +336,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.setBadgeCount1))
 
                         Button("SetBadgeCount(0)") {
                             runWithPermission(operation: "setBadgeCount(0)") {
@@ -252,16 +346,17 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.setBadgeCount0))
                     }
 
-                    sectionView(title: "Category") {
+                    sectionView(title: "Category", identifier: .category) {
                         Button("RegisterCategory") {
                             Log.d(TAG, "[RegisterCategory] called id: \(categoryId)")
                             let category = NotificationCategory(
                                 id: categoryId,
                                 actions: [
                                     NotificationAction(id: "open", title: "Open", isForeground: true),
-                                    NotificationAction(id: "reply", title: "Reply", isTextInput: true, textInputPlaceholder: "Type message")
+                                    NotificationAction(id: "reply", title: "Reply", isTextInput: true, textInputPlaceholder: "MacLibraryExample reply")
                                 ]
                             )
                             MacNotificationManager.shared.registerCategory(category) { result in
@@ -273,6 +368,7 @@ struct NotificationSampleView: View {
                                 }
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.registerCategory))
 
                         Button("RemoveCategory") {
                             Log.d(TAG, "[RemoveCategory] called id: \(categoryId)")
@@ -280,6 +376,7 @@ struct NotificationSampleView: View {
                                 handleResult(operation: "removeCategory", result: result)
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.removeCategory))
                     }
                 }
                 .padding(.trailing, 12)
@@ -290,19 +387,35 @@ struct NotificationSampleView: View {
         .navigationTitle("Notification Example")
         .onAppear {
             Log.d(TAG, "[onAppear] called")
-            MacNotificationManager.shared.setActionReceivedHandler { notificationId, actionId, userInfoJson in
-                Log.d(TAG, "[ActionHandler] notificationId: \(notificationId), actionId: \(actionId), userInfoJson: \(userInfoJson)")
-                updateResult(isSuccess: true, result: "[actionReceived] notificationId=\(notificationId), actionId=\(actionId), userInfoJson=\(userInfoJson)")
-            }
-            MacNotificationManager.shared.setTextInputActionReceivedHandler { notificationId, actionId, userText, userInfoJson in
-                Log.d(TAG, "[TextInputActionHandler] notificationId: \(notificationId), actionId: \(actionId), userText: \(userText), userInfoJson: \(userInfoJson)")
-                updateResult(isSuccess: true, result: "[textActionReceived] notificationId=\(notificationId), actionId=\(actionId), text=\(userText), userInfoJson=\(userInfoJson)")
-            }
+            // The receivers are set once in `MacLibraryExampleApp.init`. Setting them here again
+            // replaced those and lost the events that arrive while the screen is not open.
+            eventModel.reload()
+        }
+        .onChange(of: eventModel.snapshot.sequence) { _, _ in
+            showEventResult(eventModel.snapshot)
+        }
+    }
+
+    /// Shows a new event on the result line with the text the screen's own receivers showed
+    /// before the receivers moved to `MacLibraryExampleApp.init`.
+    private func showEventResult(_ event: NotificationEventSnapshot) {
+        Log.d(TAG, "[showEventResult] sequence: \(event.sequence), kind: \(event.kind.rawValue), notificationId: \(event.notificationId ?? "-"), actionId: \(event.actionId ?? "-")")
+        let notificationId = event.notificationId ?? "-"
+        let actionId = event.actionId ?? "-"
+        let userInfoJson = event.userInfoJson ?? "-"
+        switch event.kind {
+        case .action:
+            updateResult(isSuccess: true, result: "[actionReceived] notificationId=\(notificationId), actionId=\(actionId), userInfoJson=\(userInfoJson)")
+        case .textInput:
+            updateResult(isSuccess: true, result: "[textActionReceived] notificationId=\(notificationId), actionId=\(actionId), text=\(event.userText ?? ""), userInfoJson=\(userInfoJson)")
+        case .none:
+            break
         }
     }
 
     @ViewBuilder
-    private func sectionView<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func sectionView<Content: View>(title: String, identifier: NotificationSampleIdentifiers.Section,
+                                            @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
@@ -312,6 +425,10 @@ struct NotificationSampleView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
+        // Without this the section's identifier is pushed onto every button inside it, and
+        // the buttons' own identifiers never reach the tests (as on the Clipboard screen).
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(ID.section(identifier))
     }
 
     private func makeContent(id: String, title: String, body: String) -> NotificationContent {
@@ -390,6 +507,8 @@ struct NotificationSampleView: View {
             } else {
                 resultText = "❌ \nResult: \(result ?? "nil")"
             }
+            // In the same main-queue block as the text, so the number and the text change together.
+            resultSequence += 1
         }
     }
 

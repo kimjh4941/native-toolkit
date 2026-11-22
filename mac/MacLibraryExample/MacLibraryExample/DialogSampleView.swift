@@ -8,10 +8,41 @@
 import SwiftUI
 import MacLibrary
 
+/// Single source of truth for the accessibility identifiers exposed by `DialogSampleView`.
+///
+/// A button's name is its title without the part in parentheses, starting with a capital
+/// letter (the rule of the Clipboard screen's `clipboard.button.<name>`).
+enum DialogSampleIdentifiers {
+
+    static let result = "dialog.result"
+    /// The three most recent results, newest first, each with its number.
+    static let resultHistory = "dialog.resultHistory"
+
+    static func button(_ name: ButtonName) -> String { "dialog.button.\(name.rawValue)" }
+
+    enum ButtonName: String, CaseIterable {
+        case showDialog = "ShowDialog"
+        case showFileDialog = "ShowFileDialog"
+        case showMultiFileDialog = "ShowMultiFileDialog"
+        case showFolderDialog = "ShowFolderDialog"
+        case showMultiFolderDialog = "ShowMultiFolderDialog"
+        case showSaveFileDialog = "ShowSaveFileDialog"
+    }
+}
+
 struct DialogSampleView: View {
+
+    private typealias ID = DialogSampleIdentifiers
+
+    /// How many results `dialog.resultHistory` keeps.
+    private static let historyLimit = 3
 
     private let TAG = "DialogSampleView"
     @State private var resultText = "Result will be displayed here"
+    /// Counts the results the screen has shown, so a test can tell a new one from a repeat.
+    @State private var resultSequence = 0
+    /// The most recent results as `#<number> <text>`, newest first.
+    @State private var resultHistory: [String] = []
 
     var body: some View {
         ScrollView {
@@ -26,6 +57,16 @@ struct DialogSampleView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(8)
+                    .accessibilityIdentifier(ID.result)
+                    // The number travels with the text, so a test reads both from one value.
+                    .accessibilityValue("#\(resultSequence) \(resultText)")
+
+                Text(historyText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier(ID.resultHistory)
+                    .accessibilityValue(historyText)
 
                 Button(action: {
                     Log.d(TAG, "[ShowDialog] called")
@@ -71,6 +112,7 @@ struct DialogSampleView: View {
                     Text("ShowDialog")
                         .buttonStyle()
                 }
+                .accessibilityIdentifier(ID.button(.showDialog))
 
                 Button(action: {
                     Log.d(TAG, "[ShowFileDialog] called")
@@ -93,6 +135,7 @@ struct DialogSampleView: View {
                     Text("ShowFileDialog")
                         .buttonStyle()
                 }
+                .accessibilityIdentifier(ID.button(.showFileDialog))
 
                 Button(action: {
                     Log.d(TAG, "[ShowMultiFileDialog] called")
@@ -115,6 +158,7 @@ struct DialogSampleView: View {
                     Text("ShowMultiFileDialog")
                         .buttonStyle()
                 }
+                .accessibilityIdentifier(ID.button(.showMultiFileDialog))
 
                 Button(action: {
                     Log.d(TAG, "[ShowFolderDialog] called")
@@ -136,6 +180,7 @@ struct DialogSampleView: View {
                     Text("ShowFolderDialog")
                         .buttonStyle()
                 }
+                .accessibilityIdentifier(ID.button(.showFolderDialog))
 
                 Button(action: {
                     Log.d(TAG, "[ShowMultiFolderDialog] called")
@@ -157,6 +202,7 @@ struct DialogSampleView: View {
                     Text("ShowMultiFolderDialog")
                         .buttonStyle()
                 }
+                .accessibilityIdentifier(ID.button(.showMultiFolderDialog))
 
                 Button(action: {
                     Log.d(TAG, "[ShowSaveFileDialog] called")
@@ -180,17 +226,31 @@ struct DialogSampleView: View {
                     Text("ShowSaveFileDialog")
                         .buttonStyle(backgroundColor: .green)
                 }
+                .accessibilityIdentifier(ID.button(.showSaveFileDialog))
             }
             .padding()
         }
         .navigationTitle("Dialog Example")
     }
 
+    /// The value of `dialog.resultHistory`: `#5 <text> / #4 <text> / #3 <text>`, or `-` before
+    /// the first result.
+    private var historyText: String {
+        resultHistory.isEmpty ? "-" : resultHistory.joined(separator: " / ")
+    }
+
+    /// Shows a result. The text, its number and the history change together, synchronously, as
+    /// the text did before the number was added (the order of the updates is kept on purpose).
     private func updateResult(isSuccess: Bool, result: String?) {
         if isSuccess {
             resultText = "✅ \nResult: \(result ?? "nil")"
         } else {
             resultText = "❌ \nResult: \(result ?? "nil")"
+        }
+        resultSequence += 1
+        resultHistory.insert("#\(resultSequence) \(resultText)", at: 0)
+        if resultHistory.count > Self.historyLimit {
+            resultHistory.removeLast(resultHistory.count - Self.historyLimit)
         }
     }
 }

@@ -9,7 +9,47 @@ import SwiftUI
 import AppKit
 import MacLibrary
 
+/// Single source of truth for the accessibility identifiers exposed by `ShareSampleView`.
+///
+/// A button's name is its title, starting with a capital letter (the rule of the Clipboard
+/// screen's `clipboard.button.<name>`).
+enum ShareSampleIdentifiers {
+
+    static let result = "share.result"
+
+    static func section(_ name: Section) -> String { "share.section.\(name.rawValue)" }
+    static func button(_ name: ButtonName) -> String { "share.button.\(name.rawValue)" }
+
+    enum Section: String, CaseIterable {
+        case pickerBasic
+        case pickerMultiple
+        case pickerFilter
+        case directService
+        case error
+    }
+
+    enum ButtonName: String, CaseIterable {
+        case shareText = "ShareText"
+        case shareURL = "ShareURL"
+        case shareImage = "ShareImage"
+        case shareFile = "ShareFile"
+        case shareMultipleImages = "ShareMultipleImages"
+        case shareMultipleFiles = "ShareMultipleFiles"
+        case shareTextAndURL = "ShareTextAndURL"
+        case shareExcludingServices = "ShareExcludingServices"
+        case shareViaMail = "ShareViaMail"
+        case canPerformMail = "CanPerformMail"
+        case shareEmpty = "ShareEmpty"
+        case shareInvalidURL = "ShareInvalidURL"
+        case shareMissingFile = "ShareMissingFile"
+        case shareMissingImage = "ShareMissingImage"
+        case shareUnknownService = "ShareUnknownService"
+    }
+}
+
 struct ShareSampleView: View {
+
+    private typealias ID = ShareSampleIdentifiers
 
     private let TAG = "ShareSampleView"
 
@@ -17,6 +57,8 @@ struct ShareSampleView: View {
     private let invalidServiceName = "invalid.service"
 
     @State private var resultText = "Result will be displayed here"
+    /// Counts the results the screen has shown, so a test can tell a new one from a repeat.
+    @State private var resultSequence = 0
 
     var body: some View {
         VStack(spacing: 12) {
@@ -31,10 +73,13 @@ struct ShareSampleView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(8)
                 .padding(.horizontal)
+                .accessibilityIdentifier(ID.result)
+                // The number travels with the text, so a test reads both from one value.
+                .accessibilityValue("#\(resultSequence) \(resultText)")
 
             ScrollView {
                 VStack(spacing: 16) {
-                    sectionView(title: "Picker - Basic") {
+                    sectionView(title: "Picker - Basic", identifier: .pickerBasic) {
                         Button("ShareText") {
                             Task {
                                 await runShare(
@@ -43,6 +88,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareText))
 
                         Button("ShareURL") {
                             Task {
@@ -52,6 +98,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareURL))
 
                         Button("ShareImage") {
                             Task {
@@ -65,6 +112,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareImage))
 
                         Button("ShareFile") {
                             Task {
@@ -78,9 +126,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareFile))
                     }
 
-                    sectionView(title: "Picker - Multiple") {
+                    sectionView(title: "Picker - Multiple", identifier: .pickerMultiple) {
                         Button("ShareMultipleImages") {
                             Task {
                                 guard let imagePaths = prepareSampleImagePaths(count: 2) else {
@@ -93,6 +142,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareMultipleImages))
 
                         Button("ShareMultipleFiles") {
                             Task {
@@ -106,6 +156,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareMultipleFiles))
 
                         Button("ShareTextAndURL") {
                             Task {
@@ -118,9 +169,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareTextAndURL))
                     }
 
-                    sectionView(title: "Picker - Filter") {
+                    sectionView(title: "Picker - Filter", identifier: .pickerFilter) {
                         Button("ShareExcludingServices") {
                             Task {
                                 await runShare(
@@ -132,9 +184,10 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareExcludingServices))
                     }
 
-                    sectionView(title: "Direct Service") {
+                    sectionView(title: "Direct Service", identifier: .directService) {
                         Button("ShareViaMail") {
                             Task {
                                 await runDirect(
@@ -148,6 +201,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareViaMail))
 
                         Button("CanPerformMail") {
                             Task {
@@ -158,14 +212,16 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.canPerformMail))
                     }
 
-                    sectionView(title: "Error") {
+                    sectionView(title: "Error", identifier: .error) {
                         Button("ShareEmpty") {
                             Task {
                                 await runShare(label: "shareEmpty", content: ShareContent(items: []))
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareEmpty))
 
                         Button("ShareInvalidURL") {
                             Task {
@@ -175,6 +231,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareInvalidURL))
 
                         Button("ShareMissingFile") {
                             Task {
@@ -184,6 +241,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareMissingFile))
 
                         Button("ShareMissingImage") {
                             Task {
@@ -193,6 +251,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareMissingImage))
 
                         Button("ShareUnknownService") {
                             Task {
@@ -203,6 +262,7 @@ struct ShareSampleView: View {
                                 )
                             }
                         }
+                        .accessibilityIdentifier(ID.button(.shareUnknownService))
                     }
                 }
                 .padding(.trailing, 12)
@@ -216,7 +276,8 @@ struct ShareSampleView: View {
     // MARK: - Section helper
 
     @ViewBuilder
-    private func sectionView<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func sectionView<Content: View>(title: String, identifier: ShareSampleIdentifiers.Section,
+                                            @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.headline)
@@ -226,6 +287,10 @@ struct ShareSampleView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
+        // Without this the section's identifier is pushed onto every button inside it, and
+        // the buttons' own identifiers never reach the tests (as on the Clipboard screen).
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(ID.section(identifier))
     }
 
     // MARK: - Share execution
@@ -379,6 +444,8 @@ struct ShareSampleView: View {
             } else {
                 resultText = "❌ \nResult: \(result ?? "nil")"
             }
+            // In the same main-queue block as the text, so the number and the text change together.
+            resultSequence += 1
         }
     }
 }
