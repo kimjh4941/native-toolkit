@@ -2,10 +2,12 @@
 
 ネイティブアプリから利用できる、クロスプラットフォームのネイティブ機能ツールキットです。
 
-- Android: `DialogFragment` + 通知 + シェア + クリップボードベースのネイティブ API
-- iOS: `UIAlertController` + 通知 + シェア + クリップボードベースのネイティブ API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + 通知 + シェア + クリップボードベースのネイティブ API
-- Windows: Win32 共通ダイアログ、トースト通知、クリップボードの C++ API と、その上の C ABI
+- Android: Kotlin の API と、その上の C ABI
+- iOS: Swift の API と、その上の C ABI
+- macOS: Swift の API
+- Windows: C++ の API と、その上の C ABI
+
+OS ごとの機能の一覧は、マニュアル（`docs/<version>/manual/index.ja.md`）を参照。
 
 > 目的: ネイティブアプリから、各 OS の標準機能を一貫した呼び方で利用できるようにする。
 
@@ -82,6 +84,7 @@
 - `ios/IosLibraryCApi`（XCFramework `ios-native-toolkit-capi` の `IosLibraryCApi.framework`）
   - Swift の API の上の汎用の C ABI: `ntk_*` 関数、UTF-8 の文字列、不透明なハンドル
   - ヘッダ: `ios/IosLibraryCApi/include/NativeToolkitC/`
+  - Doc: Doxygen（`ios/IosLibraryCApi/Doxyfile`）
   - C、C++、C#、Rust などの言語向け
 
 ### macOS
@@ -117,6 +120,7 @@ android/
   AndroidLibraryExample/
 
 ios/
+  IosWorkspace.xcworkspace  # 下の 3 つのプロジェクトを開く
   IosLibrary/
   IosLibraryCApi/
   IosLibraryExample/

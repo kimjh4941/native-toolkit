@@ -2,10 +2,12 @@
 
 네이티브 앱에서 사용할 수 있는 네이티브 플랫폼 기능을 플랫폼별로 모아둔 툴킷입니다.
 
-- Android: `DialogFragment` + 알림 + 공유 + 클립보드 기반 네이티브 API
-- iOS: `UIAlertController` + 알림 + 공유 + 클립보드 기반 네이티브 API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + 알림 + 공유 + 클립보드 기반 네이티브 API
-- Windows: Win32 공통 다이얼로그, 토스트 알림, 클립보드의 C++ API와 그 위의 C ABI
+- Android: Kotlin API와 그 위의 C ABI
+- iOS: Swift API와 그 위의 C ABI
+- macOS: Swift API
+- Windows: C++ API와 그 위의 C ABI
+
+OS별 기능 목록은 매뉴얼(`docs/<version>/manual/index.ko.md`)을 참고합니다.
 
 > 목표: 네이티브 앱에서 각 OS의 표준 기능을 공통된 호출 방식으로 사용할 수 있게 한다.
 
@@ -82,6 +84,7 @@
 - `ios/IosLibraryCApi` (XCFramework `ios-native-toolkit-capi`의 `IosLibraryCApi.framework`)
   - Swift API 위의 범용 C ABI: `ntk_*` 함수, UTF-8 문자열, 불투명 핸들
   - 헤더: `ios/IosLibraryCApi/include/NativeToolkitC/`
+  - 문서: Doxygen (`ios/IosLibraryCApi/Doxyfile`)
   - C, C++, C#, Rust 등 다른 언어용
 
 ### macOS
@@ -117,6 +120,7 @@ android/
   AndroidLibraryExample/
 
 ios/
+  IosWorkspace.xcworkspace  # 아래 3개 프로젝트를 엽니다
   IosLibrary/
   IosLibraryCApi/
   IosLibraryExample/

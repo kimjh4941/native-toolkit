@@ -2,10 +2,12 @@
 
 A cross-platform toolkit that bundles native platform features for native apps.
 
-- Android: `DialogFragment` + notification + share + clipboard-based native API
-- iOS: `UIAlertController` + notification + share + clipboard-based native API
-- macOS: `NSAlert` / `NSOpenPanel` / `NSSavePanel` + notification + share + clipboard-based native API
-- Windows: Win32 common dialogs, toast notifications and clipboard as a C++ API, with a C ABI over it
+- Android: a Kotlin API, with a C ABI over it
+- iOS: a Swift API, with a C ABI over it
+- macOS: a Swift API
+- Windows: a C++ API, with a C ABI over it
+
+The features of each OS are listed in the manual (`docs/<version>/manual/index.md`).
 
 > Goal: make it easy for native apps to use each OS's standard features with a consistent calling pattern.
 
@@ -82,6 +84,7 @@ Example (`1.14.0`):
 - `ios/IosLibraryCApi` (`IosLibraryCApi.framework` in the XCFramework `ios-native-toolkit-capi`)
   - The general-purpose C ABI over the Swift API: `ntk_*` functions, UTF-8 strings, opaque handles
   - Headers: `ios/IosLibraryCApi/include/NativeToolkitC/`
+  - Docs: Doxygen (`ios/IosLibraryCApi/Doxyfile`)
   - For C, C++, C#, Rust and other languages
 
 ### macOS
@@ -117,6 +120,7 @@ android/
   AndroidLibraryExample/
 
 ios/
+  IosWorkspace.xcworkspace  # opens the three projects below
   IosLibrary/
   IosLibraryCApi/
   IosLibraryExample/
