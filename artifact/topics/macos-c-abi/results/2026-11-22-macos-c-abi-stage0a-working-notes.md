@@ -225,3 +225,28 @@
 - M-6（書き出し直し）: batchmode で同じフォルダーに書き出し直すと置き換えになり、足した `Main.cpp`・`GCC_PREPROCESSOR_DEFINITIONS`・sandbox・署名・`Info.plist` の鍵はすべて消える。`PostBuildProcessor` は 2 つの framework を 1 回ずつ足し直す（二重にならない）。**2c では、通知の install のための `Main.cpp` の直しを書き出しのたびに入れる形が要る**（D-4・D-24 の材料）
 - M-2（IL2CPP、Unity 6000.0.44f1、組み立てまで）: `GameAssembly.xcodeproj` が書き出しの直下にできるので、向こうの `FindPbxprojPath` は「more than one」で止まる。組むには共有の scheme が要る。**C ABI の framework は `GameAssembly` にもリンクが要り**（アプリだけだと `GameAssembly` のリンクが `_ntk_*` の未定義で落ちる）、ターゲットのリンクの段に足しても効かず（il2cpp の `--compile-cpp` が自分でリンクする）、il2cpp の `--linker-flags` に framework の本体のパスを 1 つの値で渡すと通った。`GameAssembly.dylib` には `LC_RPATH` が無く、起動で解けるかは未確認。新しいプロジェクトの最小 macOS は 11.0 で、15.0 向けの framework とのリンクで警告が出る。**D-24 の材料: IL2CPP は 2c で手当てが要る**
 - M-4（起動の前）: install の参照の無い形（x0）の実行ファイルは `_ntk_*` を参照しないが、dead strip の設定が無く、`otool -L` に 2 つの framework が残る（起動で読まれるかは起動の確かめで見る）
+
+### 6.1 1a-9 の結果（起動の確かめまで、2026-11-23）
+
+向こう（`unity-native-plugin-8f`）が、向こうの利用者の許可を組ごとに得て 04:16〜04:41 に流した。記録は unity-native-plugin の `artifact/topics/macos-c-abi-handoff/results/2026-11-23-macos-c-abi-1a9-results.md`（`feature/UNT-15` の `de7448e3`、向こうは push の前）。環境: Unity 6000.4.2f1（IL2CPP は 6000.0.44f1）、Xcode 26.6（M-12 と smoke の利用者は 26.3）、この Mac の macOS 26.7.3。**M-1〜M-12 はすべて済み、blocked は無し**。
+
+| M | 結果 |
+|---|---|
+| M-1 | 合格。framework は 2 つとも `Contents/Frameworks`、sandbox=1。echo の完了は 1 回、release 1 回、main、戻った後、同じフレーム。`.app` の symlink は 3 本ずつ |
+| M-2 | 合格（IL2CPP）。`GameAssembly.xcodeproj` は書き出しの直下で、向こうの `FindPbxprojPath` は止まる。`GameAssembly` へのリンクが要り、il2cpp の `--linker-flags` に C ABI の framework の本体を渡して通る（ターゲットのリンクの段は使われない）。共有の scheme で組む。`GameAssembly` には `LC_RPATH` が無いが解ける。新しいプロジェクトの最小 macOS 11.0 で警告 |
+| M-3 | 合格。Awake・Start・Update・コルーチン・focus・OnGUI はすべて main。`Task.Run` は main でない。`Task.Run` から呼んだ echo の完了は main |
+| M-4 | 合格。install の参照の無い形でも 2 つの framework が `otool -L` に残り、dead strip は無く、呼び出しも通る |
+| M-5 | install の形 1（`Main.cpp` で `PlayerMain` の前に `willFinishLaunching` の受け手を登録）: `didFinish` より前に入った。形 2（`main` で直接）: `NSApp` が無い時期でも入り、後で `PlayerApplication` になった。形 3（`didFinishLaunching`）: 起動から +113 ms で入った。どれもアプリは正常 |
+| M-6 | 書き出し直しで `Main.cpp`・設定・plist の鍵は残らない。framework の二重の追加は無い |
+| M-7 | 形 1 で合格（4 回目）。コピーは印で確かめ、新しい pid。コールドスタートの配送は 1 回、install は `didReceive` より前。launch=1、順は willFinish(+94) → install(+94) → didFinish(+185、launchKey あり) → didReceive(+894、active=true) → didBecomeActive(+896)。ウォームの配送は 1 回で launch=0。受け手を外した後のイベントは保持を通って 1 回届いた。**`didReceive` は `didFinishLaunching` の約 710 ms 後**で、VM の試作（40〜50 ms）より遅い。1 回目は許可の答えが遅れて 20 秒の上限を超え、2 回目は通知のクリックで M-11 の別のコピーが起動した（向こうの利用者の許可を得て、余分な 8 つを `lsregister -u` で外し、名前を変えてから流した） |
+| M-8 | A' では Dialog の間に echo が届き、フレームが進んだ（mode は `kCFRunLoopDefaultMode`）。**A でもフレームは進んだ**（Unity のプレイヤーのループは `runModal` の間も止まらない）。A で止まるのは main キューの完了だけで、echo は閉じた後に届いた。`runInBackground=true` でも同じ。Dialog の間に focus は変わらない |
+| M-9 | 全画面でも最大化でも、Dialog と Share はゲームの上に出た |
+| M-10 | `Update` からもクリックからも Share が出て、完了は 1 回ずつ。アプリが後ろにいるときは `NOT_FOREGROUND`（6） |
+| M-11 | entitlement が無い Hardened Runtime では、Mono が起動の途中で CPU 98% のまま止まった（落ちない）。`allow-jit` だけを足すと、同じ Team の署名で起動し、sandbox=1、Library Validation は有効のまま。ad-hoc は予想どおり起動しない（dyld の different Team IDs） |
+| M-12 | 合格（前の知らせと同じ） |
+
+**条件付きの決定の確定（2026-11-23、利用者の「判断は推奨案で」の指示による）**: D-4 は A、D-6 は A、D-7 は B（転送そのものは 1b で確かめる）、D-8 は A'、D-24 は A。
+
+**2c でする手当て（D-24）**: 書き出しのたびに `Main.cpp` の install の形 1 を入れ直す。IL2CPP は `GameAssembly` へのリンクを il2cpp の `--linker-flags` で渡し、`FindPbxprojPath` を 2 つのプロジェクトで止まらない形にし、共有の scheme で組む。Hardened Runtime の利用者には Mono の `allow-jit` を案内する（`disable-library-validation` は要らない）。
+
+**向こうに残ったもの**: この Mac の通知の設定に試すアプリ（NtkProbe1a9）の項目と、ad-hoc の回の crash の記録が 1 つ。消すかは利用者が決める（向こうが利用者に伝えた）。
