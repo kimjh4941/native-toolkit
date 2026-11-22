@@ -73,3 +73,4 @@
 | 2 | マニュアルの写真（5 章） | 11 枚を 3 言語に入れた。`verify_manual.sh` は前と同じ（画像の 30 件だけ）、C の例の照合も OK | `f93439f4` |
 | 3 | サンプルを iPhone で縦だけにした（iPad は 4 方向のまま。Android と同じく画面とテストは縦が前提） | `--feature Dialog`（画面の移動・識別子・Dialog の 29 件）が通り、組んだ Info.plist の iPhone は Portrait だけ | `3a7d1a4c` |
 | 4 | C ABI（Xcode 26.6） | `--capi` は 8 項目すべて通った（ASan・TSan、配布物の組み直しと検査、両スライスの契約、smoke）。`--capi-ui` の 1 回目は 59 件のうち 1 件（`testALoadAllowedAfterItTimedOutDeliversNothing`）が後始末の検査で落ちた（「Allow Paste」を押した 2.9 秒後にまだアラートがあった。本体の確かめは通っている）。シミュレーターを起動し直してこの 1 件を 3 回流すと 3 回とも通り、通しの 2 回目は 59 件すべて通った。これまでの 40 回を超える実行でこの 1 件だけが落ちたことはないので、アラートの閉じる遅れによる揺れと見て、テストは変えていない | — |
+| 5 | Dialog の画面を、ほかの 3 画面と同じく、タイトルと結果の箱を上に固定してボタンだけをスクロールする形にした（利用者の指示。見た目は変えていないので、1.x の写真は上の位置のままで使える） | `--feature Dialog` の 29 件が通った。今日撮った Dialog の写真 3 枚（`ShowRequestConfirm`・`ShowTwoInOneTurn`・`ShowThenCancel`）を新しい画面で撮り直した | 次のコミット |

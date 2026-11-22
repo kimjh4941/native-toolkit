@@ -84,305 +84,308 @@ struct DialogSampleView: View {
     @State private var callbackCount = 0
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("IosDialogManager Example")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .padding()
+        VStack(spacing: 20) {
+            Text("IosDialogManager Example")
+                .font(.title)
+                .fontWeight(.bold)
+                .padding()
 
-                Text(resultText)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-                    .multilineTextAlignment(.center)
-                    .accessibilityIdentifier(ID.result)
-                    .accessibilityValue("completion=\(completionCount),callback=\(callbackCount)")
+            Text(resultText)
+                .padding()
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(8)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier(ID.result)
+                .accessibilityValue("completion=\(completionCount),callback=\(callbackCount)")
+                .padding(.horizontal)
 
-                // ShowAlert
-                Button(action: {
-                    IosDialogManager.shared.showAlert(
-                        title: "Hello from iOS",
-                        message: "This is a native iOS dialog!",
-                        buttonText: "OK",
-                        onButton: { buttonText, isSuccess, errorMessage in
-                            logger.debug("[showAlert][onButton] buttonText: \(buttonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showAlert][onButton] buttonText: " + (buttonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        completion: { isSuccess, errorMessage in
-                            logger.debug("[showAlert][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .completion, isSuccess: isSuccess, result: "[showAlert][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        }
-                    )
-                }) {
-                    Text("ShowAlert")
-                        .buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showAlert))
-
-                // ShowConfirmDialog
-                Button(action: {
-                    IosDialogManager.shared.showConfirmDialog(
-                        title: "Confirm Action",
-                        message: "Are you sure you want to proceed?",
-                        confirmTitle: "Yes",
-                        cancelTitle: "No",
-                        onConfirm: { confirmButtonText, isSuccess, errorMessage in
-                            logger.debug("[showConfirmDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showConfirmDialog][onConfirm] confirmButtonText: " + (confirmButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            logger.debug("[showConfirmDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showConfirmDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        completion: { isSuccess, errorMessage in
-                            logger.debug("[showConfirmDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .completion, isSuccess: isSuccess, result: "[showConfirmDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        }
-                    )
-                }) {
-                    Text("ShowConfirmDialog")
-                        .buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showConfirmDialog))
-
-                // ShowDestructiveDialog
-                Button(action: {
-                    IosDialogManager.shared.showDestructiveDialog(
-                        title: "Delete File",
-                        message: "This action cannot be undone. Are you sure?",
-                        destructiveTitle: "Delete",
-                        cancelTitle: "Cancel",
-                        onDestructive: { destructiveButtonText, isSuccess, errorMessage in
-                            logger.debug("[showDestructiveDialog][onDestructive] destructiveButtonText: \(destructiveButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showDestructiveDialog][onDestructive] destructiveButtonText: " + (destructiveButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            logger.debug("[showDestructiveDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showDestructiveDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        completion: { isSuccess, errorMessage in
-                            logger.debug("[showDestructiveDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .completion, isSuccess: isSuccess, result: "[showDestructiveDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        }
-                    )
-                }) {
-                    Text("ShowDestructiveDialog")
-                        .buttonStyle(backgroundColor: .red)
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showDestructiveDialog))
-
-                // ShowActionSheet
-                Button(action: {
-                    if let rootVC = IosDialogManager.shared.getRootViewController() {
-                        IosDialogManager.shared.showActionSheet(
-                            title: "Please select",
-                            message: "Please choose an option",
-                            options: ["Camera", "Photo Library", "Documents"],
-                            cancelTitle: "Cancel",
-                            sourceView: rootVC.view,
-                            // A point at the centre: with the whole view as the anchor (nil), the
-                            // iPad popover had no room and showed no options (1b D23).
-                            sourceRect: CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0),
-                            animated: true,
-                            onAction: { action, isSuccess, errorMessage in
-                                logger.debug("[showActionSheet][onAction] action: \(action ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showActionSheet][onAction] action: " + (action ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+            ScrollView {
+                VStack(spacing: 20) {
+                    // ShowAlert
+                    Button(action: {
+                        IosDialogManager.shared.showAlert(
+                            title: "Hello from iOS",
+                            message: "This is a native iOS dialog!",
+                            buttonText: "OK",
+                            onButton: { buttonText, isSuccess, errorMessage in
+                                logger.debug("[showAlert][onButton] buttonText: \(buttonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showAlert][onButton] buttonText: " + (buttonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                             },
                             completion: { isSuccess, errorMessage in
-                                logger.debug("[showActionSheet][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                                updateResult(kind: .completion, isSuccess: isSuccess, result: "[showActionSheet][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                                logger.debug("[showAlert][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .completion, isSuccess: isSuccess, result: "[showAlert][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
                             }
                         )
+                    }) {
+                        Text("ShowAlert")
+                            .buttonStyle()
                     }
-                }) {
-                    Text("ShowActionSheet")
-                        .buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showActionSheet))
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showAlert))
 
-                // ShowTextInputDialog
-                Button(action: {
-                    IosDialogManager.shared.showTextInputDialog(
-                        title: "Enter Name",
-                        message: "Please enter your name",
-                        placeholder: "Your name here",
-                        confirmTitle: "OK",
-                        cancelTitle: "Cancel",
-                        enableConfirmWhenEmpty: false,
-                        onConfirm: { confirmButtonText, inputText, isSuccess, errorMessage in
-                            logger.debug("[showTextInputDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil", privacy: .private), inputTextLength: \(inputText?.utf8.count ?? 0, privacy: .public), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showTextInputDialog][onConfirm] confirmButtonText: " + (confirmButtonText ?? "nil") + ", inputText: " + (inputText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            logger.debug("[showTextInputDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showTextInputDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        completion: { isSuccess, errorMessage in
-                            logger.debug("[showTextInputDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .completion, isSuccess: isSuccess, result: "[showTextInputDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                    // ShowConfirmDialog
+                    Button(action: {
+                        IosDialogManager.shared.showConfirmDialog(
+                            title: "Confirm Action",
+                            message: "Are you sure you want to proceed?",
+                            confirmTitle: "Yes",
+                            cancelTitle: "No",
+                            onConfirm: { confirmButtonText, isSuccess, errorMessage in
+                                logger.debug("[showConfirmDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showConfirmDialog][onConfirm] confirmButtonText: " + (confirmButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            onCancel: { cancelButtonText, isSuccess, errorMessage in
+                                logger.debug("[showConfirmDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showConfirmDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            completion: { isSuccess, errorMessage in
+                                logger.debug("[showConfirmDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .completion, isSuccess: isSuccess, result: "[showConfirmDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            }
+                        )
+                    }) {
+                        Text("ShowConfirmDialog")
+                            .buttonStyle()
+                    }
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showConfirmDialog))
+
+                    // ShowDestructiveDialog
+                    Button(action: {
+                        IosDialogManager.shared.showDestructiveDialog(
+                            title: "Delete File",
+                            message: "This action cannot be undone. Are you sure?",
+                            destructiveTitle: "Delete",
+                            cancelTitle: "Cancel",
+                            onDestructive: { destructiveButtonText, isSuccess, errorMessage in
+                                logger.debug("[showDestructiveDialog][onDestructive] destructiveButtonText: \(destructiveButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showDestructiveDialog][onDestructive] destructiveButtonText: " + (destructiveButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            onCancel: { cancelButtonText, isSuccess, errorMessage in
+                                logger.debug("[showDestructiveDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showDestructiveDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            completion: { isSuccess, errorMessage in
+                                logger.debug("[showDestructiveDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .completion, isSuccess: isSuccess, result: "[showDestructiveDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            }
+                        )
+                    }) {
+                        Text("ShowDestructiveDialog")
+                            .buttonStyle(backgroundColor: .red)
+                    }
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showDestructiveDialog))
+
+                    // ShowActionSheet
+                    Button(action: {
+                        if let rootVC = IosDialogManager.shared.getRootViewController() {
+                            IosDialogManager.shared.showActionSheet(
+                                title: "Please select",
+                                message: "Please choose an option",
+                                options: ["Camera", "Photo Library", "Documents"],
+                                cancelTitle: "Cancel",
+                                sourceView: rootVC.view,
+                                // A point at the centre: with the whole view as the anchor (nil), the
+                                // iPad popover had no room and showed no options (1b D23).
+                                sourceRect: CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0),
+                                animated: true,
+                                onAction: { action, isSuccess, errorMessage in
+                                    logger.debug("[showActionSheet][onAction] action: \(action ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                    updateResult(kind: .callback, isSuccess: isSuccess, result: "[showActionSheet][onAction] action: " + (action ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                                },
+                                completion: { isSuccess, errorMessage in
+                                    logger.debug("[showActionSheet][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                    updateResult(kind: .completion, isSuccess: isSuccess, result: "[showActionSheet][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                                }
+                            )
                         }
-                    )
-                }) {
-                    Text("ShowTextInputDialog")
-                        .buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showTextInputDialog))
-
-                // ShowLoginDialog
-                Button(action: {
-                    IosDialogManager.shared.showLoginDialog(
-                        title: "Login Required",
-                        message: "Please enter your credentials",
-                        usernamePlaceholder: "Username",
-                        passwordPlaceholder: "Password",
-                        loginTitle: "Login",
-                        cancelTitle: "Cancel",
-                        enableLoginWhenEmpty: false,
-                        onLogin: { loginButtonText, username, password, isSuccess, errorMessage in
-                            logger.debug("[showLoginDialog][onLogin] loginButtonText: \(loginButtonText ?? "nil", privacy: .private), usernameLength: \(username?.utf8.count ?? 0, privacy: .public), passwordLength: \(password?.utf8.count ?? 0, privacy: .public), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showLoginDialog][onLogin] loginButtonText: " + (loginButtonText ?? "nil") + ", username: " + (username ?? "nil") + ", password: " + (password.map { "<length=\($0.utf8.count)>" } ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        onCancel: { cancelButtonText, isSuccess, errorMessage in
-                            logger.debug("[showLoginDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .callback, isSuccess: isSuccess, result: "[showLoginDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        },
-                        completion: { isSuccess, errorMessage in
-                            logger.debug("[showLoginDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
-                            updateResult(kind: .completion, isSuccess: isSuccess, result: "[showLoginDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
-                        }
-                    )
-                }) {
-                    Text("ShowLoginDialog")
-                        .buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showLoginDialog))
-
-                // MARK: Swift API (2.0.0)
-
-                Text("Swift API (2.0.0)")
-                    .font(.headline)
-
-                requestButton("ShowRequestAlert", ID.ButtonName.showRequestAlert,
-                              .alert(title: "Request Alert", message: "Shown by show(_:presenter:)"))
-                requestButton("ShowRequestConfirm", ID.ButtonName.showRequestConfirm,
-                              .confirm(title: "Request Confirm", message: "Proceed?", confirmTitle: "Yes", cancelTitle: "No"))
-                requestButton("ShowRequestDestructive", ID.ButtonName.showRequestDestructive,
-                              .destructive(title: "Request Delete", message: "This cannot be undone."))
-                requestButton("ShowRequestActionSheet", ID.ButtonName.showRequestActionSheet,
-                              .actionSheet(title: "Request Sheet", message: "Choose a color", options: ["Red", "Green", "Blue"]))
-                requestButton("ShowRequestTextInput", ID.ButtonName.showRequestTextInput,
-                              .textInput(title: "Request Name", message: "Enter your name", placeholder: "Your name here",
-                                         enableConfirmWhenEmpty: false))
-                requestButton("ShowRequestLogin", ID.ButtonName.showRequestLogin,
-                              .login(title: "Request Login", message: "Enter your credentials", enableLoginWhenEmpty: false))
-
-                // Two requests in the same turn of the main queue (P1-12): the second waits for the
-                // first's presentation and is shown over it.
-                Button(action: {
-                    logger.debug("[showTwoInOneTurn]")
-                    for (title, button) in [("First", "First OK"), ("Second", "Second OK")] {
-                        IosDialogManager.shared.show(.alert(title: title, message: nil, buttonTitle: button),
-                                                     presenter: .foreground) { result in
-                            report("alert", result)
-                        }
+                    }) {
+                        Text("ShowActionSheet")
+                            .buttonStyle()
                     }
-                }) {
-                    Text("ShowTwoInOneTurn").buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showTwoInOneTurn))
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showActionSheet))
 
-                // Cancelled 3 seconds after the tap (P1-24). The result line says whether the dialog
-                // was shown when it was cancelled (`shown=true`).
-                Button(action: {
-                    logger.debug("[showThenCancel]")
-                    let moment = DialogMoment()
-                    let box = IosDialogManager.shared.show(.alert(title: "Cancel Me", message: "Cancelled after 3 seconds"),
-                                                           presenter: .foreground) { result in
-                        report("alert", result, note: moment.note)
+                    // ShowTextInputDialog
+                    Button(action: {
+                        IosDialogManager.shared.showTextInputDialog(
+                            title: "Enter Name",
+                            message: "Please enter your name",
+                            placeholder: "Your name here",
+                            confirmTitle: "OK",
+                            cancelTitle: "Cancel",
+                            enableConfirmWhenEmpty: false,
+                            onConfirm: { confirmButtonText, inputText, isSuccess, errorMessage in
+                                logger.debug("[showTextInputDialog][onConfirm] confirmButtonText: \(confirmButtonText ?? "nil", privacy: .private), inputTextLength: \(inputText?.utf8.count ?? 0, privacy: .public), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showTextInputDialog][onConfirm] confirmButtonText: " + (confirmButtonText ?? "nil") + ", inputText: " + (inputText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            onCancel: { cancelButtonText, isSuccess, errorMessage in
+                                logger.debug("[showTextInputDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showTextInputDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            completion: { isSuccess, errorMessage in
+                                logger.debug("[showTextInputDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .completion, isSuccess: isSuccess, result: "[showTextInputDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            }
+                        )
+                    }) {
+                        Text("ShowTextInputDialog")
+                            .buttonStyle()
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        moment.note = "shown=\(Self.isDialogShown())"
-                        IosDialogManager.shared.cancel(box)
-                    }
-                }) {
-                    Text("ShowThenCancel").buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showThenCancel))
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showTextInputDialog))
 
-                // Shown, covered by another screen after 1 second, cancelled after 2 seconds; the
-                // cover closes itself 3 seconds later (P1-24: a covered dialog stays). The result
-                // line says whether the cover was over the dialog when it was cancelled
-                // (`covered=true`).
-                Button(action: {
-                    logger.debug("[showCoverThenCancel]")
-                    let moment = DialogMoment()
-                    let box = IosDialogManager.shared.show(.confirm(title: "Covered", message: "Covered, then cancelled",
-                                                                    confirmTitle: "Yes", cancelTitle: "No"),
-                                                           presenter: .foreground) { result in
-                        report("confirm", result, note: moment.note)
+                    // ShowLoginDialog
+                    Button(action: {
+                        IosDialogManager.shared.showLoginDialog(
+                            title: "Login Required",
+                            message: "Please enter your credentials",
+                            usernamePlaceholder: "Username",
+                            passwordPlaceholder: "Password",
+                            loginTitle: "Login",
+                            cancelTitle: "Cancel",
+                            enableLoginWhenEmpty: false,
+                            onLogin: { loginButtonText, username, password, isSuccess, errorMessage in
+                                logger.debug("[showLoginDialog][onLogin] loginButtonText: \(loginButtonText ?? "nil", privacy: .private), usernameLength: \(username?.utf8.count ?? 0, privacy: .public), passwordLength: \(password?.utf8.count ?? 0, privacy: .public), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showLoginDialog][onLogin] loginButtonText: " + (loginButtonText ?? "nil") + ", username: " + (username ?? "nil") + ", password: " + (password.map { "<length=\($0.utf8.count)>" } ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            onCancel: { cancelButtonText, isSuccess, errorMessage in
+                                logger.debug("[showLoginDialog][onCancel] cancelButtonText: \(cancelButtonText ?? "nil", privacy: .private), isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .callback, isSuccess: isSuccess, result: "[showLoginDialog][onCancel] cancelButtonText: " + (cancelButtonText ?? "nil") + ", isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            },
+                            completion: { isSuccess, errorMessage in
+                                logger.debug("[showLoginDialog][completion] isSuccess: \(isSuccess, privacy: .public), errorMessage: \(errorMessage ?? "nil", privacy: .private)")
+                                updateResult(kind: .completion, isSuccess: isSuccess, result: "[showLoginDialog][completion] isSuccess: " + (isSuccess ? "true" : "false") + ", errorMessage: " + (errorMessage ?? "nil"))
+                            }
+                        )
+                    }) {
+                        Text("ShowLoginDialog")
+                            .buttonStyle()
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                        let cover = DialogCoverViewController()
-                        IosDialogManager.shared.foregroundViewController()?.present(cover, animated: true)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                            let covered = cover.presentingViewController is UIAlertController
-                                && IosDialogManager.shared.foregroundViewController() === cover
-                            moment.note = "covered=\(covered)"
-                            IosDialogManager.shared.cancel(box)
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                cover.presentingViewController?.dismiss(animated: true)
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showLoginDialog))
+
+                    // MARK: Swift API (2.0.0)
+
+                    Text("Swift API (2.0.0)")
+                        .font(.headline)
+
+                    requestButton("ShowRequestAlert", ID.ButtonName.showRequestAlert,
+                                  .alert(title: "Request Alert", message: "Shown by show(_:presenter:)"))
+                    requestButton("ShowRequestConfirm", ID.ButtonName.showRequestConfirm,
+                                  .confirm(title: "Request Confirm", message: "Proceed?", confirmTitle: "Yes", cancelTitle: "No"))
+                    requestButton("ShowRequestDestructive", ID.ButtonName.showRequestDestructive,
+                                  .destructive(title: "Request Delete", message: "This cannot be undone."))
+                    requestButton("ShowRequestActionSheet", ID.ButtonName.showRequestActionSheet,
+                                  .actionSheet(title: "Request Sheet", message: "Choose a color", options: ["Red", "Green", "Blue"]))
+                    requestButton("ShowRequestTextInput", ID.ButtonName.showRequestTextInput,
+                                  .textInput(title: "Request Name", message: "Enter your name", placeholder: "Your name here",
+                                             enableConfirmWhenEmpty: false))
+                    requestButton("ShowRequestLogin", ID.ButtonName.showRequestLogin,
+                                  .login(title: "Request Login", message: "Enter your credentials", enableLoginWhenEmpty: false))
+
+                    // Two requests in the same turn of the main queue (P1-12): the second waits for the
+                    // first's presentation and is shown over it.
+                    Button(action: {
+                        logger.debug("[showTwoInOneTurn]")
+                        for (title, button) in [("First", "First OK"), ("Second", "Second OK")] {
+                            IosDialogManager.shared.show(.alert(title: title, message: nil, buttonTitle: button),
+                                                         presenter: .foreground) { result in
+                                report("alert", result)
                             }
                         }
+                    }) {
+                        Text("ShowTwoInOneTurn").buttonStyle()
                     }
-                }) {
-                    Text("ShowCoverThenCancel").buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showCoverThenCancel))
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showTwoInOneTurn))
 
-                // Dismissed by the sample from outside the library 3 seconds after the tap (the
-                // release watch: dismissedBySystem). The result line says whether the dialog was
-                // shown when it was dismissed (`shown=true`).
-                Button(action: {
-                    logger.debug("[showThenDismissFromOutside]")
-                    let moment = DialogMoment()
-                    IosDialogManager.shared.show(.alert(title: "Dismissed From Outside", message: "Dismissed after 3 seconds"),
-                                                 presenter: .foreground) { result in
-                        report("alert", result, note: moment.note)
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        moment.note = "shown=\(Self.isDialogShown())"
-                        let top = IosDialogManager.shared.foregroundViewController()
-                        top?.presentingViewController?.dismiss(animated: true)
-                    }
-                }) {
-                    Text("ShowThenDismissFromOutside").buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showThenDismissFromOutside))
-
-                #if DEBUG
-                // Test only: shown 3 seconds later, so that a UI test can move the app to the
-                // background (notForeground) or pull Control Center over it (foregroundInactive).
-                Button(action: {
-                    logger.debug("[showAfter3Seconds]")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        // The scene's state when the request is made, in the result line, so that the
-                        // UI test can tell that it reached the state it wanted (MS-02).
-                        let state = Self.sceneState()
-                        IosDialogManager.shared.show(.alert(title: "Delayed", message: "Shown 3 seconds later"),
-                                                     presenter: .foreground) { result in
-                            report("alert@\(state)", result)
+                    // Cancelled 3 seconds after the tap (P1-24). The result line says whether the dialog
+                    // was shown when it was cancelled (`shown=true`).
+                    Button(action: {
+                        logger.debug("[showThenCancel]")
+                        let moment = DialogMoment()
+                        let box = IosDialogManager.shared.show(.alert(title: "Cancel Me", message: "Cancelled after 3 seconds"),
+                                                               presenter: .foreground) { result in
+                            report("alert", result, note: moment.note)
                         }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            moment.note = "shown=\(Self.isDialogShown())"
+                            IosDialogManager.shared.cancel(box)
+                        }
+                    }) {
+                        Text("ShowThenCancel").buttonStyle()
                     }
-                }) {
-                    Text("ShowAfter3Seconds").buttonStyle()
-                }
-                .accessibilityIdentifier(ID.button(ID.ButtonName.showAfter3Seconds))
-                #endif
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showThenCancel))
 
-                Spacer()
+                    // Shown, covered by another screen after 1 second, cancelled after 2 seconds; the
+                    // cover closes itself 3 seconds later (P1-24: a covered dialog stays). The result
+                    // line says whether the cover was over the dialog when it was cancelled
+                    // (`covered=true`).
+                    Button(action: {
+                        logger.debug("[showCoverThenCancel]")
+                        let moment = DialogMoment()
+                        let box = IosDialogManager.shared.show(.confirm(title: "Covered", message: "Covered, then cancelled",
+                                                                        confirmTitle: "Yes", cancelTitle: "No"),
+                                                               presenter: .foreground) { result in
+                            report("confirm", result, note: moment.note)
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            let cover = DialogCoverViewController()
+                            IosDialogManager.shared.foregroundViewController()?.present(cover, animated: true)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                let covered = cover.presentingViewController is UIAlertController
+                                    && IosDialogManager.shared.foregroundViewController() === cover
+                                moment.note = "covered=\(covered)"
+                                IosDialogManager.shared.cancel(box)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                    cover.presentingViewController?.dismiss(animated: true)
+                                }
+                            }
+                        }
+                    }) {
+                        Text("ShowCoverThenCancel").buttonStyle()
+                    }
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showCoverThenCancel))
+
+                    // Dismissed by the sample from outside the library 3 seconds after the tap (the
+                    // release watch: dismissedBySystem). The result line says whether the dialog was
+                    // shown when it was dismissed (`shown=true`).
+                    Button(action: {
+                        logger.debug("[showThenDismissFromOutside]")
+                        let moment = DialogMoment()
+                        IosDialogManager.shared.show(.alert(title: "Dismissed From Outside", message: "Dismissed after 3 seconds"),
+                                                     presenter: .foreground) { result in
+                            report("alert", result, note: moment.note)
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            moment.note = "shown=\(Self.isDialogShown())"
+                            let top = IosDialogManager.shared.foregroundViewController()
+                            top?.presentingViewController?.dismiss(animated: true)
+                        }
+                    }) {
+                        Text("ShowThenDismissFromOutside").buttonStyle()
+                    }
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showThenDismissFromOutside))
+
+                    #if DEBUG
+                    // Test only: shown 3 seconds later, so that a UI test can move the app to the
+                    // background (notForeground) or pull Control Center over it (foregroundInactive).
+                    Button(action: {
+                        logger.debug("[showAfter3Seconds]")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            // The scene's state when the request is made, in the result line, so that the
+                            // UI test can tell that it reached the state it wanted (MS-02).
+                            let state = Self.sceneState()
+                            IosDialogManager.shared.show(.alert(title: "Delayed", message: "Shown 3 seconds later"),
+                                                         presenter: .foreground) { result in
+                                report("alert@\(state)", result)
+                            }
+                        }
+                    }) {
+                        Text("ShowAfter3Seconds").buttonStyle()
+                    }
+                    .accessibilityIdentifier(ID.button(ID.ButtonName.showAfter3Seconds))
+                    #endif
+
+                    Spacer()
+                }
+                .padding()
             }
-            .padding()
         }
     }
 
