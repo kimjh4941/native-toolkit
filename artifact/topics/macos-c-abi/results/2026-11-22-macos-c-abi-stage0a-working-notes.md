@@ -83,3 +83,119 @@
 **分かったこと**: macOS 15.8.3 では、Apple のヘッダーの「mouseDown で呼ぶ」に反しても、ピッカーは出た。D-6 の「いつも main に積んで出す」のまま Share を出せる見込みで、Share を D-6 の例外にする必要は今のところ無い。`close()` で閉じると完了（`didChoose(nil)`）が来る。
 
 **確かめていないこと**: 出たピッカーの中身（サービスの一覧）が正しく並び、選べるか（ここでは window が出たことだけを見た。実の選ぶ操作は 0a の UI テストで見る）。macOS 26 での振る舞い（この Mac の画面を使うので流していない。区切りで許可を得て見るか、0a の UI テストで見る）。Unity の `Update` の中からの呼び出し（1a-9 で見る）。
+
+## 4. 0a: XCUITest で扱える項目（VM の 15.8.3）
+
+- 日時と環境: 2026-11-22 23:50〜11-23 0:35（日本時間。VM の時計は UTC で、下の時刻は VM の時刻）。VM `ntk-macos-15-new`（macOS 15.8.3、24H241、`--no-graphics --no-clipboard`、フォルダーの共有なし、個人のアカウントなし）。この Mac では何も流していない（区分 2・3）
+- ソース: `git archive HEAD mac`（`0ddef5d0`）を VM に写して組んだ。サンプルとランナーは ad-hoc の署名（`CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=`）。チームの署名は使っていない
+- 試作: `results/probes/0a-uitest-spike/`。試作のアプリ（`app/`。bundle id `dev.ntkprobe.notif0a`、サンドボックスなし。パネルを見るためにサンドボックスありの `dev.ntkprobe.sbx0a` も組む）と、それを動かす UI テスト（`uitest/`。VM の中のサンプルの写しの `MacLibraryExampleUITests` のフォルダーに置いて流した。リポジトリのサンプルには入れていない）。UI テストのランナーはサンドボックスの中なので、試作のアプリの記録（`~/ntk/probe-events.log`）は ssh で読んだ
+
+### 4.1 VM でしたこと（VM の状態を変えたもの）
+
+| したこと | 理由 |
+|---|---|
+| `sudo automationmodetool enable-automationmode-without-authentication`、`sudo DevToolsSecurity -enable`、`admin` を `_developer` に入れた | XCUITest の自動化を、人の認証なしに始めるため。これだけで UI テストが走った（アクセシビリティの許可の画面は出なかった） |
+| 通知の設定の `com.apple.ncprefs` の `dnd_prefs` の `dndMirrored` を `false` にし、`cfprefsd`・`usernoted`・`NotificationCenter` を立て直した（`scripts/nc-allow-when-shared.sh`） | **既定のままでは、XCUITest の実行中は通知のバナーが出ない**。テストの間、通知センターのログに `isScreenShared=1`・`mutedByDisplayState=true` が出て、通知は `muted` として一覧にだけ入った。XCTest が画面を取り込むのを「画面の共有」と見なしている（推測。スクリーンショットを 1 枚取っただけでも同じログが出た）。システム設定の「画面の共有中も通知を許可」に当たる値 |
+| 通知の許可を戻すために、`com.apple.ncprefs` の `apps` から試作の項目を消して同じ daemon を立て直した（`scripts/ncreset.sh`）。各回の前に 1 回 | 4.4 |
+| 試作のアプリに `defaults write dev.ntkprobe.notif0a EnablePasteboardPrivacyDeveloperPreview -bool yes` | 貼り付け板のプライバシーの確認（macOS 15.4 からのプレビュー）を出すため |
+
+### 4.2 既存の UI テスト（サンプル、Xcode 26.3）
+
+`MacLibraryExampleUITests` の全件を 1 回流した。実行は 38 件（Clipboard 11、Clipboard の待ちの規則 6、Share 17、`MacLibraryExampleUITests` 2、起動の画面 1 件を見た目の 2 通りで 2）。1 回に約 6 分（343 秒）。
+
+| 結果 | 件数 | 落ちたテストと理由 |
+|---|---|---|
+| 通った | 34 | Share のメール（`testShareViaMailCompletesWithMailService`）も通った。VM はメールのアカウントが無く、何も送られていない。メールのアプリが起動して通知の許可を求めた（通知センターに問い合わせが残った） |
+| 落ちた | 4 | **Share の 3 件**（`testShareTextPickerAppearsAndCancelResolves`・`testShareTextPickerCopyServiceCompletes`・`testShareExcludingServicesPickerResolves`）: どれも共有のピッカーの「Copy」のボタンを待って落ちた。**macOS 15.8.3 のピッカー（テキスト）には「Copy」が無い**（並ぶのは Mail・Messages・Notes・Freeform・Reminders・Edit Extensions…。4.3 の S20）。ほかのピッカーのテスト（URL・画像・ファイルなど 7 件）は、Copy が無いと Escape で閉じる作りなので通ったが、15 では「選んで完了する」経路を確かめていない。**Clipboard の 1 件**（`testObservationStopsWhenTheScreenIsLeft`）: 画面を離れて戻っても状態が「Observing」のまま（期待は「Not observing」）。2 回流して 2 回とも同じ。原因は調べていない（macOS 26 のこの Mac で通るかも確かめていない） |
+
+**Xcode 26.6（`DEVELOPER_DIR=/Applications/Xcode26.6.app/Contents/Developer`）では流せなかった**: `xcodebuild -version` は通るが、ワークスペースを開く段階で `IDESimulatorFoundation` のプラグインを読めずに止まった（`/Library/Developer/PrivateFrameworks/DVTDownloads.framework` の版が合わない）。`-checkFirstLaunchStatus` は 69（初回の準備が要る）。`-runFirstLaunch` は VM の `/Library/Developer` の共有の部品を 26.6 の版に替え、主に使う 26.3 を壊すおそれがあるので行っていない。26.6 の部品が macOS 15 に入るかも分からない（Apple の表では 26.6 は 26.2 以上）。
+
+### 4.3 項目ごとの結果
+
+スパイクの本体（`Stage0aSpikeTests` の 17 件）は、許可の状態を戻してから **3 回流して 3 回とも 17 件すべて通った**（1 回に約 3 分 40 秒）。通知センターの一覧と本文のクリックのコールドスタートの変形（`Stage0aSpike2Tests`）は 1 回。
+
+| 項目 | 自動化 | 方法 | 3 回 |
+|---|---|---|---|
+| 通知の許可の問い合わせ（許可） | **できる** | 問い合わせは `com.apple.notificationcenterui` の木に、label「“<アプリ名>” Notifications, Notifications may include alerts, sounds, and icon badges.」の group として約 1.1 秒で出る（ログでは `com.apple.notificationcenter.askpermissions` が出す通知）。hover すると「Options」の `MenuButton` が出て、押すとメニューに「Allow」「Don’t Allow」が並ぶ。「Allow」で `granted=true`。**答える前にアプリが終わると問い合わせは消え、状態は拒否（`authorizationStatus=1`）になった**（最初の探りで、テストの終わりの片付けがアプリを止めた）。XCTest が問い合わせを勝手に押すこと（iOS の Default interruption handler）は無かった（20 秒以上そのまま残った） | 3/3 |
+| 許可の問い合わせ（拒否） | 試していない | 同じメニューの「Don’t Allow」で押せる見込み | - |
+| 通知のバナー（前面。`willPresent` で `.banner`） | **できる** | 4.1 の `dndMirrored` の変更が要る。バナーは `com.apple.notificationcenterui` の group で、label は「<アプリ名>, <題>, <本文>」。約 1.06 秒で出る。押すと `didReceive`（既定のアクション） | 3/3 |
+| 通知のバナー（後ろ。Finder を前に出す） | **できる** | 同じ。バナーは約 5 秒で消える（6 秒後には無い） | 3/3 |
+| 通知センターの一覧 | **できる（1 回）** | メニューバーの時計（`com.apple.controlcenter` の status item、identifier `com.apple.menuextra.clock`）を押すと一覧が開く。**同じアプリの通知は重なり（label の末尾に「, stacked」）、1 回目のクリックで広がり、2 回目で開いた**（コールドスタートした）。`removeAllDeliveredNotifications` の後も、前の回の通知が一覧に残っていた（原因は調べていない） | 1/1 |
+| アクションのボタン | **できる** | バナーを hover → 「Options」の `MenuButton` → アクションの題（「Open FG」「Mark BG」「Reply」）のメニューの項目を押す | 3/3 |
+| テキスト入力のアクション | **できる** | 「Reply」を選ぶとバナーが広がり、`TextView` と「Send」のボタンが出る。`typeText` で入れて Send。`UNTextInputNotificationResponse.userText` に届いた | 3/3 |
+| 予約した通知の発火を待つ | **できる** | 10 秒の予約を `waitForExistence(timeout: 25)` で待てた。予約の後 9.1〜10.1 秒で見つかった | 3/3 |
+| コールドスタート（本文のクリック） | **できる** | `terminate()` の後に 8 秒の予約が発火したバナーを押す。**最初の版では 1 回起動しなかった**（要素を `descendants(matching: .any)` で探し、出た直後に押した。どちらが原因かは分けていない）。`groups` で探し、出てから 1 秒待って押す形では 3/3、hover の後に題を押す・座標で押す形も 1/1 ずつ | 3/3（1 秒待つ形） |
+| コールドスタート（前面のアクション・後ろのアクション・テキスト入力） | **できる** | 上と同じに止めてから、「Options」から選ぶ | 各 3/3 |
+| 共有のピッカー | **できる（表示・一覧・閉じる）** | ピッカーはアプリ自身の木の `Popover` に出る（システムの別のアプリではない）。サービスはボタンの label で並ぶ。Escape で閉じると `didChoose(nil)`。サービスを選ぶことはしていない（15 には副作用の無い「Copy」が無い。Notes・Reminders はデータを書く） | 3/3 |
+| `NSAlert`（ボタン、ヘルプ） | **できる** | アプリの木の `Dialog`（label「alert」）。ボタンの identifier は `action-button-1`（最初のボタン）・`action-button-2`、ヘルプは label「Help」のボタンで、押すと `alertShowHelp(_:)` が呼ばれた | 3/3 |
+| `NSOpenPanel` / `NSSavePanel` | **できる** | サンドボックスなし・ありの両方で、パネルはアプリの木の `Dialog`（identifier `save-panel` / `open-panel`）に出た。サンドボックスありのパネルは別プロセスの view service だが、`XCUIApplication(bundleIdentifier: "com.apple.appkit.xpc.openAndSavePanelService")` では「見つからない」となり、アプリの木から触る。保存は VM の `~/ntk/paneltmp`。サンドボックスありは `directoryURL` にコンテナーの中の道を渡したが、パネルは前に使った `~/ntk/paneltmp` で開き、そこに user-selected の権限で書けた | 各 3/3 |
+| `PasteButton`（SwiftUI） | **できる** | label「Paste」のボタン。**プレビューを有効にした試作では、`PasteButton` を押しても「Allow Paste」「Don’t Allow Paste」の確認が出た**（Apple の説明の「PasteButton は確認なし」と違う。15.8.3 のプレビューの振る舞い）。確認はアプリの木の `Dialog`（label「alert」、identifier `action-button--999` / `--998`。runningboard のログでは `com.apple.appkit.xpc.TrustedUIService`）で、押せる。Allow で中身が届いた。プレビュー無しの `PasteButton` は試作では試していない | 3/3 |
+| 貼り付け板のプライバシーの確認（プログラムで読む） | **できる** | ランナーが一般の貼り付け板（VM の中のもの）に書き、試作が `NSPasteboard.general.string` を読むと確認が出る。「Don’t Allow Paste」で `nil`。同じ中身を一度許した後は、もう一度読んでも確認は出なかった | 3/3 |
+
+**`common.md` の例外にする理由（案）**: 上の「できる」の項目は、版を固定した VM（D-21）で 3 回とも同じに通り、要素は identifier か題の文字で選べた。システムの UI の木の形と文字は OS の版と表示の言語で変わる（VM は英語）ので、テストは版を固定した VM でだけ流し、版を上げたら探りのテスト（`Stage0aDiscover*Tests`）で木を取り直す。
+
+### 4.4 許可の状態を戻すこと
+
+- **VM の中だけで戻せた**: `com.apple.ncprefs` の `apps` の配列から試作の項目を消し、`cfprefsd`・`usernoted`・`NotificationCenter` を立て直すと、`authorizationStatus` が 0（未決）に戻り、`requestAuthorization` で問い合わせがもう一度出た（5 回戻して 5 回とも出た。うち 4 回は続けて「Allow」が通った）。戻す前は 1（拒否）か 2（許可）だった
+- 私物の Mac で同じことをすると、利用者の通知の設定を書き換えることになる（D-23 の「通知の許可の変更」で毎回の許可）。VM の中だけで使う
+- **`tart clone` で複製を取っておく形は試していない**: `device-testing.md` は tart の VM の複製・削除を「1 回ごとに利用者に聞く操作」にしている。こちら（親の agent から頼まれた agent）は利用者に聞けないので、行っていない。上の戻し方で通知の許可は足りるので、複製は「VM の状態をまるごと戻したいとき」の手段として、利用者の許可を得て測る（ディスクの増え方を含む。今の VM は `tart list` で Disk 80 GB、SizeOnDisk 35 GB）
+
+### 4.5 LaunchServices と起動したコピー
+
+- 試作（`dev.ntkprobe.notif0a`）の起動 109 回（XCUITest の `launch()` と、通知からのコールドスタート）は、記録した `Bundle.main.bundlePath` がすべて `/Users/admin/ntk/probe/NtkProbe0a.app` だった
+- VM の `lsregister -dump` で、各 bundle id の登録は 1 つずつ（サンプルは `~/ntk/dd263/Build/Products/Debug/MacLibraryExample.app`、ランナーも同じフォルダー）。Xcode 26.6 の DerivedData（`~/ntk/dd266`）は組む前に止まったので消した
+- 通知からのコールドスタートは、`didFinishLaunching` の `userInfo` に `NSApplicationLaunchUserNotificationKey` が入った（5 章）
+
+### 4.6 後の段階に効くこと
+
+| ID | こと | 扱い |
+|---|---|---|
+| M-1 | XCUITest の間は「画面の共有中」と見なされ、既定では通知のバナーが出ない | 通知の UI テストを流す VM（とこの Mac で流すとき）は `dndMirrored=false` にしておく。この Mac では利用者の設定を変えることになるので、準備として利用者に頼む（D-23 の準備に足す） |
+| M-2 | 許可の問い合わせは、答える前にアプリが終わると消えて拒否になる | 許可のテストは、問い合わせを押すまでアプリを止めない。各回の前に `ncreset.sh` で未決に戻す |
+| M-3 | 15 の共有のピッカーには「Copy」が無く、サンプルの Share の 3 件が落ち、7 件は選ぶ経路を確かめていない | UI テストの設計書（0a の後）で、版ごとの期待（15 は一覧と閉じるだけ、26 は Copy まで）を決める |
+| M-4 | サンプルの `testObservationStopsWhenTheScreenIsLeft` が VM で 2/2 落ちた | 0b の前に原因を見る（macOS 15 の振る舞いか、テストかサンプルか） |
+| M-5 | 通知センターの一覧は重なりを広げる 2 回のクリックが要り、古い通知が残っていた | 一覧を使うテストは 1 件に絞り、バナーを主にする（iOS の R-3 と同じ向き） |
+| M-6 | Xcode 26.6 は VM の中でコマンドラインの組み立てまでで、ワークスペースの UI テストは開けない | D-21 のとおり VM の UI テストは 26.3 で流す。26.6 の `-runFirstLaunch` を試すなら、先に利用者の許可を得て VM の複製を取ってから |
+| M-7 | 試作のアプリでは、受け取ったことを画面の文字（`lastReceive`）で読めた | サンプルにも「最後に受けたイベント」の表示を足す（iOS の R-1 と同じ。0b） |
+
+## 5. 1a-8: 通知の起動の判定
+
+- 日時と環境: 4 章と同じ（VM の 15.8.3）。この Mac では流していない
+- 試作: `results/probes/0a-uitest-spike/app/main.swift`。通知の delegate を `applicationWillFinishLaunching` の中で入れ、`main` の先頭・`willFinishLaunching`・`didFinishLaunching`・`didBecomeActiveNotification`・`didResignActiveNotification`・`didReceive`（と、そこから `DispatchQueue.main.async` で積んだもの）を、時刻・`NSApp.isActive`・プロセスで何回目かとともに記録した
+- 動かし方: 4 章の UI テスト（S02〜S12）。「止まっている」は `XCUIApplication.terminate()` の後に発火した通知から、「動いている」は `launch()` で普通に起動した後（Finder を前に出して後ろにした状態と、前面のままの状態）。3 回流して、3 回とも下の順と値だった。時刻の差は 3 回の幅
+
+### 5.1 結果
+
+| 場合 | 状態 | 順（左から） | `didReceive` の時点の `NSApp.isActive` | 最初の `didBecomeActive` との前後 | その後 |
+|---|---|---|---|---|---|
+| (a) 本文のクリック | 止まっている | `willFinishLaunching`（isActive=true）→ `didFinishLaunching`（userInfo に `NSApplicationLaunchUserNotificationKey`）→ 約 40〜50 ms 後に `didReceive` #1 → 約 25 ms 後に `didBecomeActive` #1 | true | **前** | 前面 |
+| (b) 前面をもたらすアクション（`.foreground`） | 止まっている | 同じ | true | **前** | 前面 |
+| (c) 前面をもたらさないアクション | 止まっている | 同じ | true | **前** | **前面に出た**（`didBecomeActive` が来て、XCUITest の状態も runningForeground） |
+| (c) テキスト入力（options なし） | 止まっている | 同じ | true | **前** | **前面に出た** |
+| (a) 本文のクリック | 動いている（後ろ） | `didReceive` #1 → 約 5〜15 ms 後に `didBecomeActive` #2 | false | 後（#1 は起動のとき） | 前面 |
+| (a) 本文のクリック | 動いている（前面） | バナーを押すと `didResignActive` → `didReceive` #1 → 約 5 ms 後に `didBecomeActive` #2 | false | 後 | 前面 |
+| (b) 前面をもたらすアクション | 動いている（後ろ） | `didReceive` #1 → 約 10 ms 後に `didBecomeActive` #2 | false | 後 | 前面 |
+| (c) 前面をもたらさないアクション・テキスト入力 | 動いている（後ろ） | `didReceive` #1 だけ | false | 後 | 後ろのまま |
+| (d) 普通に起動した後の最初のクリック | 動いている | 上の「動いている」の各行が、どれも起動後の最初のクリック（`launch()` ごとに新しいプロセス） | - | 後 | - |
+
+ほかに分かったこと:
+
+- **`NSApp.isActive` は、どの起動でも `willFinishLaunching` の時点で既に true だった**（XCUITest の `launch()` でも、通知からのコールドスタートでも。`main` の先頭では `NSApp` がまだ無いので false と記録された）。`didBecomeActiveNotification` はその後（`didFinishLaunching` の後）に来る
+- コールドスタートでは、`didReceive` の中から `DispatchQueue.main.async` で積んだものは、`didBecomeActive` #1 の後に走った（iOS 18.3 の G-7 の記録と同じ向き）
+- `NSApplicationLaunchUserNotificationKey` は、通知からのコールドスタートの 4 つの場合すべてで `didFinishLaunching` の `userInfo` に入り、普通の起動（XCUITest の `launch()`）では入らなかった。`NSApplicationLaunchIsDefaultLaunchKey` は XCUITest の起動で true の回と false の回があり、当てにならない
+- 通知センターの一覧からのコールドスタート（4.3、1 回）も、`didReceive` #1（それまでの `didBecomeActive` 0 回）→ `didBecomeActive` #1 の順だった
+
+### 5.2 iOS の判定（P1-22）が成り立つか
+
+- **「プロセスで最初の `didReceive` が、プロセスで最初の `didBecomeActive` より前なら起動のきっかけ」は、測った全部の場合で macOS でも正しく分けた**: 止まっている 4 つの場合は前、動いている（後ろ・前面）場合と普通に起動した後の最初のクリックは後
+- **iOS と違う点（事実）**:
+  1. **前面をもたらさないアクションとテキスト入力でも、止まっている状態からの起動ではアプリが前面に出た**。動いているときは後ろのまま。iOS の U-6 の絞り込み（「起動のきっかけは前面に出す応答だけ。後ろのアクションでの起動はふつうのイベント」）をそのまま写すと、macOS では「前面に出たのに起動のきっかけにならない」場合ができる
+  2. **`NSApp.isActive` は `didBecomeActive` より前から true** なので、iOS の「proxy を初めて入れた時点で既に active なら起動のきっかけは無い」を `NSApp.isActive` に置き換えると、`willFinishLaunching` で入れた場合にコールドスタートを全部「無し」と誤る（レビュー v1 の RA-3 の心配が当たっていた）
+- **推測（設計で決めること）**: 「入れた時点で既に起動が済んでいたか」は、`NSApp.isActive` でなく、(i) `didFinishLaunchingNotification` が既に来たか（来る前に入れたなら、その userInfo の `NSApplicationLaunchUserNotificationKey` も読める）、か (ii) `didBecomeActive` を一度でも受けたか、で分ける形が使える見込み。(c) の扱い（前面に出るので起動のきっかけにするか、iOS に合わせてふつうのイベントにするか）は D-7 の `launch_response` の定義で決める
+
+### 5.3 確かめていないこと
+
+- `didFinishLaunching` より後に delegate を入れた場合（Unity が後から入れる場合を含む。1a-9 で見る）。`didFinishLaunching` の中で入れた場合（`didReceive` は `didFinishLaunching` の約 40 ms 後に来たので間に合う見込みだが、測っていない）
+- Finder や `open` からの普通の起動（測ったのは XCUITest の `launch()` だけ）、ログインの項目からの起動、別の Space・全画面のとき、複数の画面
+- 通知のスタイルを「通知パネル」（alerts）にしたとき。VM は既定の「バナー」のまま
+- macOS 26（この Mac）での順。区切りで利用者の許可を得て見るか、26 の環境で流す
