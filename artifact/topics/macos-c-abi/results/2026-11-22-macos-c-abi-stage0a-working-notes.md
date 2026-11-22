@@ -44,3 +44,42 @@
 **結果（23:35）**: 作り直した 15.7.7 の VM では 15.8.3 への更新が当たったので、D-21 のとおり **15.8.3** の VM になった。下の判断の「当たらなければ 15.7.7」は使わなかった。
 
 **判断（推奨案。利用者の「推奨案でいい」の指示による）**: Cirrus Labs の 15.7.7 のイメージで VM を作り直し、その VM で 15.8.3 への更新をもう一度だけ試す。当たらなければ、15.7.7 を「VM で使える 15 の最新」として使い、D-21 の「15 の最新（15.8.3）」との差をここと決定の文書に書く。15.7.7 でも Xcode 26.3（15.6 以上）は動くので、D-21 の目的（15 の上での単体テストと UI テスト）は変わらない。
+
+## 2. 1a-6: Dialog の下での main への積み方と取り消し
+
+- 日時と環境: 2026-11-23 0 時ごろ、VM `ntk-macos-15-new`（macOS 15.8.3、24H241）。この Mac では流していない（区分 3）
+- 試作: `results/probes/1a6-dialog-main-queue/main.swift`（Xcode 26.3 で組み、ad-hoc の署名の `.app` を VM に写して `open -W` で起動）。アラートは自分で閉じ、人の操作は無い。安全のために、モーダルのモードの Timer で 6 秒後に必ず閉じる
+- 測り方: アラートを開いて 0.5 秒後に、別のスレッドから 5 つの積み方で main に仕事を積み、開いている間に走ったかを記録する。2 秒後に、別のスレッドから GCD か run loop で `NSApp.abortModal()` を積む
+
+| 入り方 | `DispatchQueue.main.async` | `Task { @MainActor }` | `CFRunLoopPerformBlock`（common） | `RunLoop.main.perform`（common） | `performSelector(onMainThread:modes: common)` | 取り消し |
+|---|---|---|---|---|---|---|
+| A: `DispatchQueue.main.async` の中から `runModal`（今の `MacDialogManager`） | 走らない（閉じた後） | 走らない（閉じた後） | 走る | 走る | 走る | GCD で積んだ取り消しは届かず、6 秒の安全の Timer で閉じた。run loop で積んだ取り消しは届いた |
+| T: `Task { @MainActor }` の中から（0e・0f の書き方） | 走らない | 走らない | 走る | 走る | 走る | run loop で積んだ取り消しは届いた |
+| A': `CFRunLoopPerformBlock`（common）の中から | 走る | 走る | 走る | 走る | 走る | GCD で積んだ取り消しが届いた |
+| A': main の run loop の Timer（default）から | 走る | 走る | 走る | 走る | 走る | GCD で積んだ取り消しが届いた |
+
+**分かったこと**:
+
+1. レビュー v1 の RA-1 の心配は当たっていた。今の形（A）と、Swift の main actor から入る形（T）では、アラートが開いている間、main キューと main actor に積んだもの（C ABI の全機能の完了・イベント・`release`、Clipboard の `Task { @MainActor }` を含む）が閉じるまで止まり、GCD で積んだ取り消しも届かない
+2. GCD のブロックの外（run loop のブロックか Timer）から `runModal` に入ると（D-8 の A'）、開いている間も main キューと main actor の仕事が走り、GCD で積んだ取り消しも届く。アラートの見た目は今と同じ
+3. D-8 の判定の基準: (1) ほかの完了が届く → A' で満たした。(2) その要求の Dialog だけを閉じ、ホストのモーダルを閉じない → `abortModal` は今のモーダルを閉じるので、閉じる前に `NSApp.modalWindow` が自分のアラートの window かを確かめる形を第 1 部で設計する（測っていない）。(3) 同じ回の 2 つ目 → A' では開いている間に main キューが捌かれるので、2 つ目の要求が 1 つ目の中で入れ子に `runModal` を始める見込みがある。1 つ目が閉じるまで 2 つ目を待たせる形を第 1 部で設計し、試作で測る（測っていない）
+4. ファイルのパネル（`NSOpenPanel` / `NSSavePanel` の `runModal`）は測っていない。同じ仕組みの見込みだが、第 1 部の前に同じ試作で確かめる
+
+**D-8 への反映**: 推奨は A'（`MacLibrary` の Dialog とパネルの表示の手順を、GCD のブロックの外から `runModal` に入る形に直す）。確定は、Unity で開いている間に描画とプレイヤーのループが止まるか（1a-9）を見てから、0e の前に行う。
+
+## 3. 1a-7: 共有のピッカーを mouseDown の外で出せるか
+
+- 日時と環境: 2026-11-23 0 時ごろ、VM `ntk-macos-15-new`（macOS 15.8.3）。この Mac では流していない（区分 3）
+- 試作: `results/probes/1a7-share-picker-context/main.swift`。window を 1 つ開き、5 つの文脈から `NSSharingServicePicker(items: ["ntk probe text"]).show(relativeTo:of:preferredEdge:)` を呼び、1.5 秒後に自分以外の見える window を数え、`close()` で閉じる。サービスは選ばない（何も送らない）
+
+| 文脈 | `currentEvent` の種類 | ピッカーの popover（`_NSPopoverWindow`）が出たか | `close()` の後の `didChoose(nil)` |
+|---|---|---|---|
+| S1: `DispatchQueue.main.async` | 13（mouseDown ではない） | 出た | 約 0.5 秒後に来た |
+| S2: `Task { @MainActor }` | 21 | 出た | 来た |
+| S3: 合成の mouseDown（`NSApp.postEvent`）の中 | 1（leftMouseDown） | 出た | 来た |
+| S4: 合成の keyDown の中 | 10（keyDown） | 出た | 来た |
+| S5: 別のスレッドから GCD で main に積む | 21 | 出た | 来た |
+
+**分かったこと**: macOS 15.8.3 では、Apple のヘッダーの「mouseDown で呼ぶ」に反しても、ピッカーは出た。D-6 の「いつも main に積んで出す」のまま Share を出せる見込みで、Share を D-6 の例外にする必要は今のところ無い。`close()` で閉じると完了（`didChoose(nil)`）が来る。
+
+**確かめていないこと**: 出たピッカーの中身（サービスの一覧）が正しく並び、選べるか（ここでは window が出たことだけを見た。実の選ぶ操作は 0a の UI テストで見る）。macOS 26 での振る舞い（この Mac の画面を使うので流していない。区切りで許可を得て見るか、0a の UI テストで見る）。Unity の `Update` の中からの呼び出し（1a-9 で見る）。
